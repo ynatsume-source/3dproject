@@ -618,7 +618,7 @@ export function fishMaterial(sp) {
        #endif
        float spec = pow(max(dot(reflect(-SUN, n), V), 0.0), 24.0) * 0.6 * uSunI;
        float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb;
-       vec3 col = absorb(alb * (lightAt(n) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
+       vec3 col = absorb(alb * (lightAt(n, caveLight(vWp)) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
        col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb;
        col += lamp(alb, vWp, n) * 1.2;
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);

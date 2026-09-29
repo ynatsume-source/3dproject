@@ -76,8 +76,8 @@ export const shafts = new THREE.Mesh(buildShafts(70), mat(
    }`,
   `varying vec2 vC; varying float vA;
    void main(){
-     float a = pow(1.0 - abs(vC.x), 1.8) * pow(1.0 - vC.y, 1.6) * vA * 0.085 * mix(0.45, 1.0, exp(min(uCamPos.y, 0.0) * 0.03)) * uSunI;
-     gl_FragColor = vec4(vec3(0.75, 0.95, 0.92) * uTint * a, 1.0);
+     float a = pow(1.0 - abs(vC.x), 1.8) * pow(1.0 - vC.y, 1.6) * vA * 0.085 * mix(0.45, 1.0, exp(min(uCamPos.y, 0.0) * 0.03)) * uShaftI * uCamCave;   // none of these open-water shafts inside the cave
+     gl_FragColor = vec4(uShaftCol * 1.3 * a, 1.0);
    }`,
   { opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide } }));
 shafts.frustumCulled = false;
@@ -176,7 +176,7 @@ export const grassMat = mat(
   `varying vec3 vWp; varying float vT; varying float vCaus; varying float vShade;
    void main(){
      vec3 alb = mix(vec3(0.10, 0.25, 0.11), vec3(0.44, 0.64, 0.27), vT) * vShade;
-     vec3 col = absorb(alb * lightAt(vec3(0.0, 1.0, 0.0)) * 1.2, vWp.y) + absorb(vec3(0.9, 1.0, 0.9), vWp.y) * vCaus * 0.55 * alb * (0.4 + vT);
+     vec3 col = absorb(alb * lightAt(vec3(0.0, 1.0, 0.0), caveLight(vWp + vec3(0.0, 0.3, 0.0))) * 1.2, vWp.y) + absorb(vec3(0.9, 1.0, 0.9), vWp.y) * vCaus * 0.55 * alb * (0.4 + vT);
      col += lamp(alb, vWp, normalize(uCamPos - vWp));
      gl_FragColor = vec4(fogIt(col, vWp), 1.0);
    }`,

@@ -60,6 +60,8 @@ export interface SkyState {
   amb: number;                        // ambient / water brightness 0..1
   night: number;                      // 0 day .. 1 full night
   tint: [number, number, number];     // colour of the light
+  golden: number;                     // 0..1 low sun just after sunrise / before sunset
+  shaftCol: [number, number, number]; shaftI: number;   // colour and strength of the light shafts
   skyLo: [number, number, number]; skyHi: [number, number, number];
   moonDir: [number, number, number]; moonI: number;
   phase: string; phaseLabel: string; moonAge: number; moonName: string;
@@ -85,7 +87,10 @@ export function skyState(ms: number, site: SiteLike): SkyState {
   const amb = 0.035 + 0.965 * dayAmb + moonUp * 0.05;
   const night = 1 - smooth(-0.2, -0.02, sa);
   const low = 1 - smooth(0.04, 0.42, sa);
-  let tint = mix3([1, 1, 1], [1.0, 0.7, 0.48], low * sunI);
+  // golden hour: the low sun burns orange-red through the Snell window and slants its shafts in
+  const altDeg = s.alt * 180 / Math.PI;
+  const golden = smooth(-1.5, 1.0, altDeg) * Math.exp(-(((altDeg - 4) / 7) ** 2));
+  let tint = mix3([1, 1, 1], [1.0, 0.62, 0.4], Math.max(low * sunI, golden * 0.85));
   tint = mix3(tint, [0.62, 0.76, 1.0], night);
   const skyLo = mix3(mix3([0.62, 0.86, 0.92], [0.98, 0.58, 0.36], low), [0.02, 0.03, 0.06], smooth(0.0, 1.0, 1 - dayAmb));
   const skyHi = mix3(mix3([0.86, 0.96, 1.0], [1.0, 0.8, 0.6], low), [0.05, 0.07, 0.12], smooth(0.0, 1.0, 1 - dayAmb));
@@ -98,7 +103,8 @@ export function skyState(ms: number, site: SiteLike): SkyState {
   const phaseLabel = { night: '夜', dawn: '朝', dusk: '夕方', noon: '昼' }[phase];
   return {
     sunDir: s.alt > -0.05 || m.alt < 0 ? toDir(s.alt, s.az) : toDir(m.alt, m.az),
-    sunI: Math.max(sunI, moonUp * 0.06), amb, night, tint, skyLo, skyHi,
+    sunI: Math.max(sunI, moonUp * 0.06), amb, night, tint, skyLo, skyHi, golden,
+    shaftCol: mix3([0.55, 0.9, 0.95], [1.5, 0.92, 0.34], golden), shaftI: Math.max(sunI, golden * 0.5, moonUp * 0.06),
     moonDir: toDir(m.alt, m.az), moonI: moonUp,
     phase, phaseLabel, moonAge: m.age, moonName: moonPhaseName(m.age),
     tideH: t.h, tideRate: t.rate,

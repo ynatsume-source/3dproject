@@ -5,6 +5,9 @@ import * as THREE from 'three';
 // converting colours or output so the look matches the prototype.
 THREE.ColorManagement.enabled = false;
 
+const EMPTY3D = new THREE.Data3DTexture(new Uint8Array([255, 255]), 1, 1, 1);
+EMPTY3D.format = THREE.RGFormat; EMPTY3D.unpackAlignment = 1; EMPTY3D.needsUpdate = true;
+
 export const U = {
   uTime: { value: 0 },
   uCamPos: { value: new THREE.Vector3() },
@@ -17,19 +20,38 @@ export const U = {
   uSunDir: { value: new THREE.Vector3(0.3162, 0.9035, 0.2891) },
   uSunI: { value: 1 }, uAmb: { value: 1 }, uNight: { value: 0 },
   uTint: { value: new THREE.Color(1, 1, 1) },
+  uShaftCol: { value: new THREE.Color(0.55, 0.9, 0.95) }, uShaftI: { value: 1 }, uGolden: { value: 0 },
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 },
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
+  // the sea cave's light volume (see ocean/cave.ts); off in seas without one
+  uCaveTex: { value: EMPTY3D }, uCaveOn: { value: 0 }, uCamCave: { value: 1 },
+  uCaveXf: { value: new THREE.Vector4(0, 0, 1, 0) }, uCaveMin: { value: new THREE.Vector3() }, uCaveExt: { value: new THREE.Vector3(1, 1, 1) }, uCaveN: { value: new THREE.Vector3(1, 1, 1) },
 };
+
+// Light reaching a point inside the cave volume: x = sun, y = open sky. vec2(1) outside it.
+export const CAVE_GLSL = /* glsl */ `
+uniform highp sampler3D uCaveTex; uniform float uCaveOn; uniform float uCamCave;
+uniform vec4 uCaveXf; uniform vec3 uCaveMin; uniform vec3 uCaveExt; uniform vec3 uCaveN;
+vec2 caveLight(vec3 wp){
+  if (uCaveOn < 0.5) return vec2(1.0);
+  vec2 d = wp.xz - uCaveXf.xy;
+  vec3 f = (vec3(d.x * uCaveXf.z + d.y * uCaveXf.w, wp.y, -d.x * uCaveXf.w + d.y * uCaveXf.z) - uCaveMin) / uCaveExt;
+  if (min(f.x, min(f.y, f.z)) < 0.0 || max(f.x, max(f.y, f.z)) > 1.0) return vec2(1.0);
+  return texture(uCaveTex, (f * (uCaveN - 1.0) + 0.5) / uCaveN).rg;
+}
+`;
 
 export const COMMON = /* glsl */ `
 uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
+uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
 #define SUN uSunDir
+${CAVE_GLSL}
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float caustic(vec2 uv, float t){
   vec2 p = mod(uv * 6.28318, 6.28318) - 250.0;
@@ -45,7 +67,7 @@ float caustic(vec2 uv, float t){
 // caustics are projected along the (refracted) sun direction and fade as the sun gets low
 float caus2(vec3 wp){
   vec2 xz = wp.xz - SUN.xz / max(SUN.y, 0.3) * wp.y;
-  return (caustic(xz * 0.075, uTime * 0.45) * 0.65 + caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45) * uSunI * smoothstep(0.55, 0.9, SUN.y);
+  return (caustic(xz * 0.075, uTime * 0.45) * 0.65 + caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45) * uSunI * smoothstep(0.55, 0.9, SUN.y) * caveLight(wp).x;
 }
 float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), u.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x), u.y); }
@@ -60,7 +82,7 @@ float vor(vec2 p){
 }
 vec3 waterCol(vec3 dir){
   vec3 c = dir.y > 0.0 ? mix(uHor, uUp, pow(dir.y, 0.7)) : mix(uHor, uDown, pow(-dir.y, 0.55));
-  c *= mix(vec3(1.0), uTint, 0.6);
+  c *= mix(vec3(1.0), uTint, 0.6 - 0.35 * uGolden);   // at golden hour the water stays blue; the warmth is in the direct light
   return c * mix(0.32, 1.0, exp(min(uCamPos.y, 0.0) * 0.035)) * uAmb;
 }
 vec3 absorb(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs); }
@@ -82,15 +104,17 @@ vec3 fogIt(vec3 col, vec3 wp){
   float den = uFogDen * mix(1.0, 1.6, uNight);
   vec3 T = exp(-den * vec3(1.4, 1.0, 0.78) * d);
   vec3 h = hazeCol(dir);
+  if (uCaveOn > 0.5) h *= mix(0.1, 1.0, mix(uCamCave, caveLight(wp).y, 0.5));   // water inside the cave is dark
   col = col * T + h * (1.0 - T);
   // a light milky veil that settles in over the first dozen metres and then holds, so shapes soften
   // with distance without the view closing in
   return mix(col, h, 0.11 * (1.0 - exp(-d * 0.09)));
 }
-// light reaching a surface with normal n: sky ambient + direct sun (both coloured)
-vec3 lightAt(vec3 n){ return uTint * (uAmb * 0.42 + uSunI * 0.8 * max(dot(n, SUN), 0.0)); }
+// light reaching a surface with normal n; cl = caveLight() where the surface is (sun, sky)
+vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
+vec3 lightAt(vec3 n){ return lightAt(n, vec2(1.0)); }
 vec3 shade(vec3 alb, vec3 wp, vec3 n, float causAmt){
-  vec3 col = absorb(alb * lightAt(n) * 1.6, wp.y);
+  vec3 col = absorb(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6, wp.y);
   col += absorb(vec3(0.95, 1.0, 0.95), wp.y) * caus2(wp) * max(n.y, 0.0) * causAmt * alb;
   col += lamp(alb, wp, n);
   return fogIt(col, wp);

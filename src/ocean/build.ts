@@ -10,6 +10,7 @@ import { makeShoalSystem } from '../eco/shoal';
 import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import type { Sea } from '../data/locations';
+import { Cave } from './cave';
 
 /* ================= building a sea ================= */
 // Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
@@ -36,9 +37,13 @@ class ObstacleMap {
 export function makeT(loc) {
   const T: any = {
     obst: null as ObstacleMap | null,
-    h: (x, z) => loc.f(x, z),
-    // the highest solid surface: terrain, or a rock or coral colony standing on it
-    top: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9),
+    cave: null as Cave | null,
+    // the seabed, or the top of a cave massif (animals keep to the outside of it)
+    h: (x, z) => T.cave ? Math.max(loc.f(x, z), T.cave.topAt(x, z)) : loc.f(x, z),
+    // the highest solid surface: terrain, a cave massif, or a rock or coral colony standing on it
+    top: (x, z) => Math.max(T.h(x, z), T.obst ? T.obst.get(x, z) : -1e9),
+    // what the drone stands off from outside the cave: the massif itself it avoids in 3D (cave.sd)
+    ground: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9),
     reef: (x, z) => { loc.f(x, z); return TERR.reef; },
     slope: (x, z) => Math.hypot(loc.f(x + 0.7, z) - loc.f(x - 0.7, z), loc.f(x, z + 0.7) - loc.f(x, z - 0.7)) / 1.4,
   };
@@ -95,8 +100,10 @@ export function buildOcean(loc) {
   const T = makeT(loc);
   const obst = new ObstacleMap(LIMIT + 45);
   T.obst = obst;
+  const cave = loc.cave ? new Cave(loc.cave, loc.f) : null;
+  T.cave = cave;
   const group = new THREE.Group();
-  const oc: any = { loc, T, group, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
+  const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
 
   // seabed
   const SEGS = 420;
@@ -211,7 +218,7 @@ export function buildOcean(loc) {
   // garden eel colonies on open sand
   for (let tries = 0; oc.colonies.length < loc.eels && tries < 3000; tries++) {
     const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z);
-    if (TERR.reef > 0.02 || h < -24 || h > -6 || T.slope(x, z) > 0.2) continue;
+    if (TERR.reef > 0.02 || h < -24 || h > -6 || T.slope(x, z) > 0.2 || (cave && cave.foot(x, z) > 0)) continue;
     const pos = new THREE.Vector3(x, h, z);
     if (oc.colonies.some((c) => c.pos.distanceTo(pos) < 18)) continue;
     oc.colonies.push({ pos });
@@ -221,6 +228,7 @@ export function buildOcean(loc) {
       items.eel[0].push({ x: ex, z: ez, y: loc.f(ex, ez) - 0.02, ry: 0.3 + (R() - 0.5) * 0.4, sx: 1, sy: rr(0.35, 0.55), sz: 1, c: [0.88, 0.88, 0.8], c2: [0.08, 0.08, 0.08], seed: R() });
     }
   }
+  if (cave) buildCave(cave, group, items);
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish
@@ -236,6 +244,7 @@ export function buildOcean(loc) {
       const x = rr(-LIMIT - 20, LIMIT + 20), z = rr(-LIMIT - 20, LIMIT + 20), h = loc.f(x, z), r = TERR.reef;
       const k = Math.floor(R() * debris.length), d = debris[k];
       if (d.list.length >= want[k]) continue;
+      if (cave && cave.sd(x, h + 0.05, z) < 0.1) continue;                     // not buried in the cave rock
       if (k === 5 ? r < 0.05 || r > 0.8 : r > 0.45) continue;                  // starfish on rubble and reef edge, the rest on sand
       if (k < 4 && R() > 0.25 + r * 1.5) continue;                              // litter thickest near the reef
       const s = k === 4 ? rr(1.1, 1.7) : k === 5 ? rr(0.7, 1.2) : rr(0.6, 1.6);
@@ -389,6 +398,75 @@ export function buildOcean(loc) {
   return oc;
 }
 
+
+// The cave massif: its rock (with orange cup corals crowding the shaded walls), light beams under the
+// skylights, and coral growing on its sunlit top.
+function buildCave(cave: Cave, group: THREE.Group, items: any) {
+  const rock = new THREE.Mesh(cave.geo, mat(
+    `varying vec3 vWp; varying vec3 vN; void main(){ vWp = position; vN = normal; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
+    SURFACE + `varying vec3 vWp; varying vec3 vN;
+     void main(){
+       vec3 n0 = normalize(vN), n;
+       vec2 cl = caveLight(vWp + n0 * 0.3);
+       float open = smoothstep(0.12, 0.5, cl.y);
+       vec3 alb = reefSurface(vWp, n0, mix(0.6, 1.0, open), n);
+       // Tubastraea: orange cup corals on the shaded walls and ceilings, polyps in tight clusters
+       vec2 q = abs(n0.y) > 0.7 ? vWp.xz : vec2(dot(vWp.xz, normalize(vec2(-n0.z, n0.x) + 1e-4)), vWp.y);
+       float cf = cellF1(q * 5.5);
+       float cup = (1.0 - smoothstep(0.1, 0.26, cf)) * smoothstep(0.4, 0.62, vn2(q * 0.45 + 9.0)) * (1.0 - open) * (1.0 - smoothstep(0.2, 0.8, n0.y));
+       alb = mix(alb * mix(0.8, 1.0, open), vec3(1.0, 0.42, 0.07), cup * 0.9);
+       n = bumpN(n, vWp, cup * 0.025 * (1.0 - cf));
+       gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
+     }`, { uniforms: SURF_UNIFORMS }));
+  group.add(rock);
+  // beams: an open cylinder from each skylight down along the sun, glowing brightest along its axis
+  for (const s of cave.skylights) {
+    const g = new THREE.CylinderGeometry(1, 1, 1, 18, 6, true);
+    const beam = new THREE.Mesh(g, mat(
+      `uniform vec3 uTop; uniform float uR; uniform float uDrop; varying vec3 vWp; varying vec3 vAxis; varying vec3 vNr; varying float vT; varying vec2 vQ;
+       void main(){
+         float t = 0.5 - position.y;
+         vec3 dir = -SUN; dir.y = min(dir.y, -0.3); dir = normalize(dir);
+         vec3 a = normalize(cross(dir, vec3(0.0, 0.0, 1.0))), b = cross(dir, a);
+         float len = uDrop / -dir.y;
+         vAxis = uTop + dir * t * len;
+         vec3 off = (a * position.x + b * position.z) * uR * (0.75 + 0.35 * t);
+         vWp = vAxis + off; vNr = normalize(off); vT = t; vQ = vec2(atan(position.z, position.x), t * len);
+         gl_Position = projectionMatrix * viewMatrix * vec4(vWp, 1.0);
+       }`,
+      `varying vec3 vWp; varying vec3 vAxis; varying vec3 vNr; varying float vT; varying vec2 vQ;
+       void main(){
+         vec3 V = normalize(uCamPos - vWp);
+         float core = pow(abs(dot(vNr, V)), 1.6);
+         float ripple = 0.65 + 0.35 * vn2(vec2(vQ.x * 2.0 + uTime * 0.4, vQ.y * 0.35 - uTime * 0.5));
+         float fade = smoothstep(0.0, 0.08, vT) * (1.0 - smoothstep(0.7, 1.0, vT));
+         vec2 ax = caveLight(vAxis);
+         float vis = ax.x * smoothstep(0.97, 0.75, ax.y);   // only inside the rock, not where the beam would leave it
+         float inside = 1.0 - smoothstep(0.4, 0.9, uCamCave) * 0.5;
+         gl_FragColor = vec4(uShaftCol * uShaftI * core * ripple * fade * vis * inside * 0.22, 1.0);
+       }`,
+      { uniforms: { uTop: { value: s.pos.clone() }, uR: { value: s.r }, uDrop: { value: s.pos.y - s.floor + 1.5 } },
+        opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide } }));
+    beam.frustumCulled = false;
+    beam.renderOrder = 2;
+    group.add(beam);
+  }
+  // coral on the sunlit top of the massif
+  const P = cave.geo.attributes.position, N = cave.geo.attributes.normal;
+  for (let i = 0; i < P.count; i++) {
+    if (N.getY(i) < 0.8 || R() > 0.05) continue;
+    const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+    if (y < cave.top - 3.5 || cave.skyAt(x, y + 0.5, z) < 0.7) continue;
+    const q = R(), s = rr(0.5, 1.4);
+    const kind = q < 0.35 ? 'branch' : q < 0.55 ? 'table' : q < 0.85 ? 'brain' : 'mushroom';
+    const v = kind === 'branch' ? (R() < 0.5 ? 0 : 1) : kind === 'mushroom' ? (R() < 0.5 ? 0 : 1) : kind === 'brain' ? (R() < 0.5 ? 0 : 1) : 0;
+    const pal = kind === 'brain' && v === 1 ? pick(PALETTE.porites) : kind === 'mushroom' && v === 1 ? pick(PALETTE.sinularia) : pick(PALETTE[kind]);
+    const it: any = { x, z, y: y - 0.12 * s, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s, c: tintCol(pal[0]), c2: tintCol(pal[1]), seed: R() + (kind === 'brain' && v === 1 ? 1 : 0) };
+    if (kind === 'table') { it.sy = rr(0.7, 1.0); it.y = y - 0.05; }
+    if (kind === 'mushroom') it.soft = v;
+    items[kind][v].push(it);
+  }
+}
 
 // Rock prototypes. Unit-sized; instances scale them.
 //  boulder  - lumpy and rounded            angular - facets cut by random planes, crisp edges

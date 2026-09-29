@@ -20,12 +20,14 @@ export interface SeaEvent { kind: string; text: string; x: number; z: number }
 // Something worth pointing the camera at.
 export interface Subject {
   key: string; label: string;
-  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus' | 'school';
+  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus' | 'school' | 'cave';
   prio: number;
   size: number;                         // rough length, m (sets filming distance)
   pos(): { x: number; y: number; z: number } | null;
   status(): string;
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
+  // a place to fly through rather than orbit: where the camera is and looks at t seconds in
+  tour?: { length: number; start(rev: boolean): { x: number; y: number; z: number }; at(t: number, rev: boolean, pos: any, look: any): void };
 }
 
 export interface Env {

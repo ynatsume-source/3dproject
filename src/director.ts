@@ -5,11 +5,13 @@ import * as THREE from 'three';
 import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe' }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
-  hunt: [8, 30], school: [28, 45], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45],
+  hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45],
 };
+
+const _p = new THREE.Vector3();
 
 export class Director {
   shot: Shot | null = null;
@@ -50,9 +52,30 @@ export class Director {
       this.recent.set(best.key, this.clock);
       this.recent.set('kind:' + best.kind, this.clock);
       this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach' };
+      if (best.tour) {
+        // enter from whichever end is nearer
+        const a = best.tour.start(false), b = best.tour.start(true);
+        this.shot.rev = Math.hypot(b.x - drone.x, b.z - drone.z) < Math.hypot(a.x - drone.x, a.z - drone.z);
+        this.dur = best.tour.length;
+      }
       this.onStart(best);
     }
     const sh = this.shot, s = sh.subject, p = s.pos();
+    if (s.tour) {
+      // fly through: first to the entrance (from above if need be), then along the route
+      const st = s.tour.start(!!sh.rev);
+      if (sh.phase === 'approach') {
+        const gap = Math.hypot(st.x - drone.x, st.y - drone.y, st.z - drone.z);
+        sh.pos.set(st.x, gap > 6 ? Math.max(st.y, floor(drone.x, drone.z) + 1.5) : st.y, st.z);
+        s.tour.at(0, !!sh.rev, _p, sh.look);
+        if (gap < 1.2 || this.t > 40) { sh.phase = 'observe'; this.t = 0; }
+      } else {
+        s.tour.at(this.t, !!sh.rev, sh.pos, sh.look);
+        if (this.t > this.dur + 1) { this.shot = null; this.cooldown = rr(30, 70); return null; }
+      }
+      this.t += dt;
+      return sh;
+    }
     const far = p ? Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : true;
     if (!p || far || (sh.phase === 'observe' && this.t > this.dur) || (s.kind === 'hunt' && !s.live() && this.t > 4)) {
       this.shot = null;

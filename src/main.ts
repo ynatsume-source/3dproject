@@ -126,8 +126,17 @@ function updateDrone(dt: number, now: number) {
     if (now - drone.lastInput > 90000) setMode('auto');
   }
   drone.pos.addScaledVector(drone.vel, dt);
-  const fh = cur!.T.top(drone.pos.x, drone.pos.z);
+  const fh = cur!.T.ground(drone.pos.x, drone.pos.z);
   if (drone.pos.y < fh + 0.7) { drone.pos.y = fh + 0.7; if (drone.vel.y < 0) drone.vel.y = 0; }
+  // the cave massif is solid in 3D: slide along its walls, roof and the rims of its skylights
+  const cave = cur!.cave;
+  if (cave) for (let it = 0; it < 2; it++) {
+    const d = cave.sd(drone.pos.x, drone.pos.y, drone.pos.z);
+    if (d >= 0.8) break;
+    cave.grad(drone.pos.x, drone.pos.y, drone.pos.z, _w);
+    drone.pos.addScaledVector(_w, 0.8 - d);
+    const vn = drone.vel.dot(_w); if (vn < 0) drone.vel.addScaledVector(_w, -vn);
+  }
   if (drone.pos.y > -0.7) { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
   drone.pos.x = clamp(drone.pos.x, -LIMIT, LIMIT); drone.pos.z = clamp(drone.pos.z, -LIMIT, LIMIT);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
@@ -139,12 +148,14 @@ function updateDrone(dt: number, now: number) {
 
 /* ================= sky from the clock ================= */
 let skyNow = null as ReturnType<typeof skyState> | null;
+let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
 function applySky(loc: Sea) {
   const s = skyState(clock.ms, loc);
   skyNow = s;
   U.uSunDir.value.set(...s.sunDir);
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
   U.uTint.value.setRGB(...s.tint);
+  U.uShaftCol.value.setRGB(...s.shaftCol); U.uShaftI.value = s.shaftI; U.uGolden.value = s.golden;
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
   // tidal stream: flood one way, ebb the other; strongest mid-tide
@@ -152,7 +163,7 @@ function applySky(loc: Sea) {
   const ax = loc.tide.axis;
   U.uCurrent.value.set(ax[0] * k * 0.8 + 0.12, ax[1] * k * 0.8 + 0.05);
   setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
-  if (!lampManual) setLamp(s.night > 0.6, false);
+  if (!lampManual) setLamp(s.night > 0.6 || camCave < 0.3, false);
   cur!.eco.setSky(s, U.uCurrent.value);
   if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', PHASE_LOG[s.phase]); lastPhase = s.phase; }
 }
@@ -226,7 +237,7 @@ const strip = $('strip');
 const compassEl = $('compass');
 function updateHud() {
   const loc = cur!.loc, s = skyNow!;
-  const depth = -drone.pos.y + s.tideH, alt = drone.pos.y - cur!.T.top(drone.pos.x, drone.pos.z);
+  const depth = -drone.pos.y + s.tideH, alt = drone.pos.y - cur!.T.ground(drone.pos.x, drone.pos.z);
   $('tDepth').textContent = depth.toFixed(1);
   $('tAlt').textContent = alt.toFixed(1);
   $('tSpd').textContent = drone.vel.length().toFixed(2);
@@ -402,6 +413,15 @@ function enterOcean(oc: Ocean) {
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
   applyWater(oc.loc);
+  const cv = oc.cave;
+  U.uCaveOn.value = cv ? 1 : 0; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
+  if (cv) {
+    U.uCaveTex.value = cv.tex;
+    U.uCaveXf.value.set(cv.cx, cv.cz, cv.ca, cv.sa);
+    U.uCaveMin.value.set(cv.min[0], cv.min[1], cv.min[2]);
+    U.uCaveExt.value.set((cv.n[0] - 1) * cv.step, (cv.n[1] - 1) * cv.step, (cv.n[2] - 1) * cv.step);
+    U.uCaveN.value.set(cv.n[0], cv.n[1], cv.n[2]);
+  }
   lampManual = false;
   applySky(oc.loc);
   grass.visible = !!oc.grassTex; grassMat.uniforms.uHeight.value = oc.grassTex;
@@ -658,6 +678,18 @@ function frame(ts: number) {
     updateDrone(dt, now);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
     U.uCamPos.value.copy(camera.position);
+    if (cur.cave) {
+      // the camera opens up in the dark of the cave, and the sun's bake follows the sun
+      cur.cave.updateSun(U.uSunDir.value);
+      const cp = camera.position;
+      camCave += (cur.cave.skyAt(cp.x, cp.y, cp.z) - camCave) * Math.min(1, dt * 1.2);
+      U.uCamCave.value = camCave;
+      // looking out at a bright opening, the camera stops back down
+      const ahead = cur.cave.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5);
+      camExpo += (1.4 * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8))) - camExpo) * Math.min(1, dt * 0.8);
+      post.setExposure(camExpo);
+      if (!lampManual) { const want = U.uNight.value > 0.6 || camCave < 0.3; if (want !== lampOn) setLamp(want, false); }
+    }
     U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text);

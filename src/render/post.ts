@@ -6,7 +6,7 @@
 //  3. bloom from a dual-Kawase mip chain;
 //  4. composite: exposure, ACES filmic tone mapping, slight chromatic fringing, vignette and grain.
 import * as THREE from 'three';
-import { U } from './common';
+import { U, CAVE_GLSL } from './common';
 import type { TierSettings } from '../quality';
 
 const VS = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
@@ -40,21 +40,24 @@ export class Post {
     defines: { STEPS: 16 },
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs,
+      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden,
+      uCaveTex: U.uCaveTex, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
       uFrame: { value: 0 }, uStrength: { value: 0.5 },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tDepth; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uCamPos;
       uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs;
+      uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
       uniform float uFrame; uniform float uStrength;
       varying vec2 vUv;
       ${NOISE}
+      ${CAVE_GLSL}
       // sunlight focused by the moving surface: soft streaks that drift with the waves
       float beams(vec2 q){
         float a = vn(q * 0.11 + vec2(uTime * 0.035, uTime * 0.015));
         float b = vn(q * 0.43 - vec2(uTime * 0.03, -uTime * 0.05));
         float s = a * 0.65 + b * 0.35;
-        return pow(smoothstep(0.42, 0.95, s), 2.2) * 2.6;
+        return pow(smoothstep(mix(0.42, 0.56, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;   // sharper, fewer streaks when the sun is low
       }
       void main(){
         float d = texture2D(tDepth, vUv).r;
@@ -72,15 +75,15 @@ export class Post {
           vec3 p = uCamPos + dir * t;
           if (p.y > -0.05) continue;
           vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
-          float light = beams(q) + 0.12;
-          vec3 down = exp(uAbs * p.y * 1.4);                 // sunlight loses red first on the way down
+          float light = beams(q) * (1.0 + uGolden * 1.6) + 0.12 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour   // at sunset only the shafts carry colour
+          vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
-          acc += light * down * back * stepLen;
+          acc += light * down * back * stepLen * caveLight(p).x;   // rock shadows the water behind it; skylights let beams through
         }
         float mu = dot(dir, uSunDir);
         float g = 0.72;
         float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) * 0.08;
-        vec3 col = acc * phase * uSunI * uTint * vec3(0.55, 0.9, 0.95) * uStrength;
+        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength;
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
@@ -155,12 +158,12 @@ export class Post {
   private compMat = new THREE.ShaderMaterial({
     vertexShader: VS,
     uniforms: {
-      tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() },
+      tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() }, uVolTexel: { value: new THREE.Vector2() },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
     fragmentShader: /* glsl */ `
-      uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel;
+      uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel; uniform vec2 uVolTexel;
       uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
       varying vec2 vUv;
       ${NOISE}
@@ -177,7 +180,11 @@ export class Post {
           float ao = (texture2D(tAO, vUv + vec2(-o.x, -o.y)).r + texture2D(tAO, vUv + vec2(o.x, -o.y)).r + texture2D(tAO, vUv + vec2(-o.x, o.y)).r + texture2D(tAO, vUv + vec2(o.x, o.y)).r) * 0.25;
           col *= ao;
         }
-        if (uUseVol > 0.5) col += texture2D(tVol, vUv).rgb;
+        if (uUseVol > 0.5) {   // a small tent blur hides the per-pixel jitter of the low-res march
+          vec2 o = uVolTexel;
+          col += (texture2D(tVol, vUv).rgb * 2.0 + texture2D(tVol, vUv + vec2(o.x, o.y)).rgb + texture2D(tVol, vUv + vec2(-o.x, o.y)).rgb
+                + texture2D(tVol, vUv + vec2(o.x, -o.y)).rgb + texture2D(tVol, vUv + vec2(-o.x, -o.y)).rgb) / 6.0;
+        }
         if (uUseBloom > 0.5) col += texture2D(tBloom, vUv).rgb * uBloom;
         col *= uWB * uExposure;
         col = aces(col);
@@ -226,6 +233,8 @@ export class Post {
   // The drone camera white-balances like an underwater camcorder: it restores part of the red and
   // green the water column has absorbed at the current depth, so colours read the way divers see
   // them in footage rather than as a flat blue-green.
+  setExposure(e: number) { this.compMat.uniforms.uExposure.value = e; }
+
   whiteBalance(depth: number, abs: THREE.Vector3, night: number) {
     const path = Math.max(depth, 0) + 3;
     const g = Math.exp(-abs.y * path);
@@ -274,7 +283,7 @@ export class Post {
     const c = this.compMat.uniforms;
     c.tAO.value = this.ao.texture; c.uUseAO.value = t.ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
     c.tScene.value = this.main.texture;
-    c.tVol.value = this.vol.texture; c.uUseVol.value = t.vol ? 1 : 0;
+    c.tVol.value = this.vol.texture; c.uUseVol.value = t.vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;
     this.pass(r, this.compMat, null);
   }

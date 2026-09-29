@@ -1,5 +1,6 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
+import { caveFootprint, type CaveSpec } from '../ocean/cave';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -23,6 +24,7 @@ export interface Sea {
   sand: number[]; rock: number[];
   f(x: number, z: number): number;
   grass?(x: number, z: number): number;
+  cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   corals: Record<string, number>;
   anemones: number; clamSize: [number, number]; eels: number;
   species: Species[];
@@ -100,6 +102,8 @@ export const LOCATIONS: Sea[] = [
       return Math.min(h, -2.6);
     },
     grass(x, z) { return (1 - smooth(0.0, 0.4, TERR.reef)) * smooth(0.5, 0.62, fbm(x * 0.03 + 91, z * 0.03 - 40, 4)) * 0.7; },
+    // Miyako and Irabu are known for their caves (魔王の宮殿, アントニオ・ガウディ): light pours through holes in the roof
+    cave: { x: 45, z: 25, rot: 0.35 },
     corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 },
     anemones: 40, clamSize: [0.22, 0.38], eels: 14,
     species: [
@@ -201,8 +205,14 @@ function rugosity(x: number, z: number) {
 }
 for (const L of LOCATIONS) {
   const base = L.f;
+  // under a cave massif the seabed is plain sand: no reef, no seagrass
+  const foot = L.cave ? caveFootprint(L.cave) : () => 0;
   L.f = (x: number, z: number) => {
     const h = base(x, z), r = TERR.reef;
-    return Math.min(h + (rugosity(x, z) - 0.55) * 1.4 * smooth(0.15, 0.8, r), -2.4);
+    const out = Math.min(h + (rugosity(x, z) - 0.55) * 1.4 * smooth(0.15, 0.8, r), -2.4);
+    TERR.reef = r * (1 - foot(x, z));
+    return out;
   };
+  const g = L.grass;
+  if (g && L.cave) L.grass = (x: number, z: number) => g(x, z) * (1 - smooth(0.02, 0.2, foot(x, z)));
 }
