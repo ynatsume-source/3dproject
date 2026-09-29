@@ -8,7 +8,7 @@ import { LOCATIONS, type Sea } from './data/locations';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
-import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
+import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, type Shot } from './director';
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
@@ -269,7 +269,7 @@ function updateHud() {
   $('tDepth').textContent = depth.toFixed(1);
   $('tAlt').textContent = alt.toFixed(1);
   $('tSpd').textContent = drone.vel.length().toFixed(2);
-  $('tTemp').textContent = (loc.temp - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
+  $('tTemp').textContent = ((loc.tempYear ? seaTemp(clock.ms, loc.lat, loc.tempYear) : loc.temp) - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
   $('tVis').textContent = (3 / (U.uFogDen.value * (1 + 0.15 * s.night)) * 0.3).toFixed(0);
   $('tTide').textContent = (s.tideH >= 0 ? '+' : '') + s.tideH.toFixed(1);
   $('tTideDir').textContent = Math.abs(s.tideRate) < 0.000015 ? (s.tideH > 0 ? '満潮' : '干潮') : s.tideRate > 0 ? '上げ潮' : '下げ潮';
@@ -289,6 +289,9 @@ function updateTimeUi() {
   $('btnTime').classList.toggle('live', clock.live);
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-speed]').forEach((b) => b.setAttribute('aria-pressed', String(!clock.live && clock.speed === +b.dataset.speed!)));
   $('btnLive').setAttribute('aria-pressed', String(clock.live));
+  const ld = new Date(clock.ms + loc.tz * 3600000);
+  $('clockDate').textContent = `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
+  document.querySelectorAll<HTMLButtonElement>('#timePanel [data-season]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.season === clock.season)));
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => b.classList.toggle('now', b.dataset.preset === s.phase));
 }
 
@@ -444,6 +447,7 @@ function enterOcean(oc: Ocean) {
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
   applyWater(oc.loc);
+  setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)
   const cv = oc.cave;
   U.uCaveOn.value = cv ? 1 : 0; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
   if (cv) {
@@ -668,6 +672,9 @@ addEventListener('pointermove', () => { idleT = performance.now(); document.body
   $('presetRow').innerHTML = (Object.keys(PRESET_LABEL) as Preset[]).map((p, i) => `<button type="button" data-preset="${p}">${PRESET_LABEL[p]} <kbd>${i + 1}</kbd></button>`).join('');
   $('speedRow').innerHTML = SPEEDS.map((s) => `<button type="button" data-speed="${s.k}" title="${s.note}">${s.label}<small>${s.note}</small></button>`).join('');
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => { b.onclick = () => goPreset(b.dataset.preset as Preset); });
+  $('seasonRow').innerHTML = (['now', 'spring', 'summer', 'autumn', 'winter'] as Season[]).map((k) => `<button type="button" data-season="${k}">${k === 'now' ? '今の季節' : SEASON_LABEL[k]}</button>`).join('');
+  document.querySelectorAll<HTMLButtonElement>('#timePanel [data-season]').forEach((b) => { b.onclick = () => { if (!cur) return; setSeason(b.dataset.season as Season, cur.loc.lat); try { localStorage.setItem('seaglass.season', clock.season); } catch (e) { /* storage blocked */ } applySky(cur.loc); updateTimeUi(); }; });
+  try { const s = localStorage.getItem('seaglass.season'); if (s && s in SEASON_LABEL) clock.season = s as Season; } catch (e) { /* storage blocked */ }
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-speed]').forEach((b) => { b.onclick = () => { const k = +b.dataset.speed!; if (k === 1 && clock.live) return; clock.live = false; clock.speed = k; updateTimeUi(); }; });
 }
 

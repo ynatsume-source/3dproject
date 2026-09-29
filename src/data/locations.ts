@@ -28,6 +28,7 @@ export interface Sea {
   grass?(x: number, z: number): number;
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   whales?: WhaleSeason;                    // humpbacks visit in these months
+  tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
   anemones: number; clamSize: [number, number]; eels: number;
   species: Species[];
@@ -39,7 +40,7 @@ export interface Sea {
 export const LOCATIONS: Sea[] = [
   {
     id: 'gbr', name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
-    lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
+    lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, tempYear: [24, 29.5], seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
     blurb: '外洋に面したリボンリーフ。尾根と溝が交互に並ぶ「スパー・アンド・グルーブ」地形の斜面。',
     water: { up: [0.36, 0.72, 0.84], hor: [0.04, 0.33, 0.50], down: [0.01, 0.10, 0.20], fog: 0.026, abs: [0.26, 0.06, 0.04] },
     sand: [0.70, 0.67, 0.58], rock: [0.46, 0.43, 0.36],
@@ -91,7 +92,7 @@ export const LOCATIONS: Sea[] = [
   },
   {
     id: 'miyako', name: '宮古島', site: '八重干瀬（やびじ）', region: 'Japan · Okinawa',
-    lat: 24.96, lon: 125.25, depth: '3–15 m', vis: 40, temp: 28.4, seed: 23, tz: 9, tide: { amp: 0.95, lag: 0.2, axis: [1, 0.35] },
+    lat: 24.96, lon: 125.25, depth: '3–15 m', vis: 40, temp: 28.4, tempYear: [21.5, 29.5], seed: 23, tz: 9, tide: { amp: 0.95, lag: 0.2, axis: [1, 0.35] },
     blurb: '宮古島の北に広がる国内最大級のサンゴ礁群。白砂の上にテーブルサンゴの根が点在する、宮古ブルーの浅瀬。',
     water: { up: [0.30, 0.70, 0.95], hor: [0.02, 0.29, 0.62], down: [0.0, 0.08, 0.27], fog: 0.018, abs: [0.24, 0.05, 0.022] },
     sand: [0.78, 0.77, 0.72], rock: [0.52, 0.50, 0.44],
@@ -160,7 +161,7 @@ export const LOCATIONS: Sea[] = [
   },
   {
     id: 'maldives', name: 'モルディブ', site: '南アリ環礁のティラ', region: 'Maldives · South Ari Atoll',
-    lat: 3.48, lon: 72.84, depth: '8–30 m', vis: 35, temp: 29.0, seed: 37, tz: 5, tide: { amp: 0.5, lag: 0.1, axis: [-1, 0.2] },
+    lat: 3.48, lon: 72.84, depth: '8–30 m', vis: 35, temp: 29.0, tempYear: [28, 30.2], seed: 37, tz: 5, tide: { amp: 0.5, lag: 0.1, axis: [-1, 0.2] },
     blurb: '環礁の中にそびえる海中の根「ティラ」。マンタのクリーニングステーションがあり、ジンベエザメが通年見られる海域。',
     water: { up: [0.30, 0.68, 0.95], hor: [0.02, 0.26, 0.58], down: [0.0, 0.07, 0.25], fog: 0.019, abs: [0.25, 0.055, 0.025] },
     sand: [0.76, 0.75, 0.70], rock: [0.48, 0.44, 0.40],

@@ -15,13 +15,48 @@ export const clock = {
   ms: Date.now(),
   speed: 1,
   live: true,
+  offset: 0,              // whole days added to the real date when another season is chosen
+  season: 'now' as Season,
   advance(dt: number) {
-    if (this.live) this.ms = Date.now();
+    if (this.live) this.ms = Date.now() + this.offset;
     else this.ms += dt * 1000 * this.speed;
   },
-  goLive() { this.live = true; this.speed = 1; this.ms = Date.now(); },
+  goLive() { this.live = true; this.speed = 1; this.ms = Date.now() + this.offset; },
   setSpeed(k: number) { if (this.live && k === 1) return; this.live = false; this.speed = k; },
 };
+
+// Seasons: the same time of day on a date in the middle of each local season (southern seas flip).
+export type Season = 'now' | 'spring' | 'summer' | 'autumn' | 'winter';
+export const SEASON_LABEL: Record<Season, string> = { now: '今', spring: '春', summer: '夏', autumn: '秋', winter: '冬' };
+const SEASON_DATE: Record<Exclude<Season, 'now'>, [number, number]> = { spring: [4, 20], summer: [8, 10], autumn: [10, 25], winter: [2, 5] };
+export function seasonOf(ms: number, lat: number, tz: number): Exclude<Season, 'now'> {
+  let m = new Date(ms + tz * 3600000).getUTCMonth() + 1;
+  if (lat < 0) m = ((m + 5) % 12) + 1;
+  return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
+}
+export function setSeason(season: Season, lat: number) {
+  const real = Date.now();
+  let off = 0;
+  if (season !== 'now') {
+    let [m, d] = SEASON_DATE[season];
+    if (lat < 0) m = ((m + 5) % 12) + 1;
+    const now = new Date(real), tod = real - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    let best = 0, bd = Infinity;
+    for (const y of [now.getUTCFullYear() - 1, now.getUTCFullYear(), now.getUTCFullYear() + 1]) {
+      const t = Date.UTC(y, m - 1, d) + tod;
+      if (Math.abs(t - real) < bd) { bd = Math.abs(t - real); best = t - real; }
+    }
+    off = best;
+  }
+  clock.ms += off - clock.offset;
+  clock.offset = off; clock.season = season;
+}
+// sea temperature through the year: warmest in late August (late February south of the equator)
+export function seaTemp(ms: number, lat: number, range: [number, number]) {
+  const d = new Date(ms), doy = (ms - Date.UTC(d.getUTCFullYear(), 0, 1)) / 86400000;
+  const peak = lat < 0 ? 50 : 233;
+  return (range[0] + range[1]) / 2 + (range[1] - range[0]) / 2 * Math.cos((doy - peak) / 365.25 * Math.PI * 2);
+}
 
 interface SiteLike { lat: number; lon: number; tz: number; tide: { amp: number; lag: number } }
 
