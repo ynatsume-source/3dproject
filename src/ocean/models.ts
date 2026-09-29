@@ -187,10 +187,12 @@ export function coralMaterial(kind) {
          float ph = t * 1.4 + aSeed * 6.283 + position.x * 9.0 + position.z * 7.0;
          p.x += sin(ph) * 0.05 * aTip * aTip; p.z += cos(ph * 0.8) * 0.05 * aTip * aTip;
        #elif KIND == 7
-         float k = smoothstep(3.5, 8.5, distance(ip, uCamPos));
+         float k = smoothstep(3.5, 8.5, distance(ip, uCamPos)) * mix(1.0, 0.08, uNight);
+         k *= 0.75 + 0.25 * clamp(length(uCurrent), 0.0, 1.0);
          p.y *= k;
-         p.x += sin(t * 1.2 + aSeed * 6.283) * 0.07 * p.y * p.y;
-         p.z += p.y * p.y * p.y * 0.3 * k;
+         vec2 lean = -normalize(uCurrent + vec2(1e-4));
+         p.x += sin(t * 1.2 + aSeed * 6.283) * 0.07 * p.y * p.y + lean.x * p.y * p.y * p.y * 0.3;
+         p.z += lean.y * p.y * p.y * p.y * 0.3;
        #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
        vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
@@ -241,6 +243,7 @@ export const SHAPES = {
   wrasse: { h: 0.42, w: 0.26, tail: 'round', dorsal: 0.08, anal: 0.06, hump: 0.12 },
   parrot: { h: 0.42, w: 0.24, tail: 'trunc', dorsal: 0.07, anal: 0.05 },
   shark: { h: 0.22, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.3, pointy: true },
+  jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
 };
 export function fishGeometry(sh) {
@@ -288,7 +291,7 @@ export function fishMaterial(sp) {
        vL = position; vFin = aFin; vTint = aSwim.z;
        gl_Position = projectionMatrix * viewMatrix * wp;
      }`,
-    `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge;
+    `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
@@ -344,6 +347,13 @@ export function fishMaterial(sp) {
          float spot = (1.0 - smoothstep(0.14, 0.24, length(gf))) * step(0.25, hash2(floor(g)));
          float line = 1.0 - smoothstep(0.02, 0.06, abs(fract(z * 9.0) - 0.5));
          alb = mix(alb, vec3(0.88, 0.9, 0.88), max(spot, line * 0.5 * step(0.0, z)) * top);
+       #elif PAT == 11
+         alb = mix(uC2, uC1, top) * (1.0 - 0.5 * step(0.9, hash2(floor(vec2(z * 40.0, y * 40.0)))) * top);
+         if (vFin > 0.5) alb = uC3;
+       #elif PAT == 12
+         vec2 sq = fract(vec2(z * 26.0, y * 26.0 + z * 13.0));
+         alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y)) * (0.8 + 0.25 * smoothstep(0.3, 0.5, max(abs(sq.x - 0.5), abs(sq.y - 0.5))));
+         if (vFin > 0.5) alb = mix(uC1, vec3(0.98), step(0.9, fract(length(vL.yz) * 6.0)) * 0.7);
        #else
          alb = uC1; vec2 sc = fract(vec2(z * 30.0, y * 30.0 + z * 15.0));
          alb = mix(alb, uC2, smoothstep(0.35, 0.5, max(abs(sc.x - 0.5), abs(sc.y - 0.5))) * 0.6);
@@ -351,7 +361,7 @@ export function fishMaterial(sp) {
        #endif
        alb *= vTint;
        #if PAT != 9
-       float eye = (1.0 - smoothstep(0.022, 0.034, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
+       float eye = (1.0 - smoothstep(0.022 * uEye, 0.034 * uEye, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        alb = mix(alb, vec3(0.02), eye);
        #endif
        float spec = pow(max(dot(reflect(-SUN, n), V), 0.0), 24.0) * 0.6 * uSunI;
@@ -361,7 +371,7 @@ export function fishMaterial(sp) {
        col += lamp(alb, vWp, n) * 1.2;
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 } },
+    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 } },
       opts: { side: THREE.DoubleSide } });
 }
 

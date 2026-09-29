@@ -6,10 +6,10 @@ import { U } from './render/common';
 import { clamp, smooth, angDiff } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
-import { buildOcean, updateTurtles, updateMantas } from './ocean/build';
+import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
-import { audio, startAudio, stopAudio, setHum } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch } from './audio';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -121,6 +121,35 @@ function applySky(loc: Sea) {
   U.uCurrent.value.set(ax[0] * k * 0.8 + 0.12, ax[1] * k * 0.8 + 0.05);
   audio.night = s.night;
   if (!lampManual) setLamp(s.night > 0.6, false);
+  cur!.eco.setSky(s, U.uCurrent.value);
+  if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', PHASE_LOG[s.phase]); lastPhase = s.phase; }
+}
+const PHASE_LOG: Record<string, string> = {
+  dawn: '夜明け。夜行性の魚が岩陰へ戻り、昼の魚たちが動き出す',
+  noon: '日中。小魚がプランクトンを食べに群れ、光の筋がいちばん強い時間',
+  dusk: '夕暮れ。昼の魚が寝床へ向かい、捕食者がいちばん活発になる時間',
+  night: '夜。昼の魚はサンゴの隙間で眠り、夜行性の魚とプランクトンが上がってくる',
+};
+let lastPhase = '';
+
+/* ---------- sea log: what is happening around the drone ---------- */
+const logQueue: string[] = [];
+const recent = new Map<string, number>();
+let logShownAt = -1e9;
+function seaLog(kind: string, text: string) {
+  const now = performance.now();
+  if ((recent.get(text) ?? -1e9) > now - 90000) return;
+  recent.set(text, now);
+  if (kind === 'phase') logQueue.unshift(text); else if (logQueue.length < 3) logQueue.push(text);
+}
+function pumpLog(now: number) {
+  if (!logQueue.length || now - logShownAt < 9000 || $('toast').classList.contains('on')) return;
+  logShownAt = now;
+  showToast('SEA LOG', logQueue.shift()!, '');
+}
+function showToast(k: string, t: string, s: string) {
+  $('toastK').textContent = k; $('toastT').textContent = t; $('toastS').textContent = s;
+  $('toast').classList.add('on'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => $('toast').classList.remove('on'), 5200);
 }
 
 /* ================= HUD ================= */
@@ -167,6 +196,16 @@ function updateTimeUi() {
 let seen = new Set<string>();
 try { seen = new Set(JSON.parse(localStorage.getItem('seaglass.seen') || '[]')); } catch (e) { /* storage unavailable */ }
 const guideEl = $('guide');
+const TURTLE_STATE: Record<string, string> = { travel: '泳いでいる', graze: '食事中', toRest: '寝床へ向かっている', rest: '岩陰で眠っている', breathe: '息継ぎに浮上中' };
+function statusOf(id: string): string {
+  if (!cur) return '';
+  const f = cur.fish.find((x: any) => x.sp.id === id);
+  if (f) return f.status();
+  if (id === 'turtle' && cur.turtles.length) { const t = cur.turtles.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return TURTLE_STATE[t.state] || ''; }
+  if (id === 'manta' && cur.mantas.length) return cur.mantas[0].feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている';
+  if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
+  return '';
+}
 const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || [])];
 function renderGuide() {
   if (!cur) return;
@@ -175,7 +214,7 @@ function renderGuide() {
   $('seenCount').textContent = `${n}/${list.length}`;
   if (guideEl.hidden) return;
   guideEl.innerHTML = `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
-    <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}"><i></i><b>${e.ja}</b><em>${e.sci}</em><p>${e.note}</p></li>`).join('')}</ul>
+    <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}"><i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p></li>`).join('')}</ul>
     <h3>サンゴと底生生物</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>`;
 }
@@ -186,8 +225,7 @@ function discover(e?: { id: string; ja: string; sci: string }) {
   if (seen.has(key)) return;
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
-  $('toastT').textContent = e.ja; $('toastS').textContent = e.sci;
-  $('toast').classList.add('on'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => $('toast').classList.remove('on'), 4200);
+  showToast('NEW SIGHTING', e.ja, e.sci);
   renderGuide();
 }
 function checkSightings() {
@@ -267,6 +305,8 @@ function applyWater(loc: Sea) {
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
+  oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
+  lastPhase = '';
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
   applyWater(oc.loc);
@@ -474,6 +514,7 @@ function resize() {
 addEventListener('resize', resize);
 
 let lastTs = 0;
+let guideTimer = 0;
 let autoQ = true, fpsAcc = 0, fpsN = 0, fpsStart = 0, hudTimer = 0, sightTimer = 0, skyTimer = 0, globeTimer = 1;
 function frame(ts: number) {
   const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016, now = performance.now();
@@ -492,9 +533,10 @@ function frame(ts: number) {
     U.uCamPos.value.copy(camera.position);
     U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
-    for (const f of cur.fish) f.update(dt, drone.pos, fx, fz);
-    updateTurtles(cur, dt, drone.pos, fx, fz);
-    updateMantas(cur, dt, drone.pos, fx, fz);
+    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text);
+    pumpLog(now);
+    snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
+    if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; renderGuide(); }
     const vis = Math.min(3.1 / U.uFogDen.value, 150) * (quality === 'high' ? 1 : 0.7) + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
@@ -524,3 +566,6 @@ requestAnimationFrame(frame);
 const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
 if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start), 300); }
 void smooth;
+
+// Inspect the live sim from the console with ?debug
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U };

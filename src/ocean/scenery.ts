@@ -106,13 +106,13 @@ export const snowMat = mat(
      gl_PointSize = uPx * (0.018 + 0.03 * aR) / max(d, 0.1) * (1.0 + vGlow);
      gl_Position = projectionMatrix * mv;
    }`,
-  `varying float vA; varying float vGlow;
+  `uniform float uPlank; varying float vA; varying float vGlow;
    void main(){
      float r = length(gl_PointCoord - 0.5);
-     vec3 c = vec3(0.85, 0.95, 0.9) * max(uAmb, 0.08) * vA * 0.5 + vec3(0.3, 0.95, 1.0) * vGlow * 0.9;
+     vec3 c = (vec3(0.85, 0.95, 0.9) * max(uAmb, 0.08) * vA * 0.5 + vec3(0.3, 0.95, 1.0) * vGlow * 0.9) * uPlank;
      gl_FragColor = vec4(c * smoothstep(0.5, 0.1, r), 1.0);
    }`,
-  { uniforms: { uPx: { value: 800 } }, opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } });
+  { uniforms: { uPx: { value: 800 }, uPlank: { value: 1 } }, opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } });
 const snow = new THREE.Points(snowGeo, snowMat);
 snow.frustumCulled = false;
 oceanScene.add(snow);

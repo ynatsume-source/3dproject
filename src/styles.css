@@ -206,3 +206,5 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
   #timePanel { bottom: calc(116px + env(safe-area-inset-bottom, 0px)); }
   #timePanel .tp-row.speeds { grid-template-columns: repeat(2, 1fr); }
 }
+
+#guide li .st { grid-column: 2; font-size: 11px; color: var(--lamp); }

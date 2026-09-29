@@ -3,7 +3,9 @@ import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
 import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR } from '../core/math';
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
-import { CORAL_GEO, CORAL_MAT, PALETTE, SHAPES, fishGeometry, fishMaterial, makeTurtle, MANTA_GEO, mantaMaterial, UPV, _q, _e, _m4, _p3, _s3 } from './models';
+import { CORAL_GEO, CORAL_MAT, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
+import { makeFishSystem } from '../eco/fish';
+import { Ecosystem } from '../eco/ecosystem';
 import type { Sea } from '../data/locations';
 
 /* ================= building a sea ================= */
@@ -45,7 +47,7 @@ export function buildOcean(loc) {
   seedRandom(loc.seed);
   const T = makeT(loc);
   const group = new THREE.Group();
-  const oc = { loc, T, group, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null };
+  const oc: any = { loc, T, group, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
 
   // seabed
   const SEGS = 420;
@@ -192,207 +194,9 @@ export function buildOcean(loc) {
     const s = rr(1.7, 2.2); m.scale.setScalar(s);
     oc.mantas.push({ mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
   }
+  oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);
   return oc;
-}
-
-/* ---------- fish behaviour ---------- */
-const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _ss = new THREE.Vector3();
-export function makeFishSystem(sp, oc) {
-  const sh = SHAPES[sp.shape];
-  const groups = [];
-  let total = 0;
-  if (sp.habitat === 'anemone') {
-    for (const a of oc.anemones) { if (a.species !== sp.id) continue; const n = 2 + Math.floor(R() * 3); groups.push({ type: 'anem', n, start: total, a }); total += n; }
-  } else if (sp.habitat === 'reef') {
-    for (let i = 0; i < sp.schools; i++) { groups.push({ type: 'reef', n: sp.n, start: total }); total += sp.n; }
-  } else {
-    for (let i = 0; i < sp.count; i++) { groups.push({ type: 'roam', n: 1, start: total }); total += 1; }
-  }
-  if (!total) return null;
-  const geo = fishGeometry(sh);
-  const swim = new Float32Array(total * 3);
-  const fp = new Float32Array(total * 3), fv = new Float32Array(total * 3), fs = new Float32Array(total), fo = new Float32Array(total * 3);
-  for (const g of groups) {
-    const spread = g.type === 'anem' ? [0.35, 0.2, 0.35] : (sp.spread || [0, 0, 0]);
-    Object.assign(g, { c: new THREE.Vector3(), v: new THREE.Vector3(), head: R() * 6.28, t: R() * 100, alt: rr((sp.alt || [0.3, 0.6])[0], (sp.alt || [0.3, 0.6])[1]), anchor: { x: 0, z: 0 }, placed: false });
-    for (let i = g.start; i < g.start + g.n; i++) {
-      const fr = sp.freq || (sp.big ? [3, 5] : [8, 12]);
-      swim[i * 3] = R() * 6.28; swim[i * 3 + 1] = rr(fr[0], fr[1]); swim[i * 3 + 2] = rr(0.88, 1.1);
-      fs[i] = rr(sp.size[0], sp.size[1]) / 1.28;
-      let x, y, z; do { x = R() * 2 - 1; y = R() * 2 - 1; z = R() * 2 - 1; } while (x * x + y * y + z * z > 1);
-      fo[i * 3] = x * spread[0]; fo[i * 3 + 1] = y * spread[1]; fo[i * 3 + 2] = z * spread[2];
-    }
-  }
-  geo.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
-  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp), total);
-  mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  const T = oc.T;
-
-  function findSpot(cam, fx, fz, dmin, dmax, wantReef) {
-    let best = null, bs = -1;
-    for (let k = 0; k < 28; k++) {
-      const d = rr(dmin, dmax), lat = (R() * 2 - 1) * (dmax * 0.5);
-      const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
-      const r = wantReef ? T.reef(x, z) : 1;
-      if (r > bs) { bs = r; best = [x, z]; }
-      if (r > 0.5) break;
-    }
-    return best;
-  }
-  function place(g, cam, fx, fz, near) {
-    if (g.type === 'anem') { g.c.copy(g.a.pos); g.c.y += 0.25; }
-    else {
-      const [x, z] = findSpot(cam, fx, fz, near ? 6 : 32, near ? 30 : 48, g.type === 'reef');
-      g.anchor.x = x; g.anchor.z = z;
-      g.c.set(x, Math.min(T.h(x, z) + g.alt, -1.4), z);
-      g.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.9, 2.1);
-    }
-    g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(sp.speed * 0.4);
-    for (let i = g.start; i < g.start + g.n; i++) {
-      fp[i * 3] = g.c.x + fo[i * 3]; fp[i * 3 + 1] = g.c.y + fo[i * 3 + 1]; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2];
-      fv[i * 3] = g.v.x; fv[i * 3 + 1] = 0; fv[i * 3 + 2] = g.v.z;
-    }
-    g.placed = true;
-  }
-  function update(dt, cam, fx, fz) {
-    const t = U.uTime.value;
-    let dirty = false;
-    for (const g of groups) {
-      g.t += dt;
-      const dxc = g.c.x - cam.x, dzc = g.c.z - cam.z, dc2 = dxc * dxc + dzc * dzc;
-      if (g.type === 'anem') { if (!g.placed) place(g, cam, fx, fz, true); if (dc2 > 80 * 80) continue; }
-      else if (!g.placed || dc2 > 72 * 72) place(g, cam, fx, fz, !g.placed);
-      if (g.type === 'reef') {
-        const r = 3.5;
-        const nx = g.anchor.x + Math.cos(g.t * 0.13 + g.start) * r, nz = g.anchor.z + Math.sin(g.t * 0.1 + g.start) * r;
-        g.v.set((nx - g.c.x) / Math.max(dt, 1e-3), 0, (nz - g.c.z) / Math.max(dt, 1e-3)).clampLength(0, sp.speed);
-        g.c.x = nx; g.c.z = nz;
-      } else if (g.type === 'roam') {
-        g.head += (Math.sin(g.t * 0.23 + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt;
-        if (Math.abs(g.c.x) > LIMIT || Math.abs(g.c.z) > LIMIT) { let d = Math.atan2(-g.c.z, -g.c.x) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8; }
-        g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(sp.speed * 0.7);
-        g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;
-      }
-      if (g.type !== 'anem') {
-        const ty = Math.min(T.h(g.c.x, g.c.z) + g.alt + Math.sin(g.t * 0.3) * 0.5, -1.4);
-        g.c.y += (ty - g.c.y) * Math.min(1, dt * 0.6);
-      }
-      const camNear = g.type === 'anem' ? smooth(3.0, 1.2, Math.sqrt(dc2 + (g.c.y - cam.y) ** 2)) : 0;
-      const rot = g.t * (g.type === 'anem' ? 0.3 : 0.12), cr = Math.cos(rot), sr = Math.sin(rot);
-      const shrink = 1 - camNear * 0.75;
-      const lone = g.n === 1;
-      for (let i = g.start; i < g.start + g.n; i++) {
-        const ox = fo[i * 3] * shrink, oz = fo[i * 3 + 2] * shrink;
-        const wob = lone ? 0 : (g.type === 'anem' ? 0.12 : 0.4);
-        const tx = g.c.x + ox * cr - oz * sr + Math.sin(t * 0.7 + i) * wob;
-        const ty = g.c.y + fo[i * 3 + 1] * shrink - camNear * 0.2 + Math.sin(t * 0.9 + i * 1.7) * wob * 0.6;
-        const tz = g.c.z + ox * sr + oz * cr + Math.cos(t * 0.6 + i) * wob;
-        const px = fp[i * 3], py = fp[i * 3 + 1], pz = fp[i * 3 + 2];
-        _v.set(tx - px, ty - py, tz - pz);
-        const L = _v.length(), maxS = Math.max(sp.speed * 1.7, 0.3);
-        _v.multiplyScalar(Math.min(maxS, L * 1.1) / Math.max(L, 1e-4)).add(g.v);
-        _w.set(px - cam.x, py - cam.y, pz - cam.z);
-        const cd = _w.length(), fr = g.type === 'anem' ? 0 : (sp.big ? 3.5 : 4.5);
-        if (cd < fr) _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1));
-        if (py < T.h(px, pz) + 0.3) _v.y += 1.5;
-        const k = 1 - Math.exp(-dt * (lone ? 1.0 : 2.6));
-        let vx = fv[i * 3] + (_v.x - fv[i * 3]) * k, vy = fv[i * 3 + 1] + (_v.y - fv[i * 3 + 1]) * k, vz = fv[i * 3 + 2] + (_v.z - fv[i * 3 + 2]) * k;
-        fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;
-        const nx = px + vx * dt, ny = Math.min(py + vy * dt, -0.5), nz = pz + vz * dt;
-        fp[i * 3] = nx; fp[i * 3 + 1] = ny; fp[i * 3 + 2] = nz;
-        let hs = Math.hypot(vx, vz);
-        if (hs < 0.05) { vx += Math.cos(g.head + i) * 0.05; vz += Math.sin(g.head + i) * 0.05; hs = Math.hypot(vx, vz); }
-        vy = clamp(vy, -hs * 0.6, hs * 0.6);
-        _w.set(nx + vx, ny + vy, nz + vz); _v.set(nx, ny, nz);
-        _mm.lookAt(_w, _v, UPV); _ss.setScalar(fs[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
-        mesh.setMatrixAt(i, _mm);
-        dirty = true;
-      }
-    }
-    if (dirty) mesh.instanceMatrix.needsUpdate = true;
-  }
-  function nearest(cam, fwd, maxD) {
-    let best = Infinity;
-    for (let i = 0; i < total; i++) {
-      const dx = fp[i * 3] - cam.x, dy = fp[i * 3 + 1] - cam.y, dz = fp[i * 3 + 2] - cam.z;
-      const d = Math.hypot(dx, dy, dz);
-      if (d < maxD && d < best && (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) > 0.55) best = d;
-    }
-    return best;
-  }
-  function nearestPos(cam, fwd, maxD, out) {
-    let best = Infinity;
-    for (let i = 0; i < total; i++) {
-      const dx = fp[i * 3] - cam.x, dy = fp[i * 3 + 1] - cam.y, dz = fp[i * 3 + 2] - cam.z, d = Math.hypot(dx, dy, dz);
-      if (d < maxD && d < best && (dx * fwd.x + dz * fwd.z) / Math.max(d, 1e-3) > 0.2) { best = d; out.set(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]); }
-    }
-    return best;
-  }
-  return { sp, mesh, update, nearest, nearestPos, reset() { for (const g of groups) g.placed = false; } };
-}
-
-export function updateTurtles(oc, dt, cam, fx, fz) {
-  const T = oc.T, time = U.uTime.value;
-  for (const t of oc.turtles) {
-    t.t += dt;
-    const dx = t.pos.x - cam.x, dz = t.pos.z - cam.z;
-    if (!t.placed || dx * dx + dz * dz > 75 * 75) {
-      const d = t.placed ? rr(34, 48) : rr(12, 36), lat = (R() * 2 - 1) * 18;
-      t.pos.set(clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), 0, clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT));
-      t.pos.y = T.h(t.pos.x, t.pos.z) + rr(1, 3);
-      t.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(1, 2.2);
-      t.placed = true;
-    }
-    if (t.ascend <= 0 && R() < dt / 70) t.ascend = rr(18, 30);
-    t.ascend -= dt;
-    t.head += Math.sin(t.t * 0.11 + t.size * 10) * 0.2 * dt;
-    if (Math.abs(t.pos.x) > LIMIT || Math.abs(t.pos.z) > LIMIT) { let d = Math.atan2(-t.pos.z, -t.pos.x) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
-    const fh = T.h(t.pos.x, t.pos.z);
-    const ty = t.ascend > 0 ? -0.9 : Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.8, -1.2);
-    const stroke = Math.max(0, Math.sin(t.t * 1.0));
-    const sp = 0.3 + stroke * 0.35;
-    const vy = clamp((ty - t.pos.y) * 0.25, -0.35, 0.35);
-    t.vel.set(Math.cos(t.head) * sp, vy, Math.sin(t.head) * sp);
-    const away = _w.set(t.pos.x - cam.x, 0, t.pos.z - cam.z), ad = away.length();
-    if (ad < 2.5) t.vel.addScaledVector(away, (2.5 - ad) * 0.4 / Math.max(ad, 0.1));
-    t.pos.addScaledVector(t.vel, dt);
-    t.pos.y = Math.max(t.pos.y, fh + 0.5);
-    t.group.position.copy(t.pos);
-    t.group.rotation.set(-Math.atan2(t.vel.y, Math.hypot(t.vel.x, t.vel.z)), Math.atan2(t.vel.x, t.vel.z), Math.sin(t.t * 0.5) * 0.06, 'YXZ');
-    const f = Math.sin(t.t * 1.0) * 0.75, sw = Math.sin(t.t * 1.0 - 1.2) * 0.45;
-    t.fr.rotation.set(0, sw, f); t.fl.rotation.set(0, -sw, -f);
-    const r = Math.sin(t.t * 0.8 + time * 0.1) * 0.2;
-    t.br.rotation.set(0, 0, r); t.bl.rotation.set(0, 0, -r);
-  }
-}
-export function updateMantas(oc, dt, cam, fx, fz) {
-  const T = oc.T;
-  for (const m of oc.mantas) {
-    m.t += dt;
-    const dx = m.st.x - cam.x, dz = m.st.z - cam.z;
-    if (!m.placed || dx * dx + dz * dz > 85 * 85) {
-      let best = null, bs = -Infinity;
-      for (let k = 0; k < 30; k++) {
-        const d = m.placed ? rr(35, 50) : rr(14, 30), lat = (R() * 2 - 1) * 20;
-        const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT), h = T.h(x, z);
-        if (h > bs) { bs = h; best = [x, z]; }
-      }
-      m.st.set(best[0], 0, best[1]); m.placed = true;
-      m.y = Math.min(T.h(best[0], best[1]) + rr(4, 7), -3);
-    }
-    const w = 1.25 / m.rad;
-    m.a += dt * w * m.dir;
-    const px = m.st.x + Math.cos(m.a) * m.rad, pz = m.st.z + Math.sin(m.a) * m.rad;
-    const fh = T.h(px, pz);
-    const ty = Math.min(Math.max(m.y + Math.sin(m.t * 0.15) * 2, fh + 2.5), -2.5);
-    m.pos.y += (ty - m.pos.y) * Math.min(1, dt * 0.5);
-    m.pos.x = px; m.pos.z = pz;
-    const tx = -Math.sin(m.a) * m.dir, tz = Math.cos(m.a) * m.dir;
-    m.mesh.position.copy(m.pos);
-    m.mesh.rotation.set(-0.05 + Math.sin(m.t * 0.3) * 0.05, Math.atan2(tx, tz), 0.32 * m.dir, 'YXZ');
-    if (!m.init) { m.init = true; m.pos.y = ty; }
-  }
 }
 

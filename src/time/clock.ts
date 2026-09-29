@@ -64,6 +64,8 @@ export interface SkyState {
   moonDir: [number, number, number]; moonI: number;
   phase: string; phaseLabel: string; moonAge: number; moonName: string;
   tideH: number; tideRate: number;
+  day: number;        // 0..1 how much daylight (for diurnal animals)
+  twilight: number;   // 0..1 peaks around sunrise and sunset (crepuscular animals)
 }
 
 function toDir(alt: number, az: number): [number, number, number] {
@@ -100,5 +102,7 @@ export function skyState(ms: number, site: SiteLike): SkyState {
     moonDir: toDir(m.alt, m.az), moonI: moonUp,
     phase, phaseLabel, moonAge: m.age, moonName: moonPhaseName(m.age),
     tideH: t.h, tideRate: t.rate,
+    day: smooth(-0.05, 0.25, sa),
+    twilight: Math.exp(-(((s.alt * 180 / Math.PI) - 1) ** 2) / (2 * 7 * 7)),
   };
 }

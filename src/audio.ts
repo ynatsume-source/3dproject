@@ -86,3 +86,18 @@ function scheduleCrackle() {
     scheduleCrackle();
   }, 250);
 }
+
+// Parrotfish biting coral: a few short, gritty scrapes.
+export function crunch(vol: number) {
+  if (!ac || !audio.on) return;
+  let w = ac.currentTime + 0.01;
+  for (let k = 0; k < 2 + Math.floor(Math.random() * 3); k++) {
+    const len = Math.floor(ac.sampleRate * 0.03), b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.25));
+    const s = ac.createBufferSource(); s.buffer = b;
+    const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800 + Math.random() * 1500; f.Q.value = 1.2;
+    const g = ac.createGain(); g.gain.value = 0.35 * vol;
+    s.connect(f).connect(g).connect(master); s.start(w);
+    w += 0.06 + Math.random() * 0.05;
+  }
+}
