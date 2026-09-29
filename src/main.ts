@@ -257,6 +257,7 @@ function statusOf(id: string): string {
   if (f) return f.status();
   if (id === 'turtle' && cur.turtles.length) { const t = cur.turtles.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return TURTLE_STATE[t.state] || ''; }
   if (id === 'manta' && cur.mantas.length) return cur.mantas[0].feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている';
+  if (id === 'octopus' && cur.octopi?.length) { const o = cur.octopi.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return o.subject.status(); }
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
@@ -317,6 +318,7 @@ function checkSightings() {
   if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'));
   if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'));
   if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'));
+  if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'));
 }
 
 /* ================= globe UI ================= */
@@ -404,6 +406,7 @@ function enterOcean(oc: Ocean) {
   camera.getWorldDirection(U.uCamFwd.value);
   for (const f of oc.fish) f.reset();
   for (const t of oc.turtles) t.placed = false;
+  for (const o of oc.octopi || []) o.placed = false;
   for (const m of oc.mantas) m.placed = false;
   mode = 'ocean';
   document.body.classList.remove('mode-globe'); document.body.classList.add('mode-ocean');

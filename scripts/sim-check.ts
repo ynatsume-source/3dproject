@@ -23,6 +23,7 @@ function run(fromMs: number, seconds: number, label: string) {
   console.log(`\n[${label}] day=${s.day.toFixed(2)} night=${s.night.toFixed(2)} twilight=${s.twilight.toFixed(2)} prey alive=${prey}`);
   for (const f of oc.fish) console.log(`  ${f.sp.ja.padEnd(14, '　')} ${f.status()}`);
   console.log(`  ウミガメ: ${oc.turtles.map((x: any) => x.state).join(', ')}`);
+  if (oc.octopi) console.log(`  ワモンダコ: ${oc.octopi.map((x: any) => x.state).join(', ')}`);
   console.log(`  plankton @cam: ${oc.eco.env.plankton.sample(0, 0).toFixed(2)}`);
 }
 run(ev.noon, 60, 'noon');

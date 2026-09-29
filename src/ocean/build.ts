@@ -6,6 +6,7 @@ import { WORLD, LIMIT, HN, oceanScene } from './scenery';
 import { CORAL_GEO, CORAL_MAT, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
 import { makeFishSystem } from '../eco/fish';
 import { Ecosystem } from '../eco/ecosystem';
+import { makeOctopi } from '../eco/octopus';
 import type { Sea } from '../data/locations';
 
 /* ================= building a sea ================= */
@@ -194,6 +195,7 @@ export function buildOcean(loc) {
     const s = rr(1.7, 2.2); m.scale.setScalar(s);
     oc.mantas.push({ mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
   }
+  if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
   oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);

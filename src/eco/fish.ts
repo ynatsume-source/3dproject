@@ -5,10 +5,11 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
+import { mat } from '../render/common';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
-const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _ss = new THREE.Vector3();
+const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _mc = new THREE.Matrix4(), _ss = new THREE.Vector3();
 const REVIVE_AFTER = 150;   // s until another fish drifts in to take a lost one's place
 
 type GroupType = 'anem' | 'reef' | 'roam';
@@ -58,6 +59,23 @@ export function makeFishSystem(sp: Species, oc: any) {
   const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp), total);
   mesh.frustumCulled = false;
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  // parrotfish sleep inside a mucus cocoon they secrete at dusk
+  let cocoon: THREE.InstancedMesh | null = null;
+  if (sp.cocoon) {
+    cocoon = new THREE.InstancedMesh(new THREE.SphereGeometry(0.5, 18, 12), mat(
+      `varying vec3 vWp; varying vec3 vN;
+       void main(){ vec3 p = position * (1.0 + 0.03 * sin(uTime * 1.5 + position.z * 9.0)); vec4 w = modelMatrix * instanceMatrix * vec4(p, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * w; }`,
+      `varying vec3 vWp; varying vec3 vN;
+       void main(){
+         vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
+         float f = pow(1.0 - abs(dot(n, V)), 2.2);
+         vec3 c = vec3(0.78, 0.9, 0.96) * (0.12 + uAmb * 0.5) + lamp(vec3(0.9), vWp, faceforward(n, -V, n)) * 0.7;
+         gl_FragColor = vec4(fogIt(c, vWp), 0.07 + 0.45 * f);
+       }`, { opts: { transparent: true, depthWrite: false } }), total);
+    cocoon.frustumCulled = false;
+    cocoon.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    oc.group.add(cocoon);
+  }
   const T = oc.T;
   const isPredator = sp.diet === 'fish';
   const smallPrey = !sp.big && sp.size[1] < 0.35;
@@ -193,7 +211,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       for (let i = g.start; i < g.start + g.n; i++) {
         if (dead[i]) {
           if (g.t - dead[i] > REVIVE_AFTER) { dead[i] = 0; fp[i * 3] = g.c.x + fo[i * 3] * 3; fp[i * 3 + 1] = g.c.y; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2] * 3; }
-          else { _mm.makeScale(0, 0, 0); mesh.setMatrixAt(i, _mm); dirty = true; continue; }
+          else { _mm.makeScale(0, 0, 0); mesh.setMatrixAt(i, _mm); cocoon?.setMatrixAt(i, _mm); dirty = true; continue; }
         }
         alive++;
         const ox = fo[i * 3] * spreadK, oz = fo[i * 3 + 2] * spreadK;
@@ -235,13 +253,19 @@ export function makeFishSystem(sp: Species, oc: any) {
         if (hs < 0.05) { hx += Math.cos(g.head + i) * 0.05; hz += Math.sin(g.head + i) * 0.05; hs = Math.hypot(hx, hz); }
         const hy = clamp(vy, -hs * 0.6, hs * 0.6);
         _w.set(nx + hx, ny + hy, nz + hz); _v.set(nx, ny, nz);
-        _mm.lookAt(_w, _v, UPV); _ss.setScalar(fs[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
+        _mm.lookAt(_w, _v, UPV);
+        if (cocoon) {
+          const c = smooth(0.55, 0.9, rest);
+          _mc.copy(_mm); _ss.set(fs[i] * 0.6 * c, fs[i] * 0.85 * c, fs[i] * 1.7 * c); _mc.scale(_ss); _mc.setPosition(nx, ny, nz);
+          cocoon.setMatrixAt(i, _mc);
+        }
+        _ss.setScalar(fs[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
         mesh.setMatrixAt(i, _mm);
         dirty = true;
       }
       if (g.prey) g.prey.alive = alive;
     }
-    if (dirty) mesh.instanceMatrix.needsUpdate = true;
+    if (dirty) { mesh.instanceMatrix.needsUpdate = true; if (cocoon) cocoon.instanceMatrix.needsUpdate = true; }
   }
 
   function nearest(cam: THREE.Vector3, fwd: THREE.Vector3, maxD: number) {
@@ -267,7 +291,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   function status(): string {
     if (groups.some((g) => g.hunt)) return '狩り中';
     const a = groups.reduce((s, g) => s + g.act, 0) / groups.length;
-    if (a < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : '岩陰で休息中';
+    if (a < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : sp.cocoon ? '粘液の膜にくるまって眠っている' : '岩陰で休息中';
     if (Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
     return ({ plankton: 'プランクトンを食べている', algae: '藻をかじっている', invert: '餌を探している', fish: '巡回中', filter: 'プランクトンを濾して食べている' } as Record<string, string>)[sp.diet || 'plankton'];
   }

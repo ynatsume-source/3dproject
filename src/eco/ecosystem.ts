@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { LIMIT } from '../ocean/scenery';
 import { Plankton } from './plankton';
 import { updateTurtles, updateMantas } from './animals';
+import { updateOctopi } from './octopus';
 import type { Env, SeaEvent, Subject } from './env';
 import type { FishSystem } from './fish';
 import type { SkyState } from '../time/clock';
@@ -58,6 +59,7 @@ export class Ecosystem {
     for (const f of this.oc.fish as FishSystem[]) f.update(dt, e, cam, fx, fz);
     updateTurtles(this.oc, dt, e, cam, fx, fz);
     updateMantas(this.oc, dt, e, cam, fx, fz);
+    updateOctopi(this.oc, dt, e, cam, fx, fz);
     return e.events;
   }
 }

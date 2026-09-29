@@ -11,6 +11,7 @@ export interface Species {
   diel?: 'day' | 'night' | 'crep' | 'always';    // when it is active
   diet?: 'plankton' | 'algae' | 'invert' | 'fish' | 'filter';
   eye?: number;
+  cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
 }
 export interface GuideEntry { id: string; ja: string; sci: string; note: string }
 export interface Sea {
@@ -25,7 +26,7 @@ export interface Sea {
   corals: Record<string, number>;
   anemones: number; clamSize: [number, number]; eels: number;
   species: Species[];
-  animals: { turtle?: { style: string; count: number }; manta?: number };
+  animals: { turtle?: { style: string; count: number }; manta?: number; octopus?: number };
   extraGuide: GuideEntry[];
   benthic: [string, string, string][];
 }
@@ -113,16 +114,19 @@ export const LOCATIONS: Sea[] = [
       { id: 'auriga', ja: 'トゲチョウチョウウオ', sci: 'Chaetodon auriga', note: '白地に「く」の字の模様、後半が黄色。目を隠す黒い帯はチョウチョウウオの特徴。',
         diel: 'day', diet: 'invert', pat: 4, c1: [0.95, 0.94, 0.90], c2: [0.98, 0.80, 0.10], c3: [0.04, 0.04, 0.04], shape: 'disc', size: [0.15, 0.21], habitat: 'reef', schools: 6, n: 2, spread: [0.8, 0.3, 0.8], alt: [0.6, 2], speed: 0.8 },
       { id: 'hibudai', ja: 'ヒブダイ', sci: 'Scarus ghobban', note: '昼はサンゴ礁の藻をかじって砂をつくる。夜は岩陰で、自分で出した粘液の膜にくるまって眠る。',
-        diel: 'day', diet: 'algae', pat: 10, c1: [0.22, 0.52, 0.62], c2: [0.95, 0.66, 0.30], shape: 'parrot', size: [0.4, 0.6], habitat: 'reef', schools: 4, n: 3, spread: [2.4, 0.8, 2.4], alt: [0.5, 1.5], speed: 0.9, big: true },
+        diel: 'day', diet: 'algae', pat: 10, c1: [0.22, 0.52, 0.62], c2: [0.95, 0.66, 0.30], shape: 'parrot', size: [0.4, 0.6], habitat: 'reef', schools: 4, n: 3, spread: [2.4, 0.8, 2.4], alt: [0.5, 1.5], speed: 0.9, big: true, cocoon: true },
+      { id: 'yarai', ja: 'ヤライイシモチ', sci: 'Cheilodipterus quinquelineatus', note: '黒い縦縞が5本のテンジクダイの仲間。昼は枝サンゴの間でじっと群れ、夜になると散らばって小さな甲殻類を食べる。',
+        diel: 'night', diet: 'invert', pat: 5, c1: [0.86, 0.87, 0.82], c2: [0.08, 0.08, 0.09], bands: 5.5, shape: 'slender', size: [0.08, 0.12], habitat: 'reef', schools: 6, n: 16, spread: [1.0, 0.5, 1.0], alt: [0.3, 1.0], speed: 0.5, eye: 1.5 },
       { id: 'akamatsukasa', ja: 'アカマツカサ', sci: 'Myripristis murdjan', note: '大きな目を持つ夜行性の魚。昼は岩陰やテーブルサンゴの下に隠れ、夜に出てきて動物プランクトンを食べる。',
         diel: 'night', diet: 'plankton', pat: 12, c1: [0.86, 0.20, 0.16], c2: [0.96, 0.52, 0.44], shape: 'oval', size: [0.18, 0.25], habitat: 'reef', schools: 5, n: 7, spread: [1.4, 0.6, 1.4], alt: [0.4, 1.4], speed: 0.6, eye: 1.7 },
       { id: 'kasumiaji', ja: 'カスミアジ', sci: 'Caranx melampygus', note: '青いひれのアジ。夕暮れや明け方にリーフを巡回し、小魚の群れに突っ込んで狩りをする。',
         diel: 'crep', diet: 'fish', pat: 11, c1: [0.42, 0.50, 0.52], c2: [0.86, 0.87, 0.84], c3: [0.20, 0.45, 0.95], shape: 'jack', size: [0.5, 0.8], habitat: 'roam', count: 3, alt: [1.5, 5], speed: 1.4, big: true },
     ],
-    animals: { turtle: { style: 'green', count: 5 } },
+    animals: { turtle: { style: 'green', count: 5 }, octopus: 2 },
     extraGuide: [
       { id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '宮古島は一年を通してウミガメに出会える島として知られる。' },
       { id: 'eel', ja: 'チンアナゴ', sci: 'Heteroconger hassi', note: '砂に巣穴を掘って体を出し、流れてくるプランクトンを食べる。近づくと引っ込む。' },
+      { id: 'octopus', ja: 'ワモンダコ', sci: 'Octopus cyanea', note: '昼に活動するタコ。岩の上を歩いて甲殻類を探し、体の色や模様を一瞬で変える。驚くと体色を変えてジェット噴射で逃げる。' },
     ],
     benthic: [
       ['テーブル状ミドリイシ', 'Acropora hyacinthus など', '八重干瀬を代表する景観。大きいものは直径2mを超える。'],
