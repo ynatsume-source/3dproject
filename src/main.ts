@@ -1,0 +1,526 @@
+// Seaglass: pick a sea on the globe, dive, and drift with the drone. The sim clock lights every sea
+// by its real sky; one click jumps to dawn / noon / dusk / night, and time can run faster than real.
+import * as THREE from 'three';
+import './styles.css';
+import { U } from './render/common';
+import { clamp, smooth, angDiff } from './core/math';
+import { LOCATIONS, type Sea } from './data/locations';
+import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
+import { buildOcean, updateTurtles, updateMantas } from './ocean/build';
+import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
+import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
+import { audio, startAudio, stopAudio, setHum } from './audio';
+
+const $ = (id: string) => document.getElementById(id) as HTMLElement;
+const canvas = $('scene') as HTMLCanvasElement;
+
+let renderer: THREE.WebGLRenderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { $('err').hidden = false; throw e; }
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+
+const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 460);
+camera.rotation.order = 'YXZ';
+const CELL = 40;
+
+/* ================= state ================= */
+type Ocean = ReturnType<typeof buildOcean>;
+let cur: Ocean | null = null;
+let mode: 'globe' | 'ocean' = 'globe';
+const oceans: Record<string, Ocean> = {};
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let lampOn = false, lampManual = false, hudOn = true, quality: 'high' | 'low' = 'high', busy = false;
+
+/* ================= drone ================= */
+const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9 };
+function pathXZ(s: number): [number, number] { return [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
+function pathAlt(s: number) {
+  const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
+  return Math.max(1.8, a) + Math.pow(Math.max(0, Math.sin(s * 1.13 + 0.5)), 8) * 10;
+}
+function pathPoint(s: number, out: THREE.Vector3) { const [x, z] = pathXZ(s); return out.set(x, Math.min(cur!.T.h(x, z) + pathAlt(s), -1.4), z); }
+function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.001; }
+function nearestS(p: THREE.Vector3) {
+  let best = drone.s, bd = Infinity;
+  for (let i = 0; i < 2400; i++) { const s = i * 0.02; const [x, z] = pathXZ(s); const d = (x - p.x) ** 2 + (z - p.z) ** 2; if (d < bd) { bd = d; best = s; } }
+  return best;
+}
+const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0 };
+const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3();
+let yawRate = 0, interestW = 0;
+function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
+  let best = Infinity;
+  const tmp = new THREE.Vector3();
+  for (const f of cur!.fish) if (f.sp.big) { const d = f.nearestPos(cam, fwd, 26, tmp); if (d < best) { best = d; _i.copy(tmp); } }
+  for (const t of cur!.turtles) { const d = t.pos.distanceTo(cam); if (d < 26 && d < best && _w.subVectors(t.pos, cam).dot(fwd) > 0) { best = d; _i.copy(t.pos); } }
+  for (const m of cur!.mantas) { const d = m.pos.distanceTo(cam); if (d < 30 && d < best && _w.subVectors(m.pos, cam).dot(fwd) > 0) { best = d; _i.copy(m.pos); } }
+  return best < Infinity;
+}
+function updateDrone(dt: number, now: number) {
+  const prevYaw = drone.yaw, t = U.uTime.value;
+  if (drone.mode === 'auto') {
+    const hasI = findInterest(drone.pos, U.uCamFwd.value);
+    interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
+    const speed = 1.35 - interestW * 0.5;
+    drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
+    pathPoint(drone.s, _t);
+    _v.subVectors(_t, drone.pos);
+    const L = _v.length(); _v.multiplyScalar(Math.min(L * 1.4, L > 6 ? 4.5 : 3) / Math.max(L, 1e-4));
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.5));
+    pathPoint(drone.s + 9 / Math.max(pathRate(drone.s), 1e-3), _a);
+    const dx = _a.x - drone.pos.x, dz = _a.z - drone.pos.z, dy = _a.y - drone.pos.y;
+    let wantYaw = Math.atan2(-dx, -dz) + (Math.sin(t * 0.09) * 0.45 + Math.sin(t * 0.031 + 1) * 0.3) * (1 - interestW);
+    let wantPitch = Math.atan2(dy, Math.hypot(dx, dz)) * 0.6 - 0.1 + Math.sin(t * 0.07) * 0.12;
+    if (interestW > 0.01 && hasI) {
+      const ix = _i.x - drone.pos.x, iz = _i.z - drone.pos.z, iy = _i.y - drone.pos.y;
+      wantYaw += angDiff(Math.atan2(-ix, -iz), wantYaw) * interestW * 0.8;
+      wantPitch += (Math.atan2(iy, Math.hypot(ix, iz)) - wantPitch) * interestW * 0.7;
+    }
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.7);
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.7);
+  } else {
+    const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + joy.y;
+    const r = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + joy.x;
+    const u = (keys.has('KeyE') || keys.has('Space') ? 1 : 0) - (keys.has('KeyQ') || keys.has('KeyC') ? 1 : 0) + vert.v;
+    if (keys.has('ArrowLeft')) drone.yaw += dt * 1.2;
+    if (keys.has('ArrowRight')) drone.yaw -= dt * 1.2;
+    const boost = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.6 : 1;
+    const cp = Math.cos(drone.pitch), sy = Math.sin(drone.yaw), cy = Math.cos(drone.yaw);
+    _v.set(-sy * cp * f + cy * r, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * r);
+    if (_v.lengthSq() > 1) _v.normalize();
+    _v.multiplyScalar(2.2 * boost);
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.8));
+    if (now - drone.lastInput > 90000) setMode('auto');
+  }
+  drone.pos.addScaledVector(drone.vel, dt);
+  const fh = cur!.T.h(drone.pos.x, drone.pos.z);
+  if (drone.pos.y < fh + 0.7) { drone.pos.y = fh + 0.7; if (drone.vel.y < 0) drone.vel.y = 0; }
+  if (drone.pos.y > -0.7) { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
+  drone.pos.x = clamp(drone.pos.x, -LIMIT, LIMIT); drone.pos.z = clamp(drone.pos.z, -LIMIT, LIMIT);
+  drone.pitch = clamp(drone.pitch, -1.25, 1.25);
+  yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
+  drone.roll += (-yawRate * 0.18 - drone.roll) * Math.min(1, dt * 2);
+  camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
+  camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008, drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01);
+}
+
+/* ================= sky from the clock ================= */
+let skyNow = null as ReturnType<typeof skyState> | null;
+function applySky(loc: Sea) {
+  const s = skyState(clock.ms, loc);
+  skyNow = s;
+  U.uSunDir.value.set(...s.sunDir);
+  U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
+  U.uTint.value.setRGB(...s.tint);
+  U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
+  U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
+  // tidal stream: flood one way, ebb the other; strongest mid-tide
+  const k = clamp(s.tideRate / (loc.tide.amp * 0.00016 + 1e-6), -1, 1);
+  const ax = loc.tide.axis;
+  U.uCurrent.value.set(ax[0] * k * 0.8 + 0.12, ax[1] * k * 0.8 + 0.05);
+  audio.night = s.night;
+  if (!lampManual) setLamp(s.night > 0.6, false);
+}
+
+/* ================= HUD ================= */
+const strip = $('strip');
+{
+  const PX = 2, frag = document.createDocumentFragment(), names: Record<number, string> = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+  for (let d = -360; d <= 720; d += 15) {
+    const x = (d + 360) * PX, dd = ((d % 360) + 360) % 360;
+    const tk = document.createElement('div'); tk.className = 'tk' + (dd % 45 === 0 ? ' major' : ''); tk.style.left = x + 'px'; frag.appendChild(tk);
+    if (dd % 45 === 0) { const lb = document.createElement('div'); lb.className = 'lb' + (dd % 90 === 0 ? ' card' : ''); lb.style.left = x + 'px'; lb.textContent = names[dd]; frag.appendChild(lb); }
+  }
+  strip.appendChild(frag);
+}
+const compassEl = $('compass');
+function updateHud() {
+  const loc = cur!.loc, s = skyNow!;
+  const depth = -drone.pos.y + s.tideH, alt = drone.pos.y - cur!.T.h(drone.pos.x, drone.pos.z);
+  $('tDepth').textContent = depth.toFixed(1);
+  $('tAlt').textContent = alt.toFixed(1);
+  $('tSpd').textContent = drone.vel.length().toFixed(2);
+  $('tTemp').textContent = (loc.temp - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
+  $('tVis').textContent = (3 / (U.uFogDen.value * (1 + 0.6 * s.night)) * 0.3).toFixed(0);
+  $('tTide').textContent = (s.tideH >= 0 ? '+' : '') + s.tideH.toFixed(1);
+  $('tTideDir').textContent = Math.abs(s.tideRate) < 0.000015 ? (s.tideH > 0 ? '満潮' : '干潮') : s.tideRate > 0 ? '上げ潮' : '下げ潮';
+  const hdg = ((-drone.yaw * 180 / Math.PI) % 360 + 360) % 360;
+  $('hdgnum').textContent = String(Math.round(hdg) % 360).padStart(3, '0') + '°';
+  strip.style.transform = `translateX(${-(hdg + 360) * 2 + compassEl.clientWidth / 2}px)`;
+  updateTimeUi();
+}
+function updateTimeUi() {
+  if (!cur || !skyNow) return;
+  const loc = cur.loc, s = skyNow;
+  $('clockTime').textContent = localTimeString(clock.ms, loc.tz);
+  $('clockPhase').textContent = s.phaseLabel;
+  $('clockMoon').textContent = `${s.moonName}（月齢 ${s.moonAge.toFixed(0)}）`;
+  $('clockMode').textContent = clock.live ? '実時間' : SPEEDS.find((x) => x.k === clock.speed)?.label ?? `×${clock.speed}`;
+  $('btnTime').classList.toggle('live', clock.live);
+  document.querySelectorAll<HTMLButtonElement>('#timePanel [data-speed]').forEach((b) => b.setAttribute('aria-pressed', String(!clock.live && clock.speed === +b.dataset.speed!)));
+  $('btnLive').setAttribute('aria-pressed', String(clock.live));
+  document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => b.classList.toggle('now', b.dataset.preset === s.phase));
+}
+
+/* ---------- field guide ---------- */
+let seen = new Set<string>();
+try { seen = new Set(JSON.parse(localStorage.getItem('seaglass.seen') || '[]')); } catch (e) { /* storage unavailable */ }
+const guideEl = $('guide');
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || [])];
+function renderGuide() {
+  if (!cur) return;
+  const loc = cur.loc, list = guideEntries(loc);
+  const n = list.filter((e) => seen.has(loc.id + ':' + e.id)).length;
+  $('seenCount').textContent = `${n}/${list.length}`;
+  if (guideEl.hidden) return;
+  guideEl.innerHTML = `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
+    <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}"><i></i><b>${e.ja}</b><em>${e.sci}</em><p>${e.note}</p></li>`).join('')}</ul>
+    <h3>サンゴと底生生物</h3>
+    <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>`;
+}
+let toastTimer = 0;
+function discover(e?: { id: string; ja: string; sci: string }) {
+  if (!e || !cur) return;
+  const key = cur.loc.id + ':' + e.id;
+  if (seen.has(key)) return;
+  seen.add(key);
+  try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
+  $('toastT').textContent = e.ja; $('toastS').textContent = e.sci;
+  $('toast').classList.add('on'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => $('toast').classList.remove('on'), 4200);
+  renderGuide();
+}
+function checkSightings() {
+  const cam = drone.pos, fwd = U.uCamFwd.value, loc = cur!.loc;
+  for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) discover(f.sp);
+  const extra = (id: string) => (loc.extraGuide || []).find((e) => e.id === id);
+  const inView = (p: THREE.Vector3, maxD: number) => { _w.subVectors(p, cam); const d = _w.length(); return d < maxD && _w.dot(fwd) / d > 0.55; };
+  if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'));
+  if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'));
+  if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'));
+}
+
+/* ================= globe UI ================= */
+const fmtLL = (lat: number, lon: number) => `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'} ${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'W' : 'E'}`;
+const pinEls = LOCATIONS.map((loc, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pin';
+  b.innerHTML = `<i></i><span>${loc.name}<small id="pinTime${i}"></small></span>`;
+  b.setAttribute('aria-label', `${loc.name} ${loc.site} へ潜る`);
+  b.onclick = () => dive(loc);
+  b.onmouseenter = () => setHot(i); b.onmouseleave = () => setHot(-1);
+  $('pins').appendChild(b); return b;
+});
+const cardEls = LOCATIONS.map((loc, i) => {
+  const li = document.createElement('li');
+  const chips = [...loc.species.filter((s) => s.big || s.habitat === 'anemone').map((s) => s.ja), ...(loc.extraGuide || []).map((s) => s.ja)].slice(0, 5);
+  li.innerHTML = `<button type="button" class="loc">
+    <span class="rg">${loc.region}</span>
+    <span class="nm">${loc.name}<small>${loc.site}</small></span>
+    <span class="meta"><span>${fmtLL(loc.lat, loc.lon)}</span><span>水深 ${loc.depth}</span><span>透明度 約${loc.vis} m</span><span>水温 ${loc.temp.toFixed(0)}°C</span></span>
+    <span class="now" id="cardNow${i}"></span>
+    <span class="bl">${loc.blurb}</span>
+    <span class="chips">${chips.map((c) => `<span>${c}</span>`).join('')}</span>
+    <span class="go">この海へ潜る →</span></button>`;
+  const b = li.firstElementChild as HTMLButtonElement;
+  b.onclick = () => dive(loc);
+  b.onmouseenter = () => { setHot(i); if (!gv.tween) focusLoc(loc); };
+  b.onmouseleave = () => setHot(-1);
+  b.onfocus = () => setHot(i);
+  $('locList').appendChild(li); return b;
+});
+function setHot(i: number) {
+  earthMat.uniforms.uHot.value = i;
+  pinEls.forEach((p, k) => p.classList.toggle('hot', k === i));
+  cardEls.forEach((c, k) => c.classList.toggle('hot', k === i));
+}
+function focusLoc(loc: Sea) { gv.lastUser = performance.now(); tweenGlobe(clamp(loc.lat, -60, 60), loc.lon, gv.dist, 1100); }
+const _pp = new THREE.Vector3();
+function updatePins() {
+  const w = innerWidth, h = innerHeight, cd = gcam.position.clone().normalize();
+  LOCATIONS.forEach((loc, i) => {
+    const p = ll2v(loc.lat, loc.lon, 1.0);
+    _pp.copy(p).project(gcam);
+    const el = pinEls[i];
+    el.style.transform = `translate(${(_pp.x * 0.5 + 0.5) * w - 7}px, ${(-_pp.y * 0.5 + 0.5) * h - 11}px)`;
+    el.classList.toggle('back', p.dot(cd) < 0.25);
+  });
+}
+function updateGlobeTimes() {
+  LOCATIONS.forEach((loc, i) => {
+    const s = skyState(clock.ms, loc), t = localTimeString(clock.ms, loc.tz);
+    $('pinTime' + i).textContent = ` ${t}`;
+    $('cardNow' + i).textContent = `いま現地 ${t} · ${s.phaseLabel} · ${s.moonName}`;
+  });
+}
+
+/* ================= modes & transitions ================= */
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+function veil(on: boolean, k?: string, t?: string, s?: string) {
+  if (k !== undefined) { $('veilK').textContent = k; $('veilT').textContent = t!; $('veilS').textContent = s || ''; }
+  $('veil').classList.toggle('on', on);
+}
+function applyWater(loc: Sea) {
+  const w = loc.water;
+  U.uUp.value.setRGB(w.up[0], w.up[1], w.up[2]); U.uHor.value.setRGB(w.hor[0], w.hor[1], w.hor[2]); U.uDown.value.setRGB(w.down[0], w.down[1], w.down[2]);
+  U.uFogDen.value = w.fog; U.uAbs.value.set(w.abs[0], w.abs[1], w.abs[2]);
+  U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
+}
+function enterOcean(oc: Ocean) {
+  if (cur && cur !== oc) cur.group.visible = false;
+  cur = oc; oc.group.visible = true;
+  applyWater(oc.loc);
+  lampManual = false;
+  applySky(oc.loc);
+  grass.visible = !!oc.grassTex; grassMat.uniforms.uHeight.value = oc.grassTex;
+  drone.s = 0.4 + Math.random() * 6; drone.mode = 'auto';
+  pathPoint(drone.s, drone.pos); drone.vel.set(0, 0, 0);
+  const a = pathPoint(drone.s + 0.05, new THREE.Vector3());
+  drone.yaw = Math.atan2(-(a.x - drone.pos.x), -(a.z - drone.pos.z)); drone.pitch = -0.08;
+  updateDrone(0.016, performance.now());
+  camera.getWorldDirection(U.uCamFwd.value);
+  for (const f of oc.fish) f.reset();
+  for (const t of oc.turtles) t.placed = false;
+  for (const m of oc.mantas) m.placed = false;
+  mode = 'ocean';
+  document.body.classList.remove('mode-globe'); document.body.classList.add('mode-ocean');
+  $('locName').textContent = `${oc.loc.name} · ${oc.loc.site}`;
+  $('locCoord').textContent = fmtLL(oc.loc.lat, oc.loc.lon);
+  setMode('auto');
+  renderGuide();
+  try { history.replaceState(null, '', '#' + oc.loc.id); } catch (e) { /* ignore */ }
+  resize();
+}
+async function dive(loc: Sea) {
+  if (busy) return; busy = true;
+  setHot(LOCATIONS.indexOf(loc));
+  await tweenGlobe(loc.lat, loc.lon, 1.16, 1700);
+  veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
+  await wait(750); await nextFrame(); await nextFrame();
+  if (!oceans[loc.id]) oceans[loc.id] = buildOcean(loc);
+  enterOcean(oceans[loc.id]);
+  await nextFrame();
+  veil(false); setHot(-1);
+  busy = false;
+}
+async function toGlobe() {
+  if (busy || mode !== 'ocean') return; busy = true;
+  const loc = cur!.loc;
+  veil(true, 'SURFACING', '地球儀へ戻ります', `${loc.name} から浮上中`);
+  await wait(750);
+  mode = 'globe';
+  document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
+  setGuide(false); setTimePanel(false);
+  gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
+  resize();
+  veil(false);
+  await tweenGlobe(clamp(loc.lat, -40, 40), loc.lon, 3.5, 1800);
+  busy = false;
+}
+
+function setMode(m: 'auto' | 'manual') {
+  drone.mode = m;
+  if (m === 'auto' && cur) drone.s = nearestS(drone.pos);
+  $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
+  $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
+  $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
+  $('hint').textContent = m === 'auto'
+    ? (isTouch ? 'ドラッグすると手動操縦に切り替わります' : 'ドラッグかWASDで手動操縦に切り替わります')
+    : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 90秒操作がないと自動巡航に戻ります'
+      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · 90秒操作がないと自動巡航に戻ります');
+  $('joy').hidden = $('vbtns').hidden = !(isTouch && m === 'manual');
+}
+function touchInput() { drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
+function setLamp(on: boolean, manual = true) {
+  if (manual) lampManual = true;
+  lampOn = on; $('btnLamp').setAttribute('aria-pressed', String(on));
+}
+function setSound(on: boolean) {
+  if (on && !startAudio()) on = false;
+  if (!on) stopAudio();
+  $('btnSound').setAttribute('aria-pressed', String(on));
+}
+function setHud(on: boolean) { hudOn = on; document.body.classList.toggle('hud-off', !on); }
+function setGuide(on: boolean) { guideEl.hidden = !on; $('btnGuide').setAttribute('aria-pressed', String(on)); if (on) setTimePanel(false); renderGuide(); }
+function setTimePanel(on: boolean) { $('timePanel').hidden = !on; $('btnTime').setAttribute('aria-expanded', String(on)); if (on) { guideEl.hidden = true; $('btnGuide').setAttribute('aria-pressed', 'false'); } }
+function setQuality(q: 'high' | 'low') {
+  quality = q;
+  $('btnQuality').textContent = q === 'high' ? '画質 高' : '画質 軽量';
+  grassGeo.setDrawRange(0, (q === 'high' ? BLADES : Math.floor(BLADES * 0.45)) * SEG * 6);
+  snowGeo.setDrawRange(0, q === 'high' ? SNOW : Math.floor(SNOW * 0.5));
+  resize();
+}
+function toggleFull() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen?.().catch(() => { /* not allowed */ });
+  } catch (e) { /* ignore */ }
+}
+function goPreset(p: Preset) { if (!cur) return; clock.live = false; if (clock.speed === 0) clock.speed = 1; clock.ms = presetTime(p, cur.loc); applySky(cur.loc); updateTimeUi(); }
+
+let wakeLock: any = null;
+async function keepAwake() {
+  if (wakeLock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied */ }
+}
+document.addEventListener('visibilitychange', keepAwake);
+document.addEventListener('pointerdown', keepAwake, { once: true });
+
+$('btnGlobe').onclick = toGlobe;
+$('btnGuide').onclick = () => setGuide(guideEl.hidden);
+$('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
+$('btnAuto').onclick = () => setMode('auto');
+$('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
+$('btnLamp').onclick = () => setLamp(!lampOn);
+$('btnSound').onclick = () => setSound(!audio.on);
+$('btnQuality').onclick = () => { autoQ = false; setQuality(quality === 'high' ? 'low' : 'high'); };
+$('btnHud').onclick = () => setHud(false);
+$('reveal').onclick = () => setHud(true);
+$('btnFull').onclick = toggleFull;
+$('btnLive').onclick = () => { clock.goLive(); if (cur) applySky(cur.loc); updateTimeUi(); };
+
+const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyQ', 'KeyC', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+const PRESET_KEYS: Record<string, Preset> = { Digit1: 'dawn', Digit2: 'noon', Digit3: 'dusk', Digit4: 'night' };
+addEventListener('keydown', (e) => {
+  const tgt = e.target as HTMLElement;
+  if (tgt.closest && tgt.closest('button') && (e.code === 'Space' || e.code === 'Enter')) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
+  if (mode !== 'ocean' || busy) return;
+  if (MOVE.includes(e.code)) { keys.add(e.code); touchInput(); e.preventDefault(); return; }
+  if (e.code.startsWith('Shift')) { keys.add(e.code); return; }
+  if (e.repeat) return;
+  if (PRESET_KEYS[e.code]) goPreset(PRESET_KEYS[e.code]);
+  else if (e.code === 'Digit0') $('btnLive').click();
+  else if (e.code === 'KeyT') setTimePanel($('timePanel').hidden);
+  else if (e.code === 'KeyH') setHud(!hudOn);
+  else if (e.code === 'KeyL') setLamp(!lampOn);
+  else if (e.code === 'KeyM') setSound(!audio.on);
+  else if (e.code === 'KeyZ') setGuide(guideEl.hidden);
+  else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
+  else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+
+const pointers = new Map<number, { x: number; y: number }>();
+let pinch0 = 0;
+canvas.addEventListener('pointerdown', (e) => {
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.setPointerCapture(e.pointerId);
+  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
+});
+canvas.addEventListener('pointermove', (e) => {
+  const p = pointers.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (Math.abs(dx) + Math.abs(dy) < 0.5) return;
+  if (mode === 'globe') {
+    if (busy) return;
+    gv.lastUser = performance.now(); gv.tween = null;
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) gv.dist = clamp(gv.dist * pinch0 / d, 1.35, 4.5); pinch0 = d; return; }
+    const k = 0.18 * (gv.dist - 0.9);
+    gv.lon -= dx * k; gv.lat = clamp(gv.lat + dy * k, -70, 70);
+    gv.vlon = -dx * k * 30; gv.vlat = dy * k * 30;
+  } else {
+    touchInput();
+    const k = isTouch ? 0.006 : 0.0035;
+    drone.yaw -= dx * k; drone.pitch -= dy * k;
+  }
+});
+const endP = (e: PointerEvent) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; };
+canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercancel', endP);
+canvas.addEventListener('wheel', (e) => { if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + e.deltaY * 0.0012), 1.35, 4.5); }, { passive: false });
+{
+  const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
+  const setJ = (e: PointerEvent) => {
+    const r = pad.getBoundingClientRect(), Rr = r.width / 2;
+    let x = (e.clientX - r.left - Rr) / Rr, y = (e.clientY - r.top - Rr) / Rr; const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+    joy.x = x; joy.y = -y; knob.style.transform = `translate(${x * Rr * 0.6}px, ${y * Rr * 0.6}px)`; touchInput();
+  };
+  pad.addEventListener('pointerdown', (e) => { jid = e.pointerId; pad.setPointerCapture(jid); setJ(e); });
+  pad.addEventListener('pointermove', (e) => { if (e.pointerId === jid) setJ(e); });
+  const end = (e: PointerEvent) => { if (e.pointerId !== jid) return; jid = null; joy.x = joy.y = 0; knob.style.transform = ''; };
+  pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+  const hold = (btn: HTMLElement, v: number) => {
+    btn.addEventListener('pointerdown', (e) => { btn.setPointerCapture(e.pointerId); vert.v = v; touchInput(); });
+    const up = () => { vert.v = 0; }; btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
+  };
+  hold($('btnUp'), 1); hold($('btnDown'), -1);
+}
+let idleT = 0;
+addEventListener('pointermove', () => { idleT = performance.now(); document.body.classList.remove('idle'); });
+
+// time panel contents
+{
+  $('presetRow').innerHTML = (Object.keys(PRESET_LABEL) as Preset[]).map((p, i) => `<button type="button" data-preset="${p}">${PRESET_LABEL[p]} <kbd>${i + 1}</kbd></button>`).join('');
+  $('speedRow').innerHTML = SPEEDS.map((s) => `<button type="button" data-speed="${s.k}" title="${s.note}">${s.label}<small>${s.note}</small></button>`).join('');
+  document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => { b.onclick = () => goPreset(b.dataset.preset as Preset); });
+  document.querySelectorAll<HTMLButtonElement>('#timePanel [data-speed]').forEach((b) => { b.onclick = () => { const k = +b.dataset.speed!; if (k === 1 && clock.live) return; clock.live = false; clock.speed = k; updateTimeUi(); }; });
+}
+
+/* ================= loop ================= */
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  const dpr = Math.min(devicePixelRatio || 1, 1.5) * (quality === 'high' ? 1 : 0.7);
+  renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  gcam.aspect = w / h; gcam.fov = w / h < 1 ? 50 : 32;
+  if (w > 760) gcam.setViewOffset(w, h, -Math.min(w * 0.2, 260), 0, w, h);
+  else gcam.setViewOffset(w, h, 0, h * 0.2, w, h);
+  gcam.updateProjectionMatrix();
+  snowMat.uniforms.uPx.value = h * dpr * 0.5 / Math.tan(camera.fov * Math.PI / 360);
+}
+addEventListener('resize', resize);
+
+let lastTs = 0;
+let autoQ = true, fpsAcc = 0, fpsN = 0, fpsStart = 0, hudTimer = 0, sightTimer = 0, skyTimer = 0, globeTimer = 1;
+function frame(ts: number) {
+  const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016, now = performance.now();
+  lastTs = ts;
+  U.uTime.value += dt;
+  clock.advance(dt);
+  if (mode === 'globe') {
+    updateGlobe(dt, now, clock.ms, reduceMotion);
+    renderer.render(globeScene, gcam);
+    updatePins();
+    if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); }
+  } else if (cur) {
+    if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
+    updateDrone(dt, now);
+    const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
+    U.uCamPos.value.copy(camera.position);
+    U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
+    const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
+    for (const f of cur.fish) f.update(dt, drone.pos, fx, fz);
+    updateTurtles(cur, dt, drone.pos, fx, fz);
+    updateMantas(cur, dt, drone.pos, fx, fz);
+    const vis = Math.min(3.1 / U.uFogDen.value, 150) * (quality === 'high' ? 1 : 0.7) + CELL * 0.72;
+    for (const c of cur.cells) {
+      const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
+      c.mesh.visible = d < vis && (d < CELL || (dx * fx + dz * fz) / d > -0.4);
+    }
+    sky.position.copy(camera.position);
+    surface.position.set(camera.position.x, 0, camera.position.z);
+    setHum(drone.vel.length());
+    renderer.render(oceanScene, camera);
+    if ((hudTimer += dt) > 0.1) { hudTimer = 0; if (hudOn) updateHud(); }
+    if ((sightTimer += dt) > 0.3) { sightTimer = 0; checkSightings(); }
+    if (!hudOn && now - idleT > 3000) document.body.classList.add('idle');
+    if (autoQ) {
+      if (!fpsStart) fpsStart = now;
+      else if (now - fpsStart > 2000) { fpsAcc += dt; fpsN++; }
+      if (fpsN > 150) { autoQ = false; if (fpsN / fpsAcc < 38) setQuality('low'); }
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+document.body.classList.add('mode-globe');
+setQuality('high');
+resize();
+updateGlobeTimes();
+requestAnimationFrame(frame);
+const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
+if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start), 300); }
+void smooth;

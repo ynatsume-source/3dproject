@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03161d">
+  <meta name="description" content="実在の海を再現した海中を、ドローンでゆっくり巡る。現地の空と時刻に合わせて光が変わるサンゴ礁のシミュレーション。">
+  <title>Seaglass</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+</head>
+<body>
+<canvas id="scene" aria-label="海中ドローンのライブ映像"></canvas>
+<div id="vignette"></div>
+
+<!-- globe mode -->
+<section id="picker" class="g-ui" aria-label="海を選ぶ">
+  <div class="name">Seaglass</div>
+  <h1>潜る海を選ぶ</h1>
+  <p class="lead">地球儀はドラッグで回転、スクロールかピンチで拡大できます。昼と夜の境目は、いまの実際の太陽の位置です。ピンかカードを選ぶと、その海へ潜航します。</p>
+  <ol id="locList"></ol>
+  <p class="foot">地形・サンゴ・生きものの配置は手続き生成です。登場する種類は、それぞれの海に実際に暮らしているものを選んでいます。</p>
+</section>
+<div id="pins" class="g-ui"></div>
+
+<!-- ocean mode -->
+<div id="brand" class="hud">
+  <div class="name">Seaglass</div>
+  <div class="sub" id="locName">—</div>
+  <div class="coord" id="locCoord">—</div>
+</div>
+<dl id="tele" class="hud">
+  <dt>DEPTH</dt><dd><span id="tDepth">—</span><small>m</small></dd>
+  <dt>ALT</dt><dd><span id="tAlt">—</span><small>m</small></dd>
+  <dt>SPEED</dt><dd><span id="tSpd">—</span><small>m/s</small></dd>
+  <dt>TEMP</dt><dd><span id="tTemp">—</span><small>°C</small></dd>
+  <dt>VIS</dt><dd><span id="tVis">—</span><small>m</small></dd>
+  <dt>TIDE</dt><dd><span id="tTide">—</span><small>m</small> <small id="tTideDir"></small></dd>
+</dl>
+<div id="rec" class="hud"><i></i><span id="tMode">AUTO CRUISE</span></div>
+<div id="compass" class="hud"><div class="strip" id="strip"></div></div>
+<div id="hdgnum" class="hud">000°</div>
+<div id="toast" class="hud" aria-live="polite"><span class="k">NEW SIGHTING</span><span class="t" id="toastT"></span><span class="s" id="toastS"></span></div>
+<div id="hint" class="hud"></div>
+<aside id="guide" class="hud" hidden aria-label="この海の生きもの"></aside>
+
+<section id="timePanel" class="hud" hidden aria-label="時刻">
+  <div class="tp-head">
+    <span>現地の時刻</span>
+    <button id="btnLive" type="button" aria-pressed="true"><span class="dot"></span>実時間に戻す <kbd>0</kbd></button>
+  </div>
+  <div class="tp-row" id="presetRow"></div>
+  <div class="tp-label">早回し</div>
+  <div class="tp-row speeds" id="speedRow"></div>
+  <p class="tp-note">実時間では、現地の太陽・月・潮の位置をそのまま再現します。夜はライトが自動で点きます。</p>
+</section>
+
+<div id="joy" class="hud" hidden><i id="knob"></i></div>
+<div id="vbtns" class="hud" hidden>
+  <button id="btnUp" type="button">上昇</button>
+  <button id="btnDown" type="button">下降</button>
+</div>
+
+<div id="dock" class="hud">
+  <div class="group" role="group" aria-label="移動">
+    <button id="btnGlobe" type="button">地球儀へ戻る <kbd>G</kbd></button>
+    <button id="btnGuide" type="button" aria-pressed="false">図鑑 <span id="seenCount">0/0</span> <kbd>Z</kbd></button>
+  </div>
+  <div class="group" role="group" aria-label="時刻">
+    <button id="btnTime" type="button" aria-expanded="false" class="live">
+      <span class="clk" id="clockTime">--:--</span><span id="clockPhase">—</span>
+      <span class="sub" id="clockMode">実時間</span><kbd>T</kbd>
+    </button>
+    <span class="moon" id="clockMoon"></span>
+  </div>
+  <div class="group" role="group" aria-label="操縦モード">
+    <button id="btnAuto" type="button" aria-pressed="true"><span class="dot"></span>自動巡航 <kbd>P</kbd></button>
+    <button id="btnManual" type="button" aria-pressed="false"><span class="dot"></span>手動操縦</button>
+  </div>
+  <div class="group" role="group" aria-label="機能">
+    <button id="btnLamp" type="button" aria-pressed="false"><span class="dot"></span>ライト <kbd>L</kbd></button>
+    <button id="btnSound" type="button" aria-pressed="false"><span class="dot"></span>環境音 <kbd>M</kbd></button>
+    <button id="btnQuality" type="button">画質 高</button>
+    <button id="btnHud" type="button">HUDを隠す <kbd>H</kbd></button>
+    <button id="btnFull" type="button">全画面 <kbd>F</kbd></button>
+  </div>
+</div>
+
+<button id="reveal" type="button">HUD</button>
+<div id="veil"><div><div class="k" id="veilK">DIVING</div><div class="t" id="veilT"></div><div class="s" id="veilS"></div></div></div>
+<div id="err" hidden>WebGLを初期化できませんでした。<br>ハードウェアアクセラレーションが有効なブラウザで開いてください。</div>
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>

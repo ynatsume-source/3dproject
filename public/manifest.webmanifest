@@ -1,0 +1,10 @@
+{
+  "name": "Seaglass",
+  "short_name": "Seaglass",
+  "description": "実在の海を再現した海中をドローンで巡る",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#03161d",
+  "theme_color": "#03161d",
+  "lang": "ja"
+}
