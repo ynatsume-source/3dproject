@@ -22,26 +22,60 @@ function discGeo(r0: number, r1: number, rings: number, seg: number) {
   g.setIndex(idx);
   return g;
 }
-const DISC = discGeo(0.5, 70000, 72, 96);
+const DISC = discGeo(0.5, 70000, 170, 192);
 
-// The sea from above. Premultiplied: the colour is what the surface reflects and sparkles with, the
-// alpha how much of the water below it hides (Fresnel), so the reef shows through where we look down.
+// The swell: three long wave trains around the wind, lifting the surface itself. Mirrored in swellAt()
+// so the camera can ride it. Returns (height, dh/dx, dh/dz).
+const SWELL = /* glsl */ `
+vec3 swell(vec2 p, float t){
+  float wa = atan(uCurrent.y, uCurrent.x) + 0.6;
+  vec3 s = vec3(0.0);
+  for (int i = 0; i < 3; i++) {
+    float a = wa + (i == 0 ? 0.0 : i == 1 ? 0.6 : -0.9), lam = i == 0 ? 62.0 : i == 1 ? 38.0 : 23.0;
+    float A = (i == 0 ? 0.35 : i == 1 ? 0.22 : 0.12) * uWave, k = 6.28318 / lam;
+    vec2 d = vec2(cos(a), sin(a)); float ph = dot(d, p) * k - sqrt(9.81 * k) * t + float(i) * 2.1;
+    s += vec3(A * cos(ph), -A * k * sin(ph) * d);
+  }
+  return s;
+}`;
+export function swellAt(x: number, z: number): number {
+  const cu = U.uCurrent.value, wa = Math.atan2(cu.y, cu.x) + 0.6, t = U.uTime.value, W = U.uWave.value;
+  let h = 0;
+  [[0, 62, 0.35], [0.6, 38, 0.22], [-0.9, 23, 0.12]].forEach(([da, lam, A], i) => {
+    const a = wa + da, k = 2 * Math.PI / lam;
+    h += A * W * Math.cos((Math.cos(a) * x + Math.sin(a) * z) * k - Math.sqrt(9.81 * k) * t + i * 2.1);
+  });
+  return h;
+}
+
+// The sea from above. With the refraction copy (post-processing on): what lies beneath, bent by the waves,
+// mixed with the sky it reflects by Fresnel. Without it, premultiplied: the colour is the reflection and
+// glitter, the alpha how much of the water below it hides.
+export const topScene = new THREE.Scene();
 export const seaTop = new THREE.Mesh(DISC, mat(
-  `varying vec3 vWp; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  `varying vec3 vWp;
-   uniform float uPxA;
+  SWELL + `varying vec3 vWp; varying float vFade;
+   void main(){
+     vec4 w = modelMatrix * vec4(position, 1.0);
+     vFade = 1.0 - smoothstep(250.0, 700.0, length(w.xz - uCamPos.xz));   // far off, the swell is below a pixel
+     w.y += swell(w.xz, uTime).x * vFade;
+     vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w;
+   }`,
+  SWELL + `varying vec3 vWp; varying float vFade;
+   uniform float uPxA; uniform sampler2D tRefr; uniform float uRefrOn; uniform vec2 uRes; uniform mat4 uProj;
    void main(){
      vec3 v = vWp - uCamPos; float d = length(v); vec3 dir = v / d, V = -dir;
      float fp = d * uPxA / max(V.y, 0.04);                 // how much sea one pixel covers
-     // a wind sea: a dozen wave trains around the wind direction, each dropped (and its slope kept as
+     // a wind sea on the swell: wave trains around the wind direction, each dropped (and its slope kept as
      // roughness) once it is smaller than a pixel
-     vec2 p = vWp.xz; float t = uTime; vec2 g = vec2(0.0); float rough = 0.0025 + uRain * 0.02;
+     vec2 p = vWp.xz; float t = uTime; float rough = 0.0025 + uRain * 0.02;
+     vec3 sw = swell(p, t) * vFade;
+     vec2 g = sw.yz;
      float wa = atan(uCurrent.y, uCurrent.x) + 0.6;
      for (int i = 0; i < 16; i++) {
        float fi = float(i), a = wa + (hash2(vec2(fi, 3.7)) - 0.5) * 2.8;
        vec2 wd = vec2(cos(a), sin(a));
-       float k = 0.14 * pow(1.33, fi) * (0.85 + 0.3 * hash2(vec2(fi, 1.3))), lam = 6.28318 / k;
-       float sl = 0.085 * uWave / (1.0 + fi * 0.15);
+       float k = 0.3 * pow(1.3, fi) * (0.85 + 0.3 * hash2(vec2(fi, 1.3))), lam = 6.28318 / k;
+       float sl = 0.07 * uWave / (1.0 + fi * 0.12);
        float keep = 1.0 - smoothstep(0.12 * lam, 0.45 * lam, fp);
        // each train comes in groups: its amplitude swells and fades across the sea
        float grp = 0.35 + 0.65 * vn2(p * k * 0.09 + vec2(fi * 7.1, t * 0.05));
@@ -66,19 +100,35 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        vec3 rad = k == 0 ? sc * 7.0 : vec3(0.75, 0.8, 0.9) * uMoonIllum * 1.5 * (1.0 - dayAir()) * (1.0 - 0.9 * uCloud);
        col += rad * D * F / (4.0 * nv) * smoothstep(0.0, 0.05, L.y) * 0.25;
      }
-     // whitecaps once the wind picks up
-     float foam = smoothstep(0.68, 0.78, fbm2(p * 0.09 + vec2(t * 0.03, t * 0.01)) + g.x * 0.4) * clamp((uWave - 1.2) * 1.2, 0.0, 1.0);
+     // whitecaps once the wind picks up, riding the crests
+     float foam = smoothstep(0.68, 0.78, fbm2(p * 0.09 + vec2(t * 0.03, t * 0.01)) + g.x * 0.4 + sw.x * 0.3) * clamp((uWave - 1.2) * 1.2, 0.0, 1.0);
      vec3 foamC = (sunAirCol() * max(uAirSun.y, 0.0) * 0.9 + skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.8) * (1.0 + uFlash);
-     vec4 o = vec4(col + foamC * foam, min(1.0, F + foam));
      // far off, the air itself: the sea melts into the sky at the horizon
      float fh = 1.0 - exp(-d / 18000.0);
      vec3 haze = skyAir(normalize(vec3(dir.x, 0.004, dir.z)), -1.0);
-     gl_FragColor = vec4(mix(o.rgb, haze, fh), mix(o.a, 1.0, fh));
+     if (uRefrOn > 0.5) {
+       // what lies below, displaced by the slope of the surface in proportion to how deep it is
+       vec2 uv = gl_FragCoord.xy / uRes;
+       float zs = -(viewMatrix * vec4(vWp, 1.0)).z;
+       vec4 b = texture2D(tRefr, uv);
+       float below = clamp(b.a * 1000.0 - zs, 0.0, 20.0);
+       vec4 c2 = uProj * viewMatrix * vec4(vWp + vec3(n.x, 0.0, n.z) * below * 0.25, 1.0);   // refraction bends the view by about a quarter of the slope
+       vec4 b2 = texture2D(tRefr, c2.xy / c2.w * 0.5 + 0.5);
+       if (b2.a * 1000.0 < zs + 0.05) b2 = b;          // it landed on something in front of the water: keep the straight view
+       vec3 under = b2.rgb;
+       // light through the thin water of a crest glows green-blue when the sun is behind it
+       under += vec3(0.0, 0.16, 0.14) * max(sw.x, 0.0) * max(dot(dir, uAirSun) * 0.5 + 0.5, 0.0) * max(uAirSun.y, 0.0) * (1.0 - uCloud * 0.7);
+       vec3 o = under * (1.0 - F) * (1.0 - foam) + col + foamC * foam;
+       gl_FragColor = vec4(mix(o, haze, fh), 1.0);
+     } else {
+       vec4 o = vec4(col + foamC * foam, min(1.0, F + foam));
+       gl_FragColor = vec4(mix(o.rgb, haze, fh), mix(o.a, 1.0, fh));
+     }
    }`,
-  { uniforms: { uPxA: { value: 0.0012 } }, opts: { side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor } }));
+  { uniforms: { uPxA: { value: 0.0012 }, tRefr: { value: null }, uRefrOn: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) }, uProj: { value: new THREE.Matrix4() } },
+    opts: { side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor } }));
 seaTop.frustumCulled = false;
-seaTop.renderOrder = 5;
-oceanScene.add(seaTop);
+topScene.add(seaTop);
 
 // the open ocean floor far below: all we see of it is deep blue water
 export const abyss = new THREE.Mesh(DISC, mat(
@@ -90,13 +140,13 @@ oceanScene.add(abyss);
 // The stars: the ~5000 naked-eye stars of the Yale Bright Star Catalogue (via d3-celestial), placed by
 // the real sidereal time and latitude of the site.
 const starMat = mat(
-  `attribute float aMag; attribute float aBV; uniform float uDpr; varying vec3 vC; varying float vA;
+  `attribute float aMag; attribute float aBV; attribute float aPl; uniform float uDpr; varying vec3 vC; varying float vA;
    void main(){
      vec3 d = uStarM * position;
      float dark = 1.0 - smoothstep(-0.26, -0.06, uAirSun.y);
-     float lim = mix(6.3, 3.0, uMoonI * 0.6) - (1.0 - dark) * 4.0;             // the moon and twilight wash out faint stars
+     float lim = mix(6.3, 3.0, uMoonI * 0.6) - (1.0 - dark) * 9.5;             // the moon and twilight wash out faint stars (only Venus survives into bright twilight)
      float h = hash2(position.xy * 91.0);
-     float tw = 1.0 + (0.22 + 0.5 * (1.0 - smoothstep(0.0, 0.4, d.y))) * sin(uTime * (7.0 + h * 11.0) + h * 60.0);   // they twinkle most low down
+     float tw = 1.0 + (0.22 + 0.5 * (1.0 - smoothstep(0.0, 0.4, d.y))) * sin(uTime * (7.0 + h * 11.0) + h * 60.0) * (1.0 - 0.85 * aPl);   // stars twinkle, most low down; planets hardly
      float b = pow(10.0, -0.4 * (aMag - 3.3)) * smoothstep(lim, lim - 1.2, aMag);
      vA = min(sqrt(b) * 0.6, 2.2) * tw * smoothstep(0.0, 0.1, d.y) * (1.0 - cloudAt(d)) * step(0.0, uCamPos.y);
      vC = mix(vec3(0.68, 0.8, 1.0), vec3(1.0, 0.72, 0.45), smoothstep(-0.1, 1.5, aBV));
@@ -111,6 +161,20 @@ export const stars = new THREE.Points(new THREE.BufferGeometry(), starMat);
 stars.frustumCulled = false;
 stars.renderOrder = -0.5;
 oceanScene.add(stars);
+// the naked-eye planets, drawn like stars but hardly twinkling; moved by setPlanets()
+const planetGeo = new THREE.BufferGeometry();
+planetGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(15), 3));
+planetGeo.setAttribute('aMag', new THREE.BufferAttribute(new Float32Array(5), 1));
+planetGeo.setAttribute('aBV', new THREE.BufferAttribute(new Float32Array(5), 1));
+planetGeo.setAttribute('aPl', new THREE.BufferAttribute(new Float32Array(5).fill(1), 1));
+export const planetPts = new THREE.Points(planetGeo, starMat);
+planetPts.frustumCulled = false; planetPts.renderOrder = -0.5;
+oceanScene.add(planetPts);
+export function setPlanets(list: { dir: number[]; mag: number; bv: number }[]) {
+  const P = planetGeo.attributes.position as THREE.BufferAttribute, M = planetGeo.attributes.aMag as THREE.BufferAttribute, B = planetGeo.attributes.aBV as THREE.BufferAttribute;
+  list.forEach((p, i) => { P.setXYZ(i, p.dir[0], p.dir[1], p.dir[2]); M.setX(i, p.mag); B.setX(i, p.bv); });
+  P.needsUpdate = M.needsUpdate = B.needsUpdate = true;
+}
 fetch(`${import.meta.env.BASE_URL}stars.bin`).then((r) => r.arrayBuffer()).then((buf) => {
   const dv = new DataView(buf), n = buf.byteLength / 6;
   const pos = new Float32Array(n * 3), mag = new Float32Array(n), bv = new Float32Array(n);
@@ -122,6 +186,7 @@ fetch(`${import.meta.env.BASE_URL}stars.bin`).then((r) => r.arrayBuffer()).then(
   stars.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   stars.geometry.setAttribute('aMag', new THREE.BufferAttribute(mag, 1));
   stars.geometry.setAttribute('aBV', new THREE.BufferAttribute(bv, 1));
+  stars.geometry.setAttribute('aPl', new THREE.BufferAttribute(new Float32Array(n), 1));
 }).catch(() => {});
 
 // rain falling past the drone
@@ -155,10 +220,18 @@ oceanScene.add(rain);
 // once a frame: follow the camera, and show only what belongs on this side of the surface
 export function updateAir(cam: THREE.PerspectiveCamera, px: number, dpr: number) {
   const up = cam.position.y > 0;
-  seaTop.visible = abyss.visible = stars.visible = up;
+  seaTop.visible = abyss.visible = stars.visible = planetPts.visible = up;
   rain.visible = up && U.uRain.value > 0.01;
   seaTop.position.set(cam.position.x, 0, cam.position.z);
   abyss.position.set(cam.position.x, -200, cam.position.z);
-  (seaTop.material as THREE.ShaderMaterial).uniforms.uPxA.value = 2 * Math.tan(cam.fov * Math.PI / 360) / Math.max(px, 1);
+  const su = (seaTop.material as THREE.ShaderMaterial).uniforms;
+  su.uPxA.value = 2 * Math.tan(cam.fov * Math.PI / 360) / Math.max(px, 1);
+  su.uProj.value.copy(cam.projectionMatrix);
   (starMat.uniforms.uDpr as { value: number }).value = dpr;
+}
+
+// the refraction copy from post-processing, or none (the surface then blends over the scene)
+export function setRefraction(tex: THREE.Texture | null, w = 1, h = 1) {
+  const su = (seaTop.material as THREE.ShaderMaterial).uniforms;
+  su.tRefr.value = tex; su.uRefrOn.value = tex ? 1 : 0; su.uRes.value.set(w, h);
 }

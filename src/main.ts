@@ -6,7 +6,9 @@ import { U } from './render/common';
 import { clamp, smooth, angDiff } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
-import { updateAir } from './ocean/air';
+import { updateAir, setPlanets, topScene, setRefraction, swellAt } from './ocean/air';
+import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
+import { planets } from './time/planets';
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
@@ -205,9 +207,9 @@ function updateDrone(dt: number, now: number) {
   drone.roll += (-yawRate * 0.18 - drone.roll) * Math.min(1, dt * 2);
   camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
   // just above the sea the camera rides the swell, rising, falling and rolling with it
-  const ride = drone.pos.y > 0 ? (1 - smooth(1.5, 5, drone.pos.y)) * Math.min(U.uWave.value, 1.6) : 0;
-  camera.position.y += ride * (0.35 * Math.sin(t * 0.52) + 0.15 * Math.sin(t * 0.83 + 1.3));
-  camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008 + ride * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * 0.06 * Math.sin(t * 0.41));
+  const ride = drone.pos.y > 0 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
+  camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z);
+  camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
 }
 
 /* ================= above the water ================= */
@@ -278,6 +280,7 @@ function applySky(loc: Sea) {
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
   U.uAirSun.value.set(...s.sunAir); U.uAirMoon.value.set(...s.moonAir); U.uMoonIllum.value = s.moonIllum;
   U.uStarM.value.fromArray(s.starM);
+  setPlanets(planets(clock.ms));
   U.uAurora.value = auroraAt(loc.lat);
   // tidal stream: flood one way, ebb the other; strongest mid-tide
   const k = clamp(s.tideRate / (loc.tide.amp * 0.00016 + 1e-6), -1, 1);
@@ -471,6 +474,8 @@ function updateTimeUi() {
     $('wxLine').innerHTML = w.ok
       ? `現地の天気（実況）：<b>${weatherLabel(w)}</b> · 雲 ${Math.round(w.cloud * 100)}% · 風 ${w.wind.toFixed(1)} m/s${w.wave != null ? ` · 波 ${w.wave.toFixed(1)} m` : ''}${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}<br><small>天気データ：Open-Meteo</small>`
       : wx.ok ? '時刻や季節を動かしている間は、晴れの標準的な海になります' : '現地の天気を取得できないため、晴れの標準的な海です';
+    const sh = activeShower(clock.ms);
+    if (sh) $('wxLine').innerHTML += `<br>${sh.ja}が活動中（${sh.k >= 30 ? '極大のころ' : '見ごろの前後'}）。晴れた夜に空へ出ると流れ星が見えます`;
   }
   $('clockDate').textContent = `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-season]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.season === clock.season)));
@@ -1021,12 +1026,17 @@ function frame(ts: number) {
     surface.visible = snow.visible = !air;
     shafts.visible = !TIERS[tier].vol && !air;
     updateAir(camera, renderer.domElement.height, renderer.getPixelRatio());
+    stepMeteors(clock.live ? dt : dt * clock.speed, dt, clock.ms, camera.position, U.uStarM.value, { sunAir: skyNow!.sunAir, moonI: U.uMoonI.value, cloud: U.uCloud.value }, air, (t) => seaLog('observe', t));
     const far = air ? 90000 : 460;
     if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
     setAir(air);
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
-    if (TIERS[tier].post) post.render(renderer, oceanScene, camera); else { renderer.setRenderTarget(null); renderer.render(oceanScene, camera); }
+    if (TIERS[tier].post) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
+    else {
+      renderer.setRenderTarget(null); renderer.render(oceanScene, camera);
+      if (air) { setRefraction(null); renderer.autoClear = false; renderer.render(topScene, camera); renderer.autoClear = true; }
+    }
     if ((hudTimer += dt) > 0.1) { hudTimer = 0; if (hudOn) updateHud(); }
     if ((sightTimer += dt) > 0.3) { sightTimer = 0; checkSightings(); }
     if (!hudOn && now - idleT > 3000) document.body.classList.add('idle');
@@ -1053,4 +1063,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };

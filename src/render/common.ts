@@ -1,6 +1,6 @@
 // Shared uniforms and the GLSL lighting model every underwater material uses.
 import * as THREE from 'three';
-import milkyUrl from '../milkyway.png';   // the Milky Way on the celestial sphere (RA/Dec), built from galactic coordinates
+import milkyUrl from '../milkyway.jpg';   // the Milky Way on the celestial sphere (RA/Dec): NASA SVS Deep Star Maps 2020, from Gaia DR2
 
 // Materials here are hand-written ShaderMaterials authored in display space; keep three from
 // converting colours or output so the look matches the prototype.
@@ -145,9 +145,10 @@ vec3 skyAir(vec3 d, float disks){
   float dark = (1.0 - smoothstep(-0.3, -0.12, sy)) * (1.0 - 0.75 * uMoonI) * cloudy;
   if (dark > 0.0) {
     vec3 q = transpose(uStarM) * d;
-    vec2 uv = vec2(fract(atan(q.y, q.x) / 6.28318 + 1.0), 0.5 + asin(clamp(q.z, -1.0, 1.0)) / 3.14159);
-    float mw = textureLod(uMilky, uv, 0.0).r;   // no mip lookup: atan jumps at RA 0h
-    c += vec3(0.62, 0.66, 0.8) * mw * mw * 0.16 * dark * smoothstep(0.0, 0.25, d.y + 0.05);
+    // the map runs east to the left with RA 0h in the middle, as the sky is seen from inside
+    vec2 uv = vec2(fract(0.5 - atan(q.y, q.x) / 6.28318), 0.5 + asin(clamp(q.z, -1.0, 1.0)) / 3.14159);
+    vec3 mw = pow(textureLod(uMilky, uv, 0.0).rgb, vec3(1.5));   // no mip lookup: atan jumps at RA 0h
+    c += mw * 0.22 * dark * smoothstep(-0.02, 0.2, d.y);   // dimmed low down by the thicker air
     c += vec3(0.02, 0.03, 0.02) * dark * exp(-h * 5.0) * 0.5;
   }
   // aurora: curtains toward the magnetic pole, green below and red-violet at the top

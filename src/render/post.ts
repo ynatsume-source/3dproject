@@ -33,6 +33,15 @@ export class Post {
   private histIdx = 0;
   private ao = rt(1, 1);
   private aoSmooth = rt(1, 1);
+  // seen from the air: a copy of everything under the surface (colour, and distance in km in alpha) for the
+  // sea surface to refract
+  private refr = rt(1, 1);
+  private copyMat = new THREE.ShaderMaterial({
+    vertexShader: VS,
+    uniforms: { tScene: { value: null }, tDepth: { value: null }, uNear: { value: 0.08 }, uFar: { value: 460 } },
+    fragmentShader: /* glsl */ `uniform sampler2D tScene; uniform sampler2D tDepth; uniform float uNear; uniform float uFar; varying vec2 vUv;
+      void main(){ float d = texture2D(tDepth, vUv).r; float z = uNear * uFar / (uFar - d * (uFar - uNear)); gl_FragColor = vec4(texture2D(tScene, vUv).rgb, z * 0.001); }`,
+  });
   private prevQ = new THREE.Quaternion(); private prevP = new THREE.Vector3(); private hasPrev = false;
 
   // blend this frame's shafts into the running average; less so while the camera turns or moves
@@ -190,13 +199,14 @@ export class Post {
   private compMat = new THREE.ShaderMaterial({
     vertexShader: VS,
     uniforms: {
+      uAirK: { value: 0 },
       tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() }, uVolTexel: { value: new THREE.Vector2() },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel; uniform vec2 uVolTexel;
-      uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
+      uniform float uAirK; uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
       varying vec2 vUv;
       ${NOISE}
       vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
@@ -205,7 +215,7 @@ export class Post {
         vec2 c = vUv - 0.5;
         float r2 = dot(c * vec2(uAspect, 1.0), c * vec2(uAspect, 1.0));
         // a little colour fringing toward the frame edge, as through a dome port
-        vec2 ca = c * r2 * 0.004;
+        vec2 ca = c * r2 * 0.004 * (1.0 - uAirK);   // no dome port in the air: it would split every star into three
         vec3 col = vec3(lin(texture2D(tScene, vUv + ca).rgb).r, lin(texture2D(tScene, vUv).rgb).g, lin(texture2D(tScene, vUv - ca).rgb).b);
         if (uUseAO > 0.5) {
           vec2 o = uAOTexel;
@@ -251,6 +261,7 @@ export class Post {
     this.hasPrev = false;
     this.ao.setSize(Math.ceil(w / 2), Math.ceil(h / 2));
     this.aoSmooth.setSize(Math.ceil(w / 2), Math.ceil(h / 2));
+    this.refr.setSize(w, h);
     for (const m of this.mips) m.dispose();
     this.mips = [];
     let mw = w, mh = h;
@@ -272,7 +283,7 @@ export class Post {
 
   // above the water: no water column to correct for, and no shafts in the air
   private air = false; private volClear = false;
-  setAir(on: boolean) { this.air = on; }
+  setAir(on: boolean) { this.air = on; this.compMat.uniforms.uAirK.value = on ? 1 : 0; }
 
   whiteBalance(depth: number, abs: THREE.Vector3, night: number, air = false) {
     if (air) { (this.compMat.uniforms.uWB.value as THREE.Vector3).set(1, 1, 1); return; }
@@ -283,11 +294,22 @@ export class Post {
     wb.set(1 + (Math.min(3, g / Math.exp(-abs.x * path)) - 1) * k, 1, 1 + (Math.min(3, g / Math.exp(-abs.z * path)) - 1) * k);
   }
 
-  render(r: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  // top: drawn over the scene after it, able to sample what lies beneath it through refrTex(); only in the air
+  render(r: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, top: THREE.Scene | null = null, onRefr?: (t: THREE.Texture, w: number, h: number) => void) {
     this.frame++;
     r.setRenderTarget(this.main);
     r.clear();
     r.render(scene, camera);
+    if (top) {
+      const c = this.copyMat.uniforms;
+      c.tScene.value = this.main.texture; c.tDepth.value = this.main.depthTexture; c.uNear.value = camera.near; c.uFar.value = camera.far;
+      this.pass(r, this.copyMat, this.refr);
+      onRefr?.(this.refr.texture, this.w, this.h);
+      r.setRenderTarget(this.main);
+      const ac = r.autoClear; r.autoClear = false;
+      r.render(top, camera);
+      r.autoClear = ac;
+    }
     const t = this.tier;
     const vol = t.vol && !this.air;
     if (t.vol && !vol && !this.volClear) {   // leave no stale shafts behind for the bloom to pick up
