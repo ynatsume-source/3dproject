@@ -238,6 +238,46 @@ export function buildOcean(loc) {
       if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
       placed++;
     }
+    // Overhangs and crevices on the flanks of coral heads: find where a steep side meets its flat top,
+    // and set a slab there jutting out over the drop; at the foot of the wall, lean big angular blocks
+    // against it so shadowed gaps open behind them.
+    const slabList = (kIdx: number) => lists[kIdx * 2 + (R() < 0.5 ? 0 : 1)];
+    const hAt = (x: number, z: number) => loc.f(x, z);
+    let ledges = 0, leaners = 0;
+    for (let tries = 0; tries < 60000 && (ledges < 320 || leaners < 300); tries++) {
+      const x = rr(-LIMIT - 20, LIMIT + 20), z = rr(-LIMIT - 20, LIMIT + 20), h = hAt(x, z);
+      if (TERR.reef < 0.35 || h < -22) continue;
+      const gx = (hAt(x + 0.7, z) - hAt(x - 0.7, z)) / 1.4, gz = (hAt(x, z + 0.7) - hAt(x, z - 0.7)) / 1.4, sl = Math.hypot(gx, gz);
+      if (sl < 0.8) continue;
+      const ox = -gx / sl, oz = -gz / sl;                       // outward, down the slope
+      if (ledges < 320 && R() < 0.55) {
+        // climb to the rim
+        let rx = x, rz = z, rh = h;
+        for (let k = 0; k < 10; k++) {
+          const nx = rx - ox * 0.5, nz = rz - oz * 0.5, nh = hAt(nx, nz);
+          if (nh - rh < 0.12) break;
+          rx = nx; rz = nz; rh = nh;
+        }
+        const w = rr(1.1, 2.4), d = rr(0.8, 1.6), th = rr(0.3, 0.62);
+        const it = { x: rx + ox * d * 0.45, z: rz + oz * d * 0.45, y: rh - rr(0.05, 0.5), ry: Math.atan2(ox, oz), tx: rr(-0.04, 0.16), tz: rr(-0.08, 0.08), sx: w, sy: th, sz: d };
+        slabList(R() < 0.5 ? 2 : 1).push(it);          // flat slabs and flattened angular blocks
+        obst.stamp(it.x, it.z, Math.max(w, d) * 0.8, it.y + th * 0.45, th);
+        ledges++;
+      } else if (leaners < 300) {
+        // walk down to the foot of the wall
+        let fx = x, fz = z, fh = h;
+        for (let k = 0; k < 12; k++) {
+          const nx = fx + ox * 0.5, nz = fz + oz * 0.5, nh = hAt(nx, nz);
+          if (fh - nh < 0.1) break;
+          fx = nx; fz = nz; fh = nh;
+        }
+        const sz = rr(0.8, 1.8), sy = sz * rr(0.8, 1.3);
+        const it = { x: fx + ox * 0.3, z: fz + oz * 0.3, y: fh - sy * 0.2, ry: Math.atan2(ox, oz) + rr(-0.4, 0.4), tx: -rr(0.2, 0.55), tz: rr(-0.3, 0.3), sx: sz * rr(0.9, 1.5), sy, sz };
+        slabList(1).push(it);
+        obst.stamp(it.x, it.z, Math.max(it.sx, sz) * 0.85, it.y + sy * 0.85, sy);
+        leaners++;
+      }
+    }
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
