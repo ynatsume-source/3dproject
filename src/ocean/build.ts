@@ -52,6 +52,7 @@ export function addInstanced(kind, variant, items, group, cells) {
   for (const [k, arr] of bucket) {
     const g = new THREE.BufferGeometry();
     for (const name in base.attributes) g.setAttribute(name, base.attributes[name]);
+    g.setIndex(base.index);
     const col = new Float32Array(arr.length * 3), col2 = new Float32Array(arr.length * 3), seed = new Float32Array(arr.length);
     const mesh = new THREE.InstancedMesh(g, material, arr.length);
     arr.forEach((it, i) => {
@@ -71,6 +72,7 @@ export function addInstanced(kind, variant, items, group, cells) {
     if (hiBase) {
       const hg = new THREE.BufferGeometry();
       for (const name in hiBase.attributes) hg.setAttribute(name, hiBase.attributes[name]);
+      hg.setIndex(hiBase.index);
       for (const name of ['aCol', 'aCol2', 'aSeed']) hg.setAttribute(name, g.attributes[name]);
       hi = new THREE.InstancedMesh(hg, CORAL_MAT_HI[kind], arr.length);
       hi.instanceMatrix = mesh.instanceMatrix;
@@ -220,6 +222,64 @@ export function buildOcean(loc) {
     }
   }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
+
+  // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish
+  {
+    const debris: { geo: THREE.BufferGeometry; type: number; list: any[] }[] = [
+      { geo: fragmentGeo(1), type: 0, list: [] }, { geo: fragmentGeo(2), type: 0, list: [] },
+      { geo: bivalveGeo(), type: 0, list: [] }, { geo: coneShellGeo(), type: 0, list: [] },
+      { geo: cucumberGeo(3), type: 1, list: [] }, { geo: starfishGeo(), type: 2, list: [] },
+    ];
+    const lean = loc.id === 'maldives' ? 0.5 : 1;
+    const want = [2600 * lean, 1800 * lean, 900 * lean, 600 * lean, 90 * lean, 70 * lean];
+    for (let tries = 0; tries < 60000; tries++) {
+      const x = rr(-LIMIT - 20, LIMIT + 20), z = rr(-LIMIT - 20, LIMIT + 20), h = loc.f(x, z), r = TERR.reef;
+      const k = Math.floor(R() * debris.length), d = debris[k];
+      if (d.list.length >= want[k]) continue;
+      if (k === 5 ? r < 0.05 || r > 0.8 : r > 0.45) continue;                  // starfish on rubble and reef edge, the rest on sand
+      if (k < 4 && R() > 0.25 + r * 1.5) continue;                              // litter thickest near the reef
+      const s = k === 4 ? rr(1.1, 1.7) : k === 5 ? rr(0.7, 1.2) : rr(0.6, 1.6);
+      const col = k === 4 ? [0.08, 0.075, 0.07] : k === 5 ? [0.16, 0.34, 0.86] : tintCol(pick([[0.92, 0.9, 0.84], [0.86, 0.8, 0.72], [0.8, 0.72, 0.7], [0.9, 0.86, 0.78]]));
+      d.list.push({ x, z, y: h + (k === 4 ? 0.02 : 0.005), ry: R() * 6.28, tx: (R() - 0.5) * 0.3, tz: (R() - 0.5) * 0.3, sx: s, sy: s, sz: s, c: col, c2: col, seed: R() });
+    }
+    const MAT = [0, 1, 2].map((type) => mat(
+      `attribute vec3 aCol; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
+       void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz;
+         vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+         vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vL = position; vCol = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
+       void main(){
+         vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
+         vec3 alb = vCol * (0.85 + 0.25 * vn2(vL.xz * 60.0 + vL.y * 40.0));
+         #if TYPE == 0
+           alb = mix(alb, alb * vec3(0.72, 0.82, 0.66), smoothstep(0.4, 0.8, vn2(vL.xz * 25.0 + vL.y * 12.0)) * 0.7);   // dead rubble greys over with algae film
+         #elif TYPE == 1
+           alb = mix(alb, uSand * 0.8, smoothstep(0.6, 0.85, vn2(vL.xz * 90.0)) * 0.3 * smoothstep(0.03, 0.07, vL.y));   // black sea cucumbers coat themselves in sand
+           n = bumpN(n, vWp, smoothstep(0.3, 0.9, vn2(vL.xz * 70.0 + vL.y * 30.0)) * 0.004);
+         #elif TYPE == 2
+           n = bumpN(n, vWp, cellF1(vL.xz * 180.0) * 0.0015);
+         #endif
+         alb *= mix(0.55, 1.0, smoothstep(-0.01, 0.02, vL.y));
+         gl_FragColor = vec4(shade(alb, vWp, n, 0.9), 1.0);
+       }`, { defines: { TYPE: type }, uniforms: SURF_UNIFORMS, opts: { side: THREE.DoubleSide } }));
+    for (const d of debris) {
+      const bucket = new Map<string, any[]>();
+      for (const it of d.list) { const key = Math.floor(it.x / CELL) + ',' + Math.floor(it.z / CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
+      for (const [key, arr] of bucket) {
+        const g = new THREE.BufferGeometry();
+        for (const name in d.geo.attributes) g.setAttribute(name, d.geo.attributes[name]);
+        g.setIndex(d.geo.index);
+        const col = new Float32Array(arr.length * 3);
+        const m = new THREE.InstancedMesh(g, MAT[d.type], arr.length);
+        arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); col.set(it.c, i * 3); });
+        g.setAttribute('aCol', new THREE.InstancedBufferAttribute(col, 3));
+        m.frustumCulled = false;
+        group.add(m);
+        const [ci, cj] = key.split(',').map(Number);
+        oc.cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh: m, small: true });
+      }
+    }
+  }
 
   // rocks and rubble: a dozen prototypes in six shapes, scattered thickly over the reef and drawn per cell
   {
@@ -377,3 +437,49 @@ function rockPrototype(kind: string, seed: number) {
   return g;
 }
 function mulberryLocal(a: number) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ---- litter on the sand ----
+function fragmentGeo(seed: number) {   // a broken-off piece of branching coral, knobbly and forked
+  const rnd = mulberryLocal(seed), parts: THREE.BufferGeometry[] = [];
+  const main = new THREE.CylinderGeometry(0.011, 0.02, 0.2, 7, 3), mp = main.attributes.position;
+  for (let i = 0; i < mp.count; i++) { const y = mp.getY(i); mp.setX(i, mp.getX(i) + Math.sin(y * 30 + seed) * 0.006); mp.setZ(i, mp.getZ(i) + Math.cos(y * 23) * 0.004); }
+  main.rotateZ(Math.PI / 2 + (rnd() - 0.5) * 0.3); main.translate(0, 0.016, 0); parts.push(main);
+  for (let i = 0; i < 3 + seed; i++) {
+    const L = 0.05 + rnd() * 0.06, b = new THREE.CylinderGeometry(0.007, 0.011, L, 5, 1);
+    b.translate(0, L / 2, 0); b.rotateZ(-(0.5 + rnd() * 0.7) * (i % 2 ? 1 : -1)); b.rotateY((rnd() - 0.5) * 1.2);
+    b.translate((rnd() - 0.5) * 0.16, 0.014, (rnd() - 0.5) * 0.02); parts.push(b);
+  }
+  return mergeGeos(parts);
+}
+function bivalveGeo() {   // a single valve of a clam shell, ribbed
+  const g = new THREE.SphereGeometry(0.5, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x); p.setXYZ(i, x * 0.05, y * 0.018 * (1 + 0.12 * Math.abs(Math.sin(a * 9))), z * 0.042); }
+  g.computeVertexNormals(); return g;
+}
+function coneShellGeo() {   // a cone snail shell lying on its side
+  const g = new THREE.ConeGeometry(0.018, 0.055, 10, 3); g.rotateZ(Math.PI / 2); g.translate(0, 0.016, 0); return g;
+}
+function cucumberGeo(seed: number) {   // Holothuria atra: a long, soft, black sausage
+  const ph = mulberryLocal(seed)() * 6.28;
+  const g = new THREE.CapsuleGeometry(0.045, 0.24, 6, 10); g.rotateZ(Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); p.setXYZ(i, x, Math.max(y * 0.8, -0.03) + 0.035, z * (1 + 0.1 * Math.sin(x * 20)) + Math.sin(x * 9 + ph) * 0.02); }
+  g.computeVertexNormals(); return g;
+}
+function starfishGeo() {   // Linckia laevigata: five long, round-tipped arms
+  const sh = new THREE.Shape();
+  for (let i = 0; i <= 10; i++) {
+    const a = (i / 10) * Math.PI * 2, r = i % 2 === 0 ? 0.12 : 0.028;
+    const x = Math.cos(a) * r, y = Math.sin(a) * r;
+    if (i === 0) sh.moveTo(x, y); else sh.lineTo(x, y);
+  }
+  const g = new THREE.ExtrudeGeometry(sh, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.01, bevelSegments: 2, curveSegments: 4 });
+  g.rotateX(-Math.PI / 2); g.translate(0, 0.008, 0); g.computeVertexNormals(); return g;
+}
+function mergeGeos(list: THREE.BufferGeometry[]) {
+  const pos: number[] = [], nrm: number[] = [];
+  for (const g0 of list) { const g = g0.index ? g0.toNonIndexed() : g0; g.computeVertexNormals(); pos.push(...g.attributes.position.array); nrm.push(...g.attributes.normal.array); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  return g;
+}

@@ -21,6 +21,7 @@ export const U = {
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 },
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
+  uSandRot: { value: 0 },        // ripple crests run across the tidal current
 };
 
 export const COMMON = /* glsl */ `

@@ -25,7 +25,7 @@ export function setAnisotropy(n: number) { for (const k in SURF_UNIFORMS) (SURF_
 
 export const SURFACE = /* glsl */ `
 uniform sampler2D tSandC; uniform sampler2D tSandN; uniform sampler2D tRockC; uniform sampler2D tRockN; uniform sampler2D tRubC; uniform sampler2D tRubN;
-uniform vec3 uSand; uniform vec3 uRock;
+uniform vec3 uSand; uniform vec3 uRock; uniform float uSandRot;
 // distance to the nearest jittered feature point (for raised polyp dots)
 float cellF1(vec2 p){
   vec2 i = floor(p), f = fract(p); float d1 = 8.0;
@@ -73,7 +73,15 @@ vec3 reefSurface(vec3 p, vec3 n, float reef, out vec3 nOut){
   float rubM = (1.0 - rockM) * smoothstep(0.06, 0.3, reef + (nz2 - 0.5) * 0.3);
   float sandM = max(0.0, 1.0 - rockM - rubM);
   vec3 col = vec3(0.0), dn = vec3(0.0);
-  if (sandM > 0.01) { vec3 c = vec3(0.0); triSample(tSandC, tSandN, p, w, 0.3, 0.8, c, dn, sandM); col += c * uSand * 1.4; }
+  if (sandM > 0.01) {
+    // turn the ripple field to face the current, wavering a little from place to place
+    float ra = uSandRot + (vn2(p.xz * 0.04) - 0.5) * 0.5;
+    vec2 rq = mat2(cos(ra), sin(ra), -sin(ra), cos(ra)) * p.xz;
+    vec3 c = vec3(0.0), dn0 = vec3(0.0);
+    triSample(tSandC, tSandN, vec3(rq.x, p.y, rq.y), w, 0.3, 0.8, c, dn0, sandM);
+    dn += vec3(dot(dn0.xz, vec2(cos(ra), -sin(ra))), dn0.y, dot(dn0.xz, vec2(sin(ra), cos(ra))));
+    col += c * uSand * 1.4;
+  }
   if (rubM > 0.01) { vec3 c = vec3(0.0); triSample(tRubC, tRubN, p, w, 0.42, 1.0, c, dn, rubM); col += c * mix(vec3(1.0), uRock * 2.0, 0.5) * 1.1; }
   if (rockM > 0.01) { vec3 c = vec3(0.0); triSample(tRockC, tRockN, p, w, 0.55, 1.2, c, dn, rockM);
     vec3 c2 = vec3(0.0), dn2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, w, 0.55, 0.6, c2, dn2, rockM);   // a second, larger scale breaks the repeat

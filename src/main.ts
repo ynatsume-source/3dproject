@@ -391,6 +391,7 @@ function applyWater(loc: Sea) {
   const w = loc.water;
   U.uUp.value.setRGB(w.up[0], w.up[1], w.up[2]); U.uHor.value.setRGB(w.hor[0], w.hor[1], w.hor[2]); U.uDown.value.setRGB(w.down[0], w.down[1], w.down[2]);
   U.uFogDen.value = w.fog; U.uAbs.value.set(w.abs[0], w.abs[1], w.abs[2]);
+  U.uSandRot.value = Math.atan2(loc.tide.axis[1], loc.tide.axis[0]);
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
@@ -667,7 +668,7 @@ function frame(ts: number) {
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
       const cs = c.big ? 80 : CELL;
-      c.mesh.visible = d < vis + (cs - CELL) * 0.72 && (d < cs || (dx * fx + dz * fz) / d > -0.4);
+      c.mesh.visible = d < (c.small ? 38 : vis + (cs - CELL) * 0.72) && (d < cs || (dx * fx + dz * fz) / d > -0.4);
       if (c.hi) c.hi.visible = c.mesh.visible && d < U.uLodR.value + CELL * 0.72;
     }
     sky.position.copy(camera.position);
