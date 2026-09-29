@@ -99,6 +99,10 @@ export interface SkyState {
   shaftCol: [number, number, number]; shaftI: number;   // colour and strength of the light shafts
   skyLo: [number, number, number]; skyHi: [number, number, number];
   moonDir: [number, number, number]; moonI: number;
+  // above the water: the unrefracted sun and moon, how much of the moon is lit, and the rotation that
+  // carries the celestial sphere (x toward RA 0h, y toward RA 6h, z to the celestial pole) onto the sky
+  sunAir: [number, number, number]; moonAir: [number, number, number]; moonIllum: number; sunAlt: number;
+  starM: number[];
   phase: string; phaseLabel: string; moonAge: number; moonName: string;
   tideH: number; tideRate: number;
   day: number;        // 0..1 how much daylight (for diurnal animals)
@@ -111,6 +115,21 @@ function toDir(alt: number, az: number): [number, number, number] {
   const zen = Math.PI / 2 - Math.max(alt, 0.02);
   const zw = Math.asin(Math.sin(zen) / 1.333);
   return [Math.sin(az) * Math.sin(zw), Math.cos(zw), -Math.cos(az) * Math.sin(zw)];
+}
+function airDir(alt: number, az: number): [number, number, number] {
+  return [Math.sin(az) * Math.cos(alt), Math.sin(alt), -Math.cos(az) * Math.cos(alt)];
+}
+// hour angle of RA 0 = local sidereal time; basis vectors of the equatorial frame seen from the site
+function starMatrix(ms: number, lat: number, lon: number): number[] {
+  const d = ms / 86400000 + 2440587.5 - 2451545.0;
+  const lst = ((280.46061837 + 360.98564736629 * d + lon) % 360) * Math.PI / 180, la = lat * Math.PI / 180;
+  const dir = (ra: number, dec: number) => {
+    const ha = lst - ra;
+    const alt = Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos(ha));
+    const az = Math.atan2(-Math.sin(ha) * Math.cos(dec), Math.sin(dec) * Math.cos(la) - Math.cos(dec) * Math.sin(la) * Math.cos(ha));
+    return airDir(alt, az);
+  };
+  return [...dir(0, 0), ...dir(Math.PI / 2, 0), ...dir(0, Math.PI / 2)];   // column-major mat3
 }
 const mix3 = (a: number[], b: number[], t: number): [number, number, number] => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
@@ -142,6 +161,8 @@ export function skyState(ms: number, site: SiteLike): SkyState {
     sunI: Math.max(sunI, moonUp * 0.06), amb, night, tint, skyLo, skyHi, golden,
     shaftCol: mix3([0.55, 0.9, 0.95], [1.5, 0.92, 0.34], golden), shaftI: Math.max(sunI, golden * 0.5, moonUp * 0.06),
     moonDir: toDir(m.alt, m.az), moonI: moonUp,
+    sunAir: airDir(s.alt, s.az), moonAir: airDir(m.alt, m.az), moonIllum: m.illum, sunAlt: s.alt,
+    starM: starMatrix(ms, site.lat, site.lon),
     phase, phaseLabel, moonAge: m.age, moonName: moonPhaseName(m.age),
     tideH: t.h, tideRate: t.rate,
     day: smooth(-0.05, 0.25, sa),

@@ -40,6 +40,10 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 - ログ（SEA LOG）に出た出来事は、画面上のその場所に淡い輪で示す（画面の外なら端に矢印）。輪かログをタップするとそこへ向かう
 - 海を選ぶと、あなたのいる場所（位置情報。許可しなければタイムゾーンから推定）から実際の地球の上を飛んで、その海の本物の衛星写真へ降下し、着水して潜る。`スキップ` で省略でき、「視差効果を減らす」設定では従来どおり直接切り替わる
 - 「今日の海」かつ実時刻のときは、現地の今の天気（雲量・雨・雷・風・波高・海水温）が海に反映される。雲が厚いと光芒が弱まり、雨の日は水面に雨粒の輪が、雷の日は稲光が走る。時刻パネルに現地の天気を表示
+- 「空へ」（`U`）でドローンが水面を抜けて空へ出る。海面の上を高さ120mまでゆっくり巡り、昼は上から礁を見下ろし、夕方は沈む陽の方を、夜は星空を見上げる。手動操縦なら `E` で浮上してそのまま水面を抜け、`Q` で潜れる
+  - 空は現地の実際の空：太陽と月（満ち欠けの向きまで）の位置、約5000個の実在の恒星（その場所・時刻の恒星時で配置）、天の川、朝焼け夕焼け、今日の雲量。雷の日は雲の中が光り、落雷が見え、音が距離に応じて遅れて届く。雨の日は雨粒が落ちる
+  - 海面は風で立つ波が空と太陽・月を映し、真上に近いほど透けて礁が見える。モデル化した礁の外は深い青に沈む
+  - オーロラは高緯度の海でだけ現れる（`?aurora=1` でどこでも試せる）
 - 図鑑には生き物ごとにモデルの絵を出す（まだ会っていない生き物は影だけ）。「行き先」から洞窟や根などの場所へも行ける
 - スマホ・タブレットでは画面がスリープしないようにしている（Screen Wake Lock と、無音の小さな動画をループさせる NoSleep.js の方法）
 
@@ -52,6 +56,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 | 図鑑 / 今日の海（出来事のログ） | `Z` / `J` |
 | サウンド / 音楽だけ切り替え | `M` / `N` |
 | 自動巡航 ⇄ 手動操縦 | `P` |
+| 空へ ⇄ 海へ | `U` |
 | 移動 / 上昇・下降 / 加速 | `WASD` / `E` `Q` / `Shift` |
 | ライト / HUD / 全画面 | `L` / `H` / `F` |
 
@@ -100,6 +105,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 - 海底テクスチャ：[Poly Haven](https://polyhaven.com)（CC0）の aerial_beach_01 / coral_fort_wall_03 / coral_mud_01
 - 着水地点の衛星写真：[Sentinel-2 cloudless 2016](https://s2maps.eu) by EOX IT Services GmbH（Contains modified Copernicus Sentinel data 2016, CC BY 4.0）。`public/sat/` に同梱（`scripts/fetch-sat.py` で作成）
 - 地球儀の地表と夜景：NASA Blue Marble（Shaded Relief + Bathymetry）と NASA Black Marble 2016（VIIRS）。NASA GIBS 経由、パブリックドメイン
+- 恒星：[d3-celestial](https://github.com/ofrohn/d3-celestial) の stars.6.json（Yale Bright Star Catalogue ほか。Copyright (c) 2015, Olaf Frohn, BSD-3-Clause）を `public/stars.bin` に詰め直して同梱。天の川は銀河座標から手続き生成
 - 天気と海況：[Open-Meteo](https://open-meteo.com)（Forecast API / Marine API、CC BY 4.0）。15分ごとに更新
 - スリープ防止の無音動画：[NoSleep.js](https://github.com/richtr/NoSleep.js)（MIT）
 - ピアノ音源：[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm（CC BY 3.0）。`public/audio/piano/` に Tone.js 配布版の一部を同梱

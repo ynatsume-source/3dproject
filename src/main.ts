@@ -5,7 +5,8 @@ import './styles.css';
 import { U } from './render/common';
 import { clamp, smooth, angDiff } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
-import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
+import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
+import { updateAir } from './ocean/air';
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
@@ -18,7 +19,7 @@ import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir } from './audio';
 import { loadHome, locateHome, distanceKm, satPrepare, satShow, makeFlight, resetGlobeCamera, type Home } from './journey';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -47,7 +48,8 @@ let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : detectTier(ren
 const post = new Post(TIERS[tier]);
 
 /* ================= drone ================= */
-const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9 };
+const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0 };
+const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
@@ -85,7 +87,7 @@ function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
 }
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
-  const shot = drone.mode === 'auto' ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.top) : null;
+  const shot = drone.mode === 'auto' && !drone.sky ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.top) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
   if (shot) {
     // glide to the viewpoint and keep the subject framed
@@ -97,6 +99,29 @@ function updateDrone(dt: number, now: number) {
     const k = Math.min(1, dt * (shot.phase === 'approach' ? 0.9 : 1.6));
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
+  } else if (drone.mode === 'auto' && drone.sky) {
+    // over the sea: a slow loop above the reef at a height that wanders, now and then skimming the
+    // swell. By day the camera looks down into the water, at dusk out to the horizon, at night up at the stars.
+    drone.skyT += dt;
+    const a = drone.skyT * 0.018, st = drone.skyT;
+    const skim = smooth(0.8, 0.95, Math.sin(st * 0.021 + 2));
+    const altT = drone.pos.y < 0 ? 3 : 6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim) + 1.6 * skim;
+    _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
+    _v.subVectors(_t, drone.pos);
+    if (drone.pos.y < 0) _v.set(0, 3.2, 0);                                 // first, straight up through the surface
+    else {
+      const L = Math.hypot(_v.x, _v.z);
+      _v.x *= Math.min(4.5, L * 0.3) / Math.max(L, 1e-4); _v.z *= Math.min(4.5, L * 0.3) / Math.max(L, 1e-4);
+      _v.y = clamp(_v.y * 0.5, -2.5, 3);
+    }
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * (drone.pos.y < 0 ? 2 : 0.8)));
+    const s = skyNow!, night = s.night, dusk = Math.max(s.golden, s.twilight * (1 - night));
+    let wantYaw = Math.atan2(-drone.vel.x, -drone.vel.z) + Math.sin(st * 0.05) * 0.6;
+    if (night > 0.5) wantYaw = drone.yaw + dt * 0.035;                       // at night, turn slowly under the sky
+    else if (dusk > 0.3) wantYaw += angDiff(Math.atan2(-U.uAirSun.value.x, -U.uAirSun.value.z), wantYaw) * 0.7;   // face the sunset
+    const wantPitch = night > 0.5 ? 0.42 + Math.sin(st * 0.04) * 0.15 : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.35);
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.35);
   } else if (drone.mode === 'auto') {
     const hasI = findInterest(drone.pos, U.uCamFwd.value);
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
@@ -157,7 +182,17 @@ function updateDrone(dt: number, now: number) {
     drone.pos.addScaledVector(_w, 0.8 - d);
     const vn = drone.vel.dot(_w); if (vn < 0) drone.vel.addScaledVector(_w, -vn);
   }
-  if (drone.pos.y > -0.7) { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
+  // the surface: the drone punches through it rather than hovering in it
+  const wasUp = drone.pos.y - drone.vel.y * dt > 0.2;
+  const mayRise = drone.mode === 'manual' || drone.sky, mayDive = drone.mode === 'manual' || !drone.sky;
+  if (!wasUp && drone.pos.y > -0.7) {
+    if (mayRise && drone.vel.y > 0.25) { drone.pos.y = 0.5; crossSurface(true); }
+    else { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
+  } else if (wasUp && drone.pos.y < 0.5) {
+    if (mayDive && drone.vel.y < -0.25) { drone.pos.y = -0.75; crossSurface(false); }
+    else { drone.pos.y = 0.5; if (drone.vel.y < 0) drone.vel.y = 0; }
+  }
+  if (drone.pos.y > SKY_MAX) { drone.pos.y = SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
   drone.pos.x = clamp(drone.pos.x, -LIMIT, LIMIT); drone.pos.z = clamp(drone.pos.z, -LIMIT, LIMIT);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
@@ -165,6 +200,24 @@ function updateDrone(dt: number, now: number) {
   camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
   camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008, drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01);
 }
+
+/* ================= above the water ================= */
+function crossSurface(up: boolean) {
+  splash();
+  seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
+}
+function setSky(on: boolean) {
+  if (!cur) return;
+  drone.sky = on; drone.skyT = 0;
+  if (drone.mode !== 'auto') setMode('auto');
+  director.reset(); lastShot = null;
+  if (!on) drone.s = nearestS(drone.pos);
+  $('btnSky').setAttribute('aria-pressed', String(on));
+  $('btnSky').innerHTML = `<span class="dot"></span>${on ? '海へ' : '空へ'} <kbd>U</kbd>`;
+}
+// aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
+const auroraParam = new URLSearchParams(location.search).get('aurora');
+function auroraAt(lat: number) { return auroraParam ? Number(auroraParam) || 1 : smooth(55, 65, Math.abs(lat)) * 0.8; }
 
 /* ================= sky from the clock ================= */
 let skyNow = null as ReturnType<typeof skyState> | null;
@@ -214,6 +267,9 @@ function applySky(loc: Sea) {
   setRain(U.uRain.value);
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
+  U.uAirSun.value.set(...s.sunAir); U.uAirMoon.value.set(...s.moonAir); U.uMoonIllum.value = s.moonIllum;
+  U.uStarM.value.fromArray(s.starM);
+  U.uAurora.value = auroraAt(loc.lat);
   // tidal stream: flood one way, ebb the other; strongest mid-tide
   const k = clamp(s.tideRate / (loc.tide.amp * 0.00016 + 1e-6), -1, 1);
   const ax = loc.tide.axis;
@@ -312,6 +368,7 @@ $('toast').addEventListener('click', goToEvent);
 function focusOn(s: Subject) {
   if (!cur) return;
   if (drone.mode !== 'auto') setMode('auto');
+  if (drone.sky) setSky(false);
   director.focus(s, drone.pos);
   lastShot = null;
 }
@@ -368,7 +425,9 @@ const compassEl = $('compass');
 function updateHud() {
   const loc = cur!.loc, s = skyNow!;
   const depth = -drone.pos.y + s.tideH, alt = drone.pos.y - cur!.T.ground(drone.pos.x, drone.pos.z);
-  $('tDepth').textContent = depth.toFixed(1);
+  const up = drone.pos.y > 0;
+  $('lDepth').textContent = up ? 'HEIGHT' : 'DEPTH';
+  $('tDepth').textContent = (up ? drone.pos.y : depth).toFixed(1);
   $('tAlt').textContent = alt.toFixed(1);
   $('tSpd').textContent = drone.vel.length().toFixed(2);
   $('tTemp').textContent = ((liveWeather().sst ?? (loc.tempYear ? seaTemp(clock.ms, loc.lat, loc.tempYear) : loc.temp)) - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
@@ -672,7 +731,8 @@ async function toGlobe() {
 function setMode(m: 'auto' | 'manual') {
   drone.mode = m;
   if (m === 'manual') director.reset();
-  if (m === 'auto' && cur) drone.s = nearestS(drone.pos);
+  if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; } }
+  if (cur) { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').innerHTML = `<span class="dot"></span>${drone.sky ? '海へ' : '空へ'} <kbd>U</kbd>`; }
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
@@ -759,6 +819,7 @@ $('btnGuide').onclick = () => openPanel('guide');
 $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
+$('btnSky').onclick = () => setSky(!drone.sky);
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnSound').onclick = () => setSound(!audio.on);
@@ -791,6 +852,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyJ') openPanel('log');
   else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
   else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');
+  else if (e.code === 'KeyU') setSky(!drone.sky);
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
@@ -904,7 +966,7 @@ function frame(ts: number) {
     {
       const cp = camera.position, cv = cur.cave;
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
-      const want = 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
+      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
       camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
       post.setExposure(camExpo);
     }
@@ -915,7 +977,12 @@ function frame(ts: number) {
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
     if (isStorm(liveWeather())) {
-      if ((nextFlash -= dt) < 0) { nextFlash = 12 + Math.random() * 35; flashT = 0; thunder(1 + Math.random() * 4, 0.6 + Math.random() * 0.4); }
+      if ((nextFlash -= dt) < 0) {
+        nextFlash = 12 + Math.random() * 35; flashT = 0;
+        const a = Math.random() * Math.PI * 2, km = 1 + Math.random() * 8;
+        U.uBolt.value.set(Math.cos(a) * 0.993, 0.12, Math.sin(a) * 0.993, Math.random() * 100);
+        thunder(km * 2.9, Math.min(1, 1.6 / km + 0.3));                   // sound covers a km in about three seconds
+      }
       flashT += dt;
       U.uFlash.value = flashT < 0.5 ? (flashT < 0.08 || (flashT > 0.18 && flashT < 0.3) ? 1 : 0.15) * (1 - flashT) : 0;
     } else U.uFlash.value = 0;
@@ -924,17 +991,26 @@ function frame(ts: number) {
     pumpLog(now);
     snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
     if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; renderGuide(); }
-    const vis = Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
+    const air = camera.position.y > 0;
+    const vis = air ? 400 : Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
       const cs = c.big ? 80 : CELL;
-      c.mesh.visible = d < (c.small ? 38 : vis + (cs - CELL) * 0.72) && (d < cs || (dx * fx + dz * fz) / d > -0.4);
+      c.mesh.visible = d < (c.small ? (air ? 60 : 38) : vis + (cs - CELL) * 0.72) && (air || d < cs || (dx * fx + dz * fz) / d > -0.4);
       if (c.hi) c.hi.visible = c.mesh.visible && d < U.uLodR.value + CELL * 0.72;
     }
     sky.position.copy(camera.position);
     surface.position.set(camera.position.x, 0, camera.position.z);
     setHum(drone.vel.length());
-    post.whiteBalance(-camera.position.y, U.uAbs.value, U.uNight.value);
+    // above the water the air takes over: sky, the sea from above, stars; no marine snow or water shafts
+    surface.visible = snow.visible = !air;
+    shafts.visible = !TIERS[tier].vol && !air;
+    updateAir(camera, renderer.domElement.height, renderer.getPixelRatio());
+    const far = air ? 90000 : 460;
+    if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
+    setAir(air);
+    post.setAir(air);
+    post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (TIERS[tier].post) post.render(renderer, oceanScene, camera); else { renderer.setRenderTarget(null); renderer.render(oceanScene, camera); }
     if ((hudTimer += dt) > 0.1) { hudTimer = 0; if (hudOn) updateHud(); }
     if ((sightTimer += dt) > 0.3) { sightTimer = 0; checkSightings(); }

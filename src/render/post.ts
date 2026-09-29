@@ -270,7 +270,12 @@ export class Post {
   // them in footage rather than as a flat blue-green.
   setExposure(e: number) { this.compMat.uniforms.uExposure.value = e; }
 
-  whiteBalance(depth: number, abs: THREE.Vector3, night: number) {
+  // above the water: no water column to correct for, and no shafts in the air
+  private air = false; private volClear = false;
+  setAir(on: boolean) { this.air = on; }
+
+  whiteBalance(depth: number, abs: THREE.Vector3, night: number, air = false) {
+    if (air) { (this.compMat.uniforms.uWB.value as THREE.Vector3).set(1, 1, 1); return; }
     const path = Math.max(depth, 0) + 3;
     const g = Math.exp(-abs.y * path);
     const wb = this.compMat.uniforms.uWB.value as THREE.Vector3;
@@ -284,7 +289,13 @@ export class Post {
     r.clear();
     r.render(scene, camera);
     const t = this.tier;
-    if (t.vol) {
+    const vol = t.vol && !this.air;
+    if (t.vol && !vol && !this.volClear) {   // leave no stale shafts behind for the bloom to pick up
+      for (const h of this.volHist) { r.setRenderTarget(h); r.clear(); }
+      this.volClear = true; this.hasPrev = false;
+    }
+    if (vol) {
+      this.volClear = false;
       const u = this.volMat.uniforms;
       u.tDepth.value = this.main.depthTexture;
       u.uInvProj.value.copy(camera.projectionMatrixInverse);
@@ -314,7 +325,8 @@ export class Post {
         this.pass(r, this.upMat, this.mips[i - 1], false);
       }
     }
-    if (t.ao) {
+    const ao = t.ao && !this.air;   // with the far plane out at the horizon the depth buffer is too coarse for it
+    if (ao) {
       const u = this.aoMat.uniforms;
       u.tDepth.value = this.main.depthTexture;
       u.uInvProj.value.copy(camera.projectionMatrixInverse);
@@ -328,9 +340,9 @@ export class Post {
       this.pass(r, this.aoBlurMat, this.aoSmooth);
     }
     const c = this.compMat.uniforms;
-    c.tAO.value = this.aoSmooth.texture; c.uUseAO.value = t.ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
+    c.tAO.value = this.aoSmooth.texture; c.uUseAO.value = ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
     c.tScene.value = this.main.texture;
-    c.tVol.value = this.volHist[this.histIdx].texture; c.uUseVol.value = t.vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
+    c.tVol.value = this.volHist[this.histIdx].texture; c.uUseVol.value = vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;
     this.pass(r, this.compMat, null);
   }

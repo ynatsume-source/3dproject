@@ -1,10 +1,13 @@
 // Shared uniforms and the GLSL lighting model every underwater material uses.
 import * as THREE from 'three';
+import milkyUrl from '../milkyway.png';   // the Milky Way on the celestial sphere (RA/Dec), built from galactic coordinates
 
 // Materials here are hand-written ShaderMaterials authored in display space; keep three from
 // converting colours or output so the look matches the prototype.
 THREE.ColorManagement.enabled = false;
 
+const milkyTex = new THREE.TextureLoader().load(milkyUrl);
+milkyTex.wrapS = THREE.RepeatWrapping;
 const EMPTY3D = new THREE.Data3DTexture(new Uint8Array([255, 255]), 1, 1, 1);
 EMPTY3D.format = THREE.RGFormat; EMPTY3D.unpackAlignment = 1; EMPTY3D.needsUpdate = true;
 
@@ -25,6 +28,10 @@ export const U = {
   uWave: { value: 1 }, uRain: { value: 0 }, uFlash: { value: 0 }, uCloud: { value: 0 },
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 },
+  // above the water: the real sky over the site
+  uAirSun: { value: new THREE.Vector3(0, 1, 0) }, uAirMoon: { value: new THREE.Vector3(0, -1, 0) }, uMoonIllum: { value: 0 },
+  uStarM: { value: new THREE.Matrix3() }, uMilky: { value: milkyTex }, uAurora: { value: 0 },
+  uBolt: { value: new THREE.Vector4(0, 0, -1, 0) },   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
@@ -53,6 +60,7 @@ uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNi
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
+uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -103,7 +111,111 @@ vec3 hazeCol(vec3 dir){
   float mu = max(dot(dir, SUN), 0.0);
   return waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlash * 2.0);
 }
+
+// ---------- above the water ----------
+#define SEA_WORLD 260.0
+float fbm2(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * vn2(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p; a *= 0.5; } return s; }
+// sunlight after the air it has crossed: white overhead, orange to red at the horizon, gone below it
+vec3 sunAirCol(){ float y = uAirSun.y; return mix(vec3(1.0, 0.36, 0.1), vec3(1.0, 0.96, 0.9), smoothstep(-0.02, 0.3, y)) * smoothstep(-0.06, 0.01, y); }
+float dayAir(){ return smoothstep(-0.12, 0.12, uAirSun.y); }
+// cumulus over the sea; thicker and greyer with today's cloud cover
+float cloudAt(vec3 d){
+  if (d.y <= 0.0) return 0.0;
+  vec2 p = d.xz / (d.y + 0.06) * 0.9 + vec2(uTime * 0.004, uTime * 0.0017);
+  float n = fbm2(p * 1.3) + 0.35 * fbm2(p * 4.1 + 3.1) - 0.2;
+  float cov = mix(0.26, 1.02, uCloud);
+  return smoothstep(1.0 - cov, 1.2 - cov, n) * smoothstep(0.0, 0.07, d.y);
+}
+vec3 skyAir(vec3 d, float disks){
+  float sy = uAirSun.y, day = dayAir(), h = max(d.y, 0.0);
+  float twi = smoothstep(-0.28, -0.02, sy) * (1.0 - smoothstep(0.02, 0.35, sy));   // dawn and dusk
+  vec3 zen = mix(vec3(0.006, 0.011, 0.028), vec3(0.13, 0.33, 0.7), day);
+  vec3 hor = mix(vec3(0.018, 0.028, 0.06), vec3(0.66, 0.8, 0.93), day);
+  zen = mix(zen, vec3(0.14, 0.18, 0.36), twi * 0.6);
+  float mu = dot(d, uAirSun), sideS = pow(max(mu, 0.0) * 0.5 + 0.5, 4.0);
+  hor = mix(hor, vec3(1.0, 0.5, 0.25), twi * (0.35 + 0.65 * sideS));
+  vec3 c = mix(hor, zen, pow(h, 0.42));
+  c += vec3(1.0, 0.42, 0.28) * twi * sideS * exp(-h * 9.0) * 0.6;                       // the glow over where the sun sets
+  c += vec3(0.045, 0.075, 0.15) * uMoonI * (1.0 - day) * (1.3 - h);                      // moonlit sky
+  vec3 sc = sunAirCol();
+  c += sc * pow(max(mu, 0.0), 14.0) * 0.35 * day;                                        // bright haze round the sun
+  if (disks < 0.0) return c * mix(1.0, 0.6, uCloud) * (1.0 + uFlash * 0.35);               // cheap: just the light of the sky
+  float cloudy = 1.0 - 0.75 * uCloud;
+  // the Milky Way and a faint airglow, only in real darkness and away from the moon
+  float dark = (1.0 - smoothstep(-0.3, -0.12, sy)) * (1.0 - 0.75 * uMoonI) * cloudy;
+  if (dark > 0.0) {
+    vec3 q = transpose(uStarM) * d;
+    vec2 uv = vec2(fract(atan(q.y, q.x) / 6.28318 + 1.0), 0.5 + asin(clamp(q.z, -1.0, 1.0)) / 3.14159);
+    float mw = textureLod(uMilky, uv, 0.0).r;   // no mip lookup: atan jumps at RA 0h
+    c += vec3(0.62, 0.66, 0.8) * mw * mw * 0.16 * dark * smoothstep(0.0, 0.25, d.y + 0.05);
+    c += vec3(0.02, 0.03, 0.02) * dark * exp(-h * 5.0) * 0.5;
+  }
+  // aurora: curtains toward the magnetic pole, green below and red-violet at the top
+  if (uAurora > 0.0) {
+    vec2 p = d.xz / (d.y + 0.12);
+    float band = exp(-pow((p.y + 1.6 + 0.5 * sin(p.x * 0.7 + uTime * 0.05) + 0.25 * sin(p.x * 1.9 - uTime * 0.09)) * 1.4, 2.0));
+    float az = atan(d.x, -d.z);                                   // rays hang straight down the curtain
+    float rays = 0.45 + 0.55 * smoothstep(0.3, 0.9, fbm2(vec2(az * 26.0, uTime * 0.12)) + 0.25 * sin(az * 90.0 + uTime * 0.3));
+    float hgt = smoothstep(0.02, 0.1, d.y) * (1.0 - smoothstep(0.25, 0.7, d.y));
+    vec3 ac = mix(vec3(0.15, 1.0, 0.45), vec3(0.6, 0.3, 0.65), smoothstep(0.2, 0.55, d.y) * 0.7);
+    c += ac * band * (0.35 + 0.65 * rays) * hgt * uAurora * 0.5 * (1.0 - day) * cloudy;
+  }
+  if (disks > 0.5) {
+    // sun, a touch larger than life, with limb darkening
+    float sa = acos(clamp(mu, -1.0, 1.0));
+    c += sc * smoothstep(0.0075, 0.0062, sa) * (0.75 + 0.25 * sqrt(max(1.0 - pow(sa / 0.0075, 2.0), 0.0))) * 30.0;
+    // moon: lit on the side facing the sun, with its seas
+    vec3 w = uAirMoon, mu1 = normalize(cross(w, abs(w.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0))), mv1 = cross(mu1, w);
+    vec2 mp = vec2(dot(d, mu1), dot(d, mv1)) / 0.0085;
+    float mr = dot(mp, mp);
+    if (mr < 1.0 && dot(d, w) > 0.0) {
+      vec3 n = mu1 * mp.x + mv1 * mp.y - w * sqrt(1.0 - mr);
+      float lit = smoothstep(-0.05, 0.12, dot(n, uAirSun));
+      float mare = 0.72 + 0.28 * smoothstep(0.35, 0.6, vn2(mp * 2.3 + 5.0) * 0.6 + vn2(mp * 5.0) * 0.4);
+      vec3 mc = vec3(1.0, 0.97, 0.9) * mare * (lit * 2.4 + 0.035) * smoothstep(1.0, 0.9, mr);
+      c = mix(c, c * 0.3 + mc, smoothstep(1.0, 0.92, mr) * smoothstep(-0.02, 0.02, w.y));
+    }
+    c += vec3(0.55, 0.62, 0.78) * pow(max(dot(d, w), 0.0), 900.0) * 0.5 * uMoonIllum * (1.0 - day) * smoothstep(-0.02, 0.02, w.y);
+  }
+  // clouds: lit by the sun (warm at dusk), by the moon at night, lightning from inside
+  float cl = cloudAt(d);
+  if (cl > 0.0) {
+    float thick = 0.55 + 0.45 * fbm2(d.xz / (d.y + 0.06) * 2.7);
+    vec3 lit = sc * (0.55 + 0.6 * pow(max(mu, 0.0), 3.0)) * mix(1.0, 0.45, uCloud) + hor * 0.45;
+    vec3 night = vec3(0.03, 0.04, 0.06) * (0.3 + 1.2 * uMoonI);
+    vec3 cc = mix(night, lit, smoothstep(-0.15, 0.1, sy)) * mix(1.0, 0.55, thick * uCloud);
+    cc += vec3(0.8, 0.85, 1.0) * uFlash * 0.6 * exp(-pow(acos(clamp(dot(d, uBolt.xyz), -1.0, 1.0)) / 0.45, 2.0));
+    c = mix(c, cc, cl * 0.95);
+  }
+  // a lightning bolt from the cloud base to the sea
+  if (uFlash > 0.3 && disks > 0.5) {
+    vec3 bd = normalize(vec3(uBolt.x, 0.0, uBolt.z)), bs = vec3(-bd.z, 0.0, bd.x);
+    float el = d.y, az = dot(normalize(vec3(d.x, 0.0, d.z)), bs);
+    if (el > 0.0 && el < 0.14 && dot(d, bd) > 0.0) {
+      float x = 0.012 * sin(el * 90.0 + uBolt.w) + 0.006 * sin(el * 260.0 + uBolt.w * 3.0) + 0.003 * sin(el * 700.0);
+      c += vec3(0.85, 0.9, 1.0) * smoothstep(0.003, 0.0, abs(az - x)) * uFlash * 10.0;
+    }
+  }
+  c *= 1.0 + uFlash * 0.35;
+  return c;
+}
+// Seen from the air: water between the surface and something below it (the view ray bends steeply
+// down at the surface), then air between the surface and the eye.
+vec3 fogAir(vec3 col, vec3 wp){
+  vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
+  if (wp.y < 0.0) {
+    float ca = max(-dir.y, 0.02), sa = sqrt(1.0 - ca * ca), sw = sa / 1.333, cw = sqrt(1.0 - sw * sw);
+    float edge = max(abs(wp.x), abs(wp.z));
+    float dw = -wp.y / cw + smoothstep(SEA_WORLD * 0.45, SEA_WORLD * 0.9, edge) * 160.0;   // past the modelled seabed, the reef drops into the blue
+    dw += d * 0.08;   // the moving surface scrambles what lies far off below it
+    vec3 dirW = normalize(vec3(dir.x * sw / max(sa, 1e-4), -cw, dir.z * sw / max(sa, 1e-4)));
+    vec3 T = exp(-uFogDen * vec3(1.4, 1.0, 0.78) * dw);
+    col = col * T + hazeCol(dirW) * vec3(0.4, 0.5, 0.62) * (1.0 - T);   // light scattered back up out of the deep: dark ultramarine
+  }
+  return col;
+}
 vec3 fogIt(vec3 col, vec3 wp){
+  if (uCamPos.y > 0.0) return fogAir(col, wp);
   vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
   float den = uFogDen * mix(1.0, 1.15, uNight);
   vec3 T = exp(-den * vec3(1.4, 1.0, 0.78) * d);

@@ -125,7 +125,7 @@ export function setMusic(on: boolean) {
 }
 export function setMood(o: { phase: string; night: number; twilight: number; sea: string }) {
   audio.phase = o.phase; audio.night = o.night; audio.twilight = o.twilight; audio.sea = o.sea;
-  if (ac) bedGain.gain.setTargetAtTime(0.12 + 0.04 * (1 - o.night), ac.currentTime, 2);
+  if (ac && !inAir) bedGain.gain.setTargetAtTime(0.12 + 0.04 * (1 - o.night), ac.currentTime, 2);
 }
 export function setHum(speed: number) {
   if (ac && audio.on) motion.gain.setTargetAtTime(Math.min(0.03, speed * 0.008), ac.currentTime, 0.8);
@@ -248,7 +248,7 @@ function loopBubbles() {
   clearTimeout(timers.bubbles);
   timers.bubbles = window.setTimeout(() => {
     if (!audio.on || !ac) return;
-    const n = Math.random() < 0.25 ? 3 + Math.floor(Math.random() * 4) : 1;
+    const n = inAir ? 0 : Math.random() < 0.25 ? 3 + Math.floor(Math.random() * 4) : 1;
     let w = ac.currentTime + 0.02;
     for (let i = 0; i < n; i++) { bubble(w); w += rnd(0.06, 0.18); }
     loopBubbles();
@@ -377,4 +377,38 @@ export function splash() {
     og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.03, tt + 0.01); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.09);
     o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.1);
   }
+}
+
+// ---------- above the water ----------
+// Out in the air the underwater bed, bubbles and reef crackle give way to wind and the slap and wash
+// of waves around the drone.
+let inAir = false, airGain: GainNode | null = null;
+export function setAir(on: boolean) {
+  if (!ac || on === inAir) return;
+  inAir = on;
+  if (!airGain) {
+    const a = ac, len = a.sampleRate * 6, b = a.createBuffer(2, len, a.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); let v = 0; for (let i = 0; i < len; i++) { v = v * 0.97 + (Math.random() * 2 - 1) * 0.12; d[i] = v; } }
+    airGain = a.createGain(); airGain.gain.value = 0; airGain.connect(natureBus);
+    // wind: a breathy band that gusts
+    const wind = a.createBufferSource(); wind.buffer = b; wind.loop = true;
+    const wbp = a.createBiquadFilter(); wbp.type = 'bandpass'; wbp.frequency.value = 520; wbp.Q.value = 0.6;
+    const wg = a.createGain(); wg.gain.value = 0.35;
+    const gust = a.createOscillator(); gust.frequency.value = 0.07; const ga = a.createGain(); ga.gain.value = 0.2;
+    gust.connect(ga).connect(wg.gain); gust.start();
+    const sweep = a.createOscillator(); sweep.frequency.value = 0.045; const sa = a.createGain(); sa.gain.value = 180;
+    sweep.connect(sa).connect(wbp.frequency); sweep.start();
+    wind.connect(wbp).connect(wg).connect(airGain); wind.start();
+    // waves: low wash that swells every few seconds
+    const sea = a.createBufferSource(); sea.buffer = b; sea.loop = true; sea.playbackRate.value = 0.6;
+    const slp = a.createBiquadFilter(); slp.type = 'lowpass'; slp.frequency.value = 900;
+    const sg = a.createGain(); sg.gain.value = 0.5;
+    const swell = a.createOscillator(); swell.frequency.value = 0.13; const sw = a.createGain(); sw.gain.value = 0.45;
+    swell.connect(sw).connect(sg.gain); swell.start();
+    sea.connect(slp).connect(sg).connect(airGain); sea.start();
+  }
+  const t = ac.currentTime;
+  airGain.gain.setTargetAtTime(on ? 0.5 : 0, t, 0.4);
+  bedGain.gain.setTargetAtTime(on ? 0 : 0.12 + 0.04 * (1 - audio.night), t, 0.4);
+  crackleGain.gain.setTargetAtTime(on ? 0 : 0.18, t, 0.3);
 }

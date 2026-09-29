@@ -11,7 +11,7 @@ export const oceanScene = new THREE.Scene();
 
 export const sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), mat(
   `varying vec3 vWp; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  `varying vec3 vWp; void main(){ gl_FragColor = vec4(hazeCol(normalize(vWp - uCamPos)), 1.0); }`,
+  `varying vec3 vWp; void main(){ vec3 d = normalize(vWp - uCamPos); gl_FragColor = vec4(uCamPos.y > 0.0 ? skyAir(d, 1.0) : hazeCol(d), 1.0); }`,
   { opts: { side: THREE.BackSide, depthWrite: false } }));
 sky.renderOrder = -1;
 oceanScene.add(sky);
@@ -127,7 +127,7 @@ export const snowMat = mat(
      gl_FragColor = vec4(c * smoothstep(0.5, 0.1, r), 1.0);
    }`,
   { uniforms: { uPx: { value: 800 }, uPlank: { value: 1 } }, opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } });
-const snow = new THREE.Points(snowGeo, snowMat);
+export const snow = new THREE.Points(snowGeo, snowMat);
 snow.frustumCulled = false;
 oceanScene.add(snow);
 

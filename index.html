@@ -23,7 +23,7 @@
   <p class="lead">地球儀はドラッグで回転、スクロールかピンチで拡大できます。昼と夜の境目は、いまの実際の太陽の位置です。ピンかカードを選ぶと、その海へ潜航します。</p>
   <p class="home">出発地：<b id="homeLabel">—</b> <button type="button" id="btnHome">現在地を使う</button><br><small>潜るときは、ここから実際の地球の上を飛んで海へ向かいます</small></p>
   <ol id="locList"></ol>
-  <p class="foot">地形・サンゴ・生きものの配置は手続き生成です。登場する種類は、それぞれの海に実際に暮らしているものを選んでいます。<br>ピアノ音源：Salamander Grand Piano（Alexander Holm, CC BY 3.0）<br>衛星画像：Sentinel-2 cloudless by EOX（Copernicus Sentinel data 2016, CC BY 4.0）／地球：NASA Blue Marble・Black Marble（GIBS）／天気：Open-Meteo（CC BY 4.0）</p>
+  <p class="foot">地形・サンゴ・生きものの配置は手続き生成です。登場する種類は、それぞれの海に実際に暮らしているものを選んでいます。<br>ピアノ音源：Salamander Grand Piano（Alexander Holm, CC BY 3.0）<br>衛星画像：Sentinel-2 cloudless by EOX（Copernicus Sentinel data 2016, CC BY 4.0）／地球：NASA Blue Marble・Black Marble（GIBS）／恒星：d3-celestial（Olaf Frohn, BSD-3）／天気：Open-Meteo（CC BY 4.0）</p>
 </section>
 <div id="pins" class="g-ui"></div>
 
@@ -34,7 +34,7 @@
   <div class="coord" id="locCoord">—</div>
 </div>
 <dl id="tele" class="hud">
-  <dt>DEPTH</dt><dd><span id="tDepth">—</span><small>m</small></dd>
+  <dt id="lDepth">DEPTH</dt><dd><span id="tDepth">—</span><small>m</small></dd>
   <dt>ALT</dt><dd><span id="tAlt">—</span><small>m</small></dd>
   <dt>SPEED</dt><dd><span id="tSpd">—</span><small>m/s</small></dd>
   <dt>TEMP</dt><dd><span id="tTemp">—</span><small>°C</small></dd>
@@ -85,6 +85,7 @@
   <div class="group" role="group" aria-label="操縦モード">
     <button id="btnAuto" type="button" aria-pressed="true"><span class="dot"></span>自動巡航 <kbd>P</kbd></button>
     <button id="btnManual" type="button" aria-pressed="false"><span class="dot"></span>手動操縦</button>
+    <button id="btnSky" type="button" aria-pressed="false"><span class="dot"></span>空へ <kbd>U</kbd></button>
   </div>
   <div class="group" role="group" aria-label="機能">
     <button id="btnLamp" type="button" aria-pressed="false"><span class="dot"></span>ライト <kbd>L</kbd></button>
