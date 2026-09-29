@@ -83,6 +83,7 @@ float vor(vec2 p){
 vec3 waterCol(vec3 dir){
   vec3 c = dir.y > 0.0 ? mix(uHor, uUp, pow(dir.y, 0.7)) : mix(uHor, uDown, pow(-dir.y, 0.55));
   c *= mix(vec3(1.0), uTint, 0.6 - 0.35 * uGolden);   // at golden hour the water stays blue; the warmth is in the direct light
+  c = mix(c, vec3(dot(c, vec3(0.3, 0.5, 0.2))) * vec3(0.62, 0.9, 1.05), uNight * 0.55);   // moonlit water: silvery teal, not royal blue
   return c * mix(0.32, 1.0, exp(min(uCamPos.y, 0.0) * 0.035)) * uAmb;
 }
 vec3 absorb(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs); }
@@ -101,7 +102,7 @@ vec3 hazeCol(vec3 dir){
 }
 vec3 fogIt(vec3 col, vec3 wp){
   vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
-  float den = uFogDen * mix(1.0, 1.6, uNight);
+  float den = uFogDen * mix(1.0, 1.15, uNight);
   vec3 T = exp(-den * vec3(1.4, 1.0, 0.78) * d);
   vec3 h = hazeCol(dir);
   if (uCaveOn > 0.5) h *= mix(0.1, 1.0, mix(uCamCave, caveLight(wp).y, 0.5));   // water inside the cave is dark

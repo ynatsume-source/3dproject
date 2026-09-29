@@ -92,8 +92,8 @@ export function skyState(ms: number, site: SiteLike): SkyState {
   const golden = smooth(-1.5, 1.0, altDeg) * Math.exp(-(((altDeg - 4) / 7) ** 2));
   let tint = mix3([1, 1, 1], [1.0, 0.62, 0.4], Math.max(low * sunI, golden * 0.85));
   tint = mix3(tint, [0.62, 0.76, 1.0], night);
-  const skyLo = mix3(mix3([0.62, 0.86, 0.92], [0.98, 0.58, 0.36], low), [0.02, 0.03, 0.06], smooth(0.0, 1.0, 1 - dayAmb));
-  const skyHi = mix3(mix3([0.86, 0.96, 1.0], [1.0, 0.8, 0.6], low), [0.05, 0.07, 0.12], smooth(0.0, 1.0, 1 - dayAmb));
+  const skyLo = mix3(mix3([0.62, 0.86, 0.92], [0.98, 0.58, 0.36], low), [0.05, 0.09, 0.19], smooth(0.0, 1.0, 1 - dayAmb));
+  const skyHi = mix3(mix3([0.86, 0.96, 1.0], [1.0, 0.8, 0.6], low), [0.09, 0.14, 0.27], smooth(0.0, 1.0, 1 - dayAmb));
   const t = tide(ms, site.lat, site.lon, site.tide.amp, site.tide.lag);
   const hour = new Date(ms + site.tz * 3600000).getUTCHours();
   let phase: string;

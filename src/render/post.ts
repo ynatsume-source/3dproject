@@ -239,7 +239,7 @@ export class Post {
     const path = Math.max(depth, 0) + 3;
     const g = Math.exp(-abs.y * path);
     const wb = this.compMat.uniforms.uWB.value as THREE.Vector3;
-    const k = 0.5 * (1 - night * 0.8);
+    const k = 0.5 * (1 - night * 0.15);   // at night too: the moonlit reef keeps its colours
     wb.set(1 + (Math.min(3, g / Math.exp(-abs.x * path)) - 1) * k, 1, 1 + (Math.min(3, g / Math.exp(-abs.z * path)) - 1) * k);
   }
 

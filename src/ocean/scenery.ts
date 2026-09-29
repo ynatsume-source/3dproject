@@ -38,6 +38,9 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      float sunGlow = (pow(sd, 180.0) * 3.0 + pow(sd, 6.0) * 0.35) * uSunI;
      float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI;
      vec3 air = mix(uSkyLo, uSkyHi, cosT) + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9);
+     // stars, trembling with the surface
+     vec2 sg = refr.xz / max(refr.y, 0.2) * 90.0; float star = step(0.994, hash2(floor(sg))) * smoothstep(0.35, 0.1, length(fract(sg) - 0.5));
+     air += vec3(0.8, 0.88, 1.0) * star * uNight * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
      vec3 tir = waterCol(reflect(dir, -n)) * 0.9 + vec3(0.02, 0.05, 0.05) * uAmb;
      vec3 col = mix(tir, air, tr);
      col *= exp(-max(-uCamPos.y, 0.0) * vec3(0.05, 0.02, 0.015));

@@ -148,7 +148,11 @@ function updateDrone(dt: number, now: number) {
 
 /* ================= sky from the clock ================= */
 let skyNow = null as ReturnType<typeof skyState> | null;
+const _nightShaft = new THREE.Color(0.5, 0.74, 1.0), _nightTint = new THREE.Color(0.8, 0.88, 1.0);
+let nightLift = 0;
 let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
+// the lamp comes on by itself on dark (moonless) nights and in the cave
+function wantLamp() { return (U.uNight.value > 0.6 && U.uMoonI.value < 0.3) || camCave < 0.3; }
 function applySky(loc: Sea) {
   const s = skyState(clock.ms, loc);
   skyNow = s;
@@ -156,6 +160,16 @@ function applySky(loc: Sea) {
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
   U.uTint.value.setRGB(...s.tint);
   U.uShaftCol.value.setRGB(...s.shaftCol); U.uShaftI.value = s.shaftI; U.uGolden.value = s.golden;
+  // Night as a low-light camera would dream it: the moon becomes a silver-blue key light with its own
+  // shafts and caustics, the water keeps a deep blue glow, and even a moonless night stays legible.
+  // (Rendering only: the animals still live by the real darkness in s.)
+  const n = s.night, moon = s.moonI, glow = n * (0.55 + 0.45 * moon);
+  U.uAmb.value = s.amb + glow * 0.6;
+  U.uSunI.value = Math.max(s.sunI, n * moon * 0.7);
+  U.uShaftI.value = Math.max(s.shaftI, n * (0.12 + 0.5 * moon));
+  U.uShaftCol.value.lerp(_nightShaft, n);
+  U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
+  nightLift = n;
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
   // tidal stream: flood one way, ebb the other; strongest mid-tide
@@ -163,7 +177,7 @@ function applySky(loc: Sea) {
   const ax = loc.tide.axis;
   U.uCurrent.value.set(ax[0] * k * 0.8 + 0.12, ax[1] * k * 0.8 + 0.05);
   setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
-  if (!lampManual) setLamp(s.night > 0.6 || camCave < 0.3, false);
+  if (!lampManual) setLamp(wantLamp(), false);
   cur!.eco.setSky(s, U.uCurrent.value);
   if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', PHASE_LOG[s.phase]); lastPhase = s.phase; }
 }
@@ -242,7 +256,7 @@ function updateHud() {
   $('tAlt').textContent = alt.toFixed(1);
   $('tSpd').textContent = drone.vel.length().toFixed(2);
   $('tTemp').textContent = (loc.temp - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
-  $('tVis').textContent = (3 / (U.uFogDen.value * (1 + 0.6 * s.night)) * 0.3).toFixed(0);
+  $('tVis').textContent = (3 / (U.uFogDen.value * (1 + 0.15 * s.night)) * 0.3).toFixed(0);
   $('tTide').textContent = (s.tideH >= 0 ? '+' : '') + s.tideH.toFixed(1);
   $('tTideDir').textContent = Math.abs(s.tideRate) < 0.000015 ? (s.tideH > 0 ? '満潮' : '干潮') : s.tideRate > 0 ? '上げ潮' : '下げ潮';
   const hdg = ((-drone.yaw * 180 / Math.PI) % 360 + 360) % 360;
@@ -684,11 +698,15 @@ function frame(ts: number) {
       const cp = camera.position;
       camCave += (cur.cave.skyAt(cp.x, cp.y, cp.z) - camCave) * Math.min(1, dt * 1.2);
       U.uCamCave.value = camCave;
-      // looking out at a bright opening, the camera stops back down
-      const ahead = cur.cave.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5);
-      camExpo += (1.4 * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8))) - camExpo) * Math.min(1, dt * 0.8);
+      if (!lampManual) { const want = wantLamp(); if (want !== lampOn) setLamp(want, false); }
+    }
+    // a touch more exposure at night, and much more in the dark of the cave (eased)
+    {
+      const cp = camera.position, cv = cur.cave;
+      const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
+      const want = 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
+      camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
       post.setExposure(camExpo);
-      if (!lampManual) { const want = U.uNight.value > 0.6 || camCave < 0.3; if (want !== lampOn) setLamp(want, false); }
     }
     U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
