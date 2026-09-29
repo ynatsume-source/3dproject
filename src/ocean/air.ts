@@ -24,26 +24,42 @@ function discGeo(r0: number, r1: number, rings: number, seg: number) {
 }
 const DISC = discGeo(0.5, 70000, 170, 192);
 
-// The swell: three long wave trains around the wind, lifting the surface itself. Mirrored in swellAt()
-// so the camera can ride it. Returns (height, dh/dx, dh/dz).
+// The swell: long ocean swell from distant weather (two close wavelengths that beat into sets), and a
+// shorter wind sea across it, lifting the surface itself; the water moves toward each crest (Gerstner),
+// sharpening crests and widening troughs. Each train fades out once the ring spacing can no longer carry it.
+// Mirrored in swellAt() so the camera can ride it. swell() returns (height, dh/dx, dh/dz).
+const SW: [number, number, number][] = [[140, 0.55, 0], [118, 0.45, 0.12], [72, 0.35, 0.5], [47, 0.22, -0.6], [31, 0.14, 0.9], [21, 0.08, -0.3]];
 const SWELL = /* glsl */ `
-vec3 swell(vec2 p, float t){
-  float wa = atan(uCurrent.y, uCurrent.x) + 0.6;
-  vec3 s = vec3(0.0);
-  for (int i = 0; i < 3; i++) {
-    float a = wa + (i == 0 ? 0.0 : i == 1 ? 0.6 : -0.9), lam = i == 0 ? 62.0 : i == 1 ? 38.0 : 23.0;
-    float A = (i == 0 ? 0.35 : i == 1 ? 0.22 : 0.12) * uWave, k = 6.28318 / lam;
-    vec2 d = vec2(cos(a), sin(a)); float ph = dot(d, p) * k - sqrt(9.81 * k) * t + float(i) * 2.1;
+const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
+const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
+const float SW_D[6] = float[](${SW.map((w) => w[2].toFixed(2)).join(', ')});
+float swPh(int i, vec2 p, float t, out vec2 d, out float k){
+  float a = atan(uCurrent.y, uCurrent.x) + 0.6 + SW_D[i];
+  d = vec2(cos(a), sin(a)); k = 6.28318 / SW_L[i];
+  return dot(d, p) * k - sqrt(9.81 * k) * t + float(i) * 2.1;
+}
+vec3 swell(vec2 p, float t, float dist){
+  vec3 s = vec3(0.0); vec2 d; float k;
+  for (int i = 0; i < 6; i++) {
+    float ph = swPh(i, p, t, d, k), A = SW_A[i] * uSwell * (1.0 - smoothstep(SW_L[i] * 6.0, SW_L[i] * 16.0, dist));
     s += vec3(A * cos(ph), -A * k * sin(ph) * d);
+  }
+  return s;
+}
+vec2 swellShift(vec2 p, float t, float dist){
+  vec2 s = vec2(0.0), d; float k;
+  for (int i = 0; i < 6; i++) {
+    float ph = swPh(i, p, t, d, k), A = SW_A[i] * uSwell * (1.0 - smoothstep(SW_L[i] * 6.0, SW_L[i] * 16.0, dist));
+    s -= d * A * sin(ph) * 0.9;
   }
   return s;
 }`;
 export function swellAt(x: number, z: number): number {
-  const cu = U.uCurrent.value, wa = Math.atan2(cu.y, cu.x) + 0.6, t = U.uTime.value, W = U.uWave.value;
+  const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value;
   let h = 0;
-  [[0, 62, 0.35], [0.6, 38, 0.22], [-0.9, 23, 0.12]].forEach(([da, lam, A], i) => {
-    const a = wa + da, k = 2 * Math.PI / lam;
-    h += A * W * Math.cos((Math.cos(a) * x + Math.sin(a) * z) * k - Math.sqrt(9.81 * k) * t + i * 2.1);
+  SW.forEach(([lam, A, da], i) => {
+    const a = Math.atan2(cu.y, cu.x) + 0.6 + da, k = 2 * Math.PI / lam;
+    h += A * S * Math.cos((Math.cos(a) * x + Math.sin(a) * z) * k - Math.sqrt(9.81 * k) * t + i * 2.1);
   });
   return h;
 }
@@ -56,8 +72,10 @@ export const seaTop = new THREE.Mesh(DISC, mat(
   SWELL + `varying vec3 vWp; varying float vFade;
    void main(){
      vec4 w = modelMatrix * vec4(position, 1.0);
-     vFade = 1.0 - smoothstep(250.0, 700.0, length(w.xz - uCamPos.xz));   // far off, the swell is below a pixel
-     w.y += swell(w.xz, uTime).x * vFade;
+     float dist = length(w.xz - uCamPos.xz); vFade = dist;
+     vec2 p0 = w.xz;
+     w.xz += swellShift(p0, uTime, dist);
+     w.y += swell(p0, uTime, dist).x;
      vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w;
    }`,
   SWELL + `varying vec3 vWp; varying float vFade;
@@ -68,7 +86,7 @@ export const seaTop = new THREE.Mesh(DISC, mat(
      // a wind sea on the swell: wave trains around the wind direction, each dropped (and its slope kept as
      // roughness) once it is smaller than a pixel
      vec2 p = vWp.xz; float t = uTime; float rough = 0.0025 + uRain * 0.02;
-     vec3 sw = swell(p, t) * vFade;
+     vec3 sw = swell(p, t, vFade);
      vec2 g = sw.yz;
      float wa = atan(uCurrent.y, uCurrent.x) + 0.6;
      for (int i = 0; i < 16; i++) {
@@ -98,7 +116,9 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        vec3 H = normalize(V + L); float nh = max(dot(n, H), 1e-3), nh2 = nh * nh;
        float D = exp(-(1.0 - nh2) / (nh2 * rough)) / (3.14159 * rough * nh2 * nh2);
        vec3 rad = k == 0 ? sc * 7.0 : vec3(0.75, 0.8, 0.9) * uMoonIllum * 1.5 * (1.0 - dayAir()) * (1.0 - 0.9 * uCloud);
-       col += rad * D * F / (4.0 * nv) * smoothstep(0.0, 0.05, L.y) * 0.25;
+       // the path breaks into glints that come and go with the small waves
+       float glint = mix(1.0, 0.25 + 2.2 * smoothstep(0.55, 0.9, vn2(p * 2.7 + vec2(t * 1.3, -t * 0.9))), 1.0 - smoothstep(0.3, 2.0, fp));
+       col += rad * D * F / (4.0 * nv) * smoothstep(0.0, 0.05, L.y) * 0.25 * glint;
      }
      // whitecaps once the wind picks up, riding the crests
      float foam = smoothstep(0.68, 0.78, fbm2(p * 0.09 + vec2(t * 0.03, t * 0.01)) + g.x * 0.4 + sw.x * 0.3) * clamp((uWave - 1.2) * 1.2, 0.0, 1.0);
@@ -115,9 +135,10 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        vec4 c2 = uProj * viewMatrix * vec4(vWp + vec3(n.x, 0.0, n.z) * below * 0.25, 1.0);   // refraction bends the view by about a quarter of the slope
        vec4 b2 = texture2D(tRefr, c2.xy / c2.w * 0.5 + 0.5);
        if (b2.a * 1000.0 < zs + 0.05) b2 = b;          // it landed on something in front of the water: keep the straight view
-       vec3 under = b2.rgb;
+       // the dive's night is lit for the camera; seen from the air the night sea is dark, lit only by the moon
+       vec3 under = b2.rgb * mix(1.0, 0.08 + 0.22 * uMoonI, uNight);
        // light through the thin water of a crest glows green-blue when the sun is behind it
-       under += vec3(0.0, 0.16, 0.14) * max(sw.x, 0.0) * max(dot(dir, uAirSun) * 0.5 + 0.5, 0.0) * max(uAirSun.y, 0.0) * (1.0 - uCloud * 0.7);
+       under += vec3(0.0, 0.16, 0.14) * max(sw.x, 0.0) / max(uSwell, 0.2) * 0.4 * max(dot(dir, uAirSun) * 0.5 + 0.5, 0.0) * max(uAirSun.y, 0.0) * (1.0 - uCloud * 0.7);
        vec3 o = under * (1.0 - F) * (1.0 - foam) + col + foamC * foam;
        gl_FragColor = vec4(mix(o, haze, fh), 1.0);
      } else {

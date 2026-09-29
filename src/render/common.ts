@@ -31,7 +31,9 @@ export const U = {
   // above the water: the real sky over the site
   uAirSun: { value: new THREE.Vector3(0, 1, 0) }, uAirMoon: { value: new THREE.Vector3(0, -1, 0) }, uMoonIllum: { value: 0 },
   uStarM: { value: new THREE.Matrix3() }, uMilky: { value: milkyTex }, uAurora: { value: 0 },
-  uBolt: { value: new THREE.Vector4(0, 0, -1, 0) },   // direction of the last lightning strike, and its seed
+  uBolt: { value: new THREE.Vector4(0, 0, -1, 0) },
+  uVolOff: { value: 0 },   // 1 when the volumetric light pass is off (light tier): fogIt stands in for its glow
+  uSwell: { value: 0.4 },  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
@@ -60,7 +62,7 @@ uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNi
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
-uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
+uniform float uVolOff; uniform float uSwell; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -109,7 +111,14 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
 // scatters forward into the view. Shared by distant objects and the open-water backdrop so they meet.
 vec3 hazeCol(vec3 dir){
   float mu = max(dot(dir, SUN), 0.0);
-  return waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlash * 2.0);
+  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlash * 2.0);
+  // without the volumetric pass (light tier), its glow still has to be there: sunlight scattered forward
+  // out of the water toward the eye, strongest toward the sun and at golden hour, when it carries the colour
+  if (uVolOff > 0.5 && uCamPos.y < 0.0) {
+    float m2 = dot(dir, SUN), hg = (1.0 - 0.5184) / pow(1.5184 - 1.44 * m2, 1.5);
+    h += uShaftCol * uShaftI * (hg + 0.6) * (0.05 + 0.2 * uGolden) * exp(uAbs * uCamPos.y * 0.6) * uCamCave;
+  }
+  return h;
 }
 
 // ---------- above the water ----------
@@ -183,7 +192,8 @@ vec3 skyAir(vec3 d, float disks){
   if (cl > 0.0) {
     float thick = 0.55 + 0.45 * fbm2(d.xz / (d.y + 0.06) * 2.7);
     vec3 lit = sc * (0.55 + 0.6 * pow(max(mu, 0.0), 3.0)) * mix(1.0, 0.45, uCloud) + hor * 0.45;
-    vec3 night = vec3(0.03, 0.04, 0.06) * (0.3 + 1.2 * uMoonI);
+    // at night: silver where the moon lights them (brightest toward it), dark shapes against the stars without it
+    vec3 night = vec3(0.025, 0.03, 0.045) + vec3(0.1, 0.11, 0.13) * uMoonI * (0.6 + 0.8 * pow(max(dot(d, uAirMoon), 0.0), 4.0));
     vec3 cc = mix(night, lit, smoothstep(-0.15, 0.1, sy)) * mix(1.0, 0.55, thick * uCloud);
     cc += vec3(0.8, 0.85, 1.0) * uFlash * 0.6 * exp(-pow(acos(clamp(dot(d, uBolt.xyz), -1.0, 1.0)) / 0.45, 2.0));
     c = mix(c, cc, cl * 0.95);

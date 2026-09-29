@@ -156,11 +156,11 @@ function updateDrone(dt: number, now: number) {
     const u = (keys.has('KeyE') || keys.has('Space') ? 1 : 0) - (keys.has('KeyQ') || keys.has('KeyC') ? 1 : 0) + vert.v;
     if (keys.has('ArrowLeft')) drone.yaw += dt * 1.2;
     if (keys.has('ArrowRight')) drone.yaw -= dt * 1.2;
-    const boost = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.6 : 1;
+    const boost = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.8 : 1;
     const cp = Math.cos(drone.pitch), sy = Math.sin(drone.yaw), cy = Math.cos(drone.yaw);
     _v.set(-sy * cp * f + cy * r, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * r);
     if (_v.lengthSq() > 1) _v.normalize();
-    _v.multiplyScalar(2.2 * boost);
+    _v.multiplyScalar((drone.pos.y > 0 ? 8 : 3.6) * boost);   // more power; much faster in the open air
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.8));
     if (now - drone.lastInput > 90000) setMode('auto');
   }
@@ -215,6 +215,7 @@ function updateDrone(dt: number, now: number) {
 /* ================= above the water ================= */
 function crossSurface(up: boolean) {
   splash();
+  if (cur) applySky(cur.loc);   // the night is lit differently on each side of the surface
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
 function setSky(on: boolean) {
@@ -257,7 +258,9 @@ function applySky(loc: Sea) {
   // (Rendering only: the animals still live by the real darkness in s.)
   // Without the moon, starlight takes its place (a little brighter than real), coming from high overhead,
   // so every hour of the night reads the same way rather than going black before moonrise.
-  const n = s.night, moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
+  // Seen from the air, the night is left closer to how dark it really is: the sea below is black but
+  // for the moonlit shallows.
+  const n = s.night * (drone.pos.y > 0 ? 0.3 : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
   U.uAmb.value = s.amb + glow * 0.6;
   U.uSunI.value = Math.max(s.sunI, n * (0.45 + 0.25 * moon));
   U.uShaftI.value = Math.max(s.shaftI, n * (0.2 + 0.4 * moon));
@@ -275,6 +278,8 @@ function applySky(loc: Sea) {
   U.uCloud.value = cloud;
   U.uRain.value = w.code >= 51 && w.code <= 57 ? 0.25 : Math.min(1, w.rain / 3);
   U.uWave.value = Math.min(2.4, Math.max(0.45, 0.55 + (w.wave ?? w.wind / 7) * 0.65));
+  // the swell: today's measured wave height (never more than twice the usual, a reef lagoon is sheltered), or the usual
+  U.uSwell.value = Math.min(w.wave ?? loc.swellHs ?? 1, (loc.swellHs ?? 1) * 2) / 2.37;
   setRain(U.uRain.value);
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
@@ -792,6 +797,7 @@ function setQuality(t: Tier) {
   grassGeo.setDrawRange(0, Math.floor(BLADES * T.grass) * SEG * 12);
   snowGeo.setDrawRange(0, Math.floor(SNOW * T.snow));
   shafts.visible = !T.vol;
+  U.uVolOff.value = T.vol ? 0 : 1;
   U.uLodR.value = T.lodR;
   document.body.classList.toggle('post', T.post);
   post.setTier(T);
@@ -990,7 +996,7 @@ function frame(ts: number) {
       camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
       post.setExposure(camExpo);
     }
-    U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
+    U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text, ev.at);
     updateMarker(now);

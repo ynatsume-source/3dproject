@@ -26,6 +26,7 @@ export interface Sea {
   sand: number[]; rock: number[];
   f(x: number, z: number): number;
   grass?(x: number, z: number): number;
+  swellHs?: number;                        // typical significant wave height (m) when there is no live sea state
   pelagic?: boolean;                       // open ocean: no bottom in sight; f() is only a placement floor far below
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   whales?: WhaleSeason;                    // humpbacks visit in these months
@@ -40,7 +41,7 @@ export interface Sea {
 
 export const LOCATIONS: Sea[] = [
   {
-    id: 'gbr', name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
+    id: 'gbr', swellHs: 1.3, name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
     lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, tempYear: [24, 29.5], seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
     blurb: '外洋に面したリボンリーフ。尾根と溝が交互に並ぶ「スパー・アンド・グルーブ」地形の斜面。',
     water: { up: [0.36, 0.72, 0.84], hor: [0.04, 0.33, 0.50], down: [0.01, 0.10, 0.20], fog: 0.026, abs: [0.26, 0.06, 0.04] },
@@ -92,7 +93,7 @@ export const LOCATIONS: Sea[] = [
     ],
   },
   {
-    id: 'miyako', name: '宮古島', site: '八重干瀬（やびじ）', region: 'Japan · Okinawa',
+    id: 'miyako', swellHs: 0.7, name: '宮古島', site: '八重干瀬（やびじ）', region: 'Japan · Okinawa',
     lat: 25.0, lon: 125.25, depth: '3–15 m', vis: 40, temp: 28.4, tempYear: [21.5, 29.5], seed: 23, tz: 9, tide: { amp: 0.95, lag: 0.2, axis: [1, 0.35] },
     blurb: '宮古島の北に広がる国内最大級のサンゴ礁群。白砂の上にテーブルサンゴの根が点在する、宮古ブルーの浅瀬。',
     water: { up: [0.30, 0.70, 0.95], hor: [0.02, 0.29, 0.62], down: [0.0, 0.08, 0.27], fog: 0.018, abs: [0.24, 0.05, 0.022] },
@@ -161,7 +162,7 @@ export const LOCATIONS: Sea[] = [
     ],
   },
   {
-    id: 'maldives', name: 'モルディブ', site: '南アリ環礁のティラ', region: 'Maldives · South Ari Atoll',
+    id: 'maldives', swellHs: 0.8, name: 'モルディブ', site: '南アリ環礁のティラ', region: 'Maldives · South Ari Atoll',
     lat: 3.48, lon: 72.84, depth: '8–30 m', vis: 35, temp: 29.0, tempYear: [28, 30.2], seed: 37, tz: 5, tide: { amp: 0.5, lag: 0.1, axis: [-1, 0.2] },
     blurb: '環礁の中にそびえる海中の根「ティラ」。マンタのクリーニングステーションがあり、ジンベエザメが通年見られる海域。',
     water: { up: [0.30, 0.68, 0.95], hor: [0.02, 0.26, 0.58], down: [0.0, 0.07, 0.25], fog: 0.019, abs: [0.25, 0.055, 0.025] },
@@ -211,7 +212,7 @@ export const LOCATIONS: Sea[] = [
     // The middle of the North Pacific subtropical gyre: some 1,700 km from Hawaii, the nearest land, over
     // an abyssal plain nearly 5 km down. The clearest, emptiest blue water on Earth, under the Pacific High's
     // steady clear skies.
-    id: 'pacific', name: '北太平洋', site: '北太平洋のまんなか', region: 'North Pacific · Subtropical Gyre',
+    id: 'pacific', swellHs: 2.2, name: '北太平洋', site: '北太平洋のまんなか', region: 'North Pacific · Subtropical Gyre',
     lat: 32.0, lon: -145.0, depth: '水深 4,800 m', vis: 60, temp: 22.5, tempYear: [17.5, 24.5], seed: 53, tz: -10, tide: { amp: 0.3, lag: 0.6, axis: [0.8, 0.6] },
     blurb: 'いちばん近い陸地まで1,700km。海底は5km下。地球でいちばん澄んで、いちばん何もない青の真ん中を、ただ漂う。',
     pelagic: true,
