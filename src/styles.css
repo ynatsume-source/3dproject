@@ -93,14 +93,16 @@ body.mode-globe .hud *, body.hud-off .hud * { pointer-events: none !important; }
 #compass::after { content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--accent); }
 #hdgnum { top: calc(50px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); font-family: var(--f-mono); font-size: 11px; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: .1em; }
 
-#toast { top: calc(76px + env(safe-area-inset-top, 0px)); left: 50%; transform: translate(-50%, -6px); opacity: 0; transition: opacity .5s, transform .5s;
-  background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; display: grid; gap: 2px; text-align: center;
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); max-width: calc(100vw - 32px); }
-#toast.on { opacity: 1; transform: translate(-50%, 0); }
-body.hud-off #toast.on { opacity: 1; }
-#toast .k { font: 500 9.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); }
-#toast .t { font-size: 14px; font-weight: 700; letter-spacing: .06em; }
-#toast .s { font-size: 11px; font-style: italic; color: var(--ink-dim); }
+/* captions: small and faint in the lower-left corner, there for whoever wants to read them */
+#toast { left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); max-width: min(340px, calc(100vw - 40px));
+  display: grid; gap: 3px; text-align: left; opacity: 0; transform: translateY(4px); transition: opacity 1.2s, transform 1.2s;
+  text-shadow: 0 1px 3px rgba(0, 10, 20, 0.7); pointer-events: none; }
+#toast.on { opacity: 0.62; transform: translateY(0); }
+body.hud-off #toast.on { opacity: 0.62; }
+#toast .k { font: 500 8.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); opacity: .75; }
+#toast .t { font-size: 12px; font-weight: 500; letter-spacing: .04em; line-height: 1.5; }
+#toast .s { font-size: 10px; font-style: italic; color: var(--ink-dim); }
+#toast .s:empty { display: none; }
 
 #dock { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .group { pointer-events: auto; display: flex; flex-wrap: wrap; background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 3px;
@@ -168,7 +170,7 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
   #brand { left: 14px; }
   #compass { top: calc(62px + env(safe-area-inset-top, 0px)); left: auto; right: 12px; transform: none; width: 46vw; }
   #hdgnum { top: calc(98px + env(safe-area-inset-top, 0px)); left: auto; right: calc(12px + 23vw); transform: translateX(50%); }
-  #toast { top: calc(186px + env(safe-area-inset-top, 0px)); }
+  #toast { top: calc(196px + env(safe-area-inset-top, 0px)); bottom: auto; max-width: 70vw; }
   .group button { padding: 8px 9px; font-size: 11.5px; }
   .group button kbd { display: none; }
   #hint { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
