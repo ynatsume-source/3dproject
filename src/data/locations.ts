@@ -1,5 +1,5 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
-import { fbm, smooth, clamp, bommieField, TERR } from '../core/math';
+import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -46,7 +46,7 @@ export const LOCATIONS: Sea[] = [
       const sg = Math.pow(Math.abs(Math.sin(x * 0.13 + warp)), 0.7);
       const zone = smooth(0.1, 0.4, s) * (1 - 0.6 * smooth(0.85, 1.0, s));
       h += (sg - 0.55) * 4.5 * zone;
-      const b = bommieField(x, z, 26, 0.45, 2, 5, 4, 9, 11, 0.25);
+      const b = bommieField(x, z, 26, 0.45, 2, 5, 4, 9, 11, 0.5);
       h += b[0] * (1 - s);
       h += (fbm(x * 0.06 + 9, z * 0.06, 4) - 0.5) * 2.2;
       const patch = smooth(0.45, 0.62, fbm(x * 0.05 + 4, z * 0.05 - 2, 3));
@@ -90,15 +90,15 @@ export const LOCATIONS: Sea[] = [
     sand: [0.78, 0.77, 0.72], rock: [0.52, 0.50, 0.44],
     f(x, z) {
       let h = -12.5 + (fbm(x * 0.01 + 5, z * 0.01, 3) - 0.5) * 5 + clamp(z * 0.015, -2, 2);
-      const a = bommieField(x, z, 22, 0.6, 3.5, 7, 6, 12, 3, 0.25);
-      const b = bommieField(x, z, 9, 0.3, 1.0, 2.4, 1.8, 3.8, 21, 0.2);
+      const a = bommieField(x, z, 22, 0.6, 3.5, 7, 6, 12, 3, 0.5);
+      const b = bommieField(x, z, 9, 0.3, 1.0, 2.4, 1.8, 3.8, 21, 0.45);
       h += Math.max(a[0], b[0]);
       h += (fbm(x * 0.08, z * 0.08, 3) - 0.5) * 1.2 * (0.3 + a[1]);
       TERR.reef = Math.max(a[1], b[1] * 0.9);
       return Math.min(h, -2.6);
     },
     grass(x, z) { return (1 - smooth(0.0, 0.4, TERR.reef)) * smooth(0.5, 0.62, fbm(x * 0.03 + 91, z * 0.03 - 40, 4)) * 0.7; },
-    corals: { branch: 0.26, table: 0.32, brain: 0.20, fan: 0.02, mushroom: 0.14, clam: 0.06 },
+    corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 },
     anemones: 40, clamSize: [0.22, 0.38], eels: 14,
     species: [
       { id: 'ocellaris', ja: 'カクレクマノミ', sci: 'Amphiprion ocellaris', note: 'ハタゴイソギンチャクなどに暮らす。オレンジクラウンフィッシュより黒い縁取りが細い。',
@@ -148,7 +148,7 @@ export const LOCATIONS: Sea[] = [
     f(x, z) {
       let h = -27 + (fbm(x * 0.01 + 1, z * 0.01 + 2, 3) - 0.5) * 5;
       const t = bommieField(x, z, 75, 0.6, 16, 20, 18, 30, 7, 0.4);
-      const b = bommieField(x, z, 13, 0.28, 1.5, 3.5, 2.2, 4.8, 31, 0.2);
+      const b = bommieField(x, z, 13, 0.28, 1.5, 3.5, 2.2, 4.8, 31, 0.45);
       h += Math.max(t[0], b[0]);
       h += (fbm(x * 0.07, z * 0.07, 3) - 0.5) * 1.6 * (0.3 + t[1]);
       TERR.reef = Math.max(t[1], b[1] * 0.8);
@@ -187,3 +187,18 @@ export const LOCATIONS: Sea[] = [
     ],
   },
 ];
+
+// Reef rugosity: living reef framework is rough at the metre scale — knobs, ledges and holes — while
+// sand stays smooth. Layered on every sea wherever there is reef.
+function rugosity(x: number, z: number) {
+  let s = 0, a = 0.5, f = 0.33;
+  for (let i = 0; i < 3; i++) { s += a * (1 - Math.abs(vnoise(x * f + 17.3 * i, z * f - 9.1 * i) * 2 - 1)); f *= 2.13; a *= 0.5; }
+  return s / 0.875;
+}
+for (const L of LOCATIONS) {
+  const base = L.f;
+  L.f = (x: number, z: number) => {
+    const h = base(x, z), r = TERR.reef;
+    return Math.min(h + (rugosity(x, z) - 0.55) * 1.4 * smooth(0.15, 0.8, r), -2.4);
+  };
+}

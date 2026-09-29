@@ -1,6 +1,7 @@
 // Builds a sea from its description: seabed, reef, corals, anemones, garden eels and animals.
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
+import { SURFACE, SURF_UNIFORMS } from '../render/surface';
 import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR } from '../core/math';
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
 import { CORAL_GEO, CORAL_MAT, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
@@ -43,7 +44,12 @@ export function addInstanced(kind, variant, items, group, cells) {
     cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh });
   }
 }
-export function tintCol(c, k = 0.1) { const t = 1 + (R() - 0.5) * 2 * k; return [c[0] * t, c[1] * t, c[2] * t]; }
+// living coral is less saturated than the textbook: pull palettes a quarter of the way to grey
+export function tintCol(c, k = 0.1) {
+  const t = 1 + (R() - 0.5) * 2 * k, g = (c[0] + c[1] + c[2]) / 3;
+  const v = 0.85 * t;
+  return [(g + (c[0] - g) * 0.72) * v, (g + (c[1] - g) * 0.72) * v, (g + (c[2] - g) * 0.72) * v];
+}
 
 export function buildOcean(loc) {
   seedRandom(loc.seed);
@@ -60,27 +66,33 @@ export function buildOcean(loc) {
     for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i); p.setY(i, loc.f(x, z)); r[i] = TERR.reef; }
     floorGeo.setAttribute('aReef', new THREE.BufferAttribute(r, 1));
     floorGeo.computeVertexNormals();
+    // ambient occlusion from the height grid: how much of the sky each point sees past its neighbours
+    const N = SEGS + 1, cell = (WORLD * 2) / SEGS, ao = new Float32Array(p.count);
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], reach = [1, 3, 7];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const h0 = p.getY(j * N + i);
+      let occ = 0;
+      for (const [dx, dz] of dirs) {
+        let m = 0;
+        for (const k of reach) {
+          const ii = Math.min(N - 1, Math.max(0, i + dx * k)), jj = Math.min(N - 1, Math.max(0, j + dz * k));
+          m = Math.max(m, Math.atan2(p.getY(jj * N + ii) - h0, k * cell * Math.hypot(dx, dz)));
+        }
+        occ += Math.max(0, m) / (Math.PI / 2);
+      }
+      ao[j * N + i] = 1 - Math.min(0.7, (occ / dirs.length) * 1.7);
+    }
+    floorGeo.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
   }
   const floor = new THREE.Mesh(floorGeo, mat(
-    `attribute float aReef; varying vec3 vWp; varying vec3 vN; varying float vReef;
-     void main(){ vWp = position; vN = normal; vReef = aReef; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    `uniform vec3 uSand; uniform vec3 uRock; varying vec3 vWp; varying vec3 vN; varying float vReef;
+    `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
+     void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
+    SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
-       vec3 n = normalize(vN);
-       float rip = sin(vWp.x * 1.7 + sin(vWp.z * 0.5) * 2.5 + vWp.z * 0.3) * 0.5 + 0.5;
-       float grain = hash2(floor(vWp.xz * 14.0)), patchy = hash2(floor(vWp.xz * 0.35));
-       vec3 sand = uSand * (0.86 + 0.08 * rip * (1.0 - vReef) + 0.07 * grain + 0.05 * patchy);
-       vec2 q = vWp.xz + vec2(vWp.y * 0.7, -vWp.y * 0.5);
-       float n1 = vn2(q * 0.6), n2 = vn2(q * 1.9 + 7.0), n3 = vn2(q * 5.5 - 3.0);
-       vec3 rock = uRock * (0.7 + 0.45 * n2);
-       rock = mix(rock, vec3(0.50, 0.40, 0.52), smoothstep(0.55, 0.75, n1) * 0.6);
-       rock = mix(rock, vec3(0.42, 0.50, 0.30), smoothstep(0.6, 0.8, vn2(q * 0.8 + 21.0)) * 0.55);
-       rock = mix(rock, vec3(0.72, 0.52, 0.56), smoothstep(0.7, 0.85, vn2(q * 1.3 - 11.0)) * 0.5);
-       rock *= 0.82 + 0.28 * n3 + 0.12 * hash2(floor(q * 22.0));
-       rock *= mix(0.85, 1.0, smoothstep(0.0, 0.1, vor(q * 3.2)));
-       vec3 alb = mix(sand, rock, smoothstep(0.12, 0.55, vReef));
+       vec3 n;
+       vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
        gl_FragColor = vec4(shade(alb, vWp, n, 0.95), 1.0);
-     }`, { uniforms: { uSand: U.uSand, uRock: U.uRock } }));
+     }`, { uniforms: SURF_UNIFORMS }));
   group.add(floor);
 
   // grass heightmap (only seas with seagrass)
@@ -105,7 +117,7 @@ export function buildOcean(loc) {
     if (r < 0.05) continue;
     samples.push([jx, jz, h, r]); sum += r * r * 1.6;
   }
-  const target = 9000, accept = Math.min(1, target / Math.max(sum, 1));
+  const target = 12500, accept = Math.min(1, target / Math.max(sum, 1));
   const W = loc.corals;
   for (const [x, z, h, r] of samples) {
     if (R() > r * r * accept * 1.6) continue;
@@ -157,30 +169,39 @@ export function buildOcean(loc) {
   }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
-  // rubble / dead-coral rocks
+  // rocks and rubble: a few rough prototypes, scattered thickly over the reef and drawn per cell
   {
-    const pos = [], nrm = [], tmp = new THREE.Vector3();
-    for (let placed = 0, tries = 0; placed < 70 && tries < 3000; tries++) {
-      const x = rr(-LIMIT - 30, LIMIT + 30), z = rr(-LIMIT - 30, LIMIT + 30), h = loc.f(x, z);
-      if (TERR.reef < 0.3) continue;
-      const s = 0.5 + Math.pow(R(), 2) * 2.2, seed = R() * 100;
-      const g = new THREE.IcosahedronGeometry(1, 2), P = g.attributes.position;
-      for (let i = 0; i < P.count; i++) { tmp.fromBufferAttribute(P, i); tmp.multiplyScalar(0.72 + fbm(tmp.x * 1.3 + seed, tmp.z * 1.3 + tmp.y * 0.9 + seed, 4) * 0.62); P.setXYZ(i, tmp.x, tmp.y, tmp.z); }
-      g.applyMatrix4(new THREE.Matrix4().compose(new THREE.Vector3(x, h - 0.3 * s, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(R() * 0.4, R() * 6.3, R() * 0.4)), new THREE.Vector3(s, s * rr(0.4, 0.7), s * rr(0.8, 1.3))));
-      g.computeVertexNormals();
-      pos.push(...g.attributes.position.array); nrm.push(...g.attributes.normal.array); placed++;
+    const protos = [0, 1, 2, 3].map((k) => roughRock(k * 13.7 + loc.seed));
+    const lists: any[][] = protos.map(() => []);
+    for (let placed = 0, tries = 0; placed < 1800 && tries < 30000; tries++) {
+      const x = rr(-LIMIT - 35, LIMIT + 35), z = rr(-LIMIT - 35, LIMIT + 35), h = loc.f(x, z), r = TERR.reef;
+      if (r < 0.22 || R() > r * (0.7 + 0.9 * Math.min(1, T.slope(x, z)))) continue;
+      const s = 0.18 + Math.pow(R(), 2.6) * 1.9;
+      const sy = s * rr(0.45, 0.8);
+      lists[Math.floor(R() * protos.length)].push({ x, z, y: h - sy * 0.35, ry: R() * 6.28, tx: (R() - 0.5) * 0.5, tz: (R() - 0.5) * 0.5, sx: s * rr(0.8, 1.3), sy, sz: s * rr(0.8, 1.3) });
+      placed++;
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
-    group.add(new THREE.Mesh(geo, mat(VS_WORLD,
-      `uniform vec3 uRock; varying vec3 vWp; varying vec3 vN;
+    const rockMat = mat(
+      `varying vec3 vWp; varying vec3 vN; varying float vLy;
+       void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
+      SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){
-         vec3 n = normalize(vN); float g = hash2(floor(vWp.xz * 5.0 + vWp.y * 3.0)), g2 = hash2(floor(vWp.xz * 1.3 - vWp.y * 1.7));
-         vec3 rock = uRock * (0.78 + 0.22 * g + 0.15 * g2);
-         rock = mix(rock, mix(vec3(0.34, 0.40, 0.22), vec3(0.55, 0.36, 0.40), g2), smoothstep(0.3, 0.85, n.y) * 0.6);
-         gl_FragColor = vec4(shade(rock, vWp, n, 0.8), 1.0);
-       }`, { uniforms: { uRock: U.uRock } })));
+         vec3 n;
+         vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
+         gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
+       }`, { uniforms: SURF_UNIFORMS });
+    lists.forEach((list, k) => {
+      const bucket = new Map<string, any[]>();
+      for (const it of list) { const key = Math.floor(it.x / CELL) + ',' + Math.floor(it.z / CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
+      for (const [key, arr] of bucket) {
+        const m = new THREE.InstancedMesh(protos[k], rockMat, arr.length);
+        arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); });
+        m.frustumCulled = false;
+        group.add(m);
+        const [ci, cj] = key.split(',').map(Number);
+        oc.cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh: m });
+      }
+    });
   }
 
   // fish
@@ -203,3 +224,25 @@ export function buildOcean(loc) {
   return oc;
 }
 
+
+// A lumpy boulder with smooth shading (duplicate vertices of the icosphere share one normal).
+function roughRock(seed: number) {
+  const g = new THREE.IcosahedronGeometry(1, 2), P = g.attributes.position, v = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) {
+    v.fromBufferAttribute(P, i);
+    const k = 0.7 + fbm(v.x * 1.4 + seed, v.z * 1.4 + v.y * 1.1 + seed, 4) * 0.55 + (fbm(v.x * 4 + seed, v.y * 4 - v.z * 3, 2) - 0.5) * 0.12;
+    v.multiplyScalar(k); if (v.y < -0.2) v.y = -0.2 + (v.y + 0.2) * 0.3;
+    P.setXYZ(i, v.x, v.y, v.z);
+  }
+  const acc = new Map<string, THREE.Vector3>(), A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
+  const key = (i: number) => `${P.getX(i).toFixed(4)},${P.getY(i).toFixed(4)},${P.getZ(i).toFixed(4)}`;
+  for (let i = 0; i < P.count; i += 3) {
+    A.fromBufferAttribute(P, i); B.fromBufferAttribute(P, i + 1); C.fromBufferAttribute(P, i + 2);
+    const fn = C.clone().sub(B).cross(A.clone().sub(B));
+    for (let k = 0; k < 3; k++) { const kk = key(i + k); const e = acc.get(kk); if (e) e.add(fn); else acc.set(kk, fn.clone()); }
+  }
+  const nrm = new Float32Array(P.count * 3);
+  for (let i = 0; i < P.count; i++) { const n = acc.get(key(i))!.clone().normalize(); nrm[i * 3] = n.x; nrm[i * 3 + 1] = n.y; nrm[i * 3 + 2] = n.z; }
+  g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  return g;
+}

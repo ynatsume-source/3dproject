@@ -52,6 +52,7 @@ npx tsx scripts/director-check.ts miyako   # カメラ監督が何を撮りに�
 ## 描画
 
 - シーンを HDR（半精度）で描き、後処理でまとめる：水中の体積光（波で集まった日光が光の筋になり、深さと距離で色が抜ける）→ ブルーム → ドローンカメラのホワイトバランス（水深に応じて赤と緑を戻す）→ ACES トーンマッピング → 周辺減光・わずかな色収差・粒状感
+- 海底と岩は Poly Haven の写真計測テクスチャ（CC0：砂紋 aerial_beach_01、サンゴ石灰岩 coral_fort_wall_03、サンゴ礫 coral_mud_01）を三方向から投影し、リーフの被度・傾き・ノイズで混ぜ、サンゴモ・芝状藻・カイメンの色を重ねる。地形の高さから求めた遮蔽（AO）で窪みを暗くし、リーフには1m規模の凹凸（ルゴシティ）を加える。サンゴにも同じスキャンから細かな凹凸と質感を載せる
 - 水の色は波長ごとの吸収（赤が最初に消え、青が最も遠くまで届く）で計算
 - 画質は「軽量（スマホ）／標準（ノートPC）／高画質（ゲーミングPC）」の3段階。起動時にGPUから自動で選び、フレームレートが足りなければ一段下げる。`?tier=high` のように指定も可能
 
@@ -73,4 +74,5 @@ npx tsx scripts/director-check.ts miyako   # カメラ監督が何を撮りに�
 
 ## クレジット
 
+- 海底テクスチャ：[Poly Haven](https://polyhaven.com)（CC0）の aerial_beach_01 / coral_fort_wall_03 / coral_mud_01
 - ピアノ音源：[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm（CC BY 3.0）。`public/audio/piano/` に Tone.js 配布版の一部を同梱

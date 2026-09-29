@@ -11,6 +11,7 @@ import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from '.
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
 import { Director, type Shot } from './director';
 import { Post } from './render/post';
+import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setMood, setMusic } from './audio';
 
@@ -23,6 +24,7 @@ catch (e) { $('err').hidden = false; throw e; }
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 460);
+setAnisotropy(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
 camera.rotation.order = 'YXZ';
 const CELL = 40;
 
