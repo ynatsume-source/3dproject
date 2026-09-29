@@ -553,7 +553,7 @@ function setQuality(t: Tier) {
   tier = t;
   const T = TIERS[t];
   $('btnQuality').textContent = `画質 ${T.label}`;
-  grassGeo.setDrawRange(0, Math.floor(BLADES * T.grass) * SEG * 6);
+  grassGeo.setDrawRange(0, Math.floor(BLADES * T.grass) * SEG * 12);
   snowGeo.setDrawRange(0, Math.floor(SNOW * T.snow));
   shafts.visible = !T.vol;
   U.uLodR.value = T.lodR;

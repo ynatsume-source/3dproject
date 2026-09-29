@@ -87,7 +87,9 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     const yaw = hs > 0.02 ? Math.atan2(t.vel.x, t.vel.z) : t.group.rotation.y;
     t.group.rotation.set(-Math.atan2(t.vel.y, Math.max(hs, 0.05)) * (hs > 0.05 ? 1 : 0) + noseDown * (0.6 + 0.4 * Math.sin(t.t * 0.8)), yaw, Math.sin(t.t * 0.5) * 0.06 * stroke, 'YXZ');
     const f = Math.sin(t.t * 1.0) * 0.75 * stroke, sw = Math.sin(t.t * 1.0 - 1.2) * 0.45 * stroke;
-    t.fr.rotation.set(0, sw, f); t.fl.rotation.set(0, -sw, -f);
+    // the fore flippers flap like wings and feather (twist) through the stroke
+    const fe = Math.cos(t.t * 1.0) * 0.35 * stroke;
+    t.fr.rotation.set(fe, sw, f, 'YZX'); t.fl.rotation.set(fe, -sw, -f, 'YZX');
     const r = Math.sin(t.t * 0.8) * 0.2 * Math.max(stroke, 0.2);
     t.br.rotation.set(0, 0, r); t.bl.rotation.set(0, 0, -r);
   }
@@ -127,8 +129,18 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     m.pos.x = px; m.pos.z = pz;
     if (feeding) env.plankton.consume(px, pz, 0.002 * dt);
     const tx = -Math.sin(m.a) * m.dir, tz = Math.cos(m.a) * m.dir;
+    // feeding: cephalic fins unrolled and mouth open; now and then a somersault through the plankton
+    const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
+    U.uFeed.value += ((feeding ? 1 : 0) - U.uFeed.value) * Math.min(1, dt * 0.4);
+    U.uBeat.value = feeding ? 0.85 : 1.05;
+    m.flip = (m.flip ?? -1);
+    if (feeding && m.flip < 0 && R() < dt / 25) m.flip = 0;
+    let loop = 0;
+    if (m.flip >= 0) { m.flip += dt / 7; if (m.flip >= 1) m.flip = -1; else loop = m.flip; }
+    const back = loop > 0 ? Math.sin(loop * Math.PI * 2) : 0, lift = loop > 0 ? (1 - Math.cos(loop * Math.PI * 2)) * 1.3 : 0;
     m.mesh.position.copy(m.pos);
-    m.mesh.rotation.set(-0.05 + Math.sin(m.t * 0.3) * 0.05 - Math.atan2(vy / Math.max(dt, 1e-3), 1.25) * 0.8, Math.atan2(tx, tz), (feeding ? 0.55 : 0.32) * m.dir, 'YXZ');
+    m.mesh.position.y += lift; m.mesh.position.x -= tx * back * 1.3; m.mesh.position.z -= tz * back * 1.3;
+    m.mesh.rotation.set(-0.05 + Math.sin(m.t * 0.3) * 0.05 - Math.atan2(vy / Math.max(dt, 1e-3), 1.25) * 0.8 - loop * Math.PI * 2, Math.atan2(tx, tz), (feeding ? 0.55 : 0.32) * m.dir * (loop > 0 ? 0.2 : 1), 'YXZ');
     if (!m.init) { m.init = true; m.pos.y = ty; }
   }
 }

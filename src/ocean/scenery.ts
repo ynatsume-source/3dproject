@@ -120,35 +120,48 @@ const snow = new THREE.Points(snowGeo, snowMat);
 snow.frustumCulled = false;
 oceanScene.add(snow);
 
-export const BLADES = 50000, SEG = 3, TILE = 60;
+// Seagrass meadow (Thalassia / Cymodocea): shoots of three to five narrow ribbon leaves. Each leaf is
+// folded along its midrib (a shallow V), arches over, and carries its own tint, browned tip and a few
+// epiphyte specks, so the meadow has depth instead of reading as flat cut-outs.
+export const BLADES = 64000, SEG = 4, TILE = 50;
 function buildGrass() {
-  const vpb = (SEG + 1) * 2, n = BLADES * vpb;
-  const off = new Float32Array(n * 2), rnd = new Float32Array(n * 4), vv = new Float32Array(n * 2), dummy = new Float32Array(n * 3);
-  const idx = new Uint32Array(BLADES * SEG * 6);
-  let vi = 0, ii = 0;
-  for (let b = 0; b < BLADES; b++) {
-    const ox = Math.random() * TILE, oz = Math.random() * TILE;
-    const th = Math.random(), h = 0.4 + Math.pow(Math.random(), 1.6) * 0.8, w = 0.03 + Math.random() * 0.04, a = Math.random() * Math.PI * 2, start = vi;
-    for (let s = 0; s <= SEG; s++) for (let side = -1; side <= 1; side += 2) {
-      off[vi * 2] = ox; off[vi * 2 + 1] = oz;
-      rnd[vi * 4] = th; rnd[vi * 4 + 1] = h; rnd[vi * 4 + 2] = w; rnd[vi * 4 + 3] = a;
-      vv[vi * 2] = side; vv[vi * 2 + 1] = s / SEG; vi++;
+  const vpb = (SEG + 1) * 3, n = BLADES * vpb;
+  const off = new Float32Array(n * 2), rnd = new Float32Array(n * 4), vv = new Float32Array(n * 2), ex = new Float32Array(n * 2), dummy = new Float32Array(n * 3);
+  const idx = new Uint32Array(BLADES * SEG * 12);
+  let vi = 0, ii = 0, b = 0;
+  while (b < BLADES) {
+    const sx = Math.random() * TILE, sz = Math.random() * TILE, th = Math.random(), a0 = Math.random() * Math.PI * 2;
+    const leaves = Math.min(BLADES - b, 3 + Math.floor(Math.random() * 3)), tall = 0.6 + Math.random() * 0.7;
+    for (let k = 0; k < leaves; k++, b++) {
+      const ox = sx + (Math.random() - 0.5) * 0.04, oz = sz + (Math.random() - 0.5) * 0.04;
+      const h = tall * (0.22 + Math.pow(Math.random(), 1.4) * 0.5) * (k === 0 ? 1.15 : 1), w = 0.008 + Math.random() * 0.008;
+      const a = a0 + (k - leaves / 2) * 0.5 + (Math.random() - 0.5) * 0.4, curve = (Math.random() - 0.3) * 1.2, tone = Math.random(), start = vi;
+      for (let s = 0; s <= SEG; s++) for (let side = -1; side <= 1; side++) {
+        off[vi * 2] = ox; off[vi * 2 + 1] = oz;
+        rnd[vi * 4] = th; rnd[vi * 4 + 1] = h; rnd[vi * 4 + 2] = w; rnd[vi * 4 + 3] = a;
+        vv[vi * 2] = side; vv[vi * 2 + 1] = s / SEG;
+        ex[vi * 2] = curve; ex[vi * 2 + 1] = tone; vi++;
+      }
+      for (let s = 0; s < SEG; s++) for (let c = 0; c < 2; c++) {
+        const r0 = start + s * 3 + c, r1 = r0 + 3;
+        idx[ii++] = r0; idx[ii++] = r0 + 1; idx[ii++] = r1; idx[ii++] = r1; idx[ii++] = r0 + 1; idx[ii++] = r1 + 1;
+      }
     }
-    for (let s = 0; s < SEG; s++) { const r0 = start + s * 2, r1 = r0 + 2; idx[ii++] = r0; idx[ii++] = r0 + 1; idx[ii++] = r1; idx[ii++] = r1; idx[ii++] = r0 + 1; idx[ii++] = r1 + 1; }
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(dummy, 3));
   geo.setAttribute('aOff', new THREE.BufferAttribute(off, 2));
   geo.setAttribute('aRnd', new THREE.BufferAttribute(rnd, 4));
   geo.setAttribute('aV', new THREE.BufferAttribute(vv, 2));
+  geo.setAttribute('aEx', new THREE.BufferAttribute(ex, 2));
   geo.setIndex(new THREE.BufferAttribute(idx, 1));
   return geo;
 }
 export const grassGeo = buildGrass();
 export const grassMat = mat(
-  `attribute vec2 aOff; attribute vec4 aRnd; attribute vec2 aV;
+  `attribute vec2 aOff; attribute vec4 aRnd; attribute vec2 aV; attribute vec2 aEx;
    uniform sampler2D uHeight; uniform float uTile;
-   varying vec3 vWp; varying float vT; varying float vCaus; varying float vShade;
+   varying vec3 vWp; varying float vT; varying float vCaus; varying float vShade; varying vec3 vN; varying float vSide; varying float vTone; varying float vId;
    vec2 terr(vec2 xz){
      vec2 p = (xz + ${WORLD.toFixed(1)}) / ${(2 * WORLD).toFixed(1)} * ${HN.toFixed(1)} - 0.5;
      vec2 i = floor(p), f = p - i; float inv = 1.0 / ${HN.toFixed(1)};
@@ -166,7 +179,12 @@ export const grassMat = mat(
      float h = aRnd.y * (0.55 + 0.6 * td.y) * alive;
      float w = aRnd.z * (1.0 - pow(t, 1.7)) * alive;
      float a = aRnd.w;
-     vec3 p = vec3(base.x, td.x - 0.15, base.y) + vec3(cos(a), 0.0, sin(a)) * aV.x * w + vec3(0.0, t * h, 0.0);
+     vec3 wd = vec3(cos(a), 0.0, sin(a)), nb = vec3(-sin(a), 0.0, cos(a));
+     // folded along the midrib, arching over as it grows
+     vec3 p = vec3(base.x, td.x - 0.05, base.y) + wd * aV.x * w + nb * (1.0 - abs(aV.x)) * w * 0.5 + vec3(0.0, t * h, 0.0);
+     p += nb * aEx.x * t * t * h * 0.35; p.y -= abs(aEx.x) * t * t * h * 0.12;
+     vN = normalize(nb + wd * aV.x * 0.5 - vec3(0.0, 0.25 * aEx.x * t, 0.0));
+     vSide = aV.x; vTone = aEx.y; vId = fract(aRnd.x * 91.7 + a);
      float cs = length(uCurrent);
      float sway = sin(uTime * 0.8 + base.x * 0.11 + base.y * 0.07) * 0.4 + cs * 0.6 + sin(uTime * 1.9 + a * 7.0) * 0.15;
      float bend = t * t * h * 0.55;

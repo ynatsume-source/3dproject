@@ -664,6 +664,8 @@ export function fishMaterial(sp) {
        #elif PAT == 8 || PAT == 14
          alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));
          #if PAT == 8
+         // the pale flank band that runs back to the pelvic fins
+         alb = mix(alb, uC2, (1.0 - smoothstep(0.004, 0.014, abs(y - 0.004 + (z + 0.1) * 0.05))) * smoothstep(-0.36, -0.2, z) * smoothstep(0.12, -0.02, z) * step(vFin, 0.5) * 0.8);
          if (vFin > 0.5) alb = mix(uC1, uC3, smoothstep(0.14, 0.18, max(length(vL.xy), -z - 0.58)));
          #else
          // whitetip: bright tips on the first dorsal and the upper tail lobe; scattered dark spots
@@ -672,6 +674,12 @@ export function fishMaterial(sp) {
          if (vFin > 0.5) alb = uC1 * 0.95;
          if (vFin > 0.5 && vFin < 2.5) alb = mix(alb, uC3, smoothstep(0.115, 0.135, y) * step(-0.7, z) + smoothstep(0.1, 0.13, y) * step(z, -0.7));
          #endif
+         // the underslung crescent mouth and the nostrils beneath the snout
+         if (vFin < 0.5 && y < -0.01) {
+           float mz = 0.39 - 9.0 * vL.x * vL.x;
+           alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.002, 0.005, abs(z - mz))) * step(abs(vL.x), 0.05);
+           alb *= 1.0 - 0.6 * (1.0 - smoothstep(0.004, 0.007, length(vec2(abs(vL.x) - 0.022, z - 0.44))));
+         }
          // five gill slits behind the eye
          float gi = (z - 0.21) / 0.019;
          alb *= 1.0 - 0.45 * smoothstep(0.36, 0.46, abs(fract(gi) - 0.5)) * step(0.0, gi) * step(gi, 5.0) * step(abs(y + 0.005), 0.035) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
@@ -715,108 +723,291 @@ export function fishMaterial(sp) {
 }
 
 /* ---------- turtles ---------- */
-export const TURTLE_STYLE = { green: { c1: [0.42, 0.36, 0.22], c2: [0.32, 0.30, 0.24], mottle: 0.25 }, hawksbill: { c1: [0.55, 0.36, 0.16], c2: [0.30, 0.26, 0.20], mottle: 0.6 } };
+export const TURTLE_STYLE = {
+  green: { c1: [0.3, 0.26, 0.16], c2: [0.24, 0.22, 0.16], ray: [0.5, 0.44, 0.24], dark: [0.1, 0.085, 0.06], skin: [0.26, 0.22, 0.16], hawk: 0 },
+  hawksbill: { c1: [0.4, 0.25, 0.1], c2: [0.26, 0.2, 0.13], ray: [0.62, 0.45, 0.2], dark: [0.09, 0.055, 0.03], skin: [0.22, 0.17, 0.11], hawk: 1 },
+};
+// Sea turtles, built from their anatomy: a heart-shaped, domed carapace (flatter plastron below), a
+// thick neck and a blunt head (a narrow, hooked beak for the hawksbill), long wing-like fore flippers
+// with a claw on the leading edge, and short rounded hind flippers. Carapace length 1, head at +z.
+// aPart: 0 carapace, 1 skin, 2 plastron; aCar = carapace coordinates (x across -1..1, z along -1..1).
+function turtleGeos(hawk: boolean) {
+  const P: number[] = [], N: number[] = [], A: number[] = [], C: number[] = [];
+  const add = (g: THREE.BufferGeometry, part: number, car?: (x: number, y: number, z: number) => [number, number]) => {
+    const q = g.index ? g.toNonIndexed() : g; q.computeVertexNormals();
+    const pp = q.attributes.position, nn = q.attributes.normal;
+    for (let i = 0; i < pp.count; i++) {
+      P.push(pp.getX(i), pp.getY(i), pp.getZ(i)); N.push(nn.getX(i), nn.getY(i), nn.getZ(i)); A.push(part);
+      const c = car ? car(pp.getX(i), pp.getY(i), pp.getZ(i)) : [0, 0]; C.push(c[0], c[1]);
+    }
+  };
+  const grid = (nu: number, nv: number, f: (u: number, v: number) => number[]) => {
+    const pos: number[] = [], idx: number[] = [];
+    for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) pos.push(...f(i / nu, j / nv));
+    for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) { const a = j * (nu + 1) + i, b = a + nu + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); return g;
+  };
+  // carapace outline: half-width along z (zn = -1 tail .. 1 head), widest a little ahead of centre
+  const W = hawk ? 0.39 : 0.41;
+  const half = (zn: number) => W * Math.pow(Math.max(0, 1 - zn * zn), 0.55) * (1 + 0.1 * zn) * (0.78 + 0.22 * smooth(-1, -0.2, zn));
+  const Z = (zn: number) => zn * (zn > 0 ? 0.47 : 0.53);
+  const dome = (xn: number, zn: number) => 0.2 * Math.pow(Math.max(0, 1 - xn * xn), 0.6) * Math.pow(Math.max(0, 1 - zn * zn), 0.4) * (1 + 0.12 * zn)
+    + (hawk ? 0.012 * Math.max(0, 1 - Math.abs(xn) * 5) : 0);                          // hawksbill: a slight ridge
+  const top = grid(40, 48, (u, v) => { const xn = u * 2 - 1, zn = -0.995 + v * 1.99; let y = dome(xn, zn);
+    // marginal scutes flare out a little, and the hawksbill's rear margin is serrated
+    const rim = smooth(0.82, 1.0, Math.abs(xn)); y = y * (1 - rim * 0.6) + rim * 0.015;
+    let hw = half(zn); if (hawk && zn < -0.2) hw *= 1 - 0.04 * Math.max(0, Math.sin(zn * 40)) * rim;
+    return [xn * hw, y, Z(zn)]; });
+  add(top, 0, (x, y, z) => { const zn = z > 0 ? z / 0.47 : z / 0.53; return [x / Math.max(half(zn), 1e-3), zn]; });
+  const bot = grid(40, 40, (u, v) => { const xn = u * 2 - 1, zn = -0.995 + v * 1.99;
+    return [xn * half(zn), 0.012 - 0.05 * Math.pow(Math.max(0, 1 - xn * xn), 0.8) * Math.pow(Math.max(0, 1 - zn * zn), 0.6), Z(zn)]; });
+  bot.index!.array.reverse?.call(bot.index!.array);
+  add(bot, 2, (x, y, z) => { const zn = z > 0 ? z / 0.47 : z / 0.53; return [x / Math.max(half(zn), 1e-3), zn]; });
+  // neck and head
+  // a thick, fleshy neck that runs from under the shell's front edge into the back of the skull
+  const neck = new THREE.SphereGeometry(0.5, 18, 12), np = neck.attributes.position;
+  for (let i = 0; i < np.count; i++) { const x = np.getX(i), y = np.getY(i), z = np.getZ(i); np.setXYZ(i, x * 0.17 * (1 - 0.25 * (z + 0.5)), y * 0.12, z * 0.26); }
+  neck.translate(0, -0.012, 0.5);
+  add(neck, 1);
+  const head = new THREE.SphereGeometry(0.5, 24, 16), hp = head.attributes.position;
+  for (let i = 0; i < hp.count; i++) {
+    let x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i);
+    const f = z + 0.5;                                                  // 0 back of the skull .. 1 tip of the beak
+    x *= 0.16 * (1 - 0.4 * Math.pow(f, 2.2) * (hawk ? 1.4 : 1));
+    y *= 0.115 * (y > 0 ? 1 - 0.35 * f : 1 - 0.1 * f);
+    if (y > 0) y *= 0.9;
+    z *= hawk ? 0.28 : 0.24;
+    if (hawk && f > 0.75 && y < 0.01) y -= 0.02 * (f - 0.75) / 0.25;    // the hooked beak
+    hp.setXYZ(i, x, y, z);
+  }
+  head.translate(0, 0.014, 0.67);
+  add(head, 1);
+  const tail = new THREE.ConeGeometry(0.04, 0.12, 8); tail.rotateX(-Math.PI / 2); tail.translate(0, -0.005, -0.56);
+  add(tail, 1);
+  const body = new THREE.BufferGeometry();
+  body.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); body.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  body.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1)); body.setAttribute('aCar', new THREE.Float32BufferAttribute(C, 2));
+  // flippers: lofted along their span from the shoulder (+x), a rounded airfoil section
+  const flipper = (span: number, chord0: number, chord1: number, sweep: number, thick: number) => {
+    const g = grid(18, 10, (u, v) => {
+      const s = u, a = v * Math.PI * 2;
+      const ch = chord0 * Math.pow(1 - s, 0.55) + chord1 * s;
+      const cx = span * s, cz = -sweep * Math.pow(s, 1.4), cy = -0.03 * s;
+      const th = thick * (1 - 0.75 * s);
+      const lead = Math.cos(a) > 0 ? 0.42 : 0.58;                       // thicker toward the leading edge
+      return [cx, cy + Math.sin(a) * th * (Math.cos(a) > 0 ? 1.1 : 0.8), cz + Math.cos(a) * ch * lead];
+    });
+    const pp: number[] = [], nn: number[] = [], aa: number[] = [], cc: number[] = [];
+    const q = g.toNonIndexed(); q.computeVertexNormals();
+    for (let i = 0; i < q.attributes.position.count; i++) { pp.push(q.attributes.position.getX(i), q.attributes.position.getY(i), q.attributes.position.getZ(i)); nn.push(q.attributes.normal.getX(i), q.attributes.normal.getY(i), q.attributes.normal.getZ(i)); aa.push(1); cc.push(q.attributes.position.getX(i) / span, 0); }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); out.setAttribute('normal', new THREE.Float32BufferAttribute(nn, 3));
+    out.setAttribute('aPart', new THREE.Float32BufferAttribute(aa, 1)); out.setAttribute('aCar', new THREE.Float32BufferAttribute(cc, 2));
+    return out;
+  };
+  return { body, front: flipper(0.56, 0.15, 0.03, 0.26, 0.024), rear: flipper(0.2, 0.13, 0.06, 0.06, 0.018) };
+}
+const TURTLE_GEOS = { green: turtleGeos(false), hawksbill: turtleGeos(true) };
 export function turtleMaterial(style) {
-  const s = TURTLE_STYLE[style];
+  const s = TURTLE_STYLE[style], c = (a: number[]) => new THREE.Color(a[0], a[1], a[2]);
   return mat(
-    `attribute float aPart; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart;
-     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    `uniform vec3 uC1; uniform vec3 uC2; uniform float uMottle; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart;
+    `attribute float aPart; attribute vec2 aCar; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar;
+     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart; vCar = aCar; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    SURFACE + `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uRay; uniform vec3 uDark; uniform vec3 uSkin; uniform float uHawk; uniform float uSeed;
+     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        vec3 alb;
        if (vPart < 0.5) {
-         float e = vor(vL.xz * vec2(4.2, 3.4) + 3.0);
-         float streak = sin(atan(vL.z, vL.x) * 14.0 + length(vL.xz) * 20.0) * 0.5 + 0.5;
-         alb = uC1 * (0.8 + 0.3 * hash2(floor(vL.xz * 9.0))) * mix(1.0, 0.6 + 0.8 * streak, uMottle);
-         alb = mix(alb * 0.45, alb, smoothstep(0.02, 0.09, e));
-         if (vL.y < -0.02) alb = vec3(0.82, 0.76, 0.56);
+         // scutes: five vertebral down the middle, four costal a side, a ring of marginals
+         float x = vCar.x, ax = abs(x), z = vCar.y;
+         vec2 cen; float seam;
+         if (ax > 0.86 || abs(z) > 0.93) {
+           float a = atan(z, x) / 3.14159 * 11.0; float fa = fract(a);
+           seam = min(min(fa, 1.0 - fa) * 0.18, abs(ax - 0.86) + 1.0);
+           seam = min(seam, (ax > 0.86 ? ax - 0.86 : abs(abs(z) - 0.93)));
+           cen = vec2(x, z) * 0.93;
+         } else if (ax < 0.27 + 0.05 * sin(z * 9.0)) {
+           float zz = z + 0.12 * x * x;
+           float k = clamp(floor((0.92 - zz) / 0.36), 0.0, 4.0), b0 = 0.92 - k * 0.36;
+           seam = min(min(abs(zz - b0), abs(zz - (b0 - 0.36))), abs(ax - 0.27 - 0.05 * sin(z * 9.0)));
+           cen = vec2(0.0, b0 - 0.18);
+         } else {
+           float zz = z + 0.22 * (ax - 0.27);
+           float k = clamp(floor((0.75 - zz) / 0.4), 0.0, 3.0), b0 = 0.75 - k * 0.4;
+           seam = min(min(abs(zz - b0), abs(zz - (b0 - 0.4))), min(abs(ax - 0.27), abs(ax - 0.86)));
+           cen = vec2(sign(x) * 0.56, b0 - 0.2);
+         }
+         float fw = fwidth(z) * 1.5 + 0.004;
+         vec2 d = vec2(x, z) - cen; float ang = atan(d.y, d.x), rr = length(d);
+         // each scute: rays fanning from its growth centre (dark flames on amber for the hawksbill)
+         float rays = 0.5 + 0.5 * sin(ang * (7.0 + 3.0 * uHawk) + vn2(vec2(ang * 2.0, rr * 6.0) + cen * 13.0 + uSeed) * 5.0);
+         alb = mix(uC1, uRay, smoothstep(0.45, 0.95, rays) * smoothstep(0.02, 0.25, rr) * (0.2 + 0.5 * uHawk));
+         alb *= 0.8 + 0.4 * vn2(vec2(x, z) * 3.0 + uSeed);                                    // broad mottling across the shell
+         alb = mix(alb, uDark, smoothstep(0.55, 0.85, vn2(vec2(ang * 1.5, rr * 5.0) - cen * 7.0 + uSeed)) * (0.35 + 0.45 * uHawk));
+         alb *= 0.85 + 0.25 * vn2(vL.xz * 60.0);
+         alb = mix(uDark * 0.8, alb, smoothstep(0.0, fw, seam - 0.006));              // the seams between scutes
+         // a little algae and the odd barnacle
+         alb = mix(alb, vec3(0.22, 0.27, 0.13), smoothstep(0.66, 0.85, vn2(vL.xz * 9.0 + uSeed)) * 0.35 * (1.0 - uHawk * 0.5));
+         float bc = cellF1(vL.xz * 38.0 + uSeed);
+         alb = mix(alb, vec3(0.82, 0.8, 0.72), (1.0 - smoothstep(0.1, 0.2, bc)) * step(0.975, hash2(floor(vL.xz * 38.0 + uSeed))));
+       } else if (vPart < 1.5) {
+         // skin: dark polygonal scales with pale edges; larger plates on the head and flipper tops
+         // big plates on the head and the tops of the flippers, fine wrinkled skin on the neck
+         float plates = max(step(0.56, vL.z), step(0.12, vCar.x) * step(0.0, n.y));
+         float sc = vor(vec2(vL.x, vL.z) * mix(80.0, 26.0, plates) + vL.y * 14.0);
+         vec3 skin = uSkin * (0.8 + 0.35 * hash2(floor(vL.xz * mix(80.0, 26.0, plates))));
+         alb = mix(mix(skin * 1.4, vec3(0.62, 0.57, 0.44), 0.35), skin, smoothstep(0.012, mix(0.07, 0.04, plates), sc));
+         // pale underside of neck and flippers
+         alb = mix(alb, vec3(0.8, 0.74, 0.58), smoothstep(0.2, -0.6, n.y) * 0.6);
+         // eye, and the beak
+         vec2 e = vec2(abs(vL.x) - 0.062, vL.z - 0.71); float eye = 1.0 - smoothstep(0.011, 0.016, length(vec2(e.x * 0.8, (vL.y - 0.028) * 1.1 + e.y * 0.2)) + abs(e.y) * 0.6);
+         alb = mix(alb, vec3(0.02), eye * step(0.6, vL.z));
+         alb = mix(alb, vec3(0.3, 0.26, 0.2), smoothstep(0.76, 0.84, vL.z) * (1.0 - smoothstep(0.02, 0.03, abs(vL.y - 0.0))) * 0.8);
+         // the claw on each fore flipper's leading edge
+         alb = mix(alb, vec3(0.1, 0.08, 0.06), (1.0 - smoothstep(0.012, 0.02, length(vec2(vCar.x - 0.35, 0.0)) + abs(vL.z + 0.04) * 0.5)) * step(0.01, vCar.x));
        } else {
-         float e = vor(vL.xz * 26.0 + vL.y * 10.0);
-         alb = mix(vec3(0.85, 0.82, 0.70), uC2, smoothstep(0.02, 0.1, e));
+         // plastron: creamy yellow with faint seams; the underside of the marginal scutes around it
+         float sm = min(abs(fract(vCar.y * 2.3 + 0.2) - 0.5), abs(abs(vCar.x) - 0.3));
+         alb = mix(vec3(0.62, 0.56, 0.4), vec3(0.8, 0.74, 0.55), smoothstep(0.0, 0.04, sm));
+         alb = mix(alb, mix(uC1, vec3(0.7, 0.64, 0.46), 0.5), smoothstep(0.72, 0.8, abs(vCar.x)));
        }
        gl_FragColor = vec4(shade(alb, vWp, n, 0.6), 1.0);
      }`,
-    { uniforms: { uC1: { value: new THREE.Color(...s.c1) }, uC2: { value: new THREE.Color(...s.c2) }, uMottle: { value: s.mottle } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { ...SURF_UNIFORMS, uC1: { value: c(s.c1) }, uC2: { value: c(s.c2) }, uRay: { value: c(s.ray) }, uDark: { value: c(s.dark) }, uSkin: { value: c(s.skin) }, uHawk: { value: s.hawk }, uSeed: { value: Math.random() * 40 } }, opts: { side: THREE.DoubleSide } });
 }
-export function partGeo(geo, m, part) { const acc = Acc(); pushGeo(acc, geo, m, null, part); return accGeo(acc, 'aPart'); }
-export const TURTLE_GEO = (() => {
-  const shell = new THREE.SphereGeometry(0.5, 26, 14);
-  const p = shell.attributes.position;
-  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); p.setXYZ(i, x * 0.78, y * (y < 0 ? 0.1 : 0.28), z * (z > 0 ? 1.0 : 1.08)); }
-  shell.computeVertexNormals();
-  const acc = Acc();
-  pushGeo(acc, shell, new THREE.Matrix4(), null, 0);
-  pushGeo(acc, new THREE.SphereGeometry(0.12, 14, 10), new THREE.Matrix4().compose(new THREE.Vector3(0, 0.0, 0.6), new THREE.Quaternion(), new THREE.Vector3(0.85, 0.72, 1.25)), null, 1);
-  const body = accGeo(acc, 'aPart');
-  const front = partGeo(new THREE.SphereGeometry(0.5, 12, 6), new THREE.Matrix4().compose(new THREE.Vector3(0.28, 0, -0.04), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0.35, 0)), new THREE.Vector3(0.62, 0.05, 0.2)), 1);
-  const rear = partGeo(new THREE.SphereGeometry(0.5, 10, 6), new THREE.Matrix4().compose(new THREE.Vector3(0.12, 0, -0.06), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -0.4, 0)), new THREE.Vector3(0.28, 0.05, 0.16)), 1);
-  return { body, front, rear };
-})();
 export function makeTurtle(style) {
-  const m = turtleMaterial(style), g = new THREE.Group();
-  g.add(new THREE.Mesh(TURTLE_GEO.body, m));
-  const mk = (geo, x, z, mirror) => { const f = new THREE.Mesh(geo, m); f.position.set(x, -0.03, z); if (mirror) f.scale.x = -1; g.add(f); return f; };
-  const fr = mk(TURTLE_GEO.front, 0.3, 0.28, false), fl = mk(TURTLE_GEO.front, -0.3, 0.28, true);
-  const br = mk(TURTLE_GEO.rear, 0.24, -0.42, false), bl = mk(TURTLE_GEO.rear, -0.24, -0.42, true);
+  const m = turtleMaterial(style), g = new THREE.Group(), G = TURTLE_GEOS[style];
+  g.add(new THREE.Mesh(G.body, m));
+  const mk = (geo, x, y, z, mirror) => { const f = new THREE.Mesh(geo, m); f.position.set(x, y, z); if (mirror) f.scale.x = -1; g.add(f); return f; };
+  const fr = mk(G.front, 0.24, -0.01, 0.27, false), fl = mk(G.front, -0.24, -0.01, 0.27, true);
+  const br = mk(G.rear, 0.2, -0.01, -0.36, false), bl = mk(G.rear, -0.2, -0.01, -0.36, true);
   g.traverse((o) => { o.frustumCulled = false; });
   return { group: g, fr, fl, br, bl, pos: new THREE.Vector3(), vel: new THREE.Vector3(), head: 0, t: Math.random() * 100, alt: 2, size: 1, ascend: 0 };
 }
 
 /* ---------- manta ---------- */
+// Reef manta (Mobula alfredi). The disc is one surface with a top and a bottom sheet over (u = span
+// -1..1 tip to tip, v = 0 leading edge .. 1 trailing edge): a raised body in the middle, pectoral
+// "wings" with swept, pointed tips and a concave trailing edge, small pelvic lobes, and a whip tail.
+// The cephalic fins at the front of the head are rolled into horns while cruising and unroll into a
+// funnel when feeding (uFeed), when the wide mouth also opens. Head at +z; attributes: aSide (+1 top,
+// -1 bottom), aU, aV, aPart (0 disc, 1 tail, 2 cephalic fin), aCeph (along, across, side).
 export const MANTA_GEO = (() => {
-  const SN = 30, CN = 10, pos = [], side = [], uu = [], idx = [];
-  const zF = (u) => 0.55 - 0.8 * Math.pow(Math.abs(u), 1.25), zB = (u) => -0.6 + 0.35 * Math.pow(Math.abs(u), 1.5);
+  const SN = 56, CN = 18, pos: number[] = [], side: number[] = [], uu: number[] = [], vv: number[] = [], part: number[] = [], ceph: number[] = [], idx: number[] = [];
+  const tipBack = (au: number) => -0.1 * Math.pow(au, 5);
+  const zF = (u: number) => { const au = Math.abs(u); return 0.31 - 0.4 * Math.pow(au, 1.05) + 0.06 * Math.sin(au * Math.PI) + tipBack(au); };
+  const zB = (u: number) => { const au = Math.abs(u); return -0.36 + 0.25 * Math.pow(au, 0.75) - 0.07 * Math.exp(-(((au - 0.12) / 0.045) ** 2)) + tipBack(au) * 1.2; };
+  const vert = (x: number, y: number, z: number, s: number, u: number, v: number, pt: number, c: number[] = [0, 0, 0]) => { pos.push(x, y, z); side.push(s); uu.push(u); vv.push(v); part.push(pt); ceph.push(...c); };
   for (const s of [1, -1]) {
     const start = pos.length / 3;
     for (let i = 0; i <= SN; i++) for (let j = 0; j <= CN; j++) {
-      const u = -1 + 2 * i / SN, v = j / CN, z = zF(u) + (zB(u) - zF(u)) * v;
-      const th = 0.09 * Math.pow(1 - u * u, 0.8) * Math.pow(Math.sin(Math.PI * v), 0.7);
-      pos.push(u, s > 0 ? th : -th * 0.6, z); side.push(s); uu.push(u);
+      const u = -1 + 2 * i / SN, v = j / CN, au = Math.abs(u);
+      const z = zF(u) + (zB(u) - zF(u)) * v;
+      const body = Math.exp(-((u / 0.2) ** 2)) * Math.pow(Math.sin(Math.PI * Math.min(1, v * 1.05)), 0.6);
+      const wing = Math.pow(Math.max(0, 1 - au), 1.3) * Math.pow(Math.sin(Math.PI * v), 0.8);
+      const y = s > 0 ? 0.11 * body + 0.035 * wing : -(0.05 * body + 0.02 * wing);
+      vert(u, y, z, s, u, v, 0);
     }
     for (let i = 0; i < SN; i++) for (let j = 0; j < CN; j++) {
       const a = start + i * (CN + 1) + j, b = a + CN + 1;
       if (s > 0) idx.push(a, b, a + 1, a + 1, b, b + 1); else idx.push(a, a + 1, b, a + 1, b + 1, b);
     }
   }
-  const quad = (pts, s) => { const st = pos.length / 3; for (const p of pts) { pos.push(...p); side.push(s); uu.push(0); } idx.push(st, st + 1, st + 2, st + 2, st + 1, st + 3); };
-  for (const sx of [-1, 1]) quad([[sx * 0.1, 0.01, 0.5], [sx * 0.17, 0.01, 0.5], [sx * 0.1, -0.05, 0.72], [sx * 0.15, -0.07, 0.7]], 1);
-  quad([[-0.012, 0, -0.52], [0.012, 0, -0.52], [-0.004, 0.01, -1.15], [0.004, 0.01, -1.15]], 1);
+  // tail: a thin, tapering whip about as long as the disc, with a small dorsal fin at its root
+  { const start = pos.length / 3, L = 12, R = 6;
+    for (let i = 0; i <= L; i++) for (let k = 0; k < R; k++) {
+      const t = i / L, a = k / R * Math.PI * 2, r = 0.018 * (1 - t) + 0.002;
+      vert(Math.cos(a) * r, 0.005 + Math.sin(a) * r, -0.34 - t * 0.75, 1, 0, 1, 1);
+    }
+    for (let i = 0; i < L; i++) for (let k = 0; k < R; k++) { const a = start + i * R + k, b = start + i * R + (k + 1) % R; idx.push(a, a + R, b, b, a + R, b + R); }
+    const f = pos.length / 3;
+    vert(0, 0.04, -0.3, 1, 0, 1, 1); vert(0, 0.1, -0.38, 1, 0, 1, 1); vert(0, 0.03, -0.4, 1, 0, 1, 1);
+    idx.push(f, f + 1, f + 2);
+  }
+  // cephalic fins: flaps that roll into horns (the vertex shader curls them by uFeed)
+  for (const sx of [-1, 1]) {
+    const start = pos.length / 3, L = 8, C = 6;
+    for (let i = 0; i <= L; i++) for (let j = 0; j <= C; j++) vert(sx * 0.13, 0.02, 0.28, 1, 0, 0, 2, [i / L, j / C, sx]);
+    for (let i = 0; i < L; i++) for (let j = 0; j < C; j++) { const a = start + i * (C + 1) + j, b = a + C + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('aSide', new THREE.Float32BufferAttribute(side, 1));
   g.setAttribute('aU', new THREE.Float32BufferAttribute(uu, 1));
+  g.setAttribute('aV', new THREE.Float32BufferAttribute(vv, 1));
+  g.setAttribute('aPart', new THREE.Float32BufferAttribute(part, 1));
+  g.setAttribute('aCeph', new THREE.Float32BufferAttribute(ceph, 3));
   g.setIndex(idx);
   return g;
 })();
 export function mantaMaterial() {
   return mat(
-    `attribute float aSide; attribute float aU; uniform float uPhase; varying vec3 vWp; varying vec3 vL; varying float vSide;
+    `attribute float aSide; attribute float aU; attribute float aV; attribute float aPart; attribute vec3 aCeph;
+     uniform float uPhase; uniform float uFeed; uniform float uBeat;
+     varying vec3 vWp; varying vec3 vL; varying float vSide; varying float vPart; varying vec2 vUV;
      void main(){
        vec3 p = position; float au = abs(aU);
-       p.y += sin(uTime * 1.05 + uPhase - au * 1.7) * 0.34 * pow(au, 1.6);
-       p.z += cos(uTime * 1.05 + uPhase - au * 1.7) * 0.04 * au;
-       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vL = position; vSide = aSide;
+       if (aPart > 1.5) {
+         // cephalic fin: a strip that rolls into a horn, or unrolls and turns down into a funnel when feeding
+         float curl = 1.0 - uFeed, l = aCeph.x, c = aCeph.y - 0.5, sx = aCeph.z;
+         float len = 0.17, wid = 0.075;
+         float R = wid / max(curl * 5.5, 0.02), th = c * wid / R;
+         vec3 fw = normalize(vec3(sx * 0.12 * (1.0 - uFeed) + sx * 0.25 * uFeed, -0.5 * uFeed, 1.0));
+         vec3 side = normalize(cross(vec3(0.0, 1.0, 0.0), fw)) * sx;
+         vec3 up = cross(fw, side) * sx;
+         p = vec3(sx * (0.12 + 0.02 * uFeed), 0.02, 0.27) + fw * l * len + side * (sin(th) * R) + up * ((1.0 - cos(th)) * R) * sx;
+         p.y -= l * l * 0.03 * (1.0 - uFeed);
+       } else if (aPart > 0.5) {
+         // the tail trails and swings a little
+         float t = clamp((-0.34 - p.z) / 0.75, 0.0, 1.0);
+         p.x += sin(uTime * 0.9 + uPhase - t * 3.0) * 0.05 * t * t;
+         p.y += sin(uTime * uBeat + uPhase - 1.8) * 0.04 * t;
+       } else {
+         // wings flap in a wave that travels out to the tips, with the trailing edge lagging
+         float ph = uTime * uBeat + uPhase - au * 1.7 - aV * 0.7;
+         p.y += sin(ph) * 0.36 * pow(au, 1.6);
+         p.z += cos(ph) * 0.04 * au;
+         // the mouth opens: the lower jaw drops at the front of the head
+         if (aSide < 0.0) p.y -= uFeed * 0.045 * smoothstep(0.1, 0.0, aV) * smoothstep(0.13, 0.05, au);
+       }
+       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vL = position; vSide = aSide; vPart = aPart; vUV = vec2(aU, aV);
        gl_Position = projectionMatrix * viewMatrix * w;
      }`,
-    `varying vec3 vWp; varying vec3 vL; varying float vSide;
+    `uniform float uSeed; uniform float uFeed; varying vec3 vWp; varying vec3 vL; varying float vSide; varying float vPart; varying vec2 vUV;
      void main(){
        vec3 n = normalize(cross(dFdx(vWp), dFdy(vWp))); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
+       float u = vUV.x, v = vUV.y, au = abs(u);
+       vec3 black = vec3(0.03, 0.035, 0.045), white = vec3(0.9, 0.91, 0.88);
        vec3 alb;
-       if (vSide > 0.0) {
-         alb = vec3(0.05, 0.06, 0.07);
-         float sh = (1.0 - smoothstep(0.1, 0.16, abs(abs(vL.x) - 0.3))) * smoothstep(0.02, 0.1, vL.z) * (1.0 - smoothstep(0.26, 0.36, vL.z + abs(vL.x) * 0.3));
-         alb = mix(alb, vec3(0.78, 0.8, 0.78), sh * 0.85);
+       if (vPart > 0.5) alb = mix(black, vec3(0.2), step(1.5, vPart) * 0.5 * (1.0 - uFeed));
+       else if (vSide > 0.0) {
+         // back: black, with the reef manta's pale shoulder patches that run out from behind the head
+         alb = black * (0.9 + 0.25 * vn2(vL.xz * 12.0 + uSeed));
+         // each patch is a soft, swept ellipse from beside the head out and back over the wing
+         vec2 q = vec2(au - 0.27, vL.z - 0.13);
+         vec2 r = vec2(dot(q, normalize(vec2(0.8, -0.6))), dot(q, normalize(vec2(0.6, 0.8))));
+         float shoulder = 1.0 - smoothstep(0.45, 1.25, length(r / vec2(0.27, 0.12)) + (vn2(vL.xz * 7.0 + uSeed) - 0.5) * 0.6);
+         shoulder *= smoothstep(0.1, 0.2, au) * smoothstep(-0.12, 0.08, vL.z);   // the black V behind the head; black toward the back
+         alb = mix(alb, mix(vec3(0.3, 0.32, 0.34), vec3(0.72, 0.73, 0.72), smoothstep(0.3, 0.9, shoulder)), smoothstep(0.0, 0.5, shoulder));
+         // eyes on the sides of the head, at the base of the cephalic fins
+         alb = mix(alb, vec3(0.01), 1.0 - smoothstep(0.012, 0.018, length(vec2(au - 0.145, vL.z - 0.255))));
        } else {
-         alb = vec3(0.9, 0.91, 0.88);
-         alb = mix(alb, vec3(0.12), smoothstep(0.75, 0.95, abs(vL.x)) + step(0.9, hash2(floor(vL.xz * 14.0))) * step(abs(vL.x), 0.5) * 0.8);
-         alb = mix(alb, vec3(0.1), smoothstep(0.42, 0.5, vL.z) * step(abs(vL.x), 0.14));
+         // belly: white, dark along the trailing edges and wingtips, and each manta's own black spots
+         alb = white;
+         alb = mix(alb, vec3(0.1), smoothstep(0.7, 0.98, v) * smoothstep(0.3, 0.7, au) + smoothstep(0.82, 0.97, au));
+         vec2 g = vL.xz * 16.0 + uSeed; float sp = (1.0 - smoothstep(0.18, 0.32, length(fract(g) - 0.5))) * step(0.84, hash2(floor(g)));
+         alb = mix(alb, vec3(0.08), sp * step(au, 0.35) * smoothstep(0.25, 0.05, abs(vL.z - 0.02)));
+         // five pairs of gill slits
+         for (int k = 0; k < 5; k++) { float zz = 0.12 - float(k) * 0.035; alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.003, 0.006, abs(vL.z - zz))) * step(0.1, au) * step(au, 0.17 + float(k) * 0.006); }
+         // the mouth: a dark edge, and grey gill rakers inside when it opens
+         alb = mix(alb, vec3(0.12), smoothstep(0.04, 0.0, v) * step(au, 0.13));
+         alb = mix(alb, vec3(0.42), uFeed * smoothstep(0.08, 0.0, v) * step(au, 0.12) * (0.6 + 0.4 * step(0.5, fract(u * 60.0))));
        }
        gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
      }`,
-    { uniforms: { uPhase: { value: Math.random() * 6 } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { uPhase: { value: Math.random() * 6 }, uFeed: { value: 0 }, uBeat: { value: 1.05 }, uSeed: { value: Math.random() * 50 } }, opts: { side: THREE.DoubleSide } });
 }
-
 
 /* ---------- humpback whale ---------- */
 // Megaptera novaeangliae, lofted like the sharks (s = fraction of length from the rostrum): a broad,
