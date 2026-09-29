@@ -496,6 +496,7 @@ function setQuality(t: Tier) {
   grassGeo.setDrawRange(0, Math.floor(BLADES * T.grass) * SEG * 6);
   snowGeo.setDrawRange(0, Math.floor(SNOW * T.snow));
   shafts.visible = !T.vol;
+  U.uLodR.value = T.lodR;
   document.body.classList.toggle('post', T.post);
   post.setTier(T);
   applyTierToSea();
@@ -666,6 +667,7 @@ function frame(ts: number) {
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
       c.mesh.visible = d < vis && (d < CELL || (dx * fx + dz * fz) / d > -0.4);
+      if (c.hi) c.hi.visible = c.mesh.visible && d < U.uLodR.value + CELL * 0.72;
     }
     sky.position.copy(camera.position);
     surface.position.set(camera.position.x, 0, camera.position.z);

@@ -4,7 +4,7 @@ import { U, mat, VS_WORLD } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
 import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR } from '../core/math';
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
-import { CORAL_GEO, CORAL_MAT, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
+import { CORAL_GEO, CORAL_MAT, CORAL_GEO_HI, CORAL_MAT_HI, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
 import { makeFishSystem } from '../eco/fish';
 import { makeShoalSystem } from '../eco/shoal';
 import { Ecosystem } from '../eco/ecosystem';
@@ -40,8 +40,20 @@ export function addInstanced(kind, variant, items, group, cells) {
     g.setAttribute('aSeed', new THREE.InstancedBufferAttribute(seed, 1));
     mesh.frustumCulled = false;
     group.add(mesh);
+    // the close-up version shares the instances; each vertex shader keeps only its own distance band
+    let hi: THREE.InstancedMesh | null = null;
+    const hiBase = CORAL_GEO_HI[kind]?.[variant];
+    if (hiBase) {
+      const hg = new THREE.BufferGeometry();
+      for (const name in hiBase.attributes) hg.setAttribute(name, hiBase.attributes[name]);
+      for (const name of ['aCol', 'aCol2', 'aSeed']) hg.setAttribute(name, g.attributes[name]);
+      hi = new THREE.InstancedMesh(hg, CORAL_MAT_HI[kind], arr.length);
+      hi.instanceMatrix = mesh.instanceMatrix;
+      hi.frustumCulled = false;
+      group.add(hi);
+    }
     const [ci, cj] = k.split(',').map(Number);
-    cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh });
+    cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh, hi });
   }
 }
 // living coral is less saturated than the textbook: pull palettes a quarter of the way to grey
@@ -107,7 +119,7 @@ export function buildOcean(loc) {
   }
 
   // corals: sample the reef, pick a form by depth / slope / sea
-  const items = { branch: [[], []], table: [[]], brain: [[]], fan: [[], []], mushroom: [[]], anemone: [[]], clam: [[]], eel: [[]] };
+  const items = { branch: [[], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[]], anemone: [[]], clam: [[]], eel: [[]] };
   const EXT = LIMIT + 45, STEP = 1.35;
   const samples = [];
   let sum = 0;
@@ -139,11 +151,15 @@ export function buildOcean(loc) {
     const y0 = loc.f(x, z);
     if (kind === 'branch') { s = rr(0.6, 1.7); it = { x, z, y: y0 - 0.08, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s }; items.branch[R() < 0.55 ? 0 : 1].push(it); }
     else if (kind === 'table') { s = rr(0.7, 2.1) * (0.6 + 0.6 * shallow); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: rr(0.7, 1.1), sz: s * rr(0.85, 1.1), tx: (R() - 0.5) * 0.12, tz: (R() - 0.5) * 0.12 }; items.table[0].push(it); }
-    else if (kind === 'brain') { s = Math.pow(R(), 1.8) * 1.8 + 0.35; it = { x, z, y: y0 - 0.2 * s, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.3), sz: s * rr(0.8, 1.2) }; items.brain[0].push(it); }
+    else if (kind === 'brain') {
+      s = Math.pow(R(), 1.8) * 1.8 + 0.35; it = { x, z, y: y0 - 0.2 * s, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.3), sz: s * rr(0.8, 1.2) };
+      if (R() < 0.45) { it.porites = true; items.brain[1].push(it); } else items.brain[0].push(it);
+    }
     else if (kind === 'fan') { s = rr(0.9, 2.0); it = { x, z, y: y0 - 0.05, ry: (R() - 0.5) * 0.5, sx: s, sy: s, sz: s, tx: (R() - 0.5) * 0.2 }; items.fan[R() < 0.5 ? 0 : 1].push(it); }
     else if (kind === 'mushroom') { s = rr(0.6, 1.4); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.2), sz: s }; items.mushroom[0].push(it); }
     else { s = rr(loc.clamSize[0], loc.clamSize[1]); it = { x, z, y: y0 - 0.06 * s, ry: R() * 6.28, sx: s, sy: s, sz: s }; items.clam[0].push(it); }
-    it.c = tintCol(pal[0]); it.c2 = tintCol(pal[1]); it.seed = seed;
+    const pl = it.porites ? pick(PALETTE.porites) : pal;
+    it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
   }
   // anemones, each home to a few clownfish
   const clown = loc.species.find((s) => s.habitat === 'anemone');

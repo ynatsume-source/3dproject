@@ -88,6 +88,98 @@ export function brainCoralGeo() {
   pushGeo(acc, g, new THREE.Matrix4(), (v) => v.y / 0.7);
   return accGeo(acc);
 }
+// ---- close-up coral geometry (drawn only near the camera; see LOD in coralMaterial) ----
+// Staghorn Acropora: leaders that keep growing with a gentle wander and throw off side branches.
+export function acroporaStag(seed) {
+  const rnd = mulberry32(seed), acc = Acc(), maxD = 5;
+  function grow(base, dir, len, rad, depth) {
+    pushGeo(acc, new THREE.CylinderGeometry(rad * 0.86, rad, len, 7, 2, true), orientTo(dir, base, len), (v) => (depth + (v.y / len + 0.5)) / (maxD + 1));
+    const end = base.clone().addScaledVector(dir, len);
+    if (depth >= maxD || rad < 0.008) {
+      const tip = new THREE.SphereGeometry(rad * 0.86, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+      pushGeo(acc, tip, new THREE.Matrix4().compose(end, new THREE.Quaternion().setFromUnitVectors(UPV, dir), new THREE.Vector3(1, 1.6, 1)), () => 1);
+      return;
+    }
+    const cont = dir.clone().add(new THREE.Vector3((rnd() - 0.5) * 0.4, 0.1, (rnd() - 0.5) * 0.4)).normalize();
+    grow(end, cont, len * 0.93, rad * 0.88, depth + 1);
+    if (rnd() < 0.62) {
+      const axis = new THREE.Vector3(rnd() - 0.5, 0, rnd() - 0.5).normalize();
+      const sd = dir.clone().applyAxisAngle(axis, 0.55 + rnd() * 0.5); sd.y += 0.15; sd.normalize();
+      grow(end, sd, len * 0.82, rad * 0.78, depth + 1);
+    }
+  }
+  const trunks = 8;
+  for (let i = 0; i < trunks; i++) {
+    const a = (i / trunks) * Math.PI * 2 + rnd() * 0.7, tilt = 0.3 + rnd() * 0.75;
+    grow(new THREE.Vector3(0, 0, 0), new THREE.Vector3(Math.cos(a) * Math.sin(tilt), Math.cos(tilt), Math.sin(a) * Math.sin(tilt)).normalize(), 0.19, 0.03, 0);
+  }
+  return accGeo(acc);
+}
+// Corymbose Acropora (like A. digitifera): a low dome bristling with short upright fingers.
+export function acroporaCorymbose(seed, hi) {
+  const rnd = mulberry32(seed), acc = Acc();
+  const dome = new THREE.SphereGeometry(0.5, hi ? 20 : 10, hi ? 6 : 3, 0, Math.PI * 2, 0, Math.PI / 2);
+  pushGeo(acc, dome, new THREE.Matrix4().makeScale(1, 0.3, 1), (v) => 0.3 + v.y);
+  const n = hi ? 170 : 45;
+  for (let i = 0; i < n; i++) {
+    const r = Math.sqrt(rnd()) * 0.47, a = rnd() * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const y = 0.15 * Math.sqrt(Math.max(0, 1 - (r / 0.5) ** 2)) - 0.01;
+    const lean = 0.9 * r;
+    const dir = new THREE.Vector3(x * lean, 1, z * lean).normalize();
+    const len = (0.07 + rnd() * 0.08) * (1.25 - r), rad = 0.013 + rnd() * 0.008;
+    const base = new THREE.Vector3(x, y, z);
+    pushGeo(acc, new THREE.CylinderGeometry(rad * 0.85, rad, len, hi ? 6 : 3, 1, true), orientTo(dir, base, len), (v) => 0.45 + 0.4 * (v.y / len + 0.5));
+    if (hi) pushGeo(acc, new THREE.SphereGeometry(rad * 0.85, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.Matrix4().compose(base.clone().addScaledVector(dir, len), new THREE.Quaternion().setFromUnitVectors(UPV, dir), new THREE.Vector3(1, 1.4, 1)), () => 1);
+  }
+  return accGeo(acc);
+}
+// Table Acropora, close up: a thin scalloped plate with an upturned growing rim.
+export function tableCoralHi() {
+  const acc = Acc();
+  const plate = new THREE.CylinderGeometry(1, 0.94, 0.07, 72, 6);
+  const p = plate.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    const k = 1 + 0.06 * Math.sin(a * 5) + 0.04 * Math.sin(a * 11 + 1) + 0.018 * Math.sin(a * 37);
+    p.setX(i, x * k); p.setZ(i, z * k);
+    p.setY(i, p.getY(i) + Math.sin(a * 7) * 0.025 * r - r * r * 0.05 + Math.pow(Math.max(0, r - 0.85), 2) * 1.2 + (fbm(x * 4, z * 4, 2) - 0.5) * 0.02 * r);
+  }
+  plate.computeVertexNormals();
+  pushGeo(acc, plate, new THREE.Matrix4().makeTranslation(0, 0.5, 0), (v) => Math.hypot(v.x, v.z));
+  pushGeo(acc, new THREE.CylinderGeometry(0.1, 0.2, 0.5, 12), new THREE.Matrix4().makeTranslation(0, 0.25, 0), () => 0);
+  return accGeo(acc);
+}
+export function brainCoralGeoDetail(ws, hs) {
+  const acc = Acc();
+  const g = new THREE.SphereGeometry(1, ws, hs, 0, Math.PI * 2, 0, Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const k = 1 + (fbm(x * 1.6 + 3, z * 1.6 + y, 3) - 0.5) * 0.25;
+    p.setXYZ(i, x * k, y * k * 0.7, z * k);
+  }
+  g.computeVertexNormals();
+  pushGeo(acc, g, new THREE.Matrix4(), (v) => v.y / 0.7);
+  return accGeo(acc);
+}
+// Massive Porites: a lumpy, knobbed boulder of coral.
+export function poritesGeo(ws, hs) {
+  const acc = Acc();
+  const g = new THREE.SphereGeometry(1, ws, hs, 0, Math.PI * 2, 0, Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const lobes = (fbm(x * 1.1 + 9, z * 1.1 + y * 0.8 - 4, 3) - 0.5) * 0.6;
+    const knobs = Math.pow(Math.abs(Math.sin(x * 6.5 + Math.sin(z * 3)) * Math.sin(z * 6.5 + Math.sin(x * 3))), 3) * 0.08 * y;
+    const k = 1 + lobes + knobs;
+    p.setXYZ(i, x * k, y * k * 0.85, z * k);
+  }
+  g.computeVertexNormals();
+  pushGeo(acc, g, new THREE.Matrix4(), (v) => v.y / 0.85);
+  return accGeo(acc);
+}
+
 export function fanCoralGeo(seed) {
   const rnd = mulberry32(seed), pos = [], tip = [];
   function seg(x0, y0, a, len, w, depth) {
@@ -155,23 +247,30 @@ export function eelGeo() {
   return accGeo(acc);
 }
 export const CORAL_GEO = {
-  branch: [branchCoralGeo(3, 'stag'), branchCoralGeo(8, 'bush')],
-  table: [tableCoralGeo()], brain: [brainCoralGeo()], fan: [fanCoralGeo(5), fanCoralGeo(9)],
+  branch: [branchCoralGeo(3, 'stag'), acroporaCorymbose(8, false)],
+  table: [tableCoralGeo()], brain: [brainCoralGeo(), poritesGeo(22, 9)], fan: [fanCoralGeo(5), fanCoralGeo(9)],
   mushroom: [mushroomGeo()], anemone: [anemoneGeo(4)], clam: [clamGeo()], eel: [eelGeo()],
+};
+// Detailed versions, swapped in near the camera. Same footprint as the light version at each index.
+export const CORAL_GEO_HI: Record<string, THREE.BufferGeometry[]> = {
+  branch: [acroporaStag(3), acroporaCorymbose(8, true)],
+  table: [tableCoralHi()],
+  brain: [brainCoralGeoDetail(56, 22), poritesGeo(56, 22)],
 };
 export const KIND_ID = { branch: 0, table: 1, brain: 2, fan: 3, mushroom: 4, anemone: 5, clam: 6, eel: 7 };
 export const PALETTE = {
   branch: [[[0.62, 0.50, 0.36], [0.88, 0.82, 0.72]], [[0.44, 0.47, 0.40], [0.45, 0.62, 0.88]], [[0.55, 0.38, 0.55], [0.88, 0.66, 0.86]], [[0.40, 0.50, 0.30], [0.72, 0.88, 0.55]], [[0.74, 0.70, 0.58], [0.96, 0.86, 0.76]]],
   table: [[[0.40, 0.33, 0.22], [0.58, 0.52, 0.38]], [[0.32, 0.36, 0.26], [0.50, 0.56, 0.44]], [[0.42, 0.33, 0.28], [0.62, 0.48, 0.42]], [[0.34, 0.38, 0.40], [0.52, 0.58, 0.66]]],
+  porites: [[[0.62, 0.55, 0.36], [0.5, 0.45, 0.3]], [[0.55, 0.50, 0.58], [0.45, 0.4, 0.48]], [[0.50, 0.56, 0.42], [0.42, 0.46, 0.34]], [[0.66, 0.58, 0.46], [0.54, 0.46, 0.36]]],
   brain: [[[0.66, 0.55, 0.30], [0.40, 0.34, 0.22]], [[0.48, 0.58, 0.36], [0.30, 0.38, 0.25]], [[0.60, 0.46, 0.50], [0.40, 0.30, 0.36]], [[0.56, 0.54, 0.70], [0.36, 0.34, 0.48]]],
   fan: [[[0.78, 0.20, 0.16], [0.5, 0.1, 0.1]], [[0.88, 0.46, 0.16], [0.5, 0.2, 0.1]], [[0.58, 0.24, 0.58], [0.3, 0.1, 0.3]], [[0.88, 0.74, 0.30], [0.5, 0.4, 0.2]]],
-  mushroom: [[[0.84, 0.80, 0.56], [0.76, 0.72, 0.58]], [[0.64, 0.74, 0.50], [0.70, 0.72, 0.60]], [[0.86, 0.72, 0.64], [0.78, 0.70, 0.62]]],
+  mushroom: [[[0.62, 0.58, 0.40], [0.56, 0.52, 0.42]], [[0.48, 0.54, 0.38], [0.52, 0.52, 0.44]], [[0.64, 0.54, 0.46], [0.58, 0.50, 0.44]]],
   anemone: [[[0.76, 0.68, 0.46], [0.78, 0.18, 0.44]], [[0.64, 0.72, 0.46], [0.56, 0.50, 0.58]], [[0.80, 0.72, 0.52], [0.86, 0.36, 0.30]]],
   clam: [[[0.12, 0.42, 0.88], [0.62, 0.60, 0.54]], [[0.20, 0.72, 0.62], [0.62, 0.60, 0.54]], [[0.46, 0.28, 0.78], [0.62, 0.60, 0.54]], [[0.40, 0.62, 0.30], [0.62, 0.60, 0.54]]],
   eel: [[[0.86, 0.86, 0.80], [0.1, 0.1, 0.1]]],
 };
 
-export function coralMaterial(kind) {
+export function coralMaterial(kind, lod = 0) {
   const K = KIND_ID[kind];
   return mat(
     `attribute float aTip; attribute vec3 aCol; attribute vec3 aCol2; attribute float aSeed;
@@ -179,6 +278,11 @@ export function coralMaterial(kind) {
      void main(){
        vec3 p = position;
        vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
+       #if LOD == 1
+         if (distance(ip, uCamPos) < uLodR) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
+       #elif LOD == 2
+         if (distance(ip, uCamPos) >= uLodR) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
+       #endif
        float t = uTime;
        #if KIND == 3
          p.z += sin(t * 0.8 + aSeed * 6.283 + ip.x * 0.1) * 0.07 * aTip * aTip;
@@ -212,10 +316,12 @@ export function coralMaterial(kind) {
          float ang = atan(vL.z, vL.x);
          alb = mix(vCol, vCol2, smoothstep(0.8, 1.0, vTip)) * (0.95 + 0.05 * sin(ang * 90.0 + vTip * 24.0)) * (0.9 + 0.15 * g);
        #elif KIND == 2
+         bool por = vSeed >= 1.0;
          // fine meandering valleys, like Platygyra
          vec2 bq = vL.xz * 34.0 + vec2(sin(vL.z * 11.0 + vSeed * 6.0), sin(vL.x * 13.0)) * 2.5 + vL.y * 9.0;
          float m = abs(sin(bq.x + sin(bq.y * 0.7) * 2.0) * sin(bq.y * 0.8 + sin(bq.x * 0.6) * 2.0));
-         alb = mix(vCol2, vCol, smoothstep(0.05, 0.45, m)) * (0.92 + 0.12 * g);
+         alb = por ? vCol * (0.9 + 0.2 * g) : mix(mix(vCol2, vCol, 0.45), vCol, smoothstep(0.05, 0.45, m)) * (0.92 + 0.12 * g);
+         if (!por) n = bumpN(n, vWp, smoothstep(0.05, 0.6, m) * 0.012 * (1.0 - smoothstep(3.0, 12.0, distance(vWp, uCamPos))));
        #elif KIND == 3
          alb = mix(vCol2, vCol, smoothstep(0.0, 0.3, vTip)) * (0.85 + 0.25 * g);
        #elif KIND == 4
@@ -229,6 +335,32 @@ export function coralMaterial(kind) {
          float sp = step(0.7, hash2(floor(vec2(atan(vL.z, vL.x) * 2.0, vL.y * 45.0))));
          alb = mix(vCol, vCol2, sp * 0.9);
        #endif
+       // corallites: each polyp sits in a tiny cup, which catches light as a fine pitted relief
+       #if KIND <= 2 || KIND == 4
+       {
+         // branching and massive corals: raised polyp nubs; tables: a fine granular crust; leather coral: soft polyp fuzz
+         float fade = 1.0 - smoothstep(2.5, 13.0, distance(vWp, uCamPos));
+         float sc = KIND == 0 ? 70.0 : (KIND == 1 ? 95.0 : (KIND == 4 ? 110.0 : (vSeed >= 1.0 ? 120.0 : 0.0)));
+         if (sc > 0.0 && fade > 0.0) {
+           vec3 wv = pow(abs(normalize(vN)), vec3(4.0)); wv /= (wv.x + wv.y + wv.z);
+           vec3 q = vWp * sc + vec3(vn2(vWp.xz * 9.0), vn2(vWp.zy * 9.0), 0.0) * 1.5;
+           float h;
+           #if KIND == 1
+             float e = vor(q.zy) * wv.x + vor(q.xz) * wv.y + vor(q.xy) * wv.z;
+             h = 1.0 - smoothstep(0.02, 0.32, e);
+             alb *= mix(1.0, mix(0.9, 1.03, h), fade);
+           #else
+             float f1 = cellF1(q.zy) * wv.x + cellF1(q.xz) * wv.y + cellF1(q.xy) * wv.z;
+             h = 1.0 - smoothstep(0.0, 0.5, f1);
+             alb *= mix(1.0, mix(0.8, 1.06, h), fade);
+           #endif
+           n = bumpN(n, vWp, h * (KIND == 4 ? 0.0012 : 0.0028) * fade);
+         }
+       }
+       #endif
+       #if KIND == 1
+         alb *= mix(0.45, 1.0, smoothstep(-0.4, 0.3, normalize(vN).y));   // shaded underside of the table
+       #endif
        // photographic micro-detail from the reef-rock scan: skeleton pores, polyps, grime
        #if KIND != 7
          vec3 w3 = pow(abs(n), vec3(4.0)); w3 /= (w3.x + w3.y + w3.z);
@@ -241,10 +373,14 @@ export function coralMaterial(kind) {
        #endif
        gl_FragColor = vec4(shade(alb, vWp, n, 0.8), 1.0);
      }`,
-    { defines: { KIND: K }, uniforms: SURF_UNIFORMS, opts: { side: (kind === 'fan' || kind === 'anemone' || kind === 'eel') ? THREE.DoubleSide : THREE.FrontSide } });
+    { defines: { KIND: K, LOD: lod }, uniforms: SURF_UNIFORMS, opts: { side: (kind === 'fan' || kind === 'anemone' || kind === 'eel') ? THREE.DoubleSide : THREE.FrontSide } });
 }
 export const CORAL_MAT = {};
-for (const k of Object.keys(KIND_ID)) CORAL_MAT[k] = coralMaterial(k);
+export const CORAL_MAT_HI = {};
+for (const k of Object.keys(KIND_ID)) {
+  CORAL_MAT[k] = coralMaterial(k, CORAL_GEO_HI[k] ? 1 : 0);
+  if (CORAL_GEO_HI[k]) CORAL_MAT_HI[k] = coralMaterial(k, 2);
+}
 
 /* ---------- fish ---------- */
 export const SHAPES = {

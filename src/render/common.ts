@@ -20,13 +20,14 @@ export const U = {
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 },
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
+  uLodR: { value: 20 },          // detailed coral within this distance
 };
 
 export const COMMON = /* glsl */ `
 uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
-uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent;
+uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
 #define SUN uSunDir
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float caustic(vec2 uv, float t){

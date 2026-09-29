@@ -26,6 +26,24 @@ export function setAnisotropy(n: number) { for (const k in SURF_UNIFORMS) (SURF_
 export const SURFACE = /* glsl */ `
 uniform sampler2D tSandC; uniform sampler2D tSandN; uniform sampler2D tRockC; uniform sampler2D tRockN; uniform sampler2D tRubC; uniform sampler2D tRubN;
 uniform vec3 uSand; uniform vec3 uRock;
+// distance to the nearest jittered feature point (for raised polyp dots)
+float cellF1(vec2 p){
+  vec2 i = floor(p), f = fract(p); float d1 = 8.0;
+  for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+    vec2 g = vec2(float(x), float(y)); vec2 o = vec2(hash2(i + g), hash2(i + g + 17.3));
+    vec2 r = g + o - f; d1 = min(d1, dot(r, r));
+  }
+  return sqrt(d1);
+}
+// bump a normal by a procedural height field using screen-space derivatives (no tangents needed)
+vec3 bumpN(vec3 n, vec3 pos, float h){
+  vec3 dpdx = dFdx(pos), dpdy = dFdy(pos);
+  float dhdx = dFdx(h), dhdy = dFdy(h);
+  vec3 r1 = cross(dpdy, n), r2 = cross(n, dpdx);
+  float det = dot(dpdx, r1);
+  vec3 grad = sign(det) * (dhdx * r1 + dhdy * r2);
+  return normalize(abs(det) * n - grad);
+}
 // triplanar colour and normal (UDN blend), skipping projections that barely contribute
 void triSample(sampler2D tc, sampler2D tn, vec3 p, vec3 w, float s, float bump, inout vec3 col, inout vec3 dn, float amt){
   if (w.x > 0.03) { vec2 uv = p.zy * s; col += texture2D(tc, uv).rgb * w.x * amt; vec2 t = (texture2D(tn, uv).xy * 2.0 - 1.0) * bump; dn += vec3(0.0, t.y, t.x) * w.x * amt; }
