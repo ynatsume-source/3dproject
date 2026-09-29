@@ -1,6 +1,7 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
+import type { WhaleSeason } from '../eco/whale';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -13,6 +14,7 @@ export interface Species {
   diet?: 'plankton' | 'algae' | 'invert' | 'fish' | 'filter';
   eye?: number;
   cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
+  rests?: 'cave';                                // lies still on the floor of the cave while inactive (whitetip reef shark)
 }
 export interface GuideEntry { id: string; ja: string; sci: string; note: string }
 export interface Sea {
@@ -25,6 +27,7 @@ export interface Sea {
   f(x: number, z: number): number;
   grass?(x: number, z: number): number;
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
+  whales?: WhaleSeason;                    // humpbacks visit in these months
   corals: Record<string, number>;
   anemones: number; clamSize: [number, number]; eels: number;
   species: Species[];
@@ -71,7 +74,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'wrasse', ja: 'メガネモチノウオ', sci: 'Cheilinus undulatus', note: '通称ナポレオンフィッシュ。額のこぶが目印で、全長2mに達するベラ科最大種。',
         diel: 'day', diet: 'invert', pat: 7, c1: [0.20, 0.46, 0.44], c2: [0.55, 0.78, 0.72], shape: 'wrasse', size: [1.3, 1.8], habitat: 'roam', count: 2, alt: [1.5, 4], speed: 0.7, big: true },
       { id: 'blacktip', ja: 'ツマグロ', sci: 'Carcharhinus melanopterus', note: '背びれと尾びれの先が黒い小型のサメ。昼夜を問わずリーフを巡回し、夕暮れから夜に狩りが活発になる。人には臆病。',
-        diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.52, 0.52], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.3, 1.7], habitat: 'roam', count: 3, alt: [1.2, 4], speed: 1.2, big: true },
+        diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.52, 0.52], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.3, 1.7], habitat: 'roam', count: 3, alt: [1.2, 4], speed: 1.2, big: true, eye: 0.45 },
     ],
     animals: { turtle: { style: 'green', count: 3 } },
     extraGuide: [{ id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '海草や藻を食べる草食のウミガメ。体脂肪が緑がかることが名前の由来。' }],
@@ -127,12 +130,20 @@ export const LOCATIONS: Sea[] = [
         diel: 'night', diet: 'invert', pat: 5, c1: [0.86, 0.87, 0.82], c2: [0.08, 0.08, 0.09], bands: 5.5, shape: 'slender', size: [0.08, 0.12], habitat: 'reef', schools: 6, n: 16, spread: [1.0, 0.5, 1.0], alt: [0.3, 1.0], speed: 0.5, eye: 1.5 },
       { id: 'akamatsukasa', ja: 'アカマツカサ', sci: 'Myripristis murdjan', note: '大きな目を持つ夜行性の魚。昼は岩陰やテーブルサンゴの下に隠れ、夜に出てきて動物プランクトンを食べる。',
         diel: 'night', diet: 'plankton', pat: 12, c1: [0.86, 0.20, 0.16], c2: [0.96, 0.52, 0.44], shape: 'oval', size: [0.18, 0.25], habitat: 'reef', schools: 5, n: 7, spread: [1.4, 0.6, 1.4], alt: [0.4, 1.4], speed: 0.6, eye: 1.7 },
+      { id: 'blacktip', ja: 'ツマグロ', sci: 'Carcharhinus melanopterus', note: '背びれと尾びれの先が黒い小型のサメ。宮古の浅いリーフでもよく見られる。夕暮れから夜に狩りが活発になる。人には臆病。',
+        diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.50, 0.47], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.2, 1.6], habitat: 'roam', count: 2, alt: [1.2, 4], speed: 1.2, big: true, eye: 0.45 },
+      { id: 'nemuribuka', ja: 'ネムリブカ', sci: 'Triaenodon obesus', note: '和名は「眠るサメ」。えらに水を送り込めるので、泳がずに洞窟や岩棚の下でじっと休める。昼は休み、夜になると岩の隙間に頭を突っ込んで魚を探す。第1背びれと尾びれの先が白い。',
+        diel: 'night', diet: 'fish', pat: 14, c1: [0.42, 0.41, 0.39], c2: [0.86, 0.86, 0.84], c3: [0.96, 0.96, 0.94], shape: 'whitetip', size: [1.3, 1.6], habitat: 'roam', count: 3, alt: [0.8, 2.5], speed: 1.0, big: true, eye: 0.4, rests: 'cave' },
       { id: 'kasumiaji', ja: 'カスミアジ', sci: 'Caranx melampygus', note: '青いひれのアジ。夕暮れや明け方にリーフを巡回し、小魚の群れに突っ込んで狩りをする。',
         diel: 'crep', diet: 'fish', pat: 11, c1: [0.42, 0.50, 0.52], c2: [0.86, 0.87, 0.84], c3: [0.20, 0.45, 0.95], shape: 'jack', size: [0.5, 0.8], habitat: 'roam', count: 3, alt: [1.5, 5], speed: 1.4, big: true },
     ],
-    animals: { turtle: { style: 'green', count: 5 }, octopus: 2 },
+    animals: { turtle: { style: 'green', count: 5 }, octopus: 2, manta: 1 },
+    // humpbacks come down from their northern feeding grounds to breed around Okinawa's islands
+    whales: { from: [12, 20], to: [4, 5] },
     extraGuide: [
       { id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '宮古島は一年を通してウミガメに出会える島として知られる。' },
+      { id: 'manta', ja: 'ナンヨウマンタ', sci: 'Mobula alfredi', note: '翼幅3〜5m。宮古・伊良部の周りでもときどき出会える。昼はリーフの上で小魚に体を掃除してもらい、夜はプランクトンを食べに浅場へ上がる。' },
+      { id: 'whale', ja: 'ザトウクジラ', sci: 'Megaptera novaeangliae', note: '冬（12月下旬〜4月上旬）だけ、北の海から子育てにやってくる。体長13m、胸びれは体の1/3ほどもある。オスは長い「歌」をうたい、水中ではその声が遠くまで響く。' },
       { id: 'eel', ja: 'チンアナゴ', sci: 'Heteroconger hassi', note: '砂に巣穴を掘って体を出し、流れてくるプランクトンを食べる。近づくと引っ込む。' },
       { id: 'octopus', ja: 'ワモンダコ', sci: 'Octopus cyanea', note: '昼に活動するタコ。岩の上を歩いて甲殻類を探し、体の色や模様を一瞬で変える。驚くと体色を変えてジェット噴射で逃げる。' },
     ],
@@ -176,7 +187,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'tang', ja: 'ナンヨウハギ', sci: 'Paracanthurus hepatus', note: '鮮やかな青に黒い模様、黄色い尾びれ。',
         diel: 'day', diet: 'algae', pat: 2, c1: [0.10, 0.30, 0.86], c2: [0.98, 0.84, 0.12], c3: [0.03, 0.04, 0.10], shape: 'oval', size: [0.18, 0.26], habitat: 'reef', schools: 3, n: 5, spread: [2.4, 1.0, 2.4], alt: [1, 3], speed: 1.0 },
       { id: 'blacktip', ja: 'ツマグロ', sci: 'Carcharhinus melanopterus', note: '背びれと尾びれの先が黒い小型のサメ。昼夜を問わずリーフを巡回し、夕暮れから夜に狩りが活発になる。人には臆病。',
-        diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.52, 0.52], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.3, 1.7], habitat: 'roam', count: 3, alt: [1.5, 5], speed: 1.2, big: true },
+        diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.52, 0.52], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.3, 1.7], habitat: 'roam', count: 3, alt: [1.5, 5], speed: 1.2, big: true, eye: 0.45 },
       { id: 'whaleshark', ja: 'ジンベエザメ', sci: 'Rhincodon typus', note: '世界最大の魚類。プランクトンを濾し取って食べる。南アリ環礁は通年観察できる海として有名。',
         diel: 'always', diet: 'filter', pat: 9, c1: [0.22, 0.30, 0.36], c2: [0.86, 0.88, 0.86], shape: 'whale', size: [6.5, 8], habitat: 'roam', count: 1, alt: [6, 11], speed: 0.9, big: true, wig: 0.6, freq: [1.4, 1.8] },
     ],

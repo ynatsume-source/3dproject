@@ -4,6 +4,10 @@ import { LIMIT } from '../ocean/scenery';
 import { Plankton } from './plankton';
 import { updateTurtles, updateMantas } from './animals';
 import { updateOctopi } from './octopus';
+import { updateWhales, whaleSubjects, inSeason } from './whale';
+
+// ?month=2 previews a season's visitors (whales in winter) without changing the sky
+const SEASON_MONTH = typeof location !== 'undefined' && /[?&]month=(\d+)/.test(location.search) ? +RegExp.$1 : null;
 import type { Env, SeaEvent, Subject } from './env';
 import type { FishSystem } from './fish';
 import type { SkyState } from '../time/clock';
@@ -15,7 +19,7 @@ export class Ecosystem {
   constructor(oc: any) {
     this.oc = oc;
     this.env = {
-      t: 0, day: 1, night: 0, twilight: 0, sunI: 1,
+      t: 0, day: 1, night: 0, twilight: 0, sunI: 1, month: 1, mday: 1,
       cur: { x: 0.3, z: 0.1 },
       plankton: new Plankton(LIMIT + 40),
       threats: [], threatsOut: [],
@@ -29,6 +33,7 @@ export class Ecosystem {
   setSky(s: SkyState, current: THREE.Vector2) {
     const e = this.env;
     e.day = s.day; e.night = s.night; e.twilight = s.twilight; e.sunI = s.sunI;
+    e.month = SEASON_MONTH ?? s.month; e.mday = SEASON_MONTH ? 15 : s.mday;
     e.cur.x = current.x; e.cur.z = current.y;
   }
 
@@ -46,6 +51,7 @@ export class Ecosystem {
         pos: () => m.pos, status: () => (m.feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);
+    whaleSubjects(this.oc, out);
     const cave = this.oc.cave;
     if (cave) {
       const c = { x: cave.cx, y: cave.top - 4, z: cave.cz };
@@ -67,6 +73,8 @@ export class Ecosystem {
     updateTurtles(this.oc, dt, e, cam, fx, fz);
     updateMantas(this.oc, dt, e, cam, fx, fz);
     updateOctopi(this.oc, dt, e, cam, fx, fz);
+    const ws = this.oc.loc.whales;
+    updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
     return e.events;
   }
 }

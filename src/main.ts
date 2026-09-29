@@ -13,7 +13,7 @@ import { Director, type Shot } from './director';
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setMood, setMusic } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic } from './audio';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -192,7 +192,7 @@ let lastPhase = '';
 /* ---------- today's sea: a per-day journal of what happened ---------- */
 interface LogEntry { ms: number; kind: string; text: string }
 let dayLog: LogEntry[] = [], dayKey = '', logSaveT = 0;
-const LOG_KIND: Record<string, string> = { phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', rest: '休息', manta: '採餌' };
+const LOG_KIND: Record<string, string> = { phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', rest: '休息', manta: '採餌' };
 function localDate(ms: number, tz: number) { const d = new Date(ms + tz * 3600000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
 function ensureDay() {
   const key = `seaglass.log.${cur!.loc.id}.${localDate(clock.ms, cur!.loc.tz)}`;
@@ -288,6 +288,7 @@ function statusOf(id: string): string {
   const f = cur.fish.find((x: any) => x.sp.id === id);
   if (f) return f.status();
   if (id === 'turtle' && cur.turtles.length) { const t = cur.turtles.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return TURTLE_STATE[t.state] || ''; }
+  if (id === 'whale') { const W = cur.whales; return W?.active ? (W.pod.length > 1 ? '親子で泳いでいる' : '悠々と泳いでいる') : W?.seasonal ? '近くの海で子育て中' : '今は北の海にいる（冬に来遊）'; }
   if (id === 'manta' && cur.mantas.length) return cur.mantas[0].feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている';
   if (id === 'octopus' && cur.octopi?.length) { const o = cur.octopi.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return o.subject.status(); }
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
@@ -350,6 +351,8 @@ function checkSightings() {
   if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'));
   if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'));
   if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'));
+  const W = cur!.whales;
+  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'));
 }
 
 /* ================= globe UI ================= */
@@ -711,6 +714,8 @@ function frame(ts: number) {
     U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text);
+    const W = cur.whales;
+    setWhaleSong(W && W.seasonal ? (W.active ? 1 : 0.45) : 0);
     pumpLog(now);
     snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
     if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; renderGuide(); }

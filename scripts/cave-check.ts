@@ -45,3 +45,20 @@ for (const start of [[cave.cx - 30, cave.cz - 10], [cave.cx + 28, cave.cz + 12]]
   }
   console.log(`from (${start.map((v) => v.toFixed(0))}): toured=${toured} finished=${done} t=${t.toFixed(0)}s darkest sky ${minSky.toFixed(2)} inside-rock steps ${inside} worst ${worst.toFixed(2)} m, end (${pos.x.toFixed(0)}, ${pos.z.toFixed(0)})`);
 }
+
+// whitetip reef sharks: resting in the cave by day, out on the reef at night, never inside the rock
+const wt = oc.fish.find((f: any) => f.sp.id === 'nemuribuka');
+if (wt) {
+  const camIn = new THREE.Vector3(cave.cx, cave.floorAt(cave.cx, cave.cz) + 1.5, cave.cz), camFar = new THREE.Vector3(-90, -8, -90);
+  for (const [label, ms, cam] of [['noon (camera far)', ev.noon, camFar], ['noon (camera in cave)', ev.noon, camIn], ['night (camera in cave)', ev.set + 3 * 3600000, camIn]] as const) {
+    oc.eco.setSky(skyState(ms, loc), new THREE.Vector2(0.5, 0.2));
+    let rock = 0, n = 0;
+    for (let k = 0; k < 1500; k++) {
+      oc.eco.step(0.1, 1000 + k * 0.1, cam, 0, -1);
+      const P = wt.mesh.instanceMatrix.array as Float32Array;
+      for (let i = 0; i < wt.mesh.count; i++) { n++; if (cave.sd(P[i * 16 + 12], P[i * 16 + 13], P[i * 16 + 14]) < -0.05) rock++; }
+    }
+    const subs: string[] = []; wt.subjects(subs as any); 
+    console.log(`whitetips ${label}: ${(subs as any).map((s: any) => s.status()).join(' / ')}; inside rock ${rock}/${n}`);
+  }
+}

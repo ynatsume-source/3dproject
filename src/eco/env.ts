@@ -33,6 +33,7 @@ export interface Subject {
 export interface Env {
   t: number;
   day: number; night: number; twilight: number; sunI: number;
+  month: number; mday: number;
   cur: { x: number; z: number };
   plankton: Plankton;
   threats: Threat[];                     // last frame's threats (read)

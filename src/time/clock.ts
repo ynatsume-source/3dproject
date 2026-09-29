@@ -68,6 +68,7 @@ export interface SkyState {
   tideH: number; tideRate: number;
   day: number;        // 0..1 how much daylight (for diurnal animals)
   twilight: number;   // 0..1 peaks around sunrise and sunset (crepuscular animals)
+  month: number; mday: number;   // local calendar date, for seasonal visitors
 }
 
 function toDir(alt: number, az: number): [number, number, number] {
@@ -109,6 +110,7 @@ export function skyState(ms: number, site: SiteLike): SkyState {
     phase, phaseLabel, moonAge: m.age, moonName: moonPhaseName(m.age),
     tideH: t.h, tideRate: t.rate,
     day: smooth(-0.05, 0.25, sa),
+    month: new Date(ms + site.tz * 3600000).getUTCMonth() + 1, mday: new Date(ms + site.tz * 3600000).getUTCDate(),
     twilight: Math.exp(-(((s.alt * 180 / Math.PI) - 1) ** 2) / (2 * 7 * 7)),
   };
 }

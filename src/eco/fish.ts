@@ -9,7 +9,7 @@ import { mat } from '../render/common';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
-const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _mc = new THREE.Matrix4(), _ss = new THREE.Vector3();
+const _c = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _mc = new THREE.Matrix4(), _ss = new THREE.Vector3();
 const REVIVE_AFTER = 150;   // s until another fish drifts in to take a lost one's place
 
 type GroupType = 'anem' | 'reef' | 'roam';
@@ -18,9 +18,11 @@ interface Group {
   a?: { pos: THREE.Vector3; s: number };
   c: THREE.Vector3; v: THREE.Vector3; head: number; t: number; alt: number;
   anchor: { x: number; z: number }; placed: boolean;
-  act: number; fear: number; hunger: number;
+  act: number; fear: number; hunger: number; ready?: boolean;
   hunt: null | { prey: PreyGroup; t0: number }; cooldown: number;
   prey?: PreyGroup;
+  // cave-resting sharks: out on the reef, going in along the tunnel, lying on the floor, coming out
+  cr?: { spot: { pos: THREE.Vector3; head: number; t: number }; mode: 'out' | 'in' | 'rest' | 'leave'; t: number; dir: number };
 }
 
 export function makeFishSystem(sp: Species, oc: any) {
@@ -78,6 +80,65 @@ export function makeFishSystem(sp: Species, oc: any) {
   }
   const T = oc.T;
   const isPredator = sp.diet === 'fish';
+  const cave = sp.rests === 'cave' ? oc.cave : null;
+  if (cave) { const spots = cave.restSpots(groups.length); groups.forEach((g, i) => { g.cr = { spot: spots[i % spots.length], mode: 'out', t: 0, dir: 1 }; }); }
+  const _e = new THREE.Vector3();
+  function toRest(g: Group) {
+    const sp0 = g.cr!.spot;
+    g.cr!.mode = 'rest';
+    g.c.set(sp0.pos.x, sp0.pos.y + 0.09 * sp.size[1], sp0.pos.z); g.head = sp0.head;
+    for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] = g.c.x; fp[i * 3 + 1] = g.c.y; fp[i * 3 + 2] = g.c.z; fv[i * 3] = fv[i * 3 + 1] = fv[i * 3 + 2] = 0; }
+  }
+  // Follow the tunnel route toward tour time `to`; true once there.
+  function alongRoute(g: Group, dt: number, to: number) {
+    const cr = g.cr!, step = dt * 0.9;
+    cr.t = cr.t < to ? Math.min(to, cr.t + step) : Math.max(to, cr.t - step);
+    cave.routeAt(cr.t, _e, 0.25 * sp.size[1] + 0.45);
+    g.v.set((_e.x - g.c.x) / Math.max(dt, 1e-3), (_e.y - g.c.y) / Math.max(dt, 1e-3), (_e.z - g.c.z) / Math.max(dt, 1e-3)).clampLength(0, sp.speed * 1.5);
+    if (Math.hypot(_e.x - g.c.x, _e.z - g.c.z) > 1e-3) g.head = Math.atan2(_e.z - g.c.z, _e.x - g.c.x);
+    g.c.copy(_e);
+    return cr.t === to;
+  }
+  // By day: into the cave (unseen if the camera is elsewhere, else in through the nearer end), onto the
+  // floor, still; at dusk: back out along the tunnel. Returns true while the cave has the group.
+  function caveRoutine(g: Group, dt: number, cam: THREE.Vector3) {
+    const cr: NonNullable<Group['cr']> = g.cr!, len = cave.tourLength, sp0 = cr.spot;
+    const mode = () => cr.mode as string;
+    const want = g.act < 0.45;
+    const camTo = (p: { x: number; z: number }) => Math.hypot(p.x - cam.x, p.z - cam.z);
+    if (cr.mode === 'out') {
+      if (!want) return false;
+      if (camTo(g.c) > 32 && camTo(sp0.pos) > 32) toRest(g);   // nobody is watching: it is simply there
+      else {
+        const a = cave.tourStart(false), b = cave.tourStart(true), rev = Math.hypot(b.x - g.c.x, b.z - g.c.z) < Math.hypot(a.x - g.c.x, a.z - g.c.z);
+        const e = rev ? b : a, d = Math.hypot(e.x - g.c.x, e.z - g.c.z);
+        if (d < 2.5) { cr.mode = 'in'; cr.t = rev ? len : 0; }
+        else {
+          // swim for the entrance
+          let dh = Math.atan2(e.z - g.c.z, e.x - g.c.x) - g.head; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+          g.head += dh * Math.min(1, dt * 1.2);
+          g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(sp.speed * 0.6);
+          g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;
+          g.c.y += (Math.min(e.y, T.h(g.c.x, g.c.z) + 1.5) - g.c.y) * Math.min(1, dt * 0.6);
+          return true;
+        }
+      }
+    }
+    if (mode() === 'in' && alongRoute(g, dt, sp0.t)) cr.mode = 'rest';
+    if (mode() === 'rest') {
+      _e.set(sp0.pos.x, sp0.pos.y + 0.09 * sp.size[1], sp0.pos.z);
+      g.c.lerp(_e, Math.min(1, dt * 0.8)); g.v.set(0, 0, 0);
+      let dh = sp0.head - g.head; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); g.head += dh * Math.min(1, dt * 0.8);
+      if (!want) { cr.mode = 'leave'; cr.t = sp0.t; cr.dir = sp0.t < len / 2 ? 0 : len; }
+      return true;
+    }
+    if (mode() === 'leave') {
+      if (camTo(g.c) > 40) { cr.mode = 'out'; g.placed = false; return true; }
+      if (alongRoute(g, dt, cr.dir)) cr.mode = 'out';
+      return true;
+    }
+    return mode() !== 'out';
+  }
   const smallPrey = !sp.big && sp.size[1] < 0.35;
 
   // prey handles other species' predators can target
@@ -161,11 +222,15 @@ export function makeFishSystem(sp: Species, oc: any) {
     let dirty = false;
     for (const g of groups) {
       g.t += dt;
+      if (!g.ready) { g.act = act; g.ready = true; }                // start the day where the clock is
       g.act += (act - g.act) * Math.min(1, dt * 0.08);           // settle in / wake up over ~15 s
       g.fear = Math.max(0, g.fear - dt * 0.25);
       const dxc = g.c.x - cam.x, dzc = g.c.z - cam.z, dc2 = dxc * dxc + dzc * dzc;
       if (g.type === 'anem') { if (!g.placed) place(g, cam, fx, fz, true); if (dc2 > 80 * 80) continue; }
-      else if (!g.placed || dc2 > 72 * 72) place(g, cam, fx, fz, !g.placed);
+      else if (!g.placed || (dc2 > 72 * 72 && (!g.cr || g.cr.mode === 'out'))) {
+        place(g, cam, fx, fz, !g.placed);
+        if (g.cr) { g.cr.mode = 'out'; if (g.act < 0.45 && Math.hypot(g.cr.spot.pos.x - cam.x, g.cr.spot.pos.z - cam.z) > 32) toRest(g); }
+      }
       const floorC = T.top(g.c.x, g.c.z);
       const rest = 1 - g.act;
       let hunting = false;
@@ -187,8 +252,9 @@ export function makeFishSystem(sp: Species, oc: any) {
         const ty = Math.min(floorC + Math.max(lift, 0.15), -1.4);
         g.c.y += (ty - g.c.y) * Math.min(1, dt * 0.6);
       } else if (g.type === 'roam') {
-        if (isPredator) hunting = hunt(g, dt, env);
-        if (!hunting) {
+        const inCave = cave ? caveRoutine(g, dt, cam) : false;
+        if (isPredator && !inCave) hunting = hunt(g, dt, env);
+        if (!hunting && !inCave) {
           g.head += (Math.sin(g.t * 0.23 + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt;
           if (Math.abs(g.c.x) > LIMIT || Math.abs(g.c.z) > LIMIT) { let d = Math.atan2(-g.c.z, -g.c.x) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8; }
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
@@ -231,7 +297,8 @@ export function makeFishSystem(sp: Species, oc: any) {
         const L = _v.length(), maxS = Math.max(sp.speed * (1.7 + g.fear * 1.5), 0.3);
         _v.multiplyScalar(Math.min(maxS, L * 1.1) / Math.max(L, 1e-4)).add(g.v);
         // flee the drone and any predator on the prowl
-        if (g.type !== 'anem') {
+        const caveMode = g.cr ? g.cr.mode : 'out';
+        if (g.type !== 'anem' && caveMode === 'out') {
           _w.set(px - cam.x, py - cam.y, pz - cam.z);
           const cd = _w.length(), fr = sp.big ? 3.5 : 4.5;
           if (cd < fr) _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1));
@@ -241,11 +308,12 @@ export function makeFishSystem(sp: Species, oc: any) {
             if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); }
           }
         }
-        if (py < T.top(px, pz) + 0.15) _v.y += 1.5;
+        if (py < (caveMode === 'out' ? T.top(px, pz) : T.ground(px, pz)) + 0.15) _v.y += 1.5;   // in the tunnel the floor, not the massif's top
         const k = 1 - Math.exp(-dt * (lone ? 1.0 : 2.6 + g.fear * 2));
         let vx = fv[i * 3] + (_v.x - fv[i * 3]) * k, vy = fv[i * 3 + 1] + (_v.y - fv[i * 3 + 1]) * k, vz = fv[i * 3 + 2] + (_v.z - fv[i * 3 + 2]) * k;
         fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;
-        const nx = px + vx * dt, ny = Math.min(py + vy * dt, -0.5), nz = pz + vz * dt;
+        let nx = px + vx * dt, ny = Math.min(py + vy * dt, -0.5), nz = pz + vz * dt;
+        if (oc.cave && oc.cave.pushOut(_c.set(nx, ny, nz), 0.12 * sp.size[1] + 0.1)) { nx = _c.x; ny = _c.y; nz = _c.z; }   // slide off the cave rock
         fp[i * 3] = nx; fp[i * 3 + 1] = ny; fp[i * 3 + 2] = nz;
         // heading: where it swims, turned into the current while feeding on plankton
         let hx = vx + upX * feedFace * 0.8, hz = vz + upZ * feedFace * 0.8;
@@ -264,6 +332,10 @@ export function makeFishSystem(sp: Species, oc: any) {
         dirty = true;
       }
       if (g.prey) g.prey.alive = alive;
+    }
+    if (cave) {
+      const resting = groups.filter((g) => g.cr!.mode === 'rest').length / groups.length;
+      (mesh.material as THREE.ShaderMaterial).uniforms.uWig.value = (sp.wig ?? 1) * (1 - 0.8 * resting);
     }
     if (dirty) { mesh.instanceMatrix.needsUpdate = true; if (cocoon) cocoon.instanceMatrix.needsUpdate = true; }
   }
@@ -304,7 +376,8 @@ export function makeFishSystem(sp: Species, oc: any) {
         const h = g.hunt;
         out.push({ key: key + ':hunt', label: sp.ja, kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => `${h.prey.label}を狙っている`, live: () => g.hunt === h });
       } else if (g.type === 'roam' && sp.big) {
-        out.push({ key, label: sp.ja, kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act), size, pos: () => g.c, status, live: () => g.placed });
+        const st = g.cr ? () => (g.cr!.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr!.mode === 'leave' ? '洞窟から出ていく' : g.cr!.mode === 'in' ? '洞窟へ入っていく' : status()) : status;
+        out.push({ key, label: sp.ja, kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.c, status: st, live: () => g.placed });
       } else if (g.type === 'reef' && sp.big && g.act > 0.5) {
         out.push({ key, label: sp.ja, kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status, live: () => g.placed });
       } else if (g.type === 'anem') {

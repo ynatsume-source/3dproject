@@ -8,7 +8,7 @@ import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
-const _mm = new THREE.Matrix4(), _ss = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3();
+const _mm = new THREE.Matrix4(), _ss = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _cv = new THREE.Vector3();
 const CELL = 1.6;
 const hashCell = (x: number, y: number, z: number) => ((Math.floor(x / CELL) * 73856093) ^ (Math.floor(y / CELL) * 19349663) ^ (Math.floor(z / CELL) * 83492791)) | 0;
 
@@ -139,7 +139,8 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const k = sp2 > maxS ? maxS / sp2 : sp2 < minS ? minS / Math.max(sp2, 1e-3) : 1;
       vx *= k; vy *= k * 0.7; vz *= k;
       v[i * 3] = vx; v[i * 3 + 1] = vy; v[i * 3 + 2] = vz;
-      const nx = px + vx * dt, ny = py + vy * dt, nz = pz + vz * dt;
+      let nx = px + vx * dt, ny = py + vy * dt, nz = pz + vz * dt;
+      if (oc.cave && oc.cave.pushOut(_cv.set(nx, ny, nz), 0.4)) { nx = _cv.x; ny = _cv.y; nz = _cv.z; }   // slide off the cave rock
       p[i * 3] = nx; p[i * 3 + 1] = ny; p[i * 3 + 2] = nz;
       const hs = Math.hypot(vx, vz), hy = clamp(vy, -hs * 0.5, hs * 0.5);
       _a.set(nx + vx, ny + hy, nz + vz); _b.set(nx, ny, nz);

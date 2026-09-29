@@ -44,6 +44,8 @@ function vn3(x: number, y: number, z: number) {
     l(l(h3(xi, yi, zi + 1), h3(xi + 1, yi, zi + 1), fx), l(h3(xi, yi + 1, zi + 1), h3(xi + 1, yi + 1, zi + 1), fx), fy), fz);
 }
 
+const _look = new THREE.Vector3(), _g = new THREE.Vector3();
+
 export class Cave {
   readonly cx: number; readonly cz: number; readonly ca: number; readonly sa: number;
   readonly step = 0.45;
@@ -61,7 +63,10 @@ export class Cave {
   private baked = new THREE.Vector3(0, -1, 0);
   private tour: { p: THREE.Vector3[]; look: THREE.Vector3[]; t: number[] } = { p: [], look: [], t: [] };
 
+  readonly floorAt: (x: number, z: number) => number;
+
   constructor(spec: CaveSpec, floor: (x: number, z: number) => number) {
+    this.floorAt = floor;
     this.cx = spec.x; this.cz = spec.z; this.ca = Math.cos(spec.rot); this.sa = Math.sin(spec.rot);
     this.foot = caveFootprint(spec);
     const U0 = -23, U1 = 23, V0 = -13.5, V1 = 13.5;
@@ -176,6 +181,14 @@ export class Cave {
     const e = 0.3;
     out.set(this.sd(x + e, y, z) - this.sd(x - e, y, z), this.sd(x, y + e, z) - this.sd(x, y - e, z), this.sd(x, y, z + e) - this.sd(x, y, z - e));
     return out.lengthSq() > 1e-9 ? out.normalize() : out.set(0, 1, 0);
+  }
+  // keep a point at least `margin` clear of the rock; true if it had to move
+  pushOut(p: THREE.Vector3, margin: number) {
+    const d = this.sd(p.x, p.y, p.z);
+    if (d >= margin) return false;
+    this.grad(p.x, p.y, p.z, _g);
+    p.addScaledVector(_g, margin - d);
+    return true;
   }
   // highest rock in the column at (x, z), or -1e9
   topAt(x: number, z: number) {
@@ -302,6 +315,24 @@ export class Cave {
   }
   get tourLength() { return this.tour.t[this.tour.t.length - 1]; }
   tourStart(rev: boolean) { return rev ? this.tour.p[this.tour.p.length - 1] : this.tour.p[0]; }
+  // A point on the route through the tunnel by tour time, low over the floor (for animals using it).
+  routeAt(t: number, out: THREE.Vector3, lift: number) {
+    this.tourAt(t, false, out, _look);
+    out.y = Math.min(out.y, this.floorAt(out.x, out.z) + lift);
+    return out;
+  }
+  // Places on the floor deep in the tunnel, side by side off the route, where sharks can lie.
+  restSpots(n: number) {
+    const { p, t } = this.tour, out: { pos: THREE.Vector3; head: number; t: number }[] = [];
+    const dark = p.map((q, i) => ({ i, s: this.skyAt(q.x, q.y, q.z) })).filter((q) => q.s < 0.4 && q.i > 4 && q.i < p.length - 5);
+    for (let k = 0; k < n && dark.length; k++) {
+      const q = dark[Math.floor((k + 0.5) / n * dark.length)], a = p[q.i], b = p[Math.min(p.length - 1, q.i + 1)];
+      const head = Math.atan2(b.z - a.z, b.x - a.x), side = (k % 2 ? 1 : -1) * 0.9;
+      const x = a.x - Math.sin(head) * side, z = a.z + Math.cos(head) * side;
+      out.push({ pos: new THREE.Vector3(x, this.floorAt(x, z), z), head: head + (k % 2 ? Math.PI : 0) + (k - 1) * 0.3, t: t[q.i] });
+    }
+    return out;
+  }
 
   // surface nets over the distance grid; faces buried in the seabed are dropped
   private mesh(floor: (x: number, z: number) => number) {

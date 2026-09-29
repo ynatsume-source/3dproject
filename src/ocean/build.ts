@@ -9,6 +9,7 @@ import { makeFishSystem } from '../eco/fish';
 import { makeShoalSystem } from '../eco/shoal';
 import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
+import { makeWhales } from '../eco/whale';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
 
@@ -392,6 +393,7 @@ export function buildOcean(loc) {
     oc.mantas.push({ mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
   }
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
+  if (loc.whales) oc.whales = makeWhales(oc);
   oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);

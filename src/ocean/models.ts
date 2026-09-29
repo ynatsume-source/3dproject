@@ -488,12 +488,88 @@ export const SHAPES = {
   idol: { h: 0.8, w: 0.12, tail: 'fork', dorsal: 0.08, anal: 0.25, filament: 0.9 },
   wrasse: { h: 0.42, w: 0.26, tail: 'round', dorsal: 0.08, anal: 0.06, hump: 0.12 },
   parrot: { h: 0.42, w: 0.24, tail: 'trunc', dorsal: 0.07, anal: 0.05 },
-  shark: { h: 0.22, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.3, pointy: true },
+  shark: { h: 0.22, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.3, pointy: true, lofted: 'reef' },
+  whitetip: { h: 0.2, w: 0.2, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.26, pointy: true, lofted: 'whitetip' },
   fusilier: { h: 0.3, w: 0.15, tail: 'fork', dorsal: 0.08, anal: 0.06 },
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
 };
+// Requiem sharks, lofted from real proportions (lengths as fractions of total length from the snout):
+// a conical snout, the deepest body a third of the way back, a narrow caudal peduncle, and fins cut as
+// outlines — tall falcate first dorsal, swept pectorals, and the heterocercal tail with its long upper
+// lobe and subterminal notch. Same frame as fishGeometry (snout at +z, length 1.28).
+const SHARK_STYLE = {
+  // [s, half-height, half-width, centre y]
+  reef: { body: [[0, 0, 0, -0.004], [0.025, 0.018, 0.022, -0.006], [0.07, 0.035, 0.04, -0.004], [0.13, 0.05, 0.052, 0], [0.22, 0.06, 0.058, 0.002], [0.32, 0.063, 0.056, 0.003], [0.45, 0.054, 0.045, 0.003], [0.55, 0.042, 0.033, 0.003], [0.64, 0.028, 0.021, 0.003], [0.7, 0.018, 0.013, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
+    d1: [[0.3, 0], [0.33, 0.035], [0.37, 0.068], [0.42, 0.088], [0.447, 0.09], [0.44, 0.06], [0.435, 0.03], [0.43, 0]], d2: 0.022, pect: 0.17 },
+  // whitetip reef shark: slender, with a broad, blunt head and the first dorsal set well back
+  whitetip: { body: [[0, 0, 0, -0.004], [0.02, 0.016, 0.03, -0.006], [0.06, 0.03, 0.05, -0.004], [0.13, 0.042, 0.055, 0], [0.22, 0.05, 0.052, 0.002], [0.34, 0.052, 0.048, 0.003], [0.46, 0.046, 0.04, 0.003], [0.56, 0.036, 0.029, 0.003], [0.65, 0.025, 0.019, 0.003], [0.71, 0.016, 0.012, 0.004], [0.745, 0.011, 0.008, 0.006], [0.76, 0.004, 0.004, 0.008]],
+    d1: [[0.37, 0], [0.4, 0.03], [0.44, 0.058], [0.485, 0.074], [0.505, 0.075], [0.498, 0.05], [0.492, 0.025], [0.487, 0]], d2: 0.03, pect: 0.14 },
+};
+export function sharkGeometry(style: 'reef' | 'whitetip') {
+  const S = SHARK_STYLE[style], K = S.body, L = 1.28, Z = (s: number) => 0.47 - L * s;
+  // Catmull-Rom through the body keys
+  const at = (s: number) => {
+    let i = 0; while (i < K.length - 2 && K[i + 1][0] < s) i++;
+    const p0 = K[Math.max(0, i - 1)], p1 = K[i], p2 = K[i + 1], p3 = K[Math.min(K.length - 1, i + 2)];
+    const t = (s - p1[0]) / Math.max(p2[0] - p1[0], 1e-6), t2 = t * t, t3 = t2 * t;
+    const cr = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+    return [Math.max(0, cr(p0[1], p1[1], p2[1], p3[1])), Math.max(0, cr(p0[2], p1[2], p2[2], p3[2])), cr(p0[3], p1[3], p2[3], p3[3])];
+  };
+  const RINGS = 40, RAD = 18, pos: number[] = [], idx: number[] = [];
+  for (let r = 0; r <= RINGS; r++) {
+    const s = 0.76 * Math.pow(r / RINGS, 1.15);
+    const [h, w, yc] = at(s);
+    for (let k = 0; k < RAD; k++) {
+      const a = (k / RAD) * Math.PI * 2, sa = Math.sin(a);
+      // flatter belly, a slightly squared-off back
+      pos.push(Math.cos(a) * w * L, (yc + h * sa * (sa < 0 ? 0.82 : 1)) * L, Z(s));
+    }
+  }
+  for (let r = 0; r < RINGS; r++) for (let k = 0; k < RAD; k++) {
+    const a = r * RAD + k, b = r * RAD + (k + 1) % RAD, c = a + RAD, d = b + RAD;
+    idx.push(a, c, b, b, c, d);
+  }
+  const body = new THREE.BufferGeometry();
+  body.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  body.setIndex(idx); body.computeVertexNormals();
+  const b = body.toNonIndexed();
+  const P = Array.from(b.attributes.position.array), N = Array.from(b.attributes.normal.array), F = new Array(b.attributes.position.count).fill(0);
+  const top = (s: number) => { const [h, , yc] = at(s); return (yc + h * 0.96) * L; };
+  const bot = (s: number) => { const [h, , yc] = at(s); return (yc - h * 0.8) * L; };
+  // a fin from its outline: triangulated in its own 2D frame (a, b), then placed by map
+  const fin = (outline: number[][], map: (a: number, b: number) => number[], id: number, n: number[]) => {
+    const pts = outline.map(([a, b]) => new THREE.Vector2(a, b));
+    if (THREE.ShapeUtils.isClockWise(pts)) pts.reverse();
+    for (const t of THREE.ShapeUtils.triangulateShape(pts, [])) for (const i of t) { const v = map(pts[i].x, pts[i].y); P.push(v[0], v[1], v[2]); N.push(...n); F.push(id); }
+  };
+  const X = [1, 0, 0];
+  // vertical fins: (s, height above the back / below the belly)
+  fin(S.d1, (s, dy) => [0, top(s) + dy * L - 0.004, Z(s)], 2, X);                                  // first dorsal
+  const d2 = S.d2;
+  fin([[0.64, 0], [0.665, d2], [0.685, d2 * 0.9], [0.69, 0]], (s, dy) => [0, top(s) + dy * L - 0.003, Z(s)], 2, X);   // second dorsal
+  fin([[0.63, 0], [0.66, -0.02], [0.678, -0.018], [0.683, 0]], (s, dy) => [0, bot(s) + dy * L + 0.003, Z(s)], 2, X);  // anal
+  // heterocercal tail: long upper lobe with a notch below its tip, short lower lobe
+  fin([[0.735, 0.012], [0.8, 0.055], [0.88, 0.1], [0.95, 0.13], [0.985, 0.14], [0.972, 0.118], [0.945, 0.1], [0.91, 0.062], [0.875, 0.022], [0.86, 0.004],
+    [0.878, -0.035], [0.9, -0.07], [0.862, -0.055], [0.8, -0.03], [0.745, -0.008]], (s, y) => [0, y * L, Z(s)], 1, X);
+  for (const sx of [-1, 1]) {
+    // pectorals: (s, span out from the body), swept back and angled a little down, falcate
+    const [h, w, yc] = at(0.2), ry = (yc - h * 0.45) * L, rx = w * 0.85 * L, sp = S.pect;
+    fin([[0.18, 0], [0.24, sp * 0.42], [0.31, sp * 0.82], [0.36, sp], [0.335, sp * 0.72], [0.29, sp * 0.32], [0.265, 0]],
+      (s, d) => [sx * (rx + d * L), ry - d * L * 0.34, Z(s)], 3, [0, 1, 0]);
+    // pelvics
+    const [h2, w2, yc2] = at(0.52), py = (yc2 - h2 * 0.7) * L;
+    fin([[0.5, 0], [0.56, 0.035], [0.575, 0.03], [0.565, 0]], (s, d) => [sx * (w2 * 0.6 * L + d * L), py - d * L * 0.6, Z(s)], 2, [0, 1, 0]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  g.setAttribute('aFin', new THREE.Float32BufferAttribute(F, 1));
+  return g;
+}
+
 export function fishGeometry(sh) {
+  if (sh.lofted) return sharkGeometry(sh.lofted);
   const body = new THREE.SphereGeometry(0.5, 16, 12);
   body.rotateX(Math.PI / 2);
   const p = body.attributes.position;
@@ -585,9 +661,20 @@ export function fishMaterial(sp) {
        #elif PAT == 7
          alb = uC1 * (0.9 + 0.12 * sin(z * 80.0) * sin(y * 80.0));
          alb = mix(alb, uC2, step(0.8, sin(z * 70.0 + sin(y * 40.0) * 1.5)) * step(0.1, z));
-       #elif PAT == 8
-         alb = mix(uC2, uC1, top);
-         if (vFin > 0.5) alb = mix(uC1, uC3, smoothstep(0.2, 0.3, max(length(vL.xy), -z - 0.55)));
+       #elif PAT == 8 || PAT == 14
+         alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));
+         #if PAT == 8
+         if (vFin > 0.5) alb = mix(uC1, uC3, smoothstep(0.14, 0.18, max(length(vL.xy), -z - 0.58)));
+         #else
+         // whitetip: bright tips on the first dorsal and the upper tail lobe; scattered dark spots
+         vec2 sg = vec2(z * 38.0, y * 38.0 + z * 9.0), sf = fract(sg) - 0.5;
+         alb *= 1.0 - 0.28 * step(0.82, hash2(floor(sg))) * (1.0 - smoothstep(0.16, 0.3, length(sf))) * step(vFin, 0.5) * step(-0.01, y);
+         if (vFin > 0.5) alb = uC1 * 0.95;
+         if (vFin > 0.5 && vFin < 2.5) alb = mix(alb, uC3, smoothstep(0.115, 0.135, y) * step(-0.7, z) + smoothstep(0.1, 0.13, y) * step(z, -0.7));
+         #endif
+         // five gill slits behind the eye
+         float gi = (z - 0.21) / 0.019;
+         alb *= 1.0 - 0.45 * smoothstep(0.36, 0.46, abs(fract(gi) - 0.5)) * step(0.0, gi) * step(gi, 5.0) * step(abs(y + 0.005), 0.035) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        #elif PAT == 9
          alb = mix(uC2, uC1, top);
          vec2 g = vec2(z * 26.0, y * 26.0 + sin(z * 20.0) * 0.3); vec2 gf = fract(g) - 0.5;
@@ -730,3 +817,112 @@ export function mantaMaterial() {
     { uniforms: { uPhase: { value: Math.random() * 6 } }, opts: { side: THREE.DoubleSide } });
 }
 
+
+/* ---------- humpback whale ---------- */
+// Megaptera novaeangliae, lofted like the sharks (s = fraction of length from the rostrum): a broad,
+// flat-topped head, the deepest body just behind the flippers, a tall narrow tail stock, and flukes a
+// third of the body length across with a scalloped trailing edge. The flippers are the longest of any
+// whale, with knobbed leading edges. Head at +z, length 1; parts: 0 body, 1 left flipper, 2 right, 3 flukes.
+export function whaleGeometry() {
+  const K = [[0, 0.004, 0.006, -0.012], [0.02, 0.024, 0.036, -0.014], [0.08, 0.048, 0.066, -0.02], [0.16, 0.068, 0.085, -0.02], [0.26, 0.088, 0.1, -0.015],
+    [0.36, 0.098, 0.104, -0.01], [0.46, 0.094, 0.094, 0], [0.56, 0.08, 0.074, 0.004], [0.66, 0.063, 0.05, 0.008], [0.76, 0.047, 0.027, 0.008],
+    [0.84, 0.032, 0.015, 0.005], [0.88, 0.019, 0.011, 0.001], [0.9, 0.004, 0.004, 0]];
+  const Z = (s: number) => 0.5 - s;
+  const at = (s: number) => {
+    let i = 0; while (i < K.length - 2 && K[i + 1][0] < s) i++;
+    const p0 = K[Math.max(0, i - 1)], p1 = K[i], p2 = K[i + 1], p3 = K[Math.min(K.length - 1, i + 2)];
+    const t = (s - p1[0]) / Math.max(p2[0] - p1[0], 1e-6), t2 = t * t, t3 = t2 * t;
+    const cr = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+    return [Math.max(0.002, cr(p0[1], p1[1], p2[1], p3[1])), Math.max(0.002, cr(p0[2], p1[2], p2[2], p3[2])), cr(p0[3], p1[3], p2[3], p3[3])];
+  };
+  const RINGS = 56, RAD = 22, pos: number[] = [], idx: number[] = [];
+  for (let r = 0; r <= RINGS; r++) {
+    const s = 0.9 * Math.pow(r / RINGS, 1.1), [h, w, yc] = at(s);
+    const flatTop = 1 - 0.35 * (1 - smooth(0.05, 0.3, s));          // the rostrum is flat on top
+    for (let k = 0; k < RAD; k++) {
+      const a = (k / RAD) * Math.PI * 2, sa = Math.sin(a), ca = Math.cos(a);
+      // the tail stock is a keel: taller than wide, pinched at the sides
+      const keel = smooth(0.66, 0.84, s);
+      const x = ca * w * (1 - keel * 0.25 * Math.abs(sa));
+      pos.push(x, yc + h * sa * (sa > 0 ? flatTop : 0.9), Z(s));
+    }
+  }
+  for (let r = 0; r < RINGS; r++) for (let k = 0; k < RAD; k++) {
+    const a = r * RAD + k, b = r * RAD + (k + 1) % RAD, c = a + RAD, d = b + RAD;
+    idx.push(a, c, b, b, c, d);
+  }
+  const body = new THREE.BufferGeometry();
+  body.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  body.setIndex(idx); body.computeVertexNormals();
+  const b = body.toNonIndexed();
+  const P = Array.from(b.attributes.position.array), N = Array.from(b.attributes.normal.array), A = new Array(b.attributes.position.count).fill(0);
+  const fin = (outline: number[][], map: (a: number, b: number) => number[], part: number, n: number[]) => {
+    const pts = outline.map(([a, c]) => new THREE.Vector2(a, c));
+    if (THREE.ShapeUtils.isClockWise(pts)) pts.reverse();
+    for (const t of THREE.ShapeUtils.triangulateShape(pts, [])) for (const i of t) { const v = map(pts[i].x, pts[i].y); P.push(v[0], v[1], v[2]); N.push(...n); A.push(part); }
+  };
+  // small dorsal fin on its hump
+  const top = (s: number) => { const [h, , yc] = at(s); return yc + h * 0.97; };
+  fin([[0.61, 0], [0.64, 0.012], [0.662, 0.026], [0.675, 0.03], [0.68, 0.02], [0.685, 0]], (s, dy) => [0, top(s) + dy - 0.003, Z(s)], 0, [1, 0, 0]);
+  // flukes: swept, with a scalloped trailing edge and a central notch
+  const half: number[][] = [[0.855, 0.012], [0.88, 0.06], [0.91, 0.115], [0.94, 0.155], [0.965, 0.172]];
+  const trail: number[][] = [];
+  for (let k = 0; k <= 10; k++) { const x = 0.165 - k * 0.0155, s = 0.972 - 0.012 * Math.sin(k / 10 * Math.PI) + (k % 2 ? 0.004 : 0) + (k === 10 ? 0.012 : 0); trail.push([s, x]); }
+  // assemble a simple, ordered loop: left leading edge out, left trailing edge in, notch, right trailing out, right leading in
+  const loop = [...half.map(([s, x]) => [s, -x]), ...trail.map(([s, x]) => [s, -x]).slice(1), [0.975, 0], ...trail.slice().reverse().slice(0, -1).map(([s, x]) => [s, x]), ...half.slice().reverse().map(([s, x]) => [s, x])];
+  fin(loop, (s, x) => [x, 0, Z(s)], 3, [0, 1, 0]);
+  // flippers: a third of the body long, narrow, with knobs along the leading edge
+  for (const sx of [-1, 1]) {
+    const [h, w, yc] = at(0.27), root = [sx * w * 0.8, yc - h * 0.55, Z(0.27)];
+    const dir = new THREE.Vector3(sx * 0.78, -0.32, -0.54).normalize(), fwd = new THREE.Vector3(0, 0, 1);
+    const chordDir = fwd.clone().addScaledVector(dir, -fwd.dot(dir)).normalize(), nrm = new THREE.Vector3().crossVectors(dir, chordDir).normalize();
+    const L = 0.31, pts: number[][] = [];
+    for (let k = 0; k <= 16; k++) { const a = k / 16 * L, c = 0.036 * (1 - 0.7 * (a / L)) * (1 + 0.14 * Math.pow(Math.abs(Math.sin(k * Math.PI * 0.5)), 2)); pts.push([a, c]); }   // knobbed leading edge
+    for (let k = 16; k >= 0; k--) { const a = k / 16 * L; pts.push([a, -0.026 * (1 - 0.62 * (a / L))]); }
+    fin(pts, (a, c) => [root[0] + dir.x * a + chordDir.x * c, root[1] + dir.y * a + chordDir.y * c, root[2] + dir.z * a + chordDir.z * c], sx < 0 ? 1 : 2, [nrm.x, nrm.y, nrm.z]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  g.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1));
+  return g;
+}
+export const WHALE_GEO = whaleGeometry();
+export function whaleMaterial(seed: number) {
+  return mat(
+    `attribute float aPart; uniform float uStroke; uniform float uPhase; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart;
+     void main(){
+       vec3 p = position;
+       // the stroke is vertical: a wave down the tail stock that lifts and drops the flukes
+       float back = clamp((0.15 - p.z) / 0.65, 0.0, 1.0);
+       float ph = uTime * 1.6 + uPhase;
+       p.y += sin(ph - back * 2.2) * 0.045 * back * back * uStroke;
+       // the flippers sweep slowly
+       if (aPart > 0.5 && aPart < 2.5) p.y += sin(uTime * 0.45 + uPhase + aPart) * 0.06 * length(p.xz - vec2(0.0, 0.23)) * uStroke;
+       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart;
+       gl_Position = projectionMatrix * viewMatrix * w;
+     }`,
+    SURFACE + `uniform float uSeed; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart;
+     void main(){
+       vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
+       float z = vL.z, y = vL.y, x = vL.x;
+       vec3 dark = vec3(0.055, 0.06, 0.068), pale = vec3(0.82, 0.84, 0.84);
+       // dark back, white belly with a ragged boundary and mottling that differs whale to whale
+       float edge = smoothstep(-0.03, 0.01, y + 0.03 * (vn2(vec2(z * 18.0, x * 18.0) + uSeed) - 0.5) + 0.02 * sin(z * 9.0 + uSeed));
+       vec3 alb = mix(pale, dark, edge);
+       alb = mix(alb, dark, smoothstep(0.55, 0.8, vn2(vec2(z * 30.0, x * 30.0) - uSeed)) * 0.6 * (1.0 - edge));
+       // ventral pleats from chin to navel
+       if (vPart < 0.5 && z > 0.02 && y < -0.035) alb *= 0.72 + 0.28 * smoothstep(0.25, 0.45, abs(fract(x * 95.0) - 0.5));
+       // tubercles on the head and barnacle clusters on the chin
+       if (vPart < 0.5 && z > 0.3) {
+         float c = cellF1(vec2(x, z) * 55.0);
+         alb = mix(alb, dark * 0.6, (1.0 - smoothstep(0.12, 0.22, c)) * step(0.0, y) * 0.8);
+         alb = mix(alb, vec3(0.78, 0.76, 0.7), (1.0 - smoothstep(0.1, 0.2, cellF1(vec2(x, z) * 90.0 + 3.0))) * step(y, -0.01) * step(0.62, vn2(vec2(x, z) * 25.0)));
+       }
+       // flippers: white, dark along the upper leading edge; flukes: pale undersides with dark marks
+       if (vPart > 0.5 && vPart < 2.5) alb = mix(pale, dark, smoothstep(0.35, 0.8, vn2(vec2(x, z) * 30.0 + uSeed)) * 0.7);
+       if (vPart > 2.5) alb = n.y < 0.0 ? mix(pale, dark, smoothstep(0.4, 0.75, vn2(vec2(x, z) * 22.0 + uSeed))) : dark;
+       gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
+     }`,
+    { uniforms: { ...SURF_UNIFORMS, uStroke: { value: 1 }, uPhase: { value: seed * 6.28 }, uSeed: { value: seed * 17.0 } }, opts: { side: THREE.DoubleSide } });
+}

@@ -112,6 +112,7 @@ export function startAudio(): boolean {
 export function stopAudio() {
   audio.on = false;
   for (const k in timers) clearTimeout(timers[k]);
+  songRunning = false;
   if (!ac) return;
   master.gain.setTargetAtTime(0, ac.currentTime, 0.4);
   setTimeout(() => { if (!audio.on) ac!.suspend(); }, 2000);
@@ -283,4 +284,48 @@ export function crunch(vol: number) {
     s.connect(f).connect(g).connect(natureBus); s.start(w);
     w += rnd(0.07, 0.12);
   }
+}
+
+// ---------- humpback song ----------
+// In the breeding season males sing for hours: themes of moans, whoops and cries, each repeated a few
+// times before the song moves on. Heard underwater from kilometres away, so it sits far back in the
+// reverb, and grows when a pod is close.
+let songLevel = 0, songRunning = false, theme: { f0: number; f1: number; dur: number; kind: number; gap: number }[] = [], themeLeft = 0;
+function newTheme() {
+  theme = [];
+  const n = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) {
+    const kind = Math.random() < 0.55 ? 0 : Math.random() < 0.6 ? 1 : 2;   // moan, whoop, cry
+    const f0 = kind === 0 ? rnd(90, 220) : kind === 1 ? rnd(180, 320) : rnd(700, 1300);
+    const f1 = kind === 0 ? f0 * rnd(0.7, 1.35) : kind === 1 ? f0 * rnd(1.8, 2.6) : f0 * rnd(0.6, 1.2);
+    theme.push({ f0, f1, dur: kind === 0 ? rnd(1.4, 3.2) : kind === 1 ? rnd(0.6, 1.1) : rnd(0.4, 0.9), kind, gap: rnd(0.3, 1.2) });
+  }
+  themeLeft = 2 + Math.floor(Math.random() * 3);
+}
+function songUnit(u: typeof theme[0], t0: number, vol: number) {
+  const a = ac!;
+  const o = a.createOscillator(); o.type = u.kind === 2 ? 'sine' : 'sawtooth';
+  o.frequency.setValueAtTime(u.f0, t0); o.frequency.exponentialRampToValueAtTime(u.f1, t0 + u.dur);
+  const lfo = a.createOscillator(), lg = a.createGain(); lfo.frequency.value = rnd(3.5, 6.5); lg.gain.value = u.f0 * 0.012; lfo.connect(lg).connect(o.frequency);
+  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = u.kind === 2 ? 2400 : 650; f.Q.value = 3;
+  const g = a.createGain(); g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + u.dur * 0.3); g.gain.setValueAtTime(vol, t0 + u.dur * 0.7); g.gain.linearRampToValueAtTime(0, t0 + u.dur);
+  const send = a.createGain(); send.gain.value = 2.5;                    // mostly reverb: far away
+  o.connect(f).connect(g); g.connect(natureBus); g.connect(send).connect(reverb);
+  o.start(t0); lfo.start(t0); o.stop(t0 + u.dur + 0.05); lfo.stop(t0 + u.dur + 0.05);
+}
+function songLoop() {
+  if (!ac || songLevel <= 0) { songRunning = false; return; }
+  if (audio.on) {
+    if (!theme.length || themeLeft <= 0) newTheme();
+    themeLeft--;
+    let t = ac.currentTime + 0.1;
+    const vol = 0.028 * songLevel;
+    for (const u of theme) { songUnit(u, t, vol * rnd(0.8, 1.1)); t += u.dur + u.gap; }
+  }
+  timers.song = window.setTimeout(songLoop, rnd(7, 16) * 1000);
+}
+export function setWhaleSong(level: number) {
+  songLevel = level;
+  if (level > 0 && !songRunning && ac) { songRunning = true; timers.song = window.setTimeout(songLoop, rnd(2, 6) * 1000); }
 }
