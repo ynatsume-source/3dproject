@@ -26,6 +26,7 @@ export interface Sea {
   sand: number[]; rock: number[];
   f(x: number, z: number): number;
   grass?(x: number, z: number): number;
+  pelagic?: boolean;                       // open ocean: no bottom in sight; f() is only a placement floor far below
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   whales?: WhaleSeason;                    // humpbacks visit in these months
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
@@ -204,6 +205,42 @@ export const LOCATIONS: Sea[] = [
       ['テーブル状ミドリイシ', 'Acropora spp.', '根の上の浅い部分に育つ。'],
       ['ハマサンゴ（塊状）', 'Porites sp.', 'ゆっくり育つ岩のようなサンゴ。'],
       ['センジュイソギンチャク', 'Heteractis magnifica', 'モルディブアネモネフィッシュの住みか。'],
+    ],
+  },
+  {
+    // The middle of the North Pacific subtropical gyre: some 1,700 km from Hawaii, the nearest land, over
+    // an abyssal plain nearly 5 km down. The clearest, emptiest blue water on Earth, under the Pacific High's
+    // steady clear skies.
+    id: 'pacific', name: '北太平洋', site: '北太平洋のまんなか', region: 'North Pacific · Subtropical Gyre',
+    lat: 32.0, lon: -145.0, depth: '水深 4,800 m', vis: 60, temp: 22.5, tempYear: [17.5, 24.5], seed: 53, tz: -10, tide: { amp: 0.3, lag: 0.6, axis: [0.8, 0.6] },
+    blurb: 'いちばん近い陸地まで1,700km。海底は5km下。地球でいちばん澄んで、いちばん何もない青の真ん中を、ただ漂う。',
+    pelagic: true,
+    water: { up: [0.2, 0.52, 0.98], hor: [0.0, 0.15, 0.5], down: [0.0, 0.02, 0.14], fog: 0.015, abs: [0.3, 0.06, 0.02] },
+    sand: [0.5, 0.5, 0.5], rock: [0.4, 0.4, 0.4],
+    f() { TERR.reef = 0; return -90; },
+    corals: { branch: 0, table: 0, brain: 0, fan: 0, mushroom: 0, clam: 0 },
+    anemones: 0, clamSize: [0.3, 0.4], eels: 0,
+    species: [
+      { id: 'tobiuo', ja: 'ハマトビウオ', sci: 'Cheilopogon pinnatibarbatus', note: '外洋の表層を群れで泳ぐ。シイラなどに追われると大きな胸びれを広げて水面を飛び出し、数百mも滑空して逃げる。',
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.16, 0.26, 0.52], c2: [0.86, 0.89, 0.92], shape: 'slender', size: [0.26, 0.34], habitat: 'shoal', schools: 1, n: 40, alt: [85, 88], speed: 1.4, freq: [8, 11] },
+      { id: 'katsuo', ja: 'カツオ', sci: 'Katsuwonus pelamis', note: '大洋を回遊する群れ。濃い青の背と、腹の黒い縦縞。止まると窒息するため一生泳ぎ続ける。',
+        diel: 'day', diet: 'fish', pat: 13, c1: [0.24, 0.3, 0.46], c2: [0.08, 0.13, 0.34], c3: [0.86, 0.88, 0.9], shape: 'fusilier', size: [0.5, 0.7], habitat: 'shoal', schools: 1, n: 90, alt: [72, 86], speed: 1.8, freq: [5, 7] },
+      { id: 'tsumuburi', ja: 'ツムブリ', sci: 'Elagatis bipinnulata', note: '流木や漂流物の下によく集まるアジの仲間。紺の背に水色と黄色の縦帯が走る。',
+        diel: 'day', diet: 'fish', pat: 13, c1: [0.3, 0.55, 0.85], c2: [0.1, 0.2, 0.42], c3: [0.9, 0.9, 0.86], shape: 'fusilier', size: [0.6, 0.9], habitat: 'shoal', schools: 1, n: 12, alt: [80, 87], speed: 1.5, freq: [5, 7] },
+      { id: 'shiira', ja: 'シイラ', sci: 'Coryphaena hippurus', note: '金と緑と青に輝く外洋の魚。流木などの漂流物につき、トビウオを追って水面を跳ねる。死ぬと色がみるみる褪せる。',
+        diel: 'day', diet: 'fish', pat: 11, c1: [0.22, 0.6, 0.45], c2: [0.95, 0.84, 0.28], c3: [0.28, 0.52, 0.82], shape: 'jack', size: [0.8, 1.2], habitat: 'roam', count: 3, alt: [80, 87], speed: 1.6, big: true },
+      { id: 'yoshikiri', ja: 'ヨシキリザメ', sci: 'Prionace glauca', note: '藍色の背をした細長いサメ。長い胸びれで大洋を何千kmも回遊する。夜は表層に上がってイカや魚を追う。',
+        diel: 'always', diet: 'fish', pat: 8, c1: [0.16, 0.28, 0.62], c2: [0.9, 0.91, 0.93], c3: [0.16, 0.28, 0.62], shape: 'shark', size: [2.2, 2.8], habitat: 'roam', count: 1, alt: [66, 84], speed: 1.0, big: true, eye: 0.45 },
+      { id: 'yogore', ja: 'ヨゴレ', sci: 'Carcharhinus longimanus', note: '外洋の表層に暮らすサメ。丸く大きな胸びれと背びれの先が白い。何もない海で出会う数少ない大型動物で、好奇心が強く近寄ってくる。',
+        diel: 'always', diet: 'fish', pat: 14, c1: [0.44, 0.41, 0.36], c2: [0.9, 0.9, 0.88], c3: [0.97, 0.97, 0.95], shape: 'shark', size: [2.0, 2.6], habitat: 'roam', count: 1, alt: [70, 86], speed: 0.9, big: true, eye: 0.45 },
+    ],
+    animals: {},
+    extraGuide: [],
+    benthic: [
+      ['マリンスノー', 'marine snow', '死んだプランクトンや糞が綿のように固まって、5km下の海底へ何週間もかけて降っていく。'],
+      ['夜光虫・発光プランクトン', 'Dinoflagellata', '夜、動くものに触れると青く光る。'],
+      ['カツオノエボシ', 'Physalia physalis', '青い浮き袋で水面に浮かび、風まかせに漂うクダクラゲの仲間。長い触手に強い毒がある。'],
+      ['サルパ', 'Salpa spp.', '透明な樽形の動物プランクトン。鎖のようにつながって漂う。'],
     ],
   },
 ];

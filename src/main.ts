@@ -55,7 +55,11 @@ function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
   return Math.max(1.8, a) + Math.pow(Math.max(0, Math.sin(s * 1.13 + 0.5)), 8) * 10;
 }
-function pathPoint(s: number, out: THREE.Vector3) { const [x, z] = pathXZ(s); return out.set(x, Math.min(cur!.T.top(x, z) + pathAlt(s), -1.4), z); }
+function pathPoint(s: number, out: THREE.Vector3) {
+  const [x, z] = pathXZ(s);
+  if (cur!.loc.pelagic) return out.set(x, -(6 + pathAlt(s) * 2.2 + 6 * Math.sin(s * 0.37)), z);   // open ocean: depth under the surface, nothing below
+  return out.set(x, Math.min(cur!.T.top(x, z) + pathAlt(s), -1.4), z);
+}
 function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.001; }
 function nearestS(p: THREE.Vector3) {
   let best = drone.s, bd = Infinity;
@@ -105,7 +109,9 @@ function updateDrone(dt: number, now: number) {
     drone.skyT += dt;
     const a = drone.skyT * 0.018, st = drone.skyT;
     const skim = smooth(0.8, 0.95, Math.sin(st * 0.021 + 2));
-    const altT = drone.pos.y < 0 ? 3 : 6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim) + 1.6 * skim;
+    const altT = drone.pos.y < 0 ? 3 : cur!.loc.pelagic
+      ? 1.2 + 14 * Math.pow(0.5 + 0.5 * Math.sin(st * 0.013), 3)             // out in the open ocean: drifting low on the swell
+      : 6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim) + 1.6 * skim;
     _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
     _v.subVectors(_t, drone.pos);
     if (drone.pos.y < 0) _v.set(0, 3.2, 0);                                 // first, straight up through the surface
@@ -198,7 +204,10 @@ function updateDrone(dt: number, now: number) {
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
   drone.roll += (-yawRate * 0.18 - drone.roll) * Math.min(1, dt * 2);
   camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
-  camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008, drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01);
+  // just above the sea the camera rides the swell, rising, falling and rolling with it
+  const ride = drone.pos.y > 0 ? (1 - smooth(1.5, 5, drone.pos.y)) * Math.min(U.uWave.value, 1.6) : 0;
+  camera.position.y += ride * (0.35 * Math.sin(t * 0.52) + 0.15 * Math.sin(t * 0.83 + 1.3));
+  camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008 + ride * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * 0.06 * Math.sin(t * 0.41));
 }
 
 /* ================= above the water ================= */
@@ -277,13 +286,19 @@ function applySky(loc: Sea) {
   setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
   if (!lampManual) setLamp(wantLamp(), false);
   cur!.eco.setSky(s, U.uCurrent.value);
-  if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', PHASE_LOG[s.phase]); lastPhase = s.phase; }
+  if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : PHASE_LOG)[s.phase]); lastPhase = s.phase; }
 }
 const PHASE_LOG: Record<string, string> = {
   dawn: '夜明け。夜行性の魚が岩陰へ戻り、昼の魚たちが動き出す',
   noon: '日中。小魚がプランクトンを食べに群れ、光の筋がいちばん強い時間',
   dusk: '夕暮れ。昼の魚が寝床へ向かい、捕食者がいちばん活発になる時間',
   night: '夜。昼の魚はサンゴの隙間で眠り、夜行性の魚とプランクトンが上がってくる',
+};
+const PHASE_LOG_OPEN: Record<string, string> = {
+  dawn: '夜明け。夜のあいだ表層に上がっていたプランクトンが、光を避けて深みへ沈んでいく',
+  noon: '日中。光は数百mの深さまで届き、その下はずっと暗い青',
+  dusk: '夕暮れ。深海から無数のプランクトンと小さな生きものが表層へ上がってくる、地球でいちばん大きな移動の時間',
+  night: '夜。灯りひとつない海の上に、星がいちばん多く見える',
 };
 let lastPhase = '';
 
@@ -428,7 +443,7 @@ function updateHud() {
   const up = drone.pos.y > 0;
   $('lDepth').textContent = up ? 'HEIGHT' : 'DEPTH';
   $('tDepth').textContent = (up ? drone.pos.y : depth).toFixed(1);
-  $('tAlt').textContent = alt.toFixed(1);
+  $('tAlt').textContent = loc.pelagic ? (4800 + drone.pos.y).toFixed(0) : alt.toFixed(1);   // the real bottom, 4.8 km down
   $('tSpd').textContent = drone.vel.length().toFixed(2);
   $('tTemp').textContent = ((liveWeather().sst ?? (loc.tempYear ? seaTemp(clock.ms, loc.lat, loc.tempYear) : loc.temp)) - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
   $('tVis').textContent = (3 / (U.uFogDen.value * (1 + 0.15 * s.night)) * 0.3).toFixed(0);
@@ -511,7 +526,7 @@ function renderGuide() {
     <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
     <h3>生きもの</h3>
     <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : ''}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
-    <h3>サンゴと底生生物</h3>
+    <h3>${loc.pelagic ? '漂う生きもの' : 'サンゴと底生生物'}</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>`;
   guideEl.scrollTop = scroll;
 }

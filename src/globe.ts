@@ -30,7 +30,7 @@ export const earthMat = new THREE.ShaderMaterial({
   },
   vertexShader: `varying vec3 vN; varying vec3 vWp; void main(){ vN = normalize(position); vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
   fragmentShader: `
-    uniform sampler2D uEarth; uniform float uTime; uniform vec3 uLight; uniform vec3 uCam; uniform vec3 uM[3]; uniform float uHot; uniform sampler2D uNightTex; uniform float uRings; uniform sampler2D uMarble;
+    uniform sampler2D uEarth; uniform float uTime; uniform vec3 uLight; uniform vec3 uCam; uniform vec3 uM[${LOCATIONS.length}]; uniform float uHot; uniform sampler2D uNightTex; uniform float uRings; uniform sampler2D uMarble;
     uniform vec3 uGa; uniform vec3 uGb; uniform vec3 uMa; uniform vec3 uMb;
     varying vec3 vN; varying vec3 vWp;
     float seg(vec3 n, vec3 a, vec3 b, float w){ vec3 ab = b - a; float t = clamp(dot(n - a, ab) / dot(ab, ab), 0.0, 1.0); return exp(-pow(length(n - (a + ab * t)) / w, 2.0)); }
@@ -44,7 +44,7 @@ export const earthMat = new THREE.ShaderMaterial({
       vec3 ocean = mix(vec3(0.012, 0.045, 0.11), vec3(0.03, 0.15, 0.25), e.b);
       ocean = mix(ocean, vec3(0.10, 0.52, 0.60), coast * 0.5);
       float reef = seg(n, uGa, uGb, 0.02) * 0.8 + seg(n, uMa, uMb, 0.012);
-      for (int i = 0; i < 3; i++) reef += exp(-pow(length(n - uM[i]) / 0.012, 2.0));
+      for (int i = 0; i < ${LOCATIONS.length}; i++) if (${LOCATIONS.map((l, i) => l.pelagic ? `i != ${i}` : '').filter(Boolean).join(' && ') || 'true'}) reef += exp(-pow(length(n - uM[i]) / 0.012, 2.0));   // open-ocean sites have no reef to light up
       ocean = mix(ocean, vec3(0.30, 0.95, 0.85), clamp(reef, 0.0, 1.0) * 0.7);
       float nz = h1(floor(vec2(lon, lat) * 180.0));
       vec3 landc = mix(vec3(0.36, 0.34, 0.27), vec3(0.20, 0.27, 0.17), smoothstep(0.55, 0.95, e.b) * (0.6 + 0.4 * nz));
@@ -64,7 +64,7 @@ export const earthMat = new THREE.ShaderMaterial({
       col += vec3(0.6, 0.8, 0.9) * pow(max(dot(reflect(-uLight, n), V), 0.0), 90.0) * 0.18 * (1.0 - land) * day;
       float gl = max(1.0 - smoothstep(0.0, 0.0035, abs(fract(lat / 0.2618 + 0.5) - 0.5) * 0.2618), 1.0 - smoothstep(0.0, 0.0035 / max(cos(lat), 0.2), abs(fract(lon / 0.2618 + 0.5) - 0.5) * 0.2618));
       col += vec3(0.4, 0.7, 0.8) * gl * 0.06 * uRings;
-      for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < ${LOCATIONS.length}; i++) {
         float dd = length(n - uM[i]);
         float ph = fract(uTime * 0.5 + float(i) * 0.33);
         float ring = exp(-pow((dd - ph * 0.06) / 0.004, 2.0)) * (1.0 - ph);

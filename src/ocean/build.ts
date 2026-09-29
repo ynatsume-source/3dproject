@@ -142,7 +142,7 @@ export function buildOcean(loc) {
        vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
        gl_FragColor = vec4(shade(alb, vWp, n, 0.95), 1.0);
      }`, { uniforms: SURF_UNIFORMS }));
-  group.add(floor);
+  if (!loc.pelagic) group.add(floor);   // the open ocean has no bottom within sight
 
   // grass heightmap (only seas with seagrass)
   if (loc.grass) {
@@ -234,7 +234,7 @@ export function buildOcean(loc) {
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish
-  {
+  if (!loc.pelagic) {
     const debris: { geo: THREE.BufferGeometry; type: number; list: any[] }[] = [
       { geo: fragmentGeo(1), type: 0, list: [] }, { geo: fragmentGeo(2), type: 0, list: [] },
       { geo: bivalveGeo(), type: 0, list: [] }, { geo: coneShellGeo(), type: 0, list: [] },
@@ -293,7 +293,7 @@ export function buildOcean(loc) {
   }
 
   // rocks and rubble: a dozen prototypes in six shapes, scattered thickly over the reef and drawn per cell
-  {
+  if (!loc.pelagic) {
     const KINDS: [string, number, [number, number]][] = [
       ['boulder', 0.2, [0.25, 1.8]], ['angular', 0.26, [0.25, 1.6]], ['slab', 0.14, [0.6, 2.0]],
       ['pinnacle', 0.1, [0.35, 1.1]], ['pitted', 0.14, [0.3, 1.5]], ['rubble', 0.16, [0.08, 0.32]],
