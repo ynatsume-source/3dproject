@@ -10,7 +10,7 @@ import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
 import { Director, type Shot } from './director';
-import { audio, startAudio, stopAudio, setHum, crunch, chime, setMood, setMusic } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setMood, setMusic } from './audio';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -306,7 +306,6 @@ function discover(e?: { id: string; ja: string; sci: string }) {
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
   showToast('NEW SIGHTING', e.ja, e.sci);
-  chime();
   recordLog('sighting', `${e.ja}を初めて見つけた`);
   renderGuide();
 }

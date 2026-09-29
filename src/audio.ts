@@ -1,6 +1,6 @@
 // Soundscape: a soft generative score woven into the sounds of the reef.
 //
-// Music: sparse piano / celesta phrases and a slow pad, played in a scale that follows the time of day
+// Music: sparse phrases on a sampled grand piano and a slow pad, played in a scale that follows the time of day
 // (and, at Miyako, the Ryukyu scale). Everything goes through a long, dark reverb so notes bloom and
 // fade instead of starting and stopping.
 // Nature: a quiet, low water bed, soft bubbles, and the reef crackle of snapping shrimp that thickens
@@ -105,6 +105,7 @@ export function startAudio(): boolean {
   ac!.resume();
   master.gain.cancelScheduledValues(ac!.currentTime);
   master.gain.setTargetAtTime(0.85, ac!.currentTime, 1.5);
+  loadPiano();
   loopBubbles(); loopCrackle(); loopPhrase(); loopPad();
   return true;
 }
@@ -128,7 +129,43 @@ export function setHum(speed: number) {
 }
 
 // ---------- instruments ----------
+// A real grand piano: Salamander Grand Piano samples (Alexander Holm, CC-BY 3.0), one every minor
+// third, pitched to the nearest note. Played softly and darkened a little, like a felt piano heard
+// from across a room.
+const NAMES = ['C', 'Ds', 'Fs', 'A'], OFFS = [0, 3, 6, 9];
+const piano = new Map<number, AudioBuffer>();
+let pianoLoading = false;
+function loadPiano() {
+  if (pianoLoading || !ac) return;
+  pianoLoading = true;
+  const jobs: Promise<void>[] = [];
+  for (let o = 1; o <= 7; o++) for (let k = 0; k < 4; k++) {
+    if (o === 7 && k > 0) continue;
+    const midi = 12 * (o + 1) + OFFS[k], url = `${import.meta.env.BASE_URL}audio/piano/${NAMES[k]}${o}.mp3`;
+    jobs.push(fetch(url).then((r) => r.arrayBuffer()).then((b) => ac!.decodeAudioData(b)).then((buf) => { piano.set(midi, buf); }).catch(() => { /* fall back to the synth voice */ }));
+  }
+  Promise.all(jobs);
+}
+function pianoNote(midi: number, when: number, vel: number, pan: number, bright: number): boolean {
+  if (!piano.size) return false;
+  let best = -1, bd = 99;
+  for (const m of piano.keys()) { const d = Math.abs(m - midi); if (d < bd) { bd = d; best = m; } }
+  if (best < 0 || bd > 4) return false;
+  const a = ac!, src = a.createBufferSource();
+  src.buffer = piano.get(best)!;
+  src.playbackRate.value = Math.pow(2, (midi - best) / 12);
+  const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400 + bright * 2600 + vel * 6000; lp.Q.value = 0.1;
+  const g = a.createGain();
+  const len = midi < 55 ? 7 : midi < 72 ? 5.5 : 4;
+  g.gain.setValueAtTime(vel * 5, when);
+  g.gain.setTargetAtTime(0.0001, when + len * 0.6, len * 0.25);    // let it ring, then a gentle damper
+  const p = a.createStereoPanner(); p.pan.value = pan;
+  src.connect(lp).connect(g).connect(p).connect(musicBus);
+  src.start(when); src.stop(when + len * 1.6);
+  return true;
+}
 function voice(midi: number, when: number, vel: number, pan: number, bright: number) {
+  if (pianoNote(midi, when, vel, pan, bright)) return;
   const a = ac!, f = mtof(midi);
   const out = a.createGain(); out.gain.value = 1;
   const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200 + bright * 3500; lp.Q.value = 0.2;
@@ -181,8 +218,8 @@ function pad() {
       const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520 - audio.night * 180;
       const g = a.createGain();
       g.gain.setValueAtTime(0.0001, now);
-      g.gain.linearRampToValueAtTime(0.012, now + 7);
-      g.gain.setValueAtTime(0.012, now + hold - 7);
+      g.gain.linearRampToValueAtTime(0.009, now + 7);
+      g.gain.setValueAtTime(0.009, now + hold - 7);
       g.gain.linearRampToValueAtTime(0.0001, now + hold);
       o.connect(lp).connect(g).connect(musicBus); o.start(now); o.stop(now + hold + 0.2);
     }
@@ -246,12 +283,4 @@ export function crunch(vol: number) {
     s.connect(f).connect(g).connect(natureBus); s.start(w);
     w += rnd(0.07, 0.12);
   }
-}
-
-// A small rising chime when something new is spotted.
-export function chime() {
-  if (!ac || !audio.on || !audio.music) return;
-  const notes = scaleNotes(), start = Math.floor(notes.length * 0.55);
-  let w = ac.currentTime + 0.05;
-  for (let k = 0; k < 3; k++) { voice(notes[Math.min(notes.length - 1, start + k * 2)] + 12, w, 0.07, rnd(-0.3, 0.3), 0.9); w += 0.16; }
 }

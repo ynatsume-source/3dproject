@@ -63,3 +63,7 @@ npx tsx scripts/director-check.ts miyako   # カメラ監督が何を撮りに�
 - **ヤライイシモチ**（宮古島）：昼は枝サンゴの間でじっと群れ、夜に散らばって餌をとる
 
 移動の速さは実時間のまま、活動のリズムだけがシミュレーション時計（早回し含む）に従います。
+
+## クレジット
+
+- ピアノ音源：[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm（CC BY 3.0）。`public/audio/piano/` に Tone.js 配布版の一部を同梱
