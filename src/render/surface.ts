@@ -11,7 +11,7 @@ import rubN from '../assets/tex/rubble_nrm.jpg';
 
 const loader = new THREE.TextureLoader();
 function tex(url: string) {
-  const t = loader.load(url);
+  const t = typeof document === 'undefined' ? new THREE.Texture() : loader.load(url);   // headless scripts have no images
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = 4;
   return t;

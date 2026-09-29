@@ -11,7 +11,8 @@ npm run dev        # http://localhost:5173
 npm run build      # dist/ に出力
 npm run typecheck
 npm run sim -- miyako   # 生態系だけをヘッドレスで早回しし、昼・夕方・夜・朝の行動を確認
-npx tsx scripts/director-check.ts miyako   # カメラ監督が何を撮りに行くかを確認
+npx tsx --import ./scripts/node-assets.mjs scripts/director-check.ts miyako   # カメラ監督が何を撮りに行くかを確認
+npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガメが岩やサンゴにめり込んでいないか
 ```
 
 `?debug` を付けて開くと、コンソールから `seaglass.cur.eco.env` などを覗けます。

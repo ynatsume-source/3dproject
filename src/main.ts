@@ -47,7 +47,7 @@ function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
   return Math.max(1.8, a) + Math.pow(Math.max(0, Math.sin(s * 1.13 + 0.5)), 8) * 10;
 }
-function pathPoint(s: number, out: THREE.Vector3) { const [x, z] = pathXZ(s); return out.set(x, Math.min(cur!.T.h(x, z) + pathAlt(s), -1.4), z); }
+function pathPoint(s: number, out: THREE.Vector3) { const [x, z] = pathXZ(s); return out.set(x, Math.min(cur!.T.top(x, z) + pathAlt(s), -1.4), z); }
 function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.001; }
 function nearestS(p: THREE.Vector3) {
   let best = drone.s, bd = Infinity;
@@ -79,7 +79,7 @@ function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
 }
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
-  const shot = drone.mode === 'auto' ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.h) : null;
+  const shot = drone.mode === 'auto' ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.top) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
   if (shot) {
     // glide to the viewpoint and keep the subject framed
@@ -126,7 +126,7 @@ function updateDrone(dt: number, now: number) {
     if (now - drone.lastInput > 90000) setMode('auto');
   }
   drone.pos.addScaledVector(drone.vel, dt);
-  const fh = cur!.T.h(drone.pos.x, drone.pos.z);
+  const fh = cur!.T.top(drone.pos.x, drone.pos.z);
   if (drone.pos.y < fh + 0.7) { drone.pos.y = fh + 0.7; if (drone.vel.y < 0) drone.vel.y = 0; }
   if (drone.pos.y > -0.7) { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
   drone.pos.x = clamp(drone.pos.x, -LIMIT, LIMIT); drone.pos.z = clamp(drone.pos.z, -LIMIT, LIMIT);
@@ -226,7 +226,7 @@ const strip = $('strip');
 const compassEl = $('compass');
 function updateHud() {
   const loc = cur!.loc, s = skyNow!;
-  const depth = -drone.pos.y + s.tideH, alt = drone.pos.y - cur!.T.h(drone.pos.x, drone.pos.z);
+  const depth = -drone.pos.y + s.tideH, alt = drone.pos.y - cur!.T.top(drone.pos.x, drone.pos.z);
   $('tDepth').textContent = depth.toFixed(1);
   $('tAlt').textContent = alt.toFixed(1);
   $('tSpd').textContent = drone.vel.length().toFixed(2);

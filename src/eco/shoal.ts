@@ -73,7 +73,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const pace = sp.speed * (0.35 + 0.65 * act);
       L.c.x += Math.cos(L.head) * pace * dt; L.c.z += Math.sin(L.head) * pace * dt;
       const alt = L.alt * act + 1.2 * (1 - act) + Math.sin(L.t * 0.11 + s) * 1.2;
-      L.c.y += (Math.min(T.h(L.c.x, L.c.z) + alt, -2) - L.c.y) * Math.min(1, dt * 0.4);
+      L.c.y += (Math.min(T.top(L.c.x, L.c.z) + alt, -2) - L.c.y) * Math.min(1, dt * 0.4);
       if (sp.diet === 'plankton') env.plankton.consume(L.c.x, L.c.z, 0.0008 * act * dt);
       L.prey.x = L.c.x; L.prey.y = L.c.y; L.prey.z = L.c.z;
     }
@@ -131,7 +131,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
         const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.hypot(ddx, ddy, ddz), r = th.r + 2;
         if (dd < r) { const k = (r - dd) * 4 / Math.max(dd, 0.1); fx2 += ddx * k; fy2 += ddy * k; fz2 += ddz * k; L.fear = 1; }
       }
-      const fh = T.h(px, pz);
+      const fh = T.top(px, pz);
       if (py < fh + 1) fy2 += (fh + 1 - py) * 3;
       if (py > -1.2) fy2 -= (py + 1.2) * 3;
       let vx = v[i * 3] + fx2 * dt, vy = v[i * 3 + 1] + fy2 * dt, vz = v[i * 3 + 2] + fz2 * dt;

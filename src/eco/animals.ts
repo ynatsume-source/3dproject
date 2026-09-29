@@ -12,7 +12,7 @@ const _w = new THREE.Vector3();
 function relocate(t: any, T: any, cam: THREE.Vector3, fx: number, fz: number) {
   const d = t.placed ? rr(34, 48) : rr(12, 36), lat = (R() * 2 - 1) * 18;
   t.pos.set(clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), 0, clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT));
-  t.pos.y = T.h(t.pos.x, t.pos.z) + rr(1, 3);
+  t.pos.y = T.top(t.pos.x, t.pos.z) + rr(1, 3);
   t.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(1, 2.2);
   t.placed = true; t.state = 'travel'; t.goal = null; t.stateT = 0;
 }
@@ -40,7 +40,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     t.t += dt; t.stateT = (t.stateT || 0) + dt;
     const dx = t.pos.x - cam.x, dz = t.pos.z - cam.z;
     if (!t.placed || dx * dx + dz * dz > 75 * 75) relocate(t, T, cam, fx, fz);
-    const fh = T.h(t.pos.x, t.pos.z);
+    const fh = T.top(t.pos.x, t.pos.z);
     const sleepy = act < 0.35;
 
     // state transitions
@@ -69,14 +69,19 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     else t.head += Math.sin(t.t * 0.11 + t.size * 10) * 0.12 * dt;
     if (Math.abs(t.pos.x) > LIMIT || Math.abs(t.pos.z) > LIMIT) { let d = Math.atan2(-t.pos.z, -t.pos.x) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
 
+    // look ahead and rise over rocks and coral instead of ploughing into them
+    if (t.state !== 'rest' && t.state !== 'graze') {
+      const ahead = T.top(t.pos.x + Math.cos(t.head) * 1.8 * t.size, t.pos.z + Math.sin(t.head) * 1.8 * t.size);
+      ty = Math.max(ty, ahead + 0.6 * t.size);
+    }
     const beat = Math.max(0, Math.sin(t.t * 1.0));
     const sp = speed * (0.6 + beat * 0.8);
-    const vy = clamp((ty - t.pos.y) * 0.3, -0.35, 0.35);
+    const vy = clamp((ty - t.pos.y) * 0.5, -0.35, 0.5);
     t.vel.lerp(_w.set(Math.cos(t.head) * sp, vy, Math.sin(t.head) * sp), Math.min(1, dt * 1.5));
     const away = _w.set(t.pos.x - cam.x, 0, t.pos.z - cam.z), ad = away.length();
     if (ad < 2.5 && t.state !== 'rest') t.vel.addScaledVector(away, (2.5 - ad) * 0.3 / Math.max(ad, 0.1));
     t.pos.addScaledVector(t.vel, dt);
-    t.pos.y = Math.max(t.pos.y, fh + 0.15);
+    t.pos.y = Math.max(t.pos.y, fh + 0.15 + 0.2 * t.size);
     t.group.position.copy(t.pos);
     const hs = Math.hypot(t.vel.x, t.vel.z);
     const yaw = hs > 0.02 ? Math.atan2(t.vel.x, t.vel.z) : t.group.rotation.y;
@@ -112,7 +117,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     const w = 1.25 / m.rad;
     m.a += dt * w * m.dir;
     const px = m.st.x + Math.cos(m.a) * m.rad, pz = m.st.z + Math.sin(m.a) * m.rad;
-    const fh = T.h(px, pz);
+    const fh = T.top(px, pz);
     const ty = Math.min(Math.max(m.y + Math.sin(m.t * 0.15) * (feeding ? 0.8 : 2), fh + 2.5), -2.5);
     m.pos.y += (ty - m.pos.y) * Math.min(1, dt * 0.5);
     m.pos.x = px; m.pos.z = pz;

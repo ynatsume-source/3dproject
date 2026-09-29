@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "sim": "tsx scripts/sim-check.ts"
+    "sim": "tsx --import ./scripts/node-assets.mjs scripts/sim-check.ts"
   },
   "dependencies": {
     "three": "0.186.1"

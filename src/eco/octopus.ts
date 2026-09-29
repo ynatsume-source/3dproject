@@ -151,7 +151,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     o.alarm += (alarm - o.alarm) * Math.min(1, dt * (alarm > o.alarm ? 8 : 1));
     o.pos.x = clamp(o.pos.x + Math.cos(o.head) * speed * dt, -LIMIT, LIMIT);
     o.pos.z = clamp(o.pos.z + Math.sin(o.head) * speed * dt, -LIMIT, LIMIT);
-    const floorY = T.h(o.pos.x, o.pos.z);
+    const floorY = T.top(o.pos.x, o.pos.z);
     o.pos.y += (floorY + lift - o.pos.y) * Math.min(1, dt * 3);
     const u = (o.mesh.material as THREE.ShaderMaterial).uniforms;
     u.uSpread.value = o.spread; u.uWalk.value = o.walk; u.uAlarm.value = o.alarm;

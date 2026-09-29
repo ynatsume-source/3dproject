@@ -166,7 +166,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       const dxc = g.c.x - cam.x, dzc = g.c.z - cam.z, dc2 = dxc * dxc + dzc * dzc;
       if (g.type === 'anem') { if (!g.placed) place(g, cam, fx, fz, true); if (dc2 > 80 * 80) continue; }
       else if (!g.placed || dc2 > 72 * 72) place(g, cam, fx, fz, !g.placed);
-      const floorC = T.h(g.c.x, g.c.z);
+      const floorC = T.top(g.c.x, g.c.z);
       const rest = 1 - g.act;
       let hunting = false;
 
@@ -241,7 +241,7 @@ export function makeFishSystem(sp: Species, oc: any) {
             if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); }
           }
         }
-        if (py < T.h(px, pz) + 0.15) _v.y += 1.5;
+        if (py < T.top(px, pz) + 0.15) _v.y += 1.5;
         const k = 1 - Math.exp(-dt * (lone ? 1.0 : 2.6 + g.fear * 2));
         let vx = fv[i * 3] + (_v.x - fv[i * 3]) * k, vy = fv[i * 3 + 1] + (_v.y - fv[i * 3 + 1]) * k, vz = fv[i * 3 + 2] + (_v.z - fv[i * 3 + 2]) * k;
         fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;

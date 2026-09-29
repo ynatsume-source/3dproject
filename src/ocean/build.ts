@@ -12,12 +12,37 @@ import { makeOctopi } from '../eco/octopus';
 import type { Sea } from '../data/locations';
 
 /* ================= building a sea ================= */
+// Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
+// and the drone can keep clear of them, not just of the terrain.
+class ObstacleMap {
+  readonly half: number; readonly N: number; readonly a: Float32Array;
+  constructor(half: number) { this.half = half; this.N = Math.ceil(half * 2); this.a = new Float32Array(this.N * this.N).fill(-1e9); }
+  stamp(x: number, z: number, r: number, top: number, sy: number) {
+    const N = this.N, i0 = Math.max(0, Math.floor(x - r + this.half)), i1 = Math.min(N - 1, Math.ceil(x + r + this.half));
+    const j0 = Math.max(0, Math.floor(z - r + this.half)), j1 = Math.min(N - 1, Math.ceil(z + r + this.half));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const d = Math.hypot(i + 0.5 - this.half - x, j + 0.5 - this.half - z) / Math.max(r, 0.3);
+      if (d >= 1) continue;
+      const v = top - d * d * sy * 0.5, k = j * N + i;
+      if (v > this.a[k]) this.a[k] = v;
+    }
+  }
+  // conservative: the tallest of the four surrounding cells
+  get(x: number, z: number) {
+    const N = this.N, i = Math.max(0, Math.min(N - 2, Math.floor(x + this.half - 0.5))), j = Math.max(0, Math.min(N - 2, Math.floor(z + this.half - 0.5))), a = this.a;
+    return Math.max(a[j * N + i], a[j * N + i + 1], a[(j + 1) * N + i], a[(j + 1) * N + i + 1]);
+  }
+}
 export function makeT(loc) {
-  return {
+  const T: any = {
+    obst: null as ObstacleMap | null,
     h: (x, z) => loc.f(x, z),
+    // the highest solid surface: terrain, or a rock or coral colony standing on it
+    top: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9),
     reef: (x, z) => { loc.f(x, z); return TERR.reef; },
     slope: (x, z) => Math.hypot(loc.f(x + 0.7, z) - loc.f(x - 0.7, z), loc.f(x, z + 0.7) - loc.f(x, z - 0.7)) / 1.4,
   };
+  return T;
 }
 const CELL = 40;
 export function addInstanced(kind, variant, items, group, cells) {
@@ -66,6 +91,8 @@ export function tintCol(c, k = 0.1) {
 export function buildOcean(loc) {
   seedRandom(loc.seed);
   const T = makeT(loc);
+  const obst = new ObstacleMap(LIMIT + 45);
+  T.obst = obst;
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
 
@@ -158,6 +185,8 @@ export function buildOcean(loc) {
     else if (kind === 'fan') { s = rr(0.9, 2.0); it = { x, z, y: y0 - 0.05, ry: (R() - 0.5) * 0.5, sx: s, sy: s, sz: s, tx: (R() - 0.5) * 0.2 }; items.fan[R() < 0.5 ? 0 : 1].push(it); }
     else if (kind === 'mushroom') { s = rr(0.6, 1.4); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.2), sz: s }; items.mushroom[0].push(it); }
     else { s = rr(loc.clamSize[0], loc.clamSize[1]); it = { x, z, y: y0 - 0.06 * s, ry: R() * 6.28, sx: s, sy: s, sz: s }; items.clam[0].push(it); }
+    const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55] };
+    if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
     const pl = it.porites ? pick(PALETTE.porites) : pal;
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
   }
@@ -204,7 +233,9 @@ export function buildOcean(loc) {
       const s = a + Math.pow(R(), 2.2) * (b - a);
       const tilt = kind === 'angular' || kind === 'rubble' ? 0.9 : kind === 'slab' ? 0.25 : 0.35;
       const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
-      lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push({ x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) });
+      const it = { x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
+      lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push(it);
+      if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
       placed++;
     }
     const rockMat = mat(
