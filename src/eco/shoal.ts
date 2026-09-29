@@ -73,7 +73,10 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const pace = sp.speed * (0.35 + 0.65 * act);
       L.c.x += Math.cos(L.head) * pace * dt; L.c.z += Math.sin(L.head) * pace * dt;
       const alt = L.alt * act + 1.2 * (1 - act) + Math.sin(L.t * 0.11 + s) * 1.2;
-      L.c.y += (Math.min(T.top(L.c.x, L.c.z) + alt, -2) - L.c.y) * Math.min(1, dt * 0.4);
+      let fl = T.top(L.c.x, L.c.z);                               // look ahead: lift over coral heads early
+      for (const k of [2, 4, 7]) fl = Math.max(fl, T.top(L.c.x + Math.cos(L.head) * pace * k, L.c.z + Math.sin(L.head) * pace * k));
+      const ty = Math.min(fl + alt, -2);
+      L.c.y += (ty - L.c.y) * Math.min(1, dt * (ty > L.c.y ? 0.4 : 0.2));
       if (sp.diet === 'plankton') env.plankton.consume(L.c.x, L.c.z, 0.0008 * act * dt);
       L.prey.x = L.c.x; L.prey.y = L.c.y; L.prey.z = L.c.z;
     }

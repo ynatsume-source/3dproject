@@ -109,22 +109,26 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
         if (s > bs) { bs = s; best = [x, z]; }
       }
       m.st.set(best[0], 0, best[1]);
-      m.y = feeding ? -3 : Math.min(T.h(best[0], best[1]) + rr(4, 7), -3);
       m.rad = feeding ? rr(5, 8) : rr(10, 16);
+      // one steady height for the whole loop, clear of the tallest thing under it: mantas glide over the
+      // reef rather than following its every bump
+      let top = -1e9;
+      for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; for (const r of [m.rad - 2.5, m.rad, m.rad + 2.5]) top = Math.max(top, T.top(best[0] + Math.cos(a) * r, best[1] + Math.sin(a) * r)); }
+      m.y = feeding ? Math.max(-3, Math.min(top + 2.6, -2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), -2.5);
       if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', 'マンタがプランクトンを食べに浅場へ上がってきた', m.st.x, m.st.z);
       m.feeding = feeding; m.placed = true;
     }
     const w = 1.25 / m.rad;
     m.a += dt * w * m.dir;
     const px = m.st.x + Math.cos(m.a) * m.rad, pz = m.st.z + Math.sin(m.a) * m.rad;
-    const fh = T.top(px, pz);
-    const ty = Math.min(Math.max(m.y + Math.sin(m.t * 0.15) * (feeding ? 0.8 : 2), fh + 2.5), -2.5);
-    m.pos.y += (ty - m.pos.y) * Math.min(1, dt * 0.5);
+    const ty = Math.min(m.y + Math.sin(m.t * 0.15) * (feeding ? 0.5 : 1.2), -2.5);
+    const vy = (ty - m.pos.y) * Math.min(1, dt * 0.3);
+    m.pos.y += vy;
     m.pos.x = px; m.pos.z = pz;
     if (feeding) env.plankton.consume(px, pz, 0.002 * dt);
     const tx = -Math.sin(m.a) * m.dir, tz = Math.cos(m.a) * m.dir;
     m.mesh.position.copy(m.pos);
-    m.mesh.rotation.set(-0.05 + Math.sin(m.t * 0.3) * 0.05, Math.atan2(tx, tz), (feeding ? 0.55 : 0.32) * m.dir, 'YXZ');
+    m.mesh.rotation.set(-0.05 + Math.sin(m.t * 0.3) * 0.05 - Math.atan2(vy / Math.max(dt, 1e-3), 1.25) * 0.8, Math.atan2(tx, tz), (feeding ? 0.55 : 0.32) * m.dir, 'YXZ');
     if (!m.init) { m.init = true; m.pos.y = ty; }
   }
 }

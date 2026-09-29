@@ -125,9 +125,23 @@ function updateDrone(dt: number, now: number) {
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.8));
     if (now - drone.lastInput > 90000) setMode('auto');
   }
+  // look ahead along the way we are moving and start climbing well before a rock or coral head
+  const G = cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
+  if (hs > 0.05) {
+    let ahead = -1e9;
+    for (const s of [0.5, 1.0, 1.6, 2.4]) ahead = Math.max(ahead, G(drone.pos.x + drone.vel.x * s, drone.pos.z + drone.vel.z * s));
+    const want = ahead + 1.0;
+    if (drone.pos.y < want) drone.vel.y = Math.max(drone.vel.y, Math.min(1.6, (want - drone.pos.y) * 1.1));
+  }
   drone.pos.addScaledVector(drone.vel, dt);
-  const fh = cur!.T.ground(drone.pos.x, drone.pos.z);
-  if (drone.pos.y < fh + 0.7) { drone.pos.y = fh + 0.7; if (drone.vel.y < 0) drone.vel.y = 0; }
+  // keep a clear bubble: the floor is the highest ground in a ring around the camera, not just under it,
+  // and we rise onto it smoothly rather than popping up
+  let fh = G(drone.pos.x, drone.pos.z);
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, G(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
+  if (drone.pos.y < fh + 0.75) {
+    drone.pos.y = Math.max(fh + 0.35, drone.pos.y + (fh + 0.75 - drone.pos.y) * Math.min(1, dt * 6));
+    if (drone.vel.y < 0) drone.vel.y *= 0.5;
+  }
   // the cave massif is solid in 3D: slide along its walls, roof and the rims of its skylights
   const cave = cur!.cave;
   if (cave) for (let it = 0; it < 2; it++) {

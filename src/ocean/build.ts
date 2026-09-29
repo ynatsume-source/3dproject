@@ -202,7 +202,7 @@ export function buildOcean(loc) {
       items.mushroom[v].push(it);
     }
     else { s = rr(loc.clamSize[0], loc.clamSize[1]); it = { x, z, y: y0 - 0.06 * s, ry: R() * 6.28, sx: s, sy: s, sz: s }; items.clam[0].push(it); }
-    const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55] };
+    const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55], fan: [0.45, 1.0], clam: [0.4, 0.3] };
     if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
     const pl = it.porites ? pick(PALETTE.porites) : it.soft === 1 ? pick(PALETTE.sinularia) : it.soft === 2 ? pick(PALETTE.dendro) : pal;
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);

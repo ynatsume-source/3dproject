@@ -70,9 +70,10 @@ export function makeFishSystem(sp: Species, oc: any) {
       `varying vec3 vWp; varying vec3 vN;
        void main(){
          vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
-         float f = pow(1.0 - abs(dot(n, V)), 2.2);
-         vec3 c = vec3(0.78, 0.9, 0.96) * (0.12 + uAmb * 0.5) + lamp(vec3(0.9), vWp, faceforward(n, -V, n)) * 0.7;
-         gl_FragColor = vec4(fogIt(c, vWp), 0.07 + 0.45 * f);
+         // a real mucus cocoon is almost invisible: a thin, clear film that only catches light at its rim
+         float f = pow(1.0 - abs(dot(n, V)), 3.0);
+         vec3 c = vec3(0.85, 0.93, 0.95) * (0.1 + uAmb * 0.4) + lamp(vec3(0.9), vWp, faceforward(n, -V, n)) * 0.5;
+         gl_FragColor = vec4(fogIt(c, vWp), 0.015 + 0.16 * f);
        }`, { opts: { transparent: true, depthWrite: false } }), total);
     cocoon.frustumCulled = false;
     cocoon.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -260,8 +261,11 @@ export function makeFishSystem(sp: Species, oc: any) {
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
           g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(pace);
           g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;
-          const ty = Math.min(floorC + g.alt * (0.4 + 0.6 * g.act) + Math.sin(g.t * 0.3) * 0.5, -1.4);
-          g.c.y += (ty - g.c.y) * Math.min(1, dt * 0.6);
+          // rise ahead of a coral head instead of scaling it; come down slowly on the far side
+          let fl = floorC;
+          for (const s of [1.5, 3, 5]) fl = Math.max(fl, T.top(g.c.x + g.v.x * s, g.c.z + g.v.z * s));
+          const ty = Math.min(fl + g.alt * (0.4 + 0.6 * g.act) + Math.sin(g.t * 0.3) * 0.5, -1.4);
+          g.c.y += (ty - g.c.y) * Math.min(1, dt * (ty > g.c.y ? 0.6 : 0.25));
         }
         env.threatsOut.push({ x: g.c.x, y: g.c.y, z: g.c.z, r: isPredator ? (hunting ? 7 : 3) : 0 });
       }
@@ -323,8 +327,8 @@ export function makeFishSystem(sp: Species, oc: any) {
         _w.set(nx + hx, ny + hy, nz + hz); _v.set(nx, ny, nz);
         _mm.lookAt(_w, _v, UPV);
         if (cocoon) {
-          const c = smooth(0.55, 0.9, rest);
-          _mc.copy(_mm); _ss.set(fs[i] * 0.6 * c, fs[i] * 0.85 * c, fs[i] * 1.7 * c); _mc.scale(_ss); _mc.setPosition(nx, ny, nz);
+          const c = smooth(0.8, 0.97, rest);                        // only once it is properly asleep
+          _mc.copy(_mm); _ss.set(fs[i] * 0.42 * c, fs[i] * 0.62 * c, fs[i] * 1.35 * c); _mc.scale(_ss); _mc.setPosition(nx, ny, nz);
           cocoon.setMatrixAt(i, _mc);
         }
         _ss.setScalar(fs[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
