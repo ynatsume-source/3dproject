@@ -11,6 +11,7 @@
     "sim": "tsx --import ./scripts/node-assets.mjs scripts/sim-check.ts"
   },
   "dependencies": {
+    "nosleep.js": "^0.12.0",
     "three": "0.186.1"
   },
   "devDependencies": {

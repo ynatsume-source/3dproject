@@ -45,7 +45,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
 
     // state transitions
     if (t.state === 'breathe') { if (t.pos.y > -1.0) { t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; } }
-    else if ((t.air = (t.air ?? rr(60, 200)) - dt) < 0) { t.state = 'breathe'; t.stateT = 0; t.air = sleepy ? rr(300, 480) : rr(150, 260); logEvent(env, 'breathe', 'ウミガメが息継ぎに浮上していく', t.pos.x, t.pos.z); }
+    else if ((t.air = (t.air ?? rr(60, 200)) - dt) < 0) { t.state = 'breathe'; t.stateT = 0; t.air = sleepy ? rr(300, 480) : rr(150, 260); logEvent(env, 'breathe', 'ウミガメが息継ぎに浮上していく', t.pos.x, t.pos.z, () => t.pos); }
     else if (sleepy && (t.state === 'travel' || t.state === 'graze')) { t.state = 'toRest'; t.goal = pickGoal(oc, t.pos, 'rest'); t.stateT = 0; }
     else if (!sleepy && (t.state === 'rest' || t.state === 'toRest')) { t.state = 'travel'; t.goal = null; t.stateT = 0; }
     else if (t.state === 'travel' && !t.goal) t.goal = pickGoal(oc, t.pos, 'graze');
@@ -58,7 +58,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       t.head += d * Math.min(1, dt * 0.5);
       if (gd < 2.0) {
         t.state = t.state === 'toRest' ? 'rest' : 'graze'; t.stateT = 0;
-        if (t.state === 'rest') logEvent(env, 'rest', 'ウミガメが岩陰で眠りについた', t.pos.x, t.pos.z);
+        if (t.state === 'rest') logEvent(env, 'rest', 'ウミガメが岩陰で眠りについた', t.pos.x, t.pos.z, () => t.pos);
       }
     }
     if (t.state === 'graze') {
@@ -117,7 +117,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       let top = -1e9;
       for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; for (const r of [m.rad - 2.5, m.rad, m.rad + 2.5]) top = Math.max(top, T.top(best[0] + Math.cos(a) * r, best[1] + Math.sin(a) * r)); }
       m.y = feeding ? Math.max(-3, Math.min(top + 2.6, -2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), -2.5);
-      if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', 'マンタがプランクトンを食べに浅場へ上がってきた', m.st.x, m.st.z);
+      if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', 'マンタがプランクトンを食べに浅場へ上がってきた', m.st.x, m.st.z, () => m.pos);
       m.feeding = feeding; m.placed = true;
     }
     const w = 1.25 / m.rad;

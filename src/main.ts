@@ -10,6 +10,8 @@ import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, type Shot } from './director';
+import type { Subject } from './eco/env';
+import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
@@ -84,7 +86,7 @@ function updateDrone(dt: number, now: number) {
   if (shot) {
     // glide to the viewpoint and keep the subject framed
     _v.subVectors(shot.pos, drone.pos);
-    const L = _v.length(), top = shot.phase === 'approach' ? 2.4 : 0.9;
+    const L = _v.length(), top = shot.phase === 'approach' ? (shot.forced ? Math.min(7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far: travel faster
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
     const lx = shot.look.x - camera.position.x, ly = shot.look.y - camera.position.y, lz = shot.look.z - camera.position.z;
@@ -235,23 +237,88 @@ function recordLog(kind: string, text: string) {
 addEventListener('pagehide', saveLog);
 
 /* ---------- sea log: what is happening around the drone ---------- */
-const logQueue: string[] = [];
+type Where = () => { x: number; y: number; z: number } | null;
+const logQueue: { text: string; at?: Where }[] = [];
 const recent = new Map<string, number>();
 let logShownAt = -1e9;
-function seaLog(kind: string, text: string) {
+function seaLog(kind: string, text: string, at?: Where) {
   recordLog(kind, text);
   const now = performance.now();
   if ((recent.get(text) ?? -1e9) > now - 90000) return;
   recent.set(text, now);
-  if (kind === 'phase') logQueue.unshift(text); else if (logQueue.length < 3) logQueue.push(text);
+  if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at });
 }
 function pumpLog(now: number) {
   if (!logQueue.length || now - logShownAt < 9000 || $('toast').classList.contains('on')) return;
   logShownAt = now;
-  showToast('SEA LOG', logQueue.shift()!, '');
+  const e = logQueue.shift()!;
+  showToast('SEA LOG', e.text, '');
+  markAt = e.at || null; markText = e.text; markUntil = now + 9000;
+  $('toast').classList.toggle('go', !!markAt);
+}
+// the marker: where the event in the caption is happening
+let markAt: Where | null = null, markText = '', markUntil = 0;
+const _mk = new THREE.Vector3();
+function updateMarker(now: number) {
+  const el = $('evMark');
+  const p = markAt && now < markUntil ? markAt() : null;
+  if (!p) { if (!el.hidden) { el.hidden = true; $('toast').classList.remove('go'); } return; }
+  _mk.set(p.x, p.y, p.z).project(camera);
+  const w = innerWidth, h = innerHeight, behind = _mk.z > 1;
+  let sx = (_mk.x * 0.5 + 0.5) * w, sy = (-_mk.y * 0.5 + 0.5) * h;
+  if (behind) { sx = w - sx; sy = h - sy; }
+  const m = 36, off = behind || sx < m || sy < m || sx > w - m || sy > h - m;
+  if (off) {
+    // pin to the edge, pointing the way
+    const cx = w / 2, cy = h / 2, dx = sx - cx, dy = sy - cy, k = Math.min((cx - m) / Math.max(Math.abs(dx), 1e-3), (cy - m) / Math.max(Math.abs(dy), 1e-3));
+    sx = cx + dx * k; sy = cy + dy * k;
+    el.style.setProperty('--rot', `${Math.atan2(dy, dx) * 180 / Math.PI - 45}deg`);
+  }
+  el.classList.toggle('edge', off);
+  el.style.transform = `translate(${sx.toFixed(0)}px, ${sy.toFixed(0)}px)`;
+  el.hidden = false;
+}
+function goToEvent() {
+  if (!markAt || !cur) return;
+  const at = markAt, text = markText;
+  focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() });
+}
+$('evMark').onclick = goToEvent;
+$('toast').addEventListener('click', goToEvent);
+
+/* ---------- take me to it ---------- */
+function focusOn(s: Subject) {
+  if (!cur) return;
+  if (drone.mode !== 'auto') setMode('auto');
+  director.focus(s, drone.pos);
+  lastShot = null;
+}
+function goTo(id: string) {
+  if (!cur) return;
+  const oc = cur, cam = drone.pos, near = <T extends { pos: THREE.Vector3 }>(a: T[]) => a.reduce((b, c) => (c.pos.distanceTo(cam) < b.pos.distanceTo(cam) ? c : b));
+  const loc = oc.loc, name = guideEntries(loc).find((e) => e.id === id)?.ja ?? (id === 'cave' ? '海底洞窟' : '');
+  let s: Subject | null = null;
+  if (id === 'cave') s = oc.eco.subjects().find((x: Subject) => x.kind === 'cave') ?? null;
+  else if (id === 'turtle' && oc.turtles.length) { const t = near(oc.turtles as any[]); s = { key: 'focus:turtle', label: name, kind: 'turtle', prio: 5, size: 1.2 * t.size, pos: () => t.pos, status: () => statusOf('turtle'), live: () => true }; }
+  else if (id === 'manta' && oc.mantas.length) { const m = oc.mantas[0]; s = { key: 'focus:manta', label: name, kind: 'manta', prio: 5, size: 4, pos: () => m.pos, status: () => statusOf('manta'), live: () => true }; }
+  else if (id === 'octopus' && oc.octopi?.length) { const o = near(oc.octopi as any[]); s = { ...o.subject, key: 'focus:octopus', prio: 5 }; }
+  else if (id === 'eel' && oc.colonies.length) { const c = near(oc.colonies as any[]); const p = c.pos.clone(); p.y += 0.4; s = { key: 'focus:eel', label: name, kind: 'anemone', prio: 5, size: 1.5, pos: () => p, status: () => statusOf('eel'), live: () => true }; }
+  else if (id === 'whale') {
+    const W = oc.whales;
+    if (!W || !W.seasonal) { showToast('ザトウクジラ', '今は北の海にいます', '冬（12月下旬〜4月上旬）に来遊。時刻パネルの「季節」で冬を選ぶと会えます'); return; }
+    if (!W.active) { W.force = true; W.next = 0; }
+    s = { key: 'focus:whale', label: name, kind: 'giant', prio: 5, size: 8, pos: () => (W.active ? W.pod[0].pos : null), status: () => statusOf('whale'), live: () => true };
+  } else {
+    const f = oc.fish.find((x: any) => x.sp.id === id);
+    s = f ? f.focus(cam) : null;
+  }
+  if (!s) { showToast('見つかりません', `${name}は近くにいないようです`, ''); return; }
+  focusOn(s);
+  showToast('向かっています', `${name}のところへ`, '');
+  if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); }
 }
 function showToast(k: string, t: string, s: string) {
-  $('toastK').textContent = k; $('toastT').textContent = t; $('toastS').textContent = s;
+  $('toastK').textContent = k; $('toastT').textContent = t; $('toastS').textContent = s; $('toast').classList.remove('go');
   $('toast').classList.add('on'); clearTimeout(toastTimer); toastTimer = window.setTimeout(() => $('toast').classList.remove('on'), 5200);
 }
 
@@ -343,12 +410,15 @@ function renderGuide() {
   const scroll = guideEl.scrollTop;
   if (panelTab === 'log') { guideEl.innerHTML = tabs + renderLog(); guideEl.scrollTop = scroll; return; }
   guideEl.innerHTML = tabs + `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
-    <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}"><i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p></li>`).join('')}</ul>
+    ${cur.cave ? `<ul class="places"><li class="benthic"><i></i><b>海底洞窟</b><em>行き先</em><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li></ul>` : ''}
+    <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}"><i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
     <h3>サンゴと底生生物</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>`;
   guideEl.scrollTop = scroll;
 }
 guideEl.addEventListener('click', (e) => {
+  const g = (e.target as HTMLElement).closest('[data-go]') as HTMLElement | null;
+  if (g) { goTo(g.dataset.go!); return; }
   const b = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
   if (b) { panelTab = b.dataset.tab as 'guide' | 'log'; guideEl.scrollTop = 0; renderGuide(); }
 });
@@ -486,6 +556,7 @@ function enterOcean(oc: Ocean) {
   requestAnimationFrame(resize);
 }
 async function dive(loc: Sea) {
+  keepAwake();
   if (busy) return; busy = true;
   setHot(LOCATIONS.indexOf(loc));
   await tweenGlobe(loc.lat, loc.lon, 1.16, 1700);
@@ -575,13 +646,28 @@ function toggleFull() {
 }
 function goPreset(p: Preset) { if (!cur) return; clock.live = false; if (clock.speed === 0) clock.speed = 1; clock.ms = presetTime(p, cur.loc); applySky(cur.loc); updateTimeUi(); }
 
-let wakeLock: any = null;
+// Keep the screen on: the Screen Wake Lock where the browser has it, and on phones and tablets also a
+// tiny silent looping video (the NoSleep.js technique), since iOS sometimes lets the lock lapse.
+let wakeLock: any = null, awakeVideo: HTMLVideoElement | null = null;
 async function keepAwake() {
-  if (wakeLock || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
-  try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied */ }
+  if (document.visibilityState !== 'visible') return;
+  if (!wakeLock && 'wakeLock' in navigator) {
+    try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied until a tap */ }
+  }
+  if (isTouch || !('wakeLock' in navigator)) {
+    if (!awakeVideo) {
+      awakeVideo = document.createElement('video');
+      awakeVideo.setAttribute('playsinline', ''); awakeVideo.setAttribute('muted', ''); awakeVideo.muted = true; awakeVideo.loop = true;
+      awakeVideo.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:0;top:0';
+      const src = (t: string, d: string) => { const s = document.createElement('source'); s.type = t; s.src = d; awakeVideo!.appendChild(s); };
+      src('video/mp4', NOSLEEP_MEDIA.mp4); src('video/webm', NOSLEEP_MEDIA.webm);
+      document.body.appendChild(awakeVideo);
+    }
+    if (awakeVideo.paused) awakeVideo.play().catch(() => { /* needs a tap; tried again on the next one */ });
+  }
 }
 document.addEventListener('visibilitychange', keepAwake);
-document.addEventListener('pointerdown', keepAwake, { once: true });
+document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
 
 $('btnGlobe').onclick = toGlobe;
 $('btnGuide').onclick = () => openPanel('guide');
@@ -738,7 +824,8 @@ function frame(ts: number) {
     }
     U.uLamp.value += ((lampOn ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
-    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text);
+    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text, ev.at);
+    updateMarker(now);
     const W = cur.whales;
     setWhaleSong(W && W.seasonal ? (W.active ? 1 : 0.45) : 0);
     pumpLog(now);
@@ -782,4 +869,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog };

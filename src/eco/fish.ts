@@ -195,7 +195,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (!g.hunt && g.cooldown <= 0 && drive > 0.5 && R() < dt * 0.08) {
       let best: PreyGroup | null = null, bd = 45;
       for (const p of env.prey) { const d = Math.hypot(p.x - g.c.x, p.z - g.c.z); if (p.alive > 1 && d < bd) { bd = d; best = p; } }
-      if (best) { g.hunt = { prey: best, t0: g.t }; logEvent(env, 'hunt', `${sp.ja}が${best.label}の群れを狙っている`, g.c.x, g.c.z); }
+      if (best) { g.hunt = { prey: best, t0: g.t }; logEvent(env, 'hunt', `${sp.ja}が${best.label}の群れを狙っている`, g.c.x, g.c.z, () => g.c); }
     }
     if (!g.hunt) return false;
     const p = g.hunt.prey, dx = p.x - g.c.x, dy = p.y - g.c.y, dz = p.z - g.c.z, d = Math.hypot(dx, dy, dz);
@@ -207,7 +207,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (d < 1.6 || g.t - g.hunt.t0 > 30) {
       if (d < 1.6 && R() < 0.12 && p.take()) {
         g.hunger = 0;
-        logEvent(env, 'catch', `${sp.ja}が${p.label}を捕らえた`, g.c.x, g.c.z);
+        { const at = g.c.clone(); logEvent(env, 'catch', `${sp.ja}が${p.label}を捕らえた`, g.c.x, g.c.z, () => at); }
       } else g.hunger *= 0.85;
       g.hunt = null; g.cooldown = rr(60, 150);
     }
@@ -389,8 +389,16 @@ export function makeFishSystem(sp: Species, oc: any) {
       }
     });
   }
+  // the nearest group, as something the director can be sent to film
+  function focus(cam: THREE.Vector3): Subject | null {
+    let best: Group | null = null, bd = Infinity;
+    for (const g of groups) { if (!g.placed) continue; const p = g.type === 'anem' ? g.a!.pos : g.c, d = p.distanceTo(cam); if (d < bd) { bd = d; best = g; } }
+    if (!best) return null;
+    const g = best, p = g.type === 'anem' ? g.a!.pos : g.c;
+    return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), pos: () => p, status, live: () => g.placed };
+  }
   return {
-    sp, mesh, update, nearest, nearestPos, status, subjects,
+    sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
     reset() { for (const g of groups) g.placed = false; },
   };

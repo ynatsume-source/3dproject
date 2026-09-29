@@ -183,8 +183,15 @@ export function makeShoalSystem(sp: Species, oc: any) {
       out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target), size: 3.5, pos: () => L.c, status, live: () => L.placed });
     });
   }
+  function focus(cam: THREE.Vector3): Subject | null {
+    let best: Leader | null = null, bd = Infinity;
+    for (const L of leaders) { if (!L.placed) continue; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; } }
+    if (!best) return null;
+    const L = best;
+    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status, live: () => L.placed };
+  }
   return {
-    sp, mesh, update, nearest, nearestPos, status, subjects,
+    sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => leaders.map((L) => L.prey),
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },

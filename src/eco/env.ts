@@ -15,7 +15,8 @@ export interface PreyGroup {
   take(): boolean;                       // remove one fish (a successful strike)
 }
 
-export interface SeaEvent { kind: string; text: string; x: number; z: number }
+export type Where = { x: number; y: number; z: number };
+export interface SeaEvent { kind: string; text: string; x: number; z: number; at?: () => Where | null }
 
 // Something worth pointing the camera at.
 export interface Subject {
@@ -26,6 +27,7 @@ export interface Subject {
   pos(): { x: number; y: number; z: number } | null;
   status(): string;
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
+  reach?: number;                       // how far away the director will go for it (default 42 m)
   // a place to fly through rather than orbit: where the camera is and looks at t seconds in
   tour?: { length: number; start(rev: boolean): { x: number; y: number; z: number }; at(t: number, rev: boolean, pos: any, look: any): void };
 }
@@ -54,7 +56,7 @@ export function activity(diel: Diel | undefined, env: Env): number {
   }
 }
 
-export function logEvent(env: Env, kind: string, text: string, x: number, z: number) {
+export function logEvent(env: Env, kind: string, text: string, x: number, z: number, at?: () => Where | null) {
   if (Math.hypot(x - env.cam.x, z - env.cam.z) > 55) return;   // only what the drone could plausibly notice
-  env.events.push({ kind, text, x, z });
+  env.events.push({ kind, text, x, z, at });
 }

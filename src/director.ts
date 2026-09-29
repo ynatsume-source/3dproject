@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
   hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45],
@@ -26,6 +26,28 @@ export class Director {
 
   reset() { this.shot = null; this.cooldown = 10; }
 
+  // Go and film this now, however far it is (someone asked to see it).
+  focus(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, true); }
+
+  private begin(best: Subject, drone: THREE.Vector3, forced: boolean) {
+    const p = best.pos() ?? drone;
+    this.ang = Math.atan2(drone.z - p.z, drone.x - p.x);   // come in from the side we are already on
+    this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07);
+    this.t = 0;
+    const [a, b] = DURATION[best.kind];
+    this.dur = rr(a, b);
+    this.recent.set(best.key, this.clock);
+    this.recent.set('kind:' + best.kind, this.clock);
+    this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach', forced };
+    if (best.tour) {
+      // enter from whichever end is nearer
+      const e0 = best.tour.start(false), e1 = best.tour.start(true);
+      this.shot.rev = Math.hypot(e1.x - drone.x, e1.z - drone.z) < Math.hypot(e0.x - drone.x, e0.z - drone.z);
+      this.dur = best.tour.length;
+    }
+    this.onStart(best);
+  }
+
   update(dt: number, drone: THREE.Vector3, subjects: () => Subject[], floor: (x: number, z: number) => number): Shot | null {
     this.clock += dt;
     if (!this.shot) {
@@ -36,39 +58,24 @@ export class Director {
       for (const s of subjects()) {
         const p = s.pos(); if (!p || !s.live()) continue;
         const d = Math.hypot(p.x - drone.x, p.y - drone.y, p.z - drone.z);
-        if (d > 42) continue;
+        if (d > (s.reach ?? 42)) continue;
         const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9);
         const kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
         const score = s.prio * (1 - d / 60) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1);
         if (score > bs) { bs = score; best = s; }
       }
       if (!best || bs < 0.9) return null;
-      const p = best.pos()!;
-      this.ang = Math.atan2(drone.z - p.z, drone.x - p.x);   // come in from the side we are already on
-      this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07);
-      this.t = 0;
-      const [a, b] = DURATION[best.kind];
-      this.dur = rr(a, b);
-      this.recent.set(best.key, this.clock);
-      this.recent.set('kind:' + best.kind, this.clock);
-      this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach' };
-      if (best.tour) {
-        // enter from whichever end is nearer
-        const a = best.tour.start(false), b = best.tour.start(true);
-        this.shot.rev = Math.hypot(b.x - drone.x, b.z - drone.z) < Math.hypot(a.x - drone.x, a.z - drone.z);
-        this.dur = best.tour.length;
-      }
-      this.onStart(best);
+      this.begin(best, drone, false);
     }
-    const sh = this.shot, s = sh.subject, p = s.pos();
+    const sh = this.shot!, s = sh.subject, p = s.pos();
     if (s.tour) {
       // fly through: first to the entrance (from above if need be), then along the route
       const st = s.tour.start(!!sh.rev);
       if (sh.phase === 'approach') {
-        const gap = Math.hypot(st.x - drone.x, st.y - drone.y, st.z - drone.z);
+        const gap = Math.hypot(st.x - drone.x, st.z - drone.z) + Math.max(0, Math.abs(st.y - drone.y) - 2.5);   // close enough over the entrance
         sh.pos.set(st.x, gap > 6 ? Math.max(st.y, floor(drone.x, drone.z) + 1.5) : st.y, st.z);
         s.tour.at(0, !!sh.rev, _p, sh.look);
-        if (gap < 1.2 || this.t > 40) { sh.phase = 'observe'; this.t = 0; }
+        if (gap < 1.2 || this.t > (sh.forced ? 90 : 40)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
       } else {
         s.tour.at(this.t, !!sh.rev, sh.pos, sh.look);
         if (this.t > this.dur + 1) { this.shot = null; this.cooldown = rr(30, 70); return null; }
@@ -76,7 +83,11 @@ export class Director {
       this.t += dt;
       return sh;
     }
-    const far = p ? Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : true;
+    const far = p ? !sh.forced && Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : !sh.forced;
+    if (sh.forced && !p) {                                       // e.g. whales still on their way in: hold here and look out
+      if (this.t === 0) { sh.pos.copy(drone as THREE.Vector3); sh.look.set(drone.x + 10, drone.y, drone.z); }
+      return sh;
+    }
     if (!p || far || (sh.phase === 'observe' && this.t > this.dur) || (s.kind === 'hunt' && !s.live() && this.t > 4)) {
       this.shot = null;
       this.cooldown = rr(30, 70);
@@ -90,7 +101,7 @@ export class Director {
     sh.pos.set(x, y, z);
     sh.look.set(p.x, p.y, p.z);
     const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
-    if (sh.phase === 'approach' && (gap < 1.5 || this.t > 25)) { sh.phase = 'observe'; this.t = 0; }
+    if (sh.phase === 'approach' && (gap < 1.5 || (!sh.forced && this.t > 25) || this.t > 90)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
     this.t += dt;
     return sh;
   }

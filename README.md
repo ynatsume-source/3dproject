@@ -36,6 +36,10 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 
 ## 操作
 
+- 図鑑の「会いに行く」：その生き物のいちばん近い個体のところへ自動カメラが連れて行き、観察する。宮古島では「洞窟へ行く」で海底洞窟を通り抜ける。ザトウクジラは季節中なら呼ぶと通り過ぎてくれる（季節外は案内が出る）
+- ログ（SEA LOG）に出た出来事は、画面上のその場所に淡い輪で示す（画面の外なら端に矢印）。輪かログをタップするとそこへ向かう
+- スマホ・タブレットでは画面がスリープしないようにしている（Screen Wake Lock と、無音の小さな動画をループさせる NoSleep.js の方法）
+
 | 操作 | キー |
 | --- | --- |
 | 地球儀へ戻る | `G` / `Esc` |
@@ -91,4 +95,5 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 ## クレジット
 
 - 海底テクスチャ：[Poly Haven](https://polyhaven.com)（CC0）の aerial_beach_01 / coral_fort_wall_03 / coral_mud_01
+- スリープ防止の無音動画：[NoSleep.js](https://github.com/richtr/NoSleep.js)（MIT）
 - ピアノ音源：[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm（CC BY 3.0）。`public/audio/piano/` に Tone.js 配布版の一部を同梱

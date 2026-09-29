@@ -317,6 +317,12 @@ export class Cave {
     }
     return tt;
   }
+  // horizontal distance from (x, z) to the route through the tunnel (to keep its approaches clear)
+  routeDist(x: number, z: number) {
+    let d = Infinity;
+    for (let i = 0; i < this.tour.p.length; i += 2) { const q = this.tour.p[i]; d = Math.min(d, Math.hypot(q.x - x, q.z - z)); }
+    return d;
+  }
   get tourLength() { return this.tour.t[this.tour.t.length - 1]; }
   tourStart(rev: boolean) { return rev ? this.tour.p[this.tour.p.length - 1] : this.tour.p[0]; }
   // A point on the route through the tunnel by tour time, low over the floor (for animals using it).

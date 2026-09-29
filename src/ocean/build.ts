@@ -170,6 +170,7 @@ export function buildOcean(loc) {
   const W = loc.corals;
   for (const [x, z, h, r] of samples) {
     if (R() > r * r * accept * 1.6) continue;
+    if (cave && cave.routeDist(x, z) < 3.5) continue;                     // keep the way into the cave open
     const sl = T.slope(x, z);
     const shallow = smooth(-20, -6, h);
     const w = {
@@ -304,6 +305,7 @@ export function buildOcean(loc) {
     for (let placed = 0, tries = 0; placed < 2200 && tries < 40000; tries++) {
       const x = rr(-LIMIT - 35, LIMIT + 35), z = rr(-LIMIT - 35, LIMIT + 35), h = loc.f(x, z), r = TERR.reef;
       if (r < 0.22 || R() > r * (0.7 + 0.9 * Math.min(1, T.slope(x, z)))) continue;
+      if (cave && cave.routeDist(x, z) < 4) continue;
       let q = R() * wsum, ki = 0;
       for (; ki < KINDS.length - 1; ki++) { q -= KINDS[ki][1]; if (q <= 0) break; }
       const [kind, , [a, b]] = KINDS[ki];
@@ -323,7 +325,7 @@ export function buildOcean(loc) {
     let ledges = 0, leaners = 0;
     for (let tries = 0; tries < 60000 && (ledges < 320 || leaners < 300); tries++) {
       const x = rr(-LIMIT - 20, LIMIT + 20), z = rr(-LIMIT - 20, LIMIT + 20), h = hAt(x, z);
-      if (TERR.reef < 0.35 || h < -22) continue;
+      if (TERR.reef < 0.35 || h < -22 || (cave && cave.routeDist(x, z) < 4)) continue;
       const gx = (hAt(x + 0.7, z) - hAt(x - 0.7, z)) / 1.4, gz = (hAt(x, z + 0.7) - hAt(x, z - 0.7)) / 1.4, sl = Math.hypot(gx, gz);
       if (sl < 0.8) continue;
       const ox = -gx / sl, oz = -gz / sl;                       // outward, down the slope

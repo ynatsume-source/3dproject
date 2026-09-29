@@ -55,7 +55,7 @@ export class Ecosystem {
     const cave = this.oc.cave;
     if (cave) {
       const c = { x: cave.cx, y: cave.top - 4, z: cave.cz };
-      out.push({ key: 'cave', label: '海底洞窟', kind: 'cave', prio: 2.4, size: 8, pos: () => c, live: () => true,
+      out.push({ key: 'cave', label: '海底洞窟', kind: 'cave', prio: 2.6, size: 8, reach: 95, pos: () => c, live: () => true,
         status: () => (this.env.night > 0.6 ? 'ライトで照らしながら' : '天窓から光が差し込む'),
         tour: { length: cave.tourLength, start: (rev: boolean) => cave.tourStart(rev), at: (t: number, rev: boolean, p: any, l: any) => cave.tourAt(t, rev, p, l) } });
     }

@@ -103,6 +103,16 @@ body.hud-off #toast.on { opacity: 0.62; }
 #toast .t { font-size: 12px; font-weight: 500; letter-spacing: .04em; line-height: 1.5; }
 #toast .s { font-size: 10px; font-style: italic; color: var(--ink-dim); }
 #toast .s:empty { display: none; }
+#toast.go { pointer-events: auto; cursor: pointer; }
+#toast.go .t::after { content: '  ›  見に行く'; color: var(--accent); font-size: 10.5px; }
+/* where a logged event is happening: a faint ring on the spot, or an arrow at the edge if it is off screen */
+#evMark { position: fixed; left: 0; top: 0; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border: 0; background: none; pointer-events: auto; cursor: pointer; opacity: 0.7; transition: opacity .6s; z-index: 5; }
+#evMark i { position: absolute; inset: 8px; border: 1.5px solid var(--accent); border-radius: 50%; box-shadow: 0 0 10px rgba(120, 240, 220, 0.4); animation: evPulse 2.2s ease-out infinite; }
+#evMark.edge i { border-radius: 2px; inset: 14px; border-width: 0 2px 2px 0; transform: rotate(var(--rot, -45deg)); animation: none; }
+@keyframes evPulse { 0% { transform: scale(0.7); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+#guide .go { grid-column: 2; justify-self: start; margin-top: 3px; appearance: none; border: 1px solid var(--line); background: transparent; color: var(--accent); font: 500 11px/1 var(--f-body); letter-spacing: .06em; padding: 5px 9px; border-radius: 6px; cursor: pointer; }
+#guide .go:hover { background: rgba(160, 230, 220, 0.08); }
+#guide .places { margin-bottom: 12px; }
 
 #dock { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .group { pointer-events: auto; display: flex; flex-wrap: wrap; background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 3px;

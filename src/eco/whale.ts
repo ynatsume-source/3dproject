@@ -26,7 +26,7 @@ export function makeWhales(oc: any) {
   return {
     all: [mk(13.5, 'mother', 0.21), mk(4.6, 'calf', 0.63), mk(12.5, 'escort', 0.87)],
     pod: [] as Whale[], active: false, t: 0, next: rr(40, 90), dur: 0,
-    start: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 1.2, depth: -7, song: 0, seasonal: false,
+    start: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 1.2, depth: -7, song: 0, seasonal: false, force: false,
   };
 }
 export type Whales = ReturnType<typeof makeWhales>;
@@ -55,7 +55,8 @@ export function updateWhales(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       if (-top > best) { best = -top; W.dir.set(dx, 0, dz); W.start.set(sx0, 0, sz0); }
       if (top < -10) break;
     }
-    if (best < 5.5) { W.next = 30; return; }
+    if (best < 5.5 && !W.force) { W.next = 30; return; }   // (unless someone is waiting to see them)
+    W.force = false;
     W.depth = Math.max(-8, Math.min(-2.2, -best + 3.3));   // near the surface, a steady few metres over the highest reef on the way
     const q = R();
     const [mother, calf, escort] = W.all;
@@ -65,7 +66,7 @@ export function updateWhales(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     W.speed = rr(1.0, 1.5);
     W.dur = run / W.speed; W.t = 0; W.active = true;
     for (const w of W.pod) { w.breath = rr(20, 60); w.pos.set(W.start.x, W.depth + w.off.y, W.start.z); w.logged = false; }
-    logEvent(env, 'whale', W.pod.length === 1 ? 'ザトウクジラが1頭、ゆっくり通り過ぎていく' : 'ザトウクジラの親子が通り過ぎていく', cam.x, cam.z);
+    logEvent(env, 'whale', W.pod.length === 1 ? 'ザトウクジラが1頭、ゆっくり通り過ぎていく' : 'ザトウクジラの親子が通り過ぎていく', cam.x, cam.z, () => (W.active ? W.pod[0].pos : null));
   }
   W.t += dt;
   if (W.t > W.dur) { W.active = false; W.next = rr(150, 360); return; }
@@ -80,7 +81,7 @@ export function updateWhales(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     if (w.role === 'calf' && w.breath < 0) {
       const k = -w.breath;                                    // 0..24 s: up, a breath at the top, back down
       ty = ty + (-0.6 - ty) * Math.sin(Math.min(1, k / 24) * Math.PI);
-      if (!w.logged) { w.logged = true; logEvent(env, 'breathe', 'ザトウクジラの子どもが息継ぎに浮上していく', x, z); }
+      if (!w.logged) { w.logged = true; logEvent(env, 'breathe', 'ザトウクジラの子どもが息継ぎに浮上していく', x, z, () => w.pos); }
       if (k > 24) { w.breath = rr(90, 180); w.logged = false; }
     }
     const vy = (ty - w.pos.y) * Math.min(1, dt * 0.35);
