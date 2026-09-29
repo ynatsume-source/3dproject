@@ -9,6 +9,7 @@ import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, 
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
+import { Director, type Shot } from './director';
 import { audio, startAudio, stopAudio, setHum, crunch, chime, setMood, setMusic } from './audio';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -46,6 +47,18 @@ function nearestS(p: THREE.Vector3) {
   for (let i = 0; i < 2400; i++) { const s = i * 0.02; const [x, z] = pathXZ(s); const d = (x - p.x) ** 2 + (z - p.z) ** 2; if (d < bd) { bd = d; best = s; } }
   return best;
 }
+const director = new Director();
+let lastShot: Shot | null = null;
+function onShotChange(prev: Shot | null, next: Shot | null) {
+  if (next) {
+    $('tMode').textContent = 'OBSERVING';
+    $('hint').textContent = `観察中：${next.subject.label}（${next.subject.status()}）`;
+    recordLog('observe', `${next.subject.label}を観察（${next.subject.status()}）`);
+  } else {
+    if (prev && drone.mode === 'auto') drone.s = nearestS(drone.pos);
+    if (drone.mode === 'auto') setMode('auto');
+  }
+}
 const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0 };
 const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3();
 let yawRate = 0, interestW = 0;
@@ -59,7 +72,19 @@ function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
 }
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
-  if (drone.mode === 'auto') {
+  const shot = drone.mode === 'auto' ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.h) : null;
+  if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
+  if (shot) {
+    // glide to the viewpoint and keep the subject framed
+    _v.subVectors(shot.pos, drone.pos);
+    const L = _v.length(), top = shot.phase === 'approach' ? 2.4 : 0.9;
+    _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
+    const lx = shot.look.x - camera.position.x, ly = shot.look.y - camera.position.y, lz = shot.look.z - camera.position.z;
+    const k = Math.min(1, dt * (shot.phase === 'approach' ? 0.9 : 1.6));
+    drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
+    drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
+  } else if (drone.mode === 'auto') {
     const hasI = findInterest(drone.pos, U.uCamFwd.value);
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
     const speed = 1.35 - interestW * 0.5;
@@ -132,11 +157,39 @@ const PHASE_LOG: Record<string, string> = {
 };
 let lastPhase = '';
 
+/* ---------- today's sea: a per-day journal of what happened ---------- */
+interface LogEntry { ms: number; kind: string; text: string }
+let dayLog: LogEntry[] = [], dayKey = '', logSaveT = 0;
+const LOG_KIND: Record<string, string> = { phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', rest: '休息', manta: '採餌' };
+function localDate(ms: number, tz: number) { const d = new Date(ms + tz * 3600000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
+function ensureDay() {
+  const key = `seaglass.log.${cur!.loc.id}.${localDate(clock.ms, cur!.loc.tz)}`;
+  if (key === dayKey) return;
+  saveLog();
+  dayKey = key;
+  try { dayLog = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { dayLog = []; }
+}
+function saveLog() { if (!dayKey) return; try { localStorage.setItem(dayKey, JSON.stringify(dayLog.slice(-300))); } catch (e) { /* storage full or blocked */ } }
+function recordLog(kind: string, text: string) {
+  if (!cur) return;
+  ensureDay();
+  let last: LogEntry | undefined;
+  for (let i = dayLog.length - 1; i >= 0 && !last; i--) if (dayLog[i].text === text) last = dayLog[i];
+  if (last && Math.abs(clock.ms - last.ms) < 120000) return;
+  dayLog.push({ ms: clock.ms, kind, text });
+  if (dayLog.length > 300) dayLog.splice(0, dayLog.length - 300);
+  const now = performance.now();
+  if (now - logSaveT > 5000) { logSaveT = now; saveLog(); }
+  if (!guideEl.hidden && panelTab === 'log') renderGuide();
+}
+addEventListener('pagehide', saveLog);
+
 /* ---------- sea log: what is happening around the drone ---------- */
 const logQueue: string[] = [];
 const recent = new Map<string, number>();
 let logShownAt = -1e9;
 function seaLog(kind: string, text: string) {
+  recordLog(kind, text);
   const now = performance.now();
   if ((recent.get(text) ?? -1e9) > now - 90000) return;
   recent.set(text, now);
@@ -177,6 +230,7 @@ function updateHud() {
   const hdg = ((-drone.yaw * 180 / Math.PI) % 360 + 360) % 360;
   $('hdgnum').textContent = String(Math.round(hdg) % 360).padStart(3, '0') + '°';
   strip.style.transform = `translateX(${-(hdg + 360) * 2 + compassEl.clientWidth / 2}px)`;
+  if (lastShot) $('hint').textContent = `観察中：${lastShot.subject.label}（${lastShot.subject.status()}）`;
   updateTimeUi();
 }
 function updateTimeUi() {
@@ -207,17 +261,42 @@ function statusOf(id: string): string {
   return '';
 }
 const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || [])];
+let panelTab: 'guide' | 'log' = 'guide';
+function renderLog() {
+  const loc = cur!.loc;
+  ensureDay();
+  const d = new Date(clock.ms + loc.tz * 3600000);
+  const count = (k: string) => dayLog.filter((e) => e.kind === k).length;
+  const chips = [['発見', count('sighting')], ['観察', count('observe')], ['狩り', count('hunt')], ['捕食', count('catch')], ['息継ぎ', count('breathe')]]
+    .map(([k, v]) => `<span><b>${v}</b>${k}</span>`).join('');
+  const rows = dayLog.slice().reverse().map((e) => e.kind === 'phase'
+    ? `<li class="ph"><time>${localTimeString(e.ms, loc.tz)}</time><p>${e.text}</p></li>`
+    : `<li><time>${localTimeString(e.ms, loc.tz)}</time><span class="kd k-${e.kind}">${LOG_KIND[e.kind] || e.kind}</span><p>${e.text}</p></li>`).join('');
+  return `<h2>今日の${loc.name} <span>現地 ${d.getUTCMonth() + 1}月${d.getUTCDate()}日</span></h2>
+    <div class="sum">${chips}</div>
+    ${rows ? `<ol class="log">${rows}</ol>` : '<p class="empty">まだ記録はありません。ドローンが出来事に出会うと、ここに時刻つきで残ります。</p>'}`;
+}
 function renderGuide() {
   if (!cur) return;
   const loc = cur.loc, list = guideEntries(loc);
   const n = list.filter((e) => seen.has(loc.id + ':' + e.id)).length;
   $('seenCount').textContent = `${n}/${list.length}`;
+  $('btnGuide').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'guide'));
+  $('btnLog').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'log'));
   if (guideEl.hidden) return;
-  guideEl.innerHTML = `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
+  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日の海 <kbd>J</kbd></button></div>`;
+  const scroll = guideEl.scrollTop;
+  if (panelTab === 'log') { guideEl.innerHTML = tabs + renderLog(); guideEl.scrollTop = scroll; return; }
+  guideEl.innerHTML = tabs + `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
     <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}"><i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p></li>`).join('')}</ul>
     <h3>サンゴと底生生物</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>`;
+  guideEl.scrollTop = scroll;
 }
+guideEl.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
+  if (b) { panelTab = b.dataset.tab as 'guide' | 'log'; guideEl.scrollTop = 0; renderGuide(); }
+});
 let toastTimer = 0;
 function discover(e?: { id: string; ja: string; sci: string }) {
   if (!e || !cur) return;
@@ -227,6 +306,7 @@ function discover(e?: { id: string; ja: string; sci: string }) {
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
   showToast('NEW SIGHTING', e.ja, e.sci);
   chime();
+  recordLog('sighting', `${e.ja}を初めて見つけた`);
   renderGuide();
 }
 function checkSightings() {
@@ -308,6 +388,8 @@ function applyWater(loc: Sea) {
 function enterOcean(oc: Ocean) {
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
   lastPhase = '';
+  director.reset(); lastShot = null;
+  dayKey = '';
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
   applyWater(oc.loc);
@@ -331,6 +413,7 @@ function enterOcean(oc: Ocean) {
   renderGuide();
   try { history.replaceState(null, '', '#' + oc.loc.id); } catch (e) { /* ignore */ }
   resize();
+  requestAnimationFrame(resize);
 }
 async function dive(loc: Sea) {
   if (busy) return; busy = true;
@@ -362,6 +445,7 @@ async function toGlobe() {
 
 function setMode(m: 'auto' | 'manual') {
   drone.mode = m;
+  if (m === 'manual') director.reset();
   if (m === 'auto' && cur) drone.s = nearestS(drone.pos);
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
@@ -389,6 +473,10 @@ function toggleMusic() {
 }
 try { if (localStorage.getItem('seaglass.music') === '0') { setMusic(false); $('btnMusic').setAttribute('aria-pressed', 'false'); } } catch (e) { /* ignore */ }
 function setHud(on: boolean) { hudOn = on; document.body.classList.toggle('hud-off', !on); }
+function openPanel(tab: 'guide' | 'log') {
+  if (!guideEl.hidden && panelTab === tab) { setGuide(false); return; }
+  panelTab = tab; setGuide(true);
+}
 function setGuide(on: boolean) { guideEl.hidden = !on; $('btnGuide').setAttribute('aria-pressed', String(on)); if (on) setTimePanel(false); renderGuide(); }
 function setTimePanel(on: boolean) { $('timePanel').hidden = !on; $('btnTime').setAttribute('aria-expanded', String(on)); if (on) { guideEl.hidden = true; $('btnGuide').setAttribute('aria-pressed', 'false'); } }
 function setQuality(q: 'high' | 'low') {
@@ -415,7 +503,8 @@ document.addEventListener('visibilitychange', keepAwake);
 document.addEventListener('pointerdown', keepAwake, { once: true });
 
 $('btnGlobe').onclick = toGlobe;
-$('btnGuide').onclick = () => setGuide(guideEl.hidden);
+$('btnGuide').onclick = () => openPanel('guide');
+$('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
@@ -446,7 +535,8 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyL') setLamp(!lampOn);
   else if (e.code === 'KeyM') setSound(!audio.on);
   else if (e.code === 'KeyN') toggleMusic();
-  else if (e.code === 'KeyZ') setGuide(guideEl.hidden);
+  else if (e.code === 'KeyZ') openPanel('guide');
+  else if (e.code === 'KeyJ') openPanel('log');
   else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
   else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');
 });
@@ -519,6 +609,10 @@ function resize() {
   else gcam.setViewOffset(w, h, 0, h * 0.2, w, h);
   gcam.updateProjectionMatrix();
   snowMat.uniforms.uPx.value = h * dpr * 0.5 / Math.tan(camera.fov * Math.PI / 360);
+  // keep the hint and time panel just above the dock, however many rows it wraps to
+  const dockH = $('dock').offsetHeight || 44;
+  $('hint').style.bottom = `calc(${dockH + 26}px + env(safe-area-inset-bottom, 0px))`;
+  $('timePanel').style.bottom = `calc(${dockH + 26}px + env(safe-area-inset-bottom, 0px))`;
 }
 addEventListener('resize', resize);
 

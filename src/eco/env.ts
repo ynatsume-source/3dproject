@@ -17,6 +17,17 @@ export interface PreyGroup {
 
 export interface SeaEvent { kind: string; text: string; x: number; z: number }
 
+// Something worth pointing the camera at.
+export interface Subject {
+  key: string; label: string;
+  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus';
+  prio: number;
+  size: number;                         // rough length, m (sets filming distance)
+  pos(): { x: number; y: number; z: number } | null;
+  status(): string;
+  live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
+}
+
 export interface Env {
   t: number;
   day: number; night: number; twilight: number; sunI: number;
@@ -34,7 +45,7 @@ export interface Env {
 export function activity(diel: Diel | undefined, env: Env): number {
   switch (diel ?? 'day') {
     case 'night': return smooth(0.35, 0.8, env.night);
-    case 'crep': return Math.min(1, env.twilight * 1.2 + 0.35 * env.day + 0.25 * env.night);
+    case 'crep': return Math.min(1, env.twilight * 1.2 + 0.5 * env.day + 0.25 * env.night);
     case 'always': return 1;
     default: return smooth(0.2, 0.6, env.day);
   }

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
-import { activity, logEvent, type Env, type PreyGroup } from './env';
+import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
 const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _ss = new THREE.Vector3();
@@ -268,11 +268,28 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (groups.some((g) => g.hunt)) return '狩り中';
     const a = groups.reduce((s, g) => s + g.act, 0) / groups.length;
     if (a < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : '岩陰で休息中';
-    if (a < 0.65 || Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
+    if (Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
     return ({ plankton: 'プランクトンを食べている', algae: '藻をかじっている', invert: '餌を探している', fish: '巡回中', filter: 'プランクトンを濾して食べている' } as Record<string, string>)[sp.diet || 'plankton'];
   }
+  function subjects(out: Subject[]) {
+    const giant = sp.size[1] > 3;
+    groups.forEach((g, gi) => {
+      if (!g.placed) return;
+      const key = `${sp.id}:${gi}`, size = sp.size[1];
+      if (isPredator && g.hunt) {
+        const h = g.hunt;
+        out.push({ key: key + ':hunt', label: sp.ja, kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => `${h.prey.label}を狙っている`, live: () => g.hunt === h });
+      } else if (g.type === 'roam' && sp.big) {
+        out.push({ key, label: sp.ja, kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act), size, pos: () => g.c, status, live: () => g.placed });
+      } else if (g.type === 'reef' && sp.big && g.act > 0.5) {
+        out.push({ key, label: sp.ja, kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status, live: () => g.placed });
+      } else if (g.type === 'anem') {
+        out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status, live: () => true });
+      }
+    });
+  }
   return {
-    sp, mesh, update, nearest, nearestPos, status,
+    sp, mesh, update, nearest, nearestPos, status, subjects,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
     reset() { for (const g of groups) g.placed = false; },
   };

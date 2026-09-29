@@ -11,6 +11,7 @@ npm run dev        # http://localhost:5173
 npm run build      # dist/ に出力
 npm run typecheck
 npm run sim -- miyako   # 生態系だけをヘッドレスで早回しし、昼・夕方・夜・朝の行動を確認
+npx tsx scripts/director-check.ts miyako   # カメラ監督が何を撮りに行くかを確認
 ```
 
 `?debug` を付けて開くと、コンソールから `seaglass.cur.eco.env` などを覗けます。
@@ -29,7 +30,8 @@ npm run sim -- miyako   # 生態系だけをヘッドレスで早回しし、昼
 | `src/eco/` | 生態系：環境（光・潮流・プランクトン場・脅威・出来事ログ）、魚の群れ行動、捕食、ウミガメとマンタの一日 |
 | `src/render/common.ts` | 共有 uniform と水中ライティングの GLSL |
 | `src/globe.ts` | 実際の太陽で照らされる地球儀 |
-| `src/audio.ts` | 環境音（夜はテッポウエビのパチパチ音が増える） |
+| `src/audio.ts` | サウンド：時間帯で音階が変わる生成BGM（宮古島は琉球音階）と、海の環境音 |
+| `src/director.ts` | カメラ監督：近くの出来事（狩り・ウミガメ・マンタ・クマノミなど）を選んで回り込みながら撮る |
 
 ## 操作
 
@@ -39,10 +41,11 @@ npm run sim -- miyako   # 生態系だけをヘッドレスで早回しし、昼
 | 時刻パネル | `T` |
 | 朝方 / 昼間 / 夕方 / 夜間 | `1` `2` `3` `4` |
 | 実時間に戻す | `0` |
-| 図鑑 | `Z` |
+| 図鑑 / 今日の海（出来事のログ） | `Z` / `J` |
+| サウンド / 音楽だけ切り替え | `M` / `N` |
 | 自動巡航 ⇄ 手動操縦 | `P` |
 | 移動 / 上昇・下降 / 加速 | `WASD` / `E` `Q` / `Shift` |
-| ライト / 環境音 / HUD / 全画面 | `L` / `M` / `H` / `F` |
+| ライト / HUD / 全画面 | `L` / `H` / `F` |
 
 地球儀の陸地は Natural Earth 1:50m（world-atlas）から作ったマスクです。
 
