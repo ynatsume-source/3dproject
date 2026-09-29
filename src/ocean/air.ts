@@ -196,7 +196,7 @@ export function setPlanets(list: { dir: number[]; mag: number; bv: number }[]) {
   list.forEach((p, i) => { P.setXYZ(i, p.dir[0], p.dir[1], p.dir[2]); M.setX(i, p.mag); B.setX(i, p.bv); });
   P.needsUpdate = M.needsUpdate = B.needsUpdate = true;
 }
-fetch(`${import.meta.env.BASE_URL}stars.bin`).then((r) => r.arrayBuffer()).then((buf) => {
+if (typeof document !== 'undefined') fetch(`${import.meta.env.BASE_URL}stars.bin`).then((r) => r.arrayBuffer()).then((buf) => {
   const dv = new DataView(buf), n = buf.byteLength / 6;
   const pos = new Float32Array(n * 3), mag = new Float32Array(n), bv = new Float32Array(n);
   for (let i = 0; i < n; i++) {

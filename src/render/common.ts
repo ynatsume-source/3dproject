@@ -6,7 +6,7 @@ import milkyUrl from '../milkyway.jpg';   // the Milky Way on the celestial sphe
 // converting colours or output so the look matches the prototype.
 THREE.ColorManagement.enabled = false;
 
-const milkyTex = new THREE.TextureLoader().load(milkyUrl);
+const milkyTex = typeof document !== 'undefined' ? new THREE.TextureLoader().load(milkyUrl) : new THREE.Texture();   // (headless checks have no DOM)
 milkyTex.wrapS = THREE.RepeatWrapping;
 const EMPTY3D = new THREE.Data3DTexture(new Uint8Array([255, 255]), 1, 1, 1);
 EMPTY3D.format = THREE.RGFormat; EMPTY3D.unpackAlignment = 1; EMPTY3D.needsUpdate = true;

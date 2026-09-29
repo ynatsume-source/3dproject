@@ -23,6 +23,9 @@ export class Director {
   private recent = new Map<string, number>();
   private clock = 0;
   onStart: (s: Subject) => void = () => { /* set by the app */ };
+  // the guide's taste: how much it wants to film a subject, and how long it likes to stay (set by the app)
+  weight: (s: Subject) => number = () => 1;
+  dwellK = 1;
 
   reset() { this.shot = null; this.cooldown = 10; }
 
@@ -35,7 +38,7 @@ export class Director {
     this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07);
     this.t = 0;
     const [a, b] = DURATION[best.kind];
-    this.dur = rr(a, b);
+    this.dur = rr(a, b) * this.dwellK;
     this.recent.set(best.key, this.clock);
     this.recent.set('kind:' + best.kind, this.clock);
     this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach', forced };
@@ -61,7 +64,7 @@ export class Director {
         if (d > (s.reach ?? 42)) continue;
         const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9);
         const kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
-        const score = s.prio * (1 - d / 60) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1);
+        const score = s.prio * (1 - d / 60) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1) * this.weight(s);
         if (score > bs) { bs = score; best = s; }
       }
       if (!best || bs < 0.9) return null;

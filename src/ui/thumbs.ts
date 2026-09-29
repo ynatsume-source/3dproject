@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
+import { birdModel } from '../eco/birds';
 import type { Sea } from '../data/locations';
 
 const W = 176, H = 104;
@@ -22,6 +23,8 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
   if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial()), view: [0.35, 1.1, 0.75] };
   if (id === 'whale') return { obj: new THREE.Mesh(WHALE_GEO, whaleMaterial(0.3)), view: [1, 0.3, 0.45] };
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
+  const bird = (loc.birds || []).find((b) => b.id === id);
+  if (bird) { const m = birdModel(bird); m.position.y = 20; return { obj: m, view: [0.55, 0.9, 0.75] }; }   // lifted into the air, out of the water's haze
   // (garden eels duck into their burrows when a camera comes close, so they get no portrait)
   return null;
 }
@@ -37,9 +40,9 @@ export function guideThumbs(loc: Sea, ids: string[]): Record<string, string> {
   }
   // clear, shallow-water light for every picture; the live values are put back afterwards
   const keep = { cam: U.uCamPos.value.clone(), sun: U.uSunDir.value.clone(), sunI: U.uSunI.value, amb: U.uAmb.value, fog: U.uFogDen.value, abs: U.uAbs.value.clone(), night: U.uNight.value,
-    tint: U.uTint.value.clone(), lamp: U.uLamp.value, cave: U.uCaveOn.value, up: U.uUp.value.clone(), hor: U.uHor.value.clone(), down: U.uDown.value.clone(), gold: U.uGolden.value };
+    airSun: U.uAirSun.value.clone(), cloud: U.uCloud.value, moonI: U.uMoonI.value, tint: U.uTint.value.clone(), lamp: U.uLamp.value, cave: U.uCaveOn.value, up: U.uUp.value.clone(), hor: U.uHor.value.clone(), down: U.uDown.value.clone(), gold: U.uGolden.value };
   U.uSunDir.value.set(0.35, 0.85, 0.4).normalize(); U.uSunI.value = 1; U.uAmb.value = 1.1; U.uFogDen.value = 0.0001; U.uAbs.value.set(0, 0, 0); U.uNight.value = 0;
-  U.uTint.value.setRGB(1, 1, 1); U.uLamp.value = 0; U.uCaveOn.value = 0; U.uGolden.value = 0;
+  U.uTint.value.setRGB(1, 1, 1); U.uLamp.value = 0; U.uAirSun.value.set(0.35, 0.85, 0.4).normalize(); U.uCloud.value = 0; U.uMoonI.value = 0; U.uCaveOn.value = 0; U.uGolden.value = 0;
   U.uUp.value.setRGB(0.4, 0.6, 0.7); U.uHor.value.setRGB(0.3, 0.45, 0.55); U.uDown.value.setRGB(0.2, 0.3, 0.35);
   const cam = new THREE.PerspectiveCamera(28, W / H, 0.01, 100);
   for (const id of todo) {
@@ -57,7 +60,7 @@ export function guideThumbs(loc: Sea, ids: string[]): Record<string, string> {
     have[id] = renderer.domElement.toDataURL('image/png');
   }
   U.uCamPos.value.copy(keep.cam); U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs);
-  U.uNight.value = keep.night; U.uTint.value.copy(keep.tint); U.uLamp.value = keep.lamp; U.uCaveOn.value = keep.cave; U.uUp.value.copy(keep.up); U.uHor.value.copy(keep.hor); U.uDown.value.copy(keep.down); U.uGolden.value = keep.gold;
+  U.uNight.value = keep.night; U.uAirSun.value.copy(keep.airSun); U.uCloud.value = keep.cloud; U.uMoonI.value = keep.moonI; U.uTint.value.copy(keep.tint); U.uLamp.value = keep.lamp; U.uCaveOn.value = keep.cave; U.uUp.value.copy(keep.up); U.uHor.value.copy(keep.hor); U.uDown.value.copy(keep.down); U.uGolden.value = keep.gold;
   cache.set(loc.id, have);
   return have;
 }

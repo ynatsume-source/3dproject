@@ -16,6 +16,15 @@ export interface Species {
   cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
   rests?: 'cave';                                // lies still on the floor of the cave while inactive (whitetip reef shark)
 }
+// seabirds over the site: how they fly, and whether they rest on the water
+export interface BirdSpec {
+  id: string; ja: string; sci: string; note: string;
+  kind: 'booby' | 'tern' | 'albatross' | 'frigate';
+  count: number; span: number;            // wingspan (m)
+  c1: number[]; c2: number[]; c3: number[];   // upperparts, underparts, bill / cap
+  speed: number; glide: number;           // m/s; fraction of the time spent gliding
+  alt: [number, number]; rest: number;     // flying height (m); how often it settles on the sea (0 never)
+}
 export interface GuideEntry { id: string; ja: string; sci: string; note: string }
 export interface Sea {
   id: string; name: string; site: string; region: string; lat: number; lon: number;
@@ -27,6 +36,7 @@ export interface Sea {
   f(x: number, z: number): number;
   grass?(x: number, z: number): number;
   swellHs?: number;                        // typical significant wave height (m) when there is no live sea state
+  birds?: BirdSpec[];
   pelagic?: boolean;                       // open ocean: no bottom in sight; f() is only a placement floor far below
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   whales?: WhaleSeason;                    // humpbacks visit in these months
@@ -63,6 +73,10 @@ export const LOCATIONS: Sea[] = [
     },
     corals: { branch: 0.30, table: 0.14, brain: 0.22, fan: 0.07, mushroom: 0.14, clam: 0.03 },
     anemones: 34, clamSize: [0.6, 1.1], eels: 0,
+    birds: [
+      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
+      { id: 'ooajisashi', ja: 'オオアジサシ', sci: 'Thalasseus bergii', note: '黄色いくちばしと黒い冠羽のアジサシ。水面の上をふわふわと飛び、小魚を見つけると急降下する。', kind: 'tern', count: 6, span: 1.1, c1: [0.62, 0.64, 0.66], c2: [0.96, 0.96, 0.95], c3: [0.95, 0.85, 0.2], speed: 9, glide: 0.25, alt: [3, 14], rest: 0 },
+    ],
     species: [
       { id: 'percula', ja: 'オレンジクラウンフィッシュ', sci: 'Amphiprion percula', note: 'イソギンチャクと共生するクマノミ。太い黒の縁取りがある白帯が3本。',
         diel: 'day', diet: 'plankton', pat: 1, c1: [0.95, 0.40, 0.06], c2: [0.97, 0.97, 0.95], c3: [0.03, 0.03, 0.03], bands: 3, edge: 1, shape: 'clown', size: [0.07, 0.10], habitat: 'anemone', speed: 0.5 },
@@ -112,6 +126,10 @@ export const LOCATIONS: Sea[] = [
     cave: { x: 45, z: 25, rot: 0.35 },
     corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 },
     anemones: 40, clamSize: [0.22, 0.38], eels: 14,
+    birds: [
+      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
+      { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に沖縄の岩礁で子育てし、サンゴ礁の上を軽やかに飛ぶ。', kind: 'tern', count: 10, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0 },
+    ],
     species: [
       { id: 'ocellaris', ja: 'カクレクマノミ', sci: 'Amphiprion ocellaris', note: 'ハタゴイソギンチャクなどに暮らす。オレンジクラウンフィッシュより黒い縁取りが細い。',
         diel: 'day', diet: 'plankton', pat: 1, c1: [0.98, 0.48, 0.08], c2: [0.97, 0.97, 0.95], c3: [0.03, 0.03, 0.03], bands: 3, edge: 0.45, shape: 'clown', size: [0.07, 0.10], habitat: 'anemone', speed: 0.5 },
@@ -178,6 +196,10 @@ export const LOCATIONS: Sea[] = [
     },
     corals: { branch: 0.12, table: 0.18, brain: 0.22, fan: 0.2, mushroom: 0.22, clam: 0.02 },
     anemones: 30, clamSize: [0.3, 0.5], eels: 12,
+    birds: [
+      { id: 'gunkandori', ja: 'オオグンカンドリ', sci: 'Fregata minor', note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。', kind: 'frigate', count: 3, span: 2.2, c1: [0.06, 0.06, 0.07], c2: [0.9, 0.9, 0.9], c3: [0.5, 0.5, 0.55], speed: 9, glide: 0.95, alt: [25, 70], rest: 0 },
+      { id: 'shiroajisashi', ja: 'シロアジサシ', sci: 'Gygis alba', note: '全身真っ白で目が大きい、妖精のようなアジサシ。巣を作らず木の枝のくぼみに直接卵を産む。', kind: 'tern', count: 5, span: 0.78, c1: [0.97, 0.97, 0.97], c2: [0.99, 0.99, 0.99], c3: [0.08, 0.08, 0.1], speed: 8, glide: 0.2, alt: [4, 15], rest: 0 },
+    ],
     species: [
       { id: 'nigripes', ja: 'モルディブアネモネフィッシュ', sci: 'Amphiprion nigripes', note: 'モルディブとスリランカ周辺だけに暮らすクマノミ。白帯は頭の後ろの1本だけ。',
         diel: 'day', diet: 'plankton', pat: 1, c1: [0.96, 0.52, 0.24], c2: [0.98, 0.98, 0.96], c3: [0.04, 0.04, 0.04], bands: 1, edge: 0, shape: 'clown', size: [0.08, 0.11], habitat: 'anemone', speed: 0.5 },
@@ -221,6 +243,10 @@ export const LOCATIONS: Sea[] = [
     f() { TERR.reef = 0; return -90; },
     corals: { branch: 0, table: 0, brain: 0, fan: 0, mushroom: 0, clam: 0 },
     anemones: 0, clamSize: [0.3, 0.4], eels: 0,
+    birds: [
+      { id: 'koahoudori', ja: 'コアホウドリ', sci: 'Phoebastria immutabilis', note: '翼を広げると2m。風と波の上昇気流を使う「ダイナミック・ソアリング」で、ほとんど羽ばたかずに大洋を何千kmも飛ぶ。ハワイ北西の島で繁殖し、北太平洋を回遊する。', kind: 'albatross', count: 2, span: 2.0, c1: [0.22, 0.2, 0.19], c2: [0.97, 0.97, 0.96], c3: [0.85, 0.72, 0.6], speed: 12, glide: 0.97, alt: [1, 12], rest: 0.35 },
+      { id: 'kuroashi', ja: 'クロアシアホウドリ', sci: 'Phoebastria nigripes', note: '全身が黒っぽいアホウドリ。船や漂流物についてくる好奇心の強い鳥で、北太平洋の真ん中でも出会う。', kind: 'albatross', count: 1, span: 2.1, c1: [0.18, 0.16, 0.15], c2: [0.3, 0.27, 0.25], c3: [0.2, 0.18, 0.17], speed: 12, glide: 0.97, alt: [1, 10], rest: 0.35 },
+    ],
     species: [
       { id: 'tobiuo', ja: 'ハマトビウオ', sci: 'Cheilopogon pinnatibarbatus', note: '外洋の表層を群れで泳ぐ。シイラなどに追われると大きな胸びれを広げて水面を飛び出し、数百mも滑空して逃げる。',
         diel: 'day', diet: 'plankton', pat: 0, c1: [0.16, 0.26, 0.52], c2: [0.86, 0.89, 0.92], shape: 'slender', size: [0.26, 0.34], habitat: 'shoal', schools: 1, n: 40, alt: [85, 88], speed: 1.4, freq: [8, 11] },

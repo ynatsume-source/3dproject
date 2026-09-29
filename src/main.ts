@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import './styles.css';
 import { U } from './render/common';
-import { clamp, smooth, angDiff } from './core/math';
+import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
 import { updateAir, setPlanets, topScene, setRefraction, swellAt } from './ocean/air';
@@ -14,6 +14,7 @@ import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from '.
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, type Shot } from './director';
 import type { Subject } from './eco/env';
+import { PERSONAS, personaById, line, type Persona, type Mood } from './persona';
 import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { guideThumbs } from './ui/thumbs';
 import { PLACES } from './ui/places';
@@ -50,7 +51,7 @@ let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : detectTier(ren
 const post = new Post(TIERS[tier]);
 
 /* ================= drone ================= */
-const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0 };
+const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyWait: 600, skyStay: 300 };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
@@ -75,6 +76,8 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
     $('tMode').textContent = 'OBSERVING';
     $('hint').textContent = `観察中：${next.subject.label}（${next.subject.status()}）`;
     recordLog('observe', `${next.subject.label}を観察（${next.subject.status()}）`);
+    if (next.subject.kind === 'hunt') say('hunt');
+    else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
   } else {
     if (prev && drone.mode === 'auto') drone.s = nearestS(drone.pos);
     if (drone.mode === 'auto') setMode('auto');
@@ -116,7 +119,8 @@ function updateDrone(dt: number, now: number) {
       : 6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim) + 1.6 * skim;
     _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
     _v.subVectors(_t, drone.pos);
-    if (drone.pos.y < 0) _v.set(0, 3.2, 0);                                 // first, straight up through the surface
+    // first, up through the surface on a slant, carrying on the way we were going
+    if (drone.pos.y < 0) _v.set(-Math.sin(drone.yaw) * 1.8, 2.4, -Math.cos(drone.yaw) * 1.8);
     else {
       const L = Math.hypot(_v.x, _v.z);
       _v.x *= Math.min(4.5, L * 0.3) / Math.max(L, 1e-4); _v.z *= Math.min(4.5, L * 0.3) / Math.max(L, 1e-4);
@@ -127,13 +131,14 @@ function updateDrone(dt: number, now: number) {
     let wantYaw = Math.atan2(-drone.vel.x, -drone.vel.z) + Math.sin(st * 0.05) * 0.6;
     if (night > 0.5) wantYaw = drone.yaw + dt * 0.035;                       // at night, turn slowly under the sky
     else if (dusk > 0.3) wantYaw += angDiff(Math.atan2(-U.uAirSun.value.x, -U.uAirSun.value.z), wantYaw) * 0.7;   // face the sunset
-    const wantPitch = night > 0.5 ? 0.42 + Math.sin(st * 0.04) * 0.15 : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
+    const wantPitch = drone.pos.y < 0 ? 0.3                                  // rising: watch the surface come closer
+      : night > 0.5 ? 0.42 + Math.sin(st * 0.04) * 0.15 : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.35);
     drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.35);
   } else if (drone.mode === 'auto') {
     const hasI = findInterest(drone.pos, U.uCamFwd.value);
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
-    const speed = 1.35 - interestW * 0.5;
+    const speed = (1.35 - interestW * 0.5) * persona.cruise;
     drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
     pathPoint(drone.s, _t);
     _v.subVectors(_t, drone.pos);
@@ -141,7 +146,7 @@ function updateDrone(dt: number, now: number) {
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.5));
     pathPoint(drone.s + 9 / Math.max(pathRate(drone.s), 1e-3), _a);
     const dx = _a.x - drone.pos.x, dz = _a.z - drone.pos.z, dy = _a.y - drone.pos.y;
-    let wantYaw = Math.atan2(-dx, -dz) + (Math.sin(t * 0.09) * 0.45 + Math.sin(t * 0.031 + 1) * 0.3) * (1 - interestW);
+    let wantYaw = Math.atan2(-dx, -dz) + (Math.sin(t * 0.09 * persona.sway) * 0.45 + Math.sin(t * 0.031 + 1) * 0.3) * (1 - interestW) * persona.sway;
     let wantPitch = Math.atan2(dy, Math.hypot(dx, dz)) * 0.6 - 0.1 + Math.sin(t * 0.07) * 0.12;
     if (interestW > 0.01 && hasI) {
       const ix = _i.x - drone.pos.x, iz = _i.z - drone.pos.z, iy = _i.y - drone.pos.y;
@@ -212,20 +217,75 @@ function updateDrone(dt: number, now: number) {
   camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
 }
 
+/* ================= the guide's character ================= */
+let persona: Persona = personaById((() => { try { return localStorage.getItem('seaglass.persona'); } catch (e) { return null; } })());
+let lastSay = -1e9, chatT = 0;
+function applyPersona() {
+  director.dwellK = persona.dwell;
+  director.weight = (s) => persona.weight(s, isShark);
+  $('btnPersona').innerHTML = `<span class="dot"></span>${persona.ja}`;
+  $('btnPersona').title = persona.blurb;
+}
+function isShark(s: Subject) {
+  const sp = cur?.loc.species.find((x) => s.label.startsWith(x.ja));
+  return !!sp && (sp.shape === 'shark' || sp.shape === 'whitetip');
+}
+// the first sentence of a creature's field-guide note, for the chatty guide
+function noteOf(label: string) {
+  const e = cur ? guideEntries(cur.loc).find((x) => label.startsWith(x.ja)) : null;
+  return e ? e.note.split('。')[0] + '。' : '';
+}
+// a remark in the guide's own voice (auto-cruise only: in manual flight you are the guide)
+function say(mood: Mood, vars: Record<string, string> = {}, force = false) {
+  if (!cur || drone.mode !== 'auto') return;
+  const now = performance.now();
+  if (!force && now - lastSay < persona.gap * 1000) return;
+  const text = line(persona, mood, { sea: cur.loc.name, ...vars });
+  if (!text) return;
+  lastSay = now; chatT = 0;
+  recordLog('voice', text);
+  if (logQueue.length < 3) logQueue.push({ text, label: `GUIDE · ${persona.ja}` });
+}
+function setPersona(p: Persona) {
+  persona = p;
+  try { localStorage.setItem('seaglass.persona', p.id); } catch (e) { /* ignore */ }
+  applyPersona();
+  drone.skyWait = rr(...persona.skyGap);
+  $('hint').textContent = `ガイド：${p.ja} — ${p.blurb}`;
+  // greet once the choice has settled (clicking through the characters shouldn't make them all speak)
+  clearTimeout(helloTimer);
+  helloTimer = window.setTimeout(() => { logQueue.length = 0; lastSay = -1e9; say('hello', {}, true); }, 1800);
+}
+let helloTimer = 0;
+
 /* ================= above the water ================= */
 function crossSurface(up: boolean) {
   splash();
   if (cur) applySky(cur.loc);   // the night is lit differently on each side of the surface
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
-function setSky(on: boolean) {
+// natural: the guide decided (it goes back on its own after a while); otherwise you asked, and it stays longer
+function setSky(on: boolean, natural = false) {
   if (!cur) return;
   drone.sky = on; drone.skyT = 0;
   if (drone.mode !== 'auto') setMode('auto');
   director.reset(); lastShot = null;
-  if (!on) drone.s = nearestS(drone.pos);
+  if (!on) { drone.s = nearestS(drone.pos); drone.skyWait = rr(...persona.skyGap); }
+  else drone.skyStay = rr(...persona.skyStay) * (natural ? 1 : 2.5);
   $('btnSky').setAttribute('aria-pressed', String(on));
   $('btnSky').innerHTML = `<span class="dot"></span>${on ? '海へ' : '空へ'} <kbd>U</kbd>`;
+  say(on ? 'skyUp' : 'skyDown', {}, natural);
+}
+// Every so often the guide rises into the sky on its own, and comes back down: more often on a clear
+// night with a meteor shower on, never from inside the cave or in the middle of filming something.
+function skySchedule(dt: number) {
+  if (!cur || drone.mode !== 'auto') return;
+  if (!drone.sky) {
+    if (lastShot || (cur.cave && camCave < 0.95)) return;
+    const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value);
+    drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));
+    if (drone.skyWait <= 0) setSky(true, true);
+  } else if (drone.skyT > drone.skyStay) setSky(false, true);
 }
 // aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
 const auroraParam = new URLSearchParams(location.search).get('aurora');
@@ -294,7 +354,8 @@ function applySky(loc: Sea) {
   setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
   if (!lampManual) setLamp(wantLamp(), false);
   cur!.eco.setSky(s, U.uCurrent.value);
-  if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : PHASE_LOG)[s.phase]); lastPhase = s.phase; }
+  if (s.phase !== lastPhase) { if (lastPhase) { seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : PHASE_LOG)[s.phase]); say(s.phase as Mood); } lastPhase = s.phase; }
+  if (U.uRain.value > 0.2 && !saidRain) { saidRain = true; say('rain'); }
 }
 const PHASE_LOG: Record<string, string> = {
   dawn: '夜明け。夜行性の魚が岩陰へ戻り、昼の魚たちが動き出す',
@@ -313,7 +374,8 @@ let lastPhase = '';
 /* ---------- today's sea: a per-day journal of what happened ---------- */
 interface LogEntry { ms: number; kind: string; text: string }
 let dayLog: LogEntry[] = [], dayKey = '', logSaveT = 0;
-const LOG_KIND: Record<string, string> = { phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', rest: '休息', manta: '採餌' };
+let saidRain = false;
+const LOG_KIND: Record<string, string> = { voice: 'ガイド', phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', rest: '休息', manta: '採餌' };
 function localDate(ms: number, tz: number) { const d = new Date(ms + tz * 3600000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
 function ensureDay() {
   const key = `seaglass.log.${cur!.loc.id}.${localDate(clock.ms, cur!.loc.tz)}`;
@@ -339,7 +401,7 @@ addEventListener('pagehide', saveLog);
 
 /* ---------- sea log: what is happening around the drone ---------- */
 type Where = () => { x: number; y: number; z: number } | null;
-const logQueue: { text: string; at?: Where }[] = [];
+const logQueue: { text: string; at?: Where; label?: string }[] = [];
 const recent = new Map<string, number>();
 let logShownAt = -1e9;
 function seaLog(kind: string, text: string, at?: Where) {
@@ -353,7 +415,7 @@ function pumpLog(now: number) {
   if (!logQueue.length || now - logShownAt < 9000 || $('toast').classList.contains('on')) return;
   logShownAt = now;
   const e = logQueue.shift()!;
-  showToast('SEA LOG', e.text, '');
+  showToast(e.label ?? 'SEA LOG', e.text, '');
   markAt = e.at || null; markText = e.text; markUntil = now + 9000;
   $('toast').classList.toggle('go', !!markAt);
 }
@@ -400,6 +462,17 @@ function goTo(id: string) {
   const oc = cur, cam = drone.pos, near = <T extends { pos: THREE.Vector3 }>(a: T[]) => a.reduce((b, c) => (c.pos.distanceTo(cam) < b.pos.distanceTo(cam) ? c : b));
   const loc = oc.loc, name = guideEntries(loc).find((e) => e.id === id)?.ja ?? (id === 'cave' ? '海底洞窟' : '');
   let s: Subject | null = null;
+  // a seabird: go up into the sky, where a few of them come by
+  const flock = oc.birds?.flocks.find((f: any) => f.sp.id === id);
+  if (flock) {
+    if (!drone.sky) setSky(true);
+    const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
+    flock.birds.slice(0, 3).forEach((b: any, i: number) => {
+      b.p.set(cam.x + fx * (25 + i * 6) + fz * (i - 1) * 8, Math.max(cam.y, 0) + 5 + i, cam.z + fz * (25 + i * 6) - fx * (i - 1) * 8);
+      b.state = 'fly'; b.fold = 0; b.h = Math.atan2(-fz, -fx) + (i - 1) * 0.4; b.stateT = 0;
+    });
+    return;
+  }
   const place = id.startsWith('place:') ? (PLACES[loc.id] || []).find((p) => 'place:' + p.id === id) : null;
   if (place) {
     const f = place.find(oc, cam);
@@ -503,7 +576,7 @@ function statusOf(id: string): string {
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
-const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || [])];
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note }))];
 let panelTab: 'guide' | 'log' = 'guide';
 function renderLog() {
   const loc = cur!.loc;
@@ -555,6 +628,7 @@ function discover(e?: { id: string; ja: string; sci: string }) {
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
   showToast('NEW SIGHTING', e.ja, e.sci);
   recordLog('sighting', `${e.ja}を初めて見つけた`);
+  say('sighting', { name: e.ja });
   renderGuide();
 }
 function checkSightings() {
@@ -568,6 +642,7 @@ function checkSightings() {
   if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'));
   const W = cur!.whales;
   if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'));
+  if (cur!.birds && cam.y > 0) for (const b of cur!.birds.inView(cam, fwd, 80)) discover(b);
 }
 
 /* ================= globe UI ================= */
@@ -660,6 +735,9 @@ function enterOcean(oc: Ocean) {
   applySky(oc.loc);
   grass.visible = !!oc.grassTex; grassMat.uniforms.uHeight.value = oc.grassTex;
   drone.s = 0.4 + Math.random() * 6; drone.mode = 'auto';
+  drone.sky = false; drone.skyWait = rr(...persona.skyGap) * 0.6; saidRain = false;
+  $('btnSky').setAttribute('aria-pressed', 'false'); $('btnSky').innerHTML = '<span class="dot"></span>空へ <kbd>U</kbd>';
+  setTimeout(() => { if (cur === oc) { lastSay = -1e9; say('hello', {}, true); } }, 6000);
   pathPoint(drone.s, drone.pos); drone.vel.set(0, 0, 0);
   const a = pathPoint(drone.s + 0.05, new THREE.Vector3());
   drone.yaw = Math.atan2(-(a.x - drone.pos.x), -(a.z - drone.pos.z)); drone.pitch = -0.08;
@@ -846,6 +924,8 @@ $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
+$('btnPersona').onclick = () => setPersona(PERSONAS[(PERSONAS.indexOf(persona) + 1) % PERSONAS.length]);
+applyPersona();
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnSound').onclick = () => setSound(!audio.on);
@@ -1032,7 +1112,11 @@ function frame(ts: number) {
     surface.visible = snow.visible = !air;
     shafts.visible = !TIERS[tier].vol && !air;
     updateAir(camera, renderer.domElement.height, renderer.getPixelRatio());
-    stepMeteors(clock.live ? dt : dt * clock.speed, dt, clock.ms, camera.position, U.uStarM.value, { sunAir: skyNow!.sunAir, moonI: U.uMoonI.value, cloud: U.uCloud.value }, air, (t) => seaLog('observe', t));
+    cur.birds?.update(dt, drone.pos, fx, fz, air, (sp, t) => { seaLog('observe', t); say('bird', { name: sp.ja }); });
+    stepMeteors(clock.live ? dt : dt * clock.speed, dt, clock.ms, camera.position, U.uStarM.value, { sunAir: skyNow!.sunAir, moonI: U.uMoonI.value, cloud: U.uCloud.value }, air, (t) => { seaLog('observe', t); say('meteor'); });
+    // the guide: its own trips to the sky, and a word now and then when nothing much is happening
+    skySchedule(dt);
+    if ((chatT += dt) > 3600 / persona.talk * (0.6 + Math.random() * 0.8)) say(air ? 'idleSky' : skyNow!.night > 0.5 ? 'idleNight' : 'idle');
     const far = air ? 90000 : 460;
     if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
     setAir(air);
