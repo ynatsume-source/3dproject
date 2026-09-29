@@ -38,6 +38,9 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 
 - 図鑑の「会いに行く」：その生き物のいちばん近い個体のところへ自動カメラが連れて行き、観察する。宮古島では「洞窟へ行く」で海底洞窟を通り抜ける。ザトウクジラは季節中なら呼ぶと通り過ぎてくれる（季節外は案内が出る）
 - ログ（SEA LOG）に出た出来事は、画面上のその場所に淡い輪で示す（画面の外なら端に矢印）。輪かログをタップするとそこへ向かう
+- 海を選ぶと、あなたのいる場所（位置情報。許可しなければタイムゾーンから推定）から実際の地球の上を飛んで、その海の本物の衛星写真へ降下し、着水して潜る。`スキップ` で省略でき、「視差効果を減らす」設定では従来どおり直接切り替わる
+- 「今日の海」かつ実時刻のときは、現地の今の天気（雲量・雨・雷・風・波高・海水温）が海に反映される。雲が厚いと光芒が弱まり、雨の日は水面に雨粒の輪が、雷の日は稲光が走る。時刻パネルに現地の天気を表示
+- 図鑑には生き物ごとにモデルの絵を出す（まだ会っていない生き物は影だけ）。「行き先」から洞窟や根などの場所へも行ける
 - スマホ・タブレットでは画面がスリープしないようにしている（Screen Wake Lock と、無音の小さな動画をループさせる NoSleep.js の方法）
 
 | 操作 | キー |
@@ -95,5 +98,8 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 ## クレジット
 
 - 海底テクスチャ：[Poly Haven](https://polyhaven.com)（CC0）の aerial_beach_01 / coral_fort_wall_03 / coral_mud_01
+- 着水地点の衛星写真：[Sentinel-2 cloudless 2016](https://s2maps.eu) by EOX IT Services GmbH（Contains modified Copernicus Sentinel data 2016, CC BY 4.0）。`public/sat/` に同梱（`scripts/fetch-sat.py` で作成）
+- 地球儀の地表と夜景：NASA Blue Marble（Shaded Relief + Bathymetry）と NASA Black Marble 2016（VIIRS）。NASA GIBS 経由、パブリックドメイン
+- 天気と海況：[Open-Meteo](https://open-meteo.com)（Forecast API / Marine API、CC BY 4.0）。15分ごとに更新
 - スリープ防止の無音動画：[NoSleep.js](https://github.com/richtr/NoSleep.js)（MIT）
 - ピアノ音源：[Salamander Grand Piano](https://archive.org/details/SalamanderGrandPianoV3) by Alexander Holm（CC BY 3.0）。`public/audio/piano/` に Tone.js 配布版の一部を同梱

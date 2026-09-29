@@ -36,6 +36,19 @@ body:not(.mode-globe) .g-ui * { pointer-events: none !important; }
 #picker .name { font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: .32em; display: flex; align-items: center; gap: 10px; }
 #picker .name::before { content: ""; width: 22px; height: 1px; background: var(--ink-dim); }
 #picker h1 { margin: 0; font-weight: 500; font-size: 26px; letter-spacing: .08em; text-wrap: balance; }
+#picker p.home { margin: 0; font-size: 12px; line-height: 1.7; color: var(--ink-dim); }
+#picker p.home b { color: var(--ink); font-weight: 500; }
+#picker p.home small { color: var(--ink-faint); font-size: 10.5px; }
+#picker p.home button { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--accent); font: 500 11px/1 var(--f-body); padding: 4px 8px; border-radius: 6px; cursor: pointer; margin-left: 6px; }
+body.flying .g-ui { opacity: 0; pointer-events: none; transition: opacity .6s; }
+#flight { position: fixed; left: 50%; bottom: calc(40px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); text-align: center; z-index: 6;
+  display: grid; gap: 4px; justify-items: center; text-shadow: 0 1px 6px rgba(0, 10, 25, 0.8); pointer-events: none; }
+#flight .k { font: 500 10px/1 var(--f-mono); letter-spacing: .24em; color: var(--accent); }
+#flight .t { font-size: 18px; letter-spacing: .08em; }
+#flight .s { font-size: 12px; color: var(--ink-dim); letter-spacing: .04em; }
+#flight button { pointer-events: auto; margin-top: 8px; appearance: none; border: 1px solid var(--line); background: rgba(0, 20, 35, 0.4); color: var(--ink-dim); font: 500 11px/1 var(--f-body); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+#splash { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 7; background: radial-gradient(ellipse at 50% 55%, rgba(230, 250, 255, 0.95), rgba(120, 210, 230, 0.85) 45%, rgba(20, 90, 130, 0.9)); transition: opacity 1.4s ease-out; }
+#splash.on { opacity: 1; transition: opacity .18s ease-in; }
 #picker p.lead { margin: 0; font-size: 12.5px; line-height: 1.8; color: var(--ink-dim); max-width: 34em; }
 #locList { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .loc { width: 100%; text-align: left; appearance: none; cursor: pointer; color: var(--ink); background: rgba(8, 26, 36, 0.62);
@@ -216,6 +229,8 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
 #timePanel button.now { border-color: rgba(255, 217, 143, 0.6); }
 #timePanel button small { font: 400 9.5px/1 var(--f-mono); color: var(--ink-faint); }
 #timePanel button kbd { font: 400 9px/1 var(--f-mono); color: var(--ink-faint); border: 1px solid var(--line); border-radius: 3px; padding: 1px 3px; }
+#timePanel .tp-wx { margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--ink-dim); }
+#timePanel .tp-wx b { color: var(--accent); font-weight: 500; }
 #timePanel .tp-note { margin: 0; font-size: 11px; line-height: 1.7; color: var(--ink-faint); }
 .loc .now { font: 400 11px/1.4 var(--f-mono); color: var(--lamp); }
 .pin span small { font: 400 10.5px/1 var(--f-mono); color: var(--lamp); margin-left: 4px; }

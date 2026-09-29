@@ -22,12 +22,23 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
    vec3 airDir(vec3 d){ return normalize(vec3(d.x, sqrt(max(1.0 - 1.777 * (1.0 - d.y * d.y), 0.0)), d.z)); }
    void main(){
      vec3 v = vWp - uCamPos; float dist = length(v); vec3 dir = v / dist;
-     vec2 p = vWp.xz; float t = uTime; vec2 g = vec2(0.0);
+     vec2 p = vWp.xz; float t = uTime * (0.7 + 0.3 * sqrt(uWave)); vec2 g = vec2(0.0);
      vec2 d1 = vec2(0.86, 0.5), d2 = vec2(-0.3, 0.95), d3 = vec2(0.6, -0.8), d4 = vec2(-0.95, -0.2);
      g += d1 * cos(dot(d1, p) * 0.45 + t * 1.1) * 0.08;
      g += d2 * cos(dot(d2, p) * 0.9 + t * 1.6) * 0.06;
      g += d3 * cos(dot(d3, p) * 1.7 + t * 2.3) * 0.04;
      g += d4 * cos(dot(d4, p) * 3.1 + t * 3.1) * 0.025;
+     g *= uWave;                                                       // today's sea state at the site
+     // raindrops: rings spreading on the surface overhead
+     if (uRain > 0.0) {
+       for (int k = 0; k < 2; k++) {
+         vec2 rp = p * (1.6 + float(k) * 1.1) + float(k) * 13.7, ci = floor(rp);
+         float h = hash2(ci + float(k) * 5.0), ph = fract(uTime * (0.9 + h * 0.6) + h * 17.0);
+         vec2 c = ci + vec2(hash2(ci + 3.1), hash2(ci + 7.7)) * 0.8 + 0.1, dv = rp - c; float d = length(dv);
+         float ring = sin((d - ph * 0.55) * 60.0) * exp(-pow((d - ph * 0.55) * 9.0, 2.0)) * (1.0 - ph);
+         g += dv / max(d, 1e-3) * ring * 0.22 * step(h, uRain);
+       }
+     }
      vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
      float cosT = clamp(dot(dir, n), 0.0, 1.0);
      float sinT = sqrt(1.0 - cosT * cosT);
@@ -35,12 +46,12 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      vec3 refr = refract(dir, -n, 1.333);
      vec3 sunAir = airDir(SUN), moonAir = airDir(uMoonDir);
      float sd = max(dot(refr, sunAir), 0.0);
-     float sunGlow = (pow(sd, 180.0) * 3.0 + pow(sd, 6.0) * 0.35) * uSunI;
-     float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI;
-     vec3 air = mix(uSkyLo, uSkyHi, cosT) + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9);
+     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 6.0) * 0.35) * uSunI;
+     float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI * (1.0 - uCloud * 0.9);
+     vec3 air = mix(uSkyLo, uSkyHi, cosT) * (1.0 - 0.35 * uCloud) + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9) + vec3(0.8, 0.85, 1.0) * uFlash * 2.5;
      // stars, trembling with the surface
      vec2 sg = refr.xz / max(refr.y, 0.2) * 90.0; float star = step(0.994, hash2(floor(sg))) * smoothstep(0.35, 0.1, length(fract(sg) - 0.5));
-     air += vec3(0.8, 0.88, 1.0) * star * uNight * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
+     air += vec3(0.8, 0.88, 1.0) * star * uNight * (1.0 - smoothstep(0.3, 0.8, uCloud)) * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
      vec3 tir = waterCol(reflect(dir, -n)) * 0.9 + vec3(0.02, 0.05, 0.05) * uAmb;
      vec3 col = mix(tir, air, tr);
      col *= exp(-max(-uCamPos.y, 0.0) * vec3(0.05, 0.02, 0.015));

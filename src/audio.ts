@@ -331,3 +331,50 @@ export function setWhaleSong(level: number) {
   songLevel = level;
   if (level > 0 && !songRunning && ac) { songRunning = true; timers.song = window.setTimeout(songLoop, rnd(2, 6) * 1000); }
 }
+
+// ---------- weather ----------
+// Rain heard from under the water is a soft, bright hiss; thunder arrives as a long, low roll.
+let rainGain: GainNode | null = null;
+export function setRain(level: number) {
+  if (!ac) return;
+  if (!rainGain) {
+    const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.4 + 0.6 * Math.random() ** 8);   // hiss with crackle
+    const s = ac.createBufferSource(); s.buffer = b; s.loop = true;
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+    rainGain = ac.createGain(); rainGain.gain.value = 0;
+    s.connect(hp).connect(lp).connect(rainGain).connect(natureBus); s.start();
+  }
+  rainGain.gain.setTargetAtTime(audio.on ? Math.min(1, level) * 0.05 : 0, ac.currentTime, 1.5);
+}
+export function thunder(delay: number, vol: number) {
+  if (!ac || !audio.on) return;
+  const a = ac, t0 = a.currentTime + delay, dur = rnd(3, 6);
+  const len = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  let v = 0;
+  for (let i = 0; i < len; i++) { v = v * 0.985 + (Math.random() * 2 - 1) * 0.15; d[i] = v; }
+  const s = a.createBufferSource(); s.buffer = b;
+  const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 160;
+  const g = a.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(0.5 * vol, t0 + 0.3); g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  const send = a.createGain(); send.gain.value = 0.8;
+  s.connect(lp).connect(g); g.connect(natureBus); g.connect(send).connect(reverb);
+  s.start(t0); s.stop(t0 + dur);
+}
+
+// Breaking the surface: a rush of water, then bubbles rising past the lens.
+export function splash() {
+  if (!ac || !audio.on) return;
+  const a = ac, t0 = a.currentTime + 0.02, len = Math.floor(a.sampleRate * 1.6), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 3.2) * (t < 0.03 ? t / 0.03 : 1); }
+  const s = a.createBufferSource(); s.buffer = b;
+  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(3200, t0); f.frequency.exponentialRampToValueAtTime(380, t0 + 1.2);
+  const g = a.createGain(); g.gain.value = 0.35;
+  s.connect(f).connect(g).connect(natureBus); s.start(t0);
+  for (let k = 0; k < 14; k++) {
+    const o = a.createOscillator(), og = a.createGain(), tt = t0 + 0.2 + Math.random() * 1.4, f0 = rnd(500, 1400);
+    o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.07);
+    og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.03, tt + 0.01); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.09);
+    o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.1);
+  }
+}

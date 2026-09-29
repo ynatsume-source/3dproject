@@ -14,10 +14,12 @@ import type { Subject } from './eco/env';
 import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { guideThumbs } from './ui/thumbs';
 import { PLACES } from './ui/places';
+import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash } from './audio';
+import { loadHome, locateHome, distanceKm, satPrepare, satShow, makeFlight, resetGlobeCamera, type Home } from './journey';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -168,6 +170,14 @@ function updateDrone(dt: number, now: number) {
 let skyNow = null as ReturnType<typeof skyState> | null;
 const _starDir = new THREE.Vector3(0.12, 0.98, 0.16).normalize(), _nightShaft = new THREE.Color(0.5, 0.74, 1.0), _nightTint = new THREE.Color(0.8, 0.88, 1.0);
 let nightLift = 0;
+const _grey = new THREE.Color();
+let wx: Weather = FAIR, wxTimer = 0, flashT = 0, nextFlash = 20;
+// the real weather stands for 'today': live, or within half a day of now, in the real season
+const liveWeather = () => (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
+async function refreshWeather(loc: Sea) {
+  const w = await fetchWeather(loc.id, loc.lat, loc.lon);
+  if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
+}
 let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
 // the lamp comes on by itself in the dark of the cave (at night the moon or starlight is enough)
 function wantLamp() { return camCave < 0.3; }
@@ -192,6 +202,16 @@ function applySky(loc: Sea) {
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
   nightLift = n;
+  // the weather at the site, when we are watching it live; fair skies whenever the clock is moved
+  const w = liveWeather();
+  const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
+  U.uSunI.value *= 1 - 0.65 * cloud; U.uShaftI.value *= 1 - 0.85 * cloud; U.uAmb.value *= 1 - 0.22 * cloud;
+  const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), cloud * 0.7); };
+  grey(U.uSkyLo.value); grey(U.uSkyHi.value);
+  U.uCloud.value = cloud;
+  U.uRain.value = w.code >= 51 && w.code <= 57 ? 0.25 : Math.min(1, w.rain / 3);
+  U.uWave.value = Math.min(2.4, Math.max(0.45, 0.55 + (w.wave ?? w.wind / 7) * 0.65));
+  setRain(U.uRain.value);
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
   // tidal stream: flood one way, ebb the other; strongest mid-tide
@@ -351,7 +371,7 @@ function updateHud() {
   $('tDepth').textContent = depth.toFixed(1);
   $('tAlt').textContent = alt.toFixed(1);
   $('tSpd').textContent = drone.vel.length().toFixed(2);
-  $('tTemp').textContent = ((loc.tempYear ? seaTemp(clock.ms, loc.lat, loc.tempYear) : loc.temp) - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
+  $('tTemp').textContent = ((liveWeather().sst ?? (loc.tempYear ? seaTemp(clock.ms, loc.lat, loc.tempYear) : loc.temp)) - depth * 0.04 + Math.sin(U.uTime.value * 0.05) * 0.05).toFixed(1);
   $('tVis').textContent = (3 / (U.uFogDen.value * (1 + 0.15 * s.night)) * 0.3).toFixed(0);
   $('tTide').textContent = (s.tideH >= 0 ? '+' : '') + s.tideH.toFixed(1);
   $('tTideDir').textContent = Math.abs(s.tideRate) < 0.000015 ? (s.tideH > 0 ? '満潮' : '干潮') : s.tideRate > 0 ? '上げ潮' : '下げ潮';
@@ -372,6 +392,12 @@ function updateTimeUi() {
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-speed]').forEach((b) => b.setAttribute('aria-pressed', String(!clock.live && clock.speed === +b.dataset.speed!)));
   $('btnLive').setAttribute('aria-pressed', String(clock.live));
   const ld = new Date(clock.ms + loc.tz * 3600000);
+  {
+    const w = liveWeather();
+    $('wxLine').innerHTML = w.ok
+      ? `現地の天気（実況）：<b>${weatherLabel(w)}</b> · 雲 ${Math.round(w.cloud * 100)}% · 風 ${w.wind.toFixed(1)} m/s${w.wave != null ? ` · 波 ${w.wave.toFixed(1)} m` : ''}${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}<br><small>天気データ：Open-Meteo</small>`
+      : wx.ok ? '時刻や季節を動かしている間は、晴れの標準的な海になります' : '現地の天気を取得できないため、晴れの標準的な海です';
+  }
   $('clockDate').textContent = `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-season]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.season === clock.season)));
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => b.classList.toggle('now', b.dataset.preset === s.phase));
@@ -535,6 +561,7 @@ function enterOcean(oc: Ocean) {
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
   applyWater(oc.loc);
+  wx = FAIR; refreshWeather(oc.loc);
   setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)
   const cv = oc.cave;
   U.uCaveOn.value = cv ? 1 : 0; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
@@ -569,17 +596,61 @@ function enterOcean(oc: Ocean) {
   resize();
   requestAnimationFrame(resize);
 }
+// Diving in: the sea is built first (behind a veil), then the flight from home across the real Earth,
+// down onto the reef's satellite image, and a splash into the water, with no cut in between.
+let home: Home = loadHome();
+{ const at = new URLSearchParams(location.search).get('at'); if (at && !isNaN(Date.parse(at))) { clock.live = false; clock.speed = 1; clock.ms = Date.parse(at); } }   // ?at=ISO time, for checking
+const homeText = () => (home.exact ? '現在地' : `${home.label}（タイムゾーンから推定）`);
+$('homeLabel').textContent = homeText();
+$('btnHome').onclick = async () => { $('homeLabel').textContent = '取得中…'; const h = await locateHome(); if (h) home = h; $('homeLabel').textContent = h ? homeText() : `${homeText()}（位置情報を使えませんでした）`; };
+let flight: ReturnType<typeof makeFlight> | null = null, flightT0 = 0, flightSkip = false, flightDone: (() => void) | null = null, flightLoc: Sea | null = null, flightWx = '';
+$('btnSkip').onclick = () => { flightSkip = true; };
+function stepFlight(now: number) {
+  if (!flight || !flightLoc) return;
+  const t = flightSkip ? flight.total : (now - flightT0) / 1000, st = flight.at(t), loc = flightLoc;
+  satShow(loc.id, st.alt);
+  const km = distanceKm(home, loc), there = localTimeString(clock.ms, loc.tz);
+  const [k, tt, s] = st.phase === 'home' ? ['DEPARTURE', `${home.exact ? 'あなたのいる場所' : home.label} から`, `現在 ${localTimeString(Date.now(), -new Date().getTimezoneOffset() / 60)}`]
+    : st.phase === 'cruise' ? [`${Math.round(km * (1 - st.s)).toLocaleString()} km`, `${loc.name} · ${loc.site}へ`, `現地 ${there}${flightWx}`]
+    : ['ARRIVING', loc.site, `${fmtLL(loc.lat, loc.lon)} · 高度 ${st.alt * 6371 > 1 ? (st.alt * 6371).toFixed(1) + ' km' : Math.round(st.alt * 6371000) + ' m'}`];
+  $('flK').textContent = k; $('flT').textContent = tt; $('flS').textContent = s;
+  if (st.done && flightDone) { const d = flightDone; flightDone = null; d(); }
+}
 async function dive(loc: Sea) {
   keepAwake();
   if (busy) return; busy = true;
   setHot(LOCATIONS.indexOf(loc));
-  await tweenGlobe(loc.lat, loc.lon, 1.16, 1700);
-  veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
-  await wait(750); await nextFrame(); await nextFrame();
-  if (!oceans[loc.id]) oceans[loc.id] = buildOcean(loc);
+  satPrepare(loc.id);
+  fetchWeather(loc.id, loc.lat, loc.lon).then((w) => { flightWx = w.ok ? ` · ${weatherLabel(w)}${w.air != null ? ` ${w.air.toFixed(0)}°C` : ''}` : ''; });
+  if (!oceans[loc.id]) {
+    veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
+    await wait(500); await nextFrame(); await nextFrame();
+    oceans[loc.id] = buildOcean(loc);
+    veil(false); await wait(400);
+  }
+  if (reduceMotion) {
+    await tweenGlobe(loc.lat, loc.lon, 1.16, 1700);
+    veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
+    await wait(750);
+  } else {
+    // the journey
+    gv.tween = null; gv.fly = true; flightLoc = loc; flightSkip = false;
+    flight = makeFlight(home, loc, gcam.position);
+    document.body.classList.add('flying'); $('flight').hidden = false;
+    flightT0 = performance.now();
+    await new Promise<void>((done) => { flightDone = done; });
+    $('splash').classList.add('on'); splash();
+    await wait(260);
+    $('flight').hidden = true; document.body.classList.remove('flying');
+  }
   enterOcean(oceans[loc.id]);
+  if (!reduceMotion) {
+    // arrive just under the surface, looking down at the reef, and sink toward it
+    drone.pos.y = -0.9; drone.pitch = -1.05; drone.vel.set(0, -0.6, 0);
+  }
+  flight = null; flightLoc = null; gv.fly = false; satShow(null, 1); resetGlobeCamera();
   await nextFrame();
-  veil(false); setHot(-1);
+  veil(false); $('splash').classList.remove('on'); setHot(-1);
   busy = false;
 }
 async function toGlobe() {
@@ -811,6 +882,7 @@ function frame(ts: number) {
   clock.advance(dt);
   if (mode === 'globe') {
     updateGlobe(dt, now, clock.ms, reduceMotion);
+    stepFlight(now);
     renderer.setRenderTarget(null);
     renderer.render(globeScene, gcam);
     updatePins();
@@ -840,6 +912,13 @@ function frame(ts: number) {
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text, ev.at);
     updateMarker(now);
+    if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
+    // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
+    if (isStorm(liveWeather())) {
+      if ((nextFlash -= dt) < 0) { nextFlash = 12 + Math.random() * 35; flashT = 0; thunder(1 + Math.random() * 4, 0.6 + Math.random() * 0.4); }
+      flashT += dt;
+      U.uFlash.value = flashT < 0.5 ? (flashT < 0.08 || (flashT > 0.18 && flashT < 0.3) ? 1 : 0.15) * (1 - flashT) : 0;
+    } else U.uFlash.value = 0;
     const W = cur.whales;
     setWhaleSong(W && W.seasonal ? (W.active ? 1 : 0.45) : 0);
     pumpLog(now);
@@ -883,4 +962,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };

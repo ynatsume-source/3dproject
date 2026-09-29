@@ -21,6 +21,8 @@ export const U = {
   uSunI: { value: 1 }, uAmb: { value: 1 }, uNight: { value: 0 },
   uTint: { value: new THREE.Color(1, 1, 1) },
   uShaftCol: { value: new THREE.Color(0.55, 0.9, 0.95) }, uShaftI: { value: 1 }, uGolden: { value: 0 },
+  // the real weather at the site: wave state, rain on the surface, lightning
+  uWave: { value: 1 }, uRain: { value: 0 }, uFlash: { value: 0 }, uCloud: { value: 0 },
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 },
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
@@ -49,6 +51,7 @@ uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
+uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
 #define SUN uSunDir
 ${CAVE_GLSL}
@@ -98,7 +101,7 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
 // scatters forward into the view. Shared by distant objects and the open-water backdrop so they meet.
 vec3 hazeCol(vec3 dir){
   float mu = max(dot(dir, SUN), 0.0);
-  return waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI);
+  return waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlash * 2.0);
 }
 vec3 fogIt(vec3 col, vec3 wp){
   vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
@@ -112,7 +115,7 @@ vec3 fogIt(vec3 col, vec3 wp){
   return mix(col, h, 0.11 * (1.0 - exp(-d * 0.09)));
 }
 // light reaching a surface with normal n; cl = caveLight() where the surface is (sun, sky)
-vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
+vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) * (1.0 + uFlash * 3.0) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
 vec3 lightAt(vec3 n){ return lightAt(n, vec2(1.0)); }
 vec3 shade(vec3 alb, vec3 wp, vec3 n, float causAmt){
   vec3 col = absorb(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6, wp.y);
