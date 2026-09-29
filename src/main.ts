@@ -9,7 +9,7 @@ import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, 
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
-import { audio, startAudio, stopAudio, setHum, crunch } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, chime, setMood, setMusic } from './audio';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -119,7 +119,7 @@ function applySky(loc: Sea) {
   const k = clamp(s.tideRate / (loc.tide.amp * 0.00016 + 1e-6), -1, 1);
   const ax = loc.tide.axis;
   U.uCurrent.value.set(ax[0] * k * 0.8 + 0.12, ax[1] * k * 0.8 + 0.05);
-  audio.night = s.night;
+  setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
   if (!lampManual) setLamp(s.night > 0.6, false);
   cur!.eco.setSky(s, U.uCurrent.value);
   if (s.phase !== lastPhase) { if (lastPhase) seaLog('phase', PHASE_LOG[s.phase]); lastPhase = s.phase; }
@@ -226,6 +226,7 @@ function discover(e?: { id: string; ja: string; sci: string }) {
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
   showToast('NEW SIGHTING', e.ja, e.sci);
+  chime();
   renderGuide();
 }
 function checkSightings() {
@@ -381,6 +382,12 @@ function setSound(on: boolean) {
   if (!on) stopAudio();
   $('btnSound').setAttribute('aria-pressed', String(on));
 }
+function toggleMusic() {
+  setMusic(!audio.music);
+  $('btnMusic').setAttribute('aria-pressed', String(audio.music));
+  try { localStorage.setItem('seaglass.music', audio.music ? '1' : '0'); } catch (e) { /* ignore */ }
+}
+try { if (localStorage.getItem('seaglass.music') === '0') { setMusic(false); $('btnMusic').setAttribute('aria-pressed', 'false'); } } catch (e) { /* ignore */ }
 function setHud(on: boolean) { hudOn = on; document.body.classList.toggle('hud-off', !on); }
 function setGuide(on: boolean) { guideEl.hidden = !on; $('btnGuide').setAttribute('aria-pressed', String(on)); if (on) setTimePanel(false); renderGuide(); }
 function setTimePanel(on: boolean) { $('timePanel').hidden = !on; $('btnTime').setAttribute('aria-expanded', String(on)); if (on) { guideEl.hidden = true; $('btnGuide').setAttribute('aria-pressed', 'false'); } }
@@ -414,6 +421,7 @@ $('btnAuto').onclick = () => setMode('auto');
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnSound').onclick = () => setSound(!audio.on);
+$('btnMusic').onclick = () => toggleMusic();
 $('btnQuality').onclick = () => { autoQ = false; setQuality(quality === 'high' ? 'low' : 'high'); };
 $('btnHud').onclick = () => setHud(false);
 $('reveal').onclick = () => setHud(true);
@@ -437,6 +445,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyH') setHud(!hudOn);
   else if (e.code === 'KeyL') setLamp(!lampOn);
   else if (e.code === 'KeyM') setSound(!audio.on);
+  else if (e.code === 'KeyN') toggleMusic();
   else if (e.code === 'KeyZ') setGuide(guideEl.hidden);
   else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
   else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');
