@@ -162,11 +162,11 @@ function updateDrone(dt: number, now: number) {
 
 /* ================= sky from the clock ================= */
 let skyNow = null as ReturnType<typeof skyState> | null;
-const _nightShaft = new THREE.Color(0.5, 0.74, 1.0), _nightTint = new THREE.Color(0.8, 0.88, 1.0);
+const _starDir = new THREE.Vector3(0.12, 0.98, 0.16).normalize(), _nightShaft = new THREE.Color(0.5, 0.74, 1.0), _nightTint = new THREE.Color(0.8, 0.88, 1.0);
 let nightLift = 0;
 let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
-// the lamp comes on by itself on dark (moonless) nights and in the cave
-function wantLamp() { return (U.uNight.value > 0.6 && U.uMoonI.value < 0.3) || camCave < 0.3; }
+// the lamp comes on by itself in the dark of the cave (at night the moon or starlight is enough)
+function wantLamp() { return camCave < 0.3; }
 function applySky(loc: Sea) {
   const s = skyState(clock.ms, loc);
   skyNow = s;
@@ -177,10 +177,14 @@ function applySky(loc: Sea) {
   // Night as a low-light camera would dream it: the moon becomes a silver-blue key light with its own
   // shafts and caustics, the water keeps a deep blue glow, and even a moonless night stays legible.
   // (Rendering only: the animals still live by the real darkness in s.)
-  const n = s.night, moon = s.moonI, glow = n * (0.55 + 0.45 * moon);
+  // Without the moon, starlight takes its place (a little brighter than real), coming from high overhead,
+  // so every hour of the night reads the same way rather than going black before moonrise.
+  const n = s.night, moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
   U.uAmb.value = s.amb + glow * 0.6;
-  U.uSunI.value = Math.max(s.sunI, n * moon * 0.7);
-  U.uShaftI.value = Math.max(s.shaftI, n * (0.12 + 0.5 * moon));
+  U.uSunI.value = Math.max(s.sunI, n * (0.45 + 0.25 * moon));
+  U.uShaftI.value = Math.max(s.shaftI, n * (0.2 + 0.4 * moon));
+  const starlit = n * Math.max(0, 1 - moon / 0.3);
+  if (starlit > 0) U.uSunDir.value.lerp(_starDir, starlit).normalize();
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
   nightLift = n;

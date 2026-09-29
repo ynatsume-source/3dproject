@@ -69,7 +69,7 @@ export class Cave {
     this.floorAt = floor;
     this.cx = spec.x; this.cz = spec.z; this.ca = Math.cos(spec.rot); this.sa = Math.sin(spec.rot);
     this.foot = caveFootprint(spec);
-    const U0 = -23, U1 = 23, V0 = -13.5, V1 = 13.5;
+    const U0 = -27, U1 = 27, V0 = -17, V1 = 17;   // room for the ragged, overhanging rim
     const fl = (u: number, v: number) => floor(...this.toWorld(u, v));
     let fmin = 1e9, fsum = 0, fn = 0;
     for (let u = U0; u <= U1; u += 1) for (let v = V0; v <= V1; v += 1) { const f = fl(u, v); fmin = Math.min(fmin, f); if (this.foot(...this.toWorld(u, v)) > 0.5) { fsum += f; fn++; } }
@@ -115,12 +115,15 @@ export class Cave {
     const s = this.step;
     this.min = [U0, fmin - 2.2, V0];
     this.n = [Math.ceil((U1 - U0) / s) + 1, Math.ceil((top + 4.5 - this.min[1]) / s) + 1, Math.ceil((V1 - V0) / s) + 1];
+    this.n[0] += this.n[0] % 2;   // an even row width keeps each two-byte-per-texel row 4-byte aligned for the GPU upload
     const [nx, ny, nz] = this.n;
     this.d = new Float32Array(nx * ny * nz);
     for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) {
       const u = U0 + i * s, v = V0 + k * s, ld = lobeDist(u, v), ytn = (vn3(u * 0.12, 1.7, v * 0.12) - 0.5) * 2.6, sp = vn3(u * 0.1, 3, v * 0.1) * 6;
       const vcu = vc(u), r = rad(u), c = yc(u);
-      for (let j = 0; j < ny; j++) this.d[i + nx * (j + ny * k)] = sdf(u, this.min[1] + j * s, v, ld, ytn, sp, vcu, r, c);
+      // the outermost samples are always open water, so the mesh closes even if the rock reaches the edge
+      const edge = i < 2 || k < 2 || i > nx - 3 || k > nz - 3;
+      for (let j = 0; j < ny; j++) { const d = sdf(u, this.min[1] + j * s, v, ld, ytn, sp, vcu, r, c); this.d[i + nx * (j + ny * k)] = edge ? Math.max(d, 0.3) : d; }
     }
     this.colTop = new Float32Array(nx * nz).fill(-1e9);
     for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) for (let j = ny - 1; j >= 0; j--) if (this.d[i + nx * (j + ny * k)] < 0) { this.colTop[i + nx * k] = this.min[1] + (j + 0.5) * s; break; }
@@ -158,6 +161,7 @@ export class Cave {
     this.tex.minFilter = this.tex.magFilter = THREE.LinearFilter;
     this.tex.wrapS = this.tex.wrapT = this.tex.wrapR = THREE.ClampToEdgeWrapping;
     this.tex.unpackAlignment = 1;
+    this.tex.needsUpdate = true;   // upload now; the sun bake refines it over the next frames
   }
 
   toWorld(u: number, v: number): [number, number] { return [this.cx + u * this.ca - v * this.sa, this.cz + u * this.sa + v * this.ca]; }

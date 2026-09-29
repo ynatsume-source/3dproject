@@ -18,14 +18,16 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 // Pentatonic colours for most seas; at Miyako the Ryukyu scale (do mi fa so ti).
 const RYUKYU = [0, 4, 5, 7, 11];
 const MOODS: Record<string, { root: number; scale: number[]; lo: number; hi: number; gap: [number, number]; pad: number[][] }> = {
-  dawn: { root: 62, scale: [0, 2, 4, 7, 9], lo: 0, hi: 12, gap: [5, 11], pad: [[0, 7, 16], [-3, 4, 12], [5, 12, 16]] },
+  // all major: pentatonic melodies over I / IV / V (with added ninths and sixths), warm rather than wistful
+  dawn: { root: 62, scale: [0, 2, 4, 7, 9], lo: 0, hi: 12, gap: [5, 11], pad: [[0, 7, 16], [5, 12, 16], [-5, 7, 14]] },
   noon: { root: 67, scale: [0, 2, 4, 7, 9], lo: -5, hi: 12, gap: [4, 9], pad: [[0, 7, 16], [5, 9, 16], [-5, 7, 14]] },
-  dusk: { root: 64, scale: [0, 3, 5, 7, 10], lo: -5, hi: 12, gap: [6, 12], pad: [[0, 7, 15], [-4, 3, 12], [-2, 5, 14]] },
-  night: { root: 57, scale: [0, 3, 5, 7, 10], lo: 0, hi: 12, gap: [9, 18], pad: [[0, 7, 15], [-4, 3, 10], [5, 12, 15]] },
+  dusk: { root: 65, scale: [0, 2, 4, 7, 9], lo: -5, hi: 12, gap: [6, 12], pad: [[0, 7, 14, 16], [5, 12, 16], [-3, 4, 9, 12]] },
+  night: { root: 60, scale: [0, 2, 4, 7, 9], lo: 0, hi: 12, gap: [8, 15], pad: [[0, 7, 16], [5, 12, 16, 21], [-5, 7, 14]] },
 };
 function mood() {
   const m = MOODS[audio.phase] || MOODS.noon;
-  return audio.sea === 'miyako' ? { ...m, scale: RYUKYU } : m;
+  // Miyako keeps the island colour of the Ryukyu scale by day; evenings and nights use the plain major pentatonic
+  return audio.sea === 'miyako' && (audio.phase === 'noon' || audio.phase === 'dawn') ? { ...m, scale: RYUKYU } : m;
 }
 function scaleNotes(): number[] {
   const m = mood(), out: number[] = [];

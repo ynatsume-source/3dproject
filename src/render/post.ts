@@ -29,7 +29,35 @@ export class Post {
   private quad: THREE.Mesh;
   private main = rt(1, 1, true);
   private vol = rt(1, 1);
+  private volHist = [rt(1, 1), rt(1, 1)];   // the shafts averaged over recent frames
+  private histIdx = 0;
   private ao = rt(1, 1);
+  private aoSmooth = rt(1, 1);
+  private prevQ = new THREE.Quaternion(); private prevP = new THREE.Vector3(); private hasPrev = false;
+
+  // blend this frame's shafts into the running average; less so while the camera turns or moves
+  private blendMat = new THREE.ShaderMaterial({
+    vertexShader: VS,
+    uniforms: { tCur: { value: null }, tHist: { value: null }, uK: { value: 0 } },
+    fragmentShader: `uniform sampler2D tCur; uniform sampler2D tHist; uniform float uK; varying vec2 vUv;
+      void main(){ gl_FragColor = vec4(mix(texture2D(tCur, vUv).rgb, texture2D(tHist, vUv).rgb, uK), 1.0); }`,
+  });
+  // 4x4 depth-aware box blur of the AO: exactly cancels the 4x4 rotation pattern of its samples
+  private aoBlurMat = new THREE.ShaderMaterial({
+    vertexShader: VS,
+    uniforms: { tAO: { value: null }, tDepth: { value: null }, uTexel: { value: new THREE.Vector2() }, uNear: { value: 0.08 }, uFar: { value: 460 } },
+    fragmentShader: `uniform sampler2D tAO; uniform sampler2D tDepth; uniform vec2 uTexel; uniform float uNear; uniform float uFar; varying vec2 vUv;
+      float lin(float d){ return uNear * uFar / (uFar - d * (uFar - uNear)); }
+      void main(){
+        float z0 = lin(texture2D(tDepth, vUv).r), acc = 0.0, wsum = 0.0;
+        for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) {
+          vec2 uv = vUv + (vec2(float(x), float(y)) - 1.5) * uTexel;
+          float w = exp(-abs(lin(texture2D(tDepth, uv).r) - z0) / (0.04 * z0 + 0.05));
+          acc += texture2D(tAO, uv).r * w; wsum += w;
+        }
+        gl_FragColor = vec4(acc / max(wsum, 1e-4));
+      }`,
+  });
   private mips: THREE.WebGLRenderTarget[] = [];
   private w = 1; private h = 1;
   private frame = 0;
@@ -53,11 +81,14 @@ export class Post {
       ${NOISE}
       ${CAVE_GLSL}
       // sunlight focused by the moving surface: soft streaks that drift with the waves
-      float beams(vec2 q){
+      // lod: 1 near the eye, falling to 0 where one march step spans the streaks; there the pattern is
+      // replaced by its average instead of being point-sampled into sparkling noise
+      float beams(vec2 q, float lod){
         float a = vn(q * 0.11 + vec2(uTime * 0.035, uTime * 0.015));
-        float b = vn(q * 0.43 - vec2(uTime * 0.03, -uTime * 0.05));
+        float b = mix(0.5, vn(q * 0.43 - vec2(uTime * 0.03, -uTime * 0.05)), smoothstep(0.35, 0.9, lod));
         float s = a * 0.65 + b * 0.35;
-        return pow(smoothstep(mix(0.42, 0.56, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;   // sharper, fewer streaks when the sun is low
+        float sharp = pow(smoothstep(mix(0.42, 0.56, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;
+        return mix(0.24 * (1.0 - 0.4 * uGolden), sharp, lod);
       }
       void main(){
         float d = texture2D(tDepth, vUv).r;
@@ -65,7 +96,7 @@ export class Post {
         vec3 wp = (uCamWorld * vec4(vp.xyz, 1.0)).xyz;
         vec3 ray = wp - uCamPos; float len = length(ray); vec3 dir = ray / len;
         float dist = min(d >= 0.9999 ? 95.0 : len, 95.0);
-        float jit = h12(gl_FragCoord.xy + uFrame * 7.13);
+        float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))) + uFrame * 0.618034);   // interleaved gradient noise: even, and it averages out over frames
         vec3 acc = vec3(0.0);
         // steps packed near the eye and stretched with distance, so far-off shafts still show
         for (int i = 0; i < STEPS; i++) {
@@ -75,7 +106,7 @@ export class Post {
           vec3 p = uCamPos + dir * t;
           if (p.y > -0.05) continue;
           vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
-          float light = beams(q) * (1.0 + uGolden * 1.6) + 0.12 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour   // at sunset only the shafts carry colour
+          float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 1.6) + 0.12 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
           vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
           acc += light * down * back * stepLen * caveLight(p).x;   // rock shadows the water behind it; skylights let beams through
@@ -106,7 +137,8 @@ export class Post {
         vec3 N = normalize(cross(viewPos(vUv + vec2(uTexel.x, 0.0)) - P, viewPos(vUv + vec2(0.0, uTexel.y)) - P));
         if (dot(N, -P) < 0.0) N = -N;
         float rUv = uRadius * uF * 0.5 / max(-P.z, 0.1);
-        float ang = h12(floor(gl_FragCoord.xy)) * 6.2831;
+        vec2 cq = mod(floor(gl_FragCoord.xy), 4.0);
+        float ang = (mod(cq.x * 5.0 + cq.y * 3.0 * 4.0, 16.0) + 0.5) / 16.0 * 6.2831;   // a 4x4 tile of rotations, removed by the blur
         float occ = 0.0;
         for (int i = 0; i < SAMPLES; i++) {
           float t = (float(i) + 0.5) / float(SAMPLES);
@@ -215,7 +247,10 @@ export class Post {
     this.main.depthTexture!.image.width = w; this.main.depthTexture!.image.height = h;
     const vs = this.tier.volScale;
     this.vol.setSize(Math.ceil(w * vs), Math.ceil(h * vs));
+    for (const v of this.volHist) v.setSize(Math.ceil(w * vs), Math.ceil(h * vs));
+    this.hasPrev = false;
     this.ao.setSize(Math.ceil(w / 2), Math.ceil(h / 2));
+    this.aoSmooth.setSize(Math.ceil(w / 2), Math.ceil(h / 2));
     for (const m of this.mips) m.dispose();
     this.mips = [];
     let mw = w, mh = h;
@@ -256,12 +291,20 @@ export class Post {
       u.uCamWorld.value.copy(camera.matrixWorld);
       u.uFrame.value = this.frame % 64;
       this.pass(r, this.volMat, this.vol);
+      // temporal smoothing: how far the view moved since last frame decides how much history to keep
+      const turn = this.hasPrev ? this.prevQ.angleTo(camera.quaternion) : 1, move = this.hasPrev ? this.prevP.distanceTo(camera.position) : 1;
+      this.prevQ.copy(camera.quaternion); this.prevP.copy(camera.position); this.hasPrev = true;
+      const b = this.blendMat.uniforms;
+      b.tCur.value = this.vol.texture; b.tHist.value = this.volHist[this.histIdx].texture;
+      b.uK.value = 0.82 * (1 - Math.min(1, turn * 30 + move * 2.5));
+      this.histIdx = 1 - this.histIdx;
+      this.pass(r, this.blendMat, this.volHist[this.histIdx]);
     }
     if (t.bloom) {
       const d = this.downMat.uniforms, up = this.upMat.uniforms;
       let src: THREE.Texture = this.main.texture;
       this.mips.forEach((m, i) => {
-        d.tSrc.value = src; d.uFirst.value = i === 0 ? 1 : 0; d.tVol.value = this.vol.texture;
+        d.tSrc.value = src; d.uFirst.value = i === 0 ? 1 : 0; d.tVol.value = this.volHist[this.histIdx].texture;
         d.uTexel.value.set(1 / (i === 0 ? this.w : this.mips[i - 1].width), 1 / (i === 0 ? this.h : this.mips[i - 1].height));
         this.pass(r, this.downMat, m);
         src = m.texture;
@@ -279,11 +322,15 @@ export class Post {
       u.uAspect.value = camera.aspect;
       u.uTexel.value.set(1 / this.w, 1 / this.h);
       this.pass(r, this.aoMat, this.ao);
+      const bu = this.aoBlurMat.uniforms;
+      bu.tAO.value = this.ao.texture; bu.tDepth.value = this.main.depthTexture; bu.uTexel.value.set(1 / this.ao.width, 1 / this.ao.height);
+      bu.uNear.value = camera.near; bu.uFar.value = camera.far;
+      this.pass(r, this.aoBlurMat, this.aoSmooth);
     }
     const c = this.compMat.uniforms;
-    c.tAO.value = this.ao.texture; c.uUseAO.value = t.ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
+    c.tAO.value = this.aoSmooth.texture; c.uUseAO.value = t.ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
     c.tScene.value = this.main.texture;
-    c.tVol.value = this.vol.texture; c.uUseVol.value = t.vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
+    c.tVol.value = this.volHist[this.histIdx].texture; c.uUseVol.value = t.vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;
     this.pass(r, this.compMat, null);
   }

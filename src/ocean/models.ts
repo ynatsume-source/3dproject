@@ -463,7 +463,7 @@ export function coralMaterial(kind, lod = 0) {
          vec3 w3 = pow(abs(n), vec3(4.0)); w3 /= (w3.x + w3.y + w3.z);
          vec3 dc = vec3(0.0), dn = vec3(0.0);
          float bump = (KIND == 3 || KIND == 5) ? 0.35 : 0.9;
-         triSample(tRockC, tRockN, vWp + vSeed * 13.0, w3, 1.9, bump, dc, dn, 1.0);
+         triSample(tRockC, tRockN, vWp + vSeed * 13.0, dFdx(vWp), dFdy(vWp), w3, 1.9, bump, dc, dn, 1.0);
          alb *= mix(1.0, dot(dc, vec3(0.333)) * 2.6, 0.55);
          n = normalize(n + dn * 0.8);
          alb *= mix(0.5, 1.0, smoothstep(0.0, 0.3, vL.y));          // shade where it meets the reef

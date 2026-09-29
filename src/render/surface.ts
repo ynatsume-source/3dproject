@@ -44,11 +44,14 @@ vec3 bumpN(vec3 n, vec3 pos, float h){
   vec3 grad = sign(det) * (dhdx * r1 + dhdy * r2);
   return normalize(abs(det) * n - grad);
 }
-// triplanar colour and normal (UDN blend), skipping projections that barely contribute
-void triSample(sampler2D tc, sampler2D tn, vec3 p, vec3 w, float s, float bump, inout vec3 col, inout vec3 dn, float amt){
-  if (w.x > 0.03) { vec2 uv = p.zy * s; col += texture2D(tc, uv).rgb * w.x * amt; vec2 t = (texture2D(tn, uv).xy * 2.0 - 1.0) * bump; dn += vec3(0.0, t.y, t.x) * w.x * amt; }
-  if (w.y > 0.03) { vec2 uv = p.xz * s; col += texture2D(tc, uv).rgb * w.y * amt; vec2 t = (texture2D(tn, uv).xy * 2.0 - 1.0) * bump; dn += vec3(t.x, 0.0, t.y) * w.y * amt; }
-  if (w.z > 0.03) { vec2 uv = p.xy * s; col += texture2D(tc, uv).rgb * w.z * amt; vec2 t = (texture2D(tn, uv).xy * 2.0 - 1.0) * bump; dn += vec3(t.x, t.y, 0.0) * w.z * amt; }
+// triplanar colour and normal (UDN blend), skipping projections that barely contribute. The texture
+// lookups sit inside branches, where GPUs cannot take their own derivatives for mip selection, so the
+// screen-space gradients of p (px, py, taken outside any branch) are passed in explicitly — otherwise
+// the textures sparkle and crawl as the camera moves.
+void triSample(sampler2D tc, sampler2D tn, vec3 p, vec3 px, vec3 py, vec3 w, float s, float bump, inout vec3 col, inout vec3 dn, float amt){
+  if (w.x > 0.03) { vec2 uv = p.zy * s, gx = px.zy * s, gy = py.zy * s; col += textureGrad(tc, uv, gx, gy).rgb * w.x * amt; vec2 t = (textureGrad(tn, uv, gx, gy).xy * 2.0 - 1.0) * bump; dn += vec3(0.0, t.y, t.x) * w.x * amt; }
+  if (w.y > 0.03) { vec2 uv = p.xz * s, gx = px.xz * s, gy = py.xz * s; col += textureGrad(tc, uv, gx, gy).rgb * w.y * amt; vec2 t = (textureGrad(tn, uv, gx, gy).xy * 2.0 - 1.0) * bump; dn += vec3(t.x, 0.0, t.y) * w.y * amt; }
+  if (w.z > 0.03) { vec2 uv = p.xy * s, gx = px.xy * s, gy = py.xy * s; col += textureGrad(tc, uv, gx, gy).rgb * w.z * amt; vec2 t = (textureGrad(tn, uv, gx, gy).xy * 2.0 - 1.0) * bump; dn += vec3(t.x, t.y, 0.0) * w.z * amt; }
 }
 // living cover on reef rock: coralline pinks, turf and sponge colours in patches
 vec3 overgrow(vec3 base, vec3 p, vec3 n){
@@ -68,6 +71,7 @@ vec3 overgrow(vec3 base, vec3 p, vec3 n){
 // reef: 0 = open sand .. 1 = solid reef. Returns albedo (display space); writes the bumped normal.
 vec3 reefSurface(vec3 p, vec3 n, float reef, out vec3 nOut){
   vec3 w = pow(abs(n), vec3(4.0)); w /= (w.x + w.y + w.z);
+  vec3 px = dFdx(p), py = dFdy(p);
   float nz = vn2(p.xz * 0.3), nz2 = vn2(p.xz * 1.1 + 5.0);
   float rockM = smoothstep(0.32, 0.62, reef + (nz - 0.5) * 0.35 + (1.0 - n.y) * 0.45);
   float rubM = (1.0 - rockM) * smoothstep(0.06, 0.3, reef + (nz2 - 0.5) * 0.3);
@@ -76,15 +80,16 @@ vec3 reefSurface(vec3 p, vec3 n, float reef, out vec3 nOut){
   if (sandM > 0.01) {
     // turn the ripple field to face the current, wavering a little from place to place
     float ra = uSandRot + (vn2(p.xz * 0.04) - 0.5) * 0.5;
-    vec2 rq = mat2(cos(ra), sin(ra), -sin(ra), cos(ra)) * p.xz;
+    mat2 rm = mat2(cos(ra), sin(ra), -sin(ra), cos(ra));
+    vec2 rq = rm * p.xz, rx = rm * px.xz, ry = rm * py.xz;
     vec3 c = vec3(0.0), dn0 = vec3(0.0);
-    triSample(tSandC, tSandN, vec3(rq.x, p.y, rq.y), w, 0.3, 0.8, c, dn0, sandM);
+    triSample(tSandC, tSandN, vec3(rq.x, p.y, rq.y), vec3(rx.x, px.y, rx.y), vec3(ry.x, py.y, ry.y), w, 0.3, 0.8, c, dn0, sandM);
     dn += vec3(dot(dn0.xz, vec2(cos(ra), -sin(ra))), dn0.y, dot(dn0.xz, vec2(sin(ra), cos(ra))));
     col += c * uSand * 1.4;
   }
-  if (rubM > 0.01) { vec3 c = vec3(0.0); triSample(tRubC, tRubN, p, w, 0.42, 1.0, c, dn, rubM); col += c * mix(vec3(1.0), uRock * 2.0, 0.5) * 1.1; }
-  if (rockM > 0.01) { vec3 c = vec3(0.0); triSample(tRockC, tRockN, p, w, 0.55, 1.2, c, dn, rockM);
-    vec3 c2 = vec3(0.0), dn2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, w, 0.55, 0.6, c2, dn2, rockM);   // a second, larger scale breaks the repeat
+  if (rubM > 0.01) { vec3 c = vec3(0.0); triSample(tRubC, tRubN, p, px, py, w, 0.42, 1.0, c, dn, rubM); col += c * mix(vec3(1.0), uRock * 2.0, 0.5) * 1.1; }
+  if (rockM > 0.01) { vec3 c = vec3(0.0); triSample(tRockC, tRockN, p, px, py, w, 0.55, 1.2, c, dn, rockM);
+    vec3 c2 = vec3(0.0), dn2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, px * 0.23, py * 0.23, w, 0.55, 0.6, c2, dn2, rockM);   // a second, larger scale breaks the repeat
     dn += dn2 * 0.6;
     col += overgrow(mix(c, c2, 0.35) * uRock * 2.3, p, n); }
   col *= 0.82 + 0.36 * vn2(p.xz * 0.07 + 11.0);                  // broad variation across the seabed
