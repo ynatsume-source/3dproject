@@ -493,6 +493,13 @@ export const SHAPES = {
   fusilier: { h: 0.3, w: 0.15, tail: 'fork', dorsal: 0.08, anal: 0.06 },
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
+  grouper: { h: 0.34, w: 0.26, tail: 'round', dorsal: 0.08, anal: 0.06 },
+  barracuda: { h: 0.15, w: 0.12, tail: 'fork', dorsal: 0.07, anal: 0.05, pointy: true },
+  angel: { h: 0.64, w: 0.12, tail: 'trunc', dorsal: 0.1, anal: 0.09 },
+  trigger: { h: 0.52, w: 0.17, tail: 'trunc', dorsal: 0.13, anal: 0.12 },
+  batfish: { h: 0.92, w: 0.1, tail: 'trunc', dorsal: 0.32, anal: 0.28 },
+  tuna: { h: 0.28, w: 0.25, tail: 'fork', dorsal: 0.1, anal: 0.07, pect: 0.14 },
+  mola: { h: 0.78, w: 0.15, tail: 'round', dorsal: 0.5, anal: 0.5, rear: true },
 };
 // Requiem sharks, lofted from real proportions (lengths as fractions of total length from the snout):
 // a conical snout, the deepest body a third of the way back, a narrow caudal peduncle, and fins cut as
@@ -591,8 +598,13 @@ export function fishGeometry(sh) {
   else if (sh.tail === 'trunc') { tri([0, H * 0.3, -0.42], [0, H * 1.0, -0.72], [0, -H * 1.0, -0.72], 1); tri([0, H * 0.3, -0.42], [0, -H * 1.0, -0.72], [0, -H * 0.3, -0.42], 1); }
   else { tri([0, 0, -0.44], [0, H * 3.2, -0.9], [0, 0, -0.62], 1); tri([0, 0, -0.44], [0, 0, -0.6], [0, -H * 1.8, -0.72], 1); }
   if (sh.filament) { tri([0, H * 0.9, 0.12], [0, H + sh.filament, -0.42], [0, H * 0.9, -0.04], 2); tri([0, H * 0.9, 0.12], [0, H * 0.9, -0.3], [0, H + 0.2, -0.2], 2); }
+  else if (sh.rear) {
+    // ocean sunfish: a tall dorsal and anal fin far back, which it sculls side to side instead of a tail
+    tri([0, H * 0.7, -0.14], [0, H + sh.dorsal, -0.36], [0, H * 0.45, -0.42], 2);
+    tri([0, -H * 0.7, -0.14], [0, -H - sh.anal, -0.36], [0, -H * 0.45, -0.42], 2);
+  }
   else { tri([0, H * 0.85, 0.16], [0, H + sh.dorsal, -0.12], [0, H * 0.7, -0.3], 2); }
-  tri([0, -H * 0.8, -0.05], [0, -H - sh.anal, -0.22], [0, -H * 0.6, -0.32], 2);
+  if (!sh.rear) tri([0, -H * 0.8, -0.05], [0, -H - sh.anal, -0.22], [0, -H * 0.6, -0.32], 2);
   if (sh.pect) for (const sx of [-1, 1]) tri([sx * sh.w * 0.4, -H * 0.4, 0.18], [sx * (sh.w * 0.4 + sh.pect), -H * 0.9, -0.12], [sx * sh.w * 0.4, -H * 0.5, -0.02], 3, [0, 1, 0]);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -656,7 +668,7 @@ export function fishMaterial(sp) {
          if (vFin > 0.5) alb = uC1;
        #elif PAT == 6
          alb = mix(uC1, uC2, smoothstep(0.02, 0.22, y));
-         float bar = abs(fract(z * 4.2 + 0.1) - 0.5);
+         float bar = abs(fract(z * (uBands == 3.0 ? 4.2 : uBands) + 0.1) - 0.5);   // bar count per species (3 = the default four)
          alb = mix(alb, uC3, (1.0 - smoothstep(0.1, 0.15, bar)) * step(-0.45, z) * step(z, 0.35) * smoothstep(-0.14, 0.0, y));
        #elif PAT == 7
          alb = uC1 * (0.9 + 0.12 * sin(z * 80.0) * sin(y * 80.0));
@@ -701,6 +713,33 @@ export function fishMaterial(sp) {
          vec2 sq = fract(vec2(z * 26.0, y * 26.0 + z * 13.0));
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y)) * (0.8 + 0.25 * smoothstep(0.3, 0.5, max(abs(sq.x - 0.5), abs(sq.y - 0.5))));
          if (vFin > 0.5) alb = mix(uC1, vec3(0.98), step(0.9, fract(length(vL.yz) * 6.0)) * 0.7);
+       #elif PAT == 15
+         // spots (coral trout: blue spots on red)
+         alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y));
+         vec2 sg = vec2(z * 34.0, y * 34.0 + z * 7.0), sf = fract(sg) - 0.5;
+         alb = mix(alb, uC3, (1.0 - smoothstep(0.1, 0.2, length(sf))) * step(0.35, hash2(floor(sg))));
+         if (vFin > 0.5) alb = mix(uC1, uC3, (1.0 - smoothstep(0.1, 0.2, length(sf))) * 0.6);
+       #elif PAT == 16
+         // emperor angelfish: gently curving yellow lines on blue, a dark mask through the eye, yellow tail
+         alb = uC1;
+         float ln = abs(fract((y * 1.1 - z * 0.5 + 0.05 * sin(z * 9.0)) * uBands) - 0.5);
+         alb = mix(alb, uC2, (1.0 - smoothstep(0.12, 0.2, ln)) * step(z, 0.26));
+         alb = mix(alb, uC3, (1.0 - smoothstep(0.02, 0.04, abs(z - 0.33))) * step(-0.02, y));
+         alb = mix(alb, uC3, smoothstep(0.2, 0.24, z) * (1.0 - smoothstep(0.26, 0.3, z)) * 0.9);
+         if (z > 0.38) alb = mix(uC1, vec3(0.95, 0.95, 0.9), 0.5);
+         if (vFin > 0.5 && vFin < 1.5) alb = uC2;
+       #elif PAT == 17
+         // barracuda: silver, with dark chevrons down the back and scattered black spots near the tail
+         alb = mix(uC2, uC1, smoothstep(-0.05, 0.08, y));
+         float ch = abs(fract(z * 9.0 + abs(y) * 4.0) - 0.5);
+         alb = mix(alb, uC3, (1.0 - smoothstep(0.12, 0.22, ch)) * smoothstep(0.0, 0.05, y) * step(z, 0.3) * 0.7);
+         vec2 bs = vec2(z * 24.0, y * 24.0); alb = mix(alb, uC3, step(0.9, hash2(floor(bs))) * (1.0 - smoothstep(0.15, 0.3, length(fract(bs) - 0.5))) * step(z, -0.1));
+         if (vFin > 0.5) alb = mix(uC1, uC3, 0.5);
+       #elif PAT == 18
+         // many dark lines along a pale body, bright fins spotted dark (sweetlips)
+         alb = uC1;
+         alb = mix(alb, uC2, 1.0 - smoothstep(0.14, 0.24, abs(fract((y + z * 0.06) * uBands) - 0.5)));
+         if (vFin > 0.5) { vec2 fs = vec2(z * 30.0, y * 30.0); alb = mix(uC3, uC2, step(0.7, hash2(floor(fs))) * (1.0 - smoothstep(0.2, 0.35, length(fract(fs) - 0.5)))); }
        #else
          alb = uC1; vec2 sc = fract(vec2(z * 30.0, y * 30.0 + z * 15.0));
          alb = mix(alb, uC2, smoothstep(0.35, 0.5, max(abs(sc.x - 0.5), abs(sc.y - 0.5))) * 0.6);

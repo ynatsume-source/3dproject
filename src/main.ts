@@ -1153,4 +1153,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
