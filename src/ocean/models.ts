@@ -180,6 +180,85 @@ export function poritesGeo(ws, hs) {
   return accGeo(acc);
 }
 
+// Sea fan (gorgonian): a slightly cupped fan-shaped sheet on a short stalk. The shader cuts the sheet
+// into a lace of fine branches and radial ribs.
+export function fanSheetGeo(seed) {
+  const rnd = mulberry32(seed), acc = Acc();
+  const R0 = 0.14, RA = 24, RR = 10, spread = 1.1 + rnd() * 0.5, lobes = [rnd(), rnd(), rnd()];
+  const pos = [], tip = [];
+  const at = (i, j) => {
+    const a = (i / RA - 0.5) * spread * 2, t = j / RR;
+    const edge = 1 + 0.12 * Math.sin(a * 3 + lobes[0] * 6) + 0.08 * Math.sin(a * 7 + lobes[1] * 6);
+    const r = R0 + t * (1 - R0) * edge;
+    const x = Math.sin(a) * r, y = Math.cos(a) * r;
+    return [x, y + 0.1, 0.12 * x * x - 0.05 * t * t, r];
+  };
+  for (let i = 0; i < RA; i++) for (let j = 0; j < RR; j++) {
+    const q = [at(i, j), at(i + 1, j), at(i, j + 1), at(i + 1, j + 1)];
+    for (const k of [0, 1, 2, 2, 1, 3]) { pos.push(q[k][0], q[k][1], q[k][2]); tip.push(q[k][3]); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  pushGeo(acc, g, new THREE.Matrix4(), (v) => Math.hypot(v.x, v.y - 0.1));
+  pushGeo(acc, new THREE.CylinderGeometry(0.025, 0.04, 0.2, 6), new THREE.Matrix4().makeTranslation(0, 0.1, 0), () => 0);
+  return accGeo(acc);
+}
+// Leather coral (Sarcophyton): a stout stalk under a broad, deeply folded cap.
+export function sarcophytonGeo() {
+  const acc = Acc();
+  const pts = [[0.0, 0], [0.13, 0], [0.12, 0.2], [0.16, 0.33], [0.32, 0.42], [0.5, 0.47], [0.53, 0.52], [0.44, 0.56], [0.22, 0.555], [0.0, 0.53]].map(([x, y]) => new THREE.Vector2(x, y));
+  const g = new THREE.LatheGeometry(pts, 56);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    if (r > 0.25) {
+      const k = (r - 0.25) / 0.28;
+      p.setX(i, x * (1 + 0.1 * Math.sin(a * 5 + 1) * k)); p.setZ(i, z * (1 + 0.1 * Math.sin(a * 5 + 1) * k));
+      p.setY(i, p.getY(i) + (Math.sin(a * 9) * 0.07 + Math.sin(a * 4 + 2) * 0.04) * k * k);
+    }
+  }
+  g.computeVertexNormals();
+  pushGeo(acc, g, new THREE.Matrix4(), (v) => smooth(0.36, 0.46, v.y));
+  return accGeo(acc);
+}
+// Finger leather coral (Sinularia): a low mound crowded with thick, soft, upright lobes.
+export function sinulariaGeo(seed) {
+  const rnd = mulberry32(seed), acc = Acc();
+  pushGeo(acc, new THREE.SphereGeometry(0.4, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.Matrix4().makeScale(1, 0.35, 1), () => 0.3);
+  for (let i = 0; i < 34; i++) {
+    const r = Math.sqrt(rnd()) * 0.36, a = rnd() * Math.PI * 2, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const y = 0.14 * Math.sqrt(Math.max(0, 1 - (r / 0.4) ** 2));
+    const dir = new THREE.Vector3(x * 0.8 + (rnd() - 0.5) * 0.3, 1, z * 0.8 + (rnd() - 0.5) * 0.3).normalize();
+    const len = 0.1 + rnd() * 0.2, rad = 0.035 + rnd() * 0.025, base = new THREE.Vector3(x, y, z);
+    pushGeo(acc, new THREE.CylinderGeometry(rad * 0.9, rad, len, 8, 2, true), orientTo(dir, base, len), (v) => 0.4 + 0.5 * (v.y / len + 0.5));
+    pushGeo(acc, new THREE.SphereGeometry(rad * 0.9, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.Matrix4().compose(base.clone().addScaledVector(dir, len), new THREE.Quaternion().setFromUnitVectors(UPV, dir), new THREE.Vector3(1, 1.2, 1)), () => 1);
+  }
+  return accGeo(acc);
+}
+// Soft-coral tree (Dendronephthya): a translucent trunk branching into clusters of polyps.
+export function dendroGeo(seed) {
+  const rnd = mulberry32(seed), acc = Acc();
+  function grow(base, dir, len, rad, depth) {
+    pushGeo(acc, new THREE.CylinderGeometry(rad * 0.8, rad, len, 7, 1, true), orientTo(dir, base, len), () => 0.2 + depth * 0.15);
+    const end = base.clone().addScaledVector(dir, len);
+    if (depth >= 3) {
+      for (let k = 0; k < 6; k++) {
+        const o = new THREE.Vector3(rnd() - 0.5, rnd() * 0.6, rnd() - 0.5).multiplyScalar(0.07).add(end);
+        pushGeo(acc, new THREE.SphereGeometry(0.018 + rnd() * 0.012, 6, 4), new THREE.Matrix4().makeTranslation(o.x, o.y, o.z), () => 1);
+      }
+      return;
+    }
+    const kids = 2 + (rnd() < 0.5 ? 1 : 0);
+    for (let k = 0; k < kids; k++) {
+      const axis = new THREE.Vector3(rnd() - 0.5, 0, rnd() - 0.5).normalize();
+      const nd = dir.clone().applyAxisAngle(axis, 0.45 + rnd() * 0.5); nd.y += 0.25; nd.normalize();
+      grow(end, nd, len * 0.72, rad * 0.62, depth + 1);
+    }
+  }
+  grow(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), 0.32, 0.07, 0);
+  return accGeo(acc);
+}
 export function fanCoralGeo(seed) {
   const rnd = mulberry32(seed), pos = [], tip = [];
   function seg(x0, y0, a, len, w, depth) {
@@ -248,8 +327,8 @@ export function eelGeo() {
 }
 export const CORAL_GEO = {
   branch: [branchCoralGeo(3, 'stag'), acroporaCorymbose(8, false)],
-  table: [tableCoralGeo()], brain: [brainCoralGeo(), poritesGeo(22, 9)], fan: [fanCoralGeo(5), fanCoralGeo(9)],
-  mushroom: [mushroomGeo()], anemone: [anemoneGeo(4)], clam: [clamGeo()], eel: [eelGeo()],
+  table: [tableCoralGeo()], brain: [brainCoralGeo(), poritesGeo(22, 9)], fan: [fanSheetGeo(5), fanSheetGeo(9)],
+  mushroom: [sarcophytonGeo(), sinulariaGeo(21), dendroGeo(33)], anemone: [anemoneGeo(4)], clam: [clamGeo()], eel: [eelGeo()],
 };
 // Detailed versions, swapped in near the camera. Same footprint as the light version at each index.
 export const CORAL_GEO_HI: Record<string, THREE.BufferGeometry[]> = {
@@ -265,6 +344,8 @@ export const PALETTE = {
   brain: [[[0.66, 0.55, 0.30], [0.40, 0.34, 0.22]], [[0.48, 0.58, 0.36], [0.30, 0.38, 0.25]], [[0.60, 0.46, 0.50], [0.40, 0.30, 0.36]], [[0.56, 0.54, 0.70], [0.36, 0.34, 0.48]]],
   fan: [[[0.78, 0.20, 0.16], [0.5, 0.1, 0.1]], [[0.88, 0.46, 0.16], [0.5, 0.2, 0.1]], [[0.58, 0.24, 0.58], [0.3, 0.1, 0.3]], [[0.88, 0.74, 0.30], [0.5, 0.4, 0.2]]],
   mushroom: [[[0.62, 0.58, 0.40], [0.56, 0.52, 0.42]], [[0.48, 0.54, 0.38], [0.52, 0.52, 0.44]], [[0.64, 0.54, 0.46], [0.58, 0.50, 0.44]]],
+  sinularia: [[[0.52, 0.52, 0.36], [0.6, 0.58, 0.42]], [[0.62, 0.50, 0.44], [0.7, 0.58, 0.5]], [[0.44, 0.50, 0.40], [0.52, 0.58, 0.46]]],
+  dendro: [[[0.88, 0.40, 0.58], [0.98, 0.72, 0.8]], [[0.62, 0.36, 0.78], [0.86, 0.66, 0.95]], [[0.95, 0.55, 0.30], [1.0, 0.8, 0.6]], [[0.9, 0.9, 0.8], [1.0, 0.98, 0.9]]],
   anemone: [[[0.76, 0.68, 0.46], [0.78, 0.18, 0.44]], [[0.64, 0.72, 0.46], [0.56, 0.50, 0.58]], [[0.80, 0.72, 0.52], [0.86, 0.36, 0.30]]],
   clam: [[[0.12, 0.42, 0.88], [0.62, 0.60, 0.54]], [[0.20, 0.72, 0.62], [0.62, 0.60, 0.54]], [[0.46, 0.28, 0.78], [0.62, 0.60, 0.54]], [[0.40, 0.62, 0.30], [0.62, 0.60, 0.54]]],
   eel: [[[0.86, 0.86, 0.80], [0.1, 0.1, 0.1]]],
@@ -300,7 +381,8 @@ export function coralMaterial(kind, lod = 0) {
          p.z += lean.y * p.y * p.y * p.y * 0.3;
        #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
-       vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+       vec3 isc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+       vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (isc * isc)));
        vL = position; vTip = aTip; vCol = aCol; vCol2 = aCol2; vSeed = aSeed;
        gl_Position = projectionMatrix * viewMatrix * wp;
      }`,
@@ -323,9 +405,24 @@ export function coralMaterial(kind, lod = 0) {
          alb = por ? vCol * (0.9 + 0.2 * g) : mix(mix(vCol2, vCol, 0.45), vCol, smoothstep(0.05, 0.45, m)) * (0.92 + 0.12 * g);
          if (!por) n = bumpN(n, vWp, smoothstep(0.05, 0.6, m) * 0.012 * (1.0 - smoothstep(3.0, 12.0, distance(vWp, uCamPos))));
        #elif KIND == 3
-         alb = mix(vCol2, vCol, smoothstep(0.0, 0.3, vTip)) * (0.85 + 0.25 * g);
+         // lace: a net of fine branches plus radial ribs; solid silhouette far away to avoid shimmer
+         {
+           vec2 fp = vec2(vL.x, vL.y - 0.1);
+           float rr0 = length(fp);
+           float ang = atan(fp.x, fp.y);
+           // a fine net whose meshes stretch along the radial branches, as in Annella
+           float web = vor(vec2(ang * rr0 * 30.0, rr0 * 19.0) + vSeed * 10.0);
+           float line = 1.0 - smoothstep(0.04, 0.12, web);
+           float rib = 1.0 - smoothstep(0.0, 0.03, abs(fract(ang * 4.0 + sin(rr0 * 7.0 + vSeed * 5.0) * 0.25) - 0.5) * rr0 * 1.6);
+           float m = max(max(line, rib), step(rr0, 0.16) + step(vL.y, 0.12));
+           float solidK = smoothstep(8.0, 15.0, distance(vWp, uCamPos));
+           if (m < 0.5 && solidK < 0.5) discard;
+           alb = mix(vCol2, vCol, smoothstep(0.0, 0.3, vTip)) * (0.85 + 0.25 * g) * mix(1.0, 0.7, solidK * (1.0 - m));
+         }
        #elif KIND == 4
          alb = mix(vCol2, vCol * (0.85 + 0.3 * hash2(floor(vL.xz * 70.0))), vTip);
+         // soft tissue lets light through: glow when the sun is behind it
+         alb += vCol * pow(max(dot(-V, SUN), 0.0), 2.0) * 0.35 * uSunI;
        #elif KIND == 5
          alb = mix(vCol2, vCol, smoothstep(0.05, 0.2, vTip)) * (0.85 + 0.35 * smoothstep(0.85, 1.0, vTip));
        #elif KIND == 6

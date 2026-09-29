@@ -146,7 +146,7 @@ export function buildOcean(loc) {
   }
 
   // corals: sample the reef, pick a form by depth / slope / sea
-  const items = { branch: [[], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[]], anemone: [[]], clam: [[]], eel: [[]] };
+  const items = { branch: [[], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] };
   const EXT = LIMIT + 45, STEP = 1.35;
   const samples = [];
   let sum = 0;
@@ -183,11 +183,18 @@ export function buildOcean(loc) {
       if (R() < 0.45) { it.porites = true; items.brain[1].push(it); } else items.brain[0].push(it);
     }
     else if (kind === 'fan') { s = rr(0.9, 2.0); it = { x, z, y: y0 - 0.05, ry: (R() - 0.5) * 0.5, sx: s, sy: s, sz: s, tx: (R() - 0.5) * 0.2 }; items.fan[R() < 0.5 ? 0 : 1].push(it); }
-    else if (kind === 'mushroom') { s = rr(0.6, 1.4); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.2), sz: s }; items.mushroom[0].push(it); }
+    else if (kind === 'mushroom') {
+      // soft corals: leather coral, finger leather coral, or a soft-coral tree (commonest on Maldivian thilas)
+      const w = loc.id === 'maldives' ? [0.3, 0.3, 0.4] : loc.id === 'gbr' ? [0.45, 0.4, 0.15] : [0.5, 0.4, 0.1];
+      const q = R(), v = q < w[0] ? 0 : q < w[0] + w[1] ? 1 : 2;
+      s = v === 2 ? rr(0.6, 1.3) : rr(0.6, 1.4);
+      it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s, soft: v };
+      items.mushroom[v].push(it);
+    }
     else { s = rr(loc.clamSize[0], loc.clamSize[1]); it = { x, z, y: y0 - 0.06 * s, ry: R() * 6.28, sx: s, sy: s, sz: s }; items.clam[0].push(it); }
     const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55] };
     if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
-    const pl = it.porites ? pick(PALETTE.porites) : pal;
+    const pl = it.porites ? pick(PALETTE.porites) : it.soft === 1 ? pick(PALETTE.sinularia) : it.soft === 2 ? pick(PALETTE.dendro) : pal;
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
   }
   // anemones, each home to a few clownfish
@@ -280,7 +287,7 @@ export function buildOcean(loc) {
     }
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
-       void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
+       void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
       SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){
          vec3 n;
