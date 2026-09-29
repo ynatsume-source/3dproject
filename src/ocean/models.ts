@@ -243,6 +243,7 @@ export const SHAPES = {
   wrasse: { h: 0.42, w: 0.26, tail: 'round', dorsal: 0.08, anal: 0.06, hump: 0.12 },
   parrot: { h: 0.42, w: 0.24, tail: 'trunc', dorsal: 0.07, anal: 0.05 },
   shark: { h: 0.22, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.3, pointy: true },
+  fusilier: { h: 0.3, w: 0.15, tail: 'fork', dorsal: 0.08, anal: 0.06 },
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
 };
@@ -350,6 +351,11 @@ export function fishMaterial(sp) {
        #elif PAT == 11
          alb = mix(uC2, uC1, top) * (1.0 - 0.5 * step(0.9, hash2(floor(vec2(z * 40.0, y * 40.0)))) * top);
          if (vFin > 0.5) alb = uC3;
+       #elif PAT == 13
+         alb = mix(uC1, uC3, smoothstep(-0.03, -0.13, y));
+         alb = mix(alb, uC2, smoothstep(-0.015, 0.025, y - (0.12 + z * 0.55)));
+         if (vFin > 0.5 && vFin < 1.5) alb = uC2;
+         if (vFin > 1.5) alb = mix(uC2, uC1, 0.35);
        #elif PAT == 12
          vec2 sq = fract(vec2(z * 26.0, y * 26.0 + z * 13.0));
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y)) * (0.8 + 0.25 * smoothstep(0.3, 0.5, max(abs(sq.x - 0.5), abs(sq.y - 0.5))));

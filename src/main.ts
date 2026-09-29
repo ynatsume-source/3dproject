@@ -5,11 +5,13 @@ import './styles.css';
 import { U } from './render/common';
 import { clamp, smooth, angDiff } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
-import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
+import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset } from './time/clock';
 import { Director, type Shot } from './director';
+import { Post } from './render/post';
+import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setMood, setMusic } from './audio';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -31,7 +33,10 @@ let mode: 'globe' | 'ocean' = 'globe';
 const oceans: Record<string, Ocean> = {};
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let lampOn = false, lampManual = false, hudOn = true, quality: 'high' | 'low' = 'high', busy = false;
+let lampOn = false, lampManual = false, hudOn = true, busy = false;
+const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
+let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : detectTier(renderer.getContext());
+const post = new Post(TIERS[tier]);
 
 /* ================= drone ================= */
 const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9 };
@@ -404,6 +409,7 @@ function enterOcean(oc: Ocean) {
   updateDrone(0.016, performance.now());
   camera.getWorldDirection(U.uCamFwd.value);
   for (const f of oc.fish) f.reset();
+  applyTierToSea();
   for (const t of oc.turtles) t.placed = false;
   for (const o of oc.octopi || []) o.placed = false;
   for (const m of oc.mantas) m.placed = false;
@@ -481,13 +487,23 @@ function openPanel(tab: 'guide' | 'log') {
 }
 function setGuide(on: boolean) { guideEl.hidden = !on; $('btnGuide').setAttribute('aria-pressed', String(on)); if (on) setTimePanel(false); renderGuide(); }
 function setTimePanel(on: boolean) { $('timePanel').hidden = !on; $('btnTime').setAttribute('aria-expanded', String(on)); if (on) { guideEl.hidden = true; $('btnGuide').setAttribute('aria-pressed', 'false'); } }
-function setQuality(q: 'high' | 'low') {
-  quality = q;
-  $('btnQuality').textContent = q === 'high' ? '画質 高' : '画質 軽量';
-  grassGeo.setDrawRange(0, (q === 'high' ? BLADES : Math.floor(BLADES * 0.45)) * SEG * 6);
-  snowGeo.setDrawRange(0, q === 'high' ? SNOW : Math.floor(SNOW * 0.5));
+function setQuality(t: Tier) {
+  tier = t;
+  const T = TIERS[t];
+  $('btnQuality').textContent = `画質 ${T.label}`;
+  grassGeo.setDrawRange(0, Math.floor(BLADES * T.grass) * SEG * 6);
+  snowGeo.setDrawRange(0, Math.floor(SNOW * T.snow));
+  shafts.visible = !T.vol;
+  document.body.classList.toggle('post', T.post);
+  post.setTier(T);
+  applyTierToSea();
   resize();
 }
+function applyTierToSea() {
+  if (!cur) return;
+  for (const f of cur.fish as any[]) f.setFraction?.(TIERS[tier].shoal);
+}
+const TIER_ORDER: Tier[] = ['low', 'medium', 'high'];
 function toggleFull() {
   try {
     if (document.fullscreenElement) document.exitFullscreen();
@@ -513,7 +529,7 @@ $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('m
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnSound').onclick = () => setSound(!audio.on);
 $('btnMusic').onclick = () => toggleMusic();
-$('btnQuality').onclick = () => { autoQ = false; setQuality(quality === 'high' ? 'low' : 'high'); };
+$('btnQuality').onclick = () => { autoQ = false; setQuality(TIER_ORDER[(TIER_ORDER.indexOf(tier) + 1) % 3]); };
 $('btnHud').onclick = () => setHud(false);
 $('reveal').onclick = () => setHud(true);
 $('btnFull').onclick = toggleFull;
@@ -603,8 +619,9 @@ addEventListener('pointermove', () => { idleT = performance.now(); document.body
 /* ================= loop ================= */
 function resize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, 1.5) * (quality === 'high' ? 1 : 0.7);
+  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr);
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
+  post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
   gcam.aspect = w / h; gcam.fov = w / h < 1 ? 50 : 32;
   if (w > 760) gcam.setViewOffset(w, h, -Math.min(w * 0.2, 260), 0, w, h);
@@ -628,6 +645,7 @@ function frame(ts: number) {
   clock.advance(dt);
   if (mode === 'globe') {
     updateGlobe(dt, now, clock.ms, reduceMotion);
+    renderer.setRenderTarget(null);
     renderer.render(globeScene, gcam);
     updatePins();
     if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); }
@@ -642,7 +660,7 @@ function frame(ts: number) {
     pumpLog(now);
     snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
     if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; renderGuide(); }
-    const vis = Math.min(3.1 / U.uFogDen.value, 150) * (quality === 'high' ? 1 : 0.7) + CELL * 0.72;
+    const vis = Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
       c.mesh.visible = d < vis && (d < CELL || (dx * fx + dz * fz) / d > -0.4);
@@ -650,21 +668,26 @@ function frame(ts: number) {
     sky.position.copy(camera.position);
     surface.position.set(camera.position.x, 0, camera.position.z);
     setHum(drone.vel.length());
-    renderer.render(oceanScene, camera);
+    post.whiteBalance(-camera.position.y, U.uAbs.value, U.uNight.value);
+    if (TIERS[tier].post) post.render(renderer, oceanScene, camera); else { renderer.setRenderTarget(null); renderer.render(oceanScene, camera); }
     if ((hudTimer += dt) > 0.1) { hudTimer = 0; if (hudOn) updateHud(); }
     if ((sightTimer += dt) > 0.3) { sightTimer = 0; checkSightings(); }
     if (!hudOn && now - idleT > 3000) document.body.classList.add('idle');
     if (autoQ) {
       if (!fpsStart) fpsStart = now;
       else if (now - fpsStart > 2000) { fpsAcc += dt; fpsN++; }
-      if (fpsN > 150) { autoQ = false; if (fpsN / fpsAcc < 38) setQuality('low'); }
+      if (fpsN > 150) {
+        const fps = fpsN / fpsAcc;
+        if (fps < 38 && tier !== 'low') { setQuality(TIER_ORDER[TIER_ORDER.indexOf(tier) - 1]); fpsN = 0; fpsAcc = 0; fpsStart = now; }
+        else autoQ = false;
+      }
     }
   }
   requestAnimationFrame(frame);
 }
 
 document.body.classList.add('mode-globe');
-setQuality('high');
+setQuality(tier);
 resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);

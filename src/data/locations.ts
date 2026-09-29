@@ -4,7 +4,7 @@ import { fbm, smooth, clamp, bommieField, TERR } from '../core/math';
 export interface Species {
   id: string; ja: string; sci: string; note: string;
   pat: number; c1: number[]; c2?: number[]; c3?: number[]; bands?: number; edge?: number;
-  shape: string; size: [number, number]; habitat: 'anemone' | 'reef' | 'roam';
+  shape: string; size: [number, number]; habitat: 'anemone' | 'reef' | 'roam' | 'shoal';
   schools?: number; n?: number; count?: number; spread?: number[]; alt?: [number, number];
   speed: number; big?: boolean; wig?: number; freq?: [number, number];
   // ecology
@@ -36,8 +36,8 @@ export const LOCATIONS: Sea[] = [
     id: 'gbr', name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
     lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
     blurb: '外洋に面したリボンリーフ。尾根と溝が交互に並ぶ「スパー・アンド・グルーブ」地形の斜面。',
-    water: { up: [0.50, 0.82, 0.86], hor: [0.10, 0.42, 0.50], down: [0.02, 0.14, 0.20], fog: 0.026, abs: [0.10, 0.040, 0.028] },
-    sand: [0.82, 0.78, 0.66], rock: [0.46, 0.43, 0.36],
+    water: { up: [0.36, 0.72, 0.84], hor: [0.04, 0.33, 0.50], down: [0.01, 0.10, 0.20], fog: 0.026, abs: [0.26, 0.06, 0.04] },
+    sand: [0.70, 0.67, 0.58], rock: [0.46, 0.43, 0.36],
     f(x, z) {
       const front = 8 + (fbm(x * 0.008 + 3, 1.7, 3) - 0.5) * 50;
       const s = smooth(front - 60, front + 20, z);
@@ -86,8 +86,8 @@ export const LOCATIONS: Sea[] = [
     id: 'miyako', name: '宮古島', site: '八重干瀬（やびじ）', region: 'Japan · Okinawa',
     lat: 24.96, lon: 125.25, depth: '3–15 m', vis: 40, temp: 28.4, seed: 23, tz: 9, tide: { amp: 0.95, lag: 0.2, axis: [1, 0.35] },
     blurb: '宮古島の北に広がる国内最大級のサンゴ礁群。白砂の上にテーブルサンゴの根が点在する、宮古ブルーの浅瀬。',
-    water: { up: [0.58, 0.90, 0.96], hor: [0.10, 0.50, 0.64], down: [0.03, 0.18, 0.30], fog: 0.019, abs: [0.085, 0.030, 0.019] },
-    sand: [0.94, 0.92, 0.85], rock: [0.52, 0.50, 0.44],
+    water: { up: [0.30, 0.70, 0.95], hor: [0.02, 0.29, 0.62], down: [0.0, 0.08, 0.27], fog: 0.018, abs: [0.24, 0.05, 0.022] },
+    sand: [0.78, 0.77, 0.72], rock: [0.52, 0.50, 0.44],
     f(x, z) {
       let h = -12.5 + (fbm(x * 0.01 + 5, z * 0.01, 3) - 0.5) * 5 + clamp(z * 0.015, -2, 2);
       const a = bommieField(x, z, 22, 0.6, 3.5, 7, 6, 12, 3, 0.25);
@@ -105,6 +105,8 @@ export const LOCATIONS: Sea[] = [
         diel: 'day', diet: 'plankton', pat: 1, c1: [0.98, 0.48, 0.08], c2: [0.97, 0.97, 0.95], c3: [0.03, 0.03, 0.03], bands: 3, edge: 0.45, shape: 'clown', size: [0.07, 0.10], habitat: 'anemone', speed: 0.5 },
       { id: 'chromis', ja: 'デバスズメダイ', sci: 'Chromis viridis', note: '枝状サンゴの上に群れ、危険を感じると枝の間へ隠れる。',
         diel: 'day', diet: 'plankton', pat: 0, c1: [0.42, 0.85, 0.80], c2: [0.72, 0.95, 0.92], shape: 'slender', size: [0.06, 0.09], habitat: 'reef', schools: 8, n: 36, spread: [1.6, 0.7, 1.6], alt: [0.5, 1.4], speed: 0.8 },
+      { id: 'umeiro', ja: 'ウメイロモドキ', sci: 'Caesio teres', note: '青い体に黄色い背中と尾びれのタカサゴの仲間。昼は中層で何百匹もの大群をつくってプランクトンを食べ、夜はリーフの近くで休む。',
+        diel: 'day', diet: 'plankton', pat: 13, c1: [0.16, 0.36, 0.92], c2: [0.98, 0.84, 0.1], c3: [0.82, 0.9, 0.96], shape: 'fusilier', size: [0.24, 0.34], habitat: 'shoal', schools: 3, n: 320, alt: [4, 9], speed: 1.1, freq: [7, 10] },
       { id: 'sergeant', ja: 'ロクセンスズメダイ', sci: 'Abudefduf sexfasciatus', note: '銀白色の体に黒い横帯。中層を群れで泳ぎ、ダイバーにも寄ってくる。',
         diel: 'day', diet: 'plankton', pat: 6, c1: [0.86, 0.90, 0.88], c2: [0.86, 0.84, 0.52], c3: [0.05, 0.05, 0.06], shape: 'oval', size: [0.12, 0.16], habitat: 'reef', schools: 5, n: 14, spread: [2.6, 1.3, 2.6], alt: [1.5, 4], speed: 1.0 },
       { id: 'idol', ja: 'ツノダシ', sci: 'Zanclus cornutus', note: '長く伸びた背びれと突き出た口。白・黄・黒の帯模様。',
@@ -141,8 +143,8 @@ export const LOCATIONS: Sea[] = [
     id: 'maldives', name: 'モルディブ', site: '南アリ環礁のティラ', region: 'Maldives · South Ari Atoll',
     lat: 3.48, lon: 72.84, depth: '8–30 m', vis: 35, temp: 29.0, seed: 37, tz: 5, tide: { amp: 0.5, lag: 0.1, axis: [-1, 0.2] },
     blurb: '環礁の中にそびえる海中の根「ティラ」。マンタのクリーニングステーションがあり、ジンベエザメが通年見られる海域。',
-    water: { up: [0.52, 0.86, 0.96], hor: [0.06, 0.37, 0.58], down: [0.01, 0.09, 0.24], fog: 0.019, abs: [0.10, 0.034, 0.02] },
-    sand: [0.90, 0.89, 0.82], rock: [0.48, 0.44, 0.40],
+    water: { up: [0.30, 0.68, 0.95], hor: [0.02, 0.26, 0.58], down: [0.0, 0.07, 0.25], fog: 0.019, abs: [0.25, 0.055, 0.025] },
+    sand: [0.76, 0.75, 0.70], rock: [0.48, 0.44, 0.40],
     f(x, z) {
       let h = -27 + (fbm(x * 0.01 + 1, z * 0.01 + 2, 3) - 0.5) * 5;
       const t = bommieField(x, z, 75, 0.6, 16, 20, 18, 30, 7, 0.4);

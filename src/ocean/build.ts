@@ -5,6 +5,7 @@ import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR } from '../core/math'
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
 import { CORAL_GEO, CORAL_MAT, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
 import { makeFishSystem } from '../eco/fish';
+import { makeShoalSystem } from '../eco/shoal';
 import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import type { Sea } from '../data/locations';
@@ -184,7 +185,7 @@ export function buildOcean(loc) {
 
   // fish
   for (const sp of loc.species) {
-    const sys = makeFishSystem(sp, oc);
+    const sys: any = sp.habitat === 'shoal' ? makeShoalSystem(sp, oc) : makeFishSystem(sp, oc);
     if (sys) { oc.fish.push(sys); group.add(sys.mesh); }
   }
   // turtles & mantas

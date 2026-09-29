@@ -20,7 +20,7 @@ export interface SeaEvent { kind: string; text: string; x: number; z: number }
 // Something worth pointing the camera at.
 export interface Subject {
   key: string; label: string;
-  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus';
+  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus' | 'school';
   prio: number;
   size: number;                         // rough length, m (sets filming distance)
   pos(): { x: number; y: number; z: number } | null;

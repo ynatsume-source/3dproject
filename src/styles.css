@@ -232,3 +232,5 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
 #guide p.empty { margin: 0; font-size: 12px; line-height: 1.8; color: var(--ink-dim); }
 
 @media (max-width: 1480px) { .group button kbd { display: none; } .group .moon { display: none; } }
+
+body.post.mode-ocean #vignette { opacity: 0; }

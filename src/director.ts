@@ -8,7 +8,7 @@ import type { Subject } from './eco/env';
 export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe' }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
-  hunt: [8, 30], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45],
+  hunt: [8, 30], school: [28, 45], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45],
 };
 
 export class Director {

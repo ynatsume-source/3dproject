@@ -67,15 +67,18 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
   float cone = smoothstep(0.80, 0.96, dot(dir, uCamFwd));
   return alb * vec3(1.0, 0.93, 0.8) * uLamp * cone * max(dot(n, -dir), 0.0) * 5.0 / (1.0 + d * d * 0.07);
 }
+// Water between the eye and a surface: each colour is extinguished at its own rate (red first, blue
+// carries furthest), and the lost light is replaced by the colour of the water in that direction.
 vec3 fogIt(vec3 col, vec3 wp){
   vec3 v = wp - uCamPos; float d = length(v);
   float den = uFogDen * mix(1.0, 1.6, uNight);
-  return mix(col, waterCol(v / max(d, 1e-3)), 1.0 - exp(-den * d));
+  vec3 T = exp(-den * vec3(1.4, 1.0, 0.78) * d);
+  return col * T + waterCol(v / max(d, 1e-3)) * (1.0 - T);
 }
 // light reaching a surface with normal n: sky ambient + direct sun (both coloured)
 vec3 lightAt(vec3 n){ return uTint * (uAmb * 0.42 + uSunI * 0.8 * max(dot(n, SUN), 0.0)); }
 vec3 shade(vec3 alb, vec3 wp, vec3 n, float causAmt){
-  vec3 col = absorb(alb * lightAt(n) * 1.25, wp.y);
+  vec3 col = absorb(alb * lightAt(n) * 1.6, wp.y);
   col += absorb(vec3(0.95, 1.0, 0.95), wp.y) * caus2(wp) * max(n.y, 0.0) * causAmt * alb;
   col += lamp(alb, wp, n);
   return fogIt(col, wp);
