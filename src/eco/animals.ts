@@ -14,7 +14,7 @@ function relocate(t: any, T: any, cam: THREE.Vector3, fx: number, fz: number) {
   t.pos.set(clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), 0, clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT));
   t.pos.y = T.top(t.pos.x, t.pos.z) + rr(1, 3);
   t.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(1, 2.2);
-  t.placed = true; t.state = 'travel'; t.goal = null; t.stateT = 0;
+  t.placed = true; t.state = 'travel'; t.goal = null; t.stateT = 0; t.yaw = undefined; t.pitch = undefined;
 }
 
 // a spot near the turtle suited to what it wants to do
@@ -71,8 +71,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
 
     // look ahead and rise over rocks and coral instead of ploughing into them
     if (t.state !== 'rest' && t.state !== 'graze') {
-      const ahead = T.top(t.pos.x + Math.cos(t.head) * 1.8 * t.size, t.pos.z + Math.sin(t.head) * 1.8 * t.size);
-      ty = Math.max(ty, ahead + 0.6 * t.size);
+      for (const a of [1.8, 3.5, 5.5]) ty = Math.max(ty, T.top(t.pos.x + Math.cos(t.head) * a * t.size, t.pos.z + Math.sin(t.head) * a * t.size) + 0.6 * t.size);
     }
     const beat = Math.max(0, Math.sin(t.t * 1.0));
     const sp = speed * (0.6 + beat * 0.8);
@@ -81,11 +80,20 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     const away = _w.set(t.pos.x - cam.x, 0, t.pos.z - cam.z), ad = away.length();
     if (ad < 2.5 && t.state !== 'rest') t.vel.addScaledVector(away, (2.5 - ad) * 0.3 / Math.max(ad, 0.1));
     t.pos.addScaledVector(t.vel, dt);
-    t.pos.y = Math.max(t.pos.y, fh + 0.15 + 0.2 * t.size);
+    // keep off the reef, but ease up over a sudden coral edge rather than popping onto it
+    const minY = fh + 0.15 + 0.2 * t.size;
+    if (t.pos.y < minY) { t.pos.y += Math.min((minY - t.pos.y) * dt * 3, 0.6 * dt); t.vel.y = Math.max(t.vel.y, 0.2); t.vel.x *= 0.9; t.vel.z *= 0.9; }
     t.group.position.copy(t.pos);
-    const hs = Math.hypot(t.vel.x, t.vel.z);
-    const yaw = hs > 0.02 ? Math.atan2(t.vel.x, t.vel.z) : t.group.rotation.y;
-    t.group.rotation.set(-Math.atan2(t.vel.y, Math.max(hs, 0.05)) * (hs > 0.05 ? 1 : 0) + noseDown * (0.6 + 0.4 * Math.sin(t.t * 0.8)), yaw, Math.sin(t.t * 0.5) * 0.06 * stroke, 'YXZ');
+    // orientation follows the swim direction through a slow turn rate, and the swim speed only fades the
+    // pitch in and out, so a pause or a nudge never flips the body round in a frame
+    const hs = Math.hypot(t.vel.x, t.vel.z), mov = clamp((hs - 0.01) / 0.08, 0, 1);
+    const yawT = hs > 0.005 ? Math.atan2(t.vel.x, t.vel.z) : (t.yaw ?? Math.PI / 2 - t.head);
+    t.yaw ??= yawT;
+    let dy = yawT - t.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    t.yaw += clamp(dy, -1, 1) * Math.min(1, dt * (0.4 + 1.6 * mov));
+    const pitchT = -Math.atan2(t.vel.y, Math.max(hs, 0.08)) * mov + noseDown * (0.6 + 0.4 * Math.sin(t.t * 0.8));
+    t.pitch = (t.pitch ?? pitchT) + (pitchT - (t.pitch ?? pitchT)) * Math.min(1, dt * 1.5);
+    t.group.rotation.set(t.pitch, t.yaw, Math.sin(t.t * 0.5) * 0.06 * stroke, 'YXZ');
     const f = Math.sin(t.t * 1.0) * 0.75 * stroke, sw = Math.sin(t.t * 1.0 - 1.2) * 0.45 * stroke;
     // the fore flippers flap like wings and feather (twist) through the stroke
     const fe = Math.cos(t.t * 1.0) * 0.35 * stroke;

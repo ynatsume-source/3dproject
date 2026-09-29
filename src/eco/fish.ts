@@ -214,6 +214,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     return true;
   }
 
+  const caveMode0 = (g: Group) => (g.cr ? g.cr.mode : 'out');
   let target = 1;
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
     const t = env.t;
@@ -292,11 +293,13 @@ export function makeFishSystem(sp: Species, oc: any) {
         let tz = g.c.z + ox * sr + oz * cr + Math.cos(t * 0.6 + i) * wob + upZ * dart;
         // grazers dip to bite the reef
         if (sp.diet === 'algae' && g.act > 0.5) {
-          const bite = Math.pow(Math.max(0, Math.sin(t * 0.7 + i * 2.1)), 10);
-          ty -= bite * 0.45;
+          const bite = Math.pow(Math.max(0, Math.sin(t * 0.7 + i * 2.1)), 4);
+          ty -= bite * 0.3;
           if (bite > 0.97 && sp.big) env.crunch(Math.hypot(fp[i * 3] - cam.x, fp[i * 3 + 1] - cam.y, fp[i * 3 + 2] - cam.z));
         }
         const px = fp[i * 3], py = fp[i * 3 + 1], pz = fp[i * 3 + 2];
+        const fl = caveMode0(g) === 'out' ? T.top(px, pz) : T.ground(px, pz);   // in the tunnel the floor, not the massif's top
+        ty = Math.max(ty, (caveMode0(g) === 'out' ? T.top(tx, tz) : T.ground(tx, tz)) + 0.2);   // aim above the reef under the target, not into it
         _v.set(tx - px, ty - py, tz - pz);
         const L = _v.length(), maxS = Math.max(sp.speed * (1.7 + g.fear * 1.5), 0.3);
         _v.multiplyScalar(Math.min(maxS, L * 1.1) / Math.max(L, 1e-4)).add(g.v);
@@ -312,7 +315,7 @@ export function makeFishSystem(sp: Species, oc: any) {
             if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); }
           }
         }
-        if (py < (caveMode === 'out' ? T.top(px, pz) : T.ground(px, pz)) + 0.15) _v.y += 1.5;   // in the tunnel the floor, not the massif's top
+        if (py < fl + 0.15) _v.y = Math.max(_v.y, Math.min((fl + 0.15 - py) * 3, 1.2));   // ease back out of the reef, no kick
         const k = 1 - Math.exp(-dt * (lone ? 1.0 : 2.6 + g.fear * 2));
         let vx = fv[i * 3] + (_v.x - fv[i * 3]) * k, vy = fv[i * 3 + 1] + (_v.y - fv[i * 3 + 1]) * k, vz = fv[i * 3 + 2] + (_v.z - fv[i * 3 + 2]) * k;
         fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;
@@ -322,8 +325,10 @@ export function makeFishSystem(sp: Species, oc: any) {
         // heading: where it swims, turned into the current while feeding on plankton
         let hx = vx + upX * feedFace * 0.8, hz = vz + upZ * feedFace * 0.8;
         let hs = Math.hypot(hx, hz);
-        if (hs < 0.05) { hx += Math.cos(g.head + i) * 0.05; hz += Math.sin(g.head + i) * 0.05; hs = Math.hypot(hx, hz); }
-        const hy = clamp(vy, -hs * 0.6, hs * 0.6);
+        // nearly still (asleep): hold a steady heading instead of turning with every tiny drift
+        const still = clamp(1 - hs / 0.12, 0, 1);
+        hx = hx * (1 - still) + Math.cos(g.head + i) * 0.12 * still; hz = hz * (1 - still) + Math.sin(g.head + i) * 0.12 * still; hs = Math.hypot(hx, hz);
+        const hy = clamp(vy * (1 - still), -hs * 0.6, hs * 0.6);
         _w.set(nx + hx, ny + hy, nz + hz); _v.set(nx, ny, nz);
         _mm.lookAt(_w, _v, UPV);
         if (cocoon) {
