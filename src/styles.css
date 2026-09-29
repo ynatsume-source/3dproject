@@ -113,6 +113,10 @@ body.hud-off #toast.on { opacity: 0.62; }
 #guide .go { grid-column: 2; justify-self: start; margin-top: 3px; appearance: none; border: 1px solid var(--line); background: transparent; color: var(--accent); font: 500 11px/1 var(--f-body); letter-spacing: .06em; padding: 5px 9px; border-radius: 6px; cursor: pointer; }
 #guide .go:hover { background: rgba(160, 230, 220, 0.08); }
 #guide .places { margin-bottom: 12px; }
+/* the creature's own model, a silhouette until it has been seen */
+#guide li .pic { grid-column: 1 / -1; width: 100%; max-width: 180px; height: auto; aspect-ratio: 176 / 104; margin: 2px 0 4px; border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(120, 200, 220, 0.14), rgba(0, 30, 50, 0) 70%); }
+#guide li:not(.seen) .pic { filter: brightness(0) opacity(0.45); }
 
 #dock { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .group { pointer-events: auto; display: flex; flex-wrap: wrap; background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 3px;

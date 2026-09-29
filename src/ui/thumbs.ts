@@ -1,0 +1,63 @@
+// Field-guide pictures: each creature's own 3D model, rendered once in a small off-screen renderer
+// under clear, even light, and kept as an image per sea.
+import * as THREE from 'three';
+import { U } from '../render/common';
+import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial } from '../ocean/models';
+import { octopusModel } from '../eco/octopus';
+import type { Sea } from '../data/locations';
+
+const W = 176, H = 104;
+let renderer: THREE.WebGLRenderer | null = null;
+const cache = new Map<string, Record<string, string>>();
+
+function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, number, number] } | null {
+  const sp = loc.species.find((s) => s.id === id);
+  if (sp) {
+    const g = fishGeometry(SHAPES[sp.shape]);
+    g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));
+    const m = new THREE.InstancedMesh(g, fishMaterial(sp), 1); m.setMatrixAt(0, new THREE.Matrix4());
+    return { obj: m, view: [1, 0.22, 0.55] };
+  }
+  if (id === 'turtle') return { obj: makeTurtle(loc.animals.turtle?.style === 'hawksbill' ? 'hawksbill' : 'green').group, view: [0.9, 0.75, 0.9] };
+  if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial()), view: [0.35, 1.1, 0.75] };
+  if (id === 'whale') return { obj: new THREE.Mesh(WHALE_GEO, whaleMaterial(0.3)), view: [1, 0.3, 0.45] };
+  if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
+  // (garden eels duck into their burrows when a camera comes close, so they get no portrait)
+  return null;
+}
+
+// Pictures for the given guide ids (data URLs), rendered on first request per sea.
+export function guideThumbs(loc: Sea, ids: string[]): Record<string, string> {
+  const have = cache.get(loc.id) ?? {};
+  const todo = ids.filter((id) => !(id in have));
+  if (!todo.length) return have;
+  if (!renderer) {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setSize(W, H, false); renderer.setPixelRatio(1);
+  }
+  // clear, shallow-water light for every picture; the live values are put back afterwards
+  const keep = { cam: U.uCamPos.value.clone(), sun: U.uSunDir.value.clone(), sunI: U.uSunI.value, amb: U.uAmb.value, fog: U.uFogDen.value, abs: U.uAbs.value.clone(), night: U.uNight.value,
+    tint: U.uTint.value.clone(), lamp: U.uLamp.value, cave: U.uCaveOn.value, up: U.uUp.value.clone(), hor: U.uHor.value.clone(), down: U.uDown.value.clone(), gold: U.uGolden.value };
+  U.uSunDir.value.set(0.35, 0.85, 0.4).normalize(); U.uSunI.value = 1; U.uAmb.value = 1.1; U.uFogDen.value = 0.0001; U.uAbs.value.set(0, 0, 0); U.uNight.value = 0;
+  U.uTint.value.setRGB(1, 1, 1); U.uLamp.value = 0; U.uCaveOn.value = 0; U.uGolden.value = 0;
+  U.uUp.value.setRGB(0.4, 0.6, 0.7); U.uHor.value.setRGB(0.3, 0.45, 0.55); U.uDown.value.setRGB(0.2, 0.3, 0.35);
+  const cam = new THREE.PerspectiveCamera(28, W / H, 0.01, 100);
+  for (const id of todo) {
+    const m = model(loc, id);
+    if (!m) { have[id] = ''; continue; }
+    const scene = new THREE.Scene(); scene.add(m.obj);
+    m.obj.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(m.obj), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    const r = Math.max(size.x, size.y * 1.6, size.z) * 0.62;
+    const dir = new THREE.Vector3(...m.view).normalize();
+    cam.position.copy(c).addScaledVector(dir, r / Math.tan(14 * Math.PI / 180) * 0.62); cam.lookAt(c); cam.updateMatrixWorld();
+    U.uCamPos.value.copy(cam.position);
+    renderer.setClearColor(0x000000, 0); renderer.clear();
+    renderer.render(scene, cam);
+    have[id] = renderer.domElement.toDataURL('image/png');
+  }
+  U.uCamPos.value.copy(keep.cam); U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs);
+  U.uNight.value = keep.night; U.uTint.value.copy(keep.tint); U.uLamp.value = keep.lamp; U.uCaveOn.value = keep.cave; U.uUp.value.copy(keep.up); U.uHor.value.copy(keep.hor); U.uDown.value.copy(keep.down); U.uGolden.value = keep.gold;
+  cache.set(loc.id, have);
+  return have;
+}

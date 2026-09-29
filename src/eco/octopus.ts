@@ -81,6 +81,9 @@ function octopusMaterial() {
       opts: { side: THREE.DoubleSide } });
 }
 
+// a still model for the field guide
+export function octopusModel() { return new THREE.Mesh(GEO, octopusMaterial()); }
+
 type State = 'den' | 'forage' | 'jet' | 'settle';
 const STATUS: Record<State, string> = { den: '巣穴から様子をうかがっている', forage: '岩の上を歩いて餌を探している', jet: 'ジェット噴射で逃げている', settle: '体の色を周りに合わせている' };
 
