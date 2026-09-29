@@ -185,16 +185,26 @@ export function buildOcean(loc) {
   }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
-  // rocks and rubble: a few rough prototypes, scattered thickly over the reef and drawn per cell
+  // rocks and rubble: a dozen prototypes in six shapes, scattered thickly over the reef and drawn per cell
   {
-    const protos = [0, 1, 2, 3].map((k) => roughRock(k * 13.7 + loc.seed));
+    const KINDS: [string, number, [number, number]][] = [
+      ['boulder', 0.2, [0.25, 1.8]], ['angular', 0.26, [0.25, 1.6]], ['slab', 0.14, [0.6, 2.0]],
+      ['pinnacle', 0.1, [0.35, 1.1]], ['pitted', 0.14, [0.3, 1.5]], ['rubble', 0.16, [0.08, 0.32]],
+    ];
+    const protos: { kind: string; geo: THREE.BufferGeometry }[] = [];
+    KINDS.forEach(([kind], i) => { for (let v = 0; v < 2; v++) protos.push({ kind, geo: rockPrototype(kind, loc.seed * 7 + i * 31 + v * 13) }); });
     const lists: any[][] = protos.map(() => []);
-    for (let placed = 0, tries = 0; placed < 1800 && tries < 30000; tries++) {
+    const wsum = KINDS.reduce((a, k) => a + k[1], 0);
+    for (let placed = 0, tries = 0; placed < 2200 && tries < 40000; tries++) {
       const x = rr(-LIMIT - 35, LIMIT + 35), z = rr(-LIMIT - 35, LIMIT + 35), h = loc.f(x, z), r = TERR.reef;
       if (r < 0.22 || R() > r * (0.7 + 0.9 * Math.min(1, T.slope(x, z)))) continue;
-      const s = 0.18 + Math.pow(R(), 2.6) * 1.9;
-      const sy = s * rr(0.45, 0.8);
-      lists[Math.floor(R() * protos.length)].push({ x, z, y: h - sy * 0.35, ry: R() * 6.28, tx: (R() - 0.5) * 0.5, tz: (R() - 0.5) * 0.5, sx: s * rr(0.8, 1.3), sy, sz: s * rr(0.8, 1.3) });
+      let q = R() * wsum, ki = 0;
+      for (; ki < KINDS.length - 1; ki++) { q -= KINDS[ki][1]; if (q <= 0) break; }
+      const [kind, , [a, b]] = KINDS[ki];
+      const s = a + Math.pow(R(), 2.2) * (b - a);
+      const tilt = kind === 'angular' || kind === 'rubble' ? 0.9 : kind === 'slab' ? 0.25 : 0.35;
+      const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
+      lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push({ x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) });
       placed++;
     }
     const rockMat = mat(
@@ -206,16 +216,17 @@ export function buildOcean(loc) {
          vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
          gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
        }`, { uniforms: SURF_UNIFORMS });
+    const ROCK_CELL = 80;
     lists.forEach((list, k) => {
       const bucket = new Map<string, any[]>();
-      for (const it of list) { const key = Math.floor(it.x / CELL) + ',' + Math.floor(it.z / CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
+      for (const it of list) { const key = Math.floor(it.x / ROCK_CELL) + ',' + Math.floor(it.z / ROCK_CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
       for (const [key, arr] of bucket) {
-        const m = new THREE.InstancedMesh(protos[k], rockMat, arr.length);
+        const m = new THREE.InstancedMesh(protos[k].geo, rockMat, arr.length);
         arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); });
         m.frustumCulled = false;
         group.add(m);
         const [ci, cj] = key.split(',').map(Number);
-        oc.cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh: m });
+        oc.cells.push({ x: (ci + 0.5) * ROCK_CELL, z: (cj + 0.5) * ROCK_CELL, mesh: m, big: true });
       }
     });
   }
@@ -241,15 +252,40 @@ export function buildOcean(loc) {
 }
 
 
-// A lumpy boulder with smooth shading (duplicate vertices of the icosphere share one normal).
-function roughRock(seed: number) {
-  const g = new THREE.IcosahedronGeometry(1, 2), P = g.attributes.position, v = new THREE.Vector3();
+// Rock prototypes. Unit-sized; instances scale them.
+//  boulder  - lumpy and rounded            angular - facets cut by random planes, crisp edges
+//  slab     - a wide, flat, faceted block  pinnacle - tall, tapering, fluted
+//  pitted   - dead coral head full of holes rubble - small angular chunks
+function rockPrototype(kind: string, seed: number) {
+  const rnd = mulberryLocal(seed);
+  const detail = kind === 'rubble' ? 1 : kind === 'boulder' || kind === 'pitted' || kind === 'pinnacle' ? 3 : 2;
+  const g = new THREE.IcosahedronGeometry(1, detail), P = g.attributes.position, v = new THREE.Vector3();
+  const cuts: [THREE.Vector3, number][] = [];
+  const nCuts = kind === 'angular' ? 9 : kind === 'slab' ? 7 : kind === 'rubble' ? 6 : 0;
+  for (let i = 0; i < nCuts; i++) cuts.push([new THREE.Vector3(rnd() * 2 - 1, rnd() * 2 - 1, rnd() * 2 - 1).normalize(), 0.45 + rnd() * 0.35]);
+  const so = rnd() * 100;
   for (let i = 0; i < P.count; i++) {
     v.fromBufferAttribute(P, i);
-    const k = 0.7 + fbm(v.x * 1.4 + seed, v.z * 1.4 + v.y * 1.1 + seed, 4) * 0.55 + (fbm(v.x * 4 + seed, v.y * 4 - v.z * 3, 2) - 0.5) * 0.12;
-    v.multiplyScalar(k); if (v.y < -0.2) v.y = -0.2 + (v.y + 0.2) * 0.3;
+    if (kind === 'boulder' || kind === 'pitted' || kind === 'pinnacle') {
+      v.multiplyScalar(0.72 + fbm(v.x * 1.4 + so, v.z * 1.4 + v.y * 1.1 + so, 4) * 0.55 + (fbm(v.x * 4 + so, v.y * 4 - v.z * 3, 2) - 0.5) * 0.12);
+    }
+    if (kind === 'pitted') {
+      const pits = Math.max(0, fbm(v.x * 3.2 + so, v.z * 3.2 - v.y * 2.7, 3) - 0.56) * 2.6;
+      v.multiplyScalar(1 - Math.min(0.35, pits));
+    }
+    if (kind === 'pinnacle') {
+      const a = Math.atan2(v.z, v.x);
+      const k = (1 - 0.5 * Math.max(0, v.y)) * (1 + 0.09 * Math.sin(a * 7 + v.y * 2.5 + so));
+      v.x *= k; v.z *= k; v.y *= 1.9;
+    }
+    for (const [n, c] of cuts) { const d = v.dot(n); if (d > c) v.addScaledVector(n, c - d); }
+    if (nCuts) v.multiplyScalar(1 + (fbm(v.x * 2.2 + so, v.z * 2.2 + v.y * 1.7, 2) - 0.5) * 0.18);
+    if (kind === 'slab') { v.y *= 0.42; v.x *= 1.45; v.z *= 1.15; }
+    if (v.y < -0.2) v.y = -0.2 + (v.y + 0.2) * 0.3;
     P.setXYZ(i, v.x, v.y, v.z);
   }
+  if (nCuts) { g.computeVertexNormals(); return g; }   // faceted: keep the crisp per-face normals
+  // rounded kinds: shade smoothly across the duplicated vertices of the icosphere
   const acc = new Map<string, THREE.Vector3>(), A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
   const key = (i: number) => `${P.getX(i).toFixed(4)},${P.getY(i).toFixed(4)},${P.getZ(i).toFixed(4)}`;
   for (let i = 0; i < P.count; i += 3) {
@@ -262,3 +298,4 @@ function roughRock(seed: number) {
   g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   return g;
 }
+function mulberryLocal(a: number) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }

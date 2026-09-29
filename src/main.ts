@@ -666,7 +666,8 @@ function frame(ts: number) {
     const vis = Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
-      c.mesh.visible = d < vis && (d < CELL || (dx * fx + dz * fz) / d > -0.4);
+      const cs = c.big ? 80 : CELL;
+      c.mesh.visible = d < vis + (cs - CELL) * 0.72 && (d < cs || (dx * fx + dz * fz) / d > -0.4);
       if (c.hi) c.hi.visible = c.mesh.visible && d < U.uLodR.value + CELL * 0.72;
     }
     sky.position.copy(camera.position);

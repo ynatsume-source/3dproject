@@ -14,12 +14,13 @@ export interface TierSettings {
   snow: number;         // fraction of marine snow particles
   coralVis: number;     // coral cells drawn out to this fraction of the visibility distance
   lodR: number;         // detailed coral within this many metres
+  ao: number;           // screen-space ambient occlusion samples (0 = off)
 }
 
 export const TIERS: Record<Tier, TierSettings> = {
-  low: { label: '軽量', dpr: 1.0, post: true, vol: 0, volScale: 0.25, bloom: 0, shoal: 0.35, grass: 0.4, snow: 0.5, coralVis: 0.65, lodR: 6 },
-  medium: { label: '標準', dpr: 1.25, post: true, vol: 12, volScale: 0.35, bloom: 4, shoal: 0.65, grass: 0.75, snow: 0.8, coralVis: 0.85, lodR: 13 },
-  high: { label: '高画質', dpr: 1.75, post: true, vol: 22, volScale: 0.5, bloom: 5, shoal: 1, grass: 1, snow: 1, coralVis: 1, lodR: 22 },
+  low: { label: '軽量', dpr: 1.0, post: true, vol: 0, volScale: 0.25, bloom: 0, shoal: 0.35, grass: 0.4, snow: 0.5, coralVis: 0.65, lodR: 6, ao: 0 },
+  medium: { label: '標準', dpr: 1.25, post: true, vol: 12, volScale: 0.35, bloom: 4, shoal: 0.65, grass: 0.75, snow: 0.8, coralVis: 0.85, lodR: 13, ao: 8 },
+  high: { label: '高画質', dpr: 1.75, post: true, vol: 22, volScale: 0.5, bloom: 5, shoal: 1, grass: 1, snow: 1, coralVis: 1, lodR: 22, ao: 14 },
 };
 
 export function detectTier(gl: WebGL2RenderingContext | WebGLRenderingContext): Tier {

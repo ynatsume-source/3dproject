@@ -29,6 +29,7 @@ export class Post {
   private quad: THREE.Mesh;
   private main = rt(1, 1, true);
   private vol = rt(1, 1);
+  private ao = rt(1, 1);
   private mips: THREE.WebGLRenderTarget[] = [];
   private w = 1; private h = 1;
   private frame = 0;
@@ -40,7 +41,7 @@ export class Post {
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
       uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs,
-      uFrame: { value: 0 }, uStrength: { value: 0.4 },
+      uFrame: { value: 0 }, uStrength: { value: 0.5 },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tDepth; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uCamPos;
@@ -50,7 +51,7 @@ export class Post {
       ${NOISE}
       // sunlight focused by the moving surface: soft streaks that drift with the waves
       float beams(vec2 q){
-        float a = vn(q * 0.16 + vec2(uTime * 0.045, uTime * 0.02));
+        float a = vn(q * 0.11 + vec2(uTime * 0.035, uTime * 0.015));
         float b = vn(q * 0.43 - vec2(uTime * 0.03, -uTime * 0.05));
         float s = a * 0.65 + b * 0.35;
         return pow(smoothstep(0.42, 0.95, s), 2.2) * 2.6;
@@ -60,12 +61,14 @@ export class Post {
         vec4 vp = uInvProj * vec4(vUv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); vp /= vp.w;
         vec3 wp = (uCamWorld * vec4(vp.xyz, 1.0)).xyz;
         vec3 ray = wp - uCamPos; float len = length(ray); vec3 dir = ray / len;
-        float dist = min(d >= 0.9999 ? 60.0 : len, 60.0);
+        float dist = min(d >= 0.9999 ? 95.0 : len, 95.0);
         float jit = h12(gl_FragCoord.xy + uFrame * 7.13);
         vec3 acc = vec3(0.0);
-        float stepLen = dist / float(STEPS);
+        // steps packed near the eye and stretched with distance, so far-off shafts still show
         for (int i = 0; i < STEPS; i++) {
-          float t = (float(i) + jit) * stepLen;
+          float s0 = (float(i) + jit) / float(STEPS), s1 = (float(i) + 1.0 + jit) / float(STEPS);
+          float t = dist * pow(s0, 1.6);
+          float stepLen = dist * (pow(s1, 1.6) - pow(s0, 1.6));
           vec3 p = uCamPos + dir * t;
           if (p.y > -0.05) continue;
           vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
@@ -79,6 +82,40 @@ export class Post {
         float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) * 0.08;
         vec3 col = acc * phase * uSunI * uTint * vec3(0.55, 0.9, 0.95) * uStrength;
         gl_FragColor = vec4(col, 1.0);
+      }`,
+  });
+
+  // Ambient occlusion from the depth buffer: for each pixel, how much nearby geometry rises above its
+  // surface within ~0.7 m. Brings back the contact shadows where coral meets rock and in crevices.
+  private aoMat = new THREE.ShaderMaterial({
+    vertexShader: VS,
+    defines: { SAMPLES: 12 },
+    uniforms: { tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uF: { value: 1 }, uAspect: { value: 1 }, uTexel: { value: new THREE.Vector2() }, uRadius: { value: 0.7 } },
+    fragmentShader: /* glsl */ `
+      uniform sampler2D tDepth; uniform mat4 uInvProj; uniform float uF; uniform float uAspect; uniform vec2 uTexel; uniform float uRadius;
+      varying vec2 vUv;
+      ${NOISE}
+      vec3 viewPos(vec2 uv){ float d = texture2D(tDepth, uv).r; vec4 p = uInvProj * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); return p.xyz / p.w; }
+      void main(){
+        float d = texture2D(tDepth, vUv).r;
+        if (d >= 0.9999) { gl_FragColor = vec4(1.0); return; }
+        vec3 P = viewPos(vUv);
+        vec3 N = normalize(cross(viewPos(vUv + vec2(uTexel.x, 0.0)) - P, viewPos(vUv + vec2(0.0, uTexel.y)) - P));
+        if (dot(N, -P) < 0.0) N = -N;
+        float rUv = uRadius * uF * 0.5 / max(-P.z, 0.1);
+        float ang = h12(floor(gl_FragCoord.xy)) * 6.2831;
+        float occ = 0.0;
+        for (int i = 0; i < SAMPLES; i++) {
+          float t = (float(i) + 0.5) / float(SAMPLES);
+          float a = ang + float(i) * 2.39996;
+          vec2 off = vec2(cos(a) / uAspect, sin(a)) * sqrt(t) * rUv;
+          vec3 v = viewPos(vUv + off) - P;
+          float dist = length(v);
+          occ += max(0.0, dot(N, v) / (dist + 1e-3) - 0.1) * (1.0 - smoothstep(uRadius * 0.7, uRadius * 1.8, dist));
+        }
+        float ao = clamp(1.0 - occ / float(SAMPLES) * 1.9, 0.0, 1.0);
+        ao = mix(1.0, ao, 1.0 - smoothstep(10.0, 28.0, -P.z));   // far away the water veil takes over
+        gl_FragColor = vec4(ao);
       }`,
   });
 
@@ -118,12 +155,12 @@ export class Post {
   private compMat = new THREE.ShaderMaterial({
     vertexShader: VS,
     uniforms: {
-      tScene: { value: null }, tVol: { value: null }, tBloom: { value: null },
+      tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
     fragmentShader: /* glsl */ `
-      uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom;
+      uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel;
       uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
       varying vec2 vUv;
       ${NOISE}
@@ -135,6 +172,11 @@ export class Post {
         // a little colour fringing toward the frame edge, as through a dome port
         vec2 ca = c * r2 * 0.004;
         vec3 col = vec3(lin(texture2D(tScene, vUv + ca).rgb).r, lin(texture2D(tScene, vUv).rgb).g, lin(texture2D(tScene, vUv - ca).rgb).b);
+        if (uUseAO > 0.5) {
+          vec2 o = uAOTexel;
+          float ao = (texture2D(tAO, vUv + vec2(-o.x, -o.y)).r + texture2D(tAO, vUv + vec2(o.x, -o.y)).r + texture2D(tAO, vUv + vec2(-o.x, o.y)).r + texture2D(tAO, vUv + vec2(o.x, o.y)).r) * 0.25;
+          col *= ao;
+        }
         if (uUseVol > 0.5) col += texture2D(tVol, vUv).rgb;
         if (uUseBloom > 0.5) col += texture2D(tBloom, vUv).rgb * uBloom;
         col *= uWB * uExposure;
@@ -155,6 +197,7 @@ export class Post {
 
   setTier(t: TierSettings) {
     this.tier = t;
+    if (t.ao) { this.aoMat.defines.SAMPLES = t.ao; this.aoMat.needsUpdate = true; }
     if (t.vol) { this.volMat.defines.STEPS = t.vol; this.volMat.needsUpdate = true; }
     this.setSize(this.w, this.h);
   }
@@ -165,6 +208,7 @@ export class Post {
     this.main.depthTexture!.image.width = w; this.main.depthTexture!.image.height = h;
     const vs = this.tier.volScale;
     this.vol.setSize(Math.ceil(w * vs), Math.ceil(h * vs));
+    this.ao.setSize(Math.ceil(w / 2), Math.ceil(h / 2));
     for (const m of this.mips) m.dispose();
     this.mips = [];
     let mw = w, mh = h;
@@ -218,7 +262,17 @@ export class Post {
         this.pass(r, this.upMat, this.mips[i - 1], false);
       }
     }
+    if (t.ao) {
+      const u = this.aoMat.uniforms;
+      u.tDepth.value = this.main.depthTexture;
+      u.uInvProj.value.copy(camera.projectionMatrixInverse);
+      u.uF.value = camera.projectionMatrix.elements[5];
+      u.uAspect.value = camera.aspect;
+      u.uTexel.value.set(1 / this.w, 1 / this.h);
+      this.pass(r, this.aoMat, this.ao);
+    }
     const c = this.compMat.uniforms;
+    c.tAO.value = this.ao.texture; c.uUseAO.value = t.ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
     c.tScene.value = this.main.texture;
     c.tVol.value = this.vol.texture; c.uUseVol.value = t.vol ? 1 : 0;
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;

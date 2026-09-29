@@ -11,7 +11,7 @@ export const oceanScene = new THREE.Scene();
 
 export const sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), mat(
   `varying vec3 vWp; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  `varying vec3 vWp; void main(){ gl_FragColor = vec4(waterCol(normalize(vWp - uCamPos)), 1.0); }`,
+  `varying vec3 vWp; void main(){ gl_FragColor = vec4(hazeCol(normalize(vWp - uCamPos)), 1.0); }`,
   { opts: { side: THREE.BackSide, depthWrite: false } }));
 sky.renderOrder = -1;
 oceanScene.add(sky);
