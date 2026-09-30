@@ -85,6 +85,7 @@ main.ts のループ（毎フレーム）             ▼
 | `scripts/director-check.ts miyako` | 撮影監督の選択 | 成功 |
 | `scripts/clip-check.ts` | ウミガメのめり込み | 成功（岩・サンゴの中 0.05〜0.37%、最大1.36m） |
 | `scripts/hunt-check.ts miyako` | 狩り：追跡の回数・最接近・速さ・結末 | 成功（夕方15分で捕獲35・逃げ切り55） |
+| `scripts/stuck-check.ts maldives` | 狩りが一つの段階で止まったままにならないか | 成功（モルディブ・GBRとも 0） |
 | `scripts/cave-check.ts` | 洞窟の通り抜け | 成功（両方向とも完走、岩の中 0） |
 | `scripts/bait-check.ts` / `jitter-check.ts` / `motion-check.ts` | ベイトボール、揺れ、ドローンの岩への接近 | 成功（ドローンが岩に入る 0.00%） |
 

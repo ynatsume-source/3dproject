@@ -88,11 +88,22 @@ const pipCam = new THREE.PerspectiveCamera(42, 16 / 10, 0.08, 460);
 let pipOff = 0, pipLift = 0, pipClear = 0;
 const pipLook = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
 let pipOn = (() => { try { return localStorage.getItem('seaglass.pip') !== '0'; } catch (e) { return true; } })();
-let pipSubj: Subject | null = null, pipT = 0, pipFade = 0, pipScan = 0, pipAng = 0;
+let pipSubj: Subject | null = null, pipT = 0, pipFade = 0, pipScan = 0, pipAng = 0, pipBoost = 1, pipIdle = 0;
+const pipFrom = new THREE.Vector3(); let pipFromT = 0, pipSlow = false;   // (where the hunter was a few seconds ago: has anything happened since?)
+// How bright the hunt window would come out: the water behind the action (its colour at that depth, as
+// the shaders make it) and the light falling on the fish there. Deep, at dawn or at night it falls away,
+// and the window opens up to keep the chase legible (a noon reef a few metres down is the reference).
+const _wl = new THREE.Color();
+function pipLight(depth: number) {
+  _wl.copy(U.uHor.value).lerp(U.uDown.value, 0.5);
+  const water = (0.21 * _wl.r + 0.72 * _wl.g + 0.07 * _wl.b) * (0.32 + 0.68 * Math.exp(-depth * 0.035)) * U.uAmb.value;
+  const lit = (U.uAmb.value * 0.42 + U.uSunI.value * 0.4) * Math.exp(-depth * U.uAbs.value.y) * 0.5;
+  return 0.6 * water + 0.4 * lit;
+}
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
-const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyWait: 600, skyStay: 300 };
+const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, el: 0.95, dist: 11, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -125,7 +136,7 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
     else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
   } else {
     if (prev && drone.mode === 'auto') drone.s = nearestS(drone.pos);
-    if (drone.mode === 'auto') setMode('auto');
+    if (drone.mode === 'auto') $('tMode').textContent = 'AUTO CRUISE';   // (back to the cruise, in the sea or the sky as before: a shot ashore does not send us up)
   }
 }
 const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0 };
@@ -143,7 +154,7 @@ function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R);
-  const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9)) : null;
+  const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9)) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
   if (watch.r && watch.pov && cur!.residents) {
     // through its own eyes: where its eyes are, looking where it looks (a drag glances aside)
@@ -375,16 +386,17 @@ function crossSurface(up: boolean) {
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
 // natural: the guide decided (it goes back on its own after a while); otherwise you asked, and it stays longer
+function skyLabel() { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').innerHTML = `<span class="dot"></span>${drone.sky ? '海へ' : '空へ'} <kbd>U</kbd>`; }
 function setSky(on: boolean, natural = false) {
   if (!cur) return;
   if (watch.r && !natural) stopWatch(false);
-  drone.sky = on; drone.skyT = 0;
+  drone.sky = on; drone.skyT = 0; drone.skyAge = 0;
+  drone.seaUntil = on ? 0 : performance.now() + (natural ? 60000 : 150000);   // back into the sea: no flying straight off to the residents ashore
   if (drone.mode !== 'auto') setMode('auto');
   director.reset(); lastShot = null;
   if (!on) { drone.s = nearestS(drone.pos); drone.skyWait = rr(...persona.skyGap); }
   else drone.skyStay = rr(...persona.skyStay) * (natural ? 1 : 2.5);
-  $('btnSky').setAttribute('aria-pressed', String(on));
-  $('btnSky').innerHTML = `<span class="dot"></span>${on ? '海へ' : '空へ'} <kbd>U</kbd>`;
+  skyLabel();
   say(on ? 'skyUp' : 'skyDown', {}, natural);
 }
 // Every so often the guide rises into the sky on its own, and comes back down: more often on a clear
@@ -395,7 +407,7 @@ function skySchedule(dt: number) {
     const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value);
     drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));   // (the wait runs down while filming too)
     if (drone.skyWait <= 0 && !lastShot && !(cur.cave && camCave < 0.95)) setSky(true, true);   // go up once the shot in hand is done
-  } else if (drone.skyT > drone.skyStay) setSky(false, true);
+  } else if ((drone.skyAge += dt) > drone.skyStay) setSky(false, true);   // (the time up there counts while filming the residents from the sky too)
 }
 // aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
 const auroraParam = new URLSearchParams(location.search).get('aurora');
@@ -1172,7 +1184,7 @@ function setMode(m: 'auto' | 'manual') {
   if (watch.r) stopWatch(false);
   drone.mode = m;
   if (m === 'manual') director.reset();
-  if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; } }
+  if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; } }
   if (cur) { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').innerHTML = `<span class="dot"></span>${drone.sky ? '海へ' : '空へ'} <kbd>U</kbd>`; }
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
@@ -1237,7 +1249,7 @@ canvas.addEventListener('pointermove', (e) => {
 function startWatch(r: any) {
   if (!cur?.residents) return;
   if (drone.mode !== 'auto') setMode('auto');
-  if (drone.sky) { drone.sky = false; $('btnSky').setAttribute('aria-pressed', 'false'); $('btnSky').innerHTML = '<span class="dot"></span>空へ <kbd>U</kbd>'; }
+  if (drone.sky) { drone.sky = false; skyLabel(); }
   director.reset(); lastShot = null;
   const first = !watch.r;
   watch.r = r;
@@ -1260,7 +1272,7 @@ function stopWatch(resume: boolean) {
   if (watch.pov) { watch.r = null; setPov(false); }
   watch.r = null;
   renderWatch();
-  if (resume && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0) { drone.sky = true; drone.skyT = 0; drone.skyStay = rr(...persona.skyStay); } }
+  if (resume && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; drone.skyStay = rr(...persona.skyStay) * 0.5; } skyLabel(); }
 }
 // the row of residents to watch (only by the island), and the card for the one being watched
 function renderWatch() {
@@ -1518,16 +1530,25 @@ function renderPip(dt: number, air: boolean) {
   if ((pipScan -= dt) < 0) {
     pipScan = 0.5;
     const filming = lastShot?.subject.key;
-    if (!pipSubj || !pipSubj.live()) {
-      pipSubj = null;
-      let bd = 140;
+    // a hunt that has gone quiet (missed, and the hunter barely moving) gives way to a livelier one nearby
+    if (pipSubj && pipSubj.live()) {
+      const p = pipSubj.pos(), el = pipT - pipFromT;
+      if (p && el > 2) { pipSlow = Math.hypot(p.x - pipFrom.x, p.y - pipFrom.y, p.z - pipFrom.z) / el < 0.35; if (el > 4) { pipFrom.set(p.x, p.y, p.z); pipFromT = pipT; } }
+      const st = pipSubj.status();
+      pipIdle = !st.includes('追いかけ') && (st.includes('かわされ') || pipSlow) ? pipIdle + 0.5 : 0;
+    }
+    const stale = !pipSubj || !pipSubj.live() || pipIdle > 3;
+    if (stale) {
+      const was = pipSubj;
+      let best: Subject | null = null, bd = 140;
       for (const s of cur.eco.subjects()) {
-        if (s.kind !== 'hunt' || !s.live() || s.key === filming) continue;
+        if (s.kind !== 'hunt' || !s.live() || s.key === filming || (was && s.key === was.key && pipIdle > 3)) continue;
         const p = s.pos(); if (!p) continue;
-        const d = Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z);
-        if (d < bd) { bd = d; pipSubj = s; }
+        const d = Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z) - (s.status().includes('追いかけ') ? 50 : 0);
+        if (d < bd) { bd = d; best = s; }
       }
-      if (pipSubj) { pipT = 0; pipAng = Math.random() * 6.28; pipOff = 0; pipLift = 0; pipClear = 0; }
+      if (best || !was || !was.live()) pipSubj = best;
+      if (pipSubj && pipSubj !== was) { pipT = 0; pipIdle = 0; pipAng = Math.random() * 6.28; pipOff = 0; pipLift = 0; pipClear = 0; pipSlow = false; pipFromT = 0; const q = pipSubj.pos(); if (q) pipFrom.set(q.x, q.y, q.z); }
     }
     if (pipSubj && pipSubj.key === filming) pipSubj = null;
   }
@@ -1580,13 +1601,19 @@ function renderPip(dt: number, air: boolean) {
   const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
   if (w !== pipRect.w || h !== pipRect.h) { pipRect.w = w; pipRect.h = h; pipPost.setSize(Math.floor(w * dpr), Math.floor(h * dpr)); pipCam.aspect = w / h; pipCam.updateProjectionMatrix(); }
   if (air && skyNow) lightFor(skyNow, false);   // (the little window looks under the water: lit as it is down there, even when we are up in the air)
-  pipPost.setExposure(1.9 * (1 + 0.55 * nightLift));   // a touch brighter than the main view: the action has to read small
+  const wantBoost = clamp(Math.pow(0.17 / Math.max(pipLight(Math.max(0, -pipLook.y)), 0.01), 0.7), 1, 3);
+  pipBoost += (wantBoost - pipBoost) * Math.min(1, dt * 1.2);
+  pipPost.setExposure(1.9 * (1 + 0.45 * nightLift) * pipBoost);   // a touch brighter than the main view: the action has to read small
+  // and when it is dim, a soft light over the hunt (as a filmer's lamp would give), so the fish themselves show
+  const keepSpot = U.uSpot.value.clone();
+  U.uSpot.value.set(pipLook.x, pipLook.y + 2.5, pipLook.z, clamp(0.3 * (pipBoost - 1) + 0.3 * nightLift, 0, 0.75));
   pipPost.whiteBalance(-pipCam.position.y, U.uAbs.value, U.uNight.value);
   renderer.setViewport(r.left, H - r.bottom, w, h); renderer.setScissor(r.left, H - r.bottom, w, h); renderer.setScissorTest(true);
   pipPost.render(renderer, oceanScene, pipCam);
   renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight); renderer.setScissor(0, 0, innerWidth, innerHeight);
   // put the main camera's view back
   if (air && skyNow) lightFor(skyNow, true);
+  U.uSpot.value.copy(keepSpot);
   U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd);
   cur.cells.forEach((c: any, i: number) => { c.mesh.visible = vis[i][0]; if (c.hi) c.hi.visible = vis[i][1]; });
   sky.position.copy(camera.position); surface.position.set(camera.position.x, 0, camera.position.z);
