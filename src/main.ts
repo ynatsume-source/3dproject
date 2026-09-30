@@ -37,13 +37,16 @@ const canvas = $('scene') as HTMLCanvasElement;
 // If the GPU gives up on us (the context is lost: a driver reset, usually a frame that took too long on
 // a weak or busy GPU), reload in a lighter mode: first the light tier at a lower resolution, then lower
 // still; after that, say so instead of looping.
+// ?nopost: draw straight to the screen, without the post-processing chain (and ?nopip without the hunt
+// window); the second recovery reload does the same
+const noPost = /[?&]nopost/.test(location.search), noPip = /[?&]nopip/.test(location.search);
 const SAFE = (() => { try { return +(sessionStorage.getItem('seaglass.safe') || 0); } catch (e) { return 0; } })();
 let lostCount = 0;
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault(); lostCount++;
   console.error('WebGL context lost');
   if (location.search.includes('diag')) return;
-  if (SAFE < 2) {
+  if (SAFE < 3) {
     try { sessionStorage.setItem('seaglass.safe', String(SAFE + 1)); } catch (err) { /* ignore */ }
     $('veilK').textContent = 'RECOVERING'; $('veilT').textContent = '描画が止まったため、軽いモードで開き直します'; $('veilS').textContent = '';
     document.getElementById('veil')!.classList.add('on');
@@ -524,6 +527,7 @@ function focusOn(s: Subject) {
   director.focus(s, drone.pos);
   lastShot = null;
 }
+const usePost = () => TIERS[tier].post && !noPost && SAFE < 2;
 const allSubjects = () => (cur!.residents ? [...cur!.eco.subjects(), ...cur!.residents.subjects()] : cur!.eco.subjects());
 function goTo(id: string) {
   if (!cur) return;
@@ -1251,7 +1255,7 @@ function setPip(on: boolean) {
 }
 function resize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 2 ? 0.5 : 1);
+  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 3 ? 0.5 : 1);
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -1352,9 +1356,9 @@ function frame(ts: number) {
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (bisect) bisectStep(dt);
-    if (TIERS[tier].post) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
+    if (usePost()) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
     cur.residents?.bubbles(camera, innerWidth, innerHeight);
-    if (TIERS[tier].post) renderPip(dt, air);
+    if (usePost()) { if (!noPip) renderPip(dt, air); }
     else {
       renderer.setRenderTarget(null); renderer.render(oceanScene, camera);
       if (air) { setRefraction(null); renderer.autoClear = false; renderer.render(topScene, camera); renderer.autoClear = true; }
@@ -1421,7 +1425,7 @@ if (location.search.includes('diag')) {
       box.textContent = [
         `GPU      ${name}`, `vendor   ${vendor}`, `WebGL2   ${gl instanceof WebGL2RenderingContext ? 'yes' : 'NO'}   maxTex ${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`,
         `float RT ${ex('EXT_color_buffer_float')}   half RT ${ex('EXT_color_buffer_half_float')}   float linear ${ex('OES_texture_float_linear')}`,
-        `tier     ${tier}   safe ${SAFE}   dpr ${renderer.getPixelRatio().toFixed(2)}   canvas ${canvas.width}x${canvas.height}`,
+        `tier     ${tier}   safe ${SAFE}   post ${usePost() ? 'on' : 'OFF'}   dpr ${renderer.getPixelRatio().toFixed(2)}   canvas ${canvas.width}x${canvas.height}`,
         `fps      ${fps.toFixed(1)}   ms/frame ${(1000 / Math.max(fps, 0.01)).toFixed(0)}   lost ${lostCount}   ctx ${gl.isContextLost() ? 'LOST' : 'ok'}   glError ${gl.getError()}`,
         `mode     ${mode}   sea ${cur?.loc.id ?? '-'}   cam y ${camera.position.y.toFixed(1)}`,
         `UA       ${navigator.userAgent}`,
