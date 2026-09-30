@@ -44,11 +44,12 @@ export class Ecosystem {
     const TS: Record<string, [number, string]> = { travel: [2.0, '泳いでいる'], graze: [2.6, '食事中'], toRest: [2.2, '寝床へ向かっている'], rest: [2.6, '岩陰で眠っている'], breathe: [3.2, '息継ぎに浮上中'] };
     const turtleName = (this.oc.loc.extraGuide || []).find((e: any) => e.id === 'turtle')?.ja ?? 'ウミガメ';
     this.oc.turtles.forEach((t: any, i: number) => {
-      out.push({ key: `turtle:${i}`, label: turtleName, kind: 'turtle', prio: (TS[t.state] || TS.travel)[0], size: 1.2 * t.size,
+      const hawk = this.oc.loc.animals.turtle?.style === 'hawksbill';
+      out.push({ key: `turtle:${i}`, label: turtleName, len: t.size * 0.95, adult: hawk ? 0.85 : 1.05, lenK: hawk ? 0.1 : 0.07, lenWhat: '甲長', kind: 'turtle', prio: (TS[t.state] || TS.travel)[0], size: 1.2 * t.size,
         pos: () => t.pos, status: () => (TS[t.state] || TS.travel)[1], live: () => t.placed });
     });
     this.oc.mantas.forEach((m: any, i: number) => {
-      out.push({ key: `manta:${i}`, label: 'ナンヨウマンタ', kind: 'manta', prio: 3.2, size: 4,
+      out.push({ key: `manta:${i}`, label: 'ナンヨウマンタ', len: m.span, adult: 4.5, lenK: 0.2, lenWhat: '翼幅', kind: 'manta', prio: 3.2, size: 4,
         pos: () => m.pos, status: () => (m.feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);

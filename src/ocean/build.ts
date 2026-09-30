@@ -11,6 +11,7 @@ import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import { makeWhales } from '../eco/whale';
 import { makeBirds } from '../eco/birds';
+import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
@@ -390,11 +391,11 @@ export function buildOcean(loc) {
   }
   // turtles & mantas
   const an = loc.animals || {};
-  if (an.turtle) for (let i = 0; i < an.turtle.count; i++) { const t = makeTurtle(an.turtle.style); t.size = an.turtle.style === 'green' ? rr(0.95, 1.2) : rr(0.75, 0.9); t.group.scale.setScalar(t.size); oc.turtles.push(t); group.add(t.group); }
+  if (an.turtle) for (let i = 0; i < an.turtle.count; i++) { const t = makeTurtle(an.turtle.style); t.size = Math.max(0.45, an.turtle.style === 'green' ? loneLength(0.85, 1.1) : loneLength(0.7, 0.88)); t.group.scale.setScalar(t.size); oc.turtles.push(t); group.add(t.group); }
   for (let i = 0; i < (an.manta || 0); i++) {
     const m = new THREE.Mesh(MANTA_GEO, mantaMaterial()); m.frustumCulled = false;
-    const s = rr(1.7, 2.2); m.scale.setScalar(s);
-    oc.mantas.push({ mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
+    const s = Math.max(0.9, loneLength(1.6, 2.2)); m.scale.setScalar(s);
+    oc.mantas.push({ span: s * 2, mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
   }
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
   if (loc.whales) oc.whales = makeWhales(oc);

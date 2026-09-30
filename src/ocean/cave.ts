@@ -323,6 +323,20 @@ export class Cave {
     for (let i = 0; i < this.tour.p.length; i += 2) { const q = this.tour.p[i]; d = Math.min(d, Math.hypot(q.x - x, q.z - z)); }
     return d;
   }
+  // Inside the tunnel (rock overhead, near the route) and wanting to get to `toward` outside: the next
+  // point to make for along the route, toward whichever mouth is nearer the goal. False when not inside.
+  exitWay(p: THREE.Vector3, toward: { x: number; y: number; z: number }, out: THREE.Vector3) {
+    if (this.topAt(p.x, p.z) < p.y + 0.5 || this.routeDist(p.x, p.z) > 7) return false;
+    const P = this.tour.p, n = P.length;
+    if (this.topAt(toward.x, toward.z) > toward.y + 0.5 && this.routeDist(toward.x, toward.z) < 7) return false;   // the goal is in here too
+    let i = 0, bd = Infinity;
+    for (let k = 0; k < n; k++) { const d = P[k].distanceToSquared(p); if (d < bd) { bd = d; i = k; } }
+    const dEnd0 = Math.hypot(P[0].x - toward.x, P[0].z - toward.z), dEnd1 = Math.hypot(P[n - 1].x - toward.x, P[n - 1].z - toward.z);
+    const dir = dEnd1 < dEnd0 ? 1 : -1, j = Math.max(0, Math.min(n - 1, i + dir * 6));
+    out.copy(P[j]);
+    if (j === 0 || j === n - 1) out.add(P[j].clone().sub(P[j - dir * 4 < 0 || j - dir * 4 >= n ? j : j - dir * 4]).setY(0).normalize().multiplyScalar(4));   // and on out through the mouth
+    return true;
+  }
   get tourLength() { return this.tour.t[this.tour.t.length - 1]; }
   tourStart(rev: boolean) { return rev ? this.tour.p[this.tour.p.length - 1] : this.tour.p[0]; }
   // A point on the route through the tunnel by tour time, low over the floor (for animals using it).

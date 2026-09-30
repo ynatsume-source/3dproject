@@ -1,3 +1,4 @@
+import { schoolLength, memberLength } from './growth';
 // Big mid-water schools (fusiliers): hundreds of fish flocking as boids. Each fish keeps its distance,
 // matches its neighbours and follows a slowly wandering leader; the school parts around the drone and
 // flashes outward when a predator comes through. By night the school drops to the reef and loosens.
@@ -19,9 +20,10 @@ export function makeShoalSystem(sp: Species, oc: any) {
   const geo = fishGeometry(SHAPES[sp.shape]);
   const swim = new Float32Array(total * 3);
   const p = new Float32Array(total * 3), v = new Float32Array(total * 3), size = new Float32Array(total), dead = new Float32Array(total);
+  const schoolBase = Array.from({ length: S }, () => schoolLength(sp.size[0], sp.size[1]));
   for (let i = 0; i < total; i++) {
     swim[i * 3] = R() * 6.28; swim[i * 3 + 1] = rr((sp.freq || [7, 10])[0], (sp.freq || [7, 10])[1]); swim[i * 3 + 2] = rr(0.9, 1.08);
-    size[i] = rr(sp.size[0], sp.size[1]) / 1.28;
+    size[i] = memberLength(schoolBase[i % S]) / 1.28;   // fish i swims in school i % S
   }
   geo.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
   const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp), total);

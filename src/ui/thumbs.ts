@@ -17,7 +17,7 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
     const g = fishGeometry(SHAPES[sp.shape]);
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));
     const m = new THREE.InstancedMesh(g, fishMaterial(sp), 1); m.setMatrixAt(0, new THREE.Matrix4());
-    return { obj: m, view: [1, 0.22, 0.55] };
+    return { obj: m, view: sp.shape === 'hammer' ? [0.35, 1.0, 0.12] : [1, 0.22, 0.55] };   // a hammerhead is best seen from above
   }
   if (id === 'turtle') return { obj: makeTurtle(loc.animals.turtle?.style === 'hawksbill' ? 'hawksbill' : 'green').group, view: [0.9, 0.75, 0.9] };
   if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial()), view: [0.35, 1.1, 0.75] };

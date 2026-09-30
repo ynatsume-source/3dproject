@@ -491,6 +491,9 @@ export const SHAPES = {
   shark: { h: 0.22, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.3, pointy: true, lofted: 'reef' },
   whitetip: { h: 0.2, w: 0.2, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.26, pointy: true, lofted: 'whitetip' },
   oceanic: { h: 0.24, w: 0.22, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.4, pointy: true, lofted: 'oceanic' },
+  hammer: { h: 0.2, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.26, pointy: true, lofted: 'hammer' },
+  tiger: { h: 0.24, w: 0.24, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.26, pointy: true, lofted: 'tiger' },
+  marlin: { h: 0.24, w: 0.16, tail: 'lunate', dorsal: 0.3, anal: 0.08, pointy: true, bill: 0.4 },
   fusilier: { h: 0.3, w: 0.15, tail: 'fork', dorsal: 0.08, anal: 0.06 },
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
@@ -517,8 +520,15 @@ const SHARK_STYLE = {
   // long, broad, paddle-ended pectorals it glides on
   oceanic: { body: [[0, 0, 0, -0.004], [0.02, 0.022, 0.03, -0.006], [0.06, 0.044, 0.052, -0.004], [0.13, 0.064, 0.064, 0], [0.22, 0.074, 0.068, 0.002], [0.32, 0.075, 0.064, 0.003], [0.45, 0.062, 0.05, 0.003], [0.55, 0.046, 0.036, 0.003], [0.64, 0.03, 0.022, 0.003], [0.7, 0.019, 0.014, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
     d1: [[0.25, 0], [0.27, 0.05], [0.3, 0.1], [0.34, 0.128], [0.38, 0.134], [0.41, 0.122], [0.425, 0.09], [0.425, 0.05], [0.42, 0]], d2: 0.026, pect: 0.3, paddle: true },
+  // scalloped hammerhead: slender, a very tall falcate first dorsal, and the cephalofoil — the flattened,
+  // scalloped hammer of a head with an eye at each end
+  hammer: { body: [[0, 0, 0.02, -0.004], [0.03, 0.016, 0.03, -0.004], [0.07, 0.032, 0.04, -0.003], [0.13, 0.048, 0.05, 0], [0.22, 0.058, 0.054, 0.002], [0.32, 0.06, 0.052, 0.003], [0.45, 0.05, 0.042, 0.003], [0.55, 0.038, 0.031, 0.003], [0.64, 0.026, 0.02, 0.003], [0.7, 0.017, 0.012, 0.004], [0.745, 0.011, 0.008, 0.006], [0.76, 0.004, 0.004, 0.008]],
+    d1: [[0.28, 0], [0.31, 0.05], [0.345, 0.1], [0.375, 0.13], [0.392, 0.135], [0.392, 0.105], [0.388, 0.05], [0.385, 0]], d2: 0.02, pect: 0.15, hammer: true },
+  // tiger shark: heavy, with a short, broad, almost square snout and a long upper tail lobe
+  tiger: { body: [[0, 0, 0.02, -0.004], [0.015, 0.024, 0.04, -0.006], [0.05, 0.046, 0.06, -0.004], [0.13, 0.068, 0.07, 0], [0.22, 0.078, 0.072, 0.002], [0.32, 0.076, 0.066, 0.003], [0.45, 0.064, 0.052, 0.003], [0.55, 0.048, 0.037, 0.003], [0.64, 0.031, 0.023, 0.003], [0.7, 0.019, 0.014, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
+    d1: [[0.3, 0], [0.33, 0.04], [0.37, 0.075], [0.41, 0.092], [0.43, 0.094], [0.425, 0.06], [0.42, 0.03], [0.415, 0]], d2: 0.03, pect: 0.18 },
 };
-export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic') {
+export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' | 'tiger') {
   const S: any = SHARK_STYLE[style], K = S.body, L = 1.28, Z = (s: number) => 0.47 - L * s;
   // Catmull-Rom through the body keys
   const at = (s: number) => {
@@ -564,6 +574,14 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic') {
   // heterocercal tail: long upper lobe with a notch below its tip, short lower lobe
   fin([[0.735, 0.012], [0.8, 0.055], [0.88, 0.1], [0.95, 0.13], [0.985, 0.14], [0.972, 0.118], [0.945, 0.1], [0.91, 0.062], [0.875, 0.022], [0.86, 0.004],
     [0.878, -0.035], [0.9, -0.07], [0.862, -0.055], [0.8, -0.03], [0.745, -0.008]], (s, y) => [0, y * L, Z(s)], 1, X);
+  if (S.hammer) {
+    // the cephalofoil, lying flat across the front of the head: scalloped leading edge, eyes at the tips
+    const hw = 0.19, zf = 0.47, pts: number[][] = [];   // about 30% of the length across
+    for (let i = 0; i <= 16; i++) { const x = -hw + (2 * hw * i) / 16; pts.push([x, zf - 0.004 - 0.018 * (Math.abs(x) / hw) ** 2 - 0.004 * Math.abs(Math.sin(x * 70))]); }
+    pts.push([hw, zf - 0.06], [hw * 0.55, zf - 0.066], [0.035, zf - 0.1], [-0.035, zf - 0.1], [-hw * 0.55, zf - 0.066], [-hw, zf - 0.06]);
+    const yc = at(0.03)[2] * L;
+    for (const dy of [0.009, -0.009]) fin(pts.map(([x, z]) => [x, z]), (x, z) => [x, yc + dy * (1 - (Math.abs(x) / hw) ** 2 * 0.5), z], 4, [0, Math.sign(dy), 0]);
+  }
   for (const sx of [-1, 1]) {
     // pectorals: (s, span out from the body), swept back and angled a little down, falcate
     const [h, w, yc] = at(0.2), ry = (yc - h * 0.45) * L, rx = w * 0.85 * L, sp = S.pect;
@@ -663,12 +681,26 @@ export function fishGeometry(sh, low = false) {
   if (sh.tail === 'fork') { tri([0, 0, -0.42], [0, H * 1.25, -0.8], [0, 0, -0.62], 1); tri([0, 0, -0.42], [0, 0, -0.62], [0, -H * 1.25, -0.8], 1); }
   else if (sh.tail === 'round') { for (let k = 0; k < 5; k++) { const a0 = -0.9 + k * 0.36, a1 = a0 + 0.36; tri([0, 0, -0.42], [0, Math.sin(a0) * 0.26, -0.42 - Math.cos(a0) * 0.3], [0, Math.sin(a1) * 0.26, -0.42 - Math.cos(a1) * 0.3], 1); } }
   else if (sh.tail === 'trunc') { tri([0, H * 0.3, -0.42], [0, H * 1.0, -0.72], [0, -H * 1.0, -0.72], 1); tri([0, H * 0.3, -0.42], [0, -H * 1.0, -0.72], [0, -H * 0.3, -0.42], 1); }
+  else if (sh.tail === 'lunate') {
+    // a stiff crescent, as tall as the body is long in the fast swimmers
+    const c = [[0, 0.02, -0.42], [0, H * 3.2, -0.72], [0, H * 2.6, -0.66], [0, 0.0, -0.5], [0, -H * 2.6, -0.66], [0, -H * 3.2, -0.72], [0, -0.02, -0.42]];
+    for (let k = 1; k < c.length - 1; k++) tri(c[0], c[k], c[k + 1], 1);
+  }
   else { tri([0, 0, -0.44], [0, H * 3.2, -0.9], [0, 0, -0.62], 1); tri([0, 0, -0.44], [0, 0, -0.6], [0, -H * 1.8, -0.72], 1); }
+  if (sh.bill) {
+    // the bill: a long spear from the upper jaw
+    const b = sh.bill;
+    tri([0, 0.012, 0.46], [0, 0.0, 0.5 + b], [0, -0.012, 0.46], 5); tri([-0.012, 0, 0.46], [0, 0, 0.5 + b], [0.012, 0, 0.46], 5, [0, 1, 0]);
+  }
   if (sh.filament) { tri([0, H * 0.9, 0.12], [0, H + sh.filament, -0.42], [0, H * 0.9, -0.04], 2); tri([0, H * 0.9, 0.12], [0, H * 0.9, -0.3], [0, H + 0.2, -0.2], 2); }
   else if (sh.rear) {
     // ocean sunfish: a tall dorsal and anal fin far back, which it sculls side to side instead of a tail
     tri([0, H * 0.7, -0.14], [0, H + sh.dorsal, -0.36], [0, H * 0.45, -0.42], 2);
     tri([0, -H * 0.7, -0.14], [0, -H - sh.anal, -0.36], [0, -H * 0.45, -0.42], 2);
+  }
+  else if (sh.bill) {
+    // marlin: the dorsal rises high at the front and runs low along the back
+    tri([0, H * 0.85, 0.22], [0, H + sh.dorsal, 0.14], [0, H * 0.9, 0.02], 2); tri([0, H * 0.9, 0.02], [0, H + sh.dorsal * 0.35, 0.02], [0, H * 0.7, -0.34], 2);
   }
   else { tri([0, H * 0.85, 0.16], [0, H + sh.dorsal, -0.12], [0, H * 0.7, -0.3], 2); }
   if (!sh.rear) tri([0, -H * 0.8, -0.05], [0, -H - sh.anal, -0.22], [0, -H * 0.6, -0.32], 2);
@@ -760,6 +792,8 @@ export function fishMaterial(sp) {
          if (vFin > 0.5) alb = uC1 * 0.95;
          if (vFin > 0.5 && vFin < 2.5) alb = mix(alb, uC3, smoothstep(0.115, 0.135, y) * step(-0.7, z) + smoothstep(0.1, 0.13, y) * step(z, -0.7));
          #endif
+         // a hammerhead's eyes sit at the ends of the hammer
+         if (vFin > 3.5) { alb = mix(uC2, uC1, step(0.0, n.y) * 0.8 + 0.2); alb = mix(alb, vec3(0.02), 1.0 - smoothstep(0.006, 0.01, length(vec2(abs(vL.x) - 0.184, z - 0.43)))); }
          // the underslung crescent mouth and the nostrils beneath the snout
          if (vFin < 0.5 && y < -0.01) {
            float mz = 0.39 - 9.0 * vL.x * vL.x;
@@ -787,6 +821,16 @@ export function fishMaterial(sp) {
          vec2 sq = fract(vec2(z * 26.0, y * 26.0 + z * 13.0));
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y)) * (0.8 + 0.25 * smoothstep(0.3, 0.5, max(abs(sq.x - 0.5), abs(sq.y - 0.5))));
          if (vFin > 0.5) alb = mix(uC1, vec3(0.98), step(0.9, fract(length(vL.yz) * 6.0)) * 0.7);
+       #elif PAT == 21
+         // tiger shark: grey-brown above with dark vertical bars and blotches on the upper flanks, white below
+         alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));
+         float bars = smoothstep(0.55, 0.8, sin(z * 60.0 + vn2(vec2(z * 20.0, y * 30.0)) * 4.0) * 0.5 + 0.5) * smoothstep(0.0, 0.04, y) * step(z, 0.3);
+         alb = mix(alb, uC3, bars * 0.75);
+         if (vFin > 0.5) alb = uC1 * 0.9;
+         if (vFin < 0.5 && y < -0.01) {
+           float mz = 0.43 - 5.0 * vL.x * vL.x;
+           alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.002, 0.006, abs(z - mz))) * step(abs(vL.x), 0.06);
+         }
        #elif PAT == 19
          // oceanic whitetip: bronze-grey above, white below; every big fin ends in a mottled white tip
          alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));

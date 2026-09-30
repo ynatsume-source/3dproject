@@ -1,3 +1,4 @@
+import { loneLength, schoolLength, memberLength } from './growth';
 // Fish as groups with needs. Each group (a school, a pair, a loner or an anemone family) follows the
 // clock: active species forage the way their diet dictates, resting ones tuck into the reef, prey
 // scatter from predators and from the drone, and predators hunt when hungry, mostly at dusk and dawn.
@@ -51,11 +52,12 @@ export function makeFishSystem(sp: Species, oc: any) {
   const flC = new Float32Array(total).fill(-1e9), ftC = new Float32Array(total).fill(-1e9);
   let frame = 0;
   for (const g of groups) {
+    const base = schoolLength(sp.size[0], sp.size[1]);
     const spread = g.type === 'anem' ? [0.35, 0.2, 0.35] : (sp.spread || [0, 0, 0]);
     for (let i = g.start; i < g.start + g.n; i++) {
       const fr = sp.freq || (sp.big ? [3, 5] : [8, 12]);
       swim[i * 3] = R() * 6.28; swim[i * 3 + 1] = rr(fr[0], fr[1]); swim[i * 3 + 2] = rr(0.88, 1.1);
-      fs[i] = rr(sp.size[0], sp.size[1]) / 1.28;
+      fs[i] = (g.n === 1 ? loneLength(sp.size[0], sp.size[1]) : memberLength(base)) / 1.28;
       let x: number, y: number, z: number;
       do { x = R() * 2 - 1; y = R() * 2 - 1; z = R() * 2 - 1; } while (x * x + y * y + z * z > 1);
       fo[i * 3] = x * spread[0]; fo[i * 3 + 1] = y * spread[1]; fo[i * 3 + 2] = z * spread[2];
@@ -193,7 +195,7 @@ export function makeFishSystem(sp: Species, oc: any) {
 
   // Predators: build hunger, pick a school, rush it; most strikes miss.
   function hunt(g: Group, dt: number, env: Env) {
-    g.hunger = Math.min(1, g.hunger + dt / 160);
+    g.hunger = Math.min(1, g.hunger + dt / 150);
     g.cooldown = Math.max(0, g.cooldown - dt);
     const drive = g.hunger * (0.2 + 0.8 * env.twilight + 0.3 * env.night);
     if (!g.hunt && g.cooldown <= 0 && drive > 0.5 && R() < dt * 0.08) {
@@ -209,7 +211,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     g.head = Math.atan2(dz, dx);
     if (d < 5) p.scare();
     if (d < 1.6 || g.t - g.hunt.t0 > 30) {
-      if (d < 1.6 && R() < 0.12 && p.take()) {
+      if (d < 1.6 && R() < 0.3 && p.take()) {   // most strikes still miss
         g.hunger = 0;
         { const at = g.c.clone(); logEvent(env, 'catch', `${sp.ja}が${p.label}を捕らえた`, g.c.x, g.c.z, () => at); }
       } else g.hunger *= 0.85;
@@ -392,12 +394,12 @@ export function makeFishSystem(sp: Species, oc: any) {
       const key = `${sp.id}:${gi}`, size = sp.size[1];
       if (isPredator && g.hunt) {
         const h = g.hunt;
-        out.push({ key: key + ':hunt', label: sp.ja, kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => `${h.prey.label}を狙っている`, live: () => g.hunt === h });
+        out.push({ key: key + ':hunt', label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => `${h.prey.label}を狙っている`, live: () => g.hunt === h });
       } else if (g.type === 'roam' && sp.big) {
         const st = g.cr ? () => (g.cr!.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr!.mode === 'leave' ? '洞窟から出ていく' : g.cr!.mode === 'in' ? '洞窟へ入っていく' : status()) : status;
-        out.push({ key, label: sp.ja, kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.c, status: st, live: () => g.placed });
+        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.c, status: st, live: () => g.placed });
       } else if (g.type === 'reef' && sp.big && g.act > 0.5) {
-        out.push({ key, label: sp.ja, kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status, live: () => g.placed });
+        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status, live: () => g.placed });
       } else if (g.type === 'anem') {
         out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status, live: () => true });
       }

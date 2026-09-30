@@ -19,6 +19,8 @@ import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { guideThumbs } from './ui/thumbs';
 import { PLACES } from './ui/places';
 import { MiniMap } from './ui/minimap';
+import { ageOf, describeSize } from './eco/growth';
+import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
@@ -84,7 +86,9 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
   if (next) {
     $('tMode').textContent = 'OBSERVING';
     $('hint').textContent = `観察中：${next.subject.label}（${next.subject.status()}）`;
-    recordLog('observe', `${next.subject.label}を観察（${next.subject.status()}）`);
+    const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
+    $('hint').textContent = `観察中：${sj.label}（${sj.status()}${sizeTxt}）`;
+    recordLog('observe', `${sj.label}を観察（${sj.status()}${sizeTxt}）`);
     if (next.subject.kind === 'hunt') say('hunt');
     else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
   } else {
@@ -108,12 +112,14 @@ function updateDrone(dt: number, now: number) {
   const shot = drone.mode === 'auto' && !drone.sky ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.top) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
   if (shot) {
-    // glide to the viewpoint and keep the subject framed
-    _v.subVectors(shot.pos, drone.pos);
+    // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
+    const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
+    _v.subVectors(way, drone.pos);
     const L = _v.length(), top = shot.phase === 'approach' ? (shot.forced ? Math.min(7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far: travel faster
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
-    const lx = shot.look.x - camera.position.x, ly = shot.look.y - camera.position.y, lz = shot.look.z - camera.position.z;
+    const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
+    const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const k = Math.min(1, dt * (shot.phase === 'approach' ? 0.9 : 1.6));
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
@@ -186,7 +192,12 @@ function updateDrone(dt: number, now: number) {
   const G = cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
   if (hs > 0.05) {
     let ahead = -1e9;
-    for (const s of [0.5, 1.0, 1.6, 2.4]) ahead = Math.max(ahead, G(drone.pos.x + drone.vel.x * s, drone.pos.z + drone.vel.z * s));
+    // (outside the cave, its rock counts as ground to climb over; inside the tunnel, the roof doesn't)
+    const cv = cur!.cave, outside = !cv || cv.topAt(drone.pos.x, drone.pos.z) < drone.pos.y + 0.5;
+    for (const s of [0.5, 1.0, 1.6, 2.4]) {
+      const ax = drone.pos.x + drone.vel.x * s, az = drone.pos.z + drone.vel.z * s;
+      ahead = Math.max(ahead, G(ax, az), outside && cv ? cv.topAt(ax, az) : -1e9);
+    }
     const want = ahead + 1.0;
     if (drone.pos.y < want) drone.vel.y = Math.max(drone.vel.y, Math.min(1.6, (want - drone.pos.y) * 1.1));
   }
@@ -241,7 +252,7 @@ function applyPersona() {
 }
 function isShark(s: Subject) {
   const sp = cur?.loc.species.find((x) => s.label.startsWith(x.ja));
-  return !!sp && (sp.shape === 'shark' || sp.shape === 'whitetip' || sp.shape === 'oceanic');
+  return !!sp && !!(SHAPES as any)[sp.shape]?.lofted;   // every shark body is lofted
 }
 // the first sentence of a creature's field-guide note, for the chatty guide
 function noteOf(label: string) {

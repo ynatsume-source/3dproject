@@ -28,7 +28,8 @@ export interface Subject {
   status(): string;
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
   reach?: number;                       // how far away the director will go for it (default 42 m)
-  hold?: number;                        // stay with it this long (s), instead of the usual time for its kind
+  hold?: number;
+  len?: number; adult?: number; lenK?: number; lenWhat?: string;   // this individual's size (m), its species' adult size, growth rate, what is measured                        // stay with it this long (s), instead of the usual time for its kind
   // a place to fly through rather than orbit: where the camera is and looks at t seconds in
   tour?: { length: number; start(rev: boolean): { x: number; y: number; z: number }; at(t: number, rev: boolean, pos: any, look: any): void };
 }

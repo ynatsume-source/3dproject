@@ -97,6 +97,6 @@ export function whaleSubjects(oc: any, out: Subject[]) {
   const W: Whales | undefined = oc.whales;
   if (!W || !W.active || W.t < 6 || W.t > W.dur - 10) return;
   const lead = W.pod[0];
-  out.push({ key: 'whale', label: 'ザトウクジラ', kind: 'giant', prio: 4.5, size: 8, pos: () => lead.pos,
+  out.push({ key: 'whale', label: 'ザトウクジラ', len: lead.len, adult: 14, lenK: 0.25, lenWhat: '体長', kind: 'giant', prio: 4.5, size: 8, pos: () => lead.pos,
     status: () => (W.pod.length === 1 ? '悠々と泳いでいる' : W.pod.length === 3 ? '親子にオスが付き添って泳いでいる' : '親子で泳いでいる'), live: () => W.active });
 }
