@@ -240,7 +240,8 @@ function updateDrone(dt: number, now: number) {
     const cv = cur!.cave, outside = !cv || cv.topAt(drone.pos.x, drone.pos.z) < drone.pos.y + 0.5;
     for (const s of [0.5, 1.0, 1.6, 2.4]) {
       const ax = drone.pos.x + drone.vel.x * s, az = drone.pos.z + drone.vel.z * s;
-      ahead = Math.max(ahead, G(ax, az), outside && cv ? cv.topAt(ax, az) : -1e9);
+      // (the cave rock counts only where it is actually solid at our height: a tunnel mouth ahead is a way in, not a wall)
+      ahead = Math.max(ahead, G(ax, az), outside && cv && cv.sd(ax, drone.pos.y, az) < 0.8 ? cv.topAt(ax, az) : -1e9);
     }
     const want = ahead + 1.0;
     if (drone.pos.y < want) drone.vel.y = Math.max(drone.vel.y, Math.min(1.6, (want - drone.pos.y) * 1.1));
