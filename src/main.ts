@@ -706,6 +706,16 @@ function goTo(id: string) {
     if (!W || !W.seasonal) { showToast('ザトウクジラ', '今は北の海にいます', '冬（12月下旬〜4月上旬）に来遊。時刻パネルの「季節」で冬を選ぶと会えます'); return; }
     if (!W.active) { W.force = true; W.next = 0; }
     s = { key: 'focus:whale', label: name, kind: 'giant', prio: 5, size: 8, pos: () => (W.active ? W.pod[0].pos : null), status: () => statusOf('whale'), live: () => true };
+  } else if ((loc.critters || []).some((c) => c.id === id) && oc.critters) {
+    // a moray, sea snake or jellyfish: the nearest one
+    const all: Subject[] = []; oc.critters.subjects(all);
+    const mine = all.filter((x) => x.key.split(':')[1] === id && x.live());
+    const n = mine.length ? mine.reduce((b, c) => (c.pos()!.x - cam.x) ** 2 + (c.pos()!.z - cam.z) ** 2 < (b.pos()!.x - cam.x) ** 2 + (b.pos()!.z - cam.z) ** 2 ? c : b) : null;
+    s = n ? { ...n, key: 'focus:' + id, prio: 5 } : null;
+  } else if (ridersFor(loc).some((r) => r.id === id)) {
+    // a remora, pilot fish or trevally: go to the big animal that carries it
+    const host = oc.fish.find((x: any) => ['whaleshark', 'yogore', 'itachizame', 'galapagoszame'].includes(x.sp.id) && x.sp.habitat !== 'shoal');
+    if (host) s = host.focus(cam); else if (oc.mantas.length) { const m = oc.mantas[0]; s = { key: 'focus:manta', label: name, kind: 'manta', prio: 5, size: 4, pos: () => m.pos, status: () => statusOf('manta'), live: () => true }; }
   } else {
     const f = oc.fish.find((x: any) => x.sp.id === id);
     s = f ? f.focus(cam) : null;
@@ -790,7 +800,7 @@ function statusOf(id: string): string {
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
-const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.critters || []).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
 let panelTab: 'guide' | 'log' | 'island' | 'talk' = 'guide';
 function renderLog() {
   const loc = cur!.loc;

@@ -1382,6 +1382,8 @@ export function mantaMaterial() {
          alb = mix(alb, vec3(0.12), smoothstep(0.04, 0.0, v) * step(au, 0.13));
          alb = mix(alb, vec3(0.42), uFeed * smoothstep(0.08, 0.0, v) * step(au, 0.12) * (0.6 + 0.4 * step(0.5, fract(u * 60.0))));
        }
+       // old scars across the disc: healed bites, line cuts, scrapes
+       alb = mix(alb, alb * 0.45 + vec3(0.42, 0.42, 0.4), scarMarks(vec2(vL.x, vL.z) * 9.0, uSeed) * 0.55 * step(vPart, 0.5));
        gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
      }`,
     { uniforms: { uPhase: { value: Math.random() * 6 }, uFeed: { value: 0 }, uBeat: { value: 1.05 }, uSeed: { value: Math.random() * 50 } }, opts: { side: THREE.DoubleSide } });
@@ -1491,6 +1493,8 @@ export function whaleMaterial(seed: number) {
        // flippers: white, dark along the upper leading edge; flukes: pale undersides with dark marks
        if (vPart > 0.5 && vPart < 2.5) alb = mix(pale, dark, smoothstep(0.35, 0.8, vn2(vec2(x, z) * 30.0 + uSeed)) * 0.7);
        if (vPart > 2.5) alb = n.y < 0.0 ? mix(pale, dark, smoothstep(0.4, 0.75, vn2(vec2(x, z) * 22.0 + uSeed))) : dark;
+       // rake marks and round healed bites: the scars an old whale carries
+       alb = mix(alb, alb * 0.4 + vec3(0.5, 0.5, 0.48), scarMarks(vec2(z, x + y) * 14.0, uSeed) * 0.6);
        gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
      }`,
     { uniforms: { ...SURF_UNIFORMS, uStroke: { value: 1 }, uPhase: { value: seed * 6.28 }, uSeed: { value: seed * 17.0 } }, opts: { side: THREE.DoubleSide } });

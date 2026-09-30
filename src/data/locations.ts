@@ -3,6 +3,7 @@ import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
 import type { WhaleSeason } from '../eco/whale';
 import { landOf } from '../ocean/land';
+import type { CritterSpec } from '../eco/critters';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -55,6 +56,7 @@ export interface Sea {
   extraGuide: GuideEntry[];
   benthic: [string, string, string][];
   flora?: [string, string, string][];      // plants ashore (for the guide)
+  critters?: CritterSpec[];                // morays, sea snakes, jellyfish (eco/critters.ts)
 }
 
 export const LOCATIONS: Sea[] = [
@@ -569,6 +571,44 @@ export const LOCATIONS: Sea[] = [
     ],
   };
   LOCATIONS.push(redsea, galapagos);
+}
+
+// Morays in the reef walls, sea snakes, jellyfish — as they really occur in each sea (none of the Red
+// Sea's reefs has sea snakes; the open Pacific has nothing to hide in, only drifting jellies); and more of
+// the big, characterful reef fish where they live.
+{
+  const giant: CritterSpec = { id: 'dokuutsubo', ja: 'ドクウツボ', sci: 'Gymnothorax javanicus', note: '世界最大級のウツボで、全長2.5mを超える。昼は岩穴から頭を出し、口を開け閉めしている（えらに水を送る呼吸で、威嚇ではない）。夜になると穴を出て、魚やタコを探して礁を這い回る。',
+    kind: 'moray', n: 7, size: [1.4, 2.4], pat: 0, c1: [0.52, 0.46, 0.22], c2: [0.12, 0.1, 0.05], c3: [0.45, 0.4, 0.22] };
+  const white: CritterSpec = { id: 'hanabirautsubo', ja: 'ハナビラウツボ', sci: 'Gymnothorax meleagris', note: '茶色の体に白い小さな斑点がびっしり。口の中が真っ白なのが名前の由来（英名 White-mouth moray）。浅いサンゴ礁の穴にすむ。',
+    kind: 'moray', n: 5, size: [0.6, 1.0], pat: 1, c1: [0.32, 0.2, 0.1], c2: [0.92, 0.9, 0.84], c3: [0.3, 0.2, 0.12] };
+  const zebra: CritterSpec = { id: 'zebrautsubo', ja: 'ゼブラウツボ', sci: 'Gymnomuraena zebra', note: 'こげ茶の体に細い白い輪が何十本も並ぶ。歯が臼のように平たく、カニや貝を噛み砕いて食べる、おとなしいウツボ。',
+    kind: 'moray', n: 3, size: [0.8, 1.4], pat: 2, c1: [0.9, 0.88, 0.82], c2: [0.14, 0.1, 0.07], c3: [0.3, 0.25, 0.2] };
+  const dovii: CritterSpec = { id: 'finespotmoray', ja: 'ファインスポッテッド・モレイ', sci: 'Gymnothorax dovii', note: '灰褐色の体に白い細かな点が散らばる、東太平洋の大型ウツボ。ガラパゴスの溶岩の岩のすき間から、何匹もが顔を出している。',
+    kind: 'moray', n: 8, size: [1.0, 1.6], pat: 3, c1: [0.3, 0.28, 0.25], c2: [0.86, 0.86, 0.82], c3: [0.3, 0.28, 0.25] };
+  const krait: CritterSpec = { id: 'aomadara', ja: 'アオマダラウミヘビ', sci: 'Laticauda colubrina', note: '青灰色と黒の縞模様、黄色い鼻先。強い毒を持つが、おとなしく人を襲うことはまずない。昼はサンゴの間を巡って穴にいる小魚やアナゴを探し、ときどき水面へ息継ぎに上がる。産卵や休息は陸でする。',
+    kind: 'snake', n: 3, size: [1.0, 1.5], pat: 0, c1: [0.55, 0.62, 0.72], c2: [0.04, 0.04, 0.05], c3: [0.92, 0.82, 0.3] };
+  const erabu: CritterSpec = { id: 'erabu', ja: 'エラブウミヘビ', sci: 'Laticauda semifasciata', note: '沖縄では「イラブー」と呼ばれる。青灰色に黒い帯。夜にサンゴ礁の穴をのぞいて魚を探す。陸に上がって岩のすき間で卵を産む。',
+    kind: 'snake', n: 2, size: [1.1, 1.6], pat: 0, c1: [0.48, 0.55, 0.66], c2: [0.06, 0.06, 0.08], c3: [0.75, 0.72, 0.5] };
+  const olive: CritterSpec = { id: 'olivesnake', ja: 'オリーブウミヘビ', sci: 'Aipysurus laevis', note: 'グレートバリアリーフでいちばんよく出会うウミヘビ。オリーブ色の太い体。好奇心が強く、ダイバーのそばまで来て体に巻きつくように調べることもある。',
+    kind: 'snake', n: 4, size: [1.2, 1.8], pat: 1, c1: [0.42, 0.38, 0.2], c2: [0.62, 0.58, 0.42] };
+  const moon: CritterSpec = { id: 'mizukurage', ja: 'ミズクラゲ', sci: 'Aurelia aurita', note: '透き通った傘に、四つ葉のクローバーのような生殖腺が透けて見える。泳ぐ力は弱く、傘を脈打たせて浮かびながら、ほとんど流れにまかせて漂う。',
+    kind: 'jelly', n: 14, size: [0.12, 0.22], pat: 0, c1: [0.78, 0.85, 0.92], c2: [0.85, 0.62, 0.78], depth: [2, 12] };
+  const pelagia: CritterSpec = { id: 'okikurage', ja: 'オキクラゲ', sci: 'Pelagia noctiluca', note: '外洋を漂う赤紫のクラゲ。傘にいぼがあり、長い触手と口腕を引く。刺されると痛い。夜、刺激を受けると淡く光る（学名は「夜に光る」の意味）。',
+    kind: 'jelly', n: 16, size: [0.06, 0.1], pat: 1, c1: [0.75, 0.55, 0.7], c2: [0.85, 0.4, 0.65], depth: [3, 25] };
+  const by: Record<string, CritterSpec[]> = {
+    miyako: [giant, white, krait, erabu], kayama: [{ ...white, n: 4 }, { ...krait, n: 2 }, { ...erabu, n: 1 }],
+    gbr: [giant, white, olive], maldives: [giant, { ...white, n: 4 }], redsea: [{ ...giant, n: 9 }, zebra, moon],
+    galapagos: [dovii], pacific: [pelagia],
+  };
+  for (const L of LOCATIONS) if (by[L.id]) L.critters = by[L.id];
+  // more of the big characters, where they really live
+  const all = LOCATIONS.flatMap((l) => l.species);
+  const add = (id: string, spId: string, o: Partial<Species> = {}) => { const L = LOCATIONS.find((l) => l.id === id)!; if (L.species.some((x) => x.id === spId)) return; L.species.push({ ...all.find((x) => x.id === spId)!, ...o }); };
+  add('maldives', 'wrasse', { count: 2, note: '通称ナポレオンフィッシュ。額のこぶが目印で、全長2mに達するベラ科最大種。モルディブのティラでは大きな個体が悠々と泳ぎ、ダイバーに寄ってくることもある。' });
+  add('maldives', 'kanmuri', { count: 3 });
+  add('maldives', 'tamakai', { count: 1 });
+  add('gbr', 'kanmuri', { count: 4, note: '額が大きくこぶのように張り出した、最大級のブダイ。アジンコート・リーフでは朝、数十匹の群れが礁の上に現れ、頭をぶつけるようにしてサンゴをかじり取っていく。' });
+  add('miyako', 'wrasse', { count: 1, note: '通称ナポレオンフィッシュ。額のこぶが目印で、全長2mに達するベラ科最大種。沖縄では数が少なく、出会えたら幸運。' });
 }
 
 // Reef rugosity: living reef framework is rough at the metre scale — knobs, ledges and holes — while

@@ -115,6 +115,23 @@ vec3 waterCol(vec3 dir){
   return c * mix(0.32, 1.0, exp(min(uCamPos.y, 0.0) * 0.035)) * uAmb;
 }
 vec3 absorb(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs); }
+// a life's wear on a big animal's skin (q: coordinates over the skin, in cells): here and there a short
+// pale scar or a rake of two or three parallel ones (teeth, coral, fishing line), and the odd round
+// healed bite (a cookie-cutter shark's); returns how scarred this spot is 0..1
+float scarMarks(vec2 q, float seed){
+  vec2 ci = floor(q + seed), pp = fract(q + seed) - 0.5;
+  float m = 0.0;
+  if (hash2(ci * 1.3 + 0.7) > 0.74) {
+    float a = hash2(ci + 4.1) * 6.2832; vec2 d = vec2(cos(a), sin(a)), nn = vec2(-d.y, d.x);
+    float along = dot(pp, d), across = dot(pp, nn) + along * along * 0.35 * (hash2(ci + 6.6) - 0.5);
+    float lines = 1.0 + floor(hash2(ci + 8.8) * 3.0), gap = 0.1;
+    float k = clamp(floor(across / gap + 0.5), 0.0, lines - 1.0), w = 0.022 * (0.6 + hash2(ci + 3.3));
+    m = (1.0 - smoothstep(w * 0.5, w, abs(across - k * gap))) * (1.0 - smoothstep(0.22, 0.36, abs(along)));
+  } else if (hash2(ci + 2.2) > 0.9) {
+    float r = length(pp * vec2(1.0, 1.25)); m = (1.0 - smoothstep(0.1, 0.13, r)) * (0.6 + 0.4 * smoothstep(0.06, 0.1, r));
+  }
+  return m;
+}
 // a soft, gently edged pool of light on the ground ahead of each resident that carries one (after dark)
 vec3 residentLights(vec3 wp, vec3 n){
   vec3 acc = vec3(0.0);

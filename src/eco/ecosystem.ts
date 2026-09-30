@@ -55,6 +55,7 @@ export class Ecosystem {
         pos: () => m.pos, status: () => (m.feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);
+    this.oc.critters?.subjects(out);
     whaleSubjects(this.oc, out);
     if (this.oc.bait) out.push(...this.oc.bait.subjects());
     const cave = this.oc.cave;
@@ -82,6 +83,7 @@ export class Ecosystem {
     updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
     if (this.oc.bait) this.oc.bait.update(dt, e, cam, fx, fz, e.sound);
     this.oc.riders?.update(dt, t);
+    this.oc.critters?.update(dt, e, cam, fx, fz);
     return e.events;
   }
 }

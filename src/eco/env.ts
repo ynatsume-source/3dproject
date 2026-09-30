@@ -29,7 +29,7 @@ export interface SeaEvent { kind: string; text: string; x: number; z: number; at
 // Something worth pointing the camera at.
 export interface Subject {
   key: string; label: string;
-  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus' | 'school' | 'cave' | 'robot';
+  kind: 'hunt' | 'turtle' | 'manta' | 'giant' | 'big' | 'anemone' | 'octopus' | 'school' | 'cave' | 'robot' | 'critter';
   prio: number;
   size: number;                         // rough length, m (sets filming distance)
   pos(): { x: number; y: number; z: number } | null;
@@ -37,6 +37,7 @@ export interface Subject {
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
   reach?: number;                       // how far away the director will go for it (default 42 m)
   hold?: number;                        // stay with it this long (s), instead of the usual time for its kind
+  front?(): { x: number; y: number; z: number };   // the open side to film it from (a moray looking out of its hole): no orbiting round it
   target?(): { x: number; y: number; z: number } | null;   // a hunt's prey, to frame together with the hunter
   frameR?(): number;                    // how big the action is right now (m), for close framing
   len?: number; adult?: number; lenK?: number; lenWhat?: string;   // this individual's size (m), its species' adult size, growth rate, what is measured

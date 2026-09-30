@@ -8,7 +8,7 @@ import type { Subject } from './eco/env';
 export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
-  hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70],
+  hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70], critter: [20, 32],
 };
 
 const _p = new THREE.Vector3();
@@ -127,6 +127,17 @@ export class Director {
     const L = s.len ?? s.size;
     if (p && L >= 1.4 && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
     const dist = Math.max(1.4, Math.min(12, s.size * 2.4 + 1.2)) * this.distK;
+    if (s.front && p) {
+      // something looking out of a hole: face it from the open water, swaying gently from side to side
+      const f = s.front(), sw = (this.spin > 0 ? 0.7 : -0.7) + Math.sin(this.t * 0.12) * 0.3, c = Math.cos(sw), si = Math.sin(sw);   // (from forty degrees or so off its line: the head and a length of body)
+      const fx = f.x * c - f.z * si, fz = f.x * si + f.z * c, d = dist * 0.9;
+      const x = p.x + fx * d, z = p.z + fz * d, y = Math.min(Math.max(p.y + f.y * d + 0.3, floor(x, z) + 0.8), -0.9);
+      sh.pos.set(x, y, z); sh.look.set(p.x, p.y, p.z);
+      const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
+      if (sh.phase === 'approach' && (gap < 1.5 || (!sh.forced && this.t > 25) || this.t > 90)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
+      this.t += dt;
+      return sh;
+    }
     const lift = Math.min(2.5, 0.4 + s.size * 0.35);
     this.ang += this.spin * dt * (sh.phase === 'observe' ? 1 : 0.3);
     const x = p.x + Math.cos(this.ang) * dist, z = p.z + Math.sin(this.ang) * dist;
@@ -161,16 +172,17 @@ export class Director {
       this.move = opts[Math.floor(R() * opts.length)]; this.moveT = 0; this.moveDur = rr(9, 13);
       if (this.move === 'pass') this.hold.set(p.x + fx * (L * 1.4 + 3) + sx * side * (L * 0.35 + 1.2), p.y + L * 0.04, p.z + fz * (L * 1.4 + 3) + sz * side * (L * 0.35 + 1.2));
     }
+    const wideBody = s.kind === 'manta';   // (a manta is as wide as it is long: keep clear of its wingtips)
     const spot = (move: string) => {
       let x = 0, y = 0, z = 0, lx = p.x, ly = p.y, lz = p.z, wide = 1;
       if (move === 'flank') {
         // alongside the head, a little ahead of it, looking back along the flank
-        const d = Math.max(1.3, L * 0.32 + 0.8), a = L * 0.28;
+        const d = wideBody ? L * 0.6 + 1.6 : Math.max(1.3, L * 0.32 + 0.8), a = L * (wideBody ? 0.15 : 0.28);
         x = p.x + sx * side * d + fx * a; z = p.z + sz * side * d + fz * a; y = p.y + L * 0.03;
         lx = p.x - fx * L * 0.12; lz = p.z - fz * L * 0.12;
       } else if (move === 'under') {
         // beneath it and a little ahead, looking up at it passing over against the bright surface
-        x = p.x + fx * L * 0.15 + sx * side * L * 0.12; z = p.z + fz * L * 0.15 + sz * side * L * 0.12; y = p.y - (L * 0.42 + 1.2);
+        x = p.x + fx * L * 0.15 + sx * side * L * 0.12; z = p.z + fz * L * 0.15 + sz * side * L * 0.12; y = p.y - (wideBody ? L * 0.35 + 1.5 : L * 0.42 + 1.2);
         lx = p.x - fx * L * 0.1; lz = p.z - fz * L * 0.1; wide = 1.1;
       } else if (move === 'front') {
         // out in front, a touch to one side, backing away as it comes on

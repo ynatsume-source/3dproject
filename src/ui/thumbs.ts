@@ -2,6 +2,7 @@
 // under clear, even light, and kept as an image per sea.
 import * as THREE from 'three';
 import { ridersFor } from '../eco/riders';
+import { critterModel } from '../eco/critters';
 import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
@@ -20,6 +21,8 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
     const m = new THREE.InstancedMesh(g, fishMaterial(sp), 1); m.setMatrixAt(0, new THREE.Matrix4());
     return { obj: m, view: sp.shape === 'hammer' ? [0.35, 1.0, 0.12] : [1, 0.22, 0.55] };   // a hammerhead is best seen from above
   }
+  const cr = (loc.critters || []).find((c) => c.id === id);
+  if (cr) return critterModel(cr);
   if (id === 'turtle') return { obj: makeTurtle(loc.animals.turtle?.style === 'hawksbill' ? 'hawksbill' : 'green').group, view: [0.9, 0.75, 0.9] };
   if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial()), view: [0.35, 1.1, 0.75] };
   if (id === 'whale') return { obj: new THREE.Mesh(WHALE_GEO, whaleMaterial(0.3)), view: [1, 0.3, 0.45] };

@@ -8,6 +8,7 @@ import { CORAL_GEO, CORAL_MAT, CORAL_GEO_HI, CORAL_MAT_HI, PALETTE, makeTurtle, 
 import { makeFishSystem } from '../eco/fish';
 import { makeShoalSystem } from '../eco/shoal';
 import { makeRiders } from '../eco/riders';
+import { makeCritters } from '../eco/critters';
 import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import { makeWhales } from '../eco/whale';
@@ -451,7 +452,8 @@ export function buildOcean(loc) {
   if (loc.whales) oc.whales = makeWhales(oc);
   if (loc.birds) oc.birds = makeBirds(loc.birds, group);
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);
-  oc.riders = makeRiders(oc); if (oc.riders) group.add(oc.riders.group);   // remoras, pilot fish and trevally with the big ones
+  oc.riders = makeRiders(oc); if (oc.riders) group.add(oc.riders.group);
+  oc.critters = makeCritters(oc); if (oc.critters) group.add(oc.critters.group);   // morays, sea snakes, jellyfish   // remoras, pilot fish and trevally with the big ones
   oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);
