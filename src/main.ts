@@ -2,7 +2,7 @@
 // by its real sky; one click jumps to dawn / noon / dusk / night, and time can run faster than real.
 import * as THREE from 'three';
 import './styles.css';
-import { U } from './render/common';
+import { U, mat } from './render/common';
 import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
@@ -26,7 +26,7 @@ import { Post, setRTSupport } from './render/post';
 import { loadLand } from './ocean/land';
 import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
-import { setAnisotropy } from './render/surface';
+import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
 import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
@@ -903,7 +903,37 @@ function bisectStep(dt: number) {
 }
 // ?diag&gputest#sea: draw nothing else, and take a sea's shaders one at a time: prepare it, wait, draw it
 // once into a small target, wait. When the GPU gives up, the one it was on is named (and the test stops).
-const gputest = /[?&]gputest/.test(location.search);
+const gputest = /[?&](gputest|probe)/.test(location.search), probe = /[?&]probe/.test(location.search);
+// ?diag&probe#sea: the seabed's shader built up a feature at a time, each prepared and drawn on its own,
+// stopping at the first one the GPU cannot take
+async function shaderProbe() {
+  const gl = renderer.getContext(), lost = () => gl.isContextLost();
+  const VS = `varying vec3 vWp; varying vec3 vN; void main(){ vWp = position; vN = normal; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`;
+  const V = 'varying vec3 vWp; varying vec3 vN;\n';
+  const steps: [string, string, boolean][] = [
+    ['1 共通部分だけ', V + 'void main(){ gl_FragColor = vec4(fract(vWp * 0.1), 1.0); }', false],
+    ['2 水中の光（shade）', V + 'void main(){ gl_FragColor = vec4(shade(vec3(0.5), vWp, normalize(vN), 0.95), 1.0); }', false],
+    ['3 テクスチャ（textureGrad）', SURFACE + V + 'void main(){ gl_FragColor = vec4(textureGrad(tSandC, vWp.xz, dFdx(vWp.xz), dFdy(vWp.xz)).rgb, 1.0); }', true],
+    ['4 分岐の中のtextureGrad', SURFACE + V + 'void main(){ vec3 c = vec3(0.0); vec2 gx = dFdx(vWp.xz), gy = dFdy(vWp.xz); if (vN.y > 0.5) c = textureGrad(tSandC, vWp.xz, gx, gy).rgb; gl_FragColor = vec4(c, 1.0); }', true],
+    ['5 三方向投影ひとつ（triSample）', SURFACE + V + 'void main(){ vec3 c = vec3(0.0), dn = vec3(0.0); vec3 w = abs(normalize(vN)); triSample(tSandC, tSandN, vWp, dFdx(vWp), dFdy(vWp), w, 0.3, 0.8, c, dn, 1.0); gl_FragColor = vec4(c + dn, 1.0); }', true],
+    ['6 海底の質感（reefSurface）', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); gl_FragColor = vec4(a + n * 0.01, 1.0); }', true],
+    ['7 海底そのもの（質感＋光）', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); gl_FragColor = vec4(shade(a, vWp, n, 0.95), 1.0); }', true],
+  ];
+  const rt = new THREE.WebGLRenderTarget(64, 64, { type: THREE.HalfFloatType });
+  const cam = new THREE.PerspectiveCamera(60, 1, 0.1, 100); cam.position.set(0, 3, 4); cam.lookAt(0, 0, 0);
+  const geo = new THREE.PlaneGeometry(4, 4, 8, 8).rotateX(-Math.PI / 2);
+  for (const [name, fs, tex] of steps) {
+    const m = mat(VS, fs, tex ? { uniforms: SURF_UNIFORMS } : {});
+    const mesh = new THREE.Mesh(geo, m); mesh.frustumCulled = false;
+    const sc = new THREE.Scene(); sc.add(mesh);
+    diagNow = name + ' → 準備中'; renderer.compile(sc, cam);
+    await wait(900); if (lost()) { diagNow = 'STOP ' + name + '（準備）'; diagLog?.('P STOP ' + name); return; }
+    diagNow = name + ' → 描画中'; renderer.setRenderTarget(rt); renderer.render(sc, cam); renderer.setRenderTarget(null); (gl as any).finish?.();
+    await wait(1200); if (lost()) { diagNow = 'STOP ' + name + '（描画）'; diagLog?.('P STOP ' + name); return; }
+    diagLog?.('P ok ' + name);
+  }
+  diagNow = 'ALL OK（海底の部品は単独ではどれも止まらなかった）';
+}
 async function gpuTest(loc: Sea) {
   const gl = renderer.getContext(), lost = () => gl.isContextLost();
   diagLog?.(`T GPU test: ${loc.name}`);
@@ -1423,7 +1453,7 @@ resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
 const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
-if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (gputest ? gpuTest(start) : dive(start)), 300); }
+if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start)), 300); }
 void smooth;
 
 // Inspect the live sim from the console with ?debug
