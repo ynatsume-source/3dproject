@@ -93,11 +93,13 @@
     <button id="btnMusic" type="button" aria-pressed="true"><span class="dot"></span>音楽 <kbd>N</kbd></button>
     <button id="btnQuality" type="button">画質 高</button>
     <button id="btnHud" type="button">HUD <kbd>H</kbd></button>
+    <button id="btnPip" type="button" aria-pressed="true" title="近くで狩りが起きると、小さな窓で映します"><span class="dot"></span>狩りの小窓</button>
     <button id="btnFull" type="button">全画面 <kbd>F</kbd></button>
   </div>
 </div>
 
 <button id="reveal" type="button">HUD</button>
+<div id="pip" hidden><div class="k">HUNT</div><div class="t" id="pipText"></div></div>
 <div id="veil"><div><div class="k" id="veilK">DIVING</div><div class="t" id="veilT"></div><div class="s" id="veilS"></div></div></div>
 <div id="err" hidden>WebGLを初期化できませんでした。<br>ハードウェアアクセラレーションが有効なブラウザで開いてください。</div>
 <script type="module" src="./src/main.ts"></script>

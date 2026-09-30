@@ -49,6 +49,12 @@ let lampOn = false, lampManual = false, hudOn = true, busy = false;
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
 let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : detectTier(renderer.getContext());
 const post = new Post(TIERS[tier]);
+// the hunt window: a second, small camera on whatever is being hunted nearby
+const pipPost = new Post({ ...TIERS.low, vol: 0, bloom: 0, ao: 0 });
+const pipCam = new THREE.PerspectiveCamera(55, 16 / 10, 0.08, 460);
+let pipOn = (() => { try { return localStorage.getItem('seaglass.pip') !== '0'; } catch (e) { return true; } })();
+let pipSubj: Subject | null = null, pipT = 0, pipFade = 0, pipScan = 0, pipAng = 0;
+const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
 const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyWait: 600, skyStay: 300 };
@@ -905,6 +911,8 @@ $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
+$('btnPip').onclick = () => setPip(!pipOn);
+setPip(pipOn);
 $('btnPersona').onclick = () => setPersona(PERSONAS[(PERSONAS.indexOf(persona) + 1) % PERSONAS.length]);
 applyPersona();
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
@@ -1003,6 +1011,68 @@ addEventListener('pointermove', () => { idleT = performance.now(); document.body
 }
 
 /* ================= loop ================= */
+// Pick a hunt to show: a live one near the drone that the main camera isn't already filming, and
+// watch it from a slowly circling viewpoint, with its own post-processing, in a corner of the screen.
+function renderPip(dt: number, air: boolean) {
+  if (!cur) return;
+  if ((pipScan -= dt) < 0) {
+    pipScan = 0.5;
+    const filming = lastShot?.subject.key;
+    if (!pipSubj || !pipSubj.live()) {
+      pipSubj = null;
+      let bd = 140;
+      for (const s of cur.eco.subjects()) {
+        if (s.kind !== 'hunt' || !s.live() || s.key === filming) continue;
+        const p = s.pos(); if (!p) continue;
+        const d = Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z);
+        if (d < bd) { bd = d; pipSubj = s; }
+      }
+      if (pipSubj) { pipT = 0; pipAng = Math.random() * 6.28; }
+    }
+    if (pipSubj && pipSubj.key === filming) pipSubj = null;
+  }
+  const want = pipOn && pipSubj && pipSubj.live() ? 1 : 0;
+  pipFade += (want - pipFade) * Math.min(1, dt * 5);
+  const el = $('pip');
+  el.style.opacity = String(pipFade);
+  el.hidden = pipFade < 0.02;
+  if (pipFade < 0.02 || !pipSubj) return;
+  const p = pipSubj.pos(); if (!p) return;
+  pipT += dt; pipAng += dt * 0.12;
+  $('pipText').textContent = `${pipSubj.label} — ${pipSubj.status()}`;
+  // a viewpoint off to the side, a little above, closing in over the first seconds
+  const dist = clamp(pipSubj.size * 2.2 + 2.5, 4, 14) * (1.3 - 0.3 * Math.min(1, pipT / 4));
+  _t.set(p.x + Math.cos(pipAng) * dist, Math.min(p.y + 1.2, -0.7), p.z + Math.sin(pipAng) * dist);
+  if (!cur.loc.pelagic) _t.y = Math.max(_t.y, cur.T.ground(_t.x, _t.z) + 1);
+  if (pipT < dt * 1.5) pipCam.position.copy(_t); else pipCam.position.lerp(_t, Math.min(1, dt * 2));
+  pipCam.lookAt(p.x, p.y, p.z); pipCam.updateMatrixWorld();
+  // this camera's view of the sea: its own position for fog and light, the cells around it
+  const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone();
+  U.uCamPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
+  const vis = cur.cells.map((c: any) => [c.mesh.visible, c.hi?.visible]);
+  for (const c of cur.cells) { const d = Math.hypot(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
+  sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, 0, pipCam.position.z);
+  const surf = surface.visible, snw = snow.visible; surface.visible = snow.visible = true;
+  const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio(), H = innerHeight;
+  const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
+  if (w !== pipRect.w || h !== pipRect.h) { pipRect.w = w; pipRect.h = h; pipPost.setSize(Math.floor(w * dpr), Math.floor(h * dpr)); pipCam.aspect = w / h; pipCam.updateProjectionMatrix(); }
+  pipPost.setExposure(1.5 * (1 + 0.55 * nightLift));
+  pipPost.whiteBalance(-pipCam.position.y, U.uAbs.value, U.uNight.value);
+  renderer.setViewport(r.left, H - r.bottom, w, h); renderer.setScissor(r.left, H - r.bottom, w, h); renderer.setScissorTest(true);
+  pipPost.render(renderer, oceanScene, pipCam);
+  renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight); renderer.setScissor(0, 0, innerWidth, innerHeight);
+  // put the main camera's view back
+  U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd);
+  cur.cells.forEach((c: any, i: number) => { c.mesh.visible = vis[i][0]; if (c.hi) c.hi.visible = vis[i][1]; });
+  sky.position.copy(camera.position); surface.position.set(camera.position.x, 0, camera.position.z);
+  surface.visible = surf; snow.visible = snw;
+  void air;
+}
+function setPip(on: boolean) {
+  pipOn = on;
+  try { localStorage.setItem('seaglass.pip', on ? '1' : '0'); } catch (e) { /* ignore */ }
+  $('btnPip').setAttribute('aria-pressed', String(on));
+}
 function resize() {
   const w = innerWidth, h = innerHeight;
   const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr);
@@ -1105,6 +1175,7 @@ function frame(ts: number) {
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (TIERS[tier].post) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
+    if (TIERS[tier].post) renderPip(dt, air);
     else {
       renderer.setRenderTarget(null); renderer.render(oceanScene, camera);
       if (air) { setRefraction(null); renderer.autoClear = false; renderer.render(topScene, camera); renderer.autoClear = true; }
@@ -1135,4 +1206,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, get bait() { return cur?.bait; }, thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
