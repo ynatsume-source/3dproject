@@ -317,3 +317,32 @@ body.mode-globe #hoverTag, body.mode-globe #tapRing { display: none; }
 #volPanel output { font: 400 11px/1 var(--f-mono); color: var(--ink-dim); text-align: right; }
 #btnVol[aria-expanded="true"] { background: var(--glass-hi); color: var(--ink); }
 @media (max-width: 760px) { #volPanel { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(160px + env(safe-area-inset-bottom, 0px)); } }
+
+/* watching a resident from above */
+#watchBar { top: calc(206px + env(safe-area-inset-top, 0px)); left: 18px; display: flex; flex-direction: column; gap: 5px; pointer-events: auto; }
+#watchBar .k { font: 500 9.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--ink-faint); margin: 0 0 2px 2px; }
+#watchBar button { appearance: none; display: flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: rgba(4, 22, 30, 0.55); color: var(--ink);
+  border-radius: 999px; padding: 6px 12px 6px 8px; font: 500 12px/1 var(--f-body); letter-spacing: .06em; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+#watchBar button i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
+#watchBar button:hover { border-color: var(--c); }
+#watchBar button[aria-pressed="true"] { border-color: var(--c); background: rgba(4, 22, 30, 0.85); }
+#watchCard { right: 16px; bottom: calc(132px + env(safe-area-inset-bottom, 0px)); width: min(330px, calc(100vw - 36px)); pointer-events: auto;
+  background: rgba(4, 22, 30, 0.8); border: 1px solid var(--line); border-left: 3px solid var(--c); border-radius: 10px; padding: 12px 14px; display: grid; gap: 7px;
+  font-size: 12px; line-height: 1.6; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+#watchCard .h { display: flex; align-items: baseline; gap: 8px; }
+#watchCard .h i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); align-self: center; }
+#watchCard .h b { font-size: 14px; letter-spacing: .08em; }
+#watchCard .h span { color: var(--ink-dim); }
+#watchCard .m { font: 400 10.5px/1.4 var(--f-mono); color: var(--ink-faint); }
+#watchCard .say { margin: 0; color: var(--ink); }
+#watchCard ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; color: var(--ink-dim); }
+#watchCard ol time { font: 400 10px/1 var(--f-mono); color: var(--ink-faint); margin-right: 6px; }
+#watchCard .f { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 10.5px; color: var(--ink-faint); }
+#watchCard .f button { appearance: none; border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 999px; padding: 5px 11px; font: 500 11px/1 var(--f-body); cursor: pointer; }
+#watchCard .f button:hover { border-color: var(--accent); color: var(--accent); }
+body.watching #tele, body.watching #hint { opacity: 0; }
+@media (max-width: 760px) {
+  #watchBar { top: auto; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); left: 10px; flex-direction: row; flex-wrap: wrap; max-width: calc(100vw - 20px); }
+  #watchBar .k { display: none; }
+  #watchCard { right: auto; left: 10px; bottom: calc(200px + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 20px); }
+}

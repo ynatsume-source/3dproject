@@ -91,6 +91,8 @@ const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
 const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyWait: 600, skyStay: 300 };
+// watching one of the island's residents from above: the camera stays with it until let go
+const watch = { r: null as any, ang: 0, el: 0.95, dist: 11, infoT: 0 };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
@@ -138,10 +140,26 @@ function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
-  const R = cur!.residents, film = drone.mode === 'auto' && (!drone.sky || !!R);
+  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R);
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9)) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
-  if (shot) {
+  if (watch.r) {
+    // a god's-eye view: circling slowly high over the one we are watching, looking down at it
+    const p = watch.r.pos, T = cur!.T;
+    watch.ang += dt * 0.035;
+    const ce = Math.cos(watch.el), se = Math.sin(watch.el);
+    _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
+    _t.y = Math.max(_t.y, T.ground(_t.x, _t.z) + 3, T.over ? T.over(_t.x, _t.z) + 3 : -1e9, 1.2);   // clear of the trees, and out of the water
+    _v.subVectors(_t, drone.pos);
+    const L = _v.length();
+    _v.multiplyScalar(Math.min(L * 1.6, 30) / Math.max(L, 1e-4));   // (across the island quickly when switching)
+    if (drone.pos.y < 0) _v.set(_v.x * 0.15, 3, _v.z * 0.15);   // under the water: straight up through the surface first
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
+    const lx = p.x - camera.position.x, ly = p.y + 0.4 - camera.position.y, lz = p.z - camera.position.z;
+    const k = Math.min(1, dt * 2.5);
+    drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
+    drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
+  } else if (shot) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     _v.subVectors(way, drone.pos);
@@ -222,7 +240,7 @@ function updateDrone(dt: number, now: number) {
   }
   // by an island, under water: the beach shelves up to nothing, so turn back toward deeper water
   // rather than being squeezed between the sand and the surface
-  if (cur!.loc.land && drone.pos.y < 0) {
+  if (cur!.loc.land && drone.pos.y < 0 && !watch.r) {
     const f = cur!.loc.f, h0 = f(drone.pos.x, drone.pos.z);
     if (h0 > -1.9) {
       const gx = f(drone.pos.x + 1.5, drone.pos.z) - f(drone.pos.x - 1.5, drone.pos.z), gz = f(drone.pos.x, drone.pos.z + 1.5) - f(drone.pos.x, drone.pos.z - 1.5), gl = Math.hypot(gx, gz) || 1;
@@ -267,7 +285,7 @@ function updateDrone(dt: number, now: number) {
   // the surface: the drone punches through it rather than hovering in it
   const wasUp = drone.pos.y - drone.vel.y * dt > 0.2;
   const upShot = !!shot && shot.pos.y > 0.3;   // filming something ashore: out of the water and back
-  const mayRise = drone.mode === 'manual' || drone.sky || upShot, mayDive = drone.mode === 'manual' || (!drone.sky && !upShot);
+  const mayRise = drone.mode === 'manual' || drone.sky || upShot || !!watch.r, mayDive = drone.mode === 'manual' || (!drone.sky && !upShot && !watch.r);
   if (!wasUp && drone.pos.y > -0.7) {
     if (mayRise && drone.vel.y > 0.25) { drone.pos.y = 0.5; crossSurface(true); }
     else { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
@@ -341,6 +359,7 @@ function crossSurface(up: boolean) {
 // natural: the guide decided (it goes back on its own after a while); otherwise you asked, and it stays longer
 function setSky(on: boolean, natural = false) {
   if (!cur) return;
+  if (watch.r && !natural) stopWatch(false);
   drone.sky = on; drone.skyT = 0;
   if (drone.mode !== 'auto') setMode('auto');
   director.reset(); lastShot = null;
@@ -353,7 +372,7 @@ function setSky(on: boolean, natural = false) {
 // Every so often the guide rises into the sky on its own, and comes back down: more often on a clear
 // night with a meteor shower on, never from inside the cave or in the middle of filming something.
 function skySchedule(dt: number) {
-  if (!cur || drone.mode !== 'auto') return;
+  if (!cur || drone.mode !== 'auto' || watch.r) return;
   if (!drone.sky) {
     const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value);
     drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));   // (the wait runs down while filming too)
@@ -525,6 +544,7 @@ $('toast').addEventListener('click', goToEvent);
 /* ---------- take me to it ---------- */
 function focusOn(s: Subject) {
   if (!cur) return;
+  if (watch.r) stopWatch(false);
   if (drone.mode !== 'auto') setMode('auto');
   if (drone.sky) setSky(false);
   director.focus(s, drone.pos);
@@ -691,7 +711,7 @@ function renderIsland() {
     const st = r.stats, work = r.id === 'dot' ? `小屋の部材 ${st.built}/24` : r.id === 'kame' ? `観察記録 ${st.notes}件` : r.id === 'lantern' ? `目印の石積み ${st.cairns}` : `集めた貝殻 ${st.shells}個・割った貝 ${st.cracked}個`;
     return `<li class="res"><i style="background:${r.sp.color}"></i><b>${r.v.name}</b><em>${r.v.en}</em><span class="st">いま：${R.status(r)}・電池 ${Math.round(r.battery * 100)}%</span>
       <p>${r.v.trait}</p><p class="work">${work}</p><div class="rels">${rel}</div>${diary ? `<ol class="diary">${diary}</ol>` : ''}
-      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button></li>`;
+      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button></li>`;
   }).join('');
   const talk = R.talks.slice(-12).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
   const key = aiKey();
@@ -732,6 +752,8 @@ function renderGuide() {
 guideEl.addEventListener('click', (e) => {
   const g = (e.target as HTMLElement).closest('[data-go]') as HTMLElement | null;
   if (g) { goTo(g.dataset.go!); return; }
+  const w = (e.target as HTMLElement).closest('[data-watch]') as HTMLElement | null;
+  if (w && cur?.residents) { const r = cur.residents.list.find((x: any) => x.id === w.dataset.watch); if (r) { startWatch(r); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } } return; }
   const b = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
   if (b) { panelTab = b.dataset.tab as 'guide' | 'log' | 'island'; guideEl.scrollTop = 0; renderGuide(); return; }
   const ai = (e.target as HTMLElement).closest('[data-ai]') as HTMLElement | null;
@@ -836,6 +858,7 @@ function applyWater(loc: Sea) {
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
+  watch.r = null;
   if (oc.residents) oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
   U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
@@ -880,7 +903,7 @@ function enterOcean(oc: Ocean) {
   $('locName').textContent = `${oc.loc.name} · ${oc.loc.site}`;
   $('locCoord').textContent = fmtLL(oc.loc.lat, oc.loc.lon);
   setMode('auto');
-  renderGuide();
+  renderGuide(); renderWatch();
   try { history.replaceState(null, '', '#' + oc.loc.id); } catch (e) { /* ignore */ }
   resize();
   requestAnimationFrame(resize);
@@ -1057,7 +1080,7 @@ async function toGlobe() {
   await wait(750);
   mode = 'globe';
   document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
-  setGuide(false); setTimePanel(false); setVolPanel(false);
+  setGuide(false); setTimePanel(false); setVolPanel(false); watch.r = null; renderWatch();
   gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
   resize();
@@ -1067,6 +1090,7 @@ async function toGlobe() {
 }
 
 function setMode(m: 'auto' | 'manual') {
+  if (watch.r) stopWatch(false);
   drone.mode = m;
   if (m === 'manual') director.reset();
   if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; } }
@@ -1118,6 +1142,52 @@ canvas.addEventListener('pointermove', (e) => {
   if (!s) { el.classList.remove('on'); return; }
   el.textContent = `${s.label} — クリックで近づく`; el.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; el.classList.add('on');
 });
+function startWatch(r: any) {
+  if (!cur?.residents) return;
+  if (drone.mode !== 'auto') setMode('auto');
+  if (drone.sky) { drone.sky = false; $('btnSky').setAttribute('aria-pressed', 'false'); $('btnSky').innerHTML = '<span class="dot"></span>空へ <kbd>U</kbd>'; }
+  director.reset(); lastShot = null;
+  const first = !watch.r;
+  watch.r = r;
+  if (first) { watch.ang = Math.atan2(drone.pos.z - r.pos.z, drone.pos.x - r.pos.x); watch.el = 0.95; watch.dist = 11; }
+  watch.infoT = 0;
+  renderWatch();
+  showToast('見守っています', r.v.name, cur.residents.status(r));
+}
+function stopWatch(resume: boolean) {
+  if (!watch.r) return;
+  watch.r = null;
+  renderWatch();
+  if (resume && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0) { drone.sky = true; drone.skyT = 0; drone.skyStay = rr(...persona.skyStay); } }
+}
+// the row of residents to watch (only by the island), and the card for the one being watched
+function renderWatch() {
+  const bar = $('watchBar'), card = $('watchCard'), R = cur?.residents;
+  bar.hidden = !R || mode !== 'ocean';
+  if (R && !bar.dataset.built) {
+    bar.dataset.built = '1';
+    bar.innerHTML = '<span class="k">見守る</span>' + R.list.map((r: any) => `<button type="button" data-watch="${r.id}" style="--c:${r.sp.color}"><i></i>${r.v.name}</button>`).join('');
+    bar.onclick = (e) => {
+      const b = (e.target as HTMLElement).closest('[data-watch]') as HTMLElement | null; if (!b || !cur?.residents) return;
+      const r = cur.residents.list.find((x: any) => x.id === b.dataset.watch);
+      if (r === watch.r) stopWatch(true); else if (r) startWatch(r);
+    };
+  }
+  bar.querySelectorAll<HTMLButtonElement>('[data-watch]').forEach((b) => b.setAttribute('aria-pressed', String(!!watch.r && watch.r.id === b.dataset.watch)));
+  card.hidden = !watch.r;
+  document.body.classList.toggle('watching', !!watch.r);
+  if (!watch.r || !R) return;
+  const r = watch.r, st = r.stats, t = (ms: number) => localTimeString(ms, cur!.loc.tz);
+  const work = r.id === 'dot' ? `小屋の部材 ${st.built}/24` : r.id === 'kame' ? `観察記録 ${st.notes}件` : r.id === 'lantern' ? `目印の石積み ${st.cairns}` : `貝殻 ${st.shells}個・割った貝 ${st.cracked}個`;
+  const diary = r.diary.slice(-3).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
+  card.style.setProperty('--c', r.sp.color);
+  card.innerHTML = `<div class="h"><i></i><b>${r.v.name}</b><span>${R.status(r)}</span></div>
+    <div class="m">電池 ${Math.round(r.battery * 100)}% ・ ${work}</div>
+    ${r.saying ? `<p class="say">「${r.saying}」</p>` : ''}
+    ${diary ? `<ol>${diary}</ol>` : ''}
+    <div class="f"><span>ドラッグで回り込む・${isTouch ? 'ピンチ' : 'ホイール'}で遠近</span><button type="button" id="watchStop">見守りをやめる</button></div>`;
+  $('watchStop').onclick = () => stopWatch(true);
+}
 function touchInput() { drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
 function setLamp(on: boolean, manual = true) {
   if (manual) lampManual = true;
@@ -1248,6 +1318,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyN') toggleMusic();
   else if (e.code === 'KeyZ') openPanel('guide');
   else if (e.code === 'KeyJ') openPanel('log');
+  else if (e.code === 'Escape' && watch.r) stopWatch(true);
   else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
   else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');
   else if (e.code === 'KeyU') setSky(!drone.sky);
@@ -1279,16 +1350,18 @@ canvas.addEventListener('pointermove', (e) => {
     const a = Math.min(1, dtm * 12);
     gv.vlon += (-dx * k / dtm * 0.6 - gv.vlon) * a; gv.vlat += (dy * k / dtm * 0.6 - gv.vlat) * a;
   } else {
+    if (watch.r && pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 5, 70); pinch0 = d; tap.moved += 99; return; }
     const k = isTouch ? 0.006 : 0.0035;
     tap.moved += Math.abs(dx) + Math.abs(dy);
     if (drone.mode === 'manual') { drone.lastInput = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
+    else if (watch.r) { watch.ang -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, 0.35, 1.45); }   // watching: drag to circle round and tilt
     else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
   }
 });
 const endP = (e: PointerEvent) => {
   if (mode === 'ocean' && pointers.has(e.pointerId)) {
     look.held = false; look.let = performance.now();
-    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup') tapAt(e.clientX, e.clientY);
+    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup') { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
   }
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0;
   gv.dragging = pointers.size > 0;
@@ -1296,7 +1369,7 @@ const endP = (e: PointerEvent) => {
   gv.vlon = clamp(gv.vlon, -120, 120); gv.vlat = clamp(gv.vlat, -60, 60);
 };
 canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercancel', endP);
-canvas.addEventListener('wheel', (e) => { if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 5, 70); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
@@ -1471,6 +1544,7 @@ function frame(ts: number) {
     U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.update(dt, clock.ms, drone.pos);
+    if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; renderWatch(); }
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
