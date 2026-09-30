@@ -18,6 +18,7 @@ import { PERSONAS, personaById, line, type Persona, type Mood } from './persona'
 import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { guideThumbs } from './ui/thumbs';
 import { PLACES } from './ui/places';
+import { MiniMap } from './ui/minimap';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
@@ -49,6 +50,8 @@ let lampOn = false, lampManual = false, hudOn = true, busy = false;
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
 let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : detectTier(renderer.getContext());
 const post = new Post(TIERS[tier]);
+const minimap = new MiniMap(document.getElementById('minimap')!);
+let mapTimer = 0;
 // the hunt window: a second, small camera on whatever is being hunted nearby
 const pipPost = new Post({ ...TIERS.low, vol: 0, bloom: 0, ao: 0 });
 const pipCam = new THREE.PerspectiveCamera(55, 16 / 10, 0.08, 460);
@@ -1181,6 +1184,11 @@ function frame(ts: number) {
       if (air) { setRefraction(null); renderer.autoClear = false; renderer.render(topScene, camera); renderer.autoClear = true; }
     }
     if ((hudTimer += dt) > 0.1) { hudTimer = 0; if (hudOn) updateHud(); }
+    if ((mapTimer += dt) > 0.2 && hudOn) {
+      mapTimer = 0;
+      const bb = cur.bait?.st;
+      minimap.draw(cur.loc, drone.pos.x, drone.pos.z, Math.atan2(fwd.x, -fwd.z), bb && bb.active ? bb.c : null);
+    }
     if ((sightTimer += dt) > 0.3) { sightTimer = 0; checkSightings(); }
     if (!hudOn && now - idleT > 3000) document.body.classList.add('idle');
     if (autoQ) {
@@ -1206,4 +1214,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
