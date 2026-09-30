@@ -57,9 +57,11 @@ export function bommieField(x: number, z: number, cell: number, prob: number, hM
     if (cellHash(i, j, seed) > prob) continue;
     const cx = (i + 0.2 + 0.6 * cellHash(i, j, seed + 1)) * cell, cz = (j + 0.2 + 0.6 * cellHash(i, j, seed + 2)) * cell;
     const r = rMin + (rMax - rMin) * cellHash(i, j, seed + 3), hh = hMin + (hMax - hMin) * cellHash(i, j, seed + 4);
-    const dx = x - cx, dz = z - cz, ang = Math.atan2(dz, dx);
+    const dx = x - cx, dz = z - cz, dd = dx * dx + dz * dz, far = r * 1.05 * 1.08;
+    if (dd > far * far) continue;   // (out of reach of this one: skip the trig)
+    const ang = Math.atan2(dz, dx);
     const rad = r * (0.85 + 0.12 * Math.sin(ang * 3 + seed + i) + 0.08 * Math.sin(ang * 5 + j));
-    const d = Math.hypot(dx, dz) / rad;
+    const d = Math.sqrt(dd) / rad;
     h = Math.max(h, hh * (1 - smooth(edge, 1.0, d)));
     m = Math.max(m, smooth(1.08, 0.62, d));
   }

@@ -987,26 +987,42 @@ async function gpuTest(loc: Sea) {
 // slowly, and a long enough stall makes the browser reset the GPU (the screen goes white or black).
 let diagLog: ((s: string) => void) | null = null, diagNow = '';   // (with ?diag: the shader being prepared)
 const shaderHint = (m: any) => `${m.type}${m.uniforms ? ':' + Object.keys(m.uniforms).filter((k) => !(k in U)).slice(0, 4).join(',') : ''} ${(m.fragmentShader || '').length}`;
+const dbg = location.search.includes('debug');
 async function prepareShaders(oc: Ocean) {
   const seen = new Map<THREE.Material, THREE.Object3D>();
   const take = (root: THREE.Object3D) => root.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (!seen.has(m)) seen.set(m, o); });
   take(oc.group); take(oceanScene); take(topScene);
   const par = !!renderer.extensions.get('KHR_parallel_shader_compile');
   let i = 0; const total = seen.size;
+  if (dbg) console.log(`[load] ${total} materials, parallel ${par}`);
+  const scene = (list: THREE.Object3D[]) => { const tmp = new THREE.Scene(); for (const o of list) { const c = o.clone(false); c.visible = true; tmp.add(c); } return tmp; };
+  if (par && !diagLog && SAFE === 0) {
+    // the browser compiles on its own threads: hand over a batch at a time and let them work side by side
+    const all = [...seen.values()];
+    for (let k = 0; k < all.length; k += 12) {
+      try { await renderer.compileAsync(scene(all.slice(k, k + 12)), camera); } catch (e) { /* it will compile when first drawn */ }
+      if (renderer.getContext().isContextLost()) return;
+    }
+    return;
+  }
+  let t0 = performance.now();
   for (const [, o] of seen) {
-    const tmp = new THREE.Scene(), c = o.clone(false);
-    c.visible = true; tmp.add(c);
+    const tmp = scene([o]);
     const hint = shaderHint((o as any).material);
     try {
       if (diagLog) {
         diagLog(`C … ${i + 1}/${total} ${hint}`); diagNow = `${i + 1}/${total} ${(o as any).type} ${hint} [${Object.keys((o as any).geometry?.attributes || {}).filter((k) => !['position', 'normal', 'uv'].includes(k)).join(',')}]`;
-        const t0 = performance.now(); renderer.compile(tmp, camera); const dt = performance.now() - t0;
+        const t1 = performance.now(); renderer.compile(tmp, camera); const dt = performance.now() - t1;
         diagLog(`C ${dt.toFixed(0)}ms ${hint}${renderer.getContext().isContextLost() ? ' LOST' : ''}`);
         if (!renderer.getContext().isContextLost()) diagNow = 'done ' + diagNow;
-      } else if (par) await renderer.compileAsync(tmp, camera);
-      else renderer.compile(tmp, camera);
+      } else {
+        renderer.compile(tmp, camera);
+        // wait for the link here, one program at a time, rather than all of them in the first frame
+        const pr = (renderer.properties.get((o as any).material) as any)?.currentProgram; pr?.getUniforms?.();
+      }
     } catch (e) { /* it will compile when first drawn */ }
-    if (++i % 2 === 0) await nextFrame();
+    i++;
+    if (diagLog || performance.now() - t0 > 60) { await nextFrame(); t0 = performance.now(); }   // give the page a breath every so often
     if (renderer.getContext().isContextLost()) return;
   }
 }
@@ -1018,8 +1034,11 @@ async function dive(loc: Sea) {
     veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
     await wait(500); await nextFrame(); await nextFrame();
     if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);   // real terrain: the survey data first
+    const tb = performance.now();
     oceans[loc.id] = buildOcean(loc);
+    const tc = performance.now();
     await prepareShaders(oceans[loc.id]);
+    if (dbg) console.log(`[load] build ${(tc - tb).toFixed(0)}ms shaders ${(performance.now() - tc).toFixed(0)}ms`);
     veil(false); await wait(300);
   }
   await tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300);
