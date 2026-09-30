@@ -48,11 +48,9 @@ vec3 bumpN(vec3 n, vec3 pos, float h){
 // lookups sit inside branches, where GPUs cannot take their own derivatives for mip selection, so the
 // screen-space gradients of p (px, py, taken outside any branch) are passed in explicitly — otherwise
 // the textures sparkle and crawl as the camera moves.
-void triSample(sampler2D tc, sampler2D tn, vec3 p, vec3 px, vec3 py, vec3 w, float s, float bump, inout vec3 col, inout vec3 dn, float amt){
-  if (w.x > 0.03) { vec2 uv = p.zy * s, gx = px.zy * s, gy = py.zy * s; col += textureGrad(tc, uv, gx, gy).rgb * w.x * amt; vec2 t = (textureGrad(tn, uv, gx, gy).xy * 2.0 - 1.0) * bump; dn += vec3(0.0, t.y, t.x) * w.x * amt; }
-  if (w.y > 0.03) { vec2 uv = p.xz * s, gx = px.xz * s, gy = py.xz * s; col += textureGrad(tc, uv, gx, gy).rgb * w.y * amt; vec2 t = (textureGrad(tn, uv, gx, gy).xy * 2.0 - 1.0) * bump; dn += vec3(t.x, 0.0, t.y) * w.y * amt; }
-  if (w.z > 0.03) { vec2 uv = p.xy * s, gx = px.xy * s, gy = py.xy * s; col += textureGrad(tc, uv, gx, gy).rgb * w.z * amt; vec2 t = (textureGrad(tn, uv, gx, gy).xy * 2.0 - 1.0) * bump; dn += vec3(t.x, t.y, 0.0) * w.z * amt; }
-}
+// (A macro rather than a function taking the textures as arguments: Direct3D's shader compiler, which
+// Windows browsers translate to, crashed on samplers passed into functions — and took the GPU with it.)
+#define triSample(TC, TN, P_, PX_, PY_, W_, S_, BUMP_, COL_, DN_, AMT_) { vec3 tp_ = (P_), tx_ = (PX_), ty_ = (PY_), tw_ = (W_); float ts_ = (S_), tb_ = (BUMP_), ta_ = (AMT_); if (tw_.x > 0.03) { vec2 uv = tp_.zy * ts_, gx = tx_.zy * ts_, gy = ty_.zy * ts_; COL_ += textureGrad(TC, uv, gx, gy).rgb * tw_.x * ta_; vec2 t = (textureGrad(TN, uv, gx, gy).xy * 2.0 - 1.0) * tb_; DN_ += vec3(0.0, t.y, t.x) * tw_.x * ta_; } if (tw_.y > 0.03) { vec2 uv = tp_.xz * ts_, gx = tx_.xz * ts_, gy = ty_.xz * ts_; COL_ += textureGrad(TC, uv, gx, gy).rgb * tw_.y * ta_; vec2 t = (textureGrad(TN, uv, gx, gy).xy * 2.0 - 1.0) * tb_; DN_ += vec3(t.x, 0.0, t.y) * tw_.y * ta_; } if (tw_.z > 0.03) { vec2 uv = tp_.xy * ts_, gx = tx_.xy * ts_, gy = ty_.xy * ts_; COL_ += textureGrad(TC, uv, gx, gy).rgb * tw_.z * ta_; vec2 t = (textureGrad(TN, uv, gx, gy).xy * 2.0 - 1.0) * tb_; DN_ += vec3(t.x, t.y, 0.0) * tw_.z * ta_; } }
 // living cover on reef rock: coralline pinks, turf and sponge colours in patches
 vec3 overgrow(vec3 base, vec3 p, vec3 n){
   vec2 q = p.xz + vec2(p.y * 0.7, -p.y * 0.5);
