@@ -49,7 +49,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     const mesh = new THREE.InstancedMesh(g, fishMaterial(sp), n);
     mesh.frustumCulled = false; mesh.visible = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     oc.group.add(mesh);
-    const shark = sp.shape === 'shark' || sp.shape === 'whitetip';
+    const shark = sp.shape === 'shark' || sp.shape === 'whitetip' || sp.shape === 'oceanic';
     const list: Pred[] = [];
     for (let i = 0; i < n; i++) list.push({ p: new THREE.Vector3(), v: new THREE.Vector3(), mode: 'approach', ang: 0, rad: 0, depth: 0, next: 0, bites: 0, aim: new THREE.Vector3(), seed: R() * 50 });
     return { sp, mesh, list, size: rr(sp.size[0], sp.size[1]), speed: shark ? 5 : sp.shape === 'jack' || sp.shape === 'tuna' || sp.shape === 'fusilier' ? 7.5 : 6, shark, leaper: !shark && sp.shape !== 'barracuda' };

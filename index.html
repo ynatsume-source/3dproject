@@ -21,7 +21,6 @@
   <div class="name">Seaglass</div>
   <h1>潜る海を選ぶ</h1>
   <p class="lead">地球儀はドラッグで回転、スクロールかピンチで拡大できます。昼と夜の境目は、いまの実際の太陽の位置です。ピンかカードを選ぶと、その海へ潜航します。</p>
-  <p class="home">出発地：<b id="homeLabel">—</b> <button type="button" id="btnHome">現在地を使う</button><br><small>潜るときは、ここから実際の地球の上を飛んで海へ向かいます</small></p>
   <ol id="locList"></ol>
   <p class="foot">地形・サンゴ・生きものの配置は手続き生成です。登場する種類は、それぞれの海に実際に暮らしているものを選んでいます。<br>ピアノ音源：Salamander Grand Piano（Alexander Holm, CC BY 3.0）<br>衛星画像：Sentinel-2 cloudless by EOX（Copernicus Sentinel data 2016, CC BY 4.0）／地球：NASA Blue Marble・Black Marble（GIBS）／恒星：d3-celestial（Olaf Frohn, BSD-3）・天の川：NASA/Goddard SVS, Gaia DR2 (ESA/Gaia/DPAC)／天気：Open-Meteo（CC BY 4.0）</p>
 </section>
@@ -99,8 +98,6 @@
 </div>
 
 <button id="reveal" type="button">HUD</button>
-<div id="flight" hidden><div class="k" id="flK"></div><div class="t" id="flT"></div><div class="s" id="flS"></div><button type="button" id="btnSkip">スキップ</button></div>
-<div id="splash"></div>
 <div id="veil"><div><div class="k" id="veilK">DIVING</div><div class="t" id="veilT"></div><div class="s" id="veilS"></div></div></div>
 <div id="err" hidden>WebGLを初期化できませんでした。<br>ハードウェアアクセラレーションが有効なブラウザで開いてください。</div>
 <script type="module" src="./src/main.ts"></script>

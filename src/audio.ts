@@ -3,8 +3,8 @@
 // Music: sparse phrases on a sampled grand piano and a slow pad, played in a scale that follows the time of day
 // (and, at Miyako, the Ryukyu scale). Everything goes through a long, dark reverb so notes bloom and
 // fade instead of starting and stopping.
-// Nature: a quiet, low water bed, soft bubbles, and the reef crackle of snapping shrimp that thickens
-// after dark. Nothing is loud or bright; a compressor keeps the mix even for hours of listening.
+// Nature: a quiet, low water bed and soft bubbles (the snapping-shrimp crackle is left out: its clicks
+// read as noise over the music). Nothing is loud or bright; a compressor keeps the mix even for hours of listening.
 
 let ac: AudioContext | null = null;
 let master: GainNode, natureBus: GainNode, musicBus: GainNode, reverb: ConvolverNode, crackleGain: GainNode, motion: GainNode, bedGain: GainNode;
@@ -108,7 +108,7 @@ export function startAudio(): boolean {
   master.gain.cancelScheduledValues(ac!.currentTime);
   master.gain.setTargetAtTime(0.85, ac!.currentTime, 1.5);
   loadPiano();
-  loopBubbles(); loopCrackle(); loopPhrase(); loopPad();
+  loopBubbles(); loopPhrase(); loopPad();   // (no snapping-shrimp crackle: its hard clicks sat on top of the music)
   return true;
 }
 export function stopAudio() {
@@ -254,25 +254,6 @@ function loopBubbles() {
     loopBubbles();
   }, rnd(2500, 8000));
 }
-function snap(when: number) {
-  const a = ac!, len = Math.floor(a.sampleRate * 0.003), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.2));
-  const s = a.createBufferSource(); s.buffer = b;
-  const g = a.createGain(); g.gain.value = rnd(0.03, 0.16);
-  const p = a.createStereoPanner(); p.pan.value = rnd(-0.9, 0.9);
-  s.connect(g).connect(p).connect(crackleGain); s.start(when);
-}
-function loopCrackle() {
-  clearTimeout(timers.crackle);
-  timers.crackle = window.setTimeout(() => {
-    if (!audio.on || !ac) return;
-    const rate = 3 + audio.night * 22 + audio.twilight * 8;   // clicks per second
-    const w = ac.currentTime + 0.01;
-    for (let i = 0; i < rate * 0.3; i++) snap(w + Math.random() * 0.3);
-    loopCrackle();
-  }, 300);
-}
-
 // Parrotfish biting coral: a few short, muted scrapes.
 export function crunch(vol: number) {
   if (!ac || !audio.on) return;
@@ -369,12 +350,12 @@ export function splash() {
   for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 3.2) * (t < 0.03 ? t / 0.03 : 1); }
   const s = a.createBufferSource(); s.buffer = b;
   const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(3200, t0); f.frequency.exponentialRampToValueAtTime(380, t0 + 1.2);
-  const g = a.createGain(); g.gain.value = 0.35;
+  const g = a.createGain(); g.gain.value = 0.13;   // soft: it happens often now
   s.connect(f).connect(g).connect(natureBus); s.start(t0);
   for (let k = 0; k < 14; k++) {
     const o = a.createOscillator(), og = a.createGain(), tt = t0 + 0.2 + Math.random() * 1.4, f0 = rnd(500, 1400);
     o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.07);
-    og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.03, tt + 0.01); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.09);
+    og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.012, tt + 0.01); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.09);
     o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.1);
   }
 }

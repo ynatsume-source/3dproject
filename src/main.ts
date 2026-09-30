@@ -24,7 +24,6 @@ import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
 import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
-import { loadHome, locateHome, distanceKm, satPrepare, satShow, makeFlight, resetGlobeCamera, type Home } from './journey';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -62,7 +61,7 @@ function pathAlt(s: number) {
 function pathPoint(s: number, out: THREE.Vector3) {
   const [x, z] = pathXZ(s);
   if (cur!.loc.pelagic) return out.set(x, -(6 + pathAlt(s) * 2.2 + 6 * Math.sin(s * 0.37)), z);   // open ocean: depth under the surface, nothing below
-  return out.set(x, Math.min(cur!.T.top(x, z) + pathAlt(s), -1.4), z);
+  return out.set(x, Math.min(cur!.T.top(x, z) + pathAlt(s) * persona.altK, -1.4), z);
 }
 function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.001; }
 function nearestS(p: THREE.Vector3) {
@@ -117,7 +116,7 @@ function updateDrone(dt: number, now: number) {
     const skim = smooth(0.8, 0.95, Math.sin(st * 0.021 + 2));
     const altT = drone.pos.y < 0 ? 3 : cur!.loc.pelagic
       ? 1.2 + 14 * Math.pow(0.5 + 0.5 * Math.sin(st * 0.013), 3)             // out in the open ocean: drifting low on the swell
-      : 6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim) + 1.6 * skim;
+      : (6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim)) * persona.skyAlt + 1.6 * skim;
     _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
     // a bait ball nearby: wheel over it with the birds
     const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && Math.hypot(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
@@ -158,8 +157,8 @@ function updateDrone(dt: number, now: number) {
       wantYaw += angDiff(Math.atan2(-ix, -iz), wantYaw) * interestW * 0.8;
       wantPitch += (Math.atan2(iy, Math.hypot(ix, iz)) - wantPitch) * interestW * 0.7;
     }
-    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.7);
-    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.7);
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.7 * persona.turn);
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.7 * persona.turn);
   } else {
     const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + joy.y;
     const r = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + joy.x;
@@ -226,14 +225,14 @@ function updateDrone(dt: number, now: number) {
 let persona: Persona = personaById((() => { try { return localStorage.getItem('seaglass.persona'); } catch (e) { return null; } })());
 let lastSay = -1e9, chatT = 0;
 function applyPersona() {
-  director.dwellK = persona.dwell;
+  director.dwellK = persona.dwell; director.distK = persona.distK;
   director.weight = (s) => persona.weight(s, isShark);
   $('btnPersona').innerHTML = `<span class="dot"></span>${persona.ja}`;
   $('btnPersona').title = persona.blurb;
 }
 function isShark(s: Subject) {
   const sp = cur?.loc.species.find((x) => s.label.startsWith(x.ja));
-  return !!sp && (sp.shape === 'shark' || sp.shape === 'whitetip');
+  return !!sp && (sp.shape === 'shark' || sp.shape === 'whitetip' || sp.shape === 'oceanic');
 }
 // the first sentence of a creature's field-guide note, for the chatty guide
 function noteOf(label: string) {
@@ -774,61 +773,25 @@ function enterOcean(oc: Ocean) {
   resize();
   requestAnimationFrame(resize);
 }
-// Diving in: the sea is built first (behind a veil), then the flight from home across the real Earth,
-// down onto the reef's satellite image, and a splash into the water, with no cut in between.
-let home: Home = loadHome();
+// Diving in: the sea is built first (behind a veil), then a short glide from wherever the globe is
+// looking down to the site, and into the water.
 { const at = new URLSearchParams(location.search).get('at'); if (at && !isNaN(Date.parse(at))) { clock.live = false; clock.speed = 1; clock.ms = Date.parse(at); } }   // ?at=ISO time, for checking
-const homeText = () => (home.exact ? '現在地' : `${home.label}（タイムゾーンから推定）`);
-$('homeLabel').textContent = homeText();
-$('btnHome').onclick = async () => { $('homeLabel').textContent = '取得中…'; const h = await locateHome(); if (h) home = h; $('homeLabel').textContent = h ? homeText() : `${homeText()}（位置情報を使えませんでした）`; };
-let flight: ReturnType<typeof makeFlight> | null = null, flightT0 = 0, flightSkip = false, flightDone: (() => void) | null = null, flightLoc: Sea | null = null, flightWx = '';
-$('btnSkip').onclick = () => { flightSkip = true; };
-function stepFlight(now: number) {
-  if (!flight || !flightLoc) return;
-  const t = flightSkip ? flight.total : (now - flightT0) / 1000, st = flight.at(t), loc = flightLoc;
-  satShow(loc.id, st.alt);
-  const km = distanceKm(home, loc), there = localTimeString(clock.ms, loc.tz);
-  const [k, tt, s] = st.phase === 'home' ? ['DEPARTURE', `${home.exact ? 'あなたのいる場所' : home.label} から`, `現在 ${localTimeString(Date.now(), -new Date().getTimezoneOffset() / 60)}`]
-    : st.phase === 'cruise' ? [`${Math.round(km * (1 - st.s)).toLocaleString()} km`, `${loc.name} · ${loc.site}へ`, `現地 ${there}${flightWx}`]
-    : ['ARRIVING', loc.site, `${fmtLL(loc.lat, loc.lon)} · 高度 ${st.alt * 6371 > 1 ? (st.alt * 6371).toFixed(1) + ' km' : Math.round(st.alt * 6371000) + ' m'}`];
-  $('flK').textContent = k; $('flT').textContent = tt; $('flS').textContent = s;
-  if (st.done && flightDone) { const d = flightDone; flightDone = null; d(); }
-}
 async function dive(loc: Sea) {
   keepAwake();
   if (busy) return; busy = true;
   setHot(LOCATIONS.indexOf(loc));
-  satPrepare(loc.id);
-  fetchWeather(loc.id, loc.lat, loc.lon).then((w) => { flightWx = w.ok ? ` · ${weatherLabel(w)}${w.air != null ? ` ${w.air.toFixed(0)}°C` : ''}` : ''; });
   if (!oceans[loc.id]) {
     veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
     await wait(500); await nextFrame(); await nextFrame();
     oceans[loc.id] = buildOcean(loc);
-    veil(false); await wait(400);
+    veil(false); await wait(300);
   }
-  if (reduceMotion) {
-    await tweenGlobe(loc.lat, loc.lon, 1.16, 1700);
-    veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
-    await wait(750);
-  } else {
-    // the journey
-    gv.tween = null; gv.fly = true; flightLoc = loc; flightSkip = false;
-    flight = makeFlight(home, loc, gcam.position);
-    document.body.classList.add('flying'); $('flight').hidden = false;
-    flightT0 = performance.now();
-    await new Promise<void>((done) => { flightDone = done; });
-    $('splash').classList.add('on'); splash();
-    await wait(260);
-    $('flight').hidden = true; document.body.classList.remove('flying');
-  }
+  await tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300);
+  veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
+  await wait(600);
   enterOcean(oceans[loc.id]);
-  if (!reduceMotion) {
-    // arrive just under the surface, looking down at the reef, and sink toward it
-    drone.pos.y = -0.9; drone.pitch = -1.05; drone.vel.set(0, -0.6, 0);
-  }
-  flight = null; flightLoc = null; gv.fly = false; satShow(null, 1); resetGlobeCamera();
   await nextFrame();
-  veil(false); $('splash').classList.remove('on'); setHot(-1);
+  veil(false); setHot(-1);
   busy = false;
 }
 async function toGlobe() {
@@ -1068,7 +1031,6 @@ function frame(ts: number) {
   clock.advance(dt);
   if (mode === 'globe') {
     updateGlobe(dt, now, clock.ms, reduceMotion);
-    stepFlight(now);
     renderer.setRenderTarget(null);
     renderer.render(globeScene, gcam);
     updatePins();

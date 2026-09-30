@@ -490,6 +490,7 @@ export const SHAPES = {
   parrot: { h: 0.42, w: 0.24, tail: 'trunc', dorsal: 0.07, anal: 0.05 },
   shark: { h: 0.22, w: 0.2, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.3, pointy: true, lofted: 'reef' },
   whitetip: { h: 0.2, w: 0.2, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.26, pointy: true, lofted: 'whitetip' },
+  oceanic: { h: 0.24, w: 0.22, tail: 'shark', dorsal: 0.2, anal: 0.04, pect: 0.4, pointy: true, lofted: 'oceanic' },
   fusilier: { h: 0.3, w: 0.15, tail: 'fork', dorsal: 0.08, anal: 0.06 },
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
@@ -499,7 +500,7 @@ export const SHAPES = {
   trigger: { h: 0.52, w: 0.17, tail: 'trunc', dorsal: 0.13, anal: 0.12 },
   batfish: { h: 0.92, w: 0.1, tail: 'trunc', dorsal: 0.32, anal: 0.28 },
   tuna: { h: 0.28, w: 0.25, tail: 'fork', dorsal: 0.1, anal: 0.07, pect: 0.14 },
-  mola: { h: 0.78, w: 0.15, tail: 'round', dorsal: 0.5, anal: 0.5, rear: true },
+  mola: { h: 0.78, w: 0.15, tail: 'round', dorsal: 0.5, anal: 0.5, mola: true },
 };
 // Requiem sharks, lofted from real proportions (lengths as fractions of total length from the snout):
 // a conical snout, the deepest body a third of the way back, a narrow caudal peduncle, and fins cut as
@@ -512,9 +513,13 @@ const SHARK_STYLE = {
   // whitetip reef shark: slender, with a broad, blunt head and the first dorsal set well back
   whitetip: { body: [[0, 0, 0, -0.004], [0.02, 0.016, 0.03, -0.006], [0.06, 0.03, 0.05, -0.004], [0.13, 0.042, 0.055, 0], [0.22, 0.05, 0.052, 0.002], [0.34, 0.052, 0.048, 0.003], [0.46, 0.046, 0.04, 0.003], [0.56, 0.036, 0.029, 0.003], [0.65, 0.025, 0.019, 0.003], [0.71, 0.016, 0.012, 0.004], [0.745, 0.011, 0.008, 0.006], [0.76, 0.004, 0.004, 0.008]],
     d1: [[0.37, 0], [0.4, 0.03], [0.44, 0.058], [0.485, 0.074], [0.505, 0.075], [0.498, 0.05], [0.492, 0.025], [0.487, 0]], d2: 0.03, pect: 0.14 },
+  // oceanic whitetip: stocky, a short rounded snout, a huge first dorsal with a rounded crown, and very
+  // long, broad, paddle-ended pectorals it glides on
+  oceanic: { body: [[0, 0, 0, -0.004], [0.02, 0.022, 0.03, -0.006], [0.06, 0.044, 0.052, -0.004], [0.13, 0.064, 0.064, 0], [0.22, 0.074, 0.068, 0.002], [0.32, 0.075, 0.064, 0.003], [0.45, 0.062, 0.05, 0.003], [0.55, 0.046, 0.036, 0.003], [0.64, 0.03, 0.022, 0.003], [0.7, 0.019, 0.014, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
+    d1: [[0.25, 0], [0.27, 0.05], [0.3, 0.1], [0.34, 0.128], [0.38, 0.134], [0.41, 0.122], [0.425, 0.09], [0.425, 0.05], [0.42, 0]], d2: 0.026, pect: 0.3, paddle: true },
 };
-export function sharkGeometry(style: 'reef' | 'whitetip') {
-  const S = SHARK_STYLE[style], K = S.body, L = 1.28, Z = (s: number) => 0.47 - L * s;
+export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic') {
+  const S: any = SHARK_STYLE[style], K = S.body, L = 1.28, Z = (s: number) => 0.47 - L * s;
   // Catmull-Rom through the body keys
   const at = (s: number) => {
     let i = 0; while (i < K.length - 2 && K[i + 1][0] < s) i++;
@@ -562,7 +567,8 @@ export function sharkGeometry(style: 'reef' | 'whitetip') {
   for (const sx of [-1, 1]) {
     // pectorals: (s, span out from the body), swept back and angled a little down, falcate
     const [h, w, yc] = at(0.2), ry = (yc - h * 0.45) * L, rx = w * 0.85 * L, sp = S.pect;
-    fin([[0.18, 0], [0.24, sp * 0.42], [0.31, sp * 0.82], [0.36, sp], [0.335, sp * 0.72], [0.29, sp * 0.32], [0.265, 0]],
+    fin(S.paddle ? [[0.17, 0], [0.2, sp * 0.3], [0.25, sp * 0.7], [0.3, sp * 0.95], [0.345, sp * 1.02], [0.375, sp * 0.9], [0.37, sp * 0.55], [0.33, sp * 0.2], [0.3, 0]]   // broad, rounded paddles
+      : [[0.18, 0], [0.24, sp * 0.42], [0.31, sp * 0.82], [0.36, sp], [0.335, sp * 0.72], [0.29, sp * 0.32], [0.265, 0]],
       (s, d) => [sx * (rx + d * L), ry - d * L * 0.34, Z(s)], 3, [0, 1, 0]);
     // pelvics
     const [h2, w2, yc2] = at(0.52), py = (yc2 - h2 * 0.7) * L;
@@ -575,8 +581,69 @@ export function sharkGeometry(style: 'reef' | 'whitetip') {
   return g;
 }
 
+// Ocean sunfish (Mola mola): a tall, flattened disc that ends abruptly behind in the clavus, a rudder of
+// scalloped fin rays in place of a tail; long pointed dorsal and anal fins that it sculls from side to
+// side; a small beak of a mouth and tiny round pectorals. Snout at +z, like fishGeometry.
+export function molaGeometry() {
+  const RINGS = 26, RAD = 20, pos: number[] = [], idx: number[] = [];
+  const Z = (s: number) => 0.48 - 0.82 * s;
+  const H = (s: number) => 0.33 * Math.pow(Math.min(1, (s + 0.02) / 0.34), 0.6) * (1 - 0.14 * Math.max(0, s - 0.55) / 0.45);
+  const Wd = (s: number) => 0.085 * Math.pow(Math.min(1, (s + 0.03) / 0.28), 0.7) * (1 - 0.55 * Math.max(0, s - 0.45) / 0.55);
+  for (let r = 0; r <= RINGS; r++) {
+    const s = r / RINGS, h = H(s), w = Wd(s);
+    for (let k = 0; k < RAD; k++) {
+      const a = (k / RAD) * Math.PI * 2, sa = Math.sin(a);
+      pos.push(Math.cos(a) * w * (1 - 0.35 * sa * sa), sa * h - 0.012 * (1 - s), Z(s));
+    }
+  }
+  for (let r = 0; r < RINGS; r++) for (let k = 0; k < RAD; k++) {
+    const a = r * RAD + k, b = r * RAD + (k + 1) % RAD, c = a + RAD, d = b + RAD;
+    idx.push(a, c, b, b, c, d);
+  }
+  // close the blunt front and the cut-off back
+  const f0 = pos.length / 3; pos.push(0, -0.012, Z(0) + 0.02);
+  for (let k = 0; k < RAD; k++) idx.push(f0, k, (k + 1) % RAD);
+  const b0 = pos.length / 3; pos.push(0, 0, Z(1)); const last = RINGS * RAD;
+  for (let k = 0; k < RAD; k++) idx.push(b0, last + (k + 1) % RAD, last + k);
+  const body = new THREE.BufferGeometry();
+  body.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  body.setIndex(idx); body.computeVertexNormals();
+  const b = body.toNonIndexed();
+  const P = Array.from(b.attributes.position.array), N = Array.from(b.attributes.normal.array), F = new Array(b.attributes.position.count).fill(0);
+  const fin = (outline: number[][], map: (a: number, b: number) => number[], id: number, n: number[]) => {
+    const pts = outline.map(([a, c]) => new THREE.Vector2(a, c));
+    if (THREE.ShapeUtils.isClockWise(pts)) pts.reverse();
+    for (const t of THREE.ShapeUtils.triangulateShape(pts, [])) for (const i of t) { const v = map(pts[i].x, pts[i].y); P.push(v[0], v[1], v[2]); N.push(...n); F.push(id); }
+  };
+  const X = [1, 0, 0];
+  // dorsal and anal: tall, narrow, raked back to a point (z, height above the back)
+  const topAt = (z: number) => H((0.48 - z) / 0.82);
+  const tall = [[-0.06, 0], [-0.12, 0.18], [-0.2, 0.37], [-0.26, 0.47], [-0.3, 0.44], [-0.31, 0.3], [-0.325, 0.12], [-0.335, 0]];
+  fin(tall, (z, y) => [0, topAt(z) - 0.02 + y, z], 2, X);
+  fin(tall, (z, y) => [0, -topAt(z) + 0.02 - y, z], 2, X);
+  // the clavus: a scalloped frill from top to bottom behind the body
+  const cl: number[][] = [];
+  const zb = Z(1) + 0.01, hb = H(1) * 1.05;
+  for (let i = 0; i <= 24; i++) { const t = -1 + (2 * i) / 24; cl.push([t * hb, zb - 0.11 * Math.sqrt(1 - t * t) - 0.018 * Math.abs(Math.sin(t * Math.PI * 4))]); }
+  cl.push([hb, zb], [-hb, zb]);
+  fin(cl.map(([y, z]) => [z, y]), (z, y) => [0, y, z], 1, X);
+  // small round pectorals just behind the gill opening
+  for (const sx of [-1, 1]) {
+    const pts: number[][] = [];
+    for (let i = 0; i <= 10; i++) { const a = -Math.PI / 2 + (Math.PI * i) / 10; pts.push([0.22 - 0.06 * (1 + Math.cos(a)) * 0.5 - 0.03, 0.04 * Math.sin(a) + 0.005]); }
+    pts.push([0.22, 0.045], [0.22, -0.035]);
+    fin(pts.map(([z, d]) => [z, d]), (z, d) => [sx * (Wd((0.48 - z) / 0.82) * 0.9 + Math.max(0, 0.22 - z) * 0.5), d, z], 3, [sx, 0, 0]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  g.setAttribute('aFin', new THREE.Float32BufferAttribute(F, 1));
+  return g;
+}
+
 export function fishGeometry(sh, low = false) {
   if (sh.lofted) return sharkGeometry(sh.lofted);
+  if (sh.mola) return molaGeometry();
   const body = low ? new THREE.SphereGeometry(0.5, 8, 6) : new THREE.SphereGeometry(0.5, 16, 12);   // low: for schools of hundreds
   body.rotateX(Math.PI / 2);
   const p = body.attributes.position;
@@ -620,7 +687,14 @@ export function fishMaterial(sp) {
      void main(){
        vec3 p = position;
        float back = clamp((0.25 - p.z) / 1.0, 0.0, 1.0);
+       #if PAT == 20
+         // the sunfish sculls: dorsal and anal fins sweep together from side to side, the clavus steers
+         float scull = sin(uTime * aSwim.y * 0.3 + aSwim.x);
+         if (aFin > 1.5 && aFin < 2.5) p.x += scull * max(abs(p.y) - 0.28, 0.0) * 0.9;
+         if (aFin > 0.5 && aFin < 1.5) p.x += scull * 0.02 * (-p.z - 0.33) * 8.0;
+       #else
        p.x += (sin(uTime * aSwim.y - p.z * 4.5 + aSwim.x) * 0.17 * back * back + sin(uTime * aSwim.y + aSwim.x) * 0.02) * uWig;
+       #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
        vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
        vL = position; vFin = aFin; vTint = aSwim.z;
@@ -713,6 +787,33 @@ export function fishMaterial(sp) {
          vec2 sq = fract(vec2(z * 26.0, y * 26.0 + z * 13.0));
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y)) * (0.8 + 0.25 * smoothstep(0.3, 0.5, max(abs(sq.x - 0.5), abs(sq.y - 0.5))));
          if (vFin > 0.5) alb = mix(uC1, vec3(0.98), step(0.9, fract(length(vL.yz) * 6.0)) * 0.7);
+       #elif PAT == 19
+         // oceanic whitetip: bronze-grey above, white below; every big fin ends in a mottled white tip
+         alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));
+         float tipk = vFin > 2.5 ? smoothstep(0.38, 0.44, abs(vL.x)) : vFin > 1.5 ? smoothstep(0.2, 0.24, y) : vFin > 0.5 ? max(smoothstep(0.13, 0.16, y), smoothstep(0.06, 0.08, -y)) : 0.0;
+         if (vFin > 0.5) alb = uC1 * (vFin > 2.5 ? 0.95 : 1.0);   // fins are bronze-grey right to their tips
+         float mott = hash2(floor(vL.zy * 90.0 + vL.x * 40.0));
+         alb = mix(alb, uC3, tipk * (0.75 + 0.25 * mott));
+         if (vFin < 0.5 && y < -0.01) {
+           float mz = 0.39 - 9.0 * vL.x * vL.x;
+           alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.002, 0.005, abs(z - mz))) * step(abs(vL.x), 0.05);
+         }
+         float gi2 = (z - 0.21) / 0.019;
+         alb *= 1.0 - 0.45 * smoothstep(0.36, 0.46, abs(fract(gi2) - 0.5)) * step(0.0, gi2) * step(gi2, 5.0) * step(abs(y + 0.005), 0.035) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
+       #elif PAT == 20
+         // ocean sunfish: silvery grey, darker along the back, pale blotches, rough skin; fins a darker grey
+         alb = mix(uC2, uC1, smoothstep(-0.2, 0.25, y));
+         float bl = smoothstep(0.55, 0.8, vn2(vL.zy * 9.0 + 3.0));
+         alb = mix(alb, uC2 * 1.12, bl * 0.55);
+         alb *= 0.9 + 0.1 * hash2(floor(vL.zy * 160.0));
+         if (vFin > 1.5 && vFin < 2.5) alb = uC1 * 0.75;
+         if (vFin > 0.5 && vFin < 1.5) alb = mix(uC1 * 0.8, uC2, smoothstep(-0.36, -0.44, z));
+         if (vFin > 2.5) alb = uC1 * 0.8;
+         // the small beak of a mouth, and the round gill opening in front of the pectoral
+         if (vFin < 0.5) {
+           alb = mix(alb, vec3(0.08), (1.0 - smoothstep(0.012, 0.02, length(vec2(y + 0.02, (z - 0.49) * 0.6)))));
+           alb = mix(alb, uC1 * 0.45, (1.0 - smoothstep(0.018, 0.026, length(vec2(y + 0.005, z - 0.24)))) * step(0.02, abs(vL.x)));
+         }
        #elif PAT == 15
          // spots (coral trout: blue spots on red)
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y));

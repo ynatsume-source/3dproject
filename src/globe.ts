@@ -102,7 +102,7 @@ globeScene.add(halo);
 }
 
 interface Tween { t0: number; dur: number; lat0: number; lat1: number; lon0: number; dlon: number; d0: number; d1: number; done: () => void }
-export const gv = { lat: 12, lon: 116, dist: 3.5, vlat: 0, vlon: 0, lastUser: -1e9, tween: null as Tween | null, fly: false };
+export const gv = { lat: 12, lon: 116, dist: 3.5, vlat: 0, vlon: 0, lastUser: -1e9, tween: null as Tween | null };
 
 export function updateGlobe(dt: number, now: number, ms: number, reduceMotion: boolean) {
   if (gv.tween) {
@@ -114,8 +114,7 @@ export function updateGlobe(dt: number, now: number, ms: number, reduceMotion: b
     gv.vlon *= Math.exp(-dt * 3); gv.vlat *= Math.exp(-dt * 3);
     if (now - gv.lastUser > 5000 && !reduceMotion) gv.lon += dt * 2.2;
   }
-  earthMat.uniforms.uRings.value = gv.fly ? 0 : 1;
-  if (!gv.fly) {                       // (during the dive-in flight the journey places the camera)
+  {
     gcam.position.copy(ll2v(gv.lat, gv.lon, gv.dist));
     gcam.up.set(0, 1, 0);
     gcam.lookAt(0, 0, 0);

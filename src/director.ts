@@ -26,6 +26,7 @@ export class Director {
   // the guide's taste: how much it wants to film a subject, and how long it likes to stay (set by the app)
   weight: (s: Subject) => number = () => 1;
   dwellK = 1;
+  distK = 1;
 
   reset() { this.shot = null; this.cooldown = 10; }
 
@@ -96,7 +97,7 @@ export class Director {
       this.cooldown = rr(30, 70);
       return null;
     }
-    const dist = Math.max(1.4, Math.min(12, s.size * 2.4 + 1.2));
+    const dist = Math.max(1.4, Math.min(12, s.size * 2.4 + 1.2)) * this.distK;
     const lift = Math.min(2.5, 0.4 + s.size * 0.35);
     this.ang += this.spin * dt * (sh.phase === 'observe' ? 1 : 0.3);
     const x = p.x + Math.cos(this.ang) * dist, z = p.z + Math.sin(this.ang) * dist;

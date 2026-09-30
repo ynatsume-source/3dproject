@@ -10,7 +10,11 @@ export interface Persona {
   dwell: number;             // how long it stays with a subject ×
   sway: number;              // how much it looks around while cruising ×
   skyGap: [number, number];  // seconds under water between trips to the sky
-  skyStay: [number, number]; // seconds in the sky
+  skyStay: [number, number]; // seconds in the sky (the pair sets the share of time spent up there)
+  altK: number;              // cruising height over the reef ×
+  distK: number;             // how close it films things ×
+  turn: number;              // how briskly it turns ×
+  skyAlt: number;            // cruising height in the sky ×
   talk: number;              // idle chatter per hour
   gap: number;               // shortest pause between remarks (s)
   weight(s: Subject, isShark: (s: Subject) => boolean): number;
@@ -20,7 +24,7 @@ export interface Persona {
 export const PERSONAS: Persona[] = [
   {
     id: 'calm', ja: 'おだやか', blurb: 'ゆっくり巡って、ひとつのものを長く眺める。口数は少ない。',
-    cruise: 0.8, dwell: 1.5, sway: 0.7, skyGap: [900, 1500], skyStay: [240, 420], talk: 3, gap: 50,
+    cruise: 0.8, dwell: 1.5, sway: 0.7, skyGap: [700, 1000], skyStay: [180, 240], altK: 1.4, distK: 1.35, turn: 0.6, skyAlt: 1.0, talk: 3, gap: 50,
     weight: () => 1,
     lines: {
       bait: ['…海が騒がしくなってきた。ベイトボールだ。', '命がぶつかり合ってる。見届けよう。'],
@@ -39,7 +43,7 @@ export const PERSONAS: Persona[] = [
   },
   {
     id: 'busy', ja: 'せわしない', blurb: '次から次へと見て回る。落ち着きがなく、よくしゃべる。',
-    cruise: 1.55, dwell: 0.5, sway: 1.5, skyGap: [300, 600], skyStay: [90, 180], talk: 14, gap: 14,
+    cruise: 1.55, dwell: 0.5, sway: 1.5, skyGap: [400, 600], skyStay: [110, 150], altK: 0.8, distK: 0.9, turn: 1.8, skyAlt: 0.6, talk: 14, gap: 14,
     weight: (s) => (s.kind === 'school' || s.kind === 'hunt' ? 1.4 : 1),
     lines: {
       bait: ['ベイトボールだ！！ 急げ急げ急げ！', 'すごいすごい！ 全部来てる！'],
@@ -58,7 +62,7 @@ export const PERSONAS: Persona[] = [
   },
   {
     id: 'shark', ja: 'サメ好き', blurb: 'サメと狩りが大好きで、見つけると飛んでいく。ほかの生き物にはちょっと淡白。',
-    cruise: 1.1, dwell: 1.0, sway: 1.0, skyGap: [1200, 2000], skyStay: [120, 240], talk: 5, gap: 35,
+    cruise: 1.1, dwell: 1.0, sway: 1.0, skyGap: [800, 1100], skyStay: [200, 260], altK: 0.65, distK: 0.8, turn: 1.1, skyAlt: 0.5, talk: 5, gap: 35,
     weight: (s, shark) => (shark(s) ? 4 : s.kind === 'hunt' ? 3 : s.kind === 'giant' ? 1.5 : 0.55),
     lines: {
       bait: ['ベイトボールだ。捕食者が全員集まってくる。最高の時間だ。', 'これを待ってたんだ。'],
@@ -77,7 +81,7 @@ export const PERSONAS: Persona[] = [
   },
   {
     id: 'sky', ja: '空好き', blurb: 'しょっちゅう水面を抜けて空へ行きたがる。雲や星、光の話が多い。',
-    cruise: 1.0, dwell: 0.9, sway: 1.1, skyGap: [150, 300], skyStay: [360, 720], talk: 6, gap: 30,
+    cruise: 1.0, dwell: 0.9, sway: 1.1, skyGap: [240, 360], skyStay: [280, 360], altK: 1.6, distK: 1.2, turn: 0.8, skyAlt: 1.5, talk: 6, gap: 30,
     weight: (s) => (s.kind === 'manta' || s.kind === 'giant' ? 1.4 : 1),
     lines: {
       bait: ['鳥が集まってる！ 上から見るとすごいよ、これ。', '海鳥が次々突っ込んでる！'],
@@ -96,7 +100,7 @@ export const PERSONAS: Persona[] = [
   },
   {
     id: 'nosy', ja: 'おせっかい', blurb: 'よくしゃべって、あれこれ教えてくれる。ときどき余計なことも言う。',
-    cruise: 0.95, dwell: 1.1, sway: 1.0, skyGap: [600, 1000], skyStay: [180, 300], talk: 18, gap: 16,
+    cruise: 0.95, dwell: 1.1, sway: 1.0, skyGap: [600, 900], skyStay: [160, 220], altK: 1.0, distK: 0.75, turn: 1.2, skyAlt: 0.9, talk: 18, gap: 16,
     weight: () => 1,
     lines: {
       bait: ['ベイトボールだよ！ 小魚は固まると一匹あたりが狙われにくくなるの。数で身を守ってるんだね。', 'ほら、ベイトボール。めったに見られないんだから、ちゃんと見ておいて。'],

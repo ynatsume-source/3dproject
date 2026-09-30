@@ -40,7 +40,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 
 - 図鑑の「会いに行く」：その生き物のいちばん近い個体のところへ自動カメラが連れて行き、観察する。宮古島では「洞窟へ行く」で海底洞窟を通り抜ける。ザトウクジラは季節中なら呼ぶと通り過ぎてくれる（季節外は案内が出る）
 - ログ（SEA LOG）に出た出来事は、画面上のその場所に淡い輪で示す（画面の外なら端に矢印）。輪かログをタップするとそこへ向かう
-- 海を選ぶと、あなたのいる場所（位置情報。許可しなければタイムゾーンから推定）から実際の地球の上を飛んで、その海の本物の衛星写真へ降下し、着水して潜る。`スキップ` で省略でき、「視差効果を減らす」設定では従来どおり直接切り替わる
+- 地球儀で海を選ぶと、今の視点からそのまま短く降下して潜る
 - 「今日の海」かつ実時刻のときは、現地の今の天気（雲量・雨・雷・風・波高・海水温）が海に反映される。雲が厚いと光芒が弱まり、雨の日は水面に雨粒の輪が、雷の日は稲光が走る。時刻パネルに現地の天気を表示
 - 自動巡航はガイド役のドローンが案内する。性格を5つから選べる（下のバーのボタンで切り替え）：おだやか・せわしない・サメ好き・空好き・おせっかい。性格によって進む速さ、ひとつのものを見る長さ、好んで撮りにいく生き物、空へ出る頻度、しゃべる量と口ぶりが変わる。ひとことはログにも残る
 - 自動巡航の途中で、ガイドは自分の判断でときどき水面を抜けて空へ出て、しばらくすると海へ戻る（晴れた夜や流星群の時期は空へ行きがち。撮影中や洞窟の中では行かない）
@@ -109,7 +109,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/clip-check.ts   # ウミガ�
 ## クレジット
 
 - 海底テクスチャ：[Poly Haven](https://polyhaven.com)（CC0）の aerial_beach_01 / coral_fort_wall_03 / coral_mud_01
-- 着水地点の衛星写真：[Sentinel-2 cloudless 2016](https://s2maps.eu) by EOX IT Services GmbH（Contains modified Copernicus Sentinel data 2016, CC BY 4.0）。`public/sat/` に同梱（`scripts/fetch-sat.py` で作成）
+- 衛星写真（地図用）：[Sentinel-2 cloudless 2016](https://s2maps.eu) by EOX IT Services GmbH（Contains modified Copernicus Sentinel data 2016, CC BY 4.0）。`public/sat/` に同梱（`scripts/fetch-sat.py` で作成）
 - 地球儀の地表と夜景：NASA Blue Marble（Shaded Relief + Bathymetry）と NASA Black Marble 2016（VIIRS）。NASA GIBS 経由、パブリックドメイン
 - 恒星：[d3-celestial](https://github.com/ofrohn/d3-celestial) の stars.6.json（Yale Bright Star Catalogue ほか。Copyright (c) 2015, Olaf Frohn, BSD-3-Clause）を `public/stars.bin` に詰め直して同梱
 - 天の川：NASA/Goddard Space Flight Center Scientific Visualization Studio「Deep Star Maps 2020」の milkyway_2020（Gaia DR2: ESA/Gaia/DPAC）を縮小して `src/milkyway.jpg` に同梱
