@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
   hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70],
@@ -20,6 +20,7 @@ export class Director {
   private dur = 0;
   private ang = 0;
   private spin = 0.05;
+  private hdx = 1; private hdz = 0;   // the line of a chase, smoothed
   private recent = new Map<string, number>();
   private clock = 0;
   onStart: (s: Subject) => void = () => { /* set by the app */ };
@@ -92,10 +93,31 @@ export class Director {
       if (this.t === 0) { sh.pos.copy(drone as THREE.Vector3); sh.look.set(drone.x + 10, drone.y, drone.z); }
       return sh;
     }
-    if (!p || far || (sh.phase === 'observe' && this.t > this.dur) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
+    if (!p || far || (sh.phase === 'observe' && this.t > this.dur && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
       this.shot = null;
       this.cooldown = rr(30, 70);
       return null;
+    }
+    // a hunt: right in it, as if with a long lens from close by — level with the hunter, a little behind
+    // and to the side of its line of attack, racing along with it, framing it and the fish it is after
+    const tg = s.kind === 'hunt' && s.target && s.frameR ? s.target() : null;
+    if (tg && p) {
+      let dx = tg.x - p.x, dz = tg.z - p.z; const dl = Math.hypot(dx, dz);
+      if (dl > 0.05) { dx /= dl; dz /= dl; this.hdx += (dx - this.hdx) * Math.min(1, dt * 1.5); this.hdz += (dz - this.hdz) * Math.min(1, dt * 1.5); }
+      const hl = Math.hypot(this.hdx, this.hdz) || 1, ux = this.hdx / hl, uz = this.hdz / hl;
+      // stay on the side we are already on (no swinging across the action)
+      const sx = -uz, sz = ux, side = (drone.x - p.x) * sx + (drone.z - p.z) * sz >= 0 ? 1 : -1;
+      const R = s.frameR!(), d = Math.max(2.2, Math.min(5.5, R * 2.2 + 1.4));
+      const x = p.x + sx * side * d - ux * d * 0.35, z = p.z + sz * side * d - uz * d * 0.35;
+      const y = Math.min(Math.max(p.y - 0.1, floor(x, z) + 0.6), -0.9);
+      sh.pos.set(x, y, z);
+      sh.look.set(p.x + (tg.x - p.x) * 0.3, p.y + (tg.y - p.y) * 0.3, p.z + (tg.z - p.z) * 0.3);
+      sh.close = true;
+      const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
+      if (sh.phase === 'approach' && (gap < 2 || this.t > 30)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
+      if (!s.live() && this.t > 3) { this.shot = null; this.cooldown = rr(30, 70); return null; }
+      this.t += dt;
+      return sh;
     }
     const dist = Math.max(1.4, Math.min(12, s.size * 2.4 + 1.2)) * this.distK;
     const lift = Math.min(2.5, 0.4 + s.size * 0.35);

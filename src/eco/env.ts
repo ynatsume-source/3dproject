@@ -69,6 +69,8 @@ export function activity(diel: Diel | undefined, env: Env): number {
   }
 }
 
+// one of several ways to say the same thing, so the log does not read like a machine
+export const oneOf = (a: string[]) => a[Math.floor(Math.random() * a.length)];
 export function logEvent(env: Env, kind: string, text: string, x: number, z: number, at?: () => Where | null) {
   if (Math.hypot(x - env.cam.x, z - env.cam.z) > 55) return;   // only what the drone could plausibly notice
   env.events.push({ kind, text, x, z, at });

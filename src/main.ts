@@ -113,6 +113,7 @@ function nearestS(p: THREE.Vector3) {
 }
 const director = new Director();
 let lastShot: Shot | null = null;
+let huntK = 0;
 function onShotChange(prev: Shot | null, next: Shot | null) {
   if (next) {
     $('tMode').textContent = 'OBSERVING';
@@ -170,12 +171,12 @@ function updateDrone(dt: number, now: number) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     _v.subVectors(way, drone.pos);
-    const L = _v.length(), top = shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster
+    const L = _v.length(), top = shot.close ? 7 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
-    drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : 1.2)));
     const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
-    const k = Math.min(1, dt * (shot.phase === 'approach' ? 0.9 : 1.6));
+    const k = Math.min(1, dt * (shot.close ? 3.2 : shot.phase === 'approach' ? 0.9 : 1.6));
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
   } else if (drone.mode === 'auto' && drone.sky) {
@@ -315,7 +316,13 @@ function updateDrone(dt: number, now: number) {
   // a look around while cruising: the drag turns the view, and once let go it drifts back ahead
   if (drone.mode === 'manual') { drone.yaw += look.yaw; drone.pitch = clamp(drone.pitch + look.pitch, -1.25, 1.25); look.yaw = look.pitch = 0; }
   else if (!look.held && now - look.let > 900) { const k = 1 - Math.exp(-dt * 0.8); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
-  camera.rotation.set(drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
+  // filming a hunt close up: a longer lens (the view narrows), and the slight life of a hand-held camera
+  const huntCam = !!lastShot?.close && drone.mode === 'auto' && !watch.r;
+  huntK += ((huntCam ? 1 : 0) - huntK) * Math.min(1, dt * 0.9);
+  const fov = 70 - 24 * huntK;
+  if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
+  const shake = huntK * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
+  camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
 }
 
 /* ================= the guide's character ================= */
@@ -504,22 +511,37 @@ addEventListener('pagehide', saveLog);
 
 /* ---------- sea log: what is happening around the drone ---------- */
 type Where = () => { x: number; y: number; z: number } | null;
-const logQueue: { text: string; at?: Where; label?: string }[] = [];
+const logQueue: { text: string; at?: Where; label?: string; kind?: string; ref?: any }[] = [];
 const recent = new Map<string, number>();
 let logShownAt = -1e9;
+// While a hunt is on the caption, it stays with that hunt until it ends: other hunts elsewhere wait
+// (they still go into the day's log). Everyday moments of the same kind show at most every few minutes.
+const huntLock = { ref: null as any, until: 0 };
+const QUIET: Record<string, number> = { breathe: 300e3, rest: 300e3, manta: 240e3, octopus: 180e3 };
+const lastKind = new Map<string, number>();
+const sameHunt = (a: any, b: any) => !!a && !!b && (a === b || Math.hypot(a.x - b.x, a.z - b.z) < 8);
 function seaLog(kind: string, text: string, at?: Where) {
   recordLog(kind, text);
   const now = performance.now();
   if ((recent.get(text) ?? -1e9) > now - 90000) return;
-  recent.set(text, now);
-  if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at });
+  if (QUIET[kind] && (lastKind.get(kind) ?? -1e9) > now - QUIET[kind]) return;
+  const ref = at?.() ?? null;
+  if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) return;
+  recent.set(text, now); lastKind.set(kind, now);
+  if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at, kind, ref });
 }
 function pumpLog(now: number) {
   if (!logQueue.length || now - logShownAt < 9000 || $('toast').classList.contains('on')) return;
   logShownAt = now;
   const e = logQueue.shift()!;
+  // (a hunt on the caption: keep with it — its end, caught or got away, releases it)
+  if (e.kind === 'hunt' || e.kind === 'catch') {
+    if (huntLock.until > now && !sameHunt(e.ref, huntLock.ref)) return;
+    const ends = e.kind === 'catch' || /振り切|空を切|追いつけ|あきらめ/.test(e.text);
+    huntLock.ref = e.ref; huntLock.until = now + (ends ? 9000 : 45000);
+  }
   showToast(e.label ?? 'SEA LOG', e.text, '');
-  markAt = e.at || null; markText = e.text; markUntil = now + 9000;
+  markAt = e.at || null; markText = e.text; markUntil = e.kind === 'hunt' && huntLock.until > now ? huntLock.until : now + 9000;
   $('toast').classList.toggle('go', !!markAt);
 }
 // the marker: where the event in the caption is happening

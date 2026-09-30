@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { mat } from '../render/common';
 import { LIMIT } from '../ocean/scenery';
-import { activity, logEvent, type Env, type Subject } from './env';
+import { activity, logEvent, oneOf, type Env, type Subject } from './env';
 
 function octopusGeometry() {
   const pos: number[] = [], nrm: number[] = [], part: number[] = [], arm: number[] = [];
@@ -157,7 +157,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     // decide
     if (st === 'den') { if (act > 0.6 && o.stateT > rr(20, 60) && camD > 3) { o.state = 'forage'; o.stateT = 0; } }
     else if (st === 'forage') {
-      if (camD < 2.4) { o.state = 'jet'; o.stateT = 0; o.head = Math.atan2(o.pos.z - cam.z, o.pos.x - cam.x); logEvent(env, 'octopus', 'ワモンダコが色を変えて、ジェット噴射で逃げた', o.pos.x, o.pos.z, () => o.pos); }
+      if (camD < 2.4) { o.state = 'jet'; o.stateT = 0; o.head = Math.atan2(o.pos.z - cam.z, o.pos.x - cam.x); logEvent(env, 'octopus', oneOf(['ワモンダコが色を変えて、ジェット噴射で逃げた', 'ワモンダコが白く色を抜き、墨を残すように飛び去った', 'ドローンに驚いたワモンダコが、脚をそろえて一気に泳ぎ去った']), o.pos.x, o.pos.z, () => o.pos); }
       else if (act < 0.4 || o.stateT > 150) { o.goal = o.den.clone(); if (Math.hypot(o.pos.x - o.den.x, o.pos.z - o.den.z) < 0.5) { o.state = 'den'; o.stateT = 0; } }
     } else if (st === 'jet') { if (o.stateT > 2.4) { o.state = 'settle'; o.stateT = 0; } }
     else if (st === 'settle') { if (o.stateT > 6) { o.state = act > 0.5 ? 'forage' : 'den'; o.stateT = 0; if (o.state === 'den') o.pos.copy(o.den); } }

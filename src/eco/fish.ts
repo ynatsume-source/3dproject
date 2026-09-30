@@ -7,7 +7,7 @@ import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { mat } from '../render/common';
-import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
+import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
 const _c = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _mc = new THREE.Matrix4(), _ss = new THREE.Vector3();
@@ -236,14 +236,14 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (!g.hunt && g.cooldown <= 0 && drive > 0.5 && R() < dt * 0.08) {
       let best: PreyGroup | null = null, bd = 45;
       for (const p of env.prey) { const d = Math.hypot(p.x - g.c.x, p.z - g.c.z); if (p.alive > 1 && d < bd) { bd = d; best = p; } }
-      if (best) { g.hunt = { prey: best, t0: g.t, phase: 'stalk', pt: 0, tries: 0, target: -1, tp: new THREE.Vector3(best.x, best.y, best.z), speed: g.v.length(), close: 1e9 }; logEvent(env, 'hunt', `${sp.ja}が${best.label}の群れを狙っている`, g.c.x, g.c.z, () => g.c); }
+      if (best) { g.hunt = { prey: best, t0: g.t, phase: 'stalk', pt: 0, tries: 0, target: -1, tp: new THREE.Vector3(best.x, best.y, best.z), speed: g.v.length(), close: 1e9 }; logEvent(env, 'hunt', oneOf([`${sp.ja}が${best.label}の群れを狙っている`, `${sp.ja}が${best.label}の群れに狙いを定めた`, `${sp.ja}が${best.label}の群れの下を、ゆっくり回りはじめた`, `${sp.ja}の気配に、${best.label}の群れがざわつきはじめた`, `${sp.ja}が${best.label}の群れとの距離を、じわじわと詰めていく`]), g.c.x, g.c.z, () => g.c); }
     }
     if (!g.hunt) return false;
     const h = g.hunt, p = h.prey, len = fs[g.start] * 1.28;
     h.pt += dt;
     const end = (caught: boolean) => {
-      if (caught) { g.hunger = 0; const at = g.c.clone(); logEvent(env, 'catch', `${sp.ja}が${p.label}を捕らえた`, g.c.x, g.c.z, () => at); }
-      else { g.hunger *= 0.85; if (h.close < 1.2) logEvent(env, 'hunt', `${p.label}が間一髪で${sp.ja}の追跡を振り切った`, g.c.x, g.c.z, () => g.c); }   // (only the near things)
+      if (caught) { g.hunger = 0; const at = g.c.clone(); logEvent(env, 'catch', oneOf([`${sp.ja}が${p.label}を捕らえた`, `${sp.ja}の突進が決まった。${p.label}が一匹、群れから消えた`, `一瞬の出来事だった。${sp.ja}が${p.label}をくわえて泳ぎ去る`, `${sp.ja}の狩りが成功。${p.label}の群れがぱっと散った`]), g.c.x, g.c.z, () => at); }
+      else { g.hunger *= 0.85; if (h.close < 1.2) logEvent(env, 'hunt', oneOf([`${p.label}が間一髪で${sp.ja}の追跡を振り切った`, `${sp.ja}の突進は空を切った。${p.label}は群れの中へ`, `${p.label}の鋭い切り返しに、${sp.ja}は追いつけなかった`, `${p.label}がサンゴの隙間へ逃げ込み、${sp.ja}はあきらめた`]), g.c.x, g.c.z, () => g.c); }   // (only the near things)
       g.hunt = null; g.cooldown = rr(60, 150);
     };
     let wantSpeed = sp.speed, turn = 1.2;

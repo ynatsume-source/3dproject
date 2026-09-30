@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { clamp, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
-import { activity, logEvent, type Env } from './env';
+import { activity, logEvent, oneOf, type Env } from './env';
 
 const _w = new THREE.Vector3();
 
@@ -49,7 +49,8 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
 
     // state transitions
     if (t.state === 'breathe') { if (t.pos.y > -1.0) { t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; } }
-    else if ((t.air = (t.air ?? rr(60, 200)) - dt) < 0) { t.state = 'breathe'; t.stateT = 0; t.air = sleepy ? rr(300, 480) : rr(150, 260); logEvent(env, 'breathe', 'ウミガメが息継ぎに浮上していく', t.pos.x, t.pos.z, () => t.pos); }
+    else if ((t.air = (t.air ?? rr(60, 200)) - dt) < 0) { t.state = 'breathe'; t.stateT = 0; t.air = sleepy ? rr(300, 480) : rr(150, 260); logEvent(env, 'breathe', env.night > 0.5 ? oneOf(['暗い水の中を、ウミガメが息継ぎに上がっていく', 'ウミガメが寝床を離れて、そっと水面へ', '月明かりの水面へ、ウミガメが息を吸いに上がる', 'ウミガメが眠りの途中で、ひと息つきに浮上していく'])
+      : oneOf(['ウミガメが息継ぎに浮上していく', 'ウミガメがゆっくりと水面へ。そろそろ息継ぎの時間らしい', 'ウミガメが光の差す水面へ泳ぎ上がっていく', 'ウミガメが前ヒレを大きくかいて、水面へ向かう', 'ウミガメがひと息つきに、まっすぐ上へ']), t.pos.x, t.pos.z, () => t.pos); }
     else if (sleepy && (t.state === 'travel' || t.state === 'graze')) { t.state = 'toRest'; t.goal = pickGoal(oc, t.pos, 'rest'); t.stateT = 0; }
     else if (!sleepy && (t.state === 'rest' || t.state === 'toRest')) { t.state = 'travel'; t.goal = null; t.stateT = 0; }
     else if (t.state === 'travel' && !t.goal) t.goal = pickGoal(oc, t.pos, 'graze');
@@ -62,7 +63,8 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       t.head += d * Math.min(1, dt * 0.5);
       if (gd < 2.0) {
         t.state = t.state === 'toRest' ? 'rest' : 'graze'; t.stateT = 0;
-        if (t.state === 'rest') logEvent(env, 'rest', 'ウミガメが岩陰で眠りについた', t.pos.x, t.pos.z, () => t.pos);
+        if (t.state === 'rest') logEvent(env, 'rest', env.night > 0.5 ? oneOf(['ウミガメが岩陰で眠りについた', 'ウミガメが岩の下にもぐり込み、今夜の寝床に落ち着いた', 'ウミガメが甲羅を岩に預けて、静かに目を閉じた', 'ウミガメがいつもの寝床に戻ってきた'])
+          : oneOf(['ウミガメがサンゴの張り出しの下で、ひと休みをはじめた', 'ウミガメが岩のくぼみに体を収めて、じっと休んでいる', 'ウミガメが根の陰でうとうとしはじめた']), t.pos.x, t.pos.z, () => t.pos);
       }
     }
     if (t.state === 'graze') {
@@ -130,7 +132,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       let top = -1e9;
       for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; for (const r of [m.rad - 2.5, m.rad, m.rad + 2.5]) top = Math.max(top, T.top(best[0] + Math.cos(a) * r, best[1] + Math.sin(a) * r)); }
       m.y = feeding ? Math.max(-3, Math.min(top + 2.6, -2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), -2.5);
-      if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', 'マンタがプランクトンを食べに浅場へ上がってきた', m.st.x, m.st.z, () => m.pos);
+      if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', oneOf(['マンタがプランクトンを食べに浅場へ上がってきた', 'マンタが口を大きく開けて、流れの中でプランクトンを濾しはじめた', 'マンタが浅場で輪を描きながら、プランクトンを食べている', '潮に乗ってプランクトンが集まり、マンタがやってきた']), m.st.x, m.st.z, () => m.pos);
       m.feeding = feeding; m.placed = true;
     }
     const w = 1.25 / m.rad;
