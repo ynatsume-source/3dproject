@@ -50,6 +50,9 @@ export const CAVE_GLSL = /* glsl */ `
 uniform sampler2D uCaveTex; uniform vec2 uCaveAtlas; uniform float uCaveOn; uniform float uCamCave;
 uniform vec4 uCaveXf; uniform vec3 uCaveMin; uniform vec3 uCaveExt; uniform vec3 uCaveN;
 vec2 caveLight(vec3 wp){
+  #ifdef NO_CAVE_LIGHT
+  return vec2(1.0);
+  #endif
   if (uCaveOn < 0.5) return vec2(1.0);
   vec2 d = wp.xz - uCaveXf.xy;
   vec3 f = (vec3(d.x * uCaveXf.z + d.y * uCaveXf.w, wp.y, -d.x * uCaveXf.w + d.y * uCaveXf.z) - uCaveMin) / uCaveExt;
