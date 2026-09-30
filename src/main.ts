@@ -1429,6 +1429,7 @@ void smooth;
 // Inspect the live sim from the console with ?debug
 if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
+declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
@@ -1456,6 +1457,7 @@ if (location.search.includes('diag')) {
     if (now - t0 > 1000) {
       fps = frames * 1000 / (now - t0); frames = 0; t0 = now;
       box.textContent = [
+        `build    ${__BUILD__} UTC`,
         `GPU      ${name}`, `vendor   ${vendor}`, `WebGL2   ${gl instanceof WebGL2RenderingContext ? 'yes' : 'NO'}   maxTex ${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`,
         `float RT ${ex('EXT_color_buffer_float')}   half RT ${ex('EXT_color_buffer_half_float')}   float linear ${ex('OES_texture_float_linear')}`,
         `tier     ${tier}   safe ${SAFE}   post ${usePost() ? 'on' : 'OFF'}   dpr ${renderer.getPixelRatio().toFixed(2)}   canvas ${canvas.width}x${canvas.height}`,
