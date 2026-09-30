@@ -901,6 +901,37 @@ function bisectStep(dt: number) {
   if (bisectT > 3 && bisectI < bisectList.length) { bisectT = 0; bisectI++; const b = bisectList[bisectI]; if (b) b.objs.forEach((o, k) => { o.visible = b.vis[k]; }); if (b) diagLog?.(`B ${bisectI + 1}/${bisectList.length} +${b.objs.length} ${b.hint}`); else diagLog?.('B all back: nothing failed'); }
   for (let i = bisectI + 1; i < bisectList.length; i++) for (const o of bisectList[i].objs) o.visible = false;
 }
+// ?diag&gputest#sea: draw nothing else, and take a sea's shaders one at a time: prepare it, wait, draw it
+// once into a small target, wait. When the GPU gives up, the one it was on is named (and the test stops).
+const gputest = /[?&]gputest/.test(location.search);
+async function gpuTest(loc: Sea) {
+  const gl = renderer.getContext(), lost = () => gl.isContextLost();
+  diagLog?.(`T GPU test: ${loc.name}`);
+  if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);
+  const oc = buildOcean(loc);
+  const seen = new Map<THREE.Material, THREE.Object3D>();
+  const take = (root: THREE.Object3D) => root.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (!seen.has(m)) seen.set(m, o); });
+  take(oc.group); take(oceanScene); take(topScene);
+  const rt = new THREE.WebGLRenderTarget(64, 64, { type: THREE.HalfFloatType });
+  const cam = new THREE.PerspectiveCamera(60, 1, 0.08, 460); cam.position.set(0, -3, 8); cam.lookAt(0, -3, 0);
+  let i = 0; const n = seen.size;
+  for (const [m, o] of seen) {
+    i++;
+    const label = `${i}/${n} ${(o as any).type} ${shaderHint(m)} [${Object.keys((o as any).geometry?.attributes || {}).filter((k) => !['position', 'normal', 'uv'].includes(k)).join(',')}]`;
+    const tmp = new THREE.Scene(), c = o.clone(false) as any; c.visible = true; c.frustumCulled = false; c.position.set(0, -3, 0); tmp.add(c);
+    diagNow = label + ' → 準備中'; renderer.compile(tmp, cam);
+    await wait(700); if (lost()) { diagLog?.(`T STOP: 準備で停止 ${label}`); diagNow = 'STOP ' + label + '（準備）'; return; }
+    diagNow = label + ' → 描画中'; renderer.setRenderTarget(rt); renderer.render(tmp, cam); renderer.setRenderTarget(null); (gl as any).finish?.();
+    await wait(1300); if (lost()) { diagLog?.(`T STOP: 描画で停止 ${label}`); diagNow = 'STOP ' + label + '（描画）'; return; }
+    diagLog?.(`T ok ${label}`);
+  }
+  // then the post-processing chain on its own
+  diagNow = 'post-processing → 描画中';
+  post.setSize(640, 360); post.render(renderer, new THREE.Scene(), camera, null, setRefraction);
+  await wait(2000);
+  if (lost()) { diagNow = 'STOP post-processing'; diagLog?.('T STOP: post-processing'); return; }
+  diagNow = 'ALL OK（どれも単独では止まらなかった）'; diagLog?.('T all passed');
+}
 // Get every shader of a sea ready before diving in, one at a time and without holding up the page.
 // All at once in the first frame is too much for some GPUs: on Windows each is translated for Direct3D,
 // slowly, and a long enough stall makes the browser reset the GPU (the screen goes white or black).
@@ -1278,6 +1309,7 @@ let autoQ = true, fpsAcc = 0, fpsN = 0, fpsStart = 0, hudTimer = 0, sightTimer =
 function frame(ts: number) {
   const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016, now = performance.now();
   lastTs = ts;
+  if (gputest) { requestAnimationFrame(frame); return; }   // (the GPU test draws only what it is testing)
   U.uTime.value += dt;
   clock.advance(dt);
   if (mode === 'globe') {
@@ -1391,7 +1423,7 @@ resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
 const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
-if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start), 300); }
+if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (gputest ? gpuTest(start) : dive(start)), 300); }
 void smooth;
 
 // Inspect the live sim from the console with ?debug
@@ -1408,7 +1440,7 @@ if (location.search.includes('diag')) {
   console.warn = (...a: any[]) => { errs.push('W ' + a.map(String).join(' ').slice(0, 200)); cwarn(...a); };
   addEventListener('error', (e) => errs.push('X ' + e.message));
   const gl = renderer.getContext() as WebGL2RenderingContext;
-  diagLog = (t: string) => { if (errs.length && errs[errs.length - 1].startsWith('C … ')) errs.pop(); errs.push(t); if (errs.length > 400) errs.shift(); };   // (a 'C …' line is the one compiling now: replaced when it finishes)
+  diagLog = (t: string) => { console.info('[diag]', t); if (errs.length && errs[errs.length - 1].startsWith('C … ')) errs.pop(); errs.push(t); if (errs.length > 400) errs.shift(); };   // (a 'C …' line is the one compiling now: replaced when it finishes)
   // a shader that fails: its own logs, and enough of its source to tell which one it is
   renderer.debug.onShaderError = (g: WebGLRenderingContext, prog: WebGLProgram, vs: WebGLShader, fs: WebGLShader) => {
     const src = g.getShaderSource(fs) || '', own = [...new Set((src.match(/uniform\s+\w+\s+(?:\w+\s+)?(\w+)/g) || []).map((u) => u.split(/\s+/).pop()))].filter((u) => !(u! in U)).slice(0, 8);
@@ -1430,7 +1462,7 @@ if (location.search.includes('diag')) {
         `fps      ${fps.toFixed(1)}   ms/frame ${(1000 / Math.max(fps, 0.01)).toFixed(0)}   lost ${lostCount}   ctx ${gl.isContextLost() ? 'LOST' : 'ok'}   glError ${gl.getError()}`,
         `mode     ${mode}   sea ${cur?.loc.id ?? '-'}   cam y ${camera.position.y.toFixed(1)}`,
         `UA       ${navigator.userAgent}`,
-        `compiling ${diagNow || '-'}`,
+        `now      ${diagNow || "-"}`,
         '', 'slowest shaders:', ...errs.filter((e) => /^C \d/.test(e)).sort((x, y) => parseFloat(y.slice(2)) - parseFloat(x.slice(2))).slice(0, 8),
         '', ...errs.filter((e) => !/^C \d/.test(e)).slice(-8),
       ].join('\n');
