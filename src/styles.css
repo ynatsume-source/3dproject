@@ -463,3 +463,41 @@ body:not(.dock-open) #dock .opt { display: none; }
 #hint { opacity: 0; transition: opacity 1.2s ease; }
 #hint.on { opacity: 1; }
 body.mode-globe #hint, body.hud-off #hint { opacity: 0 !important; }
+
+/* ---------- lighter chrome: a smaller name, a faint round map, one thin bar ---------- */
+#brand .name { font-size: 13px; letter-spacing: .26em; }
+#brand .name::before { width: 16px; }
+#brand .sub { padding-left: 26px; font-size: 11.5px; }
+#brand #btnBack { padding: 4px 9px; font-size: 10.5px; background: rgba(10, 30, 40, .25); border-color: rgba(255, 255, 255, .18); }
+#minimap { top: calc(14px + env(safe-area-inset-top, 0px)); border-radius: 26px; border-color: rgba(255, 255, 255, 0.1); background: transparent; box-shadow: none; opacity: .72;
+  transition: opacity .8s ease, transform .8s ease; }
+#minimap:hover { opacity: .95; }
+#minimap canvas { opacity: .82; transition: opacity .38s ease; }
+#minimap.swap canvas { opacity: 0; }
+body:not(.inst-off) #minimap { top: calc(44px + env(safe-area-inset-top, 0px)); }
+#dock { gap: 4px; }
+.group { border-radius: 999px; padding: 2px; background: rgba(6, 22, 32, 0.28); border-color: rgba(255, 255, 255, 0.08); }
+.group button { padding: 6px 11px; font-size: 11.5px; border-radius: 999px; transition: background .5s ease, color .5s ease; }
+body:not(.dock-open) #dock { flex-wrap: nowrap; }
+body:not(.dock-open) .group { flex-wrap: nowrap; }
+#btnMore { min-width: 34px; font-size: 14px; }
+@media (max-width: 760px) {
+  #brand { left: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); }
+  #brand .name { font-size: 11px; letter-spacing: .2em; gap: 7px; }
+  #brand .name::before { width: 10px; }
+  #brand .sub { padding-left: 17px; font-size: 10.5px; letter-spacing: .06em; }
+  #minimap { right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); width: 104px; height: 104px; border-radius: 22px; }
+  #dock { left: 8px; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .group button { padding: 6px 9px; font-size: 11px; gap: 5px; }
+  body:not(.dock-open) #clockMode, body:not(.dock-open) .group .moon { display: none; }
+}
+
+/* ---------- things appear softly ---------- */
+@keyframes softIn { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes softInX { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: none; } }
+#guide:not([hidden]), #volPanel:not([hidden]), #watchCard:not([hidden]) { animation: softInX .6s ease both; }
+#timePanel:not([hidden]) { animation: softInX .6s ease both; }
+body.dock-open #dock .opt { animation: softIn .55s ease both; }
+#pov:not([hidden]) { animation: softInX .8s ease both; }
+#watchBar:not([hidden]) { animation: softInX .8s ease both; }
+.hud { transition: opacity .9s ease; }

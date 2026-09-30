@@ -13,7 +13,8 @@ export class MiniMap {
   mode: 'near' | 'region' = 'near';
   constructor(el: HTMLElement) {
     this.cv = el.querySelector('canvas')!; this.ctx = this.cv.getContext('2d')!; this.note = el.querySelector('.cr') as HTMLElement;
-    el.addEventListener('click', () => { this.mode = this.mode === 'near' ? 'region' : 'near'; });
+    // (a soft cross-fade between the close-up and the region, not a jump)
+    el.addEventListener('click', () => { el.classList.add('swap'); setTimeout(() => { this.mode = this.mode === 'near' ? 'region' : 'near'; el.classList.remove('swap'); }, 380); });
     fetch(`${import.meta.env.BASE_URL}map/map.json`).then((r) => r.json()).then((m) => { meta = m; }).catch(() => {});
   }
   private img(src: string) {
