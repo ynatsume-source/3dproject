@@ -91,7 +91,7 @@ export function makePov(root: HTMLElement) {
         const txt = L.label(m, d) + (m.hot ? (r.id === 'dot' ? '　◀ TARGET' : r.id === 'rakko' ? '　← これ！' : '　← めあて') : '');
         if (el.dataset.t !== txt) { el.dataset.t = txt; el.innerHTML = `<i></i><span>${txt}</span>`; }
         el.hidden = false;
-        if (++n >= 28) break;
+        if (++n >= (w < 760 ? 9 : 24)) break;   // (fewer on a small screen)
       }
       for (let i = n; i < pool.length; i++) pool[i].hidden = true;
       // what it is up to, and how it is doing (a few times a second is enough)

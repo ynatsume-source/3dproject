@@ -18,6 +18,8 @@ export const U = {
   uCamFwd: { value: new THREE.Vector3(0, 0, -1) },
   uUp: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uDown: { value: new THREE.Color() },
   uFogDen: { value: 0.025 }, uLamp: { value: 0 }, uSpot: { value: new THREE.Vector4(0, 0, 0, 0) }, uFire: { value: new THREE.Vector4(0, -100, 0, 0) }, uCut: { value: new THREE.Vector4(0, 0, 0, 0) },
+  // the residents' own lights after dark: where each pool of light falls (xyz, strength), its size, its colour
+  uLights: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(0, -100, 0, 0)) }, uLightR: { value: new THREE.Vector4(2.5, 2.5, 2.5, 2.5) }, uLightC: { value: [0, 1, 2, 3].map(() => new THREE.Vector3(1, 1, 1)) },
   uAbs: { value: new THREE.Vector3(0.1, 0.04, 0.03) },
   uSand: { value: new THREE.Color() }, uRock: { value: new THREE.Color() },
   // sky, driven by the clock
@@ -69,7 +71,7 @@ vec2 caveLight(vec3 wp){
 
 export const COMMON = /* glsl */ `
 uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
-uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform vec3 uAbs;
+uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
@@ -112,6 +114,16 @@ vec3 waterCol(vec3 dir){
   return c * mix(0.32, 1.0, exp(min(uCamPos.y, 0.0) * 0.035)) * uAmb;
 }
 vec3 absorb(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs); }
+// a soft, gently edged pool of light on the ground ahead of each resident that carries one (after dark)
+vec3 residentLights(vec3 wp, vec3 n){
+  vec3 acc = vec3(0.0);
+  for (int i = 0; i < 4; i++) {
+    vec3 d = wp - uLights[i].xyz; float r = uLightR[i];
+    float pool = exp(-dot(d.xz, d.xz) / (r * r)) * (1.0 - smoothstep(1.5, 4.5, abs(d.y)));
+    acc += uLightC[i] * uLights[i].w * pool * (0.45 + 0.55 * max(n.y, 0.0));
+  }
+  return acc;
+}
 vec3 lamp(vec3 alb, vec3 wp, vec3 n){
   vec3 L = wp - uCamPos; float d = length(L); vec3 dir = L / max(d, 1e-3);
   float cone = smoothstep(0.80, 0.96, dot(dir, uCamFwd));
@@ -120,7 +132,8 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
   return alb * vec3(1.0, 0.93, 0.8) * uLamp * cone * max(dot(n, -dir), 0.0) * 5.0 / (1.0 + d * d * 0.07)
        + alb * vec3(0.92, 0.95, 1.0) * uSpot.w * pool * (0.35 + 0.65 * max(n.y, 0.0))
        // (and the island's evening fire, warm on everything near it)
-       + alb * vec3(1.0, 0.52, 0.22) * uFire.w * (0.3 + 0.7 * max(dot(n, normalize(uFire.xyz - wp)), 0.0)) / (1.0 + dot(wp - uFire.xyz, wp - uFire.xyz) * 0.3);
+       + alb * vec3(1.0, 0.52, 0.22) * uFire.w * (0.3 + 0.7 * max(dot(n, normalize(uFire.xyz - wp)), 0.0)) / (1.0 + dot(wp - uFire.xyz, wp - uFire.xyz) * 0.3)
+       + alb * residentLights(wp, n);
 }
 // Water between the eye and a surface: each colour is extinguished at its own rate (red first, blue
 // carries furthest), and the lost light is replaced by the colour of the water in that direction.

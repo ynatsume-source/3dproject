@@ -422,7 +422,8 @@ function applySky(loc: Sea) {
   // so every hour of the night reads the same way rather than going black before moonrise.
   // Seen from the air, the night is left closer to how dark it really is: the sea below is black but
   // for the moonlit shallows.
-  const n = s.night * (drone.pos.y > 0 ? 0.3 : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
+  // (by an island the night ashore is kept open and gentle, as it is under the water, rather than black)
+  const n = s.night * (drone.pos.y > 0 ? (cur?.loc.land ? 0.95 : 0.3) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
   U.uAmb.value = s.amb + glow * 0.6;
   U.uSunI.value = Math.max(s.sunI, n * (0.45 + 0.25 * moon));
   U.uShaftI.value = Math.max(s.shaftI, n * (0.2 + 0.4 * moon));
@@ -895,7 +896,8 @@ function applyWater(loc: Sea) {
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
-  watch.r = null; watch.pov = false; pov.hide(); document.body.classList.remove('pov'); U.uFire.value.w = 0;   // (only the island has a fire)
+  watch.r = null; watch.pov = false; pov.hide(); document.body.classList.remove('pov', 'pov-ui');
+  for (const l of U.uLights.value) l.w = 0;   // (only the island's residents carry lights) U.uFire.value.w = 0;   // (only the island has a fire)
   if (oc.residents) {
     oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
     // their voices, when the camera is close enough to hear them
@@ -1154,6 +1156,7 @@ function setMode(m: 'auto' | 'manual') {
 const look = { yaw: 0, pitch: 0, held: false, let: 0 };
 const pov = makePov($('pov'));
 $('povExit').onclick = () => setPov(false);
+$('povMenu').onclick = () => { const on = !document.body.classList.contains('pov-ui'); document.body.classList.toggle('pov-ui', on); $('povMenu').setAttribute('aria-pressed', String(on)); };
 const tap = { moved: 0, t: 0 };
 // Things worth going to that are on screen, nearest the point: creatures, the cave, the residents.
 // Only these answer a tap, so touching the screen elsewhere does nothing.
@@ -1209,7 +1212,7 @@ function setPov(on: boolean) {
   if (watch.pov) pov.show(watch.r); else pov.hide();
   if (cur?.residents) cur.residents.hide = watch.pov ? watch.r.id : '';
   look.yaw = look.pitch = 0;
-  document.body.classList.toggle('pov', watch.pov);
+  document.body.classList.toggle('pov', watch.pov); if (!watch.pov) { document.body.classList.remove('pov-ui'); $('povMenu').setAttribute('aria-pressed', 'false'); }
   renderWatch();
 }
 function stopWatch(resume: boolean) {
@@ -1231,7 +1234,8 @@ function renderWatch() {
       const id = b.dataset.watch ?? b.dataset.pov, r = cur.residents.list.find((x: any) => x.id === id);
       if (!r) return;
       if (b.dataset.pov) { if (r === watch.r && watch.pov) setPov(false); else { if (r !== watch.r) startWatch(r); setPov(true); } return; }
-      if (r === watch.r && !watch.pov) stopWatch(true); else { if (r !== watch.r) startWatch(r); setPov(false); }
+      if (watch.pov) { if (r !== watch.r) startWatch(r); return; }   // (through someone's eyes: a name switches whose)
+      if (r === watch.r) stopWatch(true); else { startWatch(r); setPov(false); }
     };
   }
   bar.querySelectorAll<HTMLButtonElement>('[data-watch]').forEach((b) => b.setAttribute('aria-pressed', String(!!watch.r && watch.r.id === b.dataset.watch && !watch.pov)));
@@ -1599,13 +1603,13 @@ function frame(ts: number) {
     {
       const cp = camera.position, cv = cur.cave;
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
-      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) * (watch.r && skyNow ? 1 + 1.1 * skyNow.night : 1) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
+      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) * (watch.r && skyNow ? 1 + 0.35 * skyNow.night : 1) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
       camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
       post.setExposure(camExpo);
     }
     U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
     // watching a resident after dark: light it from above so what it is doing can be seen
-    { const sp = U.uSpot.value, want = watch.r && skyNow ? 2.4 * smooth(0.15, 0.7, skyNow.night + 0.4 * skyNow.twilight) : 0;
+    { const sp = U.uSpot.value, want = 0;   // (the residents carry their own lights now)
       sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
       if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; }
       // and open up the forest roof over it, so it can be seen from above

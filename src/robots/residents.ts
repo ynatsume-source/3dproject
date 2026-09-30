@@ -45,6 +45,19 @@ function mats(): Mats {
   };
 }
 
+/* ---------- their lights after dark ---------- */
+// Each carries its own: Dot a warm little torch on its antenna, Kamemaru the glow of its lens, Lantern its
+// lamp (the widest), Rakko a small orange light held in its paws. A faint cone of light shows where it
+// points, and a soft pool falls on the ground ahead: enough to see what it is doing, never glaring.
+const LIGHT: Record<string, { c: number; y: number; tilt: number; r: number; k: number; ahead: number }> = {
+  dot: { c: 0xffd98a, y: 0.95, tilt: 0.55, r: 2.3, k: 0.34, ahead: 1.6 },
+  kame: { c: 0x8fe8d0, y: 0.45, tilt: 0.35, r: 2.0, k: 0.26, ahead: 1.5 },
+  lantern: { c: 0xbff8ff, y: 1.05, tilt: 0.9, r: 3.4, k: 0.38, ahead: 0.9 },
+  rakko: { c: 0xffc08a, y: 0.6, tilt: 0.5, r: 2.1, k: 0.3, ahead: 1.3 },
+};
+const beamGeo = (len: number, rad: number) => { const g = new THREE.ConeGeometry(rad, len, 20, 1, true); g.translate(0, -len / 2, 0); return g; };
+const BEAM_GEO: Record<string, THREE.BufferGeometry> = { dot: beamGeo(2.2, 0.75), kame: beamGeo(1.8, 0.55), lantern: beamGeo(1.6, 1.1), rakko: beamGeo(1.8, 0.6) };
+
 /* ---------- who lives where ---------- */
 interface Spec { id: string; make: 'makeDot' | 'makeKame' | 'makeLantern' | 'makeOtter'; home: [number, number]; range: number; speed: number; swimSpeed: number; swims: boolean; nightOwl: boolean; scale: number; color: string; social: number }
 const SPECS: Spec[] = [
@@ -69,8 +82,10 @@ export interface Resident {
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
+  lightK?: number;
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
   held: THREE.Mesh;
+  beam: THREE.Mesh;                        // its light after dark: a soft cone ahead of it
 }
 export interface Residents {
   list: Resident[]; bonds: Record<string, Bond>; talks: Entry[];
@@ -311,7 +326,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       stats: { built: 0, notes: 0, shells: 0, cracked: 0, visited: 0, cairns: 0, wood: 0, food: 0, felled: 0 },
       today: [], diary: [], blocked: 0,
       subject: null as any, holding: '', held: new THREE.Mesh(new THREE.BufferGeometry(), wood),
+      beam: new THREE.Mesh(BEAM_GEO[sp.id], new THREE.MeshBasicMaterial({ color: LIGHT[sp.id].c, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })),
     };
+    r.beam.position.set(0, LIGHT[sp.id].y, 0.12); r.beam.rotation.x = -(Math.PI / 2 - LIGHT[sp.id].tilt); r.beam.visible = false; model.root.add(r.beam);
     r.held.visible = false; r.held.position.set(0, sp.id === 'rakko' ? 0.36 : 0.5, sp.id === 'rakko' ? 0.18 : 0.27); model.root.add(r.held);
     r.subject = { key: 'robot:' + sp.id, label: r.v.name, kind: 'robot', prio: 2.6, size: 1.0 * sp.scale, reach: 320,
       pos: () => r.pos, status: () => res.status(r), live: () => true, hold: undefined };
@@ -794,6 +811,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       items.tick(dt); tickDrift(dt);
       for (const r of list) step(r, dt, false);
       fireCircle(dt, false);
+      // their lights: on after dark while they are up and about (not asleep, not under the water)
+      { const nightK = 1 - dayK(localHour(ms)), tt = performance.now() / 1000;
+        list.forEach((r, i) => {
+          const Lt = LIGHT[r.id], on = nightK * (r.act === 'sleep' || (r.wet && r.act === 'swim') ? 0 : 1);
+          r.lightK = (r.lightK ?? 0) + (on - (r.lightK ?? 0)) * Math.min(1, dt * 0.8);
+          const fx = Math.sin(r.head), fz = Math.cos(r.head), sway = Math.sin(tt * 1.3 + i) * 0.15;
+          U.uLights.value[i].set(r.pos.x + (fx + fz * sway) * Lt.ahead, r.pos.y, r.pos.z + (fz - fx * sway) * Lt.ahead, r.lightK * Lt.k * (0.94 + 0.06 * Math.sin(tt * 2.1 + i * 2)));
+          (U.uLightR.value as any).setComponent(i, Lt.r);
+          U.uLightC.value[i].set(((Lt.c >> 16) & 255) / 255, ((Lt.c >> 8) & 255) / 255, (Lt.c & 255) / 255);
+          r.beam.visible = r.lightK > 0.02; (r.beam.material as THREE.MeshBasicMaterial).opacity = 0.07 * r.lightK; r.beam.rotation.y = sway * 0.6;
+        }); }
       animateWork(dt);
       if ((meetT -= dt) < 0) { meetT = 1; checkMeetings(false); }
       for (const r of list) {
@@ -995,6 +1023,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       marker.position.set(ft!.x, L.h(ft!.x, ft!.z) + 0.06, ft!.z);
       marker.scale.setScalar(1 + 0.15 * Math.sin(markT * 3));
       (marker.material as THREE.MeshBasicMaterial).color.set(focused!.sp.color);
+      (marker.material as THREE.MeshBasicMaterial).opacity = res.hide ? 0.25 : 0.6;   // (softer seen from its own eyes)
     }
   }
   const bubbleEls: Record<string, HTMLElement> = {};
