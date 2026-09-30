@@ -116,9 +116,8 @@ let lastShot: Shot | null = null;
 function onShotChange(prev: Shot | null, next: Shot | null) {
   if (next) {
     $('tMode').textContent = 'OBSERVING';
-    $('hint').textContent = `観察中：${next.subject.label}（${next.subject.status()}）`;
-    const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
-    $('hint').textContent = `観察中：${sj.label}（${sj.status()}${sizeTxt}）`;
+        const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
+    hint(`観察中：${sj.label}（${sj.status()}${sizeTxt}）`);
     recordLog('observe', `${sj.label}を観察（${sj.status()}${sizeTxt}）`);
     if (next.subject.kind === 'hunt') say('hunt');
     else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
@@ -339,6 +338,7 @@ function noteOf(label: string) {
 }
 // a remark in the guide's own voice (auto-cruise only: in manual flight you are the guide)
 function say(mood: Mood, vars: Record<string, string> = {}, force = false) {
+  return;   // (the guide no longer talks: its character shows in how it moves)
   if (!cur || drone.mode !== 'auto') return;
   const now = performance.now();
   if (!force && now - lastSay < persona.gap * 1000) return;
@@ -353,7 +353,7 @@ function setPersona(p: Persona) {
   try { localStorage.setItem('seaglass.persona', p.id); } catch (e) { /* ignore */ }
   applyPersona();
   drone.skyWait = rr(...persona.skyGap);
-  $('hint').textContent = `ガイド：${p.ja} — ${p.blurb}`;
+  hint(`ガイド：${p.ja} — ${p.blurb}`);
   // greet once the choice has settled (clicking through the characters shouldn't make them all speak)
   clearTimeout(helloTimer);
   helloTimer = window.setTimeout(() => { logQueue.length = 0; lastSay = -1e9; say('hello', {}, true); }, 1800);
@@ -653,7 +653,7 @@ function updateHud() {
   const hdg = ((-drone.yaw * 180 / Math.PI) % 360 + 360) % 360;
   $('hdgnum').textContent = String(Math.round(hdg) % 360).padStart(3, '0') + '°';
   strip.style.transform = `translateX(${-(hdg + 360) * 2 + compassEl.clientWidth / 2}px)`;
-  if (lastShot) $('hint').textContent = `観察中：${lastShot.subject.label}（${lastShot.subject.status()}）`;
+  if (lastShot && $('hint').classList.contains('on')) $('hint').textContent = `観察中：${lastShot.subject.label}（${lastShot.subject.status()}）`;
   updateTimeUi();
 }
 function updateTimeUi() {
@@ -1147,12 +1147,20 @@ function setMode(m: 'auto' | 'manual') {
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
-  $('hint').textContent = m === 'auto'
+  hint(m === 'auto'
     ? (isTouch ? 'ドラッグで見回す · 気になる生きものをタップするとそこへ向かいます' : 'ドラッグで見回す · 気になる生きものをクリックするとそこへ向かいます')
     : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 90秒操作がないと自動巡航に戻ります'
-      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · 90秒操作がないと自動巡航に戻ります');
+      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · 90秒操作がないと自動巡航に戻ります'));
   $('joy').hidden = $('vbtns').hidden = !(isTouch && m === 'manual');
 }
+// a line of help at the bottom that shows for a moment and fades
+let hintT = 0;
+function hint(text: string) { const el = $('hint'); el.textContent = text; el.classList.add('on'); clearTimeout(hintT); hintT = window.setTimeout(() => el.classList.remove('on'), 7000); }
+// the instruments (depth, speed, heading, position) and the rest of the controls: off until asked for
+function setInst(on: boolean) { document.body.classList.toggle('inst-off', !on); $('btnInst').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('seaglass.inst', on ? '1' : '0'); } catch (e) { /* ignore */ } }
+try { setInst(localStorage.getItem('seaglass.inst') === '1'); } catch (e) { setInst(false); }
+$('btnInst').onclick = () => setInst(document.body.classList.contains('inst-off'));
+$('btnMore').onclick = () => { const on = !document.body.classList.contains('dock-open'); document.body.classList.toggle('dock-open', on); $('btnMore').setAttribute('aria-expanded', String(on)); $('btnMore').textContent = on ? '×' : '⋯'; };
 const look = { yaw: 0, pitch: 0, held: false, let: 0 };
 const pov = makePov($('pov'));
 $('povExit').onclick = () => setPov(false);

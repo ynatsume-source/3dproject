@@ -455,3 +455,11 @@ body.pov.pov-ui #pov .plan, body.pov.pov-ui #pov .mutter { opacity: 0; }
   body.watching #watchCard { bottom: calc(166px + env(safe-area-inset-bottom, 0px)); padding: 9px 12px; gap: 5px; }
   body.watching #watchCard ol, body.watching #watchCard .f > span { display: none; }
 }
+
+/* a quiet first look: the instruments and most controls wait until asked for */
+body.inst-off #tele, body.inst-off #locCoord, body.inst-off #compass, body.inst-off #hdgnum, body.inst-off #rec { display: none; }
+body:not(.dock-open) #dock .opt { display: none; }
+#btnMore { min-width: 40px; font-size: 16px; letter-spacing: 0; }
+#hint { opacity: 0; transition: opacity 1.2s ease; }
+#hint.on { opacity: 1; }
+body.mode-globe #hint, body.hud-off #hint { opacity: 0 !important; }

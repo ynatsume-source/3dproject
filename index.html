@@ -82,7 +82,7 @@
 <div id="dock" class="hud">
   <div class="group" role="group" aria-label="移動">
     <button id="btnGuide" type="button" aria-pressed="false">図鑑 <span id="seenCount">0/0</span> <kbd>Z</kbd></button>
-    <button id="btnLog" type="button" aria-pressed="false">今日の海 <kbd>J</kbd></button>
+    <button id="btnLog" class="opt" type="button" aria-pressed="false">今日の海 <kbd>J</kbd></button>
   </div>
   <div class="group" role="group" aria-label="時刻">
     <button id="btnTime" type="button" aria-expanded="false" class="live">
@@ -91,21 +91,23 @@
     </button>
     <span class="moon" id="clockMoon"></span>
   </div>
-  <div class="group" role="group" aria-label="操縦モード">
+  <div class="group opt" role="group" aria-label="操縦モード">
     <button id="btnAuto" type="button" aria-pressed="true"><span class="dot"></span>自動巡航 <kbd>P</kbd></button>
     <button id="btnManual" type="button" aria-pressed="false"><span class="dot"></span>手動操縦</button>
     <button id="btnSky" type="button" aria-pressed="false"><span class="dot"></span>空へ <kbd>U</kbd></button>
     <button id="btnPersona" type="button" aria-label="ガイドの性格を切り替える"><span class="dot"></span>おだやか</button>
   </div>
   <div class="group" role="group" aria-label="機能">
-    <button id="btnLamp" type="button" aria-pressed="false"><span class="dot"></span>ライト <kbd>L</kbd></button>
+    <button id="btnLamp" class="opt" type="button" aria-pressed="false"><span class="dot"></span>ライト <kbd>L</kbd></button>
     <button id="btnSound" type="button" aria-pressed="false"><span class="dot"></span>サウンド <kbd>M</kbd></button>
-    <button id="btnMusic" type="button" aria-pressed="true"><span class="dot"></span>音楽 <kbd>N</kbd></button>
-    <button id="btnVol" type="button" aria-expanded="false" aria-label="音量">音量</button>
-    <button id="btnQuality" type="button">画質 高</button>
-    <button id="btnHud" type="button">HUD <kbd>H</kbd></button>
-    <button id="btnPip" type="button" aria-pressed="true" title="近くで狩りが起きると、小さな窓で映します"><span class="dot"></span>狩りの小窓</button>
-    <button id="btnFull" type="button">全画面 <kbd>F</kbd></button>
+    <button id="btnMusic" class="opt" type="button" aria-pressed="true"><span class="dot"></span>音楽 <kbd>N</kbd></button>
+    <button id="btnVol" class="opt" type="button" aria-expanded="false" aria-label="音量">音量</button>
+    <button id="btnQuality" class="opt" type="button">画質 高</button>
+    <button id="btnInst" class="opt" type="button" aria-pressed="false"><span class="dot"></span>計器</button>
+    <button id="btnHud" class="opt" type="button">HUD <kbd>H</kbd></button>
+    <button id="btnPip" class="opt" type="button" aria-pressed="true" title="近くで狩りが起きると、小さな窓で映します"><span class="dot"></span>狩りの小窓</button>
+    <button id="btnFull" class="opt" type="button">全画面 <kbd>F</kbd></button>
+    <button id="btnMore" type="button" aria-expanded="false" aria-label="ほかの操作を表示">⋯</button>
   </div>
 </div>
 
