@@ -284,7 +284,10 @@ function updateDrone(dt: number, now: number) {
   // just above the sea the camera rides the swell, rising, falling and rolling with it
   const ride = drone.pos.y > 0 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
   camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z);
-  camera.rotation.set(drone.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
+  // a look around while cruising: the drag turns the view, and once let go it drifts back ahead
+  if (drone.mode === 'manual') { drone.yaw += look.yaw; drone.pitch = clamp(drone.pitch + look.pitch, -1.25, 1.25); look.yaw = look.pitch = 0; }
+  else if (!look.held && now - look.let > 900) { const k = 1 - Math.exp(-dt * 0.8); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
+  camera.rotation.set(drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
 }
 
 /* ================= the guide's character ================= */
@@ -351,10 +354,9 @@ function setSky(on: boolean, natural = false) {
 function skySchedule(dt: number) {
   if (!cur || drone.mode !== 'auto') return;
   if (!drone.sky) {
-    if (lastShot || (cur.cave && camCave < 0.95)) return;
     const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value);
-    drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));
-    if (drone.skyWait <= 0) setSky(true, true);
+    drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));   // (the wait runs down while filming too)
+    if (drone.skyWait <= 0 && !lastShot && !(cur.cave && camCave < 0.95)) setSky(true, true);   // go up once the shot in hand is done
   } else if (drone.skyT > drone.skyStay) setSky(false, true);
 }
 // aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
@@ -1053,11 +1055,49 @@ function setMode(m: 'auto' | 'manual') {
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
   $('hint').textContent = m === 'auto'
-    ? (isTouch ? 'ドラッグすると手動操縦に切り替わります' : 'ドラッグかWASDで手動操縦に切り替わります')
+    ? (isTouch ? 'ドラッグで見回す · 気になる生きものをタップするとそこへ向かいます' : 'ドラッグで見回す · 気になる生きものをクリックするとそこへ向かいます')
     : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 90秒操作がないと自動巡航に戻ります'
       : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · 90秒操作がないと自動巡航に戻ります');
   $('joy').hidden = $('vbtns').hidden = !(isTouch && m === 'manual');
 }
+const look = { yaw: 0, pitch: 0, held: false, let: 0 };
+const tap = { moved: 0, t: 0 };
+// Things worth going to that are on screen, nearest the point: creatures, the cave, the residents.
+// Only these answer a tap, so touching the screen elsewhere does nothing.
+const _tp = new THREE.Vector3();
+function pickAt(x: number, y: number): Subject | null {
+  if (!cur) return null;
+  let best: Subject | null = null, bs = Infinity;
+  for (const s of allSubjects()) {
+    const p = s.pos(); if (!p || !s.live()) continue;
+    const d = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
+    if (d > (s.kind === 'robot' || s.kind === 'cave' ? 260 : 80) || d < 1) continue;
+    _tp.set(p.x, p.y, p.z).project(camera);
+    if (_tp.z > 1 || Math.abs(_tp.x) > 1 || Math.abs(_tp.y) > 1) continue;
+    const sx = (_tp.x * 0.5 + 0.5) * innerWidth, sy = (-_tp.y * 0.5 + 0.5) * innerHeight;
+    const r = Math.max(isTouch ? 56 : 40, (s.size * 0.7 / d) * innerHeight);   // about as big as it looks on screen, and never too small to hit
+    const off = Math.hypot(sx - x, sy - y);
+    if (off < r && off / r < bs) { bs = off / r; best = s; }
+  }
+  return best;
+}
+function tapAt(x: number, y: number) {
+  const s = pickAt(x, y); if (!s) return;
+  focusOn(s);
+  showToast('向かっています', s.label, s.status());
+  const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
+}
+// on a desktop, the name of what is under the pointer
+let hoverT = 0;
+canvas.addEventListener('pointermove', (e) => {
+  if (mode !== 'ocean' || isTouch || pointers.size) return;
+  if (drone.mode !== 'auto') { canvas.style.cursor = ''; $('hoverTag').classList.remove('on'); return; }
+  const now = performance.now(); if (now - hoverT < 90) return; hoverT = now;
+  const s = pickAt(e.clientX, e.clientY), el = $('hoverTag');
+  canvas.style.cursor = s ? 'pointer' : '';
+  if (!s) { el.classList.remove('on'); return; }
+  el.textContent = `${s.label} — クリックで近づく`; el.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; el.classList.add('on');
+});
 function touchInput() { drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
 function setLamp(on: boolean, manual = true) {
   if (manual) lampManual = true;
@@ -1134,6 +1174,7 @@ document.addEventListener('visibilitychange', keepAwake);
 document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
 
 $('btnGlobe').onclick = toGlobe;
+$('btnBack').onclick = toGlobe;
 $('btnGuide').onclick = () => openPanel('guide');
 $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
@@ -1161,7 +1202,7 @@ addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
   if (mode !== 'ocean' || busy) return;
-  if (MOVE.includes(e.code)) { keys.add(e.code); touchInput(); e.preventDefault(); return; }
+  if (MOVE.includes(e.code)) { if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
   if (e.code.startsWith('Shift')) { keys.add(e.code); return; }
   if (e.repeat) return;
   if (PRESET_KEYS[e.code]) goPreset(PRESET_KEYS[e.code]);
@@ -1185,6 +1226,7 @@ let pinch0 = 0, dragT = 0;
 canvas.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.setPointerCapture(e.pointerId);
   if (mode === 'globe') { gv.dragging = true; gv.vlon = gv.vlat = 0; dragT = performance.now(); }   // a touch catches a spinning globe
+  tap.moved = 0; tap.t = performance.now();
   if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -1203,12 +1245,17 @@ canvas.addEventListener('pointermove', (e) => {
     const a = Math.min(1, dtm * 12);
     gv.vlon += (-dx * k / dtm * 0.6 - gv.vlon) * a; gv.vlat += (dy * k / dtm * 0.6 - gv.vlat) * a;
   } else {
-    touchInput();
     const k = isTouch ? 0.006 : 0.0035;
-    drone.yaw -= dx * k; drone.pitch -= dy * k;
+    tap.moved += Math.abs(dx) + Math.abs(dy);
+    if (drone.mode === 'manual') { drone.lastInput = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
+    else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
   }
 });
 const endP = (e: PointerEvent) => {
+  if (mode === 'ocean' && pointers.has(e.pointerId)) {
+    look.held = false; look.let = performance.now();
+    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup') tapAt(e.clientX, e.clientY);
+  }
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0;
   gv.dragging = pointers.size > 0;
   if (performance.now() - dragT > 90) gv.vlon = gv.vlat = 0;   // held still before letting go: no fling

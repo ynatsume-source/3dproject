@@ -3,8 +3,8 @@
 // Music: sparse phrases on a sampled grand piano and a slow pad, played in a scale that follows the time of day
 // (and, at Miyako, the Ryukyu scale). Everything goes through a long, dark reverb so notes bloom and
 // fade instead of starting and stopping.
-// Nature: a quiet, low water bed and soft bubbles (the snapping-shrimp crackle is left out: its clicks
-// read as noise over the music). Nothing is loud or bright; a compressor keeps the mix even for hours of listening.
+// Nature: a quiet, low water bed and soft bubbles. Nothing crackles, clicks or scrapes: every onset is
+// rounded and the top end is kept low, so it stays kind to the ear. Nothing is loud or bright; a compressor keeps the mix even for hours of listening.
 
 let ac: AudioContext | null = null;
 let master: GainNode, natureBus: GainNode, musicBus: GainNode, reverb: ConvolverNode, crackleGain: GainNode, motion: GainNode, bedGain: GainNode;
@@ -56,7 +56,7 @@ function build() {
   ac = new AC();
   const comp = ac.createDynamicsCompressor();
   comp.threshold.value = -20; comp.knee.value = 18; comp.ratio.value = 3; comp.attack.value = 0.05; comp.release.value = 0.6;
-  const tone = ac.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 9000;
+  const tone = ac.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 5200;   // nothing sharp reaches the ear
   master = ac.createGain(); master.gain.value = 0;
   master.connect(tone).connect(comp).connect(ac.destination);
 
@@ -96,7 +96,7 @@ function build() {
   // reef crackle
   const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200;
   const soft = ac.createBiquadFilter(); soft.type = 'lowpass'; soft.frequency.value = 7000;
-  crackleGain = ac.createGain(); crackleGain.gain.value = 0.18;
+  crackleGain = ac.createGain(); crackleGain.gain.value = 0;
   crackleGain.connect(hp).connect(soft).connect(natureBus);
 }
 
@@ -237,12 +237,12 @@ function loopPad() {
 // ---------- nature ----------
 function bubble(when: number) {
   const a = ac!, o = a.createOscillator(), g = a.createGain(), f = rnd(220, 520);
-  const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+  const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
   const p = a.createStereoPanner(); p.pan.value = rnd(-0.7, 0.7);
   o.type = 'sine'; o.frequency.setValueAtTime(f, when); o.frequency.exponentialRampToValueAtTime(f * rnd(1.8, 2.6), when + 0.08);
-  g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(rnd(0.008, 0.02), when + 0.012);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
-  o.connect(g).connect(lp).connect(p).connect(natureBus); o.start(when); o.stop(when + 0.16);
+  g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(rnd(0.006, 0.014), when + 0.035);   // a rounded onset: a blup, not a tick
+  g.gain.exponentialRampToValueAtTime(0.0001, when + 0.18);
+  o.connect(g).connect(lp).connect(p).connect(natureBus); o.start(when); o.stop(when + 0.2);
 }
 function loopBubbles() {
   clearTimeout(timers.bubbles);
@@ -254,20 +254,8 @@ function loopBubbles() {
     loopBubbles();
   }, rnd(2500, 8000));
 }
-// Parrotfish biting coral: a few short, muted scrapes.
-export function crunch(vol: number) {
-  if (!ac || !audio.on) return;
-  let w = ac.currentTime + 0.01;
-  for (let k = 0; k < 2 + Math.floor(Math.random() * 2); k++) {
-    const len = Math.floor(ac.sampleRate * 0.025), b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (len * 0.25));
-    const s = ac.createBufferSource(); s.buffer = b;
-    const f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = rnd(1200, 2200); f.Q.value = 1.4;
-    const g = ac.createGain(); g.gain.value = 0.12 * vol;
-    s.connect(f).connect(g).connect(natureBus); s.start(w);
-    w += rnd(0.07, 0.12);
-  }
-}
+// Parrotfish biting coral: left silent now (the short scrapes were too hard on the ear).
+export function crunch(_vol: number) { /* silent */ }
 
 // ---------- humpback song ----------
 // In the breeding season males sing for hours: themes of moans, whoops and cries, each repeated a few
@@ -320,10 +308,10 @@ export function setRain(level: number) {
   if (!ac) return;
   if (!rainGain) {
     const len = ac.sampleRate * 2, b = ac.createBuffer(1, len, ac.sampleRate), d = b.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.4 + 0.6 * Math.random() ** 8);   // hiss with crackle
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;   // an even hiss (no crackle)
     const s = ac.createBufferSource(); s.buffer = b; s.loop = true;
-    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2200;
-    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+    const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
     rainGain = ac.createGain(); rainGain.gain.value = 0;
     s.connect(hp).connect(lp).connect(rainGain).connect(natureBus); s.start();
   }
@@ -349,14 +337,14 @@ export function splash() {
   const a = ac, t0 = a.currentTime + 0.02, len = Math.floor(a.sampleRate * 1.6), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 3.2) * (t < 0.03 ? t / 0.03 : 1); }
   const s = a.createBufferSource(); s.buffer = b;
-  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(3200, t0); f.frequency.exponentialRampToValueAtTime(380, t0 + 1.2);
+  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(1700, t0); f.frequency.exponentialRampToValueAtTime(320, t0 + 1.2);
   const g = a.createGain(); g.gain.value = 0.13;   // soft: it happens often now
   s.connect(f).connect(g).connect(natureBus); s.start(t0);
   for (let k = 0; k < 14; k++) {
-    const o = a.createOscillator(), og = a.createGain(), tt = t0 + 0.2 + Math.random() * 1.4, f0 = rnd(500, 1400);
+    const o = a.createOscillator(), og = a.createGain(), tt = t0 + 0.2 + Math.random() * 1.4, f0 = rnd(300, 700);
     o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.07);
-    og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.012, tt + 0.01); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.09);
-    o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.1);
+    og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.008, tt + 0.03); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.14);
+    o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.15);
   }
 }
 
@@ -391,7 +379,7 @@ export function setAir(on: boolean) {
   const t = ac.currentTime;
   airGain.gain.setTargetAtTime(on ? 0.5 : 0, t, 0.4);
   bedGain.gain.setTargetAtTime(on ? 0 : 0.12 + 0.04 * (1 - audio.night), t, 0.4);
-  crackleGain.gain.setTargetAtTime(on ? 0 : 0.18, t, 0.3);
+  crackleGain.gain.setTargetAtTime(0, t, 0.3);
 }
 
 // ---------- bait balls ----------
@@ -402,24 +390,24 @@ export function frenzy(level: number, dist: number) {
   if (!ac) return;
   if (!frenzyGain) {
     const a = ac, len = a.sampleRate * 3, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.5 + 0.5 * Math.random() ** 6);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     const s = a.createBufferSource(); s.buffer = b; s.loop = true;
-    const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 0.6;
+    const bp = a.createBiquadFilter(); bp.type = 'lowpass'; bp.frequency.value = 650; bp.Q.value = 0.4;   // a soft churn, not a crackle
     const flutter = a.createGain(); flutter.gain.value = 0.6;
-    const lfo = a.createOscillator(); lfo.frequency.value = 7.3; const lg = a.createGain(); lg.gain.value = 0.4;
+    const lfo = a.createOscillator(); lfo.frequency.value = 2.2; const lg = a.createGain(); lg.gain.value = 0.25;
     lfo.connect(lg).connect(flutter.gain); lfo.start();
     frenzyGain = a.createGain(); frenzyGain.gain.value = 0;
     s.connect(bp).connect(flutter).connect(frenzyGain).connect(natureBus); s.start();
   }
-  const v = audio.on ? Math.min(1, level) * 0.22 / (1 + dist / 18) : 0;
+  const v = audio.on ? Math.min(1, level) * 0.16 / (1 + dist / 18) : 0;
   frenzyGain.gain.setTargetAtTime(v, ac.currentTime, 0.5);
 }
 export function plop(dist: number) {
   if (!ac || !audio.on || dist > 90) return;
   const a = ac, t0 = a.currentTime + dist / 1500, len = Math.floor(a.sampleRate * 0.35), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 14) * (t < 0.004 ? t / 0.004 : 1); }
+  for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 9) * (t < 0.03 ? t / 0.03 : 1); }   // a soft onset: a muffled plunge
   const s = a.createBufferSource(); s.buffer = b;
-  const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = rnd(700, 1500); f.Q.value = 1.2;
-  const g = a.createGain(); g.gain.value = 0.25 / (1 + dist / 12);
+  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = rnd(450, 800); f.Q.value = 0.5;
+  const g = a.createGain(); g.gain.value = 0.18 / (1 + dist / 12);
   s.connect(f).connect(g).connect(natureBus); s.start(t0);
 }

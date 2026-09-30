@@ -292,3 +292,17 @@ body.mode-globe #bubbles, body.hud-off #bubbles { display: none; }
 #guide .aikey { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--ink-dim); }
 #guide .aikey input { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); color: var(--ink); font: 12px var(--f-mono); }
 #guide .aikey button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: rgba(95, 224, 200, 0.12); color: var(--ink); cursor: pointer; }
+
+/* tap-to-go: a ring where the tap landed, and a name under the pointer on desktops */
+#tapRing { position: fixed; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none; z-index: 5; opacity: 0; }
+#tapRing.on { animation: tapRing .7s ease-out; }
+@keyframes tapRing { from { opacity: .9; scale: .4; } to { opacity: 0; scale: 1.4; } }
+#hoverTag { position: fixed; left: 0; top: 0; padding: 4px 9px; border-radius: 6px; font-size: 11.5px; color: var(--ink); background: rgba(4, 16, 24, 0.78); border: 1px solid var(--line); pointer-events: none; z-index: 5; opacity: 0; transition: opacity .15s; white-space: nowrap; }
+#hoverTag.on { opacity: 1; }
+body.mode-globe #hoverTag, body.mode-globe #tapRing { display: none; }
+
+/* the way back to the globe, right under the name where people look first */
+#brand #btnBack { pointer-events: auto; margin-left: 4px; font: 500 11px/1 var(--f-body, inherit); letter-spacing: .06em; color: var(--ink);
+  background: rgba(10, 30, 40, .45); border: 1px solid rgba(255, 255, 255, .28); border-radius: 999px; padding: 6px 11px; cursor: pointer;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: background .2s, border-color .2s; }
+#brand #btnBack:hover, #brand #btnBack:focus-visible { background: rgba(10, 30, 40, .7); border-color: var(--accent); color: var(--accent); }
