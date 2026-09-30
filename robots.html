@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>島の住人 — デザイン案</title>
+<style>
+  :root { --ink: #eef6f4; --dim: rgba(238, 246, 244, 0.72); --accent: #c4fff4; --line: rgba(238, 246, 244, 0.22); }
+  html, body { margin: 0; height: 100%; background: #0d1c24; color: var(--ink); font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  header { position: fixed; left: 20px; top: 16px; max-width: 520px; pointer-events: none; text-shadow: 0 1px 3px rgba(0, 30, 40, 0.55), 0 0 14px rgba(0, 30, 40, 0.45); }
+  header .k { font: 500 10px/1 ui-monospace, monospace; letter-spacing: .24em; color: var(--accent); }
+  header h1 { margin: 6px 0 6px; font-weight: 500; font-size: 22px; letter-spacing: .06em; }
+  header p { margin: 0; font-size: 12.5px; line-height: 1.7; color: var(--dim); }
+  #cards { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .card { appearance: none; text-align: left; cursor: pointer; color: var(--ink); font: inherit; background: rgba(8, 26, 36, 0.62); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .card.on { border-color: rgba(143, 232, 216, 0.7); background: rgba(12, 44, 54, 0.75); }
+  .card b { font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+  .card small { display: block; font: 500 9.5px/1.4 ui-monospace, monospace; letter-spacing: .12em; color: var(--accent); margin: 2px 0 6px; }
+  .card p { margin: 0; font-size: 11.5px; line-height: 1.65; color: var(--dim); }
+  @media (max-width: 760px) { #cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .card p { display: none; } header p { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<header>
+  <div class="k">SEAGLASS · ISLAND RESIDENT · CONCEPTS</div>
+  <h1>島の住人 — ロボットのデザイン案</h1>
+  <p>実在の無人島で、海と陸を行き来しながら少しずつ暮らしを築いていくAIの住人。どれも四肢を持ち、潮風と海水に耐え、太陽で動く。ドラッグで回転、カードで選択。</p>
+</header>
+<div id="cards"></div>
+<script type="module" src="./src/robots/gallery.ts"></script>
+</body>
+</html>
