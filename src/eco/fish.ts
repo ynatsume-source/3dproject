@@ -46,6 +46,10 @@ export function makeFishSystem(sp: Species, oc: any) {
   const swim = new Float32Array(total * 3);
   const fp = new Float32Array(total * 3), fv = new Float32Array(total * 3), fs = new Float32Array(total), fo = new Float32Array(total * 3);
   const dead = new Float32Array(total);   // 0 = alive, else time of death
+  // the reef height under each fish and under where it is heading, refreshed every few frames in turn
+  // (sampling the terrain is the costliest thing a fish does)
+  const flC = new Float32Array(total).fill(-1e9), ftC = new Float32Array(total).fill(-1e9);
+  let frame = 0;
   for (const g of groups) {
     const spread = g.type === 'anem' ? [0.35, 0.2, 0.35] : (sp.spread || [0, 0, 0]);
     for (let i = g.start; i < g.start + g.n; i++) {
@@ -217,6 +221,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   const caveMode0 = (g: Group) => (g.cr ? g.cr.mode : 'out');
   let target = 1;
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
+    frame++;
     const t = env.t;
     const act = activity(sp.diel, env);
     target = act;
@@ -298,8 +303,12 @@ export function makeFishSystem(sp: Species, oc: any) {
           if (bite > 0.97 && sp.big) env.crunch(Math.hypot(fp[i * 3] - cam.x, fp[i * 3 + 1] - cam.y, fp[i * 3 + 2] - cam.z));
         }
         const px = fp[i * 3], py = fp[i * 3 + 1], pz = fp[i * 3 + 2];
-        const fl = caveMode0(g) === 'out' ? T.top(px, pz) : T.ground(px, pz);   // in the tunnel the floor, not the massif's top
-        ty = Math.max(ty, (caveMode0(g) === 'out' ? T.top(tx, tz) : T.ground(tx, tz)) + 0.2);   // aim above the reef under the target, not into it
+        if (((frame + i) & 3) === 0 || py < flC[i] + 0.6) {   // (every frame when down against the reef)
+          const out = caveMode0(g) === 'out';   // in the tunnel the floor, not the massif's top
+          flC[i] = out ? T.top(px, pz) : T.ground(px, pz); ftC[i] = out ? T.top(tx, tz) : T.ground(tx, tz);
+        }
+        const fl = flC[i];
+        ty = Math.max(ty, ftC[i] + 0.2);   // aim above the reef under the target, not into it
         _v.set(tx - px, ty - py, tz - pz);
         const L = _v.length(), maxS = Math.max(sp.speed * (1.7 + g.fear * 1.5), 0.3);
         _v.multiplyScalar(Math.min(maxS, L * 1.1) / Math.max(L, 1e-4)).add(g.v);

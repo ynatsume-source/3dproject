@@ -27,6 +27,7 @@ export class Ecosystem {
       cam: { x: 0, y: 0, z: 0 },
       events: [],
       crunch: () => { /* set by the app */ },
+      sound: { frenzy: () => { /* set by the app */ }, plop: () => { /* set by the app */ } },
     };
   }
 
@@ -52,6 +53,7 @@ export class Ecosystem {
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);
     whaleSubjects(this.oc, out);
+    if (this.oc.bait) out.push(...this.oc.bait.subjects());
     const cave = this.oc.cave;
     if (cave) {
       const c = { x: cave.cx, y: cave.top - 4, z: cave.cz };
@@ -75,6 +77,7 @@ export class Ecosystem {
     updateOctopi(this.oc, dt, e, cam, fx, fz);
     const ws = this.oc.loc.whales;
     updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
+    if (this.oc.bait) this.oc.bait.update(dt, e, cam, fx, fz, e.sound);
     return e.events;
   }
 }

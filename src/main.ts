@@ -22,7 +22,8 @@ import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/
 import { Post } from './render/post';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
+import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
 import { loadHome, locateHome, distanceKm, satPrepare, satShow, makeFlight, resetGlobeCamera, type Home } from './journey';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -118,6 +119,9 @@ function updateDrone(dt: number, now: number) {
       ? 1.2 + 14 * Math.pow(0.5 + 0.5 * Math.sin(st * 0.013), 3)             // out in the open ocean: drifting low on the swell
       : 6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim) + 1.6 * skim;
     _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
+    // a bait ball nearby: wheel over it with the birds
+    const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && Math.hypot(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
+    if (overBall) { const oa = st * 0.12; _t.set(bb!.c.x + Math.cos(oa) * 26, 13, bb!.c.z + Math.sin(oa) * 26); }
     _v.subVectors(_t, drone.pos);
     // first, up through the surface on a slant, carrying on the way we were going
     if (drone.pos.y < 0) _v.set(-Math.sin(drone.yaw) * 1.8, 2.4, -Math.cos(drone.yaw) * 1.8);
@@ -129,9 +133,10 @@ function updateDrone(dt: number, now: number) {
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (drone.pos.y < 0 ? 2 : 0.8)));
     const s = skyNow!, night = s.night, dusk = Math.max(s.golden, s.twilight * (1 - night));
     let wantYaw = Math.atan2(-drone.vel.x, -drone.vel.z) + Math.sin(st * 0.05) * 0.6;
+    if (overBall) wantYaw = Math.atan2(-(bb!.c.x - drone.pos.x), -(bb!.c.z - drone.pos.z));
     if (night > 0.5) wantYaw = drone.yaw + dt * 0.035;                       // at night, turn slowly under the sky
     else if (dusk > 0.3) wantYaw += angDiff(Math.atan2(-U.uAirSun.value.x, -U.uAirSun.value.z), wantYaw) * 0.7;   // face the sunset
-    const wantPitch = drone.pos.y < 0 ? 0.3                                  // rising: watch the surface come closer
+    const wantPitch = drone.pos.y < 0 ? 0.3 : overBall ? -Math.atan2(drone.pos.y + 1, Math.max(Math.hypot(bb!.c.x - drone.pos.x, bb!.c.z - drone.pos.z), 1))                                  // rising: watch the surface come closer
       : night > 0.5 ? 0.42 + Math.sin(st * 0.04) * 0.15 : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.35);
     drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.35);
@@ -463,6 +468,15 @@ function goTo(id: string) {
   const loc = oc.loc, name = guideEntries(loc).find((e) => e.id === id)?.ja ?? (id === 'cave' ? '海底洞窟' : '');
   let s: Subject | null = null;
   // a seabird: go up into the sky, where a few of them come by
+  if ((id === 'bait' || id === oc.loc.bait?.sp.id) && oc.bait) {
+    // go and find one: out there somewhere the birds are starting to gather
+    const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
+    if (!oc.bait.st.active && oc.bait.start(drone.pos, fx, fz, oc.eco.env)) seaLog('hunt', `沖で${oc.bait.bsp.ja}の大群が身を寄せ合いはじめた。何かに追われている`, () => (oc.bait.st.active ? oc.bait.st.c : null));
+    if (drone.sky) setSky(false);
+    const bs = oc.bait.subjects()[0];
+    if (bs) focusOn(bs);
+    return;
+  }
   const flock = oc.birds?.flocks.find((f: any) => f.sp.id === id);
   if (flock) {
     if (!drone.sky) setSky(true);
@@ -576,7 +590,7 @@ function statusOf(id: string): string {
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
-const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note }))];
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : [])];
 let panelTab: 'guide' | 'log' = 'guide';
 function renderLog() {
   const loc = cur!.loc;
@@ -606,7 +620,7 @@ function renderGuide() {
   const thumbs = guideThumbs(loc, list.map((e) => e.id));
   guideEl.innerHTML = tabs + `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
     <h3>行き先</h3>
-    <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
+    <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${cur.bait ? `<li class="benthic"><i></i><b>ベイトボール</b><p>${cur.bait.st.active ? 'いま沖で起きている。' : ''}${predatorsJa(loc)}が${loc.bait!.sp.ja}の群れを水面へ追い上げ、海鳥が上から突っ込む。ふだんはまれにしか起きない。</p><button class="go" type="button" data-go="bait">${cur.bait.st.active ? '見に行く' : '探しに行く'}</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
     <h3>生きもの</h3>
     <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : ''}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
     <h3>${loc.pelagic ? '漂う生きもの' : 'サンゴと底生生物'}</h3>
@@ -643,6 +657,7 @@ function checkSightings() {
   const W = cur!.whales;
   if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'));
   if (cur!.birds && cam.y > 0) for (const b of cur!.birds.inView(cam, fwd, 80)) discover(b);
+  if (cur!.bait?.near(cam, 30)) discover(loc.bait!.sp);
 }
 
 /* ================= globe UI ================= */
@@ -714,6 +729,7 @@ function applyWater(loc: Sea) {
 }
 function enterOcean(oc: Ocean) {
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
+  oc.eco.env.sound = { frenzy, plop };
   lastPhase = '';
   director.reset(); lastShot = null;
   dayKey = '';
@@ -882,9 +898,11 @@ function setQuality(t: Tier) {
   applyTierToSea();
   resize();
 }
+const predatorsJa = (loc: Sea) => (loc.bait?.predators || []).map((p) => loc.species.find((s) => s.id === p.id)?.ja).filter(Boolean).slice(0, 2).join('や');
 function applyTierToSea() {
   if (!cur) return;
   for (const f of cur.fish as any[]) f.setFraction?.(TIERS[tier].shoal);
+  cur.bait?.setFraction(TIERS[tier].shoal);
 }
 const TIER_ORDER: Tier[] = ['low', 'medium', 'high'];
 function toggleFull() {
@@ -1078,7 +1096,7 @@ function frame(ts: number) {
     }
     U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
-    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) seaLog(ev.kind, ev.text, ev.at);
+    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
@@ -1112,7 +1130,9 @@ function frame(ts: number) {
     surface.visible = snow.visible = !air;
     shafts.visible = !TIERS[tier].vol && !air;
     updateAir(camera, renderer.domElement.height, renderer.getPixelRatio());
-    cur.birds?.update(dt, drone.pos, fx, fz, air, (sp, t) => { seaLog('observe', t); say('bird', { name: sp.ja }); });
+    cur.birds?.update(dt, drone.pos, fx, fz, air, (sp, t) => { seaLog('observe', t); say('bird', { name: sp.ja }); }, cur.bait?.attract,
+      { splash: splashAt, bubbles: (x, y, z) => bubblesAt(x, y, z, 1), plop: (p) => plop(p.distanceTo(camera.position)) });
+    updateSplash(dt, snowMat.uniforms.uPx.value);
     stepMeteors(clock.live ? dt : dt * clock.speed, dt, clock.ms, camera.position, U.uStarM.value, { sunAir: skyNow!.sunAir, moonI: U.uMoonI.value, cloud: U.uCloud.value }, air, (t) => { seaLog('observe', t); say('meteor'); });
     // the guide: its own trips to the sky, and a word now and then when nothing much is happening
     skySchedule(dt);
@@ -1153,4 +1173,4 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, get bait() { return cur?.bait; }, thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };

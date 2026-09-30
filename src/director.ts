@@ -38,7 +38,7 @@ export class Director {
     this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07);
     this.t = 0;
     const [a, b] = DURATION[best.kind];
-    this.dur = rr(a, b) * this.dwellK;
+    this.dur = best.hold ?? rr(a, b) * this.dwellK;
     this.recent.set(best.key, this.clock);
     this.recent.set('kind:' + best.kind, this.clock);
     this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach', forced };
@@ -91,7 +91,7 @@ export class Director {
       if (this.t === 0) { sh.pos.copy(drone as THREE.Vector3); sh.look.set(drone.x + 10, drone.y, drone.z); }
       return sh;
     }
-    if (!p || far || (sh.phase === 'observe' && this.t > this.dur) || (s.kind === 'hunt' && !s.live() && this.t > 4)) {
+    if (!p || far || (sh.phase === 'observe' && this.t > this.dur) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
       this.shot = null;
       this.cooldown = rr(30, 70);
       return null;

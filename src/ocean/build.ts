@@ -11,6 +11,7 @@ import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import { makeWhales } from '../eco/whale';
 import { makeBirds } from '../eco/birds';
+import { makeBaitBall } from '../eco/baitball';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
 
@@ -398,6 +399,7 @@ export function buildOcean(loc) {
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
   if (loc.whales) oc.whales = makeWhales(oc);
   if (loc.birds) oc.birds = makeBirds(loc.birds, group);
+  if (loc.bait) oc.bait = makeBaitBall(oc, 1);
   oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);

@@ -575,9 +575,9 @@ export function sharkGeometry(style: 'reef' | 'whitetip') {
   return g;
 }
 
-export function fishGeometry(sh) {
+export function fishGeometry(sh, low = false) {
   if (sh.lofted) return sharkGeometry(sh.lofted);
-  const body = new THREE.SphereGeometry(0.5, 16, 12);
+  const body = low ? new THREE.SphereGeometry(0.5, 8, 6) : new THREE.SphereGeometry(0.5, 16, 12);   // low: for schools of hundreds
   body.rotateX(Math.PI / 2);
   const p = body.attributes.position;
   for (let i = 0; i < p.count; i++) {
@@ -626,7 +626,7 @@ export function fishMaterial(sp) {
        vL = position; vFin = aFin; vTint = aSwim.z;
        gl_Position = projectionMatrix * viewMatrix * wp;
      }`,
-    `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye;
+    `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye; uniform float uShine;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
@@ -750,14 +750,14 @@ export function fishMaterial(sp) {
        float eye = (1.0 - smoothstep(0.022 * uEye, 0.034 * uEye, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        alb = mix(alb, vec3(0.02), eye);
        #endif
-       float spec = pow(max(dot(reflect(-SUN, n), V), 0.0), 24.0) * 0.6 * uSunI;
+       float spec = pow(max(dot(reflect(-SUN, n), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine;   // silvery fish flash as they turn
        float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb;
        vec3 col = absorb(alb * (lightAt(n, caveLight(vWp)) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
        col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb;
        col += lamp(alb, vWp, n) * 1.2;
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 } },
+    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 } },
       opts: { side: THREE.DoubleSide } });
 }
 

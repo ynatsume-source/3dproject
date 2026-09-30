@@ -61,7 +61,11 @@ export function makeShoalSystem(sp: Species, oc: any) {
   }
 
   let target = 1;
+  // the reef height under each fish, refreshed every few frames in turn (terrain sampling is costly)
+  let frame = 0, fhC = new Float32Array(0);
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
+    frame++;
+    if (fhC.length < p.length / 3) fhC = new Float32Array(p.length / 3).fill(-1e9);
     const act = activity(sp.diel, env); target = act;
     for (let s = 0; s < S; s++) {
       const L = leaders[s];
@@ -134,7 +138,8 @@ export function makeShoalSystem(sp: Species, oc: any) {
         const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.hypot(ddx, ddy, ddz), r = th.r + 2;
         if (dd < r) { const k = (r - dd) * 4 / Math.max(dd, 0.1); fx2 += ddx * k; fy2 += ddy * k; fz2 += ddz * k; L.fear = 1; }
       }
-      const fh = T.top(px, pz);
+      if (((frame + i) % 6) === 0 || fhC[i] < -1e8) fhC[i] = T.top(px, pz);
+      const fh = fhC[i];
       if (py < fh + 1) fy2 += (fh + 1 - py) * 3;
       if (py > -1.2) fy2 -= (py + 1.2) * 3;
       let vx = v[i * 3] + fx2 * dt, vy = v[i * 3 + 1] + fy2 * dt, vz = v[i * 3 + 2] + fz2 * dt;

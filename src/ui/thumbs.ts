@@ -12,7 +12,7 @@ let renderer: THREE.WebGLRenderer | null = null;
 const cache = new Map<string, Record<string, string>>();
 
 function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, number, number] } | null {
-  const sp = loc.species.find((s) => s.id === id);
+  const sp = loc.species.find((s) => s.id === id) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined);
   if (sp) {
     const g = fishGeometry(SHAPES[sp.shape]);
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));

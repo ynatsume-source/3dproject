@@ -122,6 +122,12 @@ export const seaTop = new THREE.Mesh(DISC, mat(
      }
      // whitecaps once the wind picks up, riding the crests
      float foam = smoothstep(0.68, 0.78, fbm2(p * 0.09 + vec2(t * 0.03, t * 0.01)) + g.x * 0.4 + sw.x * 0.3) * clamp((uWave - 1.2) * 1.2, 0.0, 1.0);
+     // a bait ball: the surface churned white and nervous where it is packed against it
+     float bd = length(p - uBoil.xy), boil = uBoil.w * smoothstep(uBoil.z, uBoil.z * 0.3, bd);
+     if (boil > 0.0) {
+       foam = max(foam, boil * smoothstep(0.52, 0.8, fbm2(p * 1.3 + vec2(t * 0.9, -t * 0.7)) * 0.7 + fbm2(p * 3.1 - vec2(t * 1.7, t * 1.1)) * 0.45));
+       rough += boil * 0.06;
+     }
      vec3 foamC = (sunAirCol() * max(uAirSun.y, 0.0) * 0.9 + skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.8) * (1.0 + uFlash);
      // far off, the air itself: the sea melts into the sky at the horizon
      float fh = 1.0 - exp(-d / 18000.0);

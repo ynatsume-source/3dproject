@@ -108,7 +108,11 @@ export function birdModel(sp: BirdSpec) {
   return m;
 }
 
-interface Bird { p: THREE.Vector3; h: number; vy: number; state: 'fly' | 'land' | 'rest' | 'takeoff'; t: number; seed: number; altT: number; flap: number; flapping: number; ph: number; fold: number; bank: number; pitch: number; stateT: number; speed: number; placed: boolean }
+// something at the surface worth gathering over (a bait ball), and what a dive into it does
+export interface Attractor { on: boolean; c: THREE.Vector3; r: number; take(x: number, z: number): void }
+export interface Plunge { splash(x: number, z: number, big: number): void; bubbles(x: number, y: number, z: number): void; plop(p: THREE.Vector3): void }
+
+interface Bird { p: THREE.Vector3; h: number; vy: number; state: 'fly' | 'land' | 'rest' | 'takeoff' | 'dive' | 'under'; dip?: boolean; tx?: number; tz?: number; t: number; seed: number; altT: number; flap: number; flapping: number; ph: number; fold: number; bank: number; pitch: number; stateT: number; speed: number; placed: boolean }
 
 export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
   const flocks = specs.map((sp) => {
@@ -134,24 +138,47 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
     b.h = R() * 6.28; b.placed = true;
   }
 
-  function update(dt: number, cam: THREE.Vector3, fx: number, fz: number, show: boolean, log: (sp: BirdSpec, text: string) => void) {
+  function update(dt: number, cam: THREE.Vector3, fx: number, fz: number, show: boolean, log: (sp: BirdSpec, text: string) => void, at?: Attractor | null, fx2?: Plunge) {
     const wa = Math.atan2(U.uCurrent.value.y, U.uCurrent.value.x) + 0.6;   // the wind blows along the swell
     for (const F of flocks) {
       const sp = F.sp, arr = F.fly.array as Float32Array;
-      F.mesh.visible = show;
+      F.mesh.visible = true;   // (from under the water only diving birds are in sight: the surface hides the rest)
       F.birds.forEach((b, i) => {
         b.t += dt; b.stateT += dt;
         const dx = b.p.x - cam.x, dz = b.p.z - cam.z;
-        if (!b.placed || dx * dx + dz * dz > 170 * 170) place(b, sp, cam, fx, fz, !b.placed);
+        if (!b.placed || (dx * dx + dz * dz > 170 * 170 && !(at && at.on))) place(b, sp, cam, fx, fz, !b.placed);
         const sea = swellAt(b.p.x, b.p.z);
-        if (b.state === 'rest') {
+        const lure = at && at.on && sp.kind !== 'frigate' ? at : null;
+        const lx = lure ? lure.c.x - b.p.x : 0, lz = lure ? lure.c.z - b.p.z : 0, ld = Math.hypot(lx, lz);
+        if (b.state === 'dive') {
+          // folded back into an arrow, straight at the fish
+          b.fold += (0.85 - b.fold) * Math.min(1, dt * 5); b.flapping = 0; b.flap = 0;
+          const tx = (b.tx ?? b.p.x) - b.p.x, tz = (b.tz ?? b.p.z) - b.p.z, dh = Math.hypot(tx, tz);
+          b.speed = Math.min(b.dip ? 10 : 17, b.speed + dt * 9);
+          const down = b.dip ? 0.5 : 1.4;
+          const hs = b.speed / Math.hypot(1, down), vy = -hs * down;
+          if (dh > 0.3) b.h = Math.atan2(tz, tx);
+          b.p.x += Math.cos(b.h) * Math.min(hs, dh / 0.3) * dt; b.p.z += Math.sin(b.h) * Math.min(hs, dh / 0.3) * dt; b.p.y += vy * dt;
+          b.pitch = -Math.atan2(-vy, hs) * 0.95; b.bank *= 0.9;
+          if (b.p.y <= sea + (b.dip ? 0.25 : 0)) {
+            fx2?.splash(b.p.x, b.p.z, b.dip ? 0.15 : 0.6); fx2?.plop(b.p); lure?.take(b.p.x, b.p.z);
+            if (b.dip) { b.state = 'fly'; b.stateT = 0; b.vy = 3; b.altT = sea + rr(3, 7); b.speed = sp.speed * 0.7; }
+            else { b.state = 'under'; b.stateT = 0; b.vy = -5; }
+          }
+        } else if (b.state === 'under') {
+          // carried down by the plunge, then bobbing back up
+          b.vy += dt * 7; b.p.y += b.vy * dt; b.p.x += Math.cos(b.h) * 1.2 * dt; b.p.z += Math.sin(b.h) * 1.2 * dt;
+          b.p.y = Math.max(b.p.y, -3.2);
+          fx2?.bubbles(b.p.x, b.p.y, b.p.z);
+          if (b.stateT > 0.5 && b.p.y >= sea) { b.state = 'rest'; b.p.y = sea; b.stateT = (b.seed % 1 + 1) * 70 - rr(3, 9); }
+        } else if (b.state === 'rest') {
           // floating: bob on the swell, turn to face the wind, drift
           b.p.y = sea + 0.02; b.fold = Math.min(1, b.fold + dt * 1.5); b.flap = 0;
           let d = wa + Math.PI - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); b.h += d * dt * 0.2;
           b.p.x += Math.cos(wa) * 0.05 * dt; b.p.z += Math.sin(wa) * 0.05 * dt;
           b.bank = Math.sin(b.t * 0.9 + b.seed) * 0.08; b.pitch = Math.sin(b.t * 0.7) * 0.06;
-          if (b.stateT > (b.seed % 1 + 1) * 70) { b.state = 'takeoff'; b.stateT = 0; b.h = wa + Math.PI; b.speed = 2; }
-        } else {
+          if (b.stateT > (b.seed % 1 + 1) * 70 || (lure && ld > lure.r * 4 && R() < dt * 0.3)) { b.state = 'takeoff'; b.stateT = 0; b.h = wa + Math.PI; b.speed = 2; }
+        } else if (b.state === 'fly' || b.state === 'land' || b.state === 'takeoff') {
           if (b.state === 'takeoff') {
             // run and flap into the wind until airborne
             b.fold = Math.max(0, b.fold - dt * 3); b.speed = Math.min(sp.speed, b.speed + dt * 4); b.flapping = 1;
@@ -162,7 +189,19 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
             // wander: slow meanders; the soaring birds carve long arcs
             const arc = sp.kind === 'albatross' || sp.kind === 'frigate' ? 0.35 : 0.5;
             let turn = (Math.sin(b.t * 0.23 + b.seed) * 0.6 + Math.sin(b.t * 0.071 + b.seed * 3) * 0.5) * arc;
-            if (dx * dx + dz * dz > 75 * 75) { let d = Math.atan2(-dz, -dx) - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d * 0.6; }
+            if (lure && b.state === 'fly') {
+              // wheel over the fish: circle at a height that suits the bird, and go in
+              const orbit = sp.kind === 'albatross' ? lure.r + 2 : sp.kind === 'tern' ? lure.r + 5 : lure.r + 10;
+              const tang = Math.atan2(lz, lx) + (b.seed % 2 < 1 ? 1 : -1) * Math.PI / 2 * clamp(orbit / Math.max(ld, 1), 0, 1.4);   // head in from afar, then wheel round
+              let d = tang - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn = d * 1.4 + turn * 0.3;
+              b.altT = sea + (sp.kind === 'tern' ? rr(3, 6) : sp.kind === 'albatross' ? 1.5 : 8 + (b.seed % 1) * 10);
+              if (ld < orbit + 6 && b.stateT > 2 && R() < dt * (sp.kind === 'booby' ? 0.3 : sp.kind === 'tern' ? 0.5 : 0)) {
+                b.state = 'dive'; b.stateT = 0; b.dip = sp.kind === 'tern';
+                const a = R() * 6.28, rr0 = Math.sqrt(R()) * lure.r;
+                b.tx = lure.c.x + Math.cos(a) * rr0; b.tz = lure.c.z + Math.sin(a) * rr0;
+              }
+              if (sp.kind === 'albatross' && ld < lure.r + 3 && R() < dt * 0.2) { b.state = 'land'; b.stateT = 0; }
+            } else if (dx * dx + dz * dz > 75 * 75) { let d = Math.atan2(-dz, -dx) - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d * 0.6; }
             b.h += turn * dt;
             b.bank += (clamp(-turn * (sp.kind === 'albatross' ? 2.2 : 1.3), -0.9, 0.9) - b.bank) * Math.min(1, dt * 2);
             if (sp.kind === 'albatross') b.altT = sea + 0.8 + 6 * Math.abs(Math.sin(b.t * 0.32 + b.seed));     // dynamic soaring: dip to the crests, climb into the wind
@@ -174,7 +213,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
             // flap in bursts between glides; always when climbing or slow
             if (b.flapping > 0) b.flapping -= dt; else if (R() < dt * (1 - sp.glide) * 0.8) b.flapping = rr(0.8, 2.2);
           }
-          const vyT = clamp((Math.max(b.altT, sea + 0.4) - b.p.y) * 0.6, -3, 2.5);
+          const vyT = clamp((Math.max(b.altT, sea + (b.state === 'land' ? 0.05 : 0.4)) - b.p.y) * 0.6, -3, 2.5);   // landing: all the way down
           b.vy += (vyT - b.vy) * Math.min(1, dt * 1.5);
           if (b.vy > 0.8 || b.speed < sp.speed * 0.7) b.flapping = Math.max(b.flapping, 0.3);
           b.p.x += Math.cos(b.h) * b.speed * dt; b.p.z += Math.sin(b.h) * b.speed * dt; b.p.y += b.vy * dt;
@@ -187,7 +226,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
         b.flap += (((b.flapping > 0 && b.state !== 'rest') ? (sp.kind === 'albatross' ? 0.45 : 0.75) : 0) - b.flap) * Math.min(1, dt * 6);
         b.ph += dt * hz * 6.28;
         arr[i * 3] = b.flap; arr[i * 3 + 1] = b.ph; arr[i * 3 + 2] = b.fold;
-        if (show) {
+        {
           _o.position.copy(b.p);
           _o.rotation.set(0, 0, 0);
           _o.rotation.order = 'YXZ';
@@ -197,7 +236,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
           F.mesh.setMatrixAt(i, _o.matrix);
         }
       });
-      if (show) { F.mesh.instanceMatrix.needsUpdate = true; F.fly.needsUpdate = true; }
+      F.mesh.instanceMatrix.needsUpdate = true; F.fly.needsUpdate = true;
     }
   }
   const inView = (cam: THREE.Vector3, fwd: THREE.Vector3, maxD: number) => {

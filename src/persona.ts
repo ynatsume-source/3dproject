@@ -3,7 +3,7 @@
 // and what it says along the way.
 import type { Subject } from './eco/env';
 
-export type Mood = 'hello' | 'shot' | 'sighting' | 'hunt' | 'skyUp' | 'skyDown' | 'dawn' | 'noon' | 'dusk' | 'night' | 'meteor' | 'rain' | 'bird' | 'idle' | 'idleNight' | 'idleSky';
+export type Mood = 'bait' | 'hello' | 'shot' | 'sighting' | 'hunt' | 'skyUp' | 'skyDown' | 'dawn' | 'noon' | 'dusk' | 'night' | 'meteor' | 'rain' | 'bird' | 'idle' | 'idleNight' | 'idleSky';
 export interface Persona {
   id: string; ja: string; blurb: string;
   cruise: number;            // cruising speed ×
@@ -23,6 +23,7 @@ export const PERSONAS: Persona[] = [
     cruise: 0.8, dwell: 1.5, sway: 0.7, skyGap: [900, 1500], skyStay: [240, 420], talk: 3, gap: 50,
     weight: () => 1,
     lines: {
+      bait: ['…海が騒がしくなってきた。ベイトボールだ。', '命がぶつかり合ってる。見届けよう。'],
       hello: ['来たね。ゆっくり見ていこう。', '今日の{sea}は、どんな顔をしてるかな。'],
       shot: ['{name}だ。そっと近づくね。', '{name}。少し一緒にいさせてもらおう。', '驚かせないように、{name}を見てみよう。'],
       sighting: ['{name}に会えた。', 'はじめまして、{name}。'],
@@ -41,6 +42,7 @@ export const PERSONAS: Persona[] = [
     cruise: 1.55, dwell: 0.5, sway: 1.5, skyGap: [300, 600], skyStay: [90, 180], talk: 14, gap: 14,
     weight: (s) => (s.kind === 'school' || s.kind === 'hunt' ? 1.4 : 1),
     lines: {
+      bait: ['ベイトボールだ！！ 急げ急げ急げ！', 'すごいすごい！ 全部来てる！'],
       hello: ['よし来た！どこから見る？全部見よう！', '{sea}だ！急ごう、時間がもったいない！'],
       shot: ['{name}！あっちあっち！', 'ほら{name}！見て見て！', '{name}発見！寄るよ！'],
       sighting: ['{name}！新顔だ！図鑑図鑑！', 'やった、{name}！'],
@@ -59,6 +61,7 @@ export const PERSONAS: Persona[] = [
     cruise: 1.1, dwell: 1.0, sway: 1.0, skyGap: [1200, 2000], skyStay: [120, 240], talk: 5, gap: 35,
     weight: (s, shark) => (shark(s) ? 4 : s.kind === 'hunt' ? 3 : s.kind === 'giant' ? 1.5 : 0.55),
     lines: {
+      bait: ['ベイトボールだ。捕食者が全員集まってくる。最高の時間だ。', 'これを待ってたんだ。'],
       hello: ['さて、今日はどんなサメに会えるかな。', '{sea}のサメ、探しに行こう。'],
       shot: ['{name}…やっぱりいい。', 'まあ、{name}も悪くないけど。サメはどこかな。', '{name}か。ふむ。'],
       sighting: ['{name}！図鑑に入れた。', '{name}、覚えたよ。'],
@@ -77,6 +80,7 @@ export const PERSONAS: Persona[] = [
     cruise: 1.0, dwell: 0.9, sway: 1.1, skyGap: [150, 300], skyStay: [360, 720], talk: 6, gap: 30,
     weight: (s) => (s.kind === 'manta' || s.kind === 'giant' ? 1.4 : 1),
     lines: {
+      bait: ['鳥が集まってる！ 上から見るとすごいよ、これ。', '海鳥が次々突っ込んでる！'],
       hello: ['今日の空はどうかな。あとで見に行こう。', '{sea}の空、好きなんだ。'],
       shot: ['{name}。水の中の光もきれいだね。', '{name}のところに光が落ちてる。'],
       sighting: ['{name}に会えたよ。'],
@@ -95,6 +99,7 @@ export const PERSONAS: Persona[] = [
     cruise: 0.95, dwell: 1.1, sway: 1.0, skyGap: [600, 1000], skyStay: [180, 300], talk: 18, gap: 16,
     weight: () => 1,
     lines: {
+      bait: ['ベイトボールだよ！ 小魚は固まると一匹あたりが狙われにくくなるの。数で身を守ってるんだね。', 'ほら、ベイトボール。めったに見られないんだから、ちゃんと見ておいて。'],
       hello: ['いらっしゃい。{sea}のこと、いろいろ教えてあげるね。', 'ようこそ。今日はわたしが案内するよ。'],
       shot: ['ほら、{name}だよ。よく見て。', '{name}。ねえ知ってる？ {note}', '{name}のこと、教えてあげようか。{note}'],
       sighting: ['{name}、図鑑に入れておいたからね。', '新しい子だよ、{name}。あとで図鑑も見てね。'],

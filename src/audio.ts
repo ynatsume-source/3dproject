@@ -412,3 +412,33 @@ export function setAir(on: boolean) {
   bedGain.gain.setTargetAtTime(on ? 0 : 0.12 + 0.04 * (1 - audio.night), t, 0.4);
   crackleGain.gain.setTargetAtTime(on ? 0 : 0.18, t, 0.3);
 }
+
+// ---------- bait balls ----------
+// The frenzy: a rushing, fluttering churn of thousands of fish turning at once and predators tearing
+// through them, fading with distance; and the sharp plop of each bird or fish hitting the water.
+let frenzyGain: GainNode | null = null;
+export function frenzy(level: number, dist: number) {
+  if (!ac) return;
+  if (!frenzyGain) {
+    const a = ac, len = a.sampleRate * 3, b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.5 + 0.5 * Math.random() ** 6);
+    const s = a.createBufferSource(); s.buffer = b; s.loop = true;
+    const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 0.6;
+    const flutter = a.createGain(); flutter.gain.value = 0.6;
+    const lfo = a.createOscillator(); lfo.frequency.value = 7.3; const lg = a.createGain(); lg.gain.value = 0.4;
+    lfo.connect(lg).connect(flutter.gain); lfo.start();
+    frenzyGain = a.createGain(); frenzyGain.gain.value = 0;
+    s.connect(bp).connect(flutter).connect(frenzyGain).connect(natureBus); s.start();
+  }
+  const v = audio.on ? Math.min(1, level) * 0.22 / (1 + dist / 18) : 0;
+  frenzyGain.gain.setTargetAtTime(v, ac.currentTime, 0.5);
+}
+export function plop(dist: number) {
+  if (!ac || !audio.on || dist > 90) return;
+  const a = ac, t0 = a.currentTime + dist / 1500, len = Math.floor(a.sampleRate * 0.35), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 14) * (t < 0.004 ? t / 0.004 : 1); }
+  const s = a.createBufferSource(); s.buffer = b;
+  const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = rnd(700, 1500); f.Q.value = 1.2;
+  const g = a.createGain(); g.gain.value = 0.25 / (1 + dist / 12);
+  s.connect(f).connect(g).connect(natureBus); s.start(t0);
+}
