@@ -749,6 +749,11 @@ function renderIsland() {
   return `<h2>島の住人 <span>${loc.name}で暮らす4体</span></h2>
     <p class="lead">それぞれが自分の暮らしを持ち、島のどこかで出会うと話をします。はじめは挨拶、次に自己紹介、島で生きるコツ、近況……打ち解けてくると悩みも打ち明けます。見ていないあいだも、暮らしは続いています。</p>
     <ul>${cards}</ul>
+    ${(() => { const vg = (R as any).village; if (!vg) return '';
+      const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火を何度か囲むうちに、みんなで何かをつくる話が出てくるかもしれません（焚き火の会 ${vg.fires}回）。</p>`
+        : `<p class="lead"><b>桟橋</b>　${vg.pier === 'plan' ? 'カメマルが場所を測るのを待っている' : vg.pier === 'done' ? '完成！ みんなでつくったはじめての大きなもの' : `土台の石 ${vg.bases}/4（ランタン）・柱 ${vg.posts}/4（ラッコ）・板 ${vg.deck}/8（ドット）`}</p>`;
+      const tr = vg.treasures.length ? `<ul class="plain">${vg.treasures.map((x: any) => `<li>${x.what}　<small>${x.who}が見つけた・${localTimeString(x.at, loc.tz)}</small></li>`).join('')}</ul>` : '<p class="empty">まだ何も流れ着いていません。ときどき、遠くから何かが浜に打ち上がります。</p>';
+      return `<h3>みんなでつくっているもの</h3>${pier}<h3>海の向こうから流れ着いたもの</h3>${tr}`; })()}
     <h3>聞こえてきた会話</h3>
     ${talk ? `<ol class="diary talk">${talk}</ol><button class="go" type="button" data-tab="talk">会話ログをすべて見る</button>` : '<p class="empty">まだ誰も出会っていません。</p>'}
     <h3>AIで言葉を書く（試作）</h3>

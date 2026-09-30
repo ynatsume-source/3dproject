@@ -69,7 +69,7 @@ export interface Resident {
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
-  holding: '' | ItemKind | 'piece';       // what it has in its hands
+  holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
   held: THREE.Mesh;
 }
 export interface Residents {
@@ -153,7 +153,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const ghostM = new THREE.MeshBasicMaterial({ color: 0x8ff6ff, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false });
   const ghost = new THREE.Mesh(new THREE.BufferGeometry(), ghostM); ghost.visible = false; hut.add(ghost);
   const flyer = new THREE.Mesh(new THREE.BufferGeometry(), wood); flyer.visible = false; group.add(flyer);
-  const fly = { t: -1, k: 0, from: new THREE.Vector3(), fromQ: new THREE.Quaternion() };
+  const fly = { t: -1, m: null as THREE.Mesh | null, from: new THREE.Vector3(), fromQ: new THREE.Quaternion() };
+  // something carried lifts from the hands and swings into its place (the place is the hidden mesh itself)
+  function launch(r: Resident, m: THREE.Mesh, fast: boolean) {
+    if (fast || !r.model.root.visible) { m.visible = true; return; }
+    if (fly.m) { fly.m.visible = true; }
+    fly.t = 0; fly.m = m; r.held.getWorldPosition(fly.from); r.held.getWorldQuaternion(fly.fromQ); flyer.geometry = m.geometry; (flyer as THREE.Mesh).material = m.material as THREE.Material;
+  }
   const CHIPS = 24, chipsM = new THREE.InstancedMesh(new THREE.BoxGeometry(0.025, 0.012, 0.018), itemMat.wood, CHIPS); chipsM.count = 0; chipsM.frustumCulled = false; group.add(chipsM);
   const chips = Array.from({ length: CHIPS }, () => ({ p: new THREE.Vector3(), v: new THREE.Vector3(), t: 9 }));
   let chipNext = 0;
@@ -220,9 +226,72 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const seatAt = (i: number): [number, number] => { const a = i / 4 * 6.28 + 0.6; return [PIT.x + Math.cos(a) * 1.7, PIT.z + Math.sin(a) * 1.7]; };
   const fireHours = (hr: number) => hr >= 19.4 && hr < 21.1;   // lit
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0;  // on the way / sitting round it
-  let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0;
+  let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0, lastFireAt = 0;
+  const fireQueue: { who: string; line: string }[] = [];
   const fireUsed = new Set<string>();
   const atFire = new Set<string>();
+
+  /* ---------- the pier they build together ---------- */
+  // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
+  // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
+  // it first. It starts once they have sat round the fire together a few times.
+  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[] };
+  const pierAt = (() => {
+    let best: { x: number; z: number; dx: number; dz: number; d: number } | null = null;
+    for (let k = 0; k < 48; k++) {
+      const a = k / 48 * 6.28, dx = Math.cos(a), dz = Math.sin(a);
+      for (let d = 6; d < 70; d += 1) { const x = PIT.x + dx * d, z = PIT.z + dz * d; if (L.h(x, z) < 0.05) { if (!best || d < best.d) best = { x: PIT.x + dx * (d - 2), z: PIT.z + dz * (d - 2), dx, dz, d }; break; } }
+    }
+    return best ?? { x: PIT.x, z: PIT.z, dx: 1, dz: 0, d: 0 };
+  })();
+  const along = (t: number) => [pierAt.x + pierAt.dx * t, pierAt.z + pierAt.dz * t] as [number, number];
+  const pier = new THREE.Group(); group.add(pier);
+  const PILE_T = [2.2, 4.6, 7.0, 9.4];
+  const bases = PILE_T.map((t) => { const [x, z] = along(t); const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.26, 0), stoneM); m.position.set(x, L.h(x, z) + 0.12, z); m.visible = false; pier.add(m); return m; });
+  const posts = PILE_T.map((t) => { const [x, z] = along(t); const y0 = L.h(x, z) + 0.2, len = 0.95 - y0; const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, Math.max(0.4, len), 7), wood2); m.position.set(x, y0 + Math.max(0.4, len) / 2, z); m.visible = false; pier.add(m); return m; });
+  const planks = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => { const [x, z] = along(0.6 + k * 1.2); const m = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.06, 1.3), k % 2 ? wood : wood2); m.position.set(x, 0.98, z); m.rotation.y = Math.atan2(pierAt.dx, pierAt.dz); m.visible = false; pier.add(m); return m; });
+  const pierGhost = new THREE.Group(); pier.add(pierGhost); pierGhost.visible = false;
+  for (const m of [...bases, ...posts, ...planks]) { const g = new THREE.Mesh(m.geometry, ghostM); g.position.copy(m.position); g.rotation.copy(m.rotation); pierGhost.add(g); }
+  function drawPierSoon() { pierGhost.visible = village.pier === 'build'; pierGhost.children.forEach((g, i) => (g.visible = i < 4 ? i >= village.bases : i < 8 ? i - 4 >= village.posts : i - 8 >= village.deck)); }
+  function drawPier() {
+    bases.forEach((m, i) => (m.visible = i < village.bases)); posts.forEach((m, i) => (m.visible = i < village.posts)); planks.forEach((m, i) => (m.visible = i < village.deck));
+    pierGhost.visible = village.pier === 'build';
+    if (village.pier === 'build') pierGhost.children.forEach((g, i) => (g.visible = i < 4 ? i >= village.bases : i < 8 ? i - 4 >= village.posts : i - 8 >= village.deck));
+  }
+  const pileStand = (i: number, wet: boolean): [number, number] => { const [x, z] = along(PILE_T[i]); return wet ? [x + pierAt.dz * 0.8, z - pierAt.dx * 0.8] : [x - pierAt.dx * 1.2, z - pierAt.dz * 1.2]; };
+  const plankStand = (k: number): [number, number] => along(Math.max(-0.6, 0.6 + k * 1.2 - 1.2));   // (on the last plank laid)
+  // the ground under foot, counting the pier's deck as far as it is laid
+  function G(x: number, z: number) {
+    const h = L.h(x, z); if (!village.deck) return h;
+    const rx = x - pierAt.x, rz = z - pierAt.z, t = rx * pierAt.dx + rz * pierAt.dz, side = Math.abs(rx * pierAt.dz - rz * pierAt.dx);
+    return t > -0.8 && t < 0.6 * 0 + village.deck * 1.2 && side < 0.6 ? Math.max(h, 1.01) : h;
+  }
+
+  /* ---------- things the sea brings from far away ---------- */
+  const DRIFT = [
+    { id: 'bottle', ja: '瓶に入った手紙', geo: new THREE.CylinderGeometry(0.05, 0.06, 0.26, 10) },
+    { id: 'gear', ja: '見慣れない歯車', geo: new THREE.TorusGeometry(0.1, 0.03, 6, 12) },
+    { id: 'float', ja: 'ガラスの浮き玉', geo: new THREE.SphereGeometry(0.13, 12, 8) },
+    { id: 'tag', ja: '異国の文字の木札', geo: new THREE.BoxGeometry(0.22, 0.02, 0.12) },
+  ];
+  const glassM = rmat(0x8fd6c8, 1.4);
+  const driftMesh = new THREE.Mesh(DRIFT[0].geo, glassM); driftMesh.visible = false; group.add(driftMesh);
+  const drift = { kind: -1, x: 0, z: 0, t: 0, by: '' };
+  // the shelf by the hut where finds are kept
+  const shelf = new THREE.Group(); { const w = atHut(1.6, -1.5); shelf.position.set(w.x, L.h(w.x, w.z), w.z); shelf.rotation.y = hut.rotation.y; group.add(shelf);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.3), wood); b.position.y = 0.55; shelf.add(b); for (const sx of [-0.4, 0.4]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.55, 6), wood2); l.position.set(sx, 0.27, 0); shelf.add(l); } }
+  const shelfItems = DRIFT.map((d, i) => { const m = new THREE.Mesh(d.geo, i === 1 ? stoneM : i === 3 ? wood : glassM); m.position.set(-0.3 + i * 0.2, 0.66, 0); if (i === 0) m.rotation.z = Math.PI / 2; m.visible = false; shelf.add(m); return m; });
+  function drawShelf() { DRIFT.forEach((d, i) => (shelfItems[i].visible = village.treasures.some((t) => t.what === d.ja))); }
+  function tickDrift(dt: number) {
+    drift.t += dt;
+    if (drift.kind < 0 && drift.t > 5 * 3600) {   // every few hours something washes up, somewhere along the shore
+      drift.t = 0;
+      const at = spot([PIT.x, PIT.z], 260, tideline, 80); if (!at) return;
+      const left = DRIFT.map((_, i) => i).filter((i) => !village.treasures.some((t) => t.what === DRIFT[i].ja));
+      drift.kind = (left.length ? left : [0, 1, 2, 3])[Math.floor(Math.random() * (left.length || 4))]; drift.x = at[0]; drift.z = at[1]; drift.by = '';
+      driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.rotation.set(0, Math.random() * 6, drift.kind === 0 ? Math.PI / 2 : 0); driftMesh.visible = true;
+    }
+  }
   // Rakko's pile of shells on the beach; Lantern's cairns where it stopped to think
   const shellGeo = new THREE.SphereGeometry(0.05, 7, 5, 0, Math.PI * 2, 0, Math.PI / 2);
   const pile = new THREE.InstancedMesh(shellGeo, shellM, 80); pile.count = 0; group.add(pile);
@@ -277,7 +346,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- what lies about the island ---------- */
   const items = makeItems(L.h, spot, {
-    wood: { near: byId.dot.sp.home, rad: 160, ok: tideline, max: 6, every: 1500 },
+    wood: { near: byId.dot.sp.home, rad: 160, ok: tideline, max: 8, every: 1200 },
     shell: { near: byId.rakko.sp.home, rad: 170, ok: tideline, max: 16, every: 260 },
     stone: { near: [byId.lantern.sp.home[0] - 40, byId.lantern.sp.home[1] + 20], rad: 140, ok: (x, z, h) => h > 1.2 && cover(x, z).can < 0.4, max: 12, every: 900 },
   }, itemMat, group);
@@ -292,7 +361,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   const statVars = (r: Resident) => {
     const s = r.stats, map = Math.round(Math.min(100, visited.size / 3.2));
-    return { built: s.built, notes: s.notes, shells: s.shells, map, food: s.food,
+    return { built: s.built, notes: s.notes, shells: s.shells, map, food: s.food, deck: village.deck,
       hutNow: s.built === 0 ? 'マダ、材料 アツメテル トコロ。' : s.built < 18 ? `イマ、部材 ${s.built}本。進捗、順調。` : 'コヤ、モウ 完成シマシタ！',
       notesNow: s.notes === 0 ? '……記録をつけはじめたところです。' : `記録はもう${s.notes}件になりました。`,
       mapNow: map < 3 ? 'まだ歩きはじめたばかりだが。' : `いまで島の${map}%ほど。`,
@@ -315,6 +384,29 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (r.battery < 0.3 && day > 0.4 && !r.sp.nightOwl) return task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
     const q = Math.random();
+    // something strange lying on the beach nearby: go and look
+    if (drift.kind >= 0 && !drift.by && !r.holding && Math.hypot(drift.x - r.pos.x, drift.z - r.pos.z) < 60) { drift.by = r.id; return task('find', [drift.x, drift.z], 'pick', 6); }
+    if (r.holding === 'drift') return task('shelve', (() => { const w = shelf.position; return [w.x + 0.6, w.z + 0.6] as [number, number]; })(), 'work', 4);
+    // the pier, once they have agreed on it
+    if (village.pier === 'plan' && r.id === 'kame') return task('survey', along(1), 'look', rr(60, 120));
+    if (village.pier === 'build') {
+      if (r.id === 'lantern' && r.holding === 'stone' && village.bases < 4) return task('base', along(-0.8), 'work', 6);   // (from the shore it hands the stone out)
+      if (r.id === 'rakko' && r.holding === 'wood' && village.posts < village.bases) return task('post', pileStand(village.posts, true), 'work', 8, { wet: true });
+      if (r.id === 'dot' && r.holding === 'plank') return task('deck', plankStand(village.deck), 'hammer', 8);
+      if (r.id === 'rakko' && !r.holding && village.posts < village.bases && q < 0.3) {
+        const it = items.nearest('wood', r.pos.x, r.pos.z, 260, r.id);
+        if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
+      }
+      if (r.id === 'lantern' && !r.holding && village.bases < 4 && q < 0.35 && 1 - dayK(hr) > 0.5) {
+        const it = items.nearest('stone', r.pos.x, r.pos.z, 400, r.id);
+        if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'work', 3, { data: it }); }
+      }
+      if (r.id === 'kame' && q < 0.2) return task('inspect', along(4), 'look', rr(120, 300));   // keeping an eye on the work, and the tide
+      if (r.id === 'dot' && !r.holding && village.posts >= 4 && village.deck < 8 && (r.stats.built >= HUT.length || q < 0.15) && q < 0.3) {
+        const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id);
+        if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
+      }
+    }
     switch (r.id) {
       case 'dot': {
         // one piece at a time: find a log, bring it to the bench, shape it, fit it
@@ -380,14 +472,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     switch (tk.kind) {
       case 'gather':
         if (!items.take(tk.data)) break;   // (gone)
-        r.holding = 'wood'; r.stats.wood = 1; note(r, 'gather', {}, '流木を拾った');
+        r.holding = 'wood';
+        if (r.id !== 'dot') { r.today.push('桟橋の柱にする木を拾った'); r.task = null; return; }
+        r.stats.wood = 1; note(r, 'gather', {}, '流木を拾った');
         r.task = task('craft', benchStand(), 'work', rr(45, 75)); return;
-      case 'craft': r.holding = 'piece'; r.stats.wood = 0; r.task = r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'hammer', 7) : null; return;
+      case 'craft':
+        r.stats.wood = 0;
+        if (r.stats.built >= HUT.length && village.pier === 'build') { r.holding = 'plank'; r.task = null; return; }   // (a plank for the pier)
+        r.holding = 'piece'; r.task = r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'hammer', 7) : null; return;
       case 'place': {
         const k = r.stats.built; if (k >= HUT.length) { r.holding = ''; break; }
         r.holding = ''; r.stats.built++;
-        if (fast) HUT[k].visible = true;
-        else { fly.t = 0; fly.k = k; r.held.getWorldPosition(fly.from); r.held.getWorldQuaternion(fly.fromQ); flyer.geometry = HUT[k].geometry; (flyer as THREE.Mesh).material = HUT[k].material as THREE.Material; }
+        launch(r, HUT[k], fast);
         note(r, r.stats.built === 18 ? 'done' : 'build', {}, r.stats.built === 18 ? '小屋を完成させた' : '小屋の部材をひとつ取りつけた');
         break;
       }
@@ -415,6 +511,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!items.take(tk.data)) break;
         r.holding = 'shell'; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'work', 3); return;
       case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, 'きれいな貝殻を拾った'); break;
+      case 'survey': if (village.pier === 'plan') { village.pier = 'build'; drawPier(); note(r, 'survey', {}, '桟橋の位置を測った'); res.onEvent('pier', 'カメマルが桟橋の位置を測り終えた。いよいよ建設開始', r); } break;
+      case 'inspect': r.today.push('桟橋の工事を見守った'); break;
+      case 'base': if (r.holding !== 'stone' || village.bases >= 4) break; r.holding = ''; launch(r, bases[village.bases], fast); village.bases++; drawPierSoon(); note(r, 'base', {}, '桟橋の土台石を据えた'); break;
+      case 'post': if (r.holding !== 'wood' || village.posts >= village.bases) break; r.holding = ''; launch(r, posts[village.posts], fast); village.posts++; drawPierSoon(); note(r, 'post', {}, '桟橋の柱を立てた'); break;
+      case 'deck':
+        if (r.holding !== 'plank' || village.deck >= 8) break; r.holding = ''; launch(r, planks[village.deck], fast); village.deck++; drawPierSoon();
+        if (village.deck >= 8) { village.pier = 'done'; for (const o of list) note(o, 'pierDone', {}, 'みんなで桟橋を完成させた'); res.onEvent('pier', '桟橋が完成した！ みんなでつくった、はじめての大きなもの', r); }
+        else note(r, 'deck', {}, '桟橋の板を張った');
+        break;
+      case 'find':
+        if (drift.kind < 0 || drift.by !== r.id) break;
+        r.holding = 'drift'; driftMesh.visible = false; r.task = null;
+        r.today.push(`浜で${DRIFT[drift.kind].ja}を見つけた`); note(r, 'find', { thing: DRIFT[drift.kind].ja }); res.onEvent('drift', `${r.v.name}が浜で${DRIFT[drift.kind].ja}を見つけた`, r); return;
+      case 'shelve':
+        if (r.holding !== 'drift') break;
+        r.holding = ''; village.treasures.push({ what: DRIFT[drift.kind].ja, who: r.v.name, at: clockMs }); drift.kind = -1; drift.t = 0; drawShelf(); break;
       case 'fetch':
         if (!items.take(tk.data)) break;
         r.holding = 'stone'; r.task = null; return;   // (decide() takes it to the cairn)
@@ -454,12 +566,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const dx = tx - r.pos.x, dz = tz - r.pos.z, d = Math.hypot(dx, dz);
     if (d < 0.6) return true;
     let want = Math.atan2(dx, dz);
-    const inWater = L.h(r.pos.x, r.pos.z) < 0.1;
+    const inWater = G(r.pos.x, r.pos.z) < 0.1;
     const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1);
     // walkers keep to land: if the way ahead is water, turn uphill along the shore
     if (!r.sp.swims || (!wetTask && !inWater)) {
       const ax = r.pos.x + Math.sin(want) * 2, az = r.pos.z + Math.cos(want) * 2;
-      if (L.h(ax, az) < 0.25 && !(r.sp.swims && wetTask)) {
+      if (G(ax, az) < 0.25 && !(r.sp.swims && wetTask)) {
         const gx = L.h(r.pos.x + 1.5, r.pos.z) - L.h(r.pos.x - 1.5, r.pos.z), gz = L.h(r.pos.x, r.pos.z + 1.5) - L.h(r.pos.x, r.pos.z - 1.5);
         const up = Math.atan2(gx, gz), side = want + (Math.sin(want - up) > 0 ? 1.2 : -1.2);
         want = Math.abs(gx) + Math.abs(gz) > 0.01 ? side : want + 1.5;
@@ -470,12 +582,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     r.head += dh * Math.min(1, dt * 2.5);
     const step = Math.min(d, speed * dt) * Math.max(0, Math.cos(dh));
     const nx = r.pos.x + Math.sin(r.head) * step, nz = r.pos.z + Math.cos(r.head) * step;
-    if (r.sp.swims || L.h(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; }
+    if (r.sp.swims || G(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; }
     r.walk = step / Math.max(dt, 1e-3) / speed;
     return false;
   }
   function placeY(r: Resident) {
-    const h = L.h(r.pos.x, r.pos.z);
+    const h = r.wet && r.sp.swims && r.act === 'swim' ? L.h(r.pos.x, r.pos.z) : G(r.pos.x, r.pos.z);
     r.wet = h < 0.05;
     if (!r.wet) r.pos.y = h;
     else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max(h + 0.3, -1.2 + Math.sin(performance.now() * 0.0003) * 0.2);
@@ -576,7 +688,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.talk) { if (r.talk.a === r) stepTalk(r.talk, dt, fast); placeY(r); return; }
     // the evening fire: everyone who is up comes and sits round it, and goes off again after
     if (gatherHours(hr) && !sleepTime(r, hr) && r.task?.kind !== 'fire') {
-      items.release(r.id);
+      items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = '';
       const seat = seatAt(list.indexOf(r));
       r.task = task('fire', seat, 'sit', 1e9); r.blocked = 0;
     }
@@ -595,7 +707,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
       tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet);
       tk.t += dt;
-      if (tk.t > 1800 || r.blocked > 40) { items.release(r.id); r.task = null; return; }   // could not get there: think again
+      if (tk.t > 1800 || r.blocked > 40) { items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return; }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
       if (r.id === 'lantern') visited.add(cellOf(r.pos.x, r.pos.z));
     } else {
@@ -612,7 +724,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify({
-        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]),
+        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
         list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-40), holding: r.holding })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
@@ -635,6 +747,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
+    if (s.village) Object.assign(village, s.village);
+    lastFireAt = s.lastFireAt ?? 0;
+    if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
+    drawPier(); drawShelf();
     buildPile(); buildCairns();
     return Math.min(12 * 3600, Math.max(0, (Date.now() - s.at) / 1000));   // how long they lived on without us (up to half a day)
   }
@@ -666,6 +782,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       for (const c of cairnSpots) if (near(c[0], c[1], 60)) marks.push({ x: c[0], y: L.h(c[0], c[1]) + 0.2 + 0.22 * c[2], z: c[1], kind: 'place', label: '石積み', sub: `${c[2]}/4 段`, hot: tgt === c });
       { const [px, pz] = pileAt(0); if (near(px, pz, 60)) marks.push({ x: px, y: L.h(px, pz) + 0.3, z: pz, kind: 'place', label: '貝殻の山', sub: `${byId.rakko.stats.shells}個`, hot: tk?.kind === 'pile' }); }
+      if (village.pier !== 'none' && near(pierAt.x, pierAt.z, 90)) { const [x, z] = along(5); marks.push({ x, y: 1.3, z, kind: 'place', label: '桟橋', sub: village.pier === 'plan' ? '計画中' : village.pier === 'done' ? '完成' : `土台 ${village.bases}/4・柱 ${village.posts}/4・板 ${village.deck}/8`, hot: ['survey', 'inspect', 'base', 'post', 'deck'].includes(tk?.kind ?? '') }); }
+      if (drift.kind >= 0 && !list.some((o) => o.holding === 'drift') && near(drift.x, drift.z, 60)) marks.push({ x: drift.x, y: L.h(drift.x, drift.z) + 0.2, z: drift.z, kind: 'drift', label: '？ 見慣れないもの', hot: tk?.kind === 'find' });
       let target: Mark | null = marks.find((m) => m.hot) ?? null;
       if (!target && tk && !tk.arrived) target = { x: tk.x, y: L.h(tk.x, tk.z) + 0.2, z: tk.z, kind: 'goal', label: '目的地', hot: true };
       return { eye, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food };
@@ -673,7 +791,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     gibber,
     update(dt, ms, cam) {
       clockMs = ms;
-      items.tick(dt);
+      items.tick(dt); tickDrift(dt);
       for (const r of list) step(r, dt, false);
       fireCircle(dt, false);
       animateWork(dt);
@@ -690,6 +808,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const hk = r.holding === 'wood' && r.model.carry ? '' : r.holding;
         r.held.visible = !!hk && !(r.task?.kind === 'craft' && r.task.arrived);
         if (hk === 'piece' && r.stats.built < HUT.length) { lying(HUT[r.stats.built], r.held); r.held.scale.setScalar(0.6); }
+        else if (hk === 'plank') { r.held.geometry = planks[0].geometry; r.held.material = wood; r.held.rotation.set(0, 0, 0); r.held.scale.set(0.5, 1, 0.3); }
+        else if (hk === 'drift') { if (drift.kind >= 0) r.held.geometry = DRIFT[drift.kind].geo; r.held.material = glassM; r.held.rotation.set(0, 0, 0); r.held.scale.setScalar(1); }
         else if (hk) { r.held.geometry = items.geo[hk as ItemKind]; r.held.material = itemMat[hk as ItemKind]; r.held.rotation.set(0, 0, 0); r.held.scale.setScalar(hk === 'wood' ? 0.8 : 1); }
         if (r.saying) r.sayT += dt;
         r.subject.prio = r.talk ? 7 : r.act === 'sleep' ? 1.2 : 2.6;
@@ -701,8 +821,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
       const tk = r.task, k = tk?.kind ?? 'idle';
       const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
-      const going: Record<string, string> = { chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる' };
-      const at: Record<string, string> = { chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
+      const going: Record<string, string> = { survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる' };
+      const at: Record<string, string> = { survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
       if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
       const base: Record<string, string> = {
         sleep: r.wet ? '波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
@@ -731,6 +851,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
   };
   (res as any).items = items;   // (for ?debug)
+  (res as any).village = village;
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean) {
     r.saying = text; r.sayT = 0;
@@ -754,14 +875,39 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const bd = bonds[pair(ids[i], ids[j])]; bd.know = Math.min(1, bd.know + 0.12); if (bd.stage < 3) bd.stage++; bd.last = clockMs; }
         const names = ids.map((id) => byId[id].v.name).join('・');
         res.onEvent('fire', `${names}で焚き火を囲んだ`, byId[ids[0]]);
+        village.fires++; lastFireAt = clockMs;
       }
+      fireQueue.length = 0;
       atFire.clear(); fireSaid = false; fireConv = 0; fireLines = 0; fireUsed.clear();
       return;
     }
-    if (seated.length >= 2 && !fireSaid) { fireSaid = true; res.onEvent('fire', 'みんなが焚き火のまわりに集まってきた', seated[0]); }
+    if (seated.length >= 2 && !fireSaid) {
+      fireSaid = true; res.onEvent('fire', 'みんなが焚き火のまわりに集まってきた', seated[0]);
+      // what tonight is about: something found on the beach, and (after a few evenings) a plan to make something together
+      const found = village.treasures.filter((t) => t.at > lastFireAt);
+      for (const t of found) {
+        const f = list.find((r) => r.v.name === t.who);
+        if (f) fireQueue.push({ who: f.id, line: fill(pickOne(f.v.show), { thing: t.what }) });
+        for (const o of list.filter((r) => r !== f).sort(() => Math.random() - 0.5).slice(0, 2)) fireQueue.push({ who: o.id, line: pickOne(o.v.wonder) });
+      }
+      if (village.pier === 'none' && village.fires >= 2) {
+        for (const id of ['rakko', 'dot', 'kame', 'lantern']) fireQueue.push({ who: id, line: byId[id].v.pier[0] });
+        fireQueue.push({ who: 'rakko', line: byId.rakko.v.pier[1] }, { who: 'dot', line: byId.dot.v.pier[1] });
+        fireQueue.push({ who: '', line: 'pier' });   // (then it is agreed)
+      }
+    }
     if (seated.length < 2) return;
     if ((fireTalkT -= dt) > 0) return;
     fireTalkT = fast ? 60 : rr(16, 34);
+    while (fireQueue.length) {
+      const q = fireQueue.shift()!;
+      if (q.line === 'pier') { village.pier = 'plan'; drawPier(); res.onEvent('pier', 'みんなで桟橋をつくることに決めた。まずはカメマルが場所を測る', seated[0]); continue; }
+      const w = byId[q.who]; if (!w || !seated.includes(w)) continue;
+      for (const r of seated) if (r !== w) r.saying = '';
+      if (!fireConv) fireConv = heading('焚き火の会');
+      say(w, q.line, fireConv, fast); lastSpeaker = w.id; fireTalkT = fast ? 60 : rr(9, 16);
+      return;
+    }
     // a dozen or so things said in an evening, none twice; after that they just sit and watch the fire
     if (fireLines >= 14) return;
     const who = pickOne(seated.filter((r) => r.id !== lastSpeaker)) ?? seated[0];
@@ -829,11 +975,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (fly.t >= 0) {
       fly.t += dt;
       const k = Math.min(1, fly.t / 1.4), s = k * k * (3 - 2 * k);
-      slotWorld(fly.k); const to = _sw, toQ = _sq;
+      fly.m!.updateMatrixWorld(); fly.m!.matrixWorld.decompose(_sw, _sq, _ss); const to = _sw, toQ = _sq;
       flyer.visible = true;
       flyer.position.lerpVectors(fly.from, to, s); flyer.position.y += Math.sin(s * Math.PI) * 0.6;
       flyer.quaternion.slerpQuaternions(fly.fromQ, toQ, s);
-      if (k >= 1) { flyer.visible = false; fly.t = -1; HUT[fly.k].visible = true; reveal.push({ m: HUT[fly.k], t: 0 }); }
+      if (k >= 1) { flyer.visible = false; fly.t = -1; fly.m!.visible = true; reveal.push({ m: fly.m!, t: 0 }); fly.m = null; }
     }
     // and settles with a little bump
     for (let i = reveal.length - 1; i >= 0; i--) {
@@ -843,7 +989,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     // where the watched one is going
     const ft = focused?.task;
-    marker.visible = !!ft && !ft.arrived && ['gather', 'collect', 'fetch', 'craft', 'place', 'pile', 'stack', 'chop', 'till', 'plant', 'harvest', 'fire'].includes(ft.kind);
+    marker.visible = !!ft && !ft.arrived && ['gather', 'collect', 'fetch', 'craft', 'place', 'pile', 'stack', 'chop', 'till', 'plant', 'harvest', 'fire', 'survey', 'base', 'post', 'deck', 'find', 'shelve'].includes(ft.kind);
     if (marker.visible) {
       markT += dt;
       marker.position.set(ft!.x, L.h(ft!.x, ft!.z) + 0.06, ft!.z);
@@ -865,7 +1011,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const quiet = res.onEvent; res.onEvent = () => {};
     for (let k = 0; k < n; k++) {
       clockMs = t0 + k * 20000;
-      items.tick(20);
+      items.tick(20); tickDrift(20);
       for (const r of list) step(r, 20, true);
       fireCircle(20, true);
       if (k % 3 === 0) checkMeetings(true);
