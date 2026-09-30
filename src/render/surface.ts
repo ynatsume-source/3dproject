@@ -85,11 +85,16 @@ vec3 reefSurface(vec3 p, vec3 n, float reef, out vec3 nOut){
     dn += vec3(dot(dn0.xz, vec2(cos(ra), -sin(ra))), dn0.y, dot(dn0.xz, vec2(sin(ra), cos(ra))));
     col += c * uSand * 1.4;
   }
+  #ifndef PROBE_SAND_ONLY
   if (rubM > 0.01) { vec3 c = vec3(0.0); triSample(tRubC, tRubN, p, px, py, w, 0.42, 1.0, c, dn, rubM); col += c * mix(vec3(1.0), uRock * 2.0, 0.5) * 1.1; }
   if (rockM > 0.01) { vec3 c = vec3(0.0); triSample(tRockC, tRockN, p, px, py, w, 0.55, 1.2, c, dn, rockM);
-    vec3 c2 = vec3(0.0), dn2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, px * 0.23, py * 0.23, w, 0.55, 0.6, c2, dn2, rockM);   // a second, larger scale breaks the repeat
+    vec3 c2 = c, dn2 = vec3(0.0);
+    #ifndef PROBE_NO_ROCK2
+    c2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, px * 0.23, py * 0.23, w, 0.55, 0.6, c2, dn2, rockM);   // a second, larger scale breaks the repeat
+    #endif
     dn += dn2 * 0.6;
     col += overgrow(mix(c, c2, 0.35) * uRock * 2.3, p, n); }
+  #endif
   col *= 0.82 + 0.36 * vn2(p.xz * 0.07 + 11.0);                  // broad variation across the seabed
   nOut = normalize(n + dn);
   return col;

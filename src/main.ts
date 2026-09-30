@@ -910,20 +910,23 @@ async function shaderProbe() {
   const gl = renderer.getContext(), lost = () => gl.isContextLost();
   const VS = `varying vec3 vWp; varying vec3 vN; void main(){ vWp = position; vN = normal; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`;
   const V = 'varying vec3 vWp; varying vec3 vN;\n';
-  const steps: [string, string, boolean][] = [
+  const steps: [string, string, boolean, Record<string, number>?][] = [
     ['1 共通部分だけ', V + 'void main(){ gl_FragColor = vec4(fract(vWp * 0.1), 1.0); }', false],
     ['2 水中の光（shade）', V + 'void main(){ gl_FragColor = vec4(shade(vec3(0.5), vWp, normalize(vN), 0.95), 1.0); }', false],
     ['3 テクスチャ（textureGrad）', SURFACE + V + 'void main(){ gl_FragColor = vec4(textureGrad(tSandC, vWp.xz, dFdx(vWp.xz), dFdy(vWp.xz)).rgb, 1.0); }', true],
     ['4 分岐の中のtextureGrad', SURFACE + V + 'void main(){ vec3 c = vec3(0.0); vec2 gx = dFdx(vWp.xz), gy = dFdy(vWp.xz); if (vN.y > 0.5) c = textureGrad(tSandC, vWp.xz, gx, gy).rgb; gl_FragColor = vec4(c, 1.0); }', true],
     ['5 三方向投影ひとつ（triSample）', SURFACE + V + 'void main(){ vec3 c = vec3(0.0), dn = vec3(0.0); vec3 w = abs(normalize(vN)); triSample(tSandC, tSandN, vWp, dFdx(vWp), dFdy(vWp), w, 0.3, 0.8, c, dn, 1.0); gl_FragColor = vec4(c + dn, 1.0); }', true],
     ['6 海底の質感（reefSurface）', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); gl_FragColor = vec4(a + n * 0.01, 1.0); }', true],
+    ['7a 砂だけの質感＋光', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); gl_FragColor = vec4(shade(a, vWp, n, 0.95), 1.0); }', true, { PROBE_SAND_ONLY: 1 }],
+    ['7b 質感（岩の二層目なし）＋光', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); gl_FragColor = vec4(shade(a, vWp, n, 0.95), 1.0); }', true, { PROBE_NO_ROCK2: 1 }],
+    ['7c 質感＋光（コースティクスなし）', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); vec3 col = absorb(a * lightAt(n, caveLight(vWp + n * 0.25)) * 1.6, vWp.y) + lamp(a, vWp, n); gl_FragColor = vec4(fogIt(col, vWp), 1.0); }', true],
     ['7 海底そのもの（質感＋光）', SURFACE + V + 'void main(){ vec3 n; vec3 a = reefSurface(vWp, normalize(vN), 0.5, n); gl_FragColor = vec4(shade(a, vWp, n, 0.95), 1.0); }', true],
   ];
   const rt = new THREE.WebGLRenderTarget(64, 64, { type: THREE.HalfFloatType });
   const cam = new THREE.PerspectiveCamera(60, 1, 0.1, 100); cam.position.set(0, 3, 4); cam.lookAt(0, 0, 0);
   const geo = new THREE.PlaneGeometry(4, 4, 8, 8).rotateX(-Math.PI / 2);
-  for (const [name, fs, tex] of steps) {
-    const m = mat(VS, fs, tex ? { uniforms: SURF_UNIFORMS } : {});
+  for (const [name, fs, tex, defs] of steps) {
+    const m = mat(VS, fs, tex ? { uniforms: SURF_UNIFORMS, defines: defs || {} } : {});
     const mesh = new THREE.Mesh(geo, m); mesh.frustumCulled = false;
     const sc = new THREE.Scene(); sc.add(mesh);
     diagNow = name + ' → 準備中'; renderer.compile(sc, cam);
