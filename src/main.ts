@@ -880,6 +880,23 @@ function enterOcean(oc: Ocean) {
 // Diving in: the sea is built first (behind a veil), then a short glide from wherever the globe is
 // looking down to the site, and into the water.
 { const at = new URLSearchParams(location.search).get('at'); if (at && !isNaN(Date.parse(at))) { clock.live = false; clock.speed = 1; clock.ms = Date.parse(at); } }   // ?at=ISO time, for checking
+// ?bisect (with ?diag): to find what a GPU cannot draw, start from an empty sea and bring its things
+// back one kind at a time, a few seconds apart; if the GPU gives up, the last one brought back is named.
+const bisect = /[?&]bisect/.test(location.search);
+let bisectList: { hint: string; objs: THREE.Object3D[]; vis: boolean[] }[] | null = null, bisectI = -1, bisectT = 0;
+function bisectStep(dt: number) {
+  if (!cur) return;
+  if (!bisectList) {
+    const by = new Map<string, THREE.Object3D[]>();
+    const take = (root: THREE.Object3D) => root.traverse((o: any) => { if (!o.material || o === root) return; const h = `${o.type} ${shaderHint(Array.isArray(o.material) ? o.material[0] : o.material)} [${Object.keys(o.geometry?.attributes || {}).filter((k) => !['position', 'normal', 'uv'].includes(k)).join(',')}]`; if (!by.has(h)) by.set(h, []); by.get(h)!.push(o); });
+    take(oceanScene); take(topScene);
+    bisectList = [...by].map(([hint, objs]) => ({ hint, objs, vis: objs.map((o) => o.visible) }));
+    diagLog?.(`B ${bisectList.length} kinds to bring back, one every 3 s`);
+  }
+  bisectT += dt;
+  if (bisectT > 3 && bisectI < bisectList.length) { bisectT = 0; bisectI++; const b = bisectList[bisectI]; if (b) b.objs.forEach((o, k) => { o.visible = b.vis[k]; }); if (b) diagLog?.(`B ${bisectI + 1}/${bisectList.length} +${b.objs.length} ${b.hint}`); else diagLog?.('B all back: nothing failed'); }
+  for (let i = bisectI + 1; i < bisectList.length; i++) for (const o of bisectList[i].objs) o.visible = false;
+}
 // Get every shader of a sea ready before diving in, one at a time and without holding up the page.
 // All at once in the first frame is too much for some GPUs: on Windows each is translated for Direct3D,
 // slowly, and a long enough stall makes the browser reset the GPU (the screen goes white or black).
@@ -1334,6 +1351,7 @@ function frame(ts: number) {
     setAir(air);
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
+    if (bisect) bisectStep(dt);
     if (TIERS[tier].post) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
     cur.residents?.bubbles(camera, innerWidth, innerHeight);
     if (TIERS[tier].post) renderPip(dt, air);
