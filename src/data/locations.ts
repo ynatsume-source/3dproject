@@ -428,6 +428,149 @@ export const LOCATIONS: Sea[] = [
   LOCATIONS.splice(LOCATIONS.indexOf(miyako) + 1, 0, kayama);
 }
 
+// Two seas of big water, far from the others in time: the Red Sea (Elphinstone Reef, off Marsa Alam), a
+// long coral ridge rising out of deep blue; and the Galápagos (Wolf Island), dark volcanic boulders in
+// cool green water where the currents meet and the hammerheads school. Fish they share with the other
+// seas are the same species, taken from there.
+{
+  const all = LOCATIONS.flatMap((l) => [...l.species, ...(l.bait ? [l.bait.sp] : [])]);
+  const any = (id: string, o?: Partial<Species>): Species => ({ ...all.find((s) => s.id === id)!, ...(o || {}) });
+  const bird = (id: string, o?: Partial<BirdSpec>): BirdSpec => ({ ...LOCATIONS.flatMap((l) => l.birds || []).find((b) => b.id === id)!, ...(o || {}) });
+  const redsea: Sea = {
+    id: 'redsea', swellHs: 0.9, name: '紅海', site: 'エルフィンストーン・リーフ', region: 'Egypt · Marsa Alam',
+    lat: 25.31, lon: 34.86, depth: '4–40 m', vis: 40, temp: 26.0, tempYear: [22.5, 29.5], seed: 71, tz: 2, tide: { amp: 0.3, lag: 0.3, axis: [0, 1] },
+    blurb: '砂漠に囲まれた細長い海の、沖にひとすじ伸びるサンゴの尾根。両側は深い青へ切れ落ち、壁をソフトコーラルが覆う。',
+    water: { up: [0.25, 0.6, 0.98], hor: [0.01, 0.2, 0.6], down: [0.0, 0.05, 0.28], fog: 0.016, abs: [0.26, 0.055, 0.022] },
+    sand: [0.82, 0.8, 0.74], rock: [0.52, 0.47, 0.41],
+    f(x, z) {
+      // the ridge runs north–south, gently bending; to the north it steps down to a plateau
+      const u = x - (fbm(z * 0.006 + 2, 0.5, 3) - 0.5) * 40;
+      const north = smooth(40, 110, z);
+      const halfW = 13 + (fbm(z * 0.012, 3.1, 2) - 0.5) * 10 + 18 * north;
+      const top = -4.5 - 13 * north + (fbm(x * 0.03, z * 0.03, 3) - 0.5) * 3;
+      const floor = -38 + 12 * north + (fbm(x * 0.01 + 5, z * 0.01, 3) - 0.5) * 6;
+      const d = Math.abs(u) - halfW;
+      // buttresses and gullies down the walls
+      const rib = (Math.pow(Math.abs(Math.sin(z * 0.16 + (fbm(x * 0.05, z * 0.05, 2) - 0.5) * 4)), 0.7) - 0.5) * 6;
+      const wall = 1 - smooth(-2, 16 + rib, d);
+      let h = floor + (top - floor) * wall;
+      const b = bommieField(x, z, 22, 0.35, 1.5, 4, 2.5, 6, 73, 0.5);   // coral heads on the sand below
+      h += b[0] * (1 - wall);
+      h += (fbm(x * 0.07, z * 0.07, 3) - 0.5) * 1.4;
+      TERR.reef = Math.max(smooth(0.05, 0.4, wall) * 0.95, b[1] * 0.8);
+      return Math.min(h, -3);
+    },
+    corals: { branch: 0.14, table: 0.12, brain: 0.2, fan: 0.22, mushroom: 0.3, clam: 0.02 },
+    anemones: 20, clamSize: [0.25, 0.4], eels: 8,
+    birds: [
+      bird('katsuodori'),
+      { id: 'hoojiroajisashi', ja: 'ホオジロアジサシ', sci: 'Sterna repressa', note: '灰色の体に黒い帽子、頬の白い筋が目立つアジサシ。紅海とアラビアの沿岸だけで繁殖し、夏の海の上を群れで飛び回って小魚に飛び込む。', kind: 'tern', count: 6, span: 0.8, c1: [0.5, 0.52, 0.55], c2: [0.72, 0.73, 0.75], c3: [0.08, 0.08, 0.09], speed: 9, glide: 0.25, alt: [3, 14], rest: 0 },
+    ],
+    bait: {
+      sp: any('kibinago', { note: '銀色の体に青く光る縦帯の小魚。リーフの縁で大群をつくり、夕方にはアジやマグロの仲間に追い立てられる。' }),
+      predators: [{ id: 'rouninaji', n: 5 }, { id: 'isomaguro', n: 5 }, { id: 'onikamasu', n: 2 }],
+    },
+    species: [
+      { id: 'bicinctus', ja: 'レッドシーアネモネフィッシュ', sci: 'Amphiprion bicinctus', note: '紅海とアデン湾だけに暮らすクマノミ。オレンジから黄色の体に、黒く縁取られた白帯が2本。',
+        diel: 'day', diet: 'plankton', pat: 1, c1: [0.95, 0.55, 0.12], c2: [0.97, 0.97, 0.95], c3: [0.06, 0.05, 0.05], bands: 2, edge: 1, shape: 'clown', size: [0.08, 0.12], habitat: 'anemone', speed: 0.5 },
+      any('anthias', { note: 'オレンジ色の雲のような大群が、尾根の壁を覆う。紅海のサンゴ礁の代名詞。', schools: 12, n: 40 }),
+      { id: 'semilarvatus', ja: 'ブルーチークバタフライフィッシュ', sci: 'Chaetodon semilarvatus', note: '鮮やかな黄色の体に、目のまわりの青いほほ。紅海の固有種で、昼はテーブルサンゴの下でつがいや小群になって浮かんでいる。',
+        diel: 'day', diet: 'invert', pat: 0, c1: [0.98, 0.78, 0.12], c2: [0.99, 0.86, 0.3], shape: 'disc', size: [0.18, 0.23], habitat: 'reef', schools: 6, n: 2, spread: [0.8, 0.3, 0.8], alt: [0.6, 2], speed: 0.7 },
+      { id: 'sohal', ja: 'ソハールサージョンフィッシュ', sci: 'Acanthurus sohal', note: '青白い体に細い縦線が並ぶ紅海のニザダイ。尾の付け根のメスのようなとげはオレンジ色。浅い礁の縁になわばりを持ち、ほかの魚を追い払う。',
+        diel: 'day', diet: 'algae', pat: 5, c1: [0.78, 0.82, 0.88], c2: [0.14, 0.18, 0.32], bands: 9, shape: 'oval', size: [0.3, 0.4], habitat: 'reef', schools: 5, n: 2, spread: [2, 0.6, 2], alt: [0.5, 1.5], speed: 1.1 },
+      any('wrasse', { note: '通称ナポレオンフィッシュ。額のこぶが目印で、全長2mに達するベラ科最大種。紅海では人に慣れた大きな個体がダイバーのそばを悠々と泳ぐ。', count: 2 }),
+      { id: 'minokasago', ja: 'ハナミノカサゴ', sci: 'Pterois miles', note: '羽のように広がるひれに毒のとげを持つ。昼は岩陰で休み、夕暮れからひれを広げて小魚やエビを隅に追い込んで吸い込む。',
+        diel: 'crep', diet: 'invert', pat: 6, c1: [0.72, 0.3, 0.2], c2: [0.93, 0.86, 0.8], c3: [0.45, 0.14, 0.1], bands: 6, shape: 'grouper', size: [0.25, 0.35], habitat: 'reef', schools: 5, n: 1, spread: [0.5, 0.3, 0.5], alt: [0.3, 1.2], speed: 0.4 },
+      { id: 'hanadai', ja: 'レッドシーバナーフィッシュ', sci: 'Heniochus intermedius', note: '白と黒の帯に黄色いひれ、長く伸びた背びれ。紅海の固有種で、壁の前に小さな群れで浮かんでいる。',
+        diel: 'day', diet: 'plankton', pat: 3, c1: [0.95, 0.93, 0.86], c2: [0.98, 0.84, 0.2], c3: [0.05, 0.05, 0.05], shape: 'idol', size: [0.16, 0.22], habitat: 'reef', schools: 5, n: 4, spread: [1.4, 0.6, 1.4], alt: [1, 3], speed: 0.8 },
+      any('tatejima', { schools: 3 }),
+      { id: 'kanmuri', ja: 'カンムリブダイ', sci: 'Bolbometopon muricatum', note: '額が大きくこぶのように張り出した、最大級のブダイ。朝、群れで礁の上に現れ、頭をぶつけるようにしてサンゴをかじり取る。',
+        diel: 'day', diet: 'algae', pat: 0, c1: [0.3, 0.42, 0.36], c2: [0.55, 0.62, 0.52], shape: 'parrot', size: [0.9, 1.2], habitat: 'roam', count: 4, alt: [0.8, 3], speed: 0.8, big: true, cocoon: true },
+      any('gomamongara', { count: 2 }),
+      any('akashumoku', { note: 'ハンマー形の頭の両端に目がある。夏、エルフィンストーンの北の台地の沖に群れが現れ、深い青の中をゆっくり横切っていく。', count: 4, alt: [10, 20] }),
+      any('yogore', { note: '丸く大きな胸びれと背びれの先が白い外洋のサメ。秋から冬にかけて尾根に現れ、好奇心が強く、ダイバーの近くまで寄ってくる。', alt: [3, 12] }),
+      any('onikamasu'),
+      any('gingameaji', { note: '大きな目の銀色のアジ。尾根の南の端で数百匹が渦を巻き、夜になると散らばって小魚を狩る。' }),
+      any('rouninaji'),
+      any('isomaguro'),
+      any('nemuribuka', { count: 1, rests: undefined }),
+    ],
+    animals: { turtle: { style: 'hawksbill', count: 2 }, octopus: 2 },
+    extraGuide: [
+      { id: 'turtle', ja: 'タイマイ', sci: 'Eretmochelys imbricata', note: '鷹のくちばしのような口でカイメンを食べる。紅海のサンゴ礁は大事な餌場。' },
+      { id: 'eel', ja: 'レッドシーガーデンイール', sci: 'Gorgasia sillneri', note: '砂から体を伸ばして流れてくるプランクトンを食べる、紅海のアナゴの仲間。近づくと引っ込む。' },
+    ],
+    benthic: [
+      ['ソフトコーラル（トゲトサカ）', 'Dendronephthya spp.', '赤・紫・橙。流れが当たると膨らみ、壁を花畑のように覆う。'],
+      ['ウミウチワ（ヤギ類）', 'Gorgonacea', '尾根の壁で流れに向かって扇を広げる。'],
+      ['アミメミドリイシ', 'Acropora spp.', '浅い尾根の頂上に広がる。紅海のサンゴは高い水温に強いことで知られる。'],
+      ['ハマサンゴ（塊状）', 'Porites sp.', 'ゆっくり育つ岩のようなサンゴ。'],
+      ['センジュイソギンチャク', 'Heteractis magnifica', 'レッドシーアネモネフィッシュの住みか。'],
+    ],
+  };
+  const galapagos: Sea = {
+    id: 'galapagos', swellHs: 1.4, name: 'ガラパゴス', site: 'ウルフ島の東', region: 'Ecuador · Galápagos · Wolf Island',
+    lat: 1.382, lon: -91.806, depth: '8–35 m', vis: 18, temp: 23.5, tempYear: [21, 27], seed: 89, tz: -6, tide: { amp: 1.0, lag: 0.7, axis: [1, 0.3] },
+    blurb: '赤道の下、冷たい湧昇流と暖かい海流がぶつかる火山の島。黒い溶岩の岩が転がる斜面の上を、シュモクザメの群れが流れていく。',
+    water: { up: [0.4, 0.72, 0.78], hor: [0.08, 0.36, 0.44], down: [0.03, 0.14, 0.2], fog: 0.027, abs: [0.26, 0.06, 0.055] },
+    sand: [0.52, 0.5, 0.46], rock: [0.34, 0.32, 0.3],
+    f(x, z) {
+      // the island's flank falls away to the north; lava boulders, big and small, all over it
+      const s = smooth(-130, 130, z + (fbm(x * 0.01, 1.3, 3) - 0.5) * 70);
+      let h = -8 - 26 * s;
+      const b = bommieField(x, z, 12, 0.6, 1.2, 3.5, 1.8, 4.5, 91, 0.7);
+      const b2 = bommieField(x, z, 38, 0.45, 3, 8, 5, 11, 93, 0.6);
+      h += Math.max(b[0], b2[0]) * (1 - 0.4 * s);
+      h += (fbm(x * 0.09, z * 0.09, 3) - 0.5) * 1.8;
+      TERR.reef = Math.max(b[1], b2[1]) * 0.42;
+      return Math.min(h, -4);
+    },
+    corals: { branch: 0.04, table: 0, brain: 0.12, fan: 0.4, mushroom: 0.4, clam: 0 },
+    anemones: 0, clamSize: [0.2, 0.3], eels: 6,
+    birds: [
+      { id: 'aoashi', ja: 'アオアシカツオドリ', sci: 'Sula nebouxii', note: '空色の足をもつカツオドリ。群れで高く舞い、いっせいに翼をたたんで海へ突き刺さるように飛び込む。求愛では青い足を交互に持ち上げて見せる。', kind: 'booby', count: 8, span: 1.5, c1: [0.4, 0.33, 0.27], c2: [0.95, 0.94, 0.92], c3: [0.4, 0.55, 0.62], speed: 11, glide: 0.5, alt: [5, 30], rest: 0.4 },
+      bird('gunkandori', { note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。ガラパゴスではオスが赤いのど袋をふくらませて求愛する。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。' }),
+    ],
+    bait: {
+      sp: { id: 'salema', ja: 'ブラックストライプサレマ', sci: 'Xenocys jessiae', note: '銀色の体に黒い縦縞が走る、ガラパゴスの固有種。何千匹もの群れで岩のまわりを漂い、サメやアジ、アシカに追われて球のように固まる。',
+        diel: 'day', diet: 'plankton', pat: 5, c1: [0.82, 0.84, 0.84], c2: [0.12, 0.13, 0.15], bands: 3, shape: 'slender', size: [0.14, 0.2], habitat: 'shoal', speed: 1.2, shine: 3 },
+      predators: [{ id: 'galapagoszame', n: 3 }, { id: 'gingameaji', n: 8 }, { id: 'kihada', n: 5 }],
+    },
+    species: [
+      any('akashumoku', { note: 'ハンマー形の頭の両端に目がある。ウルフ島では昼、数十〜数百匹が群れて潮の中に並び、夜になると散らばって沖へ狩りに出る。群れの中ではクリーナーフィッシュに体を掃除してもらう。',
+        diel: 'day', habitat: 'shoal', schools: 1, n: 26, count: undefined, alt: [8, 16], speed: 0.9, freq: [1.8, 2.4] }),
+      { id: 'galapagoszame', ja: 'ガラパゴスザメ', sci: 'Carcharhinus galapagensis', note: '大洋の島のまわりに暮らすメジロザメの仲間。最初に見つかったのがガラパゴス。浅い岩場を群れで回り、好奇心が強い。',
+        diel: 'always', diet: 'fish', pat: 8, c1: [0.4, 0.4, 0.39], c2: [0.9, 0.9, 0.88], c3: [0.32, 0.32, 0.31], shape: 'shark', size: [2.0, 2.8], habitat: 'roam', count: 3, alt: [3, 10], speed: 1.0, big: true, eye: 0.45 },
+      any('whaleshark', { note: '世界最大の魚類。ウルフ島とダーウィン島には、夏から冬にかけて大きなメスが立ち寄る。どこで出産するのかは、まだ誰も知らない。', alt: [7, 13] }),
+      any('gingameaji', { note: '大きな目の銀色のアジ。岩場の上で銀の壁のような群れをつくり、夜になると散らばって小魚を狩る。' }),
+      any('kihada', { note: '黄色いひれのマグロ。冷たい湧昇流が運ぶ餌を追って、島のまわりを群れで回る。', n: 10, alt: [6, 16] }),
+      { id: 'kiobi', ja: 'イエローテールサージョンフィッシュ', sci: 'Prionurus laticlavius', note: '灰色の体に黄色い尾。何百匹もの群れで岩の上を移動しながら、藻をいっせいに食べていく。',
+        diel: 'day', diet: 'algae', pat: 2, c1: [0.3, 0.32, 0.35], c2: [0.98, 0.82, 0.14], c3: [0.12, 0.13, 0.15], shape: 'oval', size: [0.3, 0.45], habitat: 'reef', schools: 5, n: 28, spread: [4, 1.2, 4], alt: [0.6, 2.5], speed: 0.9 },
+      { id: 'kingangel', ja: 'キングエンゼルフィッシュ', sci: 'Holacanthus passer', note: '濃い紺の体に白い帯が1本、黄色い尾びれ。岩場のあちこちで、群れからはぐれた魚やシュモクザメの体をつついて掃除する。',
+        diel: 'day', diet: 'invert', pat: 6, c1: [0.12, 0.14, 0.3], c2: [0.14, 0.16, 0.32], c3: [0.95, 0.95, 0.93], bands: 1.1, shape: 'angel', size: [0.25, 0.35], habitat: 'reef', schools: 6, n: 1, spread: [0.5, 0.3, 0.5], alt: [0.5, 2], speed: 0.7 },
+      { id: 'creole', ja: 'パシフィッククレオールフィッシュ', sci: 'Paranthias colonus', note: 'オレンジと赤褐色のハタの仲間。群れで岩の上の中層に浮かび、流れてくるプランクトンを食べる。',
+        diel: 'day', diet: 'plankton', pat: 13, c1: [0.8, 0.36, 0.2], c2: [0.62, 0.24, 0.16], c3: [0.95, 0.9, 0.85], shape: 'slender', size: [0.22, 0.3], habitat: 'reef', schools: 6, n: 22, spread: [3, 1.4, 3], alt: [1.5, 4], speed: 0.8 },
+      { id: 'barberfish', ja: 'バーバーフィッシュ', sci: 'Johnrandallia nigrirostris', note: '黄色い体に黒い口元のチョウチョウウオ。群れでステーションに陣取り、立ち寄ったシュモクザメの寄生虫をついばむ「床屋さん」。',
+        diel: 'day', diet: 'invert', pat: 4, c1: [0.95, 0.88, 0.62], c2: [0.98, 0.8, 0.12], c3: [0.08, 0.07, 0.06], shape: 'disc', size: [0.14, 0.18], habitat: 'reef', schools: 5, n: 6, spread: [1, 0.5, 1], alt: [0.8, 2.5], speed: 0.8 },
+      any('idol'),
+      any('manbou', { note: '世界最大級の硬骨魚。冷たい湧昇流のある海で深く潜ったあと、岩場のクリーニングステーションに浮かび上がって体を掃除してもらう。', alt: [10, 16] }),
+    ],
+    animals: { turtle: { style: 'green', count: 3 }, manta: 1, octopus: 1 },
+    extraGuide: [
+      { id: 'manta', ja: 'オニイトマキエイ', sci: 'Mobula birostris', note: '翼幅は最大7m、世界最大のエイ。冷たい湧昇流が運ぶプランクトンを求めて、島のまわりに現れる。' },
+      { id: 'turtle', ja: 'アオウミガメ（ガラパゴスの個体群）', sci: 'Chelonia mydas', note: '甲羅が黒っぽく、ほかの海のアオウミガメより小柄。岩についた藻を食べ、島の浜で産卵する。' },
+      { id: 'eel', ja: 'ガラパゴスガーデンイール', sci: 'Heteroconger klausewitzi', note: '岩の間の砂地に巣穴を並べ、流れに向かって体を伸ばす。' },
+    ],
+    benthic: [
+      ['玄武岩の岩塊', 'basalt', '火山から転がり落ちた黒い溶岩の岩。すき間は魚の隠れ家になる。'],
+      ['ヤギ類・ウミトサカ', 'Gorgonacea / Alcyonacea', '冷たい流れの当たる岩に、黄色やオレンジの枝を伸ばす。'],
+      ['クロサンゴ', 'Antipatharia', '深いところで黒い骨格の枝を広げる。生きている部分は緑や黄色。'],
+      ['フジツボ', 'Megabalanus spp.', '湧昇流が運ぶ豊かなプランクトンを、脚で掻き寄せて食べる。'],
+    ],
+  };
+  LOCATIONS.push(redsea, galapagos);
+}
+
 // Reef rugosity: living reef framework is rough at the metre scale — knobs, ledges and holes — while
 // sand stays smooth. Layered on every sea wherever there is reef.
 function rugosity(x: number, z: number) {

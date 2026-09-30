@@ -244,7 +244,7 @@ export function buildOcean(loc) {
     else if (kind === 'fan') { s = rr(0.9, 2.0); it = { x, z, y: y0 - 0.05, ry: (R() - 0.5) * 0.5, sx: s, sy: s, sz: s, tx: (R() - 0.5) * 0.2 }; items.fan[R() < 0.5 ? 0 : 1].push(it); }
     else if (kind === 'mushroom') {
       // soft corals: leather coral, finger leather coral, or a soft-coral tree (commonest on Maldivian thilas)
-      const w = loc.id === 'maldives' ? [0.3, 0.3, 0.4] : loc.id === 'gbr' ? [0.45, 0.4, 0.15] : [0.5, 0.4, 0.1];
+      const w = loc.id === 'maldives' || loc.id === 'redsea' ? [0.3, 0.3, 0.4] : loc.id === 'galapagos' ? [0.35, 0.25, 0.4] : loc.id === 'gbr' ? [0.45, 0.4, 0.15] : [0.5, 0.4, 0.1];
       const q = R(), v = q < w[0] ? 0 : q < w[0] + w[1] ? 1 : 2;
       s = v === 2 ? rr(0.6, 1.3) : rr(0.6, 1.4);
       it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s, soft: v };
@@ -442,7 +442,8 @@ export function buildOcean(loc) {
   if (an.turtle) for (let i = 0; i < an.turtle.count; i++) { const t = makeTurtle(an.turtle.style); t.size = Math.max(0.45, an.turtle.style === 'green' ? loneLength(0.85, 1.1) : loneLength(0.7, 0.88)); t.group.scale.setScalar(t.size); oc.turtles.push(t); group.add(t.group); }
   for (let i = 0; i < (an.manta || 0); i++) {
     const m = new THREE.Mesh(MANTA_GEO, mantaMaterial()); m.frustumCulled = false;
-    const s = Math.max(0.9, loneLength(1.6, 2.2)); m.scale.setScalar(s);
+    const giant = (loc.extraGuide || []).some((e: any) => e.id === 'manta' && e.ja === 'オニイトマキエイ');   // (the oceanic manta is the bigger one)
+    const s = Math.max(0.9, giant ? loneLength(2.2, 2.9) : loneLength(1.6, 2.2)); m.scale.setScalar(s);
     oc.mantas.push({ span: s * 2, mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
   }
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);

@@ -221,9 +221,10 @@ export function makeShoalSystem(sp: Species, oc: any) {
   }
   function status() {
     const a = target;
+    if (sp.big) return a < 0.35 ? '群れをほどいて、ひとりずつ沖へ散っていく' : '潮の中に並んで、ゆっくり群れている';   // (a school of sharks: nothing here hunts them)
     if (a < 0.35) return 'リーフの近くで群れをほどいて休んでいる';
     if (leaders.some((L) => L.fear > 0.5)) return '捕食者から逃げて群れが弾けている';
-    return '中層で大群になってプランクトンを食べている';
+    return sp.diet === 'fish' ? '銀の群れになって、ゆっくり渦を巻いている' : '中層で大群になってプランクトンを食べている';
   }
   function subjects(out: Subject[]) {
     leaders.forEach((L, s) => {
@@ -240,7 +241,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
-    preyGroups: () => leaders.map((L) => L.prey),
+    preyGroups: () => (sp.big ? [] : leaders.map((L) => L.prey)),
     dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },

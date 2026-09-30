@@ -20,6 +20,8 @@ SITES = {
     'gbr': (-15.98, 145.82, 'eox', 15, 6, 900),
     'maldives': (3.48, 72.84, 'eox', 15, 6, 900),
     'pacific': (32.0, -145.0, None, 0, 0, 0),
+    'redsea': (25.31, 34.86, 'eox', 15, 6, 900),
+    'galapagos': (1.382, -91.806, 'eox', 15, 6, 900),
 }
 EOX = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg'
 GSI = 'https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg'

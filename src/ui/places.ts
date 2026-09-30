@@ -49,6 +49,22 @@ export const PLACES: Record<string, Place[]> = {
     { id: 'microatoll', ja: 'ハマサンゴの根', note: 'ラグーンの砂地に点々と盛り上がる塊状サンゴ。頭が水面近くまで育ち、まわりをスズメダイやチョウチョウウオが囲む。', find: (oc, cam) => {
       const p = best(oc, cam, (x, z, h, reef) => (reef > 0.5 && h > -3 ? reef : -1e9)); return p ? { pos: p, size: 3 } : null; } },
   ],
+  redsea: [
+    { id: 'ridge', ja: '尾根の頂上', note: '深い青から立ち上がる細長い尾根のてっぺん。水面の光がサンゴの上で揺れる。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef) => (reef > 0.6 && h > -9 ? reef - Math.abs(h + 5) * 0.05 : -1e9)); return p ? { pos: p, size: 5 } : null; } },
+    { id: 'wall', ja: 'ソフトコーラルの壁', note: '尾根の両側の切り立った壁。赤や紫のトゲトサカが流れの中で膨らんでいる。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef, sl) => (reef > 0.3 && sl > 1.2 && h > -25 ? sl : -1e9)); return p ? { pos: p, size: 3 } : null; } },
+    { id: 'plateau', ja: '北の台地', note: '尾根の北の端に広がる深い台地。この沖の青の中を、シュモクザメやヨゴレが通りかかる。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef) => (z > 70 && reef > 0.3 ? z * 0.01 : -1e9)); return p ? { pos: p, size: 6 } : null; } },
+    anemone('レッドシーアネモネフィッシュ'),
+  ],
+  galapagos: [
+    { id: 'boulders', ja: '溶岩の岩場', note: '火山から転がり落ちた黒い岩の斜面。岩のすき間に魚が群れ、上をシュモクザメが流れていく。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef, sl) => (reef > 0.25 && sl > 0.6 ? sl : -1e9)); return p ? { pos: p, size: 4 } : null; } },
+    { id: 'hammers', ja: 'シュモクザメの群れ', note: '潮の中に並んで浮かぶアカシュモクザメの群れ。昼のあいだ、ここで体を休め、掃除してもらう。', find: (oc, cam) => {
+      const s = oc.fish.find((f: any) => f.sp.id === 'akashumoku')?.focus(cam); return s ? { pos: s.pos().clone(), size: 10 } : null; } },
+    eels,
+  ],
   maldives: [
     { id: 'thila', ja: 'ティラの頂上', note: '海底からそびえる根のてっぺん。潮通しがよく、魚が群れる。', find: (oc, cam) => {
       const p = best(oc, cam, (x, z, h, reef) => (reef > 0.4 ? h : -1e9)); return p ? { pos: p, size: 6 } : null; } },

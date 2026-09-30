@@ -1,9 +1,10 @@
 # Bakes Sentinel-2 cloudless mosaics around each sea for the dive-in flight (run once; results in public/sat).
 # Imagery: "Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus
-# Sentinel data 2016)", CC BY 4.0. Tiles are fetched once, politely, and stitched.
+# Sentinel data 2016)" (2023 for the newer sites), CC BY 4.0. Tiles are fetched once, politely, and stitched.
 import math, subprocess, json, os, io, time, sys
 from PIL import Image
-SITES = {'miyako': (25.01, 125.255), 'gbr': (-15.98, 145.82), 'maldives': (3.48, 72.84)}
+SITES = {'miyako': (25.01, 125.255), 'gbr': (-15.98, 145.82), 'maldives': (3.48, 72.84),
+         'redsea': (25.31, 34.86), 'galapagos': (1.382, -91.806)}
 LEVELS = [(9, 4), (12, 6), (14, 8)]           # zoom, tiles across (mosaic is n x n tiles centred on the site)
 OUT = os.path.join(os.path.dirname(__file__), '..', 'public', 'sat')
 os.makedirs(OUT, exist_ok=True)
@@ -17,8 +18,9 @@ def tile2ll(x, y, z):
     lon = x / n * 360 - 180
     lat = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y / n))))
     return lat, lon
-meta = {}
+meta = json.load(open(os.path.join(OUT, 'sat.json'))) if os.path.exists(os.path.join(OUT, 'sat.json')) else {}
 for name, (lat, lon) in SITES.items():
+    if sys.argv[1:] and name not in sys.argv[1:]: continue
     meta[name] = []
     for z, n in LEVELS:
         cx, cy = tilexy(lat, lon, z)
@@ -26,7 +28,8 @@ for name, (lat, lon) in SITES.items():
         img = Image.new('RGB', (256 * n, 256 * n))
         for j in range(n):
             for i in range(n):
-                u = f'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/GoogleMapsCompatible/{z}/{y0 + j}/{x0 + i}.jpg'
+                layer = 's2cloudless_3857' if name in ('miyako', 'gbr', 'maldives') else 's2cloudless-2023_3857'   # (the newer sites: the 2023 mosaic, fewer clouds)
+                u = f'https://tiles.maps.eox.at/wmts/1.0.0/{layer}/default/GoogleMapsCompatible/{z}/{y0 + j}/{x0 + i}.jpg'
                 data = subprocess.run(['curl', '-s', '-m', '30', u], capture_output=True).stdout
                 try: t = Image.open(io.BytesIO(data)).convert('RGB')
                 except Exception: t = Image.new('RGB', (256, 256), (8, 30, 60)); print('missing', u, file=sys.stderr)
