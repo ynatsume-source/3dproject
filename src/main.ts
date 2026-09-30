@@ -858,7 +858,7 @@ function applyWater(loc: Sea) {
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
-  watch.r = null;
+  watch.r = null; U.uFire.value.w = 0;   // (only the island has a fire)
   if (oc.residents) oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
   U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };

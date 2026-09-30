@@ -98,6 +98,8 @@ export function makeItems(h: (x: number, z: number) => number, spot: Spot, where
       }
       return best;
     },
+    // something dropped here (a felled tree's logs)
+    addAt(kind: ItemKind, x: number, z: number) { list.push({ id: next++, kind, x, z, ry: Math.random() * 6.28, s: 0.9 + Math.random() * 0.3 }); dirty = true; },
     claim(it: Item, who: string) { it.by = who; },
     release(who: string) { for (const it of list) if (it.by === who) it.by = undefined; },
     take(it: Item) { const i = list.indexOf(it); if (i < 0) return false; list.splice(i, 1); dirty = true; return true; },

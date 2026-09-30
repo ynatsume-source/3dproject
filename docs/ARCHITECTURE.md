@@ -51,7 +51,7 @@ main.ts のループ（毎フレーム）             ▼
 
 | キー | 中身 | 持ち主 |
 |---|---|---|
-| `seaglass.residents.v1` | 住民の位置・電池・手に持っている物・今日の出来事・日記（各40件）、関係（段階・回数）、会話（40件）、ドットの小屋、ラッコの貝殻、ランタンの石積み（段数）、島に落ちている流木・貝殻・石（`robots/items.ts`）、訪れた場所、保存時刻 | `robots/residents.ts` |
+| `seaglass.residents.v1` | 住民の位置・電池・手に持っている物・今日の出来事・日記（各40件）、関係（段階・回数）、会話（40件）、ドットの小屋、ラッコの貝殻、ランタンの石積み（段数）、島に落ちている流木・貝殻・石（`robots/items.ts`）、開拓の状態（切った若木、畑の区画と種まきの時刻）、訪れた場所、保存時刻 | `robots/residents.ts` |
 | `seaglass.seen` | 図鑑で会った生きもの | main.ts |
 | `seaglass.log.<海>.<日付>` | その日の出来事ログ | main.ts |
 | `seaglass.persona` / `season` / `music` / `vol` / `pip` | 設定 | main.ts |

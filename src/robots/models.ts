@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 export interface Mats { shell: THREE.Material; accent: THREE.Material; teal: THREE.Material; joint: THREE.Material; dark: THREE.Material; glow: THREE.Material; warm: THREE.Material; panel: THREE.Material; stone: THREE.Material }
-export type Act = 'demo' | 'idle' | 'walk' | 'work' | 'carry' | 'sleep' | 'swim' | 'float' | 'wave' | 'look' | 'think';
+export type Act = 'demo' | 'idle' | 'walk' | 'work' | 'carry' | 'sleep' | 'swim' | 'float' | 'wave' | 'look' | 'think' | 'pick' | 'hammer' | 'chop' | 'dig' | 'sit';
 export interface Pose { act: Act; walk: number; night?: number; wet?: boolean }
 export interface Robot { root: THREE.Group; update(t: number, dt: number, pose?: Pose): void; carry?: THREE.Object3D; light?: THREE.Object3D }
 const DEMO: Pose = { act: 'demo', walk: 1 };
@@ -47,27 +47,46 @@ export function robotKit(M: Mats, shadows = false) {
       const foot = box(0.1, 0.05, 0.16, 0.02, M.accent); foot.position.set(0, -0.02, 0.03); lo.end.add(foot); return { up, lo }; });
     // what it carries: a length of driftwood held across both hands
     const carry = new THREE.Group(); const log = cyl(0.035, 0.03, 0.7, M.stone, 8); log.rotation.z = Math.PI / 2; carry.add(log); carry.position.set(0, 0.5, 0.26); carry.visible = false; body.add(carry);
-    let blink = 2, look = 0, lookT = 1, sleepK = 0;
+    // tools, held in the right hand: a hammer, an axe, a hoe
+    const hand = arms.find((a) => a.sx > 0)!.lo.end;
+    const tool = (len: number, head: THREE.Mesh, hy: number) => { const g = new THREE.Group(); const h = cyl(0.012, 0.012, len, M.stone, 6); h.rotation.x = Math.PI / 2; h.position.z = len * 0.35; g.add(h); head.position.z = len * 0.35 + hy; g.add(head); g.visible = false; hand.add(g); return g; };
+    const hammer = tool(0.2, box(0.05, 0.05, 0.1, 0.01, M.joint), 0.1);
+    const axeHead = box(0.02, 0.1, 0.08, 0.01, M.joint); axeHead.position.y = 0.04; const axe = tool(0.34, axeHead, 0.15);
+    const hoeHead = box(0.12, 0.012, 0.07, 0.004, M.joint); hoeHead.position.y = -0.03; const hoe = tool(0.5, hoeHead, 0.24);
+    let blink = 2, look = 0, lookT = 1, sleepK = 0, crouchK = 0, sitK = 0;
     return { root, carry, update(t, dt, p = DEMO) {
       const walk = p.act === 'demo' ? 1 : p.walk, w = t * 4.2;
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 2);
-      legs.forEach((l, i) => { const ph = w + i * Math.PI; l.up.pivot.rotation.x = Math.sin(ph) * 0.35 * walk - sleepK * 1.3; l.lo.pivot.rotation.x = Math.max(0, -Math.cos(ph)) * 0.55 * walk + sleepK * 1.5; });
+      crouchK += ((p.act === 'pick' || p.act === 'dig' ? 1 : 0) - crouchK) * Math.min(1, dt * 4);
+      sitK += ((p.act === 'sit' ? 1 : 0) - sitK) * Math.min(1, dt * 2);
+      const bend = crouchK * (p.act === 'dig' ? 0.45 : 1);
+      legs.forEach((l, i) => { const ph = w + i * Math.PI; l.up.pivot.rotation.x = Math.sin(ph) * 0.35 * walk - sleepK * 1.3 - bend * 0.9 - sitK * 1.45; l.lo.pivot.rotation.x = Math.max(0, -Math.cos(ph)) * 0.55 * walk + sleepK * 1.5 + bend * 1.5 + sitK * 0.2; });
+      const sw = t * (p.act === 'chop' ? 2.2 : p.act === 'dig' ? 1.6 : 4.5), strike = Math.pow(Math.max(0, Math.sin(sw)), 0.6);   // (a quick fall after a slower rise)
       const wave = p.act === 'wave' || (p.act === 'demo' && Math.max(0, Math.sin(t * 0.4)) > 0.92);
       const tap = Math.max(0, Math.sin(t * 6)) ** 3;
       arms.forEach((a, i) => {
         if (wave && a.sx > 0) { a.up.pivot.rotation.set(0, 0, -2.4); a.lo.pivot.rotation.set(0, 0, Math.sin(t * 10) * 0.4); }
+        else if (p.act === 'pick') { a.up.pivot.rotation.set(-0.7 - Math.sin(t * 3 + i) * 0.1, 0, a.sx * 0.15); a.lo.pivot.rotation.set(-0.4, 0, 0); }
+        else if (p.act === 'hammer') { if (a.sx > 0) { a.up.pivot.rotation.set(-1.0 - strike * 1.4, 0, 0.1); a.lo.pivot.rotation.set(-0.9 + strike * 0.4, 0, 0); } else { a.up.pivot.rotation.set(-1.0, 0, -0.2); a.lo.pivot.rotation.set(-0.6, 0, 0); } }
+        else if (p.act === 'chop' || p.act === 'dig') { const up = p.act === 'chop' ? 2.3 : 2.0; a.up.pivot.rotation.set(-0.5 - strike * up, 0, a.sx * 0.05 - (p.act === 'chop' ? 0.25 : 0)); a.lo.pivot.rotation.set(-0.5 + strike * 0.3, 0, 0); }
+        else if (p.act === 'sit') { a.up.pivot.rotation.set(-0.5, 0, a.sx * 0.2); a.lo.pivot.rotation.set(-0.9, 0, 0); }
         else if (p.act === 'work') { a.up.pivot.rotation.set(a.sx > 0 ? -1.3 - tap * 0.7 : -0.9, 0, a.sx * 0.1); a.lo.pivot.rotation.set(a.sx > 0 ? -0.7 + tap * 0.5 : -0.5, 0, 0); }
         else if (p.act === 'carry') { a.up.pivot.rotation.set(-0.9, 0, a.sx * 0.05); a.lo.pivot.rotation.set(-0.7, 0, 0); }
         else { a.up.pivot.rotation.set(-Math.sin(w + i * Math.PI) * 0.35 * walk + sleepK * -0.2, 0, a.sx * (0.12 + sleepK * 0.05)); a.lo.pivot.rotation.set(-0.35 - sleepK * 0.6, 0, 0); }
       });
       carry.visible = p.act === 'carry';
-      body.position.y = Math.abs(Math.sin(w)) * 0.02 * walk - sleepK * 0.24; body.rotation.z = Math.sin(w) * 0.03 * walk;
+      hammer.visible = p.act === 'hammer'; axe.visible = p.act === 'chop'; hoe.visible = p.act === 'dig';
+      body.position.y = Math.abs(Math.sin(w)) * 0.02 * walk - sleepK * 0.24 - bend * 0.16 - sitK * 0.3;
+      body.rotation.z = Math.sin(w) * 0.03 * walk;
+      body.rotation.x = bend * 0.35 + (p.act === 'chop' || p.act === 'dig' ? strike * 0.15 : 0);
+      body.rotation.y = p.act === 'chop' ? (strike - 0.5) * 0.4 : 0;
       if ((blink -= dt) < 0) blink = 2 + Math.random() * 3;
       const b = sleepK > 0.5 ? 0.08 : blink < 0.12 ? 0.1 : 1;
       if ((lookT -= dt) < 0) { lookT = 1 + Math.random() * 2; look = (Math.random() - 0.5) * 0.05; }
       eyes.forEach((e, i) => { e.scale.y += (b - e.scale.y) * Math.min(1, dt * 30); e.position.x += ((i ? 1 : -1) * 0.08 + look - e.position.x) * Math.min(1, dt * 8); });
       mouth.scale.x = wave ? 1.8 : p.act === 'work' ? 0.5 : 1;
-      head.rotation.y = p.act === 'work' ? 0 : Math.sin(t * 0.7) * 0.25 * (1 - sleepK); head.rotation.x = p.act === 'work' ? 0.35 : Math.sin(t * 0.5) * 0.06 + sleepK * 0.3;
+      const busy = p.act === 'work' || p.act === 'pick' || p.act === 'hammer' || p.act === 'chop' || p.act === 'dig';
+      head.rotation.y = busy ? 0 : Math.sin(t * 0.7) * 0.25 * (1 - sleepK); head.rotation.x = busy ? 0.35 + crouchK * 0.2 : Math.sin(t * 0.5) * 0.06 + sleepK * 0.3 - sitK * 0.1;
       glowColor(M.warm)?.setHSL?.(0.11, 1, (0.55 + 0.25 * Math.sin(t * 3)) * (1 - sleepK * 0.6));
     } };
   }
