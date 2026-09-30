@@ -904,23 +904,24 @@ function bisectStep(dt: number) {
 // Get every shader of a sea ready before diving in, one at a time and without holding up the page.
 // All at once in the first frame is too much for some GPUs: on Windows each is translated for Direct3D,
 // slowly, and a long enough stall makes the browser reset the GPU (the screen goes white or black).
-let diagLog: ((s: string) => void) | null = null;
+let diagLog: ((s: string) => void) | null = null, diagNow = '';   // (with ?diag: the shader being prepared)
 const shaderHint = (m: any) => `${m.type}${m.uniforms ? ':' + Object.keys(m.uniforms).filter((k) => !(k in U)).slice(0, 4).join(',') : ''} ${(m.fragmentShader || '').length}`;
 async function prepareShaders(oc: Ocean) {
   const seen = new Map<THREE.Material, THREE.Object3D>();
   const take = (root: THREE.Object3D) => root.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (!seen.has(m)) seen.set(m, o); });
   take(oc.group); take(oceanScene); take(topScene);
   const par = !!renderer.extensions.get('KHR_parallel_shader_compile');
-  let i = 0;
+  let i = 0; const total = seen.size;
   for (const [, o] of seen) {
     const tmp = new THREE.Scene(), c = o.clone(false);
     c.visible = true; tmp.add(c);
     const hint = shaderHint((o as any).material);
     try {
       if (diagLog) {
-        diagLog(`C … ${hint}`);
+        diagLog(`C … ${i + 1}/${total} ${hint}`); diagNow = `${i + 1}/${total} ${(o as any).type} ${hint} [${Object.keys((o as any).geometry?.attributes || {}).filter((k) => !['position', 'normal', 'uv'].includes(k)).join(',')}]`;
         const t0 = performance.now(); renderer.compile(tmp, camera); const dt = performance.now() - t0;
         diagLog(`C ${dt.toFixed(0)}ms ${hint}${renderer.getContext().isContextLost() ? ' LOST' : ''}`);
+        if (!renderer.getContext().isContextLost()) diagNow = 'done ' + diagNow;
       } else if (par) await renderer.compileAsync(tmp, camera);
       else renderer.compile(tmp, camera);
     } catch (e) { /* it will compile when first drawn */ }
@@ -1429,6 +1430,7 @@ if (location.search.includes('diag')) {
         `fps      ${fps.toFixed(1)}   ms/frame ${(1000 / Math.max(fps, 0.01)).toFixed(0)}   lost ${lostCount}   ctx ${gl.isContextLost() ? 'LOST' : 'ok'}   glError ${gl.getError()}`,
         `mode     ${mode}   sea ${cur?.loc.id ?? '-'}   cam y ${camera.position.y.toFixed(1)}`,
         `UA       ${navigator.userAgent}`,
+        `compiling ${diagNow || '-'}`,
         '', 'slowest shaders:', ...errs.filter((e) => /^C \d/.test(e)).sort((x, y) => parseFloat(y.slice(2)) - parseFloat(x.slice(2))).slice(0, 8),
         '', ...errs.filter((e) => !/^C \d/.test(e)).slice(-8),
       ].join('\n');
