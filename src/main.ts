@@ -1542,6 +1542,10 @@ function frame(ts: number) {
       post.setExposure(camExpo);
     }
     U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
+    // watching a resident after dark: light it from above so what it is doing can be seen
+    { const sp = U.uSpot.value, want = watch.r && skyNow ? 0.8 * smooth(0.15, 0.7, skyNow.night + 0.4 * skyNow.twilight) : 0;
+      sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
+      if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; } }
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.update(dt, clock.ms, drone.pos);
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; renderWatch(); }
