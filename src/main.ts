@@ -853,6 +853,7 @@ function enterOcean(oc: Ocean) {
     U.uCaveMin.value.set(cv.min[0], cv.min[1], cv.min[2]);
     U.uCaveExt.value.set((cv.n[0] - 1) * cv.step, (cv.n[1] - 1) * cv.step, (cv.n[2] - 1) * cv.step);
     U.uCaveN.value.set(cv.n[0], cv.n[1], cv.n[2]);
+    U.uCaveAtlas.value.set(cv.atlas[0], cv.atlas[1]);
   }
   lampManual = false;
   applySky(oc.loc);

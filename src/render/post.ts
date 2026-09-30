@@ -82,7 +82,7 @@ export class Post {
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
       uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden,
-      uCaveTex: U.uCaveTex, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
+      uCaveTex: U.uCaveTex, uCaveAtlas: U.uCaveAtlas, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
       uFrame: { value: 0 }, uStrength: { value: 0.5 },
     },
     fragmentShader: /* glsl */ `

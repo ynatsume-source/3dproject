@@ -53,7 +53,9 @@ export class Cave {
   readonly n: [number, number, number];
   readonly d: Float32Array;                        // signed distance, negative inside rock
   readonly top: number;                            // flat top of the massif
-  readonly tex: THREE.Data3DTexture;
+  readonly tex: THREE.DataTexture;
+  readonly atlas: [number, number];   // the light volume's z-slices laid out in columns and rows of one flat texture
+  private atlasAt: (i: number, j: number, k: number) => number;
   readonly geo: THREE.BufferGeometry;
   readonly skylights: { pos: THREE.Vector3; r: number; floor: number }[] = [];
   readonly foot: (x: number, z: number) => number;
@@ -156,13 +158,17 @@ export class Cave {
     this.bakeSky();
     // (four channels, though only two are used: two-channel 3D textures re-uploaded while drawing have
     // reset the GPU on Windows / Direct3D)
-    const data = new Uint8Array(nx * ny * nz * 4);
-    for (let i = 0; i < nx * ny * nz; i++) { data[i * 4] = data[i * 4 + 1] = Math.round(this.sky[i] * 255); data[i * 4 + 3] = 255; }   // sun starts as sky until its bake lands
-    this.tex = new THREE.Data3DTexture(data, nx, ny, nz);
-    this.tex.format = THREE.RGBAFormat; this.tex.type = THREE.UnsignedByteType;
+    const C = Math.ceil(Math.sqrt(nz)), Rw = Math.ceil(nz / C), W = nx * C, H = ny * Rw;
+    this.atlas = [C, Rw];
+    this.atlasAt = (i, j, k) => ((Math.floor(k / C) * ny + j) * W + (k % C) * nx + i) * 4;
+    const data = new Uint8Array(W * H * 4);
+    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const a = this.atlasAt(i, j, k), v = Math.round(this.sky[i + nx * (j + ny * k)] * 255);
+      data[a] = data[a + 1] = v; data[a + 3] = 255;   // sun starts as sky until its bake lands
+    }
+    this.tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
     this.tex.minFilter = this.tex.magFilter = THREE.LinearFilter;
-    this.tex.wrapS = this.tex.wrapT = this.tex.wrapR = THREE.ClampToEdgeWrapping;
-    this.tex.unpackAlignment = 1;
+    this.tex.wrapS = this.tex.wrapT = THREE.ClampToEdgeWrapping;
     this.tex.needsUpdate = true;   // upload now; the sun bake refines it over the next frames
   }
 
@@ -295,7 +301,7 @@ export class Cave {
       if (performance.now() - t0 > budgetMs) return;
     }
     const data = this.tex.image.data as Uint8Array;
-    for (let o = 0; o < nx * ny * nz; o++) data[o * 4] = job.buf[o];
+    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) data[this.atlasAt(i, j, k)] = job.buf[i + nx * (j + ny * k)];
     this.tex.needsUpdate = true;
     this.job = null;
   }

@@ -8,8 +8,9 @@ THREE.ColorManagement.enabled = false;
 
 const milkyTex = typeof document !== 'undefined' ? new THREE.TextureLoader().load(milkyUrl) : new THREE.Texture();   // (headless checks have no DOM)
 milkyTex.wrapS = THREE.RepeatWrapping;
-const EMPTY3D = new THREE.Data3DTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, 1);
-EMPTY3D.format = THREE.RGBAFormat; EMPTY3D.needsUpdate = true;
+// (the cave's light volume is kept as its z-slices laid out side by side in one flat texture: some
+// Windows GPUs reset when a shader samples both flat and 3D textures)
+const EMPTY_CAVE = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); EMPTY_CAVE.needsUpdate = true;
 
 export const U = {
   uTime: { value: 0 },
@@ -40,20 +41,26 @@ export const U = {
   uLodR: { value: 20 },          // detailed coral within this distance
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
   // the sea cave's light volume (see ocean/cave.ts); off in seas without one
-  uCaveTex: { value: EMPTY3D }, uCaveOn: { value: 0 }, uCamCave: { value: 1 },
+  uCaveTex: { value: EMPTY_CAVE }, uCaveAtlas: { value: new THREE.Vector2(1, 1) }, uCaveOn: { value: 0 }, uCamCave: { value: 1 },
   uCaveXf: { value: new THREE.Vector4(0, 0, 1, 0) }, uCaveMin: { value: new THREE.Vector3() }, uCaveExt: { value: new THREE.Vector3(1, 1, 1) }, uCaveN: { value: new THREE.Vector3(1, 1, 1) },
 };
 
 // Light reaching a point inside the cave volume: x = sun, y = open sky. vec2(1) outside it.
 export const CAVE_GLSL = /* glsl */ `
-uniform highp sampler3D uCaveTex; uniform float uCaveOn; uniform float uCamCave;
+uniform sampler2D uCaveTex; uniform vec2 uCaveAtlas; uniform float uCaveOn; uniform float uCamCave;
 uniform vec4 uCaveXf; uniform vec3 uCaveMin; uniform vec3 uCaveExt; uniform vec3 uCaveN;
 vec2 caveLight(vec3 wp){
   if (uCaveOn < 0.5) return vec2(1.0);
   vec2 d = wp.xz - uCaveXf.xy;
   vec3 f = (vec3(d.x * uCaveXf.z + d.y * uCaveXf.w, wp.y, -d.x * uCaveXf.w + d.y * uCaveXf.z) - uCaveMin) / uCaveExt;
   if (min(f.x, min(f.y, f.z)) < 0.0 || max(f.x, max(f.y, f.z)) > 1.0) return vec2(1.0);
-  return textureLod(uCaveTex, (f * (uCaveN - 1.0) + 0.5) / uCaveN, 0.0).rg;   // (an explicit level: Direct3D will not take implicit gradients in the loops and branches this is called from)
+  // two neighbouring z-slices from the atlas, blended (explicit level: this is called from loops and branches)
+  vec3 v = f * (uCaveN - 1.0);
+  float k0 = floor(v.z), k1 = min(k0 + 1.0, uCaveN.z - 1.0), t = v.z - k0;
+  vec2 size = uCaveAtlas * uCaveN.xy;
+  vec2 a = (vec2(mod(k0, uCaveAtlas.x) * uCaveN.x, floor(k0 / uCaveAtlas.x) * uCaveN.y) + v.xy + 0.5) / size;
+  vec2 b = (vec2(mod(k1, uCaveAtlas.x) * uCaveN.x, floor(k1 / uCaveAtlas.x) * uCaveN.y) + v.xy + 0.5) / size;
+  return mix(textureLod(uCaveTex, a, 0.0).rg, textureLod(uCaveTex, b, 0.0).rg, t);
 }
 `;
 
