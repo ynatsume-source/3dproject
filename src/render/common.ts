@@ -17,7 +17,8 @@ export const U = {
   uCamPos: { value: new THREE.Vector3() },
   uCamFwd: { value: new THREE.Vector3(0, 0, -1) },
   uUp: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uDown: { value: new THREE.Color() },
-  uFogDen: { value: 0.025 }, uLamp: { value: 0 }, uSpot: { value: new THREE.Vector4(0, 0, 0, 0) }, uFire: { value: new THREE.Vector4(0, -100, 0, 0) }, uCut: { value: new THREE.Vector4(0, 0, 0, 0) },
+  uFogDen: { value: 0.025 }, uLamp: { value: 0 }, uLampPos: { value: new THREE.Vector3() }, uLampDir: { value: new THREE.Vector3(0, 0, -1) },   // (the lamp is on the drone: where the camera is, or ahead of it when the view follows the drone)
+  uSpot: { value: new THREE.Vector4(0, 0, 0, 0) }, uFire: { value: new THREE.Vector4(0, -100, 0, 0) }, uCut: { value: new THREE.Vector4(0, 0, 0, 0) },
   // the residents' own lights after dark: where each pool of light falls (xyz, strength), its size, its colour
   uLights: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(0, -100, 0, 0)) }, uLightR: { value: new THREE.Vector4(2.5, 2.5, 2.5, 2.5) }, uLightC: { value: [0, 1, 2, 3].map(() => new THREE.Vector3(1, 1, 1)) },
   uAbs: { value: new THREE.Vector3(0.1, 0.04, 0.03) },
@@ -71,7 +72,7 @@ vec2 caveLight(vec3 wp){
 
 export const COMMON = /* glsl */ `
 uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
-uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
+uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
@@ -125,8 +126,8 @@ vec3 residentLights(vec3 wp, vec3 n){
   return acc;
 }
 vec3 lamp(vec3 alb, vec3 wp, vec3 n){
-  vec3 L = wp - uCamPos; float d = length(L); vec3 dir = L / max(d, 1e-3);
-  float cone = smoothstep(0.80, 0.96, dot(dir, uCamFwd));
+  vec3 L = wp - uLampPos; float d = length(L); vec3 dir = L / max(d, 1e-3);
+  float cone = smoothstep(0.80, 0.96, dot(dir, uLampDir));
   // (and while watching a resident after dark: a soft pool of light the drone casts down around it)
   vec3 sd = wp - uSpot.xyz; float pool = exp(-dot(sd.xz, sd.xz) * 0.014) * (1.0 - smoothstep(4.0, 14.0, abs(sd.y)));
   return alb * vec3(1.0, 0.93, 0.8) * uLamp * cone * max(dot(n, -dir), 0.0) * 5.0 / (1.0 + d * d * 0.07)

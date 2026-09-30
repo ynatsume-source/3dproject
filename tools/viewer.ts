@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { U } from '../src/render/common';
 import { LOCATIONS } from '../src/data/locations';
 import { SHAPES, fishGeometry, fishMaterial, makeTurtle } from '../src/ocean/models';
+import { makeDrone } from '../src/ocean/drone';
 
 const q = new URLSearchParams(location.search);
 const cv = document.getElementById('c') as HTMLCanvasElement;
@@ -18,11 +19,11 @@ if (sp) {
   g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([+(q.get('seed') || 3.7), 0, 1]), 3));
   const m = new THREE.InstancedMesh(g, fishMaterial(sp), 1); m.setMatrixAt(0, new THREE.Matrix4());
   obj = m; len = 1.3;
-} else { obj = makeTurtle(q.get('turtle') || 'green').group; len = 1.4; }
+} else if (q.has('drone')) { const d = makeDrone(); d.group.visible = true; obj = d.group; len = 0.5; } else { obj = makeTurtle(q.get('turtle') || 'green').group; len = 1.4; }
 obj.position.y = -1.6; scene.add(obj);
 scene.background = new THREE.Color(0.05, 0.3, 0.55);
 const cam = new THREE.PerspectiveCamera(35, 1.5, 0.01, 100);
-const views = q.has('head') ? [[1, 0.1, 0.25], [0.35, 0.15, 1], [0.05, 1, 0.3], [0.4, -0.6, 0.7]] : [[0.9, 0.15, 0.6], [0, 0.05, 1], [0.05, 1, 0.1], [0.3, -0.7, 0.5]];
+const views = q.has('drone') ? [[0.3, 0.35, -1], [1, 0.2, 0.3], [0.2, 1, 0.1], [0.5, 0.3, 1]] : q.has('head') ? [[1, 0.1, 0.25], [0.35, 0.15, 1], [0.05, 1, 0.3], [0.4, -0.6, 0.7]] : [[0.9, 0.15, 0.6], [0, 0.05, 1], [0.05, 1, 0.1], [0.3, -0.7, 0.5]];
 const look = new THREE.Vector3(0, 0, q.has('head') ? 0.6 : 0);
 const W = 600, H = 400;
 r.setScissorTest(true);

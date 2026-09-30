@@ -6,6 +6,7 @@ import { U, mat } from './render/common';
 import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
+import { makeDrone } from './ocean/drone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
 import { updateAir, setPlanets, topScene, setRefraction, swellAt } from './ocean/air';
 import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
@@ -77,7 +78,7 @@ let mode: 'globe' | 'ocean' = 'globe';
 const oceans: Record<string, Ocean> = {};
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let lampOn = false, lampManual = false, hudOn = true, busy = false;
+let lampT = 0, lampOn = false, lampManual = false, hudOn = true, busy = false;
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
 let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : SAFE ? 'low' : detectTier(renderer.getContext());
 const post = new Post(TIERS[tier]);
@@ -339,6 +340,49 @@ function updateDrone(dt: number, now: number) {
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
+  applyView(dt, t);
+}
+// The view: through the drone's own camera, or from a little behind it, with the drone in the picture —
+// it floats and sways as a real one does: nosing down as it speeds up and lifting as it slows, banking
+// into its turns, bobbing on the swell of the water; its props spin with the thrust and its lamps glow.
+// Its size (under half a metre) gives everything around it a scale.
+let viewMode: 'fpv' | 'chase' = (() => { try { return localStorage.getItem('seaglass.view') === 'chase' ? 'chase' : 'fpv'; } catch (e) { return 'fpv'; } })();
+const droneModel = makeDrone(); oceanScene.add(droneModel.group);
+const chase = { pos: new THREE.Vector3(), on: false, acc: new THREE.Vector3(), prevVel: new THREE.Vector3(), pitch: 0, roll: 0 };
+const _cf = new THREE.Vector3(), _cr = new THREE.Vector3(), _ct = new THREE.Vector3();
+function applyView(dt: number, t: number) {
+  const on = viewMode === 'chase' && !watch.r;
+  droneModel.group.visible = on;
+  camera.updateMatrixWorld(); camera.getWorldDirection(_cf);
+  if (!on) { chase.on = false; U.uLampPos.value.copy(camera.position); U.uLampDir.value.copy(_cf); return; }
+  // how it is being pushed about: acceleration (smoothed), to tilt it
+  chase.acc.lerp(_ct.subVectors(drone.vel, chase.prevVel).divideScalar(Math.max(dt, 1e-3)), Math.min(1, dt * 4)); chase.prevVel.copy(drone.vel);
+  const hx = -Math.sin(drone.yaw), hz = -Math.cos(drone.yaw);           // its heading (level)
+  const fwdAcc = chase.acc.x * hx + chase.acc.z * hz, latAcc = chase.acc.x * -hz + chase.acc.z * hx;
+  chase.pitch += (clamp(drone.pitch * 0.55 - fwdAcc * 0.08, -0.5, 0.5) - chase.pitch) * Math.min(1, dt * 2.5);
+  chase.roll += (clamp(-yawRate * 0.3 - latAcc * 0.06, -0.45, 0.45) - chase.roll) * Math.min(1, dt * 2);
+  const g = droneModel.group;
+  g.position.copy(drone.pos); g.position.y += Math.sin(t * 1.1) * 0.012 + Math.sin(t * 0.43 + 2) * 0.008;
+  g.rotation.set(-chase.pitch + Math.sin(t * 0.7) * 0.015, drone.yaw + Math.PI + Math.sin(t * 0.37) * 0.02, chase.roll + Math.sin(t * 0.9 + 1) * 0.02, 'YXZ');
+  droneModel.animate(dt, Math.min(1, drone.vel.length() / 3), U.uLamp.value);
+  // the camera: a little behind, above and to one side, following with a soft lag, looking past the drone
+  _cr.set(-_cf.z, 0, _cf.x).normalize();
+  _ct.copy(drone.pos).addScaledVector(_cf, -1.55).addScaledVector(_cr, 0.32); _ct.y += 0.42;
+  if (cur) { const gy = cur.T.ground(_ct.x, _ct.z) + 0.4; if (_ct.y < gy) _ct.y = gy; }
+  if (drone.pos.y < 0 && _ct.y > -0.3) _ct.y = -0.3;
+  if (!chase.on) chase.pos.copy(_ct); else chase.pos.lerp(_ct, 1 - Math.exp(-dt * 2.6));
+  chase.on = true;
+  camera.position.copy(chase.pos);
+  camera.lookAt(_ct.copy(drone.pos).addScaledVector(_cf, 4));
+  camera.rotateZ(drone.roll * 0.3);
+  // the lamp shines from the drone's lamps, the way it points
+  U.uLampPos.value.set(0, 0.02, 0.24).applyMatrix4(g.matrixWorld.compose(g.position, g.quaternion, g.scale));
+  U.uLampDir.value.set(0, 0, 1).applyQuaternion(g.quaternion);
+}
+function setView(v: 'fpv' | 'chase') {
+  viewMode = v;
+  try { localStorage.setItem('seaglass.view', v); } catch (e) { /* ignore */ }
+  $('btnView').setAttribute('aria-pressed', String(v === 'chase'));
 }
 
 /* ================= the guide's character ================= */
@@ -430,8 +474,14 @@ async function refreshWeather(loc: Sea) {
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
 }
 let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
-// the lamp comes on by itself in the dark of the cave (at night the moon or starlight is enough)
-function wantLamp() { return camCave < 0.3; }
+// the lamp comes on by itself in the dark of the cave, and wherever the water around the camera grows
+// dim: deep down, at dawn and dusk, at night (with a little hysteresis, so it does not flicker)
+function wantLamp() {
+  if (camCave < 0.3) return true;
+  if (camera.position.y > -0.5) return false;
+  const l = pipLight(-camera.position.y);
+  return lampOn ? l < 0.095 : l < 0.075;
+}
 // The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
 // dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.
 function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
@@ -1413,6 +1463,8 @@ $('btnPersona').onclick = () => setPersona(PERSONAS[(PERSONAS.indexOf(persona) +
 applyPersona();
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
+$('btnView').onclick = () => setView(viewMode === 'chase' ? 'fpv' : 'chase');
+setView(viewMode);
 $('btnSound').onclick = () => setSound(!audio.on);
 $('btnMusic').onclick = () => toggleMusic();
 $('btnQuality').onclick = () => { autoQ = false; setQuality(TIER_ORDER[(TIER_ORDER.indexOf(tier) + 1) % 3]); };
@@ -1437,6 +1489,7 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyT') setTimePanel($('timePanel').hidden);
   else if (e.code === 'KeyH') setHud(!hudOn);
   else if (e.code === 'KeyL') setLamp(!lampOn);
+  else if (e.code === 'KeyV') setView(viewMode === 'chase' ? 'fpv' : 'chase');
   else if (e.code === 'KeyM') setSound(!audio.on);
   else if (e.code === 'KeyN') toggleMusic();
   else if (e.code === 'KeyZ') openPanel('guide');
@@ -1673,8 +1726,8 @@ function frame(ts: number) {
       const cp = camera.position;
       camCave += (cur.cave.skyAt(cp.x, cp.y, cp.z) - camCave) * Math.min(1, dt * 1.2);
       U.uCamCave.value = camCave;
-      if (!lampManual) { const want = wantLamp(); if (want !== lampOn) setLamp(want, false); }
     }
+    if (!lampManual && (lampT -= dt) < 0) { lampT = 0.5; const want = wantLamp(); if (want !== lampOn) setLamp(want, false); }
     // a touch more exposure at night, and much more in the dark of the cave (eased)
     {
       const cp = camera.position, cv = cur.cave;
