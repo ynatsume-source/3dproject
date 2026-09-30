@@ -93,7 +93,7 @@ export function makeOctopi(oc: any, count: number, rock: number[]) {
     const m = new THREE.Mesh(GEO, octopusMaterial());
     m.frustumCulled = false;
     const o: any = { mesh: m, pos: new THREE.Vector3(), den: new THREE.Vector3(), head: 0, t: R() * 50, state: 'den' as State, stateT: 0, placed: false,
-      spread: 0.3, walk: 0, alarm: 0, size: rr(0.55, 0.8), goal: null as THREE.Vector3 | null };
+      spread: 0.3, walk: 0, alarm: 0, size: rr(0.55, 0.8), goal: null as THREE.Vector3 | null, up: new THREE.Vector3(0, 1, 0) };
     m.scale.setScalar(o.size);
     (m.material as THREE.ShaderMaterial).uniforms.uCamo.value.setRGB(rock[0] * 1.05, rock[1] * 0.9, rock[2] * 0.75);
     o.subject = { key: `octopus:${i}`, label: 'ワモンダコ', kind: 'octopus', prio: 3.0, size: 0.9, pos: () => (o.placed ? o.pos : null), status: () => STATUS[o.state as State], live: () => o.placed } as Subject;
@@ -103,7 +103,34 @@ export function makeOctopi(oc: any, count: number, rock: number[]) {
   return list;
 }
 
-const _v = new THREE.Vector3();
+const _v = new THREE.Vector3(), _g = new THREE.Vector3(), _n = new THREE.Vector3(), _f = new THREE.Vector3(), _r = new THREE.Vector3(), _ax = new THREE.Vector3();
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _qj = new THREE.Quaternion();
+// the surface it crawls on: terrain and everything standing on it (rock, coral), smoothed over about
+// its own size so that a coral head is a rounded mound with sides to cling to, not a stepped block
+function surf(T: any, x: number, z: number) {
+  let c = 0, mx = -1e9;
+  for (let k = 0; k < 7; k++) {
+    const a = k * 1.0472, r = k === 6 ? 0 : 0.55, v = solid(T, x + Math.cos(a) * r, z + Math.sin(a) * r);
+    c += k === 6 ? v * 2 : v; mx = Math.max(mx, v);
+  }
+  return (c / 8) * 0.75 + mx * 0.25;
+}
+// terrain and the obstacle grid, interpolated between cells (the grid's own lookup takes the tallest
+// neighbour, which is right for keeping clear of things but makes a staircase to walk on)
+function solid(T: any, x: number, z: number) {
+  const h = T.h(x, z), O = T.obst;
+  if (!O) return h;
+  const N = O.N, fx = Math.min(N - 1.001, Math.max(0, x + O.half - 0.5)), fz = Math.min(N - 1.001, Math.max(0, z + O.half - 0.5));
+  const i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j, a = O.a, k = j * N + i;
+  const g = (q: number) => Math.max(a[q], h);
+  return (g(k) * (1 - u) + g(k + 1) * u) * (1 - v) + (g(k + N) * (1 - u) + g(k + N + 1) * u) * v;
+}
+// how steep the surface is here (rise over run), and its gradient in g
+function slope(T: any, x: number, z: number, g: THREE.Vector3) {
+  const e = 0.45;
+  g.set((surf(T, x + e, z) - surf(T, x - e, z)) / (2 * e), 0, (surf(T, x, z + e) - surf(T, x, z - e)) / (2 * e));
+  return Math.hypot(g.x, g.z);
+}
 export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
   const T = oc.T, act = activity('day', env);
   for (const o of oc.octopi || []) {
@@ -117,11 +144,13 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
         const d = near ? rr(10, 30) : rr(30, 45), lat = (R() * 2 - 1) * 18;
         const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
         const r = T.reef(x, z), h = T.h(x, z);
-        const sc = h > -0.9 ? -0.5 : r * (h > -18 ? 1 : 0.3);
+        // a crevice at the foot of rock or coral: reef here, and something standing higher close by
+        let rise = 0; for (let k2 = 0; k2 < 6; k2++) { const a2 = k2 * 1.047; rise = Math.max(rise, surf(T, x + Math.cos(a2) * 0.9, z + Math.sin(a2) * 0.9) - surf(T, x, z)); }
+        const sc = h > -0.9 ? -0.5 : r * (h > -18 ? 1 : 0.3) * (0.4 + Math.min(1, rise / 0.8));
         if (sc > bs) { bs = sc; best = [x, z]; }
       }
-      o.den.set(best[0], T.h(best[0], best[1]), best[1]);
-      o.pos.copy(o.den); o.state = 'den'; o.stateT = 0; o.placed = true; o.goal = null;
+      o.den.set(best[0], surf(T, best[0], best[1]), best[1]);
+      o.pos.copy(o.den); o.up.set(0, 1, 0); o.state = 'den'; o.stateT = 0; o.placed = true; o.goal = null;
     }
     const camD = o.pos.distanceTo(cam);
     const st = o.state as State;
@@ -129,18 +158,25 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     if (st === 'den') { if (act > 0.6 && o.stateT > rr(20, 60) && camD > 3) { o.state = 'forage'; o.stateT = 0; } }
     else if (st === 'forage') {
       if (camD < 2.4) { o.state = 'jet'; o.stateT = 0; o.head = Math.atan2(o.pos.z - cam.z, o.pos.x - cam.x); logEvent(env, 'octopus', 'ワモンダコが色を変えて、ジェット噴射で逃げた', o.pos.x, o.pos.z, () => o.pos); }
-      else if (act < 0.4 || o.stateT > 150) { o.goal = o.den.clone(); if (o.pos.distanceTo(o.den) < 0.6) { o.state = 'den'; o.stateT = 0; } }
+      else if (act < 0.4 || o.stateT > 150) { o.goal = o.den.clone(); if (Math.hypot(o.pos.x - o.den.x, o.pos.z - o.den.z) < 0.5) { o.state = 'den'; o.stateT = 0; } }
     } else if (st === 'jet') { if (o.stateT > 2.4) { o.state = 'settle'; o.stateT = 0; } }
     else if (st === 'settle') { if (o.stateT > 6) { o.state = act > 0.5 ? 'forage' : 'den'; o.stateT = 0; if (o.state === 'den') o.pos.copy(o.den); } }
 
     // act
-    let speed = 0, spread = 1, walk = 0, alarm = 0, lift = 0.02;
-    if (o.state === 'den') { spread = 0.25; lift = -0.12; }
+    let speed = 0, spread = 1, walk = 0, alarm = 0, lift = 0;
+    if (o.state === 'den') { spread = 0.25; lift = -0.08; }
     else if (o.state === 'forage') {
-      if (!o.goal || o.pos.distanceTo(o.goal) < 0.5) {
-        const a = R() * Math.PI * 2, r = rr(1, 4);
-        const gx = clamp(o.den.x + Math.cos(a) * r * 2, -LIMIT, LIMIT), gz = clamp(o.den.z + Math.sin(a) * r * 2, -LIMIT, LIMIT);
-        o.goal = T.wet(gx, gz, 0.6) ? new THREE.Vector3(gx, T.h(gx, gz), gz) : o.den.clone();
+      // probe along the reef: the next spot is a crack or the edge of a coral head near the den
+      if (!o.goal || Math.hypot(o.pos.x - o.goal.x, o.pos.z - o.goal.z) < 0.4) {
+        let best: THREE.Vector3 | null = null, bs = -1;
+        for (let k = 0; k < 10; k++) {
+          const a = R() * Math.PI * 2, r = rr(0.8, 3.5);
+          const gx = clamp(o.den.x + Math.cos(a) * r * 1.6, -LIMIT, LIMIT), gz = clamp(o.den.z + Math.sin(a) * r * 1.6, -LIMIT, LIMIT);
+          if (!T.wet(gx, gz, 0.6)) continue;
+          const sc = T.reef(gx, gz) + Math.min(1, slope(T, gx, gz, _g)) * 0.8 + R() * 0.3;
+          if (sc > bs) { bs = sc; best = new THREE.Vector3(gx, 0, gz); }
+        }
+        o.goal = best ?? o.den.clone();
       }
       const gx = o.goal.x - o.pos.x, gz = o.goal.z - o.pos.z;
       let d = Math.atan2(gz, gx) - o.head; d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -152,16 +188,31 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     o.spread += (spread - o.spread) * Math.min(1, dt * (o.state === 'jet' ? 6 : 1.2));
     o.walk += (walk - o.walk) * Math.min(1, dt * 2);
     o.alarm += (alarm - o.alarm) * Math.min(1, dt * (alarm > o.alarm ? 8 : 1));
-    o.pos.x = clamp(o.pos.x + Math.cos(o.head) * speed * dt, -LIMIT, LIMIT);
-    o.pos.z = clamp(o.pos.z + Math.sin(o.head) * speed * dt, -LIMIT, LIMIT);
-    const floorY = T.top(o.pos.x, o.pos.z);
-    o.pos.y += (floorY + lift - o.pos.y) * Math.min(1, dt * 3);
+    // Crawling keeps to the surface, up and down its sides: speed is along the surface, so on a steep
+    // flank the octopus creeps up or down it rather than hopping onto the top or dropping off the edge.
+    const k = slope(T, o.pos.x, o.pos.z, _g);
+    const along = o.state === 'jet' ? 1 : 1 / Math.sqrt(1 + k * k * 1.6);
+    o.pos.x = clamp(o.pos.x + Math.cos(o.head) * speed * along * dt, -LIMIT, LIMIT);
+    o.pos.z = clamp(o.pos.z + Math.sin(o.head) * speed * along * dt, -LIMIT, LIMIT);
+    const floorY = surf(T, o.pos.x, o.pos.z);
+    if (o.state === 'jet' || o.state === 'settle') o.pos.y += (Math.max(floorY + lift, o.pos.y - dt * 0.4) - o.pos.y) * Math.min(1, dt * 3);   // (sinks back down after a jet)
+    else o.pos.y += (floorY + lift - o.pos.y) * Math.min(1, dt * 6);
+    // lie against the surface: the body's up is the surface normal (flat on top, sideways on a wall),
+    // pressed a little closer on steep sides, where it flattens as octopuses do
+    _n.set(-_g.x, 1, -_g.z).normalize();
+    if (o.state === 'jet') _n.set(0, 1, 0);
+    o.up.lerp(_n, Math.min(1, dt * 3)).normalize();
+    _f.set(Math.cos(o.head), 0, Math.sin(o.head)); _f.addScaledVector(o.up, -_f.dot(o.up)).normalize();
+    _r.crossVectors(o.up, _f).normalize();
+    _m.makeBasis(_r, o.up, _f);
+    _q.setFromRotationMatrix(_m);
+    if (o.state === 'jet') _q.multiply(_qj.setFromAxisAngle(_ax.set(1, 0, 0), -0.3));
+    o.mesh.quaternion.slerp(_q, Math.min(1, dt * 5));
+    const steep = 1 - o.up.y;
+    o.mesh.scale.set(o.size, o.size * (1 - steep * 0.25), o.size);
+    o.mesh.position.copy(o.pos).addScaledVector(o.up, -steep * 0.05 * o.size);
     const u = (o.mesh.material as THREE.ShaderMaterial).uniforms;
     u.uSpread.value = o.spread; u.uWalk.value = o.walk; u.uAlarm.value = o.alarm;
-    o.mesh.position.copy(o.pos);
-    // arms lead while walking; when jetting they stream out behind
-    const yaw = Math.atan2(Math.cos(o.head), Math.sin(o.head));
-    o.mesh.rotation.set(o.state === 'jet' ? -0.3 : 0, yaw, 0, 'YXZ');
     void _v;
   }
 }
