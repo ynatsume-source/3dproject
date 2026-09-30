@@ -96,6 +96,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        vec3 ph; vec4 cv; landTex(vWp.xz, ph, cv);
        float nz = vn2(vWp.xz * 0.9) * 0.6 + vn2(vWp.xz * 3.1 + 7.0) * 0.4;
        if (cv.r < 0.3 + 0.3 * nz) discard;                            // ragged where the forest ends
+       if (length(vWp.xz - uCut.xz) < uCut.w * (0.85 + 0.3 * nz)) discard;   // (opened up over a resident being watched from above)
        vec3 n = normalize(vN);
        float under = gl_FrontFacing ? 1.0 : 0.3;                       // seen from beneath: the shade inside the crowns
        // leafy texture: clumps of light and shade at the scale of branches
@@ -177,6 +178,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     `${AIRLIT}
      varying vec3 vWp; varying vec3 vN; varying vec3 vCol;
      void main(){
+       if (length(vWp.xz - uCut.xz) < uCut.w && vWp.y > uCut.y + 0.9) discard;   // (the crowns over a resident being watched)
        vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
        n = normalize(n + vec3(0.0, 0.35, 0.0));
        gl_FragColor = vec4(fogIt(airLit(vCol, n, vWp, 0.7), vWp), 1.0);

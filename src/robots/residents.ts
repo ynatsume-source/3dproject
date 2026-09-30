@@ -57,6 +57,8 @@ const SPECS: Spec[] = [
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any }
 interface Line { who: string; text: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; conv: number }
+export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
+export interface Sense { eye: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number }
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
 export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean }   // (a line someone said, or the heading of a conversation)
 export interface Resident {
@@ -82,6 +84,8 @@ export interface Residents {
   onEvent: (kind: string, text: string, r: Resident) => void;
   onSay: (r: Resident, text: string) => void;   // someone starts saying something (for its voice)
   gibber(id: string, text: string): string;      // how it sounds in its own language
+  sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
+  hide: string;                                    // (the one whose eyes we are looking through: not drawn)
 }
 
 const pair = (a: string, b: string) => (a < b ? a + '|' + b : b + '|' + a);
@@ -639,6 +643,33 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     list, bonds, talks, group,
     onEvent: () => { /* set by the app */ },
     onSay: () => { /* set by the app */ },
+    hide: '',
+    sense(r) {
+      const EYE: Record<string, number> = { dot: 0.9, kame: 0.46, lantern: 1.05, rakko: 0.62 };
+      const fx = Math.sin(r.head), fz = Math.cos(r.head);
+      const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
+      if (r.id === 'kame' && r.wet && r.act === 'swim') eye.y = r.pos.y + 0.2;   // (swimming under the water, looking through it)
+      const marks: Mark[] = [], near = (x: number, z: number, d: number) => Math.hypot(x - r.pos.x, z - r.pos.z) < d;
+      const tk = r.task, tgt = tk && tk.data;
+      const NAME: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
+      for (const it of items.list) if (near(it.x, it.z, 45)) marks.push({ x: it.x, y: L.h(it.x, it.z) + 0.1, z: it.z, kind: it.kind, label: NAME[it.kind], hot: tgt === it });
+      for (const o of list) if (o !== r && near(o.pos.x, o.pos.z, 70)) { const bd = bonds[pair(r.id, o.id)]; marks.push({ x: o.pos.x, y: o.pos.y + 1.1 * o.sp.scale, z: o.pos.z, kind: 'friend', label: o.v.name, sub: STAGES[bd.stage], color: o.sp.color, hot: tk?.kind === 'approach' && tk.data === o.id }); }
+      if (near(hut.position.x, hut.position.z, 90)) {
+        marks.push({ x: hut.position.x, y: hut.position.y + 2.1, z: hut.position.z, kind: 'place', label: 'ドットの小屋', sub: r.stats.built >= HUT.length || byId.dot.stats.built >= HUT.length ? '完成' : `部材 ${byId.dot.stats.built}/${HUT.length}` });
+        marks.push({ x: PIT.x, y: PIT.y + 0.5, z: PIT.z, kind: 'place', label: '焚き火台', hot: tk?.kind === 'fire' });
+        if (r.id === 'dot') {
+          const b = hut.localToWorld(benchL.clone()); marks.push({ x: b.x, y: b.y + 0.7, z: b.z, kind: 'place', label: '作業台', hot: tk?.kind === 'craft' });
+          if (byId.dot.stats.built < HUT.length) { const w = slotWorld(byId.dot.stats.built); marks.push({ x: w.x, y: w.y, z: w.z, kind: 'slot', label: `次の部材 #${byId.dot.stats.built + 1}`, hot: tk?.kind === 'place' }); }
+          for (const pl of PLOTS) if (pl.ok) marks.push({ x: pl.x, y: L.h(pl.x, pl.z) + 0.3, z: pl.z, kind: 'plot', label: '畑', sub: pl.s === 0 ? '未開墾' : pl.s === 1 ? '耕した' : growth(pl) >= 1 ? '収穫どき' : `生育 ${Math.round(growth(pl) * 100)}%`, hot: tgt === pl });
+          for (const t of TREES) if (t.ok && !t.down) marks.push({ x: t.x, y: L.h(t.x, t.z) + 2.2, z: t.z, kind: 'tree', label: '若木', sub: 'モクマオウ', hot: tgt === t });
+        }
+      }
+      for (const c of cairnSpots) if (near(c[0], c[1], 60)) marks.push({ x: c[0], y: L.h(c[0], c[1]) + 0.2 + 0.22 * c[2], z: c[1], kind: 'place', label: '石積み', sub: `${c[2]}/4 段`, hot: tgt === c });
+      { const [px, pz] = pileAt(0); if (near(px, pz, 60)) marks.push({ x: px, y: L.h(px, pz) + 0.3, z: pz, kind: 'place', label: '貝殻の山', sub: `${byId.rakko.stats.shells}個`, hot: tk?.kind === 'pile' }); }
+      let target: Mark | null = marks.find((m) => m.hot) ?? null;
+      if (!target && tk && !tk.arrived) target = { x: tk.x, y: L.h(tk.x, tk.z) + 0.2, z: tk.z, kind: 'goal', label: '目的地', hot: true };
+      return { eye, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food };
+    },
     gibber,
     update(dt, ms, cam) {
       clockMs = ms;
@@ -649,7 +680,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if ((meetT -= dt) < 0) { meetT = 1; checkMeetings(false); }
       for (const r of list) {
         const near = Math.hypot(r.pos.x - cam.x, r.pos.z - cam.z) < 160;
-        r.model.root.visible = near;
+        r.model.root.visible = near && res.hide !== r.id;
         if (!near) continue;
         r.model.root.position.copy(r.pos); r.model.root.rotation.y = r.head;
         const act: Act = r.id === 'dot' ? r.act : r.act === 'pick' || r.act === 'hammer' || r.act === 'chop' || r.act === 'dig' ? 'work' : r.act === 'sit' ? (r.wet ? 'float' : 'idle') : r.act;
