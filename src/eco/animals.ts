@@ -10,8 +10,11 @@ import { activity, logEvent, type Env } from './env';
 const _w = new THREE.Vector3();
 
 function relocate(t: any, T: any, cam: THREE.Vector3, fx: number, fz: number) {
-  const d = t.placed ? rr(34, 48) : rr(12, 36), lat = (R() * 2 - 1) * 18;
-  t.pos.set(clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), 0, clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT));
+  for (let k = 0; k < 24; k++) {
+    const d = t.placed ? rr(34, 48) : rr(12, 36), lat = (R() * 2 - 1) * 18;
+    t.pos.set(clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), 0, clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT));
+    if (T.wet(t.pos.x, t.pos.z, 1.8)) break;
+  }
   t.pos.y = T.top(t.pos.x, t.pos.z) + rr(1, 3);
   t.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(1, 2.2);
   t.placed = true; t.state = 'travel'; t.goal = null; t.stateT = 0; t.yaw = undefined; t.pitch = undefined;
@@ -28,6 +31,7 @@ function pickGoal(oc: any, from: THREE.Vector3, want: 'graze' | 'rest'): THREE.V
     if (want === 'graze') score = loc.grass && oc.grassTex ? loc.grass(x, z) + 0.1 * reef : reef;
     else score = reef * Math.min(1, T.slope(x, z) + 0.3);   // a ledge or coral head to lean against
     if (h > -2.5) score *= 0.2;
+    if (h > -1.2) score = -1;
     if (score > bs) { bs = score; best = new THREE.Vector3(x, h, z); }
   }
   return best!;
@@ -67,6 +71,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       if (t.stateT > (t.grazeFor ??= rr(30, 60))) { t.grazeFor = undefined; t.state = 'travel'; t.goal = pickGoal(oc, t.pos, 'graze'); t.stateT = 0; }
     } else if (t.state === 'rest') { speed = 0; ty = fh + 0.18; stroke = 0.05; }
     else t.head += Math.sin(t.t * 0.11 + t.size * 10) * 0.12 * dt;
+    if (t.state !== 'rest' && t.state !== 'graze') t.head += T.shore(t.pos.x, t.pos.z, t.head, 4, 1.1) * Math.min(1, dt * 1.5);
     if (Math.abs(t.pos.x) > LIMIT || Math.abs(t.pos.z) > LIMIT) { let d = Math.atan2(-t.pos.z, -t.pos.x) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
 
     // look ahead and rise over rocks and coral instead of ploughing into them
@@ -115,7 +120,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       for (let k = 0; k < 30; k++) {
         const d = m.placed && m.feeding === feeding ? rr(35, 50) : rr(14, 30), lat = (R() * 2 - 1) * 20;
         const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
-        const s = feeding ? env.plankton.sample(x, z) : T.h(x, z);
+        const s = (feeding ? env.plankton.sample(x, z) : T.h(x, z)) - (T.wet(x, z, 5) || !oc.loc.land ? 0 : 1e6);   // by an island, mantas need room below them
         if (s > bs) { bs = s; best = [x, z]; }
       }
       m.st.set(best[0], 0, best[1]);

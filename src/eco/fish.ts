@@ -169,7 +169,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     for (let k = 0; k < 28; k++) {
       const d = rr(dmin, dmax), lat = (R() * 2 - 1) * (dmax * 0.5);
       const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
-      const r = wantReef ? T.reef(x, z) : 1;
+      const r = !T.wet(x, z, 1.6) ? -0.5 : wantReef ? T.reef(x, z) : 1;
       if (r > bs) { bs = r; best = [x, z]; }
       if (r > 0.5) break;
     }
@@ -265,6 +265,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         if (isPredator && !inCave) hunting = hunt(g, dt, env);
         if (!hunting && !inCave) {
           g.head += (Math.sin(g.t * 0.23 + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt;
+          g.head += T.shore(g.c.x, g.c.z, g.head, 5, 1.2) * Math.min(1, dt * 1.5);
           if (Math.abs(g.c.x) > LIMIT || Math.abs(g.c.z) > LIMIT) { let d = Math.atan2(-g.c.z, -g.c.x) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8; }
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
           g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(pace);

@@ -117,7 +117,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
         const d = near ? rr(10, 30) : rr(30, 45), lat = (R() * 2 - 1) * 18;
         const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
         const r = T.reef(x, z), h = T.h(x, z);
-        const sc = r * (h > -18 ? 1 : 0.3);
+        const sc = h > -0.9 ? -0.5 : r * (h > -18 ? 1 : 0.3);
         if (sc > bs) { bs = sc; best = [x, z]; }
       }
       o.den.set(best[0], T.h(best[0], best[1]), best[1]);
@@ -140,7 +140,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       if (!o.goal || o.pos.distanceTo(o.goal) < 0.5) {
         const a = R() * Math.PI * 2, r = rr(1, 4);
         const gx = clamp(o.den.x + Math.cos(a) * r * 2, -LIMIT, LIMIT), gz = clamp(o.den.z + Math.sin(a) * r * 2, -LIMIT, LIMIT);
-        o.goal = new THREE.Vector3(gx, T.h(gx, gz), gz);
+        o.goal = T.wet(gx, gz, 0.6) ? new THREE.Vector3(gx, T.h(gx, gz), gz) : o.den.clone();
       }
       const gx = o.goal.x - o.pos.x, gz = o.goal.z - o.pos.z;
       let d = Math.atan2(gz, gx) - o.head; d = Math.atan2(Math.sin(d), Math.cos(d));

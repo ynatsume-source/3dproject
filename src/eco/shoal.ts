@@ -49,8 +49,12 @@ export function makeShoalSystem(sp: Species, oc: any) {
 
   function place(s: number, cam: THREE.Vector3, fx: number, fz: number, near: boolean) {
     const L = leaders[s];
-    const d = near ? rr(10, 28) : rr(32, 46), lat = (R() * 2 - 1) * 20;
-    const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
+    let x = cam.x, z = cam.z;
+    for (let k = 0; k < 24; k++) {
+      const d = near ? rr(10, 28) : rr(32, 46), lat = (R() * 2 - 1) * 20;
+      x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT); z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
+      if (T.wet(x, z, 2.6)) break;
+    }
     L.c.set(x, Math.min(T.h(x, z) + L.alt, -2), z);
     L.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.8, 2.2);
     for (let i = s; i < total; i += S) {
@@ -76,6 +80,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       if (!L.placed || dx * dx + dz * dz > 75 * 75) place(s, cam, fx, fz, !L.placed);
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
       if (Math.abs(L.c.x) > LIMIT || Math.abs(L.c.z) > LIMIT) { let d = Math.atan2(-L.c.z, -L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
+      L.head += T.shore(L.c.x, L.c.z, L.head, 8, 2.2) * Math.min(1, dt * 1.2);
       const pace = sp.speed * (0.35 + 0.65 * act);
       L.c.x += Math.cos(L.head) * pace * dt; L.c.z += Math.sin(L.head) * pace * dt;
       const alt = L.alt * act + 1.2 * (1 - act) + Math.sin(L.t * 0.11 + s) * 1.2;

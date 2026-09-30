@@ -17,8 +17,12 @@ float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 *
   return mix(mix(h12(i), h12(i + vec2(1, 0)), u.x), mix(h12(i + vec2(0, 1)), h12(i + vec2(1, 1)), u.x), u.y); }
 `;
 
+// half-float targets where the GPU can render into them (nearly all); 8-bit ones otherwise, which clip
+// highlights but still draw
+let RT_TYPE: THREE.TextureDataType = THREE.HalfFloatType;
+export function setRTSupport(half: boolean) { RT_TYPE = half ? THREE.HalfFloatType : THREE.UnsignedByteType; }
 function rt(w: number, h: number, depth = false) {
-  const t = new THREE.WebGLRenderTarget(Math.max(1, w), Math.max(1, h), { type: THREE.HalfFloatType, depthBuffer: depth, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
+  const t = new THREE.WebGLRenderTarget(Math.max(1, w), Math.max(1, h), { type: RT_TYPE, depthBuffer: depth, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
   if (depth) { t.depthTexture = new THREE.DepthTexture(Math.max(1, w), Math.max(1, h)); t.depthTexture.type = THREE.UnsignedIntType; }
   return t;
 }

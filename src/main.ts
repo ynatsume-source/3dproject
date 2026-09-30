@@ -22,7 +22,7 @@ import { MiniMap } from './ui/minimap';
 import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
-import { Post } from './render/post';
+import { Post, setRTSupport } from './render/post';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
@@ -31,10 +31,30 @@ import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
 
+// If the GPU gives up on us (the context is lost: a driver reset, usually a frame that took too long on
+// a weak or busy GPU), reload in a lighter mode: first the light tier at a lower resolution, then lower
+// still; after that, say so instead of looping.
+const SAFE = (() => { try { return +(sessionStorage.getItem('seaglass.safe') || 0); } catch (e) { return 0; } })();
+let lostCount = 0;
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault(); lostCount++;
+  console.error('WebGL context lost');
+  if (location.search.includes('diag')) return;
+  if (SAFE < 2) {
+    try { sessionStorage.setItem('seaglass.safe', String(SAFE + 1)); } catch (err) { /* ignore */ }
+    $('veilK').textContent = 'RECOVERING'; $('veilT').textContent = '描画が止まったため、軽いモードで開き直します'; $('veilS').textContent = '';
+    document.getElementById('veil')!.classList.add('on');
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    $('err').innerHTML = 'このPCのGPUでは描画を続けられませんでした。<br>ブラウザの設定で「ハードウェアアクセラレーション」が有効か、GPUドライバーが最新かをご確認ください。';
+    $('err').hidden = false;
+  }
+});
 let renderer: THREE.WebGLRenderer;
-try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); }
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: SAFE === 0, powerPreference: 'high-performance' }); }
 catch (e) { $('err').hidden = false; throw e; }
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+setRTSupport(renderer.extensions.has('EXT_color_buffer_half_float') || renderer.extensions.has('EXT_color_buffer_float'));
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 460);
 setAnisotropy(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
@@ -50,7 +70,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lampOn = false, lampManual = false, hudOn = true, busy = false;
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
-let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : detectTier(renderer.getContext());
+let tier: Tier = forcedTier && forcedTier in TIERS ? forcedTier : SAFE ? 'low' : detectTier(renderer.getContext());
 const post = new Post(TIERS[tier]);
 const minimap = new MiniMap(document.getElementById('minimap')!);
 let mapTimer = 0;
@@ -1123,7 +1143,7 @@ function setPip(on: boolean) {
 }
 function resize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr);
+  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 2 ? 0.5 : 1);
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
@@ -1260,3 +1280,37 @@ void smooth;
 
 // Inspect the live sim from the console with ?debug
 if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+
+// ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
+if (location.search.includes('diag')) {
+  const box = document.createElement('pre');
+  box.style.cssText = 'position:fixed;left:8px;top:8px;z-index:99;max-width:min(92vw,560px);max-height:80vh;overflow:auto;margin:0;padding:10px 12px;font:11px/1.5 ui-monospace,monospace;color:#eafffb;background:rgba(0,12,18,.86);border:1px solid rgba(143,232,216,.5);border-radius:8px;white-space:pre-wrap;user-select:text';
+  document.body.appendChild(box);
+  const errs: string[] = [];
+  const cerr = console.error.bind(console), cwarn = console.warn.bind(console);
+  console.error = (...a: any[]) => { errs.push('E ' + a.map(String).join(' ').slice(0, 400)); cerr(...a); };
+  console.warn = (...a: any[]) => { errs.push('W ' + a.map(String).join(' ').slice(0, 200)); cwarn(...a); };
+  addEventListener('error', (e) => errs.push('X ' + e.message));
+  const gl = renderer.getContext() as WebGL2RenderingContext;
+  let name = '?', vendor = '?';
+  try { const x = gl.getExtension('WEBGL_debug_renderer_info'); name = String(gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER)); vendor = String(gl.getParameter(x ? x.UNMASKED_VENDOR_WEBGL : gl.VENDOR)); } catch (e) { /* hidden */ }
+  const ex = (n: string) => (renderer.extensions.has(n) ? 'yes' : 'NO');
+  let frames = 0, t0 = performance.now(), fps = 0;
+  const tick = () => {
+    frames++; const now = performance.now();
+    if (now - t0 > 1000) {
+      fps = frames * 1000 / (now - t0); frames = 0; t0 = now;
+      box.textContent = [
+        `GPU      ${name}`, `vendor   ${vendor}`, `WebGL2   ${gl instanceof WebGL2RenderingContext ? 'yes' : 'NO'}   maxTex ${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`,
+        `float RT ${ex('EXT_color_buffer_float')}   half RT ${ex('EXT_color_buffer_half_float')}   float linear ${ex('OES_texture_float_linear')}`,
+        `tier     ${tier}   safe ${SAFE}   dpr ${renderer.getPixelRatio().toFixed(2)}   canvas ${canvas.width}x${canvas.height}`,
+        `fps      ${fps.toFixed(1)}   ms/frame ${(1000 / Math.max(fps, 0.01)).toFixed(0)}   lost ${lostCount}   ctx ${gl.isContextLost() ? 'LOST' : 'ok'}   glError ${gl.getError()}`,
+        `mode     ${mode}   sea ${cur?.loc.id ?? '-'}   cam y ${camera.position.y.toFixed(1)}`,
+        `UA       ${navigator.userAgent}`,
+        '', ...errs.slice(-14),
+      ].join('\n');
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
