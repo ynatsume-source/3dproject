@@ -28,7 +28,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop, vol, setVolume } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -686,7 +686,7 @@ function statusOf(id: string): string {
   return '';
 }
 const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : [])];
-let panelTab: 'guide' | 'log' | 'island' = 'guide';
+let panelTab: 'guide' | 'log' | 'island' | 'talk' = 'guide';
 function renderLog() {
   const loc = cur!.loc;
   ensureDay();
@@ -702,6 +702,27 @@ function renderLog() {
     ${rows ? `<ol class="log">${rows}</ol>` : '<p class="empty">まだ記録はありません。ドローンが出来事に出会うと、ここに時刻つきで残ります。</p>'}`;
 }
 // the island's residents: what each is doing, how they get on, their diaries and conversations
+// everything they have said to each other, conversation by conversation (newest first); in their own
+// languages, set down here in Japanese
+function renderTalk() {
+  const R = cur!.residents!, loc = cur!.loc, t = (ms: number) => localTimeString(ms, loc.tz);
+  const who = (id: string) => R.list.find((r: any) => r.id === id);
+  const groups: { head: string; at: number; lines: any[] }[] = [];
+  const byConv = new Map<number, typeof groups[0]>();
+  for (const e of R.talks as any[]) {
+    if (e.head) { const g = { head: e.text, at: e.at, lines: [] as any[] }; groups.push(g); byConv.set(e.conv, g); continue; }
+    let g = e.conv != null ? byConv.get(e.conv) : undefined;
+    if (!g) { g = { head: '', at: e.at, lines: [] }; groups.push(g); if (e.conv != null) byConv.set(e.conv, g); }
+    g.lines.push(e);
+  }
+  const html = groups.filter((g) => g.lines.length).slice(-40).reverse().map((g) => `<section class="conv"><h4><time>${t(g.at)}</time>${g.head || '会話'}</h4><ol>${g.lines.map((e) => {
+    const r = e.who ? who(e.who) : null;
+    return r ? `<li style="--c:${r.sp.color}"><b><i></i>${r.v.name}</b>${e.text}</li>` : `<li>${e.text}</li>`;
+  }).join('')}</ol></section>`).join('');
+  return `<h2>会話ログ <span>${loc.name}の住人たち</span></h2>
+    <p class="lead">4体はそれぞれ自分だけの言葉で話しています（近くで聞くと声が聞こえます）。なぜかお互いには通じているようです。ここには日本語で残しています。</p>
+    ${html || '<p class="empty">まだ誰も話していません。</p>'}`;
+}
 function renderIsland() {
   const R = cur!.residents!, loc = cur!.loc;
   const t = (ms: number) => localTimeString(ms, loc.tz);
@@ -713,13 +734,13 @@ function renderIsland() {
       <p>${r.v.trait}</p><p class="work">${work}</p><div class="rels">${rel}</div>${diary ? `<ol class="diary">${diary}</ol>` : ''}
       <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button></li>`;
   }).join('');
-  const talk = R.talks.slice(-12).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
+  const talk = R.talks.filter((e: any) => !e.head).slice(-6).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.who ? `${R.list.find((r: any) => r.id === e.who)?.v.name ?? ''}「${e.text}」` : e.text}</li>`).join('');
   const key = aiKey();
   return `<h2>島の住人 <span>${loc.name}で暮らす4体</span></h2>
     <p class="lead">それぞれが自分の暮らしを持ち、島のどこかで出会うと話をします。はじめは挨拶、次に自己紹介、島で生きるコツ、近況……打ち解けてくると悩みも打ち明けます。見ていないあいだも、暮らしは続いています。</p>
     <ul>${cards}</ul>
     <h3>聞こえてきた会話</h3>
-    ${talk ? `<ol class="diary talk">${talk}</ol>` : '<p class="empty">まだ誰も出会っていません。</p>'}
+    ${talk ? `<ol class="diary talk">${talk}</ol><button class="go" type="button" data-tab="talk">会話ログをすべて見る</button>` : '<p class="empty">まだ誰も出会っていません。</p>'}
     <h3>AIで言葉を書く（試作）</h3>
     <p class="lead">Anthropic の API キーを入れると、出会ったときの会話を Claude が住人それぞれの性格で書きます。キーはこのブラウザの中にだけ保存されます。</p>
     <div class="aikey">${key ? `<span>設定済み（…${key.slice(-4)}）${aiLastError ? `・エラー：${aiLastError}` : ''}</span><button type="button" data-ai="clear">外す</button>` : `<input id="aiKey" type="password" placeholder="sk-ant-..." autocomplete="off"><button type="button" data-ai="save">保存</button>`}</div>`;
@@ -732,10 +753,11 @@ function renderGuide() {
   $('btnGuide').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'guide'));
   $('btnLog').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'log'));
   if (guideEl.hidden) return;
-  if (panelTab === 'island' && !cur.residents) panelTab = 'guide';
-  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日の海 <kbd>J</kbd></button>${cur.residents ? `<button type="button" role="tab" data-tab="island" aria-selected="${panelTab === 'island'}">島の住人</button>` : ''}</div>`;
+  if ((panelTab === 'island' || panelTab === 'talk') && !cur.residents) panelTab = 'guide';
+  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日の海 <kbd>J</kbd></button>${cur.residents ? `<button type="button" role="tab" data-tab="island" aria-selected="${panelTab === 'island'}">島の住人</button><button type="button" role="tab" data-tab="talk" aria-selected="${panelTab === 'talk'}">会話ログ</button>` : ''}</div>`;
   const scroll = guideEl.scrollTop;
   if (panelTab === 'log') { guideEl.innerHTML = tabs + renderLog(); guideEl.scrollTop = scroll; return; }
+  if (panelTab === 'talk') { guideEl.innerHTML = tabs + renderTalk(); guideEl.scrollTop = scroll; return; }
   if (panelTab === 'island') { if (!guideEl.contains(document.activeElement) || !(document.activeElement instanceof HTMLInputElement)) { guideEl.innerHTML = tabs + renderIsland(); guideEl.scrollTop = scroll; } return; }
   const thumbs = guideThumbs(loc, list.map((e) => e.id));
   guideEl.innerHTML = tabs + `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
@@ -755,7 +777,7 @@ guideEl.addEventListener('click', (e) => {
   const w = (e.target as HTMLElement).closest('[data-watch]') as HTMLElement | null;
   if (w && cur?.residents) { const r = cur.residents.list.find((x: any) => x.id === w.dataset.watch); if (r) { startWatch(r); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } } return; }
   const b = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
-  if (b) { panelTab = b.dataset.tab as 'guide' | 'log' | 'island'; guideEl.scrollTop = 0; renderGuide(); return; }
+  if (b) { panelTab = b.dataset.tab as typeof panelTab; guideEl.scrollTop = 0; renderGuide(); return; }
   const ai = (e.target as HTMLElement).closest('[data-ai]') as HTMLElement | null;
   if (ai) {
     const inp = guideEl.querySelector('#aiKey') as HTMLInputElement | null;
@@ -859,7 +881,17 @@ function applyWater(loc: Sea) {
 }
 function enterOcean(oc: Ocean) {
   watch.r = null; U.uFire.value.w = 0;   // (only the island has a fire)
-  if (oc.residents) oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
+  if (oc.residents) {
+    oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
+    // their voices, when the camera is close enough to hear them
+    oc.residents.onSay = (r: any, text: string) => {
+      const d = camera.position.distanceTo(r.pos); if (d > 40) return;
+      _w.subVectors(r.pos, camera.position).normalize();
+      const right = new THREE.Vector3(Math.cos(drone.yaw), 0, -Math.sin(drone.yaw));
+      babble(r.id, text, Math.min(1, 1.3 / (1 + d * 0.12)) * (camera.position.y > 0 || r.pos.y < 0 ? 1 : 0.4), _w.dot(right));
+      if (!guideEl.hidden && (panelTab === 'talk' || panelTab === 'island')) renderGuide();
+    };
+  }
   U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
   oc.eco.env.sound = { frenzy, plop };
@@ -1277,7 +1309,6 @@ async function keepAwake() {
 document.addEventListener('visibilitychange', keepAwake);
 document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
 
-$('btnGlobe').onclick = toGlobe;
 $('btnBack').onclick = toGlobe;
 $('btnGuide').onclick = () => openPanel('guide');
 $('btnLog').onclick = () => openPanel('log');

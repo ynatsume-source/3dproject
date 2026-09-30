@@ -422,3 +422,47 @@ export function plop(dist: number) {
   const g = a.createGain(); g.gain.value = 0.18 / (1 + dist / 12);
   s.connect(f).connect(g).connect(natureBus); s.start(t0);
 }
+
+// ---------- the residents' voices ----------
+// Each of them talks in a little language of its own — a run of soft blips, one per syllable, whose
+// pitch rises and falls with the sentence (up at a question, bright at a "!"). Nobody can make out
+// the words, but they always seem to understand each other. Rounded onsets, nothing sharp.
+export interface VoiceTone { base: number; spread: number; wave: OscillatorType; rate: number; tone: number; glide: number; vib: number; steps?: number }
+export const TONES: Record<string, VoiceTone> = {
+  dot: { base: 520, spread: 0.35, wave: 'triangle', rate: 11, tone: 1900, glide: 0, vib: 0, steps: 5 },     // quick robot bleeps on a scale
+  kame: { base: 165, spread: 0.2, wave: 'sine', rate: 5, tone: 700, glide: -0.12, vib: 4, },                // slow low hums that sink a little
+  lantern: { base: 330, spread: 0.25, wave: 'sine', rate: 7, tone: 1400, glide: 0.08, vib: 6 },             // airy, wavering, thoughtful
+  rakko: { base: 690, spread: 0.4, wave: 'triangle', rate: 13, tone: 2400, glide: 0.2, vib: 0 },            // squeaky, bouncing upward
+};
+let voiceBus: GainNode | null = null;
+export function babble(who: string, text: string, vol: number, pan = 0) {
+  if (!ac || !audio.on || vol < 0.01) return;
+  const v = TONES[who]; if (!v) return;
+  if (!voiceBus) { voiceBus = ac.createGain(); voiceBus.gain.value = 0.9; voiceBus.connect(master); voiceBus.connect(reverb); }
+  const a = ac, chars = [...text].filter((c) => !/[\s「」『』（）()・…]/.test(c)).slice(0, 36);
+  const ask = /[？?]\s*$/.test(text), shout = /[！!]\s*$/.test(text);
+  let t = a.currentTime + 0.03, seed = 0;
+  for (const c of text) seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const p = a.createStereoPanner(); p.pan.value = Math.max(-0.8, Math.min(0.8, pan)); p.connect(voiceBus);
+  const n = chars.length;
+  chars.forEach((c, i) => {
+    if (/[、。，．,.!?！？ー〜]/.test(c)) { t += 1 / v.rate * (/[、，,ー〜]/.test(c) ? 0.9 : 1.6); return; }
+    const k = i / Math.max(1, n - 1);
+    let f = v.base * Math.pow(2, (rnd() - 0.5) * v.spread * 2);
+    if (v.steps) f = v.base * Math.pow(2, Math.round((rnd() - 0.5) * v.steps) / 12 * 2);   // on a scale, like a little machine
+    if (ask && k > 0.7) f *= 1 + (k - 0.7) * 1.2;          // rising at a question
+    if (shout) f *= 1.12;
+    f *= 1 - k * 0.08;                                     // sentences settle a little toward the end
+    const d = (0.55 + rnd() * 0.3) / v.rate;
+    const o = a.createOscillator(); o.type = v.wave;
+    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(Math.max(40, f * (1 + v.glide)), t + d);
+    if (v.vib) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = v.vib; lg.gain.value = f * 0.025; l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + d + 0.05); }
+    const lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = v.tone; lp.Q.value = 0.7;
+    const g = a.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05 * vol, t + Math.min(0.025, d * 0.3));   // a soft start
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(lp).connect(g).connect(p); o.start(t); o.stop(t + d + 0.02);
+    t += 1 / v.rate;
+  });
+}

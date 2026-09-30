@@ -56,9 +56,9 @@ const SPECS: Spec[] = [
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any }
 interface Line { who: string; text: string }
-interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean }
+interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; conv: number }
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
-export interface Entry { at: number; text: string }
+export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean }   // (a line someone said, or the heading of a conversation)
 export interface Resident {
   id: string; v: Voice; sp: Spec; model: Robot;
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
@@ -80,9 +80,27 @@ export interface Residents {
   focus(r: Resident | null): void;        // the one being watched: mark where it is heading
   bubbles(camera: THREE.Camera, w: number, h: number): void;
   onEvent: (kind: string, text: string, r: Resident) => void;
+  onSay: (r: Resident, text: string) => void;   // someone starts saying something (for its voice)
+  gibber(id: string, text: string): string;      // how it sounds in its own language
 }
 
 const pair = (a: string, b: string) => (a < b ? a + '|' + b : b + '|' + a);
+// what their words sound like: each has its own few syllables, strung together as long as the sentence
+const SYLL: Record<string, string[]> = {
+  dot: ['ピ', 'ポ', 'パ', 'ピコ', 'プ', 'ペ', 'ポッ', 'ビ'],
+  kame: ['もご', 'むぅ', 'ほぉ', 'ふも', 'ん', 'もぉ', 'ぬ'],
+  lantern: ['りゅ', 'し', 'ふぇ', 'る', 'みぃ', 'ぽぅ', 'しゅ'],
+  rakko: ['きゅ', 'ぷ', 'ぴ', 'きゃ', 'るる', 'ぷぃ', 'みゅ'],
+};
+export function gibber(id: string, text: string) {
+  const sy = SYLL[id]; if (!sy) return '';
+  let h = 7; for (const c of text) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const words = Math.max(1, Math.min(6, Math.round(text.length / 7)));
+  const out: string[] = [];
+  for (let w = 0; w < words; w++) { let wd = ''; const n = 1 + (h % 3); for (let k = 0; k < n; k++) { h = (h * 1103515245 + 12345) >>> 0; wd += sy[h % sy.length]; } out.push(wd); }
+  const end = /[？?]$/.test(text) ? '？' : /[！!]$/.test(text) ? '！' : '…';
+  return out.join(' ') + end;
+}
 const pickOne = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const rr = (a: number, b: number) => a + Math.random() * (b - a);
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
@@ -198,7 +216,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const seatAt = (i: number): [number, number] => { const a = i / 4 * 6.28 + 0.6; return [PIT.x + Math.cos(a) * 1.7, PIT.z + Math.sin(a) * 1.7]; };
   const fireHours = (hr: number) => hr >= 19.4 && hr < 21.1;   // lit
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0;  // on the way / sitting round it
-  let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false;
+  let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0;
+  const fireUsed = new Set<string>();
   const atFire = new Set<string>();
   // Rakko's pile of shells on the beach; Lantern's cairns where it stopped to think
   const shellGeo = new THREE.SphereGeometry(0.05, 7, 5, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -477,14 +496,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       stage = 5;
     }
     A(pickOne(va.bye)); B(pickOne(vb.bye));
-    const tk: Talk = { a, b, lines, i: 0, t: 0, stage };
+    const tk: Talk = { a, b, lines, i: 0, t: 0, stage, conv: heading(`${a.v.name}と${b.v.name}（${STAGES[Math.min(bd.stage + 1, 5)]}）`) };
     a.talk = b.talk = tk;
     bd.last = clockMs; bd.talks++;
     res.onEvent('meet', `${a.v.name}と${b.v.name}が出会った（${STAGES[Math.min(bd.stage + 1, 5)]}）`, a);
     // with an AI key, their own words replace the prepared ones (the greeting plays while it thinks)
     if (!fast && aiReady() && lines.length > 2) {
       tk.pending = true;
-      aiConverse(a.v, b.v, bd.stage, STAGES[bd.stage], a.today.slice(-3), b.today.slice(-3), talks.slice(-6).map((e) => e.text))
+      aiConverse(a.v, b.v, bd.stage, STAGES[bd.stage], a.today.slice(-3), b.today.slice(-3), talks.filter((e) => !e.head).slice(-6).map((e) => (e.who ? `${byId[e.who]?.v.name}「${e.text}」` : e.text)))
         .then((got) => { if (got && got.length) { tk.lines = [tk.lines[0], ...got.map((g) => ({ who: g.who === 'A' ? a.id : b.id, text: g.text }))]; } })
         .finally(() => { tk.pending = false; });
     }
@@ -510,8 +529,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!line) { endTalk(tk); return; }
     const speaker = byId[line.who], other = speaker === tk.a ? tk.b : tk.a;
     if (tk.t === dt || speaker.saying !== line.text) {
-      speaker.saying = line.text; other.saying = ''; speaker.sayT = 0;
-      talks.push({ at: clockMs, text: `${speaker.v.name}「${line.text}」` }); if (talks.length > 80) talks.shift();
+      other.saying = ''; say(speaker, line.text, tk.conv, fast);
     }
     // face each other
     for (const [r, o] of [[tk.a, tk.b], [tk.b, tk.a]] as Resident[][]) {
@@ -590,7 +608,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify({
-        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-40), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]),
+        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]),
         list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-40), holding: r.holding })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
@@ -620,6 +638,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const res: Residents = {
     list, bonds, talks, group,
     onEvent: () => { /* set by the app */ },
+    onSay: () => { /* set by the app */ },
+    gibber,
     update(dt, ms, cam) {
       clockMs = ms;
       items.tick(dt);
@@ -674,12 +694,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           v.project(camera);
           const on = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 && d < 45;
           el.style.opacity = on ? '1' : '0';
-          if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; if (el.dataset.t !== r.saying) { el.dataset.t = r.saying; el.innerHTML = `<b>${r.v.name}</b>${r.saying}`; } }
+          if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; if (el.dataset.t !== r.saying) { el.dataset.t = r.saying; el.innerHTML = `<b>${r.v.name}</b><i class="ln">${gibber(r.id, r.saying)}</i>${r.saying}`; } }
         } else el.style.opacity = '0';
       }
     },
   };
   (res as any).items = items;   // (for ?debug)
+  let convN = 0;
+  function say(r: Resident, text: string, conv: number, fast: boolean) {
+    r.saying = text; r.sayT = 0;
+    talks.push({ at: clockMs, who: r.id, text, conv }); if (talks.length > 300) talks.shift();
+    if (!fast) res.onSay(r, text);
+  }
+  function heading(text: string) { const c = Math.floor(clockMs / 1000) * 10 + (++convN % 10); talks.push({ at: clockMs, text, conv: c, head: true }); if (talks.length > 300) talks.shift(); return c; }
   let meetT = 1, saveT = 20;
   let focused: Resident | null = null;
   // a ring on the ground where the watched one is heading (the log or shell it has its eye on, the bench, the hut)
@@ -697,19 +724,24 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const names = ids.map((id) => byId[id].v.name).join('・');
         res.onEvent('fire', `${names}で焚き火を囲んだ`, byId[ids[0]]);
       }
-      atFire.clear(); fireSaid = false;
+      atFire.clear(); fireSaid = false; fireConv = 0; fireLines = 0; fireUsed.clear();
       return;
     }
     if (seated.length >= 2 && !fireSaid) { fireSaid = true; res.onEvent('fire', 'みんなが焚き火のまわりに集まってきた', seated[0]); }
     if (seated.length < 2) return;
     if ((fireTalkT -= dt) > 0) return;
-    fireTalkT = fast ? 60 : rr(7, 11);
+    fireTalkT = fast ? 60 : rr(16, 34);
+    // a dozen or so things said in an evening, none twice; after that they just sit and watch the fire
+    if (fireLines >= 14) return;
     const who = pickOne(seated.filter((r) => r.id !== lastSpeaker)) ?? seated[0];
     lastSpeaker = who.id;
-    const line = pickOne(who.v.fire);
-    for (const r of seated) r.saying = r === who ? line : '';
-    who.sayT = 0;
-    talks.push({ at: clockMs, text: `${who.v.name}「${line}」` }); if (talks.length > 80) talks.shift();
+    const did = who.today.filter((x) => !x.endsWith('と話した'));
+    const pool = [...who.v.fire, ...(did.length ? who.v.fireDid.map((l) => fill(l, { did: did[did.length - 1] })) : [])].filter((l) => !fireUsed.has(l));
+    if (!pool.length) return;
+    const line = pickOne(pool); fireUsed.add(line); fireLines++;
+    for (const r of seated) if (r !== who) r.saying = '';
+    if (!fireConv) fireConv = heading('焚き火の会');
+    say(who, line, fireConv, fast);
     for (const o of seated) if (o !== who) { const bd = bonds[pair(who.id, o.id)]; bd.know = Math.min(1, bd.know + 0.01); }
   }
   // Dot at work, the piece flying into place, the chips, a newly fitted piece settling

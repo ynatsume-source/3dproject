@@ -128,7 +128,6 @@ body.hud-off #toast.on { opacity: 0.62; }
 .group button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 .group button[aria-pressed="true"] { background: var(--glass-hi); color: var(--ink); }
 .group button kbd { font: 400 9.5px/1 var(--f-mono); color: var(--ink-faint); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; }
-#btnGlobe { color: var(--accent); }
 #btnLamp[aria-pressed="true"] { color: var(--lamp); }
 #btnLamp[aria-pressed="true"] .dot { background: var(--lamp); box-shadow: 0 0 6px var(--lamp); }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); }
@@ -346,3 +345,16 @@ body.watching #tele, body.watching #hint { opacity: 0; }
   #watchBar .k { display: none; }
   #watchCard { right: auto; left: 10px; bottom: calc(200px + env(safe-area-inset-bottom, 0px)); width: calc(100vw - 20px); }
 }
+
+/* the residents' own languages over the words, and the conversation log */
+.bubble i.ln { display: block; font-style: normal; font-size: 10.5px; letter-spacing: .08em; color: #7d9095; margin: 0 0 2px; }
+#guide section.conv { margin: 0 0 14px; }
+#guide section.conv h4 { margin: 0 0 5px; font-size: 11.5px; font-weight: 500; color: var(--ink-dim); letter-spacing: .06em; }
+#guide section.conv h4 time { font: 400 10px/1 var(--f-mono); color: var(--ink-faint); margin-right: 8px; }
+#guide section.conv ol { list-style: none; margin: 0; padding: 0 0 0 10px; border-left: 1px solid var(--line); display: grid; gap: 4px; font-size: 12px; line-height: 1.6; }
+#guide section.conv li b { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; font-size: 11px; color: var(--c, var(--ink-dim)); margin-right: 6px; }
+#guide section.conv li b i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+#guide section.conv li { display: block; }
+#guide section.conv li b i { border: 0; margin: 0; box-shadow: none; }
+/* the guide panel open: it takes the right-hand side */
+body:has(#guide:not([hidden])) #watchCard, body:has(#guide:not([hidden])) #minimap { display: none; }
