@@ -8,8 +8,8 @@ THREE.ColorManagement.enabled = false;
 
 const milkyTex = typeof document !== 'undefined' ? new THREE.TextureLoader().load(milkyUrl) : new THREE.Texture();   // (headless checks have no DOM)
 milkyTex.wrapS = THREE.RepeatWrapping;
-const EMPTY3D = new THREE.Data3DTexture(new Uint8Array([255, 255]), 1, 1, 1);
-EMPTY3D.format = THREE.RGFormat; EMPTY3D.unpackAlignment = 1; EMPTY3D.needsUpdate = true;
+const EMPTY3D = new THREE.Data3DTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, 1);
+EMPTY3D.format = THREE.RGBAFormat; EMPTY3D.needsUpdate = true;
 
 export const U = {
   uTime: { value: 0 },

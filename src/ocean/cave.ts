@@ -154,10 +154,12 @@ export class Cave {
     // light volume
     this.sky = new Float32Array(nx * ny * nz);
     this.bakeSky();
-    const data = new Uint8Array(nx * ny * nz * 2);
-    for (let i = 0; i < nx * ny * nz; i++) { data[i * 2] = data[i * 2 + 1] = Math.round(this.sky[i] * 255); }   // sun starts as sky until its bake lands
+    // (four channels, though only two are used: two-channel 3D textures re-uploaded while drawing have
+    // reset the GPU on Windows / Direct3D)
+    const data = new Uint8Array(nx * ny * nz * 4);
+    for (let i = 0; i < nx * ny * nz; i++) { data[i * 4] = data[i * 4 + 1] = Math.round(this.sky[i] * 255); data[i * 4 + 3] = 255; }   // sun starts as sky until its bake lands
     this.tex = new THREE.Data3DTexture(data, nx, ny, nz);
-    this.tex.format = THREE.RGFormat; this.tex.type = THREE.UnsignedByteType;
+    this.tex.format = THREE.RGBAFormat; this.tex.type = THREE.UnsignedByteType;
     this.tex.minFilter = this.tex.magFilter = THREE.LinearFilter;
     this.tex.wrapS = this.tex.wrapT = this.tex.wrapR = THREE.ClampToEdgeWrapping;
     this.tex.unpackAlignment = 1;
@@ -293,7 +295,7 @@ export class Cave {
       if (performance.now() - t0 > budgetMs) return;
     }
     const data = this.tex.image.data as Uint8Array;
-    for (let o = 0; o < nx * ny * nz; o++) data[o * 2] = job.buf[o];
+    for (let o = 0; o < nx * ny * nz; o++) data[o * 4] = job.buf[o];
     this.tex.needsUpdate = true;
     this.job = null;
   }
