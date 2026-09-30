@@ -1,6 +1,7 @@
 // Field-guide pictures: each creature's own 3D model, rendered once in a small off-screen renderer
 // under clear, even light, and kept as an image per sea.
 import * as THREE from 'three';
+import { ridersFor } from '../eco/riders';
 import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
@@ -12,7 +13,7 @@ let renderer: THREE.WebGLRenderer | null = null;
 const cache = new Map<string, Record<string, string>>();
 
 function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, number, number] } | null {
-  const sp = loc.species.find((s) => s.id === id) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined);
+  const sp = loc.species.find((s) => s.id === id) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined) ?? ridersFor(loc).find((s) => s.id === id);
   if (sp) {
     const g = fishGeometry(SHAPES[sp.shape]);
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));

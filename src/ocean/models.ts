@@ -526,7 +526,7 @@ export const SHAPES = {
   marlin: { h: 0.24, w: 0.16, tail: 'lunate', dorsal: 0.3, anal: 0.08, pointy: true, bill: 0.4 },
   fusilier: { h: 0.3, w: 0.15, tail: 'fork', dorsal: 0.08, anal: 0.06 },
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
-  whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true },
+  whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true, lofted: 'whaleshark' },
   grouper: { h: 0.34, w: 0.26, tail: 'round', dorsal: 0.08, anal: 0.06 },
   barracuda: { h: 0.15, w: 0.12, tail: 'fork', dorsal: 0.07, anal: 0.05, pointy: true },
   angel: { h: 0.64, w: 0.12, tail: 'trunc', dorsal: 0.1, anal: 0.09 },
@@ -557,8 +557,16 @@ const SHARK_STYLE = {
   // tiger shark: heavy, with a short, broad, almost square snout and a long upper tail lobe
   tiger: { body: [[0, 0, 0.02, -0.004], [0.015, 0.024, 0.04, -0.006], [0.05, 0.046, 0.06, -0.004], [0.13, 0.068, 0.07, 0], [0.22, 0.078, 0.072, 0.002], [0.32, 0.076, 0.066, 0.003], [0.45, 0.064, 0.052, 0.003], [0.55, 0.048, 0.037, 0.003], [0.64, 0.031, 0.023, 0.003], [0.7, 0.019, 0.014, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
     d1: [[0.3, 0], [0.33, 0.04], [0.37, 0.075], [0.41, 0.092], [0.43, 0.094], [0.425, 0.06], [0.42, 0.03], [0.415, 0]], d2: 0.03, pect: 0.18 },
+  // whale shark: the head broad and flat, cut square across the front by the huge terminal mouth, the eyes
+  // small and set at its corners; the body deepest a third of the way back and ridged — three ridges along
+  // each upper flank, the lowest running on into a keel on the tail stock; the first dorsal set far back,
+  // big, broad pectorals, and a tall, nearly crescent tail
+  whaleshark: { body: [[0, 0.024, 0.07, 0], [0.015, 0.032, 0.08, 0.002], [0.05, 0.046, 0.088, 0.004], [0.11, 0.062, 0.091, 0.006], [0.2, 0.078, 0.091, 0.008], [0.3, 0.088, 0.084, 0.009], [0.42, 0.08, 0.071, 0.009], [0.53, 0.063, 0.055, 0.009], [0.62, 0.045, 0.041, 0.009], [0.69, 0.029, 0.03, 0.009], [0.74, 0.019, 0.025, 0.009], [0.76, 0.005, 0.006, 0.01]],
+    d1: [[0.43, 0], [0.46, 0.045], [0.5, 0.085], [0.535, 0.098], [0.552, 0.094], [0.548, 0.05], [0.545, 0]], d2: 0.024, pect: 0.21, rad: 36, cap: true, flatHead: true,
+    ridges: [0.32, 0.72, 1.12],
+    tail: [[0.735, 0.014], [0.79, 0.06], [0.86, 0.12], [0.92, 0.168], [0.952, 0.188], [0.943, 0.158], [0.905, 0.1], [0.868, 0.042], [0.855, 0.002], [0.872, -0.05], [0.9, -0.1], [0.913, -0.122], [0.866, -0.094], [0.795, -0.042], [0.745, -0.01]] },
 };
-export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' | 'tiger') {
+export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' | 'tiger' | 'whaleshark') {
   const S: any = SHARK_STYLE[style], K = S.body, L = 1.28, Z = (s: number) => 0.47 - L * s;
   // Catmull-Rom through the body keys
   const at = (s: number) => {
@@ -568,14 +576,21 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     const cr = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
     return [Math.max(0, cr(p0[1], p1[1], p2[1], p3[1])), Math.max(0, cr(p0[2], p1[2], p2[2], p3[2])), cr(p0[3], p1[3], p2[3], p3[3])];
   };
-  const RINGS = 40, RAD = 18, pos: number[] = [], idx: number[] = [];
+  const RINGS = S.rad ? 64 : 40, RAD = S.rad ?? 18, pos: number[] = [], idx: number[] = [];
   for (let r = 0; r <= RINGS; r++) {
     const s = 0.76 * Math.pow(r / RINGS, 1.15);
     const [h, w, yc] = at(s);
+    // (whale shark: the ridges along the upper flanks, standing out most along the middle of the body)
+    const rk = S.ridges ? smooth(0.06, 0.2, s) * (1 - smooth(0.66, 0.76, s)) : 0;
+    const flat = S.flatHead ? 1 - 0.38 * (1 - smooth(0.0, 0.3, s)) : 1;   // (a flatter, broader head)
     for (let k = 0; k < RAD; k++) {
-      const a = (k / RAD) * Math.PI * 2, sa = Math.sin(a);
+      const a = (k / RAD) * Math.PI * 2, sa = Math.sin(a), ca = Math.cos(a);
+      let bump = 0;
+      if (rk > 0 && sa > -0.1) for (const ra of S.ridges) { const d = Math.abs(Math.atan2(sa, Math.abs(ca))) - (Math.PI / 2 - ra); bump += Math.exp(-((d / 0.06) ** 2)) * (ra === S.ridges[0] ? 1 : 0.7); }
+      const keel = S.ridges ? smooth(0.62, 0.72, s) * (1 - smooth(0.74, 0.76, s)) * Math.exp(-((sa / 0.2) ** 2)) * 0.35 : 0;   // the keel on each side of the tail stock
+      const rr2 = 1 + bump * 0.045 * rk + keel;
       // flatter belly, a slightly squared-off back
-      pos.push(Math.cos(a) * w * L, (yc + h * sa * (sa < 0 ? 0.82 : 1)) * L, Z(s));
+      pos.push(ca * w * L * rr2, (yc + h * sa * (sa < 0 ? 0.82 * flat : flat) * (1 + bump * 0.04 * rk)) * L, Z(s));
     }
   }
   for (let r = 0; r < RINGS; r++) for (let k = 0; k < RAD; k++) {
@@ -587,6 +602,15 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
   body.setIndex(idx); body.computeVertexNormals();
   const b = body.toNonIndexed();
   const P = Array.from(b.attributes.position.array), N = Array.from(b.attributes.normal.array), F = new Array(b.attributes.position.count).fill(0);
+  if (S.cap) {
+    // the square-cut front: the mouth, a wide slit set a little back into the head (aFin 6)
+    const [h0, w0, y0] = at(0), zc = Z(0) + 0.008;   // (blunt, very slightly domed)
+    for (let k = 0; k < RAD; k++) {
+      const a0 = (k / RAD) * Math.PI * 2, a1 = ((k + 1) / RAD) * Math.PI * 2;
+      const v = (a: number) => { const sa = Math.sin(a); return [Math.cos(a) * w0 * L, (y0 + h0 * sa * (sa < 0 ? 0.82 * 0.7 : 0.7)) * L, Z(0)]; };
+      for (const q of [[0, y0 * L, zc], v(a1), v(a0)]) { P.push(q[0], q[1], q[2]); N.push(0, 0, 1); F.push(6); }
+    }
+  }
   const top = (s: number) => { const [h, , yc] = at(s); return (yc + h * 0.96) * L; };
   const bot = (s: number) => { const [h, , yc] = at(s); return (yc - h * 0.8) * L; };
   // a fin from its outline: triangulated in its own 2D frame (a, b), then placed by map
@@ -602,7 +626,7 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
   fin([[0.64, 0], [0.665, d2], [0.685, d2 * 0.9], [0.69, 0]], (s, dy) => [0, top(s) + dy * L - 0.003, Z(s)], 2, X);   // second dorsal
   fin([[0.63, 0], [0.66, -0.02], [0.678, -0.018], [0.683, 0]], (s, dy) => [0, bot(s) + dy * L + 0.003, Z(s)], 2, X);  // anal
   // heterocercal tail: long upper lobe with a notch below its tip, short lower lobe
-  fin([[0.735, 0.012], [0.8, 0.055], [0.88, 0.1], [0.95, 0.13], [0.985, 0.14], [0.972, 0.118], [0.945, 0.1], [0.91, 0.062], [0.875, 0.022], [0.86, 0.004],
+  fin(S.tail ?? [[0.735, 0.012], [0.8, 0.055], [0.88, 0.1], [0.95, 0.13], [0.985, 0.14], [0.972, 0.118], [0.945, 0.1], [0.91, 0.062], [0.875, 0.022], [0.86, 0.004],
     [0.878, -0.035], [0.9, -0.07], [0.862, -0.055], [0.8, -0.03], [0.745, -0.008]], (s, y) => [0, y * L, Z(s)], 1, X);
   if (S.hammer) {
     // the cephalofoil, lying flat across the front of the head: scalloped leading edge, eyes at the tips
@@ -616,6 +640,7 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     // pectorals: (s, span out from the body), swept back and angled a little down, falcate
     const [h, w, yc] = at(0.2), ry = (yc - h * 0.45) * L, rx = w * 0.85 * L, sp = S.pect;
     fin(S.paddle ? [[0.17, 0], [0.2, sp * 0.3], [0.25, sp * 0.7], [0.3, sp * 0.95], [0.345, sp * 1.02], [0.375, sp * 0.9], [0.37, sp * 0.55], [0.33, sp * 0.2], [0.3, 0]]   // broad, rounded paddles
+      : S.cap ? [[0.17, 0], [0.23, sp * 0.42], [0.3, sp * 0.82], [0.35, sp], [0.345, sp * 0.8], [0.315, sp * 0.4], [0.295, 0]]   // (whale shark: broad at the root)
       : [[0.18, 0], [0.24, sp * 0.42], [0.31, sp * 0.82], [0.36, sp], [0.335, sp * 0.72], [0.29, sp * 0.32], [0.265, 0]],
       (s, d) => [sx * (rx + d * L), ry - d * L * 0.34, Z(s)], 3, [0, 1, 0]);
     // pelvics
@@ -745,7 +770,7 @@ export function fishMaterial(sp) {
   const c = (a) => new THREE.Color(a[0], a[1], a[2]);
   return mat(
     `attribute vec3 aSwim; attribute float aFin; uniform float uWig;
-     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint;
+     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear;
      void main(){
        vec3 p = position;
        float back = clamp((0.25 - p.z) / 1.0, 0.0, 1.0);
@@ -759,11 +784,11 @@ export function fishMaterial(sp) {
        #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
        vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
-       vL = position; vFin = aFin; vTint = aSwim.z;
+       vL = position; vFin = aFin; vTint = aSwim.z; vWear = aSwim.x;
        gl_Position = projectionMatrix * viewMatrix * wp;
      }`,
-    `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye; uniform float uShine;
-     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint;
+    `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye; uniform float uShine; uniform float uWear;
+     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
        if (dot(n, V) < 0.0) n = -n;
@@ -834,11 +859,33 @@ export function fishMaterial(sp) {
          float gi = (z - 0.21) / 0.019;
          alb *= 1.0 - 0.45 * smoothstep(0.36, 0.46, abs(fract(gi) - 0.5)) * step(0.0, gi) * step(gi, 5.0) * step(abs(y + 0.005), 0.035) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        #elif PAT == 9
-         alb = mix(uC2, uC1, top);
-         vec2 g = vec2(z * 26.0, y * 26.0 + sin(z * 20.0) * 0.3); vec2 gf = fract(g) - 0.5;
-         float spot = (1.0 - smoothstep(0.14, 0.24, length(gf))) * step(0.25, hash2(floor(g)));
-         float line = 1.0 - smoothstep(0.02, 0.06, abs(fract(z * 9.0) - 0.5));
-         alb = mix(alb, vec3(0.88, 0.9, 0.88), max(spot, line * 0.5 * step(0.0, z)) * top);
+         // whale shark: blue-grey above, white below; on the back and flanks a checkerboard of thin pale
+         // lines, a white spot in each square; on the head the spots are small and crowded, with no lines
+         float up = smoothstep(-0.05, 0.02, y + 0.012 * sin(z * 14.0));
+         alb = mix(uC2, uC1, up);
+         float head = smoothstep(0.26, 0.34, z);
+         float ang = atan(y - 0.01, abs(vL.x));                       // around the body (the pattern wraps it)
+         vec2 bg = vec2(z * 13.0, ang * 3.6);
+         vec2 bf = fract(bg) - 0.5;
+         vec2 bw = bf + 0.06 * vec2(sin(ang * 7.0 + z * 3.0), sin(z * 23.0));   // (hand-drawn, not ruled)
+         float lines = max(1.0 - smoothstep(0.02, 0.05, abs(bw.x)), 1.0 - smoothstep(0.018, 0.045, abs(bw.y))) * (0.55 + 0.45 * hash2(floor(bg + 0.5)));
+         float bspot = 1.0 - smoothstep(0.13, 0.2, length(bf * vec2(1.0, 1.15) + (hash2(floor(bg)) - 0.5) * 0.12));
+         vec2 hg = vec2(z * 34.0, ang * 9.0) + vec2(0.5 * step(0.5, fract(ang * 4.5)), 0.0);
+         float hspot = (1.0 - smoothstep(0.14, 0.26, length(fract(hg) - 0.5))) * step(0.2, hash2(floor(hg)));
+         float pale = mix(max(bspot * 0.9, lines * 0.3), hspot * 0.8, head) * up * step(-0.8, z);
+         alb = mix(alb, vec3(0.84, 0.86, 0.84), pale);
+         if (vFin > 0.5 && vFin < 5.5) { vec2 fg = vec2(z * 26.0, y * 26.0 + vL.x * 26.0); alb = mix(uC1 * 0.95, vec3(0.84, 0.86, 0.84), (1.0 - smoothstep(0.12, 0.2, length(fract(fg) - 0.5))) * step(0.35, hash2(floor(fg))) * 0.8); }
+         // five long gill slits on each flank, arching over the pectorals
+         float gz = (z - 0.215) / 0.024;
+         alb *= 1.0 - 0.55 * smoothstep(0.34, 0.46, abs(fract(gz) - 0.5)) * step(0.0, gz) * step(gz, 5.0) * step(abs(y + 0.012), 0.06 - 0.004 * gz) * step(0.05, abs(vL.x)) * step(vFin, 0.5);
+         // the mouth: a dark gape rimmed by pale lips, right across the front of the head
+         if (vFin > 5.5) { float gape = length(vec2(vL.x / 0.082, (y + 0.004) / 0.011)); alb = mix(vec3(0.04, 0.04, 0.05), mix(uC2, uC1, smoothstep(-0.01, 0.01, y)), smoothstep(0.8, 1.0, gape)); }
+         // the small eyes, set at the corners of the head behind the mouth
+         float we = length(vec2(y - 0.01, (z - 0.425) * 0.75));
+         alb = mix(alb, uC1 * 0.55, (1.0 - smoothstep(0.007, 0.009, we)) * step(0.07, abs(vL.x)) * step(vFin, 0.5));   // (a darker rim)
+         alb = mix(alb, vec3(0.03, 0.03, 0.035), (1.0 - smoothstep(0.0042, 0.0058, we)) * step(0.07, abs(vL.x)) * step(vFin, 0.5));
+         // the gape seen from the side: a long line from the front back to the corner of the mouth
+         alb *= 1.0 - 0.8 * (1.0 - smoothstep(0.002, 0.005, abs(y + 0.004 + (0.47 - z) * 0.06))) * step(0.418, z) * step(0.05, abs(vL.x)) * step(vFin, 0.5);
        #elif PAT == 11
          alb = mix(uC2, uC1, top) * (1.0 - 0.5 * step(0.9, hash2(floor(vec2(z * 40.0, y * 40.0)))) * top);
          if (vFin > 0.5) alb = uC3;
@@ -921,18 +968,44 @@ export function fishMaterial(sp) {
          if (vFin > 0.5) alb = mix(uC1, uC2, 0.5);
        #endif
        alb *= vTint;
+       // a lived-in skin on the big ones: fine grain, uneven mottling, old pale scars (bites, coral, lines)
+       // and a few darker bruises; different on every individual
+       vec3 nW = n;
+       if (uWear > 0.0 && vFin < 5.5) {
+         float sd = fract(vWear * 7.13) * 40.0;
+         vec2 q = vec2(vL.z, vL.y + vL.x * 0.6);
+         float grain = hash2(floor(q * 420.0 + sd)) - 0.5;
+         alb *= 1.0 + uWear * (0.1 * grain + 0.14 * (vn2(q * 7.0 + sd) - 0.5));
+         // scars: here and there a short stroke, or a rake of two or three parallel ones (teeth, coral, line)
+         vec2 cq = q * 8.0 + sd, ci = floor(cq);
+         float scar = 0.0;
+         if (hash2(ci * 1.3 + 0.7) > 0.76) {
+           float a = hash2(ci + 4.1) * 6.2832; vec2 d = vec2(cos(a), sin(a)), nn = vec2(-d.y, d.x);
+           vec2 pp = cq - ci - 0.5 - (vec2(hash2(ci + 1.3), hash2(ci + 2.7)) - 0.5) * 0.3;
+           float along = dot(pp, d), across = dot(pp, nn) + along * along * 0.35 * (hash2(ci + 6.6) - 0.5);   // (slightly curved)
+           float lines = 1.0 + floor(hash2(ci + 8.8) * 3.0), gap = 0.1;
+           float k = clamp(floor(across / gap + 0.5), 0.0, lines - 1.0);
+           float w = 0.022 * (0.6 + hash2(ci + 3.3));
+           scar = (1.0 - smoothstep(w * 0.5, w, abs(across - k * gap))) * (1.0 - smoothstep(0.22, 0.34 + 0.1 * hash2(ci + 5.5), abs(along)));
+         }
+         alb = mix(alb, alb * 0.5 + vec3(0.46, 0.45, 0.43), scar * uWear * 0.55);
+         float bruise = smoothstep(0.72, 0.85, vn2(q * 3.1 + sd * 0.7)) * step(vFin, 0.5);
+         alb = mix(alb, alb * vec3(0.72, 0.66, 0.7), bruise * uWear * 0.5);
+         // (and the grain roughens the sheen: a leathery, not glassy, skin)
+         nW = normalize(n + uWear * 0.18 * vec3(hash2(floor(q * 160.0 + sd)) - 0.5, hash2(floor(q * 160.0 + sd + 9.0)) - 0.5, 0.0));
+       }
        #if PAT != 9
        float eye = (1.0 - smoothstep(0.022 * uEye, 0.034 * uEye, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        alb = mix(alb, vec3(0.02), eye);
        #endif
-       float spec = pow(max(dot(reflect(-SUN, n), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine;   // silvery fish flash as they turn
+       float spec = pow(max(dot(reflect(-SUN, nW), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine * (1.0 - 0.6 * uWear);   // silvery fish flash as they turn (a worn hide less)
        float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb;
        vec3 col = absorb(alb * (lightAt(n, caveLight(vWp)) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
        col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb;
        col += lamp(alb, vWp, n) * 1.2;
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 } },
+    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.big ? 1 : 0 } },
       opts: { side: THREE.DoubleSide } });
 }
 
@@ -978,24 +1051,40 @@ function turtleGeos(hawk: boolean) {
   bot.index!.array.reverse?.call(bot.index!.array);
   add(bot, 2, (x, y, z) => { const zn = z > 0 ? z / 0.47 : z / 0.53; return [x / Math.max(half(zn), 1e-3), zn]; });
   // neck and head
-  // a thick, fleshy neck that runs from under the shell's front edge into the back of the skull
-  const neck = new THREE.SphereGeometry(0.5, 18, 12), np = neck.attributes.position;
-  for (let i = 0; i < np.count; i++) { const x = np.getX(i), y = np.getY(i), z = np.getZ(i); np.setXYZ(i, x * 0.17 * (1 - 0.25 * (z + 0.5)), y * 0.12, z * 0.26); }
-  neck.translate(0, -0.012, 0.5);
+  // a short, thick neck, mostly under the front of the shell, that runs straight into the back of the skull
+  const neck = new THREE.SphereGeometry(0.5, 20, 12), np = neck.attributes.position;
+  for (let i = 0; i < np.count; i++) { const x = np.getX(i), y = np.getY(i), z = np.getZ(i); np.setXYZ(i, x * 0.15 * (1 - 0.12 * (z + 0.5)) * (1 + 0.03 * Math.sin(z * 40)), y * 0.11 * (1 + 0.03 * Math.sin(z * 40)), z * 0.24); }   // (with folds)
+  neck.translate(0, -0.004, 0.5);
   add(neck, 1);
-  const head = new THREE.SphereGeometry(0.5, 24, 16), hp = head.attributes.position;
+  // the head: a rounded, deep skull, broadest behind the eyes, tapering to a short blunt snout (the
+  // hawksbill's longer and narrower, ending in a hooked beak); the upper jaw's horny sheath closes over
+  // the lower one, and the gape runs back beneath the eye
+  const HL = hawk ? 0.25 : 0.21, HW = hawk ? 0.068 : 0.078, HH = 0.062, HZ = 0.55;
+  const head = new THREE.SphereGeometry(0.5, 32, 22), hp = head.attributes.position;
   for (let i = 0; i < hp.count; i++) {
     let x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i);
-    const f = z + 0.5;                                                  // 0 back of the skull .. 1 tip of the beak
-    x *= 0.16 * (1 - 0.4 * Math.pow(f, 2.2) * (hawk ? 1.4 : 1));
-    y *= 0.115 * (y > 0 ? 1 - 0.35 * f : 1 - 0.1 * f);
-    if (y > 0) y *= 0.9;
-    z *= hawk ? 0.28 : 0.24;
-    if (hawk && f > 0.75 && y < 0.01) y -= 0.02 * (f - 0.75) / 0.25;    // the hooked beak
+    const f = z + 0.5;                                                   // 0 back of the skull .. 1 tip of the snout
+    x *= 2 * HW * (1 - (hawk ? 0.62 : 0.5) * Math.pow(f, hawk ? 1.9 : 2.4)) * (1 - 0.12 * Math.pow(1 - f, 3));
+    y *= 2 * HH * (y > 0 ? (1 - 0.32 * Math.pow(f, 1.8)) * 0.92 : 1 - 0.28 * Math.pow(f, 1.5));
+    if (y > 0) y *= 1 - 0.18 * Math.pow(Math.abs(x) / (HW + 1e-3), 2);     // (a flat crown)
+    if (hawk && f > 0.78) y -= 0.024 * Math.pow((f - 0.78) / 0.22, 1.5) * (y > 0 ? 0.6 : 1);   // the hooked beak
+    else if (!hawk && f > 0.85 && y < 0) y += 0.006 * (f - 0.85) / 0.15;    // (the lower jaw tucks in under the upper)
+    z *= HL;
     hp.setXYZ(i, x, y, z);
   }
-  head.translate(0, 0.014, 0.67);
+  head.translate(0, 0.012, HZ + HL * 0.5);
   add(head, 1);
+  // the eyes: glossy dark balls under heavy lids, set to the sides a little ahead of the middle of the head
+  for (const sx of [-1, 1]) {
+    const ez = HZ + HL * (hawk ? 0.66 : 0.63), ef = (ez - HZ) / HL;
+    const ex = HW * (1 - (hawk ? 0.62 : 0.5) * Math.pow(ef, hawk ? 1.9 : 2.4)) * 0.74;
+    const eye = new THREE.SphereGeometry(0.0155, 14, 10); eye.scale(0.7, 0.9, 1.1); eye.translate(sx * ex, 0.012 + HH * 0.32, ez);
+    add(eye, 3, (x, y, z) => [(x - sx * ex) / 0.0155 * sx, (z - ez) / 0.017]);
+    // the upper lid: a fold of skin arching over the eye
+    const lid = new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.42); lid.scale(0.03, 0.02, 0.04);
+    lid.rotateZ(-sx * 0.5); lid.translate(sx * (ex + 0.002), 0.012 + HH * 0.32 + 0.006, ez + 0.002);
+    add(lid, 1);
+  }
   const tail = new THREE.ConeGeometry(0.04, 0.12, 8); tail.rotateX(-Math.PI / 2); tail.translate(0, -0.005, -0.56);
   add(tail, 1);
   const body = new THREE.BufferGeometry();
@@ -1019,7 +1108,38 @@ function turtleGeos(hawk: boolean) {
     out.setAttribute('aPart', new THREE.Float32BufferAttribute(aa, 1)); out.setAttribute('aCar', new THREE.Float32BufferAttribute(cc, 2));
     return out;
   };
-  return { body, front: flipper(0.56, 0.15, 0.03, 0.26, 0.024), rear: flipper(0.2, 0.13, 0.06, 0.06, 0.018) };
+  // a point on the shell (xn across -1..1, zn along -1..1), for what grows on it
+  const shell = (xn: number, zn: number) => new THREE.Vector3(xn * half(zn), dome(xn, zn), Z(zn));
+  return { body, front: flipper(0.56, 0.15, 0.03, 0.26, 0.024), rear: flipper(0.2, 0.13, 0.06, 0.06, 0.018), shell };
+}
+// Barnacles on an old turtle's shell: a few clusters of little volcano-shaped cones, mostly toward the
+// back and along the margins, different on every turtle (aPart 5; aCar.x = height up the cone 0..1)
+function barnacleGeo(shell: (xn: number, zn: number) => THREE.Vector3, rnd: () => number, n: number) {
+  const P: number[] = [], N: number[] = [], A: number[] = [], C: number[] = [];
+  const cone = new THREE.CylinderGeometry(0.35, 1, 0.75, 7, 2, true).toNonIndexed(); cone.translate(0, 0.375, 0); cone.computeVertexNormals();
+  const cap = new THREE.CircleGeometry(0.35, 7).toNonIndexed(); cap.rotateX(-Math.PI / 2); cap.translate(0, 0.75, 0);
+  const up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), m = new THREE.Matrix4(), v = new THREE.Vector3(), nn = new THREE.Vector3();
+  let cx = 0, cz = 0;
+  for (let i = 0; i < n; i++) {
+    if (i % 5 === 0) { cx = (rnd() * 2 - 1) * 0.8; cz = -0.2 - rnd() * 0.7; if (rnd() < 0.3) cz = rnd() * 1.4 - 0.7; }   // a new cluster
+    const xn = Math.max(-0.95, Math.min(0.95, cx + (rnd() - 0.5) * 0.25)), zn = Math.max(-0.95, Math.min(0.9, cz + (rnd() - 0.5) * 0.2));
+    const p0 = shell(xn, zn), px = shell(xn + 0.01, zn), pz = shell(xn, zn + 0.01);
+    const nrm = new THREE.Vector3().crossVectors(pz.clone().sub(p0), px.clone().sub(p0)).normalize(); if (nrm.y < 0) nrm.negate();
+    const r = 0.013 + Math.pow(rnd(), 1.5) * 0.022;
+    q.setFromUnitVectors(up, nrm); m.compose(p0.addScaledVector(nrm, -0.002), q, new THREE.Vector3(r, r * (0.8 + rnd() * 0.5), r));
+    for (const [g, top] of [[cone, false], [cap, true]] as [THREE.BufferGeometry, boolean][]) {
+      const gp = g.attributes.position, gn = g.attributes.normal;
+      for (let k = 0; k < gp.count; k++) {
+        v.set(gp.getX(k), gp.getY(k), gp.getZ(k)); const h = v.y / 0.75; v.applyMatrix4(m);
+        nn.set(gn.getX(k), gn.getY(k), gn.getZ(k)).applyQuaternion(q);
+        P.push(v.x, v.y, v.z); N.push(nn.x, nn.y, nn.z); A.push(5); C.push(top ? 1.2 : h, Math.atan2(gp.getZ(k), gp.getX(k)));
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  g.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1)); g.setAttribute('aCar', new THREE.Float32BufferAttribute(C, 2));
+  return g;
 }
 const TURTLE_GEOS = { green: turtleGeos(false), hawksbill: turtleGeos(true) };
 export function turtleMaterial(style) {
@@ -1032,7 +1152,20 @@ export function turtleMaterial(style) {
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        vec3 alb;
-       if (vPart < 0.5) {
+       float gloss = 0.0;
+       if (vPart > 2.5 && vPart < 3.5) {
+         // the eye: a dark, wet ball; brown iris, black pupil looking out to the side
+         float rr = sqrt(max(0.0, 1.0 - clamp(vCar.x, 0.0, 1.0) * clamp(vCar.x, 0.0, 1.0)));
+         alb = mix(vec3(0.02, 0.018, 0.015), vec3(0.2, 0.12, 0.06) * (0.8 + 0.4 * sin(atan(vCar.y, rr) * 30.0)), smoothstep(0.3, 0.38, rr));
+         alb = mix(alb, vec3(0.08, 0.07, 0.06), smoothstep(0.7, 0.8, rr));
+         gloss = 1.0;
+       } else if (vPart > 4.5) {
+         // a barnacle: chalky ridged plates rising to a dark opening, a little green at the base
+         float h = vCar.x;
+         alb = vec3(0.78, 0.76, 0.69) * (0.85 + 0.15 * sin(vCar.y * 21.0)) * (0.8 + 0.25 * h);
+         alb = mix(alb, vec3(0.35, 0.4, 0.22), (1.0 - smoothstep(0.0, 0.3, h)) * 0.5);
+         if (h > 1.1) alb = mix(vec3(0.08, 0.07, 0.06), vec3(0.5, 0.46, 0.4), step(0.7, fract(vL.x * 400.0 + vL.z * 300.0)));
+       } else if (vPart < 0.5) {
          // scutes: five vertebral down the middle, four costal a side, a ring of marginals
          float x = vCar.x, ax = abs(x), z = vCar.y;
          vec2 cen; float seam;
@@ -1065,6 +1198,18 @@ export function turtleMaterial(style) {
          alb = mix(alb, vec3(0.22, 0.27, 0.13), smoothstep(0.66, 0.85, vn2(vL.xz * 9.0 + uSeed)) * 0.35 * (1.0 - uHawk * 0.5));
          float bc = cellF1(vL.xz * 38.0 + uSeed);
          alb = mix(alb, vec3(0.82, 0.8, 0.72), (1.0 - smoothstep(0.1, 0.2, bc)) * step(0.975, hash2(floor(vL.xz * 38.0 + uSeed))));
+         // years of wear: scrapes across the scutes, the worn, paler tops of the old ones, and a fringe of
+         // fine green algae along the back margin
+         vec2 cq = vL.xz * 14.0 + uSeed, ci = floor(cq);
+         if (hash2(ci + 0.4) > 0.72) {
+           float a = hash2(ci + 3.1) * 6.2832; vec2 dd = vec2(cos(a), sin(a)); vec2 pp = cq - ci - 0.5;
+           float al = dot(pp, dd), ac = dot(pp, vec2(-dd.y, dd.x));
+           ac += al * al * 0.4 * (hash2(ci + 7.7) - 0.5);
+           float sc = (1.0 - smoothstep(0.008, 0.022, abs(ac))) * (1.0 - smoothstep(0.3, 0.48, abs(al))) * (0.6 + 0.4 * vn2(vec2(al * 20.0, 1.0)));
+           alb = mix(alb, alb * 0.7 + vec3(0.2, 0.19, 0.15), sc * 0.55);
+         }
+         alb = mix(alb, alb * 1.25 + 0.04, smoothstep(0.6, 0.85, vn2(vL.xz * 5.0 - uSeed)) * 0.35);
+         alb = mix(alb, vec3(0.2, 0.3, 0.12), smoothstep(-0.8, -0.95, z) * smoothstep(0.4, 0.7, vn2(vL.xz * 30.0 + uSeed)) * 0.6);
        } else if (vPart < 1.5) {
          // skin: dark polygonal scales with pale edges; larger plates on the head and flipper tops
          // big plates on the head and the tops of the flippers, fine wrinkled skin on the neck
@@ -1074,10 +1219,19 @@ export function turtleMaterial(style) {
          alb = mix(mix(skin * 1.4, vec3(0.62, 0.57, 0.44), 0.35), skin, smoothstep(0.012, mix(0.07, 0.04, plates), sc));
          // pale underside of neck and flippers
          alb = mix(alb, vec3(0.8, 0.74, 0.58), smoothstep(0.2, -0.6, n.y) * 0.6);
-         // eye, and the beak
-         vec2 e = vec2(abs(vL.x) - 0.062, vL.z - 0.71); float eye = 1.0 - smoothstep(0.011, 0.016, length(vec2(e.x * 0.8, (vL.y - 0.028) * 1.1 + e.y * 0.2)) + abs(e.y) * 0.6);
-         alb = mix(alb, vec3(0.02), eye * step(0.6, vL.z));
-         alb = mix(alb, vec3(0.3, 0.26, 0.2), smoothstep(0.76, 0.84, vL.z) * (1.0 - smoothstep(0.02, 0.03, abs(vL.y - 0.0))) * 0.8);
+         // the head: a pale chin and throat below the gape; the horny sheath of the beak over the jaws
+         float HL = uHawk > 0.5 ? 0.25 : 0.21, f = (vL.z - 0.55) / HL, yh = vL.y - 0.012;
+         if (f > 0.0 && vPart < 1.5 && vCar.x == 0.0) {
+           float yg = -0.014 - 0.005 * (1.0 - f) + (uHawk > 0.5 ? -0.012 * smoothstep(0.75, 1.0, f) : 0.0);
+           float below = smoothstep(0.004, -0.004, yh - yg) * smoothstep(0.35, 0.55, f);
+           alb = mix(alb, vec3(0.74, 0.68, 0.52) * (0.9 + 0.2 * hash2(floor(vL.xz * 90.0))), below * 0.85);
+           float sheath = smoothstep(0.76, 0.84, f);
+           alb = mix(alb, mix(vec3(0.3, 0.26, 0.19), vec3(0.52, 0.46, 0.34), below) * (0.85 + 0.3 * vn2(vL.xy * 120.0)), sheath);
+           float gape = (1.0 - smoothstep(0.0008, 0.0022, abs(yh - yg))) * smoothstep(0.5, 0.62, f);
+           alb = mix(alb, vec3(0.06, 0.05, 0.04), gape * 0.75);
+           // the nostrils, small, high on the snout
+           alb = mix(alb, vec3(0.08), 0.8 * (1.0 - smoothstep(0.0012, 0.0022, length(vec2(abs(vL.x) - 0.008, yh - 0.022 + 0.03 * (f - 0.92))))) * smoothstep(0.9, 0.93, f));
+         }
          // the claw on each fore flipper's leading edge
          alb = mix(alb, vec3(0.1, 0.08, 0.06), (1.0 - smoothstep(0.012, 0.02, length(vec2(vCar.x - 0.35, 0.0)) + abs(vL.z + 0.04) * 0.5)) * step(0.01, vCar.x));
        } else {
@@ -1085,14 +1239,24 @@ export function turtleMaterial(style) {
          float sm = min(abs(fract(vCar.y * 2.3 + 0.2) - 0.5), abs(abs(vCar.x) - 0.3));
          alb = mix(vec3(0.62, 0.56, 0.4), vec3(0.8, 0.74, 0.55), smoothstep(0.0, 0.04, sm));
          alb = mix(alb, mix(uC1, vec3(0.7, 0.64, 0.46), 0.5), smoothstep(0.72, 0.8, abs(vCar.x)));
+         // and a life's wear underneath: rubbed and scratched from resting on rock, stained in places
+         alb *= 0.82 + 0.3 * vn2(vL.xz * 6.0 + uSeed);
+         alb = mix(alb, vec3(0.5, 0.45, 0.33), smoothstep(0.62, 0.8, vn2(vL.xz * 11.0 - uSeed)) * 0.3);
+         float scr = 1.0 - smoothstep(0.0, 0.01, abs(fract(dot(vL.xz, vec2(0.8, 0.6)) * 40.0 + vn2(vL.xz * 8.0) * 3.0) - 0.5) - 0.47);
+         alb = mix(alb, alb * 0.75, scr * smoothstep(0.5, 0.7, vn2(vL.xz * 4.0 + uSeed)) * 0.6);
        }
-       gl_FragColor = vec4(shade(alb, vWp, n, 0.6), 1.0);
+       vec3 col = shade(alb, vWp, n, 0.6);
+       col += gloss * absorb(vec3(0.9, 0.95, 1.0), vWp.y) * (pow(max(dot(reflect(-SUN, n), V), 0.0), 60.0) * uSunI * 0.9 + pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.12 * uAmb);   // (a wet eye catches the light)
+       gl_FragColor = vec4(col, 1.0);
      }`,
     { uniforms: { ...SURF_UNIFORMS, uC1: { value: c(s.c1) }, uC2: { value: c(s.c2) }, uRay: { value: c(s.ray) }, uDark: { value: c(s.dark) }, uSkin: { value: c(s.skin) }, uHawk: { value: s.hawk }, uSeed: { value: Math.random() * 40 } }, opts: { side: THREE.DoubleSide } });
 }
 export function makeTurtle(style) {
   const m = turtleMaterial(style), g = new THREE.Group(), G = TURTLE_GEOS[style];
   g.add(new THREE.Mesh(G.body, m));
+  // (every turtle carries its own few barnacles: some almost none, the old ones a crust of them)
+  const rnd = mulberry32((Math.random() * 1e9) | 0), nb = Math.floor(Math.pow(rnd(), 1.6) * 26) + 3;
+  g.add(new THREE.Mesh(barnacleGeo(G.shell, rnd, nb), m));
   const mk = (geo, x, y, z, mirror) => { const f = new THREE.Mesh(geo, m); f.position.set(x, y, z); if (mirror) f.scale.x = -1; g.add(f); return f; };
   const fr = mk(G.front, 0.24, -0.01, 0.27, false), fl = mk(G.front, -0.24, -0.01, 0.27, true);
   const br = mk(G.rear, 0.2, -0.01, -0.36, false), bl = mk(G.rear, -0.2, -0.01, -0.36, true);

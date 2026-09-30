@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
   hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70],
@@ -21,6 +21,9 @@ export class Director {
   private ang = 0;
   private spin = 0.05;
   private hdx = 1; private hdz = 0;   // the line of a chase, smoothed
+  // filming something big: which move, since when, its heading (from how it moves), and a fixed spot
+  private move = ''; private moveT = 0; private moveDur = 0; private gvx = 0; private gvz = 1; private gpx = NaN; private gpz = 0;
+  private hold = new THREE.Vector3();
   private recent = new Map<string, number>();
   private clock = 0;
   onStart: (s: Subject) => void = () => { /* set by the app */ };
@@ -37,6 +40,7 @@ export class Director {
   private begin(best: Subject, drone: THREE.Vector3, forced: boolean) {
     const p = best.pos() ?? drone;
     this.ang = Math.atan2(drone.z - p.z, drone.x - p.x);   // come in from the side we are already on
+    this.move = ''; this.gpx = NaN;
     this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07);
     this.t = 0;
     const [a, b] = DURATION[best.kind];
@@ -119,6 +123,9 @@ export class Director {
       this.t += dt;
       return sh;
     }
+    // something big: close in, where its size tells — see below
+    const L = s.len ?? s.size;
+    if (p && L >= 1.4 && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
     const dist = Math.max(1.4, Math.min(12, s.size * 2.4 + 1.2)) * this.distK;
     const lift = Math.min(2.5, 0.4 + s.size * 0.35);
     this.ang += this.spin * dt * (sh.phase === 'observe' ? 1 : 0.3);
@@ -129,6 +136,69 @@ export class Director {
     sh.look.set(p.x, p.y, p.z);
     const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
     if (sh.phase === 'approach' && (gap < 1.5 || (!sh.forced && this.t > 25) || this.t > 90)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
+    this.t += dt;
+    return sh;
+  }
+
+  // Filming the big ones so their size is felt: never the far, slow orbit that makes a whale shark look
+  // like a toy, but close, and moving with it — alongside its head with the body running away past the
+  // lens; from below, looking up at it against the light; out in front as it comes on; or holding still
+  // on its path and letting it glide by. A wider lens up close, so it overflows the frame and the other
+  // fish around it show the scale.
+  private giant(sh: Shot, s: Subject, p: { x: number; y: number; z: number }, L: number, dt: number, drone: THREE.Vector3, floor: (x: number, z: number) => number): Shot {
+    // its heading, from how it has been moving (kept when it drifts slowly)
+    if (!isNaN(this.gpx)) {
+      const vx = (p.x - this.gpx) / Math.max(dt, 1e-3), vz = (p.z - this.gpz) / Math.max(dt, 1e-3), sp = Math.hypot(vx, vz);
+      if (sp > 0.05 && sp < 20) { const k = Math.min(1, dt * 1.2); this.gvx += (vx / sp - this.gvx) * k; this.gvz += (vz / sp - this.gvz) * k; }
+    }
+    this.gpx = p.x; this.gpz = p.z;
+    const hl = Math.hypot(this.gvx, this.gvz) || 1, fx = this.gvx / hl, fz = this.gvz / hl, sx = -fz, sz = fx;
+    const side = (drone.x - p.x) * sx + (drone.z - p.z) * sz >= 0 ? 1 : -1;
+    const room = p.y - floor(p.x, p.z);
+    // the next move, every so often
+    if (!this.move || (this.moveT += dt) > this.moveDur) {
+      const opts = ['flank', 'front', 'pass', ...(room > L * 0.45 + 2 ? ['under', 'under'] : []), 'flank'].filter((m) => m !== this.move);
+      this.move = opts[Math.floor(R() * opts.length)]; this.moveT = 0; this.moveDur = rr(9, 13);
+      if (this.move === 'pass') this.hold.set(p.x + fx * (L * 1.4 + 3) + sx * side * (L * 0.35 + 1.2), p.y + L * 0.04, p.z + fz * (L * 1.4 + 3) + sz * side * (L * 0.35 + 1.2));
+    }
+    const spot = (move: string) => {
+      let x = 0, y = 0, z = 0, lx = p.x, ly = p.y, lz = p.z, wide = 1;
+      if (move === 'flank') {
+        // alongside the head, a little ahead of it, looking back along the flank
+        const d = Math.max(1.3, L * 0.32 + 0.8), a = L * 0.28;
+        x = p.x + sx * side * d + fx * a; z = p.z + sz * side * d + fz * a; y = p.y + L * 0.03;
+        lx = p.x - fx * L * 0.12; lz = p.z - fz * L * 0.12;
+      } else if (move === 'under') {
+        // beneath it and a little ahead, looking up at it passing over against the bright surface
+        x = p.x + fx * L * 0.15 + sx * side * L * 0.12; z = p.z + fz * L * 0.15 + sz * side * L * 0.12; y = p.y - (L * 0.42 + 1.2);
+        lx = p.x - fx * L * 0.1; lz = p.z - fz * L * 0.1; wide = 1.1;
+      } else if (move === 'front') {
+        // out in front, a touch to one side, backing away as it comes on
+        const d = L * 0.5 + 1.5;
+        x = p.x + fx * d + sx * side * L * 0.22; z = p.z + fz * d + sz * side * L * 0.22; y = p.y + L * 0.02;
+        lx = p.x + fx * L * 0.3; lz = p.z + fz * L * 0.3; wide = 0.8;
+      } else {
+        // hold still on its path and let it glide past, close
+        x = this.hold.x; y = this.hold.y; z = this.hold.z;
+      }
+      y = Math.min(Math.max(y, floor(x, z) + 0.8), -0.9);
+      // (no rock or reef between the lens and the animal)
+      let clear = true;
+      for (let i = 1; i < 8 && clear; i++) { const f = i / 8, qx = x + (p.x - x) * f, qz = z + (p.z - z) * f, qy = y + (p.y - y) * f; if (floor(qx, qz) > qy - 0.4) clear = false; }
+      return { x, y, z, lx, ly, lz, wide, clear };
+    };
+    let c = spot(this.move);
+    if (!c.clear) {
+      // blocked: take whichever other move has a clear view (or rise over the obstacle)
+      for (const m of ['flank', 'under', 'front']) { if (m === this.move) continue; const o = spot(m); if (o.clear) { this.move = m; this.moveT = 0; this.moveDur = rr(9, 13); c = o; break; } }
+      if (!c.clear) c.y = Math.min(c.y + 2, -0.9);
+    }
+    if (this.move === 'pass' && (p.x - c.x) * fx + (p.z - c.z) * fz > L * 0.6) this.moveT = this.moveDur;   // (it has gone by)
+    const { x, y, z, lx, ly, lz, wide } = c;
+    sh.pos.set(x, y, z); sh.look.set(lx, ly, lz);
+    sh.giant = this.move; sh.wide = wide;
+    const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
+    if (sh.phase === 'approach' && (gap < 2.5 || this.t > 30)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
     this.t += dt;
     return sh;
   }

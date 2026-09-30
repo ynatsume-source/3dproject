@@ -81,6 +81,7 @@ export class Ecosystem {
     const ws = this.oc.loc.whales;
     updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
     if (this.oc.bait) this.oc.bait.update(dt, e, cam, fx, fz, e.sound);
+    this.oc.riders?.update(dt, t);
     return e.events;
   }
 }

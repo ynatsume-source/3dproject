@@ -5,6 +5,7 @@ import './styles.css';
 import { U, mat } from './render/common';
 import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
+import { ridersFor } from './eco/riders';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
 import { updateAir, setPlanets, topScene, setRefraction, swellAt } from './ocean/air';
 import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
@@ -125,7 +126,7 @@ function nearestS(p: THREE.Vector3) {
 }
 const director = new Director();
 let lastShot: Shot | null = null;
-let huntK = 0;
+let huntK = 0, giantK = 0;
 function onShotChange(prev: Shot | null, next: Shot | null) {
   if (next) {
     $('tMode').textContent = 'OBSERVING';
@@ -183,12 +184,12 @@ function updateDrone(dt: number, now: number) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     _v.subVectors(way, drone.pos);
-    const L = _v.length(), top = shot.close ? 7 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
+    const L = _v.length(), top = shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
-    drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : 1.2)));
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : 1.2)));
     const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
-    const k = Math.min(1, dt * (shot.close ? 3.2 : shot.phase === 'approach' ? 0.9 : 1.6));
+    const k = Math.min(1, dt * (shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : 1.6));
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
   } else if (drone.mode === 'auto' && drone.sky) {
@@ -331,7 +332,10 @@ function updateDrone(dt: number, now: number) {
   // filming a hunt close up: a longer lens (the view narrows), and the slight life of a hand-held camera
   const huntCam = !!lastShot?.close && drone.mode === 'auto' && !watch.r;
   huntK += ((huntCam ? 1 : 0) - huntK) * Math.min(1, dt * 0.9);
-  const fov = 70 - 24 * huntK;
+  // right up against something big: a wider lens, so it fills and overflows the frame
+  const giantCam = lastShot?.giant && lastShot.phase === 'observe' && drone.mode === 'auto' && !watch.r ? lastShot.wide ?? 1 : 0;
+  giantK += (giantCam - giantK) * Math.min(1, dt * 0.6);
+  const fov = 70 - 24 * huntK + 12 * giantK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
@@ -736,7 +740,7 @@ function statusOf(id: string): string {
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
-const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : [])];
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
 let panelTab: 'guide' | 'log' | 'island' | 'talk' = 'guide';
 function renderLog() {
   const loc = cur!.loc;
