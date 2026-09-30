@@ -16,7 +16,7 @@ let t = 0;
 const out: string[] = [];
 for (let k = 0; k < 900 * 10; k++) {
   t += 0.1;
-  for (const e of oc.eco.step(0.1, t, cam, 0, -1)) if (/捕らえた|振り切った|狙っている/.test(e.text)) out.push(`${t.toFixed(0)}s ${e.text}`);
+  for (const e of oc.eco.step(0.1, t, cam, 0, -1)) if (e.kind === 'catch' || e.kind === 'hunt') out.push(`${t.toFixed(0)}s ${e.kind === 'catch' ? '[catch] ' : ''}${e.text}`);
   for (const s of oc.eco.subjects()) {
     if (s.kind !== 'hunt') continue;
     const st = s.status(), p = s.pos()!, tg = s.target?.();
@@ -37,5 +37,5 @@ for (let k = 0; k < 900 * 10; k++) {
   for (const [key, r] of track) if (!oc.eco.subjects().some((s) => s.key === key)) { out.push(`   hunt ${key}: bursts ${r.bursts}, closest ${r.minD < 1e8 ? r.minD.toFixed(2) + ' m' : '-'}, hunter top ${r.hs.toFixed(1)} m/s, fish top ${r.ts.toFixed(1)} m/s`); track.delete(key); }
 }
 console.log(out.join('\n'));
-const caught = out.filter((l) => l.includes('捕らえた')).length, away = out.filter((l) => l.includes('振り切った')).length;
+const caught = out.filter((l) => l.includes('[catch]')).length, away = out.filter((l) => /振り切|空を切|追いつけ|あきらめ/.test(l)).length;
 console.log(`\ncaught ${caught}, got away ${away}`);

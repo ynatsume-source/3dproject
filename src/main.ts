@@ -416,9 +416,9 @@ async function refreshWeather(loc: Sea) {
 let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
 // the lamp comes on by itself in the dark of the cave (at night the moon or starlight is enough)
 function wantLamp() { return camCave < 0.3; }
-function applySky(loc: Sea) {
-  const s = skyState(clock.ms, loc);
-  skyNow = s;
+// The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
+// dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.
+function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uSunDir.value.set(...s.sunDir);
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
   U.uTint.value.setRGB(...s.tint);
@@ -428,10 +428,9 @@ function applySky(loc: Sea) {
   // (Rendering only: the animals still live by the real darkness in s.)
   // Without the moon, starlight takes its place (a little brighter than real), coming from high overhead,
   // so every hour of the night reads the same way rather than going black before moonrise.
-  // Seen from the air, the night is left closer to how dark it really is: the sea below is black but
-  // for the moonlit shallows.
+  // Seen from the air it is a little darker than below, but never black: the reef still shows through.
   // (by an island the night ashore is kept open and gentle, as it is under the water, rather than black)
-  const n = s.night * (drone.pos.y > 0 ? (cur?.loc.land ? 0.95 : 0.3) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
+  const n = s.night * (airView ? (cur?.loc.land ? 0.95 : 0.75) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
   U.uAmb.value = s.amb + glow * 0.6;
   U.uSunI.value = Math.max(s.sunI, n * (0.45 + 0.25 * moon));
   U.uShaftI.value = Math.max(s.shaftI, n * (0.2 + 0.4 * moon));
@@ -440,10 +439,16 @@ function applySky(loc: Sea) {
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
   nightLift = n;
-  // the weather at the site, when we are watching it live; fair skies whenever the clock is moved
   const w = liveWeather();
   const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
   U.uSunI.value *= 1 - 0.65 * cloud; U.uShaftI.value *= 1 - 0.85 * cloud; U.uAmb.value *= 1 - 0.22 * cloud;
+}
+function applySky(loc: Sea, airView = drone.pos.y > 0) {
+  const s = skyState(clock.ms, loc);
+  skyNow = s;
+  lightFor(s, airView);
+  const w = liveWeather();
+  const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
   const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), cloud * 0.7); };
   grey(U.uSkyLo.value); grey(U.uSkyHi.value);
   U.uCloud.value = cloud;
@@ -1574,12 +1579,14 @@ function renderPip(dt: number, air: boolean) {
   const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio(), H = innerHeight;
   const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
   if (w !== pipRect.w || h !== pipRect.h) { pipRect.w = w; pipRect.h = h; pipPost.setSize(Math.floor(w * dpr), Math.floor(h * dpr)); pipCam.aspect = w / h; pipCam.updateProjectionMatrix(); }
+  if (air && skyNow) lightFor(skyNow, false);   // (the little window looks under the water: lit as it is down there, even when we are up in the air)
   pipPost.setExposure(1.9 * (1 + 0.55 * nightLift));   // a touch brighter than the main view: the action has to read small
   pipPost.whiteBalance(-pipCam.position.y, U.uAbs.value, U.uNight.value);
   renderer.setViewport(r.left, H - r.bottom, w, h); renderer.setScissor(r.left, H - r.bottom, w, h); renderer.setScissorTest(true);
   pipPost.render(renderer, oceanScene, pipCam);
   renderer.setScissorTest(false); renderer.setViewport(0, 0, innerWidth, innerHeight); renderer.setScissor(0, 0, innerWidth, innerHeight);
   // put the main camera's view back
+  if (air && skyNow) lightFor(skyNow, true);
   U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd);
   cur.cells.forEach((c: any, i: number) => { c.mesh.visible = vis[i][0]; if (c.hi) c.hi.visible = vis[i][1]; });
   sky.position.copy(camera.position); surface.position.set(camera.position.x, 0, camera.position.z);

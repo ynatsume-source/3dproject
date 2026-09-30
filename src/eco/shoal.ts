@@ -241,6 +241,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => leaders.map((L) => L.prey),
+    dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },
   };

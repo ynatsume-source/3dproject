@@ -33,6 +33,7 @@ interface Group {
   prey?: PreyGroup;
   ch?: Chase;                             // one of this group's fish is being chased
   // cave-resting sharks: out on the reef, going in along the tunnel, lying on the floor, coming out
+  born?: number;
   cr?: { spot: { pos: THREE.Vector3; head: number; t: number }; mode: 'out' | 'in' | 'rest' | 'leave'; t: number; dir: number };
 }
 
@@ -224,7 +225,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       fp[i * 3] = g.c.x + fo[i * 3]; fp[i * 3 + 1] = g.c.y + fo[i * 3 + 1]; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2];
       fv[i * 3] = g.v.x; fv[i * 3 + 1] = 0; fv[i * 3 + 2] = g.v.z;
     }
-    g.placed = true;
+    g.placed = true; g.born = g.t;   // (it swims in: grows from nothing rather than popping up)
   }
 
   // Predators: build hunger, pick a school, close in, then chase one fish in bursts.
@@ -236,7 +237,8 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (!g.hunt && g.cooldown <= 0 && drive > 0.5 && R() < dt * 0.08) {
       let best: PreyGroup | null = null, bd = 45;
       for (const p of env.prey) { const d = Math.hypot(p.x - g.c.x, p.z - g.c.z); if (p.alive > 1 && d < bd) { bd = d; best = p; } }
-      if (best) { g.hunt = { prey: best, t0: g.t, phase: 'stalk', pt: 0, tries: 0, target: -1, tp: new THREE.Vector3(best.x, best.y, best.z), speed: g.v.length(), close: 1e9 }; logEvent(env, 'hunt', oneOf([`${sp.ja}が${best.label}の群れを狙っている`, `${sp.ja}が${best.label}の群れに狙いを定めた`, `${sp.ja}が${best.label}の群れの下を、ゆっくり回りはじめた`, `${sp.ja}の気配に、${best.label}の群れがざわつきはじめた`, `${sp.ja}が${best.label}の群れとの距離を、じわじわと詰めていく`]), g.c.x, g.c.z, () => g.c); }
+      if (best) { g.c.set(fp[g.start * 3], fp[g.start * 3 + 1], fp[g.start * 3 + 2]); g.v.set(fv[g.start * 3], fv[g.start * 3 + 1], fv[g.start * 3 + 2]);   // (the hunt starts from where its body actually is)
+        g.hunt = { prey: best, t0: g.t, phase: 'stalk', pt: 0, tries: 0, target: -1, tp: new THREE.Vector3(best.x, best.y, best.z), speed: g.v.length(), close: 1e9 }; logEvent(env, 'hunt', oneOf([`${sp.ja}が${best.label}の群れを狙っている`, `${sp.ja}が${best.label}の群れに狙いを定めた`, `${sp.ja}が${best.label}の群れの下を、ゆっくり回りはじめた`, `${sp.ja}の気配に、${best.label}の群れがざわつきはじめた`, `${sp.ja}が${best.label}の群れとの距離を、じわじわと詰めていく`]), g.c.x, g.c.z, () => g.c); }
     }
     if (!g.hunt) return false;
     const h = g.hunt, p = h.prey, len = fs[g.start] * 1.28;
@@ -297,8 +299,12 @@ export function makeFishSystem(sp: Species, oc: any) {
     h.speed += (wantSpeed - h.speed) * Math.min(1, dt * (wantSpeed > h.speed ? 2.5 : 1.2));
     g.v.copy(_c).multiplyScalar(h.speed); g.v.y = clamp(g.v.y, -h.speed * 0.5, h.speed * 0.5);
     g.c.addScaledVector(g.v, dt);
-    const fl = T.top(g.c.x, g.c.z) + 0.35;
-    if (g.c.y < fl) { g.c.y = fl; if (g.v.y < 0) g.v.y = 0; }
+    // over rock and coral: look a little ahead and rise over it smoothly (never snap up onto a ledge)
+    let fl = T.top(g.c.x, g.c.z);
+    const hs = Math.hypot(g.v.x, g.v.z) || 1e-3;
+    for (const a of [0.25, 0.5, 0.8]) fl = Math.max(fl, T.top(g.c.x + g.v.x / hs * a * Math.max(1, h.speed), g.c.z + g.v.z / hs * a * Math.max(1, h.speed)));
+    fl += 0.25;
+    if (g.c.y < fl) { g.c.y += Math.min(fl - g.c.y, (1.0 + h.speed * 0.8) * dt); if (g.v.y < 0) g.v.y *= 0.6; }
     if (g.c.y > -0.8) g.c.y = -0.8;
     g.head = Math.atan2(g.v.z, g.v.x);
     return true;
@@ -371,6 +377,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       const lone = g.n === 1;
       const feedFace = sp.diet === 'plankton' ? g.act * clamp(curLen * 1.5, 0, 1) : 0;
       let alive = 0;
+      const appear = g.born == null ? 1 : smooth(0, 1.5, g.t - g.born);
       for (let i = g.start; i < g.start + g.n; i++) {
         if (dead[i]) {
           if (g.t - dead[i] > REVIVE_AFTER) { dead[i] = 0; fp[i * 3] = g.c.x + fo[i * 3] * 3; fp[i * 3 + 1] = g.c.y; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2] * 3; }
@@ -397,7 +404,7 @@ export function makeFishSystem(sp: Species, oc: any) {
           fv[i * 3] = g.v.x; fv[i * 3 + 1] = g.v.y; fv[i * 3 + 2] = g.v.z;
           const hs0 = Math.hypot(g.v.x, g.v.z), hy0 = clamp(g.v.y, -hs0 * 0.6, hs0 * 0.6);
           _w.set(fp[i * 3] + g.v.x, fp[i * 3 + 1] + hy0, fp[i * 3 + 2] + g.v.z); _v.set(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]);
-          _mm.lookAt(_w, _v, UPV); _ss.setScalar(fs[i]); _mm.scale(_ss); _mm.setPosition(_v);
+          _mm.lookAt(_w, _v, UPV); _ss.setScalar(fs[i] * appear); _mm.scale(_ss); _mm.setPosition(_v);
           mesh.setMatrixAt(i, _mm); dirty = true;
           continue;
         }
@@ -458,7 +465,7 @@ export function makeFishSystem(sp: Species, oc: any) {
           _mc.copy(_mm); _ss.set(fs[i] * 0.42 * c, fs[i] * 0.62 * c, fs[i] * 1.35 * c); _mc.scale(_ss); _mc.setPosition(nx, ny, nz);
           cocoon.setMatrixAt(i, _mc);
         }
-        _ss.setScalar(fs[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
+        _ss.setScalar(fs[i] * appear); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
         mesh.setMatrixAt(i, _mm);
         dirty = true;
       }
@@ -527,6 +534,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
+    dbg: { fp, dead, groups, get total() { return total; } },   // (for checks)
     reset() { for (const g of groups) g.placed = false; },
   };
 }
