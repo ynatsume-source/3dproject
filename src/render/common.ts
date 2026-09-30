@@ -237,8 +237,7 @@ vec3 fogAir(vec3 col, vec3 wp){
   }
   return col;
 }
-vec3 fogIt(vec3 col, vec3 wp){
-  if (uCamPos.y > 0.0) return fogAir(col, wp);
+vec3 fogWater(vec3 col, vec3 wp){
   vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
   float den = uFogDen * mix(1.0, 1.15, uNight);
   vec3 T = exp(-den * vec3(1.4, 1.0, 0.78) * d);
@@ -248,6 +247,12 @@ vec3 fogIt(vec3 col, vec3 wp){
   // a light milky veil that settles in over the first dozen metres and then holds, so shapes soften
   // with distance without the view closing in
   return mix(col, h, 0.11 * (1.0 - exp(-d * 0.09)));
+}
+// Seen from the water or from the air. Both are worked out and one is kept, rather than returning early
+// from a branch: Direct3D (Windows) on some GPUs cannot compile an early return here in a shader that
+// also reads textures, and the GPU resets.
+vec3 fogIt(vec3 col, vec3 wp){
+  return mix(fogWater(col, wp), fogAir(col, wp), step(0.0, uCamPos.y));
 }
 // light reaching a surface with normal n; cl = caveLight() where the surface is (sun, sky)
 vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) * (1.0 + uFlash * 3.0) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
