@@ -12,6 +12,7 @@ import { robotKit, type Robot, type Act, type Mats } from './models';
 import { VOICES, STAGES, type Voice } from './voices';
 import type { Subject } from '../eco/env';
 import { aiConverse, aiReady } from './mind';
+import { makeItems, type Item, type ItemKind } from './items';
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
 function rmat(hex: number, spec = 0.5, grid = false) {
@@ -66,6 +67,8 @@ export interface Resident {
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
+  holding: '' | ItemKind | 'piece';       // what it has in its hands
+  held: THREE.Mesh;
 }
 export interface Residents {
   list: Resident[]; bonds: Record<string, Bond>; talks: Entry[];
@@ -74,6 +77,7 @@ export interface Residents {
   subjects(): Subject[];
   status(r: Resident): string;
   save(): void;
+  focus(r: Resident | null): void;        // the one being watched: mark where it is heading
   bubbles(camera: THREE.Camera, w: number, h: number): void;
   onEvent: (kind: string, text: string, r: Resident) => void;
 }
@@ -114,12 +118,40 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     HUT.forEach((m) => { m.visible = false; hut.add(m); });
   }
+  // the workbench beside it (a stump and a plank), where each piece is shaped from a log; the next piece's
+  // place shown as a faint outline while Dot works on it; the piece on its way from Dot's hands to its place
+  const benchL = new THREE.Vector3(-2.3, 0, 1.3);
+  const bench = new THREE.Group(); bench.position.copy(benchL); hut.add(bench);
+  { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.45, 9), wood2); st.position.y = 0.22; bench.add(st);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.3), wood); top.position.y = 0.47; bench.add(top); }
+  const itemMat = { wood: rmat(0xb3a390, 0.1), shell: shellM, stone: stoneM };
+  const benchLog = new THREE.Mesh(new THREE.BufferGeometry(), itemMat.wood); benchLog.position.y = 0.53; benchLog.visible = false; bench.add(benchLog);
+  const benchPiece = new THREE.Mesh(new THREE.BufferGeometry(), wood); benchPiece.position.y = 0.53; benchPiece.visible = false; bench.add(benchPiece);
+  const ghostM = new THREE.MeshBasicMaterial({ color: 0x8ff6ff, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false });
+  const ghost = new THREE.Mesh(new THREE.BufferGeometry(), ghostM); ghost.visible = false; hut.add(ghost);
+  const flyer = new THREE.Mesh(new THREE.BufferGeometry(), wood); flyer.visible = false; group.add(flyer);
+  const fly = { t: -1, k: 0, from: new THREE.Vector3(), fromQ: new THREE.Quaternion() };
+  const CHIPS = 24, chipsM = new THREE.InstancedMesh(new THREE.BoxGeometry(0.025, 0.012, 0.018), itemMat.wood, CHIPS); chipsM.count = 0; chipsM.frustumCulled = false; group.add(chipsM);
+  const chips = Array.from({ length: CHIPS }, () => ({ p: new THREE.Vector3(), v: new THREE.Vector3(), t: 9 }));
+  let chipNext = 0;
+  // a piece of the hut shown lying on the bench: its long side along the bench
+  const lying = (m: THREE.Mesh, out: THREE.Mesh) => { out.geometry = m.geometry; out.material = m.material; out.rotation.set(0, 0, (m.geometry as any).type === 'CylinderGeometry' ? Math.PI / 2 : 0); };
+  // Where a piece goes, in the world, and where to stand to fit it
+  const _sw = new THREE.Vector3(), _sq = new THREE.Quaternion(), _ss = new THREE.Vector3();
+  function slotWorld(k: number) { hut.updateMatrixWorld(); HUT[k].matrixWorld.decompose(_sw, _sq, _ss); return _sw; }
+  function slotStand(k: number): [number, number] {
+    const w = slotWorld(k).clone(), c = hut.position, dx = w.x - c.x, dz = w.z - c.z, d = Math.hypot(dx, dz);
+    const ux = d > 0.3 ? dx / d : Math.sin(hut.rotation.y), uz = d > 0.3 ? dz / d : Math.cos(hut.rotation.y);
+    return [w.x + ux * 0.9, w.z + uz * 0.9];
+  }
+  const benchStand = (): [number, number] => { const w = hut.localToWorld(benchL.clone().add(new THREE.Vector3(0, 0, 0.6))); return [w.x, w.z]; };
+  const reveal: { m: THREE.Mesh; t: number }[] = [];
   // Rakko's pile of shells on the beach; Lantern's cairns where it stopped to think
   const shellGeo = new THREE.SphereGeometry(0.05, 7, 5, 0, Math.PI * 2, 0, Math.PI / 2);
   const pile = new THREE.InstancedMesh(shellGeo, shellM, 80); pile.count = 0; group.add(pile);
   const cairnGeo = new THREE.DodecahedronGeometry(0.16, 0);
   const cairns = new THREE.InstancedMesh(cairnGeo, stoneM, 60); cairns.count = 0; group.add(cairns);
-  const cairnSpots: [number, number][] = [];
+  const cairnSpots: number[][] = [];   // [x, z, stones so far]
 
   /* ---------- the residents ---------- */
   const list: Resident[] = SPECS.map((sp) => {
@@ -132,8 +164,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       task: null, walk: 0, act: 'idle', wet: false, talk: null, saying: '', sayT: 0,
       stats: { built: 0, notes: 0, shells: 0, cracked: 0, visited: 0, cairns: 0, wood: 0 },
       today: [], diary: [], blocked: 0,
-      subject: null as any,
+      subject: null as any, holding: '', held: new THREE.Mesh(new THREE.BufferGeometry(), wood),
     };
+    r.held.visible = false; r.held.position.set(0, sp.id === 'rakko' ? 0.36 : 0.5, sp.id === 'rakko' ? 0.18 : 0.27); model.root.add(r.held);
     r.subject = { key: 'robot:' + sp.id, label: r.v.name, kind: 'robot', prio: 2.6, size: 1.0 * sp.scale, reach: 320,
       pos: () => r.pos, status: () => res.status(r), live: () => true, hold: undefined };
     return r;
@@ -163,6 +196,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const beach = (x: number, z: number, h: number) => h > 0.35 && h < 1.4 && cover(x, z).sand > 0.5;
   // the beach proper: water within a few steps
   const shore = (x: number, z: number, h: number) => beach(x, z, h) && [0, 1.57, 3.14, 4.71].some((a) => L.h(x + Math.cos(a) * 9, z + Math.sin(a) * 9) < 0);
+  // the water's edge itself, where the sea leaves things
+  const tideline = (x: number, z: number, h: number) => h > 0.15 && h < 1.1 && cover(x, z).can < 0.3 && [0, 0.79, 1.57, 2.36, 3.14, 3.93, 4.71, 5.5].some((a) => L.h(x + Math.cos(a) * 6, z + Math.sin(a) * 6) < 0);
+
+  /* ---------- what lies about the island ---------- */
+  const items = makeItems(L.h, spot, {
+    wood: { near: byId.dot.sp.home, rad: 160, ok: tideline, max: 6, every: 1500 },
+    shell: { near: byId.rakko.sp.home, rad: 170, ok: tideline, max: 16, every: 260 },
+    stone: { near: [byId.lantern.sp.home[0] - 40, byId.lantern.sp.home[1] + 20], rad: 140, ok: (x, z, h) => h > 1.2 && cover(x, z).can < 0.4, max: 12, every: 900 },
+  }, itemMat, group);
 
   /* ---------- the diary and what happened today ---------- */
   function note(r: Resident, key: string, vars: Record<string, string | number> = {}, today?: string) {
@@ -199,8 +241,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const q = Math.random();
     switch (r.id) {
       case 'dot': {
-        if (r.stats.wood > 0) return task('build', [hut.position.x + rr(-1, 1), hut.position.z + 2.2], 'work', rr(120, 300));
-        if (q < 0.65 && r.stats.built < HUT.length) return task('gather', spot(home, r.sp.range, shore, 200), 'work', 20, { then: 'carry' });
+        // one piece at a time: find a log, bring it to the bench, shape it, fit it
+        if (r.holding === 'piece') return r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'work', 7) : (r.holding = '', null);
+        if (r.holding === 'wood') return task('craft', benchStand(), 'work', rr(45, 75));
+        if (q < 0.7 && r.stats.built < HUT.length) {
+          const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id);
+          if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'work', 3.5, { data: it }); }
+          return task('look', spot(home, 80, shore, 200), 'idle', rr(60, 180));   // nothing washed up yet: watch the sea for it
+        }
         if (q < 0.8) return task('look', spot(home, 80, shore, 200), 'idle', rr(60, 180));
         return task('wander', spot(home, r.sp.range, open), 'idle', rr(20, 60));
       }
@@ -212,16 +260,25 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'lantern': {
         const night = 1 - day;
         if (night < 0.5) return task('rest', spot(home, 20, open) ?? home, 'idle', rr(300, 900));   // (evening and dawn: it waits by its hill)
+        if (r.holding === 'stone') { const c = cairnSpots.find((c) => c[2] < 4) ?? null; return task('stack', c ? [c[0] - 0.7, c[1]] : spot(home, 40, (x, z, h) => h > 11), 'work', 5, { data: c }); }
         if (q < 0.3) return task('think', spot(home, 40, (x, z, h) => h > 11), 'think', rr(400, 1000));
+        if (q < 0.5 && cairnSpots.length < 12) {   // a stone for the cairn it is building
+          const it = items.nearest('stone', r.pos.x, r.pos.z, 160, r.id);
+          if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'work', 3, { data: it }); }
+        }
         // explore: somewhere it has not been, on the island's open ground and paths
         let best: [number, number] | null = null;
         for (let k = 0; k < 12; k++) { const s = spot([320, -270], 420, open, 20); if (s && !visited.has(cellOf(s[0], s[1]))) { best = s; break; } if (!best) best = s; }
         return task('explore', best, 'look', rr(30, 90));
       }
       case 'rakko': {
+        if (r.holding === 'shell') return task('pile', pileAt(r.stats.shells) as [number, number], 'work', 3);
         if (q < 0.35) return task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
         if (q < 0.6) return task('crack', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'work', rr(120, 240), { wet: true });
-        if (q < 0.8) return task('collect', spot(home, r.sp.range, shore, 200), 'work', 15, { then: 'pile' });
+        if (q < 0.8) {
+          const it = items.nearest('shell', r.pos.x, r.pos.z, 200, r.id);
+          if (it) { items.claim(it, r.id); return task('collect', [it.x, it.z], 'work', 3, { data: it }); }
+        }
         if (q < 0.9 && day > 0.5) return task('nap', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'sleep', rr(400, 900), { wet: true });
         return task('wander', spot(home, r.sp.range, beach), 'idle', rr(30, 90));
       }
@@ -231,25 +288,45 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const cellOf = (x: number, z: number) => Math.floor(x / 20) + ',' + Math.floor(z / 20);
 
   /* ---------- finishing a task ---------- */
-  function done(r: Resident, tk: Task) {
+  function done(r: Resident, tk: Task, fast = false) {
     switch (tk.kind) {
-      case 'gather': r.stats.wood++; note(r, 'gather', {}, '流木を拾った'); r.task = task('carry', [hut.position.x + rr(-1.5, 1.5), hut.position.z + 2.5], 'carry', 5); return;
-      case 'build':
-        r.stats.wood = 0;
-        if (r.stats.built < HUT.length) { HUT[r.stats.built].visible = true; r.stats.built++; }
+      case 'gather':
+        if (!items.take(tk.data)) break;   // (gone)
+        r.holding = 'wood'; r.stats.wood = 1; note(r, 'gather', {}, '流木を拾った');
+        r.task = task('craft', benchStand(), 'work', rr(45, 75)); return;
+      case 'craft': r.holding = 'piece'; r.stats.wood = 0; r.task = r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'work', 7) : null; return;
+      case 'place': {
+        const k = r.stats.built; if (k >= HUT.length) { r.holding = ''; break; }
+        r.holding = ''; r.stats.built++;
+        if (fast) HUT[k].visible = true;
+        else { fly.t = 0; fly.k = k; r.held.getWorldPosition(fly.from); r.held.getWorldQuaternion(fly.fromQ); flyer.geometry = HUT[k].geometry; (flyer as THREE.Mesh).material = HUT[k].material as THREE.Material; }
         note(r, r.stats.built === 18 ? 'done' : 'build', {}, r.stats.built === 18 ? '小屋を完成させた' : '小屋の部材をひとつ取りつけた');
         break;
+      }
       case 'watch': r.stats.notes++; note(r, 'watch', { sight: sight() }, '浜で海を見ていた'); break;
       case 'swim': r.stats.notes++; note(r, 'swim', { sight: sight() }, 'ラグーンを泳いだ'); break;
       case 'explore': note(r, 'explore', { place: pickOne(['北の浜の岩場に出た。', '森の中の空き地を見つけた。', '白い砂の小道をたどった。', 'アダンの茂みを回り込んだ。']) }, '夜の島を歩いて地図を作った'); break;
       case 'think': {
         note(r, 'think', { star: pickOne(['光の届かない場所にも、道はあるのだろうか。', '地図の空白は、まだ知らないという印だ。', '波の音は、何度聞いても同じではない。']) }, '丘で星を見て考えごとをした');
-        if (cairnSpots.every(([x, z]) => Math.hypot(x - r.pos.x, z - r.pos.z) > 6) && cairnSpots.length < 12) { cairnSpots.push([r.pos.x + 0.8, r.pos.z]); r.stats.cairns++; buildCairns(); note(r, 'cairn'); }
         break;
       }
       case 'crack': { const n = 2 + Math.floor(Math.random() * 4); r.stats.cracked += n; note(r, 'crack', { n }, `貝を${n}個割った`); break; }
-      case 'collect': r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'work', 4); return;
-      case 'pile': r.stats.shells++; buildPile(); note(r, 'collect', {}, 'きれいな貝殻を拾った'); break;
+      case 'collect':
+        if (!items.take(tk.data)) break;
+        r.holding = 'shell'; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'work', 3); return;
+      case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, 'きれいな貝殻を拾った'); break;
+      case 'fetch':
+        if (!items.take(tk.data)) break;
+        r.holding = 'stone'; r.task = null; return;   // (decide() takes it to the cairn)
+      case 'stack': {
+        if (r.holding !== 'stone') break;
+        r.holding = '';
+        let c = tk.data as number[] | null;
+        if (!c || !cairnSpots.includes(c)) { c = [r.pos.x + 0.7, r.pos.z, 0]; cairnSpots.push(c); }
+        c[2]++; buildCairns();
+        if (c[2] >= 4) { r.stats.cairns++; note(r, 'cairn'); }
+        break;
+      }
       case 'float': note(r, 'float', {}, '沖でぷかぷか浮いていた'); break;
       case 'nap': note(r, 'nap', {}, '浮いたまま昼寝した'); break;
       case 'charge': note(r, 'charge'); break;
@@ -265,7 +342,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function buildCairns() {
     const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), s = new THREE.Vector3();
     let n = 0;
-    for (const [x, z] of cairnSpots) for (let k = 0; k < 4 && n < 60; k++, n++) {
+    for (const [x, z, c] of cairnSpots) for (let k = 0; k < Math.min(4, c ?? 4) && n < 60; k++, n++) {
       const sc = 1 - k * 0.2; p.set(x, L.h(x, z) + 0.1 + k * 0.22, z); s.set(sc, sc * 0.75, sc);
       cairns.setMatrixAt(n, m.compose(p, q.setFromEuler(e.set(k, k * 2.1, 0)), s));
     }
@@ -406,17 +483,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const tk = r.task;
     if (tk.kind === 'approach') { const o = byId[tk.data]; tk.x = o.pos.x; tk.z = o.pos.z; if (Math.hypot(o.pos.x - r.pos.x, o.pos.z - r.pos.z) < 3) { r.task = null; r.walk = 0; return; } }
     if (!tk.arrived) {
-      r.act = r.wet ? (r.id === 'rakko' ? 'swim' : 'swim') : tk.kind === 'carry' ? 'carry' : 'walk';
+      r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
       tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet);
       tk.t += dt;
-      if (tk.t > 1800 || r.blocked > 40) { r.task = null; return; }   // could not get there: think again
+      if (tk.t > 1800 || r.blocked > 40) { items.release(r.id); r.task = null; return; }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
       if (r.id === 'lantern') visited.add(cellOf(r.pos.x, r.pos.z));
     } else {
       r.walk = 0; r.act = tk.act;
       if (tk.kind === 'watch' || tk.kind === 'look') { let d = Math.atan2(-r.pos.x + (r.sp.home[0] - 60), -r.pos.z + (r.sp.home[1] + 80)) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt); }
       tk.t += dt;
-      if (tk.t > tk.dur) done(r, tk);
+      if (tk.t > tk.dur) done(r, tk, fast);
     }
     placeY(r);
   }
@@ -425,8 +502,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function save() {
     try {
       localStorage.setItem(KEY, JSON.stringify({
-        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-40),
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-40) })),
+        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-40), items: items.save(),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-40), holding: r.holding })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
@@ -434,14 +511,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     let s: any = null;
     try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
     clockMs = nowMs;
+    items.load(s ? s.items : undefined);
     if (!s) return 0;
     for (const v of s.visited || []) visited.add(v);
-    for (const c of s.cairns || []) cairnSpots.push(c);
+    for (const c of s.cairns || []) cairnSpots.push([c[0], c[1], c[2] ?? 4]);   // (older saves: finished cairns)
     Object.assign(bonds, s.bonds || {});
     talks.push(...(s.talks || []));
     for (const d of s.list || []) {
       const r = byId[d.id]; if (!r) continue;
       r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = d.battery; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || [];
+      r.holding = d.holding ?? (r.id === 'dot' && r.stats.wood > 0 ? 'wood' : '');
     }
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     buildPile(); buildCairns();
@@ -453,7 +532,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     onEvent: () => { /* set by the app */ },
     update(dt, ms, cam) {
       clockMs = ms;
+      items.tick(dt);
       for (const r of list) step(r, dt, false);
+      animateWork(dt);
       if ((meetT -= dt) < 0) { meetT = 1; checkMeetings(false); }
       for (const r of list) {
         const near = Math.hypot(r.pos.x - cam.x, r.pos.z - cam.z) < 160;
@@ -461,6 +542,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!near) continue;
         r.model.root.position.copy(r.pos); r.model.root.rotation.y = r.head;
         r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act: r.act, walk: Math.min(1, r.walk), night: 1 - dayK(localHour(ms)), wet: r.wet });
+        // what it has in its hands (Dot's arms hold a log themselves)
+        if (r.model.carry) r.model.carry.visible = r.holding === 'wood';
+        const hk = r.holding === 'wood' && r.model.carry ? '' : r.holding;
+        r.held.visible = !!hk && !(r.task?.kind === 'craft' && r.task.arrived);
+        if (hk === 'piece' && r.stats.built < HUT.length) { lying(HUT[r.stats.built], r.held); r.held.scale.setScalar(0.6); }
+        else if (hk) { r.held.geometry = items.geo[hk as ItemKind]; r.held.material = itemMat[hk as ItemKind]; r.held.rotation.set(0, 0, 0); r.held.scale.setScalar(hk === 'wood' ? 0.8 : 1); }
         if (r.saying) r.sayT += dt;
         r.subject.prio = r.talk ? 7 : r.act === 'sleep' ? 1.2 : 2.6;
       }
@@ -470,6 +557,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     status(r) {
       if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
       const tk = r.task, k = tk?.kind ?? 'idle';
+      const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
+      const going: Record<string, string> = { gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる' };
+      const at: Record<string, string> = { gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
+      if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
       const base: Record<string, string> = {
         sleep: r.wet ? '波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
         look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
@@ -479,6 +570,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return base[k] ?? 'ひと休みしている';
     },
     save,
+    focus(r) { focused = r; },
     bubbles(camera, w, h) {
       const v = new THREE.Vector3();
       for (const r of list) {
@@ -495,7 +587,69 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
     },
   };
+  (res as any).items = items;   // (for ?debug)
   let meetT = 1, saveT = 20;
+  let focused: Resident | null = null;
+  // a ring on the ground where the watched one is heading (the log or shell it has its eye on, the bench, the hut)
+  const marker = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.42, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false }));
+  marker.rotation.x = -Math.PI / 2; marker.visible = false; group.add(marker);
+  let markT = 0;
+  // Dot at work, the piece flying into place, the chips, a newly fitted piece settling
+  function animateWork(dt: number) {
+    const dot = byId.dot, tk = dot.task, next = dot.stats.built;
+    const crafting = tk?.kind === 'craft' && tk.arrived;
+    // the log on the bench turns into the piece: the rough log shrinks away as the shaped piece grows out of it
+    benchLog.visible = crafting; benchPiece.visible = crafting && next < HUT.length;
+    if (crafting && next < HUT.length) {
+      const k = Math.min(1, tk!.t / tk!.dur);
+      benchLog.geometry = items.geo.wood; benchLog.scale.set(Math.max(0.05, 1 - k), 1 - k * 0.3, 1 - k * 0.3);
+      lying(HUT[next], benchPiece); benchPiece.scale.setScalar(0.55); benchPiece.scale.x *= Math.max(0.02, k);
+      // chips fly while it works
+      if (Math.random() < dt * 9) {
+        const c = chips[chipNext++ % CHIPS]; bench.getWorldPosition(c.p); c.p.y += 0.56; c.p.x += (Math.random() - 0.5) * 0.4; c.p.z += (Math.random() - 0.5) * 0.2;
+        c.v.set((Math.random() - 0.5) * 1.2, 1 + Math.random() * 0.8, (Math.random() - 0.5) * 1.2); c.t = 0;
+      }
+    }
+    // the outline of the next piece in its place while Dot is working toward it
+    const working = (dot.holding === 'wood' || dot.holding === 'piece') && next < HUT.length;
+    ghost.visible = working;
+    if (working) { ghost.geometry = HUT[next].geometry; ghost.position.copy(HUT[next].position); ghost.rotation.copy(HUT[next].rotation); ghostM.opacity = 0.22 + 0.12 * Math.sin(performance.now() * 0.004); }
+    // chips
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1);
+    let n = 0;
+    for (const c of chips) {
+      if (c.t > 1.2) continue;
+      c.t += dt; c.v.y -= 6 * dt; c.p.addScaledVector(c.v, dt);
+      const g = L.h(c.p.x, c.p.z) + 0.01; if (c.p.y < g) { c.p.y = g; c.v.set(0, 0, 0); }
+      chipsM.setMatrixAt(n++, m.compose(c.p, q.setFromEuler(e.set(c.t * 9, c.t * 7, 0)), sc));
+    }
+    chipsM.count = n; chipsM.instanceMatrix.needsUpdate = true;
+    // the piece lifts from Dot's hands and swings up into its place
+    if (fly.t >= 0) {
+      fly.t += dt;
+      const k = Math.min(1, fly.t / 1.4), s = k * k * (3 - 2 * k);
+      slotWorld(fly.k); const to = _sw, toQ = _sq;
+      flyer.visible = true;
+      flyer.position.lerpVectors(fly.from, to, s); flyer.position.y += Math.sin(s * Math.PI) * 0.6;
+      flyer.quaternion.slerpQuaternions(fly.fromQ, toQ, s);
+      if (k >= 1) { flyer.visible = false; fly.t = -1; HUT[fly.k].visible = true; reveal.push({ m: HUT[fly.k], t: 0 }); }
+    }
+    // and settles with a little bump
+    for (let i = reveal.length - 1; i >= 0; i--) {
+      const rv = reveal[i]; rv.t += dt;
+      const b = rv.t < 0.35 ? 1 + 0.12 * Math.sin(rv.t / 0.35 * Math.PI) : 1; rv.m.scale.setScalar(b);
+      if (rv.t >= 0.35) { rv.m.scale.setScalar(1); reveal.splice(i, 1); }
+    }
+    // where the watched one is going
+    const ft = focused?.task;
+    marker.visible = !!ft && !ft.arrived && ['gather', 'collect', 'fetch', 'craft', 'place', 'pile', 'stack'].includes(ft.kind);
+    if (marker.visible) {
+      markT += dt;
+      marker.position.set(ft!.x, L.h(ft!.x, ft!.z) + 0.06, ft!.z);
+      marker.scale.setScalar(1 + 0.15 * Math.sin(markT * 3));
+      (marker.material as THREE.MeshBasicMaterial).color.set(focused!.sp.color);
+    }
+  }
   const bubbleEls: Record<string, HTMLElement> = {};
   function bubbleEl(r: Resident) {
     let el = bubbleEls[r.id];
@@ -510,6 +664,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const quiet = res.onEvent; res.onEvent = () => {};
     for (let k = 0; k < n; k++) {
       clockMs = t0 + k * 20000;
+      items.tick(20);
       for (const r of list) step(r, 20, true);
       if (k % 3 === 0) checkMeetings(true);
       for (const r of list) if (r.talk && r.talk.a === r) for (let s = 0; s < 40 && r.talk; s++) stepTalk(r.talk, 1, true);

@@ -1547,6 +1547,7 @@ function frame(ts: number) {
       sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
       if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; } }
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
+    cur.residents?.focus(watch.r);
     cur.residents?.update(dt, clock.ms, drone.pos);
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; renderWatch(); }
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
