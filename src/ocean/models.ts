@@ -295,14 +295,22 @@ export function mushroomGeo() {
   return accGeo(acc);
 }
 export function anemoneGeo(seed) {
+  // a soft column, an oral disc and a thick crown of long, tapering tentacles with rounded tips,
+  // jointed along their length so the shader can bend them like cloth in the surge
   const rnd = mulberry32(seed), acc = Acc();
-  pushGeo(acc, new THREE.CylinderGeometry(0.27, 0.3, 0.1, 16), new THREE.Matrix4().makeTranslation(0, 0.05, 0), () => 0);
-  for (let i = 0; i < 90; i++) {
-    const r = Math.sqrt(rnd()) * 0.26, a = rnd() * Math.PI * 2;
-    const base = new THREE.Vector3(Math.cos(a) * r, 0.09, Math.sin(a) * r);
-    const dir = new THREE.Vector3(Math.cos(a) * (0.3 + r * 2), 1, Math.sin(a) * (0.3 + r * 2)).normalize();
-    const len = 0.16 + rnd() * 0.1;
-    const c = new THREE.CylinderGeometry(0.008, 0.016, len, 4, 3, true);
+  pushGeo(acc, new THREE.CylinderGeometry(0.25, 0.3, 0.12, 20, 1), new THREE.Matrix4().makeTranslation(0, 0.06, 0), () => 0);
+  pushGeo(acc, new THREE.CylinderGeometry(0.2, 0.25, 0.02, 20, 1), new THREE.Matrix4().makeTranslation(0, 0.125, 0), () => 0.05);
+  for (let i = 0; i < 150; i++) {
+    const r = 0.05 + Math.sqrt(rnd()) * 0.21, a = rnd() * Math.PI * 2;
+    const base = new THREE.Vector3(Math.cos(a) * r, 0.12, Math.sin(a) * r);
+    const out = 0.25 + r * 2.4;
+    const dir = new THREE.Vector3(Math.cos(a) * out, 1, Math.sin(a) * out).normalize();
+    const len = 0.17 + rnd() * 0.14;
+    const c = new THREE.CylinderGeometry(0.009, 0.017, len, 5, 6, true);
+    // a little bulb at the tip, as on bubble-tip anemones
+    const pc = c.attributes.position;
+    for (let k = 0; k < pc.count; k++) { const y = pc.getY(k) / len + 0.5, bulb = 1 + 0.6 * smooth(0.72, 0.92, y) * (1 - smooth(0.92, 1.0, y)); pc.setX(k, pc.getX(k) * bulb); pc.setZ(k, pc.getZ(k) * bulb); }
+    c.computeVertexNormals();
     pushGeo(acc, c, orientTo(dir, base, len), (v) => 0.15 + 0.85 * (v.y / len + 0.5));
   }
   return accGeo(acc);
@@ -368,10 +376,12 @@ export function coralMaterial(kind, lod = 0) {
        #if KIND == 3
          p.z += sin(t * 0.8 + aSeed * 6.283 + ip.x * 0.1) * 0.07 * aTip * aTip;
        #elif KIND == 4
-         p.x += sin(t * 0.7 + aSeed * 6.283) * 0.025 * aTip;
+         p.x += sin(t * 0.7 + aSeed * 6.283) * 0.025 * aTip; p.z += sin(t * 0.55 + aSeed * 4.0 + position.y * 3.0) * 0.02 * aTip;
        #elif KIND == 5
-         float ph = t * 1.4 + aSeed * 6.283 + position.x * 9.0 + position.z * 7.0;
-         p.x += sin(ph) * 0.05 * aTip * aTip; p.z += cos(ph * 0.8) * 0.05 * aTip * aTip;
+         // each tentacle curls on its own a little, and the whole crown slowly breathes
+         float ph = t * 1.1 + aSeed * 6.283 + position.x * 7.0 + position.z * 5.0 - aTip * 2.5;
+         p.x += sin(ph) * 0.035 * aTip * aTip; p.z += cos(ph * 0.83) * 0.035 * aTip * aTip;
+         p.xz *= 1.0 + 0.08 * sin(t * 0.45 + aSeed * 6.283) * aTip;
        #elif KIND == 7
          float k = smoothstep(3.5, 8.5, distance(ip, uCamPos)) * mix(1.0, 0.08, uNight);
          k *= 0.75 + 0.25 * clamp(length(uCurrent), 0.0, 1.0);
@@ -382,6 +392,26 @@ export function coralMaterial(kind, lod = 0) {
        #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
        vec3 isc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+       #if KIND == 3 || KIND == 4 || KIND == 5
+       {
+         // the water moving through: a steady lean down-current, and the surge of passing swell rolling
+         // across the reef as one visible wave (stronger in the shallows), breathing in slow gusts
+         vec2 fd = normalize(uCurrent + vec2(1e-4));
+         float cur = clamp(length(uCurrent), 0.2, 1.0);
+         float surge = sin(t * 0.85 - dot(ip.xz, fd) * 0.3 + aSeed * 0.8) * mix(1.0, 0.45, smoothstep(-3.0, -24.0, ip.y));
+         float gust = 0.65 + 0.35 * sin(t * 0.23 + dot(ip.xz, vec2(0.05, 0.07)));
+         float flow = (0.3 * cur + 0.55 * surge) * gust;
+         #if KIND == 5
+           float bend = aTip * aTip * 0.2;
+         #elif KIND == 4
+           float bend = aTip * aTip * 0.07;
+         #else
+           float bend = aTip * aTip * 0.09;
+         #endif
+         wp.xz += fd * flow * bend * isc.y;
+         wp.y -= abs(flow) * bend * 0.35 * isc.y;
+       }
+       #endif
        vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (isc * isc)));
        vL = position; vTip = aTip; vCol = aCol; vCol2 = aCol2; vSeed = aSeed;
        gl_Position = projectionMatrix * viewMatrix * wp;
