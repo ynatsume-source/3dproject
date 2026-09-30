@@ -1,4 +1,4 @@
-// Seaglass: pick a sea on the globe, dive, and drift with the drone. The sim clock lights every sea
+// Utsushiyo (formerly Seaglass; storage keys keep the old name): pick a sea on the globe, dive, and drift with the drone. The sim clock lights every sea
 // by its real sky; one click jumps to dawn / noon / dusk / night, and time can run faster than real.
 import * as THREE from 'three';
 import './styles.css';

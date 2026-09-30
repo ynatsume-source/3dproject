@@ -306,3 +306,5 @@ body.mode-globe #hoverTag, body.mode-globe #tapRing { display: none; }
   background: rgba(10, 30, 40, .45); border: 1px solid rgba(255, 255, 255, .28); border-radius: 999px; padding: 6px 11px; cursor: pointer;
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: background .2s, border-color .2s; }
 #brand #btnBack:hover, #brand #btnBack:focus-visible { background: rgba(10, 30, 40, .7); border-color: var(--accent); color: var(--accent); }
+
+.name .kana { font-family: var(--f-body); font-weight: 400; font-size: .62em; letter-spacing: .3em; color: var(--ink-dim); }
