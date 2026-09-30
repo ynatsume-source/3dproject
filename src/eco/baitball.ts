@@ -243,6 +243,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     status: () => ({ gather: '群れが固まりはじめている', herd: '水面へ追い上げられている', frenzy: '捕食者と海鳥が突っ込んでいる', scatter: '散りはじめた' })[st.phase],
     live: () => st.active && st.phase !== 'scatter',
     hold: 0,
+    frameR: () => st.r,
   };
   return {
     st, attract, update, bsp,

@@ -56,7 +56,9 @@ const minimap = new MiniMap(document.getElementById('minimap')!);
 let mapTimer = 0;
 // the hunt window: a second, small camera on whatever is being hunted nearby
 const pipPost = new Post({ ...TIERS.low, vol: 0, bloom: 0, ao: 0 });
-const pipCam = new THREE.PerspectiveCamera(55, 16 / 10, 0.08, 460);
+const pipCam = new THREE.PerspectiveCamera(42, 16 / 10, 0.08, 460);
+let pipOff = 0, pipLift = 0, pipClear = 0;
+const pipLook = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
 let pipOn = (() => { try { return localStorage.getItem('seaglass.pip') !== '0'; } catch (e) { return true; } })();
 let pipSubj: Subject | null = null, pipT = 0, pipFade = 0, pipScan = 0, pipAng = 0;
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
@@ -1041,7 +1043,7 @@ function renderPip(dt: number, air: boolean) {
         const d = Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z);
         if (d < bd) { bd = d; pipSubj = s; }
       }
-      if (pipSubj) { pipT = 0; pipAng = Math.random() * 6.28; }
+      if (pipSubj) { pipT = 0; pipAng = Math.random() * 6.28; pipOff = 0; pipLift = 0; pipClear = 0; }
     }
     if (pipSubj && pipSubj.key === filming) pipSubj = null;
   }
@@ -1052,14 +1054,37 @@ function renderPip(dt: number, air: boolean) {
   el.hidden = pipFade < 0.02;
   if (pipFade < 0.02 || !pipSubj) return;
   const p = pipSubj.pos(); if (!p) return;
-  pipT += dt; pipAng += dt * 0.12;
+  pipT += dt; pipAng += dt * 0.05;
   $('pipText').textContent = `${pipSubj.label} — ${pipSubj.status()}`;
-  // a viewpoint off to the side, a little above, closing in over the first seconds
-  const dist = clamp(pipSubj.size * 2.2 + 2.5, 4, 14) * (1.3 - 0.3 * Math.min(1, pipT / 4));
-  _t.set(p.x + Math.cos(pipAng) * dist, Math.min(p.y + 1.2, -0.7), p.z + Math.sin(pipAng) * dist);
-  if (!cur.loc.pelagic) _t.y = Math.max(_t.y, cur.T.ground(_t.x, _t.z) + 1);
-  if (pipT < dt * 1.5) pipCam.position.copy(_t); else pipCam.position.lerp(_t, Math.min(1, dt * 2));
-  pipCam.lookAt(p.x, p.y, p.z); pipCam.updateMatrixWorld();
+  // stay close on the hunter: from behind and to one side of it, looking past it toward its prey,
+  // so the chase reads (and once the two are close, pull back a little to hold both)
+  const q = pipSubj.target?.(), R = pipSubj.frameR?.() ?? pipSubj.size * 0.5;
+  let sep = 0;
+  _pa.set(p.x, p.y, p.z);
+  if (q) { sep = Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z); if (sep < 6) _pa.lerp(_pb.set(q.x, q.y, q.z), 0.35 * (1 - sep / 6) + 0.1); }
+  if (q && sep > 0.3) pipAng += angDiff(Math.atan2(p.z - q.z, p.x - q.x) + 0.9, pipAng) * Math.min(1, dt * 0.8);
+  const dist = clamp(R * 1.6 + 1.5 + Math.min(sep, 6) * 0.3, 2.0, 10) * (1.25 - 0.25 * Math.min(1, pipT / 3));
+  // on the reef, swing round (or rise) until no rock or coral head stands between the camera and the hunt
+  if (!cur.loc.pelagic && (pipClear -= dt) < 0) {
+    pipClear = 0.4;
+    const clearAt = (a: number, lift: number) => {
+      const cx = _pa.x + Math.cos(a) * dist, cz = _pa.z + Math.sin(a) * dist, cy = Math.min(_pa.y + dist * (0.18 + lift), -0.5);
+      for (let i = 1; i <= 8; i++) { const f = i / 9; if (cur!.T.ground(cx + (_pa.x - cx) * f, cz + (_pa.z - cz) * f) > cy + (_pa.y - cy) * f - 0.25) return false; }
+      return cur!.T.ground(cx, cz) < cy - 0.5;
+    };
+    let found = false;
+    for (const lift of [pipLift, 0, 0.5, 1.0]) {
+      for (const da of [0, 0.7, -0.7, 1.4, -1.4, 2.2, -2.2, Math.PI]) if (clearAt(pipAng + pipOff + da, lift)) { pipOff += da; pipLift = lift; found = true; break; }
+      if (found) break;
+    }
+    if (!found) pipLift = 1.0;
+  }
+  const ang = pipAng + pipOff;
+  _t.set(_pa.x + Math.cos(ang) * dist, Math.min(_pa.y + dist * (0.18 + pipLift), -0.5), _pa.z + Math.sin(ang) * dist);
+  if (!cur.loc.pelagic) _t.y = Math.max(_t.y, cur.T.ground(_t.x, _t.z) + 0.8);
+  if (pipT < dt * 1.5) { pipCam.position.copy(_t); pipLook.copy(_pa); }
+  else { pipCam.position.lerp(_t, Math.min(1, dt * 2.5)); pipLook.lerp(_pa, Math.min(1, dt * 4)); }
+  pipCam.lookAt(pipLook); pipCam.updateMatrixWorld();
   // this camera's view of the sea: its own position for fog and light, the cells around it
   const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone();
   U.uCamPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
@@ -1070,7 +1095,7 @@ function renderPip(dt: number, air: boolean) {
   const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio(), H = innerHeight;
   const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
   if (w !== pipRect.w || h !== pipRect.h) { pipRect.w = w; pipRect.h = h; pipPost.setSize(Math.floor(w * dpr), Math.floor(h * dpr)); pipCam.aspect = w / h; pipCam.updateProjectionMatrix(); }
-  pipPost.setExposure(1.5 * (1 + 0.55 * nightLift));
+  pipPost.setExposure(1.9 * (1 + 0.55 * nightLift));   // a touch brighter than the main view: the action has to read small
   pipPost.whiteBalance(-pipCam.position.y, U.uAbs.value, U.uNight.value);
   renderer.setViewport(r.left, H - r.bottom, w, h); renderer.setScissor(r.left, H - r.bottom, w, h); renderer.setScissorTest(true);
   pipPost.render(renderer, oceanScene, pipCam);

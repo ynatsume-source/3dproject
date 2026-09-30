@@ -394,7 +394,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       const key = `${sp.id}:${gi}`, size = sp.size[1];
       if (isPredator && g.hunt) {
         const h = g.hunt;
-        out.push({ key: key + ':hunt', label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => `${h.prey.label}を狙っている`, live: () => g.hunt === h });
+        out.push({ key: key + ':hunt', label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => `${h.prey.label}を狙っている`, live: () => g.hunt === h, target: () => h.prey, frameR: () => Math.max(0.4, fs[g.start] * 1.28) });
       } else if (g.type === 'roam' && sp.big) {
         const st = g.cr ? () => (g.cr!.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr!.mode === 'leave' ? '洞窟から出ていく' : g.cr!.mode === 'in' ? '洞窟へ入っていく' : status()) : status;
         out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.c, status: st, live: () => g.placed });
