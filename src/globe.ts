@@ -102,7 +102,7 @@ globeScene.add(halo);
 }
 
 interface Tween { t0: number; dur: number; lat0: number; lat1: number; lon0: number; dlon: number; d0: number; d1: number; done: () => void }
-export const gv = { lat: 12, lon: 116, dist: 3.5, vlat: 0, vlon: 0, lastUser: -1e9, tween: null as Tween | null };
+export const gv = { lat: 12, lon: 116, dist: 3.5, vlat: 0, vlon: 0, dragging: false, lastUser: -1e9, tween: null as Tween | null };
 
 export function updateGlobe(dt: number, now: number, ms: number, reduceMotion: boolean) {
   if (gv.tween) {
@@ -110,8 +110,8 @@ export function updateGlobe(dt: number, now: number, ms: number, reduceMotion: b
     gv.lat = tw.lat0 + (tw.lat1 - tw.lat0) * e; gv.lon = tw.lon0 + tw.dlon * e; gv.dist = tw.d0 + (tw.d1 - tw.d0) * e;
     if (k >= 1) { gv.tween = null; tw.done(); }
   } else {
-    gv.lon += gv.vlon * dt; gv.lat = clamp(gv.lat + gv.vlat * dt, -70, 70);
-    gv.vlon *= Math.exp(-dt * 3); gv.vlat *= Math.exp(-dt * 3);
+    if (!gv.dragging) { gv.lon += gv.vlon * dt; gv.lat = clamp(gv.lat + gv.vlat * dt, -70, 70); }   // (while held, the drag alone moves it)
+    gv.vlon *= Math.exp(-dt * 4.5); gv.vlat *= Math.exp(-dt * 4.5);
     if (now - gv.lastUser > 5000 && !reduceMotion) gv.lon += dt * 2.2;
   }
   {

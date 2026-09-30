@@ -969,9 +969,10 @@ addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 
 const pointers = new Map<number, { x: number; y: number }>();
-let pinch0 = 0;
+let pinch0 = 0, dragT = 0;
 canvas.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.setPointerCapture(e.pointerId);
+  if (mode === 'globe') { gv.dragging = true; gv.vlon = gv.vlat = 0; dragT = performance.now(); }   // a touch catches a spinning globe
   if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -983,18 +984,26 @@ canvas.addEventListener('pointermove', (e) => {
     if (busy) return;
     gv.lastUser = performance.now(); gv.tween = null;
     if (pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) gv.dist = clamp(gv.dist * pinch0 / d, 1.35, 4.5); pinch0 = d; return; }
-    const k = 0.18 * (gv.dist - 0.9);
+    // about as far as the surface under the finger moves (gentler zoomed in), and a fling that
+    // carries on at the speed of the last moments of the drag, not of a single jumpy event
+    const k = 0.1 * (gv.dist - 1.0), now = performance.now(), dtm = clamp((now - dragT) / 1000, 0.008, 0.1); dragT = now;
     gv.lon -= dx * k; gv.lat = clamp(gv.lat + dy * k, -70, 70);
-    gv.vlon = -dx * k * 30; gv.vlat = dy * k * 30;
+    const a = Math.min(1, dtm * 12);
+    gv.vlon += (-dx * k / dtm * 0.6 - gv.vlon) * a; gv.vlat += (dy * k / dtm * 0.6 - gv.vlat) * a;
   } else {
     touchInput();
     const k = isTouch ? 0.006 : 0.0035;
     drone.yaw -= dx * k; drone.pitch -= dy * k;
   }
 });
-const endP = (e: PointerEvent) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; };
+const endP = (e: PointerEvent) => {
+  pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0;
+  gv.dragging = pointers.size > 0;
+  if (performance.now() - dragT > 90) gv.vlon = gv.vlat = 0;   // held still before letting go: no fling
+  gv.vlon = clamp(gv.vlon, -120, 120); gv.vlat = clamp(gv.vlat, -60, 60);
+};
 canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercancel', endP);
-canvas.addEventListener('wheel', (e) => { if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + e.deltaY * 0.0012), 1.35, 4.5); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
