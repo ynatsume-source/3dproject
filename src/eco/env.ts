@@ -13,6 +13,14 @@ export interface PreyGroup {
   label: string;
   scare(): void;                         // make the whole group bolt
   take(): boolean;                       // remove one fish (a successful strike)
+  // one fish singled out by a hunter: which (the straggler nearest the hunter), where it is and how
+  // it is moving, telling it who is after it (so it bolts and jinks), whether it has got away into
+  // cover, and taking it
+  pick(x: number, y: number, z: number): number;
+  at(i: number, out: Where, vel?: Where): boolean;
+  chased(i: number, x: number, y: number, z: number): void;
+  safe(i: number): boolean;
+  kill(i: number): boolean;
 }
 
 export type Where = { x: number; y: number; z: number };

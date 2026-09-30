@@ -13,7 +13,7 @@ const _mm = new THREE.Matrix4(), _ss = new THREE.Vector3(), _a = new THREE.Vecto
 const CELL = 1.6;
 const hashCell = (x: number, y: number, z: number) => ((Math.floor(x / CELL) * 73856093) ^ (Math.floor(y / CELL) * 19349663) ^ (Math.floor(z / CELL) * 83492791)) | 0;
 
-interface Leader { c: THREE.Vector3; head: number; t: number; alt: number; placed: boolean; fear: number; prey: PreyGroup }
+interface Leader { c: THREE.Vector3; head: number; t: number; alt: number; placed: boolean; fear: number; prey: PreyGroup; ch?: { i: number; x: number; y: number; z: number; t: number; juke: number; jukeT: number } }
 
 export function makeShoalSystem(sp: Species, oc: any) {
   const S = sp.schools || 1, total = S * (sp.n || 100);
@@ -42,6 +42,30 @@ export function makeShoalSystem(sp: Species, oc: any) {
         for (let k = 0; k < 20; k++) { const i = s + S * Math.floor(R() * (active / S)); if (i < active && !dead[i]) { dead[i] = L.t || 1e-3; return true; } }
         return false;
       },
+      pick(x, y, z) {
+        // a fish at the edge of the school on the hunter's side
+        let best = -1, bs = Infinity;
+        for (let k = 0; k < 40; k++) {
+          const i = s + S * Math.floor(R() * (active / S)); if (i >= active || dead[i]) continue;
+          const dp = Math.hypot(p[i * 3] - x, p[i * 3 + 1] - y, p[i * 3 + 2] - z), out = Math.hypot(p[i * 3] - L.c.x, p[i * 3 + 2] - L.c.z);
+          const sc = dp - out * 0.8;
+          if (sc < bs) { bs = sc; best = i; }
+        }
+        return best;
+      },
+      at(i, out, vel) {
+        if (i < 0 || i >= active || dead[i]) return false;
+        out.x = p[i * 3]; out.y = p[i * 3 + 1]; out.z = p[i * 3 + 2];
+        if (vel) { vel.x = v[i * 3]; vel.y = v[i * 3 + 1]; vel.z = v[i * 3 + 2]; }
+        return true;
+      },
+      chased(i, x, y, z) {
+        if (!L.ch || L.ch.i !== i) L.ch = { i, x, y, z, t: L.t, juke: R() < 0.5 ? 1 : -1, jukeT: rr(0.3, 0.7) };
+        L.ch.x = x; L.ch.y = y; L.ch.z = z; L.ch.t = L.t; L.fear = 1;
+      },
+      // back in the thick of the school: lost among the others
+      safe(i) { return !dead[i] && Math.hypot(p[i * 3] - L.c.x, p[i * 3 + 1] - L.c.y, p[i * 3 + 2] - L.c.z) < 0.9; },
+      kill(i) { if (i < 0 || i >= active || dead[i]) return false; dead[i] = L.t || 1e-3; if (L.ch?.i === i) L.ch = undefined; return true; },
     };
     leaders.push(L);
   }
@@ -139,8 +163,20 @@ export function makeShoalSystem(sp: Species, oc: any) {
       _a.set(px - cam.x, py - cam.y, pz - cam.z);
       const cd = _a.length();
       if (cd < 4.2) { const k = (4.2 - cd) * 3.0 / Math.max(cd, 0.1); fx2 += _a.x * k; fy2 += _a.y * k; fz2 += _a.z * k; }
+      const ch = L.ch && L.ch.i === i && L.t - L.ch.t < 0.3 ? L.ch : null;
+      if (ch) {
+        // singled out: bolt away and jink, then dive back into the thick of the school
+        const ax = px - ch.x, ay = py - ch.y, az = pz - ch.z, ad = Math.hypot(ax, ay, az) || 1;
+        if ((ch.jukeT -= dt) < 0) { ch.juke = -ch.juke; ch.jukeT = rr(0.25, 0.6) * (ad < 2.5 ? 1 : 2); }
+        const jang = ch.juke * (ad < 2.5 ? 1.25 : 0.45), cj = Math.cos(jang), sj = Math.sin(jang), hx = ax / ad, hz = az / ad;
+        const bolt = sp.speed * 2.6;
+        const wx = (hx * cj - hz * sj) * bolt + (L.c.x - px) * 0.5, wz = (hx * sj + hz * cj) * bolt + (L.c.z - pz) * 0.5, wy = (ay / ad) * bolt * 0.3 + (L.c.y - py) * 0.5;
+        const kk = 1 - Math.exp(-dt * 9);
+        v[i * 3] += (wx - v[i * 3]) * kk; v[i * 3 + 1] += (wy - v[i * 3 + 1]) * kk; v[i * 3 + 2] += (wz - v[i * 3 + 2]) * kk;
+        fx2 = fy2 = fz2 = 0;
+      }
       // flash away from predators
-      for (const th of env.threats) {
+      if (!ch) for (const th of env.threats) {
         if (!th.r) continue;
         const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.hypot(ddx, ddy, ddz), r = th.r + 2;
         if (dd < r) { const k = (r - dd) * 4 / Math.max(dd, 0.1); fx2 += ddx * k; fy2 += ddy * k; fz2 += ddz * k; L.fear = 1; }
@@ -150,7 +186,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       if (py < fh + 1) fy2 += (fh + 1 - py) * 3;
       if (py > -1.2) fy2 -= (py + 1.2) * 3;
       let vx = v[i * 3] + fx2 * dt, vy = v[i * 3 + 1] + fy2 * dt, vz = v[i * 3 + 2] + fz2 * dt;
-      const sp2 = Math.hypot(vx, vy, vz), maxS = sp.speed * (1.6 + L.fear * 1.8), minS = 0.35 + 0.4 * target;
+      const sp2 = Math.hypot(vx, vy, vz), maxS = sp.speed * (ch ? 2.8 : 1.6 + L.fear * 1.8), minS = 0.35 + 0.4 * target;
       const k = sp2 > maxS ? maxS / sp2 : sp2 < minS ? minS / Math.max(sp2, 1e-3) : 1;
       vx *= k; vy *= k * 0.7; vz *= k;
       v[i * 3] = vx; v[i * 3 + 1] = vy; v[i * 3 + 2] = vz;
