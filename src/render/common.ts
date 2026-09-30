@@ -53,7 +53,7 @@ vec2 caveLight(vec3 wp){
   vec2 d = wp.xz - uCaveXf.xy;
   vec3 f = (vec3(d.x * uCaveXf.z + d.y * uCaveXf.w, wp.y, -d.x * uCaveXf.w + d.y * uCaveXf.z) - uCaveMin) / uCaveExt;
   if (min(f.x, min(f.y, f.z)) < 0.0 || max(f.x, max(f.y, f.z)) > 1.0) return vec2(1.0);
-  return texture(uCaveTex, (f * (uCaveN - 1.0) + 0.5) / uCaveN).rg;
+  return textureLod(uCaveTex, (f * (uCaveN - 1.0) + 0.5) / uCaveN, 0.0).rg;   // (an explicit level: Direct3D will not take implicit gradients in the loops and branches this is called from)
 }
 `;
 

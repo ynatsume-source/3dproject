@@ -111,25 +111,57 @@ export function robotKit(M: Mats, shadows = false) {
     } };
   }
 
-  // 3. ラッコ: sleek, sitting up on its haunches; nimble front paws working a stone, a propeller tail
+  // 3. ラッコ: a sea otter in white shell — one smooth, continuous body (turned on a lathe, not built of
+  // capsules), a round head with a pale muzzle, whiskers of light and glowing eyes, small
+  // paws that work a stone, webbed hind feet, and a flat tail ending in a ducted propeller
   function makeOtter(): Robot {
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-    const torso = cap(0.16, 0.34, M.shell); torso.position.set(0, 0.42, 0); torso.rotation.x = -0.35; body.add(torso);
-    const chest = cap(0.12, 0.18, M.accent); chest.position.set(0, 0.47, 0.09); chest.rotation.x = -0.35; chest.scale.set(1, 1, 0.6); body.add(chest);
-    const head = new THREE.Group(); head.position.set(0, 0.78, 0.12); body.add(head);
-    head.add(ball(0.15, M.shell));
-    const visor = new THREE.Mesh(new THREE.SphereGeometry(0.152, 32, 12, -0.9, 1.8, 1.2, 0.55), M.dark); head.add(visor);
-    const eyes = [-1, 1].map((sx) => { const e = new THREE.Mesh(new THREE.CircleGeometry(0.018, 16), M.glow); e.position.set(sx * 0.05, 0.02, 0.15); e.lookAt(e.position.clone().multiplyScalar(2)); head.add(e); return e; });
-    for (const sx of [-1, 1]) { const ear = cyl(0.035, 0.035, 0.02, M.joint); ear.rotation.z = Math.PI / 2; ear.position.set(sx * 0.14, 0.07, -0.01); head.add(ear); }
-    const nose = ball(0.02, M.joint); nose.position.set(0, -0.03, 0.15); head.add(nose);
-    const arms = [-1, 1].map((sx) => { const a = limb(0.2, 0.035, M.shell); a.pivot.position.set(sx * 0.12, 0.62, 0.1); body.add(a.pivot); const paw = ball(0.04, M.joint); a.end.add(paw); return { a, sx }; });
-    const stone = ball(0.055, M.stone); stone.scale.set(1.2, 0.8, 1); body.add(stone);
-    const feet = [-1, 1].map((sx) => { const leg = cap(0.05, 0.12, M.joint); leg.rotation.x = Math.PI / 2; leg.position.set(sx * 0.12, 0.08, 0.14); body.add(leg);
-      const foot = box(0.1, 0.03, 0.14, 0.015, M.teal); foot.position.set(sx * 0.12, 0.03, 0.24); body.add(foot); return foot; });
-    const tail = new THREE.Group(); tail.position.set(0, 0.16, -0.18); body.add(tail);
-    const tl = cap(0.06, 0.3, M.shell); tl.rotation.x = Math.PI / 2 + 0.25; tl.position.z = -0.18; tail.add(tl);
-    const hub = new THREE.Group(); hub.position.set(0, -0.08, -0.38); tail.add(hub);
-    for (let k = 0; k < 3; k++) { const bl = box(0.03, 0.12, 0.01, 0.005, M.accent); bl.position.y = 0.06; const arm = new THREE.Group(); arm.rotation.z = k * Math.PI * 2 / 3; arm.add(bl); hub.add(arm); }
+    const smooth = (g: THREE.BufferGeometry, m: THREE.Material) => own(new THREE.Mesh(g, m));
+    const lathe = (pts: number[][], seg = 48) => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg);
+    const ell = (rx: number, ry: number, rz: number, m: THREE.Material) => { const o = smooth(new THREE.SphereGeometry(1, 40, 28), m); o.scale.set(rx, ry, rz); return o; };
+    // the body, sitting up: broad at the hips, a full chest, narrowing into the neck
+    const trunk = new THREE.Group(); trunk.position.set(0, 0.06, 0); trunk.rotation.x = -0.28; body.add(trunk);
+    const torso = smooth(lathe([[0.001, 0], [0.09, 0.012], [0.15, 0.06], [0.185, 0.15], [0.192, 0.26], [0.178, 0.38], [0.15, 0.48], [0.118, 0.56], [0.1, 0.62], [0.098, 0.66], [0.001, 0.68]]), M.shell);
+    torso.scale.set(1, 1, 0.88); trunk.add(torso);
+    const belly = ell(0.11, 0.17, 0.065, M.accent); belly.position.set(0, 0.34, 0.13); trunk.add(belly);
+    for (const y of [0.2, 0.47]) { const seam = smooth(new THREE.TorusGeometry(1, 0.012, 8, 48), M.joint); seam.rotation.x = Math.PI / 2; const r = y < 0.3 ? 0.187 : 0.157; seam.scale.set(r, r * 0.88, 1); seam.position.y = y; trunk.add(seam); }
+    const collar = smooth(new THREE.TorusGeometry(0.1, 0.018, 10, 40), M.teal); collar.rotation.x = Math.PI / 2; collar.position.y = 0.63; trunk.add(collar);
+    // head
+    const head = new THREE.Group(); head.position.set(0, 0.78, 0.14); body.add(head);
+    const skull = ell(0.155, 0.14, 0.15, M.shell); head.add(skull);
+    const muzzle = ell(0.078, 0.055, 0.07, M.accent); muzzle.position.set(0, -0.045, 0.115); head.add(muzzle);
+    const nose = ell(0.026, 0.018, 0.018, M.dark); nose.position.set(0, -0.02, 0.183); head.add(nose);
+    const eyes = [-1, 1].map((sx) => { const e = new THREE.Mesh(new THREE.CircleGeometry(0.02, 24), M.glow); e.position.set(sx * 0.055, 0.03, 0.152); e.lookAt(e.position.clone().multiplyScalar(2)); head.add(e); return e; });
+    for (const sx of [-1, 1]) {
+      const ear = ell(0.034, 0.03, 0.02, M.shell); ear.position.set(sx * 0.125, 0.085, -0.02); head.add(ear);
+      const earIn = ell(0.018, 0.016, 0.01, M.joint); earIn.position.set(sx * 0.125, 0.085, -0.004); head.add(earIn);
+      for (let w = 0; w < 3; w++) {   // whiskers of light
+        const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0012, 0.11, 4), M.glow);
+        wh.rotation.set(0, 0, sx * (1.35 + (w - 1) * 0.16)); wh.position.set(sx * 0.1, -0.045 + (w - 1) * 0.012, 0.13); head.add(wh);
+      }
+    }
+    // arms and paws
+    const arms = [-1, 1].map((sx) => {
+      const a = new THREE.Group(); a.position.set(sx * 0.13, 0.62, 0.1); body.add(a);
+      const sh = ell(0.046, 0.046, 0.046, M.shell); a.add(sh);
+      const fore = smooth(lathe([[0.001, 0], [0.034, -0.01], [0.04, -0.06], [0.034, -0.15], [0.03, -0.19], [0.001, -0.2]], 24), M.shell); a.add(fore);
+      const paw = ell(0.04, 0.028, 0.036, M.teal); paw.position.y = -0.2; a.add(paw);
+      return { a, sx };
+    });
+    const stone = ell(0.066, 0.044, 0.055, M.stone); body.add(stone);
+    // hind feet: broad webbed flippers
+    const feet = [-1, 1].map((sx) => {
+      const leg = ell(0.06, 0.05, 0.09, M.shell); leg.position.set(sx * 0.13, 0.07, 0.1); body.add(leg);
+      const foot = ell(0.07, 0.016, 0.1, M.teal); foot.position.set(sx * 0.14, 0.02, 0.22); body.add(foot);
+      return foot;
+    });
+    // the tail: flat and tapering, with a small ducted propeller at its tip
+    const tail = new THREE.Group(); tail.position.set(0, 0.1, -0.16); body.add(tail);
+    const tl = ell(0.07, 0.03, 0.22, M.shell); tl.position.set(0, -0.02, -0.18); tl.rotation.x = 0.2; tail.add(tl);
+    const duct = smooth(new THREE.TorusGeometry(0.07, 0.014, 10, 36), M.accent); duct.position.set(0, -0.07, -0.42); tail.add(duct);
+    const hub = new THREE.Group(); hub.position.set(0, -0.07, -0.42); tail.add(hub);
+    hub.add(ell(0.018, 0.018, 0.03, M.joint));
+    for (let k = 0; k < 4; k++) { const bl = box(0.022, 0.06, 0.006, 0.003, M.teal); bl.position.y = 0.032; bl.rotation.y = 0.5; const arm = new THREE.Group(); arm.rotation.z = k * Math.PI / 2; arm.add(bl); hub.add(arm); }
     let backK = 0, sleepK = 0;
     return { root, update(t, dt, p = DEMO) {
       // on its back in the water (floating, cracking shells on its chest, napping), or sitting up ashore
@@ -137,12 +169,12 @@ export function robotKit(M: Mats, shadows = false) {
       backK += (onBack - backK) * Math.min(1, dt * 1.5);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 1.5);
       const tap = Math.max(0, Math.sin(t * 5)) ** 3, work = p.act === 'demo' ? (Math.sin(t * 0.3) > -0.2 ? 1 : 0) : p.act === 'work' ? 1 : 0;
-      arms.forEach((ar) => { ar.a.pivot.rotation.set(-1.1 - tap * 0.4 * work + sleepK * 0.9, 0, ar.sx * (-0.35 - sleepK * 0.2)); });
+      arms.forEach((ar) => { ar.a.rotation.set(-1.15 - tap * 0.4 * work + sleepK * 0.9, 0, ar.sx * (-0.4 - sleepK * 0.25)); });
       stone.visible = work > 0 || p.act === 'demo';
-      stone.position.set(0, 0.45 + tap * 0.05 * work, 0.3);
-      head.rotation.set(0.25 * work + Math.sin(t * 0.6) * 0.05 + backK * -0.5, Math.sin(t * 0.35) * 0.5 * (1 - work) * (1 - sleepK), 0);
+      stone.position.set(0, 0.47 + tap * 0.05 * work, 0.3);
+      head.rotation.set(0.25 * work + Math.sin(t * 0.6) * 0.05 + backK * -0.5, Math.sin(t * 0.35) * 0.5 * (1 - work) * (1 - sleepK), Math.sin(t * 0.45) * 0.06);
       const walk = p.act === 'demo' ? 0 : p.walk;
-      body.rotation.set(-backK * 1.35, 0, Math.sin(t * 5) * 0.12 * walk);
+      body.rotation.set(-backK * 1.35, 0, Math.sin(t * 5) * 0.1 * walk);
       body.position.set(0, Math.sin(t * 1.4) * 0.006 + Math.abs(Math.sin(t * 5)) * 0.03 * walk - backK * 0.3, backK * 0.35);
       feet.forEach((f, i) => { f.rotation.x = backK * Math.sin(t * 2 + i * Math.PI) * 0.4; });
       hub.rotation.z += dt * (p.act === 'swim' ? 26 : p.act === 'demo' ? 18 : 2);

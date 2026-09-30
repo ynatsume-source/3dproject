@@ -1357,6 +1357,12 @@ if (location.search.includes('diag')) {
   console.warn = (...a: any[]) => { errs.push('W ' + a.map(String).join(' ').slice(0, 200)); cwarn(...a); };
   addEventListener('error', (e) => errs.push('X ' + e.message));
   const gl = renderer.getContext() as WebGL2RenderingContext;
+  // a shader that fails: its own logs, and enough of its source to tell which one it is
+  renderer.debug.onShaderError = (g: WebGLRenderingContext, prog: WebGLProgram, vs: WebGLShader, fs: WebGLShader) => {
+    const src = g.getShaderSource(fs) || '', own = [...new Set((src.match(/uniform\s+\w+\s+(?:\w+\s+)?(\w+)/g) || []).map((u) => u.split(/\s+/).pop()))].filter((u) => !(u! in U)).slice(0, 8);
+    const logs = [g.getShaderInfoLog(vs), g.getShaderInfoLog(fs), g.getProgramInfoLog(prog)].map((l) => (l || '').trim()).filter(Boolean).join(' | ').slice(0, 300);
+    errs.push(`S link=${g.getProgramParameter(prog, g.LINK_STATUS)} vs=${g.getShaderParameter(vs, g.COMPILE_STATUS)} fs=${g.getShaderParameter(fs, g.COMPILE_STATUS)} len=${src.length} own=[${own.join(',')}] ${logs}`);
+  };
   let name = '?', vendor = '?';
   try { const x = gl.getExtension('WEBGL_debug_renderer_info'); name = String(gl.getParameter(x ? x.UNMASKED_RENDERER_WEBGL : gl.RENDERER)); vendor = String(gl.getParameter(x ? x.UNMASKED_VENDOR_WEBGL : gl.VENDOR)); } catch (e) { /* hidden */ }
   const ex = (n: string) => (renderer.extensions.has(n) ? 'yes' : 'NO');

@@ -25,7 +25,8 @@ function rmat(hex: number, spec = 0.5, grid = false) {
        if (uGrid > 0.5) { vec2 g = fract(vUv * vec2(10.0, 6.0)); alb = mix(vec3(0.05, 0.08, 0.17), vec3(0.72, 0.75, 0.8), max(step(0.9, g.x), step(0.88, g.y))); }
        vec3 col;
        if (vWp.y > 0.0) {
-         col = airLit(alb, n, vWp, 0.0);
+         col = airLit(alb, n, vWp, 0.35);   // (light wraps a little round the curves)
+         col += alb * sunAirCol() * max(uAirSun.y, 0.0) * (0.5 - 0.5 * n.y) * 0.3;   // warm light thrown back up by the sand
          vec3 H = normalize(uAirSun + V);
          col += sunAirCol() * pow(max(dot(n, H), 0.0), 70.0) * uSpec * 1.4 * (1.0 - 0.7 * uCloud);   // a glint of sun on the shell
          col += skyAir(reflect(-V, n), -1.0) * pow(1.0 - max(dot(n, V), 0.0), 4.0) * uSpec * 0.6;

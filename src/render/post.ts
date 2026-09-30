@@ -117,12 +117,12 @@ export class Post {
           float t = dist * pow(s0, 1.6);
           float stepLen = dist * (pow(s1, 1.6) - pow(s0, 1.6));
           vec3 p = uCamPos + dir * t;
-          if (p.y > -0.05) continue;
+          float wet = step(p.y, -0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
           vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
           float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 1.6) + 0.12 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
           vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
-          acc += light * down * back * stepLen * caveLight(p).x;   // rock shadows the water behind it; skylights let beams through
+          acc += light * down * back * stepLen * caveLight(p).x * wet;   // rock shadows the water behind it; skylights let beams through
         }
         float mu = dot(dir, uSunDir);
         float g = 0.72;
