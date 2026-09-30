@@ -28,7 +28,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop, vol, setVolume } from './audio';
 import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -1056,7 +1056,7 @@ async function toGlobe() {
   await wait(750);
   mode = 'globe';
   document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
-  setGuide(false); setTimePanel(false);
+  setGuide(false); setTimePanel(false); setVolPanel(false);
   gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
   resize();
@@ -1133,6 +1133,20 @@ function toggleMusic() {
   try { localStorage.setItem('seaglass.music', audio.music ? '1' : '0'); } catch (e) { /* ignore */ }
 }
 try { if (localStorage.getItem('seaglass.music') === '0') { setMusic(false); $('btnMusic').setAttribute('aria-pressed', 'false'); } } catch (e) { /* ignore */ }
+// volume: three sliders, kept in this browser
+try { const v = JSON.parse(localStorage.getItem('seaglass.vol') || 'null'); if (v) setVolume(v); } catch (e) { /* ignore */ }
+for (const [id, k] of [['volAll', 'all'], ['volMusic', 'music'], ['volNature', 'nature']] as const) {
+  const el = $(id) as HTMLInputElement, out = $(id + 'O');
+  el.value = String(Math.round(vol[k] * 100)); out.textContent = el.value;
+  el.oninput = () => {
+    setVolume({ [k]: +el.value / 100 }); out.textContent = el.value;
+    if (!audio.on && +el.value > 0) setSound(true);   // turning it up means wanting to hear it
+    if (k === 'music' && !audio.music && +el.value > 0) toggleMusic();
+    try { localStorage.setItem('seaglass.vol', JSON.stringify(vol)); } catch (e) { /* ignore */ }
+  };
+}
+function setVolPanel(on: boolean) { $('volPanel').hidden = !on; $('btnVol').setAttribute('aria-expanded', String(on)); }
+$('btnVol').onclick = () => setVolPanel($('volPanel').hidden);
 function setHud(on: boolean) { hudOn = on; document.body.classList.toggle('hud-off', !on); }
 function openPanel(tab: 'guide' | 'log') {
   if (!guideEl.hidden && panelTab === tab) { setGuide(false); return; }

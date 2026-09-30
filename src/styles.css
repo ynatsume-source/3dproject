@@ -308,3 +308,12 @@ body.mode-globe #hoverTag, body.mode-globe #tapRing { display: none; }
 #brand #btnBack:hover, #brand #btnBack:focus-visible { background: rgba(10, 30, 40, .7); border-color: var(--accent); color: var(--accent); }
 
 .name .kana { font-family: var(--f-body); font-weight: 400; font-size: .62em; letter-spacing: .3em; color: var(--ink-dim); }
+
+#volPanel { right: 16px; bottom: calc(118px + env(safe-area-inset-bottom, 0px)); width: min(300px, calc(100vw - 32px)); pointer-events: auto;
+  background: rgba(4, 22, 30, 0.82); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 12px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+#volPanel label { display: grid; grid-template-columns: 4.5em 1fr 2.4em; align-items: center; gap: 10px; font-size: 12.5px; letter-spacing: .06em; color: var(--ink); }
+#volPanel input { width: 100%; accent-color: var(--accent); }
+#volPanel output { font: 400 11px/1 var(--f-mono); color: var(--ink-dim); text-align: right; }
+#btnVol[aria-expanded="true"] { background: var(--glass-hi); color: var(--ink); }
+@media (max-width: 760px) { #volPanel { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(160px + env(safe-area-inset-bottom, 0px)); } }

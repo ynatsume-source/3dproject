@@ -10,6 +10,9 @@ let ac: AudioContext | null = null;
 let master: GainNode, natureBus: GainNode, musicBus: GainNode, reverb: ConvolverNode, crackleGain: GainNode, motion: GainNode, bedGain: GainNode;
 const timers: Record<string, number> = {};
 export const audio = { on: false, music: true, night: 0, twilight: 0, phase: 'noon', sea: '' };
+// the listener's own levels, 0..1: everything, the music, and the sounds of the sea
+export const vol = { all: 0.8, music: 0.8, nature: 0.8 };
+const curve = (v: number) => v * v * 1.5625;   // (the ear hears level roughly on a square law; 0.8 plays as before)
 
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
@@ -64,12 +67,12 @@ function build() {
   const wet = ac.createGain(); wet.gain.value = 0.55;
   reverb.connect(wet).connect(master);
 
-  musicBus = ac.createGain(); musicBus.gain.value = audio.music ? 1 : 0;
+  musicBus = ac.createGain(); musicBus.gain.value = audio.music ? curve(vol.music) : 0;
   const musicDry = ac.createGain(); musicDry.gain.value = 0.35;
   musicBus.connect(musicDry).connect(master);
   musicBus.connect(reverb);
 
-  natureBus = ac.createGain(); natureBus.gain.value = 1;
+  natureBus = ac.createGain(); natureBus.gain.value = curve(vol.nature);
   natureBus.connect(master);
   const natureSend = ac.createGain(); natureSend.gain.value = 0.25;
   natureBus.connect(natureSend).connect(reverb);
@@ -106,7 +109,7 @@ export function startAudio(): boolean {
   audio.on = true;
   ac!.resume();
   master.gain.cancelScheduledValues(ac!.currentTime);
-  master.gain.setTargetAtTime(0.85, ac!.currentTime, 1.5);
+  master.gain.setTargetAtTime(0.85 * curve(vol.all), ac!.currentTime, 1.5);
   loadPiano();
   loopBubbles(); loopPhrase(); loopPad();   // (no snapping-shrimp crackle: its hard clicks sat on top of the music)
   return true;
@@ -121,7 +124,15 @@ export function stopAudio() {
 }
 export function setMusic(on: boolean) {
   audio.music = on;
-  if (ac) musicBus.gain.setTargetAtTime(on ? 1 : 0, ac.currentTime, 1.2);
+  if (ac) musicBus.gain.setTargetAtTime(on ? curve(vol.music) : 0, ac.currentTime, 1.2);
+}
+export function setVolume(v: Partial<typeof vol>) {
+  Object.assign(vol, v);
+  if (!ac) return;
+  const t = ac.currentTime;
+  if (audio.on) master.gain.setTargetAtTime(0.85 * curve(vol.all), t, 0.08);
+  musicBus.gain.setTargetAtTime(audio.music ? curve(vol.music) : 0, t, 0.08);
+  natureBus.gain.setTargetAtTime(curve(vol.nature), t, 0.08);
 }
 export function setMood(o: { phase: string; night: number; twilight: number; sea: string }) {
   audio.phase = o.phase; audio.night = o.night; audio.twilight = o.twilight; audio.sea = o.sea;

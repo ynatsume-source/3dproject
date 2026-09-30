@@ -62,6 +62,12 @@
   <p class="tp-note">実時間では、現地の太陽・月・潮の位置をそのまま再現します。季節を選ぶと、同じ時刻のままその季節の日付になり、日の長さ・水温・季節の生き物（冬のザトウクジラなど）が変わります。</p>
 </section>
 
+<section id="volPanel" class="hud" hidden aria-label="音量">
+  <label>全体<input type="range" id="volAll" min="0" max="100" step="1"><output id="volAllO"></output></label>
+  <label>音楽<input type="range" id="volMusic" min="0" max="100" step="1"><output id="volMusicO"></output></label>
+  <label>海の音<input type="range" id="volNature" min="0" max="100" step="1"><output id="volNatureO"></output></label>
+</section>
+
 <div id="joy" class="hud" hidden><i id="knob"></i></div>
 <div id="vbtns" class="hud" hidden>
   <button id="btnUp" type="button">上昇</button>
@@ -91,6 +97,7 @@
     <button id="btnLamp" type="button" aria-pressed="false"><span class="dot"></span>ライト <kbd>L</kbd></button>
     <button id="btnSound" type="button" aria-pressed="false"><span class="dot"></span>サウンド <kbd>M</kbd></button>
     <button id="btnMusic" type="button" aria-pressed="true"><span class="dot"></span>音楽 <kbd>N</kbd></button>
+    <button id="btnVol" type="button" aria-expanded="false" aria-label="音量">音量</button>
     <button id="btnQuality" type="button">画質 高</button>
     <button id="btnHud" type="button">HUD <kbd>H</kbd></button>
     <button id="btnPip" type="button" aria-pressed="true" title="近くで狩りが起きると、小さな窓で映します"><span class="dot"></span>狩りの小窓</button>
