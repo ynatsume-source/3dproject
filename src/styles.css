@@ -271,3 +271,24 @@ body.mode-globe #pip { display: none; }
 #minimap .cr { position: absolute; right: 6px; bottom: 4px; font-size: 8px; color: rgba(230, 245, 245, 0.7); text-shadow: 0 1px 2px #000; }
 body.mode-globe #minimap, body.idle #minimap, body.hud-off #minimap { opacity: 0; pointer-events: none; }
 @media (max-width: 700px) { #minimap { width: 118px; height: 118px; } }
+
+/* ================= the island's residents ================= */
+#bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
+.bubble { position: absolute; left: 0; top: 0; max-width: min(64vw, 300px); padding: 7px 11px 8px; border-radius: 12px; background: rgba(250, 252, 250, 0.93); color: #14262c;
+  font-size: 12.5px; line-height: 1.55; box-shadow: 0 4px 18px rgba(0, 20, 30, 0.25); border-top: 3px solid var(--c); opacity: 0; transition: opacity .35s; }
+.bubble b { display: block; font-size: 10px; letter-spacing: .12em; color: #5a6b70; margin-bottom: 1px; }
+.bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(250, 252, 250, 0.93); }
+body.mode-globe #bubbles, body.hud-off #bubbles { display: none; }
+#guide li.res i { border: 0; box-shadow: 0 0 6px rgba(255, 255, 255, 0.3); }
+#guide li.res b { color: var(--ink); }
+#guide li .work { color: var(--accent); font-size: 11px; }
+#guide .rels { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 0; font-size: 10.5px; color: var(--ink-dim); }
+#guide .rel i { display: inline-block; width: 6px; height: 6px; margin: 0 4px 1px 0; border-radius: 50%; }
+#guide .rel.s5 { color: #ffd6a0; } #guide .rel.s4 { color: var(--accent); }
+#guide ol.diary { grid-column: 2; list-style: none; margin: 4px 0 2px; padding: 0 0 0 8px; border-left: 1px solid var(--line); font-size: 11px; line-height: 1.6; color: var(--ink-dim); }
+#guide ol.diary time { font: 400 10px var(--f-mono); color: var(--ink-faint); margin-right: 6px; }
+#guide ol.diary.talk { padding-left: 10px; }
+#guide .lead { font-size: 11.5px; line-height: 1.7; color: var(--ink-dim); margin: 0 0 10px; }
+#guide .aikey { display: flex; gap: 8px; align-items: center; font-size: 11px; color: var(--ink-dim); }
+#guide .aikey input { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.25); color: var(--ink); font: 12px var(--f-mono); }
+#guide .aikey button { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--line); background: rgba(95, 224, 200, 0.12); color: var(--ink); cursor: pointer; }

@@ -24,6 +24,8 @@ import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
 import { Post, setRTSupport } from './render/post';
 import { loadLand } from './ocean/land';
+import { STAGES } from './robots/voices';
+import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
@@ -132,13 +134,15 @@ function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
 }
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
-  const shot = drone.mode === 'auto' && !drone.sky ? director.update(dt, drone.pos, () => cur!.eco.subjects(), cur!.T.top) : null;
+  // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
+  const R = cur!.residents, film = drone.mode === 'auto' && (!drone.sky || !!R);
+  const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9)) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
   if (shot) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     _v.subVectors(way, drone.pos);
-    const L = _v.length(), top = shot.phase === 'approach' ? (shot.forced ? Math.min(7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far: travel faster
+    const L = _v.length(), top = shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
     const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
@@ -156,7 +160,7 @@ function updateDrone(dt: number, now: number) {
       ? 1.2 + 14 * Math.pow(0.5 + 0.5 * Math.sin(st * 0.013), 3)             // out in the open ocean: drifting low on the swell
       : (6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim)) * persona.skyAlt + 1.6 * skim;
     _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
-    if (cur!.loc.land) _t.set(_t.x * 1.25 + 45, _t.y, _t.z * 1.25 - 60);   // by an island, take in the island too
+    if (cur!.loc.land) { const [cx, cz] = cur!.loc.land.center; _t.set(cx + _t.x * 3.2, _t.y, cz + _t.z * 3.2); }   // by an island: round the whole island
     if (cur!.loc.land) _t.y = Math.max(_t.y, cur!.T.ground(_t.x, _t.z) + 9, cur!.T.ground(drone.pos.x, drone.pos.z) + 7);   // over the island: clear of the trees
     // a bait ball nearby: wheel over it with the birds
     const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && Math.hypot(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
@@ -258,7 +262,8 @@ function updateDrone(dt: number, now: number) {
   }
   // the surface: the drone punches through it rather than hovering in it
   const wasUp = drone.pos.y - drone.vel.y * dt > 0.2;
-  const mayRise = drone.mode === 'manual' || drone.sky, mayDive = drone.mode === 'manual' || !drone.sky;
+  const upShot = !!shot && shot.pos.y > 0.3;   // filming something ashore: out of the water and back
+  const mayRise = drone.mode === 'manual' || drone.sky || upShot, mayDive = drone.mode === 'manual' || (!drone.sky && !upShot);
   if (!wasUp && drone.pos.y > -0.7) {
     if (mayRise && drone.vel.y > 0.25) { drone.pos.y = 0.5; crossSurface(true); }
     else { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
@@ -267,7 +272,8 @@ function updateDrone(dt: number, now: number) {
     else { drone.pos.y = 0.5; if (drone.vel.y < 0) drone.vel.y = 0; }
   }
   if (drone.pos.y > SKY_MAX) { drone.pos.y = SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
-  drone.pos.x = clamp(drone.pos.x, -LIMIT, LIMIT); drone.pos.z = clamp(drone.pos.z, -LIMIT, LIMIT);
+  const lim = cur!.loc.land ? cur!.loc.land.roam : LIMIT;   // (by an island, the whole island)
+  drone.pos.x = clamp(drone.pos.x, -lim, lim); drone.pos.z = clamp(drone.pos.z, -lim, lim);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
   drone.roll += (-yawRate * 0.18 - drone.roll) * Math.min(1, dt * 2);
@@ -436,7 +442,7 @@ let lastPhase = '';
 interface LogEntry { ms: number; kind: string; text: string }
 let dayLog: LogEntry[] = [], dayKey = '', logSaveT = 0;
 let saidRain = false;
-const LOG_KIND: Record<string, string> = { voice: 'ガイド', phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', rest: '休息', manta: '採餌' };
+const LOG_KIND: Record<string, string> = { robot: '住人', voice: 'ガイド', phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', rest: '休息', manta: '採餌' };
 function localDate(ms: number, tz: number) { const d = new Date(ms + tz * 3600000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
 function ensureDay() {
   const key = `seaglass.log.${cur!.loc.id}.${localDate(clock.ms, cur!.loc.tz)}`;
@@ -518,8 +524,14 @@ function focusOn(s: Subject) {
   director.focus(s, drone.pos);
   lastShot = null;
 }
+const allSubjects = () => (cur!.residents ? [...cur!.eco.subjects(), ...cur!.residents.subjects()] : cur!.eco.subjects());
 function goTo(id: string) {
   if (!cur) return;
+  if (id.startsWith('robot:') && cur.residents) {
+    const r = cur.residents.list.find((x: any) => 'robot:' + x.id === id);
+    if (r) { focusOn(r.subject); showToast('向かっています', `${r.v.name}のところへ`, cur.residents.status(r)); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } }
+    return;
+  }
   const oc = cur, cam = drone.pos, near = <T extends { pos: THREE.Vector3 }>(a: T[]) => a.reduce((b, c) => (c.pos.distanceTo(cam) < b.pos.distanceTo(cam) ? c : b));
   const loc = oc.loc, name = guideEntries(loc).find((e) => e.id === id)?.ja ?? (id === 'cave' ? '海底洞窟' : '');
   let s: Subject | null = null;
@@ -647,7 +659,7 @@ function statusOf(id: string): string {
   return '';
 }
 const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : [])];
-let panelTab: 'guide' | 'log' = 'guide';
+let panelTab: 'guide' | 'log' | 'island' = 'guide';
 function renderLog() {
   const loc = cur!.loc;
   ensureDay();
@@ -662,6 +674,29 @@ function renderLog() {
     <div class="sum">${chips}</div>
     ${rows ? `<ol class="log">${rows}</ol>` : '<p class="empty">まだ記録はありません。ドローンが出来事に出会うと、ここに時刻つきで残ります。</p>'}`;
 }
+// the island's residents: what each is doing, how they get on, their diaries and conversations
+function renderIsland() {
+  const R = cur!.residents!, loc = cur!.loc;
+  const t = (ms: number) => localTimeString(ms, loc.tz);
+  const cards = R.list.map((r: any) => {
+    const rel = R.list.filter((o: any) => o !== r).map((o: any) => { const b = R.bonds[[r.id, o.id].sort().join('|')]; return `<span class="rel s${b.stage}"><i style="background:${o.sp.color}"></i>${o.v.name}：${STAGES[b.stage]}</span>`; }).join('');
+    const diary = r.diary.slice(-3).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
+    const st = r.stats, work = r.id === 'dot' ? `小屋の部材 ${st.built}/24` : r.id === 'kame' ? `観察記録 ${st.notes}件` : r.id === 'lantern' ? `目印の石積み ${st.cairns}` : `集めた貝殻 ${st.shells}個・割った貝 ${st.cracked}個`;
+    return `<li class="res"><i style="background:${r.sp.color}"></i><b>${r.v.name}</b><em>${r.v.en}</em><span class="st">いま：${R.status(r)}・電池 ${Math.round(r.battery * 100)}%</span>
+      <p>${r.v.trait}</p><p class="work">${work}</p><div class="rels">${rel}</div>${diary ? `<ol class="diary">${diary}</ol>` : ''}
+      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button></li>`;
+  }).join('');
+  const talk = R.talks.slice(-12).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
+  const key = aiKey();
+  return `<h2>島の住人 <span>${loc.name}で暮らす4体</span></h2>
+    <p class="lead">それぞれが自分の暮らしを持ち、島のどこかで出会うと話をします。はじめは挨拶、次に自己紹介、島で生きるコツ、近況……打ち解けてくると悩みも打ち明けます。見ていないあいだも、暮らしは続いています。</p>
+    <ul>${cards}</ul>
+    <h3>聞こえてきた会話</h3>
+    ${talk ? `<ol class="diary talk">${talk}</ol>` : '<p class="empty">まだ誰も出会っていません。</p>'}
+    <h3>AIで言葉を書く（試作）</h3>
+    <p class="lead">Anthropic の API キーを入れると、出会ったときの会話を Claude が住人それぞれの性格で書きます。キーはこのブラウザの中にだけ保存されます。</p>
+    <div class="aikey">${key ? `<span>設定済み（…${key.slice(-4)}）${aiLastError ? `・エラー：${aiLastError}` : ''}</span><button type="button" data-ai="clear">外す</button>` : `<input id="aiKey" type="password" placeholder="sk-ant-..." autocomplete="off"><button type="button" data-ai="save">保存</button>`}</div>`;
+}
 function renderGuide() {
   if (!cur) return;
   const loc = cur.loc, list = guideEntries(loc);
@@ -670,9 +705,11 @@ function renderGuide() {
   $('btnGuide').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'guide'));
   $('btnLog').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'log'));
   if (guideEl.hidden) return;
-  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日の海 <kbd>J</kbd></button></div>`;
+  if (panelTab === 'island' && !cur.residents) panelTab = 'guide';
+  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日の海 <kbd>J</kbd></button>${cur.residents ? `<button type="button" role="tab" data-tab="island" aria-selected="${panelTab === 'island'}">島の住人</button>` : ''}</div>`;
   const scroll = guideEl.scrollTop;
   if (panelTab === 'log') { guideEl.innerHTML = tabs + renderLog(); guideEl.scrollTop = scroll; return; }
+  if (panelTab === 'island') { if (!guideEl.contains(document.activeElement) || !(document.activeElement instanceof HTMLInputElement)) { guideEl.innerHTML = tabs + renderIsland(); guideEl.scrollTop = scroll; } return; }
   const thumbs = guideThumbs(loc, list.map((e) => e.id));
   guideEl.innerHTML = tabs + `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
     <h3>行き先</h3>
@@ -689,7 +726,13 @@ guideEl.addEventListener('click', (e) => {
   const g = (e.target as HTMLElement).closest('[data-go]') as HTMLElement | null;
   if (g) { goTo(g.dataset.go!); return; }
   const b = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
-  if (b) { panelTab = b.dataset.tab as 'guide' | 'log'; guideEl.scrollTop = 0; renderGuide(); }
+  if (b) { panelTab = b.dataset.tab as 'guide' | 'log' | 'island'; guideEl.scrollTop = 0; renderGuide(); return; }
+  const ai = (e.target as HTMLElement).closest('[data-ai]') as HTMLElement | null;
+  if (ai) {
+    const inp = guideEl.querySelector('#aiKey') as HTMLInputElement | null;
+    setAiKey(ai.dataset.ai === 'save' && inp && inp.value.trim() ? inp.value.trim() : null);
+    (document.activeElement as HTMLElement | null)?.blur?.(); renderGuide();
+  }
 });
 let toastTimer = 0;
 function discover(e?: { id: string; ja: string; sci: string }) {
@@ -786,6 +829,8 @@ function applyWater(loc: Sea) {
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
+  if (oc.residents) oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
+  U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
   oc.eco.env.sound = { frenzy, plop };
   lastPhase = '';
@@ -842,7 +887,7 @@ async function dive(loc: Sea) {
   if (!oceans[loc.id]) {
     veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
     await wait(500); await nextFrame(); await nextFrame();
-    if (loc.land) await loadLand(loc.id, loc.land.half);   // real terrain: the survey data first
+    if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);   // real terrain: the survey data first
     oceans[loc.id] = buildOcean(loc);
     veil(false); await wait(300);
   }
@@ -1214,6 +1259,7 @@ function frame(ts: number) {
     }
     U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
+    cur.residents?.update(dt, clock.ms, drone.pos);
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
@@ -1261,6 +1307,7 @@ function frame(ts: number) {
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (TIERS[tier].post) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
+    cur.residents?.bubbles(camera, innerWidth, innerHeight);
     if (TIERS[tier].post) renderPip(dt, air);
     else {
       renderer.setRenderTarget(null); renderer.render(oceanScene, camera);
@@ -1270,7 +1317,7 @@ function frame(ts: number) {
     if ((mapTimer += dt) > 0.2 && hudOn) {
       mapTimer = 0;
       const bb = cur.bait?.st;
-      minimap.draw(cur.loc, drone.pos.x, drone.pos.z, Math.atan2(fwd.x, -fwd.z), bb && bb.active ? bb.c : null);
+      minimap.draw(cur.loc, drone.pos.x, drone.pos.z, Math.atan2(fwd.x, -fwd.z), bb && bb.active ? bb.c : null, cur.residents ? cur.residents.list.map((r: any) => ({ x: r.pos.x, z: r.pos.z, color: r.sp.color })) : []);
     }
     if ((sightTimer += dt) > 0.3) { sightTimer = 0; checkSightings(); }
     if (!hudOn && now - idleT > 3000) document.body.classList.add('idle');

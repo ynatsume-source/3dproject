@@ -32,6 +32,7 @@ export const U = {
   uAirSun: { value: new THREE.Vector3(0, 1, 0) }, uAirMoon: { value: new THREE.Vector3(0, -1, 0) }, uMoonIllum: { value: 0 },
   uStarM: { value: new THREE.Matrix3() }, uMilky: { value: milkyTex }, uAurora: { value: 0 },
   uBolt: { value: new THREE.Vector4(0, 0, -1, 0) },
+  uSeaWorld: { value: 260 },   // how far the modelled seabed reaches (beyond it, seen from the air, the reef drops into the blue)
   uVolOff: { value: 0 },   // 1 when the volumetric light pass is off (light tier): fogIt stands in for its glow
   uSwell: { value: 0.4 },
   uBoil: { value: new THREE.Vector4(0, 0, 1, 0) },   // a bait ball churning the surface: x, z, radius, strength  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
@@ -63,7 +64,7 @@ uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNi
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
-uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
+uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -123,7 +124,7 @@ vec3 hazeCol(vec3 dir){
 }
 
 // ---------- above the water ----------
-#define SEA_WORLD 260.0
+#define SEA_WORLD uSeaWorld
 float fbm2(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * vn2(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p; a *= 0.5; } return s; }
 // sunlight after the air it has crossed: white overhead, orange to red at the horizon, gone below it
 vec3 sunAirCol(){ float y = uAirSun.y; return mix(vec3(1.0, 0.36, 0.1), vec3(1.0, 0.96, 0.9), smoothstep(-0.02, 0.3, y)) * smoothstep(-0.06, 0.01, y); }

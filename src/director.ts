@@ -8,7 +8,7 @@ import type { Subject } from './eco/env';
 export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
-  hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45],
+  hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70],
 };
 
 const _p = new THREE.Vector3();
@@ -65,7 +65,7 @@ export class Director {
         if (d > (s.reach ?? 42)) continue;
         const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9);
         const kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
-        const score = s.prio * (1 - d / 60) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1) * this.weight(s);
+        const score = s.prio * (1 - d / Math.max(60, (s.reach ?? 42) * 1.25))   // (things worth crossing the island for fade more slowly with distance) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1) * this.weight(s);
         if (score > bs) { bs = score; best = s; }
       }
       if (!best || bs < 0.9) return null;
@@ -101,7 +101,8 @@ export class Director {
     const lift = Math.min(2.5, 0.4 + s.size * 0.35);
     this.ang += this.spin * dt * (sh.phase === 'observe' ? 1 : 0.3);
     const x = p.x + Math.cos(this.ang) * dist, z = p.z + Math.sin(this.ang) * dist;
-    const y = Math.min(Math.max(p.y + lift, floor(x, z) + 1.0), -0.9);
+    // (ashore or at the surface: from the air, at the height of someone standing by)
+    const y = p.y > -0.5 ? Math.max(p.y + lift + 0.6, floor(x, z) + 1.2, 0.8) : Math.min(Math.max(p.y + lift, floor(x, z) + 1.0), -0.9);
     sh.pos.set(x, y, z);
     sh.look.set(p.x, p.y, p.z);
     const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);

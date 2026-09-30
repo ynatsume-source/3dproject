@@ -17,6 +17,7 @@ import type { Sea } from '../data/locations';
 import { Cave } from './cave';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
+import { makeResidents } from '../robots/residents';
 
 /* ================= building a sea ================= */
 // Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
@@ -55,7 +56,8 @@ export function makeT(loc) {
     // the highest solid surface: terrain, a cave massif, or a rock or coral colony standing on it
     top: (x, z) => Math.max(T.h(x, z), T.obst ? T.obst.get(x, z) : -1e9),
     // what the drone stands off from outside the cave: the massif itself it avoids in 3D (cave.sd)
-    ground: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9),
+    ground: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9, T.over ? T.over(x, z) : -1e9),
+    over: null as null | ((x: number, z: number) => number),   // ashore: the treetops
     reef: (x, z) => { loc.f(x, z); return TERR.reef; },
     // enough water here (seas with land: the island and its beach are off limits to swimmers)
     wet: (x: number, z: number, need = 1.3) => loc.f(x, z) < -need,
@@ -171,6 +173,24 @@ export function buildOcean(loc) {
        gl_FragColor = vec4(col, 1.0);
      }`, { uniforms: { ...SURF_UNIFORMS, ...(land ? landUniforms(land) : {}) }, defines: land ? { LAND: 1 } : {} }));
   if (!loc.pelagic) group.add(floor);   // the open ocean has no bottom within sight
+  // an island larger than the modelled sea: the rest of it, and the lagoon round it, more coarsely
+  if (land) {
+    const E1 = land.far.half - 6, S = 3, N = Math.round(2 * E1 / S) + 1;
+    const g = new THREE.PlaneGeometry(2 * E1, 2 * E1, N - 1, N - 1); g.rotateX(-Math.PI / 2);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) p.setY(i, loc.f(p.getX(i), p.getZ(i)));
+    g.setAttribute('aReef', new THREE.BufferAttribute(new Float32Array(p.count), 1));
+    g.setAttribute('aAO', new THREE.BufferAttribute(new Float32Array(p.count).fill(1), 1));
+    const ix = g.index!.array, keep: number[] = [];
+    for (let t = 0; t < ix.length; t += 3) {   // leave out what the fine floor covers
+      let inside = true;
+      for (let k = 0; k < 3; k++) { const v = ix[t + k]; if (Math.max(Math.abs(p.getX(v)), Math.abs(p.getZ(v))) > WORLD - 1) inside = false; }
+      if (!inside) keep.push(ix[t], ix[t + 1], ix[t + 2]);
+    }
+    g.setIndex(keep); g.computeVertexNormals();
+    const outer = new THREE.Mesh(g, floor.material); outer.frustumCulled = false;
+    group.add(outer);
+  }
 
   // grass heightmap (only seas with seagrass)
   if (loc.grass) {
@@ -259,7 +279,8 @@ export function buildOcean(loc) {
     }
   }
   if (cave) buildCave(cave, group, items);
-  if (land) oc.shore = buildShore(loc, group, obst);
+  if (land) oc.shore = buildShore(loc, group, T, obst);
+  if (loc.residents) { oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja)); group.add(oc.residents.group); }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish

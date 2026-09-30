@@ -22,7 +22,7 @@ export class MiniMap {
     return im.complete && im.naturalWidth ? im : null;
   }
   // x, z: drone position (m, -z north); heading: radians clockwise from north; mark: something to point at
-  draw(loc: Sea, x: number, z: number, heading: number, mark: { x: number; z: number } | null) {
+  draw(loc: Sea, x: number, z: number, heading: number, mark: { x: number; z: number } | null, dots: { x: number; z: number; color: string }[] = []) {
     const m = meta?.[loc.id]; if (!m) return;
     // keep the canvas at the screen's own pixel density, so the photo stays sharp
     const css = this.cv.clientWidth || 168, want = Math.round(css * Math.min(3, devicePixelRatio || 1));
@@ -57,6 +57,11 @@ export class MiniMap {
       c.fillStyle = 'rgba(230, 245, 245, 0.85)'; c.font = `${9 * u}px sans-serif`; c.fillText('500 km', 8 * u, S - 16 * u);
       c.fillRect(8 * u, S - 12 * u, 500 / (20 * 111.32 * cosl) * S, 2 * u);
       this.note.textContent = 'Sentinel-2 cloudless 2023 · EOX';
+    }
+    for (const d of dots) {   // the island's residents
+      const [mx, my] = toPx(loc.lat - d.z / k, loc.lon + d.x / (k * cosl));
+      c.fillStyle = d.color; c.strokeStyle = 'rgba(0, 20, 30, 0.85)'; c.lineWidth = 1.2 * u;
+      c.beginPath(); c.arc(mx, my, 3 * u, 0, Math.PI * 2); c.fill(); c.stroke();
     }
     if (mark) {
       const [mx, my] = toPx(loc.lat - mark.z / k, loc.lon + mark.x / (k * cosl));

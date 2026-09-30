@@ -2,7 +2,7 @@
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
 import type { WhaleSeason } from '../eco/whale';
-import { landOf, sample } from '../ocean/land';
+import { landOf } from '../ocean/land';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -42,8 +42,9 @@ export interface Sea {
   // bait balls: the small schooling fish that get driven to the surface, and who drives them
   bait?: { sp: Species; predators: { id: string; n: number }[] };
   pelagic?: boolean;                       // open ocean: no bottom in sight; f() is only a placement floor far below
-  land?: { half: number };                 // real terrain that comes ashore (ocean/land.ts), loaded before building
+  land?: { half: number; far: number; roam: number; center: [number, number] };   // real terrain that comes ashore (ocean/land.ts), loaded before building: fine and whole-island squares, how far the drone may go, the island's middle
   path?(s: number): [number, number];      // the auto-cruise loop, where the default one would run aground
+  residents?: boolean;                     // the robots who live on the island (robots/residents.ts)
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   whales?: WhaleSeason;                    // humpbacks visit in these months
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
@@ -379,12 +380,13 @@ export const LOCATIONS: Sea[] = [
     blurb: '小浜島の北に浮かぶ、周囲2kmほどの無人島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
     water: { up: [0.34, 0.80, 0.92], hor: [0.05, 0.40, 0.58], down: [0.02, 0.17, 0.28], fog: 0.026, abs: [0.26, 0.055, 0.03] },
     sand: [0.84, 0.82, 0.75], rock: [0.55, 0.52, 0.45],
-    land: { half: HALF },
+    land: { half: HALF, far: 760, roam: 720, center: [320, -270] },
+    residents: true,
     f(x, z) {
       const L = landOf('kayama');
       if (!L) { TERR.reef = 0; return -3; }
-      const h = sample(L, L.h, x, z);
-      TERR.reef = Math.min(1, sample(L, L.reef, x, z) / 255 * 1.6);
+      const h = L.h(x, z);
+      TERR.reef = Math.min(1, L.reef(x, z) * 1.6);
       return h < 0 ? h + (fbm(x * 0.09, z * 0.09, 3) - 0.5) * 0.35 * smooth(0, -1.2, h) : h;
     },
     // a loop round the lagoon, clear of the beach

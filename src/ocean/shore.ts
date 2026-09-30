@@ -7,7 +7,7 @@ import { mat } from '../render/common';
 import { SURF_UNIFORMS } from '../render/surface';
 import { hash, smooth, R, rr } from '../core/math';
 import { WORLD } from './scenery';
-import { landOf, sample, type Land } from './land';
+import { landOf, type Land } from './land';
 
 // lighting in the open air: sun (reddened low down), moon and sky; the photo already carries the
 // look of the place, this only turns it with the time of day
@@ -24,17 +24,27 @@ vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){
 
 // the floor shader's view of the land: photo, cover, and how to light what is above the water
 export function landUniforms(L: Land) {
-  return { tPhoto: { value: L.photo }, tCover: { value: L.cover }, uLandHalf: { value: L.half } };
+  return { tPhoto: { value: L.near.photo }, tCover: { value: L.near.cover }, uLandHalf: { value: L.near.half },
+    tPhotoF: { value: L.far.photo }, tCoverF: { value: L.far.cover }, uFarHalf: { value: L.far.half } };
 }
-export const LAND_FLOOR = /* glsl */ `
+// the photo and cover at a point: the close-in square's sharper copy where it reaches, else the island's
+const LAND_TEX = /* glsl */ `
 uniform sampler2D tPhoto; uniform sampler2D tCover; uniform float uLandHalf;
+uniform sampler2D tPhotoF; uniform sampler2D tCoverF; uniform float uFarHalf;
+void landTex(vec2 xz, out vec3 ph, out vec4 cv){
+  vec2 uv = (xz + uLandHalf) / (2.0 * uLandHalf), uf = (xz + uFarHalf) / (2.0 * uFarHalf);
+  float w = smoothstep(0.0, 8.0, uLandHalf - 2.0 - max(abs(xz.x), abs(xz.y)));
+  ph = mix(texture2D(tPhotoF, uf).rgb, texture2D(tPhoto, uv).rgb, w);
+  cv = mix(texture2D(tCoverF, uf), texture2D(tCover, uv), w);
+}
+`;
+export const LAND_FLOOR = /* glsl */ `
+${LAND_TEX}
 ${AIRLIT}
 // albedo of dry land at wp: the aerial photograph, with grain from the sand texture close up
 // (the photo is half a metre a pixel), leaf litter under trees, and dark wet sand at the water's edge
 vec3 landAlbedo(vec3 wp){
-  vec2 uv = (wp.xz + uLandHalf) / (2.0 * uLandHalf);
-  vec3 ph = texture2D(tPhoto, uv).rgb;
-  vec4 cv = texture2D(tCover, uv);
+  vec3 ph; vec4 cv; landTex(wp.xz, ph, cv);
   float g = dot(texture2D(tSandC, wp.xz * 0.35).rgb, vec3(0.333)) / 0.6;
   vec3 a = ph * mix(1.0, g, 0.55 * cv.g + 0.25);
   a *= mix(1.0, 0.75 + 0.45 * vn2(wp.xz * 1.9), cv.r * 0.8 + cv.b * 0.5);
@@ -56,11 +66,11 @@ function crowns(x: number, z: number) {
   return b;
 }
 
-export function buildShore(loc: any, group: THREE.Group, obst: { raise(x: number, z: number, top: number): void }) {
+export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x: number, z: number, top: number): void }) {
   const L = landOf(loc.id)!;
   const f = loc.f as (x: number, z: number) => number;
-  const can = (x: number, z: number) => sample(L, L.canopy, x, z) / 255;
-  const sand = (x: number, z: number) => sample(L, L.sand, x, z) / 255;
+  const can = L.canopy, sand = L.sand;
+  const FAR = L.far.half - 8;
   // how deep into the forest: canopy averaged over a wide ring (edges are low, the middle is tall)
   const inner = (x: number, z: number) => {
     let s = 0; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; s += can(x + Math.cos(a) * 9, z + Math.sin(a) * 9); }
@@ -68,54 +78,64 @@ export function buildShore(loc: any, group: THREE.Group, obst: { raise(x: number
   };
 
   /* ---------- the canopy ---------- */
-  const S = 1.5, E = WORLD, N = Math.round(2 * E / S) + 1;
-  const pos = new Float32Array(N * N * 3), aC = new Float32Array(N * N);
   const top = (x: number, z: number) => {
     const c = can(x, z);
     if (c < 0.08) return { y: f(x, z) - 0.3, c };
     const tall = 2.2 + 4.8 * smooth(0.2, 0.85, inner(x, z));
     return { y: f(x, z) + (tall + 1.3 * crowns(x, z)) * smooth(0.08, 0.5, c), c };
   };
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const x = -E + i * S, z = -E + j * S, k = j * N + i;
-    const t = top(x, z);
-    pos[k * 3] = x; pos[k * 3 + 1] = t.y; pos[k * 3 + 2] = z; aC[k] = t.c;
-  }
-  const idx: number[] = [];
-  for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
-    const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
-    if (Math.max(aC[a], aC[b], aC[c], aC[d]) < 0.12) continue;
-    idx.push(a, c, b, b, c, d);
-  }
-  const cg = new THREE.BufferGeometry();
-  cg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  cg.setAttribute('aC', new THREE.BufferAttribute(aC, 1));
-  cg.setIndex(idx); cg.computeVertexNormals();
-  const canopy = new THREE.Mesh(cg, mat(
+  const canopyMat = mat(
     `attribute float aC; varying vec3 vWp; varying vec3 vN; varying float vC;
      void main(){ vec3 p = position; float w = smoothstep(1.0, 6.0, p.y);
        p.xz += vec2(sin(uTime * 0.9 + p.x * 0.3 + p.z * 0.2), cos(uTime * 0.7 + p.z * 0.3)) * 0.06 * w * (0.4 + uWave);
        vWp = p; vN = normal; vC = aC; gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }`,
-    `uniform sampler2D tPhoto; uniform sampler2D tCover; uniform float uLandHalf; uniform sampler2D tSandC;
+    `${LAND_TEX}
      ${AIRLIT}
      varying vec3 vWp; varying vec3 vN; varying float vC;
      void main(){
-       vec2 uv = (vWp.xz + uLandHalf) / (2.0 * uLandHalf);
-       float c = texture2D(tCover, uv).r;
+       vec3 ph; vec4 cv; landTex(vWp.xz, ph, cv);
        float nz = vn2(vWp.xz * 0.9) * 0.6 + vn2(vWp.xz * 3.1 + 7.0) * 0.4;
-       if (c < 0.3 + 0.3 * nz) discard;                              // ragged where the forest ends
+       if (cv.r < 0.3 + 0.3 * nz) discard;                            // ragged where the forest ends
        vec3 n = normalize(vN);
+       float under = gl_FrontFacing ? 1.0 : 0.3;                       // seen from beneath: the shade inside the crowns
        // leafy texture: clumps of light and shade at the scale of branches
        float leaf = vn2(vWp.xz * 4.3 + vWp.y * 2.0) * 0.5 + vn2(vWp.xz * 11.0 - vWp.y * 3.0) * 0.5;
        n = normalize(n + vec3(leaf - 0.5, 0.0, vn2(vWp.zx * 4.1) - 0.5) * 0.9);
-       vec3 ph = texture2D(tPhoto, uv).rgb;
        vec3 alb = ph * (0.72 + 0.5 * leaf) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // the sides of the forest are in shade
-       gl_FragColor = vec4(fogIt(airLit(alb, n, vWp, 0.5), vWp), 1.0);
+       gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), 1.0);
      }`,
-    { uniforms: { ...landUniforms(L), tSandC: SURF_UNIFORMS.tSandC }, opts: { side: THREE.DoubleSide } }));
-  canopy.frustumCulled = false;
-  group.add(canopy);
-  // the drone and birds keep above the treetops
+    { uniforms: landUniforms(L), opts: { side: THREE.DoubleSide } });
+  // a grid of step S over +-E1, leaving out what lies inside +-E0 (drawn finer by the other)
+  const canopyMesh = (E0: number, E1: number, S: number) => {
+    const N = Math.round(2 * E1 / S) + 1;
+    const pos = new Float32Array(N * N * 3), aC = new Float32Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const x = -E1 + i * S, z = -E1 + j * S, k = j * N + i;
+      const c = can(x, z);
+      const y = c < 0.08 ? f(x, z) + 1.3 : top(x, z).y;   // (the edge hangs down like the outer leaves, not to the ground)
+      pos[k * 3] = x; pos[k * 3 + 1] = y; pos[k * 3 + 2] = z; aC[k] = c;
+    }
+    const idx: number[] = [];
+    for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+      const a = j * N + i, b = a + 1, c = a + N, d = c + 1;
+      if (Math.max(aC[a], aC[b], aC[c], aC[d]) < 0.12) continue;
+      const x0 = -E1 + i * S, z0 = -E1 + j * S;
+      if (E0 > 0 && x0 >= -E0 && x0 + S <= E0 && z0 >= -E0 && z0 + S <= E0) continue;
+      idx.push(a, c, b, b, c, d);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aC', new THREE.BufferAttribute(aC, 1));
+    g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, canopyMat); m.frustumCulled = false; group.add(m);
+    return m;
+  };
+  const E = WORLD;
+  const canopy = [canopyMesh(0, E, 1.5), canopyMesh(E, FAR, 3)];
+  // the drone and birds keep above the treetops: near the modelled sea from a 1 m grid, further out
+  // from the shape itself
+  T.over = (x: number, z: number) => (can(x, z) < 0.3 ? -1e9 : top(x, z).y + 0.5);
+  T.landCover = (x: number, z: number) => ({ can: can(x, z), sand: sand(x, z) });
   for (let z = -E; z < E; z += 1) for (let x = -E; x < E; x += 1) {
     if (can(x, z) < 0.3) continue;
     obst.raise(x, z, top(x, z).y + 0.5);
@@ -124,18 +144,25 @@ export function buildShore(loc: any, group: THREE.Group, obst: { raise(x: number
   /* ---------- plants of the beach and the forest edge ---------- */
   type Spot = { x: number; z: number; y: number; s: number; ry: number };
   const lists: Record<string, Spot[]> = { casuarina: [], pandanus: [], naupaka: [], heliotrope: [] };
-  const far = (list: Spot[], x: number, z: number, d: number) => list.every((p) => (p.x - x) ** 2 + (p.z - z) ** 2 > d * d);
+  const cellsOf: Record<string, Map<string, Spot[]>> = {};
+  const far = (list: Spot[], x: number, z: number, d: number) => {   // nothing of this kind within d
+    const kind = Object.keys(lists).find((k) => lists[k] === list)!, M = (cellsOf[kind] ??= new Map());
+    const ci = Math.floor(x / 8), cj = Math.floor(z / 8);
+    for (let j = cj - 1; j <= cj + 1; j++) for (let i = ci - 1; i <= ci + 1; i++) for (const p of M.get(i + ',' + j) || []) if ((p.x - x) ** 2 + (p.z - z) ** 2 < d * d) return false;
+    return true;
+  };
+  const add = (kind: string, sp: Spot) => { lists[kind].push(sp); const k = Math.floor(sp.x / 8) + ',' + Math.floor(sp.z / 8), M = (cellsOf[kind] ??= new Map()); if (!M.has(k)) M.set(k, []); M.get(k)!.push(sp); };
   const near = (fn: (x: number, z: number) => number, x: number, z: number, r: number) => {
     let m = 0; for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; m = Math.max(m, fn(x + Math.cos(a) * r, z + Math.sin(a) * r)); } return m;
   };
-  for (let t = 0; t < 90000; t++) {
-    const x = rr(-E + 4, E - 4), z = rr(-E + 4, E - 4), y = f(x, z);
+  for (let t = 0; t < 400000; t++) {
+    const x = rr(-FAR, FAR), z = rr(-FAR, FAR), y = f(x, z);
     if (y < 0.5) continue;
     const c = can(x, z), sd = sand(x, z);
-    if (c > 0.35 && c < 0.9 && near(sand, x, z, 7) > 0.5 && lists.casuarina.length < 170 && far(lists.casuarina, x, z, 6)) lists.casuarina.push({ x, z, y, s: rr(7, 12), ry: R() * 6.28 });
-    else if (c > 0.15 && c < 0.7 && near(sand, x, z, 4) > 0.4 && lists.pandanus.length < 260 && far(lists.pandanus, x, z, 4.2)) lists.pandanus.push({ x, z, y, s: rr(2.6, 4.2), ry: R() * 6.28 });
-    else if (sd > 0.35 && c < 0.3 && near(can, x, z, 4) > 0.4 && y > 0.9 && lists.naupaka.length < 320 && far(lists.naupaka, x, z, 2.0)) lists.naupaka.push({ x, z, y, s: rr(1.4, 2.4), ry: R() * 6.28 });
-    else if (sd > 0.6 && c < 0.1 && near(can, x, z, 10) > 0.3 && y > 1.1 && lists.heliotrope.length < 70 && far(lists.heliotrope, x, z, 6)) lists.heliotrope.push({ x, z, y, s: rr(2.4, 4), ry: R() * 6.28 });
+    if (c > 0.35 && c < 0.9 && near(sand, x, z, 7) > 0.5 && lists.casuarina.length < 340 && far(lists.casuarina, x, z, 6)) add('casuarina', { x, z, y, s: rr(7, 12), ry: R() * 6.28 });
+    else if (c > 0.15 && c < 0.7 && near(sand, x, z, 4) > 0.4 && lists.pandanus.length < 460 && far(lists.pandanus, x, z, 4.2)) add('pandanus', { x, z, y, s: rr(2.6, 4.2), ry: R() * 6.28 });
+    else if (sd > 0.35 && c < 0.3 && near(can, x, z, 4) > 0.4 && y > 0.9 && lists.naupaka.length < 560 && far(lists.naupaka, x, z, 2.0)) add('naupaka', { x, z, y, s: rr(1.4, 2.4), ry: R() * 6.28 });
+    else if (sd > 0.6 && c < 0.1 && near(can, x, z, 10) > 0.3 && y > 1.1 && lists.heliotrope.length < 120 && far(lists.heliotrope, x, z, 6)) add('heliotrope', { x, z, y, s: rr(2.4, 4), ry: R() * 6.28 });
   }
   const geos: Record<string, THREE.BufferGeometry> = { casuarina: casuarinaGeo(), pandanus: pandanusGeo(), naupaka: shrubGeo(false), heliotrope: shrubGeo(true) };
   const plantMat = mat(
