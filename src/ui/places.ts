@@ -42,6 +42,13 @@ export const PLACES: Record<string, Place[]> = {
       const p = best(oc, cam, (x, z, h, reef) => (reef > 0.4 ? h : -1e9)); return p ? { pos: p, size: 5 } : null; } },
     anemone('オレンジクラウンフィッシュ'),
   ],
+  kayama: [
+    anemone('カクレクマノミ'),
+    { id: 'shore', ja: '浜の波打ち際', note: '白い砂浜が水の中へゆるやかに続く浅瀬。若いツマグロが膝ほどの深さを巡回し、見上げると浜のアダンとモクマオウが揺れている。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h) => (h > -2.4 && h < -1.7 && oc.T.reef(x, z) < 0.1 ? 1 : -1e9)); return p ? { pos: p.setY(-1.1), size: 3 } : null; } },
+    { id: 'microatoll', ja: 'ハマサンゴの根', note: 'ラグーンの砂地に点々と盛り上がる塊状サンゴ。頭が水面近くまで育ち、まわりをスズメダイやチョウチョウウオが囲む。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef) => (reef > 0.5 && h > -3 ? reef : -1e9)); return p ? { pos: p, size: 3 } : null; } },
+  ],
   maldives: [
     { id: 'thila', ja: 'ティラの頂上', note: '海底からそびえる根のてっぺん。潮通しがよく、魚が群れる。', find: (oc, cam) => {
       const p = best(oc, cam, (x, z, h, reef) => (reef > 0.4 ? h : -1e9)); return p ? { pos: p, size: 6 } : null; } },

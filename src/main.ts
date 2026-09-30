@@ -23,6 +23,7 @@ import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
 import { Post, setRTSupport } from './render/post';
+import { loadLand } from './ocean/land';
 import { setAnisotropy } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop } from './audio';
@@ -86,7 +87,7 @@ const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 /* ================= drone ================= */
 const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyWait: 600, skyStay: 300 };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
-function pathXZ(s: number): [number, number] { return [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
+function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
   return Math.max(1.8, a) + Math.pow(Math.max(0, Math.sin(s * 1.13 + 0.5)), 8) * 10;
@@ -155,6 +156,8 @@ function updateDrone(dt: number, now: number) {
       ? 1.2 + 14 * Math.pow(0.5 + 0.5 * Math.sin(st * 0.013), 3)             // out in the open ocean: drifting low on the swell
       : (6 + 45 * (0.5 + 0.5 * Math.sin(st * 0.013)) * (1 - skim)) * persona.skyAlt + 1.6 * skim;
     _t.set(80 * Math.sin(a * 1.3), altT, 70 * Math.sin(a * 0.9 + 1));
+    if (cur!.loc.land) _t.set(_t.x * 1.25 + 45, _t.y, _t.z * 1.25 - 60);   // by an island, take in the island too
+    if (cur!.loc.land) _t.y = Math.max(_t.y, cur!.T.ground(_t.x, _t.z) + 9, cur!.T.ground(drone.pos.x, drone.pos.z) + 7);   // over the island: clear of the trees
     // a bait ball nearby: wheel over it with the birds
     const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && Math.hypot(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
     if (overBall) { const oa = st * 0.12; _t.set(bb!.c.x + Math.cos(oa) * 26, 13, bb!.c.z + Math.sin(oa) * 26); }
@@ -209,6 +212,18 @@ function updateDrone(dt: number, now: number) {
     _v.multiplyScalar((drone.pos.y > 0 ? 8 : 3.6) * boost);   // more power; much faster in the open air
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.8));
     if (now - drone.lastInput > 90000) setMode('auto');
+  }
+  // by an island, under water: the beach shelves up to nothing, so turn back toward deeper water
+  // rather than being squeezed between the sand and the surface
+  if (cur!.loc.land && drone.pos.y < 0) {
+    const f = cur!.loc.f, h0 = f(drone.pos.x, drone.pos.z);
+    if (h0 > -1.9) {
+      const gx = f(drone.pos.x + 1.5, drone.pos.z) - f(drone.pos.x - 1.5, drone.pos.z), gz = f(drone.pos.x, drone.pos.z + 1.5) - f(drone.pos.x, drone.pos.z - 1.5), gl = Math.hypot(gx, gz) || 1;
+      const k = clamp((h0 + 1.9) * 1.5, 0, 2.5);
+      const vn = (drone.vel.x * gx + drone.vel.z * gz) / gl;
+      if (vn > 0) { drone.vel.x -= gx / gl * vn; drone.vel.z -= gz / gl * vn; }   // no further up the slope
+      drone.vel.x -= gx / gl * k * dt * 3; drone.vel.z -= gz / gl * k * dt * 3;
+    }
   }
   // look ahead along the way we are moving and start climbing well before a rock or coral head
   const G = cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
@@ -665,7 +680,9 @@ function renderGuide() {
     <h3>生きもの</h3>
     <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : ''}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
     <h3>${loc.pelagic ? '漂う生きもの' : 'サンゴと底生生物'}</h3>
-    <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>`;
+    <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>${loc.flora ? `
+    <h3>島の植物</h3>
+    <ul>${loc.flora.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>` : ''}`;
   guideEl.scrollTop = scroll;
 }
 guideEl.addEventListener('click', (e) => {
@@ -704,7 +721,7 @@ function checkSightings() {
 /* ================= globe UI ================= */
 const fmtLL = (lat: number, lon: number) => `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'} ${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'W' : 'E'}`;
 const pinEls = LOCATIONS.map((loc, i) => {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'pin';
+  const b = document.createElement('button'); b.type = 'button'; b.className = loc.id === 'kayama' ? 'pin below' : 'pin';   // (next to Miyako on the globe: its label hangs below)
   b.innerHTML = `<i></i><span>${loc.name}<small id="pinTime${i}"></small></span>`;
   b.setAttribute('aria-label', `${loc.name} ${loc.site} へ潜る`);
   b.onclick = () => dive(loc);
@@ -825,6 +842,7 @@ async function dive(loc: Sea) {
   if (!oceans[loc.id]) {
     veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
     await wait(500); await nextFrame(); await nextFrame();
+    if (loc.land) await loadLand(loc.id, loc.land.half);   // real terrain: the survey data first
     oceans[loc.id] = buildOcean(loc);
     veil(false); await wait(300);
   }
@@ -1279,7 +1297,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => dive(start
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {

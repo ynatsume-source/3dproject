@@ -61,6 +61,7 @@ body:not(.mode-globe) .g-ui * { pointer-events: none !important; }
 .pin:hover span, .pin.hot span { border-color: var(--reef); }
 .pin:focus-visible span { outline: 1px solid var(--accent); }
 .pin.back { opacity: 0; pointer-events: none; }
+.pin.below span { position: absolute; right: -2px; top: 17px; }
 
 /* ---------- ocean mode ---------- */
 .hud { position: fixed; pointer-events: none; transition: opacity .5s ease; }

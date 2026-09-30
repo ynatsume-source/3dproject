@@ -2,6 +2,7 @@
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
 import type { WhaleSeason } from '../eco/whale';
+import { landOf, sample } from '../ocean/land';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -41,6 +42,8 @@ export interface Sea {
   // bait balls: the small schooling fish that get driven to the surface, and who drives them
   bait?: { sp: Species; predators: { id: string; n: number }[] };
   pelagic?: boolean;                       // open ocean: no bottom in sight; f() is only a placement floor far below
+  land?: { half: number };                 // real terrain that comes ashore (ocean/land.ts), loaded before building
+  path?(s: number): [number, number];      // the auto-cruise loop, where the default one would run aground
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   whales?: WhaleSeason;                    // humpbacks visit in these months
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
@@ -50,6 +53,7 @@ export interface Sea {
   animals: { turtle?: { style: string; count: number }; manta?: number; octopus?: number };
   extraGuide: GuideEntry[];
   benthic: [string, string, string][];
+  flora?: [string, string, string][];      // plants ashore (for the guide)
 }
 
 export const LOCATIONS: Sea[] = [
@@ -362,6 +366,66 @@ export const LOCATIONS: Sea[] = [
   },
 ];
 
+// Kayama-jima (嘉弥真島), a small uninhabited island north of Kohama in the Yaeyama islands: beach,
+// forest and shallow coral lagoon from survey data (scripts/bake-kayama.py). The sea's life is the
+// lagoon's share of the Yaeyama reef fish, the same species as Miyako's shallows.
+{
+  const miyako = LOCATIONS.find((l) => l.id === 'miyako')!;
+  const pickSp = (ids: [string, Partial<Species>?][]) => ids.map(([id, o]) => ({ ...miyako.species.find((s) => s.id === id)!, ...(o || {}) }));
+  const HALF = 300;
+  const kayama: Sea = {
+    id: 'kayama', swellHs: 0.35, name: '嘉弥真島', site: '島の南西の浜とラグーン', region: 'Japan · Okinawa · Yaeyama',
+    lat: 24.36107, lon: 123.99674, depth: '0–8 m', vis: 25, temp: 28.6, tempYear: [22, 30], seed: 57, tz: 9, tide: { amp: 0.8, lag: 0.25, axis: [0.8, 0.6] },
+    blurb: '小浜島の北に浮かぶ、周囲2kmほどの無人島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
+    water: { up: [0.34, 0.80, 0.92], hor: [0.05, 0.40, 0.58], down: [0.02, 0.17, 0.28], fog: 0.026, abs: [0.26, 0.055, 0.03] },
+    sand: [0.84, 0.82, 0.75], rock: [0.55, 0.52, 0.45],
+    land: { half: HALF },
+    f(x, z) {
+      const L = landOf('kayama');
+      if (!L) { TERR.reef = 0; return -3; }
+      const h = sample(L, L.h, x, z);
+      TERR.reef = Math.min(1, sample(L, L.reef, x, z) / 255 * 1.6);
+      return h < 0 ? h + (fbm(x * 0.09, z * 0.09, 3) - 0.5) * 0.35 * smooth(0, -1.2, h) : h;
+    },
+    // a loop round the lagoon, clear of the beach
+    path(s) { return [-25 + 100 * Math.sin(s * 0.9) + 14 * Math.sin(s * 2.3 + 1), 45 + 80 * Math.sin(s * 0.6 + 0.8) + 14 * Math.cos(s * 1.7)]; },
+    corals: { branch: 0.34, table: 0.16, brain: 0.3, fan: 0.0, mushroom: 0.14, clam: 0.06 },
+    anemones: 26, clamSize: [0.2, 0.34], eels: 0,
+    birds: [
+      { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に八重山の小島の岩場で子育てし、ラグーンの上を軽やかに飛んで小魚を捕る。', kind: 'tern', count: 12, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0 },
+      { id: 'beniajisashi', ja: 'ベニアジサシ', sci: 'Sterna dougallii', note: '淡い灰色の背に黒い頭、長い燕尾。夏に南の島の岩礁や砂浜で集団で子育てする。繁殖期には胸がうっすら桃色を帯びる。', kind: 'tern', count: 8, span: 0.76, c1: [0.8, 0.83, 0.86], c2: [0.99, 0.96, 0.96], c3: [0.04, 0.04, 0.04], speed: 8.5, glide: 0.2, alt: [3, 14], rest: 0 },
+      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。', kind: 'booby', count: 3, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [6, 30], rest: 0.4 },
+    ],
+    species: pickSp([
+      ['ocellaris'], ['chromis', { schools: 10 }], ['mitsuji', { schools: 9 }], ['sergeant'], ['idol'], ['auriga'], ['nokogiri'], ['yarai'], ['hibudai'],
+      ['akahimeji'], ['tatejima', { schools: 2 }], ['gomamongara', { count: 1 }], ['suji-ara', { count: 2, alt: [0.4, 1.4] }],
+      ['blacktip', { count: 4, alt: [0.6, 1.6], note: '背びれと尾びれの先が黒い小型のサメ。八重山の浅いラグーンや波打ち際でよく見られ、若いツマグロは膝ほどの浅瀬も泳ぐ。夕暮れに狩りが活発になる。人には臆病。' }],
+      ['onikamasu', { count: 1, alt: [1, 2.5] }],
+    ]),
+    animals: { turtle: { style: 'green', count: 3 }, octopus: 2 },
+    extraGuide: [
+      { id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '八重山のラグーンでは、海草や藻を食べに浅場へ入ってくる。' },
+      { id: 'octopus', ja: 'ワモンダコ', sci: 'Octopus cyanea', note: '昼に活動するタコ。岩の上を歩いて甲殻類を探し、体の色や模様を一瞬で変える。' },
+    ],
+    benthic: [
+      ['枝状ミドリイシ', 'Acropora spp.', '浅いラグーンの主役。デバスズメダイの隠れ家。'],
+      ['ハマサンゴ', 'Porites spp.', '塊状のサンゴ。浅瀬では頭が水面近くで平らになり、マイクロアトールをつくる。'],
+      ['テーブル状ミドリイシ', 'Acropora hyacinthus など', 'ラグーンの縁に点在する。'],
+      ['ハタゴイソギンチャク', 'Stichodactyla gigantea', 'カクレクマノミの住みか。'],
+      ['ヒメシャコガイ', 'Tridacna crocea', '岩に埋もれるように暮らす小型のシャコガイ。'],
+      ['クロナマコ', 'Holothuria atra', '砂をまぶした黒いナマコ。'],
+    ],
+    flora: [
+      ['モクマオウ', 'Casuarina equisetifolia', '細い枝が針のように垂れる常緑樹。海岸の防風林として植えられ、島の森の高い木々をつくる。'],
+      ['アダン', 'Pandanus odoratissimus', '幹から支柱のような根を下ろし、ノコギリ状の長い葉を螺旋に広げる。夏にパイナップルのような実をつける。'],
+      ['クサトベラ', 'Scaevola taccada', '砂浜のすぐ上に茂る、つやのある大きな葉の低木。花は扇を半分にしたような形。'],
+      ['モンパノキ', 'Heliotropium foertherianum', '銀白色の柔らかい毛に覆われた葉の海岸低木。砂浜の縁に丸く茂る。'],
+      ['グンバイヒルガオ', 'Ipomoea pes-caprae', '砂浜を這うつる草。軍配の形の葉に、薄紫の花を咲かせる。'],
+    ],
+  };
+  LOCATIONS.splice(LOCATIONS.indexOf(miyako) + 1, 0, kayama);
+}
+
 // Reef rugosity: living reef framework is rough at the metre scale — knobs, ledges and holes — while
 // sand stays smooth. Layered on every sea wherever there is reef.
 function rugosity(x: number, z: number) {
@@ -375,7 +439,8 @@ for (const L of LOCATIONS) {
   const foot = L.cave ? caveFootprint(L.cave) : () => 0;
   L.f = (x: number, z: number) => {
     const h = base(x, z), r = TERR.reef;
-    const out = Math.min(h + (rugosity(x, z) - 0.55) * 1.4 * smooth(0.15, 0.8, r), -2.4);
+    const out = L.land ? (h < -0.4 ? Math.min(h + (rugosity(x, z) - 0.55) * 0.9 * smooth(0.15, 0.8, r), -0.35) : h)   // (reef heads reach up to just under the surface)
+      : Math.min(h + (rugosity(x, z) - 0.55) * 1.4 * smooth(0.15, 0.8, r), -2.4);
     TERR.reef = r * (1 - foot(x, z));
     return out;
   };

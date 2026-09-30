@@ -15,6 +15,8 @@ import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
+import { buildShore, landUniforms, LAND_FLOOR } from './shore';
+import { landOf } from './land';
 
 /* ================= building a sea ================= */
 // Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
@@ -31,6 +33,12 @@ class ObstacleMap {
       const v = top - d * d * sy * 0.5, k = j * N + i;
       if (v > this.a[k]) this.a[k] = v;
     }
+  }
+  // set a cell to at least this height (the forest canopy ashore)
+  raise(x: number, z: number, top: number) {
+    const i = Math.floor(x + this.half), j = Math.floor(z + this.half);
+    if (i < 0 || j < 0 || i >= this.N || j >= this.N) return;
+    const k = j * this.N + i; if (top > this.a[k]) this.a[k] = top;
   }
   // conservative: the tallest of the four surrounding cells
   get(x: number, z: number) {
@@ -145,15 +153,23 @@ export function buildOcean(loc) {
     }
     floorGeo.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
   }
+  // (by an island, dry land is the aerial photograph, lit by the open air)
+  const land = loc.land ? landOf(loc.id) : undefined;
   const floor = new THREE.Mesh(floorGeo, mat(
     `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
+    SURFACE + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
        vec3 n;
        vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
-       gl_FragColor = vec4(shade(alb, vWp, n, 0.95), 1.0);
-     }`, { uniforms: SURF_UNIFORMS }));
+       vec3 col = shade(alb, vWp, n, 0.95);
+       #ifdef LAND
+       float dry = smoothstep(-0.1, 0.06, vWp.y);
+       vec3 la = landAlbedo(vWp) * mix(1.0, vAO, 0.5);
+       col = mix(col, fogIt(airLit(la, normalize(vN), vWp, 0.0), vWp), dry);
+       #endif
+       gl_FragColor = vec4(col, 1.0);
+     }`, { uniforms: { ...SURF_UNIFORMS, ...(land ? landUniforms(land) : {}) }, defines: land ? { LAND: 1 } : {} }));
   if (!loc.pelagic) group.add(floor);   // the open ocean has no bottom within sight
 
   // grass heightmap (only seas with seagrass)
@@ -243,6 +259,7 @@ export function buildOcean(loc) {
     }
   }
   if (cave) buildCave(cave, group, items);
+  if (land) oc.shore = buildShore(loc, group, obst);
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish
@@ -259,6 +276,7 @@ export function buildOcean(loc) {
       const k = Math.floor(R() * debris.length), d = debris[k];
       if (d.list.length >= want[k]) continue;
       if (cave && cave.sd(x, h + 0.05, z) < 0.1) continue;                     // not buried in the cave rock
+      if (h > -0.5) continue;                                                    // (not up on the beach)
       if (k === 5 ? r < 0.05 || r > 0.8 : r > 0.45) continue;                  // starfish on rubble and reef edge, the rest on sand
       if (k < 4 && R() > 0.25 + r * 1.5) continue;                              // litter thickest near the reef
       const s = k === 4 ? rr(1.1, 1.7) : k === 5 ? rr(0.7, 1.2) : rr(0.6, 1.6);
