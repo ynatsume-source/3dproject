@@ -30,6 +30,7 @@ import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
+import { makeDiaryBook } from './ui/diary';
 import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -765,7 +766,7 @@ function renderIsland() {
     const st = r.stats, work = r.id === 'dot' ? `小屋の部材 ${st.built}/24` : r.id === 'kame' ? `観察記録 ${st.notes}件` : r.id === 'lantern' ? `目印の石積み ${st.cairns}` : `集めた貝殻 ${st.shells}個・割った貝 ${st.cracked}個`;
     return `<li class="res"><i style="background:${r.sp.color}"></i><b>${r.v.name}</b><em>${r.v.en}</em><span class="st">いま：${R.status(r)}・電池 ${Math.round(r.battery * 100)}%</span>
       <p>${r.v.trait}</p><p class="work">${work}</p><div class="rels">${rel}</div>${diary ? `<ol class="diary">${diary}</ol>` : ''}
-      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button></li>`;
+      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button><button class="go" type="button" data-diary="${r.id}">日記帳をひらく</button></li>`;
   }).join('');
   const talk = R.talks.filter((e: any) => !e.head).slice(-6).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.who ? `${R.list.find((r: any) => r.id === e.who)?.v.name ?? ''}「${e.text}」` : e.text}</li>`).join('');
   const key = aiKey();
@@ -812,6 +813,8 @@ function renderGuide() {
 guideEl.addEventListener('click', (e) => {
   const g = (e.target as HTMLElement).closest('[data-go]') as HTMLElement | null;
   if (g) { goTo(g.dataset.go!); return; }
+  const dy = (e.target as HTMLElement).closest('[data-diary]') as HTMLElement | null;
+  if (dy) { openDiary(dy.dataset.diary!); return; }
   const w = (e.target as HTMLElement).closest('[data-watch]') as HTMLElement | null;
   if (w && cur?.residents) { const r = cur.residents.list.find((x: any) => x.id === w.dataset.watch); if (r) { startWatch(r); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } } return; }
   const b = (e.target as HTMLElement).closest('[data-tab]') as HTMLElement | null;
@@ -1185,6 +1188,8 @@ $('btnInst').onclick = () => setInst(document.body.classList.contains('inst-off'
 $('btnMore').onclick = () => { const on = !document.body.classList.contains('dock-open'); document.body.classList.toggle('dock-open', on); $('btnMore').setAttribute('aria-expanded', String(on)); $('btnMore').textContent = on ? '×' : '⋯'; };
 const look = { yaw: 0, pitch: 0, held: false, let: 0 };
 const pov = makePov($('pov'));
+const diaryBook = makeDiaryBook($('diaryBook'));
+function openDiary(id: string) { if (cur?.residents) diaryBook.show(cur.residents, id, cur.loc.tz); }
 $('povExit').onclick = () => setPov(false);
 $('povMenu').onclick = () => { const on = !document.body.classList.contains('pov-ui'); document.body.classList.toggle('pov-ui', on); $('povMenu').setAttribute('aria-pressed', String(on)); };
 const tap = { moved: 0, t: 0 };
@@ -1281,9 +1286,10 @@ function renderWatch() {
     <div class="m">電池 ${Math.round(r.battery * 100)}% ・ ${work}</div>
     ${r.saying ? `<p class="say">「${r.saying}」</p>` : ''}
     ${diary ? `<ol>${diary}</ol>` : ''}
-    <div class="f"><span>ドラッグで回り込む・${isTouch ? 'ピンチ' : 'ホイール'}で遠近</span><button type="button" id="watchEye">目線で見る</button><button type="button" id="watchStop">見守りをやめる</button></div>`;
+    <div class="f"><span>ドラッグで回り込む・${isTouch ? 'ピンチ' : 'ホイール'}で遠近</span><button type="button" id="watchEye">目線で見る</button><button type="button" id="watchDiary">日記帳</button><button type="button" id="watchStop">見守りをやめる</button></div>`;
   $('watchStop').onclick = () => stopWatch(true);
   $('watchEye').onclick = () => setPov(true);
+  $('watchDiary').onclick = () => openDiary(r.id);
 }
 function touchInput() { drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
 function setLamp(on: boolean, manual = true) {
@@ -1414,6 +1420,8 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyN') toggleMusic();
   else if (e.code === 'KeyZ') openPanel('guide');
   else if (e.code === 'KeyJ') openPanel('log');
+  else if (e.code === 'Escape' && diaryBook.open) diaryBook.close();
+  else if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && diaryBook.open) diaryBook.step(e.code === 'ArrowLeft' ? -1 : 1);
   else if (e.code === 'Escape' && watch.r) stopWatch(true);
   else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
   else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');

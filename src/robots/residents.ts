@@ -73,7 +73,7 @@ interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; 
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
 export interface Sense { eye: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number }
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
-export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean }   // (a line someone said, or the heading of a conversation)
+export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean; key?: string; with?: string }   // (a line someone said, or the heading of a conversation)
 export interface Resident {
   id: string; v: Voice; sp: Spec; model: Robot;
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
@@ -372,7 +372,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function note(r: Resident, key: string, vars: Record<string, string | number> = {}, today?: string) {
     const lines = r.v.diary[key]; if (!lines) return;
     const text = fill(pickOne(lines), { ...statVars(r), ...vars });
-    r.diary.push({ at: clockMs, text }); if (r.diary.length > 60) r.diary.shift();
+    r.diary.push({ at: clockMs, text, key }); if (r.diary.length > 400) r.diary.shift();
     if (today) { r.today.push(today); if (r.today.length > 6) r.today.shift(); }
     res.onEvent(key, `${r.v.name}：${text}`, r);
   }
@@ -652,7 +652,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const who = `${tk.a.v.name}と${tk.b.v.name}`;
     const summary = tk.stage === 5 ? '悩みを打ち明けあった' : ['はじめて挨拶した', '自己紹介をした', '島で生きるコツを教え合った', '近況を話した', '近況を話した'][Math.min(tk.stage, 4)];
     tk.a.today.push(`${tk.b.v.name}と話した`); tk.b.today.push(`${tk.a.v.name}と話した`);
-    tk.a.diary.push({ at: clockMs, text: `${tk.b.v.name}と会って、${summary}。` }); tk.b.diary.push({ at: clockMs, text: `${tk.a.v.name}と会って、${summary}。` });
+    tk.a.diary.push({ at: clockMs, text: `${tk.b.v.name}と会って、${summary}。`, key: 'met', with: tk.b.id }); tk.b.diary.push({ at: clockMs, text: `${tk.a.v.name}と会って、${summary}。`, key: 'met', with: tk.a.id });
+    for (const r of [tk.a, tk.b]) if (r.diary.length > 400) r.diary.shift();
     res.onEvent('talked', `${who}が${summary}`, tk.a);
   }
   function stepTalk(tk: Talk, dt: number, fast: boolean) {
@@ -742,7 +743,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     try {
       localStorage.setItem(KEY, JSON.stringify({
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-40), holding: r.holding })),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
