@@ -115,6 +115,8 @@ export function makeBreach(oc: any) {
       if (!leap) {
         whale.visible = manta.visible = false;
         if ((next -= dt) > 0) return;
+        // (a dark night, no moon to speak of: a leap no one could see; not now)
+        if (env.night > 0.6 && U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y) < 0.25) { next = 60; return; }
         const can: Kind[] = [];
         if (whaleSeason) can.push('whale', 'whale');
         if (oc.loc.animals?.manta) can.push('manta');
@@ -198,7 +200,10 @@ export function makeBreach(oc: any) {
         foams.push({ x: cx, z: cz, r: L * 0.55, age: 0, life: l.kind === 'whale' ? 70 : 35 });
         logEvent(env, 'breach', l.kind === 'whale' ? (series === 0 ? 'ザトウクジラが海面から跳び上がった！ 巨体がしぶきの柱を上げて落ちる' : 'ザトウクジラがまた跳んだ') : (series === 0 ? 'マンタが海面から跳ねた！' : 'マンタがまた跳ねた'), cx, cz, () => null);
       }
-      if (up > airT + (l.kind === 'whale' ? 22 : 12)) {
+      // its show over and on its way down into the blue: gone (or up for the next leap) only once it is far
+      // off or out of the picture, never in front of the camera
+      const fwd = U.uCamFwd.value as THREE.Vector3, dx = cx - cam.x, dy = y - cam.y, dz = cz - cam.z, dd = Math.hypot(dx, dy, dz);
+      if (up > airT + (l.kind === 'whale' ? 22 : 12) && (dd > 70 || dx * fwd.x + dy * fwd.y + dz * fwd.z < dd * 0.25)) {
         series++;
         if (l.left > 1) { const c = place(l.kind, cam, fx_, fz_, new THREE.Vector3(cx, 0, cz), l.dir); if (c) { begin(l.kind, c, l.dir, l.left - 1); leap!.t = WARN - (l.kind === 'whale' ? rr(10, 16) : rr(3, 6)); return; } }
         leap = null; next = l.kind === 'whale' ? rr(240, 420) : rr(420, 720);

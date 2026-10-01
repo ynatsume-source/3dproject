@@ -273,7 +273,8 @@ function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   // (from the sky, a whale or manta leaping nearby is watched from above, whatever was being filmed)
-  const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260;
+  const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260
+    && ((skyNow?.night ?? 0) < 0.6 || U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y) > 0.25);   // (not on a dark night: the stars, not a black sea)
   const flyOn = drone.sky && drone.mode === 'auto' && !watch.r && !!flyRun && !!cur!.flyfish && !overLeap;
   const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn;
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
