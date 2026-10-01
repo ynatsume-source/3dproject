@@ -14,6 +14,14 @@ export interface CMats {
   carapace: THREE.Material; plastron: THREE.Material; skin: THREE.Material; beak: THREE.Material;
   stone: THREE.Material; urchin: THREE.Material; crab: THREE.Material; clam: THREE.Material;
   white?: THREE.Material; kelp?: THREE.Material; blush?: THREE.Material; wire?: THREE.Material; barnacle?: THREE.Material; moss?: THREE.Material;
+  chibi?: ChibiMats;
+}
+// the flat, bright colours of the characters (and their outline)
+export interface ChibiMats {
+  brown: THREE.Material; belly: THREE.Material; cream: THREE.Material; paw: THREE.Material; nose: THREE.Material; mouth: THREE.Material;
+  dark: THREE.Material; iris: THREE.Material; white: THREE.Material; pink: THREE.Material; stone: THREE.Material;
+  shell: THREE.Material; seam: THREE.Material; plastron: THREE.Material; skin: THREE.Material; brow: THREE.Material; moss: THREE.Material; barnacle: THREE.Material;
+  line?: THREE.Material;
 }
 // how characterful it looks (design drafts): head and eye size, a glint in the eyes, rounder cheeks, and
 // a signature — the otter's marked stone, kelp scarf or tuft; the turtle's barnacles and old scar, round
@@ -287,5 +295,160 @@ export function creatureKit(M: CMats, shadows = false) {
       mossG.forEach((f, i) => { f.rotation.x = f.position.z * 3 + Math.sin(t * 1.3 + i) * 0.15 * (wet ? 1 : 0.2) - swimK * 0.6; });
     } };
   }
-  return { makeSeaOtter, makeGreenTurtle };
+
+  /* ================= the characters: Rakko and Kamemaru drawn as anime-style mascots ================= */
+  // Big heads, short round bodies, big glossy eyes with two highlights, a cream face, a tiny ω mouth,
+  // and a soft dark outline round every part (the inverted-hull trick) — the same lives and motions as
+  // the animals above: the otter waddles upright on land, floats on its back, swims belly-down and dives;
+  // the turtle (an old one: white bushy brows, a tuft of algae on its shell) rows, grazes, breathes and basks.
+  const C = M.chibi;
+  function outline(m: THREE.Mesh, k = 0.045) {
+    if (!C?.line) return m;
+    const o = new THREE.Mesh(m.geometry, C.line); o.scale.setScalar(1 + k); m.add(o); return m;
+  }
+  const cell = (rx: number, ry: number, rz: number, mat: THREE.Material, line = true, seg = 32) => { const m = ell(rx, ry, rz, mat, seg); return line ? outline(m, Math.min(0.14, 0.0065 / Math.max(rx, ry, rz))) : m; };   // (an outline about as thick everywhere)
+  // an anime eye: a dark oval with a warm iris low in it, a big highlight up and a small one down
+  function animeEye(w: number, h: number, mat: { dark: THREE.Material; iris: THREE.Material; white: THREE.Material }) {
+    const g = new THREE.Group();
+    g.add(ell(w, h, w * 0.4, mat.dark, 20));
+    const iris = ell(w * 0.72, h * 0.55, w * 0.3, mat.iris, 16); iris.position.set(0, -h * 0.32, w * 0.16); g.add(iris);
+    const pupil = ell(w * 0.42, h * 0.38, w * 0.3, mat.dark, 14); pupil.position.set(0, -h * 0.2, w * 0.2); g.add(pupil);
+    const hi = ell(w * 0.36, w * 0.36, w * 0.2, mat.white, 12); hi.position.set(w * 0.3, h * 0.38, w * 0.3); g.add(hi);
+    const hi2 = ell(w * 0.16, w * 0.16, w * 0.12, mat.white, 10); hi2.position.set(-w * 0.32, -h * 0.5, w * 0.3); g.add(hi2);
+    return g;
+  }
+  // ω — two little cups side by side
+  function omega(r: number, mat: THREE.Material) {
+    const g = new THREE.Group();
+    for (const sx of [-1, 1]) { const a = own(new THREE.Mesh(new THREE.TorusGeometry(r, r * 0.26, 6, 14, Math.PI), mat)); a.rotation.z = Math.PI; a.position.x = sx * r; g.add(a); }
+    return g;
+  }
+
+  function makeChibiOtter(): Robot {
+    if (!C) return makeSeaOtter();
+    const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+    const pivot = new THREE.Group(); pivot.position.y = 0.21; body.add(pivot);   // (it turns about its middle: upright, on its back, belly-down)
+    const trunk = cell(0.165, 0.19, 0.155, C.brown); pivot.add(trunk);
+    const belly = cell(0.12, 0.14, 0.06, C.belly, false); belly.position.set(0, -0.02, 0.112); pivot.add(belly);
+    // the head: big and round, with the cream face of an old otter
+    const head = new THREE.Group(); head.position.set(0, 0.25, 0.02); pivot.add(head);
+    head.add(cell(0.175, 0.155, 0.155, C.brown));
+    const face = cell(0.148, 0.118, 0.1, C.cream, false); face.position.set(0, -0.022, 0.072); head.add(face);
+    for (const sx of [-1, 1]) { const ch = cell(0.072, 0.06, 0.06, C.cream, false); ch.position.set(sx * 0.058, -0.052, 0.112); head.add(ch); }
+    const nose = cell(0.026, 0.017, 0.016, C.nose, false); nose.position.set(0, -0.03, 0.172); head.add(nose);
+    const nhi = ell(0.008, 0.004, 0.004, C.white, 8); nhi.position.set(0.006, -0.022, 0.186); head.add(nhi);
+    const mouth = omega(0.011, C.nose); mouth.position.set(0, -0.056, 0.168); head.add(mouth);
+    const open = cell(0.02, 0.016, 0.01, C.mouth, false); open.position.set(0, -0.062, 0.165); open.visible = false; head.add(open);
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) { const d = ell(0.0045, 0.0045, 0.003, C.nose, 6); d.position.set(sx * (0.03 + k * 0.012), -0.044 + (k - 1) * 0.008 + k * 0.002, 0.162 - k * 0.006); head.add(d); }
+    const eyes = [-1, 1].map((sx) => { const e = animeEye(0.033, 0.043, C); e.position.set(sx * 0.064, 0.016, 0.158); e.rotation.y = sx * 0.4; head.add(e); return e; });
+    for (const sx of [-1, 1]) { const b = ell(0.024, 0.012, 0.006, C.pink, 10); b.position.set(sx * 0.104, -0.036, 0.122); b.rotation.y = sx * 0.6; head.add(b); }
+    for (const sx of [-1, 1]) { const ear = cell(0.032, 0.03, 0.022, C.brown); ear.position.set(sx * 0.14, 0.085, -0.01); head.add(ear); const ein = ell(0.017, 0.016, 0.01, C.paw, 8); ein.position.set(sx * 0.142, 0.085, 0.006); head.add(ein); }
+    // its tuft: three little locks sticking up on the crown
+    for (let k = 0; k < 3; k++) { const c = own(new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.07, 10), C.brown)); outline(c as THREE.Mesh, 0.12); c.position.set((k - 1) * 0.02, 0.165, 0.03 - Math.abs(k - 1) * 0.01); c.rotation.set(-0.35, 0, (k - 1) * -0.55 + 0.1); head.add(c); }
+    // stubby arms, big flat webbed feet, a thick paddle of a tail
+    const arms = [-1, 1].map((sx) => { const a = new THREE.Group(); a.position.set(sx * 0.14, 0.07, 0.04); pivot.add(a); const u = cell(0.045, 0.075, 0.045, C.brown); u.position.y = -0.05; a.add(u); const pw = cell(0.04, 0.03, 0.04, C.paw); pw.position.set(0, -0.115, 0.012); a.add(pw); return { a, sx }; });
+    const feet = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.085, -0.17, 0.02); pivot.add(f); const ft = cell(0.062, 0.026, 0.09, C.paw); ft.position.set(0, -0.012, 0.04); f.add(ft); return { f, sx }; });
+    const tail = new THREE.Group(); tail.position.set(0, -0.12, -0.13); pivot.add(tail);
+    const tl = cell(0.055, 0.03, 0.13, C.brown); tl.position.set(0, -0.02, -0.08); tl.rotation.x = 0.5; tail.add(tl);
+    // its stone, grey with a white band, held to the chest
+    const hand = new THREE.Group(); hand.position.set(0, -0.02, 0.19); pivot.add(hand);
+    const stone = cell(0.055, 0.032, 0.046, C.stone); hand.add(stone);
+    const band = own(new THREE.Mesh(new THREE.TorusGeometry(0.88, 0.1, 6, 30), C.white)); band.rotation.x = Math.PI / 2; band.scale.set(1, 1, 1.3); stone.add(band);
+    const F = foods(); F.g.scale.setScalar(1.3); F.g.position.y = 0.035; hand.add(F.g);
+    let pitch = 0, roll = 0, backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, blink = 2;
+    return { root, hand, update(t, dt, p = DEMO) {
+      const act = p.act, wet = !!p.wet, k = p.k ?? 0, walk = act === 'demo' ? 0.5 : Math.min(1, p.walk);
+      const backish = wet && (act === 'float' || act === 'sleep' || act === 'eat' || act === 'work' || act === 'groom' || act === 'idle' || act === 'look' || act === 'sit');
+      backK = ease(backK, backish ? 1 : 0, dt, 1.6); sleepK = ease(sleepK, act === 'sleep' ? 1 : 0, dt, 1.2);
+      swimK = ease(swimK, wet && !backish && act !== 'dive' ? 1 : 0, dt, 2); diveK = ease(diveK, act === 'dive' ? 1 : 0, dt, 2.5); landK = ease(landK, wet ? 0 : 1, dt, 3);
+      // upright on land; lying back on the water; belly-down swimming; head down diving (and up again)
+      const want = landK > 0.5 ? (act === 'pick' ? 0.55 : 0) : backK > 0.5 ? -1.45 : act === 'dive' ? (k < 0.12 ? 2.4 : k > 0.86 ? 0.6 : 1.7) : 1.5;
+      pitch = ease(pitch, want, dt, 2.2);
+      roll = ease(roll, act === 'groom' ? Math.sin(t * 1.2) * 1.2 : landK * Math.sin(t * 6) * 0.12 * walk, dt, 4);
+      pivot.rotation.set(pitch, 0, roll, 'YXZ');
+      pivot.position.y = landK * (0.21 + Math.abs(Math.sin(t * 6)) * 0.025 * walk) + (1 - landK) * (0.02 + Math.sin(t * 1.3) * 0.012 - swimK * 0.05);
+      const busy = act === 'eat' || act === 'work';
+      head.rotation.x = backK * (busy ? 0.55 : 0.3) + sleepK * 0.3 - swimK * 0.9 - diveK * 0.6 + landK * (act === 'pick' ? 0.3 : Math.sin(t * 0.7) * 0.05);
+      head.rotation.z = landK * Math.sin(t * 0.5) * 0.12 * (1 - walk);
+      head.rotation.y = Math.sin(t * 0.4) * 0.3 * (1 - sleepK) * (busy ? 0.2 : 1);
+      arms.forEach((ar, i) => {
+        let rx = 0, rz = ar.sx * 0.25;
+        if (landK > 0.5) { rx = act === 'pick' ? -0.9 : Math.sin(t * 6 + i * Math.PI) * 0.5 * walk - 0.15; rz = ar.sx * (0.35 + 0.1 * Math.sin(t * 2)); }
+        else if (act === 'dive') rx = k > 0.15 && k < 0.85 ? -2.4 + Math.sin(t * 6 + i * 2) * 0.4 : 0.3;
+        else if (act === 'sleep') { rx = -2.3; rz = ar.sx * 0.5; }          // (paws over its eyes)
+        else if (act === 'eat') rx = -1.1 - 0.4 * sm(0.2, 0.9, Math.sin(t * 2.2));
+        else if (act === 'work') rx = -0.9 + Math.pow(Math.max(0, Math.sin(t * 7)), 0.5) * 0.6;
+        else if (act === 'groom') rx = -1.6 + Math.sin(t * 4 + i * 1.7) * 0.7;
+        else rx = -0.8;
+        ar.a.rotation.set(rx, 0, rz);
+      });
+      feet.forEach((f, i) => { const st = Math.sin(t * (diveK > 0.5 ? 6 : 3.5)); f.f.rotation.set(landK * Math.max(0, Math.sin(t * 6 + i * Math.PI)) * -0.6 * walk + (swimK + diveK) * st * 0.6 + backK * 0.3, 0, f.sx * 0.2); });
+      tail.rotation.x = (swimK + diveK) * Math.sin(t * 3.5 - 0.8) * 0.4 + landK * 0.2;
+      tail.rotation.y = landK * Math.sin(t * 6) * 0.3 * walk + backK * Math.sin(t * 0.6) * 0.2;
+      // what it holds: its stone (out to crack a clam on, or just held), or what it is eating
+      const food: Food = act === 'demo' ? '' : (p.food ?? '') as Food;
+      F.urchin.visible = food === 'urchin'; F.crab.visible = food === 'crab'; F.clam.visible = food === 'clam';
+      stone.visible = !food || act === 'work';
+      hand.position.z = 0.19 + (act === 'eat' ? sm(0.2, 0.9, Math.sin(t * 2.2)) * 0.05 : 0);
+      // its face: blinking, eyes shut asleep (a happy arc), mouth open when it eats
+      if ((blink -= dt) < 0) blink = 2.5 + Math.random() * 3;
+      const shut = sleepK > 0.5 ? 0.12 : blink < 0.12 ? 0.15 : 1;
+      eyes.forEach((e) => { e.scale.y = ease(e.scale.y, shut, dt, 25); });
+      const chew = act === 'eat' && Math.sin(t * 9) > 0;
+      open.visible = chew || act === 'demo' && Math.sin(t * 0.8) > 0.7; mouth.visible = !open.visible;
+    } };
+  }
+
+  function makeChibiTurtle(): Robot {
+    if (!C) return makeGreenTurtle();
+    const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
+    // the shell: a high round dome with big clear scutes and a cream rim
+    const sg = new THREE.SphereGeometry(1, 48, 20, 0, Math.PI * 2, 0, Math.PI / 2), sp = sg.attributes.position;
+    for (let i = 0; i < sp.count; i++) sp.setXYZ(i, sp.getX(i) * 0.37, sp.getY(i) * 0.3, sp.getZ(i) * 0.48);
+    sg.computeVertexNormals();
+    { const uv = sg.attributes.uv; for (let i = 0; i < sp.count; i++) uv.setXY(i, sp.getX(i) / 0.8 + 0.5, sp.getZ(i) / 1.0 + 0.5); }   // (seen from above, for a painted shell)
+    const shell = outline(own(new THREE.Mesh(sg, C.shell)), 0.03); body.add(shell);
+    const rim = own(new THREE.Mesh(new THREE.TorusGeometry(1, 0.05, 10, 48), C.seam)); rim.rotation.x = Math.PI / 2; rim.scale.set(0.37, 0.48, 0.6); rim.position.y = 0.0; body.add(rim);
+    const plastron = cell(0.33, 0.08, 0.43, C.plastron); plastron.position.y = -0.03; body.add(plastron);
+    // a tuft of algae on the top, and a few barnacles
+    const mossG: THREE.Mesh[] = [];
+    const fg = new THREE.ConeGeometry(0.012, 0.08, 5); fg.translate(0, 0.04, 0);
+    for (let k = 0; k < 26; k++) { const a = k * 2.4, d = Math.sqrt(k / 26) * 0.08, x = Math.cos(a) * d, z = Math.sin(a) * d - 0.05; const f = own(new THREE.Mesh(fg, C.moss)); f.position.set(x, 0.3 * Math.sqrt(Math.max(0, 1 - (x / 0.37) ** 2 - (z / 0.48) ** 2)) - 0.01, z); f.rotation.set(z * 4, 0, -x * 4); body.add(f); mossG.push(f); }
+    for (let k = 0; k < 5; k++) { const x = -0.2 + k * 0.03, z = -0.28 - (k % 2) * 0.03, y = 0.3 * Math.sqrt(Math.max(0, 1 - (x / 0.37) ** 2 - (z / 0.48) ** 2)); const b = outline(own(new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.017, 0.02, 8), C.barnacle)), 0.15); b.position.set(x, y, z); b.lookAt(x * 3, y * 3 + 0.5, z * 3); b.rotateX(Math.PI / 2); body.add(b); }
+    // the head: big, round and kind; sleepy-lidded old eyes under white bushy brows; a little smile
+    const neckG = new THREE.Group(); neckG.position.set(0, 0.06, 0.44); body.add(neckG);
+    const neck = cell(0.075, 0.07, 0.09, C.skin); neck.position.z = 0.02; neckG.add(neck);
+    const head = new THREE.Group(); head.position.set(0, 0.08, 0.13); neckG.add(head);
+    head.add(cell(0.15, 0.135, 0.145, C.skin));
+    const snout = cell(0.085, 0.06, 0.06, C.skin, false); snout.position.set(0, -0.045, 0.1); head.add(snout);
+    const smile = own(new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.006, 6, 18, Math.PI * 0.8), C.nose)); smile.rotation.z = Math.PI * 1.1; smile.position.set(0, -0.055, 0.155); head.add(smile);
+    for (const sx of [-1, 1]) { const n = ell(0.006, 0.005, 0.004, C.nose, 6); n.position.set(sx * 0.018, -0.02, 0.158); head.add(n); }
+    const eyes = [-1, 1].map((sx) => { const e = animeEye(0.032, 0.04, C); e.position.set(sx * 0.07, 0.01, 0.125); e.rotation.y = sx * 0.4; head.add(e); return e; });
+    for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) { const br = ell(0.022, 0.013, 0.016, C.brow, 12); br.position.set(sx * (0.052 + k * 0.022), 0.074 - k * 0.009, 0.122 - k * 0.012); head.add(br); }   // (white brows, drooping outward: an old one)
+    for (const sx of [-1, 1]) { const b = ell(0.024, 0.012, 0.006, C.pink, 10); b.position.set(sx * 0.11, -0.035, 0.1); b.rotation.y = sx * 0.7; head.add(b); }
+    const fronts = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.28, 0.0, 0.22); body.add(f); const bl = cell(0.15, 0.035, 0.075, C.skin); bl.position.set(sx * 0.11, 0, -0.02); bl.rotation.y = sx * 0.35; f.add(bl); return { f, sx }; });
+    const backs = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.18, -0.01, -0.36); body.add(f); const bl = cell(0.075, 0.03, 0.06, C.skin); bl.position.set(sx * 0.05, 0, -0.03); bl.rotation.y = -sx * 0.5; f.add(bl); return { f, sx }; });
+    let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3;
+    return { root, update(t, dt, p = DEMO) {
+      const act = p.act, wet = !!p.wet, walk = act === 'demo' ? 0.5 : Math.min(1, p.walk);
+      landK = ease(landK, wet ? 0 : 1, dt, 2); swimK = ease(swimK, wet && (act === 'swim' || act === 'walk') ? 1 : 0, dt, 1.5);
+      grazeK = ease(grazeK, act === 'graze' ? 1 : 0, dt, 1.5); sleepK = ease(sleepK, act === 'sleep' ? 1 : 0, dt, 1); baskK = ease(baskK, act === 'bask' ? 1 : 0, dt, 1);
+      upK = ease(upK, act === 'breathe' || (wet && (act === 'float' || act === 'idle' || act === 'look' || act === 'sit')) ? 1 : 0, dt, 1.5);
+      const beat = t * 1.6, stroke = Math.sin(beat), heave = Math.sin(t * 1.4) * walk * landK;
+      fronts.forEach((fl) => fl.f.rotation.set(swimK * Math.cos(beat) * 0.3, fl.sx * (landK * heave * 0.5 + sleepK * 0.5), fl.sx * (-swimK * stroke * 0.6 + landK * (-0.15 + heave * 0.2) - grazeK * 0.2 + baskK * 0.1)));
+      backs.forEach((bl, i) => bl.f.rotation.set(landK * Math.max(0, Math.sin(t * 1.4 + i * Math.PI)) * 0.3 * walk, bl.sx * Math.sin(t * 0.7 + i) * 0.15 * swimK, 0));
+      body.position.y = landK * (0.12 + Math.max(0, heave) * 0.04) + (1 - landK) * swimK * stroke * 0.012;
+      body.rotation.x = -Math.max(0, heave) * 0.06 + swimK * Math.sin(beat - 1) * 0.04 - upK * 0.3 + grazeK * 0.18;
+      const tug = grazeK * Math.pow(Math.max(0, Math.sin(t * 2.4)), 4);
+      neckG.rotation.x = -upK * 0.3 + grazeK * (0.5 + tug * 0.2) + sleepK * 0.25 + baskK * 0.3 - landK * 0.15 * (1 - baskK);
+      neckG.rotation.y = Math.sin(t * 0.3) * 0.35 * (1 - sleepK) * (1 - grazeK);
+      head.rotation.z = Math.sin(t * 0.45) * 0.08 * (1 - sleepK);
+      mossG.forEach((f, i) => { f.rotation.x = f.position.z * 4 + Math.sin(t * 1.3 + i) * 0.15 * (wet ? 1 : 0.25) - swimK * 0.5; });
+      if ((blink -= dt) < 0) blink = 3 + Math.random() * 3;
+      const shut = sleepK > 0.5 || baskK > 0.5 ? 0.12 : blink < 0.15 ? 0.15 : 1;
+      eyes.forEach((e) => { e.scale.y = ease(e.scale.y, shut * 0.85, dt, 20); });   // (a little narrowed: gentle, old eyes)
+    } };
+  }
+
+  return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle };
 }
