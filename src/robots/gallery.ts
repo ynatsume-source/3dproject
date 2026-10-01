@@ -100,6 +100,7 @@ const { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle } = creat
     dark: std(0x1e130d, 0.15), iris: std(0x7a4a26, 0.25), white: new THREE.MeshBasicMaterial({ color: 0xffffff }), pink: std(0xf0a4a0, 0.9), stone: std(0x8e8b86, 0.8),
     shell: new THREE.MeshStandardMaterial({ map: toonShellTex(), roughness: 0.55 }), seam: std(0xf1e2b8, 0.7), plastron: std(0xf3e4b4, 0.8), skin: std(0x9cc27e, 0.75), brow: std(0xfbf8f0, 0.95), moss: std(0x5d9a3e, 0.9), barnacle: std(0xe2ddd0, 0.8),
     line: new THREE.MeshBasicMaterial({ color: 0x2a1c14, side: THREE.BackSide }),
+    red: std(0xd8423a, 0.9), brownOdd: std(0x4b2e1f, 0.95), skinOdd: std(0x86c4a4, 0.95), shellPlain: std(0x8a5a36, 0.9),
   },
 }, true);
 
@@ -131,17 +132,28 @@ const DRAFTS: Record<string, { name: string; look: Look }[]> = {
   ],
 };
 { const which = new URLSearchParams(location.search).get('drafts');
-  if (which === 'chibi') {
+  if (which === 'chibi' || which === 'odd' || which === 'odd2') {
     // the characters: in the poses of their days
     bots.forEach((b) => (b.root.visible = false));
-    const set: [string, () => any, any, number][] = [
+    const eat = { act: 'eat', walk: 0, wet: true, food: 'urchin' }, swim = { act: 'swim', walk: 1, wet: true };
+    const set: [string, () => any, any, number][] = which === 'chibi' ? [
       ['ラッコ', makeChibiOtter, undefined, 0],
-      ['ラッコ　ウニを食べる', makeChibiOtter, { act: 'eat', walk: 0, wet: true, food: 'urchin' }, 0.18],
+      ['ラッコ　ウニを食べる', makeChibiOtter, eat, 0.18],
       ['カメマル', makeChibiTurtle, undefined, 0],
-      ['カメマル　泳ぐ', makeChibiTurtle, { act: 'swim', walk: 1, wet: true }, 0.25],
+      ['カメマル　泳ぐ', makeChibiTurtle, swim, 0.25],
+    ] : which === 'odd' ? [
+      ['ラッコ　ぽかん', () => makeChibiOtter('pokan'), undefined, 0],
+      ['ラッコ　真顔', () => makeChibiOtter('magao'), undefined, 0],
+      ['カメマル　ぽかん', () => makeChibiTurtle('pokan'), undefined, 0],
+      ['カメマル　真顔', () => makeChibiTurtle('magao'), undefined, 0],
+    ] : [
+      ['ぽかん　ウニを食べる', () => makeChibiOtter('pokan'), eat, 0.18],
+      ['真顔　ウニを食べる', () => makeChibiOtter('magao'), eat, 0.18],
+      ['ぽかん　泳ぐ', () => makeChibiTurtle('pokan'), swim, 0.25],
+      ['真顔　泳ぐ', () => makeChibiTurtle('magao'), swim, 0.25],
     ];
     set.forEach(([name, make, pose, lift], i) => {
-      const b = make(); b.root.scale.setScalar(1.25); b.root.position.set((i - 1.5) * 1.15, lift, 0); b.root.rotation.y = i === 1 ? 1.9 : i === 3 ? -0.5 : 0.3; scene.add(b.root);
+      const b = make(); b.root.scale.setScalar(1.25); b.root.position.set((i - 1.5) * 1.15, lift, 0); b.root.rotation.y = which === 'odd' ? (i % 2 ? -0.25 : 0.25) : which === 'odd2' ? (i < 2 ? 1.9 : -0.5) : i === 1 ? 1.9 : i === 3 ? -0.5 : 0.3; scene.add(b.root);
       const u = b.update.bind(b); for (let k = 0; k < 60; k++) u(k * 0.1, 0.1, pose); b.update = (t: number, dt: number) => u(t, dt, pose); bots.push(b);   // (settled into the pose)
       const tag = document.createElement('div'); tag.textContent = name; tag.style.cssText = `position:fixed;bottom:5%;left:${12.5 + i * 25}%;transform:translateX(-50%);font:600 15px sans-serif;color:#24363a;background:rgba(255,255,255,.75);padding:6px 12px;border-radius:999px`; document.body.appendChild(tag);
     });
