@@ -260,10 +260,15 @@ export function buildOcean(loc) {
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
   }
   // anemones, each home to a few clownfish
+  const nearAnemone = (x: number, z: number, r: number) => oc.anemones.some((a: any) => Math.hypot(a.pos.x - x, a.pos.z - z) < a.s * 0.75 + r + 0.3);
   const clown = loc.species.find((s) => s.habitat === 'anemone');
   for (let tries = 0; oc.anemones.length < loc.anemones && tries < 4000; tries++) {
     const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z), r = TERR.reef;
     if (r < 0.4 || h < -20 || T.slope(x, z) > 0.8) continue;
+    // (on open reef, not inside a coral that already stands there)
+    let blocked = false;
+    for (let k = 0; k < 6 && !blocked; k++) { const a = k * 1.047; if (obst.get(x + Math.cos(a) * 0.7, z + Math.sin(a) * 0.7) > h + 0.15) blocked = true; }
+    if (blocked || obst.get(x, z) > h + 0.15) continue;
     const s = rr(1.0, 1.7), pal = pick(PALETTE.anemone);
     items.anemone[0].push({ x, z, y: h - 0.04, ry: R() * 6.28, sx: s, sy: s * rr(0.9, 1.2), sz: s, c: tintCol(pal[0]), c2: tintCol(pal[1]), seed: R() });
     oc.anemones.push({ pos: new THREE.Vector3(x, h + 0.28 * s, z), s, species: clown && clown.id });
@@ -360,6 +365,7 @@ export function buildOcean(loc) {
       const x = rr(-LIMIT - 35, LIMIT + 35), z = rr(-LIMIT - 35, LIMIT + 35), h = loc.f(x, z), r = TERR.reef;
       if (r < 0.22 || R() > r * (0.7 + 0.9 * Math.min(1, T.slope(x, z)))) continue;
       if (cave && cave.routeDist(x, z) < 4) continue;
+      if (nearAnemone(x, z, 0.6)) continue;
       let q = R() * wsum, ki = 0;
       for (; ki < KINDS.length - 1; ki++) { q -= KINDS[ki][1]; if (q <= 0) break; }
       const [kind, , [a, b]] = KINDS[ki];
@@ -375,6 +381,7 @@ export function buildOcean(loc) {
     // and set a slab there jutting out over the drop; at the foot of the wall, lean big angular blocks
     // against it so shadowed gaps open behind them.
     const slabList = (kIdx: number) => lists[kIdx * 2 + (R() < 0.5 ? 0 : 1)];
+    // (the anemones keep their patch of open reef: no rock or slab comes down on one)
     const hAt = (x: number, z: number) => loc.f(x, z);
     let ledges = 0, leaners = 0;
     for (let tries = 0; tries < 60000 && (ledges < 320 || leaners < 300); tries++) {
@@ -393,6 +400,7 @@ export function buildOcean(loc) {
         }
         const w = rr(1.1, 2.4), d = rr(0.8, 1.6), th = rr(0.3, 0.62);
         const it = { x: rx + ox * d * 0.45, z: rz + oz * d * 0.45, y: rh - rr(0.05, 0.5), ry: Math.atan2(ox, oz), tx: rr(-0.04, 0.16), tz: rr(-0.08, 0.08), sx: w, sy: th, sz: d };
+        if (nearAnemone(it.x, it.z, Math.max(w, d) * 0.6)) continue;
         slabList(R() < 0.5 ? 2 : 1).push(it);          // flat slabs and flattened angular blocks
         obst.stamp(it.x, it.z, Math.max(w, d) * 0.8, it.y + th * 0.45, th);
         ledges++;
@@ -406,6 +414,7 @@ export function buildOcean(loc) {
         }
         const sz = rr(0.8, 1.8), sy = sz * rr(0.8, 1.3);
         const it = { x: fx + ox * 0.3, z: fz + oz * 0.3, y: fh - sy * 0.2, ry: Math.atan2(ox, oz) + rr(-0.4, 0.4), tx: -rr(0.2, 0.55), tz: rr(-0.3, 0.3), sx: sz * rr(0.9, 1.5), sy, sz };
+        if (nearAnemone(it.x, it.z, Math.max(it.sx, sz) * 0.6)) continue;
         slabList(1).push(it);
         obst.stamp(it.x, it.z, Math.max(it.sx, sz) * 0.85, it.y + sy * 0.85, sy);
         leaners++;

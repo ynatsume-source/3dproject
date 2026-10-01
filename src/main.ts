@@ -591,7 +591,7 @@ let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outsid
 // dim: deep down, at dawn and dusk, at night (with a little hysteresis, so it does not flicker)
 function wantLamp() {
   if (camCave < 0.3) return true;
-  if (camera.position.y > -0.5) return false;
+  if (camera.position.y > -0.15) return false;   // (out of the water: never; just under the surface it can be as dark as deeper)
   const l = pipLight(-camera.position.y);
   return lampOn ? l < 0.078 : l < 0.062;   // (only when it is really dim: not on a bright day a little deep)
 }
@@ -609,7 +609,9 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   // so every hour of the night reads the same way rather than going black before moonrise.
   // Seen from the air it is a little darker than below, but never black: the reef still shows through.
   // (by an island the night ashore is kept open and gentle, as it is under the water, rather than black)
-  const n = s.night * (airView ? (cur?.loc.land ? 0.95 : 0.75) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
+  // (and it begins as the sun fades, not only once it is fully night: no dark valley in the late dusk between the two)
+  const nk = Math.max(s.night, smooth(0.22, 0.03, s.sunI) * 0.85);
+  const n = nk * (airView ? (cur?.loc.land ? 0.95 : 0.75) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
   // the sun is the star of the scene: by day it falls hard and bright, with deep blue shade beside it,
   // and strong shafts and caustics; low in the sky its light turns gold and the shafts stand out most.
   // A full moon is bright enough to read by: silver shafts and caustics of its own; a moonless night stays
