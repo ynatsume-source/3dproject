@@ -13,6 +13,45 @@ export interface Pose {
   stride?: number;                    // how far it has walked (m, turning on the spot counted at the feet): the legs keep pace with it
   look?: [number, number, number];    // what it is looking at, in its own frame (x right, y up, z ahead; scaled with it)
   key?: number; elapsed?: number;     // which spell of doing something this is, and how long it has been at it (s)
+  task?: string;                      // what the doing is for (the same act serves several: a pick to gather, to plant, to harvest)
+}
+const hk = (key: number, n: number) => { const x = Math.sin(key * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };   // (a variant fixed for the spell, not drawn afresh each frame)
+const sm = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+// Dot at the bench, shaping a piece: two to four strokes of the plane, then a stop to look along what it has
+// done (head on one side), then a small shift of its stance, and again. Shared with the island, which throws
+// the shavings at the end of each stroke (robots/residents.ts).
+export function craftBeat(el: number, key: number) {
+  let t0 = 0, done = 0;
+  for (let i = 0; i < 200; i++) {
+    const n = 2 + Math.floor(hk(key, i) * 3), S = 1.1, dur = n * S + 1.6 + 0.5, tc = el - t0;
+    if (tc < dur) {
+      const side = i % 2 ? 1 : -1, shift = (hk(key, i + 50) - 0.5) * 0.3, prevShift = i ? (hk(key, i + 49) - 0.5) * 0.3 : 0;
+      if (tc < n * S) { const s = Math.floor(tc / S), u = (tc - s * S) / S; return { push: u < 0.6 ? sm(0, 0.6, u) : 1 - sm(0.6, 1, u), look: 0, side, shift: prevShift, strokes: done + s + (u >= 0.6 ? 1 : 0) }; }
+      const tl = tc - n * S;
+      return { push: 0, look: tl < 1.6 ? sm(0, 0.35, tl) * (1 - sm(1.25, 1.6, tl)) : 0, side, shift: tl < 1.6 ? prevShift : prevShift + (shift - prevShift) * sm(1.6, 2.1, tl), strokes: done + n };
+    }
+    t0 += dur; done += n;
+  }
+  return { push: 0, look: 0, side: 1, shift: 0, strokes: done };
+}
+// Dot fitting a piece or a plank: a look at the spot, then two or three blows (aim, raise, strike, recoil),
+// then a stop to check, and again. lift: 0 aimed at the spot, 1 raised high.
+export function hammerBeat(el: number, key: number) {
+  if (el < 0.35) return { lift: 0, check: 0, blows: 0, side: 1 };
+  let t0 = 0.35, done = 0;
+  for (let i = 0; i < 200; i++) {
+    const n = 2 + (hk(key, i + 7) < 0.5 ? 1 : 0), B = 1.05, dur = n * B + 0.75, tc = el - t0;
+    if (tc < dur) {
+      if (tc < n * B) {
+        const b = Math.floor(tc / B), u = (tc - b * B) / B * 1.05;   // aim .3, raise .35, strike .12, recoil .28
+        const lift = u < 0.3 ? 0 : u < 0.65 ? sm(0.3, 0.65, u) : u < 0.77 ? 1 - (u - 0.65) / 0.12 : 0;
+        return { lift, check: 0, blows: done + b + (u >= 0.77 ? 1 : 0), side: i % 2 ? 1 : -1 };
+      }
+      return { lift: 0, check: sm(0, 0.2, tc - n * B) * (1 - sm(0.55, 0.75, tc - n * B)), blows: done + n, side: i % 2 ? 1 : -1 };
+    }
+    t0 += dur; done += n;
+  }
+  return { lift: 0, check: 0, blows: done, side: 1 };
 }
 // the phase of a gait: from the distance walked when there is one (so feet do not slide, and stop when it
 // stops), else from the clock at the given rate
@@ -86,7 +125,23 @@ export function robotKit(M: Mats, shadows = false) {
       const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, 0.9, 4.2);
       gaze.step(p, dt, 0.86);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 2);
-      crouchK += ((p.act === 'pick' || p.act === 'dig' ? 1 : 0) - crouchK) * Math.min(1, dt * 4);
+      // the spell it is in (from the island: what it is doing, how long it has been at it), and what that asks of it
+      const el = p.elapsed ?? t % 8, key = p.key ?? Math.floor(t / 8);
+      const staged = p.elapsed !== undefined;
+      // picking something up off the ground: a look at it, down on its haunches, both hands out to its ends, a grip
+      // and a tug (what it picks up becomes its own only when the island says so; then it lifts it, below);
+      // a longer pick (sowing, harvesting) reaches, pinches and comes back, again and again
+      const once = p.task === 'gather' || p.task === 'find', pl = p.task === 'find' ? 6 : 3.5;
+      const pickDown = !staged ? 1 : once ? sm(0.4, 1.1, el) * (1 - sm(pl - 0.3, pl + 0.6, el)) : sm(0.2, 0.9, el);
+      const reach = !staged ? 0 : once ? sm(0.9, 1.5, el) : Math.pow(Math.max(0, Math.sin(((el % 3) / 3) * Math.PI)), 1.5);
+      const tug = once && staged ? sm(2.4, 2.8, el) * (1 - sm(3.0, 3.3, el)) : 0;
+      // just picked up: carrying begins low, the load lifted to the chest as it straightens
+      const lift = p.act === 'carry' && staged ? sm(0, 0.8, el) : 1;
+      crouchK += ((p.act === 'pick' ? pickDown : p.act === 'dig' ? 1 : p.act === 'carry' ? (1 - lift) * 0.9 : p.task === 'review' ? 0.4 * sm(0.34, 0.44, p.k ?? 0) * (1 - sm(0.56, 0.66, p.k ?? 0)) : 0) - crouchK) * Math.min(1, dt * (staged ? 10 : 4));
+      // at the bench; driving a piece home; standing back to look at its work
+      const cb = p.act === 'work' && staged ? craftBeat(el, key) : null;
+      const hb = p.act === 'hammer' && staged ? hammerBeat(el, key) : null;
+      const insp = p.task === 'review' && p.act === 'look' ? 1 : 0, ik = p.k ?? 0;
       sitK += ((p.act === 'sit' ? 1 : 0) - sitK) * Math.min(1, dt * 2);
       const bend = crouchK * (p.act === 'dig' ? 0.45 : 1);
       legs.forEach((l, i) => { const ph = w + i * Math.PI; l.up.pivot.rotation.x = Math.sin(ph) * 0.35 * walk - sleepK * 1.3 - bend * 0.9 - sitK * 1.45; l.lo.pivot.rotation.x = Math.max(0, -Math.cos(ph)) * 0.55 * walk + sleepK * 1.5 + bend * 1.5 + sitK * 0.2; });
@@ -95,20 +150,32 @@ export function robotKit(M: Mats, shadows = false) {
       const tap = Math.max(0, Math.sin(t * 6)) ** 3;
       arms.forEach((a, i) => {
         if (wave && a.sx > 0) { a.up.pivot.rotation.set(0, 0, -2.4); a.lo.pivot.rotation.set(0, 0, Math.sin(t * 10) * 0.4); }
+        else if (p.act === 'pick' && staged) { a.up.pivot.rotation.set(-0.3 - reach * 0.95 + tug * 0.2, 0, a.sx * (0.1 + (once ? 0.1 : 0.02) * reach)); a.lo.pivot.rotation.set(-0.15 - reach * 0.2 - (once ? 0 : reach * 0.4 * (i ? 1 : 0)), 0, 0); }   // (forward and down to its two ends)
         else if (p.act === 'pick') { a.up.pivot.rotation.set(-0.7 - Math.sin(t * 3 + i) * 0.1, 0, a.sx * 0.15); a.lo.pivot.rotation.set(-0.4, 0, 0); }
+        else if (hb) {
+          // the right hand swings the hammer (aimed, raised, struck, recoiled); the left holds the piece; checking, both rest
+          if (a.sx > 0) { a.up.pivot.rotation.set(-1.0 - hb.lift * 1.5 + hb.check * 0.5, 0, 0.1); a.lo.pivot.rotation.set(-0.9 + hb.lift * 0.45 + hb.check * 0.2, 0, 0); }
+          else { a.up.pivot.rotation.set(-1.0 + hb.check * 0.3, 0, -0.2); a.lo.pivot.rotation.set(-0.6, 0, 0); }
+        }
         else if (p.act === 'hammer') { if (a.sx > 0) { a.up.pivot.rotation.set(-1.0 - strike * 1.4, 0, 0.1); a.lo.pivot.rotation.set(-0.9 + strike * 0.4, 0, 0); } else { a.up.pivot.rotation.set(-1.0, 0, -0.2); a.lo.pivot.rotation.set(-0.6, 0, 0); } }
+        else if (cb) {
+          // the left hand steadies the work; the right pushes the plane along it; stopping to look, both rest on it
+          if (a.sx > 0) { a.up.pivot.rotation.set(-1.15 - cb.push * 0.35 + cb.look * 0.25, 0, 0.1); a.lo.pivot.rotation.set(-0.85 + cb.push * 0.65, 0, 0); }
+          else { a.up.pivot.rotation.set(-0.95 + cb.look * 0.15, 0, -0.1); a.lo.pivot.rotation.set(-0.55, 0, 0); }
+        }
+        else if (p.act === 'carry' && lift < 1) { a.up.pivot.rotation.set(-1.0 + lift * 0.1, 0, a.sx * (0.1 - lift * 0.05)); a.lo.pivot.rotation.set(-0.2 - lift * 0.5, 0, 0); }
         else if (p.act === 'chop' || p.act === 'dig') { const up = p.act === 'chop' ? 2.3 : 2.0; a.up.pivot.rotation.set(-0.5 - strike * up, 0, a.sx * 0.05 - (p.act === 'chop' ? 0.25 : 0)); a.lo.pivot.rotation.set(-0.5 + strike * 0.3, 0, 0); }
         else if (p.act === 'sit') { a.up.pivot.rotation.set(-0.5, 0, a.sx * 0.2); a.lo.pivot.rotation.set(-0.9, 0, 0); }
         else if (p.act === 'work') { a.up.pivot.rotation.set(a.sx > 0 ? -1.3 - tap * 0.7 : -0.9, 0, a.sx * 0.1); a.lo.pivot.rotation.set(a.sx > 0 ? -0.7 + tap * 0.5 : -0.5, 0, 0); }
         else if (p.act === 'carry') { a.up.pivot.rotation.set(-0.9, 0, a.sx * 0.05); a.lo.pivot.rotation.set(-0.7, 0, 0); }
         else { a.up.pivot.rotation.set(-Math.sin(w + i * Math.PI) * 0.35 * walk + sleepK * -0.2, 0, a.sx * (0.12 + sleepK * 0.05)); a.lo.pivot.rotation.set(-0.35 - sleepK * 0.6, 0, 0); }
       });
-      carry.visible = p.act === 'carry';
+      carry.visible = p.act === 'carry'; carry.position.y = 0.32 + 0.18 * lift; carry.position.z = 0.36 - 0.1 * lift;
       hammer.visible = p.act === 'hammer'; axe.visible = p.act === 'chop'; hoe.visible = p.act === 'dig';
       body.position.y = Math.abs(Math.sin(w)) * 0.02 * walk - sleepK * 0.24 - bend * 0.16 - sitK * 0.3;
       body.rotation.z = Math.sin(w) * 0.03 * walk;
-      body.rotation.x = bend * 0.35 + (p.act === 'chop' || p.act === 'dig' ? strike * 0.15 : 0);
-      body.rotation.y = p.act === 'chop' ? (strike - 0.5) * 0.4 : 0;
+      body.rotation.x = bend * 0.35 + (p.act === 'chop' || p.act === 'dig' ? strike * 0.15 : 0) + (cb ? 0.1 + cb.push * 0.07 + cb.look * 0.12 : 0) + (hb ? 0.06 + hb.check * 0.1 - hb.lift * 0.04 : 0) + insp * 0.04;
+      body.rotation.y = p.act === 'chop' ? (strike - 0.5) * 0.4 : cb ? cb.shift : 0;
       if ((blink -= dt) < 0) blink = 2 + Math.random() * 3;
       const b = sleepK > 0.5 ? 0.08 : blink < 0.12 ? 0.1 : 1;
       if ((lookT -= dt) < 0) { lookT = 1 + Math.random() * 2; look = (Math.random() - 0.5) * 0.05; }
@@ -119,6 +186,12 @@ export function robotKit(M: Mats, shadows = false) {
       // looking at something: the head turns to it (the idle glancing about gives way)
       const gw = gaze.w * (1 - sleepK);
       head.rotation.y += (gaze.yaw - head.rotation.y) * gw; head.rotation.x += (gaze.pitch * 0.8 - head.rotation.x) * gw * (busy ? 0.4 : 1);
+      // looking along the work, head on one side; checking a blow; and standing back to judge it: the head
+      // tipped one way and the other, a little lower once to see it level, a nod when it is satisfied
+      const tilt = cb ? cb.look * cb.side * 0.22 : hb ? hb.check * hb.side * 0.16 : insp * Math.sin(Math.min(ik, 0.82) / 0.82 * Math.PI * 2) * 0.17;
+      head.rotation.z += (tilt - head.rotation.z) * Math.min(1, dt * 6);
+      if (cb) head.rotation.x += cb.look * 0.12;
+      if (insp) head.rotation.x += Math.max(0, Math.sin((ik - 0.86) / 0.12 * Math.PI)) * (ik > 0.86 ? 0.28 : 0);
       glowColor(M.warm)?.setHSL?.(0.11, 1, (0.55 + 0.25 * Math.sin(t * 3)) * (1 - sleepK * 0.6));
     } };
   }

@@ -211,7 +211,9 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 const clock = new THREE.Clock();
-const q = new URLSearchParams(location.search), POSE = q.get('act') ? { act: q.get('act') as Act, walk: +(q.get('walk') ?? 0), wet: q.has('wet'), k: +(q.get('k') ?? 0.5), food: q.get('food') ?? '' } : undefined;
+// (&el=<s>&task=<kind>&key=<n>: a moment in a spell of doing something, held still — for checking a staged motion)
+const q = new URLSearchParams(location.search), POSE = q.get('act') ? { act: q.get('act') as Act, walk: +(q.get('walk') ?? 0), wet: q.has('wet'), k: +(q.get('k') ?? 0.5), food: q.get('food') ?? '',
+  ...(q.has('el') ? { elapsed: +q.get('el')!, key: +(q.get('key') ?? 1), task: q.get('task') ?? undefined } : {}) } : undefined;
 const _t = new THREE.Vector3(), _p = new THREE.Vector3();
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
