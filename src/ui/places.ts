@@ -59,6 +59,8 @@ export const PLACES: Record<string, Place[]> = {
     anemone('レッドシーアネモネフィッシュ'),
   ],
   carnatic: [
+    { id: 'wreck-bow', ja: '船首の骨組み', note: '先細りの船首を支える鉄のフレーム。朽ちた甲板の向こうへ海が透けて見える。', find: (oc) => oc.wreck?.landmarks ? { pos: oc.wreck.landmarks.bow.clone(), size: 6 } : null },
+    { id: 'wreck-break', ja: '船体の破断部', note: '二つの船体の間に、折れた肋骨と落ちた鉄材が残る。', find: (oc) => oc.wreck?.landmarks ? { pos: oc.wreck.landmarks.break.clone(), size: 5 } : null },
     { id: 'wreck', ja: 'カルナティック号', note: '1869年に沈んだ帆走汽船。左舷を下に横たわり、朽ちた甲板の跡に鉄の肋骨が並ぶ。その間を光の筋とグラスフィッシュの群れが流れる。', find: (oc) => oc.wreck ? { pos: oc.wreck.centre.clone().setY(oc.wreck.centre.y + 9), size: 20 } : null },
     { id: 'reef', ja: 'アブ・ヌハスの礁', note: '沈船の南にそびえる浅い礁。何隻もの船がこの礁に乗り上げてきた。上はテーブルサンゴとキンギョハナダイの群れ。', find: (oc, cam) => {
       const p = best(oc, cam, (x, z, h, reef) => (reef > 0.6 && h > -6 ? reef : -1e9)); return p ? { pos: p, size: 5 } : null; } },

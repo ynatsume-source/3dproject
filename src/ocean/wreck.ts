@@ -1,217 +1,209 @@
-// A wreck on the sand: the SS Carnatic (P&O, 1862; lost on Abu Nuhas in the northern Red Sea, 1869), an
-// iron steamship with a sailing rig, 90 m long and 11.6 m in the beam. She lies on her port side at the
-// foot of the reef on a sand slope, broken in two; her wooden decks have rotted away so that amidships
-// the iron frames stand open like the ribs of a whale, and the light falls through them. Her masts lie
-// out across the sand, her funnel beside her. A century and a half of the sea has crusted her in coral,
-// sponge and red and purple soft coral, and glassfish crowd her shadows.
-//
-// Built in her own frame (x along her length, stern −, bow +; y up through her deck; z to starboard),
-// rolled onto her side, set into the slope, and turned to lie along the reef. Her solid outline goes
-// into the obstacle map, so fish and the drone keep out of her plating.
+// Carnatic visual study, not a survey reconstruction. Iron hull, two displaced pieces and a lost
+// timber deck. Details whose original arrangement is uncertain are listed in docs/proposals/carnatic-wreck/.
+// Ship coordinates: x stern→bow, y keel→deck, z port→starboard. Keep the public fish/tour API stable.
 import * as THREE from 'three';
 import { mat } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
 import { R, rr } from '../core/math';
 
 export interface WreckSpec { x: number; z: number; rot: number; len: number; beam: number; depth: number }
-
-const ROLL = -1.38;   // (onto her port side, a little short of flat)
+const ROLL = -1.38;
 
 export class Wreck {
   readonly spec: WreckSpec;
   readonly geo: THREE.BufferGeometry;
-  readonly up: { p: THREE.Vector3; n: THREE.Vector3 }[] = [];   // points on her upward faces (for the soft corals)
-  readonly pts: THREE.Vector3[] = [];                            // every vertex, for the obstacle map
+  readonly up: { p: THREE.Vector3; n: THREE.Vector3 }[] = [];
+  readonly pts: THREE.Vector3[] = [];
   readonly centre: THREE.Vector3;
+  readonly landmarks: { bow: THREE.Vector3; stern: THREE.Vector3; break: THREE.Vector3 };
   private f: (x: number, z: number) => number;
   private ax: THREE.Vector3; private az: THREE.Vector3;
 
   constructor(spec: WreckSpec, f: (x: number, z: number) => number) {
     this.spec = spec; this.f = f;
-    this.ax = new THREE.Vector3(Math.cos(spec.rot), 0, -Math.sin(spec.rot));   // her length, in the world
-    this.az = new THREE.Vector3(Math.sin(spec.rot), 0, Math.cos(spec.rot));    // across her
-    const P: number[] = [], N: number[] = [], A: number[] = [], S: number[] = [];   // position, normal, part, (s, phi)
-    const idx: number[] = [];
+    this.ax = new THREE.Vector3(Math.cos(spec.rot), 0, -Math.sin(spec.rot));
+    this.az = new THREE.Vector3(Math.sin(spec.rot), 0, Math.cos(spec.rot));
     const L = spec.len, B = spec.beam, D = spec.depth;
-    // her lines: fine at the bow, fuller and rounded at the stern; a sheer that rises at both ends
-    const half = (s: number) => s > 0.55
-      ? B / 2 * Math.pow(Math.max(0, 1 - Math.pow((s - 0.55) / 0.45, 2.2)), 0.7) + 0.08            // (a fine bow, to a sharp stem)
-      : B / 2 * (0.3 + 0.7 * Math.pow(Math.max(0, 1 - Math.pow((0.55 - s) / 0.55, 3)), 0.5));      // (a rounded counter stern)
-    const dep = (s: number) => D + 1.4 * Math.pow(2 * s - 1, 4);
-    // the two halves she broke into: the stern part settled a little more on its side, and slewed
+    const P: number[] = [], N: number[] = [], A: number[] = [], S: number[] = [], idx: number[] = [];
+    // Rounded counter stern, a long parallel body and a fine bow; modest sheer at both ends.
+    const half = (s: number) => B / 2 * (s > 0.57
+      ? Math.pow(Math.max(0, 1 - Math.pow((s - 0.57) / 0.43, 2)), 0.72)
+      : 0.10 + 0.90 * Math.sqrt(Math.max(0, 1 - Math.pow((0.57 - s) / 0.57, 4)))) + 0.045;
+    const dep = (s: number) => D + 0.9 * Math.pow(2 * s - 1, 4);
+    // Rounded bilge: unlike a flat strip, each transverse frame reads as a bent iron member.
+    const hull = (s: number, ph: number, inset = 0) => new THREE.Vector3((s - 0.5) * L,
+      inset + (dep(s) - inset) * (1 - Math.pow(Math.max(0, Math.cos(ph)), 0.64)),
+      Math.max(0.02, half(s) - inset) * Math.sign(ph) * Math.pow(Math.abs(Math.sin(ph)), 0.72));
     const pieces = [
-      { s0: 0.0, s1: 0.44, roll: ROLL - 0.12, yaw: 0.07, off: new THREE.Vector3(-1.5, 0, 0.8) },
-      { s0: 0.465, s1: 1.0, roll: ROLL, yaw: 0, off: new THREE.Vector3(0, 0, 0) },
+      { s0: 0, s1: 0.435, roll: ROLL - 0.10, yaw: 0.055, off: new THREE.Vector3(-1.6, 0, 0.8), base: 0 },
+      { s0: 0.482, s1: 1, roll: ROLL, yaw: 0, off: new THREE.Vector3(), base: 0 },
     ];
-    const _v = new THREE.Vector3(), _n = new THREE.Vector3();
-    // ship frame → world, for a piece (and a point on the sand under her side for each station)
-    const place = (pc: typeof pieces[0], x: number, y: number, z: number, out: THREE.Vector3) => {
-      const c = Math.cos(pc.roll), si = Math.sin(pc.roll);
-      let yy = y * c - z * si, zz = y * si + z * c;
-      const cy = Math.cos(pc.yaw), sy = Math.sin(pc.yaw);
-      const xx = x * cy - zz * sy; zz = x * sy + zz * cy;
-      const wx = spec.x + this.ax.x * xx + this.az.x * zz + pc.off.x, wz = spec.z + this.ax.z * xx + this.az.z * zz + pc.off.z;
-      // resting on her port side, bedded into the sand a metre, following the slope under her
-      yy += B / 2 * Math.abs(si) * 0.98 - 1.0 + this.f(spec.x + this.ax.x * x + pc.off.x, spec.z + this.ax.z * x + pc.off.z);
-      return out.set(wx, yy, wz);
+    type Piece = typeof pieces[number];
+    const rotate = (pc: Piece, p: THREE.Vector3) => {
+      const yy = p.y * Math.cos(pc.roll) - p.z * Math.sin(pc.roll);
+      const zz = p.y * Math.sin(pc.roll) + p.z * Math.cos(pc.roll);
+      const xx = p.x * Math.cos(pc.yaw) - zz * Math.sin(pc.yaw), z = p.x * Math.sin(pc.yaw) + zz * Math.cos(pc.yaw);
+      return p.set(this.ax.x * xx + this.az.x * z, yy, this.ax.z * xx + this.az.z * z);
     };
-    const rotN = (pc: typeof pieces[0], n: THREE.Vector3) => {
-      const c = Math.cos(pc.roll), si = Math.sin(pc.roll);
-      const y = n.y * c - n.z * si; let z = n.y * si + n.z * c;
-      const cy = Math.cos(pc.yaw), sy = Math.sin(pc.yaw);
-      const x = n.x * cy - z * sy; z = n.x * sy + z * cy;
-      return n.set(this.ax.x * x + this.az.x * z, y, this.ax.z * x + this.az.z * z);
-    };
-    const push = (p: THREE.Vector3, n: THREE.Vector3, part: number, s: number, ph: number) => {
-      P.push(p.x, p.y, p.z); N.push(n.x, n.y, n.z); A.push(part); S.push(s, ph);
-      this.pts.push(p.clone());
+    const place = (pc: Piece, p: THREE.Vector3) => rotate(pc, p).add(pc.off).add(new THREE.Vector3(spec.x, pc.base, spec.z));
+    // Each half is rigid. Fit its underside to the bed once, rather than bending every frame to f().
+    for (const pc of pieces) {
+      let base = -Infinity;
+      for (let i = 1; i < 24; i++) for (let j = 0; j <= 12; j++) {
+        const p = rotate(pc, hull(pc.s0 + (pc.s1 - pc.s0) * i / 24, -Math.PI / 2 + j * Math.PI / 12));
+        base = Math.max(base, f(spec.x + p.x + pc.off.x, spec.z + p.z + pc.off.z) - p.y - 0.7);
+      }
+      pc.base = base;
+    }
+    const vertex = (p: THREE.Vector3, n: THREE.Vector3, part: number, s = 0, ph = 0) => {
+      P.push(p.x, p.y, p.z); N.push(n.x, n.y, n.z); A.push(part); S.push(s, ph); this.pts.push(p.clone());
       return P.length / 3 - 1;
     };
-    // a point on her side: s along her (0 stern .. 1 bow), phi round the hull (−π/2 port rail .. 0 keel ..
-    // π/2 starboard rail), inset toward the inside
-    const hull = (s: number, ph: number, inset: number, o: THREE.Vector3) => {
-      const hb = Math.max(half(s) - inset, 0.05), d = dep(s) - inset * 0.5;
-      const sp = Math.sin(ph), cp = Math.cos(ph);
-      return o.set((s - 0.5) * L, inset + (d - inset) * (1 - Math.pow(Math.abs(cp), 0.32)), hb * Math.sign(sp) * Math.pow(Math.abs(sp), 0.34));
+    // Closed rectangular members: faces catch the light even when seen edge-on.
+    const beam = (a: THREE.Vector3, b: THREE.Vector3, width: number, depth: number, part = 1) => {
+      const dir = b.clone().sub(a), len = dir.length(); if (len < 0.001) return;
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+      append(new THREE.BoxGeometry(width, len, depth), a.clone().add(b).multiplyScalar(0.5), q, part);
     };
-    const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
+    const append = (g: THREE.BufferGeometry, at: THREE.Vector3, q: THREE.Quaternion, part: number) => {
+      const start = P.length / 3, p = g.getAttribute('position'), n = g.getAttribute('normal');
+      for (let i = 0; i < p.count; i++) vertex(new THREE.Vector3().fromBufferAttribute(p, i).applyQuaternion(q).add(at), new THREE.Vector3().fromBufferAttribute(n, i).applyQuaternion(q), part);
+      if (g.index) for (const k of g.index.array) idx.push(start + k);
+      g.dispose();
+    };
+    const tube = (a: THREE.Vector3, b: THREE.Vector3, r0: number, r1: number, part = 2, open = false) => {
+      const d = b.clone().sub(a), q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+      append(new THREE.CylinderGeometry(r1, r0, d.length(), 12, Math.max(1, Math.ceil(d.length() / 1.5)), open), a.clone().add(b).multiplyScalar(0.5), q, part);
+    };
     for (const pc of pieces) {
-      // the plating
-      const NS = Math.round((pc.s1 - pc.s0) * 120), NP = 26, start = P.length / 3;
-      for (let i = 0; i <= NS; i++) for (let j = 0; j <= NP; j++) {
-        const s = pc.s0 + (pc.s1 - pc.s0) * i / NS, ph = -Math.PI / 2 + Math.PI * j / NP;
-        hull(s, ph, 0, _a);
-        const ds = 0.004, dp = 0.02;
-        const tS = hull(Math.min(1, s + ds), ph, 0, new THREE.Vector3()).sub(hull(Math.max(0, s - ds), ph, 0, _c));
-        const tP = hull(s, ph + dp, 0, new THREE.Vector3()).sub(hull(s, ph - dp, 0, _c));
-        _n.crossVectors(tS, tP).normalize();
-        if (_n.dot(_b.set(0, _a.y - dep(s) * 0.55, _a.z)) < 0) _n.negate();   // (outward, away from her middle)
-        place(pc, _a.x, _a.y, _a.z, _v); rotN(pc, _n);
-        push(_v, _n, 0, s, ph);
-        if (_n.y > 0.75 && R() < 0.1) this.up.push({ p: _v.clone(), n: _n.clone() });
+      const point = (s: number, ph: number, inset = 0) => place(pc, hull(s, ph, inset));
+      // Physical missing plates: only surviving panels contribute to the conservative height map.
+      // No fragment discard. The deck side is open; most upper midship plating has fallen away.
+      const NS = Math.ceil((pc.s1 - pc.s0) * L / 0.85), NP = 24;
+      for (let i = 0; i < NS; i++) for (let j = 0; j < NP; j++) {
+        const s0 = pc.s0 + (pc.s1 - pc.s0) * i / NS, s1 = pc.s0 + (pc.s1 - pc.s0) * (i + 1) / NS;
+        const s = (s0 + s1) / 2, ph0 = -Math.PI / 2 + j / NP * Math.PI, ph1 = ph0 + Math.PI / NP;
+        const noise = (Math.sin(i * 17.13 + j * 71.7) * 43758.5453) % 1;
+        const mid = s > 0.16 && s < 0.83, broken = pc === pieces[0] ? i >= NS - 3 : i < 3;
+        if ((mid && j > 13 && (j > 16 || Math.abs(noise) > 0.38)) || (broken && j > 4 && Math.abs(noise) > 0.26)) continue;
+        // Shared jittered corners make torn plating irregular rather than a staircase of squares.
+        const tornPoint = (s: number, ph: number) => {
+          const exposed = ph > 0.10 && s > 0.13 && s < 0.87;
+          const ds = exposed ? Math.sin(s * 751 + ph * 31) * 0.0022 : 0;
+          const dp = exposed ? Math.sin(s * 913 - ph * 37) * 0.037 : 0;
+          return point(Math.max(pc.s0, Math.min(pc.s1, s + ds)), Math.max(-Math.PI / 2, Math.min(Math.PI / 2, ph + dp)));
+        };
+        const v = [tornPoint(s0, ph0), tornPoint(s1, ph0), tornPoint(s1, ph1), tornPoint(s0, ph1)];
+        const n = v[1].clone().sub(v[0]).cross(v[3].clone().sub(v[0])).normalize();
+        const out = rotate(pc, new THREE.Vector3(0, hull(s, (ph0 + ph1) / 2).y - dep(s) * 0.6, hull(s, (ph0 + ph1) / 2).z));
+        if (n.dot(out) < 0) n.negate();
+        const base = P.length / 3;
+        // Inner skin plus edge returns give the corroded plate an actual 6 cm thickness.
+        for (const inside of [false, true]) for (let k = 0; k < 4; k++) vertex(v[k].clone().addScaledVector(n, inside ? -0.06 : 0), inside ? n.clone().negate() : n, 0, k === 0 || k === 3 ? s0 : s1, k < 2 ? ph0 : ph1);
+        idx.push(base, base + 1, base + 2, base, base + 2, base + 3, base + 4, base + 6, base + 5, base + 4, base + 7, base + 6);
+        for (let k = 0; k < 4; k++) { const a = base + k, b = base + (k + 1) % 4; idx.push(a, b, b + 4, a, b + 4, a + 4); }
+        if (n.y > 0.68 && R() < 0.06) this.up.push({ p: v[0].clone().add(v[2]).multiplyScalar(0.5), n: n.clone() });
       }
-      for (let i = 0; i < NS; i++) for (let j = 0; j < NP; j++) { const a = start + i * (NP + 1) + j, b = a + NP + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
-      // the frames (ribs) inside her, every 1.8 m, and a deck beam across at the top of each
-      for (let x = Math.ceil(pc.s0 * L / 1.8) * 1.8; x < pc.s1 * L - 0.5; x += 1.8) {
-        const s = x / L, w = 0.32 / L, fs = P.length / 3, NF = 18;
-        for (let j = 0; j <= NF; j++) {
-          const ph = -Math.PI / 2 + Math.PI * j / NF;
-          for (const k of [-1, 1]) {
-            hull(s + k * w * 0.5, ph, 0.28, _a); _n.set(0, -Math.cos(ph), -Math.sin(ph) * 0.5).normalize();
-            place(pc, _a.x, _a.y, _a.z, _v); rotN(pc, _n); push(_v, _n, 1, s, ph);
-          }
+      let frame = 0;
+      for (let x = Math.ceil((pc.s0 * L + 0.6) / 1.85) * 1.85; x < pc.s1 * L - 0.5; x += 1.85, frame++) {
+        const s = x / L, NF = 18;
+        // Near the break, some ribs have lost their upper tips; away from it the rhythm stays legible.
+        const edge = Math.min(s - pc.s0, pc.s1 - s) * L;
+        const last = edge < 5 ? 13 + frame % 4 : NF;
+        for (let j = 0; j < last; j++) {
+          const a = point(s, -Math.PI / 2 + j / NF * Math.PI, 0.18), b = point(s, -Math.PI / 2 + (j + 1) / NF * Math.PI, 0.18);
+          beam(a, b, 0.17, 0.24);
+          if (j === last - 1 && last === NF && frame % 2 === 0) this.up.push({ p: b.clone(), n: new THREE.Vector3(0, 1, 0) });
         }
-        for (let j = 0; j < NF; j++) { const a = fs + j * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-        if (Math.round(x / 1.8) % 2 === 0) {   // (every other frame a deck beam, the rest long since fallen)
-          const bs = P.length / 3, hb = half(s) - 0.3, y = dep(s) - 0.35;
-          for (const zz of [-hb, hb]) for (const k of [-1, 1]) { _n.set(0, 1, 0); place(pc, (s - 0.5) * L + k * 0.14, y, zz, _v); rotN(pc, _n); push(_v, _n, 1, s, 0); }
-          idx.push(bs, bs + 1, bs + 2, bs + 1, bs + 3, bs + 2);
+        // Surviving deck cross-members and small knees. Most of the wooden deck is gone.
+        if (frame % 3 !== 1 && edge > 3) {
+          const y = dep(s) - 0.18, x0 = (s - 0.5) * L, h = half(s) - 0.16;
+          beam(place(pc, new THREE.Vector3(x0, y, -h)), place(pc, new THREE.Vector3(x0, y, h)), 0.16, 0.22);
+          for (const side of [-1, 1]) beam(place(pc, new THREE.Vector3(x0, y, side * (h - 0.85))), place(pc, new THREE.Vector3(x0, y - 0.75, side * h)), 0.11, 0.14);
+        }
+      }
+      // Keel, bilge stringers and the two gunwales tie the transverse frames into a ship.
+      for (const ph of [-Math.PI / 2, -0.78, 0, 0.80, Math.PI / 2]) {
+        const count = Math.ceil((pc.s1 - pc.s0) * L / 1.5);
+        for (let i = 0; i < count; i++) {
+          if (ph > 1 && i > count * 0.3 && i < count * 0.8 && i % 7 === 0) continue;
+          beam(point(pc.s0 + (pc.s1 - pc.s0) * i / count, ph, 0.11), point(pc.s0 + (pc.s1 - pc.s0) * (i + 1) / count, ph, 0.11), ph === 0 ? 0.23 : 0.12, 0.16);
         }
       }
     }
-    // spars: a cylinder from a to b (world), radius r
-    const spar = (a: THREE.Vector3, b: THREE.Vector3, r0: number, r1: number, part: number) => {
-      const dir = b.clone().sub(a), len = dir.length(); dir.normalize();
-      const u = Math.abs(dir.y) < 0.9 ? new THREE.Vector3(0, 1, 0).cross(dir).normalize() : new THREE.Vector3(1, 0, 0);
-      const v = dir.clone().cross(u);
-      const st = P.length / 3, RN = 10, LN = Math.max(2, Math.round(len / 2));
-      for (let i = 0; i <= LN; i++) for (let k = 0; k < RN; k++) {
-        const t = i / LN, an = k / RN * Math.PI * 2, r = r0 + (r1 - r0) * t;
-        _n.copy(u).multiplyScalar(Math.cos(an)).addScaledVector(v, Math.sin(an));
-        _v.copy(a).addScaledVector(dir, len * t).addScaledVector(_n, r);
-        push(_v, _n, part, t, an);
-      }
-      for (let i = 0; i < LN; i++) for (let k = 0; k < RN; k++) { const a0 = st + i * RN + k, b0 = st + i * RN + (k + 1) % RN; idx.push(a0, a0 + RN, b0, b0, a0 + RN, b0 + RN); }
-    };
-    const shipPt = (pcI: number, x: number, y: number, z: number) => place(pieces[pcI], x, y, z, new THREE.Vector3());
-    // her masts, snapped off and lying out over the sand from where they stood (she lies on her side,
-    // so they point away along the seabed); the bowsprit; the funnel, fallen beside her
-    const sand = (p: THREE.Vector3, lift = 0.35) => { p.y = this.f(p.x, p.z) + lift; return p; };
-    const masts: [number, number, number][] = [[1, 0.78, 21], [1, 0.52, 14], [0, 0.3, 17]];
-    for (const [pi, s, ml] of masts) {
-      const foot = shipPt(pi, (s - 0.5) * L, dep(s) - 0.5, 0);
-      const tip = sand(shipPt(pi, (s - 0.5) * L + rr(-3, 3), dep(s) + ml, rr(-2, 2)), 0.3);
-      spar(foot, tip, 0.36, 0.2, 2);
+    const ship = (pi: number, s: number, y: number, z = 0) => place(pieces[pi], new THREE.Vector3((s - 0.5) * L, y, z));
+    const sand = (p: THREE.Vector3, lift = 0.25) => { p.y = f(p.x, p.z) + lift; return p; };
+    // A stem, a bowsprit fragment and a recognisable rudder plate instead of a thick vertical pole.
+    beam(ship(1, 1, 0.2), ship(1, 1, dep(1)), 0.19, 0.22);
+    tube(ship(1, 0.985, dep(1) - 0.5), ship(1, 1.072, dep(1) + 1.4), 0.22, 0.095);
+    beam(ship(0, -0.006, 0.2), ship(0, -0.006, 3.7), 0.19, 0.19);
+    const rudderQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(pieces[0].roll, spec.rot + pieces[0].yaw, 0, 'YXZ'));
+    append(new THREE.BoxGeometry(1.45, 2.85, 0.11), ship(0, -0.013, 1.9), rudderQ, 2);
+    // Two fallen spar remnants. Their exact present-day positions remain an art-study assumption.
+    for (const [pi, s, length] of [[0, 0.28, 15], [1, 0.76, 18]]) {
+      const a = ship(pi, s, dep(s) - 0.4), b = sand(ship(pi, s - 0.025, dep(s) + length, 0.6));
+      tube(a, b, 0.24, 0.10);
+      const c = a.clone().lerp(b, 0.7); tube(c.clone().addScaledVector(this.ax, -3.5), c.clone().addScaledVector(this.ax, 3.2), 0.10, 0.07);
     }
-    spar(shipPt(1, 0.5 * L - 0.5, dep(1) - 0.6, 0), shipPt(1, 0.5 * L + 9, dep(1) + 3.5, 0), 0.3, 0.14, 2);
-    const fa = sand(shipPt(1, (0.5 - 0.5) * L + 4, dep(0.5) + 2.5, -1), 1.15), fb = sand(fa.clone().addScaledVector(this.ax, 6), 1.15);
-    spar(fa, fb, 1.15, 1.1, 3);
-    // the rudder, still hung at her stern
-    { const a = shipPt(0, -0.5 * L - 0.6, 0.5, 0), b = shipPt(0, -0.5 * L - 0.6, 5.0, 0); spar(a, b, 0.9, 0.5, 2); }
-
+    // Hollow fallen funnel: annular rims, no solid end-cap masquerading as a chimney opening.
+    const fa = sand(ship(1, 0.53, D + 3), 1.08), fb = sand(fa.clone().addScaledVector(this.ax, 4.8), 1.05);
+    tube(fa, fb, 1.03, 0.97, 3, true); tube(fa, fb, 0.94, 0.88, 3, true);
+    const fq = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), fb.clone().sub(fa).normalize());
+    for (const [p, r] of [[fa, 0.985], [fb, 0.925]] as const) append(new THREE.TorusGeometry(r, 0.045, 6, 20), p, fq, 3);
+    // A small scatter confined to the break; no invented cargo or treasure.
+    for (let i = 0; i < 13; i++) {
+      const a = sand(ship(1, rr(0.435, 0.50), rr(0, D + 3), rr(-3, 3)), 0.14);
+      const b = sand(a.clone().addScaledVector(this.ax, rr(-2, 2)).addScaledVector(this.az, rr(-1.2, 1.2)), 0.14);
+      beam(a, b, rr(0.10, 0.18), 0.13, 2);
+    }
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
-    g.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1));
-    g.setAttribute('aSP', new THREE.Float32BufferAttribute(S, 2));
-    g.setIndex(idx);
-    this.geo = g;
-    this.centre = place(pieces[1], 0, dep(0.6) * 0.5, 0, new THREE.Vector3());
+    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+    g.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1)); g.setAttribute('aSP', new THREE.Float32BufferAttribute(S, 2)); g.setIndex(idx);
+    g.computeBoundingSphere(); this.geo = g;
+    this.centre = ship(1, 0.53, D * 0.45);
+    this.landmarks = { bow: ship(1, 0.94, D * 0.65), stern: ship(0, 0.08, D * 0.65), break: ship(1, 0.48, D * 0.4) };
   }
 
-  // somewhere a school would hang about her: along her, in her lee and over her upper side
   spot(out = new THREE.Vector3()) {
     const s = rr(-0.42, 0.45) * this.spec.len, side = rr(-1, 1) * this.spec.beam * 0.9;
     const x = this.spec.x + this.ax.x * s + this.az.x * side, z = this.spec.z + this.ax.z * s + this.az.z * side;
     return out.set(x, this.f(x, z) + rr(3, 11), z);
   }
-
-  // a slow glide along her, a few metres off the open deck side (where the frames stand bare and the
-  // light comes through them), at half her height, looking in; reversed, from bow to stern
   readonly tourLength = 70;
   tourStart(rev: boolean) { const p = new THREE.Vector3(), l = new THREE.Vector3(); this.tourAt(0, rev, p, l); return p; }
   tourAt(t: number, rev: boolean, pos: THREE.Vector3, look: THREE.Vector3) {
     const k = Math.min(1, Math.max(0, t / this.tourLength)), e = k * k * (3 - 2 * k), s = (rev ? 0.46 - 0.9 * e : -0.44 + 0.9 * e) * this.spec.len;
-    const off = -(this.spec.depth + 10);   // (off the deck side, rolled to face away across the sand: well clear of her)
+    const off = -(this.spec.depth + 10);
     const x = this.spec.x + this.ax.x * s + this.az.x * off, z = this.spec.z + this.ax.z * s + this.az.z * off;
     pos.set(x, this.f(x, z) + 5 + Math.sin(k * 6) * 0.8, z);
-    // looking in at her, a little ahead: the frames standing open, the dark inside, the light through her
     const ls = s + (rev ? -10 : 10), lx = this.spec.x + this.ax.x * ls - this.az.x * this.spec.depth * 0.5, lz = this.spec.z + this.ax.z * ls - this.az.z * this.spec.depth * 0.5;
     look.set(lx, this.f(lx, lz) + 4, lz);
   }
 }
 
-// Her material: iron, rusted and long since crusted over — coralline pinks and greys, orange and
-// yellow sponge, the red and purple of soft corals on the faces that catch the light, dark inside her.
-// Plating is holed amidships (rotted through), and gone in a ragged line where she broke.
 export function wreckMaterial() {
   return mat(
     `attribute float aPart; attribute vec2 aSP; varying vec3 vWp; varying vec3 vN; varying float vPart; varying vec2 vSP;
      void main(){ vWp = position; vN = normal; vPart = aPart; vSP = aSP; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
     SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vPart; varying vec2 vSP;
      void main(){
-       float s = vSP.x, ph = vSP.y;
+       vec3 n = normalize(vN), V = normalize(uCamPos - vWp); float inside = step(dot(n, V), 0.0); n *= 1.0 - 2.0 * inside;
+       vec3 p = vWp; vec2 q = p.xz + vec2(p.y * 0.63, -p.y * 0.4);
+       float a = vn2(q * 0.48), b = vn2(q * 2.3 + 7.0), c = vn2(q * 14.0 - 3.0);
+       vec3 alb = mix(vec3(0.22, 0.16, 0.12), vec3(0.42, 0.40, 0.31), smoothstep(0.25, 0.73, a));
+       alb = mix(alb, vec3(0.47, 0.31, 0.34), smoothstep(0.58, 0.78, b) * 0.5);
+       alb = mix(alb, vec3(0.63, 0.37, 0.15), smoothstep(0.77, 0.88, vn2(q * 3.0 + 22.0)) * 0.5);
+       float up = smoothstep(0.15, 0.9, n.y);
+       alb = mix(alb, vec3(0.47, 0.44, 0.35), up * smoothstep(0.4, 0.8, a) * 0.35);
        if (vPart < 0.5) {
-         // rotted through amidships: big ragged holes in the plating, where the frames show
-         float mid = smoothstep(0.2, 0.32, s) * (1.0 - smoothstep(0.7, 0.8, s));
-         float hole = vn2(vec2(s * 34.0, ph * 3.2) + 4.0) * 0.75 + vn2(vec2(s * 110.0, ph * 9.0)) * 0.25;
-         if (hole > 0.62 - 0.22 * mid && mid > 0.05 && ph > 0.35) discard;   // (her upper, starboard side: the one lying on the sand is whole)
-         // and torn away where she broke
-         float brk = min(abs(s - 0.44), abs(s - 0.465)) - 0.012 * vn2(vec2(ph * 6.0, s * 50.0));
-         if (brk < 0.008) discard;
+         vec2 plate = vec2(vSP.x * 45.0, vSP.y * 3.2);
+         vec2 edge = min(fract(plate), 1.0 - fract(plate));
+         float seam = 1.0 - smoothstep(0.012, 0.04, min(edge.x, edge.y));
+         float rivet = (1.0 - smoothstep(0.09, 0.18, length(vec2(edge.x * 13.0 - 0.45, fract(plate.y * 9.0) - 0.5)))) * 0.16;
+         alb *= 1.0 - seam * 0.20 + rivet;
        }
-       vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
-       bool inside = dot(n, V) < 0.0; if (inside) n = -n;
-       vec3 p = vWp;
-       float a = vn2(p.xz * 0.35 + p.y * 0.2), b = vn2(p.xz * 1.3 - p.y * 0.4 + 7.0), c = vn2(p.xz * 3.1 + p.y * 1.1 - 3.0);
-       vec3 rust = vec3(0.34, 0.2, 0.12), crust = vec3(0.42, 0.42, 0.36);
-       vec3 alb = mix(rust, crust, smoothstep(0.3, 0.6, a));
-       alb = mix(alb, vec3(0.62, 0.4, 0.46), smoothstep(0.6, 0.8, b) * 0.7);            // coralline algae
-       alb = mix(alb, vec3(0.78, 0.48, 0.18), smoothstep(0.72, 0.86, c) * 0.7);          // orange sponge
-       alb = mix(alb, vec3(0.8, 0.7, 0.3), smoothstep(0.78, 0.9, vn2(p.xz * 2.2 + 13.0)) * 0.5);   // yellow sponge
-       // soft corals on what faces up and into the current: red, pink and purple tufts
-       float up = smoothstep(0.3, 0.8, n.y);
-       float tuft = smoothstep(0.55, 0.75, vn2(p.xz * 4.0 + p.y * 2.0) * 0.6 + vn2(p.xz * 11.0) * 0.4);
-       vec3 soft = mix(vec3(0.62, 0.24, 0.3), vec3(0.5, 0.28, 0.5), vn2(p.xz * 0.8 + 21.0));
-       alb = mix(alb, soft, tuft * up * smoothstep(0.45, 0.65, vn2(p.xz * 0.5 + 30.0)) * 0.6);
-       // rivet lines and plate seams on the plating, still showing under the growth
-       if (vPart < 0.5) { float seam = 1.0 - smoothstep(0.0, 0.05, abs(fract(s * 45.0) - 0.5) - 0.44); alb *= 1.0 - 0.3 * seam * (1.0 - smoothstep(0.4, 0.7, a)); }
-       if (vPart > 2.5) alb = mix(alb, vec3(0.25, 0.16, 0.1), 0.4);                       // (the funnel)
-       float h = a * 0.6 + b * 0.3 + c * 0.4 + tuft * up * 0.6;
-       n = bumpN(n, vWp, h * 0.06);
-       vec3 col = shade(alb, vWp, n, 0.5);
-       if (inside) col *= 0.7;                                                           // (in her shadow)
-       gl_FragColor = vec4(col, 1.0);
-     }`,
-    { uniforms: { ...SURF_UNIFORMS }, opts: { side: THREE.DoubleSide } });
+       if (vPart > 2.5) alb *= 0.75;
+       n = bumpN(n, p, a * 0.025 + b * 0.016 + c * 0.009);
+       gl_FragColor = vec4(shade(alb, p, n, 0.65) * mix(1.0, 0.82, inside), 1.0);
+     }`, { uniforms: { ...SURF_UNIFORMS }, opts: { side: THREE.DoubleSide } });
 }
