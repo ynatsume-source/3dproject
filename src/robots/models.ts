@@ -7,7 +7,34 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 
 export interface Mats { shell: THREE.Material; accent: THREE.Material; teal: THREE.Material; joint: THREE.Material; dark: THREE.Material; glow: THREE.Material; warm: THREE.Material; panel: THREE.Material; stone: THREE.Material }
 export type Act = 'demo' | 'idle' | 'walk' | 'work' | 'carry' | 'sleep' | 'swim' | 'float' | 'wave' | 'look' | 'think' | 'pick' | 'hammer' | 'chop' | 'dig' | 'sit' | 'dive' | 'eat' | 'groom' | 'graze' | 'bask' | 'breathe';
-export interface Pose { act: Act; walk: number; night?: number; wet?: boolean; k?: number; food?: string }   // (k: how far through what it is doing)
+export interface Pose {
+  act: Act; walk: number; night?: number; wet?: boolean; k?: number; food?: string;   // (k: how far through what it is doing)
+  // (from the island; the design gallery leaves them out and the cycles run on the clock instead)
+  stride?: number;                    // how far it has walked (m, turning on the spot counted at the feet): the legs keep pace with it
+  look?: [number, number, number];    // what it is looking at, in its own frame (x right, y up, z ahead; scaled with it)
+  key?: number; elapsed?: number;     // which spell of doing something this is, and how long it has been at it (s)
+}
+// the phase of a gait: from the distance walked when there is one (so feet do not slide, and stop when it
+// stops), else from the clock at the given rate
+export const gaitPhase = (p: Pose, t: number, perStride: number, rate: number) => (p.stride !== undefined ? p.stride / perStride * Math.PI * 2 : t * rate);
+// turning the head (or what serves) toward what it looks at: yaw and pitch (down positive) toward the target,
+// limited to what the neck can do, eased so the glance lands a moment after it is given
+export function makeGaze(yawMax: number, pitchUp: number, pitchDown: number, rate = 5) {
+  const g = { yaw: 0, pitch: 0, w: 0 };
+  return Object.assign(g, {
+    step(p: Pose, dt: number, eyeY: number) {
+      let ty = 0, tp = 0;
+      if (p.look) {
+        const [x, y, z] = p.look, h = Math.hypot(x, z);
+        ty = Math.max(-yawMax, Math.min(yawMax, Math.atan2(x, z)));
+        tp = Math.max(-pitchUp, Math.min(pitchDown, Math.atan2(eyeY - y, Math.max(h, 0.2))));
+      }
+      const k = Math.min(1, dt * rate);
+      g.yaw += (ty - g.yaw) * k; g.pitch += (tp - g.pitch) * k; g.w += ((p.look ? 1 : 0) - g.w) * Math.min(1, dt * 3);
+      return g;
+    },
+  });
+}
 export interface Robot { root: THREE.Group; update(t: number, dt: number, pose?: Pose): void; carry?: THREE.Object3D; light?: THREE.Object3D; hand?: THREE.Object3D }
 const DEMO: Pose = { act: 'demo', walk: 1 };
 
@@ -54,8 +81,10 @@ export function robotKit(M: Mats, shadows = false) {
     const axeHead = box(0.02, 0.1, 0.08, 0.01, M.joint); axeHead.position.y = 0.04; const axe = tool(0.34, axeHead, 0.15);
     const hoeHead = box(0.12, 0.012, 0.07, 0.004, M.joint); hoeHead.position.y = -0.03; const hoe = tool(0.5, hoeHead, 0.24);
     let blink = 2, look = 0, lookT = 1, sleepK = 0, crouchK = 0, sitK = 0;
+    const gaze = makeGaze(1.1, 0.5, 0.7);
     return { root, carry, update(t, dt, p = DEMO) {
-      const walk = p.act === 'demo' ? 1 : p.walk, w = t * 4.2;
+      const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, 0.9, 4.2);
+      gaze.step(p, dt, 0.86);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 2);
       crouchK += ((p.act === 'pick' || p.act === 'dig' ? 1 : 0) - crouchK) * Math.min(1, dt * 4);
       sitK += ((p.act === 'sit' ? 1 : 0) - sitK) * Math.min(1, dt * 2);
@@ -83,10 +112,13 @@ export function robotKit(M: Mats, shadows = false) {
       if ((blink -= dt) < 0) blink = 2 + Math.random() * 3;
       const b = sleepK > 0.5 ? 0.08 : blink < 0.12 ? 0.1 : 1;
       if ((lookT -= dt) < 0) { lookT = 1 + Math.random() * 2; look = (Math.random() - 0.5) * 0.05; }
-      eyes.forEach((e, i) => { e.scale.y += (b - e.scale.y) * Math.min(1, dt * 30); e.position.x += ((i ? 1 : -1) * 0.08 + look - e.position.x) * Math.min(1, dt * 8); });
+      eyes.forEach((e, i) => { e.scale.y += (b - e.scale.y) * Math.min(1, dt * 30); e.position.x += ((i ? 1 : -1) * 0.08 + look + gaze.yaw * gaze.w * 0.035 - e.position.x) * Math.min(1, dt * 8); });
       mouth.scale.x = wave ? 1.8 : p.act === 'work' ? 0.5 : 1;
       const busy = p.act === 'work' || p.act === 'pick' || p.act === 'hammer' || p.act === 'chop' || p.act === 'dig';
       head.rotation.y = busy ? 0 : Math.sin(t * 0.7) * 0.25 * (1 - sleepK); head.rotation.x = busy ? 0.35 + crouchK * 0.2 : Math.sin(t * 0.5) * 0.06 + sleepK * 0.3 - sitK * 0.1;
+      // looking at something: the head turns to it (the idle glancing about gives way)
+      const gw = gaze.w * (1 - sleepK);
+      head.rotation.y += (gaze.yaw - head.rotation.y) * gw; head.rotation.x += (gaze.pitch * 0.8 - head.rotation.x) * gw * (busy ? 0.4 : 1);
       glowColor(M.warm)?.setHSL?.(0.11, 1, (0.55 + 0.25 * Math.sin(t * 3)) * (1 - sleepK * 0.6));
     } };
   }
@@ -222,15 +254,19 @@ export function robotKit(M: Mats, shadows = false) {
       return { a, b, i };
     });
     let sleepK = 0;
+    const gaze = makeGaze(0.45, 0.4, 0.5, 3);
     return { root, light: lamp, update(t, dt, p = DEMO) {
-      const walk = p.act === 'demo' ? 1 : p.walk, w = t * 3;
+      const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, 1.6, 3);
+      gaze.step(p, dt, 0.59);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 1.5);
       legs.forEach((l) => { const ph = w + [0, Math.PI, Math.PI, 0][l.i]; l.a.pivot.rotation.x = -1.15 - Math.max(0, Math.sin(ph)) * 0.3 * walk + sleepK * 0.3; l.a.pivot.rotation.z = Math.cos(ph) * 0.18 * walk; l.b.pivot.rotation.x = 0.95 + sleepK * 0.4; });
       body.position.y = Math.sin(w * 2) * 0.012 * walk - sleepK * 0.22; body.rotation.x = Math.sin(t * 0.6) * 0.04 + (p.act === 'think' ? -0.25 : 0);   // thinking: face tipped up to the sky
       const think = 0.5 + 0.5 * Math.sin(t * (p.act === 'think' ? 3.2 : 1.6));
       glowColor(ringMat)?.setHSL?.(0.5 - think * 0.05, 0.85, (0.55 + 0.25 * think) * (1 - sleepK * 0.75));
       ring.scale.setScalar(0.95 + 0.08 * think);
-      dotEye.position.x = Math.sin(t * 0.7) * 0.05;
+      // no head: it looks with the whole box, turned and tipped a little, and the dot of its eye
+      body.rotation.y = gaze.yaw * gaze.w * (1 - sleepK); body.rotation.x += gaze.pitch * 0.5 * gaze.w * (1 - sleepK);
+      dotEye.position.x = Math.sin(t * 0.7) * 0.05 * (1 - gaze.w) + Math.max(-0.06, Math.min(0.06, gaze.yaw * 0.12)) * gaze.w;
       lamp.visible = (p.night ?? 0) > 0.4 && p.act !== 'sleep';
     } };
   }

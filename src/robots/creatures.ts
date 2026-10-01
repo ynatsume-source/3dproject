@@ -7,7 +7,7 @@
 // comes up to breathe, sleeps on the bottom, hauls out to bask with its flippers spread, and on land heaves
 // itself along the sand with both fore-flippers at once. Nose at +z, as for the robots.
 import * as THREE from 'three';
-import type { Robot, Pose } from './models';
+import { type Robot, type Pose, gaitPhase, makeGaze } from './models';
 
 export interface CMats {
   fur: THREE.Material; furPale: THREE.Material; furDark: THREE.Material; nose: THREE.Material; eye: THREE.Material;
@@ -128,8 +128,11 @@ export function creatureKit(M: CMats, shadows = false) {
     const F = foods(); hand.add(F.g);
     let backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, pitch = 0, roll = 0;
     const keepStone = !!L.stone;
+    const gaze = makeGaze(1.0, 0.5, 0.6);
     return { root, hand, update(t, dt, p = DEMO) {
       const act = p.act, wet = !!p.wet, k = p.k ?? 0, walk = act === 'demo' ? 0 : Math.min(1, p.walk);
+      const gw5 = gaitPhase(p, t, 0.44, 5);   // (its waddle ashore)
+      gaze.step(p, dt, 0.4);
       // on its back: floating, eating, cracking, grooming, sleeping in the water (and talking, in the water)
       const backish = wet && (act === 'float' || act === 'sleep' || act === 'eat' || act === 'work' || act === 'groom' || act === 'idle' || act === 'look' || act === 'sit' || act === 'demo');
       backK = ease(backK, backish ? 1 : 0, dt, 1.6);
@@ -147,17 +150,18 @@ export function creatureKit(M: CMats, shadows = false) {
       body.rotation.set(pitch, 0, roll, 'YXZ');
       // its height: on its back it rides high, belly and chest out of the water; swimming it lies lower
       const bob = Math.sin(t * 1.3) * 0.012;
-      body.position.y = landK * (0.18 + Math.abs(Math.sin(t * 5)) * 0.02 * walk) + (1 - landK) * (backK * -0.02 + swimK * -0.05 + bob);
+      body.position.y = landK * (0.18 + Math.abs(Math.sin(gw5)) * 0.02 * walk) + (1 - landK) * (backK * -0.02 + swimK * -0.05 + bob);
       // the head: up off the water on its back (looking along its chest at its paws), turning as it looks about
       const chew = act === 'eat' || (act === 'work' && Math.sin(t * 0.8) > 0.6) ? Math.max(0, Math.sin(t * 9)) : 0;
       head.rotation.x = backK * (0.55 + (act === 'eat' ? 0.25 : 0) + sleepK * 0.45) - landK * (act === 'pick' ? -0.5 : 0.05) + diveK * 0.15;
       head.rotation.y = Math.sin(t * 0.4) * 0.35 * (1 - sleepK) * (1 - diveK) * (act === 'eat' || act === 'work' ? 0.2 : 1);
+      { const w = gaze.w * (1 - sleepK) * (1 - diveK) * (1 - backK * 0.6); head.rotation.y += (gaze.yaw - head.rotation.y) * w; head.rotation.x += gaze.pitch * 0.7 * w * (1 - backK); }
       jaw.rotation.x = chew * 0.35;
       // forepaws: walking on land; tucked to the chest swimming; groping ahead along the bottom; holding food
       // up to the mouth; pounding a clam on the stone; rubbing the fur; folded over the eyes asleep
       arms.forEach((ar, i) => {
         let rx = 0, rz = ar.sx * 0.1;
-        if (landK > 0.5) rx = Math.sin(t * 5 + i * Math.PI) * 0.5 * walk + (act === 'pick' ? -0.6 : 0);
+        if (landK > 0.5) rx = Math.sin(gw5 + i * Math.PI) * 0.5 * walk + (act === 'pick' ? -0.6 : 0);
         else if (act === 'dive') rx = k > 0.15 && k < 0.85 ? -0.9 + Math.sin(t * 6 + i * 2) * 0.45 : 1.3;
         else if (act === 'sleep') rx = -1.25;
         else if (act === 'eat') rx = -0.15 - 0.45 * sm(0.2, 0.9, Math.sin(t * 2.2)) + (i ? 0.05 : 0);
@@ -170,7 +174,7 @@ export function creatureKit(M: CMats, shadows = false) {
       // hind flippers: paddling on land; stroking up and down together swimming and diving; up in the air on its back
       feet.forEach((f, i) => {
         const stroke = Math.sin(t * (diveK > 0.5 ? 5 : 3.2) + (swimK > 0.5 || diveK > 0.5 ? 0 : i * Math.PI));
-        f.f.rotation.set(landK * (-0.55 + Math.sin(t * 5 + i * Math.PI + 1) * 0.35 * walk) + (swimK + diveK) * stroke * 0.5 - backK * (0.35 + Math.sin(t * 0.9 + i) * 0.12), f.sx * 0.15, 0);
+        f.f.rotation.set(landK * (-0.55 + Math.sin(gw5 + i * Math.PI + 1) * 0.35 * walk) + (swimK + diveK) * stroke * 0.5 - backK * (0.35 + Math.sin(t * 0.9 + i) * 0.12), f.sx * 0.15, 0);
       });
       tail.rotation.x = (swimK + diveK) * Math.sin(t * 3.2 - 0.8) * 0.3 - backK * 0.25;
       tail.rotation.y = backK * Math.sin(t * 0.6) * 0.15;
@@ -489,20 +493,24 @@ export function creatureKit(M: CMats, shadows = false) {
     const fronts = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.28, 0.0, 0.22); body.add(f); const bl = cell(0.15, 0.035, 0.075, skin); bl.position.set(sx * 0.11, 0, -0.02); bl.rotation.y = sx * 0.35; f.add(bl); return { f, sx }; });
     const backs = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.18, -0.01, -0.36); body.add(f); const bl = cell(0.075, 0.03, 0.06, skin); bl.position.set(sx * 0.05, 0, -0.03); bl.rotation.y = -sx * 0.5; f.add(bl); return { f, sx }; });
     let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3;
+    const gaze = makeGaze(0.9, 0.4, 0.6, 2.5);   // (slow to turn its head)
     return { root, update(t, dt, p = DEMO) {
       const act = p.act, wet = !!p.wet, walk = act === 'demo' ? 0.5 : Math.min(1, p.walk);
+      const g14 = gaitPhase(p, t, 1.0, 1.4);   // (the heave of its flippers ashore)
+      gaze.step(p, dt, 0.2);
       landK = ease(landK, wet ? 0 : 1, dt, 2); swimK = ease(swimK, wet && (act === 'swim' || act === 'walk') ? 1 : 0, dt, 1.5);
       grazeK = ease(grazeK, act === 'graze' ? 1 : 0, dt, 1.5); sleepK = ease(sleepK, act === 'sleep' ? 1 : 0, dt, 1); baskK = ease(baskK, act === 'bask' ? 1 : 0, dt, 1);
       upK = ease(upK, act === 'breathe' || (wet && (act === 'float' || act === 'idle' || act === 'look' || act === 'sit')) ? 1 : 0, dt, 1.5);
-      const beat = t * 1.6, stroke = Math.sin(beat), heave = Math.sin(t * 1.4) * walk * landK;
+      const beat = t * 1.6, stroke = Math.sin(beat), heave = Math.sin(g14) * walk * landK;
       fronts.forEach((fl) => fl.f.rotation.set(swimK * Math.cos(beat) * 0.3, fl.sx * (landK * heave * 0.5 + sleepK * 0.5), fl.sx * (-swimK * stroke * 0.6 + landK * (-0.15 + heave * 0.2) - grazeK * 0.2 + baskK * 0.1)));
-      backs.forEach((bl, i) => bl.f.rotation.set(landK * Math.max(0, Math.sin(t * 1.4 + i * Math.PI)) * 0.3 * walk, bl.sx * Math.sin(t * 0.7 + i) * 0.15 * swimK, 0));
+      backs.forEach((bl, i) => bl.f.rotation.set(landK * Math.max(0, Math.sin(g14 + i * Math.PI)) * 0.3 * walk, bl.sx * Math.sin(t * 0.7 + i) * 0.15 * swimK, 0));
       body.position.y = landK * (0.12 + Math.max(0, heave) * 0.04) + (1 - landK) * swimK * stroke * 0.012;
       body.rotation.x = -Math.max(0, heave) * 0.06 + swimK * Math.sin(beat - 1) * 0.04 - upK * 0.3 + grazeK * 0.18;
       const tug = grazeK * Math.pow(Math.max(0, Math.sin(t * 2.4)), 4);
       neckG.rotation.x = -upK * 0.3 + grazeK * (0.5 + tug * 0.2) + sleepK * 0.25 + baskK * 0.3 - landK * 0.15 * (1 - baskK);
       neckG.rotation.y = Math.sin(t * 0.3) * 0.35 * (1 - sleepK) * (1 - grazeK);
       head.rotation.z = Math.sin(t * 0.45) * 0.08 * (1 - sleepK);
+      { const w = gaze.w * (1 - sleepK) * (1 - grazeK * 0.7); neckG.rotation.y += (gaze.yaw - neckG.rotation.y) * w; neckG.rotation.x += gaze.pitch * 0.6 * w; }
       mossG.forEach((f, i) => { f.rotation.x = (odd ? 0 : f.position.z * 4) + Math.sin(t * 1.3 + i) * 0.15 * (wet ? 1 : 0.25) - swimK * 0.5; });
       if ((blink -= dt) < 0) blink = 3 + Math.random() * 3;
       const shut = sleepK > 0.5 || baskK > 0.5 ? 0.12 : blink < 0.15 ? 0.15 : 1;

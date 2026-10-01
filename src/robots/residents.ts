@@ -157,6 +157,9 @@ export interface Resident {
   diary: Entry[];
   subject: Subject; blocked: number;
   path?: { pts: [number, number][]; tx: number; tz: number; t: number };   // the way it means to walk (robots/path.ts)
+  // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
+  // is going, what it is looking at, and which spell of doing something this is and for how long
+  mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null };
   lightK?: number;
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
   held: THREE.Mesh;
@@ -206,6 +209,7 @@ const hhmm = (ms: number) => { const h = localHour(ms); return `${Math.floor(h)}
 
 const KEY = 'seaglass.residents.v1';
 
+const _lv = new THREE.Vector3();
 export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: string[]): Residents {
   const L = { h: (x: number, z: number) => loc.f(x, z) };
   const kit = robotKit(mats()), ckit = creatureKit(cmats());
@@ -398,7 +402,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     group.add(model.root);
     const r: Resident = {
       id: sp.id, v: VOICES[sp.id], sp, model,
-      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
+      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, mo: { stride: 0, px: NaN, pz: 0, ph: 0, gait: 0, key: 0, t: 0, act: '', task: null, look: null }, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
       task: null, walk: 0, act: 'idle', wet: false, talk: null, saying: '', sayT: 0,
       stats: { built: 0, notes: 0, shells: 0, cracked: 0, visited: 0, cairns: 0, wood: 0, food: 0, felled: 0 },
       today: [], diary: [], blocked: 0,
@@ -1018,7 +1022,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const act: Act = r.id === 'dot' ? r.act : r.act === 'sit' ? (r.wet ? 'float' : 'idle') : !r.sp.living && (r.act === 'pick' || r.act === 'hammer' || r.act === 'chop' || r.act === 'dig') ? 'work' : r.act;
         const tk = r.task, k = tk && tk.arrived ? Math.min(1, tk.t / tk.dur) : 0;
         const food = tk?.kind === 'eat' ? tk.data : tk?.kind === 'forage' && k > 0.8 ? tk.data : '';   // (coming up with it in its paws)
-        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: Math.min(1, r.walk), night: 1 - dayK(localHour(ms)), wet: r.wet, k, food });
+        // the body's own account: the feet keep pace with the ground actually covered (turning on the spot
+        // moves them too, round the body), a new spell begins when what it is doing changes
+        const mo = r.mo, FOOT = r.id === 'lantern' ? 0.28 : r.id === 'kame' ? 0.3 : r.id === 'rakko' ? 0.15 : 0.12;
+        const moved = Number.isNaN(mo.px) ? 0 : Math.hypot(r.pos.x - mo.px, r.pos.z - mo.pz), turned = Math.abs(Math.atan2(Math.sin(r.head - mo.ph), Math.cos(r.head - mo.ph)));
+        const jump = moved > 2 || turned > 1.5;   // (back in view after a while, or set down somewhere: not a step)
+        if (!jump) mo.stride += moved + turned * FOOT;
+        mo.px = r.pos.x; mo.pz = r.pos.z; mo.ph = r.head;
+        const pace = jump ? 0 : (moved + turned * FOOT) / Math.max(dt, 1e-3) / (r.wet ? r.sp.swimSpeed || r.sp.speed : r.sp.speed);
+        mo.gait += (Math.min(1, pace) - mo.gait) * Math.min(1, dt * 6);   // (settling as it stops, not snapping still)
+        if (act !== mo.act || tk !== mo.task) { mo.key++; mo.t = 0; mo.act = act; mo.task = tk; } else mo.t += dt;
+        let look: [number, number, number] | undefined;
+        if (mo.look) { r.model.root.updateMatrixWorld(); const v = r.model.root.worldToLocal(_lv.copy(mo.look)); look = [v.x, v.y, v.z]; }
+        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: mo.gait, night: 1 - dayK(localHour(ms)), wet: r.wet, k, food, stride: mo.stride, look, key: mo.key, elapsed: mo.t });
         // what it has in its hands (Dot's arms hold a log themselves)
         if (r.model.carry) r.model.carry.visible = r.holding === 'wood';
         const hk = r.holding === 'wood' && r.model.carry ? '' : r.holding;
