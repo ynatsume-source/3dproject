@@ -1342,6 +1342,11 @@ export const MANTA_GEO = (() => {
     for (let i = 0; i <= L; i++) for (let j = 0; j <= C; j++) vert(sx * 0.13, 0.02, 0.28, 1, 0, 0, 2, [i / L, j / C, sx]);
     for (let i = 0; i < L; i++) for (let j = 0; j < C; j++) { const a = start + i * (C + 1) + j, b = a + C + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
   }
+  // the mouth: a wide, flat cavity that runs back into the head; it gapes when feeding (shaped in the shader)
+  { const start = pos.length / 3, L = 6, C = 24;
+    for (let i = 0; i <= L; i++) for (let j = 0; j <= C; j++) vert(0, 0, 0.3, 1, 0, 0, 3, [i / L, j / C, 0]);
+    for (let i = 0; i < L; i++) for (let j = 0; j < C; j++) { const a = start + i * (C + 1) + j, b = a + C + 1; idx.push(a, a + 1, b, a + 1, b + 1, b); }
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('aSide', new THREE.Float32BufferAttribute(side, 1));
@@ -1359,12 +1364,24 @@ export function mantaMaterial() {
      varying vec3 vWp; varying vec3 vL; varying float vSide; varying float vPart; varying vec2 vUV;
      void main(){
        vec3 p = position; float au = abs(aU);
-       if (aPart > 1.5) {
+       if (aPart > 2.5) {
+         // the mouth cavity: a flat rounded box from the lips back into the head, gaping as it feeds —
+         // a broad dark slot between the cephalic fins, its floor and roof lined with the gill rakers
+         float along = aCeph.x, a = aCeph.y * 6.28318;
+         float W = 0.112 * (1.0 - 0.25 * along), open = 0.004 + uFeed * 0.05;
+         float top = 0.006 + uFeed * 0.012 - along * 0.004, bot = -open * (1.0 - 0.35 * along);
+         float cx = cos(a), cy = sin(a);
+         float sx = sign(cx) * pow(abs(cx), 0.35), sy = sign(cy) * pow(abs(cy), 0.35);   // (a squarish section)
+         float x = sx * W, ax = abs(x);
+         float zf = 0.31 - 0.4 * pow(ax, 1.05) + 0.06 * sin(ax * 3.14159);
+         float mid = (top + bot) * 0.5, close = 1.0 - along * along;   // (narrowing to the throat at the back)
+         p = vec3(x, mid + (mix(bot, top, sy * 0.5 + 0.5) - mid) * close, zf - 0.004 - along * 0.13);
+       } else if (aPart > 1.5) {
          // cephalic fin: a strip that rolls into a horn, or unrolls and turns down into a funnel when feeding
-         float curl = 1.0 - uFeed, l = aCeph.x, c = aCeph.y - 0.5, sx = aCeph.z;
+         float curl = 1.0 - 0.7 * uFeed, l = aCeph.x, c = aCeph.y - 0.5, sx = aCeph.z;   // (feeding: unrolled, but still cupped, a funnel to the mouth)
          float len = 0.17, wid = 0.075;
          float R = wid / max(curl * 5.5, 0.02), th = c * wid / R;
-         vec3 fw = normalize(vec3(sx * 0.12 * (1.0 - uFeed) + sx * 0.25 * uFeed, -0.5 * uFeed, 1.0));
+         vec3 fw = normalize(vec3(sx * 0.12 * (1.0 - uFeed) - sx * 0.06 * uFeed, -0.32 * uFeed, 1.0));
          vec3 side = normalize(cross(vec3(0.0, 1.0, 0.0), fw)) * sx;
          vec3 up = cross(fw, side) * sx;
          p = vec3(sx * (0.12 + 0.02 * uFeed), 0.02, 0.27) + fw * l * len + side * (sin(th) * R) + up * ((1.0 - cos(th)) * R) * sx;
@@ -1380,9 +1397,10 @@ export function mantaMaterial() {
          p.y += sin(ph) * 0.36 * uAmp * pow(au, 1.6);
          p.z += cos(ph) * 0.04 * au;
          // the mouth opens: the lower jaw drops at the front of the head
-         if (aSide < 0.0) p.y -= uFeed * 0.045 * smoothstep(0.1, 0.0, aV) * smoothstep(0.13, 0.05, au);
+         if (aSide < 0.0) p.y -= uFeed * 0.054 * smoothstep(0.12, 0.0, aV) * smoothstep(0.135, 0.09, au);
+         else p.y += uFeed * 0.014 * smoothstep(0.06, 0.0, aV) * smoothstep(0.13, 0.09, au);
        }
-       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vL = position; vSide = aSide; vPart = aPart; vUV = vec2(aU, aV);
+       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vL = position; vSide = aSide; vPart = aPart; vUV = aPart > 2.5 ? vec2(p.x, aCeph.x) : vec2(aU, aV);
        gl_Position = projectionMatrix * viewMatrix * w;
      }`,
     `uniform float uSeed; uniform float uFeed; varying vec3 vWp; varying vec3 vL; varying float vSide; varying float vPart; varying vec2 vUV;
@@ -1391,7 +1409,15 @@ export function mantaMaterial() {
        float u = vUV.x, v = vUV.y, au = abs(u);
        vec3 black = vec3(0.03, 0.035, 0.045), white = vec3(0.9, 0.91, 0.88);
        vec3 alb;
-       if (vPart > 0.5) alb = mix(black, vec3(0.2), step(1.5, vPart) * 0.5 * (1.0 - uFeed));
+       if (vPart > 2.5) {
+         // inside the mouth: pale grey-pink lining near the lips, the gill rakers in fine ribbed bars
+         // across the roof and floor, and darkness deeper in
+         float along = vUV.y;
+         // (seen from in front: a dark slot, with the pale plates of the gill rakers standing in rows across it)
+         float rib = smoothstep(0.55, 0.9, sin(vUV.x * 340.0));
+         alb = mix(vec3(0.07, 0.06, 0.07), vec3(0.03), smoothstep(0.1, 0.5, along));
+         alb = mix(alb, vec3(0.55, 0.54, 0.56) * (1.0 - 0.5 * along), rib * smoothstep(0.15, 0.35, along) * (1.0 - smoothstep(0.8, 1.0, along)) * uFeed);
+       } else if (vPart > 0.5) alb = mix(black, vec3(0.2), step(1.5, vPart) * 0.5 * (1.0 - uFeed));
        else if (vSide > 0.0) {
          // back: black, with the reef manta's pale shoulder patches that run out from behind the head
          alb = black * (0.9 + 0.25 * vn2(vL.xz * 12.0 + uSeed));

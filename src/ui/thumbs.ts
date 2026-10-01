@@ -76,8 +76,9 @@ export function guideThumbs(loc: Sea, ids: string[], budget = Infinity): Record<
 
 // A big portrait of one animal from any side, close in on a point of it (?debug: for checking models)
 let studioR: THREE.WebGLRenderer | null = null;
-export function studio(loc: Sea, id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, w = 800, h = 500): string {
+export function studio(loc: Sea, id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}, w = 800, h = 500): string {
   const m = model(loc, id); if (!m) return '';
+  m.obj.traverse((o: any) => { const u = o.material?.uniforms; if (u) for (const k in set) if (u[k]) u[k].value = set[k]; });   // (e.g. a manta feeding: { uFeed: 1 })
   if (!studioR) { studioR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); studioR.setPixelRatio(1); }
   studioR.setSize(w, h, false);
   const keep = { sun: U.uSunDir.value.clone(), sunI: U.uSunI.value, amb: U.uAmb.value, fog: U.uFogDen.value, abs: U.uAbs.value.clone(), cam: U.uCamPos.value.clone(), lamp: U.uLamp.value, tint: U.uTint.value.clone() };
