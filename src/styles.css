@@ -579,3 +579,44 @@ body.dock-open #dock .opt { animation: softIn .55s ease both; }
 .b-rakko .crayon { width: 100%; border-radius: 10px; border: 3px solid #f0c88a; display: block; }
 .b-rakko .words { margin-top: 12px; } .b-rakko .words p { font-size: 17px; line-height: 2.1; margin: 0; border-bottom: 2px dashed #f0c88a; letter-spacing: .06em; }
 @media (max-width: 560px) { .b-kame .cols { grid-template-columns: 1fr; } .b-kame aside { border-left: 0; border-top: 1px dashed rgba(60, 110, 120, .5); padding: 8px 0 0; } .b-dot .nums { grid-template-columns: repeat(2, 1fr); } }
+
+/* ---------- quick controls: round glass buttons down the right edge, under the map ---------- */
+#quick { right: 16px; top: calc(196px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+#quick button { position: relative; width: 40px; height: 40px; border-radius: 50%; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: rgba(6, 22, 32, 0.32); border: 1px solid rgba(255, 255, 255, 0.1); color: var(--ink-dim);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: background .5s ease, color .5s ease, border-color .5s ease, box-shadow .5s ease; }
+#quick button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+#quick button:hover { color: var(--ink); background: rgba(20, 70, 78, 0.45); }
+#quick button[aria-pressed="true"] { color: var(--ink); border-color: rgba(160, 240, 225, 0.35); background: rgba(30, 90, 96, 0.45); box-shadow: 0 0 14px rgba(120, 240, 220, 0.18); }
+#quick #btnLamp[aria-pressed="true"] { color: var(--lamp); border-color: color-mix(in srgb, var(--lamp) 50%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--lamp) 35%, transparent); }
+#quick button span { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .06em; color: var(--ink);
+  background: rgba(6, 22, 32, 0.55); padding: 4px 9px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
+#quick button:hover span, #quick button:focus-visible span { opacity: 1; }
+#quick #btnSky[aria-pressed="true"] .arrow { transform: rotate(180deg); transform-origin: 12px 7px; }
+#quick #btnSound[aria-pressed="false"] .waves { opacity: 0.25; }
+@media (max-width: 760px) { #quick { right: 10px; top: calc(176px + env(safe-area-inset-top, 0px)); gap: 8px; } #quick button { width: 36px; height: 36px; } #quick button svg { width: 17px; height: 17px; } }
+body.mode-globe #quick, body.hud-off #quick { opacity: 0 !important; pointer-events: none; }
+body.pov:not(.pov-ui) #quick { opacity: 0 !important; pointer-events: none; }
+body.pov:not(.pov-ui) #quick * { pointer-events: none !important; }
+
+/* ---------- the menu: categories, then that category's settings ---------- */
+#menu { left: 50%; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: min(440px, calc(100vw - 24px)); transform: translate(-50%, 8px);
+  padding: 12px 12px 14px; border-radius: 18px; background: rgba(5, 22, 30, 0.62); border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); opacity: 0; pointer-events: none; transition: opacity .5s ease, transform .5s ease; }
+body.dock-open #menu { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#menu .cats { display: flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); }
+#menu .cats button { flex: 1; appearance: none; border: 0; background: transparent; color: var(--ink-dim); font: 500 12.5px/1 var(--f-body); letter-spacing: .12em;
+  padding: 9px 0; border-radius: 999px; cursor: pointer; transition: background .4s ease, color .4s ease; }
+#menu .cats button[aria-selected="true"] { background: var(--glass-hi); color: var(--ink); }
+#menu section { margin-top: 12px; animation: softIn .45s ease both; }
+#menu .lead { margin: 0 4px 8px; font-size: 10.5px; letter-spacing: .08em; color: var(--ink-faint); }
+#menu .rows { display: grid; gap: 4px; }
+#menu .rows button { appearance: none; border: 0; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  background: rgba(255, 255, 255, 0.03); color: var(--ink-dim); font: 500 12.5px/1.2 var(--f-body); letter-spacing: .05em; padding: 11px 12px; border-radius: 12px;
+  transition: background .4s ease, color .4s ease; }
+#menu .rows button:hover { background: rgba(160, 230, 220, 0.08); color: var(--ink); }
+#menu .rows button[aria-pressed="true"] { color: var(--ink); background: rgba(30, 90, 96, 0.32); }
+#menu .rows button kbd { margin-left: auto; font: 400 9.5px/1 var(--f-mono); color: var(--ink-faint); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; }
+body.mode-globe #menu { display: none; }
+@media (max-width: 760px) { #menu { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); } #menu .rows button kbd { display: none; } }
+body.dock-open #caption { opacity: 0 !important; }

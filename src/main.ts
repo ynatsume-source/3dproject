@@ -444,7 +444,7 @@ let lastSay = -1e9, chatT = 0;
 function applyPersona() {
   director.dwellK = persona.dwell; director.distK = persona.distK;
   director.weight = (s) => persona.weight(s, isShark);
-  $('btnPersona').innerHTML = `<span class="dot"></span>${persona.ja}`;
+  $('btnPersona').innerHTML = `<span class="dot"></span>案内役の性格：${persona.ja}`;
   $('btnPersona').title = persona.blurb;
 }
 function isShark(s: Subject) {
@@ -487,7 +487,7 @@ function crossSurface(up: boolean) {
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
 // natural: the guide decided (it goes back on its own after a while); otherwise you asked, and it stays longer
-function skyLabel() { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').innerHTML = `<span class="dot"></span>${drone.sky ? '海へ' : '空へ'} <kbd>U</kbd>`; }
+function skyLabel() { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').querySelector('span')!.textContent = drone.sky ? '海へ' : '空へ'; }
 function setSky(on: boolean, natural = false) {
   if (!cur) return;
   if (watch.r && !natural) stopWatch(false);
@@ -1153,7 +1153,7 @@ function enterOcean(oc: Ocean) {
   grass.visible = !!oc.grassTex; grassMat.uniforms.uHeight.value = oc.grassTex;
   drone.s = 0.4 + Math.random() * 6; drone.mode = 'auto';
   drone.sky = false; drone.skyWait = rr(...persona.skyGap) * 0.6; saidRain = false;
-  $('btnSky').setAttribute('aria-pressed', 'false'); $('btnSky').innerHTML = '<span class="dot"></span>空へ <kbd>U</kbd>';
+  skyLabel();
   setTimeout(() => { if (cur === oc) { lastSay = -1e9; say('hello', {}, true); } }, 6000);
   pathPoint(drone.s, drone.pos); drone.vel.set(0, 0, 0);
   const a = pathPoint(drone.s + 0.05, new THREE.Vector3());
@@ -1361,7 +1361,7 @@ function setMode(m: 'auto' | 'manual') {
   drone.mode = m;
   if (m === 'manual') director.reset();
   if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; } }
-  if (cur) { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').innerHTML = `<span class="dot"></span>${drone.sky ? '海へ' : '空へ'} <kbd>U</kbd>`; }
+  if (cur) skyLabel();
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
@@ -1378,7 +1378,18 @@ function hint(text: string) { const el = $('hint'); el.textContent = text; el.cl
 function setInst(on: boolean) { document.body.classList.toggle('inst-off', !on); $('btnInst').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('seaglass.inst', on ? '1' : '0'); } catch (e) { /* ignore */ } }
 try { setInst(localStorage.getItem('seaglass.inst') === '1'); } catch (e) { setInst(false); }
 $('btnInst').onclick = () => setInst(document.body.classList.contains('inst-off'));
-$('btnMore').onclick = () => { const on = !document.body.classList.contains('dock-open'); document.body.classList.toggle('dock-open', on); $('btnMore').setAttribute('aria-expanded', String(on)); $('btnMore').textContent = on ? '×' : '⋯'; };
+function setMenu(on: boolean) { document.body.classList.toggle('dock-open', on); $('btnMore').setAttribute('aria-expanded', String(on)); $('btnMore').textContent = on ? '×' : '⋯'; }
+$('btnMore').onclick = () => setMenu(!document.body.classList.contains('dock-open'));
+// the menu's categories: each shows its own settings (the last one opened is remembered)
+function setCat(c: string) {
+  document.querySelectorAll<HTMLElement>('#menu [data-cat]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.cat === c)));
+  document.querySelectorAll<HTMLElement>('#menu [data-sec]').forEach((sec) => { sec.hidden = sec.dataset.sec !== c; });
+  try { localStorage.setItem('seaglass.menuCat', c); } catch (e) { /* ignore */ }
+}
+document.querySelectorAll<HTMLElement>('#menu [data-cat]').forEach((b) => { b.onclick = () => setCat(b.dataset.cat!); });
+setCat((() => { try { return localStorage.getItem('seaglass.menuCat') || 'move'; } catch (e) { return 'move'; } })());
+// (a tap outside the menu closes it)
+document.addEventListener('pointerdown', (e) => { if (document.body.classList.contains('dock-open') && !(e.target as HTMLElement).closest('#menu, #btnMore, #volPanel, #timePanel')) setMenu(false); });
 const look = { yaw: 0, pitch: 0, held: false, let: 0 };
 const pov = makePov($('pov'));
 const diaryBook = makeDiaryBook($('diaryBook'));
