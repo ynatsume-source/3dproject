@@ -461,6 +461,20 @@ body.inst-off #tele, body.inst-off #locCoord, body.inst-off #compass, body.inst-
 body:not(.dock-open) #dock .opt { display: none; }
 #btnMore { min-width: 40px; font-size: 16px; letter-spacing: 0; }
 #hint { opacity: 0; transition: opacity 1.2s ease; }
+/* the commentary: what is being filmed, quietly, low on the left */
+#caption { left: 16px; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px)); padding: 11px 14px 12px;
+  background: linear-gradient(180deg, rgba(5, 29, 37, .36), rgba(5, 29, 37, .5)); border: 1px solid rgba(214, 238, 233, .1); border-radius: 14px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: var(--ink); opacity: 0; transform: translateY(6px);
+  transition: opacity 1.1s ease, transform 1.1s ease; pointer-events: none; }
+#caption.on { opacity: 1; transform: none; }
+#caption .k { font: 400 9.5px/1 var(--f-mono); letter-spacing: .16em; color: var(--accent); margin-bottom: 6px; }
+#caption .t b { font-weight: 500; font-size: 14.5px; letter-spacing: .04em; }
+#caption .t i { font-style: italic; font-size: 10.5px; color: var(--ink-faint); margin-left: 8px; }
+#caption .s { font-size: 11.5px; color: var(--ink-dim); margin-top: 4px; }
+#caption .n { font-size: 11.5px; line-height: 1.7; color: var(--ink-dim); margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(214, 238, 233, .08); }
+#caption .n:empty { display: none; }
+@media (max-width: 760px) { #caption { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); padding: 9px 12px 10px; } #caption .n { font-size: 11px; } }
+body.mode-globe #caption, body.hud-off #caption, body.pov #caption, body.watching #caption { opacity: 0 !important; }
 #hint.on { opacity: 1; }
 body.mode-globe #hint, body.hud-off #hint { opacity: 0 !important; }
 

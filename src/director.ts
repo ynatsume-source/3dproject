@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
   hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70], critter: [20, 32],
@@ -47,7 +47,7 @@ export class Director {
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
     this.recent.set(best.key, this.clock);
     this.recent.set('kind:' + best.kind, this.clock);
-    this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach', forced };
+    this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach', forced, zoom: forced };   // (asked for from the guide: a closer look once there)
     if (best.tour) {
       // enter from whichever end is nearer
       const e0 = best.tour.start(false), e1 = best.tour.start(true);
@@ -70,7 +70,7 @@ export class Director {
         if (d > (s.reach ?? 42)) continue;
         const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9);
         const kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
-        const score = s.prio * (1 - d / Math.max(60, (s.reach ?? 42) * 1.25))   // (things worth crossing the island for fade more slowly with distance) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1) * this.weight(s);
+        const score = s.prio * (0.8 + 0.4 * R()) * (1 - d / Math.max(60, (s.reach ?? 42) * 1.25))   // (a little chance in it: not always the same favourite first)   // (things worth crossing the island for fade more slowly with distance) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1) * this.weight(s);
         if (score > bs) { bs = score; best = s; }
       }
       if (!best || bs < 0.9) return null;
@@ -126,7 +126,9 @@ export class Director {
     // something big: close in, where its size tells — see below
     const L = s.len ?? s.size;
     if (p && L >= 1.4 && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
-    const dist = Math.max(1.4, Math.min(12, s.size * 2.4 + 1.2)) * this.distK;
+    // close: about a body length or so away, by the animal's own size (a small fish from under a metre)
+    const sz = Math.min(s.size, Math.max(s.len ?? s.size, 0.15) * 2) * (s.kind === 'school' ? 0.65 : 1);   // (a school: in among its edge)
+    const dist = Math.max(0.8, Math.min(7, sz * 1.25 + 0.55)) * this.distK * (sh.zoom ? 0.75 : 1);
     if (s.front && p) {
       // something looking out of a hole: face it from the open water, swaying gently from side to side
       const f = s.front(), sw = (this.spin > 0 ? 0.7 : -0.7) + Math.sin(this.t * 0.12) * 0.3, c = Math.cos(sw), si = Math.sin(sw);   // (from forty degrees or so off its line: the head and a length of body)
@@ -138,7 +140,7 @@ export class Director {
       this.t += dt;
       return sh;
     }
-    const lift = Math.min(2.5, 0.4 + s.size * 0.35);
+    const lift = Math.min(1.5, 0.2 + sz * 0.22);
     this.ang += this.spin * dt * (sh.phase === 'observe' ? 1 : 0.3);
     const x = p.x + Math.cos(this.ang) * dist, z = p.z + Math.sin(this.ang) * dist;
     // (ashore or at the surface: from the air, at the height of someone standing by)

@@ -529,7 +529,10 @@ export function makeFishSystem(sp: Species, oc: any) {
     for (const g of groups) { if (!g.placed) continue; const p = g.type === 'anem' ? g.a!.pos : g.c, d = p.distanceTo(cam); if (d < bd) { bd = d; best = g; } }
     if (!best) return null;
     const g = best, p = g.type === 'anem' ? g.a!.pos : g.c;
-    return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), pos: () => p, status, live: () => g.placed };
+    // a lone fish: its own body (not the middle of its patch), and its own size
+    const one = g.n === 1 && g.type !== 'anem', at = new THREE.Vector3(), i0 = g.start;
+    const pos = one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => p;
+    return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status, live: () => g.placed };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,

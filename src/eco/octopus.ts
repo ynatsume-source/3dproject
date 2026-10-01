@@ -96,7 +96,7 @@ export function makeOctopi(oc: any, count: number, rock: number[]) {
       spread: 0.3, walk: 0, alarm: 0, size: rr(0.55, 0.8), goal: null as THREE.Vector3 | null, up: new THREE.Vector3(0, 1, 0) };
     m.scale.setScalar(o.size);
     (m.material as THREE.ShaderMaterial).uniforms.uCamo.value.setRGB(rock[0] * 1.05, rock[1] * 0.9, rock[2] * 0.75);
-    o.subject = { key: `octopus:${i}`, label: 'ワモンダコ', kind: 'octopus', prio: 3.0, size: 0.9, pos: () => (o.placed ? o.pos : null), status: () => STATUS[o.state as State], live: () => o.placed } as Subject;
+    o.subject = { key: `octopus:${i}`, label: 'ワモンダコ', kind: 'octopus', prio: 2.1, size: 0.9, pos: () => (o.placed ? o.pos : null), status: () => STATUS[o.state as State], live: () => o.placed } as Subject;
     oc.group.add(m);
     list.push(o);
   }

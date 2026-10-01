@@ -107,7 +107,7 @@ const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 /* ================= drone ================= */
 const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 // watching one of the island's residents from above: the camera stays with it until let go
-const watch = { r: null as any, ang: 0, el: 0.95, dist: 11, infoT: 0, pov: false };
+const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
@@ -127,12 +127,41 @@ function nearestS(p: THREE.Vector3) {
 }
 const director = new Director();
 let lastShot: Shot | null = null;
-let huntK = 0, giantK = 0;
+let huntK = 0, giantK = 0, zoomK = 0;
+// The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
+// from the field guide; it stays while that is being filmed (on/off, remembered)
+let captionOn = (() => { try { return localStorage.getItem('seaglass.caption') !== '0'; } catch (e) { return true; } })();
+let capShot: Shot | null = null, capT = 0, obsAt = 0;
+function setCaption(on: boolean) {
+  captionOn = on; try { localStorage.setItem('seaglass.caption', on ? '1' : '0'); } catch (e) { /* ignore */ }
+  $('btnCaption').setAttribute('aria-pressed', String(on));
+  if (!on) $('caption').classList.remove('on'); else capShot = null;
+}
+function captionText(sj: Subject) {
+  const e = cur ? guideEntries(cur.loc).find((x) => sj.label.startsWith(x.ja)) : null;
+  const sizeTxt = sj.len && sj.adult ? `　${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
+  const note = e ? e.note.split('。').filter(Boolean).slice(0, 2).join('。') + '。' : '';
+  return { t: sj.label, i: e?.sci ?? '', s: sj.status() + sizeTxt, n: note };
+}
+function updateCaption(dt: number) {
+  const el = $('caption'), sh = lastShot;
+  const want = captionOn && !!sh && sh.phase === 'observe' && drone.mode === 'auto' && !watch.r && sh.subject.kind !== 'cave';
+  if (!want) { if (el.classList.contains('on')) el.classList.remove('on'); capShot = null; return; }
+  if (capShot !== sh) {
+    capShot = sh; capT = 0;
+    const c = captionText(sh!.subject);
+    (el.querySelector('.k') as HTMLElement).textContent = sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+    (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
+    (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
+    el.classList.add('on');
+  }
+  if ((capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(sh!.subject).s; }
+}
 function onShotChange(prev: Shot | null, next: Shot | null) {
   if (next) {
     $('tMode').textContent = 'OBSERVING';
         const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
-    hint(`観察中：${sj.label}（${sj.status()}${sizeTxt}）`);
+    if (!captionOn) hint(`観察中：${sj.label}（${sj.status()}${sizeTxt}）`);
     recordLog('observe', `${sj.label}を観察（${sj.status()}${sizeTxt}）`);
     if (next.subject.kind === 'hunt') say('hunt');
     else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
@@ -166,18 +195,20 @@ function updateDrone(dt: number, now: number) {
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 3);
     drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 2);
   } else if (watch.r) {
-    // a god's-eye view: circling slowly high over the one we are watching, looking down at it
-    const p = watch.r.pos, T = cur!.T;
-    watch.ang += dt * 0.035;
+    // behind it and a little above, a little to one side, following where it is heading (slowly, so a
+    // turn does not swing the view about), looking past it to what lies ahead: it, and its world
+    const p = watch.r.pos, T = cur!.T, h = watch.r.head ?? 0, fx = Math.sin(h), fz = Math.cos(h);
+    watch.ang += angDiff(Math.atan2(-fz, -fx) + watch.off, watch.ang) * Math.min(1, dt * 0.5);
     const ce = Math.cos(watch.el), se = Math.sin(watch.el);
-    _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
-    _t.y = Math.max(_t.y, T.ground(_t.x, _t.z) + 3, T.over ? T.over(_t.x, _t.z) + 3 : -1e9, 1.2);   // clear of the trees, and out of the water
+    _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + 0.6 + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
+    _t.y = Math.max(_t.y, T.ground(_t.x, _t.z) + 0.9, 1.0);   // clear of the ground, and out of the water (the trees overhead are opened up around it)
     _v.subVectors(_t, drone.pos);
     const L = _v.length();
     _v.multiplyScalar(Math.min(L * 1.6, 30) / Math.max(L, 1e-4));   // (across the island quickly when switching)
     if (drone.pos.y < 0) _v.set(_v.x * 0.15, 3, _v.z * 0.15);   // under the water: straight up through the surface first
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
-    const lx = p.x - camera.position.x, ly = p.y + 0.4 - camera.position.y, lz = p.z - camera.position.z;
+    const ax = p.x + fx * 2.2, az = p.z + fz * 2.2;
+    const lx = ax - camera.position.x, ly = p.y + 0.5 - camera.position.y, lz = az - camera.position.z;
     const k = Math.min(1, dt * 2.5);
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
@@ -185,12 +216,12 @@ function updateDrone(dt: number, now: number) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     _v.subVectors(way, drone.pos);
-    const L = _v.length(), top = shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
+    const L = _v.length(), top = shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
-    drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : 1.2)));
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
     const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
-    const k = Math.min(1, dt * (shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : 1.6));
+    const k = Math.min(1, dt * (shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
   } else if (drone.mode === 'auto' && drone.sky) {
@@ -336,7 +367,10 @@ function updateDrone(dt: number, now: number) {
   // right up against something big: a wider lens, so it fills and overflows the frame
   const giantCam = lastShot?.giant && lastShot.phase === 'observe' && drone.mode === 'auto' && !watch.r ? lastShot.wide ?? 1 : 0;
   giantK += (giantCam - giantK) * Math.min(1, dt * 0.6);
-  const fov = 70 - 24 * huntK + 12 * giantK;
+  if (lastShot?.phase === 'observe' && obsAt === 0) obsAt = now; else if (lastShot?.phase !== 'observe') obsAt = 0;
+  const zoomOn = !!lastShot?.zoom && lastShot.phase === 'observe' && !lastShot.giant && obsAt > 0 && now - obsAt < 9000 && drone.mode === 'auto' && !watch.r;
+  zoomK += ((zoomOn ? 1 : 0) - zoomK) * Math.min(1, dt * (zoomOn ? 0.9 : 0.5));   // (in gently, and gently back out)
+  const fov = 70 - 24 * huntK + 12 * giantK - 26 * zoomK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
@@ -1317,7 +1351,7 @@ function startWatch(r: any) {
   director.reset(); lastShot = null;
   const first = !watch.r;
   watch.r = r;
-  if (first) { watch.ang = Math.atan2(drone.pos.z - r.pos.z, drone.pos.x - r.pos.x); watch.el = 0.95; watch.dist = 11; }
+  if (first) { watch.ang = Math.atan2(drone.pos.z - r.pos.z, drone.pos.x - r.pos.x); watch.el = 0.3; watch.dist = 5.5; watch.off = 0.45; }
   watch.infoT = 0;
   if (watch.pov) setPov(true);   // (switching whose eyes we look through)
   renderWatch();
@@ -1473,6 +1507,8 @@ $('btnPersona').onclick = () => setPersona(PERSONAS[(PERSONAS.indexOf(persona) +
 applyPersona();
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
+$('btnCaption').onclick = () => setCaption(!captionOn);
+setCaption(captionOn);
 $('btnView').onclick = () => setView(viewMode === 'chase' ? 'fpv' : 'chase');
 setView(viewMode);
 $('btnSound').onclick = () => setSound(!audio.on);
@@ -1538,11 +1574,11 @@ canvas.addEventListener('pointermove', (e) => {
     const a = Math.min(1, dtm * 12);
     gv.vlon += (-dx * k / dtm * 0.6 - gv.vlon) * a; gv.vlat += (dy * k / dtm * 0.6 - gv.vlat) * a;
   } else {
-    if (watch.r && pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 5, 70); pinch0 = d; tap.moved += 99; return; }
+    if (watch.r && pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 2.5, 60); pinch0 = d; tap.moved += 99; return; }
     const k = isTouch ? 0.006 : 0.0035;
     tap.moved += Math.abs(dx) + Math.abs(dy);
     if (drone.mode === 'manual') { drone.lastInput = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
-    else if (watch.r && !watch.pov) { watch.ang -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, 0.35, 1.45); }   // watching: drag to circle round and tilt
+    else if (watch.r && !watch.pov) { watch.off -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, 0.12, 1.45); }   // watching: drag to circle round and tilt
     else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
   }
 });
@@ -1557,7 +1593,7 @@ const endP = (e: PointerEvent) => {
   gv.vlon = clamp(gv.vlon, -120, 120); gv.vlat = clamp(gv.vlat, -60, 60);
 };
 canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercancel', endP);
-canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 5, 70); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 2.5, 60); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
@@ -1728,6 +1764,7 @@ function frame(ts: number) {
   } else if (cur) {
     if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
     updateDrone(dt, now);
+    updateCaption(dt);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
     U.uCamPos.value.copy(camera.position);
     if (cur.cave) {
@@ -1752,7 +1789,7 @@ function frame(ts: number) {
       sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
       if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; }
       // and open up the forest roof over it, so it can be seen from above
-      const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(9, watch.dist * 0.9)); else cut.w = 0; }
+      const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(7, watch.dist * 1.2)); else cut.w = 0; }
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.focus(watch.r);
     cur.residents?.update(dt, clock.ms, drone.pos);
