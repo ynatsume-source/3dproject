@@ -1,29 +1,68 @@
-// The island's residents: four robots living on Kayama-jima, each on its own. They charge in the sun,
-// sleep, and get on with their own lives — Dot builds a hut of driftwood, Kamemaru watches the sea and
-// swims the lagoon keeping records, Lantern walks the island by night mapping it and thinks on the
-// hill, Rakko floats off the west beach cracking shells and piling up the pretty ones. When two of
-// them happen to meet they stop and talk: a greeting the first time, then introductions, tips for
-// island life, news of their day, and — once they have come to trust each other — their worries.
+// The island's residents on Kayama-jima: two robots and two animals, each living its own life. The robots
+// charge in the sun — Dot builds a hut of driftwood, Lantern walks the island by night mapping it and
+// thinks on the hill. The animals live as their kind does: Kamemaru, an old green turtle, grazes the
+// lagoon's seagrass, comes up to breathe, sleeps on the bottom and basks on the beach; Rakko, a sea otter,
+// dives for urchins, crabs and clams when hungry, eats them floating on its back (cracking the clams on its
+// stone), grooms, sleeps on its back, and piles up the pretty shells it finds. When two of them happen to
+// meet they stop and talk: a greeting the first time, then introductions, tips for island life, news of
+// their day, and — once they have come to trust each other — their worries.
 // Everything they do goes into their diaries; their lives carry on (and are saved) while nobody watches.
 import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { AIRLIT } from '../ocean/shore';
 import { robotKit, type Robot, type Act, type Mats } from './models';
+import { creatureKit, type CMats, type Food } from './creatures';
 import { VOICES, STAGES, type Voice } from './voices';
 import type { Subject } from '../eco/env';
 import { aiConverse, aiReady } from './mind';
 import { makeItems, type Item, type ItemKind } from './items';
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
-function rmat(hex: number, spec = 0.5, grid = false) {
+// pat: 0 plain, 1 a green turtle's carapace (its scutes, from the shell's own coordinates), 2 scaled
+// skin (a turtle's head and flippers: dark scales edged pale), 3 fur (fine variation in the pile)
+function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
   return mat(
-    `varying vec3 vWp; varying vec3 vN; varying vec2 vUv;
-     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vUv = uv; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    AIRLIT + `uniform vec3 uCol; uniform float uSpec; uniform float uGrid; varying vec3 vWp; varying vec3 vN; varying vec2 vUv;
+    `varying vec3 vWp; varying vec3 vN; varying vec2 vUv; varying vec3 vLp;
+     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vUv = uv; vLp = position; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    AIRLIT + `uniform vec3 uCol; uniform float uSpec; uniform float uGrid; uniform float uPat; uniform float uScl; varying vec3 vWp; varying vec3 vN; varying vec2 vUv; varying vec3 vLp;
+     vec2 h22(vec2 p) { p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3))); return fract(sin(p) * 43758.5453); }
+     vec3 cells(vec2 p) {   // nearest cell distance, the gap to the next (the seams), and the cell's own random
+       vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0, id = 0.0;
+       for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)), o = h22(i + g), r = g + o - f; float d = dot(r, r); if (d < d1) { d2 = d1; d1 = d; id = o.x; } else if (d < d2) d2 = d; }
+       return vec3(sqrt(d1), sqrt(d2) - sqrt(d1), id);
+     }
+     // a green turtle's carapace: five scutes down the middle, four each side, a ring of small ones round
+     // the rim; each one olive-brown with streaks of tan and dark radiating from its growth centre, the seams
+     // a little paler, and a green film of algae toward the back of an old shell
+     vec3 carapace(vec3 q) {
+       vec2 p = q.xz; float d1 = 9.0, d2 = 9.0; vec2 c1 = vec2(0.0); float id = 0.0;
+       for (int i = 0; i < 13; i++) {
+         float fi = float(i);
+         vec2 s = i < 5 ? vec2(0.0, 0.3 - fi * 0.155) : vec2((mod(fi, 2.0) < 0.5 ? -1.0 : 1.0) * 0.19, 0.235 - floor((fi - 5.0) / 2.0) * 0.165);
+         float d = length((p - s) * vec2(1.0, 1.15));
+         if (d < d1) { d2 = d1; d1 = d; c1 = s; id = fi; } else if (d < d2) d2 = d;
+       }
+       float rn = length(vec2(p.x / 0.37, p.y / 0.48)), seam = 1.0 - smoothstep(0.004, 0.012, d2 - d1);
+       vec2 rel = p - c1; float ang = atan(rel.y, rel.x);
+       if (rn > 0.84) {   // the marginal scutes
+         float a = atan(p.x, p.y) / 6.2832 * 24.0; seam = max(smoothstep(0.42, 0.48, abs(fract(a) - 0.5)), 1.0 - smoothstep(0.004, 0.014, abs(rn - 0.84)));
+         id = floor(a) + 20.0; ang = (fract(a) - 0.5) * 6.0 + rn * 30.0;
+       }
+       float streak = 0.5 + 0.5 * sin(ang * 7.0 + id * 13.7 + d1 * 25.0);
+       streak *= 0.5 + 0.5 * sin(ang * 3.0 - id * 5.1 + d1 * 60.0);
+       vec3 col = mix(vec3(0.17, 0.11, 0.055), vec3(0.47, 0.37, 0.19), streak);
+       col = mix(col, vec3(0.1, 0.07, 0.04), smoothstep(0.08, 0.0, d1) * 0.3);
+       col = mix(col, vec3(0.52, 0.47, 0.34), seam * 0.7);
+       float algae = smoothstep(-0.05, -0.4, p.y) * (0.5 + 0.5 * sin(p.x * 40.0 + p.y * 23.0) * sin(p.y * 31.0));
+       return mix(col, vec3(0.2, 0.27, 0.12), algae * 0.45);
+     }
      void main(){
        vec3 n = normalize(vN), V = normalize(uCamPos - vWp);
        vec3 alb = uCol;
        if (uGrid > 0.5) { vec2 g = fract(vUv * vec2(10.0, 6.0)); alb = mix(vec3(0.05, 0.08, 0.17), vec3(0.72, 0.75, 0.8), max(step(0.9, g.x), step(0.88, g.y))); }
+       if (uPat > 0.5 && uPat < 1.5) alb = carapace(vLp);
+       else if (uPat > 1.5 && uPat < 2.5) { vec3 c = cells(vec2(vLp.x + vLp.y * 0.7, vLp.z - vLp.y * 0.4) * uScl); alb = mix(uCol * (0.75 + 0.5 * c.z), vec3(0.72, 0.64, 0.44), 1.0 - smoothstep(0.03, 0.09, c.y)); }
+       else if (uPat > 2.5) { vec3 c = cells(vec2(vLp.x * 1.3 + vLp.z * 0.7, vLp.y * 1.3 - vLp.z * 0.5) * uScl); alb = uCol * (0.9 + 0.2 * c.z); }   // (a soft, fine unevenness in the pile)
        vec3 col;
        if (vWp.y > 0.0) {
          col = airLit(alb, n, vWp, 0.35);   // (light wraps a little round the curves)
@@ -34,9 +73,18 @@ function rmat(hex: number, spec = 0.5, grid = false) {
          col = fogIt(col, vWp);
        } else col = shade(alb, vWp, n, 0.5);
        gl_FragColor = vec4(col, 1.0);
-     }`, { uniforms: { uCol: { value: new THREE.Color(hex) }, uSpec: { value: spec }, uGrid: { value: grid ? 1 : 0 } } });
+     }`, { uniforms: { uCol: { value: new THREE.Color(hex) }, uSpec: { value: spec }, uGrid: { value: grid ? 1 : 0 }, uPat: { value: pat }, uScl: { value: scl } } });
 }
 let MATS: Mats | null = null;
+let CM: CMats | null = null;
+function cmats(): CMats {
+  return CM ??= {
+    fur: rmat(0x3a281b, 0.3, false, 3, 70), furPale: rmat(0xb9a487, 0.2, false, 3, 40), furDark: rmat(0x1f1610, 0.25, false, 3, 40),
+    nose: rmat(0x0d0c0c, 0.9), eye: rmat(0x050506, 1.8),
+    carapace: rmat(0x5a4426, 0.8, false, 1), plastron: rmat(0xd8c890, 0.3), skin: rmat(0x4c3b24, 0.45, false, 2, 6), beak: rmat(0x8f7d58, 0.6),
+    stone: rmat(0x7d776e, 0.15), urchin: rmat(0x3b1736, 0.5), crab: rmat(0xb04a2a, 0.5), clam: rmat(0xcbbca4, 0.5),
+  };
+}
 function mats(): Mats {
   return MATS ??= {
     shell: rmat(0xf0ece4, 0.8), accent: rmat(0xf08a3c, 0.5), teal: rmat(0x3f9a93, 0.4), joint: rmat(0x2b3035, 0.9),
@@ -59,12 +107,12 @@ const beamGeo = (len: number, rad: number) => { const g = new THREE.ConeGeometry
 const BEAM_GEO: Record<string, THREE.BufferGeometry> = { dot: beamGeo(2.2, 0.75), kame: beamGeo(1.8, 0.55), lantern: beamGeo(1.6, 1.1), rakko: beamGeo(1.8, 0.6) };
 
 /* ---------- who lives where ---------- */
-interface Spec { id: string; make: 'makeDot' | 'makeKame' | 'makeLantern' | 'makeOtter'; home: [number, number]; range: number; speed: number; swimSpeed: number; swims: boolean; nightOwl: boolean; scale: number; color: string; social: number }
+interface Spec { id: string; make: 'makeDot' | 'makeLantern' | 'makeGreenTurtle' | 'makeSeaOtter'; home: [number, number]; range: number; speed: number; swimSpeed: number; swims: boolean; nightOwl: boolean; scale: number; color: string; social: number; living?: boolean }
 const SPECS: Spec[] = [
   { id: 'dot', make: 'makeDot', home: [61, -145], range: 120, speed: 0.6, swimSpeed: 0, swims: false, nightOwl: false, scale: 1, color: '#ffd98a', social: 0.5 },
-  { id: 'kame', make: 'makeKame', home: [333, 66], range: 140, speed: 0.28, swimSpeed: 0.5, swims: true, nightOwl: false, scale: 1, color: '#7fe0c0', social: 0.25 },
+  { id: 'kame', make: 'makeGreenTurtle', home: [333, 66], range: 140, speed: 0.22, swimSpeed: 0.6, swims: true, nightOwl: false, scale: 1, color: '#7fe0c0', social: 0.25, living: true },
   { id: 'lantern', make: 'makeLantern', home: [405, -285], range: 420, speed: 0.8, swimSpeed: 0, swims: false, nightOwl: true, scale: 1, color: '#8ff6ff', social: 0.35 },
-  { id: 'rakko', make: 'makeOtter', home: [-117, -290], range: 170, speed: 0.4, swimSpeed: 0.85, swims: true, nightOwl: false, scale: 1.25, color: '#f7a36b', social: 0.8 },
+  { id: 'rakko', make: 'makeSeaOtter', home: [-117, -290], range: 170, speed: 0.35, swimSpeed: 0.9, swims: true, nightOwl: false, scale: 1.2, color: '#f7a36b', social: 0.8, living: true },
 ];
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any }
@@ -77,6 +125,7 @@ export interface Entry { at: number; text: string; who?: string; conv?: number; 
 export interface Resident {
   id: string; v: Voice; sp: Spec; model: Robot;
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
+  hunger: number; sleepy: number; meal: Record<string, number>; under: number;   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number;
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number };
   today: string[];                        // what it did today (for small talk and its diary)
@@ -100,6 +149,7 @@ export interface Residents {
   onSay: (r: Resident, text: string) => void;   // someone starts saying something (for its voice)
   gibber(id: string, text: string): string;      // how it sounds in its own language
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
+  vitals(r: Resident): string;                     // its battery, or (an animal) how hungry and sleepy it is
   hide: string;                                    // (the one whose eyes we are looking through: not drawn)
 }
 
@@ -123,6 +173,7 @@ export function gibber(id: string, text: string) {
 const pickOne = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const rr = (a: number, b: number) => a + Math.random() * (b - a);
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
+const smooth01 = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const localHour = (ms: number) => (((ms / 3.6e6 + 9) % 24) + 24) % 24;
 const dayK = (hr: number) => Math.min(1, Math.max(0, (hr - 6.3) / 0.8)) * Math.min(1, Math.max(0, (18.9 - hr) / 0.8));
 const hhmm = (ms: number) => { const h = localHour(ms); return `${Math.floor(h)}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`; };
@@ -131,7 +182,7 @@ const KEY = 'seaglass.residents.v1';
 
 export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: string[]): Residents {
   const L = { h: (x: number, z: number) => loc.f(x, z) };
-  const kit = robotKit(mats());
+  const kit = robotKit(mats()), ckit = creatureKit(cmats());
   const group = new THREE.Group();
   const cover = (x: number, z: number) => T.landCover?.(x, z) ?? { can: 0, sand: 1 };
 
@@ -316,12 +367,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- the residents ---------- */
   const list: Resident[] = SPECS.map((sp) => {
-    const model = (kit as any)[sp.make]() as Robot;
+    const model = ((sp.living ? ckit : kit) as any)[sp.make]() as Robot;
     model.root.scale.setScalar(sp.scale);
     group.add(model.root);
     const r: Resident = {
       id: sp.id, v: VOICES[sp.id], sp, model,
-      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, battery: 0.8,
+      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
       task: null, walk: 0, act: 'idle', wet: false, talk: null, saying: '', sayT: 0,
       stats: { built: 0, notes: 0, shells: 0, cracked: 0, visited: 0, cairns: 0, wood: 0, food: 0, felled: 0 },
       today: [], diary: [], blocked: 0,
@@ -329,7 +380,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       beam: new THREE.Mesh(BEAM_GEO[sp.id], new THREE.MeshBasicMaterial({ color: LIGHT[sp.id].c, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })),
     };
     r.beam.position.set(0, LIGHT[sp.id].y, 0.12); r.beam.rotation.x = -(Math.PI / 2 - LIGHT[sp.id].tilt); r.beam.visible = false; model.root.add(r.beam);
-    r.held.visible = false; r.held.position.set(0, sp.id === 'rakko' ? 0.36 : 0.5, sp.id === 'rakko' ? 0.18 : 0.27); model.root.add(r.held);
+    r.held.visible = false; if (model.hand) model.hand.add(r.held); else { r.held.position.set(0, 0.5, 0.27); model.root.add(r.held); }
     r.subject = { key: 'robot:' + sp.id, label: r.v.name, kind: 'robot', prio: 2.6, size: 1.0 * sp.scale, reach: 320,
       pos: () => r.pos, status: () => res.status(r), live: () => true, hold: undefined };
     return r;
@@ -393,13 +444,37 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function task(kind: string, at: [number, number] | null, act: Act, dur: number, extra: Partial<Task> = {}): Task | null {
     return at ? { kind, x: at[0], z: at[1], act, dur, t: 0, arrived: false, ...extra } : null;
   }
+  // The two animals: what their bodies ask for comes first. Rakko dives for its food when it is hungry
+  // (by night too, if it is very hungry) and sleeps on its back; Kamemaru grazes the seagrass, sleeps on
+  // the bottom by night, and hauls out to bask on a warm afternoon.
+  const water = (lo: number, hi: number) => (x: number, z: number, h: number) => h < -lo && h > -hi;
+  function forage(at: [number, number] | null): Task | null {
+    const q = Math.random(), prey: Food = Math.random() < 0.28 ? '' : q < 0.42 ? 'urchin' : q < 0.68 ? 'crab' : 'clam';   // (what it will come up with, if anything)
+    return task('forage', at, 'dive', rr(35, 75), { wet: true, data: prey });
+  }
+  function live(r: Resident, hr: number): Task | null | undefined {
+    const home = r.sp.home, day = dayK(hr), night = sleepTime(r, hr);
+    if (r.id === 'rakko') {
+      if (r.holding) return undefined;
+      if (r.hunger > (night ? 0.85 : 0.5)) return forage(spot(home, 70, water(1.5, 7)) ?? spot(home, 120, water(1, 9)));
+      if (night) return task('sleep', spot(home, 60, water(0.6, 3)) ?? spot(home, 140, water(0.5, 6)) ?? home, 'sleep', 1200, { wet: true });   // (always in the water, on its back)
+      if (r.sleepy > 0.65 && day > 0.3) return task('nap', spot(home, 50, water(0.8, 4)), 'sleep', rr(600, 1500), { wet: true });
+      return undefined;
+    }
+    if (night) return task('sleep', spot(home, 60, water(1.5, 5)) ?? spot(home, 140, water(1, 8)) ?? home, 'sleep', 1800, { wet: true });
+    if (r.holding) return undefined;
+    if (r.hunger > 0.45 && day > 0.15) return task('graze', spot(home, 90, water(1.2, 5)) ?? spot(home, 160, water(1, 7)), 'graze', rr(2400, 4200), { wet: true });
+    if ((r.sleepy > 0.6 || Math.random() < 0.15) && day > 0.7 && hr > 10 && hr < 16.5) return task('bask', spot(home, r.sp.range, shore, 200), 'bask', rr(1500, 3600));
+    return undefined;
+  }
   function decide(r: Resident, hr: number): Task | null {
     const home = r.sp.home, day = dayK(hr);
+    if (r.sp.living) { const t = live(r, hr); if (t !== undefined) return t; }
     if (sleepTime(r, hr)) {
       if (r.id === 'rakko') return task('sleep', spot(home, 6, (x, z, h) => h < -0.6 && h > -3) ?? home, 'sleep', 1200, { wet: true });
       return task('sleep', home, 'sleep', 1200);
     }
-    if (r.battery < 0.3 && day > 0.4 && !r.sp.nightOwl) return task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
+    if (r.battery < 0.3 && day > 0.4 && !r.sp.nightOwl && !r.sp.living) return task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
     const q = Math.random();
     // something strange lying on the beach nearby: go and look
     if (drift.kind >= 0 && !drift.by && !r.holding && Math.hypot(drift.x - r.pos.x, drift.z - r.pos.z) < 60) { drift.by = r.id; return task('find', [drift.x, drift.z], 'pick', 6); }
@@ -469,14 +544,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         return task('explore', best, 'look', rr(30, 90));
       }
       case 'rakko': {
-        if (r.holding === 'shell') return task('pile', pileAt(r.stats.shells) as [number, number], 'work', 3);
+        if (r.holding === 'shell') return task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3);
         if (q < 0.35) return task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
-        if (q < 0.6) return task('crack', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'work', rr(120, 240), { wet: true });
-        if (q < 0.8) {
+        if (q < 0.5) return task('groom', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'groom', rr(90, 200), { wet: true });   // (its fur is all that keeps it warm: it grooms for hours a day)
+        if (q < 0.85) {
           const it = items.nearest('shell', r.pos.x, r.pos.z, 200, r.id);
-          if (it) { items.claim(it, r.id); return task('collect', [it.x, it.z], 'work', 3, { data: it }); }
+          if (it) { items.claim(it, r.id); return task('collect', [it.x, it.z], 'pick', 3, { data: it }); }
         }
-        if (q < 0.9 && day > 0.5) return task('nap', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'sleep', rr(400, 900), { wet: true });
         return task('wander', spot(home, r.sp.range, beach), 'idle', rr(30, 90));
       }
     }
@@ -523,10 +597,28 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'plant': if (tk.data.s === 1) { tk.data.s = 2; tk.data.at = clockMs; drawField(); note(r, 'plant', {}, '種をまいた'); } break;
       case 'harvest': if (tk.data.s === 2 && growth(tk.data) >= 1) { tk.data.s = 1; r.stats.food += 4; drawField(); note(r, 'harvest', { food: r.stats.food }, '畑で収穫した'); } break;
       case 'fire': return;   // (they stay round it until it is time to go)
-      case 'crack': { const n = 2 + Math.floor(Math.random() * 4); r.stats.cracked += n; note(r, 'crack', { n }, `貝を${n}個割った`); break; }
+      case 'forage': {
+        // up with something: roll over and eat it; or nothing this time: down again, a little way off
+        const prey = tk.data as Food;
+        if (prey) { r.task = task('eat', [r.pos.x, r.pos.z], prey === 'clam' ? 'work' : 'eat', prey === 'clam' ? rr(60, 120) : prey === 'crab' ? rr(70, 130) : rr(50, 100), { wet: true, data: prey, arrived: true }); return; }
+        r.task = forage(spot([r.pos.x, r.pos.z], 12, water(1.2, 8)) ?? [r.pos.x, r.pos.z]); return;
+      }
+      case 'eat': {
+        const prey = tk.data as string;
+        r.hunger = Math.max(0, r.hunger - (prey === 'crab' ? 0.2 : prey === 'urchin' ? 0.15 : 0.12));
+        r.meal[prey] = (r.meal[prey] ?? 0) + 1; if (prey === 'clam') r.stats.cracked++;
+        if (r.hunger > 0.12) { r.task = forage(spot([r.pos.x, r.pos.z], 12, water(1.2, 8)) ?? [r.pos.x, r.pos.z]); return; }
+        const NAME: Record<string, [string, string]> = { urchin: ['ウニ', 'つ'], crab: ['カニ', '匹'], clam: ['貝', 'つ'] };
+        const meal = Object.entries(r.meal).map(([k, n]) => `${NAME[k][0]}${n}${NAME[k][1]}`).join('、'); r.meal = {};
+        note(r, 'eat', { meal }, `${meal}食べた`);
+        r.task = task('groom', [r.pos.x, r.pos.z], 'groom', rr(60, 150), { wet: true, arrived: true }); return;   // (after eating, cleaning the fur)
+      }
+      case 'groom': if (Math.random() < 0.25) note(r, 'groom', {}, '毛づくろいをした'); break;
+      case 'graze': r.stats.notes++; note(r, 'graze', { sight: sight() }, 'ラグーンで海草を食べた'); break;
+      case 'bask': note(r, 'bask', {}, '浜で甲羅干しをした'); break;
       case 'collect':
         if (!items.take(tk.data)) break;
-        r.holding = 'shell'; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'work', 3); return;
+        r.holding = 'shell'; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;
       case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, 'きれいな貝殻を拾った'); break;
       case 'survey': if (village.pier === 'plan') { village.pier = 'build'; drawPier(); note(r, 'survey', {}, '桟橋の位置を測った'); res.onEvent('pier', 'カメマルが桟橋の位置を測り終えた。いよいよ建設開始', r); } break;
       case 'inspect': r.today.push('桟橋の工事を見守った'); break;
@@ -606,11 +698,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return false;
   }
   function placeY(r: Resident) {
-    const h = r.wet && r.sp.swims && r.act === 'swim' ? L.h(r.pos.x, r.pos.z) : G(r.pos.x, r.pos.z);
+    const h = r.wet && r.sp.swims && (r.act === 'swim' || r.under > 0) ? L.h(r.pos.x, r.pos.z) : G(r.pos.x, r.pos.z);
     r.wet = h < 0.05;
+    const top = r.id === 'rakko' ? 0 : -0.2;   // floating at the surface (Rakko), or with its head out (Kamemaru)
     if (!r.wet) r.pos.y = h;
+    else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.1) - top) * r.under;   // (down on the bottom: diving, grazing, asleep)
     else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max(h + 0.3, -1.2 + Math.sin(performance.now() * 0.0003) * 0.2);
-    else r.pos.y = -0.12;   // floating at the surface (Rakko), or paddling across (Kamemaru)
+    else r.pos.y = top;
   }
 
   /* ---------- meeting and talking ---------- */
@@ -678,7 +772,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function checkMeetings(fast: boolean) {
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
-      if (a.talk || b.talk || a.act === 'sleep' || b.act === 'sleep' || a.task?.kind === 'fire' || b.task?.kind === 'fire') continue;
+      if (a.talk || b.talk || a.act === 'sleep' || b.act === 'sleep' || a.task?.kind === 'fire' || b.task?.kind === 'fire' || a.under > 0.2 || b.under > 0.2) continue;   // (not with one of them down on the bottom)
       const d = Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
       const bd = bonds[pair(a.id, b.id)];
       if (d > 14 || clockMs - bd.last < 25 * 60e3) continue;
@@ -704,7 +798,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const hr = localHour(clockMs), day = dayK(hr);
     // the battery: solar panels charge in daylight when resting; moving and thinking use it up
     const busy = r.walk > 0.1 || r.act === 'work' || r.act === 'swim' || r.act === 'think';
-    r.battery = Math.min(1, Math.max(0, r.battery + dt * ((busy ? -1 / 21600 : -1 / 72000) + (!busy ? day / 5400 : day / 21600))));
+    if (!r.sp.living) r.battery = Math.min(1, Math.max(0, r.battery + dt * ((busy ? -1 / 21600 : -1 / 72000) + (!busy ? day / 5400 : day / 21600))));
+    else {
+      // an otter must eat about a quarter of its weight a day, so it is soon hungry again; a turtle, slowly
+      r.hunger = Math.min(1, r.hunger + dt / (r.id === 'rakko' ? 16000 : 45000));
+      r.sleepy = Math.min(1, Math.max(0, r.sleepy + dt * (r.act === 'sleep' ? -1 / 9000 : r.act === 'bask' || r.act === 'float' ? -1 / 40000 : 1 / 57600)));
+      if (r.task?.kind === 'graze' && r.task.arrived && r.act === 'graze') r.hunger = Math.max(0, r.hunger - dt / 4000);   // (grazing is slow: an hour or more a meal)
+    }
     if (r.talk) { if (r.talk.a === r) stepTalk(r.talk, dt, fast); placeY(r); return; }
     // the evening fire: everyone who is up comes and sits round it, and goes off again after
     if (gatherHours(hr) && !sleepTime(r, hr) && r.task?.kind !== 'fire') {
@@ -716,13 +816,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (atFire.has(r.id)) note(r, 'fire', {}, '焚き火を囲んだ');
       r.task = null; r.saying = '';
     }
-    if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach')) {
+    if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
       r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
       r.blocked = 0;
       if (!r.task) { r.act = 'idle'; r.walk = 0; placeY(r); return; }
     }
     const tk = r.task;
     if (tk.kind === 'approach') { const o = byId[tk.data]; tk.x = o.pos.x; tk.z = o.pos.z; if (Math.hypot(o.pos.x - r.pos.x, o.pos.z - r.pos.z) < 3) { r.task = null; r.walk = 0; return; } }
+    r.under = 0;
     if (!tk.arrived) {
       r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
       tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet);
@@ -735,6 +836,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (tk.kind === 'fire') { atFire.add(r.id); let d = Math.atan2(PIT.x - r.pos.x, PIT.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 2); }
       if (tk.kind === 'watch' || tk.kind === 'look') { let d = Math.atan2(-r.pos.x + (r.sp.home[0] - 60), -r.pos.z + (r.sp.home[1] + 80)) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt); }
       tk.t += dt;
+      if (r.sp.living && r.wet) {
+        if (tk.kind === 'forage') { const k = tk.t / tk.dur; r.under = smooth01(0, 0.12, k) * (1 - smooth01(0.86, 1, k)); }   // (down head first, along the bottom, back up)
+        else if (tk.kind === 'graze' || (r.id === 'kame' && tk.kind === 'sleep')) {
+          // a turtle comes up to breathe: every few minutes while it feeds, every forty or so asleep
+          const per = tk.kind === 'sleep' ? 2400 : 420, ph = tk.t % per;
+          const up = smooth01(per - 46, per - 32, ph) * (1 - smooth01(per - 14, per - 2, ph));
+          r.under = 1 - up; if (up > 0.5) r.act = 'breathe';
+        }
+        if (tk.kind === 'graze' && r.hunger < 0.05 && tk.t > 240 && r.under > 0.99) tk.t = tk.dur + 1;   // (full)
+      }
       if (tk.t > tk.dur) done(r, tk, fast);
     }
     placeY(r);
@@ -745,7 +856,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     try {
       localStorage.setItem(KEY, JSON.stringify({
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding })),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
@@ -761,7 +872,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     talks.push(...(s.talks || []));
     for (const d of s.list || []) {
       const r = byId[d.id]; if (!r) continue;
-      r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = d.battery; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || [];
+      r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = r.sp.living ? 1 : d.battery; r.hunger = d.hunger ?? 0.4; r.sleepy = d.sleepy ?? 0.2; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || [];
       r.holding = d.holding ?? (r.id === 'dot' && r.stats.wood > 0 ? 'wood' : '');
     }
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
@@ -775,6 +886,30 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return Math.min(12 * 3600, Math.max(0, (Date.now() - s.at) / 1000));   // how long they lived on without us (up to half a day)
   }
 
+  // what it is doing, in words
+  function statusOf(r: Resident): string {
+    if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
+    const tk = r.task, k = tk?.kind ?? 'idle';
+    const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
+    const going: Record<string, string> = { eat: '獲物をかかえて浮かんでいる', forage: '餌場へ泳いでいく', graze: '海草の原へ泳いでいく', bask: '甲羅干しの浜へ向かう', groom: '静かな水面へ', survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる' };
+    const prey = ({ urchin: 'ウニ', crab: 'カニ', clam: '貝' } as Record<string, string>)[tk?.data] ?? '';
+    const k01 = tk ? tk.t / tk.dur : 0;
+    const at: Record<string, string> = {
+      forage: k01 < 0.12 ? '頭から潜っていく' : k01 > 0.86 ? (prey ? `${prey}をかかえて浮かんでくる` : '手ぶらで浮かんでくる') : '海の底で、前足で岩の下を探っている',
+      eat: tk?.data === 'clam' ? 'お腹の上の石で貝を割って食べている' : `仰向けに浮かんで、${prey}を食べている`,
+      groom: '水面で転がりながら毛づくろいしている',
+      graze: r.act === 'breathe' ? '息つぎに浮かんできた' : '海の底で海草を食べている',
+      bask: '浜で甲羅干しをしている',
+      survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
+    if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
+    const base: Record<string, string> = {
+      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
+      look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
+      explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
+      visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている',
+    };
+    return base[k] ?? 'ひと休みしている';
+  }
   const res: Residents = {
     list, bonds, talks, group,
     onEvent: () => { /* set by the app */ },
@@ -785,6 +920,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const fx = Math.sin(r.head), fz = Math.cos(r.head);
       const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
       if (r.id === 'kame' && r.wet && r.act === 'swim') eye.y = r.pos.y + 0.2;   // (swimming under the water, looking through it)
+      if (r.wet && r.pos.y < -0.3) eye.y = r.pos.y + 0.15;   // (down on the bottom)
       const marks: Mark[] = [], near = (x: number, z: number, d: number) => Math.hypot(x - r.pos.x, z - r.pos.z) < d;
       const tk = r.task, tgt = tk && tk.data;
       const NAME: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
@@ -817,7 +953,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // their lights: on after dark while they are up and about (not asleep, not under the water)
       { const nightK = 1 - dayK(localHour(ms)), tt = performance.now() / 1000;
         list.forEach((r, i) => {
-          const Lt = LIGHT[r.id], on = nightK * (r.act === 'sleep' || (r.wet && r.act === 'swim') ? 0 : 1);
+          const Lt = LIGHT[r.id], on = r.sp.living ? 0 : nightK * (r.act === 'sleep' || (r.wet && r.act === 'swim') ? 0 : 1);   // (the animals carry no light)
           r.lightK = (r.lightK ?? 0) + (on - (r.lightK ?? 0)) * Math.min(1, dt * 0.8);
           const fx = Math.sin(r.head), fz = Math.cos(r.head), sway = Math.sin(tt * 1.3 + i) * 0.15;
           U.uLights.value[i].set(r.pos.x + (fx + fz * sway) * Lt.ahead, r.pos.y, r.pos.z + (fz - fx * sway) * Lt.ahead, r.lightK * Lt.k * (0.94 + 0.06 * Math.sin(tt * 2.1 + i * 2)));
@@ -832,8 +968,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         r.model.root.visible = near && res.hide !== r.id;
         if (!near) continue;
         r.model.root.position.copy(r.pos); r.model.root.rotation.y = r.head;
-        const act: Act = r.id === 'dot' ? r.act : r.act === 'pick' || r.act === 'hammer' || r.act === 'chop' || r.act === 'dig' ? 'work' : r.act === 'sit' ? (r.wet ? 'float' : 'idle') : r.act;
-        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: Math.min(1, r.walk), night: 1 - dayK(localHour(ms)), wet: r.wet });
+        const act: Act = r.id === 'dot' ? r.act : r.act === 'sit' ? (r.wet ? 'float' : 'idle') : !r.sp.living && (r.act === 'pick' || r.act === 'hammer' || r.act === 'chop' || r.act === 'dig') ? 'work' : r.act;
+        const tk = r.task, k = tk && tk.arrived ? Math.min(1, tk.t / tk.dur) : 0;
+        const food = tk?.kind === 'eat' ? tk.data : tk?.kind === 'forage' && k > 0.8 ? tk.data : '';   // (coming up with it in its paws)
+        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: Math.min(1, r.walk), night: 1 - dayK(localHour(ms)), wet: r.wet, k, food });
         // what it has in its hands (Dot's arms hold a log themselves)
         if (r.model.carry) r.model.carry.visible = r.holding === 'wood';
         const hk = r.holding === 'wood' && r.model.carry ? '' : r.holding;
@@ -849,19 +987,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
     subjects: () => list.map((r) => r.subject),
     status(r) {
-      if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
-      const tk = r.task, k = tk?.kind ?? 'idle';
-      const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
-      const going: Record<string, string> = { survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる' };
-      const at: Record<string, string> = { survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
-      if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
-      const base: Record<string, string> = {
-        sleep: r.wet ? '波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
-        look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
-        explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '浮いたまま昼寝している',
-        visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている',
-      };
-      return base[k] ?? 'ひと休みしている';
+      const s = statusOf(r);
+      if (!r.sp.living || r.talk || r.act === 'sleep' || ['forage', 'eat', 'graze'].includes(r.task?.kind ?? '')) return s;
+      return s + (r.hunger > 0.6 ? '（おなかがすいている）' : r.sleepy > 0.7 ? '（ねむそう）' : '');
+    },
+    vitals(r) {
+      if (!r.sp.living) return `電池 ${Math.round(r.battery * 100)}%`;
+      return `おなか：${r.hunger > 0.7 ? 'ぺこぺこ' : r.hunger > 0.45 ? 'すいてきた' : r.hunger > 0.2 ? 'ほどほど' : 'いっぱい'}・ねむけ：${r.sleepy > 0.7 ? 'ねむい' : r.sleepy > 0.4 ? 'すこし' : 'すっきり'}`;
     },
     save,
     focus(r) { focused = r; },

@@ -18,9 +18,9 @@ const PLAN: Record<string, Record<string, string[]>> = {
     till: ['① 区画 耕起', '② 種マキ', '③ 収穫 マデ 1.5日'], plant: ['① 種マキ', '② 生育 監視', '③ 収穫'], harvest: ['① 収穫', '② 食料 備蓄', '③ 再ビ 種マキ'],
     look: ['① 海 監視', '② 流木 漂着 待チ'], deck: ['① 桟橋ノ板 #{d} 張ル', '② 次ノ流木', '③ 桟橋 完成'], find: ['① 未知ノ物体 回収', '② 解析', '③ 棚ニ 保管'], shelve: ['① 棚ニ 保管', '② 今夜 ミンナニ 見セル'], fire: ['① 焚キ火ノ会', '② 今日ノ報告', '③ 明日ノ計画 共有'], idle: ['① 休憩', '② 次ノ計画 立案'],
   },
-  kame: { survey: ['潮の流れを見る', '底の砂を確かめる', '桟橋の位置を決める'], inspect: ['工事を見守る', '潮の時刻を伝える'], find: ['拾って、よく見る', '棚にしまう', 'みなに見せる'], watch: ['浜から海を記録する', '雲と潮の変わり目を見る'], swim: ['ラグーンの魚を数える', '根のまわりを一周'], fire: ['みなの話を聞く'], idle: ['ひと休み'] },
+  kame: { graze: ['海草の原で食事', '息つぎに浮かぶ', 'また底へ'], bask: ['浜で甲羅を干す', 'ひと眠り'], sleep: ['岩かげで眠る', 'ときどき息つぎ'], survey: ['潮の流れを見る', '底の砂を確かめる', '桟橋の位置を決める'], inspect: ['工事を見守る', '潮の時刻を伝える'], find: ['拾って、よく見る', '棚にしまう', 'みなに見せる'], watch: ['浜から海を記録する', '雲と潮の変わり目を見る'], swim: ['ラグーンの魚を数える', '根のまわりを一周'], fire: ['みなの話を聞く'], idle: ['ひと休み'] },
   lantern: { base: ['石を浜から手渡す', '土台をひとつ据える'], find: ['拾い上げる', '棚へ', '今夜、見せよう'], explore: ['地図の空白へ', '見つけたものを記す'], think: ['星を見上げる', '問いをひとつ考える'], fetch: ['石をひとつ拾う', '石積みへ運ぶ'], stack: ['石を積む', '目印をひとつ残す'], rest: ['夜を待つ'], fire: ['灯りを分け合う'] },
-  rakko: { gather: ['柱にする木をひろう', '泳いで運ぶ！'], post: ['泳いで運ぶ！', '柱をたてる！', 'つぎの木さがす'], find: ['なにこれ！ ひろう！', '棚にかざる！', 'みんなに見せる！'], collect: ['きれいな貝殻さがし！', '山にならべる'], pile: ['貝殻ならべる♪', 'つぎさがす！'], float: ['ぷかぷかする', 'お空みる'], crack: ['貝をわる！', 'たべる！'], nap: ['おひるね…'], fire: ['みんなとおしゃべり！'] },
+  rakko: { forage: ['潜る！', '岩の下をさがす', 'つかまえて浮かぶ！'], eat: ['お腹の上でたべる！', 'もういっこ取りにいく'], groom: ['毛づくろい！', 'ふわふわにする'], sleep: ['前足で目をかくして、おやすみ'], gather: ['柱にする木をひろう', '泳いで運ぶ！'], post: ['泳いで運ぶ！', '柱をたてる！', 'つぎの木さがす'], find: ['なにこれ！ ひろう！', '棚にかざる！', 'みんなに見せる！'], collect: ['きれいな貝殻さがし！', '山にならべる'], pile: ['貝殻ならべる♪', 'つぎさがす！'], float: ['ぷかぷかする', 'お空みる'], crack: ['貝をわる！', 'たべる！'], nap: ['おひるね…'], fire: ['みんなとおしゃべり！'] },
 };
 const LOOK: Record<string, Look> = {
   dot: {
@@ -33,7 +33,7 @@ const LOOK: Record<string, Look> = {
     title: 'カメマルの観察帳', sub: 'ゆっくり見る目',
     bullets: (s) => PLAN.kame[s.task] ?? PLAN.kame.idle,
     label: (m, d) => (m.kind === 'friend' ? `${m.label}さん（${m.sub}）` : m.kind === 'fish' ? `${m.label}${m.sub ? ' · ' + m.sub : ''}` : `${m.label}　${Math.round(d)}m`),
-    stat: (s, r) => `記録 ${r.stats.notes}件　甲羅の電池 ${pct(r.battery)}`,
+    stat: (s, r) => `記録 ${r.stats.notes}件　おなか ${bar(1 - r.hunger, 6)}　ねむけ ${bar(r.sleepy, 6)}`,
   },
   lantern: {
     title: 'LANTERN ／ 夜目', sub: '灯りの届くところ',
@@ -45,14 +45,14 @@ const LOOK: Record<string, Look> = {
     title: 'らっこアイ♪', sub: 'きらきら見える',
     bullets: (s) => PLAN.rakko[s.task] ?? ['なにしよっかな〜'],
     label: (m, d) => (m.kind === 'shell' ? `✧ ${m.label}！` : m.kind === 'friend' ? `♥ ${m.label}（${m.sub}）` : `${m.label}`),
-    stat: (s, r) => `貝殻 ${r.stats.shells}個　げんき ${pct(r.battery)}`,
+    stat: (s, r) => `貝殻 ${r.stats.shells}個　おなか ${bar(1 - r.hunger, 6)}　ねむけ ${bar(r.sleepy, 6)}`,
   },
 };
 // which mutters fit what it is doing
 function mutterKey(task: string, act: string) {
   if (task === 'fire') return 'fire';
   if (act === 'carry') return 'carry';
-  if (['pick', 'hammer', 'chop', 'dig', 'swim', 'float', 'think', 'look'].includes(act)) return act;
+  if (['pick', 'hammer', 'chop', 'dig', 'swim', 'float', 'think', 'look', 'dive', 'eat', 'groom', 'graze', 'breathe', 'bask', 'sleep'].includes(act)) return act;
   if (task === 'watch' || task === 'look' || task === 'explore') return 'look';
   if (act === 'work') return 'work';
   if (act === 'walk') return 'walk';

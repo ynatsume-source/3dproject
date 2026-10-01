@@ -42,8 +42,8 @@ const STAGE_GOAL = [
 ];
 // a short exchange between A and B, in their own voices
 export async function aiConverse(a: Voice, b: Voice, stage: number, stageName: string, aDid: string[], bDid: string[], recent: string[]) {
-  const system = 'あなたは、実在の無人島・嘉弥真島（沖縄県八重山）で独立して暮らす小さなロボットたちの会話を書く作家です。' +
-    'ロボットは自分の力で島での暮らしを築いている。人間は島にいない。説明や地の文は書かず、指定のJSONだけを返す。';
+  const system = 'あなたは、実在の無人島・嘉弥真島（沖縄県八重山）で独立して暮らす住人たち（小さなロボットのドットとランタン、本物の生き物のアオウミガメのカメマルとラッコ）の会話を書く作家です。' +
+    'それぞれが自分の力で島での暮らしを築いている。カメマルとラッコは本物の動物として食べ、眠り、泳ぐ。人間は島にいない。説明や地の文は書かず、指定のJSONだけを返す。';
   const user = [
     `A: ${a.mind}`, `B: ${b.mind}`,
     `ふたりの関係: ${stageName}。今回の会話: ${STAGE_GOAL[Math.min(stage, 5)]}`,

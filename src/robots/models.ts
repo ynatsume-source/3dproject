@@ -6,9 +6,9 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 export interface Mats { shell: THREE.Material; accent: THREE.Material; teal: THREE.Material; joint: THREE.Material; dark: THREE.Material; glow: THREE.Material; warm: THREE.Material; panel: THREE.Material; stone: THREE.Material }
-export type Act = 'demo' | 'idle' | 'walk' | 'work' | 'carry' | 'sleep' | 'swim' | 'float' | 'wave' | 'look' | 'think' | 'pick' | 'hammer' | 'chop' | 'dig' | 'sit';
-export interface Pose { act: Act; walk: number; night?: number; wet?: boolean }
-export interface Robot { root: THREE.Group; update(t: number, dt: number, pose?: Pose): void; carry?: THREE.Object3D; light?: THREE.Object3D }
+export type Act = 'demo' | 'idle' | 'walk' | 'work' | 'carry' | 'sleep' | 'swim' | 'float' | 'wave' | 'look' | 'think' | 'pick' | 'hammer' | 'chop' | 'dig' | 'sit' | 'dive' | 'eat' | 'groom' | 'graze' | 'bask' | 'breathe';
+export interface Pose { act: Act; walk: number; night?: number; wet?: boolean; k?: number; food?: string }   // (k: how far through what it is doing)
+export interface Robot { root: THREE.Group; update(t: number, dt: number, pose?: Pose): void; carry?: THREE.Object3D; light?: THREE.Object3D; hand?: THREE.Object3D }
 const DEMO: Pose = { act: 'demo', walk: 1 };
 
 export function robotKit(M: Mats, shadows = false) {

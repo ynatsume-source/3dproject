@@ -1,9 +1,11 @@
-// Design samples for the island's resident: four robots with four limbs each, built from simple rounded
-// parts and moving by hand-written cycles, standing on a beach under soft daylight.
+// The island's residents side by side on a beach under soft daylight: the two robots (Dot, Lantern) and
+// the two animals (Kamemaru the green turtle, Rakko the sea otter). ?act=…&wet=1 poses them all (to check
+// a motion: float, eat, work, groom, dive, graze, bask, sleep, swim).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { robotKit } from './models';
+import { robotKit, type Act } from './models';
+import { creatureKit } from './creatures';
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -56,12 +58,18 @@ const M = {
     return new THREE.MeshPhysicalMaterial({ map: t, roughness: 0.25, clearcoat: 1, metalness: 0.2 });
   })(),
 };
-const { makeDot, makeKame, makeOtter, makeLantern } = robotKit({ ...M, stone: new THREE.MeshStandardMaterial({ color: 0x8a8378, roughness: 0.9 }) }, true);
+const { makeDot, makeLantern } = robotKit({ ...M, stone: new THREE.MeshStandardMaterial({ color: 0x8a8378, roughness: 0.9 }) }, true);
+const std = (color: number, roughness = 0.8) => new THREE.MeshStandardMaterial({ color, roughness });
+const { makeSeaOtter, makeGreenTurtle } = creatureKit({
+  fur: std(0x3a281b, 0.9), furPale: std(0xb9a487, 0.95), furDark: std(0x1f1610, 0.9), nose: std(0x0d0c0c, 0.4), eye: std(0x050506, 0.1),
+  carapace: std(0x5a4426, 0.5), plastron: std(0xd8c890, 0.7), skin: std(0x4c3b24, 0.6), beak: std(0x8f7d58, 0.5),
+  stone: std(0x7d776e, 0.9), urchin: std(0x3b1736, 0.5), crab: std(0xb04a2a, 0.5), clam: std(0xcbbca4, 0.5),
+}, true);
 
 const ROBOTS = [
   { name: 'ドット', en: 'DOT', text: '丸い画面の顔に点の目。表情で気持ちを伝える、いちばんアイコン的な姿。器用な三本指の手で道具を作り、背中の太陽電池で動く。', make: makeDot, scale: 1 },
-  { name: 'カメマル', en: 'KAMEMARU', text: '甲羅が太陽電池。四本の脚は水に入るとヒレに変わる。大きな一つ目のレンズで、じっくり観察してから動く慎重派。', make: makeKame, scale: 1 },
-  { name: 'ラッコ', en: 'RAKKO', text: 'ラッコのように石で貝を割り、背中で浮かんで眠る。器用な前脚で細かい作業が得意。尻尾のプロペラで泳ぐ。', make: makeOtter, scale: 1.25 },
+  { name: 'カメマル', en: 'KAMEMARU', text: '年寄りのアオウミガメ。ラグーンの海草を食べ、数分ごとに息つぎに浮かぶ。夜は海の底の岩かげで眠り、昼は浜で甲羅を干す。', make: makeGreenTurtle, scale: 1 },
+  { name: 'ラッコ', en: 'RAKKO', text: 'ラッコ。潜ってウニやカニや貝をとり、仰向けに浮かんでお腹の上の石で割って食べる。毛づくろいを欠かさず、前足で目をおおって眠る。', make: makeSeaOtter, scale: 1.2 },
   { name: 'ランタン', en: 'LANTERN', text: '箱の体に長い四本脚。顔は光の輪で、考えるときに明滅する。岩場も軽々と歩く、いちばんAIらしい抽象的な姿。', make: makeLantern, scale: 1 },
 ];
 const bots = ROBOTS.map((r, i) => {
@@ -70,6 +78,13 @@ const bots = ROBOTS.map((r, i) => {
   scene.add(b.root); return b;
 });
 let focus = -1, flyT = 0, flying = false;
+// ?solo=<n>: just that one, close up (with &cam=x,y,z), without the cards
+{ const qs = new URLSearchParams(location.search), solo = qs.get('solo');
+  if (solo != null) {
+    bots.forEach((b, i) => { b.root.visible = i === +solo; b.root.position.set(0, qs.has('wet') ? 0.25 : 0, 0); b.root.rotation.y = +(qs.get('yaw') ?? 0.6); });
+    const c = (qs.get('cam') ?? '1.3,0.8,1.6').split(',').map(Number); camera.position.set(c[0], c[1], c[2]); controls.target.set(0, +(qs.get('ty') ?? 0.15), 0);
+    document.getElementById('cards')!.style.display = 'none'; (document.querySelector('header') as HTMLElement | null)?.style.setProperty('display', 'none');
+  } }
 const cards = document.getElementById('cards')!;
 ROBOTS.forEach((r, i) => {
   const c = document.createElement('button'); c.className = 'card'; c.type = 'button';
@@ -84,10 +99,11 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 const clock = new THREE.Clock();
+const q = new URLSearchParams(location.search), POSE = q.get('act') ? { act: q.get('act') as Act, walk: +(q.get('walk') ?? 0), wet: q.has('wet'), k: +(q.get('k') ?? 0.5), food: q.get('food') ?? '' } : undefined;
 const _t = new THREE.Vector3(), _p = new THREE.Vector3();
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
-  bots.forEach((b) => b.update(t, dt));
+  bots.forEach((b) => b.update(t, dt, POSE));
   // a chosen robot: glide the camera in to it
   // (for ~1.5 s after a card click, then the orbit controls are free again)
   const fly = (performance.now() - flyT) / 1500;

@@ -998,7 +998,7 @@ function renderIsland() {
     const rel = R.list.filter((o: any) => o !== r).map((o: any) => { const b = R.bonds[[r.id, o.id].sort().join('|')]; return `<span class="rel s${b.stage}"><i style="background:${o.sp.color}"></i>${o.v.name}：${STAGES[b.stage]}</span>`; }).join('');
     const diary = r.diary.slice(-3).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
     const st = r.stats, work = r.id === 'dot' ? `小屋の部材 ${st.built}/24` : r.id === 'kame' ? `観察記録 ${st.notes}件` : r.id === 'lantern' ? `目印の石積み ${st.cairns}` : `集めた貝殻 ${st.shells}個・割った貝 ${st.cracked}個`;
-    return `<li class="res"><i style="background:${r.sp.color}"></i><b>${r.v.name}</b><em>${r.v.en}</em><span class="st">いま：${R.status(r)}・電池 ${Math.round(r.battery * 100)}%</span>
+    return `<li class="res"><i style="background:${r.sp.color}"></i><b>${r.v.name}</b><em>${r.v.en}</em><span class="st">いま：${R.status(r)}・${R.vitals(r)}</span>
       <p>${r.v.trait}</p><p class="work">${work}</p><div class="rels">${rel}</div>${diary ? `<ol class="diary">${diary}</ol>` : ''}
       <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button><button class="go" type="button" data-diary="${r.id}">日記帳をひらく</button></li>`;
   }).join('');
@@ -1535,7 +1535,7 @@ function renderWatch() {
   const diary = r.diary.slice(-3).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.text}</li>`).join('');
   card.style.setProperty('--c', r.sp.color);
   card.innerHTML = `<div class="h"><i></i><b>${r.v.name}</b><span>${R.status(r)}</span></div>
-    <div class="m">電池 ${Math.round(r.battery * 100)}% ・ ${work}</div>
+    <div class="m">${R.vitals(r)} ・ ${work}</div>
     ${r.saying ? `<p class="say">「${r.saying}」</p>` : ''}
     ${diary ? `<ol>${diary}</ol>` : ''}
     <div class="f"><span>ドラッグで回り込む・${isTouch ? 'ピンチ' : 'ホイール'}で遠近</span><button type="button" id="watchEye">目線で見る</button><button type="button" id="watchDiary">日記帳</button><button type="button" id="watchStop">見守りをやめる</button></div>`;
