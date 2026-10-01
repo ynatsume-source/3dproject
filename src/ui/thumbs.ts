@@ -73,3 +73,22 @@ export function guideThumbs(loc: Sea, ids: string[], budget = Infinity): Record<
   cache.set(loc.id, have);
   return have;
 }
+
+// A big portrait of one animal from any side, close in on a point of it (?debug: for checking models)
+let studioR: THREE.WebGLRenderer | null = null;
+export function studio(loc: Sea, id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, w = 800, h = 500): string {
+  const m = model(loc, id); if (!m) return '';
+  if (!studioR) { studioR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); studioR.setPixelRatio(1); }
+  studioR.setSize(w, h, false);
+  const keep = { sun: U.uSunDir.value.clone(), sunI: U.uSunI.value, amb: U.uAmb.value, fog: U.uFogDen.value, abs: U.uAbs.value.clone(), cam: U.uCamPos.value.clone(), lamp: U.uLamp.value, tint: U.uTint.value.clone() };
+  U.uSunDir.value.set(0.35, 0.85, 0.4).normalize(); U.uSunI.value = 1; U.uAmb.value = 1.1; U.uFogDen.value = 0.0001; U.uAbs.value.set(0, 0, 0); U.uLamp.value = 0; U.uTint.value.setRGB(1, 1, 1);
+  const scene = new THREE.Scene(); scene.add(m.obj); m.obj.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(m.obj), c = focus ? new THREE.Vector3(...focus) : box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const cam = new THREE.PerspectiveCamera(28, w / h, 0.005, 100);
+  cam.position.copy(c).addScaledVector(new THREE.Vector3(...view).normalize(), Math.max(size.x, size.y, size.z) * 1.6 / zoom); cam.lookAt(c); cam.updateMatrixWorld();
+  U.uCamPos.value.copy(cam.position);
+  studioR.setClearColor(0x2a5560, 1); studioR.clear(); studioR.render(scene, cam);
+  const url = studioR.domElement.toDataURL('image/png');
+  U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs); U.uCamPos.value.copy(keep.cam); U.uLamp.value = keep.lamp; U.uTint.value.copy(keep.tint);
+  return url;
+}

@@ -1058,7 +1058,7 @@ function turtleGeos(hawk: boolean) {
   const W = hawk ? 0.39 : 0.41;
   const half = (zn: number) => W * Math.pow(Math.max(0, 1 - zn * zn), 0.55) * (1 + 0.1 * zn) * (0.78 + 0.22 * smooth(-1, -0.2, zn));
   const Z = (zn: number) => zn * (zn > 0 ? 0.47 : 0.53);
-  const dome = (xn: number, zn: number) => 0.2 * Math.pow(Math.max(0, 1 - xn * xn), 0.6) * Math.pow(Math.max(0, 1 - zn * zn), 0.4) * (1 + 0.12 * zn)
+  const dome = (xn: number, zn: number) => 0.255 * Math.pow(Math.max(0, 1 - xn * xn), 0.48) * Math.pow(Math.max(0, 1 - zn * zn), 0.36) * (1 + 0.1 * zn)   // (a deep, full dome: thicker than it looks from above)
     + (hawk ? 0.012 * Math.max(0, 1 - Math.abs(xn) * 5) : 0);                          // hawksbill: a slight ridge
   const top = grid(40, 48, (u, v) => { const xn = u * 2 - 1, zn = -0.995 + v * 1.99; let y = dome(xn, zn);
     // marginal scutes flare out a little, and the hawksbill's rear margin is serrated
@@ -1067,24 +1067,25 @@ function turtleGeos(hawk: boolean) {
     return [xn * hw, y, Z(zn)]; });
   add(top, 0, (x, y, z) => { const zn = z > 0 ? z / 0.47 : z / 0.53; return [x / Math.max(half(zn), 1e-3), zn]; });
   const bot = grid(40, 40, (u, v) => { const xn = u * 2 - 1, zn = -0.995 + v * 1.99;
-    return [xn * half(zn), 0.012 - 0.05 * Math.pow(Math.max(0, 1 - xn * xn), 0.8) * Math.pow(Math.max(0, 1 - zn * zn), 0.6), Z(zn)]; });
+    return [xn * half(zn), 0.012 - 0.085 * Math.pow(Math.max(0, 1 - xn * xn), 0.7) * Math.pow(Math.max(0, 1 - zn * zn), 0.55), Z(zn)]; });
   bot.index!.array.reverse?.call(bot.index!.array);
   add(bot, 2, (x, y, z) => { const zn = z > 0 ? z / 0.47 : z / 0.53; return [x / Math.max(half(zn), 1e-3), zn]; });
   // neck and head
   // a short, thick neck, mostly under the front of the shell, that runs straight into the back of the skull
   const neck = new THREE.SphereGeometry(0.5, 20, 12), np = neck.attributes.position;
-  for (let i = 0; i < np.count; i++) { const x = np.getX(i), y = np.getY(i), z = np.getZ(i); np.setXYZ(i, x * 0.15 * (1 - 0.12 * (z + 0.5)) * (1 + 0.03 * Math.sin(z * 40)), y * 0.11 * (1 + 0.03 * Math.sin(z * 40)), z * 0.24); }   // (with folds)
+  for (let i = 0; i < np.count; i++) { const x = np.getX(i), y = np.getY(i), z = np.getZ(i); np.setXYZ(i, x * 0.17 * (1 - 0.12 * (z + 0.5)) * (1 + 0.03 * Math.sin(z * 40)), y * 0.125 * (1 + 0.03 * Math.sin(z * 40)), z * 0.24); }   // (with folds)
   neck.translate(0, -0.004, 0.5);
   add(neck, 1);
   // the head: a rounded, deep skull, broadest behind the eyes, tapering to a short blunt snout (the
   // hawksbill's longer and narrower, ending in a hooked beak); the upper jaw's horny sheath closes over
   // the lower one, and the gape runs back beneath the eye
-  const HL = hawk ? 0.25 : 0.21, HW = hawk ? 0.068 : 0.078, HH = 0.062, HZ = 0.55;
+  const eyeP = new THREE.Vector3();
+  const HL = hawk ? 0.25 : 0.2, HW = hawk ? 0.074 : 0.088, HH = 0.072, HZ = 0.55;
   const head = new THREE.SphereGeometry(0.5, 32, 22), hp = head.attributes.position;
   for (let i = 0; i < hp.count; i++) {
     let x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i);
     const f = z + 0.5;                                                   // 0 back of the skull .. 1 tip of the snout
-    x *= 2 * HW * (1 - (hawk ? 0.62 : 0.5) * Math.pow(f, hawk ? 1.9 : 2.4)) * (1 - 0.12 * Math.pow(1 - f, 3));
+    x *= 2 * HW * (1 - (hawk ? 0.62 : 0.4) * Math.pow(f, hawk ? 1.9 : 2.8)) * (1 - 0.12 * Math.pow(1 - f, 3));   // (the green turtle's snout short and blunt)
     y *= 2 * HH * (y > 0 ? (1 - 0.32 * Math.pow(f, 1.8)) * 0.92 : 1 - 0.28 * Math.pow(f, 1.5));
     if (y > 0) y *= 1 - 0.18 * Math.pow(Math.abs(x) / (HW + 1e-3), 2);     // (a flat crown)
     if (hawk && f > 0.78) y -= 0.024 * Math.pow((f - 0.78) / 0.22, 1.5) * (y > 0 ? 0.6 : 1);   // the hooked beak
@@ -1096,14 +1097,19 @@ function turtleGeos(hawk: boolean) {
   add(head, 1);
   // the eyes: glossy dark balls under heavy lids, set to the sides a little ahead of the middle of the head
   for (const sx of [-1, 1]) {
-    const ez = HZ + HL * (hawk ? 0.66 : 0.63), ef = (ez - HZ) / HL;
-    const ex = HW * (1 - (hawk ? 0.62 : 0.5) * Math.pow(ef, hawk ? 1.9 : 2.4)) * 0.74;
-    const eye = new THREE.SphereGeometry(0.0155, 14, 10); eye.scale(0.7, 0.9, 1.1); eye.translate(sx * ex, 0.012 + HH * 0.32, ez);
-    add(eye, 3, (x, y, z) => [(x - sx * ex) / 0.0155 * sx, (z - ez) / 0.017]);
-    // the upper lid: a fold of skin arching over the eye
-    const lid = new THREE.SphereGeometry(0.5, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.42); lid.scale(0.03, 0.02, 0.04);
-    lid.rotateZ(-sx * 0.5); lid.translate(sx * (ex + 0.002), 0.012 + HH * 0.32 + 0.006, ez + 0.002);
+    const ez = HZ + HL * (hawk ? 0.64 : 0.6), ef = (ez - HZ) / HL, ER = 0.025;
+    const ex = HW * (1 - (hawk ? 0.62 : 0.4) * Math.pow(ef, hawk ? 1.9 : 2.8)) * 0.8, ey = 0.012 + HH * 0.26;
+    eyeP.set(ex, ey, ez);
+    const eye = new THREE.SphereGeometry(ER, 18, 14); eye.scale(0.72, 0.92, 1.1); eye.translate(sx * ex, ey, ez);
+    add(eye, 3, (x, y, z) => [(x - sx * ex) / ER * sx, (z - ez) / (ER * 1.1)]);
+    // the upper lid: a heavy fold of skin over the top of the eye, drooping toward the back corner (the
+    // calm, sleepy look of a sea turtle); a smaller lower lid under it
+    const lid = new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.4); lid.scale(0.046, 0.024, 0.062);
+    lid.rotateX(0.18); lid.rotateZ(-sx * 0.62); lid.translate(sx * (ex + 0.001), ey + 0.019, ez - 0.002);
     add(lid, 1);
+    const low = new THREE.SphereGeometry(0.5, 14, 6, 0, Math.PI * 2, Math.PI * 0.68, Math.PI * 0.32); low.scale(0.044, 0.02, 0.058);
+    low.rotateZ(-sx * 0.45); low.translate(sx * (ex + 0.001), ey - 0.017, ez);
+    add(low, 1);
   }
   const tail = new THREE.ConeGeometry(0.04, 0.12, 8); tail.rotateX(-Math.PI / 2); tail.translate(0, -0.005, -0.56);
   add(tail, 1);
@@ -1130,7 +1136,7 @@ function turtleGeos(hawk: boolean) {
   };
   // a point on the shell (xn across -1..1, zn along -1..1), for what grows on it
   const shell = (xn: number, zn: number) => new THREE.Vector3(xn * half(zn), dome(xn, zn), Z(zn));
-  return { body, front: flipper(0.56, 0.15, 0.03, 0.26, 0.024), rear: flipper(0.2, 0.13, 0.06, 0.06, 0.018), shell };
+  return { body, front: flipper(0.56, 0.15, 0.03, 0.26, 0.024), rear: flipper(0.2, 0.13, 0.06, 0.06, 0.018), shell, eyeP };
 }
 // Barnacles on an old turtle's shell: a few clusters of little volcano-shaped cones, mostly toward the
 // back and along the margins, different on every turtle (aPart 5; aCar.x = height up the cone 0..1)
@@ -1167,7 +1173,7 @@ export function turtleMaterial(style) {
   return mat(
     `attribute float aPart; attribute vec2 aCar; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar;
      void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart; vCar = aCar; gl_Position = projectionMatrix * viewMatrix * w; }`,
-    SURFACE + `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uRay; uniform vec3 uDark; uniform vec3 uSkin; uniform float uHawk; uniform float uSeed;
+    SURFACE + `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uRay; uniform vec3 uDark; uniform vec3 uSkin; uniform float uHawk; uniform float uSeed; uniform vec3 uEyeP;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
@@ -1176,8 +1182,9 @@ export function turtleMaterial(style) {
        if (vPart > 2.5 && vPart < 3.5) {
          // the eye: a dark, wet ball; brown iris, black pupil looking out to the side
          float rr = sqrt(max(0.0, 1.0 - clamp(vCar.x, 0.0, 1.0) * clamp(vCar.x, 0.0, 1.0)));
-         alb = mix(vec3(0.02, 0.018, 0.015), vec3(0.2, 0.12, 0.06) * (0.8 + 0.4 * sin(atan(vCar.y, rr) * 30.0)), smoothstep(0.3, 0.38, rr));
-         alb = mix(alb, vec3(0.08, 0.07, 0.06), smoothstep(0.7, 0.8, rr));
+         // (a big dark pupil, a warm brown iris round it: soft, not staring)
+         alb = mix(vec3(0.015, 0.013, 0.012), vec3(0.28, 0.17, 0.08) * (0.85 + 0.3 * sin(atan(vCar.y, rr) * 30.0)), smoothstep(0.42, 0.5, rr));
+         alb = mix(alb, vec3(0.1, 0.08, 0.06), smoothstep(0.78, 0.88, rr));
          gloss = 1.0;
        } else if (vPart > 4.5) {
          // a barnacle: chalky ridged plates rising to a dark opening, a little green at the base
@@ -1234,24 +1241,29 @@ export function turtleMaterial(style) {
          // skin: dark polygonal scales with pale edges; larger plates on the head and flipper tops
          // big plates on the head and the tops of the flippers, fine wrinkled skin on the neck
          float plates = max(step(0.56, vL.z), step(0.12, vCar.x) * step(0.0, n.y));
-         float sc = vor(vec2(vL.x, vL.z) * mix(80.0, 26.0, plates) + vL.y * 14.0);
-         vec3 skin = uSkin * (0.8 + 0.35 * hash2(floor(vL.xz * mix(80.0, 26.0, plates))));
-         alb = mix(mix(skin * 1.4, vec3(0.62, 0.57, 0.44), 0.35), skin, smoothstep(0.012, mix(0.07, 0.04, plates), sc));
+         float head = step(0.56, vL.z), sf = mix(mix(80.0, 26.0, plates), 72.0, head);
+         float sc = vor(head > 0.5 ? vec2(vL.z * 1.2 + vL.x * 0.3, vL.y * 1.1 + abs(vL.x) * 0.6) * sf : vec2(vL.x, vL.z) * sf + vL.y * 14.0);   // (on the head: scales over its sides and crown)
+         vec3 skin = uSkin * (0.75 + 0.45 * hash2(floor(vL.xz * sf + vL.y * 30.0)));
+         vec3 edge = mix(mix(skin * 1.4, vec3(0.62, 0.57, 0.44), 0.35), vec3(0.78, 0.7, 0.5), step(0.56, vL.z) * 0.7);   // (the head's plates outlined in cream)
+         alb = mix(edge, skin * mix(1.0, 1.05, head), smoothstep(mix(0.012, 0.02, head), mix(mix(0.07, 0.035, plates), 0.06, head), sc));
          // pale underside of neck and flippers
          alb = mix(alb, vec3(0.8, 0.74, 0.58), smoothstep(0.2, -0.6, n.y) * 0.6);
          // the head: a pale chin and throat below the gape; the horny sheath of the beak over the jaws
-         float HL = uHawk > 0.5 ? 0.25 : 0.21, f = (vL.z - 0.55) / HL, yh = vL.y - 0.012;
+         float HL = uHawk > 0.5 ? 0.25 : 0.2, f = (vL.z - 0.55) / HL, yh = vL.y - 0.012;
          if (f > 0.0 && vPart < 1.5 && vCar.x == 0.0) {
            float yg = -0.014 - 0.005 * (1.0 - f) + (uHawk > 0.5 ? -0.012 * smoothstep(0.75, 1.0, f) : 0.0);
            float below = smoothstep(0.004, -0.004, yh - yg) * smoothstep(0.35, 0.55, f);
            alb = mix(alb, vec3(0.74, 0.68, 0.52) * (0.9 + 0.2 * hash2(floor(vL.xz * 90.0))), below * 0.85);
            float sheath = smoothstep(0.76, 0.84, f);
            alb = mix(alb, mix(vec3(0.3, 0.26, 0.19), vec3(0.52, 0.46, 0.34), below) * (0.85 + 0.3 * vn2(vL.xy * 120.0)), sheath);
-           float gape = (1.0 - smoothstep(0.0008, 0.0022, abs(yh - yg))) * smoothstep(0.5, 0.62, f);
-           alb = mix(alb, vec3(0.06, 0.05, 0.04), gape * 0.75);
+           float gape = (1.0 - smoothstep(0.0008, 0.0022, abs(yh - yg))) * smoothstep(0.6, 0.72, f);
+           alb = mix(alb, vec3(0.06, 0.05, 0.04), gape * 0.5);
            // the nostrils, small, high on the snout
            alb = mix(alb, vec3(0.08), 0.8 * (1.0 - smoothstep(0.0012, 0.0022, length(vec2(abs(vL.x) - 0.008, yh - 0.022 + 0.03 * (f - 0.92))))) * smoothstep(0.9, 0.93, f));
          }
+         // round the eye, a ring of soft, pale skin (it is what makes the face look gentle)
+         float er = length(vec3(abs(vL.x) - uEyeP.x, vL.y - uEyeP.y, vL.z - uEyeP.z) * vec3(0.6, 1.0, 0.85));
+         alb = mix(alb, vec3(0.7, 0.63, 0.47), (1.0 - smoothstep(0.02, 0.03, er)) * step(0.5, vL.z) * 0.75);
          // the claw on each fore flipper's leading edge
          alb = mix(alb, vec3(0.1, 0.08, 0.06), (1.0 - smoothstep(0.012, 0.02, length(vec2(vCar.x - 0.35, 0.0)) + abs(vL.z + 0.04) * 0.5)) * step(0.01, vCar.x));
        } else {
@@ -1269,10 +1281,11 @@ export function turtleMaterial(style) {
        col += gloss * absorb(vec3(0.9, 0.95, 1.0), vWp.y) * (pow(max(dot(reflect(-SUN, n), V), 0.0), 60.0) * uSunI * 0.9 + pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.12 * uAmb);   // (a wet eye catches the light)
        gl_FragColor = vec4(col, 1.0);
      }`,
-    { uniforms: { ...SURF_UNIFORMS, uC1: { value: c(s.c1) }, uC2: { value: c(s.c2) }, uRay: { value: c(s.ray) }, uDark: { value: c(s.dark) }, uSkin: { value: c(s.skin) }, uHawk: { value: s.hawk }, uSeed: { value: Math.random() * 40 } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { ...SURF_UNIFORMS, uC1: { value: c(s.c1) }, uC2: { value: c(s.c2) }, uRay: { value: c(s.ray) }, uDark: { value: c(s.dark) }, uSkin: { value: c(s.skin) }, uHawk: { value: s.hawk }, uSeed: { value: Math.random() * 40 }, uEyeP: { value: new THREE.Vector3() } }, opts: { side: THREE.DoubleSide } });
 }
 export function makeTurtle(style) {
   const m = turtleMaterial(style), g = new THREE.Group(), G = TURTLE_GEOS[style];
+  m.uniforms.uEyeP.value.copy(G.eyeP);
   g.add(new THREE.Mesh(G.body, m));
   // (every turtle carries its own few barnacles: some almost none, the old ones a crust of them)
   const rnd = mulberry32((Math.random() * 1e9) | 0), nb = Math.floor(Math.pow(rnd(), 1.6) * 26) + 3;
