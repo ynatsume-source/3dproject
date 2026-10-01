@@ -37,6 +37,7 @@ function pickGoal(oc: any, from: THREE.Vector3, want: 'graze' | 'rest'): THREE.V
   return best!;
 }
 
+let shadeTex: THREE.Texture | undefined;
 export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
   const T = oc.T;
   const act = activity('day', env);
@@ -79,7 +80,20 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       speed = 0.08; ty = fh + 0.45; noseDown = 0.45; stroke = 0.35;
       t.head += Math.sin(t.t * 0.3) * 0.15 * dt;
       if (t.stateT > (t.grazeFor ??= rr(30, 60))) { t.grazeFor = undefined; t.state = 'travel'; t.goal = pickGoal(oc, t.pos, 'graze'); t.stateT = 0; }
-    } else if (t.state === 'rest') { speed = 0; ty = fh + 0.18; stroke = 0.05; }
+    } else if (t.state === 'rest') {
+      // lying on the bottom: the shell on the sand (or the ledge), tilted with it, as low as its belly allows
+      speed = 0; stroke = 0.05;
+      const fw = Math.sin(t.yaw ?? 0), fz2 = Math.cos(t.yaw ?? 0), e = 0.3 * t.size;
+      // (the tilt from the lie of the sea floor itself, gently: the reef's own lumps and ledges are steps it nestles against, not slopes to lie along)
+      // (the tilt of what it lies on, gently; where the bottom steps up or down at its side — a ledge it has
+      // nestled against — it lies level, not along the step)
+      const hf = T.top(t.pos.x + fw * e, t.pos.z + fz2 * e), hb = T.top(t.pos.x - fw * e, t.pos.z - fz2 * e);
+      const hr = T.top(t.pos.x + fz2 * e, t.pos.z - fw * e), hl = T.top(t.pos.x - fz2 * e, t.pos.z + fw * e);
+      const lean = (a: number, b: number) => (Math.abs(a - fh) < 0.25 * t.size && Math.abs(b - fh) < 0.25 * t.size ? clamp(Math.atan2(a - b, 2 * e), -0.2, 0.2) : 0);
+      t.restY = fh + 0.065 * t.size;
+      t.restPitch = lean(hb, hf); t.restRoll = lean(hr, hl);
+      ty = t.restY;
+    }
     else t.head += Math.sin(t.t * 0.11 + t.size * 10) * 0.12 * dt;
     if (t.state !== 'rest' && t.state !== 'graze') t.head += T.shore(t.pos.x, t.pos.z, t.head, 4, 1.1) * Math.min(1, dt * 1.5);
     if (alarm > 0.01) {
@@ -109,7 +123,8 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     if (t.pos.y > -0.35) { t.pos.y = -0.35; if (t.vel.y > 0) t.vel.y = 0; }
     if (!T.wet(t.pos.x, t.pos.z, 0.6)) { t.pos.x -= t.vel.x * dt * 1.5; t.pos.z -= t.vel.z * dt * 1.5; t.head += Math.PI * dt; }
     // keep off the reef, but ease up over a sudden coral edge rather than popping onto it
-    const minY = fh + 0.15 + 0.2 * t.size;
+    t.restK = (t.restK ?? 0) + ((t.state === 'rest' && alarm < 0.01 ? 1 : 0) - (t.restK ?? 0)) * Math.min(1, dt * 0.8);
+    const minY = t.state === 'rest' && alarm < 0.01 ? t.restY - 0.03 : fh + 0.15 + 0.2 * t.size;   // (resting, it may lie right down on it)
     if (t.pos.y < minY) { t.pos.y += Math.min((minY - t.pos.y) * dt * 3, 0.6 * dt); t.vel.y = Math.max(t.vel.y, 0.2); t.vel.x *= 0.9; t.vel.z *= 0.9; }
     t.group.position.copy(t.pos);
     // orientation follows the swim direction through a slow turn rate, and the swim speed only fades the
@@ -121,13 +136,25 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     t.yaw += clamp(dy, -1, 1) * Math.min(1, dt * (0.4 + 1.6 * mov));
     const pitchT = -Math.atan2(t.vel.y, Math.max(hs, 0.08)) * mov + noseDown * (0.6 + 0.4 * Math.sin(t.t * 0.8));
     t.pitch = (t.pitch ?? pitchT) + (pitchT - (t.pitch ?? pitchT)) * Math.min(1, dt * 1.5);
-    t.group.rotation.set(t.pitch, t.yaw, Math.sin(t.t * 0.5) * 0.06 * stroke + clamp(dy, -0.6, 0.6) * 0.5 * alarm, 'YXZ');   // (banking into the turn away)
+    const rk = t.restK ?? 0;
+    t.group.rotation.set(t.pitch * (1 - rk) + (t.restPitch ?? 0) * rk, t.yaw, (Math.sin(t.t * 0.5) * 0.06 * stroke + clamp(dy, -0.6, 0.6) * 0.5 * alarm) * (1 - rk) + (t.restRoll ?? 0) * rk, 'YXZ');   // (banking into the turn away; lying with the bottom at rest)
     const f = Math.sin(t.ph) * 0.75 * Math.min(stroke, 1.45), sw = Math.sin(t.ph - 1.2) * 0.45 * stroke;
     // the fore flippers flap like wings and feather (twist) through the stroke
     const fe = Math.cos(t.ph) * 0.35 * stroke;
-    t.fr.rotation.set(fe, sw, f, 'YZX'); t.fl.rotation.set(fe, -sw, -f, 'YZX');
-    const r = Math.sin(t.ph * 0.8) * 0.2 * Math.max(stroke, 0.2);
-    t.br.rotation.set(0, 0, r); t.bl.rotation.set(0, 0, -r);
+    // (at rest the flippers lie on the sand)
+    t.fr.rotation.set(fe, sw, f - 0.16 * rk, 'YZX'); t.fl.rotation.set(fe, -sw, -f + 0.16 * rk, 'YZX');
+    const r = Math.sin(t.ph * 0.8) * 0.2 * Math.max(stroke, 0.2) * (1 - rk * 0.8);
+    t.br.rotation.set(0, 0, r - 0.12 * rk); t.bl.rotation.set(0, 0, -r + 0.12 * rk);
+    // and a soft shade on the sand beneath it (the water casts none of its own)
+    if (typeof document !== 'undefined') {
+      if (!t.shade) {
+        shadeTex ??= (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!; const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+        t.shade = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.3), new THREE.MeshBasicMaterial({ color: 0x0a1a18, alphaMap: shadeTex, transparent: true, opacity: 0, depthWrite: false }));
+        t.shade.renderOrder = 1; t.group.parent?.add(t.shade);
+      }
+      t.shade.visible = rk > 0.05;
+      if (t.shade.visible) { t.shade.position.set(t.pos.x, fh + 0.02, t.pos.z); t.shade.rotation.set(-Math.PI / 2, 0, t.yaw); t.shade.scale.setScalar(t.size * 0.9); t.shade.material.opacity = 0.3 * rk; }
+    }
   }
 }
 
