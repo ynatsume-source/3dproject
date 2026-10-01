@@ -421,7 +421,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) bonds[pair(list[i].id, list[j].id)] = { stage: 0, know: 0, talks: 0, last: -1e12, toldWorry: 0 };
   const talks: Entry[] = [];
   const visited = new Set<string>();
-  let clockMs = Date.now(), inspectCool = 180;   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
+  let clockMs = Date.now(), inspectCool = 180, admireCool = 60;   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
 
   // Dot's hut and Rakko's pile sit by their homes
   const pileAt = (i: number) => { const a = i * 2.4, d = 0.15 + Math.sqrt(i) * 0.09; return [byId.rakko.sp.home[0] + 2 + Math.cos(a) * d, byId.rakko.sp.home[1] + 1 + Math.sin(a) * d]; };
@@ -659,7 +659,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'bask': note(r, 'bask', {}, '浜で甲羅干しをした'); break;
       case 'collect':
         if (!items.take(tk.data)) break;
-        r.holding = 'shell'; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;
+        r.holding = 'shell';
+        // now and then it sits up and turns the shell over in its paws, held up to the light, before it carries
+        // it home (no more often than once a minute of watching; the shell is the one it picked up: no new one)
+        if (!fast && admireCool <= 0 && r.hunger < 0.7 && Math.random() < 0.4) { admireCool = 60; r.task = task('admire', [r.pos.x, r.pos.z], 'look', rr(4, 8), { arrived: true }); return; }
+        r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;
       case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, 'きれいな貝殻を拾った'); break;
       case 'survey': if (village.pier === 'plan') { village.pier = 'build'; drawPier(); note(r, 'survey', {}, '桟橋の位置を測った'); res.onEvent('pier', 'カメマルが桟橋の位置を測り終えた。いよいよ建設開始', r); } break;
       case 'inspect': r.today.push('桟橋の工事を見守った'); break;
@@ -792,6 +796,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (tk?.kind === 'fire') return ['fire', v.set(PIT.x, PIT.y + 0.3, PIT.z)];
     if (tk?.kind === 'review' && tk.data) return ['work', v.copy(tk.data)];
+    if (tk?.kind === 'admire') { const fx = Math.sin(r.head), fz = Math.cos(r.head); return ['hands', v.set(r.pos.x + fx * 0.35, r.pos.y + 0.6, r.pos.z + fz * 0.35)]; }
     if (WORK.has(r.act)) { const fx = Math.sin(r.head), fz = Math.cos(r.head); return ['hands', v.set(r.pos.x + fx * 0.6, r.pos.y + 0.15, r.pos.z + fz * 0.6)]; }
     // idle: now and then, a look at one of the others close by (for a few seconds), then back to its own thoughts
     if (mo.why === 'glance' && mo.hold > -2.5) return ['glance', mo.look];
@@ -1014,6 +1019,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       eat: tk?.data === 'clam' ? 'お腹の上の石で貝を割って食べている' : `仰向けに浮かんで、${prey}を食べている`,
       groom: '水面で転がりながら毛づくろいしている',
       review: '取りつけた部材を、少し離れて眺めている',
+      admire: '拾った貝殻を、前足で回して眺めている',
       graze: r.act === 'breathe' ? '息つぎに浮かんできた' : '海の底で海草を食べている',
       bask: '浜で甲羅干しをしている',
       survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
@@ -1062,7 +1068,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
     gibber,
     update(dt, ms, cam) {
-      clockMs = ms; inspectCool -= dt;
+      clockMs = ms; inspectCool -= dt; admireCool -= dt;
       items.tick(dt); tickDrift(dt);
       for (const r of list) step(r, dt, false);
       fireCircle(dt, false);

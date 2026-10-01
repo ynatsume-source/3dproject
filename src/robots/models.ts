@@ -18,6 +18,7 @@ export interface Pose {
 }
 const hk = (key: number, n: number) => { const x = Math.sin(key * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };   // (a variant fixed for the spell, not drawn afresh each frame)
 const sm = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+export const smoothStep = sm;
 // Dot at the bench, shaping a piece: two to four strokes of the plane, then a stop to look along what it has
 // done (head on one side), then a small shift of its stance, and again. Shared with the island, which throws
 // the shavings at the end of each stroke (robots/residents.ts).

@@ -7,7 +7,7 @@
 // comes up to breathe, sleeps on the bottom, hauls out to bask with its flippers spread, and on land heaves
 // itself along the sand with both fore-flippers at once. Nose at +z, as for the robots.
 import * as THREE from 'three';
-import { type Robot, type Pose, gaitPhase, makeGaze } from './models';
+import { type Robot, type Pose, gaitPhase, makeGaze, smoothStep as sm2 } from './models';
 
 export interface CMats {
   fur: THREE.Material; furPale: THREE.Material; furDark: THREE.Material; nose: THREE.Material; eye: THREE.Material;
@@ -133,6 +133,20 @@ export function creatureKit(M: CMats, shadows = false) {
       const act = p.act, wet = !!p.wet, k = p.k ?? 0, walk = act === 'demo' ? 0 : Math.min(1, p.walk);
       const gw5 = gaitPhase(p, t, 0.44, 5);   // (its waddle ashore)
       gaze.step(p, dt, 0.4);
+      // the spell it is in (from the island), for the doings shown in stages
+      const staged = p.elapsed !== undefined, el = p.elapsed ?? 0;
+      // cracking a clam on the stone, in rounds of about six seconds: the clam set to the stone, two or three
+      // blows, a look at the crack, the clam turned in the paws, up to the mouth, a chew
+      const cr = act === 'work' && wet && staged ? (() => {
+        const T = el % 6.2, n = 2 + (Math.floor(el / 6.2) % 2);
+        const hit = T >= 0.8 && T < 0.8 + n * 0.55 ? (() => { const u = (T - 0.8) % 0.55; return u < 0.35 ? sm2(0, 0.35, u) : u < 0.47 ? 1 - (u - 0.35) / 0.12 : 0; })() : 0;
+        const t1 = 0.8 + n * 0.55;
+        return { lift: hit, look: sm2(t1, t1 + 0.2, T) * (1 - sm2(t1 + 0.7, t1 + 0.9, T)), turn: sm2(t1 + 0.8, t1 + 1.7, T), mouth: sm2(t1 + 1.7, t1 + 2.2, T) * (1 - sm2(5.6, 6.1, T)), chew: T > t1 + 2.1 && T < 5.9 };
+      })() : null;
+      // ashore with a shell: picking it up (a stop, nose down to it, one paw to touch it, both to hold it, a turn
+      // to look at it); putting it on the pile (down, let go, one nudge to set it right); turning it over to admire it
+      const pk = act === 'pick' && !wet && staged && (p.task === 'collect' || p.task === 'pile') ? p.task : '';
+      const admire = act === 'look' && p.task === 'admire' ? 1 : 0;
       // on its back: floating, eating, cracking, grooming, sleeping in the water (and talking, in the water)
       const backish = wet && (act === 'float' || act === 'sleep' || act === 'eat' || act === 'work' || act === 'groom' || act === 'idle' || act === 'look' || act === 'sit' || act === 'demo');
       backK = ease(backK, backish ? 1 : 0, dt, 1.6);
@@ -141,7 +155,7 @@ export function creatureKit(M: CMats, shadows = false) {
       diveK = ease(diveK, act === 'dive' ? 1 : 0, dt, 2.5);
       landK = ease(landK, wet ? 0 : 1, dt, 3);
       // diving: head first down, level along the bottom while it searches, then straight up with its catch
-      const wantPitch = act === 'dive' ? (k < 0.12 ? 1.05 : k > 0.86 ? -1.1 : 0.12) : swimK * Math.sin(t * 3.2) * 0.06;
+      const wantPitch = act === 'dive' ? (k < 0.12 ? 1.05 : k > 0.86 ? -1.1 : 0.12) : swimK * Math.sin(t * 3.2) * 0.06 - landK * admire * 0.62;   // (admiring a find ashore: half sitting up on its haunches, not standing)
       pitch = ease(pitch, wantPitch, dt, 2.2);
       // grooming: rolling over and over in the water, rubbing and squeezing the fur
       const groom = act === 'groom' ? 1 : 0;
@@ -150,19 +164,33 @@ export function creatureKit(M: CMats, shadows = false) {
       body.rotation.set(pitch, 0, roll, 'YXZ');
       // its height: on its back it rides high, belly and chest out of the water; swimming it lies lower
       const bob = Math.sin(t * 1.3) * 0.012;
-      body.position.y = landK * (0.18 + Math.abs(Math.sin(gw5)) * 0.02 * walk) + (1 - landK) * (backK * -0.02 + swimK * -0.05 + bob);
+      body.position.y = landK * (0.18 + Math.abs(Math.sin(gw5)) * 0.02 * walk + Math.max(0, -pitch) * 0.08) + (1 - landK) * (backK * -0.02 + swimK * -0.05 + bob);
       // the head: up off the water on its back (looking along its chest at its paws), turning as it looks about
       const chew = act === 'eat' || (act === 'work' && Math.sin(t * 0.8) > 0.6) ? Math.max(0, Math.sin(t * 9)) : 0;
       head.rotation.x = backK * (0.55 + (act === 'eat' ? 0.25 : 0) + sleepK * 0.45) - landK * (act === 'pick' ? -0.5 : 0.05) + diveK * 0.15;
       head.rotation.y = Math.sin(t * 0.4) * 0.35 * (1 - sleepK) * (1 - diveK) * (act === 'eat' || act === 'work' ? 0.2 : 1);
       { const w = gaze.w * (1 - sleepK) * (1 - diveK) * (1 - backK * 0.6); head.rotation.y += (gaze.yaw - head.rotation.y) * w; head.rotation.x += gaze.pitch * 0.7 * w * (1 - backK); }
+      if (cr) { head.rotation.x += cr.look * 0.25 - cr.mouth * 0.1; head.rotation.z += cr.look * 0.15; }
+      if (act === 'dive' && staged && k > 0.15 && k < 0.85) { const c = el % 5.4; head.rotation.x += 0.35; head.rotation.y += c > 4.2 ? Math.sin((c - 4.2) / 1.2 * Math.PI * 2) * 0.5 : 0; }   // (nose to the bottom; at each pause, a look round)
+      if (pk === 'collect') { head.rotation.x += 0.5 * sm2(0.3, 0.9, el) * (1 - sm2(2.4, 2.9, el)) + 0.2 * sm2(2.4, 2.9, el); head.rotation.z += 0.18 * sm2(2.4, 2.9, el); }
+      if (pk === 'pile') head.rotation.x += 0.45;
+      if (admire) { head.rotation.x += 0.25 + Math.sin(el * 0.9) * 0.08; head.rotation.z += Math.sin(el * 0.7) * 0.2; }
       jaw.rotation.x = chew * 0.35;
       // forepaws: walking on land; tucked to the chest swimming; groping ahead along the bottom; holding food
       // up to the mouth; pounding a clam on the stone; rubbing the fur; folded over the eyes asleep
       arms.forEach((ar, i) => {
         let rx = 0, rz = ar.sx * 0.1;
-        if (landK > 0.5) rx = Math.sin(gw5 + i * Math.PI) * 0.5 * walk + (act === 'pick' ? -0.6 : 0);
+        if (landK > 0.5 && pk === 'collect') rx = i === 0 ? -0.2 - 0.7 * sm2(1.0, 1.4, el) + 0.5 * sm2(2.4, 2.9, el) : -0.2 - 0.6 * sm2(1.6, 2.0, el) + 0.4 * sm2(2.4, 2.9, el);
+        else if (landK > 0.5 && pk === 'pile') rx = -0.85 * (1 - sm2(1.0, 1.5, el)) - (i === 1 ? 0.6 * Math.max(0, Math.sin((el - 1.7) / 0.6 * Math.PI)) * (el > 1.7 && el < 2.3 ? 1 : 0) : 0);
+        else if (landK > 0.5 && admire) rx = -1.35 + Math.sin(el * 1.3 + i) * 0.08;
+        else if (landK > 0.5) rx = Math.sin(gw5 + i * Math.PI) * 0.5 * walk + (act === 'pick' ? -0.6 : 0);
+        else if (act === 'dive' && staged && k > 0.15 && k < 0.85) {
+          // feeling along the bottom: one paw probes forward and pats, the other steadies; every third, a pause
+          const c = el % 5.4, probe = c < 4.2 ? Math.floor(c / 1.4) : -1, u = (c % 1.4) / 1.4;
+          rx = probe >= 0 && probe % 2 === i ? -1.25 + 0.35 * Math.max(0, Math.sin(u * Math.PI * 2)) : -0.6;
+        }
         else if (act === 'dive') rx = k > 0.15 && k < 0.85 ? -0.9 + Math.sin(t * 6 + i * 2) * 0.45 : 1.3;
+        else if (cr) rx = 0.3 - cr.lift * 0.45 + cr.turn * 0.05 * (i ? 1 : -1) - cr.mouth * 0.4;
         else if (act === 'sleep') rx = -1.25;
         else if (act === 'eat') rx = -0.15 - 0.45 * sm(0.2, 0.9, Math.sin(t * 2.2)) + (i ? 0.05 : 0);
         else if (act === 'work') rx = 0.35 - Math.pow(Math.max(0, Math.sin(t * 7)), 0.5) * 0.5;
@@ -183,8 +211,12 @@ export function creatureKit(M: CMats, shadows = false) {
       const food: Food = act === 'demo' ? (['urchin', 'crab', 'clam'] as Food[])[Math.floor(t / 4) % 3] : (p.food ?? '') as Food;
       F.urchin.visible = food === 'urchin'; F.crab.visible = food === 'crab'; F.clam.visible = food === 'clam';
       const toMouth = act === 'eat' ? sm(0.2, 0.9, Math.sin(t * 2.2)) : 0;
-      hand.position.set(0, -0.15 - toMouth * 0.04, 0.14 + toMouth * 0.1 + (act === 'work' ? -0.05 + Math.pow(Math.max(0, Math.sin(t * 7)), 0.5) * 0.05 : 0));
+      hand.position.set(0, -0.15 - toMouth * 0.04, 0.14 + toMouth * 0.1 + (act === 'work' && !cr ? -0.05 + Math.pow(Math.max(0, Math.sin(t * 7)), 0.5) * 0.05 : 0));
       F.g.rotation.y = act === 'eat' ? t * 0.7 : 0;   // (turning it in its paws as it eats round it)
+      if (cr) { hand.position.y += cr.lift * 0.05 - cr.mouth * 0.04; hand.position.z += -0.05 + cr.mouth * 0.12; F.g.rotation.y = (Math.floor(el / 6.2) + cr.turn) * Math.PI; jaw.rotation.x = cr.chew ? Math.max(0, Math.sin(t * 9)) * 0.35 : 0; }
+      // what it holds ashore (a shell): held up before its face and turned, tipped to the light
+      hand.rotation.set(admire ? Math.sin(el * 1.1) * 0.5 : 0, admire ? el * 1.4 : 0, 0);
+      if (admire) hand.position.set(0, 0.06, 0.24);
       // eyes: shut asleep; a blink now and then
       eyes.forEach((e) => { e.scale.y = 0.0125 * ek * (sleepK > 0.5 ? 0.12 : Math.sin(t * 0.8 + 1) > 0.985 ? 0.15 : 1); });
     } };
