@@ -59,7 +59,8 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // strokes of the fore flippers, each one surging it on, then eases back to its own pace once clear
     const cdx = t.pos.x - cam.x, cdy = t.pos.y - cam.y, cdz = t.pos.z - cam.z, cd = Math.hypot(cdx, cdy, cdz) / t.size;
     const near = t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0;
-    if (cd < near) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
+    // (only something in the water with it)
+    if (cd < near && cam.y < 0.3) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
     else t.alarm = Math.max(0, (t.alarm ?? 0) - dt * (cd > near * 2.5 ? 0.35 : 0.12));
     const alarm = t.alarm ?? 0;
     let speed = 0.35, ty = Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.6, -1.2), stroke = 1, noseDown = 0;
@@ -85,7 +86,10 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       // away from it, turning hard at first (a bank and a sweep of the flippers), climbing a little
       let d = (t.fleeH ?? t.head) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * Math.min(1, dt * (0.6 + 2.4 * alarm));
       t.fleeH = Math.atan2(cdz, cdx) * 0.15 + (t.fleeH ?? t.head) * 0.85;
-      speed = 0.35 + 1.5 * alarm; stroke = 1 + 0.7 * alarm; noseDown = 0; ty = Math.max(ty, t.pos.y + 0.6 * alarm);
+      // (never away into the shallows or up the beach: then off along the deeper water instead)
+      const lx = t.pos.x + Math.cos(t.fleeH) * 4, lz = t.pos.z + Math.sin(t.fleeH) * 4;
+      if (!T.wet(lx, lz, 1.5)) t.fleeH += T.shore(t.pos.x, t.pos.z, t.fleeH, 4, 1.5) || Math.PI * 0.5;
+      speed = 0.35 + 1.5 * alarm; stroke = 1 + 0.7 * alarm; noseDown = 0; ty = Math.min(Math.max(ty, t.pos.y + 0.6 * alarm), -0.8);
     }
     if (Math.abs(t.pos.x) > LIMIT || Math.abs(t.pos.z) > LIMIT) { let d = Math.atan2(-t.pos.z, -t.pos.x) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
 
@@ -101,6 +105,9 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     const pull = Math.min(1, dt * (1.5 + alarm * 4 * beat));
     t.vel.lerp(_w.set(Math.cos(t.head) * sp, vy, Math.sin(t.head) * sp), pull);
     t.pos.addScaledVector(t.vel, dt);
+    // a sea turtle stays in the sea: under the surface, and off the dry sand
+    if (t.pos.y > -0.35) { t.pos.y = -0.35; if (t.vel.y > 0) t.vel.y = 0; }
+    if (!T.wet(t.pos.x, t.pos.z, 0.6)) { t.pos.x -= t.vel.x * dt * 1.5; t.pos.z -= t.vel.z * dt * 1.5; t.head += Math.PI * dt; }
     // keep off the reef, but ease up over a sudden coral edge rather than popping onto it
     const minY = fh + 0.15 + 0.2 * t.size;
     if (t.pos.y < minY) { t.pos.y += Math.min((minY - t.pos.y) * dt * 3, 0.6 * dt); t.vel.y = Math.max(t.vel.y, 0.2); t.vel.x *= 0.9; t.vel.z *= 0.9; }
