@@ -20,6 +20,7 @@ import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
+import { Wreck, wreckMaterial } from './wreck';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
 import { makeResidents } from '../robots/residents';
@@ -132,6 +133,14 @@ export function buildOcean(loc) {
   T.cave = cave;
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
+  // a wreck on the sand: solid to everything that swims (its outline into the obstacle map)
+  const wreck = loc.wreck ? new Wreck(loc.wreck, loc.f) : null;
+  if (wreck) {
+    oc.wreck = wreck;
+    const m = new THREE.Mesh(wreck.geo, wreckMaterial()); m.frustumCulled = false; group.add(m);
+    for (const p of wreck.pts) obst.raise(p.x, p.z, p.y + 0.3);
+  }
+  const underWreck = (x: number, z: number, h: number) => !!wreck && obst.get(x, z) > h + 0.8;
 
   // seabed
   const SEGS = 420;
@@ -224,6 +233,7 @@ export function buildOcean(loc) {
   for (const [x, z, h, r] of samples) {
     if (R() > r * r * accept * 1.6) continue;
     if (cave && cave.routeDist(x, z) < 3.5) continue;                     // keep the way into the cave open
+    if (underWreck(x, z, h)) continue;                                    // (nothing grows under her)
     const sl = T.slope(x, z);
     const shallow = smooth(-20, -6, h);
     const w = {
@@ -278,7 +288,7 @@ export function buildOcean(loc) {
   // garden eel colonies on open sand
   for (let tries = 0; oc.colonies.length < loc.eels && tries < 3000; tries++) {
     const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z);
-    if (TERR.reef > 0.02 || h < -24 || h > -6 || T.slope(x, z) > 0.2 || (cave && cave.foot(x, z) > 0)) continue;
+    if (TERR.reef > 0.02 || h < -24 || h > -6 || T.slope(x, z) > 0.2 || (cave && cave.foot(x, z) > 0) || underWreck(x, z, h)) continue;
     const pos = new THREE.Vector3(x, h, z);
     if (oc.colonies.some((c) => c.pos.distanceTo(pos) < 18)) continue;
     oc.colonies.push({ pos });
@@ -289,6 +299,12 @@ export function buildOcean(loc) {
     }
   }
   if (cave) buildCave(cave, group, items);
+  // soft-coral trees on her upward faces, and the odd sea fan
+  if (wreck) for (const u of wreck.up) {
+    const s = rr(0.5, 1.2), fan = R() < 0.2, pal = pick(fan ? PALETTE.fan : PALETTE.dendro);
+    const it: any = { x: u.p.x, z: u.p.z, y: u.p.y - 0.06, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.3), sz: s, c: tintCol(pal[0]), c2: tintCol(pal[1]), seed: R() };
+    if (fan) items.fan[0].push(it); else { it.soft = 2; items.mushroom[2].push(it); }
+  }
   if (land) oc.shore = buildShore(loc, group, T, obst);
   if (loc.residents) { oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja)); group.add(oc.residents.group); }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });

@@ -1,6 +1,7 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
+import type { WreckSpec } from '../ocean/wreck';
 import type { WhaleSeason } from '../eco/whale';
 import { landOf } from '../ocean/land';
 import type { CritterSpec } from '../eco/critters';
@@ -17,6 +18,7 @@ export interface Species {
   eye?: number;
   shine?: number;                                // how mirror-like its flanks are (1 = ordinary)
   cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
+  wreck?: boolean;                               // keeps to the wreck (glassfish in her shadows, anthias over her)
   rests?: 'cave';                                // lies still on the floor of the cave while inactive (whitetip reef shark)
 }
 // seabirds over the site: how they fly, and whether they rest on the water
@@ -47,6 +49,7 @@ export interface Sea {
   path?(s: number): [number, number];      // the auto-cruise loop, where the default one would run aground
   residents?: boolean;                     // the robots who live on the island (robots/residents.ts)
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
+  wreck?: WreckSpec;                       // a shipwreck on the sand (ocean/wreck.ts)
   whales?: WhaleSeason;                    // humpbacks visit in these months
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
@@ -574,7 +577,61 @@ export const LOCATIONS: Sea[] = [
       ['フジツボ', 'Megabalanus spp.', '湧昇流が運ぶ豊かなプランクトンを、脚で掻き寄せて食べる。'],
     ],
   };
-  LOCATIONS.push(redsea, galapagos);
+  const rsp = (id: string, o?: Partial<Species>): Species => ({ ...redsea.species.find((x) => x.id === id)!, ...(o || {}) });   // (the Red Sea's own fish)
+  const carnatic: Sea = {
+    id: 'carnatic', swellHs: 0.8, name: '紅海北部', site: 'アブ・ヌハス礁のカルナティック号', region: 'Egypt · Gulf of Suez · Abu Nuhas',
+    lat: 27.5817, lon: 33.931, depth: '2–28 m', vis: 30, temp: 24.0, tempYear: [21.5, 28], seed: 97, tz: 2, tide: { amp: 0.4, lag: 0.35, axis: [1, 0.2] },
+    blurb: '1869年、インドへ向かう途中にこの礁で沈んだ帆走汽船カルナティック号が、砂の斜面に横たわる。木の甲板は朽ちて鉄の肋骨だけが残り、その間を光の筋とグラスフィッシュの群れが流れる。',
+    water: { up: [0.27, 0.62, 0.95], hor: [0.02, 0.22, 0.52], down: [0.0, 0.06, 0.24], fog: 0.02, abs: [0.26, 0.055, 0.025] },
+    sand: [0.86, 0.83, 0.76], rock: [0.52, 0.47, 0.41],
+    f(x, z) {
+      // the reef to the south: a shallow top, a wall down to the sand; from its foot a sand slope runs
+      // north into the deep, with coral heads scattered over it
+      const edge = -48 + (fbm(x * 0.012, 4.2, 3) - 0.5) * 26;
+      const reefTop = -2.2 + (fbm(x * 0.05, z * 0.05, 3) - 0.5) * 2.2;
+      const sand = -15 - Math.max(0, z - edge) * 0.12 - Math.max(0, z - 60) * 0.1 + (fbm(x * 0.02 + 3, z * 0.02, 3) - 0.5) * 2.5;
+      const wall = 1 - smooth(-6, 6, z - edge + (fbm(x * 0.08, z * 0.08, 2) - 0.5) * 6);
+      let h = sand + (reefTop - sand) * wall;
+      const b = bommieField(x, z, 20, 0.25, 1.2, 3.5, 2, 5, 31, 0.45);
+      h += b[0] * (1 - wall) * smooth(edge + 12, edge + 24, z);
+      h += (fbm(x * 0.09, z * 0.09, 3) - 0.5) * 0.9;
+      TERR.reef = Math.max(smooth(0.1, 0.5, wall) * 0.95, b[1] * 0.85 * smooth(edge + 12, edge + 24, z));
+      return Math.min(h, -1.6);
+    },
+    // she lies along the foot of the reef, on her port side, bow to the east
+    wreck: { x: 5, z: 2, rot: 0.08, len: 90, beam: 11.6, depth: 7.6 },
+    corals: { branch: 0.16, table: 0.14, brain: 0.18, fan: 0.18, mushroom: 0.34, clam: 0.02 },
+    anemones: 14, clamSize: [0.25, 0.4], eels: 6,
+    birds: [bird('katsuodori'), redsea.birds!.find((b) => b.id === 'hoojiroajisashi')!],
+    species: [
+      any('anthias', { note: 'オレンジ色のハナダイの群れ。船体の上の明るい水の中で、流れてくるプランクトンをついばむ。', schools: 8, n: 30, wreck: true }),
+      rsp('bicinctus'),
+      rsp('semilarvatus'),
+      rsp('hanadai', { wreck: true }),
+      rsp('minokasago', { note: '羽のようなひれに毒のとげ。昼は船体の陰や肋骨の間で休み、夕暮れから小魚を隅に追い込む。', wreck: true }),
+      rsp('sohal'),
+      any('wrasse', { note: '通称ナポレオンフィッシュ。額のこぶが目印の最大級のベラ。沈船のまわりを悠々と見回る大きな個体が知られている。', count: 1 }),
+      any('gomamongara', { count: 1 }),
+      any('tatejima', { schools: 2 }),
+      any('rouninaji'),
+      any('onikamasu', { note: '銀色の大きなカマス。沈船の上の中層に、じっと浮かんで獲物を待つ。', wreck: true }),
+      any('gingameaji', { note: '大きな目の銀色のアジ。礁の沖で群れになり、夜は散らばって小魚を狩る。' }),
+    ],
+    animals: { turtle: { style: 'hawksbill', count: 1 }, octopus: 1 },
+    extraGuide: [
+      { id: 'turtle', ja: 'タイマイ', sci: 'Eretmochelys imbricata', note: '鷹のくちばしのような口でカイメンを食べる。沈船を覆う海綿をかじりに来ることも。' },
+      { id: 'eel', ja: 'レッドシーガーデンイール', sci: 'Gorgasia sillneri', note: '沈船の先の砂地から体を伸ばして、流れてくるプランクトンを食べる。近づくと引っ込む。' },
+      { id: 'tobiuo', ja: 'トビウオの仲間', sci: 'Exocoetidae', note: 'スエズ湾の入り口の沖を、船の舳先から逃げるように飛ぶ。' },
+    ],
+    benthic: [
+      ['カルナティック号', 'SS Carnatic (1862–1869)', 'P&O社の帆走汽船。全長約90m。1869年9月、スエズからボンベイへ金貨と郵便を運ぶ途中、夜にこの礁に乗り上げ、翌日二つに折れて沈んだ。31人が亡くなったとされる。いまは左舷を下に横たわり、鉄の肋骨と船体を海の生きものが覆っている。'],
+      ['ソフトコーラル（トゲトサカ）', 'Dendronephthya spp.', '赤・紫・ピンク。船体の上を向いた面や、流れの当たる肋骨に房のように育つ。'],
+      ['海綿', 'Porifera', 'オレンジや黄色の海綿が、錆びた鉄板の上を覆っている。'],
+      ['ミドリイシ（テーブル）', 'Acropora spp.', '南の礁の上に広がるテーブル状のサンゴ。'],
+      ['センジュイソギンチャク', 'Heteractis magnifica', 'レッドシーアネモネフィッシュの住みか。'],
+    ],
+  };
+  LOCATIONS.push(redsea, carnatic, galapagos);
 }
 
 // Morays in the reef walls, sea snakes, jellyfish — as they really occur in each sea (none of the Red
@@ -661,6 +718,10 @@ export const LOCATIONS: Sea[] = [
   // Red Sea
   for (const id of ['chromis', 'mitsuji', 'akamatsukasa', 'kasmira', 'yarai']) add('redsea', id);
   add('redsea', hanatakasago); add('redsea', oyabiccha); add('redsea', minamihatanpo); add('redsea', fueyakko);
+  // the Carnatic: glassfish in their thousands in her shadows
+  add('carnatic', minamihatanpo, { ja: 'グラスフィッシュ（ミナミハタンポ）', note: '半透明の金色の小魚。カルナティック号の船内の暗がりに何千匹もの雲のような群れで集まり、肋骨の間から差し込む光の中で一斉に向きを変える。', wreck: true, schools: 6, n: 60 });
+  for (const id of ['chromis', 'kasmira', 'akamatsukasa']) add('carnatic', id);
+  add('carnatic', fueyakko);
   // Galápagos
   for (const sp of [panamic, bluegold, scissortail, cortez, giantdamsel]) add('galapagos', sp);
   // Miyako and Kayama (Okinawa)

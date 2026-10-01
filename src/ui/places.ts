@@ -58,6 +58,12 @@ export const PLACES: Record<string, Place[]> = {
       const p = best(oc, cam, (x, z, h, reef) => (z > 70 && reef > 0.3 ? z * 0.01 : -1e9)); return p ? { pos: p, size: 6 } : null; } },
     anemone('レッドシーアネモネフィッシュ'),
   ],
+  carnatic: [
+    { id: 'wreck', ja: 'カルナティック号', note: '1869年に沈んだ帆走汽船。左舷を下に横たわり、朽ちた甲板の跡に鉄の肋骨が並ぶ。その間を光の筋とグラスフィッシュの群れが流れる。', find: (oc) => oc.wreck ? { pos: oc.wreck.centre.clone().setY(oc.wreck.centre.y + 9), size: 20 } : null },
+    { id: 'reef', ja: 'アブ・ヌハスの礁', note: '沈船の南にそびえる浅い礁。何隻もの船がこの礁に乗り上げてきた。上はテーブルサンゴとキンギョハナダイの群れ。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef) => (reef > 0.6 && h > -6 ? reef : -1e9)); return p ? { pos: p, size: 5 } : null; } },
+    anemone('レッドシーアネモネフィッシュ'),
+  ],
   galapagos: [
     { id: 'boulders', ja: '溶岩の岩場', note: '火山から転がり落ちた黒い岩の斜面。岩のすき間に魚が群れ、上をシュモクザメが流れていく。', find: (oc, cam) => {
       const p = best(oc, cam, (x, z, h, reef, sl) => (reef > 0.25 && sl > 0.6 ? sl : -1e9)); return p ? { pos: p, size: 4 } : null; } },

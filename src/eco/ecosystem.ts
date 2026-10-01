@@ -60,6 +60,10 @@ export class Ecosystem {
     whaleSubjects(this.oc, out);
     this.oc.breach?.subjects(out);
     if (this.oc.bait) out.push(...this.oc.bait.subjects());
+    const wreck = this.oc.wreck;
+    if (wreck) out.push({ key: 'wreck', label: 'カルナティック号', kind: 'cave', prio: 2.8, size: 20, reach: 140, pos: () => wreck.centre, live: () => true,
+      status: () => (this.env.night > 0.6 ? 'ライトに浮かぶ鉄の肋骨' : '肋骨の間から光が差し込む'),
+      tour: { length: wreck.tourLength, start: (rev: boolean) => wreck.tourStart(rev), at: (t: number, rev: boolean, p: any, l: any) => wreck.tourAt(t, rev, p, l) } });
     const cave = this.oc.cave;
     if (cave) {
       const c = { x: cave.cx, y: cave.top - 4, z: cave.cz };

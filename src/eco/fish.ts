@@ -213,9 +213,11 @@ export function makeFishSystem(sp: Species, oc: any) {
   function place(g: Group, cam: THREE.Vector3, fx: number, fz: number, near: boolean) {
     if (g.type === 'anem') { g.c.copy(g.a!.pos); }   // (in among the tentacles: see the family's swimming below)
     else {
-      const [x, z] = findSpot(cam, fx, fz, near ? 6 : 32, near ? 30 : 48, g.type === 'reef');
+      // (those that keep to a wreck: somewhere along her)
+      const ws = sp.wreck && oc.wreck ? oc.wreck.spot(_e) : null;
+      const [x, z] = ws ? [ws.x, ws.z] : findSpot(cam, fx, fz, near ? 6 : 32, near ? 30 : 48, g.type === 'reef');
       g.anchor.x = x; g.anchor.z = z;
-      g.c.set(x, Math.min(T.h(x, z) + g.alt, -1.4), z);
+      g.c.set(x, ws ? Math.min(Math.max(ws.y, T.top(x, z) + g.alt), -1.4) : Math.min(T.h(x, z) + g.alt, -1.4), z);
       g.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.9, 2.1);
       g.hunt = null;
     }

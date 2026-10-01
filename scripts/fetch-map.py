@@ -21,6 +21,7 @@ SITES = {
     'maldives': (3.48, 72.84, 'eox', 15, 6, 900),
     'pacific': (32.0, -145.0, None, 0, 0, 0),
     'redsea': (25.31, 34.86, 'eox', 15, 6, 900),
+    'carnatic': (27.5817, 33.931, 'eox', 15, 6, 900),
     'galapagos': (1.382, -91.806, 'eox', 15, 6, 900),
 }
 EOX = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg'
