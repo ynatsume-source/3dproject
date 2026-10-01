@@ -1076,17 +1076,46 @@ function renderGuide() {
   if (panelTab === 'log') { guideEl.innerHTML = tabs + renderLog(); guideEl.scrollTop = scroll; return; }
   if (panelTab === 'talk') { guideEl.innerHTML = tabs + renderTalk(); guideEl.scrollTop = scroll; return; }
   if (panelTab === 'island') { if (!guideEl.contains(document.activeElement) || !(document.activeElement instanceof HTMLInputElement)) { guideEl.innerHTML = tabs + renderIsland(); guideEl.scrollTop = scroll; } return; }
-  const thumbs = guideThumbs(loc, list.map((e) => e.id));
+  const thumbs = guideThumbs(loc, list.map((e) => e.id), 0);   // (the ones already made; the rest come in a few at a time)
   guideEl.innerHTML = tabs + `<h2>${loc.name}の生きもの <span>${n} / ${list.length} 発見</span></h2>
     <h3>行き先</h3>
     <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${cur.bait ? `<li class="benthic"><i></i><b>ベイトボール</b><p>${cur.bait.st.active ? 'いま沖で起きている。' : ''}${predatorsJa(loc)}が${loc.bait!.sp.ja}の群れを水面へ追い上げ、海鳥が上から突っ込む。ふだんはまれにしか起きない。</p><button class="go" type="button" data-go="bait">${cur.bait.st.active ? '見に行く' : '探しに行く'}</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
     <h3>生きもの</h3>
-    <ul>${list.map((e) => `<li class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : ''}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
+    <ul>${list.map((e) => `<li data-id="${e.id}" class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : thumbs[e.id] === '' ? '' : `<img class="pic" data-pic="${e.id}" alt="" hidden>`}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
     <h3>${loc.pelagic ? '漂う生きもの' : 'サンゴと底生生物'}</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>${loc.flora ? `
     <h3>島の植物</h3>
     <ul>${loc.flora.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>` : ''}`;
   guideEl.scrollTop = scroll;
+  pumpThumbs();
+}
+// the field guide's pictures, a couple a frame until all are made, each put in its place as it comes
+let thumbsRaf = 0;
+function pumpThumbs() {
+  cancelAnimationFrame(thumbsRaf);
+  const step = () => {
+    if (!cur || guideEl.hidden || panelTab !== 'guide') return;
+    const holes = [...guideEl.querySelectorAll<HTMLImageElement>('img[data-pic]')];
+    if (!holes.length) return;
+    const got = guideThumbs(cur.loc, holes.map((h) => h.dataset.pic!), 2);
+    for (const h of holes) { const u = got[h.dataset.pic!]; if (u === undefined) continue; if (u) { h.src = u; h.hidden = false; } else h.remove(); h.removeAttribute('data-pic'); }
+    thumbsRaf = requestAnimationFrame(step);
+  };
+  thumbsRaf = requestAnimationFrame(step);
+}
+// while the guide stays open: only what changes (where each creature is, what has been found), not the
+// whole list with its pictures every two seconds
+function refreshGuide() {
+  if (!cur || guideEl.hidden) return;
+  if (panelTab !== 'guide') { renderGuide(); return; }
+  const loc = cur.loc, list = guideEntries(loc), n = list.filter((e) => seen.has(loc.id + ':' + e.id)).length;
+  $('seenCount').textContent = `${n}/${list.length}`;
+  const h = guideEl.querySelector('h2 span'); if (h) h.textContent = `${n} / ${list.length} 発見`;
+  for (const li of guideEl.querySelectorAll<HTMLElement>('li[data-id]')) {
+    const id = li.dataset.id!, st = li.querySelector('.st'), txt = `いま：${statusOf(id)}`;
+    if (st && st.textContent !== txt) st.textContent = txt;
+    li.classList.toggle('seen', seen.has(loc.id + ':' + id));
+  }
 }
 guideEl.addEventListener('click', (e) => {
   const g = (e.target as HTMLElement).closest('[data-go]') as HTMLElement | null;
@@ -2007,7 +2036,7 @@ function frame(ts: number) {
     setWhaleSong(W && W.seasonal ? (W.active ? 1 : 0.45) : 0);
     pumpLog(now);
     snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
-    if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; renderGuide(); }
+    if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; refreshGuide(); }
     // (in the air or in the sea, with some slack: riding the waterline it must not flip every frame)
     const lvl = camera.position.y - swellAt(camera.position.x, camera.position.z);
     if (lvl > 0.12 || (Math.abs(lvl) >= SPLIT_BAND && camera.position.y > 0)) airState = true; else if (lvl < -0.12) airState = false;

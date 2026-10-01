@@ -33,10 +33,13 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
   return null;
 }
 
-// Pictures for the given guide ids (data URLs), rendered on first request per sea.
-export function guideThumbs(loc: Sea, ids: string[]): Record<string, string> {
+// Pictures for the given guide ids (data URLs), rendered on first request per sea — at most `budget` new
+// ones per call (each is a model, its shaders and a render in a second WebGL context: all forty at once
+// froze the page when the guide opened; a couple a frame do not).
+export function guideThumbs(loc: Sea, ids: string[], budget = Infinity): Record<string, string> {
   const have = cache.get(loc.id) ?? {};
-  const todo = ids.filter((id) => !(id in have));
+  cache.set(loc.id, have);
+  const todo = ids.filter((id) => !(id in have)).slice(0, budget);
   if (!todo.length) return have;
   if (!renderer) {
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });

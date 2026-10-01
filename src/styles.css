@@ -140,8 +140,9 @@ button[aria-pressed="true"] .dot { background: var(--accent); box-shadow: 0 0 6p
   text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); width: max-content; max-width: calc(100vw - 32px); }
 
 #guide { top: calc(46px + env(safe-area-inset-top, 0px)); right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); width: min(320px, calc(100vw - 32px));
-  background: rgba(4, 22, 30, 0.72); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-y: auto; pointer-events: auto;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; }
+  background: rgba(4, 20, 28, 0.9); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-y: auto; pointer-events: auto;
+  /* (no backdrop blur: over the live 3D view a panel this tall had to be re-blurred every frame) */
+  contain: content; display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; }
 #guide h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: .08em; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 #guide h2 span { font: 400 11px/1 var(--f-mono); color: var(--accent); }
 #guide h3 { margin: 6px 0 0; font: 500 10px/1 var(--f-mono); letter-spacing: .18em; color: var(--ink-faint); text-transform: uppercase; }
