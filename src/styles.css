@@ -95,13 +95,15 @@ body.mode-globe .hud *, body.hud-off .hud * { pointer-events: none !important; }
 #hdgnum { top: calc(50px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); font-family: var(--f-mono); font-size: 11px; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: .1em; }
 
 /* captions: small and faint in the lower-left corner, there for whoever wants to read them */
-#toast { left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); max-width: min(340px, calc(100vw - 40px));
-  display: grid; gap: 3px; text-align: left; opacity: 0; transform: translateY(4px); transition: opacity 1.2s, transform 1.2s;
+/* (the sea log and the notices: one quiet line at the top, with which way and how far — it is not what is on screen) */
+#toast { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); max-width: min(420px, calc(100vw - 40px));
+  display: grid; gap: 2px; text-align: center; opacity: 0; transform: translate(-50%, -4px); transition: opacity 1.2s, transform 1.2s;
   text-shadow: 0 1px 3px rgba(0, 10, 20, 0.7); pointer-events: none; }
-#toast.on { opacity: 0.62; transform: translateY(0); }
+#toast.on { opacity: 0.66; transform: translate(-50%, 0); }
 body.hud-off #toast.on { opacity: 0.62; }
 #toast .k { font: 500 8.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); opacity: .75; }
-#toast .t { font-size: 12px; font-weight: 500; letter-spacing: .04em; line-height: 1.5; }
+#toast .t { font-size: 11.5px; font-weight: 500; letter-spacing: .04em; line-height: 1.5; }
+body:has(#rare.on) #toast { opacity: 0 !important; }
 #toast .s { font-size: 10px; font-style: italic; color: var(--ink-dim); }
 #toast .s:empty { display: none; }
 #toast.go { pointer-events: auto; cursor: pointer; }
@@ -184,7 +186,7 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
   #brand { left: 14px; }
   #compass { top: calc(62px + env(safe-area-inset-top, 0px)); left: auto; right: 12px; transform: none; width: 46vw; }
   #hdgnum { top: calc(98px + env(safe-area-inset-top, 0px)); left: auto; right: calc(12px + 23vw); transform: translateX(50%); }
-  #toast { top: calc(196px + env(safe-area-inset-top, 0px)); bottom: auto; max-width: 70vw; }
+  #toast { top: calc(120px + env(safe-area-inset-top, 0px)); max-width: 80vw; }
   .group button { padding: 8px 9px; font-size: 11.5px; }
   .group button kbd { display: none; }
   #hint { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }

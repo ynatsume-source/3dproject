@@ -599,8 +599,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     r.head += dh * Math.min(1, dt * 2.5);
     const step = Math.min(d, speed * dt) * Math.max(0, Math.cos(dh));
     const nx = r.pos.x + Math.sin(r.head) * step, nz = r.pos.z + Math.cos(r.head) * step;
-    if (r.sp.swims || G(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; }
-    r.walk = step / Math.max(dt, 1e-3) / speed;
+    let moved = 0;
+    if (r.sp.swims || G(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; moved = step; }
+    else r.blocked += dt * 2;   // (the way ahead is water: it stops, rather than marching on the spot, and soon thinks again)
+    r.walk = moved / Math.max(dt, 1e-3) / speed;   // (legs move only as fast as it really goes)
     return false;
   }
   function placeY(r: Resident) {
@@ -725,7 +727,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
       tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet);
       tk.t += dt;
-      if (tk.t > 1800 || r.blocked > 40) { items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return; }   // could not get there: think again
+      if (tk.t > 1800 || r.blocked > 20) { items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return; }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
       if (r.id === 'lantern') visited.add(cellOf(r.pos.x, r.pos.z));
     } else {

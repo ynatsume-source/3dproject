@@ -18,7 +18,7 @@ type Phase = 'gather' | 'herd' | 'frenzy' | 'scatter';
 const PHASE_T: Record<Phase, number> = { gather: 25, herd: 35, frenzy: 100, scatter: 22 };
 const UP = new THREE.Vector3(0, 1, 0);
 
-interface Pred { p: THREE.Vector3; v: THREE.Vector3; mode: 'approach' | 'circle' | 'dash' | 'leap' | 'leave'; ang: number; rad: number; depth: number; next: number; bites: number; aim: THREE.Vector3; seed: number }
+interface Pred { dir?: THREE.Vector3; spd?: number; p: THREE.Vector3; v: THREE.Vector3; mode: 'approach' | 'circle' | 'dash' | 'leap' | 'leave'; ang: number; rad: number; depth: number; next: number; bites: number; aim: THREE.Vector3; seed: number }
 
 export function makeBaitBall(oc: any, fraction: number) {
   const loc = oc.loc;
@@ -59,7 +59,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     active: false, phase: 'gather' as Phase, t: 0, c: new THREE.Vector3(), r: 7, alive: NB,
     timer: rr(500, 1500),                       // seconds of daylight until the next one, give or take
   };
-  const _m = new THREE.Matrix4(), _q = new THREE.Vector3(), _s = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3();
+  const _m = new THREE.Matrix4(), _q = new THREE.Vector3(), _s = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
   const predJa = () => packs.map((k) => k.sp.ja).slice(0, 2).join('や');
 
   function start(cam: THREE.Vector3, fx: number, fz: number, env: Env, near = false) {
@@ -182,8 +182,17 @@ export function makeBaitBall(oc: any, fraction: number) {
           p.v.y -= 9.8 * dt;
           if (p.p.y < 0 && p.v.y < 0) { splashAt(p.p.x, p.p.z, 0.7); audio.plop(p.p.distanceTo(cam)); p.mode = 'circle'; p.v.y *= 0.3; }
         } else {
-          p.v.lerp(want.multiplyScalar(speed), Math.min(1, dt * (p.mode === 'dash' ? 3 : 1.6)));
-          if (p.p.y > -0.35 && p.v.y > 0) p.v.y *= 0.3;
+          // a fish swims forward and turns: its heading swings toward where it wants to go at a fish's
+          // turning rate, and it never slides backwards (so it cannot flip end for end)
+          if (!p.dir) p.dir = p.v.lengthSq() > 1e-4 ? p.v.clone().normalize() : new THREE.Vector3(1, 0, 0);
+          if (want.lengthSq() > 1e-6) {
+            const ang = p.dir.angleTo(want), maxA = dt * (p.mode === 'dash' ? 3.2 : 1.8);
+            if (ang > maxA) { _c.crossVectors(p.dir, want); if (_c.lengthSq() < 1e-8) _c.set(0, 1, 0); p.dir.applyAxisAngle(_c.normalize(), maxA); } else p.dir.copy(want);
+            p.dir.normalize();
+          }
+          p.spd = (p.spd ?? p.v.length()) + (speed - (p.spd ?? p.v.length())) * Math.min(1, dt * (p.mode === 'dash' ? 3 : 1.2));
+          p.v.copy(p.dir).multiplyScalar(p.spd);
+          if (p.p.y > -0.35 && p.v.y > 0) { p.v.y *= 0.3; p.dir.y *= 0.3; p.dir.normalize(); }
         }
         p.p.addScaledVector(p.v, dt);
         if (p.mode !== 'leap') p.p.y = Math.min(p.p.y, -0.3);

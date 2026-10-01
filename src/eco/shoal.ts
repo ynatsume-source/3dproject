@@ -10,12 +10,14 @@ import { activity, logEvent, type Env, type PreyGroup, type Subject } from './en
 import type { Species } from '../data/locations';
 
 const _mm = new THREE.Matrix4(), _ss = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _cv = new THREE.Vector3();
-const CELL = 1.6;
-const hashCell = (x: number, y: number, z: number) => ((Math.floor(x / CELL) * 73856093) ^ (Math.floor(y / CELL) * 19349663) ^ (Math.floor(z / CELL) * 83492791)) | 0;
+
 
 interface Leader { c: THREE.Vector3; head: number; t: number; alt: number; placed: boolean; fear: number; prey: PreyGroup; ch?: { i: number; x: number; y: number; z: number; t: number; juke: number; jukeT: number } }
 
 export function makeShoalSystem(sp: Species, oc: any) {
+  // spacing by body size: small fish school a hand's breadth apart; sharks a body length or two
+  const K = clamp(sp.size[1] / 0.5, 1, 4), CELL = 1.6 * K;
+  const hashCell = (x: number, y: number, z: number) => ((Math.floor(x / CELL) * 73856093) ^ (Math.floor(y / CELL) * 19349663) ^ (Math.floor(z / CELL) * 83492791)) | 0;
   const S = sp.schools || 1, total = S * (sp.n || 100);
   const geo = fishGeometry(SHAPES[sp.shape]);
   const swim = new Float32Array(total * 3);
@@ -126,7 +128,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       let cell = grid.get(k); if (!cell) { cell = []; grid.set(k, cell); } cell.push(i);
     }
     const alive = new Array(S).fill(0);
-    const radius = 2.3;
+    const radius0 = 2.3 * K * Math.cbrt(Math.max(1, total / S / 60));   // (a bigger school takes more room)
     for (let i = 0; i < active; i++) {
       const s = i % S, L = leaders[s];
       if (dead[i]) {
@@ -135,6 +137,8 @@ export function makeShoalSystem(sp: Species, oc: any) {
       }
       alive[s]++;
       const px = p[i * 3], py = p[i * 3 + 1], pz = p[i * 3 + 2];
+      // the school breathes: it spreads out loose, draws in tight, stretches into a ribbon along its way
+      const breath = 0.5 + 0.5 * Math.sin(L.t * 0.07 + s * 2.1) * Math.sin(L.t * 0.031 + s), radius = radius0 * (0.6 + 1.1 * breath) * (1 + L.fear * 0.2);
       let sx = 0, sy = 0, sz = 0, ax = 0, ay = 0, az = 0, cx = 0, cy = 0, cz = 0, n = 0;
       const ix = Math.floor(px / CELL), iy = Math.floor(py / CELL), iz = Math.floor(pz / CELL);
       outer: for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
@@ -143,8 +147,9 @@ export function makeShoalSystem(sp: Species, oc: any) {
         for (const j of cell) {
           if (j === i || j % S !== s) continue;
           const ddx = px - p[j * 3], ddy = py - p[j * 3 + 1], ddz = pz - p[j * 3 + 2], d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-          if (d2 > 2.4 * 2.4) continue;
-          if (d2 < 0.36) { const k = 1 / Math.max(d2, 0.02); sx += ddx * k; sy += ddy * k; sz += ddz * k; }
+          if (d2 > 5.76 * K * K) continue;
+          const sepR = K > 1.5 ? 0.85 * K : 0.6;   // (big fish keep a body length or so of room)
+          if (d2 < sepR * sepR) { const k = K * K / Math.max(d2, 0.02 * K * K); sx += ddx * k; sy += ddy * k; sz += ddz * k; }
           ax += v[j * 3]; ay += v[j * 3 + 1]; az += v[j * 3 + 2];
           cx += p[j * 3]; cy += p[j * 3 + 1]; cz += p[j * 3 + 2];
           if (++n >= 12) break outer;
@@ -152,16 +157,20 @@ export function makeShoalSystem(sp: Species, oc: any) {
       }
       let fx2 = 0, fy2 = 0, fz2 = 0;
       if (n) {
-        fx2 += sx * 0.05 + (ax / n - v[i * 3]) * 0.9 + (cx / n - px) * 0.35;
-        fy2 += sy * 0.05 + (ay / n - v[i * 3 + 1]) * 0.9 + (cy / n - py) * 0.35;
-        fz2 += sz * 0.05 + (az / n - v[i * 3 + 2]) * 0.9 + (cz / n - pz) * 0.35;
+        const sepW = K > 1.5 ? 0.18 : 0.05, coh = 0.35 / K;
+        fx2 += sx * sepW + (ax / n - v[i * 3]) * 0.9 + (cx / n - px) * coh;
+        fy2 += sy * sepW + (ay / n - v[i * 3 + 1]) * 0.9 + (cy / n - py) * coh;
+        fz2 += sz * sepW + (az / n - v[i * 3 + 2]) * 0.9 + (cz / n - pz) * coh;
       }
       // stay with the school, milling around its leader
-      const lx = L.c.x - px, ly = L.c.y - py, lz = L.c.z - pz, ld = Math.hypot(lx, ly, lz);
-      const pull = ld > radius ? (ld - radius) * 0.6 : 0.05;
-      fx2 += lx / Math.max(ld, 0.01) * pull + Math.cos(L.head) * 0.5 - lz / Math.max(ld, 0.01) * 0.25;
-      fy2 += ly / Math.max(ld, 0.01) * pull * 0.8;
-      fz2 += lz / Math.max(ld, 0.01) * pull + Math.sin(L.head) * 0.5 + lx / Math.max(ld, 0.01) * 0.25;
+      const lx = L.c.x - px, ly = L.c.y - py, lz = L.c.z - pz;
+      // (measured in the school's own frame, its length along its heading counting for less: a ribbon, not a ball)
+      const hx = Math.cos(L.head), hz = Math.sin(L.head), along = lx * hx + lz * hz, across = -lx * hz + lz * hx;
+      const stretch = 1 + 1.6 * (1 - breath), ld = Math.hypot(along / stretch, ly * 1.3, across), ldt = Math.hypot(lx, ly, lz);
+      const pull = ld > radius ? (ld - radius) * 0.6 * (ldt / Math.max(ld, 0.01)) : 0.05;
+      fx2 += lx / Math.max(ldt, 0.01) * pull + Math.cos(L.head) * 0.5 - lz / Math.max(ldt, 0.01) * 0.25;
+      fy2 += ly / Math.max(ldt, 0.01) * pull * 0.8;
+      fz2 += lz / Math.max(ldt, 0.01) * pull + Math.sin(L.head) * 0.5 + lx / Math.max(ldt, 0.01) * 0.25;
       // part around the drone
       _a.set(px - cam.x, py - cam.y, pz - cam.z);
       const cd = _a.length();

@@ -128,13 +128,13 @@ const KINDS: Kind[] = [
     start(oc, env, cam, fx, fz) {
       const sp: Species = oc.loc.species.find((s: Species) => s.id === 'gingameaji');
       // a column of jacks circling, wider in the middle, slowly turning over itself
-      const c = ahead(oc, cam, fx, fz, 10, 7), base = Math.max(oc.T.top(c.x, c.z) + 1.5, -18), top = Math.min(base + 9, -2);
-      const n = 700, dir = R() < 0.5 ? 1 : -1;
+      const c = ahead(oc, cam, fx, fz, 10, 9), base = Math.max(oc.T.top(c.x, c.z) + 3.5, -16), top = Math.min(base + 9, -1.5);
+      const n = 1300, dir = R() < 0.5 ? 1 : -1;
       const seed = Array.from({ length: n }, () => [R(), R(), R() * 6.28, rr(0.8, 1.2)]);
       const fl = flowSchool(oc, sp, n, (i, t, p, v) => {
         const [h, rj, a0, sp2] = seed[i];
         const y = base + (top - base) * h, mid = Math.sin(h * Math.PI);
-        const r = (2.2 + 2.8 * mid) * (0.75 + 0.5 * rj) + Math.sin(t * 0.3 + h * 5) * 0.4;
+        const r = (2.6 + 3.2 * mid) * (0.7 + 0.6 * rj) + Math.sin(t * 0.3 + h * 5) * 0.5;   // (a wall of fish round a hollow core)
         const a = a0 + dir * t * sp2 * 1.6 / r;
         p.set(c.x + Math.cos(a) * r, y + Math.sin(t * 0.5 + a0) * 0.3, c.z + Math.sin(a) * r);
         v.set(-Math.sin(a) * dir, 0.05 * Math.cos(t + a0), Math.cos(a) * dir);
@@ -160,8 +160,8 @@ const KINDS: Kind[] = [
     start(oc, env, cam, fx, fz) {
       const sp: Species = oc.loc.species.find((s: Species) => s.id === 'akashumoku');
       const at = ahead(oc, cam, fx, fz, 35, 14), head = Math.atan2(cam.z - at.z, cam.x - at.x);
-      const y = Math.min(cam.y + 5, -4);
-      const sys = tempSchool(oc, { ...sp, alt: [10, 14], speed: 0.9 }, 60 + Math.floor(R() * 40), at, y, head, 10);
+      const y = Math.min(Math.max(cam.y + 6, oc.T.top(at.x, at.z) + 12), -5);   // (well up in the blue, over the camera)
+      const sys = tempSchool(oc, { ...sp, alt: [10, 14], speed: 0.9 }, 60 + Math.floor(R() * 40), at, y, head, 14);
       return {
         info: KINDS[3].info, t: 0, dur: 120, size: 10, kind: 'school',
         update(dt, env2, cam2, fx2, fz2) { this.t += dt; sys.update(dt, env2, cam2, fx2, fz2); },
@@ -290,7 +290,7 @@ export function makeRareEvents(oc: any) {
     subjects(out: Subject[]) {
       if (!run) return;
       const r = run;
-      out.push({ key: 'rare:' + r.info.id, label: r.info.ja, kind: r.kind, prio: 6, size: r.size, reach: 120, pos: () => r.pos(), status: () => r.status(), live: () => run === r && !!r.pos(), hold: Math.min(r.dur, 90) });
+      out.push({ key: 'rare:' + r.info.id, label: r.info.ja, kind: r.kind, prio: 6, size: r.size, reach: 120, pos: () => r.pos(), status: () => r.status(), live: () => run === r && !!r.pos(), hold: Math.min(r.dur, 90), under: r.info.id === 'tornado' ? 6.5 : undefined });
     },
   };
 }

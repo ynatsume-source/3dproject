@@ -14,7 +14,7 @@ import { planets } from './time/planets';
 import { buildOcean } from './ocean/build';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
-import { Director, type Shot } from './director';
+import { Director, speciesOf, type Shot } from './director';
 import type { Subject } from './eco/env';
 import { PERSONAS, personaById, line, type Persona, type Mood } from './persona';
 import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
@@ -143,14 +143,33 @@ function captionText(sj: Subject) {
   const note = e ? e.note.split('。').filter(Boolean).slice(0, 2).join('。') + '。' : '';
   return { t: sj.label, i: e?.sci ?? '', s: sj.status() + sizeTxt, n: note };
 }
+let cruiseSubj: Subject | null = null, cruiseT = 0;
 function updateCaption(dt: number) {
-  const el = $('caption'), sh = lastShot;
+  const el = $('caption'); let sh = lastShot;
+  // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by
+  if (captionOn && !(sh && sh.phase === 'observe') && drone.mode === 'auto' && !watch.r && cur && camera.position.y < 0) {
+    if ((cruiseT -= dt) < 0) {
+      cruiseT = 2;
+      const fwd = U.uCamFwd.value; let best: Subject | null = null, bs = 0;
+      for (const s of cur.eco.subjects()) {
+        const p = s.pos(); if (!p || !s.live() || s.kind === 'cave' || s.kind === 'hunt') continue;
+        const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
+        if (d > 14 || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) < 0.75) continue;
+        const sc = Math.max(s.len ?? 0, Math.min(s.size, 3)) / Math.max(d, 1);
+        if (sc > bs) { bs = sc; best = s; }
+      }
+      cruiseSubj = best && bs > 0.12 ? best : null;
+    }
+    if (cruiseSubj) sh = { subject: cruiseSubj, phase: 'observe', pos: camera.position, look: camera.position, cruise: true } as any;
+  } else cruiseSubj = null;
   const want = captionOn && !!sh && sh.phase === 'observe' && drone.mode === 'auto' && !watch.r && sh.subject.kind !== 'cave';
   if (!want) { if (el.classList.contains('on')) el.classList.remove('on'); capShot = null; return; }
+  if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
   if (capShot !== sh) {
     capShot = sh; capT = 0;
     const c = captionText(sh!.subject);
-    (el.querySelector('.k') as HTMLElement).textContent = sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+    if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
     (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
     (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
     el.classList.add('on');
@@ -185,7 +204,7 @@ function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R);
-  const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9)) : null;
+  const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
   if (watch.r && watch.pov && cur!.residents) {
     // through its own eyes: where its eyes are, looking where it looks (a drag glances aside)
@@ -646,16 +665,20 @@ function seaLog(kind: string, text: string, at?: Where) {
   if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at, kind, ref });
 }
 function pumpLog(now: number) {
-  if (!logQueue.length || now - logShownAt < 9000 || $('toast').classList.contains('on')) return;
+  if (!logQueue.length || now - logShownAt < 20000 || $('toast').classList.contains('on')) return;
   logShownAt = now;
   const e = logQueue.shift()!;
+  // (what happens to the one being filmed is told by the commentary, not here)
+  const sp = lastShot?.subject.pos(), ep = e.ref ?? (e.at ? e.at() : null);
+  if (sp && ep && Math.hypot(sp.x - ep.x, sp.y - ep.y, sp.z - ep.z) < 8) { logShownAt = now - 15000; return; }
+  noticeSubj = null;
   // (a hunt on the caption: keep with it — its end, caught or got away, releases it)
   if (e.kind === 'hunt' || e.kind === 'catch') {
     if (huntLock.until > now && !sameHunt(e.ref, huntLock.ref)) return;
     const ends = e.kind === 'catch' || /振り切|空を切|追いつけ|あきらめ/.test(e.text);
     huntLock.ref = e.ref; huntLock.until = now + (ends ? 9000 : 45000);
   }
-  showToast(e.label ?? 'SEA LOG', e.text, '');
+  showToast(e.label ?? (ep ? `SEA LOG ・ ${bearing(ep)}` : 'SEA LOG'), e.text, '');
   markAt = e.at || null; markText = e.text; markUntil = e.kind === 'hunt' && huntLock.until > now ? huntLock.until : now + 9000;
   $('toast').classList.toggle('go', !!markAt);
 }
@@ -681,8 +704,43 @@ function updateMarker(now: number) {
   el.style.transform = `translate(${sx.toFixed(0)}px, ${sy.toFixed(0)}px)`;
   el.hidden = false;
 }
+// which way something is from the camera, and how far: "↗ 40m"
+const ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+function bearing(p: { x: number; y: number; z: number }) {
+  const dx = p.x - camera.position.x, dz = p.z - camera.position.z, yaw = drone.yaw;
+  const f = dx * -Math.sin(yaw) + dz * -Math.cos(yaw), r = dx * Math.cos(yaw) + dz * -Math.sin(yaw);
+  const k = ((Math.round(Math.atan2(r, f) / (Math.PI / 4)) % 8) + 8) % 8, d = Math.hypot(dx, p.y - camera.position.y, dz);
+  return `${ARROWS[k]} ${d < 10 ? d.toFixed(0) : Math.round(d / 5) * 5}m`;
+}
+// Notices: something worth a look, in view and not far, that the camera is not filming (a school, a
+// big one, something happening): one quiet line, with which way and how far; a tap goes to it
+let noticeT = 0, noticeSubj: Subject | null = null;
+const noticed = new Map<string, number>();
+function scanNotices(dt: number, now: number) {
+  if ((noticeT -= dt) > 0 || !cur || !captionOn || drone.mode !== 'auto' || watch.r || drone.sky) return;
+  noticeT = 2;
+  if (now - logShownAt < 20000 || $('toast').classList.contains('on')) return;
+  const fwd = U.uCamFwd.value, filming = lastShot?.subject;
+  let best: Subject | null = null, bs = 0;
+  for (const s of cur.eco.subjects()) {
+    if (s === filming || s.key === filming?.key || s.kind === 'cave' || (noticed.get(speciesOf(s)) ?? -1e9) > now - 180000) continue;
+    const notable = s.kind === 'giant' || s.kind === 'manta' || s.kind === 'hunt' || (s.kind === 'school' && s.size >= 3) || (s.kind === 'big' && (s.len ?? s.size) >= 1) || (s.kind === 'critter' && s.prio >= 2);
+    const p = s.pos(); if (!notable || !p || !s.live()) continue;
+    const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
+    if (d > 35 || d < 3 || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / d < 0.3) continue;
+    const sc = s.prio / (1 + d * 0.05);
+    if (sc > bs) { bs = sc; best = s; }
+  }
+  if (!best) return;
+  noticed.set(speciesOf(best), now); logShownAt = now;
+  const b = best;
+  showToast(`${bearing(b.pos()!)}先に`, `${b.label}`, b.status());
+  markAt = () => b.pos(); markText = b.label; markUntil = now + 9000; noticeSubj = b;
+  $('toast').classList.add('go');
+}
 function goToEvent() {
   if (!markAt || !cur) return;
+  if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }); return; }
   const at = markAt, text = markText;
   focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() });
 }
@@ -928,7 +986,7 @@ function renderGuide() {
   $('btnLog').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'log'));
   if (guideEl.hidden) return;
   if ((panelTab === 'island' || panelTab === 'talk') && !cur.residents) panelTab = 'guide';
-  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日の海 <kbd>J</kbd></button>${cur.residents ? `<button type="button" role="tab" data-tab="island" aria-selected="${panelTab === 'island'}">島の住人</button><button type="button" role="tab" data-tab="talk" aria-selected="${panelTab === 'talk'}">会話ログ</button>` : ''}</div>`;
+  const tabs = `<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="guide" aria-selected="${panelTab === 'guide'}">図鑑 <kbd>Z</kbd></button><button type="button" role="tab" data-tab="log" aria-selected="${panelTab === 'log'}">今日のログ <kbd>J</kbd></button>${cur.residents ? `<button type="button" role="tab" data-tab="island" aria-selected="${panelTab === 'island'}">島の住人</button><button type="button" role="tab" data-tab="talk" aria-selected="${panelTab === 'talk'}">会話ログ</button>` : ''}</div>`;
   const scroll = guideEl.scrollTop;
   if (panelTab === 'log') { guideEl.innerHTML = tabs + renderLog(); guideEl.scrollTop = scroll; return; }
   if (panelTab === 'talk') { guideEl.innerHTML = tabs + renderTalk(); guideEl.scrollTop = scroll; return; }
@@ -1787,6 +1845,7 @@ function frame(ts: number) {
     if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
     updateDrone(dt, now);
     updateCaption(dt);
+    scanNotices(dt, now);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
     U.uCamPos.value.copy(camera.position);
     if (cur.cave) {

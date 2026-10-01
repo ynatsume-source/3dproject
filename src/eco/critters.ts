@@ -347,9 +347,14 @@ export function makeCritters(oc: any) {
           } else if (mm.kind === 'snake') {
             const s: Snake = c;
             if (!s.placed || Math.hypot(s.pos.x - cam.x, s.pos.z - cam.z) > 75) {
-              const [x, z] = near(cam, fx, fz, 12, 35);
-              s.pos.set(x, T.top(x, z) + s.alt, z); s.placed = true; s.state = 'forage';
-              if (!T.wet(x, z, 1.5)) s.placed = false;
+              // (somewhere with water enough over the bottom: try a few spots, and if there is none just now,
+              // wait out of sight rather than hopping about every frame)
+              s.placed = false;
+              if ((s.t -= dt) < -1e9 || s.t < 0) for (let k = 0; k < 12; k++) {
+                const [x, z] = near(cam, fx, fz, 12, 35);
+                if (T.wet(x, z, 2)) { s.pos.set(x, T.top(x, z) + s.alt, z); s.placed = true; s.state = 'forage'; s.t = 0; break; }
+              }
+              if (!s.placed) { s.t = 3; mm.mesh.setMatrixAt(i, _m.makeScale(0, 0, 0)); return; }
             }
             s.t += dt;
             const fl = T.top(s.pos.x, s.pos.z);

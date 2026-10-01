@@ -37,7 +37,8 @@ export interface Subject {
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
   reach?: number;                       // how far away the director will go for it (default 42 m)
   hold?: number;                        // stay with it this long (s), instead of the usual time for its kind
-  front?(): { x: number; y: number; z: number };   // the open side to film it from (a moray looking out of its hole): no orbiting round it
+  front?(): { x: number; y: number; z: number };
+  under?: number;                       // film it from right underneath, looking up (a tornado of fish): how far below its middle   // the open side to film it from (a moray looking out of its hole): no orbiting round it
   target?(): { x: number; y: number; z: number } | null;   // a hunt's prey, to frame together with the hunter
   frameR?(): number;                    // how big the action is right now (m), for close framing
   len?: number; adult?: number; lenK?: number; lenWhat?: string;   // this individual's size (m), its species' adult size, growth rate, what is measured

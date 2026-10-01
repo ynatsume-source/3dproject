@@ -388,7 +388,7 @@ export function setAir(on: boolean) {
     sea.connect(slp).connect(sg).connect(airGain); sea.start();
   }
   const t = ac.currentTime;
-  airGain.gain.setTargetAtTime(on ? 0.5 : 0, t, 0.4);
+  airGain.gain.setTargetAtTime(on ? 0.2 : 0, t, 0.4);   // (wind and waves about as loud as the sea's hush below: no jump at the surface)
   bedGain.gain.setTargetAtTime(on ? 0 : 0.12 + 0.04 * (1 - audio.night), t, 0.4);
   crackleGain.gain.setTargetAtTime(0, t, 0.3);
 }

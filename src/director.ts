@@ -12,6 +12,8 @@ const DURATION: Record<Subject['kind'], [number, number]> = {
 };
 
 const _p = new THREE.Vector3();
+// the kind of animal a subject is (a school, a hunt and a lone one of the same species count as one)
+export const speciesOf = (s: Subject) => s.label.replace(/の群れ$|の大群$|（.*$/, '');
 
 export class Director {
   shot: Shot | null = null;
@@ -25,6 +27,7 @@ export class Director {
   private move = ''; private moveT = 0; private moveDur = 0; private gvx = 0; private gvz = 1; private gpx = NaN; private gpz = 0;
   private hold = new THREE.Vector3(); private gspd = 0;
   private recent = new Map<string, number>();
+  private switchT = 0;
   private clock = 0;
   onStart: (s: Subject) => void = () => { /* set by the app */ };
   // the guide's taste: how much it wants to film a subject, and how long it likes to stay (set by the app)
@@ -46,6 +49,7 @@ export class Director {
     const [a, b] = DURATION[best.kind];
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
     this.recent.set(best.key, this.clock);
+    this.bored.set(speciesOf(best), (this.bored.get(speciesOf(best)) ?? 0) + 1);
     this.recent.set('kind:' + best.kind, this.clock);
     this.shot = { pos: new THREE.Vector3(), look: new THREE.Vector3(), subject: best, phase: 'approach', forced, zoom: forced };   // (asked for from the guide: a closer look once there)
     if (best.tour) {
@@ -57,24 +61,61 @@ export class Director {
     this.onStart(best);
   }
 
-  update(dt: number, drone: THREE.Vector3, subjects: () => Subject[], floor: (x: number, z: number) => number): Shot | null {
+  // How interesting something is right now, to film: how much is happening (its prio), whether it is in
+  // front of the lens and near, how worn the eye is by its kind already today (boredom fades over about
+  // ten minutes), whether it was just filmed, how rare or grand it is, and the guide's own taste.
+  private bored = new Map<string, number>();
+  switchK = 1.6;   // (how much better something passing must be to switch to it, mid-shot)
+  minHold = 8;     // (how long a shot is held before switching is considered)
+  interest(s: Subject, drone: THREE.Vector3, fwd: THREE.Vector3, self = false) {
+    const p = s.pos(); if (!p || !s.live()) return 0;
+    const dx = p.x - drone.x, dy = p.y - drone.y, dz = p.z - drone.z, d = Math.hypot(dx, dy, dz);
+    if (d > (s.reach ?? 42)) return 0;
+    const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3);
+    const vis = 0.55 + 0.75 * Math.max(0, dot) * (1 - Math.min(1, Math.max(0, (d - 4) / 31)));
+    const near = 1 - d / Math.max(60, (s.reach ?? 42) * 1.25);    // (things worth crossing the island for fade more slowly with distance)
+    const bored = 1 / (1 + 0.9 * (this.bored.get(speciesOf(s)) ?? 0) * (self ? 0.4 : 1));
+    const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9), kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
+    const recent = self ? 1 : (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.5 : 1);
+    const grand = s.kind === 'giant' ? 1.4 : s.kind === 'manta' ? 1.3 : s.kind === 'big' ? 1.15 : s.kind === 'critter' ? 1.1 : 1;
+    return s.prio * vis * Math.max(0, near) * bored * recent * grand * this.weight(s);
+  }
+
+  update(dt: number, drone: THREE.Vector3, subjects: () => Subject[], floor: (x: number, z: number) => number, fwd: THREE.Vector3 = new THREE.Vector3(0, 0, -1)): Shot | null {
     this.clock += dt;
+    for (const [k, v] of this.bored) { const nv = v * Math.exp(-dt / 600); if (nv < 0.05) this.bored.delete(k); else this.bored.set(k, nv); }
     if (!this.shot) {
       this.cooldown -= dt;
       if (this.cooldown > 0) return null;
       this.cooldown = 3;                      // look again in a moment if nothing is found
       let best: Subject | null = null, bs = 0;
       for (const s of subjects()) {
-        const p = s.pos(); if (!p || !s.live()) continue;
-        const d = Math.hypot(p.x - drone.x, p.y - drone.y, p.z - drone.z);
-        if (d > (s.reach ?? 42)) continue;
-        const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9);
-        const kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
-        const score = s.prio * (0.8 + 0.4 * R()) * (1 - d / Math.max(60, (s.reach ?? 42) * 1.25))   // (a little chance in it: not always the same favourite first)   // (things worth crossing the island for fade more slowly with distance) * (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.4 : 1) * this.weight(s);
+        const score = this.interest(s, drone, fwd) * (0.85 + 0.3 * R());   // (a little chance in it: not always the same favourite first)
         if (score > bs) { bs = score; best = s; }
       }
       if (!best || bs < 0.9) return null;
       this.begin(best, drone, false);
+    }
+    // mid-shot: something better right in front of the lens (or the one being followed has got far
+    // away while something good is close by): switch to it
+    if (this.shot && this.shot.phase === 'observe' && !this.shot.forced && !this.shot.zoom && !this.shot.subject.tour && (this.switchT -= dt) < 0) {
+      this.switchT = 1;
+      const cur = this.shot.subject, cp = cur.pos();
+      const curD = cp ? Math.hypot(cp.x - drone.x, cp.y - drone.y, cp.z - drone.z) : 99;
+      const keepHunt = cur.kind === 'hunt' && cur.live();
+      if (this.t > this.minHold && !keepHunt) {
+        const cs = this.interest(cur, drone, fwd, true);
+        let alt: Subject | null = null, as = 0;
+        for (const s of subjects()) {
+          if (s.key === cur.key || s.kind === 'cave' || s.tour) continue;
+          const p = s.pos(); if (!p || !s.live()) continue;
+          const dx = p.x - drone.x, dy = p.y - drone.y, dz = p.z - drone.z, d = Math.hypot(dx, dy, dz);
+          if (d > 14 || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) < 0.45) continue;   // (passing close, in view)
+          const sc = this.interest(s, drone, fwd);
+          if (sc > as) { as = sc; alt = s; }
+        }
+        if (alt && (as > cs * this.switchK || (curD > 20 && as > cs * 0.8))) this.begin(alt, drone, false);
+      }
     }
     const sh = this.shot!, s = sh.subject, p = s.pos();
     if (s.tour) {
@@ -129,6 +170,16 @@ export class Director {
     // close: about a body length or so away, by the animal's own size (a small fish from under a metre)
     const sz = Math.min(s.size, Math.max(s.len ?? s.size, 0.15) * 2) * (s.kind === 'school' ? 0.65 : 1);   // (a school: in among its edge)
     const dist = Math.max(0.8, Math.min(7, sz * 1.25 + 0.55)) * this.distK * (sh.zoom ? 0.75 : 1);
+    if (s.under && p) {
+      // a tornado of fish: from right underneath, looking up the hollow core toward the light
+      const sw = this.t * 0.05, x = p.x + Math.cos(sw) * 0.6, z = p.z + Math.sin(sw) * 0.6;
+      const y = Math.min(Math.max(p.y - s.under, floor(x, z) + 0.9), -1);
+      sh.pos.set(x, y, z); sh.look.set(p.x + Math.cos(sw + 2) * 0.9, p.y + 6, p.z + Math.sin(sw + 2) * 0.9);
+      const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
+      if (sh.phase === 'approach' && (gap < 1.5 || this.t > 30)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
+      this.t += dt;
+      return sh;
+    }
     if (s.front && p) {
       // something looking out of a hole: face it from the open water, swaying gently from side to side
       const f = s.front(), sw = (this.spin > 0 ? 0.7 : -0.7) + Math.sin(this.t * 0.12) * 0.3, c = Math.cos(sw), si = Math.sin(sw);   // (from forty degrees or so off its line: the head and a length of body)
