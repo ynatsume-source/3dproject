@@ -56,13 +56,29 @@ function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
        float algae = smoothstep(-0.05, -0.4, p.y) * (0.5 + 0.5 * sin(p.x * 40.0 + p.y * 23.0) * sin(p.y * 31.0));
        return mix(col, vec3(0.2, 0.27, 0.12), algae * 0.45);
      }
+     // a character's shell: the same scutes, but quiet — a touch lighter at each one's middle, the seams a little darker
+     vec3 softScutes(vec3 q) {
+       vec2 p = q.xz; float d1 = 9.0, d2 = 9.0;
+       for (int i = 0; i < 13; i++) {
+         float fi = float(i);
+         vec2 s = i < 5 ? vec2(0.0, 0.3 - fi * 0.155) : vec2((mod(fi, 2.0) < 0.5 ? -1.0 : 1.0) * 0.19, 0.235 - floor((fi - 5.0) / 2.0) * 0.165);
+         float d = length((p - s) * vec2(1.0, 1.15));
+         if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+       }
+       float rn = length(vec2(p.x / 0.37, p.y / 0.48));
+       float seam = max(1.0 - smoothstep(0.006, 0.016, d2 - d1), 1.0 - smoothstep(0.006, 0.018, abs(rn - 0.86)));
+       vec3 col = uCol * (1.0 + 0.14 * (1.0 - smoothstep(0.02, 0.11, d1)));
+       if (rn > 0.86) col = uCol * 0.88;
+       return mix(col, uCol * 0.62, seam * 0.75);
+     }
      void main(){
        vec3 n = normalize(vN), V = normalize(uCamPos - vWp);
        vec3 alb = uCol;
        if (uGrid > 0.5) { vec2 g = fract(vUv * vec2(10.0, 6.0)); alb = mix(vec3(0.05, 0.08, 0.17), vec3(0.72, 0.75, 0.8), max(step(0.9, g.x), step(0.88, g.y))); }
        if (uPat > 0.5 && uPat < 1.5) alb = carapace(vLp);
+       else if (uPat > 3.5) alb = softScutes(vLp);
        else if (uPat > 1.5 && uPat < 2.5) { vec3 c = cells(vec2(vLp.x + vLp.y * 0.7, vLp.z - vLp.y * 0.4) * uScl); alb = mix(uCol * (0.75 + 0.5 * c.z), vec3(0.72, 0.64, 0.44), 1.0 - smoothstep(0.03, 0.09, c.y)); }
-       else if (uPat > 2.5) { vec3 c = cells(vec2(vLp.x * 1.3 + vLp.z * 0.7, vLp.y * 1.3 - vLp.z * 0.5) * uScl); alb = uCol * (0.9 + 0.2 * c.z); }   // (a soft, fine unevenness in the pile)
+       else if (uPat > 2.5 && uPat < 3.5) { vec3 c = cells(vec2(vLp.x * 1.3 + vLp.z * 0.7, vLp.y * 1.3 - vLp.z * 0.5) * uScl); alb = uCol * (0.9 + 0.2 * c.z); }   // (a soft, fine unevenness in the pile)
        vec3 col;
        if (vWp.y > 0.0) {
          col = airLit(alb, n, vWp, 0.35);   // (light wraps a little round the curves)
@@ -88,7 +104,7 @@ function cmats(): CMats {
     chibi: {
       brown: rmat(0x4b2e1f, 0.15), brownOdd: rmat(0x4b2e1f, 0.15), belly: rmat(0xc99a70, 0.1), cream: rmat(0xf0dcb8, 0.1), paw: rmat(0x3e2518, 0.1), nose: rmat(0x1c120d, 0.8), mouth: rmat(0x8c3b3b, 0.3),
       dark: rmat(0x120b08, 0.9), iris: rmat(0x7a4a26, 0.3), white: rmat(0xffffff, 0.2), pink: rmat(0xf0a4a0, 0.1), red: rmat(0xd8423a, 0.1), stone: rmat(0x8e8b86, 0.15),
-      shell: rmat(0x8a5a36, 0.3), shellPlain: rmat(0x8a5a36, 0.3), seam: rmat(0xf1e2b8, 0.15), plastron: rmat(0xf3e4b4, 0.15), skin: rmat(0x86c4a4, 0.15), skinOdd: rmat(0x86c4a4, 0.15),
+      shell: rmat(0x8a5a36, 0.3), shellPlain: rmat(0x6e4529, 0.3, false, 4), seam: rmat(0xf1e2b8, 0.15), plastron: rmat(0xe2cf9a, 0.15), skin: rmat(0x86c4a4, 0.15), skinOdd: rmat(0x679c82, 0.15),
       brow: rmat(0xfbf8f0, 0.1), moss: rmat(0x5d9a3e, 0.1), barnacle: rmat(0xe2ddd0, 0.2),
     },
   };
@@ -108,7 +124,7 @@ function mats(): Mats {
 const LIGHT: Record<string, { c: number; y: number; tilt: number; r: number; k: number; ahead: number }> = {
   dot: { c: 0xffd98a, y: 0.95, tilt: 0.55, r: 2.3, k: 0.34, ahead: 1.6 },
   kame: { c: 0x8fe8d0, y: 0.45, tilt: 0.35, r: 2.0, k: 0.26, ahead: 1.5 },
-  lantern: { c: 0xbff8ff, y: 1.05, tilt: 0.9, r: 3.4, k: 0.38, ahead: 0.9 },
+  lantern: { c: 0xbff8ff, y: 0.88, tilt: 0.9, r: 3.4, k: 0.38, ahead: 0.9 },
   rakko: { c: 0xffc08a, y: 0.6, tilt: 0.5, r: 2.1, k: 0.3, ahead: 1.3 },
 };
 const beamGeo = (len: number, rad: number) => { const g = new THREE.ConeGeometry(rad, len, 20, 1, true); g.translate(0, -len / 2, 0); return g; };
@@ -924,7 +940,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     onSay: () => { /* set by the app */ },
     hide: '',
     sense(r) {
-      const EYE: Record<string, number> = { dot: 0.9, kame: 0.46, lantern: 1.05, rakko: 0.62 };
+      const EYE: Record<string, number> = { dot: 0.9, kame: 0.46, lantern: 0.88, rakko: 0.62 };
       const fx = Math.sin(r.head), fz = Math.cos(r.head);
       const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
       if (r.id === 'kame' && r.wet && r.act === 'swim') eye.y = r.pos.y + 0.2;   // (swimming under the water, looking through it)

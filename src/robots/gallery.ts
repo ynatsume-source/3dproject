@@ -59,6 +59,21 @@ const M = {
   })(),
 };
 const { makeDot, makeLantern } = robotKit({ ...M, stone: new THREE.MeshStandardMaterial({ color: 0x8a8378, roughness: 0.9 }) }, true);
+// Kamemaru's shell from above: quiet scutes in its own colour (a touch lighter at the middle, darker seams)
+function softShellTex(hex: number) {
+  const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d')!, img = g.createImageData(N, N);
+  const base = [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+  const seeds: number[][] = []; for (let i = 0; i < 5; i++) seeds.push([0, 0.3 - i * 0.155]); for (let i = 0; i < 8; i++) seeds.push([(i % 2 ? 1 : -1) * 0.19, 0.235 - Math.floor(i / 2) * 0.165]);
+  const sm = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
+    const x = (px / N - 0.5) * 0.8, z = (py / N - 0.5) * 1.0; let d1 = 9, d2 = 9;
+    seeds.forEach((s) => { const d = Math.hypot(x - s[0], (z - s[1]) * 1.15); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; });
+    const rn = Math.hypot(x / 0.37, z / 0.48), seam = Math.max(1 - sm(0.006, 0.016, d2 - d1), 1 - sm(0.006, 0.018, Math.abs(rn - 0.86)));
+    let k = rn > 0.86 ? 0.88 : 1 + 0.14 * (1 - sm(0.02, 0.11, d1)); k = k + (0.62 - k) * seam * 0.75;
+    const o = (py * N + px) * 4; for (let i = 0; i < 3; i++) img.data[o + i] = Math.min(255, base[i] * k); img.data[o + 3] = 255;
+  }
+  g.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
 // the character turtle's shell, from above: a few big clear scutes, each lighter at its middle, cream seams
 function toonShellTex() {
   const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d')!, img = g.createImageData(N, N);
@@ -98,9 +113,9 @@ const { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakk
   chibi: {
     brown: std(0x8a5534, 0.75), belly: std(0xc99a70, 0.8), cream: std(0xf0dcb8, 0.8), paw: std(0x4a2c1c, 0.8), nose: std(0x2a1a14, 0.35), mouth: std(0x8c3b3b, 0.6),
     dark: std(0x1e130d, 0.15), iris: std(0x7a4a26, 0.25), white: new THREE.MeshBasicMaterial({ color: 0xffffff }), pink: std(0xf0a4a0, 0.9), stone: std(0x8e8b86, 0.8),
-    shell: new THREE.MeshStandardMaterial({ map: toonShellTex(), roughness: 0.55 }), seam: std(0xf1e2b8, 0.7), plastron: std(0xf3e4b4, 0.8), skin: std(0x9cc27e, 0.75), brow: std(0xfbf8f0, 0.95), moss: std(0x5d9a3e, 0.9), barnacle: std(0xe2ddd0, 0.8),
+    shell: new THREE.MeshStandardMaterial({ map: toonShellTex(), roughness: 0.55 }), seam: std(0xf1e2b8, 0.7), plastron: std(0xe2cf9a, 0.8), skin: std(0x9cc27e, 0.75), brow: std(0xfbf8f0, 0.95), moss: std(0x5d9a3e, 0.9), barnacle: std(0xe2ddd0, 0.8),
     line: new THREE.MeshBasicMaterial({ color: 0x2a1c14, side: THREE.BackSide }),
-    red: std(0xd8423a, 0.9), brownOdd: std(0x4b2e1f, 0.95), skinOdd: std(0x86c4a4, 0.95), shellPlain: std(0x8a5a36, 0.9),
+    red: std(0xd8423a, 0.9), brownOdd: std(0x4b2e1f, 0.95), skinOdd: std(0x679c82, 0.95), shellPlain: new THREE.MeshStandardMaterial({ map: softShellTex(0x6e4529), roughness: 0.85 }),
   },
 }, true);
 

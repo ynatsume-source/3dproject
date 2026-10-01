@@ -205,27 +205,27 @@ export function robotKit(M: Mats, shadows = false) {
   // 4. ランタン: a box on four long jointed legs; a ring of light for a face that breathes as it thinks
   function makeLantern(): Robot {
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-    const core = box(0.42, 0.34, 0.42, 0.07, M.shell); core.position.y = 0.72; body.add(core);
-    const roof = box(0.46, 0.05, 0.46, 0.02, M.panel); roof.position.y = 0.905; body.add(roof);
-    const face = cyl(0.13, 0.13, 0.02, M.dark, 40); face.rotation.x = Math.PI / 2; face.position.set(0, 0.73, 0.212); body.add(face);
+    const core = box(0.42, 0.34, 0.42, 0.07, M.shell); core.position.y = 0.58; body.add(core);
+    const roof = box(0.46, 0.05, 0.46, 0.02, M.panel); roof.position.y = 0.765; body.add(roof);
+    const face = cyl(0.13, 0.13, 0.02, M.dark, 40); face.rotation.x = Math.PI / 2; face.position.set(0, 0.59, 0.212); body.add(face);
     const ringMat = M.glow.clone();
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 10, 48), ringMat); ring.position.set(0, 0.73, 0.224); body.add(ring);
-    const dotEye = ball(0.02, M.glow); dotEye.position.set(0, 0.73, 0.225); body.add(dotEye);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 10, 48), ringMat); ring.position.set(0, 0.59, 0.224); body.add(ring);
+    const dotEye = ball(0.02, M.glow); dotEye.position.set(0, 0.59, 0.225); body.add(dotEye);
     // a lamp under the box, lit at night to see the path by
-    const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), M.warm.clone()); lamp.rotation.x = Math.PI / 2; lamp.position.y = 0.548; body.add(lamp);
+    const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), M.warm.clone()); lamp.rotation.x = Math.PI / 2; lamp.position.y = 0.408; body.add(lamp);
     const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz], i) => {
-      const hip = new THREE.Group(); hip.position.set(sx * 0.2, 0.62, sz * 0.2); hip.rotation.y = Math.atan2(sx, sz); body.add(hip);
+      const hip = new THREE.Group(); hip.position.set(sx * 0.2, 0.48, sz * 0.2); hip.rotation.y = Math.atan2(sx, sz); body.add(hip);
       // knee held out level with the hip, shin dropping to the sand: a spider's stance
-      const a = limb(0.3, 0.025, M.joint); a.pivot.rotation.x = -1.4; hip.add(a.pivot);
-      const b = limb(0.62, 0.022, M.shell); b.pivot.rotation.x = 1.05; a.end.add(b.pivot);
-      const toe = ball(0.03, M.accent); b.end.add(toe);
+      const a = limb(0.22, 0.032, M.joint); a.pivot.rotation.x = -1.15; hip.add(a.pivot);
+      const b = limb(0.4, 0.029, M.shell); b.pivot.rotation.x = 0.95; a.end.add(b.pivot);
+      const toe = ball(0.042, M.accent); b.end.add(toe);
       return { a, b, i };
     });
     let sleepK = 0;
     return { root, light: lamp, update(t, dt, p = DEMO) {
       const walk = p.act === 'demo' ? 1 : p.walk, w = t * 3;
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 1.5);
-      legs.forEach((l) => { const ph = w + [0, Math.PI, Math.PI, 0][l.i]; l.a.pivot.rotation.x = -1.4 - Math.max(0, Math.sin(ph)) * 0.3 * walk + sleepK * 0.35; l.a.pivot.rotation.z = Math.cos(ph) * 0.18 * walk; l.b.pivot.rotation.x = 1.05 + sleepK * 0.5; });
+      legs.forEach((l) => { const ph = w + [0, Math.PI, Math.PI, 0][l.i]; l.a.pivot.rotation.x = -1.15 - Math.max(0, Math.sin(ph)) * 0.3 * walk + sleepK * 0.3; l.a.pivot.rotation.z = Math.cos(ph) * 0.18 * walk; l.b.pivot.rotation.x = 0.95 + sleepK * 0.4; });
       body.position.y = Math.sin(w * 2) * 0.012 * walk - sleepK * 0.22; body.rotation.x = Math.sin(t * 0.6) * 0.04 + (p.act === 'think' ? -0.25 : 0);   // thinking: face tipped up to the sky
       const think = 0.5 + 0.5 * Math.sin(t * (p.act === 'think' ? 3.2 : 1.6));
       glowColor(ringMat)?.setHSL?.(0.5 - think * 0.05, 0.85, (0.55 + 0.25 * think) * (1 - sleepK * 0.75));
