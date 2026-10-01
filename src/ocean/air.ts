@@ -29,7 +29,7 @@ const DISC = discGeo(0.5, 70000, 170, 192);
 // sharpening crests and widening troughs. Each train fades out once the ring spacing can no longer carry it.
 // Mirrored in swellAt() so the camera can ride it. swell() returns (height, dh/dx, dh/dz).
 const SW: [number, number, number][] = [[140, 0.55, 0], [118, 0.45, 0.12], [72, 0.35, 0.5], [47, 0.22, -0.6], [31, 0.14, 0.9], [21, 0.08, -0.3]];
-const SWELL = /* glsl */ `
+export const SWELL = /* glsl */ `
 const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
 const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
 const float SW_D[6] = float[](${SW.map((w) => w[2].toFixed(2)).join(', ')});

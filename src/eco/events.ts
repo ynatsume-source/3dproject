@@ -133,11 +133,15 @@ const KINDS: Kind[] = [
       const seed = Array.from({ length: n }, () => [R(), R(), R() * 6.28, rr(0.8, 1.2)]);
       const fl = flowSchool(oc, sp, n, (i, t, p, v) => {
         const [h, rj, a0, sp2] = seed[i];
-        const y = base + (top - base) * h, mid = Math.sin(h * Math.PI);
-        const r = (2.6 + 3.2 * mid) * (0.7 + 0.6 * rj) + Math.sin(t * 0.3 + h * 5) * 0.5;   // (a wall of fish round a hollow core)
-        const a = a0 + dir * t * sp2 * 1.6 / r;
-        p.set(c.x + Math.cos(a) * r, y + Math.sin(t * 0.5 + a0) * 0.3, c.z + Math.sin(a) * r);
-        v.set(-Math.sin(a) * dir, 0.05 * Math.cos(t + a0), Math.cos(a) * dir);
+        const y0 = base + (top - base) * h, mid = Math.sin(h * Math.PI);
+        // every fish the same way round, at a jack's easy cruising speed (well under a metre a second),
+        // each on its own slightly tilted circle, so together they wind upward in a spiral; the wall
+        // breathes in and out a little (the turning rate is set by its usual radius, so none ever turns back)
+        const rb = (2.6 + 3.2 * mid) * (0.7 + 0.6 * rj), w = dir * 0.85 * sp2 / rb, a = a0 + w * t;
+        const br = Math.sin(t * 0.3 + h * 5) * 0.4, r = rb + br, dr = Math.cos(t * 0.3 + h * 5) * 0.12;   // (a wall of fish round a hollow core)
+        const tilt = 0.45, ph = a + h * 9;
+        p.set(c.x + Math.cos(a) * r, y0 + tilt * Math.sin(ph), c.z + Math.sin(a) * r);
+        v.set(-Math.sin(a) * r * w + Math.cos(a) * dr, tilt * Math.cos(ph) * w, Math.cos(a) * r * w + Math.sin(a) * dr);   // (the way it is actually moving)
       });
       const at = new THREE.Vector3(c.x, (base + top) / 2, c.z);
       return {

@@ -8,7 +8,10 @@ import { LOCATIONS, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
-import { updateAir, setPlanets, topScene, setRefraction, swellAt } from './ocean/air';
+import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop } from './ocean/air';
+import { SplitView, SPLIT_BAND } from './render/split';
+const split = new SplitView(), _sz = new THREE.Vector2();
+let airState = false;
 import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
 import { planets } from './time/planets';
 import { buildOcean } from './ocean/build';
@@ -105,7 +108,7 @@ function pipLight(depth: number) {
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
-const drone = { pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
+const drone = { skim: 0, skimDir: 1, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -402,11 +405,23 @@ function updateDrone(dt: number, now: number) {
   const wasUp = drone.pos.y - drone.vel.y * dt > 0.2;
   const upShot = !!shot && shot.pos.y > 0.3;   // filming something ashore: out of the water and back
   const mayRise = drone.mode === 'manual' || drone.sky || upShot || !!watch.r, mayDive = drone.mode === 'manual' || (!drone.sky && !upShot && !watch.r);
-  if (!wasUp && drone.pos.y > -0.7) {
-    if (mayRise && drone.vel.y > 0.25) { drone.pos.y = 0.5; crossSurface(true); }
+  if (drone.mode === 'manual') {
+    // flown by hand it may stop anywhere, the waterline included (half in the sea, half in the air)
+    const prevY = drone.pos.y - drone.vel.y * dt;
+    if ((prevY > 0) !== (drone.pos.y > 0)) crossSurface(drone.pos.y > 0);
+    drone.skim = 0;
+  } else if (drone.skim > 0) {
+    // riding the surface on its way through: a few seconds with the lens at the waterline, level, the
+    // swell washing over it, before going on up into the air or down into the sea
+    drone.skim -= dt;
+    drone.pos.y += (0 - drone.pos.y) * Math.min(1, dt * 3); drone.vel.y = 0;
+    drone.pitch += (0.02 - drone.pitch) * Math.min(1, dt * 1.5);
+    if (drone.skim <= 0) { drone.pos.y = drone.skimDir > 0 ? 0.5 : -0.75; crossSurface(drone.skimDir > 0); }
+  } else if (!wasUp && drone.pos.y > -0.7) {
+    if (mayRise && drone.vel.y > 0.25) { drone.skim = rr(4, 8); drone.skimDir = 1; drone.pos.y = -0.3; }
     else { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
   } else if (wasUp && drone.pos.y < 0.5) {
-    if (mayDive && drone.vel.y < -0.25) { drone.pos.y = -0.75; crossSurface(false); }
+    if (mayDive && drone.vel.y < -0.25) { drone.skim = rr(4, 8); drone.skimDir = -1; drone.pos.y = 0.3; }
     else { drone.pos.y = 0.5; if (drone.vel.y < 0) drone.vel.y = 0; }
   }
   if (drone.pos.y > SKY_MAX) { drone.pos.y = SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
@@ -417,8 +432,10 @@ function updateDrone(dt: number, now: number) {
   drone.roll += ((watch.r ? 0 : -yawRate * 0.18) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
   camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
   // just above the sea the camera rides the swell, rising, falling and rolling with it
-  const ride = drone.pos.y > 0 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
-  camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z);
+  const ride = drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
+  // (at the waterline it rides a little behind the swell, so the line between sea and air rises and falls across the view)
+  const atLine = drone.skim > 0 || (drone.mode === 'manual' && Math.abs(drone.pos.y) < 0.6) ? 1 : 0;
+  camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z) * (1 - 0.25 * atLine) + atLine * (0.06 * Math.sin(t * 1.3) + 0.04 * Math.sin(t * 2.9 + 1));
   // a look around while cruising: the drag turns the view, and once let go it drifts back ahead
   if (drone.mode === 'manual') { drone.yaw += look.yaw; drone.pitch = clamp(drone.pitch + look.pitch, -1.25, 1.25); look.yaw = look.pitch = 0; }
   else if (!look.held && now - look.let > 900) { const k = 1 - Math.exp(-dt * 0.8); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
@@ -1981,7 +1998,10 @@ function frame(ts: number) {
     pumpLog(now);
     snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
     if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; renderGuide(); }
-    const air = camera.position.y > 0;
+    // (in the air or in the sea, with some slack: riding the waterline it must not flip every frame)
+    const lvl = camera.position.y - swellAt(camera.position.x, camera.position.z);
+    if (lvl > 0.12 || (Math.abs(lvl) >= SPLIT_BAND && camera.position.y > 0)) airState = true; else if (lvl < -0.12) airState = false;
+    const air = airState;
     const vis = air ? 400 : Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
@@ -2009,7 +2029,25 @@ function frame(ts: number) {
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (bisect) bisectStep(dt);
-    if (usePost()) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
+    // at the waterline: the view half under the water and half in the air (see render/split.ts)
+    if (usePost() && Math.abs(lvl) < SPLIT_BAND && !watch.pov) {
+      const sz = renderer.getDrawingBufferSize(_sz); split.setSize(sz.x, sz.y);
+      const cy = camera.position.y, keepFar = camera.far, keepExpo = camExpo;
+      for (const asAir of [false, true]) {
+        U.uCamPos.value.y = asAir ? Math.max(cy, 0.03) : Math.min(cy, -0.03);
+        // (and each side's sea surface just on the far side of the lens: under the water the surface is
+        // drawn a touch above the camera, from the air a touch below, so neither side sees it edge-on)
+        surface.position.y = asAir ? 0 : Math.max(0, lvl + 0.1); seaTop.position.y = asAir ? Math.min(0, lvl - 0.1) : 0;
+        surface.visible = snow.visible = !asAir; shafts.visible = !TIERS[tier].vol && !asAir;
+        camera.far = asAir ? 90000 : 460; camera.updateProjectionMatrix();
+        post.setAir(asAir); post.whiteBalance(asAir ? 0 : 0.3, U.uAbs.value, U.uNight.value, asAir);
+        post.setExposure(asAir ? 1.25 * (1 + 0.6 * nightLift) : 1.4 * (1 + 0.55 * nightLift));
+        post.render(renderer, oceanScene, camera, asAir ? topScene : null, setRefraction, asAir ? split.air : split.water);
+      }
+      surface.position.y = 0; seaTop.position.y = 0;
+      U.uCamPos.value.y = cy; camera.far = keepFar; camera.updateProjectionMatrix(); post.setExposure(keepExpo);
+      split.compose(renderer, camera);
+    } else if (usePost()) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
     cur.residents?.bubbles(camera, innerWidth, innerHeight);
     if (usePost()) { if (!noPip) renderPip(dt, air); }
     else {

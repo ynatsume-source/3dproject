@@ -175,7 +175,7 @@ export class Post {
       uniform sampler2D tSrc; uniform sampler2D tVol; uniform vec2 uTexel; uniform float uFirst; varying vec2 vUv;
       vec3 src(vec2 uv){
         vec3 c = texture2D(tSrc, uv).rgb;
-        if (uFirst > 0.5) { c = pow(max(c, 0.0), vec3(2.2)) + texture2D(tVol, uv).rgb; c = max(c - 1.1, 0.0); }
+        if (uFirst > 0.5) { c = pow(clamp(c, 0.0, 40.0), vec3(2.2)) + texture2D(tVol, uv).rgb; c = max(c - 1.1, 0.0); if (any(notEqual(c, c))) c = vec3(0.0); }   // (a stray NaN or overflow must not spread through the bloom as a black block)
         return c;
       }
       void main(){
@@ -299,7 +299,7 @@ export class Post {
   }
 
   // top: drawn over the scene after it, able to sample what lies beneath it through refrTex(); only in the air
-  render(r: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, top: THREE.Scene | null = null, onRefr?: (t: THREE.Texture, w: number, h: number) => void) {
+  render(r: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.PerspectiveCamera, top: THREE.Scene | null = null, onRefr?: (t: THREE.Texture, w: number, h: number) => void, out: THREE.WebGLRenderTarget | null = null) {
     this.frame++;
     r.setRenderTarget(this.main);
     r.clear();
@@ -370,6 +370,6 @@ export class Post {
     c.tScene.value = this.main.texture;
     c.tVol.value = this.volHist[this.histIdx].texture; c.uUseVol.value = vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;
-    this.pass(r, this.compMat, null);
+    this.pass(r, this.compMat, out);   // (to the screen, or for the waterline view into a target)
   }
 }
