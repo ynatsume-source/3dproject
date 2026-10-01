@@ -295,7 +295,7 @@ function updateDrone(dt: number, now: number) {
     watch.ang += angDiff(Math.atan2(-fz, -fx) + watch.off, watch.ang) * Math.min(1, dt * 0.5);
     const ce = Math.cos(watch.el), se = Math.sin(watch.el), mid = watch.r.sp?.living ? 0.3 : 0.55;   // (round its middle: a turtle is low, a robot taller)
     _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + mid + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
-    _t.y = Math.max(_t.y, T.top(_t.x, _t.z) + 0.3, 0.25);   // (the bare ground: the bushes and trees close round it are opened up, not climbed over)   // clear of the ground, and out of the water (the trees overhead are opened up around it)
+    _t.y = Math.max(_t.y, T.h(_t.x, _t.z) + 0.3, 0.25);   // (the bare ground: T.top would be the treetops, the canopy being solid to everything else)   // (the bare ground: the bushes and trees close round it are opened up, not climbed over)   // clear of the ground, and out of the water (the trees overhead are opened up around it)
     _v.subVectors(_t, drone.pos);
     const L = _v.length();
     _v.multiplyScalar(Math.min(L * 1.6, 30) / Math.max(L, 1e-4));   // (across the island quickly when switching)
@@ -433,11 +433,16 @@ function updateDrone(dt: number, now: number) {
   drone.pos.addScaledVector(drone.vel, dt);
   // watching from above: never down inside the forest roof
   // (except close by it, where the trees are opened up anyway: there it may come down to eye level)
-  if (watch.r && !watch.pov && cur!.T.over && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > Math.max(7, watch.dist * 1.2) - 0.5) drone.pos.y = Math.max(drone.pos.y, cur!.T.over(drone.pos.x, drone.pos.z) + 1.5);
+  // (once down under the trees with it, it stays down among the trunks rather than being lifted back over the roof)
+  const openR = Math.max(13, watch.dist * 2.2);
+  if (watch.r && !watch.pov && cur!.T.over && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > openR - 0.5) {
+    const roof = cur!.T.over(drone.pos.x, drone.pos.z);
+    if (drone.pos.y > roof - 2 || Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > openR + 12) drone.pos.y = Math.max(drone.pos.y, roof + 1.5);
+  }
   // keep a clear bubble: the floor is the highest ground in a ring around the camera, not just under it,
   // and we rise onto it smoothly rather than popping up
   // (watching someone close by, the bushes and trees around them are opened up: only the bare ground counts)
-  const Gc = watch.r && !watch.pov && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) < Math.max(7, watch.dist * 1.2) - 0.5 ? cur!.T.top : G;
+  const Gc = watch.r && !watch.pov && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) < Math.max(13, watch.dist * 2.2) + 12 ? cur!.T.h : G;
   let fh = Gc(drone.pos.x, drone.pos.z);
   for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, Gc(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
   const clear = watch.r && !watch.pov ? 0.4 : 0.75;   // (watching someone close up: down nearer their eye level)
@@ -2070,7 +2075,7 @@ function frame(ts: number) {
       sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
       if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; }
       // and open up the forest roof over it, so it can be seen from above
-      const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(7, watch.dist * 1.2)); else cut.w = 0; }
+      const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(9, watch.dist * 1.6)); else cut.w = 0; }
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.focus(watch.r);
     cur.residents?.update(dt, clock.ms, drone.pos);
