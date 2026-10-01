@@ -467,6 +467,13 @@ export function buildOcean(loc) {
     const sys: any = sp.habitat === 'shoal' ? makeShoalSystem(sp, oc) : makeFishSystem(sp, oc);
     if (sys) { oc.fish.push(sys); group.add(sys.mesh); }
   }
+  // the nearest fish to a point, ahead of a direction (for a resident watching one go by): its name, its place
+  const _nf = new THREE.Vector3();
+  T.nearFish = (p: THREE.Vector3, fwd: THREE.Vector3, maxD: number, out: THREE.Vector3) => {
+    let best = Infinity, name = '';
+    for (const f of oc.fish) { if (!f.nearestPos) continue; const d = f.nearestPos(p, fwd, maxD, _nf); if (d < best) { best = d; name = f.sp.ja; out.copy(_nf); } }
+    return name;
+  };
   // turtles & mantas
   const an = loc.animals || {};
   if (an.turtle) for (let i = 0; i < an.turtle.count; i++) { const t = makeTurtle(an.turtle.style); t.size = Math.max(0.45, an.turtle.style === 'green' ? loneLength(0.85, 1.1) : loneLength(0.7, 0.88)); t.group.scale.setScalar(t.size); oc.turtles.push(t); group.add(t.group); }

@@ -7,7 +7,7 @@
 // comes up to breathe, sleeps on the bottom, hauls out to bask with its flippers spread, and on land heaves
 // itself along the sand with both fore-flippers at once. Nose at +z, as for the robots.
 import * as THREE from 'three';
-import { type Robot, type Pose, gaitPhase, makeGaze, smoothStep as sm2 } from './models';
+import { type Robot, type Pose, gaitPhase, makeGaze, smoothStep as sm2, variant as hk } from './models';
 
 export interface CMats {
   fur: THREE.Material; furPale: THREE.Material; furDark: THREE.Material; nose: THREE.Material; eye: THREE.Material;
@@ -524,12 +524,32 @@ export function creatureKit(M: CMats, shadows = false) {
     }
     const fronts = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.28, 0.0, 0.22); body.add(f); const bl = cell(0.15, 0.035, 0.075, skin); bl.position.set(sx * 0.11, 0, -0.02); bl.rotation.y = sx * 0.35; f.add(bl); return { f, sx }; });
     const backs = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.18, -0.01, -0.36); body.add(f); const bl = cell(0.075, 0.03, 0.06, skin); bl.position.set(sx * 0.05, 0, -0.03); bl.rotation.y = -sx * 0.5; f.add(bl); return { f, sx }; });
-    let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3, bottomK = 0;
+    let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3, bottomK = 0, topT = 0;
     const gaze = makeGaze(0.9, 0.4, 0.6, 2.5);   // (slow to turn its head)
     return { root, update(t, dt, p = DEMO) {
       const act = p.act, wet = !!p.wet, walk = act === 'demo' ? 0.5 : Math.min(1, p.walk);
       const g14 = gaitPhase(p, t, 1.0, 1.4);   // (the heave of its flippers ashore)
       gaze.step(p, dt, 0.2);
+      // grazing on the bottom, in mouthfuls of four to eight seconds: a look to the next patch, the neck
+      // down to it, two to four short tugs, the head lifted a little to swallow — and on to the next
+      const el = p.elapsed ?? t;
+      const gz = act === 'graze' && p.elapsed !== undefined ? (() => {
+        let t0 = 0;
+        for (let i = 0; i < 400; i++) {
+          const n = 2 + Math.floor(hk(p.key ?? 0, i) * 3), dur = 0.6 + 0.6 + n * 0.7 + 1.0, tc = el - t0;
+          if (tc < dur) {
+            const yaw = (hk(p.key ?? 0, i + 90) - 0.5) * 0.7, prevYaw = i ? (hk(p.key ?? 0, i + 89) - 0.5) * 0.7 : 0;
+            const down = sm2(0.6, 1.2, tc) * (1 - sm2(dur - 1.0, dur - 0.6, tc));
+            const bite = tc > 1.2 && tc < 1.2 + n * 0.7 ? Math.pow(Math.max(0, Math.sin(((tc - 1.2) % 0.7) / 0.7 * Math.PI)), 3) : 0;
+            return { down, bite, yaw: prevYaw + (yaw - prevYaw) * sm2(0, 0.6, tc), swallow: sm2(dur - 1.0, dur - 0.7, tc) * (1 - sm2(dur - 0.2, dur, tc)) };
+          }
+          t0 += dur;
+        }
+        return { down: 1, bite: 0, yaw: 0, swallow: 0 };
+      })() : null;
+      // up for a breath: nose to the light on the way up; at the top the head lifted out for the breath
+      topT = act === 'breathe' && (p.bottom ?? 1) < 0.06 ? topT + dt : 0;
+      const puff = sm2(0, 0.35, topT) * (1 - sm2(1.8, 2.4, topT));
       landK = ease(landK, wet ? 0 : 1, dt, 2); swimK = ease(swimK, wet && (act === 'swim' || act === 'walk') ? 1 : 0, dt, 1.5);
       grazeK = ease(grazeK, act === 'graze' ? 1 : 0, dt, 1.5); sleepK = ease(sleepK, act === 'sleep' ? 1 : 0, dt, 1); baskK = ease(baskK, act === 'bask' ? 1 : 0, dt, 1);
       upK = ease(upK, act === 'breathe' || (wet && (act === 'float' || act === 'idle' || act === 'look' || act === 'sit')) ? 1 : 0, dt, 1.5);
@@ -541,8 +561,8 @@ export function creatureKit(M: CMats, shadows = false) {
       body.position.y = landK * (0.12 + Math.max(0, heave) * 0.04) + (1 - landK) * swimK * stroke * 0.012;
       body.rotation.x = -Math.max(0, heave) * 0.06 + swimK * Math.sin(beat - 1) * 0.04 - upK * 0.3 + grazeK * 0.18;
       const tug = grazeK * Math.pow(Math.max(0, Math.sin(t * 2.4)), 4);
-      neckG.rotation.x = -upK * 0.3 + grazeK * (0.5 + tug * 0.2) + sleepK * 0.25 + baskK * 0.3 - landK * 0.15 * (1 - baskK);
-      neckG.rotation.y = Math.sin(t * 0.3) * 0.35 * (1 - sleepK) * (1 - grazeK);
+      neckG.rotation.x = -upK * 0.3 + grazeK * (gz ? 0.12 + 0.45 * gz.down + 0.18 * gz.bite - 0.12 * gz.swallow : 0.5 + tug * 0.2) + sleepK * 0.25 + baskK * 0.3 - landK * 0.15 * (1 - baskK) - puff * 0.3;
+      neckG.rotation.y = Math.sin(t * 0.3) * 0.35 * (1 - sleepK) * (1 - grazeK) + (gz ? gz.yaw * grazeK : 0);
       head.rotation.z = Math.sin(t * 0.45) * 0.08 * (1 - sleepK);
       { const w = gaze.w * (1 - sleepK) * (1 - grazeK * 0.7); neckG.rotation.y += (gaze.yaw - neckG.rotation.y) * w; neckG.rotation.x += gaze.pitch * 0.6 * w; }
       mossG.forEach((f, i) => { f.rotation.x = (odd ? 0 : f.position.z * 4) + Math.sin(t * 1.3 + i) * 0.15 * (wet ? 1 : 0.25) - swimK * 0.5; });

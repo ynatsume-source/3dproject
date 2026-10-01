@@ -158,6 +158,7 @@ export interface Resident {
   diary: Entry[];
   subject: Subject; blocked: number;
   path?: { pts: [number, number][]; tx: number; tz: number; t: number };   // the way it means to walk (robots/path.ts)
+  seen?: { name: string; pos: THREE.Vector3; t: number; dur: number; lost: number };   // a fish going by that it is watching (Kamemaru, grazing)
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
   mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number };
@@ -421,7 +422,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) bonds[pair(list[i].id, list[j].id)] = { stage: 0, know: 0, talks: 0, last: -1e12, toldWorry: 0 };
   const talks: Entry[] = [];
   const visited = new Set<string>();
-  let clockMs = Date.now(), inspectCool = 180, admireCool = 60;   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
+  let clockMs = Date.now(), inspectCool = 180, admireCool = 60, seeCool = 90;
+  const _ey = new THREE.Vector3(), _fd = new THREE.Vector3(), _fp = new THREE.Vector3();   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
 
   // Dot's hut and Rakko's pile sit by their homes
   const pileAt = (i: number) => { const a = i * 2.4, d = 0.15 + Math.sqrt(i) * 0.09; return [byId.rakko.sp.home[0] + 2 + Math.cos(a) * d, byId.rakko.sp.home[1] + 1 + Math.sin(a) * d]; };
@@ -786,6 +788,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const atHead = (o: Resident) => v.set(o.pos.x, o.pos.y + (o.id === 'kame' ? 0.25 : o.id === 'lantern' ? 0.6 : 0.6), o.pos.z);
     if (r.act === 'sleep') return ['', null];
     if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return ['talk', atHead(o)]; }
+    if (r.seen) return ['fish', v.copy(r.seen.pos)];
     if (tk?.kind === 'approach' && byId[tk.data]) return ['approach', atHead(byId[tk.data])];
     if (tk && !tk.arrived) {
       // a point AHEAD metres on along the way it means to go (or straight at the goal)
@@ -965,6 +968,23 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           r.under = 1 - up; if (up > 0.5) r.act = 'breathe';
         }
         if (tk.kind === 'graze' && r.hunger < 0.05 && tk.t > 240 && r.under > 0.99) tk.t = tk.dur + 1;   // (full)
+        // a fish comes by while it grazes: it stops, lifts its head and follows it with its eyes until it is
+        // gone, then goes back to its grass (now and then: not every fish, and never in the way of a breath)
+        if (r.id === 'kame' && tk.kind === 'graze' && !fast && T.nearFish) {
+          if (r.seen && (r.under < 0.99 || r.talk)) r.seen = undefined;
+          if (r.seen) {
+            const sn = r.seen; sn.t += dt; r.act = 'look';
+            if ((sn.lost += dt) > 0 && Math.floor(sn.t / 0.3) !== Math.floor((sn.t - dt) / 0.3)) {
+              const eye = _ey.set(r.pos.x, r.pos.y + 0.25, r.pos.z), dir = _fd.subVectors(sn.pos, eye); dir.y = 0; dir.normalize();
+              if (T.nearFish(eye, dir, 10, _fp)) { sn.pos.lerp(_fp, 0.6); sn.lost = 0; }
+            }
+            if (sn.lost > 1.5 || sn.t > sn.dur) r.seen = undefined;
+          } else if (r.under > 0.99 && seeCool <= 0 && Math.floor(tk.t / 3) !== Math.floor((tk.t - dt) / 3)) {
+            const eye = _ey.set(r.pos.x, r.pos.y + 0.25, r.pos.z), fwd = _fd.set(Math.sin(r.head), 0, Math.cos(r.head));
+            const name = T.nearFish(eye, fwd, 6, _fp);
+            if (name) { r.seen = { name, pos: _fp.clone(), t: 0, dur: rr(5, 15), lost: 0 }; seeCool = rr(120, 300); r.act = 'look'; }
+          }
+        }
       }
       if (tk.t > tk.dur) done(r, tk, fast);
     }
@@ -1009,6 +1029,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // what it is doing, in words
   function statusOf(r: Resident): string {
     if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
+    if (r.seen) return `通りかかった${r.seen.name}を、目で追っている`;
     const tk = r.task, k = tk?.kind ?? 'idle';
     const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
     const going: Record<string, string> = { eat: '獲物をかかえて浮かんでいる', forage: '餌場へ泳いでいく', graze: '海草の原へ泳いでいく', bask: '甲羅干しの浜へ向かう', groom: '静かな水面へ', survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, review: '取りつけたところを見に、少し離れる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる' };
@@ -1068,7 +1089,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
     gibber,
     update(dt, ms, cam) {
-      clockMs = ms; inspectCool -= dt; admireCool -= dt;
+      clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt;
       items.tick(dt); tickDrift(dt);
       for (const r of list) step(r, dt, false);
       fireCircle(dt, false);
