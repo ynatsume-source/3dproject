@@ -13,6 +13,7 @@ export interface Pose {
   stride?: number;                    // how far it has walked (m, turning on the spot counted at the feet): the legs keep pace with it
   look?: [number, number, number];    // what it is looking at, in its own frame (x right, y up, z ahead; scaled with it)
   key?: number; elapsed?: number;     // which spell of doing something this is, and how long it has been at it (s)
+  bottom?: number;                    // how far it is settled on the bottom under the water (0..1): resting there, not swimming
   task?: string;                      // what the doing is for (the same act serves several: a pick to gather, to plant, to harvest)
 }
 const hk = (key: number, n: number) => { const x = Math.sin(key * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };   // (a variant fixed for the spell, not drawn afresh each frame)

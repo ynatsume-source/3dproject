@@ -492,7 +492,7 @@ export function creatureKit(M: CMats, shadows = false) {
     }
     const fronts = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.28, 0.0, 0.22); body.add(f); const bl = cell(0.15, 0.035, 0.075, skin); bl.position.set(sx * 0.11, 0, -0.02); bl.rotation.y = sx * 0.35; f.add(bl); return { f, sx }; });
     const backs = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.18, -0.01, -0.36); body.add(f); const bl = cell(0.075, 0.03, 0.06, skin); bl.position.set(sx * 0.05, 0, -0.03); bl.rotation.y = -sx * 0.5; f.add(bl); return { f, sx }; });
-    let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3;
+    let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3, bottomK = 0;
     const gaze = makeGaze(0.9, 0.4, 0.6, 2.5);   // (slow to turn its head)
     return { root, update(t, dt, p = DEMO) {
       const act = p.act, wet = !!p.wet, walk = act === 'demo' ? 0.5 : Math.min(1, p.walk);
@@ -502,8 +502,10 @@ export function creatureKit(M: CMats, shadows = false) {
       grazeK = ease(grazeK, act === 'graze' ? 1 : 0, dt, 1.5); sleepK = ease(sleepK, act === 'sleep' ? 1 : 0, dt, 1); baskK = ease(baskK, act === 'bask' ? 1 : 0, dt, 1);
       upK = ease(upK, act === 'breathe' || (wet && (act === 'float' || act === 'idle' || act === 'look' || act === 'sit')) ? 1 : 0, dt, 1.5);
       const beat = t * 1.6, stroke = Math.sin(beat), heave = Math.sin(g14) * walk * landK;
-      fronts.forEach((fl) => fl.f.rotation.set(swimK * Math.cos(beat) * 0.3, fl.sx * (landK * heave * 0.5 + sleepK * 0.5), fl.sx * (-swimK * stroke * 0.6 + landK * (-0.15 + heave * 0.2) - grazeK * 0.2 + baskK * 0.1)));
-      backs.forEach((bl, i) => bl.f.rotation.set(landK * Math.max(0, Math.sin(g14 + i * Math.PI)) * 0.3 * walk, bl.sx * Math.sin(t * 0.7 + i) * 0.15 * swimK, 0));
+      // settled on the bottom (asleep, grazing): its flippers laid down on the sand, not held out in the water
+      bottomK = ease(bottomK, (p.bottom ?? 0) * (1 - swimK), dt, 2);
+      fronts.forEach((fl) => fl.f.rotation.set(swimK * Math.cos(beat) * 0.3, fl.sx * (landK * heave * 0.5 + sleepK * 0.5), fl.sx * (-swimK * stroke * 0.6 + landK * (-0.15 + heave * 0.2) - grazeK * 0.2 * (1 - bottomK) + baskK * 0.1 - bottomK * 0.3)));
+      backs.forEach((bl, i) => bl.f.rotation.set(landK * Math.max(0, Math.sin(g14 + i * Math.PI)) * 0.3 * walk, bl.sx * Math.sin(t * 0.7 + i) * 0.15 * swimK, -bl.sx * bottomK * 0.3));
       body.position.y = landK * (0.12 + Math.max(0, heave) * 0.04) + (1 - landK) * swimK * stroke * 0.012;
       body.rotation.x = -Math.max(0, heave) * 0.06 + swimK * Math.sin(beat - 1) * 0.04 - upK * 0.3 + grazeK * 0.18;
       const tug = grazeK * Math.pow(Math.max(0, Math.sin(t * 2.4)), 4);

@@ -711,6 +711,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     cairns.count = n; cairns.instanceMatrix.needsUpdate = true;
   }
 
+  // a soft shade on the sand under a resident settled on the bottom (the water gives no shadows of its own)
+  const shadeTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!; const gr = g.createRadialGradient(32, 32, 2, 32, 32, 31); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.6)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); return t; })();
+  const shades = list.map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.15), new THREE.MeshBasicMaterial({ color: 0x0a1a18, alphaMap: shadeTex, transparent: true, opacity: 0.3, depthWrite: false })); m.visible = false; m.renderOrder = 1; group.add(m); return m; });
+
   /* ---------- getting about ---------- */
   // what it costs to cross a metre of the island on foot: the sea cannot be walked; growth above the waist
   // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
@@ -812,7 +816,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     r.wet = h < 0.05;
     const top = r.id === 'rakko' ? 0 : -0.2;   // floating at the surface (Rakko), or with its head out (Kamemaru)
     if (!r.wet) r.pos.y = h;
-    else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.1) - top) * r.under;   // (down on the bottom: diving, grazing, asleep)
+    else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.075) - top) * r.under;   // (Kamemaru settled a little into the sand)   // (down on the bottom: diving, grazing, asleep)
     else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max(h + 0.3, -1.2 + Math.sin(performance.now() * 0.0003) * 0.2);
     else r.pos.y = top;
   }
@@ -1079,7 +1083,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const near = Math.hypot(r.pos.x - cam.x, r.pos.z - cam.z) < 160;
         r.model.root.visible = near && res.hide !== r.id;
         if (!near) continue;
-        r.model.root.position.copy(r.pos); r.model.root.rotation.y = r.head;
+        r.model.root.position.copy(r.pos); r.model.root.rotation.set(0, r.head, 0);
+        // settled on the bottom: the shell lies with the slope of the sand under it, and a soft shade under it
+        const onBottom = r.id === 'kame' && r.wet && r.under > 0.5 ? r.under : 0;
+        if (onBottom) {
+          const fx = Math.sin(r.head), fz = Math.cos(r.head), e = 0.35;
+          const pitch = Math.atan2(L.h(r.pos.x + fx * e, r.pos.z + fz * e) - L.h(r.pos.x - fx * e, r.pos.z - fz * e), 2 * e);
+          const roll = Math.atan2(L.h(r.pos.x + fz * e, r.pos.z - fx * e) - L.h(r.pos.x - fz * e, r.pos.z + fx * e), 2 * e);
+          r.model.root.rotation.set(-pitch * onBottom, r.head, -roll * onBottom, 'YXZ');
+        }
+        const sh = shades[list.indexOf(r)];
+        sh.visible = r.id === 'kame' && onBottom > 0.3 && r.model.root.visible;
+        if (sh.visible) { sh.position.set(r.pos.x, L.h(r.pos.x, r.pos.z) + 0.02, r.pos.z); sh.rotation.set(-Math.PI / 2, 0, -r.head); (sh.material as THREE.MeshBasicMaterial).opacity = 0.32 * onBottom; }
         const act: Act = r.id === 'dot' ? r.act : r.act === 'sit' ? (r.wet ? 'float' : 'idle') : !r.sp.living && (r.act === 'pick' || r.act === 'hammer' || r.act === 'chop' || r.act === 'dig') ? 'work' : r.act;
         const tk = r.task, k = tk && tk.arrived ? Math.min(1, tk.t / tk.dur) : 0;
         const food = tk?.kind === 'eat' ? tk.data : tk?.kind === 'forage' && k > 0.8 ? tk.data : '';   // (coming up with it in its paws)
@@ -1096,7 +1111,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         updateLook(r, dt);
         let look: [number, number, number] | undefined;
         if (mo.look) { r.model.root.updateMatrixWorld(); const v = r.model.root.worldToLocal(_lv.copy(mo.look)); look = [v.x, v.y, v.z]; }
-        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: mo.gait, night: 1 - dayK(localHour(ms)), wet: r.wet, k, food, stride: mo.stride, look, key: mo.key, elapsed: mo.t, task: tk?.kind });
+        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: mo.gait, night: 1 - dayK(localHour(ms)), wet: r.wet, k, food, stride: mo.stride, look, key: mo.key, elapsed: mo.t, task: tk?.kind, bottom: r.wet && r.sp.living ? r.under : 0 });
         // what it has in its hands (Dot's arms hold a log themselves)
         if (r.model.carry) r.model.carry.visible = r.holding === 'wood';
         const hk = r.holding === 'wood' && r.model.carry ? '' : r.holding;
