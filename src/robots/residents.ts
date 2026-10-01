@@ -83,6 +83,13 @@ function cmats(): CMats {
     nose: rmat(0x0d0c0c, 0.9), eye: rmat(0x050506, 1.8),
     carapace: rmat(0x5a4426, 0.8, false, 1), plastron: rmat(0xd8c890, 0.3), skin: rmat(0x4c3b24, 0.45, false, 2, 6), beak: rmat(0x6a5838, 0.6),
     stone: rmat(0x7d776e, 0.15), urchin: rmat(0x3b1736, 0.5), crab: rmat(0xb04a2a, 0.5), clam: rmat(0xcbbca4, 0.5),
+    // the characters' flat colours
+    chibi: {
+      brown: rmat(0x4b2e1f, 0.15), brownOdd: rmat(0x4b2e1f, 0.15), belly: rmat(0xc99a70, 0.1), cream: rmat(0xf0dcb8, 0.1), paw: rmat(0x3e2518, 0.1), nose: rmat(0x1c120d, 0.8), mouth: rmat(0x8c3b3b, 0.3),
+      dark: rmat(0x120b08, 0.9), iris: rmat(0x7a4a26, 0.3), white: rmat(0xffffff, 0.2), pink: rmat(0xf0a4a0, 0.1), red: rmat(0xd8423a, 0.1), stone: rmat(0x8e8b86, 0.15),
+      shell: rmat(0x8a5a36, 0.3), shellPlain: rmat(0x8a5a36, 0.3), seam: rmat(0xf1e2b8, 0.15), plastron: rmat(0xf3e4b4, 0.15), skin: rmat(0x86c4a4, 0.15), skinOdd: rmat(0x86c4a4, 0.15),
+      brow: rmat(0xfbf8f0, 0.1), moss: rmat(0x5d9a3e, 0.1), barnacle: rmat(0xe2ddd0, 0.2),
+    },
   };
 }
 function mats(): Mats {
@@ -107,12 +114,12 @@ const beamGeo = (len: number, rad: number) => { const g = new THREE.ConeGeometry
 const BEAM_GEO: Record<string, THREE.BufferGeometry> = { dot: beamGeo(2.2, 0.75), kame: beamGeo(1.8, 0.55), lantern: beamGeo(1.6, 1.1), rakko: beamGeo(1.8, 0.6) };
 
 /* ---------- who lives where ---------- */
-interface Spec { id: string; make: 'makeDot' | 'makeLantern' | 'makeGreenTurtle' | 'makeSeaOtter'; home: [number, number]; range: number; speed: number; swimSpeed: number; swims: boolean; nightOwl: boolean; scale: number; color: string; social: number; living?: boolean }
+interface Spec { id: string; make: 'makeDot' | 'makeLantern' | 'makeKame' | 'makeRakko'; home: [number, number]; range: number; speed: number; swimSpeed: number; swims: boolean; nightOwl: boolean; scale: number; color: string; social: number; living?: boolean }
 const SPECS: Spec[] = [
   { id: 'dot', make: 'makeDot', home: [61, -145], range: 120, speed: 0.6, swimSpeed: 0, swims: false, nightOwl: false, scale: 1, color: '#ffd98a', social: 0.5 },
-  { id: 'kame', make: 'makeGreenTurtle', home: [333, 66], range: 140, speed: 0.22, swimSpeed: 0.6, swims: true, nightOwl: false, scale: 1, color: '#7fe0c0', social: 0.25, living: true },
+  { id: 'kame', make: 'makeKame', home: [333, 66], range: 140, speed: 0.22, swimSpeed: 0.6, swims: true, nightOwl: false, scale: 1, color: '#7fe0c0', social: 0.25, living: true },
   { id: 'lantern', make: 'makeLantern', home: [405, -285], range: 420, speed: 0.8, swimSpeed: 0, swims: false, nightOwl: true, scale: 1, color: '#8ff6ff', social: 0.35 },
-  { id: 'rakko', make: 'makeSeaOtter', home: [-117, -290], range: 170, speed: 0.35, swimSpeed: 0.9, swims: true, nightOwl: false, scale: 1.2, color: '#f7a36b', social: 0.8, living: true },
+  { id: 'rakko', make: 'makeRakko', home: [-117, -290], range: 170, speed: 0.35, swimSpeed: 0.9, swims: true, nightOwl: false, scale: 1.2, color: '#f7a36b', social: 0.8, living: true },
 ];
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any }

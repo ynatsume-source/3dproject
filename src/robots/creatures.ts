@@ -327,7 +327,7 @@ export function creatureKit(M: CMats, shadows = false) {
 
   // the odd faces: 'pokan' — round white eyes with tiny pupils, a mouth hanging open; 'magao' — two black
   // dots and a straight line, quite expressionless. Either way big red cheeks, and it looks right at you.
-  type Face = 'anime' | 'pokan' | 'magao';
+  type Face = 'anime' | 'pokan' | 'magao' | 'rakko' | 'kame';   // (rakko, kame: the chosen ones — straight-faced; the otter with an otter's build, no cheeks; the turtle without brows)
   function oddEye(face: Face, r: number) {
     const g = new THREE.Group();
     if (face === 'pokan') {
@@ -342,13 +342,15 @@ export function creatureKit(M: CMats, shadows = false) {
     const cell = (rx: number, ry: number, rz: number, mat: THREE.Material, line = true, seg = 32) => cellBase(rx, ry, rz, mat, line && !odd, seg);
     const outl = (m: THREE.Mesh, k?: number) => (odd ? m : outline(m, k));
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-    const pivot = new THREE.Group(); pivot.position.y = 0.21; body.add(pivot);   // (it turns about its middle: upright, on its back, belly-down)
+    // (rakko: an otter's build — a small, flat head on a long body, tiny ears, a broad muzzle with whiskers)
+    const lean = face === 'rakko', base = lean ? 0.25 : 0.21;
+    const pivot = new THREE.Group(); pivot.position.y = base; body.add(pivot);   // (it turns about its middle: upright, on its back, belly-down)
     const fur = odd ? C.brownOdd ?? C.brown : C.brown;
-    const trunk = cell(0.165, 0.19, 0.155, fur); pivot.add(trunk);
+    const trunk = lean ? cell(0.145, 0.235, 0.14, fur) : cell(0.165, 0.19, 0.155, fur); pivot.add(trunk);
     if (!odd) { const belly = cell(0.12, 0.14, 0.06, C.belly, false); belly.position.set(0, -0.02, 0.112); pivot.add(belly); }
     // the head: big and round, with the cream face of an old otter
-    const head = new THREE.Group(); head.position.set(0, 0.25, 0.02); pivot.add(head);
-    head.add(cell(0.175, 0.155, 0.155, fur));
+    const head = new THREE.Group(); head.position.set(0, lean ? 0.27 : 0.25, lean ? 0.035 : 0.02); pivot.add(head);
+    head.add(lean ? cell(0.14, 0.112, 0.13, fur) : cell(0.175, 0.155, 0.155, fur));
     let mouth: THREE.Object3D, open: THREE.Object3D, eyes: THREE.Object3D[];
     if (!odd) {
       const face = cell(0.148, 0.118, 0.1, C.cream, false); face.position.set(0, -0.022, 0.072); head.add(face);
@@ -360,6 +362,15 @@ export function creatureKit(M: CMats, shadows = false) {
       for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) { const d = ell(0.0045, 0.0045, 0.003, C.nose, 6); d.position.set(sx * (0.03 + k * 0.012), -0.044 + (k - 1) * 0.008 + k * 0.002, 0.162 - k * 0.006); head.add(d); }
       eyes = [-1, 1].map((sx) => { const e = animeEye(0.033, 0.043, C); e.position.set(sx * 0.064, 0.016, 0.158); e.rotation.y = sx * 0.4; head.add(e); return e; });
       for (const sx of [-1, 1]) { const b = ell(0.024, 0.012, 0.006, C.pink, 10); b.position.set(sx * 0.104, -0.036, 0.122); b.rotation.y = sx * 0.6; head.add(b); }
+    } else if (lean) {
+      // a broad cream muzzle with its two whisker pads, the big nose, a short straight mouth; dot eyes; whiskers
+      const muzzle = ell(0.08, 0.044, 0.045, C.cream, 24); muzzle.position.set(0, -0.034, 0.1); head.add(muzzle);
+      for (const sx of [-1, 1]) { const pad = ell(0.04, 0.032, 0.03, C.cream, 18); pad.position.set(sx * 0.027, -0.042, 0.118); head.add(pad); }
+      const nose = ell(0.026, 0.016, 0.014, C.nose, 16); nose.position.set(0, -0.016, 0.15); head.add(nose);
+      mouth = own(new THREE.Mesh(new THREE.CylinderGeometry(0.0032, 0.0032, 0.03, 6), C.nose)); mouth.rotation.z = Math.PI / 2; mouth.position.set(0, -0.06, 0.142); head.add(mouth); open = mouth;
+      eyes = [-1, 1].map((sx) => { const e = oddEye('magao', 0.03); e.position.set(sx * 0.062, 0.026, 0.113); e.rotation.y = sx * 0.45; head.add(e); return e; });
+      const wg = new THREE.CylinderGeometry(0.0016, 0.001, 0.07, 4); wg.translate(0, 0.035, 0);
+      for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) { const w = own(new THREE.Mesh(wg, C.cream)); w.position.set(sx * 0.05, -0.04 + (k - 1) * 0.008, 0.125); w.rotation.set(0, 0, -sx * (1.45 + (k - 1) * 0.18)); head.add(w); }
     } else {
       // one round cream muzzle with a big black nose on it; eyes set wide; big red cheeks
       const muzzle = ell(0.075, 0.058, 0.045, C.cream, 24); muzzle.position.set(0, -0.052, 0.13); head.add(muzzle);
@@ -370,17 +381,18 @@ export function creatureKit(M: CMats, shadows = false) {
       eyes = [-1, 1].map((sx) => { const e = oddEye(face, 0.034); e.position.set(sx * 0.078, 0.03, 0.142); e.rotation.y = sx * 0.5; head.add(e); return e; });
       for (const sx of [-1, 1]) { const b = ell(0.032, 0.032, 0.008, red, 16); b.position.set(sx * 0.108, -0.045, 0.112); b.rotation.y = sx * 0.75; head.add(b); }
     }
-    for (const sx of [-1, 1]) { const ear = cell(0.032, 0.03, 0.022, fur); ear.position.set(sx * 0.14, 0.085, -0.01); head.add(ear); const ein = ell(0.017, 0.016, 0.01, C.paw, 8); ein.position.set(sx * 0.142, 0.085, 0.006); head.add(ein); }
+    if (lean) for (const sx of [-1, 1]) { const ear = cell(0.017, 0.015, 0.011, fur); ear.position.set(sx * 0.126, 0.035, -0.01); head.add(ear); }
+    else for (const sx of [-1, 1]) { const ear = cell(0.032, 0.03, 0.022, fur); ear.position.set(sx * 0.14, 0.085, -0.01); head.add(ear); const ein = ell(0.017, 0.016, 0.01, C.paw, 8); ein.position.set(sx * 0.142, 0.085, 0.006); head.add(ein); }
     // its tuft: three little locks sticking up on the crown
     if (!odd) for (let k = 0; k < 3; k++) { const c = own(new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.07, 10), C.brown)); outline(c as THREE.Mesh, 0.12); c.position.set((k - 1) * 0.02, 0.165, 0.03 - Math.abs(k - 1) * 0.01); c.rotation.set(-0.35, 0, (k - 1) * -0.55 + 0.1); head.add(c); }
-    else { const c = own(new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 6, 16, Math.PI * 1.3), fur)); c.position.set(0.0, 0.17, 0.02); c.rotation.set(0, Math.PI / 2, 0.4); head.add(c); }   // (just one hair, curled)
+    else { const c = own(new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 6, 16, Math.PI * 1.3), fur)); c.position.set(0.0, lean ? 0.13 : 0.17, 0.02); c.rotation.set(0, Math.PI / 2, 0.4); head.add(c); }   // (just one hair, curled)
     // stubby arms, big flat webbed feet, a thick paddle of a tail
-    const arms = [-1, 1].map((sx) => { const a = new THREE.Group(); a.position.set(sx * 0.14, 0.07, 0.04); pivot.add(a); const u = cell(0.045, 0.075, 0.045, fur); u.position.y = -0.05; a.add(u); const pw = cell(0.04, 0.03, 0.04, C.paw); pw.position.set(0, -0.115, 0.012); a.add(pw); return { a, sx }; });
-    const feet = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.085, -0.17, 0.02); pivot.add(f); const ft = cell(0.062, 0.026, 0.09, C.paw); ft.position.set(0, -0.012, 0.04); f.add(ft); return { f, sx }; });
-    const tail = new THREE.Group(); tail.position.set(0, -0.12, -0.13); pivot.add(tail);
-    const tl = cell(0.055, 0.03, 0.13, fur); tl.position.set(0, -0.02, -0.08); tl.rotation.x = 0.5; tail.add(tl);
+    const arms = [-1, 1].map((sx) => { const a = new THREE.Group(); a.position.set(sx * (lean ? 0.125 : 0.14), lean ? 0.1 : 0.07, 0.04); pivot.add(a); const u = lean ? cell(0.04, 0.07, 0.04, fur) : cell(0.045, 0.075, 0.045, fur); u.position.y = -0.05; a.add(u); const pw = cell(0.04, 0.03, 0.04, C.paw); pw.position.set(0, -0.115, 0.012); a.add(pw); return { a, sx }; });
+    const feet = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.08, lean ? -0.21 : -0.17, lean ? 0.03 : 0.02); pivot.add(f); const ft = lean ? cell(0.066, 0.024, 0.105, C.paw) : cell(0.062, 0.026, 0.09, C.paw); ft.position.set(0, -0.012, 0.04); f.add(ft); return { f, sx }; });
+    const tail = new THREE.Group(); tail.position.set(0, lean ? -0.17 : -0.12, lean ? -0.11 : -0.13); pivot.add(tail);
+    const tl = lean ? cell(0.06, 0.028, 0.18, fur) : cell(0.055, 0.03, 0.13, fur); tl.position.set(0, -0.02, lean ? -0.12 : -0.08); tl.rotation.x = lean ? 0.6 : 0.5; tail.add(tl);
     // its stone, grey with a white band, held to the chest
-    const hand = new THREE.Group(); hand.position.set(0, -0.02, 0.19); pivot.add(hand);
+    const hand = new THREE.Group(); hand.position.set(0, lean ? -0.03 : -0.02, lean ? 0.17 : 0.19); pivot.add(hand);
     const stone = cell(0.055, 0.032, 0.046, C.stone); hand.add(stone);
     const band = own(new THREE.Mesh(new THREE.TorusGeometry(0.88, 0.1, 6, 30), C.white)); band.rotation.x = Math.PI / 2; band.scale.set(1, 1, 1.3); stone.add(band);
     const F = foods(); F.g.scale.setScalar(1.3); F.g.position.y = 0.035; hand.add(F.g);
@@ -395,7 +407,7 @@ export function creatureKit(M: CMats, shadows = false) {
       pitch = ease(pitch, want, dt, 2.2);
       roll = ease(roll, act === 'groom' ? Math.sin(t * 1.2) * 1.2 : landK * Math.sin(t * 6) * 0.12 * walk, dt, 4);
       pivot.rotation.set(pitch, 0, roll, 'YXZ');
-      pivot.position.y = landK * (0.21 + Math.abs(Math.sin(t * 6)) * 0.025 * walk) + (1 - landK) * (0.02 + Math.sin(t * 1.3) * 0.012 - swimK * 0.05);
+      pivot.position.y = landK * (base + Math.abs(Math.sin(t * 6)) * 0.025 * walk) + (1 - landK) * (0.02 + Math.sin(t * 1.3) * 0.012 - swimK * 0.05);
       const busy = act === 'eat' || act === 'work';
       head.rotation.x = backK * (busy ? 0.55 : 0.3) + sleepK * 0.3 - swimK * 0.9 - diveK * 0.6 + landK * (act === 'pick' ? 0.3 : Math.sin(t * 0.7) * 0.05);
       head.rotation.z = landK * Math.sin(t * 0.5) * 0.12 * (1 - walk);
@@ -418,7 +430,7 @@ export function creatureKit(M: CMats, shadows = false) {
       const food: Food = act === 'demo' ? '' : (p.food ?? '') as Food;
       F.urchin.visible = food === 'urchin'; F.crab.visible = food === 'crab'; F.clam.visible = food === 'clam';
       stone.visible = !food || act === 'work';
-      hand.position.z = 0.19 + (act === 'eat' ? sm(0.2, 0.9, Math.sin(t * 2.2)) * 0.05 : 0);
+      hand.position.z = (lean ? 0.17 : 0.19) + (act === 'eat' ? sm(0.2, 0.9, Math.sin(t * 2.2)) * 0.05 : 0);
       // its face: blinking, eyes shut asleep (a happy arc), mouth open when it eats
       if ((blink -= dt) < 0) blink = 2.5 + Math.random() * 3;
       const shut = sleepK > 0.5 ? 0.12 : blink < 0.12 ? 0.15 : 1;
@@ -471,7 +483,7 @@ export function creatureKit(M: CMats, shadows = false) {
       if (face === 'pokan') { const m = ell(0.032, 0.022, 0.012, C.mouth, 14); m.position.set(0, -0.06, 0.138); head.add(m); }
       else { const m = own(new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.08, 6), C.nose)); m.rotation.z = Math.PI / 2; m.position.set(0, -0.055, 0.142); head.add(m); }
       eyes = [-1, 1].map((sx) => { const e = oddEye(face, 0.032); e.position.set(sx * 0.085, 0.015, 0.118); e.rotation.y = sx * 0.6; head.add(e); return e; });
-      for (const sx of [-1, 1]) { const br = ell(0.045, 0.014, 0.02, C.brow, 14); br.position.set(sx * 0.085, 0.06, 0.112); br.rotation.set(0, sx * 0.6, sx * 0.12); head.add(br); }
+      if (face !== 'kame') for (const sx of [-1, 1]) { const br = ell(0.045, 0.014, 0.02, C.brow, 14); br.position.set(sx * 0.085, 0.06, 0.112); br.rotation.set(0, sx * 0.6, sx * 0.12); head.add(br); }
       for (const sx of [-1, 1]) { const b = ell(0.03, 0.03, 0.008, red, 16); b.position.set(sx * 0.115, -0.04, 0.09); b.rotation.y = sx * 0.85; head.add(b); }
     }
     const fronts = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.28, 0.0, 0.22); body.add(f); const bl = cell(0.15, 0.035, 0.075, skin); bl.position.set(sx * 0.11, 0, -0.02); bl.rotation.y = sx * 0.35; f.add(bl); return { f, sx }; });
@@ -498,5 +510,7 @@ export function creatureKit(M: CMats, shadows = false) {
     } };
   }
 
-  return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle };
+  // the island's own two, as chosen: straight-faced Rakko with an otter's build, browless Kamemaru
+  const makeRakko = () => makeChibiOtter('rakko'), makeKame = () => makeChibiTurtle('kame');
+  return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakko, makeKame };
 }

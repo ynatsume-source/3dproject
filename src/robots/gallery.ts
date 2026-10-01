@@ -90,7 +90,7 @@ function carapaceTex() {
   g.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 const std = (color: number, roughness = 0.8) => new THREE.MeshStandardMaterial({ color, roughness });
-const { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle } = creatureKit({
+const { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakko, makeKame } = creatureKit({
   fur: std(0x3a281b, 0.9), furPale: std(0xb9a487, 0.95), furDark: std(0x1f1610, 0.9), nose: std(0x0d0c0c, 0.4), eye: std(0x050506, 0.1),
   carapace: new THREE.MeshStandardMaterial({ map: carapaceTex(), roughness: 0.45 }), plastron: std(0xd8c890, 0.7), skin: std(0x4c3b24, 0.6), beak: std(0x6a5838, 0.5),
   stone: std(0x7d776e, 0.9), urchin: std(0x3b1736, 0.5), crab: std(0xb04a2a, 0.5), clam: std(0xcbbca4, 0.5),
@@ -106,8 +106,8 @@ const { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle } = creat
 
 const ROBOTS = [
   { name: 'ドット', en: 'DOT', text: '丸い画面の顔に点の目。表情で気持ちを伝える、いちばんアイコン的な姿。器用な三本指の手で道具を作り、背中の太陽電池で動く。', make: makeDot, scale: 1 },
-  { name: 'カメマル', en: 'KAMEMARU', text: '年寄りのアオウミガメ。ラグーンの海草を食べ、数分ごとに息つぎに浮かぶ。夜は海の底の岩かげで眠り、昼は浜で甲羅を干す。', make: makeGreenTurtle, scale: 1 },
-  { name: 'ラッコ', en: 'RAKKO', text: 'ラッコ。潜ってウニやカニや貝をとり、仰向けに浮かんでお腹の上の石で割って食べる。毛づくろいを欠かさず、前足で目をおおって眠る。', make: makeSeaOtter, scale: 1.2 },
+  { name: 'カメマル', en: 'KAMEMARU', text: '年寄りのアオウミガメ。いつも真顔。甲羅のてっぺんに双葉が一本。ラグーンの海草を食べ、数分ごとに息つぎに浮かび、夜は海の底で眠る。', make: makeKame, scale: 1 },
+  { name: 'ラッコ', en: 'RAKKO', text: 'ラッコ。いつも真顔で、白い線の入った石を手放さない。潜ってウニやカニや貝をとり、仰向けに浮かんでお腹の上で食べる。アホ毛が一本。', make: makeRakko, scale: 1.2 },
   { name: 'ランタン', en: 'LANTERN', text: '箱の体に長い四本脚。顔は光の輪で、考えるときに明滅する。岩場も軽々と歩く、いちばんAIらしい抽象的な姿。', make: makeLantern, scale: 1 },
 ];
 const bots = ROBOTS.map((r, i) => {
@@ -132,7 +132,7 @@ const DRAFTS: Record<string, { name: string; look: Look }[]> = {
   ],
 };
 { const which = new URLSearchParams(location.search).get('drafts');
-  if (which === 'chibi' || which === 'odd' || which === 'odd2') {
+  if (which === 'chibi' || which === 'odd' || which === 'odd2' || which === 'pick') {
     // the characters: in the poses of their days
     bots.forEach((b) => (b.root.visible = false));
     const eat = { act: 'eat', walk: 0, wet: true, food: 'urchin' }, swim = { act: 'swim', walk: 1, wet: true };
@@ -141,6 +141,11 @@ const DRAFTS: Record<string, { name: string; look: Look }[]> = {
       ['ラッコ　ウニを食べる', makeChibiOtter, eat, 0.18],
       ['カメマル', makeChibiTurtle, undefined, 0],
       ['カメマル　泳ぐ', makeChibiTurtle, swim, 0.25],
+    ] : which === 'pick' ? [
+      ['ラッコ', () => makeChibiOtter('rakko'), undefined, 0],
+      ['ラッコ　ウニを食べる', () => makeChibiOtter('rakko'), eat, 0.18],
+      ['カメマル', () => makeChibiTurtle('kame'), undefined, 0],
+      ['カメマル　泳ぐ', () => makeChibiTurtle('kame'), swim, 0.25],
     ] : which === 'odd' ? [
       ['ラッコ　ぽかん', () => makeChibiOtter('pokan'), undefined, 0],
       ['ラッコ　真顔', () => makeChibiOtter('magao'), undefined, 0],
@@ -153,7 +158,7 @@ const DRAFTS: Record<string, { name: string; look: Look }[]> = {
       ['真顔　泳ぐ', () => makeChibiTurtle('magao'), swim, 0.25],
     ];
     set.forEach(([name, make, pose, lift], i) => {
-      const b = make(); b.root.scale.setScalar(1.25); b.root.position.set((i - 1.5) * 1.15, lift, 0); b.root.rotation.y = which === 'odd' ? (i % 2 ? -0.25 : 0.25) : which === 'odd2' ? (i < 2 ? 1.9 : -0.5) : i === 1 ? 1.9 : i === 3 ? -0.5 : 0.3; scene.add(b.root);
+      const b = make(); b.root.scale.setScalar(1.25); b.root.position.set((i - 1.5) * 1.15, lift, 0); b.root.rotation.y = which === 'pick' ? [0.25, 1.9, 0.3, -0.5][i] : which === 'odd' ? (i % 2 ? -0.25 : 0.25) : which === 'odd2' ? (i < 2 ? 1.9 : -0.5) : i === 1 ? 1.9 : i === 3 ? -0.5 : 0.3; scene.add(b.root);
       const u = b.update.bind(b); for (let k = 0; k < 60; k++) u(k * 0.1, 0.1, pose); b.update = (t: number, dt: number) => u(t, dt, pose); bots.push(b);   // (settled into the pose)
       const tag = document.createElement('div'); tag.textContent = name; tag.style.cssText = `position:fixed;bottom:5%;left:${12.5 + i * 25}%;transform:translateX(-50%);font:600 15px sans-serif;color:#24363a;background:rgba(255,255,255,.75);padding:6px 12px;border-radius:999px`; document.body.appendChild(tag);
     });
