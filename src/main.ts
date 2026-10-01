@@ -1423,16 +1423,23 @@ function tapAt(x: number, y: number) {
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
 }
 // on a desktop, the name of what is under the pointer
-let hoverT = 0;
+// (only for a real mouse: a pen or a finger on a tablet sends moves too, but never a leave, and the tag
+// would stay up; and it fades by itself when the pointer rests or leaves)
+let hoverT = 0, hoverOff = 0;
+const hideHover = () => { clearTimeout(hoverOff); $('hoverTag').classList.remove('on'); canvas.style.cursor = ''; };
 canvas.addEventListener('pointermove', (e) => {
-  if (mode !== 'ocean' || isTouch || pointers.size) return;
-  if (drone.mode !== 'auto') { canvas.style.cursor = ''; $('hoverTag').classList.remove('on'); return; }
+  if (e.pointerType !== 'mouse') { hideHover(); return; }
+  if (mode !== 'ocean' || isTouch || pointers.size) { hideHover(); return; }
+  if (drone.mode !== 'auto') { hideHover(); return; }
   const now = performance.now(); if (now - hoverT < 90) return; hoverT = now;
   const s = pickAt(e.clientX, e.clientY), el = $('hoverTag');
   canvas.style.cursor = s ? 'pointer' : '';
-  if (!s) { el.classList.remove('on'); return; }
+  if (!s) { hideHover(); return; }
   el.textContent = `${s.label} — クリックで近づく`; el.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; el.classList.add('on');
+  clearTimeout(hoverOff); hoverOff = window.setTimeout(hideHover, 2500);
 });
+for (const ev of ['pointerdown', 'pointerleave', 'pointercancel'] as const) canvas.addEventListener(ev, hideHover);
+addEventListener('blur', hideHover);
 function startWatch(r: any) {
   if (!cur?.residents) return;
   if (drone.mode !== 'auto') setMode('auto');
