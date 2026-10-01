@@ -244,16 +244,19 @@ function updateDrone(dt: number, now: number) {
     // turn does not swing the view about), looking past it to what lies ahead: it, and its world
     const p = watch.r.pos, T = cur!.T, h = watch.r.head ?? 0, fx = Math.sin(h), fz = Math.cos(h);
     watch.ang += angDiff(Math.atan2(-fz, -fx) + watch.off, watch.ang) * Math.min(1, dt * 0.5);
-    const ce = Math.cos(watch.el), se = Math.sin(watch.el);
-    _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + 0.6 + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
-    _t.y = Math.max(_t.y, T.ground(_t.x, _t.z) + 0.9, 1.0);   // clear of the ground, and out of the water (the trees overhead are opened up around it)
+    const ce = Math.cos(watch.el), se = Math.sin(watch.el), mid = watch.r.sp?.living ? 0.3 : 0.55;   // (round its middle: a turtle is low, a robot taller)
+    _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + mid + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
+    _t.y = Math.max(_t.y, T.top(_t.x, _t.z) + 0.3, 0.25);   // (the bare ground: the bushes and trees close round it are opened up, not climbed over)   // clear of the ground, and out of the water (the trees overhead are opened up around it)
     _v.subVectors(_t, drone.pos);
     const L = _v.length();
     _v.multiplyScalar(Math.min(L * 1.6, 30) / Math.max(L, 1e-4));   // (across the island quickly when switching)
     if (drone.pos.y < 0) _v.set(_v.x * 0.15, 3, _v.z * 0.15);   // under the water: straight up through the surface first
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
-    const ax = p.x + fx * 2.2, az = p.z + fz * 2.2;
-    const lx = ax - camera.position.x, ly = p.y + 0.5 - camera.position.y, lz = az - camera.position.z;
+    // looking a little past it, the way it is going — but only from behind and not too close; from the side,
+    // in front of it or close up, at it (its face, when you have come round to see it)
+    const behind = clamp(Math.cos(watch.off), 0, 1) * clamp((watch.dist - 2.5) / 4, 0, 1);
+    const ax = p.x + fx * 2.2 * behind, az = p.z + fz * 2.2 * behind;
+    const lx = ax - camera.position.x, ly = p.y + mid - 0.1 * behind - camera.position.y, lz = az - camera.position.z;
     const k = Math.min(1, dt * 2.5);
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
@@ -310,7 +313,15 @@ function updateDrone(dt: number, now: number) {
     drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
     pathPoint(drone.s, _t);
     _v.subVectors(_t, drone.pos);
-    const L = _v.length(); _v.multiplyScalar(Math.min(L * 1.4, L > 6 ? 4.5 : 3) / Math.max(L, 1e-4));
+    let L = _v.length();
+    // far from the cruise line (just back from the island's middle, or from watching someone inland): fly
+    // straight back to it, quickly, above the trees, and only then down into the water
+    if (L > 20) {
+      const T = cur!.T, gr = Math.max(T.ground(drone.pos.x, drone.pos.z), T.over ? T.over(drone.pos.x, drone.pos.z) : -1e9);
+      const hz = Math.hypot(_v.x, _v.z);
+      if (gr > -0.5 && hz > 12) { _v.y = Math.max(gr + 4, 3) - drone.pos.y; L = _v.length(); }
+      _v.multiplyScalar(Math.min(L * 0.5, 18) / Math.max(L, 1e-4));
+    } else _v.multiplyScalar(Math.min(L * 1.4, L > 6 ? 4.5 : 3) / Math.max(L, 1e-4));
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.5));
     pathPoint(drone.s + 9 / Math.max(pathRate(drone.s), 1e-3), _a);
     const dx = _a.x - drone.pos.x, dz = _a.z - drone.pos.z, dy = _a.y - drone.pos.y;
@@ -351,7 +362,7 @@ function updateDrone(dt: number, now: number) {
   }
   // look ahead along the way we are moving and start climbing well before a rock or coral head
   const G = cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
-  if (hs > 0.05) {
+  if (hs > 0.05 && !(watch.r && !watch.pov)) {   // (watching someone, the camera's own spot already keeps clear of the ground: no early climbing away from their eye level)
     let ahead = -1e9;
     // (outside the cave, its rock counts as ground to climb over; inside the tunnel, the roof doesn't)
     const cv = cur!.cave, outside = !cv || cv.topAt(drone.pos.x, drone.pos.z) < drone.pos.y + 0.5;
@@ -365,13 +376,17 @@ function updateDrone(dt: number, now: number) {
   }
   drone.pos.addScaledVector(drone.vel, dt);
   // watching from above: never down inside the forest roof
-  if (watch.r && !watch.pov && cur!.T.over) drone.pos.y = Math.max(drone.pos.y, cur!.T.over(drone.pos.x, drone.pos.z) + 1.5);
+  // (except close by it, where the trees are opened up anyway: there it may come down to eye level)
+  if (watch.r && !watch.pov && cur!.T.over && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > Math.max(7, watch.dist * 1.2) - 0.5) drone.pos.y = Math.max(drone.pos.y, cur!.T.over(drone.pos.x, drone.pos.z) + 1.5);
   // keep a clear bubble: the floor is the highest ground in a ring around the camera, not just under it,
   // and we rise onto it smoothly rather than popping up
-  let fh = G(drone.pos.x, drone.pos.z);
-  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, G(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
-  if (drone.pos.y < fh + 0.75) {
-    drone.pos.y = Math.max(fh + 0.35, drone.pos.y + (fh + 0.75 - drone.pos.y) * Math.min(1, dt * 6));
+  // (watching someone close by, the bushes and trees around them are opened up: only the bare ground counts)
+  const Gc = watch.r && !watch.pov && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) < Math.max(7, watch.dist * 1.2) - 0.5 ? cur!.T.top : G;
+  let fh = Gc(drone.pos.x, drone.pos.z);
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, Gc(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
+  const clear = watch.r && !watch.pov ? 0.4 : 0.75;   // (watching someone close up: down nearer their eye level)
+  if (drone.pos.y < fh + clear) {
+    drone.pos.y = Math.max(fh + 0.3, drone.pos.y + (fh + clear - drone.pos.y) * Math.min(1, dt * 6));
     if (drone.vel.y < 0) drone.vel.y *= 0.5;
   }
   // the cave massif is solid in 3D: slide along its walls, roof and the rims of its skylights
@@ -399,7 +414,7 @@ function updateDrone(dt: number, now: number) {
   drone.pos.x = clamp(drone.pos.x, -lim, lim); drone.pos.z = clamp(drone.pos.z, -lim, lim);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
-  drone.roll += (-yawRate * 0.18 - drone.roll) * Math.min(1, dt * 2);
+  drone.roll += ((watch.r ? 0 : -yawRate * 0.18) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
   camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
   // just above the sea the camera rides the swell, rising, falling and rolling with it
   const ride = drone.pos.y > 0 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
@@ -1507,7 +1522,9 @@ function stopWatch(resume: boolean) {
   if (watch.pov) { watch.r = null; setPov(false); }
   watch.r = null;
   renderWatch();
-  if (resume && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; drone.skyStay = rr(...persona.skyStay) * 0.5; } skyLabel(); }
+  // let go: straight back to the sea (quickly, above the trees), and leave the residents ashore be for a
+  // while, so the cruise does not turn round to film the one just left
+  if (resume && cur) { drone.s = nearestS(drone.pos); drone.sky = false; drone.seaUntil = performance.now() + 150000; director.reset(); lastShot = null; skyLabel(); }
 }
 // the row of residents to watch (only by the island), and the card for the one being watched
 function renderWatch() {
@@ -1691,7 +1708,7 @@ addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 
 const pointers = new Map<number, { x: number; y: number }>();
-let pinch0 = 0, dragT = 0;
+let pinch0 = 0, dragT = 0, pinched = false;   // (pinched: two fingers were down — the one left behind does not then turn the view)
 canvas.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.setPointerCapture(e.pointerId);
   if (mode === 'globe') { gv.dragging = true; gv.vlon = gv.vlat = 0; dragT = performance.now(); }   // a touch catches a spinning globe
@@ -1714,11 +1731,12 @@ canvas.addEventListener('pointermove', (e) => {
     const a = Math.min(1, dtm * 12);
     gv.vlon += (-dx * k / dtm * 0.6 - gv.vlon) * a; gv.vlat += (dy * k / dtm * 0.6 - gv.vlat) * a;
   } else {
-    if (watch.r && pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 2.5, 60); pinch0 = d; tap.moved += 99; return; }
+    if (watch.r && pointers.size >= 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 1.2, 60); pinch0 = d; pinched = true; tap.moved += 99; return; }
+    if (watch.r && pinched) return;
     const k = isTouch ? 0.006 : 0.0035;
     tap.moved += Math.abs(dx) + Math.abs(dy);
     if (drone.mode === 'manual') { drone.lastInput = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
-    else if (watch.r && !watch.pov) { watch.off -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, 0.12, 1.45); }   // watching: drag to circle round and tilt
+    else if (watch.r && !watch.pov) { watch.off -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, -0.12, 1.45); }   // watching: drag to circle round it (all the way to its face) and tilt, down to eye level
     else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
   }
 });
@@ -1727,13 +1745,13 @@ const endP = (e: PointerEvent) => {
     look.held = false; look.let = performance.now();
     if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup') { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
   }
-  pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0;
+  pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; if (!pointers.size) pinched = false;
   gv.dragging = pointers.size > 0;
   if (performance.now() - dragT > 90) gv.vlon = gv.vlat = 0;   // held still before letting go: no fling
   gv.vlon = clamp(gv.vlon, -120, 120); gv.vlat = clamp(gv.vlat, -60, 60);
 };
 canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercancel', endP);
-canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 2.5, 60); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 1.2, 60); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
@@ -2027,7 +2045,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
