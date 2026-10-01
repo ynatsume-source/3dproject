@@ -706,7 +706,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
   const WAIST = 0.45;
   const walkCost = (x: number, z: number) => {
-    if (G(x, z) < 0.2) return Infinity;
+    if (G(x, z) < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
@@ -728,8 +728,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     let want = Math.atan2(dx, dz);
     const inWater = G(r.pos.x, r.pos.z) < 0.1;
     const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1);
-    // walkers keep to land: if the way ahead is water, turn uphill along the shore
-    if (!r.sp.swims || (!wetTask && !inWater)) {
+    // walkers keep to land: if the way ahead is water, turn uphill along the shore (not when following a
+    // planned way, which already keeps to the land: the two would pull it to and fro)
+    if (!r.path && (!r.sp.swims || (!wetTask && !inWater))) {
       const ax = r.pos.x + Math.sin(want) * 2, az = r.pos.z + Math.cos(want) * 2;
       if (G(ax, az) < 0.25 && !(r.sp.swims && wetTask)) {
         const gx = L.h(r.pos.x + 1.5, r.pos.z) - L.h(r.pos.x - 1.5, r.pos.z), gz = L.h(r.pos.x, r.pos.z + 1.5) - L.h(r.pos.x, r.pos.z - 1.5);
@@ -743,7 +744,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const step = Math.min(d, speed * dt) * Math.max(0, Math.cos(dh));
     const nx = r.pos.x + Math.sin(r.head) * step, nz = r.pos.z + Math.cos(r.head) * step;
     let moved = 0;
-    if (r.sp.swims || G(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; moved = step; if (!fast) T.pushTrees?.(r.pos); }
+    if (r.sp.swims || G(nx, nz) > 0.2) {
+      r.pos.x = nx; r.pos.z = nz; moved = step;
+      if (!fast && T.pushTrees) {
+        // a trunk in the way: pushed back out of it. If that undoes the step, it is not getting on — think
+        // of the way again from here (and in the end, of something else to do)
+        const bx = r.pos.x, bz = r.pos.z; T.pushTrees(r.pos);
+        const back = Math.hypot(r.pos.x - bx, r.pos.z - bz);
+        if (back > step * 0.5) { moved = Math.max(0, step - back); r.blocked += dt; if (r.path && clockMs - r.path.t > 2000) r.path = undefined; }
+      }
+    }
     else r.blocked += dt * 2;   // (the way ahead is water: it stops, rather than marching on the spot, and soon thinks again)
     r.walk = moved / Math.max(dt, 1e-3) / speed;   // (legs move only as fast as it really goes)
     return false;

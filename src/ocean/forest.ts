@@ -291,9 +291,19 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
       for (const [k, c] of cells) { const d = Math.hypot(c.cx - cam.x, c.cz - cam.z), LOD = r * 0.45; if (d < R0) { on.push(c); hi.push(d < LOD); k2 += k + (d < LOD ? 'h;' : 'l;'); } }
       if (k2 !== key) { key = k2; fill(on, hi); }
     },
+    // is there a trunk within r of (x, z)? (for those planning a way on foot: robots/residents.ts)
+    trunkNear(x: number, z: number, r: number) {
+      if (Math.abs(x) > E || Math.abs(z) > E) return false;
+      const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if ((t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2) return true;
+      return false;
+    },
     // flying in among them: push a point out of any trunk (or the dense heart of a crown) it is inside
     push(p: THREE.Vector3) {
-      const c = cells.get(Math.floor(p.x / CELL) + ',' + Math.floor(p.z / CELL)); if (!c) return;
+      // (the cell's trees worked out if they are not yet: those who walk here may be far from the camera,
+      // and what they bump into must not depend on where it is looking)
+      if (Math.abs(p.x) > E || Math.abs(p.z) > E) return;
+      const c = cellAt(Math.floor(p.x / CELL), Math.floor(p.z / CELL));
       for (const t of c.trees) {
         const dx = p.x - t.x, dz = p.z - t.z, d = Math.hypot(dx, dz), up = p.y - t.y;
         if (up < -0.5 || up > t.h || t.g >= YOUNG) continue;

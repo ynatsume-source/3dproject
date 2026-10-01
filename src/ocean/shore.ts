@@ -249,7 +249,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75], pandanus: [0.38, 1], rock: [0.85, 0.5], casuarina: [0.05, 9] };   // (radius, height, per unit of its size)
   T.pushTrees = (p: THREE.Vector3) => forest.push(p);   // (keeping walkers out of the trunks)
   T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)
-    let h = can(x, z) > 0.55 ? 1 : 0;
+    let h = can(x, z) > 0.55 || forest.trunkNear(x, z, pad) ? 1 : 0;   // (in the forest; or by a tree's trunk, where it thins out)
     const ci = Math.floor(x / 8), cj = Math.floor(z / 8);
     for (const kind in VEG) {
       const M = cellsOf[kind]; if (!M) continue; const [rk, hk] = VEG[kind];
