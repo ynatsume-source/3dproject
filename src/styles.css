@@ -80,7 +80,7 @@ body.mode-globe .hud *, body.hud-off .hud * { pointer-events: none !important; }
 #tele dd { margin: 0; text-align: right; }
 #tele dd small { color: var(--ink-dim); font-size: 10px; margin-left: 3px; }
 
-#rec { top: calc(16px + env(safe-area-inset-top, 0px)); right: 18px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .14em; color: var(--ink-dim); display: flex; align-items: center; gap: 8px; }
+#rec { bottom: calc(26px + env(safe-area-inset-bottom, 0px)); left: 18px; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .14em; color: var(--ink-dim); display: flex; align-items: center; gap: 8px; }
 #rec i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 2.4s ease-in-out infinite; }
 @keyframes blink { 50% { opacity: .25; } }
 
@@ -501,7 +501,6 @@ body.mode-globe #hint, body.hud-off #hint { opacity: 0 !important; }
 #minimap:hover { opacity: .95; }
 #minimap canvas { opacity: .82; transition: opacity .38s ease; }
 #minimap.swap canvas { opacity: 0; }
-body:not(.inst-off) #minimap { top: calc(44px + env(safe-area-inset-top, 0px)); }
 #dock { gap: 4px; }
 .group { border-radius: 999px; padding: 2px; background: rgba(6, 22, 32, 0.28); border-color: rgba(255, 255, 255, 0.08); }
 .group button { padding: 6px 11px; font-size: 11.5px; border-radius: 999px; transition: background .5s ease, color .5s ease; }
@@ -515,6 +514,8 @@ body:not(.dock-open) .group { flex-wrap: nowrap; }
   #brand .sub { padding-left: 17px; font-size: 10.5px; letter-spacing: .06em; }
   #minimap { right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); width: 104px; height: 104px; border-radius: 22px; }
   #dock { left: 8px; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  #rec { left: 14px; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }   /* (just above the dock, which spans the width) */
+  #caption { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
   .group button { padding: 6px 9px; font-size: 11px; gap: 5px; }
   body:not(.dock-open) #clockMode, body:not(.dock-open) .group .moon { display: none; }
 }

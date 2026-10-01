@@ -131,7 +131,7 @@ export const LOCATIONS: Sea[] = [
         diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
     ],
     animals: { turtle: { style: 'green', count: 3 } },
-    extraGuide: [{ id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '海草や藻を食べる草食のウミガメ。体脂肪が緑がかることが名前の由来。' }],
+    extraGuide: [{ id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '海草や藻を食べる草食のウミガメ。体脂肪が緑がかることが名前の由来。' }, { id: 'tobiuo', ja: 'ハマトビウオの仲間', sci: 'Cheilopogon spp.', note: '外洋に面したリーフの外で、船やドローンが近づくと群れで水面から飛び出す。胸びれを翼のように広げて水面の1mほど上を滑空し、尾びれの下の長い葉で水面を叩いて何度も飛び直す。' }],
     benthic: [
       ['ミドリイシ（枝状・テーブル状）', 'Acropora spp.', 'リーフの骨格をつくる造礁サンゴ。'],
       ['ハマサンゴ・ノウサンゴ（塊状）', 'Porites / Platygyra', '何百年もかけて岩のように大きくなる。'],
@@ -220,6 +220,7 @@ export const LOCATIONS: Sea[] = [
     // humpbacks come down from their northern feeding grounds to breed around Okinawa's islands
     whales: { from: [12, 20], to: [4, 5] },
     extraGuide: [
+      { id: 'tobiuo', ja: 'ツクシトビウオ', sci: 'Cypselurus heterurus doederleini', note: '春から夏、黒潮にのって沖縄の海にやってくる。追われると水面から飛び出し、大きな胸びれを広げて数十mも滑空する。尾びれの下の葉で水面を叩いて加速し直し、飛行をつなぐ。' },
       { id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '宮古島は一年を通してウミガメに出会える島として知られる。' },
       { id: 'manta', ja: 'ナンヨウマンタ', sci: 'Mobula alfredi', note: '翼幅3〜5m。宮古・伊良部の周りでもときどき出会える。昼はリーフの上で小魚に体を掃除してもらい、夜はプランクトンを食べに浅場へ上がる。' },
       { id: 'whale', ja: 'ザトウクジラ', sci: 'Megaptera novaeangliae', note: '冬（12月下旬〜4月上旬）だけ、北の海から子育てにやってくる。体長13m、胸びれは体の1/3ほどもある。オスは長い「歌」をうたい、水中ではその声が遠くまで響く。' },
@@ -303,6 +304,7 @@ export const LOCATIONS: Sea[] = [
     ],
     animals: { turtle: { style: 'hawksbill', count: 2 }, manta: 2 },
     extraGuide: [
+      { id: 'tobiuo', ja: 'トビウオの仲間', sci: 'Exocoetidae', note: '環礁の外の深い海の表層にすむ。カツオやシイラに追われると一斉に飛び出し、胸びれを広げて波の上を滑空する。モルディブの漁師には、カツオの群れを知らせる目印でもある。' },
       { id: 'manta', ja: 'ナンヨウマンタ', sci: 'Mobula alfredi', note: '翼幅3〜5m。ティラのクリーニングステーションに集まり、小魚に体を掃除してもらう。' },
       { id: 'turtle', ja: 'タイマイ', sci: 'Eretmochelys imbricata', note: '鷹のくちばしのような口でカイメンを食べる。べっ甲の甲羅を持つ絶滅危惧種。' },
       { id: 'eel', ja: 'チンアナゴ', sci: 'Heteroconger hassi', note: '砂に巣穴を掘って体を出し、流れてくるプランクトンを食べる。近づくと引っ込む。' },
@@ -499,6 +501,7 @@ export const LOCATIONS: Sea[] = [
     ],
     animals: { turtle: { style: 'hawksbill', count: 2 }, octopus: 2 },
     extraGuide: [
+      { id: 'tobiuo', ja: 'トビウオの仲間', sci: 'Exocoetidae', note: '紅海の沖合の表層にすむ。リーフの外をゆく船の舳先から、銀色の群れがつぎつぎと飛び出して滑空する。' },
       { id: 'turtle', ja: 'タイマイ', sci: 'Eretmochelys imbricata', note: '鷹のくちばしのような口でカイメンを食べる。紅海のサンゴ礁は大事な餌場。' },
       { id: 'eel', ja: 'レッドシーガーデンイール', sci: 'Gorgasia sillneri', note: '砂から体を伸ばして流れてくるプランクトンを食べる、紅海のアナゴの仲間。近づくと引っ込む。' },
     ],
@@ -559,6 +562,7 @@ export const LOCATIONS: Sea[] = [
     ],
     animals: { turtle: { style: 'green', count: 3 }, manta: 1, octopus: 1 },
     extraGuide: [
+      { id: 'tobiuo', ja: 'トビウオの仲間', sci: 'Exocoetidae', note: '赤道の湧昇で豊かなガラパゴスの沖に多い。アシカやカツオに追われて水面を飛び、カツオドリやグンカンドリに空から狙われる。' },
       { id: 'manta', ja: 'オニイトマキエイ', sci: 'Mobula birostris', note: '翼幅は最大7m、世界最大のエイ。冷たい湧昇流が運ぶプランクトンを求めて、島のまわりに現れる。' },
       { id: 'turtle', ja: 'アオウミガメ（ガラパゴスの個体群）', sci: 'Chelonia mydas', note: '甲羅が黒っぽく、ほかの海のアオウミガメより小柄。岩についた藻を食べ、島の浜で産卵する。' },
       { id: 'eel', ja: 'ガラパゴスガーデンイール', sci: 'Heteroconger klausewitzi', note: '岩の間の砂地に巣穴を並べ、流れに向かって体を伸ばす。' },

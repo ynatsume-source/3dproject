@@ -7,6 +7,7 @@ import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
 import { birdModel } from '../eco/birds';
+import { flyingFishModel } from '../eco/flyingfish';
 import type { Sea } from '../data/locations';
 
 const W = 176, H = 104;
@@ -25,6 +26,7 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
   if (cr) return critterModel(cr);
   if (id === 'turtle') return { obj: makeTurtle(loc.animals.turtle?.style === 'hawksbill' ? 'hawksbill' : 'green').group, view: [0.9, 0.75, 0.9] };
   if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial()), view: [0.35, 1.1, 0.75] };
+  if (id === 'tobiuo' && !loc.species.some((s) => s.id === 'tobiuo')) { const m = flyingFishModel(); m.position.y = 20; return { obj: m, view: [0.3, 0.45, 0.4] }; }   // (in the air, wings spread)
   if (id === 'whale') return { obj: new THREE.Mesh(WHALE_GEO, whaleMaterial(0.3)), view: [1, 0.3, 0.45] };
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
   const bird = (loc.birds || []).find((b) => b.id === id);

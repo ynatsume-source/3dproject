@@ -15,6 +15,7 @@ import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import { makeWhales } from '../eco/whale';
 import { makeBirds } from '../eco/birds';
+import { makeFlyingFish } from '../eco/flyingfish';
 import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
 import type { Sea } from '../data/locations';
@@ -462,6 +463,8 @@ export function buildOcean(loc) {
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
   if (loc.whales) oc.whales = makeWhales(oc);
   if (loc.birds) oc.birds = makeBirds(loc.birds, group);
+  // flying fish, where they live: bursts out of the sea and glides over it
+  if ([...(loc.extraGuide || []), ...loc.species].some((e) => e.id === 'tobiuo')) oc.flyfish = makeFlyingFish(group);
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);
   oc.riders = makeRiders(oc); if (oc.riders) group.add(oc.riders.group);
   oc.critters = makeCritters(oc); if (oc.critters) group.add(oc.critters.group);
