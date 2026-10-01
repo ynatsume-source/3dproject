@@ -196,7 +196,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'blacktip', ja: 'ツマグロ', sci: 'Carcharhinus melanopterus', note: '背びれと尾びれの先が黒い小型のサメ。宮古の浅いリーフでもよく見られる。夕暮れから夜に狩りが活発になる。人には臆病。',
         diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.50, 0.47], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.2, 1.6], habitat: 'roam', count: 2, alt: [1.2, 4], speed: 1.2, big: true, eye: 0.45 },
       { id: 'nemuribuka', ja: 'ネムリブカ', sci: 'Triaenodon obesus', note: '和名は「眠るサメ」。えらに水を送り込めるので、泳がずに洞窟や岩棚の下でじっと休める。昼は休み、夜になると岩の隙間に頭を突っ込んで魚を探す。第1背びれと尾びれの先が白い。',
-        diel: 'night', diet: 'fish', pat: 14, c1: [0.42, 0.41, 0.39], c2: [0.86, 0.86, 0.84], c3: [0.96, 0.96, 0.94], shape: 'whitetip', size: [1.3, 1.6], habitat: 'roam', count: 3, alt: [0.8, 2.5], speed: 1.0, big: true, eye: 0.4, rests: 'cave' },
+        diel: 'night', diet: 'fish', pat: 14, c1: [0.42, 0.41, 0.39], c2: [0.86, 0.86, 0.84], c3: [0.96, 0.96, 0.94], shape: 'whitetip', size: [1.3, 1.6], habitat: 'roam', count: 2, alt: [0.8, 2.5], speed: 1.0, big: true, eye: 0.4, rests: 'cave' },
       { id: 'kasumiaji', ja: 'カスミアジ', sci: 'Caranx melampygus', note: '青いひれのアジ。夕暮れや明け方にリーフを巡回し、小魚の群れに突っ込んで狩りをする。',
         diel: 'crep', diet: 'fish', pat: 11, c1: [0.42, 0.50, 0.52], c2: [0.86, 0.87, 0.84], c3: [0.20, 0.45, 0.95], shape: 'jack', size: [0.5, 0.8], habitat: 'roam', count: 3, alt: [1.5, 5], speed: 1.4, big: true },
       { id: 'mitsuji', ja: 'ミスジリュウキュウスズメダイ', sci: 'Dascyllus aruanus', note: '白地に黒い帯が3本。枝サンゴの上に小さな群れで暮らし、危ないとすぐ枝の間に隠れる。群れにはなわばりの順位がある。',
@@ -212,11 +212,11 @@ export const LOCATIONS: Sea[] = [
       { id: 'gomamongara', ja: 'ゴマモンガラ', sci: 'Balistoides viridescens', note: '大型のモンガラカワハギ。強い歯でサンゴやウニを噛み砕く。産卵期は巣のまわりのなわばりを守り、ダイバーにも向かってくる。',
         diel: 'day', diet: 'invert', pat: 10, c1: [0.62, 0.6, 0.38], c2: [0.18, 0.2, 0.16], shape: 'trigger', size: [0.5, 0.7], habitat: 'roam', count: 2, alt: [0.6, 2.5], speed: 0.7, big: true },
       { id: 'akashumoku', ja: 'アカシュモクザメ', sci: 'Sphyrna lewini', note: 'ハンマー形の頭の両端に目がある。頭で電気や匂いを広く捉え、砂に隠れた獲物も探し当てる。昼は数十〜数百匹の群れで回遊し、夜に散らばって狩りをする。沖縄では冬に群れが現れる。',
-        diel: 'always', diet: 'fish', pat: 8, c1: [0.45, 0.45, 0.43], c2: [0.9, 0.9, 0.88], c3: [0.3, 0.3, 0.3], shape: 'hammer', size: [2.2, 3.0], habitat: 'roam', count: 4, alt: [5, 12], speed: 1.0, big: true, eye: 0.01 },
+        diel: 'always', diet: 'fish', pat: 8, c1: [0.45, 0.45, 0.43], c2: [0.9, 0.9, 0.88], c3: [0.3, 0.3, 0.3], shape: 'hammer', size: [2.2, 3.0], habitat: 'roam', count: 2, alt: [5, 12], speed: 1.0, big: true, eye: 0.01 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
         diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
     ],
-    animals: { turtle: { style: 'green', count: 5 }, octopus: 2, manta: 1 },
+    animals: { turtle: { style: 'green', count: 3 }, octopus: 1, manta: 1 },
     // humpbacks come down from their northern feeding grounds to breed around Okinawa's islands
     whales: { from: [12, 20], to: [4, 5] },
     extraGuide: [
@@ -406,7 +406,7 @@ export const LOCATIONS: Sea[] = [
       ['blacktip', { count: 4, alt: [0.6, 1.6], note: '背びれと尾びれの先が黒い小型のサメ。八重山の浅いラグーンや波打ち際でよく見られ、若いツマグロは膝ほどの浅瀬も泳ぐ。夕暮れに狩りが活発になる。人には臆病。' }],
       ['onikamasu', { count: 1, alt: [1, 2.5] }],
     ]),
-    animals: { turtle: { style: 'green', count: 3 }, octopus: 2 },
+    animals: { turtle: { style: 'green', count: 2 }, octopus: 1 },
     extraGuide: [
       { id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '八重山のラグーンでは、海草や藻を食べに浅場へ入ってくる。' },
       { id: 'octopus', ja: 'ワモンダコ', sci: 'Octopus cyanea', note: '昼に活動するタコ。岩の上を歩いて甲殻類を探し、体の色や模様を一瞬で変える。' },

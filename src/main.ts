@@ -483,8 +483,12 @@ function setSky(on: boolean, natural = false) {
 }
 // Every so often the guide rises into the sky on its own, and comes back down: more often on a clear
 // night with a meteor shower on, never from inside the cave or in the middle of filming something.
+// (海だけ: the cruise stays in the sea; going up is then only when asked)
+let seaOnly = (() => { try { return localStorage.getItem('seaglass.seaOnly') === '1'; } catch (e) { return false; } })();
+function setSeaOnly(on: boolean) { seaOnly = on; try { localStorage.setItem('seaglass.seaOnly', on ? '1' : '0'); } catch (e) { /* ignore */ } $('btnSeaOnly').setAttribute('aria-pressed', String(on)); if (on && drone.sky) setSky(false, true); }
 function skySchedule(dt: number) {
   if (!cur || drone.mode !== 'auto' || watch.r) return;
+  if (seaOnly && !drone.sky) return;
   if (!drone.sky) {
     const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value);
     drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));   // (the wait runs down while filming too)
@@ -1501,6 +1505,8 @@ $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
+$('btnSeaOnly').onclick = () => setSeaOnly(!seaOnly);
+setSeaOnly(seaOnly);
 $('btnPip').onclick = () => setPip(!pipOn);
 setPip(pipOn);
 $('btnPersona').onclick = () => setPersona(PERSONAS[(PERSONAS.indexOf(persona) + 1) % PERSONAS.length]);
