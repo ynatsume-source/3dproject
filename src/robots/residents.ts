@@ -159,7 +159,7 @@ export interface Resident {
   path?: { pts: [number, number][]; tx: number; tz: number; t: number };   // the way it means to walk (robots/path.ts)
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
-  mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null };
+  mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number };
   lightK?: number;
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
   held: THREE.Mesh;
@@ -402,7 +402,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     group.add(model.root);
     const r: Resident = {
       id: sp.id, v: VOICES[sp.id], sp, model,
-      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, mo: { stride: 0, px: NaN, pz: 0, ph: 0, gait: 0, key: 0, t: 0, act: '', task: null, look: null }, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
+      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, mo: { stride: 0, px: NaN, pz: 0, ph: 0, gait: 0, key: 0, t: 0, act: '', task: null, look: null, why: '', hold: 0, glance: 8 + Math.random() * 17 }, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
       task: null, walk: 0, act: 'idle', wet: false, talk: null, saying: '', sayT: 0,
       stats: { built: 0, notes: 0, shells: 0, cracked: 0, visited: 0, cairns: 0, wood: 0, food: 0, felled: 0 },
       today: [], diary: [], blocked: 0,
@@ -748,6 +748,44 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     r.walk = moved / Math.max(dt, 1e-3) / speed;   // (legs move only as fast as it really goes)
     return false;
   }
+  // what it looks at (for its body only; nothing in the world depends on it). The eyes go first and the body
+  // follows: walking, a point a few metres on along its way, so its gaze reaches round a bend before it
+  // turns; at work, its hands; talking, the other; at the fire, the fire; idle, now and then a glance at one
+  // of the others nearby. Kept for a moment and a half at least, so it does not flick about.
+  const AHEAD = 3, WORK = new Set(['work', 'pick', 'hammer', 'chop', 'dig', 'eat']);
+  function chooseLook(r: Resident, dt: number): [string, THREE.Vector3 | null] {
+    const tk = r.task, mo = r.mo, v = new THREE.Vector3();
+    const atHead = (o: Resident) => v.set(o.pos.x, o.pos.y + (o.id === 'kame' ? 0.25 : o.id === 'lantern' ? 0.6 : 0.6), o.pos.z);
+    if (r.act === 'sleep') return ['', null];
+    if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return ['talk', atHead(o)]; }
+    if (tk?.kind === 'approach' && byId[tk.data]) return ['approach', atHead(byId[tk.data])];
+    if (tk && !tk.arrived) {
+      // a point AHEAD metres on along the way it means to go (or straight at the goal)
+      const pts = r.path?.pts ?? [[tk.x, tk.z] as [number, number]];
+      let x = r.pos.x, z = r.pos.z, left = Math.max(1.2, (r.wet ? r.sp.swimSpeed || r.sp.speed : r.sp.speed) * AHEAD);   // (about AHEAD seconds on)
+      for (const [px, pz] of pts) { const d = Math.hypot(px - x, pz - z); if (d >= left) { x += (px - x) / d * left; z += (pz - z) / d * left; left = 0; break; } x = px; z = pz; left -= d; }
+      return ['way', v.set(x, G(x, z) + (r.wet ? 0 : 0.3), z)];
+    }
+    if (tk?.kind === 'fire') return ['fire', v.set(PIT.x, PIT.y + 0.3, PIT.z)];
+    if (WORK.has(r.act)) { const fx = Math.sin(r.head), fz = Math.cos(r.head); return ['hands', v.set(r.pos.x + fx * 0.6, r.pos.y + 0.15, r.pos.z + fz * 0.6)]; }
+    // idle: now and then, a look at one of the others close by (for a few seconds), then back to its own thoughts
+    if (mo.why === 'glance' && mo.hold > -2.5) return ['glance', mo.look];
+    if ((mo.glance -= dt) < 0) {
+      mo.glance = 8 + Math.random() * 17;
+      const o = list.filter((q) => q !== r && Math.hypot(q.pos.x - r.pos.x, q.pos.z - r.pos.z) < 14).sort((a, b) => Math.hypot(a.pos.x - r.pos.x, a.pos.z - r.pos.z) - Math.hypot(b.pos.x - r.pos.x, b.pos.z - r.pos.z))[0];
+      if (o) return ['glance', atHead(o)];
+    }
+    return ['', null];
+  }
+  function updateLook(r: Resident, dt: number) {
+    const mo = r.mo; mo.hold -= dt;
+    const [why, at] = chooseLook(r, dt);
+    // a new thing to look at only once the last has been held a while (unless it is a talk starting, or there is nothing)
+    if (why === mo.why || mo.hold <= 0 || why === 'talk' || !at) {
+      if (why !== mo.why) mo.hold = 1.5;
+      mo.why = why; mo.look = at ? (mo.look ?? new THREE.Vector3()).copy(at) : null;
+    }
+  }
   function placeY(r: Resident) {
     const h = r.wet && r.sp.swims && (r.act === 'swim' || r.under > 0) ? L.h(r.pos.x, r.pos.z) : G(r.pos.x, r.pos.z);
     r.wet = h < 0.05;
@@ -1032,6 +1070,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const pace = jump ? 0 : (moved + turned * FOOT) / Math.max(dt, 1e-3) / (r.wet ? r.sp.swimSpeed || r.sp.speed : r.sp.speed);
         mo.gait += (Math.min(1, pace) - mo.gait) * Math.min(1, dt * 6);   // (settling as it stops, not snapping still)
         if (act !== mo.act || tk !== mo.task) { mo.key++; mo.t = 0; mo.act = act; mo.task = tk; } else mo.t += dt;
+        updateLook(r, dt);
         let look: [number, number, number] | undefined;
         if (mo.look) { r.model.root.updateMatrixWorld(); const v = r.model.root.worldToLocal(_lv.copy(mo.look)); look = [v.x, v.y, v.z]; }
         r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: mo.gait, night: 1 - dayK(localHour(ms)), wet: r.wet, k, food, stride: mo.stride, look, key: mo.key, elapsed: mo.t });
