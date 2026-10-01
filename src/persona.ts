@@ -1,129 +1,119 @@
-// The drone's character. Auto-cruise is a guided tour, and who is guiding shapes it: how fast it
-// moves, how long it lingers, what it goes out of its way to film, how often it rises into the sky,
-// and what it says along the way.
+// The drone's character. Auto-cruise is a guided tour, and who is guiding shapes it — not by a few numbers
+// but by four habits: what it finds worth filming (its taste), how it films (its favourite shots, how
+// long it stays, how close), how it gets about (its route: drifting in mid-water, along the reef,
+// near the surface, down the walls, or wherever), and how easily its eye is caught by something else.
 import type { Subject } from './eco/env';
 
 export type Mood = 'bait' | 'hello' | 'shot' | 'sighting' | 'hunt' | 'skyUp' | 'skyDown' | 'dawn' | 'noon' | 'dusk' | 'night' | 'meteor' | 'rain' | 'bird' | 'idle' | 'idleNight' | 'idleSky';
+// how it films something that is not a giant (see Director): circling it, following behind it, waiting
+// still and letting it come and go, from below against the light, or close in on its details
+export type Style = 'orbit' | 'follow' | 'wait' | 'low' | 'detail';
+export type GiantMove = 'flank' | 'under' | 'front' | 'pass';
+// where it cruises: high in mid-water, low along the reef, weaving off the line, just under the
+// surface, leaning to the deeper side, or all of these by turns
+export type Route = 'mid' | 'reef' | 'wander' | 'surface' | 'deep' | 'free';
+// what it knows about a subject when weighing it
+export interface Taste { shark: boolean; isNew: boolean; night: number; golden: number; whim: string }
 export interface Persona {
   id: string; ja: string; blurb: string;
   cruise: number;            // cruising speed ×
+  pace?: (t: number) => number;   // and how that wanders over time (× on top)
   dwell: number;             // how long it stays with a subject ×
   sway: number;              // how much it looks around while cruising ×
   skyGap: [number, number];  // seconds under water between trips to the sky
   skyStay: [number, number]; // seconds in the sky (the pair sets the share of time spent up there)
   altK: number;              // cruising height over the reef ×
+  route: Route;
   distK: number;             // how close it films things ×
   turn: number;              // how briskly it turns ×
   skyAlt: number;            // cruising height in the sky ×
-  talk: number;              // idle chatter per hour
+  styles: Partial<Record<Style, number>>;     // its shots, by how often it uses them
+  giant: Partial<Record<GiantMove, number>>;  // and its moves round the big ones
+  spinK: number;             // how fast it circles ×
+  switchK: number;           // how much better something passing must be before it leaves what it is filming
+  minHold: number;           // seconds it gives a subject before its eye can wander
+  rest: [number, number];    // seconds of plain cruising between subjects
+  jumpTo?: (s: Subject, c: Taste) => boolean;   // what makes it drop everything (if it comes into view)
+  weight(s: Subject, c: Taste): number;
+  talk: number;              // idle chatter per hour (the guide is silent for now)
   gap: number;               // shortest pause between remarks (s)
-  weight(s: Subject, isShark: (s: Subject) => boolean): number;
-  lines: Partial<Record<Mood, string[]>>;
+  lines?: Partial<Record<Mood, string[]>>;
 }
 
 export const PERSONAS: Persona[] = [
   {
-    id: 'calm', ja: 'おだやか', blurb: 'ゆっくり巡って、ひとつのものを長く眺める。口数は少ない。',
-    cruise: 0.8, dwell: 1.5, sway: 0.7, skyGap: [700, 1000], skyStay: [180, 240], altK: 1.4, distK: 1.35, turn: 0.6, skyAlt: 1.0, talk: 3, gap: 50,
-    weight: () => 1,
-    lines: {
-      bait: ['…海が騒がしくなってきた。ベイトボールだ。', '命がぶつかり合ってる。見届けよう。'],
-      hello: ['来たね。ゆっくり見ていこう。', '今日の{sea}は、どんな顔をしてるかな。'],
-      shot: ['{name}だ。そっと近づくね。', '{name}。少し一緒にいさせてもらおう。', '驚かせないように、{name}を見てみよう。'],
-      sighting: ['{name}に会えた。', 'はじめまして、{name}。'],
-      hunt: ['…狩りが始まる。静かに見ていよう。'],
-      skyUp: ['少し、上の空気を吸いに行こう。', '水面の向こうを見に行こうか。'],
-      skyDown: ['そろそろ戻ろう。海の中へ。', 'また潜ろうか。'],
-      dawn: ['夜が明けていく。'], noon: ['光がいちばん強い時間だね。'], dusk: ['日が傾いてきた。いい色だ。'], night: ['夜になった。海が静かになる。'],
-      meteor: ['…流れ星。'], rain: ['雨が水面を叩いてる。'], bird: ['{name}が休んでる。邪魔しないでおこう。'],
-      idle: ['何も起きない時間も、悪くない。', '波の音だけ聞いていよう。', '急がなくていいよ。海は逃げない。'],
-      idleNight: ['星がきれいだ。', 'こんな夜は、何も考えなくていい。'],
-      idleSky: ['風が気持ちいい。', '水平線って、どこまでも続いてるみたいだ。'],
-    },
+    id: 'calm', ja: 'おだやか', blurb: '中層をゆっくり漂い、通りかかるものを待って長く眺める。めったに目移りしない。',
+    cruise: 0.7, dwell: 1.7, sway: 0.6, skyGap: [700, 1000], skyStay: [180, 240], altK: 1.9, route: 'mid', distK: 1.4, turn: 0.55, skyAlt: 1.0,
+    styles: { wait: 3, orbit: 2, low: 0.6 }, giant: { pass: 3, flank: 1, under: 1, front: 0.3 }, spinK: 0.5, switchK: 3.5, minHold: 20, rest: [50, 100],
+    // resting and feeding things, the light; a hunt is not its kind of scene
+    weight: (s) => ({ turtle: 1.6, anemone: 1.4, octopus: 1.3, manta: 1.4, giant: 1.2, school: 1.0, hunt: 0.55, critter: 0.8 } as Record<string, number>)[s.kind] ?? 1,
+    talk: 3, gap: 50,
   },
   {
-    id: 'busy', ja: 'せわしない', blurb: '次から次へと見て回る。落ち着きがなく、よくしゃべる。',
-    cruise: 1.55, dwell: 0.5, sway: 1.5, skyGap: [400, 600], skyStay: [110, 150], altK: 0.8, distK: 0.9, turn: 1.8, skyAlt: 0.6, talk: 14, gap: 14,
-    weight: (s) => (s.kind === 'school' || s.kind === 'hunt' ? 1.4 : 1),
-    lines: {
-      bait: ['ベイトボールだ！！ 急げ急げ急げ！', 'すごいすごい！ 全部来てる！'],
-      hello: ['よし来た！どこから見る？全部見よう！', '{sea}だ！急ごう、時間がもったいない！'],
-      shot: ['{name}！あっちあっち！', 'ほら{name}！見て見て！', '{name}発見！寄るよ！'],
-      sighting: ['{name}！新顔だ！図鑑図鑑！', 'やった、{name}！'],
-      hunt: ['狩りだ狩りだ！急げ！', 'あっ、何か起きてる！'],
-      skyUp: ['ちょっと空も見とこ！すぐ戻るから！', '上！上いこう！'],
-      skyDown: ['よし戻ろ！下も気になる！', '潜るよー！'],
-      dawn: ['朝だ！魚が起きてくる！'], noon: ['昼！群れが出てくる時間！'], dusk: ['夕方！狩りの時間だよ！'], night: ['夜だ！夜の魚が出てくるぞ！'],
-      meteor: ['流れ星！見た！？今の見た！？'], rain: ['雨だ！水面がすごいことになってる！'], bird: ['鳥！{name}が浮いてる！'],
-      idle: ['何かいないかな、何かいないかな。', 'あっ…違った。', '次どこ行く？こっち？'],
-      idleNight: ['夜って何がいるんだろ、ワクワクする！'],
-      idleSky: ['高っ！気持ちいい！', '鳥になった気分！'],
-    },
+    id: 'curious', ja: '好奇心', blurb: '目の前を横切るものに何でもついて行く。寄り道だらけで、すぐ目移りする。',
+    cruise: 1.5, dwell: 0.5, sway: 1.6, skyGap: [400, 600], skyStay: [110, 150], altK: 0.85, route: 'wander', distK: 0.85, turn: 1.8, skyAlt: 0.6,
+    styles: { follow: 3, orbit: 1, detail: 1 }, giant: { flank: 2, front: 1.5, under: 1, pass: 0.5 }, spinK: 1.6, switchK: 1.05, minHold: 4, rest: [8, 20],
+    weight: (s) => (s.kind === 'school' ? 1.5 : s.kind === 'cave' ? 0.6 : 1),
+    talk: 14, gap: 14,
   },
   {
-    id: 'shark', ja: 'サメ好き', blurb: 'サメと狩りが大好きで、見つけると飛んでいく。ほかの生き物にはちょっと淡白。',
-    cruise: 1.1, dwell: 1.0, sway: 1.0, skyGap: [800, 1100], skyStay: [200, 260], altK: 0.65, distK: 0.8, turn: 1.1, skyAlt: 0.5, talk: 5, gap: 35,
-    weight: (s, shark) => (shark(s) ? 4 : s.kind === 'hunt' ? 3 : s.kind === 'giant' ? 1.5 : 0.55),
-    lines: {
-      bait: ['ベイトボールだ。捕食者が全員集まってくる。最高の時間だ。', 'これを待ってたんだ。'],
-      hello: ['さて、今日はどんなサメに会えるかな。', '{sea}のサメ、探しに行こう。'],
-      shot: ['{name}…やっぱりいい。', 'まあ、{name}も悪くないけど。サメはどこかな。', '{name}か。ふむ。'],
-      sighting: ['{name}！図鑑に入れた。', '{name}、覚えたよ。'],
-      hunt: ['狩りだ。見逃せない。', '来た来た。捕食者の時間だ。'],
-      skyUp: ['上からだとサメの影が見えたりするんだよ。', 'ちょっと上から探してみよう。'],
-      skyDown: ['やっぱり水の中じゃないとね。'],
-      dawn: ['朝マヅメ。狩りのチャンスだ。'], noon: ['昼はサメもゆったりしてる。'], dusk: ['夕マヅメだ。何か起きるぞ。'], night: ['夜はサメの時間。'],
-      meteor: ['流れ星か。サメに会えますように。'], rain: ['雨の日は魚が落ち着かないね。'], bird: ['{name}か。鳥はサメに食べられないように気をつけて。'],
-      idle: ['サメの体って、何億年もほとんど形が変わってないんだ。', 'サメの皮膚はね、小さな歯みたいな鱗でできてるんだよ。', 'どこかにいる気がするんだよな。'],
-      idleNight: ['暗い海の向こうに、何かいる気がする。'],
-      idleSky: ['上から見ると、海って本当に広い。サメの世界は広いね。'],
+    id: 'hunter', ja: '狩人', blurb: '捕食者と狩りを追う。リーフの低いところで待ち、朝夕はとくに目ざとい。狩りが始まれば何をおいても向かう。',
+    cruise: 1.1, dwell: 1.0, sway: 1.0, skyGap: [800, 1100], skyStay: [200, 260], altK: 0.7, route: 'reef', distK: 0.85, turn: 1.1, skyAlt: 0.5,
+    styles: { low: 3, follow: 2, orbit: 1 }, giant: { flank: 3, under: 2, front: 1, pass: 0.5 }, spinK: 1.0, switchK: 2.2, minHold: 8, rest: [25, 55],
+    jumpTo: (s) => s.kind === 'hunt',
+    weight: (s, c) => {
+      const dusk = 1 + 0.6 * c.golden;
+      if (s.kind === 'hunt') return 3 * dusk;
+      if (c.shark) return 3.5;
+      if (s.kind === 'big') return 1.4;            // (the jacks, groupers, barracuda)
+      if (s.kind === 'giant') return 1.4;
+      if (s.kind === 'school') return 0.7 + 0.6 * c.golden;   // (prey, at the hour it is hunted)
+      return 0.5;
     },
+    talk: 5, gap: 35,
   },
   {
-    id: 'sky', ja: '空好き', blurb: 'しょっちゅう水面を抜けて空へ行きたがる。雲や星、光の話が多い。',
-    cruise: 1.0, dwell: 0.9, sway: 1.1, skyGap: [240, 360], skyStay: [280, 360], altK: 1.6, distK: 1.2, turn: 0.8, skyAlt: 1.5, talk: 6, gap: 30,
-    weight: (s) => (s.kind === 'manta' || s.kind === 'giant' ? 1.4 : 1),
-    lines: {
-      bait: ['鳥が集まってる！ 上から見るとすごいよ、これ。', '海鳥が次々突っ込んでる！'],
-      hello: ['今日の空はどうかな。あとで見に行こう。', '{sea}の空、好きなんだ。'],
-      shot: ['{name}。水の中の光もきれいだね。', '{name}のところに光が落ちてる。'],
-      sighting: ['{name}に会えたよ。'],
-      hunt: ['下で何か始まった。'],
-      skyUp: ['上がろう！空が呼んでる。', 'ちょっと空へ。すぐそこだから。', '水面の向こう、見に行こう。'],
-      skyDown: ['名残惜しいけど、一度戻ろう。', 'また来るね、空。'],
-      dawn: ['空が白んできた。上に行きたいな。'], noon: ['雲がよく育ってる。'], dusk: ['夕焼けの時間だ。上に行かなきゃ。'], night: ['星が出てきた。'],
-      meteor: ['流れ星！願いごと、間に合った？', '今の、見た？流れ星。'], rain: ['雨雲だ。雲の中はどうなってるんだろう。'], bird: ['{name}が浮かんでる。空の仲間だ。'],
-      idle: ['水の中から見上げる光も、空の一部なんだよ。', '水面の揺らめき、ずっと見ていられる。'],
-      idleNight: ['今夜は星がよく見えそう。', '天の川、出てるかな。'],
-      idleSky: ['雲の形、何に見える？', '空と海の境目って、本当はどこにもないんだ。', 'このままずっと浮かんでいたい。'],
-    },
+    id: 'sky', ja: '水面と空', blurb: '水面の近くを巡り、よく空へ抜ける。見上げる構図が好きで、マンタや息継ぎのカメ、大物の出来事なら乗り換える。',
+    cruise: 1.0, dwell: 0.9, sway: 1.1, skyGap: [240, 360], skyStay: [280, 360], altK: 1.0, route: 'surface', distK: 1.2, turn: 0.8, skyAlt: 1.5,
+    styles: { low: 3, wait: 1, orbit: 1 }, giant: { under: 3, pass: 1, flank: 1, front: 1 }, spinK: 0.8, switchK: 1.8, minHold: 8, rest: [30, 60],
+    jumpTo: (s) => s.kind === 'manta' || (s.kind === 'giant' && s.hold != null),
+    weight: (s) => ({ manta: 2, giant: 1.6, turtle: 1.4, school: 1.1, critter: 0.5, octopus: 0.6, cave: 0.3, anemone: 0.7 } as Record<string, number>)[s.kind] ?? 1,
+    talk: 6, gap: 30,
   },
   {
-    id: 'nosy', ja: 'おせっかい', blurb: 'よくしゃべって、あれこれ教えてくれる。ときどき余計なことも言う。',
-    cruise: 0.95, dwell: 1.1, sway: 1.0, skyGap: [600, 900], skyStay: [160, 220], altK: 1.0, distK: 0.75, turn: 1.2, skyAlt: 0.9, talk: 18, gap: 16,
-    weight: () => 1,
-    lines: {
-      bait: ['ベイトボールだよ！ 小魚は固まると一匹あたりが狙われにくくなるの。数で身を守ってるんだね。', 'ほら、ベイトボール。めったに見られないんだから、ちゃんと見ておいて。'],
-      hello: ['いらっしゃい。{sea}のこと、いろいろ教えてあげるね。', 'ようこそ。今日はわたしが案内するよ。'],
-      shot: ['ほら、{name}だよ。よく見て。', '{name}。ねえ知ってる？ {note}', '{name}のこと、教えてあげようか。{note}'],
-      sighting: ['{name}、図鑑に入れておいたからね。', '新しい子だよ、{name}。あとで図鑑も見てね。'],
-      hunt: ['狩りが始まるよ。怖がらなくていいからね、自然なことだから。'],
-      skyUp: ['ちょっと上も見ておきなさい。いい景色だから。', '空も見ておかないと、もったいないよ。'],
-      skyDown: ['さ、戻るよ。潜るから気をつけてね。'],
-      dawn: ['おはよう。ちゃんと寝た？'], noon: ['お昼だね。ごはんは食べた？'], dusk: ['夕方だよ。今日も一日おつかれさま。'], night: ['夜だね。夜ふかしはほどほどにね。'],
-      meteor: ['流れ星！ちゃんとお願いした？'], rain: ['雨だね。洗濯物、出しっぱなしじゃない？'], bird: ['{name}が休んでるよ。そっとしておいてあげて。'],
-      idle: ['ずっと画面を見てると目が疲れるよ。たまには遠くを見てね。', '水分とった？海を見てると喉がかわくでしょ。', '姿勢、大丈夫？', 'わたしがいるから、ゆっくりしていっていいよ。'],
-      idleNight: ['もう遅いよ。明日も早いんじゃない？', '眠れないの？じゃあもう少し一緒にいようか。'],
-      idleSky: ['日焼けしないようにね。…あ、わたしがか。'],
-    },
+    id: 'naturalist', ja: '博物学者', blurb: 'リーフをくまなく見て回り、まだ図鑑にいないものやめずらしいものに寄って、模様や目を細かく見る。',
+    cruise: 0.85, dwell: 1.2, sway: 1.2, skyGap: [600, 900], skyStay: [160, 220], altK: 0.7, route: 'reef', distK: 0.75, turn: 1.2, skyAlt: 0.9,
+    styles: { detail: 4, orbit: 2 }, giant: { flank: 2, front: 1, under: 1, pass: 0.5 }, spinK: 0.7, switchK: 2.0, minHold: 10, rest: [20, 45],
+    jumpTo: (s, c) => c.isNew,
+    weight: (s, c) => (c.isNew ? 3.5 : 1) * (({ critter: 1.5, octopus: 1.4, anemone: 1.3, school: 0.9, cave: 0.8 } as Record<string, number>)[s.kind] ?? 1),
+    talk: 18, gap: 16,
+  },
+  {
+    id: 'deep', ja: '深場', blurb: '深いほうへ、壁沿いへと寄っていく。ウツボや岩陰、洞窟、夜の生きものを、ライトでそっと照らして見る。',
+    cruise: 0.8, dwell: 1.4, sway: 0.8, skyGap: [1200, 1600], skyStay: [120, 180], altK: 0.9, route: 'deep', distK: 1.0, turn: 0.7, skyAlt: 0.5,
+    styles: { orbit: 2, wait: 1, detail: 1 }, giant: { pass: 2, flank: 1, front: 1, under: 0.3 }, spinK: 0.6, switchK: 3, minHold: 15, rest: [40, 80],
+    weight: (s, c) => (({ critter: 2.5, cave: 3, octopus: 2, school: 0.7, manta: 0.8 } as Record<string, number>)[s.kind] ?? 1) * (s.kind === 'critter' || s.kind === 'octopus' ? 1 + 0.4 * c.night : 1),
+    talk: 4, gap: 40,
+  },
+  {
+    id: 'free', ja: '気ままに', blurb: '当てもなく巡航する。気分で速さも行き先も好みも変わり、ときどき止まってただ漂う。',
+    cruise: 1.0, dwell: 1.0, sway: 1.3, skyGap: [400, 1100], skyStay: [120, 320], altK: 1.0, route: 'free', distK: 1.0, turn: 1.0, skyAlt: 1.0,
+    // (now quick, now slow, and now and then hardly moving at all for a minute or two, just drifting)
+    pace: (t) => (0.45 + 0.85 * (0.5 + 0.5 * Math.sin(t * 0.011)) * (0.5 + 0.5 * Math.sin(t * 0.0047 + 1))) * (1 - 0.88 * Math.min(1, Math.max(0, (Math.sin(t * 0.0031) - 0.78) / 0.12))),
+    styles: { orbit: 1, follow: 1, wait: 1, low: 1, detail: 1 }, giant: { flank: 1, under: 1, front: 1, pass: 1 }, spinK: 1.0, switchK: 1.6, minHold: 8, rest: [15, 90],
+    weight: (s, c) => (s.kind === c.whim ? 2.4 : 1),   // (what it fancies changes every few minutes)
+    talk: 6, gap: 30,
   },
 ];
 
-export const personaById = (id: string | null) => PERSONAS.find((p) => p.id === id) ?? PERSONAS[0];
+// (the older characters, by their old names)
+const OLD: Record<string, string> = { busy: 'curious', shark: 'hunter', nosy: 'naturalist' };
+
+export const personaById = (id: string | null) => PERSONAS.find((p) => p.id === (OLD[id ?? ''] ?? id)) ?? PERSONAS[0];
 
 // one of the persona's lines for this moment, with {name}, {sea}, {note} filled in
 export function line(p: Persona, mood: Mood, vars: Record<string, string> = {}): string | null {
-  const arr = p.lines[mood];
+  const arr = p.lines?.[mood];
   if (!arr || !arr.length) return null;
   let cand = arr;
   if (!vars.note) cand = arr.filter((l) => !l.includes('{note}'));

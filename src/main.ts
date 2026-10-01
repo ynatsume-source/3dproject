@@ -16,7 +16,7 @@ import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from '.
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, speciesOf, type Shot } from './director';
 import type { Subject } from './eco/env';
-import { PERSONAS, personaById, line, type Persona, type Mood } from './persona';
+import { PERSONAS, personaById, line, type Persona, type Mood, type Taste } from './persona';
 import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { guideThumbs } from './ui/thumbs';
 import { PLACES } from './ui/places';
@@ -114,10 +114,36 @@ function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
   return Math.max(1.8, a) + Math.pow(Math.max(0, Math.sin(s * 1.13 + 0.5)), 8) * 10;
 }
+// The cruise line, as this guide takes it: off to one side and back (weaving, or wandering wide), or
+// leaning toward the deeper water; high in mid-water, low along the reef, or just under the surface.
 function pathPoint(s: number, out: THREE.Vector3) {
-  const [x, z] = pathXZ(s);
-  if (cur!.loc.pelagic) return out.set(x, -(6 + pathAlt(s) * 2.2 + 6 * Math.sin(s * 0.37)), z);   // open ocean: depth under the surface, nothing below
-  return out.set(x, Math.min(cur!.T.top(x, z) + pathAlt(s) * persona.altK, -1.4), z);
+  let [x, z] = pathXZ(s);
+  const r = persona.route;
+  if (cur!.loc.pelagic) {   // open ocean: depth under the surface, nothing below
+    const k = r === 'surface' ? 0.35 : r === 'deep' ? 1.7 : r === 'mid' ? 1.2 : 1;
+    return out.set(x, -(6 + pathAlt(s) * 2.2 + 6 * Math.sin(s * 0.37)) * k, z);
+  }
+  if (r === 'wander' || r === 'free' || r === 'deep') {
+    const b = pathXZ(s + 0.002), tl = Math.hypot(b[0] - x, b[1] - z) || 1, nx = -(b[1] - z) / tl, nz = (b[0] - x) / tl;
+    let off = 0;
+    if (r === 'wander') off = 9 * Math.sin(s * 5.3) + 4 * Math.sin(s * 11.7 + 1);
+    else if (r === 'free') off = 16 * Math.sin(s * 2.1 + 0.4) * Math.sin(s * 0.7 + 2);
+    else {
+      // (a soft lean toward whichever side drops away deeper)
+      let w = 0, sum = 0; const h0 = cur!.T.top(x, z);
+      for (let o = -14; o <= 14; o += 7) { const e = Math.exp(-(cur!.T.top(x + nx * o, z + nz * o) - h0) / 1.5); w += e; sum += o * e; }
+      off = sum / w;
+    }
+    // (never off the line into the shallows or ashore)
+    for (let i = 0; i < 3 && cur!.T.top(x + nx * off, z + nz * off) > -2.5; i++) off *= 0.5;
+    if (cur!.T.top(x + nx * off, z + nz * off) > -2.5) off = 0;
+    x += nx * off; z += nz * off;
+  }
+  const top = cur!.T.top(x, z);
+  let alt = pathAlt(s) * persona.altK;
+  if (r === 'free') alt *= 0.6 + 1.2 * (0.5 + 0.5 * Math.sin(s * 1.9));
+  if (r === 'surface') return out.set(x, Math.min(Math.max(top + 1.5, -2 - 1.6 * Math.sin(s * 2.7) ** 2), -1.4), z);
+  return out.set(x, Math.min(top + alt, -1.4), z);
 }
 function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.001; }
 function nearestS(p: THREE.Vector3) {
@@ -279,7 +305,8 @@ function updateDrone(dt: number, now: number) {
   } else if (drone.mode === 'auto') {
     const hasI = findInterest(drone.pos, U.uCamFwd.value);
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
-    const speed = (1.35 - interestW * 0.5) * persona.cruise;
+    const speed = (1.35 - interestW * 0.5) * persona.cruise * (persona.pace ? persona.pace(t) : 1);
+    if ((whimT -= dt) < 0) { whimT = rr(240, 420); whim = WHIMS[Math.floor(Math.random() * WHIMS.length)]; }
     drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
     pathPoint(drone.s, _t);
     _v.subVectors(_t, drone.pos);
@@ -443,10 +470,24 @@ let persona: Persona = personaById((() => { try { return localStorage.getItem('s
 let lastSay = -1e9, chatT = 0;
 function applyPersona() {
   director.dwellK = persona.dwell; director.distK = persona.distK;
-  director.weight = (s) => persona.weight(s, isShark);
-  $('btnPersona').innerHTML = `<span class="dot"></span>案内役の性格：${persona.ja}`;
-  $('btnPersona').title = persona.blurb;
+  director.styles = persona.styles; director.giantW = persona.giant; director.spinK = persona.spinK;
+  director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest;
+  director.weight = (s) => persona.weight(s, taste(s));
+  director.jumpTo = (s) => !!persona.jumpTo?.(s, taste(s));
+  for (const b of $('personas').querySelectorAll('button')) b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.p === persona.id));
+  $('personaBlurb').textContent = persona.blurb;
 }
+// what the guide knows of a subject, to weigh it: a shark? not yet in the field guide? and the hour
+const speciesKey = new Map<string, string | null>();
+function taste(s: Subject): Taste {
+  const lk = (cur?.loc.id ?? '') + '|' + s.label;
+  let key = speciesKey.get(lk);
+  if (key === undefined && cur) { const e = guideEntries(cur.loc).find((x) => s.label.startsWith(x.ja)); key = e ? cur.loc.id + ':' + e.id : null; speciesKey.set(lk, key); }
+  return { shark: isShark(s), isNew: !!key && !seen.has(key), night: skyNow?.night ?? 0, golden: skyNow?.golden ?? 0, whim };
+}
+// what the carefree guide fancies just now (a kind of subject), changing every few minutes
+let whim = '', whimT = 0;
+const WHIMS = ['school', 'turtle', 'manta', 'critter', 'octopus', 'big', 'giant', 'anemone', 'hunt', 'cave'];
 function isShark(s: Subject) {
   const sp = cur?.loc.species.find((x) => s.label.startsWith(x.ja));
   return !!sp && !!(SHAPES as any)[sp.shape]?.lofted;   // every shark body is lofted
@@ -1601,7 +1642,8 @@ $('btnSeaOnly').onclick = () => setSeaOnly(!seaOnly);
 setSeaOnly(seaOnly);
 $('btnPip').onclick = () => setPip(!pipOn);
 setPip(pipOn);
-$('btnPersona').onclick = () => setPersona(PERSONAS[(PERSONAS.indexOf(persona) + 1) % PERSONAS.length]);
+$('personas').innerHTML = PERSONAS.map((p) => `<button type="button" role="radio" data-p="${p.id}" title="${p.blurb}"><span class="dot"></span>${p.ja}</button>`).join('');
+$('personas').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-p]') as HTMLElement | null; if (b) setPersona(personaById(b.dataset.p!)); });
 applyPersona();
 $('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
@@ -1985,7 +2027,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
