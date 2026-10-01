@@ -29,6 +29,7 @@ export interface BirdSpec {
   c1: number[]; c2: number[]; c3: number[];   // upperparts, underparts, bill / cap
   speed: number; glide: number;           // m/s; fraction of the time spent gliding
   alt: [number, number]; rest: number;     // flying height (m); how often it settles on the sea (0 never)
+  crowd?: boolean;                         // a great flock that only comes in to a bait ball (out of sight otherwise)
 }
 export interface GuideEntry { id: string; ja: string; sci: string; note: string }
 export interface Sea {

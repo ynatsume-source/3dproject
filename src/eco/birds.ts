@@ -130,7 +130,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
   const _o = new THREE.Object3D();
 
   function place(b: Bird, sp: BirdSpec, cam: THREE.Vector3, fx: number, fz: number, first: boolean) {
-    const d = first ? rr(12, 70) : rr(70, 120), lat = (R() * 2 - 1) * 60;
+    const d = sp.crowd ? rr(120, 160) : first ? rr(12, 70) : rr(70, 120), lat = (R() * 2 - 1) * 60;
     b.p.set(cam.x + fx * d - fz * lat, 0, cam.z + fz * d + fx * lat);
     // on first sight some are already sitting on the water
     if (first && sp.rest > 0 && R() < sp.rest * 0.8) { b.state = 'rest'; b.fold = 1; b.stateT = rr(0, 60); }
@@ -146,7 +146,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
       F.birds.forEach((b, i) => {
         b.t += dt; b.stateT += dt;
         const dx = b.p.x - cam.x, dz = b.p.z - cam.z;
-        if (!b.placed || (dx * dx + dz * dz > 170 * 170 && !(at && at.on))) place(b, sp, cam, fx, fz, !b.placed);
+        if (!b.placed || (dx * dx + dz * dz > (sp.crowd ? 200 : 170) ** 2 && !(at && at.on))) place(b, sp, cam, fx, fz, !b.placed);
         const sea = swellAt(b.p.x, b.p.z);
         const lure = at && at.on && sp.kind !== 'frigate' ? at : null;
         const lx = lure ? lure.c.x - b.p.x : 0, lz = lure ? lure.c.z - b.p.z : 0, ld = Math.hypot(lx, lz);
@@ -201,6 +201,11 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
                 b.tx = lure.c.x + Math.cos(a) * rr0; b.tz = lure.c.z + Math.sin(a) * rr0;
               }
               if (sp.kind === 'albatross' && ld < lure.r + 3 && R() < dt * 0.2) { b.state = 'land'; b.stateT = 0; }
+            } else if (sp.crowd) {
+              // (no bait ball: keep out over the far sea, beyond sight)
+              const r2 = dx * dx + dz * dz;
+              if (r2 < 125 * 125) { let d = Math.atan2(dz, dx) - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d * 0.8; }
+              else if (r2 > 160 * 160) { let d = Math.atan2(-dz, -dx) - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d * 0.6; }
             } else if (dx * dx + dz * dz > 75 * 75) { let d = Math.atan2(-dz, -dx) - b.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn += d * 0.6; }
             b.h += turn * dt;
             b.bank += (clamp(-turn * (sp.kind === 'albatross' ? 2.2 : 1.3), -0.9, 0.9) - b.bank) * Math.min(1, dt * 2);

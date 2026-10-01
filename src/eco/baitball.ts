@@ -24,8 +24,8 @@ export function makeBaitBall(oc: any, fraction: number) {
   const loc = oc.loc;
   if (!loc.bait) return null;
   const T = oc.T, bsp: Species = loc.bait.sp;
-  const NBMAX = 1600;
-  let NB = Math.round(NBMAX * clamp(fraction, 0.35, 1));
+  const NBMAX = 5000;   // (a ball that fills the view: thousands, not a few hundred)
+  let NB = Math.round(NBMAX * clamp(fraction, 0.6, 1));   // (the one sight that is all about numbers: never thinned much, even on a phone)
 
   // the bait: a low-detail body, since there are so many
   const bg = fishGeometry(SHAPES[bsp.shape], true);
@@ -56,7 +56,7 @@ export function makeBaitBall(oc: any, fraction: number) {
   }).filter(Boolean) as { sp: Species; mesh: THREE.InstancedMesh; list: Pred[]; size: number; speed: number; shark: boolean; leaper: boolean }[];
 
   const st = {
-    active: false, phase: 'gather' as Phase, t: 0, c: new THREE.Vector3(), r: 7, alive: NB,
+    active: false, phase: 'gather' as Phase, t: 0, c: new THREE.Vector3(), r: 10, alive: NB,
     timer: rr(500, 1500),                       // seconds of daylight until the next one, give or take
   };
   const _m = new THREE.Matrix4(), _q = new THREE.Vector3(), _s = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3();
@@ -73,10 +73,11 @@ export function makeBaitBall(oc: any, fraction: number) {
     if (!best) return false;
     const floor = loc.pelagic ? -90 : T.top(best[0], best[1]);
     st.c.set(best[0], Math.max(floor + 5, loc.pelagic ? -16 : -11), best[1]);
-    st.active = true; st.phase = 'gather'; st.t = 0; st.r = 7; st.alive = NB;
+    st.active = true; st.phase = 'gather'; st.t = 0; st.r = 10; st.alive = NB;
     for (let i = 0; i < NB; i++) {
       dead[i] = 0;
-      phi[i] = Math.asin(R() * 2 - 1); rf[i] = Math.cbrt(R()) * 0.95 + 0.05;   // filling the ball, not just its skin ang[i] = R() * 6.28; bs[i] = rr(bsp.size[0], bsp.size[1]);
+      phi[i] = Math.asin(R() * 2 - 1); rf[i] = Math.cbrt(R()) * 0.95 + 0.05;   // filling the ball, not just its skin
+      ang[i] = R() * 6.28; bs[i] = rr(bsp.size[0], bsp.size[1]);
       const rad = st.r * rf[i];
       bp[i * 3] = st.c.x + Math.cos(ang[i]) * rad * 1.6; bp[i * 3 + 1] = st.c.y + Math.sin(phi[i]) * 2; bp[i * 3 + 2] = st.c.z + Math.sin(ang[i]) * rad * 1.6;
       bv[i * 3] = bv[i * 3 + 1] = bv[i * 3 + 2] = 0;
@@ -138,7 +139,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     }
     const ph = st.phase, k = st.t / PHASE_T[ph];
     // the ball: size, height and flattening by phase
-    const rT = ph === 'gather' ? 7 : ph === 'herd' ? 7 - 4.3 * k : ph === 'frenzy' ? 2.5 + 0.4 * Math.sin(st.t * 0.7) + 0.6 * (1 - st.alive / NB) : 3 + 12 * k;   // packed tight; it thins as it is eaten
+    const rT = ph === 'gather' ? 10 : ph === 'herd' ? 10 - 6 * k : ph === 'frenzy' ? 3.8 + 0.5 * Math.sin(st.t * 0.7) + 1.2 * (1 - st.alive / NB) : 5 + 18 * k;   // (packed dense: tens of fish to every cubic metre)   // packed tight; it thins as it is eaten
     st.r += (rT - st.r) * Math.min(1, dt * 0.5);
     const floor = loc.pelagic ? -90 : T.top(st.c.x, st.c.z);
     const yT = ph === 'gather' ? Math.max(floor + 5, loc.pelagic ? -16 : -11) : ph === 'herd' ? -3.5 - (1 - k) * 5 : ph === 'frenzy' ? -st.r * 0.8 - 0.4 : -6 - 8 * k;
@@ -257,7 +258,7 @@ export function makeBaitBall(oc: any, fraction: number) {
   return {
     st, attract, update, bsp,
     // how many bait fish to draw (the quality tier)
-    setFraction(f: number) { if (!st.active) { NB = Math.round(NBMAX * clamp(f, 0.35, 1)); bmesh.count = NB; } },
+    setFraction(f: number) { if (!st.active) { NB = Math.round(NBMAX * clamp(f, 0.6, 1)); bmesh.count = NB; } },
     start: (cam: THREE.Vector3, fx: number, fz: number, env: Env) => st.active || start(cam, fx, fz, env, true),
     subjects: (): Subject[] => {
       if (!st.active || st.phase === 'scatter') return [];

@@ -276,7 +276,7 @@ export function buildOcean(loc) {
   const clown = loc.species.find((s) => s.habitat === 'anemone');
   for (let tries = 0; oc.anemones.length < loc.anemones && tries < 4000; tries++) {
     const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z), r = TERR.reef;
-    if (r < 0.4 || h < -20 || T.slope(x, z) > 0.8) continue;
+    if (r < 0.4 || h < -20 || h > (loc.land ? -1.5 : -2.5) || T.slope(x, z) > 0.8) continue;   // (not up on a reef top just under the surface: its fish would be pinned there)
     // (on open reef, not inside a coral that already stands there)
     let blocked = false;
     for (let k = 0; k < 6 && !blocked; k++) { const a = k * 1.047; if (obst.get(x + Math.cos(a) * 0.7, z + Math.sin(a) * 0.7) > h + 0.15) blocked = true; }
@@ -478,7 +478,9 @@ export function buildOcean(loc) {
   }
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
   if (loc.whales) oc.whales = makeWhales(oc);
-  if (loc.birds) oc.birds = makeBirds(loc.birds, group);
+  // (where there are bait balls, the diving birds also come in their dozens to one: a great flock out of sight till then)
+  const diver = loc.bait && (loc.birds || []).find((b: any) => b.kind === 'booby' || b.kind === 'tern');
+  if (loc.birds) oc.birds = makeBirds(diver ? [...loc.birds, { ...diver, count: 36, rest: 0, crowd: true }] : loc.birds, group);
   // flying fish, where they live: bursts out of the sea and glides over it
   if ([...(loc.extraGuide || []), ...loc.species].some((e) => e.id === 'tobiuo')) oc.flyfish = makeFlyingFish(group);
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);
