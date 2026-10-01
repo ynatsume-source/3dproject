@@ -236,6 +236,21 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     group.add(mesh); count += list.length;
   }
   const forest = buildForest(AIRLIT, group, f, can, top, FAR);
+  // how tall the growth is at a point (m): for those who walk on the island and go round what is above their
+  // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
+  const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75], pandanus: [0.38, 1], rock: [0.85, 0.5], casuarina: [0.05, 9] };   // (radius, height, per unit of its size)
+  T.pushTrees = (p: THREE.Vector3) => forest.push(p);   // (keeping walkers out of the trunks)
+  T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)
+    let h = can(x, z) > 0.55 ? 1 : 0;
+    const ci = Math.floor(x / 8), cj = Math.floor(z / 8);
+    for (const kind in VEG) {
+      const M = cellsOf[kind]; if (!M) continue; const [rk, hk] = VEG[kind];
+      for (let j = cj - 1; j <= cj + 1; j++) for (let i = ci - 1; i <= ci + 1; i++) for (const p of M.get(i + ',' + j) || []) {
+        const r = Math.max(0.35, p.s * rk) + pad; if ((p.x - x) ** 2 + (p.z - z) ** 2 < r * r) h = Math.max(h, p.s * hk);
+      }
+    }
+    return h;
+  };
   return {
     canopy, plants: count, lists, forest,
     // each frame: the trees near the camera, and the canopy surface stepping aside for them

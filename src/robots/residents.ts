@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { AIRLIT } from '../ocean/shore';
+import { findPath } from './path';
 import { robotKit, type Robot, type Act, type Mats } from './models';
 import { creatureKit, type CMats, type Food } from './creatures';
 import { VOICES, STAGES, type Voice } from './voices';
@@ -155,6 +156,7 @@ export interface Resident {
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
+  path?: { pts: [number, number][]; tx: number; tz: number; t: number };   // the way it means to walk (robots/path.ts)
   lightK?: number;
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
   held: THREE.Mesh;
@@ -425,6 +427,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const a = Math.random() * 6.28, d = Math.sqrt(Math.random()) * rad, x = near[0] + Math.cos(a) * d, z = near[1] + Math.sin(a) * d;
       if (Math.abs(x) > 740 || Math.abs(z) > 740) continue;
       const h = L.h(x, z);
+      if (h > 0.2 && T.vegH && T.vegH(x, z) > 0.45) continue;   // (not into the middle of a thicket)
       if (ok(x, z, h)) return [x, z];
     }
     return null;
@@ -695,9 +698,29 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   /* ---------- getting about ---------- */
-  function move(r: Resident, tx: number, tz: number, dt: number, wetTask: boolean) {
-    const dx = tx - r.pos.x, dz = tz - r.pos.z, d = Math.hypot(dx, dz);
-    if (d < 0.6) return true;
+  // what it costs to cross a metre of the island on foot: the sea cannot be walked; growth above the waist
+  // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
+  const WAIST = 0.45;
+  const walkCost = (x: number, z: number) => {
+    if (G(x, z) < 0.2) return Infinity;
+    const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
+    return v > WAIST ? 30 : 1 + v;
+  };
+  function move(r: Resident, tx: number, tz: number, dt: number, wetTask: boolean, fast = false) {
+    const dx0 = tx - r.pos.x, dz0 = tz - r.pos.z, d0 = Math.hypot(dx0, dz0);
+    if (d0 < 0.6) { r.path = undefined; return true; }
+    // on land, to somewhere on land: plan a way round what is in the way (again if the goal has moved off)
+    let ax = tx, az = tz;
+    if (!fast && G(r.pos.x, r.pos.z) > 0.2 && G(tx, tz) > 0.2) {
+      const P = r.path;
+      if (!P || (Math.hypot(P.tx - tx, P.tz - tz) > 4 && clockMs - P.t > 3000)) {
+        r.path = { pts: d0 > 2 ? findPath(r.pos.x, r.pos.z, tx, tz, walkCost) ?? [[tx, tz]] : [[tx, tz]], tx, tz, t: clockMs };
+      }
+      const pts = r.path!.pts;
+      while (pts.length > 1 && Math.hypot(pts[0][0] - r.pos.x, pts[0][1] - r.pos.z) < 0.9) pts.shift();
+      if (pts.length > 1 || Math.hypot(r.path!.tx - tx, r.path!.tz - tz) < 4) { ax = pts[0][0]; az = pts[0][1]; }
+    } else r.path = undefined;
+    const dx = ax - r.pos.x, dz = az - r.pos.z, d = Math.max(Math.hypot(dx, dz), Math.min(d0, 0.7));
     let want = Math.atan2(dx, dz);
     const inWater = G(r.pos.x, r.pos.z) < 0.1;
     const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1);
@@ -716,7 +739,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const step = Math.min(d, speed * dt) * Math.max(0, Math.cos(dh));
     const nx = r.pos.x + Math.sin(r.head) * step, nz = r.pos.z + Math.cos(r.head) * step;
     let moved = 0;
-    if (r.sp.swims || G(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; moved = step; }
+    if (r.sp.swims || G(nx, nz) > 0.2) { r.pos.x = nx; r.pos.z = nz; moved = step; if (!fast) T.pushTrees?.(r.pos); }
     else r.blocked += dt * 2;   // (the way ahead is water: it stops, rather than marching on the spot, and soon thinks again)
     r.walk = moved / Math.max(dt, 1e-3) / speed;   // (legs move only as fast as it really goes)
     return false;
@@ -850,7 +873,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     r.under = 0;
     if (!tk.arrived) {
       r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
-      tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet);
+      tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet, fast);
       tk.t += dt;
       if (tk.t > 1800 || r.blocked > 20) { items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return; }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
