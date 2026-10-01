@@ -44,13 +44,15 @@ function flowSchool(oc: any, sp: Species, n: number, where: (i: number, t: numbe
   oc.group.add(mesh);
   const size = Array.from({ length: n }, () => rr(sp.size[0], sp.size[1]) / 1.28);
   const p = new THREE.Vector3(), v = new THREE.Vector3(), m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0), s = new THREE.Vector3(), tgt = new THREE.Vector3();
+  const gone = new Uint8Array(n), last = new Float32Array(n * 6);   // (fish taken by a hunter; where each one is and its velocity)
   return {
-    mesh,
+    mesh, gone, last,
     update(t: number, show: number) {
       const k = Math.floor(n * clamp(show, 0, 1));
       for (let i = 0; i < n; i++) {
-        if (i >= k) { mesh.setMatrixAt(i, m.makeScale(0, 0, 0)); continue; }
+        if (i >= k || gone[i]) { mesh.setMatrixAt(i, m.makeScale(0, 0, 0)); continue; }
         where(i, t, p, v);
+        last[i * 6] = p.x; last[i * 6 + 1] = p.y; last[i * 6 + 2] = p.z; last[i * 6 + 3] = v.x; last[i * 6 + 4] = v.y; last[i * 6 + 5] = v.z;
         m.lookAt(tgt.copy(p).add(v), p, up); m.scale(s.setScalar(size[i])); m.setPosition(p);
         mesh.setMatrixAt(i, m);
       }
@@ -127,29 +129,69 @@ const KINDS: Kind[] = [
     weight: (loc) => (loc.species.some((s: Species) => s.id === 'gingameaji') ? 3 : 0),
     start(oc, env, cam, fx, fz) {
       const sp: Species = oc.loc.species.find((s: Species) => s.id === 'gingameaji');
-      // a column of jacks circling, wider in the middle, slowly turning over itself
-      const c = ahead(oc, cam, fx, fz, 10, 9), base = Math.max(oc.T.top(c.x, c.z) + 3.5, -16), top = Math.min(base + 9, -1.5);
+      // The school is out there already: it comes in from the blue as one long school, and as it arrives
+      // the fish at its head start to circle, then the rest, until the whole school is turning in a column;
+      // the hunters round about notice and close in. After a couple of minutes the column loosens, the
+      // fish fall back into a school, and it swims off the way it was going. Nothing appears or vanishes.
+      const c = ahead(oc, cam, fx, fz, 10, 9), base = Math.max(oc.T.top(c.x, c.z) + 3.5, -16), top = Math.min(base + 9, -1.5), mid = (base + top) / 2;
       const n = 1300, dir = R() < 0.5 ? 1 : -1;
-      const seed = Array.from({ length: n }, () => [R(), R(), R() * 6.28, rr(0.8, 1.2)]);
-      const fl = flowSchool(oc, sp, n, (i, t, p, v) => {
-        const [h, rj, a0, sp2] = seed[i];
-        const y0 = base + (top - base) * h, mid = Math.sin(h * Math.PI);
-        // every fish the same way round, at a jack's easy cruising speed (well under a metre a second),
-        // each on its own slightly tilted circle, so together they wind upward in a spiral; the wall
-        // breathes in and out a little (the turning rate is set by its usual radius, so none ever turns back)
-        const rb = (2.6 + 3.2 * mid) * (0.7 + 0.6 * rj), w = dir * 0.85 * sp2 / rb, a = a0 + w * t;
-        const br = Math.sin(t * 0.3 + h * 5) * 0.4, r = rb + br, dr = Math.cos(t * 0.3 + h * 5) * 0.12;   // (a wall of fish round a hollow core)
-        const tilt = 0.45, ph = a + h * 9;
-        p.set(c.x + Math.cos(a) * r, y0 + tilt * Math.sin(ph), c.z + Math.sin(a) * r);
-        v.set(-Math.sin(a) * r * w + Math.cos(a) * dr, tilt * Math.cos(ph) * w, Math.cos(a) * r * w + Math.sin(a) * dr);   // (the way it is actually moving)
-      });
-      const at = new THREE.Vector3(c.x, (base + top) / 2, c.z);
-      return {
-        info: KINDS[2].info, t: 0, dur: 110, size: 7, kind: 'school',
-        update(dt) { this.t += dt; fl.update(this.t, Math.min(this.t / 6, (this.dur - this.t) / 10)); },
-        pos: () => at, status: () => '銀色の渦が、ゆっくりと回りつづけている',
-        dispose() { fl.dispose(); },
+      const ina = Math.atan2(fz, fx) + rr(1.2, 2.0) * (R() < 0.5 ? 1 : -1), outa = ina + rr(-0.6, 0.6);   // (in from one side, off along much the same line)
+      const A = new THREE.Vector3(Math.cos(ina), 0, Math.sin(ina)), E = new THREE.Vector3(Math.cos(outa), 0, Math.sin(outa));
+      const SPEED = 1.9, FAR = 58, tA = FAR / SPEED, dur = tA + 120, tD = dur - 45;
+      const seed = Array.from({ length: n }, () => [R(), R(), R() * 6.28, rr(0.8, 1.2), R(), R(), R() * 2 - 1, R() * 2 - 1, R() * 2 - 1]);
+      const ss = (a: number, b: number, x: number) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
+      const sc = new THREE.Vector3(), q = new THREE.Vector3();
+      // the travelling school: its middle, and the way it heads, at time t
+      const school = (t: number, out: THREE.Vector3) => {
+        if (t < tD) { const d = Math.max(0, FAR - t * SPEED); out.set(c.x - A.x * d, mid, c.z - A.z * d); return t < tA ? A : E; }
+        const d = (t - tD) * SPEED * 0.9; out.set(c.x + E.x * d, mid, c.z + E.z * d); return E;
       };
+      const where = (i: number, t: number, p: THREE.Vector3) => {
+        const [h, rj, a0, sp2, jn, lv, ox, oy, oz] = seed[i];
+        // in the column: every fish the same way round, each on its own slightly tilted circle
+        const y0 = base + (top - base) * h, md = Math.sin(h * Math.PI);
+        const rb = (2.6 + 3.2 * md) * (0.7 + 0.6 * rj), w = dir * 0.85 * sp2 / rb, a = a0 + w * t;
+        const r = rb + Math.sin(t * 0.3 + h * 5) * 0.4, ph = a + h * 9;
+        p.set(c.x + Math.cos(a) * r, y0 + 0.45 * Math.sin(ph), c.z + Math.sin(a) * r);
+        // in the school: a long, loose shoal along its heading, the fish weaving a little
+        const hd = school(t, sc), sx = -hd.z, sz = hd.x;
+        q.set(sc.x + hd.x * ox * 9 + sx * oz * 4.5 + Math.sin(t * 0.6 + a0) * 0.4, sc.y + oy * 2.2 + Math.sin(t * 0.5 + a0 * 2) * 0.3, sc.z + hd.z * ox * 9 + sz * oz * 4.5 + Math.cos(t * 0.55 + a0) * 0.4);
+        // which it is in: the head of the school (ox > 0) joins first, the tail last; they leave in their own order
+        const join = ss(tA - 8 + (1 - ox) * 7 + jn * 4, tA - 2 + (1 - ox) * 7 + jn * 4, t), leave = ss(tD + lv * 14, tD + 6 + lv * 14, t);
+        const k = join * (1 - leave);
+        p.lerp(q, 1 - k);
+      };
+      const _p2 = new THREE.Vector3();
+      const fl = flowSchool(oc, sp, n, (i, t, p, v) => { where(i, t, p); where(i, t + 0.05, _p2); v.subVectors(_p2, p).multiplyScalar(20); });
+      // to the hunters it is a school like any other: they pick off stragglers at its edge
+      const prey = {
+        x: c.x, y: mid, z: c.z, alive: n, label: sp.ja,
+        scare() { /* (a tornado holds together: it just tightens) */ },
+        take() { const i = Math.floor(R() * n); if (fl.gone[i]) return false; fl.gone[i] = 1; prey.alive--; return true; },
+        pick(x: number, y: number, z: number) { let b = -1, bs = Infinity; for (let k = 0; k < 40; k++) { const i = Math.floor(R() * n); if (fl.gone[i]) continue; const L = fl.last, d = Math.hypot(L[i * 6] - x, L[i * 6 + 1] - y, L[i * 6 + 2] - z); if (d < bs) { bs = d; b = i; } } return b; },
+        at(i: number, out: any, vel?: any) { if (i < 0 || fl.gone[i]) return false; const L = fl.last; out.x = L[i * 6]; out.y = L[i * 6 + 1]; out.z = L[i * 6 + 2]; if (vel) { vel.x = L[i * 6 + 3]; vel.y = L[i * 6 + 4]; vel.z = L[i * 6 + 5]; } return true; },
+        chased() { /* (it stays in the wall of fish) */ },
+        safe() { return false; },
+        kill(i: number) { if (fl.gone[i] || prey.alive <= 2) return false; fl.gone[i] = 1; prey.alive--; return true; },
+      };
+      env.prey.push(prey as any);
+      const at = new THREE.Vector3();
+      let excited = 0;
+      const run: Running = {
+        info: KINDS[2].info, t: 0, dur, size: 7, kind: 'school',
+        update(dt) {
+          this.t += dt; fl.update(this.t, 1);
+          const hd = school(this.t, sc);
+          if (this.t > tA && this.t < tD) { prey.x = c.x; prey.z = c.z; prey.y = mid; } else { prey.x = sc.x; prey.z = sc.z; prey.y = sc.y; }
+          // once it is turning, the hunters round about take notice (now and again, while it lasts)
+          if (this.t > tA + 6 && this.t < tD && (excited -= dt) < 0) { excited = 20; for (const f of oc.fish) f.excite?.(c.x, c.z, 60); }
+          void hd;
+        },
+        pos: () => (run.t < tA - 6 || run.t > tD + 15 ? (school(run.t, sc), at.copy(sc)) : at.set(c.x, mid, c.z)),
+        status() { return this.t < tA - 6 ? '沖から、ギンガメアジの大群が近づいてくる' : this.t < tA + 8 ? '群れの先頭から、渦を巻きはじめた' : this.t < tD ? '銀色の渦が、ゆっくりと回りつづけている' : '渦がほどけ、群れになって沖へ泳ぎ去っていく'; },
+        dispose() { fl.dispose(); const k = env.prey.indexOf(prey as any); if (k >= 0) env.prey.splice(k, 1); },
+      };
+      return run;
     },
   },
   {

@@ -239,8 +239,9 @@ export function makeFishSystem(sp: Species, oc: any) {
   function hunt(g: Group, dt: number, env: Env) {
     g.hunger = Math.min(1, g.hunger + dt / 150);
     g.cooldown = Math.max(0, g.cooldown - dt);
-    const drive = g.hunger * (0.2 + 0.8 * env.twilight + 0.3 * env.night);
-    if (!g.hunt && g.cooldown <= 0 && drive > 0.5 && R() < dt * 0.08) {
+    const ex = ((g as any).excited = Math.max(0, ((g as any).excited ?? 0) - dt));
+    const drive = Math.max(g.hunger * (0.2 + 0.8 * env.twilight + 0.3 * env.night), ex > 0 ? 0.9 : 0);   // (a feast close by: hunting even by day)
+    if (!g.hunt && g.cooldown <= 0 && drive > 0.5 && R() < dt * (ex > 0 ? 0.3 : 0.08)) {
       let best: PreyGroup | null = null, bd = 45;
       for (const p of env.prey) { const d = Math.hypot(p.x - g.c.x, p.z - g.c.z); if (p.alive > 1 && d < bd) { bd = d; best = p; } }
       if (best) { g.c.set(fp[g.start * 3], fp[g.start * 3 + 1], fp[g.start * 3 + 2]); g.v.set(fv[g.start * 3], fv[g.start * 3 + 1], fv[g.start * 3 + 2]);   // (the hunt starts from where its body actually is)
@@ -569,6 +570,8 @@ export function makeFishSystem(sp: Species, oc: any) {
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
+    // something worth hunting has turned up near (a tornado of jacks): the hunters close by wake up hungry
+    excite(x: number, z: number, r: number) { if (!isPredator) return; for (const g of groups) if (g.type === 'roam' && Math.hypot(g.c.x - x, g.c.z - z) < r) { g.hunger = Math.max(g.hunger, 0.85); g.cooldown = Math.min(g.cooldown, 5); (g as any).excited = 40; } },
     dbg: { fp, dead, groups, get total() { return total; } },   // (for checks)
     reset() { for (const g of groups) g.placed = false; },
   };
