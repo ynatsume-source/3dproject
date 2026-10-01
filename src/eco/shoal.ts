@@ -91,18 +91,21 @@ export function makeShoalSystem(sp: Species, oc: any) {
   }
 
   let target = 1;
+  let orbit: { x: number; z: number; r: number; dir: number } | null = null, always = false;
   // the reef height under each fish, refreshed every few frames in turn (terrain sampling is costly)
   let frame = 0, fhC = new Float32Array(0);
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
     frame++;
     if (fhC.length < p.length / 3) fhC = new Float32Array(p.length / 3).fill(-1e9);
-    const act = activity(sp.diel, env); target = act;
+    const act = always ? 1 : activity(sp.diel, env); target = act;
     for (let s = 0; s < S; s++) {
       const L = leaders[s];
       L.t += dt; L.fear = Math.max(0, L.fear - dt * 0.3);
       const dx = L.c.x - cam.x, dz = L.c.z - cam.z;
-      if (!L.placed || dx * dx + dz * dz > 75 * 75) place(s, cam, fx, fz, !L.placed);
+      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit)) place(s, cam, fx, fz, !L.placed);
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
+      // (circling a point: a tornado of jacks)
+      if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.hypot(ox, oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
       if (Math.abs(L.c.x) > LIMIT || Math.abs(L.c.z) > LIMIT) { let d = Math.atan2(-L.c.z, -L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
       L.head += T.shore(L.c.x, L.c.z, L.head, 8, 2.2) * Math.min(1, dt * 1.2);
       const pace = sp.speed * (0.35 + 0.65 * act);
@@ -245,5 +248,20 @@ export function makeShoalSystem(sp: Species, oc: any) {
     dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },
+    // (for the rare scenes: put the whole school right here, heading this way; keep it circling a point;
+    // keep it active whatever the hour)
+    placeAt(x: number, y: number, z: number, head: number, spread = 4) {
+      for (let s = 0; s < S; s++) {
+        const L = leaders[s]; L.c.set(x, y, z); L.head = head; L.placed = true; L.alt = Math.max(1, y - T.h(x, z));
+        for (let i = s; i < total; i += S) {
+          const a = R() * 6.28, r = Math.cbrt(R()) * spread;
+          p[i * 3] = x + Math.cos(a) * r; p[i * 3 + 1] = y + (R() - 0.5) * spread * 0.6; p[i * 3 + 2] = z + Math.sin(a) * r;
+          v[i * 3] = Math.cos(head) * 0.8; v[i * 3 + 1] = 0; v[i * 3 + 2] = Math.sin(head) * 0.8; dead[i] = 0;
+        }
+      }
+    },
+    setOrbit(o: { x: number; z: number; r: number; dir: number } | null) { orbit = o; },
+    setAlways(on: boolean) { always = on; },
+    leader: () => leaders[0].c,
   };
 }

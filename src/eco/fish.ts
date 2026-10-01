@@ -211,7 +211,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     return best;
   }
   function place(g: Group, cam: THREE.Vector3, fx: number, fz: number, near: boolean) {
-    if (g.type === 'anem') { g.c.copy(g.a!.pos); g.c.y += 0.25; }
+    if (g.type === 'anem') { g.c.copy(g.a!.pos); }   // (in among the tentacles: see the family's swimming below)
     else {
       const [x, z] = findSpot(cam, fx, fz, near ? 6 : 32, near ? 30 : 48, g.type === 'reef');
       g.anchor.x = x; g.anchor.z = z;
@@ -370,7 +370,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       }
       if (g.prey) { g.prey.x = g.c.x; g.prey.y = g.c.y; g.prey.z = g.c.z; }
 
-      const camNear = g.type === 'anem' ? smooth(3.0, 1.2, Math.sqrt(dc2 + (g.c.y - cam.y) ** 2)) : 0;
+      const camNear = g.type === 'anem' ? smooth(2.0, 0.7, Math.sqrt(dc2 + (g.c.y - cam.y) ** 2)) * 0.8 : 0;
       const tuck = g.type === 'anem' ? Math.max(camNear, rest * 0.85) : rest * 0.7;
       const rot = g.t * (g.type === 'anem' ? 0.3 : 0.12) * (1 - rest * 0.8), cr = Math.cos(rot), sr = Math.sin(rot);
       const spreadK = (1 - tuck * 0.8) * (1 + g.fear * 1.2);
@@ -390,6 +390,17 @@ export function makeFishSystem(sp: Species, oc: any) {
         let tx = g.c.x + ox * cr - oz * sr + Math.sin(t * 0.7 + i) * wob + upX * dart;
         let ty = g.c.y + fo[i * 3 + 1] * spreadK - camNear * 0.2 + Math.sin(t * 0.9 + i * 1.7) * wob * 0.6;
         let tz = g.c.z + ox * sr + oz * cr + Math.cos(t * 0.6 + i) * wob + upZ * dart;
+        if (g.type === 'anem') {
+          // a clownfish family lives in its anemone: each one keeps dipping down into the tentacles and
+          // rising just clear of them, never straying past the crown; when something comes close, or at
+          // rest, they sink right in among the tentacles, down by the oral disc
+          const s = g.a!.s, crown = 0.3 * s;
+          const ex = tx - g.c.x, ez = tz - g.c.z, er = Math.hypot(ex, ez), k = er > crown * (1 - tuck * 0.6) ? crown * (1 - tuck * 0.6) / er : 1;
+          tx = g.c.x + ex * k; tz = g.c.z + ez * k;
+          const dip = Math.pow(0.5 + 0.5 * Math.sin(t * (0.55 + 0.1 * (i % 3)) + i * 2.3), 2);   // 0 down in the tentacles .. 1 just above them
+          const free = g.c.y + (0.06 + 0.24 * dip) * s, hide = g.c.y + 0.08 * s;   // (the crown's tips are at about +0.14: in among them, and a little above; hiding, down in the top of it, peeking out)
+          ty = free + (hide - free) * tuck + Math.sin(t * 1.3 + i) * 0.015;
+        }
         // grazers dip to bite the reef
         if (sp.diet === 'algae' && g.act > 0.5) {
           const bite = Math.pow(Math.max(0, Math.sin(t * 0.7 + i * 2.1)), 4);

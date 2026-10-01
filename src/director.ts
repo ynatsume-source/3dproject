@@ -23,7 +23,7 @@ export class Director {
   private hdx = 1; private hdz = 0;   // the line of a chase, smoothed
   // filming something big: which move, since when, its heading (from how it moves), and a fixed spot
   private move = ''; private moveT = 0; private moveDur = 0; private gvx = 0; private gvz = 1; private gpx = NaN; private gpz = 0;
-  private hold = new THREE.Vector3();
+  private hold = new THREE.Vector3(); private gspd = 0;
   private recent = new Map<string, number>();
   private clock = 0;
   onStart: (s: Subject) => void = () => { /* set by the app */ };
@@ -163,6 +163,7 @@ export class Director {
     if (!isNaN(this.gpx)) {
       const vx = (p.x - this.gpx) / Math.max(dt, 1e-3), vz = (p.z - this.gpz) / Math.max(dt, 1e-3), sp = Math.hypot(vx, vz);
       if (sp > 0.05 && sp < 20) { const k = Math.min(1, dt * 1.2); this.gvx += (vx / sp - this.gvx) * k; this.gvz += (vz / sp - this.gvz) * k; }
+      if (sp < 20) this.gspd += (sp - this.gspd) * Math.min(1, dt * 0.8);
     }
     this.gpx = p.x; this.gpz = p.z;
     const hl = Math.hypot(this.gvx, this.gvz) || 1, fx = this.gvx / hl, fz = this.gvz / hl, sx = -fz, sz = fx;
@@ -175,6 +176,7 @@ export class Director {
       if (this.move === 'pass') this.hold.set(p.x + fx * (L * 1.4 + 3) + sx * side * (L * 0.35 + 1.2), p.y + L * 0.04, p.z + fz * (L * 1.4 + 3) + sz * side * (L * 0.35 + 1.2));
     }
     const wideBody = s.kind === 'manta';   // (a manta is as wide as it is long: keep clear of its wingtips)
+    L *= 1 + 0.8 * Math.min(1, Math.max(0, (this.gspd - 1.5) / 1.5));   // (something racing past, faster than the drone can follow closely: stand further off)
     const spot = (move: string) => {
       let x = 0, y = 0, z = 0, lx = p.x, ly = p.y, lz = p.z, wide = 1;
       if (move === 'flank') {

@@ -685,6 +685,17 @@ $('evMark').onclick = goToEvent;
 $('toast').addEventListener('click', goToEvent);
 
 /* ---------- take me to it ---------- */
+let rareT = 0;
+function announceRare(r: { info: { id: string; ja: string; note: string } }) {
+  const el = $('rare');
+  (el.querySelector('.t') as HTMLElement).textContent = r.info.ja; (el.querySelector('.n') as HTMLElement).textContent = r.info.note;
+  el.classList.add('on'); clearTimeout(rareT); rareT = window.setTimeout(() => el.classList.remove('on'), 11000);
+  recordLog('rare', `めったに出会えない光景：${r.info.ja}`);
+  if (drone.mode === 'auto' && !watch.r && cur) {
+    if (drone.sky && r.info.id !== 'bigbait') setSky(false, true);
+    const sj: Subject[] = []; cur.rare.subjects(sj); if (sj[0]) { director.focus(sj[0], drone.pos); lastShot = null; }
+  }
+}
 function focusOn(s: Subject) {
   if (!cur) return;
   if (watch.r) stopWatch(false);
@@ -1805,6 +1816,8 @@ function frame(ts: number) {
       const fish = watch.r.id === 'kame' ? cur.eco.subjects().filter((sj) => { const p = sj.pos(); return !!p && p.y < 0 && Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z) < 25; }).slice(0, 8).map((sj) => { const p = sj.pos()!; return { x: p.x, y: p.y, z: p.z, kind: 'fish', label: sj.label, sub: sj.status() }; }) : [];
       pov.update(watch.r, cur.residents.sense(watch.r), cur.residents.status(watch.r), camera, innerWidth, innerHeight, dt, fish, cur.residents.gibber);
     }
+    // a rare scene has begun: announce it, put it in the log, and (cruising) go and film it
+    { const rs = cur.rare?.takeStarted(); if (rs) announceRare(rs); }
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
@@ -1890,7 +1903,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
