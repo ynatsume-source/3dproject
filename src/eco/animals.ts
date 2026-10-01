@@ -55,6 +55,13 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     else if (!sleepy && (t.state === 'rest' || t.state === 'toRest')) { t.state = 'travel'; t.goal = null; t.stateT = 0; }
     else if (t.state === 'travel' && !t.goal) t.goal = pickGoal(oc, t.pos, 'graze');
 
+    // something coming too close (the drone): startled, it turns away and drives off with hard, quick
+    // strokes of the fore flippers, each one surging it on, then eases back to its own pace once clear
+    const cdx = t.pos.x - cam.x, cdy = t.pos.y - cam.y, cdz = t.pos.z - cam.z, cd = Math.hypot(cdx, cdy, cdz) / t.size;
+    const near = t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0;
+    if (cd < near) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
+    else t.alarm = Math.max(0, (t.alarm ?? 0) - dt * (cd > near * 2.5 ? 0.35 : 0.12));
+    const alarm = t.alarm ?? 0;
     let speed = 0.35, ty = Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.6, -1.2), stroke = 1, noseDown = 0;
     if (t.state === 'breathe') { ty = -0.6; speed = 0.3; }
     else if (t.goal && (t.state === 'travel' || t.state === 'toRest')) {
@@ -74,18 +81,25 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     } else if (t.state === 'rest') { speed = 0; ty = fh + 0.18; stroke = 0.05; }
     else t.head += Math.sin(t.t * 0.11 + t.size * 10) * 0.12 * dt;
     if (t.state !== 'rest' && t.state !== 'graze') t.head += T.shore(t.pos.x, t.pos.z, t.head, 4, 1.1) * Math.min(1, dt * 1.5);
+    if (alarm > 0.01) {
+      // away from it, turning hard at first (a bank and a sweep of the flippers), climbing a little
+      let d = (t.fleeH ?? t.head) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * Math.min(1, dt * (0.6 + 2.4 * alarm));
+      t.fleeH = Math.atan2(cdz, cdx) * 0.15 + (t.fleeH ?? t.head) * 0.85;
+      speed = 0.35 + 1.5 * alarm; stroke = 1 + 0.7 * alarm; noseDown = 0; ty = Math.max(ty, t.pos.y + 0.6 * alarm);
+    }
     if (Math.abs(t.pos.x) > LIMIT || Math.abs(t.pos.z) > LIMIT) { let d = Math.atan2(-t.pos.z, -t.pos.x) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
 
     // look ahead and rise over rocks and coral instead of ploughing into them
     if (t.state !== 'rest' && t.state !== 'graze') {
       for (const a of [1.8, 3.5, 5.5]) ty = Math.max(ty, T.top(t.pos.x + Math.cos(t.head) * a * t.size, t.pos.z + Math.sin(t.head) * a * t.size) + 0.6 * t.size);
     }
-    const beat = Math.max(0, Math.sin(t.t * 1.0));
+    t.ph = (t.ph ?? t.t) + dt * (1.0 + 2.2 * alarm);
+    const beat = Math.max(0, Math.sin(t.ph));
     const sp = speed * (0.6 + beat * 0.8);
-    const vy = clamp((ty - t.pos.y) * 0.5, -0.35, 0.5);
-    t.vel.lerp(_w.set(Math.cos(t.head) * sp, vy, Math.sin(t.head) * sp), Math.min(1, dt * 1.5));
-    const away = _w.set(t.pos.x - cam.x, 0, t.pos.z - cam.z), ad = away.length();
-    if (ad < 2.5 && t.state !== 'rest') t.vel.addScaledVector(away, (2.5 - ad) * 0.3 / Math.max(ad, 0.1));
+    const vy = clamp((ty - t.pos.y) * 0.5, -0.35, 0.5 + alarm);
+    // (the power stroke drives it: when fleeing, each downstroke snaps the speed up, and it glides off between)
+    const pull = Math.min(1, dt * (1.5 + alarm * 4 * beat));
+    t.vel.lerp(_w.set(Math.cos(t.head) * sp, vy, Math.sin(t.head) * sp), pull);
     t.pos.addScaledVector(t.vel, dt);
     // keep off the reef, but ease up over a sudden coral edge rather than popping onto it
     const minY = fh + 0.15 + 0.2 * t.size;
@@ -100,12 +114,12 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     t.yaw += clamp(dy, -1, 1) * Math.min(1, dt * (0.4 + 1.6 * mov));
     const pitchT = -Math.atan2(t.vel.y, Math.max(hs, 0.08)) * mov + noseDown * (0.6 + 0.4 * Math.sin(t.t * 0.8));
     t.pitch = (t.pitch ?? pitchT) + (pitchT - (t.pitch ?? pitchT)) * Math.min(1, dt * 1.5);
-    t.group.rotation.set(t.pitch, t.yaw, Math.sin(t.t * 0.5) * 0.06 * stroke, 'YXZ');
-    const f = Math.sin(t.t * 1.0) * 0.75 * stroke, sw = Math.sin(t.t * 1.0 - 1.2) * 0.45 * stroke;
+    t.group.rotation.set(t.pitch, t.yaw, Math.sin(t.t * 0.5) * 0.06 * stroke + clamp(dy, -0.6, 0.6) * 0.5 * alarm, 'YXZ');   // (banking into the turn away)
+    const f = Math.sin(t.ph) * 0.75 * Math.min(stroke, 1.45), sw = Math.sin(t.ph - 1.2) * 0.45 * stroke;
     // the fore flippers flap like wings and feather (twist) through the stroke
-    const fe = Math.cos(t.t * 1.0) * 0.35 * stroke;
+    const fe = Math.cos(t.ph) * 0.35 * stroke;
     t.fr.rotation.set(fe, sw, f, 'YZX'); t.fl.rotation.set(fe, -sw, -f, 'YZX');
-    const r = Math.sin(t.t * 0.8) * 0.2 * Math.max(stroke, 0.2);
+    const r = Math.sin(t.ph * 0.8) * 0.2 * Math.max(stroke, 0.2);
     t.br.rotation.set(0, 0, r); t.bl.rotation.set(0, 0, -r);
   }
 }

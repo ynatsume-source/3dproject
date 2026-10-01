@@ -448,7 +448,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         if (g.type !== 'anem' && caveMode === 'out') {
           _w.set(px - cam.x, py - cam.y, pz - cam.z);
           const cd = _w.length(), fr = sp.big ? 3.5 : 4.5;
-          if (cd < fr) _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1));
+          if (cd < fr) { _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1)); g.fear = Math.max(g.fear, 0.5 * (1 - cd / fr)); }   // (startled: a quick dart, turning on a pin)
           if (!isPredator && !ch) for (const th of env.threats) {
             if (!th.r) continue;
             const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.hypot(ddx, ddy, ddz);
