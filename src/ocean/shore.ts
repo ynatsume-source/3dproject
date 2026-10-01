@@ -140,7 +140,15 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        // leafy texture: clumps of light and shade at the scale of branches
        float leaf = vn2(vWp.xz * 4.3 + vWp.y * 2.0) * 0.5 + vn2(vWp.xz * 11.0 - vWp.y * 3.0) * 0.5;
        n = normalize(n + vec3(leaf - 0.5, 0.0, vn2(vWp.zx * 4.1) - 0.5) * 0.9);
-       vec3 alb = ph * (0.72 + 0.5 * leaf) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // the sides of the forest are in shade
+       // the colour of the trees themselves (ocean/forest.ts: their kinds' greens, in patches a crown or a stand
+       // across), lightened and darkened as the photograph is, so that where the surface gives way to the trees
+       // close by there is no seam; the photograph only lends a little of its own hue
+       float cr = vn2(vWp.xz * 0.3), st = vn2(vWp.xz * 0.045 + 13.0);
+       vec3 tint = mix(vec3(0.17, 0.3, 0.11), vec3(0.3, 0.4, 0.15), smoothstep(0.35, 0.75, st));
+       tint = mix(tint, vec3(0.24, 0.4, 0.15), smoothstep(0.55, 0.85, cr) * 0.7);
+       float pl = dot(ph, vec3(0.333));
+       vec3 alb = mix(tint * clamp(pl / 0.3, 0.7, 1.15), ph * 0.7, 0.15) * 0.82;
+       alb *= (0.68 + 0.5 * leaf) * mix(0.38, 1.1, smoothstep(0.2, 0.62, vn2(vWp.xz * 0.55 + 3.0)) * 0.7 + smoothstep(0.3, 0.7, cr) * 0.3) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // (crowns in light and shade; the sides of the forest in shade)
        gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), 1.0);
      }`,
     { uniforms: { ...landUniforms(L), uNear: { value: 0 } }, opts: { side: THREE.DoubleSide } });
