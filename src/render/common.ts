@@ -82,6 +82,16 @@ uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform ve
 #define SUN uSunDir
 ${CAVE_GLSL}
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// a resident being watched (uCut.xyz, on when uCut.w > 0): leaves and twigs on the line of sight between it and
+// the camera are let through, in a soft-edged tunnel — the trees around stay whole
+bool cutSight(vec3 wp){
+  if (uCut.w <= 0.0) return false;
+  vec3 a = uCut.xyz + vec3(0.0, 0.4, 0.0), ab = uCamPos - a; float L2 = max(dot(ab, ab), 1e-3);
+  float t = dot(wp - a, ab) / L2;
+  if (t < 0.04 || t > 1.0) return false;
+  float d = length(wp - a - ab * t), r = mix(1.1, 3.2, t * t);   // (wider by the camera, so it is never inside a crown)
+  return d < r * (1.0 + 0.25 * sin(wp.x * 3.1 + wp.y * 2.3) * sin(wp.z * 2.7 - wp.y * 1.9));   // (a ragged, not a ruled, edge)
+}
 float caustic(vec2 uv, float t){
   vec2 p = mod(uv * 6.28318, 6.28318) - 250.0;
   vec2 i = p; float c = 1.0; float inten = 0.005;
@@ -100,6 +110,14 @@ float caus2(vec3 wp){
 }
 float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), u.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x), u.y); }
+// light through the leaves: under a forest canopy at wp, 1 in a fleck of sun, 0 in the shade; the flecks lie
+// along the sun's direction from the canopy above and drift a little as the crowns sway
+float dapple(vec3 wp, float top){
+  vec2 q = wp.xz + uAirSun.xz / max(uAirSun.y, 0.25) * (top - wp.y);
+  q += vec2(sin(uTime * 0.6 + q.y * 0.1), cos(uTime * 0.5 + q.x * 0.1)) * 0.15;
+  float n = vn2(q * 0.55) * 0.55 + vn2(q * 1.7 + 3.0) * 0.45;
+  return smoothstep(0.6, 0.72, n) * smoothstep(0.02, 0.2, uAirSun.y);
+}
 float vor(vec2 p){
   vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0;
   for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {

@@ -69,9 +69,9 @@ vec3 landAlbedo(vec3 wp){
   grass = mix(grass, sand * 0.9, smoothstep(0.65, 0.85, vn2(p * 0.7 + 11.0)) * 0.6);
   grass = mix(grass, vec3(0.9, 0.85, 0.5), (1.0 - smoothstep(0.02, 0.06, cellF1(p * 3.0 + 7.0))) * step(0.93, hash2(floor(p * 3.0 + 7.0))));
   // the forest floor: dark soil under a layer of dry leaves (browns, ochres, the odd green one), roots
-  vec2 pw = p + vec2(vn2(p * 1.3), vn2(p * 1.3 + 9.0)) * 1.4;   // (warped, so the leaves lie at random rather than in rows)
+  vec2 pw = p + vec2(vn2(p * 2.3), vn2(p * 2.3 + 9.0)) * 0.5;   // (warped, so the leaves lie at random rather than in rows)
   float leaf = min(cellF1(pw * 7.0), cellF1(pw * 11.0 + 3.0) * 1.2), lv = hash2(floor(pw * 7.0)) * 0.6 + vn2(p * 3.0) * 0.4;
-  vec3 litter = mix(vec3(0.22, 0.17, 0.12), mix(vec3(0.46, 0.34, 0.2), vec3(0.32, 0.25, 0.15), lv), smoothstep(0.42, 0.22, leaf) * (0.55 + 0.45 * vn2(p * 0.8)));
+  vec3 litter = mix(vec3(0.2, 0.16, 0.12), mix(vec3(0.4, 0.32, 0.22), vec3(0.3, 0.25, 0.18), lv), smoothstep(0.42, 0.22, leaf) * (0.45 + 0.4 * vn2(p * 0.8)));
   litter = mix(litter, vec3(0.3, 0.36, 0.16), step(0.92, lv) * smoothstep(0.4, 0.2, leaf));
   float root = 1.0 - smoothstep(0.0, 0.06, abs(vn2(p * 0.9 + 3.0) - 0.5));
   litter = mix(litter, vec3(0.33, 0.27, 0.2), root * 0.6);
@@ -80,6 +80,7 @@ vec3 landAlbedo(vec3 wp){
   vec3 rock = mix(vec3(0.62, 0.6, 0.55), rc * 1.3, 0.5) * (0.75 + 0.35 * vn2(p * 2.0));
   vec3 a = sand * sandW + grass * grassW + litter * litterW + rock * rockW;
   a /= max(sandW + grassW + litterW + rockW, 1e-3);
+  a *= mix(1.0, 0.45 + 0.55 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun)
   landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (smoothstep(0.45, 0.15, leaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
   // wet sand by the water: darker, a little glossy (see airLit's caller), then the swash line
   float wet = 1.0 - smoothstep(0.02, 0.5, wp.y);
@@ -213,7 +214,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     `${AIRLIT}
      varying vec3 vWp; varying vec3 vN; varying vec3 vCol;
      void main(){
-       if (length(vWp.xz - uCut.xz) < uCut.w && vWp.y > uCut.y + 0.9) discard;   // (the crowns over a resident being watched)
+       if (cutSight(vWp)) discard;   // (the leaves between the camera and a resident being watched)
        vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
        n = normalize(n + vec3(0.0, 0.35, 0.0));
        gl_FragColor = vec4(fogIt(airLit(vCol, n, vWp, 0.7), vWp), 1.0);
