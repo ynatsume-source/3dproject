@@ -3,7 +3,8 @@
 // Yaeyama beach, placed where the photograph shows them: casuarina (モクマオウ) and screw pine (アダン)
 // along the forest edge, beach naupaka (クサトベラ) and tree heliotrope (モンパノキ) on the upper beach.
 import * as THREE from 'three';
-import { mat } from '../render/common';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mat, U } from '../render/common';
 import { SURF_UNIFORMS } from '../render/surface';
 import { hash, smooth, R, rr } from '../core/math';
 import { WORLD } from './scenery';
@@ -180,7 +181,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
 
   /* ---------- plants of the beach and the forest edge ---------- */
   type Spot = { x: number; z: number; y: number; s: number; ry: number };
-  const lists: Record<string, Spot[]> = { casuarina: [], pandanus: [], naupaka: [], heliotrope: [] };
+  const lists: Record<string, Spot[]> = { casuarina: [], pandanus: [], naupaka: [], heliotrope: [], drift: [], rock: [] };
   const cellsOf: Record<string, Map<string, Spot[]>> = {};
   const far = (list: Spot[], x: number, z: number, d: number) => {   // nothing of this kind within d
     const kind = Object.keys(lists).find((k) => lists[k] === list)!, M = (cellsOf[kind] ??= new Map());
@@ -200,8 +201,10 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     else if (c > 0.15 && c < 0.7 && near(sand, x, z, 4) > 0.4 && lists.pandanus.length < 460 && far(lists.pandanus, x, z, 4.2)) add('pandanus', { x, z, y, s: rr(2.6, 4.2), ry: R() * 6.28 });
     else if (sd > 0.35 && c < 0.3 && near(can, x, z, 4) > 0.4 && y > 0.9 && lists.naupaka.length < 560 && far(lists.naupaka, x, z, 2.0)) add('naupaka', { x, z, y, s: rr(1.4, 2.4), ry: R() * 6.28 });
     else if (sd > 0.6 && c < 0.1 && near(can, x, z, 10) > 0.3 && y > 1.1 && lists.heliotrope.length < 120 && far(lists.heliotrope, x, z, 6)) add('heliotrope', { x, z, y, s: rr(2.4, 4), ry: R() * 6.28 });
+    else if (sd > 0.5 && c < 0.2 && y > 0.7 && y < 1.5 && lists.drift.length < 160 && far(lists.drift, x, z, 7)) add('drift', { x, z, y: y + 0.08, s: rr(1.6, 4.5), ry: R() * 6.28 });
+    else if ((L.rock(x, z) > 0.4 || (y < 0.9 && hash(x * 3.3, z * 1.7) < 0.15)) && lists.rock.length < 260 && far(lists.rock, x, z, 3)) add('rock', { x, z, y: y + 0.05, s: rr(0.4, 1.4), ry: R() * 6.28 });
   }
-  const geos: Record<string, THREE.BufferGeometry> = { casuarina: casuarinaGeo(), pandanus: pandanusGeo(), naupaka: shrubGeo(false), heliotrope: shrubGeo(true) };
+  const geos: Record<string, THREE.BufferGeometry> = { casuarina: casuarinaGeo(), pandanus: pandanusGeo(), naupaka: shrubGeo(false), heliotrope: shrubGeo(true), drift: driftGeo(), rock: rockGeo() };
   const plantMat = mat(
     `attribute vec3 aTint; attribute float aSway; varying vec3 vWp; varying vec3 vN; varying vec3 vCol;
      void main(){
@@ -226,7 +229,8 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     const mesh = new THREE.InstancedMesh(geos[kind], plantMat, list.length);
     list.forEach((it, i) => {
       q.setFromEuler(e.set((R() - 0.5) * 0.12, it.ry, (R() - 0.5) * 0.12));
-      mesh.setMatrixAt(i, m4.compose(p3.set(it.x, it.y - 0.1, it.z), q, s3.set(it.s * rr(0.85, 1.15), it.s, it.s * rr(0.85, 1.15))));
+      if (kind === 'drift') s3.set(it.s, it.s * 0.45, it.s * 0.45); else s3.set(it.s * rr(0.85, 1.15), it.s, it.s * rr(0.85, 1.15));
+      mesh.setMatrixAt(i, m4.compose(p3.set(it.x, it.y - 0.1, it.z), q, s3));
     });
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
@@ -235,7 +239,12 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   return {
     canopy, plants: count, lists, forest,
     // each frame: the trees near the camera, and the canopy surface stepping aside for them
-    update(cam: THREE.Vector3, near: number) { forest.update(cam, near); (canopyMat.uniforms.uNear as { value: number }).value = near; },
+    update(cam: THREE.Vector3, near: number) {
+      forest.update(cam, near); (canopyMat.uniforms.uNear as { value: number }).value = near;
+      // under the trees? then the air there is hazy (render/common.ts fogAir)
+      const inF = Math.abs(cam.x) < FAR && Math.abs(cam.z) < FAR && cam.y > 0 && can(cam.x, cam.z) > 0.5 && cam.y < top(cam.x, cam.z).y - 0.5 ? 1 : 0;
+      U.uHaze.value += (inF - U.uHaze.value) * 0.05;
+    },
     push: (p: THREE.Vector3) => forest.push(p),
   };
 }
@@ -335,20 +344,94 @@ function pandanusGeo() {
   }
   return B.geo();
 }
-// クサトベラ (glossy bright green, big leaves) and モンパノキ (silvery, felted): low domes of leaves
-function shrubGeo(silver: boolean) {
-  const B = new Builder();
-  for (let k = 0; k < 5; k++) { const a = R() * 6.28; B.tube(V(0, 0, 0), V(Math.cos(a) * 0.3, 0.45, Math.sin(a) * 0.3), 0.025, 0.012, [0.35, 0.3, 0.24], 0, 0.2, 4); }
-  const n = silver ? 260 : 220, L = silver ? 0.1 : 0.15;
+// クサトベラ (beach naupaka): a low dome of shoots, each ending in a rosette of fleshy, glossy, spoon-shaped
+// leaves held up and out, the young ones at the centre paler; モンパノキ (tree heliotrope): a small gnarled
+// tree, its silvery felted leaves in loose rosettes at the ends of the twigs, the crown a rounded heap of them
+function rosette(B: Builder, c: THREE.Vector3, out: THREE.Vector3, n: number, L: number, col: number[], young: number[], sway: number) {
+  const up = V(0, 1, 0), a0 = R() * 6.28;
   for (let k = 0; k < n; k++) {
-    const u = R() * 6.28, v = Math.acos(1 - R() * 1.15);   // upper part of a sphere
-    const nm = V(Math.sin(v) * Math.cos(u), Math.cos(v), Math.sin(v) * Math.sin(u));
-    const c = V(nm.x * 0.55, 0.12 + nm.y * 0.5, nm.z * 0.55).multiplyScalar(0.8 + R() * 0.25);
-    const t1 = V(-nm.z, 0, nm.x).normalize(), t2 = new THREE.Vector3().crossVectors(nm, t1).normalize();
-    const r = R() * 6.28, a = t1.clone().multiplyScalar(Math.cos(r)).addScaledVector(t2, Math.sin(r)), b = t1.clone().multiplyScalar(-Math.sin(r)).addScaledVector(t2, Math.cos(r));
-    const col = silver ? jit([0.56, 0.62, 0.52], 0.18) : jit([0.26, 0.5, 0.2], 0.3);
-    const lw = L * 0.45;
-    B.quad(c.clone().addScaledVector(a, -L).addScaledVector(b, -lw * 0.3), c.clone().addScaledVector(b, -lw), c.clone().addScaledVector(a, L), c.clone().addScaledVector(b, lw), nm, col, [0.3, 0.3, 0.3, 0.3]);
+    const an = a0 + k * 2.4, inner = k < 2;
+    // each leaf leans out from the rosette's axis (the shoot's direction), the inner ones more upright
+    const side = V(Math.cos(an), 0, Math.sin(an)), tilt = inner ? 0.35 : 0.85;
+    const d = out.clone().multiplyScalar(1 - tilt * 0.6).addScaledVector(side, tilt).addScaledVector(up, 0.25).normalize();
+    const w = V(-d.z, 0, d.x).normalize(), l = L * (inner ? 0.6 : rr(0.85, 1.15));
+    const nrm = new THREE.Vector3().crossVectors(w, d).normalize(); if (nrm.y < 0) nrm.negate();
+    const dome = out.clone().add(up).normalize(), nm = nrm.lerp(dome, 0.55).normalize();
+    // spoon-shaped: narrow at the stalk, widest two-thirds out, round at the tip
+    const p0 = c, p1 = c.clone().addScaledVector(d, l * 0.62), p2 = c.clone().addScaledVector(d, l);
+    const hw = l * 0.24;
+    B.quad(p0, p1.clone().addScaledVector(w, -hw), p2, p1.clone().addScaledVector(w, hw), nm, jit(inner ? young : col, 0.2), [sway, sway + 0.05, sway + 0.1, sway + 0.05]);
+  }
+}
+// the leafy heart of a shrub or crown: a lumpy dome, so what shows between the rosettes is more leaves, not sand
+function dome(B: Builder, c: THREE.Vector3, rx: number, ry: number, col: number[], sway: number) {
+  const NU = 12, NV = 5, seed = R() * 30, pt = (i: number, j: number) => {
+    const u = i / NU * 6.28, v = j / NV * Math.PI * 0.5, n = V(Math.cos(v) * Math.cos(u), Math.sin(v), Math.cos(v) * Math.sin(u));
+    const r = 0.85 + 0.25 * Math.abs(Math.sin(u * 3 + seed) * Math.sin(v * 4 + seed * 0.7));
+    return { p: V(c.x + n.x * rx * r, c.y + n.y * ry * r, c.z + n.z * rx * r), n };
+  };
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+    const a = pt(i, j), b = pt(i + 1, j), d = pt(i + 1, j + 1), e = pt(i, j + 1);
+    B.quad(a.p, b.p, d.p, e.p, a.n.clone().add(d.n).normalize(), jit(col, 0.15), [sway * 0.5, sway * 0.5, sway, sway]);
+  }
+}
+function shrubGeo(silver: boolean) {
+  const B = new Builder(), bark = silver ? [0.42, 0.38, 0.32] : [0.4, 0.36, 0.26];
+  if (!silver) {
+    dome(B, V(0, 0.02, 0), 0.5, 0.42, [0.13, 0.3, 0.11], 0.15);
+    // shoots spreading from the foot to points over a low dome, a rosette at each
+    for (let k = 0; k < 85; k++) {
+      const u = R() * 6.28, v = Math.acos(1 - R() * 1.1);
+      const nm = V(Math.sin(v) * Math.cos(u), Math.cos(v), Math.sin(v) * Math.sin(u));
+      const tip = V(nm.x * 0.6, 0.08 + nm.y * 0.45, nm.z * 0.6).multiplyScalar(rr(0.8, 1.05));
+      const mid = tip.clone().multiplyScalar(0.5).add(V(0, -0.04, 0));
+      if (k % 3 === 0) { B.tube(V(nm.x * 0.05, 0, nm.z * 0.05), mid, 0.018, 0.012, bark, 0, 0.1, 3); B.tube(mid, tip, 0.012, 0.008, bark, 0.1, 0.25, 3); }
+      rosette(B, tip, V(nm.x, nm.y * 0.6, nm.z).normalize(), 8, rr(0.15, 0.2), [0.2, 0.44, 0.16], [0.42, 0.6, 0.25], 0.25);
+    }
+  } else {
+    // a short crooked trunk, limbs out and up, twigs ending in rosettes
+    const top = V(rr(-0.06, 0.06), 0.3, rr(-0.06, 0.06)), cc = top.clone().add(V(0, 0.22, 0));
+    B.tube(V(0, 0, 0), top, 0.05, 0.035, bark, 0, 0.05, 6);
+    dome(B, cc.clone().add(V(0, -0.06, 0)), 0.42, 0.3, [0.34, 0.4, 0.32], 0.25);
+    for (let k = 0; k < 5; k++) {
+      const an = k * 1.26 + R() * 0.5, e = top.clone().add(V(Math.cos(an) * rr(0.18, 0.28), rr(0.1, 0.2), Math.sin(an) * rr(0.18, 0.28)));
+      B.tube(top, e, 0.03, 0.015, bark, 0.05, 0.25, 4);
+      for (let j = 0; j < 11; j++) {
+        // twig ends over a rounded crown
+        const u = R() * 6.28, v = Math.acos(1 - R() * 1.2), t = cc.clone().add(V(Math.sin(v) * Math.cos(u) * 0.5, Math.cos(v) * 0.32, Math.sin(v) * Math.sin(u) * 0.5));
+        B.tube(e, t, 0.012, 0.006, bark, 0.25, 0.35, 3);
+        const o = t.clone().sub(cc).normalize();
+        rosette(B, t, o, 12, rr(0.12, 0.16), [0.42, 0.5, 0.4], [0.52, 0.6, 0.47], 0.35);
+      }
+    }
   }
   return B.geo();
+}
+// driftwood thrown up along the high-tide line: bleached, split, a stub of root or branch; and beach rocks
+function driftGeo() {
+  const B = new Builder(), col = [0.66, 0.63, 0.57];
+  const a = V(-0.5, 0.04, 0), m = V(rr(-0.05, 0.05), 0.05, rr(-0.04, 0.04)), b = V(0.5, 0.035, rr(-0.06, 0.06));
+  B.tube(a, m, 0.06, 0.055, jit(col, 0.1), 0, 0, 6); B.tube(m, b, 0.055, 0.035, jit(col, 0.1), 0, 0, 6);
+  for (let k = 0; k < 3; k++) { const p = a.clone().lerp(b, rr(0.1, 0.8)), an = R() * 6.28; B.tube(p, p.clone().add(V(Math.cos(an) * 0.1, rr(0.02, 0.1), Math.sin(an) * 0.1)), 0.02, 0.01, jit(col, 0.12), 0, 0, 4); }
+  // the root plate at one end: short stubs splaying out
+  for (let k = 0; k < 6; k++) { const an = k * 1.05 + R() * 0.4; B.tube(a, a.clone().add(V(-0.05, Math.sin(an) * 0.12 + 0.03, Math.cos(an) * 0.12)), 0.03, 0.008, jit([0.55, 0.5, 0.44], 0.15), 0, 0, 3); }
+  return B.geo();
+}
+function rockGeo() {
+  const g0 = new THREE.IcosahedronGeometry(1, 3); g0.deleteAttribute('normal'); g0.deleteAttribute('uv');
+  const g = mergeVertices(g0), P = g.attributes.position;
+  const seed = R() * 40, C: number[] = [], W: number[] = [];
+  for (let k = 0; k < P.count; k++) {
+    const v = new THREE.Vector3(P.getX(k), P.getY(k), P.getZ(k)).normalize();
+    const n1 = Math.sin(v.x * 4.1 + seed) * Math.sin(v.y * 3.7 + seed * 0.7) * Math.sin(v.z * 4.3 + seed * 1.3);
+    const n2 = Math.sin(v.x * 9 + v.z * 7 + seed) * Math.sin(v.y * 8 - v.x * 5), n3 = Math.sin(v.x * 23 + v.y * 19 + seed) * Math.sin(v.z * 21 - v.y * 17);
+    const r = 1 + 0.22 * n1 + 0.07 * n2 + 0.025 * n3;   // (lumps, ledges, and the sharp pitting of raised coral rock)
+    P.setXYZ(k, v.x * r, Math.max(-0.2, v.y * 0.55 * r), v.z * r * 0.85);
+    // grey limestone, dark in the hollows and at the foot (wet, algae), pale on the tops
+    const t = 0.5 + 0.5 * v.y, dk = (n1 < -0.1 ? 0.75 : 1) * (0.85 + 0.25 * n3) * (v.y < -0.1 ? 0.7 : 1);
+    C.push(0.5 * dk * (0.75 + 0.35 * t), 0.49 * dk * (0.75 + 0.35 * t), 0.44 * dk * (0.72 + 0.35 * t)); W.push(0);
+  }
+  g.computeVertexNormals();
+  g.setAttribute('aTint', new THREE.Float32BufferAttribute(C, 3)); g.setAttribute('aSway', new THREE.Float32BufferAttribute(W, 1));
+  return g;
 }
