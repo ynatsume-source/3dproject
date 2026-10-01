@@ -107,7 +107,7 @@ const { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakk
 const ROBOTS = [
   { name: 'ドット', en: 'DOT', text: '丸い画面の顔に点の目。表情で気持ちを伝える、いちばんアイコン的な姿。器用な三本指の手で道具を作り、背中の太陽電池で動く。', make: makeDot, scale: 1 },
   { name: 'カメマル', en: 'KAMEMARU', text: '年寄りのアオウミガメ。いつも真顔。甲羅のてっぺんに双葉が一本。ラグーンの海草を食べ、数分ごとに息つぎに浮かび、夜は海の底で眠る。', make: makeKame, scale: 1 },
-  { name: 'ラッコ', en: 'RAKKO', text: 'ラッコ。いつも真顔で、白い線の入った石を手放さない。潜ってウニやカニや貝をとり、仰向けに浮かんでお腹の上で食べる。アホ毛が一本。', make: makeRakko, scale: 1.2 },
+  { name: 'ラッコ', en: 'RAKKO', text: 'ラッコ。首に海藻のスカーフ、頭にぴょこ毛。白い線の入った石を手放さない。潜ってウニやカニや貝をとり、仰向けに浮かんでお腹の上で食べる。', make: makeRakko, scale: 1.2 },
   { name: 'ランタン', en: 'LANTERN', text: '箱の体に長い四本脚。顔は光の輪で、考えるときに明滅する。岩場も軽々と歩く、いちばんAIらしい抽象的な姿。', make: makeLantern, scale: 1 },
 ];
 const bots = ROBOTS.map((r, i) => {
@@ -142,8 +142,8 @@ const DRAFTS: Record<string, { name: string; look: Look }[]> = {
       ['カメマル', makeChibiTurtle, undefined, 0],
       ['カメマル　泳ぐ', makeChibiTurtle, swim, 0.25],
     ] : which === 'pick' ? [
-      ['ラッコ', () => makeChibiOtter('rakko'), undefined, 0],
-      ['ラッコ　ウニを食べる', () => makeChibiOtter('rakko'), eat, 0.18],
+      ['ラッコ', makeRakko, undefined, 0],
+      ['ラッコ　ウニを食べる', makeRakko, eat, 0.25],
       ['カメマル', () => makeChibiTurtle('kame'), undefined, 0],
       ['カメマル　泳ぐ', () => makeChibiTurtle('kame'), swim, 0.25],
     ] : which === 'odd' ? [

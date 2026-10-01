@@ -510,7 +510,8 @@ export function creatureKit(M: CMats, shadows = false) {
     } };
   }
 
-  // the island's own two, as chosen: straight-faced Rakko with an otter's build, browless Kamemaru
-  const makeRakko = () => makeChibiOtter('rakko'), makeKame = () => makeChibiTurtle('kame');
+  // the island's own two, as chosen: Rakko the real otter, a little characterful (bigger eyes with a glint,
+  // its tuft, its white-banded stone) with a scarf of kelp round its neck; Kamemaru straight-faced, browless
+  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.45, shine: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
   return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakko, makeKame };
 }

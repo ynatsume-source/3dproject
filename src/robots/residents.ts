@@ -83,6 +83,7 @@ function cmats(): CMats {
     nose: rmat(0x0d0c0c, 0.9), eye: rmat(0x050506, 1.8),
     carapace: rmat(0x5a4426, 0.8, false, 1), plastron: rmat(0xd8c890, 0.3), skin: rmat(0x4c3b24, 0.45, false, 2, 6), beak: rmat(0x6a5838, 0.6),
     stone: rmat(0x7d776e, 0.15), urchin: rmat(0x3b1736, 0.5), crab: rmat(0xb04a2a, 0.5), clam: rmat(0xcbbca4, 0.5),
+    white: rmat(0xf4f1ea, 0.3), kelp: rmat(0x5d6b2a, 0.35),
     // the characters' flat colours
     chibi: {
       brown: rmat(0x4b2e1f, 0.15), brownOdd: rmat(0x4b2e1f, 0.15), belly: rmat(0xc99a70, 0.1), cream: rmat(0xf0dcb8, 0.1), paw: rmat(0x3e2518, 0.1), nose: rmat(0x1c120d, 0.8), mouth: rmat(0x8c3b3b, 0.3),
