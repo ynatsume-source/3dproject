@@ -49,6 +49,7 @@ export class Director {
   rest: [number, number] = [30, 70];
   private side = 1;
   private brT = 0;
+  private brN = 0; private brSince = -1e9;   // leaps watched lately (two or three, then on to something else for a while)
 
   reset() { this.shot = null; this.cooldown = 10; }
   // give up on what it is filming (it could not get there, or nothing could be seen of it): leave it be
@@ -138,10 +139,12 @@ export class Director {
     // ride through the cave) and get to the waterline in time
     if ((this.brT -= dt) < 0 && !this.shot?.subject.breach && !this.shot?.asked && !this.shot?.subject.tour) {
       this.brT = 0.5;
+      if (this.clock - this.brSince > 900) this.brN = 0;
       for (const s of subjects()) {
-        if (!s.breach || !s.live() || (this.skipUntil.get(s.key) ?? 0) > this.clock) continue;
+        if (!s.breach || !s.live() || (this.skipUntil.get(s.key) ?? 0) > this.clock || this.brN >= 3) continue;
         const p = s.pos(); if (!p || Math.hypot(p.x - drone.x, p.z - drone.z) > (s.reach ?? 42)) continue;
-        this.begin(s, drone, false); break;
+        if (this.brN === 0) this.brSince = this.clock;
+        this.brN++; this.begin(s, drone, false); break;
       }
     }
     if (!this.shot) {

@@ -75,6 +75,10 @@ export function makeFishSystem(sp: Species, oc: any) {
     }
   }
   geo.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
+  // how hard each fish is bending into a turn (big ones only), for the vertex shader
+  const fb = new Float32Array(total), bendAttr = new THREE.InstancedBufferAttribute(new Float32Array(total), 1);
+  bendAttr.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('aBend', bendAttr);
+  const bigTurn = !!sp.big || sp.size[1] > 1.2, turnMax = 1.6 / (1 + sp.size[1]);
   const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp), total);
   mesh.frustumCulled = false;
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -356,9 +360,11 @@ export function makeFishSystem(sp: Species, oc: any) {
         const inCave = cave ? caveRoutine(g, dt, cam) : false;
         if (isPredator && !inCave) hunting = hunt(g, dt, env);
         if (!hunting && !inCave) {
-          g.head += (Math.sin(g.t * 0.23 + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt;
-          g.head += T.shore(g.c.x, g.c.z, g.head, 5, 1.2) * Math.min(1, dt * 1.5);
-          if (Math.abs(g.c.x) > LIMIT || Math.abs(g.c.z) > LIMIT) { let d = Math.atan2(-g.c.z, -g.c.x) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8; }
+          // (a big one meanders in long, slow arcs: its wandering scaled to how fast it can turn)
+          const wk = bigTurn ? Math.min(1, turnMax * 1.5) : 1;
+          g.head += (Math.sin(g.t * 0.23 * wk + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt * wk;
+          g.head += T.shore(g.c.x, g.c.z, g.head, 5 / wk, 1.2) * Math.min(1, dt * 1.5 * wk);
+          if (Math.abs(g.c.x) > LIMIT || Math.abs(g.c.z) > LIMIT) { let d = Math.atan2(-g.c.z, -g.c.x) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8 * wk; }
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
           g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(pace);
           g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;
@@ -449,7 +455,8 @@ export function makeFishSystem(sp: Species, oc: any) {
         const caveMode = g.cr ? g.cr.mode : 'out';
         if (g.type !== 'anem' && caveMode === 'out') {
           _w.set(px - cam.x, py - cam.y, pz - cam.z);
-          const cd = _w.length(), fr = sp.big ? 3.5 : 4.5;
+          // (the giants, a whale shark grazing on plankton, pay a small drone no mind)
+          const cd = _w.length(), fr = sp.diet === 'filter' || sp.size[1] > 3 ? 0 : sp.big ? 3.5 : 4.5;
           if (cd < fr) { _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1)); g.fear = Math.max(g.fear, 0.5 * (1 - cd / fr)); }   // (startled: a quick dart, turning on a pin)
           if (!isPredator && !ch) for (const th of env.threats) {
             if (!th.r) continue;
@@ -460,6 +467,18 @@ export function makeFishSystem(sp: Species, oc: any) {
         if (py < fl + 0.15) _v.y = Math.max(_v.y, Math.min((fl + 0.15 - py) * 3, 1.2));   // ease back out of the reef, no kick
         const k = 1 - Math.exp(-dt * (ch ? 9 : lone ? 1.0 : 2.6 + g.fear * 2));   // (a chased fish turns on a pin)
         let vx = fv[i * 3] + (_v.x - fv[i * 3]) * k, vy = fv[i * 3 + 1] + (_v.y - fv[i * 3 + 1]) * k, vz = fv[i * 3 + 2] + (_v.z - fv[i * 3 + 2]) * k;
+        // a big fish cannot turn on a pin: its heading swings round no faster than its length allows, and
+        // its body curves into the turn (the bend goes to the model, below)
+        if (bigTurn && !ch && !g.hunt) {
+          const s0 = Math.hypot(fv[i * 3], fv[i * 3 + 2]), s1 = Math.hypot(vx, vz);
+          if (s0 > 0.03 && s1 > 0.03) {
+            const h0 = Math.atan2(fv[i * 3 + 2], fv[i * 3]); let d = Math.atan2(vz, vx) - h0; d = Math.atan2(Math.sin(d), Math.cos(d));
+            const md = turnMax * dt, dd = Math.max(-md, Math.min(md, d));
+            vx = Math.cos(h0 + dd) * s1; vz = Math.sin(h0 + dd) * s1;
+            fb[i] += (-(dd / Math.max(dt, 1e-3)) / turnMax * 0.22 - fb[i]) * Math.min(1, dt * 2);
+          }
+          bendAttr.array[i] = fb[i];
+        }
         fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;
         let nx = px + vx * dt, ny = Math.min(py + vy * dt, -0.5), nz = pz + vz * dt;
         if (oc.cave && oc.cave.pushOut(_c.set(nx, ny, nz), 0.12 * sp.size[1] + 0.1)) { nx = _c.x; ny = _c.y; nz = _c.z; }   // slide off the cave rock
@@ -488,7 +507,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       const resting = groups.filter((g) => g.cr!.mode === 'rest').length / groups.length;
       (mesh.material as THREE.ShaderMaterial).uniforms.uWig.value = (sp.wig ?? 1) * (1 - 0.8 * resting);
     }
-    if (dirty) { mesh.instanceMatrix.needsUpdate = true; if (cocoon) cocoon.instanceMatrix.needsUpdate = true; }
+    if (dirty) { mesh.instanceMatrix.needsUpdate = true; if (bigTurn) bendAttr.needsUpdate = true; if (cocoon) cocoon.instanceMatrix.needsUpdate = true; }
   }
 
   function nearest(cam: THREE.Vector3, fwd: THREE.Vector3, maxD: number) {

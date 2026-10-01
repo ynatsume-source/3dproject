@@ -771,10 +771,12 @@ export function fishGeometry(sh, low = false) {
 export function fishMaterial(sp) {
   const c = (a) => new THREE.Color(a[0], a[1], a[2]);
   return mat(
-    `attribute vec3 aSwim; attribute float aFin; uniform float uWig;
+    `attribute vec3 aSwim; attribute float aFin; attribute float aBend; uniform float uWig;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear;
      void main(){
        vec3 p = position;
+       // turning: the body curves into a C, head and tail both swung toward the inside of the turn
+       p.x += aBend * (p.z - 0.05) * (p.z - 0.05) * 1.6;
        float back = clamp((0.25 - p.z) / 1.0, 0.0, 1.0);
        #if PAT == 20
          // the sunfish sculls: dorsal and anal fins sweep together from side to side, the clavus steers

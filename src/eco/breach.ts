@@ -91,8 +91,9 @@ export function makeBreach(oc: any) {
     const r = newRun(kind), vT = vy / Math.sin(RUN[kind].pE);
     let T = 0; while (!r.done && T < 20) { runStep(r, kind, vT, 1 / 60); T += 1 / 60; }
     const start = c.clone().addScaledVector(dir, -r.x);
-    leap = { kind, c: start, dir, t: 0, len: L, vy, twist: (R() < 0.5 ? -1 : 1) * (kind === 'whale' ? rr(1.4, 2.4) : rr(0, 0.6)),
-      flip: kind === 'manta' && R() < 0.45 ? (R() < 0.5 ? -1 : 1) * Math.PI * 2 : 0, splashed: false, left,
+    leap = { kind, c: start, dir, t: 0, len: L, vy, twist: (R() < 0.5 ? -1 : 1) * (kind === 'whale' ? rr(1.4, 2.4) : rr(0, 0.35)),
+      // (now and then a somersault: mostly a flat leap and a belly-flop)
+      flip: kind === 'manta' && R() < 0.12 ? (R() < 0.5 ? -1 : 1) * Math.PI * 2 : 0, splashed: false, left,
       run: newRun(kind), exitAt: WARN + T, heaved: false, vx: 0 };
     exitC.copy(c);
   }
@@ -105,7 +106,7 @@ export function makeBreach(oc: any) {
     force(kind: Kind, cam: THREE.Vector3, fx_: number, fz_: number) {
       const h = Math.atan2(fx_, fz_) + Math.PI / 2, d = new THREE.Vector3(Math.sin(h), 0, Math.cos(h));   // (side on to the camera)
       const c = place(kind, cam, fx_, fz_, undefined, undefined, d); if (!c) return false;
-      begin(kind, c, d, kind === 'whale' ? 1 + Math.floor(R() * 3) : 2 + Math.floor(R() * 3)); return true;
+      begin(kind, c, d, kind === 'whale' ? 1 + Math.floor(R() * 3) : 2 + Math.floor(R() * 2)); return true;
     },
     update(dt: number, env: Env, cam: THREE.Vector3, fx_: number, fz_: number, whaleSeason: boolean) {
       for (let i = foams.length - 1; i >= 0; i--) { const f = foams[i]; f.age += dt; if (f.age > f.life) foams.splice(i, 1); }
