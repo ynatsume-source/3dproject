@@ -50,6 +50,10 @@ export class Director {
   private side = 1;
 
   reset() { this.shot = null; this.cooldown = 10; }
+  // give up on what it is filming (it could not get there, or nothing could be seen of it): leave it be
+  // for a while, and go on cruising
+  private skipUntil = new Map<string, number>();
+  abandon(sec = 300) { if (!this.shot) return; this.skipUntil.set(this.shot.subject.key, this.clock + sec); this.shot = null; this.cooldown = rr(...this.rest); }
 
   // Go and film this now, however far it is (someone asked to see it).
   focus(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, true); }
@@ -87,6 +91,7 @@ export class Director {
   minHold = 8;     // (how long a shot is held before switching is considered)
   interest(s: Subject, drone: THREE.Vector3, fwd: THREE.Vector3, self = false) {
     const p = s.pos(); if (!p || !s.live()) return 0;
+    if ((this.skipUntil.get(s.key) ?? 0) > this.clock) return 0;
     const dx = p.x - drone.x, dy = p.y - drone.y, dz = p.z - drone.z, d = Math.hypot(dx, dy, dz);
     if (d > (s.reach ?? 42)) return 0;
     const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3);

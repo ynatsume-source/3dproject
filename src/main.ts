@@ -155,6 +155,7 @@ function nearestS(p: THREE.Vector3) {
   return best;
 }
 const director = new Director();
+let stuckT = 0;
 let lastShot: Shot | null = null;
 let huntK = 0, giantK = 0, zoomK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
@@ -234,7 +235,10 @@ function updateDrone(dt: number, now: number) {
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R);
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
-  if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; }
+  if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; stuckT = 0; }
+  // stuck: filming something (not riding a tour through), well short of the spot and hardly moving
+  // for ten seconds — blocked by rock on the way. Give it up and go on.
+  if (shot && !shot.subject.tour && drone.vel.length() < 0.2 && drone.pos.distanceTo(shot.pos) > 2.5) { if ((stuckT += dt) > 10) { director.abandon(); stuckT = 0; } } else stuckT = 0;
   if (watch.r && watch.pov && cur!.residents) {
     // through its own eyes: where its eyes are, looking where it looks (a drag glances aside)
     const sn = cur!.residents.sense(watch.r);
@@ -504,10 +508,16 @@ function applyPersona() {
   director.dwellK = persona.dwell; director.distK = persona.distK;
   director.styles = persona.styles; director.giantW = persona.giant; director.spinK = persona.spinK;
   director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest;
-  director.weight = (s) => persona.weight(s, taste(s));
+  director.weight = (s) => persona.weight(s, taste(s)) * reachable(s);
   director.jumpTo = (s) => !!persona.jumpTo?.(s, taste(s));
   for (const b of $('personas').querySelectorAll('button')) b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.p === persona.id));
   $('personaBlurb').textContent = persona.blurb;
+}
+// something deep inside the cave, seen from outside it, cannot be filmed from where the drone is: it
+// would only press against the rock (it is filmed on the way through the cave instead)
+function reachable(s: Subject) {
+  const cv = cur?.cave, p = s.pos(); if (!cv || !p || s.kind === 'cave') return 1;
+  return cv.skyAt(p.x, p.y, p.z) < 0.5 && camCave > 0.6 ? 0 : 1;
 }
 // what the guide knows of a subject, to weigh it: a shark? not yet in the field guide? and the hour
 const speciesKey = new Map<string, string | null>();
