@@ -69,13 +69,14 @@ export function swellAt(x: number, z: number): number {
 // glitter, the alpha how much of the water below it hides.
 export const topScene = new THREE.Scene();
 export const seaTop = new THREE.Mesh(DISC, mat(
-  SWELL + `varying vec3 vWp; varying float vFade;
+  SWELL + `varying vec3 vWp; varying float vFade; uniform float uDrop;
    void main(){
      vec4 w = modelMatrix * vec4(position, 1.0);
      float dist = length(w.xz - uCamPos.xz); vFade = dist;
      vec2 p0 = w.xz;
      w.xz += swellShift(p0, uTime, dist);
      w.y += swell(p0, uTime, dist).x;
+     w.y -= uDrop * (1.0 - smoothstep(1.5, 10.0, dist));   // (lowered round the lens only: see the split view)
      vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w;
    }`,
   SWELL + `varying vec3 vWp; varying float vFade;
@@ -128,6 +129,7 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        foam = max(foam, boil * smoothstep(0.52, 0.8, fbm2(p * 1.3 + vec2(t * 0.9, -t * 0.7)) * 0.7 + fbm2(p * 3.1 - vec2(t * 1.7, t * 1.1)) * 0.45));
        rough += boil * 0.06;
      }
+     float lf = seaFoam(p); foam = max(foam, lf); rough += lf * 0.05;
      vec3 foamC = (sunAirCol() * max(uAirSun.y, 0.0) * 0.9 + skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.8) * (1.0 + uFlash);
      // far off, the air itself: the sea melts into the sky at the horizon
      float fh = 1.0 - exp(-d / 18000.0);
@@ -152,7 +154,7 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        gl_FragColor = vec4(mix(o.rgb, haze, fh), mix(o.a, 1.0, fh));
      }
    }`,
-  { uniforms: { uPxA: { value: 0.0012 }, tRefr: { value: null }, uRefrOn: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) }, uProj: { value: new THREE.Matrix4() } },
+  { uniforms: { uDrop: { value: 0 }, uPxA: { value: 0.0012 }, tRefr: { value: null }, uRefrOn: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) }, uProj: { value: new THREE.Matrix4() } },
     opts: { side: THREE.DoubleSide, transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor } }));
 seaTop.frustumCulled = false;
 topScene.add(seaTop);

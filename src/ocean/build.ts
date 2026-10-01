@@ -1,4 +1,5 @@
 // Builds a sea from its description: seabed, reef, corals, anemones, garden eels and animals.
+import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
@@ -464,6 +465,7 @@ export function buildOcean(loc) {
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);
   oc.riders = makeRiders(oc); if (oc.riders) group.add(oc.riders.group);
   oc.critters = makeCritters(oc); if (oc.critters) group.add(oc.critters.group);
+  oc.breach = makeBreach(oc);   // whales and mantas leaping out of the sea
   oc.rare = makeRareEvents(oc);   // rare scenes, now and then   // morays, sea snakes, jellyfish   // remoras, pilot fish and trevally with the big ones
   oc.eco = new Ecosystem(oc);
   group.visible = false;

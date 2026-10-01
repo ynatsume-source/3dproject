@@ -359,6 +359,23 @@ export function splash() {
   }
 }
 
+// A whale (big = 1) or a manta (0.2-0.3) coming down on the sea, d metres off: a deep thump that
+// carries, then the roar of the water thrown up falling back, fading out over a few seconds.
+export function breachSound(big: number, d: number) {
+  if (!ac || !audio.on) return;
+  const a = ac, t0 = a.currentTime + d / 1500 + 0.02, near = 1 / (1 + d / 25);
+  const o = a.createOscillator(), og = a.createGain();
+  o.frequency.setValueAtTime(70 + 50 * (1 - big), t0); o.frequency.exponentialRampToValueAtTime(30, t0 + 0.9);
+  og.gain.setValueAtTime(0, t0); og.gain.linearRampToValueAtTime(0.5 * big * near + 0.05, t0 + 0.02); og.gain.exponentialRampToValueAtTime(0.0005, t0 + 1.2);
+  o.connect(og).connect(natureBus); o.start(t0); o.stop(t0 + 1.3);
+  const len = Math.floor(a.sampleRate * (2 + 3 * big)), b = a.createBuffer(1, len, a.sampleRate), dd = b.getChannelData(0);
+  for (let i = 0; i < len; i++) { const t = i / a.sampleRate; dd[i] = (Math.random() * 2 - 1) * Math.exp(-t * (2.2 - big)) * (t < 0.05 ? t / 0.05 : 1); }
+  const s = a.createBufferSource(); s.buffer = b;
+  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(900 + 1400 * near, t0); f.frequency.exponentialRampToValueAtTime(260, t0 + 1.5 + 2 * big);
+  const g = a.createGain(); g.gain.value = (0.12 + 0.25 * big) * near;
+  s.connect(f).connect(g).connect(natureBus); s.start(t0);
+}
+
 // ---------- above the water ----------
 // Out in the air the underwater bed, bubbles and reef crackle give way to wind and the slap and wash
 // of waves around the drone.

@@ -58,6 +58,7 @@ export class Ecosystem {
     this.oc.critters?.subjects(out);
     this.oc.rare?.subjects(out);
     whaleSubjects(this.oc, out);
+    this.oc.breach?.subjects(out);
     if (this.oc.bait) out.push(...this.oc.bait.subjects());
     const cave = this.oc.cave;
     if (cave) {
@@ -82,6 +83,7 @@ export class Ecosystem {
     updateOctopi(this.oc, dt, e, cam, fx, fz);
     const ws = this.oc.loc.whales;
     updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
+    this.oc.breach?.update(dt, e, cam, fx, fz, !!ws && inSeason(e.month, e.mday, ws));
     if (this.oc.bait) this.oc.bait.update(dt, e, cam, fx, fz, e.sound);
     this.oc.riders?.update(dt, t);
     this.oc.critters?.update(dt, e, cam, fx, fz);

@@ -54,6 +54,9 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      air += vec3(0.8, 0.88, 1.0) * star * uNight * (1.0 - smoothstep(0.3, 0.8, uCloud)) * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
      vec3 tir = waterCol(reflect(dir, -n)) * 0.9 + vec3(0.02, 0.05, 0.05) * uAmb;
      vec3 col = mix(tir, air, tr);
+     // white water overhead: the light comes through it soft and pale
+     float sf = seaFoam(p);
+     col = mix(col, (uSkyHi * 0.9 + uTint * uSunI * 0.5 + vec3(0.04)) * (1.0 + uFlash), sf * 0.85);
      col *= exp(-max(-uCamPos.y, 0.0) * vec3(0.05, 0.02, 0.015));
      gl_FragColor = vec4(fogIt(col, vWp), 1.0);
    }`, { opts: { side: THREE.DoubleSide } }));

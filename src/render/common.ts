@@ -39,6 +39,7 @@ export const U = {
   uSeaWorld: { value: 260 },   // how far the modelled seabed reaches (beyond it, seen from the air, the reef drops into the blue)
   uVolOff: { value: 0 },   // 1 when the volumetric light pass is off (light tier): fogIt stands in for its glow
   uSwell: { value: 0.4 },
+  uFoam: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },   // foam fields left by leaps: x, z, radius, freshness (1 → 0)
   uBoil: { value: new THREE.Vector4(0, 0, 1, 0) },   // a bait ball churning the surface: x, z, radius, strength  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
@@ -77,7 +78,7 @@ uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNi
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
-uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
+uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
 float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -172,6 +173,18 @@ vec3 hazeCol(vec3 dir){
 // ---------- above the water ----------
 #define SEA_WORLD uSeaWorld
 float fbm2(vec2 p){ float a = 0.5, s = 0.0; for (int i = 0; i < 5; i++) { s += a * vn2(p); p = mat2(1.6, 1.2, -1.2, 1.6) * p; a *= 0.5; } return s; }
+// the white water a leap leaves: solid at first, then breaking up into lace and streaks as it spreads and fades
+float seaFoam(vec2 p){
+  float o = 0.0;
+  for (int i = 0; i < 3; i++) {
+    vec4 f = uFoam[i]; if (f.w <= 0.0) continue;
+    vec2 q = p - f.xy; if (dot(q, q) > f.z * f.z * 1.7) continue;
+    float lace = fbm2(p * 0.55 + f.xy * 0.13) * 0.55 + fbm2(p * 2.1 - f.xy * 0.29 + uTime * 0.05) * 0.45;
+    float edge = smoothstep(1.15, 0.55, length(q) / f.z + (lace - 0.5) * 0.7);
+    o = max(o, edge * smoothstep(1.0 - f.w, 1.0 - f.w + 0.18, lace + 0.3 * f.w) * (0.35 + 0.65 * f.w));
+  }
+  return o;
+}
 // sunlight after the air it has crossed: white overhead, orange to red at the horizon, gone below it
 vec3 sunAirCol(){ float y = uAirSun.y; return mix(vec3(1.0, 0.36, 0.1), vec3(1.0, 0.96, 0.9), smoothstep(-0.02, 0.3, y)) * smoothstep(-0.06, 0.01, y); }
 float dayAir(){ return smoothstep(-0.12, 0.12, uAirSun.y); }

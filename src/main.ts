@@ -8,7 +8,7 @@ import { LOCATIONS, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
-import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop } from './ocean/air';
+import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss } from './ocean/air';
 import { SplitView, SPLIT_BAND } from './render/split';
 const split = new SplitView(), _sz = new THREE.Vector2();
 let airState = false;
@@ -33,10 +33,10 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
-import { updateSplash, splashAt, bubblesAt } from './ocean/splash';
+import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -233,7 +233,9 @@ function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
-  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R);
+  // (from the sky, a whale or manta leaping nearby is watched from above, whatever was being filmed)
+  const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260;
+  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap;
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; stuckT = 0; }
   // stuck: filming something (not riding a tour through), well short of the spot and hardly moving
@@ -271,7 +273,7 @@ function updateDrone(dt: number, now: number) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     _v.subVectors(way, drone.pos);
-    const L = _v.length(), top = shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
+    const L = _v.length(), top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
     const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
@@ -294,24 +296,29 @@ function updateDrone(dt: number, now: number) {
     // a bait ball nearby: wheel over it with the birds
     const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && Math.hypot(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
     if (overBall) { const oa = st * 0.12; _t.set(bb!.c.x + Math.cos(oa) * 26, 13, bb!.c.z + Math.sin(oa) * 26); }
+    // a leap: off to one side of its line and up, high enough to see the whole splash and the foam it leaves
+    const lc = overLeap ? bl!.c : null;
+    if (lc) { const big = bl!.kind === 'whale', d = big ? 34 : 16, sd = (drone.pos.x - lc.x) * -bl!.dir.z + (drone.pos.z - lc.z) * bl!.dir.x >= 0 ? 1 : -1; _t.set(lc.x - bl!.dir.z * sd * d + bl!.dir.x * 3, big ? 16 : 8, lc.z + bl!.dir.x * sd * d + bl!.dir.z * 3); }
     _v.subVectors(_t, drone.pos);
     // first, up through the surface on a slant, carrying on the way we were going
     if (drone.pos.y < 0) _v.set(-Math.sin(drone.yaw) * 1.8, 2.4, -Math.cos(drone.yaw) * 1.8);
     else {
       const L = Math.hypot(_v.x, _v.z);
-      _v.x *= Math.min(4.5, L * 0.3) / Math.max(L, 1e-4); _v.z *= Math.min(4.5, L * 0.3) / Math.max(L, 1e-4);
+      const top = lc ? 12 : 4.5;   // (to a leap: quickly, it will not wait)
+      _v.x *= Math.min(top, L * 0.3) / Math.max(L, 1e-4); _v.z *= Math.min(top, L * 0.3) / Math.max(L, 1e-4);
       _v.y = clamp(_v.y * 0.5, -2.5, 3);
     }
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (drone.pos.y < 0 ? 2 : 0.8)));
     const s = skyNow!, night = s.night, dusk = Math.max(s.golden, s.twilight * (1 - night));
     let wantYaw = Math.atan2(-drone.vel.x, -drone.vel.z) + Math.sin(st * 0.05) * 0.6;
     if (overBall) wantYaw = Math.atan2(-(bb!.c.x - drone.pos.x), -(bb!.c.z - drone.pos.z));
+    if (lc) wantYaw = Math.atan2(-(lc.x - drone.pos.x), -(lc.z - drone.pos.z));
     if (night > 0.5) wantYaw = drone.yaw + dt * 0.035;                       // at night, turn slowly under the sky
     else if (dusk > 0.3) wantYaw += angDiff(Math.atan2(-U.uAirSun.value.x, -U.uAirSun.value.z), wantYaw) * 0.7;   // face the sunset
-    const wantPitch = drone.pos.y < 0 ? 0.3 : overBall ? -Math.atan2(drone.pos.y + 1, Math.max(Math.hypot(bb!.c.x - drone.pos.x, bb!.c.z - drone.pos.z), 1))                                  // rising: watch the surface come closer
+    const wantPitch = drone.pos.y < 0 ? 0.3 : lc ? -Math.atan2(drone.pos.y - (bl!.kind === 'whale' ? 2.5 : 0.8), Math.max(Math.hypot(lc.x - drone.pos.x, lc.z - drone.pos.z), 1)) : overBall ? -Math.atan2(drone.pos.y + 1, Math.max(Math.hypot(bb!.c.x - drone.pos.x, bb!.c.z - drone.pos.z), 1))                                  // rising: watch the surface come closer
       : night > 0.5 ? 0.42 + Math.sin(st * 0.04) * 0.15 : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
-    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.35);
-    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.35);
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * (lc ? 1.2 : 0.35));
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * (lc ? 1.2 : 0.35));
   } else if (drone.mode === 'auto') {
     const hasI = findInterest(drone.pos, U.uCamFwd.value);
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
@@ -409,6 +416,9 @@ function updateDrone(dt: number, now: number) {
   const wasUp = drone.pos.y - drone.vel.y * dt > 0.2;
   const upShot = !!shot && shot.pos.y > 0.3;   // filming something ashore: out of the water and back
   const mayRise = drone.mode === 'manual' || drone.sky || upShot || !!watch.r, mayDive = drone.mode === 'manual' || (!drone.sky && !upShot && !watch.r);
+  // filming from the waterline (a leap out of the sea): once near the surface, ride it, half in and half out,
+  // for as long as the shot lasts; afterwards on down into the sea (or up, if it came down from the sky)
+  if (drone.mode === 'auto' && shot?.surface && Math.abs(drone.pos.y) < 1.2) { drone.skim = Math.max(drone.skim, 0.6); drone.skimDir = drone.sky ? 1 : -1; }
   if (drone.mode === 'manual') {
     // flown by hand it may stop anywhere, the waterline included (half in the sea, half in the air)
     const prevY = drone.pos.y - drone.vel.y * dt;
@@ -434,12 +444,14 @@ function updateDrone(dt: number, now: number) {
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
   drone.roll += ((watch.r ? 0 : -yawRate * 0.18) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
-  camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04;
+  camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04 * (drone.skim > 0 && lastShot?.surface ? 0.2 : 1);
   // just above the sea the camera rides the swell, rising, falling and rolling with it
   const ride = drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
   // (at the waterline it rides a little behind the swell, so the line between sea and air rises and falls across the view)
   const atLine = drone.skim > 0 || (drone.mode === 'manual' && Math.abs(drone.pos.y) < 0.6) ? 1 : 0;
-  camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z) * (1 - 0.25 * atLine) + atLine * (0.06 * Math.sin(t * 1.3) + 0.04 * Math.sin(t * 2.9 + 1));
+  // (waiting for a leap: right on the swell and a hair above it, so the far sea and the sky over it fill most of the frame)
+  const lineUp = atLine && lastShot?.surface && drone.mode === 'auto' ? 1 : 0;
+  camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z) * (1 - 0.25 * atLine * (1 - lineUp)) + atLine * (0.06 * Math.sin(t * 1.3) + 0.04 * Math.sin(t * 2.9 + 1)) * (1 - 0.7 * lineUp) + 0.1 * lineUp;
   // a look around while cruising: the drag turns the view, and once let go it drifts back ahead
   if (drone.mode === 'manual') { drone.yaw += look.yaw; drone.pitch = clamp(drone.pitch + look.pitch, -1.25, 1.25); look.yaw = look.pitch = 0; }
   else if (!look.held && now - look.let > 900) { const k = 1 - Math.exp(-dt * 0.8); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
@@ -704,7 +716,7 @@ let lastPhase = '';
 interface LogEntry { ms: number; kind: string; text: string }
 let dayLog: LogEntry[] = [], dayKey = '', logSaveT = 0;
 let saidRain = false;
-const LOG_KIND: Record<string, string> = { robot: '住人', voice: 'ガイド', phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', rest: '休息', manta: '採餌' };
+const LOG_KIND: Record<string, string> = { robot: '住人', voice: 'ガイド', phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', breach: '跳躍', rest: '休息', manta: '採餌' };
 function localDate(ms: number, tz: number) { const d = new Date(ms + tz * 3600000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
 function ensureDay() {
   const key = `seaglass.log.${cur!.loc.id}.${localDate(clock.ms, cur!.loc.tz)}`;
@@ -1244,6 +1256,8 @@ function enterOcean(oc: Ocean) {
   U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
   oc.eco.env.sound = { frenzy, plop };
+  oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt;
+  oc.breach.fx.sound = (big: number, x: number, z: number) => breachSound(big, Math.hypot(x - drone.pos.x, z - drone.pos.z));
   lastPhase = '';
   director.reset(); lastShot = null;
   dayKey = '';
@@ -2018,6 +2032,7 @@ function frame(ts: number) {
     }
     // a rare scene has begun: announce it, put it in the log, and (cruising) go and film it
     { const rs = cur.rare?.takeStarted(); if (rs) announceRare(rs); }
+    { const F = U.uFoam.value, fs = cur.breach.foams; for (let i = 0; i < 3; i++) { const f = fs[fs.length - 1 - i]; if (f) { const k = f.age / f.life; F[i].set(f.x, f.z, f.r * (1 + 1.6 * Math.sqrt(k)), Math.min(1, f.age * 4) * (1 - k)); } else F[i].w = 0; } }
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
@@ -2075,15 +2090,18 @@ function frame(ts: number) {
       for (const asAir of [false, true]) {
         U.uCamPos.value.y = asAir ? Math.max(cy, 0.03) : Math.min(cy, -0.03);
         // (and each side's sea surface just on the far side of the lens: under the water the surface is
-        // drawn a touch above the camera, from the air a touch below, so neither side sees it edge-on)
-        surface.position.y = asAir ? 0 : Math.max(0, lvl + 0.1); seaTop.position.y = asAir ? Math.min(0, lvl - 0.1) : 0;
+        // drawn a touch above the camera, from the air a touch below, so neither side sees it edge-on —
+        // from the air only close round the lens, or a shallow reef further off would show above the sea)
+        surface.position.y = asAir ? 0 : Math.max(0, cy + 0.1);   // (the flat underside: above the lens itself, even on a crest) (seaTop.material as THREE.ShaderMaterial).uniforms.uDrop.value = asAir ? Math.max(0, 0.1 - lvl) : 0;
         surface.visible = snow.visible = !asAir; shafts.visible = !TIERS[tier].vol && !asAir;
+        seaTop.visible = abyss.visible = asAir;   // (in a trough the lens may be below y = 0 while above the water: the sea from above all the same)
         camera.far = asAir ? 90000 : 460; camera.updateProjectionMatrix();
         post.setAir(asAir); post.whiteBalance(asAir ? 0 : 0.3, U.uAbs.value, U.uNight.value, asAir);
         post.setExposure(asAir ? 1.25 * (1 + 0.6 * nightLift) : 1.4 * (1 + 0.55 * nightLift));
         post.render(renderer, oceanScene, camera, asAir ? topScene : null, setRefraction, asAir ? split.air : split.water);
       }
-      surface.position.y = 0; seaTop.position.y = 0;
+      seaTop.visible = abyss.visible = camera.position.y > 0;
+      surface.position.y = 0; (seaTop.material as THREE.ShaderMaterial).uniforms.uDrop.value = 0;
       U.uCamPos.value.y = cy; camera.far = keepFar; camera.updateProjectionMatrix(); post.setExposure(keepExpo);
       split.compose(renderer, camera);
     } else if (usePost()) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
@@ -2124,7 +2142,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, goTo, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen

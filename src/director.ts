@@ -6,7 +6,7 @@ import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 import type { Style, GiantMove } from './persona';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
   hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70], critter: [20, 32],
@@ -48,6 +48,7 @@ export class Director {
   spinK = 1;
   rest: [number, number] = [30, 70];
   private side = 1;
+  private brT = 0;
 
   reset() { this.shot = null; this.cooldown = 10; }
   // give up on what it is filming (it could not get there, or nothing could be seen of it): leave it be
@@ -104,9 +105,45 @@ export class Director {
     return s.prio * vis * Math.max(0, near) * bored * recent * grand * this.weight(s);
   }
 
+  // A leap out of the sea: from the waterline, side on to the line it leaps along, far enough off to
+  // see the whole of it in the air (half the frame sea, half sky), on the side we are already on.
+  private breach(sh: Shot, s: Subject, p: { x: number; y: number; z: number }, dt: number, drone: THREE.Vector3, floor: (x: number, z: number) => number) {
+    if (!s.live()) { this.shot = null; this.cooldown = rr(...this.rest); return null; }
+    const b = s.breach!, dx = b.dir.x, dz = b.dir.z;
+    const mx = p.x + dx * 2, mz = p.z + dz * 2;          // (where it will be in the air: a little on along its line)
+    if (this.t === 0 && sh.phase === 'approach') {
+      // which side, and how far: ours if there is water there to sit in, else the other; closer in over a shallow reef
+      const our = (drone.x - p.x) * -dz + (drone.z - p.z) * dx >= 0 ? 1 : -1;
+      let best: [number, number] = [our, b.dist];
+      search: for (const k of [1, 0.75, 0.55]) for (const sd of [our, -our]) {
+        const x = mx - dz * sd * b.dist * k, z = mz + dx * sd * b.dist * k;
+        if (floor(x, z) < -1.6) { best = [sd, b.dist * k]; break search; }
+      }
+      this.side = best[0]; this.ang = best[1];
+    }
+    const d = this.ang;
+    sh.pos.set(mx - dz * this.side * d, 0, mz + dx * this.side * d);
+    sh.look.set(mx, b.h * 0.5, mz);
+    sh.surface = true;
+    const gap = Math.hypot(drone.x - sh.pos.x, drone.z - sh.pos.z);
+    if (sh.phase === 'approach' && (gap < 3 || this.t > 20)) sh.phase = 'observe';
+    this.t += dt;
+    return sh;
+  }
+
   update(dt: number, drone: THREE.Vector3, subjects: () => Subject[], floor: (x: number, z: number) => number, fwd: THREE.Vector3 = new THREE.Vector3(0, 0, -1)): Shot | null {
     this.clock += dt;
     for (const [k, v] of this.bored) { const nv = v * Math.exp(-dt / 600); if (nv < 0.05) this.bored.delete(k); else this.bored.set(k, nv); }
+    // a whale or a manta on its way up to leap: drop everything (but what someone asked to see, or a
+    // ride through the cave) and get to the waterline in time
+    if ((this.brT -= dt) < 0 && !this.shot?.subject.breach && !this.shot?.asked && !this.shot?.subject.tour) {
+      this.brT = 0.5;
+      for (const s of subjects()) {
+        if (!s.breach || !s.live() || (this.skipUntil.get(s.key) ?? 0) > this.clock) continue;
+        const p = s.pos(); if (!p || Math.hypot(p.x - drone.x, p.z - drone.z) > (s.reach ?? 42)) continue;
+        this.begin(s, drone, false); break;
+      }
+    }
     if (!this.shot) {
       this.cooldown -= dt;
       if (this.cooldown > 0) return null;
@@ -161,6 +198,7 @@ export class Director {
       this.t += dt;
       return sh;
     }
+    if (s.breach && p) return this.breach(sh, s, p, dt, drone, floor);
     const far = p ? !sh.forced && Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : !sh.forced;
     if (sh.forced && !p) {                                       // e.g. whales still on their way in: hold here and look out
       if (this.t === 0) { sh.pos.copy(drone as THREE.Vector3); sh.look.set(drone.x + 10, drone.y, drone.z); }
