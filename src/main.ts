@@ -535,9 +535,14 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   // Seen from the air it is a little darker than below, but never black: the reef still shows through.
   // (by an island the night ashore is kept open and gentle, as it is under the water, rather than black)
   const n = s.night * (airView ? (cur?.loc.land ? 0.95 : 0.75) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
-  U.uAmb.value = s.amb + glow * 0.6;
-  U.uSunI.value = Math.max(s.sunI, n * (0.45 + 0.25 * moon));
-  U.uShaftI.value = Math.max(s.shaftI, n * (0.2 + 0.4 * moon));
+  // the sun is the star of the scene: by day it falls hard and bright, with deep blue shade beside it,
+  // and strong shafts and caustics; low in the sky its light turns gold and the shafts stand out most.
+  // A full moon is bright enough to read by: silver shafts and caustics of its own; a moonless night stays
+  // dim and soft (the drama is natural light's alone — the drone's lamp stays gentle)
+  const day = s.sunI * (1 - n);
+  U.uAmb.value = s.amb * (1 - 0.12 * day) + glow * (0.45 + 0.2 * moon);
+  U.uSunI.value = Math.max(s.sunI * (1 + 0.38 * day) + 0.3 * s.golden, n * (0.32 + 0.75 * moon));
+  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 1.4 * s.golden, n * (0.12 + 0.95 * moon));
   const starlit = n * Math.max(0, 1 - moon / 0.3);
   if (starlit > 0) U.uSunDir.value.lerp(_starDir, starlit).normalize();
   U.uShaftCol.value.lerp(_nightShaft, n);

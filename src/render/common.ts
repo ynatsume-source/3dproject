@@ -95,7 +95,7 @@ float caustic(vec2 uv, float t){
 // caustics are projected along the (refracted) sun direction and fade as the sun gets low
 float caus2(vec3 wp){
   vec2 xz = wp.xz - SUN.xz / max(SUN.y, 0.3) * wp.y;
-  return (caustic(xz * 0.075, uTime * 0.45) * 0.65 + caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45) * uSunI * smoothstep(0.55, 0.9, SUN.y) * caveLight(wp).x;
+  return (caustic(xz * 0.075, uTime * 0.45) * 0.65 + caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45) * uSunI * 1.35 * smoothstep(0.5, 0.88, SUN.y) * caveLight(wp).x;   // (the dancing net of sunlight on the bottom: strong)
 }
 float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), u.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x), u.y); }
@@ -147,7 +147,7 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
   float cone = smoothstep(0.80, 0.96, dot(dir, uLampDir));
   // (and while watching a resident after dark: a soft pool of light the drone casts down around it)
   vec3 sd = wp - uSpot.xyz; float pool = exp(-dot(sd.xz, sd.xz) * 0.014) * (1.0 - smoothstep(4.0, 14.0, abs(sd.y)));
-  return alb * vec3(1.0, 0.93, 0.8) * uLamp * cone * max(dot(n, -dir), 0.0) * 5.0 / (1.0 + d * d * 0.07)
+  return alb * vec3(1.0, 0.93, 0.8) * uLamp * cone * max(dot(n, -dir), 0.0) * 3.6 / (1.0 + d * d * 0.07)
        + alb * vec3(0.92, 0.95, 1.0) * uSpot.w * pool * (0.35 + 0.65 * max(n.y, 0.0))
        // (and the island's evening fire, warm on everything near it)
        + alb * vec3(1.0, 0.52, 0.22) * uFire.w * (0.3 + 0.7 * max(dot(n, normalize(uFire.xyz - wp)), 0.0)) / (1.0 + dot(wp - uFire.xyz, wp - uFire.xyz) * 0.3)
