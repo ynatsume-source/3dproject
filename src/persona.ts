@@ -8,7 +8,7 @@ export type Mood = 'bait' | 'hello' | 'shot' | 'sighting' | 'hunt' | 'skyUp' | '
 // how it films something that is not a giant (see Director): circling it, following behind it, waiting
 // still and letting it come and go, from below against the light, or close in on its details
 export type Style = 'orbit' | 'follow' | 'wait' | 'low' | 'detail';
-export type GiantMove = 'flank' | 'under' | 'front' | 'pass';
+export type GiantMove = 'flank' | 'under' | 'front' | 'pass' | 'reveal' | 'arc' | 'rise' | 'trail' | 'wide';
 // where it cruises: high in mid-water, low along the reef, weaving off the line, just under the
 // surface, leaning to the deeper side, or all of these by turns
 export type Route = 'mid' | 'reef' | 'wander' | 'surface' | 'deep' | 'free';

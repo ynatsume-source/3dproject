@@ -33,7 +33,7 @@ export class Director {
   private hdx = 1; private hdz = 0;   // the line of a chase, smoothed
   // filming something big: which move, since when, its heading (from how it moves), and a fixed spot
   private move = ''; private moveT = 0; private moveDur = 0; private gvx = 0; private gvz = 1; private gpx = NaN; private gpz = 0;
-  private hold = new THREE.Vector3(); private gspd = 0;
+  private hold = new THREE.Vector3(); private gspd = 0; private arcDir = 1;
   private recent = new Map<string, number>();
   private switchT = 0;
   private clock = 0;
@@ -321,7 +321,13 @@ export class Director {
     const room = p.y - floor(p.x, p.z);
     // the next move, every so often
     if (!this.move || (this.moveT += dt) > this.moveDur) {
-      this.move = pick(this.giantW, (m) => m !== this.move && (m !== 'under' || room > L * 0.45 + 2)) ?? 'flank'; this.moveT = 0; this.moveDur = rr(9, 13);
+      // (the guide's own favourite moves, and the ones that move through space, pulling back and coming
+      // round to show the whole of it — most of all for the true giants, where staying close shows nothing)
+      const huge = L >= 8, w: Partial<Record<GiantMove, number>> = { reveal: 1.4, arc: 1.4, rise: 1, trail: 0.7, wide: 0.6, ...this.giantW };
+      if (huge) { w.flank = (w.flank ?? 0) * 0.5; w.front = (w.front ?? 0) * 0.5; w.reveal! *= 1.8; w.arc! *= 1.6; w.wide! *= 1.8; w.rise! *= 1.3; }
+      this.move = pick(w, (m) => m !== this.move && (m !== 'under' || room > L * 0.45 + 2) && (m !== 'rise' || room > L * 0.3 + 1.5)) ?? 'flank'; this.moveT = 0;
+      this.moveDur = this.move === 'reveal' || this.move === 'arc' || this.move === 'rise' ? rr(11, 15) : rr(9, 13);
+      this.arcDir = R() < 0.5 ? 1 : -1;
       if (this.move === 'pass') this.hold.set(p.x + fx * (L * 1.4 + 3) + sx * side * (L * 0.35 + 1.2), p.y + L * 0.04, p.z + fz * (L * 1.4 + 3) + sz * side * (L * 0.35 + 1.2));
     }
     const wideBody = s.kind === 'manta';   // (a manta is as wide as it is long: keep clear of its wingtips)
@@ -342,11 +348,37 @@ export class Director {
         const d = L * 0.5 + 1.5;
         x = p.x + fx * d + sx * side * L * 0.22; z = p.z + fz * d + sz * side * L * 0.22; y = p.y + L * 0.02;
         lx = p.x + fx * L * 0.3; lz = p.z + fz * L * 0.3; wide = 0.8;
+      } else if (move === 'reveal' || move === 'arc' || move === 'rise' || move === 'trail' || move === 'wide') {
+        const k = Math.min(1, this.moveT / this.moveDur), e = k * k * (3 - 2 * k);
+        let ang = 0, d = 0;   // (round it from straight ahead (0) to the side (π/2) to behind (π); on our side)
+        if (move === 'reveal') {
+          // in close beside the head, then drawing back and up and round toward its tail, the whole of it opening out
+          ang = 1.2 + 0.9 * e; d = L * (0.32 + 1.0 * e) + 1 + 2 * e; y = p.y + L * (0.02 + 0.32 * e); wide = 1.1 - 0.25 * e;
+        } else if (move === 'arc') {
+          // sweeping round it at a middle distance, from its flank to ahead of it (or the other way)
+          ang = this.arcDir > 0 ? 1.7 - 1.15 * e : 0.55 + 1.15 * e; d = L * 0.8 + 2; y = p.y + L * 0.08 + Math.sin(e * Math.PI) * L * 0.12; wide = 0.95;
+        } else if (move === 'rise') {
+          // from below its flank up past it to above, the bulk of it rolling through the frame
+          ang = 1.4; d = L * 0.65 + 2; y = p.y + L * (-0.42 + 0.85 * e); wide = 1.05;
+        } else if (move === 'trail') {
+          // behind and above, following the stroke of the tail
+          ang = 2.65; d = L * 0.9 + 2; y = p.y + L * 0.25;
+          lx = p.x + fx * L * 0.25; lz = p.z + fz * L * 0.25; wide = 0.95;
+        } else {
+          // well off, out in the blue, the whole animal small against it: its size told by what is around it
+          ang = 1.0; d = L * 1.9 + 4; y = p.y - L * 0.12; wide = 0.85;
+        }
+        const ca = Math.cos(ang), sa = Math.sin(ang);
+        x = p.x + fx * d * ca + sx * side * d * sa; z = p.z + fz * d * ca + sz * side * d * sa;
       } else {
         // hold still on its path and let it glide past, close
         x = this.hold.x; y = this.hold.y; z = this.hold.z;
       }
       y = Math.min(Math.max(y, floor(x, z) + 0.8), -0.9);
+      // never inside its bulk: the floor or the surface may have squeezed the camera in — push it out sideways
+      // to a distance the animal's size calls for (a whale needs metres, not an arm's length)
+      { const minD = L >= 8 ? L * 0.42 : wideBody ? L * 0.45 + 0.8 : L * 0.22 + 0.7, dx = x - p.x, dz = z - p.z, dy = y - p.y, d3 = Math.hypot(dx, dy, dz);
+        if (d3 < minD) { const h = Math.hypot(dx, dz), need = Math.sqrt(Math.max(0, minD * minD - dy * dy)), ux = h > 0.1 ? dx / h : sx * side, uz = h > 0.1 ? dz / h : sz * side; x = p.x + ux * need; z = p.z + uz * need; y = Math.min(Math.max(y, floor(x, z) + 0.8), -0.9); } }
       // (no rock or reef between the lens and the animal)
       let clear = true;
       for (let i = 1; i < 8 && clear; i++) { const f = i / 8, qx = x + (p.x - x) * f, qz = z + (p.z - z) * f, qy = y + (p.y - y) * f; if (floor(qx, qz) > qy - 0.4) clear = false; }
@@ -355,7 +387,7 @@ export class Director {
     let c = spot(this.move);
     if (!c.clear) {
       // blocked: take whichever other move has a clear view (or rise over the obstacle)
-      for (const m of ['flank', 'under', 'front']) { if (m === this.move) continue; const o = spot(m); if (o.clear) { this.move = m; this.moveT = 0; this.moveDur = rr(9, 13); c = o; break; } }
+      for (const m of ['arc', 'flank', 'reveal', 'under', 'front']) { if (m === this.move) continue; const o = spot(m); if (o.clear) { this.move = m; this.moveT = 0; this.moveDur = rr(9, 13); c = o; break; } }
       if (!c.clear) c.y = Math.min(c.y + 2, -0.9);
     }
     if (this.move === 'pass' && (p.x - c.x) * fx + (p.z - c.z) * fz > L * 0.6) this.moveT = this.moveDur;   // (it has gone by)
