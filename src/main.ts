@@ -518,7 +518,7 @@ function wantLamp() {
   if (camCave < 0.3) return true;
   if (camera.position.y > -0.5) return false;
   const l = pipLight(-camera.position.y);
-  return lampOn ? l < 0.095 : l < 0.075;
+  return lampOn ? l < 0.078 : l < 0.062;   // (only when it is really dim: not on a bright day a little deep)
 }
 // The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
 // dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.

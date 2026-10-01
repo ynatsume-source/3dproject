@@ -611,6 +611,59 @@ export const LOCATIONS: Sea[] = [
   add('miyako', 'wrasse', { count: 1, note: '通称ナポレオンフィッシュ。額のこぶが目印で、全長2mに達するベラ科最大種。沖縄では数が少なく、出会えたら幸運。' });
 }
 
+// More of the small reef fish that make a reef feel full, each only where it really lives: fusiliers,
+// damsels, cardinalfish, soldierfish, goatfish, bannerfish, butterflyfish, triggerfish and sweepers in
+// the Indo-Pacific seas; the Red Sea's own fusiliers and sweepers; the eastern Pacific's reef fish at
+// the Galápagos.
+{
+  const all = LOCATIONS.flatMap((l) => l.species);
+  const add = (id: string, sp: Species | string, o: Partial<Species> = {}) => {
+    const L = LOCATIONS.find((l) => l.id === id)!, base = typeof sp === 'string' ? all.find((x) => x.id === sp)! : sp;
+    if (L.species.some((x) => x.id === base.id)) return;
+    L.species.push({ ...base, ...o });
+  };
+  const hatatate: Species = { id: 'hatatate', ja: 'ハタタテダイ', sci: 'Heniochus acuminatus', note: '白と黒の帯に黄色いひれ、背びれの一部が長い旗のように伸びる。つがいや小さな群れでリーフの上を漂う。ツノダシとよく似ているが、口が突き出ていない。',
+    diel: 'day', diet: 'plankton', pat: 3, c1: [0.95, 0.94, 0.9], c2: [0.98, 0.86, 0.22], c3: [0.05, 0.05, 0.05], shape: 'idol', size: [0.16, 0.22], habitat: 'reef', schools: 4, n: 2, spread: [1, 0.5, 1], alt: [1, 2.5], speed: 0.8 };
+  const murehatatate: Species = { ...hatatate, id: 'murehatatate', ja: 'ムレハタタテダイ', sci: 'Heniochus diphreutes', note: 'ハタタテダイに似るが、何十匹もの群れで根の上の中層に浮かび、流れてくるプランクトンを食べる。モルディブのティラの名物。',
+    schools: 3, n: 26, spread: [3, 1.6, 3], alt: [3, 7] };
+  const moongara: Species = { id: 'moongara', ja: 'モンガラカワハギ', sci: 'Balistoides conspicillum', note: '黒い体の下半分に大きな白い水玉、口のまわりは黄色。派手な模様で目立つが、なわばり意識が強く、ほかの魚を追い払う。',
+    diel: 'day', diet: 'invert', pat: 22, c1: [0.06, 0.06, 0.08], c2: [0.95, 0.8, 0.15], c3: [0.95, 0.95, 0.9], shape: 'trigger', size: [0.3, 0.45], habitat: 'reef', schools: 3, n: 1, spread: [0.5, 0.3, 0.5], alt: [0.5, 2], speed: 0.8 };
+  const fueyakko: Species = { id: 'fueyakko', ja: 'フエヤッコダイ', sci: 'Forcipiger flavissimus', note: '鮮やかな黄色の体に、ピンセットのような細長い口。上半分が黒い頭。サンゴのすき間の奥から小さな生き物をつまみ出して食べる。',
+    diel: 'day', diet: 'invert', pat: 23, c1: [0.99, 0.84, 0.1], c2: [0.98, 0.8, 0.08], c3: [0.05, 0.05, 0.06], shape: 'forceps', size: [0.14, 0.2], habitat: 'reef', schools: 4, n: 2, spread: [0.8, 0.3, 0.8], alt: [0.5, 1.8], speed: 0.8 };
+  const oyabiccha: Species = { id: 'oyabiccha', ja: 'オヤビッチャ', sci: 'Abudefduf vaigiensis', note: '黄色みのある背と黒い横帯5本。浅いリーフの中層を群れで泳ぐ、いちばん身近なスズメダイのひとつ。産卵期のオスは岩に産みつけた卵を守る。',
+    diel: 'day', diet: 'plankton', pat: 6, c1: [0.84, 0.9, 0.9], c2: [0.95, 0.86, 0.38], c3: [0.05, 0.05, 0.06], shape: 'oval', size: [0.13, 0.18], habitat: 'reef', schools: 5, n: 16, spread: [2.6, 1.3, 2.6], alt: [1.2, 3.5], speed: 1.0 };
+  const hanatakasago: Species = { id: 'hanatakasago', ja: 'ハナタカサゴ', sci: 'Caesio lunaris', note: '全身が青く、尾びれの先が黒いタカサゴの仲間。昼は根のまわりの中層を大群で回り、流れてくるプランクトンを食べる。',
+    diel: 'day', diet: 'plankton', pat: 13, c1: [0.2, 0.42, 0.9], c2: [0.3, 0.55, 0.95], c3: [0.8, 0.88, 0.96], shape: 'fusilier', size: [0.25, 0.35], habitat: 'shoal', schools: 2, n: 220, alt: [4, 10], speed: 1.1, freq: [7, 10] };
+  const minamihatanpo: Species = { id: 'minamihatanpo', ja: 'ミナミハタンポ', sci: 'Parapriacanthus ransonneti', note: '体が半透明で金色に光る小魚。昼は岩のくぼみやオーバーハングの下に雲のような群れで集まり、夜になると散らばってプランクトンを食べる。',
+    diel: 'night', diet: 'plankton', pat: 0, c1: [0.95, 0.75, 0.4], c2: [0.98, 0.88, 0.62], shape: 'slender', size: [0.06, 0.09], habitat: 'reef', schools: 5, n: 60, spread: [1.4, 0.7, 1.4], alt: [0.4, 1.2], speed: 0.6, shine: 2, eye: 1.6 };
+  // eastern Pacific (Galápagos)
+  const panamic: Species = { id: 'panamicsergeant', ja: 'パナミックサージェントメジャー', sci: 'Abudefduf troschelii', note: '黄色い背に黒い横帯5本の、東太平洋のスズメダイ。溶岩の岩の上の中層に大きな群れで浮かぶ。オスは岩に産みつけた紫色の卵を守る。',
+    diel: 'day', diet: 'plankton', pat: 6, c1: [0.82, 0.88, 0.86], c2: [0.95, 0.85, 0.3], c3: [0.05, 0.05, 0.06], shape: 'oval', size: [0.14, 0.2], habitat: 'reef', schools: 6, n: 24, spread: [3, 1.4, 3], alt: [1, 3.5], speed: 1.0 };
+  const bluegold: Species = { id: 'bluegoldsnapper', ja: 'ブルーアンドゴールド・スナッパー', sci: 'Lutjanus viridis', note: '黄色い体に、黒く縁取られた水色の縦線が5本。ガラパゴスの岩場に何十匹もの群れで漂い、夜に散らばって狩りをする。',
+    diel: 'night', diet: 'fish', pat: 5, c1: [0.98, 0.8, 0.14], c2: [0.45, 0.72, 0.98], bands: 13, shape: 'slender', size: [0.25, 0.35], habitat: 'reef', schools: 3, n: 30, spread: [3, 1.2, 3], alt: [0.8, 2.5], speed: 0.8 };
+  const scissortail: Species = { id: 'scissortail', ja: 'シザーテール・ダムゼルフィッシュ', sci: 'Chromis atrilobata', note: '灰褐色の小さなスズメダイ。背びれの付け根に白い点。岩の上の中層に何百匹も群れて、流れてくるプランクトンをついばむ。',
+    diel: 'day', diet: 'plankton', pat: 0, c1: [0.42, 0.4, 0.38], c2: [0.62, 0.6, 0.56], shape: 'slender', size: [0.08, 0.12], habitat: 'reef', schools: 7, n: 40, spread: [2.4, 1.2, 2.4], alt: [1, 3], speed: 0.9 };
+  const cortez: Species = { id: 'cortezwrasse', ja: 'コルテス・レインボーラス', sci: 'Thalassoma lucasanum', note: '黄色と赤の縦縞に青い頭の小さなベラ。せわしなく泳ぎ回り、群れで岩をつついて、ときにはほかの魚の体の掃除もする。',
+    diel: 'day', diet: 'invert', pat: 5, c1: [0.96, 0.82, 0.2], c2: [0.85, 0.25, 0.2], bands: 10, shape: 'slender', size: [0.1, 0.15], habitat: 'reef', schools: 6, n: 12, spread: [2, 0.6, 2], alt: [0.3, 1.2], speed: 1.2 };
+  const giantdamsel: Species = { id: 'giantdamsel', ja: 'ジャイアント・ダムゼルフィッシュ', sci: 'Microspathodon dorsalis', note: '青みがかった濃い灰色の大きなスズメダイ。岩の上の藻の畑を一匹ずつなわばりにして守り、ウミイグアナにさえ向かっていく。',
+    diel: 'day', diet: 'algae', pat: 0, c1: [0.16, 0.2, 0.28], c2: [0.22, 0.26, 0.34], shape: 'oval', size: [0.2, 0.3], habitat: 'reef', schools: 6, n: 1, spread: [0.5, 0.3, 0.5], alt: [0.3, 1], speed: 0.7 };
+
+  // Great Barrier Reef
+  for (const id of ['umeiro', 'sergeant', 'akamatsukasa', 'yarai', 'akahimeji', 'anthias']) add('gbr', id);
+  add('gbr', hatatate); add('gbr', moongara); add('gbr', fueyakko);
+  // Maldives
+  for (const id of ['akamatsukasa', 'yarai', 'akahimeji', 'nokogiri', 'auriga', 'chromis']) add('maldives', id);
+  add('maldives', murehatatate); add('maldives', hanatakasago); add('maldives', oyabiccha); add('maldives', moongara); add('maldives', fueyakko);
+  // Red Sea
+  for (const id of ['chromis', 'mitsuji', 'akamatsukasa', 'kasmira', 'yarai']) add('redsea', id);
+  add('redsea', hanatakasago); add('redsea', oyabiccha); add('redsea', minamihatanpo); add('redsea', fueyakko);
+  // Galápagos
+  for (const sp of [panamic, bluegold, scissortail, cortez, giantdamsel]) add('galapagos', sp);
+  // Miyako and Kayama (Okinawa)
+  add('miyako', fueyakko); add('miyako', moongara); add('miyako', hatatate); add('miyako', 'anthias', { schools: 4 });
+  add('kayama', oyabiccha); add('kayama', 'akamatsukasa', { schools: 3 }); add('kayama', hatatate, { schools: 2 });
+}
+
 // Reef rugosity: living reef framework is rough at the metre scale — knobs, ledges and holes — while
 // sand stays smooth. Layered on every sea wherever there is reef.
 function rugosity(x: number, z: number) {

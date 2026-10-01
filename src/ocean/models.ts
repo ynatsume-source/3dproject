@@ -534,6 +534,7 @@ export const SHAPES = {
   batfish: { h: 0.92, w: 0.1, tail: 'trunc', dorsal: 0.32, anal: 0.28 },
   tuna: { h: 0.28, w: 0.25, tail: 'fork', dorsal: 0.1, anal: 0.07, pect: 0.14 },
   mola: { h: 0.78, w: 0.15, tail: 'round', dorsal: 0.5, anal: 0.5, mola: true },
+  forceps: { h: 0.7, w: 0.12, tail: 'trunc', dorsal: 0.1, anal: 0.08, bill: 0.14, snout: true },   // longnose butterflyfish: a disc with a long, thin snout
 };
 // Requiem sharks, lofted from real proportions (lengths as fractions of total length from the snout):
 // a conical snout, the deepest body a third of the way back, a narrow caudal peduncle, and fins cut as
@@ -745,7 +746,8 @@ export function fishGeometry(sh, low = false) {
   if (sh.bill) {
     // the bill: a long spear from the upper jaw
     const b = sh.bill;
-    tri([0, 0.012, 0.46], [0, 0.0, 0.5 + b], [0, -0.012, 0.46], 5); tri([-0.012, 0, 0.46], [0, 0, 0.5 + b], [0.012, 0, 0.46], 5, [0, 1, 0]);
+    const t = sh.snout ? 0.02 : 0.012, y0 = sh.snout ? -0.01 : 0;   // (a longnose butterflyfish's snout: a thin tube, mouth at its tip)
+    tri([0, y0 + t, 0.46], [0, y0, 0.5 + b], [0, y0 - t, 0.46], 5); tri([-t, y0, 0.46], [0, y0, 0.5 + b], [t, y0, 0.46], 5, [0, 1, 0]);
   }
   if (sh.filament) { tri([0, H * 0.9, 0.12], [0, H + sh.filament, -0.42], [0, H * 0.9, -0.04], 2); tri([0, H * 0.9, 0.12], [0, H * 0.9, -0.3], [0, H + 0.2, -0.2], 2); }
   else if (sh.rear) {
@@ -753,7 +755,7 @@ export function fishGeometry(sh, low = false) {
     tri([0, H * 0.7, -0.14], [0, H + sh.dorsal, -0.36], [0, H * 0.45, -0.42], 2);
     tri([0, -H * 0.7, -0.14], [0, -H - sh.anal, -0.36], [0, -H * 0.45, -0.42], 2);
   }
-  else if (sh.bill) {
+  else if (sh.bill && !sh.snout) {
     // marlin: the dorsal rises high at the front and runs low along the back
     tri([0, H * 0.85, 0.22], [0, H + sh.dorsal, 0.14], [0, H * 0.9, 0.02], 2); tri([0, H * 0.9, 0.02], [0, H + sh.dorsal * 0.35, 0.02], [0, H * 0.7, -0.34], 2);
   }
@@ -935,6 +937,24 @@ export function fishMaterial(sp) {
            alb = mix(alb, vec3(0.08), (1.0 - smoothstep(0.012, 0.02, length(vec2(y + 0.02, (z - 0.49) * 0.6)))));
            alb = mix(alb, uC1 * 0.45, (1.0 - smoothstep(0.018, 0.026, length(vec2(y + 0.005, z - 0.24)))) * step(0.02, abs(vL.x)));
          }
+       #elif PAT == 22
+         // clown triggerfish: black, big round white blotches over the belly, a yellow mouth and a yellow
+         // net-patterned saddle on the back
+         alb = uC1;
+         vec2 bg = vec2(z * 11.0, y * 11.0); vec2 bf = fract(bg) - 0.5;
+         alb = mix(alb, uC3, (1.0 - smoothstep(0.26, 0.34, length(bf))) * step(0.25, hash2(floor(bg))) * smoothstep(0.0, -0.05, y));
+         float net = 1.0 - smoothstep(0.03, 0.07, abs(fract(z * 30.0 + sin(y * 40.0)) - 0.5) - 0.38);
+         alb = mix(alb, uC2, net * smoothstep(0.04, 0.1, y) * smoothstep(-0.25, -0.05, z) * smoothstep(0.2, 0.05, z));
+         alb = mix(alb, uC2, smoothstep(0.4, 0.46, z) * 0.9);
+         if (vFin > 0.5) alb = uC1;
+       #elif PAT == 23
+         // longnose butterflyfish: bright yellow; the head black above the line of the snout, white below;
+         // a black eye-spot on the anal fin
+         alb = uC1;
+         float hd = smoothstep(0.24, 0.28, z);
+         alb = mix(alb, mix(vec3(0.95, 0.95, 0.92), uC3, smoothstep(-0.005, 0.005, y - 0.01)), hd);
+         if (vFin > 4.5) alb = mix(uC3, vec3(0.9), step(vL.y, 0.0));
+         if (vFin > 1.5 && vFin < 2.5 && y < 0.0) alb = mix(alb, uC3, 1.0 - smoothstep(0.02, 0.03, length(vec2(z + 0.18, y + 0.32))));
        #elif PAT == 15
          // spots (coral trout: blue spots on red)
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y));
