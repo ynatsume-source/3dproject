@@ -969,7 +969,7 @@ function goTo(id: string) {
     const W = oc.whales;
     if (!W || !W.seasonal) { showToast('ザトウクジラ', '今は北の海にいます', '冬（12月下旬〜4月上旬）に来遊。時刻パネルの「季節」で冬を選ぶと会えます'); return; }
     if (!W.active) { W.force = true; W.next = 0; }
-    s = { key: 'focus:whale', label: name, kind: 'giant', prio: 5, size: 8, pos: () => (W.active ? W.pod[0].pos : null), status: () => statusOf('whale'), live: () => true };
+    s = { key: 'focus:whale', label: name, kind: 'giant', prio: 5, size: 8, pos: () => (W.active ? W.pod[0].pos : null), status: () => statusOf('whale'), live: () => W.active || W.force };   // (gone when the pod has gone: no card left behind)
   } else if ((loc.critters || []).some((c) => c.id === id) && oc.critters) {
     // a moray, sea snake or jellyfish: the nearest one
     const all: Subject[] = []; oc.critters.subjects(all);
