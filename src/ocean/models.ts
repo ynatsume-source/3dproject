@@ -1536,24 +1536,52 @@ export function whaleMaterial(seed: number) {
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        float z = vL.z, y = vL.y, x = vL.x;
-       vec3 dark = vec3(0.055, 0.06, 0.068), pale = vec3(0.82, 0.84, 0.84);
+       vec3 dark = vec3(0.06, 0.066, 0.075), slate = vec3(0.17, 0.18, 0.19), pale = vec3(0.82, 0.84, 0.84);
+       bool body = vPart < 0.5, head = body && z > 0.28;
        // dark back, white belly with a ragged boundary and mottling that differs whale to whale
        float edge = smoothstep(-0.03, 0.01, y + 0.03 * (vn2(vec2(z * 18.0, x * 18.0) + uSeed) - 0.5) + 0.02 * sin(z * 9.0 + uSeed));
-       vec3 alb = mix(pale, dark, edge);
-       alb = mix(alb, dark, smoothstep(0.55, 0.8, vn2(vec2(z * 30.0, x * 30.0) - uSeed)) * 0.6 * (1.0 - edge));
+       // the back is not flat black but weathered slate: blotched, scuffed, paler in patches, most of all
+       // round the head, where years of barnacles have come and gone and left grey-white scars
+       // (round the body: an angle, so the blotches are blotches and not bands)
+       vec2 q = vec2(z * 30.0, atan(y, x) * 3.0);
+       float mott = vn2(q + uSeed) * 0.6 + vn2(q * 3.3 - uSeed) * 0.4;
+       vec3 back = mix(dark, slate, smoothstep(0.4, 0.9, mott) * 0.7);
+       float blot = smoothstep(0.7, 0.84, vn2(q * 1.7 + uSeed * 1.7) * 0.8 + vn2(q * 5.0) * 0.2 + 0.12 * smoothstep(0.25, 0.45, z));
+       back = mix(back, vec3(0.42, 0.44, 0.45) * (0.8 + 0.3 * vn2(q * 12.0)), blot * 0.55);
+       vec3 alb = mix(pale, back, edge);
+       alb = mix(alb, dark, smoothstep(0.6, 0.8, vn2(q * 1.3 - uSeed)) * 0.5 * (1.0 - edge));
        // ventral pleats from chin to navel
-       if (vPart < 0.5 && z > 0.02 && y < -0.035) alb *= 0.72 + 0.28 * smoothstep(0.25, 0.45, abs(fract(x * 95.0) - 0.5));
-       // tubercles on the head and barnacle clusters on the chin
-       if (vPart < 0.5 && z > 0.3) {
-         float c = cellF1(vec2(x, z) * 55.0);
-         alb = mix(alb, dark * 0.6, (1.0 - smoothstep(0.12, 0.22, c)) * step(0.0, y) * 0.8);
-         alb = mix(alb, vec3(0.78, 0.76, 0.7), (1.0 - smoothstep(0.1, 0.2, cellF1(vec2(x, z) * 90.0 + 3.0))) * step(y, -0.01) * step(0.62, vn2(vec2(x, z) * 25.0)));
+       float hgt = 0.0;
+       if (body && z > 0.02 && y < -0.035) { float pl = smoothstep(0.25, 0.45, abs(fract(x * 95.0) - 0.5)); alb *= 0.72 + 0.28 * pl; hgt += pl * 0.4; }
+       // knobs (tubercles) over the top of the head and along the jaw, each a raised bump
+       float tub = 0.0;
+       if (head && z > 0.33) { float c = cellF1(vec2(x * 1.4, z) * 75.0 + uSeed); tub = (1.0 - smoothstep(0.05, 0.22, c)) * step(0.55, hash2(floor(vec2(x * 1.4, z) * 75.0 + uSeed))) * (smoothstep(0.0, 0.02, y) + smoothstep(0.012, 0.0, abs(y + 0.012)) * 0.8); }
+       alb = mix(alb, dark * 0.8, tub * 0.35); hgt += tub * 1.2;
+       // barnacles: crusted clusters on the chin and jaw, the leading edges of the flippers and the tips
+       // and trailing edges of the flukes; chalky cones round dark openings, with whale lice (orange-pink)
+       // crowding round them
+       float zone = head ? smoothstep(0.3, 0.44, z) * smoothstep(0.0, -0.025, y) * (0.5 + 0.5 * vn2(q * 2.0 + 9.0)) + 0.4 * tub : 0.0;   // (the chin, the jaw's tip, a few knobs)
+       if (vPart > 0.5 && vPart < 2.5) zone = smoothstep(0.55, 0.85, vn2(vec2(x, z) * 20.0 + uSeed)) * 0.9;
+       if (vPart > 2.5) zone = smoothstep(0.6, 0.85, vn2(vec2(x, z) * 18.0 - uSeed)) * 0.8;
+       float clus = zone * smoothstep(0.5, 0.7, vn2(vec2(atan(y, x) * 0.6, z * 26.0) + uSeed * 2.3));
+       if (clus > 0.01) {
+         float bc = cellF1(vec2(x + y * 0.7, z) * 260.0 + uSeed);
+         float cone = (1.0 - smoothstep(0.18, 0.42, bc)) * clus, hole = (1.0 - smoothstep(0.05, 0.13, bc)) * clus;
+         alb = mix(alb, vec3(0.74, 0.72, 0.65) * (0.85 + 0.25 * vn2(vec2(x, z) * 900.0)), smoothstep(0.1, 0.5, cone));
+         alb = mix(alb, vec3(0.08, 0.07, 0.06), hole);
+         float lice = smoothstep(0.3, 0.6, clus) * (1.0 - smoothstep(0.1, 0.4, cone)) * smoothstep(0.55, 0.8, vn2(vec2(x, z) * 300.0 + uSeed));
+         alb = mix(alb, vec3(0.78, 0.52, 0.42), lice * 0.8);
+         hgt += cone * 2.2 - hole * 1.5 + lice * 0.3;
        }
        // flippers: white, dark along the upper leading edge; flukes: pale undersides with dark marks
-       if (vPart > 0.5 && vPart < 2.5) alb = mix(pale, dark, smoothstep(0.35, 0.8, vn2(vec2(x, z) * 30.0 + uSeed)) * 0.7);
-       if (vPart > 2.5) alb = n.y < 0.0 ? mix(pale, dark, smoothstep(0.4, 0.75, vn2(vec2(x, z) * 22.0 + uSeed))) : dark;
-       // rake marks and round healed bites: the scars an old whale carries
-       alb = mix(alb, alb * 0.4 + vec3(0.5, 0.5, 0.48), scarMarks(vec2(z, x + y) * 14.0, uSeed) * 0.6);
+       if (vPart > 0.5 && vPart < 2.5) alb = mix(alb, mix(pale, dark, smoothstep(0.35, 0.8, vn2(vec2(x, z) * 30.0 + uSeed)) * 0.7), 1.0 - smoothstep(0.1, 0.5, clus));
+       if (vPart > 2.5) alb = mix(alb, n.y < 0.0 ? mix(pale, dark, smoothstep(0.4, 0.75, vn2(vec2(x, z) * 22.0 + uSeed))) : back, 1.0 - smoothstep(0.1, 0.5, clus));
+       // rake marks and round healed bites: the scars an old whale carries, plain to see
+       float scar = scarMarks(vec2(z, x + y) * 14.0, uSeed) + 0.7 * scarMarks(vec2(z, x - y) * 9.0, uSeed + 5.0);
+       alb = mix(alb, alb * 0.35 + vec3(0.55, 0.55, 0.53), min(1.0, scar) * 0.7);
+       // the skin itself: fine creases and peeling
+       hgt += (vn2(vec2(z * 420.0, (x + y) * 160.0)) - 0.5) * 0.35 - min(1.0, scar) * 0.4;
+       n = bumpN(n, vWp, hgt * 0.006);
        gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
      }`,
     { uniforms: { ...SURF_UNIFORMS, uStroke: { value: 1 }, uPhase: { value: seed * 6.28 }, uSeed: { value: seed * 17.0 } }, opts: { side: THREE.DoubleSide } });
