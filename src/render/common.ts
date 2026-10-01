@@ -296,7 +296,7 @@ vec3 fogAir(vec3 col, vec3 wp){
   if (wp.y < 0.0) {
     float ca = max(-dir.y, 0.02), sa = sqrt(1.0 - ca * ca), sw = sa / 1.333, cw = sqrt(1.0 - sw * sw);
     float edge = max(abs(wp.x), abs(wp.z));
-    float dw = -wp.y / cw + smoothstep(SEA_WORLD * 0.45, SEA_WORLD * 0.9, edge) * 160.0;   // past the modelled seabed, the reef drops into the blue
+    float dw = -wp.y / cw + smoothstep(SEA_WORLD - 143.0, SEA_WORLD - 26.0, edge) * 160.0;   // past the modelled seabed, the reef drops into the blue (in its last stretch only: an island's survey reaches far)
     dw += d * 0.08;   // the moving surface scrambles what lies far off below it
     vec3 dirW = normalize(vec3(dir.x * sw / max(sa, 1e-4), -cw, dir.z * sw / max(sa, 1e-4)));
     vec3 T = exp(-uFogDen * vec3(1.4, 1.0, 0.78) * dw);
