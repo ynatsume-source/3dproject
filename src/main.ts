@@ -1306,7 +1306,7 @@ function enterOcean(oc: Ocean) {
   U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
   oc.eco.env.sound = { frenzy, plop };
-  oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt;
+  oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt; oc.breach.fx.bubbles = bubblesAt;
   oc.breach.fx.sound = (big: number, x: number, z: number) => breachSound(big, Math.hypot(x - drone.pos.x, z - drone.pos.z));
   lastPhase = '';
   director.reset(); lastShot = null;

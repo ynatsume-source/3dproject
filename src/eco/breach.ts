@@ -14,14 +14,47 @@ import * as THREE from 'three';
 import { R, rr } from '../core/math';
 import { WHALE_GEO, whaleMaterial, MANTA_GEO, mantaMaterial } from '../ocean/models';
 import { logEvent, type Env, type Subject } from './env';
+import { U } from '../render/common';
 
 type Kind = 'whale' | 'manta';
 export interface Foam { x: number; z: number; r: number; age: number; life: number }
 interface Leap {
   kind: Kind; c: THREE.Vector3; dir: THREE.Vector3; t: number; len: number;
   vy: number; twist: number; flip: number; splashed: boolean; left: number;
+  run: Run; exitAt: number; heaved: boolean; vx: number;
 }
-const WARN = 7, RISE = 3.2, G = 9.8;
+// The run up from the deep, as it is driven: each stroke of the wings (a manta) or the flukes (a whale)
+// pushes, harder on the downstroke, against a drag that grows with the square of the speed, so the speed
+// surges stroke by stroke; the strokes quicken as it goes, and it steepens toward the surface. A manta
+// whips up in a couple of seconds with quick hard beats; a whale takes five or six, three or four huge,
+// slow strokes, each heaving it on.
+interface Run { x: number; y: number; v: number; pitch: number; ph: number; done: boolean }
+const WARN = 7, G = 9.8;
+const RUN = {
+  whale: { y0: -17, v0: 1.4, p0: 0.22, pE: 1.22, T: 2.6, f0: 0.3, f1: 0.55 },
+  manta: { y0: -7, v0: 1.0, p0: 0.12, pE: 0.95, T: 7.5, f0: 1.3, f1: 2.6 },
+};
+function runStep(r: Run, kind: Kind, vT: number, dt: number) {
+  const P = RUN[kind], k = Math.min(1, r.v / vT);
+  r.ph += dt * Math.PI * 2 * (P.f0 + (P.f1 - P.f0) * k);
+  const push = P.T * 2 * Math.pow(Math.max(0, Math.sin(r.ph)), 2) + P.T * 0.15;   // (the power stroke, and a little glide between)
+  const drag = P.T / (vT * 1.1) ** 2;
+  r.v += (push - drag * r.v * r.v) * dt;
+  r.pitch = P.p0 + (P.pE - P.p0) * Math.min(1, Math.max(0, (r.y - P.y0) / -P.y0)) ** 1.4;
+  r.x += r.v * Math.cos(r.pitch) * dt; r.y += r.v * Math.sin(r.pitch) * dt;
+  if (r.y >= 0) r.done = true;
+}
+// the shape of a typical run (along, depth), to check there is water for it
+const newRun = (kind: Kind): Run => ({ x: 0, y: RUN[kind].y0, v: RUN[kind].v0, pitch: RUN[kind].p0, ph: 0, done: false });
+const PATH = (() => {
+  const out = {} as Record<Kind, [number, number][]>;
+  for (const kind of ['whale', 'manta'] as Kind[]) {
+    const r = newRun(kind), vT = (kind === 'whale' ? 7.9 : 5.8) / Math.sin(RUN[kind].pE), pts: [number, number][] = [];
+    let n = 0; while (!r.done && n < 1200) { runStep(r, kind, vT, 1 / 60); if (n++ % 20 === 0) pts.push([r.x, r.y]); }
+    out[kind] = pts.map(([x, y]) => [r.x - x, y]);   // (measured back from where it comes out)
+  }
+  return out;
+})();
 
 export function makeBreach(oc: any) {
   const whale = new THREE.Mesh(WHALE_GEO, whaleMaterial(0.44)); whale.visible = false; whale.frustumCulled = false; oc.group.add(whale);
@@ -31,37 +64,48 @@ export function makeBreach(oc: any) {
   const fx = {
     splash: (_x: number, _z: number, _scale: number, _r: number) => {},
     stream: (_x: number, _y: number, _z: number, _vx: number, _vz: number, _n?: number) => {},
+    bubbles: (_x: number, _y: number, _z: number, _n?: number) => {},
     sound: (_big: number, _x: number, _z: number) => {},
   };
   let leap: Leap | null = null, next = rr(120, 240), series = 0;
   const _p = new THREE.Vector3(), _ax = new THREE.Vector3(), _e = new THREE.Euler();
 
   // where it can come out: ahead of the camera, side on to it, over water deep enough to come up from
-  function place(kind: Kind, cam: THREE.Vector3, fx_: number, fz_: number, from?: THREE.Vector3, dir?: THREE.Vector3) {
+  function place(kind: Kind, cam: THREE.Vector3, fx_: number, fz_: number, from?: THREE.Vector3, dir?: THREE.Vector3, runDir?: THREE.Vector3) {
     const T = oc.T, need = kind === 'whale' ? 9 : 3.5;
     for (let k = 0; k < 40; k++) {
       let x: number, z: number;
       if (from && dir) { const a = rr(-0.5, 0.5); x = from.x + (dir.x * Math.cos(a) - dir.z * Math.sin(a)) * rr(14, 24); z = from.z + (dir.z * Math.cos(a) + dir.x * Math.sin(a)) * rr(14, 24); }
       else { const d = kind === 'whale' ? rr(30, 42) : rr(13, 18), a = rr(-0.6, 0.6); x = cam.x + (fx_ * Math.cos(a) - fz_ * Math.sin(a)) * d; z = cam.z + (fz_ * Math.cos(a) + fx_ * Math.sin(a)) * d; }
       if (T.top(x, z) > -need) continue;
+      // and deep enough under the whole run up to it, coming in along dir (or toward the camera's side)
+      const d0 = runDir ?? dir ?? new THREE.Vector3(fx_, 0, fz_);
+      if (PATH[kind].some(([px, py]) => T.top(x - d0.x * px, z - d0.z * px) > py * 0.5 - 1)) continue;   // (the deep start far off, in the blue, may graze the slope)
       return new THREE.Vector3(x, 0, z);
     }
     return null;
   }
   function begin(kind: Kind, c: THREE.Vector3, dir: THREE.Vector3, left: number) {
-    const L = kind === 'whale' ? 13 : rr(3.2, 4.2);
-    leap = { kind, c, dir, t: 0, len: L, vy: kind === 'whale' ? rr(7.2, 8.6) : rr(5.2, 6.4), twist: (R() < 0.5 ? -1 : 1) * (kind === 'whale' ? rr(1.4, 2.4) : rr(0, 0.6)),
-      flip: kind === 'manta' && R() < 0.45 ? (R() < 0.5 ? -1 : 1) * Math.PI * 2 : 0, splashed: false, left };
+    const L = kind === 'whale' ? 13 : rr(3.2, 4.2), vy = kind === 'whale' ? rr(7.2, 8.6) : rr(5.2, 6.4);
+    // work the run out ahead of time, so that it breaks the surface right where the camera is waiting
+    const r = newRun(kind), vT = vy / Math.sin(RUN[kind].pE);
+    let T = 0; while (!r.done && T < 20) { runStep(r, kind, vT, 1 / 60); T += 1 / 60; }
+    const start = c.clone().addScaledVector(dir, -r.x);
+    leap = { kind, c: start, dir, t: 0, len: L, vy, twist: (R() < 0.5 ? -1 : 1) * (kind === 'whale' ? rr(1.4, 2.4) : rr(0, 0.6)),
+      flip: kind === 'manta' && R() < 0.45 ? (R() < 0.5 ? -1 : 1) * Math.PI * 2 : 0, splashed: false, left,
+      run: newRun(kind), exitAt: WARN + T, heaved: false, vx: 0 };
+    exitC.copy(c);
   }
+  const exitC = new THREE.Vector3();   // where it will come out (what the camera frames)
 
   return {
     foams, fx,
     get leap() { return leap; },
     // to see one now (?debug)
     force(kind: Kind, cam: THREE.Vector3, fx_: number, fz_: number) {
-      const c = place(kind, cam, fx_, fz_); if (!c) return false;
-      const h = Math.atan2(fx_, fz_) + Math.PI / 2;   // (side on to the camera)
-      begin(kind, c, new THREE.Vector3(Math.sin(h), 0, Math.cos(h)), kind === 'whale' ? 1 + Math.floor(R() * 3) : 2 + Math.floor(R() * 3)); return true;
+      const h = Math.atan2(fx_, fz_) + Math.PI / 2, d = new THREE.Vector3(Math.sin(h), 0, Math.cos(h));   // (side on to the camera)
+      const c = place(kind, cam, fx_, fz_, undefined, undefined, d); if (!c) return false;
+      begin(kind, c, d, kind === 'whale' ? 1 + Math.floor(R() * 3) : 2 + Math.floor(R() * 3)); return true;
     },
     update(dt: number, env: Env, cam: THREE.Vector3, fx_: number, fz_: number, whaleSeason: boolean) {
       for (let i = foams.length - 1; i >= 0; i--) { const f = foams[i]; f.age += dt; if (f.age > f.life) foams.splice(i, 1); }
@@ -77,31 +121,47 @@ export function makeBreach(oc: any) {
         series = 0;
         return;
       }
-      const l = leap, L = l.len, mesh = l.kind === 'whale' ? whale : manta;
+      const l = leap, L = l.len, mesh = l.kind === 'whale' ? whale : manta, run = l.run, P = RUN[l.kind];
       l.t += dt;
       const s = l.t - WARN;                 // seconds since it started up for the surface
-      const up = s - RISE;                  // seconds since it broke the surface
-      const airT = 2 * l.vy / G;
-      let y: number, pitch: number, roll = 0, along: number;
+      const up = l.t - l.exitAt;            // seconds since it broke the surface
+      const airT = 2 * l.vy / G, vT = l.vy / Math.sin(P.pE);
+      let y: number, pitch: number, roll = 0, along: number, beat = 1, ph = 0;
       if (s < 0) {
-        // on its way, deep and unseen
-        y = -14; pitch = 0.3; along = -16 - (-s) * 1.5;
-      } else if (up < 0) {
-        // the run up: steepening, faster and faster
-        const k = s / RISE, e = k * k;
-        y = -14 + (14 - 0.4 * L * 0.0) * e; pitch = 0.4 + 0.75 * k; along = -16 + 14 * (1 - (1 - k) * (1 - k));
+        // waiting deep, unseen, cruising slowly with lazy strokes
+        run.ph += dt * Math.PI * 2 * P.f0 * 0.6;
+        y = P.y0; pitch = P.p0; along = s * 1.2; ph = run.ph; beat = 0.8;
+      } else if (!run.done) {
+        // the run up, driven stroke by stroke (in the same small steps it was worked out in)
+        for (let k = 0, n = Math.max(1, Math.round(dt * 60)); k < n && !run.done; k++) runStep(run, l.kind, vT, dt / n);
+        y = run.y; along = run.x; ph = run.ph; beat = 1 + 1.4 * Math.min(1, run.v / vT);
+        pitch = run.pitch + (l.kind === 'whale' ? 0.05 : 0.03) * Math.sin(run.ph + 1.2);   // (the body nods with each stroke)
+        // the water it drives back: bubbles shed from the wingtips or the flukes on each power stroke
+        if (Math.sin(run.ph) > 0.6 && R() < dt * (l.kind === 'whale' ? 40 : 25)) {
+          const back = l.kind === 'whale' ? L * 0.45 : L * 0.25, side = l.kind === 'manta' ? (R() < 0.5 ? -1 : 1) * L * 0.45 : 0;
+          fx.bubbles(l.c.x + l.dir.x * (along - back * Math.cos(pitch)) - l.dir.z * side, y - back * Math.sin(pitch), l.c.z + l.dir.z * (along - back * Math.cos(pitch)) + l.dir.x * side, l.kind === 'whale' ? 6 : 3);
+        }
+        // a whale coming up shoves a mound of water ahead of it: the surface heaves and goes pale just before
+        if (l.kind === 'whale' && !l.heaved && run.y > -4) { l.heaved = true; foams.push({ x: l.c.x + l.dir.x * (run.x + 2), z: l.c.z + l.dir.z * (run.x + 2), r: L * 0.35, age: 0, life: 4 }); }
+        if (run.done) { l.exitAt = l.t; l.vx = run.v * Math.cos(run.pitch); l.vy = Math.min(l.vy * 1.1, Math.max(l.vy * 0.75, run.v * Math.sin(run.pitch))); }
       } else if (up < airT + 0.6) {
-        // out: thrown up and falling back, turning over as it goes
+        // out: thrown up and falling back, turning over as it goes (still carried on along its line)
         const k = Math.min(1, up / airT);
-        y = l.vy * up - 0.5 * G * up * up; along = -2 + up * 2.2;
-        pitch = l.kind === 'whale' ? 1.15 + 0.9 * k : 0.6 - 0.7 * k + l.flip * k;
-        roll = l.twist * k;
+        y = l.vy * up - 0.5 * G * up * up; along = run.x + up * Math.min(l.vx, 3);
+        pitch = l.kind === 'whale' ? P.pE + 0.85 * k : P.pE - 0.3 - 0.7 * k + l.flip * k;
+        roll = l.twist * k; ph = run.ph; beat = 0.3;
       } else {
         // under again: carried down and away by its own momentum, slowing
         const u = up - airT - 0.6;
-        y = Math.max(-12, -0.5 * L * 0.2 - u * 2.2); along = -2 + (airT + 0.6) * 2.2 + u * 1.5;
-        pitch = (l.kind === 'whale' ? 2.05 : 0.6 - 0.7 + l.flip) + Math.min(1.2, u * 0.4); roll = l.twist;
+        y = Math.max(-12, -0.5 * L * 0.2 - u * 2.2); along = run.x + (airT + 0.6) * Math.min(l.vx, 3) + u * 1.5;
+        pitch = (l.kind === 'whale' ? P.pE + 0.85 : P.pE - 1.0 + l.flip) + Math.min(1.2, u * 0.4); roll = l.twist;
+        run.ph += dt * Math.PI * 2 * P.f0; ph = run.ph; beat = 1;
       }
+      // the stroke itself, on the model: a manta's wings driven by our phase and beaten harder as it pushes;
+      // a whale's flukes swept in a bigger arc
+      const um = (mesh.material as THREE.ShaderMaterial).uniforms;
+      if (l.kind === 'manta') { um.uBeat.value = 0; um.uPhase.value = ph; um.uAmp.value = beat; }
+      else { um.uPhase.value = ph - U.uTime.value * 1.6; um.uStroke.value = 0.8 * beat * 1.2; }
       const cx = l.c.x + l.dir.x * along, cz = l.c.z + l.dir.z * along;
       // the body's centre is a third of its length behind the head along its axis
       _e.set(-pitch, Math.atan2(l.dir.x, l.dir.z), roll, 'YXZ');
@@ -129,11 +189,11 @@ export function makeBreach(oc: any) {
     },
     subjects(out: Subject[]) {
       const l = leap; if (!l) return;
-      const up = l.t - WARN - RISE, airT = 2 * l.vy / G;
+      const up = l.t - l.exitAt, airT = 2 * l.vy / G;
       if (up > airT + (l.kind === 'whale' ? 8 : 5)) return;
       const whaleNow = l.kind === 'whale';
       out.push({ key: 'breach', label: whaleNow ? 'ザトウクジラのブリーチ' : 'マンタのジャンプ', kind: 'giant', prio: 9, size: l.len, reach: 160, hold: 26,
-        pos: () => l.c, live: () => leap === l, status: () => (up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'),
+        pos: () => exitC, live: () => leap === l, status: () => (up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'),
         breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir } });
     },
   };

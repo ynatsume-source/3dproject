@@ -1355,7 +1355,7 @@ export const MANTA_GEO = (() => {
 export function mantaMaterial() {
   return mat(
     `attribute float aSide; attribute float aU; attribute float aV; attribute float aPart; attribute vec3 aCeph;
-     uniform float uPhase; uniform float uFeed; uniform float uBeat;
+     uniform float uPhase; uniform float uFeed; uniform float uBeat; uniform float uAmp;
      varying vec3 vWp; varying vec3 vL; varying float vSide; varying float vPart; varying vec2 vUV;
      void main(){
        vec3 p = position; float au = abs(aU);
@@ -1377,7 +1377,7 @@ export function mantaMaterial() {
        } else {
          // wings flap in a wave that travels out to the tips, with the trailing edge lagging
          float ph = uTime * uBeat + uPhase - au * 1.7 - aV * 0.7;
-         p.y += sin(ph) * 0.36 * pow(au, 1.6);
+         p.y += sin(ph) * 0.36 * uAmp * pow(au, 1.6);
          p.z += cos(ph) * 0.04 * au;
          // the mouth opens: the lower jaw drops at the front of the head
          if (aSide < 0.0) p.y -= uFeed * 0.045 * smoothstep(0.1, 0.0, aV) * smoothstep(0.13, 0.05, au);
@@ -1419,7 +1419,7 @@ export function mantaMaterial() {
        alb = mix(alb, alb * 0.45 + vec3(0.42, 0.42, 0.4), scarMarks(vec2(vL.x, vL.z) * 9.0, uSeed) * 0.55 * step(vPart, 0.5));
        gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
      }`,
-    { uniforms: { uPhase: { value: Math.random() * 6 }, uFeed: { value: 0 }, uBeat: { value: 1.05 }, uSeed: { value: Math.random() * 50 } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { uPhase: { value: Math.random() * 6 }, uFeed: { value: 0 }, uBeat: { value: 1.05 }, uAmp: { value: 1 }, uSeed: { value: Math.random() * 50 } }, opts: { side: THREE.DoubleSide } });
 }
 
 /* ---------- humpback whale ---------- */
