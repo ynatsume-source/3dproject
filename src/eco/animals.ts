@@ -58,7 +58,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // something coming too close (the drone): startled, it turns away and drives off with hard, quick
     // strokes of the fore flippers, each one surging it on, then eases back to its own pace once clear
     const cdx = t.pos.x - cam.x, cdy = t.pos.y - cam.y, cdz = t.pos.z - cam.z, cd = Math.hypot(cdx, cdy, cdz) / t.size;
-    const near = t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0;
+    const near = (t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0) * Math.max(0.5, env.shy);
     // (only something in the water with it)
     if (cd < near && cam.y < 0.3) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
     else t.alarm = Math.max(0, (t.alarm ?? 0) - dt * (cd > near * 2.5 ? 0.35 : 0.12));

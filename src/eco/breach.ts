@@ -22,6 +22,8 @@ interface Leap {
   kind: Kind; c: THREE.Vector3; dir: THREE.Vector3; t: number; len: number;
   vy: number; twist: number; flip: number; splashed: boolean; left: number;
   run: Run; exitAt: number; heaved: boolean; vx: number;
+  // after it falls back: carried on in the water from where and how it landed (world position, speeds, attitude)
+  sw?: { x: number; y: number; z: number; vy: number; sp: number; yaw: number; pitch: number; roll: number; t: number };
 }
 // The run up from the deep, as it is driven: each stroke of the wings (a manta) or the flukes (a whale)
 // pushes, harder on the downstroke, against a drag that grows with the square of the speed, so the speed
@@ -145,27 +147,36 @@ export function makeBreach(oc: any) {
         // a whale coming up shoves a mound of water ahead of it: the surface heaves and goes pale just before
         if (l.kind === 'whale' && !l.heaved && run.y > -4) { l.heaved = true; foams.push({ x: l.c.x + l.dir.x * (run.x + 2), z: l.c.z + l.dir.z * (run.x + 2), r: L * 0.35, age: 0, life: 4 }); }
         if (run.done) { l.exitAt = l.t; l.vx = run.v * Math.cos(run.pitch); l.vy = Math.min(l.vy * 1.1, Math.max(l.vy * 0.75, run.v * Math.sin(run.pitch))); }
-      } else if (up < airT + 0.6) {
+      } else if (!l.sw) {
         // out: thrown up and falling back, turning over as it goes (still carried on along its line)
-        const k = Math.min(1, up / airT);
+        const k = Math.min(1.1, up / airT);
         y = l.vy * up - 0.5 * G * up * up; along = run.x + up * Math.min(l.vx, 3);
-        pitch = l.kind === 'whale' ? P.pE + 0.85 * k : P.pE - 0.3 - 0.7 * k + l.flip * k;
-        roll = l.twist * k; ph = run.ph; beat = 0.3;
+        pitch = l.kind === 'whale' ? P.pE + 0.85 * k : P.pE - 0.3 - 0.7 * k + l.flip * Math.min(1, k);
+        roll = l.twist * Math.min(1, k); ph = run.ph; beat = 0.3;
       } else {
-        // under again: carried down and away by its own momentum, slowing
-        const u = up - airT - 0.6;
-        y = Math.max(-12, -0.5 * L * 0.2 - u * 2.2); along = run.x + (airT + 0.6) * Math.min(l.vx, 3) + u * 1.5;
-        pitch = (l.kind === 'whale' ? P.pE + 0.85 : P.pE - 1.0 + l.flip) + Math.min(1.2, u * 0.4); roll = l.twist;
-        run.ph += dt * Math.PI * 2 * P.f0; ph = run.ph; beat = 1;
+        // back in: the water stops it hard; it rolls upright and levels out, and swims on — a few strong
+        // strokes, a little way down, then easing back up toward the surface, on its way
+        const w = l.sw, u = (w.t += dt);
+        // (drag; then settling a few metres down; then, its show over, diving away into the blue)
+        const want = u < 7 ? -L * 0.25 : -Math.min(L * 1.2, L * 0.25 + (u - 7) * 1.1);
+        w.vy += (-w.vy * 2.2 + (u < 1.5 ? -0.6 : (want - w.y) * 0.3)) * dt;
+        w.y += w.vy * dt;
+        if (u >= 7) w.pitch += (-0.22 - w.pitch) * Math.min(1, dt * 0.5);   // (nose down, going)
+        w.sp += ((l.kind === 'whale' ? 1.8 : 1.4) - w.sp) * Math.min(1, dt * 0.6);
+        const ka = 1 - Math.exp(-dt * 1.1);
+        w.roll += (Math.round(w.roll / (Math.PI * 2)) * Math.PI * 2 - w.roll) * ka;
+        if (u < 7) w.pitch += ((u < 3 ? -0.15 : 0.05) - w.pitch) * ka;
+        w.x += Math.sin(w.yaw) * w.sp * dt; w.z += Math.cos(w.yaw) * w.sp * dt;
+        y = w.y; pitch = w.pitch; roll = w.roll; along = 0;
+        run.ph += dt * Math.PI * 2 * P.f0 * (u < 4 ? 1.4 : 1); ph = run.ph; beat = u < 4 ? 1.6 : 1;
       }
       // the stroke itself, on the model: a manta's wings driven by our phase and beaten harder as it pushes;
       // a whale's flukes swept in a bigger arc
       const um = (mesh.material as THREE.ShaderMaterial).uniforms;
       if (l.kind === 'manta') { um.uBeat.value = 0; um.uPhase.value = ph; um.uAmp.value = beat; }
       else { um.uPhase.value = ph - U.uTime.value * 1.6; um.uStroke.value = 0.8 * beat * 1.2; }
-      const cx = l.c.x + l.dir.x * along, cz = l.c.z + l.dir.z * along;
-      // the body's centre is a third of its length behind the head along its axis
-      _e.set(-pitch, Math.atan2(l.dir.x, l.dir.z), roll, 'YXZ');
+      const cx = l.sw ? l.sw.x : l.c.x + l.dir.x * along, cz = l.sw ? l.sw.z : l.c.z + l.dir.z * along;
+      _e.set(-pitch, l.sw ? l.sw.yaw : Math.atan2(l.dir.x, l.dir.z), roll, 'YXZ');
       mesh.position.set(cx, y, cz); mesh.rotation.copy(_e);
       if (l.kind === 'whale') mesh.scale.setScalar(L); else mesh.scale.setScalar(L / 2);
       mesh.visible = s > -2;
@@ -174,15 +185,20 @@ export function makeBreach(oc: any) {
         _ax.set(0, 0, (Math.random() - 0.5) * L * 0.9).applyEuler(_e); _p.set(cx, y, cz).add(_ax);
         if (_p.y > 0.2) fx.stream(_p.x, _p.y, _p.z, l.dir.x * 2, l.dir.z * 2, l.kind === 'whale' ? 3 : 1);
       }
-      if (up > 0 && up - dt <= 0) { fx.splash(cx, cz, l.kind === 'whale' ? 0.45 : 0.12, L * 0.15); fx.sound(l.kind === 'whale' ? 0.5 : 0.2, cx, cz); }
-      if (!l.splashed && up > airT * 0.92) {
+      if (up > 0 && up - dt <= 0) fx.splash(cx, cz, l.kind === 'whale' ? 0.45 : 0.12, L * 0.15);   // (breaking out: spray, and the sound of the water tearing, quietly)
+      if (!l.splashed && up > airT * 0.5 && y <= L * 0.04) {
+        // the moment it comes down: carry on from here, as it is, in the water
         l.splashed = true;
+        let yaw = Math.atan2(l.dir.x, l.dir.z), pp = pitch, rr0 = roll;
+        // (fallen back past upright, on its back: the same attitude is facing the other way, belly up — it rights itself from that)
+        if (pp > Math.PI / 2) { yaw += Math.PI; pp = Math.PI - pp; rr0 += Math.PI; }
+        l.sw = { x: cx, y, z: cz, vy: -(G * (up) - l.vy) * 0.6, sp: Math.min(l.vx, 3), yaw, pitch: pp, roll: rr0, t: 0 };
         const big = l.kind === 'whale' ? 1 : 0.32;
         fx.splash(cx, cz, big, L * 0.3); fx.sound(big, cx, cz);
         foams.push({ x: cx, z: cz, r: L * 0.55, age: 0, life: l.kind === 'whale' ? 70 : 35 });
         logEvent(env, 'breach', l.kind === 'whale' ? (series === 0 ? 'ザトウクジラが海面から跳び上がった！ 巨体がしぶきの柱を上げて落ちる' : 'ザトウクジラがまた跳んだ') : (series === 0 ? 'マンタが海面から跳ねた！' : 'マンタがまた跳ねた'), cx, cz, () => null);
       }
-      if (up > airT + (l.kind === 'whale' ? 9 : 6)) {
+      if (up > airT + (l.kind === 'whale' ? 22 : 12)) {
         series++;
         if (l.left > 1) { const c = place(l.kind, cam, fx_, fz_, new THREE.Vector3(cx, 0, cz), l.dir); if (c) { begin(l.kind, c, l.dir, l.left - 1); leap!.t = WARN - (l.kind === 'whale' ? rr(10, 16) : rr(3, 6)); return; } }
         leap = null; next = l.kind === 'whale' ? rr(240, 420) : rr(420, 720);

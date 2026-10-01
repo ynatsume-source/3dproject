@@ -456,7 +456,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         if (g.type !== 'anem' && caveMode === 'out') {
           _w.set(px - cam.x, py - cam.y, pz - cam.z);
           // (the giants, a whale shark grazing on plankton, pay a small drone no mind)
-          const cd = _w.length(), fr = sp.diet === 'filter' || sp.size[1] > 3 ? 0 : sp.big ? 3.5 : 4.5;
+          const cd = _w.length(), fr = (sp.diet === 'filter' || sp.size[1] > 3 ? 0 : sp.big ? 3.5 : 4.5) * env.shy;
           if (cd < fr) { _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1)); g.fear = Math.max(g.fear, 0.5 * (1 - cd / fr)); }   // (startled: a quick dart, turning on a pin)
           if (!isPredator && !ch) for (const th of env.threats) {
             if (!th.r) continue;

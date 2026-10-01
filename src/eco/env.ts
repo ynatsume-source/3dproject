@@ -58,6 +58,7 @@ export interface Env {
   threatsOut: Threat[];                  // this frame's threats (write)
   prey: PreyGroup[];
   cam: { x: number; y: number; z: number };
+  shy: number;                           // how far off animals start to mind the drone, as a factor (set by the app: less through its own eyes)
   events: SeaEvent[];
   crunch: (dist: number) => void;
   sound: { frenzy(level: number, dist: number): void; plop(dist: number): void };   // set by the app

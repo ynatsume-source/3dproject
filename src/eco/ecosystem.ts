@@ -24,7 +24,7 @@ export class Ecosystem {
       plankton: new Plankton(LIMIT + 40),
       threats: [], threatsOut: [],
       prey: (oc.fish as FishSystem[]).flatMap((f) => f.preyGroups()),
-      cam: { x: 0, y: 0, z: 0 },
+      cam: { x: 0, y: 0, z: 0 }, shy: 1,
       events: [],
       crunch: () => { /* set by the app */ },
       sound: { frenzy: () => { /* set by the app */ }, plop: () => { /* set by the app */ } },
