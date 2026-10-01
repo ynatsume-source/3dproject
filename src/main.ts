@@ -2174,6 +2174,7 @@ function frame(ts: number) {
       U.uCamPos.value.y = cy; camera.far = keepFar; camera.updateProjectionMatrix(); post.setExposure(keepExpo);
       split.compose(renderer, camera);
     } else if (usePost()) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
+    cur.shore?.update?.(camera.position, tier === 'low' ? 50 : tier === 'medium' ? 70 : 85);   // (the island's trees, near the camera)
     cur.residents?.bubbles(camera, innerWidth, innerHeight);
     if (usePost()) { if (!noPip) renderPip(dt, air); }
     else {

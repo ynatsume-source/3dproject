@@ -8,6 +8,7 @@ import { SURF_UNIFORMS } from '../render/surface';
 import { hash, smooth, R, rr } from '../core/math';
 import { WORLD } from './scenery';
 import { landOf, type Land } from './land';
+import { buildForest } from './forest';
 
 // lighting in the open air: sun (reddened low down), moon and sky; the photo already carries the
 // look of the place, this only turns it with the time of day
@@ -41,16 +42,49 @@ void landTex(vec2 xz, out vec3 ph, out vec4 cv){
 export const LAND_FLOOR = /* glsl */ `
 ${LAND_TEX}
 ${AIRLIT}
-// albedo of dry land at wp: the aerial photograph, with grain from the sand texture close up
-// (the photo is half a metre a pixel), leaf litter under trees, and dark wet sand at the water's edge
+// Dry land at wp, close up. The aerial photograph is half a metre a pixel: from the air it is the land,
+// but at a walker's height it is a blur. So it only sets the broad colour; what the ground is made of comes
+// from the land cover — coral sand (fine grain, ripples, bits of shell and coral, dark and glossy where the
+// sea has just left it), grassland (blades in clumps, dry patches, little flowers), the forest floor under
+// the trees (leaf litter over dark soil, roots), and grey limestone — each with its own relief.
+float landH;   // (the relief at the last point asked: for the normal)
 vec3 landAlbedo(vec3 wp){
   vec3 ph; vec4 cv; landTex(wp.xz, ph, cv);
-  float g = dot(texture2D(tSandC, wp.xz * 0.35).rgb, vec3(0.333)) / 0.6;
-  vec3 a = ph * mix(1.0, g, 0.55 * cv.g + 0.25);
-  a *= mix(1.0, 0.75 + 0.45 * vn2(wp.xz * 1.9), cv.r * 0.8 + cv.b * 0.5);
+  vec2 p = wp.xz;
+  float sandW = smoothstep(0.15, 0.6, cv.g), rockW = smoothstep(0.2, 0.7, cv.b) * (1.0 - sandW * 0.5), canW = smoothstep(0.25, 0.75, cv.r);
+  float grassW = max(0.0, 1.0 - sandW - rockW) * (1.0 - canW) * smoothstep(0.45, 1.1, wp.y);   // (by the water it is all beach)
+  sandW = max(sandW, 1.0 - smoothstep(0.45, 1.1, wp.y)) * (1.0 - rockW * 0.6);
+  float litterW = canW * max(0.0, 1.0 - sandW * 0.7 - rockW);
+  float pl = dot(ph, vec3(0.333));
+  // sand: the texture's grain, a pale coral white warmed by the photo, scattered fragments, faint ripples
+  float g = dot(texture2D(tSandC, p * 0.35).rgb, vec3(0.333)) / 0.6;
+  float rip = sin(dot(p, vec2(0.8, 0.6)) * 3.3 + vn2(p * 0.4) * 4.0) * 0.5 + 0.5;
+  vec3 sand = vec3(0.86, 0.82, 0.73) * (0.82 + 0.25 * g) * mix(vec3(1.0), ph / max(pl, 0.05), 0.25) * (0.94 + 0.08 * rip);
+  float frag = (1.0 - smoothstep(0.03, 0.09, cellF1(p * 6.0))) * step(0.82, hash2(floor(p * 6.0)));
+  sand = mix(sand, vec3(0.96, 0.93, 0.86), frag * 0.8);
+  // grass: clumps of blades (fine streaks), greener and yellower patches, bare sandy gaps, a few flowers
+  float clump = vn2(p * 1.6) * 0.6 + vn2(p * 5.0) * 0.4, blade = vn2(vec2(p.x * 38.0, p.y * 38.0) + vn2(p * 9.0) * 3.0);
+  vec3 grass = mix(vec3(0.34, 0.42, 0.18), vec3(0.52, 0.5, 0.26), smoothstep(0.45, 0.75, vn2(p * 0.35 + 4.0)));
+  grass = mix(grass, ph * 1.15, 0.3) * (0.7 + 0.45 * blade) * (0.8 + 0.3 * clump);
+  grass = mix(grass, sand * 0.9, smoothstep(0.65, 0.85, vn2(p * 0.7 + 11.0)) * 0.6);
+  grass = mix(grass, vec3(0.9, 0.85, 0.5), (1.0 - smoothstep(0.02, 0.06, cellF1(p * 3.0 + 7.0))) * step(0.93, hash2(floor(p * 3.0 + 7.0))));
+  // the forest floor: dark soil under a layer of dry leaves (browns, ochres, the odd green one), roots
+  float leaf = cellF1(p * 9.0), lv = hash2(floor(p * 9.0));
+  vec3 litter = mix(vec3(0.26, 0.2, 0.13), mix(vec3(0.55, 0.4, 0.22), vec3(0.4, 0.3, 0.16), lv), smoothstep(0.45, 0.2, leaf));
+  litter = mix(litter, vec3(0.3, 0.36, 0.16), step(0.92, lv) * smoothstep(0.4, 0.2, leaf));
+  float root = 1.0 - smoothstep(0.0, 0.06, abs(vn2(p * 0.9 + 3.0) - 0.5));
+  litter = mix(litter, vec3(0.33, 0.27, 0.2), root * 0.6);
+  // limestone: grey, pitted and sharp (raised coral rock), stained dark in the hollows
+  vec3 rc = texture2D(tRockC, p * 0.4).rgb;
+  vec3 rock = mix(vec3(0.62, 0.6, 0.55), rc * 1.3, 0.5) * (0.75 + 0.35 * vn2(p * 2.0));
+  vec3 a = sand * sandW + grass * grassW + litter * litterW + rock * rockW;
+  a /= max(sandW + grassW + litterW + rockW, 1e-3);
+  landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (smoothstep(0.45, 0.15, leaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
+  // wet sand by the water: darker, a little glossy (see airLit's caller), then the swash line
   float wet = 1.0 - smoothstep(0.02, 0.5, wp.y);
   return mix(a, a * vec3(0.66, 0.7, 0.74), wet * 0.85);
 }
+vec3 landNormal(vec3 wp, vec3 n){ return bumpN(n, wp, landH * 0.05); }
 `;
 
 // tree crowns: domes about 2.5 m across on a jittered 3.5 m grid
@@ -91,11 +125,12 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        vWp = p; vN = normal; vC = aC; gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }`,
     `${LAND_TEX}
      ${AIRLIT}
-     varying vec3 vWp; varying vec3 vN; varying float vC;
+     varying vec3 vWp; varying vec3 vN; varying float vC; uniform float uNear;
      void main(){
        vec3 ph; vec4 cv; landTex(vWp.xz, ph, cv);
        float nz = vn2(vWp.xz * 0.9) * 0.6 + vn2(vWp.xz * 3.1 + 7.0) * 0.4;
        if (cv.r < 0.3 + 0.3 * nz) discard;                            // ragged where the forest ends
+       if (length(vWp.xz - uCamPos.xz) < uNear * (0.9 + 0.2 * nz)) discard;   // (close by, the trees themselves: ocean/forest.ts)
        if (length(vWp.xz - uCut.xz) < uCut.w * (0.85 + 0.3 * nz)) discard;   // (opened up over a resident being watched from above)
        vec3 n = normalize(vN);
        float under = gl_FrontFacing ? 1.0 : 0.3;                       // seen from beneath: the shade inside the crowns
@@ -105,7 +140,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        vec3 alb = ph * (0.72 + 0.5 * leaf) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // the sides of the forest are in shade
        gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), 1.0);
      }`,
-    { uniforms: landUniforms(L), opts: { side: THREE.DoubleSide } });
+    { uniforms: { ...landUniforms(L), uNear: { value: 0 } }, opts: { side: THREE.DoubleSide } });
   // a grid of step S over +-E1, leaving out what lies inside +-E0 (drawn finer by the other)
   const canopyMesh = (E0: number, E1: number, S: number) => {
     const N = Math.round(2 * E1 / S) + 1;
@@ -195,7 +230,12 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
   }
-  return { canopy, plants: count, lists };
+  const forest = buildForest(AIRLIT, group, f, can, top, E);
+  return {
+    canopy, plants: count, lists, forest,
+    // each frame: the trees near the camera, and the canopy surface stepping aside for them
+    update(cam: THREE.Vector3, near: number) { forest.update(cam, near); (canopyMat.uniforms.uNear as { value: number }).value = near; },
+  };
 }
 
 /* ---------- plant geometry (unit height; colours and sway per vertex) ---------- */
@@ -233,23 +273,30 @@ class Builder {
 const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 const jit = (c: number[], k: number) => { const t = 1 + (R() - 0.5) * k; return [c[0] * t, c[1] * t * (1 + (R() - 0.5) * k * 0.4), c[2] * t]; };
 
-// モクマオウ: a tall, thin, often leaning trunk; sparse tiers of drooping, needle-like grey-green twigs
+// モクマオウ: a tall, thin, often leaning trunk with a few upward-angled limbs; a light, open crown of
+// fine grey-green twigs that hang in soft drooping curtains (it is no pine: its "needles" are jointed
+// twigs) — airy enough to see the sky through, sighing in the wind
 function casuarinaGeo() {
-  const B = new Builder(), bark = [0.32, 0.27, 0.22];
+  const B = new Builder(), bark = [0.36, 0.3, 0.25];
   const lean = V(0.08, 1, 0.03).normalize();
-  const trunkTop = lean.clone().multiplyScalar(0.9);
-  B.tube(V(0, 0, 0), trunkTop, 0.022, 0.008, bark, 0, 0.3, 6);
-  for (let t = 0; t < 9; t++) {
-    const h = 0.28 + t * 0.075 + R() * 0.05, a = R() * 6.28, len = 0.1 + (1 - t / 9) * 0.16;
-    const base = lean.clone().multiplyScalar(h), tip = base.clone().add(V(Math.cos(a) * len, 0.04, Math.sin(a) * len));
-    B.tube(base, tip, 0.006, 0.003, bark, h * 0.3, h * 0.5, 4);
-    // a clump of hanging twigs round the branch
-    for (let k = 0; k < 70; k++) {
-      const f = R(), c = base.clone().lerp(tip, 0.15 + f * 0.85).add(V((R() - 0.5) * 0.12, (R() - 0.3) * 0.08, (R() - 0.5) * 0.12));
-      const d = V(Math.cos(a) * 0.4 + (R() - 0.5) * 1.2, -1.5, Math.sin(a) * 0.4 + (R() - 0.5) * 1.2).normalize().multiplyScalar(0.07 + R() * 0.08);
-      const side = V(-d.z, 0, d.x).normalize().multiplyScalar(0.006);
-      const col = jit([0.17, 0.24, 0.15], 0.25), nm = V(side.x, 0.4, side.z).normalize();
-      B.quad(c.clone().sub(side), c.clone().add(side), c.clone().add(d).add(side), c.clone().add(d).sub(side), nm, col, [h * 0.6, h * 0.6, h * 0.8, h * 0.8]);
+  const trunkTop = lean.clone().multiplyScalar(0.92);
+  B.tube(V(0, 0, 0), trunkTop, 0.02, 0.007, bark, 0, 0.3, 6);
+  for (let t = 0; t < 12; t++) {
+    const h = 0.32 + t * 0.052 + R() * 0.04, a = t * 2.4 + R() * 0.6, len = 0.09 + Math.sin((1 - t / 12) * Math.PI * 0.85) * 0.16;
+    const base = lean.clone().multiplyScalar(h), tip = base.clone().add(V(Math.cos(a) * len, len * 0.55, Math.sin(a) * len));   // (the limbs angle up)
+    B.tube(base, tip, 0.006, 0.0025, bark, h * 0.3, h * 0.5, 4);
+    // curtains of fine twigs hanging from the limb: long, thin, curving down, light grey-green
+    for (let k = 0; k < 90; k++) {
+      const f = 0.2 + R() * 0.8, c = base.clone().lerp(tip, f).add(V((R() - 0.5) * 0.06, (R() - 0.2) * 0.05, (R() - 0.5) * 0.06));
+      let d = V(Math.cos(a) * 0.5 + (R() - 0.5) * 0.9, -0.5, Math.sin(a) * 0.5 + (R() - 0.5) * 0.9).normalize();
+      const L = 0.05 + R() * 0.07, col = jit([0.36, 0.44, 0.33], 0.22);
+      let p0 = c;
+      for (let s = 0; s < 3; s++) {   // (each twig a little curved: steeper toward the tip)
+        const p1 = p0.clone().addScaledVector(d, L / 3);
+        const side = V(-d.z, 0, d.x).normalize().multiplyScalar(0.0035);
+        B.quad(p0.clone().sub(side), p0.clone().add(side), p1.clone().add(side), p1.clone().sub(side), V(side.x, 0.6, side.z).normalize(), col, [h * 0.7 + s * 0.1, h * 0.7 + s * 0.1, h * 0.8 + s * 0.1, h * 0.8 + s * 0.1]);
+        p0 = p1; d.y -= 0.45; d.normalize();
+      }
     }
   }
   return B.geo();

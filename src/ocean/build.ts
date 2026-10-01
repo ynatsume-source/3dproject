@@ -182,7 +182,7 @@ export function buildOcean(loc) {
        #ifdef LAND
        float dry = smoothstep(-0.1, 0.06, vWp.y);
        vec3 la = landAlbedo(vWp) * mix(1.0, vAO, 0.5);
-       col = mix(col, fogIt(airLit(la, normalize(vN), vWp, 0.0), vWp), dry);
+       col = mix(col, fogIt(airLit(la, landNormal(vWp, normalize(vN)), vWp, 0.0), vWp), dry);
        #endif
        gl_FragColor = vec4(col, 1.0);
      }`, { uniforms: { ...SURF_UNIFORMS, ...(land ? landUniforms(land) : {}) }, defines: land ? { LAND: 1 } : {} }));
