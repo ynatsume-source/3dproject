@@ -69,8 +69,9 @@ vec3 landAlbedo(vec3 wp){
   grass = mix(grass, sand * 0.9, smoothstep(0.65, 0.85, vn2(p * 0.7 + 11.0)) * 0.6);
   grass = mix(grass, vec3(0.9, 0.85, 0.5), (1.0 - smoothstep(0.02, 0.06, cellF1(p * 3.0 + 7.0))) * step(0.93, hash2(floor(p * 3.0 + 7.0))));
   // the forest floor: dark soil under a layer of dry leaves (browns, ochres, the odd green one), roots
-  float leaf = cellF1(p * 9.0), lv = hash2(floor(p * 9.0));
-  vec3 litter = mix(vec3(0.26, 0.2, 0.13), mix(vec3(0.55, 0.4, 0.22), vec3(0.4, 0.3, 0.16), lv), smoothstep(0.45, 0.2, leaf));
+  vec2 pw = p + vec2(vn2(p * 1.3), vn2(p * 1.3 + 9.0)) * 1.4;   // (warped, so the leaves lie at random rather than in rows)
+  float leaf = min(cellF1(pw * 7.0), cellF1(pw * 11.0 + 3.0) * 1.2), lv = hash2(floor(pw * 7.0)) * 0.6 + vn2(p * 3.0) * 0.4;
+  vec3 litter = mix(vec3(0.22, 0.17, 0.12), mix(vec3(0.46, 0.34, 0.2), vec3(0.32, 0.25, 0.15), lv), smoothstep(0.42, 0.22, leaf) * (0.55 + 0.45 * vn2(p * 0.8)));
   litter = mix(litter, vec3(0.3, 0.36, 0.16), step(0.92, lv) * smoothstep(0.4, 0.2, leaf));
   float root = 1.0 - smoothstep(0.0, 0.06, abs(vn2(p * 0.9 + 3.0) - 0.5));
   litter = mix(litter, vec3(0.33, 0.27, 0.2), root * 0.6);
@@ -172,10 +173,9 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   // from the shape itself
   T.over = (x: number, z: number) => (can(x, z) < 0.3 ? -1e9 : top(x, z).y + 0.5);
   T.landCover = (x: number, z: number) => ({ can: can(x, z), sand: sand(x, z) });
-  for (let z = -E; z < E; z += 1) for (let x = -E; x < E; x += 1) {
-    if (can(x, z) < 0.3) continue;
-    obst.raise(x, z, top(x, z).y + 0.5);
-  }
+  // (the canopy is no longer solid as a block: the drone cruising by keeps above it by T.over, but flown by
+  // hand it can go in among the trees, which stand apart — see forest.push)
+  void obst;
 
   /* ---------- plants of the beach and the forest edge ---------- */
   type Spot = { x: number; z: number; y: number; s: number; ry: number };
@@ -230,11 +230,12 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
   }
-  const forest = buildForest(AIRLIT, group, f, can, top, E);
+  const forest = buildForest(AIRLIT, group, f, can, top, FAR);
   return {
     canopy, plants: count, lists, forest,
     // each frame: the trees near the camera, and the canopy surface stepping aside for them
     update(cam: THREE.Vector3, near: number) { forest.update(cam, near); (canopyMat.uniforms.uNear as { value: number }).value = near; },
+    push: (p: THREE.Vector3) => forest.push(p),
   };
 }
 

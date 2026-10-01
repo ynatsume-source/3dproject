@@ -417,7 +417,8 @@ function updateDrone(dt: number, now: number) {
     }
   }
   // look ahead along the way we are moving and start climbing well before a rock or coral head
-  const G = cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
+  // (flown by hand, the forest is trees to weave between, not a roof to keep above)
+  const G = drone.mode === 'manual' ? cur!.T.top : cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
   if (hs > 0.05 && !(watch.r && !watch.pov)) {   // (watching someone, the camera's own spot already keeps clear of the ground: no early climbing away from their eye level)
     let ahead = -1e9;
     // (outside the cave, its rock counts as ground to climb over; inside the tunnel, the roof doesn't)
@@ -431,6 +432,7 @@ function updateDrone(dt: number, now: number) {
     if (drone.pos.y < want) drone.vel.y = Math.max(drone.vel.y, Math.min(1.6, (want - drone.pos.y) * 1.1));
   }
   drone.pos.addScaledVector(drone.vel, dt);
+  if (drone.mode === 'manual' || watch.r) cur!.shore?.push?.(drone.pos);   // (round the trunks)
   // watching from above: never down inside the forest roof
   // (except close by it, where the trees are opened up anyway: there it may come down to eye level)
   // (once down under the trees with it, it stays down among the trunks rather than being lifted back over the roof)

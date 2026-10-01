@@ -98,45 +98,59 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`, { opts: { side: THREE.DoubleSide } });
   const geos = [treeGeo(0), treeGeo(1), treeGeo(2)];
-  // where the trees stand: a jittered grid over the canopy, each as tall as the canopy there
+  // where the trees stand: a jittered grid over the canopy, each as tall as the canopy there — worked out
+  // for a 40 m cell the first time the camera comes near it (the island is far bigger than the sea round it)
   type Tree = { x: number; z: number; y: number; h: number; ry: number; v: number };
-  const cells = new Map<string, Tree[]>();
   const S = 3.6;
-  for (let gz = -E; gz < E; gz += S) for (let gx = -E; gx < E; gx += S) {
-    const x = gx + hash(gx * 0.7, gz * 1.3) * S, z = gz + hash(gx * 1.9 + 4, gz * 0.3 - 2) * S;
-    const c = can(x, z); if (c < 0.45) continue;
-    const y = f(x, z); if (y < 0.3) continue;
-    const h = Math.max(2.2, top(x, z).y - y);
-    const k = Math.floor(x / CELL) + ',' + Math.floor(z / CELL);
-    if (!cells.has(k)) cells.set(k, []);
-    cells.get(k)!.push({ x, z, y, h, ry: R() * 6.28, v: Math.floor(R() * 3) });
-  }
-  const meshes: { cx: number; cz: number; list: THREE.InstancedMesh[] }[] = [];
+  const cells = new Map<string, { cx: number; cz: number; trees: Tree[]; list: THREE.InstancedMesh[] }>();
   const e = new THREE.Euler(), q = new THREE.Quaternion(), m4 = new THREE.Matrix4(), p3 = new THREE.Vector3(), s3 = new THREE.Vector3();
   let count = 0;
-  for (const [k, list] of cells) {
-    const [ci, cj] = k.split(',').map(Number);
-    const ms: THREE.InstancedMesh[] = [];
+  const cellAt = (ci: number, cj: number) => {
+    const k = ci + ',' + cj; let c = cells.get(k);
+    if (c) return c;
+    const trees: Tree[] = [];
+    for (let gz = cj * CELL; gz < (cj + 1) * CELL; gz += S) for (let gx = ci * CELL; gx < (ci + 1) * CELL; gx += S) {
+      const x = gx + hash(gx * 0.7, gz * 1.3) * S, z = gz + hash(gx * 1.9 + 4, gz * 0.3 - 2) * S;
+      if (Math.abs(x) > E || Math.abs(z) > E) continue;
+      const cn = can(x, z); if (cn < 0.45) continue;
+      const y = f(x, z); if (y < 0.3) continue;
+      trees.push({ x, z, y, h: Math.max(2.2, top(x, z).y - y), ry: hash(x * 3.1, z * 2.7) * 6.28, v: Math.floor(hash(x * 5.3, z * 4.1) * 3) });
+    }
+    const list: THREE.InstancedMesh[] = [];
     for (let v = 0; v < 3; v++) {
-      const sub = list.filter((t) => t.v === v); if (!sub.length) continue;
+      const sub = trees.filter((t) => t.v === v); if (!sub.length) continue;
       const mesh = new THREE.InstancedMesh(geos[v], treeMat, sub.length);
       sub.forEach((t, i) => {
-        const w = t.h * rr(0.8, 1.05);   // (crowns about as wide as the trees are tall, touching to close the canopy)
-        q.setFromEuler(e.set((R() - 0.5) * 0.08, t.ry, (R() - 0.5) * 0.08));
+        const w = t.h * (0.8 + 0.25 * hash(t.x, t.z));   // (crowns about as wide as the trees are tall, touching to close the canopy)
+        q.setFromEuler(e.set((hash(t.z, t.x) - 0.5) * 0.08, t.ry, (hash(t.x + 1, t.z) - 0.5) * 0.08));
         mesh.setMatrixAt(i, m4.compose(p3.set(t.x, t.y, t.z), q, s3.set(w, t.h, w)));
       });
-      mesh.frustumCulled = false; mesh.visible = false; group.add(mesh); ms.push(mesh); count += sub.length;
+      mesh.frustumCulled = false; group.add(mesh); list.push(mesh); count += sub.length;
     }
-    meshes.push({ cx: (ci + 0.5) * CELL, cz: (cj + 0.5) * CELL, list: ms });
-  }
+    c = { cx: (ci + 0.5) * CELL, cz: (cj + 0.5) * CELL, trees, list };
+    cells.set(k, c);
+    return c;
+  };
   let near = 85;
   return {
-    count,
+    get count() { return count; },
     get near() { return near; },
     // which cells to draw: those reaching within `near` of the camera (the canopy surface fills in beyond)
     update(cam: THREE.Vector3, r: number) {
       near = r;
-      for (const c of meshes) { const on = Math.hypot(c.cx - cam.x, c.cz - cam.z) < r + CELL * 0.75; for (const m of c.list) m.visible = on; }
+      const R0 = r + CELL * 0.75, i0 = Math.floor((cam.x - R0) / CELL), i1 = Math.floor((cam.x + R0) / CELL), j0 = Math.floor((cam.z - R0) / CELL), j1 = Math.floor((cam.z + R0) / CELL);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Math.hypot((i + 0.5) * CELL - cam.x, (j + 0.5) * CELL - cam.z) < R0) cellAt(i, j);
+      for (const c of cells.values()) { const on = Math.hypot(c.cx - cam.x, c.cz - cam.z) < R0; for (const m of c.list) m.visible = on; }
+    },
+    // flying in among them: push a point out of any trunk (or the dense heart of a crown) it is inside
+    push(p: THREE.Vector3) {
+      const c = cells.get(Math.floor(p.x / CELL) + ',' + Math.floor(p.z / CELL)); if (!c) return;
+      for (const t of c.trees) {
+        const dx = p.x - t.x, dz = p.z - t.z, d = Math.hypot(dx, dz), up = p.y - t.y;
+        if (up < -0.5 || up > t.h) continue;
+        const rr0 = up < t.h * 0.4 ? 0.55 : t.h * 0.12;   // (the trunk; up in the crown, its thick middle)
+        if (d < rr0) { const k = (rr0 - d) / Math.max(d, 1e-3); p.x += dx * k; p.z += dz * k; }
+      }
     },
   };
 }
