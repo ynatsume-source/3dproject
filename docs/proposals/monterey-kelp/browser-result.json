@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "initial": {
+    "roots": 211,
+    "fish": 4,
+    "rare": 0
+  },
+  "miyako": {
+    "fish": 26,
+    "kelp": false,
+    "anemones": 11
+  },
+  "state": {
+    "roots": 211,
+    "glError": 0,
+    "lost": false,
+    "err": false,
+    "map": "36.621°N 121.901°W",
+    "recovery": null
+  },
+  "errors": [],
+  "badLocal": [],
+  "nightRendered": true,
+  "roundTrip": true
+}

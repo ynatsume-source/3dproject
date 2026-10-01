@@ -1,6 +1,8 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
+import { MONTEREY } from './monterey';
+import type { KelpSpec } from '../ocean/kelp';
 import type { WreckSpec } from '../ocean/wreck';
 import type { WhaleSeason } from '../eco/whale';
 import { landOf } from '../ocean/land';
@@ -40,6 +42,7 @@ export interface Sea {
   water: { up: number[]; hor: number[]; down: number[]; fog: number; abs: number[] };
   sand: number[]; rock: number[];
   f(x: number, z: number): number;
+  kelp?: KelpSpec;                         // temperate macroalgal forest, not a coral reef
   grass?(x: number, z: number): number;
   swellHs?: number;                        // typical significant wave height (m) when there is no live sea state
   birds?: BirdSpec[];
@@ -751,3 +754,6 @@ for (const L of LOCATIONS) {
   const g = L.grass;
   if (g && L.cave) L.grass = (x: number, z: number) => g(x, z) * (1 - smooth(0.02, 0.2, foot(x, z)));
 }
+
+// Habitat-specific terrain is complete; do not add tropical reef rugosity or fauna to this site.
+LOCATIONS.push(MONTEREY);

@@ -744,7 +744,7 @@ function applySky(loc: Sea, airView = drone.pos.y > 0) {
   setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
   if (!lampManual) setLamp(wantLamp(), false);
   cur!.eco.setSky(s, U.uCurrent.value);
-  if (s.phase !== lastPhase) { if (lastPhase) { seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : PHASE_LOG)[s.phase]); say(s.phase as Mood); } lastPhase = s.phase; }
+  if (s.phase !== lastPhase) { if (lastPhase) { seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : loc.kelp ? PHASE_LOG_KELP : PHASE_LOG)[s.phase]); say(s.phase as Mood); } lastPhase = s.phase; }
   if (U.uRain.value > 0.2 && !saidRain) { saidRain = true; say('rain'); }
 }
 const PHASE_LOG: Record<string, string> = {
@@ -752,6 +752,12 @@ const PHASE_LOG: Record<string, string> = {
   noon: '日中。小魚がプランクトンを食べに群れ、光の筋がいちばん強い時間',
   dusk: '夕暮れ。昼の魚が寝床へ向かい、捕食者がいちばん活発になる時間',
   night: '夜。昼の魚はサンゴの隙間で眠り、夜行性の魚とプランクトンが上がってくる',
+};
+const PHASE_LOG_KELP: Record<string, string> = {
+  dawn: '夜明け。ケルプの葉の間が明るくなり、昼の魚が動き出す',
+  noon: '日中。水面近くの葉の間から、ケルプの森に光が差し込む',
+  dusk: '夕暮れ。葉の影が深まり、昼の魚が休む場所へ向かう',
+  night: '夜。昼の魚は岩陰などで休み、ケルプの茎は暗がりの中で揺れ続ける',
 };
 const PHASE_LOG_OPEN: Record<string, string> = {
   dawn: '夜明け。夜のあいだ表層に上がっていたプランクトンが、光を避けて深みへ沈んでいく',
@@ -1150,7 +1156,7 @@ function renderGuide() {
     <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${cur.bait ? `<li class="benthic"><i></i><b>ベイトボール</b><p>${cur.bait.st.active ? 'いま沖で起きている。' : ''}${predatorsJa(loc)}が${loc.bait!.sp.ja}の群れを水面へ追い上げ、海鳥が上から突っ込む。ふだんはまれにしか起きない。</p><button class="go" type="button" data-go="bait">${cur.bait.st.active ? '見に行く' : '探しに行く'}</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
     <h3>生きもの</h3>
     <ul>${list.map((e) => `<li data-id="${e.id}" class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : thumbs[e.id] === '' ? '' : `<img class="pic" data-pic="${e.id}" alt="" hidden>`}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
-    <h3>${loc.pelagic ? '漂う生きもの' : 'サンゴと底生生物'}</h3>
+    <h3>${loc.pelagic ? '漂う生きもの' : loc.kelp ? '海藻と底生生物' : 'サンゴと底生生物'}</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>${loc.flora ? `
     <h3>島の植物</h3>
     <ul>${loc.flora.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>` : ''}`;

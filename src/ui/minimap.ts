@@ -24,17 +24,28 @@ export class MiniMap {
   }
   // x, z: drone position (m, -z north); heading: radians clockwise from north; mark: something to point at
   draw(loc: Sea, x: number, z: number, heading: number, mark: { x: number; z: number } | null, dots: { x: number; z: number; color: string }[] = []) {
-    const m = meta?.[loc.id]; if (!m) return;
+    const m = meta?.[loc.id];
     // keep the canvas at the screen's own pixel density, so the photo stays sharp
     const css = this.cv.clientWidth || 168, want = Math.round(css * Math.min(3, devicePixelRatio || 1));
     if (this.cv.width !== want) { this.cv.width = this.cv.height = want; }
     const S = this.cv.width, c = this.ctx, k = 111320, cosl = Math.cos(loc.lat * Math.PI / 180);
     const lat = loc.lat - z / k, lon = loc.lon + x / (k * cosl);
-    const mode = m.near ? this.mode : 'region';
+    const mode = m?.near ? this.mode : 'region';
     c.clearRect(0, 0, S, S); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
     const u = S / css;   // (drawing in CSS pixels)
     let toPx: (la: number, lo: number) => [number, number];
-    if (mode === 'near') {
+    if (!m) {
+      // No aerial imagery for a new habitat yet. Never leave the previous sea's photograph visible.
+      c.fillStyle = '#102c2c'; c.fillRect(0, 0, S, S);
+      const half = WORLD * 1.2;
+      toPx = (la, lo) => [S * (0.5 + (lo - loc.lon) * k * cosl / (2 * half)), S * (0.5 + (loc.lat - la) * k / (2 * half))];
+      c.strokeStyle = 'rgba(143,232,216,.16)'; c.lineWidth = u;
+      for (let i = 1; i < 6; i++) { c.beginPath(); c.moveTo(S * i / 6, 0); c.lineTo(S * i / 6, S); c.moveTo(0, S * i / 6); c.lineTo(S, S * i / 6); c.stroke(); }
+      c.fillStyle = 'rgba(230,245,245,.85)'; c.font = `${10 * u}px sans-serif`;
+      c.fillText('N ↑', 8 * u, 17 * u); c.fillText('位置図 · 航空写真未収録', 8 * u, S - 32 * u);
+      c.font = `${9 * u}px sans-serif`; c.fillText('200 m', 8 * u, S - 16 * u); c.fillRect(8 * u, S - 12 * u, 200 / (2 * half) * S, 2 * u);
+      this.note.textContent = `${Math.abs(loc.lat).toFixed(3)}°${loc.lat >= 0 ? 'N' : 'S'} ${Math.abs(loc.lon).toFixed(3)}°${loc.lon >= 0 ? 'E' : 'W'}`;
+    } else if (mode === 'near') {
       const b = m.near!, im = this.img(`${loc.id}.jpg`); if (!im) return;
       const W = im.naturalWidth, fx = (lo: number) => (lo - b.west) / (b.east - b.west) * W, fy = (la: number) => (b.north - merc(la)) / (b.north - b.south) * W;
       const H = b.half || 420, mpp = (b.east - b.west) * k * cosl / W, half = H / mpp;      // this many metres either side of the drone

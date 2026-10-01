@@ -20,6 +20,7 @@ import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
+import { buildKelp, TEMPERATE_SURFACE } from './kelp';
 import { Wreck, wreckMaterial } from './wreck';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
@@ -174,10 +175,10 @@ export function buildOcean(loc) {
   const floor = new THREE.Mesh(floorGeo, mat(
     `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    SURFACE + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
+    SURFACE + (loc.kelp ? TEMPERATE_SURFACE : '') + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
        vec3 n;
-       vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
+       vec3 alb = ${loc.kelp ? 'temperateSurface' : 'reefSurface'}(vWp, normalize(vN), vReef, n) * vAO;
        vec3 col = shade(alb, vWp, n, 0.95);
        #ifdef LAND
        float dry = smoothstep(-0.1, 0.06, vWp.y);
@@ -245,6 +246,7 @@ export function buildOcean(loc) {
       clam: W.clam * shallow * (1 - smooth(0.3, 0.7, sl)),
     };
     let tot = 0; for (const k in w) tot += w[k];
+    if (tot <= 0) continue; // zero coral weights must mean no coral (temperate habitats)
     let q = R() * tot, kind = 'brain';
     for (const k in w) { q -= w[k]; if (q <= 0) { kind = k; break; } }
     const pal = pick(PALETTE[kind]), seed = R();
@@ -310,7 +312,7 @@ export function buildOcean(loc) {
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish
-  if (!loc.pelagic) {
+  if (!loc.pelagic && !loc.kelp) {
     const debris: { geo: THREE.BufferGeometry; type: number; list: any[] }[] = [
       { geo: fragmentGeo(1), type: 0, list: [] }, { geo: fragmentGeo(2), type: 0, list: [] },
       { geo: bivalveGeo(), type: 0, list: [] }, { geo: coneShellGeo(), type: 0, list: [] },
@@ -441,10 +443,10 @@ export function buildOcean(loc) {
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
-      SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vLy;
+      SURFACE + (loc.kelp ? TEMPERATE_SURFACE : '') + `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){
          vec3 n;
-         vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
+         vec3 alb = ${loc.kelp ? 'temperateSurface' : 'reefSurface'}(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
          gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
        }`, { uniforms: SURF_UNIFORMS });
     const ROCK_CELL = 80;
@@ -461,6 +463,8 @@ export function buildOcean(loc) {
       }
     });
   }
+
+  if (loc.kelp) oc.kelp = buildKelp(loc, group, T.top);
 
   // fish
   for (const sp of loc.species) {

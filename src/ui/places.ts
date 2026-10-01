@@ -24,6 +24,16 @@ const eels: Place = { id: 'eels', ja: 'チンアナゴの砂地', note: '砂か�
   find: (oc, cam) => { const c = nearest(oc.colonies, cam); return c ? { pos: c.pos.clone().setY(c.pos.y + 0.8), size: 2.5 } : null; } };
 
 export const PLACES: Record<string, Place[]> = {
+  monterey: [
+    { id: 'kelp-forest', ja: 'ケルプの森', note: '岩に付着した褐藻が、水面へ伸びる。茎の間をメバルの仲間が行き来する。', find: (oc, cam) => {
+      const root = nearest((oc.kelp?.roots || []).map((pos: THREE.Vector3) => ({ pos })), cam);
+      return root ? { pos: root.pos.clone().setY(root.pos.y * 0.5), size: 4 } : null; } },
+    { id: 'kelp-canopy', ja: '水面の葉の層', note: '気胞に浮かされた葉が水面近くに広がる。下から見上げると、葉の間に空がのぞく。', find: (oc, cam) => {
+      const root = nearest((oc.kelp?.roots || []).map((pos: THREE.Vector3) => ({ pos })), cam);
+      return root ? { pos: root.pos.clone().setY(-2.2), size: 3 } : null; } },
+    { id: 'sand-lane', ja: '森の間の砂地', note: '岩場の間を縫う砂の通路。森の密な場所と開けた場所が隣り合う。', find: (oc, cam) => {
+      const p = best(oc, cam, (x, z, h, reef) => reef < 0.08 && h < -8 ? 1 : -1e9); return p ? { pos: p, size: 4 } : null; } },
+  ],
   miyako: [
     anemone('カクレクマノミ'),
     eels,
