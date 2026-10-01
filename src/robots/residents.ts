@@ -48,8 +48,8 @@ function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
          float a = atan(p.x, p.y) / 6.2832 * 24.0; seam = max(smoothstep(0.42, 0.48, abs(fract(a) - 0.5)), 1.0 - smoothstep(0.004, 0.014, abs(rn - 0.84)));
          id = floor(a) + 20.0; ang = (fract(a) - 0.5) * 6.0 + rn * 30.0;
        }
-       float streak = 0.5 + 0.5 * sin(ang * 7.0 + id * 13.7 + d1 * 25.0);
-       streak *= 0.5 + 0.5 * sin(ang * 3.0 - id * 5.1 + d1 * 60.0);
+       float streak = (0.5 + 0.5 * sin(ang * 9.0 + id * 13.7)) * (0.55 + 0.45 * sin(ang * 4.0 - id * 5.1)) * smoothstep(0.0, 0.06, d1);   // (rays from the growth centre)
+       if (rn > 0.84) streak *= 0.6;
        vec3 col = mix(vec3(0.17, 0.11, 0.055), vec3(0.47, 0.37, 0.19), streak);
        col = mix(col, vec3(0.1, 0.07, 0.04), smoothstep(0.08, 0.0, d1) * 0.3);
        col = mix(col, vec3(0.52, 0.47, 0.34), seam * 0.7);
@@ -81,7 +81,7 @@ function cmats(): CMats {
   return CM ??= {
     fur: rmat(0x3a281b, 0.3, false, 3, 70), furPale: rmat(0xb9a487, 0.2, false, 3, 40), furDark: rmat(0x1f1610, 0.25, false, 3, 40),
     nose: rmat(0x0d0c0c, 0.9), eye: rmat(0x050506, 1.8),
-    carapace: rmat(0x5a4426, 0.8, false, 1), plastron: rmat(0xd8c890, 0.3), skin: rmat(0x4c3b24, 0.45, false, 2, 6), beak: rmat(0x8f7d58, 0.6),
+    carapace: rmat(0x5a4426, 0.8, false, 1), plastron: rmat(0xd8c890, 0.3), skin: rmat(0x4c3b24, 0.45, false, 2, 6), beak: rmat(0x6a5838, 0.6),
     stone: rmat(0x7d776e, 0.15), urchin: rmat(0x3b1736, 0.5), crab: rmat(0xb04a2a, 0.5), clam: rmat(0xcbbca4, 0.5),
   };
 }

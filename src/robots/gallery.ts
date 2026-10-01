@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { robotKit, type Act } from './models';
-import { creatureKit } from './creatures';
+import { creatureKit, type Look } from './creatures';
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -59,11 +59,29 @@ const M = {
   })(),
 };
 const { makeDot, makeLantern } = robotKit({ ...M, stone: new THREE.MeshStandardMaterial({ color: 0x8a8378, roughness: 0.9 }) }, true);
+// the turtle's carapace painted from above: the same scutes the island's shader draws
+function carapaceTex() {
+  const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d')!, img = g.createImageData(N, N);
+  const seeds: number[][] = []; for (let i = 0; i < 5; i++) seeds.push([0, 0.3 - i * 0.155]); for (let i = 0; i < 8; i++) seeds.push([(i % 2 ? 1 : -1) * 0.19, 0.235 - Math.floor(i / 2) * 0.165]);
+  const mix = (a: number[], b: number[], k: number) => a.map((v, i) => v + (b[i] - v) * k), sm = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let py = 0; py < N; py++) for (let px = 0; px < N; px++) {
+    const x = (px / N - 0.5) * 0.8, z = (py / N - 0.5) * 1.0;
+    let d1 = 9, d2 = 9, c1 = seeds[0], id = 0;
+    seeds.forEach((s, i) => { const d = Math.hypot(x - s[0], (z - s[1]) * 1.15); if (d < d1) { d2 = d1; d1 = d; c1 = s; id = i; } else if (d < d2) d2 = d; });
+    const rn = Math.hypot(x / 0.37, z / 0.48); let seam = 1 - sm(0.004, 0.012, d2 - d1), ang = Math.atan2(z - c1[1], x - c1[0]);
+    if (rn > 0.84) { const a = Math.atan2(x, z) / 6.2832 * 24; seam = Math.max(sm(0.42, 0.48, Math.abs(a - Math.floor(a) - 0.5)), 1 - sm(0.004, 0.014, Math.abs(rn - 0.84))); id = Math.floor(a) + 20; ang = (a - Math.floor(a) - 0.5) * 6 + rn * 30; }
+    let streak = (0.5 + 0.5 * Math.sin(ang * 9 + id * 13.7)) * (0.55 + 0.45 * Math.sin(ang * 4 - id * 5.1)) * sm(0, 0.06, d1); if (rn > 0.84) streak *= 0.6;
+    let col = mix([0.17, 0.11, 0.055], [0.47, 0.37, 0.19], streak); col = mix(col, [0.52, 0.47, 0.34], seam * 0.7);
+    const k = (py * N + px) * 4; col.forEach((v, i) => (img.data[k + i] = Math.min(255, Math.pow(v, 1 / 1.25) * 255))); img.data[k + 3] = 255;
+  }
+  g.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
 const std = (color: number, roughness = 0.8) => new THREE.MeshStandardMaterial({ color, roughness });
 const { makeSeaOtter, makeGreenTurtle } = creatureKit({
   fur: std(0x3a281b, 0.9), furPale: std(0xb9a487, 0.95), furDark: std(0x1f1610, 0.9), nose: std(0x0d0c0c, 0.4), eye: std(0x050506, 0.1),
-  carapace: std(0x5a4426, 0.5), plastron: std(0xd8c890, 0.7), skin: std(0x4c3b24, 0.6), beak: std(0x8f7d58, 0.5),
+  carapace: new THREE.MeshStandardMaterial({ map: carapaceTex(), roughness: 0.45 }), plastron: std(0xd8c890, 0.7), skin: std(0x4c3b24, 0.6), beak: std(0x6a5838, 0.5),
   stone: std(0x7d776e, 0.9), urchin: std(0x3b1736, 0.5), crab: std(0xb04a2a, 0.5), clam: std(0xcbbca4, 0.5),
+  white: std(0xf4f1ea, 0.3), kelp: std(0x5d6b2a, 0.6), blush: std(0xd99a86, 0.9), wire: new THREE.MeshStandardMaterial({ color: 0xb8954a, roughness: 0.3, metalness: 0.8 }), barnacle: std(0xc9c4b8, 0.9), moss: std(0x4f6b2c, 0.9),
 }, true);
 
 const ROBOTS = [
@@ -78,6 +96,32 @@ const bots = ROBOTS.map((r, i) => {
   scene.add(b.root); return b;
 });
 let focus = -1, flyT = 0, flying = false;
+// ?drafts=otter|kame: four character drafts for one of the animals, side by side
+const DRAFTS: Record<string, { name: string; look: Look }[]> = {
+  otter: [
+    { name: 'A　本物寄り＋白い線の石', look: { stone: true } },
+    { name: 'B　ぬいぐるみ', look: { head: 1.3, eye: 1.7, shine: true, plump: 1.12, cheeks: true } },
+    { name: 'C　昆布のスカーフ', look: { head: 1.12, eye: 1.3, shine: true, scarf: true } },
+    { name: 'D　ぴょこ毛', look: { head: 1.18, eye: 1.45, shine: true, tuft: true, stone: true } },
+  ],
+  kame: [
+    { name: 'A　フジツボと古傷', look: { barnacles: true } },
+    { name: 'B　ぬいぐるみ', look: { head: 1.35, eye: 1.7, shine: true, dome: 1.25 } },
+    { name: 'C　丸めがね', look: { head: 1.12, eye: 1.25, shine: true, glasses: true } },
+    { name: 'D　苔のぼうし', look: { head: 1.15, eye: 1.35, shine: true, moss: true, barnacles: true } },
+  ],
+};
+{ const which = new URLSearchParams(location.search).get('drafts');
+  if (which && DRAFTS[which]) {
+    bots.forEach((b) => (b.root.visible = false));
+    DRAFTS[which].forEach((d, i) => {
+      const b = which === 'otter' ? makeSeaOtter(d.look) : makeGreenTurtle(d.look);
+      b.root.scale.setScalar(which === 'otter' ? 1.2 : 1); b.root.position.set((i - 1.5) * 1.25, 0, 0); b.root.rotation.y = 0.35 - i * 0.05; scene.add(b.root); bots.push(b);
+      const tag = document.createElement('div'); tag.textContent = d.name; tag.style.cssText = `position:fixed;bottom:5%;left:${12.5 + i * 25}%;transform:translateX(-50%);font:600 15px sans-serif;color:#24363a;background:rgba(255,255,255,.75);padding:6px 12px;border-radius:999px`; document.body.appendChild(tag);
+    });
+    const q2 = new URLSearchParams(location.search).get('cam'); const c = (q2 ?? '0,0.9,3.4').split(',').map(Number); camera.position.set(c[0], c[1], c[2]); controls.target.set(c[0] * 0.9, 0.2, 0);
+    document.getElementById('cards')!.style.display = 'none'; (document.querySelector('header') as HTMLElement | null)?.style.setProperty('display', 'none');
+  } }
 // ?solo=<n>: just that one, close up (with &cam=x,y,z), without the cards
 { const qs = new URLSearchParams(location.search), solo = qs.get('solo');
   if (solo != null) {
