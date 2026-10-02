@@ -1,0 +1,260 @@
+{
+  "tier": "medium",
+  "quality": "画質 標準",
+  "viewport": "1440x900",
+  "renderer": "Chromium / SwiftShader; not hardware performance",
+  "anchor": {
+    "root": [
+      -18.454283488215836,
+      -12.166611753063517,
+      15.141813479363964
+    ],
+    "top": [
+      -14.078812540405263,
+      -0.7146323831379409,
+      15.316617128181267
+    ]
+  },
+  "runtime": {
+    "kelp": {
+      "holdfasts": 364,
+      "stipes": 1428,
+      "blades": 30421,
+      "vertices": 1358199,
+      "triangles": 1757008,
+      "meshes": 62,
+      "urchins": 320,
+      "batStars": 110
+    },
+    "species": [
+      {
+        "id": "blue-rockfish",
+        "count": 108,
+        "status": "そろそろ休む"
+      },
+      {
+        "id": "olive-rockfish",
+        "count": 6,
+        "status": "そろそろ休む"
+      },
+      {
+        "id": "black-surfperch",
+        "count": 32,
+        "status": "そろそろ休む"
+      },
+      {
+        "id": "senorita",
+        "count": 35,
+        "status": "そろそろ休む"
+      }
+    ],
+    "nightBio": 0
+  },
+  "shots": [
+    {
+      "name": "forest",
+      "p": [
+        -12.454283488215836,
+        -6.666611753063517,
+        25.141813479363964
+      ],
+      "look": [
+        -20.454283488215836,
+        -4.666611753063517,
+        12.141813479363964
+      ],
+      "submitted": [
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        }
+      ]
+    },
+    {
+      "name": "canopy",
+      "p": [
+        -10.678812540405263,
+        -3.8,
+        19.816617128181267
+      ],
+      "look": [
+        -12.678812540405263,
+        -0.65,
+        16.016617128181267
+      ],
+      "submitted": [
+        {
+          "calls": 91,
+          "triangles": 1121332
+        },
+        {
+          "calls": 91,
+          "triangles": 1121332
+        },
+        {
+          "calls": 91,
+          "triangles": 1121332
+        },
+        {
+          "calls": 91,
+          "triangles": 1121332
+        },
+        {
+          "calls": 91,
+          "triangles": 1121332
+        }
+      ]
+    },
+    {
+      "name": "holdfast",
+      "p": [
+        -16.354283488215835,
+        -10.766611753063517,
+        17.841813479363964
+      ],
+      "look": [
+        -18.454283488215836,
+        -11.666611753063517,
+        15.141813479363964
+      ],
+      "submitted": [
+        {
+          "calls": 91,
+          "triangles": 1093996
+        },
+        {
+          "calls": 91,
+          "triangles": 1093996
+        },
+        {
+          "calls": 91,
+          "triangles": 1093996
+        },
+        {
+          "calls": 91,
+          "triangles": 1093996
+        },
+        {
+          "calls": 91,
+          "triangles": 1093996
+        }
+      ]
+    },
+    {
+      "name": "rockfish",
+      "p": [
+        -30.447934423013827,
+        -8.074630410307266,
+        -5.058372502252987
+      ],
+      "look": [
+        -32.44793442301383,
+        -8.374630410307267,
+        -10.258372502252987
+      ],
+      "submitted": [
+        {
+          "calls": 92,
+          "triangles": 1105692
+        },
+        {
+          "calls": 92,
+          "triangles": 1105692
+        },
+        {
+          "calls": 92,
+          "triangles": 1105692
+        },
+        {
+          "calls": 92,
+          "triangles": 1105692
+        },
+        {
+          "calls": 92,
+          "triangles": 1105692
+        }
+      ]
+    },
+    {
+      "name": "night",
+      "p": [
+        -12.454283488215836,
+        -6.666611753063517,
+        25.141813479363964
+      ],
+      "look": [
+        -20.454283488215836,
+        -4.666611753063517,
+        12.141813479363964
+      ],
+      "submitted": [
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        },
+        {
+          "calls": 90,
+          "triangles": 1082588
+        }
+      ]
+    }
+  ],
+  "destinations": [
+    {
+      "mode": "auto",
+      "toast": "ジャイアントケルプの森"
+    },
+    {
+      "mode": "auto",
+      "toast": "水面のケルプの天蓋"
+    },
+    {
+      "mode": "auto",
+      "toast": "岩礁の間の砂地"
+    }
+  ],
+  "guide": "図鑑\nZ\n今日のログ\nJ\nポイントロボスの生きもの\n1 / 4 発見\n行き先\nジャイアントケルプの森\n\n岩に付いた根元から水面まで伸びる褐藻の森。長い茎と葉の間を、ロックフィッシュの仲間が泳ぐ。\n\n行ってみる\n水面のケルプの天蓋\n\n気胞で浮いた葉が水面近くに広がる。葉の間から差す光と、うねりに揺れる天蓋を見上げる。\n\n行ってみる\n岩礁の間の砂地\n\n岩とケルプの間に続く砂の水路。森の縁から砂地へ変わる海底をたどる。\n\n行ってみる\n生きもの\nブルーロックフィッシュ\nSebastes mystinus\nいま：プランクトンを食べている\n\n青灰色のメバルの仲間。カリフォルニアの岩礁やケルプの森で群れ、中層の動物プランクトンなどを食べる。近縁種との厳密な識別には頭部の模様などの確認が必要。\n\n会いに行く\nオリーブロックフィッシュ\nSebastes serranoides\nいま：巡回中\n\nオリーブ色の背と淡い腹を持つロックフィッシュ。岩礁やケルプの周りの中層で、小魚や甲殻類を捕らえる。大きな口と明るい腹が目印。\n\n会いに行く\nブラックサーフパーチ\nEmbiotoca jacksoni\nいま：餌を探している\n\n銅色を帯びた暗褐色のウミタナゴの仲間。海藻の茂る岩礁で小さな甲殻類などを探す。卵ではなく育った仔魚を産む。\n\n会いに行く\nセニョリータ\nOxyjulis californica\nいま：餌を探している\n\n細長い橙褐色のベラ。ケルプや岩に付く小さな動物をついばみ、ほかの魚の寄生虫を取ることもある。夜は砂に潜って休むことがある。\n\n会いに行く\nケルプと底生生物\nジャイアントケルプ\nMacrocystis pyrifera\n\n数本から多数の茎状部が付着器から伸び、葉の付け根の気胞で水面へ浮かぶ大型の褐藻。海草とは異なる。水面に広がる葉が、森の下にまだらな光を落とす。\n\nパープルアーチン\nStrongylocentrotus purpuratus\n\n北米西岸の紫色のウニ。海藻を食べ、ケルプの落ち葉も利用する。小さな棘を動かしながら、岩の表面やすき間をゆっくり移動する。\n\nバットスター\nPatiria miniata\n\n腕の間が膜のように広い、五角形に近いヒトデ。岩礁や砂地で有機物などを食べる。色には個体差がある。\n\n紅藻・石灰藻の被覆\nRhodophyta（種未同定）\n\nケルプの下の岩に広がる赤紫色の低い藻類。暗い海底でも生育し、色や形の異なる小さな藻が重なる。",
+  "errors": [],
+  "externalFailures": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=36.524&longitude=-121.941&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=36.524&longitude=-121.941&current=wave_height,sea_surface_temperature",
+      "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    }
+  ]
+}

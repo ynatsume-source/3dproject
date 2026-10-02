@@ -78,13 +78,15 @@ class Geometry {
         this.ix.push(i - 4, next - 4, i, next - 4, next, i); }
     }
   }
-  build() {
+  build(withNormals = true) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
     g.setAttribute('aRoot', new THREE.Float32BufferAttribute(this.root, 4));
     g.setAttribute('aTone', new THREE.Float32BufferAttribute(this.color, 1));
-    g.setIndex(this.ix); g.computeVertexNormals(); g.computeBoundingSphere();
+    g.setIndex(this.ix);
+    if (withNormals) g.computeVertexNormals();
+    g.computeBoundingSphere();
     return g;
   }
 }
@@ -177,7 +179,8 @@ export function makeKelpForest(loc: Sea, group: THREE.Group, T: any, cells: any[
     }
   }
   for (const [key, builder] of buckets) {
-    const geometry = builder.build(), mesh = new THREE.Mesh(geometry, material); mesh.name = 'Macrocystis forest'; mesh.frustumCulled = false;
+    // Swayed leaf/stipe normals come from fragment derivatives; no stored normals needed.
+    const geometry = builder.build(false), mesh = new THREE.Mesh(geometry, material); mesh.name = 'Macrocystis forest'; mesh.frustumCulled = false;
     group.add(mesh); const [x, z] = key.split(',').map(Number);
     cells.push({ x: (x + 0.5) * 40, z: (z + 0.5) * 40, mesh });
     stats.vertices += geometry.attributes.position.count; stats.triangles += geometry.index!.count / 3; stats.meshes++;

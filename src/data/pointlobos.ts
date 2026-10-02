@@ -5,7 +5,7 @@ import type { Sea } from './locations';
 export const POINT_LOBOS: Sea = {
   id: 'pointlobos', habitat: 'kelp', name: 'ポイントロボス', site: 'ブルーフィッシュ・コーブ',
   region: 'United States · California', lat: 36.524, lon: -121.941, tz: -8,
-  depth: '7–22 m', vis: 15, temp: 13, tempYear: [11, 15], seed: 317,
+  depth: '6–19 m', vis: 15, temp: 13, tempYear: [11, 15], seed: 317,
   swellHs: 0.8, tide: { amp: 0.75, lag: 0.45, axis: [0.8, -0.4] },
   blurb: 'カリフォルニア海流が育てる冷たい海の森。花崗岩の根からジャイアントケルプが立ち上がり、琥珀色の葉の間をロックフィッシュが漂う。地形と植生の配置は、この環境をもとにした手続き表現。',
   water: { up: [0.40, 0.66, 0.58], hor: [0.075, 0.29, 0.245], down: [0.025, 0.11, 0.105], fog: 0.047, abs: [0.14, 0.037, 0.067] },

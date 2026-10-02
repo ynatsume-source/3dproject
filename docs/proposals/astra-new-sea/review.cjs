@@ -29,7 +29,15 @@ const tier = process.argv[2] || 'low';
   const frames = async (n = 10) => page.evaluate(n => new Promise(resolve => { const f = () => --n > 0 ? requestAnimationFrame(f) : resolve(); requestAnimationFrame(f); }), n);
   const noon = '2026-09-22T20:00:00Z';
   await page.goto(`http://127.0.0.1:4177/?debug&tier=${tier}&at=${noon}#pointlobos`);
-  await page.waitForFunction(() => document.body.classList.contains('mode-ocean'), { timeout: 180000 });
+  await page.waitForFunction(() => document.body.classList.contains('mode-ocean'), null, { timeout: 180000 });
+  const qualityLabel = { low: '画質 軽量', medium: '画質 標準', high: '画質 高画質' }[tier];
+  assert.ok(qualityLabel, `unknown tier: ${tier}`);
+  // A button click disables automatic downgrade. Keep medium on medium under SwiftShader.
+  await page.evaluate(label => {
+    const button = document.getElementById('btnQuality');
+    for (let i = 0; i < 3; i++) { button.click(); if (button.textContent === label) break; }
+  }, qualityLabel);
+  assert.equal(await page.locator('#btnQuality').innerText(), qualityLabel);
   await page.evaluate(() => { const s = window.seaglass; s.clock.live = false; s.clock.speed = 0; s.setWx({ cloud: 0.10, wind: 2, wave: 0.6 }); s.drone.mode = 'manual'; s.drone.lastInput = performance.now(); s.director.reset(); });
   const anchor = await page.evaluate(() => {
     const a = window.seaglass.cur.kelp.anchors.reduce((a, b) => Math.hypot(b.pos.x + 22, b.pos.z - 16) < Math.hypot(a.pos.x + 22, a.pos.z - 16) ? b : a);
@@ -83,7 +91,7 @@ const tier = process.argv[2] || 'low';
     await page.locator('#btnBack').click(); await page.waitForFunction(() => document.body.classList.contains('mode-globe')); await page.waitForTimeout(2500);
     await page.screenshot({ path: path.join(out, 'low-globe.png') });
     await page.locator('#locList .loc').filter({ hasText: '宮古島' }).click();
-    await page.waitForFunction(() => document.body.classList.contains('mode-ocean') && window.seaglass.cur.loc.id === 'miyako', { timeout: 180000 }); await frames(10);
+    await page.waitForFunction(() => document.body.classList.contains('mode-ocean') && window.seaglass.cur.loc.id === 'miyako', null, { timeout: 180000 }); await frames(10);
     const restored = await page.evaluate(() => { const s = window.seaglass; let bio; s.cur.group.parent.traverse(o => { if (o.material?.uniforms?.uBiolum) bio = o.material.uniforms.uBiolum.value; }); return { bio, map: document.querySelector('#miniMap .cr')?.textContent || document.querySelector('.cr')?.textContent, kelpVisible: s.cur.group.parent.children.some(o => o.visible && o.children.some(m => m.name === 'Macrocystis forest')) }; });
     assert.equal(restored.bio, 1); assert.equal(restored.kelpVisible, false); assert.equal(restored.map, '国土地理院');
     await page.screenshot({ path: path.join(out, 'low-miyako-return.png') });
@@ -99,7 +107,7 @@ const tier = process.argv[2] || 'low';
     assert.equal(await page.evaluate(() => window.seaglass.pip().subj), 'old-sea-test');
     await page.locator('#btnBack').click(); await page.waitForFunction(() => document.body.classList.contains('mode-globe')); await page.waitForTimeout(2500);
     await page.locator('#locList .loc').filter({ hasText: 'ポイントロボス' }).click();
-    await page.waitForFunction(() => document.body.classList.contains('mode-ocean') && window.seaglass.cur.loc.id === 'pointlobos', { timeout: 120000 }); await frames(8);
+    await page.waitForFunction(() => document.body.classList.contains('mode-ocean') && window.seaglass.cur.loc.id === 'pointlobos', null, { timeout: 120000 }); await frames(8);
     const returned = await page.evaluate(() => ({ count: window.seaglass.cur.kelp.anchors.length, map: document.querySelector('.cr')?.textContent }));
     assert.equal(returned.count, runtime.kelp.holdfasts); assert.equal(returned.map, '地図未収録');
     await page.waitForTimeout(21000); await frames(3);
@@ -109,8 +117,10 @@ const tier = process.argv[2] || 'low';
     runtime.crossSeaCleanup = clean;
     runtime.roundTrip = { restored, returned };
   }
+  const quality = await page.locator('#btnQuality').innerText();
+  assert.equal(quality, qualityLabel);
   assert.deepEqual(errors, []);
-  const report = { tier, viewport: '1440x900', renderer: 'Chromium / SwiftShader; not hardware performance', anchor, runtime, shots, destinations, guide, errors, externalFailures };
+  const report = { tier, quality, viewport: '1440x900', renderer: 'Chromium / SwiftShader; not hardware performance', anchor, runtime, shots, destinations, guide, errors, externalFailures };
   fs.writeFileSync(path.join(__dirname, `browser-${tier}.json`), JSON.stringify(report, null, 2));
   console.log(JSON.stringify({ tier, runtime, errors, externalFailures }));
   await browser.close();

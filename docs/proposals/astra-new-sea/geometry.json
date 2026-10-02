@@ -5,22 +5,22 @@
     -6.1255138048861175
   ],
   "kelp": {
-    "holdfasts": 371,
-    "stipes": 1472,
-    "blades": 29954,
-    "vertices": 1340462,
-    "triangles": 1735376,
-    "meshes": 63,
+    "holdfasts": 364,
+    "stipes": 1428,
+    "blades": 30421,
+    "vertices": 1358199,
+    "triangles": 1757008,
+    "meshes": 62,
     "urchins": 320,
     "batStars": 110
   },
   "geometry": {
-    "verticesStored": 1542012,
-    "trianglesStored": 2100573,
-    "trianglesInstanced": 2980960,
-    "meshObjects": 348,
+    "verticesStored": 1559749,
+    "trianglesStored": 2122205,
+    "trianglesInstanced": 3002592,
+    "meshObjects": 347,
     "instanceCount": 3272
   },
-  "kelpGeometrySHA256": "e5af9b39125884356215ed30749d4c46f8da63a23b7888c3c6c273365e6e02e1",
+  "kelpGeometrySHA256": "9be9019233f37ff458a9c6a696a9f88f25a37eea5cd1f620d8739d8f0b9804bc",
   "checks": "finite vertices / indices / zero tropical defaults / supported holdfasts / destinations / deterministic placement: PASS"
 }
