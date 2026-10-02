@@ -795,7 +795,6 @@ function applySky(loc: Sea, airView = drone.pos.y > 0) {
   const w = liveWeather();
   const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
   const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), cloud * 0.7); };
-  grey(U.uSkyLo.value); grey(U.uSkyHi.value);
   U.uCloud.value = cloud;
   U.uRain.value = w.code >= 51 && w.code <= 57 ? 0.25 : Math.min(1, w.rain / 3);
   U.uWave.value = Math.min(2.4, Math.max(0.45, 0.55 + (w.wave ?? w.wind / 7) * 0.65));
@@ -803,6 +802,7 @@ function applySky(loc: Sea, airView = drone.pos.y > 0) {
   U.uSwell.value = Math.min(w.wave ?? loc.swellHs ?? 1, (loc.swellHs ?? 1) * 2) / 2.37;
   setRain(U.uRain.value);
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
+  grey(U.uSkyLo.value); grey(U.uSkyHi.value);   // (after setting them: a cloudy sky is greyer)
   U.uMoonDir.value.set(...s.moonDir); U.uMoonI.value = s.moonI;
   U.uAirSun.value.set(...s.sunAir); U.uAirMoon.value.set(...s.moonAir); U.uMoonIllum.value = s.moonIllum;
   U.uStarM.value.fromArray(s.starM);

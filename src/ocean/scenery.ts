@@ -29,6 +29,16 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      g += d3 * cos(dot(d3, p) * 1.7 + t * 2.3) * 0.04;
      g += d4 * cos(dot(d4, p) * 3.1 + t * 3.1) * 0.025;
      g *= uWave;                                                       // today's sea state at the site
+     // and over them the fine wind ripples, a hand's width to a forearm across, running every which way
+     // (faded with distance: far off they would only shimmer)
+     {
+       float fine = (0.45 + 0.55 * min(uWave, 1.5)) * smoothstep(70.0, 12.0, dist);
+       vec2 q1 = p * 1.9 + vec2(t * 0.42, t * 0.17), q2 = mat2(0.8, 0.6, -0.6, 0.8) * p * 4.3 + vec2(-t * 0.6, t * 0.45);
+       const float e = 0.07;
+       vec2 f1 = vec2(vn2(q1 + vec2(e, 0.0)) - vn2(q1 - vec2(e, 0.0)), vn2(q1 + vec2(0.0, e)) - vn2(q1 - vec2(0.0, e))) / (2.0 * e);
+       vec2 f2 = vec2(vn2(q2 + vec2(e, 0.0)) - vn2(q2 - vec2(e, 0.0)), vn2(q2 + vec2(0.0, e)) - vn2(q2 - vec2(0.0, e))) / (2.0 * e);
+       g += (f1 * 0.05 + f2 * 0.022) * fine;
+     }
      // raindrops: rings spreading on the surface overhead
      if (uRain > 0.0) {
        for (int k = 0; k < 2; k++) {
@@ -47,9 +57,13 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      vec3 sunAir = airDir(SUN), moonAir = airDir(uMoonDir);
      float sd = max(dot(refr, sunAir), 0.0);
      // (only the real sun makes a disc and a glow: at night SUN is the starlight's direction, a light with no source to see)
-     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 6.0) * 0.35) * uSunI * (1.0 - smoothstep(0.3, 0.7, uNight));
+     // (the disc, a tight bright halo that the ripples break into glints, and a soft wide one)
+     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 30.0) * 0.55 * (1.0 - uCloud * 0.7) + pow(sd, 5.0) * 0.1) * uSunI * (1.0 - smoothstep(0.3, 0.7, uNight));
      float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI * (1.0 - uCloud * 0.9);
-     vec3 air = mix(uSkyLo, uSkyHi, cosT) * (1.0 - 0.35 * uCloud) + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9) + vec3(0.8, 0.85, 1.0) * uFlash * 2.5;
+     // (the sky through the window: its own blue, not blown out to white, darkening toward the window's rim)
+     // (seen from below, the middle of the window is the zenith, a deeper blue, and its rim the pale horizon)
+     vec3 zen = mix(uSkyHi * vec3(0.42, 0.68, 1.0), uSkyHi, uCloud * 0.8);
+     vec3 air = mix(uSkyLo * 0.8, zen, smoothstep(0.05, 0.85, refr.y)) * (1.0 - 0.35 * uCloud) * 0.7 + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9) + vec3(0.8, 0.85, 1.0) * uFlash * 2.5;
      // stars, trembling with the surface
      vec2 sg = refr.xz / max(refr.y, 0.2) * 90.0; float star = step(0.994, hash2(floor(sg))) * smoothstep(0.35, 0.1, length(fract(sg) - 0.5));
      air += vec3(0.8, 0.88, 1.0) * star * uNight * (1.0 - smoothstep(0.3, 0.8, uCloud)) * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
