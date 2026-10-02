@@ -48,3 +48,36 @@
 - 粘土に固有の資料・実測データの照合（乾燥曲線、収縮・割れ、吸水、焼成）。取得できた本文は `data/science/sources.json` へ追加する。
 - 検証用の画面は `tools/science-lab/` に作る。本体の `index.html`・`main.ts` にはつながない。
 - 新しい工程は `src/science/step/` の入口に登録する形で提案する。二つ目の入口や世界ホストは作らない。
+
+---
+
+# 追加レビュー：`codex/civilization-lab` @ 464e63f（13a35fa からの差分）
+
+2026-10-03 / 粘土資料6件（第三者アーカイブ）と測定値の確認画面
+
+## 確かめたこと
+
+| 項目 | 結果 |
+|---|---|
+| 保存コピーの同一性 | 科学側でも `AngelOnFira/potter@59f128a` を git で取得した。6本文と SHAB の HTML の blob SHA が、すべて `sources.json` と一致 |
+| SHAB の式の不一致 | 本文で確認した。Variables の計算式は FSHR=(V1−V2)/V1（V1=乾燥長, V2=焼成長）、ABS=(V4−V3)/V3（V3=焼成後, V4=煮沸後）。同じページの Purpose 1.2 は「(fired − dry)/fired」、1.3 は「(wet − dry)/wet weight」で、分子の向き・分母が違う |
+| どちらの式を採るか | Codex と同じく Variables の式を採る。理由は三つ。本文が吸水率を「重さの増加の割合」と説明していること。「焼成収縮は乾燥長に基づく」という注記と合うこと。こちらのモデル（`absorption*` と住民の浸漬観測）の定義とも一致すること |
+| 湿量基準と乾量基準 | LDW は H2O=(Wet−Dry)/Wet×100（湿量基準）、5.04→2.46 g で 51.2% を本文で確認した。こちらの `clayWaterPlastic`・`clayWaterCritical`・`dryPhysics` は乾量基準。注記を加えた（0.24 は湿量基準で約19.4%） |
+| 収縮の合成 | 乾燥収縮の本文定義は (湿潤長−乾燥長)/湿潤長。モデルの `linearShrink` と同じ。全収縮＝1−(1−乾燥)(1−焼成) で、単純な足し算ではない。画面の計算・テストとも一致 |
+| 測定計算のテスト | `node tools/science-lab/measurements.test.mjs` 6件成功 |
+| 画面 | Chromium で表示・操作を確認した。7つの指標が正しく出る、390 px で横はみ出しなし、出典10件を読み込む、吸水後 < 焼成後の入力はエラーになる、の4点。コンソールのエラーは favicon の 404 だけ。DOM は textContent だけで組み立てていて、外部スクリプトはない |
+| モデルとの突き合わせ | `science-clay-check` に 7b を追加した。T2 の浸漬で住民が量った吸水率 11.5% は、画面の式で計算しても 11.5152% と一致する |
+
+## 取り込んだもの
+
+- `data/science/sources.json` の追加6件。既存のOpenStax 4件は値が同一のまま。`calibrationEligible: false` も維持
+- `tools/science-lab/`（6ファイル）。本体の `index.html`・`main.ts` からはつながっておらず、Vite の本番ビルドにも入らない
+- 出典カード `S-dry`・`S-abs` を `archive-copy`（保存コピーを読んだが原典は未照合）に変更。パラメータの値は変えず、湿量/乾量の基準と定義の注記だけを加えた
+
+取り込まなかったもの：`experiments/`、旧 `src/science/step.ts`、`CODEX_*.md`（従来どおり）
+
+## 気づいた点（小さなもの、Codex への依頼）
+
+- 画面にダークモードの配色がない（`prefers-color-scheme: dark` でも明るいまま）。急ぎではない。
+- 「乾燥後質量」は、測定手順の乾燥終点（例：110 °C の乾燥）と、ゲームの常温平衡（`clayWaterEqAt70RH`）とで値が違う。画面の README の注意書きのとおり、記録に乾燥方法を残す欄があるとよい。
+- 正味の焼成質量減少率には、こちらのモデルの脱水（カオリナイト 13.96%）・有機物の燃焼・炭酸塩の分解が含まれる。将来、実測と突き合わせる対象になる。

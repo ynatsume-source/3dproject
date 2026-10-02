@@ -1,11 +1,12 @@
 // Source cards for the clay loop. Retrieval state is recorded honestly:
 //   'retrieved'        – source text was read (OpenStax CNXML at a pinned commit; see data/science/sources.json)
+//   'archive-copy'     – text read in a third-party archive copy (original publisher not verified; not for calibration)
 //   'search-summary'   – only a web-search result summary was seen (2026-10-02); page text NOT read.
 //                        Numbers below are what the summary said and must be checked before citing.
 //   'not-found'        – nothing usable located
 // A param may point at a card in any state; params.ts status decides whether the number counts as sourced.
 
-export type Retrieval = 'retrieved' | 'search-summary' | 'not-found';
+export type Retrieval = 'retrieved' | 'archive-copy' | 'search-summary' | 'not-found';
 
 export interface SourceCard {
   id: string;
@@ -20,10 +21,10 @@ export interface SourceCard {
 }
 
 export const SOURCES: SourceCard[] = [
-  { id: 'S-dry', topic: '粘土の乾燥と収縮', retrieval: 'search-summary',
-    candidates: ['Digitalfire Reference Library（drying, Bigot curve, drying shrinkage）', '粘土供給会社の技術資料（leather hard）'],
+  { id: 'S-dry', topic: '粘土の乾燥と収縮', retrieval: 'archive-copy',
+    candidates: ['Digitalfire「Drying Shrinkage」「Drying Performance」「LDW」「DFAC」の保存コピー（AngelOnFira/potter@59f128a、data/science/sources.json の digitalfire-archive-*）', '粘土供給会社の技術資料（leather hard）'],
     summaryClaims: ['収縮はレザーハード（含水12〜14%前後）でほぼ止まる', '一般的な粘土の乾燥収縮は4〜6%、製品例で4.75〜7.4%', '可塑水20.6〜36%（製品例）', '速さより均一な乾燥が重要'],
-    modelUse: '収縮期と非収縮期の二段乾燥、折れ点0.13、全収縮6%、可塑水0.24を試験粘土Aの仮定値に使う。厚さと割れの関係は未確認の設計仮定' },
+    modelUse: '収縮期と非収縮期の二段乾燥、折れ点0.13、全収縮6%、可塑水0.24を試験粘土Aの仮定値に使う。保存コピーでは、乾燥収縮の定義＝(湿潤長−乾燥長)/湿潤長、典型的な陶土で約6%、含水率は湿量基準。どれも原典未照合で、実測の時系列はない。厚さと割れの関係は未確認の設計仮定' },
   { id: 'S-slake', topic: '未焼成粘土は水で崩れ再生でき、焼成後は戻らない', retrieval: 'search-summary',
     candidates: ['陶芸材料の解説（reclaiming clay）'],
     summaryClaims: ['未焼成の粘土は再生可能、焼成後は不可（温度の記載なし）'],
@@ -48,8 +49,8 @@ export const SOURCES: SourceCard[] = [
     candidates: ['考古学・陶芸の野焼き解説', '陶芸材料の焼成温度表'],
     summaryClaims: ['野焼きは600 °C程度から、800〜1100 °Cが多い', '土器・陶器1000〜1200 °C、炻器1100〜1300 °C（重なる）'],
     modelUse: '試験世界の焚き火（最高約720 °C）と試験窯（1000 °C到達可）の能力設定の目安' },
-  { id: 'S-abs', topic: '吸水率と試験法', retrieval: 'search-summary',
-    candidates: ['ASTM C373（特許文献・第三者の写しによる記述）', '焼成温度と吸水率の研究（850 °Cで18.3%、1200 °Cで5.5%）'],
+  { id: 'S-abs', topic: '吸水率と試験法', retrieval: 'archive-copy',
+    candidates: ['Digitalfire「SHAB」の保存コピー（digitalfire-archive-shab）：ABS=(煮沸後−焼成後)/焼成後×100、5時間煮沸＋19時間浸漬', 'ASTM C373（特許文献・第三者の写しによる記述）', '焼成温度と吸水率の研究（850 °Cで18.3%、1200 °Cで5.5%）'],
     summaryClaims: ['150 °C乾燥、5時間煮沸、24時間浸漬、吸水率=(飽水−乾燥)/乾燥×100', '焼成温度が上がると吸水率が下がる例'],
     modelUse: '吸水率の定義式はそのまま。v0の測定は燃料を使わない24時間冷水浸漬で、煮沸値の0.8倍と仮定（未確認）' },
   { id: 'S-glow', topic: '炎・炉内の色と温度', retrieval: 'search-summary',

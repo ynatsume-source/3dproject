@@ -231,6 +231,16 @@ console.log('7. conditions that should matter do matter (risk is explainable)');
   ok(ns > 0 && nh === 0, '15 mm tiles: drying cracks in the sun across 20 seeds, none in the shade', `${ns}/20 vs ${nh}/20`);
 }
 
+console.log('7b. measurement definitions agree with tools/science-lab');
+{
+  const { summarizeMeasurements } = await import('../tools/science-lab/measurements.mjs');
+  const o = (s: string, k: string) => Object.values(v.observations).filter((x) => x.sampleId === s && x.kind === k).map((x) => x.value as number);
+  const [dryG, wetG] = o('T2', 'mass');
+  const lab = summarizeMeasurements({ firedMassG: dryG, saturatedMassG: wetG });
+  ok(lab.absorptionDryBasisPct.toFixed(1) === String(o('T2', 'absorption')[0].toFixed(1)), "the resident's absorption = the lab screen's (saturated − fired) / fired",
+    `${o('T2', 'absorption')[0]}% vs ${lab.absorptionDryBasisPct.toFixed(4)}%`);
+}
+
 console.log('8. the core stays pure');
 {
   const dir = join(process.cwd(), 'src/science');

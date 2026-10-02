@@ -6990,7 +6990,7 @@
    "sources": [
     "S-dry"
    ],
-   "note": "試験粘土Aの乾燥による線収縮（全量）"
+   "note": "試験粘土Aの乾燥による線収縮（全量、成形時の長さが分母）。保存コピー（Digitalfire, 原典未照合）に「典型的な可塑性の陶土で約6%」とあり定義も同じだが、校正値ではない"
   },
   "clayWaterPlastic": {
    "id": "clayWaterPlastic",
@@ -7000,7 +7000,7 @@
    "sources": [
     "S-dry"
    ],
-   "note": "成形に適した含水率（乾量基準）"
+   "note": "成形に適した含水率。乾量基準（水/乾燥固形分）。湿量基準では約19.4%。保存コピー（LDW、湿量基準）に「粗い粘土は18〜20%で扱いやすい」とあり桁は合うが、校正値ではない"
   },
   "clayWaterCritical": {
    "id": "clayWaterCritical",
@@ -7010,7 +7010,7 @@
    "sources": [
     "S-dry"
    ],
-   "note": "これより乾くと収縮がほぼ止まる含水率（Bigot曲線の折れ点の考え方）"
+   "note": "これより乾くと収縮がほぼ止まる含水率（Bigot曲線の折れ点の考え方）。乾量基準。以前の検索要約の「12〜14%」は基準（湿量/乾量）が不明で、根拠にしていない"
   },
   "clayWaterEqAt70RH": {
    "id": "clayWaterEqAt70RH",
@@ -7121,7 +7121,7 @@
    "sources": [
     "S-abs"
    ],
-   "note": "脱水は済んだが焼結していない試験体の煮沸吸水率"
+   "note": "脱水は済んだが焼結していない試験体の煮沸吸水率。質量比で、分母は焼成後（吸水前）の質量。SHAB の Variables の式と同じ定義（同ページ Purpose 1.3 の式は分母が違い、不一致がある）"
   },
   "absorptionVitrified": {
    "id": "absorptionVitrified",
@@ -7149,7 +7149,7 @@
    "sources": [
     "S-abs"
    ],
-   "note": "24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）"
+   "note": "24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）。SHAB の手順は5時間煮沸＋19時間浸漬で、冷水浸漬との換算は未確認"
   },
   "steamMoistureLimit": {
    "id": "steamMoistureLimit",
@@ -7222,9 +7222,9 @@
   {
    "id": "S-dry",
    "topic": "粘土の乾燥と収縮",
-   "retrieval": "search-summary",
+   "retrieval": "archive-copy",
    "candidates": [
-    "Digitalfire Reference Library（drying, Bigot curve, drying shrinkage）",
+    "Digitalfire「Drying Shrinkage」「Drying Performance」「LDW」「DFAC」の保存コピー（AngelOnFira/potter@59f128a、data/science/sources.json の digitalfire-archive-*）",
     "粘土供給会社の技術資料（leather hard）"
    ],
    "summaryClaims": [
@@ -7233,7 +7233,7 @@
     "可塑水20.6〜36%（製品例）",
     "速さより均一な乾燥が重要"
    ],
-   "modelUse": "収縮期と非収縮期の二段乾燥、折れ点0.13、全収縮6%、可塑水0.24を試験粘土Aの仮定値に使う。厚さと割れの関係は未確認の設計仮定"
+   "modelUse": "収縮期と非収縮期の二段乾燥、折れ点0.13、全収縮6%、可塑水0.24を試験粘土Aの仮定値に使う。保存コピーでは、乾燥収縮の定義＝(湿潤長−乾燥長)/湿潤長、典型的な陶土で約6%、含水率は湿量基準。どれも原典未照合で、実測の時系列はない。厚さと割れの関係は未確認の設計仮定"
   },
   {
    "id": "S-slake",
@@ -7318,8 +7318,9 @@
   {
    "id": "S-abs",
    "topic": "吸水率と試験法",
-   "retrieval": "search-summary",
+   "retrieval": "archive-copy",
    "candidates": [
+    "Digitalfire「SHAB」の保存コピー（digitalfire-archive-shab）：ABS=(煮沸後−焼成後)/焼成後×100、5時間煮沸＋19時間浸漬",
     "ASTM C373（特許文献・第三者の写しによる記述）",
     "焼成温度と吸水率の研究（850 °Cで18.3%、1200 °Cで5.5%）"
    ],

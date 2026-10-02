@@ -42,11 +42,11 @@ export const PARAMS = {
 
   // ---- test clay (fixture) ------------------------------------------------------------
   clayShrinkLinear: P('clayShrinkLinear', 0.06, 'fraction', 'assumed', ['S-dry'],
-    '試験粘土Aの乾燥による線収縮（全量）'),
+    '試験粘土Aの乾燥による線収縮（全量、成形時の長さが分母）。保存コピー（Digitalfire, 原典未照合）に「典型的な可塑性の陶土で約6%」とあり定義も同じだが、校正値ではない'),
   clayWaterPlastic: P('clayWaterPlastic', 0.24, 'kg/kg(dry)', 'assumed', ['S-dry'],
-    '成形に適した含水率（乾量基準）'),
+    '成形に適した含水率。乾量基準（水/乾燥固形分）。湿量基準では約19.4%。保存コピー（LDW、湿量基準）に「粗い粘土は18〜20%で扱いやすい」とあり桁は合うが、校正値ではない'),
   clayWaterCritical: P('clayWaterCritical', 0.13, 'kg/kg(dry)', 'calibrated', ['S-dry'],
-    'これより乾くと収縮がほぼ止まる含水率（Bigot曲線の折れ点の考え方）'),
+    'これより乾くと収縮がほぼ止まる含水率（Bigot曲線の折れ点の考え方）。乾量基準。以前の検索要約の「12〜14%」は基準（湿量/乾量）が不明で、根拠にしていない'),
   clayWaterEqAt70RH: P('clayWaterEqAt70RH', 0.02, 'kg/kg(dry)', 'assumed', [],
     '相対湿度70%での平衡含水率。湿度に比例させる簡略化'),
   dryBulkDensity: P('dryBulkDensity', 1.7, 'g/cm3', 'assumed', [], '乾燥素地のかさ密度'),
@@ -71,12 +71,12 @@ export const PARAMS = {
   slakeIfDehydroxBelow: P('slakeIfDehydroxBelow', 0.9, 'extent', 'calibrated', ['S-slake'],
     '脱水がこの割合未満なら水中で崩れる（まだ粘土）'),
   absorptionLowFire: P('absorptionLowFire', 0.18, 'kg/kg', 'assumed', ['S-abs'],
-    '脱水は済んだが焼結していない試験体の煮沸吸水率'),
+    '脱水は済んだが焼結していない試験体の煮沸吸水率。質量比で、分母は焼成後（吸水前）の質量。SHAB の Variables の式と同じ定義（同ページ Purpose 1.3 の式は分母が違い、不一致がある）'),
   absorptionVitrified: P('absorptionVitrified', 0.05, 'kg/kg', 'assumed', ['S-abs'],
     '試験粘土Aが焼き締まったときの吸水率の下限'),
   overfireC: P('overfireC', 1150, '°C', 'assumed', [], '試験粘土Aが変形し始める温度'),
   coldSoakFraction: P('coldSoakFraction', 0.8, 'ratio', 'assumed', ['S-abs'],
-    '24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）'),
+    '24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）。SHAB の手順は5時間煮沸＋19時間浸漬で、冷水浸漬との換算は未確認'),
 
   // ---- crack risks (probabilities per sample; game calibration) ------------------------
   steamMoistureLimit: P('steamMoistureLimit', 0.03, 'kg/kg(dry)', 'calibrated', ['S-steam'],
