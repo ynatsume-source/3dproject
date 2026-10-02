@@ -1005,6 +1005,7 @@ function goTo(id: string) {
     return;
   }
   if (id === 'cave') s = oc.eco.subjects().find((x: Subject) => x.kind === 'cave') ?? null;
+  else if (id === 'harbor-seal' && oc.lobosVisitors) s = oc.eco.subjects().find((x: Subject) => x.key === 'harbor-seal:visitor' && x.live()) ?? null;
   else if (id === 'turtle' && oc.turtles.length) { const t = near(oc.turtles as any[]); s = { key: 'focus:turtle', label: name, kind: 'turtle', prio: 5, size: 1.2 * t.size, pos: () => t.pos, status: () => statusOf('turtle'), live: () => true }; }
   else if (id === 'manta' && oc.mantas.length) { const m = oc.mantas[0]; s = { key: 'focus:manta', label: name, kind: 'manta', prio: 5, size: 4, pos: () => m.pos, status: () => statusOf('manta'), live: () => true }; }
   else if (id === 'octopus' && oc.octopi?.length) { const o = near(oc.octopi as any[]); s = { ...o.subject, key: 'focus:octopus', prio: 5 }; }
@@ -1104,6 +1105,7 @@ function statusOf(id: string): string {
   if (id === 'turtle' && cur.turtles.length) { const t = cur.turtles.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return TURTLE_STATE[t.state] || ''; }
   if (id === 'whale') { const W = cur.whales; return W?.active ? (W.pod.length > 1 ? '親子で泳いでいる' : '悠々と泳いでいる') : W?.seasonal ? '近くの海で子育て中' : '今は北の海にいる（冬に来遊）'; }
   if (id === 'manta' && cur.mantas.length) return cur.mantas[0].feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている';
+  if (id === 'harbor-seal' && cur.lobosVisitors) return cur.eco.subjects().find((s: Subject) => s.key === 'harbor-seal:visitor' && s.live())?.status() ?? '今は近くに姿が見えない';
   if (id === 'octopus' && cur.octopi?.length) { const o = cur.octopi.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return o.subject.status(); }
   if (id === 'tobiuo' && cur.flyfish) return cur.flyfish.flying() ? '水面の上を滑空している' : '沖の表層を群れで泳いでいる';
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
@@ -1264,6 +1266,7 @@ function checkSightings() {
   const inView = (p: THREE.Vector3, maxD: number) => { _w.subVectors(p, cam); const d = _w.length(); return d < maxD && _w.dot(fwd) / d > 0.55; };
   if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'));
   if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'));
+  if (cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'));
   if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'));
   if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'));
   const W = cur!.whales;
@@ -2290,7 +2293,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen

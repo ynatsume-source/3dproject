@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { mulberry32, TERR } from '../core/math';
 import { mat } from '../render/common';
 import type { Sea } from '../data/locations';
+import { kelpCruiseHabitat, makeKelpUnderstory } from './kelp-understory';
 
 // Separate from the tropical coral-limestone material. No imported reef photograph is
 // presented as local granite: mineral grain, joints, low algae and sand are procedural.
@@ -123,7 +124,7 @@ export function makeKelpForest(loc: Sea, group: THREE.Group, T: any, cells: any[
   };
   const rnd = mulberry32(loc.seed + 601), between = (a: number, b: number) => a + (b - a) * rnd();
   const anchors: { pos: THREE.Vector3; top: THREE.Vector3 }[] = [];
-  const stats = { holdfasts: 0, stipes: 0, blades: 0, vertices: 0, triangles: 0, meshes: 0, urchins: 0, batStars: 0 };
+  const stats = { holdfasts: 0, stipes: 0, blades: 0, vertices: 0, triangles: 0, meshes: 0, urchins: 0, batStars: 0, addedNearCruise: 0 };
   const material = mat(
     `attribute vec4 aRoot; attribute float aTone; varying vec3 vWp; varying vec2 vUv; varying float vTone;
      void main(){
@@ -177,6 +178,23 @@ export function makeKelpForest(loc: Sea, group: THREE.Group, T: any, cells: any[
     const key = Math.floor(x / 40) + ',' + Math.floor(z / 40);
     let list = byCell.get(key); if (!list) byCell.set(key, list = []); list.push(plant);
     anchors.push({ pos: new THREE.Vector3(x, root.y, z), top: plant.stems[0].at(1) });   // every destination belongs to a real mature stipe
+  }
+  // Fill selected rocky reaches beside the actual cruise, retaining every original
+  // plant and its seed. Nearby crowns overlap into a forest; sand remains open.
+  // This local recruitment is a design choice, not a measured present-day density.
+  const habitat = kelpCruiseHabitat(loc), recruit = mulberry32(loc.seed + 9721);
+  for (let x0 = -86; x0 < 86; x0 += 5.3) for (let z0 = -101; z0 < 101; z0 += 5.3) {
+    const x = x0 + (recruit() - 0.5) * 3.8, z = z0 + (recruit() - 0.5) * 3.8;
+    const y = loc.f(x, z), cover = TERR.reef, { near, patch } = habitat(x, z);
+    if (cover < 0.58 || near < 0.5 || patch < 0.2 || recruit() > cover * near * (0.18 + patch * 0.54)) continue;
+    if (y > -5 || y < -22 || T.slope(x, z) > 0.8 || T.top(x, z) - y > 0.12) continue;
+    if (anchors.some(a => (a.pos.x - x) ** 2 + (a.pos.z - z) ** 2 < 3.6 ** 2)) continue;
+    const root: Root = { x, y: floorAt(x, z) + 0.014, z, phase: recruit() * Math.PI * 2 };
+    const plant = design(x, z, root, Math.floor(recruit() * 4294967296));
+    const key = Math.floor(x / 40) + ',' + Math.floor(z / 40);
+    let list = byCell.get(key); if (!list) byCell.set(key, list = []); list.push(plant);
+    anchors.push({ pos: new THREE.Vector3(x, root.y, z), top: plant.stems[0].at(1) });
+    stats.addedNearCruise++;
   }
   // One plant drawn into `geo`, coarse (`lo`) or fine.
   const drawPlant = (geo: Geometry, pl: Plant, lo: boolean, count: boolean) => {
@@ -261,47 +279,6 @@ export function makeKelpForest(loc: Sea, group: THREE.Group, T: any, cells: any[
       if (near) c.mesh.visible = false;
     }
   };
-  buildBenthos(loc, T, group, rnd, stats, floorAt);
-  return { anchors, stats, floorAt, update };
-}
-
-function buildBenthos(loc: Sea, T: any, group: THREE.Group, rnd: () => number, stats: { urchins: number; batStars: number }, floorAt: (x: number, z: number) => number) {
-  // Low-profile species-specific silhouettes; no tropical blue sea stars, cone shells or coral rubble.
-  const matBenthos = mat(
-    `attribute vec3 aColor; varying vec3 vWp; varying vec3 vN; varying vec3 vColor;
-     void main(){ vec4 p=modelMatrix*instanceMatrix*vec4(position,1.0); vWp=p.xyz; vN=normalize(mat3(modelMatrix)*mat3(instanceMatrix)*normal); vColor=aColor; gl_Position=projectionMatrix*viewMatrix*p; }`,
-    `varying vec3 vWp; varying vec3 vN; varying vec3 vColor;
-     void main(){ gl_FragColor=vec4(shade(vColor,vWp,normalize(vN),0.5),1.0); }`);
-  const root: Root = { x: 0, y: 0, z: 0, phase: 0 }, builder = new Geometry();
-  // Radial short spines around a purple urchin test, merged once and instanced.
-  for (let i = 0; i < 90; i++) {
-    const y = (i + 0.5) / 90, a = i * 2.399963, d = new THREE.Vector3(Math.cos(a) * Math.sqrt(1 - y * y), y, Math.sin(a) * Math.sqrt(1 - y * y));
-    builder.tube([d.clone().multiplyScalar(0.06), d.clone().multiplyScalar(0.13)], 0.006, root);
-  }
-  const urchin = builder.build();
-  const star = new THREE.BufferGeometry(), sp: number[] = [0, 0.044, 0], si: number[] = [];
-  for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5, r = i % 2 ? 0.10 : 0.19; sp.push(Math.cos(a) * r, 0.012, Math.sin(a) * r); }
-  for (let i = 0; i < 10; i++) si.push(0, (i + 1) % 10 + 1, i + 1);
-  star.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); star.setIndex(si); star.computeVertexNormals();
-  for (const [kind, geo, count] of [['urchin', urchin, 320], ['star', star, 110]] as const) {
-    const points: THREE.Vector3[] = [];
-    for (let i = 0; i < 9000 && points.length < count; i++) {
-      const x = (rnd() - 0.5) * 275, z = (rnd() - 0.5) * 275; const y = loc.f(x, z);
-      if (T.top(x, z) - y > 0.08) continue;
-      if (TERR.reef < (kind === 'urchin' ? 0.58 : 0.22) || T.slope(x, z) > 0.65) continue;
-      points.push(new THREE.Vector3(x, floorAt(x, z) + 0.015, z));
-    }
-    const g = geo.clone(), colors = new Float32Array(points.length * 3), mesh = new THREE.InstancedMesh(g, matBenthos, points.length);
-    const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), scale = new THREE.Vector3();
-    points.forEach((p, i) => {
-      const s = 0.8 + rnd() * 0.6;
-      const n = new THREE.Vector3(floorAt(p.x - 0.1, p.z) - floorAt(p.x + 0.1, p.z), 0.2, floorAt(p.x, p.z - 0.1) - floorAt(p.x, p.z + 0.1)).normalize();
-      q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd() * Math.PI * 2));
-      matrix.compose(p, q, scale.set(s, s, s)); mesh.setMatrixAt(i, matrix);
-      colors.set(kind === 'urchin' ? [0.24 + rnd() * 0.12, 0.075, 0.31 + rnd() * 0.08] : [0.65 + rnd() * 0.15, 0.22 + rnd() * 0.15, 0.12], i * 3);
-    });
-    g.setAttribute('aColor', new THREE.InstancedBufferAttribute(colors, 3));
-    mesh.name = kind === 'urchin' ? 'Purple urchins' : 'Bat stars'; mesh.frustumCulled = false; group.add(mesh);
-    if (kind === 'urchin') stats.urchins = points.length; else stats.batStars = points.length;
-  }
+  const understory = makeKelpUnderstory(loc, group, T, cells, floorAt);
+  return { anchors, stats, floorAt, update, understory };
 }

@@ -25,6 +25,12 @@ const eels: Place = { id: 'eels', ja: 'チンアナゴの砂地', note: '砂か�
 
 export const PLACES: Record<string, Place[]> = {
   pointlobos: [
+    { id: 'understory', ja: '林床の海藻の庭', note: '若いケルプ、幅広い葉、赤紫色の低い藻が岩の上に重なる。水面へ伸びる森の、足元をのぞいてみる。', find: (oc, cam) => {
+      const a = nearest((oc.kelp?.understory?.anchors || []).filter((p: any) => p.kind === 'broadleaf'), cam);
+      return a ? { pos: a.pos.clone().setY(Math.max(a.pos.y + 0.65, oc.T.top(a.pos.x, a.pos.z) + 0.35)), size: 1.8 } : null; } },
+    { id: 'benthos', ja: '岩陰の小さな住人', note: '海藻のそばの巻貝や、流れへ触手を広げるイソギンチャク。少し立ち止まると、小さな動きが見えてくる。', find: (oc, cam) => {
+      const a = nearest((oc.lobosBenthos?.anchors || []).filter((p: any) => p.kind === 'snail' || p.kind === 'anemone'), cam);
+      return a ? { pos: a.pos.clone().setY(Math.max(a.pos.y + 0.18, oc.T.top(a.pos.x, a.pos.z) + 0.25)), size: 0.65 } : null; } },
     { id: 'kelp', ja: 'ジャイアントケルプの森', note: '岩に付いた根元から水面まで伸びる褐藻の森。長い茎と葉の間を、ロックフィッシュの仲間が泳ぐ。', find: (oc, cam) => {
       const a = nearest(oc.kelp?.anchors || [], cam);
       return a ? { pos: a.pos.clone().setY(Math.min(-2, Math.max(a.pos.y + 4, -7))), size: 4 } : null; } },

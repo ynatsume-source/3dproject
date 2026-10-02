@@ -56,6 +56,7 @@ export class Ecosystem {
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);
     this.oc.critters?.subjects(out);
+    this.oc.lobosVisitors?.subjects(out);
     this.oc.rare?.subjects(out);
     whaleSubjects(this.oc, out);
     this.oc.breach?.subjects(out);
@@ -92,6 +93,8 @@ export class Ecosystem {
     this.oc.riders?.update(dt, t);
     this.oc.critters?.update(dt, e, cam, fx, fz);
     this.oc.rare?.update(dt, e, cam, fx, fz);
+    this.oc.lobosBenthos?.update(cam, dt, t);
+    this.oc.lobosVisitors?.update(dt, e, cam);
     return e.events;
   }
 }
