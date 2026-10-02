@@ -1,0 +1,134 @@
+{
+  "static_checks_passed": true,
+  "counts": {
+    "materials": 94,
+    "capabilities": 120,
+    "processes": 82,
+    "milestones": 8,
+    "balanced_equations": 3
+  },
+  "kinds": {
+    "assembly": 18,
+    "chemical": 10,
+    "energy": 5,
+    "measurement": 13,
+    "physical": 36
+  },
+  "stages": {
+    "S0": 3,
+    "S1": 12,
+    "S2": 9,
+    "S3": 13,
+    "S4": 13,
+    "S5": 12,
+    "S6": 14,
+    "S7": 6
+  },
+  "scopes": {
+    "raw-world": 76,
+    "test-fixture": 6
+  },
+  "external_sources_verified": false,
+  "executable_processes": 0,
+  "optimistic_dependency_fixture": {
+    "assumption": "All candidate raw types and bootstrap capabilities supplied; non-consuming type closure only; not island availability or physical feasibility.",
+    "reachable_process_count": 27,
+    "blocked_process_ids": [
+      "p13_pottery_fire",
+      "p16_brick_fire",
+      "p17_kiln_assemble",
+      "p18_charcoal_make",
+      "p19_carbonate_identify",
+      "p20_lime_calcination",
+      "p21_lime_hydration",
+      "p23_mortar_mix",
+      "p24_mortar_carbonate",
+      "p25_wall_build",
+      "p37_iron_feed_assay",
+      "p38_copper_feed_assay",
+      "p39_refractory_assay",
+      "p40_crucible_make",
+      "p41_furnace_assemble",
+      "p42_iron_reduce",
+      "p43_iron_refine",
+      "p44_iron_shape",
+      "p45_copper_reduce",
+      "p46_copper_refine",
+      "p47_copper_rod_form",
+      "p48_drawing_tool_make",
+      "p49_wire_draw_anneal",
+      "p50_wire_insulate",
+      "p51_wire_quality_check",
+      "p52_raw_coil_wind",
+      "p53_magnetic_material_prepare",
+      "p54_magnetic_blank_treat",
+      "p55_magnetize",
+      "p56_magnet_quality_check",
+      "p57_raw_rotor_build",
+      "p58_raw_generator_build",
+      "p59_raw_generator_test",
+      "p60_silica_assay",
+      "p61_glass_batch_prepare",
+      "p62_glass_melt",
+      "p63_glass_shape_anneal",
+      "p64_vacuum_pump_build",
+      "p65_vacuum_test",
+      "p67_filament_carbonize",
+      "p68_filament_test",
+      "p69_feedthrough_make",
+      "p70_lamp_assemble",
+      "p71_lamp_evacuate",
+      "p72_lamp_seal",
+      "p73_raw_lamp_test",
+      "p74_raw_first_light",
+      "p75_fixture_parts_check",
+      "p76_fixture_coil_wind",
+      "p77_fixture_generator_build",
+      "p78_fixture_generation",
+      "p79_fixture_circuit_build",
+      "p80_fixture_light",
+      "p81_masonry_cure_check",
+      "p82_wind_generation_test"
+    ],
+    "milestone_missing_capabilities": {
+      "m01_material_craft": [
+        "basic_ceramic_firing"
+      ],
+      "m02_material_workplace": [
+        "masonry_use_checked"
+      ],
+      "m03_mechanical_motion": [],
+      "m04_raw_material_metals": [
+        "conductor_copper_candidate",
+        "metal_parts_candidate",
+        "workable_iron_candidate"
+      ],
+      "m05_raw_wire_and_magnet": [
+        "raw_route_coil_structure",
+        "raw_route_magnet_checked",
+        "raw_route_wire_checked"
+      ],
+      "m06_raw_power_and_lamp": [
+        "raw_route_generation_checked",
+        "raw_route_lamp_checked"
+      ],
+      "m07_raw_first_useful_light": [
+        "raw_route_lighting_demonstrated"
+      ],
+      "m08_external_fixture_only": [
+        "fixture_lighting_demonstrated"
+      ]
+    }
+  },
+  "catalog_sha256": "9d450282b92bc8bf915413d0759c93b392c7164c942503e2a6c4f385837aa916",
+  "validator_sha256": "76d3632555db22155dc5fc5989bd6c310ae99c94a6857a7dcb823e829828ee80",
+  "additional_checks": {
+    "invalid_reference_rejected": true,
+    "unbalanced_equation_rejected": true,
+    "fixture_world_capability_leak_rejected": true,
+    "unaccounted_energy_rejected": true,
+    "fixture_type_path_connected_with_explicit_supplies": true,
+    "raw_first_light_still_blocked": true,
+    "runtime_simulation_performed": false
+  }
+}
