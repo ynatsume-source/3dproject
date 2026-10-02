@@ -1936,14 +1936,26 @@ $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
 // the last 15-30 seconds of the view, kept ready while this is on, saved with one tap
 const replay = makeReplay(canvas, soundStream);
+let replayArm = 0;
 function setReplay(on: boolean) {
   if (on && !replay.start()) { showToast('REPLAY', 'このブラウザでは録画できません', ''); on = false; }
   if (!on) replay.stop();
-  $('btnReplayOn').setAttribute('aria-pressed', String(on)); $('btnReplay').hidden = !on;
+  $('btnReplayOn').setAttribute('aria-pressed', String(on)); $('btnReplay').classList.toggle('off', !on);
   try { localStorage.setItem('seaglass.replay', on ? '1' : '0'); } catch (e) { /* ignore */ }
 }
 $('btnReplayOn').onclick = () => setReplay(!replay.on);
 $('btnReplay').onclick = async () => {
+  // (off: the first tap turns it on and says how it works; there is nothing behind us to save yet)
+  if (!replay.on) { setReplay(true); if (replay.on) showToast('REPLAY', 'いまから、さかのぼって保存できます', 'ここから先の30秒が、いつでもボタンひとつで動画になります'); return; }
+  if (replay.held() < 3) { showToast('REPLAY', 'まだ映像がたまっていません', 'もう少し見てから押してください'); return; }
+  // two taps to save (a stray touch only arms it): the first asks, the second within 3 s keeps it
+  const b = $('btnReplay');
+  if (!b.classList.contains('armed')) {
+    b.classList.add('armed'); $('replayLbl').textContent = 'もう一度押すと保存';
+    clearTimeout(replayArm); replayArm = window.setTimeout(() => { b.classList.remove('armed'); $('replayLbl').textContent = 'さかのぼって保存'; }, 3000);
+    return;
+  }
+  clearTimeout(replayArm); b.classList.remove('armed'); $('replayLbl').textContent = 'さかのぼって保存';
   const blob = await replay.save(); if (!blob || !cur) return;
   const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
   const name = `utsushiyo-${cur.loc.id}-${L.getUTCFullYear()}${p2(L.getUTCMonth() + 1)}${p2(L.getUTCDate())}-${p2(L.getUTCHours())}${p2(L.getUTCMinutes())}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
@@ -1954,7 +1966,14 @@ $('btnReplay').onclick = async () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
   showToast('REPLAY', '直前の映像を保存しました', name);
 };
-try { if (localStorage.getItem('seaglass.replay') === '1') setReplay(true); } catch (e) { /* ignore */ }
+// on unless turned off (it is what makes "keep that!" possible at all); the ring shows how much is held
+try { setReplay(localStorage.getItem('seaglass.replay') !== '0'); } catch (e) { setReplay(true); }
+setInterval(() => {
+  const s = replay.held(), b = $('btnReplay');
+  b.style.setProperty('--held', String(s / 30));
+  $('replaySec').textContent = replay.on ? String(Math.floor(s)) : '';
+  b.title = replay.on ? `さかのぼって保存：直前の${Math.floor(s)}秒を動画にします` : 'さかのぼって保存（オフ）：押すとオンになります';
+}, 500);
 $('sharedBack').onclick = leaveShared;
 $('btnSeaOnly').onclick = () => setSeaOnly(!seaOnly);
 setSeaOnly(seaOnly);

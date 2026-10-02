@@ -94,7 +94,7 @@
     <span class="moon" id="clockMoon"></span>
   </div>
   <div class="group" role="group" aria-label="メニュー">
-    <button id="btnReplay" type="button" hidden aria-label="直前の映像を保存" title="直前の15〜30秒を動画で保存">⏺</button>
+    <button id="btnReplay" type="button" aria-label="さかのぼって保存（直前の最大30秒を動画に）"><span class="ring" aria-hidden="true"><i></i></span><span class="lbl" id="replayLbl">さかのぼって保存</span><span class="sec" id="replaySec" aria-hidden="true"></span></button>
     <button id="btnShare" type="button" aria-label="この景色を共有" title="この景色のリンクを共有">↗</button>
     <button id="btnMore" type="button" aria-expanded="false" aria-label="メニューを開く">⋯</button>
   </div>
@@ -149,7 +149,7 @@
     <p class="lead">今日の出来事の記録</p>
     <div class="rows">
       <button id="btnLog" type="button" aria-pressed="false">今日のログ<kbd>J</kbd></button>
-      <button id="btnReplayOn" type="button" aria-pressed="false" title="オンの間、直前の15〜30秒をいつでも動画で保存できます（端末の負荷が少し増えます）"><span class="dot"></span>直前の映像を保存できるようにする</button>
+      <button id="btnReplayOn" type="button" aria-pressed="false" title="オンの間、直前の15〜30秒をいつでも動画で保存できます（端末の負荷が少し増えます）"><span class="dot"></span>さかのぼって保存（直前の映像を残しておく）</button>
     </div>
   </section>
 </div>

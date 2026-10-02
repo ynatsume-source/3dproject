@@ -635,3 +635,20 @@ body.dock-open #caption { opacity: 0 !important; }
 #sharedBadge .k { opacity: 0.6; font-size: 11px; }
 #sharedBadge button { border: 0; border-radius: 999px; padding: 4px 10px; background: rgba(160, 220, 230, 0.16); color: inherit; font: inherit; cursor: pointer; }
 body.hud-off #sharedBadge { display: none; }
+
+/* さかのぼって保存: a rewind ring that fills as the last 30 seconds are held, and a red dot of a recorder */
+#btnReplay { display: inline-flex; align-items: center; gap: 7px; --held: 0; }
+#btnReplay .ring { position: relative; width: 18px; height: 18px; border-radius: 50%; flex: none;
+  background: conic-gradient(rgba(255, 120, 110, 0.95) calc(var(--held) * 360deg), rgba(220, 235, 240, 0.18) 0); }
+#btnReplay .ring::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: rgba(6, 26, 34, 0.95); }
+#btnReplay .ring i { position: absolute; inset: 6px; border-radius: 50%; background: #ff6f64; z-index: 1; }
+#btnReplay .sec { font-variant-numeric: tabular-nums; font-size: 11px; opacity: 0.75; min-width: 2.2em; text-align: left; }
+#btnReplay .sec:not(:empty)::after { content: '秒'; }
+#btnReplay.off .ring { background: rgba(220, 235, 240, 0.18); }
+#btnReplay.off .ring i { background: rgba(220, 235, 240, 0.5); }
+@media (max-width: 560px) { #btnReplay .lbl { display: none; } }
+#btnReplay.armed { background: rgba(255, 111, 100, 0.22); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.6) inset; }
+#btnReplay.armed .ring i { animation: replayPulse 0.9s ease-in-out infinite; }
+@keyframes replayPulse { 50% { transform: scale(0.6); } }
+@media (max-width: 560px) { #btnReplay.armed .lbl { display: inline; } }
+@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } }

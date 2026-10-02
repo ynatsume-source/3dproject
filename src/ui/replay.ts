@@ -4,7 +4,7 @@
 // (no menus or captions), with the sound if it is on. Nothing is uploaded anywhere.
 const WINDOW = 30_000;
 
-export interface Replay { on: boolean; start(): boolean; stop(): void; save(): Promise<Blob | null>; type: string }
+export interface Replay { on: boolean; start(): boolean; stop(): void; save(): Promise<Blob | null>; type: string; held(): number }
 
 export function makeReplay(canvas: HTMLCanvasElement, sound: () => MediaStream | null): Replay {
   const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
@@ -22,6 +22,12 @@ export function makeReplay(canvas: HTMLCanvasElement, sound: () => MediaStream |
   };
   const r: Replay = {
     on: false, type,
+    // how many seconds a save would hand over now (it fills up to 30, then stays between 15 and 30)
+    held() {
+      if (!r.on || !slots.length) return 0;
+      const oldest = Math.min(...slots.map((s) => s.at));
+      return Math.min(30, (performance.now() - oldest) / 1000);
+    },
     start() {
       if (r.on) return true;
       if (!type || !(canvas as any).captureStream) return false;
