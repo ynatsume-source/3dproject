@@ -7,7 +7,7 @@
 // rounded and the top end is kept low, so it stays kind to the ear. Nothing is loud or bright; a compressor keeps the mix even for hours of listening.
 
 let ac: AudioContext | null = null;
-let master: GainNode, natureBus: GainNode, musicBus: GainNode, reverb: ConvolverNode, crackleGain: GainNode, motion: GainNode, bedGain: GainNode;
+let master: GainNode, natureBus: GainNode, musicBus: GainNode, reverb: ConvolverNode, crackleGain: GainNode, motion: GainNode, motor: GainNode, rotor: OscillatorNode[] = [], bedGain: GainNode;
 const timers: Record<string, number> = {};
 export const audio = { on: false, music: true, night: 0, twilight: 0, phase: 'noon', sea: '' };
 // the listener's own levels, 0..1: everything, the music, and the sounds of the sea
@@ -95,6 +95,18 @@ function build() {
   const washBp = ac.createBiquadFilter(); washBp.type = 'bandpass'; washBp.frequency.value = 500; washBp.Q.value = 0.5;
   motion = ac.createGain(); motion.gain.value = 0;
   wash.connect(washBp).connect(motion).connect(natureBus); wash.start();
+  // the drone's rotors, heard only while it is pulling hard in the air (a chase): a soft low whirr, the
+  // blades' buzz rounded off, rising in pitch with the thrust; silent the rest of the time
+  const rotorLp = ac.createBiquadFilter(); rotorLp.type = 'lowpass'; rotorLp.frequency.value = 700; rotorLp.Q.value = 0.4;
+  const flutter = ac.createOscillator(); flutter.frequency.value = 23;
+  const flutterAmt = ac.createGain(); flutterAmt.gain.value = 0.25;
+  motor = ac.createGain(); motor.gain.value = 0;
+  const body = ac.createGain(); body.gain.value = 0.75; flutter.connect(flutterAmt).connect(body.gain); flutter.start();
+  for (const [f, type, g] of [[165, 'sawtooth', 0.5], [168.5, 'triangle', 0.7], [331, 'triangle', 0.25]] as const) {
+    const o = ac.createOscillator(); o.type = type; o.frequency.value = f;
+    const og = ac.createGain(); og.gain.value = g; o.connect(og).connect(body); o.start(); rotor.push(o);
+  }
+  body.connect(rotorLp).connect(motor).connect(natureBus);
 
   // reef crackle
   const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3200;
@@ -137,6 +149,14 @@ export function setVolume(v: Partial<typeof vol>) {
 export function setMood(o: { phase: string; night: number; twilight: number; sea: string }) {
   audio.phase = o.phase; audio.night = o.night; audio.twilight = o.twilight; audio.sea = o.sea;
   if (ac && !inAir) bedGain.gain.setTargetAtTime(0.12 + 0.04 * (1 - o.night), ac.currentTime, 2);
+}
+// thrust 0..1: how hard the drone is pulling (only ever heard in the air)
+export function setMotor(thrust: number) {
+  if (!ac || !audio.on || !motor) return;
+  const now = ac.currentTime;
+  motor.gain.setTargetAtTime(thrust * 0.011, now, thrust > 0.05 ? 0.25 : 0.9);
+  const k = 1 + thrust * 0.45;
+  rotor.forEach((o, i) => o.frequency.setTargetAtTime([165, 168.5, 331][i] * k, now, 0.4));
 }
 export function setHum(speed: number) {
   if (ac && audio.on) motion.gain.setTargetAtTime(Math.min(0.03, speed * 0.008), ac.currentTime, 0.8);

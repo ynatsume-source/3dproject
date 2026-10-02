@@ -183,9 +183,14 @@ export function makeFlyingFish(group: THREE.Object3D) {
       }
     });
     mesh.count = alive; mesh.instanceMatrix.needsUpdate = true; finA.needsUpdate = true;
-    // the one the camera keeps with: the first up, until it is down; then whichever is still going furthest ahead
+    // the one the camera keeps with: the first up, until it is down; then of those still going, the one that
+    // will fly on longest, but much rather one close to where the camera was already looking (a short pan,
+    // not a swing across the sky)
     const up = (f: Fish) => f.state === 'glide' || f.state === 'taxi';
-    if (st.leadI < 0 || !up(fish[st.leadI])) { st.leadI = -1; let bd = -1e9; fish.forEach((f, i) => { if (up(f)) { const d = f.glideT - f.t + f.again * 3; if (d > bd) { bd = d; st.leadI = i; } } }); }
+    if (st.leadI < 0 || !up(fish[st.leadI])) {
+      const had = st.leadI >= 0 || st.t > 0.5; st.leadI = -1; let bd = -1e9;
+      fish.forEach((f, i) => { if (up(f)) { const d = f.glideT - f.t + f.again * 3 - (had ? Math.hypot(f.p.x - lead.x, f.p.z - lead.z) * 0.35 : 0); if (d > bd) { bd = d; st.leadI = i; } } });
+    }
     if (st.leadI >= 0) { const b = fish[st.leadI]; lead.copy(b.p); dir.set(Math.cos(b.h), 0, Math.sin(b.h)); }
     if (st.t > 2 && !fish.some((f) => f.state !== 'gone' || f.t < 1.2)) st.active = false;
   }

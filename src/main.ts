@@ -34,7 +34,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
@@ -158,7 +158,7 @@ function nearestS(p: THREE.Vector3) {
 const director = new Director();
 let stuckT = 0;
 // a low run over the sea to put up flying fish, and the chase alongside them (from the sky)
-let flyRun: { burst: boolean; t: number; side: number } | null = null, flyT = rr(60, 140);
+let flyRun: { burst: boolean; t: number; side: number; aim?: THREE.Vector3; adir?: THREE.Vector3 } | null = null, flyK = 0, thrust = 0, prevVel = new THREE.Vector3(), flyT = rr(60, 140);
 let lastShot: Shot | null = null;
 let huntK = 0, giantK = 0, zoomK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
@@ -256,20 +256,28 @@ function flyStep(dt: number) {
     }
     if (fr.t > 40) flyRun = null;
   } else if (ff.flying()) {
-    const L = ff.lead, D = ff.dir, sx = -D.z, sz = D.x;
-    _t.set(L.x - sx * fr.side * 2.2 - D.x * 0.6, Math.max(L.y + 0.25, swellAt(L.x, L.z) + 0.8), L.z - sz * fr.side * 2.2 - D.z * 0.6);
-    _v.set(D.x * 13 + (_t.x - drone.pos.x) * 2.2, (_t.y - drone.pos.y) * 2.5, D.z * 13 + (_t.z - drone.pos.z) * 2.2);
-    if (_v.length() > 22) _v.setLength(22);
-    drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
-    const lx = L.x - camera.position.x, ly = L.y - camera.position.y, lz = L.z - camera.position.z;
-    wantYaw = Math.atan2(-lx, -lz); wantPitch = Math.atan2(ly, Math.hypot(lx, lz)); k = dt * 4;
+    // what the camera keeps with is not the fish itself but a point that follows it, a little behind: when
+    // one comes down and the next is taken up, the view pans over to it rather than jumping; and the line
+    // of the flight it runs along turns as slowly as a camera boat would
+    if (!fr.aim) { fr.aim = ff.lead.clone(); fr.adir = ff.dir.clone(); }
+    fr.aim.lerp(ff.lead, 1 - Math.exp(-dt * 2.2)); fr.adir!.lerp(ff.dir, 1 - Math.exp(-dt * 1.4)).normalize();
+    const L = fr.aim, D = fr.adir!, sx = -D.z, sz = D.x;
+    _t.set(L.x - sx * fr.side * 4.5 - D.x * 2, Math.max(L.y + 0.5, swellAt(L.x, L.z) + 1.1), L.z - sz * fr.side * 4.5 - D.z * 2);   // (off to one side and a little behind: far enough that it stays in the frame without the view swinging)
+    _v.set(D.x * 13 + (_t.x - drone.pos.x) * 1.8, (_t.y - drone.pos.y) * 2, D.z * 13 + (_t.z - drone.pos.z) * 1.8);
+    if (_v.length() > 20) _v.setLength(20);
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * 2.4));
+    // the lens on it: not snatched round to it, and a little ahead of it, where it is going
+    const lx = L.x + D.x * 1.2 - camera.position.x, ly = L.y - camera.position.y, lz = L.z + D.z * 1.2 - camera.position.z;
+    wantYaw = Math.atan2(-lx, -lz); wantPitch = Math.atan2(ly, Math.hypot(lx, lz)); k = dt * 2.6;
   } else {
     // the last of them gone: ease off and climb away
     _v.set(fx * 4, 1.5, fz * 4); drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
+    fr.aim = undefined;
     if (fr.t > 2 && !ff.st.active) flyRun = null;
   }
-  drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, k);
-  drone.pitch += (wantPitch - drone.pitch) * Math.min(1, k);
+  // (and never whipped round faster than a person could follow: a pan, at most)
+  drone.yaw += clamp(angDiff(wantYaw, drone.yaw) * Math.min(1, k), -dt * 2.4, dt * 2.4);
+  drone.pitch += clamp((wantPitch - drone.pitch) * Math.min(1, k), -dt * 0.9, dt * 0.9);
 }
 function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
@@ -513,10 +521,10 @@ function updateDrone(dt: number, now: number) {
   drone.pos.x = clamp(drone.pos.x, -lim, lim); drone.pos.z = clamp(drone.pos.z, -lim, lim);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
-  drone.roll += ((watch.r ? 0 : -yawRate * 0.18) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
+  drone.roll += ((watch.r ? 0 : clamp(-yawRate * 0.18, -0.25 + 0.19 * flyK, 0.25 - 0.19 * flyK)) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
   camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04 * (drone.skim > 0 && lastShot?.surface ? 0.2 : 1);
   // just above the sea the camera rides the swell, rising, falling and rolling with it
-  const ride = drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0;
+  const ride = (drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0) * (1 - 0.75 * flyK);
   // (at the waterline it rides a little behind the swell, so the line between sea and air rises and falls across the view)
   const atLine = drone.skim > 0 || (drone.mode === 'manual' && Math.abs(drone.pos.y) < 0.6) ? 1 : 0;
   // (waiting for a leap: right on the swell and a hair above it, so the far sea and the sky over it fill most of the frame)
@@ -528,15 +536,19 @@ function updateDrone(dt: number, now: number) {
   // filming a hunt close up: a longer lens (the view narrows), and the slight life of a hand-held camera
   const huntCam = (!!lastShot?.close || (drone.sky && !!flyRun?.burst && !!cur?.flyfish?.flying())) && drone.mode === 'auto' && !watch.r;   // (racing alongside flying fish too)
   huntK += ((huntCam ? 1 : 0) - huntK) * Math.min(1, dt * 0.9);
+  // racing the flying fish: steadier than a hunt below — a less long lens, no hand-held shake, the horizon
+  // nearly level and the swell's rocking mostly taken out, so the speed is felt but the head does not spin
+  const flyChase = drone.sky && !!flyRun?.burst && !!cur?.flyfish?.flying() && drone.mode === 'auto' && !watch.r;
+  flyK += ((flyChase ? 1 : 0) - flyK) * Math.min(1, dt * 0.9);
   // right up against something big: a wider lens, so it fills and overflows the frame
   const giantCam = lastShot?.giant && lastShot.phase === 'observe' && drone.mode === 'auto' && !watch.r ? lastShot.wide ?? 1 : 0;
   giantK += (giantCam - giantK) * Math.min(1, dt * 0.6);
   if (lastShot?.phase === 'observe' && obsAt === 0) obsAt = now; else if (lastShot?.phase !== 'observe') obsAt = 0;
   const zoomOn = !!lastShot?.zoom && lastShot.phase === 'observe' && !lastShot.giant && obsAt > 0 && now - obsAt < 9000 && drone.mode === 'auto' && !watch.r;
   zoomK += ((zoomOn ? 1 : 0) - zoomK) * Math.min(1, dt * (zoomOn ? 0.9 : 0.5));   // (in gently, and gently back out)
-  const fov = 70 - 24 * huntK + 12 * giantK - 26 * zoomK;
+  const fov = 70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
-  const shake = huntK * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
+  const shake = huntK * (1 - flyK) * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
   applyView(dt, t);
 }
@@ -2185,6 +2197,13 @@ function frame(ts: number) {
     sky.position.copy(camera.position);
     surface.position.set(camera.position.x, 0, camera.position.z);
     setHum(drone.vel.length());
+    {
+      // the rotors heard only when pulling hard in the air: speeding up along the way it is going
+      const sp = drone.vel.length(), acc = sp > 0.5 ? (drone.vel.x - prevVel.x) * drone.vel.x / sp + (drone.vel.y - prevVel.y) * drone.vel.y / sp + (drone.vel.z - prevVel.z) * drone.vel.z / sp : 0;
+      const want = drone.pos.y > 0.3 && dt > 0 ? clamp((acc / dt - 1.2) / 5, 0, 1) * clamp(sp / 6, 0.3, 1) : 0;
+      thrust += (want - thrust) * Math.min(1, dt * (want > thrust ? 4 : 1.2));
+      setMotor(thrust); prevVel.copy(drone.vel);
+    }
     // above the water the air takes over: sky, the sea from above, stars; no marine snow or water shafts
     surface.visible = snow.visible = !air;
     shafts.visible = !TIERS[tier].vol && !air;
