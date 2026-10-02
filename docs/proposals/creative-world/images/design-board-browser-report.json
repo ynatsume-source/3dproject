@@ -1,0 +1,69 @@
+{
+  "htmlSha256": "e9036fb1e35b4a3c4b56feb99768357f4f0105741d0974506202db7c08e238f3",
+  "purpose": "Static Japanese interactive design illustration only; no AI, backend, real terrain, or world simulation.",
+  "checkedAt": "2026-10-02T12:05:00.600Z",
+  "browser": "151.0.7922.173",
+  "viewport": {
+    "desktop": [
+      1440,
+      1120
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "scenarioCombinations": 28,
+  "checks": [
+    "Explicit illustrative / disconnected disclaimer",
+    "grove/clear/1: selected stage, SVG and shared history match",
+    "grove/clear/2: selected stage, SVG and shared history match",
+    "grove/clear/3: selected stage, SVG and shared history match",
+    "grove/clear/4: selected stage, SVG and shared history match",
+    "grove/clear/5: selected stage, SVG and shared history match",
+    "grove/clear/6: selected stage, SVG and shared history match",
+    "grove/clear/7: selected stage, SVG and shared history match",
+    "grove/rain/1: selected stage, SVG and shared history match",
+    "grove/rain/2: selected stage, SVG and shared history match",
+    "grove/rain/3: selected stage, SVG and shared history match",
+    "grove/rain/4: selected stage, SVG and shared history match",
+    "grove/rain/5: selected stage, SVG and shared history match",
+    "grove/rain/6: selected stage, SVG and shared history match",
+    "grove/rain/7: selected stage, SVG and shared history match",
+    "shore/clear/1: selected stage, SVG and shared history match",
+    "shore/clear/2: selected stage, SVG and shared history match",
+    "shore/clear/3: selected stage, SVG and shared history match",
+    "shore/clear/4: selected stage, SVG and shared history match",
+    "shore/clear/5: selected stage, SVG and shared history match",
+    "shore/clear/6: selected stage, SVG and shared history match",
+    "shore/clear/7: selected stage, SVG and shared history match",
+    "shore/rain/1: selected stage, SVG and shared history match",
+    "shore/rain/2: selected stage, SVG and shared history match",
+    "shore/rain/3: selected stage, SVG and shared history match",
+    "shore/rain/4: selected stage, SVG and shared history match",
+    "shore/rain/5: selected stage, SVG and shared history match",
+    "shore/rain/6: selected stage, SVG and shared history match",
+    "shore/rain/7: selected stage, SVG and shared history match",
+    "Unfinished frame does not provide rain shelter",
+    "SVG export is self-contained and retains illustrative provenance",
+    "Shore option adds maintenance/material implications",
+    "Last stage cannot progress past fixed scenario",
+    "First stage cannot go backwards",
+    "Keyboard can choose stages",
+    "390 px mobile has no horizontal overflow",
+    "No stored or persistent world changes",
+    "No external HTTP requests",
+    "No JavaScript/console errors",
+    "Exported SVG opens independently in Chromium"
+  ],
+  "errors": [],
+  "externalRequests": [],
+  "artifacts": [
+    "design-board-desktop.png",
+    "design-board-assembly.png",
+    "design-board-shore.png",
+    "design-board-mobile.png",
+    "design-board-concept.svg",
+    "design-board-concept.png"
+  ]
+}
