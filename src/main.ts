@@ -1277,13 +1277,39 @@ guideEl.addEventListener('click', (e) => {
   }
 });
 let toastTimer = 0;
-function discover(e?: { id: string; ja: string; sci: string }) {
+// A first sighting is marked where the animal is, not announced across the top of the screen: a faint ring
+// round it with its name, following it for a few seconds. A tap on it goes over to watch it for a while.
+type Where3 = { x: number; y: number; z: number };
+let newMark: { at: () => Where3 | null; ja: string; size: number; t: number } | null = null;
+function updateNewMark(dt: number) {
+  const el = $('newMark');
+  if (!newMark) { el.classList.remove('on'); return; }
+  newMark.t += dt;
+  const p = newMark.at();
+  if (newMark.t > 7 || !p) { newMark = null; el.classList.remove('on'); return; }
+  _tp.set(p.x, p.y, p.z).project(camera);
+  const vis = _tp.z < 1 && Math.abs(_tp.x) < 0.95 && Math.abs(_tp.y) < 0.95;
+  const d = Math.max(1, Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z));
+  const r = Math.min(70, Math.max(18, (newMark.size * 0.6 / d) * innerHeight));
+  el.style.transform = `translate(${(_tp.x * 0.5 + 0.5) * innerWidth}px, ${(-_tp.y * 0.5 + 0.5) * innerHeight}px)`;
+  el.style.setProperty('--r', `${r}px`);
+  el.classList.toggle('on', vis);
+}
+function observeNew() {
+  if (!newMark || !cur) return;
+  const m = newMark, last = { x: 0, y: 0, z: 0 };
+  const pos = () => { const p = m.at(); if (p) { last.x = p.x; last.y = p.y; last.z = p.z; } return last; };
+  pos();
+  focusOn({ key: `new:${m.ja}`, label: m.ja, kind: 'big', prio: 5, size: Math.max(0.6, m.size * 2), hold: 8, pos, status: () => '初めて見つけた', live: () => true });
+  newMark = null; $('newMark').classList.remove('on');
+}
+function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3 | null, size = 1) {
   if (!e || !cur) return;
   const key = cur.loc.id + ':' + e.id;
   if (seen.has(key)) return;
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
-  showToast('NEW SIGHTING', e.ja, e.sci);
+  if (at) { newMark = { at, ja: e.ja, size, t: 0 }; $('newMarkName').textContent = e.ja; }
   track('sighting', { sea: cur.loc.id, species: e.id });
   recordLog('sighting', `${e.ja}を初めて見つけた`);
   say('sighting', { name: e.ja });
@@ -1291,17 +1317,21 @@ function discover(e?: { id: string; ja: string; sci: string }) {
 }
 function checkSightings() {
   const cam = drone.pos, fwd = U.uCamFwd.value, loc = cur!.loc;
-  for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) discover(f.sp);
+  for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) {
+    const v = new THREE.Vector3();
+    discover(f.sp, () => (f.nearestPos(drone.pos, U.uCamFwd.value, 30, v) < Infinity ? v : null), f.sp.size[1]);
+  }
+  const first = <T,>(a: T[], ok: (t: T) => boolean) => { const o = a.find(ok); return o ? () => (o as any).pos as Where3 : undefined; };
   const extra = (id: string) => (loc.extraGuide || []).find((e) => e.id === id);
   const inView = (p: THREE.Vector3, maxD: number) => { _w.subVectors(p, cam); const d = _w.length(); return d < maxD && _w.dot(fwd) / d > 0.55; };
-  if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'));
-  if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'));
-  if ((cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'));
-  if (cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'));
-  if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'));
-  if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'));
+  if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'), first(cur!.turtles as any[], (t) => inView(t.pos, 16)), 1.2);
+  if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'), first(cur!.mantas as any[], (m) => inView(m.pos, 22)), 4);
+  if ((cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'), first(cur!.lobosOtters!.list as any[], (o) => inView(o.pos, 22)), 1.2);
+  if (cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'), () => cur!.lobosVisitors!.state.position, 1.6);
+  if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'), first(cur!.colonies as any[], (c) => inView(c.pos, 13)), 1);
+  if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'), first(cur!.octopi as any[], (o: any) => o.placed && inView(o.pos, 10)), 0.8);
   const W = cur!.whales;
-  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'));
+  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'), first(W.pod as any[], (w: any) => inView(w.pos, 45)), 13);
   if (cur!.flyfish?.fish.some((f: any) => f.state !== 'wait' && f.state !== 'gone' && inView(f.p, 40))) discover(guideEntries(cur!.loc).find((e) => e.id === 'tobiuo'));
   if (cur!.birds && cam.y > 0) for (const b of cur!.birds.inView(cam, fwd, 80)) discover(b);
   if (cur!.bait?.near(cam, 30)) discover(loc.bait!.sp);
@@ -1934,6 +1964,7 @@ $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
+$('newMark').onclick = observeNew;
 // the last 15-30 seconds of the view, kept ready while this is on, saved with one tap
 const replay = makeReplay(canvas, soundStream);
 let replayArm = 0;
@@ -2312,6 +2343,7 @@ function frameBody(ts: number) {
     cur.eco.env.shy = viewMode === 'chase' ? (drone.mode === 'manual' ? 0.85 : 0.6) : 0.35;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
+    updateNewMark(dt);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
     if (isStorm(liveWeather())) {
