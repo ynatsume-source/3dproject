@@ -1,0 +1,14 @@
+{
+  speed: 0.8,
+  toes: 4,
+  slideWhilePlanted_mm: 0.2,
+  toeY_range: [ -0.002, 0.088 ]
+}
+{ probeReach: 0.568 }
+{ topYaw: -0.538127933489046 }
+lantern-check: PASS
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

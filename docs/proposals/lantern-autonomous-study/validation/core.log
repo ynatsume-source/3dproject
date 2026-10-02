@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "nights": 20,
+  "completedWorks": 30,
+  "retainedWorks": 6,
+  "observations": 24,
+  "memories": 48,
+  "decisions": 32,
+  "checks": [
+    "actual completion only",
+    "weather and energy",
+    "multi-night goal",
+    "two observations/two revisions",
+    "nearby sharing",
+    "strict restore",
+    "bounded storage",
+    "AI fallback/timeout/cancellation/stale/validation"
+  ]
+}
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

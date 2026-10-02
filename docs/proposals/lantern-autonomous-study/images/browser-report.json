@@ -1,0 +1,2269 @@
+{
+  "status": "passed",
+  "capturedAt": "2026-10-02T10:37:00.228Z",
+  "source": "http://127.0.0.1:4192",
+  "method": {
+    "scene": "Actual application island and resident model",
+    "viewport": [
+      1200,
+      900
+    ],
+    "simulatedStartUtc": "2026-10-01T13:00:00.000Z",
+    "cloud": 0.08,
+    "cloudSource": "simulation",
+    "controller": "Rules; optional AI disabled; no paid API call",
+    "physicsStepSeconds": 0.25,
+    "notes": [
+      "Resident tasks, arrival, duration and completion run through the real Residents.update method.",
+      "The browser clock is controlled and advanced with the simulation. Warmup does not render every physics step.",
+      "No observations, works, task completion flags, resident positions or model geometry are inserted for capture.",
+      "The ordinary render loop runs for visual captures; screenshots and fixed-step video are not GPU benchmarks."
+    ]
+  },
+  "checks": {
+    "normalMode": {
+      "prototypeAbsent": true,
+      "dedicatedSaveAbsent": true
+    },
+    "svgDownload": {
+      "name": "lantern-star-study-2026-10-01.svg",
+      "bytes": 5034
+    },
+    "focus": {
+      "withinDialog": true,
+      "backgroundInert": true,
+      "returned": true
+    },
+    "viewClockIsolation": {
+      "viewingMs": 1790825700050,
+      "worldBefore": 1790859952500,
+      "worldAfter": 1790859952500,
+      "passedToResidents": 1790859952500,
+      "dateNow": 1790859952500,
+      "studyUnchanged": true
+    },
+    "mobile": {
+      "viewport": [
+        390,
+        844
+      ],
+      "book": {
+        "x": 7,
+        "y": 7,
+        "width": 376,
+        "height": 830,
+        "top": 7,
+        "right": 383,
+        "bottom": 837,
+        "left": 7
+      },
+      "noPageHorizontalOverflow": true,
+      "noPanelHorizontalOverflow": true,
+      "scrollable": true
+    },
+    "exploration": {
+      "intentId": "ls:12",
+      "start": [
+        405,
+        18.010000228881836,
+        -285
+      ],
+      "end": [
+        414.79786530138136,
+        17.31401567709552,
+        -272.22499318625114
+      ],
+      "displacementMeters": 16.099657249623135,
+      "completed": true,
+      "durationSeconds": 50.75
+    },
+    "reload": {
+      "pendingId": "ls:14",
+      "completedBefore": 1,
+      "completedAfter": 1,
+      "oldIntentInterrupted": true,
+      "observationsBefore": 2,
+      "observationsAfter": 2
+    },
+    "storage": {
+      "legacyUnchanged": true,
+      "dedicatedSaveUsed": true
+    }
+  },
+  "stages": [
+    {
+      "stage": "first-observation",
+      "worldTime": 1790859640000,
+      "date": "2026-10-01T13:00:40.000Z",
+      "lanternPosition": [
+        405,
+        18.010000228881836,
+        -285
+      ],
+      "act": "think",
+      "task": null,
+      "status": "ひと休みしている",
+      "study": {
+        "version": 1,
+        "sequence": 4,
+        "interest": {
+          "patterns": 0.525,
+          "brightness": 0.35,
+          "horizon": 0.25
+        },
+        "memories": [
+          {
+            "id": "ls:4",
+            "atMs": 1790859640000,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:2",
+            "offline": false
+          }
+        ],
+        "observations": [
+          {
+            "id": "ls:2",
+            "atMs": 1790859640000,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          }
+        ],
+        "works": [
+          {
+            "id": "ls:3",
+            "title": "星の並びをたどる",
+            "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+            "focus": "patterns",
+            "createdAt": 1790859640000,
+            "updatedAt": 1790859640000,
+            "observationIds": [
+              "ls:2"
+            ],
+            "revisions": 0,
+            "caption": "",
+            "sharedWith": []
+          }
+        ],
+        "decisions": [
+          {
+            "atMs": 1790859600000,
+            "intentId": "ls:1",
+            "action": "observe",
+            "reason": "晴れた空で、今夜気になる星を見つけたい。",
+            "source": "rules",
+            "outcome": "completed"
+          }
+        ],
+        "active": null,
+        "lastDecisionAt": 1790859600000,
+        "lastAiAt": 0,
+        "aiEnabled": false,
+        "lastIssue": ""
+      }
+    },
+    {
+      "stage": "drawing",
+      "worldTime": 1790859705750,
+      "date": "2026-10-01T13:01:45.750Z",
+      "lanternPosition": [
+        405,
+        18.010000228881836,
+        -285
+      ],
+      "act": "work",
+      "task": {
+        "kind": "study-draw",
+        "arrived": true,
+        "seconds": 5,
+        "duration": 55
+      },
+      "status": "観察した空を手帖に描いている",
+      "study": {
+        "version": 1,
+        "sequence": 5,
+        "interest": {
+          "patterns": 0.525,
+          "brightness": 0.35,
+          "horizon": 0.25
+        },
+        "memories": [
+          {
+            "id": "ls:4",
+            "atMs": 1790859640000,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:2",
+            "offline": false
+          }
+        ],
+        "observations": [
+          {
+            "id": "ls:2",
+            "atMs": 1790859640000,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          }
+        ],
+        "works": [
+          {
+            "id": "ls:3",
+            "title": "星の並びをたどる",
+            "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+            "focus": "patterns",
+            "createdAt": 1790859640000,
+            "updatedAt": 1790859640000,
+            "observationIds": [
+              "ls:2"
+            ],
+            "revisions": 0,
+            "caption": "",
+            "sharedWith": []
+          }
+        ],
+        "decisions": [
+          {
+            "atMs": 1790859600000,
+            "intentId": "ls:1",
+            "action": "observe",
+            "reason": "晴れた空で、今夜気になる星を見つけたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859701000,
+            "intentId": "ls:5",
+            "action": "draw",
+            "reason": "見たばかりの星を忘れないうちに、一枚目の下書きに残したい。",
+            "source": "rules",
+            "outcome": "started"
+          }
+        ],
+        "active": {
+          "optionId": "draw:ls:3",
+          "reason": "見たばかりの星を忘れないうちに、一枚目の下書きに残したい。",
+          "focus": "patterns",
+          "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+          "id": "ls:5",
+          "action": "draw",
+          "targetId": "ls:3",
+          "x": 405,
+          "z": -285,
+          "startedAt": 1790859701000,
+          "source": "rules",
+          "duration": 55
+        },
+        "lastDecisionAt": 1790859701000,
+        "lastAiAt": 0,
+        "aiEnabled": false,
+        "lastIssue": ""
+      }
+    },
+    {
+      "stage": "completed-work",
+      "worldTime": 1790859952500,
+      "date": "2026-10-01T13:05:52.500Z",
+      "lanternPosition": [
+        405,
+        18.010000228881836,
+        -285
+      ],
+      "act": "work",
+      "task": null,
+      "status": "ひと休みしている",
+      "study": {
+        "version": 1,
+        "sequence": 11,
+        "interest": {
+          "patterns": 0.5800000000000001,
+          "brightness": 0.35,
+          "horizon": 0.25
+        },
+        "memories": [
+          {
+            "id": "ls:4",
+            "atMs": 1790859640000,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:2",
+            "offline": false
+          },
+          {
+            "id": "ls:6",
+            "atMs": 1790859755750,
+            "kind": "drawing",
+            "text": "観察記録をもとに「星の並びをたどる」の下書きを描いた。",
+            "relatedId": "ls:3",
+            "offline": false
+          },
+          {
+            "id": "ls:9",
+            "atMs": 1790859836500,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:8",
+            "offline": false
+          },
+          {
+            "id": "ls:11",
+            "atMs": 1790859952500,
+            "kind": "drawing",
+            "text": "二度の観察をもとに「星の並びをたどる」を仕上げた。",
+            "relatedId": "ls:3",
+            "offline": false
+          }
+        ],
+        "observations": [
+          {
+            "id": "ls:2",
+            "atMs": 1790859640000,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          },
+          {
+            "id": "ls:8",
+            "atMs": 1790859836500,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          }
+        ],
+        "works": [
+          {
+            "id": "ls:3",
+            "title": "星の並びをたどる",
+            "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+            "focus": "patterns",
+            "createdAt": 1790859640000,
+            "updatedAt": 1790859952500,
+            "observationIds": [
+              "ls:2",
+              "ls:8"
+            ],
+            "revisions": 2,
+            "caption": "もう一度見た空を、前の記録と並べた。星の並びを、これからも確かめていきたい。",
+            "sharedWith": [],
+            "completedAt": 1790859952500
+          }
+        ],
+        "decisions": [
+          {
+            "atMs": 1790859600000,
+            "intentId": "ls:1",
+            "action": "observe",
+            "reason": "晴れた空で、今夜気になる星を見つけたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859701000,
+            "intentId": "ls:5",
+            "action": "draw",
+            "reason": "見たばかりの星を忘れないうちに、一枚目の下書きに残したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859796500,
+            "intentId": "ls:7",
+            "action": "observe",
+            "reason": "前に見た場所へ戻って、星の位置をもう一度確かめたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859897500,
+            "intentId": "ls:10",
+            "action": "draw",
+            "reason": "前の観察と見比べて、図をもう一度描き直したい。",
+            "source": "rules",
+            "outcome": "completed"
+          }
+        ],
+        "active": null,
+        "lastDecisionAt": 1790859897500,
+        "lastAiAt": 0,
+        "aiEnabled": false,
+        "lastIssue": ""
+      }
+    },
+    {
+      "stage": "exploration-started",
+      "worldTime": 1790859993250,
+      "date": "2026-10-01T13:06:33.250Z",
+      "lanternPosition": [
+        405,
+        18.010000228881836,
+        -285
+      ],
+      "act": "walk",
+      "task": {
+        "kind": "study-explore",
+        "arrived": false,
+        "seconds": 0.25,
+        "duration": 30
+      },
+      "status": "気になる場所へ歩いている",
+      "study": {
+        "version": 1,
+        "sequence": 12,
+        "interest": {
+          "patterns": 0.5800000000000001,
+          "brightness": 0.35,
+          "horizon": 0.25
+        },
+        "memories": [
+          {
+            "id": "ls:4",
+            "atMs": 1790859640000,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:2",
+            "offline": false
+          },
+          {
+            "id": "ls:6",
+            "atMs": 1790859755750,
+            "kind": "drawing",
+            "text": "観察記録をもとに「星の並びをたどる」の下書きを描いた。",
+            "relatedId": "ls:3",
+            "offline": false
+          },
+          {
+            "id": "ls:9",
+            "atMs": 1790859836500,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:8",
+            "offline": false
+          },
+          {
+            "id": "ls:11",
+            "atMs": 1790859952500,
+            "kind": "drawing",
+            "text": "二度の観察をもとに「星の並びをたどる」を仕上げた。",
+            "relatedId": "ls:3",
+            "offline": false
+          }
+        ],
+        "observations": [
+          {
+            "id": "ls:2",
+            "atMs": 1790859640000,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          },
+          {
+            "id": "ls:8",
+            "atMs": 1790859836500,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          }
+        ],
+        "works": [
+          {
+            "id": "ls:3",
+            "title": "星の並びをたどる",
+            "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+            "focus": "patterns",
+            "createdAt": 1790859640000,
+            "updatedAt": 1790859952500,
+            "observationIds": [
+              "ls:2",
+              "ls:8"
+            ],
+            "revisions": 2,
+            "caption": "もう一度見た空を、前の記録と並べた。星の並びを、これからも確かめていきたい。",
+            "sharedWith": [],
+            "completedAt": 1790859952500
+          }
+        ],
+        "decisions": [
+          {
+            "atMs": 1790859600000,
+            "intentId": "ls:1",
+            "action": "observe",
+            "reason": "晴れた空で、今夜気になる星を見つけたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859701000,
+            "intentId": "ls:5",
+            "action": "draw",
+            "reason": "見たばかりの星を忘れないうちに、一枚目の下書きに残したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859796500,
+            "intentId": "ls:7",
+            "action": "observe",
+            "reason": "前に見た場所へ戻って、星の位置をもう一度確かめたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859897500,
+            "intentId": "ls:10",
+            "action": "draw",
+            "reason": "前の観察と見比べて、図をもう一度描き直したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859993250,
+            "intentId": "ls:12",
+            "action": "explore",
+            "reason": "次に空を眺める場所を探しに行きたい。",
+            "source": "rules",
+            "outcome": "started"
+          }
+        ],
+        "active": {
+          "optionId": "explore:hill-1",
+          "reason": "次に空を眺める場所を探しに行きたい。",
+          "focus": "patterns",
+          "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+          "id": "ls:12",
+          "action": "explore",
+          "targetId": "hill-1",
+          "x": 415.13675510253637,
+          "z": -271.7784168649623,
+          "startedAt": 1790859993250,
+          "source": "rules",
+          "duration": 30
+        },
+        "lastDecisionAt": 1790859993250,
+        "lastAiAt": 0,
+        "aiEnabled": false,
+        "lastIssue": ""
+      }
+    },
+    {
+      "stage": "exploration-completed",
+      "worldTime": 1790860044000,
+      "date": "2026-10-01T13:07:24.000Z",
+      "lanternPosition": [
+        414.79786530138136,
+        17.31401567709552,
+        -272.22499318625114
+      ],
+      "act": "look",
+      "task": null,
+      "status": "ひと休みしている",
+      "study": {
+        "version": 1,
+        "sequence": 13,
+        "interest": {
+          "patterns": 0.5800000000000001,
+          "brightness": 0.35,
+          "horizon": 0.25
+        },
+        "memories": [
+          {
+            "id": "ls:4",
+            "atMs": 1790859640000,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:2",
+            "offline": false
+          },
+          {
+            "id": "ls:6",
+            "atMs": 1790859755750,
+            "kind": "drawing",
+            "text": "観察記録をもとに「星の並びをたどる」の下書きを描いた。",
+            "relatedId": "ls:3",
+            "offline": false
+          },
+          {
+            "id": "ls:9",
+            "atMs": 1790859836500,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:8",
+            "offline": false
+          },
+          {
+            "id": "ls:11",
+            "atMs": 1790859952500,
+            "kind": "drawing",
+            "text": "二度の観察をもとに「星の並びをたどる」を仕上げた。",
+            "relatedId": "ls:3",
+            "offline": false
+          },
+          {
+            "id": "ls:13",
+            "atMs": 1790860044000,
+            "kind": "exploration",
+            "text": "丘の小道のそばを訪ねた。",
+            "offline": false
+          }
+        ],
+        "observations": [
+          {
+            "id": "ls:2",
+            "atMs": 1790859640000,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          },
+          {
+            "id": "ls:8",
+            "atMs": 1790859836500,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          }
+        ],
+        "works": [
+          {
+            "id": "ls:3",
+            "title": "星の並びをたどる",
+            "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+            "focus": "patterns",
+            "createdAt": 1790859640000,
+            "updatedAt": 1790859952500,
+            "observationIds": [
+              "ls:2",
+              "ls:8"
+            ],
+            "revisions": 2,
+            "caption": "もう一度見た空を、前の記録と並べた。星の並びを、これからも確かめていきたい。",
+            "sharedWith": [],
+            "completedAt": 1790859952500
+          }
+        ],
+        "decisions": [
+          {
+            "atMs": 1790859600000,
+            "intentId": "ls:1",
+            "action": "observe",
+            "reason": "晴れた空で、今夜気になる星を見つけたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859701000,
+            "intentId": "ls:5",
+            "action": "draw",
+            "reason": "見たばかりの星を忘れないうちに、一枚目の下書きに残したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859796500,
+            "intentId": "ls:7",
+            "action": "observe",
+            "reason": "前に見た場所へ戻って、星の位置をもう一度確かめたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859897500,
+            "intentId": "ls:10",
+            "action": "draw",
+            "reason": "前の観察と見比べて、図をもう一度描き直したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859993250,
+            "intentId": "ls:12",
+            "action": "explore",
+            "reason": "次に空を眺める場所を探しに行きたい。",
+            "source": "rules",
+            "outcome": "completed"
+          }
+        ],
+        "active": null,
+        "lastDecisionAt": 1790859993250,
+        "lastAiAt": 0,
+        "aiEnabled": false,
+        "lastIssue": ""
+      }
+    },
+    {
+      "stage": "pending-before-reload",
+      "worldTime": 1790860084750,
+      "date": "2026-10-01T13:08:04.750Z",
+      "lanternPosition": [
+        414.79786530138136,
+        17.31401567709552,
+        -272.22499318625114
+      ],
+      "act": "idle",
+      "task": {
+        "kind": "study-rest",
+        "arrived": true,
+        "seconds": 0.25,
+        "duration": 45
+      },
+      "status": "手帖を閉じて、ひと休みしている",
+      "study": {
+        "version": 1,
+        "sequence": 14,
+        "interest": {
+          "patterns": 0.5800000000000001,
+          "brightness": 0.35,
+          "horizon": 0.25
+        },
+        "memories": [
+          {
+            "id": "ls:4",
+            "atMs": 1790859640000,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:2",
+            "offline": false
+          },
+          {
+            "id": "ls:6",
+            "atMs": 1790859755750,
+            "kind": "drawing",
+            "text": "観察記録をもとに「星の並びをたどる」の下書きを描いた。",
+            "relatedId": "ls:3",
+            "offline": false
+          },
+          {
+            "id": "ls:9",
+            "atMs": 1790859836500,
+            "kind": "observation",
+            "text": "丘の開けた場所で空を眺め、地平線より上の星6個の計算位置を手帖に記録した。",
+            "relatedId": "ls:8",
+            "offline": false
+          },
+          {
+            "id": "ls:11",
+            "atMs": 1790859952500,
+            "kind": "drawing",
+            "text": "二度の観察をもとに「星の並びをたどる」を仕上げた。",
+            "relatedId": "ls:3",
+            "offline": false
+          },
+          {
+            "id": "ls:13",
+            "atMs": 1790860044000,
+            "kind": "exploration",
+            "text": "丘の小道のそばを訪ねた。",
+            "offline": false
+          }
+        ],
+        "observations": [
+          {
+            "id": "ls:2",
+            "atMs": 1790859640000,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          },
+          {
+            "id": "ls:8",
+            "atMs": 1790859836500,
+            "lat": 24.36107,
+            "lon": 123.99674,
+            "starIds": [
+              "vega",
+              "capella",
+              "altair",
+              "fomalhaut",
+              "deneb",
+              "polaris"
+            ],
+            "placeId": "hill-0",
+            "placeName": "丘の開けた場所",
+            "cloud": 0.08,
+            "cloudSource": "simulation",
+            "offline": false,
+            "focus": "patterns"
+          }
+        ],
+        "works": [
+          {
+            "id": "ls:3",
+            "title": "星の並びをたどる",
+            "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+            "focus": "patterns",
+            "createdAt": 1790859640000,
+            "updatedAt": 1790859952500,
+            "observationIds": [
+              "ls:2",
+              "ls:8"
+            ],
+            "revisions": 2,
+            "caption": "もう一度見た空を、前の記録と並べた。星の並びを、これからも確かめていきたい。",
+            "sharedWith": [],
+            "completedAt": 1790859952500
+          }
+        ],
+        "decisions": [
+          {
+            "atMs": 1790859600000,
+            "intentId": "ls:1",
+            "action": "observe",
+            "reason": "晴れた空で、今夜気になる星を見つけたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859701000,
+            "intentId": "ls:5",
+            "action": "draw",
+            "reason": "見たばかりの星を忘れないうちに、一枚目の下書きに残したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859796500,
+            "intentId": "ls:7",
+            "action": "observe",
+            "reason": "前に見た場所へ戻って、星の位置をもう一度確かめたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859897500,
+            "intentId": "ls:10",
+            "action": "draw",
+            "reason": "前の観察と見比べて、図をもう一度描き直したい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790859993250,
+            "intentId": "ls:12",
+            "action": "explore",
+            "reason": "次に空を眺める場所を探しに行きたい。",
+            "source": "rules",
+            "outcome": "completed"
+          },
+          {
+            "atMs": 1790860084750,
+            "intentId": "ls:14",
+            "action": "rest",
+            "reason": "電池を確かめて、少し休んでから続きを考えたい。",
+            "source": "rules",
+            "outcome": "started"
+          }
+        ],
+        "active": {
+          "optionId": "rest:hill-1",
+          "reason": "電池を確かめて、少し休んでから続きを考えたい。",
+          "focus": "patterns",
+          "question": "時間がたっても、星どうしの並びは同じに見えるだろうか。",
+          "id": "ls:14",
+          "action": "rest",
+          "targetId": "hill-1",
+          "x": 415.13675510253637,
+          "z": -271.7784168649623,
+          "startedAt": 1790860084750,
+          "source": "rules",
+          "duration": 45
+        },
+        "lastDecisionAt": 1790860084750,
+        "lastAiAt": 0,
+        "aiEnabled": false,
+        "lastIssue": ""
+      }
+    }
+  ],
+  "images": [
+    {
+      "file": "atelier-empty.png",
+      "stage": "Before first observation"
+    },
+    {
+      "file": "atelier-unfinished.png",
+      "stage": "Observation completed; work remains unfinished"
+    },
+    {
+      "file": "lantern-drawing.png",
+      "stage": "Actual study-draw task on the island"
+    },
+    {
+      "file": "atelier-completed.png",
+      "stage": "Two actual observations and drawing passes completed"
+    },
+    {
+      "file": "lantern-completed-study.png",
+      "stage": "Browser rendering of actual downloaded SVG, at its viewBox size"
+    },
+    {
+      "file": "atelier-mobile.png",
+      "stage": "390 px mobile viewport"
+    }
+  ],
+  "videos": [
+    {
+      "file": "lantern-drawing.mp4",
+      "fps": 20,
+      "frames": 119,
+      "seconds": 5.95,
+      "performanceBenchmark": false,
+      "states": [
+        {
+          "date": "2026-10-01T13:01:50.850Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.10000000000002,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:50.900Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.15000000000002,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:50.950Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.20000000000002,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.000Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.250000000000021,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.050Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.300000000000022,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.100Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.350000000000023,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.150Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.400000000000023,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.200Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.450000000000024,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.250Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.500000000000025,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.300Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.550000000000026,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.350Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.600000000000026,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.400Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.650000000000027,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.450Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.700000000000028,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.500Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.750000000000028,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.550Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.80000000000003,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.600Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.85000000000003,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.650Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.90000000000003,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.700Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 10.950000000000031,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.750Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.000000000000032,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.800Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.050000000000033,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.850Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.100000000000033,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.900Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.150000000000034,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:51.950Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.200000000000035,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.000Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.250000000000036,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.050Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.300000000000036,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.100Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.350000000000037,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.150Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.400000000000038,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.200Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.450000000000038,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.250Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.500000000000039,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.300Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.55000000000004,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.350Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.60000000000004,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.400Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.650000000000041,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.450Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.700000000000042,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.500Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.750000000000043,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.550Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.800000000000043,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.600Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.850000000000044,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.650Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.900000000000045,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.700Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 11.950000000000045,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.750Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.000000000000046,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.800Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.050000000000047,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.850Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.100000000000048,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.900Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.150000000000048,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:52.950Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.200000000000049,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.000Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.25000000000005,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.050Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.30000000000005,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.100Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.350000000000051,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.150Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.400000000000052,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.200Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.450000000000053,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.250Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.500000000000053,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.300Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.550000000000054,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.350Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.600000000000055,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.400Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.650000000000055,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.450Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.700000000000056,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.500Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.750000000000057,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.550Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.800000000000058,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.600Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.850000000000058,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.650Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.900000000000059,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.700Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 12.95000000000006,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.750Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.00000000000006,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.800Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.050000000000061,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.850Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.100000000000062,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.900Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.150000000000063,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:53.950Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.200000000000063,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.000Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.250000000000064,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.050Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.300000000000065,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.100Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.350000000000065,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.150Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.400000000000066,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.200Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.450000000000067,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.250Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.500000000000068,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.300Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.550000000000068,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.350Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.600000000000069,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.400Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.65000000000007,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.450Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.70000000000007,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.500Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.750000000000071,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.550Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.800000000000072,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.600Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.850000000000072,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.650Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.900000000000073,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.700Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 13.950000000000074,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.750Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.000000000000075,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.800Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.050000000000075,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.850Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.100000000000076,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.900Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.150000000000077,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:54.950Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.200000000000077,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.000Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.250000000000078,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.050Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.300000000000079,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.100Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.35000000000008,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.150Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.40000000000008,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.200Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.450000000000081,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.250Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.500000000000082,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.300Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.550000000000082,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.350Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.600000000000083,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.400Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.650000000000084,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.450Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.700000000000085,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.500Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.750000000000085,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.550Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.800000000000086,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.600Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.850000000000087,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.650Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.900000000000087,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.700Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 14.950000000000088,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.750Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.000000000000089,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.800Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.05000000000009,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.850Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.10000000000009,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.900Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.150000000000091,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:55.950Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.200000000000092,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.000Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.250000000000092,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.050Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.300000000000093,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.100Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.350000000000094,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.150Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.400000000000095,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.200Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.450000000000095,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.250Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.500000000000096,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.300Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.550000000000097,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.350Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.600000000000097,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.400Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.650000000000098,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.450Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.700000000000099,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.500Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.7500000000001,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.550Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.8000000000001,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.600Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.850000000000101,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.650Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.900000000000102,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.700Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 15.950000000000102,
+            "duration": 55
+          }
+        },
+        {
+          "date": "2026-10-01T13:01:56.750Z",
+          "act": "work",
+          "task": {
+            "kind": "study-draw",
+            "arrived": true,
+            "seconds": 16.000000000000103,
+            "duration": 55
+          }
+        }
+      ],
+      "originalCapturedAt": "2026-10-02T10:24:57.416Z",
+      "note": "Retained from the prior capture of the same frozen source. Its first resize-cleared frame was discarded. All subsequent checks were rerun with explicit page.reload."
+    }
+  ],
+  "errors": [],
+  "localFailures": [],
+  "externalFailures": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=24.36107&longitude=123.99674&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=24.36107&longitude=123.99674&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=24.36107&longitude=123.99674&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=24.36107&longitude=123.99674&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=24.36107&longitude=123.99674&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=24.36107&longitude=123.99674&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    }
+  ],
+  "apiRequests": [],
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "gl": {
+    "error": 0,
+    "contextLost": false
+  },
+  "sourceCommit": "c6827eb12446384bed2fd967da6e9b419b0d2f02"
+}
