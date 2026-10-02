@@ -651,7 +651,7 @@ body.hud-off #sharedBadge { display: none; }
 #btnReplay.armed .ring i { animation: replayPulse 0.9s ease-in-out infinite; }
 @keyframes replayPulse { 50% { transform: scale(0.6); } }
 @media (max-width: 560px) { #btnReplay.armed .lbl { display: inline; } }
-@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } }
+@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } #btnReplay .sec:empty { display: none; } }
 
 /* a first sighting: a faint ring round the animal itself, its name beside it; a tap goes to watch it */
 #newMark { position: fixed; left: 0; top: 0; z-index: 5; --r: 30px; padding: 0; border: 0; background: none; color: #e8f6f6; cursor: pointer;

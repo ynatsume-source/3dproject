@@ -1,53 +1,57 @@
-// "That was lovely — keep it": the last 15-30 seconds of the view, saved on request.
-// Two recorders run staggered by half a window, each starting afresh every 30 s; when asked, the one that
-// has been running longer (15-30 s) is stopped and handed over as a file. Only the 3D view is recorded
-// (no menus or captions), with the sound if it is on. Nothing is uploaded anywhere.
-const WINDOW = 30_000;
+// "That was lovely — keep it": the last 15 seconds of the view, always kept ready, saved on request.
+// A recording cannot be cut at an arbitrary start without encoding it again, so several recorders run
+// staggered, each starting afresh every PERIOD; when asked, the youngest one that has been running at least
+// 15 s is stopped and handed over as a file (15 s and a few more). Only the 3D view is recorded (no menus or
+// captions), with the sound if it is on. Nothing is uploaded anywhere.
+export const KEEP = 15;
+const SLOTS = 3, PERIOD = (KEEP * SLOTS / (SLOTS - 1)) * 1000;   // (three staggered: 15-22.5 s each time)
 
-export interface Replay { on: boolean; start(): boolean; stop(): void; save(): Promise<Blob | null>; type: string; held(): number }
+export interface Replay { on: boolean; start(): boolean; save(): Promise<Blob | null>; type: string; held(): number }
 
 export function makeReplay(canvas: HTMLCanvasElement, sound: () => MediaStream | null): Replay {
   const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
   const type = typeof MediaRecorder === 'undefined' ? '' : types.find((t) => MediaRecorder.isTypeSupported(t)) ?? '';
-  let stream: MediaStream | null = null, slots: { rec: MediaRecorder; chunks: Blob[]; at: number }[] = [], timers: number[] = [];
+  let stream: MediaStream | null = null;
+  const slots: ({ rec: MediaRecorder; chunks: Blob[]; at: number } | null)[] = [];
   const begin = (i: number) => {
     if (!stream) return;
     const old = slots[i]; if (old && old.rec.state !== 'inactive') { old.rec.ondataavailable = null; old.rec.stop(); }
+    slots[i] = null;
     // (the sound, once it has been switched on: from the next fresh recorder)
     const a = sound(); if (a && !stream.getAudioTracks().length) for (const t of a.getAudioTracks()) stream.addTrack(t);
-    const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6_000_000 });
-    const s = { rec, chunks: [] as Blob[], at: performance.now() };
-    rec.ondataavailable = (e) => { if (e.data.size) s.chunks.push(e.data); };
-    rec.start(1000); slots[i] = s;
+    try {
+      const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 5_000_000 });
+      const s = { rec, chunks: [] as Blob[], at: performance.now() };
+      rec.ondataavailable = (e) => { if (e.data.size) s.chunks.push(e.data); };
+      rec.onerror = () => { if (slots[i] === s) slots[i] = null; };   // (a browser that allows fewer at once: the others carry on)
+      rec.start(1000); slots[i] = s;
+    } catch (e) { /* (as above) */ }
   };
+  const age = (s: { at: number }) => (performance.now() - s.at) / 1000;
   const r: Replay = {
     on: false, type,
-    // how many seconds a save would hand over now (it fills up to 30, then stays between 15 and 30)
+    // how many of the last 15 seconds a save would hold now (it fills up to 15, then stays there)
     held() {
-      if (!r.on || !slots.length) return 0;
-      const oldest = Math.min(...slots.map((s) => s.at));
-      return Math.min(30, (performance.now() - oldest) / 1000);
+      const live = slots.filter((s) => s) as { at: number }[];
+      return live.length ? Math.min(KEEP, Math.max(...live.map(age))) : 0;
     },
     start() {
       if (r.on) return true;
       if (!type || !(canvas as any).captureStream) return false;
       stream = (canvas as any).captureStream(30) as MediaStream;
       const a = sound(); if (a) for (const t of a.getAudioTracks()) stream.addTrack(t);
-      slots = [];
-      begin(0);
-      timers.push(window.setTimeout(() => { begin(1); timers.push(window.setInterval(() => begin(1), WINDOW)); }, WINDOW / 2));
-      timers.push(window.setInterval(() => begin(0), WINDOW));
+      for (let i = 0; i < SLOTS; i++) {
+        const go = () => { begin(i); window.setInterval(() => begin(i), PERIOD); };
+        if (i === 0) go(); else window.setTimeout(go, (PERIOD / SLOTS) * i);
+      }
       r.on = true; return true;
     },
-    stop() {
-      for (const t of timers) { clearTimeout(t); clearInterval(t); } timers = [];
-      for (const s of slots) if (s && s.rec.state !== 'inactive') { s.rec.ondataavailable = null; s.rec.stop(); }
-      slots = []; stream?.getVideoTracks().forEach((t) => t.stop()); stream = null; r.on = false;
-    },
     async save() {
-      if (!r.on || !slots.length) return null;
-      // the longer-running of the two (it holds 15-30 s); it is replaced by a fresh one at once
-      const i = slots.length > 1 && slots[1].at < slots[0].at ? 1 : 0, s = slots[i];
+      const live = slots.map((s, i) => [s, i] as const).filter(([s]) => s) as (readonly [{ rec: MediaRecorder; chunks: Blob[]; at: number }, number])[];
+      if (!live.length) return null;
+      // the youngest that already holds 15 s (else, early on, the oldest); it is replaced by a fresh one at once
+      const full = live.filter(([s]) => age(s) >= KEEP).sort((a, b) => age(a[0]) - age(b[0]));
+      const [s, i] = full[0] ?? live.sort((a, b) => age(b[0]) - age(a[0]))[0];
       const done = new Promise<Blob>((res) => { s.rec.onstop = () => res(new Blob(s.chunks, { type: type.split(';')[0] })); });
       s.rec.stop(); begin(i);
       return done;
