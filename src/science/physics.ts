@@ -77,3 +77,40 @@ export function fuelLhvJPerMg(c: Composition): number {
 export function hasFormula(id: keyof typeof SPECIES): boolean {
   return SPECIES[id].formula !== null;
 }
+
+export interface DryInput {
+  waterMg: number; dryMg: number; shapedWaterRatio: number; linearShrink: number;
+  dimsMm: { w: number; l: number; t: number };
+  airTempC: number; rh: number; windMs: number;
+  /** extra surface heating from sun on this rack, 0..1 of the assumed excess (0 = shade) */
+  sun: number;
+  dtS: number;
+}
+export interface DryOutput {
+  evapMg: number; linearShrink: number; fluxRatio: number | null; crossedCritical: boolean;
+  stage: 'formed' | 'leather' | 'dry';
+}
+
+/** One drying step: Dalton-type evaporation, two-stage (shrinking / non-shrinking) drying. Integer mg out. */
+export function dryPhysics(i: DryInput): DryOutput {
+  const wc = pv('clayWaterCritical'), weq = pv('clayWaterEqAt70RH') * (i.rh / 0.7);
+  const wr = i.waterMg / i.dryMg;
+  const ts = i.airTempC + pv('sunSurfaceExcessC') * i.sun;
+  const deficit = Math.max(0, pSat(ts) - i.rh * pSat(i.airTempC));
+  const fluxConst = pv('evapCoeff') * (1 + 0.5 * i.windMs) * deficit; // kg/(m²·s)
+  const shrink = 1 - i.linearShrink;
+  const { w: gw, l: gl, t: gt } = i.dimsMm;
+  const areaM2 = ((gw * gl + 2 * (gw + gl) * gt) * shrink * shrink) / 1e6; // top + edges; bottom rests on the rack
+  const factor = wr > wc ? 1 : Math.max(0, (wr - weq) / (wc - weq));
+  const maxEvap = Math.max(0, i.waterMg - Math.round(weq * i.dryMg));
+  const evap = Math.min(maxEvap, Math.round(fluxConst * factor * areaM2 * i.dtS * 1e6));
+  const nwr = (i.waterMg - evap) / i.dryMg;
+  const w0 = i.shapedWaterRatio;
+  return {
+    evapMg: evap,
+    linearShrink: w0 > wc ? pv('clayShrinkLinear') * Math.min(1, Math.max(0, (w0 - Math.max(nwr, wc)) / (w0 - wc))) : i.linearShrink,
+    fluxRatio: wr > wc ? (fluxConst / pv('dryCrackFluxRef')) * (gt / 10) : null,
+    crossedCritical: wr > wc && nwr <= wc,
+    stage: nwr <= weq * 1.5 + 0.005 ? 'dry' : nwr <= wc ? 'leather' : 'formed',
+  };
+}

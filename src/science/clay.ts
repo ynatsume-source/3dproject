@@ -4,7 +4,7 @@
 import { addComp, react, REACTIONS, splitComp, totalMg, type Composition } from './chem';
 import { pv } from './params';
 import {
-  crackP, dehydroxExtent, dryMg, fuelLhvJPerMg, glowCategory, GLOW_TARGET_C, KINETICS, PACE_K_PER_H, pSat, waterRatio,
+  crackP, dehydroxExtent, dryMg, dryPhysics, fuelLhvJPerMg, glowCategory, GLOW_TARGET_C, KINETICS, PACE_K_PER_H, waterRatio,
 } from './physics';
 import { draw } from './rng';
 import {
@@ -187,28 +187,14 @@ export function startDrying(w: WorldView, cmd: Cmd<'start_drying'>): Proposal {
 }
 
 function dryStep(s: Sample, env: EnvSample, sunny: boolean, dt: number): { s: Sample; evapMg: number; crossedCritical: boolean } {
-  const wc = pv('clayWaterCritical'), weq = pv('clayWaterEqAt70RH') * (env.rh / 0.7);
-  const dry = dryMg(s.comp), water = s.comp.water ?? 0, wr = water / dry;
-  const ts = env.airTempC + (sunny ? pv('sunSurfaceExcessC') * env.solar : 0);
-  const deficit = Math.max(0, pSat(ts) - env.rh * pSat(env.airTempC));
-  const fluxConst = pv('evapCoeff') * (1 + 0.5 * env.windMs) * deficit; // kg/(m²·s)
-  const shrink = 1 - s.linearShrink;
-  const { w: gw, l: gl, t: gt } = s.greenDimsMm;
-  const areaM2 = ((gw * gl + 2 * (gw + gl) * gt) * shrink * shrink) / 1e6; // top + edges; bottom rests on the rack
-  const factor = wr > wc ? 1 : Math.max(0, (wr - weq) / (wc - weq));
-  const maxEvap = Math.max(0, water - Math.round(weq * dry));
-  const evap = Math.min(maxEvap, Math.round(fluxConst * factor * areaM2 * dt * 1e6));
+  const o = dryPhysics({ waterMg: s.comp.water ?? 0, dryMg: dryMg(s.comp), shapedWaterRatio: s.shapedWaterRatio, linearShrink: s.linearShrink,
+    dimsMm: s.greenDimsMm, airTempC: env.airTempC, rh: env.rh, windMs: env.windMs, sun: sunny ? env.solar : 0, dtS: dt });
   const ns: Sample = clone(s);
-  ns.comp = addComp(s.comp, { water: evap }, -1);
-  const nwr = (ns.comp.water ?? 0) / dry;
-  if (wr > wc) {
-    const ratio = (fluxConst / pv('dryCrackFluxRef')) * (gt / 10);
-    ns.risk.dryFluxRatioMax = Math.max(ns.risk.dryFluxRatioMax, ratio);
-  }
-  const w0 = s.shapedWaterRatio;
-  ns.linearShrink = pv('clayShrinkLinear') * Math.min(1, Math.max(0, (w0 - Math.max(nwr, wc)) / (w0 - wc)));
-  ns.stage = nwr <= weq * 1.5 + 0.005 ? 'dry' : nwr <= wc ? 'leather' : 'formed';
-  return { s: ns, evapMg: evap, crossedCritical: wr > wc && nwr <= wc };
+  ns.comp = addComp(s.comp, { water: o.evapMg }, -1);
+  if (o.fluxRatio !== null) ns.risk.dryFluxRatioMax = Math.max(ns.risk.dryFluxRatioMax, o.fluxRatio);
+  ns.linearShrink = o.linearShrink;
+  ns.stage = o.stage;
+  return { s: ns, evapMg: o.evapMg, crossedCritical: o.crossedCritical };
 }
 
 function drawCrack(s: Sample, run: ProcessRun, mech: 'drying' | 'steam' | 'dunting', ratio: number) {
