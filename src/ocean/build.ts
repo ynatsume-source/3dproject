@@ -2,6 +2,7 @@
 import { KELP_FLOOR, makeKelpForest } from './kelp';
 import { buildLobosBenthos } from './lobos-benthos';
 import { makeLobosVisitors } from '../eco/lobos-visitors';
+import { makeLobosOtters } from '../eco/lobos-otters';
 import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
@@ -600,6 +601,7 @@ export function buildOcean(loc) {
   oc.breach = makeBreach(oc);   // whales and mantas leaping out of the sea
   oc.rare = makeRareEvents(oc);   // rare scenes, now and then   // morays, sea snakes, jellyfish   // remoras, pilot fish and trevally with the big ones
   oc.lobosVisitors = makeLobosVisitors(oc);
+  oc.lobosOtters = makeLobosOtters(oc);   // wild sea otters in the canopy
   oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);

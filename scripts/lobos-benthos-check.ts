@@ -9,7 +9,8 @@ import { TERR } from '../src/core/math';
 
 const ocean = buildOcean(POINT_LOBOS), benthos = ocean.lobosBenthos;
 assert.ok(benthos, 'integrated only in Point Lobos');
-assert.equal(benthos.stats.meshes, 5, 'all small residents use five batched draws');
+assert.equal(benthos.stats.meshes, 6, 'all small residents use six batched draws');
+assert.ok(benthos.stats.strawberry >= 40, 'strawberry anemone clones on the rock');
 assert.equal(benthos.stats.urchins, 320); assert.equal(benthos.stats.batStars, 110);
 assert.equal(benthos.stats.snails, 30); assert.equal(benthos.stats.leafSnails, 12);
 const floorAt = ocean.kelp.floorAt;
@@ -56,7 +57,8 @@ for (const m of benthos.meshes) {
     assert.ok(minGap > -0.013, `${m.name}: excessive penetration (${minGap})`);
   }
 }
-assert.ok(triangles < 300_000, `benthos draw budget: ${triangles}`);
+assert.ok(triangles < 360_000,   // (raised from 300k to 360k for the strawberry anemone clones, drawn only within 34 m)
+   `benthos draw budget: ${triangles}`);
 
 // Exercise the exact deformation buffer after long time, at a real terrain triangle seam.
 for (const time of [60, 1800, 7200]) {

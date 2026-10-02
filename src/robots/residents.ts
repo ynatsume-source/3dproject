@@ -95,7 +95,7 @@ function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
 }
 let MATS: Mats | null = null;
 let CM: CMats | null = null;
-function cmats(): CMats {
+export function cmats(): CMats {
   return CM ??= {
     fur: rmat(0x3a281b, 0.3, false, 3, 70), furPale: rmat(0xb9a487, 0.2, false, 3, 40), furDark: rmat(0x1f1610, 0.25, false, 3, 40),
     nose: rmat(0x0d0c0c, 0.9), eye: rmat(0x050506, 1.8),

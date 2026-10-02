@@ -14,7 +14,7 @@ assert.equal(oc.anemones.length, 0); assert.equal(oc.colonies.length, 0);
 assert.equal(oc.turtles.length, 0); assert.equal(oc.mantas.length, 0); assert.ok(!oc.residents);
 assert.ok(!oc.flyfish && !oc.bait && !oc.whales && !oc.octopi && !oc.critters);
 assert.ok(Object.values(loc.corals).every(w => w === 0));
-assert.deepEqual(oc.fish.map((f: any) => f.sp.id), ['blue-rockfish', 'olive-rockfish', 'black-surfperch', 'senorita']);
+assert.deepEqual(oc.fish.map((f: any) => f.sp.id), ['blue-rockfish', 'olive-rockfish', 'black-surfperch', 'senorita', 'kelp-rockfish', 'kelp-greenling', 'cabezon', 'lingcod']);
 assert.ok(oc.kelp.anchors.length > 180 && oc.kelp.anchors.length < 750);
 const coralInst = oc.group.children.filter((m: any) => m.geometry?.attributes.aCol2);
 assert.equal(coralInst.length, 0, 'zero-weight corals must not fall back to a tropical coral kind');

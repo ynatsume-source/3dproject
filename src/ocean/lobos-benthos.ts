@@ -6,7 +6,7 @@ import { mulberry32, TERR } from '../core/math';
 import { mat } from '../render/common';
 import type { Sea } from '../data/locations';
 
-export type LobosBenthosKind = 'urchin' | 'batStar' | 'snail' | 'anemone' | 'sponge';
+export type LobosBenthosKind = 'urchin' | 'batStar' | 'snail' | 'anemone' | 'sponge' | 'strawberry';
 type Floor = (x: number, z: number) => number;
 export type LobosLeafSupport = {
   pos: THREE.Vector3; kind: string; leaf?: THREE.Vector3;
@@ -131,6 +131,17 @@ function form(kind: Exclude<LobosBenthosKind, 'batStar'>) {
       }
       g.tube(points, 0.0036, 1);
     }
+  } else if (kind === 'strawberry') {
+    // Corynactis californica: a clone of small polyps packed side by side over the rock, each a short
+    // column with a ring of short tentacles ending in pale knobs (tinted in the material).
+    // (the tentacle ring and its knobs are drawn on each polyp's cap by the material, about its own centre)
+    g.ellipsoid(new THREE.Vector3(0, 0.001, 0), new THREE.Vector3(0.14, 0.004, 0.12), 12, 3);   // (the clone's shared footing)
+    for (let i = 0; i < 30; i++) {
+      const r = 0.125 * Math.sqrt((i + 0.5) / 30), a = i * 2.399963, h = 0.014 + 0.004 * Math.sin(i * 5.1);
+      const c = new THREE.Vector3(Math.cos(a) * r, h * 0.5 - 0.001, Math.sin(a) * r), s0 = g.position.length / 3;
+      g.ellipsoid(c, new THREE.Vector3(0.0165, h * 0.6, 0.0165), 6, 3);
+      for (let v = s0; v < g.position.length / 3; v++) { g.anchor[v * 3] = c.x; g.anchor[v * 3 + 1] = c.y; g.anchor[v * 3 + 2] = c.z; g.flex[v] = Math.max(0, g.position[v * 3 + 1] - c.y) * 20; }
+    }
   } else {
     // Encrusting lobes: centimetres high, with pores suggested in the material.
     g.ellipsoid(new THREE.Vector3(0, 0.010, 0), new THREE.Vector3(0.071, 0.012, 0.052), 16, 5);
@@ -145,9 +156,9 @@ function material(instanced: boolean, kind: number) {
   return mat(
     `attribute vec3 aLocal; attribute vec3 aAnchor; attribute float aFlex;
      attribute vec3 aColor; attribute float aPhase;
-     varying vec3 vWp; varying vec3 vLocal; varying vec3 vColor;
+     varying vec3 vWp; varying vec3 vLocal; varying vec3 vColor; varying vec3 vRel;
      void main(){
-       vec3 p=position;
+       vec3 p=position; vRel=position-aAnchor;
        #ifdef LOBOS_INSTANCED
        vec3 origin=(modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;
        // (past what the water lets one see of something this small: not drawn at all)
@@ -164,7 +175,7 @@ function material(instanced: boolean, kind: number) {
        vWp=wp.xyz; vLocal=aLocal; vColor=aColor;
        gl_Position=projectionMatrix*viewMatrix*wp;
      }`,
-    `varying vec3 vWp; varying vec3 vLocal; varying vec3 vColor;
+    `varying vec3 vWp; varying vec3 vLocal; varying vec3 vColor; varying vec3 vRel;
      void main(){
        vec3 n=normalize(cross(dFdx(vWp),dFdy(vWp)));
        if(dot(n,uCamPos-vWp)<0.0) n=-n;
@@ -182,6 +193,12 @@ function material(instanced: boolean, kind: number) {
        alb*=1.0-mouth*smoothstep(0.062,0.065,vLocal.y)*0.6;
        #elif LOBOS_KIND == 4
        alb*=1.0-smoothstep(0.72,0.85,grain)*0.45;
+       #elif LOBOS_KIND == 5
+       // the strawberry anemone: a ring of short tentacles round each polyp's cap, ending in white knobs
+       float rr=length(vRel.xz), ang=atan(vRel.z,vRel.x);
+       float cap=smoothstep(0.0,0.004,vRel.y);
+       float knob=smoothstep(0.6,0.9,0.5+0.5*cos(ang*11.0))*smoothstep(0.007,0.010,rr)*(1.0-smoothstep(0.013,0.015,rr));
+       alb=mix(alb*(1.0-cap*(1.0-smoothstep(0.0,0.005,rr))*0.55),vec3(0.9,0.84,0.84),knob*cap*0.6);
        #endif
        gl_FragColor=vec4(shade(alb,vWp,n,0.35),1.0);
      }`, { defines: { ...(instanced ? { LOBOS_INSTANCED: 1 } : {}), LOBOS_KIND: kind }, opts: { side: THREE.DoubleSide } });
@@ -209,19 +226,26 @@ export function buildLobosBenthos(loc: Sea, T: { top: Floor; slope: Floor }, gro
     snail: [[0.15, 0.22, 0.19], [0.29, 0.24, 0.19]],
     anemone: [[0.46, 0.43, 0.29], [0.68, 0.53, 0.35], [0.56, 0.28, 0.21]],
     sponge: [[0.67, 0.36, 0.17], [0.57, 0.48, 0.27], [0.47, 0.25, 0.25]],
+    strawberry: [[0.86, 0.20, 0.42], [0.74, 0.14, 0.34], [0.68, 0.20, 0.58], [0.90, 0.30, 0.46]],
   };
-  const budgets: [LobosBenthosKind, number][] = [['urchin', 320], ['batStar', 110], ['snail', 30], ['anemone', 58], ['sponge', 74]];
+  const budgets: [LobosBenthosKind, number][] = [['urchin', 320], ['batStar', 110], ['snail', 30], ['anemone', 58], ['sponge', 74], ['strawberry', 60]];
   for (const [kind, count] of budgets) {
     let added = 0;
     for (let attempt = 0; attempt < count * 70 && added < count && patches.length; attempt++) {
       const patch = patches[Math.floor(rnd() * patches.length)], a = between(0, TAU);
-      const radius = Math.sqrt(rnd()) * (kind === 'urchin' ? 2.2 : 4.7);
+      const radius = Math.sqrt(rnd()) * (kind === 'urchin' ? 2.2 : kind === 'strawberry' ? 3.2 : 4.7);
       const x = patch.x + Math.cos(a) * radius, z = patch.z + Math.sin(a) * radius;
-      if (!eligible(x, z, kind === 'urchin' ? 0.57 : 0.36)) continue;
+      if (!eligible(x, z, kind === 'urchin' ? 0.57 : kind === 'strawberry' ? 0.55 : 0.36)) continue;
       // A crawling star's small lifetime envelope stays on this rocky patch.
       if (kind === 'batStar' && ![[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]].every(([dx, dz]) => eligible(x + dx, z + dz, 0.25))) continue;
       const home = new THREE.Vector3(x, floorAt(x, z), z), palette = colors[kind];
-      if (residents.some(r => r.home.distanceToSquared(home) < 0.24 * 0.24)) continue;
+      // a clone is one flat batch: only where the rock under the whole of it follows its plane (no polyp in the air)
+      if (kind === 'strawberry') {
+        const n = sampleLobosBenthosPose({ kind, home, pos: home, phase: 0, scale: 1, heading: 0, color: new THREE.Color() }, 0, floorAt).normal;
+        if (![[0.14, 0], [-0.14, 0], [0, 0.14], [0, -0.14], [0.1, 0.1], [-0.1, -0.1], [0.1, -0.1], [-0.1, 0.1]].every(([dx, dz]) =>
+          Math.abs(floorAt(x + dx, z + dz) - (home.y - (n.x * dx + n.z * dz) / n.y)) < 0.008)) continue;
+      }
+      if (residents.some(r => r.home.distanceToSquared(home) < (kind === 'strawberry' || r.kind === 'strawberry' ? 0.3 : 0.24) ** 2)) continue;
       const color = new THREE.Color(...palette[Math.floor(rnd() * palette.length)] as [number, number, number]);
       residents.push({ kind, home, pos: home.clone(), color, phase: between(0, TAU), heading: between(0, TAU), scale: between(0.72, 1.22) }); added++;
     }
@@ -250,7 +274,7 @@ export function buildLobosBenthos(loc: Sea, T: { top: Floor; slope: Floor }, gro
     resident.pos.copy(support.pos); q.setFromUnitVectors(UP, support.normal).multiply(yaw.setFromAxisAngle(UP, heading));
     matrix.compose(support.pos, q, scale.setScalar(resident.scale)); return matrix;
   };
-  for (const [kind, number] of [['urchin', 0], ['snail', 2], ['anemone', 3], ['sponge', 4]] as const) {
+  for (const [kind, number] of [['urchin', 0], ['snail', 2], ['anemone', 3], ['sponge', 4], ['strawberry', 5]] as const) {
     const list = residents.filter(r => r.kind === kind), geo = form(kind);
     const col = new Float32Array(list.length * 3), phase = new Float32Array(list.length);
     const mesh = new THREE.InstancedMesh(geo, material(true, number), list.length);
@@ -314,7 +338,7 @@ export function buildLobosBenthos(loc: Sea, T: { top: Floor; slope: Floor }, gro
   const stats = {
     urchins: residents.filter(r => r.kind === 'urchin').length, batStars: stars.length,
     snails: snails.length, leafSnails: snails.filter(r => r.leaf).length,
-    anemones: residents.filter(r => r.kind === 'anemone').length, sponges: residents.filter(r => r.kind === 'sponge').length,
+    anemones: residents.filter(r => r.kind === 'anemone').length, strawberry: residents.filter(r => r.kind === 'strawberry').length, sponges: residents.filter(r => r.kind === 'sponge').length,
     patches: patches.length, meshes: meshes.length,
   };
   return { update, stats, residents, meshes, patches, anchors: residents.map(r => ({ kind: r.kind, pos: r.pos })), starRanges };

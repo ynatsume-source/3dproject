@@ -538,6 +538,8 @@ export const SHAPES = {
   batfish: { h: 0.92, w: 0.1, tail: 'trunc', dorsal: 0.32, anal: 0.28 },
   tuna: { h: 0.28, w: 0.25, tail: 'fork', dorsal: 0.1, anal: 0.07, pect: 0.14 },
   mola: { h: 0.78, w: 0.15, tail: 'round', dorsal: 0.5, anal: 0.5, mola: true },
+  lingcod: { h: 0.24, w: 0.2, tail: 'trunc', dorsal: 0.09, anal: 0.07, head: 0.22, spines: 24, pect: 0.17, roundPect: true },   // long and lean, a big head and jaw
+  sculpin: { h: 0.36, w: 0.32, tail: 'round', dorsal: 0.1, anal: 0.07, head: 0.4, spines: 11, pect: 0.22, roundPect: true, flathead: true },   // cabezon: a broad flat head, fan-like pectorals
   forceps: { h: 0.7, w: 0.12, tail: 'trunc', dorsal: 0.1, anal: 0.08, bill: 0.14, snout: true },   // longnose butterflyfish: a disc with a long, thin snout
 };
 // Requiem sharks, lofted from real proportions (lengths as fractions of total length from the snout):
@@ -995,6 +997,14 @@ export function fishMaterial(sp) {
          vec2 sg = vec2(z * 34.0, y * 34.0 + z * 7.0), sf = fract(sg) - 0.5;
          alb = mix(alb, uC3, (1.0 - smoothstep(0.1, 0.2, length(sf))) * step(0.35, hash2(floor(sg))));
          if (vFin > 0.5) alb = mix(uC1, uC3, (1.0 - smoothstep(0.1, 0.2, length(sf))) * 0.6);
+       #elif PAT == 24
+         // cold-water camouflage (lingcod, cabezon, kelp rockfish): darker above, paler below, all of it broken
+         // into irregular blotches and freckles of a second colour, so it melts into rock, algae and kelp
+         alb = mix(uC2, uC1, smoothstep(-0.14, 0.06, y));
+         float bl = vn2(vec2(z * 18.0, y * 22.0 + z * 5.0) + vec2(uBands * 3.1)) * 0.65 + vn2(vec2(z * 46.0, y * 52.0)) * 0.35;
+         alb = mix(alb, uC3, smoothstep(0.5, 0.66, bl) * 0.85);
+         alb *= 0.88 + 0.24 * step(0.82, hash2(floor(vec2(z * 70.0, y * 70.0))));   // (pale freckles)
+         if (vFin > 0.5) alb = mix(uC1, uC3, smoothstep(0.45, 0.7, bl) * 0.7);
        #elif PAT == 16
          // emperor angelfish: gently curving yellow lines on blue, a dark mask through the eye, yellow tail
          alb = uC1;

@@ -115,14 +115,16 @@ function flipper(hind: boolean, side: number) {
   return finish(a);
 }
 
+const smoothStep01 = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function sealMaterial() {
   return mat(`attribute float aPart; uniform float uSealTime; uniform float uSealStroke; uniform float uSealBend;
     varying vec3 vWp; varying vec3 vN; varying vec3 vLocal; varying float vPart;
     void main(){
       vec3 p = position; vec3 n = normal; vLocal = p; vPart = aPart;
       float g = max(0.0, -p.z - 0.12); float phase = uSealTime + p.z * 2.6;
-      p.x += uSealBend * uSealStroke * 0.12 * g * g * sin(phase);
-      float dx = uSealBend * uSealStroke * 0.12 * (-2.0 * g * sin(phase) + 2.6 * g * g * cos(phase));
+      // the hind third sweeps side to side with the feet, the wave running back down the body
+      p.x += uSealBend * uSealStroke * 0.36 * g * g * sin(phase);
+      float dx = uSealBend * uSealStroke * 0.36 * (-2.0 * g * sin(phase) + 2.6 * g * g * cos(phase));
       n.z -= dx * n.x;
       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * n);
       gl_Position = projectionMatrix * viewMatrix * w;
@@ -165,7 +167,7 @@ function sealMaterial() {
 export interface HarborSealModel {
   group: THREE.Group;
   length: number;
-  pose(time: number, stroke: number, breathing: number): void;
+  pose(time: number, stroke: number, breathing: number): number;   // (returns how far ahead of its even pace the strokes have carried it, m)
 }
 
 export function makeHarborSeal(): HarborSealModel {
@@ -182,21 +184,33 @@ export function makeHarborSeal(): HarborSealModel {
     const a = empty(); add(a, ellipsoid(0, 0, 0, 0.007, 0.009, 0.004), 1);
     const nose = new THREE.Mesh(finish(a), fins); nose.position.set(side * 0.016, 0.098, 0.91); nose.rotation.z = side * 0.30; group.add(nose); noses.push(nose);
   }
+  // A harbor seal swims with its hindfeet: sculling side to side, the two feet in turn spread wide to push
+  // and folded to come back, the hind third of the body swinging with them — a few strokes, about one a
+  // second, then a glide with the feet held together and the foreflippers out a little to steer.
+  let ph = 0, last = -1;
   return { group, length: 1.8,
     pose(time, stroke, breathing) {
-      const phase = time * 2.35;
-      skin.uniforms.uSealTime.value = phase; skin.uniforms.uSealStroke.value = stroke;
-      const sway = 0.12 * 0.69 * 0.69 * Math.sin(phase - 0.81 * 2.6) * stroke;
+      const dt = last < 0 ? 0 : Math.min(0.1, Math.max(0, time - last)); last = time;
+      const cyc = (time / 5.5) % 1, on = smoothStep01(0, 0.08, cyc) * (1 - smoothStep01(0.55, 0.7, cyc));   // (3-4 s of strokes, 2 s of glide)
+      const amp = stroke * on;
+      ph += dt * Math.PI * 2 * 1.05 * (0.25 + 0.75 * on);
+      skin.uniforms.uSealTime.value = ph; skin.uniforms.uSealStroke.value = amp;
+      const sway = 0.36 * 0.69 * 0.69 * Math.sin(ph - 0.81 * 2.6) * amp;
       for (let i = 0; i < 2; i++) {
-        const side = i === 0 ? -1 : 1;
+        const side = i === 0 ? -1 : 1, beat = Math.sin(ph - 1.7);
         hind[i].position.x = side * 0.045 + sway;
-        hind[i].rotation.y = Math.sin(phase - 1.7) * 0.42 * stroke + side * 0.035;
-        hind[i].rotation.z = side * (0.12 + 0.045 * Math.cos(phase));
+        hind[i].rotation.y = beat * 0.78 * amp + side * 0.035;
+        // (the one pushing spreads its webbed toes; gliding, both are folded together behind)
+        hind[i].scale.x = 0.62 + 0.38 * Math.max(0, side * beat) * amp + 0.1 * (1 - amp);
+        hind[i].rotation.z = side * (0.08 + 0.06 * amp * Math.cos(ph));
         // Forefeet steer and tuck; they do not beat like a sea lion's propulsive foreflippers.
         fore[i].rotation.y = side * (0.10 + 0.035 * Math.sin(time * 0.7 + i));
-        fore[i].rotation.z = side * (-0.12 + breathing * 0.08);
+        fore[i].rotation.z = side * (-0.16 + 0.26 * (1 - on) + breathing * 0.08);
         noses[i].scale.x = 0.24 + breathing * (0.32 + 0.44 * Math.max(0, Math.sin(time * 1.3)));
       }
+      // the front swings a little the other way to each stroke, and the strokes carry it on in surges
+      body.rotation.y = -0.035 * Math.sin(ph - 0.4) * amp;
+      return 0.22 * Math.sin(cyc * Math.PI * 2 - 0.6) * stroke;
     },
   };
 }

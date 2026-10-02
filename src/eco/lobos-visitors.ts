@@ -151,8 +151,10 @@ export class LobosVisitors {
     this.model.group.position.copy(s.position);
     this.model.group.rotation.set(this.tilt, this.heading, Math.sin(s.seconds * 0.38) * 0.025 * (1 - surface), 'YXZ');
     // Stroke-and-glide, with almost still hindfeet while taking a breath.
-    const stroke = (0.55 + 0.45 * ease(Math.sin(s.seconds * 0.31) * 0.7 + 0.3)) * (1 - surface * 0.88);
-    this.model.pose(s.seconds, stroke, surface); this.model.group.visible = true;
+    const stroke = (0.75 + 0.25 * ease(Math.sin(s.seconds * 0.31) * 0.7 + 0.3)) * (1 - surface * 0.88);
+    const surge = this.model.pose(s.seconds, stroke, surface); this.model.group.visible = true;
+    // (each run of strokes carries it a little ahead of its even pace, each glide lets it fall back)
+    this.model.group.position.x += Math.sin(this.heading) * surge; this.model.group.position.z += Math.cos(this.heading) * surge;
   }
 
   update(dt: number, env: Env, camera: THREE.Vector3) {
