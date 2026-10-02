@@ -1,4 +1,9 @@
 {
+  "testedAt": "2026-10-02T02:17:50.551Z",
+  "url": "http://127.0.0.1:4176/?debug&tier=low&at=2026-06-20T10:00:00Z#carnatic",
+  "scripts": [
+    "http://127.0.0.1:4176/assets/main-PvQQ0_Nv.js"
+  ],
   "tours": [
     {
       "reverse": false,

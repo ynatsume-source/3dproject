@@ -1,0 +1,42 @@
+{
+  "capturedAt": "2026-10-02T02:16:56.681Z",
+  "url": "http://127.0.0.1:4176/?debug&tier=low&at=2026-06-20T10:00:00Z#carnatic",
+  "scripts": [
+    "http://127.0.0.1:4176/assets/main-PvQQ0_Nv.js"
+  ],
+  "poseStates": [
+    {
+      "name": "lamp",
+      "requestedPosition": [
+        24,
+        -7.9,
+        -12
+      ],
+      "requestedLook": [
+        26,
+        -8.6,
+        -5.8
+      ],
+      "camera": [
+        24,
+        -7.892226083107104,
+        -12
+      ],
+      "lamp": 0.9976717008842938
+    }
+  ],
+  "state": {
+    "sea": "carnatic",
+    "camera": [
+      24,
+      -7.892226083107104,
+      -12
+    ],
+    "fish": 17,
+    "vertices": 73396,
+    "glError": 0,
+    "lost": false,
+    "err": false
+  },
+  "errors": []
+}

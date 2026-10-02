@@ -17,7 +17,9 @@ const fs=require('node:fs');const path=require('node:path');const output=path.jo
  for(const pose of poses){await page.evaluate(p=>{const s=seaglass;s.drone.mode='manual';s.drone.pos.set(...p.p);s.drone.vel.set(0,0,0);s.drone.lastInput=performance.now();const dx=p.l[0]-p.p[0],dy=p.l[1]-p.p[1],dz=p.l[2]-p.p[2];s.drone.yaw=Math.atan2(-dx,-dz);s.drone.pitch=Math.atan2(dy,Math.hypot(dx,dz));s.drone.roll=0;},pose);
  const t=await page.evaluate(()=>seaglass.U.uTime.value);await page.waitForFunction(t=>seaglass.U.uTime.value>t+.15,t,{timeout:60000});await page.screenshot({path:`${output}/${label}-${pose.name}.png`,timeout:60000});poseStates.push(await page.evaluate(p=>({name:p.name,requestedPosition:p.p,requestedLook:p.l,camera:seaglass.camera.position.toArray(),lamp:seaglass.U.uLamp.value}),pose));}
  const state=await page.evaluate(()=>{const s=seaglass,g=document.getElementById('scene').getContext('webgl2');return {sea:s.cur.loc.id,camera:s.camera.position.toArray(),fish:s.cur.fish.length,kelp:s.cur.kelp?.count,vertices:s.cur.wreck?.geo.attributes.position.count,glError:g.getError(),lost:g.isContextLost(),err:!document.getElementById('err').hidden};});
- console.log(JSON.stringify({label,poseStates,state,errors},null,2));fs.writeFileSync(`${output}/${label}.json`,JSON.stringify({poseStates,state,errors},null,2));
+ const capturedAt=new Date().toISOString(),url=page.url(),scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.src));
+ const result={capturedAt,url,scripts,poseStates,state,errors};
+ console.log(JSON.stringify({label,...result},null,2));fs.writeFileSync(`${output}/${label}.json`,JSON.stringify(result,null,2));
  if(errors.length||state.glError||state.lost||state.err)process.exitCode=1;
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

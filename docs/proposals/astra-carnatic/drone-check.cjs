@@ -25,7 +25,8 @@ const fs=require('node:fs');
    s.drone.mode='manual';s.drone.lastInput=performance.now();return out;
   });
   const gl=await page.evaluate(()=>{const g=document.getElementById('scene').getContext('webgl2');return {error:g.getError(),lost:g.isContextLost()};});
-  const r={tours,gl,errors};console.log(JSON.stringify(r,null,2));fs.writeFileSync(require('node:path').join(__dirname,'drone-check.json'),JSON.stringify(r,null,2));
+  const testedAt=new Date().toISOString(),url=page.url(),scripts=await page.locator('script[src]').evaluateAll(nodes=>nodes.map(n=>n.src));
+  const r={testedAt,url,scripts,tours,gl,errors};console.log(JSON.stringify(r,null,2));fs.writeFileSync(require('node:path').join(__dirname,'drone-check.json'),JSON.stringify(r,null,2));
   if(errors.length||gl.error||gl.lost||tours.some(t=>!t.observed||!t.complete||t.minGround<.7||t.endError>1))process.exitCode=1;
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -4,7 +4,7 @@
 
 ## 最初に見るもの
 
-1. [README](README.md) の原型/試作の3視点。内部の奥行き、中央の切れ目、細い船首・船尾、海の静けさを見てほしい。
+1. [README](README.md) の原型/試作の5視点と最終形状のライト近景。内部の奥行き、中央の切れ目、細い船首・船尾、海の静けさを見てほしい。
 2. [変更の中心](../../../src/ocean/wreck.ts) を開く。実装は `src/ocean/wreck.ts` の1ファイルのみ。
 3. [costs.json](costs.json) と [drone-check.json](drone-check.json)。画面の印象と描画量・衝突の安全性を分けて判断する。
 
@@ -27,17 +27,19 @@ npm run typecheck
 npm run build
 npx tsx --import ./scripts/node-assets.mjs scripts/astra-wreck-check.ts
 npm run sim -- carnatic
-npm run preview -- --host 127.0.0.1 --port 4176
+npm run preview -- --host 127.0.0.1 --port 4176 --strictPort
 ```
 
 別プロセスから、cloudの既存 `NODE_PATH` で Playwright が読める状態で実行する。
 
 ```sh
+export NODE_PATH="${NODE_PATH:-/opt/codex/runtimes/codex-primary-runtime/dependencies/node/node_modules}"
 node docs/proposals/astra-carnatic/capture.cjs http://127.0.0.1:4176 carnatic review
+node docs/proposals/astra-carnatic/capture.cjs http://127.0.0.1:4176 carnatic review-detail detail
 node docs/proposals/astra-carnatic/drone-check.cjs http://127.0.0.1:4176
 ```
 
-`capture.cjs` は既存のアプリ画面へドローンを移動するだけ。画面の上下動・魚・粒子は止めていない。スクリーンショットを開いて自分でも見ること。将来の開発環境ではChromiumのパスを修正する必要がある。開発用は `npm run dev -- --host 127.0.0.1 --port 5176`。
+`capture.cjs` は既存のアプリ画面へドローンを移動するだけ。第4引数 `detail` でライトを点灯し、位置 `[24,-7.9,-12]` / 注視点 `[26,-8.6,-5.8]` の近景を撮る。上記では `images/review-*.png` と `images/review-detail-lamp.png`、対応するJSONを作る。画面の上下動・魚・粒子は止めていない。スクリーンショットを開いて自分でも見ること。将来の開発環境ではChromiumとPlaywrightのパスを修正する必要がある。開発用は `npm run dev -- --host 127.0.0.1 --port 5176 --strictPort`。
 
 ## 実装の地図
 
@@ -52,12 +54,12 @@ node docs/proposals/astra-carnatic/drone-check.cjs http://127.0.0.1:4176
 - **実物との一致**: この試作は資料未照合の解釈。実際の残存肋骨・外板・マスト・機関部と照合し、正確でないディテールを減らしてほしい。
 - **骨格の規則性**: 読みやすさのため周期が残る。近景でまだ新品の骨組みに見えるなら、資料に基づいて梁の抜け・曲がり・被覆密度を調整する。
 - **既存サンゴ**: 大きいウミウチワや樹状サンゴは既存モデルを再利用。海藻/サンゴ全体の描画品質は本案の変更外。
-- **コスト**: 船体は36,698三角形。近景の厚みと付着の小塊に多くを使う。実GPUで重ければpart4/5の密度や遠景LODをまず検討する。三角形だけでFPSは決められない。
+- **コスト**: 船体は36,698三角形・3,376,216 Bで、原型の8,580三角形・251,388 Bから増える。付着サンゴは87→40個に減り、船体＋全付着サンゴを各1回描く算術合計は239,484→139,994三角形。実GPU速度を測った値ではない。重ければpart4/5の密度や遠景LODをまず検討する。
 - **衝突**: 既存高さマップを維持し、外側のツアーは検査済み。内部潜航を採用するなら別目的として3D衝突・経路を設計する必要がある。
 - **乱数**: モデル造形に専用seedを使うようにしたため、共有乱数を使っていた原型とは周辺の初期配置がずれる。保存形式や住民ロジックの変更はない。
 
 ## 検証済み / 未検証
 
-型・build・Carnatic sim、有限ジオメトリ/面/法線、実マップの面内被覆、両方向のツアーとDirector、productionの5視点、実ドローン制御の両方向の早回しを確認済み。細かな数字はREADMEとJSONにある。
+最終形状の型・build、有限ジオメトリ/面/法線、実マップの183,999面内サンプル被覆（障害物点3,427）、両方向のツアーとDirectorを確認済み。環境復旧後に最終sourceのSHA-256一致を確認し、productionの5視点＋ライト近景を再撮影・目視した。実ドローン制御も同じproduction bundleで両方向の早回しを再確認。Carnatic simの昼・夕・夜・朝は最後の海綿形状の微調整前に成功し、復旧後は再実行していない。細かな数字・実行範囲・source SHAはREADMEとJSONにある。
 
 未検証は現地写真との照合、Windows ANGLE/D3D11、Safari/スマートフォン、実GPUの性能・長時間描画、全保存データの回帰。新しい専用shaderのテクスチャ取得は0だが、共通lightingは従来のものを使う。SwiftShader画像を実機性能の証拠にはしない。

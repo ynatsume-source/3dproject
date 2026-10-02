@@ -12,7 +12,7 @@
 
 ## 比較画像
 
-同じ指定位置・注視点、1200 × 800、low tier、UTC `2026-06-20T10:00:00Z`。天候は cloud 0.1 / wind 2。原型は dev、新型は production build + preview の実画面。ドローンの微小な上下動・衝突補正・生態系の動きは動作しており、画素単位で一致する比較ではない。
+同じ指定位置・注視点、1200 × 800、low tier、開始時刻はUTC `2026-06-20T10:00:00Z`（時計は×1で進む）。天候は cloud 0.1 / wind 2。原型は dev、新型は production build + preview の実画面。ドローンの微小な上下動・衝突補正・生態系の動きは動作しており、画素単位で一致する比較ではない。
 
 | 原型 | この試作 |
 | --- | --- |
@@ -22,6 +22,8 @@
 
 追加: [側面・原型](images/before-broadside.png) / [側面・試作](images/after-broadside.png)、[船首・原型](images/before-bow.png) / [船首・試作](images/after-bow.png)。
 
+最終形状の[ライト近景](images/after-detail-lamp.png)では、低い壺形の海綿の開口、梁の厚み、被覆を確認できる。ライトを点灯した別条件なので、原型との明るさ比較には使わない。撮影日時・読み込んだproduction bundle・実カメラ位置は[5視点の記録](images/after.json)と[近景の記録](images/after-detail.json)に保存した。
+
 | 視点 | 指定位置 | 注視点 |
 | --- | --- | --- |
 | overview | `[47,-5,-35]` | `[5,-14,-3]` |
@@ -29,6 +31,7 @@
 | stern | `[-50,-12,-18]` | `[-28,-15,-2]` |
 | broadside | `[4,-10,-45]` | `[6,-15,1]` |
 | bow | `[59,-13,-14]` | `[41,-16,-1]` |
+| lamp（ライト点灯） | `[24,-7.9,-12]` | `[26,-8.6,-5.8]` |
 
 ## 実装したこと
 
@@ -59,23 +62,39 @@
 
 ## 検証
 
-Node 22.23.3、既存 lockfile の `npm ci`、追加 dependency なし。
+Node 22.23.3、既存 lockfile の `npm ci`、追加 dependency なし。最終 `src/ocean/wreck.ts` のSHA-256は `d95717e65eda8eca01fe43e15f736a05ec5792ccff9871c558e09906a3256f70`。
+
+型検査・build・構造検査はこの最終形状で復旧前に成功している。環境復旧後にソースの一致と保存済みbuildを確認し、同じproduction bundleで5視点とライト近景を再撮影、実ドローン制御の両方向を再検査した。造形・アプリのソースは復旧後に変更していない。
 
 | 確認 | 結果 |
 | --- | --- |
 | `npm run typecheck` | 成功 |
 | `npm run build` | 成功。Vite の既存 `__dirname` / 次期 config loader 警告あり。 |
 | `npx tsx --import ./scripts/node-assets.mjs scripts/astra-wreck-check.ts` | 成功。73,396頂点・36,698三角形、有限属性、非縮退面、単位法線と表裏、潜水した境界を検査。 |
-| 実 `buildOcean` と衝突 | 3,426障害物点、183,999面内サンプルが実マップに覆われる。40付着点、100 `spot(out)` サンプルが有効。 |
-| ツアー | 両方向281サンプル、海底との最短4.20 m、障害物との最短3.00 / 3.52 m。実メッシュ距離とDirector完走も確認。 |
-| production browser | Chromium / SwiftShader / low、5視点。page error 0、WebGL error 0、context lostなし。画像を開いて目視。 |
-| 実ドローン制御 | browser の `seaglass.stepDrone(1/60)` を両方向4,262ステップずつ実行。両方完走、障害物の最短余裕2.997 / 3.483 m、終点差0.034 / 0.033 m。[実測JSON](drone-check.json)。これは制御の早回し検査で、70秒間の描画映像の検査ではない。 |
-| `npm run sim -- carnatic` | 成功。昼・夕・夜・朝の既存シミュレーションを実行。 |
+| 実 `buildOcean` と衝突 | 3,427障害物点、183,999面内サンプルが実マップに覆われる。40付着点、100 `spot(out)` サンプルが有効。 |
+| ツアー | 両方向281サンプル、海底高さに対する鉛直余裕の最小4.20 m、障害物高さマップに対する最小3.00 / 3.52 m。各経路サンプルで実メッシュとの距離0.7 m以上、Director完走も確認。 |
+| production browser | Chromium / SwiftShader / low、5視点＋ライト近景。page error 0、採取時のWebGL error 0、context lostなし。画像を開いて目視。外部リソース取得の失敗はこのJS/WebGL判定には含めない。 |
+| 実ドローン制御 | browser の `seaglass.stepDrone(1/60)` を両方向4,262ステップずつ実行。両方完走、障害物高さマップに対する鉛直余裕の最小2.997 / 3.483 m、終点差0.033 / 0.033 m。[実測JSON](drone-check.json)。これは制御の早回し検査で、70秒間の描画映像の検査ではない。 |
+| `npm run sim -- carnatic` | 昼・夕・夜・朝の既存シミュレーションは成功。最後の海綿形状の微調整前の実行結果で、復旧後は再実行していない。 |
 
 Windows ANGLE / D3D11、Safari、スマートフォン、実GPUでのフレーム時間・長時間運転は未検証。専用シェーダーにテクスチャ取得・早期return・discardを追加していないが、SwiftShaderでの成功をD3D11の保証とはしない。ソフトウェア描画の所要時間は実機FPSとして報告しない。障害物は既存の高さマップなので、船体の空洞を安全に自由潜航できる3D衝突にはなっていない。
 
 ## コストと引き継ぎ
 
 正確な計数は [costs.json](costs.json)、判断点と採用手順は [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md)。船体+小型付着物は1メッシュ/1素材。40個の既存サンゴは別の既存instancingに合流するため、付着物まで「1 draw」とは言わない。新規テクスチャ・外部モデル・依存はない。
+
+| 計数対象 | 原型 | この試作 |
+| --- | ---: | ---: |
+| 船体メッシュの頂点 | 5,553 | 73,396 |
+| 船体メッシュの三角形（小型付着塊・海綿を含む） | 8,580 | 36,698 |
+| 船体の頂点属性＋indexのバイト数 | 251,388 B | 3,376,216 B |
+| index形式 | Uint16 | Uint32 |
+| 既存サンゴの付着点 | 87（fan 15 / soft 72） | 40（fan 8 / soft 32） |
+| 上記サンゴを全個体1回ずつ描く三角形数 | 230,904 | 103,296 |
+| 船体＋上記サンゴの三角形数の算術合計 | 239,484 | 139,994 |
+
+船体単体は約4.28倍の三角形と約13.43倍の属性/indexバイト数を使う。一方、既存サンゴの付着数を減らしたため、船体と全付着サンゴを各1回描く算術合計は約41.5%減る。この合計は周囲の海、可視判定、追加描画pass、shader処理を含まず、実GPU速度の比較ではない。バイト数もJSオブジェクト・生成時の一時配列・CPU/GPU双方のコピー・driverの割当を含まない。
+
+`costs.json` は制作時の計測結果と計測手順の記録。細かな属性バイト数と原型/試作の付着サンゴ照合を再生成する一時スクリプトは同梱していない。`astra-wreck-check.ts` で再現できるのはジオメトリ・衝突・付着点・ツアーの検査まで。
 
 再現用の [capture.cjs](capture.cjs) と [drone-check.cjs](drone-check.cjs) は cloud に既にある Playwright / Chromium を利用する補助ツール。アプリの依存ではない。
