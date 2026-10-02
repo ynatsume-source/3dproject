@@ -134,6 +134,9 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // look ahead and rise over rocks and coral instead of ploughing into them
     if (t.state !== 'rest' && t.state !== 'graze') {
       for (const a of [1.8, 3.5, 5.5]) ty = Math.max(ty, T.top(t.pos.x + Math.cos(t.head) * a * t.size, t.pos.z + Math.sin(t.head) * a * t.size) + 0.6 * t.size);
+    } else if (t.state === 'graze') {
+      // (browsing slowly along the bottom: up over the next coral colony or thicket before it reaches it)
+      for (const a of [0.7, 1.4]) ty = Math.max(ty, T.top(t.pos.x + Math.cos(t.head) * a * t.size, t.pos.z + Math.sin(t.head) * a * t.size) + 0.45);
     }
     t.ph = (t.ph ?? t.t) + dt * (1.0 + 2.2 * alarm);
     const beat = Math.max(0, Math.sin(t.ph));

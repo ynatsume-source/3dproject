@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { mat } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
 import { fbm, smooth, mulberry32 } from '../core/math';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 /* ================= geometry helpers ================= */
 export const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _m4 = new THREE.Matrix4(), _p3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), UPV = new THREE.Vector3(0, 1, 0);
@@ -133,6 +134,38 @@ export function acroporaCorymbose(seed, hi) {
       new THREE.Matrix4().compose(base.clone().addScaledVector(dir, len), new THREE.Quaternion().setFromUnitVectors(UPV, dir), new THREE.Vector3(1, 1.4, 1)), () => 1);
   }
   return accGeo(acc);
+}
+// A patch of a staghorn thicket: a broad tangle of upright, forking leaders, wider than it is tall, made to
+// overlap its neighbours so that many together carpet the reef (as on Yabiji's shallow flats).
+export function acroporaThicket(seed, hi) {
+  const rnd = mulberry32(seed), acc = Acc(), maxD = hi ? 4 : 2, sides = hi ? 6 : 3;
+  function grow(base, dir, len, rad, depth) {
+    pushGeo(acc, new THREE.CylinderGeometry(rad * 0.84, rad, len, sides, 1, true), orientTo(dir, base, len), (v) => (depth + (v.y / len + 0.5)) / (maxD + 1));
+    const end = base.clone().addScaledVector(dir, len);
+    if (depth >= maxD) {
+      if (hi) pushGeo(acc, new THREE.SphereGeometry(rad * 0.84, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.Matrix4().compose(end, new THREE.Quaternion().setFromUnitVectors(UPV, dir), new THREE.Vector3(1, 1.5, 1)), () => 1);
+      else pushGeo(acc, new THREE.ConeGeometry(rad * 0.84, rad * 2.4, sides, 1, true), orientTo(dir, end, rad * 2.4), () => 1);
+      return;
+    }
+    // (the light version takes fewer, longer steps, so its outline matches the detailed one's)
+    const f = hi ? 1 : 1.9;
+    const cont = dir.clone().add(new THREE.Vector3((rnd() - 0.5) * 0.35, 0.12, (rnd() - 0.5) * 0.35)).normalize();
+    grow(end, cont, len * 0.92, rad * 0.86 ** f, depth + 1);
+    if (rnd() < (hi ? 0.7 : 0.85)) {
+      const axis = new THREE.Vector3(rnd() - 0.5, 0, rnd() - 0.5).normalize();
+      const sd = dir.clone().applyAxisAngle(axis, 0.5 + rnd() * 0.45); sd.y += 0.2; sd.normalize();
+      grow(end, sd, len * 0.8, rad * 0.78 ** f, depth + 1);
+    }
+  }
+  // (the light version, seen from further off, with fewer, stouter leaders: hundreds of these stand in view)
+  const leaders = hi ? 19 : 13;
+  for (let i = 0; i < leaders; i++) {
+    const r = Math.sqrt((i + rnd()) / leaders) * 0.62, a = i * 2.39996 + rnd() * 0.5;
+    const out = 0.25 + 0.5 * (r / 0.62) + rnd() * 0.2;
+    const dir = new THREE.Vector3(Math.cos(a) * out, 1, Math.sin(a) * out).normalize();
+    grow(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r), dir, hi ? 0.12 : 0.2, (0.032 + rnd() * 0.01) * (hi ? 1 : 1.3), 0);
+  }
+  return mergeVertices(accGeo(acc));   // (shared corners drawn once: many of these stand together)
 }
 // Table Acropora, close up: a thin scalloped plate with an upturned growing rim.
 export function tableCoralHi() {
@@ -334,19 +367,21 @@ export function eelGeo() {
   return accGeo(acc);
 }
 export const CORAL_GEO = {
-  branch: [branchCoralGeo(3, 'stag'), acroporaCorymbose(8, false)],
+  branch: [branchCoralGeo(3, 'stag'), acroporaCorymbose(8, false), acroporaThicket(17, false)],
   table: [tableCoralGeo()], brain: [brainCoralGeo(), poritesGeo(22, 9)], fan: [fanSheetGeo(5), fanSheetGeo(9)],
   mushroom: [sarcophytonGeo(), sinulariaGeo(21), dendroGeo(33)], anemone: [anemoneGeo(4)], clam: [clamGeo()], eel: [eelGeo()],
 };
 // Detailed versions, swapped in near the camera. Same footprint as the light version at each index.
 export const CORAL_GEO_HI: Record<string, THREE.BufferGeometry[]> = {
-  branch: [acroporaStag(3), acroporaCorymbose(8, true)],
+  branch: [acroporaStag(3), acroporaCorymbose(8, true), acroporaThicket(17, true)],
   table: [tableCoralHi()],
   brain: [brainCoralGeoDetail(56, 22), poritesGeo(56, 22)],
 };
 export const KIND_ID = { branch: 0, table: 1, brain: 2, fan: 3, mushroom: 4, anemone: 5, clam: 6, eel: 7 };
 export const PALETTE = {
   branch: [[[0.62, 0.50, 0.36], [0.88, 0.82, 0.72]], [[0.44, 0.47, 0.40], [0.45, 0.62, 0.88]], [[0.55, 0.38, 0.55], [0.88, 0.66, 0.86]], [[0.40, 0.50, 0.30], [0.72, 0.88, 0.55]], [[0.74, 0.70, 0.58], [0.96, 0.86, 0.76]]],
+  // staghorn thickets: tan, honey and olive-brown (the zooxanthellae), the growing tips paler
+  thicket: [[[0.86, 0.56, 0.22], [0.94, 0.80, 0.50]], [[0.80, 0.54, 0.18], [0.92, 0.76, 0.42]], [[0.72, 0.58, 0.22], [0.88, 0.84, 0.52]], [[0.88, 0.62, 0.30], [0.96, 0.86, 0.60]], [[0.76, 0.50, 0.26], [0.90, 0.76, 0.54]]],
   table: [[[0.40, 0.33, 0.22], [0.58, 0.52, 0.38]], [[0.32, 0.36, 0.26], [0.50, 0.56, 0.44]], [[0.42, 0.33, 0.28], [0.62, 0.48, 0.42]], [[0.34, 0.38, 0.40], [0.52, 0.58, 0.66]]],
   porites: [[[0.62, 0.55, 0.36], [0.5, 0.45, 0.3]], [[0.55, 0.50, 0.58], [0.45, 0.4, 0.48]], [[0.50, 0.56, 0.42], [0.42, 0.46, 0.34]], [[0.66, 0.58, 0.46], [0.54, 0.46, 0.36]]],
   brain: [[[0.66, 0.55, 0.30], [0.40, 0.34, 0.22]], [[0.48, 0.58, 0.36], [0.30, 0.38, 0.25]], [[0.60, 0.46, 0.50], [0.40, 0.30, 0.36]], [[0.56, 0.54, 0.70], [0.36, 0.34, 0.48]]],

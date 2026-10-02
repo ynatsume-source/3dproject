@@ -56,6 +56,7 @@ export interface Sea {
   whales?: WhaleSeason;                    // humpbacks visit in these months
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
+  thicket?: number;   // how much of the shallow reef is staghorn thicket (0..1)
   anemones: number; clamSize: [number, number]; eels: number;
   species: Species[];
   animals: { turtle?: { style: string; count: number }; manta?: number; octopus?: number };
@@ -88,7 +89,7 @@ export const LOCATIONS: Sea[] = [
       TERR.reef = Math.max(zone * smooth(0.35, 0.8, sg), smooth(0.8, 0.95, s) * patch, b[1] * 0.9 * (1 - s));
       return Math.min(h, -2.8);
     },
-    corals: { branch: 0.30, table: 0.14, brain: 0.22, fan: 0.07, mushroom: 0.14, clam: 0.03 },
+    corals: { branch: 0.30, table: 0.14, brain: 0.22, fan: 0.07, mushroom: 0.14, clam: 0.03 }, thicket: 0.7,
     anemones: 34, clamSize: [0.6, 1.1], eels: 0,
     birds: [
       { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
@@ -168,7 +169,7 @@ export const LOCATIONS: Sea[] = [
     grass(x, z) { return (1 - smooth(0.0, 0.4, TERR.reef)) * smooth(0.5, 0.62, fbm(x * 0.03 + 91, z * 0.03 - 40, 4)) * 0.7; },
     // Miyako and Irabu are known for their caves (魔王の宮殿, アントニオ・ガウディ): light pours through holes in the roof
     cave: { x: 45, z: 25, rot: 0.35 },
-    corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 },
+    corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 }, thicket: 0.9,
     anemones: 40, clamSize: [0.22, 0.38], eels: 14,
     birds: [
       { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
@@ -260,7 +261,7 @@ export const LOCATIONS: Sea[] = [
       TERR.reef = Math.max(t[1], b[1] * 0.8);
       return Math.min(h, -3);
     },
-    corals: { branch: 0.12, table: 0.18, brain: 0.22, fan: 0.2, mushroom: 0.22, clam: 0.02 },
+    corals: { branch: 0.12, table: 0.18, brain: 0.22, fan: 0.2, mushroom: 0.22, clam: 0.02 }, thicket: 0.35,
     anemones: 30, clamSize: [0.3, 0.5], eels: 12,
     birds: [
       { id: 'gunkandori', ja: 'オオグンカンドリ', sci: 'Fregata minor', note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。', kind: 'frigate', count: 3, span: 2.2, c1: [0.06, 0.06, 0.07], c2: [0.9, 0.9, 0.9], c3: [0.5, 0.5, 0.55], speed: 9, glide: 0.95, alt: [25, 70], rest: 0 },
@@ -402,7 +403,7 @@ export const LOCATIONS: Sea[] = [
     },
     // a loop round the lagoon, clear of the beach
     path(s) { return [-25 + 100 * Math.sin(s * 0.9) + 14 * Math.sin(s * 2.3 + 1), 45 + 80 * Math.sin(s * 0.6 + 0.8) + 14 * Math.cos(s * 1.7)]; },
-    corals: { branch: 0.34, table: 0.16, brain: 0.3, fan: 0.0, mushroom: 0.14, clam: 0.06 },
+    corals: { branch: 0.34, table: 0.16, brain: 0.3, fan: 0.0, mushroom: 0.14, clam: 0.06 }, thicket: 0.8,
     anemones: 26, clamSize: [0.2, 0.34], eels: 0,
     birds: [
       { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に八重山の小島の岩場で子育てし、ラグーンの上を軽やかに飛んで小魚を捕る。', kind: 'tern', count: 12, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0 },
@@ -471,7 +472,7 @@ export const LOCATIONS: Sea[] = [
       TERR.reef = Math.max(smooth(0.05, 0.4, wall) * 0.95, b[1] * 0.8);
       return Math.min(h, -3);
     },
-    corals: { branch: 0.14, table: 0.12, brain: 0.2, fan: 0.22, mushroom: 0.3, clam: 0.02 },
+    corals: { branch: 0.14, table: 0.12, brain: 0.2, fan: 0.22, mushroom: 0.3, clam: 0.02 }, thicket: 0.3,
     anemones: 20, clamSize: [0.25, 0.4], eels: 8,
     birds: [
       bird('katsuodori'),
