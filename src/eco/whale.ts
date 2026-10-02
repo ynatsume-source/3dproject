@@ -38,9 +38,12 @@ export function updateWhales(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
   if (!W) return;
   W.seasonal = season;
   const T = oc.T;
+  // the season over (the date changed to summer) with a pod still here: it does not vanish, it cuts its pass
+  // short and heads off for deep water at once, gone when it is far off or out of the picture (see below)
+  if (W.active && !season && W.t < W.dur) W.dur = W.t;
   if (!W.active) {
     for (const w of W.all) w.mesh.visible = false;
-    if (!season) return;
+    if (!season) { W.force = false; return; }   // (and nobody is left waiting for a pod that will not come)
     W.next -= dt;
     if (W.next > 0) return;
     // a pod appears out of the blue, crosses in front of the drone, and fades back into it
