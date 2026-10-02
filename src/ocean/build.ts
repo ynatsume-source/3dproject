@@ -305,7 +305,7 @@ export function buildOcean(loc) {
   if (cave) buildCave(cave, group, items);
   // soft-coral trees on her upward faces, and the odd sea fan
   if (wreck) for (const u of wreck.up) {
-    const s = rr(0.5, 1.2), fan = R() < 0.2, pal = pick(fan ? PALETTE.fan : PALETTE.dendro);
+    const s = rr(0.3, 0.75), fan = R() < 0.2, pal = pick(fan ? PALETTE.fan : PALETTE.dendro);   // (small: not hiding her frames)
     const it: any = { x: u.p.x, z: u.p.z, y: u.p.y - 0.06, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.3), sz: s, c: tintCol(pal[0]), c2: tintCol(pal[1]), seed: R() };
     if (fan) items.fan[0].push(it); else { it.soft = 2; items.mushroom[2].push(it); }
   }
