@@ -1,7 +1,7 @@
-// Google Analytics 4: only on the public site (never local builds, previews or ?debug sessions), and only
+// Google Analytics 4: only on the public site (never local builds, previews, ?debug sessions or the ?lab test panel), and only
 // what the app itself reports — which sea, what was looked at, what was seen. Nothing typed is ever sent.
 const ID = 'G-LFRNWDFS1T';
-const on = typeof location !== 'undefined' && /(^|\.)utsushiyo\.earth$/.test(location.hostname) && !location.search.includes('debug');
+const on = typeof location !== 'undefined' && /(^|\.)utsushiyo\.earth$/.test(location.hostname) && !location.search.includes('debug') && !/[?&]lab\b/.test(location.search);   // (nor the test panel)
 type Gtag = (...a: unknown[]) => void;
 let gtag: Gtag | null = null;
 

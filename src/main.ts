@@ -2498,6 +2498,51 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
+// the test panel (?lab): see src/ui/lab.ts. Loaded only then; the page is then kept out of search results.
+if (/[?&]lab\b/.test(location.search)) {
+  const m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex, nofollow'; document.head.appendChild(m);
+  const fwdNow = () => ({ fx: -Math.sin(drone.yaw), fz: -Math.cos(drone.yaw) });
+  import('./ui/lab').then(({ mountLab }) => mountLab({
+    sea: () => (cur ? { id: cur.loc.id, name: cur.loc.name } : null),
+    seas: LOCATIONS.map((l) => ({ id: l.id, name: `${l.name}・${l.site}` })),
+    dive: async (id) => { const l = LOCATIONS.find((x) => x.id === id); if (!l || busy) return; if (mode === 'ocean') await toGlobe(); await dive(l); },
+    rare: () => (cur?.rare ? cur.rare.kinds(cur.eco.env) : []),
+    startRare: (id) => { if (!cur?.rare) return false; const { fx, fz } = fwdNow(); return cur.rare.start(id, cur.eco.env, drone.pos, fx, fz); },
+    // (a leap needs deep water near the camera: looked for all round, not only straight ahead)
+    breach: (kind) => { if (!cur) return false; const y = drone.yaw; for (let k = 0; k < 8; k++) { const a = y + k * Math.PI / 4; if (cur.breach.force(kind, drone.pos, -Math.sin(a), -Math.cos(a))) return true; } return false; },
+    flyfish: () => { if (!cur?.flyfish) return false; if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const { fx, fz } = fwdNow(); cur.flyfish.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return true; },
+    bait: () => goTo('bait'),
+    seal: () => cur?.lobosVisitors?.force(drone.pos) ?? false,
+    meteors: () => forceMeteors(6),
+    preset: (p) => goPreset(p),
+    season: (k) => { if (!cur) return; setSeason(k, cur.loc.lat); applySky(cur.loc); updateTimeUi(); },
+    speed: (k) => { clock.live = false; clock.speed = k; updateTimeUi(); },
+    live: () => { clock.goLive(); if (cur) applySky(cur.loc); updateTimeUi(); },
+    weather: (k) => { wxFixed = k; if (cur) applySky(cur.loc); },
+    mode: (m) => setMode(m),
+    sky: (on) => setSky(on),
+    hud: (on) => setHud(on),
+    guide: () => (cur ? guideEntries(cur.loc).map((e) => ({ id: e.id, ja: e.ja })) : []),
+    goTo: (id) => goTo(id),
+    tier: () => tier,
+    setTier: (t) => setQuality(t),
+    renderer,
+    state: () => {
+      if (!cur) return { 画面: '地球儀' };
+      const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
+      return { 海: cur.loc.id, 現地: `${L.getUTCMonth() + 1}/${L.getUTCDate()} ${p2(L.getUTCHours())}:${p2(L.getUTCMinutes())}`, 速さ: clock.live ? '実時間' : `×${clock.speed}`,
+        天気: wxFixed ?? wxKindOf(liveWeather()), カメラ: `${drone.mode}${drone.sky ? '・空' : ''}`, 位置: `${drone.pos.x.toFixed(0)},${drone.pos.y.toFixed(1)},${drone.pos.z.toFixed(0)}`,
+        撮影: director.shot ? `${director.shot.subject.label}（${director.shot.phase}）` : '—' };
+    },
+    reproUrl: () => {
+      if (!cur) return location.origin + '/?lab';
+      const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
+      const q = [`date=${L.getUTCFullYear()}-${p2(L.getUTCMonth() + 1)}-${p2(L.getUTCDate())}`, `time=${p2(L.getUTCHours())}:${p2(L.getUTCMinutes())}`, `wx=${wxFixed ?? wxKindOf(liveWeather())}`, `tier=${tier}`];
+      if (!clock.live && clock.speed !== 1) q.push(`speed=${clock.speed}`);
+      return `${location.origin}/?${q.join('&')}&lab#${cur.loc.id}`;
+    },
+  }));
+}
 if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;

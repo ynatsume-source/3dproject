@@ -317,6 +317,8 @@ export function makeRareEvents(oc: any) {
     get running() { return run; },
     // the one that has just begun (read once by the app, to announce it and go and film it)
     takeStarted() { const s = started; started = null; return s; },
+    // every kind, with how likely it is here now (0: not at this sea or not at this time): for the test panel
+    kinds(env: Env) { return KINDS.map((k) => ({ id: k.info.id, ja: k.info.ja, w: k.weight(oc.loc, env) })); },
     // what could happen here now, and how likely each is
     options(env: Env) { return KINDS.map((k) => ({ k, w: k.weight(oc.loc, env) })).filter((o) => o.w > 0); },
     start(id: string | null, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
