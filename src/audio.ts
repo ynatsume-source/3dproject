@@ -7,6 +7,13 @@
 // rounded and the top end is kept low, so it stays kind to the ear. Nothing is loud or bright; a compressor keeps the mix even for hours of listening.
 
 let ac: AudioContext | null = null;
+let outTap: AudioNode | null = null, recDest: MediaStreamAudioDestinationNode | null = null;
+/** What is being heard, as a stream a recording can take (null until the sound has been started). */
+export function soundStream(): MediaStream | null {
+  if (!ac || !outTap) return null;
+  if (!recDest) { recDest = ac.createMediaStreamDestination(); outTap.connect(recDest); }
+  return recDest.stream;
+}
 let master: GainNode, natureBus: GainNode, musicBus: GainNode, reverb: ConvolverNode, crackleGain: GainNode, motion: GainNode, motor: GainNode, rotor: OscillatorNode[] = [], bedGain: GainNode;
 const timers: Record<string, number> = {};
 export const audio = { on: false, music: true, night: 0, twilight: 0, phase: 'noon', sea: '' };
@@ -62,6 +69,7 @@ function build() {
   const tone = ac.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 5200;   // nothing sharp reaches the ear
   master = ac.createGain(); master.gain.value = 0;
   master.connect(tone).connect(comp).connect(ac.destination);
+  outTap = comp;   // (what is heard, for a recording of it)
 
   reverb = ac.createConvolver(); reverb.buffer = makeImpulse(5.5, 2.4);
   const wet = ac.createGain(); wet.gain.value = 0.55;

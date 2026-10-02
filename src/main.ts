@@ -35,10 +35,11 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { soundStream, audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
+import { makeReplay } from './ui/replay';
 import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
 initAnalytics();   // (on the public site only)
@@ -1933,6 +1934,27 @@ $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
+// the last 15-30 seconds of the view, kept ready while this is on, saved with one tap
+const replay = makeReplay(canvas, soundStream);
+function setReplay(on: boolean) {
+  if (on && !replay.start()) { showToast('REPLAY', 'このブラウザでは録画できません', ''); on = false; }
+  if (!on) replay.stop();
+  $('btnReplayOn').setAttribute('aria-pressed', String(on)); $('btnReplay').hidden = !on;
+  try { localStorage.setItem('seaglass.replay', on ? '1' : '0'); } catch (e) { /* ignore */ }
+}
+$('btnReplayOn').onclick = () => setReplay(!replay.on);
+$('btnReplay').onclick = async () => {
+  const blob = await replay.save(); if (!blob || !cur) return;
+  const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
+  const name = `utsushiyo-${cur.loc.id}-${L.getUTCFullYear()}${p2(L.getUTCMonth() + 1)}${p2(L.getUTCDate())}-${p2(L.getUTCHours())}${p2(L.getUTCMinutes())}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+  track('replay_save', { sea: cur.loc.id });
+  const file = new File([blob], name, { type: blob.type });
+  if (isTouch && (navigator as any).canShare?.({ files: [file] })) { try { await (navigator as any).share({ files: [file], title: `うつしよ — ${cur.loc.name}` }); return; } catch (e) { /* (fall through to a download) */ } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+  showToast('REPLAY', '直前の映像を保存しました', name);
+};
+try { if (localStorage.getItem('seaglass.replay') === '1') setReplay(true); } catch (e) { /* ignore */ }
 $('sharedBack').onclick = leaveShared;
 $('btnSeaOnly').onclick = () => setSeaOnly(!seaOnly);
 setSeaOnly(seaOnly);
