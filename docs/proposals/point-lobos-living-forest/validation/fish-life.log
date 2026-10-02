@@ -1,0 +1,15 @@
+{
+  "fish": 35,
+  "sleeping": 35,
+  "foraging": true,
+  "normalMaxStep": 0.09131632008357371,
+  "maxEscapeStep": 0.30623188633949133,
+  "belowRock": 0,
+  "real": {
+    "sleeping": 35,
+    "leafPecks": 5187,
+    "closeLeafPecks": 4737,
+    "maxStep": 0.09257099907633123
+  },
+  "checks": "sand selection / individual night travel / exposed heads / no teleport / predator interruption / dawn / actual leaf feeding / guide focus / non-Lobos isolation: PASS"
+}

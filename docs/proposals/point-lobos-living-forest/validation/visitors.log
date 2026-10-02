@@ -1,0 +1,23 @@
+{
+  "checks": "PASS",
+  "phases": [
+    "passing",
+    "ascending",
+    "breathing",
+    "diving",
+    "departing",
+    "absent"
+  ],
+  "lowestWholeBodyClearance": 5.447091787009187,
+  "highestNoseAboveWave": 0.0939551525221482,
+  "lowestSettledNoseAboveWave": 0.029393412846639766,
+  "checkedRoutes": 12,
+  "visits": 1,
+  "nextVisitSeconds": 758.7922322053462,
+  "followDepartureTravel": 34.92985445851606
+}
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

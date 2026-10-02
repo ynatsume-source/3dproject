@@ -1,0 +1,32 @@
+{
+  "sea": "pointlobos",
+  "seabedRange": [
+    -18.76675659047312,
+    -6.1255138048861175
+  ],
+  "kelp": {
+    "holdfasts": 493,
+    "stipes": 3225,
+    "blades": 83498,
+    "vertices": 1155343,
+    "triangles": 1251874,
+    "meshes": 63,
+    "urchins": 320,
+    "batStars": 110,
+    "addedNearCruise": 113
+  },
+  "geometry": {
+    "verticesStored": 1475526,
+    "trianglesStored": 1723458,
+    "trianglesInstanced": 3007303,
+    "meshObjects": 465,
+    "instanceCount": 4479
+  },
+  "kelpGeometrySHA256": "8b18adb3bbc3b0f8dfcb957a8ce281aa2fe73ae57387c9c1034ebcce3144e1ed",
+  "checks": "finite vertices / indices / zero tropical defaults / supported holdfasts / destinations / deterministic placement: PASS"
+}
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

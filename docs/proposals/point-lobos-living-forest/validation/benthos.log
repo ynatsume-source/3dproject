@@ -1,0 +1,16 @@
+{
+  "checks": "PASS",
+  "stats": {
+    "urchins": 320,
+    "batStars": 110,
+    "snails": 30,
+    "leafSnails": 12,
+    "anemones": 58,
+    "sponges": 74,
+    "patches": 34,
+    "meshes": 5
+  },
+  "trianglesInstanced": 283152,
+  "worstStaticPenetrationMeters": -0.0027838132944921767,
+  "sampledHours": 2
+}

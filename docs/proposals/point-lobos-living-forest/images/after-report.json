@@ -1,0 +1,273 @@
+{
+  "status": "passed",
+  "source": "http://127.0.0.1:4188",
+  "revision": "2cf7f7a51db46646c8c74ba08590b683dc8dd4d0",
+  "capturedAt": "2026-10-02T08:25:41.460Z",
+  "label": "after",
+  "method": {
+    "application": "Actual Point Lobos application scene, fixed viewpoints, no source changes for capture.",
+    "quality": "low",
+    "date": "2026-06-20T20:00:00Z",
+    "cloud": 0.08,
+    "wind": 1.2,
+    "shaderTime": 30,
+    "width": 960,
+    "height": 600,
+    "performanceBenchmark": false,
+    "notes": [
+      "Ecology is paused after loading for habitat comparisons. Fish positions at that point are not guaranteed identical between captures.",
+      "The application clock is frozen, and shader time is fixed before each captured frame.",
+      "Existing kelp detail is warmed at each camera before capture; intermediate frames omit GPU drawing.",
+      "The capture hides the interface in this browser only.",
+      "Draw calls and submitted triangles include the actual render passes; they are not unique visible geometry counts."
+    ]
+  },
+  "views": [
+    {
+      "id": "forest-edge",
+      "position": [
+        32,
+        -9.6,
+        27
+      ],
+      "target": [
+        48,
+        -9,
+        35
+      ],
+      "description": "East stand, looking into the mature forest.",
+      "file": "after-forest-edge.png",
+      "camera": [
+        32,
+        -9.636223134480264,
+        27
+      ],
+      "cameraRotation": [
+        0.02752055228920417,
+        -2.0344439357957027,
+        0.008035407855704953,
+        "YXZ"
+      ],
+      "shaderTime": 30,
+      "floorAtCamera": -12.921655862708088,
+      "terrainAtCamera": -12.92843382940867,
+      "date": "2026-06-20T20:00:00.000Z",
+      "kelp": {
+        "holdfasts": 493,
+        "stipes": 3225,
+        "blades": 83498,
+        "vertices": 1155343,
+        "triangles": 1251874,
+        "meshes": 63,
+        "urchins": 320,
+        "batStars": 110,
+        "addedNearCruise": 113
+      },
+      "rendererCounts": {
+        "drawCalls": 97,
+        "submittedTriangles": 1606770
+      },
+      "sceneMeshes": 469,
+      "visibleMeshes": 99,
+      "sceneTrianglesIncludingHidden": 3547347,
+      "glError": 0,
+      "contextLost": false,
+      "errorVisible": false
+    },
+    {
+      "id": "rock-garden",
+      "position": [
+        38,
+        -11.8,
+        33
+      ],
+      "target": [
+        44.2,
+        -12.1,
+        31
+      ],
+      "description": "East rocky floor and the future understory at close range.",
+      "file": "after-rock-garden.png",
+      "camera": [
+        38,
+        -11.836223134480266,
+        33
+      ],
+      "cameraRotation": [
+        -0.05202580418613211,
+        -1.2587542052323635,
+        0.008037828462607298,
+        "YXZ"
+      ],
+      "shaderTime": 30,
+      "floorAtCamera": -13.294790093429222,
+      "terrainAtCamera": -13.299062916530971,
+      "date": "2026-06-20T20:00:00.000Z",
+      "kelp": {
+        "holdfasts": 493,
+        "stipes": 3225,
+        "blades": 83498,
+        "vertices": 1155343,
+        "triangles": 1251874,
+        "meshes": 63,
+        "urchins": 320,
+        "batStars": 110,
+        "addedNearCruise": 113
+      },
+      "rendererCounts": {
+        "drawCalls": 109,
+        "submittedTriangles": 1666714
+      },
+      "sceneMeshes": 469,
+      "visibleMeshes": 111,
+      "sceneTrianglesIncludingHidden": 3547347,
+      "glError": 0,
+      "contextLost": false,
+      "errorVisible": false
+    },
+    {
+      "id": "northern-edge",
+      "position": [
+        18,
+        -11.7,
+        49
+      ],
+      "target": [
+        29,
+        -10.8,
+        56
+      ],
+      "description": "Northern sandy passage looking towards its rocky forest edge.",
+      "file": "after-northern-edge.png",
+      "camera": [
+        18,
+        -11.736223134480264,
+        49
+      ],
+      "cameraRotation": [
+        0.06290963249687724,
+        -2.137525544318403,
+        0.008037844163016242,
+        "YXZ"
+      ],
+      "shaderTime": 30,
+      "floorAtCamera": -15.423544437614368,
+      "terrainAtCamera": -15.447164545812191,
+      "date": "2026-06-20T20:00:00.000Z",
+      "kelp": {
+        "holdfasts": 493,
+        "stipes": 3225,
+        "blades": 83498,
+        "vertices": 1155343,
+        "triangles": 1251874,
+        "meshes": 63,
+        "urchins": 320,
+        "batStars": 110,
+        "addedNearCruise": 113
+      },
+      "rendererCounts": {
+        "drawCalls": 107,
+        "submittedTriangles": 1800062
+      },
+      "sceneMeshes": 470,
+      "visibleMeshes": 109,
+      "sceneTrianglesIncludingHidden": 3712483,
+      "glError": 0,
+      "contextLost": false,
+      "errorVisible": false
+    },
+    {
+      "id": "canopy",
+      "position": [
+        42,
+        -7,
+        27
+      ],
+      "target": [
+        49,
+        -0.8,
+        34
+      ],
+      "description": "Looking up through the east stand into the broken surface canopy.",
+      "file": "after-canopy.png",
+      "camera": [
+        42,
+        -7.036223134480265,
+        27
+      ],
+      "cameraRotation": [
+        0.5535218079919726,
+        -2.356194490192345,
+        0.008037844264851381,
+        "YXZ"
+      ],
+      "shaderTime": 30,
+      "floorAtCamera": -13.151465264523239,
+      "terrainAtCamera": -13.157624396726872,
+      "date": "2026-06-20T20:00:00.000Z",
+      "kelp": {
+        "holdfasts": 493,
+        "stipes": 3225,
+        "blades": 83498,
+        "vertices": 1155343,
+        "triangles": 1251874,
+        "meshes": 63,
+        "urchins": 320,
+        "batStars": 110,
+        "addedNearCruise": 113
+      },
+      "rendererCounts": {
+        "drawCalls": 89,
+        "submittedTriangles": 1561480
+      },
+      "sceneMeshes": 469,
+      "visibleMeshes": 91,
+      "sceneTrianglesIncludingHidden": 3547347,
+      "glError": 0,
+      "contextLost": false,
+      "errorVisible": false
+    }
+  ],
+  "errors": [],
+  "localFailures": [],
+  "externalFailures": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=36.524&longitude=-121.941&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=36.524&longitude=-121.941&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    }
+  ],
+  "application": {
+    "sea": "pointlobos",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "canvas": [
+      960,
+      600
+    ],
+    "scripts": [
+      "http://127.0.0.1:4188/assets/main-a3gskKk3.js"
+    ],
+    "kelp": {
+      "holdfasts": 493,
+      "stipes": 3225,
+      "blades": 83498,
+      "vertices": 1155343,
+      "triangles": 1251874,
+      "meshes": 63,
+      "urchins": 320,
+      "batStars": 110,
+      "addedNearCruise": 113
+    },
+    "fishGroups": 4,
+    "recoveryStage": null
+  },
+  "implementationCommit": "2cf7f7a51db46646c8c74ba08590b683dc8dd4d0",
+  "sourceVerification": "Captured from an immutable production snapshot whose src/ files matched implementation commit 2cf7f7a51db46646c8c74ba08590b683dc8dd4d0 (diff -qr)."
+}

@@ -1,0 +1,91 @@
+{
+  "canopy": {
+    "holdfasts": 493,
+    "stipes": 3225,
+    "blades": 83498,
+    "vertices": 1155343,
+    "triangles": 1251874,
+    "meshes": 63,
+    "urchins": 320,
+    "batStars": 110,
+    "addedNearCruise": 113
+  },
+  "understory": {
+    "juvenile": 196,
+    "broadleaf": 630,
+    "branching": 329,
+    "meshes": 107,
+    "verticesStored": 1328,
+    "trianglesStored": 1408,
+    "trianglesInstanced": 435008
+  },
+  "reachable": 719,
+  "leafSupports": 630,
+  "exampleGarden": [
+    {
+      "kind": "broadleaf",
+      "pos": [
+        30.494429138605575,
+        -12.736256774204719,
+        27.343197346269246
+      ]
+    },
+    {
+      "kind": "branching",
+      "pos": [
+        29.61415279544899,
+        -12.643787409503851,
+        32.043830949836504
+      ]
+    },
+    {
+      "kind": "broadleaf",
+      "pos": [
+        32.13840704630138,
+        -12.73485029811775,
+        24.706425183569173
+      ]
+    },
+    {
+      "kind": "broadleaf",
+      "pos": [
+        31.61122086849073,
+        -12.907721192691893,
+        30.547916438803167
+      ]
+    },
+    {
+      "kind": "broadleaf",
+      "pos": [
+        32.64641276164921,
+        -12.938763615185557,
+        34.36205245861793
+      ]
+    },
+    {
+      "kind": "broadleaf",
+      "pos": [
+        35.62776791271763,
+        -12.828931239998127,
+        19.716583767882643
+      ]
+    },
+    {
+      "kind": "broadleaf",
+      "pos": [
+        34.588381293253136,
+        -12.839714066132753,
+        23.31090360556273
+      ]
+    },
+    {
+      "kind": "juvenile",
+      "pos": [
+        35.53276448110128,
+        -13.177561660620244,
+        29.750000453647317
+      ]
+    }
+  ],
+  "checks": "rock/sand separation, triangle support, moving leaf support, repeatable placement, shared buffers and budgets: PASS"
+}
