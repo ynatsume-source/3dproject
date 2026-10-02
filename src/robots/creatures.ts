@@ -126,7 +126,7 @@ export function creatureKit(M: CMats, shadows = false) {
     // what it holds, between the paws on its chest
     const hand = new THREE.Group(); hand.position.set(0, -0.15, 0.14); body.add(hand);
     const F = foods(); hand.add(F.g);
-    let backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, pitch = 0, roll = 0;
+    let backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, pitch = 0, roll = 0, tilt = 0;
     const keepStone = !!L.stone;
     const gaze = makeGaze(1.0, 0.5, 0.6);
     return { root, hand, update(t, dt, p = DEMO) {
@@ -168,6 +168,7 @@ export function creatureKit(M: CMats, shadows = false) {
       // the head: up off the water on its back (looking along its chest at its paws), turning as it looks about
       const chew = act === 'eat' || (act === 'work' && Math.sin(t * 0.8) > 0.6) ? Math.max(0, Math.sin(t * 9)) : 0;
       head.rotation.x = backK * (0.55 + (act === 'eat' ? 0.25 : 0) + sleepK * 0.45) - landK * (act === 'pick' ? -0.5 : 0.05) + diveK * 0.15;
+      head.rotation.z = 0;   // (the head on one side: what the moment asks for, eased to below; never kept)
       head.rotation.y = Math.sin(t * 0.4) * 0.35 * (1 - sleepK) * (1 - diveK) * (act === 'eat' || act === 'work' ? 0.2 : 1);
       { const w = gaze.w * (1 - sleepK) * (1 - diveK) * (1 - backK * 0.6); head.rotation.y += (gaze.yaw - head.rotation.y) * w; head.rotation.x += gaze.pitch * 0.7 * w * (1 - backK); }
       if (cr) { head.rotation.x += cr.look * 0.25 - cr.mouth * 0.1; head.rotation.z += cr.look * 0.15; }
@@ -175,6 +176,7 @@ export function creatureKit(M: CMats, shadows = false) {
       if (pk === 'collect') { head.rotation.x += 0.5 * sm2(0.3, 0.9, el) * (1 - sm2(2.4, 2.9, el)) + 0.2 * sm2(2.4, 2.9, el); head.rotation.z += 0.18 * sm2(2.4, 2.9, el); }
       if (pk === 'pile') head.rotation.x += 0.45;
       if (admire) { head.rotation.x += 0.25 + Math.sin(el * 0.9) * 0.08; head.rotation.z += Math.sin(el * 0.7) * 0.2; }
+      tilt = ease(tilt, head.rotation.z, dt, 4); head.rotation.z = tilt;
       jaw.rotation.x = chew * 0.35;
       // forepaws: walking on land; tucked to the chest swimming; groping ahead along the bottom; holding food
       // up to the mouth; pounding a clam on the stone; rubbing the fur; folded over the eyes asleep

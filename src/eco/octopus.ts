@@ -137,22 +137,31 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
   for (const o of oc.octopi || []) {
     o.t += dt; o.stateT += dt;
     const dx = o.pos.x - cam.x, dz = o.pos.z - cam.z;
-    if (!o.placed || dx * dx + dz * dz > 75 * 75) {
-      // a den in the reef ahead of the drone
-      let best: [number, number] = [cam.x, cam.z], bs = -1;
+    if ((!o.placed || dx * dx + dz * dz > 75 * 75) && (o.retry = (o.retry ?? 0) - dt) <= 0) {
+      // a den in the reef ahead of the drone; failing that (the camera ashore, looking inland), anywhere in
+      // the water round about; and if there is no water near at all, nowhere for now (never on dry land)
+      let best: [number, number] | null = null, bs = 0;
       const near = !o.placed;
-      for (let k = 0; k < 30; k++) {
-        const d = near ? rr(10, 30) : rr(30, 45), lat = (R() * 2 - 1) * 18;
-        const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
+      for (let k = 0; k < 40; k++) {
+        const ahead = k < 30, d = ahead ? (near ? rr(10, 30) : rr(30, 45)) : rr(10, 60), lat = ahead ? (R() * 2 - 1) * 18 : 0;
+        const a = ahead ? 0 : R() * Math.PI * 2, ux = ahead ? fx : Math.cos(a), uz = ahead ? fz : Math.sin(a);
+        const x = zx(cam.x + ux * d - uz * lat), z = zz(cam.z + uz * d + ux * lat);
         const r = T.reef(x, z), h = T.h(x, z);
+        if (h > -0.9 || !T.wet(x, z, 1.5)) continue;
         // a crevice at the foot of rock or coral: reef here, and something standing higher close by
         let rise = 0; for (let k2 = 0; k2 < 6; k2++) { const a2 = k2 * 1.047; rise = Math.max(rise, surf(T, x + Math.cos(a2) * 0.9, z + Math.sin(a2) * 0.9) - surf(T, x, z)); }
-        const sc = h > -0.9 ? -0.5 : r * (h > -18 ? 1 : 0.3) * (0.4 + Math.min(1, rise / 0.8));
+        const sc = 0.01 + r * (h > -18 ? 1 : 0.3) * (0.4 + Math.min(1, rise / 0.8));
         if (sc > bs) { bs = sc; best = [x, z]; }
+        if (k === 29 && best) break;
       }
-      o.den.set(best[0], surf(T, best[0], best[1]), best[1]);
-      o.pos.copy(o.den); o.up.set(0, 1, 0); o.state = 'den'; o.stateT = 0; o.placed = true; o.goal = null;
+      if (best) {
+        o.den.set(best[0], surf(T, best[0], best[1]), best[1]);
+        o.pos.copy(o.den); o.up.set(0, 1, 0); o.state = 'den'; o.stateT = 0; o.placed = true; o.goal = null;
+      } else if (!o.placed) o.retry = 2;
+      else { o.placed = false; o.retry = 2; }
     }
+    o.mesh.visible = o.placed;
+    if (!o.placed) continue;
     const camD = o.pos.distanceTo(cam);
     const st = o.state as State;
     // decide

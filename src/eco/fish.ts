@@ -206,9 +206,12 @@ export function makeFishSystem(sp: Species, oc: any) {
 
   function findSpot(cam: THREE.Vector3, fx: number, fz: number, dmin: number, dmax: number, wantReef: boolean): [number, number] {
     let best: [number, number] = [cam.x, cam.z], bs = -1;
-    for (let k = 0; k < 28; k++) {
-      const d = rr(dmin, dmax), lat = (R() * 2 - 1) * (dmax * 0.5);
-      const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
+    for (let k = 0; k < 40; k++) {
+      // ahead of the camera first; then, if that is all dry land (the camera ashore), all round it
+      if (k === 28 && bs > 0) break;
+      const ahead = k < 28, a = R() * Math.PI * 2, ux = ahead ? fx : Math.cos(a), uz = ahead ? fz : Math.sin(a);
+      const d = ahead ? rr(dmin, dmax) : rr(dmin, dmax + 30), lat = ahead ? (R() * 2 - 1) * (dmax * 0.5) : 0;
+      const x = zx(cam.x + ux * d - uz * lat), z = zz(cam.z + uz * d + ux * lat);
       const r = !T.wet(x, z, 1.6) ? -0.5 : wantReef ? T.reef(x, z) : 1;
       if (r > bs) { bs = r; best = [x, z]; }
       if (r > 0.5) break;
