@@ -127,7 +127,7 @@ export function tintCol(c, k = 0.1) {
 export function buildOcean(loc) {
   seedRandom(loc.seed);
   const T = makeT(loc);
-  const obst = new ObstacleMap(LIMIT + 45);
+  const obst = new ObstacleMap(loc.land ? loc.land.far : LIMIT + 45);   // (by an island, over the whole of it: its reef is filled in as the camera comes near — see grow)
   T.obst = obst;
   const cave = loc.cave ? new Cave(loc.cave, loc.f) : null;
   T.cave = cave;
@@ -218,7 +218,8 @@ export function buildOcean(loc) {
   }
 
   // corals: sample the reef, pick a form by depth / slope / sea
-  const items = { branch: [[], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] };
+  const newItems = () => ({ branch: [[], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] });
+  const items = newItems();
   const EXT = LIMIT + 45, STEP = 1.35;
   const samples = [];
   let sum = 0;
@@ -230,10 +231,11 @@ export function buildOcean(loc) {
   }
   const target = 12500, accept = Math.min(1, target / Math.max(sum, 1));
   const W = loc.corals;
-  for (const [x, z, h, r] of samples) {
-    if (R() > r * r * accept * 1.6) continue;
-    if (cave && cave.routeDist(x, z) < 3.5) continue;                     // keep the way into the cave open
-    if (underWreck(x, z, h)) continue;                                    // (nothing grows under her)
+  // one coral where the reef was sampled (the same for the sea round the drone at the start and, by an
+  // island, for each stretch of reef further off as the camera comes near it: see grow() below)
+  const coralAt = (x: number, z: number, h: number, items: any) => {
+    if (cave && cave.routeDist(x, z) < 3.5) return;                     // keep the way into the cave open
+    if (underWreck(x, z, h)) return;                                      // (nothing grows under her)
     const sl = T.slope(x, z);
     const shallow = smooth(-20, -6, h);
     const w = {
@@ -270,7 +272,9 @@ export function buildOcean(loc) {
     if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
     const pl = it.porites ? pick(PALETTE.porites) : it.soft === 1 ? pick(PALETTE.sinularia) : it.soft === 2 ? pick(PALETTE.dendro) : pal;
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
-  }
+  };
+  for (const [x, z, h, r] of samples) { if (R() > r * r * accept * 1.6) continue; coralAt(x, z, h, items); }
+
   // anemones, each home to a few clownfish
   const nearAnemone = (x: number, z: number, r: number) => oc.anemones.some((a: any) => Math.hypot(a.pos.x - x, a.pos.z - z) < a.s * 0.75 + r + 0.3);
   const clown = loc.species.find((s) => s.habitat === 'anemone');
@@ -309,27 +313,17 @@ export function buildOcean(loc) {
   if (loc.residents) { oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja)); group.add(oc.residents.group); }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
-  // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish
+  // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish (placed over an area:
+  // the sea round the drone now, and by an island each stretch further off as the camera comes near it)
+  let placeLitter: ((x0: number, z0: number, x1: number, z1: number, frac: number, skip: ((x: number, z: number) => boolean) | null, cells: any[]) => void) | null = null;
   if (!loc.pelagic) {
-    const debris: { geo: THREE.BufferGeometry; type: number; list: any[] }[] = [
-      { geo: fragmentGeo(1), type: 0, list: [] }, { geo: fragmentGeo(2), type: 0, list: [] },
-      { geo: bivalveGeo(), type: 0, list: [] }, { geo: coneShellGeo(), type: 0, list: [] },
-      { geo: cucumberGeo(3), type: 1, list: [] }, { geo: starfishGeo(), type: 2, list: [] },
+    const debris: { geo: THREE.BufferGeometry; type: number }[] = [
+      { geo: fragmentGeo(1), type: 0 }, { geo: fragmentGeo(2), type: 0 },
+      { geo: bivalveGeo(), type: 0 }, { geo: coneShellGeo(), type: 0 },
+      { geo: cucumberGeo(3), type: 1 }, { geo: starfishGeo(), type: 2 },
     ];
     const lean = loc.id === 'maldives' ? 0.5 : 1;
     const want = [2600 * lean, 1800 * lean, 900 * lean, 600 * lean, 90 * lean, 70 * lean];
-    for (let tries = 0; tries < 60000; tries++) {
-      const x = rr(-LIMIT - 20, LIMIT + 20), z = rr(-LIMIT - 20, LIMIT + 20), h = loc.f(x, z), r = TERR.reef;
-      const k = Math.floor(R() * debris.length), d = debris[k];
-      if (d.list.length >= want[k]) continue;
-      if (cave && cave.sd(x, h + 0.05, z) < 0.1) continue;                     // not buried in the cave rock
-      if (h > -0.5) continue;                                                    // (not up on the beach)
-      if (k === 5 ? r < 0.05 || r > 0.8 : r > 0.45) continue;                  // starfish on rubble and reef edge, the rest on sand
-      if (k < 4 && R() > 0.25 + r * 1.5) continue;                              // litter thickest near the reef
-      const s = k === 4 ? rr(1.1, 1.7) : k === 5 ? rr(0.7, 1.2) : rr(0.6, 1.6);
-      const col = k === 4 ? [0.08, 0.075, 0.07] : k === 5 ? [0.16, 0.34, 0.86] : tintCol(pick([[0.92, 0.9, 0.84], [0.86, 0.8, 0.72], [0.8, 0.72, 0.7], [0.9, 0.86, 0.78]]));
-      d.list.push({ x, z, y: h + (k === 4 ? 0.02 : 0.005), ry: R() * 6.28, tx: (R() - 0.5) * 0.3, tz: (R() - 0.5) * 0.3, sx: s, sy: s, sz: s, c: col, c2: col, seed: R() });
-    }
     const MAT = [0, 1, 2].map((type) => mat(
       `attribute vec3 aCol; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz;
@@ -350,26 +344,46 @@ export function buildOcean(loc) {
          alb *= mix(0.55, 1.0, smoothstep(-0.01, 0.02, vL.y));
          gl_FragColor = vec4(shade(alb, vWp, n, 0.9), 1.0);
        }`, { defines: { TYPE: type }, uniforms: SURF_UNIFORMS, opts: { side: THREE.DoubleSide } }));
-    for (const d of debris) {
-      const bucket = new Map<string, any[]>();
-      for (const it of d.list) { const key = Math.floor(it.x / CELL) + ',' + Math.floor(it.z / CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
-      for (const [key, arr] of bucket) {
-        const g = new THREE.BufferGeometry();
-        for (const name in d.geo.attributes) g.setAttribute(name, d.geo.attributes[name]);
-        g.setIndex(d.geo.index);
-        const col = new Float32Array(arr.length * 3);
-        const m = new THREE.InstancedMesh(g, MAT[d.type], arr.length);
-        arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); col.set(it.c, i * 3); });
-        g.setAttribute('aCol', new THREE.InstancedBufferAttribute(col, 3));
-        m.frustumCulled = false;
-        group.add(m);
-        const [ci, cj] = key.split(',').map(Number);
-        oc.cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh: m, small: true });
+    placeLitter = (x0, z0, x1, z1, frac, skip, cells) => {
+      const lists: any[][] = debris.map(() => []);
+      for (let tries = 0; tries < 60000 * frac; tries++) {
+        const x = rr(x0, x1), z = rr(z0, z1);
+        if (skip && skip(x, z)) continue;
+        const h = loc.f(x, z), r = TERR.reef;
+        const k = Math.floor(R() * debris.length), list = lists[k];
+        if (list.length >= want[k] * frac) continue;
+        if (cave && cave.sd(x, h + 0.05, z) < 0.1) continue;                     // not buried in the cave rock
+        if (h > -0.5) continue;                                                    // (not up on the beach)
+        if (k === 5 ? r < 0.05 || r > 0.8 : r > 0.45) continue;                  // starfish on rubble and reef edge, the rest on sand
+        if (k < 4 && R() > 0.25 + r * 1.5) continue;                              // litter thickest near the reef
+        const s = k === 4 ? rr(1.1, 1.7) : k === 5 ? rr(0.7, 1.2) : rr(0.6, 1.6);
+        const col = k === 4 ? [0.08, 0.075, 0.07] : k === 5 ? [0.16, 0.34, 0.86] : tintCol(pick([[0.92, 0.9, 0.84], [0.86, 0.8, 0.72], [0.8, 0.72, 0.7], [0.9, 0.86, 0.78]]));
+        list.push({ x, z, y: h + (k === 4 ? 0.02 : 0.005), ry: R() * 6.28, tx: (R() - 0.5) * 0.3, tz: (R() - 0.5) * 0.3, sx: s, sy: s, sz: s, c: col, c2: col, seed: R() });
       }
-    }
+      debris.forEach((d, di) => {
+        const bucket = new Map<string, any[]>();
+        for (const it of lists[di]) { const key = Math.floor(it.x / CELL) + ',' + Math.floor(it.z / CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
+        for (const [key, arr] of bucket) {
+          const g = new THREE.BufferGeometry();
+          for (const name in d.geo.attributes) g.setAttribute(name, d.geo.attributes[name]);
+          g.setIndex(d.geo.index);
+          const col = new Float32Array(arr.length * 3);
+          const m = new THREE.InstancedMesh(g, MAT[d.type], arr.length);
+          arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); col.set(it.c, i * 3); });
+          g.setAttribute('aCol', new THREE.InstancedBufferAttribute(col, 3));
+          m.frustumCulled = false;
+          group.add(m);
+          const [ci, cj] = key.split(',').map(Number);
+          cells.push({ x: (ci + 0.5) * CELL, z: (cj + 0.5) * CELL, mesh: m, small: true });
+        }
+      });
+    };
+    placeLitter(-LIMIT - 20, -LIMIT - 20, LIMIT + 20, LIMIT + 20, 1, null, oc.cells);
   }
 
   // rocks and rubble: a dozen prototypes in six shapes, scattered thickly over the reef and drawn per cell
+  // (placed over an area: the sea round the drone now, and by an island each stretch further off later)
+  let placeRocks: ((sr: number[], lr: number[], frac: number, skip: ((x: number, z: number) => boolean) | null, cellsOut: any[]) => void) | null = null;
   if (!loc.pelagic) {
     const KINDS: [string, number, [number, number]][] = [
       ['boulder', 0.2, [0.25, 1.8]], ['angular', 0.26, [0.25, 1.6]], ['slab', 0.14, [0.6, 2.0]],
@@ -377,67 +391,6 @@ export function buildOcean(loc) {
     ];
     const protos: { kind: string; geo: THREE.BufferGeometry }[] = [];
     KINDS.forEach(([kind], i) => { for (let v = 0; v < 2; v++) protos.push({ kind, geo: rockPrototype(kind, loc.seed * 7 + i * 31 + v * 13) }); });
-    const lists: any[][] = protos.map(() => []);
-    const wsum = KINDS.reduce((a, k) => a + k[1], 0);
-    for (let placed = 0, tries = 0; placed < 2200 && tries < 40000; tries++) {
-      const x = rr(-LIMIT - 35, LIMIT + 35), z = rr(-LIMIT - 35, LIMIT + 35), h = loc.f(x, z), r = TERR.reef;
-      if (r < 0.22 || R() > r * (0.7 + 0.9 * Math.min(1, T.slope(x, z)))) continue;
-      if (cave && cave.routeDist(x, z) < 4) continue;
-      if (nearAnemone(x, z, 0.6)) continue;
-      let q = R() * wsum, ki = 0;
-      for (; ki < KINDS.length - 1; ki++) { q -= KINDS[ki][1]; if (q <= 0) break; }
-      const [kind, , [a, b]] = KINDS[ki];
-      const s = a + Math.pow(R(), 2.2) * (b - a);
-      const tilt = kind === 'angular' || kind === 'rubble' ? 0.9 : kind === 'slab' ? 0.25 : 0.35;
-      const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
-      const it = { x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
-      lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push(it);
-      if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
-      placed++;
-    }
-    // Overhangs and crevices on the flanks of coral heads: find where a steep side meets its flat top,
-    // and set a slab there jutting out over the drop; at the foot of the wall, lean big angular blocks
-    // against it so shadowed gaps open behind them.
-    const slabList = (kIdx: number) => lists[kIdx * 2 + (R() < 0.5 ? 0 : 1)];
-    // (the anemones keep their patch of open reef: no rock or slab comes down on one)
-    const hAt = (x: number, z: number) => loc.f(x, z);
-    let ledges = 0, leaners = 0;
-    for (let tries = 0; tries < 60000 && (ledges < 320 || leaners < 300); tries++) {
-      const x = rr(-LIMIT - 20, LIMIT + 20), z = rr(-LIMIT - 20, LIMIT + 20), h = hAt(x, z);
-      if (TERR.reef < 0.35 || h < -22 || (cave && cave.routeDist(x, z) < 4)) continue;
-      const gx = (hAt(x + 0.7, z) - hAt(x - 0.7, z)) / 1.4, gz = (hAt(x, z + 0.7) - hAt(x, z - 0.7)) / 1.4, sl = Math.hypot(gx, gz);
-      if (sl < 0.8) continue;
-      const ox = -gx / sl, oz = -gz / sl;                       // outward, down the slope
-      if (ledges < 320 && R() < 0.55) {
-        // climb to the rim
-        let rx = x, rz = z, rh = h;
-        for (let k = 0; k < 10; k++) {
-          const nx = rx - ox * 0.5, nz = rz - oz * 0.5, nh = hAt(nx, nz);
-          if (nh - rh < 0.12) break;
-          rx = nx; rz = nz; rh = nh;
-        }
-        const w = rr(1.1, 2.4), d = rr(0.8, 1.6), th = rr(0.3, 0.62);
-        const it = { x: rx + ox * d * 0.45, z: rz + oz * d * 0.45, y: rh - rr(0.05, 0.5), ry: Math.atan2(ox, oz), tx: rr(-0.04, 0.16), tz: rr(-0.08, 0.08), sx: w, sy: th, sz: d };
-        if (nearAnemone(it.x, it.z, Math.max(w, d) * 0.6)) continue;
-        slabList(R() < 0.5 ? 2 : 1).push(it);          // flat slabs and flattened angular blocks
-        obst.stamp(it.x, it.z, Math.max(w, d) * 0.8, it.y + th * 0.45, th);
-        ledges++;
-      } else if (leaners < 300) {
-        // walk down to the foot of the wall
-        let fx = x, fz = z, fh = h;
-        for (let k = 0; k < 12; k++) {
-          const nx = fx + ox * 0.5, nz = fz + oz * 0.5, nh = hAt(nx, nz);
-          if (fh - nh < 0.1) break;
-          fx = nx; fz = nz; fh = nh;
-        }
-        const sz = rr(0.8, 1.8), sy = sz * rr(0.8, 1.3);
-        const it = { x: fx + ox * 0.3, z: fz + oz * 0.3, y: fh - sy * 0.2, ry: Math.atan2(ox, oz) + rr(-0.4, 0.4), tx: -rr(0.2, 0.55), tz: rr(-0.3, 0.3), sx: sz * rr(0.9, 1.5), sy, sz };
-        if (nearAnemone(it.x, it.z, Math.max(it.sx, sz) * 0.6)) continue;
-        slabList(1).push(it);
-        obst.stamp(it.x, it.z, Math.max(it.sx, sz) * 0.85, it.y + sy * 0.85, sy);
-        leaners++;
-      }
-    }
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
@@ -447,19 +400,155 @@ export function buildOcean(loc) {
          vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
          gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
        }`, { uniforms: SURF_UNIFORMS });
-    const ROCK_CELL = 80;
-    lists.forEach((list, k) => {
-      const bucket = new Map<string, any[]>();
-      for (const it of list) { const key = Math.floor(it.x / ROCK_CELL) + ',' + Math.floor(it.z / ROCK_CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
-      for (const [key, arr] of bucket) {
-        const m = new THREE.InstancedMesh(protos[k].geo, rockMat, arr.length);
-        arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); });
-        m.frustumCulled = false;
-        group.add(m);
-        const [ci, cj] = key.split(',').map(Number);
-        oc.cells.push({ x: (ci + 0.5) * ROCK_CELL, z: (cj + 0.5) * ROCK_CELL, mesh: m, big: true });
+    placeRocks = (sr, lr, frac, skip, cellsOut) => {
+      const lists: any[][] = protos.map(() => []);
+      const wsum = KINDS.reduce((a, k) => a + k[1], 0);
+      for (let placed = 0, tries = 0; placed < 2200 * frac && tries < 40000 * frac; tries++) {
+        const x = rr(sr[0], sr[2]), z = rr(sr[1], sr[3]); if (skip && skip(x, z)) continue;
+        const h = loc.f(x, z), r = TERR.reef;
+        if (r < 0.22 || R() > r * (0.7 + 0.9 * Math.min(1, T.slope(x, z)))) continue;
+        if (cave && cave.routeDist(x, z) < 4) continue;
+        if (nearAnemone(x, z, 0.6)) continue;
+        let q = R() * wsum, ki = 0;
+        for (; ki < KINDS.length - 1; ki++) { q -= KINDS[ki][1]; if (q <= 0) break; }
+        const [kind, , [a, b]] = KINDS[ki];
+        const s = a + Math.pow(R(), 2.2) * (b - a);
+        const tilt = kind === 'angular' || kind === 'rubble' ? 0.9 : kind === 'slab' ? 0.25 : 0.35;
+        const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
+        const it = { x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
+        lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push(it);
+        if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
+        placed++;
       }
-    });
+      // Overhangs and crevices on the flanks of coral heads: find where a steep side meets its flat top,
+      // and set a slab there jutting out over the drop; at the foot of the wall, lean big angular blocks
+      // against it so shadowed gaps open behind them.
+      const slabList = (kIdx: number) => lists[kIdx * 2 + (R() < 0.5 ? 0 : 1)];
+      // (the anemones keep their patch of open reef: no rock or slab comes down on one)
+      const hAt = (x: number, z: number) => loc.f(x, z);
+      let ledges = 0, leaners = 0;
+      for (let tries = 0; tries < 60000 * frac && (ledges < 320 * frac || leaners < 300 * frac); tries++) {
+        const x = rr(lr[0], lr[2]), z = rr(lr[1], lr[3]); if (skip && skip(x, z)) continue;
+        const h = hAt(x, z);
+        if (TERR.reef < 0.35 || h < -22 || (cave && cave.routeDist(x, z) < 4)) continue;
+        const gx = (hAt(x + 0.7, z) - hAt(x - 0.7, z)) / 1.4, gz = (hAt(x, z + 0.7) - hAt(x, z - 0.7)) / 1.4, sl = Math.hypot(gx, gz);
+        if (sl < 0.8) continue;
+        const ox = -gx / sl, oz = -gz / sl;                       // outward, down the slope
+        if (ledges < 320 * frac && R() < 0.55) {
+          // climb to the rim
+          let rx = x, rz = z, rh = h;
+          for (let k = 0; k < 10; k++) {
+            const nx = rx - ox * 0.5, nz = rz - oz * 0.5, nh = hAt(nx, nz);
+            if (nh - rh < 0.12) break;
+            rx = nx; rz = nz; rh = nh;
+          }
+          const w = rr(1.1, 2.4), d = rr(0.8, 1.6), th = rr(0.3, 0.62);
+          const it = { x: rx + ox * d * 0.45, z: rz + oz * d * 0.45, y: rh - rr(0.05, 0.5), ry: Math.atan2(ox, oz), tx: rr(-0.04, 0.16), tz: rr(-0.08, 0.08), sx: w, sy: th, sz: d };
+          if (nearAnemone(it.x, it.z, Math.max(w, d) * 0.6)) continue;
+          slabList(R() < 0.5 ? 2 : 1).push(it);          // flat slabs and flattened angular blocks
+          obst.stamp(it.x, it.z, Math.max(w, d) * 0.8, it.y + th * 0.45, th);
+          ledges++;
+        } else if (leaners < 300 * frac) {
+          // walk down to the foot of the wall
+          let fx = x, fz = z, fh = h;
+          for (let k = 0; k < 12; k++) {
+            const nx = fx + ox * 0.5, nz = fz + oz * 0.5, nh = hAt(nx, nz);
+            if (fh - nh < 0.1) break;
+            fx = nx; fz = nz; fh = nh;
+          }
+          const sz = rr(0.8, 1.8), sy = sz * rr(0.8, 1.3);
+          const it = { x: fx + ox * 0.3, z: fz + oz * 0.3, y: fh - sy * 0.2, ry: Math.atan2(ox, oz) + rr(-0.4, 0.4), tx: -rr(0.2, 0.55), tz: rr(-0.3, 0.3), sx: sz * rr(0.9, 1.5), sy, sz };
+          if (nearAnemone(it.x, it.z, Math.max(it.sx, sz) * 0.6)) continue;
+          slabList(1).push(it);
+          obst.stamp(it.x, it.z, Math.max(it.sx, sz) * 0.85, it.y + sy * 0.85, sy);
+          leaners++;
+        }
+      }
+      const ROCK_CELL = 80;
+      lists.forEach((list, k) => {
+        const bucket = new Map<string, any[]>();
+        for (const it of list) { const key = Math.floor(it.x / ROCK_CELL) + ',' + Math.floor(it.z / ROCK_CELL); if (!bucket.has(key)) bucket.set(key, []); bucket.get(key)!.push(it); }
+        for (const [key, arr] of bucket) {
+          const m = new THREE.InstancedMesh(protos[k].geo, rockMat, arr.length);
+          arr.forEach((it, i) => { _q.setFromEuler(_e.set(it.tx, it.ry, it.tz)); _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz)); m.setMatrixAt(i, _m4); });
+          m.frustumCulled = false;
+          group.add(m);
+          const [ci, cj] = key.split(',').map(Number);
+          cellsOut.push({ x: (ci + 0.5) * ROCK_CELL, z: (cj + 0.5) * ROCK_CELL, mesh: m, big: true });
+        }
+      });
+    };
+    placeRocks([-LIMIT - 35, -LIMIT - 35, LIMIT + 35, LIMIT + 35], [-LIMIT - 20, -LIMIT - 20, LIMIT + 20, LIMIT + 20], 1, null, oc.cells);
+  }
+
+  // By an island the sea is far bigger than the stretch round the drone that is filled in at the start: as
+  // the camera comes near more of it, each 80 m block of the reef there is grown in its turn — its corals,
+  // litter and rocks, at the same density, the same each visit (seeded by the block) — one block a frame at
+  // most, and blocks left far behind are let go (and grown again the same if the camera comes back).
+  if (land && !loc.pelagic) {
+    const B = 80, GROW = 190, DROP = 460, E = loc.land.far - 8;
+    const blocks = new Map<string, { meshes: any[]; cells: any[] }>();
+    const inner = (ext: number) => (x: number, z: number) => Math.abs(x) < ext && Math.abs(z) < ext;
+    const inCoral = inner(EXT), inLitter = inner(LIMIT + 20), inRocks = inner(LIMIT + 35);
+    // (a block is grown in three steps on three frames — its corals, its litter, its rocks — so that no one
+    // frame carries the whole of it)
+    function* growBlock(bi: number, bj: number) {
+      const x0 = bi * B, z0 = bj * B, x1 = x0 + B, z1 = z0 + B, key = bi + ',' + bj;
+      const rec = { meshes: [] as any[], cells: [] as any[] };
+      blocks.set(key, rec);
+      const seed = loc.seed * 7919 + bi * 104729 + bj * 1299709;
+      // anything in the sea here at all? (an inland block, or one wholly inside the stretch done at the start: nothing)
+      let wet = false; for (let k = 0; k < 25 && !wet; k++) { const x = x0 + (k % 5 + 0.5) * B / 5, z = z0 + (Math.floor(k / 5) + 0.5) * B / 5; wet = loc.f(x, z) < -0.5 && !inCoral(x, z); }
+      if (!wet) return;
+      const add = (cells: any[]) => { for (const c of cells) { rec.cells.push(c); rec.meshes.push(c.mesh); if (c.hi) rec.meshes.push(c.hi); oc.cells.push(c); } };
+      seedRandom(seed);
+      const its = newItems(), c1: any[] = [];
+      for (let x = x0; x < x1; x += STEP) for (let z = z0; z < z1; z += STEP) {
+        const jx = x + (R() - 0.5) * STEP, jz = z + (R() - 0.5) * STEP;
+        if (inCoral(jx, jz)) continue;
+        const h = loc.f(jx, jz), r = TERR.reef;
+        if (r < 0.05 || R() > r * r * accept * 1.6) continue;
+        coralAt(jx, jz, h, its);
+      }
+      for (const kind in its) its[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, c1); });
+      add(c1);
+      yield;
+      if (!blocks.has(key)) return;   // (let go meanwhile)
+      seedRandom(seed + 1); const c2: any[] = [];
+      placeLitter?.(x0, z0, x1, z1, (B * B) / ((2 * LIMIT + 40) * (2 * LIMIT + 40)), inLitter, c2); add(c2);
+      yield;
+      if (!blocks.has(key)) return;
+      seedRandom(seed + 2); const c3: any[] = [];
+      placeRocks?.([x0, z0, x1, z1], [x0, z0, x1, z1], (B * B) / ((2 * LIMIT + 70) * (2 * LIMIT + 70)), inRocks, c3); add(c3);
+    }
+    let growing: Generator | null = null;
+    oc.grow = (cam: THREE.Vector3) => {
+      // let go of what is far behind
+      for (const [k, b] of blocks) {
+        const [bi, bj] = k.split(',').map(Number);
+        if (Math.hypot((bi + 0.5) * B - cam.x, (bj + 0.5) * B - cam.z) < DROP) continue;
+        for (const m of b.meshes) {
+          group.remove(m);
+          // (free only what is this block's own — where each one stands, its colours — never the shapes all the blocks share)
+          const g = m.geometry;
+          if (!b.cells.some((c: any) => c.big && c.mesh === m)) { for (const name of Object.keys(g.attributes)) if (!(g.attributes[name] as any).isInstancedBufferAttribute) g.deleteAttribute(name); g.setIndex(null); g.dispose(); }
+          m.dispose();
+        }
+        if (b.cells.length) { const gone = new Set(b.cells); oc.cells = oc.cells.filter((c: any) => !gone.has(c)); }
+        blocks.delete(k);
+      }
+      // carry on with a block under way; else grow the nearest in reach not grown yet
+      if (growing) { if (growing.next().done) growing = null; return true; }
+      let best: [number, number] | null = null, bd = GROW;
+      const i0 = Math.floor((cam.x - GROW) / B), i1 = Math.floor((cam.x + GROW) / B), j0 = Math.floor((cam.z - GROW) / B), j1 = Math.floor((cam.z + GROW) / B);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+        if (blocks.has(i + ',' + j) || (i + 1) * B < -E || i * B > E || (j + 1) * B < -E || j * B > E) continue;
+        const d = Math.hypot(Math.max(i * B - cam.x, 0, cam.x - (i + 1) * B), Math.max(j * B - cam.z, 0, cam.z - (j + 1) * B));
+        if (d < bd) { bd = d; best = [i, j]; }
+      }
+      if (best) { growing = growBlock(best[0], best[1]); if (growing.next().done) growing = null; }
+      return !!best;
+    };
   }
 
   // fish

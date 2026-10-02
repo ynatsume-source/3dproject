@@ -5,6 +5,7 @@ import { loneLength, schoolLength, memberLength } from './growth';
 import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
+import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
@@ -207,7 +208,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     let best: [number, number] = [cam.x, cam.z], bs = -1;
     for (let k = 0; k < 28; k++) {
       const d = rr(dmin, dmax), lat = (R() * 2 - 1) * (dmax * 0.5);
-      const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
+      const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
       const r = !T.wet(x, z, 1.6) ? -0.5 : wantReef ? T.reef(x, z) : 1;
       if (r > bs) { bs = r; best = [x, z]; }
       if (r > 0.5) break;
@@ -365,7 +366,7 @@ export function makeFishSystem(sp: Species, oc: any) {
           const wk = bigTurn ? Math.min(1, turnMax * 1.5) : 1;
           g.head += (Math.sin(g.t * 0.23 * wk + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt * wk;
           g.head += T.shore(g.c.x, g.c.z, g.head, 5 / wk, 1.2) * Math.min(1, dt * 1.5 * wk);
-          if (Math.abs(g.c.x) > LIMIT || Math.abs(g.c.z) > LIMIT) { let d = Math.atan2(-g.c.z, -g.c.x) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8 * wk; }
+          if (outZone(g.c.x, g.c.z)) { let d = toZone(g.c.x, g.c.z) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8 * wk; }
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
           g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(pace);
           g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;

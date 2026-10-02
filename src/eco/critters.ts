@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { mat } from '../render/common';
 import { R, rr, clamp, smooth } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
+import { zx, zz, outZone } from '../ocean/zone';
 import type { Subject } from './env';
 
 export interface CritterSpec {
@@ -324,7 +325,7 @@ export function makeCritters(oc: any) {
   // somewhere near the camera, ahead of it (for the ones that come and go)
   const near = (cam: THREE.Vector3, fx: number, fz: number, dmin: number, dmax: number) => {
     const d = rr(dmin, dmax), a = Math.atan2(fz, fx) + rr(-1, 1);
-    return [clamp(cam.x + Math.cos(a) * d, -LIMIT, LIMIT), clamp(cam.z + Math.sin(a) * d, -LIMIT, LIMIT)];
+    return [zx(cam.x + Math.cos(a) * d), zz(cam.z + Math.sin(a) * d)];
   };
   return {
     group,
@@ -362,7 +363,7 @@ export function makeCritters(oc: any) {
             if (s.state === 'forage') {
               // meander along the bottom, nosing into the reef
               s.head += (Math.sin(env.t * 0.3 + i * 2) * 0.6 + Math.sin(env.t * 0.11 + i) * 0.4) * dt + T.shore(s.pos.x, s.pos.z, s.head, 3, 1.4) * Math.min(1, dt * 2);
-              if (Math.abs(s.pos.x) > LIMIT * 0.95 || Math.abs(s.pos.z) > LIMIT * 0.95) s.head += dt;
+              if (outZone(s.pos.x, s.pos.z, 0.95)) s.head += dt;
               ty = fl + s.alt + Math.sin(env.t * 0.4 + i) * 0.2;
               if (s.t > s.next) { s.state = 'up'; s.t = 0; }
             } else if (s.state === 'up') { speed = 0.45; ty = -0.25; if (s.pos.y > -0.45) { s.state = 'breathe'; s.t = 0; } }

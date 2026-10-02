@@ -5,6 +5,7 @@ import { schoolLength, memberLength } from './growth';
 import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
+import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
@@ -78,7 +79,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     let x = cam.x, z = cam.z;
     for (let k = 0; k < 24; k++) {
       const d = near ? rr(10, 28) : rr(32, 46), lat = (R() * 2 - 1) * 20;
-      x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT); z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
+      x = zx(cam.x + fx * d - fz * lat); z = zz(cam.z + fz * d + fx * lat);
       if (T.wet(x, z, 2.6)) break;
     }
     L.c.set(x, Math.min(T.h(x, z) + L.alt, -2), z);
@@ -108,7 +109,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
       // (circling a point: a tornado of jacks)
       if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.hypot(ox, oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
-      if (Math.abs(L.c.x) > LIMIT || Math.abs(L.c.z) > LIMIT) { let d = Math.atan2(-L.c.z, -L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
+      if (outZone(L.c.x, L.c.z)) { let d = toZone(L.c.x, L.c.z) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
       L.head += T.shore(L.c.x, L.c.z, L.head, 8, 2.2) * Math.min(1, dt * 1.2);
       const pace = sp.speed * (0.35 + 0.65 * act);
       L.c.x += Math.cos(L.head) * pace * dt; L.c.z += Math.sin(L.head) * pace * dt;

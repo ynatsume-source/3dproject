@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { mat } from '../render/common';
 import { LIMIT } from '../ocean/scenery';
+import { zx, zz } from '../ocean/zone';
 import { activity, logEvent, oneOf, type Env, type Subject } from './env';
 
 function octopusGeometry() {
@@ -142,7 +143,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       const near = !o.placed;
       for (let k = 0; k < 30; k++) {
         const d = near ? rr(10, 30) : rr(30, 45), lat = (R() * 2 - 1) * 18;
-        const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
+        const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
         const r = T.reef(x, z), h = T.h(x, z);
         // a crevice at the foot of rock or coral: reef here, and something standing higher close by
         let rise = 0; for (let k2 = 0; k2 < 6; k2++) { const a2 = k2 * 1.047; rise = Math.max(rise, surf(T, x + Math.cos(a2) * 0.9, z + Math.sin(a2) * 0.9) - surf(T, x, z)); }
@@ -171,7 +172,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
         let best: THREE.Vector3 | null = null, bs = -1;
         for (let k = 0; k < 10; k++) {
           const a = R() * Math.PI * 2, r = rr(0.8, 3.5);
-          const gx = clamp(o.den.x + Math.cos(a) * r * 1.6, -LIMIT, LIMIT), gz = clamp(o.den.z + Math.sin(a) * r * 1.6, -LIMIT, LIMIT);
+          const gx = zx(o.den.x + Math.cos(a) * r * 1.6), gz = zz(o.den.z + Math.sin(a) * r * 1.6);
           if (!T.wet(gx, gz, 0.6)) continue;
           const sc = T.reef(gx, gz) + Math.min(1, slope(T, gx, gz, _g)) * 0.8 + R() * 0.3;
           if (sc > bs) { bs = sc; best = new THREE.Vector3(gx, 0, gz); }
@@ -192,8 +193,8 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     // flank the octopus creeps up or down it rather than hopping onto the top or dropping off the edge.
     const k = slope(T, o.pos.x, o.pos.z, _g);
     const along = o.state === 'jet' ? 1 : 1 / Math.sqrt(1 + k * k * 1.6);
-    o.pos.x = clamp(o.pos.x + Math.cos(o.head) * speed * along * dt, -LIMIT, LIMIT);
-    o.pos.z = clamp(o.pos.z + Math.sin(o.head) * speed * along * dt, -LIMIT, LIMIT);
+    o.pos.x = zx(o.pos.x + Math.cos(o.head) * speed * along * dt);
+    o.pos.z = zz(o.pos.z + Math.sin(o.head) * speed * along * dt);
     const floorY = surf(T, o.pos.x, o.pos.z);
     if (o.state === 'jet' || o.state === 'settle') o.pos.y += (Math.max(floorY + lift, o.pos.y - dt * 0.4) - o.pos.y) * Math.min(1, dt * 3);   // (sinks back down after a jet)
     else o.pos.y += (floorY + lift - o.pos.y) * Math.min(1, dt * 6);

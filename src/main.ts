@@ -7,6 +7,7 @@ import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
+import { ZONE } from './ocean/zone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
 import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss } from './ocean/air';
 import { SplitView, SPLIT_BAND } from './render/split';
@@ -2128,6 +2129,9 @@ function frame(ts: number) {
     const lvl = camera.position.y - swellAt(camera.position.x, camera.position.z);
     if (lvl > 0.12 || (Math.abs(lvl) >= SPLIT_BAND && camera.position.y > 0)) airState = true; else if (lvl < -0.12) airState = false;
     const air = airState;
+    cur.grow?.(drone.pos);   // (by an island: the reef further off filled in as the camera comes near it)
+    // (and the life of the sea keeps about the camera, wherever it is along the island's shore)
+    if (cur.loc.land) { const m = cur.loc.land.far - LIMIT - 10; ZONE.x = clamp(drone.pos.x, -m, m); ZONE.z = clamp(drone.pos.z, -m, m); } else ZONE.x = ZONE.z = 0;
     const vis = air ? 400 : Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);

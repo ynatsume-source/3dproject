@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { clamp, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
+import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { activity, logEvent, oneOf, type Env } from './env';
 
 const _w = new THREE.Vector3();
@@ -12,7 +13,7 @@ const _w = new THREE.Vector3();
 function relocate(t: any, T: any, cam: THREE.Vector3, fx: number, fz: number) {
   for (let k = 0; k < 24; k++) {
     const d = t.placed ? rr(34, 48) : rr(12, 36), lat = (R() * 2 - 1) * 18;
-    t.pos.set(clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), 0, clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT));
+    t.pos.set(zx(cam.x + fx * d - fz * lat), 0, zz(cam.z + fz * d + fx * lat));
     if (T.wet(t.pos.x, t.pos.z, 1.8)) break;
   }
   t.pos.y = T.top(t.pos.x, t.pos.z) + rr(1, 3);
@@ -25,7 +26,7 @@ function pickGoal(oc: any, from: THREE.Vector3, want: 'graze' | 'rest'): THREE.V
   const T = oc.T, loc = oc.loc;
   let best: THREE.Vector3 | null = null, bs = -1;
   for (let k = 0; k < 24; k++) {
-    const x = clamp(from.x + rr(-25, 25), -LIMIT, LIMIT), z = clamp(from.z + rr(-25, 25), -LIMIT, LIMIT);
+    const x = zx(from.x + rr(-25, 25)), z = zz(from.z + rr(-25, 25));
     const h = T.h(x, z), reef = T.reef(x, z);
     let score: number;
     if (want === 'graze') score = loc.grass && oc.grassTex ? loc.grass(x, z) + 0.1 * reef : reef;
@@ -105,7 +106,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       if (!T.wet(lx, lz, 1.5)) t.fleeH += T.shore(t.pos.x, t.pos.z, t.fleeH, 4, 1.5) || Math.PI * 0.5;
       speed = 0.35 + 1.5 * alarm; stroke = 1 + 0.7 * alarm; noseDown = 0; ty = Math.min(Math.max(ty, t.pos.y + 0.6 * alarm), -0.8);
     }
-    if (Math.abs(t.pos.x) > LIMIT || Math.abs(t.pos.z) > LIMIT) { let d = Math.atan2(-t.pos.z, -t.pos.x) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
+    if (outZone(t.pos.x, t.pos.z)) { let d = toZone(t.pos.x, t.pos.z) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
 
     // look ahead and rise over rocks and coral instead of ploughing into them
     if (t.state !== 'rest' && t.state !== 'graze') {
@@ -169,7 +170,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       let best: [number, number] = [cam.x, cam.z], bs = -Infinity;
       for (let k = 0; k < 30; k++) {
         const d = m.placed && m.feeding === feeding ? rr(35, 50) : rr(14, 30), lat = (R() * 2 - 1) * 20;
-        const x = clamp(cam.x + fx * d - fz * lat, -LIMIT, LIMIT), z = clamp(cam.z + fz * d + fx * lat, -LIMIT, LIMIT);
+        const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
         const s = (feeding ? env.plankton.sample(x, z) : T.h(x, z)) - (T.wet(x, z, 5) || !oc.loc.land ? 0 : 1e6);   // by an island, mantas need room below them
         if (s > bs) { bs = s; best = [x, z]; }
       }
