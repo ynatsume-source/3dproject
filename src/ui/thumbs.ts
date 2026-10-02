@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { ridersFor } from '../eco/riders';
 import { critterModel } from '../eco/critters';
 import { U } from '../render/common';
-import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial } from '../ocean/models';
+import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, CORAL_GEO, CORAL_MAT, PALETTE } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
@@ -24,6 +24,15 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
   }
   const cr = (loc.critters || []).find((c) => c.id === id);
   if (cr) return critterModel(cr);
+  // (for checking a reef form close up, ?debug: 'coral:<kind>[:variant]', in its first colour)
+  if (id.startsWith('coral:')) {
+    const [, kind, vs] = id.split(':'), base = (CORAL_GEO as any)[kind]?.[+(vs ?? 0)]; if (!base) return null;
+    const g = new THREE.BufferGeometry(); for (const n in base.attributes) g.setAttribute(n, base.attributes[n]); g.setIndex(base.index);
+    const [c, c2] = (PALETTE as any)[kind][0];
+    g.setAttribute('aCol', new THREE.InstancedBufferAttribute(new Float32Array(c), 3)); g.setAttribute('aCol2', new THREE.InstancedBufferAttribute(new Float32Array(c2), 3)); g.setAttribute('aSeed', new THREE.InstancedBufferAttribute(new Float32Array([0.3]), 1));
+    const m = new THREE.InstancedMesh(g, (CORAL_MAT as any)[kind], 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
+    return { obj: m, view: [0.2, 0.25, 1] };
+  }
   if (id === 'turtle') return { obj: makeTurtle(loc.animals.turtle?.style === 'hawksbill' ? 'hawksbill' : 'green').group, view: [0.9, 0.75, 0.9] };
   if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial((loc.extraGuide || []).some((e) => e.id === 'manta' && e.ja === 'オニイトマキエイ'))), view: [0.35, 1.1, 0.75] };
   if (id === 'tobiuo' && !loc.species.some((s) => s.id === 'tobiuo')) { const m = flyingFishModel(); m.position.y = 20; return { obj: m, view: [0.3, 0.45, 0.4] }; }   // (in the air, wings spread)

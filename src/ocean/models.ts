@@ -180,18 +180,18 @@ export function poritesGeo(ws, hs) {
   return accGeo(acc);
 }
 
-// Sea fan (gorgonian): a slightly cupped fan-shaped sheet on a short stalk. The shader cuts the sheet
-// into a lace of fine branches and radial ribs.
+// Sea fan (gorgonian): a slightly cupped fan-shaped sheet on a short stalk, the sheet growing straight out
+// of the stalk's top (no gap, no collar). The shader cuts it into a lace of fine branches and radial ribs.
 export function fanSheetGeo(seed) {
   const rnd = mulberry32(seed), acc = Acc();
-  const R0 = 0.14, RA = 24, RR = 10, spread = 1.1 + rnd() * 0.5, lobes = [rnd(), rnd(), rnd()];
+  const R0 = 0.035, RA = 24, RR = 12, spread = 1.1 + rnd() * 0.5, lobes = [rnd(), rnd(), rnd()];
   const pos = [], tip = [];
   const at = (i, j) => {
     const a = (i / RA - 0.5) * spread * 2, t = j / RR;
     const edge = 1 + 0.12 * Math.sin(a * 3 + lobes[0] * 6) + 0.08 * Math.sin(a * 7 + lobes[1] * 6);
     const r = R0 + t * (1 - R0) * edge;
     const x = Math.sin(a) * r, y = Math.cos(a) * r;
-    return [x, y + 0.1, 0.12 * x * x - 0.05 * t * t, r];
+    return [x, y + 0.2, 0.12 * x * x - 0.05 * t * t, r];
   };
   for (let i = 0; i < RA; i++) for (let j = 0; j < RR; j++) {
     const q = [at(i, j), at(i + 1, j), at(i, j + 1), at(i + 1, j + 1)];
@@ -200,8 +200,8 @@ export function fanSheetGeo(seed) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.computeVertexNormals();
-  pushGeo(acc, g, new THREE.Matrix4(), (v) => Math.hypot(v.x, v.y - 0.1));
-  pushGeo(acc, new THREE.CylinderGeometry(0.025, 0.04, 0.2, 6), new THREE.Matrix4().makeTranslation(0, 0.1, 0), () => 0);
+  pushGeo(acc, g, new THREE.Matrix4(), (v) => Math.hypot(v.x, v.y - 0.2));
+  pushGeo(acc, new THREE.CylinderGeometry(0.022, 0.04, 0.23, 6), new THREE.Matrix4().makeTranslation(0, 0.115, 0), () => 0);
   return accGeo(acc);
 }
 // Leather coral (Sarcophyton): a stout stalk under a broad, deeply folded cap.
@@ -437,14 +437,16 @@ export function coralMaterial(kind, lod = 0) {
        #elif KIND == 3
          // lace: a net of fine branches plus radial ribs; solid silhouette far away to avoid shimmer
          {
-           vec2 fp = vec2(vL.x, vL.y - 0.1);
+           vec2 fp = vec2(vL.x, vL.y - 0.2);
            float rr0 = length(fp);
            float ang = atan(fp.x, fp.y);
-           // a fine net whose meshes stretch along the radial branches, as in Annella
-           float web = vor(vec2(ang * rr0 * 30.0, rr0 * 19.0) + vSeed * 10.0);
-           float line = 1.0 - smoothstep(0.04, 0.12, web);
-           float rib = 1.0 - smoothstep(0.0, 0.03, abs(fract(ang * 4.0 + sin(rr0 * 7.0 + vSeed * 5.0) * 0.25) - 0.5) * rr0 * 1.6);
-           float m = max(max(line, rib), step(rr0, 0.16) + step(vL.y, 0.12));
+           // a fine, close net whose meshes stretch along the radial branches, as in Annella: dense enough
+           // to read as a fan of lace, not as the frame of one
+           float web = vor(vec2(ang * rr0 * 46.0, rr0 * 30.0) + vSeed * 10.0);
+           float line = 1.0 - smoothstep(0.07, 0.16, web);
+           // the main branches, forking out from the stalk, thick at the base and thinning to the rim
+           float rib = 1.0 - smoothstep(0.0, 0.045 * (1.5 - rr0), abs(fract(ang * 4.0 + sin(rr0 * 7.0 + vSeed * 5.0) * 0.25) - 0.5) * rr0 * 1.6);
+           float m = max(max(line, rib), step(rr0, 0.07) + step(vL.y, 0.2));
            float solidK = smoothstep(8.0, 15.0, distance(vWp, uCamPos));
            if (m < 0.5 && solidK < 0.5) discard;
            alb = mix(vCol2, vCol, smoothstep(0.0, 0.3, vTip)) * (0.85 + 0.25 * g) * mix(1.0, 0.7, solidK * (1.0 - m));

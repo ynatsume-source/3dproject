@@ -28,7 +28,7 @@ interface Group {
   type: GroupType; n: number; start: number;
   a?: { pos: THREE.Vector3; s: number };
   c: THREE.Vector3; v: THREE.Vector3; head: number; t: number; alt: number;
-  anchor: { x: number; z: number }; placed: boolean;
+  anchor: { x: number; z: number }; placed: boolean; away?: boolean;   // (an anemone family left be, far off, and not drawn)
   act: number; fear: number; hunger: number; ready?: boolean;
   hunt: null | Hunt; cooldown: number;
   prey?: PreyGroup;
@@ -337,7 +337,13 @@ export function makeFishSystem(sp: Species, oc: any) {
       g.act += (act - g.act) * Math.min(1, dt * 0.08);           // settle in / wake up over ~15 s
       g.fear = Math.max(0, g.fear - dt * 0.25);
       const dxc = g.c.x - cam.x, dzc = g.c.z - cam.z, dc2 = dxc * dxc + dzc * dzc;
-      if (g.type === 'anem') { if (!g.placed) place(g, cam, fx, fz, true); if (dc2 > 80 * 80) continue; }
+      if (g.type === 'anem') {
+        if (!g.placed) place(g, cam, fx, fz, true);
+        // (far off, the family is left be — and not drawn: one never yet come near would otherwise be drawn
+        // where its instances start, at the middle of the sea's surface)
+        if (dc2 > 80 * 80) { if (!g.away) { g.away = true; _mm.makeScale(0, 0, 0); for (let i = g.start; i < g.start + g.n; i++) mesh.setMatrixAt(i, _mm); dirty = true; } continue; }
+        g.away = false;
+      }
       else if (!g.placed || (dc2 > 72 * 72 && (!g.cr || g.cr.mode === 'out'))) {
         place(g, cam, fx, fz, !g.placed);
         if (g.cr) { g.cr.mode = 'out'; if (g.act < 0.45 && Math.hypot(g.cr.spot.pos.x - cam.x, g.cr.spot.pos.z - cam.z) > 32) toRest(g); }

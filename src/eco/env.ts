@@ -44,7 +44,7 @@ export interface Subject {
   len?: number; adult?: number; lenK?: number; lenWhat?: string;   // this individual's size (m), its species' adult size, growth rate, what is measured
   // a place to fly through rather than orbit: where the camera is and looks at t seconds in
   // a leap out of the sea (a breaching whale): film it from the waterline, this far off, side on to dir, looking h up
-  breach?: { dist: number; h: number; dir: { x: number; y: number; z: number } };
+  breach?: { dist: number; h: number; dir: { x: number; y: number; z: number }; body?: { x: number; y: number; z: number }; len?: number };   // (body: where the animal itself is, all the way up)
   tour?: { length: number; start(rev: boolean): { x: number; y: number; z: number }; at(t: number, rev: boolean, pos: any, look: any): void };
 }
 

@@ -6,7 +6,10 @@ import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 import type { Style, GiantMove } from './persona';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean }
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean;
+  tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
+  leapView?: 'line' | 'close' | 'air'; // how a leap is being filmed (below)
+}
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
   hunt: [8, 30], school: [28, 45], cave: [0, 0], turtle: [30, 50], manta: [30, 45], giant: [35, 55], big: [20, 30], anemone: [22, 32], octopus: [30, 45], robot: [40, 70], critter: [20, 32],
@@ -106,11 +109,17 @@ export class Director {
     return s.prio * vis * Math.max(0, near) * bored * recent * grand * this.weight(s);
   }
 
-  // A leap out of the sea: from the waterline, side on to the line it leaps along, far enough off to
-  // see the whole of it in the air (half the frame sea, half sky), on the side we are already on.
+  // A leap out of the sea, filmed one of three ways (not the same way twice running):
+  //  'line'  from the waterline, side on: the lens just above the water and tipped down, a fifth of the frame
+  //          sky, on the animal coming up through the blue; tipped up with it as it breaks out (four fifths
+  //          sky while it is in the air), and down again as it falls back in;
+  //  'close' right beside where it will come out, the lens very wide: it comes straight at the camera from
+  //          below and goes up past it, the view thrown up after it;
+  //  'air'   from above and off to the side, the whole arc and the splash below.
+  private lastLeapView = '';
   private breach(sh: Shot, s: Subject, p: { x: number; y: number; z: number }, dt: number, drone: THREE.Vector3, floor: (x: number, z: number) => number) {
     if (!s.live()) { this.shot = null; this.cooldown = rr(...this.rest); return null; }
-    const b = s.breach!, dx = b.dir.x, dz = b.dir.z;
+    const b = s.breach!, dx = b.dir.x, dz = b.dir.z, L = b.len ?? 4;
     const mx = p.x + dx * 2, mz = p.z + dz * 2;          // (where it will be in the air: a little on along its line)
     if (this.t === 0 && sh.phase === 'approach') {
       // which side, and how far: ours if there is water there to sit in, else the other; closer in over a shallow reef
@@ -121,11 +130,28 @@ export class Director {
         if (floor(x, z) < -1.6) { best = [sd, b.dist * k]; break search; }
       }
       this.side = best[0]; this.ang = best[1];
+      // the framing: mostly from the waterline, now and then close in, now and then from the air
+      const lat = L * 0.5 + 1.5, cx = p.x + dx * 2.5 - dz * this.side * lat, cz = p.z + dz * 2.5 + dx * this.side * lat;
+      const opts: ('line' | 'close' | 'air')[] = ['line', 'line', 'close', 'close', 'air'].filter((v) => v !== this.lastLeapView) as any;
+      let view = opts[Math.floor(Math.random() * opts.length)];
+      if (view === 'close' && floor(cx, cz) > -1.6) view = 'line';   // (no water to sit in beside it)
+      sh.leapView = view; this.lastLeapView = view;
     }
-    const d = this.ang;
-    sh.pos.set(mx - dz * this.side * d, 0, mz + dx * this.side * d);
-    sh.look.set(mx, b.h * 0.5, mz);
-    sh.surface = true;
+    const d = this.ang, body = b.body ?? { x: mx, y: b.h * 0.5, z: mz }, view = sh.leapView ?? 'line';
+    if (view === 'close') {
+      const lat = L * 0.5 + 1.5;
+      sh.pos.set(p.x + dx * 2.5 - dz * this.side * lat, 0, p.z + dz * 2.5 + dx * this.side * lat);
+    } else if (view === 'air') {
+      sh.pos.set(mx - dz * this.side * d * 1.5 - dx * d * 0.4, b.h * 4 + 3, mz + dx * this.side * d * 1.5 - dz * d * 0.4);
+    } else sh.pos.set(mx - dz * this.side * d, 0, mz + dx * this.side * d);
+    // looking at the animal itself, wherever it is on its way (before it is out, where it will come out)
+    sh.look.set(body.x, body.y, body.z);
+    // the line: the horizon a fifth from the top while it is under (lens tipped down ~0.4), four fifths down
+    // while it is out (tipped up as much), following its height through the surface
+    // (tipped up a moment ahead of it, as it nears the surface, so the camera is with it when it comes out)
+    sh.tilt = view === 'line' ? -0.4 + 0.8 * Math.min(1, Math.max(0, (body.y + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
+    sh.zoom = false;   // (a leap is filmed with the lens as the framing has it, not closed in on)
+    sh.surface = view !== 'air';
     const gap = Math.hypot(drone.x - sh.pos.x, drone.z - sh.pos.z);
     if (sh.phase === 'approach' && (gap < 3 || this.t > 20)) sh.phase = 'observe';
     this.t += dt;

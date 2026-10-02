@@ -58,8 +58,8 @@ const PATH = (() => {
   return out;
 })();
 
-// a manta's whole way up: the wait at depth before it starts (cruising slowly, WARN s at 1.2 m/s), then the run
-const MANTA_WAY: [number, number][] = (() => { const far = Math.max(...PATH.manta.map(([x]) => x)); return [...PATH.manta, ...[2, 4, 6, 8.4].map((d): [number, number] => [far + d, RUN.manta.y0])]; })();
+// a manta's whole way up: coming in at depth before it starts (WARN s at 2 m/s), then the run
+const MANTA_WAY: [number, number][] = (() => { const far = Math.max(...PATH.manta.map(([x]) => x)); return [...PATH.manta, ...[2, 4, 6, 8, 10, 12, 14].map((d): [number, number] => [far + d, RUN.manta.y0])]; })();
 export function makeBreach(oc: any) {
   const whale = new THREE.Mesh(WHALE_GEO, whaleMaterial(0.44)); whale.visible = false; whale.frustumCulled = false; oc.group.add(whale);
   const giantManta = (oc.loc.extraGuide || []).some((e: any) => e.id === 'manta' && e.ja === 'オニイトマキエイ');
@@ -149,7 +149,8 @@ export function makeBreach(oc: any) {
         // The manta's run is precomputed from phase zero. Arrive at that phase continuously rather
         // than changing the predicted takeoff point by accumulating warning-time strokes into run.ph.
         ph = l.kind === 'manta' ? s * Math.PI * 2 * P.f0 * 0.6 : run.ph;
-        y = P.y0; pitch = P.p0; along = s * 1.2; beat = 0.8;
+        // (a manta comes in from the blue at depth, in sight the whole time the camera is waiting for it)
+        y = P.y0; pitch = P.p0; along = s * (l.kind === 'manta' ? 2.0 : 1.2); beat = 0.8;
       } else if (!run.done) {
         // the run up, driven stroke by stroke (in the same small steps it was worked out in)
         for (let k = 0, n = Math.max(1, Math.round(dt * 60)); k < n && !run.done; k++) runStep(run, l.kind, vT, dt / n);
@@ -221,7 +222,7 @@ export function makeBreach(oc: any) {
       _e.set(-pitch, l.sw ? l.sw.yaw : Math.atan2(l.dir.x, l.dir.z), roll, 'YXZ');
       mesh.position.set(cx, y, cz); mesh.rotation.copy(_e);
       if (l.kind === 'whale') mesh.scale.setScalar(L); else mesh.scale.setScalar(L / 2);
-      mesh.visible = s > -2;
+      mesh.visible = l.kind === 'manta' ? s > -WARN : s > -2;
       // out of the water: water pouring off it
       if (up > 0 && up < airT) for (let k = 0; k < 3; k++) {
         if (l.kind === 'whale') _ax.set(0, 0, (Math.random() - 0.5) * L * 0.9);
@@ -264,7 +265,7 @@ export function makeBreach(oc: any) {
       const whaleNow = l.kind === 'whale';
       out.push({ key: 'breach', label: whaleNow ? 'ザトウクジラのブリーチ' : 'マンタのジャンプ', kind: 'giant', prio: 9, size: l.len, reach: 160, hold: 26,
         pos: () => exitC, live: () => leap === l, status: () => (up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'),
-        breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir } });
+        breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir, body: (whaleNow ? whale : manta).position, len: l.len } });
     },
   };
 }

@@ -160,7 +160,7 @@ let stuckT = 0;
 // a low run over the sea to put up flying fish, and the chase alongside them (from the sky)
 let flyRun: { burst: boolean; t: number; side: number; aim?: THREE.Vector3; adir?: THREE.Vector3 } | null = null, flyK = 0, thrust = 0, prevVel = new THREE.Vector3(), flyT = rr(60, 140);
 let lastShot: Shot | null = null;
-let huntK = 0, giantK = 0, zoomK = 0;
+let huntK = 0, giantK = 0, zoomK = 0, leapWideK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
 // from the field guide; it stays while that is being filmed (on/off, remembered)
 let captionOn = (() => { try { return localStorage.getItem('seaglass.caption') !== '0'; } catch (e) { return true; } })();
@@ -180,7 +180,7 @@ let cruiseSubj: Subject | null = null, cruiseT = 0;
 function updateCaption(dt: number) {
   const el = $('caption'); let sh = lastShot;
   // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by
-  if (captionOn && !(sh && (sh.phase === 'observe' || sh.asked)) && drone.mode === 'auto' && !watch.r && cur && camera.position.y < 0) {
+  if (captionOn && !(sh && (sh.phase === 'observe' || sh.asked)) && !watch.r && cur && camera.position.y < 0) {   // (flown by hand too: what is in front of it)
     if ((cruiseT -= dt) < 0) {
       cruiseT = 2;
       const fwd = U.uCamFwd.value; let best: Subject | null = null, bs = 0;
@@ -196,7 +196,7 @@ function updateCaption(dt: number) {
     if (cruiseSubj) sh = { subject: cruiseSubj, phase: 'observe', pos: camera.position, look: camera.position, cruise: true } as any;
   } else cruiseSubj = null;
   // (asked for, by a tap or from the guide: told about it from the moment it is asked for, all the way there)
-  const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked) && drone.mode === 'auto' && !watch.r && sh.subject.kind !== 'cave';
+  const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked) && (drone.mode === 'auto' || !!(sh as any).cruise) && !watch.r && sh.subject.kind !== 'cave';
   if (!want) { if (el.classList.contains('on')) el.classList.remove('on'); capShot = null; return; }
   if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
   if (capShot !== sh || capPhase !== sh!.phase) {
@@ -341,9 +341,12 @@ function updateDrone(dt: number, now: number) {
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
     const lk = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
-    const k = Math.min(1, dt * (shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame)
+    const leap = !!shot.leapView && shot.phase === 'observe';
+    const k = Math.min(1, dt * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
-    drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
+    // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
+    const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
+    drone.pitch += (clamp(wantP, -1.1, 1.15) - drone.pitch) * Math.min(1, leap && shot.tilt !== undefined ? dt * 3.2 : k);
   } else if (flyOn) {
     flyStep(dt);
   } else if (drone.mode === 'auto' && drone.sky) {
@@ -501,7 +504,7 @@ function updateDrone(dt: number, now: number) {
     // swell washing over it, before going on up into the air or down into the sea
     drone.skim -= dt;
     drone.pos.y += (0 - drone.pos.y) * Math.min(1, dt * 3); drone.vel.y = 0;
-    drone.pitch += (0.02 - drone.pitch) * Math.min(1, dt * 1.5);
+    if (!lastShot?.leapView) drone.pitch += (0.02 - drone.pitch) * Math.min(1, dt * 1.5);   // (filming a leap, the framing has the tilt)
     if (drone.skim <= 0) { drone.pos.y = drone.skimDir > 0 ? Math.max(drone.pos.y, 0.02) : Math.min(drone.pos.y, -0.02); crossSurface(drone.skimDir > 0); drone.pass = drone.skimDir; }   // (and then on through, without a jump)
   } else if (drone.pass) {
     // going through: straight on up (or down) through the band at the waterline, never stopping in it
@@ -546,7 +549,9 @@ function updateDrone(dt: number, now: number) {
   if (lastShot?.phase === 'observe' && obsAt === 0) obsAt = now; else if (lastShot?.phase !== 'observe') obsAt = 0;
   const zoomOn = !!lastShot?.zoom && lastShot.phase === 'observe' && !lastShot.giant && obsAt > 0 && now - obsAt < 9000 && drone.mode === 'auto' && !watch.r;
   zoomK += ((zoomOn ? 1 : 0) - zoomK) * Math.min(1, dt * (zoomOn ? 0.9 : 0.5));   // (in gently, and gently back out)
-  const fov = 70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK;
+  // right beside a leap: a very wide lens, the animal coming at it and up past it
+  leapWideK += ((lastShot?.leapView === 'close' && drone.mode === 'auto' && !watch.r ? 1 : 0) - leapWideK) * Math.min(1, dt * 1.2);
+  const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK) * (1 - leapWideK) + 104 * leapWideK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (1 - flyK) * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
@@ -1774,7 +1779,7 @@ for (const [id, k] of [['volAll', 'all'], ['volMusic', 'music'], ['volNature', '
 }
 function setVolPanel(on: boolean) { $('volPanel').hidden = !on; $('btnVol').setAttribute('aria-expanded', String(on)); }
 $('btnVol').onclick = () => setVolPanel($('volPanel').hidden);
-function setHud(on: boolean) { hudOn = on; document.body.classList.toggle('hud-off', !on); }
+function setHud(on: boolean) { hudOn = on; document.body.classList.toggle('hud-off', !on); if (!on) setMenu(false); }   // (hiding everything: the menu it was chosen from too)
 function openPanel(tab: 'guide' | 'log') {
   if (!guideEl.hidden && panelTab === tab) { setGuide(false); return; }
   panelTab = tab; setGuide(true);
