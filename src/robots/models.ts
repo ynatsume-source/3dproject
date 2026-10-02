@@ -15,6 +15,7 @@ export interface Pose {
   key?: number; elapsed?: number;     // which spell of doing something this is, and how long it has been at it (s)
   bottom?: number;                    // how far it is settled on the bottom under the water (0..1): resting there, not swimming
   task?: string;                      // what the doing is for (the same act serves several: a pick to gather, to plant, to harvest)
+  probe?: number;                     // Lantern trying the footing ahead: 0..1 through it (unset: not)
 }
 const hk = (key: number, n: number) => { const x = Math.sin(key * 12.9898 + n * 78.233) * 43758.5453; return x - Math.floor(x); };   // (a variant fixed for the spell, not drawn afresh each frame)
 const sm = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -312,35 +313,67 @@ export function robotKit(M: Mats, shadows = false) {
   // 4. ランタン: a box on four long jointed legs; a ring of light for a face that breathes as it thinks
   function makeLantern(): Robot {
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-    const core = box(0.42, 0.34, 0.42, 0.07, M.shell); core.position.y = 0.58; body.add(core);
-    const roof = box(0.46, 0.05, 0.46, 0.02, M.panel); roof.position.y = 0.765; body.add(roof);
-    const face = cyl(0.13, 0.13, 0.02, M.dark, 40); face.rotation.x = Math.PI / 2; face.position.set(0, 0.59, 0.212); body.add(face);
+    // the box turns and tips on its legs (to look, to try the footing); the hips stay where the feet are
+    const top = new THREE.Group(); top.position.y = 0.48; body.add(top);
+    const core = box(0.42, 0.34, 0.42, 0.07, M.shell); core.position.y = 0.1; top.add(core);
+    const roof = box(0.46, 0.05, 0.46, 0.02, M.panel); roof.position.y = 0.285; top.add(roof);
+    const face = cyl(0.13, 0.13, 0.02, M.dark, 40); face.rotation.x = Math.PI / 2; face.position.set(0, 0.11, 0.212); top.add(face);
     const ringMat = M.glow.clone();
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 10, 48), ringMat); ring.position.set(0, 0.59, 0.224); body.add(ring);
-    const dotEye = ball(0.02, M.glow); dotEye.position.set(0, 0.59, 0.225); body.add(dotEye);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 10, 48), ringMat); ring.position.set(0, 0.11, 0.224); top.add(ring);
+    const dotEye = ball(0.02, M.glow); dotEye.position.set(0, 0.11, 0.225); top.add(dotEye);
     // a lamp under the box, lit at night to see the path by
-    const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), M.warm.clone()); lamp.rotation.x = Math.PI / 2; lamp.position.y = 0.408; body.add(lamp);
+    const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), M.warm.clone()); lamp.rotation.x = Math.PI / 2; lamp.position.y = -0.072; top.add(lamp);
     const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz], i) => {
       const hip = new THREE.Group(); hip.position.set(sx * 0.2, 0.48, sz * 0.2); hip.rotation.y = Math.atan2(sx, sz); body.add(hip);
       // knee held out level with the hip, shin dropping to the sand: a spider's stance
       const a = limb(0.22, 0.032, M.joint); a.pivot.rotation.x = -1.15; hip.add(a.pivot);
       const b = limb(0.4, 0.029, M.shell); b.pivot.rotation.x = 0.95; a.end.add(b.pivot);
       const toe = ball(0.042, M.accent); b.end.add(toe);
-      return { a, b, i };
+      return { a, b, i, toe, hip, sx, sz };
     });
-    let sleepK = 0;
-    const gaze = makeGaze(0.45, 0.4, 0.5, 3);
+    // Each foot is put down and stays where it is put: while a foot bears weight it slides back under the
+    // body exactly as far as the body goes forward, at the height of the ground, and only the feet in the air
+    // swing ahead. So the legs are placed from the feet: where each toe should be (in the body's frame), the
+    // hip turned to face it, and thigh and shin bent (two-segment reach) to put the toe on it.
+    const A = 0.22, B = 0.4, A0 = -1.15, B0 = 0.95;
+    const restOut = -(A * Math.sin(A0) + B * Math.sin(A0 + B0)), restUp = -(A * Math.cos(A0) + B * Math.cos(A0 + B0));
+    const reachTo = (l: typeof legs[0], x: number, y: number, z: number) => {
+      const hx = l.hip.position.x, hz = l.hip.position.z, out = Math.hypot(x - hx, z - hz), up = y - l.hip.position.y;
+      l.hip.rotation.y = Math.atan2(x - hx, z - hz);
+      const qx = -out, qy = -up, D = Math.min(A + B - 1e-3, Math.max(Math.abs(A - B) + 1e-3, Math.hypot(qx, qy)));
+      const beta = Math.acos(Math.max(-1, Math.min(1, (D * D - A * A - B * B) / (2 * A * B))));
+      const alpha = Math.atan2(qx, qy) - Math.atan2(B * Math.sin(beta), A + B * Math.cos(beta));
+      l.a.pivot.rotation.set(alpha, 0, 0); l.b.pivot.rotation.x = beta;
+    };
+    const STRIDE = 0.6, REACH = STRIDE / 4;   // (a full cycle of the legs every 0.6 m; each foot bears weight for half of it)
+    let sleepK = 0, probeK = 0;
+    const gaze = makeGaze(0.62, 0.4, 0.5, 3);   // (it looks with its whole body: round a little further than a head would go)
     return { root, light: lamp, update(t, dt, p = DEMO) {
-      const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, 1.6, 3);
+      const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, STRIDE, 3 * 1.6 / STRIDE * 0.4);
       gaze.step(p, dt, 0.59);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 1.5);
-      legs.forEach((l) => { const ph = w + [0, Math.PI, Math.PI, 0][l.i]; l.a.pivot.rotation.x = -1.15 - Math.max(0, Math.sin(ph)) * 0.3 * walk + sleepK * 0.3; l.a.pivot.rotation.z = Math.cos(ph) * 0.18 * walk; l.b.pivot.rotation.x = 0.95 + sleepK * 0.4; });
-      body.position.y = Math.sin(w * 2) * 0.012 * walk - sleepK * 0.22; body.rotation.x = Math.sin(t * 0.6) * 0.04 + (p.act === 'think' ? -0.25 : 0);   // thinking: face tipped up to the sky
+      // trying the footing ahead (a step, a steep bit): the light and the box tipped down to the next foothold,
+      // the weight shifted back onto the hind feet, and one fore foot reached out, set down slowly, pressed
+      const pr = p.probe ?? -1;
+      probeK += ((pr >= 0 ? 1 : 0) - probeK) * Math.min(1, dt * 4);
+      const reachOut = pr >= 0 ? smoothStep(0.2, 0.45, pr) * (1 - smoothStep(0.8, 1, pr)) : 0, liftUp = pr >= 0 ? smoothStep(0.2, 0.35, pr) * (1 - smoothStep(0.45, 0.7, pr)) : 0;
+      legs.forEach((l) => {
+        // diagonal pairs together (fore-left with hind-right): half the cycle bearing weight, half swinging
+        const u = ((w / (Math.PI * 2) + [0, 0.5, 0.5, 0][l.i]) % 1 + 1) % 1;
+        let f = u < 0.5 ? REACH * (1 - 4 * u) : -REACH + 2 * REACH * smoothStep(0.5, 1, u);
+        let lift = u < 0.5 ? 0 : Math.sin((u - 0.5) * 2 * Math.PI);
+        f *= walk; lift *= Math.min(1, walk * 1.5);
+        if (l.i === 1) { f = f * (1 - probeK) + 0.17 * reachOut; lift = lift * (1 - probeK) + liftUp; }   // (the fore-right foot does the feeling)
+        const ox = Math.sin(Math.atan2(l.sx, l.sz)), oz = Math.cos(Math.atan2(l.sx, l.sz));
+        reachTo(l, l.hip.position.x + ox * restOut, l.hip.position.y + restUp + lift * 0.09, l.hip.position.z + oz * restOut + f);
+        l.a.pivot.rotation.x += sleepK * 0.3; l.b.pivot.rotation.x += sleepK * 0.4;   // (asleep: folded down under the box)
+      });
+      body.position.y = -sleepK * 0.22; top.position.y = 0.48 + Math.abs(Math.sin(w * 2)) * 0.008 * walk - probeK * 0.03; top.position.z = -probeK * 0.05; top.rotation.x = Math.sin(t * 0.6) * 0.04 * (1 - walk * 0.7) + (p.act === 'think' ? -0.25 : 0) + probeK * 0.2;   // thinking: face tipped up to the sky
       const think = 0.5 + 0.5 * Math.sin(t * (p.act === 'think' ? 3.2 : 1.6));
       glowColor(ringMat)?.setHSL?.(0.5 - think * 0.05, 0.85, (0.55 + 0.25 * think) * (1 - sleepK * 0.75));
       ring.scale.setScalar(0.95 + 0.08 * think);
       // no head: it looks with the whole box, turned and tipped a little, and the dot of its eye
-      body.rotation.y = gaze.yaw * gaze.w * (1 - sleepK); body.rotation.x += gaze.pitch * 0.5 * gaze.w * (1 - sleepK);
+      top.rotation.y = gaze.yaw * gaze.w * (1 - sleepK); top.rotation.x += gaze.pitch * 0.5 * gaze.w * (1 - sleepK);
       dotEye.position.x = Math.sin(t * 0.7) * 0.05 * (1 - gaze.w) + Math.max(-0.06, Math.min(0.06, gaze.yaw * 0.12)) * gaze.w;
       lamp.visible = (p.night ?? 0) > 0.4 && p.act !== 'sleep';
     } };

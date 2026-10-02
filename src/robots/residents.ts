@@ -11,7 +11,7 @@ import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { AIRLIT } from '../ocean/shore';
 import { findPath } from './path';
-import { craftBeat } from './models';
+import { craftBeat, variant } from './models';
 import { robotKit, type Robot, type Act, type Mats } from './models';
 import { creatureKit, type CMats, type Food } from './creatures';
 import { VOICES, STAGES, type Voice } from './voices';
@@ -161,7 +161,8 @@ export interface Resident {
   seen?: { name: string; pos: THREE.Vector3; t: number; dur: number; lost: number };   // a fish going by that it is watching (Kamemaru, grazing)
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
-  mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number };
+  mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number;
+    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number } };   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
   lightK?: number;
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
   held: THREE.Mesh;
@@ -404,7 +405,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     group.add(model.root);
     const r: Resident = {
       id: sp.id, v: VOICES[sp.id], sp, model,
-      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, mo: { stride: 0, px: NaN, pz: 0, ph: 0, gait: 0, key: 0, t: 0, act: '', task: null, look: null, why: '', hold: 0, glance: 8 + Math.random() * 17 }, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
+      pos: new THREE.Vector3(sp.home[0], L.h(sp.home[0], sp.home[1]), sp.home[1]), head: Math.random() * 6.28, mo: { stride: 0, px: NaN, pz: 0, ph: 0, gait: 0, key: 0, t: 0, act: '', task: null, look: null, why: '', hold: 0, glance: 8 + Math.random() * 17, probe: -1, since: 0, fails: 0, bad: [] }, battery: sp.living ? 1 : 0.8, hunger: 0.4, sleepy: 0.2, meal: {}, under: 0,
       task: null, walk: 0, act: 'idle', wet: false, talk: null, saying: '', sayT: 0,
       stats: { built: 0, notes: 0, shells: 0, cracked: 0, visited: 0, cairns: 0, wood: 0, food: 0, felled: 0 },
       today: [], diary: [], blocked: 0,
@@ -730,6 +731,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
+  // Lantern, picking its way: it would rather go round a steep bit than up it, and round anywhere it has
+  // tried the footing and found it would not do (its four long legs are sure on the level, careful on a slope)
+  const lanternCost = (bad: [number, number][]) => (x: number, z: number) => {
+    const c = walkCost(x, z); if (!isFinite(c)) return c;
+    for (const [bx, bz] of bad) if (Math.hypot(x - bx, z - bz) < 2.5) return 40;
+    const sl = Math.hypot(G(x + 0.8, z) - G(x - 0.8, z), G(x, z + 0.8) - G(x, z - 0.8)) / 1.6;
+    return c + (sl > 0.9 ? 30 : sl * 2.5);
+  };
   function move(r: Resident, tx: number, tz: number, dt: number, wetTask: boolean, fast = false) {
     const dx0 = tx - r.pos.x, dz0 = tz - r.pos.z, d0 = Math.hypot(dx0, dz0);
     if (d0 < 0.6) { r.path = undefined; return true; }
@@ -738,7 +747,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!fast && G(r.pos.x, r.pos.z) > 0.2 && G(tx, tz) > 0.2) {
       const P = r.path;
       if (!P || (Math.hypot(P.tx - tx, P.tz - tz) > 4 && clockMs - P.t > 3000)) {
-        r.path = { pts: d0 > 2 ? findPath(r.pos.x, r.pos.z, tx, tz, walkCost) ?? [[tx, tz]] : [[tx, tz]], tx, tz, t: clockMs };
+        r.path = { pts: d0 > 2 ? findPath(r.pos.x, r.pos.z, tx, tz, r.id === 'lantern' ? lanternCost(r.mo.bad) : walkCost) ?? [[tx, tz]] : [[tx, tz]], tx, tz, t: clockMs };
       }
       const pts = r.path!.pts;
       while (pts.length > 1 && Math.hypot(pts[0][0] - r.pos.x, pts[0][1] - r.pos.z) < 0.9) pts.shift();
@@ -760,6 +769,29 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
     }
     let dh = want - r.head; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    // Lantern, where the ground ahead changes (a step, the start of a steep bit): it stops, tips its light down
+    // to the next foothold, reaches out a fore foot and tries it, and only then goes on, or, if it will not
+    // do, backs off and thinks of another way (twice, and it gives up and goes somewhere else). On the level
+    // it does not do this; on a long even slope, once at the start.
+    if (r.id === 'lantern' && !fast && !inWater) {
+      const mo = r.mo;
+      if (mo.probe >= 0) {
+        mo.probe += dt / 1.6; r.walk = 0;
+        if (mo.probe >= 1) {
+          mo.probe = -1; mo.since = 0;
+          const fx = Math.sin(r.head), fz = Math.cos(r.head), sa = (G(r.pos.x + fx * 0.9, r.pos.z + fz * 0.9) - G(r.pos.x + fx * 0.3, r.pos.z + fz * 0.3)) / 0.6;
+          if (Math.abs(sa) > 0.9) { mo.bad.push([r.pos.x + fx * 1.2, r.pos.z + fz * 1.2]); if (mo.bad.length > 12) mo.bad.shift(); r.path = undefined; r.head += Math.PI * 0.15; if (++mo.fails >= 2) r.blocked = 99; }
+        }
+        return false;
+      }
+      if (mo.since > 4 && Math.cos(dh) > 0.9) {
+        const fx = Math.sin(r.head), fz = Math.cos(r.head), here = G(r.pos.x, r.pos.z);
+        const sh = (here - G(r.pos.x - fx * 0.5, r.pos.z - fz * 0.5)) / 0.5, sa = (G(r.pos.x + fx * 0.9, r.pos.z + fz * 0.9) - G(r.pos.x + fx * 0.3, r.pos.z + fz * 0.3)) / 0.6;
+        // (or something low underfoot just ahead, a rock or a tussock it will have to step onto)
+        const low = T.vegH ? T.vegH(r.pos.x + fx * 0.7, r.pos.z + fz * 0.7, 0.3) : 0, lowHere = T.vegH ? T.vegH(r.pos.x, r.pos.z, 0.3) : 0;
+        if ((Math.abs(sa - sh) > 0.18 && Math.abs(sa) > 0.15) || (low > 0.12 && low < WAIST && lowHere < 0.08)) { mo.probe = 0; r.walk = 0; return false; }
+      }
+    }
     r.head += dh * Math.min(1, dt * 2.5);
     const step = Math.min(d, speed * dt) * Math.max(0, Math.cos(dh));
     const nx = r.pos.x + Math.sin(r.head) * step, nz = r.pos.z + Math.cos(r.head) * step;
@@ -776,6 +808,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     else r.blocked += dt * 2;   // (the way ahead is water: it stops, rather than marching on the spot, and soon thinks again)
     r.walk = moved / Math.max(dt, 1e-3) / speed;   // (legs move only as fast as it really goes)
+    r.mo.since += moved;
     return false;
   }
   // what it looks at (for its body only; nothing in the world depends on it). The eyes go first and the body
@@ -789,6 +822,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.act === 'sleep') return ['', null];
     if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return ['talk', atHead(o)]; }
     if (r.seen) return ['fish', v.copy(r.seen.pos)];
+    if (mo.probe >= 0) { const fx = Math.sin(r.head), fz = Math.cos(r.head); return ['probe', v.set(r.pos.x + fx * 0.75, G(r.pos.x + fx * 0.75, r.pos.z + fz * 0.75), r.pos.z + fz * 0.75)]; }
+    // Lantern, arrived somewhere it has been exploring toward: stopped, it looks one way and then the other
+    // (its whole box turning, 20-35 degrees), and lingers on what there is to see — the drop of the ground,
+    // a rise — then once more ahead; and again, in a different order
+    if (r.id === 'lantern' && tk?.kind === 'explore' && tk.arrived) {
+      if (mo.poi?.key !== mo.key) {
+        let best = 0, bs = -1;
+        for (let k = -4; k <= 4; k++) { const a = k * 0.15, x = r.pos.x + Math.sin(r.head + a) * 6, z = r.pos.z + Math.cos(r.head + a) * 6, sc = Math.abs(G(x, z) - r.pos.y) + (items.nearest('stone', x, z, 3, '') ? 0.6 : 0); if (sc > bs) { bs = sc; best = a; } }
+        mo.poi = { key: mo.key, a: best };
+      }
+      const seg = Math.floor(mo.t / 3.2), side = variant(mo.key, 0) < 0.5 ? 1 : -1;
+      const step = (seg + Math.floor(variant(mo.key, 1) * 4)) % 4, ang = 0.35 + 0.26 * variant(mo.key, seg + 2);
+      const a = step === 0 ? side * ang : step === 1 ? -side * ang : step === 2 ? mo.poi.a : 0;
+      const x = r.pos.x + Math.sin(r.head + a) * 6, z = r.pos.z + Math.cos(r.head + a) * 6;
+      return [step === 2 ? 'poi' : 'scan' + step, v.set(x, G(x, z) + 0.3, z)];
+    }
     if (tk?.kind === 'approach' && byId[tk.data]) return ['approach', atHead(byId[tk.data])];
     if (tk && !tk.arrived) {
       // a point AHEAD metres on along the way it means to go (or straight at the goal)
@@ -940,7 +989,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
       r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
-      r.blocked = 0;
+      r.blocked = 0; r.mo.fails = 0;
       if (!r.task) { r.act = 'idle'; r.walk = 0; placeY(r); return; }
     }
     const tk = r.task;
@@ -1099,7 +1148,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           const Lt = LIGHT[r.id], on = r.sp.living ? 0 : nightK * (r.act === 'sleep' || (r.wet && r.act === 'swim') ? 0 : 1);   // (the animals carry no light)
           r.lightK = (r.lightK ?? 0) + (on - (r.lightK ?? 0)) * Math.min(1, dt * 0.8);
           const fx = Math.sin(r.head), fz = Math.cos(r.head), sway = Math.sin(tt * 1.3 + i) * 0.15;
-          U.uLights.value[i].set(r.pos.x + (fx + fz * sway) * Lt.ahead, r.pos.y, r.pos.z + (fz - fx * sway) * Lt.ahead, r.lightK * Lt.k * (0.94 + 0.06 * Math.sin(tt * 2.1 + i * 2)));
+          const ahead = r.mo.probe >= 0 ? 0.55 : Lt.ahead;   // (trying the footing: the light on the next foothold)
+          U.uLights.value[i].set(r.pos.x + (fx + fz * sway) * ahead, r.pos.y, r.pos.z + (fz - fx * sway) * ahead, r.lightK * Lt.k * (0.94 + 0.06 * Math.sin(tt * 2.1 + i * 2)));
           (U.uLightR.value as any).setComponent(i, Lt.r);
           U.uLightC.value[i].set(((Lt.c >> 16) & 255) / 255, ((Lt.c >> 8) & 255) / 255, (Lt.c & 255) / 255);
           r.beam.visible = r.lightK > 0.02; (r.beam.material as THREE.MeshBasicMaterial).opacity = 0.07 * r.lightK; r.beam.rotation.y = sway * 0.6;
@@ -1138,7 +1188,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         updateLook(r, dt);
         let look: [number, number, number] | undefined;
         if (mo.look) { r.model.root.updateMatrixWorld(); const v = r.model.root.worldToLocal(_lv.copy(mo.look)); look = [v.x, v.y, v.z]; }
-        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: mo.gait, night: 1 - dayK(localHour(ms)), wet: r.wet, k, food, stride: mo.stride, look, key: mo.key, elapsed: mo.t, task: tk?.kind, bottom: r.wet && r.sp.living ? r.under : 0 });
+        r.model.update(performance.now() / 1000 + r.sp.home[0], dt, { act, walk: mo.gait, night: 1 - dayK(localHour(ms)), wet: r.wet, k, food, stride: mo.stride, look, key: mo.key, elapsed: mo.t, task: tk?.kind, bottom: r.wet && r.sp.living ? r.under : 0, probe: mo.probe >= 0 ? mo.probe : undefined });
         // what it has in its hands (Dot's arms hold a log themselves)
         if (r.model.carry) r.model.carry.visible = r.holding === 'wood';
         const hk = r.holding === 'wood' && r.model.carry ? '' : r.holding;
