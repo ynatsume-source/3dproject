@@ -3,6 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Science Lab — 粘土の測定値確認</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="./style.css">
 <main>
   <p class="eyebrow">SCIENCE LAB / MEASUREMENT REVIEW</p>
@@ -10,6 +11,24 @@
   <p>同じ試験片の質量と標点間距離から、含水率・収縮率・吸水率を計算します。空欄は未測定として扱います。</p>
   <aside>計算結果は物性の校正や品質の認定ではありません。材料、調製方法、乾燥条件、焼成履歴、吸水の手順は測定記録に残してください。</aside>
   <form id="measurements">
+    <fieldset><legend>試料と乾燥の記録</legend>
+      <label>試料ID（任意）<input name="sampleId" type="text" maxlength="120" autocomplete="off" placeholder="例：試験片 A-01"></label>
+      <label>値の由来<select name="inputOrigin">
+        <option value="unspecified">未記録</option><option value="measurement">実測値の転記</option>
+        <option value="simulation">モデルの出力</option><option value="example">計算例</option>
+      </select></label>
+      <label>乾燥方法<select name="dryingMethod" aria-describedby="drying-help">
+        <option value="unrecorded">未記録</option><option value="ambient">常温乾燥</option>
+        <option value="heated">加熱乾燥</option><option value="other">その他</option>
+      </select></label>
+      <p id="drying-help" class="note full-width">常温での平衡と加熱乾燥の終点は異なります。方法を選ぶだけでは、恒量や平衡に達したとは判断しません。</p>
+      <label class="full-width">乾燥条件・終点の確認方法（任意）
+        <textarea name="dryingProtocol" rows="3" maxlength="2000" placeholder="温度（設定値か実測か）、湿度・風、経過時間、恒量の判定方法など。分からない条件は未記録としてください。"></textarea>
+      </label>
+      <label class="full-width">測定メモ（任意）
+        <textarea name="notes" rows="3" maxlength="4000" placeholder="材料・調製方法、測定日時、測定器・分解能、元資料のページや図、焼成・吸水の条件など。"></textarea>
+      </label>
+    </fieldset>
     <fieldset><legend>質量（g・風袋を除く）</legend>
       <label>成形時 <input name="wetMassG" type="number" step="any" min="0" inputmode="decimal"></label>
       <label>乾燥後 <input name="dryMassG" type="number" step="any" min="0" inputmode="decimal"></label>
@@ -24,7 +43,9 @@
     <button type="submit">計算する</button> <button type="reset">入力を消す</button>
   </form>
   <section aria-labelledby="result-title"><h2 id="result-title">測定値からの計算</h2>
-    <div id="results" aria-live="polite">測定値を入力してください。入力内容は保存されません。</div>
+    <div id="results" aria-live="polite">測定値を入力してください。自動保存はしません。</div>
+    <button id="download-record" type="button" disabled>測定記録をJSONで保存</button>
+    <p class="note">計算後に、測定値と条件を同じファイルへ保存できます。サーバーへ送信せず、自動保存もしません。実測値と記録しても出典の確認や校正が済んだことにはなりません。</p>
     <p class="note">吸水率は焼成後質量を分母にする質量比です。体積空隙率とは異なります。乾燥収縮と焼成収縮は単純に足せません。負の収縮は膨張、負の焼成質量減少は正味の増量を表します。</p>
   </section>
   <section aria-labelledby="source-title"><h2 id="source-title">出典と照合状態</h2>

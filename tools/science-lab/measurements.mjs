@@ -1,13 +1,13 @@
 // Observation arithmetic only. No process, elapsed-time model, inventory or state.
-const fields = {
+export const measurementFields = Object.freeze({
   wetMassG: '成形時質量', dryMassG: '乾燥後質量', firedMassG: '焼成後質量',
   saturatedMassG: '吸水後質量', wetLengthMm: '成形時標点間距離',
   dryLengthMm: '乾燥後標点間距離', firedLengthMm: '焼成後標点間距離',
-};
+});
 
 export function summarizeMeasurements(input) {
   const values = {};
-  for (const [key, label] of Object.entries(fields)) {
+  for (const [key, label] of Object.entries(measurementFields)) {
     const value = input[key];
     if (value === undefined || value === null || value === '') continue;
     if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
