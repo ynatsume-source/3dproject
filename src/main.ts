@@ -744,7 +744,7 @@ function applySky(loc: Sea, airView = drone.pos.y > 0) {
   setMood({ phase: s.phase, night: s.night, twilight: s.twilight, sea: loc.id });
   if (!lampManual) setLamp(wantLamp(), false);
   cur!.eco.setSky(s, U.uCurrent.value);
-  if (s.phase !== lastPhase) { if (lastPhase) { seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : PHASE_LOG)[s.phase]); say(s.phase as Mood); } lastPhase = s.phase; }
+  if (s.phase !== lastPhase) { if (lastPhase) { seaLog('phase', (loc.pelagic ? PHASE_LOG_OPEN : loc.habitat === 'kelp' ? PHASE_LOG_KELP : PHASE_LOG)[s.phase]); say(s.phase as Mood); } lastPhase = s.phase; }
   if (U.uRain.value > 0.2 && !saidRain) { saidRain = true; say('rain'); }
 }
 const PHASE_LOG: Record<string, string> = {
@@ -758,6 +758,12 @@ const PHASE_LOG_OPEN: Record<string, string> = {
   noon: '日中。光は数百mの深さまで届き、その下はずっと暗い青',
   dusk: '夕暮れ。深海から無数のプランクトンと小さな生きものが表層へ上がってくる、地球でいちばん大きな移動の時間',
   night: '夜。灯りひとつない海の上に、星がいちばん多く見える',
+};
+const PHASE_LOG_KELP: Record<string, string> = {
+  dawn: '夜明け。ケルプの葉の間へ光が差し、昼の魚たちが動き出す',
+  noon: '日中。水面に広がるケルプの天蓋から、岩と砂の海底へ光が差し込む',
+  dusk: '夕暮れ。ケルプの森が影に包まれ、岩陰へ戻る魚が増えていく',
+  night: '夜。昼の魚は岩陰やケルプの間で休み、長い葉はうねりに揺れ続ける',
 };
 let lastPhase = '';
 
@@ -1150,7 +1156,7 @@ function renderGuide() {
     <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${cur.bait ? `<li class="benthic"><i></i><b>ベイトボール</b><p>${cur.bait.st.active ? 'いま沖で起きている。' : ''}${predatorsJa(loc)}が${loc.bait!.sp.ja}の群れを水面へ追い上げ、海鳥が上から突っ込む。ふだんはまれにしか起きない。</p><button class="go" type="button" data-go="bait">${cur.bait.st.active ? '見に行く' : '探しに行く'}</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
     <h3>生きもの</h3>
     <ul>${list.map((e) => `<li data-id="${e.id}" class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : thumbs[e.id] === '' ? '' : `<img class="pic" data-pic="${e.id}" alt="" hidden>`}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
-    <h3>${loc.pelagic ? '漂う生きもの' : 'サンゴと底生生物'}</h3>
+    <h3>${loc.pelagic ? '漂う生きもの' : loc.habitat === 'kelp' ? 'ケルプと底生生物' : 'サンゴと底生生物'}</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>${loc.flora ? `
     <h3>島の植物</h3>
     <ul>${loc.flora.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>` : ''}`;
@@ -1297,8 +1303,23 @@ function applyWater(loc: Sea) {
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
 function enterOcean(oc: Ocean) {
+  if (cur !== oc) {
+    // Observations belong to the sea that produced them. Its ecosystem pauses when
+    // we leave, so old live() closures cannot be allowed to keep a hunt on screen.
+    pipSubj = null; pipFade = pipScan = pipT = pipIdle = pipFromT = 0;
+    pipSlow = false; pipOff = pipLift = pipClear = 0;
+    $('pip').hidden = true; $('pip').style.opacity = '0'; $('pipText').textContent = '';
+    capShot = cruiseSubj = null; capT = obsAt = cruiseT = 0; flyRun = null;
+    logQueue.length = 0; recent.clear(); lastKind.clear(); logShownAt = -1e9;
+    huntLock.ref = null; huntLock.until = 0;
+    markAt = null; markText = ''; markUntil = 0; noticeSubj = null; noticeT = 0; noticed.clear();
+    clearTimeout(toastTimer); clearTimeout(rareT); clearTimeout(hintT); clearTimeout(helloTimer);
+    for (const id of ['toast', 'rare', 'hint', 'caption']) $(id).classList.remove('on', 'go');
+    $('evMark').hidden = true;
+  }
   watch.r = null; watch.pov = false; pov.hide(); document.body.classList.remove('pov', 'pov-ui');
-  for (const l of U.uLights.value) l.w = 0;   // (only the island's residents carry lights) U.uFire.value.w = 0;   // (only the island has a fire)
+  for (const l of U.uLights.value) l.w = 0;   // (only the island's residents carry lights)
+  U.uFire.value.w = 0;   // (only the island has a fire)
   if (oc.residents) {
     oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
     // their voices, when the camera is close enough to hear them
@@ -1324,7 +1345,7 @@ function enterOcean(oc: Ocean) {
   wx = FAIR; refreshWeather(oc.loc);
   setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)
   const cv = oc.cave;
-  U.uCaveOn.value = cv ? 1 : 0; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
+  U.uCaveOn.value = cv ? 1 : 0; U.uCamCave.value = 1; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
   if (cv) {
     U.uCaveTex.value = cv.tex;
     U.uCaveXf.value.set(cv.cx, cv.cz, cv.ca, cv.sa);
@@ -1341,6 +1362,7 @@ function enterOcean(oc: Ocean) {
   skyLabel();
   setTimeout(() => { if (cur === oc) { lastSay = -1e9; say('hello', {}, true); } }, 6000);
   pathPoint(drone.s, drone.pos); drone.vel.set(0, 0, 0);
+  if (oc.loc.habitat === 'kelp') drone.pos.y = Math.max(oc.T.top(drone.pos.x, drone.pos.z) + 2.5, Math.min(drone.pos.y, -7)); // enter among the stipes, below the canopy
   const a = pathPoint(drone.s + 0.05, new THREE.Vector3());
   drone.yaw = Math.atan2(-(a.x - drone.pos.x), -(a.z - drone.pos.z)); drone.pitch = -0.08;
   updateDrone(0.016, performance.now());
@@ -2122,6 +2144,7 @@ function frame(ts: number) {
     setWhaleSong(W && W.seasonal ? (W.active ? 1 : 0.45) : 0);
     pumpLog(now);
     snowMat.uniforms.uPlank.value = 0.5 + cur.eco.env.plankton.sample(drone.pos.x, drone.pos.z) * 1.2;
+    snowMat.uniforms.uBiolum.value = cur.loc.habitat === 'kelp' ? 0 : 1;
     if ((guideTimer += dt) > 2 && !guideEl.hidden) { guideTimer = 0; refreshGuide(); }
     // (in the air or in the sea, with some slack: riding the waterline it must not flip every frame)
     const lvl = camera.position.y - swellAt(camera.position.x, camera.position.z);

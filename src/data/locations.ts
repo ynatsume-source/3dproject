@@ -1,4 +1,5 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
+import { POINT_LOBOS } from './pointlobos';
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
 import type { WreckSpec } from '../ocean/wreck';
@@ -33,6 +34,7 @@ export interface BirdSpec {
 }
 export interface GuideEntry { id: string; ja: string; sci: string; note: string }
 export interface Sea {
+  habitat?: 'kelp';                     // cold-water rocky habitat, without tropical reef defaults
   id: string; name: string; site: string; region: string; lat: number; lon: number;
   depth: string; vis: number; temp: number; seed: number;
   tz: number; tide: { amp: number; lag: number; axis: [number, number] };
@@ -64,6 +66,7 @@ export interface Sea {
 }
 
 export const LOCATIONS: Sea[] = [
+  POINT_LOBOS,
   {
     id: 'gbr', swellHs: 1.3, name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
     lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, tempYear: [24, 29.5], seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
@@ -738,6 +741,7 @@ function rugosity(x: number, z: number) {
   return s / 0.875;
 }
 for (const L of LOCATIONS) {
+  if (L.habitat === 'kelp') continue;
   const base = L.f;
   // under a cave massif the seabed is plain sand: no reef, no seagrass
   const foot = L.cave ? caveFootprint(L.cave) : () => 0;

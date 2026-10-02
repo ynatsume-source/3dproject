@@ -1,0 +1,26 @@
+{
+  "sea": "pointlobos",
+  "seabedRange": [
+    -18.76675659047312,
+    -6.1255138048861175
+  ],
+  "kelp": {
+    "holdfasts": 371,
+    "stipes": 1472,
+    "blades": 29954,
+    "vertices": 1340462,
+    "triangles": 1735376,
+    "meshes": 63,
+    "urchins": 320,
+    "batStars": 110
+  },
+  "geometry": {
+    "verticesStored": 1542012,
+    "trianglesStored": 2100573,
+    "trianglesInstanced": 2980960,
+    "meshObjects": 348,
+    "instanceCount": 3272
+  },
+  "kelpGeometrySHA256": "e5af9b39125884356215ed30749d4c46f8da63a23b7888c3c6c273365e6e02e1",
+  "checks": "finite vertices / indices / zero tropical defaults / supported holdfasts / destinations / deterministic placement: PASS"
+}

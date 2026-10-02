@@ -252,7 +252,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     h.pt += dt;
     const end = (caught: boolean) => {
       if (caught) { g.hunger = 0; const at = g.c.clone(); logEvent(env, 'catch', oneOf([`${sp.ja}が${p.label}を捕らえた`, `${sp.ja}の突進が決まった。${p.label}が一匹、群れから消えた`, `一瞬の出来事だった。${sp.ja}が${p.label}をくわえて泳ぎ去る`, `${sp.ja}の狩りが成功。${p.label}の群れがぱっと散った`]), g.c.x, g.c.z, () => at); }
-      else { g.hunger *= 0.85; if (h.close < 1.2) logEvent(env, 'hunt', oneOf([`${p.label}が間一髪で${sp.ja}の追跡を振り切った`, `${sp.ja}の突進は空を切った。${p.label}は群れの中へ`, `${p.label}の鋭い切り返しに、${sp.ja}は追いつけなかった`, `${p.label}がサンゴの隙間へ逃げ込み、${sp.ja}はあきらめた`]), g.c.x, g.c.z, () => g.c); }   // (only the near things)
+      else { g.hunger *= 0.85; if (h.close < 1.2) logEvent(env, 'hunt', oneOf([`${p.label}が間一髪で${sp.ja}の追跡を振り切った`, `${sp.ja}の突進は空を切った。${p.label}は群れの中へ`, `${p.label}の鋭い切り返しに、${sp.ja}は追いつけなかった`, `${p.label}が${oc.loc.habitat === 'kelp' ? '岩' : 'サンゴ'}の隙間へ逃げ込み、${sp.ja}はあきらめた`]), g.c.x, g.c.z, () => g.c); }   // (only the near things)
       g.hunt = null; g.cooldown = rr(60, 150);
     };
     let wantSpeed = sp.speed, turn = 1.2;
