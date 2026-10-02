@@ -109,7 +109,7 @@ export const snowGeo = new THREE.BufferGeometry();
   snowGeo.setAttribute('aR', new THREE.BufferAttribute(r, 1));
 }
 export const snowMat = mat(
-  `attribute float aR; uniform float uPx; varying float vA; varying float vGlow;
+  `attribute float aR; uniform float uPx; uniform float uBiolum; varying float vA; varying float vGlow;
    void main(){
      float B = 28.0;
      vec3 drift = vec3(sin(uTime * 0.13 + aR * 20.0) * 0.6 + uTime * uCurrent.x * 0.12, -uTime * 0.04 * (0.5 + aR), cos(uTime * 0.11 + aR * 13.0) * 0.6 + uTime * uCurrent.y * 0.12);
@@ -119,7 +119,7 @@ export const snowMat = mat(
      vA = smoothstep(0.3, 1.5, d) * (1.0 - smoothstep(9.0, 14.0, d)) * (0.35 + 0.65 * aR);
      // dinoflagellates flash when stirred: brightest close to the drone, twinkling
      float tw = pow(max(sin(uTime * (1.5 + aR * 3.0) + aR * 50.0), 0.0), 12.0);
-     vGlow = uNight * step(0.55, aR) * (tw * 0.8 + (1.0 - smoothstep(0.5, 3.5, d)) * 0.9);
+     vGlow = uBiolum * uNight * step(0.55, aR) * (tw * 0.8 + (1.0 - smoothstep(0.5, 3.5, d)) * 0.9);
      gl_PointSize = uPx * (0.018 + 0.03 * aR) / max(d, 0.1) * (1.0 + vGlow);
      gl_Position = projectionMatrix * mv;
    }`,
@@ -129,7 +129,7 @@ export const snowMat = mat(
      vec3 c = (vec3(0.85, 0.95, 0.9) * max(uAmb, 0.08) * vA * 0.5 + vec3(0.3, 0.95, 1.0) * vGlow * 0.9) * uPlank;
      gl_FragColor = vec4(c * smoothstep(0.5, 0.1, r), 1.0);
    }`,
-  { uniforms: { uPx: { value: 800 }, uPlank: { value: 1 } }, opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } });
+  { uniforms: { uPx: { value: 800 }, uBiolum: { value: 1 }, uPlank: { value: 1 } }, opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending } });
 export const snow = new THREE.Points(snowGeo, snowMat);
 snow.frustumCulled = false;
 oceanScene.add(snow);

@@ -15,27 +15,52 @@ export class MiniMap {
     this.cv = el.querySelector('canvas')!; this.ctx = this.cv.getContext('2d')!; this.note = el.querySelector('.cr') as HTMLElement;
     // (a soft cross-fade between the close-up and the region, not a jump)
     el.addEventListener('click', () => { el.classList.add('swap'); setTimeout(() => { this.mode = this.mode === 'near' ? 'region' : 'near'; el.classList.remove('swap'); }, 380); });
-    fetch(`${import.meta.env.BASE_URL}map/map.json`).then((r) => r.json()).then((m) => { meta = m; }).catch(() => {});
+    fetch(`${import.meta.env.BASE_URL}map/map.json`).then((r) => r.json()).then((m) => { meta = m; }).catch(() => { meta = {}; });
   }
   private img(src: string) {
     let im = imgs.get(src);
     if (!im) { im = new Image(); im.src = `${import.meta.env.BASE_URL}map/${src}`; imgs.set(src, im); }
     return im.complete && im.naturalWidth ? im : null;
   }
+  private placeholder(loc: Sea, message: string) {
+    const c = this.ctx, S = this.cv.width, u = S / (this.cv.clientWidth || 168);
+    c.save();
+    c.fillStyle = '#10252b'; c.fillRect(0, 0, S, S);
+    c.textAlign = 'center'; c.fillStyle = '#bad0cf'; c.font = `${12 * u}px sans-serif`;
+    c.fillText(message, S / 2, S / 2 - 5 * u);
+    c.fillStyle = '#8ca9aa'; c.font = `${9 * u}px sans-serif`;
+    c.fillText(`${Math.abs(loc.lat).toFixed(3)}°${loc.lat < 0 ? 'S' : 'N'}  ${Math.abs(loc.lon).toFixed(3)}°${loc.lon < 0 ? 'W' : 'E'}`, S / 2, S / 2 + 15 * u);
+    c.restore(); this.note.textContent = message;
+  }
   // x, z: drone position (m, -z north); heading: radians clockwise from north; mark: something to point at
   draw(loc: Sea, x: number, z: number, heading: number, mark: { x: number; z: number } | null, dots: { x: number; z: number; color: string }[] = []) {
-    const m = meta?.[loc.id]; if (!m) return;
     // keep the canvas at the screen's own pixel density, so the photo stays sharp
     const css = this.cv.clientWidth || 168, want = Math.round(css * Math.min(3, devicePixelRatio || 1));
     if (this.cv.width !== want) { this.cv.width = this.cv.height = want; }
     const S = this.cv.width, c = this.ctx, k = 111320, cosl = Math.cos(loc.lat * Math.PI / 180);
+    c.clearRect(0, 0, S, S); this.note.textContent = '';
+    const m = meta?.[loc.id];
+    if (!m && !meta) { this.placeholder(loc, '地図を読み込み中'); return; }
     const lat = loc.lat - z / k, lon = loc.lon + x / (k * cosl);
-    const mode = m.near ? this.mode : 'region';
-    c.clearRect(0, 0, S, S); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    const mode = m?.near ? this.mode : 'region';
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
     const u = S / css;   // (drawing in CSS pixels)
     let toPx: (la: number, lo: number) => [number, number];
-    if (mode === 'near') {
-      const b = m.near!, im = this.img(`${loc.id}.jpg`); if (!im) return;
+    if (!m) {
+      // no aerial photograph of this sea yet: a plain chart instead — north, a scale, where the drone is and
+      // which way it faces (never the last sea's photograph left showing)
+      c.fillStyle = '#102c2c'; c.fillRect(0, 0, S, S);
+      const half = WORLD * 1.2;
+      toPx = (la, lo) => [S * (0.5 + (lo - loc.lon) * k * cosl / (2 * half)), S * (0.5 + (loc.lat - la) * k / (2 * half))];
+      c.strokeStyle = 'rgba(143,232,216,.16)'; c.lineWidth = u;
+      for (let i = 1; i < 6; i++) { c.beginPath(); c.moveTo(S * i / 6, 0); c.lineTo(S * i / 6, S); c.moveTo(0, S * i / 6); c.lineTo(S, S * i / 6); c.stroke(); }
+      c.fillStyle = 'rgba(230,245,245,.85)'; c.font = `${10 * u}px sans-serif`;
+      c.fillText('N ↑', 8 * u, 17 * u); c.fillText('位置図 · 航空写真未収録', 8 * u, S - 32 * u);
+      c.font = `${9 * u}px sans-serif`; c.fillText('200 m', 8 * u, S - 16 * u); c.fillRect(8 * u, S - 12 * u, 200 / (2 * half) * S, 2 * u);
+      this.note.textContent = `${Math.abs(loc.lat).toFixed(3)}°${loc.lat >= 0 ? 'N' : 'S'} ${Math.abs(loc.lon).toFixed(3)}°${loc.lon >= 0 ? 'E' : 'W'}`;
+    } else if (mode === 'near') {
+      const src = `${loc.id}.jpg`, b = m.near!, im = this.img(src);
+      if (!im) { this.placeholder(loc, imgs.get(src)?.complete ? '地図を表示できません' : '地図を読み込み中'); return; }
       const W = im.naturalWidth, fx = (lo: number) => (lo - b.west) / (b.east - b.west) * W, fy = (la: number) => (b.north - merc(la)) / (b.north - b.south) * W;
       const H = b.half || 420, mpp = (b.east - b.west) * k * cosl / W, half = H / mpp;      // this many metres either side of the drone
       const cx = fx(lon), cy = fy(lat);
@@ -49,7 +74,8 @@ export class MiniMap {
       c.fillStyle = 'rgba(230, 245, 245, 0.85)'; c.fillRect(8 * u, S - 12 * u, bar, 2 * u); c.font = `${9 * u}px sans-serif`; c.fillText(`${len} m`, 8 * u, S - 16 * u);
       this.note.textContent = loc.lat > 20 && loc.lat < 46 && loc.lon > 122 && loc.lon < 154 ? '国土地理院' : 'Sentinel-2 cloudless 2023 · EOX';
     } else {
-      const b = m.region, im = this.img(`${loc.id}_r.jpg`); if (!im) return;
+      const src = `${loc.id}_r.jpg`, b = m.region, im = this.img(src);
+      if (!im) { this.placeholder(loc, imgs.get(src)?.complete ? '地図を表示できません' : '地図を読み込み中'); return; }
       // a 20-degree window around the site, cut from the mercator mosaic
       const W = im.naturalWidth, fx = (lo: number) => (lo - b.west) / (b.east - b.west) * W, fy = (la: number) => (b.north - merc(la)) / (b.north - b.south) * W;
       const half = 10 / (b.east - b.west) * W, cx = fx(loc.lon), cy = fy(loc.lat);

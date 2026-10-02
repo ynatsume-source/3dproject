@@ -24,6 +24,17 @@ const eels: Place = { id: 'eels', ja: 'チンアナゴの砂地', note: '砂か�
   find: (oc, cam) => { const c = nearest(oc.colonies, cam); return c ? { pos: c.pos.clone().setY(c.pos.y + 0.8), size: 2.5 } : null; } };
 
 export const PLACES: Record<string, Place[]> = {
+  pointlobos: [
+    { id: 'kelp', ja: 'ジャイアントケルプの森', note: '岩に付いた根元から水面まで伸びる褐藻の森。長い茎と葉の間を、ロックフィッシュの仲間が泳ぐ。', find: (oc, cam) => {
+      const a = nearest(oc.kelp?.anchors || [], cam);
+      return a ? { pos: a.pos.clone().setY(Math.min(-2, Math.max(a.pos.y + 4, -7))), size: 4 } : null; } },
+    { id: 'canopy', ja: '水面のケルプの天蓋', note: '気胞で浮いた葉が水面近くに広がる。葉の間から差す光と、うねりに揺れる天蓋を見上げる。', find: (oc, cam) => {
+      const a = nearest((oc.kelp?.anchors || []).map((k: { top: THREE.Vector3 }) => ({ pos: k.top })), cam);
+      return a ? { pos: a.pos.clone(), size: 3 } : null; } },
+    { id: 'channel', ja: '岩礁の間の砂地', note: '岩とケルプの間に続く砂の水路。森の縁から砂地へ変わる海底をたどる。', find: (oc, cam) => {
+      const p = best(oc, cam, (_x, _z, h, reef, sl) => h < -5 && reef < 0.2 && sl < 0.45 ? 1 - sl : -1e9);
+      return p ? { pos: p, size: 4 } : null; } },
+  ],
   miyako: [
     anemone('カクレクマノミ'),
     eels,

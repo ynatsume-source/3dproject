@@ -528,6 +528,8 @@ export const SHAPES = {
   jack: { h: 0.42, w: 0.15, tail: 'fork', dorsal: 0.12, anal: 0.1 },
   whale: { h: 0.24, w: 0.3, tail: 'shark', dorsal: 0.16, anal: 0.04, pect: 0.3, flathead: true, lofted: 'whaleshark' },
   grouper: { h: 0.34, w: 0.26, tail: 'round', dorsal: 0.08, anal: 0.06 },
+  rockfish: { h: 0.44, w: 0.25, tail: 'emarginate', dorsal: 0.085, anal: 0.075, head: 0.24, spines: 13, pect: 0.15, roundPect: true },
+  surfperch: { h: 0.58, w: 0.23, tail: 'emarginate', dorsal: 0.075, anal: 0.085, spines: 10, pect: 0.13, roundPect: true },
   barracuda: { h: 0.15, w: 0.12, tail: 'fork', dorsal: 0.07, anal: 0.05, pointy: true },
   angel: { h: 0.64, w: 0.12, tail: 'trunc', dorsal: 0.1, anal: 0.09 },
   trigger: { h: 0.52, w: 0.17, tail: 'trunc', dorsal: 0.13, anal: 0.12 },
@@ -724,6 +726,7 @@ export function fishGeometry(sh, low = false) {
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i); const z = p.getZ(i);
     let s = sh.pointy ? (z < 0 ? 1 + z * 1.3 : 1 - z * z * 1.6) : (z < 0 ? 1 + z * 1.15 : 1 - z * z * 0.7);
+    if (sh.head) s *= 1 + sh.head * smooth(0.04, 0.35, z);   // rockfish: a full cheek and blunt forehead
     x *= sh.w * s; y *= sh.h * s;
     if (sh.hump && z > 0.1 && y > 0) y += sh.hump * Math.exp(-(((z - 0.32) / 0.12) ** 2)) * (y / (sh.h * 0.5 + 1e-3));
     if (sh.flathead && z > 0) { y *= 1 - 0.4 * z; x *= 1 + 0.25 * z; }
@@ -737,6 +740,11 @@ export function fishGeometry(sh, low = false) {
   if (sh.tail === 'fork') { tri([0, 0, -0.42], [0, H * 1.25, -0.8], [0, 0, -0.62], 1); tri([0, 0, -0.42], [0, 0, -0.62], [0, -H * 1.25, -0.8], 1); }
   else if (sh.tail === 'round') { for (let k = 0; k < 5; k++) { const a0 = -0.9 + k * 0.36, a1 = a0 + 0.36; tri([0, 0, -0.42], [0, Math.sin(a0) * 0.26, -0.42 - Math.cos(a0) * 0.3], [0, Math.sin(a1) * 0.26, -0.42 - Math.cos(a1) * 0.3], 1); } }
   else if (sh.tail === 'trunc') { tri([0, H * 0.3, -0.42], [0, H * 1.0, -0.72], [0, -H * 1.0, -0.72], 1); tri([0, H * 0.3, -0.42], [0, -H * 1.0, -0.72], [0, -H * 0.3, -0.42], 1); }
+  else if (sh.tail === 'emarginate') {
+    // A broad tail with a shallow central concavity, shared by the temperate reef fish.
+    const edge = [[0, H * 0.22, -0.43], [0, H * 0.88, -0.74], [0, H * 0.45, -0.715], [0, 0, -0.69], [0, -H * 0.45, -0.715], [0, -H * 0.88, -0.74], [0, -H * 0.22, -0.43]];
+    for (let k = 0; k < edge.length - 1; k++) tri([0, 0, -0.43], edge[k], edge[k + 1], 1);
+  }
   else if (sh.tail === 'lunate') {
     // a stiff crescent, as tall as the body is long in the fast swimmers
     const c = [[0, 0.02, -0.42], [0, H * 3.2, -0.72], [0, H * 2.6, -0.66], [0, 0.0, -0.5], [0, -H * 2.6, -0.66], [0, -H * 3.2, -0.72], [0, -0.02, -0.42]];
@@ -759,9 +767,31 @@ export function fishGeometry(sh, low = false) {
     // marlin: the dorsal rises high at the front and runs low along the back
     tri([0, H * 0.85, 0.22], [0, H + sh.dorsal, 0.14], [0, H * 0.9, 0.02], 2); tri([0, H * 0.9, 0.02], [0, H + sh.dorsal * 0.35, 0.02], [0, H * 0.7, -0.34], 2);
   }
+  else if (sh.spines) {
+    // One continuous fin: a scalloped spiny front joins a rounded soft rear section.
+    const back = (z) => H * Math.sqrt(Math.max(0, 1 - 4 * z * z)) * (z < 0 ? 1 + z * 1.15 : 1 - z * z * 0.7) * (1 + (sh.head || 0) * smooth(0.04, 0.35, z));
+    const edge = [[0.3, 0]];
+    for (let k = 0; k < sh.spines; k++) {
+      const z = 0.28 - k / (sh.spines - 1) * 0.39;
+      const height = sh.dorsal * (0.7 + 0.3 * Math.sin(k / (sh.spines - 1) * Math.PI));
+      edge.push([z, height], [z - 0.014, height * 0.55]);
+    }
+    edge.push([-0.18, sh.dorsal * 0.85], [-0.24, sh.dorsal * 0.9], [-0.31, sh.dorsal * 0.65], [-0.39, 0]);
+    for (let k = 0; k < edge.length - 1; k++) {
+      const [z0, h0] = edge[k], [z1, h1] = edge[k + 1];
+      const b0 = [0, back(z0) - 0.008, z0], b1 = [0, back(z1) - 0.008, z1];
+      const t0 = [0, back(z0) + h0, z0], t1 = [0, back(z1) + h1, z1];
+      tri(b0, t0, t1, 2); tri(b0, t1, b1, 2);
+    }
+  }
   else { tri([0, H * 0.85, 0.16], [0, H + sh.dorsal, -0.12], [0, H * 0.7, -0.3], 2); }
   if (!sh.rear) tri([0, -H * 0.8, -0.05], [0, -H - sh.anal, -0.22], [0, -H * 0.6, -0.32], 2);
-  if (sh.pect) for (const sx of [-1, 1]) tri([sx * sh.w * 0.4, -H * 0.4, 0.18], [sx * (sh.w * 0.4 + sh.pect), -H * 0.9, -0.12], [sx * sh.w * 0.4, -H * 0.5, -0.02], 3, [0, 1, 0]);
+  if (sh.roundPect) for (const sx of [-1, 1]) {
+    const root = [sx * sh.w * 0.38, -H * 0.35, 0.2];
+    const rim = (a) => [sx * (sh.w * 0.4 + sh.pect * Math.sin(a)), -H * 0.35 - 0.09 * Math.sin(a), 0.16 - 0.14 * (1 - Math.cos(a))];
+    for (let k = 0; k < 8; k++) tri(root, rim(k / 8 * Math.PI), rim((k + 1) / 8 * Math.PI), 3, [sx * 0.55, 0.835, 0]);
+  }
+  else if (sh.pect) for (const sx of [-1, 1]) tri([sx * sh.w * 0.4, -H * 0.4, 0.18], [sx * (sh.w * 0.4 + sh.pect), -H * 0.9, -0.12], [sx * sh.w * 0.4, -H * 0.5, -0.02], 3, [0, 1, 0]);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));

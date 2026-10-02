@@ -1,4 +1,5 @@
 // Builds a sea from its description: seabed, reef, corals, anemones, garden eels and animals.
+import { KELP_FLOOR, makeKelpForest } from './kelp';
 import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
@@ -142,6 +143,8 @@ export function buildOcean(loc) {
   }
   const underWreck = (x: number, z: number, h: number) => !!wreck && obst.get(x, z) > h + 0.8;
 
+  const seabedSurface = loc.habitat === 'kelp' ? KELP_FLOOR : SURFACE;
+
   // seabed
   const SEGS = 420;
   const floorGeo = new THREE.PlaneGeometry(WORLD * 2, WORLD * 2, SEGS, SEGS);
@@ -174,11 +177,11 @@ export function buildOcean(loc) {
   const floor = new THREE.Mesh(floorGeo, mat(
     `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    SURFACE + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
+    seabedSurface + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
        vec3 n;
        vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
-       vec3 col = shade(alb, vWp, n, 0.95);
+       vec3 col = shade(alb, vWp, n, ${loc.habitat === 'kelp' ? '0.35' : '0.95'});
        #ifdef LAND
        float dry = smoothstep(-0.1, 0.06, vWp.y);
        vec3 la = landAlbedo(vWp) * mix(1.0, vAO, 0.5);
@@ -247,6 +250,7 @@ export function buildOcean(loc) {
       clam: W.clam * shallow * (1 - smooth(0.3, 0.7, sl)),
     };
     let tot = 0; for (const k in w) tot += w[k];
+    if (!(tot > 0)) return; // no coral forms configured (e.g. a temperate kelp forest)
     let q = R() * tot, kind = 'brain';
     for (const k in w) { q -= w[k]; if (q <= 0) { kind = k; break; } }
     const pal = pick(PALETTE[kind]), seed = R();
@@ -316,7 +320,7 @@ export function buildOcean(loc) {
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish (placed over an area:
   // the sea round the drone now, and by an island each stretch further off as the camera comes near it)
   let placeLitter: ((x0: number, z0: number, x1: number, z1: number, frac: number, skip: ((x: number, z: number) => boolean) | null, cells: any[]) => void) | null = null;
-  if (!loc.pelagic) {
+  if (!loc.pelagic && loc.habitat !== 'kelp') {   // (none of this in a kelp forest's cold water)
     const debris: { geo: THREE.BufferGeometry; type: number }[] = [
       { geo: fragmentGeo(1), type: 0 }, { geo: fragmentGeo(2), type: 0 },
       { geo: bivalveGeo(), type: 0 }, { geo: coneShellGeo(), type: 0 },
@@ -387,14 +391,14 @@ export function buildOcean(loc) {
   if (!loc.pelagic) {
     const KINDS: [string, number, [number, number]][] = [
       ['boulder', 0.2, [0.25, 1.8]], ['angular', 0.26, [0.25, 1.6]], ['slab', 0.14, [0.6, 2.0]],
-      ['pinnacle', 0.1, [0.35, 1.1]], ['pitted', 0.14, [0.3, 1.5]], ['rubble', 0.16, [0.08, 0.32]],
+      ['pinnacle', 0.1, [0.35, 1.1]], [loc.habitat === 'kelp' ? 'boulder' : 'pitted', 0.14, [0.3, 1.5]], ['rubble', 0.16, [0.08, 0.32]],
     ];
     const protos: { kind: string; geo: THREE.BufferGeometry }[] = [];
     KINDS.forEach(([kind], i) => { for (let v = 0; v < 2; v++) protos.push({ kind, geo: rockPrototype(kind, loc.seed * 7 + i * 31 + v * 13) }); });
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
-      SURFACE + `varying vec3 vWp; varying vec3 vN; varying float vLy;
+      seabedSurface + `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){
          vec3 n;
          vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
@@ -550,6 +554,8 @@ export function buildOcean(loc) {
       return !!best;
     };
   }
+
+  if (loc.habitat === 'kelp') oc.kelp = makeKelpForest(loc, group, T, oc.cells, floorGeo);
 
   // fish
   for (const sp of loc.species) {
