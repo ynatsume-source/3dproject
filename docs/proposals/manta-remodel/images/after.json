@@ -1,0 +1,173 @@
+{
+  "capturedAt": "2026-10-02T03:37:11.919Z",
+  "label": "after",
+  "state": {
+    "sea": "miyako",
+    "vertices": 6662,
+    "triangles": 11686,
+    "glError": 0,
+    "contextLost": false,
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "scripts": [
+      "http://127.0.0.1:4178/assets/main-vuyZu8bJ.js"
+    ]
+  },
+  "portraits": {
+    "width": 800,
+    "height": 500,
+    "time": 0,
+    "shots": [
+      {
+        "name": "overview",
+        "view": [
+          0.65,
+          0.95,
+          1.15
+        ],
+        "zoom": 1.05,
+        "feed": 0,
+        "file": "after-overview.png",
+        "uniforms": {
+          "uFeed": 0,
+          "uMouth": -1,
+          "uPhase": 1.1,
+          "uBeat": 0,
+          "uAmp": 1,
+          "uSeed": 17,
+          "uBank": 0,
+          "uAir": 0
+        }
+      },
+      {
+        "name": "front-cruise",
+        "view": [
+          0.1,
+          0.14,
+          1
+        ],
+        "zoom": 3.2,
+        "focus": [
+          0,
+          0,
+          0.28
+        ],
+        "feed": 0,
+        "file": "after-front-cruise.png",
+        "uniforms": {
+          "uFeed": 0,
+          "uMouth": -1,
+          "uPhase": 1.1,
+          "uBeat": 0,
+          "uAmp": 1,
+          "uSeed": 17,
+          "uBank": 0,
+          "uAir": 0
+        }
+      },
+      {
+        "name": "front-feeding",
+        "view": [
+          0.1,
+          0.14,
+          1
+        ],
+        "zoom": 3.2,
+        "focus": [
+          0,
+          0,
+          0.28
+        ],
+        "feed": 1,
+        "file": "after-front-feeding.png",
+        "uniforms": {
+          "uFeed": 1,
+          "uMouth": -1,
+          "uPhase": 1.1,
+          "uBeat": 0,
+          "uAmp": 1,
+          "uSeed": 17,
+          "uBank": 0,
+          "uAir": 0
+        }
+      },
+      {
+        "name": "belly",
+        "view": [
+          0.2,
+          -1,
+          0.5
+        ],
+        "zoom": 1.1,
+        "feed": 0.7,
+        "file": "after-belly.png",
+        "uniforms": {
+          "uFeed": 0.7,
+          "uMouth": -1,
+          "uPhase": 1.1,
+          "uBeat": 0,
+          "uAmp": 1,
+          "uSeed": 17,
+          "uBank": 0,
+          "uAir": 0
+        }
+      },
+      {
+        "name": "dorsal",
+        "view": [
+          0,
+          1,
+          0.03
+        ],
+        "zoom": 1.1,
+        "feed": 0,
+        "file": "after-dorsal.png",
+        "uniforms": {
+          "uFeed": 0,
+          "uMouth": -1,
+          "uPhase": 1.1,
+          "uBeat": 0,
+          "uAmp": 1,
+          "uSeed": 17,
+          "uBank": 0,
+          "uAir": 0
+        }
+      },
+      {
+        "name": "side",
+        "view": [
+          1,
+          0.12,
+          0.22
+        ],
+        "zoom": 1.1,
+        "feed": 0,
+        "file": "after-side.png",
+        "uniforms": {
+          "uFeed": 0,
+          "uMouth": -1,
+          "uPhase": 1.1,
+          "uBeat": 0,
+          "uAmp": 1,
+          "uSeed": 17,
+          "uBank": 0,
+          "uAir": 0
+        }
+      }
+    ]
+  },
+  "errors": [],
+  "externalFailures": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=25&longitude=125.25&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=25&longitude=125.25&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    }
+  ]
+}

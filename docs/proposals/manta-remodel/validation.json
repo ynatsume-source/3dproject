@@ -1,0 +1,879 @@
+{
+  "ok": true,
+  "limitations": [
+    "Controlled flat deep water: real seabed intersections are not covered.",
+    "Checks animation controls and actor transforms, not GPU-deformed anatomy, shader compilation, or appearance.",
+    "No hardware performance benchmark or biological field validation."
+  ],
+  "results": {
+    "geometry": {
+      "vertices": 6662,
+      "triangles": 11686,
+      "bytes": 416540,
+      "attributes": {
+        "position": 3,
+        "aSide": 1,
+        "aU": 1,
+        "aV": 1,
+        "aPart": 1,
+        "aCeph": 3,
+        "normal": 3
+      },
+      "rawBounds": {
+        "min": [
+          -1,
+          -0.05900000035762787,
+          -1.149999976158142
+        ],
+        "max": [
+          1,
+          0.1120000034570694,
+          0.46700000762939453
+        ]
+      },
+      "note": "Raw parameter geometry only; GPU expansion and appearance require the browser check."
+    },
+    "material_contract": {
+      "independentUniforms": [
+        "uPhase",
+        "uFeed",
+        "uBeat",
+        "uAmp",
+        "uSeed",
+        "uMouth",
+        "uBank",
+        "uAir"
+      ],
+      "speciesControls": [
+        "uOceanic"
+      ],
+      "noArgumentCompatible": true
+    },
+    "routine_miyako_60hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4123741,
+      "maxAngularSpeed": 1.019249,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6452789,
+      "maxFeedRate": 0.7946903,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1042718,
+        "feeding": 0.8844224,
+        "recovered": 0.0873089
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_miyako_120hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4135999,
+      "maxAngularSpeed": 0.9385287,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6472688,
+      "maxFeedRate": 0.7973392,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043091,
+        "feeding": 0.8843383,
+        "recovered": 0.0873227
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_miyako_240hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4145658,
+      "maxAngularSpeed": 0.9324668,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6482667,
+      "maxFeedRate": 0.7986681,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043278,
+        "feeding": 0.8842961,
+        "recovered": 0.0873297
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_maldives_60hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4123741,
+      "maxAngularSpeed": 1.019249,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6452789,
+      "maxFeedRate": 0.7946903,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1042718,
+        "feeding": 0.8844224,
+        "recovered": 0.0873089
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_maldives_120hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4135999,
+      "maxAngularSpeed": 0.9385287,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6472688,
+      "maxFeedRate": 0.7973392,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043091,
+        "feeding": 0.8843383,
+        "recovered": 0.0873227
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_maldives_240hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4145658,
+      "maxAngularSpeed": 0.9324668,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6482667,
+      "maxFeedRate": 0.7986681,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043278,
+        "feeding": 0.8842961,
+        "recovered": 0.0873297
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_galapagos_60hz": {
+      "oceanic": true,
+      "maxSpeed": 1.6230298,
+      "maxAngularSpeed": 0.5630327,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6452789,
+      "maxFeedRate": 0.7946903,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1042718,
+        "feeding": 0.8844224,
+        "recovered": 0.0873089
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_galapagos_120hz": {
+      "oceanic": true,
+      "maxSpeed": 2.4136001,
+      "maxAngularSpeed": 0.9438966,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6472688,
+      "maxFeedRate": 0.7973392,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043091,
+        "feeding": 0.8843383,
+        "recovered": 0.0873227
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_galapagos_240hz": {
+      "oceanic": true,
+      "maxSpeed": 2.4145658,
+      "maxAngularSpeed": 0.9375895,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6482667,
+      "maxFeedRate": 0.7986681,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043278,
+        "feeding": 0.8842961,
+        "recovered": 0.0873297
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "twilight_hysteresis": {
+      "thresholdJitterSteps": 240,
+      "feedingEntersAndLeaves": true,
+      "targetStableDuringJitter": true
+    },
+    "natural_feeding_prepare_loop_recover": {
+      "cases": [
+        {
+          "id": "miyako",
+          "span": 4.4,
+          "hz": 30,
+          "startAt": 13.7,
+          "duration": 7,
+          "deepest": -8.0368391,
+          "recoveredDepth": -2.7893214,
+          "clearanceLowerBound": 2.5329042,
+          "minimumFeedingMouth": 0.8429178,
+          "maxSpeed": 2.4106422,
+          "maxAngularSpeed": 0.9844948,
+          "maxPhaseSpeed": 0.85,
+          "maxMouthRate": 0.0205633,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        },
+        {
+          "id": "miyako",
+          "span": 4.4,
+          "hz": 120,
+          "startAt": 13.725,
+          "duration": 7,
+          "deepest": -8.0363823,
+          "recoveredDepth": -2.7909538,
+          "clearanceLowerBound": 2.5318885,
+          "minimumFeedingMouth": 0.8429181,
+          "maxSpeed": 2.410697,
+          "maxAngularSpeed": 0.9843699,
+          "maxPhaseSpeed": 0.85,
+          "maxMouthRate": 0.0205632,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        },
+        {
+          "id": "galapagos",
+          "span": 5.8,
+          "hz": 30,
+          "startAt": 15.9666667,
+          "duration": 7,
+          "deepest": -9.2962907,
+          "recoveredDepth": -2.7893214,
+          "clearanceLowerBound": 2.7447373,
+          "minimumFeedingMouth": 0.8429178,
+          "maxSpeed": 2.4106441,
+          "maxAngularSpeed": 0.9925303,
+          "maxPhaseSpeed": 0.85,
+          "maxMouthRate": 0.0205633,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        },
+        {
+          "id": "galapagos",
+          "span": 5.8,
+          "hz": 120,
+          "startAt": 16.0166667,
+          "duration": 7,
+          "deepest": -9.2965883,
+          "recoveredDepth": -2.7909538,
+          "clearanceLowerBound": 2.7439923,
+          "minimumFeedingMouth": 0.8429181,
+          "maxSpeed": 2.4106969,
+          "maxAngularSpeed": 0.9921791,
+          "maxPhaseSpeed": 0.85,
+          "maxMouthRate": 0.0205632,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        }
+      ],
+      "envelope": "Minimum of transformed conservative pose box/sphere upper bounds during the loop; static y=0 waterline, no waves."
+    },
+    "shallow_seabed_loop_suppressed": {
+      "cases": [
+        {
+          "id": "miyako",
+          "span": 4.4,
+          "floor": -6,
+          "seconds": 45,
+          "pending": false,
+          "loop": false
+        },
+        {
+          "id": "galapagos",
+          "span": 5.8,
+          "floor": -6,
+          "seconds": 45,
+          "pending": false,
+          "loop": false
+        }
+      ]
+    },
+    "feeding_loop_cancelled_on_day": {
+      "cases": [
+        {
+          "id": "miyako",
+          "cancelled": true,
+          "maxSpeed": 2.1540153,
+          "maxAngularSpeed": 0.4006336,
+          "maxPhaseSpeed": 1.05,
+          "maxMouthRate": 0.6519151,
+          "maxFeedRate": 0.7946903,
+          "maxAirRate": 0
+        },
+        {
+          "id": "galapagos",
+          "cancelled": true,
+          "maxSpeed": 2.1540153,
+          "maxAngularSpeed": 0.4006336,
+          "maxPhaseSpeed": 1.05,
+          "maxMouthRate": 0.6519151,
+          "maxFeedRate": 0.7946903,
+          "maxAirRate": 0
+        }
+      ]
+    },
+    "initial_feeding_placement": {
+      "cases": [
+        {
+          "id": "miyako",
+          "initialDepth": -2.5133617,
+          "pending": false
+        },
+        {
+          "id": "galapagos",
+          "initialDepth": -2.5133617,
+          "pending": false
+        }
+      ]
+    },
+    "migration_rejects_shallow_reef": {
+      "seconds": 90,
+      "boundaryX": 15,
+      "maxCenterX": 13.1992813,
+      "directionReversals": 5,
+      "note": "Single artificial straight reef boundary, nominal disc footprint only; not full real-terrain navigation coverage."
+    },
+    "breach_miyako_30hz_flip0": {
+      "stats": {
+        "maxSpeed": 7.084643,
+        "maxAngularSpeed": 1.6733821,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2714995,
+        "maxFeedRate": 0,
+        "maxAirRate": 11.1873274
+      },
+      "maxHeight": 1.160935,
+      "recoveryDepth": -4.5470548,
+      "exit": {
+        "positionStep": 0.1777929,
+        "angleStep": 0.0096322
+      },
+      "landing": {
+        "positionStep": 0.1907343,
+        "angleStep": 0.010329
+      },
+      "air": {
+        "max": 0.9999992,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0384799
+      },
+      "splashCount": 2,
+      "traceHash": "f43da258db16a5175f1c1f7e4d3bcaffc25e2b1cc03a493cd7df10f04be36d41",
+      "samples": 1500
+    },
+    "breach_miyako_30hz_flip1": {
+      "stats": {
+        "maxSpeed": 7.084643,
+        "maxAngularSpeed": 8.0260002,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2714995,
+        "maxFeedRate": 0,
+        "maxAirRate": 11.1873274
+      },
+      "maxHeight": 1.160935,
+      "recoveryDepth": -4.5470548,
+      "exit": {
+        "positionStep": 0.1777929,
+        "angleStep": 0.0199854
+      },
+      "landing": {
+        "positionStep": 0.1907343,
+        "angleStep": 0.0269705
+      },
+      "air": {
+        "max": 0.9999992,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0384799
+      },
+      "splashCount": 2,
+      "traceHash": "4752b62a8e774b253906db3623546fd2c43e7d496a715d205274ea161926f804",
+      "samples": 1500
+    },
+    "breach_miyako_30hz_flip-1": {
+      "stats": {
+        "maxSpeed": 7.084643,
+        "maxAngularSpeed": 11.3285991,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2714995,
+        "maxFeedRate": 0,
+        "maxAirRate": 11.1873274
+      },
+      "maxHeight": 1.160935,
+      "recoveryDepth": -4.5470548,
+      "exit": {
+        "positionStep": 0.1777929,
+        "angleStep": 0.0267865
+      },
+      "landing": {
+        "positionStep": 0.1907343,
+        "angleStep": 0.0370316
+      },
+      "air": {
+        "max": 0.9999992,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0384799
+      },
+      "splashCount": 2,
+      "traceHash": "6ea8dfe39342fcb15c45fbc982a41f3ff99e989b0d44b80d0055eb7c5817169c",
+      "samples": 1500
+    },
+    "breach_miyako_60hz_flip0": {
+      "stats": {
+        "maxSpeed": 7.0971213,
+        "maxAngularSpeed": 1.7233163,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2849691,
+        "maxFeedRate": 0,
+        "maxAirRate": 12.486626
+      },
+      "maxHeight": 1.1617094,
+      "recoveryDepth": -4.5470783,
+      "exit": {
+        "positionStep": 0.0828952,
+        "angleStep": 0.0045462
+      },
+      "landing": {
+        "positionStep": 0.0942913,
+        "angleStep": 0.0056725
+      },
+      "air": {
+        "max": 0.9999987,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0414643
+      },
+      "splashCount": 2,
+      "traceHash": "2b8bb35668ae4a014385e157d4983b68483a6b1390ceaafa13eac9322695ec4a",
+      "samples": 3000
+    },
+    "breach_miyako_60hz_flip1": {
+      "stats": {
+        "maxSpeed": 7.0971213,
+        "maxAngularSpeed": 8.0280454,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2849691,
+        "maxFeedRate": 0,
+        "maxAirRate": 12.486626
+      },
+      "maxHeight": 1.1617094,
+      "recoveryDepth": -4.5470783,
+      "exit": {
+        "positionStep": 0.0828952,
+        "angleStep": 0.0063469
+      },
+      "landing": {
+        "positionStep": 0.0942913,
+        "angleStep": 0.0176539
+      },
+      "air": {
+        "max": 0.9999987,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0414643
+      },
+      "splashCount": 2,
+      "traceHash": "074602f0f33ec6c73ae379131a4f93ffcba037fb5e36c662d634a4da33c87b70",
+      "samples": 3000
+    },
+    "breach_miyako_60hz_flip-1": {
+      "stats": {
+        "maxSpeed": 7.0971213,
+        "maxAngularSpeed": 11.3314875,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2849691,
+        "maxFeedRate": 0,
+        "maxAirRate": 12.486626
+      },
+      "maxHeight": 1.1617094,
+      "recoveryDepth": -4.5470783,
+      "exit": {
+        "positionStep": 0.0828952,
+        "angleStep": 0.0077866
+      },
+      "landing": {
+        "positionStep": 0.0942913,
+        "angleStep": 0.0245274
+      },
+      "air": {
+        "max": 0.9999987,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0414643
+      },
+      "splashCount": 2,
+      "traceHash": "0ff2b7bcd3eb20143bad8058c756fb4b66ce4fcd9c9d711986c9135c859d057f",
+      "samples": 3000
+    },
+    "breach_miyako_120hz_flip0": {
+      "stats": {
+        "maxSpeed": 7.0906535,
+        "maxAngularSpeed": 3.4035649,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2920646,
+        "maxFeedRate": 0,
+        "maxAirRate": 13.2141875
+      },
+      "maxHeight": 1.1796338,
+      "recoveryDepth": -4.5470743,
+      "exit": {
+        "positionStep": 0.0365892,
+        "angleStep": 0.0022201
+      },
+      "landing": {
+        "positionStep": 0.0470758,
+        "angleStep": 0.0029231
+      },
+      "air": {
+        "max": 0.9999985,
+        "minMouth": 0.0251289,
+        "maxMouth": 0.0423085
+      },
+      "splashCount": 2,
+      "traceHash": "26abf6554ef68b0e4b130f64f6b9bf5ff3d5300b3c931dde1863266fc0bb9ca3",
+      "samples": 6000
+    },
+    "breach_miyako_120hz_flip1": {
+      "stats": {
+        "maxSpeed": 7.0906535,
+        "maxAngularSpeed": 7.9586894,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2920646,
+        "maxFeedRate": 0,
+        "maxAirRate": 13.2141875
+      },
+      "maxHeight": 1.1796338,
+      "recoveryDepth": -4.5470743,
+      "exit": {
+        "positionStep": 0.0365892,
+        "angleStep": 0.0024755
+      },
+      "landing": {
+        "positionStep": 0.0470758,
+        "angleStep": 0.0094983
+      },
+      "air": {
+        "max": 0.9999985,
+        "minMouth": 0.0251289,
+        "maxMouth": 0.0423085
+      },
+      "splashCount": 2,
+      "traceHash": "8ca6f0602251e4fc93478691cd6dfbd3d82c6d6f016bdc76daec8c870bf56d54",
+      "samples": 6000
+    },
+    "breach_miyako_120hz_flip-1": {
+      "stats": {
+        "maxSpeed": 7.0906535,
+        "maxAngularSpeed": 11.2561331,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2920646,
+        "maxFeedRate": 0,
+        "maxAirRate": 13.2141875
+      },
+      "maxHeight": 1.1796338,
+      "recoveryDepth": -4.5470743,
+      "exit": {
+        "positionStep": 0.0365892,
+        "angleStep": 0.0027172
+      },
+      "landing": {
+        "positionStep": 0.0470758,
+        "angleStep": 0.0132545
+      },
+      "air": {
+        "max": 0.9999985,
+        "minMouth": 0.0251289,
+        "maxMouth": 0.0423085
+      },
+      "splashCount": 2,
+      "traceHash": "88fac924dde05c433fb55ffa0ff39dea372948ccc6f2245419b9ee95f0a21513",
+      "samples": 6000
+    },
+    "breach_galapagos_30hz_flip0": {
+      "stats": {
+        "maxSpeed": 7.084643,
+        "maxAngularSpeed": 1.6733821,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2714099,
+        "maxFeedRate": 0,
+        "maxAirRate": 11.1873274
+      },
+      "maxHeight": 1.160935,
+      "recoveryDepth": -6.2588787,
+      "exit": {
+        "positionStep": 0.1777929,
+        "angleStep": 0.0096322
+      },
+      "landing": {
+        "positionStep": 0.1822191,
+        "angleStep": 0.0150671
+      },
+      "air": {
+        "max": 0.9999987,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0384799
+      },
+      "splashCount": 2,
+      "traceHash": "2a6473a406bcef9aa66acc00d2717281c01b16292177f9f21054e7ef8752432e",
+      "samples": 1500
+    },
+    "breach_galapagos_30hz_flip1": {
+      "stats": {
+        "maxSpeed": 7.084643,
+        "maxAngularSpeed": 8.0260002,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2714099,
+        "maxFeedRate": 0,
+        "maxAirRate": 11.1873274
+      },
+      "maxHeight": 1.160935,
+      "recoveryDepth": -6.2588787,
+      "exit": {
+        "positionStep": 0.1777929,
+        "angleStep": 0.0199854
+      },
+      "landing": {
+        "positionStep": 0.1822191,
+        "angleStep": 0.0597043
+      },
+      "air": {
+        "max": 0.9999987,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0384799
+      },
+      "splashCount": 2,
+      "traceHash": "5a658982d5b88ced35df6e28d334d09b57141f30d76a2fb132415b0b10bf2aa8",
+      "samples": 1500
+    },
+    "breach_galapagos_30hz_flip-1": {
+      "stats": {
+        "maxSpeed": 7.084643,
+        "maxAngularSpeed": 11.3285991,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2714099,
+        "maxFeedRate": 0,
+        "maxAirRate": 11.1873274
+      },
+      "maxHeight": 1.160935,
+      "recoveryDepth": -6.2588787,
+      "exit": {
+        "positionStep": 0.1777929,
+        "angleStep": 0.0267865
+      },
+      "landing": {
+        "positionStep": 0.1822191,
+        "angleStep": 0.0838271
+      },
+      "air": {
+        "max": 0.9999987,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0384799
+      },
+      "splashCount": 2,
+      "traceHash": "92088af771b635b535b4960a6d1871ee3bf10f27bb2af4d9ec4f31db452c665f",
+      "samples": 1500
+    },
+    "breach_galapagos_60hz_flip0": {
+      "stats": {
+        "maxSpeed": 7.0971213,
+        "maxAngularSpeed": 1.7233163,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2849146,
+        "maxFeedRate": 0,
+        "maxAirRate": 12.486626
+      },
+      "maxHeight": 1.1617094,
+      "recoveryDepth": -6.2595131,
+      "exit": {
+        "positionStep": 0.0828952,
+        "angleStep": 0.0045462
+      },
+      "landing": {
+        "positionStep": 0.0921622,
+        "angleStep": 0.0068797
+      },
+      "air": {
+        "max": 0.9999983,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0414643
+      },
+      "splashCount": 2,
+      "traceHash": "5fa90d31d893613f7c5063f174620218d576a5316152dc7cafe885818e6a8a83",
+      "samples": 3000
+    },
+    "breach_galapagos_60hz_flip1": {
+      "stats": {
+        "maxSpeed": 7.0971213,
+        "maxAngularSpeed": 8.0280454,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2849146,
+        "maxFeedRate": 0,
+        "maxAirRate": 12.486626
+      },
+      "maxHeight": 1.1617094,
+      "recoveryDepth": -6.2595131,
+      "exit": {
+        "positionStep": 0.0828952,
+        "angleStep": 0.0063469
+      },
+      "landing": {
+        "positionStep": 0.0921622,
+        "angleStep": 0.0258639
+      },
+      "air": {
+        "max": 0.9999983,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0414643
+      },
+      "splashCount": 2,
+      "traceHash": "fc44756bf66eb9cca6ac70834f091b1207e04186692c2d59accc341d4890dd96",
+      "samples": 3000
+    },
+    "breach_galapagos_60hz_flip-1": {
+      "stats": {
+        "maxSpeed": 7.0971213,
+        "maxAngularSpeed": 11.3314875,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.2849146,
+        "maxFeedRate": 0,
+        "maxAirRate": 12.486626
+      },
+      "maxHeight": 1.1617094,
+      "recoveryDepth": -6.2595131,
+      "exit": {
+        "positionStep": 0.0828952,
+        "angleStep": 0.0077866
+      },
+      "landing": {
+        "positionStep": 0.0921622,
+        "angleStep": 0.0362463
+      },
+      "air": {
+        "max": 0.9999983,
+        "minMouth": 0.0251355,
+        "maxMouth": 0.0414643
+      },
+      "splashCount": 2,
+      "traceHash": "adca8286a935ba7571b228683e4b76a78b28ca94f7de24181ed4599eeded550c",
+      "samples": 3000
+    },
+    "breach_galapagos_120hz_flip0": {
+      "stats": {
+        "maxSpeed": 7.0906535,
+        "maxAngularSpeed": 3.4035649,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.292036,
+        "maxFeedRate": 0,
+        "maxAirRate": 13.2141875
+      },
+      "maxHeight": 1.1796338,
+      "recoveryDepth": -6.2597801,
+      "exit": {
+        "positionStep": 0.0365892,
+        "angleStep": 0.0022201
+      },
+      "landing": {
+        "positionStep": 0.0465403,
+        "angleStep": 0.0032207
+      },
+      "air": {
+        "max": 0.9999983,
+        "minMouth": 0.0251289,
+        "maxMouth": 0.0423085
+      },
+      "splashCount": 2,
+      "traceHash": "02955f3f321e91a9f5ec6436e8a1fc75682db13aa2328182ac5ca659533648fc",
+      "samples": 6000
+    },
+    "breach_galapagos_120hz_flip1": {
+      "stats": {
+        "maxSpeed": 7.0906535,
+        "maxAngularSpeed": 7.9586894,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.292036,
+        "maxFeedRate": 0,
+        "maxAirRate": 13.2141875
+      },
+      "maxHeight": 1.1796338,
+      "recoveryDepth": -6.2597801,
+      "exit": {
+        "positionStep": 0.0365892,
+        "angleStep": 0.0024755
+      },
+      "landing": {
+        "positionStep": 0.0465403,
+        "angleStep": 0.0115215
+      },
+      "air": {
+        "max": 0.9999983,
+        "minMouth": 0.0251289,
+        "maxMouth": 0.0423085
+      },
+      "splashCount": 2,
+      "traceHash": "d329d6844937589cb47cfa5186a2a8c500fab2a3f1a7b311f36999da8ef5ff3a",
+      "samples": 6000
+    },
+    "breach_galapagos_120hz_flip-1": {
+      "stats": {
+        "maxSpeed": 7.0906535,
+        "maxAngularSpeed": 11.2561331,
+        "maxPhaseSpeed": 8.1681409,
+        "maxMouthRate": 0.292036,
+        "maxFeedRate": 0,
+        "maxAirRate": 13.2141875
+      },
+      "maxHeight": 1.1796338,
+      "recoveryDepth": -6.2597801,
+      "exit": {
+        "positionStep": 0.0365892,
+        "angleStep": 0.0027172
+      },
+      "landing": {
+        "positionStep": 0.0465403,
+        "angleStep": 0.0161492
+      },
+      "air": {
+        "max": 0.9999983,
+        "minMouth": 0.0251289,
+        "maxMouth": 0.0423085
+      },
+      "splashCount": 2,
+      "traceHash": "fe5e199d1e191ad9ec890c8657fa7afd1b385a713e19a3aba898cb3520833b38",
+      "samples": 6000
+    },
+    "dark_night_and_debug": {
+      "simulatedSeconds": 600,
+      "naturalDarkNightSuppressed": true,
+      "explicitDebugAllowed": true
+    },
+    "train_miyako": {
+      "members": 10,
+      "oceanic": false,
+      "maxSpeed": 1.441408,
+      "maxAngularSpeed": 0.0412448,
+      "maxPhaseSpeed": 1.02939,
+      "maxMouthRate": 0.0125999,
+      "maxFeedRate": 0,
+      "maxAirRate": 0,
+      "subjectAvailable": true
+    },
+    "train_galapagos": {
+      "members": 10,
+      "oceanic": true,
+      "maxSpeed": 1.441408,
+      "maxAngularSpeed": 0.0412448,
+      "maxPhaseSpeed": 1.02939,
+      "maxMouthRate": 0.0125999,
+      "maxFeedRate": 0,
+      "maxAirRate": 0,
+      "subjectAvailable": true
+    },
+    "baseline_regression": {
+      "nonMantaModelsUnchanged": true,
+      "turtleUpdateUnchanged": true,
+      "whaleTraceIdentical": true,
+      "whaleSamples": 3000,
+      "whaleTraceHash": "7842f3a670a8e0d83cc9965137f51f061c6c4ba17df5f62ac3d51d6d7002975b"
+    }
+  },
+  "failures": []
+}
