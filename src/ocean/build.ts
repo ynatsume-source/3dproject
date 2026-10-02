@@ -1,5 +1,7 @@
 // Builds a sea from its description: seabed, reef, corals, anemones, garden eels and animals.
 import { KELP_FLOOR, makeKelpForest } from './kelp';
+import { buildLobosBenthos } from './lobos-benthos';
+import { makeLobosVisitors } from '../eco/lobos-visitors';
 import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
@@ -555,7 +557,14 @@ export function buildOcean(loc) {
     };
   }
 
-  if (loc.habitat === 'kelp') oc.kelp = makeKelpForest(loc, group, T, oc.cells, floorGeo);
+  if (loc.habitat === 'kelp') {
+    oc.kelp = makeKelpForest(loc, group, T, oc.cells, floorGeo);
+    if (loc.id === 'pointlobos') {
+      oc.lobosBenthos = buildLobosBenthos(loc, T, group, oc.kelp.floorAt, { understoryAnchors: oc.kelp.understory.anchors });
+      oc.kelp.stats.urchins = oc.lobosBenthos.stats.urchins;
+      oc.kelp.stats.batStars = oc.lobosBenthos.stats.batStars;
+    }
+  }
 
   // fish
   for (const sp of loc.species) {
@@ -590,6 +599,7 @@ export function buildOcean(loc) {
   oc.critters = makeCritters(oc); if (oc.critters) group.add(oc.critters.group);
   oc.breach = makeBreach(oc);   // whales and mantas leaping out of the sea
   oc.rare = makeRareEvents(oc);   // rare scenes, now and then   // morays, sea snakes, jellyfish   // remoras, pilot fish and trevally with the big ones
+  oc.lobosVisitors = makeLobosVisitors(oc);
   oc.eco = new Ecosystem(oc);
   group.visible = false;
   oceanScene.add(group);

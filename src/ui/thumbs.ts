@@ -8,6 +8,7 @@ import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMateria
 import { octopusModel } from '../eco/octopus';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
+import { makeHarborSeal } from '../ocean/lobos-visitor-models';
 import type { Sea } from '../data/locations';
 
 const W = 176, H = 104;
@@ -29,6 +30,7 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
   if (id === 'tobiuo' && !loc.species.some((s) => s.id === 'tobiuo')) { const m = flyingFishModel(); m.position.y = 20; return { obj: m, view: [0.3, 0.45, 0.4] }; }   // (in the air, wings spread)
   if (id === 'whale') return { obj: new THREE.Mesh(WHALE_GEO, whaleMaterial(0.3)), view: [1, 0.3, 0.45] };
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
+  if (id === 'harbor-seal' && loc.id === 'pointlobos') return { obj: makeHarborSeal().group, view: [0.7, 0.3, 1] };
   const bird = (loc.birds || []).find((b) => b.id === id);
   if (bird) { const m = birdModel(bird); m.position.y = 20; return { obj: m, view: [0.55, 0.9, 0.75] }; }   // lifted into the air, out of the water's haze
   // (garden eels duck into their burrows when a camera comes close, so they get no portrait)

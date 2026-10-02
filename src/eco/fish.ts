@@ -10,6 +10,7 @@ import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
+import { makeKelpFishLife } from './kelp-life';
 
 const _c = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _mc = new THREE.Matrix4(), _ss = new THREE.Vector3();
 const REVIVE_AFTER = 150;   // s until another fish drifts in to take a lost one's place
@@ -29,6 +30,7 @@ interface Group {
   a?: { pos: THREE.Vector3; s: number };
   c: THREE.Vector3; v: THREE.Vector3; head: number; t: number; alt: number;
   anchor: { x: number; z: number }; placed: boolean;
+  bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
   hunt: null | Hunt; cooldown: number;
   prey?: PreyGroup;
@@ -102,6 +104,8 @@ export function makeFishSystem(sp: Species, oc: any) {
     oc.group.add(cocoon);
   }
   const T = oc.T;
+  const kelpLife = makeKelpFishLife(sp, oc, total);
+  const lastCam = new THREE.Vector3();
   const isPredator = sp.diet === 'fish';
   const cave = sp.rests === 'cave' ? oc.cave : null;
   if (cave) { const spots = cave.restSpots(groups.length); groups.forEach((g, i) => { g.cr = { spot: spots[i % spots.length], mode: 'out', t: 0, dir: 1 }; }); }
@@ -224,7 +228,9 @@ export function makeFishSystem(sp: Species, oc: any) {
     else {
       // (those that keep to a wreck: somewhere along her)
       const ws = sp.wreck && oc.wreck ? oc.wreck.spot(_e) : null;
-      const [x, z] = ws ? [ws.x, ws.z] : findSpot(cam, fx, fz, near ? 6 : 32, near ? 30 : 48, g.type === 'reef');
+      let [x, z] = ws ? [ws.x, ws.z] : findSpot(cam, fx, fz, near ? 6 : 32, near ? 30 : 48, g.type === 'reef');
+      const plant = kelpLife?.anchorNear(x, z);
+      if (plant) { x = plant.x; z = plant.z; }
       g.anchor.x = x; g.anchor.z = z;
       g.c.set(x, ws ? Math.min(Math.max(ws.y, T.top(x, z) + g.alt), -1.4) : Math.min(T.h(x, z) + g.alt, -1.4), z);
       g.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.9, 2.1);
@@ -235,8 +241,10 @@ export function makeFishSystem(sp: Species, oc: any) {
       dead[i] = 0;
       fp[i * 3] = g.c.x + fo[i * 3]; fp[i * 3 + 1] = g.c.y + fo[i * 3 + 1]; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2];
       fv[i * 3] = g.v.x; fv[i * 3 + 1] = 0; fv[i * 3 + 2] = g.v.z;
+      kelpLife?.place(i, fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]);
     }
     g.placed = true; g.born = g.t;   // (it swims in: grows from nothing rather than popping up)
+    if (kelpLife) { g.bodyCenter ??= new THREE.Vector3(); g.bodyCenter.copy(g.c); }
   }
 
   // Predators: build hunger, pick a school, close in, then chase one fish in bursts.
@@ -326,6 +334,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   let target = 1;
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
     frame++;
+    if (kelpLife) lastCam.copy(cam);
     const t = env.t;
     const act = activity(sp.diel, env);
     target = act;
@@ -369,6 +378,12 @@ export function makeFishSystem(sp: Species, oc: any) {
           // (a big one meanders in long, slow arcs: its wandering scaled to how fast it can turn)
           const wk = bigTurn ? Math.min(1, turnMax * 1.5) : 1;
           g.head += (Math.sin(g.t * 0.23 * wk + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt * wk;
+          if (kelpLife && Math.hypot(g.c.x - g.anchor.x, g.c.z - g.anchor.z) > 13) {
+            // Olive rockfish circle their kelp patch between hunts. Chases retain
+            // their existing control and can carry a hunter beyond the forest edge.
+            const dh = Math.atan2(g.anchor.z - g.c.z, g.anchor.x - g.c.x) - g.head;
+            g.head += Math.atan2(Math.sin(dh), Math.cos(dh)) * Math.min(1, dt * 0.3);
+          }
           g.head += T.shore(g.c.x, g.c.z, g.head, 5 / wk, 1.2) * Math.min(1, dt * 1.5 * wk);
           if (outZone(g.c.x, g.c.z)) { let d = toZone(g.c.x, g.c.z) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8 * wk; }
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
@@ -394,7 +409,11 @@ export function makeFishSystem(sp: Species, oc: any) {
       const appear = g.born == null ? 1 : smooth(0, 1.5, g.t - g.born);
       for (let i = g.start; i < g.start + g.n; i++) {
         if (dead[i]) {
-          if (g.t - dead[i] > REVIVE_AFTER) { dead[i] = 0; fp[i * 3] = g.c.x + fo[i * 3] * 3; fp[i * 3 + 1] = g.c.y; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2] * 3; }
+          if (g.t - dead[i] > REVIVE_AFTER) {
+            dead[i] = 0; fp[i * 3] = g.c.x + fo[i * 3] * 3; fp[i * 3 + 1] = g.c.y; fp[i * 3 + 2] = g.c.z + fo[i * 3 + 2] * 3;
+            // A newcomer inherits neither the eaten fish's buried pose nor its old bed.
+            kelpLife?.place(i, fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]);
+          }
           else { _mm.makeScale(0, 0, 0); mesh.setMatrixAt(i, _mm); cocoon?.setMatrixAt(i, _mm); dirty = true; continue; }
         }
         alive++;
@@ -422,6 +441,19 @@ export function makeFishSystem(sp: Species, oc: any) {
           if (bite > 0.97 && sp.big) env.crunch(Math.hypot(fp[i * 3] - cam.x, fp[i * 3 + 1] - cam.y, fp[i * 3 + 2] - cam.z));
         }
         const px = fp[i * 3], py = fp[i * 3 + 1], pz = fp[i * 3 + 2];
+        // The life layer chooses a destination, never a new body position. Normal
+        // acceleration, terrain avoidance and predator steering still move the fish.
+        let life = kelpLife?.states[i];
+        if (kelpLife) {
+          let danger = !!(g.ch && g.ch.i === i && g.t - g.ch.t < 0.3);
+          const cameraRadius = 4.5 * env.shy;
+          if (Math.hypot(px - cam.x, py - cam.y, pz - cam.z) < cameraRadius) danger = true;
+          if (!isPredator) for (const th of env.threats) {
+            if (th.r && Math.hypot(px - th.x, py - th.y, pz - th.z) < th.r) { danger = true; break; }
+          }
+          life = kelpLife.update(i, dt, t, g.act, danger, { x: px, y: py, z: pz }, fs[i]);
+          tx += (life.x - tx) * life.weight; ty += (life.y - ty) * life.weight; tz += (life.z - tz) * life.weight;
+        }
         if (hunting && lone) {
           // the hunter is the hunt: its body goes where the chase goes
           const k = Math.min(1, dt * 10);
@@ -437,8 +469,11 @@ export function makeFishSystem(sp: Species, oc: any) {
           const out = caveMode0(g) === 'out';   // in the tunnel the floor, not the massif's top
           flC[i] = out ? T.top(px, pz) : T.ground(px, pz); ftC[i] = out ? T.top(tx, tz) : T.ground(tx, tz);
         }
-        const fl = flC[i];
-        ty = Math.max(ty, ftC[i] + 0.2);   // aim above the reef under the target, not into it
+        const burial = life?.burial || 0;
+        const fl = kelpLife ? Math.max(flC[i], kelpLife.floor(px, pz)) : flC[i];
+        // Only verified sand beds allow burial; all other fish keep the usual clearance.
+        const bottomTarget = burial ? kelpLife!.floor(tx, tz) - fs[i] * 0.28 * burial : ftC[i] + 0.2;
+        ty = Math.max(ty, bottomTarget);
         const ch = g.ch && g.ch.i === i && g.t - g.ch.t < 0.3 ? g.ch : null;
         if (ch) {
           // singled out: bolt away flat out, jinking hard when the hunter is close, and dive for the reef
@@ -455,7 +490,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         } else {
         _v.set(tx - px, ty - py, tz - pz);
         const L = _v.length(), maxS = Math.max(sp.speed * (1.7 + g.fear * 1.5), 0.3);
-        _v.multiplyScalar(Math.min(maxS, L * 1.1) / Math.max(L, 1e-4)).add(g.v);
+        _v.multiplyScalar(Math.min(maxS, L * 1.1) / Math.max(L, 1e-4)).addScaledVector(g.v, 1 - (life?.weight || 0));
         }
         // flee the drone and any predator on the prowl
         const caveMode = g.cr ? g.cr.mode : 'out';
@@ -470,7 +505,14 @@ export function makeFishSystem(sp: Species, oc: any) {
             if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); }
           }
         }
-        if (py < fl + 0.15) _v.y = Math.max(_v.y, Math.min((fl + 0.15 - py) * 3, 1.2));   // ease back out of the reef, no kick
+        const floorClearance = burial ? -fs[i] * 0.28 * burial : 0.15;
+        const floorNow = burial ? kelpLife!.floor(px, pz) : fl;
+        if (py < floorNow + floorClearance) _v.y = Math.max(_v.y, Math.min((floorNow + floorClearance - py) * 3, 1.2));   // ease back out of the reef, no kick
+        if (burial > 0) {
+          // Surface first before darting away; a frightened buried fish cannot slide
+          // sideways through rock. It starts its ordinary escape as soon as it emerges.
+          _v.x = (life!.x - px) * 3; _v.z = (life!.z - pz) * 3;
+        }
         const k = 1 - Math.exp(-dt * (ch ? 9 : lone ? 1.0 : 2.6 + g.fear * 2));   // (a chased fish turns on a pin)
         let vx = fv[i * 3] + (_v.x - fv[i * 3]) * k, vy = fv[i * 3 + 1] + (_v.y - fv[i * 3 + 1]) * k, vz = fv[i * 3 + 2] + (_v.z - fv[i * 3 + 2]) * k;
         // a big fish cannot turn on a pin: its heading swings round no faster than its length allows, and
@@ -487,6 +529,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         }
         fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;
         let nx = px + vx * dt, ny = Math.min(py + vy * dt, -0.5), nz = pz + vz * dt;
+        if (kelpLife && !burial) ny = Math.max(ny, kelpLife.floor(nx, nz) + 0.1);
         if (oc.cave && oc.cave.pushOut(_c.set(nx, ny, nz), 0.12 * sp.size[1] + 0.1)) { nx = _c.x; ny = _c.y; nz = _c.z; }   // slide off the cave rock
         fp[i * 3] = nx; fp[i * 3 + 1] = ny; fp[i * 3 + 2] = nz;
         // heading: where it swims, turned into the current while feeding on plankton
@@ -495,7 +538,21 @@ export function makeFishSystem(sp: Species, oc: any) {
         // nearly still (asleep): hold a steady heading instead of turning with every tiny drift
         const still = clamp(1 - hs / 0.12, 0, 1);
         hx = hx * (1 - still) + Math.cos(g.head + i) * 0.12 * still; hz = hz * (1 - still) + Math.sin(g.head + i) * 0.12 * still; hs = Math.hypot(hx, hz);
-        const hy = clamp(vy * (1 - still), -hs * 0.6, hs * 0.6);
+        let hy = clamp(vy * (1 - still), -hs * 0.6, hs * 0.6);
+        if (life) {
+          if (life.mode === 'forage' && life.feedingOnLeaf) {
+            hx = hx * (1 - life.weight) + Math.cos(life.heading) * 0.12 * life.weight;
+            hz = hz * (1 - life.weight) + Math.sin(life.heading) * 0.12 * life.weight;
+            hs = Math.hypot(hx, hz);
+          }
+          hy -= hs * life.peck * 0.65;
+          if (burial > 0) {
+            hx = hx * (1 - burial) + Math.cos(life.heading) * 0.12 * burial;
+            hz = hz * (1 - burial) + Math.sin(life.heading) * 0.12 * burial;
+            hs = Math.hypot(hx, hz);
+            hy = hy * (1 - burial) + hs * 3.4 * burial;
+          }
+        }
         _w.set(nx + hx, ny + hy, nz + hz); _v.set(nx, ny, nz);
         _mm.lookAt(_w, _v, UPV);
         if (cocoon) {
@@ -506,6 +563,14 @@ export function makeFishSystem(sp: Species, oc: any) {
         _ss.setScalar(fs[i] * appear); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
         mesh.setMatrixAt(i, _mm);
         dirty = true;
+      }
+      if (g.bodyCenter && alive) {
+        g.bodyCenter.set(0, 0, 0);
+        for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) {
+          g.bodyCenter.x += fp[i * 3]; g.bodyCenter.y += fp[i * 3 + 1]; g.bodyCenter.z += fp[i * 3 + 2];
+        }
+        g.bodyCenter.multiplyScalar(1 / alive);
+        if (g.prey) { g.prey.x = g.bodyCenter.x; g.prey.y = g.bodyCenter.y; g.prey.z = g.bodyCenter.z; }
       }
       if (g.prey) g.prey.alive = alive;
     }
@@ -538,6 +603,8 @@ export function makeFishSystem(sp: Species, oc: any) {
   // what the species is doing right now, for the field guide
   function status(): string {
     if (groups.some((g) => g.hunt)) return '狩り中';
+    const kelpStatus = kelpLife?.status();
+    if (kelpStatus) return kelpStatus;
     const a = groups.reduce((s, g) => s + g.act, 0) / groups.length;
     if (a < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : sp.cocoon ? '粘液の膜にくるまって眠っている' : '岩陰で休息中';
     if (Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
@@ -560,13 +627,58 @@ export function makeFishSystem(sp: Species, oc: any) {
         out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status, live: () => true });
       }
     });
+    if (kelpLife && sp.id === 'senorita') {
+      let best = -1, distance = 18;
+      for (let i = 0; i < total; i++) {
+        if (dead[i] || !['forage', 'bury', 'sleep'].includes(kelpLife.states[i].mode)) continue;
+        const d = Math.hypot(fp[i * 3] - lastCam.x, fp[i * 3 + 1] - lastCam.y, fp[i * 3 + 2] - lastCam.z);
+        if (d < distance) { distance = d; best = i; }
+      }
+      // One modest local moment, subject to the director's normal cooldown, rather
+      // than 35 competing subjects or a promise that this short meal lasts forever.
+      if (best >= 0) {
+        const mode = kelpLife.states[best].mode;
+        const s = individualSubject(best, `${sp.id}:kelp-life`, mode === 'forage' ? 1.4 : 1.2);
+        const stillHere = s.live;
+        s.live = () => stillHere() && kelpLife.states[best].mode === mode;
+        s.reach = 18; s.hold = 8; out.push(s);
+      }
+    }
+  }
+  function individualSubject(i: number, key: string, prio: number): Subject {
+    const g = groups.find(g => i >= g.start && i < g.start + g.n)!;
+    const born = g.born, at = new THREE.Vector3(), matrix = new THREE.Matrix4();
+    return { key, label: sp.ja, kind: 'critter', prio, size: Math.max(0.2, fs[i] * 1.28), len: fs[i] * 1.28, adult: sp.size[1],
+      pos: () => {
+        // Aim at the exposed head when buried; the body centre is below the sand.
+        if (kelpLife!.states[i].burial > 0.5) { mesh.getMatrixAt(i, matrix); return at.set(0, 0, 0.43).applyMatrix4(matrix); }
+        return at.set(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]);
+      },
+      status: () => {
+        const s = kelpLife!.states[i];
+        return s.mode === 'sleep' ? '砂に頭を残して休息中' : s.mode === 'seek-sand' ? '砂地の寝床へ泳いでいる'
+          : s.mode === 'bury' ? '砂に潜って休むところ' : s.mode === 'wake' ? '砂から出て泳ぎ始めている'
+          : s.mode === 'forage' ? '海藻の表面の小動物をついばんでいる' : 'ケルプの間で餌を探している';
+      },
+      live: () => g.placed && g.born === born && !dead[i],
+    };
   }
   // the nearest group, as something the director can be sent to film
   function focus(cam: THREE.Vector3): Subject | null {
+    if (kelpLife && (sp.id === 'senorita' || sp.id === 'black-surfperch')) {
+      let best = -1, distance = Infinity;
+      for (const g of groups) if (g.placed) for (let i = g.start; i < g.start + g.n; i++) {
+        if (dead[i]) continue;
+        const d = Math.hypot(fp[i * 3] - cam.x, fp[i * 3 + 1] - cam.y, fp[i * 3 + 2] - cam.z);
+        if (d < distance) { distance = d; best = i; }
+      }
+      if (best >= 0) return individualSubject(best, `focus:${sp.id}`, 5);
+      return null;
+    }
     let best: Group | null = null, bd = Infinity;
-    for (const g of groups) { if (!g.placed) continue; const p = g.type === 'anem' ? g.a!.pos : g.c, d = p.distanceTo(cam); if (d < bd) { bd = d; best = g; } }
+    for (const g of groups) { if (!g.placed) continue; const p = g.type === 'anem' ? g.a!.pos : g.bodyCenter || g.c, d = p.distanceTo(cam); if (d < bd) { bd = d; best = g; } }
     if (!best) return null;
-    const g = best, p = g.type === 'anem' ? g.a!.pos : g.c;
+    const g = best, p = g.type === 'anem' ? g.a!.pos : g.bodyCenter || g.c;
     // a lone fish: its own body (not the middle of its patch), and its own size
     const one = g.n === 1 && g.type !== 'anem', at = new THREE.Vector3(), i0 = g.start;
     const pos = one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => p;
@@ -577,7 +689,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
     // something worth hunting has turned up near (a tornado of jacks): the hunters close by wake up hungry
     excite(x: number, z: number, r: number) { if (!isPredator) return; for (const g of groups) if (g.type === 'roam' && Math.hypot(g.c.x - x, g.c.z - z) < r) { g.hunger = Math.max(g.hunger, 0.85); g.cooldown = Math.min(g.cooldown, 5); (g as any).excited = 40; } },
-    dbg: { fp, dead, groups, get total() { return total; } },   // (for checks)
+    dbg: { fp, dead, groups, kelpLife, get total() { return total; } },   // (for checks)
     reset() { for (const g of groups) g.placed = false; },
   };
 }
