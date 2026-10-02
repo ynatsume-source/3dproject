@@ -164,7 +164,7 @@ let huntK = 0, giantK = 0, zoomK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
 // from the field guide; it stays while that is being filmed (on/off, remembered)
 let captionOn = (() => { try { return localStorage.getItem('seaglass.caption') !== '0'; } catch (e) { return true; } })();
-let capShot: Shot | null = null, capT = 0, obsAt = 0;
+let capShot: Shot | null = null, capPhase = '', capT = 0, obsAt = 0;
 function setCaption(on: boolean) {
   captionOn = on; try { localStorage.setItem('seaglass.caption', on ? '1' : '0'); } catch (e) { /* ignore */ }
   $('btnCaption').setAttribute('aria-pressed', String(on));
@@ -180,7 +180,7 @@ let cruiseSubj: Subject | null = null, cruiseT = 0;
 function updateCaption(dt: number) {
   const el = $('caption'); let sh = lastShot;
   // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by
-  if (captionOn && !(sh && sh.phase === 'observe') && drone.mode === 'auto' && !watch.r && cur && camera.position.y < 0) {
+  if (captionOn && !(sh && (sh.phase === 'observe' || sh.asked)) && drone.mode === 'auto' && !watch.r && cur && camera.position.y < 0) {
     if ((cruiseT -= dt) < 0) {
       cruiseT = 2;
       const fwd = U.uCamFwd.value; let best: Subject | null = null, bs = 0;
@@ -195,13 +195,14 @@ function updateCaption(dt: number) {
     }
     if (cruiseSubj) sh = { subject: cruiseSubj, phase: 'observe', pos: camera.position, look: camera.position, cruise: true } as any;
   } else cruiseSubj = null;
-  const want = captionOn && !!sh && sh.phase === 'observe' && drone.mode === 'auto' && !watch.r && sh.subject.kind !== 'cave';
+  // (asked for, by a tap or from the guide: told about it from the moment it is asked for, all the way there)
+  const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked) && drone.mode === 'auto' && !watch.r && sh.subject.kind !== 'cave';
   if (!want) { if (el.classList.contains('on')) el.classList.remove('on'); capShot = null; return; }
   if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
-  if (capShot !== sh) {
-    capShot = sh; capT = 0;
+  if (capShot !== sh || capPhase !== sh!.phase) {
+    capShot = sh; capPhase = sh!.phase; capT = 0;
     const c = captionText(sh!.subject);
-    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
     if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
     (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
     (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
