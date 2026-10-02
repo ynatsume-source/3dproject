@@ -23,12 +23,12 @@ const P = (id: string, value: number, unit: string, status: ParamStatus, sources
 
 export const PARAMS = {
   // ---- constants -------------------------------------------------------------------------
-  latentHeatWater100: P('latentHeatWater100', 2.257e6, 'J/kg', 'assumed', ['S-latent'],
-    '100 °C での水の蒸発潜熱。窯内の残留水の蒸発に使う'),
-  latentHeatWater25: P('latentHeatWater25', 2.44e6, 'J/kg', 'assumed', ['S-latent'],
-    '常温付近の蒸発潜熱。乾燥で環境から受け取る熱の計上に使う'),
-  cpCeramic: P('cpCeramic', 0.9, 'J/(g·K)', 'assumed', ['S-cp'],
-    '素地・焼成体の比熱。温度依存は無視'),
+  latentHeatWater100: P('latentHeatWater100', 2.256e6, 'J/kg', 'sourced', ['S-latent'],
+    '100 °C での水の蒸発潜熱（OpenStax 表の 2256 kJ/kg）。窯内の残留水の蒸発に使う'),
+  latentHeatWater25: P('latentHeatWater25', 2.43e6, 'J/kg', 'sourced', ['S-latent'],
+    '常温の乾燥で環境から受け取る熱。出典は 37 °C の 2430 kJ/kg。25〜28 °C ではわずかに大きいはずだが、その値は出典になく未補正'),
+  cpCeramic: P('cpCeramic', 0.9, 'J/(g·K)', 'assumed', ['S-cp', 'S-heatcap'],
+    '素地・焼成体の比熱。温度依存は無視。OpenStax の表には粘土がなく、近い物質（コンクリート・花崗岩 840、ガラス 840）があるだけ'),
   dHCalcination: P('dHCalcination', 178e3, 'J/mol', 'assumed', ['S-calc'],
     'CaCO3 → CaO + CO2 の標準反応エンタルピー（吸熱）'),
   dHDehydroxylation: P('dHDehydroxylation', 0.6e6, 'J/kg(kaolinite)', 'assumed', ['S-kaol'],

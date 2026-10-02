@@ -1,0 +1,4025 @@
+{
+  "schemaVersion": 1,
+  "status": "design-draft",
+  "externalSourcesVerified": false,
+  "materials": [
+    {
+      "id": "raw_water",
+      "label": "採取候補の水",
+      "category": "fluid",
+      "origin": "local-candidate",
+      "note": "採取地点・塩分・不純物は未確認。飲用水や純水を意味しない。"
+    },
+    {
+      "id": "raw_wood",
+      "label": "漂着木・回収木の候補",
+      "category": "biomass",
+      "origin": "local-candidate",
+      "note": "現地の供給量・樹種・乾燥状態は未確認。採取可能量を別に設定する。"
+    },
+    {
+      "id": "raw_fiber",
+      "label": "植物繊維の候補",
+      "category": "biomass",
+      "origin": "local-candidate",
+      "note": "適する植物が島で採取可能とは未確認。生息域保全と採取条件を別に確認する。"
+    },
+    {
+      "id": "raw_resin",
+      "label": "天然樹脂の候補",
+      "category": "biomass",
+      "origin": "local-candidate",
+      "note": "島での存在・採取可能性は未確認。接着性と絶縁性を同一視しない。"
+    },
+    {
+      "id": "raw_clay",
+      "label": "粘土質原料の候補",
+      "category": "mineral-mixture",
+      "origin": "local-candidate",
+      "note": "島での存在は未確認。普通の粘土が耐火材になるとは限らない。"
+    },
+    {
+      "id": "raw_stone",
+      "label": "石材の候補",
+      "category": "mineral-mixture",
+      "origin": "local-candidate",
+      "note": "採取許容域・組成・強度は未確認。景観の岩すべてを資源にしない。"
+    },
+    {
+      "id": "raw_sand",
+      "label": "砂状原料の候補",
+      "category": "mineral-mixture",
+      "origin": "local-candidate",
+      "note": "海浜砂が石英砂とは限らない。炭酸塩・塩・有機物の混在を想定する。"
+    },
+    {
+      "id": "raw_carbonate",
+      "label": "炭酸塩原料の候補",
+      "category": "mineral-mixture",
+      "origin": "local-candidate",
+      "note": "鉱物組成・採取可能性は未確認。生きたサンゴや貝を無制限に採らない。"
+    },
+    {
+      "id": "raw_iron_ore",
+      "label": "鉄を含む鉱物の候補",
+      "category": "ore-mixture",
+      "origin": "local-candidate",
+      "note": "島での存在・品位は未確認。鉄砂や鉄鉱物を金属鉄・永久磁石と同一視しない。"
+    },
+    {
+      "id": "raw_copper_ore",
+      "label": "銅を含む鉱物の候補",
+      "category": "ore-mixture",
+      "origin": "local-candidate",
+      "note": "島での存在・品位は未確認。酸化鉱と硫化鉱は別工程を必要とする。"
+    },
+    {
+      "id": "raw_flux",
+      "label": "ガラス用融剤原料の候補",
+      "category": "mineral-mixture",
+      "origin": "local-candidate",
+      "note": "組成・入手先は未確認。砂だけから透明な電球ガラスができるとは扱わない。"
+    },
+    {
+      "id": "ambient_co2",
+      "label": "環境中の二酸化炭素",
+      "category": "gas",
+      "origin": "local-candidate",
+      "note": "環境との物質交換を表す種類。閉じた在庫へ無限投入する許可ではない。",
+      "formula": "CO2"
+    },
+    {
+      "id": "process_water",
+      "label": "用途を確認した工程用水",
+      "category": "fluid",
+      "origin": "processed",
+      "note": "式は水成分を示す。用途ごとに不純物許容度が異なり、純水・飲用水の保証はない。",
+      "formula": "H2O"
+    },
+    {
+      "id": "selected_wood",
+      "label": "選別した木材",
+      "category": "wood",
+      "origin": "processed",
+      "note": "樹種・欠陥・寸法を記録する。数量は未設定。"
+    },
+    {
+      "id": "dry_timber",
+      "label": "乾燥状態を確認した木材",
+      "category": "wood",
+      "origin": "processed",
+      "note": "含水率目標・所要時間・反りの評価は未校正。"
+    },
+    {
+      "id": "boards",
+      "label": "板材",
+      "category": "wood-part",
+      "origin": "processed",
+      "note": "原木寸法、切断損失、搬送能力を別途検査する。"
+    },
+    {
+      "id": "beams",
+      "label": "角材",
+      "category": "wood-part",
+      "origin": "processed",
+      "note": "梁としての強度を名称だけで保証しない。"
+    },
+    {
+      "id": "clean_fiber",
+      "label": "選別した繊維",
+      "category": "fiber",
+      "origin": "processed",
+      "note": "繊維長と状態を記録する。"
+    },
+    {
+      "id": "cord",
+      "label": "繊維のひも",
+      "category": "fiber-part",
+      "origin": "processed",
+      "note": "接合・張力用途には強度確認が必要。"
+    },
+    {
+      "id": "cloth",
+      "label": "織物",
+      "category": "fiber-part",
+      "origin": "processed",
+      "note": "膜・帆・シールへの適性は別の検査事項。"
+    },
+    {
+      "id": "prepared_resin",
+      "label": "処理した樹脂",
+      "category": "binder",
+      "origin": "processed",
+      "note": "接着剤候補。電線用絶縁体としての性能は未確認。"
+    },
+    {
+      "id": "prepared_clay",
+      "label": "調整した粘土",
+      "category": "ceramic-feed",
+      "origin": "processed",
+      "note": "組成は混合物。化学式を一つ割り当てない。"
+    },
+    {
+      "id": "unfired_pot",
+      "label": "成形直後の器",
+      "category": "ceramic-green",
+      "origin": "processed",
+      "note": "未焼成。水密性・耐熱性は未成立。"
+    },
+    {
+      "id": "dry_pot",
+      "label": "乾燥した器素地",
+      "category": "ceramic-green",
+      "origin": "processed",
+      "note": "ひび・残留水分の検査が必要。"
+    },
+    {
+      "id": "earthenware",
+      "label": "焼成した器候補",
+      "category": "ceramic-part",
+      "origin": "processed",
+      "note": "普通の焼物。精錬るつぼ・高電圧絶縁体とは別。"
+    },
+    {
+      "id": "unfired_brick",
+      "label": "成形したれんが",
+      "category": "ceramic-green",
+      "origin": "processed",
+      "note": "未焼成の原料状態。"
+    },
+    {
+      "id": "dry_brick",
+      "label": "乾燥したれんが素地",
+      "category": "ceramic-green",
+      "origin": "processed",
+      "note": "収縮と欠陥は要検査。"
+    },
+    {
+      "id": "fired_brick",
+      "label": "焼成れんが",
+      "category": "ceramic-part",
+      "origin": "processed",
+      "note": "建材候補。高温耐火れんがの認定は別。"
+    },
+    {
+      "id": "ceramic_kiln",
+      "label": "陶器用の窯候補",
+      "category": "machine",
+      "origin": "processed",
+      "note": "焼成能力は検査で成立する。これだけで金属・ガラス溶融能力を付与しない。"
+    },
+    {
+      "id": "charcoal",
+      "label": "木炭",
+      "category": "carbonaceous",
+      "origin": "processed",
+      "note": "炭素を多く含む混合物。純炭素や電球フィラメントではない。"
+    },
+    {
+      "id": "calcium_carbonate_feed",
+      "label": "組成を確認した炭酸カルシウム原料",
+      "category": "mineral-feed",
+      "origin": "processed",
+      "note": "式は対象成分。実際の不純物・品位を別に持つ。",
+      "formula": "CaCO3"
+    },
+    {
+      "id": "quicklime",
+      "label": "酸化カルシウムを主成分とする生成物",
+      "category": "chemical-feed",
+      "origin": "processed",
+      "note": "熱工程の候補生成物。取り扱い条件は未実装。",
+      "formula": "CaO"
+    },
+    {
+      "id": "process_co2",
+      "label": "工程から排出される二酸化炭素",
+      "category": "byproduct",
+      "origin": "processed",
+      "note": "排出・回収の物質収支に含める。熱を物質に変換する表現ではない。",
+      "formula": "CO2"
+    },
+    {
+      "id": "hydrated_lime",
+      "label": "水酸化カルシウムを主成分とする生成物",
+      "category": "chemical-feed",
+      "origin": "processed",
+      "note": "反応・発熱・未反応分の評価は別途必要。",
+      "formula": "Ca(OH)2"
+    },
+    {
+      "id": "graded_sand",
+      "label": "粒度を揃えた骨材候補",
+      "category": "aggregate",
+      "origin": "processed",
+      "note": "化学組成は未特定。ガラス原料認定とは別。"
+    },
+    {
+      "id": "wet_mortar",
+      "label": "石灰系モルタル候補",
+      "category": "mixture",
+      "origin": "processed",
+      "note": "石灰・骨材・水の混合物。配合と強度は未校正。"
+    },
+    {
+      "id": "set_mortar",
+      "label": "硬化を評価したモルタル候補",
+      "category": "composite",
+      "origin": "processed",
+      "note": "炭酸化した部分と未反応部分を区別する必要がある。"
+    },
+    {
+      "id": "masonry_wall",
+      "label": "組立直後の未養生れんが壁",
+      "category": "structure",
+      "origin": "processed",
+      "note": "同じWork内の結合材がまだ養生・品質確認されていない状態。自立条件を満たしても完成時の強度・用途を認定しない。"
+    },
+    {
+      "id": "workbench",
+      "label": "木製作業台候補",
+      "category": "structure",
+      "origin": "processed",
+      "note": "作業面・到達性・荷重の検査前は機能を有効にしない。"
+    },
+    {
+      "id": "work_shelter",
+      "label": "作業場所の覆い候補",
+      "category": "structure",
+      "origin": "processed",
+      "note": "鉛直降雨の遮蔽から検査。耐候建築の証明ではない。"
+    },
+    {
+      "id": "wood_shaft",
+      "label": "木製軸",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "形・同軸性・摩擦・強度を別途評価する。"
+    },
+    {
+      "id": "plain_bearing",
+      "label": "滑り軸受の候補",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "潤滑・摩耗・発熱・軸との適合は未校正。"
+    },
+    {
+      "id": "pulley",
+      "label": "木製滑車",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "形だけで動力伝達効率を保証しない。"
+    },
+    {
+      "id": "crank",
+      "label": "手回し用クランク",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "身体の到達・力・安全な回転域を確認する。"
+    },
+    {
+      "id": "machine_frame",
+      "label": "機械用フレーム",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "固定・剛性・転倒を検査する。"
+    },
+    {
+      "id": "hand_drive",
+      "label": "手回し動力装置候補",
+      "category": "machine",
+      "origin": "processed",
+      "note": "機械仕事を入力する装置。電気の在庫ではない。"
+    },
+    {
+      "id": "wind_rotor",
+      "label": "風車の羽根とハブ候補",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "風の存在だけでは回転性能・出力を保証しない。"
+    },
+    {
+      "id": "wind_drive",
+      "label": "風による動力装置候補",
+      "category": "machine",
+      "origin": "processed",
+      "note": "風況、停止手段、負荷との適合は未校正。"
+    },
+    {
+      "id": "iron_feed",
+      "label": "組成を確認した鉄鉱原料",
+      "category": "ore-feed",
+      "origin": "processed",
+      "note": "還元対象相・品位・不純物を別途定義する。"
+    },
+    {
+      "id": "copper_oxide_feed",
+      "label": "酸化銅系と確認した銅原料",
+      "category": "ore-feed",
+      "origin": "processed",
+      "note": "硫化鉱一般にこの経路を適用しない。"
+    },
+    {
+      "id": "refractory_feed",
+      "label": "耐火用途を評価する原料",
+      "category": "ceramic-feed",
+      "origin": "processed",
+      "note": "耐火性と溶融物への耐食性は用途別の試験が必要。"
+    },
+    {
+      "id": "refractory_crucible",
+      "label": "耐火るつぼ候補",
+      "category": "ceramic-part",
+      "origin": "processed",
+      "note": "金属・ガラスそれぞれへの適性を個別に検査する。"
+    },
+    {
+      "id": "metal_furnace",
+      "label": "金属工程用の炉候補",
+      "category": "machine",
+      "origin": "processed",
+      "note": "温度域・雰囲気・熱収支・安全な保持は未成立。"
+    },
+    {
+      "id": "rough_iron",
+      "label": "還元後の粗鉄候補",
+      "category": "metal-intermediate",
+      "origin": "processed",
+      "note": "純度、炭素、介在物、歩留まりは未校正。"
+    },
+    {
+      "id": "slag",
+      "label": "工程別のスラグ",
+      "category": "byproduct",
+      "origin": "processed",
+      "note": "工程ごとに組成を分ける。再利用できるとは仮定しない。"
+    },
+    {
+      "id": "reaction_gas",
+      "label": "組成未校正の反応排気",
+      "category": "byproduct",
+      "origin": "processed",
+      "note": "混合気体。現実の生成手順や無害性を示すものではない。"
+    },
+    {
+      "id": "workable_iron",
+      "label": "加工適性を確認する鉄材",
+      "category": "metal-feed",
+      "origin": "processed",
+      "note": "電磁材料・工具鋼・導線としての等級を自動付与しない。"
+    },
+    {
+      "id": "metal_shaft",
+      "label": "金属軸候補",
+      "category": "mechanical-part",
+      "origin": "processed",
+      "note": "寸法精度、真直度、軸受適合の検査が必要。"
+    },
+    {
+      "id": "iron_core",
+      "label": "鉄心候補",
+      "category": "electromagnetic-part",
+      "origin": "processed",
+      "note": "磁気特性と損失は別に測る。永久磁石ではない。"
+    },
+    {
+      "id": "rough_copper",
+      "label": "粗銅候補",
+      "category": "metal-intermediate",
+      "origin": "processed",
+      "note": "導線に使える純度とは未確認。"
+    },
+    {
+      "id": "conductor_copper",
+      "label": "導体用に評価する銅材",
+      "category": "metal-feed",
+      "origin": "processed",
+      "note": "純度・導電率・延性の確認が必要。"
+    },
+    {
+      "id": "refining_residue",
+      "label": "精製残さ",
+      "category": "byproduct",
+      "origin": "processed",
+      "note": "処理・保管と物質収支を追う。"
+    },
+    {
+      "id": "copper_rod",
+      "label": "線引き用銅素材",
+      "category": "metal-intermediate",
+      "origin": "processed",
+      "note": "寸法と延性を確認する。"
+    },
+    {
+      "id": "drawing_die",
+      "label": "線引き工具候補",
+      "category": "tool",
+      "origin": "processed",
+      "note": "硬度・穴寸法・表面・摩耗の検査が必要。"
+    },
+    {
+      "id": "bare_wire",
+      "label": "線引き・軟化を評価した銅線候補",
+      "category": "electrical-part",
+      "origin": "processed",
+      "note": "連続性、径、加工履歴、抵抗値は未校正。"
+    },
+    {
+      "id": "insulated_wire",
+      "label": "絶縁処理した電線候補",
+      "category": "electrical-part",
+      "origin": "processed",
+      "note": "塗膜があるだけでは合格しない。湿気・温度・摩擦の影響を評価する。"
+    },
+    {
+      "id": "raw_route_coil",
+      "label": "原料経路の巻線候補",
+      "category": "electromagnetic-part",
+      "origin": "processed",
+      "note": "巻数、抵抗、絶縁、固定、発熱は未校正。"
+    },
+    {
+      "id": "magnetic_steel_feed",
+      "label": "磁石材料として評価する鉄系材",
+      "category": "metal-intermediate",
+      "origin": "processed",
+      "note": "鉄と炭素の存在だけで必要な鋼種が成立するとは扱わない。"
+    },
+    {
+      "id": "magnet_blank",
+      "label": "磁石用に熱処理した候補材",
+      "category": "magnetic-part",
+      "origin": "processed",
+      "note": "保磁力などの材質特性が未確認。まだ永久磁石ではない。"
+    },
+    {
+      "id": "magnet_candidate",
+      "label": "磁化処理した候補材",
+      "category": "magnetic-part",
+      "origin": "processed",
+      "note": "磁化源と保持性能が別途必要。鉄砂から直接生成しない。"
+    },
+    {
+      "id": "qualified_magnet",
+      "label": "用途を限定して評価した磁石",
+      "category": "magnetic-part",
+      "origin": "processed",
+      "note": "高級磁石と同等の性能は仮定しない。"
+    },
+    {
+      "id": "raw_route_rotor",
+      "label": "原料経路の発電機回転子候補",
+      "category": "electromagnetic-part",
+      "origin": "processed",
+      "note": "磁石の固定・空隙・釣合いを検査する。"
+    },
+    {
+      "id": "raw_route_generator",
+      "label": "原料経路の発電機候補",
+      "category": "machine",
+      "origin": "processed",
+      "note": "回転→電力変換の装置。定格電力・波形は未校正。"
+    },
+    {
+      "id": "silica_feed",
+      "label": "組成を確認した珪酸質原料",
+      "category": "glass-feed",
+      "origin": "processed",
+      "note": "一般の海浜砂から得られるとは未確認。"
+    },
+    {
+      "id": "glass_batch",
+      "label": "組成を検討したガラス調合原料",
+      "category": "mixture",
+      "origin": "processed",
+      "note": "融剤・安定化成分・不純物の配合は未校正。"
+    },
+    {
+      "id": "glass_stock",
+      "label": "溶融後のガラス素材候補",
+      "category": "glass",
+      "origin": "processed",
+      "note": "気泡・組成・軟化特性・膨張係数は未校正。"
+    },
+    {
+      "id": "glass_envelope",
+      "label": "成形・徐冷したガラス外殻候補",
+      "category": "glass-part",
+      "origin": "processed",
+      "note": "気密・残留応力・寸法は検査前。"
+    },
+    {
+      "id": "vacuum_pump",
+      "label": "自作を目指す真空ポンプ候補",
+      "category": "machine",
+      "origin": "processed",
+      "note": "到達圧力、漏れ、排気速度、接続口は未成立。"
+    },
+    {
+      "id": "filament_preform",
+      "label": "繊維から成形した細線状素材",
+      "category": "carbon-feed",
+      "origin": "processed",
+      "note": "木炭の塊と区別する。連続性と形状保持の検討が必要。"
+    },
+    {
+      "id": "carbon_filament",
+      "label": "炭化したフィラメント候補",
+      "category": "electrical-part",
+      "origin": "processed",
+      "note": "抵抗、均一性、強度、放出ガス、寿命は未確認。"
+    },
+    {
+      "id": "glass_metal_feedthrough",
+      "label": "ガラスと金属の導入端子候補",
+      "category": "electrical-part",
+      "origin": "processed",
+      "note": "熱膨張適合と気密性を別途成立させる必要がある。"
+    },
+    {
+      "id": "unsealed_lamp",
+      "label": "内部を組んだ未封止の灯体候補",
+      "category": "device-intermediate",
+      "origin": "processed",
+      "note": "この時点では実用ランプではない。"
+    },
+    {
+      "id": "evacuated_lamp",
+      "label": "排気を行った灯体候補",
+      "category": "device-intermediate",
+      "origin": "processed",
+      "note": "目標真空達成・保持は保証されない。封止前の状態。"
+    },
+    {
+      "id": "raw_route_lamp",
+      "label": "封止した炭素フィラメント灯候補",
+      "category": "device",
+      "origin": "processed",
+      "note": "灯体の形だけでは点灯・寿命を認定しない。"
+    },
+    {
+      "id": "fixture_coil",
+      "label": "外部電線で作る対照用巻線",
+      "category": "fixture-part",
+      "origin": "processed",
+      "note": "本世界の原料自作達成に数えない。"
+    },
+    {
+      "id": "fixture_generator",
+      "label": "外部磁石と電線の対照用発電機",
+      "category": "fixture-device",
+      "origin": "processed",
+      "note": "結合したエンジンの検証専用。原料経路と来歴を分ける。"
+    },
+    {
+      "id": "fixture_lighting_circuit",
+      "label": "外部ランプを使う対照用回路",
+      "category": "fixture-device",
+      "origin": "processed",
+      "note": "検証用の負荷回路。配線だけでは電力は発生しない。"
+    },
+    {
+      "id": "imported_wire",
+      "label": "外部調達・回収した電線",
+      "category": "fixture-import",
+      "origin": "import-or-recovery",
+      "note": "対照試験専用。原料から線引きできた証拠にはならない。"
+    },
+    {
+      "id": "imported_magnet",
+      "label": "外部調達・回収した永久磁石",
+      "category": "fixture-import",
+      "origin": "import-or-recovery",
+      "note": "対照試験専用。自作の磁性材料や磁化能力へ読み替えない。"
+    },
+    {
+      "id": "imported_lamp",
+      "label": "外部調達・回収したランプ",
+      "category": "fixture-import",
+      "origin": "import-or-recovery",
+      "note": "対照試験専用。入力条件を確認した既製品であり、自作電球・LED・PVではない。"
+    },
+    {
+      "id": "imported_connector",
+      "label": "外部調達・回収した接続部品",
+      "category": "fixture-import",
+      "origin": "import-or-recovery",
+      "note": "対照試験専用。接続・遮断と負荷条件を確認する。"
+    },
+    {
+      "id": "imported_meter",
+      "label": "外部調達・回収した計測器",
+      "category": "fixture-import",
+      "origin": "import-or-recovery",
+      "note": "対照試験専用。測定能力を世界全体へ無条件に付与しない。"
+    },
+    {
+      "id": "reaction_moisture",
+      "label": "反応によって生じる水分",
+      "category": "reaction-byproduct",
+      "formula": "H2O",
+      "origin": "processed",
+      "note": "母材・細孔・周辺空気等に移る水分の意味関係。回収済みの工程用水ではなく、不純物・所在・回収損失を検証せずprocess_waterへ戻さない。"
+    },
+    {
+      "id": "qualified_masonry_wall",
+      "label": "養生と用途別品質を確認した壁",
+      "category": "structure",
+      "origin": "processed",
+      "note": "同じWorkの状態を養生前から更新したもの。新しい壁の生成や材料の複製ではない。支持・強度・使用条件と検査時点を保持する。"
+    }
+  ],
+  "processes": [
+    {
+      "id": "p01_water_prepare",
+      "label": "用途に合わせた水の分離・確認",
+      "kind": "physical",
+      "inputs": [
+        "raw_water"
+      ],
+      "outputs": [
+        "process_water"
+      ],
+      "requires": [
+        "material_observation",
+        "safe_worksite"
+      ],
+      "enables": [
+        "process_water_handling"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S0",
+      "readiness": "concept-only",
+      "note": "種類の依存だけを示す。除塩・精製能力は含まず、用途の不純物基準に通らなければ保留する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p02_source_survey",
+      "label": "資源候補の所在と採取条件の調査",
+      "kind": "measurement",
+      "inputs": [],
+      "outputs": [],
+      "requires": [
+        "material_observation",
+        "safe_worksite"
+      ],
+      "enables": [
+        "source_surveyed"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S0",
+      "readiness": "concept-only",
+      "note": "現地の資源存在を確定しない。調査した地点と出典を持つ候補だけを有効化する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p03_wood_sort",
+      "label": "木材の選別",
+      "kind": "physical",
+      "inputs": [
+        "raw_wood"
+      ],
+      "outputs": [
+        "selected_wood"
+      ],
+      "requires": [
+        "source_surveyed",
+        "basic_handtools"
+      ],
+      "enables": [
+        "wood_sorted"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S0",
+      "readiness": "concept-only",
+      "note": "寸法・欠陥・用途を分類する。単なる選別で木材量は増えない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p04_wood_dry",
+      "label": "木材の乾燥と状態確認",
+      "kind": "physical",
+      "inputs": [
+        "selected_wood"
+      ],
+      "outputs": [
+        "dry_timber"
+      ],
+      "requires": [
+        "wood_sorted",
+        "safe_worksite"
+      ],
+      "enables": [
+        "dry_wood_ready"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "水分の移動と反りを扱う候補工程。期間と歩留まりは未設定。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "ambient-exchange",
+        "requiresRunAccounting": true,
+        "supply": "記録された環境との熱・水分・気体の交換。外気を無条件の加熱・乾燥能力とせず、条件と損失を記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p05_wood_shape",
+      "label": "木材から板・角材を加工",
+      "kind": "physical",
+      "inputs": [
+        "dry_timber"
+      ],
+      "outputs": [
+        "boards",
+        "beams"
+      ],
+      "requires": [
+        "dry_wood_ready",
+        "basic_handtools"
+      ],
+      "enables": [
+        "wood_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "出力は作りうる種類の一覧であり、同時に指定量が得られるレシピではない。端材・損失の台帳が必要。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p06_fiber_sort",
+      "label": "繊維の選別と整え",
+      "kind": "physical",
+      "inputs": [
+        "raw_fiber"
+      ],
+      "outputs": [
+        "clean_fiber"
+      ],
+      "requires": [
+        "source_surveyed",
+        "basic_handtools"
+      ],
+      "enables": [
+        "fiber_ready"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "長さ・傷みを確認する。原植物の生息・採取可否は未確認。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p07_cord_make",
+      "label": "繊維からひもを作る",
+      "kind": "physical",
+      "inputs": [
+        "clean_fiber"
+      ],
+      "outputs": [
+        "cord"
+      ],
+      "requires": [
+        "fiber_ready",
+        "basic_handtools"
+      ],
+      "enables": [
+        "cord_making"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "強度・伸び・結び方の性能は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p08_cloth_weave",
+      "label": "繊維を織物にする",
+      "kind": "physical",
+      "inputs": [
+        "clean_fiber"
+      ],
+      "outputs": [
+        "cloth"
+      ],
+      "requires": [
+        "fiber_ready",
+        "basic_handtools"
+      ],
+      "enables": [
+        "cloth_making"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "織物の製造関係。帆や気密シールとしての機能は別評価。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p09_resin_prepare",
+      "label": "樹脂を用途別に調整",
+      "kind": "physical",
+      "inputs": [
+        "raw_resin"
+      ],
+      "outputs": [
+        "prepared_resin"
+      ],
+      "requires": [
+        "source_surveyed",
+        "managed_hearth"
+      ],
+      "enables": [
+        "binder_preparation"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "接着材候補を作る概念工程。電線の耐熱絶縁性能は未成立。現実用配合は示さない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p10_clay_prepare",
+      "label": "粘土の選別と調整",
+      "kind": "physical",
+      "inputs": [
+        "raw_clay",
+        "process_water"
+      ],
+      "outputs": [
+        "prepared_clay"
+      ],
+      "requires": [
+        "source_surveyed",
+        "process_water_handling",
+        "basic_handtools"
+      ],
+      "enables": [
+        "clay_preparation"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "不純物と成形性を評価する。耐火性の認定ではない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p11_pottery_shape",
+      "label": "器の成形",
+      "kind": "physical",
+      "inputs": [
+        "prepared_clay"
+      ],
+      "outputs": [
+        "unfired_pot"
+      ],
+      "requires": [
+        "clay_preparation",
+        "basic_handtools"
+      ],
+      "enables": [
+        "pottery_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "形と肉厚を作る段階。焼成済み容器とは区別する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p12_pottery_dry",
+      "label": "器素地の乾燥",
+      "kind": "physical",
+      "inputs": [
+        "unfired_pot"
+      ],
+      "outputs": [
+        "dry_pot"
+      ],
+      "requires": [
+        "pottery_shaping",
+        "safe_worksite"
+      ],
+      "enables": [
+        "pottery_dried"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "乾燥状態と割れを検査する。時間条件は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "ambient-exchange",
+        "requiresRunAccounting": true,
+        "supply": "記録された環境との熱・水分・気体の交換。外気を無条件の加熱・乾燥能力とせず、条件と損失を記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p13_pottery_fire",
+      "label": "器素地の初期焼成",
+      "kind": "physical",
+      "inputs": [
+        "dry_pot"
+      ],
+      "outputs": [
+        "earthenware"
+      ],
+      "requires": [
+        "pottery_dried",
+        "managed_hearth",
+        "safe_worksite",
+        "early_ceramic_firing_calibration"
+      ],
+      "enables": [
+        "basic_ceramic_firing"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "一般の焼結・相変化を含む材料工程の概念。焼成曲線や燃焼手順は示さず、成立性能は別検証。 低度なmanaged_hearthだけでは成立せず、初期焼成の熱・原料・品質の校正を必要とする。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p14_brick_shape",
+      "label": "れんが素地の成形",
+      "kind": "physical",
+      "inputs": [
+        "prepared_clay"
+      ],
+      "outputs": [
+        "unfired_brick"
+      ],
+      "requires": [
+        "clay_preparation",
+        "basic_handtools"
+      ],
+      "enables": [
+        "brick_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "寸法は乾燥・焼成収縮も含めて将来校正する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p15_brick_dry",
+      "label": "れんが素地の乾燥",
+      "kind": "physical",
+      "inputs": [
+        "unfired_brick"
+      ],
+      "outputs": [
+        "dry_brick"
+      ],
+      "requires": [
+        "brick_shaping",
+        "safe_worksite"
+      ],
+      "enables": [
+        "brick_dried"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "未乾燥品を焼成済みと見なさない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "ambient-exchange",
+        "requiresRunAccounting": true,
+        "supply": "記録された環境との熱・水分・気体の交換。外気を無条件の加熱・乾燥能力とせず、条件と損失を記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p16_brick_fire",
+      "label": "れんがの焼成",
+      "kind": "physical",
+      "inputs": [
+        "dry_brick"
+      ],
+      "outputs": [
+        "fired_brick"
+      ],
+      "requires": [
+        "brick_dried",
+        "basic_ceramic_firing",
+        "early_ceramic_firing_calibration"
+      ],
+      "enables": [
+        "brick_firing"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "通常建材と耐火材を分ける。強度と収縮は未校正。 低度なmanaged_hearthだけでは成立せず、初期焼成の熱・原料・品質の校正を必要とする。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p17_kiln_assemble",
+      "label": "陶器用の窯を組む",
+      "kind": "assembly",
+      "inputs": [
+        "fired_brick",
+        "prepared_clay"
+      ],
+      "outputs": [
+        "ceramic_kiln"
+      ],
+      "requires": [
+        "brick_firing",
+        "basic_assembly",
+        "safe_worksite"
+      ],
+      "enables": [
+        "ceramic_kiln_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "窯形状の候補。高温・均熱・雰囲気制御を自動付与しない。熱能力は独立ゲート。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p18_charcoal_make",
+      "label": "木材の炭化による木炭候補",
+      "kind": "chemical",
+      "inputs": [
+        "dry_timber"
+      ],
+      "outputs": [
+        "charcoal",
+        "reaction_gas"
+      ],
+      "requires": [
+        "dry_wood_ready",
+        "managed_hearth",
+        "safe_worksite",
+        "charcoal_carbonization_control"
+      ],
+      "enables": [
+        "charcoal_feed_ready"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "熱分解の定性的関係。木材は混合物なので架空の単一反応式を置かない。温度・手順は含めない。 木炭化に適する熱・雰囲気・収支が未成立のため、管理熱源だけでは実行できない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p19_carbonate_identify",
+      "label": "炭酸塩原料の組成確認",
+      "kind": "measurement",
+      "inputs": [
+        "raw_carbonate"
+      ],
+      "outputs": [
+        "calcium_carbonate_feed"
+      ],
+      "requires": [
+        "source_surveyed",
+        "ore_characterization"
+      ],
+      "enables": [
+        "carbonate_feed_ready"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "CaCO3成分を確認して分類する概念。選別だけで不純物が消えるとは扱わない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p20_lime_calcination",
+      "label": "炭酸カルシウムの熱分解",
+      "kind": "chemical",
+      "inputs": [
+        "calcium_carbonate_feed"
+      ],
+      "outputs": [
+        "quicklime",
+        "process_co2"
+      ],
+      "requires": [
+        "carbonate_feed_ready",
+        "ceramic_kiln_structure",
+        "lime_thermal_calibration"
+      ],
+      "enables": [
+        "lime_oxide_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "一般科学の反応関係。実行には熱収支・設備・転化率が必要で未校正。現実用焼成条件は含まない。",
+      "equation": {
+        "reactants": [
+          {
+            "formula": "CaCO3",
+            "coefficient": 1
+          }
+        ],
+        "products": [
+          {
+            "formula": "CaO",
+            "coefficient": 1
+          },
+          {
+            "formula": "CO2",
+            "coefficient": 1
+          }
+        ]
+      },
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p21_lime_hydration",
+      "label": "酸化カルシウムの水和",
+      "kind": "chemical",
+      "inputs": [
+        "quicklime",
+        "process_water"
+      ],
+      "outputs": [
+        "hydrated_lime"
+      ],
+      "requires": [
+        "lime_oxide_candidate",
+        "process_water_handling",
+        "safe_worksite"
+      ],
+      "enables": [
+        "lime_binder_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "発熱を伴う反応の意味関係のみ。物質量・設備・操作手順は未定義。",
+      "equation": {
+        "reactants": [
+          {
+            "formula": "CaO",
+            "coefficient": 1
+          },
+          {
+            "formula": "H2O",
+            "coefficient": 1
+          }
+        ],
+        "products": [
+          {
+            "formula": "Ca(OH)2",
+            "coefficient": 1
+          }
+        ]
+      },
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "reaction-heat",
+        "requiresRunAccounting": true,
+        "supply": "反応物の状態と物質量に由来する反応熱。投入・放出・周囲への熱移動を記録し、自由な無限熱源にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p22_sand_grade",
+      "label": "骨材の粒度選別",
+      "kind": "physical",
+      "inputs": [
+        "raw_sand"
+      ],
+      "outputs": [
+        "graded_sand"
+      ],
+      "requires": [
+        "source_surveyed",
+        "basic_handtools"
+      ],
+      "enables": [
+        "aggregate_grading"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S1",
+      "readiness": "concept-only",
+      "note": "化学純度の認定ではない。ガラス用珪酸原料とは別経路。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p23_mortar_mix",
+      "label": "石灰と骨材からモルタル候補",
+      "kind": "physical",
+      "inputs": [
+        "hydrated_lime",
+        "graded_sand",
+        "process_water"
+      ],
+      "outputs": [
+        "wet_mortar"
+      ],
+      "requires": [
+        "lime_binder_candidate",
+        "aggregate_grading",
+        "process_water_handling"
+      ],
+      "enables": [
+        "mortar_mixing"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "配合・作業性・強度は未校正。完成した構造材を即時生成しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p24_mortar_carbonate",
+      "label": "石灰モルタルの炭酸化と硬化評価",
+      "kind": "chemical",
+      "inputs": [
+        "wet_mortar",
+        "ambient_co2"
+      ],
+      "outputs": [
+        "set_mortar",
+        "reaction_moisture"
+      ],
+      "requires": [
+        "mortar_mixing",
+        "material_observation"
+      ],
+      "enables": [
+        "mortar_curing"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S2",
+      "readiness": "concept-only",
+      "note": "式は混合物中の石灰成分の反応。全量・均一に硬化する意味ではなく、水分・拡散・時間と強度を別途評価する。 生成水分は母材・環境への移動として追い、回収済みの工程用水を自動生成しない。",
+      "equation": {
+        "reactants": [
+          {
+            "formula": "Ca(OH)2",
+            "coefficient": 1
+          },
+          {
+            "formula": "CO2",
+            "coefficient": 1
+          }
+        ],
+        "products": [
+          {
+            "formula": "CaCO3",
+            "coefficient": 1
+          },
+          {
+            "formula": "H2O",
+            "coefficient": 1
+          }
+        ]
+      },
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "ambient-exchange",
+        "requiresRunAccounting": true,
+        "supply": "記録された環境との熱・水分・気体の交換。外気を無条件の加熱・乾燥能力とせず、条件と損失を記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p25_wall_build",
+      "label": "未養生のれんが壁を組み立てる",
+      "kind": "assembly",
+      "inputs": [
+        "fired_brick",
+        "wet_mortar"
+      ],
+      "outputs": [
+        "masonry_wall"
+      ],
+      "requires": [
+        "brick_firing",
+        "mortar_mixing",
+        "basic_assembly"
+      ],
+      "enables": [
+        "masonry_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "未硬化モルタルで積み、組立中の支持・退路を検査する。既に硬化したモルタルを接着剤として再使用しない。masonry_structureは未養生の構成だけを示し、p81で同じWorkの養生・品質を確認するまで完成時の強度・用途を付与しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p26_workbench_build",
+      "label": "木材から作業台を組む",
+      "kind": "assembly",
+      "inputs": [
+        "boards",
+        "beams",
+        "cord"
+      ],
+      "outputs": [
+        "workbench"
+      ],
+      "requires": [
+        "wood_shaping",
+        "cord_making",
+        "basic_assembly"
+      ],
+      "enables": [
+        "work_support_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "支持・高さ・作業域・通行の機能検査が別途必要。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p27_work_shelter_build",
+      "label": "作業場所に覆いを組む",
+      "kind": "assembly",
+      "inputs": [
+        "boards",
+        "beams",
+        "cord"
+      ],
+      "outputs": [
+        "work_shelter"
+      ],
+      "requires": [
+        "wood_shaping",
+        "cord_making",
+        "basic_assembly"
+      ],
+      "enables": [
+        "shelter_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "作業台とは別の屋根部。鉛直被覆・支持・退路の検査が必要。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p28_shaft_shape",
+      "label": "木製軸の加工",
+      "kind": "physical",
+      "inputs": [
+        "beams"
+      ],
+      "outputs": [
+        "wood_shaft"
+      ],
+      "requires": [
+        "wood_shaping",
+        "basic_handtools"
+      ],
+      "enables": [
+        "shaft_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "軸径・真直度・回転負荷の限界は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p29_bearing_shape",
+      "label": "滑り軸受の候補を加工",
+      "kind": "physical",
+      "inputs": [
+        "dry_timber",
+        "raw_stone"
+      ],
+      "outputs": [
+        "plain_bearing"
+      ],
+      "requires": [
+        "wood_shaping",
+        "source_surveyed",
+        "basic_handtools"
+      ],
+      "enables": [
+        "bearing_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "木製の支持に石材の摺動面を組み合わせる候補構成。両材料の種類依存であり、寸法・加工法・摩擦・寿命は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p30_pulley_shape",
+      "label": "滑車の加工",
+      "kind": "physical",
+      "inputs": [
+        "boards"
+      ],
+      "outputs": [
+        "pulley"
+      ],
+      "requires": [
+        "wood_shaping",
+        "basic_handtools"
+      ],
+      "enables": [
+        "pulley_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "動力伝達要素の種類関係。伝達比・張力・損失は未定。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p31_crank_shape",
+      "label": "クランクの加工",
+      "kind": "physical",
+      "inputs": [
+        "beams"
+      ],
+      "outputs": [
+        "crank"
+      ],
+      "requires": [
+        "wood_shaping",
+        "basic_handtools"
+      ],
+      "enables": [
+        "crank_shaping"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "住民の身体で回せる範囲を後から実測する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p32_frame_build",
+      "label": "機械のフレームを組む",
+      "kind": "assembly",
+      "inputs": [
+        "beams",
+        "cord"
+      ],
+      "outputs": [
+        "machine_frame"
+      ],
+      "requires": [
+        "wood_shaping",
+        "cord_making",
+        "basic_assembly"
+      ],
+      "enables": [
+        "frame_assembly"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "剛性・接続・設置面を検査する必要がある。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p33_hand_drive_build",
+      "label": "軸・軸受・クランクを組む",
+      "kind": "assembly",
+      "inputs": [
+        "wood_shaft",
+        "plain_bearing",
+        "crank",
+        "machine_frame"
+      ],
+      "outputs": [
+        "hand_drive"
+      ],
+      "requires": [
+        "shaft_shaping",
+        "bearing_shaping",
+        "crank_shaping",
+        "frame_assembly"
+      ],
+      "enables": [
+        "hand_drive_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "回転構造を組む段階。機械出力の値や連続運転時間は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p34_wind_rotor_build",
+      "label": "風車の羽根とハブを組む",
+      "kind": "assembly",
+      "inputs": [
+        "boards",
+        "cord"
+      ],
+      "outputs": [
+        "wind_rotor"
+      ],
+      "requires": [
+        "wood_shaping",
+        "cord_making",
+        "basic_assembly"
+      ],
+      "enables": [
+        "wind_rotor_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "空力性能を形の名称から推定しない。風況・負荷・停止条件の評価が必要。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p35_wind_drive_build",
+      "label": "風車と回転支持を組む",
+      "kind": "assembly",
+      "inputs": [
+        "wind_rotor",
+        "wood_shaft",
+        "plain_bearing",
+        "machine_frame"
+      ],
+      "outputs": [
+        "wind_drive"
+      ],
+      "requires": [
+        "wind_rotor_structure",
+        "shaft_shaping",
+        "bearing_shaping",
+        "frame_assembly"
+      ],
+      "enables": [
+        "wind_drive_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "風による動力への構造依存。定格や運転可否は未成立。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p36_rotation_check",
+      "label": "軸と軸受の回転・干渉確認",
+      "kind": "measurement",
+      "inputs": [
+        "wood_shaft",
+        "plain_bearing"
+      ],
+      "outputs": [],
+      "requires": [
+        "shaft_shaping",
+        "bearing_shaping",
+        "manual_rotation_measurement"
+      ],
+      "enables": [
+        "rotation_geometry_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "空回りの確認であり、発電機の負荷を受けて回る証明ではない。材料は測定で消費しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p37_iron_feed_assay",
+      "label": "鉄鉱候補の鉱物相・品位を調べる",
+      "kind": "measurement",
+      "inputs": [
+        "raw_iron_ore"
+      ],
+      "outputs": [
+        "iron_feed"
+      ],
+      "requires": [
+        "source_surveyed",
+        "ore_characterization"
+      ],
+      "enables": [
+        "iron_feed_characterized"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "鉱石評価。採った石を金属鉄に変換する工程ではない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p38_copper_feed_assay",
+      "label": "銅原料候補を酸化鉱経路へ分類",
+      "kind": "measurement",
+      "inputs": [
+        "raw_copper_ore"
+      ],
+      "outputs": [
+        "copper_oxide_feed"
+      ],
+      "requires": [
+        "source_surveyed",
+        "ore_characterization"
+      ],
+      "enables": [
+        "copper_feed_characterized"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "硫化鉱ならこの経路は使えず、別設計を必要とする。産地と品位は未確認。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p39_refractory_assay",
+      "label": "耐火原料の用途適性評価",
+      "kind": "measurement",
+      "inputs": [
+        "raw_clay"
+      ],
+      "outputs": [
+        "refractory_feed"
+      ],
+      "requires": [
+        "source_surveyed",
+        "refractory_calibration"
+      ],
+      "enables": [
+        "refractory_feed_characterized"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "評価による適格分類。普通の粘土が自動的に耐火粘土へ変わるわけではない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p40_crucible_make",
+      "label": "耐火容器の成形と焼成候補",
+      "kind": "physical",
+      "inputs": [
+        "refractory_feed"
+      ],
+      "outputs": [
+        "refractory_crucible"
+      ],
+      "requires": [
+        "refractory_feed_characterized",
+        "refractory_calibration",
+        "ceramic_kiln_structure"
+      ],
+      "enables": [
+        "refractory_vessel_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "高難度の工程集合を示す。焼成・亀裂・耐食性の校正が終わるまで実行不可。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p41_furnace_assemble",
+      "label": "金属工程用の炉を構成",
+      "kind": "assembly",
+      "inputs": [
+        "fired_brick",
+        "refractory_crucible"
+      ],
+      "outputs": [
+        "metal_furnace"
+      ],
+      "requires": [
+        "refractory_vessel_candidate",
+        "metallurgical_heat_control",
+        "basic_assembly"
+      ],
+      "enables": [
+        "furnace_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "通常れんがは外装等の候補。炉内材・送風・断熱・保持能力の詳細が未成立で、窯から自動昇格しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p42_iron_reduce",
+      "label": "鉄原料の還元候補工程",
+      "kind": "chemical",
+      "inputs": [
+        "iron_feed",
+        "charcoal"
+      ],
+      "outputs": [
+        "rough_iron",
+        "slag",
+        "reaction_gas"
+      ],
+      "requires": [
+        "iron_feed_characterized",
+        "charcoal_feed_ready",
+        "furnace_structure",
+        "metallurgical_heat_control"
+      ],
+      "enables": [
+        "rough_iron_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "対象鉱物相に応じた還元を別途定義する概念。生成品位・歩留まりは未定。現実用の混合比・温度・手順は含めない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p43_iron_refine",
+      "label": "粗鉄の精製と加工適性評価",
+      "kind": "physical",
+      "inputs": [
+        "rough_iron"
+      ],
+      "outputs": [
+        "workable_iron",
+        "slag"
+      ],
+      "requires": [
+        "rough_iron_candidate",
+        "iron_refining_control"
+      ],
+      "enables": [
+        "workable_iron_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "介在物除去等の工程群の仮区分。必要な化学過程・鋼種・損失を校正時に分割する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p44_iron_shape",
+      "label": "鉄材から軸・鉄心の候補を加工",
+      "kind": "physical",
+      "inputs": [
+        "workable_iron"
+      ],
+      "outputs": [
+        "metal_shaft",
+        "iron_core"
+      ],
+      "requires": [
+        "workable_iron_candidate",
+        "precision_metal_tooling"
+      ],
+      "enables": [
+        "metal_parts_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "出力種類の候補。鉄心の磁気損失と軸の寸法精度は別評価。永久磁石を生成しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p45_copper_reduce",
+      "label": "酸化銅系原料の還元候補工程",
+      "kind": "chemical",
+      "inputs": [
+        "copper_oxide_feed",
+        "charcoal"
+      ],
+      "outputs": [
+        "rough_copper",
+        "slag",
+        "reaction_gas"
+      ],
+      "requires": [
+        "copper_feed_characterized",
+        "charcoal_feed_ready",
+        "furnace_structure",
+        "metallurgical_heat_control"
+      ],
+      "enables": [
+        "rough_copper_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "酸化鉱に限定した意味関係。硫化鉱の精錬をこの一手へ省略しない。量と熱条件は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p46_copper_refine",
+      "label": "粗銅を導体用候補へ精製・評価",
+      "kind": "chemical",
+      "inputs": [
+        "rough_copper"
+      ],
+      "outputs": [
+        "conductor_copper",
+        "refining_residue"
+      ],
+      "requires": [
+        "rough_copper_candidate",
+        "copper_refining_control"
+      ],
+      "enables": [
+        "conductor_copper_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "精製方式そのものが未決。高純度・高導電率を名称だけで保証しない。追加の試薬・設備が必要なら入力契約を改訂する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p47_copper_rod_form",
+      "label": "線引き用の銅素材を成形",
+      "kind": "physical",
+      "inputs": [
+        "conductor_copper"
+      ],
+      "outputs": [
+        "copper_rod"
+      ],
+      "requires": [
+        "conductor_copper_candidate",
+        "precision_metal_tooling"
+      ],
+      "enables": [
+        "wire_blank_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "寸法・加工硬化・欠陥の管理が未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p48_drawing_tool_make",
+      "label": "線引き工具の加工候補",
+      "kind": "physical",
+      "inputs": [
+        "workable_iron"
+      ],
+      "outputs": [
+        "drawing_die"
+      ],
+      "requires": [
+        "workable_iron_candidate",
+        "precision_metal_tooling"
+      ],
+      "enables": [
+        "drawing_tool_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "穴の加工精度・硬度・摩耗が未成立。工具用の鉄材等級も別検査。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p49_wire_draw_anneal",
+      "label": "線引きと軟化工程の候補",
+      "kind": "physical",
+      "inputs": [
+        "copper_rod"
+      ],
+      "outputs": [
+        "bare_wire"
+      ],
+      "requires": [
+        "wire_blank_candidate",
+        "drawing_tool_candidate",
+        "wire_process_calibration"
+      ],
+      "enables": [
+        "wire_drawn_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "線引きと軟化は校正時に別Actionへ分割する。工具は能力側で参照し、毎回消費する入力材にはしない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p50_wire_insulate",
+      "label": "銅線へ絶縁層を作る候補",
+      "kind": "physical",
+      "inputs": [
+        "bare_wire",
+        "prepared_resin",
+        "cloth"
+      ],
+      "outputs": [
+        "insulated_wire"
+      ],
+      "requires": [
+        "wire_drawn_candidate",
+        "binder_preparation",
+        "cloth_making",
+        "insulation_process_calibration"
+      ],
+      "enables": [
+        "wire_insulation_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "樹脂・繊維を用いる候補方式。材料適合・耐熱・層厚・湿度条件は未校正で、成立する配合ではない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p51_wire_quality_check",
+      "label": "電線の抵抗・絶縁・連続性の評価",
+      "kind": "measurement",
+      "inputs": [
+        "insulated_wire"
+      ],
+      "outputs": [],
+      "requires": [
+        "wire_insulation_candidate",
+        "electrical_metrology"
+      ],
+      "enables": [
+        "raw_route_wire_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "測定基準・合格条件は未設定。測定で数量を増減させず、使用可否の証拠を付ける。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p52_raw_coil_wind",
+      "label": "原料由来電線で巻線を構成",
+      "kind": "assembly",
+      "inputs": [
+        "insulated_wire",
+        "iron_core"
+      ],
+      "outputs": [
+        "raw_route_coil"
+      ],
+      "requires": [
+        "raw_route_wire_checked",
+        "metal_parts_candidate",
+        "basic_assembly"
+      ],
+      "enables": [
+        "raw_route_coil_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "鉄心を使う候補。巻数・抵抗・誘導・発熱は電磁モデルで別途評価する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p53_magnetic_material_prepare",
+      "label": "鉄系磁性材の候補を調整",
+      "kind": "chemical",
+      "inputs": [
+        "workable_iron",
+        "charcoal"
+      ],
+      "outputs": [
+        "magnetic_steel_feed"
+      ],
+      "requires": [
+        "workable_iron_candidate",
+        "magnetic_alloy_control"
+      ],
+      "enables": [
+        "magnetic_material_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "成分と組織の制御を要する未成立工程。鉄と炭素から高級磁石が生じる単純な反応式ではない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p54_magnetic_blank_treat",
+      "label": "磁性材候補の熱処理評価",
+      "kind": "physical",
+      "inputs": [
+        "magnetic_steel_feed"
+      ],
+      "outputs": [
+        "magnet_blank"
+      ],
+      "requires": [
+        "magnetic_material_candidate",
+        "magnetic_heat_treatment"
+      ],
+      "enables": [
+        "magnet_blank_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "処理後も保磁力の適否は未確認。現実の熱処理手順は示さない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p55_magnetize",
+      "label": "候補材へ磁化を与える",
+      "kind": "physical",
+      "inputs": [
+        "magnet_blank"
+      ],
+      "outputs": [
+        "magnet_candidate"
+      ],
+      "requires": [
+        "magnet_blank_candidate",
+        "magnetizing_field_source"
+      ],
+      "enables": [
+        "magnetized_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "磁化源は独立した未成立ゲート。初期励磁や利用可能な磁化源を未定義のまま自己解決したことにしない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "位置決めの仕事に加え、未成立の磁化場供給のエネルギー・損失・由来を別途台帳化する。手作業だけで磁化エネルギーを作らない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p56_magnet_quality_check",
+      "label": "磁化と保持性能の確認",
+      "kind": "measurement",
+      "inputs": [
+        "magnet_candidate"
+      ],
+      "outputs": [
+        "qualified_magnet"
+      ],
+      "requires": [
+        "magnetized_candidate",
+        "magnetic_metrology"
+      ],
+      "enables": [
+        "raw_route_magnet_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "適格品への分類であり、新しい材料を増殖させない。用途に必要な磁束等の値は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p57_raw_rotor_build",
+      "label": "自作磁石と軸で回転子候補を組む",
+      "kind": "assembly",
+      "inputs": [
+        "qualified_magnet",
+        "metal_shaft"
+      ],
+      "outputs": [
+        "raw_route_rotor"
+      ],
+      "requires": [
+        "raw_route_magnet_checked",
+        "metal_parts_candidate",
+        "precision_metal_tooling"
+      ],
+      "enables": [
+        "raw_route_rotor_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "磁石の固定・空隙・釣合いと外力への強度を独立に検査する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p58_raw_generator_build",
+      "label": "原料経路の発電機を組む",
+      "kind": "assembly",
+      "inputs": [
+        "raw_route_rotor",
+        "raw_route_coil",
+        "plain_bearing",
+        "machine_frame"
+      ],
+      "outputs": [
+        "raw_route_generator"
+      ],
+      "requires": [
+        "raw_route_rotor_structure",
+        "raw_route_coil_structure",
+        "rotation_geometry_checked",
+        "electromechanical_calibration"
+      ],
+      "enables": [
+        "raw_route_generator_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "電線・磁石・支持・負荷の結合が未校正。組立だけで電力を供給済みとは扱わない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p59_raw_generator_test",
+      "label": "手回しによる自作発電機の試験",
+      "kind": "energy",
+      "inputs": [
+        "raw_route_generator",
+        "hand_drive"
+      ],
+      "outputs": [],
+      "requires": [
+        "raw_route_generator_structure",
+        "hand_drive_structure",
+        "electrical_metrology",
+        "electromechanical_calibration",
+        "manual_work_energy_accounting"
+      ],
+      "enables": [
+        "raw_route_generation_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "機械仕事から電力への変換を測る試験。電気は材料ロットとして出力しない。入力仕事・損失・波形・出力条件は未校正。 手回しの仕事と身体負荷を記録し、既存の無次元batteryから任意の電力量を生み出さない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "mechanical-generation",
+        "requiresRunAccounting": true,
+        "supply": "由来と量を検証した手回しの機械仕事。身体負荷と駆動・発電損失を記録し、無次元batteryを任意の電力量へ換算しない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p60_silica_assay",
+      "label": "ガラス原料の組成確認",
+      "kind": "measurement",
+      "inputs": [
+        "raw_sand"
+      ],
+      "outputs": [
+        "silica_feed"
+      ],
+      "requires": [
+        "source_surveyed",
+        "glass_composition_control"
+      ],
+      "enables": [
+        "silica_feed_characterized"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S4",
+      "readiness": "concept-only",
+      "note": "海浜砂一般を珪砂へ変える工程ではない。適さなければ外部産地の探索・輸送が必要になる。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p61_glass_batch_prepare",
+      "label": "ガラス調合原料の候補を作る",
+      "kind": "physical",
+      "inputs": [
+        "silica_feed",
+        "raw_flux",
+        "calcium_carbonate_feed"
+      ],
+      "outputs": [
+        "glass_batch"
+      ],
+      "requires": [
+        "silica_feed_characterized",
+        "carbonate_feed_ready",
+        "glass_composition_control"
+      ],
+      "enables": [
+        "glass_batch_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "複数成分の配合を要する。具体的な比率・温度・透明度は未設定。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p62_glass_melt",
+      "label": "ガラス原料の溶融候補工程",
+      "kind": "physical",
+      "inputs": [
+        "glass_batch"
+      ],
+      "outputs": [
+        "glass_stock",
+        "reaction_gas"
+      ],
+      "requires": [
+        "glass_batch_candidate",
+        "refractory_vessel_candidate",
+        "glass_thermal_control"
+      ],
+      "enables": [
+        "glass_stock_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "化学反応も伴う工程群。一般の窯と同じ熱能力では成立しない。必要な熱収支・炉材・組成評価が未完了。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p63_glass_shape_anneal",
+      "label": "灯体外殻の成形と徐冷候補",
+      "kind": "physical",
+      "inputs": [
+        "glass_stock"
+      ],
+      "outputs": [
+        "glass_envelope"
+      ],
+      "requires": [
+        "glass_stock_candidate",
+        "glass_forming_skill",
+        "glass_thermal_control"
+      ],
+      "enables": [
+        "glass_envelope_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "薄い外殻、寸法、残留応力、気密性を検査する。工程を校正時に分割し、器の製作成功で代用しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p64_vacuum_pump_build",
+      "label": "自作真空ポンプの構成候補",
+      "kind": "assembly",
+      "inputs": [
+        "metal_shaft",
+        "glass_stock",
+        "prepared_resin",
+        "cloth"
+      ],
+      "outputs": [
+        "vacuum_pump"
+      ],
+      "requires": [
+        "metal_parts_candidate",
+        "glass_stock_candidate",
+        "binder_preparation",
+        "cloth_making",
+        "vacuum_precision_engineering"
+      ],
+      "enables": [
+        "vacuum_pump_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "入力は構成素材の暫定候補。弁・シール・可動部の詳細と追加材料は未成立で、これだけの材料でポンプが完成するとは主張しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。 ポンプの組立と排気運転を分け、組立仕事だけで真空を成立させない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p65_vacuum_test",
+      "label": "排気能力と漏れの測定",
+      "kind": "measurement",
+      "inputs": [
+        "vacuum_pump"
+      ],
+      "outputs": [],
+      "requires": [
+        "vacuum_pump_structure",
+        "pressure_leak_metrology"
+      ],
+      "enables": [
+        "raw_route_vacuum_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "到達圧力・排気速度・漏れ・放出ガスを分ける。必要な値は灯体側から決まり、未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p66_filament_form",
+      "label": "繊維を細線状の素材に整える",
+      "kind": "physical",
+      "inputs": [
+        "clean_fiber"
+      ],
+      "outputs": [
+        "filament_preform"
+      ],
+      "requires": [
+        "fiber_ready",
+        "basic_handtools"
+      ],
+      "enables": [
+        "filament_preform_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "細く連続した形の候補を作る。発光体としての性能はまだない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p67_filament_carbonize",
+      "label": "細線状素材を炭化する候補",
+      "kind": "chemical",
+      "inputs": [
+        "filament_preform"
+      ],
+      "outputs": [
+        "carbon_filament",
+        "reaction_gas"
+      ],
+      "requires": [
+        "filament_preform_candidate",
+        "filament_carbonization_control"
+      ],
+      "enables": [
+        "carbon_filament_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "原料が混合物のため単一の式を置かない。均一性・収縮・形状保持を確認するまで実行不可。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p68_filament_test",
+      "label": "フィラメントの電気・機械特性評価",
+      "kind": "measurement",
+      "inputs": [
+        "carbon_filament"
+      ],
+      "outputs": [],
+      "requires": [
+        "carbon_filament_candidate",
+        "electrical_metrology",
+        "filament_quality_control"
+      ],
+      "enables": [
+        "raw_route_filament_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "抵抗・強度・熱安定性・放出ガスを評価する。木炭があるだけでは合格しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p69_feedthrough_make",
+      "label": "気密な導入端子の候補を作る",
+      "kind": "assembly",
+      "inputs": [
+        "bare_wire",
+        "glass_stock"
+      ],
+      "outputs": [
+        "glass_metal_feedthrough"
+      ],
+      "requires": [
+        "wire_drawn_candidate",
+        "glass_stock_candidate",
+        "glass_metal_sealing"
+      ],
+      "enables": [
+        "feedthrough_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "銅とガラスの組合せがそのまま気密封止に適合するとは仮定しない。膨張特性により別金属等が必要なら入力を改訂する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p70_lamp_assemble",
+      "label": "灯体の内部構成を組む",
+      "kind": "assembly",
+      "inputs": [
+        "glass_envelope",
+        "carbon_filament",
+        "glass_metal_feedthrough"
+      ],
+      "outputs": [
+        "unsealed_lamp"
+      ],
+      "requires": [
+        "glass_envelope_candidate",
+        "raw_route_filament_checked",
+        "feedthrough_candidate",
+        "basic_assembly"
+      ],
+      "enables": [
+        "lamp_internal_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S7",
+      "readiness": "concept-only",
+      "note": "支持位置・電気接続・接触回避を検査する。ここでは点灯可能な電球を生成しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p71_lamp_evacuate",
+      "label": "灯体から気体を排出する候補",
+      "kind": "physical",
+      "inputs": [
+        "unsealed_lamp"
+      ],
+      "outputs": [
+        "evacuated_lamp"
+      ],
+      "requires": [
+        "lamp_internal_structure",
+        "raw_route_vacuum_checked",
+        "pressure_leak_metrology"
+      ],
+      "enables": [
+        "lamp_evacuated_candidate"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S7",
+      "readiness": "concept-only",
+      "note": "排気設備を能力として参照する。灯体内の気体流入・排出は別の物質収支が必要で、具体量は未定。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "由来と量を検証したポンプ駆動の仕事。排気・漏れ・気体移動・損失を記録し、装置があるだけで真空を生成しない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p72_lamp_seal",
+      "label": "排気後の灯体を封止する候補",
+      "kind": "physical",
+      "inputs": [
+        "evacuated_lamp"
+      ],
+      "outputs": [
+        "raw_route_lamp"
+      ],
+      "requires": [
+        "lamp_evacuated_candidate",
+        "vacuum_sealing_process",
+        "glass_metal_sealing"
+      ],
+      "enables": [
+        "raw_route_lamp_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S7",
+      "readiness": "concept-only",
+      "note": "封止後の真空保持と熱膨張適合は未解決。灯体外観が完成しても使用可能とは限らない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "controlled-heat",
+        "requiresRunAccounting": true,
+        "supply": "有限燃料、または由来と量を検証した熱供給。工程ごとの機械仕事、保持、熱損失を別に記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p73_raw_lamp_test",
+      "label": "自作灯の負荷・漏れ・寿命評価",
+      "kind": "measurement",
+      "inputs": [
+        "raw_route_lamp"
+      ],
+      "outputs": [],
+      "requires": [
+        "raw_route_lamp_structure",
+        "raw_route_generation_checked",
+        "electrical_metrology",
+        "pressure_leak_metrology",
+        "lamp_load_lifetime_calibration"
+      ],
+      "enables": [
+        "raw_route_lamp_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S7",
+      "readiness": "concept-only",
+      "note": "電源と灯体を結合する評価。瞬間的な発光、明るさ、有用性、継続寿命を分け、未評価なら点灯達成を認定しない。 寿命試験で消耗した個体はそのまま使用可能品にしない。試験結果と残存品質を別々に記録し、同じ個体を使う場合は残存品質・漏れ・負荷適合を再検査する。必要なら別個体を製作して来歴を区別する。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p74_raw_first_light",
+      "label": "原料経路の風力発電機と自作灯体による点灯試験",
+      "kind": "energy",
+      "inputs": [
+        "raw_route_generator",
+        "wind_drive",
+        "raw_route_lamp",
+        "insulated_wire"
+      ],
+      "outputs": [],
+      "requires": [
+        "wind_generation_checked",
+        "raw_route_lamp_checked",
+        "raw_route_wire_checked",
+        "wind_drive_structure",
+        "lamp_load_lifetime_calibration"
+      ],
+      "enables": [
+        "raw_route_lighting_demonstrated"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S7",
+      "readiness": "concept-only",
+      "note": "本世界で自然エネルギーから灯りを得る長期到達点候補。記録された風況と使用時の発電・負荷・残存品質を毎回検査する。高度ゲートが未成立のため現在は実行不可。定性的な接続であり実現・定格・寿命の証明ではない。電気や光を材料として在庫化しない。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "mechanical-generation",
+        "requiresRunAccounting": true,
+        "supply": "記録された風由来の機械入力。風況、性能曲線、負荷、変換損失、停止条件を記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p75_fixture_parts_check",
+      "label": "対照用の外部電材を確認",
+      "kind": "measurement",
+      "inputs": [
+        "imported_wire",
+        "imported_magnet",
+        "imported_lamp",
+        "imported_connector",
+        "imported_meter"
+      ],
+      "outputs": [],
+      "requires": [
+        "fixture_external_parts",
+        "fixture_load_matching",
+        "material_observation"
+      ],
+      "enables": [
+        "fixture_parts_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "エンジン検証だけの外部依存。主経路の精錬・電線・磁化・電球製造能力を解放しない。",
+      "scope": "test-fixture",
+      "energyModel": {
+        "mode": "measurement",
+        "requiresRunAccounting": true,
+        "supply": "測定器と観察動作の仕事・供給エネルギーを記録する。通電・回転・真空等を伴う試験では、その入力と試料の消耗も別途計上する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p76_fixture_coil_wind",
+      "label": "対照用の外部電線を巻く",
+      "kind": "assembly",
+      "inputs": [
+        "imported_wire"
+      ],
+      "outputs": [
+        "fixture_coil"
+      ],
+      "requires": [
+        "fixture_parts_checked",
+        "basic_assembly"
+      ],
+      "enables": [
+        "fixture_coil_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S5",
+      "readiness": "concept-only",
+      "note": "既製電線による組立確認。本世界で原料から電線を作れたことには数えない。",
+      "scope": "test-fixture",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p77_fixture_generator_build",
+      "label": "外部磁石を用いた対照発電機を組む",
+      "kind": "assembly",
+      "inputs": [
+        "fixture_coil",
+        "imported_magnet",
+        "wood_shaft",
+        "plain_bearing",
+        "machine_frame"
+      ],
+      "outputs": [
+        "fixture_generator"
+      ],
+      "requires": [
+        "fixture_coil_structure",
+        "fixture_parts_checked",
+        "rotation_geometry_checked",
+        "frame_assembly",
+        "basic_assembly"
+      ],
+      "enables": [
+        "fixture_generator_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "外部部品と既存の機械を結ぶ検証fixture。未検証の出力・効率を主経路へ流用しない。",
+      "scope": "test-fixture",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p78_fixture_generation",
+      "label": "対照発電機を手回しで駆動",
+      "kind": "energy",
+      "inputs": [
+        "fixture_generator",
+        "hand_drive",
+        "imported_meter"
+      ],
+      "outputs": [],
+      "requires": [
+        "fixture_generator_structure",
+        "hand_drive_structure",
+        "fixture_load_matching",
+        "manual_work_energy_accounting"
+      ],
+      "enables": [
+        "fixture_generation_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "入力仕事・電力・損失を持つ実装の対照試験候補。電気を材料ロットへ生成しない。実際の数値は未校正。 手回しの仕事と身体負荷を記録し、既存の無次元batteryから任意の電力量を生み出さない。",
+      "scope": "test-fixture",
+      "energyModel": {
+        "mode": "mechanical-generation",
+        "requiresRunAccounting": true,
+        "supply": "由来と量を検証した手回しの機械仕事。身体負荷と駆動・発電損失を記録し、無次元batteryを任意の電力量へ換算しない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p79_fixture_circuit_build",
+      "label": "対照用の既製ランプ回路を組む",
+      "kind": "assembly",
+      "inputs": [
+        "imported_wire",
+        "imported_lamp",
+        "imported_connector"
+      ],
+      "outputs": [
+        "fixture_lighting_circuit"
+      ],
+      "requires": [
+        "fixture_parts_checked",
+        "basic_assembly"
+      ],
+      "enables": [
+        "fixture_circuit_structure"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "電源なしでは点灯しない。入力材は種類依存のみで、物量レシピではない。",
+      "scope": "test-fixture",
+      "energyModel": {
+        "mode": "manual-work",
+        "requiresRunAccounting": true,
+        "supply": "身体と工具に由来する作業の仕事。動力補助を使う場合は供給源・量・損失を別に記録し、無料の加工にはしない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p80_fixture_light",
+      "label": "対照回路を発電機へ接続して測る",
+      "kind": "energy",
+      "inputs": [
+        "fixture_generator",
+        "hand_drive",
+        "fixture_lighting_circuit",
+        "imported_meter"
+      ],
+      "outputs": [],
+      "requires": [
+        "fixture_generation_checked",
+        "fixture_circuit_structure",
+        "fixture_load_matching",
+        "manual_work_energy_accounting"
+      ],
+      "enables": [
+        "fixture_lighting_demonstrated"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S7",
+      "readiness": "concept-only",
+      "note": "共有エンジンの検証用。本世界の初点灯・原料自作の達成には数えない。明るさと持続性の値は別途測定する。 手回しの仕事と身体負荷を記録し、既存の無次元batteryから任意の電力量を生み出さない。",
+      "scope": "test-fixture",
+      "energyModel": {
+        "mode": "mechanical-generation",
+        "requiresRunAccounting": true,
+        "supply": "由来と量を検証した手回しの機械仕事。身体負荷と駆動・発電損失を記録し、無次元batteryを任意の電力量へ換算しない。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p81_masonry_cure_check",
+      "label": "壁内の結合材を養生し用途別品質を確認",
+      "kind": "chemical",
+      "inputs": [
+        "masonry_wall",
+        "ambient_co2"
+      ],
+      "outputs": [
+        "qualified_masonry_wall",
+        "reaction_moisture"
+      ],
+      "requires": [
+        "masonry_structure",
+        "masonry_curing_calibration",
+        "material_observation"
+      ],
+      "enables": [
+        "masonry_use_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S3",
+      "readiness": "concept-only",
+      "note": "壁内の石灰系結合材の炭酸化・水分移動と支持・品質を追う候補工程。単体モルタル試料のp24を行っただけで、この壁が養生済みになったとは扱わない。同じWorkの状態を更新し、旧壁と新壁を二つ生成しない。反応水分は回収水ではない。養生条件・品質基準・時間は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "ambient-exchange",
+        "requiresRunAccounting": true,
+        "supply": "記録された環境との熱・水分・気体の交換。外気を無条件の加熱・乾燥能力とせず、条件と損失を記録する。",
+        "calibrated": false
+      }
+    },
+    {
+      "id": "p82_wind_generation_test",
+      "label": "自作発電機の風駆動・負荷・停止条件を検査",
+      "kind": "energy",
+      "inputs": [
+        "wind_drive",
+        "raw_route_generator"
+      ],
+      "outputs": [],
+      "requires": [
+        "wind_drive_structure",
+        "raw_route_generator_structure",
+        "electrical_metrology",
+        "electromechanical_calibration",
+        "wind_power_calibration"
+      ],
+      "enables": [
+        "wind_generation_checked"
+      ],
+      "evidenceStatus": "reference-check-pending",
+      "stage": "S6",
+      "readiness": "concept-only",
+      "note": "記録済みの環境風を使う機械入力、風車の性能曲線、回転と負荷、摩擦・電気損失、停止条件を一体で検査する候補。風車形状や風の表示だけでは発電を認定しない。電気は物質出力にせず、風況が変われば実行時条件を再検査する。量的性能は未校正。",
+      "scope": "raw-world",
+      "energyModel": {
+        "mode": "mechanical-generation",
+        "requiresRunAccounting": true,
+        "supply": "記録された風由来の機械入力。風況、性能曲線、負荷、変換損失、停止条件を記録する。",
+        "calibrated": false
+      }
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "basic_handtools",
+      "label": "初期の手工具と操作",
+      "origin": "bootstrap",
+      "note": "初期条件として明示する道具。工具自体を原料から発明済みとは主張しない。"
+    },
+    {
+      "id": "material_observation",
+      "label": "素材の観察・種類の仮分類",
+      "origin": "bootstrap",
+      "note": "観察可能な外観等だけ。化学純度や鉱物相の同定には別能力が必要。"
+    },
+    {
+      "id": "safe_worksite",
+      "label": "検査済みの作業域",
+      "origin": "bootstrap",
+      "note": "住民・火・資材の世界内制約を満たす候補区域。現実の施工許可ではない。"
+    },
+    {
+      "id": "managed_hearth",
+      "label": "管理された熱源の初期能力",
+      "origin": "bootstrap",
+      "note": "一般の低度な加熱の開始条件。高温炉の性能や現実の操作手順は含まない。"
+    },
+    {
+      "id": "basic_assembly",
+      "label": "登録した単純な組立操作",
+      "origin": "bootstrap",
+      "note": "寸法・接続・到達・資材所在を世界が検査する。"
+    },
+    {
+      "id": "manual_rotation_measurement",
+      "label": "基本的な回転・時間の観察",
+      "origin": "bootstrap",
+      "note": "校正条件を持つ簡単な観察。トルク・発電出力を直接保証しない。"
+    },
+    {
+      "id": "lime_thermal_calibration",
+      "label": "石灰熱工程の成立条件",
+      "origin": "external-advanced",
+      "note": "未成立の高度能力ゲート。窯の熱履歴・反応・損失を校正するまで実行不可。"
+    },
+    {
+      "id": "ore_characterization",
+      "label": "鉱物相・品位の評価",
+      "origin": "external-advanced",
+      "note": "未成立。外観や磁石への反応だけで精錬原料を認定しない。"
+    },
+    {
+      "id": "refractory_calibration",
+      "label": "耐火材の用途別認定",
+      "origin": "external-advanced",
+      "note": "未成立。普通の粘土・焼物から自動取得しない。"
+    },
+    {
+      "id": "metallurgical_heat_control",
+      "label": "精錬用の熱・雰囲気制御",
+      "origin": "external-advanced",
+      "note": "未成立。炉を置いただけでは温度・雰囲気・熱収支は確保されない。"
+    },
+    {
+      "id": "iron_refining_control",
+      "label": "鉄の精製・加工品質評価",
+      "origin": "external-advanced",
+      "note": "未成立。得られた粗鉄から任意の鋼種を生成しない。"
+    },
+    {
+      "id": "copper_refining_control",
+      "label": "導体用銅の精製・品質評価",
+      "origin": "external-advanced",
+      "note": "未成立。粗銅から電線品質までの方法・収支・評価が必要。"
+    },
+    {
+      "id": "precision_metal_tooling",
+      "label": "精密金属工具の加工",
+      "origin": "external-advanced",
+      "note": "未成立。線引き工具やポンプ部品の精度・摩耗を扱う。"
+    },
+    {
+      "id": "wire_process_calibration",
+      "label": "線引きと軟化の加工条件",
+      "origin": "external-advanced",
+      "note": "未成立。工程間の破断・硬化・損失を検証する。"
+    },
+    {
+      "id": "insulation_process_calibration",
+      "label": "電線絶縁の成立条件",
+      "origin": "external-advanced",
+      "note": "未成立。天然樹脂を塗るだけで耐熱・耐電圧を付与しない。"
+    },
+    {
+      "id": "electrical_metrology",
+      "label": "電気特性の校正済み測定",
+      "origin": "external-advanced",
+      "note": "未成立。原料経路用の計測器・基準を別途成立させる。fixture計器の存在で自動解除しない。"
+    },
+    {
+      "id": "magnetic_alloy_control",
+      "label": "磁石候補材の材質制御",
+      "origin": "external-advanced",
+      "note": "未成立。成分・組織・保磁力を含み、単純な鉄と炭素の配合式ではない。"
+    },
+    {
+      "id": "magnetic_heat_treatment",
+      "label": "磁石候補材の熱処理評価",
+      "origin": "external-advanced",
+      "note": "未成立。磁化前の材料特性を認定する。"
+    },
+    {
+      "id": "magnetizing_field_source",
+      "label": "磁化に必要な場の供給",
+      "origin": "external-advanced",
+      "note": "未成立のブートストラップ課題。磁化装置・励磁電流・利用可能な磁化源の由来を別設計で解決する。"
+    },
+    {
+      "id": "magnetic_metrology",
+      "label": "磁性・保持性能の測定",
+      "origin": "external-advanced",
+      "note": "未成立。磁性鉱石を永久磁石に読み替えない。"
+    },
+    {
+      "id": "electromechanical_calibration",
+      "label": "発電機の結合と損失の校正",
+      "origin": "external-advanced",
+      "note": "未成立。空隙・抵抗・摩擦・出力波形・負荷適合を実測/校正する。"
+    },
+    {
+      "id": "glass_composition_control",
+      "label": "ガラス組成の評価",
+      "origin": "external-advanced",
+      "note": "未成立。砂の成分、融剤、膨張特性を確認する。"
+    },
+    {
+      "id": "glass_thermal_control",
+      "label": "ガラス溶融・徐冷の成立条件",
+      "origin": "external-advanced",
+      "note": "未成立。熱収支・炉材・気泡・残留応力の検討が必要。"
+    },
+    {
+      "id": "glass_forming_skill",
+      "label": "薄いガラス外殻の成形",
+      "origin": "external-advanced",
+      "note": "未成立。器づくりから自動で電球の外殻製造能力にしない。"
+    },
+    {
+      "id": "vacuum_precision_engineering",
+      "label": "真空機器の精密加工",
+      "origin": "external-advanced",
+      "note": "未成立。ポンプ、弁、摺動部、シールを機能させる工程が別途必要。"
+    },
+    {
+      "id": "pressure_leak_metrology",
+      "label": "圧力・漏れ・放出ガスの評価",
+      "origin": "external-advanced",
+      "note": "未成立。音や見た目から十分な真空と認定しない。"
+    },
+    {
+      "id": "filament_carbonization_control",
+      "label": "細線状素材の炭化条件",
+      "origin": "external-advanced",
+      "note": "未成立。一般の木炭生成と同じ性能を仮定しない。"
+    },
+    {
+      "id": "filament_quality_control",
+      "label": "発光用フィラメントの品質評価",
+      "origin": "external-advanced",
+      "note": "未成立。抵抗・機械強度・放出ガス・熱安定性が必要。"
+    },
+    {
+      "id": "glass_metal_sealing",
+      "label": "ガラス金属接合の成立条件",
+      "origin": "external-advanced",
+      "note": "未成立。熱膨張の不適合・漏れを解決するまで封止不可。"
+    },
+    {
+      "id": "vacuum_sealing_process",
+      "label": "排気後の封止工程",
+      "origin": "external-advanced",
+      "note": "未成立。排気したことと真空を保持できることを分ける。"
+    },
+    {
+      "id": "lamp_load_lifetime_calibration",
+      "label": "灯体と電源の適合・寿命評価",
+      "origin": "external-advanced",
+      "note": "未成立。初回の瞬間発光を持続点灯や有用な照明と同一視しない。"
+    },
+    {
+      "id": "fixture_external_parts",
+      "label": "対照試験用の外部電材一式",
+      "origin": "external-advanced",
+      "note": "対照fixtureだけで明示的に有効化する。本世界の自作能力や初点灯達成には算入しない。"
+    },
+    {
+      "id": "fixture_load_matching",
+      "label": "対照試験の電源・負荷適合条件",
+      "origin": "external-advanced",
+      "note": "既製ランプ・計器の条件を確認した検証設定。定格や出力の値はこのカタログでは未指定。"
+    },
+    {
+      "id": "process_water_handling",
+      "label": "用途に合わせた水の分離・確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p01_water_prepare の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "source_surveyed",
+      "label": "資源候補の所在と採取条件の調査の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p02_source_survey の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wood_sorted",
+      "label": "木材の選別の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p03_wood_sort の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "dry_wood_ready",
+      "label": "木材の乾燥と状態確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p04_wood_dry の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wood_shaping",
+      "label": "木材から板・角材を加工の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p05_wood_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fiber_ready",
+      "label": "繊維の選別と整えの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p06_fiber_sort の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "cord_making",
+      "label": "繊維からひもを作るの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p07_cord_make の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "cloth_making",
+      "label": "繊維を織物にするの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p08_cloth_weave の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "binder_preparation",
+      "label": "樹脂を用途別に調整の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p09_resin_prepare の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "clay_preparation",
+      "label": "粘土の選別と調整の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p10_clay_prepare の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "pottery_shaping",
+      "label": "器の成形の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p11_pottery_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "pottery_dried",
+      "label": "器素地の乾燥の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p12_pottery_dry の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "basic_ceramic_firing",
+      "label": "器素地の初期焼成の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p13_pottery_fire の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "brick_shaping",
+      "label": "れんが素地の成形の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p14_brick_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "brick_dried",
+      "label": "れんが素地の乾燥の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p15_brick_dry の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "brick_firing",
+      "label": "れんがの焼成の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p16_brick_fire の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "ceramic_kiln_structure",
+      "label": "陶器用の窯を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p17_kiln_assemble の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "charcoal_feed_ready",
+      "label": "木材の炭化による木炭候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p18_charcoal_make の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "carbonate_feed_ready",
+      "label": "炭酸塩原料の組成確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p19_carbonate_identify の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "lime_oxide_candidate",
+      "label": "炭酸カルシウムの熱分解の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p20_lime_calcination の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "lime_binder_candidate",
+      "label": "酸化カルシウムの水和の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p21_lime_hydration の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "aggregate_grading",
+      "label": "骨材の粒度選別の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p22_sand_grade の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "mortar_mixing",
+      "label": "石灰と骨材からモルタル候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p23_mortar_mix の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "mortar_curing",
+      "label": "石灰モルタルの炭酸化と硬化評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p24_mortar_carbonate の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "masonry_structure",
+      "label": "れんが壁の組立の成立確認",
+      "origin": "derived",
+      "note": "p25_wall_buildによる未養生の構成を検査した状態。壁の完成機能はmasonry_use_checkedとは別であり、未養生状態では有効にしない。"
+    },
+    {
+      "id": "work_support_structure",
+      "label": "木材から作業台を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p26_workbench_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "shelter_structure",
+      "label": "作業場所に覆いを組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p27_work_shelter_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "shaft_shaping",
+      "label": "木製軸の加工の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p28_shaft_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "bearing_shaping",
+      "label": "滑り軸受の候補を加工の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p29_bearing_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "pulley_shaping",
+      "label": "滑車の加工の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p30_pulley_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "crank_shaping",
+      "label": "クランクの加工の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p31_crank_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "frame_assembly",
+      "label": "機械のフレームを組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p32_frame_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "hand_drive_structure",
+      "label": "軸・軸受・クランクを組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p33_hand_drive_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wind_rotor_structure",
+      "label": "風車の羽根とハブを組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p34_wind_rotor_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wind_drive_structure",
+      "label": "風車と回転支持を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p35_wind_drive_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "rotation_geometry_checked",
+      "label": "軸と軸受の回転・干渉確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p36_rotation_check の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "iron_feed_characterized",
+      "label": "鉄鉱候補の鉱物相・品位を調べるの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p37_iron_feed_assay の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "copper_feed_characterized",
+      "label": "銅原料候補を酸化鉱経路へ分類の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p38_copper_feed_assay の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "refractory_feed_characterized",
+      "label": "耐火原料の用途適性評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p39_refractory_assay の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "refractory_vessel_candidate",
+      "label": "耐火容器の成形と焼成候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p40_crucible_make の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "furnace_structure",
+      "label": "金属工程用の炉を構成の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p41_furnace_assemble の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "rough_iron_candidate",
+      "label": "鉄原料の還元候補工程の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p42_iron_reduce の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "workable_iron_candidate",
+      "label": "粗鉄の精製と加工適性評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p43_iron_refine の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "metal_parts_candidate",
+      "label": "鉄材から軸・鉄心の候補を加工の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p44_iron_shape の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "rough_copper_candidate",
+      "label": "酸化銅系原料の還元候補工程の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p45_copper_reduce の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "conductor_copper_candidate",
+      "label": "粗銅を導体用候補へ精製・評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p46_copper_refine の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wire_blank_candidate",
+      "label": "線引き用の銅素材を成形の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p47_copper_rod_form の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "drawing_tool_candidate",
+      "label": "線引き工具の加工候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p48_drawing_tool_make の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wire_drawn_candidate",
+      "label": "線引きと軟化工程の候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p49_wire_draw_anneal の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "wire_insulation_candidate",
+      "label": "銅線へ絶縁層を作る候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p50_wire_insulate の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_wire_checked",
+      "label": "電線の抵抗・絶縁・連続性の評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p51_wire_quality_check の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_coil_structure",
+      "label": "原料由来電線で巻線を構成の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p52_raw_coil_wind の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "magnetic_material_candidate",
+      "label": "鉄系磁性材の候補を調整の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p53_magnetic_material_prepare の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "magnet_blank_candidate",
+      "label": "磁性材候補の熱処理評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p54_magnetic_blank_treat の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "magnetized_candidate",
+      "label": "候補材へ磁化を与えるの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p55_magnetize の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_magnet_checked",
+      "label": "磁化と保持性能の確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p56_magnet_quality_check の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_rotor_structure",
+      "label": "自作磁石と軸で回転子候補を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p57_raw_rotor_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_generator_structure",
+      "label": "原料経路の発電機を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p58_raw_generator_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_generation_checked",
+      "label": "手回しによる自作発電機の試験の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p59_raw_generator_test の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "silica_feed_characterized",
+      "label": "ガラス原料の組成確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p60_silica_assay の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "glass_batch_candidate",
+      "label": "ガラス調合原料の候補を作るの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p61_glass_batch_prepare の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "glass_stock_candidate",
+      "label": "ガラス原料の溶融候補工程の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p62_glass_melt の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "glass_envelope_candidate",
+      "label": "灯体外殻の成形と徐冷候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p63_glass_shape_anneal の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "vacuum_pump_structure",
+      "label": "自作真空ポンプの構成候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p64_vacuum_pump_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_vacuum_checked",
+      "label": "排気能力と漏れの測定の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p65_vacuum_test の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "filament_preform_candidate",
+      "label": "繊維を細線状の素材に整えるの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p66_filament_form の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "carbon_filament_candidate",
+      "label": "細線状素材を炭化する候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p67_filament_carbonize の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_filament_checked",
+      "label": "フィラメントの電気・機械特性評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p68_filament_test の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "feedthrough_candidate",
+      "label": "気密な導入端子の候補を作るの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p69_feedthrough_make の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "lamp_internal_structure",
+      "label": "灯体の内部構成を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p70_lamp_assemble の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "lamp_evacuated_candidate",
+      "label": "灯体から気体を排出する候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p71_lamp_evacuate の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_lamp_structure",
+      "label": "排気後の灯体を封止する候補の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p72_lamp_seal の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_lamp_checked",
+      "label": "自作灯の負荷・漏れ・寿命評価の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p73_raw_lamp_test の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "raw_route_lighting_demonstrated",
+      "label": "原料経路の電源と灯体による点灯試験の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p74_raw_first_light の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fixture_parts_checked",
+      "label": "対照用の外部電材を確認の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p75_fixture_parts_check の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fixture_coil_structure",
+      "label": "対照用の外部電線を巻くの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p76_fixture_coil_wind の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fixture_generator_structure",
+      "label": "外部磁石を用いた対照発電機を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p77_fixture_generator_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fixture_generation_checked",
+      "label": "対照発電機を手回しで駆動の成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p78_fixture_generation の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fixture_circuit_structure",
+      "label": "対照用の既製ランプ回路を組むの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p79_fixture_circuit_build の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "fixture_lighting_demonstrated",
+      "label": "対照回路を発電機へ接続して測るの成立確認",
+      "origin": "derived",
+      "note": "設計依存の候補。p80_fixture_light の世界側検査・校正が完了するまで付与しない。量・時間・性能の設定ではない。"
+    },
+    {
+      "id": "early_ceramic_firing_calibration",
+      "label": "初期陶器・れんが焼成の成立条件",
+      "origin": "external-advanced",
+      "note": "未成立。低度な管理熱源の存在だけでは焼成できない。原料、燃料、到達熱状態、保持、損失、焼成後品質を校正する。"
+    },
+    {
+      "id": "charcoal_carbonization_control",
+      "label": "木炭化の熱・雰囲気・収支制御",
+      "origin": "external-advanced",
+      "note": "未成立。一般の熱源があるだけで木材を木炭へ変換しない。熱供給、生成ガス、残さ、歩留まりを検証する。"
+    },
+    {
+      "id": "masonry_curing_calibration",
+      "label": "壁内の結合材の養生・強度評価",
+      "origin": "external-advanced",
+      "note": "未成立。環境、水分、炭酸化の進行、支持、接合品質、使用荷重を確認する。組立直後の壁を完成機能へ昇格しない。"
+    },
+    {
+      "id": "manual_work_energy_accounting",
+      "label": "手回しの機械仕事と身体エネルギーの会計",
+      "origin": "external-advanced",
+      "note": "未成立。トルク、回転、仕事、身体への負荷、駆動損失を校正する。既存の無次元batteryを任意のWhへ換算しない。"
+    },
+    {
+      "id": "wind_power_calibration",
+      "label": "風況・回転・負荷・損失の校正",
+      "origin": "external-advanced",
+      "note": "未成立。記録された環境風、風車性能曲線、発電負荷、損失、停止条件を検証する。風があるという表示だけで出力を発生させない。"
+    },
+    {
+      "id": "masonry_use_checked",
+      "label": "養生と品質を確認した壁の使用条件",
+      "origin": "derived",
+      "note": "p81_masonry_cure_checkで同じ壁の養生・品質・支持の検査が成立した場合だけ付与する。材料やWorkを複製しない。"
+    },
+    {
+      "id": "wind_generation_checked",
+      "label": "原料由来発電機の風駆動条件の成立確認",
+      "origin": "derived",
+      "note": "p82_wind_generation_testの校正済み条件で機械入力・電力・負荷・損失を検査する。継続中の風や定格を保証する永久フラグではない。"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "m01_material_craft",
+      "label": "原料を選び、木・繊維・土の工作を始める",
+      "requires": [
+        "wood_shaping",
+        "cord_making",
+        "basic_ceramic_firing"
+      ],
+      "note": "種類の依存到達点。採取量・生息域・時間・失敗率は未校正。"
+    },
+    {
+      "id": "m02_material_workplace",
+      "label": "材料の加工が暮らしの場所になる",
+      "requires": [
+        "work_support_structure",
+        "shelter_structure",
+        "masonry_use_checked"
+      ],
+      "note": "実用機能は支持・遮蔽・通行を世界が検査して初めて有効。候補形状だけで達成としない。 壁は組立だけでなく、そのWork内の結合材の養生・品質検査を必要とする。"
+    },
+    {
+      "id": "m03_mechanical_motion",
+      "label": "手回しと風の回転装置を調べる",
+      "requires": [
+        "hand_drive_structure",
+        "wind_drive_structure",
+        "rotation_geometry_checked"
+      ],
+      "note": "負荷時の出力・摩耗・風況は未校正。無負荷回転から発電成功を推定しない。"
+    },
+    {
+      "id": "m04_raw_material_metals",
+      "label": "鉱物から加工用金属の経路を成立させる",
+      "requires": [
+        "workable_iron_candidate",
+        "conductor_copper_candidate",
+        "metal_parts_candidate"
+      ],
+      "note": "高度能力ゲートが未成立。島での鉱石存在と精製性能を確認していない。"
+    },
+    {
+      "id": "m05_raw_wire_and_magnet",
+      "label": "電線と磁気部品を自作・評価する",
+      "requires": [
+        "raw_route_wire_checked",
+        "raw_route_coil_structure",
+        "raw_route_magnet_checked"
+      ],
+      "note": "精密加工・絶縁・磁化源を別々に解決する長期目標。輸入fixtureで達成を代用しない。"
+    },
+    {
+      "id": "m06_raw_power_and_lamp",
+      "label": "自作の発電機と真空灯体を成立させる",
+      "requires": [
+        "raw_route_generation_checked",
+        "raw_route_lamp_checked"
+      ],
+      "note": "ガラス・真空・導入端子・封止・寿命が未解決で現在は実行不可。依存グラフの連結は製造可能性の証明ではない。"
+    },
+    {
+      "id": "m07_raw_first_useful_light",
+      "label": "原料から作った風力電源と灯体で島に灯りをともす",
+      "requires": [
+        "raw_route_lighting_demonstrated"
+      ],
+      "note": "ユーザーが重視する本世界の長期目標。量的なエネルギー収支・有用な明るさ・寿命の校正なしに達成判定を行わない。現時点で完結した実行経路はない。 主到達点は記録された風由来の機械入力に接続し、手回しの評価用入力と区別する。"
+    },
+    {
+      "id": "m08_external_fixture_only",
+      "label": "対照fixtureで回転・電力・点灯の接続を検証する",
+      "requires": [
+        "fixture_lighting_demonstrated"
+      ],
+      "note": "外部電線・磁石・既製ランプ・計器を明示的に投入する試験用。本世界の初点灯や自作技術の獲得へ算入しない。 対照試験でも手回し仕事の会計を省略しない。"
+    }
+  ]
+}

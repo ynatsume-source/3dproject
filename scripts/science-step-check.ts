@@ -6,6 +6,7 @@
 import { SCIENCE_CONTRACT_VERSION, type ScienceStepRequest, type ScienceStepResult, type EnvironmentSample } from '../src/world/science-contract';
 import { dryingStep, DRYING_PROCESS, SCIENCE_CATALOG_VERSION } from '../src/science/step/drying';
 import { scienceStep } from '../src/science/step';
+import { PARAMS } from '../src/science/params';
 import { hashOf } from '../src/science/fixture/world';
 import { createClayTestWorld } from '../src/science/fixture/clay-world';
 import { Driver, T0 } from '../src/science/fixture/scenario';
@@ -99,7 +100,7 @@ ok(e.produced[0].materialId === 'test_tile_dry' && e.produced[0].quality!.water_
 console.log('5. energy: integer J, closed per entry, no double count');
 const all = halfDays.results.flatMap((r) => r.energy);
 ok(all.every((x) => Number.isInteger(x.usedJ) && Number.isInteger(x.lostJ) && x.usedJ === x.lostJ + (x.storedJ ?? 0)), 'every entry is integer and closes: used = lost + stored');
-const latent = (rel / 1e6) * 2.44e6;
+const latent = (rel / 1e6) * PARAMS.latentHeatWater25.value;
 ok(Math.abs(halfDays.J - latent) <= 0.5, 'Σ reported J = latent heat of the vapour within ½ J (cumulative rounding)', `${halfDays.J} J vs ${latent.toFixed(2)} J`);
 ok(all.every((x) => x.sourceId.startsWith('src:env-heat:')), 'heat is drawn from the environment source only (no fuel, no battery)');
 
@@ -112,6 +113,39 @@ ok(opStop.end.status === 'stopped' && opStop.end.consumed.length === 1, 'operato
 const gap = run([0, 12 * H, 36 * H, 120 * H], { env: (i) => (i === 1 ? UNKNOWN : ENV) });
 ok(gap.end.produced[0].quality!.history_complete === 0, 'an interval with unknown weather is not integrated; the lot is marked history-incomplete');
 ok(gap.end.released[0].amount.value <= once.end.released[0].amount.value, 'no evaporation is invented for the unknown interval');
+
+{
+  const r1 = dryingStep(req({ from: T0, to: T0 + 2 * H }));
+  const skip = dryingStep(req({ from: T0 + 3 * H, to: T0 + 4 * H, state: r1.state }));
+  ok(skip.status === 'failed' && skip.energy.length === 0, 'a gap the world did not report is refused (no weather is filled in)');
+  const changed = dryingStep(req({ from: T0 + 2 * H, to: T0 + 3 * H, state: r1.state, lots: [{ ...LOT, amount: { value: 44_000, unit: 'mg' } }] }));
+  ok(changed.status === 'failed', 'a reserved lot that changed under the running run is refused');
+  ok(dryingStep(req({ from: T0, to: T0 + H, lots: [{ ...LOT, amount: { value: 1.5, unit: 'mg' } }] })).status === 'failed', 'non-integer amounts are refused');
+}
+
+console.log('6b. shaping and weighing fixtures (ported from codex/civilization-lab)');
+{
+  const base = { world: { worldId: 'civ-sim-test', worldEpoch: 'e1', worldVersion: 1 }, contract: SCIENCE_CONTRACT_VERSION,
+    catalogVersion: 'civilization-fixture-1', processVersion: 'fixture-1', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
+  const clay = { lotId: 'lot:clay-1', materialId: 'prepared_clay', amount: { value: 120_000, unit: 'mg' as const }, location: 'site:bench', quality: { water_ppm: 166_667 } };
+  const weigh = (to: number) => scienceStep({ ...base, requestId: 'w1', runId: 'run:w1', processId: 'fixture_mass_measure', interval: { from: T0, to }, state: null,
+    lots: [clay], equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civilization-fixture-1', condition: 1 }],
+    energy: [{ sourceId: 'src:balance-cell', kind: 'electric', maxJ: 100 }], actions: [{ at: T0, residentId: 'res:dot', action: 'read-balance' }] });
+  const w = weigh(T0 + 60_000);
+  ok(w.status === 'completed' && w.consumed.length === 0 && w.produced.length === 0 && w.observations[0]?.value === 120_000 && w.observations[0]?.channel.startsWith('instrument:'),
+    'weighing returns only an instrument observation (100 mg resolution), no material change');
+  ok(w.energy[0].usedJ === 10 && w.energy[0].usedJ === w.energy[0].lostJ + (w.energy[0].storedJ ?? 0), 'weighing uses 10 J of the offered electricity, closed');
+  const shape = (iv: [number, number], state: ScienceStepRequest['state'], maxJ = 1000) => scienceStep({ ...base, requestId: `s@${iv[0]}`, runId: 'run:s1', processId: 'p11_pottery_shape',
+    interval: { from: T0 + iv[0], to: T0 + iv[1] }, state, lots: [clay],
+    equipment: [{ equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civilization-fixture-1', condition: 1, params: { thicknessMm: 10 } }],
+    energy: [{ sourceId: 'src:dot-hands', kind: 'mechanical', maxJ }], actions: [] });
+  const one = shape([0, 120_000], null);
+  const a = shape([0, 30_000], null), b = shape([30_000, 120_000], a.state);
+  ok(one.status === 'completed' && hashOf([one.consumed, one.produced]) === hashOf([b.consumed, b.produced]) && a.consumed.length === 0,
+    'shaping: one interval = two intervals; consumed/produced once at completion');
+  ok(one.consumed[0].amount.value === one.produced[0].amount.value && one.produced[0].quality!.thickness_mm === 10, 'shaping keeps mass and records thickness');
+  ok(shape([0, 120_000], null, 50).status === 'needs-input', 'too little offered work → needs-input, nothing produced');
+}
 
 console.log('7. same physics as the test-world prototype');
 {

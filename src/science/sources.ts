@@ -1,5 +1,5 @@
 // Source cards for the clay loop. Retrieval state is recorded honestly:
-//   'retrieved'        – page text was read in this repo's work (none yet)
+//   'retrieved'        – source text was read (OpenStax CNXML at a pinned commit; see data/science/sources.json)
 //   'search-summary'   – only a web-search result summary was seen (2026-10-02); page text NOT read.
 //                        Numbers below are what the summary said and must be checked before citing.
 //   'not-found'        – nothing usable located
@@ -56,8 +56,14 @@ export const SOURCES: SourceCard[] = [
     candidates: ['Stirling（1905）の色温度表', '電気窯メーカーの色見本表'],
     summaryClaims: ['暗赤約700 °C、桜赤800〜1000 °C、橙約1100 °C、白1300 °C以上', '別の表とは最大約200 °C食い違う'],
     modelUse: '計器のない住民には色の区分だけを渡す。区分の境界は粗く、資料間の差を残す' },
-  { id: 'S-latent', topic: '水の蒸発潜熱', retrieval: 'search-summary', candidates: ['工学定数表'],
-    summaryClaims: ['100 °Cで2257 kJ/kg'], modelUse: '窯内蒸発。常温の2.44 MJ/kgは未確認の一般値' },
+  { id: 'S-latent', topic: '水の蒸発潜熱', retrieval: 'retrieved',
+    candidates: ['OpenStax College Physics「Phase Change and Latent Heat」(m42225) — openstax/osbooks-college-physics-bundle@fd1b25d, blob 9e2415b'],
+    summaryClaims: ['表：水の Lv は 100 °C で 2256 kJ/kg', '本文：37 °C での Lv は 2430 kJ/kg', '沸点未満でも蒸発し熱を奪う。湿度が高いと蒸発が抑えられる'],
+    modelUse: '100 °C は 2.256 MJ/kg。常温乾燥は 37 °C の値 2.43 MJ/kg で代用（25〜28 °C の値は出典になし）。照合：Codex（GitHub コネクタ）と科学側 Claude（git で同じ blob を取得し本文を確認）の二者' },
+  { id: 'S-heatcap', topic: '熱と温度の区別、Q = mcΔT、比熱', retrieval: 'retrieved',
+    candidates: ['OpenStax「Heat」(m42223) blob 8edc973', 'OpenStax「Temperature Change and Heat Capacity」(m42224) blob 1ce2eba'],
+    summaryClaims: ['熱は温度差による自発的なエネルギーの移動で、温度とは別物', 'Q = mcΔT、水 4186 J/(kg·°C)（15 °C）', '表：コンクリート・花崗岩 840、ガラス 840 J/(kg·°C)（粘土はない）'],
+    modelUse: '温度と熱量を分ける設計の根拠。粘土の比熱そのものは出典になく、仮定のまま' },
   { id: 'S-cp', topic: '焼成体の比熱', retrieval: 'search-summary', candidates: ['工学定数表（fired brick）'],
     summaryClaims: ['800〜900 J/(kg·K)'], modelUse: '0.9 J/(g·K)で一定' },
   { id: 'S-comb', topic: '炭素の燃焼熱', retrieval: 'not-found', candidates: [], summaryClaims: [],
