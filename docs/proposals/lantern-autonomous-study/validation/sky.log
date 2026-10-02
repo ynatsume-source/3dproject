@@ -1,0 +1,21 @@
+{
+  "catalogueStars": 20,
+  "catalogueMatchesBinary": true,
+  "coordinateCases": 48,
+  "seasonalSamples": 100,
+  "night": {
+    "atMs": 1782021600000,
+    "sunAltitudeDeg": -22.709653956792362,
+    "recordedStars": 7
+  },
+  "daytimeRejected": true,
+  "blankRemainsDraft": true,
+  "weatherProvenancePreserved": true,
+  "deterministicSafeSvg": true
+}
+lantern-sky-check: PASS
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice

@@ -17,6 +17,9 @@ import { creatureKit, type CMats, type Food } from './creatures';
 import { VOICES, STAGES, type Voice } from './voices';
 import type { Subject } from '../eco/env';
 import { aiConverse, aiReady } from './mind';
+import { createLanternStudy } from './lantern-study';
+import { requestLanternDecision } from './lantern-brain';
+import type { StudyWorld, StudyPlace, StudyIntent } from './lantern-study-types';
 import { makeItems, type Item, type ItemKind } from './items';
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
@@ -184,6 +187,9 @@ export interface Residents {
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
   vitals(r: Resident): string;                     // its battery, or (an animal) how hungry and sleepy it is
   hide: string;                                    // (the one whose eyes we are looking through: not drawn)
+  readonly study?: ReturnType<typeof createLanternStudy>;
+  readonly worldTime: number;
+  setStudyWeather(cloud: number | null, source: StudyWorld['cloudSource']): void;
 }
 
 const pair = (a: string, b: string) => (a < b ? a + '|' + b : b + '|' + a);
@@ -214,7 +220,12 @@ const hhmm = (ms: number) => { const h = localHour(ms); return `${Math.floor(h)}
 const KEY = 'seaglass.residents.v1';
 
 const _lv = new THREE.Vector3();
-export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: string[]): Residents {
+export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: string[], options: { lanternStudy?: boolean } = {}): Residents {
+  // A review prototype has its own world save, seeded from the existing island without rewriting it.
+  const saveKey = options.lanternStudy ? 'seaglass.lantern-study.residents.v1' : KEY;
+  let study = options.lanternStudy ? createLanternStudy(undefined, requestLanternDecision) : undefined;
+  let studyCloud: number | null = null, studyCloudSource: StudyWorld['cloudSource'] = 'unknown';
+  let studyFast = false;
   const L = { h: (x: number, z: number) => loc.f(x, z) };
   const kit = robotKit(mats()), ckit = creatureKit(cmats());
   const group = new THREE.Group();
@@ -449,6 +460,40 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the water's edge itself, where the sea leaves things
   const tideline = (x: number, z: number, h: number) => h > 0.15 && h < 1.1 && cover(x, z).can < 0.3 && [0, 0.79, 1.57, 2.36, 3.14, 3.93, 4.71, 5.5].some((a) => L.h(x + Math.cos(a) * 6, z + Math.sin(a) * 6) < 0);
 
+  // Concrete, terrain-checked destinations. An AI can select their IDs, never invent coordinates.
+  const studyPlaces: StudyPlace[] = [];
+  function initStudyPlaces() {
+    if (!study) return;
+    const home = byId.lantern.sp.home;
+    for (let k = 0; k < 80 && studyPlaces.length < 3; k++) {
+      const angle = k * 2.399963, radius = k === 0 ? 0 : 8 + Math.sqrt(k) * 5;
+      const x = home[0] + Math.cos(angle) * radius, z = home[1] + Math.sin(angle) * radius;
+      if (!open(x, z, L.h(x, z)) || walkCost(x, z) >= 2 || (T.vegH?.(x, z) ?? 0) > 0.45) continue;
+      if (studyPlaces.some(p => Math.hypot(p.x - x, p.z - z) < 12)) continue;
+      const n = studyPlaces.length;
+      studyPlaces.push({ id: `hill-${n}`, name: ['丘の開けた場所', '丘の小道のそば', '丘のもう一つの見晴らし'][n], x, z, openSky: true });
+    }
+  }
+  function studyWorld(fast = studyFast): StudyWorld {
+    const r = byId.lantern;
+    return { atMs: clockMs, lat: loc.lat, lon: loc.lon, battery: r.battery, position: [r.pos.x, r.pos.z],
+      cloud: fast ? null : studyCloud, cloudSource: fast ? 'unknown' : studyCloudSource, offline: fast,
+      places: studyPlaces.filter(p => walkCost(p.x, p.z) < 2),
+      companions: list.filter(o => o !== r && !o.talk && o.act !== 'sleep' && !o.wet && Math.hypot(o.pos.x-r.pos.x,o.pos.z-r.pos.z) <= 4)
+        .map(o => ({ id: o.id, name: o.v.name, x: o.pos.x, z: o.pos.z })) };
+  }
+  function studyTask(intent: StudyIntent): Task {
+    const acts: Record<StudyIntent['action'], Act> = { observe: 'think', draw: 'work', explore: 'look', rest: 'idle', share: 'look' };
+    return task(`study-${intent.action}`, [intent.x, intent.z], acts[intent.action], intent.duration,
+      { data: { studyId: intent.id }, arrived: Math.hypot(intent.x-byId.lantern.pos.x,intent.z-byId.lantern.pos.z) < 0.6 })!;
+  }
+  function cancelLostStudy(r: Resident, fast: boolean) {
+    if (r.id !== 'lantern' || !study?.state.active) return;
+    const id = study.state.active.id;
+    if (r.task?.data?.studyId !== id && r.resume?.data?.studyId !== id)
+      study.interrupt(id, studyWorld(fast), '暮らしの用事を先にするため、途中の作業を手帖に残した。');
+  }
+
   /* ---------- what lies about the island ---------- */
   const items = makeItems(L.h, spot, {
     wood: { near: byId.dot.sp.home, rad: 160, ok: tideline, max: 8, every: 1200 },
@@ -567,6 +612,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         return task('wander', spot(home, r.sp.range * 0.7, beach), 'idle', rr(60, 200));
       }
       case 'lantern': {
+        // (the study when it has something to do — and now and then a walk to think it over; otherwise its usual life)
+        if (study && !r.holding && (study.productive(studyWorld()) || Math.random() < 0.15)) {
+          const intent = study.choose(studyWorld());
+          if (intent) return studyTask(intent);
+          if (study.productive(studyWorld())) return task('study-pause', [r.pos.x, r.pos.z], 'look', 20, { arrived: true });
+        }
         const night = 1 - day;
         if (night < 0.5) return task('rest', spot(home, 20, open) ?? home, 'idle', rr(300, 900));   // (evening and dawn: it waits by its hill)
         if (r.holding === 'stone') { const c = cairnSpots.find((c) => c[2] < 4) ?? null; return task('stack', c ? [c[0] - 0.7, c[1]] : spot(home, 40, (x, z, h) => h > 11), 'work', 5, { data: c }); }
@@ -602,6 +653,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- finishing a task ---------- */
   function done(r: Resident, tk: Task, fast = false) {
+    if (r.id === 'lantern' && study && tk.data?.studyId) {
+      const result = study.complete(tk.data.studyId, studyWorld(fast));
+      if (result.success) {
+        r.stats.notes += result.observation ? 1 : 0;
+        r.diary.push({ at: clockMs, text: result.text, key: tk.kind });
+        if (r.diary.length > 400) r.diary.shift();
+        r.today.push(result.text); if (r.today.length > 6) r.today.shift();
+        if (!fast) res.onEvent(tk.kind, `${r.v.name}：${result.text}`, r);
+        if (tk.kind === 'study-share') {
+          const c = heading('ランタンの星の手帖');
+          say(r, 'この空を、手帖に描いてみた。次の夜も、続きを確かめたい。', c, fast);
+        }
+      }
+      r.task = null;
+      return;
+    }
     switch (tk.kind) {
       case 'gather':
         if (!items.take(tk.data)) break;   // (gone)
@@ -1001,6 +1068,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- one resident, one step ---------- */
   function step(r: Resident, dt: number, fast: boolean) {
+    studyFast = fast;
+    cancelLostStudy(r, fast);
     const hr = localHour(clockMs), day = dayK(hr);
     // the battery: solar panels charge in daylight when resting; moving and thinking use it up
     const busy = r.walk > 0.1 || r.act === 'work' || r.act === 'swim' || r.act === 'think';
@@ -1047,7 +1116,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
       tk.arrived = move(r, tk.x, tk.z, dt, !!tk.wet, fast);
       tk.t += dt;
-      if (tk.t > 1800 || r.blocked > 20) { items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return; }   // could not get there: think again
+      if (tk.t > 1800 || r.blocked > 20) {
+        if (r.id === 'lantern' && tk.data?.studyId) study?.interrupt(tk.data.studyId, studyWorld(fast), '道を進めなかった。別の場所から確かめよう。', true);
+        items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return;
+      }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
       if (r.id === 'lantern') visited.add(cellOf(r.pos.x, r.pos.z));
     } else {
@@ -1091,7 +1163,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /* ---------- saving and catching up ---------- */
   function save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({
+      localStorage.setItem(saveKey, JSON.stringify({
+        ...(study ? { lanternStudy: study.serialize() } : {}),
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
         list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding })),
       }));
@@ -1099,10 +1172,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   function load(nowMs: number) {
     let s: any = null;
-    try { s = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { s = null; }
+    try { s = JSON.parse(localStorage.getItem(saveKey) || (study ? localStorage.getItem(KEY) : null) || 'null'); } catch (e) { s = null; }
     clockMs = nowMs;
     items.load(s ? s.items : undefined);
     if (!s) return 0;
+    if (study) { study.dispose(); study = createLanternStudy(s.lanternStudy, requestLanternDecision); }
     for (const v of s.visited || []) visited.add(v);
     for (const c of s.cairns || []) cairnSpots.push([c[0], c[1], c[2] ?? 4]);   // (older saves: finished cairns)
     Object.assign(bonds, s.bonds || {});
@@ -1128,6 +1202,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
     if (r.seen) return `通りかかった${r.seen.name}を、目で追っている`;
     const tk = r.task, k = tk?.kind ?? 'idle';
+    if (r.id === 'lantern' && k.startsWith('study-')) {
+      const labels: Record<string, string> = { 'study-observe': '星の位置を確かめている', 'study-draw': '観察した空を手帖に描いている', 'study-explore': '次に空を眺める場所を確かめている', 'study-rest': '手帖を閉じて、ひと休みしている', 'study-share': '近くの友だちに星の手帖を見せている', 'study-pause': '丘で次に気になることを考えている' };
+      return tk?.arrived ? labels[k] ?? '手帖を見返している' : '気になる場所へ歩いている';
+    }
     const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
     const going: Record<string, string> = { eat: '獲物をかかえて浮かんでいる', forage: '餌場へ泳いでいく', graze: '海草の原へ泳いでいく', bask: '甲羅干しの浜へ向かう', groom: '静かな水面へ', survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, review: '取りつけたところを見に、少し離れる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる', show: '見つけた貝殻を見せにいく' };
     const prey = ({ urchin: 'ウニ', crab: 'カニ', clam: '貝' } as Record<string, string>)[tk?.data] ?? '';
@@ -1153,6 +1231,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   const res: Residents = {
     list, bonds, talks, group,
+    get study() { return study; },
+    get worldTime() { return clockMs; },
+    setStudyWeather(cloud, source) { studyCloud = cloud !== null && Number.isFinite(cloud) ? Math.min(1, Math.max(0, cloud)) : null; studyCloudSource = source; },
     onEvent: () => { /* set by the app */ },
     onSay: () => { /* set by the app */ },
     hide: '',
@@ -1437,6 +1518,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   // wake up where they were, and catch up on the hours nobody was watching
+  initStudyPlaces();
   const behind = load(Date.now());
   if (behind > 0) {
     const t0 = clockMs - behind * 1000, n = Math.ceil(behind / 20);
