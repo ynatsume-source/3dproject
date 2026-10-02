@@ -641,7 +641,18 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     for (let i = 0; i <= 16; i++) { const x = -hw + (2 * hw * i) / 16; pts.push([x, zf - 0.004 - 0.018 * (Math.abs(x) / hw) ** 2 - 0.004 * Math.abs(Math.sin(x * 70))]); }
     pts.push([hw, zf - 0.06], [hw * 0.55, zf - 0.066], [0.035, zf - 0.1], [-0.035, zf - 0.1], [-hw * 0.55, zf - 0.066], [-hw, zf - 0.06]);
     const yc = at(0.03)[2] * L;
-    for (const dy of [0.009, -0.009]) fin(pts.map(([x, z]) => [x, z]), (x, z) => [x, yc + dy * (1 - (Math.abs(x) / hw) ** 2 * 0.5), z], 4, [0, Math.sign(dy), 0]);
+    const th = (x: number) => 0.009 * (1 - (Math.abs(x) / hw) ** 2 * 0.5);
+    for (const sg of [1, -1]) fin(pts.map(([x, z]) => [x, z]), (x, z) => [x, yc + sg * th(x), z], 4, [0, sg, 0]);
+    // and its edge all the way round, joining the upper and lower faces: one solid blade, not two sheets
+    // with a gap between them that opens up on a big shark
+    let area = 0; for (let i = 0; i < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length]; area += x0 * z1 - x1 * z0; }
+    const sgn = area > 0 ? 1 : -1;
+    for (let i = 0; i < pts.length; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz) || 1;
+      const nx = (dz / l) * sgn, nz = (-dx / l) * sgn;
+      const a = [x0, yc + th(x0), z0], b = [x1, yc + th(x1), z1], c = [x1, yc - th(x1), z1], d = [x0, yc - th(x0), z0];
+      for (const v of [a, b, c, a, c, d]) { P.push(v[0], v[1], v[2]); N.push(nx, 0, nz); F.push(4); }
+    }
   }
   for (const sx of [-1, 1]) {
     // pectorals: (s, span out from the body), swept back and angled a little down, falcate
