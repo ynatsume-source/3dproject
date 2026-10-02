@@ -58,7 +58,7 @@ export function shareUrl(o: { base: string; sea: string; ms: number; tz: number;
   if (!o.live && o.speed !== 1) q.push(`speed=${o.speed}`);
   q.push(`wx=${o.wx}`, `guide=${encodeURIComponent(o.guide)}`);
   if (o.view === 'chase') q.push('view=chase');
-  return `${o.base}?${q.join('&')}#${o.sea}`;
+  return `${o.base}${o.sea}/?${q.join('&')}`;   // (through the sea's own page: its card on SNS, then on to the app)
 }
 
 /** A short line saying what the shared conditions are (for the badge). */

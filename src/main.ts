@@ -1405,10 +1405,10 @@ function leaveShared() {
 // this moment as a link: through the phone's share sheet, or copied
 async function shareMoment() {
   if (!cur) return;
-  const url = shareUrl({ base: location.origin + location.pathname, sea: cur.loc.id, ms: clock.ms, tz: cur.loc.tz, speed: clock.speed, live: clock.live,
+  const url = shareUrl({ base: location.origin + location.pathname.replace(/[^/]*$/, ''), sea: cur.loc.id, ms: clock.ms, tz: cur.loc.tz, speed: clock.speed, live: clock.live,
     wx: wxFixed ?? wxKindOf(liveWeather()), guide: persona.id, view: viewMode });
   track('share_link', { sea: cur.loc.id });
-  const title = `うつしよ — ${cur.loc.name}`;
+  const title = `ウツシヨ — ${cur.loc.name}`;
   if (isTouch && (navigator as any).share) { try { await (navigator as any).share({ title, url }); return; } catch (e) { /* (closed, or not allowed: copy instead) */ } }
   try { await navigator.clipboard.writeText(url); showToast('LINK', 'この景色のリンクをコピーしました', 'いまの時刻・天気・案内役のまま開けます'); }
   catch (e) { prompt('この景色のリンク', url); }
@@ -1961,7 +1961,7 @@ $('btnReplay').onclick = async () => {
   const name = `utsushiyo-${cur.loc.id}-${L.getUTCFullYear()}${p2(L.getUTCMonth() + 1)}${p2(L.getUTCDate())}-${p2(L.getUTCHours())}${p2(L.getUTCMinutes())}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
   track('replay_save', { sea: cur.loc.id });
   const file = new File([blob], name, { type: blob.type });
-  if (isTouch && (navigator as any).canShare?.({ files: [file] })) { try { await (navigator as any).share({ files: [file], title: `うつしよ — ${cur.loc.name}` }); return; } catch (e) { /* (fall through to a download) */ } }
+  if (isTouch && (navigator as any).canShare?.({ files: [file] })) { try { await (navigator as any).share({ files: [file], title: `ウツシヨ — ${cur.loc.name}` }); return; } catch (e) { /* (fall through to a download) */ } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
   showToast('REPLAY', '直前の映像を保存しました', name);
