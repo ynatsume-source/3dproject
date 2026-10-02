@@ -4,7 +4,9 @@
 `/tools/science-lab/` を開く。ルートの index.html / main.ts からは接続しない。
 
 同一試験片の質量（g）と、同じ方向・標点間の距離（mm）から定義に沿って計算する。
-測定値の保存、時間経過、材料の消費・生成、世界の状態、ScienceStep は持たない。
+測定値と条件は、計算後にJSONファイルとして手元へ保存できる。
+自動保存・サーバー送信・世界の保存データへの接続はない。
+時間経過、材料の消費・生成、世界の状態、ScienceStep は持たない。
 新しい工程を実装する際は Claude 側の `src/science/step/index.ts` に登録する。
 旧 `experiments/civilization-simulation` は参照用のまま。
 
@@ -13,14 +15,51 @@
 吸水の温度、保持時間、煮沸/常温浸漬、表面水の除去方法を記録し、異なる手順の測定を混ぜない。
 表示する小数4桁は演算結果の桁数であり、装置精度や有効数字を保証しない。
 
-数式と出典の不一致は [照合記録](../../docs/proposals/civilization/CODEX_CLAY_REVIEW.md) を参照。
+数式と出典の不一致はlabブランチの [照合記録](https://github.com/ynatsume-source/3dproject/blob/464e63f17db77fbd26cf1c4336a0c819cd63120c/docs/proposals/civilization/CODEX_CLAY_REVIEW.md) を参照。
 出典一覧は `data/science/sources.json` を読む。外部スクリプト・追加ライブラリは使わない。
 
 ```sh
 node tools/science-lab/measurements.test.mjs
+node tools/science-lab/measurement-record.test.mjs
 node --check tools/science-lab/app.mjs
 ```
 
 6件のテストは湿量/乾量基準、割合の合成、質量吸水率の分母、負値、欠測、不正入力を検査する。
 LDWの釉薬スラリー例以外の試験値は合成した算術例であり、実測データではない。
 この画面から物理係数や工程カタログを更新しない。
+
+## 乾燥方法を残す
+
+「常温乾燥」「加熱乾燥」「その他」「未記録」から方法を選び、温度（設定値か実測か）、
+湿度・風、経過時間、恒量の判定方法などを「乾燥条件・終点の確認方法」に記入する。
+条件は自動補完しない。110°Cなどの温度を初期値にしたり、常温なら平衡、加熱なら絶乾とみなしたりしない。
+手順を選び直しても数値は補正しない。長さも同じ乾燥条件の試料を使う。
+
+試料IDと値の由来（実測値の転記・モデルの出力・計算例・未記録）を一緒に記録できる。
+材料・調製・測定日時・器具精度・元資料・焼成・吸水条件は測定メモに残す。
+複数の試料や異なる乾燥終点を一つの記録へ混ぜない。
+
+## JSONで持ち出す
+
+計算後の「測定記録をJSONで保存」で `science-lab-measurement.json` をダウンロードする。
+入力を変更するとボタンを無効にし、再計算するまで以前の記録を保存できなくする。
+入力エラーやリセットでも計算済みの記録を破棄する。
+この版にはJSONの再読み込みはない。手元のファイルはレビューや後日の資料照合に使う。
+
+| 欄 | 内容 |
+|---|---|
+| `format` / `version` | `science-lab-measurement` / `1`。世界の保存形式・ScienceStepとは別 |
+| `sampleId` / `inputOrigin` | 試料の識別と、入力者が申告した値の由来 |
+| `drying.method` / `drying.protocol` | 方法の分類と、元の文章による条件・終点 |
+| `notes` | 材料、測定、元資料、焼成、吸水などの補足 |
+| `units` | 質量g、標点間距離mm、計算結果% |
+| `measurements` | 入力の7測定値。空欄は`null`で保持 |
+| `calculatedPercent` | そろった測定値から計算できる指標だけ。欠測の指標は作らない |
+| `warnings` | ID・由来・乾燥方法などの未記録事項。空でも科学的な妥当性を保証しない |
+| `evidenceStatus` / `calibrationEligible` | 常に`unverified-user-entry` / `false`。実測との自己申告で確認済みへ変えない |
+
+新しい8件のテストは、JSONでの条件・単位・欠測の維持、方法による値の不変性、未確認の扱い、
+不正な入力と元データの保全を検査する。テストで使う110°C・24時間などは合成例で、測定手順の推奨ではない。
+
+配色はOS/ブラウザの `prefers-color-scheme` に従って明暗を切り替える。
+ファイルの出典表示と計算・記録機能は同じで、テーマ設定を世界やブラウザの保存領域に書き込まない。

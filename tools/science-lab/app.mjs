@@ -1,4 +1,5 @@
-import { summarizeMeasurements } from './measurements.mjs';
+import { measurementFields } from './measurements.mjs';
+import { createMeasurementRecord, dryingMethods, inputOrigins } from './measurement-record.mjs';
 
 const labels = {
   waterWetBasisPct: '含水率（成形時質量が分母）',
@@ -11,14 +12,30 @@ const labels = {
 };
 const form = document.querySelector('#measurements');
 const results = document.querySelector('#results');
+const download = document.querySelector('#download-record');
+let currentRecord = null;
+const clearRecord = () => { currentRecord = null; download.disabled = true; };
+const invalidateRecord = () => {
+  if (currentRecord) results.textContent = '入力が変わりました。もう一度計算してから記録を保存してください。';
+  clearRecord();
+};
+form.addEventListener('input', invalidateRecord);
+form.addEventListener('change', invalidateRecord);
 form.addEventListener('submit', event => {
   event.preventDefault();
+  clearRecord();
   results.replaceChildren();
   try {
-    const values = Object.fromEntries([...new FormData(form)].map(([key, value]) =>
-      [key, value === '' ? undefined : Number(value)]));
-    const rows = Object.entries(summarizeMeasurements(values));
+    const fields = Object.fromEntries(new FormData(form));
+    const values = Object.fromEntries(Object.keys(measurementFields).map(key =>
+      [key, fields[key] === '' ? undefined : Number(fields[key])]));
+    const record = createMeasurementRecord(values, fields);
+    const rows = Object.entries(record.calculatedPercent);
     if (!rows.length) { results.textContent = '計算に必要な測定値の組を入力してください。'; return; }
+    const context = document.createElement('p');
+    context.className = 'record-context';
+    context.textContent = `試料: ${record.sampleId ?? '未記録'} / 値の由来: ${inputOrigins[record.inputOrigin]} / 乾燥方法: ${dryingMethods[record.drying.method]}\n乾燥条件・終点: ${record.drying.protocol ?? '未記録'}\n測定メモ: ${record.notes ?? '未記録'}`;
+    results.append(context);
     const list = document.createElement('dl');
     for (const [key, value] of rows) {
       const term = document.createElement('dt');
@@ -28,9 +45,36 @@ form.addEventListener('submit', event => {
       list.append(term, definition);
     }
     results.append(list);
+    if (record.warnings.length) {
+      const warnings = document.createElement('ul');
+      warnings.className = 'record-warnings';
+      for (const message of record.warnings) {
+        const item = document.createElement('li');
+        item.textContent = message;
+        warnings.append(item);
+      }
+      results.append(warnings);
+    }
+    currentRecord = record;
+    download.disabled = false;
   } catch (error) { results.textContent = error.message; }
 });
-form.addEventListener('reset', () => { results.textContent = '測定値を入力してください。入力内容は保存されません。'; });
+form.addEventListener('reset', () => {
+  clearRecord();
+  results.textContent = '測定値を入力してください。自動保存はしません。';
+});
+download.addEventListener('click', () => {
+  if (!currentRecord) return;
+  const blob = new Blob([JSON.stringify(currentRecord, null, 2) + '\n'], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'science-lab-measurement.json';
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 
 const sources = document.querySelector('#sources');
 try {
