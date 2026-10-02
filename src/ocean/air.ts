@@ -173,13 +173,13 @@ const starMat = mat(
    void main(){
      vec3 d = uStarM * position;
      float dark = 1.0 - smoothstep(-0.26, -0.06, uAirSun.y);
-     float lim = mix(6.3, 3.0, uMoonI * 0.6) - (1.0 - dark) * 9.5;             // the moon and twilight wash out faint stars (only Venus survives into bright twilight)
+     float lim = mix(6.6, 3.0, uMoonI * 0.6) - (1.0 - dark) * 9.5;             // the moon and twilight wash out faint stars (only Venus survives into bright twilight)
      float h = hash2(position.xy * 91.0);
      float tw = 1.0 + (0.22 + 0.5 * (1.0 - smoothstep(0.0, 0.4, d.y))) * sin(uTime * (7.0 + h * 11.0) + h * 60.0) * (1.0 - 0.85 * aPl);   // stars twinkle, most low down; planets hardly
      float b = pow(10.0, -0.4 * (aMag - 3.3)) * smoothstep(lim, lim - 1.2, aMag);
-     vA = min(sqrt(b) * 0.6, 2.2) * tw * smoothstep(0.0, 0.1, d.y) * (1.0 - cloudAt(d)) * step(0.0, uCamPos.y);
+     vA = min(sqrt(b) * 0.85, 2.6) * tw * smoothstep(0.0, 0.1, d.y) * (1.0 - cloudAt(d)) * step(0.0, uCamPos.y);
      vC = mix(vec3(0.68, 0.8, 1.0), vec3(1.0, 0.72, 0.45), smoothstep(-0.1, 1.5, aBV));
-     gl_PointSize = uDpr * clamp(1.6 + (4.5 - aMag) * 0.6, 1.4, 5.5);
+     gl_PointSize = uDpr * clamp(1.9 + (4.5 - aMag) * 0.65, 1.6, 6.0);
      gl_Position = projectionMatrix * viewMatrix * vec4(uCamPos + d * 380.0, 1.0);
      if (vA < 0.003) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
    }`,

@@ -29,7 +29,7 @@ export const U = {
   uTint: { value: new THREE.Color(1, 1, 1) },
   uShaftCol: { value: new THREE.Color(0.55, 0.9, 0.95) }, uShaftI: { value: 1 }, uGolden: { value: 0 },
   // the real weather at the site: wave state, rain on the surface, lightning
-  uWave: { value: 1 }, uRain: { value: 0 }, uFlash: { value: 0 }, uCloud: { value: 0 },
+  uWave: { value: 1 }, uRain: { value: 0 }, uFlash: { value: 0 }, uFlashW: { value: 0 }, uCloud: { value: 0 },
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 },
   // above the water: the real sky over the site
@@ -76,7 +76,7 @@ uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
-uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uCloud;
+uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform vec2 uCurrent; uniform float uLodR;
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
@@ -178,7 +178,7 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
 // scatters forward into the view. Shared by distant objects and the open-water backdrop so they meet.
 vec3 hazeCol(vec3 dir){
   float mu = max(dot(dir, SUN), 0.0);
-  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlash * 2.0);
+  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlashW * 2.0);
   // without the volumetric pass (light tier), its glow still has to be there: sunlight scattered forward
   // out of the water toward the eye, strongest toward the sun and at golden hour, when it carries the colour
   if (uVolOff > 0.5 && uCamPos.y < 0.0) {
@@ -217,8 +217,8 @@ float cloudAt(vec3 d){
 vec3 skyAir(vec3 d, float disks){
   float sy = uAirSun.y, day = dayAir(), h = max(d.y, 0.0);
   float twi = smoothstep(-0.28, -0.02, sy) * (1.0 - smoothstep(0.02, 0.35, sy));   // dawn and dusk
-  vec3 zen = mix(vec3(0.006, 0.011, 0.028), vec3(0.13, 0.33, 0.7), day);
-  vec3 hor = mix(vec3(0.026, 0.038, 0.072), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
+  vec3 zen = mix(vec3(0.085, 0.072, 0.22), vec3(0.13, 0.33, 0.7), day);   // (night: a deep blue-violet, as a dark-sky site looks to adapted eyes)
+  vec3 hor = mix(vec3(0.12, 0.11, 0.24), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
   zen = mix(zen, vec3(0.14, 0.18, 0.36), twi * 0.6);
   float mu = dot(d, uAirSun), sideS = pow(max(mu, 0.0) * 0.5 + 0.5, 4.0);
   hor = mix(hor, vec3(1.0, 0.5, 0.25), twi * (0.35 + 0.65 * sideS));
@@ -235,9 +235,9 @@ vec3 skyAir(vec3 d, float disks){
     vec3 q = transpose(uStarM) * d;
     // the map runs east to the left with RA 0h in the middle, as the sky is seen from inside
     vec2 uv = vec2(fract(0.5 - atan(q.y, q.x) / 6.28318), 0.5 + asin(clamp(q.z, -1.0, 1.0)) / 3.14159);
-    vec3 mw = pow(textureLod(uMilky, uv, 0.0).rgb, vec3(1.5));   // no mip lookup: atan jumps at RA 0h
-    c += mw * 0.22 * dark * smoothstep(-0.02, 0.2, d.y);   // dimmed low down by the thicker air
-    c += vec3(0.024, 0.036, 0.03) * dark * exp(-h * 6.0);   // airglow, brightest in a band low over the horizon
+    vec3 mw = pow(textureLod(uMilky, uv, 0.0).rgb, vec3(1.25));   // no mip lookup: atan jumps at RA 0h
+    c += mw * vec3(0.95, 0.9, 1.05) * 0.42 * dark * smoothstep(-0.02, 0.2, d.y);   // dimmed low down by the thicker air
+    c += vec3(0.04, 0.05, 0.06) * dark * exp(-h * 6.0);   // airglow, brightest in a band low over the horizon
   }
   // aurora: curtains toward the magnetic pole, green below and red-violet at the top
   if (uAurora > 0.0) {
@@ -274,7 +274,7 @@ vec3 skyAir(vec3 d, float disks){
     // at night: silver where the moon lights them (brightest toward it), dark shapes against the stars without it
     vec3 night = vec3(0.025, 0.03, 0.045) + vec3(0.1, 0.11, 0.13) * uMoonI * (0.6 + 0.8 * pow(max(dot(d, uAirMoon), 0.0), 4.0));
     vec3 cc = mix(night, lit, smoothstep(-0.15, 0.1, sy)) * mix(1.0, 0.55, thick * uCloud);
-    cc += vec3(0.8, 0.85, 1.0) * uFlash * 0.6 * exp(-pow(acos(clamp(dot(d, uBolt.xyz), -1.0, 1.0)) / 0.45, 2.0));
+    cc += vec3(0.75, 0.8, 1.0) * uFlash * 0.9 * exp(-pow(acos(clamp(dot(d, uBolt.xyz), -1.0, 1.0)) / 0.6, 2.0));   // (the cloud lit from inside, round the strike)
     c = mix(c, cc, cl * 0.95);
   }
   // a lightning bolt from the cloud base to the sea
@@ -283,10 +283,10 @@ vec3 skyAir(vec3 d, float disks){
     float el = d.y, az = dot(normalize(vec3(d.x, 0.0, d.z)), bs);
     if (el > 0.0 && el < 0.14 && dot(d, bd) > 0.0) {
       float x = 0.012 * sin(el * 90.0 + uBolt.w) + 0.006 * sin(el * 260.0 + uBolt.w * 3.0) + 0.003 * sin(el * 700.0);
-      c += vec3(0.85, 0.9, 1.0) * smoothstep(0.003, 0.0, abs(az - x)) * uFlash * 10.0;
+      c += vec3(0.85, 0.9, 1.0) * smoothstep(0.003, 0.0, abs(az - x)) * smoothstep(0.3, 0.8, uFlash) * 3.0;
     }
   }
-  c *= 1.0 + uFlash * 0.35;
+  c *= 1.0 + uFlash * 0.15;
   return c;
 }
 // Seen from the air: water between the surface and something below it (the view ray bends steeply
@@ -326,7 +326,7 @@ vec3 fogIt(vec3 col, vec3 wp){
   return mix(fogWater(col, wp), fogAir(col, wp), step(0.0, uCamPos.y));
 }
 // light reaching a surface with normal n; cl = caveLight() where the surface is (sun, sky)
-vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) * (1.0 + uFlash * 3.0) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
+vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) * (1.0 + uFlashW * 3.0) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
 vec3 lightAt(vec3 n){ return lightAt(n, vec2(1.0)); }
 vec3 shade(vec3 alb, vec3 wp, vec3 n, float causAmt){
   vec3 col = absorb(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6, wp.y);

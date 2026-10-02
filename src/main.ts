@@ -726,7 +726,7 @@ let skyNow = null as ReturnType<typeof skyState> | null;
 const _starDir = new THREE.Vector3(0.12, 0.98, 0.16).normalize(), _nightShaft = new THREE.Color(0.5, 0.74, 1.0), _nightTint = new THREE.Color(0.8, 0.88, 1.0);
 let nightLift = 0;
 const _grey = new THREE.Color();
-let wx: Weather = FAIR, wxTimer = 0, flashT = 0, nextFlash = 20;
+let wx: Weather = FAIR, wxTimer = 0, flashT = 0, nextFlash = 20, flashK = 0.6;
 // the real weather stands for 'today': live, or within half a day of now, in the real season
 const liveWeather = () => (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
 async function refreshWeather(loc: Sea) {
@@ -2231,12 +2231,19 @@ function frameBody(ts: number) {
       if ((nextFlash -= dt) < 0) {
         nextFlash = 12 + Math.random() * 35; flashT = 0;
         const a = Math.random() * Math.PI * 2, km = 1 + Math.random() * 8;
+        flashK = Math.min(0.85, 0.35 + 1.2 / km);
         U.uBolt.value.set(Math.cos(a) * 0.993, 0.12, Math.sin(a) * 0.993, Math.random() * 100);
         thunder(km * 2.9, Math.min(1, 1.6 / km + 0.3));                   // sound covers a km in about three seconds
       }
       flashT += dt;
-      U.uFlash.value = flashT < 0.5 ? (flashT < 0.08 || (flashT > 0.18 && flashT < 0.3) ? 1 : 0.15) * (1 - flashT) : 0;
-    } else U.uFlash.value = 0;
+      // A flash that swells and fades (no hard on-off strobe): up in a quarter second, a softer second pulse,
+      // then a long fade. Gentle, and fainter the farther the strike. Under the water only a glow on the
+      // surface overhead; the reef around the drone is barely touched by it.
+      const sw = (t: number, rise: number, fall: number) => t < 0 ? 0 : t < rise ? smooth(0, rise, t) : Math.exp(-(t - rise) / fall);
+      const f = Math.min(1, sw(flashT, 0.25, 0.55) * 0.75 + sw(flashT - 0.55, 0.3, 0.8) * 0.45) * flashK * (reduceMotion ? 0.5 : 1);
+      U.uFlash.value = f * (camera.position.y < 0 ? 0.5 : 1);
+      U.uFlashW.value = f * (camera.position.y < 0 ? 0.06 : 0.25);
+    } else { U.uFlash.value = 0; U.uFlashW.value = 0; }
     const W = cur.whales;
     setWhaleSong(W && W.seasonal ? (W.active ? 1 : 0.45) : 0);
     pumpLog(now);
