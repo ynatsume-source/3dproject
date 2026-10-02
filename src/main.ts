@@ -1,5 +1,6 @@
 // Utsushiyo (formerly Seaglass; storage keys keep the old name): pick a sea on the globe, dive, and drift with the drone. The sim clock lights every sea
 // by its real sky; one click jumps to dawn / noon / dusk / night, and time can run faster than real.
+import { initAnalytics, track } from './analytics';
 import * as THREE from 'three';
 import './styles.css';
 import { U, mat } from './render/common';
@@ -38,6 +39,7 @@ import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, s
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
+initAnalytics();   // (on the public site only)
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const canvas = $('scene') as HTMLCanvasElement;
@@ -651,6 +653,7 @@ function say(mood: Mood, vars: Record<string, string> = {}, force = false) {
   if (logQueue.length < 3) logQueue.push({ text, label: `GUIDE · ${persona.ja}` });
 }
 function setPersona(p: Persona) {
+  if (persona && persona.id !== p.id) track('persona', { persona: p.id });
   persona = p;
   try { localStorage.setItem('seaglass.persona', p.id); } catch (e) { /* ignore */ }
   applyPersona();
@@ -961,6 +964,7 @@ const usePost = () => TIERS[tier].post && !noPost && SAFE < 2;
 const allSubjects = () => (cur!.residents ? [...cur!.eco.subjects(), ...cur!.residents.subjects()] : cur!.eco.subjects());
 function goTo(id: string) {
   if (!cur) return;
+  track('guide_go', { sea: cur.loc.id, item: id.startsWith('robot:') ? 'robot' : id });
   if (id.startsWith('robot:') && cur.residents) {
     const r = cur.residents.list.find((x: any) => 'robot:' + x.id === id);
     if (r) { focusOn(r.subject); showToast('向かっています', `${r.v.name}のところへ`, cur.residents.status(r)); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } }
@@ -1257,6 +1261,7 @@ function discover(e?: { id: string; ja: string; sci: string }) {
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
   showToast('NEW SIGHTING', e.ja, e.sci);
+  track('sighting', { sea: cur.loc.id, species: e.id });
   recordLog('sighting', `${e.ja}を初めて見つけた`);
   say('sighting', { name: e.ja });
   renderGuide();
@@ -1590,6 +1595,7 @@ async function dive(loc: Sea) {
   veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
   await wait(600);
   enterOcean(oceans[loc.id]);
+  track('dive', { sea: loc.id });
   await nextFrame();
   veil(false); setHot(-1);
   busy = false;
@@ -1672,7 +1678,7 @@ function pickAt(x: number, y: number): Subject | null {
 }
 function tapAt(x: number, y: number) {
   const s = pickAt(x, y); if (!s) return;
-  focusOn(s);
+  focusOn(s); track('tap_subject', { sea: cur?.loc.id ?? '', subject: s.key.split(':')[0] });
   showToast('向かっています', s.label, s.status());
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
 }
@@ -2173,7 +2179,7 @@ function frame(ts: number) {
     // (through the drone's own eyes the animals hardly mind it — they would bolt from every slow pass of
     // the cruise otherwise; with the drone in the picture, a little more, and a little more when flown by hand)
     cur.eco.env.shy = viewMode === 'chase' ? (drone.mode === 'manual' ? 0.85 : 0.6) : 0.35;
-    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
+    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
