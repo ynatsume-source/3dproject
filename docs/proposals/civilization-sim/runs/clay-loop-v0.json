@@ -1,0 +1,7417 @@
+{
+ "contract": "civ-sci/0.1",
+ "worldId": "civ-sim-test-clay-1",
+ "worldVersion": 85,
+ "stateHash": "a16200476c52b577",
+ "note": "試験世界の記録。全ての材料・設備は test-fixture で、本世界の在庫・歴史には混ぜない。実AIは使っていない。",
+ "commands": [
+  {
+   "cmd": "c001",
+   "type": "open_research",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c002",
+   "type": "reserve",
+   "ok": false,
+   "replayed": false,
+   "note": "protected_resource: 暮らし用の水（保護） は暮らし・回復用の保護資源で、研究には予約できない"
+  },
+  {
+   "cmd": "c003",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c004",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c005",
+   "type": "prepare_clay",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c006",
+   "type": "shape_tiles",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c007",
+   "type": "start_drying",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c008",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c009",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c010",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c011",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c012",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c013",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c014",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c015",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c016",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c017",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c018",
+   "type": "finish_drying",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c019",
+   "type": "start_firing",
+   "ok": false,
+   "replayed": false,
+   "note": "facility: れんがの窯（計画のみ） はまだ実在しない（計画のみ／失われた）"
+  },
+  {
+   "cmd": "c020",
+   "type": "start_firing",
+   "ok": false,
+   "replayed": false,
+   "note": "no_fuel: 燃料の予約がない：設備があっても、この回に燃やせる燃料がなければ焼成できない"
+  },
+  {
+   "cmd": "c021",
+   "type": "reserve",
+   "ok": false,
+   "replayed": false,
+   "note": "protected_resource: 薪（煮炊き用・保護） は暮らし・回復用の保護資源で、研究には予約できない"
+  },
+  {
+   "cmd": "c022",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c023",
+   "type": "start_firing",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c024",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c025",
+   "type": "start_firing",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c026",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c027",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c028",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c029",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c030",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c031",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c032",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c033",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c034",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c035",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c036",
+   "type": "inspect",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c037",
+   "type": "inspect",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c038",
+   "type": "inspect",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c039",
+   "type": "start_soak",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c040",
+   "type": "start_soak",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c041",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c042",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c043",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c044",
+   "type": "start_soak",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c045",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c046",
+   "type": "add_trial",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c047",
+   "type": "add_trial",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c048",
+   "type": "add_trial",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c049",
+   "type": "conclude_research",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c050",
+   "type": "open_research",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c051",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c052",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c053",
+   "type": "prepare_clay",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c054",
+   "type": "shape_tiles",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c055",
+   "type": "start_drying",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c056",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c057",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c058",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c059",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c060",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c061",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c062",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c063",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c064",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c065",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c066",
+   "type": "finish_drying",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c067",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c068",
+   "type": "start_firing",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c069",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c070",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c071",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c072",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c073",
+   "type": "inspect",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c074",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c075",
+   "type": "start_soak",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c076",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c077",
+   "type": "add_trial",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c078",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c079",
+   "type": "start_firing",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c080",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c081",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c082",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c083",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c084",
+   "type": "inspect",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c085",
+   "type": "reserve",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c086",
+   "type": "start_soak",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c087",
+   "type": "advance",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c088",
+   "type": "add_trial",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  },
+  {
+   "cmd": "c089",
+   "type": "conclude_research",
+   "ok": true,
+   "replayed": false,
+   "note": ""
+  }
+ ],
+ "invariants": [],
+ "massBaseline": {
+  "initialMg": 201320000,
+  "inflowMg": 128506262,
+  "outflowMg": 238914742
+ },
+ "atmosphereOut": {
+  "water": 67318037,
+  "co2": 171596705
+ },
+ "atmosphereIn": {
+  "o2": 128506262
+ },
+ "view": {
+  "lots": {
+   "clay-A": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 3,
+    "id": "clay-A",
+    "kind": "clay",
+    "label": "試験粘土A（仮想）",
+    "comp": {
+     "kaolinite": 257727,
+     "quartz": 171818,
+     "inert_mineral": 120273,
+     "calcite": 11454,
+     "organic_c": 11455,
+     "water": 57273
+    },
+    "location": "store:test"
+   },
+   "water-work": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 8,
+    "id": "water-work",
+    "kind": "water",
+    "label": "作業用の水（試験用の雨水タンク）",
+    "comp": {
+     "water": 17897775
+    },
+    "location": "store:test"
+   },
+   "water-life": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": true,
+    "version": 1,
+    "id": "water-life",
+    "kind": "water",
+    "label": "暮らし用の水（保護）",
+    "comp": {
+     "water": 10000000
+    },
+    "location": "store:life"
+   },
+   "wood-research": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 17,
+    "id": "wood-research",
+    "kind": "fuel",
+    "label": "薪（研究に回せる分）",
+    "comp": {
+     "water": 5805151,
+     "ash": 328973,
+     "wood_dry": 32567032
+    },
+    "location": "store:test",
+    "unitMg": 2000000,
+    "unitLabel": "束"
+   },
+   "wood-life": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": true,
+    "version": 1,
+    "id": "wood-life",
+    "kind": "fuel",
+    "label": "薪（煮炊き用・保護）",
+    "comp": {
+     "water": 3000000,
+     "ash": 170000,
+     "wood_dry": 16830000
+    },
+    "location": "store:life",
+    "unitMg": 2000000,
+    "unitLabel": "束"
+   },
+   "clay-A-prepared": {
+    "id": "clay-A-prepared",
+    "kind": "clay",
+    "label": "調整した粘土（試験粘土A（仮想））",
+    "comp": {
+     "calcite": 7713,
+     "inert_mineral": 80994,
+     "kaolinite": 173559,
+     "organic_c": 7713,
+     "quartz": 115706,
+     "water": 92565
+    },
+    "location": "research:r1",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 2
+   },
+   "scrap-r1": {
+    "id": "scrap-r1",
+    "kind": "clay_scrap",
+    "label": "削りくず（未焼成・水で戻せる）",
+    "comp": {
+     "calcite": 109,
+     "inert_mineral": 1143,
+     "kaolinite": 2450,
+     "organic_c": 109,
+     "quartz": 1633,
+     "water": 1306
+    },
+    "location": "research:r1",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 1
+   },
+   "ash-1": {
+    "id": "ash-1",
+    "kind": "ash",
+    "label": "灰（地面の焚き火（覆いなし）・fire-1）",
+    "comp": {
+     "ash": 169998
+    },
+    "location": "facility:open-fire",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 4
+   },
+   "ash-2": {
+    "id": "ash-2",
+    "kind": "ash",
+    "label": "灰（試験用の小窯（既製・対照設備）・fire-2）",
+    "comp": {
+     "ash": 223631
+    },
+    "location": "facility:kiln-fixture",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 6
+   },
+   "soak-T3:slurry": {
+    "id": "soak-T3:slurry",
+    "kind": "slurry",
+    "label": "泥水（試験片T3（焼かない対照） が崩れたもの・未焼成なので粘土に戻せる）",
+    "comp": {
+     "calcite": 726,
+     "inert_mineral": 7621,
+     "kaolinite": 16330,
+     "organic_c": 726,
+     "quartz": 10887,
+     "water": 2000757
+    },
+    "location": "research:r1",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 1
+   },
+   "clay-A-prepared-2": {
+    "id": "clay-A-prepared-2",
+    "kind": "clay",
+    "label": "調整した粘土（試験粘土A（仮想））",
+    "comp": {
+     "calcite": 1021,
+     "inert_mineral": 10723,
+     "kaolinite": 22979,
+     "organic_c": 1022,
+     "quartz": 15319,
+     "water": 12255
+    },
+    "location": "research:r2",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 2
+   },
+   "scrap-r2": {
+    "id": "scrap-r2",
+    "kind": "clay_scrap",
+    "label": "削りくず（未焼成・水で戻せる）",
+    "comp": {
+     "calcite": 73,
+     "inert_mineral": 762,
+     "kaolinite": 1633,
+     "organic_c": 72,
+     "quartz": 1089,
+     "water": 871
+    },
+    "location": "research:r2",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 1
+   },
+   "ash-3": {
+    "id": "ash-3",
+    "kind": "ash",
+    "label": "灰（試験用の小窯（既製・対照設備）・fire-3）",
+    "comp": {
+     "ash": 276197
+    },
+    "location": "facility:kiln-fixture",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 5
+   },
+   "ash-4": {
+    "id": "ash-4",
+    "kind": "ash",
+    "label": "灰（試験用の小窯（既製・対照設備）・fire-4）",
+    "comp": {
+     "ash": 276201
+    },
+    "location": "facility:kiln-fixture",
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "protected": false,
+    "version": 5
+   }
+  },
+  "samples": {
+   "T1": {
+    "id": "T1",
+    "label": "試験片T1（焚き火）",
+    "researchId": "r1",
+    "comp": {
+     "calcite": 723,
+     "inert_mineral": 7621,
+     "kaolinite": 762,
+     "quartz": 10887,
+     "metakaolin": 13395,
+     "lime": 2,
+     "water": 4808
+    },
+    "shapedWaterRatio": 0.2400110223201984,
+    "greenDimsMm": {
+     "w": 50,
+     "l": 50,
+     "t": 10
+    },
+    "linearShrink": 0.06,
+    "stage": "broken",
+    "location": "research:r1",
+    "maxWareTempC": 609.4400641861131,
+    "sinter": 6.276842007243816e-8,
+    "dehydrox": 0.9533365585277089,
+    "deformed": false,
+    "cracks": [
+     {
+      "mechanism": "dunting",
+      "severity": "through",
+      "runId": "fire-1",
+      "ratio": 2.866,
+      "p": 0.456,
+      "visibleDry": true
+     }
+    ],
+    "risk": {
+     "dryFluxRatioMax": 0.6095684237709035,
+     "steamRatioMax": 0,
+     "duntRatioMax": 2.865682988919434
+    },
+    "historyComplete": true,
+    "history": [
+     {
+      "runId": "-",
+      "process": "p11x_test_tile_shape",
+      "atMs": 1791158400000,
+      "summary": "50×50×10 mm に成形"
+     },
+     {
+      "runId": "dry-1",
+      "process": "p12x_test_tile_dry",
+      "atMs": 1791590400000,
+      "summary": "5.0 日乾燥、含水比 0.021、収縮 6.0%"
+     },
+     {
+      "runId": "fire-1",
+      "process": "p13x_test_tile_fire",
+      "atMs": 1791597810000,
+      "summary": "焼成：最高 609 °C、脱水 95%、焼結 0%、割れ 1"
+     },
+     {
+      "runId": "soak-T1",
+      "process": "m01_cold_soak_absorption",
+      "atMs": 1791712800000,
+      "summary": "24時間浸漬：吸水 4.81 g（真値・煮沸換算 18.0%）"
+     }
+    ],
+    "version": 19
+   },
+   "T2": {
+    "id": "T2",
+    "label": "試験片T2（小窯・橙）",
+    "researchId": "r1",
+    "comp": {
+     "inert_mineral": 7621,
+     "quartz": 10887,
+     "metakaolin": 14052,
+     "lime": 407,
+     "water": 3786
+    },
+    "shapedWaterRatio": 0.23997685376539638,
+    "greenDimsMm": {
+     "w": 50,
+     "l": 50,
+     "t": 10
+    },
+    "linearShrink": 0.06,
+    "stage": "fired",
+    "location": "research:r1",
+    "maxWareTempC": 979.9896297272749,
+    "sinter": 0.2804994521945536,
+    "dehydrox": 1,
+    "deformed": false,
+    "cracks": [],
+    "risk": {
+     "dryFluxRatioMax": 0.6095684237709035,
+     "steamRatioMax": 0,
+     "duntRatioMax": 0.6547582273173702
+    },
+    "historyComplete": true,
+    "history": [
+     {
+      "runId": "-",
+      "process": "p11x_test_tile_shape",
+      "atMs": 1791158400000,
+      "summary": "50×50×10 mm に成形"
+     },
+     {
+      "runId": "dry-1",
+      "process": "p12x_test_tile_dry",
+      "atMs": 1791590400000,
+      "summary": "5.0 日乾燥、含水比 0.021、収縮 6.0%"
+     },
+     {
+      "runId": "fire-2",
+      "process": "p13x_test_tile_fire",
+      "atMs": 1791626370000,
+      "summary": "焼成：最高 980 °C、脱水 100%、焼結 28%、割れ 0"
+     },
+     {
+      "runId": "soak-T2",
+      "process": "m01_cold_soak_absorption",
+      "atMs": 1791712800000,
+      "summary": "24時間浸漬：吸水 3.79 g（真値・煮沸換算 14.4%）"
+     }
+    ],
+    "version": 21
+   },
+   "T3": {
+    "id": "T3",
+    "label": "試験片T3（焼かない対照）",
+    "researchId": "r1",
+    "comp": {},
+    "shapedWaterRatio": 0.2400110223201984,
+    "greenDimsMm": {
+     "w": 50,
+     "l": 50,
+     "t": 10
+    },
+    "linearShrink": 0.06,
+    "stage": "slaked",
+    "location": "lot:soak-T3:slurry",
+    "maxWareTempC": -273,
+    "sinter": 0,
+    "dehydrox": 0,
+    "deformed": false,
+    "cracks": [],
+    "risk": {
+     "dryFluxRatioMax": 0.6095684237709035,
+     "steamRatioMax": 0,
+     "duntRatioMax": 0
+    },
+    "historyComplete": true,
+    "history": [
+     {
+      "runId": "-",
+      "process": "p11x_test_tile_shape",
+      "atMs": 1791158400000,
+      "summary": "50×50×10 mm に成形"
+     },
+     {
+      "runId": "dry-1",
+      "process": "p12x_test_tile_dry",
+      "atMs": 1791590400000,
+      "summary": "5.0 日乾燥、含水比 0.021、収縮 6.0%"
+     },
+     {
+      "runId": "soak-T3",
+      "process": "m01_cold_soak_absorption",
+      "atMs": 1791799200000,
+      "summary": "水中で崩れて泥水のロットになった"
+     }
+    ],
+    "version": 15
+   },
+   "T4": {
+    "id": "T4",
+    "label": "試験片T4（90分・1回目）",
+    "researchId": "r2",
+    "comp": {
+     "inert_mineral": 7621,
+     "quartz": 10887,
+     "metakaolin": 14051,
+     "lime": 407,
+     "water": 2906
+    },
+    "shapedWaterRatio": 0.2400110223201984,
+    "greenDimsMm": {
+     "w": 50,
+     "l": 50,
+     "t": 10
+    },
+    "linearShrink": 0.06,
+    "stage": "fired",
+    "location": "research:r2",
+    "maxWareTempC": 980.0002353640543,
+    "sinter": 0.5370479328194377,
+    "dehydrox": 1,
+    "deformed": false,
+    "cracks": [],
+    "risk": {
+     "dryFluxRatioMax": 0.17511153428473994,
+     "steamRatioMax": 0,
+     "duntRatioMax": 0.6547639785164392
+    },
+    "historyComplete": true,
+    "history": [
+     {
+      "runId": "-",
+      "process": "p11x_test_tile_shape",
+      "atMs": 1791799200000,
+      "summary": "50×50×10 mm に成形"
+     },
+     {
+      "runId": "dry-2",
+      "process": "p12x_test_tile_dry",
+      "atMs": 1792231200000,
+      "summary": "5.0 日乾燥、含水比 0.026、収縮 6.0%"
+     },
+     {
+      "runId": "fire-3",
+      "process": "p13x_test_tile_fire",
+      "atMs": 1792270770000,
+      "summary": "焼成：最高 980 °C、脱水 100%、焼結 54%、割れ 0"
+     },
+     {
+      "runId": "soak-T4",
+      "process": "m01_cold_soak_absorption",
+      "atMs": 1792360800000,
+      "summary": "24時間浸漬：吸水 2.91 g（真値・煮沸換算 11.0%）"
+     }
+    ],
+    "version": 20
+   },
+   "T5": {
+    "id": "T5",
+    "label": "試験片T5（90分・2回目）",
+    "researchId": "r2",
+    "comp": {
+     "inert_mineral": 7621,
+     "quartz": 10887,
+     "metakaolin": 14052,
+     "lime": 407,
+     "water": 2906
+    },
+    "shapedWaterRatio": 0.2400110223201984,
+    "greenDimsMm": {
+     "w": 50,
+     "l": 50,
+     "t": 10
+    },
+    "linearShrink": 0.06,
+    "stage": "fired",
+    "location": "research:r2",
+    "maxWareTempC": 980.0002154626471,
+    "sinter": 0.5370478821251063,
+    "dehydrox": 1,
+    "deformed": false,
+    "cracks": [],
+    "risk": {
+     "dryFluxRatioMax": 0.17511153428473994,
+     "steamRatioMax": 0,
+     "duntRatioMax": 0.6547639162961787
+    },
+    "historyComplete": true,
+    "history": [
+     {
+      "runId": "-",
+      "process": "p11x_test_tile_shape",
+      "atMs": 1791799200000,
+      "summary": "50×50×10 mm に成形"
+     },
+     {
+      "runId": "dry-2",
+      "process": "p12x_test_tile_dry",
+      "atMs": 1792231200000,
+      "summary": "5.0 日乾燥、含水比 0.026、収縮 6.0%"
+     },
+     {
+      "runId": "fire-4",
+      "process": "p13x_test_tile_fire",
+      "atMs": 1792400370000,
+      "summary": "焼成：最高 980 °C、脱水 100%、焼結 54%、割れ 0"
+     },
+     {
+      "runId": "soak-T5",
+      "process": "m01_cold_soak_absorption",
+      "atMs": 1792490400000,
+      "summary": "24時間浸漬：吸水 2.91 g（真値・煮沸換算 11.0%）"
+     }
+    ],
+    "version": 20
+   }
+  },
+  "facilities": {
+   "rack-shade": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 5,
+    "id": "rack-shade",
+    "kind": "drying_shade",
+    "label": "日陰の乾燥棚",
+    "capacitySamples": 12
+   },
+   "rack-sun": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 1,
+    "id": "rack-sun",
+    "kind": "drying_sun",
+    "label": "日なたの乾燥台",
+    "capacitySamples": 12
+   },
+   "open-fire": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 3,
+    "id": "open-fire",
+    "kind": "open_fire",
+    "label": "地面の焚き火（覆いなし）",
+    "capacitySamples": 6,
+    "thermal": {
+     "heatCapJPerK": 20000,
+     "uaWPerK": 30,
+     "chamberFraction": 0.2,
+     "maxBurnKgPerH": 25,
+     "forcedCoolingUaFactor": 2
+    }
+   },
+   "kiln-fixture": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 7,
+    "id": "kiln-fixture",
+    "kind": "kiln",
+    "label": "試験用の小窯（既製・対照設備）",
+    "capacitySamples": 8,
+    "thermal": {
+     "heatCapJPerK": 40000,
+     "uaWPerK": 8,
+     "chamberFraction": 0.3,
+     "maxBurnKgPerH": 15,
+     "forcedCoolingUaFactor": 5
+    }
+   },
+   "kiln-brick-planned": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": false,
+    "version": 1,
+    "id": "kiln-brick-planned",
+    "kind": "kiln",
+    "label": "れんがの窯（計画のみ）",
+    "capacitySamples": 8,
+    "thermal": {
+     "heatCapJPerK": 80000,
+     "uaWPerK": 6,
+     "chamberFraction": 0.35,
+     "maxBurnKgPerH": 20,
+     "forcedCoolingUaFactor": 5
+    }
+   },
+   "basin": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 9,
+    "id": "basin",
+    "kind": "soak_basin",
+    "label": "浸漬用の桶",
+    "capacitySamples": 1
+   },
+   "basin-2": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 3,
+    "id": "basin-2",
+    "kind": "soak_basin",
+    "label": "浸漬用の桶（二つ目）",
+    "capacitySamples": 1
+   },
+   "balance": {
+    "provenance": {
+     "kind": "test-fixture",
+     "note": "試験世界の仮定。嘉弥真島で確認した資源・設備ではなく、本世界の在庫・歴史へ混ぜない",
+     "countsForWorldAchievement": false
+    },
+    "condition": "ok",
+    "occupiedBy": null,
+    "exists": true,
+    "version": 1,
+    "id": "balance",
+    "kind": "balance",
+    "label": "試験用のはかり（0.1 g）",
+    "capacitySamples": 1,
+    "instrument": {
+     "resolutionMg": 100
+    }
+   }
+  },
+  "reservations": {
+   "res-clay": {
+    "id": "res-clay",
+    "researchId": "r1",
+    "purpose": "試験片",
+    "lotId": "clay-A",
+    "mg": 600000,
+    "consumedMg": 550000,
+    "open": true,
+    "version": 2
+   },
+   "res-water": {
+    "id": "res-water",
+    "researchId": "r1",
+    "purpose": "練り水",
+    "lotId": "water-work",
+    "mg": 400000,
+    "consumedMg": 70000,
+    "open": true,
+    "version": 2
+   },
+   "res-wood-1": {
+    "id": "res-wood-1",
+    "researchId": "r1",
+    "purpose": "焚き火焼成",
+    "lotId": "wood-research",
+    "mg": 20000000,
+    "consumedMg": 20000000,
+    "open": false,
+    "version": 4
+   },
+   "res-wood-2": {
+    "id": "res-wood-2",
+    "researchId": "r1",
+    "purpose": "小窯焼成",
+    "lotId": "wood-research",
+    "mg": 40000000,
+    "consumedMg": 26310794,
+    "open": false,
+    "version": 6
+   },
+   "res-soak-1": {
+    "id": "res-soak-1",
+    "researchId": "r1",
+    "purpose": "浸漬",
+    "lotId": "water-work",
+    "mg": 2000000,
+    "consumedMg": 4808,
+    "open": false,
+    "version": 2
+   },
+   "res-soak-2": {
+    "id": "res-soak-2",
+    "researchId": "r1",
+    "purpose": "浸漬",
+    "lotId": "water-work",
+    "mg": 2000000,
+    "consumedMg": 3786,
+    "open": false,
+    "version": 2
+   },
+   "res-soak-3": {
+    "id": "res-soak-3",
+    "researchId": "r1",
+    "purpose": "浸漬",
+    "lotId": "water-work",
+    "mg": 2000000,
+    "consumedMg": 2000000,
+    "open": false,
+    "version": 2
+   },
+   "res-clay-2": {
+    "id": "res-clay-2",
+    "researchId": "r2",
+    "purpose": "試験片",
+    "lotId": "clay-A",
+    "mg": 200000,
+    "consumedMg": 140000,
+    "open": true,
+    "version": 2
+   },
+   "res-water-2": {
+    "id": "res-water-2",
+    "researchId": "r2",
+    "purpose": "練り水",
+    "lotId": "water-work",
+    "mg": 200000,
+    "consumedMg": 17819,
+    "open": true,
+    "version": 2
+   },
+   "res-wood-3": {
+    "id": "res-wood-3",
+    "researchId": "r2",
+    "purpose": "小窯焼成",
+    "lotId": "wood-research",
+    "mg": 40000000,
+    "consumedMg": 32494024,
+    "open": false,
+    "version": 5
+   },
+   "res-soak-T4": {
+    "id": "res-soak-T4",
+    "researchId": "r2",
+    "purpose": "浸漬",
+    "lotId": "water-work",
+    "mg": 2000000,
+    "consumedMg": 2906,
+    "open": false,
+    "version": 2
+   },
+   "res-wood-4": {
+    "id": "res-wood-4",
+    "researchId": "r2",
+    "purpose": "小窯焼成",
+    "lotId": "wood-research",
+    "mg": 40000000,
+    "consumedMg": 32494026,
+    "open": false,
+    "version": 5
+   },
+   "res-soak-T5": {
+    "id": "res-soak-T5",
+    "researchId": "r2",
+    "purpose": "浸漬",
+    "lotId": "water-work",
+    "mg": 2000000,
+    "consumedMg": 2906,
+    "open": false,
+    "version": 2
+   }
+  },
+  "runs": {
+   "dry-1": {
+    "id": "dry-1",
+    "kind": "drying",
+    "processId": "p12x_test_tile_dry",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r1",
+    "actorId": "dot",
+    "facilityId": "rack-shade",
+    "sampleIds": [
+     "T1",
+     "T2",
+     "T3"
+    ],
+    "seed": 11,
+    "startMs": 1791158400000,
+    "lastMs": 1791590400000,
+    "stepS": 600,
+    "stepIndex": 720,
+    "envIds": [
+     "env-fixture-day",
+     "env-fixture-night"
+    ],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 58213.52
+    },
+    "checkpoints": [
+     {
+      "tMin": 360,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0702
+     },
+     {
+      "tMin": 720,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0292
+     },
+     {
+      "tMin": 1080,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0276
+     },
+     {
+      "tMin": 1440,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0266
+     },
+     {
+      "tMin": 1800,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0216
+     },
+     {
+      "tMin": 2160,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 2520,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 2880,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 3240,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 3600,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 3960,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 4320,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 4680,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 5040,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 5400,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 5760,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 6120,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 6480,
+      "kilnC": 28,
+      "wareC": 28,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 6840,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     },
+     {
+      "tMin": 7200,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0209
+     }
+    ],
+    "version": 12,
+    "outcome": "taken_off_rack"
+   },
+   "fire-1": {
+    "id": "fire-1",
+    "kind": "firing",
+    "processId": "p13x_test_tile_fire",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r1",
+    "actorId": "dot",
+    "facilityId": "open-fire",
+    "sampleIds": [
+     "T1"
+    ],
+    "seed": 31,
+    "startMs": 1791590400000,
+    "lastMs": 1791597810000,
+    "stepS": 30,
+    "stepIndex": 247,
+    "envIds": [
+     "env-fixture-day"
+    ],
+    "energy": {
+     "releasedJ": 295619983.947201,
+     "flueLossJ": 236495987.1577608,
+     "wallLossJ": 58636946.649347775,
+     "wareSensibleJ": 2341.710291751965,
+     "reactionsNetJ": -12730.687825189798,
+     "structureStoredJ": 497439.11762587447,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [
+     {
+      "tMin": 5,
+      "kilnC": 61.3,
+      "wareC": 47.5,
+      "burnKgPerH": 3.8
+     },
+     {
+      "tMin": 10,
+      "kilnC": 94.6,
+      "wareC": 79.7,
+      "burnKgPerH": 5.02
+     },
+     {
+      "tMin": 15,
+      "kilnC": 127.9,
+      "wareC": 112.9,
+      "burnKgPerH": 6.24
+     },
+     {
+      "tMin": 20,
+      "kilnC": 161.2,
+      "wareC": 146.2,
+      "burnKgPerH": 7.46
+     },
+     {
+      "tMin": 25,
+      "kilnC": 194.6,
+      "wareC": 179.5,
+      "burnKgPerH": 8.68
+     },
+     {
+      "tMin": 30,
+      "kilnC": 227.9,
+      "wareC": 212.9,
+      "burnKgPerH": 9.89
+     },
+     {
+      "tMin": 35,
+      "kilnC": 261.3,
+      "wareC": 246.2,
+      "burnKgPerH": 11.11
+     },
+     {
+      "tMin": 40,
+      "kilnC": 294.6,
+      "wareC": 279.5,
+      "burnKgPerH": 12.33
+     },
+     {
+      "tMin": 45,
+      "kilnC": 327.9,
+      "wareC": 312.9,
+      "burnKgPerH": 13.55
+     },
+     {
+      "tMin": 50,
+      "kilnC": 361.3,
+      "wareC": 346.2,
+      "burnKgPerH": 14.76
+     },
+     {
+      "tMin": 55,
+      "kilnC": 394.6,
+      "wareC": 379.6,
+      "burnKgPerH": 15.98
+     },
+     {
+      "tMin": 60,
+      "kilnC": 428,
+      "wareC": 412.9,
+      "burnKgPerH": 17.2
+     },
+     {
+      "tMin": 65,
+      "kilnC": 461.4,
+      "wareC": 446.3,
+      "burnKgPerH": 18.41
+     },
+     {
+      "tMin": 70,
+      "kilnC": 494.8,
+      "wareC": 479.7,
+      "burnKgPerH": 19.63
+     },
+     {
+      "tMin": 75,
+      "kilnC": 528.3,
+      "wareC": 513.2,
+      "burnKgPerH": 20.84
+     },
+     {
+      "tMin": 80,
+      "kilnC": 561.5,
+      "wareC": 546.5,
+      "burnKgPerH": 22.06
+     },
+     {
+      "tMin": 85,
+      "kilnC": 594.6,
+      "wareC": 579.6,
+      "burnKgPerH": 23.29
+     },
+     {
+      "tMin": 90,
+      "kilnC": 568.8,
+      "wareC": 606.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 95,
+      "kilnC": 369.5,
+      "wareC": 448.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 100,
+      "kilnC": 243.6,
+      "wareC": 297.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 105,
+      "kilnC": 164.2,
+      "wareC": 198.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 110,
+      "kilnC": 114,
+      "wareC": 135.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 115,
+      "kilnC": 82.3,
+      "wareC": 96.2,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 120,
+      "kilnC": 62.3,
+      "wareC": 71.1,
+      "burnKgPerH": 0
+     }
+    ],
+    "version": 4,
+    "plan": {
+     "pace": "fast",
+     "targetGlow": "orange",
+     "holdMin": 30,
+     "cooling": "natural"
+    },
+    "schedule": {
+     "rampKPerH": 400,
+     "peakC": 980,
+     "holdMin": 30,
+     "cooling": "natural"
+    },
+    "fuelReservationId": "res-wood-1",
+    "fuelBurnedMg": 20000000,
+    "kilnC": 52.87195588129406,
+    "ambientC": 28,
+    "wareC": {
+     "T1": 59.2090682671948
+    },
+    "phase": "done",
+    "peakKilnC": 621.0310358454234,
+    "ashLotId": "ash-1",
+    "ware": {
+     "T1": {
+      "base": {
+       "calcite": 726,
+       "inert_mineral": 7621,
+       "kaolinite": 16330,
+       "organic_c": 726,
+       "quartz": 10887,
+       "water": 757
+      },
+      "ext": {
+       "water": 1,
+       "organic": 0.9999999009700182,
+       "dehydrox": 0.9533119580226889,
+       "calc": 0.0039945121217514895
+      }
+     }
+    },
+    "fuelBurnedComp": {
+     "ash": 169998,
+     "water": 2999996,
+     "wood_dry": 16830006
+    },
+    "emitted": {
+     "out": {
+      "water": 12090426,
+      "co2": 30835899
+     },
+     "in": {
+      "o2": 23092666
+     }
+    },
+    "outcome": "fuel_exhausted"
+   },
+   "fire-2": {
+    "id": "fire-2",
+    "kind": "firing",
+    "processId": "p13x_test_tile_fire",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r1",
+    "actorId": "dot",
+    "facilityId": "kiln-fixture",
+    "sampleIds": [
+     "T2"
+    ],
+    "seed": 32,
+    "startMs": 1791590400000,
+    "lastMs": 1791626370000,
+    "stepS": 30,
+    "stepIndex": 1199,
+    "envIds": [
+     "env-fixture-day"
+    ],
+    "energy": {
+     "releasedJ": 388899812.0507211,
+     "flueLossJ": 272229868.4355049,
+     "wallLossJ": 115434786.47496666,
+     "wareSensibleJ": 2565.5626752789985,
+     "reactionsNetJ": -10986.680137990294,
+     "structureStoredJ": 1243578.257712216,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [
+     {
+      "tMin": 5,
+      "kilnC": 44.7,
+      "wareC": 37.7,
+      "burnKgPerH": 1.9
+     },
+     {
+      "tMin": 10,
+      "kilnC": 61.3,
+      "wareC": 53.8,
+      "burnKgPerH": 2.01
+     },
+     {
+      "tMin": 15,
+      "kilnC": 78,
+      "wareC": 70.4,
+      "burnKgPerH": 2.12
+     },
+     {
+      "tMin": 20,
+      "kilnC": 94.6,
+      "wareC": 87.1,
+      "burnKgPerH": 2.23
+     },
+     {
+      "tMin": 25,
+      "kilnC": 111.3,
+      "wareC": 103.8,
+      "burnKgPerH": 2.34
+     },
+     {
+      "tMin": 30,
+      "kilnC": 128,
+      "wareC": 120.4,
+      "burnKgPerH": 2.44
+     },
+     {
+      "tMin": 35,
+      "kilnC": 144.6,
+      "wareC": 137.1,
+      "burnKgPerH": 2.55
+     },
+     {
+      "tMin": 40,
+      "kilnC": 161.3,
+      "wareC": 153.8,
+      "burnKgPerH": 2.66
+     },
+     {
+      "tMin": 45,
+      "kilnC": 178,
+      "wareC": 170.4,
+      "burnKgPerH": 2.77
+     },
+     {
+      "tMin": 50,
+      "kilnC": 194.6,
+      "wareC": 187.1,
+      "burnKgPerH": 2.88
+     },
+     {
+      "tMin": 55,
+      "kilnC": 211.3,
+      "wareC": 203.8,
+      "burnKgPerH": 2.99
+     },
+     {
+      "tMin": 60,
+      "kilnC": 228,
+      "wareC": 220.4,
+      "burnKgPerH": 3.09
+     },
+     {
+      "tMin": 65,
+      "kilnC": 244.6,
+      "wareC": 237.1,
+      "burnKgPerH": 3.2
+     },
+     {
+      "tMin": 70,
+      "kilnC": 261.3,
+      "wareC": 253.8,
+      "burnKgPerH": 3.31
+     },
+     {
+      "tMin": 75,
+      "kilnC": 278,
+      "wareC": 270.4,
+      "burnKgPerH": 3.42
+     },
+     {
+      "tMin": 80,
+      "kilnC": 294.6,
+      "wareC": 287.1,
+      "burnKgPerH": 3.53
+     },
+     {
+      "tMin": 85,
+      "kilnC": 311.3,
+      "wareC": 303.8,
+      "burnKgPerH": 3.63
+     },
+     {
+      "tMin": 90,
+      "kilnC": 328,
+      "wareC": 320.4,
+      "burnKgPerH": 3.74
+     },
+     {
+      "tMin": 95,
+      "kilnC": 344.6,
+      "wareC": 337.1,
+      "burnKgPerH": 3.85
+     },
+     {
+      "tMin": 100,
+      "kilnC": 361.3,
+      "wareC": 353.8,
+      "burnKgPerH": 3.96
+     },
+     {
+      "tMin": 105,
+      "kilnC": 378,
+      "wareC": 370.4,
+      "burnKgPerH": 4.07
+     },
+     {
+      "tMin": 110,
+      "kilnC": 394.7,
+      "wareC": 387.1,
+      "burnKgPerH": 4.18
+     },
+     {
+      "tMin": 115,
+      "kilnC": 411.3,
+      "wareC": 403.8,
+      "burnKgPerH": 4.28
+     },
+     {
+      "tMin": 120,
+      "kilnC": 428,
+      "wareC": 420.5,
+      "burnKgPerH": 4.39
+     },
+     {
+      "tMin": 125,
+      "kilnC": 444.7,
+      "wareC": 437.2,
+      "burnKgPerH": 4.5
+     },
+     {
+      "tMin": 130,
+      "kilnC": 461.4,
+      "wareC": 453.9,
+      "burnKgPerH": 4.6
+     },
+     {
+      "tMin": 135,
+      "kilnC": 478.1,
+      "wareC": 470.6,
+      "burnKgPerH": 4.71
+     },
+     {
+      "tMin": 140,
+      "kilnC": 494.8,
+      "wareC": 487.3,
+      "burnKgPerH": 4.82
+     },
+     {
+      "tMin": 145,
+      "kilnC": 511.4,
+      "wareC": 503.9,
+      "burnKgPerH": 4.93
+     },
+     {
+      "tMin": 150,
+      "kilnC": 528.1,
+      "wareC": 520.6,
+      "burnKgPerH": 5.04
+     },
+     {
+      "tMin": 155,
+      "kilnC": 544.7,
+      "wareC": 537.2,
+      "burnKgPerH": 5.15
+     },
+     {
+      "tMin": 160,
+      "kilnC": 561.3,
+      "wareC": 553.8,
+      "burnKgPerH": 5.26
+     },
+     {
+      "tMin": 165,
+      "kilnC": 577.9,
+      "wareC": 570.4,
+      "burnKgPerH": 5.37
+     },
+     {
+      "tMin": 170,
+      "kilnC": 594.6,
+      "wareC": 587.1,
+      "burnKgPerH": 5.48
+     },
+     {
+      "tMin": 175,
+      "kilnC": 611.3,
+      "wareC": 603.7,
+      "burnKgPerH": 5.59
+     },
+     {
+      "tMin": 180,
+      "kilnC": 627.9,
+      "wareC": 620.4,
+      "burnKgPerH": 5.69
+     },
+     {
+      "tMin": 185,
+      "kilnC": 644.6,
+      "wareC": 637.1,
+      "burnKgPerH": 5.8
+     },
+     {
+      "tMin": 190,
+      "kilnC": 661.3,
+      "wareC": 653.8,
+      "burnKgPerH": 5.91
+     },
+     {
+      "tMin": 195,
+      "kilnC": 678,
+      "wareC": 670.4,
+      "burnKgPerH": 6.02
+     },
+     {
+      "tMin": 200,
+      "kilnC": 694.6,
+      "wareC": 687.1,
+      "burnKgPerH": 6.12
+     },
+     {
+      "tMin": 205,
+      "kilnC": 711.3,
+      "wareC": 703.8,
+      "burnKgPerH": 6.23
+     },
+     {
+      "tMin": 210,
+      "kilnC": 728,
+      "wareC": 720.4,
+      "burnKgPerH": 6.34
+     },
+     {
+      "tMin": 215,
+      "kilnC": 744.6,
+      "wareC": 737.1,
+      "burnKgPerH": 6.45
+     },
+     {
+      "tMin": 220,
+      "kilnC": 761.3,
+      "wareC": 753.8,
+      "burnKgPerH": 6.56
+     },
+     {
+      "tMin": 225,
+      "kilnC": 778,
+      "wareC": 770.4,
+      "burnKgPerH": 6.67
+     },
+     {
+      "tMin": 230,
+      "kilnC": 794.6,
+      "wareC": 787.1,
+      "burnKgPerH": 6.77
+     },
+     {
+      "tMin": 235,
+      "kilnC": 811.3,
+      "wareC": 803.8,
+      "burnKgPerH": 6.88
+     },
+     {
+      "tMin": 240,
+      "kilnC": 828,
+      "wareC": 820.4,
+      "burnKgPerH": 6.99
+     },
+     {
+      "tMin": 245,
+      "kilnC": 844.6,
+      "wareC": 837.1,
+      "burnKgPerH": 7.1
+     },
+     {
+      "tMin": 250,
+      "kilnC": 861.3,
+      "wareC": 853.8,
+      "burnKgPerH": 7.21
+     },
+     {
+      "tMin": 255,
+      "kilnC": 878,
+      "wareC": 870.4,
+      "burnKgPerH": 7.32
+     },
+     {
+      "tMin": 260,
+      "kilnC": 894.6,
+      "wareC": 887.1,
+      "burnKgPerH": 7.42
+     },
+     {
+      "tMin": 265,
+      "kilnC": 911.3,
+      "wareC": 903.8,
+      "burnKgPerH": 7.53
+     },
+     {
+      "tMin": 270,
+      "kilnC": 928,
+      "wareC": 920.4,
+      "burnKgPerH": 7.64
+     },
+     {
+      "tMin": 275,
+      "kilnC": 944.6,
+      "wareC": 937.1,
+      "burnKgPerH": 7.75
+     },
+     {
+      "tMin": 280,
+      "kilnC": 961.3,
+      "wareC": 953.8,
+      "burnKgPerH": 7.86
+     },
+     {
+      "tMin": 285,
+      "kilnC": 978,
+      "wareC": 970.4,
+      "burnKgPerH": 7.96
+     },
+     {
+      "tMin": 290,
+      "kilnC": 979.9,
+      "wareC": 979,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 295,
+      "kilnC": 979.9,
+      "wareC": 979.8,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 300,
+      "kilnC": 980,
+      "wareC": 979.9,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 305,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 310,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 315,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 320,
+      "kilnC": 924.4,
+      "wareC": 947.2,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 325,
+      "kilnC": 872.1,
+      "wareC": 895.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 330,
+      "kilnC": 822.8,
+      "wareC": 845,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 335,
+      "kilnC": 776.4,
+      "wareC": 797.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 340,
+      "kilnC": 732.8,
+      "wareC": 752.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 345,
+      "kilnC": 691.6,
+      "wareC": 710.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 350,
+      "kilnC": 652.9,
+      "wareC": 670.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 355,
+      "kilnC": 616.4,
+      "wareC": 632.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 360,
+      "kilnC": 582.1,
+      "wareC": 597.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 365,
+      "kilnC": 549.7,
+      "wareC": 564.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 370,
+      "kilnC": 519.3,
+      "wareC": 533,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 375,
+      "kilnC": 490.6,
+      "wareC": 503.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 380,
+      "kilnC": 463.6,
+      "wareC": 475.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 385,
+      "kilnC": 438.2,
+      "wareC": 449.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 390,
+      "kilnC": 414.3,
+      "wareC": 425,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 395,
+      "kilnC": 391.7,
+      "wareC": 401.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 400,
+      "kilnC": 370.5,
+      "wareC": 380,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 405,
+      "kilnC": 350.5,
+      "wareC": 359.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 410,
+      "kilnC": 331.7,
+      "wareC": 340.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 415,
+      "kilnC": 314,
+      "wareC": 321.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 420,
+      "kilnC": 297.3,
+      "wareC": 304.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 425,
+      "kilnC": 281.6,
+      "wareC": 288.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 430,
+      "kilnC": 266.8,
+      "wareC": 273.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 435,
+      "kilnC": 252.8,
+      "wareC": 259.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 440,
+      "kilnC": 239.7,
+      "wareC": 245.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 445,
+      "kilnC": 227.3,
+      "wareC": 232.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 450,
+      "kilnC": 215.7,
+      "wareC": 220.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 455,
+      "kilnC": 204.8,
+      "wareC": 209.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 460,
+      "kilnC": 194.4,
+      "wareC": 199.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 465,
+      "kilnC": 184.7,
+      "wareC": 189.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 470,
+      "kilnC": 175.6,
+      "wareC": 179.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 475,
+      "kilnC": 167,
+      "wareC": 170.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 480,
+      "kilnC": 158.9,
+      "wareC": 162.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 485,
+      "kilnC": 151.2,
+      "wareC": 154.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 490,
+      "kilnC": 144,
+      "wareC": 147.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 495,
+      "kilnC": 137.3,
+      "wareC": 140.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 500,
+      "kilnC": 130.9,
+      "wareC": 133.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 505,
+      "kilnC": 124.9,
+      "wareC": 127.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 510,
+      "kilnC": 119.2,
+      "wareC": 121.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 515,
+      "kilnC": 113.9,
+      "wareC": 116.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 520,
+      "kilnC": 108.9,
+      "wareC": 111.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 525,
+      "kilnC": 104.2,
+      "wareC": 106.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 530,
+      "kilnC": 99.7,
+      "wareC": 101.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 535,
+      "kilnC": 95.5,
+      "wareC": 97.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 540,
+      "kilnC": 91.6,
+      "wareC": 93.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 545,
+      "kilnC": 87.9,
+      "wareC": 89.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 550,
+      "kilnC": 84.4,
+      "wareC": 86,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 555,
+      "kilnC": 81.1,
+      "wareC": 82.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 560,
+      "kilnC": 78,
+      "wareC": 79.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 565,
+      "kilnC": 75.1,
+      "wareC": 76.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 570,
+      "kilnC": 72.3,
+      "wareC": 73.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 575,
+      "kilnC": 69.7,
+      "wareC": 70.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 580,
+      "kilnC": 67.3,
+      "wareC": 68.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 585,
+      "kilnC": 65,
+      "wareC": 66,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 590,
+      "kilnC": 62.9,
+      "wareC": 63.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 595,
+      "kilnC": 60.8,
+      "wareC": 61.7,
+      "burnKgPerH": 0
+     }
+    ],
+    "version": 6,
+    "plan": {
+     "pace": "normal",
+     "targetGlow": "orange",
+     "holdMin": 30,
+     "cooling": "natural"
+    },
+    "schedule": {
+     "rampKPerH": 200,
+     "peakC": 980,
+     "holdMin": 30,
+     "cooling": "natural"
+    },
+    "fuelReservationId": "res-wood-2",
+    "fuelBurnedMg": 26310794,
+    "kilnC": 59.08945644280711,
+    "ambientC": 28,
+    "wareC": {
+     "T2": 59.95558723436249
+    },
+    "phase": "done",
+    "peakKilnC": 979.9918745613165,
+    "ashLotId": "ash-2",
+    "ware": {
+     "T2": {
+      "base": {
+       "calcite": 726,
+       "inert_mineral": 7621,
+       "kaolinite": 16331,
+       "organic_c": 726,
+       "quartz": 10887,
+       "water": 757
+      },
+      "ext": {
+       "water": 1,
+       "organic": 1,
+       "dehydrox": 1,
+       "calc": 0.9999999999999999
+      }
+     }
+    },
+    "fuelBurnedComp": {
+     "ash": 223631,
+     "water": 3946630,
+     "wood_dry": 22140533
+    },
+    "emitted": {
+     "out": {
+      "water": 15904628,
+      "co2": 40565313
+     },
+     "in": {
+      "o2": 30378697
+     }
+    },
+    "holdStartStep": 570,
+    "outcome": "schedule_completed"
+   },
+   "soak-T1": {
+    "id": "soak-T1",
+    "kind": "soak",
+    "processId": "m01_cold_soak_absorption",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r1",
+    "actorId": "dot",
+    "facilityId": "basin",
+    "sampleIds": [
+     "T1"
+    ],
+    "seed": 1,
+    "startMs": 1791626400000,
+    "lastMs": 1791712800000,
+    "stepS": 3600,
+    "stepIndex": 0,
+    "envIds": [],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [],
+    "version": 2,
+    "waterReservationId": "res-soak-1",
+    "durationS": 86400,
+    "balanceId": "balance",
+    "measuredDryMg": 33400,
+    "outcome": "measured"
+   },
+   "soak-T2": {
+    "id": "soak-T2",
+    "kind": "soak",
+    "processId": "m01_cold_soak_absorption",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r1",
+    "actorId": "dot",
+    "facilityId": "basin-2",
+    "sampleIds": [
+     "T2"
+    ],
+    "seed": 1,
+    "startMs": 1791626400000,
+    "lastMs": 1791712800000,
+    "stepS": 3600,
+    "stepIndex": 0,
+    "envIds": [],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [],
+    "version": 2,
+    "waterReservationId": "res-soak-2",
+    "durationS": 86400,
+    "balanceId": "balance",
+    "measuredDryMg": 33000,
+    "outcome": "measured"
+   },
+   "soak-T3": {
+    "id": "soak-T3",
+    "kind": "soak",
+    "processId": "m01_cold_soak_absorption",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r1",
+    "actorId": "dot",
+    "facilityId": "basin",
+    "sampleIds": [
+     "T3"
+    ],
+    "seed": 1,
+    "startMs": 1791712800000,
+    "lastMs": 1791799200000,
+    "stepS": 3600,
+    "stepIndex": 0,
+    "envIds": [],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [],
+    "version": 2,
+    "waterReservationId": "res-soak-3",
+    "durationS": 86400,
+    "outcome": "slaked"
+   },
+   "dry-2": {
+    "id": "dry-2",
+    "kind": "drying",
+    "processId": "p12x_test_tile_dry",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r2",
+    "actorId": "dot",
+    "facilityId": "rack-shade",
+    "sampleIds": [
+     "T4",
+     "T5"
+    ],
+    "seed": 12,
+    "startMs": 1791799200000,
+    "lastMs": 1792231200000,
+    "stepS": 600,
+    "stepIndex": 720,
+    "envIds": [
+     "env-fixture-night"
+    ],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 37883.44
+    },
+    "checkpoints": [
+     {
+      "tMin": 360,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.181
+     },
+     {
+      "tMin": 720,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.1256
+     },
+     {
+      "tMin": 1080,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0851
+     },
+     {
+      "tMin": 1440,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0609
+     },
+     {
+      "tMin": 1800,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0465
+     },
+     {
+      "tMin": 2160,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0378
+     },
+     {
+      "tMin": 2520,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0327
+     },
+     {
+      "tMin": 2880,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0297
+     },
+     {
+      "tMin": 3240,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0279
+     },
+     {
+      "tMin": 3600,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0269
+     },
+     {
+      "tMin": 3960,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 4320,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 4680,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 5040,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 5400,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 5760,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 6120,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 6480,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 6840,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     },
+     {
+      "tMin": 7200,
+      "kilnC": 25,
+      "wareC": 25,
+      "burnKgPerH": 0,
+      "waterRatio": 0.0261
+     }
+    ],
+    "version": 12,
+    "outcome": "taken_off_rack"
+   },
+   "fire-3": {
+    "id": "fire-3",
+    "kind": "firing",
+    "processId": "p13x_test_tile_fire",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r2",
+    "actorId": "dot",
+    "facilityId": "kiln-fixture",
+    "sampleIds": [
+     "T4"
+    ],
+    "seed": 43,
+    "startMs": 1792231200000,
+    "lastMs": 1792270770000,
+    "stepS": 30,
+    "stepIndex": 1319,
+    "envIds": [
+     "env-fixture-day"
+    ],
+    "energy": {
+     "releasedJ": 480294116.56871545,
+     "flueLossJ": 336205881.5981008,
+     "wallLossJ": 142852628.44974282,
+     "wareSensibleJ": 2575.901432795117,
+     "reactionsNetJ": -10558.450137990278,
+     "structureStoredJ": 1243589.0695768914,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [
+     {
+      "tMin": 5,
+      "kilnC": 44.7,
+      "wareC": 37.7,
+      "burnKgPerH": 1.9
+     },
+     {
+      "tMin": 10,
+      "kilnC": 61.3,
+      "wareC": 53.8,
+      "burnKgPerH": 2.01
+     },
+     {
+      "tMin": 15,
+      "kilnC": 78,
+      "wareC": 70.4,
+      "burnKgPerH": 2.12
+     },
+     {
+      "tMin": 20,
+      "kilnC": 94.6,
+      "wareC": 87.1,
+      "burnKgPerH": 2.23
+     },
+     {
+      "tMin": 25,
+      "kilnC": 111.3,
+      "wareC": 103.8,
+      "burnKgPerH": 2.34
+     },
+     {
+      "tMin": 30,
+      "kilnC": 128,
+      "wareC": 120.4,
+      "burnKgPerH": 2.44
+     },
+     {
+      "tMin": 35,
+      "kilnC": 144.6,
+      "wareC": 137.1,
+      "burnKgPerH": 2.55
+     },
+     {
+      "tMin": 40,
+      "kilnC": 161.3,
+      "wareC": 153.8,
+      "burnKgPerH": 2.66
+     },
+     {
+      "tMin": 45,
+      "kilnC": 178,
+      "wareC": 170.4,
+      "burnKgPerH": 2.77
+     },
+     {
+      "tMin": 50,
+      "kilnC": 194.6,
+      "wareC": 187.1,
+      "burnKgPerH": 2.88
+     },
+     {
+      "tMin": 55,
+      "kilnC": 211.3,
+      "wareC": 203.8,
+      "burnKgPerH": 2.99
+     },
+     {
+      "tMin": 60,
+      "kilnC": 228,
+      "wareC": 220.4,
+      "burnKgPerH": 3.09
+     },
+     {
+      "tMin": 65,
+      "kilnC": 244.6,
+      "wareC": 237.1,
+      "burnKgPerH": 3.2
+     },
+     {
+      "tMin": 70,
+      "kilnC": 261.3,
+      "wareC": 253.8,
+      "burnKgPerH": 3.31
+     },
+     {
+      "tMin": 75,
+      "kilnC": 278,
+      "wareC": 270.4,
+      "burnKgPerH": 3.42
+     },
+     {
+      "tMin": 80,
+      "kilnC": 294.6,
+      "wareC": 287.1,
+      "burnKgPerH": 3.53
+     },
+     {
+      "tMin": 85,
+      "kilnC": 311.3,
+      "wareC": 303.8,
+      "burnKgPerH": 3.63
+     },
+     {
+      "tMin": 90,
+      "kilnC": 328,
+      "wareC": 320.4,
+      "burnKgPerH": 3.74
+     },
+     {
+      "tMin": 95,
+      "kilnC": 344.6,
+      "wareC": 337.1,
+      "burnKgPerH": 3.85
+     },
+     {
+      "tMin": 100,
+      "kilnC": 361.3,
+      "wareC": 353.8,
+      "burnKgPerH": 3.96
+     },
+     {
+      "tMin": 105,
+      "kilnC": 378,
+      "wareC": 370.4,
+      "burnKgPerH": 4.07
+     },
+     {
+      "tMin": 110,
+      "kilnC": 394.7,
+      "wareC": 387.1,
+      "burnKgPerH": 4.18
+     },
+     {
+      "tMin": 115,
+      "kilnC": 411.3,
+      "wareC": 403.8,
+      "burnKgPerH": 4.28
+     },
+     {
+      "tMin": 120,
+      "kilnC": 428,
+      "wareC": 420.5,
+      "burnKgPerH": 4.39
+     },
+     {
+      "tMin": 125,
+      "kilnC": 444.7,
+      "wareC": 437.2,
+      "burnKgPerH": 4.5
+     },
+     {
+      "tMin": 130,
+      "kilnC": 461.4,
+      "wareC": 453.9,
+      "burnKgPerH": 4.6
+     },
+     {
+      "tMin": 135,
+      "kilnC": 478.1,
+      "wareC": 470.6,
+      "burnKgPerH": 4.71
+     },
+     {
+      "tMin": 140,
+      "kilnC": 494.8,
+      "wareC": 487.3,
+      "burnKgPerH": 4.82
+     },
+     {
+      "tMin": 145,
+      "kilnC": 511.4,
+      "wareC": 503.9,
+      "burnKgPerH": 4.93
+     },
+     {
+      "tMin": 150,
+      "kilnC": 528.1,
+      "wareC": 520.6,
+      "burnKgPerH": 5.04
+     },
+     {
+      "tMin": 155,
+      "kilnC": 544.7,
+      "wareC": 537.2,
+      "burnKgPerH": 5.15
+     },
+     {
+      "tMin": 160,
+      "kilnC": 561.3,
+      "wareC": 553.8,
+      "burnKgPerH": 5.26
+     },
+     {
+      "tMin": 165,
+      "kilnC": 577.9,
+      "wareC": 570.4,
+      "burnKgPerH": 5.37
+     },
+     {
+      "tMin": 170,
+      "kilnC": 594.6,
+      "wareC": 587.1,
+      "burnKgPerH": 5.48
+     },
+     {
+      "tMin": 175,
+      "kilnC": 611.3,
+      "wareC": 603.7,
+      "burnKgPerH": 5.59
+     },
+     {
+      "tMin": 180,
+      "kilnC": 627.9,
+      "wareC": 620.4,
+      "burnKgPerH": 5.69
+     },
+     {
+      "tMin": 185,
+      "kilnC": 644.6,
+      "wareC": 637.1,
+      "burnKgPerH": 5.8
+     },
+     {
+      "tMin": 190,
+      "kilnC": 661.3,
+      "wareC": 653.8,
+      "burnKgPerH": 5.91
+     },
+     {
+      "tMin": 195,
+      "kilnC": 678,
+      "wareC": 670.4,
+      "burnKgPerH": 6.02
+     },
+     {
+      "tMin": 200,
+      "kilnC": 694.6,
+      "wareC": 687.1,
+      "burnKgPerH": 6.12
+     },
+     {
+      "tMin": 205,
+      "kilnC": 711.3,
+      "wareC": 703.8,
+      "burnKgPerH": 6.23
+     },
+     {
+      "tMin": 210,
+      "kilnC": 728,
+      "wareC": 720.4,
+      "burnKgPerH": 6.34
+     },
+     {
+      "tMin": 215,
+      "kilnC": 744.6,
+      "wareC": 737.1,
+      "burnKgPerH": 6.45
+     },
+     {
+      "tMin": 220,
+      "kilnC": 761.3,
+      "wareC": 753.8,
+      "burnKgPerH": 6.56
+     },
+     {
+      "tMin": 225,
+      "kilnC": 778,
+      "wareC": 770.4,
+      "burnKgPerH": 6.67
+     },
+     {
+      "tMin": 230,
+      "kilnC": 794.6,
+      "wareC": 787.1,
+      "burnKgPerH": 6.77
+     },
+     {
+      "tMin": 235,
+      "kilnC": 811.3,
+      "wareC": 803.8,
+      "burnKgPerH": 6.88
+     },
+     {
+      "tMin": 240,
+      "kilnC": 828,
+      "wareC": 820.4,
+      "burnKgPerH": 6.99
+     },
+     {
+      "tMin": 245,
+      "kilnC": 844.6,
+      "wareC": 837.1,
+      "burnKgPerH": 7.1
+     },
+     {
+      "tMin": 250,
+      "kilnC": 861.3,
+      "wareC": 853.8,
+      "burnKgPerH": 7.21
+     },
+     {
+      "tMin": 255,
+      "kilnC": 878,
+      "wareC": 870.4,
+      "burnKgPerH": 7.32
+     },
+     {
+      "tMin": 260,
+      "kilnC": 894.6,
+      "wareC": 887.1,
+      "burnKgPerH": 7.42
+     },
+     {
+      "tMin": 265,
+      "kilnC": 911.3,
+      "wareC": 903.8,
+      "burnKgPerH": 7.53
+     },
+     {
+      "tMin": 270,
+      "kilnC": 928,
+      "wareC": 920.4,
+      "burnKgPerH": 7.64
+     },
+     {
+      "tMin": 275,
+      "kilnC": 944.6,
+      "wareC": 937.1,
+      "burnKgPerH": 7.75
+     },
+     {
+      "tMin": 280,
+      "kilnC": 961.3,
+      "wareC": 953.8,
+      "burnKgPerH": 7.86
+     },
+     {
+      "tMin": 285,
+      "kilnC": 978,
+      "wareC": 970.4,
+      "burnKgPerH": 7.96
+     },
+     {
+      "tMin": 290,
+      "kilnC": 979.9,
+      "wareC": 979,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 295,
+      "kilnC": 979.9,
+      "wareC": 979.8,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 300,
+      "kilnC": 980,
+      "wareC": 979.9,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 305,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 310,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 315,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 320,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 325,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 330,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 335,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 340,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 345,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 350,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 355,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 360,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 365,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 370,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 375,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 380,
+      "kilnC": 924.4,
+      "wareC": 947.2,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 385,
+      "kilnC": 872.1,
+      "wareC": 895.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 390,
+      "kilnC": 822.8,
+      "wareC": 845,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 395,
+      "kilnC": 776.5,
+      "wareC": 797.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 400,
+      "kilnC": 732.8,
+      "wareC": 752.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 405,
+      "kilnC": 691.6,
+      "wareC": 710.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 410,
+      "kilnC": 652.9,
+      "wareC": 670.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 415,
+      "kilnC": 616.4,
+      "wareC": 632.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 420,
+      "kilnC": 582.1,
+      "wareC": 597.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 425,
+      "kilnC": 549.8,
+      "wareC": 564.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 430,
+      "kilnC": 519.3,
+      "wareC": 533,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 435,
+      "kilnC": 490.6,
+      "wareC": 503.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 440,
+      "kilnC": 463.6,
+      "wareC": 475.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 445,
+      "kilnC": 438.2,
+      "wareC": 449.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 450,
+      "kilnC": 414.3,
+      "wareC": 425,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 455,
+      "kilnC": 391.7,
+      "wareC": 401.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 460,
+      "kilnC": 370.5,
+      "wareC": 380,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 465,
+      "kilnC": 350.5,
+      "wareC": 359.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 470,
+      "kilnC": 331.7,
+      "wareC": 340.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 475,
+      "kilnC": 314,
+      "wareC": 321.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 480,
+      "kilnC": 297.3,
+      "wareC": 304.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 485,
+      "kilnC": 281.6,
+      "wareC": 288.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 490,
+      "kilnC": 266.8,
+      "wareC": 273.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 495,
+      "kilnC": 252.8,
+      "wareC": 259.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 500,
+      "kilnC": 239.7,
+      "wareC": 245.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 505,
+      "kilnC": 227.3,
+      "wareC": 232.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 510,
+      "kilnC": 215.7,
+      "wareC": 220.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 515,
+      "kilnC": 204.8,
+      "wareC": 209.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 520,
+      "kilnC": 194.4,
+      "wareC": 199.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 525,
+      "kilnC": 184.7,
+      "wareC": 189.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 530,
+      "kilnC": 175.6,
+      "wareC": 179.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 535,
+      "kilnC": 167,
+      "wareC": 170.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 540,
+      "kilnC": 158.9,
+      "wareC": 162.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 545,
+      "kilnC": 151.2,
+      "wareC": 154.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 550,
+      "kilnC": 144,
+      "wareC": 147.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 555,
+      "kilnC": 137.3,
+      "wareC": 140.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 560,
+      "kilnC": 130.9,
+      "wareC": 133.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 565,
+      "kilnC": 124.9,
+      "wareC": 127.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 570,
+      "kilnC": 119.2,
+      "wareC": 121.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 575,
+      "kilnC": 113.9,
+      "wareC": 116.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 580,
+      "kilnC": 108.9,
+      "wareC": 111.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 585,
+      "kilnC": 104.2,
+      "wareC": 106.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 590,
+      "kilnC": 99.7,
+      "wareC": 101.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 595,
+      "kilnC": 95.5,
+      "wareC": 97.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 600,
+      "kilnC": 91.6,
+      "wareC": 93.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 605,
+      "kilnC": 87.9,
+      "wareC": 89.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 610,
+      "kilnC": 84.4,
+      "wareC": 86,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 615,
+      "kilnC": 81.1,
+      "wareC": 82.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 620,
+      "kilnC": 78,
+      "wareC": 79.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 625,
+      "kilnC": 75.1,
+      "wareC": 76.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 630,
+      "kilnC": 72.3,
+      "wareC": 73.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 635,
+      "kilnC": 69.7,
+      "wareC": 70.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 640,
+      "kilnC": 67.3,
+      "wareC": 68.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 645,
+      "kilnC": 65,
+      "wareC": 66,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 650,
+      "kilnC": 62.9,
+      "wareC": 63.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 655,
+      "kilnC": 60.8,
+      "wareC": 61.7,
+      "burnKgPerH": 0
+     }
+    ],
+    "version": 5,
+    "plan": {
+     "pace": "normal",
+     "targetGlow": "orange",
+     "holdMin": 90,
+     "cooling": "natural"
+    },
+    "schedule": {
+     "rampKPerH": 200,
+     "peakC": 980,
+     "holdMin": 90,
+     "cooling": "natural"
+    },
+    "fuelReservationId": "res-wood-3",
+    "fuelBurnedMg": 32494024,
+    "kilnC": 59.08972673942357,
+    "ambientC": 28,
+    "wareC": {
+     "T4": 59.95586508182902
+    },
+    "phase": "done",
+    "peakKilnC": 980.0002839107282,
+    "ashLotId": "ash-3",
+    "ware": {
+     "T4": {
+      "base": {
+       "calcite": 726,
+       "inert_mineral": 7621,
+       "kaolinite": 16330,
+       "organic_c": 726,
+       "quartz": 10887,
+       "water": 947
+      },
+      "ext": {
+       "water": 1,
+       "organic": 1,
+       "dehydrox": 1,
+       "calc": 0.9999999999999999
+      }
+     }
+    },
+    "fuelBurnedComp": {
+     "ash": 276197,
+     "water": 4874116,
+     "wood_dry": 27343711
+    },
+    "emitted": {
+     "out": {
+      "water": 19641802,
+      "co2": 50097742
+     },
+     "in": {
+      "o2": 37517446
+     }
+    },
+    "holdStartStep": 570,
+    "outcome": "schedule_completed"
+   },
+   "soak-T4": {
+    "id": "soak-T4",
+    "kind": "soak",
+    "processId": "m01_cold_soak_absorption",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r2",
+    "actorId": "dot",
+    "facilityId": "basin",
+    "sampleIds": [
+     "T4"
+    ],
+    "seed": 1,
+    "startMs": 1792274400000,
+    "lastMs": 1792360800000,
+    "stepS": 3600,
+    "stepIndex": 0,
+    "envIds": [],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [],
+    "version": 2,
+    "waterReservationId": "res-soak-T4",
+    "durationS": 86400,
+    "balanceId": "balance",
+    "measuredDryMg": 33000,
+    "outcome": "measured"
+   },
+   "fire-4": {
+    "id": "fire-4",
+    "kind": "firing",
+    "processId": "p13x_test_tile_fire",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r2",
+    "actorId": "dot",
+    "facilityId": "kiln-fixture",
+    "sampleIds": [
+     "T5"
+    ],
+    "seed": 44,
+    "startMs": 1792360800000,
+    "lastMs": 1792400370000,
+    "stepS": 30,
+    "stepIndex": 1319,
+    "envIds": [
+     "env-fixture-day"
+    ],
+    "energy": {
+     "releasedJ": 480294206.6465435,
+     "flueLossJ": 336205944.65258104,
+     "wallLossJ": 142852622.48826072,
+     "wareSensibleJ": 2575.5314506819113,
+     "reactionsNetJ": -10525.088502822517,
+     "structureStoredJ": 1243589.0627546038,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [
+     {
+      "tMin": 5,
+      "kilnC": 44.7,
+      "wareC": 37.7,
+      "burnKgPerH": 1.9
+     },
+     {
+      "tMin": 10,
+      "kilnC": 61.3,
+      "wareC": 53.8,
+      "burnKgPerH": 2.01
+     },
+     {
+      "tMin": 15,
+      "kilnC": 78,
+      "wareC": 70.4,
+      "burnKgPerH": 2.12
+     },
+     {
+      "tMin": 20,
+      "kilnC": 94.6,
+      "wareC": 87.1,
+      "burnKgPerH": 2.23
+     },
+     {
+      "tMin": 25,
+      "kilnC": 111.3,
+      "wareC": 103.8,
+      "burnKgPerH": 2.34
+     },
+     {
+      "tMin": 30,
+      "kilnC": 128,
+      "wareC": 120.4,
+      "burnKgPerH": 2.44
+     },
+     {
+      "tMin": 35,
+      "kilnC": 144.6,
+      "wareC": 137.1,
+      "burnKgPerH": 2.55
+     },
+     {
+      "tMin": 40,
+      "kilnC": 161.3,
+      "wareC": 153.8,
+      "burnKgPerH": 2.66
+     },
+     {
+      "tMin": 45,
+      "kilnC": 178,
+      "wareC": 170.4,
+      "burnKgPerH": 2.77
+     },
+     {
+      "tMin": 50,
+      "kilnC": 194.6,
+      "wareC": 187.1,
+      "burnKgPerH": 2.88
+     },
+     {
+      "tMin": 55,
+      "kilnC": 211.3,
+      "wareC": 203.8,
+      "burnKgPerH": 2.99
+     },
+     {
+      "tMin": 60,
+      "kilnC": 228,
+      "wareC": 220.4,
+      "burnKgPerH": 3.09
+     },
+     {
+      "tMin": 65,
+      "kilnC": 244.6,
+      "wareC": 237.1,
+      "burnKgPerH": 3.2
+     },
+     {
+      "tMin": 70,
+      "kilnC": 261.3,
+      "wareC": 253.8,
+      "burnKgPerH": 3.31
+     },
+     {
+      "tMin": 75,
+      "kilnC": 278,
+      "wareC": 270.4,
+      "burnKgPerH": 3.42
+     },
+     {
+      "tMin": 80,
+      "kilnC": 294.6,
+      "wareC": 287.1,
+      "burnKgPerH": 3.53
+     },
+     {
+      "tMin": 85,
+      "kilnC": 311.3,
+      "wareC": 303.8,
+      "burnKgPerH": 3.63
+     },
+     {
+      "tMin": 90,
+      "kilnC": 328,
+      "wareC": 320.4,
+      "burnKgPerH": 3.74
+     },
+     {
+      "tMin": 95,
+      "kilnC": 344.6,
+      "wareC": 337.1,
+      "burnKgPerH": 3.85
+     },
+     {
+      "tMin": 100,
+      "kilnC": 361.3,
+      "wareC": 353.8,
+      "burnKgPerH": 3.96
+     },
+     {
+      "tMin": 105,
+      "kilnC": 378,
+      "wareC": 370.4,
+      "burnKgPerH": 4.07
+     },
+     {
+      "tMin": 110,
+      "kilnC": 394.7,
+      "wareC": 387.1,
+      "burnKgPerH": 4.18
+     },
+     {
+      "tMin": 115,
+      "kilnC": 411.3,
+      "wareC": 403.8,
+      "burnKgPerH": 4.28
+     },
+     {
+      "tMin": 120,
+      "kilnC": 428,
+      "wareC": 420.5,
+      "burnKgPerH": 4.39
+     },
+     {
+      "tMin": 125,
+      "kilnC": 444.7,
+      "wareC": 437.2,
+      "burnKgPerH": 4.5
+     },
+     {
+      "tMin": 130,
+      "kilnC": 461.4,
+      "wareC": 453.9,
+      "burnKgPerH": 4.6
+     },
+     {
+      "tMin": 135,
+      "kilnC": 478.1,
+      "wareC": 470.6,
+      "burnKgPerH": 4.71
+     },
+     {
+      "tMin": 140,
+      "kilnC": 494.8,
+      "wareC": 487.3,
+      "burnKgPerH": 4.82
+     },
+     {
+      "tMin": 145,
+      "kilnC": 511.4,
+      "wareC": 503.9,
+      "burnKgPerH": 4.93
+     },
+     {
+      "tMin": 150,
+      "kilnC": 528.1,
+      "wareC": 520.6,
+      "burnKgPerH": 5.04
+     },
+     {
+      "tMin": 155,
+      "kilnC": 544.7,
+      "wareC": 537.2,
+      "burnKgPerH": 5.15
+     },
+     {
+      "tMin": 160,
+      "kilnC": 561.3,
+      "wareC": 553.8,
+      "burnKgPerH": 5.26
+     },
+     {
+      "tMin": 165,
+      "kilnC": 577.9,
+      "wareC": 570.4,
+      "burnKgPerH": 5.37
+     },
+     {
+      "tMin": 170,
+      "kilnC": 594.6,
+      "wareC": 587.1,
+      "burnKgPerH": 5.48
+     },
+     {
+      "tMin": 175,
+      "kilnC": 611.3,
+      "wareC": 603.7,
+      "burnKgPerH": 5.59
+     },
+     {
+      "tMin": 180,
+      "kilnC": 627.9,
+      "wareC": 620.4,
+      "burnKgPerH": 5.69
+     },
+     {
+      "tMin": 185,
+      "kilnC": 644.6,
+      "wareC": 637.1,
+      "burnKgPerH": 5.8
+     },
+     {
+      "tMin": 190,
+      "kilnC": 661.3,
+      "wareC": 653.8,
+      "burnKgPerH": 5.91
+     },
+     {
+      "tMin": 195,
+      "kilnC": 678,
+      "wareC": 670.4,
+      "burnKgPerH": 6.02
+     },
+     {
+      "tMin": 200,
+      "kilnC": 694.6,
+      "wareC": 687.1,
+      "burnKgPerH": 6.12
+     },
+     {
+      "tMin": 205,
+      "kilnC": 711.3,
+      "wareC": 703.8,
+      "burnKgPerH": 6.23
+     },
+     {
+      "tMin": 210,
+      "kilnC": 728,
+      "wareC": 720.4,
+      "burnKgPerH": 6.34
+     },
+     {
+      "tMin": 215,
+      "kilnC": 744.6,
+      "wareC": 737.1,
+      "burnKgPerH": 6.45
+     },
+     {
+      "tMin": 220,
+      "kilnC": 761.3,
+      "wareC": 753.8,
+      "burnKgPerH": 6.56
+     },
+     {
+      "tMin": 225,
+      "kilnC": 778,
+      "wareC": 770.4,
+      "burnKgPerH": 6.67
+     },
+     {
+      "tMin": 230,
+      "kilnC": 794.6,
+      "wareC": 787.1,
+      "burnKgPerH": 6.77
+     },
+     {
+      "tMin": 235,
+      "kilnC": 811.3,
+      "wareC": 803.8,
+      "burnKgPerH": 6.88
+     },
+     {
+      "tMin": 240,
+      "kilnC": 828,
+      "wareC": 820.4,
+      "burnKgPerH": 6.99
+     },
+     {
+      "tMin": 245,
+      "kilnC": 844.6,
+      "wareC": 837.1,
+      "burnKgPerH": 7.1
+     },
+     {
+      "tMin": 250,
+      "kilnC": 861.3,
+      "wareC": 853.8,
+      "burnKgPerH": 7.21
+     },
+     {
+      "tMin": 255,
+      "kilnC": 878,
+      "wareC": 870.4,
+      "burnKgPerH": 7.32
+     },
+     {
+      "tMin": 260,
+      "kilnC": 894.6,
+      "wareC": 887.1,
+      "burnKgPerH": 7.42
+     },
+     {
+      "tMin": 265,
+      "kilnC": 911.3,
+      "wareC": 903.8,
+      "burnKgPerH": 7.53
+     },
+     {
+      "tMin": 270,
+      "kilnC": 928,
+      "wareC": 920.4,
+      "burnKgPerH": 7.64
+     },
+     {
+      "tMin": 275,
+      "kilnC": 944.6,
+      "wareC": 937.1,
+      "burnKgPerH": 7.75
+     },
+     {
+      "tMin": 280,
+      "kilnC": 961.3,
+      "wareC": 953.8,
+      "burnKgPerH": 7.86
+     },
+     {
+      "tMin": 285,
+      "kilnC": 978,
+      "wareC": 970.4,
+      "burnKgPerH": 7.96
+     },
+     {
+      "tMin": 290,
+      "kilnC": 979.9,
+      "wareC": 979,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 295,
+      "kilnC": 979.9,
+      "wareC": 979.8,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 300,
+      "kilnC": 980,
+      "wareC": 979.9,
+      "burnKgPerH": 6.19
+     },
+     {
+      "tMin": 305,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 310,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 315,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 320,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 325,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 330,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 335,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 340,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 345,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 350,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 355,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 360,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 365,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 370,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 375,
+      "kilnC": 980,
+      "wareC": 980,
+      "burnKgPerH": 6.18
+     },
+     {
+      "tMin": 380,
+      "kilnC": 924.4,
+      "wareC": 947.2,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 385,
+      "kilnC": 872.1,
+      "wareC": 895.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 390,
+      "kilnC": 822.8,
+      "wareC": 845,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 395,
+      "kilnC": 776.5,
+      "wareC": 797.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 400,
+      "kilnC": 732.8,
+      "wareC": 752.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 405,
+      "kilnC": 691.6,
+      "wareC": 710.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 410,
+      "kilnC": 652.9,
+      "wareC": 670.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 415,
+      "kilnC": 616.4,
+      "wareC": 632.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 420,
+      "kilnC": 582.1,
+      "wareC": 597.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 425,
+      "kilnC": 549.8,
+      "wareC": 564.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 430,
+      "kilnC": 519.3,
+      "wareC": 533,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 435,
+      "kilnC": 490.6,
+      "wareC": 503.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 440,
+      "kilnC": 463.6,
+      "wareC": 475.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 445,
+      "kilnC": 438.2,
+      "wareC": 449.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 450,
+      "kilnC": 414.3,
+      "wareC": 425,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 455,
+      "kilnC": 391.7,
+      "wareC": 401.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 460,
+      "kilnC": 370.5,
+      "wareC": 380,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 465,
+      "kilnC": 350.5,
+      "wareC": 359.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 470,
+      "kilnC": 331.7,
+      "wareC": 340.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 475,
+      "kilnC": 314,
+      "wareC": 321.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 480,
+      "kilnC": 297.3,
+      "wareC": 304.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 485,
+      "kilnC": 281.6,
+      "wareC": 288.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 490,
+      "kilnC": 266.8,
+      "wareC": 273.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 495,
+      "kilnC": 252.8,
+      "wareC": 259.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 500,
+      "kilnC": 239.7,
+      "wareC": 245.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 505,
+      "kilnC": 227.3,
+      "wareC": 232.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 510,
+      "kilnC": 215.7,
+      "wareC": 220.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 515,
+      "kilnC": 204.8,
+      "wareC": 209.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 520,
+      "kilnC": 194.4,
+      "wareC": 199.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 525,
+      "kilnC": 184.7,
+      "wareC": 189.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 530,
+      "kilnC": 175.6,
+      "wareC": 179.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 535,
+      "kilnC": 167,
+      "wareC": 170.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 540,
+      "kilnC": 158.9,
+      "wareC": 162.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 545,
+      "kilnC": 151.2,
+      "wareC": 154.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 550,
+      "kilnC": 144,
+      "wareC": 147.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 555,
+      "kilnC": 137.3,
+      "wareC": 140.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 560,
+      "kilnC": 130.9,
+      "wareC": 133.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 565,
+      "kilnC": 124.9,
+      "wareC": 127.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 570,
+      "kilnC": 119.2,
+      "wareC": 121.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 575,
+      "kilnC": 113.9,
+      "wareC": 116.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 580,
+      "kilnC": 108.9,
+      "wareC": 111.1,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 585,
+      "kilnC": 104.2,
+      "wareC": 106.3,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 590,
+      "kilnC": 99.7,
+      "wareC": 101.7,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 595,
+      "kilnC": 95.5,
+      "wareC": 97.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 600,
+      "kilnC": 91.6,
+      "wareC": 93.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 605,
+      "kilnC": 87.9,
+      "wareC": 89.5,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 610,
+      "kilnC": 84.4,
+      "wareC": 86,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 615,
+      "kilnC": 81.1,
+      "wareC": 82.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 620,
+      "kilnC": 78,
+      "wareC": 79.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 625,
+      "kilnC": 75.1,
+      "wareC": 76.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 630,
+      "kilnC": 72.3,
+      "wareC": 73.6,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 635,
+      "kilnC": 69.7,
+      "wareC": 70.9,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 640,
+      "kilnC": 67.3,
+      "wareC": 68.4,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 645,
+      "kilnC": 65,
+      "wareC": 66,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 650,
+      "kilnC": 62.9,
+      "wareC": 63.8,
+      "burnKgPerH": 0
+     },
+     {
+      "tMin": 655,
+      "kilnC": 60.8,
+      "wareC": 61.7,
+      "burnKgPerH": 0
+     }
+    ],
+    "version": 5,
+    "plan": {
+     "pace": "normal",
+     "targetGlow": "orange",
+     "holdMin": 90,
+     "cooling": "natural"
+    },
+    "schedule": {
+     "rampKPerH": 200,
+     "peakC": 980,
+     "holdMin": 90,
+     "cooling": "natural"
+    },
+    "fuelReservationId": "res-wood-4",
+    "fuelBurnedMg": 32494026,
+    "kilnC": 59.08972656886484,
+    "ambientC": 28,
+    "wareC": {
+     "T5": 59.95586488594569
+    },
+    "phase": "done",
+    "peakKilnC": 980.0002699774003,
+    "ashLotId": "ash-4",
+    "ware": {
+     "T5": {
+      "base": {
+       "calcite": 726,
+       "inert_mineral": 7621,
+       "kaolinite": 16331,
+       "organic_c": 725,
+       "quartz": 10887,
+       "water": 947
+      },
+      "ext": {
+       "water": 1,
+       "organic": 1,
+       "dehydrox": 1,
+       "calc": 0.9999999999999999
+      }
+     }
+    },
+    "fuelBurnedComp": {
+     "ash": 276201,
+     "water": 4874107,
+     "wood_dry": 27343718
+    },
+    "emitted": {
+     "out": {
+      "water": 19641797,
+      "co2": 50097751
+     },
+     "in": {
+      "o2": 37517453
+     }
+    },
+    "holdStartStep": 570,
+    "outcome": "schedule_completed"
+   },
+   "soak-T5": {
+    "id": "soak-T5",
+    "kind": "soak",
+    "processId": "m01_cold_soak_absorption",
+    "processVersion": 1,
+    "status": "completed",
+    "researchId": "r2",
+    "actorId": "dot",
+    "facilityId": "basin",
+    "sampleIds": [
+     "T5"
+    ],
+    "seed": 1,
+    "startMs": 1792404000000,
+    "lastMs": 1792490400000,
+    "stepS": 3600,
+    "stepIndex": 0,
+    "envIds": [],
+    "energy": {
+     "releasedJ": 0,
+     "flueLossJ": 0,
+     "wallLossJ": 0,
+     "wareSensibleJ": 0,
+     "reactionsNetJ": 0,
+     "structureStoredJ": 0,
+     "envHeatInJ": 0
+    },
+    "checkpoints": [],
+    "version": 2,
+    "waterReservationId": "res-soak-T5",
+    "durationS": 86400,
+    "balanceId": "balance",
+    "measuredDryMg": 33000,
+    "outcome": "measured"
+   }
+  },
+  "observations": {
+   "c018:obs0": {
+    "id": "c018:obs0",
+    "residentId": "dot",
+    "atMs": 1791590400000,
+    "sampleId": "T1",
+    "runId": "dry-1",
+    "kind": "dryness",
+    "value": "白っぽく乾き、持っても冷たくない",
+    "text": "試験片T1（焚き火）：乾き具合"
+   },
+   "c018:obs1": {
+    "id": "c018:obs1",
+    "residentId": "dot",
+    "atMs": 1791590400000,
+    "sampleId": "T1",
+    "runId": "dry-1",
+    "kind": "duration",
+    "value": 5,
+    "unit": "日",
+    "text": "試験片T1（焚き火）：乾燥した日数"
+   },
+   "c018:obs2": {
+    "id": "c018:obs2",
+    "residentId": "dot",
+    "atMs": 1791590400000,
+    "sampleId": "T2",
+    "runId": "dry-1",
+    "kind": "dryness",
+    "value": "白っぽく乾き、持っても冷たくない",
+    "text": "試験片T2（小窯・橙）：乾き具合"
+   },
+   "c018:obs3": {
+    "id": "c018:obs3",
+    "residentId": "dot",
+    "atMs": 1791590400000,
+    "sampleId": "T2",
+    "runId": "dry-1",
+    "kind": "duration",
+    "value": 5,
+    "unit": "日",
+    "text": "試験片T2（小窯・橙）：乾燥した日数"
+   },
+   "c018:obs4": {
+    "id": "c018:obs4",
+    "residentId": "dot",
+    "atMs": 1791590400000,
+    "sampleId": "T3",
+    "runId": "dry-1",
+    "kind": "dryness",
+    "value": "白っぽく乾き、持っても冷たくない",
+    "text": "試験片T3（焼かない対照）：乾き具合"
+   },
+   "c018:obs5": {
+    "id": "c018:obs5",
+    "residentId": "dot",
+    "atMs": 1791590400000,
+    "sampleId": "T3",
+    "runId": "dry-1",
+    "kind": "duration",
+    "value": 5,
+    "unit": "日",
+    "text": "試験片T3（焼かない対照）：乾燥した日数"
+   },
+   "c028:obs0": {
+    "id": "c028:obs0",
+    "residentId": "dot",
+    "atMs": 1791597810000,
+    "runId": "fire-1",
+    "kind": "glow",
+    "value": "ごく暗い赤（暗がりでわかる程度）",
+    "text": "いちばん熱いときの火の色"
+   },
+   "c028:obs1": {
+    "id": "c028:obs1",
+    "residentId": "dot",
+    "atMs": 1791597810000,
+    "runId": "fire-1",
+    "kind": "fuel_used",
+    "value": 10,
+    "unit": "束",
+    "text": "燃やした薪の量"
+   },
+   "c028:obs2": {
+    "id": "c028:obs2",
+    "residentId": "dot",
+    "atMs": 1791597810000,
+    "runId": "fire-1",
+    "kind": "duration",
+    "value": 2.1,
+    "unit": "時間",
+    "text": "火を入れてから取り出せるまで"
+   },
+   "c033:obs0": {
+    "id": "c033:obs0",
+    "residentId": "dot",
+    "atMs": 1791626370000,
+    "runId": "fire-2",
+    "kind": "glow",
+    "value": "橙",
+    "text": "いちばん熱いときの火の色"
+   },
+   "c033:obs1": {
+    "id": "c033:obs1",
+    "residentId": "dot",
+    "atMs": 1791626370000,
+    "runId": "fire-2",
+    "kind": "fuel_used",
+    "value": 13,
+    "unit": "束",
+    "text": "燃やした薪の量"
+   },
+   "c033:obs2": {
+    "id": "c033:obs2",
+    "residentId": "dot",
+    "atMs": 1791626370000,
+    "runId": "fire-2",
+    "kind": "duration",
+    "value": 10,
+    "unit": "時間",
+    "text": "火を入れてから取り出せるまで"
+   },
+   "c036:obs0": {
+    "id": "c036:obs0",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T1",
+    "kind": "visual",
+    "value": "割れて分かれている",
+    "text": "試験片T1（焚き火）：見た目"
+   },
+   "c036:obs1": {
+    "id": "c036:obs1",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T1",
+    "kind": "tap",
+    "value": "濁ってびりつく音",
+    "text": "試験片T1（焚き火）：指ではじいた音"
+   },
+   "c037:obs0": {
+    "id": "c037:obs0",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T2",
+    "kind": "visual",
+    "value": "ひびは見当たらない",
+    "text": "試験片T2（小窯・橙）：見た目"
+   },
+   "c037:obs1": {
+    "id": "c037:obs1",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T2",
+    "kind": "tap",
+    "value": "やや鈍い音",
+    "text": "試験片T2（小窯・橙）：指ではじいた音"
+   },
+   "c038:obs0": {
+    "id": "c038:obs0",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T3",
+    "kind": "visual",
+    "value": "ひびは見当たらない",
+    "text": "試験片T3（焼かない対照）：見た目"
+   },
+   "c038:obs1": {
+    "id": "c038:obs1",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T3",
+    "kind": "tap",
+    "value": "こもった音",
+    "text": "試験片T3（焼かない対照）：指ではじいた音"
+   },
+   "c039:obs0": {
+    "id": "c039:obs0",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T1",
+    "runId": "soak-T1",
+    "kind": "mass",
+    "value": 33.4,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T1（焚き火）：浸ける前の質量"
+   },
+   "c040:obs0": {
+    "id": "c040:obs0",
+    "residentId": "dot",
+    "atMs": 1791626400000,
+    "sampleId": "T2",
+    "runId": "soak-T2",
+    "kind": "mass",
+    "value": 33,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T2（小窯・橙）：浸ける前の質量"
+   },
+   "c041:obs0": {
+    "id": "c041:obs0",
+    "residentId": "dot",
+    "atMs": 1791712800000,
+    "sampleId": "T1",
+    "runId": "soak-T1",
+    "kind": "mass",
+    "value": 38.2,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T1（焚き火）：浸けた後の質量（表面を拭いて）"
+   },
+   "c041:obs1": {
+    "id": "c041:obs1",
+    "residentId": "dot",
+    "atMs": 1791712800000,
+    "sampleId": "T1",
+    "runId": "soak-T1",
+    "kind": "absorption",
+    "value": 14.4,
+    "unit": "%",
+    "instrumentId": "balance",
+    "text": "試験片T1（焚き火）：自分で量った前後の質量から出した吸水率（24時間冷水、事前の乾燥なし）"
+   },
+   "c042:obs0": {
+    "id": "c042:obs0",
+    "residentId": "dot",
+    "atMs": 1791712800000,
+    "sampleId": "T2",
+    "runId": "soak-T2",
+    "kind": "mass",
+    "value": 36.8,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T2（小窯・橙）：浸けた後の質量（表面を拭いて）"
+   },
+   "c042:obs1": {
+    "id": "c042:obs1",
+    "residentId": "dot",
+    "atMs": 1791712800000,
+    "sampleId": "T2",
+    "runId": "soak-T2",
+    "kind": "absorption",
+    "value": 11.5,
+    "unit": "%",
+    "instrumentId": "balance",
+    "text": "試験片T2（小窯・橙）：自分で量った前後の質量から出した吸水率（24時間冷水、事前の乾燥なし）"
+   },
+   "c045:obs0": {
+    "id": "c045:obs0",
+    "residentId": "dot",
+    "atMs": 1791799200000,
+    "sampleId": "T3",
+    "runId": "soak-T3",
+    "kind": "slaked",
+    "value": "崩れた",
+    "text": "試験片T3（焼かない対照）：水の中で形が崩れ、泥に戻った"
+   },
+   "c066:obs0": {
+    "id": "c066:obs0",
+    "residentId": "dot",
+    "atMs": 1792231200000,
+    "sampleId": "T4",
+    "runId": "dry-2",
+    "kind": "dryness",
+    "value": "白っぽく乾き、持っても冷たくない",
+    "text": "試験片T4（90分・1回目）：乾き具合"
+   },
+   "c066:obs1": {
+    "id": "c066:obs1",
+    "residentId": "dot",
+    "atMs": 1792231200000,
+    "sampleId": "T4",
+    "runId": "dry-2",
+    "kind": "duration",
+    "value": 5,
+    "unit": "日",
+    "text": "試験片T4（90分・1回目）：乾燥した日数"
+   },
+   "c066:obs2": {
+    "id": "c066:obs2",
+    "residentId": "dot",
+    "atMs": 1792231200000,
+    "sampleId": "T5",
+    "runId": "dry-2",
+    "kind": "dryness",
+    "value": "白っぽく乾き、持っても冷たくない",
+    "text": "試験片T5（90分・2回目）：乾き具合"
+   },
+   "c066:obs3": {
+    "id": "c066:obs3",
+    "residentId": "dot",
+    "atMs": 1792231200000,
+    "sampleId": "T5",
+    "runId": "dry-2",
+    "kind": "duration",
+    "value": 5,
+    "unit": "日",
+    "text": "試験片T5（90分・2回目）：乾燥した日数"
+   },
+   "c072:obs0": {
+    "id": "c072:obs0",
+    "residentId": "dot",
+    "atMs": 1792270770000,
+    "runId": "fire-3",
+    "kind": "glow",
+    "value": "橙",
+    "text": "いちばん熱いときの火の色"
+   },
+   "c072:obs1": {
+    "id": "c072:obs1",
+    "residentId": "dot",
+    "atMs": 1792270770000,
+    "runId": "fire-3",
+    "kind": "fuel_used",
+    "value": 16,
+    "unit": "束",
+    "text": "燃やした薪の量"
+   },
+   "c072:obs2": {
+    "id": "c072:obs2",
+    "residentId": "dot",
+    "atMs": 1792270770000,
+    "runId": "fire-3",
+    "kind": "duration",
+    "value": 11,
+    "unit": "時間",
+    "text": "火を入れてから取り出せるまで"
+   },
+   "c073:obs0": {
+    "id": "c073:obs0",
+    "residentId": "dot",
+    "atMs": 1792274400000,
+    "sampleId": "T4",
+    "kind": "visual",
+    "value": "ひびは見当たらない",
+    "text": "試験片T4（90分・1回目）：見た目"
+   },
+   "c073:obs1": {
+    "id": "c073:obs1",
+    "residentId": "dot",
+    "atMs": 1792274400000,
+    "sampleId": "T4",
+    "kind": "tap",
+    "value": "高く澄んだ音",
+    "text": "試験片T4（90分・1回目）：指ではじいた音"
+   },
+   "c075:obs0": {
+    "id": "c075:obs0",
+    "residentId": "dot",
+    "atMs": 1792274400000,
+    "sampleId": "T4",
+    "runId": "soak-T4",
+    "kind": "mass",
+    "value": 33,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T4（90分・1回目）：浸ける前の質量"
+   },
+   "c076:obs0": {
+    "id": "c076:obs0",
+    "residentId": "dot",
+    "atMs": 1792360800000,
+    "sampleId": "T4",
+    "runId": "soak-T4",
+    "kind": "mass",
+    "value": 35.9,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T4（90分・1回目）：浸けた後の質量（表面を拭いて）"
+   },
+   "c076:obs1": {
+    "id": "c076:obs1",
+    "residentId": "dot",
+    "atMs": 1792360800000,
+    "sampleId": "T4",
+    "runId": "soak-T4",
+    "kind": "absorption",
+    "value": 8.8,
+    "unit": "%",
+    "instrumentId": "balance",
+    "text": "試験片T4（90分・1回目）：自分で量った前後の質量から出した吸水率（24時間冷水、事前の乾燥なし）"
+   },
+   "c083:obs0": {
+    "id": "c083:obs0",
+    "residentId": "dot",
+    "atMs": 1792400370000,
+    "runId": "fire-4",
+    "kind": "glow",
+    "value": "橙",
+    "text": "いちばん熱いときの火の色"
+   },
+   "c083:obs1": {
+    "id": "c083:obs1",
+    "residentId": "dot",
+    "atMs": 1792400370000,
+    "runId": "fire-4",
+    "kind": "fuel_used",
+    "value": 16,
+    "unit": "束",
+    "text": "燃やした薪の量"
+   },
+   "c083:obs2": {
+    "id": "c083:obs2",
+    "residentId": "dot",
+    "atMs": 1792400370000,
+    "runId": "fire-4",
+    "kind": "duration",
+    "value": 11,
+    "unit": "時間",
+    "text": "火を入れてから取り出せるまで"
+   },
+   "c084:obs0": {
+    "id": "c084:obs0",
+    "residentId": "dot",
+    "atMs": 1792404000000,
+    "sampleId": "T5",
+    "kind": "visual",
+    "value": "ひびは見当たらない",
+    "text": "試験片T5（90分・2回目）：見た目"
+   },
+   "c084:obs1": {
+    "id": "c084:obs1",
+    "residentId": "dot",
+    "atMs": 1792404000000,
+    "sampleId": "T5",
+    "kind": "tap",
+    "value": "高く澄んだ音",
+    "text": "試験片T5（90分・2回目）：指ではじいた音"
+   },
+   "c086:obs0": {
+    "id": "c086:obs0",
+    "residentId": "dot",
+    "atMs": 1792404000000,
+    "sampleId": "T5",
+    "runId": "soak-T5",
+    "kind": "mass",
+    "value": 33,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T5（90分・2回目）：浸ける前の質量"
+   },
+   "c087:obs0": {
+    "id": "c087:obs0",
+    "residentId": "dot",
+    "atMs": 1792490400000,
+    "sampleId": "T5",
+    "runId": "soak-T5",
+    "kind": "mass",
+    "value": 35.9,
+    "unit": "g",
+    "instrumentId": "balance",
+    "resolution": 0.1,
+    "text": "試験片T5（90分・2回目）：浸けた後の質量（表面を拭いて）"
+   },
+   "c087:obs1": {
+    "id": "c087:obs1",
+    "residentId": "dot",
+    "atMs": 1792490400000,
+    "sampleId": "T5",
+    "runId": "soak-T5",
+    "kind": "absorption",
+    "value": 8.8,
+    "unit": "%",
+    "instrumentId": "balance",
+    "text": "試験片T5（90分・2回目）：自分で量った前後の質量から出した吸水率（24時間冷水、事前の乾燥なし）"
+   }
+  },
+  "research": {
+   "r1": {
+    "id": "r1",
+    "residentId": "dot",
+    "question": "火の強さで、焼いた試験片の水の吸い方は変わるか",
+    "hypothesis": {
+     "text": "よく焼けた（明るく光るまで焼いた）方が水を吸わない",
+     "variable": "焼く設備と火の色",
+     "expect": "焚き火 > 小窯（吸水）"
+    },
+    "basis": [
+     {
+      "kind": "prior-knowledge",
+      "ref": "model-general",
+      "note": "AIの一般知識として「高温ほど焼き締まる」と知っている。島の材料では未確認"
+     }
+    ],
+    "controls": {
+     "clayLot": "clay-A",
+     "thicknessMm": 10,
+     "drying": "日陰の棚で5日"
+    },
+    "trials": [
+     {
+      "sampleId": "T1",
+      "condition": {
+       "facility": "open-fire",
+       "glowAim": "orange"
+      },
+      "runIds": [
+       "dry-1",
+       "fire-1",
+       "soak-T1"
+      ],
+      "observationIds": [
+       "c018:obs0",
+       "c018:obs1",
+       "c018:obs2",
+       "c018:obs3",
+       "c018:obs4",
+       "c018:obs5",
+       "c028:obs0",
+       "c028:obs1",
+       "c028:obs2",
+       "c036:obs0",
+       "c036:obs1",
+       "c039:obs0",
+       "c041:obs0",
+       "c041:obs1"
+      ]
+     },
+     {
+      "sampleId": "T2",
+      "condition": {
+       "facility": "kiln-fixture",
+       "glowAim": "orange"
+      },
+      "runIds": [
+       "dry-1",
+       "fire-2",
+       "soak-T2"
+      ],
+      "observationIds": [
+       "c018:obs0",
+       "c018:obs1",
+       "c018:obs2",
+       "c018:obs3",
+       "c018:obs4",
+       "c018:obs5",
+       "c033:obs0",
+       "c033:obs1",
+       "c033:obs2",
+       "c037:obs0",
+       "c037:obs1",
+       "c040:obs0",
+       "c042:obs0",
+       "c042:obs1"
+      ]
+     },
+     {
+      "sampleId": "T3",
+      "condition": {
+       "facility": "none"
+      },
+      "runIds": [
+       "dry-1",
+       "soak-T3"
+      ],
+      "observationIds": [
+       "c018:obs0",
+       "c018:obs1",
+       "c018:obs2",
+       "c018:obs3",
+       "c018:obs4",
+       "c018:obs5",
+       "c038:obs0",
+       "c038:obs1",
+       "c045:obs0"
+      ]
+     }
+    ],
+    "status": "concluded",
+    "version": 5,
+    "conclusion": {
+     "verdict": "supported",
+     "text": "量った吸水率：焚き火 14.4%、小窯 11.5%。焼かない対照は水で崩れた",
+     "observationIds": [
+      "c041:obs1",
+      "c042:obs1",
+      "c045:obs0"
+     ]
+    },
+    "next": "小窯で橙まで焼く条件を、保持を長くして二回くり返す"
+   },
+   "r2": {
+    "id": "r2",
+    "residentId": "dot",
+    "question": "小窯・橙で保持を90分にすると、割れずにもっと吸わなくなり、別の回でも同じになるか",
+    "hypothesis": {
+     "text": "保持を長くすると吸水がさらに下がる",
+     "variable": "保持時間",
+     "expect": "90分 < 30分（吸水）"
+    },
+    "basis": [
+     {
+      "kind": "own-trial",
+      "ref": "c042:obs1",
+      "note": "r1で小窯・30分保持のT2を量った結果"
+     }
+    ],
+    "controls": {
+     "clayLot": "clay-A",
+     "thicknessMm": 10,
+     "drying": "日陰の棚で5日",
+     "facility": "kiln-fixture",
+     "glow": "orange"
+    },
+    "trials": [
+     {
+      "sampleId": "T4",
+      "condition": {
+       "holdMin": 90
+      },
+      "runIds": [
+       "dry-2",
+       "fire-3",
+       "soak-T4"
+      ],
+      "observationIds": [
+       "c066:obs0",
+       "c066:obs1",
+       "c072:obs0",
+       "c072:obs1",
+       "c072:obs2",
+       "c073:obs0",
+       "c073:obs1",
+       "c075:obs0",
+       "c076:obs0",
+       "c076:obs1"
+      ]
+     },
+     {
+      "sampleId": "T5",
+      "condition": {
+       "holdMin": 90
+      },
+      "runIds": [
+       "dry-2",
+       "fire-4",
+       "soak-T5"
+      ],
+      "observationIds": [
+       "c066:obs2",
+       "c066:obs3",
+       "c083:obs0",
+       "c083:obs1",
+       "c083:obs2",
+       "c084:obs0",
+       "c084:obs1",
+       "c086:obs0",
+       "c087:obs0",
+       "c087:obs1"
+      ]
+     }
+    ],
+    "status": "concluded",
+    "version": 4,
+    "conclusion": {
+     "verdict": "supported",
+     "text": "90分保持：8.8% と 8.8%（30分保持のT2は 11.5%）",
+     "observationIds": [
+      "c076:obs1",
+      "c087:obs1"
+     ]
+    }
+   }
+  },
+  "procedures": {
+   "proc-tile": {
+    "id": "proc-tile",
+    "goal": "水を吸いにくい試験片（試験粘土A）",
+    "steps": {
+     "drying": "日陰の棚で5日",
+     "facility": "kiln-fixture",
+     "pace": "normal",
+     "glow": "orange",
+     "holdMin": 30,
+     "cooling": "natural"
+    },
+    "scope": {
+     "clayLotIds": [
+      "clay-A"
+     ],
+     "facilityIds": [
+      "kiln-fixture"
+     ],
+     "thicknessMm": [
+      10
+     ]
+    },
+    "evidence": [
+     {
+      "researchId": "r1",
+      "sampleId": "T2",
+      "ok": true
+     }
+    ],
+    "unknowns": [
+     "別の粘土ロット",
+     "厚い器",
+     "燃料の質の違い",
+     "れんがの窯での再現"
+    ],
+    "residentId": "dot",
+    "status": "tried",
+    "version": 1
+   },
+   "proc-tile-90": {
+    "id": "proc-tile-90",
+    "goal": "水を吸いにくい試験片（試験粘土A・保持90分）",
+    "steps": {
+     "drying": "日陰の棚で5日",
+     "facility": "kiln-fixture",
+     "pace": "normal",
+     "glow": "orange",
+     "holdMin": 90,
+     "cooling": "natural"
+    },
+    "scope": {
+     "clayLotIds": [
+      "clay-A"
+     ],
+     "facilityIds": [
+      "kiln-fixture"
+     ],
+     "thicknessMm": [
+      10
+     ]
+    },
+    "evidence": [
+     {
+      "researchId": "r2",
+      "sampleId": "T4",
+      "ok": true
+     },
+     {
+      "researchId": "r2",
+      "sampleId": "T5",
+      "ok": true
+     }
+    ],
+    "unknowns": [
+     "別の粘土ロット",
+     "厚い器",
+     "れんがの窯での再現",
+     "煮沸法との差"
+    ],
+    "residentId": "dot",
+    "status": "reproduced",
+    "version": 1
+   }
+  }
+ },
+ "events": [
+  {
+   "id": "c001:ev0",
+   "commandId": "c001",
+   "atMs": 1791158400000,
+   "type": "ResearchOpened",
+   "subjectIds": [
+    "r1"
+   ],
+   "summary": "火の強さで、焼いた試験片の水の吸い方は変わるか"
+  },
+  {
+   "id": "c003:ev0",
+   "commandId": "c003",
+   "atMs": 1791158400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "clay-A",
+    "res-clay"
+   ],
+   "summary": "試験粘土A（仮想） を 600 g 研究用に予約（試験片）"
+  },
+  {
+   "id": "c004:ev0",
+   "commandId": "c004",
+   "atMs": 1791158400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-water"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 400 g 研究用に予約（練り水）"
+  },
+  {
+   "id": "c005:ev0",
+   "commandId": "c005",
+   "atMs": 1791158400000,
+   "type": "MaterialProcessed",
+   "subjectIds": [
+    "clay-A",
+    "water-work",
+    "clay-A-prepared"
+   ],
+   "summary": "原土 550 g に水 70 g を加えて練る（含水比 0.240）"
+  },
+  {
+   "id": "c006:ev0",
+   "commandId": "c006",
+   "atMs": 1791158400000,
+   "type": "SamplesShaped",
+   "subjectIds": [
+    "T1",
+    "T2",
+    "T3"
+   ],
+   "summary": "3枚の試験片を成形、削りくず 6.75 g"
+  },
+  {
+   "id": "c007:ev0",
+   "commandId": "c007",
+   "atMs": 1791158400000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "dry-1",
+    "T1",
+    "T2",
+    "T3"
+   ],
+   "summary": "日陰の乾燥棚 で乾燥を開始"
+  },
+  {
+   "id": "c018:ev0",
+   "commandId": "c018",
+   "atMs": 1791590400000,
+   "type": "ProcessCompleted",
+   "subjectIds": [
+    "dry-1"
+   ],
+   "summary": "乾燥を終了（5.0 日）"
+  },
+  {
+   "id": "c022:ev0",
+   "commandId": "c022",
+   "atMs": 1791590400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "wood-research",
+    "res-wood-1"
+   ],
+   "summary": "薪（研究に回せる分） を 20000 g 研究用に予約（焚き火焼成）"
+  },
+  {
+   "id": "c023:ev0",
+   "commandId": "c023",
+   "atMs": 1791590400000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "fire-1",
+    "open-fire",
+    "T1"
+   ],
+   "summary": "地面の焚き火（覆いなし） で焼成を開始（fast、目標の色 orange、保持 30 分）"
+  },
+  {
+   "id": "c024:ev0",
+   "commandId": "c024",
+   "atMs": 1791590400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "wood-research",
+    "res-wood-2"
+   ],
+   "summary": "薪（研究に回せる分） を 40000 g 研究用に予約（小窯焼成）"
+  },
+  {
+   "id": "c025:ev0",
+   "commandId": "c025",
+   "atMs": 1791590400000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "fire-2",
+    "kiln-fixture",
+    "T2"
+   ],
+   "summary": "試験用の小窯（既製・対照設備） で焼成を開始（normal、目標の色 orange、保持 30 分）"
+  },
+  {
+   "id": "c027:ev0",
+   "commandId": "c027",
+   "atMs": 1791597600000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-1"
+   ],
+   "summary": "予約した薪を使い切った（1.5 h）"
+  },
+  {
+   "id": "c028:ev0",
+   "commandId": "c028",
+   "atMs": 1791601200000,
+   "type": "ProcessCompleted",
+   "subjectIds": [
+    "fire-1",
+    "T1"
+   ],
+   "summary": "焼成終了（fuel_exhausted）：薪 20.00 kg、炉内最高 621 °C"
+  },
+  {
+   "id": "c031:ev0",
+   "commandId": "c031",
+   "atMs": 1791612000000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-2"
+   ],
+   "summary": "目標の色に達した（4.8 h）"
+  },
+  {
+   "id": "c031:ev1",
+   "commandId": "c031",
+   "atMs": 1791612000000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-2"
+   ],
+   "summary": "保持を終えて冷却へ（5.3 h）"
+  },
+  {
+   "id": "c033:ev0",
+   "commandId": "c033",
+   "atMs": 1791626400000,
+   "type": "ProcessCompleted",
+   "subjectIds": [
+    "fire-2",
+    "T2"
+   ],
+   "summary": "焼成終了（schedule_completed）：薪 26.31 kg、炉内最高 980 °C"
+  },
+  {
+   "id": "c034:ev0",
+   "commandId": "c034",
+   "atMs": 1791626400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-soak-1"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 2000 g 研究用に予約（浸漬）"
+  },
+  {
+   "id": "c035:ev0",
+   "commandId": "c035",
+   "atMs": 1791626400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-soak-2"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 2000 g 研究用に予約（浸漬）"
+  },
+  {
+   "id": "c039:ev0",
+   "commandId": "c039",
+   "atMs": 1791626400000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "soak-T1",
+    "T1"
+   ],
+   "summary": "試験片T1（焚き火） を水に24時間浸ける"
+  },
+  {
+   "id": "c040:ev0",
+   "commandId": "c040",
+   "atMs": 1791626400000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "soak-T2",
+    "T2"
+   ],
+   "summary": "試験片T2（小窯・橙） を水に24時間浸ける"
+  },
+  {
+   "id": "c041:ev0",
+   "commandId": "c041",
+   "atMs": 1791712800000,
+   "type": "MeasurementCompleted",
+   "subjectIds": [
+    "T1",
+    "soak-T1"
+   ],
+   "summary": "試験片T1（焚き火） の浸漬試験を終了"
+  },
+  {
+   "id": "c042:ev0",
+   "commandId": "c042",
+   "atMs": 1791712800000,
+   "type": "MeasurementCompleted",
+   "subjectIds": [
+    "T2",
+    "soak-T2"
+   ],
+   "summary": "試験片T2（小窯・橙） の浸漬試験を終了"
+  },
+  {
+   "id": "c043:ev0",
+   "commandId": "c043",
+   "atMs": 1791712800000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-soak-3"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 2000 g 研究用に予約（浸漬）"
+  },
+  {
+   "id": "c044:ev0",
+   "commandId": "c044",
+   "atMs": 1791712800000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "soak-T3",
+    "T3"
+   ],
+   "summary": "試験片T3（焼かない対照） を水に24時間浸ける"
+  },
+  {
+   "id": "c045:ev0",
+   "commandId": "c045",
+   "atMs": 1791799200000,
+   "type": "SampleSlaked",
+   "subjectIds": [
+    "T3"
+   ],
+   "summary": "試験片T3（焼かない対照） は脱水が 0% で、水中で崩れた"
+  },
+  {
+   "id": "c049:ev0",
+   "commandId": "c049",
+   "atMs": 1791799200000,
+   "type": "ResearchConcluded",
+   "subjectIds": [
+    "r1"
+   ],
+   "summary": "supported: 量った吸水率：焚き火 14.4%、小窯 11.5%。焼かない対照は水で崩れた"
+  },
+  {
+   "id": "c049:ev1",
+   "commandId": "c049",
+   "atMs": 1791799200000,
+   "type": "ProcedureLearned",
+   "subjectIds": [
+    "proc-tile"
+   ],
+   "summary": "水を吸いにくい試験片（試験粘土A）（tried、別々の焼成 1 回で成功）"
+  },
+  {
+   "id": "c050:ev0",
+   "commandId": "c050",
+   "atMs": 1791799200000,
+   "type": "ResearchOpened",
+   "subjectIds": [
+    "r2"
+   ],
+   "summary": "小窯・橙で保持を90分にすると、割れずにもっと吸わなくなり、別の回でも同じになるか"
+  },
+  {
+   "id": "c051:ev0",
+   "commandId": "c051",
+   "atMs": 1791799200000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "clay-A",
+    "res-clay-2"
+   ],
+   "summary": "試験粘土A（仮想） を 200 g 研究用に予約（試験片）"
+  },
+  {
+   "id": "c052:ev0",
+   "commandId": "c052",
+   "atMs": 1791799200000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-water-2"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 200 g 研究用に予約（練り水）"
+  },
+  {
+   "id": "c053:ev0",
+   "commandId": "c053",
+   "atMs": 1791799200000,
+   "type": "MaterialProcessed",
+   "subjectIds": [
+    "clay-A",
+    "water-work",
+    "clay-A-prepared-2"
+   ],
+   "summary": "原土 140 g に水 17.819 g を加えて練る（含水比 0.240）"
+  },
+  {
+   "id": "c054:ev0",
+   "commandId": "c054",
+   "atMs": 1791799200000,
+   "type": "SamplesShaped",
+   "subjectIds": [
+    "T4",
+    "T5"
+   ],
+   "summary": "2枚の試験片を成形、削りくず 4.5 g"
+  },
+  {
+   "id": "c055:ev0",
+   "commandId": "c055",
+   "atMs": 1791799200000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "dry-2",
+    "T4",
+    "T5"
+   ],
+   "summary": "日陰の乾燥棚 で乾燥を開始"
+  },
+  {
+   "id": "c066:ev0",
+   "commandId": "c066",
+   "atMs": 1792231200000,
+   "type": "ProcessCompleted",
+   "subjectIds": [
+    "dry-2"
+   ],
+   "summary": "乾燥を終了（5.0 日）"
+  },
+  {
+   "id": "c067:ev0",
+   "commandId": "c067",
+   "atMs": 1792231200000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "wood-research",
+    "res-wood-3"
+   ],
+   "summary": "薪（研究に回せる分） を 40000 g 研究用に予約（小窯焼成）"
+  },
+  {
+   "id": "c068:ev0",
+   "commandId": "c068",
+   "atMs": 1792231200000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "fire-3",
+    "kiln-fixture",
+    "T4"
+   ],
+   "summary": "試験用の小窯（既製・対照設備） で焼成を開始（normal、目標の色 orange、保持 90 分）"
+  },
+  {
+   "id": "c070:ev0",
+   "commandId": "c070",
+   "atMs": 1792252800000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-3"
+   ],
+   "summary": "目標の色に達した（4.8 h）"
+  },
+  {
+   "id": "c071:ev0",
+   "commandId": "c071",
+   "atMs": 1792263600000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-3"
+   ],
+   "summary": "保持を終えて冷却へ（6.3 h）"
+  },
+  {
+   "id": "c072:ev0",
+   "commandId": "c072",
+   "atMs": 1792274400000,
+   "type": "ProcessCompleted",
+   "subjectIds": [
+    "fire-3",
+    "T4"
+   ],
+   "summary": "焼成終了（schedule_completed）：薪 32.49 kg、炉内最高 980 °C"
+  },
+  {
+   "id": "c074:ev0",
+   "commandId": "c074",
+   "atMs": 1792274400000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-soak-T4"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 2000 g 研究用に予約（浸漬）"
+  },
+  {
+   "id": "c075:ev0",
+   "commandId": "c075",
+   "atMs": 1792274400000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "soak-T4",
+    "T4"
+   ],
+   "summary": "試験片T4（90分・1回目） を水に24時間浸ける"
+  },
+  {
+   "id": "c076:ev0",
+   "commandId": "c076",
+   "atMs": 1792360800000,
+   "type": "MeasurementCompleted",
+   "subjectIds": [
+    "T4",
+    "soak-T4"
+   ],
+   "summary": "試験片T4（90分・1回目） の浸漬試験を終了"
+  },
+  {
+   "id": "c078:ev0",
+   "commandId": "c078",
+   "atMs": 1792360800000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "wood-research",
+    "res-wood-4"
+   ],
+   "summary": "薪（研究に回せる分） を 40000 g 研究用に予約（小窯焼成）"
+  },
+  {
+   "id": "c079:ev0",
+   "commandId": "c079",
+   "atMs": 1792360800000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "fire-4",
+    "kiln-fixture",
+    "T5"
+   ],
+   "summary": "試験用の小窯（既製・対照設備） で焼成を開始（normal、目標の色 orange、保持 90 分）"
+  },
+  {
+   "id": "c081:ev0",
+   "commandId": "c081",
+   "atMs": 1792382400000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-4"
+   ],
+   "summary": "目標の色に達した（4.8 h）"
+  },
+  {
+   "id": "c082:ev0",
+   "commandId": "c082",
+   "atMs": 1792393200000,
+   "type": "FiringProgress",
+   "subjectIds": [
+    "fire-4"
+   ],
+   "summary": "保持を終えて冷却へ（6.3 h）"
+  },
+  {
+   "id": "c083:ev0",
+   "commandId": "c083",
+   "atMs": 1792404000000,
+   "type": "ProcessCompleted",
+   "subjectIds": [
+    "fire-4",
+    "T5"
+   ],
+   "summary": "焼成終了（schedule_completed）：薪 32.49 kg、炉内最高 980 °C"
+  },
+  {
+   "id": "c085:ev0",
+   "commandId": "c085",
+   "atMs": 1792404000000,
+   "type": "ResearchAllocationReserved",
+   "subjectIds": [
+    "water-work",
+    "res-soak-T5"
+   ],
+   "summary": "作業用の水（試験用の雨水タンク） を 2000 g 研究用に予約（浸漬）"
+  },
+  {
+   "id": "c086:ev0",
+   "commandId": "c086",
+   "atMs": 1792404000000,
+   "type": "ProcessStarted",
+   "subjectIds": [
+    "soak-T5",
+    "T5"
+   ],
+   "summary": "試験片T5（90分・2回目） を水に24時間浸ける"
+  },
+  {
+   "id": "c087:ev0",
+   "commandId": "c087",
+   "atMs": 1792490400000,
+   "type": "MeasurementCompleted",
+   "subjectIds": [
+    "T5",
+    "soak-T5"
+   ],
+   "summary": "試験片T5（90分・2回目） の浸漬試験を終了"
+  },
+  {
+   "id": "c089:ev0",
+   "commandId": "c089",
+   "atMs": 1792490400000,
+   "type": "ResearchConcluded",
+   "subjectIds": [
+    "r2"
+   ],
+   "summary": "supported: 90分保持：8.8% と 8.8%（30分保持のT2は 11.5%）"
+  },
+  {
+   "id": "c089:ev1",
+   "commandId": "c089",
+   "atMs": 1792490400000,
+   "type": "ProcedureLearned",
+   "subjectIds": [
+    "proc-tile-90"
+   ],
+   "summary": "水を吸いにくい試験片（試験粘土A・保持90分）（reproduced、別々の焼成 2 回で成功）"
+  }
+ ],
+ "energy": [
+  {
+   "id": "c008:e0",
+   "runId": "dry-1",
+   "fromMs": 1791158400000,
+   "toMs": 1791201600000,
+   "kind": "heat",
+   "source": "environment:env-fixture-day",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 56012.64
+   }
+  },
+  {
+   "id": "c009:e0",
+   "runId": "dry-1",
+   "fromMs": 1791201600000,
+   "toMs": 1791244800000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 678.3199999999999
+   }
+  },
+  {
+   "id": "c010:e0",
+   "runId": "dry-1",
+   "fromMs": 1791244800000,
+   "toMs": 1791288000000,
+   "kind": "heat",
+   "source": "environment:env-fixture-day",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 1522.56
+   }
+  },
+  {
+   "id": "c026:e",
+   "runId": "fire-1",
+   "fromMs": 1791590400000,
+   "toMs": 1791594000000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 147132711.9867122,
+    "flueLossJ": 117706169.58936968,
+    "wallLossJ": 21414109.009855896,
+    "wareSensibleJ": 12622.152412232512,
+    "reactionsNetJ": 10.195725313830877,
+    "structureStoredJ": 7999801.039348979,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c027:e",
+   "runId": "fire-1",
+   "fromMs": 1791594000000,
+   "toMs": 1791597600000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 148487271.96048883,
+    "flueLossJ": 118789817.56839111,
+    "wallLossJ": 37033727.10664757,
+    "wareSensibleJ": -9924.56780468313,
+    "reactionsNetJ": -12740.88355050363,
+    "structureStoredJ": -7313607.263194608,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c028:e",
+   "runId": "fire-1",
+   "fromMs": 1791597600000,
+   "toMs": 1791597810000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 189110.53284430504,
+    "wareSensibleJ": -355.87431579741497,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -188754.65852849663,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c029:e",
+   "runId": "fire-2",
+   "fromMs": 1791590400000,
+   "toMs": 1791597600000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 91607781.88755196,
+    "flueLossJ": 64125447.32128638,
+    "wallLossJ": 11470762.606904214,
+    "wareSensibleJ": 12857.209352419293,
+    "reactionsNetJ": -2307.47787342748,
+    "structureStoredJ": 16001022.227882361,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c030:e",
+   "runId": "fire-2",
+   "fromMs": 1791597600000,
+   "toMs": 1791604800000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 168376239.5855968,
+    "flueLossJ": 117863367.70991787,
+    "wallLossJ": 34511898.479446165,
+    "wareSensibleJ": 12268.88411717325,
+    "reactionsNetJ": -9137.877874543185,
+    "structureStoredJ": 15997842.389990224,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c031:e",
+   "runId": "fire-2",
+   "fromMs": 1791604800000,
+   "toMs": 1791612000000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 128915790.57757235,
+    "flueLossJ": 90241053.40430066,
+    "wallLossJ": 48516253.29620345,
+    "wareSensibleJ": -6610.714452788303,
+    "reactionsNetJ": 458.6756099803715,
+    "structureStoredJ": -9835364.084088933,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c032:e",
+   "runId": "fire-2",
+   "fromMs": 1791612000000,
+   "toMs": 1791619200000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 16942212.452999532,
+    "wareSensibleJ": -12907.280664073758,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -16929305.172335457,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c033:e",
+   "runId": "fire-2",
+   "fromMs": 1791619200000,
+   "toMs": 1791626370000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 3993659.639413297,
+    "wareSensibleJ": -3042.535677451484,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -3990617.1037359796,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c056:e0",
+   "runId": "dry-2",
+   "fromMs": 1791799200000,
+   "toMs": 1791842400000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 20256.88
+   }
+  },
+  {
+   "id": "c057:e0",
+   "runId": "dry-2",
+   "fromMs": 1791842400000,
+   "toMs": 1791885600000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 11468
+   }
+  },
+  {
+   "id": "c058:e0",
+   "runId": "dry-2",
+   "fromMs": 1791885600000,
+   "toMs": 1791928800000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 4079.6800000000003
+   }
+  },
+  {
+   "id": "c059:e0",
+   "runId": "dry-2",
+   "fromMs": 1791928800000,
+   "toMs": 1791972000000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 1444.48
+   }
+  },
+  {
+   "id": "c060:e0",
+   "runId": "dry-2",
+   "fromMs": 1791972000000,
+   "toMs": 1792015200000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 497.76
+   }
+  },
+  {
+   "id": "c061:e0",
+   "runId": "dry-2",
+   "fromMs": 1792015200000,
+   "toMs": 1792058400000,
+   "kind": "heat",
+   "source": "environment:env-fixture-night",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 0,
+    "wareSensibleJ": 0,
+    "reactionsNetJ": 0,
+    "structureStoredJ": 0,
+    "envHeatInJ": 136.64
+   }
+  },
+  {
+   "id": "c069:e",
+   "runId": "fire-3",
+   "fromMs": 1792231200000,
+   "toMs": 1792242000000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 166175196.15679538,
+    "flueLossJ": 116322637.30975674,
+    "wallLossJ": 25847456.828825906,
+    "wareSensibleJ": 19153.971571392856,
+    "reactionsNetJ": -11851.879693333623,
+    "structureStoredJ": 23997799.926334605,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c070:e",
+   "runId": "fire-3",
+   "fromMs": 1792242000000,
+   "toMs": 1792252800000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 291270922.1723854,
+    "flueLossJ": 203889645.52066982,
+    "wallLossJ": 73287052.98318656,
+    "wareSensibleJ": 10719.093952014246,
+    "reactionsNetJ": 1293.4295553433458,
+    "structureStoredJ": 14082211.1450217,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c071:e",
+   "runId": "fire-3",
+   "fromMs": 1792252800000,
+   "toMs": 1792263600000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 22847998.239534676,
+    "flueLossJ": 15993598.767674208,
+    "wallLossJ": 39724424.19460401,
+    "wareSensibleJ": -24254.694117126583,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -32845770.028626602,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c072:e",
+   "runId": "fire-3",
+   "fromMs": 1792263600000,
+   "toMs": 1792270770000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 3993694.4431263506,
+    "wareSensibleJ": -3042.469973485401,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -3990651.9731528116,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c080:e",
+   "runId": "fire-4",
+   "fromMs": 1792360800000,
+   "toMs": 1792371600000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 166175291.66560557,
+    "flueLossJ": 116322704.16592409,
+    "wallLossJ": 25847453.223982856,
+    "wareSensibleJ": 19154.10647979119,
+    "reactionsNetJ": -11818.519086618893,
+    "structureStoredJ": 23997798.68830564,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c081:e",
+   "runId": "fire-4",
+   "fromMs": 1792371600000,
+   "toMs": 1792382400000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 291270911.907585,
+    "flueLossJ": 203889638.33530986,
+    "wallLossJ": 73287053.20530929,
+    "wareSensibleJ": 10719.416672913372,
+    "reactionsNetJ": 1293.4305837963766,
+    "structureStoredJ": 14082207.519709654,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c082:e",
+   "runId": "fire-4",
+   "fromMs": 1792382400000,
+   "toMs": 1792393200000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 22848003.073352873,
+    "flueLossJ": 15993602.1513471,
+    "wallLossJ": 39724421.71996045,
+    "wareSensibleJ": -24255.429588979743,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -32845765.36836572,
+    "envHeatInJ": 0
+   }
+  },
+  {
+   "id": "c083:e",
+   "runId": "fire-4",
+   "fromMs": 1792393200000,
+   "toMs": 1792400370000,
+   "kind": "heat",
+   "source": "fuel:wood-research",
+   "account": {
+    "releasedJ": 0,
+    "flueLossJ": 0,
+    "wallLossJ": 3993694.3390081227,
+    "wareSensibleJ": -3042.5621130429054,
+    "reactionsNetJ": 0,
+    "structureStoredJ": -3990651.776894968,
+    "envHeatInJ": 0
+   }
+  }
+ ],
+ "boundary": [
+  {
+   "id": "c008:b0",
+   "runId": "dry-1",
+   "atMs": 1791201600000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 22956
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c009:b0",
+   "runId": "dry-1",
+   "atMs": 1791244800000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 278
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c010:b0",
+   "runId": "dry-1",
+   "atMs": 1791288000000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 624
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c026:bout",
+   "runId": "fire-1",
+   "atMs": 1791594000000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 6016815,
+    "co2": 15346176
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c026:bin",
+   "runId": "fire-1",
+   "atMs": 1791594000000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 11492608
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c027:bout",
+   "runId": "fire-1",
+   "atMs": 1791597600000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 6073611,
+    "co2": 15489723
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c027:bin",
+   "runId": "fire-1",
+   "atMs": 1791597600000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 11600058
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c029:bout",
+   "runId": "fire-2",
+   "atMs": 1791597600000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 3746481,
+    "co2": 9555170
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c029:bin",
+   "runId": "fire-2",
+   "atMs": 1791597600000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 7155770
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c030:bout",
+   "runId": "fire-2",
+   "atMs": 1791604800000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 6886951,
+    "co2": 17564090
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c030:bin",
+   "runId": "fire-2",
+   "atMs": 1791604800000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 13153385
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c031:bout",
+   "runId": "fire-2",
+   "atMs": 1791612000000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 5271196,
+    "co2": 13446053
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c031:bin",
+   "runId": "fire-2",
+   "atMs": 1791612000000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 10069542
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c056:b0",
+   "runId": "dry-2",
+   "atMs": 1791842400000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 8302
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c057:b0",
+   "runId": "dry-2",
+   "atMs": 1791885600000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 4700
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c058:b0",
+   "runId": "dry-2",
+   "atMs": 1791928800000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 1672
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c059:b0",
+   "runId": "dry-2",
+   "atMs": 1791972000000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 592
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c060:b0",
+   "runId": "dry-2",
+   "atMs": 1792015200000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 204
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c061:b0",
+   "runId": "dry-2",
+   "atMs": 1792058400000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 56
+   },
+   "note": "乾燥で大気へ出た水蒸気"
+  },
+  {
+   "id": "c069:bout",
+   "runId": "fire-3",
+   "atMs": 1792242000000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 6797899,
+    "co2": 17334779
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c069:bin",
+   "runId": "fire-3",
+   "atMs": 1792242000000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 12981798
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c070:bout",
+   "runId": "fire-3",
+   "atMs": 1792252800000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 11909678,
+    "co2": 30379923
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c070:bin",
+   "runId": "fire-3",
+   "atMs": 1792252800000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 22751011
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c071:bout",
+   "runId": "fire-3",
+   "atMs": 1792263600000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 934225,
+    "co2": 2383040
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c071:bin",
+   "runId": "fire-3",
+   "atMs": 1792263600000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 1784637
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c080:bout",
+   "runId": "fire-4",
+   "atMs": 1792371600000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 6797899,
+    "co2": 17334786
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c080:bin",
+   "runId": "fire-4",
+   "atMs": 1792371600000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 12981803
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c081:bout",
+   "runId": "fire-4",
+   "atMs": 1792382400000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 11909674,
+    "co2": 30379924
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c081:bin",
+   "runId": "fire-4",
+   "atMs": 1792382400000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 22751013
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  },
+  {
+   "id": "c082:bout",
+   "runId": "fire-4",
+   "atMs": 1792393200000,
+   "direction": "out",
+   "medium": "atmosphere",
+   "comp": {
+    "water": 934224,
+    "co2": 2383041
+   },
+   "note": "燃焼ガス・素地から出た水蒸気とCO2"
+  },
+  {
+   "id": "c082:bin",
+   "runId": "fire-4",
+   "atMs": 1792393200000,
+   "direction": "in",
+   "medium": "atmosphere",
+   "comp": {
+    "o2": 1784637
+   },
+   "note": "燃焼と有機物の酸化に使った空気中の酸素"
+  }
+ ],
+ "params": {
+  "latentHeatWater100": {
+   "id": "latentHeatWater100",
+   "value": 2257000,
+   "unit": "J/kg",
+   "status": "assumed",
+   "sources": [
+    "S-latent"
+   ],
+   "note": "100 °C での水の蒸発潜熱。窯内の残留水の蒸発に使う"
+  },
+  "latentHeatWater25": {
+   "id": "latentHeatWater25",
+   "value": 2440000,
+   "unit": "J/kg",
+   "status": "assumed",
+   "sources": [
+    "S-latent"
+   ],
+   "note": "常温付近の蒸発潜熱。乾燥で環境から受け取る熱の計上に使う"
+  },
+  "cpCeramic": {
+   "id": "cpCeramic",
+   "value": 0.9,
+   "unit": "J/(g·K)",
+   "status": "assumed",
+   "sources": [
+    "S-cp"
+   ],
+   "note": "素地・焼成体の比熱。温度依存は無視"
+  },
+  "dHCalcination": {
+   "id": "dHCalcination",
+   "value": 178000,
+   "unit": "J/mol",
+   "status": "assumed",
+   "sources": [
+    "S-calc"
+   ],
+   "note": "CaCO3 → CaO + CO2 の標準反応エンタルピー（吸熱）"
+  },
+  "dHDehydroxylation": {
+   "id": "dHDehydroxylation",
+   "value": 600000,
+   "unit": "J/kg(kaolinite)",
+   "status": "assumed",
+   "sources": [
+    "S-kaol"
+   ],
+   "note": "カオリナイト脱水の吸熱量。原典未確認の概算"
+  },
+  "dHCarbonCombustion": {
+   "id": "dHCarbonCombustion",
+   "value": 393500,
+   "unit": "J/mol",
+   "status": "assumed",
+   "sources": [
+    "S-comb"
+   ],
+   "note": "C + O2 → CO2 の発熱"
+  },
+  "woodLhvDry": {
+   "id": "woodLhvDry",
+   "value": 18000000,
+   "unit": "J/kg",
+   "status": "assumed",
+   "sources": [
+    "S-wood"
+   ],
+   "note": "絶乾木材の低位発熱量"
+  },
+  "woodAshFrac": {
+   "id": "woodAshFrac",
+   "value": 0.01,
+   "unit": "kg/kg(dry)",
+   "status": "assumed",
+   "sources": [
+    "S-wood"
+   ],
+   "note": "木材の灰分"
+  },
+  "clayShrinkLinear": {
+   "id": "clayShrinkLinear",
+   "value": 0.06,
+   "unit": "fraction",
+   "status": "assumed",
+   "sources": [
+    "S-dry"
+   ],
+   "note": "試験粘土Aの乾燥による線収縮（全量）"
+  },
+  "clayWaterPlastic": {
+   "id": "clayWaterPlastic",
+   "value": 0.24,
+   "unit": "kg/kg(dry)",
+   "status": "assumed",
+   "sources": [
+    "S-dry"
+   ],
+   "note": "成形に適した含水率（乾量基準）"
+  },
+  "clayWaterCritical": {
+   "id": "clayWaterCritical",
+   "value": 0.13,
+   "unit": "kg/kg(dry)",
+   "status": "calibrated",
+   "sources": [
+    "S-dry"
+   ],
+   "note": "これより乾くと収縮がほぼ止まる含水率（Bigot曲線の折れ点の考え方）"
+  },
+  "clayWaterEqAt70RH": {
+   "id": "clayWaterEqAt70RH",
+   "value": 0.02,
+   "unit": "kg/kg(dry)",
+   "status": "assumed",
+   "sources": [],
+   "note": "相対湿度70%での平衡含水率。湿度に比例させる簡略化"
+  },
+  "dryBulkDensity": {
+   "id": "dryBulkDensity",
+   "value": 1.7,
+   "unit": "g/cm3",
+   "status": "assumed",
+   "sources": [],
+   "note": "乾燥素地のかさ密度"
+  },
+  "evapCoeff": {
+   "id": "evapCoeff",
+   "value": 3e-8,
+   "unit": "kg/(m2·s·Pa)",
+   "status": "calibrated",
+   "sources": [],
+   "note": "Dalton型の蒸発係数（風速1 m/sあたり+50%）。日あたり数mmの屋外蒸発量の桁に合わせた"
+  },
+  "sunSurfaceExcessC": {
+   "id": "sunSurfaceExcessC",
+   "value": 15,
+   "unit": "K",
+   "status": "assumed",
+   "sources": [],
+   "note": "日なたで素地表面が気温より高くなる量"
+  },
+  "dryCrackFluxRef": {
+   "id": "dryCrackFluxRef",
+   "value": 0.00013,
+   "unit": "kg/(m2·s)",
+   "status": "calibrated",
+   "sources": [
+    "S-dry"
+   ],
+   "note": "厚さ10 mmで乾燥割れが出始める収縮期の蒸発速度。厚いほど小さくなる"
+  },
+  "kinWaterTref": {
+   "id": "kinWaterTref",
+   "value": 100,
+   "unit": "°C",
+   "status": "calibrated",
+   "sources": [
+    "S-steam"
+   ],
+   "note": "残留水が速く抜ける温度"
+  },
+  "kinDehydroxTref": {
+   "id": "kinDehydroxTref",
+   "value": 550,
+   "unit": "°C",
+   "status": "calibrated",
+   "sources": [
+    "S-kaol"
+   ],
+   "note": "半減期10分の基準温度。脱水が450〜600 °Cの範囲で進むよう合わせた"
+  },
+  "kinCalcTref": {
+   "id": "kinCalcTref",
+   "value": 800,
+   "unit": "°C",
+   "status": "calibrated",
+   "sources": [
+    "S-calc"
+   ],
+   "note": "半減期15分の基準温度。分解が700〜900 °Cで進むよう合わせた"
+  },
+  "kinOrganicTref": {
+   "id": "kinOrganicTref",
+   "value": 450,
+   "unit": "°C",
+   "status": "calibrated",
+   "sources": [],
+   "note": "有機物燃焼の基準温度"
+  },
+  "kinSinterTref": {
+   "id": "kinSinterTref",
+   "value": 1000,
+   "unit": "°C",
+   "status": "calibrated",
+   "sources": [
+    "S-fire",
+    "S-abs"
+   ],
+   "note": "焼結（吸水率低下）の半減期60分の基準温度"
+  },
+  "slakeIfDehydroxBelow": {
+   "id": "slakeIfDehydroxBelow",
+   "value": 0.9,
+   "unit": "extent",
+   "status": "calibrated",
+   "sources": [
+    "S-slake"
+   ],
+   "note": "脱水がこの割合未満なら水中で崩れる（まだ粘土）"
+  },
+  "absorptionLowFire": {
+   "id": "absorptionLowFire",
+   "value": 0.18,
+   "unit": "kg/kg",
+   "status": "assumed",
+   "sources": [
+    "S-abs"
+   ],
+   "note": "脱水は済んだが焼結していない試験体の煮沸吸水率"
+  },
+  "absorptionVitrified": {
+   "id": "absorptionVitrified",
+   "value": 0.05,
+   "unit": "kg/kg",
+   "status": "assumed",
+   "sources": [
+    "S-abs"
+   ],
+   "note": "試験粘土Aが焼き締まったときの吸水率の下限"
+  },
+  "overfireC": {
+   "id": "overfireC",
+   "value": 1150,
+   "unit": "°C",
+   "status": "assumed",
+   "sources": [],
+   "note": "試験粘土Aが変形し始める温度"
+  },
+  "coldSoakFraction": {
+   "id": "coldSoakFraction",
+   "value": 0.8,
+   "unit": "ratio",
+   "status": "assumed",
+   "sources": [
+    "S-abs"
+   ],
+   "note": "24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）"
+  },
+  "steamMoistureLimit": {
+   "id": "steamMoistureLimit",
+   "value": 0.03,
+   "unit": "kg/kg(dry)",
+   "status": "calibrated",
+   "sources": [
+    "S-steam"
+   ],
+   "note": "この含水率を超えて100〜250 °Cを急に通ると水蒸気で割れる危険"
+  },
+  "steamRateLimit": {
+   "id": "steamRateLimit",
+   "value": 150,
+   "unit": "K/h",
+   "status": "calibrated",
+   "sources": [
+    "S-steam"
+   ],
+   "note": "同上の昇温速度の目安"
+  },
+  "quartzInversionC": {
+   "id": "quartzInversionC",
+   "value": 573,
+   "unit": "°C",
+   "status": "assumed",
+   "sources": [
+    "S-quartz"
+   ],
+   "note": "石英のα–β転移"
+  },
+  "duntRateLimit10mm": {
+   "id": "duntRateLimit10mm",
+   "value": 600,
+   "unit": "K/h",
+   "status": "calibrated",
+   "sources": [
+    "S-quartz"
+   ],
+   "note": "厚さ10 mmの小試験体が573 °Cを通過しても割れにくい温度変化速度"
+  },
+  "pCrackMax": {
+   "id": "pCrackMax",
+   "value": 0.6,
+   "unit": "probability",
+   "status": "calibrated",
+   "sources": [],
+   "note": "一つの機構で割れる確率の上限"
+  },
+  "wareLagS10mm": {
+   "id": "wareLagS10mm",
+   "value": 120,
+   "unit": "s",
+   "status": "assumed",
+   "sources": [],
+   "note": "厚さ10 mmの試験体が炉内温度に追従する時定数"
+  },
+  "combustionToChamber": {
+   "id": "combustionToChamber",
+   "value": 0.3,
+   "unit": "fraction",
+   "status": "assumed",
+   "sources": [
+    "S-kilneff"
+   ],
+   "note": "試験窯：燃焼熱のうち炉内に入る割合。残りは排気で直接失う"
+  }
+ },
+ "sources": [
+  {
+   "id": "S-dry",
+   "topic": "粘土の乾燥と収縮",
+   "retrieval": "search-summary",
+   "candidates": [
+    "Digitalfire Reference Library（drying, Bigot curve, drying shrinkage）",
+    "粘土供給会社の技術資料（leather hard）"
+   ],
+   "summaryClaims": [
+    "収縮はレザーハード（含水12〜14%前後）でほぼ止まる",
+    "一般的な粘土の乾燥収縮は4〜6%、製品例で4.75〜7.4%",
+    "可塑水20.6〜36%（製品例）",
+    "速さより均一な乾燥が重要"
+   ],
+   "modelUse": "収縮期と非収縮期の二段乾燥、折れ点0.13、全収縮6%、可塑水0.24を試験粘土Aの仮定値に使う。厚さと割れの関係は未確認の設計仮定"
+  },
+  {
+   "id": "S-slake",
+   "topic": "未焼成粘土は水で崩れ再生でき、焼成後は戻らない",
+   "retrieval": "search-summary",
+   "candidates": [
+    "陶芸材料の解説（reclaiming clay）"
+   ],
+   "summaryClaims": [
+    "未焼成の粘土は再生可能、焼成後は不可（温度の記載なし）"
+   ],
+   "modelUse": "脱水が不十分な試験体は浸漬で崩れる。境界の「脱水90%」はゲームの校正値"
+  },
+  {
+   "id": "S-kaol",
+   "topic": "カオリナイトの脱水",
+   "retrieval": "search-summary",
+   "candidates": [
+    "Ceramics-Silikáty（2007）カオリナイトの脱水に関する論文"
+   ],
+   "summaryClaims": [
+    "質量減少13.96%",
+    "開始420〜450 °C、ピーク500〜560 °C",
+    "Al2Si2O5(OH)4 → Al2Si2O7 + 2H2O"
+   ],
+   "modelUse": "反応式と質量減少は化学量論から計算（元素収支で検査）。温度窓に合わせて速度式を校正。吸熱量は見つからず仮定値"
+  },
+  {
+   "id": "S-quartz",
+   "topic": "石英転移とダンティング",
+   "retrieval": "search-summary",
+   "candidates": [
+    "Digitalfire（quartz inversion, dunting）"
+   ],
+   "summaryClaims": [
+    "573 °Cで線膨張約0.45%",
+    "急冷でダンティング。大物では50 °C/h以下の推奨例",
+    "クリストバライトは約200〜220 °C、1100 °C超で生成"
+   ],
+   "modelUse": "573 °C通過時の温度変化速度で割れ確率。小試験体の許容600 K/hは校正値。クリストバライトはv0対象外（低温焼成）"
+  },
+  {
+   "id": "S-steam",
+   "topic": "残留水分と急昇温による水蒸気割れ",
+   "retrieval": "search-summary",
+   "candidates": [
+    "陶芸の焼成解説（candling, water smoking）"
+   ],
+   "summaryClaims": [
+    "100 °C付近の水蒸気放出は250 °Cまでに終える",
+    "85〜93 °Cや100〜120 °Cで保持する例"
+   ],
+   "modelUse": "100〜250 °Cを通るときの含水率と昇温速度で割れ確率。閾値は校正値"
+  },
+  {
+   "id": "S-calc",
+   "topic": "炭酸カルシウムの分解と生石灰の再水和",
+   "retrieval": "search-summary",
+   "candidates": [
+    "陶芸材料・石灰の解説（複数）"
+   ],
+   "summaryClaims": [
+    "分解温度は資料により約700/800/900 °C",
+    "残ったCaOが湿気を吸ってはじける（ライムポップ）"
+   ],
+   "modelUse": "反応式は化学量論。700〜900 °Cの窓に速度式を校正。標準反応熱178 kJ/molは一般値として仮定。ライムポップはv0未実装"
+  },
+  {
+   "id": "S-fire",
+   "topic": "焼成温度帯",
+   "retrieval": "search-summary",
+   "candidates": [
+    "考古学・陶芸の野焼き解説",
+    "陶芸材料の焼成温度表"
+   ],
+   "summaryClaims": [
+    "野焼きは600 °C程度から、800〜1100 °Cが多い",
+    "土器・陶器1000〜1200 °C、炻器1100〜1300 °C（重なる）"
+   ],
+   "modelUse": "試験世界の焚き火（最高約720 °C）と試験窯（1000 °C到達可）の能力設定の目安"
+  },
+  {
+   "id": "S-abs",
+   "topic": "吸水率と試験法",
+   "retrieval": "search-summary",
+   "candidates": [
+    "ASTM C373（特許文献・第三者の写しによる記述）",
+    "焼成温度と吸水率の研究（850 °Cで18.3%、1200 °Cで5.5%）"
+   ],
+   "summaryClaims": [
+    "150 °C乾燥、5時間煮沸、24時間浸漬、吸水率=(飽水−乾燥)/乾燥×100",
+    "焼成温度が上がると吸水率が下がる例"
+   ],
+   "modelUse": "吸水率の定義式はそのまま。v0の測定は燃料を使わない24時間冷水浸漬で、煮沸値の0.8倍と仮定（未確認）"
+  },
+  {
+   "id": "S-glow",
+   "topic": "炎・炉内の色と温度",
+   "retrieval": "search-summary",
+   "candidates": [
+    "Stirling（1905）の色温度表",
+    "電気窯メーカーの色見本表"
+   ],
+   "summaryClaims": [
+    "暗赤約700 °C、桜赤800〜1000 °C、橙約1100 °C、白1300 °C以上",
+    "別の表とは最大約200 °C食い違う"
+   ],
+   "modelUse": "計器のない住民には色の区分だけを渡す。区分の境界は粗く、資料間の差を残す"
+  },
+  {
+   "id": "S-latent",
+   "topic": "水の蒸発潜熱",
+   "retrieval": "search-summary",
+   "candidates": [
+    "工学定数表"
+   ],
+   "summaryClaims": [
+    "100 °Cで2257 kJ/kg"
+   ],
+   "modelUse": "窯内蒸発。常温の2.44 MJ/kgは未確認の一般値"
+  },
+  {
+   "id": "S-cp",
+   "topic": "焼成体の比熱",
+   "retrieval": "search-summary",
+   "candidates": [
+    "工学定数表（fired brick）"
+   ],
+   "summaryClaims": [
+    "800〜900 J/(kg·K)"
+   ],
+   "modelUse": "0.9 J/(g·K)で一定"
+  },
+  {
+   "id": "S-comb",
+   "topic": "炭素の燃焼熱",
+   "retrieval": "not-found",
+   "candidates": [],
+   "summaryClaims": [],
+   "modelUse": "393.5 kJ/molは一般的な標準値として仮定（今回未照合）"
+  },
+  {
+   "id": "S-wood",
+   "topic": "木材の発熱量・組成・灰分",
+   "retrieval": "search-summary",
+   "candidates": [
+    "木質燃料の解説"
+   ],
+   "summaryClaims": [
+    "乾燥木材18.5〜21.0 MJ/kg（高位か低位か不明）",
+    "C50/H6/O44%前後",
+    "灰分の数値は見つからず"
+   ],
+   "modelUse": "絶乾LHV 18 MJ/kg、組成CH1.44O0.66、灰1%を仮定。含水分は蒸発潜熱を差し引く"
+  },
+  {
+   "id": "S-kilneff",
+   "topic": "薪窯の熱効率",
+   "retrieval": "search-summary",
+   "candidates": [
+    "タイの薪窯の測定（18%）",
+    "ガーナの薪窯（12.4〜21.6%）"
+   ],
+   "summaryClaims": [
+    "熱効率は12〜22%程度、煙突損失が最大"
+   ],
+   "modelUse": "燃焼熱の30%が炉内へ入り、さらに壁から失う構成。結果として製品への熱は数%以下になる"
+  },
+  {
+   "id": "S-local",
+   "topic": "嘉弥真島・八重山の粘土",
+   "retrieval": "not-found",
+   "candidates": [
+    "八重山の焼物（パナリ焼：島の粘土と砕いた貝を混ぜ、野焼き、17〜19世紀）— 検索要約のみ"
+   ],
+   "summaryClaims": [
+    "嘉弥真島の粘土・地質の資料は見つからない"
+   ],
+   "modelUse": "嘉弥真島の資源は追加しない。試験粘土Aは仮想の試験材料"
+  }
+ ]
+}
