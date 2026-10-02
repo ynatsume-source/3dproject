@@ -3,9 +3,11 @@
 
 import type { ScienceStep, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { dryingStep, DRYING_PROCESS } from './drying';
+import { simpleFixtureStep, SIMPLE_FIXTURE_PROCESSES } from './simple';
 
 const PROCESSES: Record<string, ScienceStep> = {
   [DRYING_PROCESS.processId]: dryingStep,
+  ...Object.fromEntries(SIMPLE_FIXTURE_PROCESSES.map((id) => [id, simpleFixtureStep])),
 };
 
 export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepResult => {
