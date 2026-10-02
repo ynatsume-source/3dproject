@@ -46,7 +46,8 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      vec3 refr = refract(dir, -n, 1.333);
      vec3 sunAir = airDir(SUN), moonAir = airDir(uMoonDir);
      float sd = max(dot(refr, sunAir), 0.0);
-     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 6.0) * 0.35) * uSunI;
+     // (only the real sun makes a disc and a glow: at night SUN is the starlight's direction, a light with no source to see)
+     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 6.0) * 0.35) * uSunI * (1.0 - smoothstep(0.3, 0.7, uNight));
      float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI * (1.0 - uCloud * 0.9);
      vec3 air = mix(uSkyLo, uSkyHi, cosT) * (1.0 - 0.35 * uCloud) + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9) + vec3(0.8, 0.85, 1.0) * uFlash * 2.5;
      // stars, trembling with the surface
