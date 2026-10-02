@@ -218,7 +218,7 @@ vec3 skyAir(vec3 d, float disks){
   float sy = uAirSun.y, day = dayAir(), h = max(d.y, 0.0);
   float twi = smoothstep(-0.28, -0.02, sy) * (1.0 - smoothstep(0.02, 0.35, sy));   // dawn and dusk
   vec3 zen = mix(vec3(0.006, 0.011, 0.028), vec3(0.13, 0.33, 0.7), day);
-  vec3 hor = mix(vec3(0.018, 0.028, 0.06), vec3(0.66, 0.8, 0.93), day);
+  vec3 hor = mix(vec3(0.026, 0.038, 0.072), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
   zen = mix(zen, vec3(0.14, 0.18, 0.36), twi * 0.6);
   float mu = dot(d, uAirSun), sideS = pow(max(mu, 0.0) * 0.5 + 0.5, 4.0);
   hor = mix(hor, vec3(1.0, 0.5, 0.25), twi * (0.35 + 0.65 * sideS));
@@ -237,7 +237,7 @@ vec3 skyAir(vec3 d, float disks){
     vec2 uv = vec2(fract(0.5 - atan(q.y, q.x) / 6.28318), 0.5 + asin(clamp(q.z, -1.0, 1.0)) / 3.14159);
     vec3 mw = pow(textureLod(uMilky, uv, 0.0).rgb, vec3(1.5));   // no mip lookup: atan jumps at RA 0h
     c += mw * 0.22 * dark * smoothstep(-0.02, 0.2, d.y);   // dimmed low down by the thicker air
-    c += vec3(0.02, 0.03, 0.02) * dark * exp(-h * 5.0) * 0.5;
+    c += vec3(0.024, 0.036, 0.03) * dark * exp(-h * 6.0);   // airglow, brightest in a band low over the horizon
   }
   // aurora: curtains toward the magnetic pole, green below and red-violet at the top
   if (uAurora > 0.0) {

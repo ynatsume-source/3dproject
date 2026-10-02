@@ -384,10 +384,19 @@ function updateDrone(dt: number, now: number) {
     let wantYaw = Math.atan2(-drone.vel.x, -drone.vel.z) + Math.sin(st * 0.05) * 0.6;
     if (overBall) wantYaw = Math.atan2(-(bb!.c.x - drone.pos.x), -(bb!.c.z - drone.pos.z));
     if (lc) wantYaw = Math.atan2(-(lc.x - drone.pos.x), -(lc.z - drone.pos.z));
-    if (night > 0.5) wantYaw = drone.yaw + dt * 0.035;                       // at night, turn slowly under the sky
+    // at night: a few things to look at in turn — the moon and the path of its light on the sea, a long pan
+    // along the horizon, the stars high overhead, the island's dark shape — each for half a minute or so
+    let nightPitch = 0.42 + Math.sin(st * 0.04) * 0.15;
+    if (night > 0.5) {
+      const beat = Math.floor(st / 28) % 4, mo = U.uAirMoon.value as THREE.Vector3, moonUp = mo.y > 0.04;
+      if (beat === 0 && moonUp) { wantYaw = Math.atan2(-mo.x, -mo.z) + Math.sin(st * 0.07) * 0.25; nightPitch = Math.min(0.6, Math.asin(Math.min(1, mo.y)) * 0.7); }
+      else if (beat === 1 || (beat === 0 && !moonUp)) { wantYaw = drone.yaw + dt * 0.11; nightPitch = 0.06; }
+      else if (beat === 3 && cur!.loc.land) { const [cx, cz] = cur!.loc.land.center; wantYaw = Math.atan2(-(cx - drone.pos.x), -(cz - drone.pos.z)); nightPitch = 0.1; }
+      else { wantYaw = drone.yaw + dt * 0.05; nightPitch = 0.75 + Math.sin(st * 0.05) * 0.12; }
+    }
     else if (dusk > 0.3) wantYaw += angDiff(Math.atan2(-U.uAirSun.value.x, -U.uAirSun.value.z), wantYaw) * 0.7;   // face the sunset
     const wantPitch = drone.pos.y < 0 ? 0.3 : lc ? -Math.atan2(drone.pos.y - (bl!.kind === 'whale' ? 2.5 : 0.8), Math.max(Math.hypot(lc.x - drone.pos.x, lc.z - drone.pos.z), 1)) : overBall ? -Math.atan2(drone.pos.y + 1, Math.max(Math.hypot(bb!.c.x - drone.pos.x, bb!.c.z - drone.pos.z), 1))                                  // rising: watch the surface come closer
-      : night > 0.5 ? 0.42 + Math.sin(st * 0.04) * 0.15 : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
+      : night > 0.5 ? nightPitch : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * (lc ? 1.2 : 0.35));
     drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * (lc ? 1.2 : 0.35));
   } else if (drone.mode === 'auto') {
@@ -691,14 +700,22 @@ function setSky(on: boolean, natural = false) {
 // (海だけ: the cruise stays in the sea; going up is then only when asked)
 let seaOnly = (() => { try { return localStorage.getItem('seaglass.seaOnly') === '1'; } catch (e) { return false; } })();
 function setSeaOnly(on: boolean) { seaOnly = on; try { localStorage.setItem('seaglass.seaOnly', on ? '1' : '0'); } catch (e) { /* ignore */ } $('btnSeaOnly').setAttribute('aria-pressed', String(on)); if (on && drone.sky) setSky(false, true); }
+// how much there is to see by up in the air at night: the moon (as bright as it is high and full), or a shower of meteors
+const moonLight = () => U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y);
 function skySchedule(dt: number) {
   if (!cur || drone.mode !== 'auto' || watch.r) return;
   if (seaOnly && !drone.sky) return;
   if (!drone.sky) {
-    const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value);
-    drone.skyWait -= dt * (1 + clearNight + (activeShower(clock.ms) ? clearNight * 2 : 0));   // (the wait runs down while filming too)
+    // (a clear night with a moon or a meteor shower draws it up sooner; a dark, moonless one does not —
+    // there is little to see up there but the stars, and the sea below is black)
+    const s = skyNow!, clearNight = s.night * (1 - U.uCloud.value), show = Math.min(1, moonLight() * 2.5) + (activeShower(clock.ms) ? 2 : 0);
+    drone.skyWait -= dt * (1 + clearNight * show);   // (the wait runs down while filming too)
     if (drone.skyWait <= 0 && !lastShot && !(cur.cave && camCave < 0.95)) setSky(true, true);   // go up once the shot in hand is done
-  } else if ((drone.skyAge += dt) > drone.skyStay) setSky(false, true);   // (the time up there counts while filming the residents from the sky too)
+  } else {
+    // (a dark night without a moon: a shorter look at the stars, then back down to the lit reef)
+    const dark = skyNow!.night * (1 - Math.min(1, moonLight() * 2.5)) * (activeShower(clock.ms) ? 0 : 1);
+    if ((drone.skyAge += dt) > drone.skyStay * (1 - 0.55 * dark)) setSky(false, true);
+  }   // (the time up there counts while filming the residents from the sky too)
 }
 // aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
 const auroraParam = new URLSearchParams(location.search).get('aurora');
@@ -2165,7 +2182,8 @@ function frameBody(ts: number) {
     {
       const cp = camera.position, cv = cur.cave;
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
-      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) * (watch.r && skyNow ? 1 + 0.35 * skyNow.night : 1) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
+      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) * (1 + 0.9 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up on a moonless night)
+         * (watch.r && skyNow ? 1 + 0.35 * skyNow.night : 1) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
       camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
       post.setExposure(camExpo);
     }
@@ -2198,7 +2216,7 @@ function frameBody(ts: number) {
       // now and then: from the sky, a low run to put some up; from just under the surface, a few bursting out overhead
       if (drone.mode === 'auto' && !watch.r && !ff.st.active && !flyRun && (flyT -= dt) < 0) {
         flyT = rr(70, 160);
-        if (drone.sky && !lastShot && !cur.bait?.st.active && !cur.breach.leap) flyRun = { burst: false, t: 0, side: 1 };
+        if (drone.sky && !lastShot && !cur.bait?.st.active && !cur.breach.leap && (skyNow!.night < 0.5 || moonLight() > 0.25)) flyRun = { burst: false, t: 0, side: 1 };   // (not in the dark: there would be nothing to see)
         else if (!drone.sky && drone.pos.y > -6 && drone.pos.y < -0.5) { const d = rr(7, 12); ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + rr(-1.2, 1.2)); }
       }
     }
