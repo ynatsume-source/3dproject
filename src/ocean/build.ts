@@ -567,8 +567,8 @@ export function buildOcean(loc) {
   const an = loc.animals || {};
   if (an.turtle) for (let i = 0; i < an.turtle.count; i++) { const t = makeTurtle(an.turtle.style); t.size = Math.max(0.45, an.turtle.style === 'green' ? loneLength(0.85, 1.1) : loneLength(0.7, 0.88)); t.group.scale.setScalar(t.size); oc.turtles.push(t); group.add(t.group); }
   for (let i = 0; i < (an.manta || 0); i++) {
-    const m = new THREE.Mesh(MANTA_GEO, mantaMaterial()); m.frustumCulled = false;
     const giant = (loc.extraGuide || []).some((e: any) => e.id === 'manta' && e.ja === 'オニイトマキエイ');   // (the oceanic manta is the bigger one)
+    const m = new THREE.Mesh(MANTA_GEO, mantaMaterial(giant)); m.frustumCulled = false;
     const s = Math.max(0.9, giant ? loneLength(2.2, 2.9) : loneLength(1.6, 2.2)); m.scale.setScalar(s);
     oc.mantas.push({ span: s * 2, mesh: m, st: new THREE.Vector3(), a: R() * 6.28, rad: rr(10, 16), dir: R() < 0.5 ? 1 : -1, t: R() * 50, y: -8, pos: new THREE.Vector3() }); group.add(m);
   }

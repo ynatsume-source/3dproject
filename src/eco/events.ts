@@ -73,7 +73,7 @@ const KINDS: Kind[] = [
       st.addScaledVector(side, pass);
       const depth = Math.min(-3, Math.max(oc.T.top(cam.x, cam.z) + 4, -12));
       const ms = Array.from({ length: n }, (_, i) => {
-        const mesh = new THREE.Mesh(MANTA_GEO, mantaMaterial()); mesh.frustumCulled = false;
+        const mesh = new THREE.Mesh(MANTA_GEO, mantaMaterial(giant)); mesh.frustumCulled = false;
         const s = (giant ? rr(2.2, 2.8) : rr(1.4, 2.1)); mesh.scale.setScalar(s); oc.group.add(mesh);
         return { mesh, lag: i * rr(4, 6), off: new THREE.Vector3(rr(-3, 3) * (i > 0 ? 1 : 0), rr(-1.5, 1.5), 0), ph: R() * 6 };
       });
@@ -87,6 +87,10 @@ const KINDS: Kind[] = [
             const x = st.x + dir.x * d + side.x * m.off.x + Math.sin(this.t * 0.2 + m.ph) * 0.8, z = st.z + dir.z * d + side.z * m.off.x + Math.cos(this.t * 0.17 + m.ph) * 0.8;
             m.mesh.position.set(x, depth + m.off.y + Math.sin(this.t * 0.3 + m.ph) * 0.6, z);
             m.mesh.rotation.set(-0.05 + Math.sin(this.t * 0.3 + m.ph) * 0.06, Math.atan2(dir.x, dir.z), Math.sin(this.t * 0.25 + m.ph) * 0.15, 'YXZ');
+            const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
+            U.uBeat.value = 0; U.uPhase.value += dt * (0.97 + 0.06 * Math.sin(m.ph));
+            U.uFeed.value = 0; U.uMouth.value = 0.10 + 0.018 * Math.sin(this.t * 0.7 + m.ph);
+            U.uBank.value = Math.sin(this.t * 0.25 + m.ph) * 0.10; U.uAir.value = 0;
             m.mesh.visible = d > -5 && d < run + 10;
           }
           lead.copy(ms[Math.floor(n / 2)].mesh.position);
