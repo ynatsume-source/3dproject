@@ -61,7 +61,7 @@ civ-sci/0.1 は、コアが世界全体（全ロット・試料・設備・予�
 
 - 科学側は区間内の熱を小数のまま `ScienceState` に累積する（`latentJ`）。
 - 報告済みの整数の累計（`reportedJ`）も状態に持ち、各区間では `round(累計) − 報告済み` を `usedJ` として返す。
-- 区間をどう刻んでも、整数 J の合計は `round(全体の熱)` と一致する（検査：一括・12時間刻み・不揃い刻みで 19,405 J が一致。蒸発した水の潜熱 19,405.32 J との差は 0.32 J）。
+- 区間をどう刻んでも、整数 J の合計は `round(全体の熱)` と一致する（検査：一括・12時間刻み・不揃い刻みで 19,326 J が一致。蒸発した水の潜熱 19,325.79 J との差は 0.21 J。潜熱は OpenStax の 2430 kJ/kg）。
 - 一つのエントリの中では `lostJ` を残差として求めるので、`usedJ = storedJ + lostJ` が整数で厳密に閉じる。
 - 乾燥の熱は空気から受け取り、水蒸気とともに出ていく。そのため `usedJ = lostJ`、`storedJ = 0` で、供給元は `src:env-heat:<run>`（本体の EnergyOffer ではない）。
 
@@ -89,15 +89,20 @@ civ-sci/0.1 は、コアが世界全体（全ロット・試料・設備・予�
 3. **seed**：一つの run では同じ値を送る（科学側は最初の値で固定する）。
 4. **停止**：`world-pause` / `shutdown` は精算せず `running` を返し、`operator` / `equipment-lost` は精算する。運用停止の後は、空白の区間を `environment.source: 'unknown'` で送る。乾燥はその区間を計算せず履歴に印を付け、焼成は `stopped`（履歴不完全）で終える。
 
-## 7. 最初に本体へ統合する小さな機能
+## 7. 最初に本体へ統合する小さな機能（Codex のレビュー後に更新）
 
-**「試験片の乾燥」の ScienceStep（`p12x_test_tile_dry` 0.1.0）だけ**。
+Codex の提案どおり、材料の変化が小さい順に一つずつ進める。どれも契約 0.1.0 のまま動く。
 
-- 契約 0.1.0 のまま動く。形の変更は不要。
-- 燃料・O2・設備の蓄熱を含まない。
-- 本体側の G2（材料台帳・確定）の最小形で、「予約 → 区間ごとに呼ぶ → 終了時に一回精算 → 観測を住民の記憶へ」を試験世界で確かめられる。
-- 統合時に本体側が持ち込むもの：`src/science/step/`、`src/science/physics.ts`・`params.ts`・`rng.ts`、`data/science/catalog-test-1.json`、`scripts/science-step-check.ts`。
-- 持ち込まないもの：`fixture/`・`clay.ts`・`research.ts`（試作）。
-- 本番の島では、原典の照合と校正が済むまで実行可能にしない（`readiness: test-world-only`）。
+1. **秤量** `fixture_mass_measure`：予約した1ロットの質量を、秤の分解能（100 mg）で観測として返すだけ。材料は変わらない。
+2. **成形** `p11_pottery_shape`（fixture-1）：機械仕事を供給元から使い、完成時に一度だけ prepared_clay → unfired_pot を消費・生成する。
+3. **乾燥** `p12x_test_tile_dry`：§3 の「終了時に一回だけ精算」と §4 の「整数 J」で動く。
 
-焼成（燃料・O2・蓄熱）・浸漬・研究記録の統合は、その後に一つずつ行う。
+統合時に本体側が持ち込むもの：
+- `src/science/step/`（入口 `index.ts`）
+- `src/science/physics.ts`・`params.ts`・`rng.ts`・`chem.ts`
+- `data/science/`
+- `scripts/science-step-check.ts`
+
+持ち込まないもの：`src/science/fixture/`・`clay.ts`・`research.ts`、Codex のラボ（`codex/civilization-lab` の `experiments/`）。
+
+本番の島では、原典の照合と校正が済むまで実行可能にしない。焼成（燃料・O2・蓄熱）は 0.2.0 の `drawn` を採択した後にする。
