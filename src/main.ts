@@ -109,7 +109,7 @@ function pipLight(depth: number) {
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
-const drone = { skim: 0, skimDir: 1, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
+const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -223,7 +223,7 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
   }
 }
 const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0 };
-const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3();
+const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3();
 let yawRate = 0, interestW = 0;
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
   let best = Infinity;
@@ -301,7 +301,7 @@ function updateDrone(dt: number, now: number) {
     _v.subVectors(_t, drone.pos);
     const L = _v.length();
     _v.multiplyScalar(Math.min(L * 1.6, 30) / Math.max(L, 1e-4));   // (across the island quickly when switching)
-    if (drone.pos.y < 0) _v.set(_v.x * 0.15, 3, _v.z * 0.15);   // under the water: straight up through the surface first
+    if (drone.pos.y < 0) { const h = Math.hypot(_v.x, _v.z), c = Math.min(1, 1.4 / Math.max(h, 1e-4)); _v.set(_v.x * c, 2.6, _v.z * c); }   // under the water: up through the surface first, unhurried
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
     // looking a little past it, the way it is going — but only from behind and not too close; from the side,
     // in front of it or close up, at it (its face, when you have come round to see it)
@@ -313,12 +313,24 @@ function updateDrone(dt: number, now: number) {
     drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
   } else if (shot) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
-    const way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
+    let way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
+    // somewhere far: the water holds a drone back, so it goes up and out, across in the air, and back down
+    // into the sea once nearly there (the way a hurry is made); near, it simply swims there
+    const hd = Math.hypot(shot.pos.x - drone.pos.x, shot.pos.z - drone.pos.z);
+    drone.hop = way === shot.pos && !shot.surface && !shot.close && !shot.subject.tour && hd > (drone.hop ? 22 : 40);
+    if (drone.hop) { const T = cur!.T; _h.set(shot.pos.x, Math.max(4, T.ground(drone.pos.x, drone.pos.z) + 5, shot.pos.y + 2), shot.pos.z); way = _h; }
     _v.subVectors(way, drone.pos);
     const L = _v.length(), top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
+    // under the water: no faster than one swims (a hunt is followed at its own pace); on the way out, mostly up
+    if (drone.pos.y < 0 && !shot.close) {
+      const h = Math.hypot(_v.x, _v.z), cap = drone.hop ? 1.6 : 3.2;
+      if (h > cap) { _v.x *= cap / h; _v.z *= cap / h; }
+      if (drone.hop) _v.y = Math.max(_v.y, 2.2);
+    }
+    if (drone.hop && drone.pos.y > 0) _v.y = clamp((way.y - drone.pos.y) * 1.2, -2, 2.5);   // (in the air: up to its height, and level)
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
-    const lk = way === shot.pos ? shot.look : way;   // escaping the cave: look where we are going
+    const lk = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const k = Math.min(1, dt * (shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
@@ -465,28 +477,34 @@ function updateDrone(dt: number, now: number) {
   }
   // the surface: the drone punches through it rather than hovering in it
   const wasUp = drone.pos.y - drone.vel.y * dt > 0.2;
-  const upShot = !!shot && shot.pos.y > 0.3;   // filming something ashore: out of the water and back
+  const upShot = !!shot && (shot.pos.y > 0.3 || drone.hop);   // filming something ashore: out of the water and back
   const mayRise = drone.mode === 'manual' || drone.sky || upShot || !!watch.r, mayDive = drone.mode === 'manual' || (!drone.sky && !upShot && !watch.r);
+  const prevY = drone.pos.y - drone.vel.y * dt;
   // filming from the waterline (a leap out of the sea): once near the surface, ride it, half in and half out,
   // for as long as the shot lasts; afterwards on down into the sea (or up, if it came down from the sky)
   if (drone.mode === 'auto' && shot?.surface && Math.abs(drone.pos.y) < 1.2) { drone.skim = Math.max(drone.skim, 0.6); drone.skimDir = drone.sky ? 1 : -1; }
   if (drone.mode === 'manual') {
     // flown by hand it may stop anywhere, the waterline included (half in the sea, half in the air)
-    const prevY = drone.pos.y - drone.vel.y * dt;
     if ((prevY > 0) !== (drone.pos.y > 0)) crossSurface(drone.pos.y > 0);
-    drone.skim = 0;
+    drone.skim = 0; drone.pass = 0;
   } else if (drone.skim > 0) {
     // riding the surface on its way through: a few seconds with the lens at the waterline, level, the
     // swell washing over it, before going on up into the air or down into the sea
     drone.skim -= dt;
     drone.pos.y += (0 - drone.pos.y) * Math.min(1, dt * 3); drone.vel.y = 0;
     drone.pitch += (0.02 - drone.pitch) * Math.min(1, dt * 1.5);
-    if (drone.skim <= 0) { drone.pos.y = drone.skimDir > 0 ? 0.5 : -0.75; crossSurface(drone.skimDir > 0); }
+    if (drone.skim <= 0) { drone.pos.y = drone.skimDir > 0 ? Math.max(drone.pos.y, 0.02) : Math.min(drone.pos.y, -0.02); crossSurface(drone.skimDir > 0); drone.pass = drone.skimDir; }   // (and then on through, without a jump)
+  } else if (drone.pass) {
+    // going through: straight on up (or down) through the band at the waterline, never stopping in it
+    drone.vel.y = drone.pass > 0 ? Math.max(drone.vel.y, 1.8) : Math.min(drone.vel.y, -1.8);
+    if ((prevY > 0) !== (drone.pos.y > 0)) crossSurface(drone.pos.y > 0);
+    if (drone.pass > 0 ? drone.pos.y > 0.5 : drone.pos.y < -0.7) drone.pass = 0;
   } else if (!wasUp && drone.pos.y > -0.7) {
-    if (mayRise && drone.vel.y > 0.25) { drone.skim = rr(4, 8); drone.skimDir = 1; drone.pos.y = -0.3; }
+    // (the lens held at the waterline for a while only when filming from it, waiting on a leap)
+    if (mayRise && drone.vel.y > 0.25) { if (shot?.surface) { drone.skim = rr(4, 8); drone.skimDir = 1; } else drone.pass = 1; }
     else { drone.pos.y = -0.7; if (drone.vel.y > 0) drone.vel.y = 0; }
   } else if (wasUp && drone.pos.y < 0.5) {
-    if (mayDive && drone.vel.y < -0.25) { drone.skim = rr(4, 8); drone.skimDir = -1; drone.pos.y = 0.3; }
+    if (mayDive && drone.vel.y < -0.25) { if (shot?.surface) { drone.skim = rr(4, 8); drone.skimDir = -1; } else drone.pass = -1; }
     else { drone.pos.y = 0.5; if (drone.vel.y < 0) drone.vel.y = 0; }
   }
   if (drone.pos.y > SKY_MAX) { drone.pos.y = SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
