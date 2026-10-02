@@ -261,11 +261,15 @@ export function makeBreach(oc: any) {
     },
     subjects(out: Subject[]) {
       const l = leap; if (!l) return;
-      const up = l.t - l.exitAt, airT = 2 * l.vy / G;
-      if (up > airT + (l.kind === 'whale' ? 8 : 5)) return;
+      const airT = 2 * l.vy / G, upNow = () => l.t - l.exitAt;
+      if (upNow() > airT + (l.kind === 'whale' ? 8 : 5)) return;
       const whaleNow = l.kind === 'whale';
+      // (the show is over a little after it is back in: then the camera lets it go. It must: the animal only
+      // leaves once the camera has stopped looking at it, so a camera waiting on it would wait for ever)
+      const showEnd = airT + (whaleNow ? 14 : 10);
       out.push({ key: 'breach', label: whaleNow ? 'ザトウクジラのブリーチ' : 'マンタのジャンプ', kind: 'giant', prio: 9, size: l.len, reach: 160, hold: 26,
-        pos: () => exitC, live: () => leap === l, status: () => (up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'),
+        pos: () => exitC, live: () => leap === l && upNow() < showEnd,
+        status: () => { const up = upNow(); return up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'; },
         breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir, body: (whaleNow ? whale : manta).position, len: l.len } });
     },
   };

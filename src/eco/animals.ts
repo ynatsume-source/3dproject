@@ -38,6 +38,23 @@ function pickGoal(oc: any, from: THREE.Vector3, want: 'graze' | 'rest'): THREE.V
   return best!;
 }
 
+// which way to lie down: with the head out over open bottom, never into the rock it has nestled against
+// (the ledge beside it or behind it is the shelter it came for). Yaw as the model's (nose along +z).
+function restHeading(T: any, t: any) {
+  const fh = T.top(t.pos.x, t.pos.z), s = t.size;
+  let best = t.yaw ?? 0, bs = Infinity;
+  for (let k = 0; k < 16; k++) {
+    const yaw = (t.yaw ?? 0) + k / 16 * Math.PI * 2, fx = Math.sin(yaw), fz = Math.cos(yaw);
+    let rise = 0;
+    for (const d of [0.35, 0.5, 0.65, 0.8]) rise = Math.max(rise, T.top(t.pos.x + fx * d * s, t.pos.z + fz * d * s) - fh);
+    let shelter = 0;   // (rock up at its side or tail: a little preferred)
+    for (const [a, d] of [[1.57, 0.5], [-1.57, 0.5], [3.14, 0.6]]) shelter = Math.max(shelter, T.top(t.pos.x + Math.sin(yaw + a) * d * s, t.pos.z + Math.cos(yaw + a) * d * s) - fh);
+    const score = Math.max(0, rise - 0.04 * s) * 10 - Math.min(shelter, 0.5 * s) * 0.3 + Math.abs(Math.atan2(Math.sin(k / 16 * Math.PI * 2), Math.cos(k / 16 * Math.PI * 2))) * 0.01;
+    if (score < bs) { bs = score; best = yaw; }
+  }
+  return best;
+}
+
 let shadeTex: THREE.Texture | undefined;
 export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
   const T = oc.T;
@@ -73,6 +90,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       t.head += d * Math.min(1, dt * 0.5);
       if (gd < 2.0) {
         t.state = t.state === 'toRest' ? 'rest' : 'graze'; t.stateT = 0;
+        if (t.state === 'rest') t.restYaw = restHeading(T, t);
         if (t.state === 'rest') logEvent(env, 'rest', env.night > 0.5 ? oneOf(['ウミガメが岩陰で眠りについた', 'ウミガメが岩の下にもぐり込み、今夜の寝床に落ち着いた', 'ウミガメが甲羅を岩に預けて、静かに目を閉じた', 'ウミガメがいつもの寝床に戻ってきた'])
           : oneOf(['ウミガメがサンゴの張り出しの下で、ひと休みをはじめた', 'ウミガメが岩のくぼみに体を収めて、じっと休んでいる', 'ウミガメが根の陰でうとうとしはじめた']), t.pos.x, t.pos.z, () => t.pos);
       }
@@ -91,7 +109,12 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       const hf = T.top(t.pos.x + fw * e, t.pos.z + fz2 * e), hb = T.top(t.pos.x - fw * e, t.pos.z - fz2 * e);
       const hr = T.top(t.pos.x + fz2 * e, t.pos.z - fw * e), hl = T.top(t.pos.x - fz2 * e, t.pos.z + fw * e);
       const lean = (a: number, b: number) => (Math.abs(a - fh) < 0.25 * t.size && Math.abs(b - fh) < 0.25 * t.size ? clamp(Math.atan2(a - b, 2 * e), -0.2, 0.2) : 0);
-      t.restY = fh + 0.065 * t.size;
+      // (settling in, it turns to lie with its head out over open bottom; where there is no such way, it
+      // rests its chin up on the rock instead of through it)
+      if (t.stateT < 10 && (t.restAt = (t.restAt ?? 0) - dt) <= 0) { t.restAt = 1; t.restYaw = restHeading(T, t); }
+      let chin = -Infinity;
+      for (const d of [0.45, 0.6, 0.72]) chin = Math.max(chin, T.top(t.pos.x + fw * d * t.size, t.pos.z + fz2 * d * t.size));
+      t.restY = Math.max(fh + 0.065 * t.size, chin - 0.03 * t.size);
       t.restPitch = lean(hb, hf); t.restRoll = lean(hr, hl);
       ty = t.restY;
     }
@@ -131,7 +154,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // orientation follows the swim direction through a slow turn rate, and the swim speed only fades the
     // pitch in and out, so a pause or a nudge never flips the body round in a frame
     const hs = Math.hypot(t.vel.x, t.vel.z), mov = clamp((hs - 0.01) / 0.08, 0, 1);
-    const yawT = hs > 0.005 ? Math.atan2(t.vel.x, t.vel.z) : (t.yaw ?? Math.PI / 2 - t.head);
+    const yawT = t.state === 'rest' && t.restYaw !== undefined ? t.restYaw : hs > 0.005 ? Math.atan2(t.vel.x, t.vel.z) : (t.yaw ?? Math.PI / 2 - t.head);
     t.yaw ??= yawT;
     let dy = yawT - t.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     t.yaw += clamp(dy, -1, 1) * Math.min(1, dt * (0.4 + 1.6 * mov));

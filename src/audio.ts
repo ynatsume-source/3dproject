@@ -362,20 +362,55 @@ export function thunder(delay: number, vol: number) {
   s.start(t0); s.stop(t0 + dur);
 }
 
-// Breaking the surface: a rush of water, then bubbles rising past the lens.
-export function splash() {
+// Breaking the surface. Going in: a short, soft "shan" as the lens cuts the water, then at once the world
+// goes muffled and the air it took down with it rises past in a burst — "buku-buku-buku…", low and
+// rounded, thinning out. Coming out: the water tearing off and running away, "za-ba", the sound opening
+// up from muffled to bright in an instant, and a few drops falling from the drone.
+export function splash(up = false) {
   if (!ac || !audio.on) return;
-  const a = ac, t0 = a.currentTime + 0.02, len = Math.floor(a.sampleRate * 1.6), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
-  for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * 3.2) * (t < 0.03 ? t / 0.03 : 1); }
-  const s = a.createBufferSource(); s.buffer = b;
-  const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(1700, t0); f.frequency.exponentialRampToValueAtTime(320, t0 + 1.2);
-  const g = a.createGain(); g.gain.value = 0.13;   // soft: it happens often now
-  s.connect(f).connect(g).connect(natureBus); s.start(t0);
-  for (let k = 0; k < 14; k++) {
-    const o = a.createOscillator(), og = a.createGain(), tt = t0 + 0.2 + Math.random() * 1.4, f0 = rnd(300, 700);
-    o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.8, tt + 0.07);
-    og.gain.setValueAtTime(0, tt); og.gain.linearRampToValueAtTime(0.008, tt + 0.03); og.gain.exponentialRampToValueAtTime(0.0005, tt + 0.14);
-    o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.15);
+  const a = ac, t0 = a.currentTime + 0.02;
+  const burst = (dur: number, decay: number) => {
+    const len = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, len, a.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < len; i++) { const t = i / a.sampleRate; d[i] = (Math.random() * 2 - 1) * Math.exp(-t * decay) * (t < 0.012 ? t / 0.012 : 1); }
+    const s = a.createBufferSource(); s.buffer = b; return s;
+  };
+  if (!up) {
+    // the cut: brief, and with its top already going as the water closes over
+    { const s = burst(0.45, 9), f = filt(a, 'lowpass', 2400, 0.5), g = a.createGain(); g.gain.value = 0.11;
+      f.frequency.setValueAtTime(2400, t0); f.frequency.exponentialRampToValueAtTime(380, t0 + 0.25);
+      s.connect(f).connect(g).connect(natureBus); s.start(t0); }
+    // the gulp of water closing in: a low, rounded thump
+    { const o = a.createOscillator(), g = shaped(a, t0 + 0.03, 0.02, 0.12, 0.02, 0.12);
+      o.frequency.setValueAtTime(140, t0 + 0.03); o.frequency.exponentialRampToValueAtTime(60, t0 + 0.3); o.connect(g).connect(natureBus); o.start(t0 + 0.03); o.stop(t0 + 1); }
+    // the bubbles: a burst of them right away, coming in uneven gulps, then fewer and fewer — each a small
+    // pitch rising as it shrinks, all heard through the water (low-passed, no air in it)
+    const lp = filt(a, 'lowpass', 1100, 0.6), bus = a.createGain(); bus.gain.value = 1; lp.connect(bus).connect(natureBus);
+    const send = a.createGain(); send.gain.value = 0.35; bus.connect(send).connect(reverb);
+    let tt = t0 + 0.06;
+    for (let k = 0; k < 46 && tt < t0 + 1.9; k++) {
+      const age = tt - t0, f0 = 170 + Math.random() * 380 * (1 + age * 0.4), lv = 0.05 * Math.exp(-age * 1.5) * (0.5 + Math.random() * 0.5);
+      const o = a.createOscillator(), og = a.createGain(); o.type = 'sine';
+      o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * (1.5 + Math.random() * 0.6), tt + 0.05 + Math.random() * 0.04);
+      og.gain.setValueAtTime(0.0001, tt); og.gain.exponentialRampToValueAtTime(lv, tt + 0.006); og.gain.exponentialRampToValueAtTime(0.0001, tt + 0.06 + Math.random() * 0.07);
+      o.connect(og).connect(lp); o.start(tt); o.stop(tt + 0.16);
+      tt += (Math.random() < 0.3 ? 0.008 : 0.025 + Math.random() * 0.05) * (1 + age * 1.6);   // (in gulps: clusters, then gaps)
+    }
+    // and under it all, the soft roar of the bubble cloud going by
+    { const s = burst(1.6, 2.2), f = filt(a, 'lowpass', 520, 0.7), g = a.createGain(); g.gain.value = 0.09; s.connect(f).connect(g).connect(bus); s.start(t0 + 0.05); }
+  } else {
+    // out: the muffle tearing away — the water's rush opens from dark to bright in a moment, then drains off
+    { const s = burst(0.9, 4.2), f = filt(a, 'lowpass', 500, 0.6), hp = filt(a, 'highpass', 120), g = a.createGain(); g.gain.value = 0.12;
+      f.frequency.setValueAtTime(500, t0); f.frequency.exponentialRampToValueAtTime(5200, t0 + 0.12); f.frequency.exponentialRampToValueAtTime(1800, t0 + 0.8);
+      s.connect(hp).connect(f).connect(g).connect(natureBus); s.start(t0); }
+    // the water running off it: a light trickle, dying away
+    { const s = burst(1.3, 2.4), bp = filt(a, 'bandpass', 2200, 0.7), g = a.createGain(); g.gain.value = 0.035; s.connect(bp).connect(g).connect(natureBus); s.start(t0 + 0.15); }
+    // and a few drops falling back from it into the sea: little bright plinks, spread out
+    for (let k = 0; k < 7; k++) {
+      const tt = t0 + 0.25 + Math.pow(Math.random(), 1.3) * 1.3, f0 = 900 + Math.random() * 1400, o = a.createOscillator(), og = a.createGain();
+      o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f0 * 1.6, tt + 0.03);
+      og.gain.setValueAtTime(0.0001, tt); og.gain.exponentialRampToValueAtTime(0.012 * (0.5 + Math.random() * 0.5), tt + 0.003); og.gain.exponentialRampToValueAtTime(0.0001, tt + 0.05);
+      o.connect(og).connect(natureBus); o.start(tt); o.stop(tt + 0.08);
+    }
   }
 }
 
@@ -433,8 +468,8 @@ export function breachSound(big: number, d: number, under = false) {
     // the slap: a hard, broad crack at the instant of impact
     { const n = noiseSrc(a, t0, 0.5), g = shaped(a, t0, 0.003, 0.55 * B, 0.015, 0.05); n.connect(filt(a, 'bandpass', 1100, 0.6)).connect(g).connect(out); }
     // the crash: a wall of water breaking, bright at first and darkening
-    { const n = noiseSrc(a, t0 + 0.04, 7), bp = filt(a, 'bandpass', 2600, 0.35), g = shaped(a, t0 + 0.04, 0.07, 0.62 * B, 0.25 + 0.5 * big, 0.55 + 0.9 * big);
-      bp.frequency.setValueAtTime(2800, t0); bp.frequency.exponentialRampToValueAtTime(700, t0 + 1.6 + 1.5 * big);
+    { const n = noiseSrc(a, t0 + 0.04, 5), bp = filt(a, 'bandpass', 2200, 0.35), g = shaped(a, t0 + 0.04, 0.07, 0.5 * B, 0.15 + 0.35 * big, 0.35 + 0.55 * big);
+      bp.frequency.setValueAtTime(2300, t0); bp.frequency.exponentialRampToValueAtTime(600, t0 + 0.9 + 1.0 * big);
       n.connect(filt(a, 'highpass', 160)).connect(bp).connect(g).connect(out); }
     // the spray coming down: a patter of a thousand drops, thinning out
     { const len = Math.floor(a.sampleRate * (2.5 + 3 * big)), buf = a.createBuffer(1, len, a.sampleRate), dd = buf.getChannelData(0);
@@ -442,11 +477,12 @@ export function breachSound(big: number, d: number, under = false) {
         const at = Math.floor(len * Math.pow(Math.random(), 1.6)), w = Math.floor(a.sampleRate * (0.004 + Math.random() * 0.012)), amp = (0.3 + Math.random() * 0.7) * (1 - at / len);
         for (let i = 0; i < w && at + i < len; i++) dd[at + i] += (Math.random() * 2 - 1) * amp * Math.exp(-i / (w * 0.3));
       }
-      const s = a.createBufferSource(); s.buffer = buf; const g = shaped(a, t0 + 0.5, 0.3, 0.32 * B, 0.2, 1.4 + big);
-      s.connect(filt(a, 'lowpass', 3800)).connect(filt(a, 'highpass', 300)).connect(g).connect(out); s.start(t0 + 0.5); }
+      const s = a.createBufferSource(); s.buffer = buf; const g = shaped(a, t0 + 0.5, 0.3, 0.26 * B, 0.15, 0.8 + 0.6 * big);
+      s.connect(filt(a, 'lowpass', 3000)).connect(filt(a, 'highpass', 300)).connect(g).connect(out); s.start(t0 + 0.5); }
     // and the foam fizzing away, long after
-    { const n = noiseSrc(a, t0 + 0.9, 11), g = shaped(a, t0 + 0.9, 0.8, 0.07 * (0.5 + big) * near * 2.2, 0.5, 2.4 + 2 * big);
-      n.connect(filt(a, 'highpass', 4800)).connect(g).connect(out); }
+    // (kept low and short: a faint hiss that is soon gone, not a long bright wash over everything)
+    { const n = noiseSrc(a, t0 + 0.9, 4.5), g = shaped(a, t0 + 0.9, 0.6, 0.022 * (0.5 + big) * near * 2.2, 0.2, 0.7 + 0.6 * big);
+      n.connect(filt(a, 'lowpass', 7000)).connect(filt(a, 'highpass', 3600)).connect(g).connect(out); }
   } else {
     // the bubble cloud: a low roar, and the bubbles in it ringing
     { const n = noiseSrc(a, t0 + 0.03, 7), lp = filt(a, 'lowpass', 1300, 0.6), g = shaped(a, t0 + 0.03, 0.05, 0.6 * B, 0.3 + 0.4 * big, 0.9 + big);
@@ -474,13 +510,13 @@ export function breachRise(big: number, d: number, under = false) {
 }
 
 // (?debug: a leap's sound rendered offline into a buffer, to check it or save it as a file)
-export async function renderLeap(big: number, d: number, under: boolean, rise = false, seconds = 12): Promise<AudioBuffer> {
+export async function renderLeap(big: number, d: number, under: boolean, rise: boolean | 'in' | 'out' = false, seconds = 12): Promise<AudioBuffer> {
   const off = new OfflineAudioContext(2, 44100 * seconds, 44100);
   const keep = { ac, natureBus, reverb, noiseBuf, on: audio.on };
   ac = off as unknown as AudioContext; noiseBuf = null; audio.on = true;
   natureBus = off.createGain(); natureBus.connect(off.destination);
   reverb = off.createConvolver(); reverb.buffer = makeImpulse(5.5, 2.4); const wet = off.createGain(); wet.gain.value = 0.35; reverb.connect(wet).connect(off.destination);
-  try { (rise ? breachRise : breachSound)(big, d, under); } finally { ({ ac, natureBus, reverb, noiseBuf } = keep); audio.on = keep.on; }
+  try { if (rise === 'in' || rise === 'out') splash(rise === 'out'); else (rise ? breachRise : breachSound)(big, d, under); } finally { ({ ac, natureBus, reverb, noiseBuf } = keep); audio.on = keep.on; }
   return off.startRendering();
 }
 

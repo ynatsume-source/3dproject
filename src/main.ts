@@ -667,7 +667,7 @@ let helloTimer = 0;
 
 /* ================= above the water ================= */
 function crossSurface(up: boolean) {
-  splash();
+  splash(up);
   if (cur) applySky(cur.loc);   // the night is lit differently on each side of the surface
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
@@ -2111,10 +2111,20 @@ addEventListener('resize', resize);
 let lastTs = 0;
 let guideTimer = 0;
 let autoQ = true, fpsAcc = 0, fpsN = 0, fpsStart = 0, hudTimer = 0, sightTimer = 0, skyTimer = 0, globeTimer = 1;
+// One frame. An error in any part of it is reported (once per kind) and the next frame still comes:
+// the sea must never stop on a single mistake.
+let frameErrs = 0;
 function frame(ts: number) {
+  try { frameBody(ts); }
+  catch (e) {
+    if (frameErrs++ < 3) { console.error(e); track('app_error', { where: 'frame', msg: String((e as Error)?.message ?? e).slice(0, 90) }); }
+  }
+  requestAnimationFrame(frame);
+}
+function frameBody(ts: number) {
   const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016, now = performance.now();
   lastTs = ts;
-  if (gputest) { requestAnimationFrame(frame); return; }   // (the GPU test draws only what it is testing)
+  if (gputest) return;   // (the GPU test draws only what it is testing)
   U.uTime.value += dt;
   clock.advance(dt);
   if (mode === 'globe') {
@@ -2289,7 +2299,6 @@ function frame(ts: number) {
       }
     }
   }
-  requestAnimationFrame(frame);
 }
 
 document.body.classList.add('mode-globe');
