@@ -12,7 +12,7 @@ import { runScenario } from '../src/science/fixture/scenario';
 import { hashOf } from '../src/science/fixture/world';
 import { CONTRACT_VERSION, type ProcessRun } from '../src/science/types';
 
-const outDir = process.argv[2] ?? 'docs/proposals/civilization-sim/runs';
+const outDir = process.argv[2] ?? 'docs/proposals/civilization/science/runs';
 mkdirSync(outDir, { recursive: true });
 
 const d = runScenario();

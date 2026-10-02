@@ -1,4 +1,6 @@
-# 科学コアと本体の接続契約 `civ-sci/0.1`（仮）
+# 科学コアと本体の接続契約 `civ-sci/0.1`（仮・**置き換え済み**）
+
+> 2026-10-02：main の ADR 0002 と `src/world/science-contract.ts`（ScienceStep 0.1.0）が正本になった。この仮契約は試験世界の試作（`src/science/fixture/`）の説明として残す。差分と移行は [ALIGNMENT.md](ALIGNMENT.md)。
 
 状態：**仮の接続仕様**。既存側（共有世界の正本・時刻・在庫・実行器・保存・AI gateway）からの接続仕様メモは、2026-10-02 時点で main にまだない。受け取ったら、この版を改訂して合わせる。型の正本は [`src/science/types.ts`](../../../src/science/types.ts)。
 

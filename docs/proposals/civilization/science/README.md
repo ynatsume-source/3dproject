@@ -2,6 +2,8 @@
 
 2026-10-02 / ブランチ `codex/civilization-simulation` / 基準 main `441b646` / 設計資料 `codex/creative-world-design@c510246` / 接続仕様 [`civ-sci/0.1`（仮）](CONTRACT.md)
 
+> 2026-10-02 追記：main（41ccd18、ADR 0002・ScienceStep 0.1.0）を合流した。本番の入口は `src/science/step/` の ScienceStep で、最初の統合候補は乾燥だけ。分担・契約の差・端数処理は [ALIGNMENT.md](ALIGNMENT.md)。以下は試験世界の試作（civ-sci/0.1）の記録。
+
 **未採択の試作。** アプリ本体・保存形式・ADR は変えていない。main への統合と公開は既存プロジェクトの担当。
 
 ## 何ができたか
@@ -102,7 +104,7 @@
 | `src/science/core.ts` / `types.ts` / `rng.ts` | 入口、契約の型、キーつきの決定的な抽選 |
 | `src/science/fixture/*` | 試験用 adapter（一度だけ確定・版検査・保存）、試験世界、台本 |
 | `scripts/science-clay-check.ts` / `science-clay-report.ts` | 検査と記録の出力 |
-| `docs/proposals/civilization-sim/*` | この資料、接続仕様、実行記録 |
+| `docs/proposals/civilization/science/*` | この資料、接続仕様、実行記録 |
 
 既存ファイルは変更していない。`src/science/` はどこからも import されていないため、アプリのバンドル・見た目・性能・保存互換性への影響はない。
 
