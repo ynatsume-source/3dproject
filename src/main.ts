@@ -1058,7 +1058,8 @@ function goTo(id: string) {
   else if (id === 'eel' && oc.colonies.length) { const c = near(oc.colonies as any[]); const p = c.pos.clone(); p.y += 0.4; s = { key: 'focus:eel', label: name, kind: 'anemone', prio: 5, size: 1.5, pos: () => p, status: () => statusOf('eel'), live: () => true }; }
   else if (id === 'whale') {
     const W = oc.whales;
-    if (!W || !W.seasonal) { showToast('ザトウクジラ', '今は北の海にいます', '冬（12月下旬〜4月上旬）に来遊。時刻パネルの「季節」で冬を選ぶと会えます'); return; }
+    // (a pod still here, even one already leaving at the season's end, can be gone to; with none, out of season, it cannot)
+    if (!W || (!W.seasonal && !W.active)) { showToast('ザトウクジラ', '今は北の海にいます', '冬（12月下旬〜4月上旬）に来遊。時刻パネルの「季節」で冬を選ぶと会えます'); return; }
     if (!W.active) { W.force = true; W.next = 0; }
     s = { key: 'focus:whale', label: name, kind: 'giant', prio: 5, size: 8, pos: () => (W.active ? W.pod[0].pos : null), status: () => statusOf('whale'), live: () => W.active || W.force };   // (gone when the pod has gone: no card left behind)
   } else if ((loc.critters || []).some((c) => c.id === id) && oc.critters) {
@@ -1149,7 +1150,12 @@ function statusOf(id: string): string {
   const f = cur.fish.find((x: any) => x.sp.id === id);
   if (f) return f.status();
   if (id === 'turtle' && cur.turtles.length) { const t = cur.turtles.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return TURTLE_STATE[t.state] || ''; }
-  if (id === 'whale') { const W = cur.whales; return W?.active ? (W.pod.length > 1 ? '親子で泳いでいる' : '悠々と泳いでいる') : W?.seasonal ? '近くの海で子育て中' : '今は北の海にいる（冬に来遊）'; }
+  if (id === 'whale') {
+    const W = cur.whales;
+    if (W?.active && !W.seasonal) return '来遊の季節が終わり、沖へ去っていく';
+    if (W?.active && W.t > W.dur) return '沖へ向かって泳ぎ去っていく';
+    return W?.active ? (W.pod.length > 1 ? '親子で泳いでいる' : '悠々と泳いでいる') : W?.seasonal ? '近くの海で子育て中' : '今は北の海にいる（冬に来遊）';
+  }
   if (id === 'manta' && cur.mantas.length) return cur.mantas[0].feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている';
   if (id === 'sea-otter' && cur.lobosOtters) { const L = cur.lobosOtters.list; const i = L.indexOf(L.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b))); return cur.eco.subjects().find((s: Subject) => s.key === `sea-otter:${i}`)?.status() ?? ''; }
   if (id === 'harbor-seal' && cur.lobosVisitors) return cur.eco.subjects().find((s: Subject) => s.key === 'harbor-seal:visitor' && s.live())?.status() ?? '今は近くに姿が見えない';
@@ -1779,7 +1785,7 @@ const lanternStudyPanel = makeLanternStudyPanel({
 function openDiary(id: string) { if (cur?.residents) diaryBook.show(cur.residents, id, cur.loc.tz); }
 $('povExit').onclick = () => setPov(false);
 $('povMenu').onclick = () => { const on = !document.body.classList.contains('pov-ui'); document.body.classList.toggle('pov-ui', on); $('povMenu').setAttribute('aria-pressed', String(on)); };
-const tap = { moved: 0, t: 0 };
+const tap = { moved: 0, t: 0, woke: false };
 // Things worth going to that are on screen, nearest the point: creatures, the cave, the residents.
 // Only these answer a tap, so touching the screen elsewhere does nothing.
 const _tp = new THREE.Vector3();
@@ -2075,6 +2081,8 @@ canvas.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.setPointerCapture(e.pointerId);
   if (mode === 'globe') { gv.dragging = true; gv.vlon = gv.vlat = 0; dragT = performance.now(); }   // a touch catches a spinning globe
   tap.moved = 0; tap.t = performance.now();
+  // (with the HUD hidden and asleep, a tap only wakes its way back: it does not also send the camera off)
+  tap.woke = document.body.classList.contains('hud-off') && document.body.classList.contains('idle');
   if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
 });
 canvas.addEventListener('pointermove', (e) => {
@@ -2105,7 +2113,7 @@ canvas.addEventListener('pointermove', (e) => {
 const endP = (e: PointerEvent) => {
   if (mode === 'ocean' && pointers.has(e.pointerId)) {
     look.held = false; look.let = performance.now();
-    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup') { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
+    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup' && !tap.woke) { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
   }
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; if (!pointers.size) pinched = false;
   gv.dragging = pointers.size > 0;
@@ -2132,7 +2140,10 @@ canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !wa
   hold($('btnUp'), 1); hold($('btnDown'), -1);
 }
 let idleT = 0;
-addEventListener('pointermove', () => { idleT = performance.now(); document.body.classList.remove('idle'); });
+const wake = () => { idleT = performance.now(); document.body.classList.remove('idle'); };
+addEventListener('pointermove', wake);
+// (a finger that only taps sends no moves: a tap too brings back the way out of the hidden HUD)
+addEventListener('pointerdown', (e) => { wake(); if (e.pointerType === 'touch') idleT += 1500; });   // (and a little longer for a finger to reach it)
 
 // time panel contents
 {
@@ -2264,6 +2275,8 @@ function resize() {
   const dockH = $('dock').offsetHeight || 44;
   $('hint').style.bottom = `calc(${dockH + 26}px + env(safe-area-inset-bottom, 0px))`;
   $('timePanel').style.bottom = `calc(${dockH + 26}px + env(safe-area-inset-bottom, 0px))`;
+  // (never taller than the room above it: its own contents scroll — 30 px for its padding and border)
+  $('timePanel').style.maxHeight = `calc(100dvh - ${dockH + 26 + 8 + 30}px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px))`;
 }
 addEventListener('resize', resize);
 
