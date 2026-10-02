@@ -165,6 +165,9 @@ let stuckT = 0;
 // a low run over the sea to put up flying fish, and the chase alongside them (from the sky)
 let flyRun: { burst: boolean; t: number; side: number; aim?: THREE.Vector3; adir?: THREE.Vector3 } | null = null, flyK = 0, thrust = 0, prevVel = new THREE.Vector3(), flyT = rr(60, 140);
 let lastShot: Shot | null = null;
+// how narrow the screen is: 0 for a landscape monitor, 1 for a phone held upright (aspect 0.45 or less)
+let narrowK = 0;
+const _nl = new THREE.Vector3();
 let huntK = 0, giantK = 0, zoomK = 0, leapWideK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
 // from the field guide; it stays while that is being filmed (on/off, remembered)
@@ -344,10 +347,14 @@ function updateDrone(dt: number, now: number) {
     }
     if (drone.hop && drone.pos.y > 0) _v.y = clamp((way.y - drone.pos.y) * 1.2, -2, 2.5);   // (in the air: up to its height, and level)
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
-    const lk = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
+    let lk: { x: number; y: number; z: number } = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
+    // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
+    // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
+    const sp = lk === shot.look && narrowK > 0 ? shot.subject.pos() : null;
+    if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * 0.75 * narrowK, shot.look.y + (sp.y - shot.look.y) * 0.75 * narrowK, shot.look.z + (sp.z - shot.look.z) * 0.75 * narrowK);
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const leap = !!shot.leapView && shot.phase === 'observe';
-    const k = Math.min(1, dt * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it)
+    const k = Math.min(1, dt * (1 + 1.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
     const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
@@ -565,7 +572,8 @@ function updateDrone(dt: number, now: number) {
   zoomK += ((zoomOn ? 1 : 0) - zoomK) * Math.min(1, dt * (zoomOn ? 0.9 : 0.5));   // (in gently, and gently back out)
   // right beside a leap: a very wide lens, the animal coming at it and up past it
   leapWideK += ((lastShot?.leapView === 'close' && drone.mode === 'auto' && !watch.r ? 1 : 0) - leapWideK) * Math.min(1, dt * 1.2);
-  const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK) * (1 - leapWideK) + 104 * leapWideK;
+  // (a narrow upright screen: a somewhat wider lens, so it does not see only a slit of the world)
+  const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK + 14 * narrowK) * (1 - leapWideK) + 104 * leapWideK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (1 - flyK) * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
@@ -2244,6 +2252,7 @@ function resize() {
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  narrowK = clamp((1 - w / h) / 0.55, 0, 1);
   gcam.aspect = w / h; gcam.fov = w / h < 1 ? 50 : 32;
   if (w > 760) gcam.setViewOffset(w, h, -Math.min(w * 0.2, 260), 0, w, h);
   else gcam.setViewOffset(w, h, 0, h * 0.2, w, h);
