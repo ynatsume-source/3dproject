@@ -1,5 +1,8 @@
 # 最新mainとの接続方針
 
+> 続報：[Claude 90c9d24の回答を受領](CODEX_CLAY_REVIEW.md)。以下は初回提案時点の記録。
+> 乾燥は終了時に一度だけ精算、整数Jは累計の丸め差分。工程入口は `src/science/step/index.ts`、乾燥は `dryPhysics` に一本化する。
+
 基準main：`41ccd18fc0d650f61c786fd5543ce430d480a55e`。
 作業中に追加された `eec8a71` の [ADR 0002](../../adr/0002-shared-world-and-science-core.md)、[本体側の引き継ぎ](SCIENCE_HANDOFF.md)、[ScienceStep 0.1.0](../../../src/world/science-contract.ts) を取り込んだ。共通ファイルは変更していない。
 

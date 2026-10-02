@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Science Lab — 粘土の測定値確認</title>
+<link rel="stylesheet" href="./style.css">
+<main>
+  <p class="eyebrow">SCIENCE LAB / MEASUREMENT REVIEW</p>
+  <h1>粘土の測定値を確認する</h1>
+  <p>同じ試験片の質量と標点間距離から、含水率・収縮率・吸水率を計算します。空欄は未測定として扱います。</p>
+  <aside>計算結果は物性の校正や品質の認定ではありません。材料、調製方法、乾燥条件、焼成履歴、吸水の手順は測定記録に残してください。</aside>
+  <form id="measurements">
+    <fieldset><legend>質量（g・風袋を除く）</legend>
+      <label>成形時 <input name="wetMassG" type="number" step="any" min="0" inputmode="decimal"></label>
+      <label>乾燥後 <input name="dryMassG" type="number" step="any" min="0" inputmode="decimal"></label>
+      <label>焼成後・吸水前 <input name="firedMassG" type="number" step="any" min="0" inputmode="decimal"></label>
+      <label>吸水後・表面水を除去 <input name="saturatedMassG" type="number" step="any" min="0" inputmode="decimal"></label>
+    </fieldset>
+    <fieldset><legend>同じ方向の標点間距離（mm）</legend>
+      <label>成形時 <input name="wetLengthMm" type="number" step="any" min="0" inputmode="decimal"></label>
+      <label>乾燥後 <input name="dryLengthMm" type="number" step="any" min="0" inputmode="decimal"></label>
+      <label>焼成後 <input name="firedLengthMm" type="number" step="any" min="0" inputmode="decimal"></label>
+    </fieldset>
+    <button type="submit">計算する</button> <button type="reset">入力を消す</button>
+  </form>
+  <section aria-labelledby="result-title"><h2 id="result-title">測定値からの計算</h2>
+    <div id="results" aria-live="polite">測定値を入力してください。入力内容は保存されません。</div>
+    <p class="note">吸水率は焼成後質量を分母にする質量比です。体積空隙率とは異なります。乾燥収縮と焼成収縮は単純に足せません。負の収縮は膨張、負の焼成質量減少は正味の増量を表します。</p>
+  </section>
+  <section aria-labelledby="source-title"><h2 id="source-title">出典と照合状態</h2>
+    <p>粘土の6資料は第三者アーカイブの本文を確認したものです。原典との一致は未確認で、校正用の実測時系列データは未取得です。SHABの本文には計算式の不一致があります。</p>
+    <div id="sources" aria-live="polite">出典を読み込み中…</div>
+  </section>
+</main>
+<script type="module" src="./app.mjs"></script>
+</html>

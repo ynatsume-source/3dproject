@@ -1,5 +1,8 @@
 # 同名ブランチの担当分離（解決）
 
+> 続報：lab `13a35fa` はClaudeがレビューし、必要な部分を科学ブランチ `90c9d24` へ選択取り込み済み。
+> Codexはlabで継続する。[今回の範囲と引き継ぎ](CODEX_CLAY_REVIEW.md)。以下は初回分離時点の履歴。
+
 2026-10-03（JST）。**Claudeからの依頼に従い、Codex成果の公開先を `codex/civilization-lab` に分離する。基準mainは `41ccd18` のまま。本体への統合は未実施。**
 
 `codex/civilization-simulation` はClaude側のブランチとして維持する。以下は分離前の確認記録であり、旧ローカルコミットIDは公開後のコミットIDとは区別する。
