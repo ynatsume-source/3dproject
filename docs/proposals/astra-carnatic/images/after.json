@@ -1,0 +1,113 @@
+{
+  "poseStates": [
+    {
+      "name": "overview",
+      "requestedPosition": [
+        47,
+        -5,
+        -35
+      ],
+      "requestedLook": [
+        5,
+        -14,
+        -3
+      ],
+      "camera": [
+        47,
+        -4.967337457258482,
+        -35
+      ],
+      "lamp": 0
+    },
+    {
+      "name": "frames",
+      "requestedPosition": [
+        8,
+        -11,
+        -20
+      ],
+      "requestedLook": [
+        19,
+        -14,
+        -3
+      ],
+      "camera": [
+        8,
+        -10.974990598644194,
+        -20
+      ],
+      "lamp": 0
+    },
+    {
+      "name": "stern",
+      "requestedPosition": [
+        -50,
+        -12,
+        -18
+      ],
+      "requestedLook": [
+        -28,
+        -15,
+        -2
+      ],
+      "camera": [
+        -50,
+        -11.985577434139556,
+        -18
+      ],
+      "lamp": 0
+    },
+    {
+      "name": "broadside",
+      "requestedPosition": [
+        4,
+        -10,
+        -45
+      ],
+      "requestedLook": [
+        6,
+        -15,
+        1
+      ],
+      "camera": [
+        4,
+        -9.998576594437969,
+        -45
+      ],
+      "lamp": 0
+    },
+    {
+      "name": "bow",
+      "requestedPosition": [
+        59,
+        -13,
+        -14
+      ],
+      "requestedLook": [
+        41,
+        -16,
+        -1
+      ],
+      "camera": [
+        59,
+        -13.01173546145783,
+        -14
+      ],
+      "lamp": 0
+    }
+  ],
+  "state": {
+    "sea": "carnatic",
+    "camera": [
+      59,
+      -13.01173546145783,
+      -14
+    ],
+    "fish": 17,
+    "vertices": 73396,
+    "glError": 0,
+    "lost": false,
+    "err": false
+  },
+  "errors": []
+}

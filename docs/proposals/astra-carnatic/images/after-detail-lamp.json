@@ -1,0 +1,16 @@
+{
+  "state": {
+    "sea": "carnatic",
+    "camera": [
+      24,
+      -7.886074159851309,
+      -12
+    ],
+    "fish": 17,
+    "vertices": 73396,
+    "glError": 0,
+    "lost": false,
+    "err": false
+  },
+  "errors": []
+}

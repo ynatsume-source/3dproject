@@ -1,0 +1,280 @@
+{
+  "measuredAt": "2026-10-01T17:05:50.400Z",
+  "method": "Headless TypeScript. For each wreck: seedRandom(97); new Wreck(Carnatic.wreck, Carnatic.f). Current coral instances additionally matched by their world positions in the real buildOcean(Carnatic) result. Original attached corals additionally measured through an unchanged copy of buildOcean whose sole modified import selected the original Wreck and wreckMaterial; all 87 anchors were matched to resulting instances by world position.",
+  "originalCommit": "7124cc649a881a805499eb6effa37caa49a92e3d",
+  "currentSourceSha256": "d95717e65eda8eca01fe43e15f736a05ec5792ccff9871c558e09906a3256f70",
+  "originalSourceSha256": "80966712e9e395c332037d56c40e4f95d438478abb66638865af34414b665c3f",
+  "before": {
+    "vertices": 5553,
+    "triangles": 8580,
+    "attributes": {
+      "position": {
+        "components": 3,
+        "vertices": 5553,
+        "storage": "Float32Array",
+        "bytes": 66636
+      },
+      "normal": {
+        "components": 3,
+        "vertices": 5553,
+        "storage": "Float32Array",
+        "bytes": 66636
+      },
+      "aPart": {
+        "components": 1,
+        "vertices": 5553,
+        "storage": "Float32Array",
+        "bytes": 22212
+      },
+      "aSP": {
+        "components": 2,
+        "vertices": 5553,
+        "storage": "Float32Array",
+        "bytes": 44424
+      }
+    },
+    "attributeBytes": 199908,
+    "indexBytes": 51480,
+    "indexStorage": "Uint16Array",
+    "totalBufferBytes": 251388,
+    "collisionPoints": 5553,
+    "coralAnchors": 87
+  },
+  "after": {
+    "vertices": 73396,
+    "triangles": 36698,
+    "attributes": {
+      "position": {
+        "components": 3,
+        "vertices": 73396,
+        "storage": "Float32Array",
+        "bytes": 880752
+      },
+      "normal": {
+        "components": 3,
+        "vertices": 73396,
+        "storage": "Float32Array",
+        "bytes": 880752
+      },
+      "aPart": {
+        "components": 1,
+        "vertices": 73396,
+        "storage": "Float32Array",
+        "bytes": 293584
+      },
+      "aUV": {
+        "components": 2,
+        "vertices": 73396,
+        "storage": "Float32Array",
+        "bytes": 587168
+      },
+      "aShade": {
+        "components": 1,
+        "vertices": 73396,
+        "storage": "Float32Array",
+        "bytes": 293584
+      }
+    },
+    "attributeBytes": 2935840,
+    "indexBytes": 440376,
+    "indexStorage": "Uint32Array",
+    "totalBufferBytes": 3376216,
+    "collisionPoints": 3427,
+    "coralAnchors": 40
+  },
+  "ratios": {
+    "vertices": 13.217359985593372,
+    "triangles": 4.2771561771561775,
+    "totalBufferBytes": 13.430298980062691,
+    "coralAnchors": 0.45977011494252873
+  },
+  "currentParts": [
+    {
+      "part": 0,
+      "label": "shell plating",
+      "vertices": 8048,
+      "triangles": 4024,
+      "attributeBytes": 321920,
+      "indexBytes": 48288,
+      "totalBufferBytes": 370208
+    },
+    {
+      "part": 1,
+      "label": "ribs and longitudinal members",
+      "vertices": 37536,
+      "triangles": 18768,
+      "attributeBytes": 1501440,
+      "indexBytes": 225216,
+      "totalBufferBytes": 1726656
+    },
+    {
+      "part": 2,
+      "label": "cut edges, spars, posts and debris",
+      "vertices": 3236,
+      "triangles": 1618,
+      "attributeBytes": 129440,
+      "indexBytes": 19416,
+      "totalBufferBytes": 148856
+    },
+    {
+      "part": 3,
+      "label": "interpretive machinery",
+      "vertices": 576,
+      "triangles": 288,
+      "attributeBytes": 23040,
+      "indexBytes": 3456,
+      "totalBufferBytes": 26496
+    },
+    {
+      "part": 4,
+      "label": "small surface nodules",
+      "vertices": 9600,
+      "triangles": 4800,
+      "attributeBytes": 384000,
+      "indexBytes": 57600,
+      "totalBufferBytes": 441600
+    },
+    {
+      "part": 5,
+      "label": "open tube sponges",
+      "vertices": 14400,
+      "triangles": 7200,
+      "attributeBytes": 576000,
+      "indexBytes": 86400,
+      "totalBufferBytes": 662400
+    }
+  ],
+  "mergedSurfaceGrowth": {
+    "parts": [
+      4,
+      5
+    ],
+    "triangles": 12000,
+    "totalBufferBytes": 1104000,
+    "extraMeshDrawCalls": 0
+  },
+  "existingCoralGeometry": {
+    "fan": {
+      "base": {
+        "vertices": 1512,
+        "triangles": 504,
+        "attributes": {
+          "position": {
+            "components": 3,
+            "vertices": 1512,
+            "storage": "Float32Array",
+            "bytes": 18144
+          },
+          "normal": {
+            "components": 3,
+            "vertices": 1512,
+            "storage": "Float32Array",
+            "bytes": 18144
+          },
+          "aTip": {
+            "components": 1,
+            "vertices": 1512,
+            "storage": "Float32Array",
+            "bytes": 6048
+          }
+        },
+        "attributeBytes": 42336,
+        "indexBytes": 0,
+        "indexStorage": null,
+        "totalBufferBytes": 42336
+      },
+      "high": null
+    },
+    "softCoral": {
+      "base": {
+        "vertices": 9306,
+        "triangles": 3102,
+        "attributes": {
+          "position": {
+            "components": 3,
+            "vertices": 9306,
+            "storage": "Float32Array",
+            "bytes": 111672
+          },
+          "normal": {
+            "components": 3,
+            "vertices": 9306,
+            "storage": "Float32Array",
+            "bytes": 111672
+          },
+          "aTip": {
+            "components": 1,
+            "vertices": 9306,
+            "storage": "Float32Array",
+            "bytes": 37224
+          }
+        },
+        "attributeBytes": 260568,
+        "indexBytes": 0,
+        "indexStorage": null,
+        "totalBufferBytes": 260568
+      },
+      "high": null
+    }
+  },
+  "currentAttachedCorals": {
+    "fanInstances": 8,
+    "softCoralInstances": 32,
+    "trianglesIfAllInstancesSubmitted": 103296,
+    "instanceAttributeBytes": 3680,
+    "occupiedKindAndSpatialCellBuckets": 10,
+    "highDetailGeometryExists": false,
+    "fanTrianglesIfAllInstancesSubmitted": 4032,
+    "softCoralTrianglesIfAllInstancesSubmitted": 99264
+  },
+  "coralScenarios": [
+    {
+      "anchors": 40,
+      "instanceAttributeBytes": 3680,
+      "allFanTriangles": 20160,
+      "allSoftCoralTriangles": 124080,
+      "expectedTrianglesAt20PercentFan": 103296
+    },
+    {
+      "anchors": 56,
+      "instanceAttributeBytes": 5152,
+      "allFanTriangles": 28224,
+      "allSoftCoralTriangles": 173712,
+      "expectedTrianglesAt20PercentFan": 144614.4
+    }
+  ],
+  "scope": [
+    "Buffer bytes sum typed vertex-attribute arrays and the index array. They do not include JS objects, collision Vector3 objects, temporary construction arrays, allocator/driver overhead, textures, shader programs, duplicate CPU/GPU storage, or the rest of the ocean.",
+    "Current mesh exceeds 65,535 vertices, so Three.js selects Uint32 indices; the original uses Uint16.",
+    "Part buffer bytes allocate the existing shared-mesh arrays by part; they do not describe separate meshes or an alternate index format.",
+    "Both wrecks use one mesh and one material. Merged nodule and sponge geometry increases vertex/index work without extra mesh draw calls.",
+    "fan[0] and mushroom[2] share the existing coral base geometry and material. Neither has CORAL_GEO_HI. Each added instance has a 16-float matrix plus 3+3+1 floats for its two colors and seed, totaling 92 bytes.",
+    "Attached corals join existing kind/variant/40 m cell instanced batches. Occupied buckets are not necessarily additional draw calls: a bucket may already exist for other coral.",
+    "Instanced triangle figures are submissions if all those instances are drawn once, before screen clipping and occlusion. Visibility culling, extra render passes, resolution, shaders, and GPU hardware change actual cost.",
+    "The 20%-fan scenario is an expectation from buildOcean probability, not a measured per-build allocation. The measured current distribution is recorded separately.",
+    "No FPS, GPU frame time, peak memory or real-device performance was measured. These geometry counts are not a frame-rate comparison.",
+    "The original and current attached-coral distributions were each measured through their actual buildOcean flow. Original Wreck consumes the shared seeded random stream, while the current visual geometry uses its own stream; full surrounding-ocean layouts may therefore differ. The combined comparison isolates the wreck and its matched attachments, not the whole scene."
+  ],
+  "originalAttachedCorals": {
+    "fanInstances": 15,
+    "softCoralInstances": 72,
+    "fanTrianglesIfAllInstancesSubmitted": 7560,
+    "softCoralTrianglesIfAllInstancesSubmitted": 223344,
+    "trianglesIfAllInstancesSubmitted": 230904,
+    "instanceAttributeBytes": 8004,
+    "occupiedKindAndSpatialCellBuckets": 10,
+    "highDetailGeometryExists": false
+  },
+  "combinedWreckAndAttachedCorals": {
+    "scope": "Wreck mesh plus all its attached fan/soft-coral instances submitted once, excluding the surrounding ocean, visibility culling, clipping, and extra render passes. Arithmetic geometry-work comparison, not measured GPU frame cost.",
+    "originalTriangles": 239484,
+    "currentTriangles": 139994,
+    "currentToOriginalRatio": 0.5845651484023985,
+    "originalOwnBufferAndInstanceAttributeBytes": 259392,
+    "currentOwnBufferAndInstanceAttributeBytes": 3379896,
+    "memoryScope": "Wreck geometry buffers plus its attached instances only; shared pre-existing coral base geometry and material are excluded. CPU/GPU copies and driver overhead are excluded."
+  },
+  "originalAttachedCoralsMeasuredAt": "2026-10-01T17:10:19.533Z",
+  "currentGeometryRefreshedAt": "2026-10-01T17:11:47.921Z",
+  "currentGeometryRefresh": "Rechecked after the sponge profile change: every geometry attribute/index byte count, part triangle count and the measured 8-fan/32-soft-coral distribution are unchanged; collision-point count and source SHA were refreshed from the current source."
+}

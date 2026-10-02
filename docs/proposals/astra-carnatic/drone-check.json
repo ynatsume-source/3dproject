@@ -1,0 +1,27 @@
+{
+  "tours": [
+    {
+      "reverse": false,
+      "observed": true,
+      "complete": true,
+      "steps": 4262,
+      "minGround": 2.9969332458623423,
+      "maxLag": 2.142904256195771,
+      "endError": 0.03340640662243611
+    },
+    {
+      "reverse": true,
+      "observed": true,
+      "complete": true,
+      "steps": 4262,
+      "minGround": 3.483115236042355,
+      "maxLag": 2.1486479579092177,
+      "endError": 0.03274895470831741
+    }
+  ],
+  "gl": {
+    "error": 0,
+    "lost": false
+  },
+  "errors": []
+}
