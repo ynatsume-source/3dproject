@@ -38,6 +38,7 @@ import { TIERS, detectTier, type Tier } from './quality';
 import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
+import { makeLanternStudyPanel } from './ui/lantern-study';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
 initAnalytics();   // (on the public site only)
 
@@ -1164,7 +1165,7 @@ function renderIsland() {
     const st = r.stats, work = r.id === 'dot' ? `小屋の部材 ${st.built}/24` : r.id === 'kame' ? `観察記録 ${st.notes}件` : r.id === 'lantern' ? `目印の石積み ${st.cairns}` : `集めた貝殻 ${st.shells}個・割った貝 ${st.cracked}個`;
     return `<li class="res"><i style="background:${r.sp.color}"></i><b>${r.v.name}</b><em>${r.v.en}</em><span class="st">いま：${R.status(r)}・${R.vitals(r)}</span>
       <p>${r.v.trait}</p><p class="work">${work}</p><div class="rels">${rel}</div>${diary ? `<ol class="diary">${diary}</ol>` : ''}
-      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button><button class="go" type="button" data-diary="${r.id}">日記帳をひらく</button></li>`;
+      <button class="go" type="button" data-go="robot:${r.id}">会いに行く</button><button class="go" type="button" data-watch="${r.id}">上から見守る</button><button class="go" type="button" data-diary="${r.id}">日記帳をひらく</button>${r.id === 'lantern' && R.study ? '<button class="go" type="button" data-lantern-study>星の手帖と、いま気になること</button>' : ''}</li>`;
   }).join('');
   const talk = R.talks.filter((e: any) => !e.head).slice(-6).reverse().map((e: any) => `<li><time>${t(e.at)}</time>${e.who ? `${R.list.find((r: any) => r.id === e.who)?.v.name ?? ''}「${e.text}」` : e.text}</li>`).join('');
   const key = aiKey();
@@ -1238,6 +1239,7 @@ function refreshGuide() {
   }
 }
 guideEl.addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).closest('[data-lantern-study]')) { lanternStudyPanel.show(); return; }
   const g = (e.target as HTMLElement).closest('[data-go]') as HTMLElement | null;
   if (g) { goTo(g.dataset.go!); return; }
   const dy = (e.target as HTMLElement).closest('[data-diary]') as HTMLElement | null;
@@ -1602,6 +1604,7 @@ async function dive(loc: Sea) {
 }
 async function toGlobe() {
   if (busy || mode !== 'ocean') return; busy = true;
+  lanternStudyPanel.close();
   const loc = cur!.loc;
   veil(true, 'SURFACING', '地球儀へ戻ります', `${loc.name} から浮上中`);
   await wait(750);
@@ -1653,6 +1656,15 @@ document.addEventListener('pointerdown', (e) => { if (document.body.classList.co
 const look = { yaw: 0, pitch: 0, held: false, let: 0 };
 const pov = makePov($('pov'));
 const diaryBook = makeDiaryBook($('diaryBook'));
+const lanternStudyPanel = makeLanternStudyPanel({
+  getState: () => cur?.residents?.study?.state ?? null,
+  getStatus: () => { const r = cur?.residents?.list.find((r: any) => r.id === 'lantern'); return r ? cur!.residents!.status(r) : ''; },
+  setAiEnabled: (on) => { cur?.residents?.study?.setAiEnabled(on); cur?.residents?.save(); },
+  hasApiKey: () => !!aiKey(),
+  follow: () => { const r = cur?.residents?.list.find((r: any) => r.id === 'lantern'); if (r) startWatch(r); },
+  getWorldTime: () => cur?.residents?.worldTime ?? Date.now(),
+  getViewingTime: () => clock.ms,
+});
 function openDiary(id: string) { if (cur?.residents) diaryBook.show(cur.residents, id, cur.loc.tz); }
 $('povExit').onclick = () => setPov(false);
 $('povMenu').onclick = () => { const on = !document.body.classList.contains('pov-ui'); document.body.classList.toggle('pov-ui', on); $('povMenu').setAttribute('aria-pressed', String(on)); };
@@ -1884,6 +1896,7 @@ const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyQ', 'KeyC', 'Space', '
 const PRESET_KEYS: Record<string, Preset> = { Digit1: 'dawn', Digit2: 'noon', Digit3: 'dusk', Digit4: 'night' };
 addEventListener('keydown', (e) => {
   const tgt = e.target as HTMLElement;
+  if (lanternStudyPanel.open) return;
   if (tgt.closest && tgt.closest('button') && (e.code === 'Space' || e.code === 'Enter')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
@@ -2155,7 +2168,10 @@ function frame(ts: number) {
       const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(9, watch.dist * 1.6)); else cut.w = 0; }
     const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.focus(watch.r);
-    cur.residents?.update(dt, clock.ms, drone.pos);
+    cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
+    // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
+    cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos);
+    lanternStudyPanel.update(dt);
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; if (!watch.pov) renderWatch(); }
     if (watch.pov && watch.r && cur.residents) {
       // (Kamemaru names the creatures it sees)
@@ -2305,6 +2321,7 @@ void smooth;
 if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

@@ -6,30 +6,91 @@ import type { Voice } from './voices';
 const KEY = 'seaglass.aikey', MODEL = 'claude-haiku-4-5-20251001';
 const DAILY = 120;   // at most this many calls a day
 let busy = false;
+let memoryKey: string | null = null, memoryDay = '', memoryUsed = 0, sessionKeyOverride = false;
 
-export function aiKey(): string | null { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
-export function setAiKey(k: string | null) { try { if (k) localStorage.setItem(KEY, k.trim()); else localStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
+export function aiKey(): string | null {
+  if (!sessionKeyOverride) try { memoryKey = localStorage.getItem(KEY); } catch (e) { /* session fallback */ }
+  return memoryKey;
+}
+export function setAiKey(k: string | null) {
+  memoryKey = k?.trim() || null;
+  try {
+    if (memoryKey) localStorage.setItem(KEY, memoryKey); else localStorage.removeItem(KEY);
+    sessionKeyOverride = false;
+  } catch (e) { sessionKeyOverride = true; }
+}
 export function aiReady() { return !!aiKey() && !busy && used() < DAILY; }
 export let aiLastError = '';
 function used() {
-  try { const s = JSON.parse(localStorage.getItem('seaglass.aiuse') || '{}'); return s.d === new Date().toDateString() ? s.n : 0; } catch (e) { return 0; }
-}
-function count() { try { localStorage.setItem('seaglass.aiuse', JSON.stringify({ d: new Date().toDateString(), n: used() + 1 })); } catch (e) { /* ignore */ } }
-
-async function ask(system: string, user: string, maxTokens = 700): Promise<string | null> {
-  const key = aiKey(); if (!key || busy) return null;
-  busy = true; count();
+  const day = new Date().toDateString();
+  if (memoryDay !== day) { memoryDay = day; memoryUsed = 0; }
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] }),
-    });
-    if (!r.ok) { aiLastError = `${r.status} ${(await r.text()).slice(0, 160)}`; return null; }
-    const j = await r.json();
+    const s = JSON.parse(localStorage.getItem('seaglass.aiuse') || '{}');
+    if (s?.d === day && Number.isSafeInteger(s.n) && s.n >= 0) memoryUsed = Math.max(memoryUsed, s.n);
+  } catch (e) { /* quota still applies when storage is unavailable */ }
+  return memoryUsed;
+}
+function count() {
+  memoryUsed = used() + 1;
+  try { localStorage.setItem('seaglass.aiuse', JSON.stringify({ d: memoryDay, n: memoryUsed })); } catch (e) { /* session fallback */ }
+}
+
+class TransportError extends Error {}
+async function boundedResponse(r: Response): Promise<unknown> {
+  const reader = r.body?.getReader();
+  if (!reader) throw new TransportError('API の応答を読み取れませんでした。');
+  const decoder = new TextDecoder(); let size = 0, text = '';
+  try {
+    while (true) {
+      const chunk = await reader.read(); if (chunk.done) break;
+      size += chunk.value.byteLength;
+      if (size > 64 * 1024) { void reader.cancel().catch(() => {}); throw new TransportError('API の応答が長すぎました。'); }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    return JSON.parse(text + decoder.decode());
+  } finally { reader.releaseLock(); }
+}
+
+// Conversations and optional resident decisions share one request slot and the same daily budget.
+// Failures count too. No network work starts without a key; aborted requests do not hold the slot.
+export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal } = {}): Promise<string | null> {
+  const key = aiKey(); if (!key || busy || options.signal?.aborted || used() >= DAILY) return null;
+  busy = true; count();
+  const controller = new AbortController(); let timedOut = false;
+  const cancel = () => controller.abort();
+  options.signal?.addEventListener('abort', cancel, { once: true });
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 8000);
+  let onAbort: () => void;
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => reject(new TransportError('API の応答待ちを中止しました。'));
+    controller.signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    const request = async () => {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST', signal: controller.signal,
+        headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: MODEL, max_tokens: Math.max(1, Math.min(1200, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
+      });
+      if (!r.ok) throw new TransportError(`API エラー (HTTP ${Number.isInteger(r.status) ? r.status : 0})。`);
+      const j = await boundedResponse(r) as { content?: { type?: string; text?: string }[] };
+      if (!Array.isArray(j?.content)) throw new TransportError('API の応答形式を読み取れませんでした。');
+      const text = j.content.filter(c => c?.type === 'text' && typeof c.text === 'string').map(c => c.text).join('');
+      if (!text || text.length > 16000) throw new TransportError('API の応答形式を読み取れませんでした。');
+      return text;
+    };
+    const text = await Promise.race([request(), aborted]);
     aiLastError = '';
-    return (j.content || []).map((c: any) => c.text || '').join('');
-  } catch (e: any) { aiLastError = String(e?.message || e); return null; } finally { busy = false; }
+    return text;
+  } catch (e) {
+    // Never display a response body or network exception: either may contain credentials or HTML.
+    aiLastError = timedOut ? 'API の応答が8秒以内に届きませんでした。' :
+      e instanceof TransportError ? e.message : 'API へ接続できなかったか、応答を読み取れませんでした。';
+    return null;
+  } finally {
+    clearTimeout(timeout); options.signal?.removeEventListener('abort', cancel);
+    controller.signal.removeEventListener('abort', onAbort!); controller.abort(); busy = false;
+  }
 }
 
 const STAGE_GOAL = [
@@ -52,7 +113,7 @@ export async function aiConverse(a: Voice, b: Voice, stage: number, stageName: s
     'A が話しかける。4〜7行、1行40字以内、それぞれの口調を守る。最後はどちらかの短い別れの言葉。',
     '形式: [{"who":"A","text":"…"},{"who":"B","text":"…"}]',
   ].filter(Boolean).join('\n');
-  const out = await ask(system, user);
+  const out = await requestAiText(system, user);
   if (!out) return null;
   try {
     const m = out.match(/\[[\s\S]*\]/); if (!m) return null;

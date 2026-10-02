@@ -317,7 +317,11 @@ export function buildOcean(loc) {
     if (fan) items.fan[0].push(it); else { it.soft = 2; items.mushroom[2].push(it); }
   }
   if (land) oc.shore = buildShore(loc, group, T, obst);
-  if (loc.residents) { oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja)); group.add(oc.residents.group); }
+  if (loc.residents) {
+    const lanternStudy = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lantern-study');
+    oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja), { lanternStudy });
+    group.add(oc.residents.group);
+  }
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // life and litter on the sand: broken coral, shells, sea cucumbers and blue starfish (placed over an area:

@@ -331,6 +331,36 @@ export function robotKit(M: Mats, shadows = false) {
     const dotEye = ball(0.02, M.glow); dotEye.position.set(0, 0.11, 0.225); top.add(dotEye);
     // a lamp under the box, lit at night to see the path by
     const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), M.warm.clone()); lamp.rotation.x = Math.PI / 2; lamp.position.y = -0.072; top.add(lamp);
+    // A fold-out recording slate, only while making a study. The lens scans it with a fine light;
+    // these small marks show the act of recording, not a second catalogue or a claimed observation.
+    // The completed, dated star chart belongs to the world's study record, outside the model.
+    const study = new THREE.Group(); study.name = 'lantern-study-slate'; study.visible = false; body.add(study);
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.24, 12), M.joint);
+    hinge.rotation.z = Math.PI / 2; hinge.position.set(0, 0.39, 0.22); study.add(hinge);
+    const slate = new THREE.Group(); slate.position.copy(hinge.position); study.add(slate);
+    const slateFrame = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.018, 0.27), M.panel);
+    slateFrame.position.z = 0.135; slate.add(slateFrame);
+    const slateFace = new THREE.Mesh(new THREE.BoxGeometry(0.265, 0.003, 0.244), M.dark);
+    slateFace.position.set(0, 0.0105, 0.135); slate.add(slateFace);
+    const marks: [number, number][] = [[-0.085, 0.065], [-0.043, 0.117], [0.018, 0.092], [0.077, 0.159], [0.035, 0.212], [-0.056, 0.186]];
+    const markVerts: number[] = [], traceVerts: number[] = [];
+    for (const [x, z] of marks) for (let k = 0; k < 8; k++) {
+      const a = k / 8 * Math.PI * 2, b = (k + 1) / 8 * Math.PI * 2;
+      markVerts.push(x, 0.013, z, x + Math.cos(b) * 0.0035, 0.013, z + Math.sin(b) * 0.0035, x + Math.cos(a) * 0.0035, 0.013, z + Math.sin(a) * 0.0035);
+    }
+    for (let i = 1; i < marks.length; i++) {
+      const [ax, az] = marks[i - 1], [bx, bz] = marks[i], d = Math.hypot(bx - ax, bz - az), ox = -(bz - az) / d * 0.00065, oz = (bx - ax) / d * 0.00065;
+      traceVerts.push(ax + ox, 0.0125, az + oz, bx + ox, 0.0125, bz + oz, ax - ox, 0.0125, az - oz,
+        ax - ox, 0.0125, az - oz, bx + ox, 0.0125, bz + oz, bx - ox, 0.0125, bz - oz);
+    }
+    const recordingMesh = (vertices: number[]) => {
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3)); geo.computeVertexNormals();
+      const mesh = new THREE.Mesh(geo, M.glow); slate.add(mesh); return mesh;
+    };
+    const dots = recordingMesh(markVerts), trace = recordingMesh(traceVerts);
+    const cursor = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 8, 4), M.glow); slate.add(cursor);
+    const ray = new THREE.Mesh(new THREE.CylinderGeometry(0.0007, 0.0011, 1, 6, 1, true), M.glow); study.add(ray);
+    const rayFrom = new THREE.Vector3(), rayTo = new THREE.Vector3(), rayDir = new THREE.Vector3(), rayUp = new THREE.Vector3(0, 1, 0);
     const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz], i) => {
       const hip = new THREE.Group(); hip.position.set(sx * 0.2, 0.48, sz * 0.2); hip.rotation.y = Math.atan2(sx, sz); body.add(hip);
       // knee held out level with the hip, shin dropping to the sand: a spider's stance
@@ -354,7 +384,7 @@ export function robotKit(M: Mats, shadows = false) {
       l.a.pivot.rotation.set(alpha, 0, 0); l.b.pivot.rotation.x = beta;
     };
     const STRIDE = 0.6, REACH = STRIDE / 4;   // (a full cycle of the legs every 0.6 m; each foot bears weight for half of it)
-    let sleepK = 0, probeK = 0, sitK = 0;
+    let sleepK = 0, probeK = 0, sitK = 0, drawK = 0;
     const gaze = makeGaze(0.62, 0.4, 0.5, 3);   // (it looks with its whole body: round a little further than a head would go)
     return { root, light: lamp, update(t, dt, p = DEMO) {
       const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, STRIDE, 3 * 1.6 / STRIDE * 0.4);
@@ -387,6 +417,25 @@ export function robotKit(M: Mats, shadows = false) {
       // no head: it looks with the whole box, turned and tipped a little, and the dot of its eye
       top.rotation.y = gaze.yaw * gaze.w * (1 - sleepK); top.rotation.x += gaze.pitch * 0.5 * gaze.w * (1 - sleepK);
       dotEye.position.x = Math.sin(t * 0.7) * 0.05 * (1 - gaze.w) + Math.max(-0.06, Math.min(0.06, gaze.yaw * 0.12)) * gaze.w;
+      const drawing = p.task === 'study-draw' && p.act === 'work' && walk < 0.03;
+      drawK = drawing ? drawK + (1 - drawK) * Math.min(1, dt * 2.5) : 0;
+      study.visible = drawing;
+      dotEye.position.y = 0.11;
+      if (drawing) {
+        const elapsed = p.elapsed ?? t, cycle = ((elapsed % 14) + 14) % 14, phase = Math.min(5, cycle / 1.9), index = Math.min(4, Math.floor(phase)), f = smoothStep(0.15, 0.85, phase - index);
+        const [ax, az] = marks[index], [bx, bz] = marks[index + 1];
+        cursor.position.set(ax + (bx - ax) * f, 0.018, az + (bz - az) * f);
+        dots.geometry.setDrawRange(0, (Math.min(6, Math.floor(phase) + 1)) * 24);
+        trace.geometry.setDrawRange(0, Math.min(5, Math.floor(phase)) * 6);
+        slate.rotation.x = -0.8 * (1 - drawK) + 0.14 * drawK;
+        top.rotation.x += (0.16 + 0.014 * Math.sin(elapsed * 1.4)) * drawK;
+        top.rotation.y += cursor.position.x * 0.32 * drawK;
+        dotEye.position.x += cursor.position.x * 0.16 * drawK; dotEye.position.y -= 0.018 * drawK;
+        top.updateMatrix(); slate.updateMatrix();
+        rayFrom.set(0, 0.11, 0.24).applyMatrix4(top.matrix); rayTo.copy(cursor.position).applyMatrix4(slate.matrix);
+        rayDir.subVectors(rayTo, rayFrom); ray.position.copy(rayFrom).add(rayTo).multiplyScalar(0.5);
+        ray.scale.y = rayDir.length(); ray.quaternion.setFromUnitVectors(rayUp, rayDir.normalize());
+      }
       lamp.visible = (p.night ?? 0) > 0.4 && p.act !== 'sleep';
     } };
   }
