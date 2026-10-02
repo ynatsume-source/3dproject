@@ -652,3 +652,17 @@ body.hud-off #sharedBadge { display: none; }
 @keyframes replayPulse { 50% { transform: scale(0.6); } }
 @media (max-width: 560px) { #btnReplay.armed .lbl { display: inline; } }
 @media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } }
+
+/* a first sighting: a faint ring round the animal itself, its name beside it; a tap goes to watch it */
+#newMark { position: fixed; left: 0; top: 0; z-index: 5; --r: 30px; padding: 0; border: 0; background: none; color: #e8f6f6; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+#newMark.on { opacity: 1; pointer-events: auto; }
+#newMark i { position: absolute; left: calc(var(--r) * -1); top: calc(var(--r) * -1); width: calc(var(--r) * 2); height: calc(var(--r) * 2);
+  border-radius: 50%; border: 1.5px solid rgba(190, 240, 235, 0.55); box-shadow: 0 0 12px rgba(150, 230, 225, 0.25); }
+#newMark.on i { animation: newMarkIn 1.2s ease-out; }
+@keyframes newMarkIn { from { transform: scale(1.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#newMark span { position: absolute; left: calc(var(--r) + 8px); top: -16px; display: flex; flex-direction: column; text-align: left; white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0, 20, 30, 0.8); }
+#newMark b { font: 500 9px/1.2 'IBM Plex Mono', monospace; letter-spacing: .2em; color: rgba(170, 235, 225, 0.85); }
+#newMark em { font-style: normal; font-size: 14px; letter-spacing: .08em; }
+body.hud-off #newMark { display: none; }

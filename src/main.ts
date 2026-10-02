@@ -165,6 +165,9 @@ let stuckT = 0;
 // a low run over the sea to put up flying fish, and the chase alongside them (from the sky)
 let flyRun: { burst: boolean; t: number; side: number; aim?: THREE.Vector3; adir?: THREE.Vector3 } | null = null, flyK = 0, thrust = 0, prevVel = new THREE.Vector3(), flyT = rr(60, 140);
 let lastShot: Shot | null = null;
+// how narrow the screen is: 0 for a landscape monitor, 1 for a phone held upright (aspect 0.45 or less)
+let narrowK = 0;
+const _nl = new THREE.Vector3();
 let huntK = 0, giantK = 0, zoomK = 0, leapWideK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
 // from the field guide; it stays while that is being filmed (on/off, remembered)
@@ -344,10 +347,14 @@ function updateDrone(dt: number, now: number) {
     }
     if (drone.hop && drone.pos.y > 0) _v.y = clamp((way.y - drone.pos.y) * 1.2, -2, 2.5);   // (in the air: up to its height, and level)
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
-    const lk = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
+    let lk: { x: number; y: number; z: number } = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
+    // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
+    // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
+    const sp = lk === shot.look && narrowK > 0 ? shot.subject.pos() : null;
+    if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * 0.75 * narrowK, shot.look.y + (sp.y - shot.look.y) * 0.75 * narrowK, shot.look.z + (sp.z - shot.look.z) * 0.75 * narrowK);
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const leap = !!shot.leapView && shot.phase === 'observe';
-    const k = Math.min(1, dt * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it)
+    const k = Math.min(1, dt * (1 + 1.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
     const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
@@ -565,7 +572,8 @@ function updateDrone(dt: number, now: number) {
   zoomK += ((zoomOn ? 1 : 0) - zoomK) * Math.min(1, dt * (zoomOn ? 0.9 : 0.5));   // (in gently, and gently back out)
   // right beside a leap: a very wide lens, the animal coming at it and up past it
   leapWideK += ((lastShot?.leapView === 'close' && drone.mode === 'auto' && !watch.r ? 1 : 0) - leapWideK) * Math.min(1, dt * 1.2);
-  const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK) * (1 - leapWideK) + 104 * leapWideK;
+  // (a narrow upright screen: a somewhat wider lens, so it does not see only a slit of the world)
+  const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK + 14 * narrowK) * (1 - leapWideK) + 104 * leapWideK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (1 - flyK) * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
   camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
@@ -1277,13 +1285,39 @@ guideEl.addEventListener('click', (e) => {
   }
 });
 let toastTimer = 0;
-function discover(e?: { id: string; ja: string; sci: string }) {
+// A first sighting is marked where the animal is, not announced across the top of the screen: a faint ring
+// round it with its name, following it for a few seconds. A tap on it goes over to watch it for a while.
+type Where3 = { x: number; y: number; z: number };
+let newMark: { at: () => Where3 | null; ja: string; size: number; t: number } | null = null;
+function updateNewMark(dt: number) {
+  const el = $('newMark');
+  if (!newMark) { el.classList.remove('on'); return; }
+  newMark.t += dt;
+  const p = newMark.at();
+  if (newMark.t > 7 || !p) { newMark = null; el.classList.remove('on'); return; }
+  _tp.set(p.x, p.y, p.z).project(camera);
+  const vis = _tp.z < 1 && Math.abs(_tp.x) < 0.95 && Math.abs(_tp.y) < 0.95;
+  const d = Math.max(1, Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z));
+  const r = Math.min(70, Math.max(18, (newMark.size * 0.6 / d) * innerHeight));
+  el.style.transform = `translate(${(_tp.x * 0.5 + 0.5) * innerWidth}px, ${(-_tp.y * 0.5 + 0.5) * innerHeight}px)`;
+  el.style.setProperty('--r', `${r}px`);
+  el.classList.toggle('on', vis);
+}
+function observeNew() {
+  if (!newMark || !cur) return;
+  const m = newMark, last = { x: 0, y: 0, z: 0 };
+  const pos = () => { const p = m.at(); if (p) { last.x = p.x; last.y = p.y; last.z = p.z; } return last; };
+  pos();
+  focusOn({ key: `new:${m.ja}`, label: m.ja, kind: 'big', prio: 5, size: Math.max(0.6, m.size * 2), hold: 8, pos, status: () => '初めて見つけた', live: () => true });
+  newMark = null; $('newMark').classList.remove('on');
+}
+function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3 | null, size = 1) {
   if (!e || !cur) return;
   const key = cur.loc.id + ':' + e.id;
   if (seen.has(key)) return;
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
-  showToast('NEW SIGHTING', e.ja, e.sci);
+  if (at) { newMark = { at, ja: e.ja, size, t: 0 }; $('newMarkName').textContent = e.ja; }
   track('sighting', { sea: cur.loc.id, species: e.id });
   recordLog('sighting', `${e.ja}を初めて見つけた`);
   say('sighting', { name: e.ja });
@@ -1291,17 +1325,21 @@ function discover(e?: { id: string; ja: string; sci: string }) {
 }
 function checkSightings() {
   const cam = drone.pos, fwd = U.uCamFwd.value, loc = cur!.loc;
-  for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) discover(f.sp);
+  for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) {
+    const v = new THREE.Vector3();
+    discover(f.sp, () => (f.nearestPos(drone.pos, U.uCamFwd.value, 30, v) < Infinity ? v : null), f.sp.size[1]);
+  }
+  const first = <T,>(a: T[], ok: (t: T) => boolean) => { const o = a.find(ok); return o ? () => (o as any).pos as Where3 : undefined; };
   const extra = (id: string) => (loc.extraGuide || []).find((e) => e.id === id);
   const inView = (p: THREE.Vector3, maxD: number) => { _w.subVectors(p, cam); const d = _w.length(); return d < maxD && _w.dot(fwd) / d > 0.55; };
-  if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'));
-  if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'));
-  if ((cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'));
-  if (cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'));
-  if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'));
-  if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'));
+  if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'), first(cur!.turtles as any[], (t) => inView(t.pos, 16)), 1.2);
+  if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'), first(cur!.mantas as any[], (m) => inView(m.pos, 22)), 4);
+  if ((cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'), first(cur!.lobosOtters!.list as any[], (o) => inView(o.pos, 22)), 1.2);
+  if (cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'), () => cur!.lobosVisitors!.state.position, 1.6);
+  if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'), first(cur!.colonies as any[], (c) => inView(c.pos, 13)), 1);
+  if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'), first(cur!.octopi as any[], (o: any) => o.placed && inView(o.pos, 10)), 0.8);
   const W = cur!.whales;
-  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'));
+  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'), first(W.pod as any[], (w: any) => inView(w.pos, 45)), 13);
   if (cur!.flyfish?.fish.some((f: any) => f.state !== 'wait' && f.state !== 'gone' && inView(f.p, 40))) discover(guideEntries(cur!.loc).find((e) => e.id === 'tobiuo'));
   if (cur!.birds && cam.y > 0) for (const b of cur!.birds.inView(cam, fwd, 80)) discover(b);
   if (cur!.bait?.near(cam, 30)) discover(loc.bait!.sp);
@@ -1934,6 +1972,7 @@ $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
+$('newMark').onclick = observeNew;
 // the last 15-30 seconds of the view, kept ready while this is on, saved with one tap
 const replay = makeReplay(canvas, soundStream);
 let replayArm = 0;
@@ -2213,6 +2252,7 @@ function resize() {
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
+  narrowK = clamp((1 - w / h) / 0.55, 0, 1);
   gcam.aspect = w / h; gcam.fov = w / h < 1 ? 50 : 32;
   if (w > 760) gcam.setViewOffset(w, h, -Math.min(w * 0.2, 260), 0, w, h);
   else gcam.setViewOffset(w, h, 0, h * 0.2, w, h);
@@ -2312,6 +2352,7 @@ function frameBody(ts: number) {
     cur.eco.env.shy = viewMode === 'chase' ? (drone.mode === 'manual' ? 0.85 : 0.6) : 0.35;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
+    updateNewMark(dt);
     if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
     if (isStorm(liveWeather())) {
