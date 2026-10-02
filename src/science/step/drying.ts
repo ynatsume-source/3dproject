@@ -59,6 +59,8 @@ interface DryingData {
   latentJ: number;          // cumulative heat drawn from air (float)
   reportedJ: number;        // cumulative integer J already reported
   quality0: Record<string, number>;
+  lastTo: number;           // end of the last interval answered: the next request must start here
+  lotFingerprint: string;   // the reserved lot may not change under a running run
 }
 
 const fail = (req: ScienceStepRequest, why: string, state?: ScienceState): ScienceStepResult => ({
@@ -75,12 +77,19 @@ function checkVersions(req: ScienceStepRequest): string | null {
   if (req.processVersion !== DRYING_PROCESS.processVersion) return `unknown processVersion ${req.processVersion}`;
   if (req.catalogVersion !== SCIENCE_CATALOG_VERSION) return `unknown catalogVersion ${req.catalogVersion}`;
   if (req.state && req.state.schema !== DRYING_STATE_SCHEMA) return `unknown state schema ${req.state.schema}`;
-  if (req.interval.to < req.interval.from) return 'interval ends before it starts';
+  if (!isInt(req.interval.from) || !isInt(req.interval.to) || req.interval.to < req.interval.from) return 'invalid interval';
+  if (!isInt(req.seed)) return 'invalid seed';
   return null;
 }
 
+// Input checks adopted from codex/civilization-lab@13a35fa: integer amounts, contiguous intervals, unchanged lot.
+const isInt = (n: unknown, min = 0) => typeof n === 'number' && Number.isSafeInteger(n) && n >= min;
+const fingerprint = (lot: LotView) => JSON.stringify([lot.lotId, lot.materialId, lot.amount, lot.location,
+  Object.entries(lot.quality ?? {}).sort(([a], [b]) => a.localeCompare(b))]);
+
 function initState(req: ScienceStepRequest, lot: LotView): DryingData | string {
-  if (lot.amount.unit !== 'mg') return `lot ${lot.lotId} must be in mg`;
+  if (lot.amount.unit !== 'mg' || !isInt(lot.amount.value, 1)) return `lot ${lot.lotId} must be a positive integer of mg`;
+  if (Object.values(lot.quality ?? {}).some((v) => !Number.isFinite(v))) return 'non-finite quality value';
   const q = lot.quality ?? {};
   for (const k of ['water_ppm', 'width_mm', 'length_mm', 'thickness_mm']) if (!(k in q)) return `lot ${lot.lotId} lacks quality.${k}`;
   const amount = lot.amount.value;
@@ -94,6 +103,7 @@ function initState(req: ScienceStepRequest, lot: LotView): DryingData | string {
     dims: { w: q.width_mm, l: q.length_mm, t: q.thickness_mm },
     linearShrink: (q.linear_shrink_ppm ?? 0) / 1e6, fluxRatioMax: 0, crack: (q.crack ?? 0) as 0 | 1 | 2,
     stage: 'formed', historyComplete: (q.history_complete ?? 1) === 1, latentJ: 0, reportedJ: 0, quality0: { ...q },
+    lastTo: req.interval.from, lotFingerprint: fingerprint(lot),
   };
 }
 
@@ -115,6 +125,8 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
   } else {
     d = structuredClone(req.state.data as DryingData);
     if (d.lotId !== lot.lotId) return fail(req, `state belongs to ${d.lotId}, request reserves ${lot.lotId}`);
+    if (d.lotFingerprint !== fingerprint(lot)) return fail(req, 'changed-input: the reserved lot changed under a running run');
+    if (req.interval.from !== d.lastTo) return fail(req, `noncontiguous-interval: expected from=${d.lastTo}; send a missed interval with environment.source 'unknown'`);
   }
 
   // when does this interval end for us? the operator taking the tiles off, or a stop at interval.to
@@ -153,6 +165,7 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
     }
   }
 
+  d.lastTo = endAt;
   // integer J for this interval by cumulative rounding
   const cumInt = Math.round(d.latentJ);
   const usedJ = cumInt - d.reportedJ;
