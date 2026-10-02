@@ -64,7 +64,9 @@ export const MANTA_GEO = (() => {
   const cephPoint = (l: number, c: number, sx: number, sheet: number) => {
     const width = (0.052 + 0.075 * Math.sin(Math.PI * l * 0.72)) * (1 - 0.12 * l);
     const curl = 0.55 + 4.7 * smooth(0, 0.55, l), angle = (c - 0.5) * curl, r = width / curl;
-    return [sx * (0.145 + Math.sin(angle) * r), 0.011 + (1 - Math.cos(angle)) * r - l * l * 0.011 + sheet * 0.0013, 0.272 + 0.195 * l];
+    // Thickness follows the curled cross-section normal. A fixed y offset
+    // makes the inner/outer sheets intersect where the ribbon turns sideways.
+    return [sx * (0.145 + Math.sin(angle) * (r - sheet * 0.0013)), 0.011 + (1 - Math.cos(angle)) * r - l * l * 0.011 + sheet * 0.0013 * Math.cos(angle), 0.272 + 0.195 * l];
   };
   for (const sx of [-1, 1]) {
     for (const sheet of [1, -1]) patch(range(16), range(12), sheet, 2, (l, c) => cephPoint(l, c, sx, sheet), (l, c) => [l, c, sx]);
@@ -143,8 +145,8 @@ export function mantaMaterial(oceanic = false) {
     vec3 cephPoint(float l, float c, float sx, float sheet){
       float feed = clamp(uFeed, 0.0, 1.0), width = (0.052 + 0.075 * sin(3.14159265 * l * 0.72)) * (1.0 - 0.12 * l);
       float curl = 0.55 + mix(4.7, 0.7, feed) * smoothstep(0.0, 0.55, l), angle = (c - 0.5) * curl, r = width / curl;
-      return vec3(sx * (0.145 + 0.023 * l * feed + sin(angle) * r),
-        0.011 + (1.0 - cos(angle)) * r - l * l * (0.011 + feed * 0.04) + sheet * 0.0013,
+      return vec3(sx * (0.145 + 0.023 * l * feed + sin(angle) * (r - sheet * 0.0013)),
+        0.011 + (1.0 - cos(angle)) * r - l * l * (0.011 + feed * 0.04) + sheet * 0.0013 * cos(angle),
         0.272 + 0.195 * l);
     }
     vec3 oralPoint(float x, float d, float s){ vec3 p = lip(x, s); return vec3(x * (1.0 - 0.4 * d), 0.005 + (p.y - 0.005) * (1.0 - d * 0.65), p.z - 0.205 * d); }
