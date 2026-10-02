@@ -161,50 +161,140 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
 
 export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
   const T = oc.T;
-  const feeding = env.night > 0.5;
   for (const m of oc.mantas) {
-    m.t += dt;
+    // Keep twilight from repeatedly changing the destination and feeding pose.
+    const feeding = m.feeding ? env.night > 0.45 : env.night > 0.55;
+    m.t += dt; m.flip ??= -1;
     const dx = m.st.x - cam.x, dz = m.st.z - cam.z;
-    if (!m.placed || dx * dx + dz * dz > 85 * 85 || m.feeding !== feeding) {
+    if ((m.retry = (m.retry ?? 0) - dt) <= 0 && (!m.placed || dx * dx + dz * dz > 85 * 85 || m.feeding !== feeding)) {
       // by day: a reef top (cleaning station); by night: the richest plankton nearby
       let best: [number, number] = [cam.x, cam.z], bs = -Infinity;
       for (let k = 0; k < 30; k++) {
-        const d = m.placed && m.feeding === feeding ? rr(35, 50) : rr(14, 30), lat = (R() * 2 - 1) * 20;
+        const d = m.placed && m.feeding === feeding ? rr(64, 76) : rr(14, 30), lat = (R() * 2 - 1) * 20;   // (moving on: somewhere ahead, but beyond what can be seen through the water, to swim in from)
         const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
-        const s = (feeding ? env.plankton.sample(x, z) : T.h(x, z)) - (T.wet(x, z, 5) || !oc.loc.land ? 0 : 1e6);   // by an island, mantas need room below them
+        let s = (feeding ? env.plankton.sample(x, z) : T.h(x, z)) - (T.wet(x, z, 5) || !oc.loc.land ? 0 : 1e6);   // by an island, mantas need room below them
+        // (and room for its whole circle: the reef under the ring low enough for the body, wings and all,
+        // to pass over it below the surface)
+        let ring = -1e9; for (let q = 0; q < 12; q++) { const a = q / 12 * Math.PI * 2; for (const rr0 of [7, 12, 17]) ring = Math.max(ring, T.top(x + Math.cos(a) * rr0, z + Math.sin(a) * rr0)); }
+        if (ring + Math.max(2.8, (m.span ?? 4) * 0.45 + 0.6) > -2.5) s -= 1e5;
         if (s > bs) { bs = s; best = [x, z]; }
       }
-      m.st.set(best[0], 0, best[1]);
-      m.rad = feeding ? rr(5, 8) : rr(10, 16);
+      // (nowhere ahead with room for it: if it is already about somewhere, out of sight, it stays there a
+      // while longer and looks again, rather than circling over a reef too shallow for it)
+      if (m.placed && bs < -5e4) { m.retry = 4; }
+      else {
+      m.stationTarget ??= new THREE.Vector3();
+      m.stationTarget.set(best[0], 0, best[1]);
+      m.radTarget = feeding ? rr(5, 8) : rr(10, 16);
+      // A change of routine is a journey, not a teleport to a new circle. Only first placement
+      // (or a station far behind the drone) can start at the new destination immediately.
+      if (!m.placed || dx * dx + dz * dz > 85 * 85) {
+        m.st.copy(m.stationTarget); m.rad = m.radTarget;
+        m.loopPending = false; m.flip = -1; m.swimY = undefined; m.vy = 0; m.init = false;
+        // (moved on to somewhere ahead: it comes into it from the far side of its circle, out in the blue,
+        // not right in front of the camera)
+        if (m.placed) { m.a = Math.atan2(m.st.z - cam.z, m.st.x - cam.x); m.yaw = undefined; m.pitch = undefined; m.bank = undefined; }
+      }
       // one steady height for the whole loop, clear of the tallest thing under it: mantas glide over the
       // reef rather than following its every bump
       let top = -1e9;
-      for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; for (const r of [m.rad - 2.5, m.rad, m.rad + 2.5]) top = Math.max(top, T.top(best[0] + Math.cos(a) * r, best[1] + Math.sin(a) * r)); }
+      for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; for (const r of [m.radTarget - 2.5, m.radTarget, m.radTarget + 2.5]) top = Math.max(top, T.top(best[0] + Math.cos(a) * r, best[1] + Math.sin(a) * r)); }
       m.y = feeding ? Math.max(-3, Math.min(top + 2.6, -2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), -2.5);
       if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', oneOf(['マンタがプランクトンを食べに浅場へ上がってきた', 'マンタが口を大きく開けて、流れの中でプランクトンを濾しはじめた', 'マンタが浅場で輪を描きながら、プランクトンを食べている', '潮に乗ってプランクトンが集まり、マンタがやってきた']), m.st.x, m.st.z, () => m.pos);
       m.feeding = feeding; m.placed = true;
+      }
     }
+    m.stationTarget ??= m.st.clone(); m.radTarget ??= m.rad;
+    const oldX = m.st.x, oldZ = m.st.z, oldRad = m.rad, oldA = m.a;
+    const prevX = oldX + Math.cos(oldA) * oldRad, prevZ = oldZ + Math.sin(oldA) * oldRad;
+    const travelK = m.loopPending || m.flip >= 0 ? 0 : 1 - Math.exp(-dt * 0.045);
+    m.st.lerp(m.stationTarget, travelK);
+    m.rad += (m.radTarget - m.rad) * travelK;
     const w = 1.25 / m.rad;
     m.a += dt * w * m.dir;
-    const px = m.st.x + Math.cos(m.a) * m.rad, pz = m.st.z + Math.sin(m.a) * m.rad;
-    const ty = Math.min(m.y + Math.sin(m.t * 0.15) * (feeding ? 0.5 : 1.2), -2.5);
-    const vy = (ty - m.pos.y) * Math.min(1, dt * 0.3);
-    m.pos.y += vy;
-    m.pos.x = px; m.pos.z = pz;
+    let px = m.st.x + Math.cos(m.a) * m.rad, pz = m.st.z + Math.sin(m.a) * m.rad;
+    const span = m.span ?? m.mesh.scale.x * 2, bodyR = span * 0.9;
+    const clearance = (m.flip >= 0 ? bodyR : span * 0.45) + 0.4;   // (banked into its turn, the lower wing tip hangs a quarter span below the body)
+    const footprint = (x: number, z: number, looping = m.flip >= 0) => {
+      let top = T.top(x, z);
+      const r = looping ? bodyR + 1.3 : span * 0.5;
+      for (let k = 0; k < 8; k++) {
+        const a = k * Math.PI / 4, sx = x + Math.cos(a) * r, sz = z + Math.sin(a) * r;
+        top = Math.max(top, T.top(sx, sz));
+        if (oc.loc.land && !T.wet(sx, sz, 1)) return Infinity;
+      }
+      return top;
+    };
+    let floor = footprint(px, pz);
+    // A straight migration is not a navigator. If the next footprint cannot fit between reef and
+    // surface, or rises through the body, keep the last orbit and turn back rather than cross land.
+    if (m.init && m.flip < 0 && (floor + clearance > -2.5 || floor + clearance > m.swimY + 0.025)) {
+      if (Number.isFinite(floor)) m.y = Math.max(m.y, Math.min(-2.5, floor + clearance));
+      m.st.set(oldX, 0, oldZ); m.rad = oldRad; m.a = oldA; m.dir *= -1;
+      m.stationTarget.copy(m.st); m.radTarget = m.rad; m.loopPending = false;
+      px = prevX; pz = prevZ; floor = footprint(px, pz);
+    }
+    // Check the full fixed orbit before preparing a loop. The conservative body sphere encloses
+    // the shader's bounding box at every pitch; extra depth covers the 2.6 m upper arc and easing.
+    const loopDepth = 2.6 + bodyR + 0.35 + 1;
+    if (!feeding) m.loopPending = false;
+    if (m.init && feeding && m.flip < 0 && !m.loopPending && R() < dt / 25) {
+      let loopFloor = -Infinity;
+      for (let k = 0; k < 16; k++) {
+        const a = k * Math.PI / 8;
+        loopFloor = Math.max(loopFloor, footprint(m.st.x + Math.cos(a) * m.rad, m.st.z + Math.sin(a) * m.rad, true));
+      }
+      // In shallow water keep circle feeding. Where there is room, first descend gently; the
+      // shallow feeding target stays unchanged so it returns there after the seven-second loop.
+      if (loopFloor + bodyR + 0.55 < -loopDepth) m.loopPending = true;
+    }
+    const cruiseY = m.y + Math.sin(m.t * 0.15) * (feeding ? 0.5 : 1.2);
+    const ty = Math.min(Math.max(m.loopPending ? -loopDepth - 0.1 : cruiseY, floor + clearance), -2.5);
+    m.swimY ??= ty; m.vy ??= 0;
+    // A new shallow feeding depth should not instantly demand several metres per second of climb.
+    // During a feeding loop, let any existing climb decay; do not lift the loop toward the surface.
+    const wantVy = m.flip >= 0 ? 0 : clamp((ty - m.swimY) * 0.3, -0.55, 0.65);
+    m.vy += (wantVy - m.vy) * (1 - Math.exp(-dt * 0.8));
+    const nextY = Math.min(-2.5, m.swimY + m.vy * dt), vy = nextY - m.swimY;
+    m.swimY = nextY;
+    m.pos.set(px, m.swimY, pz);
     if (feeding) env.plankton.consume(px, pz, 0.002 * dt);
-    const tx = -Math.sin(m.a) * m.dir, tz = Math.cos(m.a) * m.dir;
+    const moved = Math.hypot(px - prevX, pz - prevZ);
+    // Also face the slow migration between stations, rather than sliding sideways with the old orbit.
+    const tx = moved > 1e-7 ? (px - prevX) / moved : -Math.sin(m.a) * m.dir;
+    const tz = moved > 1e-7 ? (pz - prevZ) / moved : Math.cos(m.a) * m.dir;
+    const yaw = Math.atan2(tx, tz); m.yaw ??= yaw;
+    m.yaw += Math.atan2(Math.sin(yaw - m.yaw), Math.cos(yaw - m.yaw)) * (1 - Math.exp(-dt * 1.4));
     // feeding: cephalic fins unrolled and mouth open; now and then a somersault through the plankton
     const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
-    U.uFeed.value += ((feeding ? 1 : 0) - U.uFeed.value) * Math.min(1, dt * 0.4);
-    U.uBeat.value = feeding ? 0.85 : 1.05;
-    m.flip = (m.flip ?? -1);
-    if (feeding && m.flip < 0 && R() < dt / 25) m.flip = 0;
+    const poseK = 1 - Math.exp(-dt * 0.8);
+    U.uFeed.value += ((feeding ? 1 : 0) - U.uFeed.value) * poseK;
+    // The mouth opens for filter feeding; cruising has only a small, slow respiratory gape.
+    // Head-fin furl and gape are separate controls rather than a single on/off morph.
+    const mouth = feeding ? 0.88 + 0.045 * Math.sin(m.t * 0.55) : 0.10 + 0.018 * Math.sin(m.t * 0.7);
+    if (U.uMouth.value < 0) U.uMouth.value = 0.10;
+    U.uMouth.value += (mouth - U.uMouth.value) * poseK;
+    m.ph ??= U.uPhase.value;
+    m.ph += dt * (feeding ? 0.85 : 1.05);
+    U.uBeat.value = 0; U.uPhase.value = m.ph;   // integrate phase: changing pace must not jump uTime * uBeat
+    U.uAmp.value += ((feeding ? 0.9 : 1) - U.uAmp.value) * poseK;
+    U.uBank.value += (m.dir * (feeding ? 0.22 : 0.12) - U.uBank.value) * poseK;
+    U.uAir.value = 0;
+    if (m.loopPending && m.swimY < -loopDepth && Math.abs(m.vy) < 0.12) {
+      m.loopPending = false; m.flip = 0;
+    }
     let loop = 0;
     if (m.flip >= 0) { m.flip += dt / 7; if (m.flip >= 1) m.flip = -1; else loop = m.flip; }
     const back = loop > 0 ? Math.sin(loop * Math.PI * 2) : 0, lift = loop > 0 ? (1 - Math.cos(loop * Math.PI * 2)) * 1.3 : 0;
+    // Track the actual body, including the feeding loop, so the director and attached riders agree.
+    m.pos.y += lift; m.pos.x -= Math.sin(m.yaw) * back * 1.3; m.pos.z -= Math.cos(m.yaw) * back * 1.3;
     m.mesh.position.copy(m.pos);
-    m.mesh.position.y += lift; m.mesh.position.x -= tx * back * 1.3; m.mesh.position.z -= tz * back * 1.3;
-    m.mesh.rotation.set(-0.05 + Math.sin(m.t * 0.3) * 0.05 - Math.atan2(vy / Math.max(dt, 1e-3), 1.25) * 0.8 - loop * Math.PI * 2, Math.atan2(tx, tz), (feeding ? 0.55 : 0.32) * m.dir * (loop > 0 ? 0.2 : 1), 'YXZ');
-    if (!m.init) { m.init = true; m.pos.y = ty; }
+    const loopBank = 1 - 0.8 * Math.sin(loop * Math.PI) ** 2;
+    m.bank ??= 0.32 * m.dir;
+    m.bank += ((feeding ? 0.55 : 0.32) * m.dir * loopBank - m.bank) * poseK;
+    const pitch = -0.05 + Math.sin(m.t * 0.3) * 0.05 - Math.atan2(vy / Math.max(dt, 1e-3), 1.25) * 0.8;
+    m.pitch ??= pitch; m.pitch += (pitch - m.pitch) * poseK;
+    m.mesh.rotation.set(m.pitch - loop * Math.PI * 2, m.yaw, m.bank, 'YXZ');
+    m.init = true;
   }
 }
