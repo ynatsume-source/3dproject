@@ -1,0 +1,40 @@
+{
+  "inheritedBranch": "codex/creative-world-design",
+  "inheritedCommit": "c5102469d142100211d9b0394d9c21a1e8e82eae",
+  "baseMain": "41ccd18fc0d650f61c786fd5543ce430d480a55e",
+  "contractVersion": "0.1.0",
+  "documents": [
+    {
+      "path": "docs/proposals/creative-world/CLAUDE_HANDOFF.md",
+      "blobSha": "c4d8039bb859cab1195cac6c14b68f798f246b01",
+      "url": "https://github.com/ynatsume-source/3dproject/blob/c5102469d142100211d9b0394d9c21a1e8e82eae/docs/proposals/creative-world/CLAUDE_HANDOFF.md"
+    },
+    {
+      "path": "docs/proposals/creative-world/SCIENCE_AND_CIVILIZATION.md",
+      "blobSha": "809f33ae222643d486decaeb84b47b9486de6464",
+      "url": "https://github.com/ynatsume-source/3dproject/blob/c5102469d142100211d9b0394d9c21a1e8e82eae/docs/proposals/creative-world/SCIENCE_AND_CIVILIZATION.md"
+    },
+    {
+      "path": "docs/proposals/creative-world/SCIENCE_EVIDENCE.md",
+      "blobSha": "22c94e74640cbb4e1209d2b0ad5fe6fca791273a",
+      "url": "https://github.com/ynatsume-source/3dproject/blob/c5102469d142100211d9b0394d9c21a1e8e82eae/docs/proposals/creative-world/SCIENCE_EVIDENCE.md"
+    },
+    {
+      "path": "docs/proposals/creative-world/CONTRACTS.md",
+      "blobSha": "704338fafd7e447832bd9830dbb175b9149dd359",
+      "url": "https://github.com/ynatsume-source/3dproject/blob/c5102469d142100211d9b0394d9c21a1e8e82eae/docs/proposals/creative-world/CONTRACTS.md"
+    },
+    {
+      "path": "docs/proposals/creative-world/science/PROCESS_CATALOG.md",
+      "blobSha": "9a7e94583e08042c36cb678894187e5b5d0a89fb",
+      "url": "https://github.com/ynatsume-source/3dproject/blob/c5102469d142100211d9b0394d9c21a1e8e82eae/docs/proposals/creative-world/science/PROCESS_CATALOG.md"
+    },
+    {
+      "path": "docs/proposals/creative-world/science/process-catalog.json",
+      "blobSha": "1483ac6f693634d8ce38f07a793db87e06d12135",
+      "url": "https://github.com/ynatsume-source/3dproject/blob/c5102469d142100211d9b0394d9c21a1e8e82eae/docs/proposals/creative-world/science/process-catalog.json"
+    }
+  ],
+  "mainContractBlob": "dc4a653db0ca26a52b171ab8c2a1f5f4624cb25d",
+  "developmentBranch": "codex/civilization-lab"
+}

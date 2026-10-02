@@ -1,0 +1,60 @@
+{
+  "sources": [
+    {
+      "id": "openstax-heat",
+      "publisher": "OpenStax",
+      "title": "Heat",
+      "repository": "openstax/osbooks-college-physics-bundle",
+      "commit": "fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9",
+      "path": "modules/m42223/index.cnxml",
+      "blobSha": "8edc973396296e7e11263d760e2a55bff29f824c",
+      "url": "https://github.com/openstax/osbooks-college-physics-bundle/blob/fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9/modules/m42223/index.cnxml",
+      "accessedDateJst": "2026-10-02/2026-10-03",
+      "verification": "full-source-text-read",
+      "supports": "Heat is energy transfer, measured in J; temperature is distinct.",
+      "doesNotVerify": "Clay composition, drying rate, shrinkage, cracking, firing, field resources or fixture equipment performance."
+    },
+    {
+      "id": "openstax-heat-capacity",
+      "publisher": "OpenStax",
+      "title": "Temperature Change and Heat Capacity",
+      "repository": "openstax/osbooks-college-physics-bundle",
+      "commit": "fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9",
+      "path": "modules/m42224/index.cnxml",
+      "blobSha": "1ce2ebaa60f1a2bbecb7deff4d07dc61f4fc6dee",
+      "url": "https://github.com/openstax/osbooks-college-physics-bundle/blob/fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9/modules/m42224/index.cnxml",
+      "accessedDateJst": "2026-10-02/2026-10-03",
+      "verification": "full-source-text-read",
+      "supports": "Q = m c deltaT; water c = 4186 J/(kg K), treated as constant approximation.",
+      "doesNotVerify": "Clay composition, drying rate, shrinkage, cracking, firing, field resources or fixture equipment performance."
+    },
+    {
+      "id": "openstax-latent-heat",
+      "publisher": "OpenStax",
+      "title": "Phase Change and Latent Heat",
+      "repository": "openstax/osbooks-college-physics-bundle",
+      "commit": "fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9",
+      "path": "modules/m42225/index.cnxml",
+      "blobSha": "9e2415b4ac440fba62a363300a4aa69c09f11f42",
+      "url": "https://github.com/openstax/osbooks-college-physics-bundle/blob/fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9/modules/m42225/index.cnxml",
+      "accessedDateJst": "2026-10-02/2026-10-03",
+      "verification": "full-source-text-read",
+      "supports": "Q = m Lv; evaporation below boiling consumes heat; humidity matters.",
+      "doesNotVerify": "Clay composition, drying rate, shrinkage, cracking, firing, field resources or fixture equipment performance."
+    },
+    {
+      "id": "openstax-convection",
+      "publisher": "OpenStax",
+      "title": "Convection",
+      "repository": "openstax/osbooks-college-physics-bundle",
+      "commit": "fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9",
+      "path": "modules/m42229/index.cnxml",
+      "blobSha": "17cf399e9885a2f00104565ac59b81dbcf0d821a",
+      "url": "https://github.com/openstax/osbooks-college-physics-bundle/blob/fd1b25dfd5d8c6580c6e2b2b34a19e29cc69ada9/modules/m42229/index.cnxml",
+      "accessedDateJst": "2026-10-02/2026-10-03",
+      "verification": "full-source-text-read",
+      "supports": "60 C coffee evaporation exercise specifies approximate Lv = 2340 kJ/kg.",
+      "doesNotVerify": "Clay composition, drying rate, shrinkage, cracking, firing, field resources or fixture equipment performance."
+    }
+  ]
+}

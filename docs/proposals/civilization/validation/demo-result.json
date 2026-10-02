@@ -1,0 +1,63 @@
+{
+  "scope": "test-fixture",
+  "modelVersion": "clay-fixture-v1",
+  "question": "同じ組成・質量の試験片で、厚みを変えると、同じ乾燥時間上限内の質量減少はどう変わるか。",
+  "hypothesis": "合成した移動速度モデルでは、薄い試験片ほど質量が減る。実物の粘土では未検証。",
+  "comparison": {
+    "changed": "thicknessMm",
+    "controlled": [
+      "initial composition and mass",
+      "60 C target",
+      "100 W source",
+      "2400 s heating/drying limit"
+    ],
+    "resolutionMg": 100
+  },
+  "trials": [
+    {
+      "lotId": "a",
+      "thicknessMm": 5,
+      "beforeMg": 120000,
+      "afterMg": 100000,
+      "observedMassLossMg": 20000,
+      "measurementRunIds": [
+        "run:demo-3",
+        "run:demo-10"
+      ],
+      "dryingRunId": "run:demo-5",
+      "outcome": "completed",
+      "reason": null,
+      "durationS": 2402,
+      "inputJ": 66685.99999999997
+    },
+    {
+      "lotId": "b",
+      "thicknessMm": 10,
+      "beforeMg": 120000,
+      "afterMg": 108400,
+      "observedMassLossMg": 11600,
+      "measurementRunIds": [
+        "run:demo-14",
+        "run:demo-21"
+      ],
+      "dryingRunId": "run:demo-16",
+      "outcome": "failed",
+      "reason": "duration-limit",
+      "durationS": 2862,
+      "inputJ": 42086.74999999997
+    }
+  ],
+  "conclusion": "このfixtureでは5 mmの試験片の質量減少が大きい。乾燥曲線・割れ・焼成品質の実測結果ではなく、作り方の解禁もしない。",
+  "audit": {
+    "solidResidualMg": 0,
+    "waterResidualMg": 0,
+    "energyResidualJ": 7.421476766467094e-10,
+    "inputJ": 109052.74999999994,
+    "destinationsJ": 109052.7499999992,
+    "vaporMg": 31590,
+    "supplyResidualJ": 0
+  },
+  "sourceRemainingJ": 91227.25000000006,
+  "firstLightAchieved": false,
+  "firingEnabled": false
+}
