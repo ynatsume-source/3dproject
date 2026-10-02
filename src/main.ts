@@ -34,7 +34,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, detectTier, type Tier } from './quality';
-import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
@@ -1373,7 +1373,10 @@ function enterOcean(oc: Ocean) {
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
   oc.eco.env.sound = { frenzy, plop };
   oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt; oc.breach.fx.bubbles = bubblesAt;
-  oc.breach.fx.sound = (big: number, x: number, z: number) => breachSound(big, Math.hypot(x - drone.pos.x, z - drone.pos.z));
+  // (heard from where the camera is: in the air or under the water, and how far, the depth included)
+  const leapHeard = (x: number, z: number) => ({ d: Math.hypot(x - camera.position.x, z - camera.position.z, camera.position.y), under: camera.position.y < 0 });
+  oc.breach.fx.sound = (big: number, x: number, z: number) => { const h = leapHeard(x, z); breachSound(big, h.d, h.under); };
+  oc.breach.fx.rise = (big: number, x: number, z: number) => { const h = leapHeard(x, z); breachRise(big, h.d, h.under); };
   lastPhase = '';
   director.reset(); lastShot = null;
   dayKey = '';
@@ -2287,7 +2290,7 @@ if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? s
 void smooth;
 
 // Inspect the live sim from the console with ?debug
-if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen

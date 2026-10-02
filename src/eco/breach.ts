@@ -71,6 +71,7 @@ export function makeBreach(oc: any) {
     stream: (_x: number, _y: number, _z: number, _vx: number, _vz: number, _n?: number) => {},
     bubbles: (_x: number, _y: number, _z: number, _n?: number) => {},
     sound: (_big: number, _x: number, _z: number) => {},
+    rise: (_big: number, _x: number, _z: number) => {},   // (the sound of it breaking out)
   };
   let leap: Leap | null = null, next = rr(120, 240), series = 0;
   const _p = new THREE.Vector3(), _ax = new THREE.Vector3(), _e = new THREE.Euler();
@@ -233,7 +234,7 @@ export function makeBreach(oc: any) {
       // A state edge, not equality around zero seconds: floating-point rounding can skip a
       // time-window check at 60 Hz and silently lose the manta's departure splash.
       if (l.kind === 'manta' ? run.done && !l.exitSplash : up > 0 && up - dt <= 0) {
-        fx.splash(cx, cz, l.kind === 'whale' ? 0.45 : 0.12, L * 0.15); l.exitSplash = true;
+        fx.splash(cx, cz, l.kind === 'whale' ? 0.45 : 0.12, L * 0.15); fx.rise(l.kind === 'whale' ? 1 : 0.32, cx, cz); l.exitSplash = true;
       }
       if (!l.splashed && up > airT * 0.5 && y <= L * 0.04) {
         // the moment it comes down: carry on from here, as it is, in the water
