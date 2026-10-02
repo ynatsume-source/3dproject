@@ -53,7 +53,14 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      // stars, trembling with the surface
      vec2 sg = refr.xz / max(refr.y, 0.2) * 90.0; float star = step(0.994, hash2(floor(sg))) * smoothstep(0.35, 0.1, length(fract(sg) - 0.5));
      air += vec3(0.8, 0.88, 1.0) * star * uNight * (1.0 - smoothstep(0.3, 0.8, uCloud)) * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
-     vec3 tir = waterCol(reflect(dir, -n)) * 0.9 + vec3(0.02, 0.05, 0.05) * uAmb;
+     // outside the window the surface is a mirror of the water below it: over a shallow, sunlit reef that is
+     // the bright blue of lit sand and coral, not the dark of the deep (the underside of a clear sea glows)
+     float shallowK = exp(-max(-uCamPos.y, 0.0) / 9.0) * (1.0 - uNight);
+     vec3 lit = (uUp * 1.05 + vec3(0.03, 0.09, 0.12)) * (0.35 + 0.55 * uSunI);
+     // (rippled: each little facet of the surface catches more or less of that light — dark troughs, bright crests)
+     float facet = clamp(0.5 + dot(n.xz, normalize(vec2(SUN.x, SUN.z) + 1e-4)) * 6.0, 0.0, 1.0);
+     lit *= 0.62 + 0.75 * facet * facet;
+     vec3 tir = mix(waterCol(reflect(dir, -n)) * 0.9, lit, shallowK * 0.8) + vec3(0.02, 0.05, 0.05) * uAmb;
      vec3 col = mix(tir, air, tr);
      // white water overhead: the light comes through it soft and pale
      float sf = seaFoam(p);
