@@ -1,0 +1,4671 @@
+{
+  "status": "passed",
+  "capturedAt": "2026-10-02T03:41:57.004Z",
+  "source": "http://127.0.0.1:4178",
+  "method": {
+    "description": "Actual application renderer and breach simulation; debug force schedules a manta, never changes its model, trajectory or material.",
+    "physicsStepSeconds": 0.016666666666666666,
+    "renderStepSeconds": 0.05,
+    "performanceBenchmark": false,
+    "inspectionChanges": [
+      "Other ecological updates are paused in this browser.",
+      "Manual camera; clock and weather fixed.",
+      "requestAnimationFrame is driven by the capture script after scene loading; no production source changes.",
+      "The first six seconds of warning are skipped; during acceleration, flight and recovery every three physics steps receive one real app frame, preserving particle aging.",
+      "Intermediate frames update the app and particles but omit GPU draw calls; every saved still/video frame is fully rendered."
+    ]
+  },
+  "stills": [
+    {
+      "file": "scene-departure.png",
+      "phase": "departure",
+      "time": 11.166666666666801,
+      "secondsAfterExit": 0.16666666666667496,
+      "recoverySeconds": null,
+      "runComplete": true,
+      "landed": false,
+      "flip": 0,
+      "wingSpan": 3.7269598378799857,
+      "position": [
+        -7.681976908668467,
+        0.7974159474784066,
+        15.16332698079376
+      ],
+      "rotation": [
+        -0.8510079729099294,
+        1.5707963267948966,
+        -0.045608321277677,
+        "YXZ"
+      ],
+      "camera": [
+        -0.061555768808923196,
+        1.530979851696936,
+        11.16332698079376
+      ],
+      "cameraRotation": [
+        -0.13991622885528907,
+        2.158798930342464,
+        -0.013704813509428673,
+        "YXZ"
+      ],
+      "projectedCentre": [
+        0.09285502335971767,
+        0.07984325082185374,
+        0.981349465248371
+      ],
+      "visible": true,
+      "mouth": 0.03498613251094239,
+      "air": 0.923208910421032,
+      "wingPhase": 28.668168183972487,
+      "wingAmplitude": 0.6037625004804548,
+      "foamPatches": 0
+    },
+    {
+      "file": "scene-apex.png",
+      "phase": "apex",
+      "time": 11.616666666666823,
+      "secondsAfterExit": 0.6166666666666973,
+      "recoverySeconds": null,
+      "runComplete": true,
+      "landed": false,
+      "flip": 0,
+      "wingSpan": 3.7269598378799857,
+      "position": [
+        -5.847113986289237,
+        1.5906890056699696,
+        15.16332698079376
+      ],
+      "rotation": [
+        -0.32364635276407283,
+        1.5707963267948966,
+        -0.1687507887274049,
+        "YXZ"
+      ],
+      "camera": [
+        -0.061555768808923196,
+        1.5182298133937362,
+        11.16332698079376
+      ],
+      "cameraRotation": [
+        -0.13325062118351622,
+        2.158798930342464,
+        -0.025142182580206063,
+        "YXZ"
+      ],
+      "projectedCentre": [
+        -0.01849217257305441,
+        0.20575682103023185,
+        0.9770155855605323
+      ],
+      "visible": true,
+      "mouth": 0.02567112315568497,
+      "air": 0.999858988155373,
+      "wingPhase": 28.668168183972487,
+      "wingAmplitude": 0.3569337361306589,
+      "foamPatches": 0
+    },
+    {
+      "file": "scene-splash.png",
+      "phase": "splash",
+      "time": 12.116666666666848,
+      "secondsAfterExit": 1.1166666666667222,
+      "recoverySeconds": 0,
+      "runComplete": true,
+      "landed": true,
+      "flip": 0,
+      "wingSpan": 3.7269598378799857,
+      "position": [
+        -3.808377405867869,
+        0.14460351477147348,
+        15.16332698079376
+      ],
+      "rotation": [
+        0.1383397989691384,
+        1.5707963267948966,
+        -0.3055757525604359,
+        "YXZ"
+      ],
+      "camera": [
+        -0.061555768808923196,
+        1.550780631450089,
+        11.16332698079376
+      ],
+      "cameraRotation": [
+        -0.12381563724298095,
+        2.158798930342464,
+        -0.03678137218966574,
+        "YXZ"
+      ],
+      "projectedCentre": [
+        -0.19942230414257076,
+        -0.2041597276873794,
+        0.9707467773257709
+      ],
+      "visible": true,
+      "mouth": 0.025033413254435342,
+      "air": 0.999999871413842,
+      "wingPhase": 28.668168183972487,
+      "wingAmplitude": 0.3501269958071189,
+      "foamPatches": 1
+    },
+    {
+      "file": "scene-recovery.png",
+      "phase": "recovery",
+      "time": 14.666666666666975,
+      "secondsAfterExit": 3.666666666666849,
+      "recoverySeconds": 2.549999999999996,
+      "runComplete": true,
+      "landed": true,
+      "flip": 0,
+      "wingSpan": 3.7269598378799857,
+      "position": [
+        3.2301743744938856,
+        -1.5950814482583573,
+        15.16332698079376
+      ],
+      "rotation": [
+        0.14929447888439942,
+        1.5707963267948966,
+        -0.01848940213606319,
+        "YXZ"
+      ],
+      "camera": [
+        8.030174374493885,
+        -1.238229884163452,
+        11.963326980793761
+      ],
+      "cameraRotation": [
+        -0.05571457378376999,
+        2.158798930342464,
+        -0.00881285413898992,
+        "YXZ"
+      ],
+      "projectedCentre": [
+        0.00004770679050482795,
+        -0.008661086122474302,
+        0.9726604634915234
+      ],
+      "visible": true,
+      "mouth": 0.0749999886766714,
+      "air": 1.769470970817016e-8,
+      "wingPhase": 43.248299689283044,
+      "wingAmplitude": 1.4499999984803797,
+      "foamPatches": 1
+    }
+  ],
+  "compatibility": [
+    {
+      "sea": "maldives",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "scripts": [
+        "http://127.0.0.1:4178/assets/main-vuyZu8bJ.js"
+      ],
+      "mantaCount": 2,
+      "species": "ナンヨウマンタ",
+      "oceanicUniform": 0,
+      "normalMouth": [
+        0.10007553345174532,
+        0.1011138860871591
+      ],
+      "trainCount": 9,
+      "visibleTrain": 8,
+      "trainOceanic": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "separateMaterials": true,
+      "normalMouthUnchanged": true,
+      "glError": 0,
+      "contextLost": false
+    },
+    {
+      "sea": "galapagos",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "scripts": [
+        "http://127.0.0.1:4178/assets/main-vuyZu8bJ.js"
+      ],
+      "mantaCount": 1,
+      "species": "オニイトマキエイ",
+      "oceanicUniform": 1,
+      "normalMouth": [
+        0.10105631058756093
+      ],
+      "trainCount": 11,
+      "visibleTrain": 7,
+      "trainOceanic": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "separateMaterials": true,
+      "normalMouthUnchanged": true,
+      "glError": 0,
+      "contextLost": false
+    },
+    {
+      "sea": "miyako",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "scripts": [
+        "http://127.0.0.1:4178/assets/main-vuyZu8bJ.js"
+      ],
+      "mantaCount": 1,
+      "species": "ナンヨウマンタ",
+      "oceanicUniform": 0,
+      "normalMouth": [
+        0.10137387646319514
+      ],
+      "trainCount": 8,
+      "visibleTrain": 7,
+      "trainCapture": {
+        "time": 29.999999999999577,
+        "target": [
+          24.132673635314006,
+          -7.6968533450570575,
+          -16.272586369406344
+        ],
+        "camera": [
+          32.132673635314006,
+          -3.673109738685642,
+          -11.272586369406344
+        ],
+        "lineOfSightTerrainClearance": 4.83735622116528,
+        "targetTerrainClearance": 4.83735622116528,
+        "observations": [
+          {
+            "time": 29.999999999999577,
+            "visibleFlags": 7,
+            "centresBelowTerrain": 0
+          }
+        ],
+        "trajectoryChanged": false,
+        "limitation": null
+      },
+      "trainOceanic": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "separateMaterials": true,
+      "normalMouthUnchanged": true,
+      "glError": 0,
+      "contextLost": false
+    }
+  ],
+  "errors": [],
+  "externalFailures": [
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=25&longitude=125.25&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=25&longitude=125.25&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=25&longitude=125.25&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=25&longitude=125.25&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=3.48&longitude=72.84&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=3.48&longitude=72.84&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=1.382&longitude=-91.806&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=1.382&longitude=-91.806&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=25&longitude=125.25&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    },
+    {
+      "url": "https://marine-api.open-meteo.com/v1/marine?latitude=25&longitude=125.25&current=wave_height,sea_surface_temperature",
+      "error": "net::ERR_TUNNEL_CONNECTION_FAILED"
+    }
+  ],
+  "application": {
+    "sea": "miyako",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "scripts": [
+      "http://127.0.0.1:4178/assets/main-vuyZu8bJ.js"
+    ],
+    "mantaCount": 1,
+    "species": "ナンヨウマンタ",
+    "oceanicUniform": 0
+  },
+  "leap": {
+    "placement": {
+      "x": 0,
+      "z": 0,
+      "direction": 0
+    },
+    "exitPoint": [
+      -8.361555768808923,
+      0,
+      15.16332698079376
+    ],
+    "direction": [
+      1,
+      0,
+      6.123233995736766e-17
+    ],
+    "predictedExitAt": 10.999999999999991,
+    "nominalVerticalSpeed": 5.986497662961483,
+    "flip": 0,
+    "wingSpan": 3.7269598378799857
+  },
+  "effects": [
+    {
+      "t": 11.000000000000126,
+      "kind": "splash",
+      "values": [
+        -8.361555768808923,
+        15.16332698079376,
+        0.12,
+        0.5590439756819978
+      ]
+    },
+    {
+      "t": 12.116666666666848,
+      "kind": "splash",
+      "values": [
+        -3.808377405867869,
+        15.16332698079376,
+        0.32,
+        1.1180879513639956
+      ]
+    }
+  ],
+  "video": {
+    "file": "scene-breach.mp4",
+    "width": 720,
+    "height": 450,
+    "fps": 20,
+    "fixedSimulationStep": true,
+    "performanceBenchmark": false,
+    "note": "A second actual debug-forced leap. Camera cuts underwater 0.9 s after reentry to show recovery.",
+    "leap": {
+      "placement": {
+        "x": 0,
+        "z": 0,
+        "direction": 0
+      },
+      "exitPoint": [
+        3.2769937193499112,
+        0,
+        12.58081050597664
+      ],
+      "direction": [
+        1,
+        0,
+        6.123233995736766e-17
+      ],
+      "predictedExitAt": 10.933333333333325,
+      "nominalVerticalSpeed": 6.1665584336034955,
+      "flip": 0,
+      "wingSpan": 4.194040295947343
+    },
+    "frames": [
+      {
+        "time": 10.616666666666774,
+        "secondsAfterExit": -0.31666666666655097,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          1.7843682751796415,
+          -1.53781736578756,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.7270876141462347,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.3975611062514126,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11239175079833989,
+          2.158798930342464,
+          0.026878647592868184,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.1726201765403397,
+          -0.24317220841094364,
+          0.9849508294092673
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 25.587995439951577,
+        "wingAmplitude": 1.4499999999996311,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.666666666666776,
+        "secondsAfterExit": -0.2666666666665485,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          2.006464625557438,
+          -1.3445394011106302,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.7527692434155678,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4025420744718704,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11355308354790444,
+          2.158798930342464,
+          0.028052346037224236,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.1656844239913626,
+          -0.22332487143322077,
+          0.9846579541706943
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 25.94917490894634,
+        "wingAmplitude": 1.4499999999997526,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.716666666666779,
+        "secondsAfterExit": -0.216666666666546,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          2.235322006971625,
+          -1.1328484687882825,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.7775552613596978,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4078017928181528,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11470717361263874,
+          2.158798930342464,
+          0.02921352588745045,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.15835270266709478,
+          -0.20044175474333892,
+          0.9843410878464213
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 26.317528798463506,
+        "wingAmplitude": 1.449999999999834,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.766666666666781,
+        "secondsAfterExit": -0.1666666666665435,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          2.475395070580678,
+          -0.895139269470317,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.8033973645429077,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4133391603501608,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11585318984429056,
+          2.158798930342464,
+          0.03036168913411718,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.1504550849678207,
+          -0.1733303904076605,
+          0.9839905497730653
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 26.69878887830985,
+        "wingAmplitude": 1.4499999999998887,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.816666666666784,
+        "secondsAfterExit": -0.11666666666654102,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          2.7237690700909667,
+          -0.6293938701235342,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.832238796905274,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.419153724334676,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11699030708188736,
+          2.158798930342464,
+          0.031496343612464964,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.1420525333283373,
+          -0.14124124729132706,
+          0.9836061755276154
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 27.09468247873108,
+        "wingAmplitude": 1.4499999999999256,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.866666666666786,
+        "secondsAfterExit": -0.06666666666653853,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          2.970497244689014,
+          -0.34121729156473174,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.8656069460077359,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4252456171274632,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11811770675495789,
+          2.158798930342464,
+          0.032617003214122836,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.13346704131127052,
+          -0.10432314846127033,
+          0.9831997130995593
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 27.501165089429954,
+        "wingAmplitude": 1.4499999999999502,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.916666666666789,
+        "secondsAfterExit": -0.016666666666536045,
+        "recoverySeconds": null,
+        "runComplete": false,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          3.203728692509525,
+          -0.041111598529857504,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.9043105557906399,
+          1.5707963267948966,
+          0,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.431615484925753,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.11923457748178137,
+          2.158798930342464,
+          0.03372318809608912,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.12513926775477938,
+          -0.06357062402573456,
+          0.9827895833512325
+        ],
+        "visible": true,
+        "mouth": 0.055000000000000035,
+        "air": 0,
+        "wingPhase": 27.909572134396623,
+        "wingAmplitude": 1.4499999999999664,
+        "foamPatches": 1
+      },
+      {
+        "time": 10.966666666666791,
+        "secondsAfterExit": 0.03333333333333499,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          3.4235237730306842,
+          0.19653646697182647,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.9161516679727075,
+          1.5707963267948966,
+          0.004345937861473446,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.438264409008383,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12034011566222007,
+          2.158798930342464,
+          0.03481442488688524,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.11674682287552286,
+          -0.03040182878280036,
+          0.9823939136577008
+        ],
+        "visible": true,
+        "mouth": 0.04722454662045156,
+        "air": 0.5034146962085906,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 1.087352050639181,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.016666666666794,
+        "secondsAfterExit": 0.08333333333333748,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          3.643318853551847,
+          0.47092450076289744,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.9046457765892085,
+          1.5707963267948966,
+          0.010864844653683613,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4451938201404526,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12143352606469289,
+          2.158798930342464,
+          0.035890246889792796,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.10819597353318118,
+          0.010102593810771696,
+          0.9819697021560606
+        ],
+        "visible": true,
+        "mouth": 0.0414643490828208,
+        "air": 0.7534030360583935,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.8442618605289289,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.066666666666796,
+        "secondsAfterExit": 0.13333333333333997,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          3.8631139340730094,
+          0.720812534553966,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.8841572112719513,
+          1.5707963267948966,
+          0.017383751445893783,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4524054068740502,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12251402240685538,
+          2.158798930342464,
+          0.03695019428308681,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.099155006416378,
+          0.04848607175583886,
+          0.9815298582010841
+        ],
+        "visible": true,
+        "mouth": 0.037197089792217974,
+        "air": 0.8775435717470181,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.6813136331034124,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.116666666666799,
+        "secondsAfterExit": 0.18333333333334245,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          4.0829090145941755,
+          0.9462005683450322,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.8555255125797563,
+          1.5707963267948966,
+          0.023902658238103947,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4599010185260364,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12358082792955435,
+          2.158798930342464,
+          0.037993814317178895,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.08958464849660645,
+          0.08455573756611087,
+          0.9810737997809822
+        ],
+        "visible": true,
+        "mouth": 0.034035826357366065,
+        "air": 0.9391899373747821,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.5720861697941143,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.166666666666801,
+        "secondsAfterExit": 0.23333333333334494,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          4.302704095115338,
+          1.1470886021360958,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.8195902210714442,
+          1.5707963267948966,
+          0.03042156503031412,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4676825636576303,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12463317596363055,
+          2.158798930342464,
+          0.03902066150858531,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.07944326991159933,
+          0.1181019183566306,
+          0.9806009322970062
+        ],
+        "visible": true,
+        "mouth": 0.031693904804452895,
+        "air": 0.9698026165776815,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.4988688115602696,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.216666666666804,
+        "secondsAfterExit": 0.2833333333333474,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          4.522499175636501,
+          1.323476635927157,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.7771908773058358,
+          1.5707963267948966,
+          0.03694047182252429,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4757519049183543,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12567031048914887,
+          2.158798930342464,
+          0.0400302978306367,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.06868678188215907,
+          0.1488969519302824,
+          0.9801106497582082
+        ],
+        "visible": true,
+        "mouth": 0.0299589666466476,
+        "air": 0.9850044231795223,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.4497897486183508,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.266666666666806,
+        "secondsAfterExit": 0.3333333333333499,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          4.742294256157663,
+          1.4753646697182157,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.7291670218417515,
+          1.5707963267948966,
+          0.04345937861473445,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4841107511484275,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1266914866866418,
+          2.158798930342464,
+          0.04102229290084752,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.057268536886665417,
+          0.17669395382713463,
+          0.9796023362361307
+        ],
+        "visible": true,
+        "mouth": 0.028673692847589458,
+        "air": 0.9925534169290756,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.4168910688877378,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.316666666666809,
+        "secondsAfterExit": 0.3833333333333524,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          4.962089336678826,
+          1.6027527035092721,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.6763581952380122,
+          1.5707963267948966,
+          0.04997828540694462,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.4927605476587757,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12769597147995643,
+          2.158798930342464,
+          0.04199622416486486,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.04513923256687941,
+          0.20122553909669424,
+          0.9790753676093598
+        ],
+        "visible": true,
+        "mouth": 0.027721538598682375,
+        "air": 0.996302136283517,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.39483842437620154,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.366666666666811,
+        "secondsAfterExit": 0.4333333333333549,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          5.1818844171999885,
+          1.705640737300326,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.6196039380534384,
+          1.5707963267948966,
+          0.056497192199154785,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5017023656261803,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1286830440703027,
+          2.158798930342464,
+          0.04295167707691732,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.032246821081983325,
+          0.22220250396397653,
+          0.9785291136297313
+        ],
+        "visible": true,
+        "mouth": 0.02701616538219249,
+        "air": 0.9981636952229711,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3800560946920209,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.416666666666814,
+        "secondsAfterExit": 0.4833333333333574,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          5.401679497721151,
+          1.7840287710913776,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.5597437908468508,
+          1.5707963267948966,
+          0.06301609899136497,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5109367915526628,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.12965199646110848,
+          2.158798930342464,
+          0.04388824527668768,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.018536425894697586,
+          0.23931247419794893,
+          0.9779629403436314
+        ],
+        "visible": true,
+        "mouth": 0.026493612051035918,
+        "air": 0.9990881180344454,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.370147202777607,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.466666666666816,
+        "secondsAfterExit": 0.5333333333333599,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          5.621474578242314,
+          1.8379168048824266,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.49761729417707,
+          1.5707963267948966,
+          0.06953500578357513,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5204638177428083,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1306021339732909,
+          2.158798930342464,
+          0.04480553076253242,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.003950268263473295,
+          0.2522185288742116,
+          0.9773762129032222
+        ],
+        "visible": true,
+        "mouth": 0.0261064950220372,
+        "air": 0.9995471728171132,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3635050738933749,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.516666666666818,
+        "secondsAfterExit": 0.5833333333333623,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          5.841269658763476,
+          1.8673048386734734,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.4340639886029168,
+          1.5707963267948966,
+          0.0760539125757853,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5302827347504073,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13153277575056407,
+          2.158798930342464,
+          0.04570314406097504,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.01157239397319857,
+          0.26055781036946035,
+          0.9767682988034152
+        ],
+        "visible": true,
+        "mouth": 0.025819711673418778,
+        "air": 0.9997751326758212,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3590527217539217,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.566666666666821,
+        "secondsAfterExit": 0.6333333333333648,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          6.061064739284639,
+          1.8721928724645174,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.3699234146832119,
+          1.5707963267948966,
+          0.08257281936799546,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.540392026736471,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13244325525440917,
+          2.158798930342464,
+          0.04658070439240022,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.028095312402683804,
+          0.2639401338465257,
+          0.9761385715808898
+        ],
+        "visible": true,
+        "mouth": 0.025607257343374133,
+        "air": 0.99988833419151,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3560682208628366,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.616666666666823,
+        "secondsAfterExit": 0.6833333333333673,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          6.280859819805801,
+          1.8525809062555587,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.30603511297677566,
+          1.5707963267948966,
+          0.08909172616020562,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5507892706644575,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13333292074834058,
+          2.158798930342464,
+          0.04743783983287864,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.045685275569116064,
+          0.261946612193654,
+          0.9754864150112527
+        ],
+        "visible": true,
+        "mouth": 0.02544986730461433,
+        "air": 0.9999445484005679,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3540676500881311,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.666666666666826,
+        "secondsAfterExit": 0.7333333333333698,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          6.500654900326964,
+          1.8084689400465987,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.24323862404242869,
+          1.5707963267948966,
+          0.09561063295241579,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5614710402354834,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13420113577111048,
+          2.158798930342464,
+          0.048274187472053046,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.06441211440610721,
+          0.2541283153710667,
+          0.9748112278393966
+        ],
+        "visible": true,
+        "mouth": 0.02533326989614727,
+        "air": 0.9999724635506503,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.35272662739433297,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.716666666666828,
+        "secondsAfterExit": 0.7833333333333723,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          6.720449980848127,
+          1.739856973837635,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.18237348843899204,
+          1.5707963267948966,
+          0.10212953974462596,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5724328154366038,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13504727959850377,
+          2.158798930342464,
+          0.04908939356701893,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.08434868158679888,
+          0.24000498638296325,
+          0.9741124290760251
+        ],
+        "visible": true,
+        "mouth": 0.025246892411470597,
+        "air": 0.9999863258039343,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3518277130004913,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.766666666666831,
+        "secondsAfterExit": 0.8333333333333748,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          6.940245061369289,
+          1.6467450076286703,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.12427924672528612,
+          1.5707963267948966,
+          0.10864844653683613,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.583668898539027,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13587074769338076,
+          2.158798930342464,
+          0.04988311369213379,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.10557080045189339,
+          0.21906383961290912,
+          0.9733894638899575
+        ],
+        "visible": true,
+        "mouth": 0.025182902396965464,
+        "air": 0.9999932095951927,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3512251526626292,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.816666666666833,
+        "secondsAfterExit": 0.8833333333333773,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          7.160040141890452,
+          1.5291330414197013,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.06979543946013178,
+          1.5707963267948966,
+          0.11516735332904632,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.5951723373407205,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1366709521436378,
+          2.158798930342464,
+          0.05065501288469237,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.12815717884005395,
+          0.1907584709983074,
+          0.9726418101209748
+        ],
+        "visible": true,
+        "mouth": 0.025135497428278378,
+        "air": 0.9999966279847659,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.35082124438921425,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.866666666666836,
+        "secondsAfterExit": 0.9333333333333798,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          7.379835222411614,
+          1.3870210752107308,
+          12.58081050597664
+        ],
+        "rotation": [
+          -0.019761607202349207,
+          1.5707963267948966,
+          0.12168626012125648,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.6069348563995072,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1374473220877624,
+          2.158798930342464,
+          0.05140476578640519,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.15218928284259017,
+          0.15450791341963896,
+          0.9718689854313418
+        ],
+        "visible": true,
+        "mouth": 0.025100378963724135,
+        "air": 0.9999983255067906,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3505504965767846,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.916666666666838,
+        "secondsAfterExit": 0.9833333333333822,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          7.599630302932777,
+          1.220409109001758,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.024982709489240418,
+          1.5707963267948966,
+          0.12820516691346664,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.61894679694874,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13819930412767029,
+          2.158798930342464,
+          0.05213205678062123,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.1777511652541593,
+          0.10969587466381166,
+          0.9710705551055034
+        ],
+        "visible": true,
+        "mouth": 0.02507436256529999,
+        "air": 0.9999991684712809,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3503690088906927,
+        "foamPatches": 1
+      },
+      {
+        "time": 11.96666666666684,
+        "secondsAfterExit": 1.0333333333333847,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          7.81942538345394,
+          1.0292971427927826,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.06359797005581658,
+          1.5707963267948966,
+          0.13472407370567682,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.6311970661284323,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.138926362728521,
+          2.158798930342464,
+          0.05283658012523658,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.20492924331513762,
+          0.055670199283068704,
+          0.9702461404965032
+        ],
+        "visible": true,
+        "mouth": 0.025055089143310866,
+        "air": 0.9999995870750584,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3502473540565967,
+        "foamPatches": 1
+      },
+      {
+        "time": 12.016666666666843,
+        "secondsAfterExit": 1.0833333333333872,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          8.039220463975106,
+          0.8136851765838058,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.09524463393855886,
+          1.5707963267948966,
+          0.14124298049788697,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.643673096100646,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.13962798060521817,
+          2.158798930342464,
+          0.053518040081233106,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.2338120202649263,
+          -0.008257400524155682,
+          0.9693954281041836
+        ],
+        "visible": true,
+        "mouth": 0.025040811041126435,
+        "air": 0.9999997949475424,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.350165806382605,
+        "foamPatches": 1
+      },
+      {
+        "time": 12.066666666666846,
+        "secondsAfterExit": 1.1333333333333897,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          8.259015544496265,
+          0.5735732103748257,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.11908316057864621,
+          1.5707963267948966,
+          0.14776188729009715,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.6563608135494527,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1403036590953123,
+          2.158798930342464,
+          0.05417615103679316,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.2644897452775408,
+          -0.08281129640562433,
+          0.9685181792539562
+        ],
+        "visible": true,
+        "mouth": 0.025030233562871453,
+        "air": 0.9999998981739631,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3501111433420208,
+        "foamPatches": 1
+      },
+      {
+        "time": 12.116666666666848,
+        "secondsAfterExit": 1.1833333333333922,
+        "recoverySeconds": null,
+        "runComplete": true,
+        "landed": false,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          8.47881062501743,
+          0.30896124416584136,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1342740094172583,
+          1.5707963267948966,
+          0.15428079408230733,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.6692446199934008,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1409529185180316,
+          2.158798930342464,
+          0.05481063762693809,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.29705400656360703,
+          -0.16875152616986425,
+          0.967614240325699
+        ],
+        "visible": true,
+        "mouth": 0.025022397574251298,
+        "air": 0.9999999494346865,
+        "wingPhase": 28.045492300882472,
+        "wingAmplitude": 0.3500745016101399,
+        "foamPatches": 1
+      },
+      {
+        "time": 12.16666666666685,
+        "secondsAfterExit": 1.2333333333333947,
+        "recoverySeconds": 0.016666666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          8.698106388603518,
+          0.06228652787025671,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.13937890457576613,
+          1.5707963267948966,
+          0.15574507112835229,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.682307383262587,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1415752985191793,
+          2.158798930342464,
+          0.055421234848640685,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.33149764889869987,
+          -0.25468066411792395,
+          0.9666448164164497
+        ],
+        "visible": true,
+        "mouth": 0.029774721629306458,
+        "air": 0.8898817427708018,
+        "wingPhase": 28.140787278041362,
+        "wingAmplitude": 0.4873592889754965,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.216666666666853,
+        "secondsAfterExit": 1.2833333333333972,
+        "recoverySeconds": 0.06666666666666667,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          8.913457299243392,
+          -0.09649378526130908,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.13994729092596594,
+          1.5707963267948966,
+          0.14741039668994438,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.69553044041372,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1421703584016461,
+          2.158798930342464,
+          0.05600768817136324,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.367472086195209,
+          -0.3198590363342245,
+          0.9655499270995869
+        ],
+        "visible": true,
+        "mouth": 0.041496289747587435,
+        "air": 0.6270890653887158,
+        "wingPhase": 28.42667220951803,
+        "wingAmplitude": 0.8047226342702742,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.266666666666856,
+        "secondsAfterExit": 1.3333333333333997,
+        "recoverySeconds": 0.11666666666666665,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          9.12449114248635,
+          -0.23988652281889336,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14048526016472954,
+          1.5707963267948966,
+          0.13952175112096374,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.7088936122754839,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14273767744129573,
+          2.158798930342464,
+          0.05656975364297558,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.4051359830237156,
+          -0.3844804162011022,
+          0.9643932525011119
+        ],
+        "visible": true,
+        "mouth": 0.05017984098457189,
+        "air": 0.4419021955722675,
+        "wingPhase": 28.7125571409947,
+        "wingAmplitude": 1.017457646498294,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.316666666666858,
+        "secondsAfterExit": 1.3833333333334021,
+        "recoverySeconds": 0.16666666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          9.33133613955115,
+          -0.3695230134446371,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14099444005927514,
+          1.5707963267948966,
+          0.13205526525245448,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.7223752297336734,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14327685518799482,
+          2.158798930342464,
+          0.057107197991008565,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.4446412110553352,
+          -0.44893489556051164,
+          0.9631703174792469
+        ],
+        "visible": true,
+        "mouth": 0.05661277396115325,
+        "air": 0.31140321404032645,
+        "wingPhase": 28.99844207247137,
+        "wingAmplitude": 1.1600581896883728,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.36666666666686,
+        "secondsAfterExit": 1.4333333333334046,
+        "recoverySeconds": 0.21666666666666665,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          9.534116703358126,
+          -0.4868616389037758,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14147637126709908,
+          1.5707963267948966,
+          0.12498834727050591,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.7359521717814992,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1437875117515688,
+          2.158798930342464,
+          0.05761979871920155,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.48615439285092077,
+          -0.5136065622436727,
+          0.9618761109125256
+        ],
+        "visible": true,
+        "mouth": 0.061378407922629004,
+        "air": 0.21944213603434526,
+        "wingPhase": 29.28432700394804,
+        "wingAmplitude": 1.2556461923642535,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.416666666666863,
+        "secondsAfterExit": 1.4833333333334071,
+        "recoverySeconds": 0.26666666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          9.732953551639472,
+          -0.5932061692143357,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1419325119976397,
+          1.5707963267948966,
+          0.11829961435878619,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.7495999152758015,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1442692880724757,
+          2.158798930342464,
+          0.058107344199303926,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.5298592462229856,
+          -0.5788782871436274,
+          0.9605050117250086
+        ],
+        "visible": true,
+        "mouth": 0.06490887639438983,
+        "air": 0.1546382596458368,
+        "wingPhase": 29.57021193542471,
+        "wingAmplitude": 1.3197207467184047,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.466666666666866,
+        "secondsAfterExit": 1.5333333333334096,
+        "recoverySeconds": 0.31666666666666665,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          9.927963816690015,
+          -0.6897221539603998,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14236424242447307,
+          1.5707963267948966,
+          0.11196882799921583,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.7632925962552215,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1447218461770036,
+          2.158798930342464,
+          0.05856963375809278,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.5759593219666443,
+          -0.6451366537337515,
+          0.9590507013889741
+        ],
+        "visible": true,
+        "mouth": 0.0675243117658126,
+        "air": 0.10897173978725114,
+        "wingPhase": 29.856096866901378,
+        "wingAmplitude": 1.3626712049427923,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.516666666666868,
+        "secondsAfterExit": 1.583333333333412,
+        "recoverySeconds": 0.36666666666666664,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          10.119261151858293,
+          -0.7774515758645135,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14277286886139046,
+          1.5707963267948966,
+          0.10597683273501596,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.7770030825922465,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1451448694168072,
+          2.158798930342464,
+          0.05900647775957139,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.6246812218436274,
+          -0.7127771609161622,
+          0.957506060083321
+        ],
+        "visible": true,
+        "mouth": 0.06946187394397804,
+        "air": 0.07679108714400272,
+        "wingPhase": 30.141981798378048,
+        "wingAmplitude": 1.3914617580770154,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.56666666666687,
+        "secondsAfterExit": 1.6333333333334146,
+        "recoverySeconds": 0.41666666666666663,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          10.306955834874737,
+          -0.8573259508475007,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1431596277149939,
+          1.5707963267948966,
+          0.10030549821084318,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.790703057668115,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1455380626926122,
+          2.158798930342464,
+          0.05941769768231492,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.6762784050314975,
+          -0.7822098471019442,
+          0.9558630429679934
+        ],
+        "visible": true,
+        "mouth": 0.07089725530926676,
+        "air": 0.05411376450693052,
+        "wingPhase": 30.427866729854717,
+        "wingAmplitude": 1.4107606429793396,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.616666666666873,
+        "secondsAfterExit": 1.683333333333417,
+        "recoverySeconds": 0.4666666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          10.49115486811091,
+          -0.9301780392728239,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14352568922576908,
+          1.5707963267948966,
+          0.0949376643146378,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8043631146783499,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14590115266192671,
+          2.158798930342464,
+          0.059803126191931934,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.7310357188865694,
+          -0.8538655081614454,
+          0.9541125321088642
+        ],
+        "visible": true,
+        "mouth": 0.07196061197829963,
+        "air": 0.03813332533787719,
+        "wingPhase": 30.713751661331386,
+        "wingAmplitude": 1.423697072395502,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.666666666666876,
+        "secondsAfterExit": 1.7333333333334195,
+        "recoverySeconds": 0.5166666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          10.671962075860934,
+          -0.9967523156120958,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14387216100895522,
+          1.5707963267948966,
+          0.08985708925519813,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8179528610978277,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14623388793061312,
+          2.158798930342464,
+          0.060162607208612856,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.789274825911213,
+          -0.9282027163984843,
+          0.9522441583838139
+        ],
+        "visible": true,
+        "mouth": 0.0727483659738026,
+        "air": 0.026872100186970886,
+        "wingPhase": 30.999636592808056,
+        "wingAmplitude": 1.4323686203572807,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.716666666666878,
+        "secondsAfterExit": 1.783333333333422,
+        "recoverySeconds": 0.5666666666666668,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          10.849478198733577,
+          -1.0577143281589196,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14420009140592588,
+          1.5707963267948966,
+          0.08504840041837561,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8314410327582968,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14653603922818356,
+          2.158798930342464,
+          0.060495995969738,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.8513607461652185,
+          -1.0057158949527238,
+          0.9502460861225533
+        ],
+        "visible": true,
+        "mouth": 0.07333194848708602,
+        "air": 0.018936448947486396,
+        "wingPhase": 31.285521524284725,
+        "wingAmplitude": 1.4381813327862205,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.76666666666688,
+        "secondsAfterExit": 1.8333333333334245,
+        "recoverySeconds": 0.6166666666666669,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          11.023800985240777,
+          -1.113659066463654,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14451047265622108,
+          1.5707963267948966,
+          0.08049704785319337,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8447956169186919,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14680739956669658,
+          2.158798930342464,
+          0.06080315908752075,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.9177097970665042,
+          -1.0869447662314486,
+          0.9481047511453814
+        ],
+        "visible": true,
+        "mouth": 0.07376427704619762,
+        "air": 0.01334429003486013,
+        "wingPhase": 31.571406455761394,
+        "wingAmplitude": 1.4420777104491795,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.816666666666883,
+        "secondsAfterExit": 1.883333333333427,
+        "recoverySeconds": 0.6666666666666671,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          11.195025280665927,
+          -1.1651184416865232,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14480424389982874,
+          1.5707963267948966,
+          0.07618926024714838,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8579839836399743,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14704778438314353,
+          2.158798930342464,
+          0.06108397460166295,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.9887992963001522,
+          -1.1724855801256775,
+          0.9458045400797115
+        ],
+        "visible": true,
+        "mouth": 0.07408455392010856,
+        "air": 0.009403562253318048,
+        "wingPhase": 31.857291387238064,
+        "wingAmplitude": 1.4446895305035863,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.866666666666886,
+        "secondsAfterExit": 1.9333333333334295,
+        "recoverySeconds": 0.7166666666666672,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          11.363243113292656,
+          -1.2125679739138897,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14508229401879918,
+          1.5707963267948966,
+          0.0721120032574887,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8709730247120229,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1472570316652264,
+          2.158798930342464,
+          0.06133833202700239,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -1.0651795065410172,
+          -1.2630046465040512,
+          0.9433273950771586
+        ],
+        "visible": true,
+        "mouth": 0.07432182086396477,
+        "air": 0.0066265783208416945,
+        "wingPhase": 32.14317631871474,
+        "wingAmplitude": 1.446440285842693,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.916666666666888,
+        "secondsAfterExit": 1.983333333333432,
+        "recoverySeconds": 0.7666666666666674,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          11.528543778072537,
+          -1.256432770512252,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1453454643267914,
+          1.5707963267948966,
+          0.0682529400723863,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.883729299320808,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.14743500206044122,
+          2.158798930342464,
+          0.061566132396134,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -1.147488454645943,
+          -1.3592548592990787,
+          0.9406523229378807
+        ],
+        "visible": true,
+        "mouth": 0.07449759253913892,
+        "air": 0.004669670818285373,
+        "wingPhase": 32.42906125019142,
+        "wingAmplitude": 1.4476138522422002,
+        "foamPatches": 2
+      },
+      {
+        "time": 12.96666666666689,
+        "secondsAfterExit": 2.0333333333334345,
+        "recoverySeconds": 0.8166666666666675,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          11.69101391780779,
+          -1.2970928706812868,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14559455111468841,
+          1.5707963267948966,
+          0.0646003940826728,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.8962191855900783,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1475815789683935,
+          2.158798930342464,
+          0.061767288296988763,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -1.2364704700615983,
+          -1.462096124708732,
+          0.9377547806021715
+        ],
+        "visible": true,
+        "mouth": 0.07462780739878766,
+        "air": 0.0032906614085527405,
+        "wingPhase": 32.7149461816681,
+        "wingAmplitude": 1.4484005173251437,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.016666666666893,
+        "secondsAfterExit": 2.083333333333437,
+        "recoverySeconds": 0.8666666666666677,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          11.850737601922768,
+          -1.3348880233989528,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14583030805998437,
+          1.5707963267948966,
+          0.06114331355119192,
+          "YXZ"
+        ],
+        "camera": [
+          11.576993719349911,
+          1.908409037083524,
+          8.58081050597664
+        ],
+        "cameraRotation": [
+          -0.1476966686162853,
+          2.158798930342464,
+          0.061941723905356766,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -1.3329995828691272,
+          -1.572520920785722,
+          0.9346058991468033
+        ],
+        "visible": true,
+        "mouth": 0.07472427293941897,
+        "air": 0.0023188899019041215,
+        "wingPhase": 33.00083111314478,
+        "wingAmplitude": 1.4489278346997572,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.066666666666896,
+        "secondsAfterExit": 2.1333333333334394,
+        "recoverySeconds": 0.9166666666666679,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.007796402895847,
+          -1.3701219588281455,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14605344850723384,
+          1.5707963267948966,
+          0.057871238172866137,
+          "YXZ"
+        ],
+        "camera": [
+          16.807796402895846,
+          -0.9910040676345462,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.0684753894606093,
+          2.158798930342464,
+          0.0086626051274284,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000022052048407007123,
+          0.0040729543097113696,
+          0.9726676482450749
+        ],
+        "visible": true,
+        "mouth": 0.07479573636958656,
+        "air": 0.00163409409524083,
+        "wingPhase": 33.28671604462146,
+        "wingAmplitude": 1.4492813061065835,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.116666666666898,
+        "secondsAfterExit": 2.183333333333442,
+        "recoverySeconds": 0.966666666666668,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.162269470421224,
+          -1.4030662068860595,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14626464762646318,
+          1.5707963267948966,
+          0.0547742674242965,
+          "YXZ"
+        ],
+        "camera": [
+          16.962269470421223,
+          -1.0250683273579013,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06843032294574573,
+          2.158798930342464,
+          0.008548013656659761,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002289145803276106,
+          0.004284672702073845,
+          0.9726672850992079
+        ],
+        "visible": true,
+        "mouth": 0.07484867778076712,
+        "air": 0.0011515266463958899,
+        "wingPhase": 33.57260097609814,
+        "wingAmplitude": 1.4495182450762794,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.1666666666669,
+        "secondsAfterExit": 2.2333333333334444,
+        "recoverySeconds": 1.016666666666668,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.314233603368029,
+          -1.4339635109842455,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1464645444560746,
+          1.5707963267948966,
+          0.05184303060712896,
+          "YXZ"
+        ],
+        "camera": [
+          17.114233603368028,
+          -1.0571304337562104,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06837820612093239,
+          2.158798930342464,
+          0.008429094936537885,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000023693541477561897,
+          0.004497371167753556,
+          0.9726669083303633
+        ],
+        "visible": true,
+        "mouth": 0.07488789774279828,
+        "air": 0.0008114671127089161,
+        "wingPhase": 33.85848590757482,
+        "wingAmplitude": 1.4496770700173536,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.216666666666903,
+        "secondsAfterExit": 2.283333333333447,
+        "recoverySeconds": 1.0666666666666678,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.463763319602183,
+          -1.4630308798577252,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1466537438364248,
+          1.5707963267948966,
+          0.04906865849454544,
+          "YXZ"
+        ],
+        "camera": [
+          17.263763319602184,
+          -1.0874055321292937,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06831908588779369,
+          2.158798930342464,
+          0.008305909167125083,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002445449932150403,
+          0.004710658201574051,
+          0.9726665186628932
+        ],
+        "visible": true,
+        "mouth": 0.07491695260528541,
+        "air": 0.0005718312095244059,
+        "wingPhase": 34.1443708390515,
+        "wingAmplitude": 1.449783533559166,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.266666666666906,
+        "secondsAfterExit": 2.3333333333334494,
+        "recoverySeconds": 1.1166666666666676,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.610930923734465,
+          -1.4904623158515053,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14683281823992825,
+          1.5707963267948966,
+          0.04644275649508881,
+          "YXZ"
+        ],
+        "camera": [
+          17.410930923734465,
+          -1.116085692712594,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06825301545054904,
+          2.158798930342464,
+          0.008178518708586246,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000025170639229787048,
+          0.0049241343413633145,
+          0.9726661168448117
+        ],
+        "visible": true,
+        "mouth": 0.07493847697681529,
+        "air": 0.00040296264268129494,
+        "wingPhase": 34.43025577052818,
+        "wingAmplitude": 1.449854898205415,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.316666666666908,
+        "secondsAfterExit": 2.383333333333452,
+        "recoverySeconds": 1.1666666666666674,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.755806572856416,
+          -1.51643125396517,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1470023095032229,
+          1.5707963267948966,
+          0.04395737925262175,
+          "YXZ"
+        ],
+        "camera": [
+          17.555806572856415,
+          -1.1433423528127318,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06818005426813231,
+          2.158798930342464,
+          0.008046988049620306,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000025838394531527703,
+          0.005137392854344378,
+          0.9726657036459265
+        ],
+        "visible": true,
+        "mouth": 0.07495442262343334,
+        "air": 0.00028396297489908617,
+        "wingPhase": 34.71614070200486,
+        "wingAmplitude": 1.4499027353583738,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.36666666666691,
+        "secondsAfterExit": 2.4333333333334544,
+        "recoverySeconds": 1.2166666666666672,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          12.898458340323796,
+          -1.5410927423198113,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14716273046663916,
+          1.5707963267948966,
+          0.04160500660556509,
+          "YXZ"
+        ],
+        "camera": [
+          17.698458340323796,
+          -1.1693285004703207,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06810026800068295,
+          2.158798930342464,
+          0.007911383774814262,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000026454342499951616,
+          0.005350020441595225,
+          0.9726652798559209
+        ],
+        "visible": true,
+        "mouth": 0.07496623544898855,
+        "air": 0.00020010532633247996,
+        "wingPhase": 35.00202563348154,
+        "wingAmplitude": 1.4499348015609475,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.416666666666913,
+        "secondsAfterExit": 2.483333333333457,
+        "recoverySeconds": 1.266666666666667,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.038952277645624,
+          -1.5645853914606576,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14731456652593306,
+          1.5707963267948966,
+          0.039378520832673944,
+          "YXZ"
+        ],
+        "camera": [
+          17.838952277645625,
+          -1.1941806270582833,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06801372845045621,
+          2.158798930342464,
+          0.007771774530936141,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002701522227090824,
+          0.005561597959433841,
+          0.9726648462823901
+        ],
+        "visible": true,
+        "mouth": 0.07497498660539759,
+        "air": 0.00014101184015577505,
+        "wingPhase": 35.28791056495822,
+        "wingAmplitude": 1.4499562961793329,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.466666666666915,
+        "secondsAfterExit": 2.5333333333334593,
+        "recoverySeconds": 1.3166666666666669,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.177352474535057,
+          -1.5870331170025083,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14745827710097853,
+          1.5707963267948966,
+          0.03727118511650274,
+          "YXZ"
+        ],
+        "camera": [
+          17.977352474535056,
+          -1.2180204733175097,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06792051349720614,
+          2.158798930342464,
+          0.0076282309921839875,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002751795228227921,
+          0.005771701156560216,
+          0.9726644037488429
+        ],
+        "visible": true,
+        "mouth": 0.07498146962151743,
+        "air": 0.00009936936426709368,
+        "wingPhase": 35.5737954964349,
+        "wingAmplitude": 1.4499707044529184,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.516666666666918,
+        "secondsAfterExit": 2.583333333333462,
+        "recoverySeconds": 1.3666666666666667,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.313721117176678,
+          -1.6085466975269336,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1475942970258629,
+          1.5707963267948966,
+          0.035276623159394775,
+          "YXZ"
+        ],
+        "camera": [
+          18.113721117176677,
+          -1.2409565907333922,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06782070702809884,
+          2.158798930342464,
+          0.007480825824408638,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000027959647201809243,
+          0.0059799014257452526,
+          0.97266395309267
+        ],
+        "visible": true,
+        "mouth": 0.07498627235798398,
+        "air": 0.00007002440748194122,
+        "wingPhase": 35.85968042791158,
+        "wingAmplitude": 1.4499803626075316,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.56666666666692,
+        "secondsAfterExit": 2.6333333333334643,
+        "recoverySeconds": 1.4166666666666665,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.4481185447632,
+          -1.629225167317503,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1477230378645917,
+          1.5707963267948966,
+          0.03338879989031905,
+          "YXZ"
+        ],
+        "camera": [
+          18.2481185447632,
+          -1.263085737833933,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06771439886221962,
+          2.158798930342464,
+          0.00732963364832814,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000028337634207143714,
+          0.006185766568830288,
+          0.9726634951630894
+        ],
+        "visible": true,
+        "mouth": 0.07498983031266754,
+        "air": 0.00004934536594213394,
+        "wingPhase": 36.14556535938826,
+        "wingAmplitude": 1.4499868366621766,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.616666666666923,
+        "secondsAfterExit": 2.683333333333467,
+        "recoverySeconds": 1.4666666666666663,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.580603304352975,
+          -1.6491570614428468,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1478448891563836,
+          1.5707963267948966,
+          0.031602003204177886,
+          "YXZ"
+        ],
+        "camera": [
+          18.380603304352974,
+          -1.2844941289135268,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06760168466974237,
+          2.158798930342464,
+          0.007174731001752623,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000028649468594797042,
+          0.0063888615737676645,
+          0.9726630308190765
+        ],
+        "visible": true,
+        "mouth": 0.07499246611032548,
+        "air": 0.000034773091662233224,
+        "wingPhase": 36.43145029086494,
+        "wingAmplitude": 1.4499911763507842,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.666666666666925,
+        "secondsAfterExit": 2.7333333333334693,
+        "recoverySeconds": 1.5166666666666662,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.711232204098174,
+          -1.6682037322082046,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1479602195943236,
+          1.5707963267948966,
+          0.029910826678332773,
+          "YXZ"
+        ],
+        "camera": [
+          18.511232204098174,
+          -1.3050407541972562,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06748266588583224,
+          2.158798930342464,
+          0.007016196300838627,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000028892948595970143,
+          0.0065887494024105256,
+          0.9726625609272824
+        ],
+        "visible": true,
+        "mouth": 0.0749944187572565,
+        "air": 0.00002450418353707285,
+        "wingPhase": 36.71733522234162,
+        "wingAmplitude": 1.4499940853310513,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.716666666666928,
+        "secondsAfterExit": 2.7833333333334718,
+        "recoverySeconds": 1.566666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.840060364892043,
+          -1.6849848613855676,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14806937814094076,
+          1.5707963267948966,
+          0.028310153214052804,
+          "YXZ"
+        ],
+        "camera": [
+          18.640060364892044,
+          -1.323342895849856,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06735744961936126,
+          2.158798930342464,
+          0.0068541098003926685,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000029066129357717123,
+          0.006784991787725651,
+          0.9726620863599507
+        ],
+        "visible": true,
+        "mouth": 0.07499586531368156,
+        "air": 0.000017267806286856612,
+        "wingPhase": 37.0032201538183,
+        "wingAmplitude": 1.4499960352788381,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.76666666666693,
+        "secondsAfterExit": 2.8333333333334743,
+        "recoverySeconds": 1.6166666666666658,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          13.967141270482172,
+          -1.6995268820666611,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1481726950840861,
+          1.5707963267948966,
+          0.02679513955338856,
+          "YXZ"
+        ],
+        "camera": [
+          18.76714127048217,
+          -1.3394245536675564,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06722614855651744,
+          2.158798930342464,
+          0.0066885535532439176,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000029167336005116346,
+          0.00697715003908822,
+          0.9726616079928375
+        ],
+        "visible": true,
+        "mouth": 0.0749969369490385,
+        "air": 0.000012168417425917775,
+        "wingPhase": 37.28910508529498,
+        "wingAmplitude": 1.4499973423679282,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.816666666666933,
+        "secondsAfterExit": 2.8833333333334767,
+        "recoverySeconds": 1.6666666666666656,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.092526816095369,
+          -1.71205666459202,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14827048303630508,
+          1.5707963267948966,
+          0.025361201624623218,
+          "YXZ"
+        ],
+        "camera": [
+          18.89252681609537,
+          -1.3535101348999128,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06708888085939468,
+          2.158798930342464,
+          0.0065196113687066735,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000029195175720349066,
+          0.0071647858542905766,
+          0.9726611267031435
+        ],
+        "visible": true,
+        "mouth": 0.07499773083603685,
+        "air": 0.0000085749388307699,
+        "wingPhase": 37.57499001677166,
+        "wingAmplitude": 1.4499982185359472,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.866666666666935,
+        "secondsAfterExit": 2.9333333333334792,
+        "recoverySeconds": 1.7166666666666655,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.216267355618307,
+          -1.7227784818606573,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14836303788072916,
+          1.5707963267948966,
+          0.024004000671959642,
+          "YXZ"
+        ],
+        "camera": [
+          19.016267355618307,
+          -1.3658014234998923,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06694577005965513,
+          2.158798930342464,
+          0.006347368770153762,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000029148548774542853,
+          0.007347462136874583,
+          0.9726606433674627
+        ],
+        "visible": true,
+        "mouth": 0.07499831896199037,
+        "air": 0.000006042657264110059,
+        "wingPhase": 37.86087494824834,
+        "wingAmplitude": 1.4499988058489341,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.916666666666938,
+        "secondsAfterExit": 2.9833333333334817,
+        "recoverySeconds": 1.7666666666666653,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.338411747376874,
+          -1.7318762573721151,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1484506396663477,
+          1.5707963267948966,
+          0.02271943012747524,
+          "YXZ"
+        ],
+        "camera": [
+          19.138411747376875,
+          -1.3764798321477099,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06679694494735895,
+          2.158798930342464,
+          0.006171912951722119,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000029026658456976975,
+          0.0075247438173922255,
+          0.9726601588597568
+        ],
+        "visible": true,
+        "mouth": 0.07499875465641281,
+        "air": 0.000004258188604270624,
+        "wingPhase": 38.14675987972502,
+        "wingAmplitude": 1.4499991995366026,
+        "foamPatches": 2
+      },
+      {
+        "time": 13.96666666666694,
+        "secondsAfterExit": 3.033333333333484,
+        "recoverySeconds": 1.816666666666665,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.459007398555821,
+          -1.7395155896486216,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14853355345536984,
+          1.5707963267948966,
+          0.021503603185622236,
+          "YXZ"
+        ],
+        "camera": [
+          19.25900739855582,
+          -1.3857084306897591,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06664253945506175,
+          2.158798930342464,
+          0.005993332734172577,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002882901984402005,
+          0.007696198677165512,
+          0.9726596740493593
+        ],
+        "visible": true,
+        "mouth": 0.0749990774267796,
+        "air": 0.000003000694793205461,
+        "wingPhase": 38.4326448112017,
+        "wingAmplitude": 1.4499994634333386,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.016666666666943,
+        "secondsAfterExit": 3.0833333333334867,
+        "recoverySeconds": 1.866666666666665,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.578100308299103,
+          -1.745845575281388,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14861203012523985,
+          1.5707963267948966,
+          0.020352841042676668,
+          "YXZ"
+        ],
+        "camera": [
+          19.378100308299103,
+          -1.3936337732302515,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06648269253728459,
+          2.158798930342464,
+          0.005811718519926336,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000028555467345205626,
+          0.00786139817312111,
+          0.9726591897990191
+        ],
+        "visible": true,
+        "mouth": 0.07499931654094842,
+        "air": 0.000002114553881652846,
+        "wingPhase": 38.71852974267838,
+        "wingAmplitude": 1.449999640328611,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.066666666666945,
+        "secondsAfterExit": 3.133333333333489,
+        "recoverySeconds": 1.9166666666666647,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.695735109530098,
+          -1.7510004506324148,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14868630712773268,
+          1.5707963267948966,
+          0.01926366176555156,
+          "YXZ"
+        ],
+        "camera": [
+          19.4957351095301,
+          -1.4003875439004607,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06631754804546403,
+          2.158798930342464,
+          0.005627162247300611,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002820616101101924,
+          0.00801991826225524,
+          0.972658706962985
+        ],
+        "visible": true,
+        "mouth": 0.07499949368108151,
+        "air": 0.0000014901009354692343,
+        "wingPhase": 39.00441467415506,
+        "wingAmplitude": 1.449999758905058,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.116666666666948,
+        "secondsAfterExit": 3.1833333333334917,
+        "recoverySeconds": 1.9666666666666646,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.811955109529732,
+          -1.7551010702306025,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14875660920742662,
+          1.5707963267948966,
+          0.018232769756293937,
+          "YXZ"
+        ],
+        "camera": [
+          19.61195510952973,
+          -1.4060880393378552,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06614725459849585,
+          2.158798930342464,
+          0.005439757343966855,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002778159152441192,
+          0.008171340224280397,
+          0.972658226385142
+        ],
+        "visible": true,
+        "mouth": 0.07499962490971972,
+        "air": 0.0000010500563817038824,
+        "wingPhase": 39.29029960563174,
+        "wingAmplitude": 1.4499998383892272,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.16666666666695,
+        "secondsAfterExit": 3.233333333333494,
+        "recoverySeconds": 2.0166666666666644,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          14.926802329309377,
+          -1.758256238106598,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14882314908172717,
+          1.5707963267948966,
+          0.017257045780387666,
+          "YXZ"
+        ],
+        "camera": [
+          19.726802329309375,
+          -1.4108415041130284,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06597196544898783,
+          2.158798930342464,
+          0.0052495986796549324,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000027282583867732544,
+          0.00831525148099574,
+          0.9726577488972016
+        ],
+        "visible": true,
+        "mouth": 0.07499972212628597,
+        "air": 7.399622257198531e-7,
+        "wingPhase": 39.57618453710842,
+        "wingAmplitude": 1.4499998916690593,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.216666666666953,
+        "secondsAfterExit": 3.2833333333334966,
+        "recoverySeconds": 2.066666666666664,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.040317541814346,
+          -1.7605639066949403,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14888612808449933,
+          1.5707963267948966,
+          0.01633353752869026,
+          "YXZ"
+        ],
+        "camera": [
+          19.840317541814347,
+          -1.4147433337264317,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06579183834534293,
+          2.158798930342464,
+          0.005056782518127436,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000026710299611785495,
+          0.008451246410928454,
+          0.9726572753169529
+        ],
+        "visible": true,
+        "mouth": 0.07499979414608961,
+        "air": 5.214425673065307e-7,
+        "wingPhase": 39.8620694685851,
+        "wingAmplitude": 1.4499999273835988,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.266666666666955,
+        "secondsAfterExit": 3.333333333333499,
+        "recoverySeconds": 2.116666666666664,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.152540308992705,
+          -1.7621122564769216,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14894573677525613,
+          1.5707963267948966,
+          0.015459450684446176,
+          "YXZ"
+        ],
+        "camera": [
+          19.952540308992706,
+          -1.4178791583417873,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06560703538979615,
+          2.158798930342464,
+          0.004861406468448169,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000026066237829150268,
+          0.008578927157784485,
+          0.9726568064465806
+        ],
+        "visible": true,
+        "mouth": 0.07499984749967238,
+        "air": 3.6745436665326075e-7,
+        "wingPhase": 40.14795440006178,
+        "wingAmplitude": 1.4499999513237707,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.316666666666958,
+        "secondsAfterExit": 3.3833333333335016,
+        "recoverySeconds": 2.166666666666664,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.2635090177631,
+          -1.7629806682271896,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14900215551574636,
+          1.5707963267948966,
+          0.014632140468347625,
+          "YXZ"
+        ],
+        "camera": [
+          20.0635090177631,
+          -1.4203258191126529,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06541772289253366,
+          2.158798930342464,
+          0.004663569435569591,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000025352234580694754,
+          0.00869790443125653,
+          0.9726563430710516
+        ],
+        "visible": true,
+        "mouth": 0.07499988702497865,
+        "air": 2.58940715695686e-7,
+        "wingPhase": 40.43383933153846,
+        "wingAmplitude": 1.4499999673713475,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.36666666666696,
+        "secondsAfterExit": 3.433333333333504,
+        "recoverySeconds": 2.2166666666666637,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.373260914914306,
+          -1.7632405985470792,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14905555501568662,
+          1.5707963267948966,
+          0.013849103636060157,
+          "YXZ"
+        ],
+        "camera": [
+          20.173260914914305,
+          -1.4221522477786048,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06522407122202485,
+          2.158798930342464,
+          0.0044633715702643946,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000024570460988441366,
+          0.008807798298736645,
+          0.972655885956578
+        ],
+        "visible": true,
+        "mouth": 0.0749999163060457,
+        "air": 1.8247243829398943e-7,
+        "wingPhase": 40.71972426301514,
+        "wingAmplitude": 1.4499999781283601,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.416666666666963,
+        "secondsAfterExit": 3.4833333333335066,
+        "recoverySeconds": 2.2666666666666635,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.481832140968223,
+          -1.762956368304987,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14910609684928824,
+          1.5707963267948966,
+          0.013107970903999528,
+          "YXZ"
+        ],
+        "camera": [
+          20.281832140968223,
+          -1.423420259144855,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.065026254651702,
+          2.158798930342464,
+          0.004260914218426269,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000023723419864628365,
+          0.00890823896649513,
+          0.9726554358491594
+        ],
+        "visible": true,
+        "mouth": 0.07499993799799369,
+        "air": 1.2858615396770723e-7,
+        "wingPhase": 41.00560919449182,
+        "wingAmplitude": 1.4499999853390015,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.466666666666965,
+        "secondsAfterExit": 3.533333333333509,
+        "recoverySeconds": 2.3166666666666633,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.589257763037113,
+          -1.762185872647155,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1491539339441425,
+          1.5707963267948966,
+          0.012406499780441954,
+          "YXZ"
+        ],
+        "camera": [
+          20.38925776303711,
+          -1.4241852651021998,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06482445120312624,
+          2.158798930342464,
+          0.0040562998697656555,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00002281394091458998,
+          0.008998867548892358,
+          0.9726549934732073
+        ],
+        "visible": true,
+        "mouth": 0.07499995406778401,
+        "air": 9.061313120377997e-8,
+        "wingPhase": 41.2914941259685,
+        "wingAmplitude": 1.4499999901724387,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.516666666666968,
+        "secondsAfterExit": 3.5833333333335116,
+        "recoverySeconds": 2.366666666666663,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.695571806704933,
+          -1.760981220380459,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1491992110439433,
+          1.5707963267948966,
+          0.011742567780276466,
+          "YXZ"
+        ],
+        "camera": [
+          20.495571806704934,
+          -1.4244969179824858,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06461884248577994,
+          2.158798930342464,
+          0.0038496321059266186,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000021845174499296393,
+          0.009079336824206002,
+          0.9726545595302561
+        ],
+        "visible": true,
+        "mouth": 0.07499996597257749,
+        "air": 6.385399433142284e-8,
+        "wingPhase": 41.57737905744518,
+        "wingAmplitude": 1.4499999934123886,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.56666666666697,
+        "secondsAfterExit": 3.633333333333514,
+        "recoverySeconds": 2.416666666666663,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.800807286961778,
+          -1.7593893097527507,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14924206514644714,
+          1.5707963267948966,
+          0.011114166002868782,
+          "YXZ"
+        ],
+        "camera": [
+          20.60080728696178,
+          -1.4243996902687914,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06440961353363053,
+          2.158798930342464,
+          0.0036410155480507862,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000020820583978566724,
+          0.009149311975673374,
+          0.9726541346977641
+        ],
+        "visible": true,
+        "mouth": 0.0749999747918654,
+        "air": 4.4997149286319914e-8,
+        "wingPhase": 41.86326398892186,
+        "wingAmplitude": 1.4499999955841918,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.616666666666973,
+        "secondsAfterExit": 3.6833333333335165,
+        "recoverySeconds": 2.466666666666663,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          15.904996238219512,
+          -1.7574523469574632,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14928262591799593,
+          1.5707963267948966,
+          0.01051939305360484,
+          "YXZ"
+        ],
+        "camera": [
+          20.70499623821951,
+          -1.4239333969807364,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.0641969526386124,
+          2.158798930342464,
+          0.0034305558038151625,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000019743936652730183,
+          0.009208471316366859,
+          0.972653719628005
+        ],
+        "visible": true,
+        "mouth": 0.07499998132535458,
+        "air": 3.170895517336454e-8,
+        "wingPhase": 42.14914892039854,
+        "wingAmplitude": 1.449999997039995,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.666666666666975,
+        "secondsAfterExit": 3.733333333333519,
+        "recoverySeconds": 2.5166666666666626,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.00816974343594,
+          -1.7552083130598433,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14932101608585638,
+          1.5707963267948966,
+          0.009956449290722025,
+          "YXZ"
+        ],
+        "camera": [
+          20.80816974343594,
+          -1.4231336664260812,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06398105118117695,
+          2.158798930342464,
+          0.0032183594139704318,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000018619293305752894,
+          0.009256506996537113,
+          0.9726533149470541
+        ],
+        "visible": true,
+        "mouth": 0.07499998616548241,
+        "air": 2.234492304809457e-8,
+        "wingPhase": 42.43503385187522,
+        "wingAmplitude": 1.4499999980158493,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.716666666666978,
+        "secondsAfterExit": 3.7833333333335215,
+        "recoverySeconds": 2.5666666666666624,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.110357962373936,
+          -1.7526913844754524,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14935735180956375,
+          1.5707963267948966,
+          0.009423631380020395,
+          "YXZ"
+        ],
+        "camera": [
+          20.910357962373936,
+          -1.42203236444314,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06376210345806296,
+          2.158798930342464,
+          0.003004533798407078,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000017450996407788246,
+          0.009293125692092454,
+          0.9726529212538711
+        ],
+        "visible": true,
+        "mouth": 0.0749999897511373,
+        "air": 1.5746201137673412e-8,
+        "wingPhase": 42.7209187833519,
+        "wingAmplitude": 1.449999998669984,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.76666666666698,
+        "secondsAfterExit": 3.833333333333524,
+        "recoverySeconds": 2.6166666666666623,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.211590159021256,
+          -1.7499323116212182,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1493917430323929,
+          1.5707963267948966,
+          0.008919327140977696,
+          "YXZ"
+        ],
+        "camera": [
+          21.011590159021257,
+          -1.4206579767482637,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.0635403065074426,
+          2.158798930342464,
+          0.0027891872017763108,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.00001624365698413513,
+          0.009318049272900133,
+          0.9726525391194775
+        ],
+        "visible": true,
+        "mouth": 0.07499999240745577,
+        "air": 1.1096160400033708e-8,
+        "wingPhase": 43.00680371482858,
+        "wingAmplitude": 1.4499999991084636,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.816666666666983,
+        "secondsAfterExit": 3.8833333333335265,
+        "recoverySeconds": 2.666666666666662,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.311894728195952,
+          -1.7469587598997243,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14942429381402067,
+          1.5707963267948966,
+          0.008442010668673798,
+          "YXZ"
+        ],
+        "camera": [
+          21.111894728195953,
+          -1.4190359535431631,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06331585993160073,
+          2.158798930342464,
+          0.00257242863869347,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000015002140197715673,
+          0.00933101544963006,
+          0.9726521690862349
+        ],
+        "visible": true,
+        "mouth": 0.07499999437530488,
+        "air": 7.819332075512189e-9,
+        "wingPhase": 43.29268864630526,
+        "wingAmplitude": 1.449999999402385,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.866666666666985,
+        "secondsAfterExit": 3.933333333333529,
+        "recoverySeconds": 2.716666666666662,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.411299221361592,
+          -1.743795616763556,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14945510264538564,
+          1.5707963267948966,
+          0.007990237716764608,
+          "YXZ"
+        ],
+        "camera": [
+          21.211299221361593,
+          -1.4171890201231094,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06308896571730575,
+          2.158798930342464,
+          0.002354367838551807,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000013731549706519486,
+          0.009331778397892444,
+          0.9726518116672181
+        ],
+        "visible": true,
+        "mouth": 0.07499999583312338,
+        "air": 5.510190183168946e-9,
+        "wingPhase": 43.57857357778194,
+        "wingAmplitude": 1.4499999995994068,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.916666666666988,
+        "secondsAfterExit": 3.9833333333335315,
+        "recoverySeconds": 2.7666666666666617,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.50983037167572,
+          -1.7404652682338133,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14948426274669835,
+          1.5707963267948966,
+          0.007562641327535456,
+          "YXZ"
+        ],
+        "camera": [
+          21.30983037167572,
+          -1.4151374568544322,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06285982805403581,
+          2.158798930342464,
+          0.002135115189974273,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000012437210814170511,
+          0.009320109358451746,
+          0.9726514673456906
+        ],
+        "visible": true,
+        "mouth": 0.07499999691310187,
+        "air": 3.882965394164132e-9,
+        "wingPhase": 43.86445850925862,
+        "wingAmplitude": 1.4499999997314743,
+        "foamPatches": 2
+      },
+      {
+        "time": 14.96666666666699,
+        "secondsAfterExit": 4.033333333333534,
+        "recoverySeconds": 2.8166666666666615,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.607514118294365,
+          -1.7369878479112701,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14951186234950364,
+          1.5707963267948966,
+          0.007157927695811528,
+          "YXZ"
+        ],
+        "camera": [
+          21.407514118294365,
+          -1.412899351554281,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06262865315022138,
+          2.158798930342464,
+          0.0019147816849315836,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000011124652501536383,
+          0.0092957972123434,
+          0.9726511365746743
+        ],
+        "visible": true,
+        "mouth": 0.07499999771316962,
+        "air": 2.7362794660573932e-9,
+        "wingPhase": 44.1503434407353,
+        "wingAmplitude": 1.4499999998200017,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.016666666666993,
+        "secondsAfterExit": 4.083333333333536,
+        "recoverySeconds": 2.8666666666666614,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.704375629954693,
+          -1.7333814612164133,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14953798496364828,
+          1.5707963267948966,
+          0.006774872254210512,
+          "YXZ"
+        ],
+        "camera": [
+          21.504375629954694,
+          -1.4104908270034804,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.062395649047672086,
+          2.158798930342464,
+          0.0016934788625550075,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000009799588385104221,
+          0.009258649029748739,
+          0.9726508197766192
+        ],
+        "visible": true,
+        "mouth": 0.07499999830587438,
+        "air": 1.9282235498725253e-9,
+        "wingPhase": 44.43622837221198,
+        "wingAmplitude": 1.4499999998793436,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.066666666666995,
+        "secondsAfterExit": 4.133333333333539,
+        "recoverySeconds": 2.916666666666661,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.800439327857198,
+          -1.7296623873224182,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.14956270962996193,
+          1.5707963267948966,
+          0.006412315967892389,
+          "YXZ"
+        ],
+        "camera": [
+          21.6004393278572,
+          -1.4079262460513047,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06216102543435296,
+          2.158798930342464,
+          0.0014713187526719951,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000008467896667114733,
+          0.00920849059153546,
+          0.972650517343166
+        ],
+        "visible": true,
+        "mouth": 0.07499999874496087,
+        "air": 1.3587961699103061e-9,
+        "wingPhase": 44.72211330368866,
+        "wingAmplitude": 1.4499999999191213,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.116666666666998,
+        "secondsAfterExit": 4.183333333333541,
+        "recoverySeconds": 2.966666666666661,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.895728907868296,
+          -1.7258452610000068,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1495861111594159,
+          1.5707963267948966,
+          0.006069161827595114,
+          "YXZ"
+        ],
+        "camera": [
+          21.695728907868297,
+          -1.4052183965260483,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06192499345567934,
+          2.158798930342464,
+          0.0012484138190935051,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000007135599152930697,
+          0.009145166882405265,
+          0.9726502296350062
+        ],
+        "visible": true,
+        "mouth": 0.07499999907024416,
+        "air": 9.575274772911978e-10,
+        "wingPhase": 45.00799823516534,
+        "wingAmplitude": 1.4499999999457853,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.166666666667,
+        "secondsAfterExit": 4.233333333333544,
+        "recoverySeconds": 3.016666666666661,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          16.990267362063488,
+          -1.7219432363724165,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1459750003406743,
+          1.5707963267948966,
+          0.005744371530344997,
+          "YXZ"
+        ],
+        "camera": [
+          21.79026736206349,
+          -1.402378657944706,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06168776552450038,
+          2.158798930342464,
+          0.0010248769026815323,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000005808839411717582,
+          0.009068542554643635,
+          0.9726499569818323
+        ],
+        "visible": true,
+        "mouth": 0.07499999931121992,
+        "air": 6.747582088255129e-10,
+        "wingPhase": 45.29388316664202,
+        "wingAmplitude": 1.4499999999636588,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.216666666667003,
+        "secondsAfterExit": 4.283333333333546,
+        "recoverySeconds": 3.0666666666666607,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.08407699963063,
+          -1.7179681343799307,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1354874271926271,
+          1.5707963267948966,
+          0.005436962337798364,
+          "YXZ"
+        ],
+        "camera": [
+          21.88407699963063,
+          -1.399417151816496,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06144955512994175,
+          2.158798930342464,
+          0.0008008211642259355,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000004493860157110234,
+          0.008978502361506728,
+          0.9726496996823778
+        ],
+        "visible": true,
+        "mouth": 0.07499999948973918,
+        "air": 4.754940731992714e-10,
+        "wingPhase": 45.5797680981187,
+        "wingAmplitude": 1.4499999999756399,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.266666666667005,
+        "secondsAfterExit": 4.333333333333549,
+        "recoverySeconds": 3.1166666666666605,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.177179467152385,
+          -1.7139305755744347,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1255610949699247,
+          1.5707963267948966,
+          0.005146004102708603,
+          "YXZ"
+        ],
+        "camera": [
+          21.977179467152386,
+          -1.3963428771561435,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06121057664527976,
+          2.158798930342464,
+          0.0005763600271591542,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.0000031969799306195304,
+          0.008874951559336196,
+          0.9726494580045456
+        ],
+        "visible": true,
+        "mouth": 0.07499999962198949,
+        "air": 3.3507501011536465e-10,
+        "wingPhase": 45.86565302959538,
+        "wingAmplitude": 1.4499999999836708,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.316666666667007,
+        "secondsAfterExit": 4.383333333333551,
+        "recoverySeconds": 3.1666666666666603,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.26959576828628,
+          -1.7098400997032634,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.1161659689474848,
+          1.5707963267948966,
+          0.004870616454521386,
+          "YXZ"
+        ],
+        "camera": [
+          22.06959576828628,
+          -1.3931638326618405,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06097104513502003,
+          2.158798930342464,
+          0.00035160712013796233,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          0.000001924569178802994,
+          0.00875781627754211,
+          0.9726492321856188
+        ],
+        "visible": true,
+        "mouth": 0.07499999971996293,
+        "air": 2.361233687906749e-10,
+        "wingPhase": 46.15153796107206,
+        "wingAmplitude": 1.4499999999890543,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.36666666666701,
+        "secondsAfterExit": 4.433333333333554,
+        "recoverySeconds": 3.21666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.361346282860193,
+          -1.7057052733964537,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.10727362170409413,
+          1.5707963267948966,
+          0.004609966135582347,
+          "YXZ"
+        ],
+        "camera": [
+          22.161346282860194,
+          -1.3898871268678492,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.060731176161354,
+          2.158798930342464,
+          0.0001266762195214954,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          6.830258174500867e-7,
+          0.008627043855643453,
+          0.9726490224325545
+        ],
+        "visible": true,
+        "mouth": 0.07499999979254343,
+        "air": 1.6639332569104794e-10,
+        "wingPhase": 46.43742289254874,
+        "wingAmplitude": 1.4499999999926627,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.416666666667012,
+        "secondsAfterExit": 4.483333333333556,
+        "recoverySeconds": 3.26666666666666,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.45245078540075,
+          -1.7015337871407918,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.09885714710777976,
+          1.5707963267948966,
+          0.0043632644798972066,
+          "YXZ"
+        ],
+        "camera": [
+          22.25245078540075,
+          -1.3865190774511913,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06049118559016726,
+          2.158798930342464,
+          -0.00009831880822565467,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -5.212496475441119e-7,
+          0.008482603146615562,
+          0.97264882892235
+        ],
+        "visible": true,
+        "mouth": 0.07499999984631239,
+        "air": 1.1725539482316828e-10,
+        "wingPhase": 46.72330782402542,
+        "wingAmplitude": 1.4499999999950817,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.466666666667015,
+        "secondsAfterExit": 4.533333333333559,
+        "recoverySeconds": 3.3166666666666598,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.54292846311135,
+          -1.697332542606337,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.09089107890424042,
+          1.5707963267948966,
+          0.004129765026815688,
+          "YXZ"
+        ],
+        "camera": [
+          22.34292846311135,
+          -1.3830653007543743,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06025128939677502,
+          2.158798930342464,
+          -0.0003232640641759591,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.0000016818792988255867,
+          0.00832448478584691,
+          0.9726486518024883
+        ],
+        "visible": true,
+        "mouth": 0.07499999988614542,
+        "air": 8.262848018715197e-11,
+        "wingPhase": 47.0091927555021,
+        "wingAmplitude": 1.4499999999967033,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.516666666667017,
+        "secondsAfterExit": 4.583333333333561,
+        "recoverySeconds": 3.3666666666666596,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.63279793331626,
+          -1.6931077312850926,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.08335131366200593,
+          1.5707963267948966,
+          0.003908761262418769,
+          "YXZ"
+        ],
+        "camera": [
+          22.432797933316262,
+          -1.3795307924803129,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.06001170347155873,
+          2.158798930342464,
+          -0.000548045674597745,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.000002792533250074557,
+          0.008152701425064902,
+          0.9726484911914456
+        ],
+        "visible": true,
+        "mouth": 0.07499999991565445,
+        "air": 5.822730585944468e-11,
+        "wingPhase": 47.29507768697878,
+        "wingAmplitude": 1.4499999999977902,
+        "foamPatches": 2
+      },
+      {
+        "time": 15.56666666666702,
+        "secondsAfterExit": 4.633333333333564,
+        "recoverySeconds": 3.4166666666666594,
+        "runComplete": true,
+        "landed": true,
+        "flip": 0,
+        "wingSpan": 4.194040295947343,
+        "position": [
+          17.722077260386627,
+          -1.6888649053060358,
+          12.58081050597664
+        ],
+        "rotation": [
+          0.0762150378411751,
+          1.5707963267948966,
+          0.0036995844817752747,
+          "YXZ"
+        ],
+        "camera": [
+          22.522077260386627,
+          -1.3759200004203653,
+          9.38081050597664
+        ],
+        "cameraRotation": [
+          -0.05977264342567962,
+          2.158798930342464,
+          -0.0007725498486014108,
+          "YXZ"
+        ],
+        "projectedCentre": [
+          -0.000003846955193166773,
+          0.00796728793064923,
+          0.9726483471792672
+        ],
+        "visible": true,
+        "mouth": 0.07499999993751529,
+        "air": 4.103208893555932e-11,
+        "wingPhase": 47.58096261845546,
+        "wingAmplitude": 1.4499999999985187,
+        "foamPatches": 2
+      }
+    ]
+  },
+  "compatibilityCapturedAt": "2026-10-02T03:55:02.776Z",
+  "captureNotes": [
+    "Breach and biome checks used separate browser sessions against the same production bundle.",
+    "Only miyako's train image was refreshed; existing guides, other seas and video were preserved."
+  ],
+  "gl": {
+    "error": 0,
+    "contextLost": false
+  }
+}

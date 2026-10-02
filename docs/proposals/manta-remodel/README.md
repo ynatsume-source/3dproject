@@ -25,6 +25,20 @@ Claudeによる確認・選択・統合のための試作です。正式仕様�
 
 背面・側面も [images](images) にあります。条件・描画エラー記録は `before.json` / `after.json`、再撮影は [capture.cjs](capture.cjs)。変更前は基準版のdev、変更後はこのブランチのproduction buildを用います。
 
+## 実際の海での跳躍
+
+[5秒の跳躍動画を見る（MP4・720×450）](images/scene-breach.mp4)。離水から着水後の再遊泳まで、20fpsの100フレームで記録しています。
+
+| 離水 | 頂点 |
+|---|---|
+| ![離水](images/scene-departure.png) | ![頂点](images/scene-apex.png) |
+| 着水 | 再遊泳 |
+| ![着水](images/scene-splash.png) | ![再遊泳](images/scene-recovery.png) |
+
+既存のdebug APIでマンタの跳躍を発生させ、実際の海・モデル・動作・しぶきを描画しています。手動カメラと固定天気を使い、撮影用ブラウザ内だけ他の生態更新を停止。物理は1/60秒、描画・粒子の時間進行は1/20秒で揃え、保存しない中間画面のGPU描画を省いています。本番ソースの撮影用変更はありません。実時間のFPS測定や、そのままの自動カメラ体験を示す記録ではありません。
+
+動画の跳躍は静止画とは別に発生させたものです。姿勢・口・翼・しぶき・カメラの記録は [scene-report.json](images/scene-report.json)、再現用は [scene-capture.cjs](scene-capture.cjs)。
+
 ## 造形と動作
 
 | 場面・部位 | 今回の変更 |
@@ -42,7 +56,7 @@ Claudeによる確認・選択・統合のための試作です。正式仕様�
 
 ## 互換性と負荷
 
-新モデルは `src/ocean/manta.ts` に分離し、従来どおり `src/ocean/models.ts` から `MANTA_GEO` / `mantaMaterial` を公開。1個体は1メッシュ・1マテリアル、前方向 `+z`、翼幅 `2 × mesh.scale.x`。依存関係・保存形式・住民の記憶を変更しません。
+新モデルは `src/ocean/manta.ts` に分離し、従来どおり `src/ocean/models.ts` から `MANTA_GEO` / `mantaMaterial` を公開。1個体は1メッシュ・1マテリアル、前方向 `+z`、変形前の基準翼幅 `2 × mesh.scale.x`。依存関係・保存形式・住民の記憶を変更しません。
 
 | uniform | 契約 |
 |---|---|
@@ -69,7 +83,10 @@ npm run preview -- --host 127.0.0.1 --port 4178
 
 ```sh
 CHROMIUM_PATH=/usr/bin/chromium node docs/proposals/manta-remodel/capture.cjs http://127.0.0.1:4178 after
+CHROMIUM_PATH=/usr/bin/chromium node docs/proposals/manta-remodel/scene-capture.cjs http://127.0.0.1:4178 --video --compat
 ```
+
+後者の動画書き出しにはffmpegも必要です。ブラウザで手動確認する場合は `?debug#miyako` で開き、昼/夜のプリセットを切り替えて口と頭鰭を観察してください。十分な水深がある場所で `seaglass.breach('manta')`、群泳は `seaglass.rare('mantatrain')` をコンソールから実行できます。跳躍の強制開始は地形条件を満たさないと `false` を返します。通常の採餌宙返りは抽選のため、開始までの待ち時間は一定ではありません。
 
 確認した結果:
 
@@ -78,13 +95,24 @@ CHROMIUM_PATH=/usr/bin/chromium node docs/proposals/manta-remodel/capture.cjs ht
 - 採餌の回転は最大サイズのreef/oceanicを30/120Hzで検査し、モデルの保守的な境界形状と静水面との余裕は2.53m以上。抽選の乱数を制御して開始条件を通しており、回転状態を直接強制した検査ではありません。波面の保証ではありません。
 - 非マンタモデルとカメの更新処理は基準版と同一。クジラは同じ乱数で3,000ステップの軌跡が完全一致。
 - 簡単な直線の礁境界で移動候補の棄却・反転を確認。実際の全海域での経路探索を保証する検査ではありません。
+- productionのモデル6方向と跳躍4段階・動画、各海域を再読込した図鑑用モデルと群泳を確認。JavaScript/シェーダーエラーなし、WebGLエラー0、context正常。通常個体と群泳個体のマテリアルが独立し、図鑑描画で通常個体の口制御が書き換わらないことも確認。
+
+| 海域 | 図鑑用モデル | 群泳の実描画 | 模様の設定 |
+|---|---|---|---|
+| 宮古島 | [画像](images/scene-miyako-guide.png) | [画像](images/scene-miyako-train.png) | reef |
+| モルディブ | [画像](images/scene-maldives-guide.png) | [画像](images/scene-maldives-train.png) | reef |
+| ガラパゴス | [画像](images/scene-galapagos-guide.png) | [画像](images/scene-galapagos-train.png) | oceanic |
+
+静止画・動画と海域の確認は別セッションで、同じproduction bundleを使ったことを検査しています。宮古島の群泳は最初のカメラが前景の珊瑚に隠れたため、軌道を変えず見通せるカメラ位置で再撮影しました。単に `visible=true` であることと、画面で見えることは分けて確認しています。
 
 検証環境はNode 22.23.3、Linux Chromium / ANGLE Vulkan SwiftShader。天気・外部フォントの通信失敗は画像のJSONに別記録しています。アプリの既存fallbackと撮影時の明示した天気設定を使用しました。
+
+検証した実装コミットとソースのSHA-256は [verification.json](verification.json) に記録しています。
 
 ## 適用前に見る点
 
 - 鰓は模様と陰影で、実際の開口ではありません。口腔内部も観賞用の簡略表現です。模様は厳密な種・個体識別資料ではありません。
 - 翼は手続き的変形、跳躍は既存の運動式に沿った演出。生体計測や流体力学から同定したシミュレーションではありません。
-- 地形回避は周辺点の確認で、連続した障害物回避経路の完全保証ではありません。波面と全身形状の衝突計算も行いません。
+- 通常遊泳の地形回避は周辺点の確認で、連続した障害物回避経路の完全保証ではありません。群泳イベントの既存経路は変更していないため、全経路での地形との干渉は別途確認が必要です。波面と全身形状の衝突計算も行いません。
 - Linux Chromium + SwiftShaderの描画確認と、Windows ANGLE / Direct3D11・スマートフォンでの確認は別です。後者は未実施です。
 - mainへの統合・公開はClaudeの最終確認後に行ってください。このブランチは本番へ適用していません。

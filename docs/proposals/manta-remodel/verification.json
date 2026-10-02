@@ -1,0 +1,57 @@
+{
+  "recordedAt": "2026-10-02T03:41:00.608Z",
+  "base": "4219cb0fdd5a7450d8d6e821ab1db4f49aca27ba",
+  "implementation": "c9a6c715938f8243664bd0a0e40d610c8374215b",
+  "branch": "codex/manta-remodel-prototype",
+  "productionModule": "main-vuyZu8bJ.js",
+  "checks": {
+    "typecheck": "passed",
+    "build": "passed",
+    "mantaCases": 39,
+    "mantaFailures": 0,
+    "miyakoSimulationPhases": [
+      "noon",
+      "dusk",
+      "night",
+      "dawn"
+    ],
+    "studioPortraits": 6,
+    "studioJavaScriptErrors": [],
+    "studioGlError": 0,
+    "inScene": {
+      "stills": 4,
+      "video": {
+        "file": "scene-breach.mp4",
+        "width": 720,
+        "height": 450,
+        "fps": 20,
+        "frames": 100,
+        "durationSeconds": 5
+      },
+      "seas": [
+        "galapagos",
+        "maldives",
+        "miyako"
+      ],
+      "javascriptErrors": [],
+      "glError": 0,
+      "contextLost": false,
+      "actualHardwareBenchmark": false
+    }
+  },
+  "latestMainInspected": "6f51612029458868f71a277b359f517d794c7a7f",
+  "mergeTree": {
+    "conflicts": 0,
+    "mergedAppExecuted": false
+  },
+  "sourceSha256": {
+    "src/ocean/manta.ts": "3fc72a4c151f2b3ddbc22cc28eb8772b567530433d600220835d66265fa5857c",
+    "src/ocean/models.ts": "7e12b7a279600a36f8fa9c93502aa8d6554263bb02452de8454b68e79aa5daad",
+    "src/eco/animals.ts": "5c9a9340370d6f31e54dc6cda25681d2442e8a44dfaaa897b9be9a0a2f05a810",
+    "src/eco/breach.ts": "22b0387b7ac6173939a7d951d788667729d90390cc9c9bf9c3353ae0f9189013",
+    "src/eco/events.ts": "f1ff537f7691ea8de52b00b854886e2270c5726b2d385ea3ae8673c5f18ef26a",
+    "src/ocean/build.ts": "d3412b7464b61c10b95c105fa2489b7b29525d7182f474090f9787dd8bb77d34",
+    "src/ui/thumbs.ts": "1306e0486297092a66fce12f00adb59740a09876a36ce686e9972ade88782676",
+    "scripts/manta-check.ts": "9404e514ab2c9abc92293b64a3e5f619ed11e3d4326ab93914e348c7088ab9f0"
+  }
+}
