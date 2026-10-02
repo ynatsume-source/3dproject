@@ -39,6 +39,7 @@ import { audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, s
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
+import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
 initAnalytics();   // (on the public site only)
 
@@ -728,7 +729,9 @@ let nightLift = 0;
 const _grey = new THREE.Color();
 let wx: Weather = FAIR, wxTimer = 0, flashT = 0, nextFlash = 20, flashK = 0.6;
 // the real weather stands for 'today': live, or within half a day of now, in the real season
-const liveWeather = () => (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
+// (a shared link may fix the weather; otherwise the real weather now, or fair for another time)
+let wxFixed: WxKind | null = null;
+const liveWeather = () => wxFixed ? WX[wxFixed] : (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
 async function refreshWeather(loc: Sea) {
   const w = await fetchWeather(loc.id, loc.lat, loc.lon);
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
@@ -1370,6 +1373,46 @@ function applyWater(loc: Sea) {
   U.uSandRot.value = Math.atan2(loc.tide.axis[1], loc.tide.axis[0]);
   U.uSand.value.setRGB(loc.sand[0], loc.sand[1], loc.sand[2]); U.uRock.value.setRGB(loc.rock[0], loc.rock[1], loc.rock[2]);
 }
+/* ================= shared views ================= */
+// A link can carry a moment: the sea's local date and time, how fast time runs, the weather, the guide.
+// It is applied once, on arriving at the sea; a small badge says so and takes you back to the live sea.
+const shared = readShared(location.search);
+let sharedDone = false;
+function applyShared(loc: Sea) {
+  const v = shared!; sharedDone = true;
+  if (v.season && !v.date) setSeason(v.season, loc.lat);
+  if (v.date || v.time) {
+    clock.live = false; clock.speed = 1;
+    const L = new Date(clock.ms + loc.tz * 3600000);
+    const y = v.date?.y ?? L.getUTCFullYear(), mo = (v.date?.m ?? L.getUTCMonth() + 1) - 1, d = v.date?.d ?? L.getUTCDate();
+    if (typeof v.time === 'string') { clock.ms = Date.UTC(y, mo, d, 12) - loc.tz * 3600000; clock.ms = presetTime(v.time, loc); }
+    else { const t = v.time ?? { hh: L.getUTCHours(), mm: L.getUTCMinutes() }; clock.ms = Date.UTC(y, mo, d, t.hh, t.mm) - loc.tz * 3600000; }
+  }
+  if (v.speed) { clock.live = false; clock.speed = v.speed; }
+  if (v.wx) wxFixed = v.wx;
+  if (v.guide) { const p = PERSONAS.find((x) => x.id === v.guide); if (p) setPersona(p); }
+  if (v.view) setView(v.view);
+  applySky(loc); updateTimeUi();
+  $('sharedBadge').hidden = false;
+  $('sharedWhat').textContent = describeShared(v, PRESET_LABEL, SEASON_LABEL as Record<string, string>) || '共有された景色';
+  track('shared_open', { sea: loc.id, time: typeof v.time === 'string' ? v.time : v.time ? 'clock' : '', wx: v.wx ?? '', speed: v.speed ?? 1 });
+}
+function leaveShared() {
+  wxFixed = null; setSeason('now', cur?.loc.lat ?? 0); clock.goLive();
+  if (cur) applySky(cur.loc); updateTimeUi(); $('sharedBadge').hidden = true;
+}
+// this moment as a link: through the phone's share sheet, or copied
+async function shareMoment() {
+  if (!cur) return;
+  const url = shareUrl({ base: location.origin + location.pathname, sea: cur.loc.id, ms: clock.ms, tz: cur.loc.tz, speed: clock.speed, live: clock.live,
+    wx: wxFixed ?? wxKindOf(liveWeather()), guide: persona.id, view: viewMode });
+  track('share_link', { sea: cur.loc.id });
+  const title = `うつしよ — ${cur.loc.name}`;
+  if (isTouch && (navigator as any).share) { try { await (navigator as any).share({ title, url }); return; } catch (e) { /* (closed, or not allowed: copy instead) */ } }
+  try { await navigator.clipboard.writeText(url); showToast('LINK', 'この景色のリンクをコピーしました', 'いまの時刻・天気・案内役のまま開けます'); }
+  catch (e) { prompt('この景色のリンク', url); }
+}
+
 function enterOcean(oc: Ocean) {
   if (cur !== oc) {
     // Observations belong to the sea that produced them. Its ecosystem pauses when
@@ -1415,6 +1458,7 @@ function enterOcean(oc: Ocean) {
   applyWater(oc.loc);
   wx = FAIR; refreshWeather(oc.loc);
   setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)
+  if (shared && !sharedDone) applyShared(oc.loc);
   const cv = oc.cave;
   U.uCaveOn.value = cv ? 1 : 0; U.uCamCave.value = 1; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
   if (cv) {
@@ -1888,6 +1932,8 @@ $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
 $('btnSky').onclick = () => setSky(!drone.sky);
+$('btnShare').onclick = () => { void shareMoment(); };
+$('sharedBack').onclick = leaveShared;
 $('btnSeaOnly').onclick = () => setSeaOnly(!seaOnly);
 setSeaOnly(seaOnly);
 $('btnPip').onclick = () => setPip(!pipOn);
@@ -1907,7 +1953,7 @@ $('btnQuality').onclick = () => { autoQ = false; setQuality(TIER_ORDER[(TIER_ORD
 $('btnHud').onclick = () => setHud(false);
 $('reveal').onclick = () => setHud(true);
 $('btnFull').onclick = toggleFull;
-$('btnLive').onclick = () => { clock.goLive(); if (cur) applySky(cur.loc); updateTimeUi(); };
+$('btnLive').onclick = () => { if (!$('sharedBadge').hidden) { leaveShared(); return; } clock.goLive(); if (cur) applySky(cur.loc); updateTimeUi(); };
 
 const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyE', 'KeyQ', 'KeyC', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 const PRESET_KEYS: Record<string, Preset> = { Digit1: 'dawn', Digit2: 'noon', Digit3: 'dusk', Digit4: 'night' };

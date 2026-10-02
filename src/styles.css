@@ -626,3 +626,12 @@ body.dock-open #menu { opacity: 1; transform: translate(-50%, 0); pointer-events
 body.mode-globe #menu { display: none; }
 @media (max-width: 760px) { #menu { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); } #menu .rows button kbd { display: none; } }
 body.dock-open #caption { opacity: 0 !important; }
+
+/* a shared view: what it is, and the way back to the live sea */
+#sharedBadge { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px;
+  padding: 6px 8px 6px 14px; border-radius: 999px; background: rgba(4, 22, 30, 0.62); border: 1px solid rgba(160, 220, 230, 0.22);
+  color: #d8eef0; font-size: 12px; backdrop-filter: blur(6px); white-space: nowrap; max-width: calc(100vw - 32px); }
+#sharedBadge[hidden] { display: none; }
+#sharedBadge .k { opacity: 0.6; font-size: 11px; }
+#sharedBadge button { border: 0; border-radius: 999px; padding: 4px 10px; background: rgba(160, 220, 230, 0.16); color: inherit; font: inherit; cursor: pointer; }
+body.hud-off #sharedBadge { display: none; }

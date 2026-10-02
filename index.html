@@ -94,6 +94,7 @@
     <span class="moon" id="clockMoon"></span>
   </div>
   <div class="group" role="group" aria-label="メニュー">
+    <button id="btnShare" type="button" aria-label="この景色を共有" title="この景色のリンクを共有">↗</button>
     <button id="btnMore" type="button" aria-expanded="false" aria-label="メニューを開く">⋯</button>
   </div>
 </div>
@@ -151,6 +152,7 @@
   </section>
 </div>
 
+<div id="sharedBadge" class="hud" hidden><span class="k">共有された景色</span><span id="sharedWhat"></span><button id="sharedBack" type="button">いまの海に戻す</button></div>
 <button id="reveal" type="button">HUD</button>
 <div id="minimap" title="タップで広域図と切り替え"><canvas width="336" height="336"></canvas><div class="cr"></div></div>
 <div id="bubbles" aria-live="polite"></div>
