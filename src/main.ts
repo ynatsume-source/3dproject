@@ -165,6 +165,14 @@ let stuckT = 0;
 // a low run over the sea to put up flying fish, and the chase alongside them (from the sky)
 let flyRun: { burst: boolean; t: number; side: number; aim?: THREE.Vector3; adir?: THREE.Vector3 } | null = null, flyK = 0, thrust = 0, prevVel = new THREE.Vector3(), flyT = rr(60, 140);
 let lastShot: Shot | null = null;
+// whether the way to the shot needs the air (somewhere up on the land, or land in between): looked at now and then
+let hopCheckT = 0, hopFor: Shot | null = null, hopNeed = false;
+function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
+  // (the lie of the land itself: a coral head or a rock in the way is swum round or over, not flown over)
+  const f = cur!.loc.f, d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 6);
+  for (let i = 1; i < n; i++) { const k = i / n; if (f(a.x + (b.x - a.x) * k, a.z + (b.z - a.z) * k) > -0.6) return true; }
+  return false;
+}
 // how narrow the screen is: 0 for a landscape monitor, 1 for a phone held upright (aspect 0.45 or less)
 let narrowK = 0;
 const _nl = new THREE.Vector3();
@@ -331,17 +339,19 @@ function updateDrone(dt: number, now: number) {
   } else if (shot) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     let way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
-    // somewhere far: the water holds a drone back, so it goes up and out, across in the air, and back down
-    // into the sea once nearly there (the way a hurry is made); near, it simply swims there
+    // from sea to sea it swims, through the water; only to somewhere far up on the land (a resident ashore),
+    // or with land in the way, does it go up and out, across in the air, and back down
     const hd = Math.hypot(shot.pos.x - drone.pos.x, shot.pos.z - drone.pos.z);
-    drone.hop = way === shot.pos && !shot.surface && !shot.close && !shot.subject.tour && hd > (drone.hop ? 22 : 40);
+    if ((hopCheckT -= dt) < 0 || shot !== hopFor) { hopCheckT = 0.5; hopFor = shot; hopNeed = shot.pos.y > 0.3 || (shot.subject.kind === 'robot' && cur!.loc.f(shot.pos.x, shot.pos.z) > -0.3) || landBetween(drone.pos, shot.pos); }
+    drone.hop = way === shot.pos && !shot.surface && !shot.close && !shot.subject.tour && hd > (drone.hop ? 22 : 40) && hopNeed;
     if (drone.hop) { const T = cur!.T; _h.set(shot.pos.x, Math.max(4, T.ground(drone.pos.x, drone.pos.z) + 5, shot.pos.y + 2), shot.pos.z); way = _h; }
     _v.subVectors(way, drone.pos);
     const L = _v.length(), top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
     // under the water: no faster than one swims (a hunt is followed at its own pace); on the way out, mostly up
     if (drone.pos.y < 0 && !shot.close) {
-      const h = Math.hypot(_v.x, _v.z), cap = drone.hop ? 1.6 : 3.2;
+      // (and sent far through the water, a little quicker the further it has to go)
+      const h = Math.hypot(_v.x, _v.z), cap = drone.hop ? 1.6 : shot.phase === 'approach' && (shot.forced || shot.asked) ? Math.min(6, 3.2 + Math.max(0, hd - 30) * 0.03) : 3.2;
       if (h > cap) { _v.x *= cap / h; _v.z *= cap / h; }
       if (drone.hop) _v.y = Math.max(_v.y, 2.2);
     }
@@ -350,10 +360,10 @@ function updateDrone(dt: number, now: number) {
     let lk: { x: number; y: number; z: number } = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
-    const sp = lk === shot.look && narrowK > 0 ? shot.subject.pos() : null;
+    const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
     if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * 0.75 * narrowK, shot.look.y + (sp.y - shot.look.y) * 0.75 * narrowK, shot.look.z + (sp.z - shot.look.z) * 0.75 * narrowK);
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
-    const leap = !!shot.leapView && shot.phase === 'observe';
+    const leap = !!shot.leapView && !shot.down && shot.phase === 'observe';
     const k = Math.min(1, dt * (1 + 1.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
@@ -571,7 +581,7 @@ function updateDrone(dt: number, now: number) {
   const zoomOn = !!lastShot?.zoom && lastShot.phase === 'observe' && !lastShot.giant && obsAt > 0 && now - obsAt < 9000 && drone.mode === 'auto' && !watch.r;
   zoomK += ((zoomOn ? 1 : 0) - zoomK) * Math.min(1, dt * (zoomOn ? 0.9 : 0.5));   // (in gently, and gently back out)
   // right beside a leap: a very wide lens, the animal coming at it and up past it
-  leapWideK += ((lastShot?.leapView === 'close' && drone.mode === 'auto' && !watch.r ? 1 : 0) - leapWideK) * Math.min(1, dt * 1.2);
+  leapWideK += ((lastShot?.leapView === 'close' && !lastShot.down && drone.mode === 'auto' && !watch.r ? 1 : 0) - leapWideK) * Math.min(1, dt * 1.2);
   // (a narrow upright screen: a somewhat wider lens, so it does not see only a slit of the world)
   const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK + 14 * narrowK) * (1 - leapWideK) + 104 * leapWideK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
@@ -1015,6 +1025,7 @@ function goTo(id: string) {
   }
   // flying fish: up into the sky, and down to a low run over the sea that puts them up
   if (id === 'tobiuo' && oc.flyfish && !loc.species.some((sp) => sp.id === 'tobiuo')) {
+    if (skyNow!.night > 0.5) { showToast(name, '夜の海では見えません', '暗い水面の上を飛ぶので、空から追っても姿が見えません。明るい時間に来てみてください'); return; }
     if (!drone.sky) setSky(true);
     flyRun = { burst: false, t: 0, side: 1 };
     return;
@@ -2330,11 +2341,14 @@ function frameBody(ts: number) {
     const ff = cur.flyfish;
     if (ff) {
       ff.update(dt, { splash: splashAt, stream: streamAt, plop: (p: THREE.Vector3) => plop(p.distanceTo(camera.position)) });
-      if (ff.st.fresh) { ff.st.fresh = false; seaLog('sighting', `${guideEntries(cur.loc).find((e) => e.id === 'tobiuo')?.ja ?? 'トビウオ'}の群れが水面から飛び出した`, () => (ff.flying() ? ff.lead : null)); }
+      // (at night only written down: chased over the dark water there would be nothing to see)
+      if (ff.st.fresh) { ff.st.fresh = false; seaLog('sighting', `${guideEntries(cur.loc).find((e) => e.id === 'tobiuo')?.ja ?? 'トビウオ'}の群れが水面から飛び出した`, skyNow!.night > 0.5 ? undefined : () => (ff.flying() ? ff.lead : null)); }
       // now and then: from the sky, a low run to put some up; from just under the surface, a few bursting out overhead
       if (drone.mode === 'auto' && !watch.r && !ff.st.active && !flyRun && (flyT -= dt) < 0) {
         flyT = rr(70, 160);
-        if (drone.sky && !lastShot && !cur.bait?.st.active && !cur.breach.leap && (skyNow!.night < 0.5 || moonLight() > 0.25)) flyRun = { burst: false, t: 0, side: 1 };   // (not in the dark: there would be nothing to see)
+        // (not at night, moon or no moon: from the air the fish and the dark water would be one)
+        if (skyNow!.night > 0.5) { /* nothing */ }
+        else if (drone.sky && !lastShot && !cur.bait?.st.active && !cur.breach.leap) flyRun = { burst: false, t: 0, side: 1 };
         else if (!drone.sky && drone.pos.y > -6 && drone.pos.y < -0.5) { const d = rr(7, 12); ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + rr(-1.2, 1.2)); }
       }
     }

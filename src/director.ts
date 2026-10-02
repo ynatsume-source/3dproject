@@ -6,7 +6,7 @@ import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 import type { Style, GiantMove } from './persona';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean;
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean; down?: boolean;   // (down: after a leap, gone in after the animal)
   tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
   leapView?: 'line' | 'close' | 'air'; // how a leap is being filmed (below)
 }
@@ -138,6 +138,19 @@ export class Director {
       sh.leapView = view; this.lastLeapView = view;
     }
     const d = this.ang, body = b.body ?? { x: mx, y: b.h * 0.5, z: mz }, view = sh.leapView ?? 'line';
+    // back in the water (filmed from the waterline or close beside it): the camera goes in after it, a little
+    // behind and to the side at its depth, and watches it swim off, rather than staying at the splash looking
+    // at the sky while it goes
+    const after = b.after ? b.after() : -1;
+    if (view !== 'air' && after > 0.8) {
+      const back = L * 1.3 + 3, side = L * 0.8 + 2;
+      sh.pos.set(body.x - dx * back - dz * this.side * side, Math.min(-1.4, body.y + 0.8), body.z - dz * back + dx * this.side * side);
+      const fl = floor(sh.pos.x, sh.pos.z); if (sh.pos.y < fl + 1.2) sh.pos.y = Math.min(-1.0, fl + 1.2);
+      sh.look.set(body.x, body.y, body.z);
+      sh.tilt = undefined; sh.zoom = false; sh.surface = false; sh.down = true;
+      this.t += dt;
+      return sh;
+    }
     if (view === 'close') {
       const lat = L * 0.5 + 1.5;
       sh.pos.set(p.x + dx * 2.5 - dz * this.side * lat, 0, p.z + dz * 2.5 + dx * this.side * lat);

@@ -29,25 +29,18 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      g += d3 * cos(dot(d3, p) * 1.7 + t * 2.3) * 0.04;
      g += d4 * cos(dot(d4, p) * 3.1 + t * 3.1) * 0.025;
      g *= uWave;                                                       // today's sea state at the site
-     // and over them the fine wind ripples, a hand's width to a forearm across, running every which way
-     // (faded with distance: far off they would only shimmer)
+     // and over them the fine wind ripples, a hand's width to an arm's length, running every which way: a few
+     // short waves summed (not a hashed noise, whose cells a phone's GPU draws as a grid of glassy squares),
+     // faded with distance, where they would only shimmer
      {
        float fine = (0.45 + 0.55 * min(uWave, 1.5)) * smoothstep(70.0, 12.0, dist);
-       vec2 q1 = p * 1.9 + vec2(t * 0.42, t * 0.17), q2 = mat2(0.8, 0.6, -0.6, 0.8) * p * 4.3 + vec2(-t * 0.6, t * 0.45);
-       const float e = 0.07;
-       vec2 f1 = vec2(vn2(q1 + vec2(e, 0.0)) - vn2(q1 - vec2(e, 0.0)), vn2(q1 + vec2(0.0, e)) - vn2(q1 - vec2(0.0, e))) / (2.0 * e);
-       vec2 f2 = vec2(vn2(q2 + vec2(e, 0.0)) - vn2(q2 - vec2(e, 0.0)), vn2(q2 + vec2(0.0, e)) - vn2(q2 - vec2(0.0, e))) / (2.0 * e);
-       g += (f1 * 0.05 + f2 * 0.022) * fine;
-     }
-     // raindrops: rings spreading on the surface overhead
-     if (uRain > 0.0) {
-       for (int k = 0; k < 2; k++) {
-         vec2 rp = p * (1.6 + float(k) * 1.1) + float(k) * 13.7, ci = floor(rp);
-         float h = hash2(ci + float(k) * 5.0), ph = fract(uTime * (0.9 + h * 0.6) + h * 17.0);
-         vec2 c = ci + vec2(hash2(ci + 3.1), hash2(ci + 7.7)) * 0.8 + 0.1, dv = rp - c; float d = length(dv);
-         float ring = sin((d - ph * 0.55) * 60.0) * exp(-pow((d - ph * 0.55) * 9.0, 2.0)) * (1.0 - ph);
-         g += dv / max(d, 1e-3) * ring * 0.22 * step(h, uRain);
+       vec2 r = vec2(0.0);
+       for (int i = 0; i < 7; i++) {
+         float fi = float(i), a = fi * 2.399 + 0.7, lam = 0.55 + 0.27 * fi;   // (golden-angle directions; wavelengths 0.55-2.2 m)
+         vec2 dr = vec2(cos(a), sin(a)); float k = 6.2832 / lam;
+         r += dr * cos(dot(dr, p) * k - sqrt(9.81 * k) * 0.45 * t + fi * 1.7) * (0.016 + 0.006 * fi);
        }
+       g += r * fine;
      }
      vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
      float cosT = clamp(dot(dir, n), 0.0, 1.0);

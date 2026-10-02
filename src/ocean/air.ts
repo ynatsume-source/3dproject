@@ -64,6 +64,19 @@ export function swellAt(x: number, z: number): number {
   return h;
 }
 
+// The height of the drawn surface right above (x, z): the drawn waves also lean to and fro (swellShift), so the
+// water over a point came from a little way off; that point is found once, which is close enough.
+export function surfaceAt(x: number, z: number): number {
+  const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value;
+  let sx = 0, sz = 0;
+  SW.forEach(([lam, A, da], i) => {
+    const a = Math.atan2(cu.y, cu.x) + 0.6 + da, k = 2 * Math.PI / lam, dx = Math.cos(a), dz = Math.sin(a);
+    const s = Math.sin((dx * x + dz * z) * k - Math.sqrt(9.81 * k) * t + i * 2.1) * A * S * 0.9;
+    sx -= dx * s; sz -= dz * s;
+  });
+  return swellAt(x - sx, z - sz);
+}
+
 // The sea from above. With the refraction copy (post-processing on): what lies beneath, bent by the waves,
 // mixed with the sky it reflects by Fresnel. Without it, premultiplied: the colour is the reflection and
 // glitter, the alpha how much of the water below it hides.

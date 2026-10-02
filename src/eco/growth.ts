@@ -17,11 +17,13 @@ export const memberLength = (base: number) => base * (0.93 + R() * 0.14);
 
 // growth rate: small fish race to full size in a year or two, big sharks and turtles take decades
 export function ageOf(L: number, adultMax: number, k?: number) {
+  if (k === 0) return NaN;   // (k 0: an animal whose age is not told from its length — the size alone is given)
   const Linf = adultMax * 1.25, kk = k ?? 0.7 / (1 + adultMax * 1.4), t0 = -0.25;
   return Math.max(0.2, t0 - Math.log(1 - Math.min(L / Linf, 0.97)) / kk);
 }
 export function describeSize(L: number, age: number, what = '全長') {
   const len = L < 1 ? `${Math.round(L * 100)} cm` : `${L.toFixed(1)} m`;
+  if (!Number.isFinite(age)) return `${what} 約${len}`;
   const a = age < 1 ? `生後${Math.max(1, Math.round(age * 12))}か月ほど` : `推定${Math.round(age)}歳`;
   return `${what} 約${len}・${a}`;
 }

@@ -81,7 +81,9 @@ uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float u
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
-float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// (no sin of a large number: a phone's GPU works that out so roughly that hashed cells far from the origin
+// came out as a grid of flat, glassy squares — this one keeps to fract and small products: Dave Hoskins's hash12)
+float hash2(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 // a resident being watched (uCut.xyz, on when uCut.w > 0): leaves and twigs on the line of sight between it and
 // the camera are let through, in a soft-edged tunnel — the trees around stay whole
 bool cutSight(vec3 wp){
