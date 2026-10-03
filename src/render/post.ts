@@ -83,14 +83,14 @@ export class Post {
     defines: { STEPS: 16 },
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden,
+      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden, uNight: U.uNight,
       uCaveTex: U.uCaveTex, uCaveAtlas: U.uCaveAtlas, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
       uFrame: { value: 0 }, uStrength: { value: 0.72 },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tDepth; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uCamPos;
       uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs;
-      uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
+      uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden; uniform float uNight;
       uniform float uFrame; uniform float uStrength;
       varying vec2 vUv;
       ${NOISE}
@@ -127,9 +127,11 @@ export class Post {
           acc += light * down * back * stepLen * caveLight(p).x * wet;   // rock shadows the water behind it; skylights let beams through
         }
         float mu = dot(dir, uSunDir);
-        float g = 0.72;
+        // (at night the moon is not a second sun: the water it lights glows far less, and only close round
+        // the moon itself — a small bright patch overhead, the rest of the water dark)
+        float g = mix(0.72, 0.95, uNight);
         float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) * 0.08;
-        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength;
+        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength * mix(1.0, 0.05, uNight);
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
