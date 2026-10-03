@@ -128,6 +128,45 @@ export function tintCol(c, k = 0.1) {
   return [(g + (c[0] - g) * 0.72) * v, (g + (c[1] - g) * 0.72) * v, (g + (c[2] - g) * 0.72) * v];
 }
 
+/** How high a coral colony may grow: this far under the mean surface (m). The swell's troughs still bare the
+ *  tallest heads on a rough day for a moment, as on a real reef flat at low water; none stands out of the sea
+ *  for good. (The rendered sea has no tide: src/ocean/air.ts.) */
+export const CORAL_CEIL = -0.35;
+// (each form's own height and half-width per unit of scale, from its geometry, the close-up version included)
+const geoTop = new Map<string, [number, number]>();
+function coralTop(kind: string, v: number): [number, number] {
+  const key = kind + v;
+  let t = geoTop.get(key);
+  if (!t) {
+    let top = 0, half = 0;
+    for (const g of [CORAL_GEO[kind][v], CORAL_GEO_HI[kind]?.[v]]) if (g) {
+      if (!g.boundingBox) g.computeBoundingBox();
+      const b = g.boundingBox; top = Math.max(top, b.max.y); half = Math.max(half, -b.min.x, b.max.x, -b.min.z, b.max.z);
+    }
+    geoTop.set(key, t = [top, half]);
+  }
+  return t;
+}
+// the smallest a colony of each form is drawn (m of scale): a young one, where the water is too shallow for more
+const CORAL_MIN: Record<string, number> = { branch: 0.35, table: 0.45, brain: 0.3, fan: 0.5, mushroom: 0.35, clam: 0.25 };
+/** A colony to fit under the water where it grows (its top no higher than CORAL_CEIL): left as it is, or the
+ *  same form grown less (a younger colony, its proportions kept — never squashed), or, where even a young one
+ *  would stand out of the water, none (false). y0: the floor; sink: how far a domed form sits into it per unit
+ *  of its scale (it.y = y0 - sink * scale) — the rest sit a fixed depth into it. */
+function fitUnder(kind: string, v: number, it: any, y0: number, sink = 0) {
+  const [top, half] = coralTop(kind, v), s = Math.max(it.sx, it.sz);
+  // (a tilt lifts one edge: its sine times the half-width)
+  const lift = (Math.abs(it.tx || 0) + Math.abs(it.tz || 0)) * half * s;
+  const H = top * it.sy + lift, fixed = sink ? 0 : y0 - it.y, dp = sink ? y0 - it.y : 0;
+  if (y0 - fixed + H - dp <= CORAL_CEIL) return true;
+  const f = (CORAL_CEIL - y0 + fixed) / Math.max(1e-6, H - dp);
+  if (!(f > 0) || s * f < CORAL_MIN[kind]) return false;
+  it.sx *= f; it.sy *= f; it.sz *= f;
+  if (sink) it.y = y0 - (y0 - it.y) * f;
+  return true;
+}
+
+
 export function buildOcean(loc) {
   seedRandom(loc.seed);
   const T = makeT(loc);
@@ -259,8 +298,9 @@ export function buildOcean(loc) {
       // (neighbours mostly of one colour, as a thicket is often one or a few colonies grown together)
       const c = pal[Math.floor(fbm(jx * 0.15 + 3, jz * 0.15, 2) * pal.length * 1.6 + R() * 0.8) % pal.length];
       it.c = tintCol(c[0], 0.14); it.c2 = tintCol(c[1], 0.1); it.seed = R();
+      if (!fitUnder('branch', dome ? 1 : 2, it, h)) continue;   // (its top under the water)
       items.branch[dome ? 1 : 2].push(it);
-      obst.stamp(jx, jz, 0.6 * s, it.y + (dome ? 0.3 : 0.62) * it.sy, it.sy);
+      obst.stamp(jx, jz, 0.6 * it.sx, it.y + (dome ? 0.3 : 0.62) * it.sy, it.sy);
     }
   };
   const coralAt = (x: number, z: number, h: number, items: any) => {
@@ -282,28 +322,31 @@ export function buildOcean(loc) {
     let q = R() * tot, kind = 'brain';
     for (const k in w) { q -= w[k]; if (q <= 0) { kind = k; break; } }
     const pal = pick(PALETTE[kind]), seed = R();
-    let s, it;
+    let s, it, vi = 0, sink = 0;
     const y0 = loc.f(x, z);
-    if (kind === 'branch') { s = rr(0.6, 1.7); it = { x, z, y: y0 - 0.08, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s }; items.branch[R() < 0.55 ? 0 : 1].push(it); }
-    else if (kind === 'table') { s = rr(0.7, 2.1) * (0.6 + 0.6 * shallow); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: rr(0.7, 1.1), sz: s * rr(0.85, 1.1), tx: (R() - 0.5) * 0.12, tz: (R() - 0.5) * 0.12 }; items.table[0].push(it); }
+    if (kind === 'branch') { s = rr(0.6, 1.7); it = { x, z, y: y0 - 0.08, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s }; vi = R() < 0.55 ? 0 : 1; }
+    else if (kind === 'table') { s = rr(0.7, 2.1) * (0.6 + 0.6 * shallow); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: rr(0.7, 1.1), sz: s * rr(0.85, 1.1), tx: (R() - 0.5) * 0.12, tz: (R() - 0.5) * 0.12 }; }
     else if (kind === 'brain') {
-      s = Math.pow(R(), 1.8) * 1.8 + 0.35; it = { x, z, y: y0 - 0.2 * s, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.3), sz: s * rr(0.8, 1.2) };
-      if (R() < 0.45) { it.porites = true; items.brain[1].push(it); } else items.brain[0].push(it);
+      s = Math.pow(R(), 1.8) * 1.8 + 0.35; it = { x, z, y: y0 - 0.2 * s, ry: R() * 6.28, sx: s, sy: s * rr(0.7, 1.3), sz: s * rr(0.8, 1.2) }; sink = 0.2;
+      if (R() < 0.45) { it.porites = true; vi = 1; }
     }
-    else if (kind === 'fan') { s = rr(0.9, 2.0); it = { x, z, y: y0 - 0.05, ry: (R() - 0.5) * 0.5, sx: s, sy: s, sz: s, tx: (R() - 0.5) * 0.2 }; items.fan[R() < 0.5 ? 0 : 1].push(it); }
+    else if (kind === 'fan') { s = rr(0.9, 2.0); it = { x, z, y: y0 - 0.05, ry: (R() - 0.5) * 0.5, sx: s, sy: s, sz: s, tx: (R() - 0.5) * 0.2 }; vi = R() < 0.5 ? 0 : 1; }
     else if (kind === 'mushroom') {
       // soft corals: leather coral, finger leather coral, or a soft-coral tree (commonest on Maldivian thilas)
       const w = loc.id === 'maldives' || loc.id === 'redsea' ? [0.3, 0.3, 0.4] : loc.id === 'galapagos' ? [0.35, 0.25, 0.4] : loc.id === 'gbr' ? [0.45, 0.4, 0.15] : [0.5, 0.4, 0.1];
       const q = R(), v = q < w[0] ? 0 : q < w[0] + w[1] ? 1 : 2;
       s = v === 2 ? rr(0.6, 1.3) : rr(0.6, 1.4);
-      it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s, soft: v };
-      items.mushroom[v].push(it);
+      it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s, soft: v }; vi = v;
     }
-    else { s = rr(loc.clamSize[0], loc.clamSize[1]); it = { x, z, y: y0 - 0.06 * s, ry: R() * 6.28, sx: s, sy: s, sz: s }; items.clam[0].push(it); }
-    const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55], fan: [0.45, 1.12], clam: [0.4, 0.3] };
-    if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
+    else { s = rr(loc.clamSize[0], loc.clamSize[1]); it = { x, z, y: y0 - 0.06 * s, ry: R() * 6.28, sx: s, sy: s, sz: s }; sink = 0.06; }
     const pl = it.porites ? pick(PALETTE.porites) : it.soft === 1 ? pick(PALETTE.sinularia) : it.soft === 2 ? pick(PALETTE.dendro) : pal;
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
+    // (its top under the water: grown less where the water is shallow, or not here at all — the random draws
+    // above are the same either way, so the rest of the reef is laid out as before)
+    if (!fitUnder(kind, vi, it, y0, sink)) return;
+    items[kind][vi].push(it);
+    const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55], fan: [0.45, 1.12], clam: [0.4, 0.3] };
+    if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
   };
   for (const [x, z, h, r] of samples) { if (R() > r * r * accept * 1.6) continue; coralAt(x, z, h, items); }
   thicketIn(-EXT, -EXT, EXT, EXT, items, null);

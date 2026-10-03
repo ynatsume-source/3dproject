@@ -34,6 +34,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip
 見た目の確認は `npx vite preview` + Playwright（Chromium は `/opt/pw-browsers`、SwiftShader で WebGL）。
 画面の部品の重なりは `node tools/layout/overlap.cjs`（ビルドを PORT で配信した状態で）：スマホ縦・横・タブレット・PC の7サイズで、HUNT の小窓・地図・丸ボタン・字幕・SEA LOG・下のバー・「巡航に戻る」を全部出して重なりと画面外を数える。HUD を変えたら必ず通す。
 住人の目線は `node tools/lab/pov.cjs`（同上）：4体それぞれ、カメラがモデルの目の位置にあるか（0 m）、視線が頭の向きと一致するか（2°未満）を測る。目線・頭・カメラ補正を変えたら通す。
+サンゴが水に収まっているかは `npx tsx --import ./scripts/node-assets.mjs scripts/coral-depth-check.ts`：嘉弥真の実地形（`scripts/node-land.ts` で PNG を読む）でサンゴを生成し、群体の上端が育つ上限（`CORAL_CEIL`、平均海面下0.35 m）を超えないこと、浅場（0.5–2 m）にサンゴが残ることを確かめる。サンゴの寸法・配置を変えたら通す。
 `?debug` でコンソールに `seaglass` オブジェクト、`?diag` で GPU 診断パネル。
 
 ## 公開と報告
