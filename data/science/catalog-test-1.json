@@ -3,20 +3,129 @@
   "basedOn": "codex/creative-world-design@c510246 docs/proposals/creative-world/science/process-catalog.json",
   "scope": "test-world only — not executable in the shared world; every number is assumed or calibrated (see src/science/params.ts)",
   "materials": [
-    { "id": "test_tile_green", "label": "成形した比較用の試験片（未乾燥・未焼成）", "category": "ceramic-green", "unit": "mg",
-      "quality": { "water_ppm": "水/ロット質量", "shaped_water_ratio_ppm": "成形時の水/乾燥固形分", "width_mm": "", "length_mm": "", "thickness_mm": "成形時寸法",
-                   "linear_shrink_ppm": "線収縮", "crack": "0なし/1ひび/2貫通", "history_complete": "1=全区間を計算済み" },
-      "note": "カタログの unfired_pot / unfired_brick と区別した研究用の試料。製品ではない" },
-    { "id": "test_tile_dry", "label": "乾燥した試験片（未焼成）", "category": "ceramic-green", "unit": "mg", "quality": "test_tile_green と同じ",
-      "note": "水に浸けると崩れる（未焼成）" },
-    { "id": "water_vapour", "label": "水蒸気（乾燥・加熱で大気へ出た水）", "category": "byproduct", "formula": "H2O", "unit": "mg",
-      "note": "放出先 air。回収した工程用水ではない（catalog の reaction_moisture は反応で生じる水で別）" }
+    {
+      "id": "test_tile_green",
+      "label": "成形した比較用の試験片（未乾燥・未焼成）",
+      "category": "ceramic-green",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "shaped_water_ratio_ppm": "成形時の水/乾燥固形分",
+        "width_mm": "",
+        "length_mm": "",
+        "thickness_mm": "成形時寸法",
+        "linear_shrink_ppm": "線収縮",
+        "crack": "0なし/1ひび/2貫通",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "カタログの unfired_pot / unfired_brick と区別した研究用の試料。製品ではない"
+    },
+    {
+      "id": "test_tile_dry",
+      "label": "乾燥した試験片（未焼成）",
+      "category": "ceramic-green",
+      "unit": "mg",
+      "quality": "test_tile_green と同じ",
+      "note": "水に浸けると崩れる（未焼成）"
+    },
+    {
+      "id": "water_vapour",
+      "label": "水蒸気（乾燥・加熱で大気へ出た水）",
+      "category": "byproduct",
+      "formula": "H2O",
+      "unit": "mg",
+      "note": "放出先 air。回収した工程用水ではない（catalog の reaction_moisture は反応で生じる水で別）"
+    },
+    {
+      "id": "(catalog) calcium_carbonate_feed / quicklime / hydrated_lime / process_co2 / process_water",
+      "note": "引き継ぎカタログのIDをそのまま使う。混合物の組成は quality の x_<species>_ppm（整数 ppm）、残りは反応しない成分として質量だけを保つ"
+    }
   ],
   "processes": [
-    { "id": "p12x_test_tile_dry", "version": "0.1.0", "label": "試験片の乾燥", "kind": "physical", "inputs": ["test_tile_green"],
-      "outputs": ["test_tile_green", "test_tile_dry"], "released": ["water_vapour"], "equipment": ["drying_rack"],
-      "energyModel": { "mode": "ambient-exchange", "source": "src:env-heat:<runId>", "rule": "usedJ = lostJ（蒸発潜熱は水蒸気とともに出る）" },
-      "readiness": "test-world-only", "evaluator": "drying-eval/0.1.0", "stepMs": 600000,
-      "derivedFrom": "p12_pottery_dry", "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない" }
+    {
+      "id": "p12x_test_tile_dry",
+      "version": "0.1.0",
+      "label": "試験片の乾燥",
+      "kind": "physical",
+      "inputs": [
+        "test_tile_green"
+      ],
+      "outputs": [
+        "test_tile_green",
+        "test_tile_dry"
+      ],
+      "released": [
+        "water_vapour"
+      ],
+      "equipment": [
+        "drying_rack"
+      ],
+      "energyModel": {
+        "mode": "ambient-exchange",
+        "source": "src:env-heat:<runId>",
+        "rule": "usedJ = lostJ（蒸発潜熱は水蒸気とともに出る）"
+      },
+      "readiness": "test-world-only",
+      "evaluator": "drying-eval/0.1.0",
+      "stepMs": 600000,
+      "derivedFrom": "p12_pottery_dry",
+      "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない"
+    },
+    {
+      "id": "p20x_lime_calcine_test",
+      "version": "0.1.0",
+      "label": "試験用の焼成炉での炭酸カルシウムの熱分解",
+      "kind": "chemical",
+      "inputs": [
+        "calcium_carbonate_feed"
+      ],
+      "outputs": [
+        "quicklime"
+      ],
+      "released": [
+        "process_co2"
+      ],
+      "equipment": [
+        "fixture_calciner（params: setpointC, holdS, heatCapJPerK, uaWPerK, maxPowerW）"
+      ],
+      "energyModel": {
+        "mode": "offered-heat",
+        "rule": "燃焼を工程内に持たない（O2 の取り込みが 0.1.0 にないため）。供給元の heat offer から使い、used = lost + stored（終了時の stored は反応エンタルピー）"
+      },
+      "readiness": "test-world-only",
+      "evaluator": "lime-calcine-eval/0.1.0",
+      "stepMs": 30000,
+      "derivedFrom": "p20_lime_calcination",
+      "note": "反応エンタルピーは OpenStax の生成エンタルピーから（S-thermo）。分解の速さ・炉の性能は仮定。CO2 分圧との平衡は扱わない。乾いた原料のみ"
+    },
+    {
+      "id": "p21x_lime_hydrate_test",
+      "version": "0.1.0",
+      "label": "試験用の桶での生石灰の消化",
+      "kind": "chemical",
+      "inputs": [
+        "quicklime",
+        "process_water"
+      ],
+      "outputs": [
+        "hydrated_lime"
+      ],
+      "released": [
+        "water_vapour"
+      ],
+      "equipment": [
+        "fixture_slaking_tub（params: heatCapJPerK, uaWPerK）"
+      ],
+      "energyModel": {
+        "mode": "reaction-heat",
+        "source": "src:reaction:<runId>",
+        "rule": "反応熱が used、周囲と蒸気への持ち出しが lost。終了時の stored は 0"
+      },
+      "readiness": "test-world-only",
+      "evaluator": "lime-hydrate-eval/0.1.0",
+      "stepMs": 5000,
+      "derivedFrom": "p21_lime_hydration",
+      "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない"
+    }
   ]
 }
