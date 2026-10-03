@@ -37,7 +37,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { soundStream, audio, startAudio, stopAudio, pauseAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -2105,6 +2105,32 @@ async function keepAwake() {
   }
 }
 document.addEventListener('visibilitychange', keepAwake);
+// Put away (home screen, another app, the screen off): the sea pauses — the sound stops at once (drawing stops of
+// itself), and where the drone is is kept, so that if the phone drops the page meanwhile, coming back to it
+// starts from about here rather than from the globe. Back again: the sound as it was, and on from the same view.
+const RESUME_KEY = 'seaglass.resume';
+let soundWasOn = false;
+function keepPlace() {
+  if (!cur || mode !== 'ocean' || shared) return;
+  try { localStorage.setItem(RESUME_KEY, JSON.stringify({ sea: cur.loc.id, p: drone.pos.toArray().map((v) => +v.toFixed(2)), yaw: +drone.yaw.toFixed(3), pitch: +drone.pitch.toFixed(3), sky: drone.sky, at: Date.now() })); } catch (e) { /* storage blocked */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { keepPlace(); soundWasOn = pauseAudio() || soundWasOn; }
+  else if (soundWasOn) { soundWasOn = false; startAudio(); }
+});
+addEventListener('pagehide', keepPlace);
+// (after a reload of the same sea within half an hour: back where it was, facing the same way)
+function takeUpPlace(loc: Sea) {
+  let r: any = null;
+  try { r = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); } catch (e) { /* storage blocked */ }
+  if (!r || r.sea !== loc.id || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
+  const [x, y, z] = r.p;
+  if (![x, y, z].every(Number.isFinite) || Math.abs(x - ZONE.x) > 1e4) return;
+  drone.pos.set(x, y, z); drone.vel.set(0, 0, 0); drone.yaw = r.yaw; drone.pitch = r.pitch;
+  if (y > 0 && !r.sky) drone.pos.y = -2;   // (it was under the water: under the water again)
+  drone.sky = !!r.sky && y > 0;
+  if (drone.mode === 'auto') drone.s = nearestS(drone.pos);
+}
 document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
 
 $('btnBack').onclick = toGlobe;
@@ -2679,7 +2705,7 @@ resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
 const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
-if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start)), 300); }
+if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start).then(() => takeUpPlace(start))), 300); }
 void smooth;
 
 // Inspect the live sim from the console with ?debug

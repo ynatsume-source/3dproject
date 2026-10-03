@@ -142,6 +142,17 @@ export function stopAudio() {
   master.gain.setTargetAtTime(0, ac.currentTime, 0.4);
   setTimeout(() => { if (!audio.on) ac!.suspend(); }, 2000);
 }
+// the app put away (another app in front, the screen off): the sound stops at once rather than playing on in a
+// pocket; back, it starts again as it was. Returns whether it was playing.
+export function pauseAudio() {
+  if (!audio.on || !ac) return false;
+  for (const k in timers) clearTimeout(timers[k]);
+  songRunning = false;
+  master.gain.cancelScheduledValues(ac.currentTime); master.gain.setValueAtTime(0, ac.currentTime);
+  ac.suspend();
+  audio.on = false;
+  return true;
+}
 export function setMusic(on: boolean) {
   audio.music = on;
   if (ac) musicBus.gain.setTargetAtTime(on ? curve(vol.music) : 0, ac.currentTime, 1.2);
