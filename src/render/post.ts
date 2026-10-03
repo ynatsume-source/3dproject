@@ -53,9 +53,16 @@ export class Post {
   // blend this frame's shafts into the running average; less so while the camera turns or moves
   private blendMat = new THREE.ShaderMaterial({
     vertexShader: VS,
+    // (and none where what is there now is at another depth than before — a fish come across the water: it is
+    // not left trailing the glow of the water that was there a moment ago)
     uniforms: { tCur: { value: null }, tHist: { value: null }, uK: { value: 0 } },
     fragmentShader: `uniform sampler2D tCur; uniform sampler2D tHist; uniform float uK; varying vec2 vUv;
-      void main(){ gl_FragColor = vec4(mix(texture2D(tCur, vUv).rgb, texture2D(tHist, vUv).rgb, uK), 1.0); }`,
+      void main(){
+        vec4 c = texture2D(tCur, vUv), h = texture2D(tHist, vUv);
+        float zc = c.a * 100.0, zh = h.a * 100.0;
+        float k = uK * exp(-abs(zc - zh) / (0.06 * zc + 0.1));
+        gl_FragColor = vec4(mix(c.rgb, h.rgb, k), c.a);
+      }`,
   });
   // 4x4 depth-aware box blur of the AO: exactly cancels the 4x4 rotation pattern of its samples
   private aoBlurMat = new THREE.ShaderMaterial({
@@ -132,7 +139,7 @@ export class Post {
         float g = mix(0.72, 0.95, uNight);
         float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) * 0.08;
         vec3 col = acc * phase * uShaftI * uShaftCol * uStrength * mix(1.0, 0.05, uNight);
-        gl_FragColor = vec4(col, 1.0);
+        gl_FragColor = vec4(col, min(-vp.z, 95.0) * 0.01);   // (alpha: how far off what this ray met, in view depth — for the depth-aware enlarging below)
       }`,
   });
 
@@ -209,11 +216,13 @@ export class Post {
     uniforms: {
       uAirK: { value: 0 },
       tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() }, uVolTexel: { value: new THREE.Vector2() },
+      tDepth: { value: null }, uNear: { value: 0.08 }, uFar: { value: 460 },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel; uniform vec2 uVolTexel;
+      uniform sampler2D tDepth; uniform float uNear; uniform float uFar;
       uniform float uAirK; uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
       varying vec2 vUv;
       ${NOISE}
@@ -230,10 +239,21 @@ export class Post {
           float ao = (texture2D(tAO, vUv + vec2(-o.x, -o.y)).r + texture2D(tAO, vUv + vec2(o.x, -o.y)).r + texture2D(tAO, vUv + vec2(-o.x, o.y)).r + texture2D(tAO, vUv + vec2(o.x, o.y)).r) * 0.25;
           col *= ao;
         }
-        if (uUseVol > 0.5) {   // a small tent blur hides the per-pixel jitter of the low-res march
+        // the light in the water, worked out at a fraction of the screen's resolution, enlarged with a small tent
+        // (hiding the jitter of the low-res march) — and depth-aware: each low-res sample counts only as far as
+        // what it met is at the depth of what this pixel shows. Plain enlarging spread the bright in-scatter of
+        // the open water behind an animal over its edges, so every outline was haloed and washed out (by day, at
+        // dusk, by night). (All five reads made first, then only arithmetic: no reads inside a branch.)
+        {
           vec2 o = uVolTexel;
-          col += (texture2D(tVol, vUv).rgb * 2.0 + texture2D(tVol, vUv + vec2(o.x, o.y)).rgb + texture2D(tVol, vUv + vec2(-o.x, o.y)).rgb
-                + texture2D(tVol, vUv + vec2(o.x, -o.y)).rgb + texture2D(tVol, vUv + vec2(-o.x, -o.y)).rgb) / 6.0;
+          vec4 v0 = texture2D(tVol, vUv), v1 = texture2D(tVol, vUv + vec2(o.x, o.y)), v2 = texture2D(tVol, vUv + vec2(-o.x, o.y)),
+               v3 = texture2D(tVol, vUv + vec2(o.x, -o.y)), v4 = texture2D(tVol, vUv + vec2(-o.x, -o.y));
+          float zd = texture2D(tDepth, vUv).r, z0 = min(uNear * uFar / (uFar - zd * (uFar - uNear)), 95.0);
+          float tol = 0.08 * z0 + 0.15;
+          float w0 = 2.0 * exp(-abs(v0.a * 100.0 - z0) / tol), w1 = exp(-abs(v1.a * 100.0 - z0) / tol), w2 = exp(-abs(v2.a * 100.0 - z0) / tol),
+                w3 = exp(-abs(v3.a * 100.0 - z0) / tol), w4 = exp(-abs(v4.a * 100.0 - z0) / tol);
+          vec3 vol = (v0.rgb * w0 + v1.rgb * w1 + v2.rgb * w2 + v3.rgb * w3 + v4.rgb * w4) / max(w0 + w1 + w2 + w3 + w4, 1e-3);
+          col += vol * uUseVol;
         }
         if (uUseBloom > 0.5) col += texture2D(tBloom, vUv).rgb * uBloom;
         col *= uWB * uExposure;
@@ -373,6 +393,7 @@ export class Post {
     c.tAO.value = this.aoSmooth.texture; c.uUseAO.value = ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
     c.tScene.value = this.main.texture;
     c.tVol.value = this.volHist[this.histIdx].texture; c.uUseVol.value = vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
+    c.tDepth.value = this.main.depthTexture; c.uNear.value = camera.near; c.uFar.value = camera.far;
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;
     this.pass(r, this.compMat, out);   // (to the screen, or for the waterline view into a target)
   }
