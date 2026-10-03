@@ -10,6 +10,7 @@ import { addComp, elementMoles } from '../src/science/chem';
 import { CALCINE_PROCESS, HYDRATE_PROCESS } from '../src/science/step/lime';
 import { FIRING_PROCESS } from '../src/science/step/firing';
 import { SOAK_PROCESS } from '../src/science/step/soak';
+import { DRYING_PROCESS } from '../src/science/step/drying';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -185,12 +186,29 @@ console.log('F2  integration accuracy: 30 s-aligned requests are exact; other sp
 console.log('F3  states saved by an older version are refused explicitly, not misread');
 {
   const old = (req: ScienceStepRequest, schema: string) => scienceStep({ ...req, state: { schema, data: { lastTo: 0 } } });
-  for (const [name, req, schema] of [['firing', FIRE, 'civ-sci.tile-fire/1'], ['calcination', CALC, 'civ-sci.lime-calcine/1'], ['slaking', hyd(60000), 'civ-sci.lime-hydrate/1']] as const) {
-    const r = old(req as ScienceStepRequest, schema);
+  const DRY: ScienceStepRequest = { ...FIRE, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, actions: [], energy: [],
+    lots: [{ ...FIRE.lots[0], materialId: 'test_tile_green', quality: { ...FIRE.lots[0].quality, water_ppm: 200000, width_mm: 40, length_mm: 60 } }],
+    equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-1', condition: 1 }] };
+  const all = [['drying', DRY, 'civ-sci.drying'], ['firing', FIRE, 'civ-sci.tile-fire'], ['soak', soakReq(FIRE.lots[0], 1, 'run:soak-schema'), 'civ-sci.tile-soak'],
+    ['calcination', CALC, 'civ-sci.lime-calcine'], ['slaking', hyd(60000), 'civ-sci.lime-hydrate']] as const;
+  for (const [name, req, base] of all) {
+    const fresh = scienceStep({ ...(req as ScienceStepRequest), stop: undefined, interval: { from: 0, to: 30000 } });
+    ok(fresh.status !== 'failed' && fresh.state?.schema === `${base}/2`, `${name}: a new run saves state schema ${base}/2`, `${fresh.status} ${fresh.state?.schema} ${fresh.evidence.notes ?? ''}`);
+    const r = old(req as ScienceStepRequest, `${base}/1`);
     ok(r.status === 'failed' && r.consumed.length === 0 && String(r.evidence.notes).startsWith('unsupported-state-schema'), `${name}: an /1 state is refused as unsupported-state-schema`);
   }
   ok(FIRE.processVersion === '0.2.0' && CALC.processVersion === '0.2.0', 'process versions bumped to 0.2.0 with the new state schemas (/2)');
   ok(scienceStep({ ...CALC, processVersion: '0.1.0' }).status === 'failed', 'a request for the old process version 0.1.0 is refused');
+}
+
+console.log('G   the 30 s grid starts at the run start (not at world-clock zero)');
+{
+  const S = 1000, H = 3600_000, rel = Array.from({ length: 121 }, (_, i) => S + i * 30_000);
+  for (const [name, base, w] of [['calciner 4 kW', CALC, 4000], ['kiln 15 kW', FIRE, 15000]] as const) {
+    const once = chain(base as ScienceStepRequest, [S, S + H], w), split = chain(base as ScienceStepRequest, rel, w);
+    ok(once.used === split.used && JSON.stringify(once.last.state.data) === JSON.stringify(split.last.state.data),
+      `${name}: a run starting at 1000 ms, cut every 30 s from its start = one request (identical)`, `${once.used} J`);
+  }
 }
 
 console.log('—   every result above passed the contract checker');

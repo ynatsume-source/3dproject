@@ -54,7 +54,7 @@
   *  4. Interval additivity: stepping [a,b) then [b,c) gives the same outcome as [a,c) within tolerance,
 - *     so a pause, a restart or a resend never changes the result.
 + *     so a pause, a restart or a resend never changes the result. Each process publishes its integration grid;
-+ *     boundaries on multiples of 30 s are exact for every process, others within the process's stated tolerance.
++ *     boundaries at runStart + n x 30 s are exact for every process (start runs on world-clock 30 s marks), others within tolerance.
   *  5. The same request gives the same result (no clock, no Math.random: use `seed`).
   *  6. Unknown processVersion, catalogVersion, state schema or contract major version: return 'failed'
   *     with a diagnostic, never guess.

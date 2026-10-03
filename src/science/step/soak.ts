@@ -1,4 +1,4 @@
-// ScienceStep for soaking a test tile in cold water (m01x_tile_soak_test), contract 0.1.0.
+// ScienceStep for soaking a test tile in cold water (m01x_tile_soak_test), contract 0.1.0. State schema /2 (0.2.0); /1 states are refused like the other steps.
 // No measurement happens here: weighing before/after is the separate fixture_mass_measure step, and the
 // absorption percentage is the resident's own calculation (tools/science-lab/measurements.mjs definition).
 // Uptake approaches the cold-soak saturation exponentially (time constant assumed). A piece whose clay
@@ -11,7 +11,7 @@ import { dehydroxExtent, dryMg } from '../physics';
 import { checkCommon, failed, fingerprint, tileComp, tileQuality } from './common';
 
 export const SOAK_PROCESS = { processId: 'm01x_tile_soak_test', processVersion: '0.2.0' } as const;
-const SCHEMA = 'civ-sci.tile-soak/1';
+const SCHEMA = 'civ-sci.tile-soak/2';
 const EVAL = 'tile-soak-eval/0.1.0';
 const UPTAKE_TAU_S = 2 * 3600; // assumed: most of the cold-soak uptake within a few hours
 
