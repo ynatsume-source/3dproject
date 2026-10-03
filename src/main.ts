@@ -126,6 +126,7 @@ const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
 const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
+let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -521,8 +522,16 @@ function updateDrone(dt: number, now: number) {
     if (keys.has('ArrowLeft')) drone.yaw += dt * 1.2;
     if (keys.has('ArrowRight')) drone.yaw -= dt * 1.2;
     const boost = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.8 : 1;
+    // going forward, the view goes the way it is going: a push to the side turns it (a bank, as a drone or a
+    // diver does) rather than sliding it sideways, and a push up or down tips the nose that way. Standing
+    // still or backing off, a push to the side still slides, for edging into place. (The hand on the view —
+    // a drag — always wins, and for a moment after it.)
+    const ahead = smooth(0.15, 0.6, f) * (now - dragAt > 1200 ? 1 : 0);
+    drone.yaw -= clamp(r, -1, 1) * ahead * 0.6 * dt;   // (about 34°/s at full push: a calm bank)
+    if (u) drone.pitch += (clamp(u, -1, 1) * 0.35 - drone.pitch) * Math.min(1, dt * 0.8 * ahead * Math.min(1, Math.abs(u)));
+    const side = r * (1 - 0.85 * ahead);
     const cp = Math.cos(drone.pitch), sy = Math.sin(drone.yaw), cy = Math.cos(drone.yaw);
-    _v.set(-sy * cp * f + cy * r, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * r);
+    _v.set(-sy * cp * f + cy * side, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * side);
     if (_v.lengthSq() > 1) _v.normalize();
     _v.multiplyScalar((drone.pos.y > 0 ? 8 : 3.6) * boost);   // more power; much faster in the open air
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.8));
@@ -2365,7 +2374,7 @@ canvas.addEventListener('pointermove', (e) => {
     if (watch.r && pinched) return;
     const k = isTouch ? 0.006 : 0.0035;
     tap.moved += Math.abs(dx) + Math.abs(dy);
-    if (drone.mode === 'manual') { drone.lastInput = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
+    if (drone.mode === 'manual') { drone.lastInput = dragAt = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
     else if (watch.r && !watch.pov) { watch.off -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, -0.12, 1.45); }   // watching: drag to circle round it (all the way to its face) and tilt, down to eye level
     else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
   }
