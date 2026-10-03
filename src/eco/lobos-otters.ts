@@ -7,7 +7,7 @@ import { mulberry32 } from '../core/math';
 import { creatureKit, type Food } from '../robots/creatures';
 import { cmats } from '../robots/residents';
 import type { Robot, Act } from '../robots/models';
-import { swellAt } from '../ocean/air';
+import { swellAt, surfaceAt } from '../ocean/air';
 import { logEvent, type Env, type Subject } from './env';
 
 export interface OtterTerrain { top(x: number, z: number): number }
@@ -23,7 +23,7 @@ const ease = (x: number) => { x = Math.max(0, Math.min(1, x)); return x * x * (3
 interface Otter {
   body: Robot; home: THREE.Vector3; pos: THREE.Vector3; heading: number; turn: number;
   doing: Doing; t: number; dur: number; food: Food; key: number;
-  to: THREE.Vector3; floor: number; clock: number;
+  to: THREE.Vector3; floor: number; clock: number; sink?: number;
 }
 
 export class LobosOtters {
@@ -114,7 +114,10 @@ export class LobosOtters {
       const dh = Math.atan2(Math.sin(o.turn - o.heading), Math.cos(o.turn - o.heading));
       o.heading += dh * Math.min(1, dt * 1.2);
       o.pos.x += Math.sin(o.heading) * speed * dt; o.pos.z += Math.cos(o.heading) * speed * dt;
-      const w = swellAt(o.pos.x, o.pos.z); o.pos.y = Math.min(w, y + w - y0);
+      // (on the drawn water, not a hand's breadth above a trough of it; lying back, settled in it a little)
+      const back = o.doing === 'float' || o.doing === 'sleep' || o.doing === 'groom' || o.doing === 'eat';
+      o.sink = (o.sink ?? 0) + ((back ? 0.07 * SCALE : 0) - (o.sink ?? 0)) * Math.min(1, dt * 1.5);
+      const w = surfaceAt(o.pos.x, o.pos.z) - o.sink; o.pos.y = Math.min(w, y + w - y0);
       if (o.doing === 'dive') o.pos.y = Math.max(o.pos.y, Math.min(w, this.T.top(o.pos.x, o.pos.z) + 0.3 * SCALE));   // (never into the rock it moved over)
       const r = o.body.root, far = o.pos.distanceTo(cam) > SEE;
       r.visible = !far;

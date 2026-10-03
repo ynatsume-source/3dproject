@@ -224,7 +224,7 @@ export function buildOcean(loc) {
   }
 
   // corals: sample the reef, pick a form by depth / slope / sea
-  const newItems = () => ({ branch: [[], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] });
+  const newItems = () => ({ branch: [[], [], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] });
   const items = newItems();
   const EXT = LIMIT + 45, STEP = 1.35;
   const samples = [];
@@ -239,9 +239,33 @@ export function buildOcean(loc) {
   const W = loc.corals;
   // one coral where the reef was sampled (the same for the sea round the drone at the start and, by an
   // island, for each stretch of reef further off as the camera comes near it: see grow() below)
+  // Staghorn thickets: on a sea that has them, patches of the shallow, gentle reef where branching Acropora
+  // has grown into one tangled carpet (how much of the reef: loc.thicket). Where it is, h is the depth there.
+  const TH = loc.thicket ?? 0;
+  const thicketK = (x: number, z: number, h: number) => TH <= 0 || (loc.f(x, z), false) ? 0   // (loc.f: TERR.reef for this spot)
+    : TH * smooth(0.5, 0.6, fbm(x * 0.021 + 7.3, z * 0.021 - 2.1, 3)) * smooth(-15, -7, h) * (1 - smooth(-1.4, -0.7, h)) * smooth(0.15, 0.45, TERR.reef) * (1 - smooth(0.45, 0.85, T.slope(x, z)));
+  const thicketIn = (x0: number, z0: number, x1: number, z1: number, items: any, skip: ((x: number, z: number) => boolean) | null) => {
+    const S = 0.9, pal = PALETTE.thicket;
+    for (let x = x0; x < x1; x += S) for (let z = z0; z < z1; z += S) {
+      const jx = x + (R() - 0.5) * S * 0.9, jz = z + (R() - 0.5) * S * 0.9, q = R();
+      if (skip && skip(jx, jz)) continue;
+      const h = loc.f(jx, jz), k = thicketK(jx, jz, h);
+      if (q > k * 1.6) continue;
+      if ((cave && cave.routeDist(jx, jz) < 3.5) || underWreck(jx, jz, h)) continue;
+      // (mostly the tangle itself; here and there a corymbose dome among it)
+      const dome = R() < 0.12, s = dome ? rr(0.9, 1.5) : rr(1.0, 1.55) * (0.75 + 0.25 * Math.min(1, k));
+      const it: any = { x: jx, z: jz, y: h - 0.1, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.15), sz: s * rr(0.85, 1.15) };
+      // (neighbours mostly of one colour, as a thicket is often one or a few colonies grown together)
+      const c = pal[Math.floor(fbm(jx * 0.15 + 3, jz * 0.15, 2) * pal.length * 1.6 + R() * 0.8) % pal.length];
+      it.c = tintCol(c[0], 0.14); it.c2 = tintCol(c[1], 0.1); it.seed = R();
+      items.branch[dome ? 1 : 2].push(it);
+      obst.stamp(jx, jz, 0.6 * s, it.y + (dome ? 0.3 : 0.62) * it.sy, it.sy);
+    }
+  };
   const coralAt = (x: number, z: number, h: number, items: any) => {
     if (cave && cave.routeDist(x, z) < 3.5) return;                     // keep the way into the cave open
     if (underWreck(x, z, h)) return;                                      // (nothing grows under her)
+    if (TH > 0 && R() < thicketK(x, z, h) * 0.7) return;                 // (inside a thicket: mostly the thicket)
     const sl = T.slope(x, z);
     const shallow = smooth(-20, -6, h);
     const w = {
@@ -281,6 +305,7 @@ export function buildOcean(loc) {
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
   };
   for (const [x, z, h, r] of samples) { if (R() > r * r * accept * 1.6) continue; coralAt(x, z, h, items); }
+  thicketIn(-EXT, -EXT, EXT, EXT, items, null);
 
   // anemones, each home to a few clownfish
   const nearAnemone = (x: number, z: number, r: number) => oc.anemones.some((a: any) => Math.hypot(a.pos.x - x, a.pos.z - z) < a.s * 0.75 + r + 0.3);
@@ -521,6 +546,7 @@ export function buildOcean(loc) {
         if (r < 0.05 || R() > r * r * accept * 1.6) continue;
         coralAt(jx, jz, h, its);
       }
+      thicketIn(x0, z0, x1, z1, its, inCoral);
       for (const kind in its) its[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, c1); });
       add(c1);
       yield;

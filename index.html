@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#03161d">
   <meta name="description" content="ウツシヨ（Utsushiyo）— 現実を写した、もうひとつの地球。実在の海を再現した海中を、ドローンでゆっくり巡る。現地の空と時刻に合わせて光が変わるサンゴ礁のシミュレーション。">
   <title>Utsushiyo — ウツシヨ</title>
+  <link rel="canonical" href="https://utsushiyo.earth/">
   <meta property="og:type" content="website"><meta property="og:site_name" content="ウツシヨ Utsushiyo">
   <meta property="og:title" content="ウツシヨ — 現実を写した、もうひとつの地球"><meta property="og:url" content="https://utsushiyo.earth/">
   <meta property="og:description" content="実在の海を再現した海中を、ドローンでゆっくり巡る。現地の空と時刻、天気に合わせて光が変わる。">
@@ -99,7 +100,7 @@
     <span class="moon" id="clockMoon"></span>
   </div>
   <div class="group" role="group" aria-label="メニュー">
-    <button id="btnReplay" type="button" aria-label="さかのぼって保存（直前の最大30秒を動画に）"><span class="ring" aria-hidden="true"><i></i></span><span class="lbl" id="replayLbl">さかのぼって保存</span><span class="sec" id="replaySec" aria-hidden="true"></span></button>
+    <button id="btnReplay" type="button" aria-label="さかのぼって保存（直前15秒を動画に）"><span class="ring" aria-hidden="true"><i></i></span><span class="lbl" id="replayLbl">さかのぼって保存</span><span class="sec" id="replaySec" aria-hidden="true">15</span></button>
     <button id="btnShare" type="button" aria-label="この景色を共有" title="この景色のリンクを共有">↗</button>
     <button id="btnMore" type="button" aria-expanded="false" aria-label="メニューを開く">⋯</button>
   </div>
@@ -154,7 +155,6 @@
     <p class="lead">今日の出来事の記録</p>
     <div class="rows">
       <button id="btnLog" type="button" aria-pressed="false">今日のログ<kbd>J</kbd></button>
-      <button id="btnReplayOn" type="button" aria-pressed="false" title="オンの間、直前の15〜30秒をいつでも動画で保存できます（端末の負荷が少し増えます）"><span class="dot"></span>さかのぼって保存（直前の映像を残しておく）</button>
     </div>
   </section>
 </div>

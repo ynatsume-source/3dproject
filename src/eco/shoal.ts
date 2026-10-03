@@ -7,6 +7,7 @@ import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
+import { makeSchoolShade } from './schoolshade';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
@@ -29,7 +30,8 @@ export function makeShoalSystem(sp: Species, oc: any) {
     size[i] = memberLength(schoolBase[i % S]) / 1.28;   // fish i swims in school i % S
   }
   geo.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
-  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp), total);
+  const shade = makeSchoolShade(geo, total, S);
+  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp, true), total);
   mesh.frustumCulled = false;
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   const T = oc.T;
@@ -130,6 +132,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     }
     const alive = new Array(S).fill(0);
     const radius0 = 2.3 * K * Math.cbrt(Math.max(1, total / S / 60));   // (a bigger school takes more room)
+    shade.begin();
     for (let i = 0; i < active; i++) {
       const s = i % S, L = leaders[s];
       if (dead[i]) {
@@ -210,7 +213,9 @@ export function makeShoalSystem(sp: Species, oc: any) {
       _a.set(nx + vx, ny + hy, nz + vz); _b.set(nx, ny, nz);
       _mm.lookAt(_a, _b, UPV); _ss.setScalar(size[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
       mesh.setMatrixAt(i, _mm);
+      shade.set(i, s, nx, ny, nz);
     }
+    shade.end();
     for (let s = 0; s < S; s++) leaders[s].prey.alive = alive[s];
     mesh.instanceMatrix.needsUpdate = true;
   }

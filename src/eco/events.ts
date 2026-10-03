@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import type { Species } from '../data/locations';
 import { R, rr, clamp } from '../core/math';
 import { makeShoalSystem } from './shoal';
+import { makeSchoolShade } from './schoolshade';
 import { MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, SHAPES, fishGeometry, fishMaterial } from '../ocean/models';
 import { mat } from '../render/common';
 import type { Env, Subject } from './env';
@@ -40,7 +41,8 @@ function flowSchool(oc: any, sp: Species, n: number, where: (i: number, t: numbe
   const g = fishGeometry(SHAPES[sp.shape], true), sw = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) sw.set([R() * 6.28, rr((sp.freq || [7, 10])[0], (sp.freq || [7, 10])[1]), rr(0.9, 1.08)], i * 3);
   g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(sw, 3));
-  const mesh = new THREE.InstancedMesh(g, fishMaterial(sp), n); mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const shade = makeSchoolShade(g, n, 1, { round: false });   // (a river or a tornado: its depth, not its width)
+  const mesh = new THREE.InstancedMesh(g, fishMaterial(sp, true), n); mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   oc.group.add(mesh);
   const size = Array.from({ length: n }, () => rr(sp.size[0], sp.size[1]) / 1.28);
   const p = new THREE.Vector3(), v = new THREE.Vector3(), m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0), s = new THREE.Vector3(), tgt = new THREE.Vector3();
@@ -49,13 +51,16 @@ function flowSchool(oc: any, sp: Species, n: number, where: (i: number, t: numbe
     mesh, gone, last,
     update(t: number, show: number) {
       const k = Math.floor(n * clamp(show, 0, 1));
+      shade.begin();
       for (let i = 0; i < n; i++) {
         if (i >= k || gone[i]) { mesh.setMatrixAt(i, m.makeScale(0, 0, 0)); continue; }
         where(i, t, p, v);
         last[i * 6] = p.x; last[i * 6 + 1] = p.y; last[i * 6 + 2] = p.z; last[i * 6 + 3] = v.x; last[i * 6 + 4] = v.y; last[i * 6 + 5] = v.z;
         m.lookAt(tgt.copy(p).add(v), p, up); m.scale(s.setScalar(size[i])); m.setPosition(p);
         mesh.setMatrixAt(i, m);
+        shade.set(i, 0, p.x, p.y, p.z);
       }
+      shade.end();
       mesh.instanceMatrix.needsUpdate = true;
     },
     dispose() { oc.group.remove(mesh); g.dispose(); (mesh.material as THREE.Material).dispose(); },
@@ -317,6 +322,8 @@ export function makeRareEvents(oc: any) {
     get running() { return run; },
     // the one that has just begun (read once by the app, to announce it and go and film it)
     takeStarted() { const s = started; started = null; return s; },
+    // every kind, with how likely it is here now (0: not at this sea or not at this time): for the test panel
+    kinds(env: Env) { return KINDS.map((k) => ({ id: k.info.id, ja: k.info.ja, w: k.weight(oc.loc, env) })); },
     // what could happen here now, and how likely each is
     options(env: Env) { return KINDS.map((k) => ({ k, w: k.weight(oc.loc, env) })).filter((o) => o.w > 0); },
     start(id: string | null, env: Env, cam: THREE.Vector3, fx: number, fz: number) {

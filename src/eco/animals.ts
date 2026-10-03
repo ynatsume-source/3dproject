@@ -134,6 +134,9 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // look ahead and rise over rocks and coral instead of ploughing into them
     if (t.state !== 'rest' && t.state !== 'graze') {
       for (const a of [1.8, 3.5, 5.5]) ty = Math.max(ty, T.top(t.pos.x + Math.cos(t.head) * a * t.size, t.pos.z + Math.sin(t.head) * a * t.size) + 0.6 * t.size);
+    } else if (t.state === 'graze') {
+      // (browsing slowly along the bottom: up over the next coral colony or thicket before it reaches it)
+      for (const a of [0.7, 1.4]) ty = Math.max(ty, T.top(t.pos.x + Math.cos(t.head) * a * t.size, t.pos.z + Math.sin(t.head) * a * t.size) + 0.45);
     }
     t.ph = (t.ph ?? t.t) + dt * (1.0 + 2.2 * alarm);
     const beat = Math.max(0, Math.sin(t.ph));
@@ -189,17 +192,26 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     const feeding = m.feeding ? env.night > 0.45 : env.night > 0.55;
     m.t += dt; m.flip ??= -1;
     const dx = m.st.x - cam.x, dz = m.st.z - cam.z;
-    if ((m.retry = (m.retry ?? 0) - dt) <= 0 && (!m.placed || dx * dx + dz * dz > 85 * 85 || m.feeding !== feeding)) {
+    const boxed = !!m.boxed && !m.transit;   // (its circle shut in on both sides: see below)
+    if ((m.retry = (m.retry ?? 0) - dt) <= 0 && !m.transit && (!m.placed || dx * dx + dz * dz > 85 * 85 || m.feeding !== feeding || boxed)) {
       // by day: a reef top (cleaning station); by night: the richest plankton nearby
       let best: [number, number] = [cam.x, cam.z], bs = -Infinity;
+      const need = Math.max(2.8, (m.span ?? 4) * 0.45 + 0.6);
       for (let k = 0; k < 30; k++) {
-        const d = m.placed && m.feeding === feeding ? rr(64, 76) : rr(14, 30), lat = (R() * 2 - 1) * 20;   // (moving on: somewhere ahead, but beyond what can be seen through the water, to swim in from)
-        const x = zx(cam.x + fx * d - fz * lat), z = zz(cam.z + fz * d + fx * lat);
+        let x: number, z: number;
+        if (boxed) { const a = R() * Math.PI * 2, d = rr(16, 34); x = zx(m.pos.x + Math.cos(a) * d); z = zz(m.pos.z + Math.sin(a) * d); }
+        else {
+          const d = m.placed && m.feeding === feeding ? rr(64, 76) : rr(14, 30), lat = (R() * 2 - 1) * 20;   // (moving on: somewhere ahead, but beyond what can be seen through the water, to swim in from)
+          x = zx(cam.x + fx * d - fz * lat); z = zz(cam.z + fz * d + fx * lat);
+        }
         let s = (feeding ? env.plankton.sample(x, z) : T.h(x, z)) - (T.wet(x, z, 5) || !oc.loc.land ? 0 : 1e6);   // by an island, mantas need room below them
         // (and room for its whole circle: the reef under the ring low enough for the body, wings and all,
-        // to pass over it below the surface)
-        let ring = -1e9; for (let q = 0; q < 12; q++) { const a = q / 12 * Math.PI * 2; for (const rr0 of [7, 12, 17]) ring = Math.max(ring, T.top(x + Math.cos(a) * rr0, z + Math.sin(a) * rr0)); }
-        if (ring + Math.max(2.8, (m.span ?? 4) * 0.45 + 0.6) > -2.5) s -= 1e5;
+        // to pass over it below the surface — looked at closely enough not to miss a coral head or a thicket
+        // between the points)
+        let ring = -1e9; for (let q = 0; q < 32; q++) { const a = q / 32 * Math.PI * 2; for (const rr0 of [6, 8.5, 11, 13.5, 16, 18.5]) ring = Math.max(ring, T.top(x + Math.cos(a) * rr0, z + Math.sin(a) * rr0)); }
+        if (ring + need + 0.4 > -2.5) s -= 1e5;
+        // (boxed in: and a straight way there from where it is, with room for it all along)
+        if (boxed) { const L = Math.hypot(x - m.pos.x, z - m.pos.z); for (let d = 2; d < L; d += 2) { const f = d / L; if (T.top(m.pos.x + (x - m.pos.x) * f, m.pos.z + (z - m.pos.z) * f) + need + 0.4 > -2.5) { s -= 1e5; break; } } }
         if (s > bs) { bs = s; best = [x, z]; }
       }
       // (nowhere ahead with room for it: if it is already about somewhere, out of sight, it stays there a
@@ -225,9 +237,36 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       m.y = feeding ? Math.max(-3, Math.min(top + 2.6, -2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), -2.5);
       if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', oneOf(['マンタがプランクトンを食べに浅場へ上がってきた', 'マンタが口を大きく開けて、流れの中でプランクトンを濾しはじめた', 'マンタが浅場で輪を描きながら、プランクトンを食べている', '潮に乗ってプランクトンが集まり、マンタがやってきた']), m.st.x, m.st.z, () => m.pos);
       m.feeding = feeding; m.placed = true;
+      // boxed in: it leaves its circle and swims straight over to the new one (checked clear above)
+      if (boxed) { m.boxed = false; if (bs > -5e4) { m.transit = new THREE.Vector3(best[0], 0, best[1]); m.st.copy(m.stationTarget); m.rad = m.radTarget; } }
       }
     }
     m.stationTarget ??= m.st.clone(); m.radTarget ??= m.rad;
+    if (m.transit) {
+      // swimming over to its new circle: straight to the nearest point of it, at a depth with room under it
+      const tc = m.transit, toC = Math.hypot(m.pos.x - tc.x, m.pos.z - tc.z) || 1;
+      const gx = tc.x + (m.pos.x - tc.x) / toC * m.rad, gz = tc.z + (m.pos.z - tc.z) / toC * m.rad;
+      const hx = gx - m.pos.x, hz = gz - m.pos.z, hd = Math.hypot(hx, hz);
+      if (hd < 1.5) { m.a = Math.atan2(m.pos.z - tc.z, m.pos.x - tc.x); m.transit = undefined; }   // (arrived: on its circle from here)
+      else {
+        const sp = Math.min(1.6, hd) * dt, nx = m.pos.x + hx / hd * sp, nz = m.pos.z + hz / hd * sp;
+        // (looking ahead along the way, so it rises in good time over a reef coming up, and never through one)
+        const need = Math.max(2.8, (m.span ?? 4) * 0.45 + 0.6);
+        // (the reef under it from wingtip to wingtip, not only under its middle)
+        const wr = (m.span ?? 4) * 0.55, px2 = -hz / hd * wr, pz2 = hx / hd * wr;
+        const under = (x: number, z: number) => Math.max(T.top(x, z), T.top(x + px2, z + pz2), T.top(x - px2, z - pz2));
+        let fl = under(nx, nz); for (let d = 2; d <= 8 && d < hd; d += 2) fl = Math.max(fl, under(m.pos.x + hx / hd * d, m.pos.z + hz / hd * d));
+        const want = Math.min(-2.5, Math.max(m.y, fl + need));
+        m.swimY = (m.swimY ?? want) + clamp(want - (m.swimY ?? want), -0.5 * dt, 1.2 * dt);
+        m.swimY = Math.max(m.swimY, Math.min(-2.5, under(nx, nz) + need));
+        const yaw = Math.atan2(hx, hz); m.yaw ??= yaw;
+        m.yaw += Math.atan2(Math.sin(yaw - m.yaw), Math.cos(yaw - m.yaw)) * (1 - Math.exp(-dt * 1.4));
+        m.pos.set(nx, m.swimY, nz);
+        const ease = 1 - Math.exp(-dt * 1.2); m.pitch = (m.pitch ?? 0) * (1 - ease); m.bank = (m.bank ?? 0) * (1 - ease);   // (levelling out from its turn)
+        m.mesh.position.copy(m.pos); m.mesh.rotation.set(m.pitch, m.yaw, m.bank, 'YXZ');
+        continue;
+      }
+    }
     const oldX = m.st.x, oldZ = m.st.z, oldRad = m.rad, oldA = m.a;
     const prevX = oldX + Math.cos(oldA) * oldRad, prevZ = oldZ + Math.sin(oldA) * oldRad;
     const travelK = m.loopPending || m.flip >= 0 ? 0 : 1 - Math.exp(-dt * 0.045);
@@ -254,6 +293,10 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     if (m.init && m.flip < 0 && (floor + clearance > -2.5 || floor + clearance > m.swimY + 0.025)) {
       if (Number.isFinite(floor)) m.y = Math.max(m.y, Math.min(-2.5, floor + clearance));
       m.st.set(oldX, 0, oldZ); m.rad = oldRad; m.a = oldA; m.dir *= -1;
+      // turned back, and shut in again on the other side soon after: its circle has no way round — it moves on
+      // (rather than turning to and fro on the spot, which looks stuck)
+      if (m.t - (m.turnedAt ?? -1e9) < 3) { m.boxed = true; m.retry = 0; }
+      m.turnedAt = m.t;
       m.stationTarget.copy(m.st); m.radTarget = m.rad; m.loopPending = false;
       px = prevX; pz = prevZ; floor = footprint(px, pz);
     }

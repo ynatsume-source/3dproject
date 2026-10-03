@@ -81,7 +81,9 @@ uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float u
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
-float hash2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// (no sin of a large number: a phone's GPU works that out so roughly that hashed cells far from the origin
+// came out as a grid of flat, glassy squares — this one keeps to fract and small products: Dave Hoskins's hash12)
+float hash2(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 // a resident being watched (uCut.xyz, on when uCut.w > 0): leaves and twigs on the line of sight between it and
 // the camera are let through, in a soft-edged tunnel — the trees around stay whole
 bool cutSight(vec3 wp){
@@ -134,6 +136,9 @@ vec3 waterCol(vec3 dir){
   return c * mix(0.32, 1.0, exp(min(uCamPos.y, 0.0) * 0.035)) * uAmb;
 }
 vec3 absorb(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs); }
+// what a surface down there shows: lit through the water above it, but as a camera with its colour set for
+// the reef sees it (the near reef keeps its tan and ochre; the water itself still turns blue with distance)
+vec3 absorbSeen(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs * vec3(0.5, 0.78, 1.0)); }
 // a life's wear on a big animal's skin (q: coordinates over the skin, in cells): here and there a short
 // pale scar or a rake of two or three parallel ones (teeth, coral, fishing line), and the odd round
 // healed bite (a cookie-cutter shark's); returns how scarred this spot is 0..1
@@ -329,7 +334,7 @@ vec3 fogIt(vec3 col, vec3 wp){
 vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) * (1.0 + uFlashW * 3.0) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }
 vec3 lightAt(vec3 n){ return lightAt(n, vec2(1.0)); }
 vec3 shade(vec3 alb, vec3 wp, vec3 n, float causAmt){
-  vec3 col = absorb(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6, wp.y);
+  vec3 col = absorbSeen(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6, wp.y);
   col += absorb(vec3(0.95, 1.0, 0.95), wp.y) * caus2(wp) * max(n.y, 0.0) * causAmt * alb;
   col += lamp(alb, wp, n);
   return fogIt(col, wp);

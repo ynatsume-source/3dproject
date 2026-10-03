@@ -270,7 +270,7 @@ export function makeBreach(oc: any) {
       out.push({ key: 'breach', label: whaleNow ? 'ザトウクジラのブリーチ' : 'マンタのジャンプ', kind: 'giant', prio: 9, size: l.len, reach: 160, hold: 26,
         pos: () => exitC, live: () => leap === l && upNow() < showEnd,
         status: () => { const up = upNow(); return up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'; },
-        breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir, body: (whaleNow ? whale : manta).position, len: l.len } });
+        breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir, body: (whaleNow ? whale : manta).position, len: l.len, after: () => upNow() - airT } });   // (after: seconds since it came back down)
     },
   };
 }

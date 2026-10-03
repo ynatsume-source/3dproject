@@ -6,7 +6,7 @@ import { R, rr } from './core/math';
 import type { Subject } from './eco/env';
 import type { Style, GiantMove } from './persona';
 
-export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean;
+export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean; down?: boolean;   // (down: after a leap, gone in after the animal)
   tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
   leapView?: 'line' | 'close' | 'air'; // how a leap is being filmed (below)
 }
@@ -45,6 +45,7 @@ export class Director {
   weight: (s: Subject) => number = () => 1;
   jumpTo: (s: Subject) => boolean = () => false;
   dwellK = 1;
+  nearK = 1;       // (how far afield it looks for the next thing: under 1, it keeps to what is near)
   distK = 1;
   styles: Partial<Record<Style, number>> = { orbit: 1 };
   giantW: Partial<Record<GiantMove, number>> = { flank: 2, under: 2, front: 1, pass: 1 };
@@ -101,7 +102,7 @@ export class Director {
     if (d > (s.reach ?? 42)) return 0;
     const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3);
     const vis = 0.55 + 0.75 * Math.max(0, dot) * (1 - Math.min(1, Math.max(0, (d - 4) / 31)));
-    const near = 1 - d / Math.max(60, (s.reach ?? 42) * 1.25);    // (things worth crossing the island for fade more slowly with distance)
+    const near = 1 - d / (Math.max(60, (s.reach ?? 42) * 1.25) * this.nearK);    // (things worth crossing the island for fade more slowly with distance; a guide may keep to what is near)
     const bored = 1 / (1 + 0.9 * (this.bored.get(speciesOf(s)) ?? 0) * (self ? 0.4 : 1));
     const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9), kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
     const recent = self ? 1 : (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.5 : 1);
@@ -138,6 +139,19 @@ export class Director {
       sh.leapView = view; this.lastLeapView = view;
     }
     const d = this.ang, body = b.body ?? { x: mx, y: b.h * 0.5, z: mz }, view = sh.leapView ?? 'line';
+    // back in the water (filmed from the waterline or close beside it): the camera goes in after it, a little
+    // behind and to the side at its depth, and watches it swim off, rather than staying at the splash looking
+    // at the sky while it goes
+    const after = b.after ? b.after() : -1;
+    if (view !== 'air' && after > 0.8) {
+      const back = L * 1.3 + 3, side = L * 0.8 + 2;
+      sh.pos.set(body.x - dx * back - dz * this.side * side, Math.min(-1.4, body.y + 0.8), body.z - dz * back + dx * this.side * side);
+      const fl = floor(sh.pos.x, sh.pos.z); if (sh.pos.y < fl + 1.2) sh.pos.y = Math.min(-1.0, fl + 1.2);
+      sh.look.set(body.x, body.y, body.z);
+      sh.tilt = undefined; sh.zoom = false; sh.surface = false; sh.down = true;
+      this.t += dt;
+      return sh;
+    }
     if (view === 'close') {
       const lat = L * 0.5 + 1.5;
       sh.pos.set(p.x + dx * 2.5 - dz * this.side * lat, 0, p.z + dz * 2.5 + dx * this.side * lat);
@@ -319,6 +333,21 @@ export class Director {
     }
     // (ashore or at the surface: from the air, at the height of someone standing by)
     y = !wet ? Math.max(p.y + lift + 0.6, floor(x, z) + 1.2, 0.8) : Math.min(Math.max(y, floor(x, z) + (style === 'low' ? 0.6 : 1.0)), -0.9);
+    // (nothing between the lens and it — a sea fan, a coral head, a rock: else round to where there is a clear
+    // view, or up a little over what is in the way. A small thing seen through a fan is not seen at all.)
+    if (wet) {
+      const seen = (qx: number, qy: number, qz: number) => { for (let i = 1; i < 8; i++) { const f = i / 8, ax = qx + (p.x - qx) * f, az = qz + (p.z - qz) * f, ay = qy + (p.y - qy) * f; if (floor(ax, az) > ay - 0.15) return false; } return true; };
+      if (!seen(x, y, z)) {
+        const d = Math.max(0.8, Math.hypot(x - p.x, z - p.z));
+        let found = false;
+        for (let k = 1; k <= 8 && !found; k++) {
+          const a = this.ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.7, ax = p.x + Math.cos(a) * d, az = p.z + Math.sin(a) * d;
+          const ay = Math.min(Math.max(y, floor(ax, az) + 1.0), -0.9);
+          if (seen(ax, ay, az)) { this.ang = a; x = ax; z = az; y = ay; found = true; if (style === 'wait') this.hold.set(ax, ay, az); }
+        }
+        if (!found) y = Math.min(y + 1.2, -0.9);
+      }
+    }
     sh.pos.set(x, y, z);
     const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
     if (sh.phase === 'approach' && (gap < 1.5 || (!sh.forced && this.t > 25) || this.t > 90)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }

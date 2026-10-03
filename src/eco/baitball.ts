@@ -8,6 +8,7 @@
 //   scatter — the ball breaks up; everyone leaves
 import * as THREE from 'three';
 import { fishGeometry, fishMaterial, SHAPES } from '../ocean/models';
+import { makeSchoolShade } from './schoolshade';
 import { splashAt, bubblesAt } from '../ocean/splash';
 import { U } from '../render/common';
 import { clamp, R, rr } from '../core/math';
@@ -32,7 +33,8 @@ export function makeBaitBall(oc: any, fraction: number) {
   const swim = new Float32Array(NBMAX * 3);
   for (let i = 0; i < NBMAX; i++) { swim[i * 3] = R() * 6.28; swim[i * 3 + 1] = rr(11, 15); swim[i * 3 + 2] = rr(0.85, 1.1); }
   bg.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
-  const bmesh = new THREE.InstancedMesh(bg, fishMaterial(bsp), NBMAX);
+  const bshade = makeSchoolShade(bg, NBMAX);
+  const bmesh = new THREE.InstancedMesh(bg, fishMaterial(bsp, true), NBMAX);
   bmesh.count = NB;
   bmesh.frustumCulled = false; bmesh.visible = false; bmesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   oc.group.add(bmesh);
@@ -209,6 +211,7 @@ export function makeBaitBall(oc: any, fraction: number) {
 
     // the bait: a ball milling round its centre, torn open around each attacker
     const w = 0.45;
+    bshade.begin();
     for (let i = 0; i < NB; i++) {
       if (dead[i]) { _m.makeScale(0, 0, 0); bmesh.setMatrixAt(i, _m); continue; }
       const th = ang[i] + st.t * w * (0.8 + rf[i] * 0.4), rad = st.r * rf[i] * Math.cos(phi[i]);
@@ -239,7 +242,9 @@ export function makeBaitBall(oc: any, fraction: number) {
       _q.set(nx + hx, ny + bv[i * 3 + 1] * 0.3, nz + hz); _a.set(nx, ny, nz);
       _m.lookAt(_q, _a, UP); _s.setScalar(bs[i]); _m.scale(_s); _m.setPosition(nx, ny, nz);
       bmesh.setMatrixAt(i, _m);
+      bshade.set(i, 0, nx, ny, nz);
     }
+    bshade.end();
     bmesh.instanceMatrix.needsUpdate = true;
     // the boil at the surface, seen from the air
     const boil = ph === 'frenzy' ? 1 : ph === 'herd' ? k * 0.4 : ph === 'scatter' ? 1 - k : 0;

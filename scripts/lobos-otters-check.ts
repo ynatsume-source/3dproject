@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { LOCATIONS } from '../src/data/locations';
 import { buildOcean } from '../src/ocean/build';
-import { swellAt } from '../src/ocean/air';
+import { swellAt, surfaceAt } from '../src/ocean/air';
 
 const oc = buildOcean(LOCATIONS.find(l => l.id === 'pointlobos')!);
 const ot = oc.lobosOtters; assert.ok(ot && ot.list.length === 3, 'three otters in the canopy');
@@ -21,7 +21,7 @@ for (let i = 0; i < 36000; i++) {
     seen[o.doing] = (seen[o.doing] || 0) + 1;
     const top = oc.T.top(o.pos.x, o.pos.z);
     minClear = Math.min(minClear, o.pos.y - top);
-    assert.ok(o.pos.y <= swellAt(o.pos.x, o.pos.z) + 1e-6, 'never above the water');
+    assert.ok(o.pos.y <= surfaceAt(o.pos.x, o.pos.z) + 1e-6, 'never above the (drawn) water');
     if (o.doing === 'dive') deepest = Math.min(deepest, o.pos.y - swellAt(o.pos.x, o.pos.z));
     maxStep = Math.max(maxStep, o.pos.distanceTo(last[j])); last[j].copy(o.pos);
     if (was[j] === 'dive' && o.doing !== 'dive') { dives++; if (o.doing === 'eat') afterDive++; }

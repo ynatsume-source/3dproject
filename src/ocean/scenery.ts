@@ -29,15 +29,18 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      g += d3 * cos(dot(d3, p) * 1.7 + t * 2.3) * 0.04;
      g += d4 * cos(dot(d4, p) * 3.1 + t * 3.1) * 0.025;
      g *= uWave;                                                       // today's sea state at the site
-     // raindrops: rings spreading on the surface overhead
-     if (uRain > 0.0) {
-       for (int k = 0; k < 2; k++) {
-         vec2 rp = p * (1.6 + float(k) * 1.1) + float(k) * 13.7, ci = floor(rp);
-         float h = hash2(ci + float(k) * 5.0), ph = fract(uTime * (0.9 + h * 0.6) + h * 17.0);
-         vec2 c = ci + vec2(hash2(ci + 3.1), hash2(ci + 7.7)) * 0.8 + 0.1, dv = rp - c; float d = length(dv);
-         float ring = sin((d - ph * 0.55) * 60.0) * exp(-pow((d - ph * 0.55) * 9.0, 2.0)) * (1.0 - ph);
-         g += dv / max(d, 1e-3) * ring * 0.22 * step(h, uRain);
+     // and over them the fine wind ripples, a hand's width to an arm's length, running every which way: a few
+     // short waves summed (not a hashed noise, whose cells a phone's GPU draws as a grid of glassy squares),
+     // faded with distance, where they would only shimmer
+     {
+       float fine = (0.45 + 0.55 * min(uWave, 1.5)) * smoothstep(70.0, 12.0, dist);
+       vec2 r = vec2(0.0);
+       for (int i = 0; i < 7; i++) {
+         float fi = float(i), a = fi * 2.399 + 0.7, lam = 0.55 + 0.27 * fi;   // (golden-angle directions; wavelengths 0.55-2.2 m)
+         vec2 dr = vec2(cos(a), sin(a)); float k = 6.2832 / lam;
+         r += dr * cos(dot(dr, p) * k - sqrt(9.81 * k) * 0.45 * t + fi * 1.7) * (0.016 + 0.006 * fi);
        }
+       g += r * fine;
      }
      vec3 n = normalize(vec3(-g.x, 1.0, -g.y));
      float cosT = clamp(dot(dir, n), 0.0, 1.0);
@@ -47,9 +50,13 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      vec3 sunAir = airDir(SUN), moonAir = airDir(uMoonDir);
      float sd = max(dot(refr, sunAir), 0.0);
      // (only the real sun makes a disc and a glow: at night SUN is the starlight's direction, a light with no source to see)
-     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 6.0) * 0.35) * uSunI * (1.0 - smoothstep(0.3, 0.7, uNight));
+     // (the disc, a tight bright halo that the ripples break into glints, and a soft wide one)
+     float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 30.0) * 0.55 * (1.0 - uCloud * 0.7) + pow(sd, 5.0) * 0.1) * uSunI * (1.0 - smoothstep(0.3, 0.7, uNight));
      float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI * (1.0 - uCloud * 0.9);
-     vec3 air = mix(uSkyLo, uSkyHi, cosT) * (1.0 - 0.35 * uCloud) + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9) + vec3(0.8, 0.85, 1.0) * uFlash * 2.5;
+     // (the sky through the window: its own blue, not blown out to white, darkening toward the window's rim)
+     // (seen from below, the middle of the window is the zenith, a deeper blue, and its rim the pale horizon)
+     vec3 zen = mix(uSkyHi * vec3(0.42, 0.68, 1.0), uSkyHi, uCloud * 0.8);
+     vec3 air = mix(uSkyLo * 0.8, zen, smoothstep(0.05, 0.85, refr.y)) * (1.0 - 0.35 * uCloud) * 0.7 + sunGlow * uTint + moonGlow * vec3(0.8, 0.85, 0.9) + vec3(0.8, 0.85, 1.0) * uFlash * 2.5;
      // stars, trembling with the surface
      vec2 sg = refr.xz / max(refr.y, 0.2) * 90.0; float star = step(0.994, hash2(floor(sg))) * smoothstep(0.35, 0.1, length(fract(sg) - 0.5));
      air += vec3(0.8, 0.88, 1.0) * star * uNight * (1.0 - smoothstep(0.3, 0.8, uCloud)) * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
@@ -196,9 +203,13 @@ export const grassMat = mat(
    void main(){
      vec2 base = uCamPos.xz + mod(aOff - uCamPos.xz + uTile * 0.5, uTile) - uTile * 0.5;
      vec2 td = terr(base);
-     float alive = step(aRnd.x, td.y) * (1.0 - smoothstep(uTile * 0.34, uTile * 0.5, length(base - uCamPos.xz)));
+     // A meadow spreads by its runners, so its shoots stand together: thick clumps a metre or two across with
+     // runs of bare sand between, not an even sprinkling (the same blades, gathered — not more of them)
+     float clump = smoothstep(0.38, 0.62, vn2(base * 0.55 + 17.0) * 0.7 + vn2(base * 1.7 - 5.0) * 0.3);
+     float dens = td.y * (0.08 + 2.0 * clump);
+     float alive = step(aRnd.x, dens) * (1.0 - smoothstep(uTile * 0.34, uTile * 0.5, length(base - uCamPos.xz)));
      float t = aV.y;
-     float h = aRnd.y * (0.55 + 0.6 * td.y) * alive;
+     float h = aRnd.y * (0.5 + 0.55 * td.y + 0.35 * clump) * alive;
      float w = aRnd.z * (1.0 - pow(t, 1.7)) * alive;
      float a = aRnd.w;
      vec3 wd = vec3(cos(a), 0.0, sin(a)), nb = vec3(-sin(a), 0.0, cos(a));

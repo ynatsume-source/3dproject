@@ -18,6 +18,7 @@ export interface Species {
   diet?: 'plankton' | 'algae' | 'invert' | 'fish' | 'filter';
   eye?: number;
   shine?: number;                                // how mirror-like its flanks are (1 = ordinary)
+  silver?: boolean;                              // flanks of living mirror (default: shine 2.5 and over)
   cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
   wreck?: boolean;                               // keeps to the wreck (glassfish in her shadows, anthias over her)
   rests?: 'cave';                                // lies still on the floor of the cave while inactive (whitetip reef shark)
@@ -39,6 +40,7 @@ export interface Sea {
   depth: string; vis: number; temp: number; seed: number;
   tz: number; tide: { amp: number; lag: number; axis: [number, number] };
   blurb: string;
+  charm?: string;   // what draws people to it, in a line (the card on the globe)
   water: { up: number[]; hor: number[]; down: number[]; fog: number; abs: number[] };
   sand: number[]; rock: number[];
   f(x: number, z: number): number;
@@ -56,6 +58,7 @@ export interface Sea {
   whales?: WhaleSeason;                    // humpbacks visit in these months
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
+  thicket?: number;   // how much of the shallow reef is staghorn thicket (0..1)
   anemones: number; clamSize: [number, number]; eels: number;
   species: Species[];
   animals: { turtle?: { style: string; count: number }; manta?: number; octopus?: number };
@@ -71,6 +74,7 @@ export const LOCATIONS: Sea[] = [
     id: 'gbr', swellHs: 1.3, name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
     lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, tempYear: [24, 29.5], seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
     blurb: '外洋に面したリボンリーフ。尾根と溝が交互に並ぶ「スパー・アンド・グルーブ」地形の斜面。',
+    charm: '世界最大のサンゴ礁。尾根と溝が交互に並ぶ地形と、そこに群れる魚の多さ',
     water: { up: [0.36, 0.72, 0.84], hor: [0.04, 0.33, 0.50], down: [0.01, 0.10, 0.20], fog: 0.026, abs: [0.26, 0.06, 0.04] },
     sand: [0.70, 0.67, 0.58], rock: [0.46, 0.43, 0.36],
     f(x, z) {
@@ -88,7 +92,7 @@ export const LOCATIONS: Sea[] = [
       TERR.reef = Math.max(zone * smooth(0.35, 0.8, sg), smooth(0.8, 0.95, s) * patch, b[1] * 0.9 * (1 - s));
       return Math.min(h, -2.8);
     },
-    corals: { branch: 0.30, table: 0.14, brain: 0.22, fan: 0.07, mushroom: 0.14, clam: 0.03 },
+    corals: { branch: 0.30, table: 0.14, brain: 0.22, fan: 0.07, mushroom: 0.14, clam: 0.03 }, thicket: 0.7,
     anemones: 34, clamSize: [0.6, 1.1], eels: 0,
     birds: [
       { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
@@ -96,7 +100,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'mizun', ja: 'ミズン', sci: 'Herklotsichthys quadrimaculatus', note: 'リーフの浅場で何千匹もの群れをつくるニシンの仲間。ふだんは広がって漂い、捕食者に囲まれると身を寄せ合って球のように固まる（ベイトボール）。',
-        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'slender', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'sardine', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
       predators: [{ id: 'rouninaji', n: 6 }, { id: 'onikamasu', n: 3 }, { id: 'blacktip', n: 2 }],
     },
     species: [
@@ -135,7 +139,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'akashumoku', ja: 'アカシュモクザメ', sci: 'Sphyrna lewini', note: 'ハンマー形の頭の両端に目がある。頭で電気や匂いを広く捉え、砂に隠れた獲物も探し当てる。昼は数十〜数百匹の群れで回遊し、夜に散らばって狩りをする。沖縄では冬に群れが現れる。',
         diel: 'always', diet: 'fish', pat: 8, c1: [0.45, 0.45, 0.43], c2: [0.9, 0.9, 0.88], c3: [0.3, 0.3, 0.3], shape: 'hammer', size: [2.2, 3.0], habitat: 'roam', count: 2, alt: [5, 12], speed: 1.0, big: true, eye: 0.01 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
-        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
+        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4, silver: true },
     ],
     animals: { turtle: { style: 'green', count: 3 } },
     extraGuide: [{ id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '海草や藻を食べる草食のウミガメ。体脂肪が緑がかることが名前の由来。' }, { id: 'tobiuo', ja: 'ハマトビウオの仲間', sci: 'Cheilopogon spp.', note: '外洋に面したリーフの外で、船やドローンが近づくと群れで水面から飛び出す。胸びれを翼のように広げて水面の1mほど上を滑空し、尾びれの下の長い葉で水面を叩いて何度も飛び直す。' }],
@@ -154,6 +158,7 @@ export const LOCATIONS: Sea[] = [
     id: 'miyako', swellHs: 0.7, name: '宮古島', site: '八重干瀬（やびじ）', region: 'Japan · Okinawa',
     lat: 25.0, lon: 125.25, depth: '3–15 m', vis: 40, temp: 28.4, tempYear: [21.5, 29.5], seed: 23, tz: 9, tide: { amp: 0.95, lag: 0.2, axis: [1, 0.35] },
     blurb: '宮古島の北に広がる国内最大級のサンゴ礁群。白砂の上にテーブルサンゴの根が点在する、宮古ブルーの浅瀬。',
+    charm: '宮古ブルーの澄んだ浅瀬と、どこまでも続くサンゴ。冬はザトウクジラも',
     water: { up: [0.24, 0.62, 1.0], hor: [0.0, 0.30, 0.76], down: [0.0, 0.08, 0.3], fog: 0.0135, abs: [0.24, 0.05, 0.022] },
     sand: [0.78, 0.77, 0.72], rock: [0.52, 0.50, 0.44],
     f(x, z) {
@@ -168,7 +173,7 @@ export const LOCATIONS: Sea[] = [
     grass(x, z) { return (1 - smooth(0.0, 0.4, TERR.reef)) * smooth(0.5, 0.62, fbm(x * 0.03 + 91, z * 0.03 - 40, 4)) * 0.7; },
     // Miyako and Irabu are known for their caves (魔王の宮殿, アントニオ・ガウディ): light pours through holes in the roof
     cave: { x: 45, z: 25, rot: 0.35 },
-    corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 },
+    corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 }, thicket: 0.9,
     anemones: 40, clamSize: [0.22, 0.38], eels: 14,
     birds: [
       { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
@@ -176,7 +181,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'mizun', ja: 'ミズン', sci: 'Herklotsichthys quadrimaculatus', note: 'リーフの浅場で何千匹もの群れをつくるニシンの仲間。ふだんは広がって漂い、捕食者に囲まれると身を寄せ合って球のように固まる（ベイトボール）。',
-        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'slender', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'sardine', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
       predators: [{ id: 'kasumiaji', n: 6 }, { id: 'onikamasu', n: 3 }, { id: 'blacktip', n: 2 }],
     },
     species: [
@@ -221,7 +226,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'akashumoku', ja: 'アカシュモクザメ', sci: 'Sphyrna lewini', note: 'ハンマー形の頭の両端に目がある。頭で電気や匂いを広く捉え、砂に隠れた獲物も探し当てる。昼は数十〜数百匹の群れで回遊し、夜に散らばって狩りをする。沖縄では冬に群れが現れる。',
         diel: 'always', diet: 'fish', pat: 8, c1: [0.45, 0.45, 0.43], c2: [0.9, 0.9, 0.88], c3: [0.3, 0.3, 0.3], shape: 'hammer', size: [2.2, 3.0], habitat: 'roam', count: 2, alt: [5, 12], speed: 1.0, big: true, eye: 0.01 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
-        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
+        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4, silver: true },
     ],
     animals: { turtle: { style: 'green', count: 3 }, octopus: 1, manta: 1 },
     // humpbacks come down from their northern feeding grounds to breed around Okinawa's islands
@@ -249,6 +254,7 @@ export const LOCATIONS: Sea[] = [
     id: 'maldives', swellHs: 0.8, name: 'モルディブ', site: '南アリ環礁のティラ', region: 'Maldives · South Ari Atoll',
     lat: 3.48, lon: 72.84, depth: '8–30 m', vis: 35, temp: 29.0, tempYear: [28, 30.2], seed: 37, tz: 5, tide: { amp: 0.5, lag: 0.1, axis: [-1, 0.2] },
     blurb: '環礁の中にそびえる海中の根「ティラ」。マンタのクリーニングステーションがあり、ジンベエザメが通年見られる海域。',
+    charm: 'マンタが舞うクリーニングステーションと、一年中会えるジンベエザメ',
     water: { up: [0.30, 0.68, 0.95], hor: [0.02, 0.26, 0.58], down: [0.0, 0.07, 0.25], fog: 0.019, abs: [0.25, 0.055, 0.025] },
     sand: [0.76, 0.75, 0.70], rock: [0.48, 0.44, 0.40],
     f(x, z) {
@@ -260,7 +266,7 @@ export const LOCATIONS: Sea[] = [
       TERR.reef = Math.max(t[1], b[1] * 0.8);
       return Math.min(h, -3);
     },
-    corals: { branch: 0.12, table: 0.18, brain: 0.22, fan: 0.2, mushroom: 0.22, clam: 0.02 },
+    corals: { branch: 0.12, table: 0.18, brain: 0.22, fan: 0.2, mushroom: 0.22, clam: 0.02 }, thicket: 0.35,
     anemones: 30, clamSize: [0.3, 0.5], eels: 12,
     birds: [
       { id: 'gunkandori', ja: 'オオグンカンドリ', sci: 'Fregata minor', note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。', kind: 'frigate', count: 3, span: 2.2, c1: [0.06, 0.06, 0.07], c2: [0.9, 0.9, 0.9], c3: [0.5, 0.5, 0.55], speed: 9, glide: 0.95, alt: [25, 70], rest: 0 },
@@ -268,7 +274,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'kibinago', ja: 'キビナゴ', sci: 'Spratelloides gracilis', note: '銀色の体に青く光る縦帯の小魚。環礁のまわりに大群で暮らし、モルディブの伝統的なカツオ一本釣りでは生き餌として撒かれる。',
-        diel: 'day', diet: 'plankton', pat: 5, c1: [0.84, 0.87, 0.88], c2: [0.3, 0.52, 0.95], bands: 3.4, shape: 'slender', size: [0.09, 0.12], habitat: 'shoal', speed: 1.2, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 5, c1: [0.84, 0.87, 0.88], c2: [0.3, 0.52, 0.95], bands: 3.4, shape: 'sardine', size: [0.09, 0.12], habitat: 'shoal', speed: 1.2, shine: 3.5 },
       predators: [{ id: 'isomaguro', n: 6 }, { id: 'rouninaji', n: 4 }, { id: 'blacktip', n: 2 }],
     },
     species: [
@@ -307,7 +313,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'itachizame', ja: 'イタチザメ', sci: 'Galeocerdo cuvier', note: '通称タイガーシャーク。体の縞模様は若いほど濃い。ウミガメの甲羅も噛み砕く歯を持ち、魚、海鳥、ウミヘビまで何でも食べる海の掃除屋。全長4mを超える。',
         diel: 'always', diet: 'fish', pat: 21, c1: [0.4, 0.4, 0.37], c2: [0.88, 0.88, 0.86], c3: [0.18, 0.18, 0.17], shape: 'tiger', size: [3.0, 4.2], habitat: 'roam', count: 1, alt: [2, 8], speed: 0.8, big: true, eye: 0.4 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
-        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
+        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4, silver: true },
     ],
     animals: { turtle: { style: 'hawksbill', count: 2 }, manta: 2 },
     extraGuide: [
@@ -331,6 +337,7 @@ export const LOCATIONS: Sea[] = [
     id: 'pacific', swellHs: 2.2, name: '北太平洋', site: '北太平洋のまんなか', region: 'North Pacific · Subtropical Gyre',
     lat: 32.0, lon: -145.0, depth: '水深 4,800 m', vis: 60, temp: 22.5, tempYear: [17.5, 24.5], seed: 53, tz: -10, tide: { amp: 0.3, lag: 0.6, axis: [0.8, 0.6] },
     blurb: 'いちばん近い陸地まで1,700km。海底は5km下。地球でいちばん澄んで、いちばん何もない青の真ん中を、ただ漂う。',
+    charm: '陸から1,700km。何もない青の真ん中に、ただ漂う静けさ',
     pelagic: true,
     water: { up: [0.2, 0.52, 0.98], hor: [0.0, 0.15, 0.5], down: [0.0, 0.02, 0.14], fog: 0.015, abs: [0.3, 0.06, 0.02] },
     sand: [0.5, 0.5, 0.5], rock: [0.4, 0.4, 0.4],
@@ -344,7 +351,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'muroaji', ja: 'ムロアジの幼魚', sci: 'Decapterus spp.', note: '外洋の表層を群れで漂う小さなアジの仲間。マグロやカツオ、シイラの大事な餌で、群れが追い上げられると水面が沸き立つ「ナブラ」が起きる。',
-        diel: 'day', diet: 'plankton', pat: 0, c1: [0.22, 0.34, 0.5], c2: [0.84, 0.86, 0.9], shape: 'slender', size: [0.1, 0.14], habitat: 'shoal', speed: 1.3, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.22, 0.34, 0.5], c2: [0.84, 0.86, 0.9], shape: 'sardine', size: [0.1, 0.14], habitat: 'shoal', speed: 1.3, shine: 3.5 },
       predators: [{ id: 'kihada', n: 12 }, { id: 'katsuo', n: 16 }, { id: 'shiira', n: 3 }, { id: 'yogore', n: 1 }],
     },
     species: [
@@ -389,6 +396,7 @@ export const LOCATIONS: Sea[] = [
     id: 'kayama', swellHs: 0.35, name: '嘉弥真島', site: '島の南西の浜とラグーン', region: 'Japan · Okinawa · Yaeyama',
     lat: 24.36107, lon: 123.99674, depth: '0–8 m', vis: 25, temp: 28.6, tempYear: [22, 30], seed: 57, tz: 9, tide: { amp: 0.8, lag: 0.25, axis: [0.8, 0.6] },
     blurb: '小浜島の北に浮かぶ、周囲2kmほどの無人島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
+    charm: 'ドット、カメマル、ランタン、ラッコが暮らす無人島。浜での毎日と、少しずつできていくもの',
     water: { up: [0.34, 0.80, 0.92], hor: [0.05, 0.40, 0.58], down: [0.02, 0.17, 0.28], fog: 0.026, abs: [0.26, 0.055, 0.03] },
     sand: [0.84, 0.82, 0.75], rock: [0.55, 0.52, 0.45],
     land: { half: HALF, far: 760, roam: 720, center: [320, -270] },
@@ -402,7 +410,7 @@ export const LOCATIONS: Sea[] = [
     },
     // a loop round the lagoon, clear of the beach
     path(s) { return [-25 + 100 * Math.sin(s * 0.9) + 14 * Math.sin(s * 2.3 + 1), 45 + 80 * Math.sin(s * 0.6 + 0.8) + 14 * Math.cos(s * 1.7)]; },
-    corals: { branch: 0.34, table: 0.16, brain: 0.3, fan: 0.0, mushroom: 0.14, clam: 0.06 },
+    corals: { branch: 0.34, table: 0.16, brain: 0.3, fan: 0.0, mushroom: 0.14, clam: 0.06 }, thicket: 0.8,
     anemones: 26, clamSize: [0.2, 0.34], eels: 0,
     birds: [
       { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に八重山の小島の岩場で子育てし、ラグーンの上を軽やかに飛んで小魚を捕る。', kind: 'tern', count: 12, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0 },
@@ -451,6 +459,7 @@ export const LOCATIONS: Sea[] = [
     id: 'redsea', swellHs: 0.9, name: '紅海', site: 'エルフィンストーン・リーフ', region: 'Egypt · Marsa Alam',
     lat: 25.31, lon: 34.86, depth: '4–40 m', vis: 40, temp: 26.0, tempYear: [22.5, 29.5], seed: 71, tz: 2, tide: { amp: 0.3, lag: 0.3, axis: [0, 1] },
     blurb: '砂漠に囲まれた細長い海の、沖にひとすじ伸びるサンゴの尾根。両側は深い青へ切れ落ち、壁をソフトコーラルが覆う。',
+    charm: 'ソフトコーラルに覆われた壁と、両側が深い青へ切れ落ちる尾根',
     water: { up: [0.25, 0.6, 0.98], hor: [0.01, 0.2, 0.6], down: [0.0, 0.05, 0.28], fog: 0.016, abs: [0.26, 0.055, 0.022] },
     sand: [0.82, 0.8, 0.74], rock: [0.52, 0.47, 0.41],
     f(x, z) {
@@ -471,7 +480,7 @@ export const LOCATIONS: Sea[] = [
       TERR.reef = Math.max(smooth(0.05, 0.4, wall) * 0.95, b[1] * 0.8);
       return Math.min(h, -3);
     },
-    corals: { branch: 0.14, table: 0.12, brain: 0.2, fan: 0.22, mushroom: 0.3, clam: 0.02 },
+    corals: { branch: 0.14, table: 0.12, brain: 0.2, fan: 0.22, mushroom: 0.3, clam: 0.02 }, thicket: 0.3,
     anemones: 20, clamSize: [0.25, 0.4], eels: 8,
     birds: [
       bird('katsuodori'),
@@ -524,6 +533,7 @@ export const LOCATIONS: Sea[] = [
     id: 'galapagos', swellHs: 1.4, name: 'ガラパゴス', site: 'ウルフ島の東', region: 'Ecuador · Galápagos · Wolf Island',
     lat: 1.382, lon: -91.806, depth: '8–35 m', vis: 18, temp: 23.5, tempYear: [21, 27], seed: 89, tz: -6, tide: { amp: 1.0, lag: 0.7, axis: [1, 0.3] },
     blurb: '赤道の下、冷たい湧昇流と暖かい海流がぶつかる火山の島。黒い溶岩の岩が転がる斜面の上を、シュモクザメの群れが流れていく。',
+    charm: 'シュモクザメの群れと、湧昇流が運ぶ命の濃さ',
     water: { up: [0.4, 0.72, 0.78], hor: [0.08, 0.36, 0.44], down: [0.03, 0.14, 0.2], fog: 0.027, abs: [0.26, 0.06, 0.055] },
     sand: [0.52, 0.5, 0.46], rock: [0.34, 0.32, 0.3],
     f(x, z) {
@@ -586,6 +596,7 @@ export const LOCATIONS: Sea[] = [
     id: 'carnatic', swellHs: 0.8, name: '紅海北部', site: 'アブ・ヌハス礁のカルナティック号', region: 'Egypt · Gulf of Suez · Abu Nuhas',
     lat: 27.5817, lon: 33.931, depth: '2–28 m', vis: 30, temp: 24.0, tempYear: [21.5, 28], seed: 97, tz: 2, tide: { amp: 0.4, lag: 0.35, axis: [1, 0.2] },
     blurb: '1869年、インドへ向かう途中にこの礁で沈んだ帆走汽船カルナティック号が、砂の斜面に横たわる。木の甲板は朽ちて鉄の肋骨だけが残り、その間を光の筋とグラスフィッシュの群れが流れる。',
+    charm: '150年前に沈んだ船と、その肋骨の間を流れる光と魚',
     water: { up: [0.27, 0.62, 0.95], hor: [0.02, 0.22, 0.52], down: [0.0, 0.06, 0.24], fog: 0.02, abs: [0.26, 0.055, 0.025] },
     sand: [0.86, 0.83, 0.76], rock: [0.52, 0.47, 0.41],
     f(x, z) {

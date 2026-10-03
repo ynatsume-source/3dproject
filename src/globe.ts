@@ -34,7 +34,7 @@ export const earthMat = new THREE.ShaderMaterial({
     uniform vec3 uGa; uniform vec3 uGb; uniform vec3 uMa; uniform vec3 uMb;
     varying vec3 vN; varying vec3 vWp;
     float seg(vec3 n, vec3 a, vec3 b, float w){ vec3 ab = b - a; float t = clamp(dot(n - a, ab) / dot(ab, ab), 0.0, 1.0); return exp(-pow(length(n - (a + ab * t)) / w, 2.0)); }
-    float h1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float h1(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }   // (no sin of a large number: rough on phones)
     void main(){
       vec3 n = normalize(vN);
       float lat = asin(clamp(n.y, -1.0, 1.0)), lon = atan(n.x, n.z);

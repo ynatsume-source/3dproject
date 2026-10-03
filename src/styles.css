@@ -593,7 +593,10 @@ body.dock-open #dock .opt { animation: softIn .55s ease both; }
 #quick #btnLamp[aria-pressed="true"] { color: var(--lamp); border-color: color-mix(in srgb, var(--lamp) 50%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--lamp) 35%, transparent); }
 #quick button span { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .06em; color: var(--ink);
   background: rgba(6, 22, 32, 0.55); padding: 4px 9px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
-#quick button:hover span, #quick button:focus-visible span { opacity: 1; }
+/* (the name on a hover — only where there is a pointer that hovers: on a phone a tap leaves the button "hovered",
+   and the name stayed up) */
+@media (hover: hover) { #quick button:hover span { opacity: 1; } }
+#quick button:focus-visible span { opacity: 1; }
 #quick #btnSky[aria-pressed="true"] .arrow { transform: rotate(180deg); transform-origin: 12px 7px; }
 #quick #btnSound[aria-pressed="false"] .waves { opacity: 0.25; }
 @media (max-width: 760px) { #quick { right: 10px; top: calc(176px + env(safe-area-inset-top, 0px)); gap: 8px; } #quick button { width: 36px; height: 36px; } #quick button svg { width: 17px; height: 17px; } }
@@ -651,7 +654,7 @@ body.hud-off #sharedBadge { display: none; }
 #btnReplay.armed .ring i { animation: replayPulse 0.9s ease-in-out infinite; }
 @keyframes replayPulse { 50% { transform: scale(0.6); } }
 @media (max-width: 560px) { #btnReplay.armed .lbl { display: inline; } }
-@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } }
+@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } #btnReplay .sec:empty { display: none; } }
 
 /* a first sighting: a faint ring round the animal itself, its name beside it; a tap goes to watch it */
 #newMark { position: fixed; left: 0; top: 0; z-index: 5; --r: 30px; padding: 0; border: 0; background: none; color: #e8f6f6; cursor: pointer;
@@ -666,3 +669,75 @@ body.hud-off #sharedBadge { display: none; }
 #newMark b { font: 500 9px/1.2 'IBM Plex Mono', monospace; letter-spacing: .2em; color: rgba(170, 235, 225, 0.85); }
 #newMark em { font-style: normal; font-size: 14px; letter-spacing: .08em; }
 body.hud-off #newMark { display: none; }
+
+/* ---------- a phone on its side, or any short window: everything within reach of the screen's height ---------- */
+/* (the time panel and the menu never taller than the room above the bar — the panel's limit is set with its
+   place, in main.ts — their own contents scroll, with their head, the way back to real time and the category
+   tabs, kept in view at the top. Heights here leave out padding and border: 28 px for the menu.) */
+#timePanel { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+#timePanel .tp-head { position: sticky; top: -14px; z-index: 1; margin: -14px -16px 0; padding: 12px 16px 8px; background: rgba(4, 22, 30, 0.96); border-radius: 12px 12px 0 0; }
+#menu { --mpt: 12px; padding-top: var(--mpt); max-height: calc(100dvh - 64px - 8px - 28px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+#menu .cats { position: sticky; top: calc(-1 * var(--mpt)); z-index: 1; background: rgba(8, 30, 40, 0.97); }
+@media (max-width: 760px) {
+  #menu { max-height: calc(100dvh - 58px - 8px - 28px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px)); }
+}
+@media (max-height: 520px) {
+  /* a smaller map, and the quick buttons tighter, just under it */
+  #minimap { width: 96px; height: 96px; border-radius: 20px; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
+  #quick { top: calc(114px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); gap: 6px; }
+  #quick button { width: 34px; height: 34px; } #quick button svg { width: 16px; height: 16px; }
+  /* the up/down buttons of manual flight beside the quick column, not under it */
+  #vbtns { right: calc(62px + env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  #joy { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  #dock { bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  #menu { --mpt: 8px; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 52px - 6px - 24px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px)); }
+  #menu section { margin-top: 8px; } #menu .rows button { padding: 9px 12px; }
+  #guide { top: calc(10px + env(safe-area-inset-top, 0px)); bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* the field guide open takes the right-hand side: the quick buttons step aside (and are no target under it) */
+body:has(#guide:not([hidden])) #quick { display: none; }
+
+/* さかのぼって保存, asking for the second tap: on a narrow bar the question floats above the button instead of
+   widening it (which pushed the bar's ends off the screen) */
+#btnReplay { position: relative; }
+@media (max-width: 560px) {
+  #btnReplay.armed .lbl { display: block; position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); white-space: nowrap;
+    padding: 6px 11px; border-radius: 999px; background: rgba(60, 20, 22, 0.88); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.6) inset; color: #ffe8e4; font-size: 11.5px; pointer-events: none; }
+}
+/* (two quick taps on a button are two taps, never a double-tap zoom: the save confirmation relies on it) */
+#dock button, #quick button, #menu button, #timePanel button, #guide button, #reveal { touch-action: manipulation; }
+
+/* the caption on a phone: smaller, and its note kept to three lines */
+@media (max-width: 560px) {
+  #caption { left: 12px; width: min(300px, calc(100vw - 24px)); padding: 8px 11px 9px; border-radius: 12px; }
+  #caption .k { font-size: 9px; margin-bottom: 4px; }
+  #caption .t b { font-size: 13px; } #caption .t i { font-size: 9.5px; }
+  #caption .s { font-size: 10.5px; margin-top: 3px; }
+  #caption .n { font-size: 10.5px; line-height: 1.6; margin-top: 5px; padding-top: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  #caption .n:empty { display: none; }
+}
+
+/* the globe's cards: a line on what draws people to each sea; the residents' island apart, in warmer light */
+.loc .ch { font-size: 12.5px; line-height: 1.6; color: var(--accent); letter-spacing: .04em; }
+#locList .isle-head { margin: 10px 2px -2px; font-size: 11px; letter-spacing: .24em; color: rgba(255, 217, 143, 0.8); display: flex; align-items: center; gap: 10px; }
+#locList .isle-head::after { content: ''; flex: 1; height: 1px; background: rgba(255, 217, 143, 0.25); }
+.loc.isle { background: linear-gradient(160deg, rgba(48, 36, 18, 0.62), rgba(14, 30, 34, 0.62)); border-color: rgba(255, 217, 143, 0.28); }
+.loc.isle:hover, .loc.isle.hot { border-color: rgba(255, 217, 143, 0.6); background: linear-gradient(160deg, rgba(64, 46, 22, 0.72), rgba(18, 40, 44, 0.72)); }
+.loc.isle .ch, .loc.isle .go { color: var(--lamp); }
+.loc.isle .chips span { border-color: rgba(255, 217, 143, 0.3); background: rgba(255, 217, 143, 0.07); }
+@media (max-width: 760px) { .loc .ch { font-size: 12px; } }
+.pin.isle i { border-color: var(--lamp); background: rgba(255, 217, 143, 0.25); box-shadow: 0 0 12px var(--lamp); }
+.pin.isle span { border-color: rgba(255, 217, 143, 0.3); }
+
+/* a shared view's badge is a control: it takes the click (the HUD around it lets clicks through to the sea) */
+#sharedBadge, #sharedBadge button { pointer-events: auto; }
+
+.pin.flip { flex-direction: row-reverse; }
+/* the guide on a large screen: a little larger and more open to read, still leaving the sea its room */
+@media (min-width: 1600px) and (min-height: 860px) {
+  #guide { width: 360px; padding: 16px 18px; }
+  #guide li b { font-size: 14px; } #guide li em { font-size: 11px; }
+  #guide li p { font-size: 12.5px; line-height: 1.75; }
+  #guide h2 { font-size: 16px; }
+}
