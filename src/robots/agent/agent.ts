@@ -5,11 +5,11 @@
 // same world, never stuck waiting.
 import { MINDS } from './config';
 import { checkThought } from './brain';
-import type { ActionResult, Brain, BrainInput, Goal, Knowledge, Observation, Option, Outcome, Thought } from './types';
+import type { ActionResult, Brain, BrainInput, Goal, Knowledge, Observation, Option, Outcome, Request, Thought } from './types';
 
 export interface Habit { (options: Option[], a: Agent): { text: string; why: string; plan: string[] } | null }
 
-const FAIL: Outcome[] = ['gone', 'no way', 'blocked', 'nowhere to stand', 'unavailable', 'timeout'];
+const FAIL: Outcome[] = ['gone', 'no way', 'blocked', 'nowhere to stand', 'unavailable', 'timeout', 'refused'];
 
 export class Agent {
   goal: Goal | null = null;
@@ -40,6 +40,22 @@ export class Agent {
   /** Something new has come into view while it was busy: worth stopping for. */
   get struck() { return this.why.includes('はじめて'); }
   forget(id: string) { this.seen.delete(id); }
+  /** Something another told it: kept as heard (not as seen), from whom — and a reason to think. */
+  hear(o: Observation, from: string, text: string, now: number) {
+    const mine = this.seen.get(o.id);
+    if (!mine || mine.at < o.at) this.seen.set(o.id, { ...o, from });
+    this.knowledge.push({ id: this.id('k'), text, source: 'heard', at: now });
+    this.out.diary.push(`聞いた：${text}`);
+    this.why ||= `話を聞いた：${text}`;
+  }
+  /** Asked for something: a reason to think whether to (it is its own to decide). */
+  asked(q: Request, fromName: string) { this.out.diary.push(`${fromName}に頼まれた：流木を届けてほしい`); this.why = `頼まれごと：${fromName}から（${q.id}）`; }
+  /** The answer to something it asked, as a result of its own. */
+  answered(q: Request, now: number, byName: string) {
+    const r = this.result(`ask:${q.to}:${q.what}`, 'ask', q.status === 'refused' ? 'refused' : 'accepted', now, `${byName}${q.status === 'refused' ? 'に断られた' : 'が引き受けた'}${q.reason ? `：${q.reason}` : ''}`);
+    if (q.status !== 'refused') this.why ||= `${byName}が引き受けてくれた`;
+    return r;
+  }
 
   /** The next step to take (an option id), or 'ponder' (stopping a moment to think), or null (nothing it means
    *  to do: the body's own habits carry on). */

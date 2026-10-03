@@ -2,12 +2,12 @@
 // what it knows and how it knows it, and what it is setting out to do.
 
 /** Something it saw: by its id in the world, where, how far, and when (its own eyes: robots/residents.ts observe). */
-export interface Observation { id: string; kind: string; label: string; x: number; z: number; dist: number; at: number }
+export interface Observation { id: string; kind: string; label: string; x: number; z: number; dist: number; at: number; from?: string }   // (from: told by that one, not seen with its own eyes)
 
 /** Something it can do now, offered by the world (an id it may choose; never coordinates of its own). */
 export interface Option { id: string; action: string; label: string; targetId?: string; ready?: boolean; needs?: string }   // (ready false: a step it may plan for, possible once `needs` holds)
 
-export type Outcome = 'done' | 'gone' | 'no way' | 'blocked' | 'nowhere to stand' | 'interrupted' | 'timeout' | 'unavailable';
+export type Outcome = 'done' | 'gone' | 'no way' | 'blocked' | 'nowhere to stand' | 'interrupted' | 'timeout' | 'unavailable' | 'accepted' | 'refused';
 /** What came of doing it, as the world judged it. */
 export interface ActionResult { eventId: string; optionId: string; action: string; targetId?: string; outcome: Outcome; at: number; detail?: string }
 
@@ -34,3 +34,6 @@ export interface BrainInput {
   knowledge: Knowledge[]; results: ActionResult[]; options: Option[];
 }
 export type Brain = (input: BrainInput, tier: 'deep' | 'light') => Promise<Thought | null>;
+
+/** One asking another for something (ADR 0004 §6): kept by the world, answered by the one asked, in its own way. */
+export interface Request { id: string; from: string; to: string; what: 'bring-wood'; at: number; status: 'open' | 'accepted' | 'refused' | 'done' | 'failed'; reason?: string }

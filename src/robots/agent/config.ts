@@ -16,7 +16,7 @@ export const MINDS: Record<string, MindSettings> = {
   // Dot, the protagonist: the most thinking, for planning, the unknown and its failures
   dot: { on: true, deep: { model: 'claude-opus-5-5', dailyCap: 200, maxTokens: 900 }, light: { model: 'claude-haiku-4-5-20251001', dailyCap: 400, maxTokens: 600 }, minGapS: 20, ponderMaxS: 12 },
   // (the other three: step 2 and 3 of ADR 0004 — their own loops, lighter thinking)
-  rakko: { on: false, deep: null, light: { model: 'claude-haiku-4-5-20251001', dailyCap: 100, maxTokens: 500 }, minGapS: 60, ponderMaxS: 8 },
+  rakko: { on: true, deep: null, light: { model: 'claude-haiku-4-5-20251001', dailyCap: 100, maxTokens: 500 }, minGapS: 60, ponderMaxS: 8 },
   kame: { on: false, deep: null, light: { model: 'claude-haiku-4-5-20251001', dailyCap: 100, maxTokens: 500 }, minGapS: 60, ponderMaxS: 8 },
   lantern: { on: false, deep: null, light: { model: 'claude-haiku-4-5-20251001', dailyCap: 100, maxTokens: 500 }, minGapS: 60, ponderMaxS: 8 },
 };
