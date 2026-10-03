@@ -347,13 +347,17 @@ function updateDrone(dt: number, now: number) {
   // stuck: filming something (not riding a tour through), well short of the spot and hardly moving
   // for ten seconds — blocked by rock on the way. Give it up and go on.
   if (shot && !shot.subject.tour && drone.vel.length() < 0.2 && drone.pos.distanceTo(shot.pos) > 2.5) { if ((stuckT += dt) > 10) { director.abandon(); stuckT = 0; } } else stuckT = 0;
-  if (watch.r && watch.pov && cur!.residents) {
-    // through its own eyes: where its eyes are, looking where it looks (a drag glances aside)
-    const sn = cur!.residents.sense(watch.r);
-    drone.pos.copy(sn.eye); drone.vel.set(0, 0, 0);
-    const wantYaw = sn.head + Math.PI, wantPitch = watch.r.act === 'sit' ? -0.18 : watch.r.act === 'pick' || watch.r.act === 'dig' ? -0.45 : watch.r.act === 'float' ? 0.25 : -0.1;
-    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 3);
-    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 2);
+  // Through its own eyes: the camera is where the model's eyes are and looks the way its head faces (its turn,
+  // nod and gaze), and nothing the cruising camera does to keep itself clear of the ground, the treetops or the
+  // waterline, nor its bob and sway, is laid on top (a drag still glances aside: the viewer's, not its own).
+  const povOn = !!(watch.r && watch.pov && cur!.residents);
+  if (povOn && watch.r) {
+    const sn = cur!.residents!.sense(watch.r);
+    drone.pos.copy(sn.eye); drone.vel.set(0, 0, 0); povEye.copy(sn.eye);
+    const wantYaw = sn.look ? Math.atan2(-sn.look.x, -sn.look.z) : sn.head + Math.PI;
+    const wantPitch = sn.look ? Math.asin(clamp(sn.look.y, -1, 1)) : watch.r.act === 'sit' ? -0.18 : watch.r.act === 'pick' || watch.r.act === 'dig' ? -0.45 : watch.r.act === 'float' ? 0.25 : -0.1;
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 5);
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 5);
   } else if (watch.r) {
     // behind it and a little above, a little to one side, following where it is heading (slowly, so a
     // turn does not swing the view about), looking past it to what lies ahead: it, and its world
@@ -561,7 +565,7 @@ function updateDrone(dt: number, now: number) {
     if (k < 1) { drone.vel.x *= k; drone.vel.z *= k; }
   }
   drone.pos.addScaledVector(drone.vel, dt);
-  if (drone.mode === 'manual' || watch.r) cur!.shore?.push?.(drone.pos);   // (round the trunks)
+  if ((drone.mode === 'manual' || watch.r) && !povOn) cur!.shore?.push?.(drone.pos);   // (round the trunks)
   // watching from above: never down inside the forest roof
   // (except close by it, where the trees are opened up anyway: there it may come down to eye level)
   // (once down under the trees with it, it stays down among the trunks rather than being lifted back over the roof)
@@ -577,13 +581,13 @@ function updateDrone(dt: number, now: number) {
   let fh = Gc(drone.pos.x, drone.pos.z);
   for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, Gc(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
   const clear = watch.r && !watch.pov ? 0.4 : 0.75;   // (watching someone close up: down nearer their eye level)
-  if (drone.pos.y < fh + clear) {
+  if (!povOn && drone.pos.y < fh + clear) {
     drone.pos.y = Math.max(fh + 0.3, drone.pos.y + (fh + clear - drone.pos.y) * Math.min(1, dt * 6));
     if (drone.vel.y < 0) drone.vel.y *= 0.5;
   }
   // the cave massif is solid in 3D: slide along its walls, roof and the rims of its skylights
   const cave = cur!.cave;
-  if (cave) for (let it = 0; it < 2; it++) {
+  if (cave && !povOn) for (let it = 0; it < 2; it++) {
     const d = cave.sd(drone.pos.x, drone.pos.y, drone.pos.z);
     if (d >= 0.8) break;
     cave.grad(drone.pos.x, drone.pos.y, drone.pos.z, _w);
@@ -597,8 +601,9 @@ function updateDrone(dt: number, now: number) {
   const prevY = drone.pos.y - drone.vel.y * dt;
   // filming from the waterline (a leap out of the sea): once near the surface, ride it, half in and half out,
   // for as long as the shot lasts; afterwards on down into the sea (or up, if it came down from the sky)
-  if (drone.mode === 'auto' && shot?.surface && Math.abs(drone.pos.y) < 1.2) { drone.skim = Math.max(drone.skim, 0.6); drone.skimDir = drone.sky ? 1 : -1; }
-  if (drone.mode === 'manual') {
+  if (!povOn && drone.mode === 'auto' && shot?.surface && Math.abs(drone.pos.y) < 1.2) { drone.skim = Math.max(drone.skim, 0.6); drone.skimDir = drone.sky ? 1 : -1; }
+  if (povOn) { drone.skim = 0; drone.pass = 0; drone.pos.copy(povEye); }   // (its eyes are where they are: above, below or at the waterline)
+  else if (drone.mode === 'manual') {
     // flown by hand it may stop anywhere, the waterline included (half in the sea, half in the air)
     if ((prevY > 0) !== (drone.pos.y > 0)) crossSurface(drone.pos.y > 0);
     drone.skim = 0; drone.pass = 0;
@@ -628,9 +633,9 @@ function updateDrone(dt: number, now: number) {
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
   drone.roll += ((watch.r ? 0 : clamp(-yawRate * 0.18, -0.25 + 0.19 * flyK, 0.25 - 0.19 * flyK)) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
-  camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04 * (drone.skim > 0 && lastShot?.surface ? 0.2 : 1);
+  camera.position.copy(drone.pos); if (!povOn) camera.position.y += Math.sin(t * 0.8) * 0.04 * (drone.skim > 0 && lastShot?.surface ? 0.2 : 1);
   // just above the sea the camera rides the swell, rising, falling and rolling with it
-  const ride = (drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0) * (1 - 0.75 * flyK);
+  const ride = povOn ? 0 : (drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0) * (1 - 0.75 * flyK);
   // (at the waterline it rides a little behind the swell, so the line between sea and air rises and falls across the view)
   const atLine = drone.skim > 0 || (drone.mode === 'manual' && Math.abs(drone.pos.y) < 0.6) ? 1 : 0;
   // (waiting for a leap: right on the swell and a hair above it, so the far sea and the sky over it fill most of the frame)
@@ -658,7 +663,8 @@ function updateDrone(dt: number, now: number) {
   const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK + 14 * narrowK) * (1 - leapWideK) + 104 * leapWideK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (1 - flyK) * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
-  camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
+  const sway = povOn ? 0 : 1;   // (through its eyes: its own head's movement only, no camera sway on top)
+  camera.rotation.set(shake + drone.pitch + look.pitch + sway * Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + sway * Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
   applyView(dt, t);
 }
 // The view: through the drone's own camera, or from a little behind it, with the drone in the picture —
@@ -838,7 +844,8 @@ function wantLamp() {
 }
 // The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
 // dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.
-let moonVeil = 0, moonVeilAt = -1, shoreT = 0;   // (how much cloud is in front of the moon, eased; at first, at once)
+let moonVeil = 0, moonVeilAt = -1, shoreT = 0;
+const povEye = new THREE.Vector3();   // (through a resident's eyes: where they are this frame)   // (how much cloud is in front of the moon, eased; at first, at once)
 function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uSunDir.value.set(...s.sunDir);
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
@@ -2557,6 +2564,8 @@ function frameBody(ts: number) {
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
     // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
     cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos);
+    // (through its eyes: the camera on where they are now that the model has been posed for this frame)
+    if (watch.r && watch.pov && cur.residents) { const sn = cur.residents.sense(watch.r); camera.position.copy(sn.eye); povEye.copy(sn.eye); }
     lanternStudyPanel.update(dt);
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; if (!watch.pov) renderWatch(); }
     if (watch.pov && watch.r && cur.residents) {
@@ -2783,7 +2792,7 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });

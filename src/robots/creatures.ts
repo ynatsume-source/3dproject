@@ -89,6 +89,7 @@ export function creatureKit(M: CMats, shadows = false) {
     const chin = ell(0.04, 0.02, 0.05, M.furPale, 16); chin.position.set(0, -0.004, 0.05); jaw.add(chin);
     const ek = L.eye ?? 1;
     const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.046 * (0.9 + 0.1 * ek), 0.04, 0.143); head.add(e); if (L.shine) glint(e); return e; });
+    const eye = new THREE.Object3D(); eye.position.set(0, 0.04, 0.15); head.add(eye);
     head.scale.setScalar(L.head ?? 1); torso.scale.x *= L.plump ?? 1; torso.scale.y *= L.plump ?? 1;
     if (L.cheeks) for (const sx of [-1, 1]) { const b = ell(0.022, 0.014, 0.006, M.blush ?? M.furPale, 12); b.position.set(sx * 0.062, 0.0, 0.135); b.rotation.y = sx * 0.7; head.add(b); }
     if (L.tuft) for (let k = 0; k < 3; k++) { const c = own(new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.05, 8), M.furPale)); c.position.set((k - 1) * 0.014, 0.1, 0.07 + k * 0.006); c.rotation.set(-0.5 + k * 0.15, 0, (k - 1) * -0.5); head.add(c); }
@@ -129,7 +130,7 @@ export function creatureKit(M: CMats, shadows = false) {
     let backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, pitch = 0, roll = 0, tilt = 0;
     const keepStone = !!L.stone;
     const gaze = makeGaze(1.0, 0.5, 0.6);
-    return { root, hand, update(t, dt, p = DEMO) {
+    return { root, hand, eye, update(t, dt, p = DEMO) {
       const act = p.act, wet = !!p.wet, k = p.k ?? 0, walk = act === 'demo' ? 0 : Math.min(1, p.walk);
       const gw5 = gaitPhase(p, t, 0.44, 5);   // (its waddle ashore)
       gaze.step(p, dt, 0.4);
@@ -532,11 +533,12 @@ export function creatureKit(M: CMats, shadows = false) {
       if (face !== 'kame') for (const sx of [-1, 1]) { const br = ell(0.045, 0.014, 0.02, C.brow, 14); br.position.set(sx * 0.085, 0.06, 0.112); br.rotation.set(0, sx * 0.6, sx * 0.12); head.add(br); }
       for (const sx of [-1, 1]) { const b = ell(0.03, 0.03, 0.008, red, 16); b.position.set(sx * 0.115, -0.04, 0.09); b.rotation.y = sx * 0.85; head.add(b); }
     }
+    const eye = new THREE.Object3D(); eye.position.set(0, 0.015, 0.12); head.add(eye);   // (between its eyes)
     const fronts = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.28, 0.0, 0.22); body.add(f); const bl = cell(0.15, 0.035, 0.075, skin); bl.position.set(sx * 0.11, 0, -0.02); bl.rotation.y = sx * 0.35; f.add(bl); return { f, sx }; });
     const backs = [-1, 1].map((sx) => { const f = new THREE.Group(); f.position.set(sx * 0.18, -0.01, -0.36); body.add(f); const bl = cell(0.075, 0.03, 0.06, skin); bl.position.set(sx * 0.05, 0, -0.03); bl.rotation.y = -sx * 0.5; f.add(bl); return { f, sx }; });
     let swimK = 0, landK = 1, grazeK = 0, sleepK = 0, baskK = 0, upK = 0, blink = 3, bottomK = 0, topT = 0, restK = 0;
     const gaze = makeGaze(0.9, 0.4, 0.6, 2.5);   // (slow to turn its head)
-    return { root, update(t, dt, p = DEMO) {
+    return { root, eye, update(t, dt, p = DEMO) {
       const act = p.act, wet = !!p.wet, walk = act === 'demo' ? 0.5 : Math.min(1, p.walk);
       const g14 = gaitPhase(p, t, 1.0, 1.4);   // (the heave of its flippers ashore)
       gaze.step(p, dt, 0.2);

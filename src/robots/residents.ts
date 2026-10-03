@@ -148,7 +148,9 @@ interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: n
 interface Line { who: string; text: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; conv: number }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
-export interface Sense { eye: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number }
+// eye / look: where its eyes are and which way its head faces, from the model as it is drawn (its turn, nod and
+// gaze included) — what its own point of view is taken from
+export interface Sense { eye: THREE.Vector3; look?: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number }
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
 export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean; key?: string; with?: string }   // (a line someone said, or the heading of a conversation)
 export interface Resident {
@@ -192,6 +194,7 @@ export interface Residents {
   setStudyWeather(cloud: number | null, source: StudyWorld['cloudSource']): void;
 }
 
+const camAt = new THREE.Vector3(1e9, 0, 1e9);   // (where the camera was at the last update: models are posed only near it)
 const pair = (a: string, b: string) => (a < b ? a + '|' + b : b + '|' + a);
 // what their words sound like: each has its own few syllables, strung together as long as the sentence
 const SYLL: Record<string, string[]> = {
@@ -1243,6 +1246,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
       if (r.id === 'kame' && r.wet && r.act === 'swim') eye.y = r.pos.y + 0.2;   // (swimming under the water, looking through it)
       if (r.wet && r.pos.y < -0.3) eye.y = r.pos.y + 0.15;   // (down on the bottom)
+      // (the model's own eyes, where it has one and is drawn near: its head's turn, nod and the gaze it is giving)
+      let look: THREE.Vector3 | undefined;
+      const en = r.model.eye;
+      if (en && Math.hypot(r.pos.x - camAt.x, r.pos.z - camAt.z) < 160) {
+        en.updateWorldMatrix(true, false);
+        en.getWorldPosition(eye);
+        look = new THREE.Vector3(0, 0, 1).transformDirection(en.matrixWorld);
+      }
       const marks: Mark[] = [], near = (x: number, z: number, d: number) => Math.hypot(x - r.pos.x, z - r.pos.z) < d;
       const tk = r.task, tgt = tk && tk.data;
       const NAME: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
@@ -1264,10 +1275,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (drift.kind >= 0 && !list.some((o) => o.holding === 'drift') && near(drift.x, drift.z, 60)) marks.push({ x: drift.x, y: L.h(drift.x, drift.z) + 0.2, z: drift.z, kind: 'drift', label: '？ 見慣れないもの', hot: tk?.kind === 'find' });
       let target: Mark | null = marks.find((m) => m.hot) ?? null;
       if (!target && tk && !tk.arrived) target = { x: tk.x, y: L.h(tk.x, tk.z) + 0.2, z: tk.z, kind: 'goal', label: '目的地', hot: true };
-      return { eye, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food };
+      return { eye, look, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food };
     },
     gibber,
     update(dt, ms, cam) {
+      camAt.set(cam.x, cam.y, cam.z);
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
       items.tick(dt); tickDrift(dt);
       for (const r of list) step(r, dt, false);
