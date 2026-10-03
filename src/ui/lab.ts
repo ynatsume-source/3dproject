@@ -146,7 +146,7 @@ export function mountLab(api: LabApi) {
 
     // the device
     pn.append(h('画質・状態'));
-    pn.append(row(...(['low', 'medium', 'high'] as Tier[]).map((t) => b({ low: '軽量', medium: '標準', high: '高画質' }[t], `画質: ${t}`, () => api.setTier(t)))));
+    pn.append(row(...(['low', 'lite', 'medium', 'high', 'ultra'] as Tier[]).map((t) => b({ low: '最軽量', lite: 'バランス', medium: '標準', high: '高画質', ultra: '最高' }[t], `画質: ${t}`, () => api.setTier(t)))));
     const stEl = document.createElement('pre'); stEl.className = 'st'; pn.append(stEl);
     pn.append(h('再現'));
     const copy = b('再現情報をコピー', 'コピー', () => { copyRepro(); });
