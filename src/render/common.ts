@@ -39,6 +39,9 @@ export const U = {
   uSeaWorld: { value: 260 },   // how far the modelled seabed reaches (beyond it, seen from the air, the reef drops into the blue)
   uVolOff: { value: 0 },   // 1 when the volumetric light pass is off (light tier): fogIt stands in for its glow
   uSwell: { value: 0.4 },
+  // how much of the swell reaches each place (src/ocean/water.ts): a texture over x, z ∈ [box.x, box.x + box.z] (z likewise
+  // from box.y); box.w 0: everywhere all of it
+  uSeaK: { value: new THREE.DataTexture(new Uint8Array([255]), 1, 1, THREE.RedFormat) }, uSeaKBox: { value: new THREE.Vector4(0, 0, 1, 0) },
   uFoam: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },   // foam fields left by leaps: x, z, radius, freshness (1 → 0)
   uBoil: { value: new THREE.Vector4(0, 0, 1, 0) },   // a bait ball churning the surface: x, z, radius, strength  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },

@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { oceanScene } from './scenery';
+import type { Water } from './water';
 
 // A disc of rings, dense near the camera and stretching to the horizon (huge two-triangle planes clip
 // badly), lying flat at y = 0 and following the camera.
@@ -30,6 +31,13 @@ const DISC = discGeo(0.5, 70000, 170, 192);
 // Mirrored in swellAt() so the camera can ride it. swell() returns (height, dh/dx, dh/dz).
 const SW: [number, number, number][] = [[140, 0.55, 0], [118, 0.45, 0.12], [72, 0.35, 0.5], [47, 0.22, -0.6], [31, 0.14, 0.9], [21, 0.08, -0.3]];
 export const SWELL = /* glsl */ `
+uniform sampler2D uSeaK; uniform vec4 uSeaKBox;
+float seaK(vec2 p){   // how much of the sea's swell reaches here: none into a pool, a little into a lagoon (src/ocean/water.ts)
+  if (uSeaKBox.w < 0.5) return 1.0;
+  vec2 uv = (p - uSeaKBox.xy) / uSeaKBox.z;
+  if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 1.0;
+  return texture2D(uSeaK, uv).r;
+}
 const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
 const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
 const float SW_D[6] = float[](${SW.map((w) => w[2].toFixed(2)).join(', ')});
@@ -39,23 +47,29 @@ float swPh(int i, vec2 p, float t, out vec2 d, out float k){
   return dot(d, p) * k - sqrt(9.81 * k) * t + float(i) * 2.1;
 }
 vec3 swell(vec2 p, float t, float dist){
-  vec3 s = vec3(0.0); vec2 d; float k;
+  vec3 s = vec3(0.0); vec2 d; float k; float K = seaK(p);
   for (int i = 0; i < 6; i++) {
-    float ph = swPh(i, p, t, d, k), A = SW_A[i] * uSwell * (1.0 - smoothstep(SW_L[i] * 6.0, SW_L[i] * 16.0, dist));
+    float ph = swPh(i, p, t, d, k), A = SW_A[i] * uSwell * K * (1.0 - smoothstep(SW_L[i] * 6.0, SW_L[i] * 16.0, dist));
     s += vec3(A * cos(ph), -A * k * sin(ph) * d);
   }
   return s;
 }
 vec2 swellShift(vec2 p, float t, float dist){
-  vec2 s = vec2(0.0), d; float k;
+  vec2 s = vec2(0.0), d; float k; float K = seaK(p);
   for (int i = 0; i < 6; i++) {
-    float ph = swPh(i, p, t, d, k), A = SW_A[i] * uSwell * (1.0 - smoothstep(SW_L[i] * 6.0, SW_L[i] * 16.0, dist));
+    float ph = swPh(i, p, t, d, k), A = SW_A[i] * uSwell * K * (1.0 - smoothstep(SW_L[i] * 6.0, SW_L[i] * 16.0, dist));
     s -= d * A * sin(ph) * 0.9;
   }
   return s;
 }`;
+// (the CPU's copy of seaK: set for the sea the camera is in, useWater)
+let seaK: (x: number, z: number) => number = () => 1;
+export function useWater(w: Water | null) {
+  seaK = w?.tex ? (x, z) => w.swellK(x, z) : () => 1;
+  if (w?.tex) { U.uSeaK.value = w.tex; U.uSeaKBox.value.set(w.x0, w.z0, w.size, 1); } else U.uSeaKBox.value.w = 0;
+}
 export function swellAt(x: number, z: number): number {
-  const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value;
+  const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value * seaK(x, z);
   let h = 0;
   SW.forEach(([lam, A, da], i) => {
     const a = Math.atan2(cu.y, cu.x) + 0.6 + da, k = 2 * Math.PI / lam;
@@ -67,7 +81,7 @@ export function swellAt(x: number, z: number): number {
 // The height of the drawn surface right above (x, z): the drawn waves also lean to and fro (swellShift), so the
 // water over a point came from a little way off; that point is found once, which is close enough.
 export function surfaceAt(x: number, z: number): number {
-  const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value;
+  const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value * seaK(x, z);
   let sx = 0, sz = 0;
   SW.forEach(([lam, A, da], i) => {
     const a = Math.atan2(cu.y, cu.x) + 0.6 + da, k = 2 * Math.PI / lam, dx = Math.cos(a), dz = Math.sin(a);

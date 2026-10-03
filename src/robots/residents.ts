@@ -532,7 +532,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // The two animals: what their bodies ask for comes first. Rakko dives for its food when it is hungry
   // (by night too, if it is very hungry) and sleeps on its back; Kamemaru grazes the seagrass, sleeps on
   // the bottom by night, and hauls out to bask on a warm afternoon.
-  const water = (lo: number, hi: number) => (x: number, z: number, h: number) => h < -lo && h > -hi;
+  // (water of that depth, and the sea or a lagoon: not a pool or a hollow cut off from it — src/ocean/water.ts)
+  const water = (lo: number, hi: number) => (x: number, z: number, h: number) => h < -lo && h > -hi && (!T.water || ((k: string) => k === 'sea' || k === 'lagoon')(T.water(x, z)));
   function forage(at: [number, number] | null): Task | null {
     const q = Math.random(), prey: Food = Math.random() < 0.28 ? '' : q < 0.42 ? 'urchin' : q < 0.68 ? 'crab' : 'clam';   // (what it will come up with, if anything)
     return task('forage', at, 'dive', rr(35, 75), { wet: true, data: prey });

@@ -11,7 +11,7 @@ import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
-import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss } from './ocean/air';
+import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss, useWater } from './ocean/air';
 import { SplitView, SPLIT_BAND } from './render/split';
 const split = new SplitView(), _sz = new THREE.Vector2();
 let airState = false;
@@ -1626,6 +1626,7 @@ function enterOcean(oc: Ocean) {
   dayKey = '';
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
+  useWater(oc.water ?? null);   // (the swell where the sea reaches, not in the pools: src/ocean/water.ts)
   applyWater(oc.loc);
   wx = FAIR; refreshWeather(oc.loc);
   setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)

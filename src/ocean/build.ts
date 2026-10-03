@@ -27,6 +27,7 @@ import { Cave } from './cave';
 import { Wreck, wreckMaterial } from './wreck';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
+import { classifyWater } from './water';
 import { makeResidents } from '../robots/residents';
 
 /* ================= building a sea ================= */
@@ -176,6 +177,7 @@ export function buildOcean(loc) {
   T.cave = cave;
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
+  oc.water = classifyWater(loc.f, loc.land ? loc.land.far : 0);   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
   // a wreck on the sand: solid to everything that swims (its outline into the obstacle map)
   const wreck = loc.wreck ? new Wreck(loc.wreck, loc.f) : null;
   if (wreck) {
@@ -388,6 +390,7 @@ export function buildOcean(loc) {
   if (land) oc.shore = buildShore(loc, group, T, obst);
   if (loc.residents) {
     const lanternStudy = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lantern-study');
+    T.water = oc.water.at;   // (where the residents may go into the water: the sea, not a pool cut off from it)
     oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja), { lanternStudy });
     group.add(oc.residents.group);
   }
