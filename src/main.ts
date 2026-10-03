@@ -285,7 +285,7 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
     if (drone.mode === 'auto') $('tMode').textContent = 'AUTO CRUISE';   // (back to the cruise, in the sea or the sky as before: a shot ashore does not send us up)
   }
 }
-const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0 };
+const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0, look: 0 };   // (vert.look: the right-hand stick, -1 down to 1 up)
 const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3();
 let yawRate = 0, interestW = 0;
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
@@ -535,8 +535,14 @@ function updateDrone(dt: number, now: number) {
     // a drag — always wins, and for a moment after it.)
     const ahead = smooth(0.15, 0.6, f) * (now - dragAt > 1200 ? 1 : 0);
     drone.yaw -= clamp(r, -1, 1) * ahead * 0.6 * dt;   // (about 34°/s at full push: a calm bank)
+    // backing off with a push to the side: the view swings a little the other way, as a car's nose does when it
+    // reverses round a corner
+    const back = smooth(0.15, 0.6, -f) * (now - dragAt > 1200 ? 1 : 0);
+    drone.yaw += clamp(r, -1, 1) * back * 0.3 * dt;
+    // the right-hand stick: the view up or down (up to ~46°/s)
+    if (vert.look) drone.pitch = clamp(drone.pitch + vert.look * Math.abs(vert.look) * 0.8 * dt, -1.25, 1.25);
     if (u) drone.pitch += (clamp(u, -1, 1) * 0.35 - drone.pitch) * Math.min(1, dt * 0.8 * ahead * Math.min(1, Math.abs(u)));
-    const side = r * (1 - 0.85 * ahead);
+    const side = r * (1 - 0.85 * ahead - 0.4 * back);
     const cp = Math.cos(drone.pitch), sy = Math.sin(drone.yaw), cy = Math.cos(drone.yaw);
     _v.set(-sy * cp * f + cy * side, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * side);
     if (_v.lengthSq() > 1) _v.normalize();
@@ -1900,7 +1906,7 @@ function setMode(m: 'auto' | 'manual') {
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
   hint(m === 'auto'
     ? (isTouch ? 'ドラッグで見回す · 気になる生きものをタップするとそこへ向かいます' : 'ドラッグで見回す · 気になる生きものをクリックするとそこへ向かいます')
-    : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 気になるものをタップするとそこへ · 90秒操作がないと自動巡航に戻ります'
+    : (isTouch ? '左スティックで移動 · 右で視点を上下 · 気になるものをタップするとそこへ · 90秒操作がないと自動巡航に戻ります'
       : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · クリックでそこへ · 90秒操作がないと自動巡航に戻ります'));
 }
 function modeUi() { const man = drone.mode === 'manual' || visit; $('btnMode').setAttribute('aria-pressed', String(man)); $('btnMode').querySelector('span')!.textContent = man ? '自動巡航に戻る' : '手動で操縦'; $('joy').hidden = $('vbtns').hidden = !(isTouch && man); }
@@ -2019,7 +2025,7 @@ function tapAt(x: number, y: number) {
   if (!s) return;
   // (flown by hand: stay with it, circling slowly, for as long as the hand leaves the controls alone)
   if (byHand) s = { ...s, hold: 1e6 };
-  focusOn(s); if (byHand) { visit = true; modeUi(); hint(isTouch ? 'スティックか上昇・下降に触れると手動操縦に戻ります' : 'WASD などで手動操縦に戻ります'); }
+  focusOn(s); if (byHand) { visit = true; modeUi(); hint(isTouch ? 'スティックに触れると手動操縦に戻ります' : 'WASD などで手動操縦に戻ります'); }
   track('tap_subject', { sea: cur?.loc.id ?? '', subject: place ? 'place' : s.key.split(':')[0] });
   showToast('向かっています', s.label, s.status());
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
@@ -2430,11 +2436,17 @@ canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !wa
   pad.addEventListener('pointermove', (e) => { if (e.pointerId === jid) setJ(e); });
   const end = (e: PointerEvent) => { if (e.pointerId !== jid) return; jid = null; joy.x = joy.y = 0; knob.style.transform = ''; };
   pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
-  const hold = (btn: HTMLElement, v: number) => {
-    btn.addEventListener('pointerdown', (e) => { btn.setPointerCapture(e.pointerId); vert.v = v; touchInput(); });
-    const up = () => { vert.v = 0; }; btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
+  // the right hand: up and down only — the view tips up or down, faster the further it is pushed
+  const vp = $('vbtns'), vk = $('vknob'); let vid: number | null = null;
+  const setV = (e: PointerEvent) => {
+    const r = vp.getBoundingClientRect(), H = r.height / 2 - 22;
+    const y = clamp((e.clientY - r.top - r.height / 2) / H, -1, 1);
+    vert.look = -y; vk.style.transform = `translateY(${y * H}px)`; touchInput();
   };
-  hold($('btnUp'), 1); hold($('btnDown'), -1);
+  vp.addEventListener('pointerdown', (e) => { vid = e.pointerId; vp.setPointerCapture(vid); setV(e); });
+  vp.addEventListener('pointermove', (e) => { if (e.pointerId === vid) setV(e); });
+  const vend = (e: PointerEvent) => { if (e.pointerId !== vid) return; vid = null; vert.look = 0; vk.style.transform = ''; };
+  vp.addEventListener('pointerup', vend); vp.addEventListener('pointercancel', vend);
 }
 let idleT = 0;
 const wake = () => { idleT = performance.now(); document.body.classList.remove('idle'); };

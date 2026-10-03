@@ -165,8 +165,13 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
 #joy { left: calc(24px + env(safe-area-inset-left, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: 116px; height: 116px; border-radius: 50%;
   border: 1px solid var(--line); background: rgba(5, 29, 37, 0.28); pointer-events: auto; touch-action: none; }
 #joy i { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: var(--glass-hi); border: 1px solid var(--line); }
-#vbtns { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 10px; }
-#vbtns button { pointer-events: auto; touch-action: none; width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); color: var(--ink); font: 500 11px/1.2 var(--f-body); }
+/* the right hand: a stick that moves only up and down, tipping the view up or down (look up and fly on to climb) */
+#vbtns { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: 54px; height: 116px; border-radius: 27px;
+  border: 1px solid var(--line); background: rgba(5, 29, 37, 0.28); pointer-events: auto; touch-action: none; }
+#vbtns i { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--glass-hi); border: 1px solid var(--line); }
+#vbtns .ar { position: absolute; left: 50%; width: 0; height: 0; margin-left: -5px; border: 5px solid transparent; opacity: 0.55; }
+#vbtns .ar.up { top: 7px; border-bottom-color: var(--ink); border-top-width: 0; }
+#vbtns .ar.dn { bottom: 7px; border-top-color: var(--ink); border-bottom-width: 0; }
 
 #veil { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding-inline: 24px; opacity: 0; pointer-events: none; transition: opacity .7s ease;
   background: radial-gradient(ellipse at 50% 40%, #0c5566 0%, #06303d 45%, #021319 100%); }
