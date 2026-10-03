@@ -558,6 +558,8 @@ for (const k of Object.keys(KIND_ID)) {
 /* ---------- fish ---------- */
 export const SHAPES = {
   slender: { h: 0.34, w: 0.18, tail: 'fork', dorsal: 0.12, anal: 0.08 },
+  // the small silver schooling fish (herring, sprat, scad): a slim spindle with a pointed snout, a low dorsal
+  sardine: { h: 0.26, w: 0.15, tail: 'fork', dorsal: 0.06, anal: 0.035, pointy: true },
   clown: { h: 0.44, w: 0.22, tail: 'round', dorsal: 0.12, anal: 0.1 },
   oval: { h: 0.56, w: 0.16, tail: 'fork', dorsal: 0.08, anal: 0.07 },
   disc: { h: 0.74, w: 0.12, tail: 'trunc', dorsal: 0.08, anal: 0.06 },
@@ -857,31 +859,54 @@ export function fishGeometry(sh, low = false) {
   g.setAttribute('aFin', new THREE.Float32BufferAttribute(fin, 1));
   return g;
 }
-export function fishMaterial(sp) {
+// shade: the mesh carries aShade, how much sun and open water reaches each fish (see eco/schoolshade)
+export function fishMaterial(sp, shade = false) {
   const c = (a) => new THREE.Color(a[0], a[1], a[2]);
   return mat(
     `attribute vec3 aSwim; attribute float aFin; attribute float aBend; uniform float uWig;
-     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear;
+     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
+     #ifdef SHADE
+     attribute vec2 aShade;
+     #endif
      void main(){
        vec3 p = position;
        // turning: the body curves into a C, head and tail both swung toward the inside of the turn
        p.x += aBend * (p.z - 0.05) * (p.z - 0.05) * 1.6;
        float back = clamp((0.25 - p.z) / 1.0, 0.0, 1.0);
+       // (how steeply the body is bent here, so the light follows the flex: dx/dz of the turn and the swimming wave)
+       float flex = aBend * (p.z - 0.05) * 3.2;
        #if PAT == 20
          // the sunfish sculls: dorsal and anal fins sweep together from side to side, the clavus steers
          float scull = sin(uTime * aSwim.y * 0.3 + aSwim.x);
          if (aFin > 1.5 && aFin < 2.5) p.x += scull * max(abs(p.y) - 0.28, 0.0) * 0.9;
          if (aFin > 0.5 && aFin < 1.5) p.x += scull * 0.02 * (-p.z - 0.33) * 8.0;
        #else
-       p.x += (sin(uTime * aSwim.y - p.z * 4.5 + aSwim.x) * 0.17 * back * back + sin(uTime * aSwim.y + aSwim.x) * 0.02) * uWig;
+       float wave = uTime * aSwim.y - p.z * 4.5 + aSwim.x;
+       p.x += (sin(wave) * 0.17 * back * back + sin(uTime * aSwim.y + aSwim.x) * 0.02) * uWig;
+       flex += (-4.5 * cos(wave) * back * back - 2.0 * sin(wave) * back * step(-0.75, p.z)) * 0.17 * uWig;
+       #endif
+       // a surface pushed sideways by x += f(z) tilts its normal by -f'(z) along the body
+       vec3 nl = vec3(normal.x, normal.y, normal.z - flex * normal.x), side = vec3(1.0, 0.0, -flex);
+       #ifdef SILVER
+       // no two fish in a school hold quite the same roll, and each rocks a little as it swims: enough for
+       // one flank to catch the light while its neighbour's stays dark
+       float roll = (fract(aSwim.x * 3.17) - 0.5) * 0.5 + sin(uTime * (0.5 + 0.3 * fract(aSwim.x * 1.7)) + aSwim.x * 5.0) * 0.12;
+       mat2 rr = mat2(cos(roll), sin(roll), -sin(roll), cos(roll));
+       nl.xy = rr * nl.xy; side.xy = rr * side.xy;
        #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
-       vWp = wp.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
+       mat3 toW = mat3(modelMatrix) * mat3(instanceMatrix);
+       vWp = wp.xyz; vN = normalize(toW * nl); vSide = normalize(toW * side);
        vL = position; vFin = aFin; vTint = aSwim.z; vWear = aSwim.x;
+       #ifdef SHADE
+       vShade = aShade;
+       #else
+       vShade = vec2(1.0);
+       #endif
        gl_Position = projectionMatrix * viewMatrix * wp;
      }`,
     `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye; uniform float uShine; uniform float uWear;
-     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear;
+     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
        if (dot(n, V) < 0.0) n = -n;
@@ -1087,6 +1112,18 @@ export function fishMaterial(sp) {
          if (vFin > 0.5) alb = mix(uC1, uC2, 0.5);
        #endif
        alb *= vTint;
+       #ifdef SILVER
+       float mir = 0.0;
+       if (vFin < 0.5) {
+         // a silver fish: a dark back of pigment over flanks that are mirrors, the line between them sharp
+         float dark = smoothstep(0.035, 0.085, y + 0.02 * z);
+         alb = mix(alb, uC1 * vec3(0.42, 0.5, 0.55), dark * 0.85);
+         // a faint sheen of blue-green just below the back, and the rim of the gill cover
+         alb += uC1 * 0.25 * exp(-pow((y - 0.025 - 0.02 * z) / 0.014, 2.0)) * (1.0 - dark);
+         alb *= 1.0 - 0.3 * exp(-pow((z - 0.27 - 2.2 * y * y) / 0.012, 2.0)) * step(0.02, abs(vL.x));
+         mir = (1.0 - dark) * (0.82 + 0.18 * smoothstep(0.0, -0.1, y));
+       }
+       #endif
        // a lived-in skin on the big ones: fine grain, uneven mottling, old pale scars (bites, coral, lines)
        // and a few darker bruises; different on every individual
        vec3 nW = n;
@@ -1117,14 +1154,43 @@ export function fishMaterial(sp) {
        float eye = (1.0 - smoothstep(0.022 * uEye, 0.034 * uEye, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        alb = mix(alb, vec3(0.02), eye);
        #endif
-       float spec = pow(max(dot(reflect(-SUN, nW), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine * (1.0 - 0.6 * uWear);   // silvery fish flash as they turn (a worn hide less)
-       float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb;
-       vec3 col = absorb(alb * (lightAt(n, caveLight(vWp)) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
-       col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb;
+       // in a school, the fish above take the sun from the ones below, and those in the thick of it see
+       // less of the open water around them (vShade: sun, sky reaching this one; 1 for a fish on its own)
+       vec2 cl = caveLight(vWp) * vShade;
+       float spec = pow(max(dot(reflect(-SUN, nW), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine * (1.0 - 0.6 * uWear) * vShade.x;   // silvery fish flash as they turn (a worn hide less)
+       float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb * vShade.y;
+       vec3 col;
+       #ifdef SILVER
+       // The mirrors in a fish's skin stand upright whatever the curve of the body under them, so a flank
+       // shows the water beside it like a pane of glass: the blue around it from the side (which is how a
+       // school hides), the bright surface or a flash of the sun when it tips, the dark below when it rolls
+       // the other way. Each fish holds its own roll, so the school glitters fish by fish.
+       vec3 nm = normalize(mix(nW, vSide * sign(dot(vSide, nW) + 1e-4), 0.6 * step(0.02, abs(vL.x))));
+       vec3 Rv = reflect(-V, nm);
+       float sd = max(dot(Rv, SUN), 0.0);
+       vec3 env = waterCol(Rv) * 1.2 * vShade.y + uTint * uSunI * (pow(sd, 90.0) * 5.0 + pow(sd, 10.0) * 0.45) * vShade.x * caveLight(vWp).x;
+       // (tipped up, a flank holds the bright window of sky overhead: the white flash that runs through a school)
+       env += absorb(uTint * (0.3 + 0.7 * uSunI) + uUp * 0.35, vWp.y) * smoothstep(0.45, 0.85, Rv.y) * vShade.x * caveLight(vWp).y;
+       // (guanine plates are faintly iridescent: pink to green-blue with the angle)
+       float ndv = max(dot(nm, V), 0.0);
+       env *= mix(vec3(1.0), 1.0 + 0.4 * cos(6.2832 * (ndv * 0.9 + vec3(0.0, 0.33, 0.67))), 0.14);
+       // (a real mirror of plates is not perfect: it greys the blue a little, and the brightest band runs
+       // along the middle of the flank)
+       env = mix(env, vec3(dot(env, vec3(0.3, 0.5, 0.2))), 0.35) * (1.0 + 0.45 * exp(-pow((y + 0.005 - 0.03 * z) / 0.035, 2.0)));
+       col = absorb(alb * (lightAt(n, cl) + uTint * uAmb * 0.1) * 1.3 * (1.0 - 0.45 * mir) + (fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y) + env * mir * 0.9;
+       // (thin fins: mostly the water seen through them, glowing a little with the light behind)
+       if (vFin > 0.5) col = mix(hazeCol(-V), col, 0.4) + absorb(alb * uTint, vWp.y) * uSunI * 0.25 * pow(max(dot(-V, SUN), 0.0), 3.0) * vShade.x;
+       #else
+       col = absorb(alb * (lightAt(n, cl) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
+       #endif
+       col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb * vShade.x;
        col += lamp(alb, vWp, n) * 1.2;
+       #ifdef SILVER
+       col += lamp(vec3(1.0), vWp, nm) * mir * pow(max(dot(nm, normalize(uLampPos - vWp)), 0.0), 6.0) * 0.8;   // (the lamp, caught in the mirror)
+       #endif
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.big ? 1 : 0 } },
+    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}) }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.big ? 1 : 0 } },
       opts: { side: THREE.DoubleSide } });
 }
 

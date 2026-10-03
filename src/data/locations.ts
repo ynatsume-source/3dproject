@@ -18,6 +18,7 @@ export interface Species {
   diet?: 'plankton' | 'algae' | 'invert' | 'fish' | 'filter';
   eye?: number;
   shine?: number;                                // how mirror-like its flanks are (1 = ordinary)
+  silver?: boolean;                              // flanks of living mirror (default: shine 2.5 and over)
   cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
   wreck?: boolean;                               // keeps to the wreck (glassfish in her shadows, anthias over her)
   rests?: 'cave';                                // lies still on the floor of the cave while inactive (whitetip reef shark)
@@ -99,7 +100,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'mizun', ja: 'ミズン', sci: 'Herklotsichthys quadrimaculatus', note: 'リーフの浅場で何千匹もの群れをつくるニシンの仲間。ふだんは広がって漂い、捕食者に囲まれると身を寄せ合って球のように固まる（ベイトボール）。',
-        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'slender', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'sardine', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
       predators: [{ id: 'rouninaji', n: 6 }, { id: 'onikamasu', n: 3 }, { id: 'blacktip', n: 2 }],
     },
     species: [
@@ -138,7 +139,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'akashumoku', ja: 'アカシュモクザメ', sci: 'Sphyrna lewini', note: 'ハンマー形の頭の両端に目がある。頭で電気や匂いを広く捉え、砂に隠れた獲物も探し当てる。昼は数十〜数百匹の群れで回遊し、夜に散らばって狩りをする。沖縄では冬に群れが現れる。',
         diel: 'always', diet: 'fish', pat: 8, c1: [0.45, 0.45, 0.43], c2: [0.9, 0.9, 0.88], c3: [0.3, 0.3, 0.3], shape: 'hammer', size: [2.2, 3.0], habitat: 'roam', count: 2, alt: [5, 12], speed: 1.0, big: true, eye: 0.01 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
-        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
+        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4, silver: true },
     ],
     animals: { turtle: { style: 'green', count: 3 } },
     extraGuide: [{ id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '海草や藻を食べる草食のウミガメ。体脂肪が緑がかることが名前の由来。' }, { id: 'tobiuo', ja: 'ハマトビウオの仲間', sci: 'Cheilopogon spp.', note: '外洋に面したリーフの外で、船やドローンが近づくと群れで水面から飛び出す。胸びれを翼のように広げて水面の1mほど上を滑空し、尾びれの下の長い葉で水面を叩いて何度も飛び直す。' }],
@@ -180,7 +181,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'mizun', ja: 'ミズン', sci: 'Herklotsichthys quadrimaculatus', note: 'リーフの浅場で何千匹もの群れをつくるニシンの仲間。ふだんは広がって漂い、捕食者に囲まれると身を寄せ合って球のように固まる（ベイトボール）。',
-        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'slender', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.3, 0.52, 0.58], c2: [0.86, 0.89, 0.9], shape: 'sardine', size: [0.11, 0.15], habitat: 'shoal', speed: 1.2, shine: 3.5 },
       predators: [{ id: 'kasumiaji', n: 6 }, { id: 'onikamasu', n: 3 }, { id: 'blacktip', n: 2 }],
     },
     species: [
@@ -225,7 +226,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'akashumoku', ja: 'アカシュモクザメ', sci: 'Sphyrna lewini', note: 'ハンマー形の頭の両端に目がある。頭で電気や匂いを広く捉え、砂に隠れた獲物も探し当てる。昼は数十〜数百匹の群れで回遊し、夜に散らばって狩りをする。沖縄では冬に群れが現れる。',
         diel: 'always', diet: 'fish', pat: 8, c1: [0.45, 0.45, 0.43], c2: [0.9, 0.9, 0.88], c3: [0.3, 0.3, 0.3], shape: 'hammer', size: [2.2, 3.0], habitat: 'roam', count: 2, alt: [5, 12], speed: 1.0, big: true, eye: 0.01 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
-        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
+        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4, silver: true },
     ],
     animals: { turtle: { style: 'green', count: 3 }, octopus: 1, manta: 1 },
     // humpbacks come down from their northern feeding grounds to breed around Okinawa's islands
@@ -273,7 +274,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'kibinago', ja: 'キビナゴ', sci: 'Spratelloides gracilis', note: '銀色の体に青く光る縦帯の小魚。環礁のまわりに大群で暮らし、モルディブの伝統的なカツオ一本釣りでは生き餌として撒かれる。',
-        diel: 'day', diet: 'plankton', pat: 5, c1: [0.84, 0.87, 0.88], c2: [0.3, 0.52, 0.95], bands: 3.4, shape: 'slender', size: [0.09, 0.12], habitat: 'shoal', speed: 1.2, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 5, c1: [0.84, 0.87, 0.88], c2: [0.3, 0.52, 0.95], bands: 3.4, shape: 'sardine', size: [0.09, 0.12], habitat: 'shoal', speed: 1.2, shine: 3.5 },
       predators: [{ id: 'isomaguro', n: 6 }, { id: 'rouninaji', n: 4 }, { id: 'blacktip', n: 2 }],
     },
     species: [
@@ -312,7 +313,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'itachizame', ja: 'イタチザメ', sci: 'Galeocerdo cuvier', note: '通称タイガーシャーク。体の縞模様は若いほど濃い。ウミガメの甲羅も噛み砕く歯を持ち、魚、海鳥、ウミヘビまで何でも食べる海の掃除屋。全長4mを超える。',
         diel: 'always', diet: 'fish', pat: 21, c1: [0.4, 0.4, 0.37], c2: [0.88, 0.88, 0.86], c3: [0.18, 0.18, 0.17], shape: 'tiger', size: [3.0, 4.2], habitat: 'roam', count: 1, alt: [2, 8], speed: 0.8, big: true, eye: 0.4 },
       { id: 'gingameaji', ja: 'ギンガメアジ', sci: 'Caranx sexfasciatus', note: '大きな目の銀色のアジ。昼は数百匹が渦を巻くように群れ（トルネード）、夜になると散らばって小魚を狩る。',
-        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4 },
+        diel: 'night', diet: 'fish', pat: 11, c1: [0.6, 0.64, 0.66], c2: [0.86, 0.88, 0.88], c3: [0.2, 0.22, 0.24], shape: 'jack', size: [0.5, 0.75], habitat: 'shoal', schools: 1, n: 110, alt: [4, 10], speed: 1.2, freq: [5, 7], eye: 1.4, silver: true },
     ],
     animals: { turtle: { style: 'hawksbill', count: 2 }, manta: 2 },
     extraGuide: [
@@ -350,7 +351,7 @@ export const LOCATIONS: Sea[] = [
     ],
     bait: {
       sp: { id: 'muroaji', ja: 'ムロアジの幼魚', sci: 'Decapterus spp.', note: '外洋の表層を群れで漂う小さなアジの仲間。マグロやカツオ、シイラの大事な餌で、群れが追い上げられると水面が沸き立つ「ナブラ」が起きる。',
-        diel: 'day', diet: 'plankton', pat: 0, c1: [0.22, 0.34, 0.5], c2: [0.84, 0.86, 0.9], shape: 'slender', size: [0.1, 0.14], habitat: 'shoal', speed: 1.3, shine: 3.5 },
+        diel: 'day', diet: 'plankton', pat: 0, c1: [0.22, 0.34, 0.5], c2: [0.84, 0.86, 0.9], shape: 'sardine', size: [0.1, 0.14], habitat: 'shoal', speed: 1.3, shine: 3.5 },
       predators: [{ id: 'kihada', n: 12 }, { id: 'katsuo', n: 16 }, { id: 'shiira', n: 3 }, { id: 'yogore', n: 1 }],
     },
     species: [
