@@ -109,7 +109,7 @@ export class Post {
         float a = vn(q * 0.11 + vec2(uTime * 0.035, uTime * 0.015));
         float b = mix(0.5, vn(q * 0.43 - vec2(uTime * 0.03, -uTime * 0.05)), smoothstep(0.35, 0.9, lod));
         float s = a * 0.65 + b * 0.35;
-        float sharp = pow(smoothstep(mix(0.42, 0.56, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;
+        float sharp = pow(smoothstep(mix(0.42, 0.62, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;   // (at sunset fewer, sharper shafts, dark water between)
         return mix(0.24 * (1.0 - 0.4 * uGolden), sharp, lod);
       }
       void main(){
@@ -128,7 +128,7 @@ export class Post {
           vec3 p = uCamPos + dir * t;
           float wet = step(p.y, -0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
           vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
-          float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 2.4) + 0.1 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
+          float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 1.0) + 0.1 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
           vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
           acc += light * down * back * stepLen * caveLight(p).x * wet;   // rock shadows the water behind it; skylights let beams through
@@ -136,9 +136,12 @@ export class Post {
         float mu = dot(dir, uSunDir);
         // (at night the moon is not a second sun: the water it lights glows far less, and only close round
         // the moon itself — a small bright patch overhead, the rest of the water dark)
-        float g = mix(0.72, 0.95, uNight);
+        float g = mix(0.72, 0.95, uNight) + 0.16 * uGolden;   // (the low sun too: its glow close round it, not over half the view)
         float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) * 0.08;
-        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength * mix(1.0, 0.05, uNight);
+        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength * mix(1.0, 0.05, uNight) * (1.0 - 0.7 * uGolden);
+        // (and it never piles up into white: looking into the low sun, 95 m of lit water would add up past
+        // anything else on screen — eased off as it grows, its colour kept)
+        col = col / (1.0 + max(max(col.r, col.g), col.b) * (1.2 + 2.5 * uGolden));   // (most of all into the low sun: a deep sunset, not a dazzle)
         gl_FragColor = vec4(col, min(-vp.z, 95.0) * 0.01);   // (alpha: how far off what this ray met, in view depth — for the depth-aware enlarging below)
       }`,
   });

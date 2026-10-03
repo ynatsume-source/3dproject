@@ -192,7 +192,7 @@ vec3 hazeCol(vec3 dir){
   float mu = max(dot(dir, SUN), 0.0);
   // (uGlowK: how much of a light there is to see in the sky, to glow toward — the sun, or a moon not behind cloud;
   // starlight on a moonless night lights the sea softly from everywhere, with no bright patch toward anything)
-  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, mix(5.0, 700.0, uNight)) * uGlowK + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlashW * 2.0);
+  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, mix(mix(5.0, 24.0, uGolden), 700.0, uNight)) * uGlowK + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlashW * 2.0);
   // without the volumetric pass (light tier), its glow still has to be there: sunlight scattered forward
   // out of the water toward the eye, strongest toward the sun and at golden hour, when it carries the colour
   if (uVolOff > 0.5 && uCamPos.y < 0.0) {
