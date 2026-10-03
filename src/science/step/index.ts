@@ -7,6 +7,7 @@ import { simpleFixtureStep, SIMPLE_FIXTURE_PROCESSES } from './simple';
 import { calcineStep, CALCINE_PROCESS, hydrateStep, HYDRATE_PROCESS } from './lime';
 import { firingStep, FIRING_PROCESS } from './firing';
 import { soakStep, SOAK_PROCESS } from './soak';
+import { woodFireStep, WOOD_FIRE_PROCESS } from './wood-fire';
 
 const PROCESSES: Record<string, ScienceStep> = {
   [DRYING_PROCESS.processId]: dryingStep,
@@ -15,6 +16,7 @@ const PROCESSES: Record<string, ScienceStep> = {
   [HYDRATE_PROCESS.processId]: hydrateStep,
   [FIRING_PROCESS.processId]: firingStep,
   [SOAK_PROCESS.processId]: soakStep,
+  [WOOD_FIRE_PROCESS.processId]: woodFireStep,   // contract 0.2.x (proposed): returns `drawn`
 };
 
 export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepResult => {

@@ -73,6 +73,32 @@
       "category": "ceramic-green",
       "unit": "mg",
       "note": "未焼成なので粘土に戻せる。焼成品は戻らない"
+    },
+    {
+      "id": "firewood",
+      "label": "薪（乾かした流木・枝など）",
+      "category": "fuel",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量（必須、0〜600000）",
+        "ash_dry_ppm": "乾いた部分あたりの灰分（なければ woodAshFrac 1%、仮定）"
+      },
+      "note": "乾いた部分は CH1.44O0.66 で近似。発熱量は絶乾 18 MJ/kg（仮定）。海水の塩分は扱わない。由来（どの流木か）は世界側のロットの来歴で持つ"
+    },
+    {
+      "id": "wood_ash",
+      "label": "木の灰",
+      "category": "residue",
+      "unit": "mg",
+      "quality": {},
+      "note": "組成は未測定（混合物として質量だけ保つ）"
+    },
+    {
+      "id": "o2",
+      "label": "酸素（空気から）",
+      "category": "gas",
+      "unit": "mg",
+      "note": "0.2.0 の drawn で空気から取り込む。ロットにはならない"
     }
   ],
   "processes": [
@@ -282,9 +308,51 @@
       "readiness": "test-world-only",
       "evaluator": "tile-soak-eval/0.1.0",
       "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
+    },
+    {
+      "id": "p13w_test_tile_wood_fire",
+      "version": "0.1.0",
+      "contract": "0.2.x（提案中。drawn が要る）",
+      "label": "薪で焼く（試験片）",
+      "kind": "thermal+chemical",
+      "inputs": [
+        "test_tile_dry | test_tile_green",
+        "firewood"
+      ],
+      "outputs": [
+        "test_tile_fired",
+        "firewood（残り）",
+        "wood_ash"
+      ],
+      "released": [
+        "water_vapour",
+        "process_co2"
+      ],
+      "drawn": [
+        "o2"
+      ],
+      "equipment": [
+        "open_fire_pit | fixture_wood_kiln"
+      ],
+      "energyModel": {
+        "mode": "combustion",
+        "source": "src:combustion:<runId>",
+        "rule": "熱の申し出は受けない（同じ火を二重に数えない）。燃えた薪の質量×燃えたときの発熱量。炉に入るのは chamberFraction、残りは煙突・炎から失う"
+      },
+      "operator": "fire_plan {pace 0-2, targetGlow 0-3, holdMin, forcedCooling 0/1}（電気の試験窯と同じ）",
+      "stepMs": 30000,
+      "outcomes": [
+        "done",
+        "fuel_exhausted（薪が尽きた）",
+        "peak_not_reached（2時間過ぎても色に届かずあきらめた）",
+        "stopped",
+        "untended（天気不明の区間＝見ていない間に火が落ちた）"
+      ],
+      "readiness": "test-world-only",
+      "note": "空気の不足（くすぶり・炭化）、煙、湿った薪の着火、流木の塩分は扱わない。有機物を含む素地は拒否（燃え抜きは別工程）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused).",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {
@@ -358,6 +426,34 @@
         "heatCapJPerK": "≥0",
         "uaWPerK": "≥0"
       }
+    },
+    {
+      "id": "open_fire_pit",
+      "processes": [
+        "p13w_test_tile_wood_fire"
+      ],
+      "params": {
+        "heatCapJPerK": ">0",
+        "uaWPerK": "≥0",
+        "chamberFraction": "0〜1（地面の焚き火は 0.2 程度、仮定）",
+        "maxBurnKgPerH": "≥0",
+        "forcedCoolingUaFactor": "≥0"
+      },
+      "note": "覆いのない焚き火。橙には届かない"
+    },
+    {
+      "id": "fixture_wood_kiln",
+      "processes": [
+        "p13w_test_tile_wood_fire"
+      ],
+      "params": {
+        "heatCapJPerK": ">0",
+        "uaWPerK": "≥0",
+        "chamberFraction": "0〜1（0.3 程度、S-kilneff から仮定）",
+        "maxBurnKgPerH": "≥0",
+        "forcedCoolingUaFactor": "≥0"
+      },
+      "note": "試験用の薪窯（既製の対照設備）。自作の窯は別の段階"
     }
   ]
 }

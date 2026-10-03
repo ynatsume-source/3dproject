@@ -31,9 +31,11 @@ export function stateSchemaProblem(req: ScienceStepRequest, schema: string): str
   return `unknown state schema ${req.state.schema}`;
 }
 
-/** Common request checks: contract 0.1.x, process id/version, catalog, state schema, integer interval and seed. */
-export function checkCommon(req: ScienceStepRequest, processId: string, processVersion: string, schema: string): string | null {
-  if (!/^0\.1\.\d+$/.test(req.contract)) return `unknown contract ${req.contract}`;
+/** Common request checks: contract (0.1.x unless a step needs a later one), process id/version, catalog, state
+ *  schema, integer interval and seed. */
+export function checkCommon(req: ScienceStepRequest, processId: string, processVersion: string, schema: string,
+  contract: RegExp = /^0\.1\.\d+$/): string | null {
+  if (!contract.test(req.contract)) return `unknown contract ${req.contract}`;
   if (req.processId !== processId) return `unknown process ${req.processId}`;
   if (req.processVersion !== processVersion) return `unknown processVersion ${req.processVersion}`;
   if (req.catalogVersion !== SCIENCE_CATALOG_VERSION) return `unknown catalogVersion ${req.catalogVersion}`;
