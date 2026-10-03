@@ -129,11 +129,16 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        if (L.y <= 0.0) continue;
        vec3 H = normalize(V + L); float nh = max(dot(n, H), 1e-3), nh2 = nh * nh;
        float D = exp(-(1.0 - nh2) / (nh2 * rough)) / (3.14159 * rough * nh2 * nh2);
-       vec3 rad = k == 0 ? sc * 7.0 : vec3(0.75, 0.8, 0.9) * uMoonIllum * 1.5 * (1.0 - dayAir()) * (1.0 - 0.9 * uCloud);
+       vec3 rad = k == 0 ? sc * 7.0 : vec3(0.75, 0.8, 0.9) * uMoonIllum * 1.5 * (1.0 - dayAir()) * (1.0 - 0.5 * uCloud) * (1.0 - 0.95 * uMoonVeil);
        // the path breaks into glints that come and go with the small waves
        float glint = mix(1.0, 0.25 + 2.2 * smoothstep(0.55, 0.9, vn2(p * 2.7 + vec2(t * 1.3, -t * 0.9))), 1.0 - smoothstep(0.3, 2.0, fp));
        col += rad * D * F / (4.0 * nv) * smoothstep(0.0, 0.05, L.y) * 0.25 * glint;
      }
+     // a night sea seen from above keeps a faint sheen of the sky on it, cloudy or not (not quite real: a
+     // night-adapted eye's view), broken by the ripples, so the surface reads as a surface and not a void
+     float sheenF = 0.06 + 0.22 * pow(1.0 - nv, 2.0);
+     vec3 nightSheen = (skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.9 + vec3(0.03, 0.04, 0.06)) * sheenF * uNight
+       * (0.7 + 0.6 * smoothstep(0.3, 0.8, vn2(p * 1.9 + vec2(t * 0.7, -t * 0.5))));
      // whitecaps once the wind picks up, riding the crests
      float foam = smoothstep(0.68, 0.78, fbm2(p * 0.09 + vec2(t * 0.03, t * 0.01)) + g.x * 0.4 + sw.x * 0.3) * clamp((uWave - 1.2) * 1.2, 0.0, 1.0);
      // a bait ball: the surface churned white and nervous where it is packed against it
@@ -156,14 +161,17 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        vec4 c2 = uProj * viewMatrix * vec4(vWp + vec3(n.x, 0.0, n.z) * below * 0.25, 1.0);   // refraction bends the view by about a quarter of the slope
        vec4 b2 = texture2D(tRefr, c2.xy / c2.w * 0.5 + 0.5);
        if (b2.a * 1000.0 < zs + 0.05) b2 = b;          // it landed on something in front of the water: keep the straight view
-       // the dive's night is lit for the camera; seen from the air the night sea is dark, lit only by the moon
-       vec3 under = b2.rgb * mix(1.0, 0.08 + 0.22 * uMoonI, uNight);
+       // the dive's night is lit for the camera; seen from the air the night sea is darker, lit by the moon —
+       // but not black: looking down close by, it keeps most of the light it will have once in the water
+       // (no plunge from black into a lit sea), fading toward the moonlit level further off
+       float downK = smoothstep(0.3, 0.85, nv) * exp(-d / 40.0);
+       vec3 under = b2.rgb * mix(1.0, mix(0.4 + 0.3 * uMoonI, 1.0, downK), uNight);
        // light through the thin water of a crest glows green-blue when the sun is behind it
        under += vec3(0.0, 0.16, 0.14) * max(sw.x, 0.0) / max(uSwell, 0.2) * 0.4 * max(dot(dir, uAirSun) * 0.5 + 0.5, 0.0) * max(uAirSun.y, 0.0) * (1.0 - uCloud * 0.7);
-       vec3 o = under * (1.0 - F) * (1.0 - foam) + col + foamC * foam;
+       vec3 o = under * (1.0 - F) * (1.0 - foam) + col + foamC * foam + nightSheen;
        gl_FragColor = vec4(mix(o, haze, fh), 1.0);
      } else {
-       vec4 o = vec4(col + foamC * foam, min(1.0, F + foam));
+       vec4 o = vec4(col + foamC * foam + nightSheen, min(1.0, F + foam));
        gl_FragColor = vec4(mix(o.rgb, haze, fh), mix(o.a, 1.0, fh));
      }
    }`,

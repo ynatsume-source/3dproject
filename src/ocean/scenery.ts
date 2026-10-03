@@ -52,7 +52,7 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      // (only the real sun makes a disc and a glow: at night SUN is the starlight's direction, a light with no source to see)
      // (the disc, a tight bright halo that the ripples break into glints, and a soft wide one)
      float sunGlow = (pow(sd, 180.0) * 3.0 * (1.0 - uCloud * 0.95) + pow(sd, 30.0) * 0.55 * (1.0 - uCloud * 0.7) + pow(sd, 5.0) * 0.1) * uSunI * (1.0 - smoothstep(0.3, 0.7, uNight));
-     float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI * (1.0 - uCloud * 0.9);
+     float moonGlow = pow(max(dot(refr, moonAir), 0.0), 400.0) * 2.0 * uMoonI * (1.0 - uCloud * 0.5) * (1.0 - 0.95 * uMoonVeil);   // (behind a cloud in the sky above, as it is when you come up)
      // (the sky through the window: its own blue, not blown out to white, darkening toward the window's rim)
      // (seen from below, the middle of the window is the zenith, a deeper blue, and its rim the pale horizon)
      vec3 zen = mix(uSkyHi * vec3(0.42, 0.68, 1.0), uSkyHi, uCloud * 0.8);
