@@ -68,6 +68,11 @@ console.log('2. chunking does not change the result (30 s grid from the run star
   const a = run(30_000), b = run(7 * H), c = run(H, { interval: { from: 0, to: H } });
   const key = (x: typeof k) => JSON.stringify([x.last.produced, x.last.released, x.last.drawn, x.usedJ]);
   ok(key(a) === key(k) && key(b) === key(k) && key(c) === key(k), 'one hour at a time = 30 s at a time = 7 h at a time (identical)', `${a.n} / ${k.n} / ${b.n} requests`);
+  // off the 30 s grid: 7.3 s requests (the tender still decides at the grid points; sub-steps are cut at every boundary)
+  const off = run(7_300), pct = (x: number, y: number) => Math.abs(x - y) / y;
+  const co2 = (x: typeof k) => amount(x.last.released, 'process_co2');
+  ok(pct(off.usedJ, k.usedJ) < 0.005 && pct(co2(off), co2(k)) < 0.005 && amount(off.last.produced, 'test_tile_fired') === amount(k.last.produced, 'test_tile_fired'),
+    'off the grid (7.3 s requests): heat and gases within 0.5%, the fired tile the same', `J ${(pct(off.usedJ, k.usedJ) * 100).toFixed(3)}%, CO2 ${(pct(co2(off), co2(k)) * 100).toFixed(3)}%`);
 }
 
 console.log('3. what the hearth and the woodpile allow');

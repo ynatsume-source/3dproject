@@ -20,7 +20,7 @@
 1. **薪の焼成の収支**（3839fac、`src/science/step/wood-fire.ts`）
    - 薪ロット・O2・灰・CO2・水蒸気・燃え残りが mg で閉じるか。燃えた量の整数化（`floor`）と `splitComp`・`react` の組み合わせに抜けがないか。
    - J の報告：熱は `src:combustion:<runId>`、usedJ = 燃えた質量×燃えたときの発熱量（乾いた部分 18 MJ/kg − 水分の蒸発潜熱）。区間ごとの整数化と、終了時の stored = 化学の熱。
-   - 区切り方による違い：30秒格子・grid 点での火の番の決定（sample-and-hold）・薪の残量による打ち切り。1時間・30秒・7時間で一致することは確認済み。格子から外れた区切りの誤差はまだ測っていない。
+   - 区切り方による違い：30秒格子・grid 点での火の番の決定（sample-and-hold）・薪の残量による打ち切り。1時間・30秒・7時間で一致することは確認済み。格子から外れた区切り（7.3秒ずつ）の誤差は、依頼の後に科学側で測った：J と CO2 が 0.214%、燃え残りの薪 0.25%、焼いた試験片は同じ（ALIGNMENT §10、検査を1件追加、後続のコミット）。
    - 終わり方：薪切れ（`fuel_exhausted`）、色に届かずあきらめる（`peak_not_reached`、予定より2時間超過）、天気不明の区間（`untended`）、operator 停止、equipment-lost。
    - 拒否：0.1.x の要求、熱の申し出の併用、水分のない薪、炉なし、有機物入りの素地、最初の区間の天気不明。
 2. **切り出しで電気窯が変わっていないか**（`kiln-ware.ts` と `firing.ts`）。科学側では、出力のハッシュが切り出し前後で同一（78e1f4b785e9baca）であることを確認した。
@@ -41,7 +41,7 @@
 ```sh
 git checkout 3839fac   # 科学側（別の作業ツリーで）
 npm ci
-npx tsx --import ./scripts/node-assets.mjs scripts/science-wood-fire-check.ts       # 31
+npx tsx --import ./scripts/node-assets.mjs scripts/science-wood-fire-check.ts       # 32（後続のコミットで1件追加）
 npx tsx --import ./scripts/node-assets.mjs scripts/science-step-check.ts            # 47
 npx tsx --import ./scripts/node-assets.mjs scripts/science-review-regressions.ts    # 50
 npx tsx --import ./scripts/node-assets.mjs scripts/science-tile-chain-check.ts      # 16
