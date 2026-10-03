@@ -4,14 +4,19 @@
 // world server and keeps nothing beyond this script.
 
 import { SCIENCE_CONTRACT_VERSION, type ScienceStepRequest, type ScienceStepResult, type EnvironmentSample } from '../src/world/science-contract';
-import { dryingStep, DRYING_PROCESS, SCIENCE_CATALOG_VERSION } from '../src/science/step/drying';
-import { scienceStep } from '../src/science/step';
+import { dryingStep as dryingStepRaw, DRYING_PROCESS, SCIENCE_CATALOG_VERSION } from '../src/science/step/drying';
+import { validateResult } from '../src/science/step/validate';
+import { scienceStep as scienceStepRaw } from '../src/science/step';
 import { PARAMS } from '../src/science/params';
 import { hashOf } from '../src/science/fixture/world';
 import { createClayTestWorld } from '../src/science/fixture/clay-world';
 import { Driver, T0 } from '../src/science/fixture/scenario';
 
 let pass = 0, failN = 0;
+// every result in this script also goes through the contract checker
+const violations: string[] = [];
+const dryingStep = (q: ScienceStepRequest) => { const r = dryingStepRaw(q); violations.push(...validateResult(q, r).map((v) => `${q.requestId}: ${v}`)); return r; };
+const scienceStep = (q: ScienceStepRequest) => { const r = scienceStepRaw(q); violations.push(...validateResult(q, r).map((v) => `${q.requestId}: ${v}`)); return r; };
 const ok = (c: unknown, name: string, detail = '') => {
   if (c) { pass++; console.log(`  ok   ${name}${detail ? ` — ${detail}` : ''}`); } else { failN++; console.log(`  FAIL ${name}${detail ? ` — ${detail}` : ''}`); }
 };
@@ -175,6 +180,8 @@ console.log('8. conditions matter: sun + 15 mm cracks, shade does not');
   }
   ok(sunCr > 0 && shadeCr === 0, 'drying cracks across 20 seeds', `sun ${sunCr}/20, shade ${shadeCr}/20`);
 }
+
+ok(violations.length === 0, 'validateResult found no violation in any drying / shaping / weighing result', violations.slice(0, 3).join(' / '));
 
 console.log(`\n${pass} passed, ${failN} failed`);
 if (failN) process.exit(1);
