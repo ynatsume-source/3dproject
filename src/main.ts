@@ -977,6 +977,8 @@ function seaLog(kind: string, text: string, at?: Where) {
   if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at, kind, ref });
 }
 function pumpLog(now: number) {
+  // (watching a resident: the sea's goings-on are not told — nor kept to pop up stale once it is over)
+  if (watch.r) { logQueue.length = 0; return; }
   if (!logQueue.length || now - logShownAt < 20000 || $('toast').classList.contains('on')) return;
   logShownAt = now;
   const e = logQueue.shift()!;
@@ -999,7 +1001,7 @@ let markAt: Where | null = null, markText = '', markUntil = 0;
 const _mk = new THREE.Vector3();
 function updateMarker(now: number) {
   const el = $('evMark');
-  const p = markAt && now < markUntil ? markAt() : null;
+  const p = markAt && now < markUntil && !watch.r ? markAt() : null;   // (no marker for the sea while watching a resident)
   if (!p) { if (!el.hidden) { el.hidden = true; $('toast').classList.remove('go'); } return; }
   _mk.set(p.x, p.y, p.z).project(camera);
   const w = innerWidth, h = innerHeight, behind = _mk.z > 1;
@@ -1051,7 +1053,7 @@ function scanNotices(dt: number, now: number) {
   $('toast').classList.add('go');
 }
 function goToEvent() {
-  if (!markAt || !cur) return;
+  if (!markAt || !cur || watch.r) return;
   if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }); return; }
   const at = markAt, text = markText;
   focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() });
@@ -1063,6 +1065,7 @@ $('toast').addEventListener('click', goToEvent);
 let rareT = 0;
 function announceRare(r: { info: { id: string; ja: string; note: string } }) {
   const el = $('rare');
+  if (watch.r) { recordLog('rare', `めったに出会えない光景：${r.info.ja}`); return; }   // (watching a resident: noted in the log, not announced)
   (el.querySelector('.t') as HTMLElement).textContent = r.info.ja; (el.querySelector('.n') as HTMLElement).textContent = r.info.note;
   el.classList.add('on'); clearTimeout(rareT); rareT = window.setTimeout(() => el.classList.remove('on'), 11000);
   recordLog('rare', `めったに出会えない光景：${r.info.ja}`);
@@ -1946,7 +1949,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (mode !== 'ocean' || isTouch || pointers.size) { hideHover(); return; }
   if (drone.mode !== 'auto') { hideHover(); return; }
   const now = performance.now(); if (now - hoverT < 90) return; hoverT = now;
-  const s = pickAt(e.clientX, e.clientY), el = $('hoverTag');
+  const s0 = pickAt(e.clientX, e.clientY), s = watch.r && s0?.kind !== 'robot' ? null : s0, el = $('hoverTag');   // (watching: only the residents)
   canvas.style.cursor = s ? 'pointer' : '';
   if (!s) { hideHover(); return; }
   el.textContent = `${s.label} — クリックで近づく`; el.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; el.classList.add('on');
