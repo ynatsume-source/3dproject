@@ -14,7 +14,10 @@ export function validateResult(req: ScienceStepRequest, res: ScienceStepResult):
   if (res.runId !== req.runId) v.push('runId is not echoed');
   if (res.contract !== req.contract) v.push('contract is not echoed');
   if (!['running', 'completed', 'failed', 'stopped', 'needs-input'].includes(res.status)) v.push(`unknown status ${res.status}`);
-  if (res.simulated.from !== req.interval.from || res.simulated.to < res.simulated.from || res.simulated.to > req.interval.to) {
+  for (const [name, t] of [['interval.from', req.interval.from], ['interval.to', req.interval.to], ['simulated.from', res.simulated?.from], ['simulated.to', res.simulated?.to]] as const) {
+    if (!(typeof t === 'number' && isInt(t) && t >= 0)) v.push(`${name} is not a non-negative integer time (${t})`);
+  }
+  if (!(res.simulated.from === req.interval.from && res.simulated.to >= res.simulated.from && res.simulated.to <= req.interval.to)) {
     v.push(`simulated [${res.simulated.from},${res.simulated.to}) is outside the requested interval`);
   }
   if (!res.state || typeof res.state.schema !== 'string') v.push('state has no schema');
@@ -47,7 +50,10 @@ export function validateResult(req: ScienceStepRequest, res: ScienceStepResult):
   const usedBySource = new Map<string, number>();
   for (const e of res.energy) {
     const stored = e.storedJ ?? 0;
-    if (![e.usedJ, e.lostJ, stored].every(isInt)) v.push(`energy ${e.sourceId}: J must be integers`);
+    if (![e.usedJ, e.lostJ, stored].every((n) => typeof n === 'number' && isInt(n))) v.push(`energy ${e.sourceId}: J must be integers`);
+    // energy taken from a source is never negative (no cancelling one entry against another); stored may be,
+    // e.g. while things cool down
+    if (!(e.usedJ >= 0)) v.push(`energy ${e.sourceId}: usedJ ${e.usedJ} is negative`);
     if (e.usedJ !== stored + e.lostJ) v.push(`energy ${e.sourceId}: used ${e.usedJ} ≠ stored ${stored} + lost ${e.lostJ}`);
     if (/battery|robot/i.test(e.sourceId)) v.push(`energy ${e.sourceId}: robot battery is not a source`);
     const offer = offers.get(e.sourceId);
@@ -70,6 +76,8 @@ export function validateResult(req: ScienceStepRequest, res: ScienceStepResult):
   // observations: numbers only through an instrument channel
   for (const o of res.observations) {
     if (o.value !== undefined && !o.channel.startsWith('instrument:')) v.push(`observation with a number through ${o.channel}`);
+    if (!(typeof o.at === 'number' && isInt(o.at))) v.push('observation time is not an integer');
+    if (o.value !== undefined && !Number.isFinite(o.value)) v.push('observation value is not finite');
   }
   return v;
 }
