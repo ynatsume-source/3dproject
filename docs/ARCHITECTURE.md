@@ -55,7 +55,7 @@ main.ts のループ（毎フレーム）             ▼
 | `seaglass.residents.v1` | 住民の位置・電池（ロボット）・空腹と眠気（生き物）・手に持っている物・今日の出来事・日記（各40件）、関係（段階・回数）、会話（40件）、ドットの小屋、ラッコの貝殻、ランタンの石積み（段数）、島に落ちている流木・貝殻・石（`robots/items.ts`）、開拓の状態（切った若木、畑の区画と種まきの時刻）、みんなの取り組み（焚き火の回数、桟橋の進み具合、流れ着いた宝物）、会話ログ（会話ごとの見出しつき、160件）、訪れた場所、保存時刻 | `robots/residents.ts` |
 | `seaglass.seen` | 図鑑で会った生きもの | main.ts |
 | `seaglass.log.<海>.<日付>` | その日の出来事ログ | main.ts |
-| `seaglass.persona` / `season` / `music` / `vol` / `pip` | 設定 | main.ts |
+| `seaglass.persona` / `season` / `music` / `vol` / `pip` / `awake` | 設定（`awake`：見ている間は画面を消さない。既定 on） | main.ts |
 | `seaglass.aikey` / `seaglass.aiuse` | 住民の会話用 API キー（本人のもの）と1日の使用回数 | `robots/mind.ts` |
 | `seaglass.safe`（sessionStorage） | GPU リセットからの復帰段階 | main.ts |
 

@@ -2140,9 +2140,11 @@ function goPreset(p: Preset) { if (!cur) return; clock.live = false; if (clock.s
 
 // Keep the screen on: the Screen Wake Lock where the browser has it, and on phones and tablets also a
 // tiny silent looping video (the NoSleep.js technique), since iOS sometimes lets the lock lapse.
+// (on by default; it can be turned off in the menu, and that is remembered on this device)
 let wakeLock: any = null, awakeVideo: HTMLVideoElement | null = null;
+let awakeOn = (() => { try { return localStorage.getItem('seaglass.awake') !== '0'; } catch (e) { return true; } })();
 async function keepAwake() {
-  if (document.visibilityState !== 'visible') return;
+  if (document.visibilityState !== 'visible' || !awakeOn) return;
   if (!wakeLock && 'wakeLock' in navigator) {
     try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied until a tap */ }
   }
@@ -2159,6 +2161,16 @@ async function keepAwake() {
   }
 }
 document.addEventListener('visibilitychange', keepAwake);
+function setAwake(on: boolean) {
+  awakeOn = on;
+  try { localStorage.setItem('seaglass.awake', on ? '1' : '0'); } catch (e) { /* ignore */ }
+  $('btnAwake').setAttribute('aria-pressed', String(on));
+  if (on) { keepAwake(); return; }
+  wakeLock?.release().catch(() => { /* already gone */ }); wakeLock = null;
+  awakeVideo?.pause();
+}
+$('btnAwake').onclick = () => setAwake(!awakeOn);
+$('btnAwake').setAttribute('aria-pressed', String(awakeOn));
 // Put away (home screen, another app, the screen off): the sea pauses — the sound stops at once (drawing stops of
 // itself), and where the drone is is kept, so that if the phone drops the page meanwhile, coming back to it
 // starts from about here rather than from the globe. Back again: the sound as it was, and on from the same view.
