@@ -1,9 +1,11 @@
-// The world side's check of the first science process it takes in: weighing (fixture_mass_measure).
-// src/science/step/{simple,fixture-profile,validate}.ts come unchanged from codex/civilization-simulation@6ea2509;
+// The world side's check of the science processes it has taken in: weighing (fixture_mass_measure) and the
+// test tile's shaping (p11x_test_tile_shape), fixture-2 on the one test catalog civ-sci-test-2.
+// src/science/step/{simple,fixture-profile,validate}.ts come unchanged from codex/civilization-simulation
+// (6ea2509, simple.ts from c8f9446);
 // nothing in the app calls them yet (the island runs processes only once the shared world's server holds the
 // ledger, ADR 0002). This checks what the world will rely on when it does: every result passes validateResult,
 // each status means what docs/proposals/civilization/SCIENCE_FINAL_REVIEW_RESPONSE.md says the world does with it,
-// and a weighing settles exactly once. Run: npx tsx scripts/weigh-integration-check.ts
+// and each settles exactly once. Run: npx tsx scripts/science-integration-check.ts
 import { simpleFixtureStep as step } from '../src/science/step/simple';
 import { validateResult } from '../src/science/step/validate';
 import type { ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
@@ -11,10 +13,10 @@ import type { ScienceStepRequest, ScienceStepResult } from '../src/world/science
 const T = 1_790_000_010_000;   // a world-clock 30 s mark
 const req = (o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({
   contract: '0.1.0', requestId: `run:w1@${o.interval?.from ?? T}#0`, world: { worldId: 'w', worldEpoch: 'e1', worldVersion: 1 }, runId: 'run:w1',
-  processId: 'fixture_mass_measure', processVersion: 'fixture-1', catalogVersion: 'civilization-fixture-1',
+  processId: 'fixture_mass_measure', processVersion: 'fixture-2', catalogVersion: 'civ-sci-test-2',
   interval: { from: T, to: T + 10_000 }, state: null, environment: { sampleId: 'env:sim-1', source: 'simulation', effectiveAt: T },
   lots: [{ lotId: 'lot:tile-1', materialId: 'tile', amount: { value: 36_290, unit: 'mg' }, location: 'site:workshop' }],
-  equipment: [{ equipmentId: 'eq:balance-1', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civilization-fixture-1', condition: 1 }],
+  equipment: [{ equipmentId: 'eq:balance-1', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
   energy: [{ sourceId: 'src:fixture-mains', kind: 'electric', maxJ: 10 }],
   actions: [{ at: T, residentId: 'res:dot', action: 'read-balance' }], seed: 1, ...o,
 });
@@ -83,10 +85,9 @@ function world() {
   check('world pause: running (a pause is not a failure)', rp.status === 'running');
   const q = req({ interval: { from: T + 60_000, to: T + 66_000 }, state: rp.state, actions: [] }), rq = run('after pause', q);
   check('after pause: resumes later and completes', rq.status === 'completed' && rq.observations[0]?.value === 36_300);
-  // (known, reported to the science side: a stop arriving in an interval the power could not cover is not honoured;
-  // the world closes the run itself when it asked to stop)
+  // (fixture-2: a stop is honoured even when the power ran short before the end of the interval)
   const s = req({ energy: [{ sourceId: 'src:fixture-mains', kind: 'electric', maxJ: 5 }], stop: 'operator' }), rs = run('stop + short power', s);
-  check('stop + short power: needs-input today (world closes the run)', rs.status === 'needs-input' && rs.observations.length === 0);
+  check('stop + short power: stopped, no reading', rs.status === 'stopped' && rs.observations.length === 0);
 }
 // 5. refusals: failed, with no flows and nothing for the world to commit
 for (const [name, r, code] of [
@@ -94,9 +95,10 @@ for (const [name, r, code] of [
   ['no read-balance', req({ actions: [] }), 'measurement-not-requested'],
   ['off the second', req({ interval: { from: T + 1, to: T + 10_001 } }), 'unaligned-or-invalid-interval'],
   ['heat offered', req({ energy: [{ sourceId: 'src:fire-1', kind: 'heat', maxJ: 100 }] }), 'invalid-energy-offer'],
-  ['worn balance', req({ equipment: [{ equipmentId: 'eq:balance-1', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civilization-fixture-1', condition: 0.9 }] }), 'uncalibrated-equipment'],
-  ['other catalog', req({ catalogVersion: 'civ-sci-test-1' }), 'unsupported-version'],
-  ['old state schema', req({ state: { schema: 'civilization-simple-process/0', data: {} } }), 'unsupported-schema'],
+  ['worn balance', req({ equipment: [{ equipmentId: 'eq:balance-1', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 0.9 }] }), 'uncalibrated-equipment'],
+  ['old catalog', req({ catalogVersion: 'civilization-fixture-1' }), 'unsupported-version'],
+  ['old process version', req({ processVersion: 'fixture-1' }), 'unsupported-version'],
+  ['old state schema', req({ state: { schema: 'civilization-simple-process/1', data: {} } }), 'unsupported-schema'],
 ] as const) {
   const res = run(name, r), w = world();
   check(`${name}: failed ${code}`, res.status === 'failed' && (res.diagnostics as any)?.code === code, [res.status, res.diagnostics]);
@@ -107,6 +109,38 @@ for (const [name, r, code] of [
   const a = req({ interval: { from: T, to: T + 4_000 } }), ra = step(a);
   const b = req({ interval: { from: T + 4_000, to: T + 10_000 }, state: ra.state, actions: [], lots: [{ lotId: 'lot:tile-1', materialId: 'tile', amount: { value: 36_000, unit: 'mg' }, location: 'site:workshop' }] });
   check('changed lot: failed changed-input', (run('changed lot', b).diagnostics as any)?.code === 'changed-input');
+}
+
+// 7. shaping a test tile: 45 g of prepared clay in a 50 x 50 x 10 mm mould, 60 s of a resident's hands (120 J)
+{
+  const clay = { lotId: 'lot:clay-1', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' as const }, location: 'site:workshop', quality: { water_ppm: 220_000, xd_kaolinite_ppm: 600_000, xd_quartz_ppm: 400_000 } };
+  const bench = { equipmentId: 'eq:bench-1', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civ-sci-test-2', condition: 1, params: { thicknessMm: 10, widthMm: 50, lengthMm: 50 } };
+  const sreq = (o: Partial<ScienceStepRequest> = {}) => req({ runId: 'run:s1', requestId: `run:s1@${o.interval?.from ?? T}#0`, processId: 'p11x_test_tile_shape', lots: [clay], equipment: [bench],
+    energy: [{ sourceId: 'src:res-dot-hands', kind: 'mechanical', maxJ: 120 }], actions: [], interval: { from: T, to: T + 60_000 }, ...o });
+  const r = sreq(), res = run('shape', r);
+  check('shape: completed', res.status === 'completed', [res.status, res.diagnostics]);
+  check('shape: the clay lot consumed whole', res.consumed.length === 1 && res.consumed[0].lotId === 'lot:clay-1' && res.consumed[0].amount.value === 45_000);
+  const tile = res.produced[0];
+  check('shape: one green test tile of the same mass, where the clay was', res.produced.length === 1 && tile.materialId === 'test_tile_green' && tile.amount.value === 45_000 && tile.into === 'site:workshop', res.produced);
+  check('shape: the tile carries what drying needs', !!tile && ['water_ppm', 'width_mm', 'length_mm', 'thickness_mm'].every((k) => typeof tile.quality?.[k] === 'number'), tile?.quality);
+  check('shape: 120 J of hand work, all lost', res.energy.length === 1 && res.energy[0].usedJ === 120 && res.energy[0].lostJ === 120);
+  // in two parts, the lot settled only at the end
+  const a = sreq({ interval: { from: T, to: T + 20_000 } }), ra = run('shape part 1', a);
+  check('shape part 1: running, nothing settled', ra.status === 'running' && ra.consumed.length === 0 && ra.produced.length === 0);
+  const b = sreq({ interval: { from: T + 20_000, to: T + 60_000 }, state: ra.state }), rb = run('shape part 2', b);
+  check('shape parts: same tile as in one go', rb.status === 'completed' && JSON.stringify(rb.produced) === JSON.stringify(res.produced));
+  // stopped: nothing made, the clay stays clay
+  const st = run('shape stopped', sreq({ interval: { from: T, to: T + 20_000 }, stop: 'operator' }));
+  check('shape stopped: stopped, no tile, no clay used', st.status === 'stopped' && st.consumed.length === 0 && st.produced.length === 0);
+  // refusals
+  for (const [name, o, code] of [
+    ['mould too big for the clay', { equipment: [{ ...bench, params: { thicknessMm: 20, widthMm: 100, lengthMm: 100 } }] }, 'mould-does-not-fit-the-clay'],
+    ['clay without its make-up', { lots: [{ ...clay, quality: { water_ppm: 220_000 } }] }, 'clay-make-up-missing'],
+    ['not clay', { lots: [{ ...clay, materialId: 'sand' }] }, 'wrong-material'],
+  ] as const) {
+    const rr = run(name, sreq(o as any));
+    check(`${name}: failed ${code}`, rr.status === 'failed' && (rr.diagnostics as any)?.code === code, [rr.status, rr.diagnostics]);
+  }
 }
 
 console.log(`${pass} passed, ${fail} failed`);
