@@ -41,12 +41,17 @@ export class Ecosystem {
   subjects(): Subject[] {
     const out: Subject[] = [];
     for (const f of this.oc.fish as FishSystem[]) f.subjects(out);
-    const TS: Record<string, [number, string]> = { travel: [2.0, '泳いでいる'], graze: [2.6, '食事中'], toRest: [2.2, '寝床へ向かっている'], rest: [2.6, '岩陰で眠っている'], breathe: [3.2, '息継ぎに浮上中'] };
+    const TS: Record<string, [number, string]> = { travel: [2.0, '泳いでいる'], graze: [2.6, '食事中'], toRest: [2.2, '寝床へ向かっている'], rest: [1.7, '岩陰で眠っている'], breathe: [3.2, '息継ぎに浮上中'] };
     const turtleName = (this.oc.loc.extraGuide || []).find((e: any) => e.id === 'turtle')?.ja ?? 'ウミガメ';
     this.oc.turtles.forEach((t: any, i: number) => {
       const hawk = this.oc.loc.animals.turtle?.style === 'hawksbill';
       out.push({ key: `turtle:${i}`, label: turtleName, len: t.size * 0.95, adult: hawk ? 0.85 : 1.05, lenK: hawk ? 0.1 : 0.07, lenWhat: '甲長', kind: 'turtle', prio: (TS[t.state] || TS.travel)[0], size: 1.2 * t.size,
-        pos: () => t.pos, status: () => (TS[t.state] || TS.travel)[1], live: () => t.placed });
+        pos: () => t.pos, status: () => (TS[t.state] || TS.travel)[1], live: () => t.placed,
+        // (lying still, its body's own heading; swimming, where it is going)
+        heading: () => (t.state === 'rest' && t.yaw != null ? { x: Math.sin(t.yaw), z: Math.cos(t.yaw) } : { x: Math.cos(t.head), z: Math.sin(t.head) }),
+        brief: () => t.state === 'rest',
+        // (the same reach as its startle in animals.ts: closer than this, it drives off)
+        shy: () => (t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0) * Math.max(0.5, this.env.shy) * t.size });
     });
     const mantaName = (this.oc.loc.extraGuide || []).find((e: any) => e.id === 'manta')?.ja ?? 'ナンヨウマンタ';
     const giant = mantaName === 'オニイトマキエイ';

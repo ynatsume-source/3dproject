@@ -53,6 +53,8 @@ export class Director {
   rest: [number, number] = [30, 70];
   private side = 1;
   private brT = 0;
+  // a turtle: the view measured from its nose (0 ahead, π/2 beside, π behind), how high, and the next change
+  private tv = { ang: 0.7, want: 0.7, up: 0.3, wantUp: 0.3, next: 0, h: NaN, last: '' };
   private brN = 0; private brSince = -1e9;   // leaps watched lately (two or three, then on to something else for a while)
 
   reset() { this.shot = null; this.cooldown = 10; }
@@ -79,8 +81,10 @@ export class Director {
     this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07) * this.spinK;
     this.side = R() < 0.5 ? -1 : 1; this.hold.set(NaN, 0, 0); this.gspd = 0;
     this.t = 0; this.waitT = 0; this.goneT = 0;
+    this.tv.h = NaN; this.tv.next = 0;
     const [a, b] = DURATION[best.kind];
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
+    if (best.brief?.() && best.hold == null) this.dur = Math.min(this.dur, rr(10, 16));   // (a turtle asleep under a ledge: a short look is enough)
     this.recent.set(best.key, this.clock);
     this.bored.set(speciesOf(best), (this.bored.get(speciesOf(best)) ?? 0) + 1);
     this.recent.set('kind:' + best.kind, this.clock);
@@ -321,10 +325,36 @@ export class Director {
     }
     const lift = Math.min(1.5, 0.2 + sz * 0.22);
     const wet = p.y <= -0.5, hl = Math.hypot(this.gvx, this.gvz) || 1, fx = this.gvx / hl, fz = this.gvz / hl, sx = -fz * this.side, sz2 = fx * this.side;
-    const style = !wet ? 'orbit' : sh.style === 'follow' && this.gspd < 0.12 ? 'orbit' : sh.style ?? 'orbit';
+    const style = !wet ? 'orbit' : s.heading ? 'face' : sh.style === 'follow' && this.gspd < 0.12 ? 'orbit' : sh.style ?? 'orbit';
     let x: number, y: number, z: number;
     sh.look.set(p.x, p.y, p.z);
-    if (style === 'follow') {
+    if (style === 'face') {
+      // a turtle: its face and its flippers, not its tail as it swims off. A view taken from its nose — ahead
+      // and a little off, beside it, nearly head on, or from above its front — changing every quarter
+      // minute or so, slowly round; and never nearer than it allows, or it turns and drives away. (Come on it
+      // from behind, the drone first swings wide round its side.)
+      const hd = s.heading!(), shy = s.shy ? s.shy() : 0, tv = this.tv;
+      const ha = Math.atan2(hd.z, hd.x);
+      if (isNaN(tv.h)) tv.h = ha;
+      let dh = ha - tv.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); tv.h += dh * Math.min(1, dt * 0.6);
+      if (this.t >= tv.next && sh.phase === 'observe' || isNaN(tv.next) || tv.next === 0) {
+        const views: Record<string, [number, number]> = { three: [0.75, 0.3], side: [1.5, 0.15], head: [0.18, 0.1], above: [0.6, 1.1], low: [0.5, -0.4] };
+        const k = pick({ three: 3, side: 2, head: 1.5, above: 1.2, low: 0.8 } as Record<string, number>, (v) => v !== tv.last && (v !== 'low' || p.y - floor(p.x, p.z) > 1.4)) ?? 'three';
+        tv.last = k; tv.want = views[k][0] * (R() < 0.5 ? -1 : 1); tv.wantUp = views[k][1];
+        if (tv.next === 0) { tv.ang = tv.want; tv.up = tv.wantUp; }
+        tv.next = this.t + rr(13, 18);
+      }
+      tv.ang += (tv.want - tv.ang) * Math.min(1, dt * 0.25); tv.up += (tv.wantUp - tv.up) * Math.min(1, dt * 0.25);
+      let a = tv.ang, d = Math.max(dist * 1.1, shy * 1.3 + 0.4);
+      // coming in from behind it: out round its side first (wide of its startle), then on round to the front
+      const bx = drone.x - p.x, bz = drone.z - p.z, bl = Math.hypot(bx, bz) || 1;
+      const behind = (bx * Math.cos(tv.h) + bz * Math.sin(tv.h)) / bl < -0.2;
+      if (sh.phase === 'approach' && behind) { const cr = Math.cos(tv.h) * bz - Math.sin(tv.h) * bx; a = 1.6 * (cr >= 0 ? 1 : -1); d = Math.max(d * 1.5, shy * 1.6 + 1); }
+      const wa = tv.h + a;
+      x = p.x + Math.cos(wa) * d; z = p.z + Math.sin(wa) * d; y = p.y + tv.up * d;
+      sh.look.set(p.x + Math.cos(tv.h) * 0.15 * dist, p.y, p.z + Math.sin(tv.h) * 0.15 * dist);
+      this.ang = wa;
+    } else if (style === 'follow') {
       // behind it and a little to one side and above, going where it goes, looking past it the way it swims
       const d = dist * 1.15;
       x = p.x - fx * d + sx * d * 0.45; z = p.z - fz * d + sz2 * d * 0.45; y = p.y + d * 0.3;
