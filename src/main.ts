@@ -37,7 +37,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, pauseAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -836,7 +836,7 @@ function wantLamp() {
 }
 // The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
 // dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.
-let moonVeil = 0, moonVeilAt = -1;   // (how much cloud is in front of the moon, eased; at first, at once)
+let moonVeil = 0, moonVeilAt = -1, shoreT = 0;   // (how much cloud is in front of the moon, eased; at first, at once)
 function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uSunDir.value.set(...s.sunDir);
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
@@ -2383,7 +2383,8 @@ function renderPip(dt: number, air: boolean) {
     }
     if (pipSubj && pipSubj.key === filming) pipSubj = null;
   }
-  const want = pipOn && pipSubj && pipSubj.live() ? 1 : 0;
+  // (not while watching a resident, from behind or through its eyes: its card sits where the window would)
+  const want = pipOn && pipSubj && pipSubj.live() && !watch.r ? 1 : 0;
   pipFade += (want - pipFade) * Math.min(1, dt * 5);
   const el = $('pip');
   el.style.opacity = String(pipFade);
@@ -2636,6 +2637,20 @@ function frameBody(ts: number) {
     const far = air ? 90000 : 460;
     if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
     setAir(air);
+    // ashore, the waves sound further off the further it is from the sea (looked for in rings, now and then)
+    if ((shoreT -= dt) < 0) {
+      shoreT = 0.5;
+      const f = cur.loc.land ? cur.loc.f : null, x = camera.position.x, z = camera.position.z;
+      let dist = 0;
+      if (f && f(x, z) > -0.3) {
+        dist = 320;
+        rings: for (const r of [8, 16, 30, 50, 80, 120, 170, 240, 320]) for (let k = 0; k < 12; k++) {
+          const a = k * Math.PI / 6;
+          if (f(x + Math.cos(a) * r, z + Math.sin(a) * r) < -0.3) { dist = r; break rings; }
+        }
+      }
+      setShore(Math.min(1, Math.exp(-(dist - 15) / 70)));
+    }
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (bisect) bisectStep(dt);

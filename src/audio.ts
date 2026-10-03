@@ -490,8 +490,8 @@ export function breachSound(big: number, d: number, under = false) {
     { const n = noiseSrc(a, t0 + 0.04, 5), bp = filt(a, 'bandpass', 2200, 0.35), g = shaped(a, t0 + 0.04, 0.07, 0.5 * B, 0.15 + 0.35 * big, 0.35 + 0.55 * big);
       bp.frequency.setValueAtTime(2300, t0); bp.frequency.exponentialRampToValueAtTime(600, t0 + 0.9 + 1.0 * big);
       n.connect(filt(a, 'highpass', 160)).connect(bp).connect(g).connect(out); }
-    // the spray coming down: a patter of a thousand drops, thinning out
-    { const len = Math.floor(a.sampleRate * (2.5 + 3 * big)), buf = a.createBuffer(1, len, a.sampleRate), dd = buf.getChannelData(0);
+    // the spray coming down and the foam fizzing after (a whale's: a manta's splash is just the splash)
+    if (big >= 0.9) { const len = Math.floor(a.sampleRate * (2.5 + 3 * big)), buf = a.createBuffer(1, len, a.sampleRate), dd = buf.getChannelData(0);
       for (let k = 0, n = Math.floor(900 * (0.5 + big)); k < n; k++) {
         const at = Math.floor(len * Math.pow(Math.random(), 1.6)), w = Math.floor(a.sampleRate * (0.004 + Math.random() * 0.012)), amp = (0.3 + Math.random() * 0.7) * (1 - at / len);
         for (let i = 0; i < w && at + i < len; i++) dd[at + i] += (Math.random() * 2 - 1) * amp * Math.exp(-i / (w * 0.3));
@@ -500,7 +500,7 @@ export function breachSound(big: number, d: number, under = false) {
       s.connect(filt(a, 'lowpass', 3000)).connect(filt(a, 'highpass', 300)).connect(g).connect(out); s.start(t0 + 0.5); }
     // and the foam fizzing away, long after
     // (kept low and short: a faint hiss that is soon gone, not a long bright wash over everything)
-    { const n = noiseSrc(a, t0 + 0.9, 4.5), g = shaped(a, t0 + 0.9, 0.6, 0.022 * (0.5 + big) * near * 2.2, 0.2, 0.7 + 0.6 * big);
+    if (big >= 0.9) { const n = noiseSrc(a, t0 + 0.9, 4.5), g = shaped(a, t0 + 0.9, 0.6, 0.022 * (0.5 + big) * near * 2.2, 0.2, 0.7 + 0.6 * big);
       n.connect(filt(a, 'lowpass', 7000)).connect(filt(a, 'highpass', 3600)).connect(g).connect(out); }
   } else {
     // the bubble cloud: a low roar, and the bubbles in it ringing
@@ -542,7 +542,13 @@ export async function renderLeap(big: number, d: number, under: boolean, rise: b
 // ---------- above the water ----------
 // Out in the air the underwater bed, bubbles and reef crackle give way to wind and the slap and wash
 // of waves around the drone.
-let inAir = false, airGain: GainNode | null = null;
+let inAir = false, airGain: GainNode | null = null, seaGain: GainNode | null = null, shoreK = 1;
+// how near the sea is, 0..1 (1 over the water or on the beach; less and less inland): the waves fade with it
+export function setShore(k: number) {
+  if (Math.abs(k - shoreK) < 0.01) return;
+  shoreK = k;
+  if (seaGain && ac) seaGain.gain.setTargetAtTime(0.35 * k, ac.currentTime, 1.2);
+}
 export function setAir(on: boolean) {
   if (!ac || on === inAir) return;
   inAir = on;
@@ -565,7 +571,9 @@ export function setAir(on: boolean) {
     const sg = a.createGain(); sg.gain.value = 0.5;
     const swell = a.createOscillator(); swell.frequency.value = 0.13; const sw = a.createGain(); sw.gain.value = 0.45;
     swell.connect(sw).connect(sg.gain); swell.start();
-    sea.connect(slp).connect(sg).connect(airGain); sea.start();
+    // (a little quieter than the wind's share; and fading inland)
+    seaGain = a.createGain(); seaGain.gain.value = 0.35 * shoreK;
+    sea.connect(slp).connect(sg).connect(seaGain).connect(airGain); sea.start();
   }
   const t = ac.currentTime;
   airGain.gain.setTargetAtTime(on ? 0.2 : 0, t, 0.4);   // (wind and waves about as loud as the sea's hush below: no jump at the surface)
