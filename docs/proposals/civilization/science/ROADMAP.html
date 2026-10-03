@@ -220,7 +220,8 @@ table.m td,table.m th{border-bottom:1px solid var(--line);padding:4px 6px;text-a
       <li class="ok">秤量の統合手順書の案（WEIGH_HANDBOOK.md）：本体が渡す値・確定・status ごとの扱い</li>
       <li class="ok">本体側の回答：環境は当面試験用のみ、はかりは試験用電源、カタログは科学側で一本化 → fixture-2（civ-sci-test-2、95c2a01）</li>
       <li class="ok">本体側：成形の統合（60bf067）</li>
-      <li>本体側：乾燥の統合（drying・common・chem・params・physics・rng）</li>
+      <li class="ok">本体側：乾燥の統合（c693514、本体側の検査93件）。<b>秤量 → 成形 → 乾燥の3工程が main に入った</b>（島で動かすのは G2 の後）</li>
+      <li>次：薪で焼く工程（0.2.0 の drawn・燃焼）と、その手順書</li>
       <li>接続仕様 0.2.0 を main へ提案：<code>drawn</code>（O2・CO2 の取り込み）、J の規則の明確化</li>
       <li class="ok">本体への推奨を明記：run の開始を世界時計の30秒境界にそろえ、30秒ごとに区切る</li>
       <li class="ok">試作（fixture/）と本番用（step/）の区別を README に明記</li>
@@ -240,7 +241,7 @@ table.m td,table.m th{border-bottom:1px solid var(--line);padding:4px 6px;text-a
     <ul class="todo">
       <li class="ok">成形：粘土ロットが試験片ロットに変わる（重さは変わらない、寸法は型から）— <b>main に統合</b>（60bf067、本体側の検査73件）</li>
       <li class="ok">本体の天気に湿度を追加（Open-Meteo）。乾燥は 0.3.0 で風を地上10 mの値として読むように直した</li>
-      <li>乾燥：棚に置いて数日。停止・再開・再送で二重にならないことを本体のサーバーで確認</li>
+      <li class="ok">乾燥：棚に置いて数日、実際の天気（湿度・地上10 mの風は測った値だけ）。精算は取り外しの一度だけ — 本体の検査で確認。サーバー上の確認は G2 で</li>
       <li>粘土の実測：乾燥曲線、収縮と割れ、焼成温度と吸水率（Codex の資料探し／自分で測る記録）</li>
       <li>測定値確認画面の記録（v2）を、校正の入力として受け付ける手順</li>
       <li>薪の燃焼を工程に入れる（O2 の取り込み・灰・排気）、有機物を含む粘土</li>
