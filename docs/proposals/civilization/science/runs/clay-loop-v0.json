@@ -2,7 +2,7 @@
  "contract": "civ-sci/0.1",
  "worldId": "civ-sim-test-clay-1",
  "worldVersion": 85,
- "stateHash": "e619e44b1a2b5e19",
+ "stateHash": "5e1281dd78511d7b",
  "note": "試験世界の記録。全ての材料・設備は test-fixture で、本世界の在庫・歴史には混ぜない。実AIは使っていない。",
  "commands": [
   {
@@ -632,15 +632,15 @@
  "invariants": [],
  "massBaseline": {
   "initialMg": 201320000,
-  "inflowMg": 128495587,
-  "outflowMg": 238894843
+  "inflowMg": 128495656,
+  "outflowMg": 238894972
  },
  "atmosphereOut": {
-  "water": 67312393,
-  "co2": 171582450
+  "water": 67312429,
+  "co2": 171582543
  },
  "atmosphereIn": {
-  "o2": 128495587
+  "o2": 128495656
  },
  "view": {
   "lots": {
@@ -709,9 +709,9 @@
     "kind": "fuel",
     "label": "薪（研究に回せる分）",
     "comp": {
-     "water": 5806594,
+     "water": 5806585,
      "ash": 329023,
-     "wood_dry": 32574813
+     "wood_dry": 32574762
     },
     "location": "store:test",
     "unitMg": 2000000,
@@ -800,7 +800,7 @@
     "kind": "ash",
     "label": "灰（試験用の小窯（既製・対照設備）・fire-2）",
     "comp": {
-     "ash": 223620
+     "ash": 223621
     },
     "location": "facility:kiln-fixture",
     "provenance": {
@@ -879,7 +879,7 @@
     "kind": "ash",
     "label": "灰（試験用の小窯（既製・対照設備）・fire-3）",
     "comp": {
-     "ash": 276178
+     "ash": 276179
     },
     "location": "facility:kiln-fixture",
     "provenance": {
@@ -895,7 +895,7 @@
     "kind": "ash",
     "label": "灰（試験用の小窯（既製・対照設備）・fire-4）",
     "comp": {
-     "ash": 276177
+     "ash": 276175
     },
     "location": "facility:kiln-fixture",
     "provenance": {
@@ -930,8 +930,8 @@
     "linearShrink": 0.06,
     "stage": "broken",
     "location": "research:r1",
-    "maxWareTempC": 609.4704789487224,
-    "sinter": 6.305590187377945e-8,
+    "maxWareTempC": 609.4704824430777,
+    "sinter": 6.30559074248943e-8,
     "dehydrox": 0.953459959313096,
     "deformed": false,
     "cracks": [
@@ -947,7 +947,7 @@
     "risk": {
      "dryFluxRatioMax": 0.6095684237709035,
      "steamRatioMax": 0,
-     "duntRatioMax": 2.861506309905985
+     "duntRatioMax": 2.861506508680577
     },
     "historyComplete": true,
     "history": [
@@ -998,15 +998,15 @@
     "linearShrink": 0.06,
     "stage": "fired",
     "location": "research:r1",
-    "maxWareTempC": 979.9892827295175,
-    "sinter": 0.2804988147657896,
+    "maxWareTempC": 979.9893065964109,
+    "sinter": 0.28049834402305684,
     "dehydrox": 1,
     "deformed": false,
     "cracks": [],
     "risk": {
      "dryFluxRatioMax": 0.6095684237709035,
      "steamRatioMax": 0,
-     "duntRatioMax": 0.6547579569925801
+     "duntRatioMax": 0.654757974099698
     },
     "historyComplete": true,
     "history": [
@@ -1104,15 +1104,15 @@
     "linearShrink": 0.06,
     "stage": "fired",
     "location": "research:r2",
-    "maxWareTempC": 979.9997794290107,
-    "sinter": 0.5370464448340919,
+    "maxWareTempC": 979.9997809090247,
+    "sinter": 0.5370462516674146,
     "dehydrox": 1,
     "deformed": false,
     "cracks": [],
     "risk": {
      "dryFluxRatioMax": 0.17511153428473994,
      "steamRatioMax": 0,
-     "duntRatioMax": 0.654763687331706
+     "duntRatioMax": 0.6547637041107919
     },
     "historyComplete": true,
     "history": [
@@ -1163,15 +1163,15 @@
     "linearShrink": 0.06,
     "stage": "fired",
     "location": "research:r2",
-    "maxWareTempC": 979.9998201449902,
-    "sinter": 0.537046367414214,
+    "maxWareTempC": 979.9998152143028,
+    "sinter": 0.5370461973429115,
     "dehydrox": 1,
     "deformed": false,
     "cracks": [],
     "risk": {
      "dryFluxRatioMax": 0.17511153428473994,
      "steamRatioMax": 0,
-     "duntRatioMax": 0.6547636680174265
+     "duntRatioMax": 0.6547636562043635
     },
     "historyComplete": true,
     "history": [
@@ -1386,7 +1386,7 @@
     "purpose": "小窯焼成",
     "lotId": "wood-research",
     "mg": 40000000,
-    "consumedMg": 26308118,
+    "consumedMg": 26308138,
     "open": false,
     "version": 6
    },
@@ -1446,7 +1446,7 @@
     "purpose": "小窯焼成",
     "lotId": "wood-research",
     "mg": 40000000,
-    "consumedMg": 32490720,
+    "consumedMg": 32490740,
     "open": false,
     "version": 5
    },
@@ -1466,7 +1466,7 @@
     "purpose": "小窯焼成",
     "lotId": "wood-research",
     "mg": 40000000,
-    "consumedMg": 32490732,
+    "consumedMg": 32490752,
     "open": false,
     "version": 5
    },
@@ -1680,12 +1680,12 @@
      "env-fixture-day"
     ],
     "energy": {
-     "releasedJ": 295650007.39604366,
-     "flueLossJ": 236520005.91683507,
-     "wallLossJ": 58642692.29613656,
-     "wareSensibleJ": 2342.2529333493267,
-     "reactionsNetJ": -12729.932765620275,
-     "structureStoredJ": 497696.8629044485,
+     "releasedJ": 295650007.40053016,
+     "flueLossJ": 236520005.92042425,
+     "wallLossJ": 58642692.51286091,
+     "wareSensibleJ": 2342.2529378283634,
+     "reactionsNetJ": -12730.142857095696,
+     "structureStoredJ": 497696.85716441425,
      "envHeatInJ": 0
     },
     "checkpoints": [
@@ -1849,13 +1849,13 @@
     },
     "fuelReservationId": "res-wood-1",
     "fuelBurnedMg": 20000000,
-    "kilnC": 52.884843145222085,
+    "kilnC": 52.884842858220544,
     "ambientC": 28,
     "wareC": {
-     "T1": 59.22523905939799
+     "T1": 59.22523869927212
     },
     "phase": "done",
-    "peakKilnC": 621.1682290860215,
+    "peakKilnC": 621.1682288416872,
     "ashLotId": "ash-1",
     "ware": {
      "T1": {
@@ -1869,9 +1869,9 @@
       },
       "ext": {
        "water": 1,
-       "organic": 0.9999999020335201,
-       "dehydrox": 0.9534657717664871,
-       "calc": 0.003998398523415203
+       "organic": 0.9999999020336731,
+       "dehydrox": 0.9534657934811024,
+       "calc": 0.0039983990758229405
       }
      }
     },
@@ -1912,12 +1912,12 @@
      "env-fixture-day"
     ],
     "energy": {
-     "releasedJ": 388899745.75780016,
-     "flueLossJ": 272229822.03045994,
-     "wallLossJ": 115434767.85783733,
-     "wareSensibleJ": 2565.5623546568395,
-     "reactionsNetJ": -10987.437137990297,
-     "structureStoredJ": 1243577.7442860857,
+     "releasedJ": 388900041.0621516,
+     "flueLossJ": 272230028.7435059,
+     "wallLossJ": 115434758.44644664,
+     "wareSensibleJ": 2565.562322297728,
+     "reactionsNetJ": -10889.466901129352,
+     "structureStoredJ": 1243577.7767775678,
      "envHeatInJ": 0
     },
     "checkpoints": [
@@ -2650,14 +2650,14 @@
      "cooling": "natural"
     },
     "fuelReservationId": "res-wood-2",
-    "fuelBurnedMg": 26308118,
-    "kilnC": 59.08944360715172,
+    "fuelBurnedMg": 26308138,
+    "kilnC": 59.0894444194384,
     "ambientC": 28,
     "wareC": {
-     "T2": 59.9555740411146
+     "T2": 59.95557487603102
     },
     "phase": "done",
-    "peakKilnC": 979.9914814749558,
+    "peakKilnC": 979.991506349015,
     "ashLotId": "ash-2",
     "ware": {
      "T2": {
@@ -2678,17 +2678,17 @@
      }
     },
     "fuelBurnedComp": {
-     "ash": 223620,
-     "water": 3946213,
-     "wood_dry": 22138285
+     "ash": 223621,
+     "water": 3946215,
+     "wood_dry": 22138302
     },
     "emitted": {
      "out": {
-      "water": 15902997,
-      "co2": 40561195
+      "water": 15903008,
+      "co2": 40561226
      },
      "in": {
-      "o2": 30375613
+      "o2": 30375636
      }
     },
     "holdStartStep": 570,
@@ -2993,12 +2993,12 @@
      "env-fixture-day"
     ],
     "energy": {
-     "releasedJ": 480294024.7565087,
-     "flueLossJ": 336205817.32955563,
-     "wallLossJ": 142852602.4064495,
-     "wareSensibleJ": 2575.9011095014744,
-     "reactionsNetJ": -10559.397137990289,
-     "structureStoredJ": 1243588.516531608,
+     "releasedJ": 480294317.4399857,
+     "flueLossJ": 336206022.20798934,
+     "wallLossJ": 142852592.20948324,
+     "wareSensibleJ": 2575.9010137323003,
+     "reactionsNetJ": -10461.42690112935,
+     "structureStoredJ": 1243588.5484000202,
      "envHeatInJ": 0
     },
     "checkpoints": [
@@ -3803,14 +3803,14 @@
      "cooling": "natural"
     },
     "fuelReservationId": "res-wood-3",
-    "fuelBurnedMg": 32490720,
-    "kilnC": 59.089712913291116,
+    "fuelBurnedMg": 32490740,
+    "kilnC": 59.08971371000057,
     "ambientC": 28,
     "wareC": {
-     "T4": 59.95585087051006
+     "T4": 59.95585168941529
     },
     "phase": "done",
-    "peakKilnC": 979.9998240633547,
+    "peakKilnC": 979.9998259324589,
     "ashLotId": "ash-3",
     "ware": {
      "T4": {
@@ -3831,17 +3831,17 @@
      }
     },
     "fuelBurnedComp": {
-     "ash": 276178,
-     "water": 4873594,
-     "wood_dry": 27340948
+     "ash": 276179,
+     "water": 4873596,
+     "wood_dry": 27340965
     },
     "emitted": {
      "out": {
-      "water": 19639789,
-      "co2": 50092680
+      "water": 19639800,
+      "co2": 50092711
      },
      "in": {
-      "o2": 37513656
+      "o2": 37513679
      }
     },
     "holdStartStep": 570,
@@ -3903,12 +3903,12 @@
      "env-fixture-day"
     ],
     "energy": {
-     "releasedJ": 480294106.7761964,
-     "flueLossJ": 336205874.7433375,
-     "wallLossJ": 142852593.9462233,
-     "wareSensibleJ": 2575.5309379988744,
-     "reactionsNetJ": -10526.035502822526,
-     "structureStoredJ": 1243588.5912002756,
+     "releasedJ": 480294397.75307333,
+     "flueLossJ": 336206078.4271514,
+     "wallLossJ": 142852583.2907513,
+     "wareSensibleJ": 2575.530840245668,
+     "reactionsNetJ": -10428.06443339147,
+     "structureStoredJ": 1243588.5687637576,
      "envHeatInJ": 0
     },
     "checkpoints": [
@@ -4713,14 +4713,14 @@
      "cooling": "natural"
     },
     "fuelReservationId": "res-wood-4",
-    "fuelBurnedMg": 32490732,
-    "kilnC": 59.08971478000757,
+    "fuelBurnedMg": 32490752,
+    "kilnC": 59.08971421909518,
     "ambientC": 28,
     "wareC": {
-     "T5": 59.955852768658985
+     "T5": 59.95585219211996
     },
     "phase": "done",
-    "peakKilnC": 979.9998597658632,
+    "peakKilnC": 979.9998608522311,
     "ashLotId": "ash-4",
     "ware": {
      "T5": {
@@ -4741,17 +4741,17 @@
      }
     },
     "fuelBurnedComp": {
-     "ash": 276177,
-     "water": 4873600,
-     "wood_dry": 27340955
+     "ash": 276175,
+     "water": 4873605,
+     "wood_dry": 27340972
     },
     "emitted": {
      "out": {
-      "water": 19639798,
-      "co2": 50092689
+      "water": 19639812,
+      "co2": 50092720
      },
      "in": {
-      "o2": 37513662
+      "o2": 37513685
      }
     },
     "holdStartStep": 570,
@@ -6181,10 +6181,10 @@
    "account": {
     "releasedJ": 147132710.64123213,
     "flueLossJ": 117706168.5129856,
-    "wallLossJ": 21414106.355016876,
-    "wareSensibleJ": 12622.158421935117,
-    "reactionsNetJ": 9.437465979766927,
-    "structureStoredJ": 7999804.1773416195,
+    "wallLossJ": 21414106.366637338,
+    "wareSensibleJ": 12622.158455905304,
+    "reactionsNetJ": 9.394297084426256,
+    "structureStoredJ": 7999804.2088560965,
     "envHeatInJ": 0
    }
   },
@@ -6196,12 +6196,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 148517296.75481153,
-    "flueLossJ": 118813837.40384947,
-    "wallLossJ": 37039377.42171712,
-    "wareSensibleJ": -9923.846780066604,
-    "reactionsNetJ": -12739.370231600042,
-    "structureStoredJ": -7313254.853743124,
+    "releasedJ": 148517296.75929803,
+    "flueLossJ": 118813837.40743865,
+    "wallLossJ": 37039377.62900318,
+    "wareSensibleJ": -9923.846813664153,
+    "reactionsNetJ": -12739.537154180121,
+    "structureStoredJ": -7313254.893175706,
     "envHeatInJ": 0
    }
   },
@@ -6215,10 +6215,10 @@
    "account": {
     "releasedJ": 0,
     "flueLossJ": 0,
-    "wallLossJ": 189208.51940256357,
-    "wareSensibleJ": -356.05870851918735,
+    "wallLossJ": 189208.51722039282,
+    "wareSensibleJ": -356.05870441278785,
     "reactionsNetJ": 0,
-    "structureStoredJ": -188852.4606940475,
+    "structureStoredJ": -188852.45851597644,
     "envHeatInJ": 0
    }
   },
@@ -6232,10 +6232,10 @@
    "account": {
     "releasedJ": 91607758.1327032,
     "flueLossJ": 64125430.69289226,
-    "wallLossJ": 11470761.851924807,
-    "wareSensibleJ": 12857.20704422325,
-    "reactionsNetJ": -2308.2308225389665,
-    "structureStoredJ": 16001016.611664481,
+    "wallLossJ": 11470761.861576919,
+    "wareSensibleJ": 12857.207105278787,
+    "reactionsNetJ": -2308.3329522292556,
+    "structureStoredJ": 16001016.704080978,
     "envHeatInJ": 0
    }
   },
@@ -6247,12 +6247,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 168376249.06177956,
-    "flueLossJ": 117863374.34324554,
-    "wallLossJ": 34511897.55331989,
-    "wareSensibleJ": 12268.886426084631,
-    "reactionsNetJ": -9137.882082908203,
-    "structureStoredJ": 15997846.160870854,
+    "releasedJ": 168376396.50479066,
+    "flueLossJ": 117863477.55335325,
+    "wallLossJ": 34511893.982142895,
+    "wareSensibleJ": 12268.875766979047,
+    "reactionsNetJ": -9074.831109838657,
+    "structureStoredJ": 15997830.924637185,
     "envHeatInJ": 0
    }
   },
@@ -6264,12 +6264,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 128915738.56331742,
-    "flueLossJ": 90241016.99432215,
-    "wallLossJ": 48516245.003805816,
-    "wareSensibleJ": -6610.721359199011,
-    "reactionsNetJ": 458.67576745687256,
-    "structureStoredJ": -9835371.389218949,
+    "releasedJ": 128915886.42465773,
+    "flueLossJ": 90241120.49726039,
+    "wallLossJ": 48516238.60694019,
+    "wareSensibleJ": -6610.7103767808,
+    "reactionsNetJ": 493.69716093856005,
+    "structureStoredJ": -9835355.66632709,
     "envHeatInJ": 0
    }
   },
@@ -6283,10 +6283,10 @@
    "account": {
     "releasedJ": 0,
     "flueLossJ": 0,
-    "wallLossJ": 16942205.458203763,
-    "wareSensibleJ": -12907.27533514794,
+    "wallLossJ": 16942205.900859565,
+    "wareSensibleJ": -12907.275672381662,
     "reactionsNetJ": 0,
-    "structureStoredJ": -16929298.18286851,
+    "structureStoredJ": -16929298.625187267,
     "envHeatInJ": 0
    }
   },
@@ -6300,10 +6300,10 @@
    "account": {
     "releasedJ": 0,
     "flueLossJ": 0,
-    "wallLossJ": 3993657.990583062,
-    "wareSensibleJ": -3042.5344213040908,
+    "wallLossJ": 3993658.0949270725,
+    "wareSensibleJ": -3042.5345007976434,
     "reactionsNetJ": 0,
-    "structureStoredJ": -3990615.4561617887,
+    "structureStoredJ": -3990615.5604262403,
     "envHeatInJ": 0
    }
   },
@@ -6417,12 +6417,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 166175189.80265963,
-    "flueLossJ": 116322632.86186177,
-    "wallLossJ": 25847455.08799372,
-    "wareSensibleJ": 19153.97309514706,
-    "reactionsNetJ": -11852.8266942149,
-    "structureStoredJ": 23997800.70640325,
+    "releasedJ": 166175188.96958435,
+    "flueLossJ": 116322632.27870914,
+    "wallLossJ": 25847455.568243615,
+    "wareSensibleJ": 19153.972459091405,
+    "reactionsNetJ": -11852.605208932046,
+    "structureStoredJ": 23997799.755381577,
     "envHeatInJ": 0
    }
   },
@@ -6434,12 +6434,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 291270830.44257647,
-    "flueLossJ": 203889581.30980307,
-    "wallLossJ": 73287048.32029629,
-    "wareSensibleJ": 10719.079258312016,
-    "reactionsNetJ": 1293.4295562246116,
-    "structureStoredJ": 14082188.303662095,
+    "releasedJ": 291271124.17872965,
+    "flueLossJ": 203889786.92511013,
+    "wallLossJ": 73287036.70337719,
+    "wareSensibleJ": 10719.079620350869,
+    "reactionsNetJ": 1391.1783078026947,
+    "structureStoredJ": 14082190.292313442,
     "envHeatInJ": 0
    }
   },
@@ -6451,12 +6451,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 22848004.51127261,
-    "flueLossJ": 15993603.157890797,
-    "wallLossJ": 39724406.33109741,
-    "wareSensibleJ": -24254.682623510555,
+    "releasedJ": 22848004.291671693,
+    "flueLossJ": 15993603.00417006,
+    "wallLossJ": 39724407.168457255,
+    "wareSensibleJ": -24254.6823672962,
     "reactionsNetJ": 0,
-    "structureStoredJ": -32845750.295092016,
+    "structureStoredJ": -32845751.1985883,
     "envHeatInJ": 0
    }
   },
@@ -6470,10 +6470,10 @@
    "account": {
     "releasedJ": 0,
     "flueLossJ": 0,
-    "wallLossJ": 3993692.667062074,
-    "wareSensibleJ": -3042.4686204470477,
+    "wallLossJ": 3993692.769405186,
+    "wareSensibleJ": -3042.468698413777,
     "reactionsNetJ": 0,
-    "structureStoredJ": -3990650.1984417215,
+    "structureStoredJ": -3990650.3007066967,
     "envHeatInJ": 0
    }
   },
@@ -6485,12 +6485,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 166175264.61156625,
-    "flueLossJ": 116322685.22809635,
-    "wallLossJ": 25847447.973670263,
-    "wareSensibleJ": 19154.105859097275,
-    "reactionsNetJ": -11819.466341605523,
-    "structureStoredJ": 23997796.77028213,
+    "releasedJ": 166175262.72530305,
+    "flueLossJ": 116322683.90771224,
+    "wallLossJ": 25847447.866262954,
+    "wareSensibleJ": 19154.105465979028,
+    "reactionsNetJ": -11819.24400051311,
+    "structureStoredJ": 23997796.089862473,
     "envHeatInJ": 0
    }
   },
@@ -6502,12 +6502,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 291270845.4471834,
-    "flueLossJ": 203889591.8130284,
-    "wallLossJ": 73287046.71085769,
-    "wareSensibleJ": 10719.405573367843,
-    "reactionsNetJ": 1293.430838782997,
-    "structureStoredJ": 14082194.086884934,
+    "releasedJ": 291271138.69472533,
+    "flueLossJ": 203889797.08630776,
+    "wallLossJ": 73287036.77584781,
+    "wareSensibleJ": 10719.40550412576,
+    "reactionsNetJ": 1391.1795671216405,
+    "structureStoredJ": 14082194.247498482,
     "envHeatInJ": 0
    }
   },
@@ -6519,12 +6519,12 @@
    "kind": "heat",
    "source": "fuel:wood-research",
    "account": {
-    "releasedJ": 22847996.717446804,
-    "flueLossJ": 15993597.70221275,
-    "wallLossJ": 39724406.437049285,
-    "wareSensibleJ": -24255.419535126985,
+    "releasedJ": 22847996.333044946,
+    "flueLossJ": 15993597.433131397,
+    "wallLossJ": 39724405.89604741,
+    "wareSensibleJ": -24255.419225412923,
     "reactionsNetJ": 0,
-    "structureStoredJ": -32845752.002279866,
+    "structureStoredJ": -32845751.576908514,
     "envHeatInJ": 0
    }
   },
@@ -6538,10 +6538,10 @@
    "account": {
     "releasedJ": 0,
     "flueLossJ": 0,
-    "wallLossJ": 3993692.8246460557,
-    "wareSensibleJ": -3042.5609593392605,
+    "wallLossJ": 3993692.75259313,
+    "wareSensibleJ": -3042.5609044461976,
     "reactionsNetJ": 0,
-    "structureStoredJ": -3990650.2636869233,
+    "structureStoredJ": -3990650.1916886824,
     "envHeatInJ": 0
    }
   }
@@ -6656,8 +6656,8 @@
    "direction": "out",
    "medium": "atmosphere",
    "comp": {
-    "water": 6886247,
-    "co2": 17562311
+    "water": 6886253,
+    "co2": 17562328
    },
    "note": "燃焼ガス・素地から出た水蒸気とCO2"
   },
@@ -6668,7 +6668,7 @@
    "direction": "in",
    "medium": "atmosphere",
    "comp": {
-    "o2": 13152053
+    "o2": 13152066
    },
    "note": "燃焼と有機物の酸化に使った空気中の酸素"
   },
@@ -6679,8 +6679,8 @@
    "direction": "out",
    "medium": "atmosphere",
    "comp": {
-    "water": 5270657,
-    "co2": 13444692
+    "water": 5270662,
+    "co2": 13444706
    },
    "note": "燃焼ガス・素地から出た水蒸気とCO2"
   },
@@ -6691,7 +6691,7 @@
    "direction": "in",
    "medium": "atmosphere",
    "comp": {
-    "o2": 10068523
+    "o2": 10068533
    },
    "note": "燃焼と有機物の酸化に使った空気中の酸素"
   },
@@ -6768,7 +6768,7 @@
    "direction": "out",
    "medium": "atmosphere",
    "comp": {
-    "water": 6797211,
+    "water": 6797210,
     "co2": 17333012
    },
    "note": "燃焼ガス・素地から出た水蒸気とCO2"
@@ -6791,8 +6791,8 @@
    "direction": "out",
    "medium": "atmosphere",
    "comp": {
-    "water": 11908451,
-    "co2": 30376858
+    "water": 11908463,
+    "co2": 30376890
    },
    "note": "燃焼ガス・素地から出た水蒸気とCO2"
   },
@@ -6803,7 +6803,7 @@
    "direction": "in",
    "medium": "atmosphere",
    "comp": {
-    "o2": 22748716
+    "o2": 22748740
    },
    "note": "燃焼と有機物の酸化に使った空気中の酸素"
   },
@@ -6815,7 +6815,7 @@
    "medium": "atmosphere",
    "comp": {
     "water": 934127,
-    "co2": 2382810
+    "co2": 2382809
    },
    "note": "燃焼ガス・素地から出た水蒸気とCO2"
   },
@@ -6826,7 +6826,7 @@
    "direction": "in",
    "medium": "atmosphere",
    "comp": {
-    "o2": 1784465
+    "o2": 1784464
    },
    "note": "燃焼と有機物の酸化に使った空気中の酸素"
   },
@@ -6860,8 +6860,8 @@
    "direction": "out",
    "medium": "atmosphere",
    "comp": {
-    "water": 11908457,
-    "co2": 30376865
+    "water": 11908471,
+    "co2": 30376896
    },
    "note": "燃焼ガス・素地から出た水蒸気とCO2"
   },
@@ -6872,7 +6872,7 @@
    "direction": "in",
    "medium": "atmosphere",
    "comp": {
-    "o2": 22748722
+    "o2": 22748745
    },
    "note": "燃焼と有機物の酸化に使った空気中の酸素"
   },
@@ -6934,13 +6934,23 @@
   },
   "dHCalcination": {
    "id": "dHCalcination",
-   "value": 178000,
+   "value": 191590,
    "unit": "J/mol",
-   "status": "assumed",
+   "status": "sourced",
    "sources": [
-    "S-calc"
+    "S-thermo"
    ],
-   "note": "CaCO3 → CaO + CO2 の標準反応エンタルピー（吸熱）"
+   "note": "CaCO3 → CaO + CO2 の標準反応エンタルピー（吸熱）。OpenStax Chemistry 2e 付録の生成エンタルピー（CaO −634.9、CO2 −393.51、CaCO3 −1220.0）から計算。CaCO3 を約 −1207 とする表もあり、その場合は約178。資料間の差は未解決"
+  },
+  "dHHydration": {
+   "id": "dHHydration",
+   "value": -64470,
+   "unit": "J/mol",
+   "status": "sourced",
+   "sources": [
+    "S-thermo"
+   ],
+   "note": "CaO + H2O(l) → Ca(OH)2 の標準反応エンタルピー（発熱）。同じ表（Ca(OH)2 −985.2、H2O(l) −285.83）から計算"
   },
   "dHDehydroxylation": {
    "id": "dHDehydroxylation",
@@ -6954,13 +6964,13 @@
   },
   "dHCarbonCombustion": {
    "id": "dHCarbonCombustion",
-   "value": 393500,
+   "value": 393510,
    "unit": "J/mol",
-   "status": "assumed",
+   "status": "sourced",
    "sources": [
-    "S-comb"
+    "S-thermo"
    ],
-   "note": "C + O2 → CO2 の発熱"
+   "note": "C + O2 → CO2 の発熱（CO2 の生成エンタルピー −393.51、OpenStax）"
   },
   "woodLhvDry": {
    "id": "woodLhvDry",
@@ -7150,6 +7160,34 @@
     "S-abs"
    ],
    "note": "24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）。SHAB の手順は5時間煮沸＋19時間浸漬で、冷水浸漬との換算は未確認"
+  },
+  "kinHydrationTref": {
+   "id": "kinHydrationTref",
+   "value": 25,
+   "unit": "°C",
+   "status": "assumed",
+   "sources": [],
+   "note": "生石灰の消化の速さ：25 °C で半減期120秒と仮定。実際の速さは焼き方・粒度で大きく変わる（未確認）"
+  },
+  "cpLimeCharge": {
+   "id": "cpLimeCharge",
+   "value": 0.85,
+   "unit": "J/(g·K)",
+   "status": "assumed",
+   "sources": [
+    "S-heatcap"
+   ],
+   "note": "石灰の原料・生成物の比熱を一律に仮定。OpenStax の表に石灰はない"
+  },
+  "cpWater": {
+   "id": "cpWater",
+   "value": 4.186,
+   "unit": "J/(g·K)",
+   "status": "sourced",
+   "sources": [
+    "S-heatcap"
+   ],
+   "note": "水の比熱 4186 J/(kg·°C)（OpenStax、15 °C）"
   },
   "steamMoistureLimit": {
    "id": "steamMoistureLimit",
@@ -7388,10 +7426,26 @@
   {
    "id": "S-comb",
    "topic": "炭素の燃焼熱",
-   "retrieval": "not-found",
-   "candidates": [],
-   "summaryClaims": [],
-   "modelUse": "393.5 kJ/molは一般的な標準値として仮定（今回未照合）"
+   "retrieval": "retrieved",
+   "candidates": [
+    "S-thermo と同じ表：CO2(g) の ΔHf° = −393.51 kJ/mol"
+   ],
+   "summaryClaims": [
+    "C(graphite) + O2 → CO2 は −393.51 kJ/mol"
+   ],
+   "modelUse": "有機物（炭素として理想化）の燃焼熱。木炭など実際の炭素材料の値ではない"
+  },
+  {
+   "id": "S-thermo",
+   "topic": "標準生成エンタルピー（石灰の反応熱）",
+   "retrieval": "retrieved",
+   "candidates": [
+    "OpenStax Chemistry 2e「Standard Thermodynamic Properties for Selected Substances」(m68865) — openstax/osbooks-chemistry-bundle@db0a8e6, blob 716bcbd（data/science/sources-thermochem.json）"
+   ],
+   "summaryClaims": [
+    "CaO(s) −634.9, Ca(OH)2(s) −985.2, CaCO3(s, calcite) −1220.0, CO2(g) −393.51, H2O(l) −285.83 kJ/mol（ΔHf°, 298 K）"
+   ],
+   "modelUse": "焼成 +191.59 kJ/mol、消化 −64.47 kJ/mol を計算。298 K の標準値で、温度依存・反応の起こる温度（CO2 分圧との平衡）は扱わない。CaCO3 を −1207 前後とする表もあり、未解決"
   },
   {
    "id": "S-wood",

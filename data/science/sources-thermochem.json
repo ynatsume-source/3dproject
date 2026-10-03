@@ -1,0 +1,26 @@
+{
+  "note": "Science-side (Claude) source records, kept apart from data/science/sources.json (Codex). Same fields.",
+  "sources": [
+    {
+      "id": "openstax-chem-thermo-table",
+      "publisher": "OpenStax",
+      "title": "Standard Thermodynamic Properties for Selected Substances (Chemistry 2e, appendix)",
+      "repository": "openstax/osbooks-chemistry-bundle",
+      "commit": "db0a8e6027100ce082e67fc8879faab86f9a58a7",
+      "path": "modules/m68865/index.cnxml",
+      "blobSha": "716bcbdfc6aba71cecb030d85f5b088282183f49",
+      "url": "https://github.com/openstax/osbooks-chemistry-bundle/blob/db0a8e6027100ce082e67fc8879faab86f9a58a7/modules/m68865/index.cnxml",
+      "accessedDateJst": "2026-10-03",
+      "verification": "full-source-text-read",
+      "rowsRead": {
+        "CaO(s)": { "dHf_kJ_per_mol": -634.9 },
+        "Ca(OH)2(s)": { "dHf_kJ_per_mol": -985.2 },
+        "CaCO3(s) (calcite)": { "dHf_kJ_per_mol": -1220.0 },
+        "CO2(g)": { "dHf_kJ_per_mol": -393.51 },
+        "H2O(l)": { "dHf_kJ_per_mol": -285.83 }
+      },
+      "supports": "Standard enthalpies of formation at 298 K; reaction enthalpies by Hess's law: calcination +191.59 kJ/mol, hydration -64.47 kJ/mol, carbon combustion -393.51 kJ/mol.",
+      "doesNotVerify": "Temperature dependence, decomposition temperature or CO2 equilibrium, reaction rates, real limestone/shell composition, kiln performance. Other tables commonly list CaCO3 near -1207 kJ/mol (not checked here); the difference is unresolved."
+    }
+  ]
+}

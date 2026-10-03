@@ -29,12 +29,14 @@ export const PARAMS = {
     '常温の乾燥で環境から受け取る熱。出典は 37 °C の 2430 kJ/kg。25〜28 °C ではわずかに大きいはずだが、その値は出典になく未補正'),
   cpCeramic: P('cpCeramic', 0.9, 'J/(g·K)', 'assumed', ['S-cp', 'S-heatcap'],
     '素地・焼成体の比熱。温度依存は無視。OpenStax の表には粘土がなく、近い物質（コンクリート・花崗岩 840、ガラス 840）があるだけ'),
-  dHCalcination: P('dHCalcination', 178e3, 'J/mol', 'assumed', ['S-calc'],
-    'CaCO3 → CaO + CO2 の標準反応エンタルピー（吸熱）'),
+  dHCalcination: P('dHCalcination', 191.59e3, 'J/mol', 'sourced', ['S-thermo'],
+    'CaCO3 → CaO + CO2 の標準反応エンタルピー（吸熱）。OpenStax Chemistry 2e 付録の生成エンタルピー（CaO −634.9、CO2 −393.51、CaCO3 −1220.0）から計算。CaCO3 を約 −1207 とする表もあり、その場合は約178。資料間の差は未解決'),
+  dHHydration: P('dHHydration', -64.47e3, 'J/mol', 'sourced', ['S-thermo'],
+    'CaO + H2O(l) → Ca(OH)2 の標準反応エンタルピー（発熱）。同じ表（Ca(OH)2 −985.2、H2O(l) −285.83）から計算'),
   dHDehydroxylation: P('dHDehydroxylation', 0.6e6, 'J/kg(kaolinite)', 'assumed', ['S-kaol'],
     'カオリナイト脱水の吸熱量。原典未確認の概算'),
-  dHCarbonCombustion: P('dHCarbonCombustion', 393.5e3, 'J/mol', 'assumed', ['S-comb'],
-    'C + O2 → CO2 の発熱'),
+  dHCarbonCombustion: P('dHCarbonCombustion', 393.51e3, 'J/mol', 'sourced', ['S-thermo'],
+    'C + O2 → CO2 の発熱（CO2 の生成エンタルピー −393.51、OpenStax）'),
   woodLhvDry: P('woodLhvDry', 18.0e6, 'J/kg', 'assumed', ['S-wood'],
     '絶乾木材の低位発熱量'),
   woodAshFrac: P('woodAshFrac', 0.01, 'kg/kg(dry)', 'assumed', ['S-wood'],
@@ -77,6 +79,13 @@ export const PARAMS = {
   overfireC: P('overfireC', 1150, '°C', 'assumed', [], '試験粘土Aが変形し始める温度'),
   coldSoakFraction: P('coldSoakFraction', 0.8, 'ratio', 'assumed', ['S-abs'],
     '24時間冷水浸漬の吸水は煮沸飽和の約8割とする（飽和係数の考え方）。SHAB の手順は5時間煮沸＋19時間浸漬で、冷水浸漬との換算は未確認'),
+
+  // ---- lime (test-world fixtures; kinetics are game calibration)
+  kinHydrationTref: P('kinHydrationTref', 25, '°C', 'assumed', [],
+    '生石灰の消化の速さ：25 °C で半減期120秒と仮定。実際の速さは焼き方・粒度で大きく変わる（未確認）'),
+  cpLimeCharge: P('cpLimeCharge', 0.85, 'J/(g·K)', 'assumed', ['S-heatcap'],
+    '石灰の原料・生成物の比熱を一律に仮定。OpenStax の表に石灰はない'),
+  cpWater: P('cpWater', 4.186, 'J/(g·K)', 'sourced', ['S-heatcap'], '水の比熱 4186 J/(kg·°C)（OpenStax、15 °C）'),
 
   // ---- crack risks (probabilities per sample; game calibration) ------------------------
   steamMoistureLimit: P('steamMoistureLimit', 0.03, 'kg/kg(dry)', 'calibrated', ['S-steam'],

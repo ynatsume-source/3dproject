@@ -19,6 +19,7 @@ export type SpeciesId =
   | 'quartz'         // SiO2
   | 'calcite'        // CaCO3
   | 'lime'           // CaO
+  | 'portlandite'    // Ca(OH)2, hydrated lime
   | 'organic_c'      // organic matter in clay, idealised as carbon
   | 'co2'
   | 'o2'
@@ -41,6 +42,7 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
   quartz: { id: 'quartz', label: '石英 SiO2', formula: { Si: 1, O: 2 } },
   calcite: { id: 'calcite', label: '方解石 CaCO3', formula: { Ca: 1, C: 1, O: 3 } },
   lime: { id: 'lime', label: '酸化カルシウム CaO', formula: { Ca: 1, O: 1 } },
+  portlandite: { id: 'portlandite', label: '水酸化カルシウム Ca(OH)2', formula: { Ca: 1, O: 2, H: 2 } },
   organic_c: { id: 'organic_c', label: '有機物（炭素として理想化）', formula: { C: 1 },
     note: '実際の有機物はH・O・Nも含む。v0では炭素だけで近似する' },
   co2: { id: 'co2', label: '二酸化炭素 CO2', formula: { C: 1, O: 2 } },
@@ -176,6 +178,8 @@ export const REACTIONS = {
   dehydroxylation: { reactant: 'kaolinite' as SpeciesId, coeffs: { metakaolin: 1, water: 2 }, closeInto: 'water' as SpeciesId },
   // CaCO3 → CaO + CO2
   calcination: { reactant: 'calcite' as SpeciesId, coeffs: { lime: 1, co2: 1 }, closeInto: 'co2' as SpeciesId },
+  // CaO + H2O → Ca(OH)2
+  hydration: { reactant: 'lime' as SpeciesId, coeffs: { water: -1, portlandite: 1 }, closeInto: 'portlandite' as SpeciesId },
   // C + O2 → CO2  (o2 drawn from the air as a recorded boundary inflow)
   organicBurnout: { reactant: 'organic_c' as SpeciesId, coeffs: { o2: -1, co2: 1 }, closeInto: 'co2' as SpeciesId },
   // CH1.44O0.66 + 1.03 O2 → CO2 + 0.72 H2O
