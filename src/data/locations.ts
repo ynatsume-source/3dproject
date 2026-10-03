@@ -39,6 +39,7 @@ export interface Sea {
   depth: string; vis: number; temp: number; seed: number;
   tz: number; tide: { amp: number; lag: number; axis: [number, number] };
   blurb: string;
+  charm?: string;   // what draws people to it, in a line (the card on the globe)
   water: { up: number[]; hor: number[]; down: number[]; fog: number; abs: number[] };
   sand: number[]; rock: number[];
   f(x: number, z: number): number;
@@ -72,6 +73,7 @@ export const LOCATIONS: Sea[] = [
     id: 'gbr', swellHs: 1.3, name: 'グレートバリアリーフ', site: 'アジンコート・リーフ', region: 'Australia · Queensland',
     lat: -15.98, lon: 145.82, depth: '3–27 m', vis: 25, temp: 25.2, tempYear: [24, 29.5], seed: 11, tz: 10, tide: { amp: 1.1, lag: 0.4, axis: [0.3, -1] },
     blurb: '外洋に面したリボンリーフ。尾根と溝が交互に並ぶ「スパー・アンド・グルーブ」地形の斜面。',
+    charm: '世界最大のサンゴ礁。尾根と溝が交互に並ぶ地形と、そこに群れる魚の多さ',
     water: { up: [0.36, 0.72, 0.84], hor: [0.04, 0.33, 0.50], down: [0.01, 0.10, 0.20], fog: 0.026, abs: [0.26, 0.06, 0.04] },
     sand: [0.70, 0.67, 0.58], rock: [0.46, 0.43, 0.36],
     f(x, z) {
@@ -155,6 +157,7 @@ export const LOCATIONS: Sea[] = [
     id: 'miyako', swellHs: 0.7, name: '宮古島', site: '八重干瀬（やびじ）', region: 'Japan · Okinawa',
     lat: 25.0, lon: 125.25, depth: '3–15 m', vis: 40, temp: 28.4, tempYear: [21.5, 29.5], seed: 23, tz: 9, tide: { amp: 0.95, lag: 0.2, axis: [1, 0.35] },
     blurb: '宮古島の北に広がる国内最大級のサンゴ礁群。白砂の上にテーブルサンゴの根が点在する、宮古ブルーの浅瀬。',
+    charm: '宮古ブルーの澄んだ浅瀬と、どこまでも続くサンゴ。冬はザトウクジラも',
     water: { up: [0.24, 0.62, 1.0], hor: [0.0, 0.30, 0.76], down: [0.0, 0.08, 0.3], fog: 0.0135, abs: [0.24, 0.05, 0.022] },
     sand: [0.78, 0.77, 0.72], rock: [0.52, 0.50, 0.44],
     f(x, z) {
@@ -250,6 +253,7 @@ export const LOCATIONS: Sea[] = [
     id: 'maldives', swellHs: 0.8, name: 'モルディブ', site: '南アリ環礁のティラ', region: 'Maldives · South Ari Atoll',
     lat: 3.48, lon: 72.84, depth: '8–30 m', vis: 35, temp: 29.0, tempYear: [28, 30.2], seed: 37, tz: 5, tide: { amp: 0.5, lag: 0.1, axis: [-1, 0.2] },
     blurb: '環礁の中にそびえる海中の根「ティラ」。マンタのクリーニングステーションがあり、ジンベエザメが通年見られる海域。',
+    charm: 'マンタが舞うクリーニングステーションと、一年中会えるジンベエザメ',
     water: { up: [0.30, 0.68, 0.95], hor: [0.02, 0.26, 0.58], down: [0.0, 0.07, 0.25], fog: 0.019, abs: [0.25, 0.055, 0.025] },
     sand: [0.76, 0.75, 0.70], rock: [0.48, 0.44, 0.40],
     f(x, z) {
@@ -332,6 +336,7 @@ export const LOCATIONS: Sea[] = [
     id: 'pacific', swellHs: 2.2, name: '北太平洋', site: '北太平洋のまんなか', region: 'North Pacific · Subtropical Gyre',
     lat: 32.0, lon: -145.0, depth: '水深 4,800 m', vis: 60, temp: 22.5, tempYear: [17.5, 24.5], seed: 53, tz: -10, tide: { amp: 0.3, lag: 0.6, axis: [0.8, 0.6] },
     blurb: 'いちばん近い陸地まで1,700km。海底は5km下。地球でいちばん澄んで、いちばん何もない青の真ん中を、ただ漂う。',
+    charm: '陸から1,700km。何もない青の真ん中に、ただ漂う静けさ',
     pelagic: true,
     water: { up: [0.2, 0.52, 0.98], hor: [0.0, 0.15, 0.5], down: [0.0, 0.02, 0.14], fog: 0.015, abs: [0.3, 0.06, 0.02] },
     sand: [0.5, 0.5, 0.5], rock: [0.4, 0.4, 0.4],
@@ -390,6 +395,7 @@ export const LOCATIONS: Sea[] = [
     id: 'kayama', swellHs: 0.35, name: '嘉弥真島', site: '島の南西の浜とラグーン', region: 'Japan · Okinawa · Yaeyama',
     lat: 24.36107, lon: 123.99674, depth: '0–8 m', vis: 25, temp: 28.6, tempYear: [22, 30], seed: 57, tz: 9, tide: { amp: 0.8, lag: 0.25, axis: [0.8, 0.6] },
     blurb: '小浜島の北に浮かぶ、周囲2kmほどの無人島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
+    charm: 'ドット、カメマル、ランタン、ラッコが暮らす無人島。浜での毎日と、少しずつできていくもの',
     water: { up: [0.34, 0.80, 0.92], hor: [0.05, 0.40, 0.58], down: [0.02, 0.17, 0.28], fog: 0.026, abs: [0.26, 0.055, 0.03] },
     sand: [0.84, 0.82, 0.75], rock: [0.55, 0.52, 0.45],
     land: { half: HALF, far: 760, roam: 720, center: [320, -270] },
@@ -452,6 +458,7 @@ export const LOCATIONS: Sea[] = [
     id: 'redsea', swellHs: 0.9, name: '紅海', site: 'エルフィンストーン・リーフ', region: 'Egypt · Marsa Alam',
     lat: 25.31, lon: 34.86, depth: '4–40 m', vis: 40, temp: 26.0, tempYear: [22.5, 29.5], seed: 71, tz: 2, tide: { amp: 0.3, lag: 0.3, axis: [0, 1] },
     blurb: '砂漠に囲まれた細長い海の、沖にひとすじ伸びるサンゴの尾根。両側は深い青へ切れ落ち、壁をソフトコーラルが覆う。',
+    charm: 'ソフトコーラルに覆われた壁と、両側が深い青へ切れ落ちる尾根',
     water: { up: [0.25, 0.6, 0.98], hor: [0.01, 0.2, 0.6], down: [0.0, 0.05, 0.28], fog: 0.016, abs: [0.26, 0.055, 0.022] },
     sand: [0.82, 0.8, 0.74], rock: [0.52, 0.47, 0.41],
     f(x, z) {
@@ -525,6 +532,7 @@ export const LOCATIONS: Sea[] = [
     id: 'galapagos', swellHs: 1.4, name: 'ガラパゴス', site: 'ウルフ島の東', region: 'Ecuador · Galápagos · Wolf Island',
     lat: 1.382, lon: -91.806, depth: '8–35 m', vis: 18, temp: 23.5, tempYear: [21, 27], seed: 89, tz: -6, tide: { amp: 1.0, lag: 0.7, axis: [1, 0.3] },
     blurb: '赤道の下、冷たい湧昇流と暖かい海流がぶつかる火山の島。黒い溶岩の岩が転がる斜面の上を、シュモクザメの群れが流れていく。',
+    charm: 'シュモクザメの群れと、湧昇流が運ぶ命の濃さ',
     water: { up: [0.4, 0.72, 0.78], hor: [0.08, 0.36, 0.44], down: [0.03, 0.14, 0.2], fog: 0.027, abs: [0.26, 0.06, 0.055] },
     sand: [0.52, 0.5, 0.46], rock: [0.34, 0.32, 0.3],
     f(x, z) {
@@ -587,6 +595,7 @@ export const LOCATIONS: Sea[] = [
     id: 'carnatic', swellHs: 0.8, name: '紅海北部', site: 'アブ・ヌハス礁のカルナティック号', region: 'Egypt · Gulf of Suez · Abu Nuhas',
     lat: 27.5817, lon: 33.931, depth: '2–28 m', vis: 30, temp: 24.0, tempYear: [21.5, 28], seed: 97, tz: 2, tide: { amp: 0.4, lag: 0.35, axis: [1, 0.2] },
     blurb: '1869年、インドへ向かう途中にこの礁で沈んだ帆走汽船カルナティック号が、砂の斜面に横たわる。木の甲板は朽ちて鉄の肋骨だけが残り、その間を光の筋とグラスフィッシュの群れが流れる。',
+    charm: '150年前に沈んだ船と、その肋骨の間を流れる光と魚',
     water: { up: [0.27, 0.62, 0.95], hor: [0.02, 0.22, 0.52], down: [0.0, 0.06, 0.24], fog: 0.02, abs: [0.26, 0.055, 0.025] },
     sand: [0.86, 0.83, 0.76], rock: [0.52, 0.47, 0.41],
     f(x, z) {

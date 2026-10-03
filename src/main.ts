@@ -1390,31 +1390,47 @@ function checkSightings() {
 /* ================= globe UI ================= */
 const fmtLL = (lat: number, lon: number) => `${Math.abs(lat).toFixed(2)}°${lat < 0 ? 'S' : 'N'} ${Math.abs(lon).toFixed(2)}°${lon < 0 ? 'W' : 'E'}`;
 const pinEls = LOCATIONS.map((loc, i) => {
-  const b = document.createElement('button'); b.type = 'button'; b.className = loc.id === 'kayama' ? 'pin below' : 'pin';   // (next to Miyako on the globe: its label hangs below)
+  const b = document.createElement('button'); b.type = 'button'; b.className = (loc.id === 'kayama' ? 'pin below' : 'pin') + (loc.residents ? ' isle' : '');   // (the residents' island in warmer light, as its card)   // (next to Miyako on the globe: its label hangs below)
   b.innerHTML = `<i></i><span>${loc.name}<small id="pinTime${i}"></small></span>`;
   b.setAttribute('aria-label', `${loc.name} ${loc.site} へ潜る`);
   b.onclick = () => dive(loc);
   b.onmouseenter = () => setHot(i); b.onmouseleave = () => setHot(-1);
   $('pins').appendChild(b); return b;
 });
+// the cards: the seas in the order they are best met (Miyako first), then — apart, under its own heading —
+// the island where the residents live, another kind of place: theirs, to visit
+const CARD_ORDER = ['miyako', 'maldives', 'gbr', 'redsea', 'galapagos', 'carnatic', 'pointlobos', 'pacific'];
+const cardRank = (id: string) => { const k = CARD_ORDER.indexOf(id); return k < 0 ? CARD_ORDER.length : k; };
+const RESIDENT_NAMES = ['ドット', 'カメマル', 'ランタン', 'ラッコ'];
 const cardEls = LOCATIONS.map((loc, i) => {
   const li = document.createElement('li');
-  const chips = [...loc.species.filter((s) => s.big || s.habitat === 'anemone').map((s) => s.ja), ...(loc.extraGuide || []).map((s) => s.ja)].slice(0, 5);
-  li.innerHTML = `<button type="button" class="loc">
+  const isle = !!loc.residents;
+  const chips = isle ? RESIDENT_NAMES : [...loc.species.filter((s) => s.big || s.habitat === 'anemone').map((s) => s.ja), ...(loc.extraGuide || []).map((s) => s.ja)].slice(0, 5);
+  li.innerHTML = `<button type="button" class="loc${isle ? ' isle' : ''}">
     <span class="rg">${loc.region}</span>
     <span class="nm">${loc.name}<small>${loc.site}</small></span>
+    ${loc.charm ? `<span class="ch">${loc.charm}</span>` : ''}
     <span class="meta"><span>${fmtLL(loc.lat, loc.lon)}</span><span>水深 ${loc.depth}</span><span>透明度 約${loc.vis} m</span><span>水温 ${loc.temp.toFixed(0)}°C</span></span>
     <span class="now" id="cardNow${i}"></span>
     <span class="bl">${loc.blurb}</span>
     <span class="chips">${chips.map((c) => `<span>${c}</span>`).join('')}</span>
-    <span class="go">この海へ潜る →</span></button>`;
+    <span class="go">${isle ? '島をたずねる →' : 'この海へ潜る →'}</span></button>`;
   const b = li.firstElementChild as HTMLButtonElement;
   b.onclick = () => dive(loc);
   b.onmouseenter = () => { setHot(i); if (!gv.tween) focusLoc(loc); };
   b.onmouseleave = () => setHot(-1);
   b.onfocus = () => setHot(i);
-  $('locList').appendChild(li); return b;
+  (li as any).rank = (loc.residents ? 100 : 0) + cardRank(loc.id);
+  return b;
 });
+{
+  const lis = cardEls.map((b) => b.parentElement as HTMLLIElement).sort((a, b) => (a as any).rank - (b as any).rank);
+  let headed = false;
+  for (const li of lis) {
+    if ((li as any).rank >= 100 && !headed) { const h = document.createElement('li'); h.className = 'isle-head'; h.textContent = '彼らの暮らす島'; $('locList').appendChild(h); headed = true; }
+    $('locList').appendChild(li);
+  }
+}
 function setHot(i: number) {
   earthMat.uniforms.uHot.value = i;
   pinEls.forEach((p, k) => p.classList.toggle('hot', k === i));

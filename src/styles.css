@@ -714,3 +714,15 @@ body:has(#guide:not([hidden])) #quick { display: none; }
   #caption .n { font-size: 10.5px; line-height: 1.6; margin-top: 5px; padding-top: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   #caption .n:empty { display: none; }
 }
+
+/* the globe's cards: a line on what draws people to each sea; the residents' island apart, in warmer light */
+.loc .ch { font-size: 12.5px; line-height: 1.6; color: var(--accent); letter-spacing: .04em; }
+#locList .isle-head { margin: 10px 2px -2px; font-size: 11px; letter-spacing: .24em; color: rgba(255, 217, 143, 0.8); display: flex; align-items: center; gap: 10px; }
+#locList .isle-head::after { content: ''; flex: 1; height: 1px; background: rgba(255, 217, 143, 0.25); }
+.loc.isle { background: linear-gradient(160deg, rgba(48, 36, 18, 0.62), rgba(14, 30, 34, 0.62)); border-color: rgba(255, 217, 143, 0.28); }
+.loc.isle:hover, .loc.isle.hot { border-color: rgba(255, 217, 143, 0.6); background: linear-gradient(160deg, rgba(64, 46, 22, 0.72), rgba(18, 40, 44, 0.72)); }
+.loc.isle .ch, .loc.isle .go { color: var(--lamp); }
+.loc.isle .chips span { border-color: rgba(255, 217, 143, 0.3); background: rgba(255, 217, 143, 0.07); }
+@media (max-width: 760px) { .loc .ch { font-size: 12px; } }
+.pin.isle i { border-color: var(--lamp); background: rgba(255, 217, 143, 0.25); box-shadow: 0 0 12px var(--lamp); }
+.pin.isle span { border-color: rgba(255, 217, 143, 0.3); }
