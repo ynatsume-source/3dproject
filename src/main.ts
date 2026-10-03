@@ -1877,6 +1877,7 @@ function setMode(m: 'auto' | 'manual') {
   if (cur) skyLabel();
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
+  $('btnMode').setAttribute('aria-pressed', String(m === 'manual')); $('btnMode').querySelector('span')!.textContent = m === 'manual' ? '自動巡航に戻る' : '手動で操縦';
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
   hint(m === 'auto'
     ? (isTouch ? 'ドラッグで見回す · 気になる生きものをタップするとそこへ向かいます' : 'ドラッグで見回す · 気になる生きものをクリックするとそこへ向かいます')
@@ -2280,6 +2281,7 @@ $('personas').innerHTML = PERSONAS.map((p) => `<button type="button" role="radio
 $('personas').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-p]') as HTMLElement | null; if (b) setPersona(personaById(b.dataset.p!)); });
 applyPersona();
 $('btnManual').onclick = () => setMode('manual');
+$('btnMode').onclick = () => setMode(drone.mode === 'manual' ? 'auto' : 'manual');
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
 setCaption(captionOn);

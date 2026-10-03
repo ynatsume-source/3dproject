@@ -612,6 +612,7 @@ body.dock-open #dock .opt { animation: softIn .55s ease both; }
 #quick button:focus-visible span { opacity: 1; }
 #quick #btnSky[aria-pressed="true"] .arrow { transform: rotate(180deg); transform-origin: 12px 7px; }
 #quick #btnSound[aria-pressed="false"] .waves { opacity: 0.25; }
+#quick #btnMode[aria-pressed="true"] .auto { opacity: 0; }
 @media (max-width: 760px) { #quick { right: 10px; top: calc(176px + env(safe-area-inset-top, 0px)); gap: 8px; } #quick button { width: 36px; height: 36px; } #quick button svg { width: 17px; height: 17px; } }
 body.mode-globe #quick, body.hud-off #quick { opacity: 0 !important; pointer-events: none; }
 body.pov:not(.pov-ui) #quick { opacity: 0 !important; pointer-events: none; }
@@ -703,6 +704,8 @@ body.hud-off #newMark { display: none; }
   #minimap { width: 96px; height: 96px; border-radius: 20px; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
   #quick { top: calc(114px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); gap: 6px; }
   #quick button { width: 34px; height: 34px; } #quick button svg { width: 16px; height: 16px; }
+  /* (the shortest phones on their side: six round buttons still clear of the bar below) */
+  @media (max-height: 400px) { #quick { top: calc(110px + env(safe-area-inset-top, 0px)); gap: 4px; } #quick button { width: 32px; height: 32px; } }
   /* the up/down buttons of manual flight beside the quick column, not under it */
   #vbtns { right: calc(62px + env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
   #joy { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
