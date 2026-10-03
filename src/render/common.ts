@@ -231,14 +231,14 @@ float cloudAt(vec3 d){
 vec3 skyAir(vec3 d, float disks){
   float sy = uAirSun.y, day = dayAir(), h = max(d.y, 0.0);
   float twi = smoothstep(-0.28, -0.02, sy) * (1.0 - smoothstep(0.02, 0.35, sy));   // dawn and dusk
-  vec3 zen = mix(vec3(0.085, 0.072, 0.22), vec3(0.13, 0.33, 0.7), day);   // (night: a deep blue-violet, as a dark-sky site looks to adapted eyes)
-  vec3 hor = mix(vec3(0.12, 0.11, 0.24), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
+  vec3 zen = mix(vec3(0.058, 0.05, 0.155), vec3(0.13, 0.33, 0.7), day);   // (night: a deep blue-violet, as a dark-sky site looks to adapted eyes — near black, but not black)
+  vec3 hor = mix(vec3(0.085, 0.08, 0.175), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
   zen = mix(zen, vec3(0.14, 0.18, 0.36), twi * 0.6);
   float mu = dot(d, uAirSun), sideS = pow(max(mu, 0.0) * 0.5 + 0.5, 4.0);
   hor = mix(hor, vec3(1.0, 0.5, 0.25), twi * (0.35 + 0.65 * sideS));
   vec3 c = mix(hor, zen, pow(h, 0.42));
   c += vec3(1.0, 0.42, 0.28) * twi * sideS * exp(-h * 9.0) * 0.6;                       // the glow over where the sun sets
-  c += vec3(0.1, 0.16, 0.3) * uMoonI * (1.0 - 0.5 * uMoonVeil) * (1.0 - day) * (1.3 - h);   // moonlit sky (as bright as the moon seen from under the water suggests; less with it behind cloud)
+  c += vec3(0.075, 0.12, 0.225) * uMoonI * (1.0 - 0.5 * uMoonVeil) * (1.0 - day) * (1.3 - h);   // moonlit sky (as bright as the moon seen from under the water suggests; less with it behind cloud)
   vec3 sc = sunAirCol();
   c += sc * pow(max(mu, 0.0), 14.0) * 0.35 * day;                                        // bright haze round the sun
   if (disks < 0.0) return c * mix(1.0, 0.6, uCloud) * (1.0 + uFlash * 0.35);               // cheap: just the light of the sky
