@@ -704,3 +704,13 @@ body:has(#guide:not([hidden])) #quick { display: none; }
 }
 /* (two quick taps on a button are two taps, never a double-tap zoom: the save confirmation relies on it) */
 #dock button, #quick button, #menu button, #timePanel button, #guide button, #reveal { touch-action: manipulation; }
+
+/* the caption on a phone: smaller, and its note kept to three lines */
+@media (max-width: 560px) {
+  #caption { left: 12px; width: min(300px, calc(100vw - 24px)); padding: 8px 11px 9px; border-radius: 12px; }
+  #caption .k { font-size: 9px; margin-bottom: 4px; }
+  #caption .t b { font-size: 13px; } #caption .t i { font-size: 9.5px; }
+  #caption .s { font-size: 10.5px; margin-top: 3px; }
+  #caption .n { font-size: 10.5px; line-height: 1.6; margin-top: 5px; padding-top: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  #caption .n:empty { display: none; }
+}

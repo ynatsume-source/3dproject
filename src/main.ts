@@ -198,12 +198,15 @@ function captionText(sj: Subject) {
   const note = e ? e.note.split('。').filter(Boolean).slice(0, 2).join('。') + '。' : '';
   return { t: sj.label, i: e?.sci ?? '', s: sj.status() + sizeTxt, n: note };
 }
-let cruiseSubj: Subject | null = null, cruiseT = 0;
+let cruiseSubj: Subject | null = null, cruiseT = 0, capLeft = 0, capQuiet = 0;
+const capSeen = new Map<string, number>(), capNoted = new Set<string>();   // (when each kind was last told about; whose notes have been given)
 function updateCaption(dt: number) {
   const el = $('caption'); let sh = lastShot;
   // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by
+  capQuiet -= dt;
   if (captionOn && !(sh && (sh.phase === 'observe' || sh.asked)) && !watch.r && cur && camera.position.y < 0) {   // (flown by hand too: what is in front of it)
-    if ((cruiseT -= dt) < 0) {
+    if (capQuiet > 0 && !(capShot as any)?.cruise) cruiseSubj = null;   // (a while of nothing after one: the view to itself)
+    else if ((cruiseT -= dt) < 0) {
       cruiseT = 2;
       const fwd = U.uCamFwd.value; let best: Subject | null = null, bs = 0;
       for (const s of cur.eco.subjects()) {
@@ -219,17 +222,33 @@ function updateCaption(dt: number) {
   } else cruiseSubj = null;
   // (asked for, by a tap or from the guide: told about it from the moment it is asked for, all the way there)
   const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked) && (drone.mode === 'auto' || !!(sh as any).cruise) && !watch.r && sh.subject.kind !== 'cave';
+  // (a passing one, once up, stays its reading time even if it has swum out of view or another passes: only
+  // something being filmed takes its place sooner)
+  if (capLeft > 0 && capShot && (capShot as any).cruise && captionOn && !watch.r && (!want || (sh as any).cruise)) {
+    if ((capLeft -= dt) <= 0) { el.classList.remove('on'); capShot = null; cruiseSubj = null; capQuiet = rr(12, 20); }
+    return;
+  }
   if (!want) { if (el.classList.contains('on')) el.classList.remove('on'); capShot = null; return; }
   if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
   if (capShot !== sh || capPhase !== sh!.phase) {
     capShot = sh; capPhase = sh!.phase; capT = 0;
     const c = captionText(sh!.subject);
+    // Not the same thing over and over: a kind told about in the last three minutes is not told again
+    // unless asked for (a tap, the guide), and its notes are given once in a visit (again only when asked)
+    const kindKey = sh!.subject.label.replace(/の群れ$/, ''), asked = !!sh!.asked || !!sh!.zoom, nowS = performance.now() / 1000;
+    if (!asked && nowS - (capSeen.get(kindKey) ?? -1e9) < 180) { el.classList.remove('on'); capLeft = 0; return; }
+    capSeen.set(kindKey, nowS);
+    if (!asked && capNoted.has(kindKey)) c.n = '';
+    if (c.n) capNoted.add(kindKey);
     (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
     if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
     (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
     (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
     el.classList.add('on');
+    // up for about as long as it takes to read (Japanese at an easy ~7 characters a second), then it fades
+    capLeft = Math.min(asked ? 16 : 12, Math.max(4.5, (c.t.length + c.s.length + c.n.length) / 7 + 2));
   }
+  if (capLeft > 0 && (capLeft -= dt) <= 0) el.classList.remove('on');
   if ((capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(sh!.subject).s; }
 }
 function onShotChange(prev: Shot | null, next: Shot | null) {

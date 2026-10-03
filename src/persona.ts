@@ -42,6 +42,17 @@ export interface Persona {
 
 export const PERSONAS: Persona[] = [
   {
+    // the default: a bit of everything at an easy pace — the big ones and the events, turtles and the reef's
+    // small lives, now and then the sky; it stays long enough to see a thing, and does not linger on the
+    // commonest (a passing school) when there is something else about
+    id: 'balanced', ja: '程よく', blurb: 'ほどよい速さで巡り、いろいろな生きものを少しずつ見せてくれる。大物や出来事には寄り、ときどき空へも出る。',
+    cruise: 1.0, dwell: 1.0, sway: 1.0, skyGap: [480, 760], skyStay: [140, 200], altK: 1.2, route: 'wander', distK: 1.0, turn: 1.0, skyAlt: 1.0,
+    styles: { orbit: 2, follow: 2, wait: 1, low: 1, detail: 1 }, giant: { flank: 2, pass: 1.5, under: 1, front: 1 }, spinK: 0.9, switchK: 1.8, minHold: 9, rest: [18, 40],
+    jumpTo: (s) => s.kind === 'manta' || (s.kind === 'giant' && s.hold != null),
+    weight: (s, c) => (c.isNew ? 1.4 : 1) * (({ giant: 1.6, manta: 1.6, turtle: 1.4, hunt: 1.3, octopus: 1.3, big: 1.2, critter: 1.1, anemone: 1.0, school: 0.75, cave: 0.8 } as Record<string, number>)[s.kind] ?? 1),
+    talk: 6, gap: 30,
+  },
+  {
     id: 'calm', ja: 'おだやか', blurb: '中層をゆっくり漂い、通りかかるものを待って長く眺める。めったに目移りしない。',
     cruise: 0.7, dwell: 1.7, sway: 0.6, skyGap: [700, 1000], skyStay: [180, 240], altK: 1.9, route: 'mid', distK: 1.4, turn: 0.55, skyAlt: 1.0,
     styles: { wait: 3, orbit: 2, low: 0.6 }, giant: { pass: 3, flank: 1, under: 1, front: 0.3 }, spinK: 0.5, switchK: 3.5, minHold: 20, rest: [50, 100],
