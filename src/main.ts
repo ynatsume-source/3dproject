@@ -421,7 +421,7 @@ function updateDrone(dt: number, now: number) {
       }
     }
     _v.subVectors(way, drone.pos);
-    const vl = _v.length(), L = rest >= 0 ? rest : vl, top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
+    const vl = _v.length(), L = rest >= 0 ? rest : vl, top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : shot.leapView === 'rise' ? 3.2 : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(vl, 1e-4));
     // under the water: no faster than one swims (a hunt is followed at its own pace); on the way out, mostly up
     if (drone.pos.y < 0 && !shot.close) {

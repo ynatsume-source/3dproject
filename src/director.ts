@@ -8,7 +8,8 @@ import type { Style, GiantMove } from './persona';
 
 export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean; down?: boolean;   // (down: after a leap, gone in after the animal)
   tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
-  leapView?: 'line' | 'close' | 'air'; // how a leap is being filmed (below)
+  leapView?: 'line' | 'close' | 'air' | 'rise'; // how a leap is being filmed (below)
+  risen?: boolean;                     // (a manta's leap, 'rise': up from under the water to the waterline, for the leap itself)
 }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
@@ -146,7 +147,10 @@ export class Director {
       this.side = best[0]; this.ang = best[1];
       // the framing: mostly from the waterline, now and then close in, now and then from the air
       const lat = L * 0.5 + 1.5, cx = p.x + dx * 2.5 - dz * this.side * lat, cz = p.z + dz * 2.5 + dx * this.side * lat;
-      const opts: ('line' | 'close' | 'air')[] = ['line', 'line', 'close', 'close', 'air'].filter((v) => v !== this.lastLeapView) as any;
+      // (a manta: mostly from under the water, coming up to the waterline only for the leap itself — the owner's
+      // way to wait for one; now and then from the air)
+      const mantaLeap = L < 7;
+      const opts: ('line' | 'close' | 'air' | 'rise')[] = (mantaLeap ? ['rise', 'rise', 'rise', 'air'] : ['line', 'line', 'close', 'close', 'air']).filter((v) => v !== this.lastLeapView || v === 'rise') as any;
       let view = opts[Math.floor(Math.random() * opts.length)];
       if (view === 'close' && floor(cx, cz) > -1.6) view = 'line';   // (no water to sit in beside it)
       sh.leapView = view; this.lastLeapView = view;
@@ -165,7 +169,18 @@ export class Director {
       this.t += dt;
       return sh;
     }
-    if (view === 'close') {
+    if (view === 'rise') {
+      // waiting under the water, beside where it will come out and a little back along its way, a couple of metres
+      // down: it comes in out of the blue and up toward the light. Once it is on its way up (about two seconds
+      // before it is out) the camera goes up to the waterline beside the spot, and films the leap half in the
+      // air, half in the sea
+      // (under the water, back along its way, so the manta coming in is 13-27 m off and seen in clear water; up
+      // at the start of its run, with time to be at the waterline for the leap)
+      sh.risen = sh.risen || body.y > -6.3;
+      const lat = Math.min(d, sh.risen ? 6.5 : 5.5), along = sh.risen ? -1.5 : -8;
+      const x = mx - dz * this.side * lat + dx * along, z = mz + dx * this.side * lat + dz * along;
+      sh.pos.set(x, sh.risen ? 0 : Math.min(-1.6, Math.max(-1.8, floor(x, z) + 1.2)), z);
+    } else if (view === 'close') {
       const lat = L * 0.5 + 1.5;
       sh.pos.set(p.x + dx * 2.5 - dz * this.side * lat, 0, p.z + dz * 2.5 + dx * this.side * lat);
     } else if (view === 'air') {
@@ -176,9 +191,9 @@ export class Director {
     // the line: the horizon a fifth from the top while it is under (lens tipped down ~0.4), four fifths down
     // while it is out (tipped up as much), following its height through the surface
     // (tipped up a moment ahead of it, as it nears the surface, so the camera is with it when it comes out)
-    sh.tilt = view === 'line' ? -0.4 + 0.8 * Math.min(1, Math.max(0, (body.y + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
+    sh.tilt = view === 'line' || (view === 'rise' && sh.risen) ? -0.4 + 0.8 * Math.min(1, Math.max(0, (body.y + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
     sh.zoom = false;   // (a leap is filmed with the lens as the framing has it, not closed in on)
-    sh.surface = view !== 'air';
+    sh.surface = view !== 'air' && (view !== 'rise' || !!sh.risen);
     const gap = Math.hypot(drone.x - sh.pos.x, drone.z - sh.pos.z);
     if (sh.phase === 'approach' && (gap < 3 || this.t > 20)) sh.phase = 'observe';
     this.t += dt;
