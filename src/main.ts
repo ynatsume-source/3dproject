@@ -107,6 +107,7 @@ const pipPost = new Post({ ...TIERS.low, vol: 0, bloom: 0, ao: 0 });
 const pipCam = new THREE.PerspectiveCamera(42, 16 / 10, 0.08, 460);
 let pipOff = 0, pipLift = 0, pipClear = 0;
 const pipLook = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
+let pipShowUntil = 0, pipRestUntil = 0;   // (the hunt window: open until; and not again until)
 let pipOn = (() => { try { return localStorage.getItem('seaglass.pip') !== '0'; } catch (e) { return true; } })();
 let pipSubj: Subject | null = null, pipT = 0, pipFade = 0, pipScan = 0, pipAng = 0, pipBoost = 1, pipIdle = 0;
 const pipFrom = new THREE.Vector3(); let pipFromT = 0, pipSlow = false;   // (where the hunter was a few seconds ago: has anything happened since?)
@@ -2371,23 +2372,29 @@ function renderPip(dt: number, air: boolean) {
       const st = pipSubj.status();
       pipIdle = !st.includes('追いかけ') && (st.includes('かわされ') || pipSlow) ? pipIdle + 0.5 : 0;
     }
-    const stale = !pipSubj || !pipSubj.live() || pipIdle > 3;
+    // (only the decisive moments: a hunt the window is not already on is taken up only when the chase is on)
+    const stale = !pipSubj || !pipSubj.live() || pipIdle > 3 || (pipFade < 0.02 && !pipSubj.status().includes('追いかけ'));
     if (stale) {
       const was = pipSubj;
       let best: Subject | null = null, bd = 140;
       for (const s of cur.eco.subjects()) {
-        if (s.kind !== 'hunt' || !s.live() || s.key === filming || (was && s.key === was.key && pipIdle > 3)) continue;
+        if (s.kind !== 'hunt' || !s.live() || s.key === filming || (was && s.key === was.key && pipIdle > 3) || !s.status().includes('追いかけ')) continue;
         const p = s.pos(); if (!p) continue;
         const d = Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z) - (s.status().includes('追いかけ') ? 50 : 0);
         if (d < bd) { bd = d; best = s; }
       }
-      if (best || !was || !was.live()) pipSubj = best;
+      if (best || !was || (!was.live() && performance.now() > pipShowUntil)) pipSubj = best;   // (an ended hunt stays on until its moment is told)
       if (pipSubj && pipSubj !== was) { pipT = 0; pipIdle = 0; pipAng = Math.random() * 6.28; pipOff = 0; pipLift = 0; pipClear = 0; pipSlow = false; pipFromT = 0; const q = pipSubj.pos(); if (q) pipFrom.set(q.x, q.y, q.z); }
     }
     if (pipSubj && pipSubj.key === filming) pipSubj = null;
   }
+  // The window opens only for the decisive moment — a chase on, nearby — and stays a few seconds past it to
+  // see how it ends (caught, or away); then it rests a while before the next (not every hunt, every time).
   // (not while watching a resident, from behind or through its eyes: its card sits where the window would)
-  const want = pipOn && pipSubj && pipSubj.live() && !watch.r ? 1 : 0;
+  const nowP = performance.now(), chase = !!pipSubj && pipSubj.live() && pipSubj.status().includes('追いかけ');
+  if (chase && (pipFade > 0.02 || nowP > pipRestUntil)) pipShowUntil = nowP + 5000;
+  const want = pipOn && pipSubj && nowP < pipShowUntil && !watch.r ? 1 : 0;
+  if (!want && pipFade > 0.5) pipRestUntil = nowP + 75000;
   pipFade += (want - pipFade) * Math.min(1, dt * 5);
   const el = $('pip');
   el.style.opacity = String(pipFade);
