@@ -1,5 +1,7 @@
 # 1f7538fの修正確認
 
+後続の修正確認: [e118e9fの再レビュー](CODEX_FIX_REVIEW_e118e9f.md)。F1・F2と元の焼成復元問題は修正確認済み。浸漬の状態スキーマに説明との不一致が1点残る。
+
 2026-10-03 JST。対象は `codex/civilization-simulation` の
 `1f7538fa9e71ee6239bbaca6625876179196d33e`（afc5a87、ceffb29、1f7538f）。
 独立したdetached worktreeで確認した。科学実装・mainは変更していない。
