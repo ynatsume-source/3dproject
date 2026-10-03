@@ -24,7 +24,7 @@ function fire(bounds) {
 }
 results.firingChunking={one30s:fire([0,30000]),thirty1s:fire(Array.from({length:31},(_,i)=>i*1000))};
 const zero={...base,equipment:[{...base.equipment[0],params:{...base.equipment[0].params,heatCapJPerK:0}}]};
-const zr=scienceStep(zero);results.zeroCapacity={status:zr.status,kilnC:String(zr.state.data.kilnC),violations:validateResult(zero,zr)};
+const zr=scienceStep(zero);results.zeroCapacity={status:zr.status,kilnC:zr.state.data ? String(zr.state.data.kilnC) : null,violations:validateResult(zero,zr)};
 const cracked={...base,interval:{from:0,to:24*3600000},energy:[{...base.energy[0],maxJ:15000*24*3600}],
   lots:[{...base.lots[0],quality:{...base.lots[0].quality,crack:2}}]};
 const cr=scienceStep(cracked);results.priorCrack={status:cr.status,qualityCrack:cr.produced[0].quality.crack,observations:cr.observations,violations:validateResult(cracked,cr)};

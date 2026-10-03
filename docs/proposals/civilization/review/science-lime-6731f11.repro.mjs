@@ -36,7 +36,7 @@ results.negativeEnergy=validateResult(base,{...normal,energy:[
 ]});
 const zeroCap={...base,equipment:[{...base.equipment[0],params:{...base.equipment[0].params,heatCapJPerK:0}}]};
 const z=scienceStep(zeroCap);
-results.zeroCapacity={status:z.status,chamberC:String(z.state.data.chamberC),violations:validateResult(zeroCap,z)};
+results.zeroCapacity={status:z.status,chamberC:z.state.data ? String(z.state.data.chamberC) : null,violations:validateResult(zeroCap,z)};
 function hydrateReq(waterMg) {
   return {...base, processId:'p21x_lime_hydrate_test',interval:{from:0,to:12*3600000},energy:[],
     lots:[{lotId:'lot:lime',materialId:'quicklime',amount:{value:56080,unit:'mg'},location:'site:review',quality:{x_lime_ppm:1000000}},
