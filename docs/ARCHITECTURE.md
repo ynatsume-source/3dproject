@@ -89,6 +89,9 @@ main.ts のループ（毎フレーム）             ▼
 | `scripts/stuck-check.ts maldives` | 狩りが一つの段階で止まったままにならないか | 成功（モルディブ・GBRとも 0） |
 | `scripts/cave-check.ts` | 洞窟の通り抜け | 成功（両方向とも完走、岩の中 0） |
 | `scripts/bait-check.ts` / `jitter-check.ts` / `motion-check.ts` | ベイトボール、揺れ、ドローンの岩への接近 | 成功（ドローンが岩に入る 0.00%） |
+| `scripts/turtle-view-check.ts` | カメをどちらから撮っているか（鼻先からの角度）と、驚かせて逃がした割合 | 成功（2026-10-03：正面65%・横35%・後ろ0%、逃げ0%） |
+| `tools/lab/tap.cjs`（ビルドを PORT で配信） | タップで礁の向こうの物を選ばない、礁・海底のタップでそこへ | 成功（2026-10-03） |
+| `tools/lab/night.cjs`（同上） | 昼・満月・新月の画面の明るさと白飛び | 成功（2026-10-03：海中 満月24%・新月12%、白飛び0%） |
 
 ブラウザでの実描画・性能は自動の確認がない。Playwright + SwiftShader で撮った画像を目で見ている。
 生きものやドローンの形は `tools/viewer.html`（開発サーバーでのみ。`?sp=<種のid>` `?turtle=green` `?cr=<ウツボなどのid>` `?drone`、`&close` で寄り）で4方向から確かめられる。
