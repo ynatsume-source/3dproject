@@ -215,6 +215,89 @@ console.log('G   the 30 s grid starts at the run start (not at world-clock zero)
   }
 }
 
+console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x, shaping make-up');
+{
+  const TILE_D = { lotId: 'lot:tile', materialId: 'test_tile_dry', amount: { value: 37_037, unit: 'mg' as const }, location: 'site:hearth',
+    quality: { water_ppm: 20_169, thickness_mm: 10, width_mm: 50, length_mm: 50, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000, crack: 0, history_complete: 1 } };
+  const WOOD = { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 60_000_000, unit: 'mg' as const }, location: 'site:woodpile', quality: { water_ppm: 150_000 } };
+  const WKILN = { equipmentId: 'eq:wk', kind: 'fixture_wood_kiln', catalogEntry: 'fixture_wood_kiln', catalogVersion: 'civ-sci-test-2', condition: 1,
+    params: { heatCapJPerK: 40_000, uaWPerK: 8, chamberFraction: 0.3, maxBurnKgPerH: 15, forcedCoolingUaFactor: 5 } };
+  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.1',
+    catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 3_600_000 }, state: null,
+    environment: { sampleId: 'env:wf', source: 'live', effectiveAt: 0, airTempC: 28, humidity: 0.7, windMs: 3 }, lots: [TILE_D, WOOD], equipment: [WKILN], energy: [],
+    actions: [{ at: 0, residentId: 'res:dot', action: 'fire_plan', params: { pace: 1, targetGlow: 2, holdMin: 90, forcedCooling: 0 } }], seed: 3 };
+  const drawnOf = (r: ScienceStepResult) => (r as ScienceStepResult & { drawn?: { amount: { value: number } }[] }).drawn;
+  const checked = (req: ScienceStepRequest) => { const r = scienceStep(req); violations.push(...validateResult(req, r).map((v) => `${req.processId}: ${v}`)); return r; };
+
+  // W1: the hearth lost before the first request
+  let w1: ScienceStepResult | undefined, threw = '';
+  try { w1 = checked({ ...WF, stop: 'equipment-lost', equipment: [] }); } catch (e) { threw = String(e); }
+  ok(!threw && w1?.status === 'failed' && /lost before the fire was lit/.test(String(w1.evidence.notes)) && w1.consumed.length === 0,
+    'W1: equipment lost before the first request → a plain refusal (nothing burned), no exception', threw || String(w1?.evidence.notes));
+  const firsts: [string, ScienceStepRequest][] = [['drying', { ...FIRE, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, actions: [],
+      lots: [{ ...FIRE.lots[0], materialId: 'test_tile_green', quality: { ...FIRE.lots[0].quality, water_ppm: 200_000, width_mm: 50, length_mm: 50 } }], energy: [] }],
+    ['firing', FIRE], ['calcination', CALC], ['slaking', hyd(60_000)], ['soak', soakReq(FIRE.lots[0], 1, 'run:w1-soak')]];
+  for (const [name, req] of firsts) {
+    let err = '';
+    try { checked({ ...req, stop: 'equipment-lost', equipment: [] }); } catch (e) { err = String(e); }
+    ok(!err, `W1: ${name}, equipment lost on the first request: no exception`, err);
+  }
+
+  // W2: refusals of a 0.2.x request carry drawn: [] and echo the contract, through the single entry
+  const v02 = (o: Partial<ScienceStepRequest>) => ({ ...FIRE, contract: '0.2.0', ...o } as ScienceStepRequest);
+  for (const [name, req] of [['drying', v02({ processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion })],
+    ['weighing', v02({ processId: 'fixture_mass_measure', processVersion: 'fixture-2' })], ['calcination', { ...CALC, contract: '0.2.0' }],
+    ['firing', v02({})], ['soak', { ...soakReq(FIRE.lots[0], 1, 'run:w2'), contract: '0.2.0' }], ['unknown process', v02({ processId: 'p99_nothing' })]] as const) {
+    const r = scienceStep(req);
+    ok(r.status === 'failed' && r.contract === '0.2.0' && Array.isArray(drawnOf(r)) && validateResult(req, r).length === 0,
+      `W2: ${name} refuses a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: [])`, validateResult(req, r).join(' / '));
+  }
+  const r01 = scienceStep({ ...FIRE, processId: 'p99_nothing' });
+  ok(drawnOf(r01) === undefined && validateResult({ ...FIRE, processId: 'p99_nothing' }, r01).length === 0, 'W2: a 0.1.0 refusal carries no drawn');
+
+  // W3: a stop after a fraction of a mg: heat is never reported for wood that is handed back
+  const tiny = checked({ ...WF, interval: { from: 0, to: 1 }, stop: 'operator' });
+  const back = tiny.produced.filter((p) => p.materialId === 'firewood').reduce((x, p) => x + p.amount.value, 0);
+  const burned = WOOD.amount.value - back, J = tiny.energy.reduce((x, e) => x + e.usedJ, 0);
+  const lhv = (0.85 * 0.99 * 18e6 - 0.15 * 2.43e6) / 1e6; // J per mg as burned
+  ok(burned >= 1 && J <= burned * lhv && (drawnOf(tiny)?.length ?? 0) === 1, 'W3: stopped after 1 ms: 1 mg of wood is settled as burned (with its O2), the heat reported is within it',
+    `${burned} mg settled, ${J} J ≤ ${(burned * lhv).toFixed(1)} J (was: 0 mg settled, 7 J)`);
+  let free = 0;
+  for (let i = 0; i < 20; i++) {
+    const r = checked({ ...WF, requestId: `w3-${i}`, runId: `run:w3-${i}`, interval: { from: 0, to: 1 }, stop: 'operator' });
+    const b = WOOD.amount.value - r.produced.filter((p) => p.materialId === 'firewood').reduce((x, p) => x + p.amount.value, 0);
+    free += r.energy.reduce((x, e) => x + e.usedJ, 0) - b * lhv;
+  }
+  ok(free <= 0, 'W3: twenty 1 ms runs on the same wood never report more heat than the wood they used up', `${free.toFixed(1)} J beyond the settled wood`);
+
+  // W4: shaping copies only a valid dry make-up
+  const SH: ScienceStepRequest = { ...FIRE, contract: '0.1.0', processId: 'p11x_test_tile_shape', processVersion: 'fixture-2', runId: 'run:w4',
+    environment: { sampleId: 'env:w4', source: 'simulation', effectiveAt: 0 }, actions: [], interval: { from: 0, to: 60_000 },
+    lots: [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' }, location: 'site:bench',
+      quality: { water_ppm: 193_548, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 } }],
+    equipment: [{ equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civ-sci-test-2', condition: 1, params: { thicknessMm: 10, widthMm: 50, lengthMm: 50 } }],
+    energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: 120 }] };
+  const shape = (q: Record<string, number>) => checked({ ...SH, lots: [{ ...SH.lots[0], quality: { water_ppm: 193_548, ...q } }] });
+  ok(shape({ xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 }).status === 'completed', 'W4: a valid make-up still shapes');
+  for (const [name, q, code] of [['a negative ppm', { xd_kaolinite_ppm: 450_000, xd_quartz_ppm: -1 }, 'clay-make-up-not-whole-ppm'],
+    ['137% of the dry part', { xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 900_000, xd_calcite_ppm: 20_000 }, 'clay-make-up-exceeds-dry-part'],
+    ['an unknown species', { xd_kaolinite_ppm: 450_000, xd_unknown_ppm: 1 }, 'clay-make-up-unknown-species'],
+    ['a fractional ppm', { xd_kaolinite_ppm: 450_000.5 }, 'clay-make-up-not-whole-ppm']] as const) {
+    const r = shape(q as Record<string, number>);
+    ok(r.status === 'failed' && (r.diagnostics as { code: string }).code === code && r.consumed.length + r.produced.length + r.energy.length === 0,
+      `W4: ${name} is refused (${code}), nothing consumed, no heat`, String((r.diagnostics as { code?: string })?.code));
+  }
+
+  // W5: wood with an incomplete history passes it on to the fired tile
+  let st: ScienceStepRequest['state'] = null, last!: ScienceStepResult;
+  for (let h = 0; h < 48; h++) {
+    last = checked({ ...WF, requestId: `w5-${h}`, runId: 'run:w5', state: st, interval: { from: h * 3_600_000, to: (h + 1) * 3_600_000 },
+      lots: [TILE_D, { ...WOOD, quality: { ...WOOD.quality, history_complete: 0 } }], actions: h === 0 ? WF.actions : [] });
+    st = last.state; if (last.status !== 'running') break;
+  }
+  ok(last.produced.find((p) => p.materialId === 'test_tile_fired')?.quality?.history_complete === 0, 'W5: firewood with an incomplete history → the fired tile is marked incomplete too');
+}
+
 console.log('—   every result above passed the contract checker');
 ok(violations.length === 0, 'validateResult: no violation in the chained runs', violations.slice(0, 3).join(' / '));
 

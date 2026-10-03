@@ -8,6 +8,7 @@ import { calcineStep, CALCINE_PROCESS, hydrateStep, HYDRATE_PROCESS } from './li
 import { firingStep, FIRING_PROCESS } from './firing';
 import { soakStep, SOAK_PROCESS } from './soak';
 import { woodFireStep, WOOD_FIRE_PROCESS } from './wood-fire';
+import { contractExtras } from './common';
 
 const PROCESSES: Record<string, ScienceStep> = {
   [DRYING_PROCESS.processId]: dryingStep,
@@ -23,6 +24,7 @@ export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepRe
   const impl = PROCESSES[req.processId];
   if (impl) return impl(req);
   return {
+    ...contractExtras(req),
     contract: req.contract, requestId: req.requestId, runId: req.runId,
     simulated: { from: req.interval.from, to: req.interval.from },
     state: req.state ?? { schema: 'none', data: null }, status: 'failed',

@@ -311,7 +311,7 @@
     },
     {
       "id": "p13w_test_tile_wood_fire",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "contract": "0.2.x（提案中。drawn が要る）",
       "label": "薪で焼く（試験片）",
       "kind": "thermal+chemical",
@@ -349,10 +349,12 @@
         "untended（天気不明の区間＝見ていない間に火が落ちた）"
       ],
       "readiness": "test-world-only",
-      "note": "空気の不足（くすぶり・炭化）、煙、湿った薪の着火、流木の塩分は扱わない。有機物を含む素地は拒否（燃え抜きは別工程）"
+      "note": "空気の不足（くすぶり・炭化）、煙、湿った薪の着火、流木の塩分は扱わない。有機物を含む素地は拒否（燃え抜きは別工程）",
+      "settlement": "燃えた薪は mg に切り上げて精算し、報告する熱は燃えた量そのもの（J に切り捨て）。熱は常に精算した薪の熱以下。試験片の来歴は、試験片と薪のどちらかが不完全なら不完全",
+      "tolerance": "30秒格子の上は区切り方によらず一致。格子外（7.3秒）は熱・ガス・燃え残りの薪 0.25% 以内、焼結 0.3%、終わる時刻 +60 秒（ALIGNMENT §10）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it.",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result).",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {

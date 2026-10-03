@@ -10,8 +10,14 @@ export const isInt = (n: unknown, min = 0): n is number => typeof n === 'number'
 export const fingerprint = (lot: LotView) => JSON.stringify([lot.lotId, lot.materialId, lot.amount, lot.location,
   Object.entries(lot.quality ?? {}).sort(([a], [b]) => a.localeCompare(b))]);
 
+/** A 0.2.x request (proposed contract): every answer, refusals included, carries `drawn` (empty when nothing). */
+export const isV02 = (req: ScienceStepRequest) => /^0\.2\.\d+$/.test(req.contract);
+/** The fields a result needs for the request's contract version beyond 0.1.0. */
+export const contractExtras = (req: ScienceStepRequest) => (isV02(req) ? { drawn: [] as never[] } : {});
+
 export function failed(req: ScienceStepRequest, evaluator: string, why: string, schema: string): ScienceStepResult {
   return {
+    ...contractExtras(req),
     contract: req.contract, requestId: req.requestId, runId: req.runId,
     simulated: { from: req.interval.from, to: req.interval.from },
     state: req.state ?? ({ schema, data: null } as ScienceState),

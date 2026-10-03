@@ -7,6 +7,7 @@
 import { SCIENCE_CONTRACT_VERSION } from '../../world/science-contract';
 import type { ScienceStep, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { PROCESS } from './fixture-profile';
+import { SPECIES } from '../chem';
 
 export const FIXTURE_CATALOG_VERSION = 'civ-sci-test-2';   // the same catalog as step/common.ts SCIENCE_CATALOG_VERSION
 export const FIXTURE_PROCESS_VERSION = 'fixture-2';
@@ -20,7 +21,8 @@ const int = (n: unknown, min = 0): n is number => typeof n === 'number' && Numbe
 const id = (s: unknown, prefix: string): s is string => typeof s === 'string' && s.startsWith(prefix) && s.length > prefix.length;
 function need(value: unknown, code: string): asserts value { if (!value) throw new Error(code); }
 function blank(req: ScienceStepRequest): ScienceStepResult {
-  return { contract: SCIENCE_CONTRACT_VERSION, requestId: req.requestId, runId: req.runId,
+  // echo the request's contract; a 0.2.x answer (refusals included) carries `drawn` (nothing is drawn here)
+  return { ...(/^0\.2\.\d+$/.test(req.contract) ? { drawn: [] } : {}), contract: req.contract, requestId: req.requestId, runId: req.runId,
     simulated: { from: req.interval.from, to: req.interval.from },
     state: req.state ?? { schema: STATE_SCHEMA, data: null }, status: 'failed',
     consumed: [], produced: [], released: [], energy: [], equipmentWear: [], observations: [],
@@ -76,6 +78,17 @@ export const simpleFixtureStep: ScienceStep = req => {
       // the clay carries its make-up as the tile does: water_ppm of the whole lot, xd_<species>_ppm on the dry part
       const w = lot.quality?.water_ppm;
       need(typeof w === 'number' && int(w) && w < 1e6 && Object.keys(lot.quality!).some(k => /^xd_.+_ppm$/.test(k)), 'clay-make-up-missing');
+      // the make-up the tile will carry: known dry species, whole non-negative ppm, together at most the dry part
+      // (what is not listed counts as inert mineral)
+      let sum = 0;
+      for (const [k, v] of Object.entries(lot.quality!)) {
+        const m = /^xd_(.+)_ppm$/.exec(k);
+        if (!m) continue;
+        need(m[1] in SPECIES && m[1] !== 'water', 'clay-make-up-unknown-species');
+        need(int(v), 'clay-make-up-not-whole-ppm');
+        sum += v;
+      }
+      need(sum > 0 && sum <= 1e6, 'clay-make-up-exceeds-dry-part');
     }
     need(req.equipment.length === 1, 'one-equipment-required');
     const equipment = req.equipment[0];

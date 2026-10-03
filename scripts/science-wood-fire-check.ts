@@ -24,7 +24,7 @@ const KILN = { equipmentId: 'eq:wk', kind: 'fixture_wood_kiln', catalogEntry: 'f
 const env = (at: number, source: 'live' | 'unknown' = 'live') => ({ sampleId: `env:${at}`, source, effectiveAt: at, airTempC: 28, humidity: 0.7, windMs: 3 });
 const plan = (glow = 2, hold = 90, pace = 1) => [{ at: 0, residentId: 'res:dot', action: 'fire_plan', params: { pace, targetGlow: glow, holdMin: hold, forcedCooling: 0 } }];
 const base = (o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({
-  contract: '0.2.0', requestId: 'r0', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.0', catalogVersion: 'civ-sci-test-2',
+  contract: '0.2.0', requestId: 'r0', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.1', catalogVersion: 'civ-sci-test-2',
   interval: { from: 0, to: H }, state: null, environment: env(0), lots: [TILE, wood(60)], equipment: [KILN], energy: [], actions: plan(), seed: 3, ...o });
 
 /** Run in equal chunks until the run ends; the plan goes with the first request only. */

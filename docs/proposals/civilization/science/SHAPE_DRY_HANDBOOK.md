@@ -36,7 +36,7 @@
 |---|---|
 | processVersion / catalogVersion | `'fixture-2'` / `'civ-sci-test-2'` |
 | environment | `source: 'simulation'` のみ（秤量と同じ。島で動かす段階で fixture-3 に） |
-| lots | 練った粘土 1つ。**丸ごと1枚になる**ので、本体が予約の時点で1枚分（例 45 g）に分けておく。quality に `water_ppm` と `xd_<化学種>_ppm`（乾燥固形分あたり）が必須 |
+| lots | 練った粘土 1つ。**丸ごと1枚になる**ので、本体が予約の時点で1枚分（例 45 g）に分けておく。quality に `water_ppm` と `xd_<化学種>_ppm`（乾燥固形分あたり）が必須。`xd_` は知っている化学種だけ、整数で 0 以上、合計が 1000000 以下（残りは不活性な鉱物とみなす）。外れたら `clay-make-up-*` で拒否（Codex W4） |
 | equipment | `fixture_bench` 1台、`params: { thicknessMm, widthMm, lengthMm }`（型の寸法、整数 mm）。質量÷体積が 1.5〜2.3 g/cm³（仮定）でなければ `mould-does-not-fit-the-clay` |
 | energy | 機械仕事の申し出 1つ：`{ sourceId: 'src:…', kind: 'mechanical', maxJ ≥ 120 }`（住民の手の仕事。2 W × 60 s） |
 | actions | なし |

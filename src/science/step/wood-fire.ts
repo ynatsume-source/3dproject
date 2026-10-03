@@ -20,7 +20,7 @@ import { fuelLhvJPerMg, GLOW_TARGET_C, PACE_K_PER_H } from '../physics';
 import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, subStepEnd, tileComp } from './common';
 import { advanceWare, settleWare, type WareState } from './kiln-ware';
 
-export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.0' } as const;
+export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.1' } as const;
 export const WOOD_FIRE_CONTRACT = /^0\.2\.\d+$/;
 const SCHEMA = 'civ-sci.tile-wood-fire/1';
 const EVAL = 'tile-wood-fire-eval/0.1.0';
@@ -49,8 +49,8 @@ interface WoodFireData extends WareState {
 }
 
 // a refusal speaks the request's contract: `drawn` only in a 0.2.x answer
-const fail = (req: ScienceStepRequest, why: string): ScienceStepResultV02 =>
-  (WOOD_FIRE_CONTRACT.test(req.contract) ? { ...failed(req, EVAL, why, SCHEMA), drawn: [] } : failed(req, EVAL, why, SCHEMA)) as ScienceStepResultV02;
+// a refusal speaks the request's contract (failed() adds `drawn` only to a 0.2.x answer)
+const fail = (req: ScienceStepRequest, why: string): ScienceStepResultV02 => failed(req, EVAL, why, SCHEMA) as ScienceStepResultV02;
 
 /** A firewood lot as a composition: water_ppm of the whole lot; ash on the dry part (ash_dry_ppm, else woodAshFrac). */
 export function fuelComp(lot: ScienceStepRequest['lots'][number]): Composition | string {
@@ -87,6 +87,8 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
 
   let d: WoodFireData;
   if (req.state === null) {
+    // lost before the fire was lit: nothing happened, nothing to settle (the world cancels the run, releases the lots)
+    if (!hearth) return fail(req, req.stop === 'equipment-lost' ? 'the hearth was lost before the fire was lit: nothing burned' : `no hearth: expected one of ${HEARTHS.join(', ')}`);
     let base: Composition;
     try { base = tileComp(tile); } catch (e) { return fail(req, (e as Error).message); }
     if ((base.organic_c ?? 0) > 0) return fail(req, 'organic matter in the body burns out in its own step (not yet): use a body without organic_c');
@@ -105,7 +107,7 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
       rampKPerH: PACE_K_PER_H[pace], peakC: GLOW_TARGET_C[glow], holdMin: pp.holdMin, forced: pp.forcedCooling === 1, plan: { pace, glow },
       kilnC: Ta, wareC: Ta, maxWareC: Ta, peakKilnC: Ta, ambientC: Ta, steamRatioMax: 0, duntRatioMax: 0,
       phase: 'ramp', elapsedS: 0, holdStartS: null, outcome: null,
-      cumUsedJ: 0, cumLostJ: 0, cumChemJ: 0, reportedUsed: 0, reportedStored: 0, historyComplete: (tile.quality?.history_complete ?? 1) === 1 };
+      cumUsedJ: 0, cumLostJ: 0, cumChemJ: 0, reportedUsed: 0, reportedStored: 0, historyComplete: (tile.quality?.history_complete ?? 1) === 1 && (wood.quality?.history_complete ?? 1) === 1 };
   } else {
     d = structuredClone(req.state.data as WoodFireData);
     if (d.tileFp !== fingerprint(tile) || d.fuelFp !== fingerprint(wood)) return fail(req, 'changed-input: a reserved lot changed under a running run');
@@ -173,8 +175,10 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (ending) {
     const ware = settleWare({ w: d, lot: tile, location: d.location, seed: d.seed, runId: req.runId, endAt,
       done, peakKilnC: d.peakKilnC, historyComplete: d.historyComplete });
-    // the firewood: what burned (whole mg, never more than the lot), split as the lot is made up
-    const burnedInt = Math.min(fuelTotal, Math.floor(d.burnedMg + 1e-6));
+    // the firewood: what burned, rounded UP to whole mg (never more than the lot). The heat reported is that of the
+    // exact amount burned (cumulative, floored to J), so it never exceeds the heat of the wood settled as burned:
+    // a run stopped after a fraction of a mg still uses up 1 mg of wood and cannot report heat from wood it returns.
+    const burnedInt = Math.min(fuelTotal, Math.ceil(d.burnedMg - 1e-6));
     const { taken, rest } = splitComp(d.fuel, burnedInt);
     const r = react('wood_dry', taken.wood_dry ?? 0, REACTIONS.woodCombustion.coeffs, REACTIONS.woodCombustion.closeInto);
     const vapour = (taken.water ?? 0) + (r.produced.water ?? 0), co2 = r.produced.co2 ?? 0, o2 = r.consumed.o2 ?? 0;
