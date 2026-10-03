@@ -1696,7 +1696,7 @@ function enterOcean(oc: Ocean) {
   for (const t of oc.turtles) t.placed = false;
   for (const o of oc.octopi || []) o.placed = false;
   for (const m of oc.mantas) m.placed = false;
-  mode = 'ocean';
+  mode = 'ocean'; syncReplay();
   document.body.classList.remove('mode-globe'); document.body.classList.add('mode-ocean');
   fpsStart = 0; fpsN = 0; fpsAcc = 0; qSince = performance.now();   // (the tier measured afresh in each sea, after it has settled)
   $('locName').textContent = `${oc.loc.name} · ${oc.loc.site}`;
@@ -1879,7 +1879,7 @@ async function toGlobe() {
   const loc = cur!.loc;
   veil(true, 'SURFACING', '地球儀へ戻ります', `${loc.name} から浮上中`);
   await wait(750);
-  mode = 'globe';
+  mode = 'globe'; syncReplay();
   document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
   setGuide(false); setTimePanel(false); setVolPanel(false); watch.r = null; setPov(false);
   gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
@@ -2184,9 +2184,8 @@ let wakeLock: any = null, awakeVideo: HTMLVideoElement | null = null;
 let awakeOn = (() => { try { return localStorage.getItem('seaglass.awake') !== '0'; } catch (e) { return true; } })();
 async function keepAwake() {
   if (document.visibilityState !== 'visible' || !awakeOn) return;
-  if (!wakeLock && 'wakeLock' in navigator) {
-    try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied until a tap */ }
-  }
+  // (the video first, at once, while this is still inside the tap that called it: after an await, iOS no
+  // longer counts it as the person's own doing and will not play it)
   if (isTouch || !('wakeLock' in navigator)) {
     if (!awakeVideo) {
       awakeVideo = document.createElement('video');
@@ -2197,6 +2196,9 @@ async function keepAwake() {
       document.body.appendChild(awakeVideo);
     }
     if (awakeVideo.paused) awakeVideo.play().catch(() => { /* needs a tap; tried again on the next one */ });
+  }
+  if (!wakeLock && 'wakeLock' in navigator) {
+    try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied until a tap */ }
   }
 }
 document.addEventListener('visibilitychange', keepAwake);
@@ -2236,7 +2238,9 @@ function takeUpPlace(loc: Sea) {
   drone.sky = !!r.sky && y > 0;
   if (drone.mode === 'auto') drone.s = nearestS(drone.pos);
 }
-document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
+// every tap: the lock is dropped whenever the page is hidden. (On the lift of the finger and on click, not the press:
+// a touch's pointerdown is not a gesture to Safari, and the video it starts would be refused)
+for (const ev of ['pointerup', 'touchend', 'click'] as const) document.addEventListener(ev, keepAwake, { passive: true });
 
 $('btnBack').onclick = toGlobe;
 $('btnGuide').onclick = () => openPanel('guide');
@@ -2258,9 +2262,13 @@ $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
 $('newMark').onclick = observeNew;
 // the last 15 seconds of the view, always kept ready, saved with a tap (and a second to confirm)
-const replay = makeReplay(canvas, soundStream);
+const replay = makeReplay(canvas, soundStream, isTouch);
+// (recording only while a sea is on screen: not on the globe, not while the page is hidden)
+const syncReplay = () => { if (mode === 'ocean' && document.visibilityState === 'visible') replay.resume(); else replay.pause(); };
+document.addEventListener('visibilitychange', syncReplay);
 let replayArm = 0;
 if (!replay.start()) $('btnReplay').hidden = true;
+syncReplay();
 onCanvasSize = () => replay.reset();   // (a browser that cannot record: no button at all)
 $('btnReplay').onclick = async () => {
   if (replay.held() < 3) { showToast('REPLAY', 'まだ映像がたまっていません', 'もう少し見てから押してください'); return; }
