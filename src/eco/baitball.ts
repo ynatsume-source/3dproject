@@ -9,14 +9,15 @@
 import * as THREE from 'three';
 import { fishGeometry, fishMaterial, SHAPES } from '../ocean/models';
 import { makeSchoolShade } from './schoolshade';
+import { unseen, sightRange } from './unseen';
 import { splashAt, bubblesAt } from '../ocean/splash';
 import { U } from '../render/common';
 import { clamp, R, rr } from '../core/math';
 import type { Species } from '../data/locations';
 import type { Env, Subject } from './env';
 
-type Phase = 'gather' | 'herd' | 'frenzy' | 'scatter';
-const PHASE_T: Record<Phase, number> = { gather: 25, herd: 35, frenzy: 100, scatter: 22 };
+type Phase = 'gather' | 'herd' | 'frenzy' | 'scatter' | 'leave';   // (leave: on out of sight, after the scatter)
+const PHASE_T: Record<Phase, number> = { gather: 25, herd: 35, frenzy: 100, scatter: 22, leave: 1e9 };
 const UP = new THREE.Vector3(0, 1, 0);
 
 interface Pred { dir?: THREE.Vector3; spd?: number; p: THREE.Vector3; v: THREE.Vector3; mode: 'approach' | 'circle' | 'dash' | 'leap' | 'leave'; ang: number; rad: number; depth: number; next: number; bites: number; aim: THREE.Vector3; seed: number }
@@ -48,7 +49,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     const sw = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) { sw[i * 3] = R() * 6.28; sw[i * 3 + 1] = rr(5, 7); sw[i * 3 + 2] = rr(0.9, 1.05); }
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(sw, 3));
-    const mesh = new THREE.InstancedMesh(g, fishMaterial(sp), n);
+    const mesh = new THREE.InstancedMesh(g, fishMaterial(sp), n); mesh.userData.baitPack = true;   // (a bait ball's hunters: for the checks)
     mesh.frustumCulled = false; mesh.visible = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     oc.group.add(mesh);
     const shark = !!(SHAPES as any)[sp.shape]?.lofted;   // every shark body is lofted
@@ -76,16 +77,25 @@ export function makeBaitBall(oc: any, fraction: number) {
     const floor = loc.pelagic ? -90 : T.top(best[0], best[1]);
     st.c.set(best[0], Math.max(floor + 5, loc.pelagic ? -16 : -11), best[1]);
     st.active = true; st.phase = 'gather'; st.t = 0; st.r = 10; st.alive = NB;
+    // the fish do not appear there: a long, loose school swims in from the blue beyond it (the far side from the
+    // camera) and draws together over the next half minute; the hunters come in from out there too
+    // (as far out as this water lets one see, and a little more: they swim in out of the blue)
+    const ix = st.c.x - cam.x, iz = st.c.z - cam.z, il = Math.hypot(ix, iz) || 1, ux = ix / il, uz = iz / il;
+    const back0 = Math.max(42, sightRange(oc) - il + 12);
     for (let i = 0; i < NB; i++) {
       dead[i] = 0;
       phi[i] = Math.asin(R() * 2 - 1); rf[i] = Math.cbrt(R()) * 0.95 + 0.05;   // filling the ball, not just its skin
       ang[i] = R() * 6.28; bs[i] = rr(bsp.size[0], bsp.size[1]);
-      const rad = st.r * rf[i];
-      bp[i * 3] = st.c.x + Math.cos(ang[i]) * rad * 1.6; bp[i * 3 + 1] = st.c.y + Math.sin(phi[i]) * 2; bp[i * 3 + 2] = st.c.z + Math.sin(ang[i]) * rad * 1.6;
-      bv[i * 3] = bv[i * 3 + 1] = bv[i * 3 + 2] = 0;
+      const back = back0 + rr(0, 28), lat = (R() - 0.5) * 18;
+      bp[i * 3] = st.c.x + ux * back - uz * lat; bp[i * 3 + 1] = st.c.y + (R() - 0.5) * 5; bp[i * 3 + 2] = st.c.z + uz * back + ux * lat;
+      bv[i * 3] = -ux * 2; bv[i * 3 + 1] = 0; bv[i * 3 + 2] = -uz * 2;
     }
     for (const k of packs) for (const p of k.list) {
-      const a = R() * 6.28, d = rr(45, 70);
+      let a = 0, d = 0;
+      for (let t = 0; t < 30; t++) {
+        a = Math.atan2(uz, ux) + rr(-1.4, 1.4); d = back0 + rr(5, 30);
+        if (unseen(oc, st.c.x + Math.cos(a) * d, st.c.y, st.c.z + Math.sin(a) * d, cam, fx, fz, 3)) break;
+      }
       p.p.set(st.c.x + Math.cos(a) * d, st.c.y - rr(3, 10), st.c.z + Math.sin(a) * d);
       p.v.set(-Math.cos(a), 0, -Math.sin(a)).multiplyScalar(2);
       p.mode = 'approach'; p.ang = a; p.rad = rr(6, 10); p.depth = rr(2, 6); p.next = rr(2, 8); p.bites = 0;
@@ -116,6 +126,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     },
   };
 
+  let leaveCheck = 0;
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number, audio: { frenzy(level: number, dist: number): void; plop(dist: number): void }) {
     if (!st.active) {
       // bait balls happen by day, most of all around dawn and dusk
@@ -127,10 +138,17 @@ export function makeBaitBall(oc: any, fraction: number) {
     st.t += dt;
     const prev = st.phase;
     if (st.t > PHASE_T[st.phase] || (st.phase === 'frenzy' && st.alive < NB * 0.3)) {
-      const order: Phase[] = ['gather', 'herd', 'frenzy', 'scatter'];
+      const order: Phase[] = ['gather', 'herd', 'frenzy', 'scatter', 'leave'];
       const i = order.indexOf(st.phase);
-      if (i === 3) { end(); return; }
       st.phase = order[i + 1]; st.t = 0;
+    }
+    // gone on out of sight, every last fish and hunter: only then is it over (nothing vanishes in view)
+    if (st.phase === 'leave' && (leaveCheck -= dt) < 0) {
+      leaveCheck = 0.5;
+      let seen = false;
+      for (let i = 0; i < NB && !seen; i += 7) if (!dead[i] && !unseen(oc, bp[i * 3], bp[i * 3 + 1], bp[i * 3 + 2], cam, fx, fz, 1)) seen = true;
+      for (const k of packs) for (const p of k.list) if (!seen && !unseen(oc, p.p.x, p.p.y, p.p.z, cam, fx, fz, 2)) seen = true;
+      if (!seen) { end(); return; }
     }
     if (st.phase !== prev) {
       const at = () => (st.active ? st.c : null);
@@ -158,7 +176,7 @@ export function makeBaitBall(oc: any, fraction: number) {
       pk.list.forEach((p, i) => {
         const toC = _b.subVectors(st.c, p.p), dC = toC.length();
         let want = _a.set(0, 0, 0), speed = pk.speed * 0.45;
-        if (ph === 'scatter') p.mode = p.mode === 'leap' ? 'leap' : 'leave';
+        if (ph === 'scatter' || ph === 'leave') p.mode = p.mode === 'leap' ? 'leap' : 'leave';
         else if (p.mode === 'approach' && dC < p.rad + 6) p.mode = 'circle';
         if (p.mode === 'approach') { want.copy(toC).normalize(); speed = pk.speed * 0.6; }
         else if (p.mode === 'circle') {
@@ -217,6 +235,11 @@ export function makeBaitBall(oc: any, fraction: number) {
       const th = ang[i] + st.t * w * (0.8 + rf[i] * 0.4), rad = st.r * rf[i] * Math.cos(phi[i]);
       let tx = st.c.x + Math.cos(th) * rad, ty = st.c.y + st.r * flat * Math.sin(phi[i]), tz = st.c.z + Math.sin(th) * rad;
       if (ph === 'scatter') { const s = 1 + k * 2.5; tx = st.c.x + (tx - st.c.x) * s; tz = st.c.z + (tz - st.c.z) * s; ty -= k * 6 * rf[i]; }
+      if (ph === 'leave') {
+        // scattered: each fish on out, away from where the ball was, and a little down, into the blue
+        const ox = bp[i * 3] - st.c.x, oz = bp[i * 3 + 2] - st.c.z, ol = Math.hypot(ox, oz) || 1;
+        tx = bp[i * 3] + ox / ol * 8; tz = bp[i * 3 + 2] + oz / ol * 8; ty = Math.max(bp[i * 3 + 1] - 0.4, st.c.y - 14);
+      }
       const px = bp[i * 3], py = bp[i * 3 + 1], pz = bp[i * 3 + 2];
       let fear = 0;
       for (const pk of packs) for (const q of pk.list) {
@@ -231,7 +254,7 @@ export function makeBaitBall(oc: any, fraction: number) {
       }
       if (dead[i]) continue;
       let vx = (tx - px) * 1.8, vy = (ty - py) * 1.8, vz = (tz - pz) * 1.8;
-      const vl = Math.hypot(vx, vy, vz), mx = fear ? 5 : 2.4;
+      const vl = Math.hypot(vx, vy, vz), mx = fear ? 5 : ph === 'gather' || (ph === 'herd' && st.t < 15) ? 3.4 : 2.4;   // (coming in from far off: a steady fast swim)
       if (vl > mx) { vx *= mx / vl; vy *= mx / vl; vz *= mx / vl; }
       const kk = Math.min(1, dt * (fear ? 8 : 3.5));
       bv[i * 3] += (vx - bv[i * 3]) * kk; bv[i * 3 + 1] += (vy - bv[i * 3 + 1]) * kk; bv[i * 3 + 2] += (vz - bv[i * 3 + 2]) * kk;
