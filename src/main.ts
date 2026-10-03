@@ -127,6 +127,9 @@ const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 /* ================= drone ================= */
 const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
+// flying by hand, a tap on something sends the drone to film it (as the cruise would, and then round it
+// slowly at the same distance) until the hand takes the controls again: the mode is the cruise's meanwhile
+let visit = false;
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -270,7 +273,7 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
   if (next) {
     $('tMode').textContent = 'OBSERVING';
         const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
-    if (!captionOn) hint(`観察中：${sj.label}（${sj.status()}${sizeTxt}）`);
+    if (!captionOn) { const what = sj.status() + sizeTxt; hint(`観察中：${sj.label}${what ? `（${what}）` : ''}`); }
     recordLog('observe', `${sj.label}を観察（${sj.status()}${sizeTxt}）`);
     if (next.subject.kind === 'hunt') say('hunt');
     else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
@@ -336,6 +339,7 @@ function flyStep(dt: number) {
   drone.pitch += clamp((wantPitch - drone.pitch) * Math.min(1, k), -dt * 0.9, dt * 0.9);
 }
 function updateDrone(dt: number, now: number) {
+  if (visit && drone.mode === 'auto' && !director.shot) setMode('manual');   // (what it went to see is gone: back to the hand, hovering here)
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   // (from the sky, a whale or manta leaping nearby is watched from above, whatever was being filmed)
@@ -1213,7 +1217,7 @@ function updateHud() {
   const hdg = ((-drone.yaw * 180 / Math.PI) % 360 + 360) % 360;
   $('hdgnum').textContent = String(Math.round(hdg) % 360).padStart(3, '0') + '°';
   strip.style.transform = `translateX(${-(hdg + 360) * 2 + compassEl.clientWidth / 2}px)`;
-  if (lastShot && $('hint').classList.contains('on')) $('hint').textContent = `観察中：${lastShot.subject.label}（${lastShot.subject.status()}）`;
+  if (lastShot && $('hint').classList.contains('on')) { const what = lastShot.subject.status(); $('hint').textContent = `観察中：${lastShot.subject.label}${what ? `（${what}）` : ''}`; }
   updateTimeUi();
 }
 function updateTimeUi() {
@@ -1870,21 +1874,21 @@ function setMode(m: 'auto' | 'manual') {
   // already cruising and filming something (asked for, or waiting for it to turn up): the cruise button means
   // "never mind, go on" — it lets go and the cruise takes up again from here
   if (m === 'auto' && drone.mode === 'auto' && director.release()) { drone.hop = false; route = null; }
-  drone.mode = m;
+  drone.mode = m; visit = false;
   // (taking the controls, by whatever way, counts as input: the 90 s back to the cruise starts now)
   if (m === 'manual') { drone.lastInput = performance.now(); director.reset(); }
   if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; } }
   if (cur) skyLabel();
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
-  $('btnMode').setAttribute('aria-pressed', String(m === 'manual')); $('btnMode').querySelector('span')!.textContent = m === 'manual' ? '自動巡航に戻る' : '手動で操縦';
+  modeUi();
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
   hint(m === 'auto'
     ? (isTouch ? 'ドラッグで見回す · 気になる生きものをタップするとそこへ向かいます' : 'ドラッグで見回す · 気になる生きものをクリックするとそこへ向かいます')
-    : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 90秒操作がないと自動巡航に戻ります'
-      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · 90秒操作がないと自動巡航に戻ります'));
-  $('joy').hidden = $('vbtns').hidden = !(isTouch && m === 'manual');
+    : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 気になるものをタップするとそこへ · 90秒操作がないと自動巡航に戻ります'
+      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · クリックでそこへ · 90秒操作がないと自動巡航に戻ります'));
 }
+function modeUi() { const man = drone.mode === 'manual' || visit; $('btnMode').setAttribute('aria-pressed', String(man)); $('btnMode').querySelector('span')!.textContent = man ? '自動巡航に戻る' : '手動で操縦'; $('joy').hidden = $('vbtns').hidden = !(isTouch && man); }
 // a line of help at the bottom that shows for a moment and fades
 let hintT = 0;
 function hint(text: string) { const el = $('hint'); el.textContent = text; el.classList.add('on'); clearTimeout(hintT); hintT = window.setTimeout(() => el.classList.remove('on'), 7000); }
@@ -1981,6 +1985,7 @@ function pickAt(x: number, y: number): Subject | null {
   return best;
 }
 function tapAt(x: number, y: number) {
+  const byHand = drone.mode === 'manual' || visit;
   let s = pickAt(x, y);
   let place = false;
   // nothing alive there, but the tap is on the reef or the seabed: go and look at that spot (the reef's
@@ -1991,12 +1996,16 @@ function tapAt(x: number, y: number) {
       const T = cur.T, reef = T.reef(f.p.x, f.p.z) > 0.3 || T.top(f.p.x, f.p.z) > T.h(f.p.x, f.p.z) + 0.3;
       const at = new THREE.Vector3(f.p.x, Math.min(T.top(f.p.x, f.p.z) + 1.2, -1.6), f.p.z);
       const label = reef ? 'このあたりの礁' : 'このあたりの海底';
-      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, pos: () => at, status: () => '', live: () => true };
+      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, len: 1.2, pos: () => at,   // (len: a spot to circle, not a big animal's moves)
+       status: () => '', live: () => true };
       place = true;
     }
   }
   if (!s) return;
-  focusOn(s); track('tap_subject', { sea: cur?.loc.id ?? '', subject: place ? 'place' : s.key.split(':')[0] });
+  // (flown by hand: stay with it, circling slowly, for as long as the hand leaves the controls alone)
+  if (byHand) s = { ...s, hold: 1e6 };
+  focusOn(s); if (byHand) { visit = true; modeUi(); hint(isTouch ? 'スティックか上昇・下降に触れると手動操縦に戻ります' : 'WASD などで手動操縦に戻ります'); }
+  track('tap_subject', { sea: cur?.loc.id ?? '', subject: place ? 'place' : s.key.split(':')[0] });
   showToast('向かっています', s.label, s.status());
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
 }
@@ -2008,7 +2017,6 @@ const hideHover = () => { clearTimeout(hoverOff); $('hoverTag').classList.remove
 canvas.addEventListener('pointermove', (e) => {
   if (e.pointerType !== 'mouse') { hideHover(); return; }
   if (mode !== 'ocean' || isTouch || pointers.size) { hideHover(); return; }
-  if (drone.mode !== 'auto') { hideHover(); return; }
   const now = performance.now(); if (now - hoverT < 90) return; hoverT = now;
   const s0 = pickAt(e.clientX, e.clientY), s = watch.r && s0?.kind !== 'robot' ? null : s0, el = $('hoverTag');   // (watching: only the residents)
   canvas.style.cursor = s ? 'pointer' : '';
@@ -2281,7 +2289,7 @@ $('personas').innerHTML = PERSONAS.map((p) => `<button type="button" role="radio
 $('personas').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-p]') as HTMLElement | null; if (b) setPersona(personaById(b.dataset.p!)); });
 applyPersona();
 $('btnManual').onclick = () => setMode('manual');
-$('btnMode').onclick = () => setMode(drone.mode === 'manual' ? 'auto' : 'manual');
+$('btnMode').onclick = () => setMode(drone.mode === 'manual' || visit ? 'auto' : 'manual');
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
 setCaption(captionOn);
@@ -2317,7 +2325,7 @@ addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
   if (mode !== 'ocean' || busy) return;
-  if (MOVE.includes(e.code)) { if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
+  if (MOVE.includes(e.code)) { if (visit) setMode('manual'); if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
   if (e.code.startsWith('Shift')) { keys.add(e.code); return; }
   if (e.repeat) return;
   if (PRESET_KEYS[e.code]) goPreset(PRESET_KEYS[e.code]);
@@ -2384,7 +2392,7 @@ canvas.addEventListener('pointermove', (e) => {
 const endP = (e: PointerEvent) => {
   if (mode === 'ocean' && pointers.has(e.pointerId)) {
     look.held = false; look.let = performance.now();
-    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup' && !tap.woke) { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
+    if (tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup' && !tap.woke) { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
   }
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; if (!pointers.size) pinched = false;
   gv.dragging = pointers.size > 0;
