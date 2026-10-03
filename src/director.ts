@@ -72,6 +72,7 @@ export class Director {
   focus(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, true); }
 
   private begin(best: Subject, drone: THREE.Vector3, forced: boolean) {
+    if (this.shot) this.recent.set('left:' + speciesOf(this.shot.subject), this.clock);   // (what it is leaving: not straight back to it)
     const p = best.pos() ?? drone;
     this.ang = Math.atan2(drone.z - p.z, drone.x - p.x);   // come in from the side we are already on
     this.move = ''; this.gpx = NaN;
@@ -112,7 +113,8 @@ export class Director {
     const near = 1 - d / (Math.max(60, (s.reach ?? 42) * 1.25) * this.nearK);    // (things worth crossing the island for fade more slowly with distance; a guide may keep to what is near)
     const bored = 1 / (1 + 0.9 * (this.bored.get(speciesOf(s)) ?? 0) * (self ? 0.4 : 1));
     const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9), kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
-    const recent = self ? 1 : (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.5 : 1);
+    const leftAgo = this.clock - (this.recent.get('left:' + speciesOf(s)) ?? -1e9);
+    const recent = self ? 1 : (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.5 : 1) * (leftAgo < 90 ? 0.3 : 1);   // (just left: not straight back)
     const grand = s.kind === 'giant' ? 1.4 : s.kind === 'manta' ? 1.3 : s.kind === 'big' ? 1.15 : s.kind === 'critter' ? 1.1 : 1;
     return s.prio * vis * Math.max(0, near) * bored * recent * grand * this.weight(s);
   }
@@ -221,14 +223,16 @@ export class Director {
           if (s.key === cur.key || s.kind === 'cave' || s.tour) continue;
           const p = s.pos(); if (!p || !s.live()) continue;
           const dx = p.x - drone.x, dy = p.y - drone.y, dz = p.z - drone.z, d = Math.hypot(dx, dy, dz);
-          const j = !curJump && this.jumpTo(s);
+          // (what it drops everything for: but not one it has just been filming — that is how it swung back and forth)
+          const j = !curJump && this.jumpTo(s) && this.clock - (this.recent.get(s.key) ?? -1e9) > 240 && this.clock - (this.recent.get('left:' + speciesOf(s)) ?? -1e9) > 90;
           if (d > (j ? 30 : 14) || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) < (j ? 0 : 0.45)) continue;   // (passing close, in view; what it lives for, anywhere near)
           const sc = this.interest(s, drone, fwd);
           if (j && sc > js) { js = sc; jump = s; }
-          if (sc > as) { as = sc; alt = s; }
+          // (nor something it filmed only a moment ago, passing again: once seen, it moves on)
+          if (sc > as && this.clock - (this.recent.get(s.key) ?? -1e9) > 120) { as = sc; alt = s; }
         }
         // what this guide drops everything for, at once; otherwise only once it has given this one a fair look
-        if (jump && js > 0.3) this.begin(jump, drone, false);
+        if (jump && js > 0.3 && this.t > Math.min(3, this.minHold)) this.begin(jump, drone, false);   // (given at least a moment's look first)
         else if (this.t > this.minHold && alt && (as > cs * this.switchK || (curD > 20 && as > cs * 0.8))) this.begin(alt, drone, false);
       }
     }
@@ -261,6 +265,7 @@ export class Director {
       return sh;
     }
     if (!p || far || this.goneT > 1.5 || (sh.phase === 'observe' && this.t > this.dur && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
+      this.recent.set('left:' + speciesOf(s), this.clock);
       this.shot = null;
       this.cooldown = rr(...this.rest);
       return null;
