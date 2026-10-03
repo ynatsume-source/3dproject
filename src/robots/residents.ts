@@ -153,7 +153,7 @@ export interface Mark { x: number; y: number; z: number; kind: string; label: st
 // gaze included) — what its own point of view is taken from
 export interface Sense { eye: THREE.Vector3; look?: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number }
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
-export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean; key?: string; with?: string }   // (a line someone said, or the heading of a conversation)
+export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean; key?: string; with?: string; obs?: string }   // (obs: what it measured or counted then, from the world — shown in a diary only when there is one)   // (a line someone said, or the heading of a conversation)
 export interface Resident {
   id: string; v: Voice; sp: Spec; model: Robot;
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
@@ -166,6 +166,7 @@ export interface Resident {
   path?: { pts: [number, number][]; tx: number; tz: number; t: number };   // the way it means to walk (robots/path.ts)
   goal?: { tx: number; tz: number; x: number; z: number; none: boolean };   // where it will stand to reach where it is going (outside whatever is there)
   went?: 'arrived' | 'blocked' | 'no way' | 'nowhere to stand';   // how its last walk ended (robots/solids.ts)
+  spotted?: string[];   // the fish it has really made out since its last note (for its diary)
   seen?: { name: string; pos: THREE.Vector3; t: number; dur: number; lost: number };   // a fish going by that it is watching (Kamemaru, grazing)
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
@@ -541,10 +542,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }, itemMat, group);
 
   /* ---------- the diary and what happened today ---------- */
-  function note(r: Resident, key: string, vars: Record<string, string | number> = {}, today?: string) {
+  function note(r: Resident, key: string, vars: Record<string, string | number> = {}, today?: string, obs?: string) {
     const lines = r.v.diary[key]; if (!lines) return;
     const text = fill(pickOne(lines), { ...statVars(r), ...vars });
-    r.diary.push({ at: clockMs, text, key }); if (r.diary.length > 400) r.diary.shift();
+    r.diary.push(obs ? { at: clockMs, text, key, obs } : { at: clockMs, text, key }); if (r.diary.length > 400) r.diary.shift();
     if (today) { r.today.push(today); if (r.today.length > 6) r.today.shift(); }
     res.onEvent(key, `${r.v.name}：${text}`, r);
   }
@@ -556,9 +557,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       mapNow: map < 3 ? 'まだ歩きはじめたばかりだが。' : `いまで島の${map}%ほど。`,
       shellsNow: s.shells === 0 ? 'きれいな貝殻を集めはじめたところ！' : `貝殻はもう${s.shells}個集めたんだ！` };
   };
-  const sight = () => pickOne([
-    `${pickOne(fishNames)}の群れが根のまわりを回っていた。`, `${pickOne(birdNames)}が沖へ飛んでいった。`, 'ツマグロが浅瀬を横切った。', `${pickOne(fishNames)}が一匹、じっとこちらを見ていた。`, '潮が満ちてきた。',
-  ]);
+  // what it saw, for its diary: only the fish it really made out (T.nearFish, ahead of its eyes, now and while it
+  // grazed), never a name drawn at random; nothing seen is said as such
+  const sight = (r: Resident) => {
+    if (T.nearFish) {
+      const eye = _ey.set(r.pos.x, Math.min(r.pos.y + 0.25, -0.3), r.pos.z), fwd = _fd.set(Math.sin(r.head), 0, Math.cos(r.head));
+      const name = T.nearFish(eye, fwd, 10, _fp); if (name) (r.spotted ??= []).push(name);
+    }
+    const names = [...new Set(r.spotted ?? [])]; r.spotted = [];
+    const text = names.length ? `${names.slice(0, 3).join('、')}${names.length > 3 ? 'など' : ''}を見た。` : '目にとまる魚はいなかった。';
+    return { text, obs: names.length ? `見分けた魚 ${names.length}種` : '' };
+  };
 
   /* ---------- deciding what to do next ---------- */
   function sleepTime(r: Resident, hr: number) { return r.sp.nightOwl ? hr > 8.5 && hr < 16.5 : hr >= 21.5 || hr < 5.8; }
@@ -737,8 +746,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         }
         break;
       }
-      case 'watch': r.stats.notes++; note(r, 'watch', { sight: sight() }, '浜で海を見ていた'); break;
-      case 'swim': r.stats.notes++; note(r, 'swim', { sight: sight() }, 'ラグーンを泳いだ'); break;
+      case 'watch': { r.stats.notes++; const sg = sight(r); note(r, 'watch', { sight: sg.text }, '浜で海を見ていた', sg.obs); break; }
+      case 'swim': { r.stats.notes++; const sg = sight(r); note(r, 'swim', { sight: sg.text }, 'ラグーンを泳いだ', sg.obs); break; }
       case 'explore': note(r, 'explore', { place: pickOne(['北の浜の岩場に出た。', '森の中の空き地を見つけた。', '白い砂の小道をたどった。', 'アダンの茂みを回り込んだ。']) }, '夜の島を歩いて地図を作った'); break;
       case 'think': {
         note(r, 'think', { star: pickOne(['光の届かない場所にも、道はあるのだろうか。', '地図の空白は、まだ知らないという印だ。', '波の音は、何度聞いても同じではない。']) }, '丘で星を見て考えごとをした');
@@ -773,7 +782,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         r.task = task('groom', [r.pos.x, r.pos.z], 'groom', rr(60, 150), { wet: true, arrived: true }); return;   // (after eating, cleaning the fur)
       }
       case 'groom': if (Math.random() < 0.25) note(r, 'groom', {}, '毛づくろいをした'); break;
-      case 'graze': r.stats.notes++; note(r, 'graze', { sight: sight() }, 'ラグーンで海草を食べた'); break;
+      case 'graze': { r.stats.notes++; const sg = sight(r); note(r, 'graze', { sight: sg.text }, 'ラグーンで海草を食べた', sg.obs); break; }
       case 'bask': note(r, 'bask', {}, '浜で甲羅干しをした'); break;
       case 'collect':
         if (!items.take(tk.data)) break;
@@ -1235,7 +1244,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           } else if (r.under > 0.99 && seeCool <= 0 && Math.floor(tk.t / 3) !== Math.floor((tk.t - dt) / 3)) {
             const eye = _ey.set(r.pos.x, r.pos.y + 0.25, r.pos.z), fwd = _fd.set(Math.sin(r.head), 0, Math.cos(r.head));
             const name = T.nearFish(eye, fwd, 6, _fp);
-            if (name) { r.seen = { name, pos: _fp.clone(), t: 0, dur: rr(5, 15), lost: 0 }; seeCool = rr(120, 300); r.act = 'look'; }
+            if (name) { r.seen = { name, pos: _fp.clone(), t: 0, dur: rr(5, 15), lost: 0 }; seeCool = rr(120, 300); r.act = 'look'; (r.spotted ??= []).push(name); if (r.spotted.length > 20) r.spotted.shift(); }
           }
         }
       }
@@ -1304,7 +1313,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       graze: r.act === 'breathe' ? '息つぎに浮かんできた' : '海の底で海草を食べている',
       bask: '浜で甲羅干しをしている',
       survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
+    // (what it is doing now, from how its walk is going, not from what it means to do once there: held up on the
+    // way, or still on its way, says so; only once there does it say it is doing it)
+    if (tk && !tk.arrived && r.went === 'blocked' && r.blocked > 1.5) return '行く手がふさがっていて、回り道を探している';
     if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
+    const toward: Record<string, string> = {
+      sleep: r.sp.swims && tk?.wet ? '眠る場所へ泳いでいく' : '寝床へ向かっている', charge: '日なたへ向かっている', look: '海の見える場所へ向かっている', watch: '海を観察する浜へ向かっている',
+      rest: '丘のふもとへ向かっている', think: '丘の上へ歩いている', float: '静かな水面へ向かっている', nap: '昼寝のできる静かな水面へ向かっている', crack: '貝を割る場所へ向かっている',
+      carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている',
+    };
+    if (tk && !tk.arrived && toward[k]) return toward[k] + left;
     const base: Record<string, string> = {
       sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
