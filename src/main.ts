@@ -885,12 +885,14 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   // A full moon is bright enough to read by: silver shafts and caustics of its own; a moonless night stays
   // dim and soft (the drama is natural light's alone — the drone's lamp stays gentle)
   const day = s.sunI * (1 - n);
-  U.uAmb.value = s.amb * (1 - 0.12 * day) + glow * (0.45 + 0.2 * moon);
-  U.uSunI.value = Math.max(s.sunI * (1 + 0.38 * day) + 0.3 * s.golden, n * (0.32 + 0.75 * moon));
-  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 1.4 * s.golden, n * (0.12 * Math.min(1, moon / 0.3) + 0.95 * moon));   // (no moon to come from, no shafts)
+  // (night is night: the owner found the old lift — a full moon about 60% of noon — hard to tell from day.
+  // Now a full moon is roughly a third of noon and a moonless night much darker, yet the reef still reads)
+  U.uAmb.value = s.amb * (1 - 0.12 * day) + glow * (0.24 + 0.1 * moon);
+  U.uSunI.value = Math.max(s.sunI * (1 + 0.38 * day) + 0.3 * s.golden, n * (0.14 + 0.42 * moon));
+  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 1.4 * s.golden, n * (0.08 * Math.min(1, moon / 0.3) + 0.6 * moon));   // (no moon to come from, no shafts)
   U.uGlowK.value = 1 - n * (1 - Math.min(1, moon / 0.3));
   const starlit = n * Math.max(0, 1 - moon / 0.3);
-  U.uAmb.value += starlit * 0.07;   // (no moon: the soft light the shafts gave, spread evenly instead)
+  U.uAmb.value += starlit * 0.045;   // (no moon: the soft light the shafts gave, spread evenly instead)
   if (starlit > 0) U.uSunDir.value.lerp(_starDir, starlit).normalize();
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
@@ -2526,7 +2528,7 @@ function renderPip(dt: number, air: boolean) {
   if (air && skyNow) lightFor(skyNow, false);   // (the little window looks under the water: lit as it is down there, even when we are up in the air)
   const wantBoost = clamp(Math.pow(0.17 / Math.max(pipLight(Math.max(0, -pipLook.y)), 0.01), 0.7), 1, 3);
   pipBoost += (wantBoost - pipBoost) * Math.min(1, dt * 1.2);
-  pipPost.setExposure(1.9 * (1 + 0.45 * nightLift) * pipBoost);   // a touch brighter than the main view: the action has to read small
+  pipPost.setExposure(1.9 * (1 + 0.25 * nightLift) * pipBoost);   // a touch brighter than the main view: the action has to read small
   // and when it is dim, a soft light over the hunt (as a filmer's lamp would give), so the fish themselves show
   const keepSpot = U.uSpot.value.clone();
   U.uSpot.value.set(pipLook.x, pipLook.y + 2.5, pipLook.z, clamp(0.3 * (pipBoost - 1) + 0.3 * nightLift, 0, 0.75));
@@ -2617,8 +2619,8 @@ function frameBody(ts: number) {
     {
       const cp = camera.position, cv = cur.cave;
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
-      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) * (1 + 0.9 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up on a moonless night)
-         * (watch.r && skyNow ? 1 + 0.35 * skyNow.night : 1) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
+      const want = camera.position.y > 0 ? 1.25 * (1 + 0.3 * nightLift) * (1 + 0.4 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up a little on a moonless night)
+         * (watch.r && skyNow ? 1 + 0.2 * skyNow.night : 1) : 1.4 * (1 + 0.25 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
       camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
       post.setExposure(camExpo);
     }
@@ -2761,7 +2763,7 @@ function frameBody(ts: number) {
         seaTop.visible = abyss.visible = asAir;   // (in a trough the lens may be below y = 0 while above the water: the sea from above all the same)
         camera.far = asAir ? 90000 : 460; camera.updateProjectionMatrix();
         post.setAir(asAir); post.whiteBalance(asAir ? 0 : 0.3, U.uAbs.value, U.uNight.value, asAir);
-        post.setExposure(asAir ? 1.25 * (1 + 0.6 * nightLift) : 1.4 * (1 + 0.55 * nightLift));
+        post.setExposure(asAir ? 1.25 * (1 + 0.3 * nightLift) : 1.4 * (1 + 0.25 * nightLift));
         post.render(renderer, oceanScene, camera, asAir ? topScene : null, setRefraction, asAir ? split.air : split.water);
       }
       seaTop.visible = abyss.visible = camera.position.y > 0;
