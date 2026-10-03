@@ -58,7 +58,7 @@
   "processes": [
     {
       "id": "p12x_test_tile_dry",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "label": "試験片の乾燥",
       "kind": "physical",
       "inputs": [
@@ -81,13 +81,13 @@
       },
       "readiness": "test-world-only",
       "evaluator": "drying-eval/0.1.0",
-      "stepMs": 600000,
+      "stepMs": 30000,
       "derivedFrom": "p12_pottery_dry",
       "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない"
     },
     {
       "id": "p20x_lime_calcine_test",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "label": "試験用の焼成炉での炭酸カルシウムの熱分解",
       "kind": "chemical",
       "inputs": [
@@ -114,7 +114,7 @@
     },
     {
       "id": "p21x_lime_hydrate_test",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "label": "試験用の桶での生石灰の消化",
       "kind": "chemical",
       "inputs": [
@@ -137,13 +137,13 @@
       },
       "readiness": "test-world-only",
       "evaluator": "lime-hydrate-eval/0.1.0",
-      "stepMs": 5000,
+      "stepMs": "20 (reacting) / 1000 (cooling)",
       "derivedFrom": "p21_lime_hydration",
       "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない"
     },
     {
       "id": "p13x_test_tile_fire",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "label": "試験用の窯で試験片を焼く（申し出の熱源）",
       "kind": "physical+chemical",
       "inputs": [
@@ -174,7 +174,7 @@
     },
     {
       "id": "m01x_tile_soak_test",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "label": "試験片を冷水に浸ける",
       "kind": "physical",
       "inputs": [
@@ -196,5 +196,6 @@
       "evaluator": "tile-soak-eval/0.1.0",
       "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
     }
-  ]
+  ],
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only)."
 }

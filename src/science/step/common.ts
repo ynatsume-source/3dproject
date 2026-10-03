@@ -20,13 +20,25 @@ export function failed(req: ScienceStepRequest, evaluator: string, why: string, 
   };
 }
 
+/** An older schema of the same state is refused with an explicit reason (no migration for test-only states). */
+export function stateSchemaProblem(req: ScienceStepRequest, schema: string): string | null {
+  if (!req.state || req.state.schema === schema) return null;
+  const [base, ver] = schema.split('/'), [sBase, sVer] = String(req.state.schema).split('/');
+  if (base === sBase && Number(sVer) < Number(ver)) {
+    return `unsupported-state-schema: ${req.state.schema} is an older test state and is not migrated (current ${schema}). `
+      + 'Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet.';
+  }
+  return `unknown state schema ${req.state.schema}`;
+}
+
 /** Common request checks: contract 0.1.x, process id/version, catalog, state schema, integer interval and seed. */
 export function checkCommon(req: ScienceStepRequest, processId: string, processVersion: string, schema: string): string | null {
   if (!/^0\.1\.\d+$/.test(req.contract)) return `unknown contract ${req.contract}`;
   if (req.processId !== processId) return `unknown process ${req.processId}`;
   if (req.processVersion !== processVersion) return `unknown processVersion ${req.processVersion}`;
   if (req.catalogVersion !== SCIENCE_CATALOG_VERSION) return `unknown catalogVersion ${req.catalogVersion}`;
-  if (req.state && req.state.schema !== schema) return `unknown state schema ${req.state.schema}`;
+  const sp = stateSchemaProblem(req, schema);
+  if (sp) return sp;
   if (!isInt(req.interval.from) || !isInt(req.interval.to) || req.interval.to < req.interval.from) return 'invalid interval';
   if (!isInt(req.seed)) return 'invalid seed';
   if (req.energy.some((e) => /battery|robot/i.test(e.sourceId))) return 'robot battery is not an energy source (legacy / sealed_bootstrap)';
@@ -92,6 +104,15 @@ export function intDeltaFloor(cumFloat: number, reported: number): { delta: numb
 export function subStepEnd(t: number, origin: number, stepMs: number, until: number): number {
   const next = origin + (Math.floor((t - origin) / stepMs) + 1) * stepMs;
   return Math.min(next, until);
+}
+
+/**
+ * The power an offer can deliver: maxJ is spread evenly over the request's interval (W = maxJ / seconds).
+ * A long request therefore cannot spend its whole budget early; any split of the same supply behaves the same.
+ */
+export function offerPowerW(req: ScienceStepRequest, maxJ: number): number {
+  const s = (req.interval.to - req.interval.from) / 1000;
+  return s > 0 ? maxJ / s : 0;
 }
 
 /** Finite-number check of a parameter. */

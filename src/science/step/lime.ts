@@ -11,7 +11,7 @@ import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../w
 import { addComp, molarMass, react, REACTIONS, totalMg, type Composition } from '../chem';
 import { pv } from '../params';
 import { glowCategory, KINETICS, rateK } from '../physics';
-import { allFinite, checkCommon, compQuality, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, lotComp, subStepEnd } from './common';
+import { allFinite, checkCommon, compQuality, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, lotComp, offerPowerW, subStepEnd } from './common';
 
 // one definition of molar mass everywhere (the same one react() uses at settlement)
 const MOLAR = { calcite: molarMass('calcite'), lime: molarMass('lime'), water: molarMass('water'), co2: molarMass('co2') };
@@ -41,8 +41,8 @@ const envKnown = envUsable;
 // Calcination
 // ===================================================================================================
 
-export const CALCINE_PROCESS = { processId: 'p20x_lime_calcine_test', processVersion: '0.1.0' } as const;
-const CALCINE_SCHEMA = 'civ-sci.lime-calcine/1';
+export const CALCINE_PROCESS = { processId: 'p20x_lime_calcine_test', processVersion: '0.2.0' } as const;
+const CALCINE_SCHEMA = 'civ-sci.lime-calcine/2';
 const CALCINE_EVAL = 'lime-calcine-eval/0.1.0';
 const CALCINE_STEP_MS = 30_000;
 const UNLOAD_C = 60;
@@ -98,6 +98,7 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
 
   const known = envKnown(req);
   let budget = offer.maxJ;
+  const offerW = offerPowerW(req, offer.maxJ); // the offer arrives evenly over the interval
   const molCalcite = (d.base.calcite ?? 0) / 1000 / MOLAR.calcite;
   let energyLimited = false;
   let t = d.lastTo;
@@ -114,6 +115,7 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
           ? Math.min(p.maxPowerW, Math.max(0, p.uaWPerK * (p.setpointC - Ta) + (p.heatCapJPerK * (p.setpointC - d.chamberC)) / 600)) : 0;
       }
       let P = d.heldPowerW;
+      if (P > offerW) { P = offerW; energyLimited = true; }
       if (P * dt > budget) { P = budget / dt; energyLimited = true; }
       const Q = P * dt; budget = Math.max(0, budget - Q);
       const wall = p.uaWPerK * (d.chamberC - Ta) * dt;
@@ -172,10 +174,14 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
 // Hydration (slaking)
 // ===================================================================================================
 
-export const HYDRATE_PROCESS = { processId: 'p21x_lime_hydrate_test', processVersion: '0.1.0' } as const;
-const HYDRATE_SCHEMA = 'civ-sci.lime-hydrate/1';
+export const HYDRATE_PROCESS = { processId: 'p21x_lime_hydrate_test', processVersion: '0.2.0' } as const;
+const HYDRATE_SCHEMA = 'civ-sci.lime-hydrate/2';
 const HYDRATE_EVAL = 'lime-hydrate-eval/0.1.0';
-const HYDRATE_STEP_MS = 5_000;
+// Integration grid for slaking. While the reaction runs, water is shared between reacting and boiling off, which is
+// step-size sensitive: a fine 20 ms grid keeps the discretisation error small (measured in science-review-regressions);
+// once the reaction is over (cooling only) a 1 s grid. Both divide 30 s, so 30 s-aligned requests are exact.
+const HYDRATE_FINE_MS = 20;
+const HYDRATE_STEP_MS = 1_000;
 const SAFE_C = 40;
 
 interface HydrateData extends EnergyBook {
@@ -217,9 +223,10 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
   if (known && req.stop !== 'equipment-lost' && molLime > 0) {
     const Ta = req.environment.airTempC!;
     while (!d.done && t < req.interval.to) {
-      const tEnd = subStepEnd(t, d.startMs, HYDRATE_STEP_MS, req.interval.to);
-      const dt = (tEnd - t) / 1000;
       const waterLeftMol = Math.max(0, molWater0 - d.ext * molLime - d.evapMg / 1000 / MOLAR.water);
+      const reacting = d.ext < 0.999 && waterLeftMol > 1e-9;
+      const tEnd = subStepEnd(t, d.startMs, reacting ? HYDRATE_FINE_MS : HYDRATE_STEP_MS, req.interval.to);
+      const dt = (tEnd - t) / 1000;
       const k = rateK(d.tempC, 'kinHydrationTref', 120, 50e3);
       const dExt = Math.max(0, Math.min((1 - d.ext) * (1 - Math.exp(-k * dt)), waterLeftMol / molLime));
       const heat = dExt * molLime * -pv('dHHydration');

@@ -18,15 +18,15 @@ import type {
   EquipmentView, LotView, Observation, ScienceStepRequest, ScienceStepResult, ScienceState,
 } from '../../world/science-contract';
 import { pv } from '../params';
-import { allFinite, envUsable, finite, subStepEnd } from './common';
+import { allFinite, envUsable, finite, stateSchemaProblem, subStepEnd } from './common';
 import { crackP, dryPhysics } from '../physics';
 import { draw } from '../rng';
 
-export const DRYING_PROCESS = { processId: 'p12x_test_tile_dry', processVersion: '0.1.0' } as const;
+export const DRYING_PROCESS = { processId: 'p12x_test_tile_dry', processVersion: '0.2.0' } as const;
 export const SCIENCE_CATALOG_VERSION = 'civ-sci-test-1';
-export const DRYING_STATE_SCHEMA = 'civ-sci.drying/1';
+export const DRYING_STATE_SCHEMA = 'civ-sci.drying/2';
 const EVALUATOR = 'drying-eval/0.1.0';
-const STEP_MS = 600_000;
+const STEP_MS = 30_000; // divides 30 s: 30 s-aligned requests are exact for every process
 export const TILE_MATERIAL = 'test_tile_green';
 export const TILE_DRY_MATERIAL = 'test_tile_dry';
 export const RACK_KIND = 'drying_rack';
@@ -76,7 +76,8 @@ function checkVersions(req: ScienceStepRequest): string | null {
   if (req.processId !== DRYING_PROCESS.processId) return `unknown process ${req.processId}`;
   if (req.processVersion !== DRYING_PROCESS.processVersion) return `unknown processVersion ${req.processVersion}`;
   if (req.catalogVersion !== SCIENCE_CATALOG_VERSION) return `unknown catalogVersion ${req.catalogVersion}`;
-  if (req.state && req.state.schema !== DRYING_STATE_SCHEMA) return `unknown state schema ${req.state.schema}`;
+  const sp = stateSchemaProblem(req, DRYING_STATE_SCHEMA);
+  if (sp) return sp;
   if (!isInt(req.interval.from) || !isInt(req.interval.to) || req.interval.to < req.interval.from) return 'invalid interval';
   if (!isInt(req.seed)) return 'invalid seed';
   return null;

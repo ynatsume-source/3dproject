@@ -14,10 +14,10 @@ import { wareComp } from '../ceramic';
 import { pv } from '../params';
 import { crackP, dehydroxExtent, glowCategory, GLOW_TARGET_C, KINETICS, PACE_K_PER_H, waterRatio } from '../physics';
 import { draw } from '../rng';
-import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, subStepEnd, tileComp, tileQuality } from './common';
+import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, offerPowerW, subStepEnd, tileComp, tileQuality } from './common';
 
-export const FIRING_PROCESS = { processId: 'p13x_test_tile_fire', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.tile-fire/1';
+export const FIRING_PROCESS = { processId: 'p13x_test_tile_fire', processVersion: '0.2.0' } as const;
+const SCHEMA = 'civ-sci.tile-fire/2';
 const EVAL = 'tile-fire-eval/0.1.0';
 const STEP_MS = 30_000;
 const UNLOAD_C = 60;
@@ -80,6 +80,7 @@ export function firingStep(req: ScienceStepRequest): ScienceStepResult {
 
   const known = envUsable(req);
   let budget = offers[0].maxJ;
+  const offerW = offerPowerW(req, offers[0].maxJ); // the offer arrives evenly over the interval
   let t = d.lastTo;
   if (known && req.stop !== 'equipment-lost') {
     const Ta = req.environment.airTempC!;
@@ -98,7 +99,7 @@ export function firingStep(req: ScienceStepRequest): ScienceStepResult {
         d.heldPowerW = target !== null && (d.phase === 'ramp' || d.phase === 'hold')
           ? Math.min(p.maxPowerW, Math.max(0, p.heatCapJPerK * rampKs + p.uaWPerK * (target - Ta) + (p.heatCapJPerK * (target - d.kilnC)) / 600)) : 0;
       }
-      let P = d.heldPowerW;
+      let P = Math.min(d.heldPowerW, offerW);
       if (P * dt > budget) P = budget / dt;
       const Q = P * dt; budget = Math.max(0, budget - Q);
       const ua = d.phase === 'cool' && d.forced ? p.uaWPerK * p.forcedCoolingUaFactor : p.uaWPerK;
