@@ -7,6 +7,9 @@ import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
 import { lotComp, tileComp } from '../src/science/step/common';
 import { addComp, elementMoles } from '../src/science/chem';
+import { CALCINE_PROCESS, HYDRATE_PROCESS } from '../src/science/step/lime';
+import { FIRING_PROCESS } from '../src/science/step/firing';
+import { SOAK_PROCESS } from '../src/science/step/soak';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -14,7 +17,7 @@ const ok = (c: unknown, name: string, detail = '') => {
 };
 const W = { worldId: 'w', worldEpoch: 'e', worldVersion: 1 };
 const CALC: ScienceStepRequest = {
-  contract: '0.1.0', requestId: 'r0', world: W, runId: 'run:review', processId: 'p20x_lime_calcine_test', processVersion: '0.1.0',
+  contract: '0.1.0', requestId: 'r0', world: W, runId: 'run:review', processId: CALCINE_PROCESS.processId, processVersion: CALCINE_PROCESS.processVersion,
   catalogVersion: 'civ-sci-test-1', interval: { from: 0, to: 30000 }, state: null,
   environment: { sampleId: 'env:review', source: 'simulation', effectiveAt: 0, airTempC: 25 },
   lots: [{ lotId: 'lot:feed', materialId: 'calcium_carbonate_feed', amount: { value: 100000, unit: 'mg' }, location: 'site:review', quality: { x_calcite_ppm: 950000 } }],
@@ -23,7 +26,7 @@ const CALC: ScienceStepRequest = {
   energy: [{ sourceId: 'src:heater', kind: 'heat', maxJ: 120000 }], actions: [], seed: 1,
 };
 const FIRE: ScienceStepRequest = {
-  contract: '0.1.0', requestId: 'r', world: W, runId: 'run:fire', processId: 'p13x_test_tile_fire', processVersion: '0.1.0', catalogVersion: 'civ-sci-test-1',
+  contract: '0.1.0', requestId: 'r', world: W, runId: 'run:fire', processId: FIRING_PROCESS.processId, processVersion: FIRING_PROCESS.processVersion, catalogVersion: 'civ-sci-test-1',
   state: null, interval: { from: 0, to: 30000 }, environment: { sampleId: 'env:fixture', source: 'simulation', effectiveAt: 0, airTempC: 28, humidity: 0.72, windMs: 3 },
   lots: [{ lotId: 'lot:dry', materialId: 'test_tile_dry', amount: { value: 37047, unit: 'mg' }, location: 'site:review',
     quality: { water_ppm: 20434, thickness_mm: 10, xd_kaolinite_ppm: 450000, xd_quartz_ppm: 300000, xd_calcite_ppm: 20000, crack: 0, history_complete: 1 } }],
@@ -32,11 +35,12 @@ const FIRE: ScienceStepRequest = {
   energy: [{ sourceId: 'src:heat', kind: 'heat', maxJ: 450000 }], actions: [{ at: 0, residentId: 'res:review', action: 'fire_plan', params: { pace: 1, targetGlow: 2, holdMin: 90, forcedCooling: 0 } }], seed: 7,
 };
 const violations: string[] = [];
-function chain(base: ScienceStepRequest, bounds: number[], powerW: number, env?: (i: number) => ScienceStepRequest['environment']) {
+function chain(base: ScienceStepRequest, bounds: number[], powerW: number, env?: (i: number) => ScienceStepRequest['environment'], stopLast = false) {
   let state: ScienceStepRequest['state'] = null, used = 0, last: ScienceStepResult | undefined;
   for (let i = 1; i < bounds.length; i++) {
     const req = { ...base, state, requestId: `r${i}`, interval: { from: bounds[i - 1], to: bounds[i] }, actions: i === 1 ? base.actions : [],
-      environment: env?.(i) ?? base.environment, energy: [{ ...base.energy[0], maxJ: Math.floor(powerW * (bounds[i] - bounds[i - 1]) / 1000) }] };
+      environment: env?.(i) ?? base.environment, energy: base.energy.length ? [{ ...base.energy[0], maxJ: Math.floor(powerW * (bounds[i] - bounds[i - 1]) / 1000) }] : [],
+      ...(stopLast && i === bounds.length - 1 ? { stop: 'operator' as const } : {}) };
     last = scienceStep(req); state = last.state; used += last.energy.reduce((s, e) => s + e.usedJ, 0);
     violations.push(...validateResult(req, last));
     if (last.status !== 'running') break;
@@ -62,7 +66,7 @@ console.log('R1  splitting an interval never lets an earlier offer go unused or 
 }
 
 console.log('R2  water-limited slaking settles without an exception');
-const hyd = (waterMg: number, q: Record<string, number> = { x_lime_ppm: 1000000 }): ScienceStepRequest => ({ ...CALC, processId: 'p21x_lime_hydrate_test', interval: { from: 0, to: 12 * 3600000 }, energy: [],
+const hyd = (waterMg: number, q: Record<string, number> = { x_lime_ppm: 1000000 }): ScienceStepRequest => ({ ...CALC, processId: HYDRATE_PROCESS.processId, processVersion: HYDRATE_PROCESS.processVersion, interval: { from: 0, to: 12 * 3600000 }, energy: [],
   lots: [{ lotId: 'lot:lime', materialId: 'quicklime', amount: { value: 56080, unit: 'mg' }, location: 'site:review', quality: q },
     { lotId: 'lot:water', materialId: 'process_water', amount: { value: waterMg, unit: 'mg' }, location: 'site:review' }],
   equipment: [{ equipmentId: 'eq:tub', kind: 'fixture_slaking_tub', catalogEntry: 'fixture_slaking_tub', catalogVersion: 'civ-sci-test-1', condition: 1, params: { heatCapJPerK: 400, uaWPerK: 1.5 } }] });
@@ -116,7 +120,7 @@ console.log('R5  an incomplete history is never made complete again');
 }
 
 console.log('T1  a crack the tile already had is what the resident sees');
-const soakReq = (tile: ScienceStepRequest['lots'][0], hours: number, runId: string, start = 0): ScienceStepRequest => ({ ...FIRE, processId: 'm01x_tile_soak_test', runId,
+const soakReq = (tile: ScienceStepRequest['lots'][0], hours: number, runId: string, start = 0): ScienceStepRequest => ({ ...FIRE, processId: SOAK_PROCESS.processId, processVersion: SOAK_PROCESS.processVersion, runId,
   interval: { from: start, to: start + hours * 3600000 }, actions: [], stop: 'operator', energy: [],
   lots: [tile, { lotId: 'lot:water', materialId: 'process_water', amount: { value: 500000, unit: 'mg' }, location: 'site:review' }],
   equipment: [{ equipmentId: 'eq:basin', kind: 'fixture_soak_basin', catalogEntry: 'fixture_soak_basin', catalogVersion: 'civ-sci-test-1', condition: 1 }] });
@@ -140,6 +144,53 @@ console.log('T2  re-soaking a damp tile continues the uptake');
   ok(w11 > w1 && Math.abs(w11 - w2) <= 2, '1 h + 1 h (re-soaked damp) = 2 h continuous, within mg rounding', `${w1} → ${w11} mg vs ${w2} mg (was 5666 / 5666 / 9103)`);
   const sl = scienceStep(soakReq({ ...FIRE.lots[0], quality: { ...FIRE.lots[0].quality, history_complete: 0 } }, 1, 'run:slurry'));
   ok(sl.produced[0].materialId === 'clay_slurry_test' && sl.produced[0].quality!.history_complete === 0, 'R5 (soak): the slurry keeps history_complete 0');
+}
+
+console.log('F1  the offer arrives evenly over its interval: a long request cannot spend it early');
+{
+  const day = 24 * 3600_000;
+  const runs = (base: ScienceStepRequest, w: number) => [[0, day], seconds(24, 3600_000), seconds(2880, 30_000)].map((b) => chain(base, b, w, undefined, true));
+  const [c1, c2, c3] = runs(CALC, 600);
+  const pr = (r: { last: ScienceStepResult }) => JSON.stringify([r.last.status, r.last.produced, r.last.released]);
+  ok(c1.used === c2.used && c2.used === c3.used && pr(c1) === pr(c2) && pr(c2) === pr(c3), 'calciner at 600 W for 24 h: one request = hourly = 30 s requests',
+    `${c1.used} J, ${c1.last.status}, ${c1.last.produced[0]?.amount.value} mg quicklime lot, CO2 ${c1.last.released[0]?.amount.value ?? 0} mg (was: one request fully calcined, split almost none)`);
+  const [k1, k2, k3] = runs(FIRE, 1000);
+  ok(k1.used === k2.used && k2.used === k3.used && pr(k1) === pr(k2) && pr(k2) === pr(k3), 'kiln at 1000 W for 24 h: same product and J for every split',
+    `${k1.last.produced[0]?.materialId} ${k1.last.produced[0]?.amount.value} mg, ${k1.used} J (was: fired when one request, dry when split)`);
+}
+
+console.log('F2  integration accuracy: 30 s-aligned requests are exact; other splits stay within a measured tolerance');
+{
+  const rel = (a: number, b: number) => Math.abs(a - b) / Math.max(1, Math.abs(b));
+  const hydW = (w: number) => ({ ...hyd(w), interval: { from: 0, to: 0 } });
+  const total = 12 * 3600_000;
+  const chunked = (base: ScienceStepRequest, ms: number, end: number, w = 0) => chain(base, Array.from({ length: Math.ceil(end / ms) + 1 }, (_, i) => Math.min(end, i * ms)), w);
+  // slaking, the reviewer's case: 15000 mg water (water-limited, boiling)
+  const h5 = chunked(hydW(15000), 5_000, total), h1 = chunked(hydW(15000), 1_000, total), hx = chunked(hydW(15000), 737, total);
+  ok(h5.used === h1.used && JSON.stringify(h5.last.produced) === JSON.stringify(h1.last.produced), 'slaking: 5 s and 1 s requests are identical (both on the grid)', `${h5.used} J (was 47281 vs 45845 J)`);
+  ok(rel(hx.used, h1.used) < 0.001 && rel(hx.last.produced[0].amount.value, h1.last.produced[0].amount.value) < 0.001, 'slaking: 0.737 s requests within 0.1% (J and product)',
+    `${hx.used} vs ${h1.used} J`);
+  const table: string[] = [];
+  const offGrid = (name: string, base: ScienceStepRequest, end: number, w: number, tol: number) => {
+    const a = chunked(base, 30_000, end, w), b = chunked(base, 7_300, end, w);
+    const dJ = rel(b.used, a.used), dM = rel(b.last.produced[0]?.amount.value ?? 0, a.last.produced[0]?.amount.value ?? 0);
+    table.push(`${name} ${(dJ * 100).toFixed(3)}% J / ${(dM * 100).toFixed(3)}% mass`);
+    ok(dJ <= tol && dM <= tol, `${name}: 7.3 s requests vs 30 s within ${(tol * 100).toFixed(1)}%`, `${(dJ * 100).toFixed(3)}% J, ${(dM * 100).toFixed(3)}% mass`);
+  };
+  offGrid('calcination 4 kW', { ...CALC, interval: { from: 0, to: 0 } }, 24 * 3600_000, 4000, 0.005);
+  offGrid('firing 15 kW', { ...FIRE, interval: { from: 0, to: 0 } }, 24 * 3600_000, 15000, 0.005);
+  console.log('      off-grid summary:', table.join(' | '));
+}
+
+console.log('F3  states saved by an older version are refused explicitly, not misread');
+{
+  const old = (req: ScienceStepRequest, schema: string) => scienceStep({ ...req, state: { schema, data: { lastTo: 0 } } });
+  for (const [name, req, schema] of [['firing', FIRE, 'civ-sci.tile-fire/1'], ['calcination', CALC, 'civ-sci.lime-calcine/1'], ['slaking', hyd(60000), 'civ-sci.lime-hydrate/1']] as const) {
+    const r = old(req as ScienceStepRequest, schema);
+    ok(r.status === 'failed' && r.consumed.length === 0 && String(r.evidence.notes).startsWith('unsupported-state-schema'), `${name}: an /1 state is refused as unsupported-state-schema`);
+  }
+  ok(FIRE.processVersion === '0.2.0' && CALC.processVersion === '0.2.0', 'process versions bumped to 0.2.0 with the new state schemas (/2)');
+  ok(scienceStep({ ...CALC, processVersion: '0.1.0' }).status === 'failed', 'a request for the old process version 0.1.0 is refused');
 }
 
 console.log('—   every result above passed the contract checker');
