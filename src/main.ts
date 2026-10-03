@@ -2784,6 +2784,11 @@ if (/[?&]lab\b/.test(location.search)) {
         天気: wxFixed ?? wxKindOf(liveWeather()), カメラ: `${drone.mode}${drone.sky ? '・空' : ''}`, 位置: `${drone.pos.x.toFixed(0)},${drone.pos.y.toFixed(1)},${drone.pos.z.toFixed(0)}`,
         撮影: director.shot ? `${director.shot.subject.label}（${director.shot.phase}）` : '—' };
     },
+    resident: () => {
+      const R = cur?.residents; if (!R) return null;
+      const r = watch.r ?? R.list[0];
+      return { build: __BUILD__, worldClock: new Date(clock.ms).toISOString(), viewing: watch.r ? (watch.pov ? 'pov' : 'watch') : 'cruise', ...R.labCase(r) };
+    },
     reproUrl: () => {
       if (!cur) return location.origin + '/?lab';
       const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');

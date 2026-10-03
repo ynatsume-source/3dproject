@@ -397,6 +397,9 @@ body.pov #tele, body.pov #compass, body.pov #hdgnum, body.pov #hint, body.pov #w
 #pov .mk { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; text-shadow: 0 0 6px rgba(0,0,0,.95); }
 #pov .mk i { width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 1.5px solid var(--pc); flex: none; }
 #pov .mk span { transform: translateY(-7px); }
+#pov .mk.l { flex-direction: row-reverse; }   /* (by the right edge: its label on the left of its mark) */
+#pov .mk.l i { margin: -7px -7px 0 0; }
+#pov .mk.hot.l i { margin: -13px -13px 0 0; }
 #pov .mk.friend i { border-radius: 50%; border-color: var(--c, var(--pc)); }
 #pov .mk.hot i { width: 26px; height: 26px; margin: -13px 0 0 -13px; border-width: 2px; animation: povHot 1.2s ease-in-out infinite; }
 #pov .mk.hot span { color: #fff; font-weight: 500; }
@@ -648,6 +651,10 @@ body.dock-open #caption { opacity: 0 !important; }
 #sharedBadge .k { opacity: 0.6; font-size: 11px; }
 #sharedBadge button { border: 0; border-radius: 999px; padding: 4px 10px; background: rgba(160, 220, 230, 0.16); color: inherit; font: inherit; cursor: pointer; }
 body.hud-off #sharedBadge { display: none; }
+/* through someone's eyes: the shared-scene band keeps out of the eyes' own header and the names, coming up
+   with the rest of the controls (a tap) under them, not over them */
+body.pov:not(.pov-ui) #sharedBadge { opacity: 0; pointer-events: none !important; }
+body.pov #sharedBadge { top: calc(96px + env(safe-area-inset-top, 0px)); }
 
 /* さかのぼって保存: a rewind ring that fills as the last 30 seconds are held, and a red dot of a recorder */
 #btnReplay { display: inline-flex; align-items: center; gap: 7px; --held: 0; }

@@ -193,6 +193,7 @@ export interface Residents {
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
   body(r: Resident): Body;                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
+  labCase(r: Resident): Record<string, unknown>;  // what a test report needs to find this moment again (src/ui/lab.ts)
   vitals(r: Resident): string;                     // its battery, or (an animal) how hungry and sleepy it is
   hide: string;                                    // (the one whose eyes we are looking through: not drawn)
   readonly study?: ReturnType<typeof createLanternStudy>;
@@ -1341,6 +1342,23 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     hide: '',
     body: (r) => bodyOf(r),
     solids,
+    labCase(r) {
+      // (the save as it stands: its length and a short hash, so two reports can tell whether they began from the same)
+      let snap = 'none';
+      try { const t = localStorage.getItem(saveKey); if (t) { let h = 2166136261; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619); snap = `${saveKey}:${t.length}:${(h >>> 0).toString(16)}`; } } catch (e) { snap = 'unreadable'; }
+      const tk = r.task, sn = res.sense(r), f = (v: number) => +v.toFixed(2);
+      return {
+        seed: 'none (Math.random: the residents are not seeded)', saveSnapshot: snap, residentMode: study ? 'study' : 'normal',
+        residentClock: new Date(clockMs).toISOString(), residentId: r.id,
+        pose: { x: f(r.pos.x), y: f(r.pos.y), z: f(r.pos.z), head: f(r.head), act: r.act, wet: r.wet, holding: r.holding || '' },
+        task: tk ? { kind: tk.kind, x: f(tk.x), z: f(tk.z), arrived: tk.arrived, t: f(tk.t), dur: f(tk.dur) } : null,
+        targetId: tk?.data?.id ?? tk?.data?.studyId ?? (typeof tk?.data === 'string' ? tk.data : null),
+        approach: r.goal && !r.goal.none ? [f(r.goal.x), f(r.goal.z)] : null,
+        path: r.path?.pts.map(([x, z]) => [f(x), f(z)]) ?? null,
+        observedIds: sn.marks.map((m) => `${m.kind}:${m.label}`),
+        actionResult: r.went ?? null, blocked: f(r.blocked), body: bodyOf(r),
+      };
+    },
     sense(r) {
       const EYE: Record<string, number> = { dot: 0.9, kame: 0.46, lantern: 0.88, rakko: 0.62 };
       const fx = Math.sin(r.head), fz = Math.cos(r.head);
