@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>科学・文明 ロードマップ</title>
+<style>
+:root{--bg:#f6f4ef;--fg:#1e1c19;--mut:#6a655c;--line:#dcd5c8;--card:#fffdf8;--done:#2e7d32;--now:#b4532a;--next:#2f6f8f;--far:#7a6f9b;--chip:#efe9dd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1a1917;--fg:#ece8e1;--mut:#a39d93;--line:#38352f;--card:#23211e;--done:#7bc47f;--now:#e48a5e;--next:#6fb2d4;--far:#b3a6e0;--chip:#2c2a26}}
+:root[data-theme="dark"]{--bg:#1a1917;--fg:#ece8e1;--mut:#a39d93;--line:#38352f;--card:#23211e;--done:#7bc47f;--now:#e48a5e;--next:#6fb2d4;--far:#b3a6e0;--chip:#2c2a26}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.65 system-ui,"Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 64px;overflow-wrap:anywhere}
+h1{font-size:1.45rem;margin:0 0 4px}h2{font-size:1.05rem;margin:28px 0 8px}
+.mut{color:var(--mut)}.small{font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 4px;font-size:13px;color:var(--mut)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.track{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin:14px 0 6px}
+.track a{display:block;height:10px;border-radius:5px;background:var(--c)}
+.track-labels{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;font-size:11px;color:var(--mut);text-align:center}
+details{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:10px;margin:10px 0;padding:0}
+summary{cursor:pointer;list-style:none;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary .t{font-weight:700}
+summary .when{font-size:13px;color:var(--mut);white-space:nowrap}
+summary .what{grid-column:1 / -1;font-size:13.5px;color:var(--mut)}
+summary .t::before{content:"▸ ";color:var(--c)}
+details[open] summary .t::before{content:"▾ "}
+.body{padding:0 16px 14px;border-top:1px dashed var(--line)}
+.body h3{font-size:13.5px;margin:14px 0 4px;color:var(--c)}
+.body ul{margin:4px 0;padding-left:1.25em}
+.body li{margin:2px 0}
+ul.todo{list-style:none;padding-left:0}
+ul.todo li::before{content:"☐ ";color:var(--mut)}
+ul.todo li.ok::before{content:"☑ ";color:var(--done)}
+ul.todo li.ok{color:var(--mut)}
+.chip{display:inline-block;font-size:11.5px;background:var(--chip);border-radius:9px;padding:1px 8px;margin:0 4px 4px 0}
+.flow{font-size:13.5px;background:var(--chip);border-radius:8px;padding:8px 10px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+@media (max-width:560px){summary{grid-template-columns:1fr}summary .when{white-space:normal}.track-labels{font-size:9.5px}}
+</style>
+</head>
+<body><main>
+<h1>科学・文明 ロードマップ</h1>
+<p class="mut">2026-10-03 時点。粘土の試験片から、住民が原料から作った定置灯が初めて灯るまで。段階をクリックすると、流れと todo が開きます。</p>
+
+<div class="legend">
+  <span style="--c:var(--done)">完了</span><span style="--c:var(--now)">いま</span><span style="--c:var(--next)">次に</span><span style="--c:var(--far)">長期</span>
+</div>
+<div class="track" aria-hidden="true">
+  <a href="#s0" style="--c:var(--done)"></a><a href="#s1" style="--c:var(--now)"></a><a href="#s2" style="--c:var(--next)"></a><a href="#s3" style="--c:var(--next)"></a><a href="#s4" style="--c:var(--next)"></a><a href="#s5" style="--c:var(--far)"></a><a href="#s6" style="--c:var(--far)"></a><a href="#s7" style="--c:var(--far)"></a><a href="#s8" style="--c:var(--far)"></a>
+</div>
+<div class="track-labels" aria-hidden="true"><span>0 現在地</span><span>1 準備</span><span>2 初統合</span><span>3 粘土</span><span>4 研究×AI</span><span>5 石灰・建築</span><span>6 金属</span><span>7 電線・ガラス</span><span>8 初点灯</span></div>
+
+<h2>スケジュールの見方</h2>
+<div class="note small">
+  <p><b>科学側のコードは速く進みます。</b>粘土の一周・石灰・検査器は、ほぼ2日でできました。待ち時間が長くなるのは、主に次の3つです。</p>
+  <ul>
+    <li><b>本体側の土台：</b>みんなが同じ島を見るサーバー、材料の台帳、AI の予算（G2・G3）。本体側のペースで決まります。</li>
+    <li><b>実測データ：</b>粘土や燃料の実際の値。見つかるか、測るかが必要です。</li>
+    <li><b>レビューの往復：</b>Codex・本体側の確認。1回あたり数日です。</li>
+  </ul>
+  <p>下の時期は、<b>いまのペースが続き、本体側が月に1段階くらい進む</b>と仮定した目安です。約束ではありません。後ろの段階ほど幅が広くなります。</p>
+</div>
+
+<h2>段階</h2>
+
+<details id="s0" style="--c:var(--done)">
+  <summary><span class="t">0. 現在地：粘土と石灰の計算エンジン</span><span class="when">完了（〜10/3）</span>
+    <span class="what">試験片を乾かす・焼く・浸ける・量る、石灰を焼く・水をかける。結果は世界の規則で決まり、住民は見た目と秤から知る。</span></summary>
+  <div class="body">
+    <h3>できたもの</h3>
+    <div class="flow">粘土を練る → 成形 → 乾燥 → 焼成（住民は火の色で操作）→ 秤量 → 浸漬 → 秤量 → 吸水率<br>石灰石 → 焼成 → 生石灰 → 水をかける（発熱・湯気）→ 消石灰</div>
+    <ul class="todo">
+      <li class="ok">本体との接続仕様（ScienceStep 0.1.0）に合わせた工程：乾燥・成形・秤量・焼成・浸漬・石灰の焼成・消化</li>
+      <li class="ok">結果の検査器 validateResult（本体が確定前に使える）</li>
+      <li class="ok">熱・比熱・蒸発潜熱・反応熱を、教科書（OpenStax）の本文で照合</li>
+      <li class="ok">Codex：粘土の資料6件（保存コピー）、測定値を確認する画面（記録形式 v2）</li>
+      <li class="ok">Codex のレビューで見つかった7件の修正と回帰検査（全部で約150件の検査が成功）</li>
+    </ul>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">Codex</span></p>
+  </div>
+</details>
+
+<details id="s1" style="--c:var(--now)">
+  <summary><span class="t">1. 統合の準備</span><span class="when">10月上旬〜中旬（〜2週間）</span>
+    <span class="what">本体へ渡す最初の部品を、手順書と一緒に用意する。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">Codex の修正確認 → 本体側の最終レビュー → 「秤量」の統合手順書 → 接続仕様 0.2.0（空気からの取り込み）の PR 提案</div>
+    <ul class="todo">
+      <li>Codex による 7件の修正の確認（1f7538f）</li>
+      <li>秤量の統合手順書：本体がどの値を渡し、何を一度だけ確定するか</li>
+      <li>接続仕様 0.2.0 の PR を main へ提案：<code>drawn</code>（O2・CO2 の取り込み）、J の規則の明確化</li>
+      <li>本体の推奨：時間の区切りを30秒の倍数にする</li>
+      <li>試作（fixture/）と本番用（step/）の区別を README に明記する</li>
+    </ul>
+    <h3>依存</h3>
+    <p class="small">本体側のレビューの時間。共通ファイルの変更は本体側が採択する。</p>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">Codex（確認）</span><span class="chip">本体（レビュー）</span></p>
+  </div>
+</details>
+
+<details id="s2" style="--c:var(--next)">
+  <summary><span class="t">2. 最初の統合：秤量 → 成形 → 乾燥</span><span class="when">10月下旬〜11月（本体の台帳しだい）</span>
+    <span class="what">島の中で、住民が試験片を作って乾かし、量れるようになる。まだ焼かない。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">本体：材料の台帳の最小形（G2）→ 秤量をつなぐ → 成形をつなぐ → 乾燥をつなぐ（試験世界で確認してから共有の島へ）</div>
+    <ul class="todo">
+      <li>本体：材料ロット・予約・一度だけ確定するしくみ（本体側の作業）</li>
+      <li>秤量：住民が量った結果が、その子の記憶に入る</li>
+      <li>成形：粘土ロットが試験片ロットに変わる（重さは変わらない）</li>
+      <li>乾燥：棚に置いて数日。天気は実際の島の天気を使う</li>
+      <li>画面：乾かしている試験片が島に見える（本体の 3D 表示）</li>
+      <li>停止・再開・再送で二重にならないことを、本体のサーバーで確認</li>
+    </ul>
+    <h3>ここで初めて見られる体験</h3>
+    <p class="small">ドットが小さな粘土の板を棚に並べ、何日かして手に取る。「白っぽく乾いた」。</p>
+    <h3>リスク</h3>
+    <p class="small">本体の G2（共有サーバー）の進み具合しだい。遅れたら、試験世界で先に見られる画面を用意する。</p>
+    <p class="small mut">担当：<span class="chip">本体</span><span class="chip">科学 Claude（調整）</span></p>
+  </div>
+</details>
+
+<details id="s3" style="--c:var(--next)">
+  <summary><span class="t">3. 粘土を本物に近づける：校正と焼成</span><span class="when">11月〜12月</span>
+    <span class="what">焼く・浸ける を島につなぎ、仮の数値を実測に近づける。最初の「器」が生まれる。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">実測データを探す・測る → 乾燥・割れ・焼き締まりの係数を校正 → 0.2.0 の採択 → 薪を燃やす焼成（O2・灰・CO2）→ 焼成・浸漬を統合</div>
+    <ul class="todo">
+      <li>粘土の実測：乾燥曲線、収縮と割れ、焼成温度と吸水率（Codex の資料探し／自分で測る記録）</li>
+      <li>測定値確認画面の記録（v2）を、校正用の入力として受け付ける手順</li>
+      <li>薪の燃焼を工程に入れる（O2 の取り込み・灰・排気）、有機物を含む粘土</li>
+      <li>最初の窯の段階：焚き火 → 低温のれんが → 窯（「窯がないと窯が作れない」問題の解消）</li>
+      <li>試験片から「器」へ：形・厚み・用途の評価（水を入れて漏れるか）</li>
+      <li>研究ノート：本人の観察から「条件つきの作り方」が育つ</li>
+    </ul>
+    <h3>見られる体験</h3>
+    <p class="small">火の色を見ながら薪をくべ、冷めるのを待って取り出す。割れたもの、うまく焼けたもの。最初の器に水を入れてみる。</p>
+    <h3>リスク</h3>
+    <p class="small">粘土の実測データが見つからないこと。見つからなければ、仮の値のまま「試験世界のみ」で表示し、確認済みとは言わない。</p>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">Codex（資料・測定）</span><span class="chip">本体（統合）</span></p>
+  </div>
+</details>
+
+<details id="s4" style="--c:var(--next)">
+  <summary><span class="t">4. 住民の研究に AI を入れる</span><span class="when">12月〜2027年1月</span>
+    <span class="what">「次は何を試そう」を住民自身が考える。結果は今までどおり世界が決める。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">本体の AI gateway と予算（G3）→ 節目で問い・仮説・次の条件を AI に提案させる → 規則で検査 → 実行 → 観察を記憶へ</div>
+    <ul class="todo">
+      <li>研究ノートの、どこを観察から自動で作り、どこを住民の言葉（AI）にするかを決める</li>
+      <li>AI に渡すのは、本人が知っていることだけ（隠れた温度などは渡さない）</li>
+      <li>AI が提案できるのは操作の範囲だけ（火の色・時間・置き場所など）</li>
+      <li>月1.5万円の予算の中で、研究の言語化に使う枠を本体と相談する</li>
+      <li>住民ごとの関心：器の美しさ、窯の改良、運搬、建築…最短経路に全員を従わせない</li>
+    </ul>
+    <h3>見られる体験</h3>
+    <p class="small">ランタンが「前回は割れた。冷ますのを遅くしてみる」と言い、本当にそうして、結果が変わる。</p>
+    <p class="small mut">担当：<span class="chip">本体（AI・予算）</span><span class="chip">科学 Claude（研究の規則）</span></p>
+  </div>
+</details>
+
+<details id="s5" style="--c:var(--far)">
+  <summary><span class="t">5. 石灰とれんがで建てる</span><span class="when">2027年1月〜3月</span>
+    <span class="what">消石灰のモルタル、焼いたれんが、小さな壁や作業場。創作（建築）側とつながる。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">消石灰＋砂＋水 → モルタル → 空気中の CO2 でゆっくり固まる（0.2.0 の drawn が必要）→ れんがを積む → 壁 → 作業場・窯</div>
+    <ul class="todo">
+      <li>モルタルの炭酸化（数週間〜数か月かけて固まる、湿度に依存）</li>
+      <li>れんがの成形・乾燥・焼成（試験片の工程を流用）</li>
+      <li>壁の強さ・養生の評価（創作側の「支え」の検査とつなぐ）</li>
+      <li>れんがの窯：より高い温度・より安定した焼成へ</li>
+      <li>石灰の原料：貝殻・サンゴは生きた生態系を壊さない範囲で（資源ノード・再生量）</li>
+    </ul>
+    <h3>リスク</h3>
+    <p class="small">嘉弥真島で使える石灰原料・粘土・燃料は未確認。現地資源の確認、または島外からの持ち込みを決める必要がある。</p>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">本体（創作・建築）</span></p>
+  </div>
+</details>
+
+<details id="s6" style="--c:var(--far)">
+  <summary><span class="t">6. 金属を取り出す</span><span class="when">2027年春〜夏</span>
+    <span class="what">鉱石を見分け、耐火の器と炉で還元し、使える鉄・銅にする。島の外へ広がる段階。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">鉱石の探索・評価 → 耐火材 → るつぼ → 炉（送風・温度・雰囲気）→ 木炭で還元 → 粗い金属 → 精製 → 加工</div>
+    <ul class="todo">
+      <li>木炭づくり（炭化）</li>
+      <li>耐火粘土の評価、るつぼの成形・焼成</li>
+      <li>送風（ふいご）と炉：1000 °C を超える熱と、還元する雰囲気</li>
+      <li>鉄・銅の還元と精製、スラグ</li>
+      <li>島外の資源と輸送（地域・運搬・時間の記録、本体の G6 とつなぐ）</li>
+    </ul>
+    <h3>リスク</h3>
+    <p class="small">鉱石がどこにあるか（現地は未確認）。精錬は資料の照合と校正が多く、一番時間がかかりやすい。</p>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">Codex（資料）</span><span class="chip">本体（地域・輸送）</span></p>
+  </div>
+</details>
+
+<details id="s7" style="--c:var(--far)">
+  <summary><span class="t">7. 電線・磁石・ガラス</span><span class="when">2027年後半</span>
+    <span class="what">銅を細い線にして絶縁する。磁石を作る。透明なガラスを溶かす。どれも難所。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">銅の線引き → 焼きなまし → 絶縁（樹脂・布）→ 巻線<br>鉄系の磁性材 → 熱処理 → 磁化（最初の磁化をどうするか）<br>珪砂＋融剤 → 溶融 → 徐冷 → 薄い外殻</div>
+    <ul class="todo">
+      <li>線引きの工具（硬い鉄・穴の精度）と、断線・抵抗の評価</li>
+      <li>電気の計測器を自分たちで作る（測れないものは測れないまま）</li>
+      <li>磁化の出発点：外部の磁石なしにどう始めるか（循環依存を隠さない）</li>
+      <li>ガラスの組成・溶融・徐冷・割れ</li>
+    </ul>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">Codex（資料）</span></p>
+  </div>
+</details>
+
+<details id="s8" style="--c:var(--far)">
+  <summary><span class="t">8. 発電して、初めて灯す</span><span class="when">2028年〜</span>
+    <span class="what">風で回し、自作の発電機で電気を起こし、自作の灯体を灯す。長期目標。</span></summary>
+  <div class="body">
+    <h3>流れ</h3>
+    <div class="flow">風車 → 軸・軸受 → 発電機（巻線＋磁石）→ 配線 → 炭素フィラメント → 排気（真空ポンプ）→ 封止 → 定置灯が灯る</div>
+    <ul class="todo">
+      <li>風車と発電機：風があるときだけ回る、出力は風しだい</li>
+      <li>真空ポンプと、ガラスと金属の封止（漏れ・寿命）</li>
+      <li>フィラメントの炭化と寿命</li>
+      <li>W（電力）と Wh（電力量）、蓄電の有無（夜に灯すには蓄えが要る）</li>
+      <li>初点灯の判定：原料の来歴をすべて遡れること。既製の電材やロボットの電池は数えない</li>
+    </ul>
+    <h3>見られる体験</h3>
+    <p class="small">夜、風の吹く日に、工房の机の上だけが小さく灯る。その灯りから、窯を作った日、最初の器、割れた試験片まで遡れる。</p>
+    <p class="small mut">担当：<span class="chip">科学 Claude</span><span class="chip">Codex</span><span class="chip">本体</span></p>
+  </div>
+</details>
+
+<h2>ずっと守ること</h2>
+<ul class="small">
+  <li>住民の言葉（AI）では結果を決めない。材料・熱・時間の規則で世界が決める。</li>
+  <li>住民は、見た目・音・自分の計器でしか知らない。</li>
+  <li>確認していない値は「仮定」と書く。嘉弥真島の資源を勝手に追加しない。</li>
+  <li>既製の部品やロボットの電池で、初点灯を代替しない。</li>
+  <li>本体へは小さな単位で、レビューの後に統合する。</li>
+</ul>
+<p class="small mut">このページ：docs/proposals/civilization/science/ROADMAP.html（codex/civilization-simulation）</p>
+</main></body></html>
