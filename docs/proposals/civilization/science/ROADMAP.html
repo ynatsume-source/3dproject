@@ -101,8 +101,8 @@ table.m td,table.m th{border-bottom:1px solid var(--line);padding:4px 6px;text-a
 
   <span class="lab" style="--k:var(--a)">A 法則<small>何が起こるか</small></span>
   <a class="blk done" href="#A0" style="--k:var(--a)">粘土・石灰の計算</a>
-  <a class="blk now" href="#A1" style="--k:var(--a)">統合準備・秤量</a>
-  <a class="blk" href="#A2" style="--k:var(--a)">成形・乾燥を島へ／粘土の校正・焼成</a>
+  <a class="blk done" href="#A1" style="--k:var(--a)">統合準備・秤量 ✓</a>
+  <a class="blk now" href="#A2" style="--k:var(--a)">成形・乾燥を島へ／粘土の校正・焼成</a>
   <a class="blk later" href="#A3" style="--k:var(--a)">石灰・れんが</a>
   <a class="blk later" href="#A4" style="--k:var(--a)">金属</a>
   <a class="blk later" href="#A5" style="--k:var(--a)">電線・磁石・ガラス</a>
@@ -216,9 +216,10 @@ table.m td,table.m th{border-bottom:1px solid var(--line);padding:4px 6px;text-a
     <div class="flow">Codex の修正確認 → 本体側の最終レビュー → 秤量の統合手順書 → 接続仕様 0.2.0（空気からの取り込み）の提案 → 秤量をつなぐ</div>
     <ul class="todo">
       <li class="ok">Codex のレビュー完了（4回目 a4d26ec で追加指摘なし）</li>
-      <li>本体側の最終レビュー（入口 FINAL_REVIEW.md）</li>
+      <li class="ok">本体側の最終レビュー → <b>秤量を main に統合</b>（1c97313、本体側の検査52件）</li>
       <li class="ok">秤量の統合手順書の案（WEIGH_HANDBOOK.md）：本体が渡す値・確定・status ごとの扱い</li>
-      <li>本体側の回答待ち：共有の島の環境を受け付けるか、はかりの電気の出どころ、カタログ版を2つから1つへ</li>
+      <li class="ok">本体側の回答：環境は当面試験用のみ、はかりは試験用電源、カタログは科学側で一本化 → fixture-2（civ-sci-test-2、95c2a01）</li>
+      <li>本体側：成形の統合（試験片の成形 p11x → そのまま乾燥へ）</li>
       <li>接続仕様 0.2.0 を main へ提案：<code>drawn</code>（O2・CO2 の取り込み）、J の規則の明確化</li>
       <li class="ok">本体への推奨を明記：run の開始を世界時計の30秒境界にそろえ、30秒ごとに区切る</li>
       <li class="ok">試作（fixture/）と本番用（step/）の区別を README に明記</li>
@@ -236,7 +237,7 @@ table.m td,table.m th{border-bottom:1px solid var(--line);padding:4px 6px;text-a
     <h3>流れ</h3>
     <div class="flow">成形・乾燥を統合（実際の島の天気で乾く）→ 実測データを探す・測る → 乾燥・割れ・焼き締まりを校正 → 0.2.0 の採択 → 薪を燃やす焼成（O2・灰・CO2）→ 焼成・浸漬を統合</div>
     <ul class="todo">
-      <li>成形：粘土ロットが試験片ロットに変わる（重さは変わらない）</li>
+      <li class="ok">成形：粘土ロットが試験片ロットに変わる（重さは変わらない、寸法は型から）— 科学側は用意済み、本体の統合待ち</li>
       <li>乾燥：棚に置いて数日。停止・再開・再送で二重にならないことを本体のサーバーで確認</li>
       <li>粘土の実測：乾燥曲線、収縮と割れ、焼成温度と吸水率（Codex の資料探し／自分で測る記録）</li>
       <li>測定値確認画面の記録（v2）を、校正の入力として受け付ける手順</li>
