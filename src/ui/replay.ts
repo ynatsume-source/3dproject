@@ -6,7 +6,7 @@
 export const KEEP = 15;
 const SLOTS = 3, PERIOD = (KEEP * SLOTS / (SLOTS - 1)) * 1000;   // (three staggered: 15-22.5 s each time)
 
-export interface Replay { on: boolean; start(): boolean; save(): Promise<Blob | null>; type: string; held(): number }
+export interface Replay { on: boolean; start(): boolean; save(): Promise<Blob | null>; reset(): void; type: string; held(): number }
 
 export function makeReplay(canvas: HTMLCanvasElement, sound: () => MediaStream | null): Replay {
   const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
@@ -46,6 +46,8 @@ export function makeReplay(canvas: HTMLCanvasElement, sound: () => MediaStream |
       }
       r.on = true; return true;
     },
+    // (the canvas changed size: every recorder begins again, so what is held and what a save gives agree)
+    reset() { if (!r.on) return; for (let i = 0; i < SLOTS; i++) begin(i); },
     async save() {
       const live = slots.map((s, i) => [s, i] as const).filter(([s]) => s) as (readonly [{ rec: MediaRecorder; chunks: Blob[]; at: number }, number])[];
       if (!live.length) return null;

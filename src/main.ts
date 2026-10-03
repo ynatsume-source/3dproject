@@ -89,7 +89,8 @@ const oceans: Record<string, Ocean> = {};
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lampT = 0, lampOn = false, lampManual = false, hudOn = true, busy = false;
-let hints: ReturnType<typeof makeHints> | null = null;   // (the quiet hints: made once the controls exist, below)
+let hints: ReturnType<typeof makeHints> | null = null;
+let onCanvasSize: (() => void) | null = null;   // (set once the rewind recorder exists, below)   // (the quiet hints: made once the controls exist, below)
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
 // the start: asked for (?tier=), chosen by hand before, what this device settled on last time, or a guess
 const TIER_KEY = (() => { let g = ''; try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); g = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)); } catch (e) { /* hidden */ } return `seaglass.tier:${g}:${Math.round(screen.width * devicePixelRatio)}`; })();
@@ -171,6 +172,7 @@ let stuckT = 0;
 // a low run over the sea to put up flying fish, and the chase alongside them (from the sky)
 let flyRun: { burst: boolean; t: number; side: number; aim?: THREE.Vector3; adir?: THREE.Vector3 } | null = null, flyK = 0, thrust = 0, prevVel = new THREE.Vector3(), flyT = rr(60, 140);
 let lastShot: Shot | null = null;
+let viewNear = 1;   // (how much nearer or further than usual, by the wheel, for the subject being filmed)
 // whether the way to the shot needs the air (somewhere up on the land, or land in between): looked at now and then
 let hopCheckT = 0, hopFor: Shot | null = null, hopNeed = false;
 function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
@@ -252,6 +254,7 @@ function updateCaption(dt: number) {
   if ((capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(sh!.subject).s; }
 }
 function onShotChange(prev: Shot | null, next: Shot | null) {
+  if (viewNear !== 1) { viewNear = 1; director.distK = Math.max(0.6, persona.distK); }   // (a new subject: back to the usual distance)
   if (next) {
     $('tMode').textContent = 'OBSERVING';
         const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
@@ -651,9 +654,9 @@ function applyView(dt: number, t: number) {
   U.uLampPos.value.set(0, 0.02, 0.24).applyMatrix4(g.matrixWorld.compose(g.position, g.quaternion, g.scale));
   U.uLampDir.value.set(0, 0, 1).applyQuaternion(g.quaternion);
 }
-function setView(v: 'fpv' | 'chase') {
+function setView(v: 'fpv' | 'chase', keep = true) {
   viewMode = v;
-  try { localStorage.setItem('seaglass.view', v); } catch (e) { /* ignore */ }
+  if (keep) try { localStorage.setItem('seaglass.view', v); } catch (e) { /* ignore */ }
   $('btnView').setAttribute('aria-pressed', String(v === 'chase'));
 }
 
@@ -661,7 +664,7 @@ function setView(v: 'fpv' | 'chase') {
 let persona: Persona = personaById((() => { try { return localStorage.getItem('seaglass.persona'); } catch (e) { return null; } })());
 let lastSay = -1e9, chatT = 0;
 function applyPersona() {
-  director.dwellK = persona.dwell; director.distK = persona.distK;
+  director.dwellK = persona.dwell; director.distK = Math.max(0.6, persona.distK * viewNear);
   director.styles = persona.styles; director.giantW = persona.giant; director.spinK = persona.spinK;
   director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest;
   director.weight = (s) => persona.weight(s, taste(s)) * reachable(s);
@@ -707,10 +710,10 @@ function say(mood: Mood, vars: Record<string, string> = {}, force = false) {
   recordLog('voice', text);
   if (logQueue.length < 3) logQueue.push({ text, label: `GUIDE · ${persona.ja}` });
 }
-function setPersona(p: Persona) {
+function setPersona(p: Persona, keep = true) {
   if (persona && persona.id !== p.id) track('persona', { persona: p.id });
   persona = p;
-  try { localStorage.setItem('seaglass.persona', p.id); } catch (e) { /* ignore */ }
+  if (keep) try { localStorage.setItem('seaglass.persona', p.id); } catch (e) { /* ignore */ }
   applyPersona();
   drone.skyWait = rr(...persona.skyGap);
   hint(`ガイド：${p.ja} — ${p.blurb}`);
@@ -1333,17 +1336,17 @@ type Where3 = { x: number; y: number; z: number };
 let newMark: { at: () => Where3 | null; ja: string; size: number; t: number } | null = null;
 function updateNewMark(dt: number) {
   const el = $('newMark');
-  if (!newMark) { el.classList.remove('on'); return; }
+  if (!newMark) { el.classList.remove('on'); el.tabIndex = -1; return; }   // (not shown: not in the Tab order either)
   newMark.t += dt;
   const p = newMark.at();
-  if (newMark.t > 7 || !p) { newMark = null; el.classList.remove('on'); return; }
+  if (newMark.t > 7 || !p) { newMark = null; el.classList.remove('on'); el.tabIndex = -1; return; }
   _tp.set(p.x, p.y, p.z).project(camera);
   const vis = _tp.z < 1 && Math.abs(_tp.x) < 0.95 && Math.abs(_tp.y) < 0.95;
   const d = Math.max(1, Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z));
   const r = Math.min(70, Math.max(18, (newMark.size * 0.6 / d) * innerHeight));
   el.style.transform = `translate(${(_tp.x * 0.5 + 0.5) * innerWidth}px, ${(-_tp.y * 0.5 + 0.5) * innerHeight}px)`;
   el.style.setProperty('--r', `${r}px`);
-  el.classList.toggle('on', vis);
+  el.classList.toggle('on', vis); el.tabIndex = vis ? 0 : -1;
 }
 function observeNew() {
   if (!newMark || !cur) return;
@@ -1444,7 +1447,10 @@ function updatePins() {
     const p = ll2v(loc.lat, loc.lon, 1.0);
     _pp.copy(p).project(gcam);
     const el = pinEls[i];
-    el.style.transform = `translate(${(_pp.x * 0.5 + 0.5) * w - 7}px, ${(-_pp.y * 0.5 + 0.5) * h - 11}px)`;
+    const px = (_pp.x * 0.5 + 0.5) * w, py = (-_pp.y * 0.5 + 0.5) * h, ew = el.offsetWidth || 120;
+    const flip = px + ew - 7 > w - 8;   // (near the right edge: its label to the left of its dot, inside the screen)
+    el.classList.toggle('flip', flip);
+    el.style.transform = `translate(${flip ? px - ew + 7 : px - 7}px, ${py - 11}px)`;
     el.classList.toggle('back', p.dot(cd) < 0.25);
   });
 }
@@ -1487,8 +1493,9 @@ function applyShared(loc: Sea) {
   }
   if (v.speed) { clock.live = false; clock.speed = v.speed; }
   if (v.wx) wxFixed = v.wx;
-  if (v.guide) { const p = PERSONAS.find((x) => x.id === v.guide); if (p) setPersona(p); }
-  if (v.view) setView(v.view);
+  // (the link's guide and view, for this visit: what it was seen with — the viewer's own choices stay theirs)
+  if (v.guide) { const p = PERSONAS.find((x) => x.id === v.guide); if (p) setPersona(p, false); }
+  if (v.view) setView(v.view, false);
   applySky(loc); updateTimeUi();
   $('sharedBadge').hidden = false;
   $('sharedWhat').textContent = describeShared(v, PRESET_LABEL, SEASON_LABEL as Record<string, string>) || '共有された景色';
@@ -1496,6 +1503,9 @@ function applyShared(loc: Sea) {
 }
 function leaveShared() {
   wxFixed = null; setSeason('now', cur?.loc.lat ?? 0); clock.goLive();
+  // (back to the viewer's own guide and view)
+  { let pv: string | null = null, vv: string | null = null; try { pv = localStorage.getItem('seaglass.persona'); vv = localStorage.getItem('seaglass.view'); } catch (e) { /* ignore */ }
+    if (persona.id !== personaById(pv).id) setPersona(personaById(pv), false); setView(vv === 'chase' ? 'chase' : 'fpv', false); }
   if (cur) applySky(cur.loc); updateTimeUi(); $('sharedBadge').hidden = true;
 }
 // this moment as a link: through the phone's share sheet, or copied
@@ -1800,7 +1810,24 @@ function hint(text: string) { const el = $('hint'); el.textContent = text; el.cl
 function setInst(on: boolean) { document.body.classList.toggle('inst-off', !on); $('btnInst').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('seaglass.inst', on ? '1' : '0'); } catch (e) { /* ignore */ } }
 try { setInst(localStorage.getItem('seaglass.inst') === '1'); } catch (e) { setInst(false); }
 $('btnInst').onclick = () => setInst(document.body.classList.contains('inst-off'));
-function setMenu(on: boolean) { document.body.classList.toggle('dock-open', on); $('btnMore').setAttribute('aria-expanded', String(on)); $('btnMore').textContent = on ? '×' : '⋯'; }
+function setMenu(on: boolean) {
+  document.body.classList.toggle('dock-open', on); $('btnMore').setAttribute('aria-expanded', String(on)); $('btnMore').textContent = on ? '×' : '⋯';
+  syncInert();
+  // (keyboard: into the menu at its chosen category when it opens; back to its button when it closes from inside)
+  if (on && document.activeElement === $('btnMore')) ($('menu').querySelector('[aria-selected="true"]') as HTMLElement | null)?.focus();
+  else if (!on && $('menu').contains(document.activeElement)) $('btnMore').focus();
+}
+// What cannot be seen cannot be reached: anything hidden by fading it out (the HUD when it is hidden or on
+// the globe, the closed menu, the globe's own panel in the sea, the quick buttons inside a resident's eyes)
+// is made inert, out of the Tab order and deaf to Enter, not only to the mouse.
+function syncInert() {
+  const b = document.body.classList, globe = b.contains('mode-globe'), hudOff = b.contains('hud-off');
+  document.querySelectorAll<HTMLElement>('.hud').forEach((el) => { el.inert = globe || hudOff; });
+  document.querySelectorAll<HTMLElement>('.g-ui').forEach((el) => { el.inert = !globe; });
+  $('menu').inert = globe || hudOff || !b.contains('dock-open');
+  if (b.contains('pov') && !b.contains('pov-ui')) $('quick').inert = true;
+}
+new MutationObserver(() => syncInert()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 $('btnMore').onclick = () => setMenu(!document.body.classList.contains('dock-open'));
 // the menu's categories: each shows its own settings (the last one opened is remembered)
 function setCat(c: string) {
@@ -2035,7 +2062,8 @@ $('newMark').onclick = observeNew;
 // the last 15 seconds of the view, always kept ready, saved with a tap (and a second to confirm)
 const replay = makeReplay(canvas, soundStream);
 let replayArm = 0;
-if (!replay.start()) $('btnReplay').hidden = true;   // (a browser that cannot record: no button at all)
+if (!replay.start()) $('btnReplay').hidden = true;
+onCanvasSize = () => replay.reset();   // (a browser that cannot record: no button at all)
 $('btnReplay').onclick = async () => {
   if (replay.held() < 3) { showToast('REPLAY', 'まだ映像がたまっていません', 'もう少し見てから押してください'); return; }
   // two taps to save (a stray touch only arms it): the first asks, the second within 3 s keeps it
@@ -2114,6 +2142,8 @@ addEventListener('keydown', (e) => {
   const tgt = e.target as HTMLElement;
   if (lanternStudyPanel.open) return;
   if (tgt.closest && tgt.closest('button') && (e.code === 'Space' || e.code === 'Enter')) return;
+  // (a slider, a field or a list being used keeps its own keys — the arrows move the volume, not the drone)
+  if (tgt.closest && tgt.closest('input, select, textarea, [contenteditable="true"]') && e.code !== 'Escape') return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
   if (mode !== 'ocean' || busy) return;
@@ -2132,6 +2162,12 @@ addEventListener('keydown', (e) => {
   else if (e.code === 'KeyJ') openPanel('log');
   else if (e.code === 'Escape' && diaryBook.open) diaryBook.close();
   else if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && diaryBook.open) diaryBook.step(e.code === 'ArrowLeft' ? -1 : 1);
+  // Escape closes what is open in front first — a panel, the guide, the menu — then a watch; only with
+  // nothing open does it go back to the globe (G always does)
+  else if (e.code === 'Escape' && !$('volPanel').hidden) { setVolPanel(false); $('btnVol').focus(); }
+  else if (e.code === 'Escape' && !$('timePanel').hidden) { setTimePanel(false); $('btnTime').focus(); }
+  else if (e.code === 'Escape' && !guideEl.hidden) { setGuide(false); $('btnGuide').focus(); }
+  else if (e.code === 'Escape' && document.body.classList.contains('dock-open')) setMenu(false);
   else if (e.code === 'Escape' && watch.r) stopWatch(true);
   else if (e.code === 'KeyG' || e.code === 'Escape') toGlobe();
   else if (e.code === 'KeyP') setMode(drone.mode === 'auto' ? 'manual' : 'auto');
@@ -2186,7 +2222,10 @@ const endP = (e: PointerEvent) => {
   gv.vlon = clamp(gv.vlon, -120, 120); gv.vlat = clamp(gv.vlat, -60, 60);
 };
 canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercancel', endP);
-canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 1.2, 60); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
+canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 1.2, 60); return; }
+  // (filming something: the wheel takes the camera a little closer or further, for this subject; the floor and the
+  // animal's own room are still kept by the director)
+  if (mode === 'ocean' && drone.mode === 'auto' && director.shot && !director.shot.subject.breach) { e.preventDefault(); viewNear = clamp(viewNear * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 0.6, 1.6); director.distK = Math.max(0.6, persona.distK * viewNear); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
@@ -2327,7 +2366,9 @@ function setPip(on: boolean) {
 function resize() {
   const w = innerWidth, h = innerHeight;
   const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 3 ? 0.5 : 1);
+  const cw = canvas.width, ch = canvas.height;
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
+  if (canvas.width !== cw || canvas.height !== ch) onCanvasSize?.();   // (the rewind buffer starts afresh at the new size: its recorders cannot follow it)
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
   narrowK = clamp((1 - w / h) / 0.55, 0, 1);
@@ -2619,7 +2660,7 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });

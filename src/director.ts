@@ -332,6 +332,21 @@ export class Director {
     }
     // (ashore or at the surface: from the air, at the height of someone standing by)
     y = !wet ? Math.max(p.y + lift + 0.6, floor(x, z) + 1.2, 0.8) : Math.min(Math.max(y, floor(x, z) + (style === 'low' ? 0.6 : 1.0)), -0.9);
+    // (nothing between the lens and it — a sea fan, a coral head, a rock: else round to where there is a clear
+    // view, or up a little over what is in the way. A small thing seen through a fan is not seen at all.)
+    if (wet) {
+      const seen = (qx: number, qy: number, qz: number) => { for (let i = 1; i < 8; i++) { const f = i / 8, ax = qx + (p.x - qx) * f, az = qz + (p.z - qz) * f, ay = qy + (p.y - qy) * f; if (floor(ax, az) > ay - 0.15) return false; } return true; };
+      if (!seen(x, y, z)) {
+        const d = Math.max(0.8, Math.hypot(x - p.x, z - p.z));
+        let found = false;
+        for (let k = 1; k <= 8 && !found; k++) {
+          const a = this.ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.7, ax = p.x + Math.cos(a) * d, az = p.z + Math.sin(a) * d;
+          const ay = Math.min(Math.max(y, floor(ax, az) + 1.0), -0.9);
+          if (seen(ax, ay, az)) { this.ang = a; x = ax; z = az; y = ay; found = true; if (style === 'wait') this.hold.set(ax, ay, az); }
+        }
+        if (!found) y = Math.min(y + 1.2, -0.9);
+      }
+    }
     sh.pos.set(x, y, z);
     const gap = Math.hypot(drone.x - x, drone.y - y, drone.z - z);
     if (sh.phase === 'approach' && (gap < 1.5 || (!sh.forced && this.t > 25) || this.t > 90)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
