@@ -18,12 +18,12 @@ import type {
   EquipmentView, LotView, Observation, ScienceStepRequest, ScienceStepResult, ScienceState,
 } from '../../world/science-contract';
 import { pv } from '../params';
-import { allFinite, envUsable, finite, stateSchemaProblem, subStepEnd } from './common';
+import { allFinite, envUsable, finite, SCIENCE_CATALOG_VERSION, stateSchemaProblem, subStepEnd } from './common';
 import { crackP, dryPhysics } from '../physics';
 import { draw } from '../rng';
 
 export const DRYING_PROCESS = { processId: 'p12x_test_tile_dry', processVersion: '0.2.0' } as const;
-export const SCIENCE_CATALOG_VERSION = 'civ-sci-test-1';
+export { SCIENCE_CATALOG_VERSION };
 export const DRYING_STATE_SCHEMA = 'civ-sci.drying/2';
 const EVALUATOR = 'drying-eval/0.1.0';
 const STEP_MS = 30_000; // divides 30 s: 30 s-aligned requests are exact for every process

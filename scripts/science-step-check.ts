@@ -131,10 +131,10 @@ ok(gap.end.released[0].amount.value <= once.end.released[0].amount.value, 'no ev
 console.log('6b. shaping and weighing fixtures (ported from codex/civilization-lab)');
 {
   const base = { world: { worldId: 'civ-sim-test', worldEpoch: 'e1', worldVersion: 1 }, contract: SCIENCE_CONTRACT_VERSION,
-    catalogVersion: 'civilization-fixture-1', processVersion: 'fixture-1', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
+    catalogVersion: 'civ-sci-test-2', processVersion: 'fixture-2', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
   const clay = { lotId: 'lot:clay-1', materialId: 'prepared_clay', amount: { value: 120_000, unit: 'mg' as const }, location: 'site:bench', quality: { water_ppm: 166_667 } };
   const weigh = (to: number) => scienceStep({ ...base, requestId: 'w1', runId: 'run:w1', processId: 'fixture_mass_measure', interval: { from: T0, to }, state: null,
-    lots: [clay], equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civilization-fixture-1', condition: 1 }],
+    lots: [clay], equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
     energy: [{ sourceId: 'src:balance-cell', kind: 'electric', maxJ: 100 }], actions: [{ at: T0, residentId: 'res:dot', action: 'read-balance' }] });
   const w = weigh(T0 + 60_000);
   ok(w.status === 'completed' && w.consumed.length === 0 && w.produced.length === 0 && w.observations[0]?.value === 120_000 && w.observations[0]?.channel.startsWith('instrument:'),
@@ -142,7 +142,7 @@ console.log('6b. shaping and weighing fixtures (ported from codex/civilization-l
   ok(w.energy[0].usedJ === 10 && w.energy[0].usedJ === w.energy[0].lostJ + (w.energy[0].storedJ ?? 0), 'weighing uses 10 J of the offered electricity, closed');
   const shape = (iv: [number, number], state: ScienceStepRequest['state'], maxJ = 1000) => scienceStep({ ...base, requestId: `s@${iv[0]}`, runId: 'run:s1', processId: 'p11_pottery_shape',
     interval: { from: T0 + iv[0], to: T0 + iv[1] }, state, lots: [clay],
-    equipment: [{ equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civilization-fixture-1', condition: 1, params: { thicknessMm: 10 } }],
+    equipment: [{ equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civ-sci-test-2', condition: 1, params: { thicknessMm: 10 } }],
     energy: [{ sourceId: 'src:dot-hands', kind: 'mechanical', maxJ }], actions: [] });
   const one = shape([0, 120_000], null);
   const a = shape([0, 30_000], null), b = shape([30_000, 120_000], a.state);
@@ -150,6 +150,45 @@ console.log('6b. shaping and weighing fixtures (ported from codex/civilization-l
     'shaping: one interval = two intervals; consumed/produced once at completion');
   ok(one.consumed[0].amount.value === one.produced[0].amount.value && one.produced[0].quality!.thickness_mm === 10, 'shaping keeps mass and records thickness');
   ok(shape([0, 120_000], null, 50).status === 'needs-input', 'too little offered work → needs-input, nothing produced');
+}
+
+console.log('6c. one catalog (civ-sci-test-2): weigh → shape a test tile → dry, and a stop with short energy');
+{
+  const base = { world: { worldId: 'civ-sim-test', worldEpoch: 'e1', worldVersion: 1 }, contract: SCIENCE_CONTRACT_VERSION,
+    catalogVersion: SCIENCE_CATALOG_VERSION, processVersion: 'fixture-2', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
+  const clay = { lotId: 'lot:clay-t', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' as const }, location: 'site:rack-shade',
+    quality: { water_ppm: 193_548, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 } };
+  const bench = (p: Record<string, number> = { thicknessMm: 10, widthMm: 50, lengthMm: 50 }) =>
+    ({ equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params: p });
+  const tileReq = (o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({ ...base, requestId: 't', runId: 'run:tile', processId: 'p11x_test_tile_shape',
+    interval: { from: T0, to: T0 + 60_000 }, state: null, lots: [clay], equipment: [bench()], energy: [{ sourceId: 'src:dot-hands', kind: 'mechanical', maxJ: 120 }], actions: [], ...o });
+  const t = scienceStep(tileReq());
+  const q = t.produced[0]?.quality ?? {};
+  ok(t.status === 'completed' && t.produced[0].materialId === 'test_tile_green' && t.consumed[0].amount.value === 45_000 && t.produced[0].amount.value === 45_000,
+    'shaping a test tile: the whole clay lot becomes one test_tile_green of the same mass', JSON.stringify(t.produced));
+  ok(q.width_mm === 50 && q.length_mm === 50 && q.thickness_mm === 10 && q.xd_kaolinite_ppm === 450_000 && Math.abs(q.shaped_water_ratio_ppm - 240_000) <= 1 && q.crack === 0 && q.history_complete === 1,
+    'the tile keeps the clay make-up and takes its size from the mould', JSON.stringify(q));
+  const lot = { lotId: 'lot:tile-t', materialId: 'test_tile_green', amount: t.produced[0].amount, location: 'site:rack-shade', quality: q } as unknown as typeof LOT;
+  const dried = run([0, 120 * H], { lot });
+  ok(dried.end.status !== 'failed' && dried.end.released[0]?.amount.value > 0, 'the drying step takes the shaped tile as it is', `${dried.end.status} ${dried.end.evidence.notes ?? ''}`);
+  ok(scienceStep(tileReq({ equipment: [bench({ thicknessMm: 10, widthMm: 80, lengthMm: 80 })] })).diagnostics !== undefined
+    && (scienceStep(tileReq({ equipment: [bench({ thicknessMm: 10, widthMm: 80, lengthMm: 80 })] })).diagnostics as { code: string }).code === 'mould-does-not-fit-the-clay',
+    'a mould far too big for the clay is refused (1.5–2.3 g/cm³, assumed)');
+  ok((scienceStep(tileReq({ lots: [{ ...clay, quality: { water_ppm: 193_548 } }] })).diagnostics as { code: string }).code === 'clay-make-up-missing', 'clay without its make-up cannot become a test tile');
+  // a stop with too little energy: operator ends the run where it got to (0.2.0 rule 7); a pause stays resumable
+  const weigh = (o: Partial<ScienceStepRequest>) => scienceStep({ ...base, requestId: 'w', runId: 'run:w', processId: 'fixture_mass_measure', interval: { from: T0, to: T0 + 10_000 }, state: null,
+    lots: [clay], equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1 }],
+    energy: [{ sourceId: 'src:fixture-mains', kind: 'electric', maxJ: 5 }], actions: [{ at: T0, residentId: 'res:dot', action: 'read-balance' }], ...o });
+  const st = weigh({ stop: 'operator' });
+  ok(st.status === 'stopped' && st.simulated.to === T0 + 5_000 && st.energy[0].usedJ === 5 && st.observations.length === 0, 'stop operator with 5 J of 10: stopped after 5 s, no reading', `${st.status} ${st.simulated.to - T0}`);
+  ok(weigh({ stop: 'equipment-lost' }).status === 'stopped', 'stop equipment-lost with short energy: stopped');
+  const pz = weigh({ stop: 'world-pause' });
+  const resumed = weigh({ requestId: 'w2', interval: { from: T0 + 60_000, to: T0 + 70_000 }, state: pz.state, actions: [], energy: [{ sourceId: 'src:fixture-mains', kind: 'electric', maxJ: 10 }] });
+  ok(pz.status === 'needs-input' && resumed.status === 'completed' && resumed.observations[0]?.value === 45_000, 'a pause with short energy resumes later and finishes the reading', `${pz.status} → ${resumed.status}`);
+  ok(weigh({}).status === 'needs-input', 'no stop, short energy: still needs-input (the world offers more)');
+  const old = weigh({ state: { schema: 'civilization-simple-process/1', data: {} } });
+  ok(old.status === 'failed' && (old.diagnostics as { code: string }).code === 'unsupported-schema', 'a simple-process /1 state is refused (fixture-2 keeps state /2)');
+  ok(weigh({ processVersion: 'fixture-1', catalogVersion: 'civilization-fixture-1' }).status === 'failed', 'the old fixture-1 / civilization-fixture-1 request is refused');
 }
 
 console.log('7. same physics as the test-world prototype');

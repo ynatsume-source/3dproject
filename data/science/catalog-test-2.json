@@ -1,8 +1,28 @@
 {
-  "catalogVersion": "civ-sci-test-1",
+  "catalogVersion": "civ-sci-test-2",
   "basedOn": "codex/creative-world-design@c510246 docs/proposals/creative-world/science/process-catalog.json",
   "scope": "test-world only — not executable in the shared world; every number is assumed or calibrated (see src/science/params.ts)",
   "materials": [
+    {
+      "id": "prepared_clay",
+      "label": "練った粘土（成形の前）",
+      "category": "clay",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾燥固形分あたりの化学種（試験片と同じ書き方）",
+        "history_complete": "1=全区間を計算済み（なければ1とみなす）"
+      },
+      "note": "p11x_test_tile_shape は water_ppm と xd_ の化学種を必須にする。p11_pottery_shape は water_ppm だけでよい"
+    },
+    {
+      "id": "unfired_pot",
+      "label": "成形した器（未乾燥・未焼成）",
+      "category": "ceramic-green",
+      "unit": "mg",
+      "quality": "prepared_clay と同じ＋thickness_mm",
+      "note": "p11_pottery_shape の生成物。乾燥工程はまだ受け取らない（試験片の系統だけが乾燥へつながる）"
+    },
     {
       "id": "test_tile_green",
       "label": "成形した比較用の試験片（未乾燥・未焼成）",
@@ -56,6 +76,72 @@
     }
   ],
   "processes": [
+    {
+      "id": "fixture_mass_measure",
+      "version": "fixture-2",
+      "label": "秤量",
+      "kind": "measurement",
+      "inputs": [
+        "（任意のロット・消費しない）"
+      ],
+      "outputs": [],
+      "equipment": [
+        "fixture_balance"
+      ],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "electric",
+        "rule": "1 W × 10 s = 10 J、全量 lostJ"
+      },
+      "observation": "instrument:<equipmentId>、mass、100 mg 単位、precision 100",
+      "readiness": "test-world-only（environment.source = simulation のみ）",
+      "note": "電気は試験用電源（src:fixture-mains）。文明の達成には数えない（本体の回答 ②）"
+    },
+    {
+      "id": "p11_pottery_shape",
+      "version": "fixture-2",
+      "label": "器の成形（試験用）",
+      "kind": "physical",
+      "inputs": [
+        "prepared_clay"
+      ],
+      "outputs": [
+        "unfired_pot"
+      ],
+      "equipment": [
+        "fixture_bench"
+      ],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "mechanical",
+        "rule": "2 W × 60 s = 120 J、全量 lostJ"
+      },
+      "readiness": "test-world-only"
+    },
+    {
+      "id": "p11x_test_tile_shape",
+      "version": "fixture-2",
+      "label": "試験片の成形",
+      "kind": "physical",
+      "inputs": [
+        "prepared_clay"
+      ],
+      "outputs": [
+        "test_tile_green"
+      ],
+      "equipment": [
+        "fixture_bench"
+      ],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "mechanical",
+        "rule": "2 W × 60 s = 120 J、全量 lostJ"
+      },
+      "readiness": "test-world-only",
+      "derivedFrom": "p11_pottery_shape",
+      "rule": "予約した粘土ロットを丸ごと1枚の試験片にする（質量・組成は変わらない）。寸法は型（fixture_bench の widthMm・lengthMm・thicknessMm）から。質量÷体積が 1.5〜2.3 g/cm³（仮定）でなければ拒否",
+      "note": "生成物は p12x_test_tile_dry がそのまま受け取れる"
+    },
     {
       "id": "p12x_test_tile_dry",
       "version": "0.2.0",
@@ -197,5 +283,80 @@
       "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only)."
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema).",
+  "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
+  "equipment": [
+    {
+      "id": "fixture_balance",
+      "processes": [
+        "fixture_mass_measure"
+      ],
+      "params": {},
+      "condition": "1 のみ（校正済みの対照設備）"
+    },
+    {
+      "id": "fixture_bench",
+      "processes": [
+        "p11_pottery_shape",
+        "p11x_test_tile_shape"
+      ],
+      "params": {
+        "thicknessMm": "1〜20 の整数",
+        "widthMm": "試験片のみ、1〜200",
+        "lengthMm": "試験片のみ、1〜200"
+      },
+      "condition": "1 のみ"
+    },
+    {
+      "id": "drying_rack",
+      "processes": [
+        "p12x_test_tile_dry"
+      ],
+      "params": {
+        "sunExposure": "0 日陰 … 1 日なた"
+      }
+    },
+    {
+      "id": "fixture_kiln",
+      "processes": [
+        "p13x_test_tile_fire"
+      ],
+      "params": {
+        "heatCapJPerK": ">0",
+        "uaWPerK": "",
+        "maxPowerW": "",
+        "forcedCoolingUaFactor": ""
+      }
+    },
+    {
+      "id": "fixture_soak_basin",
+      "processes": [
+        "m01x_tile_soak_test"
+      ],
+      "params": {}
+    },
+    {
+      "id": "fixture_calciner",
+      "processes": [
+        "p20x_lime_calcine_test"
+      ],
+      "params": {
+        "setpointC": "",
+        "holdS": "",
+        "heatCapJPerK": ">0",
+        "uaWPerK": "",
+        "maxPowerW": ""
+      }
+    },
+    {
+      "id": "fixture_slaking_tub",
+      "processes": [
+        "p21x_lime_hydrate_test"
+      ],
+      "params": {
+        "heatCapJPerK": "≥0",
+        "uaWPerK": "≥0"
+      }
+    }
+  ]
 }

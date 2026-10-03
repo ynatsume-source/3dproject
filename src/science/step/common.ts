@@ -3,7 +3,7 @@
 import type { LotView, ScienceStepRequest, ScienceStepResult, ScienceState } from '../../world/science-contract';
 import { SPECIES, totalMg, type Composition, type SpeciesId } from '../chem';
 
-export const SCIENCE_CATALOG_VERSION = 'civ-sci-test-1';
+export const SCIENCE_CATALOG_VERSION = 'civ-sci-test-2';
 
 export const isInt = (n: unknown, min = 0): n is number => typeof n === 'number' && Number.isSafeInteger(n) && n >= min;
 

@@ -19,19 +19,19 @@ const ok = (c: unknown, name: string, detail = '') => {
 const W = { worldId: 'w', worldEpoch: 'e', worldVersion: 1 };
 const CALC: ScienceStepRequest = {
   contract: '0.1.0', requestId: 'r0', world: W, runId: 'run:review', processId: CALCINE_PROCESS.processId, processVersion: CALCINE_PROCESS.processVersion,
-  catalogVersion: 'civ-sci-test-1', interval: { from: 0, to: 30000 }, state: null,
+  catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 30000 }, state: null,
   environment: { sampleId: 'env:review', source: 'simulation', effectiveAt: 0, airTempC: 25 },
   lots: [{ lotId: 'lot:feed', materialId: 'calcium_carbonate_feed', amount: { value: 100000, unit: 'mg' }, location: 'site:review', quality: { x_calcite_ppm: 950000 } }],
-  equipment: [{ equipmentId: 'eq:calciner', kind: 'fixture_calciner', catalogEntry: 'fixture_calciner', catalogVersion: 'civ-sci-test-1', condition: 1,
+  equipment: [{ equipmentId: 'eq:calciner', kind: 'fixture_calciner', catalogEntry: 'fixture_calciner', catalogVersion: 'civ-sci-test-2', condition: 1,
     params: { setpointC: 900, holdS: 7200, heatCapJPerK: 15000, uaWPerK: 2, maxPowerW: 4000 } }],
   energy: [{ sourceId: 'src:heater', kind: 'heat', maxJ: 120000 }], actions: [], seed: 1,
 };
 const FIRE: ScienceStepRequest = {
-  contract: '0.1.0', requestId: 'r', world: W, runId: 'run:fire', processId: FIRING_PROCESS.processId, processVersion: FIRING_PROCESS.processVersion, catalogVersion: 'civ-sci-test-1',
+  contract: '0.1.0', requestId: 'r', world: W, runId: 'run:fire', processId: FIRING_PROCESS.processId, processVersion: FIRING_PROCESS.processVersion, catalogVersion: 'civ-sci-test-2',
   state: null, interval: { from: 0, to: 30000 }, environment: { sampleId: 'env:fixture', source: 'simulation', effectiveAt: 0, airTempC: 28, humidity: 0.72, windMs: 3 },
   lots: [{ lotId: 'lot:dry', materialId: 'test_tile_dry', amount: { value: 37047, unit: 'mg' }, location: 'site:review',
     quality: { water_ppm: 20434, thickness_mm: 10, xd_kaolinite_ppm: 450000, xd_quartz_ppm: 300000, xd_calcite_ppm: 20000, crack: 0, history_complete: 1 } }],
-  equipment: [{ equipmentId: 'eq:kiln', kind: 'fixture_kiln', catalogEntry: 'fixture_kiln', catalogVersion: 'civ-sci-test-1', condition: 1,
+  equipment: [{ equipmentId: 'eq:kiln', kind: 'fixture_kiln', catalogEntry: 'fixture_kiln', catalogVersion: 'civ-sci-test-2', condition: 1,
     params: { heatCapJPerK: 40000, uaWPerK: 8, maxPowerW: 15000, forcedCoolingUaFactor: 5 } }],
   energy: [{ sourceId: 'src:heat', kind: 'heat', maxJ: 450000 }], actions: [{ at: 0, residentId: 'res:review', action: 'fire_plan', params: { pace: 1, targetGlow: 2, holdMin: 90, forcedCooling: 0 } }], seed: 7,
 };
@@ -70,7 +70,7 @@ console.log('R2  water-limited slaking settles without an exception');
 const hyd = (waterMg: number, q: Record<string, number> = { x_lime_ppm: 1000000 }): ScienceStepRequest => ({ ...CALC, processId: HYDRATE_PROCESS.processId, processVersion: HYDRATE_PROCESS.processVersion, interval: { from: 0, to: 12 * 3600000 }, energy: [],
   lots: [{ lotId: 'lot:lime', materialId: 'quicklime', amount: { value: 56080, unit: 'mg' }, location: 'site:review', quality: q },
     { lotId: 'lot:water', materialId: 'process_water', amount: { value: waterMg, unit: 'mg' }, location: 'site:review' }],
-  equipment: [{ equipmentId: 'eq:tub', kind: 'fixture_slaking_tub', catalogEntry: 'fixture_slaking_tub', catalogVersion: 'civ-sci-test-1', condition: 1, params: { heatCapJPerK: 400, uaWPerK: 1.5 } }] });
+  equipment: [{ equipmentId: 'eq:tub', kind: 'fixture_slaking_tub', catalogEntry: 'fixture_slaking_tub', catalogVersion: 'civ-sci-test-2', condition: 1, params: { heatCapJPerK: 400, uaWPerK: 1.5 } }] });
 for (const w of [9000, 10000, 12000, 15000, 18015, 20000]) {
   let r: ScienceStepResult | null = null, err = '';
   try { r = scienceStep(hyd(w)); } catch (e) { err = (e as Error).message; }
@@ -124,7 +124,7 @@ console.log('T1  a crack the tile already had is what the resident sees');
 const soakReq = (tile: ScienceStepRequest['lots'][0], hours: number, runId: string, start = 0): ScienceStepRequest => ({ ...FIRE, processId: SOAK_PROCESS.processId, processVersion: SOAK_PROCESS.processVersion, runId,
   interval: { from: start, to: start + hours * 3600000 }, actions: [], stop: 'operator', energy: [],
   lots: [tile, { lotId: 'lot:water', materialId: 'process_water', amount: { value: 500000, unit: 'mg' }, location: 'site:review' }],
-  equipment: [{ equipmentId: 'eq:basin', kind: 'fixture_soak_basin', catalogEntry: 'fixture_soak_basin', catalogVersion: 'civ-sci-test-1', condition: 1 }] });
+  equipment: [{ equipmentId: 'eq:basin', kind: 'fixture_soak_basin', catalogEntry: 'fixture_soak_basin', catalogVersion: 'civ-sci-test-2', condition: 1 }] });
 {
   const cracked = { ...FIRE, interval: { from: 0, to: 24 * 3600000 }, energy: [{ ...FIRE.energy[0], maxJ: 15000 * 24 * 3600 }], lots: [{ ...FIRE.lots[0], quality: { ...FIRE.lots[0].quality, crack: 2 } }] };
   const r = scienceStep(cracked);
@@ -188,7 +188,7 @@ console.log('F3  states saved by an older version are refused explicitly, not mi
   const old = (req: ScienceStepRequest, schema: string) => scienceStep({ ...req, state: { schema, data: { lastTo: 0 } } });
   const DRY: ScienceStepRequest = { ...FIRE, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, actions: [], energy: [],
     lots: [{ ...FIRE.lots[0], materialId: 'test_tile_green', quality: { ...FIRE.lots[0].quality, water_ppm: 200000, width_mm: 40, length_mm: 60 } }],
-    equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-1', condition: 1 }] };
+    equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-2', condition: 1 }] };
   const all = [['drying', DRY, 'civ-sci.drying'], ['firing', FIRE, 'civ-sci.tile-fire'], ['soak', soakReq(FIRE.lots[0], 1, 'run:soak-schema'), 'civ-sci.tile-soak'],
     ['calcination', CALC, 'civ-sci.lime-calcine'], ['slaking', hyd(60000), 'civ-sci.lime-hydrate']] as const;
   for (const [name, req, base] of all) {

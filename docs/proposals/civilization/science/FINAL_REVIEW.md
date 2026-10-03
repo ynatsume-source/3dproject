@@ -2,6 +2,8 @@
 
 2026-10-03 / ブランチ `codex/civilization-simulation` / 先頭 f52e39c / Codex の確認 `codex/civilization-lab` a4d26ec（残件なし）
 
+> 2026-10-03 追記：本体側が秤量を統合した（main 1c97313、回答 `docs/proposals/civilization/SCIENCE_FINAL_REVIEW_RESPONSE.md`）。③ のカタログ一本化と停止の扱いは、秤量・成形の工程版 `fixture-2`（カタログ `civ-sci-test-2`）で対応した。下は依頼時点の記録。
+
 **未採択の提案。** 本体側（main）の最終レビューを受けるための入口。統合と 0.2.0 契約案の採択は本体側が判断する。
 科学側は main・lab・共通ファイル（`src/world/science-contract.ts`）を変えていない。
 

@@ -53,10 +53,10 @@ const RACK: EquipmentView = { equipmentId: 'eq:rack', kind: 'drying_rack', catal
 const KILN: EquipmentView = { equipmentId: 'eq:kiln', kind: 'fixture_kiln', catalogEntry: 'fixture_kiln', catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1,
   params: { heatCapJPerK: 40_000, uaWPerK: 8, maxPowerW: 15_000, forcedCoolingUaFactor: 5 } };
 const BASIN: EquipmentView = { equipmentId: 'eq:basin', kind: 'fixture_soak_basin', catalogEntry: 'fixture_soak_basin', catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1 };
-const BAL: EquipmentView = { equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civilization-fixture-1', condition: 1 };
+const BAL: EquipmentView = { equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 };
 const PROC = {
   dry: { ...DRYING_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION }, fire: { ...FIRING_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION },
-  soak: { ...SOAK_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION }, weigh: { processId: 'fixture_mass_measure', processVersion: 'fixture-1', catalogVersion: 'civilization-fixture-1' },
+  soak: { ...SOAK_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION }, weigh: { processId: 'fixture_mass_measure', processVersion: 'fixture-2', catalogVersion: 'civ-sci-test-2' },
 };
 const heat = (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:fixture-kiln-heater', kind: 'heat', maxJ: Math.floor(15_000 * (to - from) / 1000) }];
 const takeOut = (_i: number, _f: number, to: number, last: boolean): OperatorAction[] => last ? [{ at: to - 1, residentId: 'res:dot', action: 'take_off' }, { at: to - 1, residentId: 'res:dot', action: 'take_out' }] : [];
