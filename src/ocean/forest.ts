@@ -298,6 +298,12 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if ((t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2) return true;
       return false;
     },
+    // the trunks within r of (x, z), each as a solid (robots/solids.ts): the same trunks push() keeps a point out of
+    trunks(x: number, z: number, r: number, f: (t: { x: number; z: number; y: number; h: number }) => void) {
+      if (Math.abs(x) > E + r || Math.abs(z) > E + r) return;
+      const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if (t.g < YOUNG && (t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2) f(t);
+    },
     // flying in among them: push a point out of any trunk (or the dense heart of a crown) it is inside
     push(p: THREE.Vector3) {
       // (the cell's trees worked out if they are not yet: those who walk here may be far from the camera,

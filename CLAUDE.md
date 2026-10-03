@@ -36,6 +36,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip
 住人の目線は `node tools/lab/pov.cjs`（同上）：4体それぞれ、カメラがモデルの目の位置にあるか（0 m）、視線が頭の向きと一致するか（2°未満）を測る。目線・頭・カメラ補正を変えたら通す。
 サンゴが水に収まっているかは `npx tsx --import ./scripts/node-assets.mjs scripts/coral-depth-check.ts`：嘉弥真の実地形（`scripts/node-land.ts` で PNG を読む）でサンゴを生成し、群体の上端が育つ上限（`CORAL_CEIL`、平均海面下0.35 m）を超えないこと、浅場（0.5–2 m）にサンゴが残ることを確かめる。サンゴの寸法・配置を変えたら通す。
 水域の区分は `src/ocean/water.ts`（海・ラグーン・潮だまり・内陸の水・陸）。海面のうねり（GPU の `seaK` と CPU の `swellAt`/`surfaceAt`）と住人が水に入る場所が同じ答えを使う。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/water-check.ts`：海から切れたくぼみの水面が動かないこと、外海は元のうねり、ラグーンは一部。地形・うねり・水辺の行動を変えたら通す。
+住人が通れない物は `src/robots/solids.ts` の一つの登録（岩・幹・流木・小屋の柱・作業台・棚・桟橋の杭・焚き火）。描画や LOD と独立。経路の計画・一歩ごとの接触・目的地の接近位置が同じ登録と身体の大きさ（`body(r)`、持ち物込み）を使う。道がなければ直進せず諦める（`r.went`）。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/nav-check.ts`。移動・置く物・体の大きさを変えたら通す。
 `?debug` でコンソールに `seaglass` オブジェクト、`?diag` で GPU 診断パネル。
 
 ## 公開と報告
