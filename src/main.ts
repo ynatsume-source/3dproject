@@ -1930,25 +1930,63 @@ const tap = { moved: 0, t: 0, woke: false };
 // Things worth going to that are on screen, nearest the point: creatures, the cave, the residents.
 // Only these answer a tap, so touching the screen elsewhere does nothing.
 const _tp = new THREE.Vector3();
+// Where a tap's ray first meets the seabed (the reef, rocks and coral heads included: T.top), within 80 m.
+// (0.5 m steps, then halved back to the crossing; null when the ray meets nothing, e.g. up into open water)
+const _tapRay = new THREE.Vector3();
+function seabedAt(x: number, y: number): { p: THREE.Vector3; d: number } | null {
+  if (!cur) return null;
+  const T = cur.T, o = camera.position;
+  _tapRay.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1, 0.5).unproject(camera).sub(o).normalize();
+  const at = (d: number) => o.y + _tapRay.y * d - T.top(o.x + _tapRay.x * d, o.z + _tapRay.z * d);
+  if (at(0) < 0) return null;
+  for (let d = 0.5; d <= 80; d += 0.5) {
+    if (at(d) >= 0) continue;
+    let a = d - 0.5, b = d;
+    for (let k = 0; k < 6; k++) { const m = (a + b) / 2; if (at(m) < 0) b = m; else a = m; }
+    return { p: o.clone().addScaledVector(_tapRay, b), d: b };
+  }
+  return null;
+}
 function pickAt(x: number, y: number): Subject | null {
   if (!cur) return null;
+  // what lies behind the reef the tap landed on is not what was tapped (a hammerhead far out in the blue,
+  // big on screen, once took a tap meant for the coral head in front of it)
+  const floor = seabedAt(x, y);
   let best: Subject | null = null, bs = Infinity;
   for (const s of allSubjects()) {
     const p = s.pos(); if (!p || !s.live()) continue;
     const d = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
     if (d > (s.kind === 'robot' || s.kind === 'cave' ? 260 : 80) || d < 1) continue;
+    if (floor && d > floor.d + Math.max(2, s.size * 0.5)) continue;
     _tp.set(p.x, p.y, p.z).project(camera);
     if (_tp.z > 1 || Math.abs(_tp.x) > 1 || Math.abs(_tp.y) > 1) continue;
     const sx = (_tp.x * 0.5 + 0.5) * innerWidth, sy = (-_tp.y * 0.5 + 0.5) * innerHeight;
-    const r = Math.max(isTouch ? 56 : 40, (s.size * 0.7 / d) * innerHeight);   // about as big as it looks on screen, and never too small to hit
+    // about as big as it looks on screen, never too small to hit, and never so big that a far school covers
+    // the whole view; a nearer thing wins a close call
+    const r = Math.min(110, Math.max(isTouch ? 56 : 40, (s.size * 0.7 / d) * innerHeight));
     const off = Math.hypot(sx - x, sy - y);
-    if (off < r && off / r < bs) { bs = off / r; best = s; }
+    const sc = off / r + d * 0.004;
+    if (off < r && sc < bs) { bs = sc; best = s; }
   }
   return best;
 }
 function tapAt(x: number, y: number) {
-  const s = pickAt(x, y); if (!s) return;
-  focusOn(s); track('tap_subject', { sea: cur?.loc.id ?? '', subject: s.key.split(':')[0] });
+  let s = pickAt(x, y);
+  let place = false;
+  // nothing alive there, but the tap is on the reef or the seabed: go and look at that spot (the reef's
+  // fish and the coral heads are not subjects of their own)
+  if (!s && cur && !drone.sky) {
+    const f = seabedAt(x, y);
+    if (f && f.d > 2 && f.p.y < -1) {
+      const T = cur.T, reef = T.reef(f.p.x, f.p.z) > 0.3 || T.top(f.p.x, f.p.z) > T.h(f.p.x, f.p.z) + 0.3;
+      const at = new THREE.Vector3(f.p.x, Math.min(T.top(f.p.x, f.p.z) + 1.2, -1.6), f.p.z);
+      const label = reef ? 'このあたりの礁' : 'このあたりの海底';
+      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, pos: () => at, status: () => '', live: () => true };
+      place = true;
+    }
+  }
+  if (!s) return;
+  focusOn(s); track('tap_subject', { sea: cur?.loc.id ?? '', subject: place ? 'place' : s.key.split(':')[0] });
   showToast('向かっています', s.label, s.status());
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
 }
@@ -2798,7 +2836,7 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });
