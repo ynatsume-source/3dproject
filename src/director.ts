@@ -73,6 +73,8 @@ export class Director {
 
   // Go and film this now, however far it is (someone asked to see it).
   focus(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, true); }
+  // Film this next, as the cruise would (its usual time with it, then on): a suggestion, not a request.
+  show(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, false); }
 
   private begin(best: Subject, drone: THREE.Vector3, forced: boolean) {
     if (this.shot) this.recent.set('left:' + speciesOf(this.shot.subject), this.clock);   // (what it is leaving: not straight back to it)

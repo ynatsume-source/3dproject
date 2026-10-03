@@ -167,9 +167,14 @@ function endOpening(done: boolean) {
   tourQ = [];
   if (!done || !cur) return;
   const seen = new Set<string>();
-  tourQ = allSubjects().filter((sj) => sj.live() && sj.pos() && sj.kind !== 'cave' && sj.kind !== 'robot' && !sj.tour && !sj.breach && drone.pos.distanceTo(sj.pos() as THREE.Vector3) < 70)
-    .sort((a, b) => director.weight(b) * b.prio - director.weight(a) * a.prio)
-    .filter((sj) => { const k = speciesOf(sj); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
+  // (not the same every time: the first is a school if there is one about — the water full of life — then
+  // two of the others, drawn by how good they are to watch rather than always the very best)
+  const about = allSubjects().filter((sj) => sj.live() && sj.pos() && sj.kind !== 'cave' && sj.kind !== 'robot' && !sj.tour && !sj.breach && drone.pos.distanceTo(sj.pos() as THREE.Vector3) < 70)
+    .filter((sj) => { const k = speciesOf(sj); if (seen.has(k)) return false; seen.add(k); return true; });
+  const draw = (list: Subject[]) => { const w = list.map((sj) => Math.max(0, director.weight(sj) * sj.prio)), tot = w.reduce((a, b) => a + b, 0); let q = Math.random() * tot; for (let i = 0; i < list.length; i++) if ((q -= w[i]) <= 0) return list[i]; return list[list.length - 1]; };
+  const school = about.filter((sj) => sj.kind === 'school');
+  if (school.length) tourQ.push(draw(school));
+  while (tourQ.length < 3) { const rest = about.filter((sj) => !tourQ.includes(sj)); if (!rest.length) break; tourQ.push(draw(rest)); }
   tourAt = performance.now() + 12000;
 }
 // watching one of the island's residents from above: the camera stays with it until let go
@@ -302,7 +307,7 @@ function updateCaption(dt: number) {
     capSeen.set(kindKey, nowS);
     if (!asked && capNoted.has(kindKey)) c.n = '';
     if (c.n) capNoted.add(kindKey);
-    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.asked ? '図鑑から ・ 到着' : sh!.zoom ? '近くで観察' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
     if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
     (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
     (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
@@ -388,7 +393,7 @@ function updateDrone(dt: number, now: number) {
   // (after the way in: the best of what is about, one after another, then the cruise as ever)
   if (tourQ.length && !opening && drone.mode === 'auto' && !watch.r && !director.shot && now > tourAt) {
     const sj = tourQ.shift()!;
-    if (sj.live() && sj.pos()) { director.focus(sj, drone.pos); if (director.shot) director.shot.asked = false; }
+    if (sj.live() && sj.pos()) director.show(sj, drone.pos);   // (as the cruise films anything: its usual while, then on — not a request held to the end)
   }
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
@@ -2982,7 +2987,7 @@ if (/[?&]lab\b/.test(location.search)) {
 if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true) });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
