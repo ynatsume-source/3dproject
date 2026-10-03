@@ -19,6 +19,7 @@ import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
 import { planets } from './time/planets';
 import { buildOcean } from './ocean/build';
 import { planRoute, alongRoute, floorCells, type RoutePlan } from './ocean/route';
+import { pickStart } from './ocean/start';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, speciesOf, type Shot } from './director';
@@ -1643,6 +1644,9 @@ function enterOcean(oc: Ocean) {
   if (oc.loc.habitat === 'kelp') drone.pos.y = Math.max(oc.T.top(drone.pos.x, drone.pos.z) + 2.5, Math.min(drone.pos.y, -7)); // enter among the stipes, below the canopy
   const a = pathPoint(drone.s + 0.05, new THREE.Vector3());
   drone.yaw = Math.atan2(-(a.x - drone.pos.x), -(a.z - drone.pos.z)); drone.pitch = -0.08;
+  // (a visit begins in front of the sea's best sight, in full view: src/ocean/start.ts)
+  const st0 = pickStart(oc);
+  if (st0) { drone.pos.copy(st0.pos); drone.yaw = st0.yaw; drone.pitch = st0.pitch; drone.s = nearestS(drone.pos); director.reset(); }
   updateDrone(0.016, performance.now());
   camera.getWorldDirection(U.uCamFwd.value);
   for (const f of oc.fish) f.reset();
