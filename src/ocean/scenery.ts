@@ -203,9 +203,13 @@ export const grassMat = mat(
    void main(){
      vec2 base = uCamPos.xz + mod(aOff - uCamPos.xz + uTile * 0.5, uTile) - uTile * 0.5;
      vec2 td = terr(base);
-     float alive = step(aRnd.x, td.y) * (1.0 - smoothstep(uTile * 0.34, uTile * 0.5, length(base - uCamPos.xz)));
+     // A meadow spreads by its runners, so its shoots stand together: thick clumps a metre or two across with
+     // runs of bare sand between, not an even sprinkling (the same blades, gathered — not more of them)
+     float clump = smoothstep(0.38, 0.62, vn2(base * 0.55 + 17.0) * 0.7 + vn2(base * 1.7 - 5.0) * 0.3);
+     float dens = td.y * (0.08 + 2.0 * clump);
+     float alive = step(aRnd.x, dens) * (1.0 - smoothstep(uTile * 0.34, uTile * 0.5, length(base - uCamPos.xz)));
      float t = aV.y;
-     float h = aRnd.y * (0.55 + 0.6 * td.y) * alive;
+     float h = aRnd.y * (0.5 + 0.55 * td.y + 0.35 * clump) * alive;
      float w = aRnd.z * (1.0 - pow(t, 1.7)) * alive;
      float a = aRnd.w;
      vec3 wd = vec3(cos(a), 0.0, sin(a)), nb = vec3(-sin(a), 0.0, cos(a));

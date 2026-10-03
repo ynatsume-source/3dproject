@@ -477,10 +477,19 @@ export function coralMaterial(kind, lod = 0) {
            float ang = atan(fp.x, fp.y);
            // a fine, close net whose meshes stretch along the radial branches, as in Annella: dense enough
            // to read as a fan of lace, not as the frame of one
-           float web = vor(vec2(ang * rr0 * 46.0, rr0 * 30.0) + vSeed * 10.0);
-           float line = 1.0 - smoothstep(0.07, 0.16, web);
-           // the main branches, forking out from the stalk, thick at the base and thinning to the rim
-           float rib = 1.0 - smoothstep(0.0, 0.045 * (1.5 - rr0), abs(fract(ang * 4.0 + sin(rr0 * 7.0 + vSeed * 5.0) * 0.25) - 0.5) * rr0 * 1.6);
+           // (not one even mesh: the net is drawn finer here and coarser there, wanders, thins toward the rim,
+           // and has the odd gap where a piece has broken away — as a living fan grows)
+           vec2 wq = vec2(ang * rr0 * 46.0, rr0 * 30.0);
+           float dens = 0.75 + 0.55 * vn2(wq * 0.09 + vSeed * 7.0);
+           wq += (vec2(vn2(wq * 0.13 + 3.1), vn2(wq * 0.13 - 5.7)) - 0.5) * 2.2;
+           float web = vor(wq * dens + vSeed * 10.0);
+           float line = 1.0 - smoothstep(0.05 + 0.04 * (1.0 - rr0), 0.12 + 0.06 * (1.0 - rr0), web);
+           line *= step(0.16, vn2(wq * 0.05 + vSeed * 13.0) + 0.35 * (1.0 - rr0));
+           // the main branches, forking out from the stalk, thick at the base and thinning to the rim: how many,
+           // how they wander and how far each reaches, the fan's own
+           float nb = 3.4 + fract(vSeed * 7.31) * 1.6, bi = floor(ang * nb + 0.5);
+           float reach = 0.55 + 0.4 * fract(sin(bi * 12.9 + vSeed * 31.0) * 43.7);
+           float rib = (1.0 - smoothstep(0.0, 0.045 * (1.5 - rr0), abs(fract(ang * nb + sin(rr0 * 7.0 + vSeed * 5.0 + bi) * 0.3) - 0.5) * rr0 * 1.6)) * (1.0 - smoothstep(reach - 0.1, reach, rr0));
            float m = max(max(line, rib), step(rr0, 0.07) + step(vL.y, 0.2));
            float solidK = smoothstep(8.0, 15.0, distance(vWp, uCamPos));
            if (m < 0.5 && solidK < 0.5) discard;
