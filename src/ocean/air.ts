@@ -33,10 +33,12 @@ const SW: [number, number, number][] = [[140, 0.55, 0], [118, 0.45, 0.12], [72, 
 export const SWELL = /* glsl */ `
 uniform sampler2D uSeaK; uniform vec4 uSeaKBox;
 float seaK(vec2 p){   // how much of the sea's swell reaches here: none into a pool, a little into a lagoon (src/ocean/water.ts)
-  if (uSeaKBox.w < 0.5) return 1.0;
-  vec2 uv = (p - uSeaKBox.xy) / uSeaKBox.z;
-  if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 1.0;
-  return texture2D(uSeaK, uv).r;
+  // (no early return and no read inside a branch: the texture is always read, and outside the map — or with
+  // no map — the full swell is chosen by mix; ANGLE/D3D11 has gone white on a texture read behind a branch)
+  vec2 uv = (p - uSeaKBox.xy) / max(uSeaKBox.z, 1e-3);
+  float k = texture2D(uSeaK, clamp(uv, 0.0, 1.0)).r;
+  float inside = step(0.5, uSeaKBox.w) * step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
+  return mix(1.0, k, inside);
 }
 const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
 const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
