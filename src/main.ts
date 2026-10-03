@@ -43,6 +43,7 @@ import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
 import { makeReplay } from './ui/replay';
+import { planOpening, type Opening, type OpeningPose } from './opening';
 import { makeHints } from './ui/hints';
 import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
@@ -130,6 +131,47 @@ let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
 // flying by hand, a tap on something sends the drone to film it (as the cruise would, and then round it
 // slowly at the same distance) until the hand takes the controls again: the mode is the cruise's meanwhile
 let visit = false;
+// the way into a sea: from the air, the drone in the picture under the sky, into its eye, down into the water and the
+// white of the bubbles clearing on the sea's best sight (src/opening.ts); then a short tour of the best of what is
+// about. Once a day for each sea, on diving in from the globe; never for a shared view, a place taken up again, the
+// test pages, or with reduced motion; a touch of the controls or a tap ends it where it is.
+let opening: { plan: Opening; t: number; pose: OpeningPose; view: 'fpv' | 'chase'; wet: boolean } | null = null;
+let tourQ: Subject[] = [], tourAt = 0, openK = 1;
+const OPEN_KEY = 'seaglass.opening';
+function wantOpening(loc: Sea) {
+  const q = location.search;
+  if (/[?&]nointro/.test(q)) return false;
+  if (/[?&]intro\b/.test(q)) return true;
+  if (shared || reduceMotion || /[?&](debug|lab|diag|gputest|probe|bisect|lantern-study)/.test(q)) return false;
+  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); return m[loc.id] !== new Date().toDateString(); } catch (e) { return true; }
+}
+function startOpening(oc: Ocean) {
+  // what to look up at first: the sun if it is up, else a moon that gives light, else up into the stars
+  const sun = U.uAirSun.value as THREE.Vector3, moon = U.uAirMoon.value as THREE.Vector3;
+  const sky = sun.y > 0.05 ? sun.clone() : moon.y > 0.08 && U.uMoonIllum.value > 0.25 ? moon.clone() : null;
+  const plan = planOpening({ pos: drone.pos.clone(), yaw: drone.yaw, pitch: drone.pitch }, sky, oc.T.top);
+  opening = { plan, t: 0, pose: { pos: new THREE.Vector3(), yaw: 0, pitch: 0, chase: 1, white: 0, under: false }, view: viewMode, wet: false };
+  plan.at(0, opening.pose);
+  drone.pos.copy(opening.pose.pos); drone.vel.set(0, 0, 0); drone.yaw = opening.pose.yaw; drone.pitch = opening.pose.pitch;
+  drone.sky = false; openK = 1; chase.on = false;
+  setView('chase', false);
+  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); m[oc.loc.id] = new Date().toDateString(); localStorage.setItem(OPEN_KEY, JSON.stringify(m)); } catch (e) { /* storage blocked */ }
+}
+// done (or cut short by a touch of the controls): the view as it was chosen, and — when it ran to the end — a
+// short tour of the best of what is about, after a while in front of the sight
+function endOpening(done: boolean) {
+  if (!opening) return;
+  const view = opening.view;
+  opening = null; openK = 1; $('openWhite').style.opacity = '0';
+  setView(view, false);
+  tourQ = [];
+  if (!done || !cur) return;
+  const seen = new Set<string>();
+  tourQ = allSubjects().filter((sj) => sj.live() && sj.pos() && sj.kind !== 'cave' && sj.kind !== 'robot' && !sj.tour && !sj.breach && drone.pos.distanceTo(sj.pos() as THREE.Vector3) < 70)
+    .sort((a, b) => director.weight(b) * b.prio - director.weight(a) * a.prio)
+    .filter((sj) => { const k = speciesOf(sj); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
+  tourAt = performance.now() + 12000;
+}
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -343,13 +385,18 @@ function flyStep(dt: number) {
 }
 function updateDrone(dt: number, now: number) {
   if (visit && drone.mode === 'auto' && !director.shot) setMode('manual');   // (what it went to see is gone: back to the hand, hovering here)
+  // (after the way in: the best of what is about, one after another, then the cruise as ever)
+  if (tourQ.length && !opening && drone.mode === 'auto' && !watch.r && !director.shot && now > tourAt) {
+    const sj = tourQ.shift()!;
+    if (sj.live() && sj.pos()) { director.focus(sj, drone.pos); if (director.shot) director.shot.asked = false; }
+  }
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   // (from the sky, a whale or manta leaping nearby is watched from above, whatever was being filmed)
   const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260
     && ((skyNow?.night ?? 0) < 0.6 || U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y) > 0.25);   // (not on a dark night: the stars, not a black sea)
   const flyOn = drone.sky && drone.mode === 'auto' && !watch.r && !!flyRun && !!cur!.flyfish && !overLeap;
-  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn;
+  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn && !opening;
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; stuckT = 0; }
   // stuck: filming something (not riding a tour through), well short of the spot and hardly moving
@@ -359,7 +406,25 @@ function updateDrone(dt: number, now: number) {
   // nod and gaze), and nothing the cruising camera does to keep itself clear of the ground, the treetops or the
   // waterline, nor its bob and sway, is laid on top (a drag still glances aside: the viewer's, not its own).
   const povOn = !!(watch.r && watch.pov && cur!.residents);
-  if (povOn && watch.r) {
+  if (opening) {
+    // the way in: where the drone is and which way it looks are the opening's, second by second (the floor, the
+    // surface and its splash are still the drone's own, below)
+    const op = opening, o = op.plan.at(op.t += dt, op.pose);
+    if (drone.sky) { drone.sky = false; skyLabel(); }   // (high over the sea, but on its way into it: not the sky's cruise)
+    drone.vel.subVectors(o.pos, drone.pos).divideScalar(Math.max(dt, 1e-3));
+    drone.yaw = o.yaw; drone.pitch = o.pitch;
+    openK = o.chase;
+    if (o.chase <= 0 && viewMode !== 'fpv') setView('fpv', false);
+    $('openWhite').style.opacity = o.white.toFixed(3);
+    if (o.under && !op.wet) {
+      // in: a burst of bubbles all round the lens, rising past it, and the spray where it went in
+      op.wet = true;
+      bigSplash(op.plan.entry.x, op.plan.entry.z, 0.35, 0.9);
+      const f = new THREE.Vector3(-Math.sin(drone.yaw), 0, -Math.cos(drone.yaw));
+      for (let i = 0; i < 70; i++) bubblesAt(drone.pos.x + f.x * rr(0.4, 3) + rr(-1.2, 1.2), drone.pos.y + rr(-1.5, 0.3), drone.pos.z + f.z * rr(0.4, 3) + rr(-1.2, 1.2), 3);
+    } else if (op.wet && Math.random() < dt * 20) bubblesAt(drone.pos.x + rr(-1, 1), drone.pos.y - rr(0.3, 1.2), drone.pos.z + rr(-1, 1), 2);
+    if (op.t >= op.plan.len) endOpening(true);
+  } else if (povOn && watch.r) {
     const sn = cur!.residents!.sense(watch.r);
     drone.pos.copy(sn.eye); drone.vel.set(0, 0, 0); povEye.copy(sn.eye);
     const wantYaw = sn.look ? Math.atan2(-sn.look.x, -sn.look.z) : sn.head + Math.PI;
@@ -699,7 +764,7 @@ const chase = { pos: new THREE.Vector3(), on: false, acc: new THREE.Vector3(), p
 const _cf = new THREE.Vector3(), _cr = new THREE.Vector3(), _ct = new THREE.Vector3();
 function applyView(dt: number, t: number) {
   const on = viewMode === 'chase' && !watch.r;
-  droneModel.group.visible = on;
+  droneModel.group.visible = on && (!opening || openK > 0.12);   // (the way in: gone as the view comes into its eye)
   camera.updateMatrixWorld(); camera.getWorldDirection(_cf);
   if (!on) { chase.on = false; U.uLampPos.value.copy(camera.position); U.uLampDir.value.copy(_cf); return; }
   // how it is being pushed about: acceleration (smoothed), to tilt it
@@ -720,6 +785,7 @@ function applyView(dt: number, t: number) {
   if (!chase.on) chase.pos.copy(_ct); else chase.pos.lerp(_ct, 1 - Math.exp(-dt * 2.6));
   chase.on = true;
   camera.position.copy(chase.pos);
+  if (opening) camera.position.lerp(drone.pos, 1 - openK);   // (the way in: from behind the drone into its own eye)
   camera.lookAt(_ct.copy(drone.pos).addScaledVector(_cf, 4));
   camera.rotateZ(drone.roll * 0.3);
   // the lamp shines from the drone's lamps, the way it points
@@ -1121,6 +1187,7 @@ function announceRare(r: { info: { id: string; ja: string; note: string } }) {
 }
 function focusOn(s: Subject) {
   if (!cur) return;
+  endOpening(false); tourQ = [];
   if (watch.r) stopWatch(false);
   if (drone.mode !== 'auto') setMode('auto');
   if (drone.sky) setSky(false);
@@ -1691,6 +1758,8 @@ function enterOcean(oc: Ocean) {
   // (a visit begins in front of the sea's best sight, in full view: src/ocean/start.ts)
   const st0 = pickStart(oc);
   if (st0) { drone.pos.copy(st0.pos); drone.yaw = st0.yaw; drone.pitch = st0.pitch; drone.s = nearestS(drone.pos); director.reset(); }
+  endOpening(false); tourQ = [];
+  if (wantOpening(oc.loc)) startOpening(oc);
   updateDrone(0.016, performance.now());
   camera.getWorldDirection(U.uCamFwd.value);
   for (const f of oc.fish) f.reset();
@@ -2113,7 +2182,7 @@ function renderWatch() {
   $('watchEye').onclick = () => setPov(true);
   $('watchDiary').onclick = () => openDiary(r.id);
 }
-function touchInput() { drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
+function touchInput() { endOpening(false); tourQ = []; drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
 function setLamp(on: boolean, manual = true) {
   if (manual) lampManual = true;
   lampOn = on; $('btnLamp').setAttribute('aria-pressed', String(on));
@@ -2235,6 +2304,7 @@ function takeUpPlace(loc: Sea) {
   if (!r || r.sea !== loc.id || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
   const [x, y, z] = r.p;
   if (![x, y, z].every(Number.isFinite) || Math.abs(x - ZONE.x) > 1e4) return;
+  endOpening(false);
   drone.pos.set(x, y, z); drone.vel.set(0, 0, 0); drone.yaw = r.yaw; drone.pitch = r.pitch;
   if (y > 0 && !r.sky) drone.pos.y = -2;   // (it was under the water: under the water again)
   drone.sky = !!r.sky && y > 0;
@@ -2320,7 +2390,7 @@ $('personas').innerHTML = PERSONAS.map((p) => `<button type="button" role="radio
 $('personas').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-p]') as HTMLElement | null; if (b) setPersona(personaById(b.dataset.p!)); });
 applyPersona();
 $('btnManual').onclick = () => setMode('manual');
-$('btnMode').onclick = () => setMode(drone.mode === 'manual' || visit ? 'auto' : 'manual');
+$('btnMode').onclick = () => { endOpening(false); tourQ = []; setMode(drone.mode === 'manual' || visit ? 'auto' : 'manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
 setCaption(captionOn);
@@ -2356,7 +2426,7 @@ addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
   if (mode !== 'ocean' || busy) return;
-  if (MOVE.includes(e.code)) { if (visit) setMode('manual'); if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
+  if (MOVE.includes(e.code)) { endOpening(false); tourQ = []; if (visit) setMode('manual'); if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
   if (e.code.startsWith('Shift')) { keys.add(e.code); return; }
   if (e.repeat) return;
   if (PRESET_KEYS[e.code]) goPreset(PRESET_KEYS[e.code]);
@@ -2909,7 +2979,7 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });
