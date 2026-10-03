@@ -201,7 +201,7 @@ console.log('7. same physics as the test-world prototype');
   d.send({ type: 'shape_tiles', atMs: T0, lotId: 'pc', researchId: 'rx', scrapLotId: 'sc', trimFraction: 0, tiles: [{ sampleId: 'S', label: 's', massMg: 45_000, dimsMm: { w: 50, l: 50, t: 10 } }] });
   const s0 = d.w.state.view.samples.S;
   d.send({ type: 'start_drying', atMs: T0, runId: 'dr', researchId: 'rx', sampleIds: ['S'], facilityId: 'rack-shade', seed: 1 });
-  d.send({ type: 'advance', atMs: T0 + 120 * H, runId: 'dr', untilMs: T0 + 120 * H, env: { id: 'e', source: 'test-fixture', airTempC: 28, rh: 0.72, windMs: 3, solar: 0.8 } });
+  d.send({ type: 'advance', atMs: T0 + 120 * H, runId: 'dr', untilMs: T0 + 120 * H, env: { id: 'e', source: 'test-fixture', airTempC: 28, rh: 0.72, windMs: 3 * PARAMS.windRackFactor.value, solar: 0.8 } });
   const s1 = d.w.state.view.samples.S;
   const lot = { ...LOT, quality: { ...LOT.quality, water_ppm: Math.round(((s0.comp.water ?? 0) * 1e6) / 45_000), shaped_water_ratio_ppm: Math.round(s0.shapedWaterRatio * 1e6) } };
   const st = run([0, 120 * H + 1], { lot });

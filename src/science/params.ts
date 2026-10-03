@@ -56,6 +56,8 @@ export const PARAMS = {
   // ---- drying law ---------------------------------------------------------------------
   evapCoeff: P('evapCoeff', 3.0e-8, 'kg/(m2·s·Pa)', 'calibrated', [],
     'Dalton型の蒸発係数（風速1 m/sあたり+50%）。日あたり数mmの屋外蒸発量の桁に合わせた'),
+  windRackFactor: P('windRackFactor', 0.6, 'ratio', 'assumed', [],
+    '天気の風速（地上10 m、気象サービスの慣例）を棚の高さ（約1 m）の風に直す係数。草地の粗さ0.03 mの対数分布で ln(1/0.03)/ln(10/0.03) ≈ 0.60'),
   sunSurfaceExcessC: P('sunSurfaceExcessC', 15, 'K', 'assumed', [],
     '日なたで素地表面が気温より高くなる量'),
   dryCrackFluxRef: P('dryCrackFluxRef', 1.3e-4, 'kg/(m2·s)', 'calibrated', ['S-dry'],

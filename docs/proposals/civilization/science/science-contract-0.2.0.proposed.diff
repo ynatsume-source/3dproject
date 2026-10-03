@@ -9,7 +9,16 @@
  
  /** Stable ids. Catalog entries keep the catalog's own ids as they are (processes 'p20_lime_calcination',
   *  materials 'quicklime', capabilities…). Things that exist in the world carry a prefix by kind: 'lot:…',
-@@ -56,7 +56,9 @@
+@@ -39,6 +39,8 @@ export interface EnvironmentSample {
+   sampleId: Id;
+   source: 'live' | 'simulation' | 'stale' | 'unknown';
+   effectiveAt: number;
++  // only measured values (never a fallback guess): humidity relative 0..1; windMs at 10 m above ground, as weather
++  // services report it (a process scales it to its own height)
+   airTempC?: number; humidity?: number; windMs?: number; rainMmH?: number; pressureHPa?: number;
+ }
+ 
+@@ -56,7 +58,9 @@ export interface EquipmentView {
    params?: Record<string, number>;    // measured properties: volume, insulation, coil turns… (catalog units)
  }
  
@@ -20,7 +29,7 @@
  export interface EnergyOffer { sourceId: Id; kind: 'heat' | 'mechanical' | 'electric'; maxJ: number }
  
  /** What the resident running the process did during the interval (from the world's executor). */
-@@ -79,7 +81,7 @@
+@@ -79,7 +83,7 @@ export interface ScienceStepRequest {
    energy: EnergyOffer[];
    actions: OperatorAction[];
    stop?: 'operator' | 'world-pause' | 'equipment-lost' | 'shutdown';   // the run is being interrupted at interval.to
@@ -29,7 +38,7 @@
  }
  
  /** Something a resident could notice, through a sense or an instrument they have: never the hidden truth. */
-@@ -99,7 +101,10 @@
+@@ -99,7 +103,10 @@ export interface ScienceStepResult {
    consumed: { lotId: Id; amount: Quantity }[];                         // from the reserved lots only
    produced: { materialId: Id; amount: Quantity; quality?: Record<string, number>; into?: Id }[];
    released: { materialId: Id; amount: Quantity; to: 'air' | 'water' | 'ground' }[];   // gases, vapour, ash: balances must close
@@ -40,7 +49,7 @@
    equipmentWear: { equipmentId: Id; conditionDelta: number }[];
    observations: Observation[];
    evidence: { evaluatorVersion: string; sourceRefs: Id[]; notes?: string };   // what the outcome rests on
-@@ -115,13 +120,20 @@
+@@ -115,13 +122,20 @@ export type ScienceStep = (req: ScienceStepRequest) => ScienceStepResult;
   *
   * Rules both sides keep (the world checks these before committing; a failing result is rejected, not patched):
   *  1. consumed ⊆ the reserved lots, never more than their amount; units as the lot's.

@@ -189,15 +189,19 @@ console.log('F3  states saved by an older version are refused explicitly, not mi
   const DRY: ScienceStepRequest = { ...FIRE, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, actions: [], energy: [],
     lots: [{ ...FIRE.lots[0], materialId: 'test_tile_green', quality: { ...FIRE.lots[0].quality, water_ppm: 200000, width_mm: 40, length_mm: 60 } }],
     equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-2', condition: 1 }] };
-  const all = [['drying', DRY, 'civ-sci.drying'], ['firing', FIRE, 'civ-sci.tile-fire'], ['soak', soakReq(FIRE.lots[0], 1, 'run:soak-schema'), 'civ-sci.tile-soak'],
-    ['calcination', CALC, 'civ-sci.lime-calcine'], ['slaking', hyd(60000), 'civ-sci.lime-hydrate']] as const;
-  for (const [name, req, base] of all) {
+  // drying is at /3 since 0.3.0 (wind read as the weather's 10 m wind); its /1 and /2 states are both refused
+  const all = [['drying', DRY, 'civ-sci.drying', 3], ['firing', FIRE, 'civ-sci.tile-fire', 2], ['soak', soakReq(FIRE.lots[0], 1, 'run:soak-schema'), 'civ-sci.tile-soak', 2],
+    ['calcination', CALC, 'civ-sci.lime-calcine', 2], ['slaking', hyd(60000), 'civ-sci.lime-hydrate', 2]] as const;
+  for (const [name, req, base, cur] of all) {
     const fresh = scienceStep({ ...(req as ScienceStepRequest), stop: undefined, interval: { from: 0, to: 30000 } });
-    ok(fresh.status !== 'failed' && fresh.state?.schema === `${base}/2`, `${name}: a new run saves state schema ${base}/2`, `${fresh.status} ${fresh.state?.schema} ${fresh.evidence.notes ?? ''}`);
-    const r = old(req as ScienceStepRequest, `${base}/1`);
-    ok(r.status === 'failed' && r.consumed.length === 0 && String(r.evidence.notes).startsWith('unsupported-state-schema'), `${name}: an /1 state is refused as unsupported-state-schema`);
+    ok(fresh.status !== 'failed' && fresh.state?.schema === `${base}/${cur}`, `${name}: a new run saves state schema ${base}/${cur}`, `${fresh.status} ${fresh.state?.schema} ${fresh.evidence.notes ?? ''}`);
+    for (let v = 1; v < cur; v++) {
+      const r = old(req as ScienceStepRequest, `${base}/${v}`);
+      ok(r.status === 'failed' && r.consumed.length === 0 && String(r.evidence.notes).startsWith('unsupported-state-schema'), `${name}: an /${v} state is refused as unsupported-state-schema`);
+    }
   }
-  ok(FIRE.processVersion === '0.2.0' && CALC.processVersion === '0.2.0', 'process versions bumped to 0.2.0 with the new state schemas (/2)');
+  ok(FIRE.processVersion === '0.2.0' && CALC.processVersion === '0.2.0' && DRYING_PROCESS.processVersion === '0.3.0', 'process versions: 0.2.0 with state /2, drying 0.3.0 with /3');
+  ok(scienceStep({ ...DRY, processVersion: '0.2.0' }).status === 'failed', 'a drying request for 0.2.0 is refused');
   ok(scienceStep({ ...CALC, processVersion: '0.1.0' }).status === 'failed', 'a request for the old process version 0.1.0 is refused');
 }
 

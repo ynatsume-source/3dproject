@@ -144,7 +144,7 @@
     },
     {
       "id": "p12x_test_tile_dry",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "label": "試験片の乾燥",
       "kind": "physical",
       "inputs": [
@@ -169,7 +169,8 @@
       "evaluator": "drying-eval/0.1.0",
       "stepMs": 30000,
       "derivedFrom": "p12_pottery_dry",
-      "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない"
+      "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない",
+      "environment": "airTempC・humidity（0〜1）が要る。windMs は地上10 mの風（気象サービスの慣例）として読み、棚の高さの風は windRackFactor 0.6 倍（仮定）。測っていない値は渡さない"
     },
     {
       "id": "p20x_lime_calcine_test",
@@ -283,7 +284,7 @@
       "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema).",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused).",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {
