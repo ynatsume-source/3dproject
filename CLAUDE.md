@@ -27,7 +27,7 @@
 npm run typecheck
 npm run build
 npm run sim -- miyako                      # 生態系をヘッドレスで早回し
-npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip / cave / bait / jitter / motion の各チェック
+npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip / cave / bait / jitter / motion / route の各チェック
 ```
 
 見た目の確認は `npx vite preview` + Playwright（Chromium は `/opt/pw-browsers`、SwiftShader で WebGL）。

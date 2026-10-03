@@ -17,6 +17,7 @@ let airState = false;
 import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
 import { planets } from './time/planets';
 import { buildOcean } from './ocean/build';
+import { planRoute, alongRoute, floorCells, type RoutePlan } from './ocean/route';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, speciesOf, type Shot } from './director';
@@ -175,6 +176,13 @@ let lastShot: Shot | null = null;
 let viewNear = 1;   // (how much nearer or further than usual, by the wheel, for the subject being filmed)
 // whether the way to the shot needs the air (somewhere up on the land, or land in between): looked at now and then
 let hopCheckT = 0, hopFor: Shot | null = null, hopNeed = false;
+// the way planned through the water to the shot (src/ocean/route.ts): kept while the goal stays put, planned
+// afresh when it moves on or a new shot begins; `blocked` when no way through the water exists at all
+const ROUTE_CEIL = -0.7 - 0.75 - 0.45;   // (the floor may come up to here: under the surface limit, the drone's clearance, and a margin)
+let route: RoutePlan | null = null, routeFor: Shot | null = null, routeT = 0, routeBlocked = false;
+const _rw = new THREE.Vector3(), _ra = { x: 0, z: 0 };
+// what the way is planned round: the seabed, rock and coral, and the cave massif from the outside
+const routeFloor = (x: number, z: number) => { const T = cur!.T; return Math.max(T.ground(x, z), T.cave ? T.cave.topAt(x, z) : -1e9); };
 function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
   // (the lie of the land itself: a coral head or a rock in the way is swum round or over, not flown over)
   const f = cur!.loc.f, d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 6);
@@ -371,11 +379,31 @@ function updateDrone(dt: number, now: number) {
     // or with land in the way, does it go up and out, across in the air, and back down
     const hd = Math.hypot(shot.pos.x - drone.pos.x, shot.pos.z - drone.pos.z);
     if ((hopCheckT -= dt) < 0 || shot !== hopFor) { hopCheckT = 0.5; hopFor = shot; hopNeed = shot.pos.y > 0.3 || (shot.subject.kind === 'robot' && cur!.loc.f(shot.pos.x, shot.pos.z) > -0.3) || landBetween(drone.pos, shot.pos); }
-    drone.hop = way === shot.pos && !shot.surface && !shot.close && !shot.subject.tour && hd > (drone.hop ? 22 : 40) && hopNeed;
+    // through the water, the way is planned (round reef tops that come up near the surface), not a straight line
+    const routing = way === shot.pos && drone.pos.y < 0 && shot.pos.y < 0 && !shot.close && !shot.subject.tour && shot.subject.kind !== 'cave' && hd > 5;
+    if (!routing) { route = null; routeBlocked = false; }
+    else if (shot !== routeFor || !route || Math.hypot(route.gx - shot.pos.x, route.gz - shot.pos.z) > 3 && (routeT -= dt) < 0) {
+      const Z = ZONE, Lm = LIMIT - 2;
+      const oc = cur as any; oc.routeCells ??= floorCells(routeFloor);   // (one per sea: the floor read once, kept)
+      route = planRoute(oc.routeCells, ROUTE_CEIL, [Z.x - Lm, Z.x + Lm, Z.z - Lm, Z.z + Lm], drone.pos.x, drone.pos.z, shot.pos.x, shot.pos.z);
+      routeFor = shot; routeT = 1; routeBlocked = !route.ok;
+    }
+    // (no way through the water: over the top in the air, however near it is)
+    drone.hop = way === shot.pos && !shot.surface && !shot.close && !shot.subject.tour && (hd > (drone.hop ? 22 : 40) && hopNeed || routeBlocked && hd > 6);
     if (drone.hop) { const T = cur!.T; _h.set(shot.pos.x, Math.max(4, T.ground(drone.pos.x, drone.pos.z) + 5, shot.pos.y + 2), shot.pos.z); way = _h; }
+    let rest = -1;
+    if (routing && !drone.hop && route?.ok) {
+      // a few metres on along the way, at a depth between the goal's and clear of the floor there
+      const r = alongRoute(route, drone.pos.x, drone.pos.z, 4, _ra);
+      if (r.rest > 3) {
+        rest = r.rest;
+        const fy = routeFloor(_ra.x, _ra.z) + 1.3;
+        _rw.set(_ra.x, Math.min(-1.0, Math.max(shot.pos.y, fy)), _ra.z); way = _rw;
+      }
+    }
     _v.subVectors(way, drone.pos);
-    const L = _v.length(), top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
-    _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(L, 1e-4));
+    const vl = _v.length(), L = rest >= 0 ? rest : vl, top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
+    _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(vl, 1e-4));
     // under the water: no faster than one swims (a hunt is followed at its own pace); on the way out, mostly up
     if (drone.pos.y < 0 && !shot.close) {
       // (and sent far through the water, a little quicker the further it has to go)
@@ -385,7 +413,7 @@ function updateDrone(dt: number, now: number) {
     }
     if (drone.hop && drone.pos.y > 0) _v.y = clamp((way.y - drone.pos.y) * 1.2, -2, 2.5);   // (in the air: up to its height, and level)
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
-    let lk: { x: number; y: number; z: number } = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave: look where we are going
+    let lk: { x: number; y: number; z: number } = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave, or along the planned way: look where we are going
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
     const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
@@ -505,16 +533,25 @@ function updateDrone(dt: number, now: number) {
   // (flown by hand, the forest is trees to weave between, not a roof to keep above)
   const G = drone.mode === 'manual' ? cur!.T.top : cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
   if (hs > 0.05 && !(watch.r && !watch.pov)) {   // (watching someone, the camera's own spot already keeps clear of the ground: no early climbing away from their eye level)
-    let ahead = -1e9;
+    let ahead = -1e9, rate = 0, wall = Infinity;
     // (outside the cave, its rock counts as ground to climb over; inside the tunnel, the roof doesn't)
     const cv = cur!.cave, outside = !cv || cv.topAt(drone.pos.x, drone.pos.z) < drone.pos.y + 0.5;
+    // under the water, unless it is meant to come out: how high it may go (just under the surface)
+    const roof = drone.pos.y < 0 && drone.mode === 'auto' && !drone.sky && !watch.r && !drone.hop && !(shot && (shot.pos.y > 0.3 || shot.surface)) ? -0.9 : Infinity, g0 = G(drone.pos.x, drone.pos.z);
     for (const s of [0.5, 1.0, 1.6, 2.4]) {
       const ax = drone.pos.x + drone.vel.x * s, az = drone.pos.z + drone.vel.z * s;
       // (the cave rock counts only where it is actually solid at our height: a tunnel mouth ahead is a way in, not a wall)
-      ahead = Math.max(ahead, G(ax, az), outside && cv && cv.sd(ax, drone.pos.y, az) < 0.8 ? cv.topAt(ax, az) : -1e9);
+      const g = Math.max(G(ax, az), outside && cv && cv.sd(ax, drone.pos.y, az) < 0.8 ? cv.topAt(ax, az) : -1e9);
+      ahead = Math.max(ahead, g);
+      rate = Math.max(rate, (g + 1.0 - drone.pos.y) / s);   // (how fast it must climb to clear this in time)
+      if (g + 1.0 > roof && g > g0 + 0.15 && wall === Infinity) wall = s;    // (no room over it below the surface; already over the shallows, it may still head for deeper water)
     }
     const want = ahead + 1.0;
     if (drone.pos.y < want) drone.vel.y = Math.max(drone.vel.y, Math.min(1.6, (want - drone.pos.y) * 1.1));
+    // whatever is steering: slow down for a rise steeper than it can climb, and do not run on into a reef top
+    // that leaves no room under the surface (the way planner keeps clear of those; this is the backstop)
+    const k = Math.min(rate > 1.6 ? 1.6 / rate : 1, wall === Infinity ? 1 : clamp((wall - 0.5) / 1.9, 0, 1));
+    if (k < 1) { drone.vel.x *= k; drone.vel.z *= k; }
   }
   drone.pos.addScaledVector(drone.vel, dt);
   if (drone.mode === 'manual' || watch.r) cur!.shore?.push?.(drone.pos);   // (round the trunks)
