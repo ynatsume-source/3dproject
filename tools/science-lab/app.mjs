@@ -1,5 +1,5 @@
 import { measurementFields } from './measurements.mjs';
-import { createMeasurementRecord, dryingMethods, inputOrigins } from './measurement-record.mjs';
+import { absorptionMethods, createMeasurementRecord, dryingMethods, inputOrigins, surfaceWaterMethods } from './measurement-record.mjs';
 
 const labels = {
   waterWetBasisPct: '含水率（成形時質量が分母）',
@@ -29,12 +29,25 @@ form.addEventListener('submit', event => {
     const fields = Object.fromEntries(new FormData(form));
     const values = Object.fromEntries(Object.keys(measurementFields).map(key =>
       [key, fields[key] === '' ? undefined : Number(fields[key])]));
-    const record = createMeasurementRecord(values, fields);
+    const record = createMeasurementRecord(values, {
+      ...fields,
+      boilingHours: fields.boilingHours === '' ? undefined : Number(fields.boilingHours),
+      soakingHours: fields.soakingHours === '' ? undefined : Number(fields.soakingHours),
+    });
     const rows = Object.entries(record.calculatedPercent);
     if (!rows.length) { results.textContent = '計算に必要な測定値の組を入力してください。'; return; }
     const context = document.createElement('p');
     context.className = 'record-context';
-    context.textContent = `試料: ${record.sampleId ?? '未記録'} / 値の由来: ${inputOrigins[record.inputOrigin]} / 乾燥方法: ${dryingMethods[record.drying.method]}\n乾燥条件・終点: ${record.drying.protocol ?? '未記録'}\n測定メモ: ${record.notes ?? '未記録'}`;
+    const hoursText = value => value === null ? '未記録' : `${value} 時間`;
+    context.textContent = [
+      `試料: ${record.sampleId ?? '未記録'} / 値の由来: ${inputOrigins[record.inputOrigin]} / 乾燥方法: ${dryingMethods[record.drying.method]}`,
+      `乾燥条件・終点: ${record.drying.protocol ?? '未記録'}`,
+      `吸水方法: ${absorptionMethods[record.absorption.method]} / 煮沸時間: ${hoursText(record.absorption.boilingHours)} / 浸漬時間: ${hoursText(record.absorption.soakingHours)}`,
+      `表面水の処理: ${surfaceWaterMethods[record.absorption.surfaceWaterRemoval]}`,
+      `吸水の条件・手順: ${record.absorption.protocol ?? '未記録'}`,
+      `測定メモ: ${record.notes ?? '未記録'}`,
+      `計算式: ${record.calculator.id} v${record.calculator.version}`,
+    ].join('\n');
     results.append(context);
     const list = document.createElement('dl');
     for (const [key, value] of rows) {

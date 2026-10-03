@@ -1,4 +1,7 @@
 // Observation arithmetic only. No process, elapsed-time model, inventory or state.
+// Bump this when formulas, units, or calculation rules change (not for UI/record fields).
+export const measurementCalculator = Object.freeze({ id: 'measurements', version: 1 });
+
 export const measurementFields = Object.freeze({
   wetMassG: '成形時質量', dryMassG: '乾燥後質量', firedMassG: '焼成後質量',
   saturatedMassG: '吸水後質量', wetLengthMm: '成形時標点間距離',

@@ -239,6 +239,13 @@ console.log('7b. measurement definitions agree with tools/science-lab');
   const lab = summarizeMeasurements({ firedMassG: dryG, saturatedMassG: wetG });
   ok(lab.absorptionDryBasisPct.toFixed(1) === String(o('T2', 'absorption')[0].toFixed(1)), "the resident's absorption = the lab screen's (saturated − fired) / fired",
     `${o('T2', 'absorption')[0]}% vs ${lab.absorptionDryBasisPct.toFixed(4)}%`);
+  // the model's soak test, written as a lab measurement record (format v2): cold immersion 24 h, surface wiped
+  const { createMeasurementRecord } = await import('../tools/science-lab/measurement-record.mjs');
+  const rec = createMeasurementRecord({ firedMassG: dryG, saturatedMassG: wetG }, {
+    sampleId: 'T2', inputOrigin: 'simulation', absorptionMethod: 'immersion', boilingHours: 0, soakingHours: 24,
+    surfaceWaterRemoval: 'blotted', absorptionProtocol: '試験世界の浸漬：冷水24時間、煮沸なし、事前乾燥なし（モデル m01_cold_soak_absorption）' });
+  ok(rec.version === 2 && rec.calculator.version === 1 && rec.calibrationEligible === false && rec.warnings.length === 0
+    && rec.calculatedPercent.absorptionDryBasisPct === lab.absorptionDryBasisPct, 'the model soak test fits the lab record v2 (immersion 24 h, blotted) with no warnings', rec.warnings.join(' / '));
 }
 
 console.log('8. the core stays pure');
