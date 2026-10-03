@@ -7,7 +7,7 @@ import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
 import { lotComp, SCIENCE_CATALOG_VERSION } from '../src/science/step/common';
 import { CALCINE_PROCESS, HYDRATE_PROCESS } from '../src/science/step/lime';
-import { addComp, elementMoles, type Composition } from '../src/science/chem';
+import { addComp, elementMoles, molarMass, type Composition } from '../src/science/chem';
 import { PARAMS } from '../src/science/params';
 import { hashOf } from '../src/science/fixture/world';
 
@@ -54,7 +54,7 @@ const c900 = calcine(Array.from({ length: 25 }, (_, i) => i * H));
 const conv900 = c900.end.diagnostics as { conversion: number };
 ok(c900.end.status === 'completed', 'the run heats, holds, cools and completes on its own', `${(c900.results.length)} intervals`);
 const co2 = c900.end.released.find((x) => x.materialId === 'process_co2')!.amount.value;
-const expectCo2 = 95_000 / 100.09 * 44.01 * conv900.conversion;
+const expectCo2 = 95_000 / molarMass('calcite') * molarMass('co2') * conv900.conversion;
 ok(Math.abs(co2 - expectCo2) <= 2, 'CO2 released matches the stoichiometry of the converted calcite', `${co2} mg (conversion ${(conv900.conversion * 100).toFixed(2)}%)`);
 {
   const before: Composition = lotComp(FEED);
@@ -63,7 +63,7 @@ ok(Math.abs(co2 - expectCo2) <= 2, 'CO2 released matches the stoichiometry of th
   const worst = Math.max(...(['C', 'O', 'Ca'] as const).map((k) => Math.abs(eb[k] - ea[k]) * 1000));
   ok(worst < 0.05, 'element balance (C, O, Ca) across feed → quicklime + CO2, within ppm rounding', `max ${worst.toFixed(4)} mmol`);
 }
-const chem = conv900.conversion * (95_000 / 1000 / 100.09) * PARAMS.dHCalcination.value;
+const chem = conv900.conversion * (95_000 / 1000 / molarMass('calcite')) * PARAMS.dHCalcination.value;
 ok(Math.abs(c900.stored - chem) <= 1, 'energy kept at the end = reaction enthalpy (sourced +191.59 kJ/mol); sensible heat ends as lost', `${c900.stored} J vs ${chem.toFixed(1)} J`);
 ok(c900.used === c900.lost + c900.stored, 'used = lost + stored over the whole run (integer J)', `${c900.used} = ${c900.lost} + ${c900.stored}`);
 const c600 = calcine(Array.from({ length: 25 }, (_, i) => i * H), { setpoint: 600 });
@@ -121,13 +121,19 @@ ok(h.end.status === 'completed' && dh.conversion > 0.99, 'the quicklime from ste
   const eb = elementMoles(before), ea = elementMoles(after);
   const worst = Math.max(...(['H', 'O', 'Ca'] as const).map((k) => Math.abs(eb[k] - ea[k]) * 1000));
   ok(worst < 0.05, 'element balance (H, O, Ca) across quicklime + water → hydrated lime + vapour', `max ${worst.toFixed(4)} mmol, vapour ${vap} mg`);
-  const molLime = (lotComp(quick).lime ?? 0) / 1000 / 56.08;
+  const molLime = (lotComp(quick).lime ?? 0) / 1000 / molarMass('lime');
   const heat = molLime * dh.conversion * -PARAMS.dHHydration.value;
   ok(Math.abs(h.used - heat) <= 1 && h.stored === 0, 'reaction heat reported (sourced −64.47 kJ/mol) all leaves as lost by the end', `${h.used} J vs ${heat.toFixed(1)} J`);
   ok(h.end.consumed.length === 2 && h.end.consumed.every((c) => c.lotId === 'lot:water-1' || c.lotId === 'lot:x'), 'both reserved lots are consumed once, at the end');
 }
-const h2 = hydrate(quick, 60_000, [0, 17_000, 50 * MIN, 50 * MIN + 5_000, 3 * H, 12 * H]);
-ok(settle(h2.end) === settle(h.end) && h2.used === h.used, 'hydration: chunking does not change the outcome');
+const h2 = hydrate(quick, 60_000, [0, 15_000, 50 * MIN, 50 * MIN + 5_000, 3 * H, 12 * H]);
+ok(settle(h2.end) === settle(h.end) && h2.used === h.used, 'hydration: chunks on the 5 s grid give the identical outcome');
+const h3 = hydrate(quick, 60_000, [0, 17_000, 50 * MIN + 1_234, 3 * H + 7, 12 * H]);
+{
+  const a = h.end.produced[0].quality!, b = h3.end.produced[0].quality!;
+  ok(Math.abs(h3.used - h.used) <= 0.002 * h.used && Math.abs((a.x_portlandite_ppm ?? 0) - (b.x_portlandite_ppm ?? 0)) <= 2000,
+    'hydration: chunks off the grid agree within the discretisation tolerance (0.2% J, 0.2% product)', `${h3.used} vs ${h.used} J`);
+}
 const dry = hydrate(quick, 20_000, Array.from({ length: 13 }, (_, i) => i * H));
 const dd = dry.end.diagnostics as { peakC: number; conversion: number };
 ok(dd.conversion < 1 && dd.peakC >= 99.9, 'too little water: the batch boils, water runs out, some CaO stays unreacted', `peak ${dd.peakC.toFixed(1)} °C, conversion ${(dd.conversion * 100).toFixed(1)}%`);

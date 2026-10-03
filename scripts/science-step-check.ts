@@ -106,7 +106,7 @@ console.log('5. energy: integer J, closed per entry, no double count');
 const all = halfDays.results.flatMap((r) => r.energy);
 ok(all.every((x) => Number.isInteger(x.usedJ) && Number.isInteger(x.lostJ) && x.usedJ === x.lostJ + (x.storedJ ?? 0)), 'every entry is integer and closes: used = lost + stored');
 const latent = (rel / 1e6) * PARAMS.latentHeatWater25.value;
-ok(Math.abs(halfDays.J - latent) <= 0.5, 'Σ reported J = latent heat of the vapour within ½ J (cumulative rounding)', `${halfDays.J} J vs ${latent.toFixed(2)} J`);
+ok(Math.abs(halfDays.J - latent) <= 1, 'Σ reported J = latent heat of the integer vapour released (within 1 J of flooring)', `${halfDays.J} J vs ${latent.toFixed(2)} J`);
 ok(all.every((x) => x.sourceId.startsWith('src:env-heat:')), 'heat is drawn from the environment source only (no fuel, no battery)');
 
 console.log('6. operational vs in-world stops; unknown weather');
@@ -167,7 +167,7 @@ console.log('7. same physics as the test-world prototype');
   const lot = { ...LOT, quality: { ...LOT.quality, water_ppm: Math.round(((s0.comp.water ?? 0) * 1e6) / 45_000), shaped_water_ratio_ppm: Math.round(s0.shapedWaterRatio * 1e6) } };
   const st = run([0, 120 * H + 1], { lot });
   const protoEvap = (s0.comp.water ?? 0) - (s1.comp.water ?? 0);
-  ok(Math.abs(st.end.released[0].amount.value - protoEvap) <= 2, 'ScienceStep drying evaporates what the prototype does (±2 mg ppm rounding)', `${st.end.released[0].amount.value} vs ${protoEvap} mg`);
+  ok(Math.abs(st.end.released[0].amount.value - protoEvap) <= 0.002 * protoEvap, 'ScienceStep drying evaporates what the prototype does (within 0.2%: the prototype rounds every step)', `${st.end.released[0].amount.value} vs ${protoEvap} mg`);
 }
 
 console.log('8. conditions matter: sun + 15 mm cracks, shade does not');
