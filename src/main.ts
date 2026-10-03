@@ -4,6 +4,7 @@ import { initAnalytics, track } from './analytics';
 import * as THREE from 'three';
 import './styles.css';
 import { U, mat } from './render/common';
+import { cloudAt } from './render/cloud';
 import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
@@ -36,7 +37,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -180,7 +181,7 @@ let hopCheckT = 0, hopFor: Shot | null = null, hopNeed = false;
 // afresh when it moves on or a new shot begins; `blocked` when no way through the water exists at all
 const ROUTE_CEIL = -0.7 - 0.75 - 0.45;   // (the floor may come up to here: under the surface limit, the drone's clearance, and a margin)
 let route: RoutePlan | null = null, routeFor: Shot | null = null, routeT = 0, routeBlocked = false;
-const _rw = new THREE.Vector3(), _ra = { x: 0, z: 0 };
+const _rw = new THREE.Vector3(), _rl = new THREE.Vector3(), _ra = { x: 0, z: 0 };
 // what the way is planned round: the seabed, rock and coral, and the cave massif from the outside
 const routeFloor = (x: number, z: number) => { const T = cur!.T; return Math.max(T.ground(x, z), T.cave ? T.cave.topAt(x, z) : -1e9); };
 function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
@@ -399,6 +400,10 @@ function updateDrone(dt: number, now: number) {
         rest = r.rest;
         const fy = routeFloor(_ra.x, _ra.z) + 1.3;
         _rw.set(_ra.x, Math.min(-1.0, Math.max(shot.pos.y, fy)), _ra.z); way = _rw;
+        // (and looks well on along the way at about its own depth, not down at the reef just ahead; nearing
+        // the end, at what it came to see)
+        alongRoute(route, drone.pos.x, drone.pos.z, 12, _ra);
+        if (r.rest > 14) _rl.set(_ra.x, Math.min(-0.8, Math.max(drone.pos.y - 0.6, _rw.y)), _ra.z);
       }
     }
     _v.subVectors(way, drone.pos);
@@ -413,7 +418,7 @@ function updateDrone(dt: number, now: number) {
     }
     if (drone.hop && drone.pos.y > 0) _v.y = clamp((way.y - drone.pos.y) * 1.2, -2, 2.5);   // (in the air: up to its height, and level)
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
-    let lk: { x: number; y: number; z: number } = way === shot.pos || way === _h ? shot.look : way;   // escaping the cave, or along the planned way: look where we are going
+    let lk: { x: number; y: number; z: number } = way === _rw ? (rest > 14 ? _rl : shot.look) : way === shot.pos || way === _h ? shot.look : way;   // escaping the cave, or along the planned way: look where we are going
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
     const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
@@ -831,6 +836,7 @@ function wantLamp() {
 }
 // The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
 // dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.
+let moonVeil = 0, moonVeilAt = -1, shoreT = 0;   // (how much cloud is in front of the moon, eased; at first, at once)
 function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uSunDir.value.set(...s.sunDir);
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
@@ -845,7 +851,13 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   // (by an island the night ashore is kept open and gentle, as it is under the water, rather than black)
   // (and it begins as the sun fades, not only once it is fully night: no dark valley in the late dusk between the two)
   const nk = Math.max(s.night, smooth(0.22, 0.03, s.sunI) * 0.85);
-  const n = nk * (airView ? (cur?.loc.land ? 0.95 : 0.75) : 1), moon = s.moonI, glow = n * (0.8 + 0.2 * moon);
+  // a cloud in front of the moon in the sky (the same clouds the sky draws) dims its light under the water
+  // too: what is seen from below agrees with what is seen on coming up (eased, as a cloud drifts over)
+  const wv = liveWeather(), cl = wv.cloud * (wv.rain > 0 ? 1 : 0.85);
+  const veil = cloudAt(s.moonAir[0], s.moonAir[1], s.moonAir[2], U.uTime.value, cl);
+  moonVeil += (veil - moonVeil) * (Math.abs(veil - moonVeil) > 0.5 && moonVeilAt < 0 ? 1 : 0.35); moonVeilAt = 1;
+  U.uMoonVeil.value = moonVeil;
+  const n = nk * (airView ? (cur?.loc.land ? 0.95 : 0.85) : 1), moon = s.moonI * (1 - 0.85 * moonVeil), glow = n * (0.8 + 0.2 * moon);
   // the sun is the star of the scene: by day it falls hard and bright, with deep blue shade beside it,
   // and strong shafts and caustics; low in the sky its light turns gold and the shafts stand out most.
   // A full moon is bright enough to read by: silver shafts and caustics of its own; a moonless night stays
@@ -853,8 +865,10 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   const day = s.sunI * (1 - n);
   U.uAmb.value = s.amb * (1 - 0.12 * day) + glow * (0.45 + 0.2 * moon);
   U.uSunI.value = Math.max(s.sunI * (1 + 0.38 * day) + 0.3 * s.golden, n * (0.32 + 0.75 * moon));
-  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 1.4 * s.golden, n * (0.12 + 0.95 * moon));
+  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 1.4 * s.golden, n * (0.12 * Math.min(1, moon / 0.3) + 0.95 * moon));   // (no moon to come from, no shafts)
+  U.uGlowK.value = 1 - n * (1 - Math.min(1, moon / 0.3));
   const starlit = n * Math.max(0, 1 - moon / 0.3);
+  U.uAmb.value += starlit * 0.07;   // (no moon: the soft light the shafts gave, spread evenly instead)
   if (starlit > 0) U.uSunDir.value.lerp(_starDir, starlit).normalize();
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
@@ -963,6 +977,8 @@ function seaLog(kind: string, text: string, at?: Where) {
   if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at, kind, ref });
 }
 function pumpLog(now: number) {
+  // (watching a resident: the sea's goings-on are not told — nor kept to pop up stale once it is over)
+  if (watch.r) { logQueue.length = 0; return; }
   if (!logQueue.length || now - logShownAt < 20000 || $('toast').classList.contains('on')) return;
   logShownAt = now;
   const e = logQueue.shift()!;
@@ -985,7 +1001,7 @@ let markAt: Where | null = null, markText = '', markUntil = 0;
 const _mk = new THREE.Vector3();
 function updateMarker(now: number) {
   const el = $('evMark');
-  const p = markAt && now < markUntil ? markAt() : null;
+  const p = markAt && now < markUntil && !watch.r ? markAt() : null;   // (no marker for the sea while watching a resident)
   if (!p) { if (!el.hidden) { el.hidden = true; $('toast').classList.remove('go'); } return; }
   _mk.set(p.x, p.y, p.z).project(camera);
   const w = innerWidth, h = innerHeight, behind = _mk.z > 1;
@@ -1037,7 +1053,7 @@ function scanNotices(dt: number, now: number) {
   $('toast').classList.add('go');
 }
 function goToEvent() {
-  if (!markAt || !cur) return;
+  if (!markAt || !cur || watch.r) return;
   if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }); return; }
   const at = markAt, text = markText;
   focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() });
@@ -1049,6 +1065,7 @@ $('toast').addEventListener('click', goToEvent);
 let rareT = 0;
 function announceRare(r: { info: { id: string; ja: string; note: string } }) {
   const el = $('rare');
+  if (watch.r) { recordLog('rare', `めったに出会えない光景：${r.info.ja}`); return; }   // (watching a resident: noted in the log, not announced)
   (el.querySelector('.t') as HTMLElement).textContent = r.info.ja; (el.querySelector('.n') as HTMLElement).textContent = r.info.note;
   el.classList.add('on'); clearTimeout(rareT); rareT = window.setTimeout(() => el.classList.remove('on'), 11000);
   recordLog('rare', `めったに出会えない光景：${r.info.ja}`);
@@ -1525,6 +1542,7 @@ function applyShared(loc: Sea) {
     clock.live = false; clock.speed = 1;
     const L = new Date(clock.ms + loc.tz * 3600000);
     const y = v.date?.y ?? L.getUTCFullYear(), mo = (v.date?.m ?? L.getUTCMonth() + 1) - 1, d = v.date?.d ?? L.getUTCDate();
+    clock.shift = 0;   // (a date given outright: no season move to take back)
     if (typeof v.time === 'string') { clock.ms = Date.UTC(y, mo, d, 12) - loc.tz * 3600000; clock.ms = presetTime(v.time, loc); }
     else { const t = v.time ?? { hh: L.getUTCHours(), mm: L.getUTCMinutes() }; clock.ms = Date.UTC(y, mo, d, t.hh, t.mm) - loc.tz * 3600000; }
   }
@@ -1644,7 +1662,7 @@ function enterOcean(oc: Ocean) {
 }
 // Diving in: the sea is built first (behind a veil), then a short glide from wherever the globe is
 // looking down to the site, and into the water.
-{ const at = new URLSearchParams(location.search).get('at'); if (at && !isNaN(Date.parse(at))) { clock.live = false; clock.speed = 1; clock.ms = Date.parse(at); } }   // ?at=ISO time, for checking
+{ const at = new URLSearchParams(location.search).get('at'); if (at && !isNaN(Date.parse(at))) { clock.live = false; clock.speed = 1; clock.ms = Date.parse(at); clock.shift = 0; } }   // ?at=ISO time, for checking
 // ?bisect (with ?diag): to find what a GPU cannot draw, start from an empty sea and bring its things
 // back one kind at a time, a few seconds apart; if the GPU gives up, the last one brought back is named.
 const bisect = /[?&]bisect/.test(location.search);
@@ -1827,8 +1845,12 @@ async function toGlobe() {
 
 function setMode(m: 'auto' | 'manual') {
   if (watch.r) stopWatch(false);
+  // already cruising and filming something (asked for, or waiting for it to turn up): the cruise button means
+  // "never mind, go on" — it lets go and the cruise takes up again from here
+  if (m === 'auto' && drone.mode === 'auto' && director.release()) { drone.hop = false; route = null; }
   drone.mode = m;
-  if (m === 'manual') director.reset();
+  // (taking the controls, by whatever way, counts as input: the 90 s back to the cruise starts now)
+  if (m === 'manual') { drone.lastInput = performance.now(); director.reset(); }
   if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; } }
   if (cur) skyLabel();
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
@@ -1927,7 +1949,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (mode !== 'ocean' || isTouch || pointers.size) { hideHover(); return; }
   if (drone.mode !== 'auto') { hideHover(); return; }
   const now = performance.now(); if (now - hoverT < 90) return; hoverT = now;
-  const s = pickAt(e.clientX, e.clientY), el = $('hoverTag');
+  const s0 = pickAt(e.clientX, e.clientY), s = watch.r && s0?.kind !== 'robot' ? null : s0, el = $('hoverTag');   // (watching: only the residents)
   canvas.style.cursor = s ? 'pointer' : '';
   if (!s) { hideHover(); return; }
   el.textContent = `${s.label} — クリックで近づく`; el.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 12}px)`; el.classList.add('on');
@@ -2086,6 +2108,32 @@ async function keepAwake() {
   }
 }
 document.addEventListener('visibilitychange', keepAwake);
+// Put away (home screen, another app, the screen off): the sea pauses — the sound stops at once (drawing stops of
+// itself), and where the drone is is kept, so that if the phone drops the page meanwhile, coming back to it
+// starts from about here rather than from the globe. Back again: the sound as it was, and on from the same view.
+const RESUME_KEY = 'seaglass.resume';
+let soundWasOn = false;
+function keepPlace() {
+  if (!cur || mode !== 'ocean' || shared) return;
+  try { localStorage.setItem(RESUME_KEY, JSON.stringify({ sea: cur.loc.id, p: drone.pos.toArray().map((v) => +v.toFixed(2)), yaw: +drone.yaw.toFixed(3), pitch: +drone.pitch.toFixed(3), sky: drone.sky, at: Date.now() })); } catch (e) { /* storage blocked */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { keepPlace(); soundWasOn = pauseAudio() || soundWasOn; }
+  else if (soundWasOn) { soundWasOn = false; startAudio(); }
+});
+addEventListener('pagehide', keepPlace);
+// (after a reload of the same sea within half an hour: back where it was, facing the same way)
+function takeUpPlace(loc: Sea) {
+  let r: any = null;
+  try { r = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); } catch (e) { /* storage blocked */ }
+  if (!r || r.sea !== loc.id || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
+  const [x, y, z] = r.p;
+  if (![x, y, z].every(Number.isFinite) || Math.abs(x - ZONE.x) > 1e4) return;
+  drone.pos.set(x, y, z); drone.vel.set(0, 0, 0); drone.yaw = r.yaw; drone.pitch = r.pitch;
+  if (y > 0 && !r.sky) drone.pos.y = -2;   // (it was under the water: under the water again)
+  drone.sky = !!r.sky && y > 0;
+  if (drone.mode === 'auto') drone.s = nearestS(drone.pos);
+}
 document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
 
 $('btnBack').onclick = toGlobe;
@@ -2093,6 +2141,17 @@ $('btnGuide').onclick = () => openPanel('guide');
 $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
 $('btnAuto').onclick = () => setMode('auto');
+// "back to the cruise": shown while it is off to see something someone asked for (a tap on an animal, the guide,
+// a notice), a moment after setting off; gone once the visit ends of itself
+$('backCruise').onclick = () => { if (director.release()) { drone.hop = false; route = null; track('back_cruise', { sea: cur?.loc.id ?? '' }); } document.body.classList.remove('asked'); };
+let askedSince = 0;
+function syncBackCruise() {
+  const sh = director.shot, on = !!sh?.asked && drone.mode === 'auto' && !watch.r && mode === 'ocean';
+  // (a moment after setting off, in real time: a slow phone's frames do not make it wait longer)
+  if (!on) askedSince = 0; else if (!askedSince) askedSince = performance.now();
+  const show = on && performance.now() - askedSince > 1200;
+  if (show !== document.body.classList.contains('asked')) { document.body.classList.toggle('asked', show); ($('backCruise') as HTMLButtonElement).tabIndex = show ? 0 : -1; }
+}
 $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
 $('newMark').onclick = observeNew;
@@ -2148,7 +2207,7 @@ setPip(pipOn);
 $('personas').innerHTML = PERSONAS.map((p) => `<button type="button" role="radio" data-p="${p.id}" title="${p.blurb}"><span class="dot"></span>${p.ja}</button>`).join('');
 $('personas').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-p]') as HTMLElement | null; if (b) setPersona(personaById(b.dataset.p!)); });
 applyPersona();
-$('btnManual').onclick = () => { drone.lastInput = performance.now(); setMode('manual'); };
+$('btnManual').onclick = () => setMode('manual');
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
 setCaption(captionOn);
@@ -2327,7 +2386,8 @@ function renderPip(dt: number, air: boolean) {
     }
     if (pipSubj && pipSubj.key === filming) pipSubj = null;
   }
-  const want = pipOn && pipSubj && pipSubj.live() ? 1 : 0;
+  // (not while watching a resident, from behind or through its eyes: its card sits where the window would)
+  const want = pipOn && pipSubj && pipSubj.live() && !watch.r ? 1 : 0;
   pipFade += (want - pipFade) * Math.min(1, dt * 5);
   const el = $('pip');
   el.style.opacity = String(pipFade);
@@ -2452,6 +2512,7 @@ function frameBody(ts: number) {
   } else if (cur) {
     if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
     updateDrone(dt, now);
+    syncBackCruise();
     updateCaption(dt);
     scanNotices(dt, now);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
@@ -2579,6 +2640,20 @@ function frameBody(ts: number) {
     const far = air ? 90000 : 460;
     if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
     setAir(air);
+    // ashore, the waves sound further off the further it is from the sea (looked for in rings, now and then)
+    if ((shoreT -= dt) < 0) {
+      shoreT = 0.5;
+      const f = cur.loc.land ? cur.loc.f : null, x = camera.position.x, z = camera.position.z;
+      let dist = 0;
+      if (f && f(x, z) > -0.3) {
+        dist = 320;
+        rings: for (const r of [8, 16, 30, 50, 80, 120, 170, 240, 320]) for (let k = 0; k < 12; k++) {
+          const a = k * Math.PI / 6;
+          if (f(x + Math.cos(a) * r, z + Math.sin(a) * r) < -0.3) { dist = r; break rings; }
+        }
+      }
+      setShore(Math.min(1, Math.exp(-(dist - 15) / 70)));
+    }
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
     if (bisect) bisectStep(dt);
@@ -2648,7 +2723,7 @@ resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
 const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
-if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start)), 300); }
+if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start).then(() => takeUpPlace(start))), 300); }
 void smooth;
 
 // Inspect the live sim from the console with ?debug

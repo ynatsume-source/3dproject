@@ -8,6 +8,7 @@ import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { makeSchoolShade } from './schoolshade';
+import { behind, unseen } from './unseen';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 
@@ -79,13 +80,17 @@ export function makeShoalSystem(sp: Species, oc: any) {
   function place(s: number, cam: THREE.Vector3, fx: number, fz: number, near: boolean) {
     const L = leaders[s];
     let x = cam.x, z = cam.z;
-    for (let k = 0; k < 24; k++) {
+    // on arriving at the sea, nearby (the scene is new); afterwards, a school that has drifted far off comes back
+    // in from behind the camera, out of sight, swimming on past into view — never put down where it can be seen
+    const bh = near ? null : behind(oc, cam, fx, fz, rr(30, 44), 2.6, rr(-0.9, 0.9));
+    if (bh) { x = zx(bh.x); z = zz(bh.z); }
+    else for (let k = 0; k < 24; k++) {
       const d = near ? rr(10, 28) : rr(32, 46), lat = (R() * 2 - 1) * 20;
       x = zx(cam.x + fx * d - fz * lat); z = zz(cam.z + fz * d + fx * lat);
       if (T.wet(x, z, 2.6)) break;
     }
     L.c.set(x, Math.min(T.h(x, z) + L.alt, -2), z);
-    L.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.8, 2.2);
+    L.head = bh ? Math.atan2(cam.z + fz * 25 - z, cam.x + fx * 25 - x) + rr(-0.5, 0.5) : Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.8, 2.2);
     for (let i = s; i < total; i += S) {
       const a = R() * 6.28, r = Math.cbrt(R()) * 4;
       p[i * 3] = x + Math.cos(a) * r; p[i * 3 + 1] = L.c.y + (R() - 0.5) * 2.5; p[i * 3 + 2] = z + Math.sin(a) * r;
@@ -96,7 +101,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   }
 
   let target = 1;
-  let orbit: { x: number; z: number; r: number; dir: number } | null = null, always = false;
+  let orbit: { x: number; z: number; r: number; dir: number } | null = null, always = false, steer: { head: number } | null = null;
   // the reef height under each fish, refreshed every few frames in turn (terrain sampling is costly)
   let frame = 0, fhC = new Float32Array(0);
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
@@ -107,8 +112,10 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const L = leaders[s];
       L.t += dt; L.fear = Math.max(0, L.fear - dt * 0.3);
       const dx = L.c.x - cam.x, dz = L.c.z - cam.z;
-      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit)) place(s, cam, fx, fz, !L.placed);
+      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit && !steer && unseen(oc, L.c.x, L.c.y, L.c.z, cam, fx, fz, 6))) place(s, cam, fx, fz, !L.placed);
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
+      // (sent off a given way: a school leaving the scene)
+      if (steer) { let d = steer.head - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.8); }
       // (circling a point: a tornado of jacks)
       if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.hypot(ox, oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
       if (outZone(L.c.x, L.c.z)) { let d = toZone(L.c.x, L.c.z) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
@@ -277,6 +284,8 @@ export function makeShoalSystem(sp: Species, oc: any) {
     },
     setOrbit(o: { x: number; z: number; r: number; dir: number } | null) { orbit = o; },
     setAlways(on: boolean) { always = on; },
+    // (a rare scene's school: sent off this way, to leave the scene; null: its own way again)
+    steerTo(head: number | null) { steer = head === null ? null : { head }; },
     leader: () => leaders[0].c,
   };
 }

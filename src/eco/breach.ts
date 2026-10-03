@@ -11,6 +11,7 @@
 // Before each leap there are a few seconds' warning (the animal is on its way up): a subject the
 // cruise can go to, so the drone is at the waterline, side on, when it comes out.
 import * as THREE from 'three';
+import { sightRange } from './unseen';
 import { R, rr, smooth } from '../core/math';
 import { WHALE_GEO, whaleMaterial, MANTA_GEO, mantaMaterial } from '../ocean/models';
 import { logEvent, type Env, type Subject } from './env';
@@ -253,7 +254,7 @@ export function makeBreach(oc: any) {
       // its show over and on its way down into the blue: gone (or up for the next leap) only once it is far
       // off or out of the picture, never in front of the camera
       const fwd = U.uCamFwd.value as THREE.Vector3, dx = cx - cam.x, dy = y - cam.y, dz = cz - cam.z, dd = Math.hypot(dx, dy, dz);
-      if (up > airT + (l.kind === 'whale' ? 22 : 12) && (dd > 70 || dx * fwd.x + dy * fwd.y + dz * fwd.z < dd * 0.25)) {
+      if (up > airT + (l.kind === 'whale' ? 22 : 12) && (dd - L > sightRange(oc) || (dd > L + 12 && dx * fwd.x + dy * fwd.y + dz * fwd.z < dd * 0.25))) {   // (far: as far as this water lets one see)
         series++;
         if (l.left > 1) { const c = place(l.kind, cam, fx_, fz_, new THREE.Vector3(cx, 0, cz), l.dir); if (c) { begin(l.kind, c, l.dir, l.left - 1); leap!.t = WARN - (l.kind === 'whale' ? rr(10, 16) : rr(3, 6)); return; } }
         leap = null; next = l.kind === 'whale' ? rr(240, 420) : rr(420, 720);

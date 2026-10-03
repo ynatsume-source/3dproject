@@ -185,6 +185,29 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
   }
 }
 
+// The manta's own movement, whatever it is doing: the wing beat (its phase integrated, so a change of pace
+// never makes the wings jump), how far they flex (amp: 1 a full beat, lower a glide on outspread wings), the
+// head fins and mouth (unrolled and open to feed), and the wings' lean into a turn. Eased, so every change
+// from one way of swimming to another runs on from wherever the wings and mouth are. Returns the easing step.
+function mantaPose(m: any, dt: number, feeding: boolean, amp: number, bank: number) {
+  const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
+  const poseK = 1 - Math.exp(-dt * 0.8);
+  U.uFeed.value += ((feeding ? 1 : 0) - U.uFeed.value) * poseK;
+  // The mouth opens for filter feeding; cruising has only a small, slow respiratory gape.
+  // Head-fin furl and gape are separate controls rather than a single on/off morph.
+  const mouth = feeding ? 0.88 + 0.045 * Math.sin(m.t * 0.55) : 0.10 + 0.018 * Math.sin(m.t * 0.7);
+  if (U.uMouth.value < 0) U.uMouth.value = 0.10;
+  U.uMouth.value += (mouth - U.uMouth.value) * poseK;
+  m.ph ??= U.uPhase.value;
+  // (gliding, the beat itself slows too: the wings settle out level rather than flutter small)
+  m.ph += dt * (feeding ? 0.85 : 1.05) * (0.45 + 0.55 * Math.min(1, U.uAmp.value));
+  U.uBeat.value = 0; U.uPhase.value = m.ph;   // integrate phase: changing pace must not jump uTime * uBeat
+  U.uAmp.value += ((feeding ? 0.9 : 1) * amp - U.uAmp.value) * (1 - Math.exp(-dt * 1.1));
+  U.uBank.value += (bank - U.uBank.value) * poseK;
+  U.uAir.value = 0;
+  return poseK;
+}
+
 export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
   const T = oc.T;
   for (const m of oc.mantas) {
@@ -264,6 +287,11 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
         m.pos.set(nx, m.swimY, nz);
         const ease = 1 - Math.exp(-dt * 1.2); m.pitch = (m.pitch ?? 0) * (1 - ease); m.bank = (m.bank ?? 0) * (1 - ease);   // (levelling out from its turn)
         m.mesh.position.copy(m.pos); m.mesh.rotation.set(m.pitch, m.yaw, m.bank, 'YXZ');
+        // on its way: wings beating all along (a few strokes, then a glide on outspread wings, the beat easing
+        // down and up again rather than stopping wherever the wings happen to be), mouth near closed
+        m.glideT = (m.glideT ?? R() * 9) + dt;
+        const glide = (m.glideT % 9) > 6 ? 0.28 : 1;
+        mantaPose(m, dt, false, glide, 0);
         continue;
       }
     }
@@ -332,20 +360,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     const yaw = Math.atan2(tx, tz); m.yaw ??= yaw;
     m.yaw += Math.atan2(Math.sin(yaw - m.yaw), Math.cos(yaw - m.yaw)) * (1 - Math.exp(-dt * 1.4));
     // feeding: cephalic fins unrolled and mouth open; now and then a somersault through the plankton
-    const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
-    const poseK = 1 - Math.exp(-dt * 0.8);
-    U.uFeed.value += ((feeding ? 1 : 0) - U.uFeed.value) * poseK;
-    // The mouth opens for filter feeding; cruising has only a small, slow respiratory gape.
-    // Head-fin furl and gape are separate controls rather than a single on/off morph.
-    const mouth = feeding ? 0.88 + 0.045 * Math.sin(m.t * 0.55) : 0.10 + 0.018 * Math.sin(m.t * 0.7);
-    if (U.uMouth.value < 0) U.uMouth.value = 0.10;
-    U.uMouth.value += (mouth - U.uMouth.value) * poseK;
-    m.ph ??= U.uPhase.value;
-    m.ph += dt * (feeding ? 0.85 : 1.05);
-    U.uBeat.value = 0; U.uPhase.value = m.ph;   // integrate phase: changing pace must not jump uTime * uBeat
-    U.uAmp.value += ((feeding ? 0.9 : 1) - U.uAmp.value) * poseK;
-    U.uBank.value += (m.dir * (feeding ? 0.22 : 0.12) - U.uBank.value) * poseK;
-    U.uAir.value = 0;
+    const poseK = mantaPose(m, dt, feeding, 1, m.dir * (feeding ? 0.22 : 0.12));
     if (m.loopPending && m.swimY < -loopDepth && Math.abs(m.vy) < 0.12) {
       m.loopPending = false; m.flip = 0;
     }

@@ -16,6 +16,7 @@ export const clock = {
   speed: 1,
   live: true,
   offset: 0,              // whole days added to the real date when another season is chosen
+  shift: 0,               // (a clock with a date of its own: how far the last season chosen moved it)
   season: 'now' as Season,
   advance(dt: number) {
     if (this.live) this.ms = Date.now() + this.offset;
@@ -36,19 +37,29 @@ export function seasonOf(ms: number, lat: number, tz: number): Exclude<Season, '
 }
 export function setSeason(season: Season, lat: number) {
   const real = Date.now();
-  let off = 0;
-  if (season !== 'now') {
-    let [m, d] = SEASON_DATE[season];
+  // the representative date nearest `from`, at the same time of day (UTC)
+  const near = (from: number) => {
+    let [m, d] = SEASON_DATE[season as Exclude<Season, 'now'>];
     if (lat < 0) m = ((m + 5) % 12) + 1;
-    const now = new Date(real), tod = real - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    let best = 0, bd = Infinity;
+    const now = new Date(from), tod = from - Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    let best = from, bd = Infinity;
     for (const y of [now.getUTCFullYear() - 1, now.getUTCFullYear(), now.getUTCFullYear() + 1]) {
       const t = Date.UTC(y, m - 1, d) + tod;
-      if (Math.abs(t - real) < bd) { bd = Math.abs(t - real); best = t - real; }
+      if (Math.abs(t - from) < bd) { bd = Math.abs(t - from); best = t; }
     }
-    off = best;
+    return best;
+  };
+  // offset: the whole days the live clock runs ahead of (or behind) the real date in that season
+  const off = season === 'now' ? 0 : near(real) - real;
+  if (clock.live) clock.ms = real + off;
+  else {
+    // a clock set to a date of its own (a shared link, a time picked by hand) moves to that season's date
+    // from the date it shows, not from today's, its time of day kept; 'now' takes back the last such move
+    // (so the date it was given comes back, and choosing 'now' again changes nothing)
+    const base = clock.ms - clock.shift;
+    clock.ms = season === 'now' ? base : near(base);
+    clock.shift = clock.ms - base;
   }
-  clock.ms += off - clock.offset;
   clock.offset = off; clock.season = season;
 }
 // sea temperature through the year: warmest in late August (late February south of the equator)

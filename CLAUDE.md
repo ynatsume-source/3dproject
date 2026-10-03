@@ -19,6 +19,7 @@
 - API キーをリポジトリ・ビルド成果物・ログに入れない。一般公開で訪問者が使う前にサーバーを挟む。
 - AI の予算（2026-10 オーナー決定）：全体で月 1.5 万円まで。住民1体あたり1日 150〜200 円までは許容（4体）。節約しすぎて退屈にしない。上限は月額で必ず止まる仕組み（サーバー側の集計）で守り、1日の上限は日ごとの目安として配分する。
 - 保存データのキーは `seaglass.*` のまま（名前変更で記録を失わないため）。形式を変えるときは旧データを読めるようにする。
+- 生き物は無から出ない・その場で消えない（オーナー決定、全イベント・全生き物共通）。新しく現れるものは見えない所（その海の見通しの外、または視線から75°より外で22 m以上先）に置いて泳いで入ってこさせ、いなくなるものは同じように見えなくなってから片づける。判定は `src/eco/unseen.ts`（`unseen`・`behind`・`sightRange`）を使い、`scripts/appear-check.ts` で確かめる。食べられる（捕食）は例外。
 - シェーダーは Windows（ANGLE / Direct3D11）で落ちやすい。テクスチャを読むシェーダーでは早期 return や分岐内のサンプリングを避ける（過去に白画面の原因になった）。
 
 ## 確認コマンド
@@ -27,7 +28,7 @@
 npm run typecheck
 npm run build
 npm run sim -- miyako                      # 生態系をヘッドレスで早回し
-npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip / cave / bait / jitter / motion / route の各チェック
+npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip / cave / bait / jitter / motion / route / appear の各チェック
 ```
 
 見た目の確認は `npx vite preview` + Playwright（Chromium は `/opt/pw-browsers`、SwiftShader で WebGL）。

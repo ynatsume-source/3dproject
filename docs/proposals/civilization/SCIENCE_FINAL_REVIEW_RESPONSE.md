@@ -13,7 +13,7 @@
 | 型検査 | 成功 |
 | 現在の main（806a542）との合流 | 衝突なし（`git merge-tree`） |
 | 秤量3ファイルの依存 | `src/world/science-contract.ts` と `fixture-profile.ts` だけ。閉じている |
-| 本体側の秤量の検査 `scripts/weigh-integration-check.ts` | 52件成功。全結果が validateResult を通る、status ごとの本体の扱い、requestId による一度だけの確定、分割・電力不足・停止・一時停止・拒否・ロット変更 |
+| 本体側の秤量の検査 `scripts/science-integration-check.ts`（旧名 weigh-integration-check.ts） | 52件成功。全結果が validateResult を通る、status ごとの本体の扱い、requestId による一度だけの確定、分割・電力不足・停止・一時停止・拒否・ロット変更 |
 
 ## 2. 三つの判断
 
@@ -47,8 +47,20 @@
 
 ## 6. 統合の内容と順序
 
-- **秤量（この変更）**：`src/science/step/{simple,fixture-profile,validate}.ts` を 6ea2509 から**変更せずに**取り込む。アプリからはまだ呼ばない（ビルドに入らない）。本体側の検査 `scripts/weigh-integration-check.ts` を追加。
+- **秤量（この変更）**：`src/science/step/{simple,fixture-profile,validate}.ts` を 6ea2509 から**変更せずに**取り込む。アプリからはまだ呼ばない（ビルドに入らない）。本体側の検査 `scripts/science-integration-check.ts`（旧名 weigh-integration-check.ts） を追加。
   `simple.ts` には成形の実装も同居しているが、本体側で成形の要求を出すのは ③ の後。
 - **成形**：③ の後。本体側の扱い（ロット消費・`unfired_pot` の生成・場所）を検査に足す。
 - **乾燥**：`step/common.ts`・`chem.ts`・`params.ts`・`physics.ts`・`drying.ts` とカタログ `data/science/catalog-test-1.json` を取り込む。
 - lab（`codex/civilization-lab`）と科学側のブランチは変更しない。
+
+## 7. 第2回（2026-10-03）：fixture-2 の確認と成形の統合
+
+対象 `codex/civilization-simulation` 95c2a01（fixture-2）・c8f9446（SHAPE_DRY_HANDBOOK.md）
+
+- **依頼への対応を確認した。** ③ カタログは `civ-sci-test-2` に一本化、`stop`＋電力不足は `stopped` を返す（本体の検査で確認）。旧版 `fixture-1`・旧カタログ・状態 `/1` は拒否される。
+- 科学側の検査（粘土52・石灰24・工程47・連鎖16・回帰48）すべて成功、型検査成功、main との合流は衝突なし。
+- **成形を統合した。** `src/science/step/simple.ts` を c8f9446 から変更せずに取り込み（秤量・`p11x_test_tile_shape`）。本体側の検査を `scripts/science-integration-check.ts` に改名し、成形を加えた（73件成功：完成で粘土を丸ごと消費し同じ質量の `test_tile_green` を同じ場所に生成、乾燥に要る quality がそろう、2回に分けても同じ、停止なら何も作らない、型と粘土の不一致・組成なし・粘土以外の拒否）。
+- 粘土ロットの分け方（手順書 §5-1）：1枚分の質量で予約を切り出すのは本体の台帳の仕事として受ける（G2 の台帳と一緒に実装）。
+- **天気の湿度（§5-2）：** これまで本体の天気に湿度はなかった。Open-Meteo の `relative_humidity_2m` を取得に加えた（`Weather.humidity`、0〜1、取れないときは値なし・推測で埋めない）。宮古島で 74% を確認。世界の正本（G2）では区間ごとに保存して `EnvironmentSample.humidity` に渡す。
+- 乾燥の取り込み一覧に `src/science/rng.ts` を加える（§6 の漏れ、指摘ありがとう）。乾燥は `drying.ts`・`common.ts`・`chem.ts`・`params.ts`・`physics.ts`・`rng.ts`（＋参照用カタログ）を次の変更で取り込む。
+- 乾燥中の見た目（§5-3）：途中の観察は今は不要。島で工程を動かす段階（G2 以降）で、0.2.0 の採択と合わせて相談する。

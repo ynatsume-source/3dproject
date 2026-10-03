@@ -56,6 +56,13 @@ export class Director {
   private brN = 0; private brSince = -1e9;   // leaps watched lately (two or three, then on to something else for a while)
 
   reset() { this.shot = null; this.cooldown = 10; }
+  // let go of what it is filming and go back to the cruise (asked to: the cruise button pressed mid-shot);
+  // the subject is not held against (it may be filmed again when it next comes up)
+  release() { if (!this.shot) return false; this.shot = null; this.cooldown = rr(4, 8); return true; }
+  // how long it has waited for something asked for that is not here yet, and how long what it is filming has
+  // been gone (no longer there: swum off out of the sea, its season over)
+  private waitT = 0; private goneT = 0;
+  static readonly WAIT = 60;
   // give up on what it is filming (it could not get there, or nothing could be seen of it): leave it be
   // for a while, and go on cruising
   private skipUntil = new Map<string, number>();
@@ -70,7 +77,7 @@ export class Director {
     this.move = ''; this.gpx = NaN;
     this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07) * this.spinK;
     this.side = R() < 0.5 ? -1 : 1; this.hold.set(NaN, 0, 0); this.gspd = 0;
-    this.t = 0;
+    this.t = 0; this.waitT = 0; this.goneT = 0;
     const [a, b] = DURATION[best.kind];
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
     this.recent.set(best.key, this.clock);
@@ -243,11 +250,17 @@ export class Director {
     }
     if (s.breach && p) return this.breach(sh, s, p, dt, drone, floor);
     const far = p ? !sh.forced && Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : !sh.forced;
+    // what it is filming is no longer there (gone from the sea, its season over, the event ended): a moment's
+    // grace, then back to the cruise (a hunt has its own, below)
+    this.goneT = s.live() || s.kind === 'hunt' ? 0 : this.goneT + dt;
     if (sh.forced && !p) {                                       // e.g. whales still on their way in: hold here and look out
-      if (this.t === 0) { sh.pos.copy(drone as THREE.Vector3); sh.look.set(drone.x + 10, drone.y, drone.z); }
+      // (but not for ever, nor once they can no longer come: then on with the cruise)
+      if (this.waitT === 0) { sh.pos.copy(drone as THREE.Vector3); sh.look.set(drone.x + 10, drone.y, drone.z); }
+      this.waitT += dt;
+      if (this.goneT > 1.5 || this.waitT > Director.WAIT) { this.shot = null; this.cooldown = rr(4, 8); return null; }
       return sh;
     }
-    if (!p || far || (sh.phase === 'observe' && this.t > this.dur && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
+    if (!p || far || this.goneT > 1.5 || (sh.phase === 'observe' && this.t > this.dur && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
       this.shot = null;
       this.cooldown = rr(...this.rest);
       return null;
