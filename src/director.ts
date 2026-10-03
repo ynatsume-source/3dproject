@@ -45,6 +45,7 @@ export class Director {
   weight: (s: Subject) => number = () => 1;
   jumpTo: (s: Subject) => boolean = () => false;
   dwellK = 1;
+  nearK = 1;       // (how far afield it looks for the next thing: under 1, it keeps to what is near)
   distK = 1;
   styles: Partial<Record<Style, number>> = { orbit: 1 };
   giantW: Partial<Record<GiantMove, number>> = { flank: 2, under: 2, front: 1, pass: 1 };
@@ -101,7 +102,7 @@ export class Director {
     if (d > (s.reach ?? 42)) return 0;
     const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3);
     const vis = 0.55 + 0.75 * Math.max(0, dot) * (1 - Math.min(1, Math.max(0, (d - 4) / 31)));
-    const near = 1 - d / Math.max(60, (s.reach ?? 42) * 1.25);    // (things worth crossing the island for fade more slowly with distance)
+    const near = 1 - d / (Math.max(60, (s.reach ?? 42) * 1.25) * this.nearK);    // (things worth crossing the island for fade more slowly with distance; a guide may keep to what is near)
     const bored = 1 / (1 + 0.9 * (this.bored.get(speciesOf(s)) ?? 0) * (self ? 0.4 : 1));
     const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9), kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
     const recent = self ? 1 : (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.5 : 1);

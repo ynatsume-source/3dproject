@@ -666,7 +666,7 @@ let lastSay = -1e9, chatT = 0;
 function applyPersona() {
   director.dwellK = persona.dwell; director.distK = Math.max(0.6, persona.distK * viewNear);
   director.styles = persona.styles; director.giantW = persona.giant; director.spinK = persona.spinK;
-  director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest;
+  director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest; director.nearK = persona.nearK ?? 1;
   director.weight = (s) => persona.weight(s, taste(s)) * reachable(s);
   director.jumpTo = (s) => !!persona.jumpTo?.(s, taste(s));
   for (const b of $('personas').querySelectorAll('button')) b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.p === persona.id));

@@ -593,7 +593,10 @@ body.dock-open #dock .opt { animation: softIn .55s ease both; }
 #quick #btnLamp[aria-pressed="true"] { color: var(--lamp); border-color: color-mix(in srgb, var(--lamp) 50%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--lamp) 35%, transparent); }
 #quick button span { position: absolute; right: 50px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 11px; letter-spacing: .06em; color: var(--ink);
   background: rgba(6, 22, 32, 0.55); padding: 4px 9px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .4s ease; }
-#quick button:hover span, #quick button:focus-visible span { opacity: 1; }
+/* (the name on a hover — only where there is a pointer that hovers: on a phone a tap leaves the button "hovered",
+   and the name stayed up) */
+@media (hover: hover) { #quick button:hover span { opacity: 1; } }
+#quick button:focus-visible span { opacity: 1; }
 #quick #btnSky[aria-pressed="true"] .arrow { transform: rotate(180deg); transform-origin: 12px 7px; }
 #quick #btnSound[aria-pressed="false"] .waves { opacity: 0.25; }
 @media (max-width: 760px) { #quick { right: 10px; top: calc(176px + env(safe-area-inset-top, 0px)); gap: 8px; } #quick button { width: 36px; height: 36px; } #quick button svg { width: 17px; height: 17px; } }
