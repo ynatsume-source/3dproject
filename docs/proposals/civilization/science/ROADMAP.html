@@ -215,11 +215,12 @@ table.m td,table.m th{border-bottom:1px solid var(--line);padding:4px 6px;text-a
     <h3>流れ</h3>
     <div class="flow">Codex の修正確認 → 本体側の最終レビュー → 秤量の統合手順書 → 接続仕様 0.2.0（空気からの取り込み）の提案 → 秤量をつなぐ</div>
     <ul class="todo">
-      <li>Codex による修正（F1〜F3, e118e9f）の確認</li>
-      <li>秤量の統合手順書：本体がどの値を渡し、何を一度だけ確定するか</li>
+      <li class="ok">Codex による修正（F1〜F3）の確認（cd096e2）。残件の浸漬の版は 196a3b9 で対応、Codex の再確認待ち</li>
+      <li class="ok">秤量の統合手順書の案（WEIGH_HANDBOOK.md）：本体が渡す値・確定・status ごとの扱い</li>
+      <li>本体側の回答待ち：共有の島の環境を受け付けるか、はかりの電気の出どころ、カタログ版を2つから1つへ</li>
       <li>接続仕様 0.2.0 を main へ提案：<code>drawn</code>（O2・CO2 の取り込み）、J の規則の明確化</li>
-      <li>本体への推奨：時間の区切りを30秒の倍数にする</li>
-      <li>試作（fixture/）と本番用（step/）の区別を README に明記</li>
+      <li class="ok">本体への推奨を明記：run の開始を世界時計の30秒境界にそろえ、30秒ごとに区切る</li>
+      <li class="ok">試作（fixture/）と本番用（step/）の区別を README に明記</li>
     </ul>
     <h3>依存</h3>
     <p class="small">本体側のレビューの時間と、土台 G2 の最小形。共通ファイルの変更は本体側が採択する。</p>

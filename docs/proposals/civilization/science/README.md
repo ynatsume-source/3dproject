@@ -4,6 +4,19 @@
 
 > 2026-10-02 追記：main（41ccd18、ADR 0002・ScienceStep 0.1.0）を合流した。本番の入口は `src/science/step/` の ScienceStep で、最初の統合候補は乾燥だけ。分担・契約の差・端数処理は [ALIGNMENT.md](ALIGNMENT.md)。以下は試験世界の試作（civ-sci/0.1）の記録。
 
+## どこが本番用で、どこが試作か（2026-10-03）
+
+| 置き場所 | 何か | 本体へ渡すか |
+|---|---|---|
+| `src/science/step/` | **本番用の入口。** ScienceStep 0.1.0 の工程（秤量・成形・乾燥・焼成・浸漬・石灰の焼成・消化）。入口は `step/index.ts` の `scienceStep` ひとつ。検査器 `step/validate.ts` | 渡す候補。最初は秤量（[WEIGH_HANDBOOK.md](WEIGH_HANDBOOK.md)）、次に成形・乾燥 |
+| `src/science/{chem,params,physics,ceramic,sources}.ts` | 工程が使う化学・物性・出典。値ごとに「出典あり／校正値／仮定」を持つ | 工程と一緒に渡る（単独では渡さない） |
+| `src/science/{core,clay,research,rng,types}.ts`、`src/science/fixture/` | **試作（civ-sci/0.1）。** 独自の世界・時計・保存を持つ試験世界。下の「最初の一周」の記録はこれで作った | **渡さない。** 本体の世界と二重になるため。研究ノートの考え方の参考資料 |
+| `data/science/` | 試験用カタログ `catalog-test-1.json`、出典台帳（`sources.json` は Codex、`sources-thermochem.json` は Claude） | カタログは工程と一緒に。校正前の値は試験用のまま |
+| `tools/science-lab/` | 測定値を確かめる画面（Codex） | 本体の画面ではない。校正の記録用 |
+| `scripts/science-*.ts` | 検査（clay・step・lime・tile-chain・review-regressions） | 本体の CI に入れるかは本体側が決める |
+
+工程の約束（熱の申し出、30秒の区切り、状態の版）は [ALIGNMENT.md](ALIGNMENT.md) §10。
+
 **未採択の試作。** アプリ本体・保存形式・ADR は変えていない。main への統合と公開は既存プロジェクトの担当。
 
 ## 何ができたか
