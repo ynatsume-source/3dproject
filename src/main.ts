@@ -841,12 +841,23 @@ let wx: Weather = FAIR, wxTimer = 0, flashT = 0, nextFlash = 20, flashK = 0.6;
 // the real weather stands for 'today': live, or within half a day of now, in the real season
 // (a shared link may fix the weather; otherwise the real weather now, or fair for another time)
 let wxFixed: WxKind | null = null;
+// the weather's cloud as the light sees it: eased, so a front of cloud (or the live weather arriving a moment
+// after the sea opens, or its 15-minute refresh) comes over the light in half a minute rather than in a frame;
+// at once only on opening a sea or choosing a weather by hand
+let cloudE = -1, cloudT = 0, cloudKey: string | null = null;
+function wxCloud() {
+  const w = liveWeather(), want = w.cloud * (w.rain > 0 ? 1 : 0.85), now = performance.now();
+  if (cloudE < 0 || wxFixed !== cloudKey) cloudE = want;
+  else cloudE += (want - cloudE) * (1 - Math.exp(-Math.min(5, (now - cloudT) / 1000) / 25));
+  cloudT = now; cloudKey = wxFixed;
+  return cloudE;
+}
 const liveWeather = () => wxFixed ? WX[wxFixed] : (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
 async function refreshWeather(loc: Sea) {
   const w = await fetchWeather(loc.id, loc.lat, loc.lon);
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
 }
-let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
+let camCave = 1, camExpo = 1.4, expoAir = 1.25, expoSea = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
 // the lamp comes on by itself in the dark of the cave, and wherever the water around the camera grows
 // dim: deep down, at dawn and dusk, at night (with a little hysteresis, so it does not flicker)
 function wantLamp() {
@@ -897,8 +908,7 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
   nightLift = n;
-  const w = liveWeather();
-  const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
+  const cloud = wxCloud();
   U.uSunI.value *= 1 - 0.65 * cloud; U.uShaftI.value *= 1 - 0.85 * cloud; U.uAmb.value *= 1 - 0.22 * cloud;
 }
 function applySky(loc: Sea, airView = drone.pos.y > 0) {
@@ -906,7 +916,7 @@ function applySky(loc: Sea, airView = drone.pos.y > 0) {
   skyNow = s;
   lightFor(s, airView);
   const w = liveWeather();
-  const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
+  const cloud = wxCloud();
   const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), cloud * 0.7); };
   U.uCloud.value = cloud;
   U.uRain.value = w.code >= 51 && w.code <= 57 ? 0.25 : Math.min(1, w.rain / 3);
@@ -1647,7 +1657,7 @@ function enterOcean(oc: Ocean) {
   setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)
   if (shared && !sharedDone) applyShared(oc.loc);
   const cv = oc.cave;
-  U.uCaveOn.value = cv ? 1 : 0; U.uCamCave.value = 1; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
+  U.uCaveOn.value = cv ? 1 : 0; U.uCamCave.value = 1; camCave = 1; camExpo = expoSea = 1.4; expoAir = 1.25; cloudE = -1; post.setExposure(1.4);
   if (cv) {
     U.uCaveTex.value = cv.tex;
     U.uCaveXf.value.set(cv.cx, cv.cz, cv.ca, cv.sa);
@@ -2614,17 +2624,22 @@ function frameBody(ts: number) {
       camCave += (cur.cave.skyAt(cp.x, cp.y, cp.z) - camCave) * Math.min(1, dt * 1.2);
       U.uCamCave.value = camCave;
     }
-    if (!lampManual && (lampT -= dt) < 0) { lampT = 0.5; const want = wantLamp(); if (want !== lampOn) setLamp(want, false); }
+    if (!lampManual && (lampT -= dt) < 0) { lampT = 0.5; const want = wantLamp(); if (want !== lampOn) { setLamp(want, false); lampT = 6; } }   // (once switched by itself, it stays a while)
     // a touch more exposure at night, and much more in the dark of the cave (eased)
     {
       const cp = camera.position, cv = cur.cave;
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
-      const want = camera.position.y > 0 ? 1.25 * (1 + 0.3 * nightLift) * (1 + 0.4 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up a little on a moonless night)
-         * (watch.r && skyNow ? 1 + 0.2 * skyNow.night : 1) : 1.4 * (1 + 0.25 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
-      camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
+      const wantAir = 1.25 * (1 + 0.3 * nightLift) * (1 + 0.4 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up a little on a moonless night)
+         * (watch.r && skyNow ? 1 + 0.2 * skyNow.night : 1);
+      const wantSea = 1.4 * (1 + 0.25 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
+      // (each side eased on its own as well: at the waterline both halves are drawn, each with its own — no step
+      // in the light on coming into or out of that band)
+      const ek = Math.min(1, dt * 0.8);
+      expoAir += (wantAir - expoAir) * ek; expoSea += (wantSea - expoSea) * ek;
+      camExpo += ((camera.position.y > 0 ? wantAir : wantSea) - camExpo) * ek;
       post.setExposure(camExpo);
     }
-    U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
+    U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * (lampManual ? 6 : 1.2));   // no lamp beam from the air (coming on by itself: over a second, not a flash)
     // watching a resident after dark: light it from above so what it is doing can be seen
     { const sp = U.uSpot.value, want = 0;   // (the residents carry their own lights now)
       sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
@@ -2763,7 +2778,7 @@ function frameBody(ts: number) {
         seaTop.visible = abyss.visible = asAir;   // (in a trough the lens may be below y = 0 while above the water: the sea from above all the same)
         camera.far = asAir ? 90000 : 460; camera.updateProjectionMatrix();
         post.setAir(asAir); post.whiteBalance(asAir ? 0 : 0.3, U.uAbs.value, U.uNight.value, asAir);
-        post.setExposure(asAir ? 1.25 * (1 + 0.3 * nightLift) : 1.4 * (1 + 0.25 * nightLift));
+        post.setExposure(asAir ? expoAir : expoSea);
         post.render(renderer, oceanScene, camera, asAir ? topScene : null, setRefraction, asAir ? split.air : split.water);
       }
       seaTop.visible = abyss.visible = camera.position.y > 0;
