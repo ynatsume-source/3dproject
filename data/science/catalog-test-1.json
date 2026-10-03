@@ -39,6 +39,20 @@
     {
       "id": "(catalog) calcium_carbonate_feed / quicklime / hydrated_lime / process_co2 / process_water",
       "note": "引き継ぎカタログのIDをそのまま使う。混合物の組成は quality の x_<species>_ppm（整数 ppm）、残りは反応しない成分として質量だけを保つ"
+    },
+    {
+      "id": "test_tile_fired",
+      "label": "焼成した試験片",
+      "category": "ceramic-part",
+      "unit": "mg",
+      "quality": "water_ppm（ロット基準）、xd_<species>_ppm（乾量基準の組成）、sinter_ppm、crack、overfired、history_complete、寸法"
+    },
+    {
+      "id": "clay_slurry_test",
+      "label": "水で崩れた未焼成の試験片（泥）",
+      "category": "ceramic-green",
+      "unit": "mg",
+      "note": "未焼成なので粘土に戻せる。焼成品は戻らない"
     }
   ],
   "processes": [
@@ -126,6 +140,61 @@
       "stepMs": 5000,
       "derivedFrom": "p21_lime_hydration",
       "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない"
+    },
+    {
+      "id": "p13x_test_tile_fire",
+      "version": "0.1.0",
+      "label": "試験用の窯で試験片を焼く（申し出の熱源）",
+      "kind": "physical+chemical",
+      "inputs": [
+        "test_tile_dry"
+      ],
+      "outputs": [
+        "test_tile_fired"
+      ],
+      "released": [
+        "water_vapour",
+        "process_co2"
+      ],
+      "equipment": [
+        "fixture_kiln（params: heatCapJPerK, uaWPerK, maxPowerW, forcedCoolingUaFactor）"
+      ],
+      "actions": [
+        "fire_plan {pace 0-2, targetGlow 0-3, holdMin, forcedCooling 0/1}"
+      ],
+      "energyModel": {
+        "mode": "offered-heat",
+        "rule": "used = lost + stored。終了時の stored は脱水・分解の反応熱、蒸発潜熱は lost"
+      },
+      "readiness": "test-world-only",
+      "evaluator": "tile-fire-eval/0.1.0",
+      "stepMs": 30000,
+      "derivedFrom": "p13_pottery_fire",
+      "note": "有機物を含む素地は拒否（焼き切るには O2 の取り込み＝0.2.0 の drawn が必要）。速度・焼結・割れの基準は校正値"
+    },
+    {
+      "id": "m01x_tile_soak_test",
+      "version": "0.1.0",
+      "label": "試験片を冷水に浸ける",
+      "kind": "physical",
+      "inputs": [
+        "test_tile_fired",
+        "process_water"
+      ],
+      "outputs": [
+        "test_tile_fired",
+        "process_water",
+        "clay_slurry_test"
+      ],
+      "equipment": [
+        "fixture_soak_basin"
+      ],
+      "actions": [
+        "take_out"
+      ],
+      "readiness": "test-world-only",
+      "evaluator": "tile-soak-eval/0.1.0",
+      "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
     }
   ]
 }

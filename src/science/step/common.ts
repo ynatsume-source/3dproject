@@ -70,3 +70,34 @@ export function intDelta(cumFloat: number, reported: number): { delta: number; r
   const r = Math.round(cumFloat);
   return { delta: r - reported, reported: r };
 }
+
+/**
+ * Test tiles carry their solids as DRY-basis fractions `xd_<species>_ppm` (so drying, which only removes
+ * water, leaves them unchanged) and their water as `water_ppm` of the whole lot.
+ */
+export function tileComp(lot: LotView): Composition {
+  const amount = lot.amount.value;
+  const q = lot.quality ?? {};
+  const water = Math.round((amount * (q.water_ppm ?? 0)) / 1e6);
+  const dry = amount - water;
+  const comp: Composition = water > 0 ? { water } : {};
+  let listed = 0;
+  for (const [k, v] of Object.entries(q)) {
+    const m = /^xd_(.+)_ppm$/.exec(k);
+    if (!m) continue;
+    const sp = m[1] as SpeciesId;
+    if (!(sp in SPECIES) || sp === 'water') throw new Error(`invalid dry-basis species in quality: ${sp}`);
+    const mg = Math.round((dry * v) / 1e6);
+    if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
+  }
+  if (listed > dry) throw new Error(`lot ${lot.lotId}: dry-basis fractions exceed the dry mass`);
+  if (dry - listed > 0) comp.inert_mineral = (comp.inert_mineral ?? 0) + dry - listed;
+  return comp;
+}
+
+export function tileQuality(c: Composition): Record<string, number> {
+  const t = totalMg(c), w = c.water ?? 0, dry = t - w;
+  const q: Record<string, number> = { water_ppm: Math.round((w * 1e6) / t) };
+  for (const [k, mg] of Object.entries(c)) if (mg && k !== 'water' && k !== 'inert_mineral') q[`xd_${k}_ppm`] = Math.round((mg * 1e6) / dry);
+  return q;
+}

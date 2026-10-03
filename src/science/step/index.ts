@@ -5,12 +5,16 @@ import type { ScienceStep, ScienceStepRequest, ScienceStepResult } from '../../w
 import { dryingStep, DRYING_PROCESS } from './drying';
 import { simpleFixtureStep, SIMPLE_FIXTURE_PROCESSES } from './simple';
 import { calcineStep, CALCINE_PROCESS, hydrateStep, HYDRATE_PROCESS } from './lime';
+import { firingStep, FIRING_PROCESS } from './firing';
+import { soakStep, SOAK_PROCESS } from './soak';
 
 const PROCESSES: Record<string, ScienceStep> = {
   [DRYING_PROCESS.processId]: dryingStep,
   ...Object.fromEntries(SIMPLE_FIXTURE_PROCESSES.map((id) => [id, simpleFixtureStep])),
   [CALCINE_PROCESS.processId]: calcineStep,
   [HYDRATE_PROCESS.processId]: hydrateStep,
+  [FIRING_PROCESS.processId]: firingStep,
+  [SOAK_PROCESS.processId]: soakStep,
 };
 
 export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepResult => {
