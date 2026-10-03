@@ -30,6 +30,9 @@ export function checkCommon(req: ScienceStepRequest, processId: string, processV
   if (!isInt(req.interval.from) || !isInt(req.interval.to) || req.interval.to < req.interval.from) return 'invalid interval';
   if (!isInt(req.seed)) return 'invalid seed';
   if (req.energy.some((e) => /battery|robot/i.test(e.sourceId))) return 'robot battery is not an energy source (legacy / sealed_bootstrap)';
+  if (req.energy.some((e) => !isInt(e.maxJ))) return 'energy offers must be non-negative integer J';
+  for (const a of req.actions) if (!isInt(a.at) || Object.values(a.params ?? {}).some((v) => !Number.isFinite(v))) return 'invalid operator action';
+  for (const e of req.equipment) if (!finite(e.condition, 0, 1) || Object.values(e.params ?? {}).some((v) => !Number.isFinite(v))) return `equipment ${e.equipmentId} has non-finite values`;
   for (const l of req.lots) {
     if (l.amount.unit !== 'mg' || !isInt(l.amount.value, 1)) return `lot ${l.lotId} must be a positive integer of mg`;
     if (Object.values(l.quality ?? {}).some((v) => !Number.isFinite(v))) return `lot ${l.lotId} has a non-finite quality value`;
@@ -69,6 +72,49 @@ export function compQuality(c: Composition): Record<string, number> {
 export function intDelta(cumFloat: number, reported: number): { delta: number; reported: number } {
   const r = Math.round(cumFloat);
   return { delta: r - reported, reported: r };
+}
+
+/**
+ * Same, rounding down. Used for energy drawn from an offer: if this interval's float use is ≤ its integer maxJ,
+ * floor(prev + use) − floor(prev) ≤ maxJ, so the integer report never exceeds the offer of the interval.
+ */
+export function intDeltaFloor(cumFloat: number, reported: number): { delta: number; reported: number } {
+  const r = Math.floor(cumFloat + 1e-9);
+  return { delta: r - reported, reported: r };
+}
+
+/**
+ * The integration sub-step: up to the next point of the fixed grid (origin + k·step), but never past `until`.
+ * Each request integrates exactly to the end of its own interval, using only that interval's offer and
+ * environment; requests whose boundaries lie on the grid give identical results, others agree within the
+ * discretisation tolerance.
+ */
+export function subStepEnd(t: number, origin: number, stepMs: number, until: number): number {
+  const next = origin + (Math.floor((t - origin) / stepMs) + 1) * stepMs;
+  return Math.min(next, until);
+}
+
+/** Finite-number check of a parameter. */
+export function finite(v: unknown, min = -Infinity, max = Infinity): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+}
+
+/** True if every number anywhere in the value is finite (used before returning a state). */
+export function allFinite(x: unknown): boolean {
+  if (typeof x === 'number') return Number.isFinite(x);
+  if (Array.isArray(x)) return x.every(allFinite);
+  if (x && typeof x === 'object') return Object.values(x).every(allFinite);
+  return true;
+}
+
+/** Environment values that a step may integrate with: known source, finite and physically plausible. */
+export function envUsable(req: ScienceStepRequest): boolean {
+  const e = req.environment;
+  if (e.source !== 'live' && e.source !== 'simulation') return false;
+  if (!finite(e.airTempC, -60, 70)) return false;
+  if (e.humidity !== undefined && !finite(e.humidity, 0, 1)) return false;
+  if (e.windMs !== undefined && !finite(e.windMs, 0, 80)) return false;
+  return true;
 }
 
 /**

@@ -8,12 +8,13 @@
 // Lots are settled once when a run ends, as in drying (see docs/proposals/civilization/science/ALIGNMENT.md §3).
 
 import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
-import { addComp, react, REACTIONS, totalMg, type Composition } from '../chem';
+import { addComp, molarMass, react, REACTIONS, totalMg, type Composition } from '../chem';
 import { pv } from '../params';
 import { glowCategory, KINETICS, rateK } from '../physics';
-import { checkCommon, compQuality, failed, fingerprint, intDelta, lotComp } from './common';
+import { allFinite, checkCommon, compQuality, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, lotComp, subStepEnd } from './common';
 
-const MOLAR = { calcite: 100.09, lime: 56.08, water: 18.015, co2: 44.01 };
+// one definition of molar mass everywhere (the same one react() uses at settlement)
+const MOLAR = { calcite: molarMass('calcite'), lime: molarMass('lime'), water: molarMass('water'), co2: molarMass('co2') };
 
 interface EnergyBook { cumUsedJ: number; cumLostJ: number; reportedUsed: number; reportedStored: number }
 
@@ -21,7 +22,7 @@ interface EnergyBook { cumUsedJ: number; cumLostJ: number; reportedUsed: number;
 function energyEntry(sourceId: string, b: EnergyBook, chemicalStoredJ: number, ending: boolean) {
   let cumStored = b.cumUsedJ - b.cumLostJ;
   if (ending) cumStored = chemicalStoredJ; // sensible heat left in the batch/equipment dissipates after the run
-  const u = intDelta(b.cumUsedJ, b.reportedUsed);
+  const u = intDeltaFloor(b.cumUsedJ, b.reportedUsed);
   const s = intDelta(cumStored, b.reportedStored);
   b.reportedUsed = u.reported; b.reportedStored = s.reported;
   return u.delta === 0 && s.delta === 0 ? [] : [{ sourceId, kind: 'heat' as const, usedJ: u.delta, lostJ: u.delta - s.delta, storedJ: s.delta }];
@@ -34,8 +35,7 @@ function startCheck(req: ScienceStepRequest, d: { lotFingerprints: string[]; las
   return null;
 }
 
-const envKnown = (req: ScienceStepRequest) =>
-  (req.environment.source === 'live' || req.environment.source === 'simulation') && req.environment.airTempC !== undefined;
+const envKnown = envUsable;
 
 // ===================================================================================================
 // Calcination
@@ -48,10 +48,12 @@ const CALCINE_STEP_MS = 30_000;
 const UNLOAD_C = 60;
 
 interface CalcineData extends EnergyBook {
-  lotId: string; lotFingerprints: string[]; lastTo: number; nextStepEndMs: number; startMs: number;
+  lotId: string; lotFingerprints: string[]; lastTo: number; startMs: number;
   base: Composition; ext: number;
   chamberC: number; chargeC: number; peakChargeC: number;
   phase: 'heat' | 'hold' | 'cool' | 'done'; holdStartMs: number | null;
+  /** controller output decided at the last grid point and held until the next (sample-and-hold) */
+  heldPowerW: number;
   sourceId: string; historyComplete: boolean; location: string;
 }
 
@@ -63,8 +65,12 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
   const lot = feed[0];
   const eq = req.equipment.find((e) => e.kind === 'fixture_calciner');
   const p = eq?.params ?? {};
-  for (const k of ['setpointC', 'holdS', 'heatCapJPerK', 'uaWPerK', 'maxPowerW']) {
-    if (req.stop !== 'equipment-lost' && !(typeof p[k] === 'number' && p[k] >= 0)) return failed(req, CALCINE_EVAL, `fixture_calciner lacks params.${k}`, CALCINE_SCHEMA);
+  if (req.stop !== 'equipment-lost') {
+    // the heat capacity is a denominator: finite and > 0; the rest finite and non-negative
+    if (!finite(p.heatCapJPerK, 1e-9)) return failed(req, CALCINE_EVAL, 'fixture_calciner params.heatCapJPerK must be finite and > 0', CALCINE_SCHEMA);
+    for (const k of ['setpointC', 'holdS', 'uaWPerK', 'maxPowerW']) {
+      if (!finite(p[k], 0)) return failed(req, CALCINE_EVAL, `fixture_calciner params.${k} must be finite and ≥ 0`, CALCINE_SCHEMA);
+    }
   }
   if (eq && p.setpointC > 1100) return failed(req, CALCINE_EVAL, 'setpoint above the modelled range (1100 °C)', CALCINE_SCHEMA);
   const offers = req.energy.filter((e) => e.kind === 'heat');
@@ -79,10 +85,10 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
   let d: CalcineData;
   const fps = [fingerprint(lot)];
   if (req.state === null) {
-    const Ta = req.environment.airTempC ?? 25;
-    d = { lotId: lot.lotId, lotFingerprints: fps, lastTo: req.interval.from, nextStepEndMs: req.interval.from + CALCINE_STEP_MS, startMs: req.interval.from,
-      base: comp, ext: 0, chamberC: Ta, chargeC: Ta, peakChargeC: Ta, phase: 'heat', holdStartMs: null, sourceId: offer.sourceId,
-      historyComplete: true, location: lot.location, cumUsedJ: 0, cumLostJ: 0, reportedUsed: 0, reportedStored: 0 };
+    const Ta = finite(req.environment.airTempC, -60, 70) ? req.environment.airTempC : 25;
+    d = { lotId: lot.lotId, lotFingerprints: fps, lastTo: req.interval.from, startMs: req.interval.from,
+      base: comp, ext: 0, chamberC: Ta, chargeC: Ta, peakChargeC: Ta, phase: 'heat', holdStartMs: null, heldPowerW: 0, sourceId: offer.sourceId,
+      historyComplete: (lot.quality?.history_complete ?? 1) === 1, location: lot.location, cumUsedJ: 0, cumLostJ: 0, reportedUsed: 0, reportedStored: 0 };
   } else {
     d = structuredClone(req.state.data as CalcineData);
     const sc = startCheck(req, d, fps);
@@ -93,20 +99,23 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
   const known = envKnown(req);
   let budget = offer.maxJ;
   const molCalcite = (d.base.calcite ?? 0) / 1000 / MOLAR.calcite;
-  const dt = CALCINE_STEP_MS / 1000;
   let energyLimited = false;
+  let t = d.lastTo;
   if (known && req.stop !== 'equipment-lost') {
     const Ta = req.environment.airTempC!;
-    while (d.phase !== 'done' && d.nextStepEndMs <= req.interval.to) {
-      const t = d.nextStepEndMs;
-      if (d.phase === 'heat' && d.chamberC >= p.setpointC - 3) { d.phase = 'hold'; d.holdStartMs = t; }
-      if (d.phase === 'hold' && t - d.holdStartMs! >= p.holdS * 1000) d.phase = 'cool';
-      let P = 0;
-      if (d.phase === 'heat' || d.phase === 'hold') {
-        P = Math.min(p.maxPowerW, Math.max(0, p.uaWPerK * (p.setpointC - Ta) + (p.heatCapJPerK * (p.setpointC - d.chamberC)) / 600));
-        if (P * dt > budget) { P = budget / dt; energyLimited = true; }
+    while (d.phase !== 'done' && t < req.interval.to) {
+      const tEnd = subStepEnd(t, d.startMs, CALCINE_STEP_MS, req.interval.to);
+      const dt = (tEnd - t) / 1000;
+      // decisions (phase, heater power) only at grid points, held in between: chunking cannot change them
+      if ((t - d.startMs) % CALCINE_STEP_MS === 0) {
+        if (d.phase === 'heat' && d.chamberC >= p.setpointC - 3) { d.phase = 'hold'; d.holdStartMs = t; }
+        if (d.phase === 'hold' && t - d.holdStartMs! >= p.holdS * 1000) d.phase = 'cool';
+        d.heldPowerW = d.phase === 'heat' || d.phase === 'hold'
+          ? Math.min(p.maxPowerW, Math.max(0, p.uaWPerK * (p.setpointC - Ta) + (p.heatCapJPerK * (p.setpointC - d.chamberC)) / 600)) : 0;
       }
-      const Q = P * dt; budget -= Q;
+      let P = d.heldPowerW;
+      if (P * dt > budget) { P = budget / dt; energyLimited = true; }
+      const Q = P * dt; budget = Math.max(0, budget - Q);
       const wall = p.uaWPerK * (d.chamberC - Ta) * dt;
       const massG = totalMg(d.base) / 1000 - d.ext * molCalcite * MOLAR.co2;
       const Tw = d.chargeC + (d.chamberC - d.chargeC) * (1 - Math.exp(-dt / 300));
@@ -116,8 +125,8 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
       d.chamberC += (Q - wall - sens - rx) / p.heatCapJPerK;
       d.chargeC = Tw; d.ext += dExt; d.peakChargeC = Math.max(d.peakChargeC, Tw);
       d.cumUsedJ += Q; d.cumLostJ += wall;
-      d.nextStepEndMs += CALCINE_STEP_MS;
-      if (d.phase === 'cool' && d.chargeC < UNLOAD_C) d.phase = 'done';
+      t = tEnd;
+      if (d.phase === 'cool' && d.chargeC < UNLOAD_C && (t - d.startMs) % CALCINE_STEP_MS === 0) d.phase = 'done';
     }
   } else if (!known) {
     d.historyComplete = false; // a fire that ran through unknown conditions cannot continue as evidence
@@ -125,8 +134,9 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
 
   const done = d.phase === 'done';
   const ending = done || !known || req.stop === 'operator' || req.stop === 'equipment-lost';
-  const endAt = done ? d.nextStepEndMs - CALCINE_STEP_MS : (!known ? req.interval.from : req.interval.to);
+  const endAt = done ? t : (!known ? req.interval.from : req.interval.to);
   d.lastTo = endAt;
+  if (!allFinite(d)) return failed(req, CALCINE_EVAL, 'non-finite state: refusing to return it', CALCINE_SCHEMA);
   const chemical = d.ext * molCalcite * pv('dHCalcination');
   const res: ScienceStepResult = {
     contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
@@ -169,7 +179,7 @@ const HYDRATE_STEP_MS = 5_000;
 const SAFE_C = 40;
 
 interface HydrateData extends EnergyBook {
-  lotIds: string[]; lotFingerprints: string[]; lastTo: number; nextStepEndMs: number;
+  lotIds: string[]; lotFingerprints: string[]; lastTo: number; startMs: number;
   base: Composition; ext: number; tempC: number; peakC: number; evapMg: number;
   historyComplete: boolean; location: string; done: boolean;
 }
@@ -182,17 +192,17 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
   if (ql.length !== 1 || wl.length !== 1 || req.lots.length !== 2) return failed(req, HYDRATE_EVAL, 'expected one quicklime lot and one process_water lot', HYDRATE_SCHEMA);
   const tub = req.equipment.find((e) => e.kind === 'fixture_slaking_tub');
   const p = tub?.params ?? {};
-  if (req.stop !== 'equipment-lost' && !(p.heatCapJPerK >= 0 && p.uaWPerK >= 0)) return failed(req, HYDRATE_EVAL, 'fixture_slaking_tub lacks heatCapJPerK / uaWPerK', HYDRATE_SCHEMA);
+  if (req.stop !== 'equipment-lost' && !(finite(p.heatCapJPerK, 0) && finite(p.uaWPerK, 0))) return failed(req, HYDRATE_EVAL, 'fixture_slaking_tub needs finite heatCapJPerK ≥ 0 and uaWPerK ≥ 0', HYDRATE_SCHEMA);
 
   const fps = [fingerprint(ql[0]), fingerprint(wl[0])];
   let d: HydrateData;
   if (req.state === null) {
     let lime: Composition;
     try { lime = lotComp(ql[0]); } catch (e) { return failed(req, HYDRATE_EVAL, (e as Error).message, HYDRATE_SCHEMA); }
-    const Ta = req.environment.airTempC ?? 25;
-    d = { lotIds: [ql[0].lotId, wl[0].lotId], lotFingerprints: fps, lastTo: req.interval.from, nextStepEndMs: req.interval.from + HYDRATE_STEP_MS,
+    const Ta = finite(req.environment.airTempC, -60, 70) ? req.environment.airTempC : 25;
+    d = { lotIds: [ql[0].lotId, wl[0].lotId], lotFingerprints: fps, lastTo: req.interval.from, startMs: req.interval.from,
       base: addComp(lime, { water: wl[0].amount.value }), ext: 0, tempC: Ta, peakC: Ta, evapMg: 0,
-      historyComplete: true, location: ql[0].location, done: false, cumUsedJ: 0, cumLostJ: 0, reportedUsed: 0, reportedStored: 0 };
+      historyComplete: (ql[0].quality?.history_complete ?? 1) === 1 && (wl[0].quality?.history_complete ?? 1) === 1, location: ql[0].location, done: false, cumUsedJ: 0, cumLostJ: 0, reportedUsed: 0, reportedStored: 0 };
   } else {
     d = structuredClone(req.state.data as HydrateData);
     const sc = startCheck(req, d, fps);
@@ -202,16 +212,18 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
   const known = envKnown(req);
   const molLime = (d.base.lime ?? 0) / 1000 / MOLAR.lime;
   const molWater0 = (d.base.water ?? 0) / 1000 / MOLAR.water;
-  const dt = HYDRATE_STEP_MS / 1000;
   const L100 = pv('latentHeatWater100') / 1000; // J/g
+  let t = d.lastTo;
   if (known && req.stop !== 'equipment-lost' && molLime > 0) {
     const Ta = req.environment.airTempC!;
-    while (!d.done && d.nextStepEndMs <= req.interval.to) {
-      const waterLeftMol = molWater0 - d.ext * molLime - d.evapMg / 1000 / MOLAR.water;
+    while (!d.done && t < req.interval.to) {
+      const tEnd = subStepEnd(t, d.startMs, HYDRATE_STEP_MS, req.interval.to);
+      const dt = (tEnd - t) / 1000;
+      const waterLeftMol = Math.max(0, molWater0 - d.ext * molLime - d.evapMg / 1000 / MOLAR.water);
       const k = rateK(d.tempC, 'kinHydrationTref', 120, 50e3);
       const dExt = Math.max(0, Math.min((1 - d.ext) * (1 - Math.exp(-k * dt)), waterLeftMol / molLime));
       const heat = dExt * molLime * -pv('dHHydration');
-      const waterG = Math.max(0, waterLeftMol * MOLAR.water - dExt * molLime * MOLAR.water);
+      const waterG = Math.max(0, (waterLeftMol - dExt * molLime) * MOLAR.water);
       const solidsG = (totalMg(d.base) - (d.base.water ?? 0)) / 1000 + d.ext * molLime * MOLAR.water;
       const Cm = p.heatCapJPerK + waterG * pv('cpWater') + solidsG * pv('cpLimeCharge');
       const wall = p.uaWPerK * (d.tempC - Ta) * dt;
@@ -226,7 +238,7 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
       }
       d.ext += dExt; d.tempC = T; d.peakC = Math.max(d.peakC, T);
       d.cumUsedJ += heat; d.cumLostJ += wall + latent;
-      d.nextStepEndMs += HYDRATE_STEP_MS;
+      t = tEnd;
       const waterGone = molWater0 - d.ext * molLime - d.evapMg / 1000 / MOLAR.water <= 1e-9;
       if ((d.ext >= 0.999 || waterGone) && d.tempC < SAFE_C) d.done = true;
     }
@@ -234,8 +246,9 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
   if (molLime === 0) d.done = true;
 
   const ending = d.done || !known || req.stop === 'operator' || req.stop === 'equipment-lost';
-  const endAt = d.done && molLime > 0 ? d.nextStepEndMs - HYDRATE_STEP_MS : (!known ? req.interval.from : req.interval.to);
+  const endAt = d.done && molLime > 0 ? t : (!known ? req.interval.from : req.interval.to);
   d.lastTo = Math.max(req.interval.from, endAt);
+  if (!allFinite(d)) return failed(req, HYDRATE_EVAL, 'non-finite state: refusing to return it', HYDRATE_SCHEMA);
   const res: ScienceStepResult = {
     contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: d.lastTo },
     state: { schema: HYDRATE_SCHEMA, data: d }, status: ending ? (d.done ? 'completed' : 'stopped') : 'running',
@@ -245,14 +258,18 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
     diagnostics: { tempC: d.tempC, peakC: d.peakC, conversion: d.ext, evaporatedMg: d.evapMg, envSkipped: !known },
   };
   if (ending) {
-    const conv = (d.base.lime ?? 0) - Math.round((d.base.lime ?? 0) * (1 - d.ext));
-    let out = { ...d.base };
-    if (conv > 0) {
+    // Settle in integers without ever drawing more water than exists: vapour first (it left during the run),
+    // then the reaction, capped by the water that is still there.
+    const evap = Math.min(d.base.water ?? 0, Math.round(d.evapMg));
+    let out = addComp({ ...d.base }, evap > 0 ? { water: evap } : {}, -1);
+    let conv = (d.base.lime ?? 0) - Math.round((d.base.lime ?? 0) * (1 - d.ext));
+    const maxByWater = Math.floor(((out.water ?? 0) * MOLAR.lime) / MOLAR.water);
+    conv = Math.max(0, Math.min(conv, maxByWater, out.lime ?? 0));
+    while (conv > 0) {
       const r = react('lime', conv, REACTIONS.hydration.coeffs, 'portlandite');
-      out = addComp(addComp(out, r.consumed, -1), r.produced);
+      if ((r.consumed.water ?? 0) <= (out.water ?? 0)) { out = addComp(addComp(out, r.consumed, -1), r.produced); break; }
+      conv--; // integer rounding of the water share: step down until it fits
     }
-    const evap = Math.min(out.water ?? 0, Math.round(d.evapMg));
-    if (evap > 0) out = addComp(out, { water: evap }, -1);
     res.consumed = d.lotIds.map((id) => ({ lotId: id, amount: { value: req.lots.find((l) => l.lotId === id)!.amount.value, unit: 'mg' as const } }));
     res.produced = [{ materialId: 'hydrated_lime', amount: { value: totalMg(out), unit: 'mg' },
       quality: { ...compQuality(out), history_complete: d.historyComplete ? 1 : 0 }, into: d.location }];

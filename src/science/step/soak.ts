@@ -56,14 +56,16 @@ export function soakStep(req: ScienceStepRequest): ScienceStepResult {
   const obs: Observation[] = [];
   if (dehydroxExtent(comp) < pv('slakeIfDehydroxBelow')) {
     const slurry = addComp(comp, waterComp);
-    res.produced = [{ materialId: 'clay_slurry_test', amount: { value: totalMg(slurry), unit: 'mg' }, quality: tileQuality(slurry), into: tile.location }];
+    const hist = Math.min(tile.quality?.history_complete ?? 1, water.quality?.history_complete ?? 1);
+    res.produced = [{ materialId: 'clay_slurry_test', amount: { value: totalMg(slurry), unit: 'mg' }, quality: { ...tileQuality(slurry), history_complete: hist }, into: tile.location }];
     obs.push({ at: endAt, channel: 'sight', quantity: 'shape', text: '水の中で形が崩れ、泥に戻った' });
   } else {
     const s = (tile.quality?.sinter_ppm ?? 0) / 1e6;
     const aCold = (pv('absorptionLowFire') * (1 - s) + pv('absorptionVitrified') * s) * pv('coldSoakFraction');
     const t = (endAt - d.startMs) / 1000;
-    const target = Math.round(aCold * dryMg(comp) * (1 - Math.exp(-t / UPTAKE_TAU_S)));
-    const take = Math.max(0, Math.min(water.amount.value, target - (comp.water ?? 0)));
+    // start from the water the piece already holds: W(t) = W0 + max(0, W∞ − W0)·(1 − e^(−t/τ))
+    const w0 = comp.water ?? 0, wInf = aCold * dryMg(comp);
+    const take = Math.max(0, Math.min(water.amount.value, Math.round(Math.max(0, wInf - w0) * (1 - Math.exp(-t / UPTAKE_TAU_S)))));
     const w = splitComp(waterComp, take);
     const soaked = addComp(comp, w.taken);
     res.produced = [

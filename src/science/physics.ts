@@ -87,7 +87,7 @@ export interface DryInput {
   dtS: number;
 }
 export interface DryOutput {
-  evapMg: number; linearShrink: number; fluxRatio: number | null; crossedCritical: boolean;
+  evapMg: number; evapExactMg: number; linearShrink: number; fluxRatio: number | null; crossedCritical: boolean;
   stage: 'formed' | 'leather' | 'dry';
 }
 
@@ -102,12 +102,14 @@ export function dryPhysics(i: DryInput): DryOutput {
   const { w: gw, l: gl, t: gt } = i.dimsMm;
   const areaM2 = ((gw * gl + 2 * (gw + gl) * gt) * shrink * shrink) / 1e6; // top + edges; bottom rests on the rack
   const factor = wr > wc ? 1 : Math.max(0, (wr - weq) / (wc - weq));
-  const maxEvap = Math.max(0, i.waterMg - Math.round(weq * i.dryMg));
-  const evap = Math.min(maxEvap, Math.round(fluxConst * factor * areaM2 * i.dtS * 1e6));
-  const nwr = (i.waterMg - evap) / i.dryMg;
+  const maxEvapExact = Math.max(0, i.waterMg - weq * i.dryMg);
+  const evapExact = Math.min(maxEvapExact, fluxConst * factor * areaM2 * i.dtS * 1e6);
+  const evap = Math.min(Math.max(0, i.waterMg - Math.round(weq * i.dryMg)), Math.round(fluxConst * factor * areaM2 * i.dtS * 1e6));
+  const nwr = (i.waterMg - evapExact) / i.dryMg;
   const w0 = i.shapedWaterRatio;
   return {
     evapMg: evap,
+    evapExactMg: evapExact,
     linearShrink: w0 > wc ? pv('clayShrinkLinear') * Math.min(1, Math.max(0, (w0 - Math.max(nwr, wc)) / (w0 - wc))) : i.linearShrink,
     fluxRatio: wr > wc ? (fluxConst / pv('dryCrackFluxRef')) * (gt / 10) : null,
     crossedCritical: wr > wc && nwr <= wc,

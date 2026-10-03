@@ -18,6 +18,7 @@ import type {
   EquipmentView, LotView, Observation, ScienceStepRequest, ScienceStepResult, ScienceState,
 } from '../../world/science-contract';
 import { pv } from '../params';
+import { allFinite, envUsable, finite, subStepEnd } from './common';
 import { crackP, dryPhysics } from '../physics';
 import { draw } from '../rng';
 
@@ -43,12 +44,11 @@ export interface TileQuality {
 interface DryingData {
   lotId: string;
   startMs: number;          // grid origin
-  nextStepEndMs: number;    // end time of the next step to integrate (grid aligned)
   seed: number;             // fixed from the first request: later seeds do not change outcomes
   amountMg: number;         // lot amount at start (committed value)
   dryMg: number;
-  waterMg: number;          // current water (integer)
-  evaporatedMg: number;     // cumulative
+  waterMg: number;          // current water (float until settlement)
+  evaporatedMg: number;     // cumulative (float until settlement)
   shapedWaterRatio: number;
   dims: { w: number; l: number; t: number };
   linearShrink: number;
@@ -97,7 +97,7 @@ function initState(req: ScienceStepRequest, lot: LotView): DryingData | string {
   const dry = amount - water;
   if (dry <= 0) return 'no dry solids in the lot';
   return {
-    lotId: lot.lotId, startMs: req.interval.from, nextStepEndMs: req.interval.from + STEP_MS, seed: req.seed,
+    lotId: lot.lotId, startMs: req.interval.from, seed: req.seed,
     amountMg: amount, dryMg: dry, waterMg: water, evaporatedMg: 0,
     shapedWaterRatio: (q.shaped_water_ratio_ppm ?? (water * 1e6) / dry) / 1e6,
     dims: { w: q.width_mm, l: q.length_mm, t: q.thickness_mm },
@@ -136,22 +136,25 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
   const endAt = takeOff !== undefined ? takeOff : req.interval.to;
 
   const env = req.environment;
-  const known = (env.source === 'live' || env.source === 'simulation') && env.airTempC !== undefined && env.humidity !== undefined;
+  const known = envUsable(req) && env.humidity !== undefined;
   const sun = rack?.params?.sunExposure ?? 0;
+  if (!finite(sun, 0, 1)) return fail(req, 'drying_rack params.sunExposure must be within 0..1');
   const diagnostics: Record<string, unknown> = {};
 
   if (!known) {
-    // Do not integrate: skip whole steps inside this interval, keep the grid, mark the history incomplete.
-    while (d.nextStepEndMs <= endAt) d.nextStepEndMs += STEP_MS;
+    // Do not integrate: the time passes, nothing is invented, the history is marked incomplete.
     if (endAt > req.interval.from) d.historyComplete = false;
     diagnostics.skipped = `environment ${env.source}: interval not integrated`;
   } else {
-    while (d.nextStepEndMs <= endAt) {
+    // integrate exactly to endAt, in sub-steps cut at the fixed grid and at the interval boundary
+    let t = d.lastTo;
+    while (t < endAt) {
+      const tEnd = subStepEnd(t, d.startMs, STEP_MS, endAt);
       const o = dryPhysics({ waterMg: d.waterMg, dryMg: d.dryMg, shapedWaterRatio: d.shapedWaterRatio, linearShrink: d.linearShrink,
-        dimsMm: d.dims, airTempC: env.airTempC!, rh: env.humidity!, windMs: env.windMs ?? 0, sun, dtS: STEP_MS / 1000 });
-      d.waterMg -= o.evapMg;
-      d.evaporatedMg += o.evapMg;
-      d.latentJ += (o.evapMg / 1e6) * pv('latentHeatWater25');
+        dimsMm: d.dims, airTempC: env.airTempC!, rh: env.humidity!, windMs: env.windMs ?? 0, sun, dtS: (tEnd - t) / 1000 });
+      d.waterMg -= o.evapExactMg;
+      d.evaporatedMg += o.evapExactMg;
+      d.latentJ += (o.evapExactMg / 1e6) * pv('latentHeatWater25');
       d.linearShrink = o.linearShrink;
       d.stage = o.stage;
       if (o.fluxRatio !== null) d.fluxRatioMax = Math.max(d.fluxRatioMax, o.fluxRatio);
@@ -161,13 +164,17 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
           d.crack = draw(d.seed, req.runId, d.lotId, 'drying', 'severity') < Math.min(0.8, 0.25 * d.fluxRatioMax) ? 2 : 1;
         }
       }
-      d.nextStepEndMs += STEP_MS;
+      t = tEnd;
     }
   }
 
   d.lastTo = endAt;
-  // integer J for this interval by cumulative rounding
-  const cumInt = Math.round(d.latentJ);
+  if (!allFinite(d)) return fail(req, 'non-finite state: refusing to return it');
+  // Integer J for this interval, derived from the whole mg of vapour evaporated so far (floor, never decreasing):
+  // every entry is ≥ 0 and the total equals the heat carried by the vapour that is finally released.
+  const evapSoFar = Math.floor(d.evaporatedMg + 1e-6);
+  d.latentJ = (evapSoFar / 1e6) * pv('latentHeatWater25');
+  const cumInt = Math.floor(d.latentJ + 1e-9);
   const usedJ = cumInt - d.reportedJ;
   d.reportedJ = cumInt;
 
@@ -187,10 +194,11 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
   };
 
   if (ending) {
-    const producedMg = d.amountMg - d.evaporatedMg;
+    const evap = evapSoFar;
+    const producedMg = d.amountMg - evap;
     const quality: Record<string, number> = {
       ...d.quality0,
-      water_ppm: Math.round((d.waterMg * 1e6) / producedMg),
+      water_ppm: Math.round(((d.waterMg + d.evaporatedMg - evap) * 1e6) / producedMg),
       shaped_water_ratio_ppm: Math.round(d.shapedWaterRatio * 1e6),
       linear_shrink_ppm: Math.round(d.linearShrink * 1e6),
       crack: d.crack,
@@ -198,7 +206,7 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
     };
     result.consumed = [{ lotId: d.lotId, amount: { value: d.amountMg, unit: 'mg' } }];
     result.produced = [{ materialId: d.stage === 'dry' ? TILE_DRY_MATERIAL : TILE_MATERIAL, amount: { value: producedMg, unit: 'mg' }, quality, into: lot.location }];
-    if (d.evaporatedMg > 0) result.released = [{ materialId: 'water_vapour', amount: { value: d.evaporatedMg, unit: 'mg' }, to: 'air' }];
+    if (evap > 0) result.released = [{ materialId: 'water_vapour', amount: { value: evap, unit: 'mg' }, to: 'air' }];
     const obs: Observation[] = [
       { at: endAt, channel: 'sight', quantity: 'dryness',
         text: d.stage === 'dry' ? '白っぽく乾いている' : d.stage === 'leather' ? '色の濃さが残り、まだ少し湿っている' : 'まだ柔らかく湿っている' },
