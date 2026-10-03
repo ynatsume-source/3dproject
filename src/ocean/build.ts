@@ -244,6 +244,7 @@ export function buildOcean(loc) {
   const TH = loc.thicket ?? 0;
   const thicketK = (x: number, z: number, h: number) => TH <= 0 || (loc.f(x, z), false) ? 0   // (loc.f: TERR.reef for this spot)
     : TH * smooth(0.5, 0.6, fbm(x * 0.021 + 7.3, z * 0.021 - 2.1, 3)) * smooth(-15, -7, h) * (1 - smooth(-1.4, -0.7, h)) * smooth(0.15, 0.45, TERR.reef) * (1 - smooth(0.45, 0.85, T.slope(x, z)));
+  oc.thicketAt = (x: number, z: number) => thicketK(x, z, loc.f(x, z));   // (how much of a thicket is here: where a visit starts, src/ocean/start.ts)
   const thicketIn = (x0: number, z0: number, x1: number, z1: number, items: any, skip: ((x: number, z: number) => boolean) | null) => {
     const S = 0.9, pal = PALETTE.thicket;
     for (let x = x0; x < x1; x += S) for (let z = z0; z < z1; z += S) {

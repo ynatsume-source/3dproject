@@ -703,6 +703,9 @@ body.hud-off #newMark { display: none; }
   #menu { --mpt: 8px; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 52px - 6px - 24px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px)); }
   #menu section { margin-top: 8px; } #menu .rows button { padding: 9px 12px; }
   #guide { top: calc(10px + env(safe-area-inset-top, 0px)); bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
+  /* the hunt window: smaller, beside the quick column and just over the bar — clear of the map, the quick
+     buttons, the caption (bottom left), the cruise button (middle) and the sea log (top middle) */
+  #pip { width: min(30vw, 260px); right: calc(62px + env(safe-area-inset-right, 0px)); bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* the field guide open takes the right-hand side: the quick buttons step aside (and are no target under it) */

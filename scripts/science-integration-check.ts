@@ -7,6 +7,7 @@
 // each status means what docs/proposals/civilization/SCIENCE_FINAL_REVIEW_RESPONSE.md says the world does with it,
 // and each settles exactly once. Run: npx tsx scripts/science-integration-check.ts
 import { simpleFixtureStep as step } from '../src/science/step/simple';
+import { dryingStep, DRYING_PROCESS, SCIENCE_CATALOG_VERSION, TILE_DRY_MATERIAL } from '../src/science/step/drying';
 import { validateResult } from '../src/science/step/validate';
 import type { ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 
@@ -23,7 +24,7 @@ const req = (o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({
 
 let pass = 0, fail = 0;
 const check = (name: string, ok: boolean, info?: unknown) => { if (ok) pass++; else { fail++; console.log('FAIL', name, info === undefined ? '' : JSON.stringify(info)); } };
-const run = (name: string, r: ScienceStepRequest) => { const res = step(r); check(`${name}: validateResult`, validateResult(r, res).length === 0, validateResult(r, res)); return res; };
+const run = (name: string, r: ScienceStepRequest) => { const res = (r.processId === DRYING_PROCESS.processId ? dryingStep : step)(r); check(`${name}: validateResult`, validateResult(r, res).length === 0, validateResult(r, res)); return res; };
 const flows = (x: ScienceStepResult) => x.consumed.length + x.produced.length + x.released.length;
 
 // the world's side of one weighing: commits by requestId, at most once per run
@@ -141,6 +142,51 @@ for (const [name, r, code] of [
     const rr = run(name, sreq(o as any));
     check(`${name}: failed ${code}`, rr.status === 'failed' && (rr.diagnostics as any)?.code === code, [rr.status, rr.diagnostics]);
   }
+}
+
+// 8. drying the tile on a rack, a day at a time in the real weather (0.3.0, catalog civ-sci-test-2): nothing settles
+// while it dries; taken off, the tile and the water it lost settle once, mass closing in mg; a day with no weather
+// known (or no humidity) is not worked out and leaves the history incomplete — never made up
+{
+  const clay = { lotId: 'lot:clay-2', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' as const }, location: 'site:workshop', quality: { water_ppm: 220_000, xd_kaolinite_ppm: 600_000, xd_quartz_ppm: 400_000 } };
+  const bench = { equipmentId: 'eq:bench-1', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civ-sci-test-2', condition: 1, params: { thicknessMm: 10, widthMm: 50, lengthMm: 50 } };
+  const shaped = step(req({ runId: 'run:s2', requestId: 'run:s2@0', processId: 'p11x_test_tile_shape', lots: [clay], equipment: [bench], energy: [{ sourceId: 'src:res-dot-hands', kind: 'mechanical', maxJ: 120 }], actions: [], interval: { from: T, to: T + 60_000 } }));
+  const tile = shaped.produced[0];
+  const tileLot = { lotId: 'lot:tile-2', materialId: tile.materialId, amount: tile.amount, location: 'site:rack', quality: tile.quality };
+  const rack = { equipmentId: 'eq:rack-1', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params: { sunExposure: 0 } };
+  const DAY = 86_400_000, start = T + 60_000 + 30_000 - ((T + 60_000) % 30_000);   // (the run starts on a world-clock 30 s mark)
+  let state: any = null, last: ScienceStepResult | null = null;
+  const days: string[] = [];
+  for (let d = 0; d < 5; d++) {
+    const from = start + d * DAY, to = d === 4 ? from + 6 * 3_600_000 : from + DAY;
+    const env = d === 2 ? { sampleId: `env:d${d}`, source: 'unknown' as const, effectiveAt: from }
+      : { sampleId: `env:d${d}`, source: 'live' as const, effectiveAt: from, airTempC: 28, humidity: 0.72, windMs: 3 };
+    const r: ScienceStepRequest = req({ runId: 'run:d1', requestId: `run:d1@${from}#0`, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion,
+      catalogVersion: SCIENCE_CATALOG_VERSION, interval: { from, to }, state, environment: env as any, lots: [tileLot], equipment: [rack], energy: [],
+      actions: d === 4 ? [{ at: to - 30_000, residentId: 'res:dot', action: 'take_off' }] : [], seed: 7 });
+    const res = run(`dry day ${d + 1}`, r);
+    days.push(res.status + (res.status === "failed" ? " " + JSON.stringify([res.diagnostics, res.evidence.notes]).slice(0, 200) : ""));
+    if (d < 4) check(`dry day ${d + 1}: running, nothing settled`, res.status === 'running' && flows(res) === 0, [res.status, res.diagnostics]);
+    state = res.state; last = res;
+  }
+  const res = last!;
+  check('dry: taken off, completed', res.status === 'completed', days);
+  const cin = res.consumed.reduce((a, c) => a + c.amount.value, 0), cout = res.produced.reduce((a, c) => a + c.amount.value, 0) + res.released.reduce((a, c) => a + c.amount.value, 0);
+  check('dry: the tile consumed whole, mass closes in mg', res.consumed.length === 1 && cin === 45_000 && cout === 45_000, [cin, cout]);
+  check('dry: water let go to the air', res.released.some((x) => x.materialId === 'water_vapour' && x.to === 'air' && x.amount.value > 0), res.released);
+  const out = res.produced[0];
+  check('dry: a dried tile, lighter', !!out && (out.materialId === TILE_DRY_MATERIAL || out.materialId === 'test_tile_green') && out.amount.value < 45_000, out);
+  check('dry: the day with no weather left the history incomplete', out?.quality?.history_complete === 0, out?.quality);
+  check('dry: what is seen, only on taking it off', res.observations.length > 0);
+  check('dry: no energy offered, none taken from an offer', res.energy.every((e) => /^src:env-heat:/.test(e.sourceId)));
+  // no humidity (the weather had none): not worked out either
+  const nh = run('dry without humidity', req({ runId: 'run:d2', requestId: 'run:d2@0', processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, catalogVersion: SCIENCE_CATALOG_VERSION,
+    interval: { from: start, to: start + DAY }, environment: { sampleId: 'env:x', source: 'live', effectiveAt: start, airTempC: 28, windMs: 3 } as any, lots: [tileLot], equipment: [rack], energy: [], actions: [], seed: 7 }));
+  check('dry without humidity: running, nothing worked out, nothing settled', nh.status === 'running' && flows(nh) === 0 && nh.energy.length === 0, [nh.status, nh.energy]);
+  // an old state is refused (the world then ends the run and frees the reservation)
+  const old = run('dry old state', req({ runId: 'run:d1', requestId: 'run:d1@old', processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, catalogVersion: SCIENCE_CATALOG_VERSION,
+    interval: { from: start, to: start + 30_000 }, state: { schema: 'civ-sci.drying/2', data: {} }, environment: { sampleId: 'env:x', source: 'live', effectiveAt: start, airTempC: 28, humidity: 0.7, windMs: 3 } as any, lots: [tileLot], equipment: [rack], energy: [], actions: [], seed: 7 }));
+  check('dry old state /2: failed, nothing to commit', old.status === 'failed' && flows(old) === 0, [old.status, old.diagnostics]);
 }
 
 console.log(`${pass} passed, ${fail} failed`);

@@ -10,6 +10,8 @@ export interface Weather {
   wind: number; windDir: number; gust: number;   // m/s, degrees
   air?: number; wave?: number; sst?: number;
   humidity?: number;    // relative, 0..1 (only when measured: never filled in with a guess — the science core's drying needs it)
+  windMeasured?: number;  // the 10 m wind (m/s) as measured; `wind` above falls back to a fair-weather value for the look of things,
+                          // this does not (what goes to the science core's EnvironmentSample.windMs)
 }
 export const FAIR: Weather = { ok: false, at: 0, cloud: 0.15, rain: 0, code: 1, wind: 4, windDir: 90, gust: 6 };
 
@@ -22,6 +24,7 @@ export async function fetchWeather(id: string, lat: number, lon: number): Promis
     const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,cloud_cover,precipitation,rain,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m&wind_speed_unit=ms`);
     const c = (await r.json()).current;
     Object.assign(w, { ok: true, cloud: (c.cloud_cover ?? 20) / 100, rain: c.rain ?? c.precipitation ?? 0, code: c.weather_code ?? 1, wind: c.wind_speed_10m ?? 4, windDir: c.wind_direction_10m ?? 90, gust: c.wind_gusts_10m ?? 6, air: c.temperature_2m,
+      windMeasured: typeof c.wind_speed_10m === 'number' ? c.wind_speed_10m : undefined,
       humidity: typeof c.relative_humidity_2m === 'number' ? c.relative_humidity_2m / 100 : undefined });
   } catch (e) { /* offline or blocked: fair weather */ }
   try {

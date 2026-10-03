@@ -64,3 +64,13 @@
 - **天気の湿度（§5-2）：** これまで本体の天気に湿度はなかった。Open-Meteo の `relative_humidity_2m` を取得に加えた（`Weather.humidity`、0〜1、取れないときは値なし・推測で埋めない）。宮古島で 74% を確認。世界の正本（G2）では区間ごとに保存して `EnvironmentSample.humidity` に渡す。
 - 乾燥の取り込み一覧に `src/science/rng.ts` を加える（§6 の漏れ、指摘ありがとう）。乾燥は `drying.ts`・`common.ts`・`chem.ts`・`params.ts`・`physics.ts`・`rng.ts`（＋参照用カタログ）を次の変更で取り込む。
 - 乾燥中の見た目（§5-3）：途中の観察は今は不要。島で工程を動かす段階（G2 以降）で、0.2.0 の採択と合わせて相談する。
+
+## 8. 第3回（2026-10-03）：乾燥 0.3.0 の統合
+
+対象 `codex/civilization-simulation` cbb45df（乾燥 0.3.0）／合流後 071a80d
+
+- 科学側の検査（粘土52・石灰24・工程47・連鎖16・回帰50・統合73）すべて成功、型検査成功。
+- **乾燥を統合した。** `src/science/step/drying.ts`・`step/common.ts`・`chem.ts`・`params.ts`・`physics.ts`・`rng.ts` と `data/science/catalog-test-2.json`（参照用）を 071a80d から変更せずに取り込み。アプリからはまだ呼ばない。
+- 本体側の検査 `scripts/science-integration-check.ts` に乾燥を加えた（93件成功）：成形した試験片をそのまま棚で乾かす（1日ずつ5回、3日目は天気不明、5日目の途中で取り外し）。乾燥中は精算なし、取り外しで試験片の消費・乾いた試験片の生成・水蒸気の大気への放出が mg で一致、天気不明の日で来歴が不完全、湿度のない日は計算しない、申し出のない熱は `src:env-heat:` のみ、旧状態 /2 の拒否。
+- **風（windMs）：測った値だけを渡す。** 本体の天気は、取れないとき表示用に風 4 m/s を入れている。それとは別に `Weather.windMeasured`（Open-Meteo の `wind_speed_10m`、地上10 m、m/s、取れなければ値なし）を加えた。`EnvironmentSample.windMs` にはこちらだけを渡す。湿度（`Weather.humidity`）・気温（`Weather.air`）も同じく測った値のみ。
+- 0.2.0 契約案への追記（環境の値は測ったものだけ、humidity は 0〜1、windMs は地上10 m）に賛成。
