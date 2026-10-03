@@ -113,4 +113,5 @@ main.ts のループ（毎フレーム）             ▼
 
 - `src/world/science-contract.ts`：科学・文明シミュレーション（別プロジェクト、`codex/civilization-simulation`）との接続の型と規則。型だけで、まだアプリの動作には使っていない。変更は main への PR で、本体側がレビューする。
 - 分担と接続の詳しいメモ：`docs/proposals/civilization/SCIENCE_HANDOFF.md`。
+- `src/science/step/{simple,fixture-profile,validate}.ts`：科学コアから最初に取り込んだ工程（秤量。成形も同居）と結果の検査器。科学側の持ち物で、本体側は変更せずに取り込む。アプリからはまだ呼ばない。本体側の扱いの検査は `scripts/weigh-integration-check.ts`、レビューの回答は `docs/proposals/civilization/SCIENCE_FINAL_REVIEW_RESPONSE.md`。
 - 世界の正本（時計・材料ロット・設備・保存・イベント・AI 予算）は本体側だけが持つ。科学コアは区間ごとの変化案を返す純粋な計算部品。
