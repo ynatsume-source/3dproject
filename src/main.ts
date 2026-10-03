@@ -198,6 +198,9 @@ function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
 }
 // how narrow the screen is: 0 for a landscape monitor, 1 for a phone held upright (aspect 0.45 or less)
 let narrowK = 0;
+// how far off it films: the cruise's own habit, the viewer's zoom, and on a phone held upright a little further
+// back (it sees only half as wide: closer, an animal turning fills it and swims out of the side of the frame)
+const filmDistK = () => Math.max(0.6, persona.distK * viewNear) * (1 + 0.3 * narrowK);
 const _nl = new THREE.Vector3();
 let huntK = 0, giantK = 0, zoomK = 0, leapWideK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
@@ -269,7 +272,7 @@ function updateCaption(dt: number) {
   if ((capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(sh!.subject).s; }
 }
 function onShotChange(prev: Shot | null, next: Shot | null) {
-  if (viewNear !== 1) { viewNear = 1; director.distK = Math.max(0.6, persona.distK); }   // (a new subject: back to the usual distance)
+  if (viewNear !== 1) { viewNear = 1; director.distK = filmDistK(); }   // (a new subject: back to the usual distance)
   if (next) {
     $('tMode').textContent = 'OBSERVING';
         const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
@@ -433,10 +436,10 @@ function updateDrone(dt: number, now: number) {
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
     const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
-    if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * 0.75 * narrowK, shot.look.y + (sp.y - shot.look.y) * 0.75 * narrowK, shot.look.z + (sp.z - shot.look.z) * 0.75 * narrowK);
+    if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * narrowK, shot.look.y + (sp.y - shot.look.y) * narrowK, shot.look.z + (sp.z - shot.look.z) * narrowK);
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const leap = !!shot.leapView && !shot.down && shot.phase === 'observe';
-    const k = Math.min(1, dt * (1 + 1.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
+    const k = Math.min(1, dt * (1 + 2.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
     const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
@@ -727,7 +730,7 @@ function setView(v: 'fpv' | 'chase', keep = true) {
 let persona: Persona = personaById((() => { try { return localStorage.getItem('seaglass.persona'); } catch (e) { return null; } })());
 let lastSay = -1e9, chatT = 0;
 function applyPersona() {
-  director.dwellK = persona.dwell; director.distK = Math.max(0.6, persona.distK * viewNear);
+  director.dwellK = persona.dwell; director.distK = filmDistK();
   director.styles = persona.styles; director.giantW = persona.giant; director.spinK = persona.spinK;
   director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest; director.nearK = persona.nearK ?? 1;
   director.weight = (s) => persona.weight(s, taste(s)) * reachable(s);
@@ -2415,7 +2418,7 @@ canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercanc
 canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 1.2, 60); return; }
   // (filming something: the wheel takes the camera a little closer or further, for this subject; the floor and the
   // animal's own room are still kept by the director)
-  if (mode === 'ocean' && drone.mode === 'auto' && director.shot && !director.shot.subject.breach) { e.preventDefault(); viewNear = clamp(viewNear * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 0.6, 1.6); director.distK = Math.max(0.6, persona.distK * viewNear); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
+  if (mode === 'ocean' && drone.mode === 'auto' && director.shot && !director.shot.subject.breach) { e.preventDefault(); viewNear = clamp(viewNear * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 0.6, 1.6); director.distK = filmDistK(); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
