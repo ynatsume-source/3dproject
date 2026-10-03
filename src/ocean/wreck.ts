@@ -336,7 +336,7 @@ export function wreckMaterial() {
      varying vec3 vWp; varying vec3 vN; varying float vPart; varying vec2 vUV; varying float vShade;
      void main(){vWp=position;vN=normal;vPart=aPart;vUV=aUV;vShade=aShade;gl_Position=projectionMatrix*viewMatrix*vec4(position,1.0);}`,
     `varying vec3 vWp; varying vec3 vN; varying float vPart; varying vec2 vUV; varying float vShade;
-     float wreckHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+     float wreckHash(vec3 p){vec3 p3 = fract(p * 0.1031); p3 += dot(p3, p3.zyx + 31.32); return fract((p3.x + p3.y) * p3.z);}   // (no sin of a large number: rough on phones)
      float wreckNoise(vec3 p){
        vec3 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f);
        return mix(mix(mix(wreckHash(i),wreckHash(i+vec3(1,0,0)),f.x),

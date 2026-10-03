@@ -12,7 +12,9 @@ import type { TierSettings } from '../quality';
 const VS = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 
 const NOISE = /* glsl */ `
-float h12(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// (no sin of a large number: on a phone's GPU that is so rough that the grain froze into faint blotches fixed
+// to the screen, and the light-streak noise into blocks — Dave Hoskins's hash12 keeps to fract and small products)
+float h12(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(h12(i), h12(i + vec2(1, 0)), u.x), mix(h12(i + vec2(0, 1)), h12(i + vec2(1, 1)), u.x), u.y); }
 `;
@@ -236,7 +238,7 @@ export class Post {
         col = aces(col);
         col = pow(col, vec3(1.0 / 2.2));
         col *= 1.0 - smoothstep(0.18, 0.75, r2) * 0.42;                 // vignette
-        col += (h12(vUv * 1000.0 + fract(uTime) * 91.0) - 0.5) * 0.012;  // fine grain, hides banding
+        col += (h12(gl_FragCoord.xy + fract(uTime * 7.13) * 517.0) - 0.5) * 0.012;  // fine grain, hides banding (a new pattern every frame)
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
