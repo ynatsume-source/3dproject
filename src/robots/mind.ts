@@ -53,10 +53,24 @@ async function boundedResponse(r: Response): Promise<unknown> {
 
 // Conversations and optional resident decisions share one request slot and the same daily budget.
 // Failures count too. No network work starts without a key; aborted requests do not hold the slot.
-export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number } = {}): Promise<string | null> {
+/** What one call used, from the API's own count (for the operating log: robots/agent/config.ts). */
+export interface AiUsage { model: string; input: number; output: number; cacheRead: number; cacheWrite: number; ms: number }
+// (a pool: a resident's own allowance for the day, kept apart from the conversations' — ADR 0004)
+function poolUsed(name: string) {
+  const day = new Date().toDateString();
+  try { const s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); return s?.d === day && Number.isSafeInteger(s[name]) ? s[name] as number : 0; } catch (e) { return 0; }
+}
+function poolCount(name: string) {
+  const day = new Date().toDateString();
+  try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== day) s = { d: day }; s[name] = (Number.isSafeInteger(s[name]) ? s[name] : 0) + 1; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session only */ }
+}
+export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
+export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void } = {}): Promise<string | null> {
   // (leave: calls kept back from the day's budget for others — a resident's own decisions never use up the conversations')
-  const key = aiKey(); if (!key || busy || options.signal?.aborted || used() >= DAILY - (options.leave ?? 0)) return null;
-  busy = true; count();
+  const key = aiKey(); if (!key || busy || options.signal?.aborted) return null;
+  if (options.pool ? poolUsed(options.pool.name) >= options.pool.cap : used() >= DAILY - (options.leave ?? 0)) return null;
+  busy = true; if (options.pool) poolCount(options.pool.name); else count();
+  const model = options.model ?? MODEL, t0 = Date.now();
   const controller = new AbortController(); let timedOut = false;
   const cancel = () => controller.abort();
   options.signal?.addEventListener('abort', cancel, { once: true });
@@ -71,10 +85,12 @@ export async function requestAiText(system: string, user: string, options: { max
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', signal: controller.signal,
         headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: MODEL, max_tokens: Math.max(1, Math.min(1200, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
+        body: JSON.stringify({ model, max_tokens: Math.max(1, Math.min(2000, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
       });
       if (!r.ok) throw new TransportError(`API エラー (HTTP ${Number.isInteger(r.status) ? r.status : 0})。`);
-      const j = await boundedResponse(r) as { content?: { type?: string; text?: string }[] };
+      const j = await boundedResponse(r) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
+      const u = j?.usage ?? {}, n = (v: unknown) => (Number.isFinite(v) ? Number(v) : 0);
+      options.onUsage?.({ model, input: n(u.input_tokens), output: n(u.output_tokens), cacheRead: n(u.cache_read_input_tokens), cacheWrite: n(u.cache_creation_input_tokens), ms: Date.now() - t0 });
       if (!Array.isArray(j?.content)) throw new TransportError('API の応答形式を読み取れませんでした。');
       const text = j.content.filter(c => c?.type === 'text' && typeof c.text === 'string').map(c => c.text).join('');
       if (!text || text.length > 16000) throw new TransportError('API の応答形式を読み取れませんでした。');

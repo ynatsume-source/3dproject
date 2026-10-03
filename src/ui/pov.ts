@@ -115,8 +115,9 @@ export function makePov(root: HTMLElement) {
       if ((planT -= dt) < 0) {
         planT = 0.4;
         $('.t').textContent = L.title; $('.s').textContent = L.sub; $('.st').textContent = L.stat(s, r);
-        $('.now').textContent = status;
-        const ol = $('.plan ol'), items = L.bullets(s, r);
+        // (one with a mind of its own: its own goal, and the steps it has left — otherwise what it is doing)
+        $('.now').textContent = s.goal ? `${s.goal.text}　— ${status}` : status;
+        const ol = $('.plan ol'), items = s.goal?.steps.length ? s.goal.steps.slice(0, 4).map((t, i) => `${'①②③④'[i]} ${t}`) : L.bullets(s, r);
         ol.innerHTML = items.map((b, i) => `<li${i === 0 ? ' class="cur"' : ''}>${b}</li>`).join('');
       }
       // what it says to the others (its own bubble is not drawn from inside its head)

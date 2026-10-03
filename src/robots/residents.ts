@@ -12,6 +12,10 @@ import { mat, U } from '../render/common';
 import { AIRLIT } from '../ocean/shore';
 import { findPath } from './path';
 import { Solids, type Body, type Solid } from './solids';
+import { Agent, type Habit } from './agent/agent';
+import { modelBrain } from './agent/brain';
+import { MINDS } from './agent/config';
+import type { Brain, BrainInput, Observation, Option, Outcome } from './agent/types';
 import { craftBeat, variant } from './models';
 import { robotKit, type Robot, type Act, type Mats } from './models';
 import { creatureKit, type CMats, type Food } from './creatures';
@@ -145,13 +149,15 @@ const SPECS: Spec[] = [
   { id: 'rakko', make: 'makeRakko', home: [-117, -290], range: 170, speed: 0.35, swimSpeed: 0.9, swims: true, nightOwl: false, scale: 1.2, color: '#f7a36b', social: 0.8, living: true },
 ];
 
-interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any }
+interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
+  opt?: string; failed?: Outcome; reported?: boolean }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
 interface Line { who: string; text: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; conv: number }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
 // eye / look: where its eyes are and which way its head faces, from the model as it is drawn (its turn, nod and
 // gaze included) — what its own point of view is taken from
-export interface Sense { eye: THREE.Vector3; look?: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number }
+export interface Sense { eye: THREE.Vector3; look?: THREE.Vector3; head: number; marks: Mark[]; target: Mark | null; task: string; built: number; hutN: number; food: number;
+  goal?: { text: string; why: string; steps: string[]; by: string } }   // (its own goal and the steps left, in words: ADR 0004)
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
 export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean; key?: string; with?: string; obs?: string }   // (obs: what it measured or counted then, from the world — shown in a diary only when there is one)   // (a line someone said, or the heading of a conversation)
 export interface Resident {
@@ -191,7 +197,10 @@ export interface Residents {
   onSay: (r: Resident, text: string) => void;   // someone starts saying something (for its voice)
   gibber(id: string, text: string): string;      // how it sounds in its own language
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
-  body(r: Resident): Body;                        // its body as the world sees it, what it carries included (robots/solids.ts)
+  body(r: Resident): Body;
+  mind(r: Resident): Agent | null;                 // its own mind (ADR 0004), if it has one
+  setBrain(b: Brain | null | undefined): void;     // (tests: a stand-in brain; null: none; undefined: the model)
+  observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
   labCase(r: Resident): Record<string, unknown>;  // what a test report needs to find this moment again (src/ui/lab.ts)
   vitals(r: Resident): string;                     // its battery, or (an animal) how hungry and sleepy it is
@@ -458,7 +467,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const bodyOf = (r: Resident): Body => { const b = BODY[r.id]; return r.holding === 'wood' && r.model.carry ? { ...b, r: Math.max(b.r, 0.38) } : b; };
   // what cannot be gone through: the island's (ocean/shore.ts: trunks, rocks, driftwood) and what has been built here
   const solids: Solids = T.solids ?? new Solids();
-  let builtKey = '', built: Solid[] = [], settled = false;
+  let builtKey = '', built: Solid[] = [], settled = false, lookT = 0;
   solids.changing(() => {
     // (worked out again only when something has been built or taken down)
     let key = ''; for (const m of HUT) key += m.visible ? 1 : 0; for (let i = 0; i < posts.length; i++) key += (posts[i].visible ? 2 : 0) + (bases[i].visible ? 1 : 0);
@@ -610,8 +619,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.battery < 0.3 && day > 0.4 && !r.sp.nightOwl && !r.sp.living) return task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
     const q = Math.random();
     // something strange lying on the beach nearby: go and look
-    if (drift.kind >= 0 && !drift.by && !r.holding && Math.hypot(drift.x - r.pos.x, drift.z - r.pos.z) < 60) { drift.by = r.id; return task('find', [drift.x, drift.z], 'pick', 6); }
-    if (r.holding === 'drift') return task('shelve', (() => { const w = shelf.position; return [w.x + 0.6, w.z + 0.6] as [number, number]; })(), 'work', 4);
+    if (!agentOf(r) && drift.kind >= 0 && !drift.by && !r.holding && Math.hypot(drift.x - r.pos.x, drift.z - r.pos.z) < 60) { drift.by = r.id; return task('find', [drift.x, drift.z], 'pick', 6); }
+    if (!agentOf(r) && r.holding === 'drift') return task('shelve', (() => { const w = shelf.position; return [w.x + 0.6, w.z + 0.6] as [number, number]; })(), 'work', 4);
     // the pier, once they have agreed on it
     if (village.pier === 'plan' && r.id === 'kame') return task('survey', along(1), 'look', rr(60, 120));
     if (village.pier === 'build') {
@@ -632,6 +641,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
       }
     }
+    // one with a mind of its own: its own goal and steps first (its habits below, if it has nothing in mind)
+    { const t = agentTask(r); if (t !== undefined) return t; }
     switch (r.id) {
       case 'dot': {
         // one piece at a time: find a log, bring it to the bench, shape it, fit it
@@ -702,6 +713,141 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return task('show', [o.pos.x, o.pos.z], 'look', 5.5, { data: o.id });
   }
 
+  /* ---------- a mind of its own (ADR 0004) ---------- */
+  // What it sees with its own eyes: ahead of it (a wide robot's or animal's view, not behind), as far as the
+  // light lets it (much less by night), and not through the ground or anything solid and tall standing between.
+  // Each thing by its id in the world.
+  const FOV = Math.cos(75 * Math.PI / 180);
+  function observe(r: Resident): Observation[] {
+    const night = 1 - dayK(localHour(clockMs)), range = 40 - 28 * night, out: Observation[] = [];
+    const ex = r.pos.x, ez = r.pos.z, ey = r.pos.y + bodyOf(r).y1 * 0.85, fx = Math.sin(r.head), fz = Math.cos(r.head);
+    const seen = (x: number, z: number, y: number) => {
+      const dx = x - ex, dz = z - ez, d = Math.hypot(dx, dz);
+      if (d > range || (d > 1.5 && (dx * fx + dz * fz) / d < FOV)) return -1;
+      // (the line from its eyes: over the ground, past the trunks and rocks taller than it)
+      for (let t = 0.15; t < 0.95; t += 0.85 / Math.max(2, Math.ceil(d / 1.5))) {
+        const px = ex + dx * t, pz = ez + dz * t, py = ey + (y - ey) * t;
+        if (L.h(px, pz) > py) return -1;
+      }
+      let hidden = false;
+      solids.each((ex + x) / 2, (ez + z) / 2, d / 2 + 1, (s) => {
+        if (hidden || s.y1 < Math.min(ey, y) || Math.hypot(s.x - x, s.z - z) < s.r + 0.3) return;
+        const ux = dx / (d || 1), uz = dz / (d || 1), t = (s.x - ex) * ux + (s.z - ez) * uz;
+        if (t > 0.3 && t < d - 0.3 && Math.abs((s.x - ex) * uz - (s.z - ez) * ux) < s.r * 0.9) hidden = true;
+      });
+      return hidden ? -1 : d;
+    };
+    const add = (id: string, kind: string, label: string, x: number, z: number, y = L.h(x, z) + 0.2) => { const d = seen(x, z, y); if (d >= 0) out.push({ id, kind, label, x, z, dist: d, at: clockMs }); };
+    for (const it of items.list) add(`${it.kind}#${it.id}`, it.kind, ({ wood: '流木', shell: '貝殻', stone: '石' } as Record<string, string>)[it.kind] + (it.by && it.by !== r.id ? `（${byId[it.by]?.v.name ?? '誰か'}が取りに行っている）` : ''), it.x, it.z);
+    if (drift.kind >= 0 && !list.some((o) => o.holding === 'drift')) add('drift', 'unknown', '浜に打ち上げられた見慣れないもの', drift.x, drift.z);
+    for (const o of list) if (o !== r) add(o.id, 'friend', o.v.name, o.pos.x, o.pos.z, o.pos.y + 0.5);
+    add('hut', 'place', `小屋（${r.stats.built}/${HUT.length}）`, hut.position.x, hut.position.z, hut.position.y + 1);
+    { const w = bench.getWorldPosition(new THREE.Vector3()); add('bench', 'place', '作業台', w.x, w.z, w.y + 0.5); }
+    add('shelf', 'place', '棚', shelf.position.x, shelf.position.z, shelf.position.y + 0.5);
+    add('fire', 'place', '焚き火台', PIT.x, PIT.z, PIT.y + 0.3);
+    TREES.forEach((t, i) => { if (t.ok && !t.down) add(`tree#${i}`, 'young-tree', '若木', t.x, t.z, L.h(t.x, t.z) + 1.5); });
+    PLOTS.forEach((pl, i) => { if (pl.ok) add(`plot#${i}`, 'plot', ['草地', '耕した畑', growth(pl) >= 1 ? '実った畑' : '種をまいた畑'][pl.s], pl.x, pl.z); });
+    return out.sort((a, b) => a.dist - b.dist);
+  }
+  // What it can do now, as the world offers it: only with things it knows of (has seen), never coordinates.
+  function optionsFor(r: Resident, a: Agent): Option[] {
+    const o: Option[] = [], known = (id: string) => a.seen.has(id);
+    if (!r.holding) for (const it of items.list) if (it.kind === 'wood' && (!it.by || it.by === r.id) && known(`wood#${it.id}`)) o.push({ id: `gather:wood#${it.id}`, action: 'gather', label: `流木を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `wood#${it.id}` });
+    // (steps that become possible later are offered too, for planning, marked with what they need)
+    o.push({ id: 'craft:bench', action: 'craft', label: '作業台で流木を部材に削る', targetId: 'bench', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っていること' }) });
+    if (r.stats.built < HUT.length) o.push({ id: 'place:hut', action: 'place', label: `部材を小屋に取りつける（${r.stats.built + 1}/${HUT.length}）`, targetId: 'hut', ...(r.holding === 'piece' ? {} : { ready: false, needs: '削った部材を持っていること' }) });
+    if (!r.holding && drift.kind >= 0 && !drift.by && known('drift')) o.push({ id: 'find:drift', action: 'find', label: '浜の見慣れないものを拾って調べる', targetId: 'drift' });
+    o.push({ id: 'shelve:shelf', action: 'shelve', label: '見つけたものを棚に飾る', targetId: 'shelf', ...(r.holding === 'drift' ? {} : { ready: false, needs: '見つけたものを持っていること' }) });
+    if (!r.holding && r.stats.built >= HUT.length) {
+      TREES.forEach((t, i) => { if (t.ok && !t.down && known(`tree#${i}`) && i < 3) o.push({ id: `chop:tree#${i}`, action: 'chop', label: '若木を切る', targetId: `tree#${i}` }); });
+      PLOTS.forEach((pl, i) => {
+        if (!pl.ok || !known(`plot#${i}`)) return;
+        if (pl.s === 0) o.push({ id: `till:plot#${i}`, action: 'till', label: '草地を耕す', targetId: `plot#${i}` });
+        if (pl.s === 1) o.push({ id: `plant:plot#${i}`, action: 'plant', label: '種をまく', targetId: `plot#${i}` });
+        if (pl.s === 2 && growth(pl) >= 1) o.push({ id: `harvest:plot#${i}`, action: 'harvest', label: '実を収穫する', targetId: `plot#${i}` });
+      });
+    }
+    if (r.battery < 0.6) o.push({ id: 'charge:sun', action: 'charge', label: '日なたで充電する' });
+    o.push({ id: 'look:shore', action: 'look', label: '浜から海を眺める（流木が打ち上がるのを待つ）' }, { id: 'wander:near', action: 'wander', label: '近くを歩いてまわりを見る' });
+    return o;
+  }
+  // The step it chose, as a task the body carries out (null: the world will not have it now)
+  function taskFor(r: Resident, id: string): Task | null {
+    const [action, target] = id.split(':'), home = r.sp.home;
+    let t: Task | null = null;
+    if (action === 'gather') { const n = +target.split('#')[1], it = items.list.find((x) => x.id === n && x.kind === 'wood'); if (!it || (it.by && it.by !== r.id)) return null; items.claim(it, r.id); t = task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
+    else if (action === 'craft') t = r.holding === 'wood' ? task('craft', benchStand(), 'work', rr(45, 75)) : null;
+    else if (action === 'place') t = r.holding === 'piece' && r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'hammer', 7) : null;
+    else if (action === 'find') { if (drift.kind < 0 || drift.by) return null; drift.by = r.id; t = task('find', [drift.x, drift.z], 'pick', 6); }
+    else if (action === 'shelve') t = r.holding === 'drift' ? task('shelve', [shelf.position.x + 0.6, shelf.position.z + 0.6], 'work', 4) : null;
+    else if (action === 'chop') { const tr = TREES[+target.split('#')[1]]; t = tr && tr.ok && !tr.down ? task('chop', [tr.x + 0.9, tr.z + 0.3], 'chop', rr(40, 70), { data: tr }) : null; }
+    else if (action === 'till' || action === 'plant' || action === 'harvest') {
+      const pl = PLOTS[+target.split('#')[1]], want = action === 'till' ? 0 : action === 'plant' ? 1 : 2;
+      t = pl && pl.ok && pl.s === want && (action !== 'harvest' || growth(pl) >= 1) ? task(action, [pl.x + 0.8, pl.z], action === 'till' ? 'dig' : 'pick', action === 'till' ? rr(60, 110) : action === 'plant' ? rr(20, 35) : 8, { data: pl }) : null;
+    }
+    else if (action === 'charge') t = task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
+    else if (action === 'look') t = task('look', spot(home, 80, shore, 200) ?? spot(home, 40, open), 'idle', rr(60, 180));
+    else if (action === 'wander') t = task('wander', spot(home, r.sp.range, open), 'idle', rr(20, 60));
+    if (t) t.opt = id;
+    return t;
+  }
+  // Its habits, when it has no mind to ask (or is waiting on one): the same choices it made before it had one.
+  const HABIT: Record<string, Habit> = {
+    dot: (opts, a) => {
+      const has = (p: string) => opts.find((o) => o.id.startsWith(p) && o.ready !== false)?.id;
+      const r = byId.dot;
+      if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
+      if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', 'place:hut'] };
+      if (has('shelve:')) return { text: '見つけたものを棚に飾る', why: '手に持っている', plan: ['shelve:shelf'] };
+      if (has('find:')) return { text: '見慣れないものを調べる', why: '浜で見かけた', plan: ['find:drift', 'shelve:shelf'] };
+      if (has('charge:') && r.battery < 0.3) return { text: '充電する', why: '電池が少ない', plan: ['charge:sun'] };
+      if (r.stats.built < HUT.length) {
+        // (the nearest log it knows of)
+        const g = opts.filter((o) => o.action === 'gather').sort((x, y) => { const p = (o: Option) => a.seen.get(o.targetId!); const dx = p(x), dy = p(y); return (dx ? Math.hypot(dx.x - r.pos.x, dx.z - r.pos.z) : 1e9) - (dy ? Math.hypot(dy.x - r.pos.x, dy.z - r.pos.z) : 1e9); })[0];
+        if (g) return { text: '小屋を建てる', why: '流木を見つけてある', plan: [g.id, 'craft:bench', 'place:hut'] };
+        return { text: '流木を探す', why: '小屋の材料が要る', plan: [Math.random() < 0.7 ? 'look:shore' : 'wander:near'] };
+      }
+      const farm = has('harvest:') ?? has('chop:') ?? has('till:') ?? has('plant:');
+      if (farm) return { text: '畑の世話をする', why: '小屋が建ったので', plan: [farm] };
+      return { text: 'ひと休みする', why: '今はすることがない', plan: [Math.random() < 0.7 ? 'look:shore' : 'wander:near'] };
+    },
+  };
+  let brainOverride: Brain | null | undefined;
+  const agents: Record<string, Agent> = {};
+  for (const r of list) if (MINDS[r.id]?.on && HABIT[r.id]) agents[r.id] = new Agent(r.id, r.v.mind, HABIT[r.id], (i, t) => (brainOverride === undefined ? modelBrain : brainOverride ?? (async () => null))(i, t));
+  const agentOf = (r: Resident) => agents[r.id] as Agent | undefined;
+  function brainInput(r: Resident, a: Agent, opts: Option[]): BrainInput {
+    const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
+    return {
+      who: r.id, profile: r.v.mind, why: a.why || '次にすることを決める',
+      now: { at: clockMs, hour: +hr.toFixed(1), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3 },
+      goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
+      knowledge: a.knowledge, results: a.results, options: opts,
+    };
+  }
+  // its own next step, as a task (undefined: it has nothing of its own in mind, the habits below decide)
+  function agentTask(r: Resident): Task | null | undefined {
+    const a = agentOf(r); if (!a) return undefined;
+    a.look(observe(r));
+    const opts = optionsFor(r, a), step = a.next(opts, () => brainInput(r, a, opts), clockMs, Date.now());
+    flushMind(r, a);
+    if (step === 'ponder') return task('ponder', [r.pos.x, r.pos.z], 'look', 0.5, { arrived: true });   // (asked again each half second: on as soon as the thought is in)
+    if (!step) return undefined;
+    const t = taskFor(r, step);
+    if (!t) { a.result(step, step.split(':')[0], 'unavailable', clockMs, '世界がそれを受け付けなかった'); flushMind(r, a); return task('ponder', [r.pos.x, r.pos.z], 'look', 1, { arrived: true }); }
+    return t;
+  }
+  // how a step of its own went: told to its mind once
+  function report(r: Resident, tk: Task | null | undefined, outcome: Outcome, detail?: string) {
+    const a = agentOf(r); if (!a || !tk?.opt || tk.reported) return;
+    tk.reported = true; a.result(tk.opt, tk.kind, outcome, clockMs, detail); flushMind(r, a);
+  }
+  // what its mind has to say for the day's record
+  function flushMind(r: Resident, a: Agent) {
+    for (const line of a.out.diary.splice(0)) { r.diary.push({ at: clockMs, text: line, key: 'mind' }); if (r.diary.length > 400) r.diary.shift(); res.onEvent('mind', `${r.v.name}：${line}`, r); }
+    if (a.out.say) { r.today.push(a.out.say); if (r.today.length > 6) r.today.shift(); a.out.say = undefined; }
+  }
+
   /* ---------- finishing a task ---------- */
   function done(r: Resident, tk: Task, fast = false) {
     if (r.id === 'lantern' && study && tk.data?.studyId) {
@@ -722,15 +868,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     switch (tk.kind) {
       case 'gather':
-        if (!items.take(tk.data)) break;   // (gone)
+        if (!items.take(tk.data)) { tk.failed = 'gone'; break; }   // (gone: someone else had it first)
         r.holding = 'wood';
         if (r.id !== 'dot') { r.today.push('桟橋の柱にする木を拾った'); r.task = null; return; }
         r.stats.wood = 1; note(r, 'gather', {}, '流木を拾った');
+        if (agentOf(r)) { r.task = null; return; }   // (its next step is its own to choose)
         r.task = task('craft', benchStand(), 'work', rr(45, 75)); return;
       case 'craft':
         r.stats.wood = 0;
         if (r.stats.built >= HUT.length && village.pier === 'build') { r.holding = 'plank'; r.task = null; return; }   // (a plank for the pier)
-        r.holding = 'piece'; r.task = r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'hammer', 7) : null; return;
+        r.holding = 'piece'; r.task = r.stats.built < HUT.length && !agentOf(r) ? task('place', slotStand(r.stats.built), 'hammer', 7) : null; return;
       case 'place': {
         const k = r.stats.built; if (k >= HUT.length) { r.holding = ''; break; }
         r.holding = ''; r.stats.built++;
@@ -804,11 +951,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         else note(r, 'deck', {}, '桟橋の板を張った');
         break;
       case 'find':
-        if (drift.kind < 0 || drift.by !== r.id) break;
+        if (drift.kind < 0 || drift.by !== r.id) { tk.failed = 'gone'; break; }
         r.holding = 'drift'; driftMesh.visible = false; r.task = null;
         r.today.push(`浜で${DRIFT[drift.kind].ja}を見つけた`); note(r, 'find', { thing: DRIFT[drift.kind].ja }); res.onEvent('drift', `${r.v.name}が浜で${DRIFT[drift.kind].ja}を見つけた`, r); return;
       case 'shelve':
-        if (r.holding !== 'drift') break;
+        if (r.holding !== 'drift') { tk.failed = 'unavailable'; break; }
         r.holding = ''; village.treasures.push({ what: DRIFT[drift.kind].ja, who: r.v.name, at: clockMs }); drift.kind = -1; drift.t = 0; drawShelf(); break;
       case 'fetch':
         if (!items.take(tk.data)) break;
@@ -1192,6 +1339,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (r.mo.recheck > 0 && r.task) { r.mo.recheck -= dt; r.walk = 0; r.act = r.wet ? 'float' : 'look'; placeY(r); return; }
     if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
+      if (r.task) { report(r, r.task, 'interrupted', sleepTime(r, hr) ? '眠る時間になった' : '起きる時間になった'); items.release(r.id); }
       r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
       r.blocked = 0; r.mo.fails = 0;
       if (!r.task) { r.act = 'idle'; r.walk = 0; placeY(r); return; }
@@ -1212,6 +1360,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       tk.t += dt;
       if (tk.t > 1800 || r.blocked > 20) {
         if (r.id === 'lantern' && tk.data?.studyId) study?.interrupt(tk.data.studyId, studyWorld(fast), '道を進めなかった。別の場所から確かめよう。', true);
+        report(r, tk, tk.t > 1800 ? 'timeout' : r.went === 'no way' || r.went === 'nowhere to stand' ? r.went : 'blocked', r.went === 'no way' ? '道がなかった' : r.went === 'nowhere to stand' ? '立てる場所がなかった' : '進めなかった');
         items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return;
       }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
@@ -1249,7 +1398,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           }
         }
       }
-      if (tk.t > tk.dur) done(r, tk, fast);
+      if (tk.t > tk.dur) { done(r, tk, fast); report(r, tk, tk.failed ?? 'done'); }
     }
     placeY(r);
   }
@@ -1259,6 +1408,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     try {
       localStorage.setItem(saveKey, JSON.stringify({
         ...(study ? { lanternStudy: study.serialize() } : {}),
+        minds: Object.fromEntries(Object.entries(agents).map(([id, a]) => [id, a.save()])),
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
         list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding })),
       }));
@@ -1271,6 +1421,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     items.load(s ? s.items : undefined);
     if (!s) return 0;
     if (study) { study.dispose(); study = createLanternStudy(s.lanternStudy, requestLanternDecision); }
+    for (const [id, m] of Object.entries(s.minds || {})) agents[id]?.load(m);
     for (const v of s.visited || []) visited.add(v);
     for (const c of s.cairns || []) cairnSpots.push([c[0], c[1], c[2] ?? 4]);   // (older saves: finished cairns)
     Object.assign(bonds, s.bonds || {});
@@ -1328,7 +1479,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
       explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
-      visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている',
+      visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている',
     };
     return base[k] ?? 'ひと休みしている';
   }
@@ -1341,6 +1492,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     onSay: () => { /* set by the app */ },
     hide: '',
     body: (r) => bodyOf(r),
+    mind: (r) => agentOf(r) ?? null,
+    setBrain: (b) => { brainOverride = b; },
+    observe: (r) => observe(r),
     solids,
     labCase(r) {
       // (the save as it stands: its length and a short hash, so two reports can tell whether they began from the same)
@@ -1357,6 +1511,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         path: r.path?.pts.map(([x, z]) => [f(x), f(z)]) ?? null,
         observedIds: sn.marks.map((m) => `${m.kind}:${m.label}`),
         actionResult: r.went ?? null, blocked: f(r.blocked), body: bodyOf(r),
+        mind: agentOf(r) ? { goal: agentOf(r)!.goal, why: agentOf(r)!.why, calls: agentOf(r)!.calls, results: agentOf(r)!.results.slice(-6), knowledge: agentOf(r)!.knowledge.slice(-6) } : null,
       };
     },
     sense(r) {
@@ -1394,7 +1549,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (drift.kind >= 0 && !list.some((o) => o.holding === 'drift') && near(drift.x, drift.z, 60)) marks.push({ x: drift.x, y: L.h(drift.x, drift.z) + 0.2, z: drift.z, kind: 'drift', label: '？ 見慣れないもの', hot: tk?.kind === 'find' });
       let target: Mark | null = marks.find((m) => m.hot) ?? null;
       if (!target && tk && !tk.arrived) target = { x: tk.x, y: L.h(tk.x, tk.z) + 0.2, z: tk.z, kind: 'goal', label: '目的地', hot: true };
-      return { eye, look, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food };
+      const ag = agentOf(r), g = ag?.goal;
+      const goal = g ? { text: g.text, why: g.why, by: g.by, steps: g.steps.map((id) => { const o = optionsFor(r, ag!).find((x) => x.id === id); return o ? o.label.replace(/（.*?）$/, '') : id; }) } : undefined;
+      return { eye, look, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food, ...(goal ? { goal } : {}) };
     },
     gibber,
     update(dt, ms, cam) {
@@ -1404,6 +1561,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
       if (!settled) { settled = true; for (const r of list) { const ap = solids.approach(r.pos.x, r.pos.z, bodyOf(r), feetAt(r), r.pos.x + 1, r.pos.z, standOn(r, r.wet)); if (ap && (ap[0] !== r.pos.x || ap[1] !== r.pos.z)) { r.pos.x = ap[0]; r.pos.z = ap[1]; placeY(r); } } }
+      // (those with a mind of their own keep looking while they work; something new stops them — between steps)
+      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       for (const r of list) step(r, dt, false);
       fireCircle(dt, false);
       // their lights: on after dark while they are up and about (not asleep, not under the water)
@@ -1495,7 +1654,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
   };
   (res as any).items = items;   // (for ?debug)
-  (res as any).village = village;
+  (res as any).village = village; (res as any).items = items;   // (for checks)
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean) {
     r.saying = text; r.sayT = 0;
