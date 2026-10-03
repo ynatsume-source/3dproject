@@ -1,5 +1,7 @@
 # e118e9fの修正確認
 
+後続の修正確認: [196a3b9の再レビュー](CODEX_FIX_REVIEW_196a3b9.md)。S1と格子の原点の補足は対応確認済み。このレビュー系列の残件は解消した。
+
 2026-10-03 JST。対象は `codex/civilization-simulation` の
 `e118e9f66fbfbef24287a451a2ebe5dc31560f94`。
 独立したdetached worktreeで確認した。科学側ブランチとmainは変更していない。
