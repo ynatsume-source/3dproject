@@ -2225,6 +2225,7 @@ function openPanel(tab: 'guide' | 'log') {
 }
 function setGuide(on: boolean) { guideEl.hidden = !on; $('btnGuide').setAttribute('aria-pressed', String(on)); if (on) setTimePanel(false); renderGuide(); }
 function setTimePanel(on: boolean) { $('timePanel').hidden = !on; $('btnTime').setAttribute('aria-expanded', String(on)); if (on) { guideEl.hidden = true; $('btnGuide').setAttribute('aria-pressed', 'false'); } }
+let qWant: Tier | null = null, qWantAt = 0, qShot: Shot | null = null;   // (a quality step waiting for a cut)
 function setQuality(t: Tier) {
   tier = t;
   const T = TIERS[t];
@@ -2907,6 +2908,9 @@ function frameBody(ts: number) {
     // cannot keep up, a step up while there is clear room (never back up once it has had to come down, and
     // a phone no higher than standard: heat and battery). What it settles on is remembered for next time.
     // Later on, it still steps down if the device slows (heat), never up.
+    // (a change of quality changes the look of the water — the glow of the light in it, how many fish are drawn —
+    // so it waits for a cut: a new shot, the camera crossing the surface, the globe; at most half a minute)
+    if (qWant && (qWant === tier || mode !== 'ocean' || lastShot !== qShot || Math.abs(camera.position.y) < 0.5 || now - qWantAt > 30000)) { if (qWant !== tier) setQuality(qWant); qWant = null; }
     if (autoQ) {
       if (!fpsStart) fpsStart = now;
       else if (now - fpsStart > 2500) { fpsAcc += Math.min((now - (lastQNow || now)) / 1000, 0.25); fpsN++; }
@@ -2915,8 +2919,8 @@ function frameBody(ts: number) {
         const fps = fpsN / Math.max(fpsAcc, 1e-3), i = TIER_ORDER.indexOf(tier);
         const cap = TIER_ORDER.indexOf(matchMedia('(pointer: coarse)').matches ? 'medium' : 'ultra');
         const early = now - qSince < 60000;
-        if (fps < (early ? 40 : 30) && i > 0) { qDowned = true; setQuality(TIER_ORDER[i - 1]); }
-        else if (early && !qDowned && fps >= 56 && i < cap && qUps < 3) { qUps++; setQuality(TIER_ORDER[i + 1]); }
+        if (fps < (early ? 40 : 30) && i > 0) { qDowned = true; qWant = TIER_ORDER[i - 1]; qWantAt = now; qShot = lastShot; }
+        else if (early && !qDowned && fps >= 56 && i < cap && qUps < 3) { qUps++; qWant = TIER_ORDER[i + 1]; qWantAt = now; qShot = lastShot; }
         else try { localStorage.setItem(TIER_KEY, tier); } catch (e) { /* ignore */ }
         fpsN = 0; fpsAcc = 0; fpsStart = now;
       }

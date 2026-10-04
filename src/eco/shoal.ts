@@ -251,18 +251,24 @@ export function makeShoalSystem(sp: Species, oc: any) {
     if (leaders.some((L) => L.fear > 0.5)) return '捕食者から逃げて群れが弾けている';
     return sp.diet === 'fish' ? '銀の群れになって、ゆっくり渦を巻いている' : '中層で大群になってプランクトンを食べている';
   }
+  // how many of a school's fish are there to be seen (those drawn at this quality, not eaten): one with only a
+  // few left is not offered as a school to go and see — the camera would arrive at an empty patch of water
+  const here = (s: number) => { let n = 0; for (let i = s; i < active; i += S) if (!dead[i]) n++; return n; };
+  const enough = (s: number) => here(s) >= Math.max(8, 0.3 * active / S);
   function subjects(out: Subject[]) {
     leaders.forEach((L, s) => {
-      if (!L.placed) return;
-      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target), size: 3.5, pos: () => L.c, status, live: () => L.placed });
+      if (!L.placed || !enough(s)) return;
+      const full = Math.min(1, here(s) / Math.max(1, active / S));
+      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.c, status, live: () => L.placed && enough(s) });
     });
   }
   function focus(cam: THREE.Vector3): Subject | null {
     let best: Leader | null = null, bd = Infinity;
-    for (const L of leaders) { if (!L.placed) continue; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; } }
+    let bs = -1;
+    leaders.forEach((L, s) => { if (!L.placed || !enough(s)) return; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; bs = s; } });
     if (!best) return null;
-    const L = best;
-    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status, live: () => L.placed };
+    const L = best as Leader, si = bs;
+    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status, live: () => L.placed && enough(si) };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
