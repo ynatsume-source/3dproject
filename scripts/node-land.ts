@@ -34,6 +34,10 @@ const g: any = globalThis;
 // (a stand-in document only while a land image is being read: three's loaders look for a real one)
 let reading = 0;
 const canvasDoc = { createElement: () => { let img: any; return { width: 0, height: 0, getContext: () => ({ drawImage: (i: any) => { img = i; }, getImageData: () => { if (--reading === 0 && g.document === canvasDoc) delete g.document; return { data: img.data }; } }) }; } };
-g.fetch = async (url: string) => ({ blob: async () => { reading++; g.document = canvasDoc; return decodePng(fs.readFileSync(file(url))); } });
+// (only the land's own images, given as site paths: anything else — the model's API above all — goes to the real fetch)
+const realFetch = g.fetch?.bind(g);
+g.fetch = async (url: any, init?: any) => typeof url === 'string' && url.startsWith('/') && /\.png$/i.test(url)
+  ? { ok: true, status: 200, blob: async () => { reading++; g.document = canvasDoc; return decodePng(fs.readFileSync(file(url))); } }
+  : realFetch(url, init);
 g.createImageBitmap = async (img: any) => img;
 THREE.TextureLoader.prototype.loadAsync = async () => new THREE.Texture();

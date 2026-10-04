@@ -23,6 +23,21 @@ const store = new Map<string, string>(Object.entries(fs.existsSync(SFILE) ? JSON
 const key = !dry ? process.env.ANTHROPIC_API_KEY?.trim() : undefined;
 if (key) store.set(SECRET, key); else store.delete(SECRET);
 Object.defineProperty(globalThis, 'localStorage', { value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, String(v)), removeItem: (k: string) => store.delete(k) } });
+// (before the day: one small call to each model it will use, so a key, a model or a balance that will not do is said
+// plainly and the run stops — rather than a whole day of silent "no answer")
+if (key) {
+  for (const model of ['claude-haiku-4-5-20251001', 'claude-opus-5-5']) {
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model, max_tokens: 8, messages: [{ role: 'user', content: 'ping' }] }) });
+      if (r.ok) { console.log(`model check ${model}: ok`); continue; }
+      let why = ''; try { const j: any = await r.json(); why = `${j?.error?.type ?? ''} ${String(j?.error?.message ?? '').slice(0, 200)}`; } catch { /* (no readable reason) */ }
+      console.error(`model check ${model}: HTTP ${r.status} ${why}`.trim());
+      console.error(r.status === 401 ? '→ the key is not accepted: check the ANTHROPIC_API_KEY secret' : r.status === 400 && /credit/i.test(why) ? '→ the account has no credit: add some at console.anthropic.com (Billing)' : r.status === 404 ? '→ this model is not available to the account' : '→ see the reason above');
+      process.exit(1);
+    } catch (e) { console.error(`model check ${model}: could not reach the API (${(e as Error).name})`); process.exit(1); }
+  }
+}
 const saveStore = () => { const o: Record<string, string> = {}; for (const [k, v] of store) if (k !== SECRET) o[k] = v; fs.writeFileSync(SFILE, JSON.stringify(o)); };
 
 // the island's own clock: the world's time stands in for the wall's, so its thinking is paced in island time
@@ -38,7 +53,7 @@ const loc: any = LOCATIONS.find((l) => l.id === 'kayama')!;
 await loadLand('kayama', loc.land.half, loc.land.far);
 const { buildOcean } = await import('../src/ocean/build');
 const { mindLog } = await import('../src/robots/agent/brain');
-const { requestAiText } = await import('../src/robots/mind');
+const mindMod = await import('../src/robots/mind'), { requestAiText } = mindMod;
 const { writePost, draftPost } = await import('../src/journal/write');
 // (a stand-in document for what the residents draw for themselves — a soft shadow texture — set only now: the
 // modules above look for a real one when loaded)
@@ -95,7 +110,7 @@ const { PRICE } = await import('../src/robots/agent/config');
 const usd = mindLog.reduce((a, m) => { const u = m.usage, p = u && PRICE[u.model]; return a + (u && p ? (u.input * p.in + u.cacheRead * p.in * 0.1 + u.cacheWrite * p.in * 1.25 + u.output * p.out) / 1e6 : 0); }, 0);
 const run = {
   day: DAY, hours: [FROM, TO], thinking: !!key, steps, waits, minutes: +((realNow() - wall0) / 60000).toFixed(1),
-  calls: mindLog.length, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
+  calls: mindLog.length, answered: mindLog.filter((m) => m.ok).length, lastError: mindMod.aiLastError || undefined, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
   photos: Object.fromEntries(['dot', 'rakko'].map((w) => [w, (R.list.find((x: any) => x.id === w).photos ?? []).filter((p: any) => p.day === DAY).map((p: any) => p.subject.label)])),
   posts: written,
   goals: Object.fromEntries(['dot', 'rakko'].map((w) => [w, R.list.find((x: any) => x.id === w).diary.filter((e: any) => dayOf(e.at) === DAY && e.key === 'mind').slice(-8).map((e: any) => e.text)])),
