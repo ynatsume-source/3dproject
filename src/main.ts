@@ -2644,8 +2644,8 @@ function renderPip(dt: number, air: boolean) {
   else { pipCam.position.lerp(_t, Math.min(1, dt * 2.5)); pipLook.lerp(_pa, Math.min(1, dt * 4)); }
   pipCam.lookAt(pipLook); pipCam.updateMatrixWorld();
   // this camera's view of the sea: its own position for fog and light, the cells around it
-  const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone();
-  U.uCamPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
+  const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone(), keepLod = U.uLodPos.value.clone();
+  U.uCamPos.value.copy(pipCam.position); U.uLodPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
   const vis = cur.cells.map((c: any) => [c.mesh.visible, c.hi?.visible]);
   for (const c of cur.cells) { const d = Math.hypot(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
   sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, 0, pipCam.position.z);
@@ -2667,7 +2667,7 @@ function renderPip(dt: number, air: boolean) {
   // put the main camera's view back
   if (air && skyNow) lightFor(skyNow, true);
   U.uSpot.value.copy(keepSpot);
-  U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd);
+  U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd); U.uLodPos.value.copy(keepLod);
   cur.cells.forEach((c: any, i: number) => { c.mesh.visible = vis[i][0]; if (c.hi) c.hi.visible = vis[i][1]; });
   sky.position.copy(camera.position); surface.position.set(camera.position.x, 0, camera.position.z);
   surface.visible = surf; snow.visible = snw;
@@ -2734,7 +2734,7 @@ function frameBody(ts: number) {
     updateCaption(dt);
     scanNotices(dt, now);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
-    U.uCamPos.value.copy(camera.position);
+    U.uCamPos.value.copy(camera.position); U.uLodPos.value.copy(drone.pos);   // (the corals' close-up shape by the drone's own place: not swapping as the view swings round it)
     if (cur.cave) {
       // the camera opens up in the dark of the cave, and the sun's bake follows the sun
       cur.cave.updateSun(U.uSunDir.value);

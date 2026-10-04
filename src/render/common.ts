@@ -46,6 +46,7 @@ export const U = {
   uBoil: { value: new THREE.Vector4(0, 0, 1, 0) },   // a bait ball churning the surface: x, z, radius, strength  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
+  uLodPos: { value: new THREE.Vector3() },   // measured from here: the drone itself, not the camera (which swings round it and bobs)
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
   // the sea cave's light volume (see ocean/cave.ts); off in seas without one
   uCaveTex: { value: EMPTY_CAVE }, uCaveAtlas: { value: new THREE.Vector2(1, 1) }, uCaveOn: { value: 0 }, uCamCave: { value: 1 },
@@ -80,7 +81,7 @@ uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; 
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud;
-uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR;
+uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR; uniform vec3 uLodPos;
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
