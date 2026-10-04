@@ -1,4 +1,4 @@
-// The island's own language (ADR 0006, addendum: another planet the shape of the Earth). What a resident says is a
+// Lumau (ルマウ: lu 'sea' + mau 'beach' — the tideline), the island's own language (ADR 0006, addendum: another planet the shape of the Earth). What a resident says is a
 // meaning — an act and its values — and that one meaning is written three ways: in the island's words, in its own
 // letters (one sign to a syllable: a consonant's shape with its vowel's mark), and as a subtitle for the watcher
 // (Japanese now; other languages are a template each, never a translation of the island's words). The same meaning
@@ -11,6 +11,8 @@ export interface Said { isl: Tok[]; ja: string }
 
 /* ---------- words ---------- */
 export const LEX = {
+  // its own name: the tideline, where all four live
+  lumau: 'lumau',
   // acts
   identify: 'ino', role: 'wake', report: 'nao', share: 'kesa', propose: 'teli', agree: 'ua', found: 'hoki', record: 'simo',
   // the residents
