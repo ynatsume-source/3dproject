@@ -413,19 +413,21 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   /* ---------- things the sea brings from far away ---------- */
+  // (a world no one lives on: what the sea brings is the sea's own — seeds, pumice, bone — never something made;
+  // ADR 0006, addendum: another planet the shape of the Earth)
   const DRIFT = [
-    { id: 'bottle', ja: '瓶に入った手紙', geo: new THREE.CylinderGeometry(0.05, 0.06, 0.26, 10) },
-    { id: 'gear', ja: '見慣れない歯車', geo: new THREE.TorusGeometry(0.1, 0.03, 6, 12) },
-    { id: 'float', ja: 'ガラスの浮き玉', geo: new THREE.SphereGeometry(0.13, 12, 8) },
-    { id: 'tag', ja: '異国の文字の木札', geo: new THREE.BoxGeometry(0.22, 0.02, 0.12) },
+    { id: 'coconut', ja: 'ヤシの実', geo: new THREE.SphereGeometry(0.12, 10, 8), mat: rmat(0x6b4a2b, 1) },
+    { id: 'pumice', ja: '軽石', geo: new THREE.DodecahedronGeometry(0.1, 0), mat: rmat(0xd9d4c7, 1) },
+    { id: 'bone', ja: '大きな骨のかけら', geo: new THREE.CylinderGeometry(0.035, 0.05, 0.3, 8), mat: rmat(0xeee6d4, 1) },
+    { id: 'seabean', ja: 'モダマの種', geo: new THREE.SphereGeometry(0.08, 10, 6).scale(1, 0.45, 0.85), mat: rmat(0x4a2c1c, 1.2) },
   ];
-  const glassM = rmat(0x8fd6c8, 1.4);
-  const driftMesh = new THREE.Mesh(DRIFT[0].geo, glassM); driftMesh.visible = false; group.add(driftMesh);
+  const OLD_DRIFT = ['瓶に入った手紙', '見慣れない歯車', 'ガラスの浮き玉', '異国の文字の木札'];   // (as an older island named them)
+  const driftMesh = new THREE.Mesh(DRIFT[0].geo, DRIFT[0].mat); driftMesh.visible = false; group.add(driftMesh);
   const drift = { kind: -1, x: 0, z: 0, t: 0, by: '' };
   // the shelf by the hut where finds are kept
   const shelf = new THREE.Group(); { const w = atHut(1.6, -1.5); shelf.position.set(w.x, L.h(w.x, w.z), w.z); shelf.rotation.y = hut.rotation.y; group.add(shelf);
     const b = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.3), wood); b.position.y = 0.55; shelf.add(b); for (const sx of [-0.4, 0.4]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.55, 6), wood2); l.position.set(sx, 0.27, 0); shelf.add(l); } }
-  const shelfItems = DRIFT.map((d, i) => { const m = new THREE.Mesh(d.geo, i === 1 ? stoneM : i === 3 ? wood : glassM); m.position.set(-0.3 + i * 0.2, 0.66, 0); if (i === 0) m.rotation.z = Math.PI / 2; m.visible = false; shelf.add(m); return m; });
+  const shelfItems = DRIFT.map((d, i) => { const m = new THREE.Mesh(d.geo, d.mat); m.position.set(-0.3 + i * 0.2, 0.66, 0); if (i === 2) m.rotation.z = Math.PI / 2; m.visible = false; shelf.add(m); return m; });
   function drawShelf() { DRIFT.forEach((d, i) => (shelfItems[i].visible = village.treasures.some((t) => t.what === d.ja))); }
   function tickDrift(dt: number) {
     drift.t += dt;
@@ -434,7 +436,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const at = spot([PIT.x, PIT.z], 260, tideline, 80); if (!at) return;
       const left = DRIFT.map((_, i) => i).filter((i) => !village.treasures.some((t) => t.what === DRIFT[i].ja));
       drift.kind = (left.length ? left : [0, 1, 2, 3])[Math.floor(Math.random() * (left.length || 4))]; drift.x = at[0]; drift.z = at[1]; drift.by = '';
-      driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.rotation.set(0, Math.random() * 6, drift.kind === 0 ? Math.PI / 2 : 0); driftMesh.visible = true;
+      driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.rotation.set(0, Math.random() * 6, drift.kind === 2 ? Math.PI / 2 : 0); driftMesh.visible = true;
     }
   }
   // Rakko's pile of shells on the beach; Lantern's cairns where it stopped to think
@@ -1770,8 +1772,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
     if (s.village) Object.assign(village, s.village);
+    for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
-    if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
+    if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
     drawPier(); drawShelf();
     buildPile(); buildCairns();
     return Math.min(12 * 3600, Math.max(0, (Date.now() - s.at) / 1000));   // how long they lived on without us (up to half a day)
@@ -1968,7 +1971,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         r.held.visible = !!hk && !(r.task?.kind === 'craft' && r.task.arrived);
         if (hk === 'piece' && r.stats.built < HUT.length) { lying(HUT[r.stats.built], r.held); r.held.scale.setScalar(0.6); }
         else if (hk === 'plank') { r.held.geometry = planks[0].geometry; r.held.material = wood; r.held.rotation.set(0, 0, 0); r.held.scale.set(0.5, 1, 0.3); }
-        else if (hk === 'drift') { if (drift.kind >= 0) r.held.geometry = DRIFT[drift.kind].geo; r.held.material = glassM; r.held.rotation.set(0, 0, 0); r.held.scale.setScalar(1); }
+        else if (hk === 'drift') { if (drift.kind >= 0) { r.held.geometry = DRIFT[drift.kind].geo; r.held.material = DRIFT[drift.kind].mat; } r.held.rotation.set(0, 0, 0); r.held.scale.setScalar(1); }
         else if (hk) { r.held.geometry = items.geo[hk as ItemKind]; r.held.material = itemMat[hk as ItemKind]; r.held.rotation.set(0, 0, 0); r.held.scale.setScalar(hk === 'wood' ? 0.8 : 1); }
         if (r.saying) r.sayT += dt;
         r.subject.prio = r.talk ? 7 : r.act === 'sleep' ? 1.2 : 2.6;

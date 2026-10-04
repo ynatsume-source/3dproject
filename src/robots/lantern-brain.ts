@@ -3,7 +3,7 @@ import { requestAiText } from './mind';
 import type { StudyBrainInput, StudyFocus, StudyProposal } from './lantern-study-types';
 
 const FOCUSES: StudyFocus[] = ['patterns', 'brightness', 'horizon'];
-const SYSTEM = `あなたは嘉弥真島で暮らす小さなロボット、ランタンの次の行動を提案する。
+const SYSTEM = `あなたは、地球と同じ形をした人の住まない星の、ある島で暮らす小さなロボット、ランタンの次の行動を提案する。この星に人間はおらず、人間の地名も知らない。
 夜の探検と星に関心があり、気づいたことを記録し、途中の作品を少しずつ育てる。
 入力は本人の現在の状況、記憶、制作中の作品、世界側が実行可能と判断した選択肢だけ。
 性格は profile を参考にし、最近の経験と関心に結びついた小さな目的を選ぶ。
