@@ -22,6 +22,7 @@ import { creatureKit, type CMats, type Food } from './creatures';
 import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
+import { SAY, glyphs, kana, type Count, type Said, type Tok } from './islandlang';
 import type { Subject } from '../eco/env';
 import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
@@ -157,7 +158,7 @@ const SPECS: Spec[] = [
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
   opt?: string; failed?: Outcome; reported?: boolean; label?: string }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
-interface Line { who: string; text: string }
+interface Line { who: string; text: string; isl?: Tok[] }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number; shares: { from: Resident; to: Resident; ob: Observation }[] }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
 // eye / look: where its eyes are and which way its head faces, from the model as it is drawn (its turn, nod and
@@ -171,7 +172,7 @@ export interface Resident {
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
   hunger: number; sleepy: number; meal: Record<string, number>; under: number;
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
-  talk: Talk | null; saying: string; sayT: number;
+  talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null;
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
@@ -204,7 +205,7 @@ export interface Residents {
   bubbles(camera: THREE.Camera, w: number, h: number): void;
   onEvent: (kind: string, text: string, r: Resident) => void;
   onSay: (r: Resident, text: string) => void;   // someone starts saying something (for its voice)
-  gibber(id: string, text: string): string;      // how it sounds in its own language
+  gibber(id: string, text: string): string;      // what it is saying, in the island's own letters and how they sound (HTML)
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
   body(r: Resident): Body;
   mind(r: Resident): Agent | null;                 // its own mind (ADR 0004), if it has one
@@ -224,22 +225,6 @@ export interface Residents {
 const SHOT_NEAR: Record<string, number> = { shell: 2.4, stone: 3.2, wood: 4.5, 'young-tree': 9, friend: 10, place: 16, unknown: 4, plot: 7 };   // (how near it goes to take a picture of each kind of thing, m)
 const camAt = new THREE.Vector3(1e9, 0, 1e9);   // (where the camera was at the last update: models are posed only near it)
 const pair = (a: string, b: string) => (a < b ? a + '|' + b : b + '|' + a);
-// what their words sound like: each has its own few syllables, strung together as long as the sentence
-const SYLL: Record<string, string[]> = {
-  dot: ['ピ', 'ポ', 'パ', 'ピコ', 'プ', 'ペ', 'ポッ', 'ビ'],
-  kame: ['もご', 'むぅ', 'ほぉ', 'ふも', 'ん', 'もぉ', 'ぬ'],
-  lantern: ['りゅ', 'し', 'ふぇ', 'る', 'みぃ', 'ぽぅ', 'しゅ'],
-  rakko: ['きゅ', 'ぷ', 'ぴ', 'きゃ', 'るる', 'ぷぃ', 'みゅ'],
-};
-export function gibber(id: string, text: string) {
-  const sy = SYLL[id]; if (!sy) return '';
-  let h = 7; for (const c of text) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  const words = Math.max(1, Math.min(6, Math.round(text.length / 7)));
-  const out: string[] = [];
-  for (let w = 0; w < words; w++) { let wd = ''; const n = 1 + (h % 3); for (let k = 0; k < n; k++) { h = (h * 1103515245 + 12345) >>> 0; wd += sy[h % sy.length]; } out.push(wd); }
-  const end = /[？?]$/.test(text) ? '？' : /[！!]$/.test(text) ? '！' : '…';
-  return out.join(' ') + end;
-}
 const pickOne = <T>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 const rr = (a: number, b: number) => a + Math.random() * (b - a);
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
@@ -372,7 +357,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const fireHours = (hr: number) => hr >= 19.4 && hr < 21.1;   // lit
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0;  // on the way / sitting round it
   let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0, lastFireAt = 0;
-  const fireQueue: { who: string; line: string }[] = [];
+  const fireQueue: { who: string; line: string; isl?: Tok[] }[] = [];
   const fireUsed = new Set<string>();
   const atFire = new Set<string>();
 
@@ -1107,7 +1092,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast) res.onEvent(tk.kind, `${r.v.name}：${result.text}`, r);
         if (tk.kind === 'study-share') {
           const c = heading('ランタンの星の手帖');
-          say(r, '星空を手帖に記録した。次の夜に同じ条件で比べる。', c, fast);
+          { const m = SAY.starsRecorded(); say(r, m.ja, c, fast, m.isl); }
         }
       }
       r.task = null;
@@ -1515,16 +1500,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Words between two of them are what they hold (ADR 0004, addendum 2026-10-04): the first time, who each is and
   // what it is for — the island's custom; after that, how far each has got, and where something lies that the
   // other gathers. Nothing is said for the saying of it. What one passes on, the other's mind keeps as heard.
-  const ROLE: Record<string, string> = { dot: '小屋の建設', rakko: '貝殻の収集', kame: '位置の測量', lantern: '地図の作成' };
   const WANTS: Record<string, string> = { dot: 'wood', rakko: 'shell' };
   const ITEM_JA: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
-  function progressOf(r: Resident): string {
+  function countsOf(r: Resident): Count[] {
     const s = r.stats;
-    if (r.id === 'dot') return `小屋 ${s.built}/${HUT.length}、収穫 ${s.food}`;
-    if (r.id === 'rakko') return `貝殻 ${s.shells}個、おなか ${full(r)}`;
-    if (r.id === 'kame') return `記録 ${s.notes}件、おなか ${full(r)}`;
-    return `地図 ${statVars(r).map}%、記録 ${s.notes}件、目印 ${s.cairns}`;
+    if (r.id === 'dot') return [{ what: 'hut', n: s.built, of: HUT.length }, { what: 'harvest', n: s.food }];
+    if (r.id === 'rakko') return [{ what: 'shell', n: s.shells }, { what: 'full', n: full(r) }];
+    if (r.id === 'kame') return [{ what: 'notes', n: s.notes }, { what: 'full', n: full(r) }];
+    return [{ what: 'map', n: statVars(r).map, pct: true }, { what: 'notes', n: s.notes }, { what: 'cairn', n: s.cairns }];
   }
+
   /** Where something lies that `to` gathers and does not know of, as `from` knows it: what its mind has seen, or —
    *  without a mind — what lies within sight of where it is. */
   function tip(from: Resident, to: Resident): Observation | null {
@@ -1538,12 +1523,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const bd = bonds[pair(a.id, b.id)];
     const lines: Line[] = [], shares: Talk['shares'] = [];
     const stage = bd.stage;
-    if (stage === 0) for (const r of [a, b]) lines.push({ who: r.id, text: `識別：${r.v.name}。役割：${ROLE[r.id] ?? '—'}` });
+    const line = (r: Resident, m: Said) => lines.push({ who: r.id, text: m.ja, isl: m.isl });
+    if (stage === 0) for (const r of [a, b]) line(r, SAY.identify(r.id));
     else {
-      for (const r of [a, b]) lines.push({ who: r.id, text: `報告：${progressOf(r)}` });
+      for (const r of [a, b]) line(r, SAY.report(countsOf(r)));
       for (const [f, t] of [[a, b], [b, a]] as Resident[][]) {
         const ob = tip(f, t); if (!ob) continue;
-        lines.push({ who: f.id, text: `共有：${ob.label}が1つある（${t.v.name}から約${Math.round(ob.dist)}m）` }); shares.push({ from: f, to: t, ob });
+        line(f, SAY.share(ob.kind, ob.dist, t.id)); shares.push({ from: f, to: t, ob });
       }
     }
     keep(a); keep(b);
@@ -1581,7 +1567,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!line) { endTalk(tk); return; }
     const speaker = byId[line.who], other = speaker === tk.a ? tk.b : tk.a;
     if (tk.t === dt || speaker.saying !== line.text) {
-      other.saying = ''; say(speaker, line.text, tk.conv, fast);
+      other.saying = ''; say(speaker, line.text, tk.conv, fast, line.isl);
     }
     // face each other
     for (const [r, o] of [[tk.a, tk.b], [tk.b, tk.a]] as Resident[][]) {
@@ -1903,7 +1889,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const goal = g ? { text: g.text, why: g.why, by: g.by, steps: g.steps.map((id) => { const o = optionsFor(r, ag!).find((x) => x.id === id); return o ? o.label.replace(/（.*?）$/, '') : id; }) } : undefined;
       return { eye, look, head: r.head, marks, target, task: tk?.kind ?? 'idle', built: byId.dot.stats.built, hutN: HUT.length, food: byId.dot.stats.food, ...(goal ? { goal } : {}) };
     },
-    gibber,
+    gibber: (id: string) => { const r = byId[id]; return r?.sayIsl ? `${glyphs(r.sayIsl)}<small>${kana(r.sayIsl)}</small>` : ''; },
     update(dt, ms, cam) {
       camAt.set(cam.x, cam.y, cam.z);
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
@@ -2001,7 +1987,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           v.project(camera);
           const on = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 && d < 45;
           el.style.opacity = on ? '1' : '0';
-          if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; if (el.dataset.t !== r.saying) { el.dataset.t = r.saying; el.innerHTML = `<b>${r.v.name}</b><i class="ln">${gibber(r.id, r.saying)}</i>${r.saying}`; } }
+          if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; if (el.dataset.t !== r.saying) { el.dataset.t = r.saying; el.innerHTML = `<b>${r.v.name}</b>${r.sayIsl ? `${glyphs(r.sayIsl)}<i class="ln">${kana(r.sayIsl)}</i><span class="sub">${r.saying}</span>` : r.saying}`; } }
         } else el.style.opacity = '0';
       }
       // (their small green numbers: above them, drifting up, gone in a few seconds)
@@ -2023,8 +2009,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   (res as any).village = village; (res as any).items = items;   // (for checks)
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
-  function say(r: Resident, text: string, conv: number, fast: boolean) {
-    r.saying = text; r.sayT = 0;
+  function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[]) {
+    r.saying = text; r.sayT = 0; r.sayIsl = isl ?? null;
     talks.push({ at: clockMs, who: r.id, text, conv }); if (talks.length > 300) talks.shift();
     if (!fast) res.onSay(r, text);
   }
@@ -2056,10 +2042,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (seated.length >= 2 && !fireSaid) {
       fireSaid = true; res.onEvent('fire', '焚き火の会が始まった', seated[0]);
       const found = village.treasures.filter((t) => t.at > lastFireAt);
-      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) fireQueue.push({ who: f.id, line: `発見：浜で${t.what}を拾った。棚に置いた` }); }
+      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) { const m = SAY.found(t.what); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl }); } }
       if (village.pier === 'none' && village.fires >= 2) {
-        fireQueue.push({ who: 'kame', line: '提案：桟橋を共同で作る。位置は僕が測る' });
-        for (const id of ['dot', 'rakko', 'lantern']) fireQueue.push({ who: id, line: id === 'dot' ? '了承：板は小屋の部材と同じ作り方で作る' : id === 'rakko' ? '了承：柱は泳いで立てる' : '了承：土台の石を運ぶ' });
+        { const m = SAY.proposePier(); fireQueue.push({ who: 'kame', line: m.ja, isl: m.isl }); }
+        for (const id of ['dot', 'rakko', 'lantern']) { const m = SAY.agreePier(id); fireQueue.push({ who: id, line: m.ja, isl: m.isl }); }
         fireQueue.push({ who: '', line: 'pier' });   // (then it is agreed)
       }
     }
@@ -2072,7 +2058,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const w = byId[q.who]; if (!w || !seated.includes(w)) continue;
       for (const r of seated) if (r !== w) r.saying = '';
       if (!fireConv) fireConv = heading('焚き火の会');
-      say(w, q.line, fireConv, fast); lastSpeaker = w.id;
+      say(w, q.line, fireConv, fast, q.isl); lastSpeaker = w.id;
       return;
     }
     // each reports once: its progress and the last thing it did; then what it can pass on to another; then quiet
@@ -2083,17 +2069,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const f of seated) for (const t of seated) {
         if (f === t) continue;
         const ob = tip(f, t); if (!ob) continue;
-        fireQueue.push({ who: f.id, line: `共有：${t.v.name}へ。${ob.label}が1つある（約${Math.round(ob.dist)}m）` });
+        { const m = SAY.share(ob.kind, ob.dist, t.id, true); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl }); }
         agentOf(t)?.hear(ob, f.id, `${f.v.name}によると、${ob.label}が${Math.round(ob.dist)}mほど先にある`, clockMs);
         t.diary.push({ at: clockMs, text: `焚き火の会で、${f.v.name}から${ob.label}の位置を聞いた（約${Math.round(ob.dist)}m）`, key: 'met', with: f.id });
       }
       return;
     }
     fireUsed.add(who.id); fireLines++; lastSpeaker = who.id;
-    const did = who.today.filter((x) => !x.endsWith('と話した'));
     for (const r of seated) if (r !== who) r.saying = '';
     if (!fireConv) fireConv = heading('焚き火の会');
-    say(who, `報告：${progressOf(who)}${did.length ? `。今日：${did[did.length - 1]}` : ''}`, fireConv, fast);
+    { const m = SAY.report(countsOf(who)); say(who, m.ja, fireConv, fast, m.isl); }
   }
   // Dot at work, the piece flying into place, the chips, a newly fitted piece settling
   let fieldT = 0;

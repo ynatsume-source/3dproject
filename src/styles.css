@@ -368,6 +368,11 @@ body.watching #tele, body.watching #hint { opacity: 0; }
 
 /* the residents' own languages over the words, and the conversation log */
 .bubble i.ln { display: block; font-style: normal; font-size: 10.5px; letter-spacing: .08em; color: #7d9095; margin: 0 0 2px; }
+/* the island's own letters, large; how they sound, and the subtitle, small (src/robots/islandlang.ts) */
+.bubble svg.isl { display: block; height: 22px; width: auto; max-width: 100%; color: #14262c; margin: 3px 0 2px; }
+.bubble .sub { display: block; font-size: 11.5px; line-height: 1.5; color: #4a5d62; }
+.mutter i svg.isl { display: block; height: 22px; width: auto; max-width: 100%; margin-bottom: 2px; }
+.mutter i small { display: block; font-size: 11px; opacity: .8; }
 #guide section.conv { margin: 0 0 14px; }
 #guide section.conv h4 { margin: 0 0 5px; font-size: 11.5px; font-weight: 500; color: var(--ink-dim); letter-spacing: .06em; }
 #guide section.conv h4 time { font: 400 10px/1 var(--f-mono); color: var(--ink-faint); margin-right: 8px; }

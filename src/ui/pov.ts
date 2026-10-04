@@ -113,7 +113,7 @@ export function makePov(root: HTMLElement) {
       // what it says to the others (its own bubble is not drawn from inside its head)
       if (r.saying && r.saying !== lastSay) {
         lastSay = r.saying; mutT = 9;
-        $('.mutter i').textContent = gibber(r.id, r.saying); $('.mutter span').textContent = '「' + r.saying + '」';
+        $('.mutter i').innerHTML = gibber(r.id, r.saying); $('.mutter span').textContent = r.saying;
         $('.mutter').classList.add('on');
         clearTimeout(offT); offT = window.setTimeout(() => $('.mutter').classList.remove('on'), 5000);
       } else if (!r.saying) lastSay = '';
