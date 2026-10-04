@@ -14,13 +14,13 @@
 // driftwood. Wood with the air cut off becomes charcoal in a separate step, later.
 
 import type { ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
-import { react, REACTIONS, splitComp, totalMg, type Composition } from '../chem';
+import { addComp, react, REACTIONS, totalMg, type Composition } from '../chem';
 import { pv } from '../params';
 import { fuelLhvJPerMg, GLOW_TARGET_C, PACE_K_PER_H } from '../physics';
 import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, subStepEnd, tileComp } from './common';
 import { advanceWare, settleWare, type WareState } from './kiln-ware';
 
-export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.1' } as const;
+export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.2' } as const;
 export const WOOD_FIRE_CONTRACT = /^0\.2\.\d+$/;
 const SCHEMA = 'civ-sci.tile-wood-fire/1';
 const EVAL = 'tile-wood-fire-eval/0.1.0';
@@ -55,7 +55,8 @@ const fail = (req: ScienceStepRequest, why: string): ScienceStepResultV02 => fai
 /** A firewood lot as a composition: water_ppm of the whole lot; ash on the dry part (ash_dry_ppm, else woodAshFrac). */
 export function fuelComp(lot: ScienceStepRequest['lots'][number]): Composition | string {
   const q = lot.quality ?? {};
-  if (!finite(q.water_ppm, 0, 600_000)) return `firewood ${lot.lotId} needs quality.water_ppm (0–600000, of the whole lot)`;
+  // up to 80% water: green wood is about 30–60%; a handed-back lot of very wet wood can end a little wetter than it came
+  if (!finite(q.water_ppm, 0, 800_000)) return `firewood ${lot.lotId} needs quality.water_ppm (0–800000, of the whole lot)`;
   const ashFrac = q.ash_dry_ppm !== undefined ? q.ash_dry_ppm / 1e6 : pv('woodAshFrac');
   if (!finite(ashFrac, 0, 0.2)) return `firewood ${lot.lotId}: ash_dry_ppm must be within 0–200000`;
   const amount = lot.amount.value;
@@ -117,6 +118,10 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const known = envUsable(req);
   const fuelTotal = totalMg(d.fuel);
   const lhv = fuelLhvJPerMg(d.fuel); // J per mg as burned (dry LHV less the latent heat of the moisture)
+  // The lot burns as it is made up: each mg is part water, part ash, part dry wood. Only the dry wood releases heat
+  // (usedJ); the moisture leaves as vapour and its latent heat is a loss. Settling takes whole mg of EACH part.
+  const share = (k: 'wood_dry' | 'water' | 'ash') => (d.fuel[k] ?? 0) / fuelTotal;
+  const lhvDryJPerMg = pv('woodLhvDry') / 1e6;
   let t = d.lastTo;
   if (known && req.stop !== 'equipment-lost') {
     const Ta = req.environment.airTempC!;
@@ -140,13 +145,14 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
       }
       const burn = Math.min(d.heldBurnKgS * dt * 1e6, fuelTotal - d.burnedMg); // mg of firewood, as it is
       d.burnedMg += burn;
-      const released = burn * lhv, chamberIn = released * p.chamberFraction;
+      const released = burn * lhv, chamberIn = released * p.chamberFraction;   // net heat, moisture already boiled off
+      const gross = burn * share('wood_dry') * lhvDryJPerMg;                       // heat of the dry wood burned
       const ua = d.phase === 'cool' && d.forced ? p.uaWPerK * p.forcedCoolingUaFactor : p.uaWPerK;
       const wall = ua * (d.kilnC - Ta) * dt;
       const { sens, latent, chem } = advanceWare(d, d.kilnC, dt);
       d.kilnC += (chamberIn - wall - sens - latent - chem) / p.heatCapJPerK;
       d.peakKilnC = Math.max(d.peakKilnC, d.kilnC);
-      d.cumUsedJ += released; d.cumLostJ += (released - chamberIn) + wall + latent; d.cumChemJ += chem;
+      d.cumUsedJ += gross; d.cumLostJ += (gross - chamberIn) + wall + latent; d.cumChemJ += chem;
       d.elapsedS += dt; t = tEnd;
       if (d.phase === 'cool' && d.wareC < UNLOAD_C && (t - d.startMs) % STEP_MS === 0) { d.phase = 'done'; d.outcome ??= 'done'; }
     }
@@ -175,19 +181,26 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (ending) {
     const ware = settleWare({ w: d, lot: tile, location: d.location, seed: d.seed, runId: req.runId, endAt,
       done, peakKilnC: d.peakKilnC, historyComplete: d.historyComplete });
-    // the firewood: what burned, rounded UP to whole mg (never more than the lot). The heat reported is that of the
-    // exact amount burned (cumulative, floored to J), so it never exceeds the heat of the wood settled as burned:
-    // a run stopped after a fraction of a mg still uses up 1 mg of wood and cannot report heat from wood it returns.
-    const burnedInt = Math.min(fuelTotal, Math.ceil(d.burnedMg - 1e-6));
-    const { taken, rest } = splitComp(d.fuel, burnedInt);
+    // the firewood: each part (dry wood, water, ash) is settled as burned rounded UP to whole mg, never more than
+    // the lot holds. The heat reported is that of the exact dry wood burned (cumulative, floored to J), so it never
+    // exceeds the heat of the dry wood settled: a run stopped after a fraction of a mg uses up 1 mg of dry wood (with
+    // its O2) and cannot report heat from wood it hands back.
+    const taken: Composition = {};
+    for (const k of ['wood_dry', 'water', 'ash'] as const) {
+      const n = Math.min(d.fuel[k] ?? 0, Math.ceil(d.burnedMg * share(k) - 1e-6));
+      if (n > 0) taken[k] = n;
+    }
+    const rest = addComp(d.fuel, taken, -1);
     const r = react('wood_dry', taken.wood_dry ?? 0, REACTIONS.woodCombustion.coeffs, REACTIONS.woodCombustion.closeInto);
     const vapour = (taken.water ?? 0) + (r.produced.water ?? 0), co2 = r.produced.co2 ?? 0, o2 = r.consumed.o2 ?? 0;
     res.consumed = [...ware.consumed, { lotId: d.fuelId, amount: { value: fuelTotal, unit: 'mg' } }];
     res.produced = [...ware.produced];
     if (totalMg(rest) > 0) {
-      const restQ: Record<string, number> = { ...(wood.quality ?? {}), water_ppm: Math.round(((rest.water ?? 0) * 1e6) / totalMg(rest)) };
+      // fractions kept unrounded, so the returned lot reads back (fuelComp) to exactly these mg: rounding them to whole
+      // ppm would turn up to half a ppm of the lot from water into wood, or back, on every return
+      const restQ: Record<string, number> = { ...(wood.quality ?? {}), water_ppm: ((rest.water ?? 0) * 1e6) / totalMg(rest) };
       const restDry = totalMg(rest) - (rest.water ?? 0);
-      if (restDry > 0) restQ.ash_dry_ppm = Math.round(((rest.ash ?? 0) * 1e6) / restDry);
+      restQ.ash_dry_ppm = restDry > 0 ? ((rest.ash ?? 0) * 1e6) / restDry : 0;
       res.produced.push({ materialId: 'firewood', amount: { value: totalMg(rest), unit: 'mg' }, quality: restQ, into: wood.location });
     }
     if (taken.ash) res.produced.push({ materialId: 'wood_ash', amount: { value: taken.ash, unit: 'mg' }, into: d.location });
@@ -201,7 +214,7 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (d.outcome === 'peak_not_reached') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: 'いくら薪を足しても、思った火の色にならなかった' });
     if (d.outcome === 'untended') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '見ていない間に火が落ちていた' });
     if (taken.ash) res.observations.push({ at: endAt, channel: 'sight', quantity: 'ash', text: '白っぽい灰が残った' });
-    if (totalMg(rest) > 0 && burnedInt > 0) res.observations.push({ at: endAt, channel: 'sight', quantity: 'fuel', text: '薪が少し残った' });
+    if (totalMg(rest) > 0 && totalMg(taken) > 0) res.observations.push({ at: endAt, channel: 'sight', quantity: 'fuel', text: '薪が少し残った' });
     // (the drawn O2 and the gases are not observations: nobody sees them; the world records them as flows)
   }
   return res;

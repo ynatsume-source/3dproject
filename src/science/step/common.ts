@@ -72,7 +72,7 @@ export function lotComp(lot: LotView): Composition {
     const m = /^x_(.+)_ppm$/.exec(k);
     if (!m) continue;
     const sp = m[1] as SpeciesId;
-    if (!(sp in SPECIES)) throw new Error(`unknown species in quality: ${sp}`);
+    if (!Object.hasOwn(SPECIES, sp)) throw new Error(`unknown species in quality: ${sp}`);
     const mg = Math.round((amount * v) / 1e6);
     if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
   }
@@ -161,7 +161,7 @@ export function tileComp(lot: LotView): Composition {
     const m = /^xd_(.+)_ppm$/.exec(k);
     if (!m) continue;
     const sp = m[1] as SpeciesId;
-    if (!(sp in SPECIES) || sp === 'water') throw new Error(`invalid dry-basis species in quality: ${sp}`);
+    if (!Object.hasOwn(SPECIES, sp) || sp === 'water') throw new Error(`invalid dry-basis species in quality: ${sp}`);
     const mg = Math.round((dry * v) / 1e6);
     if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
   }

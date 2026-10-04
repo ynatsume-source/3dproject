@@ -80,7 +80,7 @@
       "category": "fuel",
       "unit": "mg",
       "quality": {
-        "water_ppm": "水/ロット質量（必須、0〜600000）",
+        "water_ppm": "水/ロット質量（必須、0〜800000。小数も可：返却ロットはmgに正確に戻るよう丸めない）",
         "ash_dry_ppm": "乾いた部分あたりの灰分（なければ woodAshFrac 1%、仮定）"
       },
       "note": "乾いた部分は CH1.44O0.66 で近似。発熱量は絶乾 18 MJ/kg（仮定）。海水の塩分は扱わない。由来（どの流木か）は世界側のロットの来歴で持つ"
@@ -311,7 +311,7 @@
     },
     {
       "id": "p13w_test_tile_wood_fire",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "contract": "0.2.x（提案中。drawn が要る）",
       "label": "薪で焼く（試験片）",
       "kind": "thermal+chemical",
@@ -337,7 +337,7 @@
       "energyModel": {
         "mode": "combustion",
         "source": "src:combustion:<runId>",
-        "rule": "熱の申し出は受けない（同じ火を二重に数えない）。燃えた薪の質量×燃えたときの発熱量。炉に入るのは chamberFraction、残りは煙突・炎から失う"
+        "rule": "熱の申し出は受けない（同じ火を二重に数えない）。usedJ は燃えた乾いた木 × 18 MJ/kg（仮定）。薪の水分の蒸発熱と煙突・炎の熱は lostJ。炉に入るのは正味の熱 × chamberFraction"
       },
       "operator": "fire_plan {pace 0-2, targetGlow 0-3, holdMin, forcedCooling 0/1}（電気の試験窯と同じ）",
       "stepMs": 30000,
@@ -350,11 +350,11 @@
       ],
       "readiness": "test-world-only",
       "note": "空気の不足（くすぶり・炭化）、煙、湿った薪の着火、流木の塩分は扱わない。有機物を含む素地は拒否（燃え抜きは別工程）",
-      "settlement": "燃えた薪は mg に切り上げて精算し、報告する熱は燃えた量そのもの（J に切り捨て）。熱は常に精算した薪の熱以下。試験片の来歴は、試験片と薪のどちらかが不完全なら不完全",
+      "settlement": "薪は乾いた木・水・灰の部分ごとに、燃えた量を mg に切り上げて精算する（ロットの持つ量まで）。報告する熱（usedJ）は燃えた乾いた木そのものの発熱（J に切り捨て）なので、常に精算した乾いた木の熱以下。薪の水分の蒸発熱は損失（lostJ）。返却する薪の water_ppm・ash_dry_ppm は丸めない（読み戻すと mg に正確に戻る）。試験片の来歴は、試験片と薪のどちらかが不完全なら不完全",
       "tolerance": "30秒格子の上は区切り方によらず一致。格子外（7.3秒）は熱・ガス・燃え残りの薪 0.25% 以内、焼結 0.3%、終わる時刻 +60 秒（ALIGNMENT §10）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result).",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {

@@ -1,6 +1,6 @@
 # 薪で焼く工程の統合手順書（案）
 
-2026-10-03 / ブランチ `codex/civilization-simulation` / 対象 `p13w_test_tile_wood_fire`（0.1.1）、カタログ `civ-sci-test-2`、**接続仕様 0.2.x（提案中）**
+2026-10-03 / ブランチ `codex/civilization-simulation` / 対象 `p13w_test_tile_wood_fire`（0.1.2）、カタログ `civ-sci-test-2`、**接続仕様 0.2.x（提案中）**
 
 **未採択の提案。** 秤量・成形・乾燥（main c693514）の次に、本体がつなぐ工程。本体の回答（SCIENCE_FINAL_REVIEW_RESPONSE.md §3）どおり、0.2.0 の採択はこの工程を統合する変更で行う想定。
 統合と本体側の検査は本体側が行う。
@@ -30,7 +30,7 @@
 | 項目 | 内容 |
 |---|---|
 | contract | `'0.2.0'`（0.1.x は `unknown contract` で拒否） |
-| processVersion / catalogVersion | `'0.1.1'` / `'civ-sci-test-2'` |
+| processVersion / catalogVersion | `'0.1.2'` / `'civ-sci-test-2'` |
 | environment | 実際の天気（`airTempC` が要る。測った値だけ）。**最初の区間の天気が不明なら火を点けない**（拒否）。途中で不明になったら、その区間で終わる |
 | lots | 試験片 1つ（`test_tile_dry` または `test_tile_green`）と、薪 1つ（`firewood`、quality に `water_ppm` 必須、`ash_dry_ppm` は任意）。薪は**この焼成に使ってよい分だけ**予約する（本体の台帳で切り出す） |
 | equipment | 炉 1つ：`open_fire_pit`（地面の焚き火）または `fixture_wood_kiln`（試験用の薪窯）。`params: { heatCapJPerK, uaWPerK, chamberFraction, maxBurnKgPerH, forcedCoolingUaFactor }` |
@@ -50,7 +50,8 @@
   - released：水蒸気（薪の水分＋燃焼でできた水＋素地から出た水）、CO2（燃焼＋素地の方解石）
   - drawn：空気からの O2
   - Σconsumed + Σdrawn = Σproduced + Σreleased が mg で一致する
-  - 燃えた薪は **mg に切り上げて**精算する。区間ごとに報告する熱は燃えた量そのもの（J に切り捨て）なので、報告した熱は常に精算した薪の熱以下になる。1 ms で止めても 1 mg の薪が燃えたことになり、返した薪から熱を取り出すことはない（Codex W3）
+  - 燃えた薪は、**乾いた木・水・灰の部分ごとに mg に切り上げて**精算する。区間ごとに報告する熱（usedJ）は燃えた乾いた木そのものの発熱（J に切り捨て）で、薪の水分の蒸発熱は損失（lostJ）。報告した熱は常に精算した乾いた木の熱以下になる。1 ms で止めても乾いた木 1 mg（とその O2）が燃えたことになり、返した薪から熱を取り出すことはない。返した薪を次の焼成に使っても同じ（Codex W3・W3a）
+  - 返却する薪の `water_ppm`・`ash_dry_ppm` は丸めない小数。読み戻すと mg に正確に戻る（丸めると、大きな薪ロットでは返すたびに水と木が最大で半 ppm 入れ替わる）。薪の水分は 0〜80% を受け付ける
   - 試験片の来歴は、試験片と薪のどちらかが不完全なら不完全になる（Codex W5）
 - 燃え残った薪は新しいロットになる。由来は本体の台帳で「元の薪ロットの残り」としてつなぐ（流木の来歴を保つ）。
 - 観察：いちばん熱いときの火の色、ひび、叩いた音、灰が残った、薪が残った／尽きた、あきらめた、見ていない間に火が落ちた。数値は出さない（計器がない）。

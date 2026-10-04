@@ -24,7 +24,7 @@ const KILN = { equipmentId: 'eq:wk', kind: 'fixture_wood_kiln', catalogEntry: 'f
 const env = (at: number, source: 'live' | 'unknown' = 'live') => ({ sampleId: `env:${at}`, source, effectiveAt: at, airTempC: 28, humidity: 0.7, windMs: 3 });
 const plan = (glow = 2, hold = 90, pace = 1) => [{ at: 0, residentId: 'res:dot', action: 'fire_plan', params: { pace, targetGlow: glow, holdMin: hold, forcedCooling: 0 } }];
 const base = (o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({
-  contract: '0.2.0', requestId: 'r0', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.1', catalogVersion: 'civ-sci-test-2',
+  contract: '0.2.0', requestId: 'r0', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.2', catalogVersion: 'civ-sci-test-2',
   interval: { from: 0, to: H }, state: null, environment: env(0), lots: [TILE, wood(60)], equipment: [KILN], energy: [], actions: plan(), seed: 3, ...o });
 
 /** Run in equal chunks until the run ends; the plan goes with the first request only. */
@@ -56,8 +56,8 @@ const k = run(H);
   const o2Ratio = r.drawn[0].amount.value / burnedDry, expect = (1.03 * molarMass('o2')) / molarMass('wood_dry');
   ok(Math.abs(o2Ratio / expect - 1) < 0.002, 'O2 drawn per kg of dry wood follows CH1.44O0.66 + 1.03 O2', `${o2Ratio.toFixed(4)} vs ${expect.toFixed(4)} kg/kg`);
   ok(Math.abs(amount(r.produced, 'wood_ash') / burnedDry - 0.01) < 0.001, 'ash is 1% of the dry wood burned (assumed)');
-  ok(Math.abs(k.usedJ / ((k.dg.burnedMg as number) * (0.85 * 0.99 * 18e6 - 0.15 * 2.43e6) / 1e6) - 1) < 1e-4, 'heat released = mass burned × LHV as burned (dry wood 18 MJ/kg, ash none, less the latent heat of the moisture)',
-    `${(k.usedJ / 1e6).toFixed(1)} MJ`);
+  ok(Math.abs(k.usedJ / ((k.dg.burnedMg as number) * 0.85 * 0.99 * 18) - 1) < 1e-4,
+    'heat released (usedJ) = dry wood burned × 18 MJ/kg; the moisture boils off as a loss (in lostJ)', `${(k.usedJ / 1e6).toFixed(1)} MJ`);
   ok(r.energy.every((e) => e.sourceId === 'src:combustion:run:wf'), 'heat is reported from src:combustion (not an offer)');
   ok(r.observations.some((o) => o.text?.includes('橙')) && r.observations.some((o) => o.text === '白っぽい灰が残った') && !r.observations.some((o) => o.value !== undefined),
     'the resident sees the glow, the ash, the tile: no numbers without an instrument', r.observations.map((o) => o.text).join(' / '));

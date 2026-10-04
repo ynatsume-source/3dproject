@@ -222,7 +222,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   const WOOD = { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 60_000_000, unit: 'mg' as const }, location: 'site:woodpile', quality: { water_ppm: 150_000 } };
   const WKILN = { equipmentId: 'eq:wk', kind: 'fixture_wood_kiln', catalogEntry: 'fixture_wood_kiln', catalogVersion: 'civ-sci-test-2', condition: 1,
     params: { heatCapJPerK: 40_000, uaWPerK: 8, chamberFraction: 0.3, maxBurnKgPerH: 15, forcedCoolingUaFactor: 5 } };
-  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.1',
+  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.2',
     catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 3_600_000 }, state: null,
     environment: { sampleId: 'env:wf', source: 'live', effectiveAt: 0, airTempC: 28, humidity: 0.7, windMs: 3 }, lots: [TILE_D, WOOD], equipment: [WKILN], energy: [],
     actions: [{ at: 0, residentId: 'res:dot', action: 'fire_plan', params: { pace: 1, targetGlow: 2, holdMin: 90, forcedCooling: 0 } }], seed: 3 };
@@ -270,6 +270,32 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   }
   ok(free <= 0, 'W3: twenty 1 ms runs on the same wood never report more heat than the wood they used up', `${free.toFixed(1)} J beyond the settled wood`);
 
+  // W3a (lab b8bf6ec): each part of the wood is settled by itself; heat only with dry wood that is used up,
+  // also when the wood handed back is burned again in the next run
+  const wetLot = (q: Record<string, number>, mg = 1000) => ({ ...WOOD, amount: { value: mg, unit: 'mg' as const }, quality: q });
+  const half = checked({ ...WF, interval: { from: 0, to: 1 }, stop: 'operator', lots: [TILE_D, wetLot({ water_ppm: 500_000, ash_dry_ppm: 0 })] });
+  const halfBack = half.produced.find((p) => p.materialId === 'firewood')!;
+  const halfJ = half.energy.reduce((x, e) => x + e.usedJ, 0);
+  const backDry = halfBack.amount.value * (1 - halfBack.quality!.water_ppm / 1e6);
+  ok(halfJ > 0 && backDry <= 499 + 1e-6 && (drawnOf(half)?.[0]?.amount.value ?? 0) >= 1,
+    'W3a: half-water wood stopped after 1 ms: heat only with dry wood used up (and its O2)', `${halfJ} J, dry wood back ${backDry.toFixed(3)} mg of 500`);
+  const LOW = { ...WKILN, params: { ...WKILN.params, maxBurnKgPerH: 1 } };
+  let lot = wetLot({ water_ppm: 600_000, ash_dry_ppm: 0 }), J20 = 0, O2 = 0, dryUsed = 0;
+  for (let i = 0; i < 20; i++) {
+    const dry0 = lot.amount.value * (1 - lot.quality.water_ppm / 1e6);
+    const r = checked({ ...WF, requestId: `w3a-${i}`, runId: `run:w3a-${i}`, interval: { from: i, to: i + 1 }, stop: 'operator', equipment: [LOW], lots: [TILE_D, lot],
+      actions: [{ ...WF.actions[0], at: i }] });
+    const back = r.produced.find((p) => p.materialId === 'firewood');
+    if (!back) { ok(false, `W3a: run ${i} handed wood back`, `${r.status} ${r.evidence.notes}`); break; }
+    lot = { ...lot, amount: back.amount as { value: number; unit: 'mg' }, quality: back.quality as Record<string, number> };
+    dryUsed += dry0 - back.amount.value * (1 - back.quality!.water_ppm / 1e6);
+    J20 += r.energy.reduce((x, e) => x + e.usedJ, 0); O2 += drawnOf(r)?.reduce((x, d) => x + d.amount.value, 0) ?? 0;
+  }
+  ok(J20 <= dryUsed * 18 + 1e-6 && (J20 === 0 || O2 > 0), 'W3a: twenty 1 ms runs, each burning the wood the last one handed back: heat ≤ dry wood used × 18 J/mg, never heat without O2',
+    `${J20} J from ${dryUsed.toFixed(3)} mg of dry wood, O2 ${O2} mg (was 20 J, no dry wood, no O2)`);
+  ok(Math.abs(lot.amount.value * (1 - lot.quality.water_ppm / 1e6) - Math.round(lot.amount.value * (1 - lot.quality.water_ppm / 1e6))) < 1e-6,
+    'W3a: the handed-back lot reads back to whole mg of dry wood (fractions kept unrounded)');
+
   // W4: shaping copies only a valid dry make-up
   const SH: ScienceStepRequest = { ...FIRE, contract: '0.1.0', processId: 'p11x_test_tile_shape', processVersion: 'fixture-2', runId: 'run:w4',
     environment: { sampleId: 'env:w4', source: 'simulation', effectiveAt: 0 }, actions: [], interval: { from: 0, to: 60_000 },
@@ -286,6 +312,15 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     const r = shape(q as Record<string, number>);
     ok(r.status === 'failed' && (r.diagnostics as { code: string }).code === code && r.consumed.length + r.produced.length + r.energy.length === 0,
       `W4: ${name} is refused (${code}), nothing consumed, no heat`, String((r.diagnostics as { code?: string })?.code));
+  }
+
+  // W4a (lab b8bf6ec): only registered species, never inherited object keys
+  for (const key of ['xd_constructor_ppm', 'xd_toString_ppm', 'xd___proto___ppm']) {
+    const q = JSON.parse(`{"water_ppm":193548,"xd_kaolinite_ppm":450000,"xd_quartz_ppm":300000,"${key}":1000}`) as Record<string, number>;
+    const r = checked({ ...SH, lots: [{ ...SH.lots[0], quality: q }] });
+    ok(r.status === 'failed' && (r.diagnostics as { code: string }).code === 'clay-make-up-unknown-species' && r.consumed.length === 0, `W4a: shaping refuses ${key}`);
+    const fired = scienceStep({ ...FIRE, lots: [{ ...FIRE.lots[0], quality: { ...FIRE.lots[0].quality, ...q } }] });
+    ok(fired.status === 'failed' && /invalid dry-basis species/.test(String(fired.evidence.notes)), `W4a: a tile carrying ${key} is refused by the shared reading (tileComp)`, String(fired.evidence.notes));
   }
 
   // W5: wood with an incomplete history passes it on to the fired tile

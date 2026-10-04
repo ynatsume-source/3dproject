@@ -180,3 +180,14 @@ Codex の診断スクリプト（`science-review-3839fac.repro.mjs`、工程版�
 
 **本体側に取り込み直してほしいもの**（main にあるファイル）：`src/science/step/simple.ts`（W4・W2）、`src/science/step/drying.ts`（W2）、`src/science/step/common.ts`（W2、`checkCommon` の契約版の引数）、`src/science/step/validate.ts`（0.2.x の drawn）、`data/science/catalog-test-2.json`（追加と注記）。
 正しい入力の結果は変わらないので、工程版（`fixture-2`・乾燥 `0.3.0`）は据え置いた。変わるのは不正な入力の拒否と、0.2.x の要求への拒否の形だけ。
+
+## 65aa96b の再レビュー（Codex lab b8bf6ec）への対応
+
+W1・W2・W5 は確認済み。残件2点を直した（薪で焼く 0.1.2）。
+
+| 指摘 | 原因 | 対応 | 確認 |
+|---|---|---|---|
+| W3a 湿った薪で、切り上げた 1 mg が水だけになり、可燃分を返したまま熱を報告する。返した薪を次の run に使うと積み上がる | 薪全体の量を切り上げてから成分に割り振り、熱は薪全体の平均発熱量で数えていた | 乾いた木・水・灰の**部分ごとに**切り上げて精算する。usedJ は燃えた乾いた木の発熱だけ（水分の蒸発熱は lostJ）。返却ロットの ppm は丸めず、読み戻すと mg に正確に戻る。水分の上限を 80% に（湿った薪は返すと少し湿る） | 回帰 W3a：水50%の薪を 1 ms で止めると乾いた木 1 mg と O2 を精算して 8 J。水60%の薪を返却ロットでつないで20回：乾いた木 20 mg・O2 20 mg・21 J（≤ 360 J）。Codex の診断（`science-review-65aa96b.repro.mjs`、版 0.1.2）でも4条件とも「乾いた木を減らさずに熱」なし |
+| W4a `in SPECIES` が `constructor`・`toString`・`__proto__` を化学種として通す | 継承したプロパティも `in` で真になる | 登録した化学種だけ（`Object.hasOwn`）。成形と、ロット・試験片の組成を読む共通の処理（`lotComp`・`tileComp`）の3か所 | 回帰 W4a：3つのキーとも成形で拒否、焼成でも共通の読み取りで拒否。Codex の診断でも全9条件が想定どおり |
+
+**本体側に取り込み直してほしいもの**：`src/science/step/simple.ts`（W4a）、`src/science/step/common.ts`（W4a）。前回の 65aa96b の分（simple・drying・common・validate・カタログ）とまとめて取り込める。正しい入力の結果は変わらない。

@@ -84,7 +84,7 @@ export const simpleFixtureStep: ScienceStep = req => {
       for (const [k, v] of Object.entries(lot.quality!)) {
         const m = /^xd_(.+)_ppm$/.exec(k);
         if (!m) continue;
-        need(m[1] in SPECIES && m[1] !== 'water', 'clay-make-up-unknown-species');
+        need(Object.hasOwn(SPECIES, m[1]) && m[1] !== 'water', 'clay-make-up-unknown-species'); // registered species only (not inherited keys)
         need(int(v), 'clay-make-up-not-whole-ppm');
         sum += v;
       }
