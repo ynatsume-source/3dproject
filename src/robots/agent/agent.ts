@@ -129,7 +129,7 @@ export class Agent {
       this.out.diary.push(`うまくいかなかった：${detail ?? optionId}`);
       if (this.goal) this.goal.steps = [];
     } else if (outcome === 'done' && this.goal && !this.goal.steps.length) {
-      this.out.diary.push(`やりとげた：${this.goal.text}`);
+      if (this.goal.by !== 'habit') this.out.diary.push(`やりとげた：${this.goal.text}`);   // (its everyday habits are not news)
       this.why = `目的が終わった：${this.goal.text}`; this.goal = null;
     } else if (outcome === 'interrupted') this.why ||= '';
     if (this.knowledge.length > 80) this.knowledge.splice(0, this.knowledge.length - 80);

@@ -40,6 +40,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip
 住人が通れない物は `src/robots/solids.ts` の一つの登録（岩・幹・流木・小屋の柱・作業台・棚・桟橋の杭・焚き火）。描画や LOD と独立。経路の計画・一歩ごとの接触・目的地の接近位置が同じ登録と身体の大きさ（`body(r)`、持ち物込み）を使う。道がなければ直進せず諦める（`r.went`）。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/nav-check.ts`。移動・置く物・体の大きさを変えたら通す。
 住人について言うこと（状態表示・日記）は実際の状態から：向かっている途中は「向かっている」、着いてから「している」、道がふさがれば「回り道を探している」。日記の数値・見た魚は世界で本当に測った・見たもの（`Entry.obs`、`T.nearFish`）だけで、乱数で作らない。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/words-check.ts`。
 住人の主体性は ADR 0004（採択）。`src/robots/agent/`：観察（`observe`：視野・遮蔽・明るさ、物体 ID）→ 目的 → 計画（世界が出す選択肢 `optionsFor` の id だけ、ready=false は将来の手順）→ 行動（`taskFor`、世界が判定）→ 結果（`report`：done/gone/no way/blocked/interrupted/unavailable/timeout）→ 記憶（knowledge：saw/tried/heard/guessed、仮説は本物の結果でしか確定しない）。AI は節目だけ（`agent/config.ts` の MINDS が運用設定：モデル・1日の上限・間隔）。キーなし・予算切れ・応答なしでも習慣（HABIT）で動く。いまはドットとラッコが on。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/mind-check.ts`。住人どうしの頼む・断る・教える・渡す（`requests`、`ask`/`answer`/`tell`/`give`）と取り合いは `scripts/social-check.ts`。
+島だより（住人のメディア、`/journal/`）は docs/JOURNAL.md。住人の写真（`photo:` 行為、1日3枚・最低1枚、`PhotoRecord`）、記事（`src/journal/write.ts`：本人の記録と写真だけ、検査つき）、毎日の島（`scripts/journal-run.ts`、状態は journal-data ブランチ）、写真の描画（`tools/journal/photos.cjs`、`?journalshot`）、ページ（`scripts/journal-pages.ts`、build で生成、承認＝マージ済みの `content/journal/` だけ）。確認は `scripts/journal-check.ts`。
 `?debug` でコンソールに `seaglass` オブジェクト、`?diag` で GPU 診断パネル。
 
 ## 公開と報告

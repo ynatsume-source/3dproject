@@ -651,6 +651,8 @@ body.dock-open #menu { opacity: 1; transform: translate(-50%, 0); pointer-events
 #menu .rows button { appearance: none; border: 0; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
   background: rgba(255, 255, 255, 0.03); color: var(--ink-dim); font: 500 12.5px/1.2 var(--f-body); letter-spacing: .05em; padding: 11px 12px; border-radius: 12px;
   transition: background .4s ease, color .4s ease; }
+#menu .rows a.row-link { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px; color: var(--accent); text-decoration: none; font-size: 13px; }
+#menu .rows a.row-link:hover { background: rgba(160, 230, 220, 0.08); }
 #menu .rows button:hover { background: rgba(160, 230, 220, 0.08); color: var(--ink); }
 #menu .rows button[aria-pressed="true"] { color: var(--ink); background: rgba(30, 90, 96, 0.32); }
 #menu .rows button kbd { margin-left: auto; font: 400 9.5px/1 var(--f-mono); color: var(--ink-faint); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; }
@@ -785,3 +787,6 @@ body:has(#guide:not([hidden])) #quick { display: none; }
   #guide li p { font-size: 12.5px; line-height: 1.75; }
   #guide h2 { font-size: 16px; }
 }
+
+/* drawing a resident's photograph (?journalshot): the picture alone */
+body.journalshot > *:not(#scene) { visibility: hidden !important; }

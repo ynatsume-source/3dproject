@@ -26,6 +26,7 @@ import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
 import type { StudyWorld, StudyPlace, StudyIntent } from './lantern-study-types';
 import { makeItems, type Item, type ItemKind } from './items';
+import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
 // pat: 0 plain, 1 a green turtle's carapace (its scutes, from the shell's own coordinates), 2 scaled
@@ -173,11 +174,12 @@ export interface Resident {
   goal?: { tx: number; tz: number; x: number; z: number; none: boolean };   // where it will stand to reach where it is going (outside whatever is there)
   went?: 'arrived' | 'blocked' | 'no way' | 'nowhere to stand';   // how its last walk ended (robots/solids.ts)
   spotted?: string[];   // the fish it has really made out since its last note (for its diary)
+  photos?: PhotoRecord[];   // the photographs it chose to take (its media: src/journal/)
   seen?: { name: string; pos: THREE.Vector3; t: number; dur: number; lost: number };   // a fish going by that it is watching (Kamemaru, grazing)
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
   mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number;
-    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
+    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; photoAsk?: string };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
   lightK?: number;
   resume?: Task; resumeAt?: number;     // what it was in the middle of when someone came up to talk (to go back to after)
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift';   // what it has in its hands
@@ -199,6 +201,7 @@ export interface Residents {
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
   body(r: Resident): Body;
   mind(r: Resident): Agent | null;                 // its own mind (ADR 0004), if it has one
+  pose(rec: PhotoRecord): void;                    // (drawing a photograph again: everyone as they were, held still)
   setBrain(b: Brain | null | undefined): void;     // (tests: a stand-in brain; null: none; undefined: the model)
   observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
@@ -233,6 +236,9 @@ const rr = (a: number, b: number) => a + Math.random() * (b - a);
 const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''));
 const smooth01 = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const localHour = (ms: number) => (((ms / 3.6e6 + 9) % 24) + 24) % 24;
+/** Its day on the island (Asia/Tokyo), YYYY-MM-DD. */
+export const dayOf = (ms: number) => new Date(ms + 9 * 3.6e6).toISOString().slice(0, 10);
+const photosOn = (r: { photos?: PhotoRecord[] }, day: string) => (r.photos ?? []).filter((p) => p.day === day);
 const dayK = (hr: number) => Math.min(1, Math.max(0, (hr - 6.3) / 0.8)) * Math.min(1, Math.max(0, (18.9 - hr) / 0.8));
 const hhmm = (ms: number) => { const h = localHour(ms); return `${Math.floor(h)}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`; };
 
@@ -467,7 +473,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const bodyOf = (r: Resident): Body => { const b = BODY[r.id]; return r.holding === 'wood' && r.model.carry ? { ...b, r: Math.max(b.r, 0.38) } : b; };
   // what cannot be gone through: the island's (ocean/shore.ts: trunks, rocks, driftwood) and what has been built here
   const solids: Solids = T.solids ?? new Solids();
-  let builtKey = '', built: Solid[] = [], settled = false, lookT = 0;
+  let builtKey = '', built: Solid[] = [], settled = false, lookT = 0, still = false;
   solids.changing(() => {
     // (worked out again only when something has been built or taken down)
     let key = ''; for (const m of HUT) key += m.visible ? 1 : 0; for (let i = 0; i < posts.length; i++) key += (posts[i].visible ? 2 : 0) + (bases[i].visible ? 1 : 0);
@@ -750,10 +756,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return out.sort((a, b) => a.dist - b.dist);
   }
   // What it can do now, as the world offers it: only with things it knows of (has seen), never coordinates.
+  // (what it sees, worked out at most once per moment of the island's clock: asked for by several things in a step)
+  const seenAt = new Map<string, { t: number; obs: Observation[] }>();
+  const seenCache = (r: Resident) => { const c = seenAt.get(r.id); if (c && c.t === clockMs) return c.obs; const obs = observe(r); seenAt.set(r.id, { t: clockMs, obs }); return obs; };
   function optionsFor(r: Resident, a: Agent): Option[] {
     const o: Option[] = [], known = (id: string) => a.seen.has(id);
     const awake = (x: Resident) => x.act !== 'sleep' && !(x.task?.kind === 'sleep' && x.task.arrived);
     // (to the others: what it can ask of them, tell them, hand them, and its answers to what they asked of it)
+    // (a photograph of something in view it would like to keep: a few a day, and only while there is light)
+    const shotsToday = photosOn(r, dayOf(clockMs)).length;
+    const shotIds = new Set(photosOn(r, dayOf(clockMs)).map((p) => p.subject.id));   // (not the same thing twice in a day)
+    if (dayK(localHour(clockMs)) > 0.25 && shotsToday < PHOTOS_PER_DAY) for (const ob of seenCache(r).filter((x) => x.dist > 1.2 && x.dist < 30 && !shotIds.has(x.id)).slice(0, 8))
+      o.push({ id: `photo:${ob.id}`, action: 'photo', label: `${ob.label}を写真に撮る（今日あと${PHOTOS_PER_DAY - shotsToday}枚）`, targetId: ob.id });
     for (const q of requests) if (q.to === r.id && q.status === 'open') o.push({ id: `accept:${q.id}`, action: 'accept', label: `${byId[q.from].v.name}の頼み（流木を届ける）を引き受ける` }, { id: `refuse:${q.id}`, action: 'refuse', label: `${byId[q.from].v.name}の頼みを断る` });
     if (r.id === 'rakko') {
       const dot = byId.dot;
@@ -803,6 +817,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const pl = PLOTS[+target.split('#')[1]], want = action === 'till' ? 0 : action === 'plant' ? 1 : 2;
       t = pl && pl.ok && pl.s === want && (action !== 'harvest' || growth(pl) >= 1) ? task(action, [pl.x + 0.8, pl.z], action === 'till' ? 'dig' : 'pick', action === 'till' ? rr(60, 110) : action === 'plant' ? rr(20, 35) : 8, { data: pl }) : null;
     }
+    else if (action === 'photo') {
+      const ob = observe(r).find((x) => x.id === id.slice(6));
+      if (!ob || photosOn(r, dayOf(clockMs)).length >= PHOTOS_PER_DAY) return null;
+      t = task('photo', [r.pos.x, r.pos.z], 'look', 3, { arrived: true, data: { ob } });
+    }
     else if (action === 'ask') { const o = byId[target]; t = o ? task('ask', [o.pos.x, o.pos.z], 'look', 3, { data: { to: target, what: id.split(':')[2] } }) : null; }
     else if (action === 'give') { const o = byId[target]; t = o && r.holding === 'wood' ? task('give', [o.pos.x, o.pos.z], 'pick', 2.5, { data: { to: target } }) : null; }
     else if (action === 'tell') { const o = byId[target], item = id.split(':')[2]; t = o && agentOf(r)?.seen.has(item) ? task('tell', [o.pos.x, o.pos.z], 'look', 3, { data: { to: target, item } }) : null; }
@@ -825,8 +844,23 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Its habits, when it has no mind to ask (or is waiting on one): the same choices it made before it had one.
   // (why it would rather not: what its own body and wants say just now)
   const refuseWhy = (r: Resident) => r.hunger > 0.45 ? 'おなかがすいている' : r.sleepy > 0.6 ? '眠い' : r.holding && r.holding !== 'wood' ? '手がふさがっている' : !items.list.some((it) => it.kind === 'wood' && agentOf(r)?.seen.has(`wood#${it.id}`)) ? '流木のある場所を知らない' : '今は貝殻を集めたい';
+  // (its habit with the camera: something worth keeping, now and then — the nearest friend, something new, its work —
+  // and if the afternoon is getting on and it has none today, one before the light goes)
+  const photoHabit = (r: Resident, opts: Option[]) => {
+    const shots = opts.filter((o) => o.action === 'photo'); if (!shots.length) return null;
+    const none = !photosOn(r, dayOf(clockMs)).length && localHour(clockMs) >= 15;
+    if (!none && Math.random() > 0.06) return null;
+    // (not the same thing twice in a day, and a kind it already has today only if there is nothing else)
+    const today = photosOn(r, dayOf(clockMs)), had = new Set(today.map((p) => p.subject.id)), kinds = new Set(today.map((p) => p.subject.kind));
+    const fresh = shots.filter((o) => !had.has(o.targetId!)); if (!fresh.length) return null;
+    const seenNow = new Map(observe(r).map((x) => [x.id, x.kind]));
+    const rank = (o: Option) => { const k = o.targetId!.split('#')[0]; return (kinds.has(seenNow.get(o.targetId!) ?? '') ? 10 : 0) + (o.targetId === 'drift' ? 0 : list.some((x) => x.id === o.targetId) ? 1 : k === 'young-tree' || k === 'shell' ? 2 : 3) + Math.random() * 1.5; };
+    const pick = fresh.map((o) => [o, rank(o)] as const).sort((x, y) => x[1] - y[1])[0][0];
+    return { text: none ? '今日の一枚を撮る' : '写真に残す', why: none ? '今日はまだ一枚も撮っていない' : '残しておきたいと思った', plan: [pick.id] };
+  };
   const HABIT: Record<string, Habit> = {
     rakko: (opts, a) => {
+      { const ph = photoHabit(byId.rakko, opts); if (ph && !opts.some((o) => o.action === 'accept')) return ph; }
       const r = byId.rakko, has = (p: string) => opts.find((o) => o.id.startsWith(p) && o.ready !== false)?.id;
       const near = (kind: string) => opts.filter((o) => o.action === kind).sort((x, y) => { const p = (o: Option) => a.seen.get(o.targetId!); const dx = p(x), dy = p(y); return (dx ? Math.hypot(dx.x - r.pos.x, dx.z - r.pos.z) : 1e9) - (dy ? Math.hypot(dy.x - r.pos.x, dy.z - r.pos.z) : 1e9); })[0]?.id;
       const acc = has('accept:');
@@ -850,6 +884,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     dot: (opts, a) => {
       const has = (p: string) => opts.find((o) => o.id.startsWith(p) && o.ready !== false)?.id;
       const r = byId.dot;
+      { const ph = photoHabit(r, opts); if (ph && !r.holding) return ph; }
       if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
       if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', 'place:hut'] };
       if (has('shelve:')) return { text: '見つけたものを棚に飾る', why: '手に持っている', plan: ['shelve:shelf'] };
@@ -1001,12 +1036,25 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'graze': { r.stats.notes++; const sg = sight(r); note(r, 'graze', { sight: sg.text }, 'ラグーンで海草を食べた', sg.obs); break; }
       case 'bask': note(r, 'bask', {}, '浜で甲羅干しをした'); break;
       // asking, giving, telling, answering (ADR 0004 §6): each a thing the world records
+      case 'photo': {
+        // (the shot: its own eyes, looking at it, the others where they are — kept to be drawn again exactly)
+        const ob = tk.data?.ob; if (!ob || photosOn(r, dayOf(clockMs)).length >= PHOTOS_PER_DAY) { tk.failed = 'unavailable'; break; }
+        const sn = res.sense(r), day = dayOf(clockMs), n = photosOn(r, day).length + 1;
+        const ty = ob.kind === 'friend' ? (byId[ob.id]?.pos.y ?? L.h(ob.x, ob.z)) + 0.4 : L.h(ob.x, ob.z) + (ob.kind === 'place' ? 0.8 : ob.kind === 'young-tree' ? 1.2 : 0.15);
+        const rec: PhotoRecord = { id: `${r.id}-${day}-${n}`, who: r.id, day, at: clockMs, eye: [sn.eye.x, sn.eye.y, sn.eye.z], look: [ob.x, ty, ob.z],
+          subject: { id: ob.id, kind: ob.kind, label: ob.label.replace(/（.*?）$/, '') }, why: agentOf(r)?.goal?.text,
+          others: list.filter((o) => o !== r).map((o) => ({ id: o.id, x: +o.pos.x.toFixed(2), y: +o.pos.y.toFixed(2), z: +o.pos.z.toFixed(2), head: +o.head.toFixed(3), act: o.act, holding: o.holding })) };
+        (r.photos ??= []).push(rec); if (r.photos.length > 40) r.photos.shift();
+        r.diary.push({ at: clockMs, text: `写真を撮った：${rec.subject.label}`, key: 'photo' }); if (r.diary.length > 400) r.diary.shift();
+        res.onEvent('photo', `${r.v.name}が${rec.subject.label}の写真を撮った`, r);
+        break;
+      }
       case 'ask': {
         const o = byId[tk.data.to]; if (!o) { tk.failed = 'unavailable'; break; }
         const q: Request = { id: `req#${++reqN}`, from: r.id, to: o.id, what: tk.data.what, at: clockMs, status: 'open' };
         requests.push(q); if (requests.length > 30) requests.shift();
         note(r, 'mind', {}, `${o.v.name}に流木を頼んだ`); r.diary.push({ at: clockMs, text: `${o.v.name}に、流木を届けてほしいと頼んだ`, key: 'mind' });
-        const oa = agentOf(o); if (oa) oa.asked(q, r.v.name); else answer(o, q, false, '聞いていなかった');
+        const oa = agentOf(o); if (oa) { oa.asked(q, r.v.name); flushMind(o, oa); } else answer(o, q, false, '聞いていなかった');
         break;
       }
       case 'answer': answer(r, tk.data.q, tk.data.yes, tk.data.reason); break;
@@ -1473,6 +1521,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     } else {
       r.walk = 0; r.act = tk.act;
       if (tk.kind === 'fire') { atFire.add(r.id); let d = Math.atan2(PIT.x - r.pos.x, PIT.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 2); }
+      if (tk.kind === 'photo' && tk.data?.ob) { let d = Math.atan2(tk.data.ob.x - r.pos.x, tk.data.ob.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 2.5); }
       if (tk.kind === 'review' && tk.data) { let d = Math.atan2(tk.data.x - r.pos.x, tk.data.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 1.5); }
       if (tk.kind === 'watch' || tk.kind === 'look') { let d = Math.atan2(-r.pos.x + (r.sp.home[0] - 60), -r.pos.z + (r.sp.home[1] + 80)) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt); }
       tk.t += dt;
@@ -1515,7 +1564,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         ...(study ? { lanternStudy: study.serialize() } : {}),
         minds: Object.fromEntries(Object.entries(agents).map(([id, a]) => [id, a.save()])),
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding })),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding, photos: r.photos?.slice(-40) })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
@@ -1535,6 +1584,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const r = byId[d.id]; if (!r) continue;
       r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = r.sp.living ? 1 : d.battery; r.hunger = d.hunger ?? 0.4; r.sleepy = d.sleepy ?? 0.2; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || [];
       r.holding = d.holding ?? (r.id === 'dot' && r.stats.wood > 0 ? 'wood' : '');
+      if (Array.isArray(d.photos)) r.photos = d.photos;
     }
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
@@ -1585,7 +1635,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
       explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
-      visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',
+      visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を写真に撮っている`, answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',
     };
     return base[k] ?? 'ひと休みしている';
   }
@@ -1599,6 +1649,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     hide: '',
     body: (r) => bodyOf(r),
     mind: (r) => agentOf(r) ?? null,
+    // (a photograph drawn again: the one who took it not drawn — it is behind the lens — the others where they were,
+    // and everyone held still)
+    pose(rec) {
+      still = true; settled = true; res.hide = rec.who;
+      for (const o of rec.others) { const x = byId[o.id]; if (!x) continue; x.pos.set(o.x, o.y, o.z); x.head = o.head; x.act = o.act as Act; x.holding = o.holding as Resident["holding"]; x.task = null; x.talk = null; x.saying = ''; }
+    },
     setBrain: (b) => { brainOverride = b; },
     observe: (r) => observe(r),
     solids,
@@ -1670,8 +1726,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (those with a mind of their own keep looking while they work; something new stops them — between steps)
       // (asked while its body's needs come first — hungry, asleep — it does not leave the other waiting: a no, and why)
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
-      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
-      for (const r of list) step(r, dt, false);
+      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { { const a0 = agentOf(r); if (a0 && !a0.why && localHour(clockMs) >= 15 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, dayOf(clockMs)).length && (r.mo.photoAsk ?? '') !== dayOf(clockMs)) { r.mo.photoAsk = dayOf(clockMs); a0.why = '今日はまだ写真を撮っていない（1日1枚は撮る）'; } } const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
+      if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       fireCircle(dt, false);
       // their lights: on after dark while they are up and about (not asleep, not under the water)
       { const nightK = 1 - dayK(localHour(ms)), tt = performance.now() / 1000;

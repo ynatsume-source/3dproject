@@ -126,6 +126,7 @@ function pipLight(depth: number) {
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
+let shotHold = false;   // (drawing a resident's photograph: the camera held where its eyes were — ?journalshot)
 const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyHop: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
 // flying by hand, a tap on something sends the drone to film it (as the cruise would, and then round it
@@ -142,7 +143,7 @@ function wantOpening(loc: Sea) {
   const q = location.search;
   if (/[?&]nointro/.test(q)) return false;
   if (/[?&]intro\b/.test(q)) return true;
-  if (shared || reduceMotion || /[?&](debug|lab|diag|gputest|probe|bisect|lantern-study)/.test(q)) return false;
+  if (shared || reduceMotion || /[?&](debug|lab|diag|gputest|probe|bisect|lantern-study|journalshot)/.test(q)) return false;
   try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); return m[loc.id] !== new Date().toDateString(); } catch (e) { return true; }
 }
 function startOpening(oc: Ocean) {
@@ -1423,6 +1424,7 @@ function renderIsland() {
   const key = aiKey();
   return `<h2>島の住人 <span>${loc.name}で暮らす4体</span></h2>
     <p class="lead">それぞれが自分の暮らしを持ち、島のどこかで出会うと話をします。はじめは挨拶、次に自己紹介、島で生きるコツ、近況……打ち解けてくると悩みも打ち明けます。見ていないあいだも、暮らしは続いています。</p>
+    <p class="lead"><a href="./journal/" target="_blank" rel="noopener" style="color:var(--accent)">島だより ↗</a>　ドットとラッコが、自分で撮った写真と自分の記録から毎日書いているメディア。</p>
     <ul>${cards}</ul>
     ${(() => { const vg = (R as any).village; if (!vg) return '';
       const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火を何度か囲むうちに、みんなで何かをつくる話が出てくるかもしれません（焚き火の会 ${vg.fires}回）。</p>`
@@ -1432,7 +1434,7 @@ function renderIsland() {
     <h3>聞こえてきた会話</h3>
     ${talk ? `<ol class="diary talk">${talk}</ol><button class="go" type="button" data-tab="talk">会話ログをすべて見る</button>` : '<p class="empty">まだ誰も出会っていません。</p>'}
     <h3>AIで言葉を書く（試作）</h3>
-    <p class="lead">Anthropic の API キーを入れると、出会ったときの会話を Claude が住人それぞれの性格で書きます。キーはこのブラウザの中にだけ保存されます。</p>
+    <p class="lead">Anthropic の API キーを入れると、出会ったときの会話を Claude が住人それぞれの性格で書き、ドットとラッコはこの島で自分の目的を自分で考えます（ADR 0004）。キーはこのブラウザの中にだけ保存されます。</p>
     <div class="aikey">${key ? `<span>設定済み（…${key.slice(-4)}）${aiLastError ? `・エラー：${aiLastError}` : ''}</span><button type="button" data-ai="clear">外す</button>` : `<input id="aiKey" type="password" placeholder="sk-ant-..." autocomplete="off"><button type="button" data-ai="save">保存</button>`}</div>`;
 }
 function renderGuide() {
@@ -2739,7 +2741,7 @@ function frameBody(ts: number) {
     if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); }
   } else if (cur) {
     if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
-    updateDrone(dt, now);
+    if (shotHold) { camera.position.copy(drone.pos); camera.rotation.set(drone.pitch, drone.yaw, 0); } else updateDrone(dt, now);   // (drawing a photograph: held exactly where its eyes were)
     syncBackCruise();
     updateCaption(dt);
     scanNotices(dt, now);
@@ -3021,6 +3023,21 @@ if (/[?&]lab\b/.test(location.search)) {
 if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, autoTier: (t: Tier) => setQuality(t, true), get tiers() { return { tier, seaTier }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
+// Drawing a resident's photograph again (?journalshot: tools/journal/photos.cjs): from its eyes, looking where it
+// looked, the island and the others as they were, nothing on the screen but the picture
+if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot = (rec: { who: string; eye: number[]; look: number[]; others: any[] }) => {
+  if (!cur?.residents) return false;
+  if (watch.r) stopWatch(false);
+  if (drone.sky) setSky(false);
+  setMode('manual'); setHud(false); document.body.classList.add('journalshot');
+  cur.residents.pose(rec as any);
+  const [ex, ey, ez] = rec.eye, dx = rec.look[0] - ex, dy = rec.look[1] - ey, dz = rec.look[2] - ez;
+  drone.pos.set(ex, ey, ez); drone.vel.set(0, 0, 0);
+  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)); look.yaw = look.pitch = 0;
+  drone.lastInput = performance.now() + 1e9;   // (held: no drift back to the cruise)
+  shotHold = true;
+  return true;
+};
 if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
