@@ -205,7 +205,7 @@ export interface Residents {
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
   body(r: Resident): Body;
   mind(r: Resident): Agent | null;                 // its own mind (ADR 0004), if it has one
-  pose(rec: PhotoRecord): void;                    // (drawing a photograph again: everyone as they were, held still)
+  pose(rec: PhotoRecord | null): void;             // (drawing a photograph again: everyone as they were, held still; null: back to life)
   setBrain(b: Brain | null | undefined): void;     // (tests: a stand-in brain; null: none; undefined: the model)
   observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
@@ -1663,6 +1663,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (a photograph drawn again: the one who took it not drawn — it is behind the lens — the others where they were,
     // and everyone held still)
     pose(rec) {
+      if (!rec) { still = false; res.hide = ''; return; }   // (back to life)
       still = true; settled = true; res.hide = rec.who;
       // (what it photographed, if it has since been picked up: put back where it lay, for the picture)
       const k = rec.subject.kind as ItemKind;
@@ -1742,6 +1743,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
       if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { { const a0 = agentOf(r); if (a0 && !a0.why && localHour(clockMs) >= 15 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, dayOf(clockMs)).length && (r.mo.photoAsk ?? '') !== dayOf(clockMs)) { r.mo.photoAsk = dayOf(clockMs); a0.why = '今日はまだ写真を撮っていない（1日1枚は撮る）'; } } const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
+      if (!still && dt < 2) gains();   // (what rest, food and sun gave back: shown, softly, by each of them — not while catching up)
       fireCircle(dt, false);
       // their lights: on after dark while they are up and about (not asleep, not under the water)
       { const nightK = 1 - dayK(localHour(ms)), tt = performance.now() / 1000;
@@ -1828,6 +1830,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           el.style.opacity = on ? '1' : '0';
           if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; if (el.dataset.t !== r.saying) { el.dataset.t = r.saying; el.innerHTML = `<b>${r.v.name}</b><i class="ln">${gibber(r.id, r.saying)}</i>${r.saying}`; } }
         } else el.style.opacity = '0';
+      }
+      // (their small green numbers: above them, drifting up, gone in a few seconds)
+      const now = performance.now(), box = document.getElementById('bubbles');
+      for (let i = pops.length - 1; i >= 0; i--) {
+        const p = pops[i], age = (now - p.born) / 1000;
+        if (age > 3.2 || !box) { p.el?.remove(); pops.splice(i, 1); continue; }
+        if (!p.el) { p.el = document.createElement('div'); p.el.className = `gain gain-${p.k}`; p.el.textContent = p.text; box.appendChild(p.el); }
+        const stack = pops.filter((q) => q.r === p.r && q.born > p.born).length;   // (two at once: one above the other)
+        v.copy(p.r.pos); v.y += 1.0 * p.r.sp.scale + (p.r.wet ? 0.3 : 0) + age * 0.12;
+        const d = v.distanceTo((camera as any).position); v.project(camera);
+        const on = p.r.model.root.visible && v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 && d < 35;
+        p.el.style.opacity = on ? String(Math.min(1, age * 3) * Math.min(1, (3.2 - age) / 1.2) * 0.9) : '0';
+        if (on) p.el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w + 18).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h - stack * 16).toFixed(0)}px)`;
       }
     },
   };
@@ -1982,6 +1997,32 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
   }
   const bubbleEls: Record<string, HTMLElement> = {};
+  /* ---------- what their bodies get back, shown ---------- */
+  // Sleep, food and the sun give back what the day takes: in points out of 100, gathered up and shown by each of
+  // them now and then (a small green +N that drifts up and fades) — so even a long sleep is seen to be doing something.
+  // A meal shows at once; slow gains at most every 15 s and only once a whole point has come.
+  const GAIN: { k: 'food' | 'rest' | 'charge'; label: string; get: (r: Resident) => number; on: (r: Resident) => boolean }[] = [
+    { k: 'food', label: 'おなか', get: (r) => 100 * (1 - r.hunger), on: (r) => !!r.sp.living },
+    { k: 'rest', label: 'ねむけ回復', get: (r) => 100 * (1 - r.sleepy), on: (r) => !!r.sp.living },
+    { k: 'charge', label: '充電', get: (r) => 100 * r.battery, on: (r) => !r.sp.living },
+  ];
+  const gainAt = new Map<string, { last: number; acc: number; t: number }>();
+  const pops: { r: Resident; text: string; k: string; born: number; el?: HTMLElement }[] = [];
+  function gains() {
+    const now = performance.now();
+    for (const r of list) for (const g of GAIN) {
+      if (!g.on(r)) continue;
+      const id = r.id + g.k, v = g.get(r), s0 = gainAt.get(id);
+      if (!s0) { gainAt.set(id, { last: v, acc: 0, t: now }); continue; }
+      const d = v - s0.last; s0.last = v;
+      if (d > 0) s0.acc += d;
+      const meal = d >= 5;   // (a whole crab, a clam: at once)
+      if (s0.acc >= 1 && (meal || now - s0.t >= 15000)) {
+        const n = Math.round(s0.acc); s0.acc -= n; s0.t = now;
+        if (n > 0) { pops.push({ r, text: `+${n} ${g.label}`, k: g.k, born: now }); if (pops.length > 24) pops.shift()?.el?.remove(); }
+      }
+    }
+  }
   function bubbleEl(r: Resident) {
     let el = bubbleEls[r.id];
     if (!el) { el = document.createElement('div'); el.className = 'bubble'; el.style.setProperty('--c', r.sp.color); document.getElementById('bubbles')?.appendChild(el); bubbleEls[r.id] = el; }
