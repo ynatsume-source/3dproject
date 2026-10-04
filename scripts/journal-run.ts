@@ -104,7 +104,7 @@ for (const who of ['dot', 'rakko']) {
     talks: R.talks.filter((e: any) => dayOf(e.at) === DAY && e.who === who && !e.head).map((e: any) => ({ time: hm(e.at), with: e.with ?? '', text: e.text })),
   };
   const model = who === 'dot' ? MINDS.dot.deep!.model : MINDS.rakko.light!.model;
-  const post = key ? await writePost(inp, async (sys, user) => { const t = await requestAiText(sys, user, { model, maxTokens: inp.photos.length ? 2500 : 9000, timeoutMs: inp.photos.length ? 150000 : 300000, queueMs: 180000, pool: { name: `${who}:write`, cap: 3 }, onUsage: (u) => mindLog.push({ at: realNow(), who, tier: 'deep', why: '島だよりを書く', usage: u, usd: 0, ok: true }) }); if (!t) (postIssues[who] ??= []).push(mindMod.aiLastError || '返事がなかった'); return t; }, model, (why) => (postIssues[who] ??= []).push(why)) : draftPost(inp);
+  const post = key ? await writePost(inp, async (sys, user) => { const t = await requestAiText(sys, user, { model, maxTokens: inp.photos.length ? 2500 : 9000, maxChars: 48000, timeoutMs: inp.photos.length ? 150000 : 300000, queueMs: 180000, pool: { name: `${who}:write`, cap: 3 }, onUsage: (u) => mindLog.push({ at: realNow(), who, tier: 'deep', why: '島だよりを書く', usage: u, usd: 0, ok: true }) }); if (!t) (postIssues[who] ??= []).push(mindMod.aiLastError || '返事がなかった'); return t; }, model, (why) => (postIssues[who] ??= []).push(why)) : draftPost(inp);
   if (post) { fs.writeFileSync(path.join(DATA, 'drafts', `${post.id}.json`), JSON.stringify(post, null, 1)); written[who] = `${post.title}（${post.drawing ? '絵1枚' : `写真${post.photos.length}枚`}、${post.by}）`; }
   else written[who] = '書けなかった';
 }

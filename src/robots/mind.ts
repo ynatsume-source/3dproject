@@ -36,7 +36,7 @@ function count() {
 }
 
 class TransportError extends Error {}
-async function boundedResponse(r: Response): Promise<unknown> {
+async function boundedResponse(r: Response, max = 64 * 1024): Promise<unknown> {
   const reader = r.body?.getReader();
   if (!reader) throw new TransportError('API の応答を読み取れませんでした。');
   const decoder = new TextDecoder(); let size = 0, text = '';
@@ -44,7 +44,7 @@ async function boundedResponse(r: Response): Promise<unknown> {
     while (true) {
       const chunk = await reader.read(); if (chunk.done) break;
       size += chunk.value.byteLength;
-      if (size > 64 * 1024) { void reader.cancel().catch(() => {}); throw new TransportError('API の応答が長すぎました。'); }
+      if (size > max) { void reader.cancel().catch(() => {}); throw new TransportError('API の応答が長すぎました。'); }
       text += decoder.decode(chunk.value, { stream: true });
     }
     return JSON.parse(text + decoder.decode());
@@ -65,7 +65,7 @@ function poolCount(name: string) {
   try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== day) s = { d: day }; s[name] = (Number.isSafeInteger(s[name]) ? s[name] : 0) + 1; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session only */ }
 }
 export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
-export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number } = {}): Promise<string | null> {
+export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number; maxChars?: number } = {}): Promise<string | null> {
   // (leave: calls kept back from the day's budget for others — a resident's own decisions never use up the conversations')
   // (queueMs: while another call is out, wait this long for it rather than giving up at once)
   for (const until = performance.now() + (options.queueMs ?? 0); busy && performance.now() < until;) await new Promise((res) => setTimeout(res, 100));
@@ -88,15 +88,15 @@ export async function requestAiText(system: string, user: string, options: { max
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', signal: controller.signal,
         headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model, max_tokens: Math.max(1, Math.min(2000, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
+        body: JSON.stringify({ model, max_tokens: Math.max(1, Math.min(options.maxChars ? 12000 : 2000, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
       });
       if (!r.ok) throw new TransportError(`API エラー (HTTP ${Number.isInteger(r.status) ? r.status : 0})。`);
-      const j = await boundedResponse(r) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
+      const j = await boundedResponse(r, options.maxChars ? 4 * options.maxChars : undefined) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
       const u = j?.usage ?? {}, n = (v: unknown) => (Number.isFinite(v) ? Number(v) : 0);
       options.onUsage?.({ model, input: n(u.input_tokens), output: n(u.output_tokens), cacheRead: n(u.cache_read_input_tokens), cacheWrite: n(u.cache_creation_input_tokens), ms: Date.now() - t0 });
       if (!Array.isArray(j?.content)) throw new TransportError('API の応答形式を読み取れませんでした。');
       const text = j.content.filter(c => c?.type === 'text' && typeof c.text === 'string').map(c => c.text).join('');
-      if (!text || text.length > 16000) throw new TransportError('API の応答形式を読み取れませんでした。');
+      if (!text || text.length > (options.maxChars ?? 16000)) throw new TransportError('API の応答形式を読み取れませんでした。');
       return text;
     };
     const text = await Promise.race([request(), aborted]);
