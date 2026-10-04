@@ -380,8 +380,10 @@ const KINDS: Kind[] = [
       if (!oc.bait || oc.bait.st.active) return null;
       if (!oc.bait.start(cam, fx, fz, env)) return null;
       return {
-        info: KINDS[6].info, t: 0, dur: 150, size: 6, kind: 'hunt',
-        update(dt) { this.t += dt; if (!oc.bait.st.active) this.t = this.dur; },
+        // (a day the hunters are out in numbers and hungry: they come to the school, and the ball is theirs to make —
+        // ADR 0005. Over once a ball has come and gone, or if none has formed in three minutes)
+        info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false,
+        update(dt: number) { this.t += dt; if (oc.bait.st.active) (this as any).seen = true; else if ((this as any).seen || this.t > 180) this.t = this.dur; },
         pos: () => (oc.bait.st.active ? oc.bait.st.c : null), status: () => '捕食者と海鳥が、四方から突っ込んでいる',
         dispose() { /* the bait ball winds itself down */ },
       };

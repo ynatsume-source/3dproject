@@ -1222,9 +1222,10 @@ function goTo(id: string) {
   let s: Subject | null = null;
   // a seabird: go up into the sky, where a few of them come by
   if ((id === 'bait' || id === oc.loc.bait?.sp.id) && oc.bait) {
-    // go and find one: out there somewhere the birds are starting to gather
+    // go and find it: the great school out over the deeper water (and the ball, if the hunters have made one) —
+    // nothing announced ahead of what happens (ADR 0005)
     const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
-    if (!oc.bait.st.active && oc.bait.start(drone.pos, fx, fz, oc.eco.env)) seaLog('hunt', `沖で${oc.bait.bsp.ja}の大群が身を寄せ合いはじめた。何かに追われている`, () => (oc.bait.st.active ? oc.bait.st.c : null));
+    if (!oc.bait.st.active) oc.bait.start(drone.pos, fx, fz, oc.eco.env);
     if (drone.sky) setSky(false);
     const bs = oc.bait.subjects()[0];
     if (bs) focusOn(bs);
@@ -2721,7 +2722,9 @@ let autoQ = !forcedTier && !manualTier && !SAFE, qDowned = false, qUps = 0, fpsA
 // One frame. An error in any part of it is reported (once per kind) and the next frame still comes:
 // the sea must never stop on a single mistake.
 let frameErrs = 0;
+let held = false, heldTs = 0;   // (?debug: frames stepped one by one from outside, for a recording made frame by frame)
 function frame(ts: number) {
+  if (held) { requestAnimationFrame(frame); return; }
   try { frameBody(ts); }
   catch (e) {
     if (frameErrs++ < 3) { console.error(e); track('app_error', { where: 'frame', msg: String((e as Error)?.message ?? e).slice(0, 90) }); }
@@ -3086,7 +3089,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

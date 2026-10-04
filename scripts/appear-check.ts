@@ -24,6 +24,11 @@ for (const id of ['mantatrain', 'fishwall', 'tornado', 'hammers', 'heatrun', 'bi
   let t = 0;
   for (let k = 0; k < 50; k++) { t += 0.1; oc.eco.step(0.1, t, cam, fx, fz); }
   const before = new Set(oc.group.children);
+  // (the bait school and its hunters are part of the sea from the start, ADR 0005: what of them is in sight before
+  // the event is asked for was already there, not appearing — the frame before counts as the first)
+  const baitMeshes = () => oc.group.children.filter((o: any) => o.isInstancedMesh && o.visible && (o.count >= 1000 || o.userData?.baitPack));
+  const pre = new Map<string, THREE.Vector3>();
+  if (id === 'bigbait') for (const im of baitMeshes()) { const step = Math.max(1, Math.floor(im.count / 400)); for (let i = 0; i < im.count; i += step) { im.getMatrixAt(i, _m); const e = _m.elements; if (Math.abs(e[0]) + Math.abs(e[1]) + Math.abs(e[2]) > 1e-6) pre.set(im.uuid + ':' + i, new THREE.Vector3(e[12], e[13], e[14])); } }
   const ok = oc.rare.start(id, oc.eco.env, cam, fx, fz);
   if (!ok) { console.log(`${id}: could not start here (no suitable water) — skipped`); continue; }
   const mine = new Set(oc.group.children.filter((o: THREE.Object3D) => !before.has(o)));   // (what the scene itself put in)
@@ -33,7 +38,7 @@ for (const id of ['mantatrain', 'fishwall', 'tornado', 'hammers', 'heatrun', 'bi
     return list;
   };
   // present: key → position
-  let last = new Map<string, THREE.Vector3>();
+  let last = pre;
   const snap = () => {
     const now = new Map<string, THREE.Vector3>();
     for (const o of watch()) {

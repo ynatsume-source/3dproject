@@ -318,7 +318,9 @@ export class Director {
     if (p && L >= 1.4 && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
     // close: about a body length or so away, by the animal's own size (a small fish from under a metre)
     const sz = Math.min(s.size, Math.max(s.len ?? s.size, 0.15) * 2) * (s.kind === 'school' ? 0.65 : 1);   // (a school: in among its edge)
-    const dist = Math.max(0.8, Math.min(7, sz * 1.25 + 0.55)) * this.distK * (sh.zoom ? 0.75 : 1);
+    // (a mass of fish pressed into a ball: from outside it, far enough off to see it whole — not from inside it)
+    const whole = s.kind === 'hunt' && !s.target && s.frameR ? s.frameR() * 1.8 + 3 : 0;
+    const dist = Math.max(whole, Math.max(0.8, Math.min(7, sz * 1.25 + 0.55)) * this.distK * (sh.zoom ? 0.75 : 1));
     if (s.under && p) {
       // a tornado of fish: from right underneath, looking up the hollow core toward the light
       const sw = this.t * 0.05, x = p.x + Math.cos(sw) * 0.6, z = p.z + Math.sin(sw) * 0.6;
