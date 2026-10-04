@@ -159,7 +159,7 @@ const SPECS: Spec[] = [
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
   opt?: string; failed?: Outcome; reported?: boolean; label?: string }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
 interface Line { who: string; text: string }
-interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; conv: number }
+interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
 // eye / look: where its eyes are and which way its head faces, from the model as it is drawn (its turn, nod and
 // gaze included) — what its own point of view is taken from
@@ -1524,7 +1524,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!fast && aiReady() && lines.length > 2) {
       tk.pending = true;
       aiConverse(a.v, b.v, bd.stage, STAGES[bd.stage], a.today.slice(-3), b.today.slice(-3), talks.filter((e) => !e.head).slice(-6).map((e) => (e.who ? `${byId[e.who]?.v.name}「${e.text}」` : e.text)))
-        .then((got) => { if (got && got.length) { tk.lines = [tk.lines[0], ...got.map((g) => ({ who: g.who === 'A' ? a.id : b.id, text: g.text }))]; } })
+        .then((got) => { if (tk.pending && got && got.length) { tk.lines = [tk.lines[0], ...got.map((g) => ({ who: g.who === 'A' ? a.id : b.id, text: g.text }))]; } })
         .finally(() => { tk.pending = false; });
     }
     return tk;
@@ -1549,7 +1549,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     res.onEvent('talked', `${who}が${summary}`, tk.a);
   }
   function stepTalk(tk: Talk, dt: number, fast: boolean) {
-    if (tk.pending && tk.i >= 1) return;   // (waiting for the AI's words)
+    // (waiting for the AI's words — a minute at most: then the prepared ones, and a late answer is let go)
+    if (tk.pending && tk.i >= 1) { tk.waited = (tk.waited ?? 0) + dt; if (tk.waited < 60) return; tk.pending = false; }
     tk.t += dt;
     const line = tk.lines[tk.i];
     if (!line) { endTalk(tk); return; }

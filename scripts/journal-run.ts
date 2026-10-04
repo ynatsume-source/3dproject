@@ -79,7 +79,7 @@ const timeline: Record<string, string[]> = { dot: [], rakko: [] };
 let nextLook = t0;
 while (sim < t1) {
   sim += STEP * 1000;
-  if (sim >= nextLook) { nextLook += 10 * 60e3; for (const w of ['dot', 'rakko']) { const r = R.list.find((x: any) => x.id === w), m = R.mind(r); timeline[w].push(`${new Date(sim + 9 * 3.6e6).toISOString().slice(11, 16)} ${r.task?.kind ?? '-'}${m?.thinking ? '(考え中)' : ''}`); } }
+  if (sim >= nextLook) { nextLook += 10 * 60e3; for (const w of ['dot', 'rakko']) { const r = R.list.find((x: any) => x.id === w), m = R.mind(r); timeline[w].push(`${new Date(sim + 9 * 3.6e6).toISOString().slice(11, 16)} ${r.task?.kind ?? '-'}${m?.thinking ? '(考え中)' : ''}${r.talk ? '(話し中)' : ''}`); } }
   const dot = R.list.find((r: any) => r.id === 'dot');
   cam.set(dot.pos.x, dot.pos.y + 30, dot.pos.z);
   R.update(STEP, sim, cam);
@@ -88,6 +88,9 @@ while (sim < t1) {
   for (const r of R.list) {
     const th = R.mind(r)?.thinking;
     if (th && !th.done) { waits++; const until = realNow() + 30000; while (!th.done && realNow() < until) await new Promise((res) => setTimeout(res, 50)); }
+    // (and two who stopped to talk wait for their own words, as they would in real time — else the island runs on
+    // for hours while they stand there)
+    if (r.talk?.pending && r.talk.a === r) { waits++; const until = realNow() + 30000; while (r.talk?.pending && realNow() < until) await new Promise((res) => setTimeout(res, 50)); }
   }
   if (steps % 2000 === 0) await new Promise((res) => setImmediate(res));
 }
