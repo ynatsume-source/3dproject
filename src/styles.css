@@ -493,7 +493,7 @@ body:not(.dock-open) #dock .opt { display: none; }
 body.mode-globe #rare, body.pov #rare { opacity: 0 !important; }
 /* the commentary: what is being filmed, at the top in the middle, with no card — text over the view, faint, narrow,
    its note held to two lines, so the middle of the screen is never filled with words */
-#caption { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); width: min(440px, calc(100vw - 40px)); text-align: center; padding: 8px 18px 10px;
+#caption { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); width: min(440px, calc(100vw - 40px)); text-align: center; padding: 8px 18px 10px; box-sizing: border-box;
   color: var(--ink); text-shadow: 0 1px 2px rgba(0, 10, 20, 0.9), 0 0 10px rgba(0, 10, 20, 0.5); opacity: 0; transform: translate(-50%, -4px);
   transition: opacity 1.1s ease, transform 1.1s ease; pointer-events: none; }
 /* (over the bright surface at the top of the view the words alone were lost: a soft shade behind them, its edges
