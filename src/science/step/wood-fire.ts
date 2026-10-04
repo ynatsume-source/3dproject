@@ -20,9 +20,9 @@ import { fuelLhvJPerMg, GLOW_TARGET_C, PACE_K_PER_H } from '../physics';
 import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, subStepEnd, tileComp } from './common';
 import { advanceWare, settleWare, type WareState } from './kiln-ware';
 
-export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.2' } as const;
+export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.3' } as const;
 export const WOOD_FIRE_CONTRACT = /^0\.2\.\d+$/;
-const SCHEMA = 'civ-sci.tile-wood-fire/1';
+const SCHEMA = 'civ-sci.tile-wood-fire/2'; // /2 since 0.1.2 (usedJ is the dry wood's heat): a /1 state is refused, never resumed
 const EVAL = 'tile-wood-fire-eval/0.1.0';
 const STEP_MS = 30_000;
 const UNLOAD_C = 60;
@@ -35,7 +35,7 @@ const PACES = ['slow', 'normal', 'fast'] as const;
 export type Drawn = { materialId: string; amount: { value: number; unit: 'mg' }; from: 'air' | 'water' | 'ground' };
 export type ScienceStepResultV02 = ScienceStepResult & { drawn: Drawn[] };
 
-type Outcome = 'done' | 'fuel_exhausted' | 'peak_not_reached' | 'stopped' | 'untended';
+type Outcome = 'done' | 'fuel_exhausted' | 'wont_burn' | 'peak_not_reached' | 'stopped' | 'untended';
 
 interface WoodFireData extends WareState {
   tileId: string; tileFp: string; fuelId: string; fuelFp: string; location: string; hearth: string;
@@ -55,10 +55,12 @@ const fail = (req: ScienceStepRequest, why: string): ScienceStepResultV02 => fai
 /** A firewood lot as a composition: water_ppm of the whole lot; ash on the dry part (ash_dry_ppm, else woodAshFrac). */
 export function fuelComp(lot: ScienceStepRequest['lots'][number]): Composition | string {
   const q = lot.quality ?? {};
-  // up to 80% water: green wood is about 30–60%; a handed-back lot of very wet wood can end a little wetter than it came
-  if (!finite(q.water_ppm, 0, 800_000)) return `firewood ${lot.lotId} needs quality.water_ppm (0–800000, of the whole lot)`;
+  // Any make-up a lot can physically have is accepted, so a lot this step hands back always reads back: burning
+  // takes the dry wood first, and what is left can end wetter or ashier than any fresh wood. Whether it burns is
+  // the physics' answer, not the input check's: wood too wet to give net heat does not catch ('wont_burn').
+  if (!finite(q.water_ppm, 0, 1e6)) return `firewood ${lot.lotId} needs quality.water_ppm (0–1000000, of the whole lot)`;
   const ashFrac = q.ash_dry_ppm !== undefined ? q.ash_dry_ppm / 1e6 : pv('woodAshFrac');
-  if (!finite(ashFrac, 0, 0.2)) return `firewood ${lot.lotId}: ash_dry_ppm must be within 0–200000`;
+  if (!finite(ashFrac, 0, 1)) return `firewood ${lot.lotId}: ash_dry_ppm must be within 0–1000000`;
   const amount = lot.amount.value;
   const water = Math.round((amount * q.water_ppm) / 1e6);
   const ash = Math.round((amount - water) * ashFrac);
@@ -139,6 +141,7 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
         }
         if (d.phase === 'hold') { target = d.peakC; if (d.elapsedS - d.holdStartS! >= d.holdMin * 60) d.phase = 'cool'; }
         if (d.phase !== 'cool' && fuelTotal - d.burnedMg < 1) { d.phase = 'cool'; d.outcome = 'fuel_exhausted'; }
+        if (d.phase !== 'cool' && !(lhv > 0)) { d.phase = 'cool'; d.outcome ??= 'wont_burn'; } // too wet or all ash
         const want = target !== null && d.phase !== 'cool'
           ? p.heatCapJPerK * rampKs + p.uaWPerK * (target - Ta) + (p.heatCapJPerK * (target - d.kilnC)) / 600 : 0;
         d.heldBurnKgS = lhv > 0 && p.chamberFraction > 0 ? Math.min(Math.max(0, want / (lhv * 1e6 * p.chamberFraction)), p.maxBurnKgPerH / 3600) : 0;
@@ -210,6 +213,7 @@ export function woodFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     res.released = [...rel].filter(([, v]) => v > 0).map(([materialId, v]) => ({ materialId, amount: { value: v, unit: 'mg' as const }, to: 'air' as const }));
     if (o2 > 0) res.drawn = [{ materialId: 'o2', amount: { value: o2, unit: 'mg' }, from: 'air' }];
     res.observations = [...ware.observations];
+    if (d.outcome === 'wont_burn') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '薪が湿っていて（燃えるところが少なくて）、火が育たなかった' });
     if (d.outcome === 'fuel_exhausted') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '薪が尽きて、火が小さくなっていった' });
     if (d.outcome === 'peak_not_reached') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: 'いくら薪を足しても、思った火の色にならなかった' });
     if (d.outcome === 'untended') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '見ていない間に火が落ちていた' });

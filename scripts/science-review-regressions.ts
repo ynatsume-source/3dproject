@@ -222,7 +222,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   const WOOD = { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 60_000_000, unit: 'mg' as const }, location: 'site:woodpile', quality: { water_ppm: 150_000 } };
   const WKILN = { equipmentId: 'eq:wk', kind: 'fixture_wood_kiln', catalogEntry: 'fixture_wood_kiln', catalogVersion: 'civ-sci-test-2', condition: 1,
     params: { heatCapJPerK: 40_000, uaWPerK: 8, chamberFraction: 0.3, maxBurnKgPerH: 15, forcedCoolingUaFactor: 5 } };
-  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.2',
+  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.3',
     catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 3_600_000 }, state: null,
     environment: { sampleId: 'env:wf', source: 'live', effectiveAt: 0, airTempC: 28, humidity: 0.7, windMs: 3 }, lots: [TILE_D, WOOD], equipment: [WKILN], energy: [],
     actions: [{ at: 0, residentId: 'res:dot', action: 'fire_plan', params: { pace: 1, targetGlow: 2, holdMin: 90, forcedCooling: 0 } }], seed: 3 };
@@ -312,6 +312,66 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     const r = shape(q as Record<string, number>);
     ok(r.status === 'failed' && (r.diagnostics as { code: string }).code === code && r.consumed.length + r.produced.length + r.energy.length === 0,
       `W4: ${name} is refused (${code}), nothing consumed, no heat`, String((r.diagnostics as { code?: string })?.code));
+  }
+
+  // W3b (lab 5ee1bc4): whatever wood this step hands back, the next run reads it (no range check refuses it);
+  // wood that cannot give net heat simply does not catch
+  const oneMs = (lt: typeof WOOD, i: number, eq = WKILN) => checked({ ...WF, requestId: `w3b-${i}`, runId: `run:w3b-${i}`, interval: { from: i, to: i + 1 },
+    stop: 'operator', equipment: [eq], lots: [TILE_D, lt], actions: [{ ...WF.actions[0], at: i }] });
+  const handBack = (r: ScienceStepResult, lt: typeof WOOD) => {
+    const b = r.produced.find((p) => p.materialId === 'firewood');
+    return b ? { ...lt, amount: b.amount as { value: number; unit: 'mg' }, quality: b.quality as Record<string, number> } : null;
+  };
+  {
+    const wet = { ...WOOD, amount: { value: 1_000_000, unit: 'mg' as const }, quality: { water_ppm: 800_000, ash_dry_ppm: 10_000 } };
+    const back = handBack(oneMs(wet, 0), wet)!;
+    const next = oneMs(back, 1);
+    ok(back.quality.water_ppm > 800_000 && next.status !== 'failed', 'W3b: 80% water wood, stopped after 1 ms, hands back wetter wood that the next run reads',
+      `water_ppm ${back.quality.water_ppm.toFixed(4)} → next run ${next.status}`);
+    const ashy = { ...WOOD, amount: { value: 8, unit: 'mg' as const }, quality: { water_ppm: 0, ash_dry_ppm: 200_000 } };
+    const r5 = checked({ ...WF, requestId: 'w3b-ash', runId: 'run:w3b-ash', interval: { from: 0, to: 5 }, stop: 'operator', lots: [TILE_D, ashy] });
+    const ashBack = handBack(r5, ashy);
+    ok(!ashBack || oneMs(ashBack, 6).status !== 'failed', 'W3b: 8 mg of 20% ash wood stopped after 5 ms: the ashier wood handed back is read by the next run',
+      ashBack ? `ash_dry_ppm ${ashBack.quality.ash_dry_ppm.toFixed(0)}` : 'nothing handed back');
+    const LOWB = { ...WKILN, params: { ...WKILN.params, maxBurnKgPerH: 1 } };
+    let lt: typeof WOOD | null = { ...WOOD, amount: { value: 1000, unit: 'mg' as const }, quality: { water_ppm: 600_000, ash_dry_ppm: 0 } }, refused = 0, runs = 0, heatNoDry = 0;
+    while (lt && runs < 1200) {
+      const dry0 = lt.amount.value * (1 - lt.quality.water_ppm / 1e6);
+      const r = oneMs(lt, runs, LOWB); runs++;
+      if (r.status === 'failed') { refused++; break; }
+      if ((r.diagnostics as { outcome: string }).outcome === 'wont_burn') { lt = null; break; }
+      const nx = handBack(r, lt);
+      const dry1 = nx ? nx.amount.value * (1 - nx.quality.water_ppm / 1e6) : 0;
+      if (r.energy.reduce((x, e) => x + e.usedJ, 0) > 0 && dry0 - dry1 < 1 - 1e-6) heatNoDry++;
+      lt = nx;
+    }
+    ok(refused === 0 && heatNoDry === 0, 'W3b: a 60% water lot handed back run after run until it is too wet to catch: never refused, never heat without dry wood used up',
+      `${runs} runs (was refused at run 335)`);
+  }
+  {
+    const fire = (q: Record<string, number>) => {
+      let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+      for (let h = 0; h < 6; h++) {
+        r = checked({ ...WF, requestId: `w3b-wb-${h}`, runId: `run:w3b-wb-${JSON.stringify(q)}`, state: st, interval: { from: h * 3_600_000, to: (h + 1) * 3_600_000 },
+          lots: [TILE_D, { ...WOOD, quality: q }], actions: h === 0 ? WF.actions : [] });
+        st = r.state; if (r.status !== 'running') break;
+      }
+      return r;
+    };
+    for (const [name, q] of [['95% water', { water_ppm: 950_000 }], ['all water', { water_ppm: 1_000_000 }], ['all ash', { water_ppm: 0, ash_dry_ppm: 1_000_000 }]] as const) {
+      const r = fire(q as Record<string, number>);
+      ok(r.status === 'completed' && (r.diagnostics as { outcome: string }).outcome === 'wont_burn' && r.energy.length === 0 && r.produced.find((p) => p.materialId === 'firewood')?.amount.value === WOOD.amount.value
+        && r.observations.some((o) => o.text?.includes('火が育たなかった')), `W3b: ${name}: read, but it does not catch (no heat, the wood handed back whole)`);
+    }
+    for (const [name, q] of [['water above 100%', { water_ppm: 1_000_001 }], ['ash above 100%', { water_ppm: 0, ash_dry_ppm: 1_000_001 }]] as const) {
+      ok(scienceStep({ ...WF, lots: [TILE_D, { ...WOOD, quality: q as Record<string, number> }] }).status === 'failed', `W3b: ${name} is refused (not a physical make-up)`);
+    }
+  }
+
+  {
+    const old = scienceStep({ ...WF, state: { schema: 'civ-sci.tile-wood-fire/1', data: { lastTo: 0 } } });
+    ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)) && Array.isArray(drawnOf(old)),
+      'W3b: a run started before 0.1.2 (state /1, heat counted the old way) is refused, never resumed under the new version');
   }
 
   // W4a (lab b8bf6ec): only registered species, never inherited object keys
