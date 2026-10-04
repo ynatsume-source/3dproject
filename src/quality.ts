@@ -12,7 +12,8 @@ export interface TierSettings {
   vol: number;          // volumetric light steps (0 = billboard shafts instead)
   volScale: number;     // volumetric buffer resolution relative to the screen
   bloom: number;        // bloom mip levels (0 = off)
-  shoal: number;        // fraction of each big school that is simulated and drawn
+  shoal: number;        // fraction of each big school that is simulated and drawn (never under half: owner, 2026-10 — a sea
+                        // thinned of fish to save effort is the wrong saving; the light and the resolution go first)
   grass: number;        // fraction of seagrass blades
   snow: number;         // fraction of marine snow particles
   coralVis: number;     // coral cells drawn out to this fraction of the visibility distance
@@ -21,10 +22,10 @@ export interface TierSettings {
 }
 
 export const TIERS: Record<Tier, TierSettings> = {
-  low: { label: '最軽量', dpr: 1.0, post: true, vol: 0, volScale: 0.25, bloom: 0, shoal: 0.35, grass: 0.4, snow: 0.5, coralVis: 0.65, lodR: 6, ao: 0 },
+  low: { label: '最軽量', dpr: 1.0, post: true, vol: 0, volScale: 0.25, bloom: 0, shoal: 0.5, grass: 0.4, snow: 0.5, coralVis: 0.65, lodR: 6, ao: 0 },
   // light, but with the light in it: a small volumetric pass and bloom at screen resolution (phones that can)
-  lite: { label: 'バランス', dpr: 1.0, post: true, vol: 8, volScale: 0.25, bloom: 3, shoal: 0.5, grass: 0.55, snow: 0.65, coralVis: 0.75, lodR: 9, ao: 0 },
-  medium: { label: '標準', dpr: 1.25, post: true, vol: 12, volScale: 0.35, bloom: 4, shoal: 0.65, grass: 0.75, snow: 0.8, coralVis: 0.85, lodR: 13, ao: 8 },
+  lite: { label: 'バランス', dpr: 1.0, post: true, vol: 8, volScale: 0.25, bloom: 3, shoal: 0.65, grass: 0.55, snow: 0.65, coralVis: 0.75, lodR: 9, ao: 0 },
+  medium: { label: '標準', dpr: 1.25, post: true, vol: 12, volScale: 0.35, bloom: 4, shoal: 0.75, grass: 0.75, snow: 0.8, coralVis: 0.85, lodR: 13, ao: 8 },
   high: { label: '高画質', dpr: 1.75, post: true, vol: 22, volScale: 0.5, bloom: 5, shoal: 1, grass: 1, snow: 1, coralVis: 1, lodR: 22, ao: 14 },
   ultra: { label: '最高', dpr: 2.0, post: true, vol: 30, volScale: 0.6, bloom: 6, shoal: 1, grass: 1, snow: 1, coralVis: 1, lodR: 30, ao: 18 },
 };
