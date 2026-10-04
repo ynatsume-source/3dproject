@@ -1,4 +1,5 @@
-// A pure checker for ScienceStep results against the 0.1.0 rules (src/world/science-contract.ts).
+// A pure checker for ScienceStep results against the 0.1.0 rules (src/world/science-contract.ts), and the proposed
+// 0.2.0 rules for a result whose contract is 0.2.x: `drawn` (taken from the surroundings) joins the mass balance.
 // The world side can run it before committing a result; the science side runs it on every result in tests.
 // It returns the list of violations; an empty list means "nothing found", not "scientifically correct".
 
@@ -33,17 +34,25 @@ export function validateResult(req: ScienceStepRequest, res: ScienceStepResult):
   }
   for (const [id, n] of used) if (n > lots.get(id)!.amount.value) v.push(`consumed ${n} of ${id}, only ${lots.get(id)!.amount.value} reserved`);
 
+  // 0.2.x: what the run drew from its surroundings (O2 for burning, CO2 for carbonation); 0.1.x has no such field
+  const v02 = /^0\.2\.\d+$/.test(req.contract);
+  const drawn = (res as { drawn?: { materialId: string; amount: { value: number; unit: string }; from: string }[] }).drawn;
+  if (v02 && !Array.isArray(drawn)) v.push('a 0.2.x result must carry drawn (an empty list when nothing was drawn)');
+  if (!v02 && drawn !== undefined) v.push('drawn is a 0.2.x field: a 0.1.x result must not carry it');
+  const drawnList = Array.isArray(drawn) ? drawn : [];
+  for (const x of drawnList) if (!['air', 'water', 'ground'].includes(x.from)) v.push(`drawn ${x.materialId} from ${x.from}`);
+
   // integers and a single mass unit
-  const flows = [...res.consumed.map((x) => x.amount), ...res.produced.map((x) => x.amount), ...res.released.map((x) => x.amount)];
+  const flows = [...res.consumed.map((x) => x.amount), ...res.produced.map((x) => x.amount), ...res.released.map((x) => x.amount), ...drawnList.map((x) => x.amount)];
   for (const q of flows) {
     if (!isInt(q.value) || q.value < 0) v.push(`amount ${q.value} ${q.unit} is not a non-negative integer`);
     if (q.unit !== 'mg') v.push(`unit ${q.unit}: this core reports mass in mg only`);
   }
 
-  // rule 2 (0.1.0): Σconsumed = Σproduced + Σreleased
+  // rule 2: Σconsumed (+ Σdrawn in 0.2.x) = Σproduced + Σreleased
   const sum = (xs: { amount: { value: number } }[]) => xs.reduce((s, x) => s + x.amount.value, 0);
-  const cin = sum(res.consumed), cout = sum(res.produced) + sum(res.released);
-  if (cin !== cout) v.push(`mass does not close: consumed ${cin} mg, produced+released ${cout} mg`);
+  const cin = sum(res.consumed) + sum(drawnList), cout = sum(res.produced) + sum(res.released);
+  if (cin !== cout) v.push(`mass does not close: consumed${v02 ? '+drawn' : ''} ${cin} mg, produced+released ${cout} mg`);
 
   // rule 3: integer J, used = stored + lost, offered sources not exceeded, no battery
   const offers = new Map(req.energy.map((e) => [e.sourceId, e]));
@@ -67,7 +76,7 @@ export function validateResult(req: ScienceStepRequest, res: ScienceStepResult):
   for (const [id, n] of usedBySource) if (n > offers.get(id)!.maxJ) v.push(`energy ${id}: used ${n} J > offered ${offers.get(id)!.maxJ} J`);
 
   // failed results carry no flows
-  if (res.status === 'failed' && (res.consumed.length || res.produced.length || res.released.length || res.energy.length)) {
+  if (res.status === 'failed' && (res.consumed.length || res.produced.length || res.released.length || drawnList.length || res.energy.length)) {
     v.push('a failed result must not carry flows');
   }
   // equipment wear only on equipment that was given

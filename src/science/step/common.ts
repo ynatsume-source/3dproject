@@ -10,8 +10,14 @@ export const isInt = (n: unknown, min = 0): n is number => typeof n === 'number'
 export const fingerprint = (lot: LotView) => JSON.stringify([lot.lotId, lot.materialId, lot.amount, lot.location,
   Object.entries(lot.quality ?? {}).sort(([a], [b]) => a.localeCompare(b))]);
 
+/** A 0.2.x request (proposed contract): every answer, refusals included, carries `drawn` (empty when nothing). */
+export const isV02 = (req: ScienceStepRequest) => /^0\.2\.\d+$/.test(req.contract);
+/** The fields a result needs for the request's contract version beyond 0.1.0. */
+export const contractExtras = (req: ScienceStepRequest) => (isV02(req) ? { drawn: [] as never[] } : {});
+
 export function failed(req: ScienceStepRequest, evaluator: string, why: string, schema: string): ScienceStepResult {
   return {
+    ...contractExtras(req),
     contract: req.contract, requestId: req.requestId, runId: req.runId,
     simulated: { from: req.interval.from, to: req.interval.from },
     state: req.state ?? ({ schema, data: null } as ScienceState),
@@ -31,9 +37,11 @@ export function stateSchemaProblem(req: ScienceStepRequest, schema: string): str
   return `unknown state schema ${req.state.schema}`;
 }
 
-/** Common request checks: contract 0.1.x, process id/version, catalog, state schema, integer interval and seed. */
-export function checkCommon(req: ScienceStepRequest, processId: string, processVersion: string, schema: string): string | null {
-  if (!/^0\.1\.\d+$/.test(req.contract)) return `unknown contract ${req.contract}`;
+/** Common request checks: contract (0.1.x unless a step needs a later one), process id/version, catalog, state
+ *  schema, integer interval and seed. */
+export function checkCommon(req: ScienceStepRequest, processId: string, processVersion: string, schema: string,
+  contract: RegExp = /^0\.1\.\d+$/): string | null {
+  if (!contract.test(req.contract)) return `unknown contract ${req.contract}`;
   if (req.processId !== processId) return `unknown process ${req.processId}`;
   if (req.processVersion !== processVersion) return `unknown processVersion ${req.processVersion}`;
   if (req.catalogVersion !== SCIENCE_CATALOG_VERSION) return `unknown catalogVersion ${req.catalogVersion}`;
@@ -64,7 +72,7 @@ export function lotComp(lot: LotView): Composition {
     const m = /^x_(.+)_ppm$/.exec(k);
     if (!m) continue;
     const sp = m[1] as SpeciesId;
-    if (!(sp in SPECIES)) throw new Error(`unknown species in quality: ${sp}`);
+    if (!Object.hasOwn(SPECIES, sp)) throw new Error(`unknown species in quality: ${sp}`);
     const mg = Math.round((amount * v) / 1e6);
     if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
   }
@@ -153,7 +161,7 @@ export function tileComp(lot: LotView): Composition {
     const m = /^xd_(.+)_ppm$/.exec(k);
     if (!m) continue;
     const sp = m[1] as SpeciesId;
-    if (!(sp in SPECIES) || sp === 'water') throw new Error(`invalid dry-basis species in quality: ${sp}`);
+    if (!Object.hasOwn(SPECIES, sp) || sp === 'water') throw new Error(`invalid dry-basis species in quality: ${sp}`);
     const mg = Math.round((dry * v) / 1e6);
     if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
   }

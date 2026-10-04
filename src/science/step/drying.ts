@@ -19,7 +19,7 @@ import type {
   EquipmentView, LotView, Observation, ScienceStepRequest, ScienceStepResult, ScienceState,
 } from '../../world/science-contract';
 import { pv } from '../params';
-import { allFinite, envUsable, finite, SCIENCE_CATALOG_VERSION, stateSchemaProblem, subStepEnd } from './common';
+import { allFinite, contractExtras, envUsable, finite, SCIENCE_CATALOG_VERSION, stateSchemaProblem, subStepEnd } from './common';
 import { crackP, dryPhysics } from '../physics';
 import { draw } from '../rng';
 
@@ -65,6 +65,7 @@ interface DryingData {
 }
 
 const fail = (req: ScienceStepRequest, why: string, state?: ScienceState): ScienceStepResult => ({
+  ...contractExtras(req),
   contract: req.contract, requestId: req.requestId, runId: req.runId,
   simulated: { from: req.interval.from, to: req.interval.from },
   state: state ?? req.state ?? { schema: DRYING_STATE_SCHEMA, data: null },
