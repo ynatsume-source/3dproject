@@ -41,9 +41,9 @@ export function behind(oc: any, cam: { x: number; z: number }, fx: number, fz: n
 export function clearDepth(oc: any, x: number, z: number, hx: number, hz: number, want: number, w: number, clear: number, look = 6) {
   const T = oc.T, sx = -hz * w, sz = hx * w;
   let fl = -1e9;
-  for (let d = 0; d <= look; d += 2) {
+  for (let d = -2; d <= look; d += 2) {   // (from just behind: its tail end and the trailing wing are over it still)
     const px = x + hx * d, pz = z + hz * d;
-    fl = Math.max(fl, T.top(px, pz), T.top(px + sx, pz + sz), T.top(px - sx, pz - sz));
+    fl = Math.max(fl, T.top(px, pz), T.top(px + sx, pz + sz), T.top(px - sx, pz - sz), T.top(px + sx * 0.5, pz + sz * 0.5), T.top(px - sx * 0.5, pz - sz * 0.5));   // (and halfway out: a rock under the wing between the tip and the body)
   }
   return Math.min(Math.max(want, fl + clear), -1.2);
 }

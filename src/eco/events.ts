@@ -95,7 +95,8 @@ const KINDS: Kind[] = [
         st.set(b.x, 0, b.z); aim.set(cam.x + ux * 20 - uz * pass, 0, cam.z + uz * 20 + ux * pass);
         dir.subVectors(aim, st).setY(0).normalize();
         ok = true;
-        for (let d = -40; d < LINE && ok; d += 4) if (!oc.loc.pelagic && oc.T.top(st.x + dir.x * d, st.z + dir.z * d) > -4.5) ok = false;
+        // (and wide enough for the ones swimming beside the line, wingtips and all)
+        for (let d = -40; d < LINE && ok; d += 4) for (const o of [0, -5, 5]) if (!oc.loc.pelagic && oc.T.top(st.x + dir.x * d - dir.z * o, st.z + dir.z * d + dir.x * o) > -4.5) ok = false;
       }
       if (!ok) return null;
       const side = new THREE.Vector3(-dir.z, 0, dir.x);
