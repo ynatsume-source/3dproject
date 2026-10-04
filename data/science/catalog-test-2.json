@@ -104,7 +104,7 @@
   "processes": [
     {
       "id": "fixture_mass_measure",
-      "version": "fixture-2",
+      "version": "fixture-3",
       "label": "秤量",
       "kind": "measurement",
       "inputs": [
@@ -117,7 +117,8 @@
       "energyModel": {
         "mode": "offer",
         "kind": "electric",
-        "rule": "1 W × 10 s = 10 J、全量 lostJ"
+        "rule": "1 W × 10 s = 10 J、全量 lostJ",
+        "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
       "observation": "instrument:<equipmentId>、mass、100 mg 単位、precision 100",
       "readiness": "test-world-only（environment.source = simulation のみ）",
@@ -125,7 +126,7 @@
     },
     {
       "id": "p11_pottery_shape",
-      "version": "fixture-2",
+      "version": "fixture-3",
       "label": "器の成形（試験用）",
       "kind": "physical",
       "inputs": [
@@ -140,13 +141,14 @@
       "energyModel": {
         "mode": "offer",
         "kind": "mechanical",
-        "rule": "2 W × 60 s = 120 J、全量 lostJ"
+        "rule": "2 W × 60 s = 120 J、全量 lostJ",
+        "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
       "readiness": "test-world-only"
     },
     {
       "id": "p11x_test_tile_shape",
-      "version": "fixture-2",
+      "version": "fixture-3",
       "label": "試験片の成形",
       "kind": "physical",
       "inputs": [
@@ -161,7 +163,8 @@
       "energyModel": {
         "mode": "offer",
         "kind": "mechanical",
-        "rule": "2 W × 60 s = 120 J、全量 lostJ"
+        "rule": "2 W × 60 s = 120 J、全量 lostJ",
+        "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
       "readiness": "test-world-only",
       "derivedFrom": "p11_pottery_shape",
@@ -311,7 +314,7 @@
     },
     {
       "id": "p13w_test_tile_wood_fire",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "contract": "0.2.x（提案中。drawn が要る）",
       "label": "薪で焼く（試験片）",
       "kind": "thermal+chemical",
@@ -356,7 +359,7 @@
       "stateSchema": "civ-sci.tile-wood-fire/2（/1 は拒否）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused).",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {

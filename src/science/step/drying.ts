@@ -74,7 +74,7 @@ const fail = (req: ScienceStepRequest, why: string, state?: ScienceState): Scien
 });
 
 function checkVersions(req: ScienceStepRequest): string | null {
-  if (!/^0\.1\.\d+$/.test(req.contract)) return `unknown contract ${req.contract}`;
+  if (!/^0\.[12]\.\d+$/.test(req.contract)) return `unknown contract ${req.contract}`;
   if (req.processId !== DRYING_PROCESS.processId) return `unknown process ${req.processId}`;
   if (req.processVersion !== DRYING_PROCESS.processVersion) return `unknown processVersion ${req.processVersion}`;
   if (req.catalogVersion !== SCIENCE_CATALOG_VERSION) return `unknown catalogVersion ${req.catalogVersion}`;
@@ -183,6 +183,7 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
 
   const ending = takeOff !== undefined || settleStop;
   const result: ScienceStepResult = {
+    ...contractExtras(req),
     contract: req.contract, requestId: req.requestId, runId: req.runId,
     simulated: { from: req.interval.from, to: endAt },
     state: { schema: DRYING_STATE_SCHEMA, data: d },

@@ -4,13 +4,15 @@
 // fixture-2 (2026-10-03, world side's final review): one catalog with the other steps (civ-sci-test-2);
 // a stop (operator / equipment-lost) ends the run even when the offered energy ran short (0.2.0 rule 7);
 // p11x_test_tile_shape makes the test tile the drying step takes (prepared clay → test_tile_green).
-import { SCIENCE_CONTRACT_VERSION } from '../../world/science-contract';
+// fixture-3 (2026-10-04, Codex A on 70fed2f): an offer arrives evenly over its interval (offered power = maxJ / interval
+// seconds), as for every other step. The bench or the balance works only while it gets the power it needs; offered
+// less, nothing happens in that interval (needs-input). It never uses energy that has not arrived yet.
 import type { ScienceStep, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { PROCESS } from './fixture-profile';
 import { SPECIES } from '../chem';
 
 export const FIXTURE_CATALOG_VERSION = 'civ-sci-test-2';   // the same catalog as step/common.ts SCIENCE_CATALOG_VERSION
-export const FIXTURE_PROCESS_VERSION = 'fixture-2';
+export const FIXTURE_PROCESS_VERSION = 'fixture-3';
 export const STATE_SCHEMA = 'civilization-simple-process/2';
 type State = {
   runId: string; worldId: string; worldEpoch: string; processId: string;
@@ -37,7 +39,9 @@ export const TILE_DENSITY_MG_PER_MM3 = { min: 1.5, max: 2.3 } as const;
 export const simpleFixtureStep: ScienceStep = req => {
   const result = blank(req);
   try {
-    need(req.contract === SCIENCE_CONTRACT_VERSION && req.catalogVersion === FIXTURE_CATALOG_VERSION &&
+    // 0.1.x, or the proposed 0.2.x (then every answer carries drawn: []): independent of which version this file's
+    // copy of the contract declares, so adopting 0.2.0 does not switch the accepted version under a running world
+    need(/^0\.[12]\.\d+$/.test(req.contract) && req.catalogVersion === FIXTURE_CATALOG_VERSION &&
       req.processVersion === FIXTURE_PROCESS_VERSION, 'unsupported-version');
     const tile = req.processId === 'p11x_test_tile_shape';
     const shape = req.processId === 'p11_pottery_shape' || tile, weigh = req.processId === 'fixture_mass_measure';
@@ -122,13 +126,17 @@ export const simpleFixtureStep: ScienceStep = req => {
     need(req.energy.length === 1, 'one-energy-source-required');
     const supply = req.energy[0], kind = shape ? 'mechanical' : 'electric';
     need(id(supply.sourceId, 'src:') && supply.kind === kind && int(supply.maxJ), 'invalid-energy-offer');
-    const seconds = Math.min((to - from) / 1000, duration - state.elapsedS, Math.floor(supply.maxJ / power));
-    state.elapsedS += seconds; state.lastTo = from + seconds * 1000; state.operationalPause = false;
+    // the offer arrives evenly: power available = maxJ / interval seconds, constant over the interval
+    const dtS = (to - from) / 1000, offeredW = dtS > 0 ? supply.maxJ / dtS : 0;
+    const seconds = offeredW >= power ? Math.min(dtS, duration - state.elapsedS) : 0;
+    // under-powered, the interval still passes (nothing happened in it): the run continues from its end
+    state.elapsedS += seconds; state.lastTo = seconds > 0 ? from + seconds * 1000 : to; state.operationalPause = false;
     result.simulated.to = state.lastTo;
     result.energy = [{ sourceId: supply.sourceId, kind, usedJ: seconds * power, lostJ: seconds * power, storedJ: 0 }];
     // In this fixture manual work and balance electricity ultimately dissipate; no free useful energy is exported.
     state.completed = state.elapsedS === duration;
-    result.status = state.completed ? 'completed' : state.lastTo < to ? 'needs-input' : 'running';
+    result.status = state.completed ? 'completed' : seconds === 0 && to > from ? 'needs-input' : 'running';
+    if (seconds === 0) result.energy = [];
     if (state.completed && tile) {
       const q = lot.quality!;
       result.consumed = [{ lotId: lot.lotId, amount: { ...lot.amount } }];
