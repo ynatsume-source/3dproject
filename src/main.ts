@@ -42,7 +42,7 @@ import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
-import { makeReplay } from './ui/replay';
+import { makeRecorder, KEEP } from './ui/replay';
 import { planOpening, type Opening, type OpeningPose } from './opening';
 import { makeHints } from './ui/hints';
 import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
@@ -94,7 +94,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lampT = 0, lampOn = false, lampManual = false, hudOn = true, busy = false;
 let hints: ReturnType<typeof makeHints> | null = null;
-let onCanvasSize: (() => void) | null = null;   // (set once the rewind recorder exists, below)   // (the quiet hints: made once the controls exist, below)
+let onCanvasSize: (() => void) | null = null;   // (set once the recorder exists, below)   // (the quiet hints: made once the controls exist, below)
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
 // the start: asked for (?tier=), chosen by hand before, what this device settled on last time, or a guess
 const TIER_KEY = (() => { let g = ''; try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); g = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)); } catch (e) { /* hidden */ } return `seaglass.tier:${g}:${Math.round(screen.width * devicePixelRatio)}`; })();
@@ -2357,25 +2357,17 @@ $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
 $('newMark').onclick = observeNew;
 // the last 15 seconds of the view, always kept ready, saved with a tap (and a second to confirm)
-const replay = makeReplay(canvas, soundStream, isTouch);
-// (recording only while a sea is on screen: not on the globe, not while the page is hidden)
-const syncReplay = () => { if (mode === 'ocean' && document.visibilityState === 'visible') replay.resume(); else replay.pause(); };
-document.addEventListener('visibilitychange', syncReplay);
+const replay = makeRecorder(canvas, soundStream, isTouch);
 let replayArm = 0;
-if (!replay.start()) $('btnReplay').hidden = true;
-syncReplay();
-onCanvasSize = () => replay.reset();   // (a browser that cannot record: no button at all)
-$('btnReplay').onclick = async () => {
-  if (replay.held() < 3) { showToast('REPLAY', 'まだ映像がたまっていません', 'もう少し見てから押してください'); return; }
-  // two taps to save (a stray touch only arms it): the first asks, the second within 3 s keeps it
-  const b = $('btnReplay');
-  if (!b.classList.contains('armed')) {
-    b.classList.add('armed'); $('replayLbl').textContent = 'もう一度押すと保存';
-    clearTimeout(replayArm); replayArm = window.setTimeout(() => { b.classList.remove('armed'); $('replayLbl').textContent = 'さかのぼって保存'; }, 3000);
-    return;
-  }
-  clearTimeout(replayArm); b.classList.remove('armed'); $('replayLbl').textContent = 'さかのぼって保存';
-  const blob = await replay.save(); if (!blob || !cur) return;
+if (!replay.type) $('btnReplay').hidden = true;   // (a browser that cannot record: no button at all)
+const replayIdle = () => { const b = $('btnReplay'); b.classList.remove('armed', 'rec'); $('replayLbl').textContent = '録画'; $('replaySec').textContent = ''; b.style.setProperty('--held', '0'); b.title = '録画：2回押すと始まり、もう一度押すと止めて保存（最長15秒）'; };
+replayIdle();
+// stopped (by a tap, at 15 s, or because the view went away): the file handed over at once
+async function replayStop() {
+  if (!replay.on) return;
+  const blob = await replay.end(); replayIdle();
+  if (!blob) { showToast('REC', '短すぎて保存できませんでした', 'もう少し長く録ってみてください'); return; }
+  if (!cur) return;
   const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
   const name = `utsushiyo-${cur.loc.id}-${L.getUTCFullYear()}${p2(L.getUTCMonth() + 1)}${p2(L.getUTCDate())}-${p2(L.getUTCHours())}${p2(L.getUTCMinutes())}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
   track('replay_save', { sea: cur.loc.id });
@@ -2383,15 +2375,33 @@ $('btnReplay').onclick = async () => {
   if (isTouch && (navigator as any).canShare?.({ files: [file] })) { try { await (navigator as any).share({ files: [file], title: `ウツシヨ — ${cur.loc.name}` }); return; } catch (e) { /* (fall through to a download) */ } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-  showToast('REPLAY', '直前の映像を保存しました', name);
+  showToast('REC', '映像を保存しました', name);
+}
+// (nothing goes on recording a view that is not there: hidden, back to the globe, or the canvas resized)
+const syncReplay = () => { if (replay.on && (mode !== 'ocean' || document.visibilityState !== 'visible')) void replayStop(); };
+document.addEventListener('visibilitychange', syncReplay);
+onCanvasSize = () => { if (replay.on) void replayStop(); };
+// two taps to start (a stray touch only arms it), one to stop
+$('btnReplay').onclick = () => {
+  const b = $('btnReplay');
+  if (replay.on) { void replayStop(); return; }
+  if (!b.classList.contains('armed')) {
+    b.classList.add('armed'); $('replayLbl').textContent = 'もう一度で録画開始';
+    clearTimeout(replayArm); replayArm = window.setTimeout(replayIdle, 3000);
+    return;
+  }
+  clearTimeout(replayArm); b.classList.remove('armed');
+  if (!replay.begin()) { replayIdle(); showToast('REC', '録画を始められませんでした', 'このブラウザでは録画できないようです'); return; }
+  b.classList.add('rec'); $('replayLbl').textContent = '録画中・押すと保存'; b.title = '録画中：押すと止めて保存（最長15秒）';
 };
-// the ring fills over the first 15 seconds; until then the count says how much is held
+// while recording: the seconds and the ring filling toward the 15 s it stops at
 setInterval(() => {
-  const s = replay.held(), b = $('btnReplay');
-  b.style.setProperty('--held', String(s / 15));
-  $('replaySec').textContent = '15';   // (always the same: the ring shows it filling at first)
-  b.title = s < 15 ? `さかのぼって保存：直前15秒を動画にします（いま${Math.floor(s)}秒ぶん）` : 'さかのぼって保存：直前15秒を動画にします';
-}, 500);
+  if (!replay.on) return;
+  const s = replay.elapsed();
+  $('btnReplay').style.setProperty('--held', String(Math.min(1, s / KEEP)));
+  $('replaySec').textContent = String(Math.min(KEEP, Math.floor(s)));
+  if (s >= KEEP) void replayStop();
+}, 250);
 // Quiet hints, one at a time as the minutes go by in the sea (src/ui/hints.ts): the sound first, then what
 // else there is — a little more found each time someone stays a while. Not on the test panel.
 if (!/[?&]lab\b/.test(location.search)) hints = makeHints([
@@ -2399,7 +2409,7 @@ if (!/[?&]lab\b/.test(location.search)) hints = makeHints([
   { id: 'time', at: 35, target: '#btnTime', text: '時間帯や季節を変えてみることもできます' },
   { id: 'guide', at: 75, target: '#btnGuide', text: '出会った生きものは、図鑑に集まっていきます' },
   { id: 'sky', at: 120, target: '#btnSky', text: '海の上へ出るなら、ここから', when: () => !drone.sky },
-  { id: 'replay', at: 170, target: '#btnReplay', text: 'いい場面のあとで押せば、さかのぼって15秒を動画に' },
+  { id: 'replay', at: 170, target: '#btnReplay', text: '2回押すと録画、もう一度で止めて保存（最長15秒）' },
   { id: 'share', at: 235, target: '#btnShare', text: 'いま見ている景色を、そのまま誰かに送れます' },
   { id: 'view', at: 300, target: '#btnView', text: 'ドローンの目線に切り替えることも' },
   { id: 'more', at: 380, target: '#btnMore', text: '案内役の性格や手動操作は、ここから選べます' },
@@ -2683,7 +2693,7 @@ function resize() {
   const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 3 ? 0.5 : 1);
   const cw = canvas.width, ch = canvas.height;
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
-  if (canvas.width !== cw || canvas.height !== ch) onCanvasSize?.();   // (the rewind buffer starts afresh at the new size: its recorders cannot follow it)
+  if (canvas.width !== cw || canvas.height !== ch) onCanvasSize?.();   // (a recording under way is saved as it is: a recorder cannot follow a new size)
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
   narrowK = clamp((1 - w / h) / 0.55, 0, 1);

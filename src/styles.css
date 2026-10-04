@@ -675,7 +675,7 @@ body.hud-off #sharedBadge { display: none; }
 body.pov:not(.pov-ui) #sharedBadge { opacity: 0; pointer-events: none !important; }
 body.pov #sharedBadge { top: calc(96px + env(safe-area-inset-top, 0px)); }
 
-/* さかのぼって保存: a rewind ring that fills as the last 30 seconds are held, and a red dot of a recorder */
+/* 録画: two taps start it, one stops it; while it runs the ring fills toward the 15 s it stops at */
 #btnReplay { display: inline-flex; align-items: center; gap: 7px; --held: 0; }
 #btnReplay .ring { position: relative; width: 18px; height: 18px; border-radius: 50%; flex: none;
   background: conic-gradient(rgba(255, 120, 110, 0.95) calc(var(--held) * 360deg), rgba(220, 235, 240, 0.18) 0); }
@@ -689,8 +689,10 @@ body.pov #sharedBadge { top: calc(96px + env(safe-area-inset-top, 0px)); }
 #btnReplay.armed { background: rgba(255, 111, 100, 0.22); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.6) inset; }
 #btnReplay.armed .ring i { animation: replayPulse 0.9s ease-in-out infinite; }
 @keyframes replayPulse { 50% { transform: scale(0.6); } }
-@media (max-width: 560px) { #btnReplay.armed .lbl { display: inline; } }
-@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } #btnReplay .sec:empty { display: none; } }
+#btnReplay.rec { background: rgba(255, 111, 100, 0.28); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.75) inset; }
+#btnReplay.rec .ring i { animation: replayPulse 1.4s ease-in-out infinite; }
+@media (max-width: 560px) { #btnReplay.armed .lbl, #btnReplay.rec .lbl { display: inline; } }
+#btnReplay .sec:empty { display: none; }
 
 /* a first sighting: a faint ring round the animal itself, its name beside it; a tap goes to watch it */
 #newMark { position: fixed; left: 0; top: 0; z-index: 5; --r: 30px; padding: 0; border: 0; background: none; color: #e8f6f6; cursor: pointer;
@@ -741,11 +743,11 @@ body.hud-off #newMark { display: none; }
 /* the field guide open takes the right-hand side: the quick buttons step aside (and are no target under it) */
 body:has(#guide:not([hidden])) #quick { display: none; }
 
-/* さかのぼって保存, asking for the second tap: on a narrow bar the question floats above the button instead of
+/* 録画, asking for the second tap or recording: on a narrow bar the words float above the button instead of
    widening it (which pushed the bar's ends off the screen) */
 #btnReplay { position: relative; }
 @media (max-width: 560px) {
-  #btnReplay.armed .lbl { display: block; position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); white-space: nowrap;
+  #btnReplay.armed .lbl, #btnReplay.rec .lbl { display: block; position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); white-space: nowrap;
     padding: 6px 11px; border-radius: 999px; background: rgba(60, 20, 22, 0.88); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.6) inset; color: #ffe8e4; font-size: 11.5px; pointer-events: none; }
 }
 /* (two quick taps on a button are two taps, never a double-tap zoom: the save confirmation relies on it) */
