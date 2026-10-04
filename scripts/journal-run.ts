@@ -74,8 +74,12 @@ const R = oc.residents;
 const cam = new THREE.Vector3();
 let steps = 0, waits = 0;
 console.log(`island day ${DAY} ${FROM}:00-${TO}:00 JST, ${key ? 'thinking with the model' : 'by habit (no key)'}`);
+// (what each was doing, every ten minutes of the day: a stalled day shows)
+const timeline: Record<string, string[]> = { dot: [], rakko: [] };
+let nextLook = t0;
 while (sim < t1) {
   sim += STEP * 1000;
+  if (sim >= nextLook) { nextLook += 10 * 60e3; for (const w of ['dot', 'rakko']) { const r = R.list.find((x: any) => x.id === w), m = R.mind(r); timeline[w].push(`${new Date(sim + 9 * 3.6e6).toISOString().slice(11, 16)} ${r.task?.kind ?? '-'}${m?.thinking ? '(考え中)' : ''}`); } }
   const dot = R.list.find((r: any) => r.id === 'dot');
   cam.set(dot.pos.x, dot.pos.y + 30, dot.pos.z);
   R.update(STEP, sim, cam);
@@ -99,7 +103,12 @@ for (const who of ['dot', 'rakko']) {
   for (const p of photos) fs.writeFileSync(path.join(DATA, 'photos', `${p.id}.json`), JSON.stringify(p));
   const inp = {
     who, name: r.v.name, profile: r.v.mind, day: DAY,
-    entries: r.diary.filter((e: any) => dayOf(e.at) === DAY).map((e: any) => ({ time: hm(e.at), text: e.text })),
+    // (what it set out to do and what came of it, one line each: "…：できた"; a 'do' with no result yet stays as it is)
+    entries: r.diary.filter((e: any) => dayOf(e.at) === DAY).reduce((out: { time: string; text: string; key?: string }[], e: any) => {
+      const last = out[out.length - 1];
+      if (e.key === 'got' && last?.key === 'do' && e.text.startsWith(last.text + '：')) { last.text = e.text; last.key = 'got'; return out; }
+      out.push({ time: hm(e.at), text: e.text, key: e.key }); return out;
+    }, []).map(({ time, text }) => ({ time, text })),
     photos: photos.map((p: any) => ({ id: p.id, subject: p.subject, why: p.why, time: hm(p.at) })),
     talks: R.talks.filter((e: any) => dayOf(e.at) === DAY && e.who === who && !e.head).map((e: any) => ({ time: hm(e.at), with: e.with ?? '', text: e.text })),
   };
@@ -116,7 +125,7 @@ const run = {
   day: DAY, hours: [FROM, TO], thinking: !!key, steps, waits, minutes: +((realNow() - wall0) / 60000).toFixed(1),
   calls: mindLog.length, answered: mindLog.filter((m) => m.ok).length, bodies: Object.fromEntries(R.list.filter((x: any) => x.body).map((x: any) => [x.id, { troubles: x.body.troubles, eatStarts: x.body.eatStarts, eatAt: +x.body.learn.eatAt.toFixed(2), sleepAt: +x.body.learn.sleepAt.toFixed(2) }])), misses: mindLog.filter((m) => !m.ok).reduce((o: Record<string, number>, m) => { const k = m.miss ?? '?'; o[k] = (o[k] ?? 0) + 1; return o; }, {}), postIssues, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
   photos: Object.fromEntries(['dot', 'rakko'].map((w) => [w, (R.list.find((x: any) => x.id === w).photos ?? []).filter((p: any) => p.day === DAY).map((p: any) => p.subject.label)])),
-  posts: written,
+  posts: written, timeline,
   goals: Object.fromEntries(['dot', 'rakko'].map((w) => [w, R.list.find((x: any) => x.id === w).diary.filter((e: any) => dayOf(e.at) === DAY && e.key === 'mind').slice(-8).map((e: any) => e.text)])),
 };
 fs.writeFileSync(path.join(DATA, 'runs', `${DAY}.json`), JSON.stringify(run, null, 1));

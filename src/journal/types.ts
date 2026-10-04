@@ -27,9 +27,12 @@ export interface Post {
   who: string; name: string;
   day: string;
   title: string;
-  body: string[];             // paragraphs, plain text
+  body: string[];             // paragraphs, plain text (older posts; a post written as a log has none)
   photos: PostPhoto[];        // its own from that day, 1–3; none on a day it took none
   drawing?: { svg: string; caption: string };   // a day without photographs: a picture it drew, of whatever it liked (SVG)
+  // the day as an exchange: what the island gave back, and what it made of it — and, at the end, the day taken as a whole
+  log?: { t: string; world: string; me: string; photo?: string }[];
+  review?: { summary: string[]; state: string[]; unknown: string[]; outlook: string[] };
   tags: string[];
   written: string;            // ISO time it was written
   by: string;                 // the model that wrote it, or "draft" (no AI: a dry run, never published)

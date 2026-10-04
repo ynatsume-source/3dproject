@@ -96,3 +96,22 @@ img { display: block; width: 100%; height: auto; }
 /* a picture drawn on a day without photographs: shown whole, on paper */
 .ph img.drawn, figure.drawing img { object-fit: contain; background: #f2ede3; }
 figure.drawing img { aspect-ratio: 4 / 3; height: auto; }
+
+/* a post written as a log: the island and the resident, by the hour */
+.xlog { list-style: none; margin: 0 0 28px; padding: 0; display: grid; gap: 18px; }
+.xlog > li { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; row-gap: 6px; }
+.xlog time { grid-row: span 2; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px; color: var(--faint); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.xlog p { margin: 0; line-height: 1.75; }
+.xlog p b { display: inline-block; min-width: 3.6em; margin-right: .6em; font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+.xlog .w { color: var(--dim); }
+.xlog .w b { color: var(--faint); }
+.xlog .m b { color: var(--c); }
+.xlog figure { grid-column: 2; margin: 6px 0 0; }
+.review { border-top: 1px solid var(--line); padding-top: 22px; display: grid; gap: 12px; }
+.review h2 { font-family: "Zen Old Mincho", serif; font-size: 20px; margin: 10px 0 0; }
+.review p { margin: 0; }
+.review .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 24px; }
+.review h3 { font-size: 12px; letter-spacing: .08em; color: var(--faint); margin: 6px 0 4px; font-weight: 500; }
+.review ul { margin: 0; padding-left: 1.2em; }
+.review .next li::marker { content: "→ "; color: var(--faint); }
+@media (max-width: 520px) { .xlog > li { grid-template-columns: 1fr; } .xlog time { grid-row: auto; } .xlog figure { grid-column: 1; } }

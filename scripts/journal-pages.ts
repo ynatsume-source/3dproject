@@ -26,7 +26,7 @@ const rec = (id: string): PhotoRecord | null => { const f = path.join(SRC, 'phot
 const hasImg = (id: string) => fs.existsSync(path.join(SRC, 'photos', `${id}.jpg`));
 const dateJa = (day: string) => { const [y, m, d] = day.split('-').map(Number); return `${y}年${m}月${d}日`; };
 const timeJa = (ms: number) => new Date(ms + 9 * 3.6e6).toISOString().slice(11, 16);
-const excerpt = (p: Post) => { const t = p.body.join(' ').replace(/\s+/g, ' '); return t.length > 70 ? t.slice(0, 70) + '…' : t; };
+const excerpt = (p: Post) => { const t = (p.review ? p.review.summary.join(' ') : p.body.join(' ')).replace(/\s+/g, ' '); return t.length > 70 ? t.slice(0, 70) + '…' : t; };
 
 function page(o: { title: string; desc: string; url: string; img?: string; body: string; depth: number }) {
   const up = '../'.repeat(o.depth);
@@ -98,6 +98,12 @@ for (const w of Object.keys(WHO)) {
 posts.forEach((p, i) => {
   const up = '../../', W = WHO[p.who];
   const [first, ...more] = p.photos;
+  const cap = (id: string) => p.photos.find((x) => x.id === id)?.caption ?? '';
+  // (a post written as a log: the island and it, by the hour; the photographs where they were taken)
+  const placed = new Set((p.log ?? []).map((e) => e.photo).filter(Boolean) as string[]);
+  const logHtml = p.log ? `<ol class="xlog">${p.log.map((e) => `<li><time>${esc(e.t)}</time><p class="w"><b>島</b>${esc(e.world)}</p><p class="m" style="--c:${W.color}"><b>${esc(W.name)}</b>${esc(e.me)}</p>${e.photo && e.photo !== first?.id ? fig(e.photo, cap(e.photo), up) : ''}</li>`).join('')}</ol>${more.filter((x) => !placed.has(x.id)).map((x) => fig(x.id, x.caption, up)).join('')}` : '';
+  const list = (h: string, xs: string[]) => xs.length ? `<div><h3>${h}</h3><ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  const reviewHtml = p.review ? `<section class="review"><h2>今日のまとめ</h2>${p.review.summary.map((x) => `<p>${esc(x)}</p>`).join('')}<div class="facts">${list('終わりの状態', p.review.state)}${list('まだ分からないこと', p.review.unknown)}</div><h2>これから</h2><ul class="next">${p.review.outlook.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>` : '';
   // (the photographs among the paragraphs: the first at the top, the others after the first and third paragraphs)
   const paras = p.body.map((b, k) => `<p>${esc(b).replace(/\n/g, '<br>')}</p>${k === 0 && more[0] ? fig(more[0].id, more[0].caption, up) : ''}${k === 2 && more[1] ? fig(more[1].id, more[1].caption, up) : ''}`).join('');
   const leftover = more.slice(p.body.length > 2 ? 2 : p.body.length > 0 ? 1 : 0).map((x) => fig(x.id, x.caption, up)).join('');
@@ -106,7 +112,7 @@ posts.forEach((p, i) => {
   <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time></div>
   <h1>${esc(p.title)}</h1>
   ${p.drawing ? drawn(p, up) : fig(first.id, first.caption, up, 'hero')}
-  <div class="body">${paras}${leftover}</div>
+  ${p.log ? `<div class="body">${logHtml}${reviewHtml}</div>` : `<div class="body">${paras}${leftover}</div>`}
   ${p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}
   <aside class="colophon"><b>この記事について</b>${esc(W.name)}（AIの住人）が、${dateJa(p.day)}の自分の記録${p.drawing ? 'から書きました。この日は写真を撮らなかったので、絵も自分で描きました（AIが描いたものです）。' : 'と、その日に自分で撮った写真から書きました。写真は住人の目に映った島の景色を、そのときの位置と時刻で描いたものです。'}${p.by === 'draft' ? '（下書き：AIなし）' : ''}</aside>
   <nav class="pager">${prev ? `<a href="${up}journal/${prev.id}/">← ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a href="${up}journal/${next.id}/">${esc(next.title)} →</a>` : '<span></span>'}</nav>

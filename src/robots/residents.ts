@@ -157,7 +157,7 @@ const SPECS: Spec[] = [
 ];
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
-  opt?: string; failed?: Outcome; reported?: boolean }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
+  opt?: string; failed?: Outcome; reported?: boolean; label?: string }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
 interface Line { who: string; text: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; conv: number }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
@@ -572,7 +572,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function note(r: Resident, key: string, vars: Record<string, string | number> = {}, today?: string, obs?: string) {
     const lines = r.v.diary[key]; if (!lines) return;
     const text = fill(pickOne(lines), { ...statVars(r), ...vars });
-    r.diary.push(obs ? { at: clockMs, text, key, obs } : { at: clockMs, text, key }); if (r.diary.length > 400) r.diary.shift();
+    r.diary.push(obs ? { at: clockMs, text, key, obs } : { at: clockMs, text, key }); if (r.diary.length > 800) r.diary.shift();
     if (today) { r.today.push(today); if (r.today.length > 6) r.today.shift(); }
     res.onEvent(key, `${r.v.name}：${text}`, r);
   }
@@ -641,7 +641,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function troubled(r: Resident, kind: Trouble, text: string, popText: string, detail?: string) {
     if (!r.body) return;
     newDay(r.body, r.id, dayOf(clockMs)); trouble(r.body, kind);
-    r.diary.push({ at: clockMs, text, key: 'body' }); if (r.diary.length > 400) r.diary.shift();
+    r.diary.push({ at: clockMs, text, key: 'body' }); if (r.diary.length > 800) r.diary.shift();
     res.onEvent('body', `${r.v.name}：${text}`, r);
     pops.push({ r, text: popText, k: 'bad', born: performance.now() }); if (pops.length > 24) pops.shift()?.el?.remove();
     const a = agentOf(r); if (a) { a.result(`body:${kind}`, kind, 'blocked', clockMs, detail ?? text); flushMind(r, a); }
@@ -688,6 +688,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.body && b.patch && !r.body.known.includes(b.patch)) r.body.known.push(b.patch);
     if (b.weak >= 2 && b.got * 2 < b.tries) troubled(r, 'weak', `おなかがすきすぎて、潜っても力が出なかった（${detail}）`, '力が出ない', detail);
     else if (!b.got) { r.diary.push({ at: clockMs, text: `${where}では何も獲れなかった`, key: 'body' }); }
+    act(r, 'got', `食べに潜った：${detail}`);
     const a = agentOf(r); if (a && b.opt) { a.result(b.opt, 'eat', b.got ? 'done' : 'gone', clockMs, detail); flushMind(r, a); }
     r.task = b.got ? task('groom', [r.pos.x, r.pos.z], 'groom', rr(60, 150), { wet: true, arrived: true }) : null;   // (after eating, cleaning the fur)
   }
@@ -1059,18 +1060,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     flushMind(r, a);
     if (step === 'ponder') return task('ponder', [r.pos.x, r.pos.z], 'look', 0.5, { arrived: true });   // (asked again each half second: on as soon as the thought is in)
     if (!step) return undefined;
-    const t = taskFor(r, step);
-    if (!t) { a.result(step, step.split(':')[0], 'unavailable', clockMs, '世界がそれを受け付けなかった'); flushMind(r, a); return task('ponder', [r.pos.x, r.pos.z], 'look', 1, { arrived: true }); }
+    const t = taskFor(r, step), label = opts.find((o) => o.id === step)?.label ?? step;
+    if (!t) { act(r, 'got', `${label}：できなかった（世界がそれを受け付けなかった）`); a.result(step, step.split(':')[0], 'unavailable', clockMs, '世界がそれを受け付けなかった'); flushMind(r, a); return task('ponder', [r.pos.x, r.pos.z], 'look', 1, { arrived: true }); }
+    t.label = label; act(r, 'do', label);
     return t;
   }
   // how a step of its own went: told to its mind once
   function report(r: Resident, tk: Task | null | undefined, outcome: Outcome, detail?: string) {
     const a = agentOf(r); if (!a || !tk?.opt || tk.reported) return;
-    tk.reported = true; a.result(tk.opt, tk.kind, outcome, clockMs, detail); flushMind(r, a);
+    tk.reported = true; act(r, 'got', `${tk.label ?? tk.opt}：${OUTCOME_JA[outcome] ?? outcome}${detail ? `（${detail}）` : ''}`); a.result(tk.opt, tk.kind, outcome, clockMs, detail); flushMind(r, a);
   }
+  // (the day's own log, line by line: what it set out to do, and what the world gave back — for its post, and to see a day)
+  const OUTCOME_JA: Record<string, string> = { done: 'できた', gone: 'もうなかった', 'no way': '道がなかった', blocked: '進めなかった', 'nowhere to stand': '立てる場所がなかった', interrupted: '途中でやめた', timeout: '時間がかかりすぎた', unavailable: 'できなかった', accepted: '引き受けてもらえた', refused: '断られた' };
+  function act(r: Resident, key: 'do' | 'got', text: string) { r.diary.push({ at: clockMs, text, key }); if (r.diary.length > 800) r.diary.shift(); }
   // what its mind has to say for the day's record
   function flushMind(r: Resident, a: Agent) {
-    for (const line of a.out.diary.splice(0)) { r.diary.push({ at: clockMs, text: line, key: 'mind' }); if (r.diary.length > 400) r.diary.shift(); res.onEvent('mind', `${r.v.name}：${line}`, r); }
+    for (const line of a.out.diary.splice(0)) { r.diary.push({ at: clockMs, text: line, key: 'mind' }); if (r.diary.length > 800) r.diary.shift(); res.onEvent('mind', `${r.v.name}：${line}`, r); }
     if (a.out.say) { r.today.push(a.out.say); if (r.today.length > 6) r.today.shift(); a.out.say = undefined; }
   }
 
@@ -1081,7 +1086,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (result.success) {
         r.stats.notes += result.observation ? 1 : 0;
         r.diary.push({ at: clockMs, text: result.text, key: tk.kind });
-        if (r.diary.length > 400) r.diary.shift();
+        if (r.diary.length > 800) r.diary.shift();
         r.today.push(result.text); if (r.today.length > 6) r.today.shift();
         if (!fast) res.onEvent(tk.kind, `${r.v.name}：${result.text}`, r);
         if (tk.kind === 'study-share') {
@@ -1173,7 +1178,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           subject: { id: ob.id, kind: ob.kind, label: ob.label.replace(/（.*?）$/, '') }, why: agentOf(r)?.goal?.text,
           others: list.filter((o) => o !== r).map((o) => ({ id: o.id, x: +o.pos.x.toFixed(2), y: +o.pos.y.toFixed(2), z: +o.pos.z.toFixed(2), head: +o.head.toFixed(3), act: o.act, holding: o.holding })) };
         (r.photos ??= []).push(rec); if (r.photos.length > 40) r.photos.shift();
-        r.diary.push({ at: clockMs, text: `写真を撮った：${rec.subject.label}`, key: 'photo' }); if (r.diary.length > 400) r.diary.shift();
+        r.diary.push({ at: clockMs, text: `写真を撮った：${rec.subject.label}`, key: 'photo' }); if (r.diary.length > 800) r.diary.shift();
         res.onEvent('photo', `${r.v.name}が${rec.subject.label}の写真を撮った`, r);
         break;
       }
@@ -1540,7 +1545,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const summary = tk.stage === 5 ? '悩みを打ち明けあった' : ['はじめて挨拶した', '自己紹介をした', '島で生きるコツを教え合った', '近況を話した', '近況を話した'][Math.min(tk.stage, 4)];
     tk.a.today.push(`${tk.b.v.name}と話した`); tk.b.today.push(`${tk.a.v.name}と話した`);
     tk.a.diary.push({ at: clockMs, text: `${tk.b.v.name}と会って、${summary}。`, key: 'met', with: tk.b.id }); tk.b.diary.push({ at: clockMs, text: `${tk.a.v.name}と会って、${summary}。`, key: 'met', with: tk.a.id });
-    for (const r of [tk.a, tk.b]) if (r.diary.length > 400) r.diary.shift();
+    for (const r of [tk.a, tk.b]) if (r.diary.length > 800) r.diary.shift();
     res.onEvent('talked', `${who}が${summary}`, tk.a);
   }
   function stepTalk(tk: Talk, dt: number, fast: boolean) {
@@ -1705,7 +1710,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         ...(study ? { lanternStudy: study.serialize() } : {}),
         minds: Object.fromEntries(Object.entries(agents).map(([id, a]) => [id, a.save()])),
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), patches, beds, trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-300), holding: r.holding, photos: r.photos?.slice(-40) })),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-800), holding: r.holding, photos: r.photos?.slice(-40) })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
