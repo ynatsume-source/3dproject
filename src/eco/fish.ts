@@ -29,7 +29,8 @@ interface Group {
   type: GroupType; n: number; start: number;
   a?: { pos: THREE.Vector3; s: number };
   c: THREE.Vector3; v: THREE.Vector3; head: number; t: number; alt: number;
-  anchor: { x: number; z: number }; placed: boolean; away?: boolean;   // (an anemone family left be, far off, and not drawn)
+  anchor: { x: number; z: number }; placed: boolean; away?: boolean;
+  goal?: { x: number; z: number };        // (a home patch further on: the group swims its patch there, at its own pace)   // (an anemone family left be, far off, and not drawn)
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
   hunt: null | Hunt; cooldown: number;
@@ -363,6 +364,11 @@ export function makeFishSystem(sp: Species, oc: any) {
 
       if (g.type === 'reef') {
         // active: drift around the home patch; resting: settle into it
+        if (g.goal) {
+          // (on its way to a new patch: the patch itself moves on at the group's swimming pace, the fish after it)
+          const gx = g.goal.x - g.anchor.x, gz = g.goal.z - g.anchor.z, gd = Math.hypot(gx, gz), st = Math.max(sp.speed * 0.9, 0.9) * dt;
+          if (gd <= st) { g.anchor.x = g.goal.x; g.anchor.z = g.goal.z; g.goal = undefined; } else { g.anchor.x += gx / gd * st; g.anchor.z += gz / gd * st; }
+        }
         const r = (sp.diet === 'algae' ? 6 : 3.5) * (1 - rest * 0.8);
         const nx = g.anchor.x + Math.cos(g.t * 0.13 + g.start) * r, nz = g.anchor.z + Math.sin(g.t * 0.1 + g.start) * r;
         g.v.set((nx - g.c.x) / Math.max(dt, 1e-3), 0, (nz - g.c.z) / Math.max(dt, 1e-3)).clampLength(0, sp.speed);
@@ -693,6 +699,16 @@ export function makeFishSystem(sp: Species, oc: any) {
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
+    // the reef's groups, for keeping fish about the camera (ecosystem.ts): where each is, how many, and a way to
+    // send it — put down at (sx, sz) (where it cannot be seen) with its home patch moving on to (ax, az)
+    movers: () => (kelpLife ? [] : groups.filter((g) => g.type === 'reef' && g.placed && !g.ch).map((g) => ({
+      x: g.c.x, y: g.c.y, z: g.c.z, n: g.n, going: !!g.goal, goal: g.goal,
+      move(sx: number, sz: number, ax: number, az: number) {
+        const dx = sx - g.c.x, dz = sz - g.c.z, dy = Math.min(T.h(sx, sz) + g.alt, -1.4) - g.c.y;
+        for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] += dx; fp[i * 3 + 1] += dy; fp[i * 3 + 2] += dz; }
+        g.c.x = sx; g.c.y += dy; g.c.z = sz; g.anchor.x = sx; g.anchor.z = sz; g.goal = { x: ax, z: az };
+      },
+    }))),
     // something worth hunting has turned up near (a tornado of jacks): the hunters close by wake up hungry
     excite(x: number, z: number, r: number) { if (!isPredator) return; for (const g of groups) if (g.type === 'roam' && Math.hypot(g.c.x - x, g.c.z - z) < r) { g.hunger = Math.max(g.hunger, 0.85); g.cooldown = Math.min(g.cooldown, 5); (g as any).excited = 40; } },
     dbg: { fp, dead, groups, kelpLife, get total() { return total; } },   // (for checks)

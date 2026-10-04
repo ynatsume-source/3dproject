@@ -5,6 +5,8 @@ import { Plankton } from './plankton';
 import { updateTurtles, updateMantas } from './animals';
 import { updateOctopi } from './octopus';
 import { updateWhales, whaleSubjects, inSeason } from './whale';
+import { unseen } from './unseen';
+import { rr } from '../core/math';
 
 // ?month=2 previews a season's visitors (whales in winter) without changing the sky
 const SEASON_MONTH = typeof location !== 'undefined' && /[?&]month=(\d+)/.test(location.search) ? +RegExp.$1 : null;
@@ -15,6 +17,50 @@ import type { SkyState } from '../time/clock';
 export class Ecosystem {
   env: Env;
   private oc: any;
+  // Keeping the sea about the camera lived in (owner's choice, 2026-10: B). Fish were put down 32-48 m ahead
+  // and kept to their own patch there, so as the cruise went on the water close by could empty for minutes
+  // (Miyako: 1,340 fish within 25 m at the start, 3 six minutes on). Every few seconds the fish within 30 m
+  // of the camera, and those already on their way into that, are counted; short of the aim, a group left
+  // far behind, out of sight, is sent on: put down off to the side where it cannot be seen (CLAUDE.md:
+  // nothing comes out of nowhere) with its home patch moving on to the way ahead, so it swims in.
+  private keepT = 2;
+  static readonly KEEP_NEAR = 30;     // (m: what counts as about the camera)
+  static readonly KEEP_AIM = 300;     // (fish about the camera, counting those on their way in)
+  /** Fish about the camera now, and those on their way in (for the check, and the aim below). */
+  nearFishCount(cam: THREE.Vector3) {
+    let near = 0;
+    for (const f of this.oc.fish as any[]) for (const m of f.movers?.() ?? []) {
+      const d = Math.hypot(m.x - cam.x, m.z - cam.z), gd = m.goal ? Math.hypot(m.goal.x - cam.x, m.goal.z - cam.z) : 1e9;
+      if (d < Ecosystem.KEEP_NEAR || (m.going && gd < Ecosystem.KEEP_NEAR + 25)) near += m.n;
+    }
+    return near;
+  }
+  private keepAbout(dt: number, cam: THREE.Vector3, fx: number, fz: number) {
+    if ((this.keepT -= dt) > 0) return;
+    this.keepT = 2;
+    const oc = this.oc, T = oc.T, fl = Math.hypot(fx, fz) || 1, ux = fx / fl, uz = fz / fl;
+    if (oc.loc.pelagic || this.nearFishCount(cam) >= Ecosystem.KEEP_AIM) return;
+    // the one to send: well off behind or to the side, out of sight, not already on its way (the biggest found)
+    let best: any = null;
+    for (const f of oc.fish as any[]) for (const m of f.movers?.() ?? []) {
+      if (m.going) continue;
+      const dx = m.x - cam.x, dz = m.z - cam.z, d = Math.hypot(dx, dz);
+      if (d < 45 || (dx * ux + dz * uz) / d > 0.2 || !unseen(oc, m.x, m.y, m.z, cam, ux, uz, 4)) continue;   // (well off, behind or to the side, out of sight)
+      if (!best || m.n > best.n) best = m;
+    }
+    if (!best) return;
+    // where it goes: on the way ahead, on reef in the water; where it is put down: off to one side of the way
+    // ahead, further than one can see that way (more than 75° off the view and over 22 m off)
+    for (let k = 0; k < 16; k++) {
+      const ad = rr(34, 50), al = rr(-8, 8), ax = cam.x + ux * ad - uz * al, az = cam.z + uz * ad + ux * al;
+      if (T.top(ax, az) > -2.5 || !T.wet(ax, az, 2)) continue;
+      const side = k % 2 ? 1 : -1, a = rr(80, 100) * Math.PI / 180, sd = rr(24, 32);
+      const sx = cam.x + (ux * Math.cos(a) - uz * Math.sin(a) * side) * sd, sz = cam.z + (uz * Math.cos(a) + ux * Math.sin(a) * side) * sd;
+      if (T.top(sx, sz) > -2.5 || !T.wet(sx, sz, 2) || !unseen(oc, sx, best.y, sz, cam, ux, uz, 4)) continue;
+      best.move(sx, sz, ax, az);
+      return;
+    }
+  }
 
   constructor(oc: any) {
     this.oc = oc;
@@ -88,6 +134,7 @@ export class Ecosystem {
     e.threats = e.threatsOut; e.threatsOut = [];
     e.events = [];
     e.plankton.update(dt, e.cur, e.sunI, e.night, t);
+    this.keepAbout(dt, cam, fx, fz);
     for (const f of this.oc.fish as FishSystem[]) f.update(dt, e, cam, fx, fz);
     updateTurtles(this.oc, dt, e, cam, fx, fz);
     updateMantas(this.oc, dt, e, cam, fx, fz);

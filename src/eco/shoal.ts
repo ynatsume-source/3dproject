@@ -116,6 +116,8 @@ export function makeShoalSystem(sp: Species, oc: any) {
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
       // (sent off a given way: a school leaving the scene)
       if (steer) { let d = steer.head - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.8); }
+      // (sent on toward a point: until it is there)
+      else if ((L as any).goal && !orbit) { const gl = (L as any).goal, gd = Math.hypot(gl.x - L.c.x, gl.z - L.c.z); if (gd < 6) (L as any).goal = undefined; else { let d = Math.atan2(gl.z - L.c.z, gl.x - L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.9); } }
       // (circling a point: a tornado of jacks)
       if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.hypot(ox, oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
       if (outZone(L.c.x, L.c.z)) { let d = toZone(L.c.x, L.c.z) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
@@ -276,6 +278,15 @@ export function makeShoalSystem(sp: Species, oc: any) {
     dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },
+    // (as the reef's groups, for keeping fish about the camera: each part of the school, and a way to send it on)
+    movers: () => (orbit || steer || always ? [] : leaders.map((L, s) => ({ L, s })).filter(({ L }) => L.placed && !L.ch).map(({ L, s }) => ({
+      x: L.c.x, y: L.c.y, z: L.c.z, n: Math.floor(active / S), going: !!(L as any).goal, goal: (L as any).goal,
+      move(sx: number, sz: number, ax: number, az: number) {
+        const dx = sx - L.c.x, dz = sz - L.c.z;
+        for (let i = s; i < total; i += S) { p[i * 3] += dx; p[i * 3 + 2] += dz; }
+        L.c.x = sx; L.c.z = sz; L.head = Math.atan2(az - sz, ax - sx); (L as any).goal = { x: ax, z: az };
+      },
+    }))),
     // (for the rare scenes: put the whole school right here, heading this way; keep it circling a point;
     // keep it active whatever the hour)
     placeAt(x: number, y: number, z: number, head: number, spread = 4) {
