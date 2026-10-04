@@ -58,6 +58,19 @@ class ObstacleMap {
     return Math.max(a[j * N + i], a[j * N + i + 1], a[(j + 1) * N + i], a[(j + 1) * N + i + 1]);
   }
 }
+/** The height of the ground as drawn: the mesh's flat triangles over a grid of `segs` cells, `half` either side
+ *  (PlaneGeometry's own split of each cell), rather than the smooth land the residents walk on — what sits on the
+ *  ground has to sit on this, or a shell is buried a few centimetres under the sand where the beach curves. NaN off it. */
+export function drawnGrid(f: (x: number, z: number) => number, half: number, segs: number) {
+  const cell = (2 * half) / segs;
+  return (x: number, z: number) => {
+    const gx = (x + half) / cell, gz = (z + half) / cell, i = Math.floor(gx), j = Math.floor(gz);
+    if (i < 0 || j < 0 || i >= segs || j >= segs) return NaN;
+    const u = gx - i, v = gz - j, x0 = -half + i * cell, z0 = -half + j * cell;
+    const ha = f(x0, z0), hb = f(x0, z0 + cell), hc = f(x0 + cell, z0 + cell), hd = f(x0 + cell, z0);
+    return u + v <= 1 ? ha + u * (hd - ha) + v * (hb - ha) : hc + (1 - u) * (hb - hc) + (1 - v) * (hd - hc);
+  };
+}
 export function makeT(loc) {
   const T: any = {
     obst: null as ObstacleMap | null,
@@ -192,6 +205,7 @@ export function buildOcean(loc) {
   // seabed
   const SEGS = 420;
   const floorGeo = new THREE.PlaneGeometry(WORLD * 2, WORLD * 2, SEGS, SEGS);
+  { const near = drawnGrid(loc.f, WORLD, SEGS); T.drawn = (x: number, z: number) => { const h = near(x, z); return Number.isNaN(h) ? loc.f(x, z) : h; }; }
   floorGeo.rotateX(-Math.PI / 2);
   {
     const p = floorGeo.attributes.position, r = new Float32Array(p.count);
@@ -237,6 +251,7 @@ export function buildOcean(loc) {
   // an island larger than the modelled sea: the rest of it, and the lagoon round it, more coarsely
   if (land) {
     const E1 = land.far.half - 6, S = 3, N = Math.round(2 * E1 / S) + 1;
+    { const near = drawnGrid(loc.f, WORLD, SEGS), far = drawnGrid(loc.f, E1, N - 1); T.drawn = (x: number, z: number) => { let h = near(x, z); if (Number.isNaN(h)) h = far(x, z); return Number.isNaN(h) ? loc.f(x, z) : h; }; }
     const g = new THREE.PlaneGeometry(2 * E1, 2 * E1, N - 1, N - 1); g.rotateX(-Math.PI / 2);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) p.setY(i, loc.f(p.getX(i), p.getZ(i)));

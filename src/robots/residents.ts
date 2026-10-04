@@ -558,7 +558,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /* ---------- what lies about the island ---------- */
   // (nothing washes up or turns up inside a rock or a trunk: where it lies can be seen, and reached)
   const ITEM_BODY = { r: 0.25, y0: 0, y1: 0.4, step: 0.05 }, clearOf = (x: number, z: number, h: number) => !solids.hit(x, z, ITEM_BODY, h);
-  const items = makeItems(L.h, spot, {
+  const items = makeItems((x, z) => T.drawn ? Math.max(L.h(x, z), T.drawn(x, z)) : L.h(x, z), spot, {   // (drawn on the sand as drawn)
     wood: { near: byId.dot.sp.home, rad: 160, ok: (x, z, h) => tideline(x, z, h) && clearOf(x, z, h), max: 8, every: 1200 },
     shell: { near: byId.rakko.sp.home, rad: 170, ok: (x, z, h) => tideline(x, z, h) && clearOf(x, z, h), max: 16, every: 260 },
     stone: { near: [byId.lantern.sp.home[0] - 40, byId.lantern.sp.home[1] + 20], rad: 140, ok: (x, z, h) => h > 1.2 && cover(x, z).can < 0.4 && clearOf(x, z, h), max: 12, every: 900 },
