@@ -34,7 +34,11 @@ import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
 function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
   return mat(
     `varying vec3 vWp; varying vec3 vN; varying vec2 vUv; varying vec3 vLp;
-     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vUv = uv; vLp = position; gl_Position = projectionMatrix * viewMatrix * w; }`,
+     void main(){ mat4 mm = modelMatrix;
+       #ifdef USE_INSTANCING
+       mm = mm * instanceMatrix;   // (what lies about, the shell pile, the chips: each where it is, not all at the origin)
+       #endif
+       vec4 w = mm * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(mm) * normal); vUv = uv; vLp = position; gl_Position = projectionMatrix * viewMatrix * w; }`,
     AIRLIT + `uniform vec3 uCol; uniform float uSpec; uniform float uGrid; uniform float uPat; uniform float uScl; varying vec3 vWp; varying vec3 vN; varying vec2 vUv; varying vec3 vLp;
      vec2 h22(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }   // (no sin of a large number: rough on phones)
      vec3 cells(vec2 p) {   // nearest cell distance, the gap to the next (the seams), and the cell's own random
@@ -213,6 +217,7 @@ export interface Residents {
   setStudyWeather(cloud: number | null, source: StudyWorld['cloudSource']): void;
 }
 
+const SHOT_NEAR: Record<string, number> = { shell: 2.4, stone: 3.2, wood: 4.5, 'young-tree': 9, friend: 10, place: 16, unknown: 4, plot: 7 };   // (how near it goes to take a picture of each kind of thing, m)
 const camAt = new THREE.Vector3(1e9, 0, 1e9);   // (where the camera was at the last update: models are posed only near it)
 const pair = (a: string, b: string) => (a < b ? a + '|' + b : b + '|' + a);
 // what their words sound like: each has its own few syllables, strung together as long as the sentence
@@ -551,10 +556,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   /* ---------- what lies about the island ---------- */
+  // (nothing washes up or turns up inside a rock or a trunk: where it lies can be seen, and reached)
+  const ITEM_BODY = { r: 0.25, y0: 0, y1: 0.4, step: 0.05 }, clearOf = (x: number, z: number, h: number) => !solids.hit(x, z, ITEM_BODY, h);
   const items = makeItems(L.h, spot, {
-    wood: { near: byId.dot.sp.home, rad: 160, ok: tideline, max: 8, every: 1200 },
-    shell: { near: byId.rakko.sp.home, rad: 170, ok: tideline, max: 16, every: 260 },
-    stone: { near: [byId.lantern.sp.home[0] - 40, byId.lantern.sp.home[1] + 20], rad: 140, ok: (x, z, h) => h > 1.2 && cover(x, z).can < 0.4, max: 12, every: 900 },
+    wood: { near: byId.dot.sp.home, rad: 160, ok: (x, z, h) => tideline(x, z, h) && clearOf(x, z, h), max: 8, every: 1200 },
+    shell: { near: byId.rakko.sp.home, rad: 170, ok: (x, z, h) => tideline(x, z, h) && clearOf(x, z, h), max: 16, every: 260 },
+    stone: { near: [byId.lantern.sp.home[0] - 40, byId.lantern.sp.home[1] + 20], rad: 140, ok: (x, z, h) => h > 1.2 && cover(x, z).can < 0.4 && clearOf(x, z, h), max: 12, every: 900 },
   }, itemMat, group);
 
   /* ---------- the diary and what happened today ---------- */
@@ -820,7 +827,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (action === 'photo') {
       const ob = observe(r).find((x) => x.id === id.slice(6));
       if (!ob || photosOn(r, dayOf(clockMs)).length >= PHOTOS_PER_DAY) return null;
-      t = task('photo', [r.pos.x, r.pos.z], 'look', 3, { arrived: true, data: { ob } });
+      // (a small thing far off would be a speck in the picture: it goes up to it first, to about as near as its size asks)
+      const near = SHOT_NEAR[ob.kind] ?? 6, d = Math.hypot(ob.x - r.pos.x, ob.z - r.pos.z);
+      t = d <= near ? task('photo', [r.pos.x, r.pos.z], 'look', 3, { arrived: true, data: { ob } })
+        : task('photo', [ob.x + (r.pos.x - ob.x) / d * near * 0.75, ob.z + (r.pos.z - ob.z) / d * near * 0.75], 'look', 3, { data: { ob } });
     }
     else if (action === 'ask') { const o = byId[target]; t = o ? task('ask', [o.pos.x, o.pos.z], 'look', 3, { data: { to: target, what: id.split(':')[2] } }) : null; }
     else if (action === 'give') { const o = byId[target]; t = o && r.holding === 'wood' ? task('give', [o.pos.x, o.pos.z], 'pick', 2.5, { data: { to: target } }) : null; }
@@ -1038,7 +1048,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // asking, giving, telling, answering (ADR 0004 §6): each a thing the world records
       case 'photo': {
         // (the shot: its own eyes, looking at it, the others where they are — kept to be drawn again exactly)
-        const ob = tk.data?.ob; if (!ob || photosOn(r, dayOf(clockMs)).length >= PHOTOS_PER_DAY) { tk.failed = 'unavailable'; break; }
+        const ob0 = tk.data?.ob, fr = ob0?.kind === 'friend' ? byId[ob0.id] : null, ob = fr ? { ...ob0, x: fr.pos.x, z: fr.pos.z } : ob0; if (!ob || photosOn(r, dayOf(clockMs)).length >= PHOTOS_PER_DAY) { tk.failed = 'unavailable'; break; }
         const sn = res.sense(r), day = dayOf(clockMs), n = photosOn(r, day).length + 1;
         const ty = ob.kind === 'friend' ? (byId[ob.id]?.pos.y ?? L.h(ob.x, ob.z)) + 0.4 : L.h(ob.x, ob.z) + (ob.kind === 'place' ? 0.8 : ob.kind === 'young-tree' ? 1.2 : 0.15);
         const rec: PhotoRecord = { id: `${r.id}-${day}-${n}`, who: r.id, day, at: clockMs, eye: [sn.eye.x, sn.eye.y, sn.eye.z], look: [ob.x, ty, ob.z],
@@ -1573,6 +1583,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     try { s = JSON.parse(localStorage.getItem(saveKey) || (study ? localStorage.getItem(KEY) : null) || 'null'); } catch (e) { s = null; }
     clockMs = nowMs;
     items.load(s ? s.items : undefined);
+    for (const it of [...items.list]) if (!clearOf(it.x, it.z, L.h(it.x, it.z))) items.take(it);   // (one left inside a rock by an older island: gone)
     if (!s) return 0;
     if (study) { study.dispose(); study = createLanternStudy(s.lanternStudy, requestLanternDecision); }
     for (const [id, m] of Object.entries(s.minds || {})) agents[id]?.load(m);

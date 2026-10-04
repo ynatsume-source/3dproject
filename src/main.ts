@@ -3026,18 +3026,62 @@ if (location.search.includes('debug')) (window as any).seaglass = { get hints() 
 declare const __BUILD__: string;
 // Drawing a resident's photograph again (?journalshot: tools/journal/photos.cjs): from its eyes, looking where it
 // looked, the island and the others as they were, nothing on the screen but the picture
-if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot = (rec: { who: string; eye: number[]; look: number[]; others: any[] }) => {
+const SHOT_SIZE: Record<string, number> = { shell: 0.16, stone: 0.3, wood: 0.8, 'young-tree': 2, friend: 1.2, place: 5, unknown: 0.8, plot: 3 };   // (about how big each kind of thing is, m)
+const _shotRay = new THREE.Raycaster();
+let shotNote = '';   // (which way the picture was taken from, for the log)
+function shotHit(e: THREE.Vector3, to: THREE.Vector3, far: number, ground: boolean) {
+  const dir = to.clone().sub(e).normalize();
+  _shotRay.set(e, dir); _shotRay.camera = camera; _shotRay.near = 0.05; _shotRay.far = Math.max(0.1, far);
+  const hits: THREE.Intersection[] = [];
+  const walk = (o: THREE.Object3D) => { if (!o.visible) return; try { o.raycast(_shotRay, hits); } catch { /* (one that cannot be hit by a ray) */ } for (const c of o.children) walk(c); };
+  walk(oceanScene); walk(topScene);
+  return hits.some((h) => {
+    const m = h.object as THREE.Mesh;
+    if (!(m as any).isMesh || (m.material as THREE.Material)?.transparent) return false;   // (the water, glows and the like: not in the way)
+    return ground || (m.geometry?.attributes?.position?.count ?? 0) < 20000;               // (round the edges: the lie of the land does not count)
+  });
+}
+function shotClear(e: THREE.Vector3, l: THREE.Vector3, size: number) {
+  const d = e.distanceTo(l), far = d - size * 0.6 - 0.15;
+  if (shotHit(e, l, far, true)) return false;
+  // (and nothing big in the foreground round it: a few rays to either side of it and above)
+  const f = l.clone().sub(e).normalize(), side = new THREE.Vector3(-f.z, 0, f.x).normalize(), s = Math.max(size, d * 0.2);
+  const up = new THREE.Vector3().crossVectors(side, f).normalize();
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (shotHit(e, l.clone().addScaledVector(side, Math.cos(a) * s).addScaledVector(up, Math.sin(a) * s), far, false)) return false; }
+  return true;
+}
+function shotEye(eye: number[], look: number[], size: number): [number, number, number] {
+  const L = new THREE.Vector3(look[0], look[1], look[2]), top = (x: number, z: number) => cur!.T.top(x, z);
+  const lift = (x: number, y: number, z: number) => new THREE.Vector3(x, Math.max(y, top(x, z) + 0.3), z);
+  const e0 = lift(eye[0], eye[1], eye[2]), hd = Math.hypot(e0.x - L.x, e0.z - L.z), a0 = Math.atan2(e0.x - L.x, e0.z - L.z);
+  const tries = [e0, lift(e0.x, e0.y + 0.4, e0.z)];
+  for (const da of [0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const up of [0, 0.5]) { const a = a0 + da, x = L.x + Math.sin(a) * hd, z = L.z + Math.cos(a) * hd; tries.push(lift(x, e0.y + up, z)); }
+  for (const k of [0.55, 1]) for (const up of [0.8, 1.8]) for (const da of [0, 0.6, -0.6, 1.4, -1.4, Math.PI]) { const a = a0 + da, x = L.x + Math.sin(a) * hd * k, z = L.z + Math.cos(a) * hd * k; tries.push(lift(x, Math.max(e0.y, L.y) + up, z)); }   // (nearer and from above: over whatever is in the way)
+  for (let i = 0; i < tries.length; i++) if (shotClear(tries[i], L, size)) { shotNote = `view ${i}/${tries.length}`; return [tries[i].x, tries[i].y, tries[i].z]; }
+  shotNote = 'no clear view'; return [e0.x, e0.y, e0.z];
+}
+if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(rec: { who: string; eye: number[]; look: number[]; others: any[]; subject?: { kind: string } }) => {
   if (!cur?.residents) return false;
   if (watch.r) stopWatch(false);
   if (drone.sky) setSky(false);
   setMode('manual'); setHud(false); document.body.classList.add('journalshot');
+  droneModel.group.visible = false;   // (the visitor's own drone, drawn in the 'drone in frame' view: not in their picture)
   cur.residents.pose(rec as any);
-  const [ex, ey, ez] = rec.eye, dx = rec.look[0] - ex, dy = rec.look[1] - ey, dz = rec.look[2] - ez;
+  const size = SHOT_SIZE[rec.subject?.kind ?? ''] ?? 1.5, [lx, ly, lz] = rec.look;
+  // (where it stood is where the picture is taken from — unless the drawn island has something between its eyes
+  // and what it meant to keep (the sand drawn a little higher than it walked on, something lying in the way):
+  // then, as one with a camera would, a little higher, or a step round it, at the same distance)
+  const [ex, ey, ez] = shotEye(rec.eye, rec.look, size);
+  const dx = lx - ex, dy = ly - ey, dz = lz - ez;
+  // (its lens closes in on what it meant to keep: a shell fills a good part of the picture, a place is seen whole;
+  // and the subject sits a little below the middle, with what is round it above)
+  const d = Math.max(0.3, Math.hypot(dx, dy, dz));
+  camera.fov = THREE.MathUtils.clamp(2 * Math.atan((size * 2.2) / d) * 180 / Math.PI, 22, 64); camera.updateProjectionMatrix();
   drone.pos.set(ex, ey, ez); drone.vel.set(0, 0, 0);
-  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)); look.yaw = look.pitch = 0;
+  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)) + camera.fov * Math.PI / 180 * 0.12; look.yaw = look.pitch = 0;
   drone.lastInput = performance.now() + 1e9;   // (held: no drift back to the cruise)
   shotHold = true;
-  return true;
+  return shotNote || true;
 };
 if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
