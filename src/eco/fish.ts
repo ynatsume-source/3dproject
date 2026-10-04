@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
+import { unseen } from './unseen';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
@@ -108,6 +109,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   const kelpLife = makeKelpFishLife(sp, oc, total);
   const lastCam = new THREE.Vector3();
   const isPredator = sp.diet === 'fish';
+  let nearStart = 1;   // (of the reef's groups, how many are about the camera on arriving: the day's lot, ecosystem.ts startDay)
   const cave = sp.rests === 'cave' ? oc.cave : null;
   if (cave) { const spots = cave.restSpots(groups.length); groups.forEach((g, i) => { g.cr = { spot: spots[i % spots.length], mode: 'out', t: 0, dir: 1 }; }); }
   const _e = new THREE.Vector3();
@@ -355,7 +357,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         g.away = false;
       }
       else if (!g.placed || (dc2 > 72 * 72 && (!g.cr || g.cr.mode === 'out'))) {
-        place(g, cam, fx, fz, !g.placed);
+        place(g, cam, fx, fz, !g.placed && (g.type !== 'reef' || R() < nearStart));   // (on arriving: near, or — the day's lot — further off)
         if (g.cr) { g.cr.mode = 'out'; if (g.act < 0.45 && Math.hypot(g.cr.spot.pos.x - cam.x, g.cr.spot.pos.z - cam.z) > 32) toRest(g); }
       }
       const floorC = T.top(g.c.x, g.c.z);
@@ -699,6 +701,24 @@ export function makeFishSystem(sp: Species, oc: any) {
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
+    setStart(f: number) { nearStart = f; },
+    // a big one passing by early in a visit (the day's lot): put down out of sight off to one side, heading across the
+    // way ahead, so it comes into view by itself
+    visit(cam: THREE.Vector3, fx: number, fz: number) {
+      const g = groups.find((q) => q.type === 'roam' && q.placed && !q.hunt && !q.cr);
+      if (!g) return false;
+      for (let k = 0; k < 16; k++) {
+        const side = k % 2 ? 1 : -1, a = rr(80, 100) * Math.PI / 180, d = rr(28, 40);
+        const x = cam.x + (fx * Math.cos(a) - fz * Math.sin(a) * side) * d, z = cam.z + (fz * Math.cos(a) + fx * Math.sin(a) * side) * d;
+        if (!T.wet(x, z, 3) || !unseen(oc, x, T.h(x, z) + g.alt + 1, z, cam, fx, fz, 2)) continue;
+        const dx = x - g.c.x, dz = z - g.c.z, y = Math.min(T.h(x, z) + g.alt + 1, -2), dy = y - g.c.y;
+        for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] += dx; fp[i * 3 + 1] += dy; fp[i * 3 + 2] += dz; }
+        g.c.set(x, y, z);
+        g.head = Math.atan2(cam.z + fz * rr(14, 24) - z, cam.x + fx * rr(14, 24) - x);   // (toward the way ahead, to cross it)
+        return true;
+      }
+      return false;
+    },
     // the reef's groups, for keeping fish about the camera (ecosystem.ts): where each is, how many, and a way to
     // send it — put down at (sx, sz) (where it cannot be seen) with its home patch moving on to (ax, az)
     movers: () => (kelpLife ? [] : groups.filter((g) => g.type === 'reef' && g.placed && !g.ch).map((g) => ({

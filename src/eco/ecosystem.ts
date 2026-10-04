@@ -6,7 +6,7 @@ import { updateTurtles, updateMantas } from './animals';
 import { updateOctopi } from './octopus';
 import { updateWhales, whaleSubjects, inSeason } from './whale';
 import { unseen } from './unseen';
-import { rr } from '../core/math';
+import { rr, mulberry32 } from '../core/math';
 
 // ?month=2 previews a season's visitors (whales in winter) without changing the sky
 const SEASON_MONTH = typeof location !== 'undefined' && /[?&]month=(\d+)/.test(location.search) ? +RegExp.$1 : null;
@@ -24,6 +24,28 @@ export class Ecosystem {
   // far behind, out of sight, is sent on: put down off to the side where it cannot be seen (CLAUDE.md:
   // nothing comes out of nowhere) with its home patch moving on to the way ahead, so it swims in.
   private keepT = 2;
+  // The day's lot (owner's choice F, 2026-10): the place one goes in at stays the same, but who is about it changes
+  // from day to day — which schools are close on arriving and how many of them, and whether a big one comes by in
+  // the first minutes. Drawn from the sea and the date, so the same day gives the same sea. The first moments keep
+  // their rush of fish: at least two schooling kinds are always close.
+  dayLot: { key: string; near: Record<string, number>; visitor: string | null; at: number } | null = null;
+  private visitT = 0; private visitor: any = null;
+  startDay() {
+    const e = this.env, oc = this.oc, key = `${oc.loc.id}:${e.month}-${e.mday}`;
+    let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const rnd = mulberry32(h >>> 0);
+    const fish = (oc.fish as any[]).filter((f) => f.setStart);
+    const near: Record<string, number> = {};
+    for (const f of fish) near[f.sp.id] = rnd() < 0.25 ? 0.15 + rnd() * 0.25 : 0.5 + rnd() * 0.5;   // (some days a kind is mostly elsewhere)
+    const schooling = fish.filter((f) => f.sp.habitat === 'shoal' || (f.sp.habitat === 'reef' && (f.sp.n ?? 1) > 6));
+    for (let k = 0; k < 2 && schooling.length; k++) near[schooling.splice(Math.floor(rnd() * schooling.length), 1)[0].sp.id] = 1;
+    for (const f of fish) f.setStart(near[f.sp.id]);
+    const big = (oc.fish as any[]).filter((f) => f.visit && f.sp.habitat !== 'reef' && f.sp.habitat !== 'anemone' && f.sp.habitat !== 'shoal' && (f.sp.size?.[1] ?? 0) >= 1);
+    const go = big.length && rnd() < 0.7;
+    this.visitor = go ? big[Math.floor(rnd() * big.length)] : null;
+    this.visitT = go ? 40 + rnd() * 110 : 0;
+    this.dayLot = { key, near, visitor: this.visitor?.sp.ja ?? null, at: Math.round(this.visitT) };
+  }
   static readonly KEEP_NEAR = 30;     // (m: what counts as about the camera)
   static readonly KEEP_AIM = 300;     // (fish about the camera, counting those on their way in)
   /** Fish about the camera now, and those on their way in (for the check, and the aim below). */
@@ -135,6 +157,7 @@ export class Ecosystem {
     e.events = [];
     e.plankton.update(dt, e.cur, e.sunI, e.night, t);
     this.keepAbout(dt, cam, fx, fz);
+    if (this.visitor && (this.visitT -= dt) <= 0) { if (this.visitor.visit(cam, fx, fz) || this.visitT < -60) this.visitor = null; }   // (the day's big one, coming by)
     for (const f of this.oc.fish as FishSystem[]) f.update(dt, e, cam, fx, fz);
     updateTurtles(this.oc, dt, e, cam, fx, fz);
     updateMantas(this.oc, dt, e, cam, fx, fz);

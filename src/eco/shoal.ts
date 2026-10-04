@@ -100,7 +100,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     L.placed = true;
   }
 
-  let target = 1;
+  let target = 1, nearStart = 1;   // (nearStart: of the school's parts, how many are about the camera on arriving: the day's lot)
   let orbit: { x: number; z: number; r: number; dir: number } | null = null, always = false, steer: { head: number } | null = null;
   // the reef height under each fish, refreshed every few frames in turn (terrain sampling is costly)
   let frame = 0, fhC = new Float32Array(0);
@@ -112,7 +112,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const L = leaders[s];
       L.t += dt; L.fear = Math.max(0, L.fear - dt * 0.3);
       const dx = L.c.x - cam.x, dz = L.c.z - cam.z;
-      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit && !steer && unseen(oc, L.c.x, L.c.y, L.c.z, cam, fx, fz, 6))) place(s, cam, fx, fz, !L.placed);
+      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit && !steer && unseen(oc, L.c.x, L.c.y, L.c.z, cam, fx, fz, 6))) place(s, cam, fx, fz, !L.placed && R() < nearStart);   // (on arriving: near, or — the day's lot — further off)
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
       // (sent off a given way: a school leaving the scene)
       if (steer) { let d = steer.head - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.8); }
@@ -278,6 +278,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },
+    setStart(f: number) { nearStart = f; },
     // (as the reef's groups, for keeping fish about the camera: each part of the school, and a way to send it on)
     movers: () => (orbit || steer || always ? [] : leaders.map((L, s) => ({ L, s })).filter(({ L }) => L.placed && !L.ch).map(({ L, s }) => ({
       x: L.c.x, y: L.c.y, z: L.c.z, n: Math.floor(active / S), going: !!(L as any).goal, goal: (L as any).goal,
