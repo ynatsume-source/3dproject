@@ -186,7 +186,7 @@ export interface Resident {
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
   mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number;
-    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; photoAsk?: string; photoForce?: string;
+    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; photoAsk?: string; photoForce?: string; grazeTry?: { bed: string; at: number; hunger: number }; grazeAvoid?: Record<string, number>;
     bout?: { patch?: string; tries: number; got: number; weak: number; full: number; opt?: string }; coldAt?: number };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
   lightK?: number;
   resume?: Task; resumeAt?: number;     // what it was in the middle of when someone came up to talk (to go back to after)
@@ -717,8 +717,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.hunger > (r.body?.learn.eatAt ?? 0.45) && day > 0.15) {
       // (the bed it knows with the most grass left; it learns how they are by going)
       for (const b of beds) regrowBed(b, clockMs);
-      const bd = beds.slice().sort((x, y) => y.grass - x.grass - (Math.hypot(x.x - r.pos.x, x.z - r.pos.z) - Math.hypot(y.x - r.pos.x, y.z - r.pos.z)) / 400)[0];
-      r.body?.eatStarts.push(full(r));
+      // (a bed it went for last time without eating there — no way through, or nothing left — it leaves alone for a while)
+      const tr = r.mo.grazeTry; if (tr && clockMs - tr.at < 3 * 3.6e6 && r.hunger >= tr.hunger - 0.01) (r.mo.grazeAvoid ??= {})[tr.bed] = clockMs;
+      const ok = beds.filter((b) => b.grass > 0.1 && clockMs - (r.mo.grazeAvoid?.[b.id] ?? -1e12) > 3 * 3.6e6);
+      const bd = ok.sort((x, y) => y.grass - x.grass - (Math.hypot(x.x - r.pos.x, x.z - r.pos.z) - Math.hypot(y.x - r.pos.x, y.z - r.pos.z)) / 400)[0];
+      r.mo.grazeTry = bd ? { bed: bd.id, at: clockMs, hunger: r.hunger } : undefined;
       return task('graze', bd ? [bd.x, bd.z] : spot(home, 90, water(1.2, 5)) ?? spot(home, 160, water(1, 7)), 'graze', rr(2400, 4200), { wet: true, data: { bed: bd?.id } });
     }
     if ((r.sleepy > 0.6 || Math.random() < 0.15) && day > 0.7 && hr > 10 && hr < 16.5) return task('bask', spot(home, r.sp.range, shore, 200), 'bask', rr(1500, 3600));
@@ -889,7 +892,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (village.pier === 'build' && village.posts < village.bases) o.push({ id: 'post:pier', action: 'post', label: '桟橋の柱を立てる', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っていること' }) });
       if (!r.holding) o.push({ id: 'float:sea', action: 'float', label: '沖で仰向けに浮かぶ' }, { id: 'groom:sea', action: 'groom', label: '水面で毛づくろいする' });
       // (its body: to eat at one of the places it knows, or a rest on the water — when, is its own to judge)
-      if (!r.holding) for (const id of (r.body?.known.length ? r.body.known : (bestPatch(r), r.body?.known ?? []))) { const p = patchById(id); if (p) o.push({ id: `eat:${p.id}`, action: 'eat', label: `${patchName(p.id)}に潜って食べる（${Math.round(Math.hypot(p.x - r.pos.x, p.z - r.pos.z))}m）`, targetId: p.id }); }
+      if (!r.holding) for (const id of (r.body?.known.length ? r.body.known : (bestPatch(r), r.body?.known ?? []))) { const p = patchById(id); if (p) o.push({ id: `eat:${p.id}`, action: 'eat', label: `${patchName(p.id)}に潜って食べる（${Math.round(Math.hypot(p.x - r.pos.x, p.z - r.pos.z))}m）`, targetId: p.id, ...(full(r) > 85 ? { ready: false, needs: 'おなかがすいていること（いまはいっぱいで食べる気にならない）' } : {}) }); }
       if (dayK(localHour(clockMs)) > 0.3) o.push({ id: 'nap:sea', action: 'nap', label: '浮かんでひと眠りする' });
       o.push({ id: 'wander:beach', action: 'wander', label: '浜を歩いて探す' });
       return o;
@@ -929,7 +932,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const pl = PLOTS[+target.split('#')[1]], want = action === 'till' ? 0 : action === 'plant' ? 1 : 2;
       t = pl && pl.ok && pl.s === want && (action !== 'harvest' || growth(pl) >= 1) ? task(action, [pl.x + 0.8, pl.z], action === 'till' ? 'dig' : 'pick', action === 'till' ? rr(60, 110) : action === 'plant' ? rr(20, 35) : 8, { data: pl }) : null;
     }
-    else if (action === 'eat') { const p = patchById(target); t = p && r.sp.living ? startBout(r, forage(nearPatch(p), p, r), id) : null; }
+    else if (action === 'eat') { const p = patchById(target); t = p && r.sp.living && full(r) <= 85 ? startBout(r, forage(nearPatch(p), p, r), id) : null; }   // (full: it will not eat)
     else if (action === 'nap') t = task('nap', spot([r.pos.x, r.pos.z], 50, water(0.8, 4)) ?? spot(r.sp.home, 60, water(0.8, 4)), 'sleep', rr(600, 1500), { wet: true });
     else if (action === 'photo') {
       const ob = observe(r).find((x) => x.id === id.slice(6));
@@ -1598,6 +1601,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const gt = r.task;
       if (gt?.kind === 'graze' && gt.arrived && r.act === 'graze') {   // (grazing is slow: an hour or more a meal — and the bed is grazed down)
         const bd = beds.find((b) => b.id === gt.data?.bed);
+        if (!gt.data?.began) { gt.data = { ...gt.data, began: true }; r.body?.eatStarts.push(full(r)); }   // (when it actually begins to eat)
         if (!bd || bd.grass > 0.03) { r.hunger = Math.max(0, r.hunger - dt / 4000); if (bd) bd.grass = Math.max(0, bd.grass - dt / 9000); }
         else { gt.data = { ...gt.data, empty: true }; gt.t = gt.dur + 1; }
       }
@@ -1871,10 +1875,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (those with a mind of their own keep looking while they work; something new stops them — between steps)
       // (asked while its body's needs come first — hungry, asleep — it does not leave the other waiting: a no, and why)
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
-      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { { const a0 = agentOf(r); if (a0 && !a0.why && localHour(clockMs) >= 15 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, dayOf(clockMs)).length && (r.mo.photoAsk ?? '') !== dayOf(clockMs)) { r.mo.photoAsk = dayOf(clockMs); a0.why = '今日はまだ写真を撮っていない（1日1枚は撮る）'; } } { const a0 = agentOf(r), day = dayOf(clockMs); if (a0 && localHour(clockMs) >= 16.5 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, day).length && r.mo.photoForce !== day && !r.holding && !r.talk && r.act !== 'sleep' && !['photo', 'forage', 'eat', 'doze', 'shiver', 'fire'].includes(r.task?.kind ?? '')) {
+      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { { const a0 = agentOf(r); if (a0 && !a0.why && localHour(clockMs) >= 15 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, dayOf(clockMs)).length && (r.mo.photoAsk ?? '') !== dayOf(clockMs)) { r.mo.photoAsk = dayOf(clockMs); a0.why = '今日はまだ写真を撮っていない（1日1枚は撮る）'; } } { const a0 = agentOf(r), day = dayOf(clockMs); if (a0 && localHour(clockMs) >= 16.5 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, day).length && r.mo.photoForce !== day && !r.talk && r.act !== 'sleep' && !['photo', 'doze', 'shiver', 'fire'].includes(r.task?.kind ?? '')) {
           // (late, and still not one: the one picture a day is not left to chance — it takes one of what it sees now)
           const ph = photoHabit(r, optionsFor(r, a0)), t = ph ? taskFor(r, ph.plan[0]) : null;
-          if (t) { r.mo.photoForce = day; report(r, r.task, 'interrupted', '今日の一枚を撮ることにした'); items.release(r.id); r.task = t; }
+          if (t) { r.mo.photoForce = day; report(r, r.task, 'interrupted', '今日の一枚を撮ることにした'); items.release(r.id); if (r.mo.bout) { const b = r.mo.bout; r.mo.bout = undefined; const a = agentOf(r); if (a && b.opt) { a.result(b.opt, 'eat', 'interrupted', clockMs, '写真を撮るため途中でやめた'); flushMind(r, a); } } r.task = t; }
         } } const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       if (!still && dt < 2) gains();   // (what rest, food and sun gave back: shown, softly, by each of them — not while catching up)
