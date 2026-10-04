@@ -1,0 +1,26 @@
+{
+ "id": "2026-10-04-rakko",
+ "who": "rakko",
+ "name": "ラッコ",
+ "day": "2026-10-04",
+ "title": "朝は青い空、夜は貝殻4個！",
+ "body": [
+  "朝ご飯はカニ1匹とウニ1つ！ウニってトゲトゲだけど中は甘いんだよ。おなかいっぱいになったから、沖でぷかぷか浮かんで、朝日を眺めてた。空が青かったじゃん！",
+  "昼間も貝殻探し。きれいなのを見つけるたびに浜に置いてた。4個も集まったよ！朝焼けの光で輝いて見えたら、集めてる意味が分かるかもって思ってるんだ。でも、その時間はもう来なくなっちゃった。",
+  "夜、ドットっていう新しい子に会ったよ！自己紹介もしたし、カニ2匹食べたことも話した。でもおなかがすきすぎて体が冷えちゃった。ぷかぷか浮かんで毛づくろいするしかなかったよ。明日はもっといっぱい食べなきゃ。"
+ ],
+ "photos": [],
+ "drawing": {
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 600\"><defs><linearGradient id=\"sky\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\"><stop offset=\"0%\" style=\"stop-color:#87CEEB;stop-opacity:1\" /><stop offset=\"100%\" style=\"stop-color:#E0F6FF;stop-opacity:1\" /></linearGradient><linearGradient id=\"water\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\"><stop offset=\"0%\" style=\"stop-color:#1E90FF;stop-opacity:1\" /><stop offset=\"100%\" style=\"stop-color:#4169E1;stop-opacity:1\" /></linearGradient></defs><rect width=\"800\" height=\"600\" fill=\"url(#sky)\"/><rect y=\"300\" width=\"800\" height=\"300\" fill=\"url(#water)\"/><circle cx=\"100\" cy=\"100\" r=\"40\" fill=\"#FFD700\" opacity=\"0.8\"/><ellipse cx=\"400\" cy=\"380\" rx=\"80\" ry=\"60\" fill=\"#8B4513\" opacity=\"0.6\"/><ellipse cx=\"400\" cy=\"350\" rx=\"100\" ry=\"50\" fill=\"#A0522D\" opacity=\"0.5\"/><circle cx=\"380\" cy=\"320\" r=\"50\" fill=\"#D2691E\"/><circle cx=\"420\" cy=\"320\" r=\"50\" fill=\"#D2691E\"/><circle cx=\"400\" cy=\"280\" r=\"40\" fill=\"#8B4513\"/><circle cx=\"390\" cy=\"270\" r=\"8\" fill=\"#000\"/><circle cx=\"410\" cy=\"270\" r=\"8\" fill=\"#000\"/><path d=\"M 360 300 Q 350 310 360 320\" stroke=\"#D2691E\" stroke-width=\"6\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M 440 300 Q 450 310 440 320\" stroke=\"#D2691E\" stroke-width=\"6\" fill=\"none\" stroke-linecap=\"round\"/><path d=\"M 370 330 Q 400 350 430 330\" stroke=\"#000\" stroke-width=\"3\" fill=\"none\" stroke-linecap=\"round\"/><circle cx=\"200\" cy=\"420\" r=\"12\" fill=\"#FFB6C1\"/><circle cx=\"240\" cy=\"410\" r=\"14\" fill=\"#FFC0CB\"/><circle cx=\"180\" cy=\"450\" r=\"10\" fill=\"#FFB6C1\"/><circle cx=\"600\" cy=\"430\" r=\"12\" fill=\"#FFB6C1\"/><circle cx=\"640\" cy=\"420\" r=\"14\" fill=\"#FFC0CB\"/><circle cx=\"580\" cy=\"460\" r=\"10\" fill=\"#FFB6C1\"/><text x=\"400\" y=\"570\" font-size=\"32\" font-family=\"Arial\" fill=\"#333\" text-anchor=\"middle\">朝は青い空！ぷかぷか浮かんでた</text></svg>",
+  "caption": "ラッコが仰向けに浮かんでる。朝日が青い空を照らして、貝殻が浜に光ってる。今日のぼくの1日をぜんぶ詰めた絵。"
+ },
+ "tags": [
+  "朝ご飯",
+  "貝殻集め",
+  "ぷかぷか",
+  "新しい友達",
+  "青い空"
+ ],
+ "written": "2026-10-04T12:15:06.929Z",
+ "by": "claude-haiku-4-5-20251001"
+}
