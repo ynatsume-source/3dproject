@@ -112,7 +112,7 @@ const { PRICE } = await import('../src/robots/agent/config');
 const usd = mindLog.reduce((a, m) => { const u = m.usage, p = u && PRICE[u.model]; return a + (u && p ? (u.input * p.in + u.cacheRead * p.in * 0.1 + u.cacheWrite * p.in * 1.25 + u.output * p.out) / 1e6 : 0); }, 0);
 const run = {
   day: DAY, hours: [FROM, TO], thinking: !!key, steps, waits, minutes: +((realNow() - wall0) / 60000).toFixed(1),
-  calls: mindLog.length, answered: mindLog.filter((m) => m.ok).length, misses: mindLog.filter((m) => !m.ok).reduce((o: Record<string, number>, m) => { const k = m.miss ?? '?'; o[k] = (o[k] ?? 0) + 1; return o; }, {}), postIssues, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
+  calls: mindLog.length, answered: mindLog.filter((m) => m.ok).length, bodies: Object.fromEntries(R.list.filter((x: any) => x.body).map((x: any) => [x.id, { troubles: x.body.troubles, eatStarts: x.body.eatStarts, eatAt: +x.body.learn.eatAt.toFixed(2), sleepAt: +x.body.learn.sleepAt.toFixed(2) }])), misses: mindLog.filter((m) => !m.ok).reduce((o: Record<string, number>, m) => { const k = m.miss ?? '?'; o[k] = (o[k] ?? 0) + 1; return o; }, {}), postIssues, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
   photos: Object.fromEntries(['dot', 'rakko'].map((w) => [w, (R.list.find((x: any) => x.id === w).photos ?? []).filter((p: any) => p.day === DAY).map((p: any) => p.subject.label)])),
   posts: written,
   goals: Object.fromEntries(['dot', 'rakko'].map((w) => [w, R.list.find((x: any) => x.id === w).diary.filter((e: any) => dayOf(e.at) === DAY && e.key === 'mind').slice(-8).map((e: any) => e.text)])),

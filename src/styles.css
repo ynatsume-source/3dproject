@@ -294,6 +294,7 @@ body.mode-globe #minimap, body.idle #minimap, body.hud-off #minimap { opacity: 0
   font-size: 12.5px; line-height: 1.55; box-shadow: 0 4px 18px rgba(0, 20, 30, 0.25); border-top: 3px solid var(--c); opacity: 0; transition: opacity .35s; }
 .gain { position: absolute; left: 0; top: 0; white-space: nowrap; font: 700 12px/1 system-ui, sans-serif; letter-spacing: .04em; color: #8fe3a6; text-shadow: 0 0 2px rgba(0, 18, 14, .9), 0 1px 4px rgba(0, 18, 14, .7); opacity: 0; will-change: transform, opacity; }
 .gain-charge { color: #ffe08a; }
+.gain-bad { color: #e8c4b8; font-weight: 600; }
 .bubble b { display: block; font-size: 10px; letter-spacing: .12em; color: #5a6b70; margin-bottom: 1px; }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(250, 252, 250, 0.93); }
 body.mode-globe #bubbles, body.hud-off #bubbles { display: none; }

@@ -25,7 +25,7 @@ function trial(name: string, o: { id?: string; water?: boolean; solids?: Solid[]
   if (o.push) T.pushTrees = o.push;
   for (const s of o.solids ?? []) T.solids.add(s);
   const R = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f }, T, ['テスト魚'], ['テスト鳥']);
-  const r: any = R.list.find((x) => x.id === (o.id ?? 'dot'))!;
+  const r: any = R.list.find((x) => x.id === (o.id ?? 'dot'))!; r.mo.photoForce = '2026-10-03';   // (the day's photograph is not what this is about)
   R.list.forEach((x: any, i: number) => { x.pos.set(1000 + i * 100, 2, 1000); x.task = { kind: 'wander', x: x.pos.x, z: x.pos.z, act: 'idle', dur: 1e9, t: 0, arrived: true }; });
   r.pos.set(o.start?.[0] ?? 0, o.water ? -1 : 2, o.start?.[1] ?? 0); r.head = Math.PI / 2; r.wet = !!o.water; r.battery = 1;
   const [tx, tz] = o.target ?? [12, 0];
