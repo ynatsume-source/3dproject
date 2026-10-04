@@ -2761,7 +2761,7 @@ function frameBody(ts: number) {
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
       const wantAir = 1.25 * (1 + 0.3 * nightLift) * (1 + 0.4 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up a little on a moonless night)
          * (watch.r && skyNow ? 1 + 0.2 * skyNow.night : 1);
-      const wantSea = 1.4 * (1 + 0.25 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8))) * (1 - 0.22 * (skyNow?.golden ?? 0));   // (at the golden hour a little less open: a deep sunset, not a bright one)
+      const wantSea = 1.4 * (1 + 0.25 * nightLift) * (1 + 0.45 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3))) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8))) * (1 - 0.22 * (skyNow?.golden ?? 0));   // (at the golden hour a little less open: a deep sunset, not a bright one; on a moonless night a little more, so the reef can still be made out)
       // (each side eased on its own as well: at the waterline both halves are drawn, each with its own — no step
       // in the light on coming into or out of that band)
       const ek = Math.min(1, dt * 0.8);
