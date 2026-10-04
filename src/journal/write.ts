@@ -53,16 +53,16 @@ export function checkPost(p: unknown, inp: PostInput): string {
 
 /** Its post for the day, written by a model (ask), or null (no photograph that day, no answer, or one that would
  *  not pass after a second try). */
-export async function writePost(inp: PostInput, ask: Ask, by: string): Promise<Post | null> {
+export async function writePost(inp: PostInput, ask: Ask, by: string, onIssue?: (why: string) => void): Promise<Post | null> {
   if (!inp.photos.length) return null;
   const user = JSON.stringify({ who: inp.who, name: inp.name, profile: inp.profile.slice(0, 1200), day: inp.day, entries: inp.entries.slice(-60), photos: inp.photos, talks: inp.talks.slice(-30) });
   let note = '';
   for (let k = 0; k < 2; k++) {
     const text = await ask(system(inp.who), note ? `${user}\n\n前回の返答は次の理由で使えなかった。直して書き直す：${note}` : user);
-    if (!text) return null;
+    if (!text) { onIssue?.('返事がなかった'); return null; }
     let p: any = null;
-    try { p = JSON.parse(text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1')); } catch (e) { note = 'JSON として読めない'; continue; }
-    note = checkPost(p, inp);
+    try { p = JSON.parse(text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1')); } catch (e) { note = 'JSON として読めない'; onIssue?.(note); continue; }
+    note = checkPost(p, inp); if (note) onIssue?.(note);
     if (!note) return { id: `${inp.day}-${inp.who}`, who: inp.who, name: inp.name, day: inp.day, title: p.title.trim(), body: p.body.map((b: string) => b.trim()), photos: p.photos.map((x: any) => ({ id: x.id, caption: x.caption.trim() })), tags: (p.tags ?? []).map((t: string) => t.trim()).filter(Boolean), written: new Date().toISOString(), by };
   }
   return null;

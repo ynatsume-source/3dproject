@@ -65,9 +65,12 @@ function poolCount(name: string) {
   try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== day) s = { d: day }; s[name] = (Number.isSafeInteger(s[name]) ? s[name] : 0) + 1; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session only */ }
 }
 export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
-export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void } = {}): Promise<string | null> {
+export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number } = {}): Promise<string | null> {
   // (leave: calls kept back from the day's budget for others — a resident's own decisions never use up the conversations')
-  const key = aiKey(); if (!key || busy || options.signal?.aborted) return null;
+  // (queueMs: while another call is out, wait this long for it rather than giving up at once)
+  for (const until = performance.now() + (options.queueMs ?? 0); busy && performance.now() < until;) await new Promise((res) => setTimeout(res, 100));
+  const key = aiKey(); if (!key || options.signal?.aborted) return null;
+  if (busy) { aiLastError = 'ほかの問い合わせの返事待ちで、出せなかった。'; return null; }
   if (options.pool ? poolUsed(options.pool.name) >= options.pool.cap : used() >= DAILY - (options.leave ?? 0)) return null;
   busy = true; if (options.pool) poolCount(options.pool.name); else count();
   const model = options.model ?? MODEL, t0 = Date.now();

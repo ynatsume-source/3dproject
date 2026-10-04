@@ -1,7 +1,7 @@
 // A resident's thinking, by a language model (ADR 0004): given only what it has seen, what it holds, what it
 // knows and the things the world says it can do now, it sets its own goal and the steps to it. Everything that
 // comes back is checked here; the world then judges each step as it is taken. Nothing it says is a result.
-import { requestAiText, aiPoolLeft, type AiUsage } from '../mind';
+import { requestAiText, aiPoolLeft, aiLastError, type AiUsage } from '../mind';
 import { MINDS, PRICE } from './config';
 import type { Brain, BrainInput, Thought } from './types';
 
@@ -20,7 +20,7 @@ const SYSTEM = `あなたは嘉弥真島で暮らす住人の「考える部分�
 const cut = (s: unknown, n: number) => (typeof s === 'string' ? s.slice(0, n) : '');
 
 /** One call's record for the operating log (what it used, how long, an estimate of what it cost). */
-export interface MindLog { at: number; who: string; tier: 'deep' | 'light'; why: string; usage: AiUsage | null; usd: number; ok: boolean }
+export interface MindLog { at: number; who: string; tier: 'deep' | 'light'; why: string; usage: AiUsage | null; usd: number; ok: boolean; miss?: string }
 export const mindLog: MindLog[] = [];
 
 /** The check every thought goes through before any of it is used (also for a brain stood in by a test). */
@@ -71,13 +71,14 @@ export const modelBrain: Brain = async (input, tier) => {
     options: input.options.slice(0, 40).map((o) => ({ id: o.id, action: o.action, label: cut(o.label, 80), ...(o.ready === false ? { ready: false, needs: o.needs } : {}) })),
   };
   let usage: AiUsage | null = null;
-  const text = await requestAiText(SYSTEM, JSON.stringify(ctx), { model: t.model, maxTokens: t.maxTokens, timeoutMs: (set.ponderMaxS + 4) * 1000, pool, onUsage: (u) => { usage = u; } });
+  const text = await requestAiText(SYSTEM, JSON.stringify(ctx), { model: t.model, maxTokens: t.maxTokens, timeoutMs: (set.ponderMaxS + 4) * 1000, pool, onUsage: (u) => { usage = u; }, queueMs: set.queueS ? set.queueS * 1000 : 0 });
   const pr = PRICE[t.model], u = usage as AiUsage | null;
   const usd = u && pr ? (u.input * pr.in + u.cacheRead * pr.in * 0.1 + u.cacheWrite * pr.in * 1.25 + u.output * pr.out) / 1e6 : 0;
   let out: Thought | null = null;
   if (text && text.length < 6000) {
     try { out = checkThought(JSON.parse(text.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/i, '$1')), input); } catch (e) { out = null; }
   }
-  mindLog.push({ at: Date.now(), who: input.who, tier, why: input.why, usage: u, usd, ok: !!out }); if (mindLog.length > 200) mindLog.shift();
+  const miss = out ? undefined : !text ? (aiLastError || '返事がなかった') : '返事の形が使えなかった';   // (why it came to nothing, for the run's record)
+  mindLog.push({ at: Date.now(), who: input.who, tier, why: input.why, usage: u, usd, ok: !!out, miss }); if (mindLog.length > 200) mindLog.shift();
   return out;
 };

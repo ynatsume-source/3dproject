@@ -62,8 +62,9 @@ Object.defineProperty(globalThis, 'document', { configurable: true, value: { cre
 
 // how much they may think in a day of the run (operating settings; ADR 0004 §7): paced in island time
 const { MINDS } = await import('../src/robots/agent/config');
-Object.assign(MINDS.dot, { minGapS: 600 }); MINDS.dot.deep!.dailyCap = 12; MINDS.dot.light!.dailyCap = 30;
-Object.assign(MINDS.rakko, { minGapS: 900 }); MINDS.rakko.light!.dailyCap = 20;
+// (no one is watching the day go by here: time to think properly, and to wait a turn rather than go without)
+Object.assign(MINDS.dot, { minGapS: 600, ponderMaxS: 60, queueS: 120 }); MINDS.dot.deep!.dailyCap = 12; MINDS.dot.light!.dailyCap = 30;
+Object.assign(MINDS.rakko, { minGapS: 900, ponderMaxS: 40, queueS: 120 }); MINDS.rakko.light!.dailyCap = 20;
 
 const wall0 = realNow();
 const oc: any = buildOcean(loc);
@@ -85,6 +86,7 @@ while (sim < t1) {
   if (steps % 2000 === 0) await new Promise((res) => setImmediate(res));
 }
 
+const postIssues: Record<string, string[]> = {};   // (why a post did not come, for the run's record)
 // the day's posts
 const hm = (ms: number) => new Date(ms + 9 * 3.6e6).toISOString().slice(11, 16);
 const dayOf = (ms: number) => new Date(ms + 9 * 3.6e6).toISOString().slice(0, 10);
@@ -100,7 +102,7 @@ for (const who of ['dot', 'rakko']) {
     talks: R.talks.filter((e: any) => dayOf(e.at) === DAY && e.who === who && !e.head).map((e: any) => ({ time: hm(e.at), with: e.with ?? '', text: e.text })),
   };
   const model = who === 'dot' ? MINDS.dot.deep!.model : MINDS.rakko.light!.model;
-  const post = key ? await writePost(inp, (sys, user) => requestAiText(sys, user, { model, maxTokens: 1500, timeoutMs: 90000, pool: { name: `${who}:write`, cap: 3 }, onUsage: (u) => mindLog.push({ at: realNow(), who, tier: 'deep', why: '島だよりを書く', usage: u, usd: 0, ok: true }) }), model) : draftPost(inp);
+  const post = key ? await writePost(inp, async (sys, user) => { const t = await requestAiText(sys, user, { model, maxTokens: 2000, timeoutMs: 150000, queueMs: 180000, pool: { name: `${who}:write`, cap: 3 }, onUsage: (u) => mindLog.push({ at: realNow(), who, tier: 'deep', why: '島だよりを書く', usage: u, usd: 0, ok: true }) }); if (!t) (postIssues[who] ??= []).push(mindMod.aiLastError || '返事がなかった'); return t; }, model, (why) => (postIssues[who] ??= []).push(why)) : draftPost(inp);
   if (post) { fs.writeFileSync(path.join(DATA, 'drafts', `${post.id}.json`), JSON.stringify(post, null, 1)); written[who] = `${post.title}（写真${post.photos.length}枚、${post.by}）`; }
   else written[who] = photos.length ? '書けなかった' : '写真がなかった';
 }
@@ -110,7 +112,7 @@ const { PRICE } = await import('../src/robots/agent/config');
 const usd = mindLog.reduce((a, m) => { const u = m.usage, p = u && PRICE[u.model]; return a + (u && p ? (u.input * p.in + u.cacheRead * p.in * 0.1 + u.cacheWrite * p.in * 1.25 + u.output * p.out) / 1e6 : 0); }, 0);
 const run = {
   day: DAY, hours: [FROM, TO], thinking: !!key, steps, waits, minutes: +((realNow() - wall0) / 60000).toFixed(1),
-  calls: mindLog.length, answered: mindLog.filter((m) => m.ok).length, lastError: mindMod.aiLastError || undefined, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
+  calls: mindLog.length, answered: mindLog.filter((m) => m.ok).length, misses: mindLog.filter((m) => !m.ok).reduce((o: Record<string, number>, m) => { const k = m.miss ?? '?'; o[k] = (o[k] ?? 0) + 1; return o; }, {}), postIssues, usd: +usd.toFixed(4), byWho: Object.fromEntries(['dot', 'rakko'].map((w) => [w, mindLog.filter((m) => m.who === w).length])),
   photos: Object.fromEntries(['dot', 'rakko'].map((w) => [w, (R.list.find((x: any) => x.id === w).photos ?? []).filter((p: any) => p.day === DAY).map((p: any) => p.subject.label)])),
   posts: written,
   goals: Object.fromEntries(['dot', 'rakko'].map((w) => [w, R.list.find((x: any) => x.id === w).diary.filter((e: any) => dayOf(e.at) === DAY && e.key === 'mind').slice(-8).map((e: any) => e.text)])),

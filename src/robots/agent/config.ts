@@ -10,6 +10,7 @@ export interface MindSettings {
   light: MindTier | null;   // ordinary turning points
   minGapS: number;          // at least this long (wall clock) between two calls of its own
   ponderMaxS: number;       // how long it stands thinking before it gets on by habit instead
+  queueS?: number;          // (the daily run) how long to wait for another's call to come back before asking
 }
 
 export const MINDS: Record<string, MindSettings> = {
