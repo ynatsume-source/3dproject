@@ -3053,7 +3053,10 @@ function shotClear(e: THREE.Vector3, l: THREE.Vector3, size: number) {
 function shotEye(eye: number[], look: number[], size: number): [number, number, number] {
   const L = new THREE.Vector3(look[0], look[1], look[2]), top = (x: number, z: number) => cur!.T.top(x, z);
   const lift = (x: number, y: number, z: number) => new THREE.Vector3(x, Math.max(y, top(x, z) + 0.3), z);
-  const e0 = lift(eye[0], eye[1], eye[2]), hd = Math.hypot(e0.x - L.x, e0.z - L.z), a0 = Math.atan2(e0.x - L.x, e0.z - L.z);
+  // (too near to see it whole — a friend who came right up — a step back, to about as far as its size asks)
+  const minD = THREE.MathUtils.clamp(size * 2.5, 0.6, 4), hd0 = Math.hypot(eye[0] - L.x, eye[2] - L.z), back = hd0 < minD ? minD / Math.max(hd0, 0.05) : 1;
+  const ux = hd0 > 0.05 ? eye[0] - L.x : 1, uz = hd0 > 0.05 ? eye[2] - L.z : 0;
+  const e0 = lift(L.x + ux * (hd0 > 0.05 ? back : minD), Math.max(eye[1], hd0 < minD ? L.y + 0.3 : -1e9), L.z + uz * (hd0 > 0.05 ? back : minD)), hd = Math.hypot(e0.x - L.x, e0.z - L.z), a0 = Math.atan2(e0.x - L.x, e0.z - L.z);
   const tries = [e0, lift(e0.x, e0.y + 0.4, e0.z)];
   for (const da of [0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const up of [0, 0.5]) { const a = a0 + da, x = L.x + Math.sin(a) * hd, z = L.z + Math.cos(a) * hd; tries.push(lift(x, e0.y + up, z)); }
   for (const k of [0.55, 1]) for (const up of [0.8, 1.8]) for (const da of [0, 0.6, -0.6, 1.4, -1.4, Math.PI]) { const a = a0 + da, x = L.x + Math.sin(a) * hd * k, z = L.z + Math.cos(a) * hd * k; tries.push(lift(x, Math.max(e0.y, L.y) + up, z)); }   // (nearer and from above: over whatever is in the way)
