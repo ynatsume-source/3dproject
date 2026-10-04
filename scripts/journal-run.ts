@@ -42,6 +42,8 @@ const saveStore = () => { const o: Record<string, string> = {}; for (const [k, v
 
 // the island's own clock: the world's time stands in for the wall's, so its thinking is paced in island time
 const t0 = Date.parse(`${DAY}T${String(FROM).padStart(2, '0')}:00:00+09:00`), t1 = Date.parse(`${DAY}T${String(TO).padStart(2, '0')}:00:00+09:00`);
+// (a day the island has already lived is not lived again: the second run would only muddle the first — say so and stop)
+{ const saved = store.get('seaglass.residents.v1'); const at = saved ? JSON.parse(saved).clockMs : 0; if (at >= t0) { console.log(`island day ${DAY}: already lived (the island is at ${new Date(at + 9 * 3.6e6).toISOString().slice(0, 16)} JST) — nothing to do`); process.exit(0); } }
 let sim = t0;
 const realNow = Date.now.bind(Date);
 Date.now = () => sim;
