@@ -16,7 +16,7 @@ import type { Env, Subject } from './env';
 export interface RareInfo { id: string; ja: string; note: string }
 // gone(): once its time is up, whether all of it has left the scene, out of sight (until then it goes on, leaving;
 // nothing is taken away in view: src/eco/unseen.ts)
-interface Running { info: RareInfo; t: number; dur: number; update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number): void; pos(): THREE.Vector3 | null; status(): string; size: number; kind: Subject['kind']; dispose(): void; gone?(cam: THREE.Vector3, fx: number, fz: number): boolean }
+interface Running { info: RareInfo; t: number; dur: number; update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number): void; pos(): THREE.Vector3 | null; status(): string; size: number; kind: Subject['kind']; dispose(): void; gone?(cam: THREE.Vector3, fx: number, fz: number): boolean; quiet?: boolean }
 interface Kind { info: RareInfo; weight(loc: any, env: Env): number; start(oc: any, env: Env, cam: THREE.Vector3, fx: number, fz: number): Running | null }
 
 const inMonths = (m: number, list: number[]) => list.includes(m);
@@ -383,7 +383,7 @@ const KINDS: Kind[] = [
       return {
         // (a day the hunters are out in numbers and hungry: they come to the school, and the ball is theirs to make —
         // ADR 0005. Over once a ball has come and gone, or if none has formed in three minutes)
-        info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false,
+        info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false, quiet: true,
         update(dt: number) { this.t += dt; if (oc.bait.st.active) (this as any).seen = true; else if ((this as any).seen || this.t > 180) this.t = this.dur; },
         pos: () => (oc.bait.st.active ? oc.bait.st.c : null), status: () => '捕食者と海鳥が、四方から突っ込んでいる',
         dispose() { /* the bait ball winds itself down */ },
@@ -409,7 +409,7 @@ export function makeRareEvents(oc: any) {
       const all = id ? KINDS.filter((k) => k.info.id === id).map((k) => ({ k, w: 1 })) : opts;
       let q = R() * all.reduce((a, o) => a + o.w, 0);
       for (const o of all) { if ((q -= o.w) <= 0) { run = o.k.start(oc, env, cam, fx, fz); break; } }
-      if (run) started = run;
+      if (run && !run.quiet) started = run;   // (one grown out of the sea is not announced: it tells itself, once it shows)
       return !!run;
     },
     update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
@@ -424,7 +424,7 @@ export function makeRareEvents(oc: any) {
     subjects(out: Subject[]) {
       if (!run) return;
       const r = run;
-      if (r.t > r.dur) return;   // (leaving now: not a thing to go and film)
+      if (r.t > r.dur || r.quiet) return;   // (leaving now: not a thing to go and film; or filmed as part of the sea)
       out.push({ key: 'rare:' + r.info.id, label: r.info.ja, kind: r.kind, prio: 6, size: r.size, reach: 120, pos: () => r.pos(), status: () => r.status(), live: () => run === r && !!r.pos(), hold: Math.min(r.dur, 90), under: r.info.id === 'tornado' ? 6.5 : undefined });
     },
   };
