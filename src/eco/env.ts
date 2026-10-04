@@ -38,6 +38,9 @@ export interface Subject {
   reach?: number;                       // how far away the director will go for it (default 42 m)
   hold?: number;                        // stay with it this long (s), instead of the usual time for its kind
   front?(): { x: number; y: number; z: number };
+  heading?(): { x: number; z: number };   // which way its nose points (a turtle: to film it from its front, its side, above)
+  brief?(): boolean;                    // nothing much going on right now (a turtle asleep): a short look, then on
+  shy?(): number;                       // how near it lets the drone come before it swims off (m), right now
   under?: number;                       // film it from right underneath, looking up (a tornado of fish): how far below its middle   // the open side to film it from (a moray looking out of its hole): no orbiting round it
   target?(): { x: number; y: number; z: number } | null;   // a hunt's prey, to frame together with the hunter
   frameR?(): number;                    // how big the action is right now (m), for close framing

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsx --import ./scripts/node-assets.mjs scripts/og-pages.ts",
+    "build": "vite build && tsx --import ./scripts/node-assets.mjs scripts/og-pages.ts && tsx --import ./scripts/node-assets.mjs scripts/journal-pages.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "sim": "tsx --import ./scripts/node-assets.mjs scripts/sim-check.ts"

@@ -8,7 +8,8 @@ import type { Style, GiantMove } from './persona';
 
 export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean; down?: boolean;   // (down: after a leap, gone in after the animal)
   tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
-  leapView?: 'line' | 'close' | 'air'; // how a leap is being filmed (below)
+  leapView?: 'line' | 'close' | 'air' | 'rise'; // how a leap is being filmed (below)
+  risen?: boolean;                     // (a manta's leap, 'rise': up from under the water to the waterline, for the leap itself)
 }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
@@ -53,6 +54,8 @@ export class Director {
   rest: [number, number] = [30, 70];
   private side = 1;
   private brT = 0;
+  // a turtle: the view measured from its nose (0 ahead, π/2 beside, π behind), how high, and the next change
+  private tv = { ang: 0.7, want: 0.7, up: 0.3, wantUp: 0.3, next: 0, h: NaN, last: '' };
   private brN = 0; private brSince = -1e9;   // leaps watched lately (two or three, then on to something else for a while)
 
   reset() { this.shot = null; this.cooldown = 10; }
@@ -70,6 +73,8 @@ export class Director {
 
   // Go and film this now, however far it is (someone asked to see it).
   focus(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, true); }
+  // Film this next, as the cruise would (its usual time with it, then on): a suggestion, not a request.
+  show(s: Subject, drone: THREE.Vector3) { this.begin(s, drone, false); }
 
   private begin(best: Subject, drone: THREE.Vector3, forced: boolean) {
     if (this.shot) this.recent.set('left:' + speciesOf(this.shot.subject), this.clock);   // (what it is leaving: not straight back to it)
@@ -79,8 +84,10 @@ export class Director {
     this.spin = (R() < 0.5 ? -1 : 1) * rr(0.035, 0.07) * this.spinK;
     this.side = R() < 0.5 ? -1 : 1; this.hold.set(NaN, 0, 0); this.gspd = 0;
     this.t = 0; this.waitT = 0; this.goneT = 0;
+    this.tv.h = NaN; this.tv.next = 0;
     const [a, b] = DURATION[best.kind];
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
+    if (best.brief?.() && best.hold == null) this.dur = Math.min(this.dur, rr(10, 16));   // (a turtle asleep under a ledge: a short look is enough)
     this.recent.set(best.key, this.clock);
     this.bored.set(speciesOf(best), (this.bored.get(speciesOf(best)) ?? 0) + 1);
     this.recent.set('kind:' + best.kind, this.clock);
@@ -142,7 +149,10 @@ export class Director {
       this.side = best[0]; this.ang = best[1];
       // the framing: mostly from the waterline, now and then close in, now and then from the air
       const lat = L * 0.5 + 1.5, cx = p.x + dx * 2.5 - dz * this.side * lat, cz = p.z + dz * 2.5 + dx * this.side * lat;
-      const opts: ('line' | 'close' | 'air')[] = ['line', 'line', 'close', 'close', 'air'].filter((v) => v !== this.lastLeapView) as any;
+      // (a manta: mostly from under the water, coming up to the waterline only for the leap itself — the owner's
+      // way to wait for one; now and then from the air)
+      const mantaLeap = L < 7;
+      const opts: ('line' | 'close' | 'air' | 'rise')[] = (mantaLeap ? ['rise', 'rise', 'rise', 'air'] : ['line', 'line', 'close', 'close', 'air']).filter((v) => v !== this.lastLeapView || v === 'rise') as any;
       let view = opts[Math.floor(Math.random() * opts.length)];
       if (view === 'close' && floor(cx, cz) > -1.6) view = 'line';   // (no water to sit in beside it)
       sh.leapView = view; this.lastLeapView = view;
@@ -161,7 +171,18 @@ export class Director {
       this.t += dt;
       return sh;
     }
-    if (view === 'close') {
+    if (view === 'rise') {
+      // waiting under the water, beside where it will come out and a little back along its way, a couple of metres
+      // down: it comes in out of the blue and up toward the light. Once it is on its way up (about two seconds
+      // before it is out) the camera goes up to the waterline beside the spot, and films the leap half in the
+      // air, half in the sea
+      // (under the water, back along its way, so the manta coming in is 13-27 m off and seen in clear water; up
+      // at the start of its run, with time to be at the waterline for the leap)
+      sh.risen = sh.risen || body.y > -6.3;
+      const lat = Math.min(d, sh.risen ? 6.5 : 5.5), along = sh.risen ? -1.5 : -8;
+      const x = mx - dz * this.side * lat + dx * along, z = mz + dx * this.side * lat + dz * along;
+      sh.pos.set(x, sh.risen ? 0 : Math.min(-1.6, Math.max(-1.8, floor(x, z) + 1.2)), z);
+    } else if (view === 'close') {
       const lat = L * 0.5 + 1.5;
       sh.pos.set(p.x + dx * 2.5 - dz * this.side * lat, 0, p.z + dz * 2.5 + dx * this.side * lat);
     } else if (view === 'air') {
@@ -172,9 +193,9 @@ export class Director {
     // the line: the horizon a fifth from the top while it is under (lens tipped down ~0.4), four fifths down
     // while it is out (tipped up as much), following its height through the surface
     // (tipped up a moment ahead of it, as it nears the surface, so the camera is with it when it comes out)
-    sh.tilt = view === 'line' ? -0.4 + 0.8 * Math.min(1, Math.max(0, (body.y + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
+    sh.tilt = view === 'line' || (view === 'rise' && sh.risen) ? -0.4 + 0.8 * Math.min(1, Math.max(0, (body.y + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
     sh.zoom = false;   // (a leap is filmed with the lens as the framing has it, not closed in on)
-    sh.surface = view !== 'air';
+    sh.surface = view !== 'air' && (view !== 'rise' || !!sh.risen);
     const gap = Math.hypot(drone.x - sh.pos.x, drone.z - sh.pos.z);
     if (sh.phase === 'approach' && (gap < 3 || this.t > 20)) sh.phase = 'observe';
     this.t += dt;
@@ -297,7 +318,9 @@ export class Director {
     if (p && L >= 1.4 && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
     // close: about a body length or so away, by the animal's own size (a small fish from under a metre)
     const sz = Math.min(s.size, Math.max(s.len ?? s.size, 0.15) * 2) * (s.kind === 'school' ? 0.65 : 1);   // (a school: in among its edge)
-    const dist = Math.max(0.8, Math.min(7, sz * 1.25 + 0.55)) * this.distK * (sh.zoom ? 0.75 : 1);
+    // (a mass of fish pressed into a ball: from outside it, far enough off to see it whole — not from inside it)
+    const whole = s.kind === 'hunt' && !s.target && s.frameR ? s.frameR() * 1.8 + 3 : 0;
+    const dist = Math.max(whole, Math.max(0.8, Math.min(7, sz * 1.25 + 0.55)) * this.distK * (sh.zoom ? 0.75 : 1));
     if (s.under && p) {
       // a tornado of fish: from right underneath, looking up the hollow core toward the light
       const sw = this.t * 0.05, x = p.x + Math.cos(sw) * 0.6, z = p.z + Math.sin(sw) * 0.6;
@@ -321,10 +344,36 @@ export class Director {
     }
     const lift = Math.min(1.5, 0.2 + sz * 0.22);
     const wet = p.y <= -0.5, hl = Math.hypot(this.gvx, this.gvz) || 1, fx = this.gvx / hl, fz = this.gvz / hl, sx = -fz * this.side, sz2 = fx * this.side;
-    const style = !wet ? 'orbit' : sh.style === 'follow' && this.gspd < 0.12 ? 'orbit' : sh.style ?? 'orbit';
+    const style = !wet ? 'orbit' : s.heading ? 'face' : sh.style === 'follow' && this.gspd < 0.12 ? 'orbit' : sh.style ?? 'orbit';
     let x: number, y: number, z: number;
     sh.look.set(p.x, p.y, p.z);
-    if (style === 'follow') {
+    if (style === 'face') {
+      // a turtle: its face and its flippers, not its tail as it swims off. A view taken from its nose — ahead
+      // and a little off, beside it, nearly head on, or from above its front — changing every quarter
+      // minute or so, slowly round; and never nearer than it allows, or it turns and drives away. (Come on it
+      // from behind, the drone first swings wide round its side.)
+      const hd = s.heading!(), shy = s.shy ? s.shy() : 0, tv = this.tv;
+      const ha = Math.atan2(hd.z, hd.x);
+      if (isNaN(tv.h)) tv.h = ha;
+      let dh = ha - tv.h; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); tv.h += dh * Math.min(1, dt * 0.6);
+      if (this.t >= tv.next && sh.phase === 'observe' || isNaN(tv.next) || tv.next === 0) {
+        const views: Record<string, [number, number]> = { three: [0.75, 0.3], side: [1.5, 0.15], head: [0.18, 0.1], above: [0.6, 1.1], low: [0.5, -0.4] };
+        const k = pick({ three: 3, side: 2, head: 1.5, above: 1.2, low: 0.8 } as Record<string, number>, (v) => v !== tv.last && (v !== 'low' || p.y - floor(p.x, p.z) > 1.4)) ?? 'three';
+        tv.last = k; tv.want = views[k][0] * (R() < 0.5 ? -1 : 1); tv.wantUp = views[k][1];
+        if (tv.next === 0) { tv.ang = tv.want; tv.up = tv.wantUp; }
+        tv.next = this.t + rr(13, 18);
+      }
+      tv.ang += (tv.want - tv.ang) * Math.min(1, dt * 0.25); tv.up += (tv.wantUp - tv.up) * Math.min(1, dt * 0.25);
+      let a = tv.ang, d = Math.max(dist * 1.1, shy * 1.3 + 0.4);
+      // coming in from behind it: out round its side first (wide of its startle), then on round to the front
+      const bx = drone.x - p.x, bz = drone.z - p.z, bl = Math.hypot(bx, bz) || 1;
+      const behind = (bx * Math.cos(tv.h) + bz * Math.sin(tv.h)) / bl < -0.2;
+      if (sh.phase === 'approach' && behind) { const cr = Math.cos(tv.h) * bz - Math.sin(tv.h) * bx; a = 1.6 * (cr >= 0 ? 1 : -1); d = Math.max(d * 1.5, shy * 1.6 + 1); }
+      const wa = tv.h + a;
+      x = p.x + Math.cos(wa) * d; z = p.z + Math.sin(wa) * d; y = p.y + tv.up * d;
+      sh.look.set(p.x + Math.cos(tv.h) * 0.15 * dist, p.y, p.z + Math.sin(tv.h) * 0.15 * dist);
+      this.ang = wa;
+    } else if (style === 'follow') {
       // behind it and a little to one side and above, going where it goes, looking past it the way it swims
       const d = dist * 1.15;
       x = p.x - fx * d + sx * d * 0.45; z = p.z - fz * d + sz2 * d * 0.45; y = p.y + d * 0.3;

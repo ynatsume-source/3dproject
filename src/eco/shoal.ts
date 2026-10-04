@@ -100,7 +100,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     L.placed = true;
   }
 
-  let target = 1;
+  let target = 1, nearStart = 1;   // (nearStart: of the school's parts, how many are about the camera on arriving: the day's lot)
   let orbit: { x: number; z: number; r: number; dir: number } | null = null, always = false, steer: { head: number } | null = null;
   // the reef height under each fish, refreshed every few frames in turn (terrain sampling is costly)
   let frame = 0, fhC = new Float32Array(0);
@@ -112,10 +112,12 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const L = leaders[s];
       L.t += dt; L.fear = Math.max(0, L.fear - dt * 0.3);
       const dx = L.c.x - cam.x, dz = L.c.z - cam.z;
-      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit && !steer && unseen(oc, L.c.x, L.c.y, L.c.z, cam, fx, fz, 6))) place(s, cam, fx, fz, !L.placed);
+      if (!L.placed || (dx * dx + dz * dz > 75 * 75 && !orbit && !steer && unseen(oc, L.c.x, L.c.y, L.c.z, cam, fx, fz, 6))) place(s, cam, fx, fz, !L.placed && R() < nearStart);   // (on arriving: near, or — the day's lot — further off)
       L.head += (Math.sin(L.t * 0.17 + s * 3) * 0.3 + Math.sin(L.t * 0.05 + s) * 0.2) * dt;
       // (sent off a given way: a school leaving the scene)
       if (steer) { let d = steer.head - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.8); }
+      // (sent on toward a point: until it is there)
+      else if ((L as any).goal && !orbit) { const gl = (L as any).goal, gd = Math.hypot(gl.x - L.c.x, gl.z - L.c.z); if (gd < 6) (L as any).goal = undefined; else { let d = Math.atan2(gl.z - L.c.z, gl.x - L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.9); } }
       // (circling a point: a tornado of jacks)
       if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.hypot(ox, oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
       if (outZone(L.c.x, L.c.z)) { let d = toZone(L.c.x, L.c.z) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
@@ -251,18 +253,24 @@ export function makeShoalSystem(sp: Species, oc: any) {
     if (leaders.some((L) => L.fear > 0.5)) return '捕食者から逃げて群れが弾けている';
     return sp.diet === 'fish' ? '銀の群れになって、ゆっくり渦を巻いている' : '中層で大群になってプランクトンを食べている';
   }
+  // how many of a school's fish are there to be seen (those drawn at this quality, not eaten): one with only a
+  // few left is not offered as a school to go and see — the camera would arrive at an empty patch of water
+  const here = (s: number) => { let n = 0; for (let i = s; i < active; i += S) if (!dead[i]) n++; return n; };
+  const enough = (s: number) => here(s) >= Math.max(8, 0.3 * active / S);
   function subjects(out: Subject[]) {
     leaders.forEach((L, s) => {
-      if (!L.placed) return;
-      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target), size: 3.5, pos: () => L.c, status, live: () => L.placed });
+      if (!L.placed || !enough(s)) return;
+      const full = Math.min(1, here(s) / Math.max(1, active / S));
+      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.c, status, live: () => L.placed && enough(s) });
     });
   }
   function focus(cam: THREE.Vector3): Subject | null {
     let best: Leader | null = null, bd = Infinity;
-    for (const L of leaders) { if (!L.placed) continue; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; } }
+    let bs = -1;
+    leaders.forEach((L, s) => { if (!L.placed || !enough(s)) return; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; bs = s; } });
     if (!best) return null;
-    const L = best;
-    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status, live: () => L.placed };
+    const L = best as Leader, si = bs;
+    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status, live: () => L.placed && enough(si) };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
@@ -270,6 +278,16 @@ export function makeShoalSystem(sp: Species, oc: any) {
     dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },
+    setStart(f: number) { nearStart = f; },
+    // (as the reef's groups, for keeping fish about the camera: each part of the school, and a way to send it on)
+    movers: () => (orbit || steer || always ? [] : leaders.map((L, s) => ({ L, s })).filter(({ L }) => L.placed && !L.ch).map(({ L, s }) => ({
+      x: L.c.x, y: L.c.y, z: L.c.z, n: Math.floor(active / S), going: !!(L as any).goal, goal: (L as any).goal,
+      move(sx: number, sz: number, ax: number, az: number) {
+        const dx = sx - L.c.x, dz = sz - L.c.z;
+        for (let i = s; i < total; i += S) { p[i * 3] += dx; p[i * 3 + 2] += dz; }
+        L.c.x = sx; L.c.z = sz; L.head = Math.atan2(az - sz, ax - sx); (L as any).goal = { x: ax, z: az };
+      },
+    }))),
     // (for the rare scenes: put the whole school right here, heading this way; keep it circling a point;
     // keep it active whatever the hour)
     placeAt(x: number, y: number, z: number, head: number, spread = 4) {

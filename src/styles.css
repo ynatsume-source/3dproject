@@ -20,6 +20,9 @@
 html, body { height: 100%; margin: 0; overflow: hidden; background: var(--space); color: var(--ink); font-family: var(--f-body); }
 canvas#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 canvas#scene:active { cursor: grabbing; }
+/* the white of the bubbles, going into the sea at the start of a visit (src/opening.ts): over the view, under everything else */
+#openWhite { position: fixed; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(ellipse at 50% 58%, rgba(250, 253, 255, 0.98) 0%, rgba(230, 243, 247, 0.96) 45%, rgba(196, 226, 236, 0.92) 100%); }
 body.idle canvas#scene { cursor: none; }
 button { font-family: inherit; }
 
@@ -94,13 +97,19 @@ body.mode-globe .hud *, body.hud-off .hud * { pointer-events: none !important; }
 #compass::after { content: ""; position: absolute; left: 50%; top: 0; transform: translateX(-50%); border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--accent); }
 #hdgnum { top: calc(50px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); font-family: var(--f-mono); font-size: 11px; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: .1em; }
 
-/* captions: small and faint in the lower-left corner, there for whoever wants to read them */
-/* (the sea log and the notices: one quiet line at the top, with which way and how far — it is not what is on screen) */
-#toast { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); max-width: min(420px, calc(100vw - 40px));
-  display: grid; gap: 2px; text-align: center; opacity: 0; transform: translate(-50%, -4px); transition: opacity 1.2s, transform 1.2s;
-  text-shadow: 0 1px 3px rgba(0, 10, 20, 0.7); pointer-events: none; }
-#toast.on { opacity: 0.66; transform: translate(-50%, 0); }
+/* the sea log and the notices (what is happening, and where): a small card low on the left, out of the view's middle
+   (owner, 2026-10: they changed places with the commentary, which now sits quietly at the top) */
+#toast { left: 16px; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: max-content; max-width: min(320px, calc(100vw - 32px)); padding: 9px 13px 10px;
+  background: linear-gradient(180deg, rgba(5, 29, 37, .36), rgba(5, 29, 37, .5)); border: 1px solid rgba(214, 238, 233, .1); border-radius: 14px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  display: grid; gap: 3px; text-align: left; opacity: 0; transform: translateY(6px); transition: opacity 1.1s ease, transform 1.1s ease, bottom .5s ease; pointer-events: none; }
+#toast.on { opacity: 0.92; transform: none; }
 body.hud-off #toast.on { opacity: 0.62; }
+body.asked #toast { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+body.dock-open #toast { opacity: 0 !important; }
+/* (a notice up: the passing line of help gives way to it; flying by hand on a touch screen, the card sits above the stick) */
+body:has(#toast.on) #hint { opacity: 0 !important; }
+body:has(#joy:not([hidden])) #toast { bottom: calc(224px + env(safe-area-inset-bottom, 0px)); }
 #toast .k { font: 500 8.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); opacity: .75; }
 #toast .t { font-size: 11.5px; font-weight: 500; letter-spacing: .04em; line-height: 1.5; }
 body:has(#rare.on) #toast { opacity: 0 !important; }
@@ -165,8 +174,13 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
 #joy { left: calc(24px + env(safe-area-inset-left, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: 116px; height: 116px; border-radius: 50%;
   border: 1px solid var(--line); background: rgba(5, 29, 37, 0.28); pointer-events: auto; touch-action: none; }
 #joy i { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: var(--glass-hi); border: 1px solid var(--line); }
-#vbtns { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 10px; }
-#vbtns button { pointer-events: auto; touch-action: none; width: 54px; height: 54px; border-radius: 50%; border: 1px solid var(--line); background: var(--glass); color: var(--ink); font: 500 11px/1.2 var(--f-body); }
+/* the right hand: a stick that moves only up and down, tipping the view up or down (look up and fly on to climb) */
+#vbtns { right: calc(24px + env(safe-area-inset-right, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: 54px; height: 116px; border-radius: 27px;
+  border: 1px solid var(--line); background: rgba(5, 29, 37, 0.28); pointer-events: auto; touch-action: none; }
+#vbtns i { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; background: var(--glass-hi); border: 1px solid var(--line); }
+#vbtns .ar { position: absolute; left: 50%; width: 0; height: 0; margin-left: -5px; border: 5px solid transparent; opacity: 0.55; }
+#vbtns .ar.up { top: 7px; border-bottom-color: var(--ink); border-top-width: 0; }
+#vbtns .ar.dn { bottom: 7px; border-top-color: var(--ink); border-bottom-width: 0; }
 
 #veil { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding-inline: 24px; opacity: 0; pointer-events: none; transition: opacity .7s ease;
   background: radial-gradient(ellipse at 50% 40%, #0c5566 0%, #06303d 45%, #021319 100%); }
@@ -187,7 +201,7 @@ body:not(.hud-off) #reveal, body.mode-globe #reveal { display: none; }
   #brand { left: 14px; }
   #compass { top: calc(62px + env(safe-area-inset-top, 0px)); left: auto; right: 12px; transform: none; width: 46vw; }
   #hdgnum { top: calc(98px + env(safe-area-inset-top, 0px)); left: auto; right: calc(12px + 23vw); transform: translateX(50%); }
-  #toast { top: calc(120px + env(safe-area-inset-top, 0px)); max-width: 80vw; }
+  #toast { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
   .group button { padding: 8px 9px; font-size: 11.5px; }
   .group button kbd { display: none; }
   #hint { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
@@ -278,6 +292,8 @@ body.mode-globe #minimap, body.idle #minimap, body.hud-off #minimap { opacity: 0
 #bubbles { position: fixed; inset: 0; pointer-events: none; z-index: 3; }
 .bubble { position: absolute; left: 0; top: 0; max-width: min(64vw, 300px); padding: 7px 11px 8px; border-radius: 12px; background: rgba(250, 252, 250, 0.93); color: #14262c;
   font-size: 12.5px; line-height: 1.55; box-shadow: 0 4px 18px rgba(0, 20, 30, 0.25); border-top: 3px solid var(--c); opacity: 0; transition: opacity .35s; }
+.gain { position: absolute; left: 0; top: 0; white-space: nowrap; font: 700 12px/1 system-ui, sans-serif; letter-spacing: .04em; color: #8fe3a6; text-shadow: 0 0 2px rgba(0, 18, 14, .9), 0 1px 4px rgba(0, 18, 14, .7); opacity: 0; will-change: transform, opacity; }
+.gain-charge { color: #ffe08a; }
 .bubble b { display: block; font-size: 10px; letter-spacing: .12em; color: #5a6b70; margin-bottom: 1px; }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -6px; border: 6px solid transparent; border-bottom: 0; border-top-color: rgba(250, 252, 250, 0.93); }
 body.mode-globe #bubbles, body.hud-off #bubbles { display: none; }
@@ -397,6 +413,9 @@ body.pov #tele, body.pov #compass, body.pov #hdgnum, body.pov #hint, body.pov #w
 #pov .mk { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; text-shadow: 0 0 6px rgba(0,0,0,.95); }
 #pov .mk i { width: 14px; height: 14px; margin: -7px 0 0 -7px; border: 1.5px solid var(--pc); flex: none; }
 #pov .mk span { transform: translateY(-7px); }
+#pov .mk.l { flex-direction: row-reverse; }   /* (by the right edge: its label on the left of its mark) */
+#pov .mk.l i { margin: -7px -7px 0 0; }
+#pov .mk.hot.l i { margin: -13px -13px 0 0; }
 #pov .mk.friend i { border-radius: 50%; border-color: var(--c, var(--pc)); }
 #pov .mk.hot i { width: 26px; height: 26px; margin: -13px 0 0 -13px; border-width: 2px; animation: povHot 1.2s ease-in-out infinite; }
 #pov .mk.hot span { color: #fff; font-weight: 500; }
@@ -474,12 +493,16 @@ body:not(.dock-open) #dock .opt { display: none; }
 #rare .t { font-size: 17px; font-weight: 500; letter-spacing: .08em; margin-top: 7px; color: var(--ink); text-shadow: 0 0 18px rgba(120, 240, 220, .35); }
 #rare .n { font-size: 11.5px; line-height: 1.7; color: var(--ink-dim); margin-top: 6px; }
 body.mode-globe #rare, body.pov #rare { opacity: 0 !important; }
-/* the commentary: what is being filmed, quietly, low on the left */
-#caption { left: 16px; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: min(340px, calc(100vw - 32px)); padding: 11px 14px 12px;
-  background: linear-gradient(180deg, rgba(5, 29, 37, .36), rgba(5, 29, 37, .5)); border: 1px solid rgba(214, 238, 233, .1); border-radius: 14px;
-  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); color: var(--ink); opacity: 0; transform: translateY(6px);
-  transition: opacity 1.1s ease, transform 1.1s ease, bottom .5s ease; pointer-events: none; }
-#caption.on { opacity: 1; transform: none; }
+/* the commentary: what is being filmed, at the top in the middle, with no card — text over the view, faint, narrow,
+   its note held to two lines, so the middle of the screen is never filled with words */
+#caption { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); width: min(440px, calc(100vw - 40px)); text-align: center; padding: 8px 18px 10px; box-sizing: border-box;
+  color: var(--ink); text-shadow: 0 1px 2px rgba(0, 10, 20, 0.9), 0 0 10px rgba(0, 10, 20, 0.5); opacity: 0; transform: translate(-50%, -4px);
+  transition: opacity 1.1s ease, transform 1.1s ease; pointer-events: none; }
+/* (over the bright surface at the top of the view the words alone were lost: a soft shade behind them, its edges
+   fading out — no card, no border) */
+#caption::before { content: ''; position: absolute; inset: -6px -30px; z-index: -1; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(3, 20, 28, 0.5), rgba(3, 20, 28, 0.3) 60%, rgba(3, 20, 28, 0) 100%); }
+#caption.on { opacity: 1; transform: translate(-50%, 0); }
 /* after "go and see": a quiet way back to the cruise, above the bar (the caption steps up to make room) */
 #backCruise { left: 50%; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 6px); padding: 9px 16px 10px; border-radius: 999px;
   background: rgba(4, 22, 30, 0.55); border: 1px solid rgba(214, 238, 233, 0.16); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -487,16 +510,16 @@ body.mode-globe #rare, body.pov #rare { opacity: 0 !important; }
   transition: opacity .6s ease, transform .6s ease; }
 #backCruise::before { content: '↺'; margin-right: 6px; color: var(--accent); }
 body.asked #backCruise { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-body.asked #caption { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
 @media (hover: hover) { #backCruise:hover { background: rgba(10, 40, 48, 0.75); } }
 #backCruise:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-#caption .k { font: 400 9.5px/1 var(--f-mono); letter-spacing: .16em; color: var(--accent); margin-bottom: 6px; }
-#caption .t b { font-weight: 500; font-size: 14.5px; letter-spacing: .04em; }
-#caption .t i { font-style: italic; font-size: 10.5px; color: var(--ink-faint); margin-left: 8px; }
-#caption .s { font-size: 11.5px; color: var(--ink-dim); margin-top: 4px; }
-#caption .n { font-size: 11.5px; line-height: 1.7; color: var(--ink-dim); margin-top: 7px; padding-top: 7px; border-top: 1px solid rgba(214, 238, 233, .08); }
+#caption .k { font: 400 8.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); opacity: .8; margin-bottom: 4px; }
+#caption .t b { font-weight: 500; font-size: 15px; letter-spacing: .05em; }
+#caption .t i { font-style: italic; font-size: 10px; color: var(--ink-faint); margin-left: 8px; }
+#caption .s { font-size: 11.5px; color: var(--ink); opacity: .85; margin-top: 2px; }
+#caption .n { font-size: 11px; line-height: 1.6; color: var(--ink); opacity: .78; margin: 4px auto 0; max-width: 400px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 #caption .n:empty { display: none; }
-@media (max-width: 760px) { #caption { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); padding: 9px 12px 10px; } #caption .n { font-size: 11px; } }
+@media (max-width: 760px) { #caption { top: calc(120px + env(safe-area-inset-top, 0px)); width: calc(100vw - 150px); } }
 body.mode-globe #caption, body.hud-off #caption, body.pov #caption, body.watching #caption { opacity: 0 !important; }
 #hint.on { opacity: 1; }
 body.mode-globe #hint, body.hud-off #hint { opacity: 0 !important; }
@@ -525,7 +548,7 @@ body:not(.dock-open) .group { flex-wrap: nowrap; }
   #minimap { right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); width: 104px; height: 104px; border-radius: 22px; }
   #dock { left: 8px; right: 8px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   #rec { left: 14px; bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }   /* (just above the dock, which spans the width) */
-  #caption { bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  #toast { bottom: calc(52px + env(safe-area-inset-bottom, 0px)); }
   .group button { padding: 6px 9px; font-size: 11px; gap: 5px; }
   body:not(.dock-open) #clockMode, body:not(.dock-open) .group .moon { display: none; }
 }
@@ -609,6 +632,7 @@ body.dock-open #dock .opt { animation: softIn .55s ease both; }
 #quick button:focus-visible span { opacity: 1; }
 #quick #btnSky[aria-pressed="true"] .arrow { transform: rotate(180deg); transform-origin: 12px 7px; }
 #quick #btnSound[aria-pressed="false"] .waves { opacity: 0.25; }
+#quick #btnMode[aria-pressed="true"] .auto { opacity: 0; }
 @media (max-width: 760px) { #quick { right: 10px; top: calc(176px + env(safe-area-inset-top, 0px)); gap: 8px; } #quick button { width: 36px; height: 36px; } #quick button svg { width: 17px; height: 17px; } }
 body.mode-globe #quick, body.hud-off #quick { opacity: 0 !important; pointer-events: none; }
 body.pov:not(.pov-ui) #quick { opacity: 0 !important; pointer-events: none; }
@@ -629,6 +653,8 @@ body.dock-open #menu { opacity: 1; transform: translate(-50%, 0); pointer-events
 #menu .rows button { appearance: none; border: 0; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
   background: rgba(255, 255, 255, 0.03); color: var(--ink-dim); font: 500 12.5px/1.2 var(--f-body); letter-spacing: .05em; padding: 11px 12px; border-radius: 12px;
   transition: background .4s ease, color .4s ease; }
+#menu .rows a.row-link { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border-radius: 10px; color: var(--accent); text-decoration: none; font-size: 13px; }
+#menu .rows a.row-link:hover { background: rgba(160, 230, 220, 0.08); }
 #menu .rows button:hover { background: rgba(160, 230, 220, 0.08); color: var(--ink); }
 #menu .rows button[aria-pressed="true"] { color: var(--ink); background: rgba(30, 90, 96, 0.32); }
 #menu .rows button kbd { margin-left: auto; font: 400 9.5px/1 var(--f-mono); color: var(--ink-faint); border: 1px solid var(--line); border-radius: 3px; padding: 2px 4px; }
@@ -638,7 +664,7 @@ body.dock-open #menu { opacity: 1; transform: translate(-50%, 0); pointer-events
 #menu .blurb { margin: 8px 4px 0; min-height: 2.9em; font-size: 11.5px; line-height: 1.45; color: var(--ink-dim); }
 body.mode-globe #menu { display: none; }
 @media (max-width: 760px) { #menu { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); } #menu .rows button kbd { display: none; } }
-body.dock-open #caption { opacity: 0 !important; }
+
 
 /* a shared view: what it is, and the way back to the live sea */
 #sharedBadge { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 10px;
@@ -648,8 +674,12 @@ body.dock-open #caption { opacity: 0 !important; }
 #sharedBadge .k { opacity: 0.6; font-size: 11px; }
 #sharedBadge button { border: 0; border-radius: 999px; padding: 4px 10px; background: rgba(160, 220, 230, 0.16); color: inherit; font: inherit; cursor: pointer; }
 body.hud-off #sharedBadge { display: none; }
+/* through someone's eyes: the shared-scene band keeps out of the eyes' own header and the names, coming up
+   with the rest of the controls (a tap) under them, not over them */
+body.pov:not(.pov-ui) #sharedBadge { opacity: 0; pointer-events: none !important; }
+body.pov #sharedBadge { top: calc(96px + env(safe-area-inset-top, 0px)); }
 
-/* さかのぼって保存: a rewind ring that fills as the last 30 seconds are held, and a red dot of a recorder */
+/* 録画: two taps start it, one stops it; while it runs the ring fills toward the 15 s it stops at */
 #btnReplay { display: inline-flex; align-items: center; gap: 7px; --held: 0; }
 #btnReplay .ring { position: relative; width: 18px; height: 18px; border-radius: 50%; flex: none;
   background: conic-gradient(rgba(255, 120, 110, 0.95) calc(var(--held) * 360deg), rgba(220, 235, 240, 0.18) 0); }
@@ -663,8 +693,10 @@ body.hud-off #sharedBadge { display: none; }
 #btnReplay.armed { background: rgba(255, 111, 100, 0.22); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.6) inset; }
 #btnReplay.armed .ring i { animation: replayPulse 0.9s ease-in-out infinite; }
 @keyframes replayPulse { 50% { transform: scale(0.6); } }
-@media (max-width: 560px) { #btnReplay.armed .lbl { display: inline; } }
-@media (max-width: 560px) { #btnReplay .sec:not(:empty)::before { content: '直前'; } #btnReplay .sec:empty { display: none; } }
+#btnReplay.rec { background: rgba(255, 111, 100, 0.28); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.75) inset; }
+#btnReplay.rec .ring i { animation: replayPulse 1.4s ease-in-out infinite; }
+@media (max-width: 560px) { #btnReplay.armed .lbl, #btnReplay.rec .lbl { display: inline; } }
+#btnReplay .sec:empty { display: none; }
 
 /* a first sighting: a faint ring round the animal itself, its name beside it; a tap goes to watch it */
 #newMark { position: fixed; left: 0; top: 0; z-index: 5; --r: 30px; padding: 0; border: 0; background: none; color: #e8f6f6; cursor: pointer;
@@ -696,6 +728,10 @@ body.hud-off #newMark { display: none; }
   #minimap { width: 96px; height: 96px; border-radius: 20px; top: calc(10px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); }
   #quick { top: calc(114px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px)); gap: 6px; }
   #quick button { width: 34px; height: 34px; } #quick button svg { width: 16px; height: 16px; }
+  /* the commentary along the top, between the name of the sea (left) and the map (right) */
+  #caption { top: calc(10px + env(safe-area-inset-top, 0px)); width: max(220px, calc(100vw - 500px)); }
+  /* (the shortest phones on their side: six round buttons still clear of the bar below) */
+  @media (max-height: 400px) { #quick { top: calc(110px + env(safe-area-inset-top, 0px)); gap: 4px; } #quick button { width: 32px; height: 32px; } }
   /* the up/down buttons of manual flight beside the quick column, not under it */
   #vbtns { right: calc(62px + env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
   #joy { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
@@ -711,24 +747,23 @@ body.hud-off #newMark { display: none; }
 /* the field guide open takes the right-hand side: the quick buttons step aside (and are no target under it) */
 body:has(#guide:not([hidden])) #quick { display: none; }
 
-/* さかのぼって保存, asking for the second tap: on a narrow bar the question floats above the button instead of
+/* 録画, asking for the second tap or recording: on a narrow bar the words float above the button instead of
    widening it (which pushed the bar's ends off the screen) */
 #btnReplay { position: relative; }
 @media (max-width: 560px) {
-  #btnReplay.armed .lbl { display: block; position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); white-space: nowrap;
+  #btnReplay.armed .lbl, #btnReplay.rec .lbl { display: block; position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); white-space: nowrap;
     padding: 6px 11px; border-radius: 999px; background: rgba(60, 20, 22, 0.88); box-shadow: 0 0 0 1px rgba(255, 140, 130, 0.6) inset; color: #ffe8e4; font-size: 11.5px; pointer-events: none; }
 }
 /* (two quick taps on a button are two taps, never a double-tap zoom: the save confirmation relies on it) */
 #dock button, #quick button, #menu button, #timePanel button, #guide button, #reveal { touch-action: manipulation; }
 
-/* the caption on a phone: smaller, and its note kept to three lines */
+/* on a phone: the commentary smaller, its note one line; the notice card smaller */
 @media (max-width: 560px) {
-  #caption { left: 12px; width: min(300px, calc(100vw - 24px)); padding: 8px 11px 9px; border-radius: 12px; }
-  #caption .k { font-size: 9px; margin-bottom: 4px; }
-  #caption .t b { font-size: 13px; } #caption .t i { font-size: 9.5px; }
-  #caption .s { font-size: 10.5px; margin-top: 3px; }
-  #caption .n { font-size: 10.5px; line-height: 1.6; margin-top: 5px; padding-top: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  #caption .n:empty { display: none; }
+  #caption { width: calc(100vw - 140px); }
+  #caption .t b { font-size: 12.5px; } #caption .t i { display: none; }
+  #caption .s { font-size: 10.5px; }
+  #caption .n { font-size: 10.5px; -webkit-line-clamp: 1; }
+  #toast { left: 12px; max-width: min(280px, calc(100vw - 24px)); padding: 8px 11px 9px; border-radius: 12px; }
 }
 
 /* the globe's cards: a line on what draws people to each sea; the residents' island apart, in warmer light */
@@ -754,3 +789,6 @@ body:has(#guide:not([hidden])) #quick { display: none; }
   #guide li p { font-size: 12.5px; line-height: 1.75; }
   #guide h2 { font-size: 16px; }
 }
+
+/* drawing a resident's photograph (?journalshot): the picture alone */
+body.journalshot > *:not(#scene) { visibility: hidden !important; }

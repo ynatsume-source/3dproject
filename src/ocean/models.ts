@@ -403,9 +403,9 @@ export function coralMaterial(kind, lod = 0) {
        vec3 p = position;
        vec3 ip = vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]);
        #if LOD == 1
-         if (distance(ip, uCamPos) < uLodR) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
+         if (distance(ip, uLodPos) < uLodR) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
        #elif LOD == 2
-         if (distance(ip, uCamPos) >= uLodR) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
+         if (distance(ip, uLodPos) >= uLodR) { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }
        #endif
        float t = uTime;
        #if KIND == 3

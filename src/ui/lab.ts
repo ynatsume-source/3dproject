@@ -34,6 +34,8 @@ export interface LabApi {
   renderer: THREE.WebGLRenderer;
   state(): Record<string, string | number>;
   reproUrl(): string;
+  /** the residents' side of a report (Kayama): the clocks, the save, and the watched one's pose, task, way and result */
+  resident?(): Record<string, unknown> | null;
 }
 
 const CSS = `
@@ -181,6 +183,7 @@ export function mountLab(api: LabApi) {
       `端末: ${navigator.userAgent}`,
       `画面: ${innerWidth}×${innerHeight} dpr ${devicePixelRatio}  画質 ${api.tier()}  ${fps} fps（最遅 ${slow.toFixed(0)} ms）  描画 ${inf.calls} 回 / ${(inf.triangles / 1e3).toFixed(0)}k`,
       `状態: ${Object.entries(s).map(([k, v]) => `${k}=${v}`).join(' ')}`,
+      ...(api.resident?.() ? [`住人: ${JSON.stringify(api.resident())}`] : []),
       `操作:`, ...log,
     ].join('\n');
     let ok = false;

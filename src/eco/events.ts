@@ -95,7 +95,8 @@ const KINDS: Kind[] = [
         st.set(b.x, 0, b.z); aim.set(cam.x + ux * 20 - uz * pass, 0, cam.z + uz * 20 + ux * pass);
         dir.subVectors(aim, st).setY(0).normalize();
         ok = true;
-        for (let d = -40; d < LINE && ok; d += 4) if (!oc.loc.pelagic && oc.T.top(st.x + dir.x * d, st.z + dir.z * d) > -4.5) ok = false;
+        // (and wide enough for the ones swimming beside the line, wingtips and all)
+        for (let d = -40; d < LINE && ok; d += 4) for (const o of [0, -5, 5]) if (!oc.loc.pelagic && oc.T.top(st.x + dir.x * d - dir.z * o, st.z + dir.z * d + dir.x * o) > -4.5) ok = false;
       }
       if (!ok) return null;
       const side = new THREE.Vector3(-dir.z, 0, dir.x);
@@ -380,8 +381,10 @@ const KINDS: Kind[] = [
       if (!oc.bait || oc.bait.st.active) return null;
       if (!oc.bait.start(cam, fx, fz, env)) return null;
       return {
-        info: KINDS[6].info, t: 0, dur: 150, size: 6, kind: 'hunt',
-        update(dt) { this.t += dt; if (!oc.bait.st.active) this.t = this.dur; },
+        // (a day the hunters are out in numbers and hungry: they come to the school, and the ball is theirs to make —
+        // ADR 0005. Over once a ball has come and gone, or if none has formed in three minutes)
+        info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false,
+        update(dt: number) { this.t += dt; if (oc.bait.st.active) (this as any).seen = true; else if ((this as any).seen || this.t > 180) this.t = this.dur; },
         pos: () => (oc.bait.st.active ? oc.bait.st.c : null), status: () => '捕食者と海鳥が、四方から突っ込んでいる',
         dispose() { /* the bait ball winds itself down */ },
       };

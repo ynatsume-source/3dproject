@@ -48,7 +48,7 @@ function at(G: Grid, a: ArrayLike<number>, x: number, z: number) {
 
 export async function loadLand(id: string, half: number, farHalf: number): Promise<Land> {
   if (lands[id]) return lands[id];
-  const base = `${import.meta.env.BASE_URL}land/${id}`;
+  const base = `${import.meta.env?.BASE_URL ?? '/'}land/${id}`;
   const [near, far] = await Promise.all([grid(base, half), grid(`${base}_far`, farHalf)]);
   // the fine grid inside its square, easing into the coarse one over its last 10 m
   const pick = (k: (G: Grid) => ArrayLike<number>, s: number) => (x: number, z: number) => {

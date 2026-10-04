@@ -38,11 +38,12 @@ function dotPage(c: Ctx) {
 function kamePage(c: Ctx) {
   const rnd = seeded('kame' + c.day);
   const words = [...new Set(c.entries.flatMap((x) => x.text.match(/[ァ-ヴー]{3,}/g) ?? []))].filter((w) => !['カメマル', 'ラグーン'].includes(w));
-  const NOTES = ['潮位の読みが一刻ほど外れた。月齢の補正を見直すこと。', '同じ根に三日続けて同じ個体らしきものがいる。縄張りか。', '風向きが変わると、浜の匂いも変わる。記録に残せないのが惜しい。',
-    '若い個体ほど群れの外縁を泳ぐ傾向がある、ような気がする（要確認）。', '夕方、水面の色が一瞬だけ緑がかった。光の具合か、プランクトンか。', '砂紋の向きは潮の流れに直交している。昔から変わらない。',
+  const NOTES = ['風向きが変わると、浜の匂いも変わる。記録に残せないのが惜しい。',
+    '若い個体ほど群れの外縁を泳ぐ傾向がある、ような気がする（要確認）。', '夕方、水面の色が一瞬だけ緑がかった。光の具合か、プランクトンか。', 
     'ドットさんの小屋、柱の影の長さで時刻がわかりそうだ。', 'ラッコくんの貝殻の山、どうやら大きさ順に並んでいる。'];
+    // (the margin: its wonderings, not its findings — nothing in it claims a measurement it did not make)
   const margin = [0, 1, 2].map(() => NOTES[Math.floor(rnd() * NOTES.length)]).filter((v, i, a) => a.indexOf(v) === i);
-  const body = c.entries.map((x) => `<p><time>${hm(x.at, c.tz)}</time>${esc(x.text)}${x.key === 'watch' || x.key === 'swim' ? `<span class="add">（水温 ${(26 + rnd() * 3).toFixed(1)}℃・透明度 ${Math.round(18 + rnd() * 14)}m・見えた数 ${2 + Math.floor(rnd() * 9)}）</span>` : ''}</p>`).join('');
+  const body = c.entries.map((x) => `<p><time>${hm(x.at, c.tz)}</time>${esc(x.text)}${x.obs ? `<span class="add">（${esc(x.obs)}）</span>` : ''}</p>`).join('');
   return `<header><b>観察ノート　第${c.n}頁</b><span>${md(c.day)}（${wd(c.day)}）</span></header>
     <div class="cols"><div class="main">${body}
       ${words.length ? `<p class="list"><b>本日見かけたもの：</b>${words.map(esc).join('、')}</p>` : ''}
@@ -60,7 +61,7 @@ function lanternPage(c: Ctx) {
   const pick = c.entries.filter((x) => x.key === 'think' || x.key === 'fire' || x.key === 'pierDone' || x.key === 'find').concat(c.entries);
   const line = pick[0]?.text ?? '';
   const second = c.entries.length > 3 ? '……歩いた。' : '';
-  return `<div class="night">${svg}<p class="date">${md(c.day)}の夜</p><p class="one">${esc(line.replace(/^.*?。(?=.)/, (m) => (line.length > 44 ? '' : m)))}</p>${second ? `<p class="two">${second}</p>` : ''}</div>`;
+  return `<div class="night">${svg}<p class="date">${md(c.day)}の夜　<small>（思い出して描いた空）</small></p><p class="one">${esc(line.replace(/^.*?。(?=.)/, (m) => (line.length > 44 ? '' : m)))}</p>${second ? `<p class="two">${second}</p>` : ''}</div>`;
 }
 
 /* ---------- Rakko: a picture diary in crayon ---------- */
@@ -87,8 +88,9 @@ function rakkoPage(c: Ctx) {
   // a few words, the way it talks
   const kid = (t: string) => t.replace(/[。！]$/, '').replace(/。/g, '、');
   const lines = c.entries.slice(-3).map((x) => kid(x.text));
-  const weather = night ? 'よる' : ['はれ', 'はれ', 'くもり'][Math.floor(rnd() * 3)];
-  return `<header><b>えにっき</b><span>${md(c.day)}（${wd(c.day)}）　てんき：${weather}</span></header>${svg}
+  // (the weather only as far as the day's own record says: night, or nothing — not a guess)
+  const weather = night ? 'よる' : '';
+  return `<header><b>えにっき</b><span>${md(c.day)}（${wd(c.day)}）${weather ? `　てんき：${weather}` : ''}</span></header>${svg}
     <div class="words">${lines.map((l) => `<p>${esc(l)}！</p>`).join('')}</div>`;
 }
 

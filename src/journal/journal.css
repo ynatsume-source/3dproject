@@ -1,0 +1,94 @@
+/* 島だより — the residents' media. The island's own night-sea palette (src/styles.css), set as a printed page:
+   a quiet masthead, the photographs large, the writing in a readable column. */
+:root {
+  color-scheme: dark;
+  --sea: #03161d; --deep: #021016; --ink: #e2f4f0; --dim: rgba(214, 238, 233, .68); --faint: rgba(214, 238, 233, .4);
+  --line: rgba(180, 236, 226, .16); --card: rgba(9, 40, 48, .55); --accent: #8fe8d8; --lamp: #ffd98f;
+  --f-head: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --f-mark: "Cormorant SC", Georgia, serif; --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: radial-gradient(120% 60% at 50% -10%, #0b3640 0%, var(--sea) 55%, var(--deep) 100%) fixed, var(--sea); color: var(--ink); font-family: var(--f-body); line-height: 1.85; }
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--accent); }
+img { display: block; width: 100%; height: auto; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+/* masthead */
+.mast { border-bottom: 1px solid var(--line); background: rgba(3, 22, 29, .7); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 5; }
+.mast .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+.home { display: flex; flex-direction: column; line-height: 1.3; }
+.home .t { font-family: var(--f-head); font-size: 24px; font-weight: 700; letter-spacing: .14em; }
+.home .s { font-size: 11px; color: var(--dim); letter-spacing: .08em; }
+.mast nav { display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.mast nav a { padding: 6px 12px; border-radius: 999px; border: 1px solid transparent; color: var(--dim); }
+.mast nav a:hover { border-color: var(--line); color: var(--ink); }
+.mast nav a.go { border-color: var(--line); color: var(--accent); }
+
+/* front page */
+.intro { padding: 56px 0 28px; max-width: 760px; }
+.intro h1 { font-family: var(--f-head); font-weight: 700; font-size: clamp(26px, 5vw, 40px); line-height: 1.45; margin: 0 0 16px; letter-spacing: .04em; }
+.intro p { color: var(--dim); font-size: 14px; margin: 0 0 20px; }
+.writers { display: flex; gap: 10px; flex-wrap: wrap; }
+.writer { display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); }
+.writer i { font-style: normal; color: var(--c); font-size: 13px; }
+.writer small { color: var(--faint); font-size: 11px; }
+.lead { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; align-items: center; margin: 12px 0 40px; }
+.lead .ph img, .lead .ph .noimg { border-radius: 14px; aspect-ratio: 3 / 2; object-fit: cover; box-shadow: 0 20px 60px rgba(0, 0, 0, .45); }
+.lead h2 { font-family: var(--f-head); font-size: clamp(22px, 3vw, 30px); line-height: 1.5; margin: 10px 0 12px; }
+.lead p { color: var(--dim); font-size: 14px; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 28px 22px; margin: 8px 0 56px; }
+.card .ph { position: relative; display: block; }
+.card .ph img, .card .ph .noimg { border-radius: 10px; aspect-ratio: 3 / 2; object-fit: cover; }
+.card .ph .n { position: absolute; right: 8px; bottom: 8px; font: 500 11px var(--f-mono); padding: 2px 8px; border-radius: 999px; background: rgba(3, 22, 29, .75); }
+.card h2 { font-family: var(--f-head); font-size: 18px; line-height: 1.55; margin: 6px 0 6px; }
+.card p { color: var(--dim); font-size: 13px; margin: 0; line-height: 1.75; }
+.noimg { background: linear-gradient(135deg, #0d3a44, #062028); display: grid; place-items: center; color: var(--faint); font-size: 12px; aspect-ratio: 3 / 2; border-radius: 10px; }
+.empty { color: var(--dim); padding: 40px 0 80px; }
+
+/* who wrote it, when */
+.meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.meta time { font: 12px var(--f-mono); color: var(--faint); letter-spacing: .04em; }
+.who { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; }
+.who i { font-style: normal; color: var(--c); font-size: 11px; }
+.who small { color: var(--faint); font-size: 11px; font-weight: 400; }
+
+/* a writer's page */
+.profile { display: flex; gap: 18px; align-items: flex-start; padding: 48px 0 32px; max-width: 760px; }
+.profile > i { font-style: normal; color: var(--c); font-size: 28px; line-height: 1.4; }
+.profile h1 { font-family: var(--f-head); font-size: 30px; margin: 0 0 8px; display: flex; align-items: baseline; gap: 12px; }
+.profile h1 small { font-family: var(--f-body); font-size: 13px; color: var(--dim); font-weight: 400; }
+.profile p { color: var(--dim); margin: 0 0 6px; font-size: 14px; }
+.profile .note { color: var(--faint); font-size: 12px; }
+
+/* a post */
+.post { max-width: 760px; margin: 0 auto; padding: 40px 0 24px; }
+.post h1 { font-family: var(--f-head); font-weight: 700; font-size: clamp(26px, 4.4vw, 36px); line-height: 1.5; margin: 12px 0 24px; }
+.post figure { margin: 28px 0; }
+.post figure.hero { margin: 0 -16px 32px; }
+.post figure img { border-radius: 12px; box-shadow: 0 16px 48px rgba(0, 0, 0, .4); }
+.post figure.hero img { border-radius: 0; }
+.post figcaption { font-size: 13px; color: var(--dim); margin-top: 10px; padding: 0 16px 0 0; display: flex; flex-direction: column; gap: 2px; }
+.post figure.hero figcaption { padding: 0 16px; }
+.post figcaption span { font: 11px var(--f-mono); color: var(--faint); letter-spacing: .03em; }
+.post .body p { font-size: 16px; line-height: 2; margin: 0 0 1.4em; }
+.tags { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; }
+.tags span { font-size: 12px; color: var(--dim); border: 1px solid var(--line); padding: 2px 10px; border-radius: 999px; }
+.colophon { border-left: 2px solid var(--c); background: var(--card); padding: 14px 16px; border-radius: 0 10px 10px 0; font-size: 13px; color: var(--dim); line-height: 1.8; margin: 32px 0; }
+.colophon b { display: block; color: var(--ink); font-weight: 500; margin-bottom: 4px; }
+.pager { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid var(--line); padding: 18px 0; font-size: 13px; color: var(--dim); }
+.pager a { max-width: 48%; }
+
+.foot { border-top: 1px solid var(--line); margin-top: 24px; padding: 28px 0 40px; }
+.foot .about { color: var(--faint); font-size: 12px; max-width: 760px; margin: 0 0 8px; }
+.foot .small { font-size: 12px; color: var(--faint); margin: 0; }
+.foot a { color: var(--dim); }
+
+@media (min-width: 800px) { .post figure.hero { margin: 0 -60px 36px; } .post figure.hero img { border-radius: 14px; } .post figure.hero figcaption { padding: 0 60px; } }
+@media (max-width: 720px) {
+  .lead { grid-template-columns: 1fr; gap: 14px; }
+  .intro { padding-top: 36px; }
+  .mast nav a.go { display: none; }
+}

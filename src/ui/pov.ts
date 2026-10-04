@@ -66,7 +66,8 @@ export function makePov(root: HTMLElement) {
     <div class="mutter"><i></i><span></span></div>`;
   const marksEl = root.querySelector('.marks') as HTMLElement, pool: HTMLElement[] = [];
   const $ = (q: string) => root.querySelector(q) as HTMLElement;
-  let who = '', mutT = 0, planT = 0, lastSay = '', offT = 0;
+  let who = '', mutT = 0, planT = 0, lastSay = '', offT = 0, boxT = 0;
+  const keep: number[][] = [];   // (the panels' boxes on screen: no mark's label over them)
   const _p = new THREE.Vector3();
   return {
     get on() { return !!who; },
@@ -75,31 +76,48 @@ export function makePov(root: HTMLElement) {
     update(r: any, s: Sense, status: string, camera: THREE.Camera, w: number, h: number, dt: number, extra: Mark[], gibber: (id: string, t: string) => string) {
       if (!who) return;
       const L = LOOK[r.id];
-      // the marks: what is in view, projected onto the screen
-      const all = [...s.marks, ...extra];
-      let n = 0;
+      // the marks: what is in view, projected onto the screen. On a small screen only as many as are readable:
+      // what it is after first, then the nearest; a label that would run off the right edge goes on the left of
+      // its mark; one that would lie over another, or over the title, the plan or its words, is left out.
+      const all = [...s.marks, ...extra], small = w < 760, fs = small ? 10 : 11;
+      const cand: { m: Mark; x: number; y: number; d: number }[] = [];
       for (const m of all) {
         _p.set(m.x, m.y, m.z);
         const d = _p.distanceTo(camera.position);
         _p.project(camera);
         if (_p.z > 1 || Math.abs(_p.x) > 1.05 || Math.abs(_p.y) > 1.05 || d < 0.6) continue;
+        cand.push({ m, x: (_p.x * 0.5 + 0.5) * w, y: (-_p.y * 0.5 + 0.5) * h, d });
+      }
+      cand.sort((a, b) => (b.m.hot ? 1 : 0) - (a.m.hot ? 1 : 0) || a.d - b.d);
+      if ((boxT -= dt) < 0) {   // (where the panels are, now and then)
+        boxT = 0.5; keep.length = 0;
+        for (const q of ['header', '.plan', '.mutter.on']) { const e = root.querySelector(q) as HTMLElement | null; if (e && !e.hidden) { const b = e.getBoundingClientRect(); if (b.width) keep.push([b.left, b.top, b.right, b.bottom]); } }
+      }
+      const placed: number[][] = [...keep];
+      let n = 0;
+      for (const c of cand) {
+        const m = c.m, txt = L.label(m, c.d) + (m.hot ? (r.id === 'dot' ? '　◀ TARGET' : r.id === 'rakko' ? '　← これ！' : '　← めあて') : '');
+        const tw = [...txt].length * fs + 22, left = c.x + tw > w - 6;
+        const box = left ? [c.x - tw, c.y - 16, c.x + 8, c.y + 8] : [c.x - 8, c.y - 16, c.x + tw, c.y + 8];
+        if (!m.hot && placed.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) continue;
+        placed.push(box);
         const el = pool[n] ?? (pool[n] = marksEl.appendChild(document.createElement('div')));
-        el.className = `mk ${m.kind}${m.hot ? ' hot' : ''}`;
+        el.className = `mk ${m.kind}${m.hot ? ' hot' : ''}${left ? ' l' : ''}`;
         el.style.setProperty('--c', m.color ?? '');
-        el.style.transform = `translate(${((_p.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-_p.y * 0.5 + 0.5) * h).toFixed(0)}px)`;
-        el.style.opacity = String(Math.max(0.35, 1 - d / 60));
-        const txt = L.label(m, d) + (m.hot ? (r.id === 'dot' ? '　◀ TARGET' : r.id === 'rakko' ? '　← これ！' : '　← めあて') : '');
+        el.style.transform = `translate(${c.x.toFixed(0)}px, ${c.y.toFixed(0)}px)${left ? ' translateX(-100%)' : ''}`;
+        el.style.opacity = String(Math.max(0.35, 1 - c.d / 60));
         if (el.dataset.t !== txt) { el.dataset.t = txt; el.innerHTML = `<i></i><span>${txt}</span>`; }
         el.hidden = false;
-        if (++n >= (w < 760 ? 9 : 24)) break;   // (fewer on a small screen)
+        if (++n >= (small ? 6 : 24)) break;
       }
       for (let i = n; i < pool.length; i++) pool[i].hidden = true;
       // what it is up to, and how it is doing (a few times a second is enough)
       if ((planT -= dt) < 0) {
         planT = 0.4;
         $('.t').textContent = L.title; $('.s').textContent = L.sub; $('.st').textContent = L.stat(s, r);
-        $('.now').textContent = status;
-        const ol = $('.plan ol'), items = L.bullets(s, r);
+        // (one with a mind of its own: its own goal, and the steps it has left — otherwise what it is doing)
+        $('.now').textContent = s.goal ? `${s.goal.text}　— ${status}` : status;
+        const ol = $('.plan ol'), items = s.goal?.steps.length ? s.goal.steps.slice(0, 4).map((t, i) => `${'①②③④'[i]} ${t}`) : L.bullets(s, r);
         ol.innerHTML = items.map((b, i) => `<li${i === 0 ? ' class="cur"' : ''}>${b}</li>`).join('');
       }
       // what it says to the others (its own bubble is not drawn from inside its head)

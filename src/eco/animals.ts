@@ -67,7 +67,13 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     const sleepy = act < 0.35;
 
     // state transitions
-    if (t.state === 'breathe') { if (t.pos.y > -1.0) { t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; } }
+    // (a breath: all the way up until its head is at the surface, a few slow breaths there, and only then down
+    // again — not turning back a metre short, as if it had changed its mind)
+    if (t.state === 'breathe') {
+      if (t.pos.y > -0.45 && t.breath == null) t.breath = rr(3, 6);
+      if (t.breath != null && (t.breath -= dt) < 0) { t.breath = undefined; t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; }
+      else if (t.stateT > 90) { t.breath = undefined; t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; }   // (could not get up there: give it up)
+    }
     else if ((t.air = (t.air ?? rr(60, 200)) - dt) < 0) { t.state = 'breathe'; t.stateT = 0; t.air = sleepy ? rr(300, 480) : rr(150, 260); logEvent(env, 'breathe', env.night > 0.5 ? oneOf(['暗い水の中を、ウミガメが息継ぎに上がっていく', 'ウミガメが寝床を離れて、そっと水面へ', '月明かりの水面へ、ウミガメが息を吸いに上がる', 'ウミガメが眠りの途中で、ひと息つきに浮上していく'])
       : oneOf(['ウミガメが息継ぎに浮上していく', 'ウミガメがゆっくりと水面へ。そろそろ息継ぎの時間らしい', 'ウミガメが光の差す水面へ泳ぎ上がっていく', 'ウミガメが前ヒレを大きくかいて、水面へ向かう', 'ウミガメがひと息つきに、まっすぐ上へ']), t.pos.x, t.pos.z, () => t.pos); }
     else if (sleepy && (t.state === 'travel' || t.state === 'graze')) { t.state = 'toRest'; t.goal = pickGoal(oc, t.pos, 'rest'); t.stateT = 0; }
@@ -83,7 +89,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     else t.alarm = Math.max(0, (t.alarm ?? 0) - dt * (cd > near * 2.5 ? 0.35 : 0.12));
     const alarm = t.alarm ?? 0;
     let speed = 0.35, ty = Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.6, -1.2), stroke = 1, noseDown = 0;
-    if (t.state === 'breathe') { ty = -0.6; speed = 0.3; }
+    if (t.state === 'breathe') { ty = -0.2; speed = t.breath != null ? 0.12 : 0.3; if (t.breath != null) stroke = 0.4; }   // (at the surface: lying almost still, a lazy stroke now and then)
     else if (t.goal && (t.state === 'travel' || t.state === 'toRest')) {
       const gx = t.goal.x - t.pos.x, gz = t.goal.z - t.pos.z, gd = Math.hypot(gx, gz);
       let d = Math.atan2(gz, gx) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d));

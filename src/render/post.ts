@@ -53,9 +53,16 @@ export class Post {
   // blend this frame's shafts into the running average; less so while the camera turns or moves
   private blendMat = new THREE.ShaderMaterial({
     vertexShader: VS,
+    // (and none where what is there now is at another depth than before — a fish come across the water: it is
+    // not left trailing the glow of the water that was there a moment ago)
     uniforms: { tCur: { value: null }, tHist: { value: null }, uK: { value: 0 } },
     fragmentShader: `uniform sampler2D tCur; uniform sampler2D tHist; uniform float uK; varying vec2 vUv;
-      void main(){ gl_FragColor = vec4(mix(texture2D(tCur, vUv).rgb, texture2D(tHist, vUv).rgb, uK), 1.0); }`,
+      void main(){
+        vec4 c = texture2D(tCur, vUv), h = texture2D(tHist, vUv);
+        float zc = c.a * 100.0, zh = h.a * 100.0;
+        float k = uK * exp(-abs(zc - zh) / (0.06 * zc + 0.1));
+        gl_FragColor = vec4(mix(c.rgb, h.rgb, k), c.a);
+      }`,
   });
   // 4x4 depth-aware box blur of the AO: exactly cancels the 4x4 rotation pattern of its samples
   private aoBlurMat = new THREE.ShaderMaterial({
@@ -83,14 +90,14 @@ export class Post {
     defines: { STEPS: 16 },
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden,
+      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden, uNight: U.uNight,
       uCaveTex: U.uCaveTex, uCaveAtlas: U.uCaveAtlas, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
       uFrame: { value: 0 }, uStrength: { value: 0.72 },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tDepth; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uCamPos;
       uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs;
-      uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
+      uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden; uniform float uNight;
       uniform float uFrame; uniform float uStrength;
       varying vec2 vUv;
       ${NOISE}
@@ -102,7 +109,7 @@ export class Post {
         float a = vn(q * 0.11 + vec2(uTime * 0.035, uTime * 0.015));
         float b = mix(0.5, vn(q * 0.43 - vec2(uTime * 0.03, -uTime * 0.05)), smoothstep(0.35, 0.9, lod));
         float s = a * 0.65 + b * 0.35;
-        float sharp = pow(smoothstep(mix(0.42, 0.56, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;
+        float sharp = pow(smoothstep(mix(0.42, 0.62, uGolden), 0.95, s), 2.2 + uGolden) * 2.6;   // (at sunset fewer, sharper shafts, dark water between)
         return mix(0.24 * (1.0 - 0.4 * uGolden), sharp, lod);
       }
       void main(){
@@ -121,16 +128,21 @@ export class Post {
           vec3 p = uCamPos + dir * t;
           float wet = step(p.y, -0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
           vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
-          float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 2.4) + 0.1 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
+          float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 1.0) + 0.1 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
           vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
           acc += light * down * back * stepLen * caveLight(p).x * wet;   // rock shadows the water behind it; skylights let beams through
         }
         float mu = dot(dir, uSunDir);
-        float g = 0.72;
+        // (at night the moon is not a second sun: the water it lights glows far less, and only close round
+        // the moon itself — a small bright patch overhead, the rest of the water dark)
+        float g = mix(0.72, 0.95, uNight) + 0.16 * uGolden;   // (the low sun too: its glow close round it, not over half the view)
         float phase = (1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * mu, 1.5) * 0.08;
-        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength;
-        gl_FragColor = vec4(col, 1.0);
+        vec3 col = acc * phase * uShaftI * uShaftCol * uStrength * mix(1.0, 0.05, uNight) * (1.0 - 0.7 * uGolden);
+        // (and it never piles up into white: looking into the low sun, 95 m of lit water would add up past
+        // anything else on screen — eased off as it grows, its colour kept)
+        col = col / (1.0 + max(max(col.r, col.g), col.b) * (1.2 + 2.5 * uGolden));   // (most of all into the low sun: a deep sunset, not a dazzle)
+        gl_FragColor = vec4(col, min(-vp.z, 95.0) * 0.01);   // (alpha: how far off what this ray met, in view depth — for the depth-aware enlarging below)
       }`,
   });
 
@@ -207,11 +219,13 @@ export class Post {
     uniforms: {
       uAirK: { value: 0 },
       tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() }, uVolTexel: { value: new THREE.Vector2() },
+      tDepth: { value: null }, uNear: { value: 0.08 }, uFar: { value: 460 },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel; uniform vec2 uVolTexel;
+      uniform sampler2D tDepth; uniform float uNear; uniform float uFar;
       uniform float uAirK; uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
       varying vec2 vUv;
       ${NOISE}
@@ -228,10 +242,21 @@ export class Post {
           float ao = (texture2D(tAO, vUv + vec2(-o.x, -o.y)).r + texture2D(tAO, vUv + vec2(o.x, -o.y)).r + texture2D(tAO, vUv + vec2(-o.x, o.y)).r + texture2D(tAO, vUv + vec2(o.x, o.y)).r) * 0.25;
           col *= ao;
         }
-        if (uUseVol > 0.5) {   // a small tent blur hides the per-pixel jitter of the low-res march
+        // the light in the water, worked out at a fraction of the screen's resolution, enlarged with a small tent
+        // (hiding the jitter of the low-res march) — and depth-aware: each low-res sample counts only as far as
+        // what it met is at the depth of what this pixel shows. Plain enlarging spread the bright in-scatter of
+        // the open water behind an animal over its edges, so every outline was haloed and washed out (by day, at
+        // dusk, by night). (All five reads made first, then only arithmetic: no reads inside a branch.)
+        {
           vec2 o = uVolTexel;
-          col += (texture2D(tVol, vUv).rgb * 2.0 + texture2D(tVol, vUv + vec2(o.x, o.y)).rgb + texture2D(tVol, vUv + vec2(-o.x, o.y)).rgb
-                + texture2D(tVol, vUv + vec2(o.x, -o.y)).rgb + texture2D(tVol, vUv + vec2(-o.x, -o.y)).rgb) / 6.0;
+          vec4 v0 = texture2D(tVol, vUv), v1 = texture2D(tVol, vUv + vec2(o.x, o.y)), v2 = texture2D(tVol, vUv + vec2(-o.x, o.y)),
+               v3 = texture2D(tVol, vUv + vec2(o.x, -o.y)), v4 = texture2D(tVol, vUv + vec2(-o.x, -o.y));
+          float zd = texture2D(tDepth, vUv).r, z0 = min(uNear * uFar / (uFar - zd * (uFar - uNear)), 95.0);
+          float tol = 0.08 * z0 + 0.15;
+          float w0 = 2.0 * exp(-abs(v0.a * 100.0 - z0) / tol), w1 = exp(-abs(v1.a * 100.0 - z0) / tol), w2 = exp(-abs(v2.a * 100.0 - z0) / tol),
+                w3 = exp(-abs(v3.a * 100.0 - z0) / tol), w4 = exp(-abs(v4.a * 100.0 - z0) / tol);
+          vec3 vol = (v0.rgb * w0 + v1.rgb * w1 + v2.rgb * w2 + v3.rgb * w3 + v4.rgb * w4) / max(w0 + w1 + w2 + w3 + w4, 1e-3);
+          col += vol * uUseVol;
         }
         if (uUseBloom > 0.5) col += texture2D(tBloom, vUv).rgb * uBloom;
         col *= uWB * uExposure;
@@ -371,6 +396,7 @@ export class Post {
     c.tAO.value = this.aoSmooth.texture; c.uUseAO.value = ao ? 1 : 0; c.uAOTexel.value.set(0.5 / this.ao.width, 0.5 / this.ao.height);
     c.tScene.value = this.main.texture;
     c.tVol.value = this.volHist[this.histIdx].texture; c.uUseVol.value = vol ? 1 : 0; c.uVolTexel.value.set(0.9 / this.vol.width, 0.9 / this.vol.height);
+    c.tDepth.value = this.main.depthTexture; c.uNear.value = camera.near; c.uFar.value = camera.far;
     c.tBloom.value = this.mips[0]?.texture ?? null; c.uUseBloom.value = t.bloom ? 1 : 0;
     this.pass(r, this.compMat, out);   // (to the screen, or for the waterline view into a target)
   }

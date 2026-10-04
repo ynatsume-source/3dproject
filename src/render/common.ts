@@ -39,10 +39,14 @@ export const U = {
   uSeaWorld: { value: 260 },   // how far the modelled seabed reaches (beyond it, seen from the air, the reef drops into the blue)
   uVolOff: { value: 0 },   // 1 when the volumetric light pass is off (light tier): fogIt stands in for its glow
   uSwell: { value: 0.4 },
+  // how much of the swell reaches each place (src/ocean/water.ts): a texture over x, z ∈ [box.x, box.x + box.z] (z likewise
+  // from box.y); box.w 0: everywhere all of it
+  uSeaK: { value: new THREE.DataTexture(new Uint8Array([255]), 1, 1, THREE.RedFormat) }, uSeaKBox: { value: new THREE.Vector4(0, 0, 1, 0) },
   uFoam: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },   // foam fields left by leaps: x, z, radius, freshness (1 → 0)
   uBoil: { value: new THREE.Vector4(0, 0, 1, 0) },   // a bait ball churning the surface: x, z, radius, strength  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
+  uLodPos: { value: new THREE.Vector3() },   // measured from here: the drone itself, not the camera (which swings round it and bobs)
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
   // the sea cave's light volume (see ocean/cave.ts); off in seas without one
   uCaveTex: { value: EMPTY_CAVE }, uCaveAtlas: { value: new THREE.Vector2(1, 1) }, uCaveOn: { value: 0 }, uCamCave: { value: 1 },
@@ -77,7 +81,7 @@ uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; 
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud;
-uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR;
+uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR; uniform vec3 uLodPos;
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
@@ -189,12 +193,12 @@ vec3 hazeCol(vec3 dir){
   float mu = max(dot(dir, SUN), 0.0);
   // (uGlowK: how much of a light there is to see in the sky, to glow toward — the sun, or a moon not behind cloud;
   // starlight on a moonless night lights the sea softly from everywhere, with no bright patch toward anything)
-  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, 5.0) * uGlowK + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlashW * 2.0);
+  vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, mix(mix(5.0, 24.0, uGolden), 700.0, uNight)) * uGlowK + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlashW * 2.0);
   // without the volumetric pass (light tier), its glow still has to be there: sunlight scattered forward
   // out of the water toward the eye, strongest toward the sun and at golden hour, when it carries the colour
   if (uVolOff > 0.5 && uCamPos.y < 0.0) {
     float m2 = dot(dir, SUN), hg = (1.0 - 0.5184) / pow(1.5184 - 1.44 * m2, 1.5);
-    h += uShaftCol * uShaftI * (hg * uGlowK + 0.6) * (0.05 + 0.2 * uGolden) * exp(uAbs * uCamPos.y * 0.6) * uCamCave;
+    h += uShaftCol * uShaftI * (hg * uGlowK + 0.6) * (0.05 + 0.2 * uGolden) * exp(uAbs * uCamPos.y * 0.6) * uCamCave * mix(1.0, 0.2, uNight);   // (the moon: far less than the sun)
   }
   return h;
 }
@@ -228,14 +232,14 @@ float cloudAt(vec3 d){
 vec3 skyAir(vec3 d, float disks){
   float sy = uAirSun.y, day = dayAir(), h = max(d.y, 0.0);
   float twi = smoothstep(-0.28, -0.02, sy) * (1.0 - smoothstep(0.02, 0.35, sy));   // dawn and dusk
-  vec3 zen = mix(vec3(0.085, 0.072, 0.22), vec3(0.13, 0.33, 0.7), day);   // (night: a deep blue-violet, as a dark-sky site looks to adapted eyes)
-  vec3 hor = mix(vec3(0.12, 0.11, 0.24), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
+  vec3 zen = mix(vec3(0.058, 0.05, 0.155), vec3(0.13, 0.33, 0.7), day);   // (night: a deep blue-violet, as a dark-sky site looks to adapted eyes — near black, but not black)
+  vec3 hor = mix(vec3(0.085, 0.08, 0.175), vec3(0.66, 0.8, 0.93), day);   // (night: airglow and starlight keep the horizon a shade lighter than the zenith)
   zen = mix(zen, vec3(0.14, 0.18, 0.36), twi * 0.6);
   float mu = dot(d, uAirSun), sideS = pow(max(mu, 0.0) * 0.5 + 0.5, 4.0);
   hor = mix(hor, vec3(1.0, 0.5, 0.25), twi * (0.35 + 0.65 * sideS));
   vec3 c = mix(hor, zen, pow(h, 0.42));
   c += vec3(1.0, 0.42, 0.28) * twi * sideS * exp(-h * 9.0) * 0.6;                       // the glow over where the sun sets
-  c += vec3(0.1, 0.16, 0.3) * uMoonI * (1.0 - 0.5 * uMoonVeil) * (1.0 - day) * (1.3 - h);   // moonlit sky (as bright as the moon seen from under the water suggests; less with it behind cloud)
+  c += vec3(0.075, 0.12, 0.225) * uMoonI * (1.0 - 0.5 * uMoonVeil) * (1.0 - day) * (1.3 - h);   // moonlit sky (as bright as the moon seen from under the water suggests; less with it behind cloud)
   vec3 sc = sunAirCol();
   c += sc * pow(max(mu, 0.0), 14.0) * 0.35 * day;                                        // bright haze round the sun
   if (disks < 0.0) return c * mix(1.0, 0.6, uCloud) * (1.0 + uFlash * 0.35);               // cheap: just the light of the sky

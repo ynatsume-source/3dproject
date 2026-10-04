@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
+import { unseen } from './unseen';
 import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
 import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
@@ -29,7 +30,8 @@ interface Group {
   type: GroupType; n: number; start: number;
   a?: { pos: THREE.Vector3; s: number };
   c: THREE.Vector3; v: THREE.Vector3; head: number; t: number; alt: number;
-  anchor: { x: number; z: number }; placed: boolean; away?: boolean;   // (an anemone family left be, far off, and not drawn)
+  anchor: { x: number; z: number }; placed: boolean; away?: boolean;
+  goal?: { x: number; z: number };        // (a home patch further on: the group swims its patch there, at its own pace)   // (an anemone family left be, far off, and not drawn)
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
   hunt: null | Hunt; cooldown: number;
@@ -107,6 +109,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   const kelpLife = makeKelpFishLife(sp, oc, total);
   const lastCam = new THREE.Vector3();
   const isPredator = sp.diet === 'fish';
+  let nearStart = 1;   // (of the reef's groups, how many are about the camera on arriving: the day's lot, ecosystem.ts startDay)
   const cave = sp.rests === 'cave' ? oc.cave : null;
   if (cave) { const spots = cave.restSpots(groups.length); groups.forEach((g, i) => { g.cr = { spot: spots[i % spots.length], mode: 'out', t: 0, dir: 1 }; }); }
   const _e = new THREE.Vector3();
@@ -354,7 +357,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         g.away = false;
       }
       else if (!g.placed || (dc2 > 72 * 72 && (!g.cr || g.cr.mode === 'out'))) {
-        place(g, cam, fx, fz, !g.placed);
+        place(g, cam, fx, fz, !g.placed && (g.type !== 'reef' || R() < nearStart));   // (on arriving: near, or — the day's lot — further off)
         if (g.cr) { g.cr.mode = 'out'; if (g.act < 0.45 && Math.hypot(g.cr.spot.pos.x - cam.x, g.cr.spot.pos.z - cam.z) > 32) toRest(g); }
       }
       const floorC = T.top(g.c.x, g.c.z);
@@ -363,6 +366,11 @@ export function makeFishSystem(sp: Species, oc: any) {
 
       if (g.type === 'reef') {
         // active: drift around the home patch; resting: settle into it
+        if (g.goal) {
+          // (on its way to a new patch: the patch itself moves on at the group's swimming pace, the fish after it)
+          const gx = g.goal.x - g.anchor.x, gz = g.goal.z - g.anchor.z, gd = Math.hypot(gx, gz), st = Math.max(sp.speed * 0.9, 0.9) * dt;
+          if (gd <= st) { g.anchor.x = g.goal.x; g.anchor.z = g.goal.z; g.goal = undefined; } else { g.anchor.x += gx / gd * st; g.anchor.z += gz / gd * st; }
+        }
         const r = (sp.diet === 'algae' ? 6 : 3.5) * (1 - rest * 0.8);
         const nx = g.anchor.x + Math.cos(g.t * 0.13 + g.start) * r, nz = g.anchor.z + Math.sin(g.t * 0.1 + g.start) * r;
         g.v.set((nx - g.c.x) / Math.max(dt, 1e-3), 0, (nz - g.c.z) / Math.max(dt, 1e-3)).clampLength(0, sp.speed);
@@ -693,6 +701,34 @@ export function makeFishSystem(sp: Species, oc: any) {
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
+    setStart(f: number) { nearStart = f; },
+    // a big one passing by early in a visit (the day's lot): put down out of sight off to one side, heading across the
+    // way ahead, so it comes into view by itself
+    visit(cam: THREE.Vector3, fx: number, fz: number) {
+      const g = groups.find((q) => q.type === 'roam' && q.placed && !q.hunt && !q.cr);
+      if (!g) return false;
+      for (let k = 0; k < 16; k++) {
+        const side = k % 2 ? 1 : -1, a = rr(80, 100) * Math.PI / 180, d = rr(28, 40);
+        const x = cam.x + (fx * Math.cos(a) - fz * Math.sin(a) * side) * d, z = cam.z + (fz * Math.cos(a) + fx * Math.sin(a) * side) * d;
+        if (!T.wet(x, z, 3) || !unseen(oc, x, T.h(x, z) + g.alt + 1, z, cam, fx, fz, 2)) continue;
+        const dx = x - g.c.x, dz = z - g.c.z, y = Math.min(T.h(x, z) + g.alt + 1, -2), dy = y - g.c.y;
+        for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] += dx; fp[i * 3 + 1] += dy; fp[i * 3 + 2] += dz; }
+        g.c.set(x, y, z);
+        g.head = Math.atan2(cam.z + fz * rr(14, 24) - z, cam.x + fx * rr(14, 24) - x);   // (toward the way ahead, to cross it)
+        return true;
+      }
+      return false;
+    },
+    // the reef's groups, for keeping fish about the camera (ecosystem.ts): where each is, how many, and a way to
+    // send it — put down at (sx, sz) (where it cannot be seen) with its home patch moving on to (ax, az)
+    movers: () => (kelpLife ? [] : groups.filter((g) => g.type === 'reef' && g.placed && !g.ch).map((g) => ({
+      x: g.c.x, y: g.c.y, z: g.c.z, n: g.n, going: !!g.goal, goal: g.goal,
+      move(sx: number, sz: number, ax: number, az: number) {
+        const dx = sx - g.c.x, dz = sz - g.c.z, dy = Math.min(T.h(sx, sz) + g.alt, -1.4) - g.c.y;
+        for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] += dx; fp[i * 3 + 1] += dy; fp[i * 3 + 2] += dz; }
+        g.c.x = sx; g.c.y += dy; g.c.z = sz; g.anchor.x = sx; g.anchor.z = sz; g.goal = { x: ax, z: az };
+      },
+    }))),
     // something worth hunting has turned up near (a tornado of jacks): the hunters close by wake up hungry
     excite(x: number, z: number, r: number) { if (!isPredator) return; for (const g of groups) if (g.type === 'roam' && Math.hypot(g.c.x - x, g.c.z - z) < r) { g.hunger = Math.max(g.hunger, 0.85); g.cooldown = Math.min(g.cooldown, 5); (g as any).excited = 40; } },
     dbg: { fp, dead, groups, kelpLife, get total() { return total; } },   // (for checks)

@@ -251,7 +251,7 @@ export function jellyMaterial(sp: CritterSpec) {
 }
 
 /* ---------- the animals ---------- */
-interface Moray { sp: CritterSpec; i: number; pos: THREE.Vector3; dir: THREE.Vector3; len: number; out: number; outDay: number; head: THREE.Vector3 }
+interface Moray { sp: CritterSpec; i: number; pos: THREE.Vector3; dir: THREE.Vector3; len: number; out: number; outDay: number; head: THREE.Vector3; buried?: boolean }
 interface Snake { sp: CritterSpec; i: number; pos: THREE.Vector3; head: number; pitch: number; len: number; state: 'forage' | 'up' | 'breathe' | 'down'; t: number; next: number; placed: boolean; alt: number }
 interface Jelly { sp: CritterSpec; i: number; pos: THREE.Vector3; s: number; placed: boolean; bob: number }
 
@@ -345,6 +345,8 @@ export function makeCritters(oc: any) {
             _q.setFromUnitVectors(_z, c.dir);
             _s.setScalar(c.len);
             mm.mesh.setMatrixAt(i, _m.compose(c.head, _q, _s));
+            // (its head inside rock or a coral head grown up round the hole since: nothing of it to be seen there)
+            c.buried = T.top(c.head.x, c.head.z) > c.head.y + 0.02 || T.top(c.head.x + c.dir.x * 0.3, c.head.z + c.dir.z * 0.3) > c.head.y + 0.1;
           } else if (mm.kind === 'snake') {
             const s: Snake = c;
             if (!s.placed || Math.hypot(s.pos.x - cam.x, s.pos.z - cam.z) > 75) {
@@ -402,7 +404,7 @@ export function makeCritters(oc: any) {
     },
     subjects(out: Subject[]) {
       for (const m of morays) out.push({ key: `moray:${m.sp.id}:${m.i}`, label: m.sp.ja, kind: 'critter', prio: 1.8, size: 0.6, len: m.len, adult: m.sp.size[1], lenWhat: '全長',
-        pos: () => m.head, front: () => m.dir, status: () => (m.out > 0.38 ? '穴から体を乗り出して、獲物を探している' : '穴から顔を出して、口を開け閉めしている（呼吸）'), live: () => true });
+        pos: () => m.head, front: () => m.dir, status: () => (m.out > 0.38 ? '穴から体を乗り出して、獲物を探している' : '穴から顔を出して、口を開け閉めしている（呼吸）'), live: () => !m.buried });
       for (const s of snakes) out.push({ key: `snake:${s.sp.id}:${s.i}`, label: s.sp.ja, kind: 'critter', prio: s.state === 'up' || s.state === 'breathe' ? 3 : 2.1, size: 0.65, len: s.len, adult: s.sp.size[1], lenWhat: '全長',
         pos: () => s.pos, status: () => (s.state === 'forage' ? '岩のすき間をのぞいて、獲物を探している' : s.state === 'breathe' ? '水面で息継ぎをしている' : s.state === 'up' ? '息継ぎに浮上している' : '海底へ戻っていく'), live: () => s.placed });
       for (const j of jellies) out.push({ key: `jelly:${j.sp.id}:${j.i}`, label: j.sp.ja, kind: 'critter', prio: 1.5, size: 0.3, pos: () => j.pos, status: () => (j.sp.pat === 1 ? '長い触手を引いて、流れに乗って漂っている' : '傘を脈打たせながら漂っている'), live: () => j.placed });

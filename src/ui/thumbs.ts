@@ -77,12 +77,12 @@ export function guideThumbs(loc: Sea, ids: string[], budget = Infinity): Record<
     const r = Math.max(size.x, size.y * 1.6, size.z) * 0.62;
     const dir = new THREE.Vector3(...m.view).normalize();
     cam.position.copy(c).addScaledVector(dir, r / Math.tan(14 * Math.PI / 180) * 0.62); cam.lookAt(c); cam.updateMatrixWorld();
-    U.uCamPos.value.copy(cam.position);
+    U.uCamPos.value.copy(cam.position); U.uLodPos.value.copy(cam.position);
     renderer.setClearColor(0x000000, 0); renderer.clear();
     renderer.render(scene, cam);
     have[id] = renderer.domElement.toDataURL('image/png');
   }
-  U.uCamPos.value.copy(keep.cam); U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs);
+  U.uCamPos.value.copy(keep.cam); U.uLodPos.value.copy(keep.cam); U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs);
   U.uNight.value = keep.night; U.uAirSun.value.copy(keep.airSun); U.uCloud.value = keep.cloud; U.uMoonI.value = keep.moonI; U.uTint.value.copy(keep.tint); U.uLamp.value = keep.lamp; U.uCaveOn.value = keep.cave; U.uUp.value.copy(keep.up); U.uHor.value.copy(keep.hor); U.uDown.value.copy(keep.down); U.uGolden.value = keep.gold;
   cache.set(loc.id, have);
   return have;
@@ -101,9 +101,9 @@ export function studio(loc: Sea, id: string, view: [number, number, number], zoo
   const box = new THREE.Box3().setFromObject(m.obj), c = focus ? new THREE.Vector3(...focus) : box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
   const cam = new THREE.PerspectiveCamera(28, w / h, 0.005, 100);
   cam.position.copy(c).addScaledVector(new THREE.Vector3(...view).normalize(), Math.max(size.x, size.y, size.z) * 1.6 / zoom); cam.lookAt(c); cam.updateMatrixWorld();
-  U.uCamPos.value.copy(cam.position);
+  U.uCamPos.value.copy(cam.position); U.uLodPos.value.copy(cam.position);
   studioR.setClearColor(0x2a5560, 1); studioR.clear(); studioR.render(scene, cam);
   const url = studioR.domElement.toDataURL('image/png');
-  U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs); U.uCamPos.value.copy(keep.cam); U.uLamp.value = keep.lamp; U.uTint.value.copy(keep.tint);
+  U.uSunDir.value.copy(keep.sun); U.uSunI.value = keep.sunI; U.uAmb.value = keep.amb; U.uFogDen.value = keep.fog; U.uAbs.value.copy(keep.abs); U.uCamPos.value.copy(keep.cam); U.uLodPos.value.copy(keep.cam); U.uLamp.value = keep.lamp; U.uTint.value.copy(keep.tint);
   return url;
 }

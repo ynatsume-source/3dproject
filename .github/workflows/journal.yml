@@ -1,0 +1,92 @@
+name: 島だより (the residents' day)
+
+# Once a day (20:52 in Japan) the one Kayama whose Dot and Rakko write 島だより lives its day (scripts/journal-run.ts):
+# they see, decide, photograph what they want to keep, and each writes the day's post. The photographs are drawn in
+# the real app (tools/journal/photos.cjs). The island's memory is kept on the journal-data branch; the posts are put
+# forward as a pull request — merging it publishes them at utsushiyo.earth/journal/. See docs/JOURNAL.md.
+
+on:
+  schedule:
+    - cron: '52 11 * * *'
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'AIなしで試す（下書きのみ、プルリクエストは出さない）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: journal
+  cancel-in-progress: false
+
+jobs:
+  day:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Is there a key?
+        id: key
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          if [ "${{ inputs.dry }}" = "true" ]; then echo "dry=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$HAS_KEY" != "true" ]; then echo "No ANTHROPIC_API_KEY secret yet: skipping (see docs/JOURNAL.md)"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "dry=false" >> "$GITHUB_OUTPUT"
+      - name: The island's memory
+        # (in .island: the repository has a data/ folder of its own)
+        if: steps.key.outputs.skip != 'true'
+        run: |
+          git config user.name "utsushiyo-island[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code origin journal-data >/dev/null; then
+            git fetch origin journal-data && git worktree add .island origin/journal-data && git -C .island checkout -B journal-data
+          else
+            git worktree add --detach .island && git -C .island checkout --orphan journal-data && git -C .island rm -rfq . && git -C .island clean -fdq
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        if: steps.key.outputs.skip != 'true'
+        run: |
+          npm ci
+          npm i --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: The day on the island
+        if: steps.key.outputs.skip != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ steps.key.outputs.dry == 'true' && '' || secrets.ANTHROPIC_API_KEY }}
+        run: |
+          echo "DAY=$(TZ=Asia/Tokyo date +%Y-%m-%d)" >> "$GITHUB_ENV"
+          npx tsx --import ./scripts/node-assets.mjs scripts/journal-run.ts --data .island ${{ steps.key.outputs.dry == 'true' && '--dry' || '' }}
+      - name: Draw the photographs
+        if: steps.key.outputs.skip != 'true'
+        run: |
+          npm run build
+          npx vite preview --port 4174 --strictPort &
+          for i in $(seq 1 60); do curl -sf http://localhost:4174/ >/dev/null && break; sleep 1; done
+          node tools/journal/photos.cjs --data .island
+      - name: Keep the island's memory
+        # (a dry run is only a try: the island does not remember it, so the real day starts fresh)
+        if: steps.key.outputs.skip != 'true' && steps.key.outputs.dry != 'true'
+        run: |
+          cd .island && git add -A && (git diff --cached --quiet || git commit -qm "The island, ${DAY}") && git push -q origin journal-data
+      - name: Put the day's posts forward
+        if: steps.key.outputs.skip != 'true' && steps.key.outputs.dry != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npx tsx scripts/journal-propose.ts --data .island --day "$DAY"
+          if [ "$(cat ./.island/pr-$DAY.count)" = "0" ]; then echo "nothing to put forward today"; exit 0; fi
+          git checkout -b "journal/$DAY"
+          git add content/journal && git commit -qm "島だより ${DAY}"
+          git push -q -f origin "journal/$DAY"
+          gh pr create --base main --head "journal/$DAY" --title "島だより ${DAY}" --body-file "./.island/pr-$DAY.md" || gh pr edit "journal/$DAY" --body-file "./.island/pr-$DAY.md"

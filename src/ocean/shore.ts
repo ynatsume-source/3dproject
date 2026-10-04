@@ -10,6 +10,7 @@ import { hash, smooth, R, rr } from '../core/math';
 import { WORLD } from './scenery';
 import { landOf, type Land } from './land';
 import { buildForest } from './forest';
+import { Solids } from '../robots/solids';
 
 // lighting in the open air: sun (reddened low down), moon and sky; the photo already carries the
 // look of the place, this only turns it with the time of day
@@ -248,6 +249,19 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
   const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75], pandanus: [0.38, 1], rock: [0.85, 0.5], casuarina: [0.05, 9] };   // (radius, height, per unit of its size)
   T.pushTrees = (p: THREE.Vector3) => forest.push(p);   // (keeping walkers out of the trunks)
+  // what cannot be walked through (robots/solids.ts): the trunks, the rocks, the driftwood, each its own size
+  // (from its geometry: a rock ~1.1 × its size across and 0.7 high; a casuarina's trunk 0.03, a pandanus with
+  // its prop roots 0.14; a log its length along its heading, a tenth of its size high)
+  const solids: Solids = T.solids = new Solids();
+  for (const p of lists.rock) solids.add({ kind: 'rock', x: p.x, z: p.z, r: 1.05 * p.s, y0: p.y - 0.3, y1: p.y - 0.1 + 0.7 * p.s });
+  for (const p of lists.casuarina) solids.add({ kind: 'trunk', x: p.x, z: p.z, r: Math.max(0.12, 0.03 * p.s), y0: p.y - 0.3, y1: p.y + p.s * 0.8 });
+  for (const p of lists.pandanus) solids.add({ kind: 'trunk', x: p.x, z: p.z, r: 0.14 * p.s, y0: p.y - 0.3, y1: p.y + p.s });
+  for (const p of lists.drift) {
+    // (a log: discs along it, its length s along its own x, turned by ry; the root plate at one end)
+    const ux = Math.cos(p.ry), uz = -Math.sin(p.ry), w = Math.max(0.08, 0.06 * 0.45 * p.s), n = Math.ceil(p.s / (w * 2));
+    for (let k = 0; k <= n; k++) { const t = -0.5 + k / n; solids.add({ kind: 'driftwood', x: p.x + ux * p.s * t, z: p.z + uz * p.s * t, r: k === 0 ? Math.max(w, 0.055 * p.s) : w, y0: p.y - 0.3, y1: p.y - 0.1 + 0.12 * 0.45 * p.s * (k === 0 ? 2 : 1) }); }
+  }
+  solids.source((x, z, r, f) => forest.trunks(x, z, r, (t) => f({ kind: 'trunk', x: t.x, z: t.z, r: 0.55, y0: t.y - 0.5, y1: t.y + t.h })));
   T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)
     let h = can(x, z) > 0.55 || forest.trunkNear(x, z, pad) ? 1 : 0;   // (in the forest; or by a tree's trunk, where it thins out)
     const ci = Math.floor(x / 8), cj = Math.floor(z / 8);

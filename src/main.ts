@@ -11,7 +11,7 @@ import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
-import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss } from './ocean/air';
+import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss, useWater } from './ocean/air';
 import { SplitView, SPLIT_BAND } from './render/split';
 const split = new SplitView(), _sz = new THREE.Vector2();
 let airState = false;
@@ -42,7 +42,8 @@ import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
-import { makeReplay } from './ui/replay';
+import { makeRecorder, KEEP } from './ui/replay';
+import { planOpening, type Opening, type OpeningPose } from './opening';
 import { makeHints } from './ui/hints';
 import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
@@ -93,7 +94,7 @@ const isTouch = matchMedia('(pointer: coarse)').matches;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let lampT = 0, lampOn = false, lampManual = false, hudOn = true, busy = false;
 let hints: ReturnType<typeof makeHints> | null = null;
-let onCanvasSize: (() => void) | null = null;   // (set once the rewind recorder exists, below)   // (the quiet hints: made once the controls exist, below)
+let onCanvasSize: (() => void) | null = null;   // (set once the recorder exists, below)   // (the quiet hints: made once the controls exist, below)
 const forcedTier = new URLSearchParams(location.search).get('tier') as Tier | null;
 // the start: asked for (?tier=), chosen by hand before, what this device settled on last time, or a guess
 const TIER_KEY = (() => { let g = ''; try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); g = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER)); } catch (e) { /* hidden */ } return `seaglass.tier:${g}:${Math.round(screen.width * devicePixelRatio)}`; })();
@@ -125,7 +126,58 @@ function pipLight(depth: number) {
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
-const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
+let shotHold = false;   // (drawing a resident's photograph: the camera held where its eyes were — ?journalshot)
+const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyHop: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
+let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
+// flying by hand, a tap on something sends the drone to film it (as the cruise would, and then round it
+// slowly at the same distance) until the hand takes the controls again: the mode is the cruise's meanwhile
+let visit = false;
+// the way into a sea: from the air, the drone in the picture under the sky, into its eye, down into the water and the
+// white of the bubbles clearing on the sea's best sight (src/opening.ts); then a short tour of the best of what is
+// about. Once a day for each sea, on diving in from the globe; never for a shared view, a place taken up again, the
+// test pages, or with reduced motion; a touch of the controls or a tap ends it where it is.
+let opening: { plan: Opening; t: number; pose: OpeningPose; view: 'fpv' | 'chase'; wet: boolean } | null = null;
+let tourQ: Subject[] = [], tourAt = 0, openK = 1;
+const OPEN_KEY = 'seaglass.opening';
+function wantOpening(loc: Sea) {
+  const q = location.search;
+  if (/[?&]nointro/.test(q)) return false;
+  if (/[?&]intro\b/.test(q)) return true;
+  if (shared || reduceMotion || /[?&](debug|lab|diag|gputest|probe|bisect|lantern-study|journalshot)/.test(q)) return false;
+  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); return m[loc.id] !== new Date().toDateString(); } catch (e) { return true; }
+}
+function startOpening(oc: Ocean) {
+  // what to look up at first: the sun if it is up, else a moon that gives light, else up into the stars
+  const sun = U.uAirSun.value as THREE.Vector3, moon = U.uAirMoon.value as THREE.Vector3;
+  const sky = sun.y > 0.05 ? sun.clone() : moon.y > 0.08 && U.uMoonIllum.value > 0.25 ? moon.clone() : null;
+  const plan = planOpening({ pos: drone.pos.clone(), yaw: drone.yaw, pitch: drone.pitch }, sky, oc.T.top);
+  opening = { plan, t: 0, pose: { pos: new THREE.Vector3(), yaw: 0, pitch: 0, chase: 1, white: 0, under: false }, view: viewMode, wet: false };
+  plan.at(0, opening.pose);
+  drone.pos.copy(opening.pose.pos); drone.vel.set(0, 0, 0); drone.yaw = opening.pose.yaw; drone.pitch = opening.pose.pitch;
+  drone.sky = false; openK = 1; chase.on = false;
+  setView('chase', false);
+  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); m[oc.loc.id] = new Date().toDateString(); localStorage.setItem(OPEN_KEY, JSON.stringify(m)); } catch (e) { /* storage blocked */ }
+}
+// done (or cut short by a touch of the controls): the view as it was chosen, and — when it ran to the end — a
+// short tour of the best of what is about, after a while in front of the sight
+function endOpening(done: boolean) {
+  if (!opening) return;
+  const view = opening.view;
+  opening = null; openK = 1; $('openWhite').style.opacity = '0';
+  setView(view, false);
+  tourQ = [];
+  if (!done || !cur) return;
+  const seen = new Set<string>();
+  // (not the same every time: the first is a school if there is one about — the water full of life — then
+  // two of the others, drawn by how good they are to watch rather than always the very best)
+  const about = allSubjects().filter((sj) => sj.live() && sj.pos() && sj.kind !== 'cave' && sj.kind !== 'robot' && !sj.tour && !sj.breach && drone.pos.distanceTo(sj.pos() as THREE.Vector3) < 70)
+    .filter((sj) => { const k = speciesOf(sj); if (seen.has(k)) return false; seen.add(k); return true; });
+  const draw = (list: Subject[]) => { const w = list.map((sj) => Math.max(0, director.weight(sj) * sj.prio)), tot = w.reduce((a, b) => a + b, 0); let q = Math.random() * tot; for (let i = 0; i < list.length; i++) if ((q -= w[i]) <= 0) return list[i]; return list[list.length - 1]; };
+  const school = about.filter((sj) => sj.kind === 'school');
+  if (school.length) tourQ.push(draw(school));
+  while (tourQ.length < 3) { const rest = about.filter((sj) => !tourQ.includes(sj)); if (!rest.length) break; tourQ.push(draw(rest)); }
+  tourAt = performance.now() + 12000;
+}
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
@@ -194,6 +246,9 @@ function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
 }
 // how narrow the screen is: 0 for a landscape monitor, 1 for a phone held upright (aspect 0.45 or less)
 let narrowK = 0;
+// how far off it films: the cruise's own habit, the viewer's zoom, and on a phone held upright a little further
+// back (it sees only half as wide: closer, an animal turning fills it and swims out of the side of the frame)
+const filmDistK = () => Math.max(0.6, persona.distK * viewNear) * (1 + 0.3 * narrowK);
 const _nl = new THREE.Vector3();
 let huntK = 0, giantK = 0, zoomK = 0, leapWideK = 0;
 // The commentary: once the camera has arrived at something, what it is, what it is doing, and a little
@@ -253,7 +308,7 @@ function updateCaption(dt: number) {
     capSeen.set(kindKey, nowS);
     if (!asked && capNoted.has(kindKey)) c.n = '';
     if (c.n) capNoted.add(kindKey);
-    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.zoom ? '図鑑から ・ 到着' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.asked ? '図鑑から ・ 到着' : sh!.zoom ? '近くで観察' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
     if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
     (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
     (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
@@ -265,11 +320,11 @@ function updateCaption(dt: number) {
   if ((capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(sh!.subject).s; }
 }
 function onShotChange(prev: Shot | null, next: Shot | null) {
-  if (viewNear !== 1) { viewNear = 1; director.distK = Math.max(0.6, persona.distK); }   // (a new subject: back to the usual distance)
+  if (viewNear !== 1) { viewNear = 1; director.distK = filmDistK(); }   // (a new subject: back to the usual distance)
   if (next) {
     $('tMode').textContent = 'OBSERVING';
         const sj = next.subject, sizeTxt = sj.len && sj.adult ? `・${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
-    if (!captionOn) hint(`観察中：${sj.label}（${sj.status()}${sizeTxt}）`);
+    if (!captionOn) { const what = sj.status() + sizeTxt; hint(`観察中：${sj.label}${what ? `（${what}）` : ''}`); }
     recordLog('observe', `${sj.label}を観察（${sj.status()}${sizeTxt}）`);
     if (next.subject.kind === 'hunt') say('hunt');
     else say('shot', { name: next.subject.label.replace(/の群れ$/, ''), note: noteOf(next.subject.label) });
@@ -278,7 +333,7 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
     if (drone.mode === 'auto') $('tMode').textContent = 'AUTO CRUISE';   // (back to the cruise, in the sea or the sky as before: a shot ashore does not send us up)
   }
 }
-const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0 };
+const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0, look: 0 };   // (vert.look: the right-hand stick, -1 down to 1 up)
 const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3();
 let yawRate = 0, interestW = 0;
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
@@ -335,25 +390,55 @@ function flyStep(dt: number) {
   drone.pitch += clamp((wantPitch - drone.pitch) * Math.min(1, k), -dt * 0.9, dt * 0.9);
 }
 function updateDrone(dt: number, now: number) {
+  // (a hop up with the flying fish: back down as soon as they are, and in any case after its few seconds)
+  if (drone.skyHop && ((drone.skyAge += dt) > drone.skyStay || (!flyRun && drone.skyAge > 3))) setSky(false, true);
+  if (visit && drone.mode === 'auto' && !director.shot) setMode('manual');   // (what it went to see is gone: back to the hand, hovering here)
+  // (after the way in: the best of what is about, one after another, then the cruise as ever)
+  if (tourQ.length && !opening && drone.mode === 'auto' && !watch.r && !director.shot && now > tourAt) {
+    const sj = tourQ.shift()!;
+    if (sj.live() && sj.pos()) director.show(sj, drone.pos);   // (as the cruise films anything: its usual while, then on — not a request held to the end)
+  }
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   // (from the sky, a whale or manta leaping nearby is watched from above, whatever was being filmed)
   const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260
     && ((skyNow?.night ?? 0) < 0.6 || U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y) > 0.25);   // (not on a dark night: the stars, not a black sea)
   const flyOn = drone.sky && drone.mode === 'auto' && !watch.r && !!flyRun && !!cur!.flyfish && !overLeap;
-  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn;
+  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn && !opening;
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; stuckT = 0; }
   // stuck: filming something (not riding a tour through), well short of the spot and hardly moving
   // for ten seconds — blocked by rock on the way. Give it up and go on.
   if (shot && !shot.subject.tour && drone.vel.length() < 0.2 && drone.pos.distanceTo(shot.pos) > 2.5) { if ((stuckT += dt) > 10) { director.abandon(); stuckT = 0; } } else stuckT = 0;
-  if (watch.r && watch.pov && cur!.residents) {
-    // through its own eyes: where its eyes are, looking where it looks (a drag glances aside)
-    const sn = cur!.residents.sense(watch.r);
-    drone.pos.copy(sn.eye); drone.vel.set(0, 0, 0);
-    const wantYaw = sn.head + Math.PI, wantPitch = watch.r.act === 'sit' ? -0.18 : watch.r.act === 'pick' || watch.r.act === 'dig' ? -0.45 : watch.r.act === 'float' ? 0.25 : -0.1;
-    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 3);
-    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 2);
+  // Through its own eyes: the camera is where the model's eyes are and looks the way its head faces (its turn,
+  // nod and gaze), and nothing the cruising camera does to keep itself clear of the ground, the treetops or the
+  // waterline, nor its bob and sway, is laid on top (a drag still glances aside: the viewer's, not its own).
+  const povOn = !!(watch.r && watch.pov && cur!.residents);
+  if (opening) {
+    // the way in: where the drone is and which way it looks are the opening's, second by second (the floor, the
+    // surface and its splash are still the drone's own, below)
+    const op = opening, o = op.plan.at(op.t += dt, op.pose);
+    if (drone.sky) { drone.sky = false; skyLabel(); }   // (high over the sea, but on its way into it: not the sky's cruise)
+    drone.vel.subVectors(o.pos, drone.pos).divideScalar(Math.max(dt, 1e-3));
+    drone.yaw = o.yaw; drone.pitch = o.pitch;
+    openK = o.chase;
+    if (o.chase <= 0 && viewMode !== 'fpv') setView('fpv', false);
+    $('openWhite').style.opacity = o.white.toFixed(3);
+    if (o.under && !op.wet) {
+      // in: a burst of bubbles all round the lens, rising past it, and the spray where it went in
+      op.wet = true;
+      bigSplash(op.plan.entry.x, op.plan.entry.z, 0.35, 0.9);
+      const f = new THREE.Vector3(-Math.sin(drone.yaw), 0, -Math.cos(drone.yaw));
+      for (let i = 0; i < 70; i++) bubblesAt(drone.pos.x + f.x * rr(0.4, 3) + rr(-1.2, 1.2), drone.pos.y + rr(-1.5, 0.3), drone.pos.z + f.z * rr(0.4, 3) + rr(-1.2, 1.2), 3);
+    } else if (op.wet && Math.random() < dt * 20) bubblesAt(drone.pos.x + rr(-1, 1), drone.pos.y - rr(0.3, 1.2), drone.pos.z + rr(-1, 1), 2);
+    if (op.t >= op.plan.len) endOpening(true);
+  } else if (povOn && watch.r) {
+    const sn = cur!.residents!.sense(watch.r);
+    drone.pos.copy(sn.eye); drone.vel.set(0, 0, 0); povEye.copy(sn.eye);
+    const wantYaw = sn.look ? Math.atan2(-sn.look.x, -sn.look.z) : sn.head + Math.PI;
+    const wantPitch = sn.look ? Math.asin(clamp(sn.look.y, -1, 1)) : watch.r.act === 'sit' ? -0.18 : watch.r.act === 'pick' || watch.r.act === 'dig' ? -0.45 : watch.r.act === 'float' ? 0.25 : -0.1;
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 5);
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 5);
   } else if (watch.r) {
     // behind it and a little above, a little to one side, following where it is heading (slowly, so a
     // turn does not swing the view about), looking past it to what lies ahead: it, and its world
@@ -409,7 +494,7 @@ function updateDrone(dt: number, now: number) {
       }
     }
     _v.subVectors(way, drone.pos);
-    const vl = _v.length(), L = rest >= 0 ? rest : vl, top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
+    const vl = _v.length(), L = rest >= 0 ? rest : vl, top = shot.surface ? (shot.phase === 'approach' ? Math.min(9, 2.5 + L * 0.3) : shot.leapView === 'rise' ? 3.2 : 1.5) : shot.close ? 7 : shot.giant && shot.phase === 'observe' ? 6 : shot.phase === 'observe' && (shot.zoom || shot.subject.size < 1.2) ? 2 : shot.phase === 'approach' ? (shot.forced || shot.subject.kind === 'robot' ? Math.min(shot.pos.y > 0 ? 9 : 7, 2.4 + L * 0.1) : 2.4) : 0.9;   // sent somewhere far (or across the island): travel faster; racing along with a hunt: fast
     _v.multiplyScalar(Math.min(top, L * 0.8) / Math.max(vl, 1e-4));
     // under the water: no faster than one swims (a hunt is followed at its own pace); on the way out, mostly up
     if (drone.pos.y < 0 && !shot.close) {
@@ -424,10 +509,10 @@ function updateDrone(dt: number, now: number) {
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
     const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
-    if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * 0.75 * narrowK, shot.look.y + (sp.y - shot.look.y) * 0.75 * narrowK, shot.look.z + (sp.z - shot.look.z) * 0.75 * narrowK);
+    if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * narrowK, shot.look.y + (sp.y - shot.look.y) * narrowK, shot.look.z + (sp.z - shot.look.z) * narrowK);
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const leap = !!shot.leapView && !shot.down && shot.phase === 'observe';
-    const k = Math.min(1, dt * (1 + 1.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
+    const k = Math.min(1, dt * (1 + 2.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
     const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
@@ -517,8 +602,22 @@ function updateDrone(dt: number, now: number) {
     if (keys.has('ArrowLeft')) drone.yaw += dt * 1.2;
     if (keys.has('ArrowRight')) drone.yaw -= dt * 1.2;
     const boost = keys.has('ShiftLeft') || keys.has('ShiftRight') ? 2.8 : 1;
+    // going forward, the view goes the way it is going: a push to the side turns it (a bank, as a drone or a
+    // diver does) rather than sliding it sideways, and a push up or down tips the nose that way. Standing
+    // still or backing off, a push to the side still slides, for edging into place. (The hand on the view —
+    // a drag — always wins, and for a moment after it.)
+    const ahead = smooth(0.15, 0.6, f) * (now - dragAt > 1200 ? 1 : 0);
+    drone.yaw -= clamp(r, -1, 1) * ahead * 0.6 * dt;   // (about 34°/s at full push: a calm bank)
+    // backing off with a push to the side: the view swings a little the other way, as a car's nose does when it
+    // reverses round a corner
+    const back = smooth(0.15, 0.6, -f) * (now - dragAt > 1200 ? 1 : 0);
+    drone.yaw += clamp(r, -1, 1) * back * 0.3 * dt;
+    // the right-hand stick: the view up or down (up to ~46°/s)
+    if (vert.look) drone.pitch = clamp(drone.pitch + vert.look * Math.abs(vert.look) * 0.8 * dt, -1.25, 1.25);
+    if (u) drone.pitch += (clamp(u, -1, 1) * 0.35 - drone.pitch) * Math.min(1, dt * 0.8 * ahead * Math.min(1, Math.abs(u)));
+    const side = r * (1 - 0.85 * ahead - 0.4 * back);
     const cp = Math.cos(drone.pitch), sy = Math.sin(drone.yaw), cy = Math.cos(drone.yaw);
-    _v.set(-sy * cp * f + cy * r, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * r);
+    _v.set(-sy * cp * f + cy * side, Math.sin(drone.pitch) * f + u, -cy * cp * f - sy * side);
     if (_v.lengthSq() > 1) _v.normalize();
     _v.multiplyScalar((drone.pos.y > 0 ? 8 : 3.6) * boost);   // more power; much faster in the open air
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.8));
@@ -561,7 +660,7 @@ function updateDrone(dt: number, now: number) {
     if (k < 1) { drone.vel.x *= k; drone.vel.z *= k; }
   }
   drone.pos.addScaledVector(drone.vel, dt);
-  if (drone.mode === 'manual' || watch.r) cur!.shore?.push?.(drone.pos);   // (round the trunks)
+  if ((drone.mode === 'manual' || watch.r) && !povOn) cur!.shore?.push?.(drone.pos);   // (round the trunks)
   // watching from above: never down inside the forest roof
   // (except close by it, where the trees are opened up anyway: there it may come down to eye level)
   // (once down under the trees with it, it stays down among the trunks rather than being lifted back over the roof)
@@ -577,13 +676,13 @@ function updateDrone(dt: number, now: number) {
   let fh = Gc(drone.pos.x, drone.pos.z);
   for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, Gc(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
   const clear = watch.r && !watch.pov ? 0.4 : 0.75;   // (watching someone close up: down nearer their eye level)
-  if (drone.pos.y < fh + clear) {
+  if (!povOn && drone.pos.y < fh + clear) {
     drone.pos.y = Math.max(fh + 0.3, drone.pos.y + (fh + clear - drone.pos.y) * Math.min(1, dt * 6));
     if (drone.vel.y < 0) drone.vel.y *= 0.5;
   }
   // the cave massif is solid in 3D: slide along its walls, roof and the rims of its skylights
   const cave = cur!.cave;
-  if (cave) for (let it = 0; it < 2; it++) {
+  if (cave && !povOn) for (let it = 0; it < 2; it++) {
     const d = cave.sd(drone.pos.x, drone.pos.y, drone.pos.z);
     if (d >= 0.8) break;
     cave.grad(drone.pos.x, drone.pos.y, drone.pos.z, _w);
@@ -597,8 +696,9 @@ function updateDrone(dt: number, now: number) {
   const prevY = drone.pos.y - drone.vel.y * dt;
   // filming from the waterline (a leap out of the sea): once near the surface, ride it, half in and half out,
   // for as long as the shot lasts; afterwards on down into the sea (or up, if it came down from the sky)
-  if (drone.mode === 'auto' && shot?.surface && Math.abs(drone.pos.y) < 1.2) { drone.skim = Math.max(drone.skim, 0.6); drone.skimDir = drone.sky ? 1 : -1; }
-  if (drone.mode === 'manual') {
+  if (!povOn && drone.mode === 'auto' && shot?.surface && Math.abs(drone.pos.y) < 1.2) { drone.skim = Math.max(drone.skim, 0.6); drone.skimDir = drone.sky ? 1 : -1; }
+  if (povOn) { drone.skim = 0; drone.pass = 0; drone.pos.copy(povEye); }   // (its eyes are where they are: above, below or at the waterline)
+  else if (drone.mode === 'manual') {
     // flown by hand it may stop anywhere, the waterline included (half in the sea, half in the air)
     if ((prevY > 0) !== (drone.pos.y > 0)) crossSurface(drone.pos.y > 0);
     drone.skim = 0; drone.pass = 0;
@@ -628,9 +728,9 @@ function updateDrone(dt: number, now: number) {
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
   yawRate += (angDiff(drone.yaw, prevYaw) / Math.max(dt, 1e-3) - yawRate) * Math.min(1, dt * 3);
   drone.roll += ((watch.r ? 0 : clamp(-yawRate * 0.18, -0.25 + 0.19 * flyK, 0.25 - 0.19 * flyK)) - drone.roll) * Math.min(1, dt * 2);   // (watching someone: the horizon stays level as the camera circles)
-  camera.position.copy(drone.pos); camera.position.y += Math.sin(t * 0.8) * 0.04 * (drone.skim > 0 && lastShot?.surface ? 0.2 : 1);
+  camera.position.copy(drone.pos); if (!povOn) camera.position.y += Math.sin(t * 0.8) * 0.04 * (drone.skim > 0 && lastShot?.surface ? 0.2 : 1);
   // just above the sea the camera rides the swell, rising, falling and rolling with it
-  const ride = (drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0) * (1 - 0.75 * flyK);
+  const ride = povOn ? 0 : (drone.pos.y > -0.6 ? 1 - smooth(1.5, 5, drone.pos.y) : 0) * (1 - 0.75 * flyK);
   // (at the waterline it rides a little behind the swell, so the line between sea and air rises and falls across the view)
   const atLine = drone.skim > 0 || (drone.mode === 'manual' && Math.abs(drone.pos.y) < 0.6) ? 1 : 0;
   // (waiting for a leap: right on the swell and a hair above it, so the far sea and the sky over it fill most of the frame)
@@ -658,7 +758,8 @@ function updateDrone(dt: number, now: number) {
   const fov = (70 - 24 * huntK + 12 * flyK + 12 * giantK - 26 * zoomK + 14 * narrowK) * (1 - leapWideK) + 104 * leapWideK;
   if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
   const shake = huntK * (1 - flyK) * (Math.sin(t * 6.3) * 0.004 + Math.sin(t * 11.7 + 1) * 0.0025);
-  camera.rotation.set(shake + drone.pitch + look.pitch + Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
+  const sway = povOn ? 0 : 1;   // (through its eyes: its own head's movement only, no camera sway on top)
+  camera.rotation.set(shake + drone.pitch + look.pitch + sway * Math.sin(t * 0.6) * 0.008 + ride * U.uWave.value * 0.04 * Math.sin(t * 0.52 + 1.2), drone.yaw + look.yaw, drone.roll + sway * Math.sin(t * 0.45) * 0.01 + ride * U.uWave.value * 0.06 * Math.sin(t * 0.41));
   applyView(dt, t);
 }
 // The view: through the drone's own camera, or from a little behind it, with the drone in the picture —
@@ -671,7 +772,7 @@ const chase = { pos: new THREE.Vector3(), on: false, acc: new THREE.Vector3(), p
 const _cf = new THREE.Vector3(), _cr = new THREE.Vector3(), _ct = new THREE.Vector3();
 function applyView(dt: number, t: number) {
   const on = viewMode === 'chase' && !watch.r;
-  droneModel.group.visible = on;
+  droneModel.group.visible = on && (!opening || openK > 0.12);   // (the way in: gone as the view comes into its eye)
   camera.updateMatrixWorld(); camera.getWorldDirection(_cf);
   if (!on) { chase.on = false; U.uLampPos.value.copy(camera.position); U.uLampDir.value.copy(_cf); return; }
   // how it is being pushed about: acceleration (smoothed), to tilt it
@@ -692,6 +793,7 @@ function applyView(dt: number, t: number) {
   if (!chase.on) chase.pos.copy(_ct); else chase.pos.lerp(_ct, 1 - Math.exp(-dt * 2.6));
   chase.on = true;
   camera.position.copy(chase.pos);
+  if (opening) camera.position.lerp(drone.pos, 1 - openK);   // (the way in: from behind the drone into its own eye)
   camera.lookAt(_ct.copy(drone.pos).addScaledVector(_cf, 4));
   camera.rotateZ(drone.roll * 0.3);
   // the lamp shines from the drone's lamps, the way it points
@@ -708,7 +810,7 @@ function setView(v: 'fpv' | 'chase', keep = true) {
 let persona: Persona = personaById((() => { try { return localStorage.getItem('seaglass.persona'); } catch (e) { return null; } })());
 let lastSay = -1e9, chatT = 0;
 function applyPersona() {
-  director.dwellK = persona.dwell; director.distK = Math.max(0.6, persona.distK * viewNear);
+  director.dwellK = persona.dwell; director.distK = filmDistK();
   director.styles = persona.styles; director.giantW = persona.giant; director.spinK = persona.spinK;
   director.switchK = persona.switchK; director.minHold = persona.minHold; director.rest = persona.rest; director.nearK = persona.nearK ?? 1;
   director.weight = (s) => persona.weight(s, taste(s)) * reachable(s);
@@ -774,11 +876,14 @@ function crossSurface(up: boolean) {
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
 // natural: the guide decided (it goes back on its own after a while); otherwise you asked, and it stays longer
+// Staying in the sea, flying fish just burst out overhead: up after them for a few seconds — out through the
+// surface, alongside the glide — and straight back down once the last is in (at most 10-18 s in the air).
+function flyHop() { setSky(true, true); drone.skyHop = true; drone.skyStay = rr(10, 18); flyRun = { burst: true, t: 0, side: Math.random() < 0.5 ? 1 : -1 }; }
 function skyLabel() { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').querySelector('span')!.textContent = drone.sky ? '海へ' : '空へ'; }
 function setSky(on: boolean, natural = false) {
   if (!cur) return;
   if (watch.r && !natural) stopWatch(false);
-  drone.sky = on; drone.skyT = 0; drone.skyAge = 0; flyRun = null;
+  drone.sky = on; drone.skyT = 0; drone.skyAge = 0; flyRun = null; drone.skyHop = false;
   drone.seaUntil = on ? 0 : performance.now() + (natural ? 60000 : 150000);   // back into the sea: no flying straight off to the residents ashore
   if (drone.mode !== 'auto') setMode('auto');
   director.reset(); lastShot = null;
@@ -790,8 +895,10 @@ function setSky(on: boolean, natural = false) {
 // Every so often the guide rises into the sky on its own, and comes back down: more often on a clear
 // night with a meteor shower on, never from inside the cave or in the middle of filming something.
 // (海だけ: the cruise stays in the sea; going up is then only when asked)
-let seaOnly = (() => { try { return localStorage.getItem('seaglass.seaOnly') === '1'; } catch (e) { return false; } })();
-function setSeaOnly(on: boolean) { seaOnly = on; try { localStorage.setItem('seaglass.seaOnly', on ? '1' : '0'); } catch (e) { /* ignore */ } $('btnSeaOnly').setAttribute('aria-pressed', String(on)); if (on && drone.sky) setSky(false, true); }
+// (by default the cruise stays in the sea: it goes up into the air only for a moment, to run with flying fish it
+// has just seen burst out overhead — and the leaps are filmed from the waterline. 'Sky too' is the viewer's choice.)
+let seaOnly = (() => { try { return localStorage.getItem('seaglass.seaOnly2') !== '0'; } catch (e) { return true; } })();
+function setSeaOnly(on: boolean) { seaOnly = on; try { localStorage.setItem('seaglass.seaOnly2', on ? '1' : '0'); } catch (e) { /* ignore */ } $('btnSeaOnly').setAttribute('aria-pressed', String(on)); if (on && drone.sky) setSky(false, true); }
 // how much there is to see by up in the air at night: the moon (as bright as it is high and full), or a shower of meteors
 const moonLight = () => U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y);
 function skySchedule(dt: number) {
@@ -806,7 +913,7 @@ function skySchedule(dt: number) {
   } else {
     // (a dark night without a moon: a shorter look at the stars, then back down to the lit reef)
     const dark = skyNow!.night * (1 - Math.min(1, moonLight() * 2.5)) * (activeShower(clock.ms) ? 0 : 1);
-    if ((drone.skyAge += dt) > drone.skyStay * (1 - 0.55 * dark)) setSky(false, true);
+    if (!drone.skyHop && (drone.skyAge += dt) > drone.skyStay * (1 - 0.55 * dark)) setSky(false, true);
   }   // (the time up there counts while filming the residents from the sky too)
 }
 // aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
@@ -822,12 +929,23 @@ let wx: Weather = FAIR, wxTimer = 0, flashT = 0, nextFlash = 20, flashK = 0.6;
 // the real weather stands for 'today': live, or within half a day of now, in the real season
 // (a shared link may fix the weather; otherwise the real weather now, or fair for another time)
 let wxFixed: WxKind | null = null;
+// the weather's cloud as the light sees it: eased, so a front of cloud (or the live weather arriving a moment
+// after the sea opens, or its 15-minute refresh) comes over the light in half a minute rather than in a frame;
+// at once only on opening a sea or choosing a weather by hand
+let cloudE = -1, cloudT = 0, cloudKey: string | null = null;
+function wxCloud() {
+  const w = liveWeather(), want = w.cloud * (w.rain > 0 ? 1 : 0.85), now = performance.now();
+  if (cloudE < 0 || wxFixed !== cloudKey) cloudE = want;
+  else cloudE += (want - cloudE) * (1 - Math.exp(-Math.min(5, (now - cloudT) / 1000) / 25));
+  cloudT = now; cloudKey = wxFixed;
+  return cloudE;
+}
 const liveWeather = () => wxFixed ? WX[wxFixed] : (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
 async function refreshWeather(loc: Sea) {
   const w = await fetchWeather(loc.id, loc.lat, loc.lon);
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
 }
-let camCave = 1, camExpo = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
+let camCave = 1, camExpo = 1.4, expoAir = 1.25, expoSea = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure
 // the lamp comes on by itself in the dark of the cave, and wherever the water around the camera grows
 // dim: deep down, at dawn and dusk, at night (with a little hysteresis, so it does not flicker)
 function wantLamp() {
@@ -838,7 +956,8 @@ function wantLamp() {
 }
 // The light of the moment: the sun or the moon (or the stars), lifted at night so it stays legible, and
 // dimmed by cloud. The little hunt window, looking under the water, is lit as it is down there.
-let moonVeil = 0, moonVeilAt = -1, shoreT = 0;   // (how much cloud is in front of the moon, eased; at first, at once)
+let moonVeil = 0, moonVeilAt = -1, shoreT = 0;
+const povEye = new THREE.Vector3();   // (through a resident's eyes: where they are this frame)   // (how much cloud is in front of the moon, eased; at first, at once)
 function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uSunDir.value.set(...s.sunDir);
   U.uSunI.value = s.sunI; U.uAmb.value = s.amb; U.uNight.value = s.night;
@@ -865,18 +984,21 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   // A full moon is bright enough to read by: silver shafts and caustics of its own; a moonless night stays
   // dim and soft (the drama is natural light's alone — the drone's lamp stays gentle)
   const day = s.sunI * (1 - n);
-  U.uAmb.value = s.amb * (1 - 0.12 * day) + glow * (0.45 + 0.2 * moon);
-  U.uSunI.value = Math.max(s.sunI * (1 + 0.38 * day) + 0.3 * s.golden, n * (0.32 + 0.75 * moon));
-  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 1.4 * s.golden, n * (0.12 * Math.min(1, moon / 0.3) + 0.95 * moon));   // (no moon to come from, no shafts)
+  // (night is night: the owner found the old lift — a full moon about 60% of noon — hard to tell from day.
+  // Now a full moon is roughly a third of noon and a moonless night much darker, yet the reef still reads)
+  U.uAmb.value = s.amb * (1 - 0.12 * day) + glow * (0.24 + 0.1 * moon);
+  // (the low sun: a deep sunset with shafts slanting through, not a glare — its colour as it was, its light far less
+  // lifted than it was: +0.3 / +1.4 made the dusk water a dazzle the animals faded into)
+  U.uSunI.value = Math.max(s.sunI * (1 + 0.38 * day) + 0.08 * s.golden, n * (0.14 + 0.42 * moon));
+  U.uShaftI.value = Math.max(s.shaftI * (1 + 0.6 * day) + 0.5 * s.golden, n * (0.08 * Math.min(1, moon / 0.3) + 0.6 * moon));   // (no moon to come from, no shafts)
   U.uGlowK.value = 1 - n * (1 - Math.min(1, moon / 0.3));
   const starlit = n * Math.max(0, 1 - moon / 0.3);
-  U.uAmb.value += starlit * 0.07;   // (no moon: the soft light the shafts gave, spread evenly instead)
+  U.uAmb.value += starlit * 0.045;   // (no moon: the soft light the shafts gave, spread evenly instead)
   if (starlit > 0) U.uSunDir.value.lerp(_starDir, starlit).normalize();
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
   nightLift = n;
-  const w = liveWeather();
-  const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
+  const cloud = wxCloud();
   U.uSunI.value *= 1 - 0.65 * cloud; U.uShaftI.value *= 1 - 0.85 * cloud; U.uAmb.value *= 1 - 0.22 * cloud;
 }
 function applySky(loc: Sea, airView = drone.pos.y > 0) {
@@ -884,7 +1006,7 @@ function applySky(loc: Sea, airView = drone.pos.y > 0) {
   skyNow = s;
   lightFor(s, airView);
   const w = liveWeather();
-  const cloud = w.cloud * (w.rain > 0 ? 1 : 0.85);
+  const cloud = wxCloud();
   const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), cloud * 0.7); };
   U.uCloud.value = cloud;
   U.uRain.value = w.code >= 51 && w.code <= 57 ? 0.25 : Math.min(1, w.rain / 3);
@@ -1078,6 +1200,7 @@ function announceRare(r: { info: { id: string; ja: string; note: string } }) {
 }
 function focusOn(s: Subject) {
   if (!cur) return;
+  endOpening(false); tourQ = [];
   if (watch.r) stopWatch(false);
   if (drone.mode !== 'auto') setMode('auto');
   if (drone.sky) setSky(false);
@@ -1099,9 +1222,10 @@ function goTo(id: string) {
   let s: Subject | null = null;
   // a seabird: go up into the sky, where a few of them come by
   if ((id === 'bait' || id === oc.loc.bait?.sp.id) && oc.bait) {
-    // go and find one: out there somewhere the birds are starting to gather
+    // go and find it: the great school out over the deeper water (and the ball, if the hunters have made one) —
+    // nothing announced ahead of what happens (ADR 0005)
     const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
-    if (!oc.bait.st.active && oc.bait.start(drone.pos, fx, fz, oc.eco.env)) seaLog('hunt', `沖で${oc.bait.bsp.ja}の大群が身を寄せ合いはじめた。何かに追われている`, () => (oc.bait.st.active ? oc.bait.st.c : null));
+    if (!oc.bait.st.active) oc.bait.start(drone.pos, fx, fz, oc.eco.env);
     if (drone.sky) setSky(false);
     const bs = oc.bait.subjects()[0];
     if (bs) focusOn(bs);
@@ -1197,7 +1321,7 @@ function updateHud() {
   const hdg = ((-drone.yaw * 180 / Math.PI) % 360 + 360) % 360;
   $('hdgnum').textContent = String(Math.round(hdg) % 360).padStart(3, '0') + '°';
   strip.style.transform = `translateX(${-(hdg + 360) * 2 + compassEl.clientWidth / 2}px)`;
-  if (lastShot && $('hint').classList.contains('on')) $('hint').textContent = `観察中：${lastShot.subject.label}（${lastShot.subject.status()}）`;
+  if (lastShot && $('hint').classList.contains('on')) { const what = lastShot.subject.status(); $('hint').textContent = `観察中：${lastShot.subject.label}${what ? `（${what}）` : ''}`; }
   updateTimeUi();
 }
 function updateTimeUi() {
@@ -1301,6 +1425,7 @@ function renderIsland() {
   const key = aiKey();
   return `<h2>島の住人 <span>${loc.name}で暮らす4体</span></h2>
     <p class="lead">それぞれが自分の暮らしを持ち、島のどこかで出会うと話をします。はじめは挨拶、次に自己紹介、島で生きるコツ、近況……打ち解けてくると悩みも打ち明けます。見ていないあいだも、暮らしは続いています。</p>
+    <p class="lead"><a href="./journal/" target="_blank" rel="noopener" style="color:var(--accent)">島だより ↗</a>　ドットとラッコが、自分で撮った写真と自分の記録から毎日書いているメディア。</p>
     <ul>${cards}</ul>
     ${(() => { const vg = (R as any).village; if (!vg) return '';
       const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火を何度か囲むうちに、みんなで何かをつくる話が出てくるかもしれません（焚き火の会 ${vg.fires}回）。</p>`
@@ -1310,7 +1435,7 @@ function renderIsland() {
     <h3>聞こえてきた会話</h3>
     ${talk ? `<ol class="diary talk">${talk}</ol><button class="go" type="button" data-tab="talk">会話ログをすべて見る</button>` : '<p class="empty">まだ誰も出会っていません。</p>'}
     <h3>AIで言葉を書く（試作）</h3>
-    <p class="lead">Anthropic の API キーを入れると、出会ったときの会話を Claude が住人それぞれの性格で書きます。キーはこのブラウザの中にだけ保存されます。</p>
+    <p class="lead">Anthropic の API キーを入れると、出会ったときの会話を Claude が住人それぞれの性格で書き、ドットとラッコはこの島で自分の目的を自分で考えます（ADR 0004）。キーはこのブラウザの中にだけ保存されます。</p>
     <div class="aikey">${key ? `<span>設定済み（…${key.slice(-4)}）${aiLastError ? `・エラー：${aiLastError}` : ''}</span><button type="button" data-ai="clear">外す</button>` : `<input id="aiKey" type="password" placeholder="sk-ant-..." autocomplete="off"><button type="button" data-ai="save">保存</button>`}</div>`;
 }
 function renderGuide() {
@@ -1619,12 +1744,13 @@ function enterOcean(oc: Ocean) {
   dayKey = '';
   if (cur && cur !== oc) cur.group.visible = false;
   cur = oc; oc.group.visible = true;
+  useWater(oc.water ?? null);   // (the swell where the sea reaches, not in the pools: src/ocean/water.ts)
   applyWater(oc.loc);
   wx = FAIR; refreshWeather(oc.loc);
   setSeason(clock.season, oc.loc.lat);   // a chosen season means that sea's own season (south of the equator it flips)
   if (shared && !sharedDone) applyShared(oc.loc);
   const cv = oc.cave;
-  U.uCaveOn.value = cv ? 1 : 0; U.uCamCave.value = 1; camCave = 1; camExpo = 1.4; post.setExposure(1.4);
+  U.uCaveOn.value = cv ? 1 : 0; U.uCamCave.value = 1; camCave = 1; camExpo = expoSea = 1.4; expoAir = 1.25; cloudE = -1; post.setExposure(1.4);
   if (cv) {
     U.uCaveTex.value = cv.tex;
     U.uCaveXf.value.set(cv.cx, cv.cz, cv.ca, cv.sa);
@@ -1647,14 +1773,17 @@ function enterOcean(oc: Ocean) {
   // (a visit begins in front of the sea's best sight, in full view: src/ocean/start.ts)
   const st0 = pickStart(oc);
   if (st0) { drone.pos.copy(st0.pos); drone.yaw = st0.yaw; drone.pitch = st0.pitch; drone.s = nearestS(drone.pos); director.reset(); }
+  endOpening(false); tourQ = [];
+  if (wantOpening(oc.loc)) startOpening(oc);
   updateDrone(0.016, performance.now());
   camera.getWorldDirection(U.uCamFwd.value);
   for (const f of oc.fish) f.reset();
-  applyTierToSea();
+  oc.eco.startDay();   // (who is about today: src/eco/ecosystem.ts)
+  seaTier = tier; applyTierToSea();   // (how much of the sea is drawn: set now, held while here)
   for (const t of oc.turtles) t.placed = false;
   for (const o of oc.octopi || []) o.placed = false;
   for (const m of oc.mantas) m.placed = false;
-  mode = 'ocean';
+  mode = 'ocean'; syncReplay();
   document.body.classList.remove('mode-globe'); document.body.classList.add('mode-ocean');
   fpsStart = 0; fpsN = 0; fpsAcc = 0; qSince = performance.now();   // (the tier measured afresh in each sea, after it has settled)
   $('locName').textContent = `${oc.loc.name} · ${oc.loc.site}`;
@@ -1837,7 +1966,7 @@ async function toGlobe() {
   const loc = cur!.loc;
   veil(true, 'SURFACING', '地球儀へ戻ります', `${loc.name} から浮上中`);
   await wait(750);
-  mode = 'globe';
+  mode = 'globe'; syncReplay();
   document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
   setGuide(false); setTimePanel(false); setVolPanel(false); watch.r = null; setPov(false);
   gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
@@ -1853,20 +1982,21 @@ function setMode(m: 'auto' | 'manual') {
   // already cruising and filming something (asked for, or waiting for it to turn up): the cruise button means
   // "never mind, go on" — it lets go and the cruise takes up again from here
   if (m === 'auto' && drone.mode === 'auto' && director.release()) { drone.hop = false; route = null; }
-  drone.mode = m;
+  drone.mode = m; visit = false;
   // (taking the controls, by whatever way, counts as input: the 90 s back to the cruise starts now)
   if (m === 'manual') { drone.lastInput = performance.now(); director.reset(); }
   if (m === 'auto' && cur) { drone.s = nearestS(drone.pos); if (drone.pos.y > 0 && !drone.sky) { drone.sky = true; drone.skyT = 0; drone.skyAge = 0; } }
   if (cur) skyLabel();
   $('btnAuto').setAttribute('aria-pressed', String(m === 'auto'));
   $('btnManual').setAttribute('aria-pressed', String(m === 'manual'));
+  modeUi();
   $('tMode').textContent = m === 'auto' ? 'AUTO CRUISE' : 'MANUAL';
   hint(m === 'auto'
     ? (isTouch ? 'ドラッグで見回す · 気になる生きものをタップするとそこへ向かいます' : 'ドラッグで見回す · 気になる生きものをクリックするとそこへ向かいます')
-    : (isTouch ? '左スティックで移動 · 画面ドラッグで視点 · 90秒操作がないと自動巡航に戻ります'
-      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · 90秒操作がないと自動巡航に戻ります'));
-  $('joy').hidden = $('vbtns').hidden = !(isTouch && m === 'manual');
+    : (isTouch ? '左スティックで移動 · 右で視点を上下 · 気になるものをタップするとそこへ · 90秒操作がないと自動巡航に戻ります'
+      : 'ドラッグ: 視点 · WASD: 移動 · E / Q: 上昇 / 下降 · Shift: 加速 · クリックでそこへ · 90秒操作がないと自動巡航に戻ります'));
 }
+function modeUi() { const man = drone.mode === 'manual' || visit; $('btnMode').setAttribute('aria-pressed', String(man)); $('btnMode').querySelector('span')!.textContent = man ? '自動巡航に戻る' : '手動で操縦'; $('joy').hidden = $('vbtns').hidden = !(isTouch && man); }
 // a line of help at the bottom that shows for a moment and fades
 let hintT = 0;
 function hint(text: string) { const el = $('hint'); el.textContent = text; el.classList.add('on'); clearTimeout(hintT); hintT = window.setTimeout(() => el.classList.remove('on'), 7000); }
@@ -1922,25 +2052,68 @@ const tap = { moved: 0, t: 0, woke: false };
 // Things worth going to that are on screen, nearest the point: creatures, the cave, the residents.
 // Only these answer a tap, so touching the screen elsewhere does nothing.
 const _tp = new THREE.Vector3();
+// Where a tap's ray first meets the seabed (the reef, rocks and coral heads included: T.top), within 80 m.
+// (0.5 m steps, then halved back to the crossing; null when the ray meets nothing, e.g. up into open water)
+const _tapRay = new THREE.Vector3();
+function seabedAt(x: number, y: number): { p: THREE.Vector3; d: number } | null {
+  if (!cur) return null;
+  const T = cur.T, o = camera.position;
+  _tapRay.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1, 0.5).unproject(camera).sub(o).normalize();
+  const at = (d: number) => o.y + _tapRay.y * d - T.top(o.x + _tapRay.x * d, o.z + _tapRay.z * d);
+  if (at(0) < 0) return null;
+  for (let d = 0.5; d <= 80; d += 0.5) {
+    if (at(d) >= 0) continue;
+    let a = d - 0.5, b = d;
+    for (let k = 0; k < 6; k++) { const m = (a + b) / 2; if (at(m) < 0) b = m; else a = m; }
+    return { p: o.clone().addScaledVector(_tapRay, b), d: b };
+  }
+  return null;
+}
 function pickAt(x: number, y: number): Subject | null {
   if (!cur) return null;
+  // what lies behind the reef the tap landed on is not what was tapped (a hammerhead far out in the blue,
+  // big on screen, once took a tap meant for the coral head in front of it)
+  const floor = seabedAt(x, y);
   let best: Subject | null = null, bs = Infinity;
   for (const s of allSubjects()) {
     const p = s.pos(); if (!p || !s.live()) continue;
     const d = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
     if (d > (s.kind === 'robot' || s.kind === 'cave' ? 260 : 80) || d < 1) continue;
+    if (floor && d > floor.d + Math.max(2, s.size * 0.5)) continue;
     _tp.set(p.x, p.y, p.z).project(camera);
     if (_tp.z > 1 || Math.abs(_tp.x) > 1 || Math.abs(_tp.y) > 1) continue;
     const sx = (_tp.x * 0.5 + 0.5) * innerWidth, sy = (-_tp.y * 0.5 + 0.5) * innerHeight;
-    const r = Math.max(isTouch ? 56 : 40, (s.size * 0.7 / d) * innerHeight);   // about as big as it looks on screen, and never too small to hit
+    // about as big as it looks on screen, never too small to hit, and never so big that a far school covers
+    // the whole view; a nearer thing wins a close call
+    const r = Math.min(110, Math.max(isTouch ? 56 : 40, (s.size * 0.7 / d) * innerHeight));
     const off = Math.hypot(sx - x, sy - y);
-    if (off < r && off / r < bs) { bs = off / r; best = s; }
+    const sc = off / r + d * 0.004;
+    if (off < r && sc < bs) { bs = sc; best = s; }
   }
   return best;
 }
 function tapAt(x: number, y: number) {
-  const s = pickAt(x, y); if (!s) return;
-  focusOn(s); track('tap_subject', { sea: cur?.loc.id ?? '', subject: s.key.split(':')[0] });
+  const byHand = drone.mode === 'manual' || visit;
+  let s = pickAt(x, y);
+  let place = false;
+  // nothing alive there, but the tap is on the reef or the seabed: go and look at that spot (the reef's
+  // fish and the coral heads are not subjects of their own)
+  if (!s && cur && !drone.sky) {
+    const f = seabedAt(x, y);
+    if (f && f.d > 2 && f.p.y < -1) {
+      const T = cur.T, reef = T.reef(f.p.x, f.p.z) > 0.3 || T.top(f.p.x, f.p.z) > T.h(f.p.x, f.p.z) + 0.3;
+      const at = new THREE.Vector3(f.p.x, Math.min(T.top(f.p.x, f.p.z) + 1.2, -1.6), f.p.z);
+      const label = reef ? 'このあたりの礁' : 'このあたりの海底';
+      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, len: 1.2, pos: () => at,   // (len: a spot to circle, not a big animal's moves)
+       status: () => '', live: () => true };
+      place = true;
+    }
+  }
+  if (!s) return;
+  // (flown by hand: stay with it, circling slowly, for as long as the hand leaves the controls alone)
+  if (byHand) s = { ...s, hold: 1e6 };
+  focusOn(s); if (byHand) { visit = true; modeUi(); hint(isTouch ? 'スティックに触れると手動操縦に戻ります' : 'WASD などで手動操縦に戻ります'); }
+  track('tap_subject', { sea: cur?.loc.id ?? '', subject: place ? 'place' : s.key.split(':')[0] });
   showToast('向かっています', s.label, s.status());
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
 }
@@ -1952,7 +2125,6 @@ const hideHover = () => { clearTimeout(hoverOff); $('hoverTag').classList.remove
 canvas.addEventListener('pointermove', (e) => {
   if (e.pointerType !== 'mouse') { hideHover(); return; }
   if (mode !== 'ocean' || isTouch || pointers.size) { hideHover(); return; }
-  if (drone.mode !== 'auto') { hideHover(); return; }
   const now = performance.now(); if (now - hoverT < 90) return; hoverT = now;
   const s0 = pickAt(e.clientX, e.clientY), s = watch.r && s0?.kind !== 'robot' ? null : s0, el = $('hoverTag');   // (watching: only the residents)
   canvas.style.cursor = s ? 'pointer' : '';
@@ -2026,7 +2198,7 @@ function renderWatch() {
   $('watchEye').onclick = () => setPov(true);
   $('watchDiary').onclick = () => openDiary(r.id);
 }
-function touchInput() { drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
+function touchInput() { endOpening(false); tourQ = []; drone.lastInput = performance.now(); if (drone.mode !== 'manual') setMode('manual'); }
 function setLamp(on: boolean, manual = true) {
   if (manual) lampManual = true;
   lampOn = on; $('btnLamp').setAttribute('aria-pressed', String(on));
@@ -2064,15 +2236,22 @@ function openPanel(tab: 'guide' | 'log') {
 }
 function setGuide(on: boolean) { guideEl.hidden = !on; $('btnGuide').setAttribute('aria-pressed', String(on)); if (on) setTimePanel(false); renderGuide(); }
 function setTimePanel(on: boolean) { $('timePanel').hidden = !on; $('btnTime').setAttribute('aria-expanded', String(on)); if (on) { guideEl.hidden = true; $('btnGuide').setAttribute('aria-pressed', 'false'); } }
-function setQuality(t: Tier) {
+let qWant: Tier | null = null, qWantAt = 0, qShot: Shot | null = null;   // (a quality step waiting for a cut)
+// Two parts to a quality step (owner's choice E, 2026-10): how finely the view is drawn — its resolution, the
+// light in the water, the glow, the shading in the crevices — which the automatic adjustment may move at any
+// time; and how much of the sea is drawn — how far the corals reach and when they take their close-up shape,
+// how many fish of each school, seagrass, marine snow, the island's trees — which is set on entering a sea
+// (seaTier) and then held for as long as one is there, so nothing comes or goes in front of the camera
+// because the device warmed up. A step the adjustment settled on is taken into the next sea; a step chosen by
+// hand applies to both at once.
+let seaTier: Tier = tier;
+function setQuality(t: Tier, auto = false) {
   tier = t;
+  if (!auto || mode !== 'ocean') seaTier = t;
   const T = TIERS[t];
   $('btnQuality').textContent = `画質 ${autoQ ? '自動・' : ''}${T.label}`;
-  grassGeo.setDrawRange(0, Math.floor(BLADES * T.grass) * SEG * 12);
-  snowGeo.setDrawRange(0, Math.floor(SNOW * T.snow));
   shafts.visible = !T.vol;
   U.uVolOff.value = T.vol ? 0 : 1;
-  U.uLodR.value = T.lodR;
   document.body.classList.toggle('post', T.post);
   post.setTier(T);
   applyTierToSea();
@@ -2080,9 +2259,13 @@ function setQuality(t: Tier) {
 }
 const predatorsJa = (loc: Sea) => (loc.bait?.predators || []).map((p) => loc.species.find((s) => s.id === p.id)?.ja).filter(Boolean).slice(0, 2).join('や');
 function applyTierToSea() {
+  const C = TIERS[seaTier];
+  grassGeo.setDrawRange(0, Math.floor(BLADES * C.grass) * SEG * 12);
+  snowGeo.setDrawRange(0, Math.floor(SNOW * C.snow));
+  U.uLodR.value = C.lodR;
   if (!cur) return;
-  for (const f of cur.fish as any[]) f.setFraction?.(TIERS[tier].shoal);
-  cur.bait?.setFraction(TIERS[tier].shoal);
+  for (const f of cur.fish as any[]) f.setFraction?.(C.shoal);
+  cur.bait?.setFraction(C.shoal);
 }
 function toggleFull() {
   try {
@@ -2094,12 +2277,13 @@ function goPreset(p: Preset) { if (!cur) return; clock.live = false; if (clock.s
 
 // Keep the screen on: the Screen Wake Lock where the browser has it, and on phones and tablets also a
 // tiny silent looping video (the NoSleep.js technique), since iOS sometimes lets the lock lapse.
+// (on by default; it can be turned off in the menu, and that is remembered on this device)
 let wakeLock: any = null, awakeVideo: HTMLVideoElement | null = null;
+let awakeOn = (() => { try { return localStorage.getItem('seaglass.awake') !== '0'; } catch (e) { return true; } })();
 async function keepAwake() {
-  if (document.visibilityState !== 'visible') return;
-  if (!wakeLock && 'wakeLock' in navigator) {
-    try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied until a tap */ }
-  }
+  if (document.visibilityState !== 'visible' || !awakeOn) return;
+  // (the video first, at once, while this is still inside the tap that called it: after an await, iOS no
+  // longer counts it as the person's own doing and will not play it)
   if (isTouch || !('wakeLock' in navigator)) {
     if (!awakeVideo) {
       awakeVideo = document.createElement('video');
@@ -2111,8 +2295,21 @@ async function keepAwake() {
     }
     if (awakeVideo.paused) awakeVideo.play().catch(() => { /* needs a tap; tried again on the next one */ });
   }
+  if (!wakeLock && 'wakeLock' in navigator) {
+    try { wakeLock = await (navigator as any).wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } catch (e) { /* denied until a tap */ }
+  }
 }
 document.addEventListener('visibilitychange', keepAwake);
+function setAwake(on: boolean) {
+  awakeOn = on;
+  try { localStorage.setItem('seaglass.awake', on ? '1' : '0'); } catch (e) { /* ignore */ }
+  $('btnAwake').setAttribute('aria-pressed', String(on));
+  if (on) { keepAwake(); return; }
+  wakeLock?.release().catch(() => { /* already gone */ }); wakeLock = null;
+  awakeVideo?.pause();
+}
+$('btnAwake').onclick = () => setAwake(!awakeOn);
+$('btnAwake').setAttribute('aria-pressed', String(awakeOn));
 // Put away (home screen, another app, the screen off): the sea pauses — the sound stops at once (drawing stops of
 // itself), and where the drone is is kept, so that if the phone drops the page meanwhile, coming back to it
 // starts from about here rather than from the globe. Back again: the sound as it was, and on from the same view.
@@ -2134,12 +2331,15 @@ function takeUpPlace(loc: Sea) {
   if (!r || r.sea !== loc.id || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
   const [x, y, z] = r.p;
   if (![x, y, z].every(Number.isFinite) || Math.abs(x - ZONE.x) > 1e4) return;
+  endOpening(false);
   drone.pos.set(x, y, z); drone.vel.set(0, 0, 0); drone.yaw = r.yaw; drone.pitch = r.pitch;
   if (y > 0 && !r.sky) drone.pos.y = -2;   // (it was under the water: under the water again)
   drone.sky = !!r.sky && y > 0;
   if (drone.mode === 'auto') drone.s = nearestS(drone.pos);
 }
-document.addEventListener('pointerdown', keepAwake);          // every tap: the lock is dropped whenever the page is hidden
+// every tap: the lock is dropped whenever the page is hidden. (On the lift of the finger and on click, not the press:
+// a touch's pointerdown is not a gesture to Safari, and the video it starts would be refused)
+for (const ev of ['pointerup', 'touchend', 'click'] as const) document.addEventListener(ev, keepAwake, { passive: true });
 
 $('btnBack').onclick = toGlobe;
 $('btnGuide').onclick = () => openPanel('guide');
@@ -2161,21 +2361,17 @@ $('btnSky').onclick = () => setSky(!drone.sky);
 $('btnShare').onclick = () => { void shareMoment(); };
 $('newMark').onclick = observeNew;
 // the last 15 seconds of the view, always kept ready, saved with a tap (and a second to confirm)
-const replay = makeReplay(canvas, soundStream);
+const replay = makeRecorder(canvas, soundStream, isTouch);
 let replayArm = 0;
-if (!replay.start()) $('btnReplay').hidden = true;
-onCanvasSize = () => replay.reset();   // (a browser that cannot record: no button at all)
-$('btnReplay').onclick = async () => {
-  if (replay.held() < 3) { showToast('REPLAY', 'まだ映像がたまっていません', 'もう少し見てから押してください'); return; }
-  // two taps to save (a stray touch only arms it): the first asks, the second within 3 s keeps it
-  const b = $('btnReplay');
-  if (!b.classList.contains('armed')) {
-    b.classList.add('armed'); $('replayLbl').textContent = 'もう一度押すと保存';
-    clearTimeout(replayArm); replayArm = window.setTimeout(() => { b.classList.remove('armed'); $('replayLbl').textContent = 'さかのぼって保存'; }, 3000);
-    return;
-  }
-  clearTimeout(replayArm); b.classList.remove('armed'); $('replayLbl').textContent = 'さかのぼって保存';
-  const blob = await replay.save(); if (!blob || !cur) return;
+if (!replay.type) $('btnReplay').hidden = true;   // (a browser that cannot record: no button at all)
+const replayIdle = () => { const b = $('btnReplay'); b.classList.remove('armed', 'rec'); $('replayLbl').textContent = '録画'; $('replaySec').textContent = ''; b.style.setProperty('--held', '0'); b.title = '録画：2回押すと始まり、もう一度押すと止めて保存（最長15秒）'; };
+replayIdle();
+// stopped (by a tap, at 15 s, or because the view went away): the file handed over at once
+async function replayStop() {
+  if (!replay.on) return;
+  const blob = await replay.end(); replayIdle();
+  if (!blob) { showToast('REC', '短すぎて保存できませんでした', 'もう少し長く録ってみてください'); return; }
+  if (!cur) return;
   const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
   const name = `utsushiyo-${cur.loc.id}-${L.getUTCFullYear()}${p2(L.getUTCMonth() + 1)}${p2(L.getUTCDate())}-${p2(L.getUTCHours())}${p2(L.getUTCMinutes())}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
   track('replay_save', { sea: cur.loc.id });
@@ -2183,15 +2379,33 @@ $('btnReplay').onclick = async () => {
   if (isTouch && (navigator as any).canShare?.({ files: [file] })) { try { await (navigator as any).share({ files: [file], title: `ウツシヨ — ${cur.loc.name}` }); return; } catch (e) { /* (fall through to a download) */ } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
-  showToast('REPLAY', '直前の映像を保存しました', name);
+  showToast('REC', '映像を保存しました', name);
+}
+// (nothing goes on recording a view that is not there: hidden, back to the globe, or the canvas resized)
+const syncReplay = () => { if (replay.on && (mode !== 'ocean' || document.visibilityState !== 'visible')) void replayStop(); };
+document.addEventListener('visibilitychange', syncReplay);
+onCanvasSize = () => { if (replay.on) void replayStop(); };
+// two taps to start (a stray touch only arms it), one to stop
+$('btnReplay').onclick = () => {
+  const b = $('btnReplay');
+  if (replay.on) { void replayStop(); return; }
+  if (!b.classList.contains('armed')) {
+    b.classList.add('armed'); $('replayLbl').textContent = 'もう一度で録画開始';
+    clearTimeout(replayArm); replayArm = window.setTimeout(replayIdle, 3000);
+    return;
+  }
+  clearTimeout(replayArm); b.classList.remove('armed');
+  if (!replay.begin()) { replayIdle(); showToast('REC', '録画を始められませんでした', 'このブラウザでは録画できないようです'); return; }
+  b.classList.add('rec'); $('replayLbl').textContent = '録画中・押すと保存'; b.title = '録画中：押すと止めて保存（最長15秒）';
 };
-// the ring fills over the first 15 seconds; until then the count says how much is held
+// while recording: the seconds and the ring filling toward the 15 s it stops at
 setInterval(() => {
-  const s = replay.held(), b = $('btnReplay');
-  b.style.setProperty('--held', String(s / 15));
-  $('replaySec').textContent = '15';   // (always the same: the ring shows it filling at first)
-  b.title = s < 15 ? `さかのぼって保存：直前15秒を動画にします（いま${Math.floor(s)}秒ぶん）` : 'さかのぼって保存：直前15秒を動画にします';
-}, 500);
+  if (!replay.on) return;
+  const s = replay.elapsed();
+  $('btnReplay').style.setProperty('--held', String(Math.min(1, s / KEEP)));
+  $('replaySec').textContent = String(Math.min(KEEP, Math.floor(s)));
+  if (s >= KEEP) void replayStop();
+}, 250);
 // Quiet hints, one at a time as the minutes go by in the sea (src/ui/hints.ts): the sound first, then what
 // else there is — a little more found each time someone stays a while. Not on the test panel.
 if (!/[?&]lab\b/.test(location.search)) hints = makeHints([
@@ -2199,7 +2413,7 @@ if (!/[?&]lab\b/.test(location.search)) hints = makeHints([
   { id: 'time', at: 35, target: '#btnTime', text: '時間帯や季節を変えてみることもできます' },
   { id: 'guide', at: 75, target: '#btnGuide', text: '出会った生きものは、図鑑に集まっていきます' },
   { id: 'sky', at: 120, target: '#btnSky', text: '海の上へ出るなら、ここから', when: () => !drone.sky },
-  { id: 'replay', at: 170, target: '#btnReplay', text: 'いい場面のあとで押せば、さかのぼって15秒を動画に' },
+  { id: 'replay', at: 170, target: '#btnReplay', text: '2回押すと録画、もう一度で止めて保存（最長15秒）' },
   { id: 'share', at: 235, target: '#btnShare', text: 'いま見ている景色を、そのまま誰かに送れます' },
   { id: 'view', at: 300, target: '#btnView', text: 'ドローンの目線に切り替えることも' },
   { id: 'more', at: 380, target: '#btnMore', text: '案内役の性格や手動操作は、ここから選べます' },
@@ -2213,6 +2427,7 @@ $('personas').innerHTML = PERSONAS.map((p) => `<button type="button" role="radio
 $('personas').addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest('[data-p]') as HTMLElement | null; if (b) setPersona(personaById(b.dataset.p!)); });
 applyPersona();
 $('btnManual').onclick = () => setMode('manual');
+$('btnMode').onclick = () => { endOpening(false); tourQ = []; setMode(drone.mode === 'manual' || visit ? 'auto' : 'manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
 setCaption(captionOn);
@@ -2248,7 +2463,7 @@ addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyF' && !e.repeat) { toggleFull(); return; }
   if (mode !== 'ocean' || busy) return;
-  if (MOVE.includes(e.code)) { if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
+  if (MOVE.includes(e.code)) { endOpening(false); tourQ = []; if (visit) setMode('manual'); if (drone.mode === 'manual') { keys.add(e.code); drone.lastInput = performance.now(); e.preventDefault(); } return; }   // (flying by keys is for manual only)
   if (e.code.startsWith('Shift')) { keys.add(e.code); return; }
   if (e.repeat) return;
   if (PRESET_KEYS[e.code]) goPreset(PRESET_KEYS[e.code]);
@@ -2307,7 +2522,7 @@ canvas.addEventListener('pointermove', (e) => {
     if (watch.r && pinched) return;
     const k = isTouch ? 0.006 : 0.0035;
     tap.moved += Math.abs(dx) + Math.abs(dy);
-    if (drone.mode === 'manual') { drone.lastInput = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
+    if (drone.mode === 'manual') { drone.lastInput = dragAt = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
     else if (watch.r && !watch.pov) { watch.off -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, -0.12, 1.45); }   // watching: drag to circle round it (all the way to its face) and tilt, down to eye level
     else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
   }
@@ -2315,7 +2530,7 @@ canvas.addEventListener('pointermove', (e) => {
 const endP = (e: PointerEvent) => {
   if (mode === 'ocean' && pointers.has(e.pointerId)) {
     look.held = false; look.let = performance.now();
-    if (drone.mode === 'auto' && tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup' && !tap.woke) { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
+    if (tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup' && !tap.woke) { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
   }
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; if (!pointers.size) pinched = false;
   gv.dragging = pointers.size > 0;
@@ -2326,7 +2541,7 @@ canvas.addEventListener('pointerup', endP); canvas.addEventListener('pointercanc
 canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !watch.pov) { e.preventDefault(); watch.dist = clamp(watch.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 1.2, 60); return; }
   // (filming something: the wheel takes the camera a little closer or further, for this subject; the floor and the
   // animal's own room are still kept by the director)
-  if (mode === 'ocean' && drone.mode === 'auto' && director.shot && !director.shot.subject.breach) { e.preventDefault(); viewNear = clamp(viewNear * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 0.6, 1.6); director.distK = Math.max(0.6, persona.distK * viewNear); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
+  if (mode === 'ocean' && drone.mode === 'auto' && director.shot && !director.shot.subject.breach) { e.preventDefault(); viewNear = clamp(viewNear * (1 + clamp(e.deltaY, -120, 120) * 0.0012), 0.6, 1.6); director.distK = filmDistK(); return; } if (mode !== 'globe' || busy) return; e.preventDefault(); gv.tween = null; gv.lastUser = performance.now(); gv.dist = clamp(gv.dist * (1 + clamp(e.deltaY, -120, 120) * 0.0007), 1.35, 4.5); }, { passive: false });
 {
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
@@ -2338,11 +2553,17 @@ canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !wa
   pad.addEventListener('pointermove', (e) => { if (e.pointerId === jid) setJ(e); });
   const end = (e: PointerEvent) => { if (e.pointerId !== jid) return; jid = null; joy.x = joy.y = 0; knob.style.transform = ''; };
   pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
-  const hold = (btn: HTMLElement, v: number) => {
-    btn.addEventListener('pointerdown', (e) => { btn.setPointerCapture(e.pointerId); vert.v = v; touchInput(); });
-    const up = () => { vert.v = 0; }; btn.addEventListener('pointerup', up); btn.addEventListener('pointercancel', up);
+  // the right hand: up and down only — the view tips up or down, faster the further it is pushed
+  const vp = $('vbtns'), vk = $('vknob'); let vid: number | null = null;
+  const setV = (e: PointerEvent) => {
+    const r = vp.getBoundingClientRect(), H = r.height / 2 - 22;
+    const y = clamp((e.clientY - r.top - r.height / 2) / H, -1, 1);
+    vert.look = -y; vk.style.transform = `translateY(${y * H}px)`; touchInput();
   };
-  hold($('btnUp'), 1); hold($('btnDown'), -1);
+  vp.addEventListener('pointerdown', (e) => { vid = e.pointerId; vp.setPointerCapture(vid); setV(e); });
+  vp.addEventListener('pointermove', (e) => { if (e.pointerId === vid) setV(e); });
+  const vend = (e: PointerEvent) => { if (e.pointerId !== vid) return; vid = null; vert.look = 0; vk.style.transform = ''; };
+  vp.addEventListener('pointerup', vend); vp.addEventListener('pointercancel', vend);
 }
 let idleT = 0;
 const wake = () => { idleT = performance.now(); document.body.classList.remove('idle'); };
@@ -2437,8 +2658,8 @@ function renderPip(dt: number, air: boolean) {
   else { pipCam.position.lerp(_t, Math.min(1, dt * 2.5)); pipLook.lerp(_pa, Math.min(1, dt * 4)); }
   pipCam.lookAt(pipLook); pipCam.updateMatrixWorld();
   // this camera's view of the sea: its own position for fog and light, the cells around it
-  const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone();
-  U.uCamPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
+  const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone(), keepLod = U.uLodPos.value.clone();
+  U.uCamPos.value.copy(pipCam.position); U.uLodPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
   const vis = cur.cells.map((c: any) => [c.mesh.visible, c.hi?.visible]);
   for (const c of cur.cells) { const d = Math.hypot(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
   sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, 0, pipCam.position.z);
@@ -2449,7 +2670,7 @@ function renderPip(dt: number, air: boolean) {
   if (air && skyNow) lightFor(skyNow, false);   // (the little window looks under the water: lit as it is down there, even when we are up in the air)
   const wantBoost = clamp(Math.pow(0.17 / Math.max(pipLight(Math.max(0, -pipLook.y)), 0.01), 0.7), 1, 3);
   pipBoost += (wantBoost - pipBoost) * Math.min(1, dt * 1.2);
-  pipPost.setExposure(1.9 * (1 + 0.45 * nightLift) * pipBoost);   // a touch brighter than the main view: the action has to read small
+  pipPost.setExposure(1.9 * (1 + 0.25 * nightLift) * pipBoost);   // a touch brighter than the main view: the action has to read small
   // and when it is dim, a soft light over the hunt (as a filmer's lamp would give), so the fish themselves show
   const keepSpot = U.uSpot.value.clone();
   U.uSpot.value.set(pipLook.x, pipLook.y + 2.5, pipLook.z, clamp(0.3 * (pipBoost - 1) + 0.3 * nightLift, 0, 0.75));
@@ -2460,7 +2681,7 @@ function renderPip(dt: number, air: boolean) {
   // put the main camera's view back
   if (air && skyNow) lightFor(skyNow, true);
   U.uSpot.value.copy(keepSpot);
-  U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd);
+  U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd); U.uLodPos.value.copy(keepLod);
   cur.cells.forEach((c: any, i: number) => { c.mesh.visible = vis[i][0]; if (c.hi) c.hi.visible = vis[i][1]; });
   sky.position.copy(camera.position); surface.position.set(camera.position.x, 0, camera.position.z);
   surface.visible = surf; snow.visible = snw;
@@ -2476,7 +2697,7 @@ function resize() {
   const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 3 ? 0.5 : 1);
   const cw = canvas.width, ch = canvas.height;
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
-  if (canvas.width !== cw || canvas.height !== ch) onCanvasSize?.();   // (the rewind buffer starts afresh at the new size: its recorders cannot follow it)
+  if (canvas.width !== cw || canvas.height !== ch) onCanvasSize?.();   // (a recording under way is saved as it is: a recorder cannot follow a new size)
   post.setSize(Math.floor(w * dpr), Math.floor(h * dpr));
   camera.aspect = w / h; camera.updateProjectionMatrix();
   narrowK = clamp((1 - w / h) / 0.55, 0, 1);
@@ -2501,7 +2722,9 @@ let autoQ = !forcedTier && !manualTier && !SAFE, qDowned = false, qUps = 0, fpsA
 // One frame. An error in any part of it is reported (once per kind) and the next frame still comes:
 // the sea must never stop on a single mistake.
 let frameErrs = 0;
+let held = false, heldTs = 0;   // (?debug: frames stepped one by one from outside, for a recording made frame by frame)
 function frame(ts: number) {
+  if (held) { requestAnimationFrame(frame); return; }
   try { frameBody(ts); }
   catch (e) {
     if (frameErrs++ < 3) { console.error(e); track('app_error', { where: 'frame', msg: String((e as Error)?.message ?? e).slice(0, 90) }); }
@@ -2522,12 +2745,12 @@ function frameBody(ts: number) {
     if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); }
   } else if (cur) {
     if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
-    updateDrone(dt, now);
+    if (shotHold) { camera.position.copy(drone.pos); camera.rotation.set(drone.pitch, drone.yaw, 0); } else updateDrone(dt, now);   // (drawing a photograph: held exactly where its eyes were)
     syncBackCruise();
     updateCaption(dt);
     scanNotices(dt, now);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
-    U.uCamPos.value.copy(camera.position);
+    U.uCamPos.value.copy(camera.position); U.uLodPos.value.copy(drone.pos);   // (the corals' close-up shape by the drone's own place: not swapping as the view swings round it)
     if (cur.cave) {
       // the camera opens up in the dark of the cave, and the sun's bake follows the sun
       cur.cave.updateSun(U.uSunDir.value);
@@ -2535,17 +2758,22 @@ function frameBody(ts: number) {
       camCave += (cur.cave.skyAt(cp.x, cp.y, cp.z) - camCave) * Math.min(1, dt * 1.2);
       U.uCamCave.value = camCave;
     }
-    if (!lampManual && (lampT -= dt) < 0) { lampT = 0.5; const want = wantLamp(); if (want !== lampOn) setLamp(want, false); }
+    if (!lampManual && (lampT -= dt) < 0) { lampT = 0.5; const want = wantLamp(); if (want !== lampOn) { setLamp(want, false); lampT = 6; } }   // (once switched by itself, it stays a while)
     // a touch more exposure at night, and much more in the dark of the cave (eased)
     {
       const cp = camera.position, cv = cur.cave;
       const ahead = cv ? cv.skyAt(cp.x + fwd.x * 5, cp.y + fwd.y * 5, cp.z + fwd.z * 5) : 1;
-      const want = camera.position.y > 0 ? 1.25 * (1 + 0.6 * nightLift) * (1 + 0.9 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up on a moonless night)
-         * (watch.r && skyNow ? 1 + 0.35 * skyNow.night : 1) : 1.4 * (1 + 0.55 * nightLift) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8)));
-      camExpo += (want - camExpo) * Math.min(1, dt * 0.8);
+      const wantAir = 1.25 * (1 + 0.3 * nightLift) * (1 + 0.4 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3)))   // (the eye opening up a little on a moonless night)
+         * (watch.r && skyNow ? 1 + 0.2 * skyNow.night : 1);
+      const wantSea = 1.4 * (1 + 0.25 * nightLift) * (1 + 0.45 * (skyNow?.night ?? 0) * (1 - Math.min(1, moonLight() * 3))) * (1 + 1.1 * (1 - Math.max(camCave, ahead * 0.8))) * (1 - 0.22 * (skyNow?.golden ?? 0));   // (at the golden hour a little less open: a deep sunset, not a bright one; on a moonless night a little more, so the reef can still be made out)
+      // (each side eased on its own as well: at the waterline both halves are drawn, each with its own — no step
+      // in the light on coming into or out of that band)
+      const ek = Math.min(1, dt * 0.8);
+      expoAir += (wantAir - expoAir) * ek; expoSea += (wantSea - expoSea) * ek;
+      camExpo += ((camera.position.y > 0 ? wantAir : wantSea) - camExpo) * ek;
       post.setExposure(camExpo);
     }
-    U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * 6);   // no lamp beam from the air
+    U.uLamp.value += ((lampOn && camera.position.y < 0 ? 1 : 0) - U.uLamp.value) * Math.min(1, dt * (lampManual ? 6 : 1.2));   // no lamp beam from the air (coming on by itself: over a second, not a flash)
     // watching a resident after dark: light it from above so what it is doing can be seen
     { const sp = U.uSpot.value, want = 0;   // (the residents carry their own lights now)
       sp.w += (want - sp.w) * Math.min(1, dt * 1.5);
@@ -2557,6 +2785,8 @@ function frameBody(ts: number) {
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
     // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
     cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos);
+    // (through its eyes: the camera on where they are now that the model has been posed for this frame)
+    if (watch.r && watch.pov && cur.residents) { const sn = cur.residents.sense(watch.r); camera.position.copy(sn.eye); povEye.copy(sn.eye); }
     lanternStudyPanel.update(dt);
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; if (!watch.pov) renderWatch(); }
     if (watch.pov && watch.r && cur.residents) {
@@ -2578,7 +2808,10 @@ function frameBody(ts: number) {
         // (not at night, moon or no moon: from the air the fish and the dark water would be one)
         if (skyNow!.night > 0.5) { /* nothing */ }
         else if (drone.sky && !lastShot && !cur.bait?.st.active && !cur.breach.leap) flyRun = { burst: false, t: 0, side: 1 };
-        else if (!drone.sky && drone.pos.y > -6 && drone.pos.y < -0.5) { const d = rr(7, 12); ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + rr(-1.2, 1.2)); }
+        else if (!drone.sky && drone.pos.y > -6 && drone.pos.y < -0.5) {
+          const d = rr(7, 12); ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + rr(-1.2, 1.2));
+          if (seaOnly && !lastShot?.asked && !cur.breach.leap) flyHop();
+        }
       }
     }
     // (through the drone's own eyes the animals hardly mind it — they would bolt from every slow pass of
@@ -2619,7 +2852,7 @@ function frameBody(ts: number) {
     cur.grow?.(drone.pos);   // (by an island: the reef further off filled in as the camera comes near it)
     // (and the life of the sea keeps about the camera, wherever it is along the island's shore)
     if (cur.loc.land) { const m = cur.loc.land.far - LIMIT - 10; ZONE.x = clamp(drone.pos.x, -m, m); ZONE.z = clamp(drone.pos.z, -m, m); } else ZONE.x = ZONE.z = 0;
-    const vis = air ? 400 : Math.min(3.1 / U.uFogDen.value, 150) * TIERS[tier].coralVis + CELL * 0.72;
+    const vis = air ? 400 : Math.min(3.1 / U.uFogDen.value, 150) * TIERS[seaTier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
       const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
       const cs = c.big ? 80 : CELL;
@@ -2682,7 +2915,7 @@ function frameBody(ts: number) {
         seaTop.visible = abyss.visible = asAir;   // (in a trough the lens may be below y = 0 while above the water: the sea from above all the same)
         camera.far = asAir ? 90000 : 460; camera.updateProjectionMatrix();
         post.setAir(asAir); post.whiteBalance(asAir ? 0 : 0.3, U.uAbs.value, U.uNight.value, asAir);
-        post.setExposure(asAir ? 1.25 * (1 + 0.6 * nightLift) : 1.4 * (1 + 0.55 * nightLift));
+        post.setExposure(asAir ? expoAir : expoSea);
         post.render(renderer, oceanScene, camera, asAir ? topScene : null, setRefraction, asAir ? split.air : split.water);
       }
       seaTop.visible = abyss.visible = camera.position.y > 0;
@@ -2691,7 +2924,7 @@ function frameBody(ts: number) {
       split.compose(renderer, camera);
     } else if (usePost()) post.render(renderer, oceanScene, camera, air ? topScene : null, setRefraction);
     if (!cur.shore) U.uHaze.value = 0;
-    cur.shore?.update?.(camera.position, ({ low: 50, lite: 60, medium: 70, high: 85, ultra: 100 } as const)[tier]);   // (the island's trees, near the camera)
+    cur.shore?.update?.(camera.position, ({ low: 50, lite: 60, medium: 70, high: 85, ultra: 100 } as const)[seaTier]);   // (the island's trees, near the camera)
     cur.residents?.bubbles(camera, innerWidth, innerHeight);
     if (usePost()) { if (!noPip) renderPip(dt, air); }
     else {
@@ -2711,6 +2944,9 @@ function frameBody(ts: number) {
     // cannot keep up, a step up while there is clear room (never back up once it has had to come down, and
     // a phone no higher than standard: heat and battery). What it settles on is remembered for next time.
     // Later on, it still steps down if the device slows (heat), never up.
+    // (a change of quality changes the look of the water — the glow of the light in it, how many fish are drawn —
+    // so it waits for a cut: a new shot, the camera crossing the surface, the globe; at most half a minute)
+    if (qWant && (qWant === tier || mode !== 'ocean' || lastShot !== qShot || Math.abs(camera.position.y) < 0.5 || now - qWantAt > 30000)) { if (qWant !== tier) setQuality(qWant, true); qWant = null; }
     if (autoQ) {
       if (!fpsStart) fpsStart = now;
       else if (now - fpsStart > 2500) { fpsAcc += Math.min((now - (lastQNow || now)) / 1000, 0.25); fpsN++; }
@@ -2719,8 +2955,8 @@ function frameBody(ts: number) {
         const fps = fpsN / Math.max(fpsAcc, 1e-3), i = TIER_ORDER.indexOf(tier);
         const cap = TIER_ORDER.indexOf(matchMedia('(pointer: coarse)').matches ? 'medium' : 'ultra');
         const early = now - qSince < 60000;
-        if (fps < (early ? 40 : 30) && i > 0) { qDowned = true; setQuality(TIER_ORDER[i - 1]); }
-        else if (early && !qDowned && fps >= 56 && i < cap && qUps < 3) { qUps++; setQuality(TIER_ORDER[i + 1]); }
+        if (fps < (early ? 40 : 30) && i > 0) { qDowned = true; qWant = TIER_ORDER[i - 1]; qWantAt = now; qShot = lastShot; }
+        else if (early && !qDowned && fps >= 56 && i < cap && qUps < 3) { qUps++; qWant = TIER_ORDER[i + 1]; qWantAt = now; qShot = lastShot; }
         else try { localStorage.setItem(TIER_KEY, tier); } catch (e) { /* ignore */ }
         fpsN = 0; fpsAcc = 0; fpsStart = now;
       }
@@ -2774,6 +3010,11 @@ if (/[?&]lab\b/.test(location.search)) {
         天気: wxFixed ?? wxKindOf(liveWeather()), カメラ: `${drone.mode}${drone.sky ? '・空' : ''}`, 位置: `${drone.pos.x.toFixed(0)},${drone.pos.y.toFixed(1)},${drone.pos.z.toFixed(0)}`,
         撮影: director.shot ? `${director.shot.subject.label}（${director.shot.phase}）` : '—' };
     },
+    resident: () => {
+      const R = cur?.residents; if (!R) return null;
+      const r = watch.r ?? R.list[0];
+      return { build: __BUILD__, worldClock: new Date(clock.ms).toISOString(), viewing: watch.r ? (watch.pov ? 'pov' : 'watch') : 'cruise', ...R.labCase(r) };
+    },
     reproUrl: () => {
       if (!cur) return location.origin + '/?lab';
       const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
@@ -2783,10 +3024,72 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), get tiers() { return { tier, seaTier }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show() });
+// Drawing a resident's photograph again (?journalshot: tools/journal/photos.cjs): from its eyes, looking where it
+// looked, the island and the others as they were, nothing on the screen but the picture
+const SHOT_SIZE: Record<string, number> = { shell: 0.16, stone: 0.3, wood: 0.8, 'young-tree': 2, friend: 1.2, place: 5, unknown: 0.8, plot: 3 };   // (about how big each kind of thing is, m)
+const _shotRay = new THREE.Raycaster();
+let shotNote = '';   // (which way the picture was taken from, for the log)
+function shotHit(e: THREE.Vector3, to: THREE.Vector3, far: number, ground: boolean) {
+  const dir = to.clone().sub(e).normalize();
+  _shotRay.set(e, dir); _shotRay.camera = camera; _shotRay.near = 0.05; _shotRay.far = Math.max(0.1, far);
+  const hits: THREE.Intersection[] = [];
+  const walk = (o: THREE.Object3D) => { if (!o.visible) return; try { o.raycast(_shotRay, hits); } catch { /* (one that cannot be hit by a ray) */ } for (const c of o.children) walk(c); };
+  walk(oceanScene); walk(topScene);
+  return hits.some((h) => {
+    const m = h.object as THREE.Mesh;
+    if (!(m as any).isMesh || (m.material as THREE.Material)?.transparent) return false;   // (the water, glows and the like: not in the way)
+    return ground || (m.geometry?.attributes?.position?.count ?? 0) < 20000;               // (round the edges: the lie of the land does not count)
+  });
+}
+function shotClear(e: THREE.Vector3, l: THREE.Vector3, size: number) {
+  const d = e.distanceTo(l), far = d - size * 0.6 - 0.15;
+  if (shotHit(e, l, far, true)) return false;
+  // (and nothing big in the foreground round it: a few rays to either side of it and above)
+  const f = l.clone().sub(e).normalize(), side = new THREE.Vector3(-f.z, 0, f.x).normalize(), s = Math.max(size, d * 0.2);
+  const up = new THREE.Vector3().crossVectors(side, f).normalize();
+  for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; if (shotHit(e, l.clone().addScaledVector(side, Math.cos(a) * s).addScaledVector(up, Math.sin(a) * s), far, false)) return false; }
+  return true;
+}
+function shotEye(eye: number[], look: number[], size: number): [number, number, number] {
+  const L = new THREE.Vector3(look[0], look[1], look[2]), top = (x: number, z: number) => cur!.T.top(x, z);
+  const lift = (x: number, y: number, z: number) => new THREE.Vector3(x, Math.max(y, top(x, z) + 0.3), z);
+  // (too near to see it whole — a friend who came right up — a step back, to about as far as its size asks)
+  const minD = THREE.MathUtils.clamp(size * 2.5, 0.6, 4), hd0 = Math.hypot(eye[0] - L.x, eye[2] - L.z), back = hd0 < minD ? minD / Math.max(hd0, 0.05) : 1;
+  const ux = hd0 > 0.05 ? eye[0] - L.x : 1, uz = hd0 > 0.05 ? eye[2] - L.z : 0;
+  const e0 = lift(L.x + ux * (hd0 > 0.05 ? back : minD), Math.max(eye[1], hd0 < minD ? L.y + 0.3 : -1e9), L.z + uz * (hd0 > 0.05 ? back : minD)), hd = Math.hypot(e0.x - L.x, e0.z - L.z), a0 = Math.atan2(e0.x - L.x, e0.z - L.z);
+  const tries = [e0, lift(e0.x, e0.y + 0.4, e0.z)];
+  for (const da of [0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const up of [0, 0.5]) { const a = a0 + da, x = L.x + Math.sin(a) * hd, z = L.z + Math.cos(a) * hd; tries.push(lift(x, e0.y + up, z)); }
+  for (const k of [0.55, 1]) for (const up of [0.8, 1.8]) for (const da of [0, 0.6, -0.6, 1.4, -1.4, Math.PI]) { const a = a0 + da, x = L.x + Math.sin(a) * hd * k, z = L.z + Math.cos(a) * hd * k; tries.push(lift(x, Math.max(e0.y, L.y) + up, z)); }   // (nearer and from above: over whatever is in the way)
+  for (let i = 0; i < tries.length; i++) if (shotClear(tries[i], L, size)) { shotNote = `view ${i}/${tries.length}`; return [tries[i].x, tries[i].y, tries[i].z]; }
+  shotNote = 'no clear view'; return [e0.x, e0.y, e0.z];
+}
+if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(rec: { who: string; eye: number[]; look: number[]; others: any[]; subject?: { kind: string } }) => {
+  if (!cur?.residents) return false;
+  if (watch.r) stopWatch(false);
+  if (drone.sky) setSky(false);
+  setMode('manual'); setHud(false); document.body.classList.add('journalshot');
+  droneModel.group.visible = false;   // (the visitor's own drone, drawn in the 'drone in frame' view: not in their picture)
+  cur.residents.pose(rec as any);
+  const size = SHOT_SIZE[rec.subject?.kind ?? ''] ?? 1.5, [lx, ly, lz] = rec.look;
+  // (where it stood is where the picture is taken from — unless the drawn island has something between its eyes
+  // and what it meant to keep (the sand drawn a little higher than it walked on, something lying in the way):
+  // then, as one with a camera would, a little higher, or a step round it, at the same distance)
+  const [ex, ey, ez] = shotEye(rec.eye, rec.look, size);
+  const dx = lx - ex, dy = ly - ey, dz = lz - ez;
+  // (its lens closes in on what it meant to keep: a shell fills a good part of the picture, a place is seen whole;
+  // and the subject sits a little below the middle, with what is round it above)
+  const d = Math.max(0.3, Math.hypot(dx, dy, dz));
+  camera.fov = THREE.MathUtils.clamp(2 * Math.atan((size * 2.2) / d) * 180 / Math.PI, 22, 64); camera.updateProjectionMatrix();
+  drone.pos.set(ex, ey, ez); drone.vel.set(0, 0, 0);
+  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)) + camera.fov * Math.PI / 180 * 0.12; look.yaw = look.pitch = 0;
+  drone.lastInput = performance.now() + 1e9;   // (held: no drift back to the cruise)
+  shotHold = true;
+  return shotNote || true;
+};
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

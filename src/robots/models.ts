@@ -84,7 +84,8 @@ export function makeGaze(yawMax: number, pitchUp: number, pitchDown: number, rat
     },
   });
 }
-export interface Robot { root: THREE.Group; update(t: number, dt: number, pose?: Pose): void; carry?: THREE.Object3D; light?: THREE.Object3D; hand?: THREE.Object3D }
+// eye: a point between its eyes, on its head (so it turns and nods with it): where its own point of view is
+export interface Robot { root: THREE.Group; update(t: number, dt: number, pose?: Pose): void; carry?: THREE.Object3D; light?: THREE.Object3D; hand?: THREE.Object3D; eye?: THREE.Object3D }
 const DEMO: Pose = { act: 'demo', walk: 1 };
 
 export function robotKit(M: Mats, shadows = false) {
@@ -114,6 +115,7 @@ export function robotKit(M: Mats, shadows = false) {
     const screen = box(0.38, 0.25, 0.02, 0.06, M.dark); screen.position.z = 0.158; head.add(screen);
     const eyes: THREE.Mesh[] = [];
     for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.CircleGeometry(0.035, 24), M.glow); e.position.set(sx * 0.08, 0.01, 0.17); head.add(e); eyes.push(e); }
+    const eye = new THREE.Object3D(); eye.position.set(0, 0.01, 0.17); head.add(eye);
     const mouth = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.008), M.glow); mouth.position.set(0, -0.06, 0.17); head.add(mouth);
     const ant = cyl(0.008, 0.008, 0.14, M.joint); ant.position.set(0.12, 0.23, 0); head.add(ant);
     const tip = ball(0.022, M.warm); tip.position.set(0.12, 0.31, 0); head.add(tip);
@@ -131,7 +133,7 @@ export function robotKit(M: Mats, shadows = false) {
     const hoeHead = box(0.12, 0.012, 0.07, 0.004, M.joint); hoeHead.position.y = -0.03; const hoe = tool(0.5, hoeHead, 0.24);
     let blink = 2, look = 0, lookT = 1, sleepK = 0, crouchK = 0, sitK = 0;
     const gaze = makeGaze(1.1, 0.5, 0.7);
-    return { root, carry, update(t, dt, p = DEMO) {
+    return { root, carry, eye, update(t, dt, p = DEMO) {
       const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, 0.9, 4.2);
       gaze.step(p, dt, 0.86);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 2);
@@ -326,6 +328,7 @@ export function robotKit(M: Mats, shadows = false) {
     const core = box(0.42, 0.34, 0.42, 0.07, M.shell); core.position.y = 0.1; top.add(core);
     const roof = box(0.46, 0.05, 0.46, 0.02, M.panel); roof.position.y = 0.285; top.add(roof);
     const face = cyl(0.13, 0.13, 0.02, M.dark, 40); face.rotation.x = Math.PI / 2; face.position.set(0, 0.11, 0.212); top.add(face);
+    const eye = new THREE.Object3D(); eye.position.set(0, 0.11, 0.22); top.add(eye);   // (its eye: the ring of light on its face)
     const ringMat = M.glow.clone();
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 10, 48), ringMat); ring.position.set(0, 0.11, 0.224); top.add(ring);
     const dotEye = ball(0.02, M.glow); dotEye.position.set(0, 0.11, 0.225); top.add(dotEye);
@@ -386,7 +389,7 @@ export function robotKit(M: Mats, shadows = false) {
     const STRIDE = 0.6, REACH = STRIDE / 4;   // (a full cycle of the legs every 0.6 m; each foot bears weight for half of it)
     let sleepK = 0, probeK = 0, sitK = 0, drawK = 0;
     const gaze = makeGaze(0.62, 0.4, 0.5, 3);   // (it looks with its whole body: round a little further than a head would go)
-    return { root, light: lamp, update(t, dt, p = DEMO) {
+    return { root, light: lamp, eye, update(t, dt, p = DEMO) {
       const walk = p.act === 'demo' ? 1 : p.walk, w = gaitPhase(p, t, STRIDE, 3 * 1.6 / STRIDE * 0.4);
       gaze.step(p, dt, 0.59);
       sleepK += ((p.act === 'sleep' ? 1 : 0) - sleepK) * Math.min(1, dt * 1.5);

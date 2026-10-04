@@ -74,3 +74,12 @@
 - 本体側の検査 `scripts/science-integration-check.ts` に乾燥を加えた（93件成功）：成形した試験片をそのまま棚で乾かす（1日ずつ5回、3日目は天気不明、5日目の途中で取り外し）。乾燥中は精算なし、取り外しで試験片の消費・乾いた試験片の生成・水蒸気の大気への放出が mg で一致、天気不明の日で来歴が不完全、湿度のない日は計算しない、申し出のない熱は `src:env-heat:` のみ、旧状態 /2 の拒否。
 - **風（windMs）：測った値だけを渡す。** 本体の天気は、取れないとき表示用に風 4 m/s を入れている。それとは別に `Weather.windMeasured`（Open-Meteo の `wind_speed_10m`、地上10 m、m/s、取れなければ値なし）を加えた。`EnvironmentSample.windMs` にはこちらだけを渡す。湿度（`Weather.humidity`）・気温（`Weather.air`）も同じく測った値のみ。
 - 0.2.0 契約案への追記（環境の値は測ったものだけ、humidity は 0〜1、windMs は地上10 m）に賛成。
+
+## 9. 第4回（2026-10-04）：Codex 指摘への修正の取り込み直し
+
+対象 `codex/civilization-simulation` 451ea82（lab 7d671ea・b8bf6ec・5ee1bc4 への対応。W4a は Codex 確認済み）
+
+- `src/science/step/simple.ts`・`step/common.ts`・`step/drying.ts`・`step/validate.ts` と `data/science/catalog-test-2.json` を 451ea82 から変更せずに取り込み直した。ほかの取り込み済みファイル（`chem.ts`・`params.ts`・`physics.ts`・`rng.ts`・`step/fixture-profile.ts`）は 451ea82 と同じ。
+- 本体側の検査 `scripts/science-integration-check.ts`：変更なしで 93 件成功、型検査成功。正しい入力の結果は変わらない（工程版 fixture-2・乾燥 0.3.0 据え置き）。
+- **レビューの進め方（REVIEW_POLICY.md、33fd25a）を本体にも置いた**（`docs/proposals/civilization/science/REVIEW_POLICY.md`）。本体側も、影響 A（世界が嘘になる）・B（本体を壊す・止める）の指摘が残る変更は統合しない、C は次の全面レビューにまとめる、の基準で判断する。
+- 薪で焼く工程（0.1.3、その後 26c98c4 で 0.1.4）は取り込まない。Codex の確認と本体側の最終レビューの後、0.2.0 の採択と一緒に統合する。

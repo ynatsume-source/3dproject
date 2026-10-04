@@ -33,6 +33,14 @@ npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip
 
 見た目の確認は `npx vite preview` + Playwright（Chromium は `/opt/pw-browsers`、SwiftShader で WebGL）。
 画面の部品の重なりは `node tools/layout/overlap.cjs`（ビルドを PORT で配信した状態で）：スマホ縦・横・タブレット・PC の7サイズで、HUNT の小窓・地図・丸ボタン・字幕・SEA LOG・下のバー・「巡航に戻る」を全部出して重なりと画面外を数える。HUD を変えたら必ず通す。
+構図は `node tools/layout/composition.cjs`（同上、1サイズずつ別ブラウザで順に。並行で動かすとソフトウェア描画が落ちる。`ONLY="phone portrait"` で1サイズ）：既定の巡航を数分撮り、観察中に被写体が画面外 10% 超・岩に隠れる 5% 超・幅 8% 未満が 5% 超、岩や水面が画面の1/3以上を占める瞬間が 3% 超なら不合格。1回の測定は数分ぶんなので数ポイントは揺れる。カメラ・監督を変えたら通す。
+住人の目線は `node tools/lab/pov.cjs`（同上）：4体それぞれ、カメラがモデルの目の位置にあるか（0 m）、視線が頭の向きと一致するか（2°未満）を測る。目線・頭・カメラ補正を変えたら通す。
+サンゴが水に収まっているかは `npx tsx --import ./scripts/node-assets.mjs scripts/coral-depth-check.ts`：嘉弥真の実地形（`scripts/node-land.ts` で PNG を読む）でサンゴを生成し、群体の上端が育つ上限（`CORAL_CEIL`、平均海面下0.35 m）を超えないこと、浅場（0.5–2 m）にサンゴが残ることを確かめる。サンゴの寸法・配置を変えたら通す。
+水域の区分は `src/ocean/water.ts`（海・ラグーン・潮だまり・内陸の水・陸）。海面のうねり（GPU の `seaK` と CPU の `swellAt`/`surfaceAt`）と住人が水に入る場所が同じ答えを使う。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/water-check.ts`：海から切れたくぼみの水面が動かないこと、外海は元のうねり、ラグーンは一部。地形・うねり・水辺の行動を変えたら通す。
+住人が通れない物は `src/robots/solids.ts` の一つの登録（岩・幹・流木・小屋の柱・作業台・棚・桟橋の杭・焚き火）。描画や LOD と独立。経路の計画・一歩ごとの接触・目的地の接近位置が同じ登録と身体の大きさ（`body(r)`、持ち物込み）を使う。道がなければ直進せず諦める（`r.went`）。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/nav-check.ts`。移動・置く物・体の大きさを変えたら通す。
+住人について言うこと（状態表示・日記）は実際の状態から：向かっている途中は「向かっている」、着いてから「している」、道がふさがれば「回り道を探している」。日記の数値・見た魚は世界で本当に測った・見たもの（`Entry.obs`、`T.nearFish`）だけで、乱数で作らない。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/words-check.ts`。
+住人の主体性は ADR 0004（採択）。`src/robots/agent/`：観察（`observe`：視野・遮蔽・明るさ、物体 ID）→ 目的 → 計画（世界が出す選択肢 `optionsFor` の id だけ、ready=false は将来の手順）→ 行動（`taskFor`、世界が判定）→ 結果（`report`：done/gone/no way/blocked/interrupted/unavailable/timeout）→ 記憶（knowledge：saw/tried/heard/guessed、仮説は本物の結果でしか確定しない）。AI は節目だけ（`agent/config.ts` の MINDS が運用設定：モデル・1日の上限・間隔）。キーなし・予算切れ・応答なしでも習慣（HABIT）で動く。いまはドットとラッコが on。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/mind-check.ts`。住人どうしの頼む・断る・教える・渡す（`requests`、`ask`/`answer`/`tell`/`give`）と取り合いは `scripts/social-check.ts`。
+島だより（住人のメディア、`/journal/`）は docs/JOURNAL.md。住人の写真（`photo:` 行為、1日3枚・最低1枚、`PhotoRecord`）、記事（`src/journal/write.ts`：本人の記録と写真だけ、検査つき）、毎日の島（`scripts/journal-run.ts`、状態は journal-data ブランチ）、写真の描画（`tools/journal/photos.cjs`、`?journalshot`）、ページ（`scripts/journal-pages.ts`、build で生成、承認＝マージ済みの `content/journal/` だけ）。確認は `scripts/journal-check.ts`。
 `?debug` でコンソールに `seaglass` オブジェクト、`?diag` で GPU 診断パネル。
 
 ## 公開と報告
