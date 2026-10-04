@@ -135,6 +135,7 @@ export class Ecosystem {
     whaleSubjects(this.oc, out);
     this.oc.breach?.subjects(out);
     if (this.oc.bait) out.push(...this.oc.bait.subjects());
+    if (this.oc.jacks) out.push(...this.oc.jacks.subjects());
     const wreck = this.oc.wreck;
     if (wreck) out.push({ key: 'wreck', label: 'カルナティック号', kind: 'cave', prio: 2.8, size: 20, reach: 140, pos: () => wreck.centre, live: () => true,
       status: () => (this.env.night > 0.6 ? 'ライトに浮かぶ鉄の肋骨' : '肋骨の間から光が差し込む'),
@@ -166,6 +167,7 @@ export class Ecosystem {
     updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
     this.oc.breach?.update(dt, e, cam, fx, fz, !!ws && inSeason(e.month, e.mday, ws));
     if (this.oc.bait) this.oc.bait.update(dt, e, cam, fx, fz, e.sound);
+    this.oc.jacks?.update(dt, e, cam, fx, fz);
     this.oc.riders?.update(dt, t);
     this.oc.critters?.update(dt, e, cam, fx, fz);
     this.oc.rare?.update(dt, e, cam, fx, fz);

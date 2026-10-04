@@ -1231,6 +1231,8 @@ function goTo(id: string) {
     if (bs) focusOn(bs);
     return;
   }
+  // the jacks: by day, at their spot on the reef's edge (milling, or wound up into a tornado as the tide runs)
+  if (id === 'gingameaji' && oc.jacks?.subjects().length) { focusOn(oc.jacks.subjects()[0]); showToast('向かっています', `${name}のところへ`, ''); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } return; }
   // flying fish: up into the sky, and down to a low run over the sea that puts them up
   if (id === 'tobiuo' && oc.flyfish && !loc.species.some((sp) => sp.id === 'tobiuo')) {
     if (skyNow!.night > 0.5) { showToast(name, '夜の海では見えません', '暗い水面の上を飛ぶので、空から追っても姿が見えません。明るい時間に来てみてください'); return; }
@@ -2266,6 +2268,7 @@ function applyTierToSea() {
   if (!cur) return;
   for (const f of cur.fish as any[]) f.setFraction?.(C.shoal);
   cur.bait?.setFraction(C.shoal);
+  cur.jacks?.setFraction(C.shoal);
 }
 function toggleFull() {
   try {

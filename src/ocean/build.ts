@@ -22,6 +22,7 @@ import { makeBirds } from '../eco/birds';
 import { makeFlyingFish } from '../eco/flyingfish';
 import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
+import { makeJacks } from '../eco/jacks';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
 import { Wreck, wreckMaterial } from './wreck';
@@ -745,6 +746,7 @@ export function buildOcean(loc) {
   // flying fish, where they live: bursts out of the sea and glides over it
   if ([...(loc.extraGuide || []), ...loc.species].some((e) => e.id === 'tobiuo')) oc.flyfish = makeFlyingFish(group);
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);
+  oc.jacks = makeJacks(oc, 1);   // the jacks' spot on the reef's edge, where they mill or wind up into a tornado
   oc.riders = makeRiders(oc); if (oc.riders) group.add(oc.riders.group);
   oc.critters = makeCritters(oc); if (oc.critters) group.add(oc.critters.group);
   oc.breach = makeBreach(oc);   // whales and mantas leaping out of the sea
