@@ -889,7 +889,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       o.push({ id: 'give:dot', action: 'give', label: 'ドットに流木を手渡す', targetId: 'dot', ...(r.holding === 'wood' && !dot.holding && awake(dot) ? {} : { ready: false, needs: '流木を持っていて、ドットが起きていて手があいていること' }) });
       if (!r.holding && awake(dot)) for (const it of items.list) if (it.kind === 'wood' && known(`wood#${it.id}`) && !it.by) o.push({ id: `tell:dot:wood#${it.id}`, action: 'tell', label: `ドットに流木の場所を教える`, targetId: `wood#${it.id}` });
       o.push({ id: 'pile:beach', action: 'pile', label: '貝殻を浜の山に並べる', ...(r.holding === 'shell' ? {} : { ready: false, needs: '貝殻を持っていること' }) });
-      for (const f of list) if (f !== r && r.holding === 'shell' && awake(f) && !f.wet && Math.hypot(f.pos.x - r.pos.x, f.pos.z - r.pos.z) < 14) o.push({ id: `show:${f.id}`, action: 'show', label: `${f.v.name}に貝殻を見せる`, targetId: f.id });
+      // (no 'show it to someone': a shell is not shown off — ADR 0004, addendum 2026-10-04)
       if (village.pier === 'build' && village.posts < village.bases) o.push({ id: 'post:pier', action: 'post', label: '桟橋の柱を立てる', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っていること' }) });
       if (!r.holding) o.push({ id: 'float:sea', action: 'float', label: '沖で仰向けに浮かぶ' }, { id: 'groom:sea', action: 'groom', label: '水面で毛づくろいする' });
       // (its body: to eat at one of the places it knows, or a rest on the water — when, is its own to judge)
@@ -1227,10 +1227,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!items.take(tk.data)) { tk.failed = 'gone'; break; }
         r.holding = 'shell';
         if (agentOf(r)) { r.task = null; return; }   // (its next step is its own to choose)
-        // now and then it sits up and turns the shell over in its paws, held up to the light, before it carries
-        // it home (no more often than once a minute of watching; the shell is the one it picked up: no new one)
-        if (!fast && admireCool <= 0 && r.hunger < 0.7 && Math.random() < 0.4) { admireCool = 60; r.task = task('admire', [r.pos.x, r.pos.z], 'look', rr(4, 8), { arrived: true }); return; }
-        r.task = (!fast && showTask(r)) || task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;
+        // (straight to the pile with it: no admiring it, no showing it off — ADR 0004, addendum 2026-10-04)
+        r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;
       case 'show': if (agentOf(r)) break; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;   // (and on to the pile with it: it keeps what it found)
       case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, `貝殻を浜に並べた（${r.stats.shells}個）`); break;
       case 'survey': if (village.pier === 'plan') { village.pier = 'build'; drawPier(); note(r, 'survey', {}, '桟橋の位置を測った'); res.onEvent('pier', 'カメマルが桟橋の位置を測り終えた。いよいよ建設開始', r); } break;
