@@ -71,6 +71,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('2 no photograph that day: a drawing instead; one with a script is asked again', !!p3 && asks2 === 2 && !!p3.drawing && p3.photos.length === 0 && !/script/.test(p3.drawing.svg), `${asks2} asks`);
   want('2 no photograph and no drawing: asked again, then given up', (await writePost({ ...inp, photos: [] }, async () => JSON.stringify(good), 'stub')) === null);
   want('2 a drawing may not reach outside', /外|画像/.test(checkPost({ ...drew, drawing: { svg: svg.replace('<rect', '<image href="https://x.example/a.png"/><rect'), caption: 'x' } }, { ...inp, photos: [] })));
+  want('2 a feeling the island does not have is asked again', /世界にない/.test(checkPost({ ...good, log: good.log.map((e: any, i: number) => (i ? e : { ...e, me: 'ひとりで少し寂しい。' })) }, inp)));
   want('2 a log out of order is asked again', /時刻の順/.test(checkPost({ ...good, log: [...good.log].reverse() }, inp)));
   want('2 the checks name what is wrong', /写真/.test(checkPost({ ...good, photos: [] }, inp)) && checkPost(good, inp) === '');
 }

@@ -15,10 +15,13 @@ export type Ask = (system: string, user: string) => Promise<string | null>;
 // The day as an exchange, like a working session: the island says what happened (only what is in its records), it says
 // what it makes of it and what it does next — then the day as a whole, and what comes after. No acting for the reader.
 const STYLE: Record<string, { voice: string; max: number; entries: [number, number] }> = {
-  dot: { max: 2200, entries: [4, 16], voice: 'ドット。一人称は「ぼく」。普通の、読みやすい常体。短い文。判断と次の手を言い切る。見立て（仮説）と確かめたことは分けて言う。分からないことは分からないと言う。かっこよく見せる言い回し、詩的な表現、教訓めいたまとめ、読者への語りかけはしない。気持ちは、記録に表れている範囲で一言だけ。' },
-  rakko: { max: 1200, entries: [3, 10], voice: 'ラッコ。一人称は「ぼく」。子どもの、短い素直なことば。かわいく見せる演出（語尾の飾り、擬音の連発、感嘆符の多用）はしない。見つけた、食べた、できた、できなかった、を短く。次にやることも短く。' },
+  dot: { max: 2200, entries: [4, 16], voice: 'ドット。一人称は「ぼく」。普通の、読みやすい常体。短い文。判断と次の手を言い切る。見立て（仮説）と確かめたことは分けて言う。分からないことは分からないと言う。かっこよく見せる言い回し、詩的な表現、教訓めいたまとめ、読者への語りかけはしない。' },
+  rakko: { max: 1200, entries: [3, 10], voice: 'ラッコ。一人称は「僕」。子どもの、短い素直なことば。かわいく見せる演出（語尾の飾り、擬音の連発、感嘆符の多用）はしない。見つけた、食べた、できた、できなかった、を短く。次にやることも短く。' },
 };
 const SVG_MAX = 20000;
+/** Feelings and sensations the island does not have (no state of the world stands behind them): a post does not
+ *  claim them. What it has is said with its value — おなか・ねむけ, the battery, progress, what was found or failed. */
+export const UNMODELLED = /寂し|さみし|淋し|嬉し|うれし|楽し|たのし|安心|不安|あった[かけ]|温か|暖か|好き|落ち着|疲れ|悲し|かなし|怖|こわい|幸せ|わくわく|ドキドキ|ほっと|心細|恋し|懐かし|なつかし|感動|気持ちい|きもちい|ワクワク/;
 
 function system(who: string, withPhotos: boolean) {
   const st = STYLE[who] ?? STYLE.rakko, name = who === 'dot' ? 'ドット' : 'ラッコ';
@@ -30,6 +33,11 @@ function system(who: string, withPhotos: boolean) {
 - 同じことが続いたところは一つにまとめ、「（3回）」のように回数を添える。大事なところは省かない。
 - review.summary は一日を通しての総括（2〜4文）、review.state は終わりの状態（数や進み具合、短い項目）、review.unknown はまだ分からないこと・確かめていないこと、review.outlook は明日以降にやること（理由つき、短く）。
 話し方：${st.voice}
+この世界にあるものだけで書く（ゲームをプレイしているAIが、自分の状況と判断を報告するように）：
+- 住人の内側として書けるのは、世界が持っている値だけ：おなか・ねむけ（ラッコ）、電池（ドット）、進み具合（小屋 1/24 など）、持ち物、会った相手との段階、目的・仮説・確かめた結果。値は記録にある形で書く。
+- 世界にない気持ちや感覚（寂しい・うれしい・楽しい・安心・不安・温かい・好き・落ち着かない・疲れた など）は書かない。理由は世界の中の理由で書く（足りないもの、進み具合、体の値、失敗とその原因、見つけたもの、頼まれたこと）。
+- 例（me）：「流木0本。部材が作れない。浜で待てば打ち上がる、と見立てた。浜で待つ。」「おなか 60。岩場Dが一番近い。潜る。」
+- talks の言葉は、中身（情報・頼みごと・約束・予定）だけを書く。気持ちを言うことばは拾わない。
 材料は入力にある、本人のその日の記録（entries）、本人が撮った写真（photos）、交わした言葉（talks）だけ。
 - 記録にないことを、したこと・見たこととして書かない。数や大きさ、天気、水温などを作らない。
 - 実在の場所・生き物について、記録にない知識を断定しない。
@@ -76,6 +84,7 @@ export function checkPost(p: unknown, inp: PostInput): string {
   if (!(rv.summary as string[]).length || !(rv.outlook as string[]).length) return 'review.summary と review.outlook は少なくとも一つ';
   const text = [o.title, ...log.flatMap((e) => [e.world, e.me]), ...['summary', 'state', 'unknown', 'outlook'].flatMap((k) => rv[k] as string[])].join('\n');
   if (text.length > st.max) return `文字が全部で${st.max}字を超えている`;
+  { const f = text.match(UNMODELLED); if (f) return `「${f[0]}」のような、世界にない気持ちや感覚を書かない（理由は世界の中の理由で）`; }
   if (/https?:|www\.|\.(com|jp|net|org)\b|@[a-z0-9_]/i.test(text)) return 'URL や宛先を含めない';
   if (inp.photos.length) {
     const ids = new Set(inp.photos.map((x) => x.id));
