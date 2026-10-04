@@ -30,7 +30,7 @@ ADR 0004（住人の主体性）の「発信の技能」。ドットとラッコ
 2. **プルリクエストを出す権限**：Settings → Actions → General → Workflow permissions で
    「Read and write permissions」を選び、「Allow GitHub Actions to create and approve pull requests」にチェック。
 3. **試しに動かす**：Actions → 「島だより (the residents' day)」→ Run workflow。
-   「AIなしで試す」にチェックすると、キーを使わずに島の一日と写真の描画まで（記事は下書き、プルリクエストなし）。
+   「AIなしで試す」にチェックすると、キーを使わずに島の一日と写真の描画まで（記事は下書き、プルリクエストなし。島はこの試しを覚えない）。
 
 ## 毎日の確認
 

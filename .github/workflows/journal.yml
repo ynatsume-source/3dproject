@@ -75,7 +75,8 @@ jobs:
           for i in $(seq 1 60); do curl -sf http://localhost:4174/ >/dev/null && break; sleep 1; done
           node tools/journal/photos.cjs --data .island
       - name: Keep the island's memory
-        if: steps.key.outputs.skip != 'true'
+        # (a dry run is only a try: the island does not remember it, so the real day starts fresh)
+        if: steps.key.outputs.skip != 'true' && steps.key.outputs.dry != 'true'
         run: |
           cd .island && git add -A && (git diff --cached --quiet || git commit -qm "The island, ${DAY}") && git push -q origin journal-data
       - name: Put the day's posts forward
