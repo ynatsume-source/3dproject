@@ -1653,6 +1653,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // and everyone held still)
     pose(rec) {
       still = true; settled = true; res.hide = rec.who;
+      // (what it photographed, if it has since been picked up: put back where it lay, for the picture)
+      const k = rec.subject.kind as ItemKind;
+      if (['wood', 'shell', 'stone'].includes(k) && !items.list.some((it) => it.kind === k && Math.hypot(it.x - rec.look[0], it.z - rec.look[2]) < 0.6)) items.addAt(k, rec.look[0], rec.look[2]);
       for (const o of rec.others) { const x = byId[o.id]; if (!x) continue; x.pos.set(o.x, o.y, o.z); x.head = o.head; x.act = o.act as Act; x.holding = o.holding as Resident["holding"]; x.task = null; x.talk = null; x.saying = ''; }
     },
     setBrain: (b) => { brainOverride = b; },
