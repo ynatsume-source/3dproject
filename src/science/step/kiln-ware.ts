@@ -59,7 +59,9 @@ export function settleWare(o: {
       crack = Math.max(crack, draw(o.seed, o.runId, lot.lotId, mech, 'severity') < Math.min(0.8, 0.25 * ratio) ? 2 : 1);
     }
   }
-  const fired = o.done || d.maxWareC > 300;
+  // fired means the piece was actually heated: a run that ended without heat (the wood never caught) hands the
+  // piece back as it came, to be fired again (Codex A on 451ea82). The end of a run is not the same as a firing.
+  const fired = d.maxWareC > 300;
   crack = Math.max(crack, lot.quality?.crack ?? 0); // cracks the piece already had stay, and are what the resident sees
   const tq = tileQuality(wc.comp);
   const q: Record<string, number> = { ...(lot.quality ?? {}), ...tq, sinter_ppm: Math.round(d.sinter * 1e6), crack,

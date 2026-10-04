@@ -10,6 +10,7 @@ import { addComp, elementMoles } from '../src/science/chem';
 import { CALCINE_PROCESS, HYDRATE_PROCESS } from '../src/science/step/lime';
 import { FIRING_PROCESS } from '../src/science/step/firing';
 import { SOAK_PROCESS } from '../src/science/step/soak';
+import { WOOD_FIRE_PROCESS } from '../src/science/step/wood-fire';
 import { DRYING_PROCESS } from '../src/science/step/drying';
 
 let pass = 0, fail = 0;
@@ -222,7 +223,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   const WOOD = { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 60_000_000, unit: 'mg' as const }, location: 'site:woodpile', quality: { water_ppm: 150_000 } };
   const WKILN = { equipmentId: 'eq:wk', kind: 'fixture_wood_kiln', catalogEntry: 'fixture_wood_kiln', catalogVersion: 'civ-sci-test-2', condition: 1,
     params: { heatCapJPerK: 40_000, uaWPerK: 8, chamberFraction: 0.3, maxBurnKgPerH: 15, forcedCoolingUaFactor: 5 } };
-  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.3',
+  const WF: ScienceStepRequest = { contract: '0.2.0', requestId: 'wf', world: W, runId: 'run:wf', processId: WOOD_FIRE_PROCESS.processId, processVersion: WOOD_FIRE_PROCESS.processVersion,
     catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 3_600_000 }, state: null,
     environment: { sampleId: 'env:wf', source: 'live', effectiveAt: 0, airTempC: 28, humidity: 0.7, windMs: 3 }, lots: [TILE_D, WOOD], equipment: [WKILN], energy: [],
     actions: [{ at: 0, residentId: 'res:dot', action: 'fire_plan', params: { pace: 1, targetGlow: 2, holdMin: 90, forcedCooling: 0 } }], seed: 3 };
@@ -372,6 +373,37 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     const old = scienceStep({ ...WF, state: { schema: 'civ-sci.tile-wood-fire/1', data: { lastTo: 0 } } });
     ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)) && Array.isArray(drawnOf(old)),
       'W3b: a run started before 0.1.2 (state /1, heat counted the old way) is refused, never resumed under the new version');
+  }
+
+  // A on 451ea82 (lab 793adf5): the end of a run is not a firing. Wood that never caught hands the tile back unfired,
+  // and that tile can be fired again with new wood
+  {
+    let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+    for (let i = 0; i < 20; i++) {
+      r = checked({ ...WF, requestId: `a-${i}`, runId: 'run:a-wet', state: st, interval: { from: i * 30_000, to: (i + 1) * 30_000 },
+        lots: [TILE_D, { ...WOOD, quality: { water_ppm: 950_000 } }], actions: i === 0 ? WF.actions : [] });
+      st = r.state; if (r.status !== 'running') break;
+    }
+    const back = r.produced.find((p) => p.materialId.startsWith('test_tile'))!;
+    ok((r.diagnostics as { outcome: string }).outcome === 'wont_burn' && back.materialId === 'test_tile_dry' && r.energy.length === 0,
+      'A: wood that never catches (30 s requests): the tile comes back unfired, as test_tile_dry', `${back.materialId}`);
+    const again = { ...TILE_D, lotId: 'lot:tile-again', amount: back.amount as { value: number; unit: 'mg' }, quality: back.quality as typeof TILE_D.quality };
+    let st2: ScienceStepRequest['state'] = null, r2!: ScienceStepResult;
+    for (let h = 0; h < 48; h++) {
+      r2 = checked({ ...WF, requestId: `a2-${h}`, runId: 'run:a-again', state: st2, interval: { from: h * 3_600_000, to: (h + 1) * 3_600_000 },
+        lots: [again, WOOD], actions: h === 0 ? WF.actions : [] });
+      st2 = r2.state; if (r2.status !== 'running') break;
+    }
+    ok(r2.status === 'completed' && r2.produced.some((p) => p.materialId === 'test_tile_fired') && (r2.diagnostics as { peakKilnC: number }).peakKilnC > 950,
+      'A: the tile handed back, with new dry wood, fires to orange', `${r2.status}, peak ${Math.round((r2.diagnostics as { peakKilnC: number }).peakKilnC)} °C`);
+    // the electric test kiln too: a run that ends without heat does not make a fired tile
+    let st3: ScienceStepRequest['state'] = null, r3!: ScienceStepResult;
+    for (let h = 0; h < 3; h++) {
+      r3 = scienceStep({ ...FIRE, requestId: `a3-${h}`, runId: 'run:a-cold', state: st3, interval: { from: h * 3_600_000, to: (h + 1) * 3_600_000 },
+        energy: [{ ...FIRE.energy[0], maxJ: 0 }], actions: h === 0 ? FIRE.actions : [], ...(h === 2 ? { stop: 'operator' as const } : {}) });
+      st3 = r3.state; if (r3.status !== 'running') break;
+    }
+    ok(r3.status === 'stopped' && r3.produced.some((p) => p.materialId === 'test_tile_dry') && !r3.produced.some((p) => p.materialId === 'test_tile_fired'), 'A: an electric run with no heat offered, stopped after 3 h: the tile comes back unfired', `${r3.status} ${r3.produced.map((p) => p.materialId).join(',')}`);
   }
 
   // W4a (lab b8bf6ec): only registered species, never inherited object keys
