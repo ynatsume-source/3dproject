@@ -1,9 +1,10 @@
 // Headless check (島だより): the residents' photographs, the posts and the pages.
 //  1 a photograph is of something in its own view, kept with its eyes, where it looked and the others; at most three a
-//    day — a fourth is not offered; by habit, late in the day with none yet, it takes one
-//  2 a post: written only from what was given, with one to three of that day's own photographs; one naming a photo it
-//    did not take, or with a link in it, is asked for again, and given up if it will not do
-//  3 the pages: the front page, each writer's, each post's and the feed; drafts left out; the note that they are AI
+//    day — a fourth is not offered (and none at all is fine)
+//  2 a post: written only from what was given, with one to three of that day's own photographs — or, on a day without,
+//    a picture it drew (an SVG of shapes only); one naming a photo it did not take, with a link in it, or a drawing
+//    that loads or runs anything, is asked for again, and given up if it will not do
+//  3 the pages: the front page, each writer's, each post's and the feed; a drawing shown whole; drafts left out; AI noted
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/journal-check.ts
 import fs from 'node:fs';
 import os from 'node:os';
@@ -54,13 +55,6 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('1 a fourth is not offered', !offeredAfter3);
   want('1 its diary says so', dot.diary.filter((e: any) => e.key === 'photo').length === 3);
 }
-{ // 1b by habit, late in the day with none yet
-  const { R, dot } = island('2026-10-03T06:20:00Z');   // (15:20)
-  for (let k = 0; k < 4; k++) R.items.addAt('shell', 59 + k * 2, -137 - k);
-  R.setBrain(null);
-  await run(R, 1200, () => (dot.photos ?? []).length > 0);
-  want('1 by habit, late with none yet: one before the light goes', (dot.photos ?? []).length >= 1, (dot.photos ?? []).map((x: any) => `${x.subject.label} ${new Date(x.at + 9 * 3.6e6).toISOString().slice(11, 16)}`).join('、') || 'none');
-}
 { // 2 posts
   const inp: PostInput = { who: 'rakko', name: 'ラッコ', profile: 'ラッコ', day: '2026-10-03', entries: [{ time: '10:00', text: '貝殻を拾った' }], photos: [{ id: 'rakko-2026-10-03-1', subject: { id: 'shell#1', kind: 'shell', label: '貝殻' }, time: '10:05' }], talks: [] };
   const good = { title: 'きれいな貝殻', body: ['浜で貝殻をひろったよ。'], photos: [{ id: 'rakko-2026-10-03-1', caption: 'ぴかぴか' }], tags: ['貝殻'] };
@@ -69,7 +63,14 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('2 a photo it did not take is asked again, then the post stands', !!p1 && asks === 2 && p1.photos[0].id === 'rakko-2026-10-03-1', `${asks} asks`);
   const p2 = await writePost(inp, async () => JSON.stringify({ ...good, body: ['見に来てね https://example.com'] }), 'stub');
   want('2 a link: given up', p2 === null);
-  want('2 no photograph that day: no post', (await writePost({ ...inp, photos: [] }, async () => JSON.stringify(good), 'stub')) === null);
+  // (a day without photographs: a picture it drew instead — shapes only; one that loads or runs something is asked again)
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#9fd3e0"/><circle cx="400" cy="300" r="80" fill="#f2e3c6"/></svg>';
+  const drew = { title: '貝殻の絵', body: ['今日は写真をとらなかったから、絵をかいたよ。'], photos: [], drawing: { svg, caption: '浜でひろった貝殻' }, tags: [] };
+  let asks2 = 0;
+  const p3 = await writePost({ ...inp, photos: [] }, async () => { asks2++; return JSON.stringify(asks2 === 1 ? { ...drew, drawing: { svg: svg.replace('</svg>', '<script>alert(1)</script></svg>'), caption: 'x' } } : drew); }, 'stub');
+  want('2 no photograph that day: a drawing instead; one with a script is asked again', !!p3 && asks2 === 2 && !!p3.drawing && p3.photos.length === 0 && !/script/.test(p3.drawing.svg), `${asks2} asks`);
+  want('2 no photograph and no drawing: asked again, then given up', (await writePost({ ...inp, photos: [] }, async () => JSON.stringify(good), 'stub')) === null);
+  want('2 a drawing may not reach outside', /外|画像/.test(checkPost({ ...drew, drawing: { svg: svg.replace('<rect', '<image href="https://x.example/a.png"/><rect'), caption: 'x' } }, { ...inp, photos: [] })));
   want('2 the checks name what is wrong', /写真/.test(checkPost({ ...good, photos: [] }, inp)) && checkPost(good, inp) === '');
 }
 { // 3 pages
@@ -78,6 +79,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
   const post = { id: '2026-10-03-rakko', who: 'rakko', name: 'ラッコ', day: '2026-10-03', title: 'きれいな貝殻', body: ['浜で貝殻をひろったよ。'], photos: [{ id: 'rakko-2026-10-03-1', caption: 'ぴかぴか' }], tags: ['貝殻'], written: '2026-10-03T12:00:00Z', by: 'claude-haiku-4-5-20251001' };
   fs.writeFileSync(path.join(src, 'posts', `${post.id}.json`), JSON.stringify(post));
   fs.writeFileSync(path.join(src, 'posts', '2026-10-03-dot.json'), JSON.stringify({ ...post, id: '2026-10-03-dot', who: 'dot', name: 'ドット', title: '下書き', by: 'draft' }));
+  fs.writeFileSync(path.join(src, 'posts', '2026-10-02-rakko.json'), JSON.stringify({ ...post, id: '2026-10-02-rakko', day: '2026-10-02', title: '絵をかいた日', photos: [], drawing: { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#9fd3e0"/></svg>', caption: '海の絵' } }));
   fs.writeFileSync(path.join(src, 'photos', 'rakko-2026-10-03-1.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
   fs.writeFileSync(path.join(src, 'photos', 'rakko-2026-10-03-1.json'), JSON.stringify({ id: 'rakko-2026-10-03-1', at: Date.parse('2026-10-03T01:05:00Z'), subject: { label: '貝殻' } }));
   execFileSync('npx', ['tsx', '--import', './scripts/node-assets.mjs', 'scripts/journal-pages.ts', '--src', src, '--out', out], { stdio: 'pipe' });
@@ -85,6 +87,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('3 the front page, with the post and the note that they are AI', has('index.html', 'きれいな貝殻') && has('index.html', '住人はAI'));
   want('3 the post page, its photograph and its time', has('2026-10-03-rakko/index.html', 'photos/rakko-2026-10-03-1.jpg') && has('2026-10-03-rakko/index.html', '10:05 撮影') && has('photos/rakko-2026-10-03-1.jpg'));
   want('3 the writers and the feed', has('rakko/index.html', 'きれいな貝殻') && has('dot/index.html') && has('feed.xml', '2026-10-03-rakko') && has('journal.css'));
+  want('3 a day without photographs: its drawing at the top, and as its picture in the list', has('2026-10-02-rakko/index.html', 'drawings/2026-10-02-rakko.svg') && has('2026-10-02-rakko/index.html', 'ラッコが描いた絵') && has('drawings/2026-10-02-rakko.svg', '<svg') && has('rakko/index.html', 'drawings/2026-10-02-rakko.svg'));
   want('3 a draft is not published', !has('2026-10-03-dot/index.html') && !has('index.html', '下書き'));
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');

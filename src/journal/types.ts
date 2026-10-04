@@ -18,7 +18,7 @@ export interface PhotoRecord {
   file?: string;              // the rendered image, once drawn (photos/<id>.jpg)
 }
 
-export const PHOTOS_PER_DAY = 3;   // at most, each; and at least one (the island asks, late in the day)
+export const PHOTOS_PER_DAY = 3;   // at most, each (none is fine: that day it draws instead)
 
 export interface PostPhoto { id: string; caption: string }
 /** A post, as written and checked. Published only once approved (a merged pull request). */
@@ -28,7 +28,8 @@ export interface Post {
   day: string;
   title: string;
   body: string[];             // paragraphs, plain text
-  photos: PostPhoto[];        // at least one, all its own from that day
+  photos: PostPhoto[];        // its own from that day, 1–3; none on a day it took none
+  drawing?: { svg: string; caption: string };   // a day without photographs: a picture it drew, of whatever it liked (SVG)
   tags: string[];
   written: string;            // ISO time it was written
   by: string;                 // the model that wrote it, or "draft" (no AI: a dry run, never published)

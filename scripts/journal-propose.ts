@@ -17,8 +17,9 @@ for (const p of drafts) {
   const missing = p.photos.filter((x: any) => !fs.existsSync(path.join(DATA, 'photos', `${x.id}.jpg`)));
   if (missing.length) { lines.push(`- ${p.name}：写真が描けなかったため出していません（${missing.map((x: any) => x.id).join(', ')}）`); continue; }
   fs.writeFileSync(path.join(OUT, 'posts', `${p.id}.json`), JSON.stringify(p, null, 1));
+  if (p.drawing) { fs.mkdirSync(path.join(OUT, 'drawings'), { recursive: true }); fs.writeFileSync(path.join(OUT, 'drawings', `${p.id}.svg`), p.drawing.svg); }   // (to be seen in the pull request too)
   for (const x of p.photos) for (const ext of ['json', 'jpg']) fs.copyFileSync(path.join(DATA, 'photos', `${x.id}.${ext}`), path.join(OUT, 'photos', `${x.id}.${ext}`));
-  lines.push(`### ${p.name}「${p.title}」\n\n${p.body.map((b: string) => `> ${b.replace(/\n/g, '\n> ')}`).join('\n>\n')}\n\n写真：${p.photos.map((x: any) => `${x.caption}（${x.id}）`).join('、')}\nタグ：${p.tags.join('、') || 'なし'}　書いたモデル：${p.by}`);
+  lines.push(`### ${p.name}「${p.title}」\n\n${p.body.map((b: string) => `> ${b.replace(/\n/g, '\n> ')}`).join('\n>\n')}\n\n${p.drawing ? `絵：${p.drawing.caption}（content/journal/drawings/${p.id}.svg）` : `写真：${p.photos.map((x: any) => `${x.caption}（${x.id}）`).join('、')}`}\nタグ：${p.tags.join('、') || 'なし'}　書いたモデル：${p.by}`);
   n++;
 }
 const run = fs.existsSync(path.join(DATA, 'runs', `${DAY}.json`)) ? JSON.parse(fs.readFileSync(path.join(DATA, 'runs', `${DAY}.json`), 'utf8')) : null;

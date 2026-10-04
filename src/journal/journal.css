@@ -92,3 +92,7 @@ img { display: block; width: 100%; height: auto; }
   .intro { padding-top: 36px; }
   .mast nav a.go { display: none; }
 }
+
+/* a picture drawn on a day without photographs: shown whole, on paper */
+.ph img.drawn, figure.drawing img { object-fit: contain; background: #f2ede3; }
+figure.drawing img { aspect-ratio: 4 / 3; height: auto; }

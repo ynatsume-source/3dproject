@@ -186,7 +186,7 @@ export interface Resident {
   // for its body (what the model is told, not the world's facts): how far its feet have gone, how fast it
   // is going, what it is looking at, and which spell of doing something this is and for how long
   mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number;
-    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; photoAsk?: string; photoForce?: string; grazeTry?: { bed: string; at: number; hunger: number }; grazeAvoid?: Record<string, number>;
+    probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; grazeTry?: { bed: string; at: number; hunger: number }; grazeAvoid?: Record<string, number>;
     bout?: { patch?: string; tries: number; got: number; weak: number; full: number; opt?: string }; coldAt?: number };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
   lightK?: number;
   resume?: Task; resumeAt?: number;     // what it was in the middle of when someone came up to talk (to go back to after)
@@ -964,19 +964,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Its habits, when it has no mind to ask (or is waiting on one): the same choices it made before it had one.
   // (why it would rather not: what its own body and wants say just now)
   const refuseWhy = (r: Resident) => r.hunger > (r.body?.learn.eatAt ?? 0.45) ? 'おなかがすいている' : r.sleepy > (r.body?.learn.sleepAt ?? 0.6) ? '眠い' : r.holding && r.holding !== 'wood' ? '手がふさがっている' : !items.list.some((it) => it.kind === 'wood' && agentOf(r)?.seen.has(`wood#${it.id}`)) ? '流木のある場所を知らない' : '今は貝殻を集めたい';
-  // (its habit with the camera: something worth keeping, now and then — the nearest friend, something new, its work —
-  // and if the afternoon is getting on and it has none today, one before the light goes)
+  // (its habit with the camera: something worth keeping, now and then — the nearest friend, something new, its work;
+  // only now and then: a day without any photograph is fine — that day it draws instead)
   const photoHabit = (r: Resident, opts: Option[]) => {
     const shots = opts.filter((o) => o.action === 'photo'); if (!shots.length) return null;
-    const none = !photosOn(r, dayOf(clockMs)).length && localHour(clockMs) >= 15;
-    if (!none && Math.random() > 0.06) return null;
+    // (now and then, when something is worth keeping — not because the day asks for one: a day without is fine)
+    if (Math.random() > 0.06) return null;
     // (not the same thing twice in a day, and a kind it already has today only if there is nothing else)
     const today = photosOn(r, dayOf(clockMs)), had = new Set(today.map((p) => p.subject.id)), kinds = new Set(today.map((p) => p.subject.kind));
     const fresh = shots.filter((o) => !had.has(o.targetId!)); if (!fresh.length) return null;
     const seenNow = new Map(observe(r).map((x) => [x.id, x.kind]));
     const rank = (o: Option) => { const k = o.targetId!.split('#')[0]; return (kinds.has(seenNow.get(o.targetId!) ?? '') ? 10 : 0) + (o.targetId === 'drift' ? 0 : list.some((x) => x.id === o.targetId) ? 1 : k === 'young-tree' || k === 'shell' ? 2 : 3) + Math.random() * 1.5; };
     const pick = fresh.map((o) => [o, rank(o)] as const).sort((x, y) => x[1] - y[1])[0][0];
-    return { text: none ? '今日の一枚を撮る' : '写真に残す', why: none ? '今日はまだ一枚も撮っていない' : '残しておきたいと思った', plan: [pick.id] };
+    return { text: '写真に残す', why: '残しておきたいと思った', plan: [pick.id] };
   };
   const HABIT: Record<string, Habit> = {
     rakko: (opts, a) => {
@@ -1875,11 +1875,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (those with a mind of their own keep looking while they work; something new stops them — between steps)
       // (asked while its body's needs come first — hungry, asleep — it does not leave the other waiting: a no, and why)
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
-      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { { const a0 = agentOf(r); if (a0 && !a0.why && localHour(clockMs) >= 15 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, dayOf(clockMs)).length && (r.mo.photoAsk ?? '') !== dayOf(clockMs)) { r.mo.photoAsk = dayOf(clockMs); a0.why = '今日はまだ写真を撮っていない（1日1枚は撮る）'; } } { const a0 = agentOf(r), day = dayOf(clockMs); if (a0 && localHour(clockMs) >= 16.5 && dayK(localHour(clockMs)) > 0.3 && !photosOn(r, day).length && r.mo.photoForce !== day && !r.talk && r.act !== 'sleep' && !['photo', 'doze', 'shiver', 'fire'].includes(r.task?.kind ?? '')) {
-          // (late, and still not one: the one picture a day is not left to chance — it takes one of what it sees now)
-          const ph = photoHabit(r, optionsFor(r, a0)), t = ph ? taskFor(r, ph.plan[0]) : null;
-          if (t) { r.mo.photoForce = day; report(r, r.task, 'interrupted', '今日の一枚を撮ることにした'); items.release(r.id); if (r.mo.bout) { const b = r.mo.bout; r.mo.bout = undefined; const a = agentOf(r); if (a && b.opt) { a.result(b.opt, 'eat', 'interrupted', clockMs, '写真を撮るため途中でやめた'); flushMind(r, a); } } r.task = t; }
-        } } const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
+      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       if (!still && dt < 2) gains();   // (what rest, food and sun gave back: shown, softly, by each of them — not while catching up)
       fireCircle(dt, false);

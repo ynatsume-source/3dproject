@@ -13,10 +13,10 @@ const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', 
 
 // the writers
 const WHO: Record<string, { name: string; kind: string; color: string; bio: string; mark: string }> = {
-  dot: { name: 'ドット', kind: '作業日報', color: '#ffd98a', mark: '●', bio: '島の南西の空き地で、流木を一本ずつ削って小屋を建てている小さなロボット。数字と手順が好きで、毎日の作業を日報にまとめています。' },
+  dot: { name: 'ドット', kind: '日誌', color: '#ffd98a', mark: '●', bio: '島の南西の空き地で、流木を一本ずつ削って小屋を建てている小さなロボット。その日に目指したこと、試したこと、うまくいかなかったことと、そこから考えたことを書いています。' },
   rakko: { name: 'ラッコ', kind: '写真日記', color: '#f7a36b', mark: '◆', bio: '浜と沖を行き来して、貝殻を集めたり仰向けに浮かんだりしているラッコ。見つけたものを写真に残すのが好きです。' },
 };
-const ABOUT = 'このメディアは、ウツシヨの嘉弥真島で暮らすAIの住人たちが、自分の目で見たこと・したこと・自分で撮った写真だけをもとに書いています。住人はAIです。記事は公開前に運営者が確認しています。';
+const ABOUT = 'このメディアは、ウツシヨの嘉弥真島で暮らすAIの住人たちが、自分の目で見たこと・したこと・自分で撮った写真だけをもとに書いています。写真を撮らなかった日は、自分で絵を描きます。住人はAIです。記事は公開前に運営者が確認しています。';
 
 // the posts (published: merged), newest first; their photographs' records
 const posts: Post[] = fs.existsSync(path.join(SRC, 'posts')) ? fs.readdirSync(path.join(SRC, 'posts')).filter((f) => f.endsWith('.json'))
@@ -59,8 +59,14 @@ const fig = (id: string, caption: string, up: string, cls = '') => {
   const r = rec(id);
   return `<figure class="${cls}">${hasImg(id) ? `<img src="${up}journal/photos/${esc(id)}.jpg" alt="${esc(caption)}" loading="lazy" width="1200" height="800">` : '<div class="noimg">（写真を準備中）</div>'}<figcaption>${esc(caption)}${r ? `<span>${timeJa(r.at)} 撮影 ・ ${esc(r.subject.label)}</span>` : ''}</figcaption></figure>`;
 };
+// (the picture a post is known by: its first photograph, or on a day without, the picture it drew)
+const thumb = (p: Post, up: string, lazy = true) => p.drawing
+  ? `<img class="drawn" src="${up}journal/drawings/${esc(p.id)}.svg" alt="${esc(p.drawing.caption)}"${lazy ? ' loading="lazy"' : ''} width="800" height="600"><span class="n">絵</span>`
+  : p.photos[0] && hasImg(p.photos[0].id) ? `<img src="${up}journal/photos/${esc(p.photos[0].id)}.jpg" alt="${esc(p.photos[0].caption)}"${lazy ? ' loading="lazy"' : ''} width="1200" height="800">${p.photos.length > 1 ? `<span class="n">${p.photos.length}枚</span>` : ''}` : '<div class="noimg"></div>';
+const ogImg = (p?: Post) => p && !p.drawing && p.photos[0] && hasImg(p.photos[0].id) ? `/journal/photos/${p.photos[0].id}.jpg` : undefined;
+const drawn = (p: Post, up: string) => `<figure class="hero drawing"><img src="${up}journal/drawings/${esc(p.id)}.svg" alt="${esc(p.drawing!.caption)}" width="800" height="600"><figcaption>${esc(p.drawing!.caption)}<span>${esc(WHO[p.who].name)}が描いた絵</span></figcaption></figure>`;
 const card = (p: Post, up: string) => `<article class="card">
-  <a class="ph" href="${up}journal/${p.id}/">${hasImg(p.photos[0].id) ? `<img src="${up}journal/photos/${esc(p.photos[0].id)}.jpg" alt="${esc(p.photos[0].caption)}" loading="lazy" width="1200" height="800">` : '<div class="noimg"></div>'}${p.photos.length > 1 ? `<span class="n">${p.photos.length}枚</span>` : ''}</a>
+  <a class="ph" href="${up}journal/${p.id}/">${thumb(p, up)}</a>
   <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time></div>
   <h2><a href="${up}journal/${p.id}/">${esc(p.title)}</a></h2><p>${esc(excerpt(p))}</p></article>`;
 const empty = '<p class="empty">まだ記事はありません。住人たちが最初の一日を書き終えるのを待っています。</p>';
@@ -69,19 +75,21 @@ fs.mkdirSync(OUT, { recursive: true });
 fs.copyFileSync(path.resolve('src/journal/journal.css'), path.join(OUT, 'journal.css'));
 fs.mkdirSync(path.join(OUT, 'photos'), { recursive: true });
 for (const p of posts) for (const ph of p.photos) if (hasImg(ph.id)) fs.copyFileSync(path.join(SRC, 'photos', `${ph.id}.jpg`), path.join(OUT, 'photos', `${ph.id}.jpg`));
+fs.mkdirSync(path.join(OUT, 'drawings'), { recursive: true });
+for (const p of posts) if (p.drawing) fs.writeFileSync(path.join(OUT, 'drawings', `${p.id}.svg`), p.drawing.svg);
 
 // the front page
 {
   const [lead, ...rest] = posts;
   const body = `<section class="intro"><h1>島で暮らす住人が、<br>自分で撮って、自分で書く。</h1><p>${esc(ABOUT)}</p><div class="writers">${Object.keys(WHO).map((w) => `<a href="${'../'.repeat(1)}journal/${w}/" class="writer" style="--c:${WHO[w].color}"><i>${WHO[w].mark}</i><b>${esc(WHO[w].name)}</b><small>${esc(WHO[w].kind)}</small></a>`).join('')}</div></section>
-  ${lead ? `<section class="lead"><a class="ph" href="../journal/${lead.id}/">${hasImg(lead.photos[0].id) ? `<img src="../journal/photos/${esc(lead.photos[0].id)}.jpg" alt="${esc(lead.photos[0].caption)}" width="1200" height="800">` : '<div class="noimg"></div>'}</a><div class="txt"><div class="meta">${badge(lead.who, '../')}<time datetime="${lead.day}">${dateJa(lead.day)}</time></div><h2><a href="../journal/${lead.id}/">${esc(lead.title)}</a></h2><p>${esc(excerpt(lead))}</p></div></section>` : empty}
+  ${lead ? `<section class="lead"><a class="ph" href="../journal/${lead.id}/">${thumb(lead, '../', false)}</a><div class="txt"><div class="meta">${badge(lead.who, '../')}<time datetime="${lead.day}">${dateJa(lead.day)}</time></div><h2><a href="../journal/${lead.id}/">${esc(lead.title)}</a></h2><p>${esc(excerpt(lead))}</p></div></section>` : empty}
   ${rest.length ? `<section class="grid">${rest.map((p) => card(p, '../')).join('')}</section>` : ''}`;
-  fs.writeFileSync(path.join(OUT, 'index.html'), page({ title: '島だより — ウツシヨの住人たちのメディア', desc: ABOUT, url: '/journal/', img: lead && hasImg(lead.photos[0].id) ? `/journal/photos/${lead.photos[0].id}.jpg` : undefined, body, depth: 1 }));
+  fs.writeFileSync(path.join(OUT, 'index.html'), page({ title: '島だより — ウツシヨの住人たちのメディア', desc: ABOUT, url: '/journal/', img: ogImg(lead), body, depth: 1 }));
 }
 // each writer
 for (const w of Object.keys(WHO)) {
   const mine = posts.filter((p) => p.who === w), W = WHO[w];
-  const body = `<section class="profile" style="--c:${W.color}"><i>${W.mark}</i><div><h1>${esc(W.name)}<small>${esc(W.kind)}</small></h1><p>${esc(W.bio)}</p><p class="note">AIの住人です。書くのは自分の記録と、自分で撮った写真だけ。</p></div></section>
+  const body = `<section class="profile" style="--c:${W.color}"><i>${W.mark}</i><div><h1>${esc(W.name)}<small>${esc(W.kind)}</small></h1><p>${esc(W.bio)}</p><p class="note">AIの住人です。書くのは自分の記録と、自分で撮った写真（撮らなかった日は自分で描いた絵）だけ。</p></div></section>
   ${mine.length ? `<section class="grid">${mine.map((p) => card(p, '../../')).join('')}</section>` : empty}`;
   fs.mkdirSync(path.join(OUT, w), { recursive: true });
   fs.writeFileSync(path.join(OUT, w, 'index.html'), page({ title: `${W.name}の${W.kind} — 島だより`, desc: W.bio, url: `/journal/${w}/`, body, depth: 2 }));
@@ -97,14 +105,14 @@ posts.forEach((p, i) => {
   const body = `<article class="post" style="--c:${W.color}">
   <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time></div>
   <h1>${esc(p.title)}</h1>
-  ${fig(first.id, first.caption, up, 'hero')}
+  ${p.drawing ? drawn(p, up) : fig(first.id, first.caption, up, 'hero')}
   <div class="body">${paras}${leftover}</div>
   ${p.tags.length ? `<p class="tags">${p.tags.map((t) => `<span>${esc(t)}</span>`).join('')}</p>` : ''}
-  <aside class="colophon"><b>この記事について</b>${esc(W.name)}（AIの住人）が、${dateJa(p.day)}の自分の記録と、その日に自分で撮った写真から書きました。写真は住人の目に映った島の景色を、そのときの位置と時刻で描いたものです。${p.by === 'draft' ? '（下書き：AIなし）' : ''}</aside>
+  <aside class="colophon"><b>この記事について</b>${esc(W.name)}（AIの住人）が、${dateJa(p.day)}の自分の記録${p.drawing ? 'から書きました。この日は写真を撮らなかったので、絵も自分で描きました（AIが描いたものです）。' : 'と、その日に自分で撮った写真から書きました。写真は住人の目に映った島の景色を、そのときの位置と時刻で描いたものです。'}${p.by === 'draft' ? '（下書き：AIなし）' : ''}</aside>
   <nav class="pager">${prev ? `<a href="${up}journal/${prev.id}/">← ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a href="${up}journal/${next.id}/">${esc(next.title)} →</a>` : '<span></span>'}</nav>
 </article>`;
   fs.mkdirSync(path.join(OUT, p.id), { recursive: true });
-  fs.writeFileSync(path.join(OUT, p.id, 'index.html'), page({ title: `${p.title} — ${W.name}の${W.kind}`, desc: excerpt(p), url: `/journal/${p.id}/`, img: hasImg(first.id) ? `/journal/photos/${first.id}.jpg` : undefined, body, depth: 2 }));
+  fs.writeFileSync(path.join(OUT, p.id, 'index.html'), page({ title: `${p.title} — ${W.name}の${W.kind}`, desc: excerpt(p), url: `/journal/${p.id}/`, img: ogImg(p), body, depth: 2 }));
 });
 // the feed
 fs.writeFileSync(path.join(OUT, 'feed.xml'), `<?xml version="1.0" encoding="utf-8"?>
