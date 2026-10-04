@@ -57,7 +57,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
 }
 { // 2 posts
   const inp: PostInput = { who: 'rakko', name: 'ラッコ', profile: 'ラッコ', day: '2026-10-03', entries: [{ time: '10:00', text: '目的：貝殻を集める（浜に3つ並べる）', key: 'mind' }, { time: '10:00', text: '貝殻を拾った', key: 'got' }, { time: '10:01', text: '浜を見た', key: 'got' }, { time: '10:02', text: '浜を見た', key: 'got' }, { time: '10:03', text: '浜を見た', key: 'got' }, { time: '10:04', text: 'うまくいかなかった：道がなかった', key: 'mind' }, { time: '10:05', text: '写真を撮った：貝殻', key: 'photo' }], photos: [{ id: 'rakko-2026-10-03-1', subject: { id: 'shell#1', kind: 'shell', label: '貝殻' }, time: '10:05' }], talks: [] };
-  const good = { title: 'きれいな貝殻', review: { summary: ['貝殻をひろって写真をとった日。'], state: ['貝殻 1つ'], unknown: [], outlook: ['あしたはドットに見せる。'] }, photos: [{ id: 'rakko-2026-10-03-1', caption: 'ぴかぴか' }], tags: ['貝殻'] };
+  const good = { title: 'きれいな貝殻', sns: '貝殻を1つ拾って浜に並べた。明日は北の浜を探す。', review: { summary: ['貝殻をひろって写真をとった日。'], state: ['貝殻 1つ'], unknown: [], outlook: ['あしたはドットに見せる。'] }, photos: [{ id: 'rakko-2026-10-03-1', caption: 'ぴかぴか' }], tags: ['貝殻'] };
   let asks = 0;
   const p1 = await writePost(inp, async () => { asks++; return asks === 1 ? JSON.stringify({ ...good, photos: [{ id: 'rakko-2026-10-02-9', caption: 'x' }] }) : JSON.stringify(good); }, 'stub');
   want('2 a photo it did not take is asked again, then the post stands', !!p1 && asks === 2 && p1.photos[0].id === 'rakko-2026-10-03-1', `${asks} asks`);
@@ -65,7 +65,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('2 a link: given up', p2 === null);
   // (a day without photographs: a picture it drew instead — shapes only; one that loads or runs something is asked again)
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#9fd3e0"/><circle cx="400" cy="300" r="80" fill="#f2e3c6"/></svg>';
-  const drew = { title: '貝殻の絵', review: good.review, photos: [], drawing: { svg, caption: '浜でひろった貝殻' }, tags: [] };
+  const drew = { title: '貝殻の絵', sns: good.sns, review: good.review, photos: [], drawing: { svg, caption: '浜でひろった貝殻' }, tags: [] };
   let asks2 = 0;
   const p3 = await writePost({ ...inp, photos: [] }, async () => { asks2++; return JSON.stringify(asks2 === 1 ? { ...drew, drawing: { svg: svg.replace('</svg>', '<script>alert(1)</script></svg>'), caption: 'x' } } : drew); }, 'stub');
   want('2 no photograph that day: a drawing instead; one with a script is asked again', !!p3 && asks2 === 2 && !!p3.drawing && p3.photos.length === 0 && !/script/.test(p3.drawing.svg), `${asks2} asks`);

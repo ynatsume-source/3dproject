@@ -1428,8 +1428,8 @@ function renderIsland() {
     <p class="lead"><a href="./journal/" target="_blank" rel="noopener" style="color:var(--accent)">島だより ↗</a>　ドットとラッコが、自分で撮った写真と自分の記録から毎日書いているメディア。</p>
     <ul>${cards}</ul>
     ${(() => { const vg = (R as any).village; if (!vg) return '';
-      const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火を何度か囲むうちに、みんなで何かをつくる話が出てくるかもしれません（焚き火の会 ${vg.fires}回）。</p>`
-        : `<p class="lead"><b>桟橋</b>　${vg.pier === 'plan' ? 'カメマルが場所を測るのを待っている' : vg.pier === 'done' ? '完成！ みんなでつくったはじめての大きなもの' : `土台の石 ${vg.bases}/4（ランタン）・柱 ${vg.posts}/4（ラッコ）・板 ${vg.deck}/8（ドット）`}</p>`;
+      const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火の会を重ねると、共同作業の提案が出ます（焚き火の会 ${vg.fires}回）。</p>`
+        : `<p class="lead"><b>桟橋</b>　${vg.pier === 'plan' ? 'カメマルが場所を測るのを待っている' : vg.pier === 'done' ? '完成（はじめての共同作業）' : `土台の石 ${vg.bases}/4（ランタン）・柱 ${vg.posts}/4（ラッコ）・板 ${vg.deck}/8（ドット）`}</p>`;
       const tr = vg.treasures.length ? `<ul class="plain">${vg.treasures.map((x: any) => `<li>${x.what}　<small>${x.who}が見つけた・${localTimeString(x.at, loc.tz)}</small></li>`).join('')}</ul>` : '<p class="empty">まだ何も流れ着いていません。ときどき、遠くから何かが浜に打ち上がります。</p>';
       return `<h3>みんなでつくっているもの</h3>${pier}<h3>海の向こうから流れ着いたもの</h3>${tr}`; })()}
     <h3>聞こえてきた会話</h3>

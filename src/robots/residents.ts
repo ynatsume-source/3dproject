@@ -23,7 +23,6 @@ import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
 import type { Subject } from '../eco/env';
-import { aiConverse, aiReady } from './mind';
 import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
 import type { StudyWorld, StudyPlace, StudyIntent } from './lantern-study-types';
@@ -159,7 +158,7 @@ const SPECS: Spec[] = [
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
   opt?: string; failed?: Outcome; reported?: boolean; label?: string }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
 interface Line { who: string; text: string }
-interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number }
+interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number; shares: { from: Resident; to: Resident; ob: Observation }[] }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
 // eye / look: where its eyes are and which way its head faces, from the model as it is drawn (its turn, nod and
 // gaze included) — what its own point of view is taken from
@@ -173,7 +172,7 @@ export interface Resident {
   hunger: number; sleepy: number; meal: Record<string, number>; under: number;
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number;
-  stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number };
+  stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
@@ -209,6 +208,7 @@ export interface Residents {
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
   body(r: Resident): Body;
   mind(r: Resident): Agent | null;                 // its own mind (ADR 0004), if it has one
+  profile(r: Resident): string;                    // its role, how it tends to decide and what has worked (for its writing)
   pose(rec: PhotoRecord | null): void;             // (drawing a photograph again: everyone as they were, held still; null: back to life)
   setBrain(b: Brain | null | undefined): void;     // (tests: a stand-in brain; null: none; undefined: the model)
   observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
@@ -570,19 +570,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- the diary and what happened today ---------- */
   function note(r: Resident, key: string, vars: Record<string, string | number> = {}, today?: string, obs?: string) {
-    const lines = r.v.diary[key]; if (!lines) return;
-    const text = fill(pickOne(lines), { ...statVars(r), ...vars });
+    // (a plain record of what happened — no voice put on: ADR 0004, addendum 2026-10-04)
+    const base = today ?? PLAIN[key]?.(vars); if (!base) return;
+    const text = vars.sight ? `${base}。${vars.sight}` : base;
     r.diary.push(obs ? { at: clockMs, text, key, obs } : { at: clockMs, text, key }); if (r.diary.length > 800) r.diary.shift();
     if (today) { r.today.push(today); if (r.today.length > 6) r.today.shift(); }
     res.onEvent(key, `${r.v.name}：${text}`, r);
   }
+  const PLAIN: Record<string, (v: Record<string, string | number>) => string> = {
+    find: (v) => `浜で${v.thing}を拾った`, cairn: () => '目印の石を積んだ（4つ）', charge: () => '日なたで充電した',
+  };
   const statVars = (r: Resident) => {
     const s = r.stats, map = Math.round(Math.min(100, visited.size / 3.2));
-    return { built: s.built, notes: s.notes, shells: s.shells, map, food: s.food, deck: village.deck,
-      hutNow: s.built === 0 ? 'マダ、材料 アツメテル トコロ。' : s.built < 18 ? `イマ、部材 ${s.built}本。進捗、順調。` : 'コヤ、モウ 完成シマシタ！',
-      notesNow: s.notes === 0 ? '……記録をつけはじめたところです。' : `記録はもう${s.notes}件になりました。`,
-      mapNow: map < 3 ? 'まだ歩きはじめたばかりだが。' : `いまで島の${map}%ほど。`,
-      shellsNow: s.shells === 0 ? 'きれいな貝殻を集めはじめたところ！' : `貝殻はもう${s.shells}個集めたんだ！` };
+    return { built: s.built, notes: s.notes, shells: s.shells, map, food: s.food, deck: village.deck };
   };
   // what it saw, for its diary: only the fish it really made out (T.nearFish, ahead of its eyes, now and while it
   // grazed), never a name drawn at random; nothing seen is said as such
@@ -977,7 +977,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const seenNow = new Map(observe(r).map((x) => [x.id, x.kind]));
     const rank = (o: Option) => { const k = o.targetId!.split('#')[0]; return (kinds.has(seenNow.get(o.targetId!) ?? '') ? 10 : 0) + (o.targetId === 'drift' ? 0 : list.some((x) => x.id === o.targetId) ? 1 : k === 'young-tree' || k === 'shell' ? 2 : 3) + Math.random() * 1.5; };
     const pick = fresh.map((o) => [o, rank(o)] as const).sort((x, y) => x[1] - y[1])[0][0];
-    return { text: '写真に残す', why: '残しておきたいと思った', plan: [pick.id] };
+    return { text: '写真に残す', why: '記録として残す', plan: [pick.id] };
   };
   const HABIT: Record<string, Habit> = {
     rakko: (opts, a) => {
@@ -997,13 +997,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (has('give:')) return { text: 'ドットに流木を届ける', why: '引き受けたので', plan: ['give:dot'] };
         const g = near('gather'); if (g) return { text: 'ドットに流木を届ける', why: '引き受けたので', plan: [g, 'give:dot'] };
       }
-      if (r.holding === 'shell') { const sh = has('show:'); return { text: '貝殻を見せてから並べる', why: 'きれいなのを拾った', plan: sh ? [sh, 'pile:beach'] : ['pile:beach'] }; }
+      if (r.holding === 'shell') { return { text: '貝殻を並べる', why: '貝殻を持っている', plan: ['pile:beach'] }; }
       if (r.holding === 'wood') return { text: '流木を届ける', why: '持っている', plan: [has('post:') ?? 'give:dot'] };
       const tell = opts.find((o) => o.action === 'tell');
       if (tell && Math.random() < 0.3) return { text: 'ドットに流木の場所を教える', why: 'ドットが小屋の材料を探していた', plan: [tell.id] };
       const q = Math.random(), c = near('collect');
-      if (c && q < 0.55) return { text: '貝殻を集める', why: '貝殻が好き', plan: [c, 'pile:beach'] };
-      return q < 0.75 ? { text: '浮かんでのんびりする', why: '気持ちいいから', plan: [has('float:') ?? 'wander:beach'] } : q < 0.9 ? { text: '毛づくろいする', why: '毛皮の手入れ', plan: [has('groom:') ?? 'wander:beach'] } : { text: '浜を歩く', why: '何かないか探す', plan: ['wander:beach'] };
+      if (c && q < 0.55) return { text: '貝殻を集める', why: '役割：貝殻を集めて並べる', plan: [c, 'pile:beach'] };
+      return q < 0.75 ? { text: '浮かんで休む', why: '急ぐことがない', plan: [has('float:') ?? 'wander:beach'] } : q < 0.9 ? { text: '毛づくろいする', why: '毛皮の手入れ', plan: [has('groom:') ?? 'wander:beach'] } : { text: '浜を歩く', why: '何かないか探す', plan: ['wander:beach'] };
     },
     dot: (opts, a) => {
       const has = (p: string) => opts.find((o) => o.id.startsWith(p) && o.ready !== false)?.id;
@@ -1011,7 +1011,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       { const ph = photoHabit(r, opts); if (ph && !r.holding) return ph; }
       if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
       if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', 'place:hut'] };
-      if (has('shelve:')) return { text: '見つけたものを棚に飾る', why: '手に持っている', plan: ['shelve:shelf'] };
+      if (has('shelve:')) return { text: '見つけたものを棚に置く', why: '手に持っている', plan: ['shelve:shelf'] };
       if (has('find:')) return { text: '見慣れないものを調べる', why: '浜で見かけた', plan: ['find:drift', 'shelve:shelf'] };
       if (has('charge:') && r.battery < 0.3) return { text: '充電する', why: '電池が少ない', plan: ['charge:sun'] };
       if (r.stats.built < HUT.length) {
@@ -1030,6 +1030,20 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   let brainOverride: Brain | null | undefined;
   const agents: Record<string, Agent> = {};
   for (const r of list) if (MINDS[r.id]?.on && HABIT[r.id]) agents[r.id] = new Agent(r.id, r.v.mind, HABIT[r.id], (i, t) => (brainOverride === undefined ? modelBrain : brainOverride ?? (async () => null))(i, t));
+  // (what another told it, and then worked: talking is of use — learnt, a little more each time)
+  for (const r of list) {
+    const a = agents[r.id]; if (!a) continue;
+    a.onUseful = (from, opt) => {
+      r.stats.talkUse = Math.min(1, (r.stats.talkUse ?? 0) + 0.25);
+      r.diary.push({ at: clockMs, text: `${byId[from]?.v.name ?? from}から聞いた情報で、${opt.split(':')[0] === 'gather' ? '拾えた' : 'できた'}（${opt}）`, key: 'mind' }); if (r.diary.length > 800) r.diary.shift();
+    };
+  }
+  /** Who it is for its own mind: its role and how it tends to decide, and what has worked for it (its hits). */
+  function profileOf(r: Resident): string {
+    const a = agentOf(r); if (!a) return r.v.mind;
+    const hits = a.knowledge.filter((k) => k.status === 'confirmed' || (k.source === 'tried' && /できた|拾えた|役に立った/.test(k.text))).slice(-5).map((k) => k.text);
+    return hits.length ? `${r.v.mind}\n当たり（うまくいったこと）：${hits.join('／')}` : r.v.mind;
+  }
   const agentOf = (r: Resident) => agents[r.id] as Agent | undefined;
   // what they have asked of each other (kept by the world: ADR 0004 §6)
   const requests: Request[] = [];
@@ -1046,7 +1060,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function brainInput(r: Resident, a: Agent, opts: Option[]): BrainInput {
     const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
     return {
-      who: r.id, profile: r.v.mind, why: a.why || '次にすることを決める',
+      who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
       now: { at: clockMs, hour: +hr.toFixed(1), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
       knowledge: a.knowledge, results: a.results, options: opts,
@@ -1091,7 +1105,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast) res.onEvent(tk.kind, `${r.v.name}：${result.text}`, r);
         if (tk.kind === 'study-share') {
           const c = heading('ランタンの星の手帖');
-          say(r, 'この空を、手帖に描いてみた。次の夜も、続きを確かめたい。', c, fast);
+          say(r, '星空を手帖に記録した。次の夜に同じ条件で比べる。', c, fast);
         }
       }
       r.task = null;
@@ -1127,9 +1141,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       case 'watch': { r.stats.notes++; const sg = sight(r); note(r, 'watch', { sight: sg.text }, '浜で海を見ていた', sg.obs); break; }
       case 'swim': { r.stats.notes++; const sg = sight(r); note(r, 'swim', { sight: sg.text }, 'ラグーンを泳いだ', sg.obs); break; }
-      case 'explore': note(r, 'explore', { place: pickOne(['北の浜の岩場に出た。', '森の中の空き地を見つけた。', '白い砂の小道をたどった。', 'アダンの茂みを回り込んだ。']) }, '夜の島を歩いて地図を作った'); break;
+      case 'explore': note(r, 'explore', {}, `島を歩いて地図を広げた（${statVars(r).map}%）`); break;
       case 'think': {
-        note(r, 'think', { star: pickOne(['光の届かない場所にも、道はあるのだろうか。', '地図の空白は、まだ知らないという印だ。', '波の音は、何度聞いても同じではない。']) }, '丘で星を見て考えごとをした');
+        note(r, 'think', {}, '丘で星を観測した');
         break;
       }
       case 'chop': {
@@ -1218,14 +1232,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast && admireCool <= 0 && r.hunger < 0.7 && Math.random() < 0.4) { admireCool = 60; r.task = task('admire', [r.pos.x, r.pos.z], 'look', rr(4, 8), { arrived: true }); return; }
         r.task = (!fast && showTask(r)) || task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;
       case 'show': if (agentOf(r)) break; r.task = task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3); return;   // (and on to the pile with it: it keeps what it found)
-      case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, 'きれいな貝殻を拾った'); break;
+      case 'pile': if (r.holding !== 'shell') break; r.holding = ''; r.stats.shells++; buildPile(); note(r, 'collect', {}, `貝殻を浜に並べた（${r.stats.shells}個）`); break;
       case 'survey': if (village.pier === 'plan') { village.pier = 'build'; drawPier(); note(r, 'survey', {}, '桟橋の位置を測った'); res.onEvent('pier', 'カメマルが桟橋の位置を測り終えた。いよいよ建設開始', r); } break;
       case 'inspect': r.today.push('桟橋の工事を見守った'); break;
       case 'base': if (r.holding !== 'stone' || village.bases >= 4) break; r.holding = ''; launch(r, bases[village.bases], fast); village.bases++; drawPierSoon(); note(r, 'base', {}, '桟橋の土台石を据えた'); break;
       case 'post': if (r.holding !== 'wood' || village.posts >= village.bases) break; r.holding = ''; launch(r, posts[village.posts], fast); village.posts++; drawPierSoon(); note(r, 'post', {}, '桟橋の柱を立てた'); break;
       case 'deck':
         if (r.holding !== 'plank' || village.deck >= 8) break; r.holding = ''; launch(r, planks[village.deck], fast); village.deck++; drawPierSoon();
-        if (village.deck >= 8) { village.pier = 'done'; for (const o of list) note(o, 'pierDone', {}, 'みんなで桟橋を完成させた'); res.onEvent('pier', '桟橋が完成した！ みんなでつくった、はじめての大きなもの', r); }
+        if (village.deck >= 8) { village.pier = 'done'; for (const o of list) note(o, 'pierDone', {}, '桟橋が完成した（共同作業）'); res.onEvent('pier', '桟橋が完成した。みんなでつくった、はじめての大きなもの', r); }
         else note(r, 'deck', {}, '桟橋の板を張った');
         break;
       case 'find':
@@ -1247,7 +1261,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (c[2] >= 4) { r.stats.cairns++; note(r, 'cairn'); }
         break;
       }
-      case 'float': note(r, 'float', {}, '沖でぷかぷか浮いていた'); break;
+      case 'float': note(r, 'float', {}, '沖で浮いて休んだ'); break;
       case 'nap': note(r, 'nap', {}, '浮いたまま昼寝した'); break;
       case 'doze': {   // (asleep on the water, it went with it: awake somewhere else)
         if (r.id === 'rakko' && r.wet) { const at = spot([r.pos.x, r.pos.z], 80, water(0.8, 6)); if (at && Math.hypot(at[0] - r.pos.x, at[1] - r.pos.z) > 25) { r.pos.x = at[0]; r.pos.z = at[1]; placeY(r); r.diary.push({ at: clockMs, text: '目が覚めたら、流されて知らない場所にいた', key: 'body' }); } }
@@ -1498,35 +1512,45 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   /* ---------- meeting and talking ---------- */
+  // Words between two of them are what they hold (ADR 0004, addendum 2026-10-04): the first time, who each is and
+  // what it is for — the island's custom; after that, how far each has got, and where something lies that the
+  // other gathers. Nothing is said for the saying of it. What one passes on, the other's mind keeps as heard.
+  const ROLE: Record<string, string> = { dot: '小屋の建設', rakko: '貝殻の収集', kame: '位置の測量', lantern: '地図の作成' };
+  const WANTS: Record<string, string> = { dot: 'wood', rakko: 'shell' };
+  const ITEM_JA: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
+  function progressOf(r: Resident): string {
+    const s = r.stats;
+    if (r.id === 'dot') return `小屋 ${s.built}/${HUT.length}、収穫 ${s.food}`;
+    if (r.id === 'rakko') return `貝殻 ${s.shells}個、おなか ${full(r)}`;
+    if (r.id === 'kame') return `記録 ${s.notes}件、おなか ${full(r)}`;
+    return `地図 ${statVars(r).map}%、記録 ${s.notes}件、目印 ${s.cairns}`;
+  }
+  /** Where something lies that `to` gathers and does not know of, as `from` knows it: what its mind has seen, or —
+   *  without a mind — what lies within sight of where it is. */
+  function tip(from: Resident, to: Resident): Observation | null {
+    const kind = WANTS[to.id], ta = agentOf(to); if (!kind || !ta) return null;
+    const fa = agentOf(from);
+    const it = items.list.filter((x) => x.kind === kind && !x.by && !ta.seen.has(`${kind}#${x.id}`) && (fa ? fa.seen.has(`${kind}#${x.id}`) : Math.hypot(x.x - from.pos.x, x.z - from.pos.z) < 40))
+      .sort((p, q) => Math.hypot(p.x - to.pos.x, p.z - to.pos.z) - Math.hypot(q.x - to.pos.x, q.z - to.pos.z))[0];
+    return it ? { id: `${kind}#${it.id}`, kind, label: ITEM_JA[kind], x: it.x, z: it.z, dist: Math.hypot(it.x - to.pos.x, it.z - to.pos.z), at: clockMs } : null;
+  }
   function startTalk(a: Resident, b: Resident, fast: boolean) {
     const bd = bonds[pair(a.id, b.id)];
-    const lines: Line[] = [];
-    const va = a.v, vb = b.v, A = (t: string) => lines.push({ who: a.id, text: fill(t, { ...statVars(a), you: b.v.name }) }), B = (t: string) => lines.push({ who: b.id, text: fill(t, { ...statVars(b), you: a.v.name }) });
-    const did = (r: Resident) => { const t = r.today.filter((x) => !x.endsWith('と話した')); return t.length ? t[t.length - 1] : pickOne(['のんびりしていた', '海を眺めていた']); };
-    let stage = bd.stage;
-    if (stage === 0) { A(pickOne(va.greet)); B(pickOne(vb.greetBack)); }
-    else if (stage === 1) { A(pickOne(va.again)); A(pickOne(va.intro)); B(pickOne(vb.intro)); B(pickOne(vb.chatBack)); }
-    else if (stage === 2) { A(pickOne(va.again)); A(pickOne(va.tips)); B(pickOne(vb.thanks)); B(pickOne(vb.tips)); A(pickOne(va.thanks)); }
-    else if (stage === 3 || (stage === 4 && bd.know < 0.65) || (stage === 5 && Math.random() < 0.5)) { A(pickOne(va.again)); A(fill(pickOne(va.chat), { did: did(a) })); B(pickOne(vb.chatBack)); B(fill(pickOne(vb.chat), { did: did(b) })); A(pickOne(va.chatBack)); }
-    else {   // trusting each other: one of them opens up, the other listens
-      const [s, l] = bd.toldWorry % 2 === 0 ? [a, b] : [b, a];
-      A(pickOne(va.again));
-      lines.push({ who: s.id, text: pickOne(s.v.worries) }, { who: l.id, text: pickOne(l.v.comfort) });
-      stage = 5;
+    const lines: Line[] = [], shares: Talk['shares'] = [];
+    const stage = bd.stage;
+    if (stage === 0) for (const r of [a, b]) lines.push({ who: r.id, text: `識別：${r.v.name}。役割：${ROLE[r.id] ?? '—'}` });
+    else {
+      for (const r of [a, b]) lines.push({ who: r.id, text: `報告：${progressOf(r)}` });
+      for (const [f, t] of [[a, b], [b, a]] as Resident[][]) {
+        const ob = tip(f, t); if (!ob) continue;
+        lines.push({ who: f.id, text: `共有：${ob.label}が1つある（${t.v.name}から約${Math.round(ob.dist)}m）` }); shares.push({ from: f, to: t, ob });
+      }
     }
-    A(pickOne(va.bye)); B(pickOne(vb.bye));
     keep(a); keep(b);
-    const tk: Talk = { a, b, lines, i: 0, t: 0, stage, conv: heading(`${a.v.name}と${b.v.name}（${STAGES[Math.min(bd.stage + 1, 5)]}）`) };
+    const tk: Talk = { a, b, lines, i: 0, t: 0, stage, conv: heading(`${a.v.name}と${b.v.name}（${STAGES[Math.min(bd.stage + 1, 5)]}）`), shares };
     a.talk = b.talk = tk;
     bd.last = clockMs; bd.talks++;
-    res.onEvent('meet', `${a.v.name}と${b.v.name}が出会った（${STAGES[Math.min(bd.stage + 1, 5)]}）`, a);
-    // with an AI key, their own words replace the prepared ones (the greeting plays while it thinks)
-    if (!fast && aiReady() && lines.length > 2) {
-      tk.pending = true;
-      aiConverse(a.v, b.v, bd.stage, STAGES[bd.stage], a.today.slice(-3), b.today.slice(-3), talks.filter((e) => !e.head).slice(-6).map((e) => (e.who ? `${byId[e.who]?.v.name}「${e.text}」` : e.text)))
-        .then((got) => { if (tk.pending && got && got.length) { tk.lines = [tk.lines[0], ...got.map((g) => ({ who: g.who === 'A' ? a.id : b.id, text: g.text }))]; } })
-        .finally(() => { tk.pending = false; });
-    }
+    res.onEvent('meet', `${a.v.name}と${b.v.name}が${stage === 0 ? '識別しあった' : '情報を交換した'}`, a);
     return tk;
   }
   // stopping what it was doing to talk: the doing is kept (and whatever it had claimed or was holding), to go
@@ -1536,17 +1560,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   function endTalk(tk: Talk) {
     const bd = bonds[pair(tk.a.id, tk.b.id)];
-    bd.know = Math.min(1, bd.know + (bd.stage >= 3 ? 0.2 : 0.1));
-    if (bd.stage < 3) bd.stage++;
-    else if (bd.stage === 3 && bd.know >= 0.5) bd.stage = 4;
-    else if (tk.stage === 5) { bd.stage = 5; bd.toldWorry++; }
+    bd.know = Math.min(1, bd.know + 0.1);
+    if (bd.stage < 5) bd.stage++;
     for (const r of [tk.a, tk.b]) { r.talk = null; r.saying = ''; r.task = null; }
-    const who = `${tk.a.v.name}と${tk.b.v.name}`;
-    const summary = tk.stage === 5 ? '悩みを打ち明けあった' : ['はじめて挨拶した', '自己紹介をした', '島で生きるコツを教え合った', '近況を話した', '近況を話した'][Math.min(tk.stage, 4)];
+    for (const sh of tk.shares) {
+      agentOf(sh.to)?.hear(sh.ob, sh.from.id, `${sh.from.v.name}によると、${sh.ob.label}が${Math.round(sh.ob.dist)}mほど先にある`, clockMs);
+      sh.to.diary.push({ at: clockMs, text: `${sh.from.v.name}から${sh.ob.label}の位置を聞いた（約${Math.round(sh.ob.dist)}m）`, key: 'met', with: sh.from.id });
+    }
+    const summary = tk.stage === 0 ? '識別しあった' : '情報を交換した';
     tk.a.today.push(`${tk.b.v.name}と話した`); tk.b.today.push(`${tk.a.v.name}と話した`);
-    tk.a.diary.push({ at: clockMs, text: `${tk.b.v.name}と会って、${summary}。`, key: 'met', with: tk.b.id }); tk.b.diary.push({ at: clockMs, text: `${tk.a.v.name}と会って、${summary}。`, key: 'met', with: tk.a.id });
+    tk.a.diary.push({ at: clockMs, text: `${tk.b.v.name}と${summary}。`, key: 'met', with: tk.b.id }); tk.b.diary.push({ at: clockMs, text: `${tk.a.v.name}と${summary}。`, key: 'met', with: tk.a.id });
     for (const r of [tk.a, tk.b]) if (r.diary.length > 800) r.diary.shift();
-    res.onEvent('talked', `${who}が${summary}`, tk.a);
+    res.onEvent('talked', `${tk.a.v.name}と${tk.b.v.name}が${summary}`, tk.a);
   }
   function stepTalk(tk: Talk, dt: number, fast: boolean) {
     // (waiting for the AI's words — a minute at most: then the prepared ones, and a late answer is let go)
@@ -1566,6 +1591,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (tk.t > (fast ? 1 : 2.4 + line.text.length * 0.09)) { tk.i++; tk.t = 0; }
   }
   // the one who is out and about closes the gap once they have spotted each other
+  /** Has it learnt, from what came of it, that what others tell it is of use? (ADR 0004, addendum 2026-10-04) */
+  const keen = (r: Resident) => (r.stats.talkUse ?? 0) >= 0.3;
   function checkMeetings(fast: boolean) {
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
@@ -1573,8 +1600,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const d = Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z);
       const bd = bonds[pair(a.id, b.id)];
       if (d > 14 || clockMs - bd.last < 25 * 60e3) continue;
-      if (d > 3.2) {   // spotted: walk (or paddle) over
-        const [m, o] = a.sp.social >= b.sp.social ? [a, b] : [b, a];
+      // (out here, away from the fire, they stop for each other only to identify the first time they come face to
+      // face — the custom — or when one has learnt that what it hears from others is of use, and goes over for it)
+      if (!keen(a) && !keen(b) && (bd.stage > 0 || d > 3.2)) continue;
+      if (d > 3.2) {   // spotted, by one that has found talking pays: walk (or paddle) over
+        const [m, o] = keen(a) ? [a, b] : [b, a];
         keep(m); m.task = { kind: 'approach', x: o.pos.x, z: o.pos.z, act: 'walk', dur: 60, t: 0, arrived: false, wet: m.sp.swims, data: o.id };
         continue;
       }
@@ -1583,6 +1613,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   // now and then the sociable ones take a walk toward a neighbour's part of the island
   function maybeVisit(r: Resident, hr: number): Task | null {
+    if (!keen(r)) return null;   // (only one that has learnt what others know is of use goes looking for them)
     if (Math.random() > r.sp.social * 0.08) return null;
     const awake = list.filter((o) => o !== r && !sleepTime(o, hr));
     if (!awake.length) return null;
@@ -1621,7 +1652,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.task = task('fire', seat, 'sit', 1e9); r.blocked = 0;
     }
     if (r.task?.kind === 'fire' && !gatherHours(hr)) {
-      if (atFire.has(r.id)) note(r, 'fire', {}, '焚き火を囲んだ');
+      if (atFire.has(r.id)) note(r, 'fire', {}, '焚き火の会に出た');
       r.task = null; r.saying = '';
     }
     if (!r.task && r.resume) {
@@ -1800,6 +1831,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     hide: '',
     body: (r) => bodyOf(r),
     mind: (r) => agentOf(r) ?? null,
+    profile: (r) => profileOf(r),
     // (a photograph drawn again: the one who took it not drawn — it is behind the lens — the others where they were,
     // and everyone held still)
     pose(rec) {
@@ -2002,16 +2034,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const marker = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.42, 40), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false }));
   marker.rotation.x = -Math.PI / 2; marker.visible = false; group.add(marker);
   let markT = 0;
-  // Round the fire: now one, now another says something; the circle warms them to each other
+  // Round the fire: the island's custom (not for warmth, not for company — it is what is done of an evening). Those
+  // who are up sit round it, and each in turn reports: how far it has got, what it did, what it found; what one knows
+  // that another gathers is passed on, as in any meeting. After a few evenings, a proposal to build a pier together.
   function fireCircle(dt: number, fast: boolean) {
     const hr = localHour(clockMs);
     const seated = list.filter((r) => r.task?.kind === 'fire' && r.task.arrived);
     if (!gatherHours(hr)) {
-      if (atFire.size > 1) {   // the evening is over: everyone who was there knows the others a little better
+      if (atFire.size > 1) {   // the evening is over: those who were there have identified each other, at least
         const ids = [...atFire];
-        for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const bd = bonds[pair(ids[i], ids[j])]; bd.know = Math.min(1, bd.know + 0.12); if (bd.stage < 3) bd.stage++; bd.last = clockMs; }
+        for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const bd = bonds[pair(ids[i], ids[j])]; if (bd.stage < 1) bd.stage = 1; bd.last = clockMs; }
         const names = ids.map((id) => byId[id].v.name).join('・');
-        res.onEvent('fire', `${names}で焚き火を囲んだ`, byId[ids[0]]);
+        res.onEvent('fire', `${names}が焚き火の会に出た`, byId[ids[0]]);
         village.fires++; lastFireAt = clockMs;
       }
       fireQueue.length = 0;
@@ -2019,44 +2053,46 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return;
     }
     if (seated.length >= 2 && !fireSaid) {
-      fireSaid = true; res.onEvent('fire', 'みんなが焚き火のまわりに集まってきた', seated[0]);
-      // what tonight is about: something found on the beach, and (after a few evenings) a plan to make something together
+      fireSaid = true; res.onEvent('fire', '焚き火の会が始まった', seated[0]);
       const found = village.treasures.filter((t) => t.at > lastFireAt);
-      for (const t of found) {
-        const f = list.find((r) => r.v.name === t.who);
-        if (f) fireQueue.push({ who: f.id, line: fill(pickOne(f.v.show), { thing: t.what }) });
-        for (const o of list.filter((r) => r !== f).sort(() => Math.random() - 0.5).slice(0, 2)) fireQueue.push({ who: o.id, line: pickOne(o.v.wonder) });
-      }
+      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) fireQueue.push({ who: f.id, line: `発見：浜で${t.what}を拾った。棚に置いた` }); }
       if (village.pier === 'none' && village.fires >= 2) {
-        for (const id of ['rakko', 'dot', 'kame', 'lantern']) fireQueue.push({ who: id, line: byId[id].v.pier[0] });
-        fireQueue.push({ who: 'rakko', line: byId.rakko.v.pier[1] }, { who: 'dot', line: byId.dot.v.pier[1] });
+        fireQueue.push({ who: 'kame', line: '提案：桟橋を共同で作る。位置は僕が測る' });
+        for (const id of ['dot', 'rakko', 'lantern']) fireQueue.push({ who: id, line: id === 'dot' ? '了承：板は小屋の部材と同じ作り方で作る' : id === 'rakko' ? '了承：柱は泳いで立てる' : '了承：土台の石を運ぶ' });
         fireQueue.push({ who: '', line: 'pier' });   // (then it is agreed)
       }
     }
     if (seated.length < 2) return;
     if ((fireTalkT -= dt) > 0) return;
-    fireTalkT = fast ? 60 : rr(16, 34);
+    fireTalkT = fast ? 60 : rr(9, 16);
     while (fireQueue.length) {
       const q = fireQueue.shift()!;
-      if (q.line === 'pier') { village.pier = 'plan'; drawPier(); res.onEvent('pier', 'みんなで桟橋をつくることに決めた。まずはカメマルが場所を測る', seated[0]); continue; }
+      if (q.line === 'pier') { village.pier = 'plan'; drawPier(); res.onEvent('pier', '桟橋を共同で作ることが決まった。まずカメマルが位置を測る', seated[0]); continue; }
       const w = byId[q.who]; if (!w || !seated.includes(w)) continue;
       for (const r of seated) if (r !== w) r.saying = '';
       if (!fireConv) fireConv = heading('焚き火の会');
-      say(w, q.line, fireConv, fast); lastSpeaker = w.id; fireTalkT = fast ? 60 : rr(9, 16);
+      say(w, q.line, fireConv, fast); lastSpeaker = w.id;
       return;
     }
-    // a dozen or so things said in an evening, none twice; after that they just sit and watch the fire
-    if (fireLines >= 14) return;
-    const who = pickOne(seated.filter((r) => r.id !== lastSpeaker)) ?? seated[0];
-    lastSpeaker = who.id;
+    // each reports once: its progress and the last thing it did; then what it can pass on to another; then quiet
+    const who = seated.find((r) => !fireUsed.has(r.id));
+    if (!who) {
+      if (fireLines >= seated.length * 2) return;
+      fireLines = seated.length * 2;
+      for (const f of seated) for (const t of seated) {
+        if (f === t) continue;
+        const ob = tip(f, t); if (!ob) continue;
+        fireQueue.push({ who: f.id, line: `共有：${t.v.name}へ。${ob.label}が1つある（約${Math.round(ob.dist)}m）` });
+        agentOf(t)?.hear(ob, f.id, `${f.v.name}によると、${ob.label}が${Math.round(ob.dist)}mほど先にある`, clockMs);
+        t.diary.push({ at: clockMs, text: `焚き火の会で、${f.v.name}から${ob.label}の位置を聞いた（約${Math.round(ob.dist)}m）`, key: 'met', with: f.id });
+      }
+      return;
+    }
+    fireUsed.add(who.id); fireLines++; lastSpeaker = who.id;
     const did = who.today.filter((x) => !x.endsWith('と話した'));
-    const pool = [...who.v.fire, ...(did.length ? who.v.fireDid.map((l) => fill(l, { did: did[did.length - 1] })) : [])].filter((l) => !fireUsed.has(l));
-    if (!pool.length) return;
-    const line = pickOne(pool); fireUsed.add(line); fireLines++;
     for (const r of seated) if (r !== who) r.saying = '';
     if (!fireConv) fireConv = heading('焚き火の会');
-    say(who, line, fireConv, fast);
-    for (const o of seated) if (o !== who) { const bd = bonds[pair(who.id, o.id)]; bd.know = Math.min(1, bd.know + 0.01); }
+    say(who, `報告：${progressOf(who)}${did.length ? `。今日：${did[did.length - 1]}` : ''}`, fireConv, fast);
   }
   // Dot at work, the piece flying into place, the chips, a newly fitted piece settling
   let fieldT = 0;

@@ -2,7 +2,7 @@
 // its own kind of AR — Dot a work display of plans, measurements and progress; Kamemaru an observer's
 // notebook that names what swims by; Lantern a night-sight that marks what is not yet on its map;
 // Rakko something bright and playful. What it has its eye on is marked, what it means to do next is
-// spelled out, and now and then it mutters to itself (in its own language, with what it means).
+// spelled out, and what it says to the others (in its own language, with what it means).
 import * as THREE from 'three';
 import type { Sense, Mark } from '../robots/residents';
 
@@ -13,51 +13,41 @@ const bar = (k: number, n = 8) => '▮'.repeat(Math.round(k * n)) + '▯'.repeat
 // what each of them means to do, step by step, for what it is doing now
 const PLAN: Record<string, Record<string, string[]>> = {
   dot: {
-    gather: ['① 流木 回収', '② 作業台デ 削ル', '③ 部材 #{n} 取付'], craft: ['① 部材 #{n} 成形', '② 小屋ヘ 運搬', '③ 取付 → 次ノ流木'],
-    place: ['① 部材 #{n} 取付', '② 固定 確認', '③ 次ノ流木 探索'], chop: ['① 若木 伐採', '② 丸太 回収', '③ 畑ノ 区画 確保'],
-    till: ['① 区画 耕起', '② 種マキ', '③ 収穫 マデ 1.5日'], plant: ['① 種マキ', '② 生育 監視', '③ 収穫'], harvest: ['① 収穫', '② 食料 備蓄', '③ 再ビ 種マキ'],
-    look: ['① 海 監視', '② 流木 漂着 待チ'], deck: ['① 桟橋ノ板 #{d} 張ル', '② 次ノ流木', '③ 桟橋 完成'], find: ['① 未知ノ物体 回収', '② 解析', '③ 棚ニ 保管'], shelve: ['① 棚ニ 保管', '② 今夜 ミンナニ 見セル'], fire: ['① 焚キ火ノ会', '② 今日ノ報告', '③ 明日ノ計画 共有'], idle: ['① 休憩', '② 次ノ計画 立案'],
+    gather: ['① 流木を拾う', '② 作業台で削る', '③ 部材 #{n} を取りつける'], craft: ['① 部材 #{n} を削る', '② 小屋へ運ぶ', '③ 取りつけ → 次の流木'],
+    place: ['① 部材 #{n} を取りつける', '② 固定を確かめる', '③ 次の流木を探す'], chop: ['① 若木を切る', '② 丸太を回収', '③ 畑の区画を空ける'],
+    till: ['① 区画を耕す', '② 種をまく', '③ 収穫まで 1.5日'], plant: ['① 種をまく', '② 育ちを見る', '③ 収穫'], harvest: ['① 収穫', '② 食料を蓄える', '③ また種をまく'],
+    look: ['① 浜を見る', '② 流木の漂着を待つ'], deck: ['① 桟橋の板 #{d} を張る', '② 次の流木', '③ 桟橋の完成'], find: ['① 漂着物を回収', '② 調べる', '③ 棚に置く'], shelve: ['① 棚に置く', '② 焚き火の会で報告'], fire: ['① 焚き火の会', '② 今日の報告', '③ 情報の共有'], idle: ['① 休む', '② 次の計画'],
   },
-  kame: { graze: ['海草の原で食事', '息つぎに浮かぶ', 'また底へ'], bask: ['浜で甲羅を干す', 'ひと眠り'], sleep: ['岩かげで眠る', 'ときどき息つぎ'], survey: ['潮の流れを見る', '底の砂を確かめる', '桟橋の位置を決める'], inspect: ['工事を見守る', '潮の時刻を伝える'], find: ['拾って、よく見る', '棚にしまう', 'みなに見せる'], watch: ['浜から海を記録する', '雲と潮の変わり目を見る'], swim: ['ラグーンの魚を数える', '根のまわりを一周'], fire: ['みなの話を聞く'], idle: ['ひと休み'] },
-  lantern: { base: ['石を浜から手渡す', '土台をひとつ据える'], find: ['拾い上げる', '棚へ', '今夜、見せよう'], explore: ['地図の空白へ', '見つけたものを記す'], think: ['星を見上げる', '問いをひとつ考える'], fetch: ['石をひとつ拾う', '石積みへ運ぶ'], stack: ['石を積む', '目印をひとつ残す'], rest: ['夜を待つ'], fire: ['灯りを分け合う'] },
-  rakko: { forage: ['潜る！', '岩の下をさがす', 'つかまえて浮かぶ！'], eat: ['お腹の上でたべる！', 'もういっこ取りにいく'], groom: ['毛づくろい！', 'ふわふわにする'], sleep: ['前足で目をかくして、おやすみ'], gather: ['柱にする木をひろう', '泳いで運ぶ！'], post: ['泳いで運ぶ！', '柱をたてる！', 'つぎの木さがす'], find: ['なにこれ！ ひろう！', '棚にかざる！', 'みんなに見せる！'], collect: ['きれいな貝殻さがし！', '山にならべる'], pile: ['貝殻ならべる♪', 'つぎさがす！'], float: ['ぷかぷかする', 'お空みる'], crack: ['貝をわる！', 'たべる！'], nap: ['おひるね…'], fire: ['みんなとおしゃべり！'] },
+  kame: { graze: ['藻場で海草を食べる', '息つぎに浮かぶ', '底へ戻る'], bask: ['浜で甲羅を干す', '休む'], sleep: ['海の中で眠る', 'ときどき息つぎ'], survey: ['潮の流れを見る', '底の砂を確かめる', '桟橋の位置を決める'], inspect: ['工事を見る', '潮の時刻を伝える'], find: ['拾う', '棚に置く', '焚き火の会で報告'], watch: ['浜から海を記録する'], swim: ['ラグーンの魚を数える', '根のまわりを一周'], fire: ['焚き火の会', '報告'], idle: ['休む'] },
+  lantern: { base: ['石を浜から運ぶ', '土台をひとつ据える'], find: ['拾う', '棚に置く', '焚き火の会で報告'], explore: ['未踏の場所へ', '地図に書き足す'], think: ['星を観測する', '手帖に記録する'], fetch: ['石をひとつ拾う', '石積みへ運ぶ'], stack: ['石を積む', '目印をひとつ残す'], rest: ['夜を待つ'], fire: ['焚き火の会', '報告'] },
+  rakko: { forage: ['潜る', '岩の下を探る', '獲って浮かぶ'], eat: ['お腹の上で食べる', '次を獲りに潜る'], groom: ['毛づくろい'], sleep: ['仰向けで眠る'], gather: ['柱にする木を拾う', '泳いで運ぶ'], post: ['泳いで運ぶ', '柱を立てる', '次の木を探す'], find: ['拾う', '棚に置く', '焚き火の会で報告'], collect: ['貝殻を探す', '浜に並べる'], pile: ['貝殻を並べる', '次を探す'], float: ['浮いて休む'], crack: ['石で貝を割る', '食べる'], nap: ['浮いたまま眠る'], fire: ['焚き火の会', '報告'] },
 };
 const LOOK: Record<string, Look> = {
   dot: {
-    title: 'DOT-OS 0.3 ▸ 作業視界', sub: 'ドットの目',
+    title: 'DOT ▸ 視界', sub: '小屋の建設',
     bullets: (s, r) => (s.built >= s.hutN && (s.task === 'gather' || s.task === 'craft') ? ['① 流木 回収', '② 板ニ 削ル', '③ 桟橋ニ 張ル'] : (PLAN.dot[s.task] ?? PLAN.dot.idle)).map((l) => l.replace('{n}', String(s.built + 1)).replace('{d}', '')),
     label: (m, d) => (m.kind === 'friend' ? `${m.label} ／ ${m.sub}` : `${m.label}${m.sub ? ' ／ ' + m.sub : ''} ▸ ${d.toFixed(1)}m`),
     stat: (s, r) => `電池 ${bar(r.battery)} ${pct(r.battery)}　小屋 ${s.built}/${s.hutN}　食料 ${s.food}`,
   },
   kame: {
-    title: 'カメマルの観察帳', sub: 'ゆっくり見る目',
+    title: 'カメマルの視界', sub: 'アオウミガメ',
     bullets: (s) => PLAN.kame[s.task] ?? PLAN.kame.idle,
-    label: (m, d) => (m.kind === 'friend' ? `${m.label}さん（${m.sub}）` : m.kind === 'fish' ? `${m.label}${m.sub ? ' · ' + m.sub : ''}` : `${m.label}　${Math.round(d)}m`),
+    label: (m, d) => (m.kind === 'friend' ? `${m.label}（${m.sub}）` : m.kind === 'fish' ? `${m.label}${m.sub ? ' · ' + m.sub : ''}` : `${m.label}　${Math.round(d)}m`),
     stat: (s, r) => `記録 ${r.stats.notes}件　おなか ${bar(1 - r.hunger, 6)}　ねむけ ${bar(r.sleepy, 6)}`,
   },
   lantern: {
-    title: 'LANTERN ／ 夜目', sub: '灯りの届くところ',
-    bullets: (s) => PLAN.lantern[s.task] ?? ['……'],
+    title: 'LANTERN ／ 視界', sub: '地図の作成',
+    bullets: (s) => PLAN.lantern[s.task] ?? ['待機'],
     label: (m, d) => (m.kind === 'friend' ? `◇ ${m.label}` : `◇ ${m.label}${m.sub ? '  ' + m.sub : ''}`),
     stat: (s, r) => `灯り ${pct(r.battery)}　目印 ${r.stats.cairns}`,
   },
   rakko: {
-    title: 'らっこアイ♪', sub: 'きらきら見える',
-    bullets: (s) => PLAN.rakko[s.task] ?? ['なにしよっかな〜'],
-    label: (m, d) => (m.kind === 'shell' ? `✧ ${m.label}！` : m.kind === 'friend' ? `♥ ${m.label}（${m.sub}）` : `${m.label}`),
+    title: 'ラッコの視界', sub: 'ラッコ',
+    bullets: (s) => PLAN.rakko[s.task] ?? ['待機'],
+    label: (m, d) => (m.kind === 'shell' ? `${m.label}` : m.kind === 'friend' ? `${m.label}（${m.sub}）` : `${m.label}`),
     stat: (s, r) => `貝殻 ${r.stats.shells}個　おなか ${bar(1 - r.hunger, 6)}　ねむけ ${bar(r.sleepy, 6)}`,
   },
 };
-// which mutters fit what it is doing
-function mutterKey(task: string, act: string) {
-  if (task === 'fire') return 'fire';
-  if (act === 'carry') return 'carry';
-  if (['pick', 'hammer', 'chop', 'dig', 'swim', 'float', 'think', 'look', 'dive', 'eat', 'groom', 'graze', 'breathe', 'bask', 'sleep'].includes(act)) return act;
-  if (task === 'watch' || task === 'look' || task === 'explore') return 'look';
-  if (act === 'work') return 'work';
-  if (act === 'walk') return 'walk';
-  return 'idle';
-}
 
 export function makePov(root: HTMLElement) {
   root.innerHTML = `<div class="frame"></div><div class="marks"></div>
@@ -127,17 +117,6 @@ export function makePov(root: HTMLElement) {
         $('.mutter').classList.add('on');
         clearTimeout(offT); offT = window.setTimeout(() => $('.mutter').classList.remove('on'), 5000);
       } else if (!r.saying) lastSay = '';
-      // and every so often, a word to itself
-      if ((mutT -= dt) < 0) {
-        mutT = 7 + Math.random() * 6;
-        const lines = r.v.mutter?.[mutterKey(s.task, r.act)] ?? r.v.mutter?.idle ?? [];
-        if (lines.length && !r.saying) {
-          const line = lines[Math.floor(Math.random() * lines.length)].replace('{built}', String(s.built));
-          $('.mutter i').textContent = gibber(r.id, line); $('.mutter span').textContent = line;
-          $('.mutter').classList.add('on');
-          clearTimeout(offT); offT = window.setTimeout(() => $('.mutter').classList.remove('on'), 4200);
-        }
-      }
     },
   };
 }

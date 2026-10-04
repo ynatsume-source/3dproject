@@ -65,6 +65,8 @@ function system(who: string, withPhotos: boolean) {
 - review.unknown：まだ分からないこと、確かめていないこと。
 - review.outlook：明日以降にやること（理由つき、短く）。
 - title：今日を表す題（30字以内、出来事をそのまま）。
+- sns：人間界のSNSに載せる短い投稿（140字以内）。今日の取り組み・分かったこと・次にやることを、外の人に伝わるように。URL・絵文字・ハッシュタグは使わない。
+広報の役割：記事の写真と絵、SNS投稿は、あなたの役割の一つ「人間界への広報」として作る。いま取り組んでいること、学んだこと（確かめた仮説・当たり）、これからの道のりを、島の外の人に伝えるためのもの。飾りの演出はしない。
 話し方：${st.voice}
 この世界にあるものだけで書く（ゲームをプレイしているAIが、自分の状況と判断を報告するように）：
 - 根拠は log・talks・photos だけ。記録にないことを、したこと・見たこととして書かない。数や大きさ、天気、水温などを作らない。
@@ -72,13 +74,13 @@ function system(who: string, withPhotos: boolean) {
 - 世界にない気持ちや感覚（寂しい・うれしい・楽しい・安心・不安・温かい・好き・落ち着かない・疲れた など）は書かない。理由は世界の中の理由で書く（足りないもの、進み具合、体の値、失敗とその原因、見つけたもの、頼まれたこと）。
 - 実在の場所・生き物について、記録にない知識を断定しない。外部リンク、URL、宣伝、政治、実在の人物の話は書かない。
 ${withPhotos
-    ? '- 写真：photos から、記事に載せるものを1〜3枚選び、caption（写したものを短く、50字以内）を書く。写真は撮った時刻の log の行に置かれる。'
-    : `- 今日は写真を撮らなかった。かわりに絵を一枚描く。何を描いてもよい（今日のことでも、考えていることの図でも）。
+    ? '- 写真：photos から、取り組みが伝わるものを1〜3枚選び、caption（何を写したか・何の記録か、50字以内）を書く。写真は撮った時刻の log の行に置かれる。'
+    : `- 今日は写真を撮らなかった。かわりに図を一枚描く。人間界に取り組みを伝える図にする（例：進み具合、仮説と結果、これからの道のり、島の中の位置関係）。
   drawing.svg に SVG を書く：<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"> で始め、図形・パス・グラデーション・文字だけを使う。画像の読み込み、外部への参照、script、イベント属性は使わない。${SVG_MAX}字以内。背景も描く。
-  drawing.caption に、何を描いたかを短く（60字以内）。photos は空の配列にする。`}
+  drawing.caption に、何の図かを短く（60字以内）。photos は空の配列にする。`}
 返答は JSON オブジェクトだけ：
-{"title":"…","review":{"summary":["…"],"state":["…"],"unknown":["…"],"outlook":["…"]},${withPhotos ? '"photos":[{"id":"写真のid","caption":"…"}]' : '"photos":[],"drawing":{"svg":"<svg ...>...</svg>","caption":"…"}'},"tags":["短い言葉", ...]}
-文字は title と review で合わせて${st.max}字以内（絵を除く）。tags は5個まで。`;
+{"title":"…","sns":"…","review":{"summary":["…"],"state":["…"],"unknown":["…"],"outlook":["…"]},${withPhotos ? '"photos":[{"id":"写真のid","caption":"…"}]' : '"photos":[],"drawing":{"svg":"<svg ...>...</svg>","caption":"…"}'},"tags":["短い言葉", ...]}
+文字は title と review で合わせて${st.max}字以内（sns と絵を除く）。tags は5個まで。`;
 }
 
 /** A drawing it may put up: an SVG of shapes and words only — nothing that loads, links out or runs. '' if it may
@@ -97,14 +99,15 @@ export function checkSvg(svg: unknown): string {
 export function checkPost(p: unknown, inp: PostInput): string {
   if (!p || typeof p !== 'object' || Array.isArray(p)) return 'JSON オブジェクトではない';
   const o = p as Record<string, unknown>, st = STYLE[inp.who] ?? STYLE.rakko;
-  if (Object.keys(o).some((k) => !['title', 'review', 'photos', 'tags', 'drawing'].includes(k))) return '余計な項目がある（log は書かない）';
+  if (Object.keys(o).some((k) => !['title', 'sns', 'review', 'photos', 'tags', 'drawing'].includes(k))) return '余計な項目がある（log は書かない）';
+  if (typeof o.sns !== 'string' || !o.sns.trim() || o.sns.length > 140) return 'sns は140字以内で書く';
   if (typeof o.title !== 'string' || !o.title.trim() || o.title.length > 30) return 'title が空か長すぎる';
   const rv = o.review as Record<string, unknown>;
   if (!rv || typeof rv !== 'object') return 'review がない';
   for (const k of ['summary', 'state', 'unknown', 'outlook']) if (!Array.isArray(rv[k]) || (rv[k] as unknown[]).some((x) => typeof x !== 'string')) return `review.${k} は文字の配列`;
   if (!(rv.summary as string[]).length || !(rv.outlook as string[]).length) return 'review.summary と review.outlook は少なくとも一つ';
-  const text = [o.title, ...['summary', 'state', 'unknown', 'outlook'].flatMap((k) => rv[k] as string[])].join('\n');
-  if (text.length > st.max) return `文字が全部で${st.max}字を超えている`;
+  const own = [o.title, ...['summary', 'state', 'unknown', 'outlook'].flatMap((k) => rv[k] as string[])].join('\n'), text = `${own}\n${o.sns}`;
+  if (own.length > st.max) return `文字が全部で${st.max}字を超えている`;
   { const f = text.match(UNMODELLED); if (f) return `「${f[0]}」のような、世界にない気持ちや感覚を書かない（理由は世界の中の理由で）`; }
   if (/https?:|www\.|\.(com|jp|net|org)\b|@[a-z0-9_]/i.test(text)) return 'URL や宛先を含めない';
   if (inp.photos.length) {
@@ -152,7 +155,7 @@ export async function writePost(inp: PostInput, ask: Ask, by: string, onIssue?: 
       const photos = withPhotos ? p.photos.map((x: any) => ({ id: x.id, caption: x.caption.trim() })) : [];
       placePhotos(log, inp, photos.map((x: { id: string }) => x.id));
       return {
-        id: `${inp.day}-${inp.who}`, who: inp.who, name: inp.name, day: inp.day, title: p.title.trim(), body: [], log,
+        id: `${inp.day}-${inp.who}`, who: inp.who, name: inp.name, day: inp.day, title: p.title.trim(), sns: p.sns.trim(), body: [], log,
         review: { summary: p.review.summary.map((x: string) => x.trim()), state: p.review.state.map((x: string) => x.trim()), unknown: p.review.unknown.map((x: string) => x.trim()), outlook: p.review.outlook.map((x: string) => x.trim()) },
         photos, ...(withPhotos ? {} : { drawing: { svg: p.drawing.svg.trim(), caption: p.drawing.caption.trim() } }),
         tags: (p.tags ?? []).map((t: string) => t.trim()).filter(Boolean), written: new Date().toISOString(), by,

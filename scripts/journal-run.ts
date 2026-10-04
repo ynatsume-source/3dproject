@@ -105,7 +105,7 @@ for (const who of ['dot', 'rakko']) {
   const photos = (r.photos ?? []).filter((p: any) => p.day === DAY);
   for (const p of photos) fs.writeFileSync(path.join(DATA, 'photos', `${p.id}.json`), JSON.stringify(p));
   const inp = {
-    who, name: r.v.name, profile: r.v.mind, day: DAY,
+    who, name: r.v.name, profile: R.profile(r), day: DAY,
     // (what it set out to do and what came of it, one line each: "…：できた"; a 'do' with no result yet stays as it is)
     entries: r.diary.filter((e: any) => dayOf(e.at) === DAY).reduce((out: { time: string; text: string; key?: string }[], e: any) => {
       const last = out[out.length - 1];
