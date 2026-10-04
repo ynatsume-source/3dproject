@@ -13,7 +13,9 @@
 | Codex 再レビュー（b8bf6ec・5ee1bc4） | W3a・W4a・W3b → 04808dd・451ea82 で修正 |
 | Codex 軽い確認（793adf5、新方針） | 影響 A 1件（火が育たないと試験片が「焼成品」になる）→ 26c98c4（0.1.4）で修正 |
 | **Codex 軽い確認（22ea95c）** | **A・C とも解消、追加の A・B なし。Codex 側の保留を解除** |
-| 本書のコミット | 0.2.0 採択に備えた互換の修正（§4）。Codex の軽い確認を依頼中 |
+| 70fed2f | 0.2.0 採択に備えた互換の修正（§4） |
+| Codex 軽い確認（488703d） | 互換（B）は解消。影響 A 1件：秤量・成形が、区間の後半に届くはずのエネルギーを先に使う |
+| 本書の更新のコミット | 秤量・成形を `fixture-3` に（申し出は均等に届く）、検査器が「届く前に使った」を検出。Codex の軽い確認を依頼中 |
 
 ## 2. 統合してほしいもの
 
@@ -22,7 +24,9 @@
 | `src/science/step/wood-fire.ts` | 新規 | 薪で焼く工程（0.1.4、状態 `civ-sci.tile-wood-fire/2`） |
 | `src/science/step/kiln-ware.ts` | 新規 | 窯の中の試験片（電気の試験窯と共通） |
 | `src/science/ceramic.ts` | 新規 | 試験片の組成の変化 |
-| `src/science/step/common.ts`・`drying.ts`・`simple.ts` | 変更 | §4 の互換の修正（0.1.x の結果は変わらない） |
+| `src/science/step/common.ts`・`drying.ts` | 変更 | §4 の互換の修正（0.1.x の結果は変わらない） |
+| `src/science/step/simple.ts` | 変更 | §4 の互換の修正と、**秤量・成形の `fixture-3`**（申し出は区間に均等に届く。必要な電力が届かない区間は何も進まない）。工程版が変わるので、本体の要求の定数と統合検査の「電力不足」の2件（途中まで進む前提）を直す必要がある |
+| `src/science/step/validate.ts` | 変更 | 申し出の使用が、報告した終了時刻までに届いた量を超えないことを検査（全工程・両版） |
 | `data/science/catalog-test-2.json` | 変更 | 薪の工程 0.1.4 の注記 |
 | `src/science/step/index.ts` に相当する呼び出し | 本体の判断 | 本体は工程を個別に import している。薪は `woodFireStep` |
 

@@ -14,7 +14,7 @@ import type { ScienceStepRequest, ScienceStepResult } from '../src/world/science
 const T = 1_790_000_010_000;   // a world-clock 30 s mark
 const req = (o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({
   contract: '0.1.0', requestId: `run:w1@${o.interval?.from ?? T}#0`, world: { worldId: 'w', worldEpoch: 'e1', worldVersion: 1 }, runId: 'run:w1',
-  processId: 'fixture_mass_measure', processVersion: 'fixture-2', catalogVersion: 'civ-sci-test-2',
+  processId: 'fixture_mass_measure', processVersion: 'fixture-3', catalogVersion: 'civ-sci-test-2',
   interval: { from: T, to: T + 10_000 }, state: null, environment: { sampleId: 'env:sim-1', source: 'simulation', effectiveAt: T },
   lots: [{ lotId: 'lot:tile-1', materialId: 'tile', amount: { value: 36_290, unit: 'mg' }, location: 'site:workshop' }],
   equipment: [{ equipmentId: 'eq:balance-1', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],

@@ -74,6 +74,13 @@ export function validateResult(req: ScienceStepRequest, res: ScienceStepResult):
     }
   }
   for (const [id, n] of usedBySource) if (n > offers.get(id)!.maxJ) v.push(`energy ${id}: used ${n} J > offered ${offers.get(id)!.maxJ} J`);
+  // an offer arrives evenly over the requested interval: by the end of what was simulated, only that share has arrived
+  // (a step that finishes early cannot have used energy due later in the interval)
+  const span = req.interval.to - req.interval.from, ran = res.simulated.to - res.simulated.from;
+  for (const [id, n] of usedBySource) {
+    const arrived = span > 0 ? Math.ceil((offers.get(id)!.maxJ * ran) / span) : offers.get(id)!.maxJ;
+    if (n > arrived) v.push(`energy ${id}: used ${n} J, but only ${arrived} J of the offer had arrived by ${res.simulated.to}`);
+  }
 
   // failed results carry no flows
   if (res.status === 'failed' && (res.consumed.length || res.produced.length || res.released.length || drawnList.length || res.energy.length)) {

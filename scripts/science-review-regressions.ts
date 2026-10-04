@@ -247,7 +247,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   // W2: refusals of a 0.2.x request carry drawn: [] and echo the contract, through the single entry
   const v02 = (o: Partial<ScienceStepRequest>) => ({ ...FIRE, contract: '0.2.0', ...o } as ScienceStepRequest);
   for (const [name, req] of [['drying', v02({ processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion })],
-    ['weighing', v02({ processId: 'fixture_mass_measure', processVersion: 'fixture-2' })], ['calcination', { ...CALC, contract: '0.2.0' }],
+    ['weighing', v02({ processId: 'fixture_mass_measure', processVersion: 'fixture-3' })], ['calcination', { ...CALC, contract: '0.2.0' }],
     ['firing', v02({})], ['soak', { ...soakReq(FIRE.lots[0], 1, 'run:w2'), contract: '0.2.0' }], ['unknown process', v02({ processId: 'p99_nothing' })]] as const) {
     const r = scienceStep(req);
     ok(r.contract === '0.2.0' && Array.isArray(drawnOf(r)) && validateResult(req, r).length === 0,
@@ -281,7 +281,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     chainBoth('slaking', hyd(60_000), 2);
     chainBoth('soak', { ...soakReq(FIRE.lots[0], 1, 'run:v-soak'), stop: undefined }, 3);
     const W02 = { world: W, requestId: 'v-w', runId: 'run:v-w', interval: { from: 0, to: 10_000 }, state: null, seed: 1, catalogVersion: 'civ-sci-test-2',
-      environment: { sampleId: 'env:v', source: 'simulation' as const, effectiveAt: 0 }, processId: 'fixture_mass_measure', processVersion: 'fixture-2',
+      environment: { sampleId: 'env:v', source: 'simulation' as const, effectiveAt: 0 }, processId: 'fixture_mass_measure', processVersion: 'fixture-3',
       lots: [{ lotId: 'lot:x', materialId: 'test_tile_fired', amount: { value: 36_290, unit: 'mg' as const }, location: 'site:x' }],
       equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
       energy: [{ sourceId: 'src:fixture-mains', kind: 'electric' as const, maxJ: 10 }], actions: [{ at: 0, residentId: 'res:dot', action: 'read-balance' }] };
@@ -332,7 +332,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     'W3a: the handed-back lot reads back to whole mg of dry wood (fractions kept unrounded)');
 
   // W4: shaping copies only a valid dry make-up
-  const SH: ScienceStepRequest = { ...FIRE, contract: '0.1.0', processId: 'p11x_test_tile_shape', processVersion: 'fixture-2', runId: 'run:w4',
+  const SH: ScienceStepRequest = { ...FIRE, contract: '0.1.0', processId: 'p11x_test_tile_shape', processVersion: 'fixture-3', runId: 'run:w4',
     environment: { sampleId: 'env:w4', source: 'simulation', effectiveAt: 0 }, actions: [], interval: { from: 0, to: 60_000 },
     lots: [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' }, location: 'site:bench',
       quality: { water_ppm: 193_548, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 } }],
@@ -438,6 +438,46 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
       st3 = r3.state; if (r3.status !== 'running') break;
     }
     ok(r3.status === 'stopped' && r3.produced.some((p) => p.materialId === 'test_tile_dry') && !r3.produced.some((p) => p.materialId === 'test_tile_fired'), 'A: an electric run with no heat offered, stopped after 3 h: the tile comes back unfired', `${r3.status} ${r3.produced.map((p) => p.materialId).join(',')}`);
+  }
+
+  // A1 on 70fed2f (lab 488703d): weighing and shaping never use energy before it has arrived (offers arrive evenly)
+  {
+    const base = (pid: string, ms: number, maxJ: number, contract = '0.2.0'): ScienceStepRequest => ({
+      contract, world: W, requestId: `a1-${pid}-${ms}-${maxJ}`, runId: `run:a1-${pid}`, processId: pid, processVersion: 'fixture-3', catalogVersion: 'civ-sci-test-2',
+      interval: { from: 0, to: ms }, state: null, seed: 1, environment: { sampleId: 'env:a1', source: 'simulation', effectiveAt: 0 },
+      lots: pid === 'fixture_mass_measure' ? [{ lotId: 'lot:x', materialId: 'test_tile_fired', amount: { value: 36_290, unit: 'mg' }, location: 'site:x' }]
+        : [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' }, location: 'site:x',
+            quality: { water_ppm: 193_548, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 } }],
+      equipment: pid === 'fixture_mass_measure' ? [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }]
+        : [{ equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civ-sci-test-2', condition: 1, params: { thicknessMm: 10, widthMm: 50, lengthMm: 50 } }],
+      energy: [{ sourceId: 'src:a1', kind: pid === 'fixture_mass_measure' ? 'electric' : 'mechanical', maxJ }],
+      actions: pid === 'fixture_mass_measure' ? [{ at: 0, residentId: 'res:dot', action: 'read-balance' }] : [] });
+    const arrivedBy = (q: ScienceStepRequest, r: ScienceStepResult) => (q.energy[0].maxJ * (r.simulated.to - r.simulated.from)) / (q.interval.to - q.interval.from);
+    // Codex's two cases
+    const w = checked(base('fixture_mass_measure', 30_000, 10)), sh = checked(base('p11x_test_tile_shape', 120_000, 120));
+    ok(w.status === 'needs-input' && w.energy.length === 0 && w.observations.length === 0, 'A1: weighing, 10 J over 30 s (0.33 W for a 1 W balance): the balance does not run, nothing used, no reading',
+      `${w.status} (was: completed at 10 s using 10 J; 3.33 J had arrived)`);
+    ok(sh.status === 'needs-input' && sh.consumed.length === 0 && sh.energy.length === 0, 'A1: shaping, 120 J over 120 s (1 W for 2 W of work): no tile, nothing used',
+      `${sh.status} (was: a tile at 60 s using 120 J; 60 J had arrived)`);
+    const w30 = checked(base('fixture_mass_measure', 30_000, 30));
+    ok(w30.status === 'completed' && w30.simulated.to === 10_000 && w30.energy[0].usedJ === 10 && w30.energy[0].usedJ <= arrivedBy(base('fixture_mass_measure', 30_000, 30), w30),
+      'A1: weighing, 30 J over 30 s (1 W): done at 10 s using 10 J, which had arrived by then');
+    // a sweep: interval × offer × process, under 0.1.0 and 0.2.0; used never exceeds what had arrived by the reported end
+    let cases = 0, early = 0, diff = 0;
+    for (const pid of ['fixture_mass_measure', 'p11_pottery_shape', 'p11x_test_tile_shape'])
+      for (const ms of [1_000, 10_000, 30_000, 60_000, 120_000, 600_000])
+        for (const maxJ of [0, 5, 10, 30, 60, 119, 120, 240, 1_200, 100_000]) {
+          const q2 = pid === 'p11_pottery_shape' ? { ...base(pid, ms, maxJ), lots: [{ ...base(pid, ms, maxJ).lots[0], quality: { water_ppm: 193_548 } }] } : base(pid, ms, maxJ);
+          const r2 = checked(q2), r1 = scienceStep({ ...q2, contract: '0.1.0' }); cases++;
+          if (r2.energy.reduce((x, e) => x + e.usedJ, 0) > arrivedBy(q2, r2) + 1e-9) early++;
+          const { contract: _a, drawn: _b, ...b2 } = r2 as ScienceStepResult & { drawn?: unknown }; const { contract: _c, ...b1 } = r1;
+          if (JSON.stringify(b1) !== JSON.stringify(b2)) diff++;
+        }
+    ok(early === 0 && diff === 0, 'A1: 180 cases (3 processes × 6 intervals × 10 offers): never more energy than had arrived by the reported end; 0.1.0 and 0.2.0 agree',
+      `${cases} cases, ${early} early, ${diff} differ`);
+    // the result checker itself now catches energy used before it arrived
+    const early1 = { ...w30, simulated: { from: 0, to: 5_000 } };
+    ok(validateResult(base('fixture_mass_measure', 30_000, 30), early1).some((v) => v.includes('had arrived')), 'A1: validateResult flags energy used before it arrived (10 J by 5 s of a 30 J / 30 s offer)');
   }
 
   // W4a (lab b8bf6ec): only registered species, never inherited object keys
