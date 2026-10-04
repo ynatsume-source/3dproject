@@ -126,7 +126,7 @@ function pipLight(depth: number) {
 const pipRect = { x: 0, y: 0, w: 0, h: 0 };
 
 /* ================= drone ================= */
-const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
+const drone = { skim: 0, skimDir: 1, pass: 0, hop: false, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: -0.08, roll: 0, mode: 'auto' as 'auto' | 'manual', s: 0.4, lastInput: -1e9, sky: false, skyHop: false, skyT: 0, skyAge: 0, skyWait: 600, skyStay: 300, seaUntil: 0 };
 let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
 // flying by hand, a tap on something sends the drone to film it (as the cruise would, and then round it
 // slowly at the same distance) until the hand takes the controls again: the mode is the cruise's meanwhile
@@ -389,6 +389,8 @@ function flyStep(dt: number) {
   drone.pitch += clamp((wantPitch - drone.pitch) * Math.min(1, k), -dt * 0.9, dt * 0.9);
 }
 function updateDrone(dt: number, now: number) {
+  // (a hop up with the flying fish: back down as soon as they are, and in any case after its few seconds)
+  if (drone.skyHop && ((drone.skyAge += dt) > drone.skyStay || (!flyRun && drone.skyAge > 3))) setSky(false, true);
   if (visit && drone.mode === 'auto' && !director.shot) setMode('manual');   // (what it went to see is gone: back to the hand, hovering here)
   // (after the way in: the best of what is about, one after another, then the cruise as ever)
   if (tourQ.length && !opening && drone.mode === 'auto' && !watch.r && !director.shot && now > tourAt) {
@@ -873,11 +875,14 @@ function crossSurface(up: boolean) {
   seaLog('observe', up ? '水面を抜けて空へ' : '海の中へ');
 }
 // natural: the guide decided (it goes back on its own after a while); otherwise you asked, and it stays longer
+// Staying in the sea, flying fish just burst out overhead: up after them for a few seconds — out through the
+// surface, alongside the glide — and straight back down once the last is in (at most 10-18 s in the air).
+function flyHop() { setSky(true, true); drone.skyHop = true; drone.skyStay = rr(10, 18); flyRun = { burst: true, t: 0, side: Math.random() < 0.5 ? 1 : -1 }; }
 function skyLabel() { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').querySelector('span')!.textContent = drone.sky ? '海へ' : '空へ'; }
 function setSky(on: boolean, natural = false) {
   if (!cur) return;
   if (watch.r && !natural) stopWatch(false);
-  drone.sky = on; drone.skyT = 0; drone.skyAge = 0; flyRun = null;
+  drone.sky = on; drone.skyT = 0; drone.skyAge = 0; flyRun = null; drone.skyHop = false;
   drone.seaUntil = on ? 0 : performance.now() + (natural ? 60000 : 150000);   // back into the sea: no flying straight off to the residents ashore
   if (drone.mode !== 'auto') setMode('auto');
   director.reset(); lastShot = null;
@@ -889,8 +894,10 @@ function setSky(on: boolean, natural = false) {
 // Every so often the guide rises into the sky on its own, and comes back down: more often on a clear
 // night with a meteor shower on, never from inside the cave or in the middle of filming something.
 // (海だけ: the cruise stays in the sea; going up is then only when asked)
-let seaOnly = (() => { try { return localStorage.getItem('seaglass.seaOnly') === '1'; } catch (e) { return false; } })();
-function setSeaOnly(on: boolean) { seaOnly = on; try { localStorage.setItem('seaglass.seaOnly', on ? '1' : '0'); } catch (e) { /* ignore */ } $('btnSeaOnly').setAttribute('aria-pressed', String(on)); if (on && drone.sky) setSky(false, true); }
+// (by default the cruise stays in the sea: it goes up into the air only for a moment, to run with flying fish it
+// has just seen burst out overhead — and the leaps are filmed from the waterline. 'Sky too' is the viewer's choice.)
+let seaOnly = (() => { try { return localStorage.getItem('seaglass.seaOnly2') !== '0'; } catch (e) { return true; } })();
+function setSeaOnly(on: boolean) { seaOnly = on; try { localStorage.setItem('seaglass.seaOnly2', on ? '1' : '0'); } catch (e) { /* ignore */ } $('btnSeaOnly').setAttribute('aria-pressed', String(on)); if (on && drone.sky) setSky(false, true); }
 // how much there is to see by up in the air at night: the moon (as bright as it is high and full), or a shower of meteors
 const moonLight = () => U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y);
 function skySchedule(dt: number) {
@@ -905,7 +912,7 @@ function skySchedule(dt: number) {
   } else {
     // (a dark night without a moon: a shorter look at the stars, then back down to the lit reef)
     const dark = skyNow!.night * (1 - Math.min(1, moonLight() * 2.5)) * (activeShower(clock.ms) ? 0 : 1);
-    if ((drone.skyAge += dt) > drone.skyStay * (1 - 0.55 * dark)) setSky(false, true);
+    if (!drone.skyHop && (drone.skyAge += dt) > drone.skyStay * (1 - 0.55 * dark)) setSky(false, true);
   }   // (the time up there counts while filming the residents from the sky too)
 }
 // aurora: the auroral oval sits around 65-70° magnetic latitude; ?aurora=1 previews it anywhere
@@ -2775,7 +2782,10 @@ function frameBody(ts: number) {
         // (not at night, moon or no moon: from the air the fish and the dark water would be one)
         if (skyNow!.night > 0.5) { /* nothing */ }
         else if (drone.sky && !lastShot && !cur.bait?.st.active && !cur.breach.leap) flyRun = { burst: false, t: 0, side: 1 };
-        else if (!drone.sky && drone.pos.y > -6 && drone.pos.y < -0.5) { const d = rr(7, 12); ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + rr(-1.2, 1.2)); }
+        else if (!drone.sky && drone.pos.y > -6 && drone.pos.y < -0.5) {
+          const d = rr(7, 12); ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + rr(-1.2, 1.2));
+          if (seaOnly && !lastShot?.asked && !cur.breach.leap) flyHop();
+        }
       }
     }
     // (through the drone's own eyes the animals hardly mind it — they would bolt from every slow pass of
@@ -2991,7 +3001,7 @@ if (/[?&]lab\b/.test(location.search)) {
 if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true) });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
