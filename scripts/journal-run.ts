@@ -111,7 +111,7 @@ for (const who of ['dot', 'rakko']) {
       const last = out[out.length - 1];
       if (e.key === 'got' && last?.key === 'do' && e.text.startsWith(last.text + '：')) { last.text = e.text; last.key = 'got'; return out; }
       out.push({ time: hm(e.at), text: e.text, key: e.key }); return out;
-    }, []).map(({ time, text }) => ({ time, text })),
+    }, []),
     photos: photos.map((p: any) => ({ id: p.id, subject: p.subject, why: p.why, time: hm(p.at) })),
     talks: R.talks.filter((e: any) => dayOf(e.at) === DAY && e.who === who && !e.head).map((e: any) => ({ time: hm(e.at), with: e.with ?? '', text: e.text })),
   };

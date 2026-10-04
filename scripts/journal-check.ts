@@ -56,8 +56,8 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('1 its diary says so', dot.diary.filter((e: any) => e.key === 'photo').length === 3);
 }
 { // 2 posts
-  const inp: PostInput = { who: 'rakko', name: 'ラッコ', profile: 'ラッコ', day: '2026-10-03', entries: [{ time: '10:00', text: '貝殻を拾った' }], photos: [{ id: 'rakko-2026-10-03-1', subject: { id: 'shell#1', kind: 'shell', label: '貝殻' }, time: '10:05' }], talks: [] };
-  const good = { title: 'きれいな貝殻', log: [{ t: '10:00', world: '浜で貝殻をひろった。', me: 'きれいなのは浜にならべる。' }, { t: '10:05', world: '貝殻の写真をとった。', me: 'ぴかぴかだった。', photo: 'rakko-2026-10-03-1' }, { t: '11:00', world: 'ドットに会えなかった。', me: 'あとでまた行く。' }], review: { summary: ['貝殻をひろって写真をとった日。'], state: ['貝殻 1つ'], unknown: [], outlook: ['あしたはドットに見せる。'] }, photos: [{ id: 'rakko-2026-10-03-1', caption: 'ぴかぴか' }], tags: ['貝殻'] };
+  const inp: PostInput = { who: 'rakko', name: 'ラッコ', profile: 'ラッコ', day: '2026-10-03', entries: [{ time: '10:00', text: '目的：貝殻を集める（浜に3つ並べる）', key: 'mind' }, { time: '10:00', text: '貝殻を拾った', key: 'got' }, { time: '10:01', text: '浜を見た', key: 'got' }, { time: '10:02', text: '浜を見た', key: 'got' }, { time: '10:03', text: '浜を見た', key: 'got' }, { time: '10:04', text: 'うまくいかなかった：道がなかった', key: 'mind' }, { time: '10:05', text: '写真を撮った：貝殻', key: 'photo' }], photos: [{ id: 'rakko-2026-10-03-1', subject: { id: 'shell#1', kind: 'shell', label: '貝殻' }, time: '10:05' }], talks: [] };
+  const good = { title: 'きれいな貝殻', review: { summary: ['貝殻をひろって写真をとった日。'], state: ['貝殻 1つ'], unknown: [], outlook: ['あしたはドットに見せる。'] }, photos: [{ id: 'rakko-2026-10-03-1', caption: 'ぴかぴか' }], tags: ['貝殻'] };
   let asks = 0;
   const p1 = await writePost(inp, async () => { asks++; return asks === 1 ? JSON.stringify({ ...good, photos: [{ id: 'rakko-2026-10-02-9', caption: 'x' }] }) : JSON.stringify(good); }, 'stub');
   want('2 a photo it did not take is asked again, then the post stands', !!p1 && asks === 2 && p1.photos[0].id === 'rakko-2026-10-03-1', `${asks} asks`);
@@ -65,14 +65,18 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('2 a link: given up', p2 === null);
   // (a day without photographs: a picture it drew instead — shapes only; one that loads or runs something is asked again)
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#9fd3e0"/><circle cx="400" cy="300" r="80" fill="#f2e3c6"/></svg>';
-  const drew = { title: '貝殻の絵', log: good.log.map(({ photo, ...e }) => e), review: good.review, photos: [], drawing: { svg, caption: '浜でひろった貝殻' }, tags: [] };
+  const drew = { title: '貝殻の絵', review: good.review, photos: [], drawing: { svg, caption: '浜でひろった貝殻' }, tags: [] };
   let asks2 = 0;
   const p3 = await writePost({ ...inp, photos: [] }, async () => { asks2++; return JSON.stringify(asks2 === 1 ? { ...drew, drawing: { svg: svg.replace('</svg>', '<script>alert(1)</script></svg>'), caption: 'x' } } : drew); }, 'stub');
   want('2 no photograph that day: a drawing instead; one with a script is asked again', !!p3 && asks2 === 2 && !!p3.drawing && p3.photos.length === 0 && !/script/.test(p3.drawing.svg), `${asks2} asks`);
   want('2 no photograph and no drawing: asked again, then given up', (await writePost({ ...inp, photos: [] }, async () => JSON.stringify(good), 'stub')) === null);
   want('2 a drawing may not reach outside', /外|画像/.test(checkPost({ ...drew, drawing: { svg: svg.replace('<rect', '<image href="https://x.example/a.png"/><rect'), caption: 'x' } }, { ...inp, photos: [] })));
-  want('2 a feeling the island does not have is asked again', /世界にない/.test(checkPost({ ...good, log: good.log.map((e: any, i: number) => (i ? e : { ...e, me: 'ひとりで少し寂しい。' })) }, inp)));
-  want('2 a log out of order is asked again', /時刻の順/.test(checkPost({ ...good, log: [...good.log].reverse() }, inp)));
+  want('2 a feeling the island does not have is asked again', /世界にない/.test(checkPost({ ...good, review: { ...good.review, summary: ['ひとりで少し寂しい。'] } }, inp)));
+  want('2 it does not write the log: one that tries is asked again', /log/.test(checkPost({ ...good, log: [] }, inp)));
+  { // (the log is the records as kept: what happened, and its mind's lines beside it; repeats as one; the photo where it was taken)
+    const L = p1?.log ?? [];
+    want('2 the log is its records, not written afterwards', L.length === 3 && L[0].world === '貝殻を拾った' && L[0].me === '目的：貝殻を集める（浜に3つ並べる）' && L[1].world === '浜を見た（3回、10:03まで）' && !L.some((r) => /うまくいかなかった/.test(r.world + r.me)) && L[2].photo === 'rakko-2026-10-03-1', JSON.stringify(L));
+  }
   want('2 the checks name what is wrong', /写真/.test(checkPost({ ...good, photos: [] }, inp)) && checkPost(good, inp) === '');
 }
 { // 3 pages
@@ -90,7 +94,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
   want('3 the post page, its photograph and its time', has('2026-10-03-rakko/index.html', 'photos/rakko-2026-10-03-1.jpg') && has('2026-10-03-rakko/index.html', '10:05 撮影') && has('photos/rakko-2026-10-03-1.jpg'));
   want('3 the writers and the feed', has('rakko/index.html', 'きれいな貝殻') && has('dot/index.html') && has('feed.xml', '2026-10-03-rakko') && has('journal.css'));
   want('3 a day without photographs: its drawing at the top, and as its picture in the list', has('2026-10-02-rakko/index.html', 'drawings/2026-10-02-rakko.svg') && has('2026-10-02-rakko/index.html', 'ラッコが描いた絵') && has('drawings/2026-10-02-rakko.svg', '<svg') && has('rakko/index.html', 'drawings/2026-10-02-rakko.svg'));
-  want('3 a post written as a log: the island and it by the hour, then the day as a whole', has('2026-10-03-rakko/index.html', 'class="xlog"') && has('2026-10-03-rakko/index.html', '今日のまとめ') && has('2026-10-03-rakko/index.html', 'これから'));
+  want('3 a post written as a log: the island and it by the hour, then the day as a whole', has('2026-10-03-rakko/index.html', 'class="xlog"') && has('2026-10-03-rakko/index.html', 'ふりかえり') && has('2026-10-03-rakko/index.html', '事象') && has('2026-10-03-rakko/index.html', 'これから'));
   want('3 a draft is not published', !has('2026-10-03-dot/index.html') && !has('index.html', '下書き'));
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');

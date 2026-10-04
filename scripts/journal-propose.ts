@@ -19,7 +19,7 @@ for (const p of drafts) {
   fs.writeFileSync(path.join(OUT, 'posts', `${p.id}.json`), JSON.stringify(p, null, 1));
   if (p.drawing) { fs.mkdirSync(path.join(OUT, 'drawings'), { recursive: true }); fs.writeFileSync(path.join(OUT, 'drawings', `${p.id}.svg`), p.drawing.svg); }   // (to be seen in the pull request too)
   for (const x of p.photos) for (const ext of ['json', 'jpg']) fs.copyFileSync(path.join(DATA, 'photos', `${x.id}.${ext}`), path.join(OUT, 'photos', `${x.id}.${ext}`));
-  const text = p.log ? [...p.log.map((e: any) => `**${e.t}**　島：${e.world}\n　　${p.name}：${e.me}`), `**今日のまとめ**　${p.review.summary.join(' ')}`, `終わりの状態：${p.review.state.join('／') || 'なし'}`, `まだ分からないこと：${p.review.unknown.join('／') || 'なし'}`, `これから：${p.review.outlook.join('／')}`] : p.body;
+  const text = p.log ? [...p.log.map((e: any) => `**${e.t}**　事象：${e.world}${e.me ? `\n　　${p.name}：${e.me}` : ''}`), `**ふりかえり（一日の終わりに書いたもの）**　${p.review.summary.join(' ')}`, `終わりの状態：${p.review.state.join('／') || 'なし'}`, `まだ分からないこと：${p.review.unknown.join('／') || 'なし'}`, `これから：${p.review.outlook.join('／')}`] : p.body;
   lines.push(`### ${p.name}「${p.title}」\n\n${text.map((b: string) => `> ${b.replace(/\n/g, '\n> ')}`).join('\n>\n')}\n\n${p.drawing ? `絵：${p.drawing.caption}（content/journal/drawings/${p.id}.svg）` : `写真：${p.photos.map((x: any) => `${x.caption}（${x.id}）`).join('、')}`}\nタグ：${p.tags.join('、') || 'なし'}　書いたモデル：${p.by}`);
   n++;
 }

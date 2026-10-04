@@ -98,6 +98,7 @@ img { display: block; width: 100%; height: auto; }
 figure.drawing img { aspect-ratio: 4 / 3; height: auto; }
 
 /* a post written as a log: the island and the resident, by the hour */
+.xlog-head, .review .by { margin: 0 0 14px; font-size: 13px; color: var(--faint); }
 .xlog { list-style: none; margin: 0 0 28px; padding: 0; display: grid; gap: 18px; }
 .xlog > li { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; row-gap: 6px; }
 .xlog time { grid-row: span 2; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px; color: var(--faint); padding-top: 3px; font-variant-numeric: tabular-nums; }
