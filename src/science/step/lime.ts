@@ -11,7 +11,7 @@ import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../w
 import { addComp, molarMass, react, REACTIONS, totalMg, type Composition } from '../chem';
 import { pv } from '../params';
 import { glowCategory, KINETICS, rateK } from '../physics';
-import { allFinite, checkCommon, compQuality, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, lotComp, offerPowerW, subStepEnd } from './common';
+import { allFinite, checkCommon, compQuality, contractExtras, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, lotComp, offerPowerW, subStepEnd } from './common';
 
 // one definition of molar mass everywhere (the same one react() uses at settlement)
 const MOLAR = { calcite: molarMass('calcite'), lime: molarMass('lime'), water: molarMass('water'), co2: molarMass('co2') };
@@ -141,7 +141,7 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
   if (!allFinite(d)) return failed(req, CALCINE_EVAL, 'non-finite state: refusing to return it', CALCINE_SCHEMA);
   const chemical = d.ext * molCalcite * pv('dHCalcination');
   const res: ScienceStepResult = {
-    contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
+    ...contractExtras(req), contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
     state: { schema: CALCINE_SCHEMA, data: d }, status: ending ? (done ? 'completed' : 'stopped') : 'running',
     consumed: [], produced: [], released: [], energy: energyEntry(d.sourceId, d, chemical, ending), equipmentWear: [], observations: [],
     evidence: { evaluatorVersion: CALCINE_EVAL, sourceRefs: ['S-thermo', 'S-calc', 'S-heatcap'],
@@ -257,7 +257,7 @@ export function hydrateStep(req: ScienceStepRequest): ScienceStepResult {
   d.lastTo = Math.max(req.interval.from, endAt);
   if (!allFinite(d)) return failed(req, HYDRATE_EVAL, 'non-finite state: refusing to return it', HYDRATE_SCHEMA);
   const res: ScienceStepResult = {
-    contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: d.lastTo },
+    ...contractExtras(req), contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: d.lastTo },
     state: { schema: HYDRATE_SCHEMA, data: d }, status: ending ? (d.done ? 'completed' : 'stopped') : 'running',
     consumed: [], produced: [], released: [], energy: energyEntry(`src:reaction:${req.runId}`, d, 0, ending), equipmentWear: [], observations: [],
     evidence: { evaluatorVersion: HYDRATE_EVAL, sourceRefs: ['S-thermo', 'S-heatcap', 'S-latent'],

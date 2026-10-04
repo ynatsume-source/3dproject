@@ -8,7 +8,7 @@ import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../w
 import { addComp, splitComp, totalMg, type Composition } from '../chem';
 import { pv } from '../params';
 import { dehydroxExtent, dryMg } from '../physics';
-import { checkCommon, failed, fingerprint, tileComp, tileQuality } from './common';
+import { checkCommon, contractExtras, failed, fingerprint, tileComp, tileQuality } from './common';
 
 export const SOAK_PROCESS = { processId: 'm01x_tile_soak_test', processVersion: '0.2.0' } as const;
 const SCHEMA = 'civ-sci.tile-soak/2';
@@ -41,7 +41,7 @@ export function soakStep(req: ScienceStepRequest): ScienceStepResult {
   const endAt = takeOut ?? req.interval.to;
   d.lastTo = endAt;
   const res: ScienceStepResult = {
-    contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
+    ...contractExtras(req), contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
     state: { schema: SCHEMA, data: d }, status: ending ? (takeOut !== undefined ? 'completed' : 'stopped') : 'running',
     consumed: [], produced: [], released: [], energy: [], equipmentWear: [], observations: [],
     evidence: { evaluatorVersion: EVAL, sourceRefs: ['S-abs', 'S-slake'], notes: '吸水の上限は焼結度からの校正値、冷水と煮沸の比0.8と吸水の時定数は仮定' },

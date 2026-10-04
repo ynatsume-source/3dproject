@@ -42,7 +42,7 @@
    consumed: { lotId: Id; amount: Quantity }[];                         // from the reserved lots only
    produced: { materialId: Id; amount: Quantity; quality?: Record<string, number>; into?: Id }[];
    released: { materialId: Id; amount: Quantity; to: 'air' | 'water' | 'ground' }[];   // gases, vapour, ash: balances must close
-+  drawn: { materialId: Id; amount: Quantity; from: 'air' | 'water' | 'ground' }[];      // taken from the surroundings, e.g. O2 for burning, CO2 for lime carbonation
++  drawn?: { materialId: Id; amount: Quantity; from: 'air' | 'water' | 'ground' }[];     // taken from the surroundings (O2 for burning, CO2 for carbonation): every 0.2.x answer has it ([] when nothing), 0.1.x answers never
    energy: { sourceId: Id; kind: 'heat' | 'mechanical' | 'electric'; usedJ: number; lostJ: number; storedJ?: number }[];
 +  // usedJ/lostJ/storedJ are integers. storedJ is the change of energy kept inside the run (heat in equipment and pieces,
 +  // chemical enthalpy of reactions) and may be negative; at completion any remaining sensible heat is reported as lost.

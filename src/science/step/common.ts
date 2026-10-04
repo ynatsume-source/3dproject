@@ -37,10 +37,10 @@ export function stateSchemaProblem(req: ScienceStepRequest, schema: string): str
   return `unknown state schema ${req.state.schema}`;
 }
 
-/** Common request checks: contract (0.1.x unless a step needs a later one), process id/version, catalog, state
+/** Common request checks: contract (0.1.x or the proposed 0.2.x, unless a step needs only 0.2.x), process id/version, catalog, state
  *  schema, integer interval and seed. */
 export function checkCommon(req: ScienceStepRequest, processId: string, processVersion: string, schema: string,
-  contract: RegExp = /^0\.1\.\d+$/): string | null {
+  contract: RegExp = /^0\.[12]\.\d+$/): string | null {
   if (!contract.test(req.contract)) return `unknown contract ${req.contract}`;
   if (req.processId !== processId) return `unknown process ${req.processId}`;
   if (req.processVersion !== processVersion) return `unknown processVersion ${req.processVersion}`;

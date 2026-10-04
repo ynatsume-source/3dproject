@@ -11,7 +11,7 @@
 import type { ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import type { Composition } from '../chem';
 import { GLOW_TARGET_C, PACE_K_PER_H } from '../physics';
-import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, offerPowerW, subStepEnd, tileComp } from './common';
+import { allFinite, checkCommon, contractExtras, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, offerPowerW, subStepEnd, tileComp } from './common';
 import { advanceWare, settleWare, type WareState } from './kiln-ware';
 
 export const FIRING_PROCESS = { processId: 'p13x_test_tile_fire', processVersion: '0.2.0' } as const;
@@ -118,7 +118,7 @@ export function firingStep(req: ScienceStepRequest): ScienceStepResult {
   const s = intDelta(ending ? d.cumChemJ : d.cumUsedJ - d.cumLostJ, d.reportedStored);
   d.reportedUsed = u.reported; d.reportedStored = s.reported;
   const res: ScienceStepResult = {
-    contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
+    ...contractExtras(req), contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
     state: { schema: SCHEMA, data: d }, status: ending ? (done ? 'completed' : 'stopped') : 'running',
     consumed: [], produced: [], released: [],
     energy: u.delta === 0 && s.delta === 0 ? [] : [{ sourceId: d.sourceId, kind: 'heat', usedJ: u.delta, lostJ: u.delta - s.delta, storedJ: s.delta }],

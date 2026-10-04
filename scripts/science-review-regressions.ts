@@ -250,11 +250,45 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     ['weighing', v02({ processId: 'fixture_mass_measure', processVersion: 'fixture-2' })], ['calcination', { ...CALC, contract: '0.2.0' }],
     ['firing', v02({})], ['soak', { ...soakReq(FIRE.lots[0], 1, 'run:w2'), contract: '0.2.0' }], ['unknown process', v02({ processId: 'p99_nothing' })]] as const) {
     const r = scienceStep(req);
-    ok(r.status === 'failed' && r.contract === '0.2.0' && Array.isArray(drawnOf(r)) && validateResult(req, r).length === 0,
-      `W2: ${name} refuses a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: [])`, validateResult(req, r).join(' / '));
+    ok(r.contract === '0.2.0' && Array.isArray(drawnOf(r)) && validateResult(req, r).length === 0,
+      `W2: ${name} answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: [])`, `${r.status} ${validateResult(req, r).join(' / ')}`);
   }
   const r01 = scienceStep({ ...FIRE, processId: 'p99_nothing' });
   ok(drawnOf(r01) === undefined && validateResult({ ...FIRE, processId: 'p99_nothing' }, r01).length === 0, 'W2: a 0.1.0 refusal carries no drawn');
+
+  // adopting 0.2.0: every existing step speaks both 0.1.x and 0.2.x, with the same outcome apart from drawn: []
+  {
+    const strip = (r: ScienceStepResult) => { const { contract: _c, drawn: _d, ...rest } = r as ScienceStepResult & { drawn?: unknown }; return JSON.stringify(rest); };
+    const chainBoth = (name: string, req: ScienceStepRequest, hours: number) => {
+      const go = (contract: string) => {
+        let st: ScienceStepRequest['state'] = null; const out: string[] = []; let bad = 0;
+        for (let h = 0; h < hours; h++) {
+          const q = { ...req, contract, requestId: `v-${h}`, state: st, interval: { from: h * 3_600_000, to: (h + 1) * 3_600_000 }, actions: h === 0 ? req.actions : [],
+            energy: req.energy.map((e) => ({ ...e, maxJ: e.maxJ ? Math.floor(e.maxJ * 3_600_000 / (req.interval.to - req.interval.from)) : 0 })) };
+          const r = scienceStep(q); bad += validateResult(q, r).length + (contract === '0.2.0' && !Array.isArray(drawnOf(r)) ? 1 : 0);
+          out.push(strip(r)); st = r.state; if (r.status !== 'running') break;
+        }
+        return { out: out.join('|'), bad, n: out.length, last: JSON.parse(out[out.length - 1]).status as string };
+      };
+      const a = go('0.1.0'), b = go('0.2.0');
+      ok(a.out === b.out && a.bad === 0 && b.bad === 0 && a.last !== 'failed', `0.2.0: ${name} gives the same results under 0.1.0 and 0.2.0 (only drawn: [] added)`, `${a.n} requests, ends ${a.last}`);
+    };
+    chainBoth('drying', { ...FIRE, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, actions: [], energy: [],
+      lots: [{ ...FIRE.lots[0], materialId: 'test_tile_green', quality: { ...FIRE.lots[0].quality, water_ppm: 200_000, width_mm: 50, length_mm: 50 } }],
+      equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-2', condition: 1 }] }, 24);
+    chainBoth('electric firing', FIRE, 24);
+    chainBoth('calcination', CALC, 6);
+    chainBoth('slaking', hyd(60_000), 2);
+    chainBoth('soak', { ...soakReq(FIRE.lots[0], 1, 'run:v-soak'), stop: undefined }, 3);
+    const W02 = { world: W, requestId: 'v-w', runId: 'run:v-w', interval: { from: 0, to: 10_000 }, state: null, seed: 1, catalogVersion: 'civ-sci-test-2',
+      environment: { sampleId: 'env:v', source: 'simulation' as const, effectiveAt: 0 }, processId: 'fixture_mass_measure', processVersion: 'fixture-2',
+      lots: [{ lotId: 'lot:x', materialId: 'test_tile_fired', amount: { value: 36_290, unit: 'mg' as const }, location: 'site:x' }],
+      equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
+      energy: [{ sourceId: 'src:fixture-mains', kind: 'electric' as const, maxJ: 10 }], actions: [{ at: 0, residentId: 'res:dot', action: 'read-balance' }] };
+    const w1 = scienceStep({ ...W02, contract: '0.1.0' }), w2 = scienceStep({ ...W02, contract: '0.2.0' });
+    ok(w1.status === 'completed' && strip(w1) === strip(w2) && Array.isArray(drawnOf(w2)) && drawnOf(w1) === undefined && validateResult({ ...W02, contract: '0.2.0' }, w2).length === 0,
+      '0.2.0: weighing gives the same reading under 0.1.0 and 0.2.0 (only drawn: [] added)');
+  }
 
   // W3: a stop after a fraction of a mg: heat is never reported for wood that is handed back
   const tiny = checked({ ...WF, interval: { from: 0, to: 1 }, stop: 'operator' });
