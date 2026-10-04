@@ -483,7 +483,7 @@ export function buildOcean(loc) {
         let worst: any = null, wd = 0;
         const i0 = Math.floor((x - hw - 4) / RG), i1 = Math.floor((x + hw + 4) / RG), j0 = Math.floor((z - hw - 4) / RG), j1 = Math.floor((z + hw + 4) / RG);
         for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) for (const r of rockGrid.get(i + ',' + j) ?? []) {
-          const d = Math.hypot(x - r.x, z - r.z), need = 0.85 * r.r + hw;
+          const d = Math.hypot(x - r.x, z - r.z), need = r.r + hw;   // (clear of the whole rock, not just its middle)
           if (d >= need || ctop < r.under || y > r.top) continue;   // (clear of it, under its overhang, or over it)
           if (need - d > wd) { wd = need - d; worst = { r, d, need }; }
         }
@@ -493,20 +493,22 @@ export function buildOcean(loc) {
         const s = Math.max(it.sx, it.sz), hw = half * s;
         let w = hits(it.x, it.z, hw, it.y + top * it.sy, it.y);
         if (!w) return true;
-        // (out from the rock to where it is clear, where the bottom there allows — the colony as it was)
-        const push = w.need - w.d + 0.05;
-        if (push < 2.5) {
-          const ux = (it.x - w.r.x) / Math.max(w.d, 1e-3), uz = (it.z - w.r.z) / Math.max(w.d, 1e-3), nx = it.x + ux * push, nz = it.z + uz * push;
+        // (out from the rock to where it is clear, where the bottom there allows — the colony as it was: straight
+        // away from it first, else a little to either side)
+        const push = w.need - w.d + 0.05, ux0 = (it.x - w.r.x) / Math.max(w.d, 1e-3), uz0 = (it.z - w.r.z) / Math.max(w.d, 1e-3);
+        if (push < 4) for (const a of [0, 0.6, -0.6, 1.2, -1.2]) {
+          const c = Math.cos(a), sn = Math.sin(a), ux = ux0 * c - uz0 * sn, uz = ux0 * sn + uz0 * c;
+          const nx = it.x + ux * push, nz = it.z + uz * push;
           const y0 = loc.f(it.x, it.z), ny0 = loc.f(nx, nz);
-          if (Math.abs(ny0 - y0) < 0.6 && !(cave && cave.routeDist(nx, nz) < 3.5) && !underWreck(nx, nz, ny0)) {
-            const t = { ...it, x: nx, z: nz, y: it.y + ny0 - y0 };
-            if (fitUnder(kind, v, t, ny0, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y)) { Object.assign(it, t); return true; }
-          }
+          if (Math.abs(ny0 - y0) > 0.6 || (cave && cave.routeDist(nx, nz) < 3.5) || underWreck(nx, nz, ny0)) continue;
+          const t = { ...it, x: nx, z: nz, y: it.y + ny0 - y0 };
+          if (fitUnder(kind, v, t, ny0, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y)) { Object.assign(it, t); return true; }
         }
         if (w.d < 0.8 * w.r.r) return false;                               // (its base in the rock, and nowhere near to go: none)
-        // (else grown less, a younger colony with its form kept, just clear of the rock; or none)
-        const f = Math.max(0, (w.d - 0.85 * w.r.r) / hw);
-        if (s * f < CORAL_MIN[kind]) return false;
+        // (else grown less, a younger colony with its form kept, just clear of the rock — but never cut down to a stub
+        // standing against the rock's flank, which reads as coral poking out of stone: then none)
+        const f = Math.max(0, (w.d - w.r.r) / hw);
+        if (f < 0.6 || s * f < CORAL_MIN[kind]) return false;
         const y0 = it.y + (SINK[kind] ?? 0) * s;
         it.sx *= f; it.sy *= f; it.sz *= f;
         if (SINK[kind]) it.y = y0 - SINK[kind] * s * f;
