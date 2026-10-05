@@ -1,5 +1,7 @@
 # 器の組み立て ce0cfc1：追加レビュー
 
+追記：A6・C2は [355de03の軽い再確認](CODEX_VESSEL_REVIEW_355de03.md) で解消確認・保留解除。9c3b611の破片は引き続き対象外。以下は当時の記録。
+
 2026-10-06 JST。対象は科学側 `ce0cfc1` のひび・組み立て換算・`pot_sherds` 登録。
 前回の [e6668fb全面レビュー](CODEX_VESSEL_REVIEW_e6668fb.md) に追加する。
 本体のADR 0006と `process-runner.ts` は `e14eeba` を読み、隔離したcheckoutで実際の組み立て関数に科学側の換算表を渡した。
