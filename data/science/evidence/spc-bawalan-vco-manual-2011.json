@@ -1,0 +1,18 @@
+{
+  "sourceUrl": "https://www.service-public.pf/sdr/wp-content/uploads/sites/28/2017/05/Processing-Manual-for-Virgin-Coconut-Oil.pdf",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body/table; not raw publisher bytes",
+  "facts": {
+    "isbn": "978-982-00-0484-9",
+    "location": "Section 3.2.2.1, printed pp. 28–32",
+    "steps": [
+      "grate kernel and manually squeeze through cloth",
+      "optional milk settling and cream separation before heating",
+      "controlled heating and continuous stirring; reduce heat after separation"
+    ],
+    "second_squeeze_water": "2 cups residue : 1 cup hot water (VOLUME, not a mass ratio)",
+    "cream_heating_guidance": "90 °C in the first hour, at most 80 °C thereafter; a cream-processing procedure, not the model whole-milk open-fire recipe",
+    "oil_quality": "Clear VCO is obtained without browning the proteinaceous residue."
+  },
+  "calibrationEligible": false
+}

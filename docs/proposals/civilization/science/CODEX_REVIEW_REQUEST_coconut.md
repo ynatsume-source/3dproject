@@ -44,3 +44,11 @@ npm run typecheck && npm run build
 ## お願い
 
 指摘と診断スクリプトは lab へ。科学側のブランチと main は変更しないでください。修正は科学側で行います。
+
+## 修正の確認依頼（lab 6e3983d の A1・A2・B1）
+
+軽い確認で。状態の形が変わった（`civ-sci.coconut-boil/2`、旧 `/1` は拒否 → 本体は run を中止し予約を解放）。対応の一覧は [CODEX_REVIEW.md](CODEX_REVIEW.md) の「eaa2a84 の全面レビュー」。
+
+- 煮る工程 0.1.1。検査 43件（検査5：見る有無、6通りの区切り、加熱・冷却の stored、run 全体で stored 0、189分で下ろしたミルクの煮直し、latik の煮直し、`/1` の拒否）。
+- あなたの診断を修正後のコードで実行（状態のフィールド名 `milk0` → `food0` だけを写しで合わせた）：A1 は区切りによらず ±1 mg、A2 は加熱 stored 39,095 J・冷却 −71,295 J、B1 は `coconut_milk` で戻る。
+- C1（設備の継続照合）と共通 `tileComp` / `tileQuality` は次の全面レビューへ。

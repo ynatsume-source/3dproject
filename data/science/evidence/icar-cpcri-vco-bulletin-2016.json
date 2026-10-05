@@ -1,0 +1,20 @@
+{
+  "sourceUrl": "https://cpcri.gov.in/filemgr/webfs/publication/centenary43.pdf",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body/table; not raw publisher bytes",
+  "facts": {
+    "location": "Section 10, printed p. 22 (oil recovery); hot-process description, printed pp. 8–9",
+    "oil_recovery_percent_fresh_kernel_mass": [
+      14.18,
+      22.37
+    ],
+    "experimental_conditions": "Kernel slicing/pulverizing/blanching and manual/mechanical milk expression varied.",
+    "cream_heating_duration_h": [
+      2,
+      2.5
+    ],
+    "heating_context": "Slow heating of separated cream in a double-walled cooker, not an open fire heating all milk.",
+    "limitations": "No raw replicate-level temperature/mass time series obtained; do not treat a reported yield range as a fitted dataset."
+  },
+  "calibrationEligible": false
+}

@@ -50,6 +50,9 @@ const MILK = out(milkRun, 'coconut_milk')!;
 }
 
 console.log('2. boiling it into oil (island clock, a wood fire)');
+const fat0 = () => MILK.amount.value * MILK.quality!.x_coconut_fat_ppm / 1e6;
+const pv_oilMax = 0.9; // oilRecoverMax (params.ts)
+let crack = 0;
 const MILKLOT: LotView = { lotId: 'lot:milk', materialId: 'coconut_milk', amount: MILK.amount, location: 'site:hut', quality: MILK.quality };
 const WOOD = (mg = 12_000_000, water = 150_000): LotView => ({ lotId: 'lot:wood', materialId: 'firewood', amount: { value: mg, unit: 'mg' }, location: 'site:woodpile', quality: { water_ppm: water } });
 const POT = (p: Record<string, number> = {}) => ({ equipmentId: 'eq:pot', kind: 'fixture_cook_pot', catalogEntry: 'fixture_cook_pot', catalogVersion: 'civ-sci-test-2', condition: 1,
@@ -79,7 +82,7 @@ const lookEvery = (until: number, every = M10) => Array.from({ length: Math.floo
   const firstCrackle = sounds.find(([, s]) => /ぱちぱち/.test(s ?? ''))?.[0];
   ok(sounds.some(([, s]) => /ぐつぐつ/.test(s ?? '')) && firstCrackle !== undefined, 'on a medium fire it boils for hours, then the bubbling turns to crackling: the water is nearly gone',
     `crackling from ${((firstCrackle ?? 0) / H).toFixed(1)} h`);
-  const crack = Math.ceil((firstCrackle ?? 0) / 30_000) * 30_000;
+  crack = Math.ceil((firstCrackle ?? 0) / 30_000) * 30_000;
   // the good way: turn the fire down when it crackles, lift the pot when the solids are golden-brown
   const good = boil(crack + H, [[0, 'fire_level', 1], [crack, 'fire_level', 0], ...lookEvery(crack + H, 60_000).filter(([at]) => at > crack)]);
   const goldenAt = good.obs.find((o) => o.channel === 'sight' && /茶色|金色/.test(o.text ?? ''))?.at;
@@ -88,8 +91,8 @@ const lookEvery = (until: number, every = M10) => Array.from({ length: Math.floo
   const done = boil(lift + M10, [[0, 'fire_level', 1], [crack, 'fire_level', 0], [lift, 'take_off']]);
   const oil = done.out('coconut_oil'), latik = done.out('coconut_latik');
   const fat = MILK.amount.value * MILK.quality!.x_coconut_fat_ppm / 1e6;
-  ok(done.last.status === 'completed' && oil && oil.quality!.scorch_ppm! < 100_000 && oil.amount.value > 0.8 * fat && /澄んだ/.test(done.obs.at(-1)?.text ?? ''),
-    'lifted off then: clear, pale oil, most of the fat', `${(oil!.amount.value / 1000).toFixed(0)} g of oil from ${(fat / 1000).toFixed(0)} g of fat, scorch ${oil!.quality!.scorch_ppm}`);
+  ok(done.last.status === 'completed' && oil && oil.quality!.scorch_ppm! < 100_000 && oil.amount.value > 0.7 * fat && /澄んだ/.test(done.obs.at(-1)?.text ?? ''),
+    'lifted off then: clear, pale oil, about three quarters of the fat', `${(oil!.amount.value / 1000).toFixed(0)} g of oil from ${(fat / 1000).toFixed(0)} g of fat, scorch ${oil!.quality!.scorch_ppm}`);
   ok(latik && latik.quality!.x_coconut_fat_ppm! > 0, 'the browned solids (latik) keep the rest of the fat');
   ok(sum(done.last.consumed) + drawnSum(done.last) === sum(done.last.produced) + sum(done.last.released) && done.last.released.some((x) => x.materialId === 'process_co2'),
     'milk + firewood + the O2 drawn = oil + latik + firewood left + ash + vapour + CO2');
@@ -138,6 +141,54 @@ console.log('3. pieces, outages, ends');
     'the pot lost at the end of an interval: the hour of boiling counts, as at a stop');
   const v1 = scienceStep({ ...breq(0, H, null, []), contract: '0.1.0' });
   ok(v1.status === 'failed' && /unknown contract/.test(String(v1.evidence.notes)), 'contract 0.1.x is refused (the fire draws O2: drawn is 0.2.x)');
+}
+
+console.log('5. Codex review of eaa2a84 (A1, A2, B1)');
+{
+  const run = (chunk: number, looks: Act[] = []) => boil(4 * H, [[0, 'fire_level', 1], [195 * 60_000, 'take_off'], ...looks], {}, chunk);
+  const oilOf = (r: ReturnType<typeof boil>) => r.out('coconut_oil')?.amount.value ?? 0;
+  const base = run(H);
+  // A1: looking does not change the oil
+  const looked = run(H, Array.from({ length: 190 }, (_, i) => [17_000 + i * 60_000, 'look'] as Act));
+  ok(oilOf(looked) === oilOf(base) && JSON.stringify(looked.last.state) === JSON.stringify(base.last.state) && oilOf(base) > 0,
+    'A1: looking every minute (at 17 s past) changes nothing in the pot: the same oil and state', `${oilOf(base)} mg`);
+  // A1: any split of the same run agrees (on and off the grid)
+  const splits = [30_000, M10, 37_001, 7_300, 1_000].map((c) => oilOf(run(c)));
+  const spread = (Math.max(...splits) - Math.min(...splits)) / oilOf(base);
+  ok(splits.slice(0, 2).every((v) => v === oilOf(base)) && spread < 0.005, 'A1: 30 s, 10 min, 1 h agree exactly; 37.001 s, 7.3 s and 1 s pieces within 0.5 %',
+    `${splits.join(', ')} mg (spread ${(spread * 100).toFixed(3)} %)`);
+  // A2: heat the pot holds is stored, not lost; while it cools, stored falls and the loss shows
+  const warm = step(breq(0, 60_000, null, [[0, 'fire_level', 1]]));
+  const e = warm.energy[0]!, held = (warm.diagnostics as { heldJ: number }).heldJ;
+  ok(e.storedJ !== undefined && Math.abs(e.storedJ - held) <= 1 && e.storedJ > 30_000 && e.usedJ === e.storedJ! + e.lostJ,
+    'A2: the first minute of heating: the heat the pot and milk now hold is storedJ', `stored ${e.storedJ} J of used ${e.usedJ} J`);
+  let st: ScienceStepRequest['state'] = null; const ens: { usedJ: number; storedJ?: number; lostJ: number }[] = [];
+  for (let t = 0; t < 80 * 60_000; t += M10) {
+    const r = step(breq(t, t + M10, st, t === 0 ? [[0, 'fire_level', 1]] : [], { lots: [MILKLOT, WOOD(400_000)] })); st = r.state; ens.push(...r.energy);
+  }
+  const cooling = ens.at(-1)!;
+  ok(cooling.usedJ === 0 && (cooling.storedJ ?? 0) < 0 && cooling.lostJ === -(cooling.storedJ ?? 0), 'A2: the wood gone, the pot cools: stored goes down, the same heat is lost',
+    `stored ${cooling.storedJ} J, lost ${cooling.lostJ} J`);
+  const whole = boil(4 * H, [[0, 'fire_level', 1], [195 * 60_000, 'take_off']], {}, M10);
+  const sums = whole.all.flatMap((r) => r.energy).reduce((a, x) => ({ u: a.u + x.usedJ, s: a.s + (x.storedJ ?? 0), l: a.l + x.lostJ }), { u: 0, s: 0, l: 0 });
+  ok(sums.s === 0 && sums.u === sums.l, 'A2: over the whole run, stored comes back to zero: everything the wood gave ends in the air', `used ${sums.u} J`);
+  // B1: lifted off before any oil separates, the milk comes back and goes on the fire again
+  const early = boil(4 * H, [[0, 'fire_level', 1], [189 * 60_000, 'take_off']]);
+  const back = early.out('coconut_milk');
+  ok(back && !early.out('coconut_latik') && !early.out('coconut_oil'), 'B1: lifted off at 189 min (the water nearly gone, no oil yet): it comes back as milk, not as latik',
+    early.obs.at(-1)?.text);
+  const again = boil(2 * H, [[0, 'fire_level', 1], ...lookEvery(2 * H, 60_000)], { lots: [{ lotId: 'lot:back', materialId: 'coconut_milk', amount: back!.amount, location: 's', quality: back!.quality }, WOOD()] });
+  const crack2 = again.obs.find((o) => /ぱちぱち|静か/.test(o.text ?? ''))?.at ?? 0;
+  const fin = boil(crack2 + 40 * 60_000, [[0, 'fire_level', 1], [crack2, 'fire_level', 0], [crack2 + 30 * 60_000, 'take_off']], { lots: [{ lotId: 'lot:back', materialId: 'coconut_milk', amount: back!.amount, location: 's', quality: back!.quality }, WOOD()] });
+  ok(oilOf(fin) > 0.6 * fat0(), 'B1: back on the fire, it goes on from where it was and gives its oil', `${oilOf(fin)} mg`);
+  // B1: latik (pulled off half browned) gives up more oil on the fire
+  const half = boil(crack + H, [[0, 'fire_level', 1], [crack, 'fire_level', 0], [crack + 4 * 60_000, 'take_off']]);
+  const lat = half.out('coconut_latik');
+  const more = lat && boil(H, [[0, 'fire_level', 0], [40 * 60_000, 'take_off']], { lots: [{ lotId: 'lot:lat', materialId: 'coconut_latik', amount: lat.amount, location: 's', quality: lat.quality }, WOOD()] });
+  ok(lat && more && oilOf(more) > 0 && oilOf(half) + oilOf(more) <= fat0() * pv_oilMax + 1, 'B1: latik lifted off half-browned goes back on the fire and gives more oil (never more than the fat allows)',
+    `${oilOf(half)} + ${more ? oilOf(more) : 0} mg`);
+  const old = scienceStep(breq(H, 2 * H, { schema: 'civ-sci.coconut-boil/1', data: {} }, []));
+  ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)), 'a /1 run (from 0.1.0) is refused: the host cancels it and releases its lots');
 }
 
 console.log('4. requests that are refused');

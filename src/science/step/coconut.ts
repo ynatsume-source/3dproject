@@ -13,6 +13,11 @@
 //   (look: sound, colour, smell) and lifts the pot off (take_off). Out: coconut_oil (clear, with how scorched it is),
 //   coconut_latik (the browned solids, holding the rest of the fat), or, lifted off before the water is gone,
 //   coconut_milk (thicker); and from the fire: the firewood left, wood_ash, vapour and CO2 to the air, O2 drawn.
+//   0.1.1 (Codex A1, A2, B1 on eaa2a84): looking does not touch the physics (only the fire level and lifting the pot
+//   off do); the pot is integrated on a fixed 0.25 s grid, so any split of the same run agrees; the heat the pot and
+//   its contents hold is reported as storedJ (negative while it cools) and settles to zero at the end; lifted off
+//   before any oil has separated, the pot gives back the same material it took in (milk or latik, with how far it had
+//   browned), and the latik goes back on the fire to give up the oil it still holds.
 //   The pot is a test pot that takes up no oil (a porous fired pot would: later).
 // Every constant is assumed (params.ts). Not modelled: rancidity, fermentation (another way to the oil, later), the
 // pot's own porosity, oil spattering, smoke.
@@ -25,11 +30,12 @@ import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint,
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
 export const COCONUT_MILK_PROCESS = { processId: 'p30x_coconut_milk', processVersion: '0.1.0' } as const;
-export const COCONUT_BOIL_PROCESS = { processId: 'p31x_coconut_oil_boil', processVersion: '0.1.0' } as const;
+export const COCONUT_BOIL_PROCESS = { processId: 'p31x_coconut_oil_boil', processVersion: '0.1.1' } as const;
 const MILK_SCHEMA = 'civ-sci.coconut-milk/1', MILK_EVAL = 'coconut-milk-eval/0.1.0';
-const BOIL_SCHEMA = 'civ-sci.coconut-boil/1', BOIL_EVAL = 'coconut-boil-eval/0.1.0';
+// /2 since 0.1.1 (heat held by the pot, browning carried over): a /1 run is refused; the host cancels it and releases its lots
+const BOIL_SCHEMA = 'civ-sci.coconut-boil/2', BOIL_EVAL = 'coconut-boil-eval/0.1.1';
 const TOOLS = 'fixture_coconut_tools', POT = 'fixture_cook_pot', HEARTH = 'open_fire_pit';
-const STEP_MS = 30_000;
+const FINE_MS = 250; // the pot is integrated on a 0.25 s grid from the run's start: near the end of the boil it changes fast
 const FIRE_KG_PER_H = [0.4, 0.8, 1.6] as const; // low, medium, high: wood the tender feeds (assumed), never above the hearth's max
 const CP = { water: 4.18, coconut_fat: 2.0, plant_solids: 1.5 } as const; // J/(g·K)
 const FOOD = ['water', 'coconut_fat', 'plant_solids'] as const;
@@ -144,30 +150,32 @@ export function coconutMilkStep(req: ScienceStepRequest): ScienceStepResult {
 // ---- p31x_coconut_oil_boil -----------------------------------------------------------------------------------------
 
 interface BoilData {
-  milkId: string; milkFp: string; fuelId: string; fuelFp: string; location: string; fuelLocation: string;
+  inId: string; inMaterial: string; inFp: string; fuelId: string; fuelFp: string; location: string; fuelLocation: string;
   pot: { heatCapJPerK: number; uaWPerK: number; heatShare: number }; maxBurnKgPerH: number;
   startMs: number; lastTo: number; level: number;
-  milk0: Composition; waterMg: number; evaporatedMg: number; tC: number; brown: number; scorch: number;
-  fuel: Composition; burnedMg: number; cumUsedJ: number; reportedUsed: number;
+  food0: Composition; waterMg: number; evaporatedMg: number; tC: number; refC: number;
+  brown0: number; brown: number; scorch: number;       // brown0: how far the food had browned when it went in
+  fuel: Composition; burnedMg: number; cumUsedJ: number; reportedUsed: number; reportedStored: number;
   outcome: 'running' | 'fuel_exhausted'; historyComplete: boolean;
 }
 
 /** Rate (1/s) with a 10 K doubling, reaching 1/τ at the reference temperature. Zero below 100 °C. */
 const rate = (tC: number, refC: number, tauS: number) => (tC <= 100 ? 0 : Math.pow(2, (tC - refC) / 10) / tauS);
+const BOIL_IN = ['coconut_milk', 'coconut_latik'];
 
 export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const fail = (why: string) => failed(req, BOIL_EVAL, why, BOIL_SCHEMA) as ScienceStepResultV02;
   const bad = checkCommon(req, COCONUT_BOIL_PROCESS.processId, COCONUT_BOIL_PROCESS.processVersion, BOIL_SCHEMA, /^0\.2\.\d+$/);
   if (bad) return fail(bad);
-  const milks = req.lots.filter((l) => l.materialId === 'coconut_milk'), woods = req.lots.filter((l) => l.materialId === 'firewood');
-  if (milks.length !== 1 || woods.length !== 1 || req.lots.length !== 2) return fail('expected one coconut_milk lot and one firewood lot');
+  const foods = req.lots.filter((l) => BOIL_IN.includes(l.materialId)), woods = req.lots.filter((l) => l.materialId === 'firewood');
+  if (foods.length !== 1 || woods.length !== 1 || req.lots.length !== 2) return fail('expected one coconut_milk (or coconut_latik) lot and one firewood lot');
   if (req.energy.length) return fail('the fire burns its reserved firewood: offer no heat source as well (never count the same fire twice)');
   for (const a of req.actions) {
     if (!['fire_level', 'look', 'take_off'].includes(a.action)) return fail(`unknown action ${a.action} (fire_level, look, take_off)`);
     if (!(a.at >= req.interval.from && a.at < req.interval.to)) return fail(`${a.action} must fall inside the interval`);
     if (a.action === 'fire_level' && ![0, 1, 2].includes(a.params?.level as number)) return fail('fire_level needs params.level 0 (low), 1 (medium) or 2 (high)');
   }
-  const milk = milks[0], wood = woods[0];
+  const food = foods[0], wood = woods[0];
   const pot = req.equipment.find((e) => e.kind === POT), hearth = req.equipment.find((e) => e.kind === HEARTH);
 
   let d: BoilData;
@@ -176,32 +184,38 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
     const pp = pot.params ?? {};
     if (!finite(pp.heatCapJPerK, 1e-9) || !finite(pp.uaWPerK, 0) || !finite(pp.heatShare, 0, 1) || !finite(pp.capacityMl, 1)) return fail(`${POT} needs params heatCapJPerK > 0, uaWPerK ≥ 0, heatShare 0..1, capacityMl > 0`);
     if (!finite(hearth.params?.maxBurnKgPerH, 0)) return fail(`${HEARTH} params.maxBurnKgPerH must be finite and ≥ 0`);
-    let mc: Composition;
-    try { mc = readFood(milk); } catch (e) { return fail((e as Error).message); }
-    if (milk.amount.value / 1000 > pp.capacityMl) return fail('the milk does not fit in the pot');
+    let fc0: Composition;
+    try { fc0 = readFood(food); } catch (e) { return fail((e as Error).message); }
+    const q = food.quality ?? {};
+    if (!finite(q.brown_ppm ?? 0, 0, 1e6) || !finite(q.scorch_ppm ?? 0, 0, 1e6)) return fail('brown_ppm and scorch_ppm must be within 0..1000000');
+    if (food.amount.value / 1000 > pp.capacityMl) return fail('it does not fit in the pot');
     const fc = fuelComp(wood);
     if (typeof fc === 'string') return fail(fc);
     if (!envUsable(req)) return fail(`a fire is lit only with known weather (environment ${req.environment.source})`);
     const first = req.actions.filter((a) => a.action === 'fire_level').sort((x, y) => x.at - y.at)[0];
-    d = { milkId: milk.lotId, milkFp: fingerprint(milk), fuelId: wood.lotId, fuelFp: fingerprint(wood), location: milk.location, fuelLocation: wood.location,
+    const Ta = req.environment.airTempC!, b0 = (q.brown_ppm ?? 0) / 1e6;
+    d = { inId: food.lotId, inMaterial: food.materialId, inFp: fingerprint(food), fuelId: wood.lotId, fuelFp: fingerprint(wood), location: food.location, fuelLocation: wood.location,
       pot: { heatCapJPerK: pp.heatCapJPerK, uaWPerK: pp.uaWPerK, heatShare: pp.heatShare }, maxBurnKgPerH: hearth.params!.maxBurnKgPerH,
       startMs: req.interval.from, lastTo: req.interval.from, level: first?.at === req.interval.from ? (first.params!.level as number) : 1,
-      milk0: mc, waterMg: mc.water ?? 0, evaporatedMg: 0, tC: req.environment.airTempC!, brown: 0, scorch: 0,
-      fuel: fc, burnedMg: 0, cumUsedJ: 0, reportedUsed: 0, outcome: 'running',
-      historyComplete: (milk.quality?.history_complete ?? 1) === 1 && (wood.quality?.history_complete ?? 1) === 1 };
+      food0: fc0, waterMg: fc0.water ?? 0, evaporatedMg: 0, tC: Ta, refC: Ta, brown0: b0, brown: b0, scorch: (q.scorch_ppm ?? 0) / 1e6,
+      fuel: fc, burnedMg: 0, cumUsedJ: 0, reportedUsed: 0, reportedStored: 0, outcome: 'running',
+      historyComplete: (food.quality?.history_complete ?? 1) === 1 && (wood.quality?.history_complete ?? 1) === 1 };
   } else {
     d = structuredClone(req.state.data as BoilData);
-    if (d.milkFp !== fingerprint(milk) || d.fuelFp !== fingerprint(wood)) return fail('changed-input: a reserved lot changed under a running run');
+    if (d.inFp !== fingerprint(food) || d.fuelFp !== fingerprint(wood)) return fail('changed-input: a reserved lot changed under a running run');
     if (req.interval.from !== d.lastTo) return fail(`noncontiguous-interval: expected from=${d.lastTo}`);
   }
 
   const known = envUsable(req);
   const takeOff = req.actions.filter((a) => a.action === 'take_off').map((a) => a.at).sort((x, y) => x - y)[0];
   const endAt = !known ? req.interval.from : takeOff ?? req.interval.to;
-  const acts = req.actions.filter((a) => a.action !== 'take_off' && a.at < endAt).sort((x, y) => x.at - y.at);
+  const levels = req.actions.filter((a) => a.action === 'fire_level' && a.at < endAt).sort((x, y) => x.at - y.at);
+  const looks = req.actions.filter((a) => a.action === 'look' && a.at < endAt).map((a) => a.at).sort((x, y) => x - y);
   const fuelTotal = totalMg(d.fuel), lhv = fuelLhvJPerMg(d.fuel), dryShare = (d.fuel.wood_dry ?? 0) / fuelTotal;
-  const fat = d.milk0.coconut_fat ?? 0, solids = d.milk0.plant_solids ?? 0, nonWater = fat + solids;
+  const fat = d.food0.coconut_fat ?? 0, solids = d.food0.plant_solids ?? 0, nonWater = fat + solids;
+  const heldJ = () => (d.pot.heatCapJPerK + (CP.water * d.waterMg + CP.coconut_fat * fat + CP.plant_solids * solids) / 1000) * (d.tC - d.refC);
   const observations: Observation[] = [];
+  /** What the resident notices: read from the pot as it is, never changing it. */
   const look = (at: number) => {
     const boiling = d.waterMg > pv('boilEndWaterRatio') * nonWater;
     const o = (channel: Observation['channel'], quantity: string, text: string) => observations.push({ at, channel, quantity, text });
@@ -212,12 +226,15 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
     o('smell', 'pot', d.scorch > 0.3 ? '焦げたにおい' : d.brown > 0.3 ? '香ばしい甘いにおい' : '甘いにおい');
   };
 
-  let t = d.lastTo, k = 0;
+  let t = d.lastTo, kl = 0, ko = 0;
   if (known) {
-    const Ta = req.environment.airTempC!;
+    const Ta = req.environment.airTempC!, latent = pv('latentHeatWater100') / 1e6; // J per mg
     while (t < endAt) {
-      for (; k < acts.length && acts[k].at <= t; k++) { if (acts[k].action === 'fire_level') d.level = acts[k].params!.level as number; else look(acts[k].at); }
-      const tEnd = Math.min(subStepEnd(t, d.startMs, STEP_MS, endAt), k < acts.length ? acts[k].at : Infinity);
+      for (; kl < levels.length && levels[kl].at <= t; kl++) d.level = levels[kl].params!.level as number;
+      for (; ko < looks.length && looks[ko] < t + 1e-9; ko++) look(looks[ko]);
+      // the fixed grid, cut only by a change of fire (looking is not)
+      const tEnd = Math.min(subStepEnd(t, d.startMs, FINE_MS, endAt), kl < levels.length ? levels[kl].at : Infinity);
+      for (; ko < looks.length && looks[ko] < tEnd; ko++) look(looks[ko]); // a look inside the step sees the pot as at its start
       const dt = (tEnd - t) / 1000;
       // the fire: the tender feeds wood at the chosen pace while there is wood that burns
       const feedKgS = lhv > 0 ? Math.min(FIRE_KG_PER_H[d.level], d.maxBurnKgPerH) / 3600 : 0;
@@ -225,10 +242,10 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
       if (fuelTotal - d.burnedMg < 1 && d.outcome === 'running') d.outcome = 'fuel_exhausted';
       d.burnedMg += burn; d.cumUsedJ += burn * dryShare * (pv('woodLhvDry') / 1e6);
       // the pot: what it gets from the fire, less what it loses to the air
+      const t0 = d.tC;
       const net = burn * lhv * d.pot.heatShare - d.pot.uaWPerK * (d.tC - Ta) * dt;
       const C = d.pot.heatCapJPerK + CP.water * d.waterMg / 1000 + CP.coconut_fat * fat / 1000 + CP.plant_solids * solids / 1000;
       const free = Math.max(0, d.waterMg - pv('boilEndWaterRatio') * nonWater);
-      const latent = pv('latentHeatWater100') / 1e6; // J per mg
       let heat = net;
       if (free > 0) {
         // up to the boil, then the heat goes into boiling off the free water
@@ -240,48 +257,55 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
         const e = d.tC >= 100 ? Math.min(d.waterMg, d.waterMg * (1 - Math.exp(-dt / pv('boilBoundWaterTauS'))), Math.max(0, heat) / latent) : 0;
         d.waterMg -= e; d.evaporatedMg += e; d.tC += (heat - e * latent) / C;
       }
-      d.brown += rate(d.tC, pv('brownRefC'), pv('brownTauRefS')) * dt;
-      d.scorch += rate(d.tC, pv('scorchRefC'), pv('scorchTauRefS')) * dt;
+      const tMid = (t0 + d.tC) / 2; // browning and scorching at the step's mean temperature
+      d.brown += rate(tMid, pv('brownRefC'), pv('brownTauRefS')) * dt;
+      d.scorch += rate(tMid, pv('scorchRefC'), pv('scorchTauRefS')) * dt;
       t = tEnd;
     }
-    for (; k < acts.length; k++) if (acts[k].action === 'look') look(acts[k].at);
+    for (; ko < looks.length; ko++) look(looks[ko]);
   } else d.historyComplete = false;
   d.lastTo = endAt;
   if (!allFinite(d)) return fail('non-finite state: refusing to return it');
-  const u = intDeltaFloor(d.cumUsedJ, d.reportedUsed);
-  d.reportedUsed = u.reported;
   const ending = !known || takeOff !== undefined || req.stop === 'operator' || req.stop === 'equipment-lost';
+  // heat: the dry wood burned (used); what the pot and its contents hold above where they started (stored: up while it
+  // heats, down while it cools); the rest went to the air (lost). At the end the pot cools: stored settles to zero.
+  const u = intDeltaFloor(d.cumUsedJ, d.reportedUsed);
+  const storedNow = ending ? 0 : Math.round(heldJ());
+  const sDelta = storedNow - d.reportedStored;
+  d.reportedUsed = u.reported; d.reportedStored = storedNow;
   const res: ScienceStepResultV02 = {
     contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
     state: { schema: BOIL_SCHEMA, data: d }, status: ending ? (takeOff !== undefined && known ? 'completed' : 'stopped') : 'running',
     consumed: [], produced: [], released: [], drawn: [],
-    // all the fire's heat ends up in the air: boiling off the water, warming the pot and the air around (none is kept)
-    energy: u.delta > 0 ? [{ sourceId: `src:combustion:${req.runId}`, kind: 'heat', usedJ: u.delta, lostJ: u.delta, storedJ: 0 }] : [],
+    energy: u.delta === 0 && sDelta === 0 ? [] : [{ sourceId: `src:combustion:${req.runId}`, kind: 'heat', usedJ: u.delta, lostJ: u.delta - sDelta, storedJ: sDelta }],
     equipmentWear: [], observations,
     evidence: { evaluatorVersion: BOIL_EVAL, sourceRefs: ['S-latent', 'S-wood'],
-      notes: '水の蒸発熱は出典あり。鍋に入る火の熱の割合、かすの色づき・焦げの速さ、油の分かれる割合は仮定。鍋は油を吸わない試験用' },
-    diagnostics: { tC: d.tC, waterRatio: d.waterMg / Math.max(1, nonWater), brown: d.brown, scorch: d.scorch, level: d.level, burnedMg: d.burnedMg, outcome: d.outcome },
+      notes: '水の蒸発熱は出典あり。鍋に入る火の熱の割合、かすの色づき・焦げの速さ、油の分かれる割合は仮定。油が分かれるのを色づきに結びつけたのはモデルの仮定（澄んだ油に褐変は必須ではない）。鍋は油を吸わない試験用、中身は一様な温度' },
+    diagnostics: { tC: d.tC, waterRatio: d.waterMg / Math.max(1, nonWater), brown: d.brown, scorch: d.scorch, level: d.level, burnedMg: d.burnedMg, heldJ: heldJ(), outcome: d.outcome },
   };
   if (!ending) return res;
 
-  // settle once: the milk's water that went up, the oil that separated, the rest; the fire's wood, ash and gases
-  const evap = Math.min(d.milk0.water ?? 0, Math.floor(d.evaporatedMg + 1e-6)), waterLeft = (d.milk0.water ?? 0) - evap;
-  res.consumed = [{ lotId: milk.lotId, amount: { ...milk.amount } }, { lotId: wood.lotId, amount: { ...wood.amount } }];
+  // settle once: the water that went up, the oil that separated, the rest; the fire's wood, ash and gases
+  const evap = Math.min(d.food0.water ?? 0, Math.floor(d.evaporatedMg + 1e-6)), waterLeft = (d.food0.water ?? 0) - evap;
+  res.consumed = [{ lotId: food.lotId, amount: { ...food.amount } }, { lotId: wood.lotId, amount: { ...wood.amount } }];
   const hist = d.historyComplete ? 1 : 0;
-  const cooked = d.waterMg <= 0.05 * nonWater;
-  if (!cooked) {
-    const c: Composition = { ...d.milk0 }; if (waterLeft) c.water = waterLeft; else delete c.water;
-    res.produced.push({ materialId: 'coconut_milk', amount: { value: totalMg(c), unit: 'mg' }, into: d.location, quality: { ...foodQuality(c), history_complete: hist } });
-  } else {
-    const oilMg = Math.floor(fat * pv('oilRecoverMax') * Math.min(1, d.brown));
-    const scorch = Math.round(Math.min(1, d.scorch) * 1e6), brown = Math.round(Math.min(1, d.brown) * 1e6);
-    if (oilMg > 0) res.produced.push({ materialId: 'coconut_oil', amount: { value: oilMg, unit: 'mg' }, into: d.location,
+  const scorch = Math.round(Math.min(1, d.scorch) * 1e6), brown = Math.round(Math.min(1, d.brown) * 1e6);
+  // of the fat that went in, the share that separates now: what this browning frees beyond what had been freed before
+  const R = pv('oilRecoverMax'), freed0 = R * Math.min(1, d.brown0), freed = R * Math.min(1, d.brown);
+  const oilMg = d.waterMg <= 0.05 * nonWater && freed > freed0 ? Math.floor((fat * (freed - freed0)) / (1 - freed0)) : 0;
+  const rest: Composition = { coconut_fat: fat - oilMg, plant_solids: solids };
+  if (waterLeft) rest.water = waterLeft;
+  for (const key of Object.keys(rest) as SpeciesId[]) if (!rest[key]) delete rest[key];
+  const browned = { ...(brown ? { brown_ppm: brown } : {}), ...(scorch ? { scorch_ppm: scorch } : {}) };
+  if (oilMg > 0) {
+    res.produced.push({ materialId: 'coconut_oil', amount: { value: oilMg, unit: 'mg' }, into: d.location,
       quality: { x_coconut_fat_ppm: 1_000_000, scorch_ppm: scorch, history_complete: hist } });
-    const latik: Composition = { coconut_fat: fat - oilMg, plant_solids: solids };
-    if (waterLeft) latik.water = waterLeft;
-    for (const key of Object.keys(latik) as SpeciesId[]) if (!latik[key]) delete latik[key];
-    if (totalMg(latik) > 0) res.produced.push({ materialId: 'coconut_latik', amount: { value: totalMg(latik), unit: 'mg' }, into: d.location,
-      quality: { ...foodQuality(latik), brown_ppm: brown, scorch_ppm: scorch, history_complete: hist } });
+    if (totalMg(rest) > 0) res.produced.push({ materialId: 'coconut_latik', amount: { value: totalMg(rest), unit: 'mg' }, into: d.location,
+      quality: { ...foodQuality(rest), brown_ppm: brown, scorch_ppm: scorch, history_complete: hist } });
+  } else if (totalMg(rest) > 0) {
+    // no oil yet: the same material comes back (thicker, browned as far as it got) and can go on the fire again (Codex B1)
+    res.produced.push({ materialId: d.inMaterial, amount: { value: totalMg(rest), unit: 'mg' }, into: d.location,
+      quality: { ...foodQuality(rest), ...browned, history_complete: hist } });
   }
   // the firewood, as the wood fire settles it: each part burned rounded up, never more than the lot holds
   const taken: Composition = {};
@@ -289,12 +313,12 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
     const n = Math.min(d.fuel[part] ?? 0, Math.ceil((d.burnedMg * (d.fuel[part] ?? 0)) / fuelTotal - 1e-6));
     if (n > 0) taken[part] = n;
   }
-  const rest = addComp(d.fuel, taken, -1);
+  const left = addComp(d.fuel, taken, -1);
   const r = react('wood_dry', taken.wood_dry ?? 0, REACTIONS.woodCombustion.coeffs, REACTIONS.woodCombustion.closeInto);
-  if (totalMg(rest) > 0) {
-    const restDry = totalMg(rest) - (rest.water ?? 0);
-    res.produced.push({ materialId: 'firewood', amount: { value: totalMg(rest), unit: 'mg' }, into: d.fuelLocation,
-      quality: { ...(wood.quality ?? {}), water_ppm: ((rest.water ?? 0) * 1e6) / totalMg(rest), ash_dry_ppm: restDry > 0 ? ((rest.ash ?? 0) * 1e6) / restDry : 0 } });
+  if (totalMg(left) > 0) {
+    const leftDry = totalMg(left) - (left.water ?? 0);
+    res.produced.push({ materialId: 'firewood', amount: { value: totalMg(left), unit: 'mg' }, into: d.fuelLocation,
+      quality: { ...(wood.quality ?? {}), water_ppm: ((left.water ?? 0) * 1e6) / totalMg(left), ash_dry_ppm: leftDry > 0 ? ((left.ash ?? 0) * 1e6) / leftDry : 0 } });
   }
   if (taken.ash) res.produced.push({ materialId: 'wood_ash', amount: { value: taken.ash, unit: 'mg' }, into: d.fuelLocation });
   const vapour = evap + (taken.water ?? 0) + (r.produced.water ?? 0);
@@ -303,9 +327,9 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (r.consumed.o2) res.drawn = [{ materialId: 'o2', amount: { value: r.consumed.o2, unit: 'mg' }, from: 'air' }];
   if (!known) res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '見ていない間に火が落ちていた' });
   if (d.outcome === 'fuel_exhausted') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '薪が尽きて、火が小さくなっていった' });
-  if (cooked) {
-    const oil = d.brown < 0.2 ? 'かすはまだ白く、澄んだ油はほとんど分かれていない' : d.scorch > 0.4 ? '油は茶色く濁り、焦げ臭い' : d.scorch > 0.1 ? '油に少し色がつき、香ばしい' : '澄んだ淡い色の油が分かれた';
-    res.observations.push({ at: endAt, channel: 'sight', quantity: 'oil', text: oil });
-  } else res.observations.push({ at: endAt, channel: 'sight', quantity: 'milk', text: 'まだ水っぽく、油は分かれていない' });
+  const end = oilMg > 0
+    ? (d.scorch > 0.4 ? '油は茶色く濁り、焦げ臭い' : d.scorch > 0.1 ? '油に少し色がつき、香ばしい' : '澄んだ淡い色の油が分かれた')
+    : d.waterMg > 0.05 * nonWater ? 'まだ水っぽく、油は分かれていない' : 'かすはまだ白く、澄んだ油はほとんど分かれていない';
+  res.observations.push({ at: endAt, channel: 'sight', quantity: oilMg > 0 ? 'oil' : 'pot', text: end });
   return res;
 }
