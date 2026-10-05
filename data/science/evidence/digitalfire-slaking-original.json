@@ -1,0 +1,26 @@
+{
+  "url": "https://digitalfire.com/glossary/slaking",
+  "accessedDateJst": "2026-10-05",
+  "recordType": "selected-facts-transcribed-from-original-publisher-web-text",
+  "notRawPublisherFile": true,
+  "title": "Slaking",
+  "selectedFacts": {
+    "dryVersusWet": "Dried lumps normally break down more readily than damp lumps; different clays differ.",
+    "smallLumps": "Well-slaking clay, chunks below about 1 cm exposed to still water: minutes.",
+    "settlingDays": [
+      1,
+      2
+    ]
+  },
+  "units": {
+    "chunkSize": "cm",
+    "settling": "day"
+  },
+  "missing": [
+    "mineral analysis",
+    "mass time series",
+    "temperature",
+    "humidity",
+    "replicates"
+  ]
+}

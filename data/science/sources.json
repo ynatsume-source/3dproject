@@ -428,6 +428,62 @@
       },
       "supports": "Actual air temperatures below 10 C at the island weather source station: 18 JST is 8.6 C; 22 JST is 8.1 C. A fixed 10 C lower bound does not enclose all recorded weather at this station.",
       "doesNotVerify": "No barometer, bulb or water-bath measurements. Does not establish the station's all-time extrema, a universal replacement temperature bound, a pressure-change-rate bound, or the game's chosen replay year. Hourly hold-forward and artificial temperature omission are diagnostic choices, not missing observations in the original table."
+    },
+    {
+      "id": "digitalfire-slaking-original",
+      "publisher": "Digitalfire",
+      "title": "Slaking",
+      "sourceType": "practitioner-authored-process-guide",
+      "url": "https://digitalfire.com/glossary/slaking",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-relevant-body-passages-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/digitalfire-slaking-original.json",
+        "sha256": "737134bb4de91a6781a8b5620a3798f1cd995a226a077a1afc093f486f8eea30",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML or a hash of the complete article"
+      },
+      "supports": "Supports the qualitative order of drying/slaking/sieving/settling; not a universal exponential slaking law.",
+      "doesNotVerify": "No complete controlled dataset for the game material. Does not calibrate slakeTauDryS, wet-clay multiplier, settling rate, evaporation coefficient, nine-day tub time, kneading time or power.",
+      "author": "Tony Hansen"
+    },
+    {
+      "id": "digitalfire-slaking-bar-observation",
+      "publisher": "Digitalfire",
+      "title": "Slaking. What is that?",
+      "sourceType": "primary-practitioner-observation",
+      "url": "https://digitalfire.com/picture/1132",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-relevant-body-passages-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/digitalfire-slaking-bar-observation.json",
+        "sha256": "25b60a127af684943388a4fd59373823937be2e8b8484311081e33c14d450080",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML or a hash of the complete article"
+      },
+      "supports": "An original practical observation of slaking over minutes; the pictured clay is not the island raw clay.",
+      "doesNotVerify": "No complete controlled dataset for the game material. Does not calibrate slakeTauDryS, wet-clay multiplier, settling rate, evaporation coefficient, nine-day tub time, kneading time or power."
+    },
+    {
+      "id": "ceramics-monthly-rhee-reclaiming-2018",
+      "publisher": "Ceramics Monthly / Ceramic Arts Network",
+      "title": "Tips and Tools: Reclaiming Clay",
+      "sourceType": "primary-practitioner-process-report",
+      "url": "https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/Tips-and-Tools-Reclaiming-Clay-202916",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-relevant-body-passages-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/ceramics-monthly-rhee-reclaiming-2018.json",
+        "sha256": "2bb6fedb11a250e45b856aed7b8806f77c8595e1a3c999e5f7e185ebead00c43",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML or a hash of the complete article"
+      },
+      "supports": "A documented practitioner route using absorbent plaster before kneading. Its duration does not calibrate an open evaporating tub.",
+      "doesNotVerify": "No complete controlled dataset for the game material. Does not calibrate slakeTauDryS, wet-clay multiplier, settling rate, evaporation coefficient, nine-day tub time, kneading time or power.",
+      "author": "Mea Rhee"
     }
   ]
 }
