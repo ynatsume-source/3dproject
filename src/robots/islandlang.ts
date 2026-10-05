@@ -90,8 +90,9 @@ export function glyphs(toks: Tok[], cls = 'isl') {
 /* ---------- what is said: one meaning, its words and its subtitle ---------- */
 const NAME_JA: Record<string, string> = { dot: 'ドット', rakko: 'ラッコ', kame: 'カメマル', lantern: 'ランタン' };
 const ROLE: Record<string, { isl: Tok[]; ja: string }> = {
-  dot: { isl: [w('hut'), w('build')], ja: '小屋の建設' }, rakko: { isl: [w('shell'), w('gather')], ja: '貝殻の収集' },
-  kame: { isl: [w('place'), w('measure')], ja: '位置の測量' }, lantern: { isl: [w('map'), w('build')], ja: '地図の作成' },
+  // (what each is for, as ADR 0006 has it: Dot widens the world — its map; Lantern lights the night — fire and what it learns of it)
+  dot: { isl: [w('map'), w('build')], ja: '地図の作成' }, rakko: { isl: [w('shell'), w('gather')], ja: '貝殻の収集' },
+  kame: { isl: [w('place'), w('measure')], ja: '位置の測量' }, lantern: { isl: [w('fire'), w('measure')], ja: '火と灯りの研究' },
 };
 const nameW = (id: string) => (LEX as Record<string, string>)[id] ?? id;
 /** One of the values a resident reports: hut 3 of 24, shells 5, map 30 %. */

@@ -24,7 +24,7 @@ const PLAN: Record<string, Record<string, string[]>> = {
 };
 const LOOK: Record<string, Look> = {
   dot: {
-    title: 'DOT ▸ 視界', sub: '小屋の建設',
+    title: 'DOT ▸ 視界', sub: '地図の作成',
     bullets: (s, r) => (s.built >= s.hutN && (s.task === 'gather' || s.task === 'craft') ? ['① 流木 回収', '② 板ニ 削ル', '③ 桟橋ニ 張ル'] : (PLAN.dot[s.task] ?? PLAN.dot.idle)).map((l) => l.replace('{n}', String(s.built + 1)).replace('{d}', '')),
     label: (m, d) => (m.kind === 'friend' ? `${m.label} ／ ${m.sub}` : `${m.label}${m.sub ? ' ／ ' + m.sub : ''} ▸ ${d.toFixed(1)}m`),
     stat: (s, r) => `電池 ${bar(r.battery)} ${pct(r.battery)}　小屋 ${s.built}/${s.hutN}　食料 ${s.food}`,
@@ -36,7 +36,7 @@ const LOOK: Record<string, Look> = {
     stat: (s, r) => `記録 ${r.stats.notes}件　おなか ${bar(1 - r.hunger, 6)}　ねむけ ${bar(r.sleepy, 6)}`,
   },
   lantern: {
-    title: 'LANTERN ／ 視界', sub: '地図の作成',
+    title: 'LANTERN ／ 視界', sub: '火と灯りの研究',
     bullets: (s) => PLAN.lantern[s.task] ?? ['待機'],
     label: (m, d) => (m.kind === 'friend' ? `◇ ${m.label}` : `◇ ${m.label}${m.sub ? '  ' + m.sub : ''}`),
     stat: (s, r) => `灯り ${pct(r.battery)}　目印 ${r.stats.cairns}`,
