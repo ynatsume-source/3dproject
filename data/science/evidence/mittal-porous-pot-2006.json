@@ -1,0 +1,34 @@
+{
+  "sourceUrl": "https://www.researchgate.net/publication/233162245_Evaporative_Cooling_of_Water_in_a_Small_Vessel_Under_Varying_Ambient_Humidity",
+  "doi": "10.1080/01971520600704654",
+  "retrievedDateJst": "2026-10-06",
+  "recordType": "Reviewer transcription of selected facts from obtained paper body; NOT original publisher bytes",
+  "facts": {
+    "location": "Manuscript Experimental Procedures; Tables 3 and 4",
+    "material": "Porous red clay, Syracuse Pottery; styrofoam lid and base support; controlled humid airflow",
+    "pot_mass_g": 22.681,
+    "wall_thickness_cm": 0.3,
+    "exposed_area_cm2": 51.9,
+    "RH_percent": 59.8,
+    "replicates": 2,
+    "ambient_C": [
+      23.3,
+      23.4
+    ],
+    "equilibrium_water_C": [
+      18.7,
+      18.7
+    ],
+    "water_loss_g_h": [
+      0.652,
+      0.708
+    ],
+    "balance_accuracy_mg": 1,
+    "equilibration_min_range": [
+      40,
+      60
+    ],
+    "missing": "Local air speed and raw time-series bytes were not obtained."
+  },
+  "calibrationEligible": false
+}

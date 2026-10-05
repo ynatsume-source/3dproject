@@ -633,6 +633,106 @@
         "format": "UTF-8 JSON, LF newlines",
         "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
       }
+    },
+    {
+      "id": "chemin-botijo-2018",
+      "publisher": "American Journal of Physics; author-hosted published PDF at ENS Lyon",
+      "author": "Arsène Chemin, Victor Dit Vehel, Aude Caussarieu, Nicolas Plihon and Nicolas Taberlet",
+      "title": "Heat transfer and evaporative cooling in the function of pot-in-pot coolers (2018)",
+      "sourceType": "primary-research-paper",
+      "url": "https://perso.ens-lyon.fr/nicolas.plihon/Publis/Chemin_AJP_86.pdf",
+      "doi": "10.1119/1.5016041",
+      "supports": "Measured water loss and cooling under documented ventilation.",
+      "doesNotVerify": "Not a 500 mL pot; no 12% absorption or coating experiment. Do not transplant its flux. No graph digitisation.",
+      "accessedDateJst": "2026-10-06",
+      "verification": "relevant-paper-body-read-via-web-text-extraction; author copy where identified above",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/chemin-botijo-2018.json",
+        "sha256": "2f0b0d5a64d6deb5a58faa6cce6b9bc75e4aa9a1a21fc13483adcab749cedd4b",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or the complete publication"
+      }
+    },
+    {
+      "id": "mittal-porous-pot-2006",
+      "publisher": "International Journal of Green Energy; author-uploaded manuscript on ResearchGate",
+      "author": "Ashutosh Mittal, Tarun Kataria, Gautam K. Das and Siddharth G. Chatterjee",
+      "title": "Evaporative Cooling of Water in a Small Vessel Under Varying Ambient Humidity (2006)",
+      "sourceType": "primary-research-paper",
+      "url": "https://www.researchgate.net/publication/233162245_Evaporative_Cooling_of_Water_in_a_Small_Vessel_Under_Varying_Ambient_Humidity",
+      "doi": "10.1080/01971520600704654",
+      "supports": "A replicated water-loss measurement with geometry and humidity.",
+      "doesNotVerify": "Author copy, not independently matched to publisher bytes; different body and airflow. No tar or air-leak calibration.",
+      "accessedDateJst": "2026-10-06",
+      "verification": "author-uploaded-paper-body-read-publisher-copy-uncompared",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/mittal-porous-pot-2006.json",
+        "sha256": "517ec463d15ea9a80355b3ee18710a205531ed7a33e3cd4e343880aab074a126",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or the complete publication"
+      }
+    },
+    {
+      "id": "kozowyk-adhesive-rheology-2019",
+      "publisher": "Journal of Human Evolution; published PDF via TU Delft repository",
+      "author": "Paul R. B. Kozowyk and Johannes A. Poulis",
+      "title": "A new experimental methodology for assessing adhesive properties shows that Neandertals used the most suitable material available (2019)",
+      "sourceType": "primary-research-paper",
+      "url": "https://research.tudelft.nl/files/127729536/1_s2.0_S0047248419300983_main.pdf",
+      "doi": "10.1016/j.jhevol.2019.102664",
+      "supports": "Temperature-dependent viscoelasticity of a specified prepared bark tar.",
+      "doesNotVerify": "Does not establish 45 C dripping or penetration rates for the game wood tar.",
+      "accessedDateJst": "2026-10-06",
+      "verification": "relevant-paper-body-read-via-web-text-extraction; author copy where identified above",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/kozowyk-adhesive-rheology-2019.json",
+        "sha256": "12987a0208e7019a1016d20e1307d985308339d46ad3ad0ee24c530c8242dede",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or the complete publication"
+      }
+    },
+    {
+      "id": "koch-iron-age-pot-tar-2024",
+      "publisher": "PLOS ONE",
+      "author": "Tabea J. Koch et al.",
+      "title": "Differences in birch tar composition are explained by adhesive function in the central European Iron Age (2024)",
+      "sourceType": "primary-research-paper",
+      "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0301103",
+      "doi": "10.1371/journal.pone.0301103",
+      "supports": "Direct residue evidence for tar on ceramics, distinguished from the authors’ functional hypothesis.",
+      "doesNotVerify": "Not evidence of measured airtightness, complete internal coatings, or an island wood-tar recipe.",
+      "accessedDateJst": "2026-10-06",
+      "verification": "relevant-paper-body-read-via-web-text-extraction; author copy where identified above",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/koch-iron-age-pot-tar-2024.json",
+        "sha256": "a6c35ecd486985242e83bffa9893c5d6e540ad512ab58bab721e7491ccc9bf26",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or the complete publication"
+      }
+    },
+    {
+      "id": "kozowyk-tar-preparation-2020",
+      "publisher": "Archaeological and Anthropological Sciences, Springer Nature",
+      "author": "Paul R. B. Kozowyk, Annelou L. van Gijn and Geeske H. J. Langejans",
+      "title": "Understanding preservation and identification biases of ancient adhesives through experimentation (2020)",
+      "sourceType": "primary-research-paper",
+      "url": "https://link.springer.com/article/10.1007/s12520-020-01179-y",
+      "doi": "10.1007/s12520-020-01179-y",
+      "supports": "A primary preparation showing that collected tar and reduced solid pitch are different states.",
+      "doesNotVerify": "No pot permeability or softening test; the game condensate cannot automatically inherit reduced-pitch properties.",
+      "accessedDateJst": "2026-10-06",
+      "verification": "relevant-paper-body-read-via-web-text-extraction; author copy where identified above",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/kozowyk-tar-preparation-2020.json",
+        "sha256": "7293785ab7ad63199ed2d7632c19ece3a6cb6ab77dafbd4777be09aa0b52582c",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or the complete publication"
+      }
     }
   ]
 }

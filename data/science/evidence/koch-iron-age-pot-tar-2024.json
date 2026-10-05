@@ -1,0 +1,16 @@
+{
+  "sourceUrl": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0301103",
+  "doi": "10.1371/journal.pone.0301103",
+  "retrievedDateJst": "2026-10-06",
+  "recordType": "Reviewer transcription of selected facts from obtained paper body; NOT original publisher bytes",
+  "facts": {
+    "location": "Materials, results and discussion: geographical context and surface treatments",
+    "material": "Archaeological adhesive residues, northeastern France",
+    "samples": 65,
+    "sites": 16,
+    "method": "Organic residue analysis; birch-tar molecular markers",
+    "finding": "Birch tar occurs in ceramic repair and rim coatings. A lid-sealing function is explicitly a hypothesis, without direct archaeological proof.",
+    "conditions_and_units": "Archaeological sample counts, not a timed permeability experiment; temperature, RH, pressure and leak rate are not measured here."
+  },
+  "calibrationEligible": false
+}

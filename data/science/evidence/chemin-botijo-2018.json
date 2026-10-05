@@ -1,0 +1,26 @@
+{
+  "sourceUrl": "https://perso.ens-lyon.fr/nicolas.plihon/Publis/Chemin_AJP_86.pdf",
+  "doi": "10.1119/1.5016041",
+  "retrievedDateJst": "2026-10-06",
+  "recordType": "Reviewer transcription of selected facts from obtained paper body; NOT original publisher bytes",
+  "facts": {
+    "location": "Section III.A, journal pp.208–209, Figure 5 discussion",
+    "material": "Unglazed clay pot; water",
+    "capacity_L": 3,
+    "pot_mass_g": 1554,
+    "wall_thickness_mm": 5,
+    "water_initial_L": 1.85,
+    "ambient_C": 21,
+    "RH_percent_range": [
+      72,
+      74
+    ],
+    "surface_wind_m_s": 10,
+    "wind_uncertainty_m_s": 2,
+    "mass_loss_g_h": 41,
+    "reported_uncertainty_g_h": 5,
+    "water_temperature_after_4h_C": 15.3,
+    "replicates": "Not specified for this pot trial in the obtained passage; no raw time-series file obtained."
+  },
+  "calibrationEligible": false
+}

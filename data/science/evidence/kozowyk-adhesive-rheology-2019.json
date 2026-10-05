@@ -1,0 +1,23 @@
+{
+  "sourceUrl": "https://research.tudelft.nl/files/127729536/1_s2.0_S0047248419300983_main.pdf",
+  "doi": "10.1016/j.jhevol.2019.102664",
+  "retrievedDateJst": "2026-10-06",
+  "recordType": "Reviewer transcription of selected facts from obtained paper body; NOT original publisher bytes",
+  "facts": {
+    "location": "Sections 2.1, 2.2 (rheology) and 3.2",
+    "material": "Betula pendula bark tar, distilled then reduced; not generic wood condensate",
+    "apparatus": "HAAKE MARS III; 8 mm plates, approximately 2 mm gap",
+    "sweep_C": [
+      0,
+      70
+    ],
+    "step_C": 5,
+    "strain_percent": 0.1,
+    "measurements_per_point": 3,
+    "frequency_Hz_for_selected_result": 1,
+    "Gprime_Gdoubleprime_crossover_C": 42.08,
+    "meaning": "Oscillatory modulus crossover at 1 Hz; NOT a universal melting or dripping temperature.",
+    "data_link_not_downloaded": "https://doi.org/10.17632/z69zs69mpg.1"
+  },
+  "calibrationEligible": false
+}

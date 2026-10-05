@@ -99,7 +99,8 @@ try {
     const details = document.createElement('details');
     const summary = document.createElement('summary');
     const archived = source.verification === 'archived-text-passages-read-original-unverified';
-    summary.textContent = `${source.title} — ${archived ? '保存コピーを確認・原典未照合' : '公式ソース本文を確認'}`;
+    const authorCopy = source.verification === 'author-uploaded-paper-body-read-publisher-copy-uncompared';
+    summary.textContent = `${source.title} — ${archived ? '保存コピーを確認・原典未照合' : authorCopy ? '著者公開本文を確認・出版社版未照合' : '公式ソース本文を確認'}`;
     const link = document.createElement('a');
     link.href = source.url;
     link.textContent = source.commit ? `取得した本文（${source.commit.slice(0,7)}）` : '取得元の本文・データ';
