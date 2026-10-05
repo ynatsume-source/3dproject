@@ -32,6 +32,7 @@ export interface BrainInput {
   why: string;                                  // (what made it stop to think: a goal done, a failure, something new…)
   goal: Goal | null; seeing: Observation[]; remembered: Observation[];
   knowledge: Knowledge[]; results: ActionResult[]; options: Option[];
+  hits?: string[];   // what has paid off, as the world counted it: average reward and how many times (agent/values.ts)
 }
 export type Brain = (input: BrainInput, tier: 'deep' | 'light') => Promise<Thought | null>;
 

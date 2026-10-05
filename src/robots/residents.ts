@@ -681,7 +681,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (b.weak >= 2 && b.got * 2 < b.tries) troubled(r, 'weak', `おなかがすきすぎて、潜っても力が出なかった（${detail}）`, '力が出ない', detail);
     else if (!b.got) { r.diary.push({ at: clockMs, text: `${where}では何も獲れなかった`, key: 'body' }); }
     act(r, 'got', `食べに潜った：${detail}`);
-    const a = agentOf(r); if (a && b.opt) { a.result(b.opt, 'eat', b.got ? 'done' : 'gone', clockMs, detail); flushMind(r, a); }
+    const a = agentOf(r); if (a && b.opt) { a.result(b.opt, 'eat', b.got ? 'done' : 'gone', clockMs, detail, b.got / Math.max(1, b.tries), `${where}で食べる`); flushMind(r, a); }
     r.task = b.got ? task('groom', [r.pos.x, r.pos.z], 'groom', rr(60, 150), { wet: true, arrived: true }) : null;   // (after eating, cleaning the fur)
   }
   /** A dive at a patch: what it will come up with is the patch's to give, and less when it is weak from hunger. */
@@ -1026,14 +1026,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   for (const r of list) {
     const a = agents[r.id]; if (!a) continue;
     a.onUseful = (from, opt) => {
-      r.stats.talkUse = Math.min(1, (r.stats.talkUse ?? 0) + 0.25);
+      r.stats.talkUse = Math.min(1, (r.stats.talkUse ?? 0) + 0.25); a.values.bonus(`heard:${from}`, `${byId[from]?.v.name ?? from}から聞いた情報`, 0.5);
       r.diary.push({ at: clockMs, text: `${byId[from]?.v.name ?? from}から聞いた情報で、${opt.split(':')[0] === 'gather' ? '拾えた' : 'できた'}（${opt}）`, key: 'mind' }); if (r.diary.length > 800) r.diary.shift();
     };
   }
   /** Who it is for its own mind: its role and how it tends to decide, and what has worked for it (its hits). */
   function profileOf(r: Resident): string {
     const a = agentOf(r); if (!a) return r.v.mind;
-    const hits = a.knowledge.filter((k) => k.status === 'confirmed' || (k.source === 'tried' && /できた|拾えた|役に立った/.test(k.text))).slice(-5).map((k) => k.text);
+    const hits = [...a.values.hits(5), ...a.knowledge.filter((k) => k.status === 'confirmed').slice(-3).map((k) => `確かめた：${k.text}`)];
     return hits.length ? `${r.v.mind}\n当たり（うまくいったこと）：${hits.join('／')}` : r.v.mind;
   }
   const agentOf = (r: Resident) => agents[r.id] as Agent | undefined;
@@ -1060,7 +1060,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
       now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
-      knowledge: a.knowledge, results: a.results, options: opts,
+      knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6),
     };
   }
   // its own next step, as a task (undefined: it has nothing of its own in mind, the habits below decide)
@@ -1079,7 +1079,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // how a step of its own went: told to its mind once
   function report(r: Resident, tk: Task | null | undefined, outcome: Outcome, detail?: string) {
     const a = agentOf(r); if (!a || !tk?.opt || tk.reported) return;
-    tk.reported = true; act(r, 'got', `${tk.label ?? tk.opt}：${OUTCOME_JA[outcome] ?? outcome}${detail ? `（${detail}）` : ''}`); a.result(tk.opt, tk.kind, outcome, clockMs, detail); flushMind(r, a);
+    tk.reported = true; act(r, 'got', `${tk.label ?? tk.opt}：${OUTCOME_JA[outcome] ?? outcome}${detail ? `（${detail}）` : ''}`); a.result(tk.opt, tk.kind, outcome, clockMs, detail, rewardFor(r, tk, outcome), tk.label ?? tk.opt); flushMind(r, a);
+  }
+  /** The reward the world counts for a step (ADR 0006): what moves its own purpose on — for Dot, the hut going up
+   *  (and the steps toward it) — or, for the animals, what the body gets (counted where it eats: endBout). Nothing
+   *  for the rest; a little less than nothing for a step that came to nothing (time spent). */
+  function rewardFor(r: Resident, tk: Task, outcome: Outcome): number {
+    if (outcome !== 'done') return ['gone', 'no way', 'blocked', 'nowhere to stand', 'timeout', 'unavailable', 'refused'].includes(outcome) ? -0.1 : 0;
+    if (r.id === 'dot') return ({ place: 1, craft: 0.3, gather: 0.3 } as Record<string, number>)[tk.kind] ?? 0;
+    if (r.sp.living && tk.kind === 'nap') return 0.2;
+    return 0;
   }
   // (the day's own log, line by line: what it set out to do, and what the world gave back — for its post, and to see a day)
   const OUTCOME_JA: Record<string, string> = { done: 'できた', gone: 'もうなかった', 'no way': '道がなかった', blocked: '進めなかった', 'nowhere to stand': '立てる場所がなかった', interrupted: '途中でやめた', timeout: '時間がかかりすぎた', unavailable: 'できなかった', accepted: '引き受けてもらえた', refused: '断られた' };
