@@ -89,6 +89,16 @@ export function potQualityOnReturn(copy: Record<string, number>, condition: numb
   return { ...rest, crack_ppm: Math.min(1e6, Math.round((copy.crack_ppm ?? 0) + (1 - condition) * 1e6)) };
 }
 
+/** The quality of the pot_sherds lot a broken pot goes back to (same mass as the lot copy, ADR 0006): what the body
+ *  was (its absorption) and what it carried (tar, water in the walls), in whole ppm rounded down; the rest is body. */
+export function potSherdsQuality(copy: Record<string, number>): Record<string, number> {
+  const q: Record<string, number> = { absorption_ppm: copy.absorption_ppm };
+  if (copy.x_wood_tar_ppm) q.x_wood_tar_ppm = copy.x_wood_tar_ppm;
+  if (copy.x_water_ppm) q.x_water_ppm = copy.x_water_ppm;
+  if (copy.history_complete !== undefined) q.history_complete = copy.history_complete;
+  return q;
+}
+
 // ---- p16x: brush on tar, stop the mouth ------------------------------------------------------------------------------
 
 interface SealData { fps: string[]; eqFp: string; lastTo: number; elapsedMs: number; durationMs: number; reportedHands: number; seal: boolean }

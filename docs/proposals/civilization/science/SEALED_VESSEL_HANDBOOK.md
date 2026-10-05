@@ -43,7 +43,7 @@
 | ① 設備の kind・catalogEntry | `assembled_pot`（両方とも）。気圧計の器にも油の壺にも同じ kind を使い、どう使うかは使う工程が決める |
 | ② 換算表の版 | `civ-sci.pot-assembly/1`（`vessel.ts` の `POT_ASSEMBLY_TABLE`）。本体は組み立てた設備にこの版を記録する |
 | ③ 傷んだ器（condition < 1）をロットに戻すときの品質 | 本体の案に賛成：`sealed` と `air_leak_tau_min` を外す。加えて、欠けた分をひび `crack_ppm` ＝ (1 − condition) × 1,000,000 として残す。漏れの試験はひびも漏れとして数える（内側のタールではふさがらない）ので、やり直すと傷みが正直に見える。condition が 1 なら写しのまま戻す |
-| ④ かけらの材料 | 目録に入れる：`pot_sherds`（元の素地の吸水率・ついていたタール）。使う工程はまだない（砕いて粘土に混ぜる、など後の候補） |
+| ④ かけらの材料 | 目録に入れる：`pot_sherds`。本体の決まりで、壊れた器は元と同じ質量の `pot_sherds` のロットに戻す。quality は `potSherdsQuality`（素地の吸水率・ついていたタール・壁の水）。使う工程はまだない（砕いて粘土に混ぜる、など後の候補） |
 
 本体はこの2つの関数をそのまま呼べる（画面・保存・乱数を持たない）：
 
@@ -51,6 +51,7 @@
 |---|---|
 | `potToEquipmentParams(lot)` | 器のロット → 設備の params：`capacityMl`・`absorptionPpm`・`coveragePpm`・`sealed`・`crackPpm`・`airLeakTauMin` |
 | `potQualityOnReturn(copy, condition)` | 組み立てたときのロットの写し＋設備の condition → 戻すロットの quality |
+| `potSherdsQuality(copy)` | 壊れたとき：写し → `pot_sherds` の quality（元と同じ質量で本体が作る。素地の吸水率・ついていたタール・壁の水） |
 
 使う工程（予定）：自作の気圧計は `capacityMl`（器の容積）と `airLeakTauMin`（空気が外と入れ替わる時定数、0 は使えない）、油の灯りは `capacityMl` と漏れ（油のしみ出しは灯りの工程で）。
 

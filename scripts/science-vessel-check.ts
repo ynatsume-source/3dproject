@@ -4,7 +4,7 @@
 import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
-import { LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, potQualityOnReturn, potToEquipmentParams, readPot, TAR_SEAL_PROCESS } from '../src/science/step/vessel';
+import { LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, potQualityOnReturn, potSherdsQuality, potToEquipmentParams, readPot, TAR_SEAL_PROCESS } from '../src/science/step/vessel';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -131,6 +131,9 @@ console.log('6. assembly (ADR 0006): a pot lot becomes equipment and back');
   const cracked = test3d(wornLot), sound = test3d(warmPot);
   ok(450_000 - waterLeft(cracked) > 3 * (450_000 - waterLeft(sound)) && readPot(potOf(cracked.last)).crack === 0.1, 'the leak test shows the crack: much more water lost than from the sound pot, and the crack stays with the pot',
     `${((450_000 - waterLeft(cracked)) / 1000).toFixed(0)} g vs ${((450_000 - waterLeft(sound)) / 1000).toFixed(0)} g`);
+  const sherds = potSherdsQuality(sealed.quality!);
+  ok(sherds.absorption_ppm === 120_000 && sherds.x_wood_tar_ppm === sealed.quality!.x_wood_tar_ppm && sherds.capacity_ml === undefined && sherds.sealed === undefined,
+    'broken: the sherds (same mass, by main) keep what the body was and the tar it carried, nothing of the pot', JSON.stringify(sherds));
   const resealed = potOf(step(sealReq([wornLot, { ...TAR(20_000), lotId: 'lot:tar5' }], true)));
   ok(resealed.quality!.sealed === 1 && resealed.quality!.air_leak_tau_min! < sealed.quality!.air_leak_tau_min! / 10, 'stopped again, the cracked pot holds its air far less long: tar inside does not close a crack',
     `${resealed.quality!.air_leak_tau_min} vs ${sealed.quality!.air_leak_tau_min} min`);

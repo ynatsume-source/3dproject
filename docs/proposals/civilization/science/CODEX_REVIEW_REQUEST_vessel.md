@@ -49,3 +49,4 @@ npm run typecheck && npm run build
 - 材料 `pot_sherds`（工程なし）。
 - 検査 34件（検査6：組み立て → 戻す → 漏れの試験でひびが見える、封じ直してもひびは残る）。
 - 見てほしいところ：傷みを「ひび」として漏れに足す扱いが本物らしいか、condition から crack_ppm への換算。
+- 追記2：壊れた器を本体が同じ質量の `pot_sherds` に戻すときの quality `potSherdsQuality`（検査 35件）。

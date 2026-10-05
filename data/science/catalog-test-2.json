@@ -302,9 +302,10 @@
       "quality": {
         "absorption_ppm": "元の器の素地が吸う水",
         "x_wood_tar_ppm": "ついていたタール（整数 ppm の切り捨て）",
-        "history_complete": "1=全区間を計算済み"
+        "history_complete": "1=全区間を計算済み",
+        "x_water_ppm": "壁が吸っていた水"
       },
-      "note": "壊れた組み立ての器（assembled_pot）から本体が作る。使う工程はまだない（砕いて粘土に混ぜる「シャモット」・埋め土などの候補）"
+      "note": "壊れた組み立ての器（assembled_pot）を、本体が元と同じ質量のロットに戻したもの（ADR 0006）。quality は科学側の potSherdsQuality（組み立てたときの写しから）。使う工程はまだない（砕いて粘土に混ぜる「シャモット」・埋め土などの候補）"
     }
   ],
   "processes": [
