@@ -25,7 +25,7 @@ await loadIslandWeather();
 let typhoonAt = 0;
 { // 2 the weather
   const w = islandWeather(t0)!;
-  want('2 the record is there, from the archive', !!w && w.ok && /ERA5/.test(w.source) && w.pressure > 900, w ? `${w.pressure} hPa` : 'none');
+  want('2 the record is there: measured at the station (JMA Ishigaki), with its original time', !!w && w.ok && w.record.station === 'jma-47918' && w.pressureMeasured! > 900 && /^2024-06-01T00:00/.test(w.record.at), w ? `${w.pressureMeasured} hPa at ${w.record.at}` : 'none');
   for (let m = 0; m < 28 * 24 * 60 && !typhoonAt; m += 10) if (islandWeather(t0 + m * 60e3)!.typhoon) typhoonAt = t0 + m * 60e3;
   const d = typhoonAt ? islandDate(typhoonAt) : null, tw = typhoonAt ? islandWeather(typhoonAt)! : null;
   want('2 a typhoon in the first island summer, from the record (low pressure, gale)', !!d && d.month === 7 && tw!.pressure < 996 && tw!.gust >= 20, d ? `${d.label} ${tw!.pressure} hPa, gusts ${tw!.gust} m/s` : 'none');

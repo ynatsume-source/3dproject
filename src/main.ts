@@ -1348,7 +1348,7 @@ function updateTimeUi() {
   {
     const w = liveWeather();
     $('wxLine').innerHTML = w.ok && loc.world
-      ? `島の天気（${islandDate(clock.ms).label}・地球の過去の観測記録を島の暦で再生）：<b>${(w as IslandWeather).typhoon ? '台風' : weatherLabel(w)}</b> · 風 ${w.wind.toFixed(1)} m/s · 気圧 ${Math.round((w as IslandWeather).pressure)} hPa${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}`
+      ? `島の天気（${islandDate(clock.ms).label}・地球の過去の観測（石垣島・気象庁）を島の暦で再生）：<b>${(w as IslandWeather).typhoon ? '台風' : weatherLabel(w)}</b> · 風 ${w.wind.toFixed(1)} m/s · 気圧 ${Math.round((w as IslandWeather).pressure)} hPa${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}`
       : w.ok
       ? `現地の天気（実況）：<b>${weatherLabel(w)}</b> · 雲 ${Math.round(w.cloud * 100)}% · 風 ${w.wind.toFixed(1)} m/s${w.wave != null ? ` · 波 ${w.wave.toFixed(1)} m` : ''}${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}<br><small>天気データ：Open-Meteo</small>`
       : wx.ok ? '時刻や季節を動かしている間は、晴れの標準的な海になります' : '現地の天気を取得できないため、晴れの標準的な海です';
