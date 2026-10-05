@@ -102,6 +102,9 @@ export const PARAMS = {
   wareLagS10mm: P('wareLagS10mm', 120, 's', 'assumed', [], '厚さ10 mmの試験体が炉内温度に追従する時定数'),
   combustionToChamber: P('combustionToChamber', 0.3, 'fraction', 'assumed', ['S-kilneff'],
     '試験窯：燃焼熱のうち炉内に入る割合。残りは排気で直接失う'),
+  // the air-and-water barometer (step/barometer.ts)
+  waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [], '水の密度（教科書の値。出典本文は未照合。水温による差は扱わない）'),
+  gravity: P('gravity', 9.81, 'm/s2', 'assumed', [], '重力加速度（教科書の値。出典本文は未照合）'),
 };
 
 export type ParamId = keyof typeof PARAMS;
