@@ -15,6 +15,7 @@ type Who = 'dot' | 'lantern' | 'kame' | 'rakko';
 type Lang = 'ja' | 'en';
 const LANGS: { id: Lang | 'none'; label: string }[] = [{ id: 'ja', label: '訳：日本語' }, { id: 'en', label: '訳：English' }, { id: 'none', label: '訳：なし' }];
 const NAME: Record<Who, string> = { dot: 'ドット', lantern: 'ランタン', kame: 'カメマル', rakko: 'ラッコ' };
+const NAME_EN: Record<Who, string> = { dot: 'Dot', lantern: 'Lantern', kame: 'Kamemaru', rakko: 'Rakko' };
 const COLOR: Record<Who, string> = { dot: '#f0bd5c', lantern: '#6ccbdc', kame: '#7fcaa4', rakko: '#ec9b6e' };
 
 /** The gathering: reports, a warning, and a plan changed by it. No feelings: what each saw, measured and will do. */
@@ -129,11 +130,11 @@ let ctx: AudioContext | null = null, master: GainNode | null = null;
 let idx = -1, lineAt = 0, lineEnd = 0, playing = false, pausedAt = 0;
 const bubble = $('bubble');
 let lang: Lang | 'none' = 'ja';
-/** The bubble: the island's letters, and under them what it means in the chosen language (no reading aloud in it). */
+/** The bubble: who is speaking (small), the island's letters, and under them what it means in the chosen language (no reading aloud in it). */
 function show(i: number) {
   const L = LINES[i], toks = render(L.ids);
   bubble.style.setProperty('--c', COLOR[L.who]);
-  bubble.innerHTML = `<div class="g">${glyphs(toks, 'gl')}</div>` + (lang !== 'none' ? `<div class="tr" lang="${lang}">${L.tr[lang]}</div>` : '');
+  bubble.innerHTML = `<div class="nm">${lang === 'en' ? NAME_EN[L.who] : NAME[L.who]}</div><div class="g">${glyphs(toks, 'gl')}</div>` + (lang !== 'none' ? `<div class="tr" lang="${lang}">${L.tr[lang]}</div>` : '');
   bubble.hidden = false;
   document.querySelectorAll<HTMLElement>('#script li').forEach((li, k) => li.classList.toggle('on', k === i));
 }
@@ -208,4 +209,4 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-(window as any).talkDemo = { get idx() { return idx; }, start };
+(window as any).talkDemo = { get idx() { return idx; }, start, view(p: number[], q: number[]) { camera.position.set(p[0], p[1], p[2]); aim.set(q[0], q[1], q[2]); } };

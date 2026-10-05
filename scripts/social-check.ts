@@ -22,6 +22,8 @@ function island(seed: number) {
   store.clear(); now = Date.parse('2026-10-03T00:00:00Z'); Math.random = mulberry32(seed);
   const f = () => 2, T: any = { ground: f, floor: f, top: f, landCover: () => ({ can: 0, sand: 1 }), vegH: () => 0, solids: new Solids() };
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
+  Math.random = mulberry32(seed * 7 + 1);   // (drawn again once the models are built: three.js draws an id for each part it
+  // makes, so the island's own draws would otherwise shift whenever a model gains or loses a part)
   const dot = R.list.find((r: any) => r.id === 'dot'), rakko = R.list.find((r: any) => r.id === 'rakko');
   R.list.forEach((o: any, i: number) => { if (o !== dot && o !== rakko) { o.pos.set(2000 + i * 200, 2, 2000); o.task = { kind: 'wander', x: o.pos.x, z: o.pos.z, act: 'idle', dur: 1e9, t: 0, arrived: true }; } });
   R.items.list.length = 0;

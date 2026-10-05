@@ -111,13 +111,17 @@ export function creatureKit(M: CMats, shadows = false) {
       return { a, sx };
     });
     // hind legs: big webbed flippers, held back along the body
+    const thighs: THREE.Mesh[] = [];
     const feet = [-1, 1].map((sx) => {
-      const thigh = ell(0.05, 0.05, 0.075, M.fur, 16); thigh.position.set(sx * 0.085, -0.04, -0.24); body.add(thigh);
+      const thigh = ell(0.05, 0.05, 0.075, M.fur, 16); thigh.position.set(sx * 0.085, -0.04, -0.24); body.add(thigh); thighs.push(thigh);
       const f = new THREE.Group(); f.position.set(sx * 0.095, -0.07, -0.29); body.add(f);
       const web = ell(0.05, 0.011, 0.1, M.furDark, 18); web.position.set(sx * 0.008, 0, -0.08); f.add(web);
       for (let k = 0; k < 4; k++) { const toe = ell(0.009, 0.008, 0.03, M.furDark, 8); toe.position.set(sx * 0.008 + (k - 1.5) * 0.024, 0, -0.165); f.add(toe); }
       return { f, sx };
     });
+    // its seat, sitting up: a soft round rump that spreads a little on the sand (shown only then)
+    const rump = ell(0.14, 0.11, 0.1, M.fur, 24); rump.position.set(0, -0.035, -0.27); rump.visible = false; body.add(rump);
+    const tsx = torso.scale.x, tsy = torso.scale.y, headZ = head.position.z, rumpS = rump.scale.clone(), thighS = thighs[0].scale.clone();
     // the tail: short, flat and thick, a little paddle
     const tail = new THREE.Group(); tail.position.set(0, -0.01, -0.34); body.add(tail);
     const tl = ell(0.048, 0.018, 0.15, M.fur); tl.position.z = -0.13; tail.add(tl);
@@ -127,7 +131,7 @@ export function creatureKit(M: CMats, shadows = false) {
     // what it holds, between the paws on its chest
     const hand = new THREE.Group(); hand.position.set(0, -0.15, 0.14); body.add(hand);
     const F = foods(); hand.add(F.g);
-    let backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, pitch = 0, roll = 0, tilt = 0;
+    let backK = 0, sleepK = 0, swimK = 0, diveK = 0, landK = 1, pitch = 0, roll = 0, tilt = 0, upK = 0;
     const keepStone = !!L.stone;
     const gaze = makeGaze(1.0, 0.5, 0.6);
     return { root, hand, eye, update(t, dt, p = DEMO) {
@@ -152,6 +156,9 @@ export function creatureKit(M: CMats, shadows = false) {
       // while they look, and drawn back in (it keeps it); and ashore at the fire, sitting hunched on its haunches
       const show = act === 'look' && p.task === 'show' && !wet ? 1 : 0, offer = show ? sm2(0.4, 1.1, el) * (1 - sm2(4.3, 5.2, el)) : 0;
       const sitL = act === 'sit' && !wet ? 1 : 0;
+      // at the fire it sits up as a cat does (owner's note, 2026-10-05): the body nearly upright on its hips, the hind
+      // feet flat on the sand before it, the tail laid out behind, the forepaws held together in front of its chest
+      upK = ease(upK, sitL, dt, 1.4);
       // on its back: floating, eating, cracking, grooming, sleeping in the water (and talking, in the water)
       const backish = wet && (act === 'float' || act === 'sleep' || act === 'eat' || act === 'work' || act === 'groom' || act === 'idle' || act === 'look' || act === 'sit' || act === 'demo');
       backK = ease(backK, backish ? 1 : 0, dt, 1.6);
@@ -160,7 +167,7 @@ export function creatureKit(M: CMats, shadows = false) {
       diveK = ease(diveK, act === 'dive' ? 1 : 0, dt, 2.5);
       landK = ease(landK, wet ? 0 : 1, dt, 3);
       // diving: head first down, level along the bottom while it searches, then straight up with its catch
-      const wantPitch = act === 'dive' ? (k < 0.12 ? 1.05 : k > 0.86 ? -1.1 : 0.12) : swimK * Math.sin(t * 3.2) * 0.06 - landK * (admire * 0.62 + sitL * 0.5 + show * 0.45);   // (admiring a find ashore, showing it, or at the fire: half sitting up on its haunches, not standing)
+      const wantPitch = act === 'dive' ? (k < 0.12 ? 1.05 : k > 0.86 ? -1.1 : 0.12) : swimK * Math.sin(t * 3.2) * 0.06 - landK * (admire * 0.62 + sitL * 1.2 + show * 0.45);   // (admiring a find ashore or showing it: half up on its haunches; at the fire: sitting up)
       pitch = ease(pitch, wantPitch, dt, 2.2);
       // grooming: rolling over and over in the water, rubbing and squeezing the fur
       const groom = act === 'groom' ? 1 : 0;
@@ -169,7 +176,17 @@ export function creatureKit(M: CMats, shadows = false) {
       body.rotation.set(pitch, 0, roll, 'YXZ');
       // its height: on its back it rides high, belly and chest out of the water; swimming it lies lower
       const bob = Math.sin(t * 1.3) * 0.012;
-      body.position.y = landK * (0.18 + Math.abs(Math.sin(gw5)) * 0.02 * walk + Math.max(0, -pitch) * 0.37) + (1 - landK) * (backK * -0.02 + swimK * -0.05 + bob);
+      // sitting up, at ease: the body settles, shorter and rounder, the belly and seat soft (owner's note: not stiff)
+      const ez = upK * landK, breath = Math.sin(t * 1.6) * 0.012 * ez;
+      torso.scale.set(tsx * (1 + 0.1 * ez + breath), tsy * (1 + 0.08 * ez + breath), 1 - 0.12 * ez);
+      head.position.z = headZ - 0.045 * ez;
+      rump.visible = ez > 0.02; rump.scale.set(rumpS.x * (1 + 0.15 * ez), rumpS.y * Math.max(0.01, ez), rumpS.z * Math.max(0.01, ez) * 0.9);
+      thighs.forEach((th, i) => { th.position.x = (i ? 1 : -1) * (0.085 + 0.03 * ez); th.position.z = -0.24 + 0.03 * ez; th.scale.copy(thighS).multiplyScalar(1 + 0.2 * ez); });
+      // (its height ashore: half up on its haunches as before; sitting up, from how far its shortened body stands)
+      // (when it is not sitting up, exactly as before: the island's checks follow it to the last digit)
+      let ashore = 0.18 + Math.abs(Math.sin(gw5)) * 0.02 * walk + Math.max(0, -pitch) * 0.37;
+      if (ez > 0) ashore += (0.18 * Math.cos(pitch) + Math.sin(Math.max(0, -pitch)) * 0.37 * (1 - 0.14 * ez) - (0.18 + Math.max(0, -pitch) * 0.37)) * ez;
+      body.position.y = landK * ashore + (1 - landK) * (backK * -0.02 + swimK * -0.05 + bob);
       // the head: up off the water on its back (looking along its chest at its paws), turning as it looks about
       const chew = act === 'eat' || (act === 'work' && Math.sin(t * 0.8) > 0.6) ? Math.max(0, Math.sin(t * 9)) : 0;
       head.rotation.x = backK * (0.55 + (act === 'eat' ? 0.25 : 0) + sleepK * 0.45) - landK * (act === 'pick' ? -0.5 : 0.05) + diveK * 0.15;
@@ -182,6 +199,7 @@ export function creatureKit(M: CMats, shadows = false) {
       if (pk === 'pile') head.rotation.x += 0.45;
       if (admire) { head.rotation.x += 0.25 + Math.sin(el * 0.9) * 0.08; head.rotation.z += Math.sin(el * 0.7) * 0.2; }
       if (show) head.rotation.x += 0.3 * offer * sm2(2.6, 3.2, el);   // (and a look down at it with them)
+      head.rotation.x += upK * landK * 1.1;   // (sitting up: the face kept level, looking ahead)
       { const tb = talkBeat(p, 0.6); head.rotation.x += -tb.cue * 0.14 + tb.nod * 0.26; }
       tilt = ease(tilt, head.rotation.z, dt, 4); head.rotation.z = tilt;
       jaw.rotation.x = chew * 0.35;
@@ -193,7 +211,7 @@ export function creatureKit(M: CMats, shadows = false) {
         else if (landK > 0.5 && pk === 'pile') rx = -0.85 * (1 - sm2(1.0, 1.5, el)) - (i === 1 ? 0.6 * Math.max(0, Math.sin((el - 1.7) / 0.6 * Math.PI)) * (el > 1.7 && el < 2.3 ? 1 : 0) : 0);
         else if (landK > 0.5 && admire) rx = -1.35 + Math.sin(el * 1.3 + i) * 0.08;
         else if (landK > 0.5 && show) rx = -0.9 - 0.7 * offer;
-        else if (landK > 0.5 && sitL) rx = -1.15 + Math.sin(t * 0.6 + i) * 0.04;   // (paws together at its chest)
+        else if (landK > 0.5 && sitL) { rx = 0.55 + Math.sin(t * 0.6 + i) * 0.04; rz = -ar.sx * 0.22; }   // (paws together before its chest)
         else if (landK > 0.5) rx = Math.sin(gw5 + i * Math.PI) * 0.5 * walk + (act === 'pick' ? -0.6 : 0);
         else if (act === 'dive' && staged && k > 0.15 && k < 0.85) {
           // feeling along the bottom: one paw probes forward and pats, the other steadies; every third, a pause
@@ -208,14 +226,14 @@ export function creatureKit(M: CMats, shadows = false) {
         else if (act === 'groom') rx = -0.4 + Math.sin(t * 4 + i * 1.7) * 0.8;
         else if (backK > 0.5) rx = 0.6;   // (floating: paws resting on the chest)
         else rx = 1.3;    // (swimming: tucked against the chest)
-        ar.a.rotation.set(rx, 0, rz);
+        ar.a.rotation.set(rx, 0, rz); ar.a.position.z = 0.21 - 0.03 * ez;
       });
       // hind flippers: paddling on land; stroking up and down together swimming and diving; up in the air on its back
       feet.forEach((f, i) => {
         const stroke = Math.sin(t * (diveK > 0.5 ? 5 : 3.2) + (swimK > 0.5 || diveK > 0.5 ? 0 : i * Math.PI));
-        f.f.rotation.set(landK * (-0.55 + Math.sin(gw5 + i * Math.PI + 1) * 0.35 * walk) + (swimK + diveK) * stroke * 0.5 - backK * (0.35 + Math.sin(t * 0.9 + i) * 0.12), f.sx * 0.15, 0);
+        f.f.rotation.set(landK * (-0.55 - upK * 0.95 + Math.sin(gw5 + i * Math.PI + 1) * 0.35 * walk) + (swimK + diveK) * stroke * 0.5 - backK * (0.35 + Math.sin(t * 0.9 + i) * 0.12), f.sx * 0.15, 0);
       });
-      tail.rotation.x = (swimK + diveK) * Math.sin(t * 3.2 - 0.8) * 0.3 - backK * 0.25;
+      tail.rotation.x = (swimK + diveK) * Math.sin(t * 3.2 - 0.8) * 0.3 - backK * 0.25 + upK * landK * 1.35;
       tail.rotation.y = backK * Math.sin(t * 0.6) * 0.15;
       // the stone on the chest while it cracks a clam; what it holds
       stone.visible = act === 'work' || act === 'demo' || (keepStone && (act === 'idle' || act === 'float' || act === 'look'));
