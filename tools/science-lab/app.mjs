@@ -102,7 +102,7 @@ try {
     summary.textContent = `${source.title} — ${archived ? '保存コピーを確認・原典未照合' : '公式ソース本文を確認'}`;
     const link = document.createElement('a');
     link.href = source.url;
-    link.textContent = `取得した本文（${source.commit.slice(0,7)}）`;
+    link.textContent = source.commit ? `取得した本文（${source.commit.slice(0,7)}）` : '取得元の本文・データ';
     const support = document.createElement('p');
     support.textContent = source.supports;
     const limit = document.createElement('p');
