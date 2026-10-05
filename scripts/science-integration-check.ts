@@ -1,5 +1,5 @@
 // The world side's check of the science processes it has taken in: weighing (fixture_mass_measure) and the
-// test tile's shaping (p11x_test_tile_shape), fixture-2 on the one test catalog civ-sci-test-2.
+// test tile's shaping (p11x_test_tile_shape), fixture-3 on the one test catalog civ-sci-test-2.
 // src/science/step/{simple,fixture-profile,validate}.ts come unchanged from codex/civilization-simulation
 // (6ea2509, simple.ts from c8f9446);
 // nothing in the app calls them yet (the island runs processes only once the shared world's server holds the
@@ -71,12 +71,14 @@ function world() {
   check('parts: 10 J in all, one memory', w.usedJ === 10 && w.memory.length === 1 && w.closed);
   check('parts: a resent part 1 changes nothing', !w.commit(a, step(a), 'res:dot') && w.usedJ === 10);
 }
-// 3. power short: needs-input after 5 s, then continues from simulated.to
+// 3. power short (fixture-3: an offer arrives evenly over its interval): 5 J over 10 s is 0.5 W, less than the
+// balance's 1 W — nothing happens in that interval (needs-input, 0 J, no reading) and the clock moves to its end;
+// offered enough after that, it weighs from there and completes
 {
   const a = req({ energy: [{ sourceId: 'src:fixture-mains', kind: 'electric', maxJ: 5 }] }), ra = run('short power', a);
-  check('short power: needs-input at +5 s', ra.status === 'needs-input' && ra.simulated.to === T + 5_000 && ra.energy[0].usedJ === 5);
-  const b = req({ interval: { from: ra.simulated.to, to: T + 10_000 }, state: ra.state, actions: [] }), rb = run('short power, resumed', b);
-  check('short power: resumed and completed', rb.status === 'completed' && rb.energy[0].usedJ === 5);
+  check('short power: needs-input, nothing used, time moved to the end of the interval', ra.status === 'needs-input' && ra.simulated.to === T + 10_000 && ra.energy.length === 0 && flows(ra) === 0 && ra.observations.length === 0, ra);
+  const b = req({ interval: { from: ra.simulated.to, to: T + 20_000 }, state: ra.state, actions: [] }), rb = run('short power, resumed', b);
+  check('short power: resumed with enough power and completed', rb.status === 'completed' && rb.energy[0].usedJ === 10 && rb.observations[0]?.value === 36_300, rb);
 }
 // 4. stops: operator / equipment-lost close the run without a reading; world-pause resumes later
 {

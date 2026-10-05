@@ -1,7 +1,7 @@
 // Mock-only transport checks. This script must never contact a live model or use a real API key.
 // npx tsx scripts/lantern-brain-check.ts
 import assert from 'node:assert/strict';
-import { aiConverse, aiKey, aiLastError, aiReady, requestAiText, setAiKey } from '../src/robots/mind';
+import { aiKey, aiLastError, aiReady, requestAiText, setAiKey } from '../src/robots/mind';
 import { requestLanternDecision } from '../src/robots/lantern-brain';
 import type { StudyBrainInput, StudyProposal } from '../src/robots/lantern-study-types';
 
@@ -91,8 +91,7 @@ try {
   const waiting = ask(controller.signal);
   assert.equal(aiReady(), false);
   assert.equal(await requestAiText('other caller', 'must wait'), null);
-  assert.equal(await aiConverse({ mind: 'A' } as any, { mind: 'B' } as any, 1, '友達', [], [], []), null);
-  assert.equal(calls, beforeBusy + 1, 'conversations and decisions share one slot');
+  assert.equal(calls, beforeBusy + 1, 'other callers and decisions share one slot');
   controller.abort(); assert.equal(await waiting, null); assert.ok(blockedSignal!.aborted); assert.ok(aiReady());
 
   // Advance only the transport watchdog, not world time; no eight-second wall-clock sleep needed.
@@ -102,9 +101,6 @@ try {
   assert.equal(await ask(), null); assert.match(aiLastError, /8秒/); assert.ok(blockedSignal!.aborted); assert.ok(aiReady());
   globalThis.setTimeout = realTimeout;
 
-  reply = async () => message('[{"who":"A","text":"こんにちは"},{"who":"B","text":"星が見えるね"}]');
-  assert.deepEqual(await aiConverse({ mind: 'A' } as any, { mind: 'B' } as any, 1, '友達', [], [], []),
-    [{ who: 'A', text: 'こんにちは' }, { who: 'B', text: '星が見えるね' }], 'existing conversation format preserved');
   reply = async () => message(JSON.stringify(valid));
 
   nextDay(); store.set('seaglass.aiuse', JSON.stringify({ d: new Date().toDateString(), n: 79 }));

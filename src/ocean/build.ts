@@ -22,6 +22,7 @@ import { makeBirds } from '../eco/birds';
 import { makeFlyingFish } from '../eco/flyingfish';
 import { loneLength } from '../eco/growth';
 import { makeBaitBall } from '../eco/baitball';
+import { makeJacks } from '../eco/jacks';
 import type { Sea } from '../data/locations';
 import { Cave } from './cave';
 import { Wreck, wreckMaterial } from './wreck';
@@ -29,6 +30,7 @@ import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
 import { classifyWater } from './water';
 import { makeResidents } from '../robots/residents';
+import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
 // Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
@@ -58,6 +60,19 @@ class ObstacleMap {
     return Math.max(a[j * N + i], a[j * N + i + 1], a[(j + 1) * N + i], a[(j + 1) * N + i + 1]);
   }
 }
+/** The height of the ground as drawn: the mesh's flat triangles over a grid of `segs` cells, `half` either side
+ *  (PlaneGeometry's own split of each cell), rather than the smooth land the residents walk on — what sits on the
+ *  ground has to sit on this, or a shell is buried a few centimetres under the sand where the beach curves. NaN off it. */
+export function drawnGrid(f: (x: number, z: number) => number, half: number, segs: number) {
+  const cell = (2 * half) / segs;
+  return (x: number, z: number) => {
+    const gx = (x + half) / cell, gz = (z + half) / cell, i = Math.floor(gx), j = Math.floor(gz);
+    if (i < 0 || j < 0 || i >= segs || j >= segs) return NaN;
+    const u = gx - i, v = gz - j, x0 = -half + i * cell, z0 = -half + j * cell;
+    const ha = f(x0, z0), hb = f(x0, z0 + cell), hc = f(x0 + cell, z0 + cell), hd = f(x0 + cell, z0);
+    return u + v <= 1 ? ha + u * (hd - ha) + v * (hb - ha) : hc + (1 - u) * (hb - hc) + (1 - v) * (hd - hc);
+  };
+}
 export function makeT(loc) {
   const T: any = {
     obst: null as ObstacleMap | null,
@@ -84,6 +99,7 @@ export function makeT(loc) {
   return T;
 }
 const CELL = 40;
+const _qUp = new THREE.Quaternion(), _Y = new THREE.Vector3(0, 1, 0), _vUp = new THREE.Vector3();
 export function addInstanced(kind, variant, items, group, cells) {
   const base = CORAL_GEO[kind][variant], material = CORAL_MAT[kind];
   const bucket = new Map();
@@ -96,6 +112,7 @@ export function addInstanced(kind, variant, items, group, cells) {
     const mesh = new THREE.InstancedMesh(g, material, arr.length);
     arr.forEach((it, i) => {
       _q.setFromEuler(_e.set(it.tx || 0, it.ry, it.tz || 0));
+      if (it.up) _q.premultiply(_qUp.setFromUnitVectors(_Y, _vUp.fromArray(it.up)));   // (grown square to the slope it stands on)
       _m4.compose(_p3.set(it.x, it.y, it.z), _q, _s3.set(it.sx, it.sy, it.sz));
       mesh.setMatrixAt(i, _m4);
       col.set(it.c, i * 3); col2.set(it.c2, i * 3); seed[i] = it.seed;
@@ -157,7 +174,7 @@ const CORAL_MIN: Record<string, number> = { branch: 0.35, table: 0.45, brain: 0.
 function fitUnder(kind: string, v: number, it: any, y0: number, sink = 0) {
   const [top, half] = coralTop(kind, v), s = Math.max(it.sx, it.sz);
   // (a tilt lifts one edge: its sine times the half-width)
-  const lift = (Math.abs(it.tx || 0) + Math.abs(it.tz || 0)) * half * s;
+  const lift = (Math.abs(it.tx || 0) + Math.abs(it.tz || 0) + (it.up ? Math.sqrt(Math.max(0, 1 - it.up[1] * it.up[1])) : 0)) * half * s;
   const H = top * it.sy + lift, fixed = sink ? 0 : y0 - it.y, dp = sink ? y0 - it.y : 0;
   if (y0 - fixed + H - dp <= CORAL_CEIL) return true;
   const f = (CORAL_CEIL - y0 + fixed) / Math.max(1e-6, H - dp);
@@ -167,6 +184,34 @@ function fitUnder(kind: string, v: number, it: any, y0: number, sink = 0) {
   return true;
 }
 
+/** A colony set down on the reef under all of it, not on the one point under its middle: on a rim or a slope the
+ *  side over the drop would stand in the water. Lowered to the low side (the high side then grows into the rock,
+ *  as on a real reef), or, where that would bury too much of it, not here at all (null). Returns the floor it now
+ *  stands on. f: the floor height at a point. (A table stands on its stalk: only that has to meet the rock; so do a leather coral's cap and a soft-coral tree —
+ *  a finger leather coral is a lobed mound, all of it on the rock.) */
+function seat(kind: string, v: number, it: any, y0: number, f: (x: number, z: number) => number) {
+  const [top, half] = coralTop(kind, v), s = Math.max(it.sx, it.sz);
+  const foot = (kind === 'table' ? 0.2 : kind === 'fan' ? 0.25 : kind === 'mushroom' ? (v === 1 ? 0.9 : 0.3) : kind === 'brain' || kind === 'clam' ? 1.0 : 0.75) * half * s;
+  // a dome, a clam or a leather coral grows square to the rock under it: on a slope, tilted with it (up to 45°); a
+  // branching colony reaches up for the light, so leans only a little (20°). A table and a sea fan stay upright.
+  let kx = 0, kz = 0;
+  const lean = kind === 'table' || kind === 'fan' ? 0 : kind === 'branch' ? 0.35 : 0.785;
+  if (lean > 0) {
+    const r = Math.max(foot, 0.3);
+    const gx = (f(it.x + r, it.z) - f(it.x - r, it.z)) / (2 * r), gz = (f(it.x, it.z + r) - f(it.x, it.z - r)) / (2 * r), g = Math.hypot(gx, gz);
+    if (g > 0.05) {
+      const k = Math.min(g, Math.tan(lean)) / g; kx = gx * k; kz = gz * k;
+      const n = new THREE.Vector3(-kx, 1, -kz).normalize(); it.up = [n.x, n.y, n.z];
+    }
+  }
+  let lo = 1e9;
+  for (const ring of [0.5, 1]) for (let k = 0; k < 12; k++) { const a = (k + ring) * Math.PI / 6, dx = Math.cos(a) * foot * ring, dz = Math.sin(a) * foot * ring; lo = Math.min(lo, f(it.x + dx, it.z + dz) - kx * dx - kz * dz); }
+  const drop = y0 - Math.min(lo, y0) - (0.06 + 0.04 * s);
+  if (drop <= 0) return y0;
+  if (drop > 0.45 * top * it.sy) { it.up = undefined; return null; }
+  it.y -= drop;
+  return y0 - drop;
+}
 
 export function buildOcean(loc) {
   seedRandom(loc.seed);
@@ -192,6 +237,7 @@ export function buildOcean(loc) {
   // seabed
   const SEGS = 420;
   const floorGeo = new THREE.PlaneGeometry(WORLD * 2, WORLD * 2, SEGS, SEGS);
+  { const near = drawnGrid(loc.f, WORLD, SEGS); T.drawn = (x: number, z: number) => { const h = near(x, z); return Number.isNaN(h) ? loc.f(x, z) : h; }; }
   floorGeo.rotateX(-Math.PI / 2);
   {
     const p = floorGeo.attributes.position, r = new Float32Array(p.count);
@@ -237,6 +283,7 @@ export function buildOcean(loc) {
   // an island larger than the modelled sea: the rest of it, and the lagoon round it, more coarsely
   if (land) {
     const E1 = land.far.half - 6, S = 3, N = Math.round(2 * E1 / S) + 1;
+    { const near = drawnGrid(loc.f, WORLD, SEGS), far = drawnGrid(loc.f, E1, N - 1); T.drawn = (x: number, z: number) => { let h = near(x, z); if (Number.isNaN(h)) h = far(x, z); return Number.isNaN(h) ? loc.f(x, z) : h; }; }
     const g = new THREE.PlaneGeometry(2 * E1, 2 * E1, N - 1, N - 1); g.rotateX(-Math.PI / 2);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) p.setY(i, loc.f(p.getX(i), p.getZ(i)));
@@ -267,7 +314,7 @@ export function buildOcean(loc) {
   // corals: sample the reef, pick a form by depth / slope / sea
   const newItems = () => ({ branch: [[], [], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] });
   const items = newItems();
-  const EXT = LIMIT + 45, STEP = 1.35;
+  const EXT = LIMIT + 45, STEP = 1.1;   // (more chances than colonies: those that would run into another are not grown — src/ocean/substrate.ts)
   const samples = [];
   let sum = 0;
   for (let x = -EXT; x < EXT; x += STEP) for (let z = -EXT; z < EXT; z += STEP) {
@@ -276,7 +323,7 @@ export function buildOcean(loc) {
     if (r < 0.05) continue;
     samples.push([jx, jz, h, r]); sum += r * r * 1.6;
   }
-  const target = 12500, accept = Math.min(1, target / Math.max(sum, 1));
+  const target = 19000, accept = Math.min(1, target / Math.max(sum, 1));
   const W = loc.corals;
   // one coral where the reef was sampled (the same for the sea round the drone at the start and, by an
   // island, for each stretch of reef further off as the camera comes near it: see grow() below)
@@ -345,7 +392,9 @@ export function buildOcean(loc) {
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
     // (its top under the water: grown less where the water is shallow, or not here at all — the random draws
     // above are the same either way, so the rest of the reef is laid out as before)
-    if (!fitUnder(kind, vi, it, y0, sink)) return;
+    const y1 = seat(kind, vi, it, y0, loc.f); loc.f(x, z);   // (loc.f again: TERR is this spot's once more)
+    if (y1 === null || !fitUnder(kind, vi, it, y1, sink)) return;
+    it.floor = y1;   // (what it stands on: if it is moved off a rock, it is set down again from here)
     items[kind][vi].push(it);
     const TOP: Record<string, [number, number]> = { branch: [0.55, 0.95], table: [1.0, 0.55], brain: [1.0, 0.75], mushroom: [0.5, 0.55], fan: [0.45, 1.12], clam: [0.4, 0.3] };
     if (TOP[kind]) obst.stamp(x, z, TOP[kind][0] * Math.max(it.sx, it.sz), it.y + TOP[kind][1] * it.sy, it.sy);
@@ -476,13 +525,25 @@ export function buildOcean(loc) {
   const addFoot = (f: any, feet?: any[]) => { const k = Math.floor(f.x / RG) + ',' + Math.floor(f.z / RG); let a = rockGrid.get(k); if (!a) rockGrid.set(k, a = []); a.push(f); feet?.push(f); };
   const dropFeet = (feet: any[]) => { for (const f of feet) { const k = Math.floor(f.x / RG) + ',' + Math.floor(f.z / RG), a = rockGrid.get(k); if (a) { const i = a.indexOf(f); if (i >= 0) a.splice(i, 1); } } };
   const SINK: Record<string, number> = { brain: 0.2, clam: 0.06 };
+  // the top of a rock where a colony could grow on it: straight down onto the rock's own surface (or -1e9 off it)
+  const rockMesh = new Map<THREE.BufferGeometry, THREE.Mesh>(), rayc = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0), rayO = new THREE.Vector3();
+  const rockTop = (f: any, x: number, z: number) => {
+    if (!f.geo) return -1e9;
+    let mesh = rockMesh.get(f.geo); if (!mesh) { mesh = new THREE.Mesh(f.geo); mesh.matrixAutoUpdate = false; rockMesh.set(f.geo, mesh); }
+    if (!f.m) { const it = f.it; f.m = new THREE.Matrix4().compose(new THREE.Vector3(it.x, it.y, it.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(it.tx, it.ry, it.tz)), new THREE.Vector3(it.sx, it.sy, it.sz)); }
+    mesh.matrixWorld.copy(f.m);
+    rayc.set(rayO.set(x, f.top + 4, z), DOWN);
+    const h = rayc.intersectObject(mesh, false);
+    return h.length ? h[0].point.y : -1e9;
+  };
   const clearOfRocks = (its: any) => {
     for (const kind of ['branch', 'table', 'brain', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number, lists: any[][]) => {
       const [top, half] = coralTop(kind, v);
-      const hits = (x: number, z: number, hw: number, ctop: number, y: number) => {
+      const hits = (x: number, z: number, hw: number, ctop: number, y: number, on: any = null) => {
         let worst: any = null, wd = 0;
         const i0 = Math.floor((x - hw - 4) / RG), i1 = Math.floor((x + hw + 4) / RG), j0 = Math.floor((z - hw - 4) / RG), j1 = Math.floor((z + hw + 4) / RG);
         for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) for (const r of rockGrid.get(i + ',' + j) ?? []) {
+          if (r === on) continue;   // (the rock it grows on)
           const d = Math.hypot(x - r.x, z - r.z), need = r.r + hw;   // (clear of the whole rock, not just its middle)
           if (d >= need || ctop < r.under || y > r.top) continue;   // (clear of it, under its overhang, or over it)
           if (need - d > wd) { wd = need - d; worst = { r, d, need }; }
@@ -493,16 +554,28 @@ export function buildOcean(loc) {
         const s = Math.max(it.sx, it.sz), hw = half * s;
         let w = hits(it.x, it.z, hw, it.y + top * it.sy, it.y);
         if (!w) return true;
+        // (on the rock, where its middle is over the rock's top and all of its foot is on rock: corals grow on hard
+        // ground, a rock as much as the reef — not a sea fan out on a boulder's crown, nor a thicket)
+        if (w.d < 0.7 * w.r.r && w.r.geo && kind !== 'fan' && !(kind === 'branch' && v === 2)) {
+          const rf = (x: number, z: number) => { const h = rockTop(w.r, x, z); return h > -1e8 ? h : -1e3; };
+          const ry0 = rf(it.x, it.z);
+          if (ry0 > -1e2) {
+            const t = { ...it, y: it.y - (it.floor ?? loc.f(it.x, it.z)) + ry0, up: undefined };
+            const ry1 = seat(kind, v, t, ry0, rf);
+            if (ry1 !== null && fitUnder(kind, v, t, ry1, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y, w.r)) { Object.assign(it, t); it.floor = ry1; it.onRock = true; oc.onRock = (oc.onRock ?? 0) + 1; (oc.onRockAt ??= []).push([it.x, it.y, it.z, Math.max(it.sx, it.sz)]); return true; }
+          }
+        }
         // (out from the rock to where it is clear, where the bottom there allows — the colony as it was: straight
         // away from it first, else a little to either side)
         const push = w.need - w.d + 0.05, ux0 = (it.x - w.r.x) / Math.max(w.d, 1e-3), uz0 = (it.z - w.r.z) / Math.max(w.d, 1e-3);
         if (push < 4) for (const a of [0, 0.6, -0.6, 1.2, -1.2]) {
           const c = Math.cos(a), sn = Math.sin(a), ux = ux0 * c - uz0 * sn, uz = ux0 * sn + uz0 * c;
           const nx = it.x + ux * push, nz = it.z + uz * push;
-          const y0 = loc.f(it.x, it.z), ny0 = loc.f(nx, nz);
+          const y0 = it.floor ?? loc.f(it.x, it.z), ny0 = loc.f(nx, nz);
           if (Math.abs(ny0 - y0) > 0.6 || (cave && cave.routeDist(nx, nz) < 3.5) || underWreck(nx, nz, ny0)) continue;
-          const t = { ...it, x: nx, z: nz, y: it.y + ny0 - y0 };
-          if (fitUnder(kind, v, t, ny0, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y)) { Object.assign(it, t); return true; }
+          const t = { ...it, x: nx, z: nz, y: it.y + ny0 - y0, up: undefined };
+          const ny1 = seat(kind, v, t, ny0, loc.f);   // (set down on the reef there, as where it first grew)
+          if (ny1 !== null && fitUnder(kind, v, t, ny1, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y)) { Object.assign(it, t); return true; }
         }
         if (w.d < 0.8 * w.r.r) return false;                               // (its base in the rock, and nowhere near to go: none)
         // (else grown less, a younger colony with its form kept, just clear of the rock — but never cut down to a stub
@@ -515,6 +588,36 @@ export function buildOcean(loc) {
         return true;
       });
     });
+  };
+  // Colonies keep clear of one another (src/ocean/substrate.ts): the biggest set down first, each after only where its
+  // body is clear of every other's; one that is not is grown less (down to six tenths) or not grown here. A thicket's
+  // own colonies may tangle. Bodies kept per block, so a block let go takes its colonies' bodies with it.
+  const bodies = new Bodies();
+  const settle = (its: any, kept?: Body[]) => {
+    const all: { kind: string; v: number; it: any; size: number }[] = [];
+    for (const kind of ['table', 'brain', 'branch', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number) => { for (const it of list) all.push({ kind, v, it, size: Math.max(it.sx, it.sz) * it.sy }); });
+    all.sort((a, b) => b.size - a.size);
+    const keep = new Set<any>();
+    for (const c of all) {
+      const g = CORAL_GEO[c.kind][c.v], group = c.kind === 'branch' && c.v === 2 ? 0 : -1;
+      let b = bodyOf(g, c.it, group);
+      if (!bodies.fits(b)) {
+        const s0 = Math.max(c.it.sx, c.it.sz), base = c.it.y + (SINK[c.kind] ?? 0) * s0;
+        let ok = false;
+        for (const f of [0.8, 0.6]) {
+          if (s0 * f < CORAL_MIN[c.kind]) break;
+          const t = { ...c.it, sx: c.it.sx * f, sy: c.it.sy * f, sz: c.it.sz * f, y: SINK[c.kind] ? base - SINK[c.kind] * s0 * f : c.it.y };
+          const tb = bodyOf(g, t, group);
+          if (bodies.fits(tb)) { Object.assign(c.it, t); b = tb; ok = true; break; }
+        }
+        if (!ok) continue;
+      }
+      bodies.add(b); kept?.push(b); keep.add(c.it);
+      // (and a solid one — a dome, a plate, a clam, a leather coral — on the map the animals and the drone keep clear
+      // of: they swim over it or round it, not through. A branching colony and a fan are open lattices fish live in.)
+      if (c.kind !== 'branch' && c.kind !== 'fan') obst.stamp(c.it.x, c.it.z, b.R * 1.1, b.y1[b.y1.length - 1], b.y1[b.y1.length - 1] - b.y0[0]);
+    }
+    for (const kind of ['table', 'brain', 'branch', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number, lists: any[][]) => { lists[v] = list.filter((it) => keep.has(it)); });
   };
   if (!loc.pelagic) {
     const KINDS: [string, number, [number, number]][] = [
@@ -548,15 +651,18 @@ export function buildOcean(loc) {
         const tilt = kind === 'angular' || kind === 'rubble' ? 0.9 : kind === 'slab' ? 0.25 : 0.35;
         const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
         const it = { x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
-        lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push(it);
+        // (resting on the slope under all of it: down to its low side, or, on a drop too steep for that, not here)
+        { const r0 = 0.85 * Math.max(it.sx, it.sz); let lo = h; for (const ring of [0.5, 1]) for (let k = 0; k < 10; k++) { const a = (k + ring) * 0.628; lo = Math.min(lo, loc.f(x + Math.cos(a) * r0 * ring, z + Math.sin(a) * r0 * ring)); } loc.f(x, z);
+          const drop = h - lo - 0.12 * sy; if (drop > 1.1 * sy) continue; if (drop > 0) it.y -= drop; }
+        const li = ki * 2 + (R() < 0.5 ? 0 : 1); lists[li].push(it);
         if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
-        if (s > 0.3) addFoot({ x, z, r: 0.85 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.3 : 1), top: it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), under: -1e9 }, feet);
+        if (s > 0.3) addFoot({ x, z, r: 0.85 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.3 : 1), top: it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), under: -1e9, it, geo: kind === 'pinnacle' || kind === 'rubble' ? null : protos[li].geo }, feet);   // (geo: a top a colony can grow on)
         placed++;
       }
       // Overhangs and crevices on the flanks of coral heads: find where a steep side meets its flat top,
       // and set a slab there jutting out over the drop; at the foot of the wall, lean big angular blocks
       // against it so shadowed gaps open behind them.
-      const slabList = (kIdx: number) => lists[kIdx * 2 + (R() < 0.5 ? 0 : 1)];
+      const slabIdx = (kIdx: number) => kIdx * 2 + (R() < 0.5 ? 0 : 1);
       // (the anemones keep their patch of open reef: no rock or slab comes down on one)
       const hAt = (x: number, z: number) => loc.f(x, z);
       let ledges = 0, leaners = 0;
@@ -576,11 +682,15 @@ export function buildOcean(loc) {
             rx = nx; rz = nz; rh = nh;
           }
           const w = rr(1.1, 2.4), d = rr(0.8, 1.6), th = rr(0.3, 0.62);
-          const it = { x: rx + ox * d * 0.45, z: rz + oz * d * 0.45, y: rh - rr(0.05, 0.5), ry: Math.atan2(ox, oz), tx: rr(-0.04, 0.16), tz: rr(-0.08, 0.08), sx: w, sy: th, sz: d };
+          // (lying on the rim, a little back from the edge: jutting out over the drop it read as a plate stuck on
+          // the side, floating — the owner, 2026-10-05)
+          const it = { x: rx - ox * d * 0.3, z: rz - oz * d * 0.3, y: rh - th * 0.4, ry: Math.atan2(ox, oz), tx: rr(-0.04, 0.08), tz: rr(-0.06, 0.06), sx: w, sy: th, sz: d };
+          { let lo = rh; for (let k = 0; k < 6; k++) { const a = k * 1.047; lo = Math.min(lo, hAt(it.x + Math.cos(a) * Math.max(w, d) * 0.45, it.z + Math.sin(a) * Math.max(w, d) * 0.45)); }
+            if (rh - lo > th * 1.2) continue; it.y -= Math.max(0, rh - lo - th * 0.3); }
           if (nearAnemone(it.x, it.z, Math.max(w, d) * 0.6)) continue;
-          slabList(R() < 0.5 ? 2 : 1).push(it);          // flat slabs and flattened angular blocks
+          const li = slabIdx(R() < 0.5 ? 2 : 1); lists[li].push(it);          // flat slabs and flattened angular blocks
           obst.stamp(it.x, it.z, Math.max(w, d) * 0.8, it.y + th * 0.45, th);
-          addFoot({ x: it.x, z: it.z, r: Math.max(w, d) * 0.6, top: it.y + th * 0.5, under: it.y - th * 0.5 }, feet);   // (a ledge: what grows under its overhang stays)
+          addFoot({ x: it.x, z: it.z, r: Math.max(w, d) * 0.6, top: it.y + th * 0.5, under: -1e9, it, geo: protos[li].geo }, feet);
           ledges++;
         } else if (leaners < 300 * frac) {
           // walk down to the foot of the wall
@@ -592,10 +702,13 @@ export function buildOcean(loc) {
           }
           const sz = rr(0.8, 1.8), sy = sz * rr(0.8, 1.3);
           const it = { x: fx + ox * 0.3, z: fz + oz * 0.3, y: fh - sy * 0.2, ry: Math.atan2(ox, oz) + rr(-0.4, 0.4), tx: -rr(0.2, 0.55), tz: rr(-0.3, 0.3), sx: sz * rr(0.9, 1.5), sy, sz };
+          // (down on the floor under all of it, not hung off the wall where the foot runs out)
+          { const r0 = 0.6 * Math.max(it.sx, sz); let lo = fh; for (let k = 0; k < 6; k++) { const a = k * 1.047; lo = Math.min(lo, hAt(it.x + Math.cos(a) * r0, it.z + Math.sin(a) * r0)); }
+            if (fh - lo > sy * 1.1) continue; it.y -= Math.max(0, fh - lo - sy * 0.15); }
           if (nearAnemone(it.x, it.z, Math.max(it.sx, sz) * 0.6)) continue;
-          slabList(1).push(it);
+          const li = slabIdx(1); lists[li].push(it);
           obst.stamp(it.x, it.z, Math.max(it.sx, sz) * 0.85, it.y + sy * 0.85, sy);
-          addFoot({ x: it.x, z: it.z, r: Math.max(it.sx, sz) * 0.75, top: it.y + sy * 0.85, under: -1e9 }, feet);
+          addFoot({ x: it.x, z: it.z, r: Math.max(it.sx, sz) * 0.75, top: it.y + sy * 0.85, under: -1e9, it, geo: protos[li].geo }, feet);
           leaners++;
         }
       }
@@ -616,6 +729,7 @@ export function buildOcean(loc) {
     placeRocks([-LIMIT - 35, -LIMIT - 35, LIMIT + 35, LIMIT + 35], [-LIMIT - 20, -LIMIT - 20, LIMIT + 20, LIMIT + 20], 1, null, oc.cells);
   }
   clearOfRocks(items);
+  settle(items);
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // By an island the sea is far bigger than the stretch round the drone that is filled in at the start: as
@@ -624,14 +738,14 @@ export function buildOcean(loc) {
   // most, and blocks left far behind are let go (and grown again the same if the camera comes back).
   if (land && !loc.pelagic) {
     const B = 80, GROW = 190, DROP = 460, E = loc.land.far - 8;
-    const blocks = new Map<string, { meshes: any[]; cells: any[]; feet: any[] }>();
+    const blocks = new Map<string, { meshes: any[]; cells: any[]; feet: any[]; bodies: Body[] }>();
     const inner = (ext: number) => (x: number, z: number) => Math.abs(x) < ext && Math.abs(z) < ext;
     const inCoral = inner(EXT), inLitter = inner(LIMIT + 20), inRocks = inner(LIMIT + 35);
     // (a block is grown in three steps on three frames — its corals, its litter, its rocks — so that no one
     // frame carries the whole of it)
     function* growBlock(bi: number, bj: number) {
       const x0 = bi * B, z0 = bj * B, x1 = x0 + B, z1 = z0 + B, key = bi + ',' + bj;
-      const rec = { meshes: [] as any[], cells: [] as any[], feet: [] as any[] };
+      const rec = { meshes: [] as any[], cells: [] as any[], feet: [] as any[], bodies: [] as Body[] };
       blocks.set(key, rec);
       const seed = loc.seed * 7919 + bi * 104729 + bj * 1299709;
       // anything in the sea here at all? (an inland block, or one wholly inside the stretch done at the start: nothing)
@@ -658,6 +772,7 @@ export function buildOcean(loc) {
       placeRocks?.([x0, z0, x1, z1], [x0, z0, x1, z1], (B * B) / ((2 * LIMIT + 70) * (2 * LIMIT + 70)), inRocks, c3, rec.feet); add(c3);
       // (and its corals, now that its rocks are down: none through a rock)
       clearOfRocks(its);
+      settle(its, rec.bodies);
       for (const kind in its) its[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, c1); });
       add(c1);
     }
@@ -675,7 +790,7 @@ export function buildOcean(loc) {
           m.dispose();
         }
         if (b.cells.length) { const gone = new Set(b.cells); oc.cells = oc.cells.filter((c: any) => !gone.has(c)); }
-        dropFeet(b.feet);
+        dropFeet(b.feet); for (const o of b.bodies) bodies.remove(o);
         blocks.delete(k);
       }
       // carry on with a block under way; else grow the nearest in reach not grown yet
@@ -730,6 +845,7 @@ export function buildOcean(loc) {
   // flying fish, where they live: bursts out of the sea and glides over it
   if ([...(loc.extraGuide || []), ...loc.species].some((e) => e.id === 'tobiuo')) oc.flyfish = makeFlyingFish(group);
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);
+  oc.jacks = makeJacks(oc, 1);   // the jacks' spot on the reef's edge, where they mill or wind up into a tornado
   oc.riders = makeRiders(oc); if (oc.riders) group.add(oc.riders.group);
   oc.critters = makeCritters(oc); if (oc.critters) group.add(oc.critters.group);
   oc.breach = makeBreach(oc);   // whales and mantas leaping out of the sea
@@ -802,6 +918,9 @@ function buildCave(cave: Cave, group: THREE.Group, items: any) {
     const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
     if (y < cave.top - 3.5 || cave.skyAt(x, y + 0.5, z) < 0.7) continue;
     const q = R(), s = rr(0.5, 1.4);
+    // (not out over a skylight's edge, and on rock all under it: seen from inside, one at the rim hung in the light)
+    if (cave.skylights.some((k: any) => Math.hypot(x - k.pos.x, z - k.pos.z) < k.r + 1.4 * s + 0.8)) continue;
+    { let ok = true; for (let k = 0; k < 8 && ok; k++) { const a = k * Math.PI / 4; if (cave.topAt(x + Math.cos(a) * 0.8 * s, z + Math.sin(a) * 0.8 * s) < y - 0.25) ok = false; } if (!ok) continue; }
     const kind = q < 0.35 ? 'branch' : q < 0.55 ? 'table' : q < 0.85 ? 'brain' : 'mushroom';
     const v = kind === 'branch' ? (R() < 0.5 ? 0 : 1) : kind === 'mushroom' ? (R() < 0.5 ? 0 : 1) : kind === 'brain' ? (R() < 0.5 ? 0 : 1) : 0;
     const pal = kind === 'brain' && v === 1 ? pick(PALETTE.porites) : kind === 'mushroom' && v === 1 ? pick(PALETTE.sinularia) : pick(PALETTE[kind]);

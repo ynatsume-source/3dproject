@@ -28,10 +28,11 @@ export interface Thought {
 }
 
 export interface BrainInput {
-  who: string; profile: string; now: { at: number; hour: number; battery: number | null; holding: string; night: boolean };
+  who: string; profile: string; now: { at: number; hour: number; island?: Record<string, string>; battery: number | null; holding: string; night: boolean; body?: { おなか: number; ねむけ: number } };   // (body: the two animals — 100 full / 100 very sleepy)
   why: string;                                  // (what made it stop to think: a goal done, a failure, something new…)
   goal: Goal | null; seeing: Observation[]; remembered: Observation[];
   knowledge: Knowledge[]; results: ActionResult[]; options: Option[];
+  hits?: string[];   // what has paid off, as the world counted it: average reward and how many times (agent/values.ts)
 }
 export type Brain = (input: BrainInput, tier: 'deep' | 'light') => Promise<Thought | null>;
 

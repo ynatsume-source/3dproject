@@ -3,6 +3,7 @@
 // and an allowance left) at the turning points: nothing to do, a goal done, a step that failed, something new
 // seen; between them it gets on with its plan. Without a model it plans by its habits — the same loop, the
 // same world, never stuck waiting.
+import { Values } from './values';
 import { MINDS } from './config';
 import { checkThought } from './brain';
 import type { ActionResult, Brain, BrainInput, Goal, Knowledge, Observation, Option, Outcome, Request, Thought } from './types';
@@ -18,6 +19,12 @@ export class Agent {
   seen = new Map<string, Observation>();
   /** why it should stop and think, if it should ('' : get on with it) */
   why = 'まだ何も決めていない';
+  /** Who told it of what (by the thing's id), to know when something heard turned out to be of use. */
+  heardFrom = new Map<string, string>();
+  /** What has paid off, learnt from rewards the world counts (values.ts). */
+  values = new Values();
+  /** Told when something it heard from another led to a step done (the island learns talking pays). */
+  onUseful?: (from: string, optionId: string) => void;
   thinking: { since: number; p: Promise<Thought | null>; got?: Thought | null; done: boolean } | null = null;
   lastCall = -1e12;
   calls = 0;
@@ -42,6 +49,7 @@ export class Agent {
   forget(id: string) { this.seen.delete(id); }
   /** Something another told it: kept as heard (not as seen), from whom — and a reason to think. */
   hear(o: Observation, from: string, text: string, now: number) {
+    this.heardFrom.set(o.id, from);
     const mine = this.seen.get(o.id);
     if (!mine || mine.at < o.at) this.seen.set(o.id, { ...o, from });
     this.knowledge.push({ id: this.id('k'), text, source: 'heard', at: now });
@@ -113,10 +121,16 @@ export class Agent {
 
   /** How a step went, as the world judged it: kept, learnt from, and — if it failed, or the goal is done — a
    *  reason to think again. */
-  result(optionId: string, action: string, outcome: Outcome, now: number, detail?: string) {
+  result(optionId: string, action: string, outcome: Outcome, now: number, detail?: string, reward = 0, label = '') {
+    if (outcome !== 'interrupted' && outcome !== 'accepted') this.values.step(optionId, label || optionId, reward, now);
     const r: ActionResult = { eventId: this.id('e'), optionId, action, targetId: optionId.split(':')[1], outcome, at: now, detail };
     this.results.push(r); if (this.results.length > 60) this.results.shift();
-    if (outcome === 'done' && this.goal?.steps[0] === optionId) this.goal.steps.shift();   // (interrupted: the step is still to do)
+    if (outcome === 'done' && this.goal?.steps[0] === optionId) this.goal.steps.shift();
+    if (outcome === 'done' && r.targetId && this.heardFrom.has(r.targetId)) {
+      const from = this.heardFrom.get(r.targetId)!; this.heardFrom.delete(r.targetId);
+      this.knowledge.push({ id: this.id('k'), text: `${optionId} は、${from}から聞いた情報でできた`, source: 'tried', at: now, evidence: [r.eventId] });
+      this.onUseful?.(from, optionId);
+    }   // (interrupted: the step is still to do)
     if (FAIL.includes(outcome)) {
       // (what it learnt by trying: kept as something tried, with the result as its evidence)
       // (the same lesson again is the same knowledge, with one more result behind it)
@@ -136,11 +150,12 @@ export class Agent {
     return r;
   }
 
-  save() { return { goal: this.goal, results: this.results.slice(-30), knowledge: this.knowledge.slice(-60), seen: [...this.seen.values()].slice(-80), n: this.n }; }
+  save() { return { goal: this.goal, results: this.results.slice(-30), knowledge: this.knowledge.slice(-60), seen: [...this.seen.values()].slice(-80), n: this.n, values: this.values.save() }; }
   load(s: any) {
     if (!s || typeof s !== 'object') return;
     this.goal = s.goal ?? null; this.results = Array.isArray(s.results) ? s.results : []; this.knowledge = Array.isArray(s.knowledge) ? s.knowledge : [];
     this.seen = new Map((Array.isArray(s.seen) ? s.seen : []).map((o: Observation) => [o.id, o])); this.n = Number.isSafeInteger(s.n) ? s.n : 0;
+    this.values.load(s.values);
     this.why = this.goal ? '' : 'まだ何も決めていない';
   }
 }

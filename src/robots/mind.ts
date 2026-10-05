@@ -1,7 +1,6 @@
 // The residents' own words, written by Claude when the person watching has given an API key (kept in
 // this browser only). Without one, they speak from their prepared lines. A prototype: the key goes
 // straight from the browser to the API; a server will stand in between later.
-import type { Voice } from './voices';
 
 const KEY = 'seaglass.aikey', MODEL = 'claude-haiku-4-5-20251001';
 const DAILY = 120;   // at most this many calls a day
@@ -36,7 +35,7 @@ function count() {
 }
 
 class TransportError extends Error {}
-async function boundedResponse(r: Response): Promise<unknown> {
+async function boundedResponse(r: Response, max = 64 * 1024): Promise<unknown> {
   const reader = r.body?.getReader();
   if (!reader) throw new TransportError('API の応答を読み取れませんでした。');
   const decoder = new TextDecoder(); let size = 0, text = '';
@@ -44,7 +43,7 @@ async function boundedResponse(r: Response): Promise<unknown> {
     while (true) {
       const chunk = await reader.read(); if (chunk.done) break;
       size += chunk.value.byteLength;
-      if (size > 64 * 1024) { void reader.cancel().catch(() => {}); throw new TransportError('API の応答が長すぎました。'); }
+      if (size > max) { void reader.cancel().catch(() => {}); throw new TransportError('API の応答が長すぎました。'); }
       text += decoder.decode(chunk.value, { stream: true });
     }
     return JSON.parse(text + decoder.decode());
@@ -65,7 +64,7 @@ function poolCount(name: string) {
   try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== day) s = { d: day }; s[name] = (Number.isSafeInteger(s[name]) ? s[name] : 0) + 1; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session only */ }
 }
 export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
-export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number } = {}): Promise<string | null> {
+export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number; maxChars?: number } = {}): Promise<string | null> {
   // (leave: calls kept back from the day's budget for others — a resident's own decisions never use up the conversations')
   // (queueMs: while another call is out, wait this long for it rather than giving up at once)
   for (const until = performance.now() + (options.queueMs ?? 0); busy && performance.now() < until;) await new Promise((res) => setTimeout(res, 100));
@@ -88,15 +87,15 @@ export async function requestAiText(system: string, user: string, options: { max
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST', signal: controller.signal,
         headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model, max_tokens: Math.max(1, Math.min(2000, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
+        body: JSON.stringify({ model, max_tokens: Math.max(1, Math.min(options.maxChars ? 12000 : 2000, Math.floor(options.maxTokens || 700))), system, messages: [{ role: 'user', content: user }] }),
       });
       if (!r.ok) throw new TransportError(`API エラー (HTTP ${Number.isInteger(r.status) ? r.status : 0})。`);
-      const j = await boundedResponse(r) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
+      const j = await boundedResponse(r, options.maxChars ? 4 * options.maxChars : undefined) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
       const u = j?.usage ?? {}, n = (v: unknown) => (Number.isFinite(v) ? Number(v) : 0);
       options.onUsage?.({ model, input: n(u.input_tokens), output: n(u.output_tokens), cacheRead: n(u.cache_read_input_tokens), cacheWrite: n(u.cache_creation_input_tokens), ms: Date.now() - t0 });
       if (!Array.isArray(j?.content)) throw new TransportError('API の応答形式を読み取れませんでした。');
       const text = j.content.filter(c => c?.type === 'text' && typeof c.text === 'string').map(c => c.text).join('');
-      if (!text || text.length > 16000) throw new TransportError('API の応答形式を読み取れませんでした。');
+      if (!text || text.length > (options.maxChars ?? 16000)) throw new TransportError('API の応答形式を読み取れませんでした。');
       return text;
     };
     const text = await Promise.race([request(), aborted]);
@@ -113,31 +112,3 @@ export async function requestAiText(system: string, user: string, options: { max
   }
 }
 
-const STAGE_GOAL = [
-  'はじめて出会った。短く挨拶を交わすだけ（まだ名前も知らない）。',
-  '二度目。お互いに名前と、島でふだん何をしているかを自己紹介する。',
-  '少し慣れてきた。それぞれ、島で暮らすためのコツをひとつずつ教え合う。',
-  '顔見知り。今日あったことや最近のことを話す。',
-  '打ち解けてきた。近況を話し、片方がぽつりと個人的な悩みを打ち明け、もう片方が自分らしく受け止める。',
-  '悩みを話せる仲。前に聞いた悩みのその後を気にかけたり、新しい話をしたりする。',
-];
-// a short exchange between A and B, in their own voices
-export async function aiConverse(a: Voice, b: Voice, stage: number, stageName: string, aDid: string[], bDid: string[], recent: string[]) {
-  const system = 'あなたは、実在の無人島・嘉弥真島（沖縄県八重山）で独立して暮らす住人たち（小さなロボットのドットとランタン、本物の生き物のアオウミガメのカメマルとラッコ）の会話を書く作家です。' +
-    'それぞれが自分の力で島での暮らしを築いている。カメマルとラッコは本物の動物として食べ、眠り、泳ぐ。人間は島にいない。説明や地の文は書かず、指定のJSONだけを返す。';
-  const user = [
-    `A: ${a.mind}`, `B: ${b.mind}`,
-    `ふたりの関係: ${stageName}。今回の会話: ${STAGE_GOAL[Math.min(stage, 5)]}`,
-    `Aの今日: ${aDid.join('、') || '特になし'}`, `Bの今日: ${bDid.join('、') || '特になし'}`,
-    recent.length ? `最近の会話（島全体）:\n${recent.join('\n')}` : '',
-    'A が話しかける。4〜7行、1行40字以内、それぞれの口調を守る。最後はどちらかの短い別れの言葉。',
-    '形式: [{"who":"A","text":"…"},{"who":"B","text":"…"}]',
-  ].filter(Boolean).join('\n');
-  const out = await requestAiText(system, user);
-  if (!out) return null;
-  try {
-    const m = out.match(/\[[\s\S]*\]/); if (!m) return null;
-    const arr = JSON.parse(m[0]) as { who: string; text: string }[];
-    return arr.filter((l) => (l.who === 'A' || l.who === 'B') && typeof l.text === 'string' && l.text.length > 0).slice(0, 8).map((l) => ({ who: l.who as 'A' | 'B', text: l.text.slice(0, 80) }));
-  } catch (e) { return null; }
-}

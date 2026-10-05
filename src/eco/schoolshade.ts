@@ -30,6 +30,11 @@ export function makeSchoolShade(geo: THREE.BufferGeometry, n: number, groups = 1
       const core = Math.max(0, 1 - Math.sqrt(h2 + dy * dy));
       arr[i * 2 + 1] = 1 - 0.4 * core * Math.min(1, k) - 0.15 * (1 - Math.exp(-col * k * 0.5));
     },
+    // (a fish not moved this frame: counted in the group's shape, its own light left as it was)
+    keep(g: number, x: number, y: number, z: number) {
+      const a = g * 8;
+      acc[a]++; acc[a + 1] += x; acc[a + 2] += y; acc[a + 3] += z; acc[a + 4] += x * x; acc[a + 5] += y * y; acc[a + 6] += z * z;
+    },
     end() {
       for (let g = 0; g < groups; g++) {
         const a = g * 8, c = acc[a], b = g * 7;

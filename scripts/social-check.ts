@@ -1,7 +1,8 @@
 // Headless check (ADR 0004, step 2): Dot and Rakko, each with a mind of its own, on controlled ground.
 //  A Dot asks Rakko for driftwood; Rakko takes it on, fetches a log only it has seen, hands it over; Dot shapes it
 //  B Rakko, hungry, says no; Dot hears why, and does not ask again straight away
-//  C Rakko tells Dot where a log is; Dot knows it as heard (from Rakko), not seen, and fetches it
+//  C Rakko tells Dot where a log is; Dot knows it as heard (from Rakko), not seen, and fetches it — and learns
+//    from it that what others tell it is of use
 //  D the same log: once one has it in hand (or on the way), the other is not offered it, and a plan naming it is not taken
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/social-check.ts
 import * as THREE from 'three';
@@ -50,7 +51,7 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   want('A Dot has not seen the log', !dm.seen.has(`wood#${log.id}`));
   await run(R, 600, () => dot.stats.built >= 1);
   const q = R.requests?.[0] ?? null; void q;
-  want('A Rakko took it on, fetched it and handed it to Dot', rm.results.some((r: any) => r.optionId.startsWith('accept:') && r.outcome === 'done') && rm.results.some((r: any) => r.optionId === 'give:dot' && r.outcome === 'done'), rm.results.filter((r: any) => !/float|groom|wander/.test(r.optionId)).map((r: any) => `${r.optionId}:${r.outcome}`).join(' '));
+  want('A Rakko took it on, fetched it and handed it to Dot', rakko.diary.some((e: any) => /頼み（流木を届ける）を引き受ける：できた/.test(e.text)) && rakko.diary.some((e: any) => /手渡した/.test(e.text)), rm.results.filter((r: any) => !/float|groom|wander/.test(r.optionId)).map((r: any) => `${r.optionId}:${r.outcome}`).join(' '));
   want('A Dot heard it from Rakko, and shaped and fitted it', dm.knowledge.some((k: any) => k.source === 'heard' && k.text.includes('届けて')) && dot.stats.built >= 1, `hut ${dot.stats.built}`);
   want('A both diaries say so', dot.diary.some((e: any) => e.text.includes('頼んだ')) && rakko.diary.some((e: any) => e.text.includes('手渡した')));
   void rakko;
@@ -80,8 +81,9 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   await run(R, 900, () => dm.seen.has(`wood#${log.id}`));
   const ob = dm.seen.get(`wood#${log.id}`);
   want('C Dot first knows of the log as told by Rakko', ob?.from === 'rakko' && dm.knowledge.some((k: any) => k.source === 'heard'), ob ? `from ${ob.from ?? 'its own eyes'}, ${Math.round(Math.hypot(ob.x - dot.pos.x, ob.z - dot.pos.z))} m off` : 'not known');
-  await run(R, 300, () => dot.holding === 'wood' || dot.stats.built > 0);
+  await run(R, 600, () => dot.holding === 'wood' || dot.stats.built > 0);   // (the first time they meet, they identify each other first: the custom)
   want('C and fetches it', dm.results.some((r: any) => r.optionId === `gather:wood#${log.id}` && r.outcome === 'done'));
+  want('C and learns that what it hears is of use (talking pays)', (dot.stats.talkUse ?? 0) > 0 && dot.diary.some((e: any) => /ラッコから聞いた情報で/.test(e.text)), `talkUse ${dot.stats.talkUse ?? 0}`);
   void rakko;
 }
 { // D one log, two who want it

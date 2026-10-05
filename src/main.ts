@@ -6,7 +6,7 @@ import './styles.css';
 import { U, mat } from './render/common';
 import { cloudAt } from './render/cloud';
 import { clamp, smooth, angDiff, rr } from './core/math';
-import { LOCATIONS, type Sea } from './data/locations';
+import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
@@ -32,6 +32,7 @@ import { MiniMap } from './ui/minimap';
 import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
+import { islandDate, islandWeather, loadIslandWeather, type IslandWeather } from './world/island-time';
 import { Post, setRTSupport } from './render/post';
 import { loadLand } from './ocean/land';
 import { STAGES } from './robots/voices';
@@ -942,6 +943,13 @@ function wxCloud() {
 }
 const liveWeather = () => wxFixed ? WX[wxFixed] : (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
 async function refreshWeather(loc: Sea) {
+  // (Dot's world: the Earth's past weather replayed on the island's calendar, not today's — ADR 0006/0007)
+  if (loc.world === 'planet') {
+    await loadIslandWeather();
+    const iw = islandWeather(Date.now());
+    if (cur && cur.loc === loc) { wx = iw ?? FAIR; cur.residents?.setWeather(iw); applySky(loc); updateTimeUi(); }
+    return;
+  }
   const w = await fetchWeather(loc.id, loc.lat, loc.lon);
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
 }
@@ -1231,6 +1239,8 @@ function goTo(id: string) {
     if (bs) focusOn(bs);
     return;
   }
+  // the jacks: by day, at their spot on the reef's edge (milling, or wound up into a tornado as the tide runs)
+  if (id === 'gingameaji' && oc.jacks?.subjects().length) { focusOn(oc.jacks.subjects()[0]); showToast('向かっています', `${name}のところへ`, ''); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } return; }
   // flying fish: up into the sky, and down to a low run over the sea that puts them up
   if (id === 'tobiuo' && oc.flyfish && !loc.species.some((sp) => sp.id === 'tobiuo')) {
     if (skyNow!.night > 0.5) { showToast(name, '夜の海では見えません', '暗い水面の上を飛ぶので、空から追っても姿が見えません。明るい時間に来てみてください'); return; }
@@ -1337,13 +1347,15 @@ function updateTimeUi() {
   const ld = new Date(clock.ms + loc.tz * 3600000);
   {
     const w = liveWeather();
-    $('wxLine').innerHTML = w.ok
+    $('wxLine').innerHTML = w.ok && loc.world
+      ? `島の天気（${islandDate(clock.ms).label}・地球の過去の観測（石垣島・気象庁）を島の暦で再生）：<b>${(w as IslandWeather).typhoon ? '台風' : weatherLabel(w)}</b> · 風 ${w.wind.toFixed(1)} m/s · 気圧 ${Math.round((w as IslandWeather).pressure)} hPa${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}`
+      : w.ok
       ? `現地の天気（実況）：<b>${weatherLabel(w)}</b> · 雲 ${Math.round(w.cloud * 100)}% · 風 ${w.wind.toFixed(1)} m/s${w.wave != null ? ` · 波 ${w.wave.toFixed(1)} m` : ''}${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}<br><small>天気データ：Open-Meteo</small>`
       : wx.ok ? '時刻や季節を動かしている間は、晴れの標準的な海になります' : '現地の天気を取得できないため、晴れの標準的な海です';
     const sh = activeShower(clock.ms);
     if (sh) $('wxLine').innerHTML += `<br>${sh.ja}が活動中（${sh.k >= 30 ? '極大のころ' : '見ごろの前後'}）。晴れた夜に空へ出ると流れ星が見えます`;
   }
-  $('clockDate').textContent = `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
+  $('clockDate').textContent = loc.world ? islandDate(clock.ms).label : `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-season]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.season === clock.season)));
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => b.classList.toggle('now', b.dataset.preset === s.phase));
 }
@@ -1428,8 +1440,8 @@ function renderIsland() {
     <p class="lead"><a href="./journal/" target="_blank" rel="noopener" style="color:var(--accent)">島だより ↗</a>　ドットとラッコが、自分で撮った写真と自分の記録から毎日書いているメディア。</p>
     <ul>${cards}</ul>
     ${(() => { const vg = (R as any).village; if (!vg) return '';
-      const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火を何度か囲むうちに、みんなで何かをつくる話が出てくるかもしれません（焚き火の会 ${vg.fires}回）。</p>`
-        : `<p class="lead"><b>桟橋</b>　${vg.pier === 'plan' ? 'カメマルが場所を測るのを待っている' : vg.pier === 'done' ? '完成！ みんなでつくったはじめての大きなもの' : `土台の石 ${vg.bases}/4（ランタン）・柱 ${vg.posts}/4（ラッコ）・板 ${vg.deck}/8（ドット）`}</p>`;
+      const pier = vg.pier === 'none' ? `<p class="lead">まだありません。焚き火の会を重ねると、共同作業の提案が出ます（焚き火の会 ${vg.fires}回）。</p>`
+        : `<p class="lead"><b>桟橋</b>　${vg.pier === 'plan' ? 'カメマルが場所を測るのを待っている' : vg.pier === 'done' ? '完成（はじめての共同作業）' : `土台の石 ${vg.bases}/4（ランタン）・柱 ${vg.posts}/4（ラッコ）・板 ${vg.deck}/8（ドット）`}</p>`;
       const tr = vg.treasures.length ? `<ul class="plain">${vg.treasures.map((x: any) => `<li>${x.what}　<small>${x.who}が見つけた・${localTimeString(x.at, loc.tz)}</small></li>`).join('')}</ul>` : '<p class="empty">まだ何も流れ着いていません。ときどき、遠くから何かが浜に打ち上がります。</p>';
       return `<h3>みんなでつくっているもの</h3>${pier}<h3>海の向こうから流れ着いたもの</h3>${tr}`; })()}
     <h3>聞こえてきた会話</h3>
@@ -1586,7 +1598,9 @@ const pinEls = LOCATIONS.map((loc, i) => {
 const CARD_ORDER = ['miyako', 'maldives', 'gbr', 'redsea', 'galapagos', 'carnatic', 'pointlobos', 'pacific'];
 const cardRank = (id: string) => { const k = CARD_ORDER.indexOf(id); return k < 0 ? CARD_ORDER.length : k; };
 const RESIDENT_NAMES = ['ドット', 'カメマル', 'ランタン', 'ラッコ'];
-const cardEls = LOCATIONS.map((loc, i) => {
+// (the cards: the Earth's seas, and Dot's world after them — another planet, so no pin on this globe: ADR 0007)
+const CARD_SEAS = [...LOCATIONS, DOTWORLD];
+const cardEls = CARD_SEAS.map((loc, i) => {
   const li = document.createElement('li');
   const isle = !!loc.residents;
   const chips = isle ? RESIDENT_NAMES : [...loc.species.filter((s) => s.big || s.habitat === 'anemone').map((s) => s.ja), ...(loc.extraGuide || []).map((s) => s.ja)].slice(0, 5);
@@ -1601,9 +1615,9 @@ const cardEls = LOCATIONS.map((loc, i) => {
     <span class="go">${isle ? '島をたずねる →' : 'この海へ潜る →'}</span></button>`;
   const b = li.firstElementChild as HTMLButtonElement;
   b.onclick = () => dive(loc);
-  b.onmouseenter = () => { setHot(i); if (!gv.tween) focusLoc(loc); };
+  b.onmouseenter = () => { if (loc.world) return; setHot(i); if (!gv.tween) focusLoc(loc); };
   b.onmouseleave = () => setHot(-1);
-  b.onfocus = () => setHot(i);
+  b.onfocus = () => { if (!loc.world) setHot(i); };
   (li as any).rank = (loc.residents ? 100 : 0) + cardRank(loc.id);
   return b;
 });
@@ -1611,7 +1625,7 @@ const cardEls = LOCATIONS.map((loc, i) => {
   const lis = cardEls.map((b) => b.parentElement as HTMLLIElement).sort((a, b) => (a as any).rank - (b as any).rank);
   let headed = false;
   for (const li of lis) {
-    if ((li as any).rank >= 100 && !headed) { const h = document.createElement('li'); h.className = 'isle-head'; h.textContent = '彼らの暮らす島'; $('locList').appendChild(h); headed = true; }
+    if ((li as any).rank >= 100 && !headed) { const h = document.createElement('li'); h.className = 'isle-head'; h.textContent = 'もうひとつの星 — 彼らの暮らす島'; $('locList').appendChild(h); headed = true; }
     $('locList').appendChild(li);
   }
 }
@@ -1641,6 +1655,7 @@ function updateGlobeTimes() {
     $('pinTime' + i).textContent = ` ${t}`;
     $('cardNow' + i).textContent = `いま現地 ${t} · ${s.phaseLabel} · ${s.moonName}`;
   });
+  { const s = skyState(clock.ms, DOTWORLD), t = localTimeString(clock.ms, DOTWORLD.tz); $('cardNow' + LOCATIONS.length).textContent = `いま島 ${t} · ${s.phaseLabel}`; }
 }
 
 /* ================= modes & transitions ================= */
@@ -2266,6 +2281,7 @@ function applyTierToSea() {
   if (!cur) return;
   for (const f of cur.fish as any[]) f.setFraction?.(C.shoal);
   cur.bait?.setFraction(C.shoal);
+  cur.jacks?.setFraction(C.shoal);
 }
 function toggleFull() {
   try {
@@ -2820,7 +2836,7 @@ function frameBody(ts: number) {
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     updateNewMark(dt);
-    if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
+    if ((wxTimer += dt) > (cur.loc.world ? 120 : 900)) { wxTimer = 0; refreshWeather(cur.loc); }   // (the island's record moves on by the hour, its date every two hours or so)
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
     if (isStorm(liveWeather())) {
       if ((nextFlash -= dt) < 0) {
@@ -2969,7 +2985,7 @@ setQuality(tier);
 resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
-const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
+const start = location.hash === '#planet' ? DOTWORLD : LOCATIONS.find((l) => l.id === location.hash.slice(1));
 if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start).then(() => takeUpPlace(start))), 300); }
 void smooth;
 

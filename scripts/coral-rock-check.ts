@@ -29,7 +29,7 @@ const seas = process.argv.slice(2);
 for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr']) {
   const loc: any = LOCATIONS.find((l) => l.id === id)!;
   if (loc.land) await loadLand(id, loc.land.half, loc.land.far);
-  const oc: any = buildOcean({ ...loc, residents: false });
+  const oc: any = buildOcean(loc);
   const corals: any[] = [], rocks: any[] = [];
   const geoIdx = new Map<THREE.BufferGeometry, number>();
   for (const cell of oc.cells) {

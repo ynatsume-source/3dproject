@@ -2,7 +2,9 @@
 // where there is usually one, a wall of fish that fills the whole view, a tornado of jacks, a school of
 // hammerheads passing overhead, a heat run of humpbacks, the reef spawning on one night of the year, a
 // huge bait ball. Every ten to fifteen minutes in a sea, one of those that can really happen there (at
-// this season and hour) is staged near the camera; the rarer ones come up less often.
+// this season and hour) is staged near the camera; the rarer ones come up less often. (The bait ball and the
+// jacks' tornado are part of the sea itself, ADR 0005: their entries only stir it — hungry hunters, a hard-running
+// tide — and are not announced; they tell themselves once they show.)
 import * as THREE from 'three';
 import type { Species } from '../data/locations';
 import { R, rr, clamp } from '../core/math';
@@ -16,7 +18,7 @@ import type { Env, Subject } from './env';
 export interface RareInfo { id: string; ja: string; note: string }
 // gone(): once its time is up, whether all of it has left the scene, out of sight (until then it goes on, leaving;
 // nothing is taken away in view: src/eco/unseen.ts)
-interface Running { info: RareInfo; t: number; dur: number; update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number): void; pos(): THREE.Vector3 | null; status(): string; size: number; kind: Subject['kind']; dispose(): void; gone?(cam: THREE.Vector3, fx: number, fz: number): boolean }
+interface Running { info: RareInfo; t: number; dur: number; update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number): void; pos(): THREE.Vector3 | null; status(): string; size: number; kind: Subject['kind']; dispose(): void; gone?(cam: THREE.Vector3, fx: number, fz: number): boolean; quiet?: boolean }
 interface Kind { info: RareInfo; weight(loc: any, env: Env): number; start(oc: any, env: Env, cam: THREE.Vector3, fx: number, fz: number): Running | null }
 
 const inMonths = (m: number, list: number[]) => list.includes(m);
@@ -181,81 +183,19 @@ const KINDS: Kind[] = [
   {
     info: { id: 'tornado', ja: 'ギンガメアジのトルネード', note: '何百匹ものギンガメアジが、渦を巻くように回りつづける。その中心から見上げると、銀色の竜巻のなかにいるよう。' },
     weight: (loc) => (loc.species.some((s: Species) => s.id === 'gingameaji') ? 3 : 0),
-    start(oc, env, cam, fx, fz) {
-      const sp: Species = oc.loc.species.find((s: Species) => s.id === 'gingameaji');
-      if (!sp) return null;   // (none in this sea: asked for by name, from the test panel)
-      // The school is out there already: it comes in from the blue as one long school, and as it arrives
-      // the fish at its head start to circle, then the rest, until the whole school is turning in a column;
-      // the hunters round about notice and close in. After a couple of minutes the column loosens, the
-      // fish fall back into a school, and it swims off the way it was going. Nothing appears or vanishes.
-      const c = ahead(oc, cam, fx, fz, 10, 9), base = Math.max(oc.T.top(c.x, c.z) + 3.5, -16), top = Math.min(base + 9, -1.5), mid = (base + top) / 2;
-      const n = 1300, dir = R() < 0.5 ? 1 : -1;
-      // (in from one side, off along much the same line: from somewhere it cannot yet be seen)
-      const SPEED = 1.9, FAR = 58;
-      let ina = 0;
-      for (let k = 0; k < 24; k++) {
-        ina = Math.atan2(fz, fx) + rr(1.2, 2.6) * (R() < 0.5 ? 1 : -1);
-        if (unseen(oc, c.x - Math.cos(ina) * FAR, mid, c.z - Math.sin(ina) * FAR, cam, fx, fz, 12)) break;
-      }
-      const outa = ina + rr(-0.6, 0.6);
-      const A = new THREE.Vector3(Math.cos(ina), 0, Math.sin(ina)), E = new THREE.Vector3(Math.cos(outa), 0, Math.sin(outa));
-      const tA = FAR / SPEED, dur = tA + 120, tD = dur - 45;
-      const seed = Array.from({ length: n }, () => [R(), R(), R() * 6.28, rr(0.8, 1.2), R(), R(), R() * 2 - 1, R() * 2 - 1, R() * 2 - 1]);
-      const ss = (a: number, b: number, x: number) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
-      const sc = new THREE.Vector3(), q = new THREE.Vector3();
-      // the travelling school: its middle, and the way it heads, at time t
-      const school = (t: number, out: THREE.Vector3) => {
-        if (t < tD) { const d = Math.max(0, FAR - t * SPEED); out.set(c.x - A.x * d, mid, c.z - A.z * d); return t < tA ? A : E; }
-        const d = (t - tD) * SPEED * 0.9; out.set(c.x + E.x * d, mid, c.z + E.z * d); return E;
+    start(oc) {
+      // The school lives at its spot on the reef's edge every day (eco/jacks.ts, ADR 0005): a day the tide runs
+      // hard over the edge winds it up tight for a while. Nothing is put in front of the camera, and nothing is
+      // announced: the sea log speaks once the column has formed and is seen.
+      const J = oc.jacks;
+      if (!J) return null;
+      J.surge();
+      return {
+        info: KINDS[2].info, t: 0, dur: 300, size: 7, kind: 'school', quiet: true,
+        update(dt: number) { this.t += dt; },
+        pos: () => (J.st.k > 0.65 ? J.st.c : null), status: () => '渦を巻いている',
+        dispose() { /* (the school stays: it is part of the sea) */ },
       };
-      const where = (i: number, t: number, p: THREE.Vector3) => {
-        const [h, rj, a0, sp2, jn, lv, ox, oy, oz] = seed[i];
-        // in the column: every fish the same way round, each on its own slightly tilted circle
-        const y0 = base + (top - base) * h, md = Math.sin(h * Math.PI);
-        const rb = (2.6 + 3.2 * md) * (0.7 + 0.6 * rj), w = dir * 0.85 * sp2 / rb, a = a0 + w * t;
-        const r = rb + Math.sin(t * 0.3 + h * 5) * 0.4, ph = a + h * 9;
-        p.set(c.x + Math.cos(a) * r, y0 + 0.45 * Math.sin(ph), c.z + Math.sin(a) * r);
-        // in the school: a long, loose shoal along its heading, the fish weaving a little
-        const hd = school(t, sc), sx = -hd.z, sz = hd.x;
-        q.set(sc.x + hd.x * ox * 9 + sx * oz * 4.5 + Math.sin(t * 0.6 + a0) * 0.4, sc.y + oy * 2.2 + Math.sin(t * 0.5 + a0 * 2) * 0.3, sc.z + hd.z * ox * 9 + sz * oz * 4.5 + Math.cos(t * 0.55 + a0) * 0.4);
-        // which it is in: the head of the school (ox > 0) joins first, the tail last; they leave in their own order
-        const join = ss(tA - 8 + (1 - ox) * 7 + jn * 4, tA - 2 + (1 - ox) * 7 + jn * 4, t), leave = ss(tD + lv * 14, tD + 6 + lv * 14, t);
-        const k = join * (1 - leave);
-        p.lerp(q, 1 - k);
-      };
-      const _p2 = new THREE.Vector3();
-      const fl = flowSchool(oc, sp, n, (i, t, p, v) => { where(i, t, p); where(i, t + 0.05, _p2); v.subVectors(_p2, p).multiplyScalar(20); });
-      // to the hunters it is a school like any other: they pick off stragglers at its edge
-      const prey = {
-        x: c.x, y: mid, z: c.z, alive: n, label: sp.ja,
-        scare() { /* (a tornado holds together: it just tightens) */ },
-        take() { const i = Math.floor(R() * n); if (fl.gone[i]) return false; fl.gone[i] = 1; prey.alive--; return true; },
-        pick(x: number, y: number, z: number) { let b = -1, bs = Infinity; for (let k = 0; k < 40; k++) { const i = Math.floor(R() * n); if (fl.gone[i]) continue; const L = fl.last, d = Math.hypot(L[i * 6] - x, L[i * 6 + 1] - y, L[i * 6 + 2] - z); if (d < bs) { bs = d; b = i; } } return b; },
-        at(i: number, out: any, vel?: any) { if (i < 0 || fl.gone[i]) return false; const L = fl.last; out.x = L[i * 6]; out.y = L[i * 6 + 1]; out.z = L[i * 6 + 2]; if (vel) { vel.x = L[i * 6 + 3]; vel.y = L[i * 6 + 4]; vel.z = L[i * 6 + 5]; } return true; },
-        chased() { /* (it stays in the wall of fish) */ },
-        safe() { return false; },
-        kill(i: number) { if (fl.gone[i] || prey.alive <= 2) return false; fl.gone[i] = 1; prey.alive--; return true; },
-      };
-      env.prey.push(prey as any);
-      const at = new THREE.Vector3();
-      let excited = 0;
-      const run: Running = {
-        info: KINDS[2].info, t: 0, dur, size: 7, kind: 'school',
-        update(dt) {
-          this.t += dt; fl.update(this.t);
-          const hd = school(this.t, sc);
-          if (this.t > tA && this.t < tD) { prey.x = c.x; prey.z = c.z; prey.y = mid; } else { prey.x = sc.x; prey.z = sc.z; prey.y = sc.y; }
-          // once it is turning, the hunters round about take notice (now and again, while it lasts)
-          if (this.t > tA + 6 && this.t < tD && (excited -= dt) < 0) { excited = 20; for (const f of oc.fish) f.excite?.(c.x, c.z, 60); }
-          void hd;
-        },
-        pos: () => (run.t < tA - 6 || run.t > tD + 15 ? (school(run.t, sc), at.copy(sc)) : at.set(c.x, mid, c.z)),
-        // (swimming off: taken away only once the school is out of sight)
-        gone: (cc, gx, gz) => { school(run.t, sc); return unseen(oc, sc.x, sc.y, sc.z, cc, gx, gz, 12); },
-        status() { return this.t < tA - 6 ? '沖から、ギンガメアジの大群が近づいてくる' : this.t < tA + 8 ? '群れの先頭から、渦を巻きはじめた' : this.t < tD ? '銀色の渦が、ゆっくりと回りつづけている' : '渦がほどけ、群れになって沖へ泳ぎ去っていく'; },
-        dispose() { fl.dispose(); const k = env.prey.indexOf(prey as any); if (k >= 0) env.prey.splice(k, 1); },
-      };
-      return run;
     },
   },
   {
@@ -383,7 +323,7 @@ const KINDS: Kind[] = [
       return {
         // (a day the hunters are out in numbers and hungry: they come to the school, and the ball is theirs to make —
         // ADR 0005. Over once a ball has come and gone, or if none has formed in three minutes)
-        info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false,
+        info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false, quiet: true,
         update(dt: number) { this.t += dt; if (oc.bait.st.active) (this as any).seen = true; else if ((this as any).seen || this.t > 180) this.t = this.dur; },
         pos: () => (oc.bait.st.active ? oc.bait.st.c : null), status: () => '捕食者と海鳥が、四方から突っ込んでいる',
         dispose() { /* the bait ball winds itself down */ },
@@ -409,7 +349,7 @@ export function makeRareEvents(oc: any) {
       const all = id ? KINDS.filter((k) => k.info.id === id).map((k) => ({ k, w: 1 })) : opts;
       let q = R() * all.reduce((a, o) => a + o.w, 0);
       for (const o of all) { if ((q -= o.w) <= 0) { run = o.k.start(oc, env, cam, fx, fz); break; } }
-      if (run) started = run;
+      if (run && !run.quiet) started = run;   // (one grown out of the sea is not announced: it tells itself, once it shows)
       return !!run;
     },
     update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
@@ -424,7 +364,7 @@ export function makeRareEvents(oc: any) {
     subjects(out: Subject[]) {
       if (!run) return;
       const r = run;
-      if (r.t > r.dur) return;   // (leaving now: not a thing to go and film)
+      if (r.t > r.dur || r.quiet) return;   // (leaving now: not a thing to go and film; or filmed as part of the sea)
       out.push({ key: 'rare:' + r.info.id, label: r.info.ja, kind: r.kind, prio: 6, size: r.size, reach: 120, pos: () => r.pos(), status: () => r.status(), live: () => run === r && !!r.pos(), hold: Math.min(r.dur, 90), under: r.info.id === 'tornado' ? 6.5 : undefined });
     },
   };

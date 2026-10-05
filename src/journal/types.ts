@@ -18,7 +18,7 @@ export interface PhotoRecord {
   file?: string;              // the rendered image, once drawn (photos/<id>.jpg)
 }
 
-export const PHOTOS_PER_DAY = 3;   // at most, each; and at least one (the island asks, late in the day)
+export const PHOTOS_PER_DAY = 3;   // at most, each (none is fine: that day it draws instead)
 
 export interface PostPhoto { id: string; caption: string }
 /** A post, as written and checked. Published only once approved (a merged pull request). */
@@ -27,8 +27,14 @@ export interface Post {
   who: string; name: string;
   day: string;
   title: string;
-  body: string[];             // paragraphs, plain text
-  photos: PostPhoto[];        // at least one, all its own from that day
+  body: string[];             // paragraphs, plain text (older posts; a post written as a log has none)
+  photos: PostPhoto[];        // its own from that day, 1–3; none on a day it took none
+  island?: string;   // the island's own dates over that day (its calendar runs faster than ours)
+  sns?: string;   // its post for the human world's social media that day (its role: to tell people outside what it is working on)
+  drawing?: { svg: string; caption: string };   // a day without photographs: a figure it drew for the human world (SVG)
+  // the day as an exchange: what the island gave back, and what it made of it — and, at the end, the day taken as a whole
+  log?: { t: string; world: string; me: string; photo?: string }[];
+  review?: { summary: string[]; state: string[]; unknown: string[]; outlook: string[] };
   tags: string[];
   written: string;            // ISO time it was written
   by: string;                 // the model that wrote it, or "draft" (no AI: a dry run, never published)
