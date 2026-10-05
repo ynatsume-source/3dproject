@@ -589,6 +589,9 @@ export function buildOcean(loc) {
         if (!ok) continue;
       }
       bodies.add(b); kept?.push(b); keep.add(c.it);
+      // (and a solid one — a dome, a plate, a clam, a leather coral — on the map the animals and the drone keep clear
+      // of: they swim over it or round it, not through. A branching colony and a fan are open lattices fish live in.)
+      if (c.kind !== 'branch' && c.kind !== 'fan') obst.stamp(c.it.x, c.it.z, b.R * 1.1, b.y1[b.y1.length - 1], b.y1[b.y1.length - 1] - b.y0[0]);
     }
     for (const kind of ['table', 'brain', 'branch', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number, lists: any[][]) => { lists[v] = list.filter((it) => keep.has(it)); });
   };
