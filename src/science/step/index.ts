@@ -12,6 +12,7 @@ import { contractExtras } from './common';
 import { barometerStep, BAROMETER_PROCESS } from './barometer';
 import { slakeStep, SLAKE_PROCESS } from './slake';
 import { kneadStep, KNEAD_PROCESS } from './knead';
+import { coconutBoilStep, coconutMilkStep, COCONUT_BOIL_PROCESS, COCONUT_MILK_PROCESS } from './coconut';
 
 const PROCESSES: Record<string, ScienceStep> = {
   [DRYING_PROCESS.processId]: dryingStep,
@@ -24,6 +25,8 @@ const PROCESSES: Record<string, ScienceStep> = {
   [BAROMETER_PROCESS.processId]: barometerStep,
   [SLAKE_PROCESS.processId]: slakeStep,
   [KNEAD_PROCESS.processId]: kneadStep,
+  [COCONUT_MILK_PROCESS.processId]: coconutMilkStep,
+  [COCONUT_BOIL_PROCESS.processId]: coconutBoilStep,   // contract 0.2.x only: the fire draws O2
 };
 
 export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepResult => {
