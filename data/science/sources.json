@@ -484,6 +484,80 @@
       "supports": "A documented practitioner route using absorbent plaster before kneading. Its duration does not calibrate an open evaporating tub.",
       "doesNotVerify": "No complete controlled dataset for the game material. Does not calibrate slakeTauDryS, wet-clay multiplier, settling rate, evaporation coefficient, nine-day tub time, kneading time or power.",
       "author": "Mea Rhee"
+    },
+    {
+      "id": "mext-coconut-milk-07158-2023",
+      "publisher": "文部科学省",
+      "title": "日本食品標準成分表（八訂）増補2023年：食品番号07158 ココナッツミルク",
+      "sourceType": "primary-official-food-composition-table",
+      "url": "https://fooddb.mext.go.jp/details/details.pl?ITEM_NO=07_07158_6",
+      "supports": "A reference composition for coconut milk; basis and analytes are preserved in the artifact.",
+      "doesNotVerify": "The game extraction recipe, the raw-kernel water/fat fractions, drift-fruit condition, manual labour, boil time or heat/scorch constants. The table is not a time series for this process.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/mext-coconut-milk-07158-2023.json",
+        "sha256": "ebf252a337bc9253e2d77242c0c03ca3da1b29155994ff700dd798e17b7249e5",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
+    },
+    {
+      "id": "fao-coir-2002-whole-coconut",
+      "publisher": "FAO / Common Fund for Commodities",
+      "author": "J. E. G. van Dam",
+      "title": "Coir Processing Technologies, Technical Paper No. 6: Chapter 2, Coconut — Tree of Life",
+      "sourceType": "original-institutional-technical-report",
+      "url": "https://www.fao.org/4/y3612e/y3612e03.htm",
+      "supports": "Supports the order of magnitude of the assumed husk fraction, without supplying the full four-component split.",
+      "doesNotVerify": "Shell 13%, fresh meat 30%, liquid 22%, fresh-husk moisture, ash, LHV, or seawater-saturated drift fruit. No controlled process time series.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/fao-coir-2002-whole-coconut.json",
+        "sha256": "fc538c3020e8416d7487513474c2d71a6c04f608cdc113659569c8254a611ff6",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
+    },
+    {
+      "id": "spc-bawalan-vco-manual-2011",
+      "publisher": "Secretariat of the Pacific Community (SPC)",
+      "author": "Divina D. Bawalan",
+      "title": "Processing Manual for Virgin Coconut Oil, its Products and By-products for Pacific Island Countries and Territories (2011)",
+      "sourceType": "primary-author-technical-process-manual",
+      "url": "https://www.service-public.pf/sdr/wp-content/uploads/sites/28/2017/05/Processing-Manual-for-Virgin-Coconut-Oil.pdf",
+      "supports": "A documented direct-heating route and the importance of stirring/heat control; browning is not a universal prerequisite for separating oil.",
+      "doesNotVerify": "The open-fire pot heatShare, fat-extraction fraction, hand-work time, numerical browning/scorch law, or a continuous measured mass/temperature trace. This is the 2011 SPC manual, not the inaccessible FAO 2006 manual.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/spc-bawalan-vco-manual-2011.json",
+        "sha256": "b2c2fe9ec12be532729592d9599b077bf47ac26722b4f0d0a7f83a5af8567c22",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
+    },
+    {
+      "id": "icar-cpcri-vco-bulletin-2016",
+      "publisher": "ICAR – Central Plantation Crops Research Institute",
+      "title": "Virgin Coconut Oil — Hot and Fermentation Process, Technical Bulletin No. 108 / Centenary Series 43 (December 2016)",
+      "sourceType": "primary-institute-research-and-process-bulletin",
+      "url": "https://cpcri.gov.in/filemgr/webfs/publication/centenary43.pdf",
+      "supports": "A primary institutional report of oil recovery on a fresh-kernel-mass basis; enough for a plausibility comparison, not calibration.",
+      "doesNotVerify": "The game recipe, drift-fruit condition, pot thermal constants, labour time, or a 300 g yield after exactly three hours. Heating duration refers to a different apparatus/feed preparation.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/icar-cpcri-vco-bulletin-2016.json",
+        "sha256": "a9a7450d50dc9c9a8fe1cfd142b5febf6118dcd27cbe5443b6f1c1728e3ae7dd",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
     }
   ]
 }

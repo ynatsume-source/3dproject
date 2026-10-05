@@ -1,0 +1,16 @@
+{
+  "sourceUrl": "https://fooddb.mext.go.jp/details/details.pl?ITEM_NO=07_07158_6",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body/table; not raw publisher bytes",
+  "facts": {
+    "basis": "100 g edible coconut milk; NOT raw kernel or whole fruit",
+    "units": "g per 100 g edible portion",
+    "water": 78.8,
+    "protein": 1.9,
+    "fat": 16.0,
+    "carbohydrate": 2.8,
+    "ash": 0.5,
+    "fat_definition": "Use the fat row, not the separate triacylglycerol-equivalent row (14.9 g)."
+  },
+  "calibrationEligible": false
+}

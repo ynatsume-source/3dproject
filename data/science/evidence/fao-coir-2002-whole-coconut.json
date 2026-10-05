@@ -1,0 +1,18 @@
+{
+  "sourceUrl": "https://www.fao.org/4/y3612e/y3612e03.htm",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body/table; not raw publisher bytes",
+  "facts": {
+    "publication_year": 2002,
+    "section": "2.1 Coconut palm and the coconut",
+    "whole_fruit_husk_mass_percent": 35,
+    "remaining_mass_percent": 65,
+    "remaining_includes": [
+      "copra",
+      "coconut water",
+      "shell"
+    ],
+    "basis_note": "The remaining 65% is not all edible fresh meat. This is background in an original technical report, not a controlled fruit-composition dataset."
+  },
+  "calibrationEligible": false
+}
