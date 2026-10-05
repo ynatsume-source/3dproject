@@ -35,7 +35,7 @@ const POT = 'fired_pot_test';
 const STEP_MS = 30_000;
 const REF_ABSORPTION = 0.12, REF_AREA_M2 = 0.0366; // the reference pot: 12 % absorption, 500 mL
 
-export interface Pot { body: number; tar: number; water: number; capacityMl: number; absorption: number; coverage: number; sealed: boolean }
+export interface Pot { body: number; tar: number; water: number; capacityMl: number; absorption: number; coverage: number; sealed: boolean; crack: number }
 
 /** Read a pot lot. Throws with a reason. */
 export function readPot(lot: LotView): Pot {
@@ -45,15 +45,19 @@ export function readPot(lot: LotView): Pot {
   if (!finite(q.coverage_ppm ?? 0, 0, 1e6) || ![0, 1, undefined].includes(q.sealed)) throw new Error(`pot ${lot.lotId}: coverage_ppm 0..1000000, sealed 0 or 1`);
   for (const k of ['x_wood_tar_ppm', 'x_water_ppm']) if (q[k] !== undefined && !(isInt(q[k]) && q[k] <= 1e6)) throw new Error(`pot ${lot.lotId}: ${k} must be a whole ppm`);
   if ((q.x_wood_tar_ppm ?? 0) + (q.x_water_ppm ?? 0) > 1e6) throw new Error(`pot ${lot.lotId}: tar and water exceed the pot`);
+  if (!finite(q.crack_ppm ?? 0, 0, 1e6)) throw new Error(`pot ${lot.lotId}: crack_ppm 0..1000000`);
   const tar = Math.floor((lot.amount.value * (q.x_wood_tar_ppm ?? 0)) / 1e6), water = Math.floor((lot.amount.value * (q.x_water_ppm ?? 0)) / 1e6);
-  return { body: lot.amount.value - tar - water, tar, water, capacityMl: q.capacity_ml, absorption: q.absorption_ppm / 1e6, coverage: (q.coverage_ppm ?? 0) / 1e6, sealed: q.sealed === 1 };
+  return { body: lot.amount.value - tar - water, tar, water, capacityMl: q.capacity_ml, absorption: q.absorption_ppm / 1e6, coverage: (q.coverage_ppm ?? 0) / 1e6, sealed: q.sealed === 1, crack: (q.crack_ppm ?? 0) / 1e6 };
 }
 /** Inner surface (m²) of a pot holding capacityMl: a sphere's, a fifth more for the neck (assumed shape). */
 export const potAreaM2 = (capacityMl: number) => (4.836 * Math.pow(capacityMl, 2 / 3) * 1.2) / 1e4;
 /** How leaky the walls are compared with the reference raw pot. */
-const leakiness = (p: { absorption: number; coverage: number }) => (p.absorption / REF_ABSORPTION) * (1 - p.coverage);
+/** A crack (crack_ppm: how far the pot is from whole, from a damaged assembled pot) leaks besides the pores, and tar on
+ *  the inside does not close it (assumed: a whole crack leaks like twenty bare reference pots). */
+const CRACK_LEAK = 20;
+const leakiness = (p: { absorption: number; coverage: number; crack?: number }) => (p.absorption / REF_ABSORPTION) * (1 - p.coverage) + CRACK_LEAK * (p.crack ?? 0);
 /** How long (minutes) a sealed pot holds its air against the outside; 0 when it is open. For the world's table. */
-export function airLeakTauMin(p: { absorption: number; coverage: number; sealed: boolean }): number {
+export function airLeakTauMin(p: { absorption: number; coverage: number; sealed: boolean; crack?: number }): number {
   if (!p.sealed) return 0;
   return Math.round((pv('airLeakRefH') * 60) / Math.max(leakiness(p), 1e-4));
 }
@@ -61,7 +65,28 @@ export function potQuality(p: Pot): Record<string, number> {
   const t = p.body + p.tar + p.water;
   return { capacity_ml: p.capacityMl, absorption_ppm: Math.round(p.absorption * 1e6), coverage_ppm: Math.floor(p.coverage * 1e6), sealed: p.sealed ? 1 : 0,
     ...(p.tar ? { x_wood_tar_ppm: Math.floor((p.tar * 1e6) / t) } : {}), ...(p.water ? { x_water_ppm: Math.floor((p.water * 1e6) / t) } : {}),
-    air_leak_tau_min: airLeakTauMin(p) };
+    ...(p.crack ? { crack_ppm: Math.round(p.crack * 1e6) } : {}), air_leak_tau_min: airLeakTauMin(p) };
+}
+
+// ---- assembly: a pot lot becomes equipment, and back (ADR 0006: main assembles; this is the table) -----------------
+
+/** The table's version: main records it on the equipment it assembles. */
+export const POT_ASSEMBLY_TABLE = 'civ-sci.pot-assembly/1';
+export const ASSEMBLED_POT = 'assembled_pot'; // kind and catalogEntry of the equipment
+/** The equipment params of a pot assembled from a whole fired_pot_test lot (the lot's copy is kept by main). */
+export function potToEquipmentParams(lot: LotView): Record<string, number> {
+  const p = readPot(lot);
+  return { capacityMl: p.capacityMl, absorptionPpm: Math.round(p.absorption * 1e6), coveragePpm: Math.floor(p.coverage * 1e6), sealed: p.sealed ? 1 : 0,
+    crackPpm: Math.round(p.crack * 1e6), airLeakTauMin: airLeakTauMin(p) };
+}
+/** The quality of the lot a pot goes back to, from the lot copy kept at assembly and the equipment's condition. Whole
+ *  (condition 1): the copy as it was. Worn (condition < 1): the part not whole is a crack; whether it still holds is
+ *  not known, so sealed and air_leak_tau_min are dropped (the leak test tells again). */
+export function potQualityOnReturn(copy: Record<string, number>, condition: number): Record<string, number> {
+  if (!finite(condition, 0, 1)) throw new Error('condition must be within 0..1');
+  if (condition >= 1) return { ...copy };
+  const { sealed: _s, air_leak_tau_min: _t, ...rest } = copy;
+  return { ...rest, crack_ppm: Math.min(1e6, Math.round((copy.crack_ppm ?? 0) + (1 - condition) * 1e6)) };
 }
 
 // ---- p16x: brush on tar, stop the mouth ------------------------------------------------------------------------------

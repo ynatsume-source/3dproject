@@ -41,3 +41,11 @@ npm run typecheck && npm run build
 ## お願い
 
 指摘と診断スクリプトは lab へ。科学側のブランチと main は変更しないでください。修正は科学側で行います。
+
+## 追記：組み立て（本体の ADR 0006）に合わせた変更（このレビューに含めてください）
+
+- 器の品質にひび `crack_ppm`。漏れやすさに足す（ひび全体で基準の素焼きの器 20 個分、仮定）。内側のタールではふさがらない。
+- 本体が呼ぶ換算：`potToEquipmentParams`（ロット → 設備 `assembled_pot` の params）、`potQualityOnReturn`（写し＋condition → 戻すロット。condition < 1 なら sealed と air_leak_tau_min を外し、ひびを足す）。版 `civ-sci.pot-assembly/1`。
+- 材料 `pot_sherds`（工程なし）。
+- 検査 34件（検査6：組み立て → 戻す → 漏れの試験でひびが見える、封じ直してもひびは残る）。
+- 見てほしいところ：傷みを「ひび」として漏れに足す扱いが本物らしいか、condition から crack_ppm への換算。

@@ -4,7 +4,7 @@
 import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
-import { LEAK_TEST_PROCESS, readPot, TAR_SEAL_PROCESS } from '../src/science/step/vessel';
+import { LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, potQualityOnReturn, potToEquipmentParams, readPot, TAR_SEAL_PROCESS } from '../src/science/step/vessel';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -114,6 +114,26 @@ console.log('4. pieces, outages, the pot handed on');
   const v2 = scienceStep(leakReq(0, H, null, [POT(), WATER()], [[H - 30_000, 'take_out']], SHADE));
   const { contract: _a, ...b1 } = v1; const { contract: _b, drawn: _c, ...b2 } = v2 as typeof v2 & { drawn: unknown };
   ok(JSON.stringify(b1) === JSON.stringify(b2), 'the leak test: contract 0.1.0 and 0.2.0 give the same answer');
+}
+
+console.log('6. assembly (ADR 0006): a pot lot becomes equipment and back');
+{
+  const sealed = potOf(step(sealReq([warmPot, { ...TAR(), lotId: 'lot:tar4' }, WOOD()], true)));
+  const params = potToEquipmentParams(sealed);
+  ok(params.capacityMl === 500 && params.sealed === 1 && params.airLeakTauMin === sealed.quality!.air_leak_tau_min && params.crackPpm === 0 && POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/1',
+    'a sealed pot lot gives the equipment its capacity and how long it holds its air (table civ-sci.pot-assembly/1)', JSON.stringify(params));
+  const whole = potQualityOnReturn(sealed.quality!, 1);
+  ok(JSON.stringify(whole) === JSON.stringify(sealed.quality), 'back whole (condition 1): the lot is as it was');
+  const worn = potQualityOnReturn(sealed.quality!, 0.9);
+  ok(worn.sealed === undefined && worn.air_leak_tau_min === undefined && worn.crack_ppm === 100_000 && worn.coverage_ppm === sealed.quality!.coverage_ppm,
+    'back worn (condition 0.9): not known to hold any more (sealed and air time dropped), a crack of 10 % recorded', JSON.stringify(worn));
+  const wornLot: LotView = { ...sealed, lotId: 'lot:worn', quality: worn };
+  const cracked = test3d(wornLot), sound = test3d(warmPot);
+  ok(450_000 - waterLeft(cracked) > 3 * (450_000 - waterLeft(sound)) && readPot(potOf(cracked.last)).crack === 0.1, 'the leak test shows the crack: much more water lost than from the sound pot, and the crack stays with the pot',
+    `${((450_000 - waterLeft(cracked)) / 1000).toFixed(0)} g vs ${((450_000 - waterLeft(sound)) / 1000).toFixed(0)} g`);
+  const resealed = potOf(step(sealReq([wornLot, { ...TAR(20_000), lotId: 'lot:tar5' }], true)));
+  ok(resealed.quality!.sealed === 1 && resealed.quality!.air_leak_tau_min! < sealed.quality!.air_leak_tau_min! / 10, 'stopped again, the cracked pot holds its air far less long: tar inside does not close a crack',
+    `${resealed.quality!.air_leak_tau_min} vs ${sealed.quality!.air_leak_tau_min} min`);
 }
 
 console.log('5. requests that are refused');
