@@ -20,7 +20,7 @@ import { fuelLhvJPerMg, GLOW_TARGET_C, PACE_K_PER_H } from '../physics';
 import { allFinite, checkCommon, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, subStepEnd, tileComp } from './common';
 import { advanceWare, settleWare, type WareState } from './kiln-ware';
 
-export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.4' } as const;
+export const WOOD_FIRE_PROCESS = { processId: 'p13w_test_tile_wood_fire', processVersion: '0.1.5' } as const; // 0.1.5: tile make-ups read and written in whole ppm rounded down (Codex B2)
 export const WOOD_FIRE_CONTRACT = /^0\.2\.\d+$/;
 const SCHEMA = 'civ-sci.tile-wood-fire/2'; // /2 since 0.1.2 (usedJ is the dry wood's heat): a /1 state is refused, never resumed
 const EVAL = 'tile-wood-fire-eval/0.1.0';

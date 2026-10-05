@@ -74,7 +74,7 @@ export function lotComp(lot: LotView): Composition {
     if (!m) continue;
     const sp = m[1] as SpeciesId;
     if (!Object.hasOwn(SPECIES, sp)) throw new Error(`unknown species in quality: ${sp}`);
-    const mg = Math.round((amount * v) / 1e6);
+    const mg = Math.floor((amount * v) / 1e6); // whole ppm rounded down both ways, as tileComp (Codex B2)
     if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
   }
   if (listed > amount) throw new Error(`lot ${lot.lotId}: listed fractions exceed the amount`);
@@ -85,7 +85,7 @@ export function lotComp(lot: LotView): Composition {
 export function compQuality(c: Composition): Record<string, number> {
   const t = totalMg(c);
   const q: Record<string, number> = {};
-  for (const [k, mg] of Object.entries(c)) if (mg && k !== 'inert_mineral') q[`x_${k}_ppm`] = Math.round((mg * 1e6) / t);
+  for (const [k, mg] of Object.entries(c)) if (mg && k !== 'inert_mineral') q[`x_${k}_ppm`] = Math.floor((mg * 1e6) / t);
   return q;
 }
 
@@ -162,6 +162,9 @@ export function wind10m(req: ScienceStepRequest): number {
 /**
  * Test tiles carry their solids as DRY-basis fractions `xd_<species>_ppm` (so drying, which only removes
  * water, leaves them unchanged) and their water as `water_ppm` of the whole lot.
+ * Whole ppm are read and written rounded DOWN (Codex B2 on 5555989): the listed species never add up to more than
+ * the dry part, so a tile one step hands back is read by the next; the few mg the rounding leaves are inert_mineral.
+ * (Rounding to nearest both ways could make two halves of 36,001 mg into 18,001 + 18,001.)
  */
 export function tileComp(lot: LotView): Composition {
   const amount = lot.amount.value;
@@ -175,7 +178,7 @@ export function tileComp(lot: LotView): Composition {
     if (!m) continue;
     const sp = m[1] as SpeciesId;
     if (!Object.hasOwn(SPECIES, sp) || sp === 'water') throw new Error(`invalid dry-basis species in quality: ${sp}`);
-    const mg = Math.round((dry * v) / 1e6);
+    const mg = Math.floor((dry * v) / 1e6);
     if (mg > 0) { comp[sp] = (comp[sp] ?? 0) + mg; listed += mg; }
   }
   if (listed > dry) throw new Error(`lot ${lot.lotId}: dry-basis fractions exceed the dry mass`);
@@ -186,6 +189,6 @@ export function tileComp(lot: LotView): Composition {
 export function tileQuality(c: Composition): Record<string, number> {
   const t = totalMg(c), w = c.water ?? 0, dry = t - w;
   const q: Record<string, number> = { water_ppm: Math.round((w * 1e6) / t) };
-  for (const [k, mg] of Object.entries(c)) if (mg && k !== 'water' && k !== 'inert_mineral') q[`xd_${k}_ppm`] = Math.round((mg * 1e6) / dry);
+  for (const [k, mg] of Object.entries(c)) if (mg && k !== 'water' && k !== 'inert_mineral') q[`xd_${k}_ppm`] = Math.floor((mg * 1e6) / dry);
   return q;
 }
