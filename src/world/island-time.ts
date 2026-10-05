@@ -39,7 +39,7 @@ export interface IslandWeather extends Weather {
   pressureMeasured?: number;
 }
 type Record_ = { year: number; source: string; station: string; na: number; rows: number[] };
-const YEARS = ['2024'];   // (more years to come: each island year replays the next, in turn)
+const YEARS = ['2024', '2023'];   // (each island year replays the next, in turn; more years to come)
 const loaded = new Map<string, Record_>();
 let loading: Promise<void> | null = null;
 /** Load the records (once). Until they are in, the island has fair weather. */
@@ -57,7 +57,7 @@ export function islandWeather(realMs: number): IslandWeather | null {
   if (i + F > r.length) return null;
   const val = (k: number, s: number, off = 0) => (r[i + k] === NA ? undefined : (r[i + k] + off) / s);
   const air = val(0, 10), rh = val(1, 100), rain = val(2, 10) ?? 0, p = val(3, 10, 9000), windM = val(4, 10), dir = r[i + 5] === NA ? 90 : r[i + 5] * 2;
-  const gust = val(6, 10) ?? (windM ?? 4) * 1.5, cloud = val(7, 100) ?? 0.3, wind = windM ?? 4, pressure = p ?? 1010;
+  const gust = val(6, 10) ?? (windM ?? 4) * 1.5, cloud = val(7, 100) ?? (rain > 0.1 ? 0.9 : rh !== undefined && rh > 0.85 ? 0.65 : rh !== undefined && rh > 0.75 ? 0.4 : 0.2), /* (no reanalysis for the year: the sky as rain and humidity show it) */ wind = windM ?? 4, pressure = p ?? 1010;
   const typhoon = (p !== undefined && p < 996) || (windM !== undefined && windM >= 15) || gust >= 25;
   const code = typhoon && rain > 2 ? 65 : rain >= 4 ? 65 : rain >= 1 ? 63 : rain > 0.1 ? 61 : cloud > 0.85 ? 3 : cloud > 0.45 ? 2 : 1;
   const day0 = new Date(Date.UTC(rec.year, 0, 1 + d.dayOfYear + (rec.year % 4 === 0 && d.dayOfYear >= 59 ? 1 : 0)));

@@ -5,9 +5,11 @@
 #  - for the look of the sky only (never sent to the science core): cloud and gusts from the Open-Meteo archive
 #    (ERA5 reanalysis, CC BY 4.0), which the station does not report hourly
 # The island's year has 365 days: Feb 29 is left out.
-# Usage: python3 scripts/bake-island-weather.py <jma json (scratch fetch)> <open-meteo archive json> <year>
+# Usage: python3 scripts/bake-island-weather.py <jma json (scratch fetch)> <open-meteo archive json, or - for none> <year>
+#   (without the archive, cloud and gusts are left missing: the island's weather then reads the sky from rain and humidity)
 import json, sys, datetime
-jma, om, year = json.load(open(sys.argv[1])), json.load(open(sys.argv[2]))['hourly'], int(sys.argv[3])
+jma, year = json.load(open(sys.argv[1])), int(sys.argv[3])
+om = json.load(open(sys.argv[2]))['hourly'] if sys.argv[2] != '-' else {'time': []}
 NA = -32768
 idx = {t: i for i, t in enumerate(om['time'])}
 rows, missing = [], 0
@@ -28,7 +30,7 @@ while d.year == year:
             row += [round(om['wind_gusts_10m'][i] * 10) if i is not None else NA, round(om['cloud_cover'][i]) if i is not None else NA]
             rows += row
     d += datetime.timedelta(days=1)
-out = {'source': 'measured: JMA surface observations, Ishigaki (47918); sky only: Open-Meteo archive (ERA5 reanalysis, CC BY 4.0)',
+out = {'source': 'measured: JMA surface observations, Ishigaki (47918)' + ('; sky only: Open-Meteo archive (ERA5 reanalysis, CC BY 4.0)' if om['time'] else ''),
        'station': 'jma-47918', 'year': year, 'na': NA,
        'fields': ['air*10', 'rh%', 'rain*10 mm/h', 'seaLevelPressure*10-9000 hPa', 'wind*10 m/s', 'windDir/2', 'gust*10 m/s (ERA5, look only)', 'cloud% (ERA5, look only)'], 'rows': rows}
 json.dump(out, open(f'src/data/weather/kayama-{year}.json', 'w'), separators=(',', ':'))
