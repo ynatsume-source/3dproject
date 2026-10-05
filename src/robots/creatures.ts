@@ -86,28 +86,33 @@ export function creatureKit(M: CMats, shadows = false) {
     // under it lie on the face; small black eyes set wide apart; small round pale ears high on the sides
     const head = new THREE.Group(); head.position.set(0, 0.02, 0.31); body.add(head);
     const toon = !!L.toon;
-    const skull = ell(0.1, 0.074, 0.084, toon ? M.fur : M.furPale); skull.position.set(0, 0.022, 0.07); head.add(skull);
-    const nape = ell(0.088, 0.068, 0.06, M.fur); nape.position.set(0, 0.012, 0.012); head.add(nape);   // (the dark of the body coming up the back of the neck)
+    // (its shape, from a photograph: a round dome, about as tall as it is wide, longer front to back and narrowing
+    // toward the nose, carried on a thick neck that runs into it without a step)
+    const sg = new THREE.SphereGeometry(1, 36, 24), sp = sg.attributes.position;
+    for (let i = 0; i < sp.count; i++) { const z = sp.getZ(i), k = Math.max(0, z); sp.setX(i, sp.getX(i) * (1 - 0.3 * k)); sp.setY(i, sp.getY(i) * (1 - 0.18 * k) - 0.12 * k * k); }
+    sg.computeVertexNormals();
+    const skull = own(new THREE.Mesh(sg, toon ? M.fur : M.furPale)); skull.scale.set(0.088, 0.082, 0.1); skull.position.set(0, 0.026, 0.07); head.add(skull);
+    const nape = ell(0.09, 0.08, 0.075, M.fur); nape.position.set(0, 0.008, 0.0); head.add(nape);   // (the dark of the body coming up the back of the neck)
     if (toon) {
       // the character: a cream face from under the eyes down (running on down the throat to the belly), and in the
       // middle of it a big black nose, broad above and narrowing below to a blunt point, standing a little out from
       // the face like a small beak (owner's note, 2026-10-05: no mouth, no cheeks, the nose is the face)
-      const mask = ell(0.09, 0.052, 0.05, M.furPale, 28); mask.position.set(0, -0.01, 0.094); head.add(mask);
+      const mask = ell(0.07, 0.048, 0.07, M.furPale, 28); mask.position.set(0, -0.012, 0.1); head.add(mask);
       const ng = new THREE.SphereGeometry(1, 24, 16), np = ng.attributes.position;
       for (let i = 0; i < np.count; i++) { const y = np.getY(i); np.setX(i, np.getX(i) * (0.55 + 0.45 * (y + 1) / 2)); np.setZ(i, np.getZ(i) * (0.8 + 0.2 * (y + 1) / 2)); }
       ng.computeVertexNormals();
-      const nose = own(new THREE.Mesh(ng, M.nose)); nose.scale.set(0.034, 0.024, 0.02); nose.position.set(0, 0.0, 0.15); nose.rotation.x = -0.25; head.add(nose);
+      const nose = own(new THREE.Mesh(ng, M.nose)); nose.scale.set(0.032, 0.023, 0.02); nose.position.set(0, 0.004, 0.163); nose.rotation.x = -0.25; head.add(nose);
     } else {
-      for (const sx of [-1, 1]) { const ch = ell(0.05, 0.044, 0.042, M.furPale, 20); ch.position.set(sx * 0.046, -0.01, 0.1); head.add(ch); }   // (the face's round lower half)
-      for (const sx of [-1, 1]) { const pad = ell(0.03, 0.022, 0.014, M.white ?? M.furPale, 18); pad.position.set(sx * 0.023, -0.02, 0.14); head.add(pad); }   // (the white mouth, two soft lobes)
-      const nose = ell(0.026, 0.018, 0.011, M.nose, 18); nose.position.set(0, 0.008, 0.152); head.add(nose);
+      for (const sx of [-1, 1]) { const ch = ell(0.05, 0.044, 0.042, M.furPale, 20); ch.position.set(sx * 0.042, -0.012, 0.1); head.add(ch); }   // (the face's round lower half)
+      for (const sx of [-1, 1]) { const pad = ell(0.03, 0.022, 0.014, M.white ?? M.furPale, 18); pad.position.set(sx * 0.022, -0.016, 0.152); head.add(pad); }   // (the white mouth, two soft lobes)
+      const nose = ell(0.026, 0.018, 0.011, M.nose, 18); nose.position.set(0, 0.008, 0.164); head.add(nose);
     }
     const jaw = new THREE.Group(); jaw.position.set(0, -0.034, 0.1); head.add(jaw);
     const chin = ell(0.026, 0.015, 0.03, M.furPale, 16); chin.position.set(0, -0.004, 0.035); jaw.add(chin);
     if (L.toon) chin.visible = false;   // (the character's face is flat to the chin)
     const ek = L.eye ?? 1;
-    const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.056, 0.042, 0.128); e.rotation.y = sx * 0.35; head.add(e); if (L.shine) glint(e); return e; });
-    const eye = new THREE.Object3D(); eye.position.set(0, 0.04, 0.15); head.add(eye);
+    const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.054, 0.046, 0.122); e.rotation.y = sx * 0.45; head.add(e); if (L.shine) glint(e); return e; });
+    const eye = new THREE.Object3D(); eye.position.set(0, 0.044, 0.15); head.add(eye);
     head.scale.setScalar(L.head ?? 1); torso.scale.x *= L.plump ?? 1; torso.scale.y *= L.plump ?? 1;
     if (L.cheeks) for (const sx of [-1, 1]) { const b = ell(0.022, 0.014, 0.006, M.blush ?? M.furPale, 12); b.position.set(sx * 0.062, -0.006, 0.134); b.rotation.y = sx * 0.6; head.add(b); }
     if (L.tuft) for (let k = 0; k < 3; k++) { const c = own(new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.05, 8), L.toon ? M.fur : M.furPale)); c.position.set((k - 1) * 0.014, 0.1, 0.07 + k * 0.006); c.rotation.set(-0.5 + k * 0.15, 0, (k - 1) * -0.5); head.add(c); }
@@ -118,10 +123,10 @@ export function creatureKit(M: CMats, shadows = false) {
       const knot = ell(0.026, 0.024, 0.02, M.kelp ?? M.furDark, 12); knot.position.set(0.08, -0.085, 0.245); body.add(knot);
       for (const k of [0, 1]) { const end = ell(0.018, 0.006, 0.07, M.kelp ?? M.furDark, 12); end.position.set(0.095 + k * 0.012, -0.115 - k * 0.012, 0.205 - k * 0.03); end.rotation.set(0.9 + k * 0.3, 0.3, 0.2); body.add(end); }
     }
-    for (const sx of [-1, 1]) { const ear = ell(0.016, 0.015, 0.009, L.toon ? M.fur : M.furPale, 12); ear.position.set(sx * 0.088, 0.058, 0.042); ear.rotation.z = -sx * 0.9; head.add(ear); }
+    for (const sx of [-1, 1]) { const ear = ell(0.016, 0.015, 0.009, L.toon ? M.fur : M.furPale, 12); ear.position.set(sx * 0.08, 0.07, 0.035); ear.rotation.z = -sx * 0.8; head.add(ear); }
     // whiskers: pale, stiff, fanning back from the pads
     const wg = new THREE.CylinderGeometry(0.0011, 0.0005, 0.095, 3); wg.translate(0, 0.0475, 0);
-    for (const sx of [-1, 1]) for (let w = 0; w < 5; w++) { const wh = new THREE.Mesh(wg, M.furPale); wh.position.set(sx * 0.034, -0.02 + (w - 2) * 0.005, 0.146); wh.rotation.set(-0.2 + (w - 2) * 0.12, 0, -sx * (1.2 + (w - 2) * 0.08)); head.add(wh); }
+    for (const sx of [-1, 1]) for (let w = 0; w < 5; w++) { const wh = new THREE.Mesh(wg, M.furPale); wh.position.set(sx * 0.03, -0.012 + (w - 2) * 0.005, 0.15); wh.rotation.set(-0.2 + (w - 2) * 0.12, 0, -sx * (1.2 + (w - 2) * 0.08)); head.add(wh); }
     // forelegs: short, ending in round mitten paws (it uses them like hands)
     const arms = [-1, 1].map((sx) => {
       const a = new THREE.Group(); a.position.set(sx * 0.072, -0.07, 0.21); body.add(a);
