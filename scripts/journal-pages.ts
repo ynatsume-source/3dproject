@@ -67,7 +67,7 @@ const ogImg = (p?: Post) => p && !p.drawing && p.photos[0] && hasImg(p.photos[0]
 const drawn = (p: Post, up: string) => `<figure class="hero drawing"><img src="${up}journal/drawings/${esc(p.id)}.svg" alt="${esc(p.drawing!.caption)}" width="800" height="600"><figcaption>${esc(p.drawing!.caption)}<span>${esc(WHO[p.who].name)}が描いた絵</span></figcaption></figure>`;
 const card = (p: Post, up: string) => `<article class="card">
   <a class="ph" href="${up}journal/${p.id}/">${thumb(p, up)}</a>
-  <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time></div>
+  <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time>${p.island ? `<span class="isl-date">${esc(p.island)}</span>` : ''}</div>
   <h2><a href="${up}journal/${p.id}/">${esc(p.title)}</a></h2><p>${esc(excerpt(p))}</p></article>`;
 const empty = '<p class="empty">まだ記事はありません。住人たちが最初の一日を書き終えるのを待っています。</p>';
 
@@ -110,7 +110,7 @@ posts.forEach((p, i) => {
   const leftover = more.slice(p.body.length > 2 ? 2 : p.body.length > 0 ? 1 : 0).map((x) => fig(x.id, x.caption, up)).join('');
   const prev = posts[i + 1], next = posts[i - 1];
   const body = `<article class="post" style="--c:${W.color}">
-  <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time></div>
+  <div class="meta">${badge(p.who, up)}<time datetime="${p.day}">${dateJa(p.day)}</time>${p.island ? `<span class="isl-date">${esc(p.island)}</span>` : ''}</div>
   <h1>${esc(p.title)}</h1>
   ${p.drawing ? drawn(p, up) : fig(first.id, first.caption, up, 'hero')}
   ${p.log ? `<div class="body">${logHtml}${reviewHtml}</div>` : `<div class="body">${paras}${leftover}</div>`}

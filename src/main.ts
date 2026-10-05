@@ -32,6 +32,7 @@ import { MiniMap } from './ui/minimap';
 import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
+import { islandDate, islandWeather, loadIslandWeather, type IslandWeather } from './world/island-time';
 import { Post, setRTSupport } from './render/post';
 import { loadLand } from './ocean/land';
 import { STAGES } from './robots/voices';
@@ -942,6 +943,13 @@ function wxCloud() {
 }
 const liveWeather = () => wxFixed ? WX[wxFixed] : (clock.season === 'now' && Math.abs(clock.ms - Date.now()) < 12 * 3600000 && wx.ok ? wx : FAIR);
 async function refreshWeather(loc: Sea) {
+  // (Dot's world: the Earth's past weather replayed on the island's calendar, not today's — ADR 0006/0007)
+  if (loc.world === 'planet') {
+    await loadIslandWeather();
+    const iw = islandWeather(Date.now());
+    if (cur && cur.loc === loc) { wx = iw ?? FAIR; cur.residents?.setWeather(iw); applySky(loc); updateTimeUi(); }
+    return;
+  }
   const w = await fetchWeather(loc.id, loc.lat, loc.lon);
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
 }
@@ -1339,13 +1347,15 @@ function updateTimeUi() {
   const ld = new Date(clock.ms + loc.tz * 3600000);
   {
     const w = liveWeather();
-    $('wxLine').innerHTML = w.ok
+    $('wxLine').innerHTML = w.ok && loc.world
+      ? `島の天気（${islandDate(clock.ms).label}・地球の過去の観測記録を島の暦で再生）：<b>${(w as IslandWeather).typhoon ? '台風' : weatherLabel(w)}</b> · 風 ${w.wind.toFixed(1)} m/s · 気圧 ${Math.round((w as IslandWeather).pressure)} hPa${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}`
+      : w.ok
       ? `現地の天気（実況）：<b>${weatherLabel(w)}</b> · 雲 ${Math.round(w.cloud * 100)}% · 風 ${w.wind.toFixed(1)} m/s${w.wave != null ? ` · 波 ${w.wave.toFixed(1)} m` : ''}${w.air != null ? ` · 気温 ${w.air.toFixed(0)}°C` : ''}<br><small>天気データ：Open-Meteo</small>`
       : wx.ok ? '時刻や季節を動かしている間は、晴れの標準的な海になります' : '現地の天気を取得できないため、晴れの標準的な海です';
     const sh = activeShower(clock.ms);
     if (sh) $('wxLine').innerHTML += `<br>${sh.ja}が活動中（${sh.k >= 30 ? '極大のころ' : '見ごろの前後'}）。晴れた夜に空へ出ると流れ星が見えます`;
   }
-  $('clockDate').textContent = `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
+  $('clockDate').textContent = loc.world ? islandDate(clock.ms).label : `${ld.getUTCMonth() + 1}月${ld.getUTCDate()}日・${SEASON_LABEL[seasonOf(clock.ms, loc.lat, loc.tz)]}`;
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-season]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.season === clock.season)));
   document.querySelectorAll<HTMLButtonElement>('#timePanel [data-preset]').forEach((b) => b.classList.toggle('now', b.dataset.preset === s.phase));
 }
@@ -2826,7 +2836,7 @@ function frameBody(ts: number) {
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     updateNewMark(dt);
-    if ((wxTimer += dt) > 900) { wxTimer = 0; refreshWeather(cur.loc); }
+    if ((wxTimer += dt) > (cur.loc.world ? 120 : 900)) { wxTimer = 0; refreshWeather(cur.loc); }   // (the island's record moves on by the hour, its date every two hours or so)
     // thunderstorms: now and then a flicker of lightning through the surface, and the roll after it
     if (isStorm(liveWeather())) {
       if ((nextFlash -= dt) < 0) {

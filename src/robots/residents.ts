@@ -23,6 +23,7 @@ import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, type Count, type Said, type Tok } from './islandlang';
+import { islandDate, islandWait, type IslandWeather } from '../world/island-time';
 import type { Subject } from '../eco/env';
 import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
@@ -212,6 +213,7 @@ export interface Residents {
   profile(r: Resident): string;                    // its role, how it tends to decide and what has worked (for its writing)
   pose(rec: PhotoRecord | null): void;             // (drawing a photograph again: everyone as they were, held still; null: back to life)
   setBrain(b: Brain | null | undefined): void;     // (tests: a stand-in brain; null: none; undefined: the model)
+  setWeather(w: IslandWeather | null): void;       // the island's weather now (Dot's world: the replayed record — world/island-time.ts)
   observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
   labCase(r: Resident): Record<string, unknown>;  // what a test report needs to find this moment again (src/ui/lab.ts)
@@ -335,7 +337,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     return { g, soil, crops, x: w.x, z: w.z, ok: y > 0.35, s: 0, at: 0 };   // s: 0 wild, 1 tilled, 2 sown
   });
-  const GROW = 36 * 3600e3;   // a day and a half from seed to harvest
+  const GROW = islandWait(36 * 3600e3);   // a day and a half from seed to harvest, on the island's clock (ADR 0006)
   const growth = (pl: typeof PLOTS[0]) => (pl.s === 2 ? Math.min(1, (clockMs - pl.at) / GROW) : 0);
   function drawField() {
     for (const pl of PLOTS) {
@@ -355,7 +357,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const sparks = Array.from({ length: SPARKS }, () => ({ p: new THREE.Vector3(), v: new THREE.Vector3(), t: 9 }));
   const seatAt = (i: number): [number, number] => { const a = i / 4 * 6.28 + 0.6; return [PIT.x + Math.cos(a) * 1.7, PIT.z + Math.sin(a) * 1.7]; };
   const fireHours = (hr: number) => hr >= 19.4 && hr < 21.1;   // lit
-  const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0;  // on the way / sitting round it
+  // the island's weather (Dot's world: replayed, set from outside); a typhoon stops what is done outdoors
+  let wxNow: IslandWeather | null = null, stormSince = 0;
+  const storm = () => !!wxNow?.typhoon;
+  const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0 && !storm();  // on the way / sitting round it (not in a typhoon: the custom waits)
   let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0, lastFireAt = 0;
   const fireQueue: { who: string; line: string; isl?: Tok[] }[] = [];
   const fireUsed = new Set<string>();
@@ -1044,11 +1049,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const fa = agentOf(from); if (fa) { fa.answered(q, clockMs, r.v.name); flushMind(from, fa); }
     if (yes) { const a = agentOf(r); if (a) a.why = `引き受けた：${from.v.name}に流木を届ける（${q.id}）`; }
   }
+  /** The island's date, season and weather, as its mind is told them (the replayed record's values, as measured). */
+  function islandNow() {
+    const d = islandDate(clockMs), w = wxNow;
+    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: `${w.wind.toFixed(1)}m/s`, 気圧: `${Math.round(w.pressure)}hPa` } : {}) };
+  }
   function brainInput(r: Resident, a: Agent, opts: Option[]): BrainInput {
     const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
     return {
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
-      now: { at: clockMs, hour: +hr.toFixed(1), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
+      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
       knowledge: a.knowledge, results: a.results, options: opts,
     };
@@ -1647,7 +1657,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (clockMs - (r.resumeAt ?? 0) < 20 * 60e3 && !sleepTime(r, hr)) { r.task = tk; r.mo.recheck = fast ? 0 : 1.6; } else items.release(r.id);
     }
     if (r.mo.recheck > 0 && r.task) { r.mo.recheck -= dt; r.walk = 0; r.act = r.wet ? 'float' : 'look'; placeY(r); return; }
-    if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
+    // (a typhoon: nothing is done outdoors — the animals keep low in the water near home, the robots stay in by
+    // the hut or their own place; hunger and sleepiness go on)
+    if (storm() && r.task?.kind !== 'shelter' && !r.talk) {
+      if (r.task) { report(r, r.task, 'interrupted', '台風'); items.release(r.id); }
+      const home = r.sp.home, at = r.sp.living ? (spot(home, 60, water(1, 5)) ?? home) : (r.id === 'dot' ? [hut.position.x + 1.5, hut.position.z] as [number, number] : home);
+      r.task = task('shelter', at, r.sp.living ? 'sleep' : 'idle', 1e9, r.sp.living ? { wet: true } : {});
+    }
+    if (r.task?.kind === 'shelter' && !storm()) r.task = null;
+    if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && r.task.kind !== 'shelter' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
       if (r.task) { report(r, r.task, 'interrupted', sleepTime(r, hr) ? '眠る時間になった' : '起きる時間になった'); items.release(r.id); }
       r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
       r.blocked = 0; r.mo.fails = 0;
@@ -1789,6 +1807,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       show: `拾った貝殻を${byId[tk?.data]?.v.name ?? '仲間'}に見せている`,
       graze: r.act === 'breathe' ? '息つぎに浮かんできた' : '海の底で海草を食べている',
       bask: '浜で甲羅干しをしている',
+      shelter: '台風のあいだ、身を低くしてやりすごしている',
       survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
     // (what it is doing now, from how its walk is going, not from what it means to do once there: held up on the
     // way, or still on its way, says so; only once there does it say it is doing it)
@@ -1830,6 +1849,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const o of rec.others) { const x = byId[o.id]; if (!x) continue; x.pos.set(o.x, o.y, o.z); x.head = o.head; x.act = o.act as Act; x.holding = o.holding as Resident["holding"]; x.task = null; x.talk = null; x.saying = ''; }
     },
     setBrain: (b) => { brainOverride = b; },
+    setWeather: (w) => {
+      const was = storm(); wxNow = w;
+      const p = w ? `（気圧 ${Math.round(w.pressure)}hPa・最大瞬間風速 ${Math.round(w.gust)}m/s）` : '';
+      if (!was && storm()) {   // a typhoon comes in: everyone records it; those with a mind have something to think about
+        stormSince = clockMs;
+        for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${p}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
+        res.onEvent('weather', `台風が来た${p}`, list[0]);
+      } else if (was && !storm()) {   // it has passed: the beds and the rocky bottom are torn up; the sea brings things up the beach
+        for (const b of beds) { regrowBed(b, clockMs); b.grass *= 0.35; }
+        for (const pt of patches) { regrow(pt, clockMs); for (const k of Object.keys(pt.stock) as (keyof typeof pt.stock)[]) pt.stock[k] = Math.floor(pt.stock[k] / 2); }
+        const hours = Math.max(1, Math.round((clockMs - stormSince) / 3.6e6));
+        for (const r of list) { r.diary.push({ at: clockMs, text: `台風が過ぎた（約${hours}時間）`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が過ぎた'; }
+        res.onEvent('weather', '台風が過ぎた。藻場と岩場が荒れ、浜に漂着物が打ち上がった', list[0]);
+        drift.t = 1e9;   // (something washes up)
+      }
+    },
     observe: (r) => observe(r),
     solids,
     labCase(r) {

@@ -51,6 +51,8 @@ Date.now = () => sim;
 const THREE = await import('three');
 const { loadLand } = await import('../src/ocean/land');
 const { DOTWORLD } = await import('../src/data/locations');
+const { islandDate, islandWeather, loadIslandWeather } = await import('../src/world/island-time');
+await loadIslandWeather();
 const loc: any = DOTWORLD;   // (Dot's world: the residents' island on the other planet — ADR 0007)
 await loadLand('kayama', loc.land.half, loc.land.far);
 const { buildOcean } = await import('../src/ocean/build');
@@ -82,6 +84,7 @@ while (sim < t1) {
   if (sim >= nextLook) { nextLook += 10 * 60e3; for (const w of ['dot', 'rakko']) { const r = R.list.find((x: any) => x.id === w), m = R.mind(r); timeline[w].push(`${new Date(sim + 9 * 3.6e6).toISOString().slice(11, 16)} ${r.task?.kind ?? '-'}${m?.thinking ? '(考え中)' : ''}${r.talk ? '(話し中)' : ''}`); } }
   const dot = R.list.find((r: any) => r.id === 'dot');
   cam.set(dot.pos.x, dot.pos.y + 30, dot.pos.z);
+  if (steps % 120 === 0) R.setWeather(islandWeather(sim));   // (the island's replayed weather, each island hour or so: ADR 0006)
   R.update(STEP, sim, cam);
   steps++;
   // (one of them stopped to think: the island waits for the thought, as the body would stand thinking)
@@ -105,7 +108,7 @@ for (const who of ['dot', 'rakko']) {
   const photos = (r.photos ?? []).filter((p: any) => p.day === DAY);
   for (const p of photos) fs.writeFileSync(path.join(DATA, 'photos', `${p.id}.json`), JSON.stringify(p));
   const inp = {
-    who, name: r.v.name, profile: R.profile(r), day: DAY,
+    who, name: r.v.name, profile: R.profile(r), day: DAY, island: islandDate(t0 + 7 * 3.6e6).label + ' 〜 ' + islandDate(t1).label,
     // (what it set out to do and what came of it, one line each: "…：できた"; a 'do' with no result yet stays as it is)
     entries: r.diary.filter((e: any) => dayOf(e.at) === DAY).reduce((out: { time: string; text: string; key?: string }[], e: any) => {
       const last = out[out.length - 1];

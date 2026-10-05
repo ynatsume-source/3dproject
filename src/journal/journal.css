@@ -116,3 +116,6 @@ figure.drawing img { aspect-ratio: 4 / 3; height: auto; }
 .review ul { margin: 0; padding-left: 1.2em; }
 .review .next li::marker { content: "→ "; color: var(--faint); }
 @media (max-width: 520px) { .xlog > li { grid-template-columns: 1fr; } .xlog time { grid-row: auto; } .xlog figure { grid-column: 1; } }
+
+/* the island's own date, beside ours (its calendar runs faster: ADR 0006) */
+.isl-date { margin-left: .8em; color: var(--faint); font-size: 12px; }

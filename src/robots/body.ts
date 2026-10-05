@@ -51,7 +51,8 @@ export function regrow(p: Patch, now: number) {
     const k = low[Math.floor((p.at / step) % low.length)]; p.stock[k]++;
   }
 }
-export function regrowBed(b: Bed, now: number) { b.grass = Math.min(1, b.grass + (now - b.at) / (BODY.bedRegrowH * 3.6e6)); b.at = now; }
+// (a bed grows back on the island's clock: 30 island hours — ADR 0006; a patch's regrowMin is already a real-time pace)
+export function regrowBed(b: Bed, now: number) { b.grass = Math.min(1, b.grass + (now - b.at) / ((BODY.bedRegrowH * 3.6e6) / (365 / 28))); b.at = now; }
 
 /** One dive at a patch: what it comes up with ('' none), and whether it was weak from hunger (short and poor). */
 export function dive(p: Patch, hunger: number, rnd: () => number): { prey: Food; weak: boolean } {

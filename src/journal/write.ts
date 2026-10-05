@@ -8,6 +8,7 @@ import type { Post, PhotoRecord } from './types';
 
 export interface PostInput {
   who: string; name: string; profile: string; day: string;
+  island?: string;   // the island's own dates over the day (its calendar runs faster: ADR 0006)
   entries: { time: string; text: string; key?: string }[];   // its own diary that day, as kept (key: what kind of line)
   photos: (Pick<PhotoRecord, 'id' | 'subject' | 'why'> & { time: string })[];
   talks: { time: string; with: string; text: string }[];   // lines it said or heard that day
@@ -27,7 +28,7 @@ export const UNMODELLED = /寂し|さみし|淋し|嬉し|うれし|楽し|た�
 /** Its mind's own lines, as it set them down when it decided: a goal and why, a hypothesis, a verdict. */
 const THOUGHT = /^(目的|仮説|確かめた|違っていた)：/;
 /** What the world itself records: a step begun and its result, a meeting, a photograph, the body, its mind's lines. */
-const RECORD = new Set(['do', 'got', 'met', 'photo', 'body', 'mind']);
+const RECORD = new Set(['do', 'got', 'met', 'photo', 'body', 'mind', 'weather']);
 /** The day's log, straight from its records: one row a minute — what happened, and what its mind set down then.
  *  The same thing over and over with nothing decided in between is one row, with how many times and until when.
  *  (A failure its mind also noted is already in what happened: not said twice.) */
@@ -69,6 +70,7 @@ function system(who: string, withPhotos: boolean) {
 広報の役割：記事の写真と絵、SNS投稿は、あなたの役割の一つ「人間界への広報」として作る。いま取り組んでいること、学んだこと（確かめた仮説・当たり）、これからの道のりを、島の外の人に伝えるためのもの。飾りの演出はしない。
 話し方：${st.voice}
 この世界にあるものだけで書く（ゲームをプレイしているAIが、自分の状況と判断を報告するように）：
+- island はこの島の暦の日付（地球の暦より速く進む）。季節や台風は、この島の暦と log の天気の記録で言う。
 - 根拠は log・talks・photos だけ。記録にないことを、したこと・見たこととして書かない。数や大きさ、天気、水温などを作らない。
 - 住人の内側として書けるのは、世界が持っている値だけ：おなか・ねむけ（ラッコ）、電池（ドット）、進み具合（小屋 1/24 など）、持ち物、会った相手との段階、目的・仮説・確かめた結果。
 - 世界にない気持ちや感覚（寂しい・うれしい・楽しい・安心・不安・温かい・好き・落ち着かない・疲れた など）は書かない。理由は世界の中の理由で書く（足りないもの、進み具合、体の値、失敗とその原因、見つけたもの、頼まれたこと）。
@@ -143,7 +145,7 @@ function placePhotos(log: LogRow[], inp: PostInput, ids: string[]) {
 export async function writePost(inp: PostInput, ask: Ask, by: string, onIssue?: (why: string) => void): Promise<Post | null> {
   const withPhotos = inp.photos.length > 0;
   const log = buildLog(inp.entries);
-  const user = JSON.stringify({ who: inp.who, name: inp.name, profile: inp.profile.slice(0, 1200), day: inp.day, log: log.slice(-240), photos: inp.photos, talks: inp.talks.slice(-30) });
+  const user = JSON.stringify({ who: inp.who, name: inp.name, profile: inp.profile.slice(0, 1200), day: inp.day, island: inp.island, log: log.slice(-240), photos: inp.photos, talks: inp.talks.slice(-30) });
   let note = '';
   for (let k = 0; k < 2; k++) {
     const text = await ask(system(inp.who, withPhotos), note ? `${user}\n\n前回の返答は次の理由で使えなかった。直して書き直す：${note}` : user);
@@ -155,7 +157,7 @@ export async function writePost(inp: PostInput, ask: Ask, by: string, onIssue?: 
       const photos = withPhotos ? p.photos.map((x: any) => ({ id: x.id, caption: x.caption.trim() })) : [];
       placePhotos(log, inp, photos.map((x: { id: string }) => x.id));
       return {
-        id: `${inp.day}-${inp.who}`, who: inp.who, name: inp.name, day: inp.day, title: p.title.trim(), sns: p.sns.trim(), body: [], log,
+        id: `${inp.day}-${inp.who}`, who: inp.who, name: inp.name, day: inp.day, ...(inp.island ? { island: inp.island } : {}), title: p.title.trim(), sns: p.sns.trim(), body: [], log,
         review: { summary: p.review.summary.map((x: string) => x.trim()), state: p.review.state.map((x: string) => x.trim()), unknown: p.review.unknown.map((x: string) => x.trim()), outlook: p.review.outlook.map((x: string) => x.trim()) },
         photos, ...(withPhotos ? {} : { drawing: { svg: p.drawing.svg.trim(), caption: p.drawing.caption.trim() } }),
         tags: (p.tags ?? []).map((t: string) => t.trim()).filter(Boolean), written: new Date().toISOString(), by,

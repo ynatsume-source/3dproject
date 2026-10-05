@@ -29,6 +29,7 @@ export interface Post {
   title: string;
   body: string[];             // paragraphs, plain text (older posts; a post written as a log has none)
   photos: PostPhoto[];        // its own from that day, 1–3; none on a day it took none
+  island?: string;   // the island's own dates over that day (its calendar runs faster than ours)
   sns?: string;   // its post for the human world's social media that day (its role: to tell people outside what it is working on)
   drawing?: { svg: string; caption: string };   // a day without photographs: a figure it drew for the human world (SVG)
   // the day as an exchange: what the island gave back, and what it made of it — and, at the end, the day taken as a whole
