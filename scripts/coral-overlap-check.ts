@@ -31,7 +31,7 @@ const want = process.argv.slice(2);
 for (const id of want.length ? want : ['miyako', 'kayama', 'gbr', 'redsea', 'maldives']) {
   const loc: any = LOCATIONS.find((l) => l.id === id)!;
   if (loc.land) await loadLand(id, loc.land.half, loc.land.far);
-  const oc: any = buildOcean({ ...loc, residents: false });
+  const oc: any = buildOcean(loc);
   const cols: any[] = [];
   const seen = new Set<any>();
   const meshes: any[] = [];

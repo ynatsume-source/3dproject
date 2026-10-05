@@ -30,6 +30,7 @@ import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
 import { classifyWater } from './water';
 import { makeResidents } from '../robots/residents';
+import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
 // Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
@@ -312,7 +313,7 @@ export function buildOcean(loc) {
   // corals: sample the reef, pick a form by depth / slope / sea
   const newItems = () => ({ branch: [[], [], []], table: [[]], brain: [[], []], fan: [[], []], mushroom: [[], [], []], anemone: [[]], clam: [[]], eel: [[]] });
   const items = newItems();
-  const EXT = LIMIT + 45, STEP = 1.35;
+  const EXT = LIMIT + 45, STEP = 1.1;   // (more chances than colonies: those that would run into another are not grown — src/ocean/substrate.ts)
   const samples = [];
   let sum = 0;
   for (let x = -EXT; x < EXT; x += STEP) for (let z = -EXT; z < EXT; z += STEP) {
@@ -321,7 +322,7 @@ export function buildOcean(loc) {
     if (r < 0.05) continue;
     samples.push([jx, jz, h, r]); sum += r * r * 1.6;
   }
-  const target = 12500, accept = Math.min(1, target / Math.max(sum, 1));
+  const target = 19000, accept = Math.min(1, target / Math.max(sum, 1));
   const W = loc.corals;
   // one coral where the reef was sampled (the same for the sea round the drone at the start and, by an
   // island, for each stretch of reef further off as the camera comes near it: see grow() below)
@@ -564,6 +565,33 @@ export function buildOcean(loc) {
       });
     });
   };
+  // Colonies keep clear of one another (src/ocean/substrate.ts): the biggest set down first, each after only where its
+  // body is clear of every other's; one that is not is grown less (down to six tenths) or not grown here. A thicket's
+  // own colonies may tangle. Bodies kept per block, so a block let go takes its colonies' bodies with it.
+  const bodies = new Bodies();
+  const settle = (its: any, kept?: Body[]) => {
+    const all: { kind: string; v: number; it: any; size: number }[] = [];
+    for (const kind of ['table', 'brain', 'branch', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number) => { for (const it of list) all.push({ kind, v, it, size: Math.max(it.sx, it.sz) * it.sy }); });
+    all.sort((a, b) => b.size - a.size);
+    const keep = new Set<any>();
+    for (const c of all) {
+      const g = CORAL_GEO[c.kind][c.v], group = c.kind === 'branch' && c.v === 2 ? 0 : -1;
+      let b = bodyOf(g, c.it, group);
+      if (!bodies.fits(b)) {
+        const s0 = Math.max(c.it.sx, c.it.sz), base = c.it.y + (SINK[c.kind] ?? 0) * s0;
+        let ok = false;
+        for (const f of [0.8, 0.6]) {
+          if (s0 * f < CORAL_MIN[c.kind]) break;
+          const t = { ...c.it, sx: c.it.sx * f, sy: c.it.sy * f, sz: c.it.sz * f, y: SINK[c.kind] ? base - SINK[c.kind] * s0 * f : c.it.y };
+          const tb = bodyOf(g, t, group);
+          if (bodies.fits(tb)) { Object.assign(c.it, t); b = tb; ok = true; break; }
+        }
+        if (!ok) continue;
+      }
+      bodies.add(b); kept?.push(b); keep.add(c.it);
+    }
+    for (const kind of ['table', 'brain', 'branch', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number, lists: any[][]) => { lists[v] = list.filter((it) => keep.has(it)); });
+  };
   if (!loc.pelagic) {
     const KINDS: [string, number, [number, number]][] = [
       ['boulder', 0.2, [0.25, 1.8]], ['angular', 0.26, [0.25, 1.6]], ['slab', 0.14, [0.6, 2.0]],
@@ -597,7 +625,7 @@ export function buildOcean(loc) {
         const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
         const it = { x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
         // (resting on the slope under all of it: down to its low side, or, on a drop too steep for that, not here)
-        { const r0 = 0.7 * Math.max(it.sx, it.sz); let lo = h; for (let k = 0; k < 6; k++) { const a = k * 1.047; lo = Math.min(lo, loc.f(x + Math.cos(a) * r0, z + Math.sin(a) * r0)); } loc.f(x, z);
+        { const r0 = 0.85 * Math.max(it.sx, it.sz); let lo = h; for (const ring of [0.5, 1]) for (let k = 0; k < 10; k++) { const a = (k + ring) * 0.628; lo = Math.min(lo, loc.f(x + Math.cos(a) * r0 * ring, z + Math.sin(a) * r0 * ring)); } loc.f(x, z);
           const drop = h - lo - 0.12 * sy; if (drop > 1.1 * sy) continue; if (drop > 0) it.y -= drop; }
         lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push(it);
         if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
@@ -674,6 +702,7 @@ export function buildOcean(loc) {
     placeRocks([-LIMIT - 35, -LIMIT - 35, LIMIT + 35, LIMIT + 35], [-LIMIT - 20, -LIMIT - 20, LIMIT + 20, LIMIT + 20], 1, null, oc.cells);
   }
   clearOfRocks(items);
+  settle(items);
   for (const kind in items) items[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, oc.cells); });
 
   // By an island the sea is far bigger than the stretch round the drone that is filled in at the start: as
@@ -682,14 +711,14 @@ export function buildOcean(loc) {
   // most, and blocks left far behind are let go (and grown again the same if the camera comes back).
   if (land && !loc.pelagic) {
     const B = 80, GROW = 190, DROP = 460, E = loc.land.far - 8;
-    const blocks = new Map<string, { meshes: any[]; cells: any[]; feet: any[] }>();
+    const blocks = new Map<string, { meshes: any[]; cells: any[]; feet: any[]; bodies: Body[] }>();
     const inner = (ext: number) => (x: number, z: number) => Math.abs(x) < ext && Math.abs(z) < ext;
     const inCoral = inner(EXT), inLitter = inner(LIMIT + 20), inRocks = inner(LIMIT + 35);
     // (a block is grown in three steps on three frames — its corals, its litter, its rocks — so that no one
     // frame carries the whole of it)
     function* growBlock(bi: number, bj: number) {
       const x0 = bi * B, z0 = bj * B, x1 = x0 + B, z1 = z0 + B, key = bi + ',' + bj;
-      const rec = { meshes: [] as any[], cells: [] as any[], feet: [] as any[] };
+      const rec = { meshes: [] as any[], cells: [] as any[], feet: [] as any[], bodies: [] as Body[] };
       blocks.set(key, rec);
       const seed = loc.seed * 7919 + bi * 104729 + bj * 1299709;
       // anything in the sea here at all? (an inland block, or one wholly inside the stretch done at the start: nothing)
@@ -716,6 +745,7 @@ export function buildOcean(loc) {
       placeRocks?.([x0, z0, x1, z1], [x0, z0, x1, z1], (B * B) / ((2 * LIMIT + 70) * (2 * LIMIT + 70)), inRocks, c3, rec.feet); add(c3);
       // (and its corals, now that its rocks are down: none through a rock)
       clearOfRocks(its);
+      settle(its, rec.bodies);
       for (const kind in its) its[kind].forEach((list, v) => { if (list.length) addInstanced(kind, v, list, group, c1); });
       add(c1);
     }
@@ -733,7 +763,7 @@ export function buildOcean(loc) {
           m.dispose();
         }
         if (b.cells.length) { const gone = new Set(b.cells); oc.cells = oc.cells.filter((c: any) => !gone.has(c)); }
-        dropFeet(b.feet);
+        dropFeet(b.feet); for (const o of b.bodies) bodies.remove(o);
         blocks.delete(k);
       }
       // carry on with a block under way; else grow the nearest in reach not grown yet

@@ -21,7 +21,7 @@ const seas = process.argv.slice(2);
 for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'maldives']) {
   const loc: any = LOCATIONS.find((l) => l.id === id)!;
   if (loc.land) await loadLand(id, loc.land.half, loc.land.far);
-  const oc: any = buildOcean({ ...loc, residents: false });
+  const oc: any = buildOcean(loc);
   const T = oc.T;
   const tally: Record<string, [number, number]> = {};
   const worst: string[] = [];
