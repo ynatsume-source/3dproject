@@ -30,7 +30,7 @@ export interface ChibiMats {
 export interface Look {
   head?: number; eye?: number; shine?: boolean; plump?: number;
   stone?: boolean; cheeks?: boolean; scarf?: boolean; tuft?: boolean;          // (the otter)
-  toon?: boolean;     // (the otter as a character, owner's notes 2026-10-05: brown head, a cream face and belly, a small nose and an ω mouth)
+  toon?: boolean;     // (the otter as a character, owner's notes 2026-10-05: brown head, a cream face and belly, a big black nose)
   dome?: number; barnacles?: boolean; glasses?: boolean; moss?: boolean;       // (the turtle)
 }
 export type Food = '' | 'urchin' | 'crab' | 'clam';
@@ -89,15 +89,14 @@ export function creatureKit(M: CMats, shadows = false) {
     const skull = ell(0.1, 0.074, 0.084, toon ? M.fur : M.furPale); skull.position.set(0, 0.022, 0.07); head.add(skull);
     const nape = ell(0.088, 0.068, 0.06, M.fur); nape.position.set(0, 0.012, 0.012); head.add(nape);   // (the dark of the body coming up the back of the neck)
     if (toon) {
-      // the character: a cream face from under the eyes down (running on down the throat to the belly), a small nose,
-      // a short line down from it to a small ω mouth
+      // the character: a cream face from under the eyes down (running on down the throat to the belly), and in the
+      // middle of it a big black nose, broad above and narrowing below to a blunt point, standing a little out from
+      // the face like a small beak (owner's note, 2026-10-05: no mouth, no cheeks, the nose is the face)
       const mask = ell(0.09, 0.052, 0.05, M.furPale, 28); mask.position.set(0, -0.01, 0.094); head.add(mask);
-      const nose = ell(0.017, 0.012, 0.009, M.nose, 16); nose.position.set(0, 0.006, 0.153); head.add(nose);
-      const line = own(new THREE.Mesh(new THREE.CylinderGeometry(0.0016, 0.0016, 0.012, 6), M.nose)); line.position.set(0, -0.006, 0.1495); line.rotation.x = 0.25; head.add(line);
-      for (const sx of [-1, 1]) {
-        const arc = own(new THREE.Mesh(new THREE.TorusGeometry(0.0075, 0.0016, 6, 14, Math.PI), M.nose));
-        arc.position.set(sx * 0.0075, -0.0115, 0.1475); arc.rotation.set(-0.35, 0, Math.PI); head.add(arc);   // (each half of the ω, open upward)
-      }
+      const ng = new THREE.SphereGeometry(1, 24, 16), np = ng.attributes.position;
+      for (let i = 0; i < np.count; i++) { const y = np.getY(i); np.setX(i, np.getX(i) * (0.55 + 0.45 * (y + 1) / 2)); np.setZ(i, np.getZ(i) * (0.8 + 0.2 * (y + 1) / 2)); }
+      ng.computeVertexNormals();
+      const nose = own(new THREE.Mesh(ng, M.nose)); nose.scale.set(0.034, 0.024, 0.02); nose.position.set(0, 0.0, 0.15); nose.rotation.x = -0.25; head.add(nose);
     } else {
       for (const sx of [-1, 1]) { const ch = ell(0.05, 0.044, 0.042, M.furPale, 20); ch.position.set(sx * 0.046, -0.01, 0.1); head.add(ch); }   // (the face's round lower half)
       for (const sx of [-1, 1]) { const pad = ell(0.03, 0.022, 0.014, M.white ?? M.furPale, 18); pad.position.set(sx * 0.023, -0.02, 0.14); head.add(pad); }   // (the white mouth, two soft lobes)
@@ -626,6 +625,6 @@ export function creatureKit(M: CMats, shadows = false) {
 
   // the island's own two, as chosen: Rakko the real otter, a little characterful (bigger eyes with a glint,
   // its tuft, its white-banded stone) with a scarf of kelp round its neck; Kamemaru straight-faced, browless
-  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.05, shine: true, toon: true, cheeks: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
+  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.05, shine: true, toon: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
   return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakko, makeKame };
 }
