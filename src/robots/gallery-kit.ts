@@ -74,7 +74,7 @@ export function galleryKits() {
     fur: std(0x3a281b, 0.9), furPale: std(0xb9a487, 0.95), furDark: std(0x1f1610, 0.9), nose: std(0x0d0c0c, 0.4), eye: std(0x050506, 0.1),
     carapace: new THREE.MeshStandardMaterial({ map: carapaceTex(), roughness: 0.45 }), plastron: std(0xd8c890, 0.7), skin: std(0x4c3b24, 0.6), beak: std(0x6a5838, 0.5),
     stone: std(0x7d776e, 0.9), urchin: std(0x3b1736, 0.5), crab: std(0xb04a2a, 0.5), clam: std(0xcbbca4, 0.5),
-    white: std(0xf4f1ea, 0.3), kelp: std(0x5d6b2a, 0.6), blush: std(0xd99a86, 0.9), wire: new THREE.MeshStandardMaterial({ color: 0xb8954a, roughness: 0.3, metalness: 0.8 }), barnacle: std(0xc9c4b8, 0.9), moss: std(0x4f6b2c, 0.9),
+    white: std(0xf4f1ea, 0.3), kelp: std(0x5d6b2a, 0.6), blush: std(0xf2a3a0, 0.9), wire: new THREE.MeshStandardMaterial({ color: 0xb8954a, roughness: 0.3, metalness: 0.8 }), barnacle: std(0xc9c4b8, 0.9), moss: std(0x4f6b2c, 0.9),
     chibi: {
       brown: std(0x8a5534, 0.75), belly: std(0xc99a70, 0.8), cream: std(0xf0dcb8, 0.8), paw: std(0x4a2c1c, 0.8), nose: std(0x2a1a14, 0.35), mouth: std(0x8c3b3b, 0.6),
       dark: std(0x1e130d, 0.15), iris: std(0x7a4a26, 0.25), white: new THREE.MeshBasicMaterial({ color: 0xffffff }), pink: std(0xf0a4a0, 0.9), stone: std(0x8e8b86, 0.8),
