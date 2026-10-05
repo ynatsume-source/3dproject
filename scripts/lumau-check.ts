@@ -6,10 +6,12 @@
 //  4 the vocabulary is about the size planned (some 1,200 words) and no word is longer than four syllables
 //  5 every example sentence renders: each id is a word, and the sentence ends with a mark
 //  6 every line the island says has its English too, and 'at' is now the grammar's ni (found on the beach: mau ni)
+//  7 every meaning the residents say to each other (lumau/frames.ts) makes a sentence of known words, with its Japanese and English
 // Usage: npx tsx scripts/lumau-check.ts
 import { lexicon, DIGITS } from '../src/robots/lumau/lexicon';
 import { EXAMPLES, render } from '../src/robots/lumau/grammar';
 import { LEX, SAY, roman, subtitle } from '../src/robots/islandlang';
+import { phrase, type Frame } from '../src/robots/lumau/frames';
 
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -55,6 +57,14 @@ const said = [SAY.identify('dot'), SAY.identify('rakko'), SAY.report([{ what: 'h
 const noEn = said.filter((m) => !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en));
 want('6 English for every line', noEn.length === 0, noEn.map((m) => m.ja).join(' / ') || `${said.length} lines`);
 want('6 at is ni', roman(SAY.found('ヤシの実').isl).includes('mau ni') && subtitle(SAY.found('軽石'), 'en').startsWith('Found:'), roman(SAY.found('ヤシの実').isl));
+
+const frames: Frame[] = [{ act: 'ask-bring', to: 'rakko', what: 'wood' }, { act: 'accept-bring', to: 'dot', what: 'wood' },
+  ...(['hungry', 'sleepy', 'hands-full', 'not-seen', 'busy-shells'] as const).map((why) => ({ act: 'refuse', why }) as Frame),
+  { act: 'hand-over', what: 'wood' }, { act: 'received', what: 'wood' }, { act: 'tell-where', what: 'wood', metres: 37 }, { act: 'tell-where', what: 'shell', metres: 5 }, { act: 'will-go' }, { act: 'noted' }];
+const badF: string[] = [];
+for (const f of frames) { try { const m = phrase(f); if (!m.isl.length || !m.ja || !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en)) badF.push(f.act); } catch (e) { badF.push(`${f.act}: ${(e as Error).message}`); } }
+want('7 the meanings make sentences', badF.length === 0, badF.join(' / ') || `${frames.length} frames`);
+if (!badF.length) for (const f of frames.slice(0, 3)) { const m = phrase(f); console.log(`   ${roman(m.isl)}  ${m.ja}  ${m.en}`); }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
 console.log('all ok');

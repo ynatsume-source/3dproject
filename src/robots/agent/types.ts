@@ -37,4 +37,4 @@ export interface BrainInput {
 export type Brain = (input: BrainInput, tier: 'deep' | 'light') => Promise<Thought | null>;
 
 /** One asking another for something (ADR 0004 §6): kept by the world, answered by the one asked, in its own way. */
-export interface Request { id: string; from: string; to: string; what: 'bring-wood'; at: number; status: 'open' | 'accepted' | 'refused' | 'done' | 'failed'; reason?: string }
+export interface Request { id: string; from: string; to: string; what: 'bring-wood'; at: number; status: 'open' | 'accepted' | 'refused' | 'done' | 'failed'; reason?: string; conv?: number }   // (conv: the talk log's thread the asking and answering are said in)

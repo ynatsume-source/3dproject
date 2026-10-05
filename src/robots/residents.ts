@@ -29,6 +29,7 @@ import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } fro
 import { CATALOG, MATERIAL_JA, type CatalogEntry } from '../world/process-catalog';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
+import { phrase, NO_WHY, type Frame, type Who } from './lumau/frames';
 import type { Subject } from '../eco/env';
 import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
@@ -1134,10 +1135,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // what they have asked of each other (kept by the world: ADR 0004 §6)
   const requests: Request[] = [];
   let reqN = 0;
+  // what they say to each other as they ask, answer, hand over and tell (ADR 0006, the island's language, step 3):
+  // a meaning, made into Lumau with its Japanese and English (lumau/frames.ts), said a moment apart
+  const utterQ: { who: string; f: Frame; at: number; conv: number }[] = [];
+  function utter(r: Resident, f: Frame, afterMs = 0, conv = 0) { utterQ.push({ who: r.id, f, at: clockMs + afterMs, conv }); }
+  function exchange(a: Resident, b: Resident) { return heading(`${a.v.name}と${b.v.name}`); }
   function answer(r: Resident, q: Request, yes: boolean, reason?: string) {
     if (q.status !== 'open') return;
     q.status = yes ? 'accepted' : 'refused'; q.reason = reason;
     const from = byId[q.from];
+    utter(r, yes ? { act: 'accept-bring', to: from.id as Who, what: 'wood' } : { act: 'refuse', why: NO_WHY[reason ?? ''] ?? 'busy-shells' }, 1800, q.conv ?? exchange(from, r));
     r.diary.push({ at: clockMs, text: yes ? `${from.v.name}の頼みを引き受けた` : `${from.v.name}の頼みを断った${reason ? `（${reason}）` : ''}`, key: 'mind' });
     res.onEvent('answer', `${r.v.name}が${from.v.name}の頼みを${yes ? '引き受けた' : '断った'}`, r);
     const fa = agentOf(from); if (fa) { fa.answered(q, clockMs, r.v.name); flushMind(from, fa); }
@@ -1410,6 +1417,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const o = byId[tk.data.to]; if (!o) { tk.failed = 'unavailable'; break; }
         const q: Request = { id: `req#${++reqN}`, from: r.id, to: o.id, what: tk.data.what, at: clockMs, status: 'open' };
         requests.push(q); if (requests.length > 30) requests.shift();
+        q.conv = exchange(r, o); utter(r, { act: 'ask-bring', to: o.id as Who, what: 'wood' }, 0, q.conv);
         note(r, 'mind', {}, `${o.v.name}に流木を頼んだ`); r.diary.push({ at: clockMs, text: `${o.v.name}に、流木を届けてほしいと頼んだ`, key: 'mind' });
         const oa = agentOf(o); if (oa) { oa.asked(q, r.v.name); flushMind(o, oa); } else answer(o, q, false, '聞いていなかった');
         break;
@@ -1420,6 +1428,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!o || r.holding !== 'wood' || o.holding) { tk.failed = 'unavailable'; break; }
         r.holding = ''; o.holding = 'wood'; if (o.id === 'dot') o.stats.wood = 1;
         const q = requests.find((x) => x.from === o.id && x.to === r.id && x.status === 'accepted'); if (q) q.status = 'done';
+        { const c = exchange(r, o); utter(r, { act: 'hand-over', what: 'wood' }, 0, c); utter(o, { act: 'received', what: 'wood' }, 2200, c); }
         r.diary.push({ at: clockMs, text: `${o.v.name}に流木を手渡した`, key: 'mind' });
         agentOf(o)?.hear({ id: 'wood:given', kind: 'held', label: '受け取った流木', x: o.pos.x, z: o.pos.z, dist: 0, at: clockMs }, r.id, `${r.v.name}が流木を届けてくれた`, clockMs);
         res.onEvent('give', `${r.v.name}が${o.v.name}に流木を手渡した`, r);
@@ -1429,6 +1438,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const o = byId[tk.data.to], ob = agentOf(r)?.seen.get(tk.data.item), oa = o && agentOf(o);
         if (!o || !ob || !oa) { tk.failed = 'unavailable'; break; }
         oa.hear(ob, r.id, `${r.v.name}によると、${ob.label}が${Math.round(Math.hypot(ob.x - o.pos.x, ob.z - o.pos.z))}mほど先にある`, clockMs);
+        { const c = exchange(r, o), k = ob.kind === 'shell' ? 'shell' : 'wood'; utter(r, { act: 'tell-where', what: k, metres: Math.hypot(ob.x - o.pos.x, ob.z - o.pos.z) }, 0, c); utter(o, { act: 'noted' }, 2200, c); }
         r.diary.push({ at: clockMs, text: `${o.v.name}に、${ob.label}のある場所を教えた`, key: 'mind' });
         res.onEvent('tell', `${r.v.name}が${o.v.name}に${ob.label}の場所を教えた`, r);
         break;
@@ -2179,6 +2189,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
       if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
+      for (let i = 0; i < utterQ.length; i++) {
+        const u = utterQ[i]; if (u.at > clockMs) continue;
+        utterQ.splice(i--, 1);
+        const w = byId[u.who]; if (!w || w.talk || w.act === 'sleep') continue;   // (in a conversation of its own, or asleep: let go)
+        const m = phrase(u.f); say(w, m.ja, u.conv || heading(w.v.name), false, m.isl, m.en);
+      }
       if (!still && dt < 2) gains();   // (what rest, food and sun gave back: shown, softly, by each of them — not while catching up)
       fireCircle(dt, false);
       // their lights: on after dark while they are up and about (not asleep, not under the water)

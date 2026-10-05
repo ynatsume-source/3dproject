@@ -1,5 +1,6 @@
 // Headless check (ADR 0004, step 2): Dot and Rakko, each with a mind of its own, on controlled ground.
-//  A Dot asks Rakko for driftwood; Rakko takes it on, fetches a log only it has seen, hands it over; Dot shapes it
+//  A Dot asks Rakko for driftwood; Rakko takes it on, fetches a log only it has seen, hands it over; Dot shapes it —
+//    and they say so aloud, in the island's words (lumau/frames.ts)
 //  B Rakko, hungry, says no; Dot hears why, and does not ask again straight away
 //  C Rakko tells Dot where a log is; Dot knows it as heard (from Rakko), not seen, and fetches it — and learns
 //    from it that what others tell it is of use
@@ -56,6 +57,9 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   want('A Rakko took it on, fetched it and handed it to Dot', rakko.diary.some((e: any) => /頼み（流木を届ける）を引き受ける：できた/.test(e.text)) && rakko.diary.some((e: any) => /手渡した/.test(e.text)), rm.results.filter((r: any) => !/float|groom|wander/.test(r.optionId)).map((r: any) => `${r.optionId}:${r.outcome}`).join(' '));
   want('A Dot heard it from Rakko, and shaped and fitted it', dm.knowledge.some((k: any) => k.source === 'heard' && k.text.includes('届けて')) && dot.stats.built >= 1, `hut ${dot.stats.built}`);
   want('A both diaries say so', dot.diary.some((e: any) => e.text.includes('頼んだ')) && rakko.diary.some((e: any) => e.text.includes('手渡した')));
+  { const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+    want('A said aloud: asked, taken on, handed over, received', said('dot', /運んでほしい/) && said('rakko', /運ぶ。$/) && said('rakko', /あなたに渡す/) && said('dot', /受け取った/),
+      R.talks.filter((e: any) => !e.head).slice(-6).map((e: any) => `${e.who}:${e.text}`).join(' / ')); }
   void rakko;
 }
 { // B a no
