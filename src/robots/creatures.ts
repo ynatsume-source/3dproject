@@ -79,18 +79,20 @@ export function creatureKit(M: CMats, shadows = false) {
     torso.scale.y = 0.9; body.add(torso);
     // the chest and throat, paler (grizzled in an older otter), on the underside
     const chest = ell(0.1, 0.06, 0.15, M.furPale); chest.position.set(0, -0.075, 0.17); body.add(chest);
-    // the head: broad and round, the blunt muzzle with its whisker pads, the big black nose, small eyes
+    // the head (remade from photographs, owner's note 2026-10-05): broad and flat-topped, pale all over (no dark cap),
+    // full cheeks, a flat face; a big black nose in the middle, two round white whisker pads close under it, a small
+    // chin; small black eyes set wide apart
     const head = new THREE.Group(); head.position.set(0, 0.02, 0.31); body.add(head);
-    const skull = ell(0.086, 0.074, 0.092, M.furPale); skull.position.set(0, 0.025, 0.075); head.add(skull);
-    const crown = ell(0.08, 0.05, 0.08, M.fur); crown.position.set(0, 0.05, 0.03); head.add(crown);   // (the darker fur running back over the crown)
-    // (a small muzzle, short and set close under the eyes: an otter's, not a dog's — owner's note, 2026-10-05)
-    const muzzle = ell(0.046, 0.033, 0.035, M.furPale); muzzle.position.set(0, -0.002, 0.143); head.add(muzzle);
-    for (const sx of [-1, 1]) { const pad = ell(0.024, 0.021, 0.022, M.furPale, 16); pad.position.set(sx * 0.021, -0.009, 0.157); head.add(pad); }
-    const nose = ell(0.018, 0.011, 0.01, M.nose, 16); nose.position.set(0, 0.012, 0.175); head.add(nose);
-    const jaw = new THREE.Group(); jaw.position.set(0, -0.03, 0.1); head.add(jaw);
-    const chin = ell(0.032, 0.017, 0.04, M.furPale, 16); chin.position.set(0, -0.004, 0.042); jaw.add(chin);
+    const skull = ell(0.096, 0.076, 0.086, M.furPale); skull.position.set(0, 0.022, 0.07); head.add(skull);
+    const nape = ell(0.088, 0.068, 0.06, M.fur); nape.position.set(0, 0.012, 0.012); head.add(nape);   // (the dark of the body coming up the back of the neck)
+    for (const sx of [-1, 1]) { const ch = ell(0.052, 0.046, 0.05, M.furPale, 20); ch.position.set(sx * 0.048, -0.008, 0.105); head.add(ch); }   // (full cheeks)
+    const muzzle = ell(0.05, 0.03, 0.03, M.furPale); muzzle.position.set(0, -0.006, 0.135); head.add(muzzle);
+    for (const sx of [-1, 1]) { const pad = ell(0.03, 0.026, 0.024, M.white ?? M.furPale, 18); pad.position.set(sx * 0.025, -0.016, 0.148); head.add(pad); }
+    const nose = ell(0.03, 0.02, 0.017, M.nose, 18); nose.position.set(0, 0.014, 0.162); nose.rotation.x = -0.2; head.add(nose);
+    const jaw = new THREE.Group(); jaw.position.set(0, -0.034, 0.1); head.add(jaw);
+    const chin = ell(0.026, 0.015, 0.03, M.furPale, 16); chin.position.set(0, -0.004, 0.035); jaw.add(chin);
     const ek = L.eye ?? 1;
-    const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.046 * (0.9 + 0.1 * ek), 0.04, 0.143); head.add(e); if (L.shine) glint(e); return e; });
+    const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.056, 0.042, 0.128); e.rotation.y = sx * 0.35; head.add(e); if (L.shine) glint(e); return e; });
     const eye = new THREE.Object3D(); eye.position.set(0, 0.04, 0.15); head.add(eye);
     head.scale.setScalar(L.head ?? 1); torso.scale.x *= L.plump ?? 1; torso.scale.y *= L.plump ?? 1;
     if (L.cheeks) for (const sx of [-1, 1]) { const b = ell(0.022, 0.014, 0.006, M.blush ?? M.furPale, 12); b.position.set(sx * 0.062, 0.0, 0.135); b.rotation.y = sx * 0.7; head.add(b); }
@@ -102,10 +104,10 @@ export function creatureKit(M: CMats, shadows = false) {
       const knot = ell(0.026, 0.024, 0.02, M.kelp ?? M.furDark, 12); knot.position.set(0.08, -0.085, 0.245); body.add(knot);
       for (const k of [0, 1]) { const end = ell(0.018, 0.006, 0.07, M.kelp ?? M.furDark, 12); end.position.set(0.095 + k * 0.012, -0.115 - k * 0.012, 0.205 - k * 0.03); end.rotation.set(0.9 + k * 0.3, 0.3, 0.2); body.add(end); }
     }
-    for (const sx of [-1, 1]) { const ear = ell(0.013, 0.016, 0.009, M.furDark, 10); ear.position.set(sx * 0.074, 0.062, 0.045); head.add(ear); }
+    for (const sx of [-1, 1]) { const ear = ell(0.013, 0.016, 0.009, M.furDark, 10); ear.position.set(sx * 0.088, 0.05, 0.04); head.add(ear); }
     // whiskers: pale, stiff, fanning back from the pads
-    const wg = new THREE.CylinderGeometry(0.0011, 0.0005, 0.075, 3); wg.translate(0, 0.0375, 0);
-    for (const sx of [-1, 1]) for (let w = 0; w < 5; w++) { const wh = new THREE.Mesh(wg, M.furPale); wh.position.set(sx * 0.031, -0.011 + (w - 2) * 0.005, 0.158); wh.rotation.set(-0.2 + (w - 2) * 0.12, 0, -sx * (1.2 + (w - 2) * 0.08)); head.add(wh); }
+    const wg = new THREE.CylinderGeometry(0.0011, 0.0005, 0.095, 3); wg.translate(0, 0.0475, 0);
+    for (const sx of [-1, 1]) for (let w = 0; w < 5; w++) { const wh = new THREE.Mesh(wg, M.furPale); wh.position.set(sx * 0.036, -0.018 + (w - 2) * 0.005, 0.152); wh.rotation.set(-0.2 + (w - 2) * 0.12, 0, -sx * (1.2 + (w - 2) * 0.08)); head.add(wh); }
     // forelegs: short, ending in round mitten paws (it uses them like hands)
     const arms = [-1, 1].map((sx) => {
       const a = new THREE.Group(); a.position.set(sx * 0.072, -0.07, 0.21); body.add(a);
@@ -609,6 +611,6 @@ export function creatureKit(M: CMats, shadows = false) {
 
   // the island's own two, as chosen: Rakko the real otter, a little characterful (bigger eyes with a glint,
   // its tuft, its white-banded stone) with a scarf of kelp round its neck; Kamemaru straight-faced, browless
-  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.45, shine: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
+  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.05, shine: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
   return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakko, makeKame };
 }
