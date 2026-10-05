@@ -236,7 +236,7 @@ let hopCheckT = 0, hopFor: Shot | null = null, hopNeed = false;
 // the way planned through the water to the shot (src/ocean/route.ts): kept while the goal stays put, planned
 // afresh when it moves on or a new shot begins; `blocked` when no way through the water exists at all
 const ROUTE_CEIL = -0.7 - 0.75 - 0.45;   // (the floor may come up to here: under the surface limit, the drone's clearance, and a margin)
-let route: RoutePlan | null = null, routeFor: Shot | null = null, routeT = 0, routeBlocked = false;
+let route: RoutePlan | null = null, routeFor: Shot | null = null, routeT = 0, routeBlocked = false, wayLookT = 0, wayLookSeen = false;
 const _rw = new THREE.Vector3(), _rl = new THREE.Vector3(), _ra = { x: 0, z: 0 };
 // what the way is planned round: the seabed, rock and coral, and the cave massif from the outside
 const routeFloor = (x: number, z: number) => { const T = cur!.T; return Math.max(T.ground(x, z), T.cave ? T.cave.topAt(x, z) : -1e9); };
@@ -276,8 +276,11 @@ let askFrom = '', askKey = '';
 // size) inside the frame, nearer than 70% of what this water lets one see, with no seabed, rock or coral head
 // between it and the camera; and the whole at least 10 px on screen. The caption and its ring speak only of this.
 const _sv = new THREE.Vector3();
+// where the animal itself is (a leap's subject stands at the point where it will break the surface; the camera
+// films the animal, all the way up)
+const bodyAt = (sj: Subject) => sj.breach?.body ?? sj.pos();
 function seenNow(sj: Subject) {
-  const P = sj.pos(); if (!P || !cur) return false;
+  const P = bodyAt(sj); if (!P || !cur) return false;
   const o = camera.position, T = cur.T, d = Math.hypot(P.x - o.x, P.y - o.y, P.z - o.z);
   const px = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
   if (sj.size / Math.max(d, 0.5) * px < 10) return false;
@@ -374,7 +377,7 @@ function hideCaption(el: HTMLElement) { if (el.classList.contains('on')) el.clas
 // the ring round what the caption is about: faint, as big as the subject looks, following it smoothly
 let ringX = -1, ringY = 0, ringR = 0;
 function updateCapRing(dt: number) {
-  const el = $('capRing'), cap = $('caption'), sj = capShot?.subject, p = sj?.pos();
+  const el = $('capRing'), cap = $('caption'), sj = capShot?.subject, p = sj ? bodyAt(sj) : null;
   const up = !!sj && !!p && cap.classList.contains('on') && !watch.r && mode === 'ocean';
   if (!up) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; return; }
   camera.updateMatrixWorld();
@@ -585,7 +588,9 @@ function updateDrone(dt: number, now: number) {
     }
     if (drone.hop && drone.pos.y > 0) _v.y = clamp((way.y - drone.pos.y) * 1.2, -2, 2.5);   // (in the air: up to its height, and level)
     drone.vel.lerp(_v, 1 - Math.exp(-dt * (shot.close ? 3 : shot.giant ? 2.4 : shot.phase === 'observe' && shot.subject.size < 1.2 ? 2 : 1.2)));
-    let lk: { x: number; y: number; z: number } = way === _rw ? (rest > 14 ? _rl : shot.look) : way === shot.pos || way === _h ? shot.look : way;   // escaping the cave, or along the planned way: look where we are going
+    // (well on along the way, it looks where it is going — unless what it came to see is already in view: then at that)
+    if ((wayLookT -= dt) <= 0) { wayLookT = 0.2; wayLookSeen = rest > 14 && seenNow(shot.subject); }
+    let lk: { x: number; y: number; z: number } = way === _rw ? (rest > 14 && !wayLookSeen ? _rl : shot.look) : way === shot.pos || way === _h ? shot.look : way;   // escaping the cave, or along the planned way: look where we are going
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
     const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
@@ -1269,7 +1274,7 @@ function goToEvent() {
   if (!markAt || !cur || watch.r) return;
   if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }, '案内から'); return; }
   const at = markAt, text = markText;
-  focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() }, 'SEA LOG から');
+  focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, spot: true, pos: () => at(), status: () => '', live: () => !!at() }, 'SEA LOG から');
 }
 $('evMark').onclick = goToEvent;
 $('toast').addEventListener('click', goToEvent);
@@ -1344,7 +1349,7 @@ function goTo(id: string) {
   const place = id.startsWith('place:') ? (PLACES[loc.id] || []).find((p) => 'place:' + p.id === id) : null;
   if (place) {
     const f = place.find(oc, cam);
-    if (f) s = { key: id, label: place.ja, kind: 'big', prio: 5, size: f.size, pos: () => f.pos, status: () => '', live: () => true };
+    if (f) s = { key: id, label: place.ja, kind: 'big', prio: 5, size: f.size, spot: true, pos: () => f.pos, status: () => '', live: () => true };
     if (!f) { showToast('見つかりません', `${place.ja}は近くにないようです`, ''); return; }
     focusOn(s!); if (!captionOn) showToast('向かっています', place.ja, '');
     if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); }
@@ -2229,7 +2234,7 @@ function tapAt(x: number, y: number) {
       const T = cur.T, reef = T.reef(f.p.x, f.p.z) > 0.3 || T.top(f.p.x, f.p.z) > T.h(f.p.x, f.p.z) + 0.3;
       const at = new THREE.Vector3(f.p.x, Math.min(T.top(f.p.x, f.p.z) + 1.2, -1.6), f.p.z);
       const label = reef ? 'このあたりの礁' : 'このあたりの海底';
-      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, len: 1.2, pos: () => at,   // (len: a spot to circle, not a big animal's moves)
+      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, len: 1.2, spot: true, pos: () => at,   // (len: a spot to circle, not a big animal's moves)
        status: () => '', live: () => true };
       place = true;
     }
@@ -3217,7 +3222,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj?.pos() ? { x: sj.pos()!.x, y: sj.pos()!.y, z: sj.pos()!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

@@ -37,7 +37,7 @@ async function one(name, vw, vh, mob) {
             if (y < T.top(x, z)) { if (L < 1.2) near++; break; }
           }
         }
-        const sh = s.director.shot, sp = sh?.subject.pos?.();
+        const sh = s.director.shot, sp = sh?.subject.breach?.body ?? sh?.subject.pos?.();   // (a leap: the animal itself, not the point where it breaks the surface)
         let w = null, hid = null, inView = null;
         if (sh && sp) {
           const spv = new V(sp.x, sp.y, sp.z), dist = o.distanceTo(spv), hf = 2 * Math.atan(Math.tan(cam.fov * Math.PI / 360) * cam.aspect);

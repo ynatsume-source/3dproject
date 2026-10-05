@@ -315,7 +315,7 @@ export class Director {
     if (p) this.track(p, dt);
     // something big: close in, where its size tells — see below
     const L = s.len ?? s.size;
-    if (p && L >= 1.4 && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
+    if (p && L >= 1.4 && !s.spot && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
     // close: about a body length or so away, by the animal's own size (a small fish from under a metre)
     const sz = Math.min(s.size, Math.max(s.len ?? s.size, 0.15) * 2) * (s.kind === 'school' ? 0.65 : 1);   // (a school: in among its edge)
     // (a mass of fish pressed into a ball: from outside it, far enough off to see it whole — not from inside it)

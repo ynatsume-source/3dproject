@@ -15,7 +15,7 @@ import type { Species } from '../data/locations';
 const _mm = new THREE.Matrix4(), _ss = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _cv = new THREE.Vector3();
 
 
-interface Leader { c: THREE.Vector3; head: number; t: number; alt: number; placed: boolean; fear: number; prey: PreyGroup; ch?: { i: number; x: number; y: number; z: number; t: number; juke: number; jukeT: number } }
+interface Leader { m?: THREE.Vector3; spread?: number; c: THREE.Vector3; head: number; t: number; alt: number; placed: boolean; fear: number; prey: PreyGroup; ch?: { i: number; x: number; y: number; z: number; t: number; juke: number; jukeT: number } }
 
 export function makeShoalSystem(sp: Species, oc: any) {
   // spacing by body size: small fish school a hand's breadth apart; sharks a body length or two
@@ -39,6 +39,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   // fish i belongs to school i % S, so drawing the first N keeps every school proportionally filled
   let active = total;
   const leaders: Leader[] = [];
+  const acc = new Float64Array(S * 5), _cm = new THREE.Vector3();   // (per school: sums of where its fish are, for their middle and spread)
   for (let s = 0; s < S; s++) {
     const L: Leader = { c: new THREE.Vector3(), head: R() * 6.28, t: R() * 100, alt: rr((sp.alt || [4, 8])[0], (sp.alt || [4, 8])[1]), placed: false, fear: 0, prey: null as any };
     L.prey = {
@@ -142,6 +143,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     const alive = new Array(S).fill(0);
     const radius0 = 2.3 * K * Math.cbrt(Math.max(1, total / S / 60));   // (a bigger school takes more room)
     shade.begin();
+    acc.fill(0);
     for (let i = 0; i < active; i++) {
       const s = i % S, L = leaders[s];
       if (dead[i]) {
@@ -218,6 +220,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       let nx = px + vx * dt, ny = py + vy * dt, nz = pz + vz * dt;
       if (oc.cave && oc.cave.pushOut(_cv.set(nx, ny, nz), 0.4)) { nx = _cv.x; ny = _cv.y; nz = _cv.z; }   // slide off the cave rock
       p[i * 3] = nx; p[i * 3 + 1] = ny; p[i * 3 + 2] = nz;
+      { const o = s * 5; acc[o] += nx; acc[o + 1] += ny; acc[o + 2] += nz; acc[o + 3] += nx * nx + ny * ny + nz * nz; acc[o + 4]++; }
       const hs = Math.hypot(vx, vz), hy = clamp(vy, -hs * 0.5, hs * 0.5);
       _a.set(nx + vx, ny + hy, nz + vz); _b.set(nx, ny, nz);
       _mm.lookAt(_a, _b, UPV); _ss.setScalar(size[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
@@ -225,6 +228,14 @@ export function makeShoalSystem(sp: Species, oc: any) {
       shade.set(i, s, nx, ny, nz);
     }
     shade.end();
+    // where each school's fish actually are, and how far they spread: what is filmed and ringed (the leading point
+    // runs on ahead of them, and they keep a few metres off the camera — filmed there, the middle was empty water)
+    for (let q = 0; q < S; q++) {
+      const o = q * 5, n = acc[o + 4], L = leaders[q]; if (!n) continue;
+      const mx = acc[o] / n, my = acc[o + 1] / n, mz = acc[o + 2] / n;
+      if (!L.m) L.m = new THREE.Vector3(mx, my, mz); else if (L.m.distanceToSquared(_cm.set(mx, my, mz)) > 100) L.m.copy(_cm); else L.m.lerp(_cm, Math.min(1, dt * 3));   // (moved on somewhere else: there at once)
+      L.spread = Math.sqrt(Math.max(0, acc[o + 3] / n - (mx * mx + my * my + mz * mz)));
+    }
     for (let s = 0; s < S; s++) leaders[s].prey.alive = alive[s];
     mesh.instanceMatrix.needsUpdate = true;
   }
@@ -271,7 +282,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     leaders.forEach((L, s) => {
       if (!L.placed || !enough(s)) return;
       const full = Math.min(1, here(s) / Math.max(1, active / S));
-      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(s) });
+      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(s) });
     });
   }
   // A tap on the screen: the school with a fish nearest the tapped point (each fish projected, a few hundred at
@@ -287,7 +298,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     }
     if (bsi < 0 || !isFinite(bs)) return null;
     const L = leaders[bsi], si = bsi;
-    return { s: { key: `${sp.id}:${si}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(si) }, sc: bs };
+    return { s: { key: `${sp.id}:${si}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(si) }, sc: bs };
   }
   function focus(cam: THREE.Vector3): Subject | null {
     let best: Leader | null = null, bd = Infinity;
@@ -295,7 +306,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     leaders.forEach((L, s) => { if (!L.placed || !enough(s)) return; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; bs = s; } });
     if (!best) return null;
     const L = best as Leader, si = bs;
-    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(si) };
+    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(si) };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,

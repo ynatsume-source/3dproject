@@ -37,6 +37,7 @@ export interface Subject {
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
   reach?: number;                       // how far away the director will go for it (default 42 m)
   hold?: number;                        // stay with it this long (s), instead of the usual time for its kind
+  spot?: boolean;                       // a place, not an animal (a reef spot, where something was logged): circled slowly, never filmed as a big animal's moves
   front?(): { x: number; y: number; z: number };
   heading?(): { x: number; z: number };   // which way its nose points (a turtle: to film it from its front, its side, above)
   brief?(): boolean;                    // nothing much going on right now (a turtle asleep): a short look, then on
