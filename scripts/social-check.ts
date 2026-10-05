@@ -5,6 +5,7 @@
 //  C Rakko tells Dot where a log is; Dot knows it as heard (from Rakko), not seen, and fetches it — and learns
 //    from it that what others tell it is of use
 //  D the same log: once one has it in hand (or on the way), the other is not offered it, and a plan naming it is not taken
+//  E what to say is its mind's to choose: what it is about to do, and the weather when there is some to tell
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/social-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -108,6 +109,22 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   await run(R, 200, () => dot.holding === 'wood');
   want('D Dot has it; Rakko never had it', dot.holding === 'wood' && !rm.results.some((r: any) => r.optionId === `gather:wood#${log.id}` && r.outcome === 'done'));
   void dm; void rakko;
+}
+{ // E its mind picks what to say (ADR 0006, the island's language, step 3): what it is about to do, and the weather
+  const { R, dot, rakko } = island(15);
+  let offered: string[] = [];
+  R.setBrain(brains({
+    dot: (i) => { offered = i.options.filter((o) => o.id.startsWith('say:')).map((o) => o.id); const p = offered.find((x) => x.startsWith('say:plan:')); return p ? { plan: [p] } : { plan: ['look:shore'] }; },
+    rakko: () => ({ plan: ['wander:beach'] }),
+  }));
+  await run(R, 1200, () => R.talks.some((e: any) => e.who === 'dot' && /僕は小屋を作る/.test(e.text)) && R.talks.some((e: any) => e.who === 'rakko' && /^わかった。$/.test(e.text)));
+  const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+  want('E Dot is offered to tell Rakko what it is about to do, and says it', said('dot', /僕は小屋を作る/) && said('rakko', /わかった/), offered.join(' ') + ' / ' + R.mind(dot).results.slice(-4).map((r: any) => r.optionId + ':' + r.outcome).join(' '));
+  R.setWeather({ ok: true, at: now, cloud: 1, rain: 8, code: 63, wind: 6, windDir: 0, gust: 9, pressure: 1004, typhoon: false, source: 'test', record: { station: 'test', at: '' } });
+  R.setBrain(brains({ dot: (i) => { const w = i.options.find((o) => o.id.startsWith('say:warn:rain:')); return w ? { plan: [w.id] } : { plan: ['look:shore'] }; }, rakko: () => ({ plan: ['wander:beach'] }) }));
+  await run(R, 1200, () => said('dot', /雨が降っている/));
+  want('E in the rain, it is offered to warn, and does', said('dot', /今、雨が降っている/), R.talks.filter((e: any) => !e.head).slice(-3).map((e: any) => `${e.who}:${e.text}`).join(' / '));
+  void dot; void rakko;
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);

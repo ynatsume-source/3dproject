@@ -181,6 +181,7 @@ export interface Resident {
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
+  saidAt?: Record<string, number>;   // (what it last told whom, and when: not the same thing again straight away)
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
@@ -942,6 +943,23 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (what it sees, worked out at most once per moment of the island's clock: asked for by several things in a step)
   const seenAt = new Map<string, { t: number; obs: Observation[] }>();
   const seenCache = (r: Resident) => { const c = seenAt.get(r.id); if (c && c.t === clockMs) return c.obs; const obs = observe(r); seenAt.set(r.id, { t: clockMs, obs }); return obs; };
+  // What it can say to someone near (ADR 0006, the island's language, step 3): a warning of the weather, what it is
+  // about to do. Its mind (or its habits) picks one like any other doing; the words are made from the meaning.
+  const WARN_JA: Record<string, string> = { typhoon: '台風が来ている', rain: '雨が降っている', wind: '風がとても強い' };
+  const PLAN_JA: Record<string, string> = { hut: '小屋を作る', map: '地図を作る', wood: '流木を集める', shells: '貝殻を集める', eat: '海で食べる', nap: '海で眠る' };
+  const warnNow = () => { const w = wxNow; return !w ? '' : w.typhoon ? 'typhoon' : w.rain > 1 ? 'rain' : (w.windMeasured ?? w.wind) >= 10 ? 'wind' : ''; };
+  const doingNext = (r: Resident) => r.id === 'dot' ? (r.stats.built < HUT.length ? 'hut' : 'map') : r.id === 'rakko' ? (r.hunger > 0.4 ? 'eat' : r.sleepy > 0.55 ? 'nap' : 'shells') : '';
+  function sayables(r: Resident): Option[] {
+    const out: Option[] = []; if (r.talk) return out;
+    const fresh = (k: string, min: number) => clockMs - (r.saidAt?.[k] ?? -1e15) > min * 60e3;
+    const warn = warnNow(), doing = doingNext(r);
+    for (const x of list) {
+      if (x === r || x.talk || x.act === 'sleep' || (x.task?.kind === 'sleep' && x.task.arrived) || Math.hypot(x.pos.x - r.pos.x, x.pos.z - r.pos.z) > 25) continue;
+      if (warn && fresh(`warn:${warn}:${x.id}`, 30)) out.push({ id: `say:warn:${warn}:${x.id}`, action: 'say', label: `${x.v.name}に「${WARN_JA[warn]}」と知らせる`, targetId: x.id });
+      if (doing && fresh(`plan:${doing}:${x.id}`, 45)) out.push({ id: `say:plan:${doing}:${x.id}`, action: 'say', label: `${x.v.name}に、これから${PLAN_JA[doing]}と伝える`, targetId: x.id });
+    }
+    return out;
+  }
   function optionsFor(r: Resident, a: Agent): Option[] {
     const o: Option[] = [], known = (id: string) => a.seen.has(id);
     const awake = (x: Resident) => x.act !== 'sleep' && !(x.task?.kind === 'sleep' && x.task.arrived);
@@ -951,6 +969,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const shotIds = new Set(photosOn(r, dayOf(clockMs)).map((p) => p.subject.id));   // (not the same thing twice in a day)
     if (dayK(localHour(clockMs)) > 0.25 && shotsToday < PHOTOS_PER_DAY) for (const ob of seenCache(r).filter((x) => x.dist > 1.2 && x.dist < 30 && !shotIds.has(x.id)).slice(0, 8))
       o.push({ id: `photo:${ob.id}`, action: 'photo', label: `${ob.label}を写真に撮る（今日あと${PHOTOS_PER_DAY - shotsToday}枚）`, targetId: ob.id });
+    o.push(...sayables(r));
     for (const q of requests) if (q.to === r.id && q.status === 'open') o.push({ id: `accept:${q.id}`, action: 'accept', label: `${byId[q.from].v.name}の頼み（流木を届ける）を引き受ける` }, { id: `refuse:${q.id}`, action: 'refuse', label: `${byId[q.from].v.name}の頼みを断る` });
     if (r.id === 'rakko') {
       const dot = byId.dot;
@@ -1030,6 +1049,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       t = d <= near ? task('photo', [r.pos.x, r.pos.z], 'look', 3, { arrived: true, data: { ob } })
         : task('photo', [ob.x + (r.pos.x - ob.x) / d * near * 0.75, ob.z + (r.pos.z - ob.z) / d * near * 0.75], 'look', 3, { data: { ob } });
     }
+    else if (action === 'say') { const [, kind, what, to] = id.split(':'), o = byId[to]; t = o ? task('say', [o.pos.x, o.pos.z], 'look', 2.5, { data: { to, kind, what } }) : null; }
     else if (action === 'ask') { const o = byId[target]; t = o ? task('ask', [o.pos.x, o.pos.z], 'look', 3, { data: { to: target, what: id.split(':')[2] } }) : null; }
     else if (action === 'give') { const o = byId[target]; t = o && r.holding === 'wood' ? task('give', [o.pos.x, o.pos.z], 'pick', 2.5, { data: { to: target } }) : null; }
     else if (action === 'tell') { const o = byId[target], item = id.split(':')[2]; t = o && agentOf(r)?.seen.has(item) ? task('tell', [o.pos.x, o.pos.z], 'look', 3, { data: { to: target, item } }) : null; }
@@ -1071,6 +1091,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       { const ph = photoHabit(byId.rakko, opts); if (ph && !opts.some((o) => o.action === 'accept')) return ph; }
       const r = byId.rakko, has = (p: string) => opts.find((o) => o.id.startsWith(p) && o.ready !== false)?.id;
       const near = (kind: string) => opts.filter((o) => o.action === kind).sort((x, y) => { const p = (o: Option) => a.seen.get(o.targetId!); const dx = p(x), dy = p(y); return (dx ? Math.hypot(dx.x - r.pos.x, dx.z - r.pos.z) : 1e9) - (dy ? Math.hypot(dy.x - r.pos.x, dy.z - r.pos.z) : 1e9); })[0]?.id;
+      // (by habit it says only what the weather is to one near, not again for a while; telling what it is about to do is
+      // left to its mind to choose, as any other doing)
+      { const sp = has('say:warn:'); if (sp) return { text: '天気を知らせる', why: '近くに相手がいる', plan: [sp] }; }
       // (its own marks, moved by what has happened to it: eat before it gets too hungry, rest before too sleepy)
       if (r.hunger > (r.body?.learn.eatAt ?? 0.5) && !r.holding) { const e = has('eat:'); if (e) return { text: '食べに行く', why: 'おなかがすいてきた', plan: [e] }; }
       if (r.sleepy > (r.body?.learn.sleepAt ?? 0.65) && has('nap:')) return { text: 'ひと眠りする', why: 'ねむくなってきた', plan: ['nap:sea'] };
@@ -1096,6 +1119,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const has = (p: string) => opts.find((o) => o.id.startsWith(p) && o.ready !== false)?.id;
       const r = byId.dot;
       { const ph = photoHabit(r, opts); if (ph && !r.holding) return ph; }
+      { const sp = has('say:warn:'); if (sp) return { text: '天気を知らせる', why: '近くに相手がいる', plan: [sp] }; }
       if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
       if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', 'place:hut'] };
       if (has('shelve:')) return { text: '見つけたものを棚に置く', why: '手に持っている', plan: ['shelve:shelf'] };
@@ -1411,6 +1435,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         (r.photos ??= []).push(rec); if (r.photos.length > 40) r.photos.shift();
         r.diary.push({ at: clockMs, text: `写真を撮った：${rec.subject.label}`, key: 'photo' }); if (r.diary.length > 800) r.diary.shift();
         res.onEvent('photo', `${r.v.name}が${rec.subject.label}の写真を撮った`, r);
+        break;
+      }
+      case 'say': {
+        const o = byId[tk.data.to]; if (!o || o.talk) { tk.failed = 'unavailable'; break; }
+        const f: Frame = tk.data.kind === 'warn' ? { act: 'warn', what: tk.data.what } : { act: 'plan', doing: tk.data.what };
+        const c = exchange(r, o); utter(r, f, 0, c); utter(o, { act: 'noted' }, 2200, c);
+        (r.saidAt ??= {})[`${tk.data.kind}:${tk.data.what}:${o.id}`] = clockMs;
+        const what = tk.data.kind === 'warn' ? `「${WARN_JA[tk.data.what]}」と知らせた` : `これから${PLAN_JA[tk.data.what]}と伝えた`;
+        r.diary.push({ at: clockMs, text: `${o.v.name}に${what}`, key: 'mind' });
+        res.onEvent('say', `${r.v.name}が${o.v.name}に${what}`, r);
         break;
       }
       case 'ask': {
@@ -2191,8 +2225,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       for (let i = 0; i < utterQ.length; i++) {
         const u = utterQ[i]; if (u.at > clockMs) continue;
+        const w = byId[u.who];
+        if (w?.talk && clockMs - u.at < 90e3) continue;   // (in a conversation of its own: said when that is over, if soon)
         utterQ.splice(i--, 1);
-        const w = byId[u.who]; if (!w || w.talk || w.act === 'sleep') continue;   // (in a conversation of its own, or asleep: let go)
+        if (!w || w.talk || w.act === 'sleep') continue;   // (asleep, or still talking long after: let go)
         const m = phrase(u.f); say(w, m.ja, u.conv || heading(w.v.name), false, m.isl, m.en);
       }
       if (!still && dt < 2) gains();   // (what rest, food and sun gave back: shown, softly, by each of them — not while catching up)

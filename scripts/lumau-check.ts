@@ -60,7 +60,8 @@ want('6 at is ni', roman(SAY.found('ヤシの実').isl).includes('mau ni') && su
 
 const frames: Frame[] = [{ act: 'ask-bring', to: 'rakko', what: 'wood' }, { act: 'accept-bring', to: 'dot', what: 'wood' },
   ...(['hungry', 'sleepy', 'hands-full', 'not-seen', 'busy-shells'] as const).map((why) => ({ act: 'refuse', why }) as Frame),
-  { act: 'hand-over', what: 'wood' }, { act: 'received', what: 'wood' }, { act: 'tell-where', what: 'wood', metres: 37 }, { act: 'tell-where', what: 'shell', metres: 5 }, { act: 'will-go' }, { act: 'noted' }];
+  { act: 'hand-over', what: 'wood' }, { act: 'received', what: 'wood' }, { act: 'tell-where', what: 'wood', metres: 37 }, { act: 'tell-where', what: 'shell', metres: 5 }, { act: 'will-go' }, { act: 'noted' },
+  ...(['typhoon', 'rain', 'wind'] as const).map((what) => ({ act: 'warn', what }) as Frame), ...(['hut', 'map', 'wood', 'shells', 'eat', 'nap'] as const).map((doing) => ({ act: 'plan', doing }) as Frame)];
 const badF: string[] = [];
 for (const f of frames) { try { const m = phrase(f); if (!m.isl.length || !m.ja || !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en)) badF.push(f.act); } catch (e) { badF.push(`${f.act}: ${(e as Error).message}`); } }
 want('7 the meanings make sentences', badF.length === 0, badF.join(' / ') || `${frames.length} frames`);

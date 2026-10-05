@@ -15,7 +15,9 @@ export type Frame =
   | { act: 'received'; what: 'wood' }                           // got it
   | { act: 'tell-where'; what: 'wood' | 'shell'; metres: number } // there is … over there, about n m
   | { act: 'will-go' }                                          // okay, I'll go
-  | { act: 'noted' };                                           // okay (heard it)
+  | { act: 'noted' }                                            // okay (heard it)
+  | { act: 'warn'; what: 'typhoon' | 'rain' | 'wind' }          // the weather, told to one near
+  | { act: 'plan'; doing: 'hut' | 'map' | 'wood' | 'shells' | 'eat' | 'nap' };   // what it is about to do
 
 const NAME: Record<Who, { ja: string; en: string }> = { dot: { ja: 'ドット', en: 'Dot' }, rakko: { ja: 'ラッコ', en: 'Rakko' }, kame: { ja: 'カメマル', en: 'Kamemaru' }, lantern: { ja: 'ランタン', en: 'Lantern' } };
 const THING: Record<'wood' | 'shell', { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'a shell' } };
@@ -43,6 +45,23 @@ export function phrase(f: Frame): Said {
     case 'tell-where': { const m = Math.max(1, Math.round(f.metres)); return make(['yonder', 'at', f.what, 'there', '.', `#${m}`, 'metre', '.'], `あそこに${THING[f.what].ja}がある。約${m}m。`, `There is ${THING[f.what].en} over there. About ${m} m.`); }
     case 'will-go': return make(['agree', '.', 'me', 'topic', 'go', 'future', '.'], 'わかった。行く。', "Okay. I'll go.");
     case 'noted': return make(['agree', '.'], 'わかった。', 'Okay.');
+    case 'warn':
+      switch (f.what) {
+        case 'typhoon': return make(['typhoon', 'come', 'ongoing', '.', 'shelter_place', 'to', 'go', 'lets', '.'], '台風が来ている。避難場所へ行こう。', "A typhoon is coming. Let's go to shelter.");
+        case 'rain': return make(['now', 'rain', 'there', '.'], '今、雨が降っている。', "It's raining now.");
+        case 'wind': return make(['wind', 'topic', 'very', 'strong', '.'], '風がとても強い。', 'The wind is very strong.');
+      }
+      break;
+    case 'plan':
+      switch (f.doing) {
+        case 'hut': return make(['me', 'topic', 'hut', 'object', 'build', 'future', '.'], '僕は小屋を作る。', "I'll work on the hut.");
+        case 'map': return make(['me', 'topic', 'map', 'object', 'build', 'future', '.'], '僕は地図を作る。', "I'll work on the map.");
+        case 'wood': return make(['me', 'topic', 'wood', 'object', 'gather', 'future', '.'], '僕は流木を集める。', "I'll gather driftwood.");
+        case 'shells': return make(['me', 'topic', 'shell', 'object', 'gather', 'future', '.'], '僕は貝殻を集める。', "I'll gather shells.");
+        case 'eat': return make(['me', 'topic', 'sea', 'at', 'eat', 'future', '.'], '僕は海で食べる。', "I'll go and eat in the sea.");
+        case 'nap': return make(['me', 'topic', 'sea', 'at', 'sleep', 'future', '.'], '僕は海で眠る。', "I'll sleep on the sea.");
+      }
+      break;
   }
   throw new Error(`no phrase for ${JSON.stringify(f)}`);
 }
