@@ -1,0 +1,13 @@
+{
+  "sourceUrl": "https://www.fao.org/4/x5328e/x5328e08.htm",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body; not raw publisher bytes",
+  "facts": {
+    "location": "Sections 7.1.5 and 7.5.2 (carbonization, cooling, unloading); edition checked against x5328e00.htm",
+    "smoke": "Early white moisture smoke changes toward blue/transparent smoke as carbonisation progresses.",
+    "opening": "Premature opening can ignite charcoal and lose product; the kiln is cooled before unloading.",
+    "reuse": "Incompletely carbonised wood is separated and charged in a later batch.",
+    "conditions_and_replicates": "Operating instructions for brick kilns, not controlled double-pot trials; no replicate time series acquired."
+  },
+  "calibrationEligible": false
+}

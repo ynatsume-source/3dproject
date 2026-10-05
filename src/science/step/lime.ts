@@ -41,7 +41,7 @@ const envKnown = envUsable;
 // Calcination
 // ===================================================================================================
 
-export const CALCINE_PROCESS = { processId: 'p20x_lime_calcine_test', processVersion: '0.2.0' } as const;
+export const CALCINE_PROCESS = { processId: 'p20x_lime_calcine_test', processVersion: '0.2.1' } as const; // 0.2.1: make-ups read and written in whole ppm rounded down (Codex B2)
 const CALCINE_SCHEMA = 'civ-sci.lime-calcine/2';
 const CALCINE_EVAL = 'lime-calcine-eval/0.1.0';
 const CALCINE_STEP_MS = 30_000;
@@ -174,7 +174,7 @@ export function calcineStep(req: ScienceStepRequest): ScienceStepResult {
 // Hydration (slaking)
 // ===================================================================================================
 
-export const HYDRATE_PROCESS = { processId: 'p21x_lime_hydrate_test', processVersion: '0.2.0' } as const;
+export const HYDRATE_PROCESS = { processId: 'p21x_lime_hydrate_test', processVersion: '0.2.1' } as const; // 0.2.1: make-ups read and written in whole ppm rounded down (Codex B2)
 const HYDRATE_SCHEMA = 'civ-sci.lime-hydrate/2';
 const HYDRATE_EVAL = 'lime-hydrate-eval/0.1.0';
 // Integration grid for slaking. While the reaction runs, water is shared between reacting and boiling off, which is

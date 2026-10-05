@@ -14,7 +14,13 @@
 // Looking never touches the retort; it is integrated on a fixed 0.25 s grid from the run's start (as the coconut pot).
 // Heat: usedJ is the fuel's dry wood (and charcoal that burns on opening), storedJ the warmth the retort and charge hold
 // above where they started (negative while they cool, zero at the end), the rest lost.
-// Every constant is assumed (params.ts). Not modelled: the heat of the breakdown itself, cracks letting air in, tar
+// 0.1.1 (Codex A1, B1, C1, C2 on 5555989): only an explicit open, an operator stop (the resident takes it out) or a
+// lost retort lets air at the charcoal; an interval of unknown weather stops the run with the pot still closed (the
+// contents as they were at the last known moment, nothing burnt, history incomplete). Charcoal that is not finished
+// (wood left in it) goes back into the retort and keeps the charcoal it already has. Exactly one lot lies in the
+// retort; the fuel lies elsewhere. The retort and the fire pit may not change under a running run.
+// Every constant is assumed (params.ts). Not modelled either: charcoal losing more volatiles when heated again
+// after it formed (its yield is fixed by the temperature it formed at). Not modelled: the heat of the breakdown itself, cracks letting air in, tar
 // re-cracking at high temperature, the size of the pieces, the acids in the wood vinegar (it is kept as water).
 
 import type { Observation, ScienceStepRequest } from '../../world/science-contract';
@@ -25,17 +31,19 @@ import { allFinite, checkCommon, envUsable, failed, fingerprint, finite, intDelt
 import { foodQuality } from './coconut';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const CHARCOAL_PROCESS = { processId: 'p14x_charcoal_tar_retort', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.charcoal-retort/1', EVAL = 'charcoal-retort-eval/0.1.0';
+export const CHARCOAL_PROCESS = { processId: 'p14x_charcoal_tar_retort', processVersion: '0.1.1' } as const;
+// /2 since 0.1.1 (the charcoal already in a charge, the equipment's identity): a /1 run is refused; the host cancels it
+const SCHEMA = 'civ-sci.charcoal-retort/2', EVAL = 'charcoal-retort-eval/0.1.1';
 const RETORT = 'fixture_tar_retort', HEARTH = 'open_fire_pit';
-const CHARGES = ['firewood', 'coconut_shell', 'coconut_husk'];
+const CHARGES = ['firewood', 'coconut_shell', 'coconut_husk', 'charcoal'];
+const COAL = ['char', 'wood_dry', 'ash', 'water'] as const;
 const FINE_MS = 250;
 const FIRE_KG_PER_H = [0.4, 0.8, 1.6] as const;
 const CP = { wood: 1.5, char: 1.0, water: 4.18, ash: 0.8 } as const; // J/(g·K), assumed
 const BULK_G_PER_ML = 0.4; // stacked pieces in the pot, for its capacity only (assumed)
 
 interface RetortData {
-  chargeId: string; chargeMaterial: string; chargeFp: string; fuelId: string; fuelFp: string; location: string; fuelLocation: string;
+  chargeId: string; chargeMaterial: string; chargeFp: string; eqFp: string; char0: number; charredC0: number; fuelId: string; fuelFp: string; location: string; fuelLocation: string;
   retort: { heatCapJPerK: number; uaWPerK: number; heatShare: number; collectShare: number }; maxBurnKgPerH: number;
   startMs: number; lastTo: number; level: number; fireOut: boolean;
   charge0: Composition; woodF: number; waterF: number; evapF: number; charF: number; pyroF: number; tarF: number; tarCollF: number; vinF: number; vinCollF: number;
@@ -64,14 +72,15 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
 
   if (req.state === null && (!retort || !hearth)) return fail(`needs a ${RETORT} on an ${HEARTH}`);
   let d: RetortData;
-  const charge = req.lots.find((l) => d0Charge(l)), fuel = req.lots.find((l) => l !== charge && l.materialId === 'firewood');
-  function d0Charge(l: ScienceStepRequest['lots'][number]) {
-    if (req.state) return l.lotId === (req.state.data as RetortData)?.chargeId;
-    return CHARGES.includes(l.materialId) && retort !== undefined && l.location === retort.equipmentId;
+  const prev = req.state?.data as RetortData | undefined;
+  const inRetort = (l: ScienceStepRequest['lots'][number]) => (prev ? l.location === prev.location : retort !== undefined && l.location === retort.equipmentId);
+  const charge = prev ? req.lots.find((l) => l.lotId === prev.chargeId) : req.lots.find((l) => CHARGES.includes(l.materialId) && inRetort(l));
+  const fuel = req.lots.find((l) => l !== charge && l.materialId === 'firewood');
+  // exactly one lot in the retort (the charge), the fuel outside it (Codex C2): otherwise which is which is not known
+  if (!charge || !fuel || req.lots.length !== 2 || req.lots.filter(inRetort).length !== 1 || inRetort(fuel)) {
+    return fail(`expected two lots: the charge in the retort (firewood, coconut_shell, coconut_husk or unfinished charcoal whose location is the ${RETORT}'s equipmentId) and a firewood lot for the fire, outside it`);
   }
-  if (!charge || !fuel || req.lots.length !== 2) {
-    return fail(`expected two lots: the charge in the retort (firewood, coconut_shell or coconut_husk whose location is the ${RETORT}'s equipmentId) and a firewood lot for the fire`);
-  }
+  const eqFp = JSON.stringify([retort?.equipmentId, retort?.params, hearth?.equipmentId, hearth?.params]);
   if (req.state === null) {
     if (!retort || !hearth) return fail(`needs a ${RETORT} on an ${HEARTH}`);
     const rp = retort.params ?? {};
@@ -79,23 +88,25 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
       return fail(`${RETORT} needs params heatCapJPerK > 0, uaWPerK ≥ 0, heatShare 0..1, capacityMl > 0, collectShare 0..1 (optional)`);
     }
     if (!finite(hearth.params?.maxBurnKgPerH, 0)) return fail(`${HEARTH} params.maxBurnKgPerH must be finite and ≥ 0`);
-    const cc = fuelComp(charge), fc = fuelComp(fuel);
+    const cc = charge.materialId === 'charcoal' ? readCoal(charge) : fuelComp(charge), fc = fuelComp(fuel);
     if (typeof cc === 'string') return fail(cc);
     if (typeof fc === 'string') return fail(fc);
     if (charge.amount.value / 1000 / BULK_G_PER_ML > rp.capacityMl) return fail('the charge does not fit in the retort');
     if (!envUsable(req)) return fail(`a fire is lit only with known weather (environment ${req.environment.source})`);
     const first = req.actions.filter((a) => a.action === 'fire_level').sort((x, y) => x.at - y.at)[0];
     const Ta = req.environment.airTempC!;
-    d = { chargeId: charge.lotId, chargeMaterial: charge.materialId, chargeFp: fingerprint(charge), fuelId: fuel.lotId, fuelFp: fingerprint(fuel),
+    d = { chargeId: charge.lotId, chargeMaterial: charge.materialId, chargeFp: fingerprint(charge), eqFp, char0: cc.char ?? 0, charredC0: charge.quality?.charred_c ?? 0, fuelId: fuel.lotId, fuelFp: fingerprint(fuel),
       location: charge.location, fuelLocation: fuel.location,
       retort: { heatCapJPerK: rp.heatCapJPerK, uaWPerK: rp.uaWPerK, heatShare: rp.heatShare, collectShare: rp.collectShare ?? 0.6 }, maxBurnKgPerH: hearth.params!.maxBurnKgPerH,
       startMs: req.interval.from, lastTo: req.interval.from, level: first?.at === req.interval.from ? (first.params!.level as number) : 1, fireOut: false,
-      charge0: cc, woodF: cc.wood_dry ?? 0, waterF: cc.water ?? 0, evapF: 0, charF: 0, pyroF: 0, tarF: 0, tarCollF: 0, vinF: 0, vinCollF: 0,
+      charge0: cc, woodF: cc.wood_dry ?? 0, waterF: cc.water ?? 0, evapF: 0, charF: cc.char ?? 0, pyroF: 0, tarF: 0, tarCollF: 0, vinF: 0, vinCollF: 0,
       tC: Ta, refC: Ta, maxC: Ta, fuel: fc, burnedMg: 0, cumUsedJ: 0, reportedUsed: 0, reportedStored: 0, outcome: 'running',
       historyComplete: (charge.quality?.history_complete ?? 1) === 1 && (fuel.quality?.history_complete ?? 1) === 1 };
   } else {
     d = structuredClone(req.state.data as RetortData);
     if (d.chargeFp !== fingerprint(charge) || d.fuelFp !== fingerprint(fuel)) return fail('changed-input: a reserved lot changed under a running run');
+    // the retort and the fire may only disappear with a stop that says so (Codex C1)
+    if (req.stop !== 'equipment-lost' && eqFp !== d.eqFp) return fail('changed-input: the retort or the fire pit changed under a running run (send stop equipment-lost when one is lost)');
     if (req.interval.from !== d.lastTo) return fail(`noncontiguous-interval: expected from=${d.lastTo}`);
   }
 
@@ -168,10 +179,12 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
     const woodLeft = Math.min(wood0, Math.round(d.woodF)), P = wood0 - woodLeft;
     let charInt = Math.floor(d.charF), tarAll = Math.floor(d.tarF), tarColl = Math.min(tarAll, Math.floor(d.tarCollF));
     const vinAll = Math.floor(d.vinF), vinColl = Math.min(vinAll, Math.floor(d.vinCollF));
-    let gas = P - charInt - tarAll - vinAll;
-    if (gas < 0) { charInt += gas; gas = 0; } // only with a few mg broken down: the rounding comes out of the charcoal
-    // opened hot, the charcoal catches fire in the air
-    const hot = d.tC - pv('charIgniteC');
+    let gas = P - (charInt - d.char0) - tarAll - vinAll;
+    if (gas < 0) { charInt = Math.max(d.char0, charInt + gas); gas = Math.max(0, P - (charInt - d.char0) - tarAll - vinAll); } // only with a few mg broken down: the rounding comes out of the charcoal
+    // opened hot, the charcoal catches fire in the air: only when it is opened (open, the operator taking it out) or
+    // the retort is lost. Unknown weather opens nothing: the pot stays closed (Codex A1)
+    const opened = known && (openAt !== undefined || req.stop === 'operator' || req.stop === 'equipment-lost');
+    const hot = opened ? d.tC - pv('charIgniteC') : 0;
     burnChar = hot > 0 ? Math.floor(charInt * Math.min(0.6, 0.2 + hot / 500)) : 0;
     charLeft = charInt - burnChar;
     Object.assign(s, { evap, woodLeft, P, charInt, tarAll, tarColl, vinAll, vinColl, gas });
@@ -204,8 +217,9 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (totalMg(coal) > 0) {
     const q: Record<string, number> = {};
     for (const [k, mg] of Object.entries(coal)) q[`x_${k}_ppm`] = Math.floor(((mg ?? 0) * 1e6) / totalMg(coal));
-    res.produced.push({ materialId: s.P > 0 ? 'charcoal' : d.chargeMaterial, amount: { value: totalMg(coal), unit: 'mg' }, into: d.location,
-      quality: s.P > 0 ? { ...q, charred_c: Math.round(d.maxC), history_complete: hist }
+    const isCoal = (coal.char ?? 0) > 0 || d.chargeMaterial === 'charcoal';
+    res.produced.push({ materialId: isCoal ? 'charcoal' : d.chargeMaterial, amount: { value: totalMg(coal), unit: 'mg' }, into: d.location,
+      quality: isCoal ? { ...q, charred_c: Math.max(d.charredC0, s.P > 0 ? Math.round(d.maxC) : 0), history_complete: hist }
         : { ...fuelQualityOf(coal), history_complete: hist } });
   }
   if (s.tarColl) res.produced.push({ materialId: 'wood_tar', amount: { value: s.tarColl, unit: 'mg' }, into: d.location, quality: { x_wood_tar_ppm: 1_000_000, history_complete: hist } });
@@ -234,14 +248,38 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (o2 > 0) res.drawn = [{ materialId: 'o2', amount: { value: o2, unit: 'mg' }, from: 'air' }];
 
   const o = (quantity: string, text: string) => res.observations.push({ at: endAt, channel: 'sight', quantity, text });
-  if (!known) o('fire', '見ていない間に火が落ちていた');
+  if (!known) o('fire', '見ていない間に火が落ちていた。壺は閉じたまま');
   if (d.outcome === 'fuel_exhausted') o('fire', '薪が尽きて、火が小さくなっていった');
   if (burnChar > 0) o('charcoal', '開けたとたん、炭が赤くなって燃え出した');
-  const leftShare = wood0 > 0 ? s.woodLeft / wood0 : 1;
-  o('charcoal', s.P === 0 ? '中身はまだ木のまま' : leftShare > 0.3 ? '茶色い木のかけらのまま。ほとんど炭になっていない'
-    : leftShare > 0.05 ? '外は黒いが、割ると芯が茶色い' : '黒く軽い炭。打つと澄んだ音がする');
+  if (!known) return res; // nobody opened the pot or saw inside it: nothing to say about what is in it
+  const solids = s.woodLeft + charLeft, leftShare = solids > 0 ? s.woodLeft / solids : 0;
+  o('charcoal', s.P === 0 && charLeft === 0 ? '中身はまだ木のまま' : leftShare > 0.5 ? '茶色い木のかけらのまま。ほとんど炭になっていない'
+    : leftShare > 0.02 ? '外は黒いが、割ると芯が茶色い' : '黒く軽い炭。打つと澄んだ音がする');
   if (s.tarColl > 0) o('pot', '下の壺に、黒くねばる液と、酸っぱいにおいの水がたまっていた');
   return res;
+}
+
+/** Read a charcoal lot: x_char, x_wood_dry, x_ash, x_water in whole ppm (written rounded down); the few mg the rounding
+ *  leaves go to the largest part. */
+function readCoal(lot: ScienceStepRequest['lots'][number]): Composition | string {
+  const c: Composition = {};
+  let listed = 0, ppm = 0;
+  for (const [k, v] of Object.entries(lot.quality ?? {})) {
+    const m = /^x_(.+)_ppm$/.exec(k);
+    if (!m) continue;
+    if (!(COAL as readonly string[]).includes(m[1])) return `charcoal ${lot.lotId}: unknown part ${m[1]} (char, wood_dry, ash, water)`;
+    if (!Number.isSafeInteger(v) || v < 0) return `charcoal ${lot.lotId}: x_${m[1]}_ppm must be a whole ppm`;
+    ppm += v;
+    const mg = Math.floor((lot.amount.value * v) / 1e6);
+    if (mg > 0) { c[m[1] as keyof Composition] = mg; listed += mg; }
+  }
+  if (ppm === 0 || ppm > 1e6) return `charcoal ${lot.lotId}: its parts must add up to at most 1000000 ppm`;
+  const rest = lot.amount.value - listed;
+  if (rest > 0) {
+    const big = (Object.keys(c) as (keyof Composition)[]).sort((a, b) => (c[b] ?? 0) - (c[a] ?? 0) || String(a).localeCompare(String(b)))[0];
+    c[big] = (c[big] ?? 0) + rest;
+  }
+  return c;
 }
 
 /** A woody lot handed back untouched by the fire (nothing broke down): in the firewood make-up again. */

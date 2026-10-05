@@ -1,0 +1,29 @@
+{
+  "sourceUrl": "https://www.govinfo.gov/content/pkg/GOVPUB-A13-PURL-gpo186517/pdf/GOVPUB-A13-PURL-gpo186517.pdf",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body; not raw publisher bytes",
+  "facts": {
+    "location": "Printed pp. 1–5: introduction, specimens, pyrolysis procedure, calorimetry, results/Table 1 discussion",
+    "material": "Ponderosa pine cylinders, diameter 1/4 inch, length about 1 inch, mass about 0.5 g; untreated subset distinguished from treated wood.",
+    "conditioning": {
+      "temperature_F": 80,
+      "relative_humidity_percent": 30
+    },
+    "pyrolysis": {
+      "atmosphere": "nitrogen",
+      "temperature_C_range": [
+        240,
+        822
+      ],
+      "replicates_usually": 4
+    },
+    "original_wood_calorimetry": {
+      "heat_released_cal_per_g": 4626,
+      "relative_spread_percent": 0.83,
+      "measurements": 6,
+      "basis": "conditioned untreated wood, not oven-dry wood"
+    },
+    "approximation": "Pyrolysis heat was neglected to infer volatile combustion energy by difference; the introduction cites earlier work for a magnitude below 5% of wood combustion heat."
+  },
+  "calibrationEligible": false
+}

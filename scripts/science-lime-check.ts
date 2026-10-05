@@ -120,7 +120,9 @@ ok(h.end.status === 'completed' && dh.conversion > 0.99, 'the quicklime from ste
   const after = addComp(lotComp(lotOf(h.end)), { water: vap });
   const eb = elementMoles(before), ea = elementMoles(after);
   const worst = Math.max(...(['H', 'O', 'Ca'] as const).map((k) => Math.abs(eb[k] - ea[k]) * 1000));
-  ok(worst < 0.05, 'element balance (H, O, Ca) across quicklime + water → hydrated lime + vapour', `max ${worst.toFixed(4)} mmol, vapour ${vap} mg`);
+  // the lots are read through whole ppm rounded down to whole mg (Codex B2): each read may move under 1 mg per species
+  // into inert_mineral, so two reads of two species allow a few mg (≈ 0.3 mmol of H, the lightest)
+  ok(worst < 0.3, 'element balance (H, O, Ca) across quicklime + water → hydrated lime + vapour (within the whole-mg reading of the lots)', `max ${worst.toFixed(4)} mmol, vapour ${vap} mg`);
   const molLime = (lotComp(quick).lime ?? 0) / 1000 / molarMass('lime');
   const heat = molLime * dh.conversion * -PARAMS.dHHydration.value;
   ok(Math.abs(h.used - heat) <= 1 && h.stored === 0, 'reaction heat reported (sourced −64.47 kJ/mol) all leaves as lost by the end', `${h.used} J vs ${heat.toFixed(1)} J`);

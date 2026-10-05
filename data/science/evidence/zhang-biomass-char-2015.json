@@ -1,0 +1,28 @@
+{
+  "sourceUrl": "https://bioresources.cnr.ncsu.edu/resources/preparation-and-characteristics-of-biomass-char/",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body; not raw publisher bytes",
+  "facts": {
+    "location": "Full article: Experimental, and Results and discussion / Effect of Temperature on Biomass Char Yield (Figure 1 discussion)",
+    "material": "Predominantly pine sawdust from Heilongjiang; this record excludes rice-husk results.",
+    "conditions": {
+      "particle_size_mm": ">1.2",
+      "approximate_initial_water_percent": 5,
+      "apparatus": "sealed crucible in muffle furnace, described as oxygen-free",
+      "heating_rate_C_per_min": 10
+    },
+    "char_yield_percent_raw_material": [
+      {
+        "temperature_C": 600,
+        "yield_percent": 21.11
+      },
+      {
+        "temperature_C": 900,
+        "yield_percent": 16.73
+      }
+    ],
+    "basis": "Residual char mass / raw material mass; do not silently relabel as oven-dry or ash-free yield.",
+    "replicates_and_trace": "No replicate count or raw continuous mass/temperature trace obtained; separate residence-time trials use 20, 30 and 40 min."
+  },
+  "calibrationEligible": false
+}

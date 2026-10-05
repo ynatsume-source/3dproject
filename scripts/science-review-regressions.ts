@@ -201,7 +201,7 @@ console.log('F3  states saved by an older version are refused explicitly, not mi
       ok(r.status === 'failed' && r.consumed.length === 0 && String(r.evidence.notes).startsWith('unsupported-state-schema'), `${name}: an /${v} state is refused as unsupported-state-schema`);
     }
   }
-  ok(FIRE.processVersion === '0.2.0' && CALC.processVersion === '0.2.0' && DRYING_PROCESS.processVersion === '0.3.0', 'process versions: 0.2.0 with state /2, drying 0.3.0 with /3');
+  ok(FIRE.processVersion === '0.2.1' && CALC.processVersion === '0.2.1' && DRYING_PROCESS.processVersion === '0.3.0', 'process versions: firing and lime 0.2.1 with state /2 (0.2.1: whole ppm rounded down, Codex B2), drying 0.3.0 with /3');
   ok(scienceStep({ ...DRY, processVersion: '0.2.0' }).status === 'failed', 'a drying request for 0.2.0 is refused');
   ok(scienceStep({ ...CALC, processVersion: '0.1.0' }).status === 'failed', 'a request for the old process version 0.1.0 is refused');
 }

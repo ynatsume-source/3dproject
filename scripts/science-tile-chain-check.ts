@@ -120,6 +120,31 @@ ok(slaked.end.produced[0].materialId === 'clay_slurry_test' && slaked.end.observ
 ok([orange, dull, aO.s, slaked].every((r) => r.end.observations.every((o) => o.value === undefined)), 'firing and soaking give no numbers; only the balance does');
 
 console.log('4. contract checker');
+console.log('6. Codex B2 on 5555989: what one step hands back, the next reads (whole ppm rounded down)');
+{
+  // shape → dry → fire, from prepared clay whose dry part is all listed (no inert to absorb a rounding)
+  const BENCH: EquipmentView = { equipmentId: 'eq:bench', kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: 'civ-sci-test-2', condition: 1, params: { thicknessMm: 10, widthMm: 50, lengthMm: 50 } };
+  const chain = (mg: number) => {
+    const clay: LotView = { lotId: `lot:pc-${mg}`, materialId: 'prepared_clay', amount: { value: mg, unit: 'mg' }, location: 'site:bench', quality: { water_ppm: 200_000, xd_kaolinite_ppm: 500_000, xd_quartz_ppm: 500_000 } };
+    const shaped = run({ processId: 'p11x_test_tile_shape', processVersion: 'fixture-4', catalogVersion: 'civ-sci-test-2' }, `run:shape-${mg}`, [clay], [BENCH], [0, MIN],
+      { energy: () => [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: 120 }] });
+    const d = run(PROC.dry, `run:dry-${mg}`, [asLot(shaped.end, `lot:green-${mg}`)], [RACK], steps(10, 12), { actions: takeOut });
+    const f = run(PROC.fire, `run:fire-${mg}`, [asLot(d.end, `lot:dry-${mg}`)], [KILN], steps(24, 1), { energy: heat, actions: plan(1, 2, 90) });
+    const k = soak(asLot(f.end, `lot:fired-${mg}`), `soak-${mg}`);
+    return [shaped.end.status, d.end.status, f.end.status, k.end.status].join(' → ');
+  };
+  const a = chain(45_001), b = chain(45_000);
+  ok(a === 'completed → completed → completed → completed' && b === a, 'B2: 45.001 g (and the 45.000 g control) of fully listed clay: shaped, dried, fired and soaked, each step reading what the last handed back', `45.001 g: ${a}`);
+  // a large dry tile fired, then soaked
+  const big: LotView = { lotId: 'lot:big', materialId: 'test_tile_dry', amount: { value: 1_500_000, unit: 'mg' }, location: 'site:x',
+    quality: { water_ppm: 0, xd_kaolinite_ppm: 451_000, xd_quartz_ppm: 528_000, xd_calcite_ppm: 21_000, width_mm: 200, length_mm: 200, thickness_mm: 20, linear_shrink_ppm: 50_000, crack: 0, history_complete: 1 } };
+  const bf = run(PROC.fire, 'run:fire-big', [big], [KILN], steps(36, 1), { energy: heat, actions: plan(1, 2, 90) });
+  const fired = asLot(bf.end, 'lot:big-fired');
+  const bs = run(PROC.soak, 'run:soak-big', [fired, { lotId: 'lot:water-big', materialId: 'process_water', amount: { value: 6_000_000, unit: 'mg' }, location: 'site:basin' }], [BASIN], steps(4, 6), { actions: takeOut });
+  let readBack = false; try { tileComp(fired); readBack = true; } catch { readBack = false; }
+  ok(bf.end.status === 'completed' && readBack && bs.end.status === 'completed', 'B2: a 1.5 kg tile fired, its make-up read back, and soaked', `${bf.end.status} → ${bs.end.status}`);
+}
+
 ok(violations.length === 0, 'validateResult found no violation anywhere in the chain', violations.slice(0, 3).join(' / '));
 
 console.log(`\n${pass} passed, ${fail} failed`);

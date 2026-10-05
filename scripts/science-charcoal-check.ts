@@ -100,6 +100,45 @@ console.log('3. looking, pieces, outages, ends');
   ok(scienceStep({ ...req(0, H, null, []), contract: '0.1.0' }).status === 'failed', 'contract 0.1.x is refused (the fire draws O2)');
 }
 
+console.log('5. Codex review of 5555989 (A1, B1, C1, C2)');
+{
+  // A1: two hours on a medium fire, then an hour of unknown weather with no action and no stop
+  const s2 = burn(2 * H, [[0, 'fire_level', 1]], {}, H);
+  const st2 = s2.last.state, char2 = (st2.data as { charF: number }).charF;
+  const gap = step(req(2 * H, 3 * H, st2, [], {}, 'unknown'));
+  const coal = gap.produced.find((p) => p.materialId === 'charcoal')!;
+  const coalChar = coal.amount.value * coal.quality!.x_char_ppm! / 1e6;
+  const fuelO2 = (gap as Drawn).drawn?.[0]?.amount.value ?? 0;
+  const ref = step(req(2 * H, 2 * H + 1, st2, [], { stop: 'operator' }));  // the same moment, opened by hand (burns)
+  ok(gap.status === 'stopped' && Math.abs(coalChar - Math.floor(char2)) < 2 && gap.observations.length === 1 && /閉じたまま/.test(gap.observations[0].text ?? ''),
+    'A1: an hour nobody can see: the run stops with the pot closed, the charcoal as it was; only the fire is said to have gone out (nobody saw inside)', `${(coalChar / 1000).toFixed(0)} g of char kept`);
+  ok(fuelO2 < ((ref as Drawn).drawn?.[0]?.amount.value ?? 0) && gap.produced.every((p) => p.quality?.history_complete !== 1 || p.materialId === 'firewood' || p.materialId === 'wood_ash'),
+    'A1: no extra O2 is drawn for charcoal that never met the air; the products are marked incomplete', `O2 ${fuelO2} mg vs ${(ref as Drawn).drawn?.[0]?.amount.value} mg when opened hot`);
+  // B1: the low fire's brown pieces and the wood that run handed back go into the next run
+  const low = burn(7 * H, [[0, 'fire_level', 0], [250 * M, 'put_out'], [360 * M, 'open']]);
+  const brown = low.out('charcoal')!, wood = low.last.produced.find((p) => p.materialId === 'firewood' && p.into !== 'eq:retort')!;
+  const again = burn(7 * H, STD, { lots: [
+    { lotId: 'lot:brown', materialId: 'charcoal', amount: brown.amount, location: 'eq:retort', quality: brown.quality },
+    { lotId: 'lot:wood2', materialId: 'firewood', amount: wood.amount, location: 'site:woodpile', quality: wood.quality }] });
+  const done = again.out('charcoal');
+  ok(again.last.status === 'completed' && done && (done.quality!.x_wood_dry_ppm ?? 0) < 20_000 && done.quality!.x_char_ppm! > brown.quality!.x_char_ppm!,
+    'B1: the brown pieces of a low fire go back in with the wood that run returned, and come out as charcoal', `wood ${brown.quality!.x_wood_dry_ppm} → ${done?.quality!.x_wood_dry_ppm ?? 0} ppm`);
+  ok(sum(again.last.consumed) + sum((again.last as Drawn).drawn ?? []) === sum(again.last.produced) + sum(again.last.released), 'B1: the mass still closes with charcoal already in the charge');
+  const twice = burn(7 * H, STD, { lots: [{ lotId: 'lot:done', materialId: 'charcoal', amount: done!.amount, location: 'eq:retort', quality: done!.quality }, FUEL()] });
+  ok(twice.last.status === 'completed' && Math.abs(mg(twice, 'charcoal') - done!.amount.value) <= done!.amount.value * 0.03, 'finished charcoal heated again comes back as charcoal (no more breaks down)');
+  // C2: both lots in the retort is refused; a valid pair in either order gives the same
+  const both = step(req(0, H, null, [], { lots: [CHARGE(), { ...FUEL(), location: 'eq:retort' }] }));
+  ok(both.status === 'failed' && /outside it/.test(String(both.evidence.notes)), 'C2: both lots in the retort: refused (which is the fuel is not known)');
+  const swapped = burn(7 * H, STD, { lots: [FUEL(), CHARGE()] });
+  ok(JSON.stringify(swapped.last.produced) === JSON.stringify(good.last.produced), 'C2: a valid pair listed in the other order gives the same');
+  // C1: the retort swapped or gone without a stop that says so
+  const s1 = step(req(0, H, null, [[0, 'fire_level', 1]]));
+  ok(step(req(H, 2 * H, s1.state, [], { equipment: [RETORT({ heatShare: 0 }), PIT] })).status === 'failed' && step(req(H, 2 * H, s1.state, [], { equipment: [PIT] })).status === 'failed',
+    'C1: the retort changed or missing under a running run, with no stop: refused');
+  const old = scienceStep(req(H, 2 * H, { schema: 'civ-sci.charcoal-retort/1', data: {} }, []));
+  ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)), 'a /1 run (from 0.1.0) is refused: the host cancels it and releases its lots');
+}
+
 console.log('4. requests that are refused');
 {
   const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));

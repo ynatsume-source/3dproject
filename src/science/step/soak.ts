@@ -10,7 +10,7 @@ import { pv } from '../params';
 import { dehydroxExtent, dryMg } from '../physics';
 import { checkCommon, contractExtras, failed, fingerprint, tileComp, tileQuality } from './common';
 
-export const SOAK_PROCESS = { processId: 'm01x_tile_soak_test', processVersion: '0.2.0' } as const;
+export const SOAK_PROCESS = { processId: 'm01x_tile_soak_test', processVersion: '0.2.1' } as const; // 0.2.1: tile make-ups read and written in whole ppm rounded down (Codex B2)
 const SCHEMA = 'civ-sci.tile-soak/2';
 const EVAL = 'tile-soak-eval/0.1.0';
 const UPTAKE_TAU_S = 2 * 3600; // assumed: most of the cold-soak uptake within a few hours

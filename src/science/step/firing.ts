@@ -14,7 +14,7 @@ import { GLOW_TARGET_C, PACE_K_PER_H } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, finite, fingerprint, intDelta, intDeltaFloor, offerPowerW, subStepEnd, tileComp } from './common';
 import { advanceWare, settleWare, type WareState } from './kiln-ware';
 
-export const FIRING_PROCESS = { processId: 'p13x_test_tile_fire', processVersion: '0.2.0' } as const;
+export const FIRING_PROCESS = { processId: 'p13x_test_tile_fire', processVersion: '0.2.1' } as const; // 0.2.1: tile make-ups read and written in whole ppm rounded down (Codex B2)
 const SCHEMA = 'civ-sci.tile-fire/2';
 const EVAL = 'tile-fire-eval/0.1.0';
 const STEP_MS = 30_000;
