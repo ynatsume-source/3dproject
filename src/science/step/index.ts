@@ -13,6 +13,7 @@ import { barometerStep, BAROMETER_PROCESS } from './barometer';
 import { slakeStep, SLAKE_PROCESS } from './slake';
 import { kneadStep, KNEAD_PROCESS } from './knead';
 import { charcoalStep, CHARCOAL_PROCESS } from './charcoal';
+import { leakTestStep, LEAK_TEST_PROCESS, tarSealStep, TAR_SEAL_PROCESS } from './vessel';
 import { coconutBoilStep, coconutMilkStep, COCONUT_BOIL_PROCESS, COCONUT_MILK_PROCESS } from './coconut';
 
 const PROCESSES: Record<string, ScienceStep> = {
@@ -29,6 +30,8 @@ const PROCESSES: Record<string, ScienceStep> = {
   [COCONUT_MILK_PROCESS.processId]: coconutMilkStep,
   [COCONUT_BOIL_PROCESS.processId]: coconutBoilStep,   // contract 0.2.x only: the fire draws O2
   [CHARCOAL_PROCESS.processId]: charcoalStep,          // contract 0.2.x only
+  [TAR_SEAL_PROCESS.processId]: tarSealStep,           // contract 0.2.x only (the warming fire)
+  [LEAK_TEST_PROCESS.processId]: leakTestStep,
 };
 
 export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepResult => {

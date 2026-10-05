@@ -147,6 +147,17 @@ export const PARAMS = {
   pyroWaterYield: P('pyroWaterYield', 0.2, 'kg/kg(dry)', 'assumed', [], '分解でできる水（木酢液の水）'),
   charLhv: P('charLhv', 30e6, 'J/kg', 'assumed', [], '炭の発熱量（熱いうちに開けて燃えた分の熱）'),
   charIgniteC: P('charIgniteC', 300, '°C', 'assumed', [], 'これより熱いうちに空気に触れると炭が燃え出す'),
+  // the sealed vessel (step/vessel.ts): all assumed, no source read yet
+  tarCoverRefWarmGm2: P('tarCoverRefWarmGm2', 150, 'g/m2', 'assumed', [], '温めた器に塗ったタールが細かい穴をふさぐ目安（1 − e^(−塗った量/これ)）'),
+  tarCoverRefColdGm2: P('tarCoverRefColdGm2', 500, 'g/m2', 'assumed', [], '冷たいまま塗ったとき（タールが固くて穴に入らない）'),
+  sealPlugTarG: P('sealPlugTarG', 5, 'g', 'assumed', [], '口を栓とタールで封じるのに使うタール'),
+  warmWoodG: P('warmWoodG', 300, 'g', 'assumed', [], '器とタールを焚き火で温めるのに燃やす薪'),
+  vesselHandSeconds: P('vesselHandSeconds', 900, 's', 'assumed', [], 'タールを塗って封じる手間（15分）'),
+  vesselHandPowerW: P('vesselHandPowerW', 15, 'W', 'assumed', [], 'その手の仕事率'),
+  seepRefGPerDay: P('seepRefGPerDay', 40, 'g/day', 'assumed', [], '吸水率12%・500 mL の素焼きの器から、28 °C・湿度75%の日陰でしみ出して乾く水（一日あたり）'),
+  airLeakRefH: P('airLeakRefH', 2, 'h', 'assumed', [], '吸水率12%・何も塗らない器を封じたとき、中の空気が外と入れ替わる時定数'),
+  wallUptakeTauS: P('wallUptakeTauS', 7200, 's', 'assumed', [], '水を入れた器の壁が水を吸う時定数'),
+  tarSoftC: P('tarSoftC', 45, '°C', 'assumed', [], '木タールがやわらかくなって垂れ始める温度（日なたの器）'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),
