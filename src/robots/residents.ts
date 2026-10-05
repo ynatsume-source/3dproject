@@ -1598,6 +1598,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the one who is out and about closes the gap once they have spotted each other
   /** Has it learnt, from what came of it, that what others tell it is of use? (ADR 0004, addendum 2026-10-04) */
   const keen = (r: Resident) => (r.stats.talkUse ?? 0) >= 0.3;
+  /** How much what `o` has told `r` has paid, as `r` has learnt it (its value of 'heard from o': agent/values.ts). */
+  const trust = (r: Resident, o: Resident) => { const a = agentOf(r), v = a?.values.m.get(`heard:${o.id}`); return a && v ? a.values.value(v) : 0; };
   function checkMeetings(fast: boolean) {
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
@@ -1608,8 +1610,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (out here, away from the fire, they stop for each other only to identify the first time they come face to
       // face — the custom — or when one has learnt that what it hears from others is of use, and goes over for it)
       if (!keen(a) && !keen(b) && (bd.stage > 0 || d > 3.2)) continue;
-      if (d > 3.2) {   // spotted, by one that has found talking pays: walk (or paddle) over
+      if (d > 3.2) {   // spotted, by one that has found talking pays: walk (or paddle) over — more surely to one whose word has paid
         const [m, o] = keen(a) ? [a, b] : [b, a];
+        if (trust(m, o) < 0.2 && Math.random() > 0.3) { bd.last = clockMs; continue; }
         keep(m); m.task = { kind: 'approach', x: o.pos.x, z: o.pos.z, act: 'walk', dur: 60, t: 0, arrived: false, wet: m.sp.swims, data: o.id };
         continue;
       }
