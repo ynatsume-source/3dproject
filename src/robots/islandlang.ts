@@ -7,7 +7,15 @@
 // Sounds: the vowels a i u e o, alone or after one of p t k m n s h l w. Words are runs of those syllables.
 
 export type Tok = string;                    // a word (syllables, romanized) or the marks '.' and ','
-export interface Said { isl: Tok[]; ja: string }
+export interface Said { isl: Tok[]; ja: string; en: string }
+
+/** The language of what is shown under the island's words: Japanese, English, or none (the letters alone). */
+export type SubLang = 'ja' | 'en' | 'none';
+const SUB_KEY = 'seaglass.subLang';
+export function subLang(): SubLang { try { const v = localStorage.getItem(SUB_KEY); return v === 'en' || v === 'none' ? v : 'ja'; } catch { return 'ja'; } }
+export function setSubLang(v: SubLang) { try { localStorage.setItem(SUB_KEY, v); } catch { /* ignore */ } }
+/** What a line means, in the chosen language ('' for none). */
+export const subtitle = (m: { ja: string; en?: string | null }, lang: SubLang = subLang()) => (lang === 'none' ? '' : lang === 'en' ? m.en || m.ja : m.ja);
 
 /* ---------- words ---------- */
 export const LEX = {
@@ -25,7 +33,7 @@ export const LEX = {
   // doing
   build: 'motu', gather: 'tule', measure: 'semi', swim: 'ana', put: 'pila', pick: 'tolu', compare: 'tasu',
   // small words
-  of: 'ne', there: 'ka', to: 'to', from: 'ma', at: 'ma', with: 'weko', me: 'na', metre: 'meto', percent: 'pa', next: 'neka', same: 'hono',
+  of: 'ne', there: 'ka', to: 'to', from: 'ma', at: 'ni', with: 'weko', me: 'na', metre: 'meto', percent: 'pa', next: 'neka', same: 'hono',
 } as const;
 type Key = keyof typeof LEX;
 const w = (k: Key) => LEX[k];
@@ -89,53 +97,57 @@ export function glyphs(toks: Tok[], cls = 'isl') {
 
 /* ---------- what is said: one meaning, its words and its subtitle ---------- */
 const NAME_JA: Record<string, string> = { dot: 'ドット', rakko: 'ラッコ', kame: 'カメマル', lantern: 'ランタン' };
-const ROLE: Record<string, { isl: Tok[]; ja: string }> = {
+const NAME_EN: Record<string, string> = { dot: 'Dot', rakko: 'Rakko', kame: 'Kamemaru', lantern: 'Lantern' };
+const ROLE: Record<string, { isl: Tok[]; ja: string; en: string }> = {
   // (what each is for, as ADR 0006 has it: Dot widens the world — its map; Lantern lights the night — fire and what it learns of it)
-  dot: { isl: [w('map'), w('build')], ja: '地図の作成' }, rakko: { isl: [w('shell'), w('gather')], ja: '貝殻の収集' },
-  kame: { isl: [w('place'), w('measure')], ja: '位置の測量' }, lantern: { isl: [w('fire'), w('measure')], ja: '火と灯りの研究' },
+  dot: { isl: [w('map'), w('build')], ja: '地図の作成', en: 'making the map' }, rakko: { isl: [w('shell'), w('gather')], ja: '貝殻の収集', en: 'collecting shells' },
+  kame: { isl: [w('place'), w('measure')], ja: '位置の測量', en: 'surveying places' }, lantern: { isl: [w('fire'), w('measure')], ja: '火と灯りの研究', en: 'studying fire and light' },
 };
 const nameW = (id: string) => (LEX as Record<string, string>)[id] ?? id;
 /** One of the values a resident reports: hut 3 of 24, shells 5, map 30 %. */
 export interface Count { what: 'hut' | 'harvest' | 'shell' | 'full' | 'notes' | 'map' | 'cairn' | 'isle'; n: number; of?: number; pct?: boolean }
 const COUNT_JA: Record<Count['what'], string> = { hut: '小屋', harvest: '収穫', shell: '貝殻', full: 'おなか', notes: '記録', map: '地図', cairn: '目印', isle: '見えた島' };
-const ITEM: Record<string, { k: Key; ja: string }> = { wood: { k: 'wood', ja: '流木' }, shell: { k: 'shell', ja: '貝殻' }, stone: { k: 'stone', ja: '石' } };
+const COUNT_EN: Record<Count['what'], string> = { hut: 'hut', harvest: 'harvest', shell: 'shells', full: 'full', notes: 'records', map: 'map', cairn: 'cairns', isle: 'islands seen' };
+const ITEM: Record<string, { k: Key; ja: string; en: string }> = { wood: { k: 'wood', ja: '流木', en: 'a piece of driftwood' }, shell: { k: 'shell', ja: '貝殻', en: 'a shell' }, stone: { k: 'stone', ja: '石', en: 'a stone' } };
 const DRIFT: Record<string, Key> = { 'ヤシの実': 'coconut', '軽石': 'pumice', '大きな骨のかけら': 'bone', 'モダマの種': 'seabean' };
+const DRIFT_EN: Record<string, string> = { 'ヤシの実': 'a coconut', '軽石': 'a piece of pumice', '大きな骨のかけら': 'a piece of a large bone', 'モダマの種': 'a sea bean' };
 
 export const SAY = {
   /** The custom, the first time two meet: who it is, and what it is for. */
   identify(id: string): Said {
-    return { isl: [w('identify'), nameW(id), ',', w('role'), ...ROLE[id].isl, '.'], ja: `識別：${NAME_JA[id]}。役割：${ROLE[id].ja}` };
+    return { isl: [w('identify'), nameW(id), ',', w('role'), ...ROLE[id].isl, '.'], ja: `識別：${NAME_JA[id]}。役割：${ROLE[id].ja}`, en: `Identify: ${NAME_EN[id]}. Role: ${ROLE[id].en}.` };
   },
   /** How far it has got, in its own numbers. */
   report(counts: Count[]): Said {
-    const isl: Tok[] = [w('report')], ja: string[] = [];
+    const isl: Tok[] = [w('report')], ja: string[] = [], en: string[] = [];
     counts.forEach((c, i) => {
       if (i) isl.push(',');
       isl.push(c.what === 'isle' ? w('island') : w(c.what), num(c.n));
       if (c.of !== undefined) isl.push(w('of'), num(c.of));
       if (c.pct) isl.push(w('percent'));
       ja.push(`${COUNT_JA[c.what]} ${c.n}${c.of !== undefined ? `/${c.of}` : c.pct ? '%' : c.what === 'shell' ? '個' : c.what === 'notes' ? '件' : c.what === 'isle' ? 'つ' : ''}`);
+      en.push(`${COUNT_EN[c.what]} ${c.n}${c.of !== undefined ? `/${c.of}` : c.pct ? '%' : ''}`);
     });
     isl.push('.');
-    return { isl, ja: `報告：${ja.join('、')}` };
+    return { isl, ja: `報告：${ja.join('、')}`, en: `Report: ${en.join(', ')}.` };
   },
   /** Where something lies that the other gathers (to: said to that one, at a gathering). */
   share(kind: string, metres: number, to: string, atFire = false): Said {
     const it = ITEM[kind] ?? ITEM.wood, m = Math.round(metres);
     return atFire
-      ? { isl: [w('share'), nameW(to), w('to'), ',', w(it.k), w('there'), ',', num(m), w('metre'), '.'], ja: `共有：${NAME_JA[to]}へ。${it.ja}が1つある（約${m}m）` }
-      : { isl: [w('share'), w(it.k), w('there'), ',', nameW(to), w('from'), num(m), w('metre'), '.'], ja: `共有：${it.ja}が1つある（${NAME_JA[to]}から約${m}m）` };
+      ? { isl: [w('share'), nameW(to), w('to'), ',', w(it.k), w('there'), ',', num(m), w('metre'), '.'], ja: `共有：${NAME_JA[to]}へ。${it.ja}が1つある（約${m}m）`, en: `Share, to ${NAME_EN[to]}: there is ${it.en} (about ${m} m).` }
+      : { isl: [w('share'), w(it.k), w('there'), ',', nameW(to), w('from'), num(m), w('metre'), '.'], ja: `共有：${it.ja}が1つある（${NAME_JA[to]}から約${m}m）`, en: `Share: there is ${it.en}, about ${m} m from ${NAME_EN[to]}.` };
   },
   /** Something the sea brought, picked up and put on the shelf. */
   found(thingJa: string): Said {
     const k = DRIFT[thingJa];
-    return { isl: [w('found'), ',', w('beach'), w('at'), k ? w(k) : w('stone'), w('pick'), ',', w('shelf'), w('put'), '.'], ja: `発見：浜で${thingJa}を拾った。棚に置いた` };
+    return { isl: [w('found'), ',', w('beach'), w('at'), k ? w(k) : w('stone'), w('pick'), ',', w('shelf'), w('put'), '.'], ja: `発見：浜で${thingJa}を拾った。棚に置いた`, en: `Found: picked up ${DRIFT_EN[thingJa] ?? 'something'} on the beach. Put it on the shelf.` };
   },
-  proposePier(): Said { return { isl: [w('propose'), ',', w('pier'), w('with'), w('build'), ',', w('place'), w('me'), w('measure'), '.'], ja: '提案：桟橋を共同で作る。位置は僕が測る' }; },
+  proposePier(): Said { return { isl: [w('propose'), ',', w('pier'), w('with'), w('build'), ',', w('place'), w('me'), w('measure'), '.'], ja: '提案：桟橋を共同で作る。位置は僕が測る', en: 'Proposal: we build a pier together. I will measure the place.' }; },
   agreePier(id: string): Said {
-    return id === 'dot' ? { isl: [w('agree'), ',', w('plank'), w('build'), '.'], ja: '了承：板を作る' }
-      : id === 'rakko' ? { isl: [w('agree'), ',', w('post'), w('swim'), w('put'), '.'], ja: '了承：柱を泳いで立てる' }
-        : { isl: [w('agree'), ',', w('base'), w('stone'), w('gather'), '.'], ja: '了承：土台の石を運ぶ' };
+    return id === 'dot' ? { isl: [w('agree'), ',', w('plank'), w('build'), '.'], ja: '了承：板を作る', en: 'Agreed: I will make the planks.' }
+      : id === 'rakko' ? { isl: [w('agree'), ',', w('post'), w('swim'), w('put'), '.'], ja: '了承：柱を泳いで立てる', en: 'Agreed: I will swim the posts into place.' }
+        : { isl: [w('agree'), ',', w('base'), w('stone'), w('gather'), '.'], ja: '了承：土台の石を運ぶ', en: 'Agreed: I will carry the stones for the base.' };
   },
-  starsRecorded(): Said { return { isl: [w('record'), ',', w('star'), w('book'), w('put'), ',', w('next'), w('night'), w('same'), w('compare'), '.'], ja: '記録：星空を手帖に記録した。次の夜に同じ条件で比べる' }; },
+  starsRecorded(): Said { return { isl: [w('record'), ',', w('star'), w('book'), w('put'), ',', w('next'), w('night'), w('same'), w('compare'), '.'], ja: '記録：星空を手帖に記録した。次の夜に同じ条件で比べる', en: 'Record: wrote down the stars in my notebook. Next night I will compare them the same way.' }; },
 };

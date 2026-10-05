@@ -5,10 +5,11 @@
 //  3 only question words begin with 'ha' (and the older words that were there first)
 //  4 the vocabulary is about the size planned (some 1,200 words) and no word is longer than four syllables
 //  5 every example sentence renders: each id is a word, and the sentence ends with a mark
+//  6 every line the island says has its English too, and 'at' is now the grammar's ni (found on the beach: mau ni)
 // Usage: npx tsx scripts/lumau-check.ts
 import { lexicon, DIGITS } from '../src/robots/lumau/lexicon';
 import { EXAMPLES, render } from '../src/robots/lumau/grammar';
-import { LEX, roman } from '../src/robots/islandlang';
+import { LEX, SAY, roman, subtitle } from '../src/robots/islandlang';
 
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -48,6 +49,12 @@ for (const x of EXAMPLES) {
 }
 want('5 examples', broken.length === 0, broken.join(' / ') || `${EXAMPLES.length}`);
 if (!broken.length) for (const x of EXAMPLES.slice(0, 3)) console.log(`   ${roman(render(x.ids))}  ${x.ja}`);
+
+const said = [SAY.identify('dot'), SAY.identify('rakko'), SAY.report([{ what: 'hut', n: 3, of: 24 }, { what: 'map', n: 30, pct: true }]), SAY.share('wood', 12, 'rakko'), SAY.share('shell', 5, 'dot', true),
+  SAY.found('ヤシの実'), SAY.proposePier(), SAY.agreePier('dot'), SAY.agreePier('rakko'), SAY.agreePier('lantern'), SAY.starsRecorded()];
+const noEn = said.filter((m) => !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en));
+want('6 English for every line', noEn.length === 0, noEn.map((m) => m.ja).join(' / ') || `${said.length} lines`);
+want('6 at is ni', roman(SAY.found('ヤシの実').isl).includes('mau ni') && subtitle(SAY.found('軽石'), 'en').startsWith('Found:'), roman(SAY.found('ヤシの実').isl));
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
 console.log('all ok');

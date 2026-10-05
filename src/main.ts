@@ -1,5 +1,6 @@
 // Utsushiyo (formerly Seaglass; storage keys keep the old name): pick a sea on the globe, dive, and drift with the drone. The sim clock lights every sea
 // by its real sky; one click jumps to dawn / noon / dusk / night, and time can run faster than real.
+import { subLang, setSubLang, type SubLang } from './robots/islandlang';
 import { initAnalytics, track } from './analytics';
 import * as THREE from 'three';
 import './styles.css';
@@ -2561,6 +2562,11 @@ $('btnManual').onclick = () => setMode('manual');
 $('btnMode').onclick = () => { endOpening(false); tourQ = []; setMode(drone.mode === 'manual' || visit ? 'auto' : 'manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
+// what is shown under the residents' words in their bubbles (src/robots/islandlang.ts): Japanese, English, or the letters alone
+{ const LANG_LABEL: Record<SubLang, string> = { ja: '日本語', en: 'English', none: 'なし（島の文字だけ）' }, ORDER: SubLang[] = ['ja', 'en', 'none'];
+  const show = () => { $('btnSubLang').textContent = `住人の言葉の訳：${LANG_LABEL[subLang()]}`; };
+  $('btnSubLang').onclick = () => { setSubLang(ORDER[(ORDER.indexOf(subLang()) + 1) % ORDER.length]); show(); };
+  show(); }
 setCaption(captionOn);
 $('btnView').onclick = () => setView(viewMode === 'chase' ? 'fpv' : 'chase');
 setView(viewMode);

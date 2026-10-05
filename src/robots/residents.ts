@@ -22,7 +22,7 @@ import { creatureKit, type CMats, type Food } from './creatures';
 import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
-import { SAY, glyphs, kana, type Count, type Said, type Tok } from './islandlang';
+import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './islandlang';
 import { islandDate, islandWait, islandWeather, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
@@ -164,7 +164,7 @@ const SPECS: Spec[] = [
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
   opt?: string; failed?: Outcome; reported?: boolean; label?: string }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
-interface Line { who: string; text: string; isl?: Tok[] }
+interface Line { who: string; text: string; isl?: Tok[]; en?: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number; shares: { from: Resident; to: Resident; ob: Observation }[] }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
 // eye / look: where its eyes are and which way its head faces, from the model as it is drawn (its turn, nod and
@@ -178,7 +178,7 @@ export interface Resident {
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
   hunger: number; sleepy: number; meal: Record<string, number>; under: number;
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
-  talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null;
+  talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
@@ -367,7 +367,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const storm = () => !!wxNow?.typhoon;
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0 && !storm();  // on the way / sitting round it (not in a typhoon: the custom waits)
   let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0, lastFireAt = 0;
-  const fireQueue: { who: string; line: string; isl?: Tok[] }[] = [];
+  const fireQueue: { who: string; line: string; isl?: Tok[]; en?: string }[] = [];
   const fireUsed = new Set<string>();
   const atFire = new Set<string>();
 
@@ -1274,7 +1274,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast) res.onEvent(tk.kind, `${r.v.name}：${result.text}`, r);
         if (tk.kind === 'study-share') {
           const c = heading('ランタンの星の手帖');
-          { const m = SAY.starsRecorded(); say(r, m.ja, c, fast, m.isl); }
+          { const m = SAY.starsRecorded(); say(r, m.ja, c, fast, m.isl, m.en); }
         }
       }
       r.task = null;
@@ -1747,7 +1747,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const bd = bonds[pair(a.id, b.id)];
     const lines: Line[] = [], shares: Talk['shares'] = [];
     const stage = bd.stage;
-    const line = (r: Resident, m: Said) => lines.push({ who: r.id, text: m.ja, isl: m.isl });
+    const line = (r: Resident, m: Said) => lines.push({ who: r.id, text: m.ja, isl: m.isl, en: m.en });
     if (stage === 0) for (const r of [a, b]) line(r, SAY.identify(r.id));
     else {
       for (const r of [a, b]) line(r, SAY.report(countsOf(r)));
@@ -1791,7 +1791,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!line) { endTalk(tk); return; }
     const speaker = byId[line.who], other = speaker === tk.a ? tk.b : tk.a;
     if (tk.t === dt || speaker.saying !== line.text) {
-      other.saying = ''; say(speaker, line.text, tk.conv, fast, line.isl);
+      other.saying = ''; say(speaker, line.text, tk.conv, fast, line.isl, line.en);
     }
     // face each other
     for (const [r, o] of [[tk.a, tk.b], [tk.b, tk.a]] as Resident[][]) {
@@ -2264,7 +2264,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           v.project(camera);
           const on = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1 && d < 45;
           el.style.opacity = on ? '1' : '0';
-          if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; if (el.dataset.t !== r.saying) { el.dataset.t = r.saying; el.innerHTML = `<b>${r.v.name}</b>${r.sayIsl ? `${glyphs(r.sayIsl)}<i class="ln">${kana(r.sayIsl)}</i><span class="sub">${r.saying}</span>` : r.saying}`; } }
+          if (on) { el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w).toFixed(0)}px, ${((-v.y * 0.5 + 0.5) * h).toFixed(0)}px) translate(-50%, -100%)`; const sub = r.sayIsl ? subtitle({ ja: r.saying, en: r.sayEn }) : r.saying, key = r.saying + '|' + sub;
+            if (el.dataset.t !== key) { el.dataset.t = key; el.innerHTML = `<b>${r.v.name}</b>${r.sayIsl ? `${glyphs(r.sayIsl)}${sub ? `<span class="sub">${sub}</span>` : ''}` : r.saying}`; } }   // (the bubble: who, the island's letters, and under them what it means in the chosen language; no reading — owner's decision)
         } else el.style.opacity = '0';
       }
       // (their small green numbers: above them, drifting up, gone in a few seconds)
@@ -2286,8 +2287,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
-  function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[]) {
-    r.saying = text; r.sayT = 0; r.sayIsl = isl ?? null;
+  function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[], en?: string) {
+    r.saying = text; r.sayT = 0; r.sayIsl = isl ?? null; r.sayEn = en ?? null;
     talks.push({ at: clockMs, who: r.id, text, conv }); if (talks.length > 300) talks.shift();
     if (!fast) res.onSay(r, text);
   }
@@ -2319,10 +2320,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (seated.length >= 2 && !fireSaid) {
       fireSaid = true; res.onEvent('fire', '焚き火の会が始まった', seated[0]);
       const found = village.treasures.filter((t) => t.at > lastFireAt);
-      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) { const m = SAY.found(t.what); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl }); } }
+      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) { const m = SAY.found(t.what); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); } }
       if (village.pier === 'none' && village.fires >= 2) {
-        { const m = SAY.proposePier(); fireQueue.push({ who: 'kame', line: m.ja, isl: m.isl }); }
-        for (const id of ['dot', 'rakko', 'lantern']) { const m = SAY.agreePier(id); fireQueue.push({ who: id, line: m.ja, isl: m.isl }); }
+        { const m = SAY.proposePier(); fireQueue.push({ who: 'kame', line: m.ja, isl: m.isl, en: m.en }); }
+        for (const id of ['dot', 'rakko', 'lantern']) { const m = SAY.agreePier(id); fireQueue.push({ who: id, line: m.ja, isl: m.isl, en: m.en }); }
         fireQueue.push({ who: '', line: 'pier' });   // (then it is agreed)
       }
     }
@@ -2335,7 +2336,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const w = byId[q.who]; if (!w || !seated.includes(w)) continue;
       for (const r of seated) if (r !== w) r.saying = '';
       if (!fireConv) fireConv = heading('焚き火の会');
-      say(w, q.line, fireConv, fast, q.isl); lastSpeaker = w.id;
+      say(w, q.line, fireConv, fast, q.isl, q.en); lastSpeaker = w.id;
       return;
     }
     // each reports once: its progress and the last thing it did; then what it can pass on to another; then quiet
@@ -2346,7 +2347,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const f of seated) for (const t of seated) {
         if (f === t) continue;
         const ob = tip(f, t); if (!ob) continue;
-        { const m = SAY.share(ob.kind, ob.dist, t.id, true); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl }); }
+        { const m = SAY.share(ob.kind, ob.dist, t.id, true); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); }
         agentOf(t)?.hear(ob, f.id, `${f.v.name}によると、${ob.label}が${Math.round(ob.dist)}mほど先にある`, clockMs);
         t.diary.push({ at: clockMs, text: `焚き火の会で、${f.v.name}から${ob.label}の位置を聞いた（約${Math.round(ob.dist)}m）`, key: 'met', with: f.id });
       }
@@ -2355,7 +2356,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     fireUsed.add(who.id); fireLines++; lastSpeaker = who.id;
     for (const r of seated) if (r !== who) r.saying = '';
     if (!fireConv) fireConv = heading('焚き火の会');
-    { const m = SAY.report(countsOf(who)); say(who, m.ja, fireConv, fast, m.isl); }
+    { const m = SAY.report(countsOf(who)); say(who, m.ja, fireConv, fast, m.isl, m.en); }
   }
   // Dot at work, the piece flying into place, the chips, a newly fitted piece settling
   let fieldT = 0;
