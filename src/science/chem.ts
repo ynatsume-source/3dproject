@@ -25,6 +25,8 @@ export type SpeciesId =
   | 'o2'
   | 'wood_dry'       // dry wood, idealised as CH1.44O0.66 per carbon (a composition proxy, not a molecule)
   | 'ash'            // wood ash: mixture, composition not measured
+  | 'coconut_fat'    // coconut oil, idealised as trilaurin C39H74O6 (lauric acid is about half of it)
+  | 'plant_solids'   // the rest of a plant food's dry matter (protein, sugars, fibre, minerals): mixture, not measured
   | 'inert_mineral'; // illite/feldspar/iron oxides lumped: mixture, treated as non-reacting in v0
 
 export interface SpeciesDef {
@@ -50,6 +52,9 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
   wood_dry: { id: 'wood_dry', label: '乾いた木質（CH1.44O0.66 で近似）', formula: { C: 1, H: 1.44, O: 0.66 },
     note: '木は混合物。燃焼の元素収支を取るための組成近似で、分子ではない' },
   ash: { id: 'ash', label: '灰（組成未測定）', formula: null },
+  coconut_fat: { id: 'coconut_fat', label: 'ヤシの脂（トリラウリン C39H74O6 で近似）', formula: { C: 39, H: 74, O: 6 },
+    note: 'ヤシ油は脂肪酸の混合物（ラウリン酸がおよそ半分）。燃える・焦げるの元素収支のための近似で、分子ではない' },
+  plant_solids: { id: 'plant_solids', label: '植物の食べ物の脂以外の固形分（たんぱく質・糖・繊維・ミネラル）', formula: null },
   inert_mineral: { id: 'inert_mineral', label: 'その他の鉱物（一括、v0では反応させない）', formula: null,
     note: 'イライト等の脱水や鉄の酸化還元はv0では扱わない' },
 };

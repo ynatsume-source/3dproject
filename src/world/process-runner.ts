@@ -114,6 +114,9 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
   } else r.status = res.status;
   return { ok: true, status: r.status, produced, observations: res.observations };
 }
+/** End a run without settling anything (its process version is gone, the world gave it up): what it held is free
+ *  again, unconsumed (lots settle only when a run ends by the step's own word). */
+export function abortRun(L: Ledger, runId: Id, why: string) { const r = L.runs[runId]; if (r && ['starting', 'running', 'needs-input'].includes(r.status)) { end(L, r, 'stopped', why); L.world.worldVersion++; } }
 function end(L: Ledger, r: Run, status: Run['status'], why?: string) {
   r.status = status; if (why) r.why = why;
   for (const id of r.lotIds) if (L.lots[id]?.reservedBy === r.runId) delete L.lots[id].reservedBy;

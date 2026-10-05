@@ -2,6 +2,7 @@
 
 import type { LotView, ScienceStepRequest, ScienceStepResult, ScienceState } from '../../world/science-contract';
 import { SPECIES, totalMg, type Composition, type SpeciesId } from '../chem';
+import { pv } from '../params';
 
 export const SCIENCE_CATALOG_VERSION = 'civ-sci-test-2';
 
@@ -139,11 +140,23 @@ export function allFinite(x: unknown): boolean {
 /** Environment values that a step may integrate with: known source, finite and physically plausible. */
 export function envUsable(req: ScienceStepRequest): boolean {
   const e = req.environment;
-  if (e.source !== 'live' && e.source !== 'simulation') return false;
+  // live: measured now; simulation: made for the test world; record: measured, replayed (ADR 0006: the island's weather)
+  if (e.source !== 'live' && e.source !== 'simulation' && e.source !== ('record' as string)) return false;
   if (!finite(e.airTempC, -60, 70)) return false;
   if (e.humidity !== undefined && !finite(e.humidity, 0, 1)) return false;
   if (e.windMs !== undefined && !finite(e.windMs, 0, 80)) return false;
+  const h = (e as { windHeightM?: number }).windHeightM;
+  if (h !== undefined && !finite(h, 1, 300)) return false;
   return true;
+}
+
+/** The wind as at 10 m above the ground: a measured wind is given with the height it was measured at (windHeightM,
+ *  default 10 m) and brought to 10 m along a log profile over the island's ground (windRoughnessM, assumed). */
+export function wind10m(req: ScienceStepRequest): number {
+  const e = req.environment, v = e.windMs ?? 0, h = (e as { windHeightM?: number }).windHeightM ?? 10;
+  if (h === 10) return v;
+  const z0 = pv('windRoughnessM');
+  return v * Math.log(10 / z0) / Math.log(h / z0);
 }
 
 /**

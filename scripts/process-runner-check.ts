@@ -27,7 +27,7 @@ function world(): Ledger {
 }
 const sim = (at: number) => ({ sampleId: `env:sim:${at}`, source: 'simulation' as const, effectiveAt: at });
 const hands = (from: number, to: number) => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical' as const, maxJ: Math.round(((to - from) / 1000) * 3) }];
-const shapeSpec = { processId: 'p11x_test_tile_shape', processVersion: 'fixture-3', catalogVersion: 'civ-sci-test-2', contract: '0.2.0', clock: 'world' as const, lotIds: ['lot:clay-1'], equipmentIds: ['eq:bench-1'], operator: 'res:lantern' };
+const shapeSpec = { processId: 'p11x_test_tile_shape', processVersion: 'fixture-4', catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'world' as const, lotIds: ['lot:clay-1'], equipmentIds: ['eq:bench-1'], operator: 'res:lantern' };
 
 let tileId = '';
 { // 1

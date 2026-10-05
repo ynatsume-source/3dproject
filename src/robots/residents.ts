@@ -25,7 +25,7 @@ import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, type Count, type Said, type Tok } from './islandlang';
 import { islandDate, islandWait, islandWeather, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
-import { addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
+import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
 import { CATALOG, MATERIAL_JA, type CatalogEntry } from '../world/process-catalog';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
@@ -807,7 +807,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // Lantern: a process it can run, with its material on the shelf — while it is awake (it works by its own light), hands
     // free (the world runs it)
     if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed')) {
-      const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot.lotId } });
+      const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot?.lotId ?? '', more: e.more.map((l) => l.lotId) } });
     }
     // the pier, once they have agreed on it
     if (village.pier === 'plan' && r.id === 'kame') return task('survey', along(1), 'look', rr(60, 120));
@@ -1166,25 +1166,34 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const shelfStand = (): [number, number] => { const w = atHut(1.6, -3.2); return [w.x, w.z]; };   // (in front of the shelf, clear of the hut: room for Lantern's wide body)
   /** The processes that can run now: ready, with their material on the shelf and not in use. */
   function labReady() {
-    return catalog.filter((e) => e.ready).flatMap((entry) => { const lot = shelfLots().find((l) => l.materialId === entry.input && !(l as any).reservedBy); return lot ? [{ entry, lot }] : []; });
+    const free = (id: string) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy);
+    return catalog.filter((e) => e.ready).flatMap((entry) => {
+      const lot = entry.input ? free(entry.input) : undefined, more = (entry.also ?? []).map((a) => free(a.input));
+      return (entry.input && !lot) || more.some((m) => !m) || village.labRuns.some((x) => x.processId === entry.processId && !entry.input) ? [] : [{ entry, lot, more: more as LotView[] }];
+    });
   }
   /** The weather a process is given, on its own clock: the island's replayed record (or, for checks, a simulation). */
   function envFor(e: CatalogEntry, at: number): EnvironmentSample {
     if (e.env === 'simulation') return { sampleId: `env:sim:${at}`, source: 'simulation', effectiveAt: at };
     const w = islandWeather(toReal(e.clock, at));
     if (!w) return { sampleId: `env:none:${at}`, source: 'unknown', effectiveAt: at };
-    // (source 'record' comes with contract 0.2.1; no entry using it is ready before that is taken in)
-    return { sampleId: `env:record:jma-47918:${w.record.at}`, source: 'record' as EnvironmentSample['source'], effectiveAt: at, airTempC: w.air, humidity: w.humidity, windMs: w.windMeasured, rainMmH: w.rain, pressureHPa: w.pressureMeasured };
+    // (measured values only, as replayed: the wind at the station's anemometer, 28.9 m above the ground — JMA station
+    // list, 2026-03; the science side brings it to its own height. The pressure is at sea level: the island is.)
+    return { sampleId: `env:record:jma-47918:${w.record.at}`, source: 'record', effectiveAt: at, airTempC: w.air, humidity: w.humidity, windMs: w.windMeasured, windHeightM: 28.9, rainMmH: w.rain, pressureHPa: w.pressureMeasured };
   }
   function startLab(r: Resident, tk: Task) {
-    const e = catalog.find((x) => x.processId === tk.data.processId), lot = lab.lots[tk.data.lotId];
-    if (!e || !lot || (lot as any).reservedBy) { tk.failed = 'gone'; tk.t = tk.dur; return; }
-    const eqId = `eq:${e.equipment.kind}`;
-    if (!lab.equipment[eqId]) { const { ja: _, ...eq } = e.equipment; lab.equipment[eqId] = { ...eq, equipmentId: eqId }; }
-    const { run, why } = startRun(lab, { processId: e.processId, processVersion: e.processVersion, catalogVersion: e.catalogVersion, contract: e.contract, clock: e.clock, lotIds: [lot.lotId], equipmentIds: [eqId], operator: `res:${r.id}` }, clockMs);
+    const e = catalog.find((x) => x.processId === tk.data.processId), lot = tk.data.lotId ? lab.lots[tk.data.lotId] : undefined;
+    const lotIds: string[] = [...(lot ? [lot.lotId] : []), ...((tk.data.more ?? []) as string[])];
+    if (!e || (e.input && !lot) || lotIds.some((id) => !lab.lots[id] || (lab.lots[id] as any).reservedBy)) { tk.failed = 'gone'; tk.t = tk.dur; return; }
+    const eqIds = [e.equipment, ...(e.moreEquipment ?? [])].map((q) => {
+      const eqId = `eq:${q.kind}`;
+      if (!lab.equipment[eqId]) { const { ja: _, ...eq } = q; lab.equipment[eqId] = { ...eq, equipmentId: eqId }; }
+      return eqId;
+    });
+    const { run, why } = startRun(lab, { processId: e.processId, processVersion: e.processVersion, catalogVersion: e.catalogVersion, contract: e.contract, clock: e.clock, lotIds, equipmentIds: eqIds, operator: `res:${r.id}` }, clockMs);
     if (!run) { tk.failed = 'unavailable'; tk.t = tk.dur; r.diary.push({ at: clockMs, text: `${e.ja}：始められなかった（${why}）`, key: 'study' }); return; }
     tk.data.runId = run.runId; village.labRuns.push({ runId: run.runId, processId: e.processId, by: r.id, startOnClock: run.lastTo });
-    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、${e.equipment.ja}）`, key: 'study' });
+    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${lot ? `${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、` : ''}${[e.equipment, ...(e.moreEquipment ?? [])].map((q) => q.ja).join('・')}）`, key: 'study' });
     if (e.tend === 'leave') tk.t = tk.dur;
   }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
@@ -2003,6 +2012,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
     delete (village as any).store;
+    // (a run saved under a process version the island no longer has is not resumed: it is ended, what it held freed)
+    for (const x of [...village.labRuns]) { const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId);
+      if (!run || !e || run.processVersion !== e.processVersion) { if (run) abortRun(lab, x.runId, `工程の版が変わった（${run.processVersion} → ${e?.processVersion ?? 'なし'}）`); village.labRuns.splice(village.labRuns.indexOf(x), 1); } }
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }

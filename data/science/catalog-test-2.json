@@ -4,6 +4,42 @@
   "scope": "test-world only — not executable in the shared world; every number is assumed or calibrated (see src/science/params.ts)",
   "materials": [
     {
+      "id": "raw_clay",
+      "label": "掘ったままの粘土",
+      "category": "clay",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾いた部分あたりの化学種（試験片と同じ書き方。書かない残りは inert_mineral）",
+        "xc_<species>_ppm": "乾いた部分のうち粗いもの（小石・砂・根）。xd_ の同じ化学種を超えない。xc_inert_mineral_ppm は粗い石",
+        "history_complete": "1=全区間を計算済み（なければ1）"
+      },
+      "note": "世界側の id（ドットが近くの島から運ぶ。10 kg 単位なら 10000000 mg）。組成は掘った場所ごとに固定（同じ場所の粘土は同じ性質）。値は試験値で、島の粘土の分析とは未照合"
+    },
+    {
+      "id": "settled_clay",
+      "label": "こして沈めた粘土（練る前）",
+      "category": "clay",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾いた部分あたりの化学種",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "p10x_clay_slake の産物。練って（p10y_clay_knead）prepared_clay にする"
+    },
+    {
+      "id": "clay_sieve_residue",
+      "label": "こし布に残ったもの（小石・砂・根・溶けきらない塊）",
+      "category": "residue",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾いた部分あたりの化学種"
+      },
+      "note": "捨てても、粗い土として使ってもよい。塊が多ければ浸し直す道もある（今は raw_clay に戻す工程はない）"
+    },
+    {
       "id": "prepared_clay",
       "label": "練った粘土（成形の前）",
       "category": "clay",
@@ -14,6 +50,10 @@
         "history_complete": "1=全区間を計算済み（なければ1とみなす）"
       },
       "note": "p11x_test_tile_shape は water_ppm と xd_ の化学種を必須にする。p11_pottery_shape は water_ppm だけでよい"
+    },
+    {
+      "id": "(world ids) limestone / bamboo / reed",
+      "note": "世界側の id のまま。limestone は石灰の焼成（p20x）が受け付けるよう別の作業で対応する（今は calcium_carbonate_feed のみ）。bamboo・reed は使う工程（自作の気圧計の管など）ができたときに性質の項目を決める。それまでは質量（mg）だけでよい"
     },
     {
       "id": "unfired_pot",
@@ -99,12 +139,114 @@
       "category": "gas",
       "unit": "mg",
       "note": "0.2.0 の drawn で空気から取り込む。ロットにはならない"
+    },
+    {
+      "id": "coconut",
+      "label": "ヤシの実（外皮つき）",
+      "category": "plant",
+      "unit": "mg",
+      "quality": {
+        "count": "実の数（1以上の整数）",
+        "husk_ppm / shell_ppm / meat_ppm": "任意。外皮・殻・果肉の割合（なければ 35%・13%・30%、仮定）。残りはヤシの水",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "浜に流れ着いた実（本体の漂着物 coconut）。1個 約1.3 kg（仮定）。腐った実・芽の出た実は v0 では扱わない（本体側で拾わないか、meat_ppm 0 にする）"
+    },
+    {
+      "id": "coconut_husk",
+      "label": "ヤシの外皮（繊維）",
+      "category": "plant-woody",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "ash_dry_ppm": "乾いた部分の灰",
+        "count": "何個分か"
+      },
+      "note": "薪と同じ書き方。縄・たわし・燃料の候補"
+    },
+    {
+      "id": "coconut_shell",
+      "label": "ヤシの殻（半分に割れたもの）",
+      "category": "plant-woody",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "ash_dry_ppm": "乾いた部分の灰",
+        "count": "半分の殻の数"
+      },
+      "note": "器（椀）、燃料、炭の候補。封じた器の候補でもある"
+    },
+    {
+      "id": "coconut_water",
+      "label": "ヤシの水",
+      "category": "food",
+      "unit": "mg",
+      "quality": {
+        "x_water_ppm": "水/ロット質量",
+        "x_coconut_fat_ppm": "ヤシの脂",
+        "x_plant_solids_ppm": "脂以外の固形分（書かない残りもこれ）",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "飲める。糖を少し含む"
+    },
+    {
+      "id": "coconut_milk",
+      "label": "ヤシのミルク（削った果肉を搾ったもの）",
+      "category": "food",
+      "unit": "mg",
+      "quality": {
+        "x_water_ppm": "水/ロット質量",
+        "x_coconut_fat_ppm": "ヤシの脂",
+        "x_plant_solids_ppm": "脂以外の固形分（書かない残りもこれ）",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "煮ると油が分かれる（p31x）。煮る途中で下ろしたものも同じ material（水が減っている）"
+    },
+    {
+      "id": "coconut_pulp",
+      "label": "搾りかす",
+      "category": "food",
+      "unit": "mg",
+      "quality": {
+        "x_water_ppm": "水/ロット質量",
+        "x_coconut_fat_ppm": "ヤシの脂",
+        "x_plant_solids_ppm": "脂以外の固形分（書かない残りもこれ）",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "脂が残っている。食べ物・餌の候補"
+    },
+    {
+      "id": "coconut_oil",
+      "label": "ヤシ油",
+      "category": "oil",
+      "unit": "mg",
+      "quality": {
+        "x_coconut_fat_ppm": "1000000",
+        "scorch_ppm": "焦げの度合い（0〜1000000）。油の色とにおい",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "灯りの燃料（油の灯り）の候補。約24 °C より冷えると固まる（v0 の工程では扱っていない）"
+    },
+    {
+      "id": "coconut_latik",
+      "label": "煮たあとのかす（色づいた固形分）",
+      "category": "food",
+      "unit": "mg",
+      "quality": {
+        "x_water_ppm": "水/ロット質量",
+        "x_coconut_fat_ppm": "ヤシの脂",
+        "x_plant_solids_ppm": "脂以外の固形分（書かない残りもこれ）",
+        "history_complete": "1=全区間を計算済み",
+        "brown_ppm": "色づき",
+        "scorch_ppm": "焦げ"
+      },
+      "note": "残りの脂を持つ。食べられる"
     }
   ],
   "processes": [
     {
       "id": "fixture_mass_measure",
-      "version": "fixture-3",
+      "version": "fixture-4",
       "label": "秤量",
       "kind": "measurement",
       "inputs": [
@@ -121,12 +263,73 @@
         "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
       "observation": "instrument:<equipmentId>、mass、100 mg 単位、precision 100",
-      "readiness": "test-world-only（environment.source = simulation のみ）",
-      "note": "電気は試験用電源（src:fixture-mains）。文明の達成には数えない（本体の回答 ②）"
+      "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
+      "note": "電気は試験用電源（src:fixture-mains）。文明の達成には数えない（本体の回答 ②）",
+      "clock": "world"
+    },
+    {
+      "id": "p10x_clay_slake",
+      "version": "0.1.1",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "island",
+      "label": "粘土の下ごしらえ（浸す・こす・沈める・上澄みを捨てる・水を飛ばす）",
+      "kind": "preparation",
+      "inputs": [
+        "raw_clay（1ロット）と process_water（1ロット、乾いた土の1.5倍以上）",
+        "または、湿りすぎて取り出した settled_clay / prepared_clay（1ロット）を待ち直す。水は任意、こす必要はない"
+      ],
+      "outputs": [
+        "settled_clay",
+        "clay_sieve_residue",
+        "process_water（捨てた上澄み、元の来歴を引き継ぐ）",
+        "water_vapour（空気へ）",
+        "こす前に取り出すと raw_clay（湿った、同じ組成）"
+      ],
+      "equipment": [
+        "fixture_clay_tub"
+      ],
+      "energyModel": {
+        "mode": "none",
+        "note": "蒸発の熱は空気から（src:env-heat:、申し出ではない）"
+      },
+      "operator": "sieve（1回。濃すぎる泥は通らない）、decant（こした後、何回でも）、take_out（終わり）。すべて区間の中の時刻",
+      "observation": "sight：こし布に実際に残ったもの（小石や砂・根や草・塊・何もない）、上澄みの濁り。touch：取り出したときの手ざわり（空の桶・水だけも言葉で）。数値はない",
+      "environment": "気温・湿度・風（測った値）で表面から水が飛ぶ。分からない区間は蒸発を計算せず、来歴が不完全になる。ほぐれと沈みは天気によらない",
+      "physics": "ほぐれ 1−e^(−t/τ)（τ = slakeTauDryS ×(1 + 4×含水比/成形の目安)）。こし布に粗いものと未分散の塊が残る（水 sieveResidueWaterRatio）。沈んだ泥の含水比は slipSettledWaterRatio へ時定数 slipSettleTauS で近づく。蒸発は乾燥棚と同じ Dalton 型（桶の面積 surfaceCm2、日当たり sunExposure）",
+      "readiness": "test-world-only",
+      "note": "待つ工程なので島の時計。湿った粘土は崩れるのに時間がかかる（乾かしてから浸すと早い）。早くこすと塊が残り、早く捨てると濁った水が少ししか取れない。注いだ水と出る細かい粒、雨、塩類は扱わない。組成は整数 ppm の切り捨てで書き・読む（返したロットがそのまま次の run で読める）。状態 civ-sci.clay-slake/2"
+    },
+    {
+      "id": "p10y_clay_knead",
+      "version": "0.1.1",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "world",
+      "label": "粘土を練る（手の仕事）",
+      "kind": "preparation",
+      "inputs": [
+        "settled_clay / prepared_clay（1ロット以上）",
+        "process_water（任意、1ロット。全部を練り込む）"
+      ],
+      "outputs": [
+        "prepared_clay（1ロット、water_ppm と xd_ の組成。成形がそのまま受け取る）"
+      ],
+      "equipment": [
+        "fixture_bench"
+      ],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "mechanical",
+        "note": "手の仕事 kneadPowerW（20 W、仮定）。申し出は区間に均等に届き、届かない区間は何も進まない（needs-input）"
+      },
+      "operator": "操作なし。練る時間（kneadSecondsPerKg × 質量、仮定）が働かれたら完了",
+      "observation": "touch：練り上がりの手ざわり（含水比から）",
+      "environment": "使わない（どの source でもよい）",
+      "readiness": "test-world-only",
+      "note": "手を動かす工程なので世界の時計。やわらかすぎる粘土はここでは乾かない（待つ工程で）。固すぎれば水を練り込む。途中で止めると精算しない（ロットはそのまま）。練っている間の水の出入り・気泡・練りむらは扱わない。状態 civ-sci.clay-knead/1。0.1.1：粘土の組成を桶の工程と同じ書き方（ppm の切り捨て）で読み書きする"
     },
     {
       "id": "p11_pottery_shape",
-      "version": "fixture-3",
+      "version": "fixture-4",
       "label": "器の成形（試験用）",
       "kind": "physical",
       "inputs": [
@@ -144,11 +347,12 @@
         "rule": "2 W × 60 s = 120 J、全量 lostJ",
         "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
-      "readiness": "test-world-only"
+      "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
+      "clock": "world"
     },
     {
       "id": "p11x_test_tile_shape",
-      "version": "fixture-3",
+      "version": "fixture-4",
       "label": "試験片の成形",
       "kind": "physical",
       "inputs": [
@@ -166,10 +370,11 @@
         "rule": "2 W × 60 s = 120 J、全量 lostJ",
         "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
-      "readiness": "test-world-only",
+      "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
       "derivedFrom": "p11_pottery_shape",
       "rule": "予約した粘土ロットを丸ごと1枚の試験片にする（質量・組成は変わらない）。寸法は型（fixture_bench の widthMm・lengthMm・thicknessMm）から。質量÷体積が 1.5〜2.3 g/cm³（仮定）でなければ拒否",
-      "note": "生成物は p12x_test_tile_dry がそのまま受け取れる"
+      "note": "生成物は p12x_test_tile_dry がそのまま受け取れる",
+      "clock": "world"
     },
     {
       "id": "p12x_test_tile_dry",
@@ -199,7 +404,8 @@
       "stepMs": 30000,
       "derivedFrom": "p12_pottery_dry",
       "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない",
-      "environment": "airTempC・humidity（0〜1）が要る。windMs は地上10 mの風（気象サービスの慣例）として読み、棚の高さの風は windRackFactor 0.6 倍（仮定）。測っていない値は渡さない"
+      "environment": "airTempC・humidity（0〜1）が要る。windMs は地上10 mの風（気象サービスの慣例）として読み、棚の高さの風は windRackFactor 0.6 倍（仮定）。測っていない値は渡さない",
+      "clock": "island"
     },
     {
       "id": "p20x_lime_calcine_test",
@@ -226,7 +432,8 @@
       "evaluator": "lime-calcine-eval/0.1.0",
       "stepMs": 30000,
       "derivedFrom": "p20_lime_calcination",
-      "note": "反応エンタルピーは OpenStax の生成エンタルピーから（S-thermo）。分解の速さ・炉の性能は仮定。CO2 分圧との平衡は扱わない。乾いた原料のみ"
+      "note": "反応エンタルピーは OpenStax の生成エンタルピーから（S-thermo）。分解の速さ・炉の性能は仮定。CO2 分圧との平衡は扱わない。乾いた原料のみ",
+      "clock": "island"
     },
     {
       "id": "p21x_lime_hydrate_test",
@@ -255,7 +462,8 @@
       "evaluator": "lime-hydrate-eval/0.1.0",
       "stepMs": "20 (reacting) / 1000 (cooling)",
       "derivedFrom": "p21_lime_hydration",
-      "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない"
+      "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない",
+      "clock": "island"
     },
     {
       "id": "p13x_test_tile_fire",
@@ -286,7 +494,8 @@
       "evaluator": "tile-fire-eval/0.1.0",
       "stepMs": 30000,
       "derivedFrom": "p13_pottery_fire",
-      "note": "有機物を含む素地は拒否（焼き切るには O2 の取り込み＝0.2.0 の drawn が必要）。速度・焼結・割れの基準は校正値"
+      "note": "有機物を含む素地は拒否（焼き切るには O2 の取り込み＝0.2.0 の drawn が必要）。速度・焼結・割れの基準は校正値",
+      "clock": "island"
     },
     {
       "id": "m01x_tile_soak_test",
@@ -310,7 +519,8 @@
       ],
       "readiness": "test-world-only",
       "evaluator": "tile-soak-eval/0.1.0",
-      "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
+      "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定",
+      "clock": "island"
     },
     {
       "id": "p13w_test_tile_wood_fire",
@@ -356,10 +566,100 @@
       "note": "空気の不足（くすぶり・炭化）、煙、湿った薪の着火、流木の塩分は扱わない。有機物を含む素地は拒否（燃え抜きは別工程）",
       "settlement": "薪は乾いた木・水・灰の部分ごとに、燃えた量を mg に切り上げて精算する（ロットの持つ量まで）。報告する熱（usedJ）は燃えた乾いた木そのものの発熱（J に切り捨て）なので、常に精算した乾いた木の熱以下。薪の水分の蒸発熱は損失（lostJ）。返却する薪の water_ppm・ash_dry_ppm は丸めない（読み戻すと mg に正確に戻る）。試験片の来歴は、試験片と薪のどちらかが不完全なら不完全",
       "tolerance": "30秒格子の上は区切り方によらず一致。格子外（7.3秒）は熱・ガス・燃え残りの薪 0.25% 以内、焼結 0.3%、終わる時刻 +60 秒（ALIGNMENT §10）",
-      "stateSchema": "civ-sci.tile-wood-fire/2（/1 は拒否）"
+      "stateSchema": "civ-sci.tile-wood-fire/2（/1 は拒否）",
+      "clock": "island"
+    },
+    {
+      "id": "p30x_coconut_milk",
+      "version": "0.1.0",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "world",
+      "label": "ヤシのミルクを搾る（外皮をむく・割る・削る・搾る）",
+      "kind": "preparation",
+      "inputs": [
+        "coconut（1ロット、count 個）",
+        "process_water（任意、1ロット）"
+      ],
+      "outputs": [
+        "coconut_husk",
+        "coconut_shell",
+        "coconut_water",
+        "coconut_milk",
+        "coconut_pulp"
+      ],
+      "equipment": [
+        "fixture_coconut_tools"
+      ],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "mechanical",
+        "note": "手の仕事 coconutHandPowerW（30 W、仮定）。1個 20 分（仮定）。区間に均等に届き、足りない区間は何も進まない"
+      },
+      "operator": "操作なし。時間が働かれたら完了",
+      "observation": "sight：ミルクの濃さ。touch：搾りかすの脂っぽさ",
+      "readiness": "test-world-only",
+      "note": "手を動かす工程なので世界の時計。水を果肉と同じ重さまで足すほど脂が多く出る（50%→70%、仮定）。途中で止めると精算しない。状態 civ-sci.coconut-milk/1"
+    },
+    {
+      "id": "p31x_coconut_oil_boil",
+      "version": "0.1.2",
+      "contract": "0.2.x",
+      "clock": "island",
+      "label": "ミルクを煮て油を取る（焚き火）",
+      "kind": "cooking",
+      "inputs": [
+        "coconut_milk（1ロット）、または coconut_latik（色づきの途中で下ろしたかす、brown_ppm・scorch_ppm つき）",
+        "firewood（1ロット）"
+      ],
+      "outputs": [
+        "coconut_oil（scorch_ppm つき）",
+        "coconut_latik",
+        "油が分かれる前に下ろすと、入れたものと同じ material（濃くなり、色づきの度合いを持つ。もう一度火にかければ続きから）",
+        "firewood（残り）",
+        "wood_ash",
+        "water_vapour・process_co2（空気へ）",
+        "drawn：o2"
+      ],
+      "equipment": [
+        "fixture_cook_pot",
+        "open_fire_pit"
+      ],
+      "energyModel": {
+        "mode": "combustion",
+        "source": "src:combustion:<runId>",
+        "rule": "熱の申し出は受けない。usedJ は燃えた乾いた木 × 18 MJ/kg（仮定）。鍋に入るのは正味の熱 × 鍋の heatShare。鍋と中身が持つ熱（始めの温度から上の顕熱）は storedJ（冷えるときは負）、残りは lostJ。終わりに storedJ は 0 に戻る"
+      },
+      "operator": "fire_level {level 0 弱・1 中・2 強}（いつでも。最初になければ中）、look（音・色・におい）、take_off（下ろす＝終わり）",
+      "observation": "sound：ぐつぐつ／ぱちぱち／静か。sight：泡、かすの色（白→金→茶→黒ずみ）、油の澄み。smell：甘い／香ばしい／焦げ。終わりに油の色",
+      "environment": "火を起こすには天気が分かること。見ていない区間（unknown）は火が落ちて止まる（来歴が不完全）",
+      "physics": "水が残る間は 100 °C で煮立ち、熱は水を飛ばす。水が尽きると温度が上がり、かすが色づき（brownRefC・brownTauRefS）、油が分かれる（oilRecoverMax × 色づき）。焦げは scorchRefC・scorchTauRefS（10 K ごとに2倍）。火の強さ：薪 0.4・0.8・1.6 kg/時（炉の上限まで）",
+      "readiness": "test-world-only",
+      "note": "待つ工程（火の番）なので島の時計。水が尽きると鍋はすぐ熱くなる：音が変わったら火を弱め、よく見て下ろす。強い火のまま・見る間隔が長いと焦げる。試験の鍋は油を吸わない。腐敗・発酵（もう一つの油の取り方）は後で。見る（look）は鍋に触れない。鍋は run の始まりからの 0.25 秒の格子で計算する（区切り方によらず同じ）。状態 civ-sci.coconut-boil/2（0.1.0 の /1 は拒否：本体は run を中止し、予約を解放する）"
+    },
+    {
+      "id": "m02x_air_barometer_test",
+      "version": "0.1.2",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "island",
+      "label": "試験用の気圧計（閉じ込めた空気＋水の柱）",
+      "kind": "measurement",
+      "inputs": [],
+      "outputs": [],
+      "equipment": [
+        "fixture_air_barometer"
+      ],
+      "energyModel": {
+        "mode": "none"
+      },
+      "operator": "read_gauge（区間の中の時刻）。最初の要求で、その時の気圧・気温で空気を閉じ込める",
+      "observation": "instrument:<equipmentId>、level、整数の目盛り（unit 'mark'、precision 1）。水が管の端を越えたら（口からあふれる／器の空気が泡で抜ける）言葉だけ。その後は置き直す（新しい run）まで数値なし",
+      "environment": "設置には airTempC と pressureHPa が要る（測った値だけ）。気温だけ分かる区間でも器の温度は進む。気圧が分からない区間は読めない。気温が分からない区間では、器の温度の幅が、工程が受け付ける気温の全範囲（−60〜70 °C）へ広がる（気候の仮定は置かない）。幅が1目盛りに収まるまで読めない。欠測の間に水が端を越えた可能性を否定できなければ（気温の幅、気圧の変化の速さの上限 pressureRateMaxHPaPerH）、置き直すまで数値なし。どれも来歴が不完全になる。再生した記録がある区間は unknown でなく記録を送る",
+      "physics": "(Pa + 2ρg·x)(V0 + A·x) = Pa0·V0·Tb/T0。気圧が下がっても、器が温まっても、開いた側の水が上がる（約 10 cm / 30 hPa、約 1.1 cm / °C：500 mL・内径 8 mm）。器の温度は気温に時定数 bulbTauS で追いつく（30秒の格子）",
+      "readiness": "test-world-only",
+      "note": "既製の対照設備。自作の気圧計（器＋焼いた管＋水＋浮き）は別の工程で置き換える。漏れ・蒸発・器の中の水蒸気・毛管現象は扱わない。設備を失う stop は interval.to で起き、それまでの温度と読みは残る（設備の寸法は状態に保つ）。状態 civ-sci.air-barometer/3（/2 は 10〜38 °C の仮定の幅を持つので拒否。置き直す）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived.",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock. / p10x_clay_slake 0.1.0 and p10y_clay_knead 0.1.0 (2026-10-05): added (raw clay from the nearby islands → prepared_clay); materials raw_clay, settled_clay, clay_sieve_residue; equipment fixture_clay_tub. / m02x 0.1.2 (2026-10-05, Codex A2a on 0e7c023): an unknown air temperature widens the bulb's range to the whole accepted range (−60..70 °C), no climate assumed; gapAirMinC/MaxC removed; state /3 (/2 refused). / p30x_coconut_milk 0.1.0 and p31x_coconut_oil_boil 0.1.0 (2026-10-05): added (drift coconuts → milk → oil); species coconut_fat, plant_solids; equipment fixture_coconut_tools, fixture_cook_pot. / p10x 0.1.1 and p10y 0.1.1 (2026-10-05, Codex A1, A2, B1–B3 on dd781fc): the cloth is described from what is on it; poured-off water carries the run's history; clay make-ups written and read in whole ppm rounded down (handed-back lots read back); an empty tub settles; settled/prepared clay can wait in the tub again; slake state /2. / p31x 0.1.1 (2026-10-05, Codex A1, A2, B1 on eaa2a84): looking does not touch the pot; 0.25 s grid from the run's start; heat held by the pot reported as storedJ; lifted off before oil separates, the same material comes back; coconut_latik can be boiled again; state /2 (/1 refused, host cancels the run and releases its lots). / p31x 0.1.2 (2026-10-05, Codex A3 on 24b8ad4): with no new oil, the closing words follow the solids' colour (white, browning, brown, burnt); state unchanged (/2).",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {
@@ -373,11 +673,12 @@
     {
       "id": "fixture_bench",
       "processes": [
+        "p10y_clay_knead",
         "p11_pottery_shape",
         "p11x_test_tile_shape"
       ],
       "params": {
-        "thicknessMm": "1〜20 の整数",
+        "thicknessMm": "1〜20 の整数（成形のみ。練るときは使わない）",
         "widthMm": "試験片のみ、1〜200",
         "lengthMm": "試験片のみ、1〜200"
       },
@@ -437,13 +738,14 @@
     {
       "id": "open_fire_pit",
       "processes": [
-        "p13w_test_tile_wood_fire"
+        "p13w_test_tile_wood_fire",
+        "p31x_coconut_oil_boil"
       ],
       "params": {
         "heatCapJPerK": ">0",
         "uaWPerK": "≥0",
         "chamberFraction": "0〜1（地面の焚き火は 0.2 程度、仮定）",
-        "maxBurnKgPerH": "≥0",
+        "maxBurnKgPerH": "≥0（ヤシ油を煮るときはこれだけ使う）",
         "forcedCoolingUaFactor": "≥0"
       },
       "note": "覆いのない焚き火。橙には届かない"
@@ -461,6 +763,53 @@
         "forcedCoolingUaFactor": "≥0"
       },
       "note": "試験用の薪窯（既製の対照設備）。自作の窯は別の段階"
+    },
+    {
+      "id": "fixture_air_barometer",
+      "processes": [
+        "m02x_air_barometer_test"
+      ],
+      "params": {
+        "bulbVolumeMl": ">0（例 500）",
+        "tubeBoreMm": ">0（例 8）",
+        "tubeLengthMm": ">0（例 600。片側に半分ずつ）",
+        "markMm": ">0（目盛りの間隔、例 5）",
+        "bulbTauS": ">0（器の温度の時定数。空気中 約900 秒、水中 数時間：仮定）"
+      }
+    },
+    {
+      "id": "fixture_clay_tub",
+      "processes": [
+        "p10x_clay_slake"
+      ],
+      "params": {
+        "capacityMl": "桶の容量（例 40000）。粘土と水が入りきらなければ拒否",
+        "surfaceCm2": "水面の面積（例 1500）。蒸発の速さ",
+        "sunExposure": "0〜1（0=日陰、小屋の屋根の下）"
+      },
+      "note": "試験用の桶とこし布。住民が作る器（焼いた甕など）は後の段階で本体側が params を決める"
+    },
+    {
+      "id": "fixture_coconut_tools",
+      "processes": [
+        "p30x_coconut_milk"
+      ],
+      "params": {},
+      "note": "試験用の道具一式：外皮をむく杭、割る石、削る道具、搾る布。住民が作る道具は後の段階"
+    },
+    {
+      "id": "fixture_cook_pot",
+      "processes": [
+        "p31x_coconut_oil_boil"
+      ],
+      "params": {
+        "heatCapJPerK": ">0（例 1800：2 kg の土鍋）",
+        "uaWPerK": "≥0（例 3：鍋から空気へ逃げる熱）",
+        "heatShare": "0〜1（例 0.2：三つ石のかまどで鍋に入る火の熱の割合、仮定）",
+        "capacityMl": ">0（例 5000）"
+      },
+      "note": "試験用の鍋（油を吸わない）。住民が焼いた鍋は後の段階で、素焼きなら油を吸う"
     }
-  ]
+  ],
+  "clock": "工程ごとの時計（ADR 0006）：world = 現実の時計（住人が手を動かす工程）、island = 島の時計（待つだけの工程、現実の約13倍）。1つの run の中では区間・actions.at・effectiveAt・返す時刻をすべて同じ時計で"
 }
