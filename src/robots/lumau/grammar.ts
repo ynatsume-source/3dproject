@@ -15,11 +15,12 @@
 import { num, type Tok } from '../islandlang';
 import { word } from './lexicon';
 
-/** A sentence as ids: words by id, '#24' for a number, and the marks '.' and ','. */
+/** A sentence as ids: words by id, '#24' for a number, '=sopunu' for a name given on the island (not in the
+ *  dictionary: the places Dot names), and the marks '.' and ','. */
 export type Ids = string[];
 /** The words of a sentence, ready for glyphs() / kana() / roman(). */
 export function render(ids: Ids): Tok[] {
-  return ids.map((t) => (t === '.' || t === ',' ? t : t.startsWith('#') ? num(+t.slice(1)) : word(t)));
+  return ids.map((t) => (t === '.' || t === ',' ? t : t.startsWith('#') ? num(+t.slice(1)) : t.startsWith('=') ? t.slice(1) : word(t)));
 }
 
 export interface Example { point: string; ids: Ids; ja: string; en: string }

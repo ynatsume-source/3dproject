@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>焚き火の会</title>
+<style>
+  :root { --ink: #f3efe6; --dim: rgba(243, 239, 230, 0.7); --panel: rgba(10, 22, 34, 0.72); --line: rgba(243, 239, 230, 0.18); }
+  html, body { margin: 0; height: 100%; background: #0b1828; color: var(--ink); font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; overflow: hidden; }
+  [hidden] { display: none !important; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  header { position: fixed; left: 18px; top: calc(14px + env(safe-area-inset-top, 0px)); pointer-events: none; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); }
+  header .k { font: 600 10px/1 ui-monospace, monospace; letter-spacing: .22em; color: #f0bd5c; }
+  header h1 { margin: 6px 0 2px; font-size: 22px; letter-spacing: .06em; }
+  header p { margin: 0; font-size: 12px; color: var(--dim); }
+  .bar { position: fixed; right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; }
+  .bar button { font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .bar button:focus-visible, #go:focus-visible { outline: 2px solid #f0bd5c; outline-offset: 2px; }
+  #bubble { position: fixed; left: 0; top: 0; max-width: min(78vw, 520px); background: #fbf8f1; color: #23343a; border-radius: 18px; padding: 10px 14px 9px; box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 70%, transparent), 0 10px 30px rgba(0, 0, 0, 0.35); transition: opacity .25s; pointer-events: none; }
+  #bubble::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -10px; margin-left: -10px; border: 10px solid transparent; border-top-color: #fbf8f1; border-bottom: 0; }
+  #bubble .g { line-height: 1; overflow: hidden; }
+  #bubble .g svg { height: 26px; width: auto; max-width: 100%; }
+  #bubble .r { font: 600 12px/1.4 ui-monospace, monospace; color: #4b6268; margin-top: 4px; }
+  #sub { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: min(92vw, 760px); box-sizing: border-box; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 18px 12px; text-align: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  #sub .who { display: inline-block; font-size: 12px; font-weight: 700; color: #1b2a30; background: var(--c); border-radius: 99px; padding: 1px 10px; margin-bottom: 4px; }
+  #sub .who i { font-style: normal; font-weight: 500; opacity: .7; margin-left: 6px; }
+  #sub .k { font-size: 12px; color: var(--dim); }
+  #sub .ja { font-size: clamp(16px, 2.4vw, 21px); line-height: 1.5; margin-top: 2px; }
+  #sub .en { font-size: clamp(13px, 1.8vw, 16px); color: var(--dim); }
+  #intro { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 60%, rgba(11, 24, 40, 0.2), rgba(6, 12, 20, 0.75)); }
+  #intro .card { text-align: center; max-width: 440px; padding: 0 20px; }
+  #intro h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: .08em; }
+  #intro p { font-size: 13.5px; line-height: 1.8; color: var(--dim); margin: 0 0 18px; }
+  #go { font: inherit; font-size: 16px; font-weight: 700; color: #1b2a30; background: #f0bd5c; border: 0; border-radius: 99px; padding: 12px 28px; cursor: pointer; box-shadow: 0 4px 0 #b9862c; }
+  details { position: fixed; left: 14px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); max-width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 12px; font-size: 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  details summary { cursor: pointer; color: var(--dim); }
+  #script { list-style: none; margin: 6px 0 4px; padding: 0; max-height: 46vh; overflow: auto; }
+  #script li { display: grid; gap: 0 8px; grid-template-columns: 4.6em 1fr; padding: 4px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  #script li b { color: var(--c); grid-row: span 2; }
+  #script li .rm { font: 11px ui-monospace, monospace; color: var(--dim); }
+  #script li.on span { color: #fff; }
+  @media (max-width: 900px) { details { display: none; } header p { display: none; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<header>
+  <div class="k">LUMAU · DEMO</div>
+  <h1>焚き火の会</h1>
+  <p>4人が毎晩集まって、その日のことを報告し合う。ドラッグで見回せます。</p>
+</header>
+<div class="bar"><button id="mode" type="button">字幕：日本語＋English</button><button id="pause" type="button">一時停止</button><button id="again" type="button">最初から</button></div>
+<div id="bubble" hidden></div>
+<div id="sub" hidden></div>
+<details><summary>台本（行を押すとそこから）</summary><ol id="script"></ol></details>
+<div id="intro"><div class="card"><h2>焚き火の会</h2><p>島の言葉ルマウで話す、4人の夜のデモ。それぞれの声で話し、字幕は日本語と英語。音が出ます。</p><button id="go" type="button">▶ はじめる</button></div></div>
+<script type="module" src="./src/robots/talk-demo.ts"></script>
+</body>
+</html>
