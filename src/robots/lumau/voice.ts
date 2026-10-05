@@ -19,11 +19,12 @@ export interface Voice {
   vibrato: number;    // depth (0 .. 0.02)
   legato: number;     // how much of a syllable sounds (0.6 staccato .. 0.95 smooth)
 }
+// (the values the owner set by ear, 2026-10-05)
 export const VOICES: Record<string, Voice & { ja: string }> = {
-  dot: { ja: 'ドット：明るい高め、はきはき', pitch: 340, rate: 7.5, size: 1.15, tone: 0.45, melody: 2, bounce: 0.07, vibrato: 0, legato: 0.72 },
-  lantern: { ja: 'ランタン：やわらかい中くらい、ゆっくり', pitch: 270, rate: 5.6, size: 1.05, tone: 0.3, melody: 1, bounce: 0.04, vibrato: 0.012, legato: 0.9 },
-  rakko: { ja: 'ラッコ：いちばん高い、ころころ速い', pitch: 460, rate: 9, size: 1.3, tone: 0.4, melody: 3, bounce: 0.1, vibrato: 0, legato: 0.65 },
-  kame: { ja: 'カメマル：低めでまるい、のんびり', pitch: 190, rate: 4.4, size: 0.95, tone: 0.25, melody: 1, bounce: 0.03, vibrato: 0.008, legato: 0.92 },
+  dot: { ja: 'ドット：明るい高め、はきはき弾む', pitch: 340, rate: 7.5, size: 1.15, tone: 0.45, melody: 2, bounce: 0.07, vibrato: 0, legato: 0.72 },
+  lantern: { ja: 'ランタン：澄んだ丸い音、抑揚は小さく、ぽつぽつ区切る', pitch: 270, rate: 6.4, size: 1.05, tone: 0.02, melody: 0.8, bounce: 0.025, vibrato: 0, legato: 0.63 },
+  rakko: { ja: 'ラッコ：いちばん高い、澄んだ音でころころ速い', pitch: 590, rate: 9.2, size: 1.38, tone: 0.08, melody: 2.5, bounce: 0.1, vibrato: 0, legato: 0.65 },
+  kame: { ja: 'カメマル：4人でいちばん低い、明るい音色でゆっくり大きく弾む', pitch: 250, rate: 5.3, size: 0.95, tone: 0.85, melody: 1.8, bounce: 0.115, vibrato: 0.008, legato: 0.75 },
 };
 
 // formants (Hz) of the five vowels, F1 and F2; Japanese-like u (not rounded)
