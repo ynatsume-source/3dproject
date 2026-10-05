@@ -120,8 +120,11 @@ ok(h.end.status === 'completed' && dh.conversion > 0.99, 'the quicklime from ste
   const after = addComp(lotComp(lotOf(h.end)), { water: vap });
   const eb = elementMoles(before), ea = elementMoles(after);
   const worst = Math.max(...(['H', 'O', 'Ca'] as const).map((k) => Math.abs(eb[k] - ea[k]) * 1000));
-  // the lots are read through whole ppm rounded down to whole mg (Codex B2): each read may move under 1 mg per species
-  // into inert_mineral, so two reads of two species allow a few mg (≈ 0.3 mmol of H, the lightest)
+  // the lots go through whole ppm (written rounded down) and back to whole mg (read rounded down) (Codex B2): one
+  // write-and-read moves up to ceil(T/1e6) mg per species of a T mg lot into inert_mineral, which no element count
+  // sees (here exactly 1 mg each of water and portlandite). Reading the same lot again loses nothing more; it adds up
+  // only when a lot is written again and handed on. 0.3 mmol fits THIS fixture (conservative bound H 0.18, O 0.10,
+  // Ca 0.02 mmol, Codex 20cb418); it is not a tolerance for any amount or any number of round trips.
   ok(worst < 0.3, 'element balance (H, O, Ca) across quicklime + water → hydrated lime + vapour (within the whole-mg reading of the lots)', `max ${worst.toFixed(4)} mmol, vapour ${vap} mg`);
   const molLime = (lotComp(quick).lime ?? 0) / 1000 / molarMass('lime');
   const heat = molLime * dh.conversion * -PARAMS.dHHydration.value;

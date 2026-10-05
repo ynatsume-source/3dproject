@@ -90,3 +90,26 @@ main（aea5ee2）の使い捨ての worktree に、§2 の工程と共通ファ�
 - **修正**：読み書きとも整数 ppm の切り捨て（粘土の下ごしらえ・ヤシ油と同じ規則）。石灰の `lotComp`・`compQuality` も同じ型なので一緒に直した。読み取りでこぼれる数 mg は inert_mineral。
 - **本体で必要なこと**：`common.ts` を取り込む。**薪で焼く工程（main にある）の版が 0.1.4 → 0.1.5** になる（状態の形は同じ。0.1.4 の run は版が合わず拒否されるので、あれば中止して予約を解放）。乾燥は共通の読み書きを使わないので変わらない。
 - **確認**：試験片の一周に検査を追加（45.001 g と 45.000 g の対照で成形 → 乾燥 → 焼成 → 浸漬、1.5 kg で焼成 → 読み戻し → 浸漬）。Codex の診断も解消。本体の統合検査（fixture-4 の写し）93件は変わらず成功。
+
+
+## 9. 追記（2026-10-05、Codex lab 20cb418）：炭と木タールも保留解除
+
+炭と木タール、共通の丸め（§8）の Codex の保留が解除された。この束に加えてほしい。
+
+| ファイル | main との関係 | 内容 |
+|---|---|---|
+| `src/science/step/charcoal.ts` | 新規 | `p14x_charcoal_tar_retort` 0.1.1（状態 `/2`、島の時計、接続仕様 0.2.x のみ）。`coconut.ts`・`wood-fire.ts` の関数を使う |
+| `src/science/chem.ts` | 変更 | 化学種 `char`（CH0.4O0.09）・`wood_tar`・`pyrolysis_gas`、反応 `charCombustion` |
+| `src/science/params.ts`・`data/science/catalog-test-2.json` | 変更 | 炭の定数（すべて仮定）、材料 `charcoal`・`wood_tar`・`wood_vinegar`、設備 `fixture_tar_retort` |
+| `src/science/step/common.ts` | 変更（§8） | 共通の組成の読み書きを整数 ppm の切り捨てに |
+| `src/science/step/{firing,soak,wood-fire,lime}.ts` | 版だけ | 焼成 0.2.1・浸漬 0.2.1・**薪で焼く 0.1.5（main にある）**・石灰 0.2.1。状態の形は同じ |
+
+**セットで引き継ぐこと（Codex の指定）**：
+1. 共通の読み書き（`common.ts`）と、上の工程の版の更新を**一緒に**取り込む（片方だけだと、版と出力が合わない）。
+2. 炭の旧状態 `/1`（0.1.0）の run は `unsupported-state-schema` で拒否される。本体は run を中止して予約を解放する（詰めものと燃料は未消費）。main にはまだ炭がないので、実際にはブラウザの島で試した run があれば、の話。
+3. 実行役のエントリー（案）：`p14x_charcoal_tar_retort`、島の時計、詰めもの（`firewood` / `coconut_shell` / `coconut_husk` / 焼き残りの `charcoal`、location ＝ レトルトの equipmentId、中はちょうど1つ）＋ `firewood`（外）、設備 `fixture_tar_retort`＋`open_fire_pit`、申し出なし、操作 `fire_level`・`put_out`・`look`・`open`。手順書 [CHARCOAL_HANDBOOK.md](CHARCOAL_HANDBOOK.md) §3 に本体が決めること4つ。
+4. 本体側の表示：二重の壺を1つの設備として扱うので、下の壺のタール・木酢液も同じ所在（レトルト）に返る。在庫の表示もそのように。
+
+**確認**：科学側の検査はすべて成功（炭 37・試験片の一周 18・ヤシ油 45・粘土の下ごしらえ 50・気圧計 43・回帰 108・工程 47・粘土 52・石灰 24・薪 32、計 456件）、本体の統合検査（fixture-4 の写し）93件、型検査、ビルド。
+
+**次の全面レビューに回すもの**：C3（炭の設備の指紋が params のキーの順に依存）、丸めの検査の改善、C1・C2（気圧計・ヤシ油の持ち越し）。
