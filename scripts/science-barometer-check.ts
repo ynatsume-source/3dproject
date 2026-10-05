@@ -1,5 +1,6 @@
 // Checks for the test air-and-water barometer (m02x_air_barometer_test).
 // Run: npx tsx --import ./scripts/node-assets.mjs scripts/science-barometer-check.ts
+import { readFileSync } from 'node:fs';
 import type { ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
@@ -81,9 +82,23 @@ console.log('4. chunking, outages, the ends of the tube');
   const key = (x: ReturnType<typeof hours>) => JSON.stringify([[...x.reads.entries()], x.last.state]);
   ok(key(a) === key(b) && key(a) === key(c), 'hour by hour = every 30 s = 3 h at a time (weather changing every 3 h): the same readings and the same state');
   const out = hours(5, (h) => ({ p: 1010, t: 28, source: h === 1 ? 'unknown' : 'simulation' }), () => true);
-  ok(!out.reads.has(1) && !out.reads.has(2) && out.reads.get(4)?.value === 0 && (out.last.diagnostics as { historyComplete: boolean }).historyComplete === false,
-    'an hour of unknown weather: no reading in it, none while the bulb\'s temperature is still uncertain, then readings resume; the history is marked incomplete',
-    `readings at hours ${[...out.reads.keys()].join(', ')}`);
+  ok(!out.reads.has(1) && !out.reads.has(4) && (out.last.diagnostics as { condition: string; historyComplete: boolean }).condition === 'unknown'
+    && (out.last.diagnostics as { historyComplete: boolean }).historyComplete === false,
+    'an hour of unknown weather: no reading in it; the bulb might have gone anywhere the air can, a spill cannot be ruled out: no numbers until it is set again');
+  // a short gap: five minutes without the air temperature, then the same weather; readings come back, equal to the control
+  const shortGap = (hide: boolean) => {
+    let st: ScienceStepRequest['state'] = null; const vals: (number | undefined)[] = [];
+    for (let t = 0; t < 3 * H; t += 30_000) {
+      const rq = req(t, t + 30_000, { p: 1010, t: 28 }, st, [t]);
+      const r = step(hide && t >= H && t < H + 300_000 ? { ...rq, environment: { ...rq.environment, airTempC: undefined } } : rq);
+      st = r.state; vals.push(r.observations[0]?.value as number | undefined);
+    }
+    return vals;
+  };
+  const hid = shortGap(true), ctl = shortGap(false);
+  const back = hid.findIndex((v, i) => i > 130 && v !== undefined);
+  ok(hid.every((v, i) => v === undefined || v === ctl[i]) && back > 0 && hid.slice(-1)[0] === ctl.slice(-1)[0],
+    'five minutes without the air temperature: no number while the bulb is uncertain, then the same numbers as the control', `back after ${((back - 130) * 30 / 60).toFixed(1)} min`);
   const big = hours(3, (h) => ({ p: h === 1 ? 940 : 1010, t: 28 }), () => true, { equipment: [GAUGE({ tubeLengthMm: 200 })] });
   ok(big.reads.get(1)?.value === undefined && /あふれ/.test(big.reads.get(1)?.text ?? '') && big.reads.get(2)?.value === undefined && /置いたときの印と合わない/.test(big.reads.get(2)?.text ?? ''),
     'a short tube and a deep low: the water spills out of the open mouth, said in words; back at 1010 hPa it does not return to 0 marks', `${big.reads.get(1)?.text} / ${big.reads.get(2)?.text}`);
@@ -179,6 +194,33 @@ console.log('7. Codex review of 5971025 (A1–A3)');
     ok(key(c1) === key(c2) && key(c1) === key(c3), `${tube} mm tube, a pressure gap and a falling pressure: 30 s = 1 h = 3 h pieces`,
       `condition ${(c1.last.diagnostics as { condition: string }).condition}, ${c1.reads.size} readings`);
   }
+}
+
+console.log('8. Codex review of 0e7c023 (A2a): measured island weather, one hour hidden');
+{
+  // JMA Ishigaki 2016-01-24, hourly (data/science/evidence): each value held until the next hour; set at 01:00
+  const rows = readFileSync(new URL('../data/science/evidence/jma-ishigaki-20160124-hourly.csv', import.meta.url), 'utf8').trim().split('\n').slice(1).map((l) => l.split(',').map(Number));
+  const at = (h: number) => rows.find((r) => r[0] === h)!; // hour_jst, station pressure, sea-level pressure, air temp, rh
+  for (const tau of [900, 6 * 3600]) {
+    const run = (hide: boolean) => {
+      let st: ScienceStepRequest['state'] = null; const vals = new Map<number, number | undefined>(); const bulbs: number[][] = [];
+      for (let h = 1; h < 24; h++) {
+        const from = (h - 1) * H, reads = Array.from({ length: 120 }, (_, i) => from + i * 30_000);
+        const rq = req(from, from + H, { p: at(h)[1], t: at(h)[3] }, st, reads, { equipment: [GAUGE({ bulbTauS: tau })] });
+        const r = step(hide && h === 18 ? { ...rq, environment: { ...rq.environment, airTempC: undefined } } : rq);
+        st = r.state; for (const o of r.observations) vals.set(o.at, o.value as number | undefined);
+        bulbs.push((r.diagnostics as { bulbC: number[] }).bulbC);
+      }
+      return { vals, bulbs };
+    };
+    const ctl = run(false), hid = run(true);
+    const given = [...hid.vals].filter(([t, v]) => t >= 17 * H && v !== undefined);
+    ok(given.every(([t, v]) => v === ctl.vals.get(t)), `${tau} s bulb: after the hidden hour, every number given equals the control's (none invented)`,
+      `${given.length} numbers after 18:00; at 20:26:30 ${hid.vals.get(19 * H + 26 * 60_000 + 30_000)} vs ${ctl.vals.get(19 * H + 26 * 60_000 + 30_000)}`);
+    ok(hid.bulbs.every((b, i) => b[0] <= ctl.bulbs[i][0] + 1e-9 && ctl.bulbs[i][1] <= b[1] + 1e-9), `${tau} s bulb: the bulb's range always holds the control's bulb temperature`);
+  }
+  const old = scienceStep(req(H, 2 * H, { p: 1010, t: 28 }, { schema: 'civ-sci.air-barometer/2', data: {} }, []));
+  ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)), 'a /2 state (bounds from the old 10..38 °C assumption) is refused: the gauge is set again');
 }
 
 console.log('—   every result above passed the contract checker');

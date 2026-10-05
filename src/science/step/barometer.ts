@@ -15,7 +15,10 @@
 //
 // What the step does not know, it carries as bounds (0.1.1, Codex review of 5971025):
 // - the bulb's temperature is a range [lo, hi]. While the air temperature is known both ends follow it; while it is
-//   not, they spread toward gapAirMinC / gapAirMaxC. A reading is given only when both ends give the same mark.
+//   not, they spread toward the whole range of air temperatures this step accepts as known (AIR_RANGE_C, −60..70 °C).
+//   No climate is assumed (0.1.2, Codex A2a on 0e7c023: an assumed 10 °C floor did not hold the island's own winter
+//   nights). A reading is given only when both ends give the same mark. A long gap leaves the gauge unknown (a spill
+//   cannot be ruled out): set it again. A host that has the replayed record for a gap should send it, not 'unknown'.
 // - the air temperature alone moves the bulb: an hour with the pressure missing still warms or cools it.
 // - the water past either end of the tube (the open mouth, or the bottom of the U) spills or lets the trapped air out:
 //   the gauge no longer holds the air it was set with, and says so until it is set again (a new run). When that
@@ -26,9 +29,11 @@ import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../w
 import { pv } from '../params';
 import { allFinite, checkCommon, contractExtras, failed, finite, isInt, subStepEnd } from './common';
 
-export const BAROMETER_PROCESS = { processId: 'm02x_air_barometer_test', processVersion: '0.1.1' } as const;
-const SCHEMA = 'civ-sci.air-barometer/2';
-const EVAL = 'air-barometer-eval/0.1.1';
+export const BAROMETER_PROCESS = { processId: 'm02x_air_barometer_test', processVersion: '0.1.2' } as const;
+const SCHEMA = 'civ-sci.air-barometer/3'; // /2 held bounds from the 10..38 °C assumption: refused, set the gauge again
+const EVAL = 'air-barometer-eval/0.1.2';
+/** Air temperatures this step accepts as known; also the bounds an unknown stretch may reach. */
+export const AIR_RANGE_C = [-60, 70] as const;
 const GAUGE = 'fixture_air_barometer';
 const STEP_MS = 30_000; // the bulb's temperature advances on the run's 30 s grid: 30 s-aligned chunks give identical states
 
@@ -67,7 +72,7 @@ const sourceOk = (req: ScienceStepRequest) => {
   const s = req.environment.source;
   return s === 'live' || s === 'simulation' || s === ('record' as string);
 };
-const tempKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.airTempC, -60, 70);
+const tempKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.airTempC, AIR_RANGE_C[0], AIR_RANGE_C[1]);
 const presKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.pressureHPa, 800, 1100);
 
 const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、器の空気が泡になって抜けた' };
@@ -106,7 +111,7 @@ export function barometerStep(req: ScienceStepRequest): ScienceStepResult {
   // the gauge as it was set (kept in the state): a gauge lost at interval.to still lived through the interval
   const g = geometry(d.params) as Geometry;
   const Pa = pKnown ? req.environment.pressureHPa! * 100 : NaN;
-  const toMin = pv('gapAirMinC') + 273.15, toMax = pv('gapAirMaxC') + 273.15;
+  const toMin = AIR_RANGE_C[0] + 273.15, toMax = AIR_RANGE_C[1] + 273.15;
   const Ta = tKnown ? req.environment.airTempC! + 273.15 : NaN;
   const observations: Observation[] = [];
   let unreadable = 0;
