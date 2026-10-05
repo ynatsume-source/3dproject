@@ -119,7 +119,7 @@ export class Ecosystem {
         heading: () => (t.state === 'rest' && t.yaw != null ? { x: Math.sin(t.yaw), z: Math.cos(t.yaw) } : { x: Math.cos(t.head), z: Math.sin(t.head) }),
         brief: () => t.state === 'rest',
         // (the same reach as its startle in animals.ts: closer than this, it drives off)
-        shy: () => (t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0) * Math.max(0.5, this.env.shy) * t.size });
+        shy: () => (t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0) * (this.env.shy > 0 ? Math.max(0.5, this.env.shy) : 0) * t.size });
     });
     const mantaName = (this.oc.loc.extraGuide || []).find((e: any) => e.id === 'manta')?.ja ?? 'ナンヨウマンタ';
     const giant = mantaName === 'オニイトマキエイ';

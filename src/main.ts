@@ -2914,7 +2914,8 @@ function frameBody(ts: number) {
     }
     // (through the drone's own eyes the animals hardly mind it — they would bolt from every slow pass of
     // the cruise otherwise; with the drone in the picture, a little more, and a little more when flown by hand)
-    cur.eco.env.shy = viewMode === 'chase' ? (drone.mode === 'manual' ? 0.85 : 0.6) : 0.35;
+    // (on Dot's planet the drones are Doron, who watch unseen and unheard: nothing there minds them — ADR 0007)
+    cur.eco.env.shy = (cur.loc as any).world === 'planet' ? 0 : viewMode === 'chase' ? (drone.mode === 'manual' ? 0.85 : 0.6) : 0.35;
     for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     updateNewMark(dt);

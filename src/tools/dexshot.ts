@@ -6,6 +6,7 @@ import { LOCATIONS } from '../data/locations';
 import { studio } from '../ui/thumbs';
 import { U } from '../render/common';
 import { driftwoodGeo, shellGeo, stoneGeo } from '../robots/items';
+import { makeDrone } from '../ocean/drone';
 
 const loc: any = LOCATIONS.find((l) => l.id === 'kayama');
 const out: Record<string, string> = {};
@@ -36,5 +37,14 @@ for (const [id, [g, m, obj]] of Object.entries(things) as any) {
   const cam = new THREE.PerspectiveCamera(28, 520 / 320, 0.001, 50); cam.position.copy(c).add(new THREE.Vector3(0.5, 0.55, 1).normalize().multiplyScalar(size * 2.1)); cam.lookAt(c);
   r.setClearColor(0, 0); r.clear(); r.render(scene, cam); out[id] = r.domElement.toDataURL('image/png');
 }
+// Doron, the drone that films the island (the field guide's light, as the studio sets it)
+{ const d = makeDrone(), scene = new THREE.Scene(); d.group.visible = true; scene.add(d.group); d.group.updateMatrixWorld(true);
+  U.uSunDir.value.set(0.35, 0.85, 0.4).normalize(); U.uSunI.value = 1; U.uAmb.value = 1.1; U.uFogDen.value = 0.0001; U.uAbs.value.set(0, 0, 0); U.uLamp.value = 0; U.uTint.value.setRGB(1, 1, 1);
+  const box = new THREE.Box3().setFromObject(d.group), c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
+  for (const [id, v] of [['drone', [0.9, 0.45, 1.1]], ['drone-front', [0.25, 0.2, 1]]] as const) {
+    const cam = new THREE.PerspectiveCamera(28, 520 / 320, 0.001, 50); cam.position.copy(c).add(new THREE.Vector3(...v).normalize().multiplyScalar(size * 1.9)); cam.lookAt(c); cam.updateMatrixWorld();
+    U.uCamPos.value.copy(cam.position); U.uLodPos.value.copy(cam.position);
+    r.setClearColor(0, 0); r.clear(); r.render(scene, cam); out[id] = r.domElement.toDataURL('image/png');
+  } }
 (window as any).__shots = out;
 document.body.innerHTML = Object.entries(out).map(([k, v]) => `<figure style="display:inline-block;margin:4px"><img src="${v}" width="260"><figcaption>${k}</figcaption></figure>`).join('');
