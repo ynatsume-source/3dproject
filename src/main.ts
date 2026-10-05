@@ -8,6 +8,7 @@ import { cloudAt } from './render/cloud';
 import { clamp, smooth, angDiff, rr } from './core/math';
 import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
+import { sightRange } from './eco/unseen';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
 import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
@@ -267,11 +268,43 @@ function captionText(sj: Subject) {
   const note = e ? e.note.split('。').filter(Boolean).slice(0, 2).join('。') + '。' : '';
   return { t: sj.label, i: e?.sci ?? '', s: sj.status() + sizeTxt, n: note };
 }
-let cruiseSubj: Subject | null = null, cruiseT = 0, capLeft = 0, capQuiet = 0;
+let cruiseSubj: Subject | null = null, cruiseT = 0, capLeft = 0, capQuiet = 0, capClock = 0;
 const capSeen = new Map<string, number>(), capNoted = new Set<string>();   // (when each kind was last told about; whose notes have been given)
+// Where a request to go and see came from, said as it is in the caption's small heading (a tap is not "the guide")
+let askFrom = '', askKey = '';
+// What is seen of a subject right now: some of its body (its middle, and out to the sides and up and down by its
+// size) inside the frame, nearer than 70% of what this water lets one see, with no seabed, rock or coral head
+// between it and the camera; and the whole at least 10 px on screen. The caption and its ring speak only of this.
+const _sv = new THREE.Vector3();
+function seenNow(sj: Subject) {
+  const P = sj.pos(); if (!P || !cur) return false;
+  const o = camera.position, T = cur.T, d = Math.hypot(P.x - o.x, P.y - o.y, P.z - o.z);
+  const px = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
+  if (sj.size / Math.max(d, 0.5) * px < 10) return false;
+  camera.updateMatrixWorld();
+  const r = Math.max(sj.frameR?.() ?? 0, sj.size * 0.35), see = sightRange(cur) * 0.7;
+  const rx = Math.cos(drone.yaw), rz = -Math.sin(drone.yaw), inCave = o.y < T.top(o.x, o.z) - 0.2;   // (in the cave, its roof is overhead: only the frame counts)
+  for (let k = 0; k < 5; k++) {
+    const ax = k === 1 ? rx * r : k === 2 ? -rx * r : 0, az = k === 1 ? rz * r : k === 2 ? -rz * r : 0, ay = k === 3 ? r * 0.5 : k === 4 ? -r * 0.5 : 0;
+    const x = P.x + ax, y = P.y + ay, z = P.z + az, dd = Math.hypot(x - o.x, y - o.y, z - o.z);
+    if (dd > see) continue;
+    _sv.set(x, y, z).project(camera); if (_sv.z > 1 || Math.abs(_sv.x) > 1 || Math.abs(_sv.y) > 1) continue;
+    let open = true;
+    if (!inCave) for (let t = 0.5; t < dd - 0.8; t += 0.5) { const q = t / dd; if (o.y + (y - o.y) * q < T.top(o.x + (x - o.x) * q, o.z + (z - o.z) * q) - 0.05) { open = false; break; } }
+    if (open) return true;
+  }
+  return false;
+}
+// The caption's rules (CAPTION_FOCUS_TAP.md): it comes up once its subject has been in view for half a second, and
+// stays at least 4 s and about as long as it takes to read; once up, if the subject has been out of view for
+// 1.5 s it fades (over a second), and seen again before that it simply stays. On the way to something asked for,
+// only where it is going and why. A faint ring round the subject while the caption is up (an arrow at the edge
+// of the screen on the way, when it is out of the frame).
+let capVisT = 0, capLostT = 0, capUpT = 0, capSeenK = 0, capVis = false, capHead = false;
 function updateCaption(dt: number) {
   const el = $('caption'); let sh = lastShot;
-  // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by
+  capClock += dt;
+  // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by — and in view
   capQuiet -= dt;
   if (captionOn && !(sh && (sh.phase === 'observe' || sh.asked)) && !watch.r && cur && camera.position.y < 0) {   // (flown by hand too: what is in front of it)
     if (capQuiet > 0 && !(capShot as any)?.cruise) cruiseSubj = null;   // (a while of nothing after one: the view to itself)
@@ -283,42 +316,88 @@ function updateCaption(dt: number) {
         const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
         if (d > 14 || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) < 0.75) continue;
         const sc = Math.max(s.len ?? 0, Math.min(s.size, 3)) / Math.max(d, 1);
-        if (sc > bs) { bs = sc; best = s; }
+        if (sc > bs && seenNow(s)) { bs = sc; best = s; }
       }
       cruiseSubj = best && bs > 0.12 ? best : null;
     }
     if (cruiseSubj) sh = { subject: cruiseSubj, phase: 'observe', pos: camera.position, look: camera.position, cruise: true } as any;
   } else cruiseSubj = null;
-  // (asked for, by a tap or from the guide: told about it from the moment it is asked for, all the way there)
   const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked) && (drone.mode === 'auto' || !!(sh as any).cruise) && !watch.r && sh.subject.kind !== 'cave';
-  // (a passing one, once up, stays its reading time even if it has swum out of view or another passes: only
-  // something being filmed takes its place sooner)
-  if (capLeft > 0 && capShot && (capShot as any).cruise && captionOn && !watch.r && (!want || (sh as any).cruise)) {
-    if ((capLeft -= dt) <= 0) { el.classList.remove('on'); capShot = null; cruiseSubj = null; capQuiet = rr(12, 20); }
-    return;
+  // (a passing one, once up, stays its reading time while it is in view: only something being filmed takes its place sooner)
+  const lingering = capLeft > 0 && capShot && (capShot as any).cruise && captionOn && !watch.r && (!want || (sh as any).cruise);
+  if (!lingering) {
+    if (!want) { hideCaption(el); capShot = null; return; }
+    if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
+    if (capShot !== sh || capPhase !== sh!.phase) {
+      capShot = sh; capPhase = sh!.phase; capT = 1; capVisT = 0; capLostT = 0; capUpT = 0; capSeenK = 0; capLeft = 0;
+      el.classList.remove('on');
+      const c = captionText(sh!.subject), asked = !!sh!.asked || !!sh!.zoom;
+      const kindKey = sh!.subject.label.replace(/の群れ$/, '');
+      // On the way to something asked for: where it is going and why, nothing about what it is doing yet
+      capHead = !!sh!.asked && sh!.phase === 'approach';
+      const from = sh!.asked ? (askKey === sh!.subject.key && askFrom ? askFrom : 'リクエスト') : '';
+      if (capHead) { c.s = ''; c.n = ''; }
+      else {
+        // Not the same thing over and over: a kind told about in the last three minutes is not told again
+        // unless asked for (a tap, the guide), and its notes are given once in a visit (again only when asked)
+        if (!asked && capClock - (capSeen.get(kindKey) ?? -1e9) < 180) { capShot = sh; capLeft = 0; capVis = false; return; }
+        capSeen.set(kindKey, capClock);
+        if (!asked && capNoted.has(kindKey)) c.n = '';
+        if (c.n) capNoted.add(kindKey);
+      }
+      (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : capHead ? `${from} ・ 向かっています` : sh!.asked ? `${from} ・ 観察中` : sh!.zoom ? '近くで観察' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
+      if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
+      (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = capHead ? '' : c.i;
+      (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
+      el.classList.toggle('head', capHead);
+      // up for about as long as it takes to read (Japanese at an easy ~7 characters a second), at least 4 s
+      capLeft = capHead ? 1e9 : Math.min(asked ? 16 : 12, Math.max(4.5, (c.t.length + c.s.length + c.n.length) / 7 + 2));
+    }
   }
-  if (!want) { if (el.classList.contains('on')) el.classList.remove('on'); capShot = null; return; }
-  if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
-  if (capShot !== sh || capPhase !== sh!.phase) {
-    capShot = sh; capPhase = sh!.phase; capT = 0;
-    const c = captionText(sh!.subject);
-    // Not the same thing over and over: a kind told about in the last three minutes is not told again
-    // unless asked for (a tap, the guide), and its notes are given once in a visit (again only when asked)
-    const kindKey = sh!.subject.label.replace(/の群れ$/, ''), asked = !!sh!.asked || !!sh!.zoom, nowS = performance.now() / 1000;
-    if (!asked && nowS - (capSeen.get(kindKey) ?? -1e9) < 180) { el.classList.remove('on'); capLeft = 0; return; }
-    capSeen.set(kindKey, nowS);
-    if (!asked && capNoted.has(kindKey)) c.n = '';
-    if (c.n) capNoted.add(kindKey);
-    (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : sh!.phase === 'approach' ? '近づいています' : sh!.asked ? '図鑑から ・ 到着' : sh!.zoom ? '近くで観察' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
-    if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
-    (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
-    (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
-    el.classList.add('on');
-    // up for about as long as it takes to read (Japanese at an easy ~7 characters a second), then it fades
-    capLeft = Math.min(asked ? 16 : 12, Math.max(4.5, (c.t.length + c.s.length + c.n.length) / 7 + 2));
+  if (!capShot) return;
+  // in view? (looked at five times a second; on the way, the heading is up whether or not it is in view yet)
+  if ((capSeenK -= dt) <= 0) { capSeenK = 0.2; capVis = seenNow(capShot.subject); }
+  const vis = capHead || capVis;
+  if (vis) { capVisT += dt; capLostT = 0; } else { capVisT = 0; capLostT += dt; }
+  const on = el.classList.contains('on');
+  if (on || capUpT > 0) {
+    // (once up, its reading time runs whether or not it is in view; out of view, it fades, and back in view
+    // it comes back while that time lasts)
+    if (on) capUpT += dt;
+    if ((capLeft -= dt) <= 0 && (capUpT >= 4 || !on)) { hideCaption(el); if ((capShot as any).cruise) { capShot = null; cruiseSubj = null; capQuiet = rr(12, 20); } return; }
+    if (on && capUpT >= 4 && capLostT >= 1.5) el.classList.remove('on');
+    else if (!on && capVisT >= 0.5) el.classList.add('on');
+  } else if (capLeft > 0 && capVisT >= (capHead ? 0 : 0.5)) el.classList.add('on');
+  if (!capHead && (capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(capShot.subject).s; }
+}
+function hideCaption(el: HTMLElement) { if (el.classList.contains('on')) el.classList.remove('on'); capLeft = 0; }
+// the ring round what the caption is about: faint, as big as the subject looks, following it smoothly
+let ringX = -1, ringY = 0, ringR = 0;
+function updateCapRing(dt: number) {
+  const el = $('capRing'), cap = $('caption'), sj = capShot?.subject, p = sj?.pos();
+  const up = !!sj && !!p && cap.classList.contains('on') && !watch.r && mode === 'ocean';
+  if (!up) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; return; }
+  camera.updateMatrixWorld();
+  _sv.set(p!.x, p!.y, p!.z).project(camera);
+  const w = innerWidth, h = innerHeight, behind = _sv.z > 1;
+  let sx = (_sv.x * 0.5 + 0.5) * w, sy = (-_sv.y * 0.5 + 0.5) * h;
+  if (behind) { sx = w - sx; sy = h - sy; }
+  const d = Math.max(0.5, camera.position.distanceTo(_sv.set(p!.x, p!.y, p!.z)));
+  const pxm = h / (2 * Math.tan(camera.fov * Math.PI / 360));
+  const r = Math.min(Math.min(w, h) * 0.32, Math.max(22, Math.max(sj!.frameR?.() ?? 0, sj!.size * 0.45) / d * pxm));
+  const m = 30, off = behind || sx < m || sy < m || sx > w - m || sy > h - m;
+  if (off && !capHead) { el.classList.remove('on'); ringX = -1; return; }   // (only on the way is it pointed to; once there, out of view means no ring)
+  if (off) {
+    const cx = w / 2, cy = h / 2, dx = sx - cx, dy = sy - cy, k = Math.min((cx - m) / Math.max(Math.abs(dx), 1e-3), (cy - m) / Math.max(Math.abs(dy), 1e-3));
+    sx = cx + dx * k; sy = cy + dy * k;
+    el.style.setProperty('--rot', `${Math.atan2(dy, dx) * 180 / Math.PI}deg`);
   }
-  if (capLeft > 0 && (capLeft -= dt) <= 0) el.classList.remove('on');
-  if ((capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(sh!.subject).s; }
+  const jump = ringX < 0 || el.classList.contains('edge') !== off, a = jump ? 1 : 1 - Math.exp(-dt * 10);
+  ringX = jump ? sx : ringX + (sx - ringX) * a; ringY = jump ? sy : ringY + (sy - ringY) * a; ringR = jump ? r : ringR + (r - ringR) * a;
+  el.classList.toggle('edge', off);
+  el.style.transform = `translate(${ringX.toFixed(1)}px, ${ringY.toFixed(1)}px)`;
+  el.style.setProperty('--r', `${(off ? 14 : ringR).toFixed(1)}px`);
+  el.classList.add('on');
 }
 function onShotChange(prev: Shot | null, next: Shot | null) {
   if (viewNear !== 1) { viewNear = 1; director.distK = filmDistK(); }   // (a new subject: back to the usual distance)
@@ -1186,9 +1265,9 @@ function scanNotices(dt: number, now: number) {
 }
 function goToEvent() {
   if (!markAt || !cur || watch.r) return;
-  if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }); return; }
+  if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }, '案内から'); return; }
   const at = markAt, text = markText;
-  focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() });
+  focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, pos: () => at(), status: () => '', live: () => !!at() }, 'SEA LOG から');
 }
 $('evMark').onclick = goToEvent;
 $('toast').addEventListener('click', goToEvent);
@@ -1203,11 +1282,13 @@ function announceRare(r: { info: { id: string; ja: string; note: string } }) {
   recordLog('rare', `めったに出会えない光景：${r.info.ja}`);
   if (drone.mode === 'auto' && !watch.r && cur) {
     if (drone.sky && r.info.id !== 'bigbait') setSky(false, true);
-    const sj: Subject[] = []; cur.rare.subjects(sj); if (sj[0]) { director.focus(sj[0], drone.pos); lastShot = null; }
+    const sj: Subject[] = []; cur.rare.subjects(sj); if (sj[0]) { director.focus(sj[0], drone.pos); lastShot = null; askFrom = 'めったにない光景'; askKey = sj[0].key; markUntil = 0; }
   }
 }
-function focusOn(s: Subject) {
+function focusOn(s: Subject, from = '図鑑から') {
   if (!cur) return;
+  askFrom = from; askKey = s.key;
+  markUntil = 0; noticeSubj = null;   // (a new request: the last one's ring is not left behind)
   endOpening(false); tourQ = [];
   if (watch.r) stopWatch(false);
   if (drone.mode !== 'auto') setMode('auto');
@@ -1222,7 +1303,7 @@ function goTo(id: string) {
   track('guide_go', { sea: cur.loc.id, item: id.startsWith('robot:') ? 'robot' : id });
   if (id.startsWith('robot:') && cur.residents) {
     const r = cur.residents.list.find((x: any) => 'robot:' + x.id === id);
-    if (r) { focusOn(r.subject); showToast('向かっています', `${r.v.name}のところへ`, cur.residents.status(r)); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } }
+    if (r) { focusOn(r.subject); if (!captionOn) showToast('向かっています', `${r.v.name}のところへ`, cur.residents.status(r)); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } }
     return;
   }
   const oc = cur, cam = drone.pos, near = <T extends { pos: THREE.Vector3 }>(a: T[]) => a.reduce((b, c) => (c.pos.distanceTo(cam) < b.pos.distanceTo(cam) ? c : b));
@@ -1240,7 +1321,7 @@ function goTo(id: string) {
     return;
   }
   // the jacks: by day, at their spot on the reef's edge (milling, or wound up into a tornado as the tide runs)
-  if (id === 'gingameaji' && oc.jacks?.subjects().length) { focusOn(oc.jacks.subjects()[0]); showToast('向かっています', `${name}のところへ`, ''); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } return; }
+  if (id === 'gingameaji' && oc.jacks?.subjects().length) { focusOn(oc.jacks.subjects()[0]); if (!captionOn) showToast('向かっています', `${name}のところへ`, ''); if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); } return; }
   // flying fish: up into the sky, and down to a low run over the sea that puts them up
   if (id === 'tobiuo' && oc.flyfish && !loc.species.some((sp) => sp.id === 'tobiuo')) {
     if (skyNow!.night > 0.5) { showToast(name, '夜の海では見えません', '暗い水面の上を飛ぶので、空から追っても姿が見えません。明るい時間に来てみてください'); return; }
@@ -1263,7 +1344,7 @@ function goTo(id: string) {
     const f = place.find(oc, cam);
     if (f) s = { key: id, label: place.ja, kind: 'big', prio: 5, size: f.size, pos: () => f.pos, status: () => '', live: () => true };
     if (!f) { showToast('見つかりません', `${place.ja}は近くにないようです`, ''); return; }
-    focusOn(s!); showToast('向かっています', place.ja, '');
+    focusOn(s!); if (!captionOn) showToast('向かっています', place.ja, '');
     if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); }
     return;
   }
@@ -1296,7 +1377,7 @@ function goTo(id: string) {
   }
   if (!s) { showToast('見つかりません', `${name}は近くにいないようです`, ''); return; }
   focusOn(s);
-  showToast('向かっています', `${name}のところへ`, '');
+  if (!captionOn) showToast('向かっています', `${name}のところへ`, '');
   if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); }
 }
 function showToast(k: string, t: string, s: string) {
@@ -1546,7 +1627,7 @@ function observeNew() {
   const m = newMark, last = { x: 0, y: 0, z: 0 };
   const pos = () => { const p = m.at(); if (p) { last.x = p.x; last.y = p.y; last.z = p.z; } return last; };
   pos();
-  focusOn({ key: `new:${m.ja}`, label: m.ja, kind: 'big', prio: 5, size: Math.max(0.6, m.size * 2), hold: 8, pos, status: () => '初めて見つけた', live: () => true });
+  focusOn({ key: `new:${m.ja}`, label: m.ja, kind: 'big', prio: 5, size: Math.max(0.6, m.size * 2), hold: 8, pos, status: () => '初めて見つけた', live: () => true }, '見つけた生きもの');
   newMark = null; $('newMark').classList.remove('on');
 }
 function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3 | null, size = 1) {
@@ -2127,9 +2208,9 @@ function tapAt(x: number, y: number) {
   if (!s) return;
   // (flown by hand: stay with it, circling slowly, for as long as the hand leaves the controls alone)
   if (byHand) s = { ...s, hold: 1e6 };
-  focusOn(s); if (byHand) { visit = true; modeUi(); hint(isTouch ? 'スティックに触れると手動操縦に戻ります' : 'WASD などで手動操縦に戻ります'); }
+  focusOn(s, 'タップから'); if (byHand) { visit = true; modeUi(); hint(isTouch ? 'スティックに触れると手動操縦に戻ります' : 'WASD などで手動操縦に戻ります'); }
   track('tap_subject', { sea: cur?.loc.id ?? '', subject: place ? 'place' : s.key.split(':')[0] });
-  showToast('向かっています', s.label, s.status());
+  if (!captionOn) showToast('向かっています', s.label, s.status());
   const ring = $('tapRing'); ring.style.transform = `translate(${x}px, ${y}px)`; ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
 }
 // on a desktop, the name of what is under the pointer
@@ -2764,6 +2845,7 @@ function frameBody(ts: number) {
     if (shotHold) { camera.position.copy(drone.pos); camera.rotation.set(drone.pitch, drone.yaw, 0); } else updateDrone(dt, now);   // (drawing a photograph: held exactly where its eyes were)
     syncBackCruise();
     updateCaption(dt);
+    updateCapRing(dt);
     scanNotices(dt, now);
     const fwd = U.uCamFwd.value; camera.getWorldDirection(fwd);
     U.uCamPos.value.copy(camera.position); U.uLodPos.value.copy(drone.pos);   // (the corals' close-up shape by the drone's own place: not swapping as the view swings round it)
@@ -3105,7 +3187,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj?.pos() ? { x: sj.pos()!.x, y: sj.pos()!.y, z: sj.pos()!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
