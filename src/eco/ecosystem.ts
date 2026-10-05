@@ -109,7 +109,7 @@ export class Ecosystem {
   subjects(): Subject[] {
     const out: Subject[] = [];
     for (const f of this.oc.fish as FishSystem[]) f.subjects(out);
-    const TS: Record<string, [number, string]> = { travel: [2.0, '泳いでいる'], graze: [2.6, '食事中'], toRest: [2.2, '寝床へ向かっている'], rest: [1.7, '岩陰で眠っている'], breathe: [3.2, '息継ぎに浮上中'] };
+    const TS: Record<string, [number, string]> = { travel: [2.0, 'ゆったり泳いで移動している'], graze: [2.6, '海底の藻や海草をはんでいる'], toRest: [2.2, '寝床の岩陰へ向かっている'], rest: [1.7, '岩陰で眠っている'], breathe: [3.2, '息継ぎに水面へ上がっていく'] };
     const turtleName = (this.oc.loc.extraGuide || []).find((e: any) => e.id === 'turtle')?.ja ?? 'ウミガメ';
     this.oc.turtles.forEach((t: any, i: number) => {
       const hawk = this.oc.loc.animals.turtle?.style === 'hawksbill';

@@ -271,6 +271,9 @@ export function makeBreach(oc: any) {
       out.push({ key: 'breach', label: whaleNow ? 'ザトウクジラのブリーチ' : 'マンタのジャンプ', kind: 'giant', prio: 9, size: l.len, reach: 160, hold: 26,
         pos: () => exitC, live: () => leap === l && upNow() < showEnd,
         status: () => { const up = upNow(); return up < 0 ? '深みから一気に浮上してくる' : up < airT ? '海面から跳び上がった！' : '大きな水しぶきを上げて着水した'; },
+        // (what a leap is: not the species' entry, which tells of its season and its range)
+        note: () => (whaleNow ? '体長十数メートル、30トンを超える体を、尾びれのひとかきで海面の上まで持ち上げる。仲間への合図、体についた寄生虫を落とすためなど、理由ははっきりわかっていない。'
+          : 'マンタはときどき海面から跳び上がり、体を打ちつけるように着水する。何度か続けて跳ぶこともある。寄生虫を落とすため、仲間への合図など、理由はまだよくわかっていない。'),
         breach: { dist: whaleNow ? 24 : 10, h: whaleNow ? 6 : 1.5, dir: l.dir, body: (whaleNow ? whale : manta).position, len: l.len, after: () => upNow() - airT } });   // (after: seconds since it came back down)
     },
   };

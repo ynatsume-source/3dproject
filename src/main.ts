@@ -263,12 +263,23 @@ function setCaption(on: boolean) {
   $('btnCaption').setAttribute('aria-pressed', String(on));
   if (!on) $('caption').classList.remove('on'); else capShot = null;
 }
-function captionText(sj: Subject) {
-  const e = cur ? guideEntries(cur.loc).find((x) => sj.label.startsWith(x.ja)) : null;
-  const sizeTxt = sj.len && sj.adult ? `　${describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat)}` : '';
-  const note = e ? e.note.split('。').filter(Boolean).slice(0, 2).join('。') + '。' : '';
-  return { t: sj.label, i: e?.sci ?? '', s: sj.status() + sizeTxt, n: note };
+// The field-guide entry for a subject: by the species in its key ("hibudai:2", "turtle:0", "focus:manta",
+// "critter:erabu:1"), and only failing that by its name (a name is not unique: "マンタのジャンプ" is no ナンヨウマンタ)
+function entryOf(sj: Subject) {
+  if (!cur) return null;
+  const list = guideEntries(cur.loc), parts = sj.key.split(':');
+  for (const id of parts) { const e = list.find((x) => x.id === id); if (e) return e; }
+  return list.find((x) => sj.label === x.ja || ['の群れ', 'の大群', 'のベイトボール'].some((w) => sj.label === x.ja + w)) ?? null;
 }
+// What the caption says, in four parts: the name; what it is doing now (always a whole phrase about this one);
+// its size and age on a line of their own; and a note. The note is the subject's own (a rare sight's, a place's,
+// a leap's) or else its field-guide entry, whole.
+function captionText(sj: Subject) {
+  const e = entryOf(sj);
+  const m = sj.len && sj.adult ? describeSize(sj.len, ageOf(sj.len, sj.adult, sj.lenK), sj.lenWhat) : '';
+  return { t: sj.label, i: e?.sci ?? '', s: sj.status(), m, n: sj.note?.() || e?.note || '' };
+}
+const firstSentence = (n: string) => (n.match(/^[^。！]*[。！]/)?.[0] ?? n);
 let cruiseSubj: Subject | null = null, cruiseT = 0, capLeft = 0, capQuiet = 0, capClock = 0;
 const capSeen = new Map<string, number>(), capNoted = new Set<string>();   // (when each kind was last told about; whose notes have been given)
 // Where a request to go and see came from, said as it is in the caption's small heading (a tap is not "the guide")
@@ -335,12 +346,12 @@ function updateCaption(dt: number) {
     if (capShot !== sh || capPhase !== sh!.phase) {
       capShot = sh; capPhase = sh!.phase; capT = 1; capVisT = 0; capLostT = 0; capUpT = 0; capSeenK = 0; capLeft = 0;
       el.classList.remove('on');
-      const c = captionText(sh!.subject), asked = !!sh!.asked || !!sh!.zoom;
-      const kindKey = sh!.subject.label.replace(/の群れ$/, '');
-      // On the way to something asked for: where it is going and why, nothing about what it is doing yet
+      const c = captionText(sh!.subject), asked = !!sh!.asked || !!sh!.zoom, sj = sh!.subject, cruise = !!(sh as any).cruise;
+      const kindKey = sj.label.replace(/の群れ$/, '');
+      // On the way to something asked for: only where it is going (and why)
       capHead = !!sh!.asked && sh!.phase === 'approach';
-      const from = sh!.asked ? (askKey === sh!.subject.key && askFrom ? askFrom : 'リクエスト') : '';
-      if (capHead) { c.s = ''; c.n = ''; }
+      const from = sh!.asked ? (askKey === sj.key && askFrom ? askFrom : '図鑑から') : '';
+      if (capHead) { c.s = ''; c.m = ''; c.n = ''; }   // (on the way: where to, and nothing yet about what it is doing; the rest once it is there)
       else {
         // Not the same thing over and over: a kind told about in the last three minutes is not told again
         // unless asked for (a tap, the guide), and its notes are given once in a visit (again only when asked)
@@ -349,13 +360,16 @@ function updateCaption(dt: number) {
         if (!asked && capNoted.has(kindKey)) c.n = '';
         if (c.n) capNoted.add(kindKey);
       }
-      (el.querySelector('.k') as HTMLElement).textContent = (sh as any).cruise ? 'いま目の前に' : capHead ? `${from} ・ 向かっています` : sh!.asked ? `${from} ・ 観察中` : sh!.zoom ? '近くで観察' : sh!.subject.kind === 'hunt' ? '狩り' : '観察中';
-      if ((sh as any).cruise) c.n = '';   // (passing by: just the name and what it is doing)
-      (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = capHead ? '' : c.i;
-      (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.n') as HTMLElement).textContent = c.n;
+      // the small heading: where it came from, and what is going on — said once, not again in the lines below
+      const what = sj.breach ? 'ジャンプの瞬間' : sj.kind === 'hunt' ? '狩りの最中' : sj.key.startsWith('rare:') ? 'めったにない光景' : sh!.zoom && !sh!.asked ? '近くで観察' : '観察中';   // (asked for, it is always filmed close: that is no news)
+      (el.querySelector('.k') as HTMLElement).textContent = cruise ? 'いま目の前に' : capHead ? `${from} ・ 向かっています` : sh!.asked ? (from === 'めったにない光景' ? from : `${from} ・ ${what}`) : what;
+      if (cruise) c.n = c.n && !capNoted.has(kindKey + ':short') ? (capNoted.add(kindKey + ':short'), firstSentence(c.n)) : '';   // (passing by: one line of it, once)
+      (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
+      (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.m') as HTMLElement).textContent = c.m;
+      (el.querySelector('.n') as HTMLElement).textContent = c.n;
       el.classList.toggle('head', capHead);
       // up for about as long as it takes to read (Japanese at an easy ~7 characters a second), at least 4 s
-      capLeft = capHead ? 1e9 : Math.min(asked ? 16 : 12, Math.max(4.5, (c.t.length + c.s.length + c.n.length) / 7 + 2));
+      capLeft = capHead ? 1e9 : Math.min(asked ? 20 : 14, Math.max(4.5, (c.t.length + c.s.length + c.m.length + c.n.length) / 7 + 2));
     }
   }
   if (!capShot) return;
@@ -372,7 +386,7 @@ function updateCaption(dt: number) {
     if (on && capUpT >= 4 && capLostT >= 1.5) el.classList.remove('on');
     else if (!on && capVisT >= 0.5) el.classList.add('on');
   } else if (capLeft > 0 && capVisT >= (capHead ? 0 : 0.5)) el.classList.add('on');
-  if (!capHead && (capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = captionText(capShot.subject).s; }
+  if (!capHead && (capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = capShot.subject.status(); }
 }
 function hideCaption(el: HTMLElement) { if (el.classList.contains('on')) el.classList.remove('on'); capLeft = 0; }
 // the ring round what the caption is about: faint, as big as the subject looks, following it smoothly
@@ -1350,7 +1364,7 @@ function goTo(id: string) {
   const place = id.startsWith('place:') ? (PLACES[loc.id] || []).find((p) => 'place:' + p.id === id) : null;
   if (place) {
     const f = place.find(oc, cam);
-    if (f) s = { key: id, label: place.ja, kind: 'big', prio: 5, size: f.size, spot: true, pos: () => f.pos, status: () => '', live: () => true };
+    if (f) s = { key: id, label: place.ja, kind: 'big', prio: 5, size: f.size, spot: true, pos: () => f.pos, status: () => spotStatus(f.pos), note: () => place.note, live: () => true };
     if (!f) { showToast('見つかりません', `${place.ja}は近くにないようです`, ''); return; }
     focusOn(s!); if (!captionOn) showToast('向かっています', place.ja, '');
     if (isTouch || innerWidth < 900) { guideEl.hidden = true; renderGuide(); }
@@ -1454,7 +1468,7 @@ function updateTimeUi() {
 let seen = new Set<string>();
 try { seen = new Set(JSON.parse(localStorage.getItem('seaglass.seen') || '[]')); } catch (e) { /* storage unavailable */ }
 const guideEl = $('guide');
-const TURTLE_STATE: Record<string, string> = { travel: '泳いでいる', graze: '食事中', toRest: '寝床へ向かっている', rest: '岩陰で眠っている', breathe: '息継ぎに浮上中' };
+const TURTLE_STATE: Record<string, string> = { travel: 'ゆったり泳いで移動している', graze: '海底の藻や海草をはんでいる', toRest: '寝床の岩陰へ向かっている', rest: '岩陰で眠っている', breathe: '息継ぎに水面へ上がっていく' };
 function statusOf(id: string): string {
   if (!cur) return '';
   const f = cur.fish.find((x: any) => x.sp.id === id);
@@ -1616,7 +1630,7 @@ let toastTimer = 0;
 // A first sighting is marked where the animal is, not announced across the top of the screen: a faint ring
 // round it with its name, following it for a few seconds. A tap on it goes over to watch it for a while.
 type Where3 = { x: number; y: number; z: number };
-let newMark: { at: () => Where3 | null; ja: string; size: number; t: number } | null = null;
+let newMark: { at: () => Where3 | null; id: string; ja: string; size: number; t: number } | null = null;
 function updateNewMark(dt: number) {
   const el = $('newMark');
   if (!newMark) { el.classList.remove('on'); el.tabIndex = -1; return; }   // (not shown: not in the Tab order either)
@@ -1636,7 +1650,12 @@ function observeNew() {
   const m = newMark, last = { x: 0, y: 0, z: 0 };
   const pos = () => { const p = m.at(); if (p) { last.x = p.x; last.y = p.y; last.z = p.z; } return last; };
   pos();
-  focusOn({ key: `new:${m.ja}`, label: m.ja, kind: 'big', prio: 5, size: Math.max(0.6, m.size * 2), hold: 8, pos, status: () => '初めて見つけた', live: () => true }, '見つけた生きもの');
+  // (the animal itself, if it is one of the sea's subjects: its own name, state and size; else just its place)
+  const p0 = m.at(), dd = (q: Where3 | null) => (q && p0 ? Math.hypot(q.x - p0.x, q.y - p0.y, q.z - p0.z) : Infinity);
+  let real: Subject | null = allSubjects().filter((x) => x.label.replace(/の群れ$/, '') === m.ja && x.pos()).sort((a, b) => dd(a.pos()) - dd(b.pos()))[0] ?? null;
+  if (!real) real = (cur.fish as any[]).find((f) => f.sp.ja === m.ja)?.focus(p0 ? new THREE.Vector3(p0.x, p0.y, p0.z) : drone.pos) ?? null;   // (a reef fish's group: no subject of its own)
+  if (real) focusOn({ ...real, key: `new:${real.key}`, prio: 5, hold: 8 }, '初めて見つけた');
+  else focusOn({ key: `new:${m.ja}`, label: m.ja, kind: 'big', prio: 5, size: Math.max(0.6, m.size * 2), hold: 8, pos, status: () => statusOf(m.id), live: () => true }, '初めて見つけた');   // (its kind's own state, where there is no one animal to ask: a garden eel colony)
   newMark = null; $('newMark').classList.remove('on');
 }
 function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3 | null, size = 1) {
@@ -1645,7 +1664,7 @@ function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3
   if (seen.has(key)) return;
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
-  if (at) { newMark = { at, ja: e.ja, size, t: 0 }; $('newMarkName').textContent = e.ja; }
+  if (at) { newMark = { at, id: e.id, ja: e.ja, size, t: 0 }; $('newMarkName').textContent = e.ja; }
   track('sighting', { sea: cur.loc.id, species: e.id });
   recordLog('sighting', `${e.ja}を初めて見つけた`);
   say('sighting', { name: e.ja });
@@ -2176,6 +2195,17 @@ function seabedAt(x: number, y: number): { p: THREE.Vector3; d: number } | null 
   }
   return null;
 }
+// at a place: what is there to be seen right now, from the fish actually about it (within 8 m), the most first
+function spotFish(at: Where3) {
+  const n: Record<string, number> = {};
+  for (const f of (cur?.fish ?? []) as any[]) {
+    const fp = f.dbg?.fp, dead = f.dbg?.dead, tot = f.dbg?.total ?? 0; if (!fp) continue;
+    for (let i = 0; i < tot; i += Math.max(1, Math.floor(tot / 300))) if (!dead[i] && Math.hypot(fp[i * 3] - at.x, fp[i * 3 + 1] - at.y, fp[i * 3 + 2] - at.z) < 8) n[f.sp.ja] = (n[f.sp.ja] ?? 0) + 1;
+  }
+  return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([k]) => k);
+}
+const spotStatus = (at: Where3) => (spotFish(at).length ? 'あたりをゆっくり見て回っている' : '静かな一角を、ゆっくり見て回っている');
+const spotNote = (at: Where3) => { const f = spotFish(at).slice(0, 3); return f.length ? `いま近くには${f.join('、')}がいる。` : 'いまは近くに魚の姿が少ない。'; };
 // the nearest manta, as the one to go to (its own state with it)
 function mantaFocus(oc: any, name: string): Subject | null {
   const L = oc.mantas as any[], m = L.reduce((a, b) => (b.pos.distanceTo(drone.pos) < a.pos.distanceTo(drone.pos) ? b : a)), i = L.indexOf(m);
@@ -2237,8 +2267,8 @@ function tapAt(x: number, y: number) {
       const T = cur.T, reef = T.reef(f.p.x, f.p.z) > 0.3 || T.top(f.p.x, f.p.z) > T.h(f.p.x, f.p.z) + 0.3;
       const at = new THREE.Vector3(f.p.x, Math.min(T.top(f.p.x, f.p.z) + 1.2, -1.6), f.p.z);
       const label = reef ? 'このあたりの礁' : 'このあたりの海底';
-      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, len: 1.2, spot: true, pos: () => at,   // (len: a spot to circle, not a big animal's moves)
-       status: () => '', live: () => true };
+      s = { key: 'place:tap', label, kind: 'big', prio: 5, size: 3, spot: true, pos: () => at,
+       status: () => spotStatus(at), note: () => (reef ? 'サンゴと岩が重なる礁の一角。' : '砂と小石の海底。') + spotNote(at), live: () => true };
       place = true;
     }
   }
@@ -3233,7 +3263,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

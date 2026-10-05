@@ -116,7 +116,7 @@ export function makeKelpFishLife(sp: Species, oc: any, count: number) {
   function status() {
     if (!senorita) return undefined;
     const resting = states.filter(s => s.mode === 'sleep').length;
-    if (resting > count / 2) return '砂に頭を残して休息中';
+    if (resting > count / 2) return '砂に潜り、頭だけ出して休んでいる';
     if (states.some(s => s.mode === 'wake')) return '砂から出て泳ぎ始めている';
     if (states.some(s => s.mode === 'seek-sand' || s.mode === 'bury')) return '砂地へ移動して休むところ';
     if (states.some(s => s.mode === 'forage')) return '海藻の表面の小動物をついばんでいる';

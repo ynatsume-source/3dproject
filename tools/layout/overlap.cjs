@@ -24,6 +24,12 @@ const IDS = ['pip', 'minimap', 'quick', 'caption', 'toast', 'dock', 'backCruise'
       $('toast').classList.add('on'); $('toastT').textContent = 'アカシュモクザメの気配に、ノコギリダイの群れがざわつきはじめた'; $('toastK').textContent = 'SEA LOG ・ ↖ 55m';
       window.seaglass.goTo('turtle');   // (a visit asked for: the back-to-cruise button up, the caption stepped up for it)
       return new Promise((res) => { const t0 = performance.now(); const wait = () => (document.body.classList.contains('asked') || performance.now() - t0 > 30000 ? go() : setTimeout(wait, 300)); setTimeout(wait, 300); const go = () => setTimeout(() => {
+        // (the caption at its fullest, as it is on arriving at something asked for: heading, name, what it is doing,
+        // its size, and a long note — filled in just before measuring, as the app would have it)
+        const cap = $('caption'); cap.classList.add('on'); cap.classList.remove('head');
+        cap.querySelector('.k').textContent = 'タップから ・ 観察中'; cap.querySelector('.t b').textContent = 'ミスジリュウキュウスズメダイの群れ'; cap.querySelector('.t i').textContent = 'Dascyllus aruanus';
+        cap.querySelector('.s').textContent = '近くの捕食者を避けて、礁に身を寄せている'; if (cap.querySelector('.m')) cap.querySelector('.m').textContent = '全長 約1.6 m・推定7歳';
+        cap.querySelector('.n').textContent = '通称グレート・バラクーダ。銀色の細長い体で中層に静止し、獲物に気づくと矢のような速さで襲いかかる。背の黒い山形の模様と、尾びれの白い縁が目印。大きな個体はひとりで、若い個体は群れで泳ぐ。';
         const r = {};
         // (only what is actually showing: an element faded right out takes no room on the screen)
         const shown = (el) => { for (let e = el; e; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05) return false; } return true; };

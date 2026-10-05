@@ -34,6 +34,7 @@ export interface Subject {
   size: number;                         // rough length, m (sets filming distance)
   pos(): { x: number; y: number; z: number } | null;
   status(): string;
+  note?(): string;                      // what to say about it (a rare sight, a place, a leap), when its field-guide entry is not the thing
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
   reach?: number;                       // how far away the director will go for it (default 42 m)
   hold?: number;                        // stay with it this long (s), instead of the usual time for its kind

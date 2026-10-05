@@ -365,7 +365,7 @@ export function makeRareEvents(oc: any) {
       if (!run) return;
       const r = run;
       if (r.t > r.dur || r.quiet) return;   // (leaving now: not a thing to go and film; or filmed as part of the sea)
-      out.push({ key: 'rare:' + r.info.id, label: r.info.ja, kind: r.kind, prio: 6, size: r.size, reach: 120, pos: () => r.pos(), status: () => r.status(), live: () => run === r && !!r.pos(), hold: Math.min(r.dur, 90), under: r.info.id === 'tornado' ? 6.5 : undefined });
+      out.push({ key: 'rare:' + r.info.id, label: r.info.ja, kind: r.kind, prio: 6, size: r.size, reach: 120, pos: () => r.pos(), status: () => r.status(), note: () => r.info.note, live: () => run === r && !!r.pos(), hold: Math.min(r.dur, 90), under: r.info.id === 'tornado' ? 6.5 : undefined });
     },
   };
 }

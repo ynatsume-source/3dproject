@@ -283,7 +283,7 @@ export const LOCATIONS: Sea[] = [
     species: [
       { id: 'nigripes', ja: 'モルディブアネモネフィッシュ', sci: 'Amphiprion nigripes', note: 'モルディブとスリランカ周辺だけに暮らすクマノミ。白帯は頭の後ろの1本だけ。',
         diel: 'day', diet: 'plankton', pat: 1, c1: [0.96, 0.52, 0.24], c2: [0.98, 0.98, 0.96], c3: [0.04, 0.04, 0.04], bands: 1, edge: 0, shape: 'clown', size: [0.08, 0.11], habitat: 'anemone', speed: 0.5 },
-      { id: 'anthias', ja: 'キンギョハナダイ', sci: 'Pseudanthias squamipinnis', note: 'オレンジ色の大群がティラの斜面を彩る。',
+      { id: 'anthias', ja: 'キンギョハナダイ', sci: 'Pseudanthias squamipinnis', note: 'メスはオレンジ色、オスは赤紫で背びれの一本が長く伸びる。潮の当たる斜面に何百匹もの大群で浮かび、流れてくるプランクトンをついばむ。',
         diel: 'day', diet: 'plankton', pat: 0, c1: [0.98, 0.50, 0.22], c2: [0.98, 0.70, 0.45], shape: 'slender', size: [0.08, 0.12], habitat: 'reef', schools: 9, n: 34, spread: [2.4, 1.2, 2.4], alt: [0.5, 2.5], speed: 0.8 },
       { id: 'kasmira', ja: 'ヨスジフエダイ', sci: 'Lutjanus kasmira', note: '黄色の体に青い縦線が4本。昼は根のそばで大群をつくる。',
         diel: 'night', diet: 'invert', pat: 5, c1: [0.98, 0.80, 0.14], c2: [0.40, 0.66, 0.98], bands: 4.2, shape: 'slender', size: [0.22, 0.3], habitat: 'reef', schools: 3, n: 60, spread: [4, 1.6, 4], alt: [1, 3], speed: 0.8 },
@@ -307,7 +307,7 @@ export const LOCATIONS: Sea[] = [
         diel: 'night', diet: 'invert', pat: 18, c1: [0.95, 0.94, 0.9], c2: [0.06, 0.06, 0.07], c3: [0.98, 0.84, 0.16], bands: 13, shape: 'grouper', size: [0.4, 0.6], habitat: 'reef', schools: 3, n: 5, spread: [1.4, 0.6, 1.4], alt: [0.4, 1.5], speed: 0.6 },
       { id: 'tsubameuo', ja: 'ツバメウオ', sci: 'Platax teira', note: '円盤のように平たく背の高い体。好奇心が強く、群れでゆったりとダイバーに寄ってくる。目と胸びれを通る黒い帯が目印。',
         diel: 'day', diet: 'invert', pat: 6, c1: [0.82, 0.8, 0.72], c2: [0.74, 0.73, 0.68], c3: [0.14, 0.13, 0.12], bands: 2.1, shape: 'batfish', size: [0.4, 0.55], habitat: 'reef', schools: 2, n: 6, spread: [2.5, 1.2, 2.5], alt: [2, 5], speed: 0.6 },
-      { id: 'isomaguro', ja: 'イソマグロ', sci: 'Gymnosarda unicolor', note: '犬のような鋭い歯を持つマグロの仲間。潮の当たるドロップオフやティラの縁を群れで回り、小魚の群れに突っ込む。',
+      { id: 'isomaguro', ja: 'イソマグロ', sci: 'Gymnosarda unicolor', note: '犬のような鋭い歯を持つマグロの仲間。潮の当たるドロップオフや礁の縁を群れで回り、小魚の群れに突っ込む。',
         diel: 'crep', diet: 'fish', pat: 0, c1: [0.2, 0.26, 0.36], c2: [0.8, 0.82, 0.84], shape: 'tuna', size: [1.0, 1.5], habitat: 'roam', count: 3, alt: [3, 10], speed: 1.6, big: true },
       { id: 'nemuribuka', ja: 'ネムリブカ', sci: 'Triaenodon obesus', note: '和名は「眠るサメ」。泳がずに岩棚の下でじっと休める。昼は休み、夜になると岩の隙間に頭を突っ込んで魚を探す。第1背びれと尾びれの先が白い。',
         diel: 'night', diet: 'fish', pat: 14, c1: [0.42, 0.41, 0.39], c2: [0.86, 0.86, 0.84], c3: [0.96, 0.96, 0.94], shape: 'whitetip', size: [1.3, 1.6], habitat: 'roam', count: 2, alt: [0.8, 2.5], speed: 1.0, big: true, eye: 0.4 },

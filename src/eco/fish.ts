@@ -623,28 +623,36 @@ export function makeFishSystem(sp: Species, oc: any) {
     const kelpStatus = kelpLife?.status();
     if (kelpStatus) return kelpStatus;
     const a = groups.reduce((s, g) => s + g.act, 0) / groups.length;
-    if (a < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : sp.cocoon ? '粘液の膜にくるまって眠っている' : '岩陰で休息中';
+    if (a < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの奥で休んでいる' : sp.cocoon ? '粘液の膜にくるまって眠っている' : '岩陰で休んでいる';
     if (Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
     return ({ plankton: 'プランクトンを食べている', algae: '藻をかじっている', invert: '餌を探している', fish: '巡回中', filter: 'プランクトンを濾して食べている' } as Record<string, string>)[sp.diet || 'plankton'];
   }
   // what this group is doing right now, from its own state (not the species': one school bolting is not all of
   // them, and a grazer is said to graze only while it is biting the reef)
   function groupStatus(g: Group): string {
-    if (kelpLife) return status();
+    const kelpSays = kelpLife?.status(); if (kelpSays) return kelpSays;
+    // (the words for where it lives: a coral reef and its bommies; a rocky reef in the kelp; the open ocean)
+    const open = !!oc.loc.pelagic, rocky = !!oc.kelp, reef = rocky ? '岩礁' : '礁', bommie = rocky ? '岩' : '根';
     if (g.hunt) return '狩りをしている';
     if (g.ch && g.t - g.ch.t < 2) return g.n > 1 ? '1匹が捕食者に追われている' : '捕食者に追われている';
-    if (g.predT != null && g.t - g.predT < 4) return g.type === 'reef' ? '捕食者を避けて、礁に身を寄せている' : '捕食者を避けて泳いでいる';
+    if (g.predT != null && g.t - g.predT < 4) return g.type === 'reef' ? `近くの捕食者を避けて、${reef}に身を寄せている` : '近くの捕食者を避けて泳いでいる';
     if (g.fear > 0.2 && g.type !== 'anem') return 'こちらに気づいて、少し離れた';
-    if (g.act < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : sp.cocoon ? '粘液の膜にくるまって眠っている' : g.type === 'roam' ? 'ゆっくり泳いで休んでいる' : '岩陰で休息中';
+    if (g.act < 0.35) {
+      if (sp.habitat === 'anemone') return 'イソギンチャクの奥で休んでいる';
+      if (sp.cocoon) return '粘液の膜にくるまって眠っている';
+      if (g.type === 'roam') return 'ゆっくり泳いで休んでいる';
+      // (a night fish by day hangs still by its bommie in its school; a day fish by night shelters in the reef, one by one)
+      return sp.diel === 'night' ? (g.n > 1 ? `${bommie}のそばに群れて、じっと休んでいる` : '岩陰でじっと休んでいる') : (g.n > 1 ? '群れをほどいて、岩のすき間で眠っている' : '岩のすき間で眠っている');
+    }
     if (sp.diet === 'algae' && g.act > 0.5 && !g.goal) return '藻をかじっている';   // (biting the reef: it does so whenever this active)
     if (Math.abs(target - g.act) > 0.2) return target > g.act ? 'そろそろ動き出す' : 'そろそろ休む';
-    if (g.goal) return '群れで次の根へ移っている';
+    if (g.goal) return `群れで次の${bommie}へ移っている`;
     if (g.type === 'anem') return 'イソギンチャクのまわりを泳いでいる';
-    if (sp.diet === 'algae') return '礁の上でじっとしている';
+    if (sp.diet === 'algae') return `${reef}の上でじっとしている`;
     if (sp.diet === 'plankton') return g.act * Math.min(1, curNow * 1.5) > 0.15 ? '流れに向かってプランクトンをついばんでいる' : '群れて漂っている';
     if (sp.diet === 'filter') return 'プランクトンを濾して食べている';
-    if (sp.diet === 'fish') return g.type === 'roam' ? '礁のまわりを巡回中' : '根のまわりで獲物をうかがっている';
-    return g.type === 'roam' ? '礁のまわりを泳いでいる' : '根のまわりで餌を探している';
+    if (g.type === 'roam') return open ? (sp.diet === 'fish' ? '獲物を探して、外洋を回遊している' : '外洋をゆったり泳いでいる') : sp.diet === 'fish' ? `${reef}のまわりを巡回中` : `${reef}のまわりを泳いでいる`;
+    return sp.diet === 'fish' ? `${bommie}のまわりで獲物をうかがっている` : `${bommie}のまわりで餌を探している`;
   }
   function subjects(out: Subject[]) {
     const giant = sp.size[1] > 3;
@@ -692,7 +700,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       },
       status: () => {
         const s = kelpLife!.states[i];
-        return s.mode === 'sleep' ? '砂に頭を残して休息中' : s.mode === 'seek-sand' ? '砂地の寝床へ泳いでいる'
+        return s.mode === 'sleep' ? '砂に潜り、頭だけ出して休んでいる' : s.mode === 'seek-sand' ? '砂地の寝床へ泳いでいる'
           : s.mode === 'bury' ? '砂に潜って休むところ' : s.mode === 'wake' ? '砂から出て泳ぎ始めている'
           : s.mode === 'forage' ? '海藻の表面の小動物をついばんでいる' : 'ケルプの間で餌を探している';
       },

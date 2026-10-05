@@ -502,7 +502,7 @@ body.mode-globe #rare, body.pov #rare { opacity: 0 !important; }
 /* the commentary: what is being filmed, at the top in the middle — a small sheet of frosted glass, as wide as its
    words and no wider (the toast's own material), its note held to two lines, so the middle of the screen is never
    filled with words. Its heading carries a little ring: the same ring that is drawn round the subject itself. */
-#caption { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); width: max-content; max-width: min(440px, calc(100vw - 40px)); text-align: center;
+#caption { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); width: max-content; max-width: min(460px, calc(100vw - 40px)); text-align: center;
   padding: 9px 18px 10px; box-sizing: border-box; border-radius: 16px;
   background: linear-gradient(180deg, rgba(6, 30, 38, .30), rgba(6, 30, 38, .44)); border: 1px solid rgba(214, 238, 233, .10);
   box-shadow: 0 10px 30px -12px rgba(0, 8, 14, .45); backdrop-filter: blur(10px) saturate(1.15); -webkit-backdrop-filter: blur(10px) saturate(1.15);
@@ -526,12 +526,17 @@ body.asked #backCruise { opacity: 1; transform: translate(-50%, 0); pointer-even
 #caption .t i:empty { display: none; }
 #caption .s { font-size: 11.5px; color: var(--ink); opacity: .82; margin-top: 3px; }
 #caption .s:empty { display: none; }
-#caption .n { font-size: 11px; line-height: 1.65; color: var(--ink-dim); margin: 6px auto 0; max-width: 400px;   /* (no padding: a clamped box would show the top of its next line in it) */
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* its size and age: a quiet line of its own, not run on after what it is doing */
+#caption .m { font: 400 9.5px/1.4 var(--f-mono); letter-spacing: .06em; color: var(--ink-dim); margin-top: 2px; }
+#caption .m:empty { display: none; }
+#caption .n { font-size: 11px; line-height: 1.65; color: var(--ink-dim); margin: 6px auto 0; max-width: 420px;   /* (no padding: a clamped box would show the top of its next line in it) */
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 /* on the way: just where it is going, the name a little smaller */
 #caption.head .t b { font-size: 13.5px; font-weight: 400; }
 #caption .n:empty { display: none; }
 @media (max-width: 760px) { #caption { top: calc(120px + env(safe-area-inset-top, 0px)); max-width: calc(100vw - 150px); } }
+/* (between a phone and a monitor: as wide as the room left between the map on the right and its mirror on the left) */
+@media (min-width: 761px) and (max-width: 1000px) { #caption { max-width: min(460px, calc(100vw - 380px)); } }
 body.mode-globe #caption, body.hud-off #caption, body.pov #caption, body.watching #caption { opacity: 0 !important; }
 /* the ring round what the caption is about: a thin, faint circle as big as the subject looks, breathing slowly;
    on the way, if it is out of the frame, a small chevron at the edge pointing to it */
@@ -753,8 +758,9 @@ body.hud-off #newMark { display: none; }
   #quick button { width: 34px; height: 34px; } #quick button svg { width: 16px; height: 16px; }
   /* the commentary along the top, between the name of the sea (left) and the map (right) */
   #caption { top: calc(10px + env(safe-area-inset-top, 0px)); max-width: max(220px, calc(100vw - 500px)); }
+  #caption .n { -webkit-line-clamp: 2; }   /* (a phone on its side: little height, so the note to two lines) */
   /* (the shortest phones on their side: six round buttons still clear of the bar below) */
-  @media (max-height: 400px) { #quick { top: calc(110px + env(safe-area-inset-top, 0px)); gap: 4px; } #quick button { width: 32px; height: 32px; } }
+  @media (max-height: 400px) { #quick { top: calc(110px + env(safe-area-inset-top, 0px)); gap: 4px; } #quick button { width: 32px; height: 32px; } #caption .n { -webkit-line-clamp: 1; } }
   /* the up/down buttons of manual flight beside the quick column, not under it */
   #vbtns { right: calc(62px + env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
   #joy { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
@@ -785,7 +791,7 @@ body:has(#guide:not([hidden])) #quick { display: none; }
   #caption { max-width: calc(100vw - 140px); padding: 8px 14px 9px; border-radius: 14px; }
   #caption .t b { font-size: 12.5px; } #caption .t i { display: none; }
   #caption .s { font-size: 10.5px; }
-  #caption .n { font-size: 10.5px; -webkit-line-clamp: 1; }
+  #caption .n { font-size: 10.5px; -webkit-line-clamp: 4; }
   #toast { left: 12px; max-width: min(280px, calc(100vw - 24px)); padding: 8px 11px 9px; border-radius: 12px; }
 }
 

@@ -365,9 +365,10 @@ export function makeBaitBall(oc: any, fraction: number) {
   const subject: Subject = {
     key: 'baitball', label: `${bsp.ja}のベイトボール`, kind: 'hunt', prio: 7, size: 5, reach: 75,
     pos: () => (st.active ? st.c : null),
-    status: () => ({ school: '', gather: '群れが固まりはじめている', herd: '水面へ追い上げられている', frenzy: '捕食者と海鳥が突っ込んでいる', scatter: 'ほどけはじめた' })[st.phase],
+    status: () => ({ school: '群れのまわりに捕食者が集まってきた', gather: '群れが固まりはじめている', herd: '水面へ追い上げられている', frenzy: '捕食者と海鳥が突っ込んでいる', scatter: 'ほどけはじめた' })[st.phase],
     live: () => st.active && st.phase !== 'scatter',
     frameR: () => st.r,
+    note: () => '追い詰められた小魚が、身を守ろうと球のように固まったもの。下からは捕食魚、上からは海鳥が襲いかかり、ほどけるまでの数分から数十分が勝負になる。',
   };
   const schoolSubject: Subject = {
     key: 'baitschool', label: `${bsp.ja}の大群`, kind: 'school', prio: 2.6, size: 8, reach: 45,

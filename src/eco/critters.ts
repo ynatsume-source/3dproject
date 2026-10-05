@@ -404,7 +404,7 @@ export function makeCritters(oc: any) {
     },
     subjects(out: Subject[]) {
       for (const m of morays) out.push({ key: `moray:${m.sp.id}:${m.i}`, label: m.sp.ja, kind: 'critter', prio: 1.8, size: 0.6, len: m.len, adult: m.sp.size[1], lenWhat: '全長',
-        pos: () => m.head, front: () => m.dir, status: () => (m.out > 0.38 ? '穴から体を乗り出して、獲物を探している' : '穴から顔を出して、口を開け閉めしている（呼吸）'), live: () => !m.buried });
+        pos: () => m.head, front: () => m.dir, status: () => (m.out > 0.38 ? '穴から体を乗り出して、獲物を探している' : '穴から顔を出し、口を開け閉めして呼吸している'), live: () => !m.buried });
       for (const s of snakes) out.push({ key: `snake:${s.sp.id}:${s.i}`, label: s.sp.ja, kind: 'critter', prio: s.state === 'up' || s.state === 'breathe' ? 3 : 2.1, size: 0.65, len: s.len, adult: s.sp.size[1], lenWhat: '全長',
         pos: () => s.pos, status: () => (s.state === 'forage' ? '岩のすき間をのぞいて、獲物を探している' : s.state === 'breathe' ? '水面で息継ぎをしている' : s.state === 'up' ? '息継ぎに浮上している' : '海底へ戻っていく'), live: () => s.placed });
       for (const j of jellies) out.push({ key: `jelly:${j.sp.id}:${j.i}`, label: j.sp.ja, kind: 'critter', prio: 1.5, size: 0.3, pos: () => j.pos, status: () => (j.sp.pat === 1 ? '長い触手を引いて、流れに乗って漂っている' : '傘を脈打たせながら漂っている'), live: () => j.placed });
