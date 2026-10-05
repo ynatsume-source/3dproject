@@ -16,17 +16,11 @@
   .bar { position: fixed; right: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; }
   .bar button { font: inherit; font-size: 12px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .bar button:focus-visible, #go:focus-visible { outline: 2px solid #f0bd5c; outline-offset: 2px; }
-  #bubble { position: fixed; left: 0; top: 0; max-width: min(78vw, 520px); background: #fbf8f1; color: #23343a; border-radius: 18px; padding: 10px 14px 9px; box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 70%, transparent), 0 10px 30px rgba(0, 0, 0, 0.35); transition: opacity .25s; pointer-events: none; }
+  #bubble { position: fixed; left: 0; top: 0; max-width: min(84vw, 520px); background: #fbf8f1; color: #23343a; border-radius: 18px; padding: 10px 14px 9px; box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 70%, transparent), 0 10px 30px rgba(0, 0, 0, 0.35); transition: opacity .25s; pointer-events: none; }
   #bubble::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -10px; margin-left: -10px; border: 10px solid transparent; border-top-color: #fbf8f1; border-bottom: 0; }
   #bubble .g { line-height: 1; overflow: hidden; }
   #bubble .g svg { height: 26px; width: auto; max-width: 100%; }
-  #bubble .r { font: 600 12px/1.4 ui-monospace, monospace; color: #4b6268; margin-top: 4px; }
-  #sub { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: min(92vw, 760px); box-sizing: border-box; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 10px 18px 12px; text-align: center; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-  #sub .who { display: inline-block; font-size: 12px; font-weight: 700; color: #1b2a30; background: var(--c); border-radius: 99px; padding: 1px 10px; margin-bottom: 4px; }
-  #sub .who i { font-style: normal; font-weight: 500; opacity: .7; margin-left: 6px; }
-  #sub .k { font-size: 12px; color: var(--dim); }
-  #sub .ja { font-size: clamp(16px, 2.4vw, 21px); line-height: 1.5; margin-top: 2px; }
-  #sub .en { font-size: clamp(13px, 1.8vw, 16px); color: var(--dim); }
+  #bubble .tr { font-size: clamp(14px, 1.9vw, 17px); line-height: 1.5; margin-top: 6px; padding-top: 6px; border-top: 1px dashed color-mix(in srgb, var(--c) 60%, transparent); }
   #intro { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 60%, rgba(11, 24, 40, 0.2), rgba(6, 12, 20, 0.75)); }
   #intro .card { text-align: center; max-width: 440px; padding: 0 20px; }
   #intro h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: .08em; }
@@ -49,11 +43,10 @@
   <h1>焚き火の会</h1>
   <p>4人が毎晩集まって、その日のことを報告し合う。ドラッグで見回せます。</p>
 </header>
-<div class="bar"><button id="mode" type="button">字幕：日本語＋English</button><button id="pause" type="button">一時停止</button><button id="again" type="button">最初から</button></div>
+<div class="bar"><button id="mode" type="button">訳：日本語</button><button id="pause" type="button">一時停止</button><button id="again" type="button">最初から</button></div>
 <div id="bubble" hidden></div>
-<div id="sub" hidden></div>
 <details><summary>台本（行を押すとそこから）</summary><ol id="script"></ol></details>
-<div id="intro"><div class="card"><h2>焚き火の会</h2><p>島の言葉ルマウで話す、4人の夜のデモ。それぞれの声で話し、字幕は日本語と英語。音が出ます。</p><button id="go" type="button">▶ はじめる</button></div></div>
+<div id="intro"><div class="card"><h2>焚き火の会</h2><p>島の言葉ルマウで話す、4人の夜のデモ。それぞれの声で話し、吹き出しに島の文字と訳（日本語・英語）。音が出ます。</p><button id="go" type="button">▶ はじめる</button></div></div>
 <script type="module" src="./src/robots/talk-demo.ts"></script>
 </body>
 </html>

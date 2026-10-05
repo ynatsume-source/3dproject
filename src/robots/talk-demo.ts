@@ -1,6 +1,6 @@
 // A demo of the four talking (talk.html): the campfire gathering at night, each line a meaning written in Lumau
-// (grammar.ts), said in the speaker's own voice (voice.ts), with the island's letters in a bubble and subtitles in
-// Japanese and English. The others turn to whoever is speaking and nod as the words reach them (models.ts talkBeat).
+// (grammar.ts), said in the speaker's own voice (voice.ts), in a bubble of the island's letters with what it means
+// under them, in the language chosen (Japanese, English; more by adding to each line's tr). The others turn to whoever is speaking and nod as the words reach them (models.ts talkBeat).
 // The models are the design gallery's (plain three.js materials), so the page stands on its own.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -8,30 +8,33 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { galleryKits } from './gallery-kit';
 import type { Pose, Robot } from './models';
 import { render, type Ids } from './lumau/grammar';
-import { glyphs, kana, roman } from './islandlang';
+import { glyphs, roman } from './islandlang';
 import { speak, VOICES } from './lumau/voice';
 
 type Who = 'dot' | 'lantern' | 'kame' | 'rakko';
+type Lang = 'ja' | 'en';
+const LANGS: { id: Lang | 'none'; label: string }[] = [{ id: 'ja', label: '訳：日本語' }, { id: 'en', label: '訳：English' }, { id: 'none', label: '訳：なし' }];
 const NAME: Record<Who, string> = { dot: 'ドット', lantern: 'ランタン', kame: 'カメマル', rakko: 'ラッコ' };
-const NAME_EN: Record<Who, string> = { dot: 'Dot', lantern: 'Lantern', kame: 'Kamemaru', rakko: 'Rakko' };
 const COLOR: Record<Who, string> = { dot: '#f0bd5c', lantern: '#6ccbdc', kame: '#7fcaa4', rakko: '#ec9b6e' };
 
 /** The gathering: reports, a warning, and a plan changed by it. No feelings: what each saw, measured and will do. */
-export const LINES: { who: Who; ids: Ids; ja: string; en: string }[] = [
-  { who: 'dot', ids: ['everyone', ',', 'report', 'lets', '.'], ja: 'みんな、報告しよう。', en: "Everyone, let's report." },
-  { who: 'dot', ids: ['me', 'topic', 'today', 'island', '#5', 'object', 'see', 'past', '.'], ja: '僕は今日、島を5つ見た。', en: 'I saw five islands today.' },
-  { who: 'dot', ids: ['tomorrow', ',', '=sopunu', 'to', 'voyage', 'future', '.'], ja: '明日、ソプヌへ船出する。', en: 'Tomorrow I will sail to Sopunu.' },
-  { who: 'lantern', ids: ['me', 'topic', 'pressure', 'object', 'measure', 'past', '.', 'pressure', 'topic', 'very', 'low', '.'], ja: '僕は気圧を測った。気圧はとても低い。', en: 'I measured the air pressure. It is very low.' },
-  { who: 'lantern', ids: ['typhoon', 'come', 'quote', 'me', 'topic', 'think', '.'], ja: '台風が来ると僕は思う。', en: 'I think a typhoon is coming.' },
-  { who: 'kame', ids: ['current', 'topic', 'north', 'to', 'go', 'ongoing', '.', 'wave', 'also', 'high', '.'], ja: '海流は北へ向かっている。波も高い。', en: 'The current is heading north. The waves are high too.' },
-  { who: 'rakko', ids: ['me', 'topic', 'shell', '#7', 'object', 'gather', 'past', '.'], ja: '僕は貝殻を7つ集めた。', en: 'I gathered seven shells.' },
-  { who: 'rakko', ids: ['reef', 'at', 'many', 'fish', 'there', '.'], ja: '礁に魚がたくさんいる。', en: 'There are many fish at the reef.' },
-  { who: 'lantern', ids: ['typhoon', 'come', 'if', ',', 'voyage', 'not', 'please', '.'], ja: '台風が来るなら、船出しないでほしい。', en: "If a typhoon comes, please don't sail." },
-  { who: 'dot', ids: ['agree', '.', 'me', 'topic', 'voyage', 'not', 'future', '.', 'hut', 'object', 'fix', 'future', '.'], ja: 'わかった。僕は船出しない。小屋を直す。', en: "Okay. I won't sail. I'll fix the hut." },
-  { who: 'kame', ids: ['me', 'also', 'help', 'future', '.'], ja: '僕も手伝う。', en: "I'll help too." },
-  { who: 'rakko', ids: ['me', 'also', '.'], ja: '僕も。', en: 'Me too.' },
-  { who: 'dot', ids: ['night', 'topic', 'deep', '.', 'sleep', 'lets', '.'], ja: '夜は深い。寝よう。', en: "It's late. Let's sleep." },
-  { who: 'lantern', ids: ['me', 'topic', 'star', 'object', 'record', 'future', '.'], ja: '僕は星を記録する。', en: "I'll record the stars." },
+/** Each line's translations, one per language (add a key to add a language; the switch lists what is there). */
+type Tr = Record<Lang, string>;
+export const LINES: { who: Who; ids: Ids; tr: Tr }[] = [
+  { who: 'dot', ids: ['everyone', ',', 'report', 'lets', '.'], tr: { ja: 'みんな、報告しよう。', en: "Everyone, let's report." } },
+  { who: 'dot', ids: ['me', 'topic', 'today', 'island', '#5', 'object', 'see', 'past', '.'], tr: { ja: '僕は今日、島を5つ見た。', en: 'I saw five islands today.' } },
+  { who: 'dot', ids: ['tomorrow', ',', '=sopunu', 'to', 'voyage', 'future', '.'], tr: { ja: '明日、ソプヌへ船出する。', en: 'Tomorrow I will sail to Sopunu.' } },
+  { who: 'lantern', ids: ['me', 'topic', 'pressure', 'object', 'measure', 'past', '.', 'pressure', 'topic', 'very', 'low', '.'], tr: { ja: '僕は気圧を測った。気圧はとても低い。', en: 'I measured the air pressure. It is very low.' } },
+  { who: 'lantern', ids: ['typhoon', 'come', 'quote', 'me', 'topic', 'think', '.'], tr: { ja: '台風が来ると僕は思う。', en: 'I think a typhoon is coming.' } },
+  { who: 'kame', ids: ['current', 'topic', 'north', 'to', 'go', 'ongoing', '.', 'wave', 'also', 'high', '.'], tr: { ja: '海流は北へ向かっている。波も高い。', en: 'The current is heading north. The waves are high too.' } },
+  { who: 'rakko', ids: ['me', 'topic', 'shell', '#7', 'object', 'gather', 'past', '.'], tr: { ja: '僕は貝殻を7つ集めた。', en: 'I gathered seven shells.' } },
+  { who: 'rakko', ids: ['reef', 'at', 'many', 'fish', 'there', '.'], tr: { ja: '礁に魚がたくさんいる。', en: 'There are many fish at the reef.' } },
+  { who: 'lantern', ids: ['typhoon', 'come', 'if', ',', 'voyage', 'not', 'please', '.'], tr: { ja: '台風が来るなら、船出しないでほしい。', en: "If a typhoon comes, please don't sail." } },
+  { who: 'dot', ids: ['agree', '.', 'me', 'topic', 'voyage', 'not', 'future', '.', 'hut', 'object', 'fix', 'future', '.'], tr: { ja: 'わかった。僕は船出しない。小屋を直す。', en: "Okay. I won't sail. I'll fix the hut." } },
+  { who: 'kame', ids: ['me', 'also', 'help', 'future', '.'], tr: { ja: '僕も手伝う。', en: "I'll help too." } },
+  { who: 'rakko', ids: ['me', 'also', '.'], tr: { ja: '僕も。', en: 'Me too.' } },
+  { who: 'dot', ids: ['night', 'topic', 'deep', '.', 'sleep', 'lets', '.'], tr: { ja: '夜は深い。寝よう。', en: "It's late. Let's sleep." } },
+  { who: 'lantern', ids: ['me', 'topic', 'star', 'object', 'record', 'future', '.'], tr: { ja: '僕は星を記録する。', en: "I'll record the stars." } },
 ];
 
 const $ = (id: string) => document.getElementById(id)!;
@@ -124,18 +127,14 @@ const byWho = Object.fromEntries(bots.map((x) => [x.who, x])) as Record<Who, (ty
 /* ---------- the conversation ---------- */
 let ctx: AudioContext | null = null, master: GainNode | null = null;
 let idx = -1, lineAt = 0, lineEnd = 0, playing = false, pausedAt = 0;
-const bubble = $('bubble'), sub = $('sub');
-type Mode = 'both' | 'ja' | 'en' | 'none';
-let mode: Mode = 'both';
+const bubble = $('bubble');
+let lang: Lang | 'none' = 'ja';
+/** The bubble: the island's letters, and under them what it means in the chosen language (no reading aloud in it). */
 function show(i: number) {
-  const L = LINES[i], toks = render(L.ids), c = COLOR[L.who];
-  bubble.style.setProperty('--c', c);
-  bubble.innerHTML = `<div class="g">${glyphs(toks, 'gl')}</div><div class="r">${roman(toks)}</div>`;
+  const L = LINES[i], toks = render(L.ids);
+  bubble.style.setProperty('--c', COLOR[L.who]);
+  bubble.innerHTML = `<div class="g">${glyphs(toks, 'gl')}</div>` + (lang !== 'none' ? `<div class="tr" lang="${lang}">${L.tr[lang]}</div>` : '');
   bubble.hidden = false;
-  sub.style.setProperty('--c', c);
-  sub.innerHTML = `<span class="who">${NAME[L.who]}<i>${NAME_EN[L.who]}</i></span><div class="k">${kana(toks)}</div>`
-    + (mode === 'both' || mode === 'ja' ? `<div class="ja">${L.ja}</div>` : '') + (mode === 'both' || mode === 'en' ? `<div class="en">${L.en}</div>` : '');
-  sub.hidden = mode === 'none' && false;
   document.querySelectorAll<HTMLElement>('#script li').forEach((li, k) => li.classList.toggle('on', k === i));
 }
 function say(i: number) {
@@ -156,9 +155,9 @@ $('pause').onclick = () => {
   if (playing) { ctx.suspend(); pausedAt = performance.now(); playing = false; $('pause').textContent = '再開'; }
   else { ctx.resume(); lineAt += (performance.now() - pausedAt) / 1000; playing = true; $('pause').textContent = '一時停止'; }
 };
-const MODES: [Mode, string][] = [['both', '字幕：日本語＋English'], ['ja', '字幕：日本語'], ['en', '字幕：English'], ['none', '字幕：なし']];
-$('mode').onclick = () => { const k = (MODES.findIndex((m) => m[0] === mode) + 1) % MODES.length; mode = MODES[k][0]; $('mode').textContent = MODES[k][1]; if (idx >= 0) show(idx); };
-$('script').innerHTML = LINES.map((L) => `<li style="--c:${COLOR[L.who]}"><b>${NAME[L.who]}</b><span class="rm">${roman(render(L.ids))}</span><span>${L.ja}</span></li>`).join('');
+$('mode').textContent = LANGS[0].label;
+$('mode').onclick = () => { const k = (LANGS.findIndex((m) => m.id === lang) + 1) % LANGS.length; lang = LANGS[k].id; $('mode').textContent = LANGS[k].label; if (idx >= 0 && idx < LINES.length) show(idx); };
+$('script').innerHTML = LINES.map((L) => `<li style="--c:${COLOR[L.who]}"><b>${NAME[L.who]}</b><span class="rm">${roman(render(L.ids))}</span><span>${L.tr.ja}</span></li>`).join('');
 document.querySelectorAll<HTMLElement>('#script li').forEach((li, k) => li.onclick = () => { if (!ctx) start(); ctx!.resume(); playing = true; $('pause').textContent = '一時停止'; say(k); });
 
 /* ---------- each frame ---------- */
