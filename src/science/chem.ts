@@ -27,6 +27,9 @@ export type SpeciesId =
   | 'ash'            // wood ash: mixture, composition not measured
   | 'coconut_fat'    // coconut oil, idealised as trilaurin C39H74O6 (lauric acid is about half of it)
   | 'plant_solids'   // the rest of a plant food's dry matter (protein, sugars, fibre, minerals): mixture, not measured
+  | 'char'           // charcoal's carbon-rich solid, idealised as CH0.4O0.09 per carbon (a composition proxy)
+  | 'wood_tar'       // the dark oily part of what wood gives off when heated without air: mixture, not measured
+  | 'pyrolysis_gas'  // the gases wood gives off (CO, CO2, CH4, H2, …): mixture, not measured
   | 'inert_mineral'; // illite/feldspar/iron oxides lumped: mixture, treated as non-reacting in v0
 
 export interface SpeciesDef {
@@ -55,6 +58,10 @@ export const SPECIES: Record<SpeciesId, SpeciesDef> = {
   coconut_fat: { id: 'coconut_fat', label: 'ヤシの脂（トリラウリン C39H74O6 で近似）', formula: { C: 39, H: 74, O: 6 },
     note: 'ヤシ油は脂肪酸の混合物（ラウリン酸がおよそ半分）。燃える・焦げるの元素収支のための近似で、分子ではない' },
   plant_solids: { id: 'plant_solids', label: '植物の食べ物の脂以外の固形分（たんぱく質・糖・繊維・ミネラル）', formula: null },
+  char: { id: 'char', label: '炭（CH0.4O0.09 で近似）', formula: { C: 1, H: 0.4, O: 0.09 },
+    note: '400〜500 °C の炭の質量組成（C 約85%・H 約3%・O 約10%）に近い組成近似。焼いた温度で変わるが、v0 では一つ' },
+  wood_tar: { id: 'wood_tar', label: '木タール（組成未測定）', formula: null },
+  pyrolysis_gas: { id: 'pyrolysis_gas', label: '熱分解のガス（CO・CO2・CH4・H2 など、組成未測定）', formula: null },
   inert_mineral: { id: 'inert_mineral', label: 'その他の鉱物（一括、v0では反応させない）', formula: null,
     note: 'イライト等の脱水や鉄の酸化還元はv0では扱わない' },
 };
@@ -189,4 +196,6 @@ export const REACTIONS = {
   organicBurnout: { reactant: 'organic_c' as SpeciesId, coeffs: { o2: -1, co2: 1 }, closeInto: 'co2' as SpeciesId },
   // CH1.44O0.66 + 1.03 O2 → CO2 + 0.72 H2O
   woodCombustion: { reactant: 'wood_dry' as SpeciesId, coeffs: { o2: -1.03, co2: 1, water: 0.72 }, closeInto: 'water' as SpeciesId },
+  // CH0.4O0.09 + 1.055 O2 → CO2 + 0.2 H2O
+  charCombustion: { reactant: 'char' as SpeciesId, coeffs: { o2: -1.055, co2: 1, water: 0.2 }, closeInto: 'water' as SpeciesId },
 };

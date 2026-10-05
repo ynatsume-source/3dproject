@@ -138,6 +138,15 @@ export const PARAMS = {
   scorchRefC: P('scorchRefC', 180, '°C', 'assumed', [], '焦げる速さの基準温度（ヤシ油の煙が出始める温度の近く）'),
   scorchTauRefS: P('scorchTauRefS', 600, 's', 'assumed', [], '基準温度ですっかり焦げるまで（10 K ごとに2倍の速さ）'),
   oilRecoverMax: P('oilRecoverMax', 0.9, 'kg/kg', 'assumed', [], 'かすが十分に色づいたとき、脂のうち澄んだ油として分かれる割合（残りはかすに残る）'),
+  // charcoal and wood tar in a double-pot retort (step/charcoal.ts): all assumed, no source read yet
+  pyroRefC: P('pyroRefC', 350, '°C', 'assumed', [], '乾いた木が熱で分解する速さの基準温度（盛んに分解するのは 250〜400 °C の間）'),
+  pyroTauRefS: P('pyroTauRefS', 1800, 's', 'assumed', [], '基準温度で分解が進む時定数（15 K ごとに2倍の速さ、200 °C 未満では進まない）'),
+  charYieldLowT: P('charYieldLowT', 0.45, 'kg/kg(dry)', 'assumed', [], '低い温度（300 °C 以下）で分解したときの炭の割合（乾いた木あたり）。茶色く木が残ったような炭'),
+  charYieldHighT: P('charYieldHighT', 0.25, 'kg/kg(dry)', 'assumed', [], '高い温度（550 °C 以上）で分解したときの炭の割合。その間は直線'),
+  tarYield: P('tarYield', 0.12, 'kg/kg(dry)', 'assumed', [], '分解した乾いた木あたりのタール'),
+  pyroWaterYield: P('pyroWaterYield', 0.2, 'kg/kg(dry)', 'assumed', [], '分解でできる水（木酢液の水）'),
+  charLhv: P('charLhv', 30e6, 'J/kg', 'assumed', [], '炭の発熱量（熱いうちに開けて燃えた分の熱）'),
+  charIgniteC: P('charIgniteC', 300, '°C', 'assumed', [], 'これより熱いうちに空気に触れると炭が燃え出す'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),
