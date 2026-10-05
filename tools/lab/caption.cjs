@@ -3,7 +3,8 @@
 // numbers are the same however slow the renderer. Three runs, each from a fresh page:
 //   cruise — the default cruise for SECS seconds;
 //   guide  — "go and see" from the field guide, for a few kinds in turn, 50 s each;
-//   tap    — a tap on something in view, 50 s each, a few times.
+//   tap    — a tap on something in view, 50 s each, a few times;
+//   tapfish — a tap on a fish in plain view (2–25 m, not behind the reef), 40 times: does it go to that fish's group?
 // Each frame, while the caption is up, its subject is tested for being seen — independently of the app's own test:
 // five points of its body (its middle, and out to the sides and up and down by its size) projected; one counts when
 // it is inside the frame, nearer than 70% of what this water lets one see, and no seabed or rock stands between it
@@ -14,11 +15,11 @@
 // with the subject's middle outside the middle 60% of the frame (want under 5%, step 5); the share of requests whose
 // small heading names where they came from (図鑑 / タップ; want 100%).
 // Usage (a build served at PORT): node tools/lab/caption.cjs   (env PORT 4174, SEA miyako, SECS 240, W/H 390x844,
-// RUNS 'cruise,guide,tap'). Nothing is drawn: the measuring needs the sea and the camera, not the picture.
+// RUNS 'cruise,guide,tap,tapfish'). Nothing is drawn: the measuring needs the sea and the camera, not the picture.
 const { chromium } = require('playwright');
 (async () => {
   const SEA = process.env.SEA || 'miyako', SECS = +(process.env.SECS || 240), W = +(process.env.W || 390), H = +(process.env.H || 844);
-  const RUNS = (process.env.RUNS || 'cruise,guide,tap').split(',');
+  const RUNS = (process.env.RUNS || 'cruise,guide,tap,tapfish').split(',');
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, asked: 0, named: 0 };
   for (const run of RUNS) {
@@ -83,6 +84,36 @@ const { chromium } = require('playwright');
         total.asked++; if (o.ks.length && o.ks.every((k) => /図鑑/.test(k))) total.named++;
         add(o, `guide ${id} (heading "${ks}")`);
       }
+    } else if (run === 'tapfish') {
+      // a tap on a fish in plain view (any kind: a small reef fish's group as much as a shark), and whether the
+      // drone sets off for that fish's own group (CAPTION_FOCUS_TAP.md rule 5; want 95% or more)
+      let tried = 0, went = 0; const miss = [];
+      for (let k = 0; k < 40; k++) {
+        const r = await p.evaluate((k) => {
+          const s = window.seaglass, cam = s.camera, oc = s.cur; cam.updateMatrixWorld();
+          const T = oc.T, o = cam.position, cand = [];
+          for (const f of oc.fish) {
+            const fp = f.dbg?.fp, dead = f.dbg?.dead, n = f.dbg?.total; if (!fp || f.dbg.kelpLife) continue;
+            for (let i = 0; i < n; i += Math.max(1, Math.floor(n / 200))) {
+              if (dead[i]) continue;
+              const x = fp[i * 3], y = fp[i * 3 + 1], z = fp[i * 3 + 2], d = Math.hypot(x - o.x, y - o.y, z - o.z);
+              if (d < 2 || d > 25) continue;
+              const v = new o.constructor(x, y, z).project(cam); if (v.z > 1 || Math.abs(v.x) > 0.85 || Math.abs(v.y) > 0.75) continue;
+              let open = true; for (let t = 0.5; t < d - 0.5; t += 0.5) { const q = t / d; if (o.y + (y - o.y) * q < T.top(o.x + (x - o.x) * q, o.z + (z - o.z) * q) - 0.05) { open = false; break; } }
+              if (open) cand.push({ ja: f.sp.ja, sx: (v.x * 0.5 + 0.5) * innerWidth, sy: (-v.y * 0.5 + 0.5) * innerHeight, d });
+            }
+          }
+          if (!cand.length) return null;
+          const c = cand[(k * 7919) % cand.length];
+          s.tap(c.sx, c.sy);
+          const sh = s.director.shot;
+          return { ja: c.ja, d: +c.d.toFixed(0), got: sh ? sh.subject.label : null };
+        }, k);
+        if (r) { tried++; if (r.got && r.got.startsWith(r.ja)) went++; else if (miss.length < 8) miss.push(`${r.ja} ${r.d} m → ${r.got}`); }
+        await p.evaluate(() => { const s = window.seaglass; s.director.shot = null; s.advance(1, 0.1); for (let i = 0; i < 4; i++) s.advance(20, 0.1); });
+      }
+      total.tapT = (total.tapT || 0) + tried; total.tapOk = (total.tapOk || 0) + went;
+      console.log(`  tap on a fish in view: ${went}/${tried} went to that fish's group${miss.length ? '; missed: ' + miss.join(' | ') : ''}`);
     } else if (run === 'tap') {
       await p.evaluate(() => window.__step(300));
       for (let k = 0; k < 4; k++) {
@@ -111,5 +142,5 @@ const { chromium } = require('playwright');
   await b.close();
   const q = (v) => (100 * v / Math.max(1, total.cap)).toFixed(1);
   const un = 100 * total.unseen / Math.max(1, total.cap), off = 100 * total.off / Math.max(1, total.obs), nm = 100 * total.named / Math.max(1, total.asked);
-  console.log(`caption up ${(total.cap / 10).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%)`);
+  console.log(`caption up ${(total.cap / 10).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
 })();

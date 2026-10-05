@@ -699,6 +699,37 @@ export function makeFishSystem(sp: Species, oc: any) {
       live: () => g.placed && g.born === born && !dead[i],
     };
   }
+  // A tap on the screen: the group with a fish nearest the tapped point (each fish projected, a few hundred at
+  // most looked at), as something to go and film — a small reef fish's group too, which is no subject of its own
+  // (a little school of damselfish, filmed close and slowly). `score` gives a fish's miss from the tap (lower
+  // is nearer; Infinity when it cannot be the one: off the tap, out of view, behind the reef).
+  function tapAt(score: (x: number, y: number, z: number, r: number) => number): { s: Subject; sc: number } | null {
+    if (kelpLife) return null;
+    let bg: Group | null = null, bgi = -1, bs = Infinity;
+    const step = Math.max(1, Math.floor(total / 400));
+    groups.forEach((g, gi) => {
+      if (!g.placed || g.away) return;
+      for (let i = g.start; i < g.start + g.n; i += g.n > 40 ? step : 1) {
+        if (dead[i]) continue;
+        const sc = score(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2], fs[i] * 0.64);
+        if (sc < bs) { bs = sc; bg = g; bgi = gi; }
+      }
+    });
+    if (!bg || !isFinite(bs)) return null;
+    const g = bg as Group, gi = bgi, giant = sp.size[1] > 3;
+    const one = g.n === 1 && g.type !== 'anem', i0 = g.start, at = new THREE.Vector3();
+    const pos = g.type === 'anem' ? () => g.a!.pos : one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => g.bodyCenter || g.c;
+    const st = () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g));
+    const small = !sp.big && g.type !== 'anem';
+    const s: Subject = {
+      key: `${sp.id}:${gi}`, label: g.n > 1 && g.type === 'reef' ? `${sp.ja}の群れ` : sp.ja,
+      kind: g.type === 'anem' ? 'anemone' : small ? 'critter' : giant ? 'giant' : 'big', prio: 5,
+      size: g.type === 'anem' ? 0.5 : small ? (g.n > 1 ? 1.2 : 0.6) : one ? sp.size[1] : Math.max(sp.size[1], 1.2),
+      len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status: st, live: () => g.placed,
+    };
+    if (small) s.reach = 30;
+    return { s, sc: bs };
+  }
   // the nearest group, as something the director can be sent to film
   function focus(cam: THREE.Vector3): Subject | null {
     if (kelpLife && (sp.id === 'senorita' || sp.id === 'black-surfperch')) {
@@ -721,7 +752,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status: () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g)), live: () => g.placed };
   }
   return {
-    sp, mesh, update, nearest, nearestPos, status, subjects, focus,
+    sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
     setStart(f: number) { nearStart = f; },
     // a big one passing by early in a visit (the day's lot): put down out of sight off to one side, heading across the

@@ -274,6 +274,21 @@ export function makeShoalSystem(sp: Species, oc: any) {
       out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(s) });
     });
   }
+  // A tap on the screen: the school with a fish nearest the tapped point (each fish projected, a few hundred at
+  // most), not its leading point — fish in plain view in front are picked even when the lead is behind the reef
+  function tapAt(score: (x: number, y: number, z: number, r: number) => number): { s: Subject; sc: number } | null {
+    let bs = Infinity, bsi = -1;
+    const step = Math.max(1, Math.floor(active / 400));
+    for (let i = 0; i < active; i += step) {
+      const si = i % S, L = leaders[si];
+      if (dead[i] || !L.placed || !enough(si)) continue;
+      const sc = score(p[i * 3], p[i * 3 + 1], p[i * 3 + 2], size[i] * 0.5);
+      if (sc < bs) { bs = sc; bsi = si; }
+    }
+    if (bsi < 0 || !isFinite(bs)) return null;
+    const L = leaders[bsi], si = bsi;
+    return { s: { key: `${sp.id}:${si}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(si) }, sc: bs };
+  }
   function focus(cam: THREE.Vector3): Subject | null {
     let best: Leader | null = null, bd = Infinity;
     let bs = -1;
@@ -283,7 +298,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(si) };
   }
   return {
-    sp, mesh, update, nearest, nearestPos, status, subjects, focus,
+    sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,
     preyGroups: () => (sp.big ? [] : leaders.map((L) => L.prey)),
     dbg: { get fp() { return p; }, dead, get total() { return active; }, leaders },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },

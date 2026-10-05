@@ -2177,8 +2177,13 @@ function pickAt(x: number, y: number): Subject | null {
   // what lies behind the reef the tap landed on is not what was tapped (a hammerhead far out in the blue,
   // big on screen, once took a tap meant for the coral head in front of it)
   const floor = seabedAt(x, y);
+  const pxm = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), see = sightRange(cur) * 0.7;
+  camera.updateMatrixWorld();
+  // the fish themselves are tapped where each one is on screen (below); their groups' own points are not
+  const byFish = new Set<string>((cur.fish as any[]).filter((f) => f.tapAt).map((f) => f.sp.id));
   let best: Subject | null = null, bs = Infinity;
   for (const s of allSubjects()) {
+    if (byFish.has(s.key.split(':')[0]) && s.kind !== 'hunt') continue;
     const p = s.pos(); if (!p || !s.live()) continue;
     const d = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
     if (d > (s.kind === 'robot' || s.kind === 'cave' ? 260 : 80) || d < 1) continue;
@@ -2192,6 +2197,21 @@ function pickAt(x: number, y: number): Subject | null {
     const off = Math.hypot(sx - x, sy - y);
     const sc = off / r + d * 0.004;
     if (off < r && sc < bs) { bs = sc; best = s; }
+  }
+  // each fish as it is on screen: hit when the tap is on it or close by (a fingertip's width), in front of the reef
+  // there, and near enough to be made out in this water
+  const fishScore = (fx: number, fy: number, fz: number, rad: number) => {
+    const d = Math.hypot(fx - camera.position.x, fy - camera.position.y, fz - camera.position.z);
+    if (d < 0.6 || d > see || (floor && d > floor.d + 0.6)) return Infinity;
+    _tp.set(fx, fy, fz).project(camera);
+    if (_tp.z > 1 || Math.abs(_tp.x) > 1 || Math.abs(_tp.y) > 1) return Infinity;
+    const off = Math.hypot((_tp.x * 0.5 + 0.5) * innerWidth - x, (-_tp.y * 0.5 + 0.5) * innerHeight - y);
+    const r = Math.max(isTouch ? 30 : 20, rad / d * pxm);
+    return off < r ? off / r + d * 0.004 : Infinity;
+  };
+  for (const f of cur.fish as any[]) {
+    const h = f.tapAt?.(fishScore);
+    if (h && h.sc < bs) { bs = h.sc; best = h.s; }
   }
   return best;
 }
