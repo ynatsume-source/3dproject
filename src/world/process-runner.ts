@@ -55,6 +55,7 @@ export interface AssemblyTable {
   toParams(lot: LotView): Record<string, number>;
   qualityOnReturn(copy: Record<string, number>, condition: number): Record<string, number>;
   brokenMaterial?: Id;                                        // what a broken one becomes (pot_sherds)
+  brokenQuality?(copy: Record<string, number>): Record<string, number>;   // and its quality, from the copy (potSherdsQuality)
 }
 
 /** Make a whole lot into equipment. The lot leaves the shelf; the equipment keeps a copy of it (its mass stays in the
@@ -77,7 +78,8 @@ export function assemble(L: Ledger, lotId: Id, T: AssemblyTable, realNow: number
 
 /** Take assembled equipment apart: it goes back to a lot (a new lotId) of the material it was made from, with the
  *  quality the table gives for its condition (worn: the seal no longer known, the wear kept as a crack). A broken one
- *  (condition 0) becomes a lot of the table's broken material instead, of the same mass. */
+ *  (condition 0) becomes a lot of the table's broken material instead, of the same mass, with the quality the table
+ *  gives it from the copy (the body's own: its absorption, the tar it had, the water in its walls). */
 export function disassemble(L: Ledger, equipmentId: Id, T: AssemblyTable): { lot?: LotView; why?: string } {
   const e = L.equipment[equipmentId];
   if (!e) return { why: `no equipment ${equipmentId}` };
@@ -87,7 +89,9 @@ export function disassemble(L: Ledger, equipmentId: Id, T: AssemblyTable): { lot
   let lot: LotView;
   if (e.condition <= 0) {
     if (!T.brokenMaterial) return { why: `nothing to make of a broken ${e.kind}` };
-    lot = addLot(L, { materialId: T.brokenMaterial, amount: { ...from.amount }, location: from.location });
+    let quality: Record<string, number> | undefined;
+    try { quality = T.brokenQuality?.({ ...(from.quality ?? {}) }); } catch (err) { return { why: (err as Error).message }; }
+    lot = addLot(L, { materialId: T.brokenMaterial, amount: { ...from.amount }, ...(quality ? { quality } : {}), location: from.location });
   } else {
     let quality: Record<string, number>;
     try { quality = T.qualityOnReturn({ ...(from.quality ?? {}) }, e.condition); } catch (err) { return { why: (err as Error).message }; }

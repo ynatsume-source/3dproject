@@ -154,5 +154,5 @@
 - 組み立てた設備の `kind`・`catalogEntry` はどちらも `assembled_pot`（気圧計の器も油の壺も同じ。使い方は使う工程が決める）。換算表の版は `civ-sci.pot-assembly/1`（設備に記録する）。
 - 傷んだ器を戻すとき：`sealed` と `air_leak_tau_min` を外し、欠けた分をひび `crack_ppm ＝ (1 − condition) × 1,000,000` として残す（漏れの試験はひびも漏れとして数え、内側のタールではふさがらない）。condition 1 なら写しのまま。
 - かけらの材料 `pot_sherds` が目録に入った。よって**壊れた器（condition 0）は、元と同じ質量の `pot_sherds` のロットに戻す**（上の「condition 0 の設備として残す」は、これに置き換える）。
-- 科学側の関数 `potToEquipmentParams(lot)`・`potQualityOnReturn(copy, condition)`（`src/science/step/vessel.ts`）を本体が呼ぶ。
+- 科学側の関数 `potToEquipmentParams(lot)`・`potQualityOnReturn(copy, condition)`・`potSherdsQuality(copy)`（`src/science/step/vessel.ts`、科学側 9c3b611）を本体が呼ぶ。かけらの品質は写しから：素地の吸水率・ついていたタール・壁の水を残し、器の値（容量・封じ・ひび）は外す。
 - 本体の側は先に用意した：`src/world/process-runner.ts` の `assemble`・`disassemble`・`refreshAssembled`（換算表は引数で受け取る。科学のコードは Codex の確認の後に取り込み、そのとき表をつなぐ）。検査 `scripts/assembly-check.ts`（13件）。ランタンが組み立てる流れ（いつ組み立てるか）は、島で使える工程ができたときにつなぐ。

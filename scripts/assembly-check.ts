@@ -4,7 +4,7 @@
 //  1 a whole sealed pot lot becomes equipment: the lot leaves the shelf, the equipment keeps its copy and the table's version
 //  2 refused: a lot in use, a material the table does not take, a lot the table cannot read
 //  3 back from equipment, whole: the copy as it was (a new lotId); worn: the seal values dropped, the wear kept as a crack;
-//    broken: a lot of sherds of the same mass; in use: refused
+//    broken: a lot of sherds of the same mass, its quality from the table (the body's kept, the vessel's dropped); in use: refused
 //  4 a new version of the table: the params worked out again from the copy (not for equipment in use)
 //  5 saved and loaded (JSON): all of it as it was
 // Usage: npx tsx scripts/assembly-check.ts
@@ -20,6 +20,7 @@ const table = (version: string, k = 1): AssemblyTable => ({
     if (!q.capacity_ml) throw new Error('a pot without capacity_ml');
     return { capacityMl: q.capacity_ml, sealed: q.sealed ?? 0, airLeakTauMin: (q.air_leak_tau_min ?? 0) * k, crackPpm: q.crack_ppm ?? 0 };
   },
+  brokenQuality(copy) { const { capacity_ml: _c, sealed: _s, air_leak_tau_min: _t, crack_ppm: _k, ...rest } = copy; return rest; },
   qualityOnReturn(copy, condition) {
     if (condition >= 1) return { ...copy };
     const { sealed: _s, air_leak_tau_min: _t, ...rest } = copy;
@@ -51,10 +52,10 @@ const e2 = assemble(L, back.lotId, T1, 2000).equipment!; L.equipment[e2.equipmen
 const worn = disassemble(L, e2.equipmentId, T1).lot!;
 want('3 worn: seal dropped, crack kept', !!worn && worn.quality?.sealed === undefined && worn.quality?.air_leak_tau_min === undefined && worn.quality?.crack_ppm === 30000 && worn.quality?.capacity_ml === 500, JSON.stringify(worn?.quality));
 // broken
-const p4 = pot(L, { capacity_ml: 500, sealed: 1, air_leak_tau_min: 4000 });
+const p4 = pot(L, { capacity_ml: 500, absorption_ppm: 120000, tar_mg: 15000, sealed: 1, air_leak_tau_min: 4000 });
 const e3 = assemble(L, p4.lotId, T1, 3000).equipment!; L.equipment[e3.equipmentId].condition = 0;
 const shards = disassemble(L, e3.equipmentId, T1).lot!;
-want('3 broken: sherds of the same mass', shards?.materialId === 'pot_sherds' && shards.amount.value === 615_000 && !shards.quality);
+want('3 broken: sherds of the same mass, the body kept, the vessel gone', shards?.materialId === 'pot_sherds' && shards.amount.value === 615_000 && JSON.stringify(shards.quality) === JSON.stringify({ absorption_ppm: 120000, tar_mg: 15000 }), JSON.stringify(shards?.quality));
 // in use
 const p5 = pot(L, { capacity_ml: 500, sealed: 1, air_leak_tau_min: 2000 });
 const e4 = assemble(L, p5.lotId, T1, 4000).equipment!; L.equipment[e4.equipmentId].reservedBy = 'run:2';
