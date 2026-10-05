@@ -63,7 +63,7 @@ const V = R.village;
   let away = false;
   await run(4 * 3600, () => { if (dot.task?.kind === 'voyage' && dot.task.data?.started && !dot.model.root.visible) away = true; return !!V.map.reached[near.id]; });
   want('3 on a calm morning it crosses — away from the island while it is out', away && !!V.map.reached[near.id]);
-  want('3 what the raft brought home is on the shelf, as lots for Lantern\'s science', ['raw_clay', 'bamboo', 'reed'].every((m) => V.store.some((l: any) => l.materialId === m && l.amount.unit === 'mg' && l.amount.value > 0 && l.location === 'shelf')), V.store.map((l: any) => `${l.materialId} ${l.amount.value / 1e6}kg`).join(', '));
+  want('3 what the raft brought home is on the shelf, as lots for Lantern\'s science', ['raw_clay', 'bamboo', 'reed'].every((m) => Object.values(R.lab.lots).some((l: any) => l.materialId === m && l.amount.unit === 'mg' && l.amount.value > 0 && l.location === 'shelf')), Object.values(R.lab.lots).map((l: any) => `${l.materialId} ${l.amount.value / 1e6}kg`).join(', '));
   want('3 back with what is there, and its map wider is its reward', dot.diary.some((e: any) => /にたどり着いて戻った。あったもの：竹.*持ち帰った：粘土 10kg/.test(e.text)) && (dm.values.m.get(`voyage:${near.id}`)?.sum ?? 0) > 1 && dot.model.root.visible, dot.diary.filter((e: any) => /筏で|たどり着いて/.test(e.text)).map((e: any) => e.text).join(' / '));
 }
 { // 4

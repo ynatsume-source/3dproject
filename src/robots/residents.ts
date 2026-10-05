@@ -23,8 +23,10 @@ import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, type Count, type Said, type Tok } from './islandlang';
-import { islandDate, islandWait, type IslandWeather } from '../world/island-time';
-import type { LotView } from '../world/science-contract';
+import { islandDate, islandWait, islandWeather, type IslandWeather } from '../world/island-time';
+import type { EnvironmentSample, LotView } from '../world/science-contract';
+import { addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
+import { CATALOG, MATERIAL_JA, type CatalogEntry } from '../world/process-catalog';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
 import type { Subject } from '../eco/env';
@@ -373,7 +375,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, store: [] as LotView[] };
+  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[] };
+  // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
+  // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
+  const lab = emptyLedger('dotworld', 'e1');
+  const shelfLots = () => Object.values(lab.lots).filter((l) => l.location === 'shelf');
+  let catalog: CatalogEntry[] = CATALOG;
   const RAFT_N = 6, RAFT_KM = 4;   // (a raft of six lashed pieces; a crossing it can make without a sail, there and back in a day)
   const pierAt = (() => {
     let best: { x: number; z: number; dx: number; dz: number; d: number } | null = null;
@@ -432,7 +439,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   };
   function drawStore() {
     storeG.clear();
-    [...new Set(village.store.map((l) => l.materialId))].forEach((id, k) => { const m = STORE_LOOK[id]?.(); if (m) { m.position.x += (k % 2) * 0.6; m.position.z += Math.floor(k / 2) * 0.5; storeG.add(m); } });
+    [...new Set(shelfLots().map((l) => l.materialId))].forEach((id, k) => { const m = STORE_LOOK[id]?.(); if (m) { m.position.x += (k % 2) * 0.6; m.position.z += Math.floor(k / 2) * 0.5; storeG.add(m); } });
   }
   // Dot's raft on the beach below the hut: pieces lashed side by side as they come (ADR 0006: the first crossing)
   const raftG = new THREE.Group(); group.add(raftG);
@@ -450,7 +457,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     raftG.visible = !!at && village.raft.parts > 0 && !voyaging; if (at) raftG.position.set(at[0] + 1.2, L.h(at[0] + 1.2, at[1]), at[1]);
     raftLogs.forEach((m, k) => (m.visible = k < village.raft.parts));
   }
-  let voyaging = false;
+  let voyaging = false, labT = 0;
   /** The crossing, as the world judges the day it is tried: the weather, the light left, its battery, how far. */
   function voyageJudge(r: Resident, isleId: string): { go: boolean; why?: string; km: number } {
     const i = ISLES.find((x) => x.id === isleId)!, km = fromHome(i).km, hr = localHour(clockMs);
@@ -467,8 +474,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const i = ISLES.find((x) => x.id === tk.data.isle)!, w = village.map.seen[i.id]?.word ?? i.id;
     if (outcome === 'reached') {
       // what the raft brings home goes on the shelf by the hut, as the world's own lots: Lantern's science draws on them
-      const brought = (i.carry ?? []).map((c, k) => { const lot: LotView = { lotId: `lot:${i.id}:${village.store.length + k}`, materialId: c.materialId, amount: { value: c.mg, unit: 'mg' }, location: 'shelf' }; return { lot, c, fresh: !village.store.some((x) => x.materialId === c.materialId) }; });
-      village.store.push(...brought.map((b) => b.lot)); drawStore();
+      const brought = (i.carry ?? []).map((c) => ({ c, fresh: !Object.values(lab.lots).some((x) => x.materialId === c.materialId) }));
+      for (const b of brought) addLot(lab, { lotId: `lot:${i.id}:${++lab.seq}`, materialId: b.c.materialId, amount: { value: b.c.mg, unit: 'mg' }, location: 'shelf' });
+      drawStore();
       const firstTime = !village.map.reached[i.id];
       village.map.reached[i.id] = { at: clockMs };
       r.diary.push({ at: clockMs, text: `${w}にたどり着いて戻った。あったもの：${i.has.join('・')}${brought.length ? `。持ち帰った：${brought.map((b) => `${b.c.ja} ${Math.round(b.c.mg / 1e6)}kg`).join('・')}（小屋の棚）` : ''}`, key: 'got' });
@@ -796,6 +804,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // something strange lying on the beach nearby: go and look
     if (!agentOf(r) && drift.kind >= 0 && !drift.by && !r.holding && Math.hypot(drift.x - r.pos.x, drift.z - r.pos.z) < 60) { drift.by = r.id; return task('find', [drift.x, drift.z], 'pick', 6); }
     if (!agentOf(r) && r.holding === 'drift') return task('shelve', (() => { const w = shelf.position; return [w.x + 0.6, w.z + 0.6] as [number, number]; })(), 'work', 4);
+    // Lantern: a process it can run, with its material on the shelf — while it is awake (it works by its own light), hands
+    // free (the world runs it)
+    if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed')) {
+      const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot.lotId } });
+    }
     // the pier, once they have agreed on it
     if (village.pier === 'plan' && r.id === 'kame') return task('survey', along(1), 'look', rr(60, 120));
     if (village.pier === 'build') {
@@ -1144,16 +1157,61 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   /** What is on the shelf by the hut, brought from other islands (by material: how much, from where). */
   function storeNow() {
-    const by = new Map<string, number>(); for (const l of village.store) by.set(l.materialId, (by.get(l.materialId) ?? 0) + l.amount.value);
-    const ja = (id: string) => ISLES.flatMap((i) => i.carry ?? []).find((c) => c.materialId === id)?.ja ?? id;
-    const from = (id: string) => [...new Set(village.store.filter((l) => l.materialId === id).map((l) => village.map.seen[l.lotId.split(':')[1]]?.word ?? '?'))].join('・');
+    const by = new Map<string, number>(); for (const l of shelfLots()) by.set(l.materialId, (by.get(l.materialId) ?? 0) + l.amount.value);
+    const ja = (id: string) => MATERIAL_JA[id] ?? id;
+    const from = (id: string) => [...new Set(shelfLots().filter((l) => l.materialId === id).map((l) => village.map.seen[l.lotId.split(':')[1]]?.word ?? '工程'))].join('・');
     return [...by].map(([id, mg]) => `${ja(id)} ${+(mg / 1e6).toFixed(1)}kg（${from(id)}から、小屋の棚）`);
+  }
+  /* ---------- Lantern's processes (the science core, run by the world) ---------- */
+  const shelfStand = (): [number, number] => { const w = atHut(1.6, -3.2); return [w.x, w.z]; };   // (in front of the shelf, clear of the hut: room for Lantern's wide body)
+  /** The processes that can run now: ready, with their material on the shelf and not in use. */
+  function labReady() {
+    return catalog.filter((e) => e.ready).flatMap((entry) => { const lot = shelfLots().find((l) => l.materialId === entry.input && !(l as any).reservedBy); return lot ? [{ entry, lot }] : []; });
+  }
+  /** The weather a process is given, on its own clock: the island's replayed record (or, for checks, a simulation). */
+  function envFor(e: CatalogEntry, at: number): EnvironmentSample {
+    if (e.env === 'simulation') return { sampleId: `env:sim:${at}`, source: 'simulation', effectiveAt: at };
+    const w = islandWeather(toReal(e.clock, at));
+    if (!w) return { sampleId: `env:none:${at}`, source: 'unknown', effectiveAt: at };
+    // (source 'record' comes with contract 0.2.1; no entry using it is ready before that is taken in)
+    return { sampleId: `env:record:jma-47918:${w.record.at}`, source: 'record' as EnvironmentSample['source'], effectiveAt: at, airTempC: w.air, humidity: w.humidity, windMs: w.windMeasured, rainMmH: w.rain, pressureHPa: w.pressureMeasured };
+  }
+  function startLab(r: Resident, tk: Task) {
+    const e = catalog.find((x) => x.processId === tk.data.processId), lot = lab.lots[tk.data.lotId];
+    if (!e || !lot || (lot as any).reservedBy) { tk.failed = 'gone'; tk.t = tk.dur; return; }
+    const eqId = `eq:${e.equipment.kind}`;
+    if (!lab.equipment[eqId]) { const { ja: _, ...eq } = e.equipment; lab.equipment[eqId] = { ...eq, equipmentId: eqId }; }
+    const { run, why } = startRun(lab, { processId: e.processId, processVersion: e.processVersion, catalogVersion: e.catalogVersion, contract: e.contract, clock: e.clock, lotIds: [lot.lotId], equipmentIds: [eqId], operator: `res:${r.id}` }, clockMs);
+    if (!run) { tk.failed = 'unavailable'; tk.t = tk.dur; r.diary.push({ at: clockMs, text: `${e.ja}：始められなかった（${why}）`, key: 'study' }); return; }
+    tk.data.runId = run.runId; village.labRuns.push({ runId: run.runId, processId: e.processId, by: r.id, startOnClock: run.lastTo });
+    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、${e.equipment.ja}）`, key: 'study' });
+    if (e.tend === 'leave') tk.t = tk.dur;
+  }
+  /** Step the running processes as far as now, and tell what came of the ones that ended. */
+  function tickLab() {
+    for (const x of [...village.labRuns]) {
+      const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId), by = byId[x.by];
+      if (!run || !e) { village.labRuns.splice(village.labRuns.indexOf(x), 1); continue; }
+      const tending = by?.task?.kind === 'lab' && by.task.data?.runId === x.runId;
+      const out = advance(lab, x.runId, e.step, { realNow: clockMs, environment: (at) => envFor(e, at), energy: e.tend === 'stay' && !tending ? undefined : e.energy,
+        actions: e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : [], ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+      const ended = out.find((c) => c.ok && ['completed', 'stopped', 'failed'].includes(c.status!));
+      if (!ended) continue;
+      village.labRuns.splice(village.labRuns.indexOf(x), 1); drawStore();
+      for (const p of ended.produced ?? []) if (p.location !== 'shelf') p.location = 'shelf';
+      const seen = run.observations.map((o) => o.text ?? (o.quantity ? `${o.quantity} ${o.value}${o.unit ?? ''}` : '')).filter(Boolean).slice(0, 3).join('、');
+      const made = (ended.produced ?? []).map((p) => `${MATERIAL_JA[p.materialId] ?? p.materialId} ${+(p.amount.value / 1000).toFixed(1)}g`).join('・');
+      const text = ended.status === 'completed' ? `${e.ja}：できた（${made || '変化を記録'}）${seen ? `。気づいたこと：${seen}` : ''}` : ended.status === 'stopped' ? `${e.ja}：途中でやめた（材料はそのまま）` : `${e.ja}：うまくいかなかった（${run.why ?? '理由不明'}）`;
+      if (by) by.diary.push({ at: clockMs, text, key: 'study' });
+      res.onEvent('science', `${by?.v.name ?? ''}の工程：${text}`, by);
+      if (by?.task?.kind === 'lab' && by.task.data?.runId === x.runId) by.task.t = by.task.dur;
+    }
   }
   function brainInput(r: Resident, a: Agent, opts: Option[]): BrainInput {
     const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
     return {
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
-      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && village.store.length ? { store: storeNow() } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
+      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && shelfLots().length ? { store: storeNow() } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
       knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6),
     };
@@ -1477,8 +1535,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (!P || (Math.hypot(P.tx - tx, P.tz - tz) > 4 && clockMs - P.t > 3000)) {
         const C = Math.min(4, Math.max(1, d0 / 160)), pad = Math.min(0.5, C * 0.5), wide = { ...B, r: B.r + pad };
         const base = r.id === 'lantern' ? lanternCost(r.mo.bad) : walkCost;
-        const cost = (x: number, z: number) => { const c = base(x, z); return isFinite(c) && solids.hit(x, z, wide, G(x, z)) ? Infinity : c; };
-        const pts = d0 <= 2 && !solids.along(r.pos.x, r.pos.z, tx, tz, B, G) && isFinite(base((r.pos.x + tx) / 2, (r.pos.z + tz) / 2)) ? [[tx, tz]] as [number, number][] : findPath(r.pos.x, r.pos.z, tx, tz, cost);
+        const costFor = (body: typeof B) => (x: number, z: number) => { const c = base(x, z); return isFinite(c) && solids.hit(x, z, body, G(x, z)) ? Infinity : c; };
+        // (a long way keeps a margin round what is solid; where the only way is a narrow gap, it goes through at its own width)
+        const pts = d0 <= 2 && !solids.along(r.pos.x, r.pos.z, tx, tz, B, G) && isFinite(base((r.pos.x + tx) / 2, (r.pos.z + tz) / 2)) ? [[tx, tz]] as [number, number][] : findPath(r.pos.x, r.pos.z, tx, tz, costFor(wide)) ?? (pad > 0 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(B)) : null);
         if (!pts) { r.path = undefined; r.went = 'no way'; r.blocked = 99; r.walk = 0; return false; }
         r.path = { pts, tx, tz, t: clockMs };
       }
@@ -1824,6 +1883,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const tk = r.task;
     // the crossing: at the raft the world judges the day; out at sea it is away (not seen on the island) until it is
     // back — or turned back by a storm
+    if (tk.kind === 'lab' && tk.arrived && !tk.data.runId && !tk.failed) startLab(r, tk);
     if (tk.kind === 'voyage' && tk.arrived && !tk.data.started) {
       const j = voyageJudge(r, tk.data.isle), w = village.map.seen[tk.data.isle]?.word ?? '';
       if (!j.go) { report(r, tk, 'blocked', j.why); r.task = null; return; }
@@ -1909,7 +1969,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       localStorage.setItem(saveKey, JSON.stringify({
         ...(study ? { lanternStudy: study.serialize() } : {}),
         minds: Object.fromEntries(Object.entries(agents).map(([id, a]) => [id, a.save()])),
-        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), patches, beds, trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lastFireAt, drift: drift.kind >= 0 ? drift : null,
+        at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), patches, beds, trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lab, lastFireAt, drift: drift.kind >= 0 ? drift : null,
         list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-800), holding: r.holding, photos: r.photos?.slice(-40) })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
@@ -1939,7 +1999,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) Object.assign(village, s.village);
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; }
+    if (s.lab) Object.assign(lab, s.lab);
+    else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
+    delete (village as any).store;
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
@@ -1972,7 +2035,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       graze: r.act === 'breathe' ? '息つぎに浮かんできた' : '海の底で海草を食べている',
       bask: '浜で甲羅干しをしている',
       shelter: '台風のあいだ、身を低くしてやりすごしている',
-      chart: '浜から水平線を見渡し、見える島を地図に記している', lash: '部材を筏に組んでいる',
+      chart: '浜から水平線を見渡し、見える島を地図に記している', lab: `${catalog.find((e) => e.processId === tk?.data?.processId)?.ja ?? '工程'}`, lash: '部材を筏に組んでいる',
       voyage: tk?.data?.started ? `筏で${village.map.seen[tk.data.isle]?.word ?? ''}へ渡っている（島にはいない）` : '筏で出る支度をしている',
       survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
     // (what it is doing now, from how its walk is going, not from what it means to do once there: held up on the
@@ -2095,6 +2158,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       camAt.set(cam.x, cam.y, cam.z);
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
       items.tick(dt); tickDrift(dt);
+      if ((labT -= dt) < 0) { labT = 30; tickLab(); }
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
       if (!settled) { settled = true; for (const r of list) { const ap = solids.approach(r.pos.x, r.pos.z, bodyOf(r), feetAt(r), r.pos.x + 1, r.pos.z, standOn(r, r.wet)); if (ap && (ap[0] !== r.pos.x || ap[1] !== r.pos.z)) { r.pos.x = ap[0]; r.pos.z = ap[1]; placeY(r); } } }
@@ -2207,7 +2271,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
   };
   (res as any).items = items;   // (for ?debug)
-  (res as any).village = village; (res as any).items = items;   // (for checks)
+  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[]) {
