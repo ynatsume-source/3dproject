@@ -33,7 +33,7 @@ export interface Run {
 export interface Ledger {
   world: { worldId: Id; worldEpoch: Id; worldVersion: number };
   lots: Record<Id, LotView & { reservedBy?: Id }>;
-  equipment: Record<Id, EquipmentView & { reservedBy?: Id }>;
+  equipment: Record<Id, EquipmentView & { reservedBy?: Id; assembled?: Assembled }>;
   runs: Record<Id, Run>;
   committed: Id[];                    // requestIds already committed (the last few hundred: a resend is refused)
   seq: number;                        // for new ids
@@ -42,6 +42,72 @@ export const emptyLedger = (worldId: Id, worldEpoch: Id): Ledger => ({ world: { 
 
 export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }): LotView {
   const l = { ...lot, lotId: lot.lotId ?? `lot:${++L.seq}` } as LotView; L.lots[l.lotId] = l; L.world.worldVersion++; return l;
+}
+
+/* ---------- assembly: a lot made into equipment, and back (ADR 0006 addendum: main assembles, science gives the table) ---------- */
+
+/** What an assembled piece of equipment keeps: the lot it was made from (as it was), and the table's version. */
+export interface Assembled { from: LotView; table: string; at: number }
+/** The science side's table for one kind of equipment (e.g. vessel.ts: assembled_pot, civ-sci.pot-assembly/1). */
+export interface AssemblyTable {
+  version: string; kind: Id; catalogEntry: Id; catalogVersion: string;
+  materials: Id[];                                            // the lots it can be made from
+  toParams(lot: LotView): Record<string, number>;
+  qualityOnReturn(copy: Record<string, number>, condition: number): Record<string, number>;
+  brokenMaterial?: Id;                                        // what a broken one becomes (pot_sherds)
+}
+
+/** Make a whole lot into equipment. The lot leaves the shelf; the equipment keeps a copy of it (its mass stays in the
+ *  world). Refused for a lot in use, or of a material the table does not take. */
+export function assemble(L: Ledger, lotId: Id, T: AssemblyTable, realNow: number): { equipment?: EquipmentView; why?: string } {
+  const lot = L.lots[lotId];
+  if (!lot) return { why: `no lot ${lotId}` };
+  if (lot.reservedBy) return { why: `${lotId} is in use (${lot.reservedBy})` };
+  if (!T.materials.includes(lot.materialId)) return { why: `${lot.materialId} cannot be made into ${T.kind}` };
+  let params: Record<string, number>;
+  try { params = T.toParams(lot); } catch (e) { return { why: (e as Error).message }; }
+  const { reservedBy: _, ...copy } = lot;
+  const equipmentId = `eq:${++L.seq}`;
+  L.equipment[equipmentId] = { equipmentId, kind: T.kind, catalogEntry: T.catalogEntry, catalogVersion: T.catalogVersion, condition: 1, params,
+    assembled: { from: JSON.parse(JSON.stringify(copy)), table: T.version, at: realNow } };
+  delete L.lots[lotId];
+  L.world.worldVersion++;
+  return { equipment: L.equipment[equipmentId] };
+}
+
+/** Take assembled equipment apart: it goes back to a lot (a new lotId) of the material it was made from, with the
+ *  quality the table gives for its condition (worn: the seal no longer known, the wear kept as a crack). A broken one
+ *  (condition 0) becomes a lot of the table's broken material instead, of the same mass. */
+export function disassemble(L: Ledger, equipmentId: Id, T: AssemblyTable): { lot?: LotView; why?: string } {
+  const e = L.equipment[equipmentId];
+  if (!e) return { why: `no equipment ${equipmentId}` };
+  if (!e.assembled) return { why: `${equipmentId} was not assembled from a lot` };
+  if (e.reservedBy) return { why: `${equipmentId} is in use (${e.reservedBy})` };
+  const from = e.assembled.from;
+  let lot: LotView;
+  if (e.condition <= 0) {
+    if (!T.brokenMaterial) return { why: `nothing to make of a broken ${e.kind}` };
+    lot = addLot(L, { materialId: T.brokenMaterial, amount: { ...from.amount }, location: from.location });
+  } else {
+    let quality: Record<string, number>;
+    try { quality = T.qualityOnReturn({ ...(from.quality ?? {}) }, e.condition); } catch (err) { return { why: (err as Error).message }; }
+    lot = addLot(L, { materialId: from.materialId, amount: { ...from.amount }, quality, location: from.location });
+  }
+  delete L.equipment[equipmentId];
+  L.world.worldVersion++;
+  return { lot };
+}
+
+/** After loading: equipment assembled under another version of its table gets its params again from the lot it was
+ *  made from (a run using it was already stopped with the process versions). Returns the ids worked out again. */
+export function refreshAssembled(L: Ledger, T: AssemblyTable): Id[] {
+  const out: Id[] = [];
+  for (const e of Object.values(L.equipment)) {
+    if (!e.assembled || e.kind !== T.kind || e.assembled.table === T.version || e.reservedBy) continue;
+    try { e.params = T.toParams(e.assembled.from); e.assembled.table = T.version; e.catalogVersion = T.catalogVersion; out.push(e.equipmentId); } catch { /* (kept as it was; the table no longer takes it) */ }
+  }
+  if (out.length) L.world.worldVersion++;
+  return out;
 }
 
 export interface RunSpec {
