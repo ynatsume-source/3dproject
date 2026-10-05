@@ -40,7 +40,7 @@ export interface IslandWeather extends Weather {
   pressureMeasured?: number;
 }
 type Record_ = { year: number; source: string; station: string; na: number; rows: number[] };
-const YEARS = ['2024', '2023'];   // (each island year replays the next, in turn; more years to come)
+const YEARS = ['2024', '2023', '2022'];   // (each island year replays the next, in turn; more years to come)
 const loaded = new Map<string, Record_>();
 let loading: Promise<void> | null = null;
 /** Load the records (once). Until they are in, the island has fair weather. */
