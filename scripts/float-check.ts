@@ -12,7 +12,7 @@ import * as THREE from 'three';
 import { loadLand } from '../src/ocean/land';
 import { LOCATIONS } from '../src/data/locations';
 import { buildOcean } from '../src/ocean/build';
-import { CORAL_MAT } from '../src/ocean/models';
+import { CORAL_MAT, CORAL_GEO } from '../src/ocean/models';
 
 const KINDS = ['branch', 'table', 'brain', 'mushroom', 'fan', 'clam'];
 const m = new THREE.Matrix4(), pt = new THREE.Vector3();
@@ -36,6 +36,20 @@ for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'mal
     const kind = Object.keys(CORAL_MAT).find((k) => (CORAL_MAT as any)[k] === o.material);
     if (kind && KINDS.includes(kind)) meshes.push({ mesh: o, kind });
   }
+  // (a colony may grow on a rock: its floor is then the rock's own top, found by a ray straight down onto it)
+  const RC = 4, RH = new Map<string, { m: THREE.Matrix4; mesh: THREE.Mesh }[]>(), rc = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0), o = new THREE.Vector3();
+  for (const { mesh, kind } of meshes) if (kind === 'rock') for (let i = 0; i < mesh.count; i++) {
+    mesh.getMatrixAt(i, m); const rm = new THREE.Mesh(mesh.geometry); rm.matrixAutoUpdate = false; rm.matrixWorld.copy(m);
+    const k = Math.floor(m.elements[12] / RC) + ',' + Math.floor(m.elements[14] / RC); (RH.get(k) ?? RH.set(k, []).get(k)!).push({ m: m.clone(), mesh: rm });
+  }
+  const floorAt = (x: number, y: number, z: number) => {
+    let f = T.h(x, z);
+    if (y - f <= 0.3) return f;
+    for (let i = Math.floor(x / RC) - 1; i <= Math.floor(x / RC) + 1; i++) for (let j = Math.floor(z / RC) - 1; j <= Math.floor(z / RC) + 1; j++) for (const r of RH.get(i + ',' + j) ?? []) {
+      rc.set(o.set(x, y + 0.5, z), down); const h = rc.intersectObject(r.mesh, false); if (h.length) f = Math.max(f, h[0].point.y);
+    }
+    return f;
+  };
   for (const { mesh, kind } of meshes) {
     const g = mesh.geometry; if (!g.boundingBox) g.computeBoundingBox();
     const bb = g.boundingBox!, P = g.attributes.position, hgt = bb.max.y - bb.min.y;
@@ -45,7 +59,7 @@ for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'mal
     for (let j = 0; j < P.count; j++) {
       const y = P.getY(j);
       if (y > bb.min.y + hgt * (kind === 'fan' ? 0.1 : 0.25)) continue;
-      if ((kind === 'table' || kind === 'mushroom') && Math.hypot(P.getX(j), P.getZ(j)) > half * 0.2) continue;
+      if ((kind === 'table' || (kind === 'mushroom' && g.attributes.position !== (CORAL_GEO as any).mushroom[1].attributes.position)) && Math.hypot(P.getX(j), P.getZ(j)) > half * 0.2) continue;   // (the lobed finger leather coral, mushroom 1, is a mound: all its foot counts)
       if (kind === 'fan' && Math.hypot(P.getX(j), P.getZ(j)) > half * 0.06) continue;   // (a fan: its thin stalk; the blade stands out from a wall as it should)
       low.push(j);
     }
@@ -57,7 +71,7 @@ for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'mal
       let n = 0, up = 0, most = 0;
       for (let q = 0; q < low.length; q += step) {
         pt.fromBufferAttribute(P, low[q]).applyMatrix4(m);
-        const gap = pt.y - T.h(pt.x, pt.z);
+        const gap = kind === 'rock' ? pt.y - T.h(pt.x, pt.z) : pt.y - floorAt(pt.x, pt.y, pt.z);
         n++; if (gap > 0.3) up++; most = Math.max(most, gap);
       }
       t[0]++;

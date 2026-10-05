@@ -187,10 +187,11 @@ function fitUnder(kind: string, v: number, it: any, y0: number, sink = 0) {
 /** A colony set down on the reef under all of it, not on the one point under its middle: on a rim or a slope the
  *  side over the drop would stand in the water. Lowered to the low side (the high side then grows into the rock,
  *  as on a real reef), or, where that would bury too much of it, not here at all (null). Returns the floor it now
- *  stands on. f: the floor height at a point. (A table stands on its stalk: only that has to meet the rock.) */
+ *  stands on. f: the floor height at a point. (A table stands on its stalk: only that has to meet the rock; so do a leather coral's cap and a soft-coral tree —
+ *  a finger leather coral is a lobed mound, all of it on the rock.) */
 function seat(kind: string, v: number, it: any, y0: number, f: (x: number, z: number) => number) {
   const [top, half] = coralTop(kind, v), s = Math.max(it.sx, it.sz);
-  const foot = (kind === 'table' ? 0.2 : kind === 'fan' ? 0.25 : kind === 'mushroom' ? 0.3 : kind === 'brain' || kind === 'clam' ? 1.0 : 0.75) * half * s;
+  const foot = (kind === 'table' ? 0.2 : kind === 'fan' ? 0.25 : kind === 'mushroom' ? (v === 1 ? 0.9 : 0.3) : kind === 'brain' || kind === 'clam' ? 1.0 : 0.75) * half * s;
   // a dome, a clam or a leather coral grows square to the rock under it: on a slope, tilted with it (up to 45°); a
   // branching colony reaches up for the light, so leans only a little (20°). A table and a sea fan stay upright.
   let kx = 0, kz = 0;
@@ -524,13 +525,25 @@ export function buildOcean(loc) {
   const addFoot = (f: any, feet?: any[]) => { const k = Math.floor(f.x / RG) + ',' + Math.floor(f.z / RG); let a = rockGrid.get(k); if (!a) rockGrid.set(k, a = []); a.push(f); feet?.push(f); };
   const dropFeet = (feet: any[]) => { for (const f of feet) { const k = Math.floor(f.x / RG) + ',' + Math.floor(f.z / RG), a = rockGrid.get(k); if (a) { const i = a.indexOf(f); if (i >= 0) a.splice(i, 1); } } };
   const SINK: Record<string, number> = { brain: 0.2, clam: 0.06 };
+  // the top of a rock where a colony could grow on it: straight down onto the rock's own surface (or -1e9 off it)
+  const rockMesh = new Map<THREE.BufferGeometry, THREE.Mesh>(), rayc = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0), rayO = new THREE.Vector3();
+  const rockTop = (f: any, x: number, z: number) => {
+    if (!f.geo) return -1e9;
+    let mesh = rockMesh.get(f.geo); if (!mesh) { mesh = new THREE.Mesh(f.geo); mesh.matrixAutoUpdate = false; rockMesh.set(f.geo, mesh); }
+    if (!f.m) { const it = f.it; f.m = new THREE.Matrix4().compose(new THREE.Vector3(it.x, it.y, it.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(it.tx, it.ry, it.tz)), new THREE.Vector3(it.sx, it.sy, it.sz)); }
+    mesh.matrixWorld.copy(f.m);
+    rayc.set(rayO.set(x, f.top + 4, z), DOWN);
+    const h = rayc.intersectObject(mesh, false);
+    return h.length ? h[0].point.y : -1e9;
+  };
   const clearOfRocks = (its: any) => {
     for (const kind of ['branch', 'table', 'brain', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number, lists: any[][]) => {
       const [top, half] = coralTop(kind, v);
-      const hits = (x: number, z: number, hw: number, ctop: number, y: number) => {
+      const hits = (x: number, z: number, hw: number, ctop: number, y: number, on: any = null) => {
         let worst: any = null, wd = 0;
         const i0 = Math.floor((x - hw - 4) / RG), i1 = Math.floor((x + hw + 4) / RG), j0 = Math.floor((z - hw - 4) / RG), j1 = Math.floor((z + hw + 4) / RG);
         for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) for (const r of rockGrid.get(i + ',' + j) ?? []) {
+          if (r === on) continue;   // (the rock it grows on)
           const d = Math.hypot(x - r.x, z - r.z), need = r.r + hw;   // (clear of the whole rock, not just its middle)
           if (d >= need || ctop < r.under || y > r.top) continue;   // (clear of it, under its overhang, or over it)
           if (need - d > wd) { wd = need - d; worst = { r, d, need }; }
@@ -541,6 +554,17 @@ export function buildOcean(loc) {
         const s = Math.max(it.sx, it.sz), hw = half * s;
         let w = hits(it.x, it.z, hw, it.y + top * it.sy, it.y);
         if (!w) return true;
+        // (on the rock, where its middle is over the rock's top and all of its foot is on rock: corals grow on hard
+        // ground, a rock as much as the reef — not a sea fan out on a boulder's crown, nor a thicket)
+        if (w.d < 0.7 * w.r.r && w.r.geo && kind !== 'fan' && !(kind === 'branch' && v === 2)) {
+          const rf = (x: number, z: number) => { const h = rockTop(w.r, x, z); return h > -1e8 ? h : -1e3; };
+          const ry0 = rf(it.x, it.z);
+          if (ry0 > -1e2) {
+            const t = { ...it, y: it.y - (it.floor ?? loc.f(it.x, it.z)) + ry0, up: undefined };
+            const ry1 = seat(kind, v, t, ry0, rf);
+            if (ry1 !== null && fitUnder(kind, v, t, ry1, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y, w.r)) { Object.assign(it, t); it.floor = ry1; it.onRock = true; oc.onRock = (oc.onRock ?? 0) + 1; (oc.onRockAt ??= []).push([it.x, it.y, it.z, Math.max(it.sx, it.sz)]); return true; }
+          }
+        }
         // (out from the rock to where it is clear, where the bottom there allows — the colony as it was: straight
         // away from it first, else a little to either side)
         const push = w.need - w.d + 0.05, ux0 = (it.x - w.r.x) / Math.max(w.d, 1e-3), uz0 = (it.z - w.r.z) / Math.max(w.d, 1e-3);
@@ -630,15 +654,15 @@ export function buildOcean(loc) {
         // (resting on the slope under all of it: down to its low side, or, on a drop too steep for that, not here)
         { const r0 = 0.85 * Math.max(it.sx, it.sz); let lo = h; for (const ring of [0.5, 1]) for (let k = 0; k < 10; k++) { const a = (k + ring) * 0.628; lo = Math.min(lo, loc.f(x + Math.cos(a) * r0 * ring, z + Math.sin(a) * r0 * ring)); } loc.f(x, z);
           const drop = h - lo - 0.12 * sy; if (drop > 1.1 * sy) continue; if (drop > 0) it.y -= drop; }
-        lists[ki * 2 + (R() < 0.5 ? 0 : 1)].push(it);
+        const li = ki * 2 + (R() < 0.5 ? 0 : 1); lists[li].push(it);
         if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
-        if (s > 0.3) addFoot({ x, z, r: 0.85 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.3 : 1), top: it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), under: -1e9 }, feet);
+        if (s > 0.3) addFoot({ x, z, r: 0.85 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.3 : 1), top: it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), under: -1e9, it, geo: kind === 'pinnacle' || kind === 'rubble' ? null : protos[li].geo }, feet);   // (geo: a top a colony can grow on)
         placed++;
       }
       // Overhangs and crevices on the flanks of coral heads: find where a steep side meets its flat top,
       // and set a slab there jutting out over the drop; at the foot of the wall, lean big angular blocks
       // against it so shadowed gaps open behind them.
-      const slabList = (kIdx: number) => lists[kIdx * 2 + (R() < 0.5 ? 0 : 1)];
+      const slabIdx = (kIdx: number) => kIdx * 2 + (R() < 0.5 ? 0 : 1);
       // (the anemones keep their patch of open reef: no rock or slab comes down on one)
       const hAt = (x: number, z: number) => loc.f(x, z);
       let ledges = 0, leaners = 0;
@@ -664,9 +688,9 @@ export function buildOcean(loc) {
           { let lo = rh; for (let k = 0; k < 6; k++) { const a = k * 1.047; lo = Math.min(lo, hAt(it.x + Math.cos(a) * Math.max(w, d) * 0.45, it.z + Math.sin(a) * Math.max(w, d) * 0.45)); }
             if (rh - lo > th * 1.2) continue; it.y -= Math.max(0, rh - lo - th * 0.3); }
           if (nearAnemone(it.x, it.z, Math.max(w, d) * 0.6)) continue;
-          slabList(R() < 0.5 ? 2 : 1).push(it);          // flat slabs and flattened angular blocks
+          const li = slabIdx(R() < 0.5 ? 2 : 1); lists[li].push(it);          // flat slabs and flattened angular blocks
           obst.stamp(it.x, it.z, Math.max(w, d) * 0.8, it.y + th * 0.45, th);
-          addFoot({ x: it.x, z: it.z, r: Math.max(w, d) * 0.6, top: it.y + th * 0.5, under: -1e9 }, feet);
+          addFoot({ x: it.x, z: it.z, r: Math.max(w, d) * 0.6, top: it.y + th * 0.5, under: -1e9, it, geo: protos[li].geo }, feet);
           ledges++;
         } else if (leaners < 300 * frac) {
           // walk down to the foot of the wall
@@ -682,9 +706,9 @@ export function buildOcean(loc) {
           { const r0 = 0.6 * Math.max(it.sx, sz); let lo = fh; for (let k = 0; k < 6; k++) { const a = k * 1.047; lo = Math.min(lo, hAt(it.x + Math.cos(a) * r0, it.z + Math.sin(a) * r0)); }
             if (fh - lo > sy * 1.1) continue; it.y -= Math.max(0, fh - lo - sy * 0.15); }
           if (nearAnemone(it.x, it.z, Math.max(it.sx, sz) * 0.6)) continue;
-          slabList(1).push(it);
+          const li = slabIdx(1); lists[li].push(it);
           obst.stamp(it.x, it.z, Math.max(it.sx, sz) * 0.85, it.y + sy * 0.85, sy);
-          addFoot({ x: it.x, z: it.z, r: Math.max(it.sx, sz) * 0.75, top: it.y + sy * 0.85, under: -1e9 }, feet);
+          addFoot({ x: it.x, z: it.z, r: Math.max(it.sx, sz) * 0.75, top: it.y + sy * 0.85, under: -1e9, it, geo: protos[li].geo }, feet);
           leaners++;
         }
       }
