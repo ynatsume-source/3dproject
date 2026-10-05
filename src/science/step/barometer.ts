@@ -50,7 +50,7 @@ export function rise(g: Geometry, sealed: number, PaPa: number, bulbK: number): 
 
 const envOk = (req: ScienceStepRequest) => {
   const e = req.environment;
-  return (e.source === 'live' || e.source === 'simulation') && finite(e.airTempC, -60, 70) && finite(e.pressureHPa, 800, 1100);
+  return (e.source === 'live' || e.source === 'simulation' || e.source === ('record' as string)) && finite(e.airTempC, -60, 70) && finite(e.pressureHPa, 800, 1100);
 };
 
 export function barometerStep(req: ScienceStepRequest): ScienceStepResult {

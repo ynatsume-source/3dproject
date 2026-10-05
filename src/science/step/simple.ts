@@ -7,12 +7,14 @@
 // fixture-3 (2026-10-04, Codex A on 70fed2f): an offer arrives evenly over its interval (offered power = maxJ / interval
 // seconds), as for every other step. The bench or the balance works only while it gets the power it needs; offered
 // less, nothing happens in that interval (needs-input). It never uses energy that has not arrived yet.
+// fixture-4 (2026-10-05, ADR 0006): also runs on the island's replayed weather (environment.source 'record').
+// Work done by hand: requests come on the world (real) clock.
 import type { ScienceStep, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { PROCESS } from './fixture-profile';
 import { SPECIES } from '../chem';
 
 export const FIXTURE_CATALOG_VERSION = 'civ-sci-test-2';   // the same catalog as step/common.ts SCIENCE_CATALOG_VERSION
-export const FIXTURE_PROCESS_VERSION = 'fixture-3';
+export const FIXTURE_PROCESS_VERSION = 'fixture-4';
 export const STATE_SCHEMA = 'civilization-simple-process/2';
 type State = {
   runId: string; worldId: string; worldEpoch: string; processId: string;
@@ -46,7 +48,8 @@ export const simpleFixtureStep: ScienceStep = req => {
     const tile = req.processId === 'p11x_test_tile_shape';
     const shape = req.processId === 'p11_pottery_shape' || tile, weigh = req.processId === 'fixture_mass_measure';
     need(shape || weigh, 'unsupported-process');
-    need(req.environment.source === 'simulation' && req.environment.sampleId.startsWith('env:'), 'fixture-only');
+    // fixture-4: the test world (simulation) or the island's replayed weather (record); never live, unknown or stale
+    need((req.environment.source === 'simulation' || req.environment.source === ('record' as string)) && req.environment.sampleId.startsWith('env:'), 'fixture-only');
     need(id(req.runId, 'run:') && typeof req.requestId === 'string' && req.requestId.length > 0 && int(req.seed), 'invalid-id-or-seed');
     need(typeof req.world.worldId === 'string' && req.world.worldId.length > 0 && typeof req.world.worldEpoch === 'string' && req.world.worldEpoch.length > 0 && int(req.world.worldVersion), 'invalid-world');
     need(req.stop === undefined || ['operator', 'world-pause', 'equipment-lost', 'shutdown'].includes(req.stop), 'invalid-stop');

@@ -1,0 +1,38 @@
+--- a/src/world/science-contract.ts
++++ b/src/world/science-contract.ts
+@@ -12,7 +12,7 @@
+ // Types only: no behaviour in the app depends on this file yet. Changes go through a pull request to main,
+ // reviewed by the world side; bump SCIENCE_CONTRACT_VERSION on any change to a shape or a rule below.
+ 
+-export const SCIENCE_CONTRACT_VERSION = '0.2.0';
++export const SCIENCE_CONTRACT_VERSION = '0.2.1';
+ 
+ /** Stable ids. Catalog entries keep the catalog's own ids as they are (processes 'p20_lime_calcination',
+  *  materials 'quicklime', capabilities…). Things that exist in the world carry a prefix by kind: 'lot:…',
+@@ -29,7 +29,9 @@ export type Unit =
+   | 'J' | 'kJ' | 'Wh';         // energy (heat, mechanical and electrical work are told apart by `kind`)
+ export interface Quantity { value: number; unit: Unit }   // value: an integer in that unit
+ 
+-/** A half-open interval of world time [from, to), in milliseconds since the Unix epoch (UTC). */
++/** A half-open interval [from, to) in milliseconds on the clock the process declares in the catalog ('clock'):
++ *  the world clock (UTC epoch ms) for work done by hand, the island clock for processes that only wait (ADR 0006).
++ *  One run uses one clock throughout: its intervals, actions[].at, environment.effectiveAt and the times it returns. */
+ export interface Interval { from: number; to: number }
+ 
+ export interface WorldRef { worldId: Id; worldEpoch: Id; worldVersion: number }
+@@ -37,11 +39,11 @@ export interface WorldRef { worldId: Id; worldEpoch: Id; worldVersion: number }
+ /** The environment the world used for this interval, with where it came from (never invented). */
+ export interface EnvironmentSample {
+   sampleId: Id;
+-  source: 'live' | 'simulation' | 'stale' | 'unknown';
++  source: 'live' | 'simulation' | 'record' | 'stale' | 'unknown';   // record: measured, replayed (the island's weather)
+   effectiveAt: number;
+-  // only measured values (never a fallback guess): humidity relative 0..1; windMs at 10 m above ground, as weather
+-  // services report it (a process scales it to its own height)
+-  airTempC?: number; humidity?: number; windMs?: number; rainMmH?: number; pressureHPa?: number;
++  // only measured values (never a fallback guess): humidity relative 0..1; windMs as measured at windHeightM above
++  // the ground (default 10 m; a process brings it to its own height); pressureHPa at the ground (sea level on the island)
++  airTempC?: number; humidity?: number; windMs?: number; windHeightM?: number; rainMmH?: number; pressureHPa?: number;
+ }
+ 
+ /** A material lot reserved for this run: the only material the step may consume. */

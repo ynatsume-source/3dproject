@@ -247,7 +247,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   // W2: refusals of a 0.2.x request carry drawn: [] and echo the contract, through the single entry
   const v02 = (o: Partial<ScienceStepRequest>) => ({ ...FIRE, contract: '0.2.0', ...o } as ScienceStepRequest);
   for (const [name, req] of [['drying', v02({ processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion })],
-    ['weighing', v02({ processId: 'fixture_mass_measure', processVersion: 'fixture-3' })], ['calcination', { ...CALC, contract: '0.2.0' }],
+    ['weighing', v02({ processId: 'fixture_mass_measure', processVersion: 'fixture-4' })], ['calcination', { ...CALC, contract: '0.2.0' }],
     ['firing', v02({})], ['soak', { ...soakReq(FIRE.lots[0], 1, 'run:w2'), contract: '0.2.0' }], ['unknown process', v02({ processId: 'p99_nothing' })]] as const) {
     const r = scienceStep(req);
     ok(r.contract === '0.2.0' && Array.isArray(drawnOf(r)) && validateResult(req, r).length === 0,
@@ -281,7 +281,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     chainBoth('slaking', hyd(60_000), 2);
     chainBoth('soak', { ...soakReq(FIRE.lots[0], 1, 'run:v-soak'), stop: undefined }, 3);
     const W02 = { world: W, requestId: 'v-w', runId: 'run:v-w', interval: { from: 0, to: 10_000 }, state: null, seed: 1, catalogVersion: 'civ-sci-test-2',
-      environment: { sampleId: 'env:v', source: 'simulation' as const, effectiveAt: 0 }, processId: 'fixture_mass_measure', processVersion: 'fixture-3',
+      environment: { sampleId: 'env:v', source: 'simulation' as const, effectiveAt: 0 }, processId: 'fixture_mass_measure', processVersion: 'fixture-4',
       lots: [{ lotId: 'lot:x', materialId: 'test_tile_fired', amount: { value: 36_290, unit: 'mg' as const }, location: 'site:x' }],
       equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
       energy: [{ sourceId: 'src:fixture-mains', kind: 'electric' as const, maxJ: 10 }], actions: [{ at: 0, residentId: 'res:dot', action: 'read-balance' }] };
@@ -332,7 +332,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     'W3a: the handed-back lot reads back to whole mg of dry wood (fractions kept unrounded)');
 
   // W4: shaping copies only a valid dry make-up
-  const SH: ScienceStepRequest = { ...FIRE, contract: '0.1.0', processId: 'p11x_test_tile_shape', processVersion: 'fixture-3', runId: 'run:w4',
+  const SH: ScienceStepRequest = { ...FIRE, contract: '0.1.0', processId: 'p11x_test_tile_shape', processVersion: 'fixture-4', runId: 'run:w4',
     environment: { sampleId: 'env:w4', source: 'simulation', effectiveAt: 0 }, actions: [], interval: { from: 0, to: 60_000 },
     lots: [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' }, location: 'site:bench',
       quality: { water_ppm: 193_548, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 } }],
@@ -443,7 +443,7 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
   // A1 on 70fed2f (lab 488703d): weighing and shaping never use energy before it has arrived (offers arrive evenly)
   {
     const base = (pid: string, ms: number, maxJ: number, contract = '0.2.0'): ScienceStepRequest => ({
-      contract, world: W, requestId: `a1-${pid}-${ms}-${maxJ}`, runId: `run:a1-${pid}`, processId: pid, processVersion: 'fixture-3', catalogVersion: 'civ-sci-test-2',
+      contract, world: W, requestId: `a1-${pid}-${ms}-${maxJ}`, runId: `run:a1-${pid}`, processId: pid, processVersion: 'fixture-4', catalogVersion: 'civ-sci-test-2',
       interval: { from: 0, to: ms }, state: null, seed: 1, environment: { sampleId: 'env:a1', source: 'simulation', effectiveAt: 0 },
       lots: pid === 'fixture_mass_measure' ? [{ lotId: 'lot:x', materialId: 'test_tile_fired', amount: { value: 36_290, unit: 'mg' }, location: 'site:x' }]
         : [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' }, location: 'site:x',
@@ -478,6 +478,31 @@ console.log('W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x
     // the result checker itself now catches energy used before it arrived
     const early1 = { ...w30, simulated: { from: 0, to: 5_000 } };
     ok(validateResult(base('fixture_mass_measure', 30_000, 30), early1).some((v) => v.includes('had arrived')), 'A1: validateResult flags energy used before it arrived (10 J by 5 s of a 30 J / 30 s offer)');
+  }
+
+  // ADR 0006 (island time, replayed weather): record is computed like live; a measured wind comes with its height
+  {
+    const recEnv = (e: ScienceStepRequest['environment']) => ({ ...e, source: 'record', sampleId: 'env:record:jma-47918:2019-08-23T14' } as unknown as ScienceStepRequest['environment']);
+    const D = { ...FIRE, processId: DRYING_PROCESS.processId, processVersion: DRYING_PROCESS.processVersion, actions: [], energy: [], interval: { from: 0, to: 6 * 3_600_000 },
+      lots: [{ ...FIRE.lots[0], materialId: 'test_tile_green', quality: { ...FIRE.lots[0].quality, water_ppm: 200_000, width_mm: 50, length_mm: 50 } }],
+      equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-2', condition: 1 }] } as ScienceStepRequest;
+    const sim = checked(D), rec = checked({ ...D, environment: recEnv(D.environment) });
+    const ev = (r: ScienceStepResult) => (r.diagnostics as { evaporatedMg: number }).evaporatedMg;
+    ok(rec.status === 'running' && ev(rec) === ev(sim) && ev(rec) > 0, 'record: the drying computes the replayed weather as it does live or simulated weather', `${ev(rec).toFixed(1)} mg`);
+    const at10 = checked({ ...D, environment: { ...recEnv(D.environment), windHeightM: 10 } as ScienceStepRequest['environment'] });
+    const at40 = checked({ ...D, environment: { ...recEnv(D.environment), windHeightM: 40 } as ScienceStepRequest['environment'] });
+    ok(ev(at10) === ev(rec) && ev(at40) < ev(at10), 'windHeightM: 10 m changes nothing; the same speed measured at 40 m is less wind at the rack (log profile)',
+      `${ev(at10).toFixed(1)} vs ${ev(at40).toFixed(1)} mg`);
+    ok(checked({ ...D, environment: { ...recEnv(D.environment), windHeightM: 0.2 } as ScienceStepRequest['environment'] }).diagnostics !== undefined
+      && (checked({ ...D, environment: { ...recEnv(D.environment), windHeightM: 0.2 } as ScienceStepRequest['environment'] }).diagnostics as { skipped?: string }).skipped !== undefined,
+      'windHeightM outside 1–300 m: the interval is not computed (nothing invented)');
+    const W4 = { contract: '0.2.0', world: W, requestId: 'f4', runId: 'run:f4', processId: 'fixture_mass_measure', processVersion: 'fixture-4', catalogVersion: 'civ-sci-test-2',
+      interval: { from: 0, to: 10_000 }, state: null, seed: 1, environment: recEnv({ sampleId: 'env:x', source: 'simulation', effectiveAt: 0 }),
+      lots: [{ lotId: 'lot:x', materialId: 'test_tile_fired', amount: { value: 36_290, unit: 'mg' }, location: 'site:x' }],
+      equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
+      energy: [{ sourceId: 'src:fixture-mains', kind: 'electric', maxJ: 10 }], actions: [{ at: 0, residentId: 'res:lantern', action: 'read-balance' }] } as unknown as ScienceStepRequest;
+    ok(checked(W4).status === 'completed', 'fixture-4: weighing runs on the replayed weather (record)');
+    ok(checked({ ...W4, environment: { ...W4.environment, source: 'live' } }).status === 'failed', 'fixture-4: never on live weather (not used on the island)');
   }
 
   // W4a (lab b8bf6ec): only registered species, never inherited object keys

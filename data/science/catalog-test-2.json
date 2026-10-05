@@ -104,7 +104,7 @@
   "processes": [
     {
       "id": "fixture_mass_measure",
-      "version": "fixture-3",
+      "version": "fixture-4",
       "label": "秤量",
       "kind": "measurement",
       "inputs": [
@@ -121,12 +121,13 @@
         "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
       "observation": "instrument:<equipmentId>、mass、100 mg 単位、precision 100",
-      "readiness": "test-world-only（environment.source = simulation のみ）",
-      "note": "電気は試験用電源（src:fixture-mains）。文明の達成には数えない（本体の回答 ②）"
+      "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
+      "note": "電気は試験用電源（src:fixture-mains）。文明の達成には数えない（本体の回答 ②）",
+      "clock": "world"
     },
     {
       "id": "p11_pottery_shape",
-      "version": "fixture-3",
+      "version": "fixture-4",
       "label": "器の成形（試験用）",
       "kind": "physical",
       "inputs": [
@@ -144,11 +145,12 @@
         "rule": "2 W × 60 s = 120 J、全量 lostJ",
         "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
-      "readiness": "test-world-only"
+      "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
+      "clock": "world"
     },
     {
       "id": "p11x_test_tile_shape",
-      "version": "fixture-3",
+      "version": "fixture-4",
       "label": "試験片の成形",
       "kind": "physical",
       "inputs": [
@@ -166,10 +168,11 @@
         "rule": "2 W × 60 s = 120 J、全量 lostJ",
         "offer": "申し出は区間に均等に届く（電力 = maxJ ÷ 区間の秒数）。必要な電力（秤量 1 W、成形 2 W）に届かない区間では何も進まない（needs-input、使用 0 J）"
       },
-      "readiness": "test-world-only",
+      "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
       "derivedFrom": "p11_pottery_shape",
       "rule": "予約した粘土ロットを丸ごと1枚の試験片にする（質量・組成は変わらない）。寸法は型（fixture_bench の widthMm・lengthMm・thicknessMm）から。質量÷体積が 1.5〜2.3 g/cm³（仮定）でなければ拒否",
-      "note": "生成物は p12x_test_tile_dry がそのまま受け取れる"
+      "note": "生成物は p12x_test_tile_dry がそのまま受け取れる",
+      "clock": "world"
     },
     {
       "id": "p12x_test_tile_dry",
@@ -199,7 +202,8 @@
       "stepMs": 30000,
       "derivedFrom": "p12_pottery_dry",
       "note": "乾燥速度・割れの係数は未校正。原典の照合前は本世界で実行しない",
-      "environment": "airTempC・humidity（0〜1）が要る。windMs は地上10 mの風（気象サービスの慣例）として読み、棚の高さの風は windRackFactor 0.6 倍（仮定）。測っていない値は渡さない"
+      "environment": "airTempC・humidity（0〜1）が要る。windMs は地上10 mの風（気象サービスの慣例）として読み、棚の高さの風は windRackFactor 0.6 倍（仮定）。測っていない値は渡さない",
+      "clock": "island"
     },
     {
       "id": "p20x_lime_calcine_test",
@@ -226,7 +230,8 @@
       "evaluator": "lime-calcine-eval/0.1.0",
       "stepMs": 30000,
       "derivedFrom": "p20_lime_calcination",
-      "note": "反応エンタルピーは OpenStax の生成エンタルピーから（S-thermo）。分解の速さ・炉の性能は仮定。CO2 分圧との平衡は扱わない。乾いた原料のみ"
+      "note": "反応エンタルピーは OpenStax の生成エンタルピーから（S-thermo）。分解の速さ・炉の性能は仮定。CO2 分圧との平衡は扱わない。乾いた原料のみ",
+      "clock": "island"
     },
     {
       "id": "p21x_lime_hydrate_test",
@@ -255,7 +260,8 @@
       "evaluator": "lime-hydrate-eval/0.1.0",
       "stepMs": "20 (reacting) / 1000 (cooling)",
       "derivedFrom": "p21_lime_hydration",
-      "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない"
+      "note": "反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さ・固体の比熱は仮定。100 °C 未満の蒸発は扱わない",
+      "clock": "island"
     },
     {
       "id": "p13x_test_tile_fire",
@@ -286,7 +292,8 @@
       "evaluator": "tile-fire-eval/0.1.0",
       "stepMs": 30000,
       "derivedFrom": "p13_pottery_fire",
-      "note": "有機物を含む素地は拒否（焼き切るには O2 の取り込み＝0.2.0 の drawn が必要）。速度・焼結・割れの基準は校正値"
+      "note": "有機物を含む素地は拒否（焼き切るには O2 の取り込み＝0.2.0 の drawn が必要）。速度・焼結・割れの基準は校正値",
+      "clock": "island"
     },
     {
       "id": "m01x_tile_soak_test",
@@ -310,7 +317,8 @@
       ],
       "readiness": "test-world-only",
       "evaluator": "tile-soak-eval/0.1.0",
-      "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定"
+      "note": "計測はしない（前後の秤量は fixture_mass_measure）。吸水の上限は焼結度からの校正値、冷水/煮沸の比と時定数は仮定",
+      "clock": "island"
     },
     {
       "id": "p13w_test_tile_wood_fire",
@@ -356,13 +364,14 @@
       "note": "空気の不足（くすぶり・炭化）、煙、湿った薪の着火、流木の塩分は扱わない。有機物を含む素地は拒否（燃え抜きは別工程）",
       "settlement": "薪は乾いた木・水・灰の部分ごとに、燃えた量を mg に切り上げて精算する（ロットの持つ量まで）。報告する熱（usedJ）は燃えた乾いた木そのものの発熱（J に切り捨て）なので、常に精算した乾いた木の熱以下。薪の水分の蒸発熱は損失（lostJ）。返却する薪の water_ppm・ash_dry_ppm は丸めない（読み戻すと mg に正確に戻る）。試験片の来歴は、試験片と薪のどちらかが不完全なら不完全",
       "tolerance": "30秒格子の上は区切り方によらず一致。格子外（7.3秒）は熱・ガス・燃え残りの薪 0.25% 以内、焼結 0.3%、終わる時刻 +60 秒（ALIGNMENT §10）",
-      "stateSchema": "civ-sci.tile-wood-fire/2（/1 は拒否）"
+      "stateSchema": "civ-sci.tile-wood-fire/2（/1 は拒否）",
+      "clock": "island"
     },
     {
       "id": "m02x_air_barometer_test",
       "version": "0.1.0",
       "contract": "0.1.x / 0.2.x",
-      "clock": "island（待つだけの工程）",
+      "clock": "island",
       "label": "試験用の気圧計（閉じ込めた空気＋水の柱）",
       "kind": "measurement",
       "inputs": [],
@@ -381,7 +390,7 @@
       "note": "既製の対照設備。自作の気圧計（器＋焼いた管＋水＋浮き）は別の工程で置き換える。漏れ・蒸発・毛管現象は扱わない"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks).",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {
@@ -497,5 +506,6 @@
         "bulbTauS": ">0（器の温度の時定数。空気中 約900 秒、水中 数時間：仮定）"
       }
     }
-  ]
+  ],
+  "clock": "工程ごとの時計（ADR 0006）：world = 現実の時計（住人が手を動かす工程）、island = 島の時計（待つだけの工程、現実の約13倍）。1つの run の中では区間・actions.at・effectiveAt・返す時刻をすべて同じ時計で"
 }

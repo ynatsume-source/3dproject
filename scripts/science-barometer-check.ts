@@ -99,6 +99,9 @@ console.log('5. what the resident gets');
   const { contract: _a, drawn: _b, ...b2 } = v2; const { contract: _c, ...b1 } = v1;
   ok(JSON.stringify(b1) === JSON.stringify(b2) && Array.isArray(v2.drawn) && v2.drawn.length === 0, 'contract 0.1.0 and 0.2.0 give the same answer (0.2.0 adds drawn: [])');
   ok(JSON.stringify(scienceStep(req(0, H, { p: 1010, t: 28 }, null, [H - 1000]))) === JSON.stringify(v1), 'the same request gives the same result');
+  const rq = req(0, H, { p: 1010, t: 28 }, null, [H - 1000]);
+  const rec = scienceStep({ ...rq, environment: { ...rq.environment, source: 'record', sampleId: 'env:record:jma-47918:2019-08-23T05' } as unknown as ScienceStepRequest['environment'] });
+  ok(rec.status === 'running' && rec.observations[0]?.value === v1.observations[0]?.value, 'the island replayed weather (record) is read like any measured weather');
   const stop = step(req(H, 2 * H, { p: 1010, t: 28 }, v1.state, [], { stop: 'operator' }));
   ok(stop.status === 'stopped' && stop.consumed.length + stop.produced.length + stop.energy.length === 0, 'taking the gauge down: stopped, nothing settled, no energy');
 }

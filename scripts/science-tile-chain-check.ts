@@ -56,7 +56,7 @@ const BASIN: EquipmentView = { equipmentId: 'eq:basin', kind: 'fixture_soak_basi
 const BAL: EquipmentView = { equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 };
 const PROC = {
   dry: { ...DRYING_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION }, fire: { ...FIRING_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION },
-  soak: { ...SOAK_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION }, weigh: { processId: 'fixture_mass_measure', processVersion: 'fixture-3', catalogVersion: 'civ-sci-test-2' },
+  soak: { ...SOAK_PROCESS, catalogVersion: SCIENCE_CATALOG_VERSION }, weigh: { processId: 'fixture_mass_measure', processVersion: 'fixture-4', catalogVersion: 'civ-sci-test-2' },
 };
 const heat = (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:fixture-kiln-heater', kind: 'heat', maxJ: Math.floor(15_000 * (to - from) / 1000) }];
 const takeOut = (_i: number, _f: number, to: number, last: boolean): OperatorAction[] => last ? [{ at: to - 1, residentId: 'res:dot', action: 'take_off' }, { at: to - 1, residentId: 'res:dot', action: 'take_out' }] : [];

@@ -53,6 +53,17 @@ npm run typecheck && npm run build
 
 既存の検査（粘土52・工程47・石灰24・連鎖16・薪32・回帰103）は変更なしで成功。本体の統合検査は 91件成功・2件失敗で、失敗は前回申し送り済みの「電力不足」の旧期待値（fixture-3 で変わったもの）。
 
+## あわせて軽い確認をお願いしたいもの（main に入っているファイルの変更）
+
+ADR 0006 の合意（島の時計・再生した天気）を入れた変更。新しい工程ではないので、方針どおり軽い確認で。
+
+- `common.ts`：`envUsable` が `record` を受け付ける。`windHeightM`（1〜300 m）を確かめる。`wind10m()` で測った風を地上10 m相当へ。
+- `drying.ts`：棚の風を `wind10m(req) × 0.6` から出す（10 m なら今までと同じ）。
+- `simple.ts`：`fixture-4`。秤量・成形が `simulation` と `record` で動く。
+- `params.ts`：`windRoughnessM` 0.03 m（仮定）。
+- カタログに工程ごとの `clock`。`science-contract-0.2.1.proposed.diff`（record・windHeightM・区間の時計の説明）。
+- 回帰「ADR 0006」5件、気圧計の検査に record 1件。本体の統合検査は版を fixture-4 にした写しで 93件成功。
+
 ## お願い
 
 - 指摘と診断スクリプトは lab へ。科学側のブランチと main は変更しないでください。修正は科学側で行います。

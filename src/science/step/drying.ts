@@ -11,7 +11,8 @@
 //   - Heat: evaporation draws heat from the surrounding air (`env:` source, not an EnergyOffer) and that heat
 //     leaves with the vapour, so usedJ = lostJ, storedJ = 0. It is reported per interval as integer J using
 //     cumulative rounding (report round(cum_to) − round(cum_from)), so any chunking sums to the same integers.
-// environment.windMs is the weather service's wind at 10 m (0.3.0): the rack feels windRackFactor of it.
+// environment.windMs is the wind measured at windHeightM (default 10 m), brought to 10 m (wind10m) and then to the
+// rack: the rack feels windRackFactor of the 10 m wind (0.3.0).
 // Operational stops ('world-pause' / 'shutdown') do not settle and do not invent weather: the world simply keeps
 // the state; an interval whose environment is 'unknown' or 'stale' is not integrated and marks the history incomplete.
 
@@ -19,7 +20,7 @@ import type {
   EquipmentView, LotView, Observation, ScienceStepRequest, ScienceStepResult, ScienceState,
 } from '../../world/science-contract';
 import { pv } from '../params';
-import { allFinite, contractExtras, envUsable, finite, SCIENCE_CATALOG_VERSION, stateSchemaProblem, subStepEnd } from './common';
+import { allFinite, contractExtras, envUsable, finite, SCIENCE_CATALOG_VERSION, stateSchemaProblem, subStepEnd, wind10m } from './common';
 import { crackP, dryPhysics } from '../physics';
 import { draw } from '../rng';
 
@@ -154,7 +155,7 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
     while (t < endAt) {
       const tEnd = subStepEnd(t, d.startMs, STEP_MS, endAt);
       const o = dryPhysics({ waterMg: d.waterMg, dryMg: d.dryMg, shapedWaterRatio: d.shapedWaterRatio, linearShrink: d.linearShrink,
-        dimsMm: d.dims, airTempC: env.airTempC!, rh: env.humidity!, windMs: (env.windMs ?? 0) * pv('windRackFactor'), sun, dtS: (tEnd - t) / 1000 });
+        dimsMm: d.dims, airTempC: env.airTempC!, rh: env.humidity!, windMs: wind10m(req) * pv('windRackFactor'), sun, dtS: (tEnd - t) / 1000 });
       d.waterMg -= o.evapExactMg;
       d.evaporatedMg += o.evapExactMg;
       d.latentJ += (o.evapExactMg / 1e6) * pv('latentHeatWater25');

@@ -131,7 +131,7 @@ ok(gap.end.released[0].amount.value <= once.end.released[0].amount.value, 'no ev
 console.log('6b. shaping and weighing fixtures (ported from codex/civilization-lab)');
 {
   const base = { world: { worldId: 'civ-sim-test', worldEpoch: 'e1', worldVersion: 1 }, contract: SCIENCE_CONTRACT_VERSION,
-    catalogVersion: 'civ-sci-test-2', processVersion: 'fixture-3', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
+    catalogVersion: 'civ-sci-test-2', processVersion: 'fixture-4', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
   const clay = { lotId: 'lot:clay-1', materialId: 'prepared_clay', amount: { value: 120_000, unit: 'mg' as const }, location: 'site:bench', quality: { water_ppm: 166_667 } };
   const weigh = (to: number) => scienceStep({ ...base, requestId: 'w1', runId: 'run:w1', processId: 'fixture_mass_measure', interval: { from: T0, to }, state: null,
     lots: [clay], equipment: [{ equipmentId: 'eq:balance', kind: 'fixture_balance', catalogEntry: 'fixture_balance', catalogVersion: 'civ-sci-test-2', condition: 1 }],
@@ -155,7 +155,7 @@ console.log('6b. shaping and weighing fixtures (ported from codex/civilization-l
 console.log('6c. one catalog (civ-sci-test-2): weigh → shape a test tile → dry, and a stop with short energy');
 {
   const base = { world: { worldId: 'civ-sim-test', worldEpoch: 'e1', worldVersion: 1 }, contract: SCIENCE_CONTRACT_VERSION,
-    catalogVersion: SCIENCE_CATALOG_VERSION, processVersion: 'fixture-3', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
+    catalogVersion: SCIENCE_CATALOG_VERSION, processVersion: 'fixture-4', environment: { sampleId: 'env:fixture', source: 'simulation' as const, effectiveAt: T0 }, seed: 1 };
   const clay = { lotId: 'lot:clay-t', materialId: 'prepared_clay', amount: { value: 45_000, unit: 'mg' as const }, location: 'site:rack-shade',
     quality: { water_ppm: 193_548, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 300_000, xd_calcite_ppm: 20_000 } };
   const bench = (p: Record<string, number> = { thicknessMm: 10, widthMm: 50, lengthMm: 50 }) =>
