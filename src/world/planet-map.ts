@@ -9,12 +9,13 @@ export interface Isle {
   id: string; lat: number; lon: number; areaKm2: number;
   ja: string;                    // how the watcher is told of it (direction and size, not a human name)
   has: string[];                 // what is there that home has not (found when reached)
+  carry?: { materialId: string; ja: string; mg: number }[];   // what one raft trip brings home (for Lantern's science)
   earth: string;                 // the Earth's name, for the watcher's pages only — never to a resident
 }
 export const HOME = { lat: 24.361, lon: 123.997 };
 export const ISLES: Isle[] = [
-  { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], earth: '小浜島' },
-  { id: 'east-flat', lat: 24.326, lon: 124.087, areaKm2: 5.4, ja: '東の平たい島', has: ['白い石灰岩'], earth: '竹富島' },
+  { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], carry: [{ materialId: 'raw_clay', ja: '粘土', mg: 10e6 }, { materialId: 'bamboo', ja: '竹', mg: 6e6 }, { materialId: 'reed', ja: '葦', mg: 3e6 }], earth: '小浜島' },
+  { id: 'east-flat', lat: 24.326, lon: 124.087, areaKm2: 5.4, ja: '東の平たい島', has: ['白い石灰岩'], carry: [{ materialId: 'limestone', ja: '石灰岩', mg: 15e6 }], earth: '竹富島' },
   { id: 'west-big', lat: 24.33, lon: 123.81, areaKm2: 289, ja: '西の大きな島', has: ['川（真水）', '大きな森', 'マングローブ'], earth: '西表島' },
   { id: 'east-big', lat: 24.4, lon: 124.15, areaKm2: 222, ja: '東の山のある島', has: ['山', 'いろいろな岩'], earth: '石垣島' },
   { id: 'south-far', lat: 24.24, lon: 124.01, areaKm2: 10, ja: '南の遠い島', has: ['広い草地'], earth: '黒島' },

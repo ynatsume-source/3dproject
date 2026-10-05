@@ -24,6 +24,7 @@ import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, div
 import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, type Count, type Said, type Tok } from './islandlang';
 import { islandDate, islandWait, type IslandWeather } from '../world/island-time';
+import type { LotView } from '../world/science-contract';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
 import type { Subject } from '../eco/env';
@@ -372,7 +373,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN } };
+  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, store: [] as LotView[] };
   const RAFT_N = 6, RAFT_KM = 4;   // (a raft of six lashed pieces; a crossing it can make without a sail, there and back in a day)
   const pierAt = (() => {
     let best: { x: number; z: number; dx: number; dz: number; d: number } | null = null;
@@ -421,11 +422,27 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const shelf = new THREE.Group(); { const w = atHut(1.6, -1.5); shelf.position.set(w.x, L.h(w.x, w.z), w.z); shelf.rotation.y = hut.rotation.y; group.add(shelf);
     const b = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.3), wood); b.position.y = 0.55; shelf.add(b); for (const sx of [-0.4, 0.4]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.55, 6), wood2); l.position.set(sx, 0.27, 0); shelf.add(l); } }
   const shelfItems = DRIFT.map((d, i) => { const m = new THREE.Mesh(d.geo, d.mat); m.position.set(-0.3 + i * 0.2, 0.66, 0); if (i === 2) m.rotation.z = Math.PI / 2; m.visible = false; shelf.add(m); return m; });
+  // what Dot brought home from other islands, on the ground by the shelf (clay, bamboo, reeds, limestone)
+  const storeG = new THREE.Group(); { const w = atHut(2.4, -1.5); storeG.position.set(w.x, L.h(w.x, w.z), w.z); storeG.rotation.y = hut.rotation.y; group.add(storeG); }
+  const STORE_LOOK: Record<string, () => THREE.Object3D> = {
+    raw_clay: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 6), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 1 })); m.scale.y = 0.55; m.position.y = 0.1; return m; },
+    bamboo: () => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 6), new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 })); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + (k % 2) * 0.06, -0.08 + k * 0.05); g.add(m); } return g; },
+    reed: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.3, 7), new THREE.MeshStandardMaterial({ color: 0xc8b878, roughness: 1 })); m.rotation.z = Math.PI / 2; m.position.y = 0.09; return m; },
+    limestone: () => { const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18), new THREE.MeshStandardMaterial({ color: 0xe8e4d8, roughness: 0.9 })); m.position.y = 0.12; return m; },
+  };
+  function drawStore() {
+    storeG.clear();
+    [...new Set(village.store.map((l) => l.materialId))].forEach((id, k) => { const m = STORE_LOOK[id]?.(); if (m) { m.position.x += (k % 2) * 0.6; m.position.z += Math.floor(k / 2) * 0.5; storeG.add(m); } });
+  }
   // Dot's raft on the beach below the hut: pieces lashed side by side as they come (ADR 0006: the first crossing)
   const raftG = new THREE.Group(); group.add(raftG);
   const raftLogs = Array.from({ length: 6 }, (_, k) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.4, 7), wood); m.rotation.z = Math.PI / 2; m.position.set(0, 0.08, -0.35 + k * 0.14); m.visible = false; raftG.add(m); return m; });
   function raftAt(): [number, number] | null {
-    if (!Number.isFinite(village.raft.x)) { const at = spot(byId.dot.sp.home, 160, shore, 120); if (!at) return null; village.raft.x = at[0]; village.raft.z = at[1]; }
+    if (!Number.isFinite(village.raft.x)) {   // (a stretch of shore near home it can walk to: the raft stays where it is first laid)
+      const h = byId.dot.sp.home, ok = (x: number, z: number, y: number) => shore(x, z, y) && !!findPath(h[0], h[1], x, z, walkCost);
+      const at = [60, 110, 160].reduce<[number, number] | null>((a, rad) => a ?? spot(h, rad, ok, 40), null); if (!at) return null;
+      village.raft.x = at[0]; village.raft.z = at[1];
+    }
     return [village.raft.x, village.raft.z];
   }
   function drawRaft() {
@@ -449,10 +466,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     voyaging = false; r.model.root.visible = true; drawRaft();
     const i = ISLES.find((x) => x.id === tk.data.isle)!, w = village.map.seen[i.id]?.word ?? i.id;
     if (outcome === 'reached') {
+      // what the raft brings home goes on the shelf by the hut, as the world's own lots: Lantern's science draws on them
+      const brought = (i.carry ?? []).map((c, k) => { const lot: LotView = { lotId: `lot:${i.id}:${village.store.length + k}`, materialId: c.materialId, amount: { value: c.mg, unit: 'mg' }, location: 'shelf' }; return { lot, c, fresh: !village.store.some((x) => x.materialId === c.materialId) }; });
+      village.store.push(...brought.map((b) => b.lot)); drawStore();
+      const firstTime = !village.map.reached[i.id];
       village.map.reached[i.id] = { at: clockMs };
-      r.diary.push({ at: clockMs, text: `${w}にたどり着いて戻った。あったもの：${i.has.join('・')}`, key: 'got' });
+      r.diary.push({ at: clockMs, text: `${w}にたどり着いて戻った。あったもの：${i.has.join('・')}${brought.length ? `。持ち帰った：${brought.map((b) => `${b.c.ja} ${Math.round(b.c.mg / 1e6)}kg`).join('・')}（小屋の棚）` : ''}`, key: 'got' });
       res.onEvent('map', `${r.v.name}が筏で${w}に渡り、戻ってきた`, r);
-      tk.data.reward = 1 + Math.log10(1 + i.areaKm2);
+      // (its reward: the map wider — once for each island — and each material new to the island)
+      tk.data.reward = (firstTime ? 1 + Math.log10(1 + i.areaKm2) : 0) + 0.3 * brought.filter((b) => b.fresh).length;
     } else { r.diary.push({ at: clockMs, text: `${w}への渡航を途中で引き返した（${tk.data.why ?? '海が荒れた'}）`, key: 'got' }); tk.data.reward = 0; }
     r.battery = Math.max(0.05, r.battery - 0.4);
   }
@@ -1120,11 +1142,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const m = village.map;
     return { 見えた島: ISLES.filter((i) => m.seen[i.id]).map((i) => { const f = fromHome(i); return `${m.seen[i.id].word}：${dirJa(f.bearing)}に約${f.km.toFixed(1)}km、${i.areaKm2 > 50 ? '大きい' : '小さい'}${m.reached[i.id] ? '（たどり着いた）' : ''}`; }), 地図の広さ: +mapScore(m).toFixed(2) };
   }
+  /** What is on the shelf by the hut, brought from other islands (by material: how much, from where). */
+  function storeNow() {
+    const by = new Map<string, number>(); for (const l of village.store) by.set(l.materialId, (by.get(l.materialId) ?? 0) + l.amount.value);
+    const ja = (id: string) => ISLES.flatMap((i) => i.carry ?? []).find((c) => c.materialId === id)?.ja ?? id;
+    const from = (id: string) => [...new Set(village.store.filter((l) => l.materialId === id).map((l) => village.map.seen[l.lotId.split(':')[1]]?.word ?? '?'))].join('・');
+    return [...by].map(([id, mg]) => `${ja(id)} ${+(mg / 1e6).toFixed(1)}kg（${from(id)}から、小屋の棚）`);
+  }
   function brainInput(r: Resident, a: Agent, opts: Option[]): BrainInput {
     const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
     return {
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
-      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
+      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && village.store.length ? { store: storeNow() } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
       knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6),
     };
@@ -1914,7 +1943,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
-    drawPier(); drawShelf(); drawRaft();
+    drawPier(); drawShelf(); drawRaft(); drawStore();
     buildPile(); buildCairns();
     return Math.min(12 * 3600, Math.max(0, (Date.now() - s.at) / 1000));   // how long they lived on without us (up to half a day)
   }
