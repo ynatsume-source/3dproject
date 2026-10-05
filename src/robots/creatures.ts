@@ -83,11 +83,12 @@ export function creatureKit(M: CMats, shadows = false) {
     const head = new THREE.Group(); head.position.set(0, 0.02, 0.31); body.add(head);
     const skull = ell(0.086, 0.074, 0.092, M.furPale); skull.position.set(0, 0.025, 0.075); head.add(skull);
     const crown = ell(0.08, 0.05, 0.08, M.fur); crown.position.set(0, 0.05, 0.03); head.add(crown);   // (the darker fur running back over the crown)
-    const muzzle = ell(0.058, 0.04, 0.045, M.furPale); muzzle.position.set(0, 0.0, 0.15); head.add(muzzle);
-    for (const sx of [-1, 1]) { const pad = ell(0.03, 0.026, 0.028, M.furPale, 16); pad.position.set(sx * 0.026, -0.008, 0.168); head.add(pad); }
-    const nose = ell(0.022, 0.013, 0.012, M.nose, 16); nose.position.set(0, 0.016, 0.19); head.add(nose);
+    // (a small muzzle, short and set close under the eyes: an otter's, not a dog's — owner's note, 2026-10-05)
+    const muzzle = ell(0.046, 0.033, 0.035, M.furPale); muzzle.position.set(0, -0.002, 0.143); head.add(muzzle);
+    for (const sx of [-1, 1]) { const pad = ell(0.024, 0.021, 0.022, M.furPale, 16); pad.position.set(sx * 0.021, -0.009, 0.157); head.add(pad); }
+    const nose = ell(0.018, 0.011, 0.01, M.nose, 16); nose.position.set(0, 0.012, 0.175); head.add(nose);
     const jaw = new THREE.Group(); jaw.position.set(0, -0.03, 0.1); head.add(jaw);
-    const chin = ell(0.04, 0.02, 0.05, M.furPale, 16); chin.position.set(0, -0.004, 0.05); jaw.add(chin);
+    const chin = ell(0.032, 0.017, 0.04, M.furPale, 16); chin.position.set(0, -0.004, 0.042); jaw.add(chin);
     const ek = L.eye ?? 1;
     const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.046 * (0.9 + 0.1 * ek), 0.04, 0.143); head.add(e); if (L.shine) glint(e); return e; });
     const eye = new THREE.Object3D(); eye.position.set(0, 0.04, 0.15); head.add(eye);
@@ -96,14 +97,15 @@ export function creatureKit(M: CMats, shadows = false) {
     if (L.tuft) for (let k = 0; k < 3; k++) { const c = own(new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.05, 8), M.furPale)); c.position.set((k - 1) * 0.014, 0.1, 0.07 + k * 0.006); c.rotation.set(-0.5 + k * 0.15, 0, (k - 1) * -0.5); head.add(c); }
     if (L.scarf) {
       // a strand of kelp tied round its neck, the ends trailing
-      const sc = own(new THREE.Mesh(new THREE.TorusGeometry(0.098, 0.022, 10, 36), M.kelp ?? M.furDark)); sc.position.set(0, -0.005, 0.28); sc.scale.y = 0.9; body.add(sc);
-      const knot = ell(0.026, 0.024, 0.02, M.kelp ?? M.furDark, 12); knot.position.set(0.07, -0.07, 0.29); body.add(knot);
-      for (const k of [0, 1]) { const end = ell(0.018, 0.006, 0.07, M.kelp ?? M.furDark, 12); end.position.set(0.085 + k * 0.012, -0.1 - k * 0.012, 0.25 - k * 0.03); end.rotation.set(0.9 + k * 0.3, 0.3, 0.2); body.add(end); }
+      // (low, round the base of the neck, not up under the head where it read as a fringe of hair)
+      const sc = own(new THREE.Mesh(new THREE.TorusGeometry(0.112, 0.022, 10, 36), M.kelp ?? M.furDark)); sc.position.set(0, -0.012, 0.235); sc.scale.y = 0.92; body.add(sc);
+      const knot = ell(0.026, 0.024, 0.02, M.kelp ?? M.furDark, 12); knot.position.set(0.08, -0.085, 0.245); body.add(knot);
+      for (const k of [0, 1]) { const end = ell(0.018, 0.006, 0.07, M.kelp ?? M.furDark, 12); end.position.set(0.095 + k * 0.012, -0.115 - k * 0.012, 0.205 - k * 0.03); end.rotation.set(0.9 + k * 0.3, 0.3, 0.2); body.add(end); }
     }
     for (const sx of [-1, 1]) { const ear = ell(0.013, 0.016, 0.009, M.furDark, 10); ear.position.set(sx * 0.074, 0.062, 0.045); head.add(ear); }
     // whiskers: pale, stiff, fanning back from the pads
     const wg = new THREE.CylinderGeometry(0.0011, 0.0005, 0.075, 3); wg.translate(0, 0.0375, 0);
-    for (const sx of [-1, 1]) for (let w = 0; w < 5; w++) { const wh = new THREE.Mesh(wg, M.furPale); wh.position.set(sx * 0.038, -0.01 + (w - 2) * 0.005, 0.168); wh.rotation.set(-0.2 + (w - 2) * 0.12, 0, -sx * (1.2 + (w - 2) * 0.08)); head.add(wh); }
+    for (const sx of [-1, 1]) for (let w = 0; w < 5; w++) { const wh = new THREE.Mesh(wg, M.furPale); wh.position.set(sx * 0.031, -0.011 + (w - 2) * 0.005, 0.158); wh.rotation.set(-0.2 + (w - 2) * 0.12, 0, -sx * (1.2 + (w - 2) * 0.08)); head.add(wh); }
     // forelegs: short, ending in round mitten paws (it uses them like hands)
     const arms = [-1, 1].map((sx) => {
       const a = new THREE.Group(); a.position.set(sx * 0.072, -0.07, 0.21); body.add(a);
