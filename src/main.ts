@@ -6,7 +6,7 @@ import './styles.css';
 import { U, mat } from './render/common';
 import { cloudAt } from './render/cloud';
 import { clamp, smooth, angDiff, rr } from './core/math';
-import { LOCATIONS, type Sea } from './data/locations';
+import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
@@ -1588,7 +1588,9 @@ const pinEls = LOCATIONS.map((loc, i) => {
 const CARD_ORDER = ['miyako', 'maldives', 'gbr', 'redsea', 'galapagos', 'carnatic', 'pointlobos', 'pacific'];
 const cardRank = (id: string) => { const k = CARD_ORDER.indexOf(id); return k < 0 ? CARD_ORDER.length : k; };
 const RESIDENT_NAMES = ['ドット', 'カメマル', 'ランタン', 'ラッコ'];
-const cardEls = LOCATIONS.map((loc, i) => {
+// (the cards: the Earth's seas, and Dot's world after them — another planet, so no pin on this globe: ADR 0007)
+const CARD_SEAS = [...LOCATIONS, DOTWORLD];
+const cardEls = CARD_SEAS.map((loc, i) => {
   const li = document.createElement('li');
   const isle = !!loc.residents;
   const chips = isle ? RESIDENT_NAMES : [...loc.species.filter((s) => s.big || s.habitat === 'anemone').map((s) => s.ja), ...(loc.extraGuide || []).map((s) => s.ja)].slice(0, 5);
@@ -1603,9 +1605,9 @@ const cardEls = LOCATIONS.map((loc, i) => {
     <span class="go">${isle ? '島をたずねる →' : 'この海へ潜る →'}</span></button>`;
   const b = li.firstElementChild as HTMLButtonElement;
   b.onclick = () => dive(loc);
-  b.onmouseenter = () => { setHot(i); if (!gv.tween) focusLoc(loc); };
+  b.onmouseenter = () => { if (loc.world) return; setHot(i); if (!gv.tween) focusLoc(loc); };
   b.onmouseleave = () => setHot(-1);
-  b.onfocus = () => setHot(i);
+  b.onfocus = () => { if (!loc.world) setHot(i); };
   (li as any).rank = (loc.residents ? 100 : 0) + cardRank(loc.id);
   return b;
 });
@@ -1613,7 +1615,7 @@ const cardEls = LOCATIONS.map((loc, i) => {
   const lis = cardEls.map((b) => b.parentElement as HTMLLIElement).sort((a, b) => (a as any).rank - (b as any).rank);
   let headed = false;
   for (const li of lis) {
-    if ((li as any).rank >= 100 && !headed) { const h = document.createElement('li'); h.className = 'isle-head'; h.textContent = '彼らの暮らす島'; $('locList').appendChild(h); headed = true; }
+    if ((li as any).rank >= 100 && !headed) { const h = document.createElement('li'); h.className = 'isle-head'; h.textContent = 'もうひとつの星 — 彼らの暮らす島'; $('locList').appendChild(h); headed = true; }
     $('locList').appendChild(li);
   }
 }
@@ -1643,6 +1645,7 @@ function updateGlobeTimes() {
     $('pinTime' + i).textContent = ` ${t}`;
     $('cardNow' + i).textContent = `いま現地 ${t} · ${s.phaseLabel} · ${s.moonName}`;
   });
+  { const s = skyState(clock.ms, DOTWORLD), t = localTimeString(clock.ms, DOTWORLD.tz); $('cardNow' + LOCATIONS.length).textContent = `いま島 ${t} · ${s.phaseLabel}`; }
 }
 
 /* ================= modes & transitions ================= */
@@ -2972,7 +2975,7 @@ setQuality(tier);
 resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
-const start = LOCATIONS.find((l) => l.id === location.hash.slice(1));
+const start = location.hash === '#planet' ? DOTWORLD : LOCATIONS.find((l) => l.id === location.hash.slice(1));
 if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start).then(() => takeUpPlace(start))), 300); }
 void smooth;
 

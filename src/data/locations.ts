@@ -53,6 +53,7 @@ export interface Sea {
   land?: { half: number; far: number; roam: number; center: [number, number] };   // real terrain that comes ashore (ocean/land.ts), loaded before building: fine and whole-island squares, how far the drone may go, the island's middle
   path?(s: number): [number, number];      // the auto-cruise loop, where the default one would run aground
   residents?: boolean;                     // the robots who live on the island (robots/residents.ts)
+  world?: 'planet';                        // Dot's world: another planet the shape of the Earth (ADR 0007); absent: the Earth
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   wreck?: WreckSpec;                       // a shipwreck on the sand (ocean/wreck.ts)
   whales?: WhaleSeason;                    // humpbacks visit in these months
@@ -68,6 +69,8 @@ export interface Sea {
   critters?: CritterSpec[];                // morays, sea snakes, jellyfish (eco/critters.ts)
 }
 
+/** Dot's world: the residents' island on another planet (set below, from the Earth's Kayama). */
+export let DOTWORLD: Sea;
 export const LOCATIONS: Sea[] = [
   POINT_LOBOS,
   {
@@ -395,12 +398,11 @@ export const LOCATIONS: Sea[] = [
   const kayama: Sea = {
     id: 'kayama', swellHs: 0.35, name: '嘉弥真島', site: '島の南西の浜とラグーン', region: 'Japan · Okinawa · Yaeyama',
     lat: 24.36107, lon: 123.99674, depth: '0–8 m', vis: 25, temp: 28.6, tempYear: [22, 30], seed: 57, tz: 9, tide: { amp: 0.8, lag: 0.25, axis: [0.8, 0.6] },
-    blurb: '地球と同じ形をした、人の住まない別の星。その星で、地球でいえば小浜島の北にあたる、周囲2kmほどの島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
-    charm: 'ドット、カメマル、ランタン、ラッコが暮らす無人島。浜での毎日と、少しずつできていくもの',
+    blurb: '小浜島の北に浮かぶ、周囲2kmほどの無人島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
+    charm: '白い砂の浜とモクマオウの森、浅いサンゴ礁のラグーン。人の手の入っていない小さな島',
     water: { up: [0.34, 0.80, 0.92], hor: [0.05, 0.40, 0.58], down: [0.02, 0.17, 0.28], fog: 0.026, abs: [0.26, 0.055, 0.03] },
     sand: [0.84, 0.82, 0.75], rock: [0.55, 0.52, 0.45],
     land: { half: HALF, far: 760, roam: 720, center: [320, -270] },
-    residents: true,
     f(x, z) {
       const L = landOf('kayama');
       if (!L) { TERR.reef = 0; return -3; }
@@ -445,6 +447,16 @@ export const LOCATIONS: Sea[] = [
     ],
   };
   LOCATIONS.splice(LOCATIONS.indexOf(miyako) + 1, 0, kayama);
+  // Dot's world (ADR 0007): the same island on another planet the shape of the Earth, where the four residents live.
+  // It inherits everything from the Earth's Kayama — land, water, light, the sea's life, the guide — so whatever the
+  // nature side changes there shows here too, now and later; it overrides only what is its own. (Not on the globe:
+  // it is not on this Earth.)
+  DOTWORLD = Object.assign(Object.create(kayama) as Sea, {
+    world: 'planet' as const, residents: true,
+    name: 'ドットたちの島', site: '地球と同じ形をした、もうひとつの星', region: 'もうひとつの星',
+    blurb: '地球と同じ形をした、人の住まない別の星。その星の、地球でいえば嘉弥真島にあたる島で、ドット、ランタン、カメマル、ラッコが暮らしている。地形・海・生き物は地球の嘉弥真島と同じ。',
+    charm: 'ドット、カメマル、ランタン、ラッコが暮らす島。浜での毎日と、少しずつできていくもの',
+  });
 }
 
 // Two seas of big water, far from the others in time: the Red Sea (Elphinstone Reef, off Marsa Alam), a

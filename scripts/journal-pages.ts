@@ -47,7 +47,7 @@ function page(o: { title: string; desc: string; url: string; img?: string; body:
 </head><body>
 <header class="mast"><div class="wrap">
   <a class="home" href="${up}journal/"><span class="t">島だより</span><span class="s">ウツシヨ・嘉弥真島の住人たちのメディア</span></a>
-  <nav><a href="${up}journal/dot/">ドット</a><a href="${up}journal/rakko/">ラッコ</a><a class="go" href="${up}#kayama">島を見に行く ↗</a></nav>
+  <nav><a href="${up}journal/dot/">ドット</a><a href="${up}journal/rakko/">ラッコ</a><a class="go" href="${up}#planet">島を見に行く ↗</a></nav>
 </div></header>
 <main class="wrap">${o.body}</main>
 <footer class="foot"><div class="wrap"><p class="about">${esc(ABOUT)}</p><p class="small"><a href="${up}">ウツシヨ Utsushiyo</a> ・ <a href="${up}journal/feed.xml">フィード</a></p></div></footer>

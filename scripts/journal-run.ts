@@ -50,8 +50,8 @@ Date.now = () => sim;
 
 const THREE = await import('three');
 const { loadLand } = await import('../src/ocean/land');
-const { LOCATIONS } = await import('../src/data/locations');
-const loc: any = LOCATIONS.find((l) => l.id === 'kayama')!;
+const { DOTWORLD } = await import('../src/data/locations');
+const loc: any = DOTWORLD;   // (Dot's world: the residents' island on the other planet — ADR 0007)
 await loadLand('kayama', loc.land.half, loc.land.far);
 const { buildOcean } = await import('../src/ocean/build');
 const { mindLog } = await import('../src/robots/agent/brain');
