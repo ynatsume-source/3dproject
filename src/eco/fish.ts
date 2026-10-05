@@ -34,6 +34,7 @@ interface Group {
   goal?: { x: number; z: number };        // (a home patch further on: the group swims its patch there, at its own pace)   // (an anemone family left be, far off, and not drawn)
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
+  predT?: number;                         // (when a predator last frightened it, by its own clock: what it is shying from)
   hunt: null | Hunt; cooldown: number;
   prey?: PreyGroup;
   ch?: Chase;                             // one of this group's fish is being chased
@@ -176,7 +177,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (!smallPrey || g.type !== 'reef') continue;
     g.prey = {
       x: 0, y: 0, z: 0, alive: g.n, label: sp.ja,
-      scare() { g.fear = 1; },
+      scare() { g.fear = 1; g.predT = g.t; },
       take() {
         const alive: number[] = [];
         for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) alive.push(i);
@@ -203,7 +204,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       },
       chased(i, x, y, z) {
         if (!g.ch || g.ch.i !== i) g.ch = { i, x, y, z, t: g.t, juke: R() < 0.5 ? 1 : -1, jukeT: rr(0.3, 0.7) };
-        g.ch.x = x; g.ch.y = y; g.ch.z = z; g.ch.t = g.t;
+        g.ch.x = x; g.ch.y = y; g.ch.z = z; g.ch.t = g.t; g.predT = g.t;
         g.fear = 1;
       },
       safe(i) { return !dead[i] && fp[i * 3 + 1] < flC[i] + 0.3; },   // tucked down into the reef
@@ -335,6 +336,7 @@ export function makeFishSystem(sp: Species, oc: any) {
 
   const caveMode0 = (g: Group) => (g.cr ? g.cr.mode : 'out');
   let target = 1;
+  let curNow = 0;   // (how hard the current runs: plankton feeders snap at what it brings)
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
     frame++;
     if (kelpLife) lastCam.copy(cam);
@@ -342,6 +344,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     const act = activity(sp.diel, env);
     target = act;
     const upX = -env.cur.x, upZ = -env.cur.z, curLen = Math.hypot(upX, upZ);
+    curNow = curLen;
     let dirty = false;
     for (const g of groups) {
       g.t += dt;
@@ -516,7 +519,7 @@ export function makeFishSystem(sp: Species, oc: any) {
           if (!isPredator && !ch) for (const th of env.threats) {
             if (!th.r) continue;
             const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.hypot(ddx, ddy, ddz);
-            if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); }
+            if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); g.predT = g.t; }
           }
         }
         const floorClearance = burial ? -fs[i] * 0.28 * burial : 0.15;
@@ -624,6 +627,25 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
     return ({ plankton: 'プランクトンを食べている', algae: '藻をかじっている', invert: '餌を探している', fish: '巡回中', filter: 'プランクトンを濾して食べている' } as Record<string, string>)[sp.diet || 'plankton'];
   }
+  // what this group is doing right now, from its own state (not the species': one school bolting is not all of
+  // them, and a grazer is said to graze only while it is biting the reef)
+  function groupStatus(g: Group): string {
+    if (kelpLife) return status();
+    if (g.hunt) return '狩りをしている';
+    if (g.ch && g.t - g.ch.t < 2) return g.n > 1 ? '1匹が捕食者に追われている' : '捕食者に追われている';
+    if (g.predT != null && g.t - g.predT < 4) return g.type === 'reef' ? '捕食者を避けて、礁に身を寄せている' : '捕食者を避けて泳いでいる';
+    if (g.fear > 0.2 && g.type !== 'anem') return 'こちらに気づいて、少し離れた';
+    if (g.act < 0.35) return sp.habitat === 'anemone' ? 'イソギンチャクの中で休息中' : sp.cocoon ? '粘液の膜にくるまって眠っている' : g.type === 'roam' ? 'ゆっくり泳いで休んでいる' : '岩陰で休息中';
+    if (sp.diet === 'algae' && g.act > 0.5 && !g.goal) return '藻をかじっている';   // (biting the reef: it does so whenever this active)
+    if (Math.abs(target - g.act) > 0.2) return target > g.act ? 'そろそろ動き出す' : 'そろそろ休む';
+    if (g.goal) return '群れで次の根へ移っている';
+    if (g.type === 'anem') return 'イソギンチャクのまわりを泳いでいる';
+    if (sp.diet === 'algae') return '礁の上でじっとしている';
+    if (sp.diet === 'plankton') return g.act * Math.min(1, curNow * 1.5) > 0.15 ? '流れに向かってプランクトンをついばんでいる' : '群れて漂っている';
+    if (sp.diet === 'filter') return 'プランクトンを濾して食べている';
+    if (sp.diet === 'fish') return g.type === 'roam' ? '礁のまわりを巡回中' : '根のまわりで獲物をうかがっている';
+    return g.type === 'roam' ? '礁のまわりを泳いでいる' : '根のまわりで餌を探している';
+  }
   function subjects(out: Subject[]) {
     const giant = sp.size[1] > 3;
     groups.forEach((g, gi) => {
@@ -633,12 +655,12 @@ export function makeFishSystem(sp: Species, oc: any) {
         const h = g.hunt;
         out.push({ key: key + ':hunt', label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => (h.phase === 'burst' ? `${h.prey.label}を追いかけている` : h.phase === 'recover' ? `かわされて、次を狙っている` : `${h.prey.label}を狙っている`), live: () => g.hunt === h, target: () => (h.phase === 'burst' ? h.tp : h.prey), frameR: () => Math.max(0.4, fs[g.start] * 1.28) });
       } else if (g.type === 'roam' && sp.big) {
-        const st = g.cr ? () => (g.cr!.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr!.mode === 'leave' ? '洞窟から出ていく' : g.cr!.mode === 'in' ? '洞窟へ入っていく' : status()) : status;
+        const st = () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g));
         out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.c, status: st, live: () => g.placed });
       } else if (g.type === 'reef' && sp.big && g.act > 0.5) {
-        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status, live: () => g.placed });
+        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status: () => groupStatus(g), live: () => g.placed });
       } else if (g.type === 'anem') {
-        out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status, live: () => true });
+        out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status: () => groupStatus(g), live: () => true });
       }
     });
     if (kelpLife && sp.id === 'senorita') {
@@ -696,7 +718,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     // a lone fish: its own body (not the middle of its patch), and its own size
     const one = g.n === 1 && g.type !== 'anem', at = new THREE.Vector3(), i0 = g.start;
     const pos = one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => p;
-    return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status, live: () => g.placed };
+    return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status: () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g)), live: () => g.placed };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,

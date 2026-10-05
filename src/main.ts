@@ -1351,8 +1351,9 @@ function goTo(id: string) {
   if (id === 'cave') s = oc.eco.subjects().find((x: Subject) => x.kind === 'cave') ?? null;
   else if (id === 'sea-otter' && oc.lobosOtters) { const L = oc.lobosOtters.list, i = L.indexOf(near(L)); s = oc.eco.subjects().find((x: Subject) => x.key === `sea-otter:${i}`) ?? null; }
   else if (id === 'harbor-seal' && oc.lobosVisitors) s = oc.eco.subjects().find((x: Subject) => x.key === 'harbor-seal:visitor' && x.live()) ?? null;
-  else if (id === 'turtle' && oc.turtles.length) { const t = near(oc.turtles as any[]); s = { key: 'focus:turtle', label: name, kind: 'turtle', prio: 5, size: 1.2 * t.size, pos: () => t.pos, status: () => statusOf('turtle'), live: () => true }; }
-  else if (id === 'manta' && oc.mantas.length) { const m = oc.mantas[0]; s = { key: 'focus:manta', label: name, kind: 'manta', prio: 5, size: 4, pos: () => m.pos, status: () => statusOf('manta'), live: () => true }; }
+  // (a turtle or a manta: the one gone to, its own state, as the eco subject for it says — not the nearest one's)
+  else if (id === 'turtle' && oc.turtles.length) { const i = (oc.turtles as any[]).indexOf(near(oc.turtles as any[])), e = oc.eco.subjects().find((x: Subject) => x.key === `turtle:${i}`); s = e ? { ...e, key: 'focus:turtle', label: name, prio: 5, live: () => true } : null; }
+  else if (id === 'manta' && oc.mantas.length) s = mantaFocus(oc, name);
   else if (id === 'octopus' && oc.octopi?.length) { const o = near(oc.octopi as any[]); s = { ...o.subject, key: 'focus:octopus', prio: 5 }; }
   else if (id === 'eel' && oc.colonies.length) { const c = near(oc.colonies as any[]); const p = c.pos.clone(); p.y += 0.4; s = { key: 'focus:eel', label: name, kind: 'anemone', prio: 5, size: 1.5, pos: () => p, status: () => statusOf('eel'), live: () => true }; }
   else if (id === 'whale') {
@@ -1370,7 +1371,7 @@ function goTo(id: string) {
   } else if (ridersFor(loc).some((r) => r.id === id)) {
     // a remora, pilot fish or trevally: go to the big animal that carries it
     const host = oc.fish.find((x: any) => ['whaleshark', 'yogore', 'itachizame', 'galapagoszame'].includes(x.sp.id) && x.sp.habitat !== 'shoal');
-    if (host) s = host.focus(cam); else if (oc.mantas.length) { const m = oc.mantas[0]; s = { key: 'focus:manta', label: name, kind: 'manta', prio: 5, size: 4, pos: () => m.pos, status: () => statusOf('manta'), live: () => true }; }
+    if (host) s = host.focus(cam); else if (oc.mantas.length) s = mantaFocus(oc, name);
   } else {
     const f = oc.fish.find((x: any) => x.sp.id === id);
     s = f ? f.focus(cam) : null;
@@ -1457,7 +1458,7 @@ function statusOf(id: string): string {
     if (W?.active && W.t > W.dur) return '沖へ向かって泳ぎ去っていく';
     return W?.active ? (W.pod.length > 1 ? '親子で泳いでいる' : '悠々と泳いでいる') : W?.seasonal ? '近くの海で子育て中' : '今は北の海にいる（冬に来遊）';
   }
-  if (id === 'manta' && cur.mantas.length) return cur.mantas[0].feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている';
+  if (id === 'manta' && cur.mantas.length) return mantaFocus(cur, '')?.status() ?? '';
   if (id === 'sea-otter' && cur.lobosOtters) { const L = cur.lobosOtters.list; const i = L.indexOf(L.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b))); return cur.eco.subjects().find((s: Subject) => s.key === `sea-otter:${i}`)?.status() ?? ''; }
   if (id === 'harbor-seal' && cur.lobosVisitors) return cur.eco.subjects().find((s: Subject) => s.key === 'harbor-seal:visitor' && s.live())?.status() ?? '今は近くに姿が見えない';
   if (id === 'octopus' && cur.octopi?.length) { const o = cur.octopi.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return o.subject.status(); }
@@ -2164,6 +2165,12 @@ function seabedAt(x: number, y: number): { p: THREE.Vector3; d: number } | null 
     return { p: o.clone().addScaledVector(_tapRay, b), d: b };
   }
   return null;
+}
+// the nearest manta, as the one to go to (its own state with it)
+function mantaFocus(oc: any, name: string): Subject | null {
+  const L = oc.mantas as any[], m = L.reduce((a, b) => (b.pos.distanceTo(drone.pos) < a.pos.distanceTo(drone.pos) ? b : a)), i = L.indexOf(m);
+  const e = oc.eco.subjects().find((x: Subject) => x.key === `manta:${i}`);
+  return e ? { ...e, key: 'focus:manta', label: name, prio: 5, live: () => true } : null;
 }
 function pickAt(x: number, y: number): Subject | null {
   if (!cur) return null;

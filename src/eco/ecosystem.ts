@@ -125,7 +125,7 @@ export class Ecosystem {
     const giant = mantaName === 'オニイトマキエイ';
     this.oc.mantas.forEach((m: any, i: number) => {
       out.push({ key: `manta:${i}`, label: mantaName, len: m.span, adult: giant ? 6 : 4.5, lenK: 0.2, lenWhat: '翼幅', kind: 'manta', prio: 3.2, size: 4,
-        pos: () => m.pos, status: () => (m.feeding ? 'プランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });
+        pos: () => m.pos, status: () => (m.transit || (m.stationTarget && Math.hypot(m.st.x - m.stationTarget.x, m.st.z - m.stationTarget.z) > 3) ? '次の場所へ泳いでいる' : m.feeding ? '口を開けてプランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });   // (its own state: on its way, feeding with its mouth open, or circling a reef top)
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);
     this.oc.critters?.subjects(out);

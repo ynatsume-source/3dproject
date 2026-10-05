@@ -253,6 +253,16 @@ export function makeShoalSystem(sp: Species, oc: any) {
     if (leaders.some((L) => L.fear > 0.5)) return '捕食者から逃げて群れが弾けている';
     return sp.diet === 'fish' ? '銀の群れになって、ゆっくり渦を巻いている' : '中層で大群になってプランクトンを食べている';
   }
+  // what one school is doing (its own fright: another school bolting elsewhere is not this one)
+  function schoolStatus(L: Leader) {
+    const a = target;
+    if (sp.big) return a < 0.35 ? '群れをほどいて、ひとりずつ沖へ散っていく' : '潮の中に並んで、ゆっくり群れている';
+    if (L.ch && L.t - L.ch.t < 2) return '1匹が追われ、群れが弾けている';
+    if (L.fear > 0.5) return '捕食者から逃げて群れが弾けている';
+    if (L.fear > 0.15) return '群れをまとめ直している';
+    if (a < 0.35) return 'リーフの近くで群れをほどいて休んでいる';
+    return sp.diet === 'fish' ? '銀の群れになって、ゆっくり渦を巻いている' : '中層で大群になってプランクトンを食べている';
+  }
   // how many of a school's fish are there to be seen (those drawn at this quality, not eaten): one with only a
   // few left is not offered as a school to go and see — the camera would arrive at an empty patch of water
   const here = (s: number) => { let n = 0; for (let i = s; i < active; i += S) if (!dead[i]) n++; return n; };
@@ -261,7 +271,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     leaders.forEach((L, s) => {
       if (!L.placed || !enough(s)) return;
       const full = Math.min(1, here(s) / Math.max(1, active / S));
-      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.c, status, live: () => L.placed && enough(s) });
+      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(s) });
     });
   }
   function focus(cam: THREE.Vector3): Subject | null {
@@ -270,12 +280,12 @@ export function makeShoalSystem(sp: Species, oc: any) {
     leaders.forEach((L, s) => { if (!L.placed || !enough(s)) return; const d = L.c.distanceTo(cam); if (d < bd) { bd = d; best = L; bs = s; } });
     if (!best) return null;
     const L = best as Leader, si = bs;
-    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status, live: () => L.placed && enough(si) };
+    return { key: `focus:${sp.id}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 5, size: 3.5, pos: () => L.c, status: () => schoolStatus(L), live: () => L.placed && enough(si) };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus,
     preyGroups: () => (sp.big ? [] : leaders.map((L) => L.prey)),
-    dbg: { get fp() { return p; }, dead, get total() { return active; } },   // (for checks)
+    dbg: { get fp() { return p; }, dead, get total() { return active; }, leaders },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },
     setFraction(f: number) { active = Math.max(S, Math.floor(total * f / S) * S); mesh.count = active; },
     setStart(f: number) { nearStart = f; },
