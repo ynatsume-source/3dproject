@@ -104,6 +104,16 @@ export const PARAMS = {
   wareLagS10mm: P('wareLagS10mm', 120, 's', 'assumed', [], '厚さ10 mmの試験体が炉内温度に追従する時定数'),
   combustionToChamber: P('combustionToChamber', 0.3, 'fraction', 'assumed', ['S-kilneff'],
     '試験窯：燃焼熱のうち炉内に入る割合。残りは排気で直接失う'),
+  // preparing raw clay (step/slake.ts, step/knead.ts): all assumed, no source read yet
+  slakeTauDryS: P('slakeTauDryS', 3600, 's', 'assumed', ['S-slake'],
+    '乾いた粘土の塊が水の中でほぐれる時定数。湿った粘土ほど遅い（含水比が成形の目安と同じなら5倍）。乾かしてから浸すと早く崩れる、という陶芸の経験則に合わせた仮の値'),
+  slipMinWaterRatio: P('slipMinWaterRatio', 1.5, 'kg/kg(dry)', 'assumed', [], '浸すときに要る水（乾いた土の重さあたり）。土がかぶって泥しょうになる量の目安'),
+  slipSievableRatio: P('slipSievableRatio', 1.2, 'kg/kg(dry)', 'assumed', [], 'これより水が少ない泥は、こし布を通らない'),
+  slipSettledWaterRatio: P('slipSettledWaterRatio', 1.0, 'kg/kg(dry)', 'assumed', [], '沈んだ泥がゆっくり締まって行き着く含水比（固形分おおよそ5割）'),
+  slipSettleTauS: P('slipSettleTauS', 6 * 3600, 's', 'assumed', [], '泥が沈んで上澄みができる時定数（深さ・粒の細かさで大きく変わる）'),
+  sieveResidueWaterRatio: P('sieveResidueWaterRatio', 0.3, 'kg/kg(dry)', 'assumed', [], 'こし布に残った小石・砂・塊が抱えて出る水'),
+  kneadSecondsPerKg: P('kneadSecondsPerKg', 300, 's/kg', 'assumed', [], '手で練る時間（1 kg あたり5分）'),
+  kneadPowerW: P('kneadPowerW', 20, 'W', 'assumed', [], '練る手の仕事率（ほどほどの手仕事）。すべて熱になって散る'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),

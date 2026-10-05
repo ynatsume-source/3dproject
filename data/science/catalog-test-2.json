@@ -4,6 +4,42 @@
   "scope": "test-world only — not executable in the shared world; every number is assumed or calibrated (see src/science/params.ts)",
   "materials": [
     {
+      "id": "raw_clay",
+      "label": "掘ったままの粘土",
+      "category": "clay",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾いた部分あたりの化学種（試験片と同じ書き方。書かない残りは inert_mineral）",
+        "xc_<species>_ppm": "乾いた部分のうち粗いもの（小石・砂・根）。xd_ の同じ化学種を超えない。xc_inert_mineral_ppm は粗い石",
+        "history_complete": "1=全区間を計算済み（なければ1）"
+      },
+      "note": "世界側の id（ドットが近くの島から運ぶ。10 kg 単位なら 10000000 mg）。組成は掘った場所ごとに固定（同じ場所の粘土は同じ性質）。値は試験値で、島の粘土の分析とは未照合"
+    },
+    {
+      "id": "settled_clay",
+      "label": "こして沈めた粘土（練る前）",
+      "category": "clay",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾いた部分あたりの化学種",
+        "history_complete": "1=全区間を計算済み"
+      },
+      "note": "p10x_clay_slake の産物。練って（p10y_clay_knead）prepared_clay にする"
+    },
+    {
+      "id": "clay_sieve_residue",
+      "label": "こし布に残ったもの（小石・砂・根・溶けきらない塊）",
+      "category": "residue",
+      "unit": "mg",
+      "quality": {
+        "water_ppm": "水/ロット質量",
+        "xd_<species>_ppm": "乾いた部分あたりの化学種"
+      },
+      "note": "捨てても、粗い土として使ってもよい。塊が多ければ浸し直す道もある（今は raw_clay に戻す工程はない）"
+    },
+    {
       "id": "prepared_clay",
       "label": "練った粘土（成形の前）",
       "category": "clay",
@@ -14,6 +50,10 @@
         "history_complete": "1=全区間を計算済み（なければ1とみなす）"
       },
       "note": "p11x_test_tile_shape は water_ppm と xd_ の化学種を必須にする。p11_pottery_shape は water_ppm だけでよい"
+    },
+    {
+      "id": "(world ids) limestone / bamboo / reed",
+      "note": "世界側の id のまま。limestone は石灰の焼成（p20x）が受け付けるよう別の作業で対応する（今は calcium_carbonate_feed のみ）。bamboo・reed は使う工程（自作の気圧計の管など）ができたときに性質の項目を決める。それまでは質量（mg）だけでよい"
     },
     {
       "id": "unfired_pot",
@@ -124,6 +164,66 @@
       "readiness": "test-world-only（environment.source = simulation、または島の再生した天気 record）",
       "note": "電気は試験用電源（src:fixture-mains）。文明の達成には数えない（本体の回答 ②）",
       "clock": "world"
+    },
+    {
+      "id": "p10x_clay_slake",
+      "version": "0.1.0",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "island",
+      "label": "粘土の下ごしらえ（浸す・こす・沈める・上澄みを捨てる・水を飛ばす）",
+      "kind": "preparation",
+      "inputs": [
+        "raw_clay（1ロット）",
+        "process_water（1ロット、乾いた土の1.5倍以上）"
+      ],
+      "outputs": [
+        "settled_clay",
+        "clay_sieve_residue",
+        "process_water（捨てた上澄み）",
+        "water_vapour（空気へ）",
+        "こす前に取り出すと raw_clay（湿った、同じ組成）"
+      ],
+      "equipment": [
+        "fixture_clay_tub"
+      ],
+      "energyModel": {
+        "mode": "none",
+        "note": "蒸発の熱は空気から（src:env-heat:、申し出ではない）"
+      },
+      "operator": "sieve（1回。濃すぎる泥は通らない）、decant（こした後、何回でも）、take_out（終わり）。すべて区間の中の時刻",
+      "observation": "sight：こし布に残ったもの、上澄みの濁り。touch：取り出したときの手ざわり（含水比から）。数値はない（重さは秤量の工程で）",
+      "environment": "気温・湿度・風（測った値）で表面から水が飛ぶ。分からない区間は蒸発を計算せず、来歴が不完全になる。ほぐれと沈みは天気によらない",
+      "physics": "ほぐれ 1−e^(−t/τ)（τ = slakeTauDryS ×(1 + 4×含水比/成形の目安)）。こし布に粗いものと未分散の塊が残る（水 sieveResidueWaterRatio）。沈んだ泥の含水比は slipSettledWaterRatio へ時定数 slipSettleTauS で近づく。蒸発は乾燥棚と同じ Dalton 型（桶の面積 surfaceCm2、日当たり sunExposure）",
+      "readiness": "test-world-only",
+      "note": "待つ工程なので島の時計。湿った粘土は崩れるのに時間がかかる（乾かしてから浸すと早い）。早くこすと塊が残り、早く捨てると濁った水が少ししか取れない。注いだ水と出る細かい粒、雨、塩類は扱わない。状態 civ-sci.clay-slake/1"
+    },
+    {
+      "id": "p10y_clay_knead",
+      "version": "0.1.0",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "world",
+      "label": "粘土を練る（手の仕事）",
+      "kind": "preparation",
+      "inputs": [
+        "settled_clay / prepared_clay（1ロット以上）",
+        "process_water（任意、1ロット。全部を練り込む）"
+      ],
+      "outputs": [
+        "prepared_clay（1ロット、water_ppm と xd_ の組成。成形がそのまま受け取る）"
+      ],
+      "equipment": [
+        "fixture_bench"
+      ],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "mechanical",
+        "note": "手の仕事 kneadPowerW（20 W、仮定）。申し出は区間に均等に届き、届かない区間は何も進まない（needs-input）"
+      },
+      "operator": "操作なし。練る時間（kneadSecondsPerKg × 質量、仮定）が働かれたら完了",
+      "observation": "touch：練り上がりの手ざわり（含水比から）",
+      "environment": "使わない（どの source でもよい）",
+      "readiness": "test-world-only",
+      "note": "手を動かす工程なので世界の時計。やわらかすぎる粘土はここでは乾かない（待つ工程で）。固すぎれば水を練り込む。途中で止めると精算しない（ロットはそのまま）。練っている間の水の出入り・気泡・練りむらは扱わない。状態 civ-sci.clay-knead/1"
     },
     {
       "id": "p11_pottery_shape",
@@ -390,7 +490,7 @@
       "note": "既製の対照設備。自作の気圧計（器＋焼いた管＋水＋浮き）は別の工程で置き換える。漏れ・蒸発・器の中の水蒸気・毛管現象は扱わない。設備を失う stop は interval.to で起き、それまでの温度と読みは残る（設備の寸法は状態に保つ）。状態 civ-sci.air-barometer/2"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock.",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock. / p10x_clay_slake 0.1.0 and p10y_clay_knead 0.1.0 (2026-10-05): added (raw clay from the nearby islands → prepared_clay); materials raw_clay, settled_clay, clay_sieve_residue; equipment fixture_clay_tub.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {
@@ -404,11 +504,12 @@
     {
       "id": "fixture_bench",
       "processes": [
+        "p10y_clay_knead",
         "p11_pottery_shape",
         "p11x_test_tile_shape"
       ],
       "params": {
-        "thicknessMm": "1〜20 の整数",
+        "thicknessMm": "1〜20 の整数（成形のみ。練るときは使わない）",
         "widthMm": "試験片のみ、1〜200",
         "lengthMm": "試験片のみ、1〜200"
       },
@@ -505,6 +606,18 @@
         "markMm": ">0（目盛りの間隔、例 5）",
         "bulbTauS": ">0（器の温度の時定数。空気中 約900 秒、水中 数時間：仮定）"
       }
+    },
+    {
+      "id": "fixture_clay_tub",
+      "processes": [
+        "p10x_clay_slake"
+      ],
+      "params": {
+        "capacityMl": "桶の容量（例 40000）。粘土と水が入りきらなければ拒否",
+        "surfaceCm2": "水面の面積（例 1500）。蒸発の速さ",
+        "sunExposure": "0〜1（0=日陰、小屋の屋根の下）"
+      },
+      "note": "試験用の桶とこし布。住民が作る器（焼いた甕など）は後の段階で本体側が params を決める"
     }
   ],
   "clock": "工程ごとの時計（ADR 0006）：world = 現実の時計（住人が手を動かす工程）、island = 島の時計（待つだけの工程、現実の約13倍）。1つの run の中では区間・actions.at・effectiveAt・返す時刻をすべて同じ時計で"
