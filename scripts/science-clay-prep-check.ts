@@ -58,7 +58,7 @@ const main = tub(10 * D, plan);
     'the clay is finer than what was dug: more clay mineral, less sand and roots', `kaolinite ${clay.quality!.xd_kaolinite_ppm}, quartz ${clay.quality!.xd_quartz_ppm} ppm`);
   const w = wr(clay.quality!);
   ok(w > 0.18 && w < 0.3, 'after nine days under the roof it has thickened into a workable clay', `water ratio ${w.toFixed(3)}; "${main.obs.at(-1)?.text}"`);
-  ok(main.obs.some((o) => /小石や砂がたくさん残った/.test(o.text ?? '') && /根や草/.test(o.text ?? '')), 'the sieve shows the stones, sand and roots', main.obs.find((o) => o.quantity === 'sieve')?.text);
+  ok(main.obs.some((o) => /小石や砂がたくさん/.test(o.text ?? '') && /根や草/.test(o.text ?? '')), 'the sieve shows the stones, sand and roots', main.obs.find((o) => o.quantity === 'sieve')?.text);
   const pours = main.obs.filter((o) => o.quantity === 'decant').map((o) => o.text);
   ok(pours.length === 2 && main.out('process_water')!.amount.value > 0, 'pouring off the clear water after it settled', pours.join(' / '));
   ok(r.energy.every((e) => e.sourceId.startsWith('src:env-heat:')) && main.all.every((x) => x.energy.every((e) => e.kind === 'heat')), 'the only energy is the air\'s heat that leaves with the vapour');
@@ -166,6 +166,61 @@ console.log('5. requests that are refused');
   refused('a missing interval', step(sreq(2 * H, 3 * H, s0.state, [])), /noncontiguous/);
   refused('kneading the sieve residue', step(kreq(0, H, null, [{ lotId: 'lot:r', materialId: 'clay_sieve_residue', amount: { value: 1000, unit: 'mg' }, location: 's', quality: { water_ppm: 1000, xd_quartz_ppm: 900_000 } }])), /expected one or more/);
   refused('kneading clay without its make-up', step(kreq(0, H, null, [{ lotId: 'lot:c', materialId: 'settled_clay', amount: { value: 1000, unit: 'mg' }, location: 's', quality: { water_ppm: 200_000 } }])), /make-up-missing/);
+}
+
+console.log('6. Codex review of dd781fc: what comes out goes on into the next run');
+{
+  const sight = (r: ReturnType<typeof tub>) => r.obs.find((o) => o.quantity === 'sieve')?.text ?? '';
+  // A1: what is seen on the cloth is what is there
+  const clean = tub(D + H, [[D, 'sieve'], [D + 60_000, 'take_out']], { lots: [RAW({ xd_kaolinite_ppm: 1_000_000, xd_quartz_ppm: 0, xd_organic_c_ppm: 0, xc_quartz_ppm: 0, xc_inert_mineral_ppm: 0, xc_organic_c_ppm: 0, water_ppm: 0 }), WATER()] });
+  const roots = tub(D + H, [[D, 'sieve'], [D + 60_000, 'take_out']], { lots: [RAW({ water_ppm: 0, xc_quartz_ppm: 0, xc_inert_mineral_ppm: 0 }), WATER()] });
+  const lumps = tub(H, [[10 * 60_000, 'sieve'], [11 * 60_000, 'take_out']], { lots: [RAW({ xc_quartz_ppm: 0, xc_inert_mineral_ppm: 0, xc_organic_c_ppm: 0 }), WATER()] });
+  ok(sight(clean) === 'こし布には何も残らなかった' && !clean.out('clay_sieve_residue'), 'A1: pure clay, fully fallen apart: nothing on the cloth, and nothing said to be there', sight(clean));
+  ok(/根や草/.test(sight(roots)) && !/小石|砂/.test(sight(roots)), 'A1: only roots on the cloth: roots, not stones or sand', sight(roots));
+  ok(/塊/.test(sight(lumps)) && !/小石|砂|根/.test(sight(lumps)), 'A1: only lumps on the cloth: lumps', sight(lumps));
+  // A2: the poured-off water of a run with a gap in its history carries that gap into the next clay
+  const gap = tub(3 * D, [[D, 'sieve'], [2 * D + 12 * H, 'decant'], [2 * D + 13 * H, 'take_out']], {}, H, (t) => (t >= 30 * H && t < 31 * H ? { ...CALM, source: 'unknown' } : CALM));
+  const poured = gap.out('process_water')!;
+  ok(poured.quality?.history_complete === 0, 'A2: water poured off a run with a gap carries history_complete 0');
+  const firm: LotView = { lotId: 'lot:firm', materialId: 'settled_clay', amount: { value: 1_000_000, unit: 'mg' }, location: 's', quality: { water_ppm: 150_000, xd_kaolinite_ppm: 600_000, history_complete: 1 } };
+  const k = step(kreq(0, H, null, [firm, { lotId: 'lot:poured', materialId: 'process_water', amount: { value: 150_000, unit: 'mg' }, location: 's', quality: poured.quality }]));
+  ok(k.produced[0]?.quality?.history_complete === 0, 'A2: kneaded with that water, the clay\'s history is incomplete too');
+  // B1: raw clay handed back (taken out before sieving) goes into the next run, five times over
+  let lot: LotView = RAW({ water_ppm: 200_000, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 400_000, xd_calcite_ppm: 150_000, xd_organic_c_ppm: 0, xc_quartz_ppm: 0, xc_inert_mineral_ppm: 0, xc_organic_c_ppm: 0 });
+  let rounds = 0, why = '';
+  for (let i = 0; i < 5; i++) {
+    const r = tub(H, [[H - 30_000, 'take_out']], { lots: [lot, { ...WATER(i === 0 ? 15_000_000 : 100_000), lotId: `lot:w${i}` }] });
+    if (r.last.status !== 'completed') { why = String(r.last.evidence.notes); break; }
+    const back = r.out('raw_clay')!; lot = { lotId: `lot:back${i}`, materialId: 'raw_clay', amount: back.amount, location: 's', quality: back.quality }; rounds++;
+  }
+  ok(rounds === 5, 'B1: raw clay handed back is read by the next run, five times in a row (no "exceeds the dry part")', why || `${(lot.amount.value / 1e6).toFixed(2)} kg after 5 soaks`);
+  let coarseLot: LotView = RAW(), cr = 0;
+  for (let i = 0; i < 3; i++) {
+    const r = tub(H, [[H - 30_000, 'take_out']], { lots: [coarseLot, { ...WATER(i === 0 ? 15_000_000 : 100_000), lotId: `lot:cw${i}` }] });
+    if (r.last.status !== 'completed') break;
+    const back = r.out('raw_clay')!; coarseLot = { lotId: `lot:cb${i}`, materialId: 'raw_clay', amount: back.amount, location: 's', quality: back.quality }; cr++;
+  }
+  ok(cr === 3 && readRawClay(coarseLot).coarse.quartz! > 0, 'B1: the same with stones and sand in it: the coarse part reads back too');
+  // B2: sieved at once (all still lumps), water poured off: an empty tub is a result, not an error
+  const empty = tub(H, [[0, 'sieve'], [60_000, 'decant'], [120_000, 'take_out']]);
+  ok(empty.last.status === 'completed' && !empty.out('settled_clay') && empty.out('clay_sieve_residue') && /空|水しか/.test(empty.obs.at(-1)?.text ?? ''),
+    'B2: sieved at once and poured off: everything is on the cloth, the tub is empty, the run settles', `${empty.last.status}: ${empty.obs.map((o) => o.text).join(' / ')}`);
+  const emptyChunks = tub(H, [[0, 'sieve'], [60_000, 'decant'], [120_000, 'take_out']], {}, 30_000);
+  ok(JSON.stringify(emptyChunks.last.produced) === JSON.stringify(empty.last.produced), 'B2: the same in 30 s pieces');
+  // B3: taken out too wet, the settled clay goes back into the tub (no water needed), waits, and then kneads into clay that holds
+  const wet = tub(D + H, [[D, 'sieve'], [D + 30_000, 'take_out']]);
+  const sc = wet.out('settled_clay')!;
+  ok(/どろどろ/.test(wet.obs.at(-1)?.text ?? ''), 'B3: taken out half a minute after sieving: runny');
+  const again = tub(9 * D, [[D, 'decant'], [8 * D + 12 * H, 'take_out']], { lots: [{ lotId: 'lot:wet', materialId: 'settled_clay', amount: sc.amount, location: 's', quality: sc.quality }] });
+  const back = again.out('settled_clay')!;
+  const kk = step(kreq(0, 2 * H, null, [{ lotId: 'lot:back', materialId: 'settled_clay', amount: back.amount, location: 's', quality: back.quality }]));
+  ok(again.last.status === 'completed' && wr(back.quality!) < 0.35 && kk.status === 'completed' && /まとまる/.test(kk.observations[0]?.text ?? ''),
+    'B3: back in the tub it settles, the water is poured off, it thickens, and kneads into clay that holds', `${wr(sc.quality!).toFixed(2)} → ${wr(back.quality!).toFixed(2)}; "${kk.observations[0]?.text}"`);
+  const pc: LotView = { lotId: 'lot:pc', materialId: 'prepared_clay', amount: { value: 2_000_000, unit: 'mg' }, location: 's', quality: { water_ppm: 400_000, xd_kaolinite_ppm: 600_000 } };
+  const pcBack = tub(2 * D, [[2 * D - 30_000, 'take_out']], { lots: [pc] });
+  ok(pcBack.last.status === 'completed' && wr(pcBack.out('settled_clay')!.quality!) < wr(pc.quality!), 'B3: too soft prepared clay can wait in the tub too');
+  ok(step(sreq(0, H, null, [], { lots: [RAW()] })).status === 'failed', 'raw clay still needs water to soak in');
+  ok(step(sreq(0, H, null, [], { lots: [{ ...pc, quality: { ...pc.quality, xc_quartz_ppm: 1000 } }] })).status === 'failed', 'sieved clay with coarse parts listed is refused (it has been sieved)');
 }
 
 console.log('—   every result above passed the contract checker');

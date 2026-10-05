@@ -45,3 +45,10 @@ npm run typecheck && npm run build
 ## お願い
 
 - 指摘と診断スクリプトは lab へ。科学側のブランチと main は変更しないでください。修正は科学側で行います。
+
+## 修正の確認依頼（lab 2f67ea2 の A1・A2・B1〜B3）
+
+軽い確認で。対応の一覧は [CODEX_REVIEW.md](CODEX_REVIEW.md) の「dd781fc の全面レビュー」。
+- 浸す工程 0.1.1（状態 `/2`）、練る工程 0.1.1。検査 50件（検査6：回収物を次の run へ渡す連鎖を含む14件）。
+- あなたの診断を修正後のコードでそのまま実行：A1 は「何も残らなかった」、A2 は回収水と次の粘土が `history_complete: 0`、B1 は次の run が受け付ける、B2 は completed、B3 は浸す工程が settled / prepared を受け付ける。
+- 申し送り：共通の `tileComp`・`tileQuality` にも同じ型の丸めがある（統合済みなので触っていない）。

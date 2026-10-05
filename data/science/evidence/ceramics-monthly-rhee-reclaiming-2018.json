@@ -1,0 +1,36 @@
+{
+  "url": "https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/Tips-and-Tools-Reclaiming-Clay-202916",
+  "accessedDateJst": "2026-10-05",
+  "recordType": "selected-facts-transcribed-from-original-publisher-web-text",
+  "notRawPublisherFile": true,
+  "title": "Tips and Tools: Reclaiming Clay",
+  "publication": "December 2018",
+  "selectedFacts": {
+    "material": "Leather-hard wheel trimmings with throwing water and sludge.",
+    "bucketCapacity": {
+      "value": 40,
+      "unit": "lb"
+    },
+    "dewatering": "Layers between six plaster slabs cast in 9 by 12 inch pans.",
+    "dewateringDuration": {
+      "value": 24,
+      "unit": "h",
+      "qualifier": "about; to throwing consistency"
+    },
+    "lastStep": "Wedge or pug to homogenize moisture.",
+    "fines": "Author retains throwing-water fines to preserve clay composition."
+  },
+  "units": {
+    "capacity": "lb",
+    "panSize": "inch",
+    "elapsed": "h"
+  },
+  "missing": [
+    "mineral analysis",
+    "initial/final water mass",
+    "temperature",
+    "humidity",
+    "replicates",
+    "time series"
+  ]
+}

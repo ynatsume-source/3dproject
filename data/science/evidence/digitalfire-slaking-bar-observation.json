@@ -1,0 +1,41 @@
+{
+  "url": "https://digitalfire.com/picture/1132",
+  "accessedDateJst": "2026-10-05",
+  "recordType": "selected-facts-transcribed-from-original-publisher-web-text",
+  "notRawPublisherFile": true,
+  "title": "Slaking. What is that?",
+  "selectedFacts": {
+    "material": "Typical pottery clay bar; high plasticity noted.",
+    "observations": [
+      {
+        "elapsed": 10,
+        "unit": "s",
+        "stage": "initial immersion photo"
+      },
+      {
+        "elapsed": null,
+        "unit": "min",
+        "stage": "a couple of minutes: corners breaking down"
+      },
+      {
+        "elapsed": 20,
+        "unit": "min",
+        "stage": "author reports breakup into a pile"
+      }
+    ]
+  },
+  "units": {
+    "elapsed": [
+      "s",
+      "min"
+    ]
+  },
+  "missing": [
+    "clay recipe",
+    "bar dimensions",
+    "initial moisture measurement",
+    "water temperature",
+    "repeat count",
+    "mass time series"
+  ]
+}

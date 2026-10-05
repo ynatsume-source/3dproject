@@ -269,19 +269,19 @@
     },
     {
       "id": "p10x_clay_slake",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "contract": "0.1.x / 0.2.x",
       "clock": "island",
       "label": "粘土の下ごしらえ（浸す・こす・沈める・上澄みを捨てる・水を飛ばす）",
       "kind": "preparation",
       "inputs": [
-        "raw_clay（1ロット）",
-        "process_water（1ロット、乾いた土の1.5倍以上）"
+        "raw_clay（1ロット）と process_water（1ロット、乾いた土の1.5倍以上）",
+        "または、湿りすぎて取り出した settled_clay / prepared_clay（1ロット）を待ち直す。水は任意、こす必要はない"
       ],
       "outputs": [
         "settled_clay",
         "clay_sieve_residue",
-        "process_water（捨てた上澄み）",
+        "process_water（捨てた上澄み、元の来歴を引き継ぐ）",
         "water_vapour（空気へ）",
         "こす前に取り出すと raw_clay（湿った、同じ組成）"
       ],
@@ -293,15 +293,15 @@
         "note": "蒸発の熱は空気から（src:env-heat:、申し出ではない）"
       },
       "operator": "sieve（1回。濃すぎる泥は通らない）、decant（こした後、何回でも）、take_out（終わり）。すべて区間の中の時刻",
-      "observation": "sight：こし布に残ったもの、上澄みの濁り。touch：取り出したときの手ざわり（含水比から）。数値はない（重さは秤量の工程で）",
+      "observation": "sight：こし布に実際に残ったもの（小石や砂・根や草・塊・何もない）、上澄みの濁り。touch：取り出したときの手ざわり（空の桶・水だけも言葉で）。数値はない",
       "environment": "気温・湿度・風（測った値）で表面から水が飛ぶ。分からない区間は蒸発を計算せず、来歴が不完全になる。ほぐれと沈みは天気によらない",
       "physics": "ほぐれ 1−e^(−t/τ)（τ = slakeTauDryS ×(1 + 4×含水比/成形の目安)）。こし布に粗いものと未分散の塊が残る（水 sieveResidueWaterRatio）。沈んだ泥の含水比は slipSettledWaterRatio へ時定数 slipSettleTauS で近づく。蒸発は乾燥棚と同じ Dalton 型（桶の面積 surfaceCm2、日当たり sunExposure）",
       "readiness": "test-world-only",
-      "note": "待つ工程なので島の時計。湿った粘土は崩れるのに時間がかかる（乾かしてから浸すと早い）。早くこすと塊が残り、早く捨てると濁った水が少ししか取れない。注いだ水と出る細かい粒、雨、塩類は扱わない。状態 civ-sci.clay-slake/1"
+      "note": "待つ工程なので島の時計。湿った粘土は崩れるのに時間がかかる（乾かしてから浸すと早い）。早くこすと塊が残り、早く捨てると濁った水が少ししか取れない。注いだ水と出る細かい粒、雨、塩類は扱わない。組成は整数 ppm の切り捨てで書き・読む（返したロットがそのまま次の run で読める）。状態 civ-sci.clay-slake/2"
     },
     {
       "id": "p10y_clay_knead",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "contract": "0.1.x / 0.2.x",
       "clock": "world",
       "label": "粘土を練る（手の仕事）",
@@ -325,7 +325,7 @@
       "observation": "touch：練り上がりの手ざわり（含水比から）",
       "environment": "使わない（どの source でもよい）",
       "readiness": "test-world-only",
-      "note": "手を動かす工程なので世界の時計。やわらかすぎる粘土はここでは乾かない（待つ工程で）。固すぎれば水を練り込む。途中で止めると精算しない（ロットはそのまま）。練っている間の水の出入り・気泡・練りむらは扱わない。状態 civ-sci.clay-knead/1"
+      "note": "手を動かす工程なので世界の時計。やわらかすぎる粘土はここでは乾かない（待つ工程で）。固すぎれば水を練り込む。途中で止めると精算しない（ロットはそのまま）。練っている間の水の出入り・気泡・練りむらは扱わない。状態 civ-sci.clay-knead/1。0.1.1：粘土の組成を桶の工程と同じ書き方（ppm の切り捨て）で読み書きする"
     },
     {
       "id": "p11_pottery_shape",
@@ -659,7 +659,7 @@
       "note": "既製の対照設備。自作の気圧計（器＋焼いた管＋水＋浮き）は別の工程で置き換える。漏れ・蒸発・器の中の水蒸気・毛管現象は扱わない。設備を失う stop は interval.to で起き、それまでの温度と読みは残る（設備の寸法は状態に保つ）。状態 civ-sci.air-barometer/3（/2 は 10〜38 °C の仮定の幅を持つので拒否。置き直す）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock. / p10x_clay_slake 0.1.0 and p10y_clay_knead 0.1.0 (2026-10-05): added (raw clay from the nearby islands → prepared_clay); materials raw_clay, settled_clay, clay_sieve_residue; equipment fixture_clay_tub. / m02x 0.1.2 (2026-10-05, Codex A2a on 0e7c023): an unknown air temperature widens the bulb's range to the whole accepted range (−60..70 °C), no climate assumed; gapAirMinC/MaxC removed; state /3 (/2 refused). / p30x_coconut_milk 0.1.0 and p31x_coconut_oil_boil 0.1.0 (2026-10-05): added (drift coconuts → milk → oil); species coconut_fat, plant_solids; equipment fixture_coconut_tools, fixture_cook_pot.",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock. / p10x_clay_slake 0.1.0 and p10y_clay_knead 0.1.0 (2026-10-05): added (raw clay from the nearby islands → prepared_clay); materials raw_clay, settled_clay, clay_sieve_residue; equipment fixture_clay_tub. / m02x 0.1.2 (2026-10-05, Codex A2a on 0e7c023): an unknown air temperature widens the bulb's range to the whole accepted range (−60..70 °C), no climate assumed; gapAirMinC/MaxC removed; state /3 (/2 refused). / p30x_coconut_milk 0.1.0 and p31x_coconut_oil_boil 0.1.0 (2026-10-05): added (drift coconuts → milk → oil); species coconut_fat, plant_solids; equipment fixture_coconut_tools, fixture_cook_pot. / p10x 0.1.1 and p10y 0.1.1 (2026-10-05, Codex A1, A2, B1–B3 on dd781fc): the cloth is described from what is on it; poured-off water carries the run's history; clay make-ups written and read in whole ppm rounded down (handed-back lots read back); an empty tub settles; settled/prepared clay can wait in the tub again; slake state /2.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {

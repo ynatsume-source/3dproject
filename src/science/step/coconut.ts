@@ -44,16 +44,17 @@ export function readFood(lot: LotView): Composition {
     if (!m) continue;
     if (!(FOOD as readonly string[]).includes(m[1])) throw new Error(`food-unknown-species: ${m[1]} (water, coconut_fat, plant_solids)`);
     if (!isInt(v)) throw new Error('food-not-whole-ppm');
-    const mg = Math.round((lot.amount.value * v) / 1e6);
+    const mg = Math.floor((lot.amount.value * v) / 1e6); // whole ppm, rounded down both ways: a lot handed back reads back
     if (mg > 0) { c[m[1] as SpeciesId] = mg; listed += mg; }
   }
-  if (listed > lot.amount.value) throw new Error(`food-make-up-exceeds-lot: ${lot.lotId}`);
+  let total = 0; for (const [k, v] of Object.entries(lot.quality ?? {})) if (/^x_.+_ppm$/.test(k)) total += v;
+  if (total > 1e6) throw new Error(`food-make-up-exceeds-lot: ${lot.lotId}`);
   if (lot.amount.value - listed > 0) c.plant_solids = (c.plant_solids ?? 0) + lot.amount.value - listed;
   return c;
 }
 export function foodQuality(c: Composition): Record<string, number> {
   const t = totalMg(c), q: Record<string, number> = {};
-  for (const k of FOOD) if (c[k]) q[`x_${k}_ppm`] = Math.round(((c[k] ?? 0) * 1e6) / t);
+  for (const k of FOOD) if (c[k]) q[`x_${k}_ppm`] = Math.floor(((c[k] ?? 0) * 1e6) / t);
   return q;
 }
 /** A lignocellulosic part (husk, shell) in the firewood make-up: water_ppm of the lot, ash_dry_ppm of the dry part. */

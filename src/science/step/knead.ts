@@ -12,12 +12,12 @@
 import type { ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { addComp, totalMg, type Composition } from '../chem';
 import { pv } from '../params';
-import { allFinite, checkCommon, contractExtras, failed, fingerprint, tileComp, tileQuality } from './common';
-import { clayFeel } from './slake';
+import { allFinite, checkCommon, contractExtras, failed, fingerprint } from './common';
+import { clayFeel, clayQuality, readClayBody } from './slake';
 
-export const KNEAD_PROCESS = { processId: 'p10y_clay_knead', processVersion: '0.1.0' } as const;
+export const KNEAD_PROCESS = { processId: 'p10y_clay_knead', processVersion: '0.1.1' } as const; // 0.1.1: reads and writes clay as the tub does (Codex B1 on dd781fc)
 const SCHEMA = 'civ-sci.clay-knead/1';
-const EVAL = 'clay-knead-eval/0.1.0';
+const EVAL = 'clay-knead-eval/0.1.1';
 const BENCH = 'fixture_bench';
 const CLAYS = ['settled_clay', 'prepared_clay'];
 
@@ -37,7 +37,7 @@ export function kneadStep(req: ScienceStepRequest): ScienceStepResult {
     }
   }
   let comp: Composition = {};
-  try { for (const c of clays) comp = addComp(comp, tileComp(c)); } catch (e) { return failed(req, EVAL, (e as Error).message, SCHEMA); }
+  try { for (const c of clays) { const b = readClayBody(c, false); comp = addComp(comp, addComp(b.fine, b.water ? { water: b.water } : {})); } } catch (e) { return failed(req, EVAL, (e as Error).message, SCHEMA); }
   if (waters.length) comp = addComp(comp, { water: waters[0].amount.value });
   if (totalMg(comp) - (comp.water ?? 0) <= 0) return failed(req, EVAL, 'no clay solids to knead', SCHEMA);
 
@@ -89,7 +89,7 @@ export function kneadStep(req: ScienceStepRequest): ScienceStepResult {
   const hist = req.lots.every((l) => (l.quality?.history_complete ?? 1) === 1) ? 1 : 0;
   res.consumed = req.lots.map((l) => ({ lotId: l.lotId, amount: { ...l.amount } }));
   res.produced = [{ materialId: 'prepared_clay', amount: { value: totalMg(comp), unit: 'mg' }, into: clays[0].location,
-    quality: { ...tileQuality(comp), history_complete: hist } }];
+    quality: { ...clayQuality(comp), history_complete: hist } }];
   const wr = (comp.water ?? 0) / (totalMg(comp) - (comp.water ?? 0));
   res.observations = [{ at: endAt, channel: 'touch', quantity: 'feel', text: clayFeel(wr) }];
   return res;

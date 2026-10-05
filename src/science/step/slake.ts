@@ -16,6 +16,10 @@
 //   - all the while water evaporates from the open surface (Dalton type, as the drying rack), when the weather is known
 //   - take_out ends the run: settled_clay (the fine part with its water), the sieve residue, the poured-off water and
 //     the vapour settle once. Taken out before sieving, it comes back as raw_clay (wetter, same make-up).
+//   - clay already sieved (settled_clay, prepared_clay) taken out too wet can go back into the tub to wait again
+//     (water optional): it needs no sieving and comes out as settled_clay (0.1.1, Codex B3 on dd781fc).
+// Lots it hands back read back exactly as they were written (0.1.1, Codex B1): make-ups are written and read with
+// whole ppm rounded down, so the listed species never exceed the dry part; the rest is inert_mineral.
 // Not modelled: fines lost with the poured water, rain falling into the tub (it stands under the roof), the slip's
 // own chemistry (salts, organic matter decaying), temperature effects on settling.
 
@@ -23,17 +27,18 @@ import type { LotView, Observation, ScienceStepRequest, ScienceStepResult } from
 import { addComp, SPECIES, splitComp, totalMg, type Composition, type SpeciesId } from '../chem';
 import { pv } from '../params';
 import { pSat } from '../physics';
-import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, isInt, subStepEnd, tileQuality, wind10m } from './common';
+import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, isInt, subStepEnd, wind10m } from './common';
 
-export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.clay-slake/1';
-const EVAL = 'clay-slake-eval/0.1.0';
+export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.1' } as const;
+const SCHEMA = 'civ-sci.clay-slake/2';
+const EVAL = 'clay-slake-eval/0.1.1';
+const FINE_CLAYS = ['settled_clay', 'prepared_clay'];
 const TUB = 'fixture_clay_tub';
 const STEP_MS = 30_000;
 const SOLID_DENSITY = 2.6; // g/cm³ of the dry part, for the tub's capacity only (assumed)
 
 interface SlakeData {
-  rawId: string; waterId: string; fps: string[]; eqId: string; eqFp: string; location: string;
+  rawId: string; fineInput: boolean; fps: string[]; eqId: string; eqFp: string; location: string;
   areaM2: number; sun: number;                 // the tub as it was set up (kept: a tub lost at interval.to still stood until then)
   startMs: number; lastTo: number; seed: number;
   fine: Composition; coarse: Composition;      // the dry part (integer mg), as it went in
@@ -48,39 +53,53 @@ interface SlakeData {
   historyComplete: boolean; hist: number;
 }
 
-/** Read a raw_clay lot: water, the dry part, and which of it is coarse. Throws with a reason. */
-export function readRawClay(lot: LotView): { water: number; fine: Composition; coarse: Composition } {
+/** Read a clay lot (raw_clay, settled_clay, prepared_clay): water, the dry part, and which of it is coarse (xc_, raw clay
+ *  only). Whole ppm are read rounded down, as clayQuality writes them: the listed species never exceed the dry part, the
+ *  rest is inert_mineral. Throws with a reason. */
+export function readClayBody(lot: LotView, coarseAllowed = true): { water: number; fine: Composition; coarse: Composition } {
   const q = lot.quality ?? {};
   const w = q.water_ppm;
-  if (!(isInt(w) && w < 1e6)) throw new Error('raw-clay-water-missing: quality.water_ppm (whole ppm, < 1000000)');
+  if (!(isInt(w) && w < 1e6)) throw new Error('clay-water-missing: quality.water_ppm (whole ppm, < 1000000)');
   const water = Math.round((lot.amount.value * w) / 1e6), dry = lot.amount.value - water;
   const dryComp: Composition = {};
   let listed = 0, xd = 0;
   for (const [k, v] of Object.entries(q)) {
     const m = /^xd_(.+)_ppm$/.exec(k);
     if (!m) continue;
-    if (!Object.hasOwn(SPECIES, m[1]) || m[1] === 'water' || m[1] === 'inert_mineral') throw new Error(`raw-clay-unknown-species: ${m[1]}`);
-    if (!isInt(v)) throw new Error('raw-clay-not-whole-ppm');
+    if (!Object.hasOwn(SPECIES, m[1]) || m[1] === 'water' || m[1] === 'inert_mineral') throw new Error(`clay-unknown-species: ${m[1]}`);
+    if (!isInt(v)) throw new Error('clay-not-whole-ppm');
     xd += v;
-    const mg = Math.round((dry * v) / 1e6);
+    const mg = Math.floor((dry * v) / 1e6);
     if (mg > 0) { dryComp[m[1] as SpeciesId] = mg; listed += mg; }
   }
-  if (xd === 0) throw new Error('raw-clay-make-up-missing: xd_<species>_ppm');
-  if (xd > 1e6 || listed > dry) throw new Error('raw-clay-make-up-exceeds-dry-part');
+  if (xd === 0) throw new Error('clay-make-up-missing: xd_<species>_ppm');
+  if (xd > 1e6) throw new Error('clay-make-up-exceeds-dry-part');
   if (dry - listed > 0) dryComp.inert_mineral = dry - listed;
   const coarse: Composition = {};
   for (const [k, v] of Object.entries(q)) {
     const m = /^xc_(.+)_ppm$/.exec(k);
     if (!m) continue;
-    if (!Object.hasOwn(SPECIES, m[1]) || m[1] === 'water') throw new Error(`raw-clay-unknown-species: ${m[1]}`);
-    if (!isInt(v)) throw new Error('raw-clay-not-whole-ppm');
-    const mg = Math.round((dry * v) / 1e6);
-    const avail = dryComp[m[1] as SpeciesId] ?? 0;
-    // a few mg over is the rounding of two ppm values of the same species: take all of it
-    if (mg > avail + 2) throw new Error(`raw-clay-coarse-exceeds-${m[1]}: xc_ is a share of the whole dry part`);
-    if (Math.min(mg, avail) > 0) coarse[m[1] as SpeciesId] = Math.min(mg, avail);
+    if (!coarseAllowed) throw new Error(`clay-coarse-not-expected: ${lot.materialId} has been sieved (no xc_)`);
+    if (!Object.hasOwn(SPECIES, m[1]) || m[1] === 'water') throw new Error(`clay-unknown-species: ${m[1]}`);
+    if (!isInt(v)) throw new Error('clay-not-whole-ppm');
+    const mg = Math.floor((dry * v) / 1e6);
+    if (mg > (dryComp[m[1] as SpeciesId] ?? 0)) throw new Error(`clay-coarse-exceeds-${m[1]}: xc_ is a share of the whole dry part`);
+    if (mg > 0) coarse[m[1] as SpeciesId] = mg;
   }
   return { water, fine: addComp(dryComp, coarse, -1), coarse };
+}
+/** The raw clay reader (kept under its first name). */
+export const readRawClay = (lot: LotView) => readClayBody(lot, true);
+
+/** Quality of a clay lot: water_ppm (rounded) and the dry make-up xd_ (rounded down), coarse share xc_ (rounded down).
+ *  readClayBody reads it back without the listed species ever exceeding the dry part. */
+export function clayQuality(c: Composition, coarse: Composition = {}): Record<string, number> {
+  const t = totalMg(c), w = c.water ?? 0, dry = t - w;
+  const q: Record<string, number> = { water_ppm: Math.round((w * 1e6) / t) };
+  if (dry <= 0) return q;
+  for (const [k, mg] of Object.entries(c)) if (mg && k !== 'water' && k !== 'inert_mineral') q[`xd_${k}_ppm`] = Math.floor((mg * 1e6) / dry);
+  for (const [k, mg] of Object.entries(coarse)) if (mg) q[`xc_${k}_ppm`] = Math.floor((mg * 1e6) / dry);
+  return q;
 }
 
 /** What a hand feels in a lump of clay at this water ratio (water / dry). Shared with kneading. */
@@ -94,18 +113,32 @@ export function clayFeel(wr: number): string {
   return '乾いて固まっている';
 }
 
+/** What a resident sees on the cloth, from what is actually there (Codex A1): stones and sand, roots, lumps, or nothing. */
+function sieveSight(coarse: Composition, lumpsMg: number, rawDry: number): string {
+  const roots = coarse.organic_c ?? 0, minerals = totalMg(coarse) - roots;
+  const share = (mg: number) => (mg / rawDry < 0.02 ? '少し' : mg / rawDry < 0.1 ? 'かなり' : 'たくさん');
+  const parts: string[] = [];
+  if (minerals > 0) parts.push(`小石や砂が${share(minerals)}`);
+  if (roots > 0) parts.push(`根や草のくずが${share(roots)}`);
+  if (lumpsMg > 0) parts.push(lumpsMg / rawDry > 0.05 ? '溶けきらない土の塊が' + share(lumpsMg) : '小さな土の粒がわずかに');
+  return parts.length ? `こし布に${parts.join('、')}残った` : 'こし布には何も残らなかった';
+}
+
 const tubVolumeMl = (waterMg: number, dryMg: number) => waterMg / 1000 + dryMg / 1000 / SOLID_DENSITY;
 
 export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
   const bad = checkCommon(req, SLAKE_PROCESS.processId, SLAKE_PROCESS.processVersion, SCHEMA);
   if (bad) return failed(req, EVAL, bad, SCHEMA);
-  const raws = req.lots.filter((l) => l.materialId === 'raw_clay'), waters = req.lots.filter((l) => l.materialId === 'process_water');
-  if (raws.length !== 1 || waters.length !== 1 || req.lots.length !== 2) return failed(req, EVAL, 'expected one raw_clay lot and one process_water lot', SCHEMA);
-  const raw = raws[0], water = waters[0];
+  const clays = req.lots.filter((l) => l.materialId === 'raw_clay' || FINE_CLAYS.includes(l.materialId)), waters = req.lots.filter((l) => l.materialId === 'process_water');
+  if (clays.length !== 1 || waters.length > 1 || clays.length + waters.length !== req.lots.length) {
+    return failed(req, EVAL, 'expected one clay lot (raw_clay, or settled_clay / prepared_clay to wait again) and a process_water lot (optional for clay already sieved)', SCHEMA);
+  }
+  const raw = clays[0], water: LotView | undefined = waters[0], fineInput = raw.materialId !== 'raw_clay';
+  if (!fineInput && !water) return failed(req, EVAL, 'raw clay is soaked in water: reserve a process_water lot', SCHEMA);
   const tub = req.equipment.find((e) => e.kind === TUB);
   if (!tub && req.stop !== 'equipment-lost') return failed(req, EVAL, `no ${TUB}`, SCHEMA);
   if (req.energy.length) return failed(req, EVAL, 'soaking and settling use no offered energy (evaporation takes its heat from the air)', SCHEMA);
-  const fps = [fingerprint(raw), fingerprint(water)];
+  const fps = req.lots.map(fingerprint).sort();
   const eqFp = tub ? JSON.stringify([tub.equipmentId, Object.entries(tub.params ?? {}).sort(([a], [b]) => a.localeCompare(b))]) : '';
   for (const a of req.actions) {
     if (!['sieve', 'decant', 'take_out'].includes(a.action)) return failed(req, EVAL, `unknown action ${a.action} (sieve, decant, take_out)`, SCHEMA);
@@ -117,18 +150,19 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
     if (!tub) return failed(req, EVAL, 'the tub was lost before anything went in: nothing happened', SCHEMA);
     const area = tub.params?.surfaceCm2, cap = tub.params?.capacityMl, sun = tub.params?.sunExposure ?? 0;
     if (!finite(area, 1, 1e5) || !finite(cap, 1, 1e6) || !finite(sun, 0, 1)) return failed(req, EVAL, `${TUB} needs params surfaceCm2 (1..100000), capacityMl (1..1000000), sunExposure 0..1`, SCHEMA);
-    let rc: ReturnType<typeof readRawClay>;
-    try { rc = readRawClay(raw); } catch (e) { return failed(req, EVAL, (e as Error).message, SCHEMA); }
-    const dry = totalMg(rc.fine) + totalMg(rc.coarse), w = rc.water + water.amount.value;
-    if (dry <= 0) return failed(req, EVAL, 'the raw clay has no dry part', SCHEMA);
-    if (w < pv('slipMinWaterRatio') * dry) return failed(req, EVAL, `not enough water to cover the clay and make a slip: at least ${pv('slipMinWaterRatio')} times the dry clay`, SCHEMA);
+    let rc: ReturnType<typeof readClayBody>;
+    try { rc = readClayBody(raw, !fineInput); } catch (e) { return failed(req, EVAL, (e as Error).message, SCHEMA); }
+    const dry = totalMg(rc.fine) + totalMg(rc.coarse), w = rc.water + (water?.amount.value ?? 0);
+    if (dry <= 0) return failed(req, EVAL, 'the clay has no dry part', SCHEMA);
+    if (!fineInput && w < pv('slipMinWaterRatio') * dry) return failed(req, EVAL, `not enough water to cover the clay and make a slip: at least ${pv('slipMinWaterRatio')} times the dry clay`, SCHEMA);
     if (tubVolumeMl(w, dry) > cap) return failed(req, EVAL, 'the clay and the water do not fit in the tub', SCHEMA);
-    d = { rawId: raw.lotId, waterId: water.lotId, fps, eqId: tub.equipmentId, eqFp, location: raw.location, areaM2: area / 1e4, sun,
+    d = { rawId: raw.lotId, fineInput, fps, eqId: tub.equipmentId, eqFp, location: raw.location, areaM2: area / 1e4, sun,
       startMs: req.interval.from, lastTo: req.interval.from, seed: req.seed,
       fine: rc.fine, coarse: rc.coarse, rawWaterRatio: rc.water / dry, waterMg: w,
-      evaporatedMg: 0, latentJ: 0, reportedJ: 0, sievedAt: -1, residue: {}, residueWaterMg: 0,
-      tubDry: addComp(rc.fine, rc.coarse), slipRatioAtSieve: 0, decantedMg: 0, historyComplete: true,
-      hist: Math.min(raw.quality?.history_complete ?? 1, water.quality?.history_complete ?? 1) };
+      evaporatedMg: 0, latentJ: 0, reportedJ: 0, residue: {}, residueWaterMg: 0, tubDry: addComp(rc.fine, rc.coarse), decantedMg: 0,
+      // clay already sieved needs no sieving: it settles from the moment it goes in
+      sievedAt: fineInput ? req.interval.from : -1, slipRatioAtSieve: fineInput ? w / dry : 0, historyComplete: true,
+      hist: Math.min(raw.quality?.history_complete ?? 1, water?.quality?.history_complete ?? 1) };
   } else {
     d = structuredClone(req.state.data as SlakeData);
     if (d.fps.join('|') !== fps.join('|')) return failed(req, EVAL, 'changed-input: a reserved lot changed under a running run', SCHEMA);
@@ -147,11 +181,12 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
 
   const evaporate = (dtS: number) => {
     if (!known || dtS <= 0) return;
-    const wr = d.waterMg / tubDryMg(), wc = pv('clayWaterCritical'), weq = pv('clayWaterEqAt70RH') * (env.humidity! / 0.7);
+    const dry = tubDryMg(); // an empty tub (all on the cloth) or one with only water left: pure water evaporates
+    const wr = dry > 0 ? d.waterMg / dry : Infinity, wc = pv('clayWaterCritical'), weq = pv('clayWaterEqAt70RH') * (env.humidity! / 0.7);
     const ts = env.airTempC! + pv('sunSurfaceExcessC') * sun;
     const deficit = Math.max(0, pSat(ts) - env.humidity! * pSat(env.airTempC!));
     const factor = wr > wc ? 1 : Math.max(0, (wr - weq) / (wc - weq));
-    const e = Math.min(Math.max(0, d.waterMg - weq * tubDryMg()), pv('evapCoeff') * (1 + 0.5 * wind10m(req) * pv('windRackFactor')) * deficit * factor * area * dtS * 1e6);
+    const e = Math.min(Math.max(0, d.waterMg - weq * dry), pv('evapCoeff') * (1 + 0.5 * wind10m(req) * pv('windRackFactor')) * deficit * factor * area * dtS * 1e6);
     d.waterMg -= e; d.evaporatedMg += e; d.latentJ += (e / 1e6) * pv('latentHeatWater25');
   };
   const dispersed = (at: number) => {
@@ -173,11 +208,7 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
       d.tubDry = lumps.rest;
       d.sievedAt = a.at;
       d.slipRatioAtSieve = tubDryMg() > 0 ? d.waterMg / tubDryMg() : 0;
-      const rawDry = totalMg(d.fine) + totalMg(d.coarse), cs = totalMg(d.coarse) / rawDry;
-      const parts = [`こし布に小石や砂が${cs < 0.02 ? '少し' : cs < 0.1 ? 'かなり' : 'たくさん'}残った`];
-      if ((d.coarse.organic_c ?? 0) > 0) parts.push('根や草のくずも混じっている');
-      if (lumpsMg / rawDry > 0.05) parts.push('溶けきらない土の塊も残った');
-      observations.push({ at: a.at, channel: 'sight', quantity: 'sieve', text: parts.join('。') });
+      observations.push({ at: a.at, channel: 'sight', quantity: 'sieve', text: sieveSight(d.coarse, totalMg(lumps.taken), totalMg(d.fine) + totalMg(d.coarse)) });
     } else if (a.action === 'decant') {
       if (d.sievedAt < 0) { observations.push({ at: a.at, channel: 'sight', quantity: 'decant', text: 'こす前の泥は、上の水だけを分けられない' }); return; }
       const e = Math.exp(-(a.at - d.sievedAt) / 1000 / pv('slipSettleTauS'));
@@ -185,7 +216,7 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
       const pour = Math.max(0, Math.floor(d.waterMg - Math.max(sedRatio, pv('slipSettledWaterRatio')) * tubDryMg()));
       d.waterMg -= pour; d.decantedMg += pour;
       observations.push({ at: a.at, channel: 'sight', quantity: 'decant',
-        text: pour === 0 ? '上に分かれた水はない' : e > 0.5 ? '上の水はまだ濁っていて、少ししか捨てられない' : e > 0.1 ? '上の水は少し濁っている' : '上の水は澄んでいる' });
+        text: pour === 0 ? '上に分かれた水はない' : tubDryMg() === 0 ? '桶には水しかない。全部捨てた' : e > 0.5 ? '上の水はまだ濁っていて、少ししか捨てられない' : e > 0.1 ? '上の水は少し濁っている' : '上の水は澄んでいる' });
     }
   };
 
@@ -222,24 +253,25 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
 
   // settle once: everything that went in comes out, in whole mg
   const hist = d.historyComplete && d.hist === 1 ? 1 : 0;
-  const waterLeft = raw.amount.value + water.amount.value - totalMg(d.fine) - totalMg(d.coarse) - evapInt - d.decantedMg - d.residueWaterMg;
-  res.consumed = [{ lotId: raw.lotId, amount: { ...raw.amount } }, { lotId: water.lotId, amount: { ...water.amount } }];
+  const waterLeft = raw.amount.value + (water?.amount.value ?? 0) - totalMg(d.fine) - totalMg(d.coarse) - evapInt - d.decantedMg - d.residueWaterMg;
+  res.consumed = req.lots.map((l) => ({ lotId: l.lotId, amount: { ...l.amount } }));
   const clayComp = addComp(d.tubDry, waterLeft > 0 ? { water: waterLeft } : {});
   if (d.sievedAt >= 0) {
     if (totalMg(clayComp) > 0) res.produced.push({ materialId: 'settled_clay', amount: { value: totalMg(clayComp), unit: 'mg' }, into: d.location,
-      quality: { ...tileQuality(clayComp), history_complete: hist } });
+      quality: { ...clayQuality(clayComp), history_complete: hist } });
     const resComp = addComp(d.residue, d.residueWaterMg > 0 ? { water: d.residueWaterMg } : {});
     if (totalMg(resComp) > 0) res.produced.push({ materialId: 'clay_sieve_residue', amount: { value: totalMg(resComp), unit: 'mg' }, into: d.location,
-      quality: { ...tileQuality(resComp), history_complete: hist } });
+      quality: { ...clayQuality(resComp), history_complete: hist } });
   } else {
     // not sieved: the raw clay comes back, wetter, with the same make-up (what is coarse stays coarse)
-    const q = tileQuality(clayComp), dry = totalMg(d.tubDry);
-    for (const [sp, mg] of Object.entries(d.coarse)) if (mg) q[`xc_${sp}_ppm`] = Math.round((mg * 1e6) / dry);
+    const q = clayQuality(clayComp, d.coarse);
     res.produced.push({ materialId: 'raw_clay', amount: { value: totalMg(clayComp), unit: 'mg' }, into: d.location, quality: { ...q, history_complete: hist } });
   }
-  if (d.decantedMg > 0) res.produced.push({ materialId: 'process_water', amount: { value: d.decantedMg, unit: 'mg' }, into: water.location, quality: {} });
+  // the poured-off water carries the run's history like everything else that comes out (Codex A2)
+  if (d.decantedMg > 0) res.produced.push({ materialId: 'process_water', amount: { value: d.decantedMg, unit: 'mg' }, into: water?.location ?? d.location, quality: { history_complete: hist } });
   if (evapInt > 0) res.released.push({ materialId: 'water_vapour', amount: { value: evapInt, unit: 'mg' }, to: 'air' });
   const wr = waterLeft / Math.max(1, tubDryMg());
-  res.observations.push({ at: endAt, channel: 'touch', quantity: 'feel', text: d.sievedAt >= 0 ? clayFeel(wr) : `こす前の泥。${clayFeel(wr)}` });
+  const feel = tubDryMg() === 0 ? (waterLeft > 0 ? '桶には水しか残っていない' : '桶は空っぽ') : d.sievedAt >= 0 ? clayFeel(wr) : `こす前の泥。${clayFeel(wr)}`;
+  res.observations.push({ at: endAt, channel: 'touch', quantity: 'feel', text: feel });
   return res;
 }

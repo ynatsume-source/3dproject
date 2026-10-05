@@ -10,7 +10,7 @@
 | `src/science/chem.ts` | 化学種 `coconut_fat`（トリラウリン C39H74O6 で近似）・`plant_solids`（組成なし） |
 | `src/science/params.ts` | 仮定 23 件 |
 | `data/science/catalog-test-2.json` | 材料 8・工程 2・設備 2 |
-| `scripts/science-coconut-check.ts` | 検査 33 件 |
+| `scripts/science-coconut-check.ts` | 検査 34 件 |
 
 手順書：[COCONUT_OIL_HANDBOOK.md](COCONUT_OIL_HANDBOOK.md)。
 
@@ -24,6 +24,10 @@
 6. **前回までの学び**：設備の喪失は `interval.to`（鍋を失っても、その区間の煮え方は数える。鍋と炉の値は状態に保つ）。見ていない区間は火が落ちる（勝手に燃え続けない）。
 7. **拒否**：実の数なし、部分が実を超える、道具なし、鍋なし、鍋に入らない、熱の申し出の併用、知らない火の強さ、知らない化学種、天気が分からないのに火を起こす、ロットの変化、区間の抜け、0.1.x。
 
+## 粘土のレビュー（B1）から先に直したこと
+
+食べ物のロット（ミルク・ヤシの水・かす）の組成も、整数 ppm の切り捨てで書き・読む。早く下ろした濃いミルクを3回煮直しても読める（検査に1件追加）。依頼時（eaa2a84）からの変更はこれだけ。
+
 ## 扱っていないもの
 
 油を吸う素焼きの鍋、油が約24 °C で固まること、腐敗・酸化、発酵で油を取る方法、油はね・油煙・引火、腐った実・芽の出た実。
@@ -31,7 +35,7 @@
 ## 再現のしかた
 
 ```sh
-npx tsx --import ./scripts/node-assets.mjs scripts/science-coconut-check.ts   # 33
+npx tsx --import ./scripts/node-assets.mjs scripts/science-coconut-check.ts   # 34
 npm run typecheck && npm run build
 ```
 

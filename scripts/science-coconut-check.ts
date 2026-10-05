@@ -107,6 +107,14 @@ const lookEvery = (until: number, every = M10) => Array.from({ length: Math.floo
   const early = boil(2 * H, [[0, 'fire_level', 1], [H, 'take_off']]);
   ok(early.out('coconut_milk') && !early.out('coconut_oil') && early.out('coconut_milk')!.quality!.x_water_ppm! < MILK.quality!.x_water_ppm!,
     'lifted off while it still boils: thicker milk, no oil yet (it can be boiled again)');
+  // lifted off early, the thicker milk goes back on the fire, three times: it always reads back
+  let again: LotView = MILKLOT, rounds = 0;
+  for (let i = 0; i < 3; i++) {
+    const r = boil(H, [[0, 'fire_level', 1], [H - 30_000, 'take_off']], { lots: [again, { ...WOOD(), lotId: `lot:wood${i}` }] });
+    const m = r.out('coconut_milk'); if (r.last.status !== 'completed' || !m) break;
+    again = { lotId: `lot:milk${i}`, materialId: 'coconut_milk', amount: m.amount, location: 's', quality: m.quality }; rounds++;
+  }
+  ok(rounds === 3, 'thicker milk handed back goes on the fire again, three times over (it reads back)', `${(again.amount.value / 1000).toFixed(0)} g left`);
   const low = boil(6 * H, [[0, 'fire_level', 0], [6 * H - 30_000, 'look']]);
   ok(low.diag.waterRatio > 2 && /ぐつぐつ|湯気/.test(low.obs[0]?.text ?? ''), 'a low fire from the start: six hours and still mostly water', `water ${low.diag.waterRatio.toFixed(2)} of the rest`);
   const short = boil(8 * H, [[0, 'fire_level', 1]], { lots: [MILKLOT, WOOD(1_000_000)] });
