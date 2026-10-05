@@ -111,7 +111,10 @@ export function creatureKit(M: CMats, shadows = false) {
     const chin = ell(0.026, 0.015, 0.03, M.furPale, 16); chin.position.set(0, -0.004, 0.035); jaw.add(chin);
     if (L.toon) chin.visible = false;   // (the character's face is flat to the chin)
     const ek = L.eye ?? 1;
-    const eyes = [-1, 1].map((sx) => { const e = ell(0.0125 * ek, 0.0125 * ek, 0.01 * ek, M.eye, 14); e.position.set(sx * 0.054, 0.046, 0.122); e.rotation.y = sx * 0.45; head.add(e); if (L.shine) glint(e); return e; });
+    const eyes = [-1, 1].map((sx) => {
+      // (the character's eyes: a little wider than tall, the outer corners lower — gently drooping; owner's note)
+      const e = ell((L.toon ? 0.0148 : 0.0125) * ek, 0.0125 * ek, 0.01 * ek, M.eye, 16); e.position.set(sx * 0.054, L.toon ? 0.043 : 0.046, 0.122);
+      e.rotation.set(0, sx * 0.45, L.toon ? -sx * 0.32 : 0); head.add(e); if (L.shine) glint(e); return e; });
     const eye = new THREE.Object3D(); eye.position.set(0, 0.044, 0.15); head.add(eye);
     head.scale.setScalar(L.head ?? 1); torso.scale.x *= L.plump ?? 1; torso.scale.y *= L.plump ?? 1;
     if (L.cheeks) for (const sx of [-1, 1]) { const b = ell(0.022, 0.014, 0.006, M.blush ?? M.furPale, 12); b.position.set(sx * 0.062, -0.006, 0.134); b.rotation.y = sx * 0.6; head.add(b); }
@@ -630,6 +633,6 @@ export function creatureKit(M: CMats, shadows = false) {
 
   // the island's own two, as chosen: Rakko the real otter, a little characterful (bigger eyes with a glint,
   // its tuft, its white-banded stone) with a scarf of kelp round its neck; Kamemaru straight-faced, browless
-  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.05, shine: true, toon: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
+  const makeRakko = () => makeSeaOtter({ head: 1.18, eye: 1.3, shine: true, toon: true, tuft: true, stone: true, scarf: true }), makeKame = () => makeChibiTurtle('kame');
   return { makeSeaOtter, makeGreenTurtle, makeChibiOtter, makeChibiTurtle, makeRakko, makeKame };
 }
