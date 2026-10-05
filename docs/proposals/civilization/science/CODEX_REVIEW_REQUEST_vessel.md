@@ -50,3 +50,8 @@ npm run typecheck && npm run build
 - 検査 34件（検査6：組み立て → 戻す → 漏れの試験でひびが見える、封じ直してもひびは残る）。
 - 見てほしいところ：傷みを「ひび」として漏れに足す扱いが本物らしいか、condition から crack_ppm への換算。
 - 追記2：壊れた器を本体が同じ質量の `pot_sherds` に戻すときの quality `potSherdsQuality`（検査 35件）。
+
+## 追記3：e6668fb の A1〜A5 と ce0cfc1 の A6 を直した版（軽い再確認のお願い）
+
+対応表は [CODEX_REVIEW.md](CODEX_REVIEW.md) の最後の節。p16x 0.1.1・p17x 0.1.1（状態 /2）、換算表 `civ-sci.pot-assembly/2`。検査 52件。
+submerge は保留にしたので、前回の診断の泡の部分は「拒否される」ことの確認になる。

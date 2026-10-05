@@ -72,16 +72,14 @@ const warmPot = potOf(warmSeal), coldPot = potOf(coldSeal);
   ok(lost(dry) < lost(raw), 'in damp, still air less water seeps away', `${(lost(dry) / 1000).toFixed(0)} g`);
 }
 
-console.log('2. stopping the mouth, and holding it under water');
+console.log('2. stopping the mouth');
 {
-  const bubbles = (pot: LotView) => wait(H, [pot], [[30 * 60_000, 'submerge'], [H - 30_000, 'take_out']]).obs.find((o) => o.quantity === 'bubbles')?.text ?? '';
-  const open = bubbles(warmPot);
   const plugOnly = potOf(step(sealReq([POT(), TAR(5_000)], true)));
   const once = potOf(step(sealReq([POT(), TAR(), WOOD()], true)));
   const twice = potOf(step(sealReq([warmPot, { ...TAR(), lotId: 'lot:tar2' }, WOOD()], true)));
-  ok(/口から空気/.test(open), 'not stopped: the air goes out of the mouth', open);
-  ok(plugOnly.quality!.sealed === 1 && /続けて/.test(bubbles(plugOnly)), 'stopped but the walls bare: a stream of fine bubbles', bubbles(plugOnly));
-  ok(/ときどき|続けて/.test(bubbles(once)) && /泡は出ない/.test(bubbles(twice)), 'one coat: still some bubbles; two warm coats and stopped: no bubbles', `${bubbles(once)} / ${bubbles(twice)}`);
+  ok(plugOnly.quality!.sealed === 1 && warmPot.quality!.sealed === 0 && warmPot.quality!.air_leak_tau_min === 0, 'stopped with a plug and tar; not stopped, the pot holds no air (0: not usable as a bulb)');
+  const sub = step(leakReq(0, H, null, [plugOnly], [[60_000, 'submerge']], SHADE));
+  ok(sub.status === 'failed' && /held back/.test(String(sub.evidence.notes)), 'holding it under water (submerge) is held back until air, pressure and water let in are modelled (Codex A4)', String(sub.evidence.notes));
   ok(twice.quality!.air_leak_tau_min! > once.quality!.air_leak_tau_min! && once.quality!.air_leak_tau_min! > plugOnly.quality!.air_leak_tau_min!,
     'the pot carries how long it holds its air (for the world: a barometer bulb made from it)', `${plugOnly.quality!.air_leak_tau_min} / ${once.quality!.air_leak_tau_min} / ${twice.quality!.air_leak_tau_min} min`);
   ok(step(sealReq([twice, { ...TAR(), lotId: 'lot:tar3' }], false)).status === 'failed', 'a stopped pot is not tarred inside again (open it first)');
@@ -100,7 +98,7 @@ console.log('3. sun and heat');
 console.log('4. pieces, outages, the pot handed on');
 {
   const key = (r: ReturnType<typeof wait>) => JSON.stringify([r.last.produced, r.last.released, r.obs, r.last.state]);
-  const acts: [number, string][] = [[D + 7 * 60_000 + 13_000, 'look'], [2 * D + 1_000, 'submerge'], [3 * D + 17_000, 'take_out']];
+  const acts: [number, string][] = [[D + 7 * 60_000 + 13_000, 'look'], [2 * D + 1_000, 'look'], [3 * D + 17_000, 'take_out']];
   const a = wait(3 * D + H, [coldPot, WATER()], acts, {}, H), b = wait(3 * D + H, [coldPot, WATER()], acts, {}, 30_000), c = wait(3 * D + H, [coldPot, WATER()], acts, {}, 3 * H);
   ok(key(a) === key(b) && key(a) === key(c), '1 h = 30 s = 3 h pieces (actions between the grid points): the same water, pot and words');
   const gap = wait(2 * D, [POT(), WATER()], [[2 * D - 30_000, 'take_out']], {}, H, (t) => (t >= 10 * H && t < 20 * H ? { ...SHADE, source: 'unknown' } : SHADE));
@@ -120,23 +118,79 @@ console.log('6. assembly (ADR 0006): a pot lot becomes equipment and back');
 {
   const sealed = potOf(step(sealReq([warmPot, { ...TAR(), lotId: 'lot:tar4' }, WOOD()], true)));
   const params = potToEquipmentParams(sealed);
-  ok(params.capacityMl === 500 && params.sealed === 1 && params.airLeakTauMin === sealed.quality!.air_leak_tau_min && params.crackPpm === 0 && POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/1',
-    'a sealed pot lot gives the equipment its capacity and how long it holds its air (table civ-sci.pot-assembly/1)', JSON.stringify(params));
+  ok(params.capacityMl === 500 && params.sealed === 1 && params.airtightKnown === 1 && params.airLeakTauMin === sealed.quality!.air_leak_tau_min && params.crackPpm === 0 && POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/2',
+    'a sealed pot lot gives the equipment its capacity and how long it holds its air (table civ-sci.pot-assembly/2)', JSON.stringify(params));
   const whole = potQualityOnReturn(sealed.quality!, 1);
   ok(JSON.stringify(whole) === JSON.stringify(sealed.quality), 'back whole (condition 1): the lot is as it was');
   const worn = potQualityOnReturn(sealed.quality!, 0.9);
-  ok(worn.sealed === undefined && worn.air_leak_tau_min === undefined && worn.crack_ppm === 100_000 && worn.coverage_ppm === sealed.quality!.coverage_ppm,
-    'back worn (condition 0.9): not known to hold any more (sealed and air time dropped), a crack of 10 % recorded', JSON.stringify(worn));
+  ok(worn.sealed === 1 && worn.airtight_known === 0 && worn.air_leak_tau_min === undefined && worn.crack_ppm === 100_000 && worn.coverage_ppm === sealed.quality!.coverage_ppm,
+    'back worn (condition 0.9): still stopped (nobody opened it), only its air-holding is no longer known; a crack index of 10 % added', JSON.stringify(worn));
+  const twiceWorn = potQualityOnReturn({ ...worn, crack_ppm: 120_000 }, 0.97);
+  ok(twiceWorn.crack_ppm === 150_000 && potQualityOnReturn({ ...worn, crack_ppm: 990_000 }, 0.5).crack_ppm === 1_000_000, 'the crack index adds up over uses and is capped at 1,000,000');
+  // Codex A6: really sealed → assembled → worn → back to a lot → fill / look / tar again: it is not taken for an open pot
   const wornLot: LotView = { ...sealed, lotId: 'lot:worn', quality: worn };
-  const cracked = test3d(wornLot), sound = test3d(warmPot);
+  const wp = potToEquipmentParams(wornLot);
+  ok(readPot(wornLot).sealed && !readPot(wornLot).airtightKnown && wp.sealed === 1 && wp.airtightKnown === 0 && wp.airLeakTauMin === 0, 'read back: stopped, air-holding not known (params airLeakTauMin 0: not usable as a bulb)', JSON.stringify(wp));
+  ok(/cannot be filled/.test(String(step(leakReq(0, H, null, [wornLot, WATER()], [], SHADE)).evidence.notes)), 'the worn stopped pot cannot be filled (the plug is still in)');
+  ok(/held back/.test(String(step(leakReq(0, H, null, [wornLot], [[60_000, 'submerge']], SHADE)).evidence.notes)), 'nor held under water to guess at its air');
+  ok(/already stopped/.test(String(step(sealReq([wornLot, { ...TAR(), lotId: 'lot:tar6' }], true)).evidence.notes)), 'nor tarred inside again (it is stopped: opening is a step of its own)');
+  const stood = wait(D, [wornLot], [[D - 30_000, 'take_out']]);
+  const stoodQ = potOf(stood.last).quality!;
+  ok(stood.last.status === 'completed' && stoodQ.sealed === 1 && stoodQ.airtight_known === 0 && stoodQ.air_leak_tau_min === undefined, 'stood empty for a day it stays stopped and not known', JSON.stringify(stoodQ));
+  // an open pot that was worn: its crack lets water through, and tar does not close it
+  const wornOpen: LotView = { ...warmPot, lotId: 'lot:worn-open', quality: potQualityOnReturn(warmPot.quality!, 0.9) };
+  ok(wornOpen.quality!.sealed === 0 && wornOpen.quality!.airtight_known === undefined, 'an open pot comes back open');
+  const cracked = test3d(wornOpen), sound = test3d(warmPot);
   ok(450_000 - waterLeft(cracked) > 3 * (450_000 - waterLeft(sound)) && readPot(potOf(cracked.last)).crack === 0.1, 'the leak test shows the crack: much more water lost than from the sound pot, and the crack stays with the pot',
     `${((450_000 - waterLeft(cracked)) / 1000).toFixed(0)} g vs ${((450_000 - waterLeft(sound)) / 1000).toFixed(0)} g`);
+  const resealed = potOf(step(sealReq([wornOpen, { ...TAR(20_000), lotId: 'lot:tar5' }], true)));
+  ok(resealed.quality!.sealed === 1 && resealed.quality!.air_leak_tau_min! < sealed.quality!.air_leak_tau_min! / 10, 'stopped, the cracked pot holds its air far less long: tar inside does not close a crack',
+    `${resealed.quality!.air_leak_tau_min} vs ${sealed.quality!.air_leak_tau_min} min`);
   const sherds = potSherdsQuality(sealed.quality!);
   ok(sherds.absorption_ppm === 120_000 && sherds.x_wood_tar_ppm === sealed.quality!.x_wood_tar_ppm && sherds.capacity_ml === undefined && sherds.sealed === undefined,
     'broken: the sherds (same mass, by main) keep what the body was and the tar it carried, nothing of the pot', JSON.stringify(sherds));
-  const resealed = potOf(step(sealReq([wornLot, { ...TAR(20_000), lotId: 'lot:tar5' }], true)));
-  ok(resealed.quality!.sealed === 1 && resealed.quality!.air_leak_tau_min! < sealed.quality!.air_leak_tau_min! / 10, 'stopped again, the cracked pot holds its air far less long: tar inside does not close a crack',
-    `${resealed.quality!.air_leak_tau_min} vs ${sealed.quality!.air_leak_tau_min} min`);
+}
+
+console.log('7. fixes from the vessel review (Codex e6668fb A1–A5, C1)');
+{
+  const tarAt = (to: number, at?: number) => step(sealReq([POT(), TAR()], false, { interval: { from: 0, to }, energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: (to / 1000) * 20 }],
+    actions: at === undefined ? [] : [{ at, residentId: 'res:lantern', action: 'seal' }] }));
+  const late = tarAt(H, 20 * 60_000), split = tarAt(15 * 60_000), atEnd = tarAt(H, 15 * 60_000), before = tarAt(H, 14 * 60_000);
+  ok(JSON.stringify(late.produced) === JSON.stringify(split.produced) && late.produced[0].quality!.sealed === 0 && atEnd.produced[0].quality!.sealed === 0 && before.produced[0].quality!.sealed === 1,
+    'A1: a seal after the work is done (20 min, or at the 15-minute end) is never reached; one at 14 min is', `${late.produced[0].quality!.sealed}/${atEnd.produced[0].quality!.sealed}/${before.produced[0].quality!.sealed}`);
+  // A2: a look between grid points sees its own time. Find when 1 g of water is gone in 1-second pieces, read just before
+  let st: ScienceStepRequest['state'] = null, gone = 0;
+  for (let t = 0; t < 10 * 60_000 && !gone; t += 1000) {
+    const r = step(leakReq(t, t + 1000, st, [POT(), WATER(1000)], [], SHADE)); st = r.state;
+    if ((r.diagnostics as { waterInMg: number }).waterInMg === 0) gone = t + 1000;
+  }
+  const at = gone - 1000;
+  const lookOf = (chunk: number) => wait(10 * 60_000, [POT(), WATER(1000)], [[at, 'look']], {}, chunk).obs.find((o) => o.quantity === 'pot')?.text;
+  ok(gone > 0 && at % 30_000 !== 0 && lookOf(10 * 60_000) === lookOf(1000), 'A2: a look between grid points reads the state at its own time (one piece = 1-second pieces)', `${at / 1000} s: ${lookOf(10 * 60_000)}`);
+  const settle = (r: ReturnType<typeof wait>) => JSON.stringify([r.last.produced, r.last.released, r.all.map((x) => x.energy)]);
+  const looks: [number, string][] = Array.from({ length: 72 }, (_, i) => [i * H + 17_000, 'look']);
+  ok(settle(wait(3 * D, [POT(), WATER()], looks)) === settle(wait(3 * D, [POT(), WATER()], [])), 'A2: 72 looks between grid points change nothing in the settlement');
+  // A3: the wet pot handed back dries with no water in it, and goes into the next test
+  const wetPot = potOf(test3d(POT()).last);
+  const sunDry = (o: Partial<ScienceStepRequest>) => wait(7 * D, [wetPot], [[6 * D, 'look'], [7 * D - 30_000, 'take_out']], { equipment: [STAND(1)], ...o }, H, () => ({ t: 33, rh: 0.4, wind: 2 }));
+  const dried = sunDry({}), heat = dried.all.reduce((s, r) => s + r.energy.reduce((x, e) => x + e.usedJ, 0), 0);
+  const w0 = readPot(wetPot).water, w1 = readPot(potOf(dried.last)).water;
+  ok(w0 > 50_000 && w1 < w0 / 10 && sum(dried.last.released) === w0 - (dried.last.produced[0].amount.value - (wetPot.amount.value - w0)) && heat > 0 && sum(dried.last.consumed) === sum(dried.last.produced) + sum(dried.last.released),
+    'A3: the wet pot dries with no water in it: its walls give their water to the air (and take the heat)', `${(w0 / 1000).toFixed(1)} → ${(w1 / 1000).toFixed(1)} g, ${heat} J`);
+  const early = wait(H, [wetPot], [[60_000, 'look']], { equipment: [STAND(1)] }, H, () => ({ t: 33, rh: 0.4, wind: 2 })).obs[0]?.text ?? '';
+  ok(/湿って|濡れて/.test(early) && /乾いて/.test(dried.obs[0]?.text ?? ''), 'A3: just emptied the outside is still damp; after six days in the sun it is dry', `${early} / ${dried.obs[0]?.text}`);
+  ok(test3d(potOf(dried.last)).last.status === 'completed', 'A3: the dried pot is filled again');
+  // A5: unknown weather never becomes an observation, nor does a decrease that could not be computed
+  const allUnknown = wait(3 * D, [POT(), WATER()], [[D, 'look']], { stop: undefined }, H, () => ({ ...SHADE, source: 'unknown' }));
+  const stopAll = step(leakReq(3 * D, 3 * D + H, allUnknown.last.state, [POT(), WATER()], [], { ...SHADE, source: 'unknown' }, { stop: 'operator' }));
+  ok(allUnknown.obs.length === 0 && stopAll.observations.length === 0 && stopAll.produced.every((p) => p.quality?.history_complete === 0), 'A5: three days all unknown: nothing seen, not even how much water is left at the end');
+  const gapThenKnown = wait(2 * D, [POT(), WATER()], [[30 * H, 'look'], [2 * D - 30_000, 'take_out']], {}, H, (t) => (t >= 10 * H && t < 20 * H ? { ...SHADE, source: 'unknown' } : SHADE));
+  ok(gapThenKnown.obs.length === 0 && gapThenKnown.last.status === 'completed', 'A5: after an unknown stretch the run tells nothing more (take it out and set it up again to observe)');
+  // C1: firewood that cannot burn (all water) does not warm, and comes back as it was
+  const soaked: LotView = { ...WOOD(), amount: { value: 300_000, unit: 'mg' }, quality: { water_ppm: 1_000_000 } };
+  const c1 = step(sealReq([POT(), TAR(), soaked], false));
+  ok(c1.status === 'completed' && c1.released.length === 0 && c1.produced.find((p) => p.materialId === 'firewood')?.amount.value === 300_000 && /乗っているだけ/.test(c1.observations[0].text ?? ''),
+    'C1: wood that is all water does not burn: no steam, no heat, the wood back, the tar cold');
 }
 
 console.log('5. requests that are refused');
@@ -154,6 +208,8 @@ console.log('5. requests that are refused');
   const s0 = step(leakReq(0, H, null, [POT(), WATER()], [], SHADE));
   refused('the stand changed under the run', step(leakReq(H, 2 * H, s0.state, [POT(), WATER()], [], SHADE, { equipment: [STAND(1)] })), /changed-input/);
   refused('a missing interval', step(leakReq(2 * H, 3 * H, s0.state, [POT(), WATER()], [], SHADE)), /noncontiguous/);
+  refused('a leak-test state from 0.1.0 (schema /1: no wall drying, sealed meant something else)', step(leakReq(H, 2 * H, { schema: 'civ-sci.vessel-leak/1', data: s0.state!.data }, [POT(), WATER()], [], SHADE)), /unsupported-state-schema/);
+  refused('a tar-seal state from 0.1.0 (schema /1: seal taken ahead of time)', step(sealReq([POT(), TAR()], false, { state: { schema: 'civ-sci.vessel-seal/1', data: {} } })), /unsupported-state-schema/);
 }
 
 console.log('—   every result above passed the contract checker');
