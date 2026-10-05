@@ -95,8 +95,8 @@ const ROLE: Record<string, { isl: Tok[]; ja: string }> = {
 };
 const nameW = (id: string) => (LEX as Record<string, string>)[id] ?? id;
 /** One of the values a resident reports: hut 3 of 24, shells 5, map 30 %. */
-export interface Count { what: 'hut' | 'harvest' | 'shell' | 'full' | 'notes' | 'map' | 'cairn'; n: number; of?: number; pct?: boolean }
-const COUNT_JA: Record<Count['what'], string> = { hut: '小屋', harvest: '収穫', shell: '貝殻', full: 'おなか', notes: '記録', map: '地図', cairn: '目印' };
+export interface Count { what: 'hut' | 'harvest' | 'shell' | 'full' | 'notes' | 'map' | 'cairn' | 'isle'; n: number; of?: number; pct?: boolean }
+const COUNT_JA: Record<Count['what'], string> = { hut: '小屋', harvest: '収穫', shell: '貝殻', full: 'おなか', notes: '記録', map: '地図', cairn: '目印', isle: '見えた島' };
 const ITEM: Record<string, { k: Key; ja: string }> = { wood: { k: 'wood', ja: '流木' }, shell: { k: 'shell', ja: '貝殻' }, stone: { k: 'stone', ja: '石' } };
 const DRIFT: Record<string, Key> = { 'ヤシの実': 'coconut', '軽石': 'pumice', '大きな骨のかけら': 'bone', 'モダマの種': 'seabean' };
 
@@ -110,10 +110,10 @@ export const SAY = {
     const isl: Tok[] = [w('report')], ja: string[] = [];
     counts.forEach((c, i) => {
       if (i) isl.push(',');
-      isl.push(w(c.what === 'notes' ? 'notes' : c.what), num(c.n));
+      isl.push(c.what === 'isle' ? w('island') : w(c.what), num(c.n));
       if (c.of !== undefined) isl.push(w('of'), num(c.of));
       if (c.pct) isl.push(w('percent'));
-      ja.push(`${COUNT_JA[c.what]} ${c.n}${c.of !== undefined ? `/${c.of}` : c.pct ? '%' : c.what === 'shell' ? '個' : c.what === 'notes' ? '件' : ''}`);
+      ja.push(`${COUNT_JA[c.what]} ${c.n}${c.of !== undefined ? `/${c.of}` : c.pct ? '%' : c.what === 'shell' ? '個' : c.what === 'notes' ? '件' : c.what === 'isle' ? 'つ' : ''}`);
     });
     isl.push('.');
     return { isl, ja: `報告：${ja.join('、')}` };
