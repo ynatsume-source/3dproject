@@ -80,12 +80,13 @@ console.log('4. chunking, outages, the ends of the tube');
   const a = hours(6, env, () => true), b = hours(6, env, () => true, {}, 30_000), c = hours(6, env, () => true, {}, 3 * H);
   const key = (x: ReturnType<typeof hours>) => JSON.stringify([[...x.reads.entries()], x.last.state]);
   ok(key(a) === key(b) && key(a) === key(c), 'hour by hour = every 30 s = 3 h at a time (weather changing every 3 h): the same readings and the same state');
-  const out = hours(4, (h) => ({ p: 1010, t: 28, source: h === 1 ? 'unknown' : 'simulation' }), () => true);
-  ok(!out.reads.has(1) && out.reads.has(2) && (out.last.diagnostics as { historyComplete: boolean }).historyComplete === false,
-    'an hour of unknown weather: no reading in it (nothing invented), readings resume, the history is marked incomplete');
-  const big = hours(2, (h) => ({ p: h === 0 ? 1010 : 940, t: 28 }), () => true, { equipment: [GAUGE({ tubeLengthMm: 200 })] });
-  const ob = big.reads.get(1)!;
-  ok(ob.value === undefined && /目盛りの外/.test(ob.text ?? ''), 'a short tube and a deep low: the water is past the end of the scale, said in words, no number', ob.text);
+  const out = hours(5, (h) => ({ p: 1010, t: 28, source: h === 1 ? 'unknown' : 'simulation' }), () => true);
+  ok(!out.reads.has(1) && !out.reads.has(2) && out.reads.get(4)?.value === 0 && (out.last.diagnostics as { historyComplete: boolean }).historyComplete === false,
+    'an hour of unknown weather: no reading in it, none while the bulb\'s temperature is still uncertain, then readings resume; the history is marked incomplete',
+    `readings at hours ${[...out.reads.keys()].join(', ')}`);
+  const big = hours(3, (h) => ({ p: h === 1 ? 940 : 1010, t: 28 }), () => true, { equipment: [GAUGE({ tubeLengthMm: 200 })] });
+  ok(big.reads.get(1)?.value === undefined && /あふれ/.test(big.reads.get(1)?.text ?? '') && big.reads.get(2)?.value === undefined && /置いたときの印と合わない/.test(big.reads.get(2)?.text ?? ''),
+    'a short tube and a deep low: the water spills out of the open mouth, said in words; back at 1010 hPa it does not return to 0 marks', `${big.reads.get(1)?.text} / ${big.reads.get(2)?.text}`);
 }
 
 console.log('5. what the resident gets');
@@ -121,6 +122,63 @@ console.log('6. requests that are refused');
   const set = step(base);
   refused('the gauge swapped under a running run', step(req(H, 2 * H, { p: 1010, t: 28 }, set.state, [], { equipment: [GAUGE({ bulbVolumeMl: 600 })] })), /changed-input/);
   refused('a missing interval', step(req(2 * H, 3 * H, { p: 1010, t: 28 }, set.state, [])), /noncontiguous/);
+}
+
+console.log('7. Codex review of 5971025 (A1–A3)');
+{
+  const H30 = 30_000;
+  // A1: lost at 90 s, read at 45 s and 75 s; one request 30–90 s vs two (30–60, 60–90); the gauge stays in the requests
+  const set = step(req(0, H30, { p: 1010, t: 28 }, null, []));
+  const one = step(req(H30, 3 * H30, { p: 980, t: 38 }, set.state, [45_000, 75_000], { stop: 'equipment-lost' }));
+  const a = step(req(H30, 2 * H30, { p: 980, t: 38 }, set.state, [45_000]));
+  const b = step(req(2 * H30, 3 * H30, { p: 980, t: 38 }, a.state, [75_000], { stop: 'equipment-lost' }));
+  const two = [...a.observations, ...b.observations];
+  ok(one.status === 'stopped' && one.observations.length === 2 && JSON.stringify(one.observations) === JSON.stringify(two) && JSON.stringify(one.state) === JSON.stringify(b.state),
+    'A1: a gauge lost at the end of an interval: the readings before it stay, and one request = two requests', one.observations.map((o) => o.value).join(', '));
+  const gone = step(req(2 * H30, 3 * H30, { p: 980, t: 38 }, a.state, [75_000], { stop: 'equipment-lost', equipment: [] }));
+  ok(gone.status === 'stopped' && JSON.stringify(gone.observations) === JSON.stringify(b.observations),
+    'A1: the same when the host no longer lists the lost gauge (the state keeps what the gauge was)');
+  // A2: set at 28 °C; an hour at 33 °C with the pressure missing; back to 1010 hPa / 28 °C, read at its start
+  const gap = (missing: boolean) => {
+    const s0 = step(req(0, H, { p: 1010, t: 28 }, null, []));
+    const rq = req(H, 2 * H, { p: 1010, t: 33 }, s0.state, []);
+    const s1 = step(missing ? { ...rq, environment: { ...rq.environment, pressureHPa: undefined } } : rq);
+    const s2 = step(req(2 * H, 3 * H, { p: 1010, t: 28 }, s1.state, [2 * H]));
+    return { bulb: (s1.diagnostics as { bulbC: number[] }).bulbC, mark: s2.observations[0]?.value, during: s1.observations.length };
+  };
+  const miss = gap(true), ctrl = gap(false);
+  ok(miss.during === 0 && miss.mark === ctrl.mark && miss.mark === 11 && miss.bulb[0] === ctrl.bulb[0] && miss.bulb[0] > 32.9,
+    'A2: with only the pressure missing, the known warmth still warms the bulb; back again it reads like the control', `${miss.mark} vs ${ctrl.mark} marks, bulb ${miss.bulb[0].toFixed(4)} °C`);
+  // A2 (the overflow nobody saw): a short tube, the pressure missing for 6 h: a deep low cannot be ruled out
+  const long = (hrs: number, tube: number) => {
+    let st = step(req(0, H, { p: 1010, t: 28 }, null, [], { equipment: [GAUGE({ tubeLengthMm: tube })] })).state;
+    for (let h = 1; h <= hrs; h++) { const rq = req(h * H, (h + 1) * H, { p: 1010, t: 28 }, st, [], { equipment: [GAUGE({ tubeLengthMm: tube })] }); st = step({ ...rq, environment: { ...rq.environment, pressureHPa: undefined } }).state; }
+    const r = step(req((hrs + 1) * H, (hrs + 2) * H, { p: 1010, t: 28 }, st, [(hrs + 1) * H], { equipment: [GAUGE({ tubeLengthMm: tube })] }));
+    return r;
+  };
+  const shortGap = long(1, 600), deepGap = long(6, 200);
+  ok(shortGap.observations[0]?.value === 0, 'A2: an hour without the pressure, a long tube: no low that fast could spill it, readings go on');
+  ok(deepGap.observations.length === 0 && (deepGap.diagnostics as { condition: string }).condition === 'unknown',
+    'A2: six hours without the pressure, a short tube: a spill cannot be ruled out, so no number is given (until it is set again)');
+  // A3: past the end of the tube even with nobody reading, then back to 1010 hPa
+  for (const [tube, p] of [[600, 900], [200, 940], [200, 980]] as const) {
+    const r = hours(3, (h) => ({ p: h === 1 ? p : 1010, t: 28 }), (h) => h === 2, { equipment: [GAUGE({ tubeLengthMm: tube })] });
+    const ob = r.reads.get(2);
+    ok(ob && ob.value === undefined && /合わない/.test(ob.text ?? '') && (r.last.diagnostics as { condition: string }).condition === 'spilled-top',
+      `A3: ${tube} mm tube, ${p} hPa unread, then 1010 hPa: the spill is remembered, not 0 marks`, ob?.text);
+  }
+  const now = step(req(H, 2 * H, { p: 940, t: 28 }, step(req(0, H, { p: 1010, t: 28 }, null, [], { equipment: [GAUGE({ tubeLengthMm: 200 })] })).state, [H, H + 60_000], { equipment: [GAUGE({ tubeLengthMm: 200 })] }));
+  ok(/あふれた$/.test(now.observations[0]?.text ?? '') && /減ったまま/.test(now.observations[1]?.text ?? ''), 'A3: read at the moment it spills: "it spilled"; a minute later: "still short of water"',
+    now.observations.map((o) => o.text).join(' / '));
+  // the same storm with a pressure gap and a short tube, in 30 s, 1 h and 3 h pieces: the same readings and the same state
+  const env = (h: number): Env => { const k = Math.floor(h / 3); return { p: k === 1 ? (undefined as unknown as number) : 1010 - k * 12, t: 28 + 2 * (k % 2) }; }; // changes every 3 h
+  for (const tube of [260, 600]) {
+    const run = (chunk: number) => hours(12, env, () => true, { equipment: [GAUGE({ tubeLengthMm: tube })] }, chunk);
+    const key = (x: ReturnType<typeof hours>) => JSON.stringify([[...x.reads.entries()], x.last.state]);
+    const c1 = run(H), c2 = run(30_000), c3 = run(3 * H);
+    ok(key(c1) === key(c2) && key(c1) === key(c3), `${tube} mm tube, a pressure gap and a falling pressure: 30 s = 1 h = 3 h pieces`,
+      `condition ${(c1.last.diagnostics as { condition: string }).condition}, ${c1.reads.size} readings`);
+  }
 }
 
 console.log('—   every result above passed the contract checker');

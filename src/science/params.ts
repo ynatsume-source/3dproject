@@ -105,8 +105,14 @@ export const PARAMS = {
   combustionToChamber: P('combustionToChamber', 0.3, 'fraction', 'assumed', ['S-kilneff'],
     '試験窯：燃焼熱のうち炉内に入る割合。残りは排気で直接失う'),
   // the air-and-water barometer (step/barometer.ts)
-  waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [], '水の密度（教科書の値。出典本文は未照合。水温による差は扱わない）'),
-  gravity: P('gravity', 9.81, 'm/s2', 'assumed', [], '重力加速度（教科書の値。出典本文は未照合）'),
+  waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
+    '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),
+  gravity: P('gravity', 9.81, 'm/s2', 'assumed', [], '重力加速度。OpenStax の例題は 9.80 m/s²。島の重力の照合ではない'),
+  gapAirMinC: P('gapAirMinC', 10, '°C', 'assumed', [],
+    '気温が分からない区間で、気温が取りうる下限。亜熱帯の島の気候を少し広く囲む仮の幅（島の観測記録とは未照合）。器の温度の不確かさの幅に使う'),
+  gapAirMaxC: P('gapAirMaxC', 38, '°C', 'assumed', [], '同じく上限'),
+  pressureRateMaxHPaPerH: P('pressureRateMaxHPaPerH', 20, 'hPa/h', 'assumed', [],
+    '気圧が分からない区間で、気圧が変わりうる速さの上限。与那国島 2015-09-28 の観測（sources.json jma-yonaguni-20150928-hourly）では1時間に最大 8.5 hPa。台風の目の通過はもっと速いことがあるので余裕を見た仮の値'),
 };
 
 export type ParamId = keyof typeof PARAMS;

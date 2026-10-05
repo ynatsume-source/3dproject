@@ -2,7 +2,7 @@
 
 2026-10-04 / ブランチ `codex/civilization-simulation` / レビュー方針 [REVIEW_POLICY.md](REVIEW_POLICY.md)（オーナー合意）
 
-**Codex の確認はすべて完了（lab 284f935）。** `fixture-3` は simulation 専用で、live 環境を許す予定の版は `fixture-4`。
+**Codex の確認はすべて完了（lab 284f935）。** `fixture-3` は simulation 専用。（2026-10-05 訂正：次の `fixture-4` は simulation と record で動き、live は拒否）
 
 **未採択の提案。** 採択と統合は本体側の最終レビューの後に、本体側が行う。科学側は main・lab・共通ファイル（`src/world/science-contract.ts`）を変えていない。
 
