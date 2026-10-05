@@ -120,6 +120,12 @@ export function makeDrone() {
   const haloMat = new THREE.SpriteMaterial({ color: 0xfff1d6, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
   const halos: THREE.Sprite[] = [];
   for (const sx of [-1, 1]) { const h = new THREE.Sprite(haloMat); h.position.set(sx * 0.1, 0.035, 0.19); h.scale.setScalar(0.09); group.add(h); halos.push(h); }
+  // Doron's number on its forehead (Dot's world, ADR 0007): painted on the shell just behind the dome, read from in
+  // front; none on the Earth's seas, where the drone is the visitor's own
+  const tagMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  const tag = new THREE.Mesh(new THREE.PlaneGeometry(0.088, 0.05), tagMat);
+  tag.rotation.x = -Math.PI / 2 + 0.11; tag.position.set(0, 0.0805, 0.105); tag.visible = false; group.add(tag);
+  let tagN: number | null = null;
   group.traverse((o) => { o.frustumCulled = false; });
   group.visible = false;
 
@@ -132,6 +138,15 @@ export function makeDrone() {
       props[0].rotation.z = spin; props[1].rotation.z = -spin;
       (material.uniforms.uGlow as { value: number }).value = glow;
       haloMat.opacity = glow * 0.55;
+    },
+    /** The number on its forehead (null: none). */
+    setNumber(n: number | null) {
+      if (n === tagN) return; tagN = n; tag.visible = n !== null;
+      if (n === null || typeof document === 'undefined') return;
+      const c = document.createElement('canvas'); c.width = 256; c.height = 148; const g = c.getContext('2d')!;
+      g.clearRect(0, 0, 256, 148); g.fillStyle = '#11171a'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '800 124px "Helvetica Neue", Arial, sans-serif'; g.fillText(String(n).padStart(2, '0'), 128, 80);
+      tagMat.map?.dispose(); tagMat.map = new THREE.CanvasTexture(c); tagMat.needsUpdate = true;
     },
   };
 }

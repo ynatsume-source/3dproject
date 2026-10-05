@@ -865,6 +865,8 @@ function applyView(dt: number, t: number) {
   g.position.copy(drone.pos); g.position.y += Math.sin(t * 1.1) * 0.012 + Math.sin(t * 0.43 + 2) * 0.008;
   g.rotation.set(-chase.pitch + Math.sin(t * 0.7) * 0.015, drone.yaw + Math.PI + Math.sin(t * 0.37) * 0.02, chase.roll + Math.sin(t * 0.9 + 1) * 0.02, 'YXZ');
   droneModel.animate(dt, Math.min(1, drone.vel.length() / 3), U.uLamp.value);
+  // (Dot's world: the drone is a Doron, numbered — 01–04 each with its resident, 13 the one on its rounds — ADR 0007)
+  droneModel.setNumber((cur.loc as any).world === 'planet' ? ({ dot: 1, lantern: 2, kame: 3, rakko: 4 } as Record<string, number>)[(watch.r as any)?.id ?? ''] ?? 13 : null);
   // the camera: a little behind, above and to one side, following with a soft lag, looking past the drone
   _cr.set(-_cf.z, 0, _cf.x).normalize();
   _ct.copy(drone.pos).addScaledVector(_cf, -1.55).addScaledVector(_cr, 0.32); _ct.y += 0.42;
