@@ -73,8 +73,9 @@ export function creatureKit(M: CMats, shadows = false) {
   const glint = (e: THREE.Mesh) => { const g = ell(0.32, 0.32, 0.3, M.white ?? M.furPale, 8); g.position.set(0.3, 0.42, 0.72); e.add(g); };
   function makeSeaOtter(L: Look = {}): Robot {
     const root = new THREE.Group(), body = new THREE.Group(); root.add(body);
-    // the body: long and round, thickest at the chest and hips, the neck hardly narrower than the head
-    const torso = latheZ([[0.001, -0.36], [0.055, -0.352], [0.1, -0.315], [0.13, -0.25], [0.148, -0.15], [0.152, -0.03], [0.148, 0.07], [0.132, 0.16], [0.108, 0.235], [0.092, 0.285], [0.086, 0.32], [0.05, 0.345], [0.001, 0.35]], M.fur);
+    // the body: long and round, the neck hardly narrower than the head, and widest at the hips: a big, round, heavy
+    // seat (owner's note, 2026-10-05: the roundness of its bottom matters), tapering to the chest
+    const torso = latheZ([[0.001, -0.385], [0.06, -0.38], [0.112, -0.358], [0.15, -0.318], [0.172, -0.262], [0.18, -0.2], [0.174, -0.13], [0.16, -0.05], [0.148, 0.04], [0.136, 0.13], [0.112, 0.225], [0.092, 0.285], [0.086, 0.32], [0.05, 0.345], [0.001, 0.35]], M.fur);
     torso.scale.y = 0.9; body.add(torso);
     // the chest and throat, paler (grizzled in an older otter), on the underside
     const chest = ell(0.1, 0.06, 0.15, M.furPale); chest.position.set(0, -0.075, 0.17); body.add(chest);
@@ -113,17 +114,17 @@ export function creatureKit(M: CMats, shadows = false) {
     // hind legs: big webbed flippers, held back along the body
     const thighs: THREE.Mesh[] = [];
     const feet = [-1, 1].map((sx) => {
-      const thigh = ell(0.05, 0.05, 0.075, M.fur, 16); thigh.position.set(sx * 0.085, -0.04, -0.24); body.add(thigh); thighs.push(thigh);
-      const f = new THREE.Group(); f.position.set(sx * 0.095, -0.07, -0.29); body.add(f);
+      const thigh = ell(0.068, 0.062, 0.088, M.fur, 18); thigh.position.set(sx * 0.11, -0.045, -0.255); body.add(thigh); thighs.push(thigh);
+      const f = new THREE.Group(); f.position.set(sx * 0.11, -0.08, -0.3); body.add(f);
       const web = ell(0.05, 0.011, 0.1, M.furDark, 18); web.position.set(sx * 0.008, 0, -0.08); f.add(web);
       for (let k = 0; k < 4; k++) { const toe = ell(0.009, 0.008, 0.03, M.furDark, 8); toe.position.set(sx * 0.008 + (k - 1.5) * 0.024, 0, -0.165); f.add(toe); }
       return { f, sx };
     });
     // its seat, sitting up: a soft round rump that spreads a little on the sand (shown only then)
-    const rump = ell(0.14, 0.11, 0.1, M.fur, 24); rump.position.set(0, -0.035, -0.27); rump.visible = false; body.add(rump);
+    const rump = ell(0.17, 0.125, 0.12, M.fur, 28); rump.position.set(0, -0.05, -0.29); rump.visible = false; body.add(rump);
     const tsx = torso.scale.x, tsy = torso.scale.y, headZ = head.position.z, rumpS = rump.scale.clone(), thighS = thighs[0].scale.clone();
     // the tail: short, flat and thick, a little paddle
-    const tail = new THREE.Group(); tail.position.set(0, -0.01, -0.34); body.add(tail);
+    const tail = new THREE.Group(); tail.position.set(0, -0.01, -0.365); body.add(tail);
     const tl = ell(0.048, 0.018, 0.15, M.fur); tl.position.z = -0.13; tail.add(tl);
     // its favourite stone, kept in the loose skin under its arm and brought out to crack shells on
     const stone = ell(0.05, 0.026, 0.042, M.stone, 16); stone.position.set(0, -0.155, 0.06); body.add(stone);
@@ -181,7 +182,7 @@ export function creatureKit(M: CMats, shadows = false) {
       torso.scale.set(tsx * (1 + 0.1 * ez + breath), tsy * (1 + 0.08 * ez + breath), 1 - 0.12 * ez);
       head.position.z = headZ - 0.045 * ez;
       rump.visible = ez > 0.02; rump.scale.set(rumpS.x * (1 + 0.15 * ez), rumpS.y * Math.max(0.01, ez), rumpS.z * Math.max(0.01, ez) * 0.9);
-      thighs.forEach((th, i) => { th.position.x = (i ? 1 : -1) * (0.085 + 0.03 * ez); th.position.z = -0.24 + 0.03 * ez; th.scale.copy(thighS).multiplyScalar(1 + 0.2 * ez); });
+      thighs.forEach((th, i) => { th.position.x = (i ? 1 : -1) * (0.11 + 0.025 * ez); th.position.z = -0.255 + 0.03 * ez; th.scale.copy(thighS).multiplyScalar(1 + 0.2 * ez); });
       // (its height ashore: half up on its haunches as before; sitting up, from how far its shortened body stands)
       // (when it is not sitting up, exactly as before: the island's checks follow it to the last digit)
       let ashore = 0.18 + Math.abs(Math.sin(gw5)) * 0.02 * walk + Math.max(0, -pitch) * 0.37;
