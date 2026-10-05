@@ -394,6 +394,40 @@
       },
       "supports": "Actual paired pressure/temperature/humidity: station pressure 987.1 to 957.1 hPa from 09 to 15 JST, with temperature 28.0 to 25.6 C; largest hourly fall in these rows is 8.5 hPa from 14 to 15 JST.",
       "doesNotVerify": "These are weather observations, not air-and-water gauge measurements. No measured bulb or bath temperature, apparatus dimensions, thermal tau, evaporation/leak rate, or forecast skill. Not an automatic selection of the game weather dataset."
+    },
+    {
+      "id": "jma-ishigaki-20160124-hourly",
+      "publisher": "Japan Meteorological Agency (気象庁)",
+      "title": "石垣島 2016年1月24日 1時間ごとの値",
+      "sourceType": "primary-observation-table",
+      "url": "https://www.data.jma.go.jp/stats/etrn/view/hourly_s1.php?block_no=47918&day=24&month=01&prec_no=91&view=a1&year=2016",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-table-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/jma-ishigaki-20160124-hourly.csv",
+        "sha256": "0d1df7ecca6e4800711edac9454ddc0c57307a2169139fcfd3442568c4ea2585",
+        "format": "UTF-8 CSV, LF newlines",
+        "hashScope": "normalized selection of 24 hourly rows and five columns; not the raw publisher HTML"
+      },
+      "conditions": {
+        "station": "石垣島 (Ishigakijima)",
+        "precNo": "91",
+        "blockNo": "47918",
+        "date": "2016-01-24",
+        "timezone": "Asia/Tokyo",
+        "hourConvention": "1 through 24 JST as published; 24 denotes 2016-01-25 00:00 JST",
+        "pressure": "station and sea-level-reduced pressure kept separately; the physical comparison uses station pressure",
+        "sampling": "hourly reported values; no interpolation or gap filling in the CSV; no missing markers in selected columns",
+        "units": {
+          "station_pressure_hpa": "hPa",
+          "sea_level_pressure_hpa": "hPa",
+          "air_temp_c": "degC",
+          "relative_humidity_pct": "percent"
+        }
+      },
+      "supports": "Actual air temperatures below 10 C at the island weather source station: 18 JST is 8.6 C; 22 JST is 8.1 C. A fixed 10 C lower bound does not enclose all recorded weather at this station.",
+      "doesNotVerify": "No barometer, bulb or water-bath measurements. Does not establish the station's all-time extrema, a universal replacement temperature bound, a pressure-change-rate bound, or the game's chosen replay year. Hourly hold-forward and artificial temperature omission are diagnostic choices, not missing observations in the original table."
     }
   ]
 }
