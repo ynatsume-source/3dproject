@@ -10,7 +10,8 @@ import type { Weather } from '../time/weather';
 export const ISLAND_RATE = 365 / 28;
 /** The real moment the island's calendar began, and the day of its year it began on (island June 1st: the typhoon
  *  season is days away, not weeks). */
-const EPOCH = Date.parse('2026-10-05T00:00:00+09:00'), EPOCH_DAY = 151;
+export const ISLAND_EPOCH = Date.parse('2026-10-05T00:00:00+09:00');
+const EPOCH = ISLAND_EPOCH, EPOCH_DAY = 151;
 const DAY = 86400000;
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
