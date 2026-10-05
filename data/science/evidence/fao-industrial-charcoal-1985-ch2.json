@@ -1,0 +1,24 @@
+{
+  "sourceUrl": "https://www.fao.org/4/x5555e/x5555e03.htm",
+  "retrievedDateJst": "2026-10-05",
+  "recordType": "Reviewer transcription of selected facts from the original published body; not raw publisher bytes",
+  "facts": {
+    "location": "Sections 2.3, 2.4, 2.5 and 2.9.1.2; title/year checked against x5555e00.htm",
+    "yield_basis": "Bone-dry wood; overall indirect-retort yield includes external firing wood.",
+    "reported_charcoal_yield_percent": [
+      {
+        "temperature_C": 400,
+        "yield_percent": 42,
+        "context": "soft-burned charcoal, temperature not exceeding about 400 C"
+      },
+      {
+        "temperature_C": 500,
+        "yield_percent": 33,
+        "context": "more completely carbonised charcoal"
+      }
+    ],
+    "heating_qualification": "Further heating removes volatile matter from already formed charcoal. Carbonisation can become exothermic; it is not heat-neutral throughout.",
+    "conditions_and_replicates": "General technical guidance, not a replicate-level experiment for the game apparatus."
+  },
+  "calibrationEligible": false
+}

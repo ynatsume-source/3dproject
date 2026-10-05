@@ -558,6 +558,81 @@
         "format": "UTF-8 JSON, LF newlines",
         "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
       }
+    },
+    {
+      "id": "fao-industrial-charcoal-1985-ch2",
+      "publisher": "Food and Agriculture Organization of the United Nations (FAO)",
+      "title": "Industrial charcoal making — FAO Forestry Paper 63 (1985), Chapter 2: Wood carbonisation and the products it yields",
+      "sourceType": "primary-institution-technical-manual",
+      "url": "https://www.fao.org/4/x5555e/x5555e03.htm",
+      "supports": "Temperature-dependent charcoal yields, and the distinction between charge conversion and overall retort fuel efficiency.",
+      "doesNotVerify": "A 2 kg double-pot retort, 40% at 486 C, the assumed kinetics, collection fraction, char composition, or zero pyrolysis heat.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/fao-industrial-charcoal-1985-ch2.json",
+        "sha256": "5687b29fa8c9a4c613afef7a1d01204e42399d26aff94df9aafb8ebd5f45b84c",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
+    },
+    {
+      "id": "fao-simple-charcoal-1983-ch7",
+      "publisher": "Food and Agriculture Organization of the United Nations (FAO)",
+      "title": "Simple technologies for charcoal making — FAO Forestry Paper 41 (1983; 1987 reprint), Chapter 7: Brick kilns",
+      "sourceType": "primary-institution-operating-manual",
+      "url": "https://www.fao.org/4/x5328e/x5328e08.htm",
+      "supports": "Qualitative smoke progression, hot-opening loss, and reloading incompletely carbonised wood.",
+      "doesNotVerify": "The yellow-smoke stage, a 300 C ignition threshold, instant 20–60% burn-off, or the hours required by a small double pot.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/fao-simple-charcoal-1983-ch7.json",
+        "sha256": "f6e6964a483e6c6ebaaab6a51a1a75e143dd25574c4755afe433efe6cb9c142b",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
+    },
+    {
+      "id": "usda-fpl19-pyrolysis-calorimetry-1964",
+      "publisher": "USDA Forest Service, Forest Products Laboratory; official government copy via GovInfo",
+      "author": "F. L. Browne and J. J. Brenden",
+      "title": "Heat of Combustion of the Volatile Pyrolysis Products of Fire-Retardant-treated Ponderosa Pine — U.S. Forest Service Research Paper FPL 19 (December 1964)",
+      "sourceType": "primary-experimental-research-report",
+      "url": "https://www.govinfo.gov/content/pkg/GOVPUB-A13-PURL-gpo186517/pdf/GOVPUB-A13-PURL-gpo186517.pdf",
+      "supports": "Primary calorimetry with documented material and experimental conditions; context for an approximation that neglects pyrolysis heat in a combustion-energy calculation.",
+      "doesNotVerify": "Zero instantaneous reaction heat or accurate retort temperature/time predictions. The less-than-5% argument cites earlier work; it is not an independently measured zero in this study.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/usda-fpl19-pyrolysis-calorimetry-1964.json",
+        "sha256": "8fbd345fc2e41257a66498fa0ad64096c65a983f54705e86133d43d30966b2c4",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
+    },
+    {
+      "id": "zhang-biomass-char-2015",
+      "publisher": "BioResources, NC State University",
+      "author": "Yu Zhang, Ming Zhai, Xinyu Wang, Jiawei Sun, Peng Dong, Pengbin Liu and Qunyi Zhu",
+      "title": "Preparation and characteristics of biomass char (2015), BioResources 10(2), 3017–3026",
+      "sourceType": "primary-experimental-research-paper",
+      "url": "https://bioresources.cnr.ncsu.edu/resources/preparation-and-characteristics-of-biomass-char/",
+      "doi": "10.15376/biores.10.2.3017-3026",
+      "supports": "A measured wood-particle char-yield comparison at two temperatures, with apparatus and feed conditions.",
+      "doesNotVerify": "Whole-log or coconut-shell double-pot yields, liquid collection, the game reaction law, or replicate uncertainty. Particle-size trend wording conflicts between body and abstract/conclusion; no such trend is adopted here.",
+      "accessedDateJst": "2026-10-05",
+      "verification": "original-publisher-or-official-government-copy-relevant-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/zhang-biomass-char-2015.json",
+        "sha256": "d090402d5325ef2e287a05292b2ae6774c5287fb1b5160aeb6dbb47891a7d54f",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "reviewer transcription of selected facts; NOT the raw publisher HTML/PDF, and NOT a hash of the complete publication"
+      }
     }
   ]
 }
