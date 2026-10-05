@@ -13,9 +13,9 @@ export const PREY_JA: Record<Prey, string> = { urchin: 'ウニ', crab: 'カニ',
 export const FILLS: Record<Prey, number> = { urchin: 0.15, crab: 0.2, clam: 0.12 };
 
 /** A patch of the bottom where Rakko finds its food: so many of each there now, so many it holds at most. */
-export interface Patch { id: string; x: number; z: number; stock: Record<Prey, number>; max: Record<Prey, number>; at: number }
+export interface Patch { id: string; x: number; z: number; stock: Record<Prey, number>; max: Record<Prey, number>; at: number; by?: string }   // (by: a reef someone made — driftwood sunk for shellfish to settle on)
 /** A seagrass bed: how much is there to graze, 0..1. */
-export interface Bed { id: string; x: number; z: number; grass: number; at: number }
+export interface Bed { id: string; x: number; z: number; grass: number; at: number; replanted?: number; by?: string }   // (replanted: until when it grows back three times as fast)
 
 // operating settings (how hard the body is on them: ADR 0004, start gentle)
 export const BODY = {
@@ -52,7 +52,7 @@ export function regrow(p: Patch, now: number) {
   }
 }
 // (a bed grows back on the island's clock: 30 island hours — ADR 0006; a patch's regrowMin is already a real-time pace)
-export function regrowBed(b: Bed, now: number) { b.grass = Math.min(1, b.grass + (now - b.at) / ((BODY.bedRegrowH * 3.6e6) / (365 / 28))); b.at = now; }
+export function regrowBed(b: Bed, now: number) { b.grass = Math.min(1, b.grass + ((now - b.at) * (b.replanted && now < b.replanted ? 3 : 1)) / ((BODY.bedRegrowH * 3.6e6) / (365 / 28))); b.at = now; }
 
 /** One dive at a patch: what it comes up with ('' none), and whether it was weak from hunger (short and poor). */
 export function dive(p: Patch, hunger: number, rnd: () => number): { prey: Food; weak: boolean } {

@@ -616,7 +616,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
    } finally { Math.random = rnd0; } }
   const patchById = (id?: string) => patches.find((p) => p.id === id);
-  const patchName = (id?: string) => PATCH_NAMES[+(id ?? '').split('#')[1]] ?? '岩場';
+  const patchName = (id?: string) => { const p = patchById(id); return p?.by ? `${byId[p.by]?.v.name ?? ''}の漁礁` : PATCH_NAMES[+(id ?? '').split('#')[1]] ?? '岩場'; };
   const nearPatch = (p: Patch) => spot([p.x, p.z], 6, water(1.2, 8)) ?? [p.x, p.z] as [number, number];
   // the place it would go to eat: one it knows that gave it something last time, else the nearest it knows
   function bestPatch(r: Resident): Patch | undefined {
@@ -682,6 +682,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (!b.got) { r.diary.push({ at: clockMs, text: `${where}では何も獲れなかった`, key: 'body' }); }
     act(r, 'got', `食べに潜った：${detail}`);
     const a = agentOf(r); if (a && b.opt) { a.result(b.opt, 'eat', b.got ? 'done' : 'gone', clockMs, detail, b.got / Math.max(1, b.tries), `${where}で食べる`); flushMind(r, a); }
+    // (fed at a reef another made: that one's doing has paid — learnt as such)
+    { const pp = patchById(b.patch); if (a && pp?.by && b.got) a.values.bonus(`made:${pp.by}`, `${byId[pp.by]?.v.name ?? pp.by}がつくった漁礁`, b.got / Math.max(1, b.tries)); }
     r.task = b.got ? task('groom', [r.pos.x, r.pos.z], 'groom', rr(60, 150), { wet: true, arrived: true }) : null;   // (after eating, cleaning the fur)
   }
   /** A dive at a patch: what it will come up with is the patch's to give, and less when it is weak from hunger. */
@@ -693,6 +695,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function live(r: Resident, hr: number): Task | null | undefined {
     const home = r.sp.home, day = dayK(hr), night = sleepTime(r, hr);
     if (r.id === 'rakko') {
+      // (too hungry to go on: what it carries is let go where it is — a shell back on the sand — and it goes to eat)
+      if (r.holding && r.hunger > 0.8) { if (r.holding === 'shell') items.addAt('shell', r.pos.x, r.pos.z); r.holding = ''; }
       if (r.holding) return undefined;
       // (past what it can let go: the body decides — very hungry, it dives whatever it had in mind; the rest is its own)
       if (r.hunger > (night ? 0.85 : 0.8)) { const p = bestPatch(r); return startBout(r, p ? forage(nearPatch(p), p, r) : null); }
@@ -895,6 +899,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!r.holding) for (const it of items.list) if (it.kind === 'wood' && (!it.by || it.by === r.id) && known(`wood#${it.id}`)) o.push({ id: `gather:wood#${it.id}`, action: 'gather', label: `流木を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `wood#${it.id}` });
     // (steps that become possible later are offered too, for planning, marked with what they need)
     o.push({ id: 'craft:bench', action: 'craft', label: '作業台で流木を部材に削る', targetId: 'bench', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っていること' }) });
+    // (trades, ADR 0006: driftwood sunk in Rakko's water for shellfish to settle on — a log not put on the hut; a
+    // seagrass bed torn up by a typhoon planted again for Kamemaru)
+    if (r.id === 'dot' && patches.filter((p) => p.by).length < 3) o.push({ id: 'reef:sea', action: 'reef', label: '流木を沈めて漁礁をつくる（ラッコの海）', targetId: 'sea', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っている' }) });
+    if (r.id === 'dot' && !r.holding) for (const b of beds) if (b.grass < 0.5 && !(b.replanted && clockMs < b.replanted)) { o.push({ id: `replant:${b.id}`, action: 'replant', label: `荒れた藻場を植え直す（カメマルの藻場、海草 ${Math.round(b.grass * 100)}%）`, targetId: b.id }); break; }
     if (r.stats.built < HUT.length) o.push({ id: 'place:hut', action: 'place', label: `部材を小屋に取りつける（${r.stats.built + 1}/${HUT.length}）`, targetId: 'hut', ...(r.holding === 'piece' ? {} : { ready: false, needs: '削った部材を持っていること' }) });
     if (!r.holding && drift.kind >= 0 && !drift.by && known('drift')) o.push({ id: 'find:drift', action: 'find', label: '浜の見慣れないものを拾って調べる', targetId: 'drift' });
     o.push({ id: 'shelve:shelf', action: 'shelve', label: '見つけたものを棚に飾る', targetId: 'shelf', ...(r.holding === 'drift' ? {} : { ready: false, needs: '見つけたものを持っていること' }) });
@@ -917,6 +925,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     let t: Task | null = null;
     if (action === 'gather') { const n = +target.split('#')[1], it = items.list.find((x) => x.id === n && x.kind === 'wood'); if (!it || (it.by && it.by !== r.id)) return null; items.claim(it, r.id); t = task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
     else if (action === 'craft') t = r.holding === 'wood' ? task('craft', benchStand(), 'work', rr(45, 75)) : null;
+    else if (action === 'reef') { const rh = byId.rakko?.sp.home ?? r.sp.home, at = spot(rh, 40, shore, 80); t = r.holding === 'wood' && at ? task('reef', at, 'work', 8) : null; }
+    else if (action === 'replant') { const b = beds.find((x) => x.id === target), at = b && (spot([b.x, b.z], 40, shore, 80) ?? spot([b.x, b.z], 90, shore, 120) ?? spot([b.x, b.z], 90, beach, 120));   /* (from the nearest bit of beach it can stand on: it plants the shallow edge) */ t = b && at ? task('replant', at, 'work', 20, { data: b.id }) : null; }
     else if (action === 'place') t = r.holding === 'piece' && r.stats.built < HUT.length ? task('place', slotStand(r.stats.built), 'hammer', 7) : null;
     else if (action === 'find') { if (drift.kind < 0 || drift.by) return null; drift.by = r.id; t = task('find', [drift.x, drift.z], 'pick', 6); }
     else if (action === 'shelve') t = r.holding === 'drift' ? task('shelve', [shelf.position.x + 0.6, shelf.position.z + 0.6], 'work', 4) : null;
@@ -982,7 +992,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const acc = has('accept:');
       if (acc) {
         // (its own choice: hungry, sleepy, busy, or not knowing where any is — it says no; otherwise mostly yes)
-        const ok = r.hunger < (r.body?.learn.eatAt ?? 0.45) && r.sleepy < (r.body?.learn.sleepAt ?? 0.6) && (r.holding === 'wood' || (!r.holding && !!near('gather'))) && Math.random() < 0.8;
+        const ok = r.hunger < (r.body?.learn.eatAt ?? 0.45) && r.sleepy < (r.body?.learn.sleepAt ?? 0.6) && (r.holding === 'wood' || (!r.holding && !!near('gather'))) && Math.random() < 0.8 + 0.15 * Math.min(1, trust(r, byId.dot));   // (more surely for one whose doings have paid it)
         return ok ? { text: 'ドットに流木を届ける', why: '頼まれたので', plan: r.holding === 'wood' ? [acc, 'give:dot'] : [acc, near('gather')!, 'give:dot'] } : { text: '頼みを断る', why: refuseWhy(r), plan: [has('refuse:')!] };
       }
       if (requests.some((q) => q.to === r.id && q.status === 'accepted')) {
@@ -1048,6 +1058,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     res.onEvent('answer', `${r.v.name}が${from.v.name}の頼みを${yes ? '引き受けた' : '断った'}`, r);
     const fa = agentOf(from); if (fa) { fa.answered(q, clockMs, r.v.name); flushMind(from, fa); }
     if (yes) { const a = agentOf(r); if (a) a.why = `引き受けた：${from.v.name}に流木を届ける（${q.id}）`; }
+    // (what it did for the other, paid back: taken on by one its reef has fed — a reward for having made it)
+    if (yes && fa && trust(r, from) > 0.1 && patches.some((p) => p.by === from.id)) fa.values.bonus('reef:sea', '流木を沈めて漁礁をつくる', 0.5);
   }
   /** The island's date, season and weather, as its mind is told them (the replayed record's values, as measured). */
   function islandNow() {
@@ -1125,6 +1137,26 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         r.stats.wood = 1; note(r, 'gather', {}, '流木を拾った');
         if (agentOf(r)) { r.task = null; return; }   // (its next step is its own to choose)
         r.task = task('craft', benchStand(), 'work', rr(45, 75)); return;
+      case 'reef': {
+        if (r.holding !== 'wood') { tk.failed = 'unavailable'; break; }
+        const at = spot([r.pos.x, r.pos.z], 30, water(0.8, 6), 80); if (!at) { tk.failed = 'nowhere to stand'; break; }   // (thrown out from the shore into water deep enough to dive)
+        r.holding = ''; r.stats.wood = 0;
+        const p = makePatch(`patch#${patches.length}`, at[0], at[1], Math.random, clockMs); p.by = r.id;
+        for (const k of Object.keys(p.stock) as (keyof typeof p.stock)[]) p.stock[k] = 0;   // (bare wood at first: shellfish settle on it with time)
+        patches.push(p);
+        r.diary.push({ at: clockMs, text: '流木を沈めて漁礁をつくった（ラッコの海）', key: 'got' });
+        // (Rakko comes upon it in its own water: a new place to dive, known from now on)
+        const rk = byId.rakko; if (rk?.body && !rk.body.known.includes(p.id)) { rk.body.known.push(p.id); rk.diary.push({ at: clockMs, text: `新しい漁礁があった（${r.v.name}が沈めた流木）`, key: 'met', with: r.id }); }
+        res.onEvent('trade', `${r.v.name}が流木を沈めて漁礁をつくった`, r);
+        break;
+      }
+      case 'replant': {
+        const b = beds.find((x) => x.id === tk.data); if (!b) { tk.failed = 'gone'; break; }
+        regrowBed(b, clockMs); b.replanted = clockMs + islandWait(10 * 24 * 3.6e6); b.by = r.id;
+        r.diary.push({ at: clockMs, text: '荒れた藻場を植え直した（カメマルの藻場）', key: 'got' });
+        res.onEvent('trade', `${r.v.name}が荒れた藻場を植え直した`, r);
+        break;
+      }
       case 'craft':
         r.stats.wood = 0;
         if (r.stats.built >= HUT.length && village.pier === 'build') { r.holding = 'plank'; r.task = null; return; }   // (a plank for the pier)
@@ -1599,7 +1631,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** Has it learnt, from what came of it, that what others tell it is of use? (ADR 0004, addendum 2026-10-04) */
   const keen = (r: Resident) => (r.stats.talkUse ?? 0) >= 0.3;
   /** How much what `o` has told `r` has paid, as `r` has learnt it (its value of 'heard from o': agent/values.ts). */
-  const trust = (r: Resident, o: Resident) => { const a = agentOf(r), v = a?.values.m.get(`heard:${o.id}`); return a && v ? a.values.value(v) : 0; };
+  const trust = (r: Resident, o: Resident) => { const a = agentOf(r); if (!a) return 0; let t = 0; for (const k of [`heard:${o.id}`, `made:${o.id}`]) { const v = a.values.m.get(k); if (v) t += a.values.value(v); } return t; };
   function checkMeetings(fast: boolean) {
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
