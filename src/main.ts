@@ -41,7 +41,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble } from './audio';
+import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -1832,7 +1832,9 @@ function enterOcean(oc: Ocean) {
       const d = camera.position.distanceTo(r.pos); if (d > 40) return;
       _w.subVectors(r.pos, camera.position).normalize();
       const right = new THREE.Vector3(Math.cos(drone.yaw), 0, -Math.sin(drone.yaw));
-      babble(r.id, text, Math.min(1, 1.3 / (1 + d * 0.12)) * (camera.position.y > 0 || r.pos.y < 0 ? 1 : 0.4), _w.dot(right));
+      // (a line in the island's words: said in its own voice; anything else: the old babble)
+      const loud = Math.min(1, 1.3 / (1 + d * 0.12)) * (camera.position.y > 0 || r.pos.y < 0 ? 1 : 0.4);
+      if (r.sayIsl) lumauVoice(r.id, r.sayIsl, loud, _w.dot(right)); else babble(r.id, text, loud, _w.dot(right));
       if (!guideEl.hidden && (panelTab === 'talk' || panelTab === 'island')) renderGuide();
     };
   }
@@ -2562,6 +2564,9 @@ $('btnManual').onclick = () => setMode('manual');
 $('btnMode').onclick = () => { endOpening(false); tourQ = []; setMode(drone.mode === 'manual' || visit ? 'auto' : 'manual'); };
 $('btnLamp').onclick = () => setLamp(!lampOn);
 $('btnCaption').onclick = () => setCaption(!captionOn);
+// the residents' voices (the island's words said aloud), on or off
+{ const show = () => $('btnVoices').setAttribute('aria-pressed', String(voices.on));
+  $('btnVoices').onclick = () => { setVoices(!voices.on); show(); }; show(); }
 // what is shown under the residents' words in their bubbles (src/robots/islandlang.ts): Japanese, English, or the letters alone
 { const LANG_LABEL: Record<SubLang, string> = { ja: '日本語', en: 'English', none: 'なし（島の文字だけ）' }, ORDER: SubLang[] = ['ja', 'en', 'none'];
   const show = () => { $('btnSubLang').textContent = `住人の言葉の訳：${LANG_LABEL[subLang()]}`; };

@@ -1,3 +1,4 @@
+import { speak, VOICES } from './robots/lumau/voice';
 // Soundscape: a soft generative score woven into the sounds of the reef.
 //
 // Music: sparse phrases on a sampled grand piano and a slow pad, played in a scale that follows the time of day
@@ -623,6 +624,22 @@ export const TONES: Record<string, VoiceTone> = {
   rakko: { base: 690, spread: 0.4, wave: 'triangle', rate: 13, tone: 2400, glide: 0.2, vib: 0 },            // squeaky, bouncing upward
 };
 let voiceBus: GainNode | null = null;
+/** The residents' voices on (the menu's sound section; kept by the browser). */
+export const voices = { on: (() => { try { return localStorage.getItem('seaglass.voices') !== '0'; } catch { return true; } })() };
+export function setVoices(on: boolean) { voices.on = on; try { localStorage.setItem('seaglass.voices', on ? '1' : '0'); } catch { /* ignore */ } }
+/** A resident saying a line in the island's words, in its own voice (src/robots/lumau/voice.ts), as loud as it is near
+ *  and from the side it is on. Only one line at a time per resident: a new one cuts the last short. */
+const lumauNow: Record<string, GainNode> = {};
+export function lumauVoice(who: string, toks: string[], vol: number, pan = 0) {
+  if (!ac || !audio.on || !voices.on || vol < 0.01) return;
+  const v = VOICES[who]; if (!v) return;
+  if (!voiceBus) { voiceBus = ac.createGain(); voiceBus.gain.value = 0.9; voiceBus.connect(master); voiceBus.connect(reverb); }
+  const last = lumauNow[who]; if (last) { try { last.gain.setTargetAtTime(0, ac.currentTime, 0.03); setTimeout(() => last.disconnect(), 300); } catch { /* ignore */ } }
+  const p = ac.createStereoPanner(); p.pan.value = Math.max(-0.8, Math.min(0.8, pan)); p.connect(voiceBus);
+  const g = ac.createGain(); g.gain.value = 0.22 * vol; g.connect(p); lumauNow[who] = g;
+  const end = speak(ac, toks, v, g);
+  setTimeout(() => { if (lumauNow[who] === g) delete lumauNow[who]; try { g.disconnect(); p.disconnect(); } catch { /* ignore */ } }, (end - ac.currentTime + 0.5) * 1000);
+}
 export function babble(who: string, text: string, vol: number, pan = 0) {
   if (!ac || !audio.on || vol < 0.01) return;
   const v = TONES[who]; if (!v) return;
