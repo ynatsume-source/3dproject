@@ -30,10 +30,10 @@ import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint,
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
 export const COCONUT_MILK_PROCESS = { processId: 'p30x_coconut_milk', processVersion: '0.1.0' } as const;
-export const COCONUT_BOIL_PROCESS = { processId: 'p31x_coconut_oil_boil', processVersion: '0.1.1' } as const;
+export const COCONUT_BOIL_PROCESS = { processId: 'p31x_coconut_oil_boil', processVersion: '0.1.2' } as const; // 0.1.2: the closing words follow the solids' colour (Codex A3)
 const MILK_SCHEMA = 'civ-sci.coconut-milk/1', MILK_EVAL = 'coconut-milk-eval/0.1.0';
 // /2 since 0.1.1 (heat held by the pot, browning carried over): a /1 run is refused; the host cancels it and releases its lots
-const BOIL_SCHEMA = 'civ-sci.coconut-boil/2', BOIL_EVAL = 'coconut-boil-eval/0.1.1';
+const BOIL_SCHEMA = 'civ-sci.coconut-boil/2', BOIL_EVAL = 'coconut-boil-eval/0.1.2';
 const TOOLS = 'fixture_coconut_tools', POT = 'fixture_cook_pot', HEARTH = 'open_fire_pit';
 const FINE_MS = 250; // the pot is integrated on a 0.25 s grid from the run's start: near the end of the boil it changes fast
 const FIRE_KG_PER_H = [0.4, 0.8, 1.6] as const; // low, medium, high: wood the tender feeds (assumed), never above the hearth's max
@@ -329,7 +329,12 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (d.outcome === 'fuel_exhausted') res.observations.push({ at: endAt, channel: 'sight', quantity: 'fire', text: '薪が尽きて、火が小さくなっていった' });
   const end = oilMg > 0
     ? (d.scorch > 0.4 ? '油は茶色く濁り、焦げ臭い' : d.scorch > 0.1 ? '油に少し色がつき、香ばしい' : '澄んだ淡い色の油が分かれた')
-    : d.waterMg > 0.05 * nonWater ? 'まだ水っぽく、油は分かれていない' : 'かすはまだ白く、澄んだ油はほとんど分かれていない';
+    : d.waterMg > 0.05 * nonWater ? 'まだ水っぽく、油は分かれていない'
+    // no new oil this time: say what the solids look like now (they may have browned or burnt before, Codex A3)
+    : d.scorch > 0.4 ? 'かすは黒く焦げていて、もう油は出てこない'
+    : d.brown >= 1 ? 'かすは茶色く、もう油は出てこない'
+    : d.brown >= 0.2 ? 'かすが色づき始めたが、澄んだ油はまだ分かれていない'
+    : 'かすはまだ白く、澄んだ油はほとんど分かれていない';
   res.observations.push({ at: endAt, channel: 'sight', quantity: oilMg > 0 ? 'oil' : 'pot', text: end });
   return res;
 }

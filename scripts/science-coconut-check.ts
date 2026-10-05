@@ -187,6 +187,23 @@ console.log('5. Codex review of eaa2a84 (A1, A2, B1)');
   const more = lat && boil(H, [[0, 'fire_level', 0], [40 * 60_000, 'take_off']], { lots: [{ lotId: 'lot:lat', materialId: 'coconut_latik', amount: lat.amount, location: 's', quality: lat.quality }, WOOD()] });
   ok(lat && more && oilOf(more) > 0 && oilOf(half) + oilOf(more) <= fat0() * pv_oilMax + 1, 'B1: latik lifted off half-browned goes back on the fire and gives more oil (never more than the fat allows)',
     `${oilOf(half)} + ${more ? oilOf(more) : 0} mg`);
+  // A3 (24b8ad4): the burnt latik that a run really handed back, on the fire again with the wood it handed back
+  const burnt205 = boil(4 * H, [[0, 'fire_level', 1], [205 * 60_000, 'take_off']]);
+  const bl = burnt205.out('coconut_latik')!, bw = burnt205.out('firewood')!;
+  const re = boil(10 * 60_000, [[0, 'fire_level', 0], [5 * 60_000, 'take_off']], { lots: [
+    { lotId: 'lot:bl', materialId: 'coconut_latik', amount: bl.amount, location: 's', quality: bl.quality },
+    { lotId: 'lot:bw', materialId: 'firewood', amount: bw.amount, location: 's', quality: bw.quality }] });
+  const back5 = re.out('coconut_latik')!, said = re.obs.at(-1)?.text ?? '';
+  ok(!re.out('coconut_oil') && back5.quality!.scorch_ppm === bl.quality!.scorch_ppm && bl.quality!.scorch_ppm! > 400_000 && /黒く焦げ/.test(said) && !/白/.test(said),
+    'A3: burnt latik back on a low fire for 5 min: no more oil, and it is said to be burnt, not white', `scorch ${bl.quality!.scorch_ppm}: "${said}"`);
+  // the words agree with what comes back, for white, browning, brown and burnt solids
+  const words = (b: number, sc: number) => {
+    const r = boil(10 * 60_000, [[0, 'fire_level', 0], [60_000, 'take_off']], { lots: [{ lotId: 'lot:w', materialId: 'coconut_latik', amount: { value: 400_000, unit: 'mg' }, location: 's',
+      quality: { x_coconut_fat_ppm: 300_000, x_plant_solids_ppm: 700_000, ...(b ? { brown_ppm: b } : {}), ...(sc ? { scorch_ppm: sc } : {}) } }, WOOD()] });
+    return r.obs.at(-1)?.text ?? '';
+  };
+  const said4 = [words(0, 0), words(500_000, 0), words(1_000_000, 50_000), words(1_000_000, 800_000)];
+  ok(/白/.test(said4[0]) && /色づき始め/.test(said4[1]) && /茶色/.test(said4[2]) && /焦げ/.test(said4[3]), 'A3: white, browning, brown and burnt solids are each said as they are', said4.join(' / '));
   const old = scienceStep(breq(H, 2 * H, { schema: 'civ-sci.coconut-boil/1', data: {} }, []));
   ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)), 'a /1 run (from 0.1.0) is refused: the host cancels it and releases its lots');
 }
