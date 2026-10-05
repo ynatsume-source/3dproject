@@ -80,7 +80,8 @@ export function makeT(loc) {
     // the seabed, or the top of a cave massif (animals keep to the outside of it)
     h: (x, z) => T.cave ? Math.max(loc.f(x, z), T.cave.topAt(x, z)) : loc.f(x, z),
     // the highest solid surface: terrain, a cave massif, or a rock or coral colony standing on it
-    top: (x, z) => Math.max(T.h(x, z), T.obst ? T.obst.get(x, z) : -1e9),
+    top: (x, z) => Math.max(T.h(x, z), T.obst ? T.obst.get(x, z) : -1e9, T.roof ? T.roof.get(x, z) : -1e9),
+    roof: null as ObstacleMap | null,   // (what stands up on a cave's rock: in T.top for the animals over it, not in T.ground — the floor the drone keeps above, also inside the tunnel under it)
     // what the drone stands off from outside the cave: the massif itself it avoids in 3D (cave.sd)
     ground: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9, T.over ? T.over(x, z) : -1e9),
     over: null as null | ((x: number, z: number) => number),   // ashore: the treetops
@@ -219,6 +220,7 @@ export function buildOcean(loc) {
   const obst = new ObstacleMap(loc.land ? loc.land.far : LIMIT + 45);   // (by an island, over the whole of it: its reef is filled in as the camera comes near — see grow)
   T.obst = obst;
   const cave = loc.cave ? new Cave(loc.cave, loc.f) : null;
+  if (cave) T.roof = new ObstacleMap(obst.half);   // (see T.roof)
   T.cave = cave;
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
@@ -615,7 +617,12 @@ export function buildOcean(loc) {
       bodies.add(b); kept?.push(b); keep.add(c.it);
       // (and a solid one — a dome, a plate, a clam, a leather coral — on the map the animals and the drone keep clear
       // of: they swim over it or round it, not through. A branching colony and a fan are open lattices fish live in.)
-      if (c.kind !== 'branch' && c.kind !== 'fan') obst.stamp(c.it.x, c.it.z, b.R * 1.1, b.y1[b.y1.length - 1], b.y1[b.y1.length - 1] - b.y0[0]);
+      // (one up on a cave's rock goes on a map of its own: the map is heights alone, and from the tunnel under it its
+      // top would read as the floor — the drone in the cave would climb for it and stick against the roof
+      // (2026-10-05). The animals over the rock see it in T.top; the drone's floor, T.ground, leaves it out. The
+      // register with both faces of each solid, SUBSTRATE_LAYERS.md, is the cure)
+      const overCave = cave && cave.topAt(c.it.x, c.it.z) > loc.f(c.it.x, c.it.z) + 0.5;
+      if (c.kind !== 'branch' && c.kind !== 'fan') (overCave ? T.roof : obst).stamp(c.it.x, c.it.z, b.R * 1.1, b.y1[b.y1.length - 1], b.y1[b.y1.length - 1] - b.y0[0]);
     }
     for (const kind of ['table', 'brain', 'branch', 'fan', 'mushroom', 'clam']) its[kind].forEach((list: any[], v: number, lists: any[][]) => { lists[v] = list.filter((it) => keep.has(it)); });
   };

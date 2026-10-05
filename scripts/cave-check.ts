@@ -62,3 +62,25 @@ if (wt) {
     console.log(`whitetips ${label}: ${(subs as any).map((s: any) => s.status()).join(' / ')}; inside rock ${rock}/${n}`);
   }
 }
+
+// The floor the drone keeps above, inside the tunnel (owner report 2026-10-05: the cruise stuck in the cave). Flying,
+// the drone climbs to stay a metre over the "ground" under it and ahead (main.ts: T.ground on the cruise, T.top by
+// hand) — a map of heights alone. Along the director's way through, wherever the way is inside the tunnel, that floor
+// plus a metre must stay under the way: anything up on the cave's rock (corals on its sunlit top) must not read as
+// the floor from beneath. Want: no point of the way under it.
+{
+  const p = new THREE.Vector3(), l = new THREE.Vector3();
+  let n = 0, cruise = 0, hand = 0, worst = 0;
+  cave.tourStart(false);
+  for (let t = 0; t < cave.tourLength; t += 0.5) {
+    cave.tourAt(t, false, p, l);
+    if (cave.topAt(p.x, p.z) < p.y + 0.5) continue;   // (outside: over the rock or in the open)
+    n++;
+    const g = T.ground(p.x, p.z), h = T.top(p.x, p.z) > cave.topAt(p.x, p.z) - 0.01 ? -1e9 : T.top(p.x, p.z);   // (T.top counts the cave's own top: by hand only what stands on the floor)
+    if (g + 1 > p.y) { cruise++; worst = Math.max(worst, g + 1 - p.y); }
+    if (h + 1 > p.y) hand++;
+  }
+  const ok = n > 20 && !cruise && !hand;
+  console.log(`floor under the way through the tunnel: ${n} points; over the way on the cruise ${cruise}, by hand ${hand} (worst ${worst.toFixed(2)} m) ${ok ? 'ok' : 'FAIL'}`);
+  if (!ok) process.exitCode = 1;
+}
