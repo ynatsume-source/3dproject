@@ -31,9 +31,9 @@ import { allFinite, checkCommon, envUsable, failed, fingerprint, finite, intDelt
 import { foodQuality } from './coconut';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const CHARCOAL_PROCESS = { processId: 'p14x_charcoal_tar_retort', processVersion: '0.1.1' } as const;
+export const CHARCOAL_PROCESS = { processId: 'p14x_charcoal_tar_retort', processVersion: '0.1.2' } as const; // 0.1.2: equipment fingerprint independent of params key order (Codex C3)
 // /2 since 0.1.1 (the charcoal already in a charge, the equipment's identity): a /1 run is refused; the host cancels it
-const SCHEMA = 'civ-sci.charcoal-retort/2', EVAL = 'charcoal-retort-eval/0.1.1';
+const SCHEMA = 'civ-sci.charcoal-retort/2', EVAL = 'charcoal-retort-eval/0.1.2';
 const RETORT = 'fixture_tar_retort', HEARTH = 'open_fire_pit';
 const CHARGES = ['firewood', 'coconut_shell', 'coconut_husk', 'charcoal'];
 const COAL = ['char', 'wood_dry', 'ash', 'water'] as const;
@@ -80,7 +80,7 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (!charge || !fuel || req.lots.length !== 2 || req.lots.filter(inRetort).length !== 1 || inRetort(fuel)) {
     return fail(`expected two lots: the charge in the retort (firewood, coconut_shell, coconut_husk or unfinished charcoal whose location is the ${RETORT}'s equipmentId) and a firewood lot for the fire, outside it`);
   }
-  const eqFp = JSON.stringify([retort?.equipmentId, retort?.params, hearth?.equipmentId, hearth?.params]);
+  const eqFp = equipmentFp([retort?.equipmentId, retort?.params, hearth?.equipmentId, hearth?.params]);
   if (req.state === null) {
     if (!retort || !hearth) return fail(`needs a ${RETORT} on an ${HEARTH}`);
     const rp = retort.params ?? {};
@@ -280,6 +280,13 @@ function readCoal(lot: ScienceStepRequest['lots'][number]): Composition | string
     c[big] = (c[big] ?? 0) + rest;
   }
   return c;
+}
+
+/** The equipment's identity: ids as they are, params as key-sorted entries, so the same params in another key order are
+ *  the same equipment (Codex C3). A 0.1.1 run is refused by its version (the host cancels it, as for any old run). */
+function equipmentFp(parts: unknown[]): string {
+  return JSON.stringify(parts.map((x) => (x && typeof x === 'object' && !Array.isArray(x)
+    ? Object.entries(x as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)) : x)));
 }
 
 /** A woody lot handed back untouched by the fire (nothing broke down): in the firewood make-up again. */

@@ -98,7 +98,7 @@ main（aea5ee2）の使い捨ての worktree に、§2 の工程と共通ファ�
 
 | ファイル | main との関係 | 内容 |
 |---|---|---|
-| `src/science/step/charcoal.ts` | 新規 | `p14x_charcoal_tar_retort` 0.1.1（状態 `/2`、島の時計、接続仕様 0.2.x のみ）。`coconut.ts`・`wood-fire.ts` の関数を使う |
+| `src/science/step/charcoal.ts` | 新規 | `p14x_charcoal_tar_retort` **0.1.2**（状態 `/2`、島の時計、接続仕様 0.2.x のみ。0.1.2 は Codex C3：設備の指紋が params のキーの順によらない。Codex の次の全面レビューで確認）。`coconut.ts`・`wood-fire.ts` の関数を使う |
 | `src/science/chem.ts` | 変更 | 化学種 `char`（CH0.4O0.09）・`wood_tar`・`pyrolysis_gas`、反応 `charCombustion` |
 | `src/science/params.ts`・`data/science/catalog-test-2.json` | 変更 | 炭の定数（すべて仮定）、材料 `charcoal`・`wood_tar`・`wood_vinegar`、設備 `fixture_tar_retort` |
 | `src/science/step/common.ts` | 変更（§8） | 共通の組成の読み書きを整数 ppm の切り捨てに |

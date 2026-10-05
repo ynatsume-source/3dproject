@@ -7,7 +7,7 @@ import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
 import { lotComp, SCIENCE_CATALOG_VERSION } from '../src/science/step/common';
 import { CALCINE_PROCESS, HYDRATE_PROCESS } from '../src/science/step/lime';
-import { addComp, elementMoles, molarMass, type Composition } from '../src/science/chem';
+import { addComp, elementMoles, molarMass, SPECIES, type Composition, type Element, type SpeciesId } from '../src/science/chem';
 import { PARAMS } from '../src/science/params';
 import { hashOf } from '../src/science/fixture/world';
 
@@ -120,12 +120,22 @@ ok(h.end.status === 'completed' && dh.conversion > 0.99, 'the quicklime from ste
   const after = addComp(lotComp(lotOf(h.end)), { water: vap });
   const eb = elementMoles(before), ea = elementMoles(after);
   const worst = Math.max(...(['H', 'O', 'Ca'] as const).map((k) => Math.abs(eb[k] - ea[k]) * 1000));
-  // the lots go through whole ppm (written rounded down) and back to whole mg (read rounded down) (Codex B2): one
-  // write-and-read moves up to ceil(T/1e6) mg per species of a T mg lot into inert_mineral, which no element count
-  // sees (here exactly 1 mg each of water and portlandite). Reading the same lot again loses nothing more; it adds up
-  // only when a lot is written again and handed on. 0.3 mmol fits THIS fixture (conservative bound H 0.18, O 0.10,
-  // Ca 0.02 mmol, Codex 20cb418); it is not a tolerance for any amount or any number of round trips.
-  ok(worst < 0.3, 'element balance (H, O, Ca) across quicklime + water → hydrated lime + vapour (within the whole-mg reading of the lots)', `max ${worst.toFixed(4)} mmol, vapour ${vap} mg`);
+  // The lots go through whole ppm (written rounded down) and back to whole mg (read rounded down) (Codex B2): one
+  // write-and-read moves up to ceil(T/1e6) mg of each species of a T mg lot into inert_mineral, which no element count
+  // sees. Reading the same lot again loses nothing more; it adds up only when a lot is written again and handed on.
+  // So the allowance is a budget per element, from the lots that went through ppm here (Codex 20cb418), plus the
+  // reaction's own rounding (the closing product absorbs up to half a mg per other product: here water, ±0.5 mg).
+  const budget = (lots: LotView[], el: Element) => {
+    let mol = 0;
+    for (const lot of lots) for (const sp of Object.keys(lotComp(lot)) as SpeciesId[]) {
+      const f = SPECIES[sp].formula; if (!f || !f[el]) continue;
+      mol += (Math.ceil(lot.amount.value / 1e6) / 1000 / molarMass(sp)) * f[el]!;
+    }
+    return mol + (0.5 / 1000 / molarMass('water')) * (SPECIES.water.formula![el] ?? 0);
+  };
+  const within = (['H', 'O', 'Ca'] as const).map((k) => ({ k, diff: Math.abs(eb[k] - ea[k]), budget: budget([quick, lotOf(h.end)], k) }));
+  ok(within.every((w) => w.diff <= w.budget), 'element balance (H, O, Ca) across quicklime + water → hydrated lime + vapour, within the rounding budget of each element',
+    within.map((w) => `${w.k} ${(w.diff * 1000).toFixed(4)} ≤ ${(w.budget * 1000).toFixed(4)} mmol`).join(', ') + `; max ${worst.toFixed(4)} mmol, vapour ${vap} mg`);
   const molLime = (lotComp(quick).lime ?? 0) / 1000 / molarMass('lime');
   const heat = molLime * dh.conversion * -PARAMS.dHHydration.value;
   ok(Math.abs(h.used - heat) <= 1 && h.stored === 0, 'reaction heat reported (sourced −64.47 kJ/mol) all leaves as lost by the end', `${h.used} J vs ${heat.toFixed(1)} J`);

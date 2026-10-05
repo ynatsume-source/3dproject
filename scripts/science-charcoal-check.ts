@@ -135,6 +135,9 @@ console.log('5. Codex review of 5555989 (A1, B1, C1, C2)');
   const s1 = step(req(0, H, null, [[0, 'fire_level', 1]]));
   ok(step(req(H, 2 * H, s1.state, [], { equipment: [RETORT({ heatShare: 0 }), PIT] })).status === 'failed' && step(req(H, 2 * H, s1.state, [], { equipment: [PIT] })).status === 'failed',
     'C1: the retort changed or missing under a running run, with no stop: refused');
+  // C3: the same retort with its params in another key order is the same retort; a run saved by 0.1.1 goes on
+  const reordered = { ...RETORT(), params: Object.fromEntries(Object.entries(RETORT().params).reverse()) };
+  ok(step(req(H, 2 * H, s1.state, [], { equipment: [reordered, PIT] })).status === 'running', 'C3: the same params in another key order: the run goes on');
   const old = scienceStep(req(H, 2 * H, { schema: 'civ-sci.charcoal-retort/1', data: {} }, []));
   ok(old.status === 'failed' && /unsupported-state-schema/.test(String(old.evidence.notes)), 'a /1 run (from 0.1.0) is refused: the host cancels it and releases its lots');
 }
