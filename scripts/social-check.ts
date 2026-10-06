@@ -33,7 +33,7 @@ Object.defineProperty(globalThis, 'document', { value: { createElement: () => ({
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
 function island(seed: number) {
-  store.clear(); now = Date.parse('2026-10-03T00:00:00Z'); Math.random = mulberry32(seed);
+  store.clear(); now = Date.parse('2026-10-03T01:00:00Z'); Math.random = mulberry32(seed);   // (10:00 on the island: after the morning gathering)
   const f = () => 2, T: any = { ground: f, floor: f, top: f, landCover: () => ({ can: 0, sand: 1 }), vegH: () => 0, solids: new Solids() };
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
   Math.random = mulberry32(seed * 7 + 1);   // (drawn again once the models are built: three.js draws an id for each part it
@@ -179,7 +179,7 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   rakko.pos.set(61, 2, -230);   // (apart until the gathering: nothing asked of each other before it)
   R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
   await run(R, 5);
-  now = Date.parse('2026-10-03T21:40:00Z');   // (06:40 on the island: the morning gathering is near)
+  now = Date.parse('2026-10-03T23:40:00Z');   // (08:40 on the island: the morning gathering is near)
   R.village.gaugeLog.push({ at: now - 3 * 3.6e6, processId: 'test', mark: 6 }, { at: now - 3.6e6, processId: 'test', mark: 9 });
   R.village.hypo = { at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
   const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
@@ -201,7 +201,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   R.village.map.seen['east-flat'] = { word: 'une', at: 0 };
   R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
   await run(R, 5);
-  now = Date.parse('2026-10-03T21:40:00Z');
+  now = Date.parse('2026-10-03T23:40:00Z');
   R.setWeather({ ok: true, at: 0, cloud: 0.2, rain: 0, code: 1, wind: 10, windDir: 90, gust: 14, pressure: 1008, typhoon: false, source: 'test', record: { station: 'test', at: '' } });
   R.village.gaugeLog.push({ at: now - 3.6e6, processId: 'test', mark: -4 });
   R.village.hypo = alarmHypo(now);
@@ -215,7 +215,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   meet(R, ['lantern']);
   R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
   await run(R, 5);
-  now = Date.parse('2026-10-03T21:40:00Z'); rakko.pos.set(61, 2, -230);
+  now = Date.parse('2026-10-03T23:40:00Z'); rakko.pos.set(61, 2, -230);
   await run(R, 60); rakko.hunger = 0.9;
   await run(R, 3600, () => R.village.mornings > 0);
   want('J Rakko is hungry: Dot asks, and where wood is; no one knows', saidBy(R, 'dot', /ラッコ、おなかはすいている？/) && saidBy(R, 'rakko', /おなかがすいている/) && saidBy(R, 'dot', /流木はどこにある？/) && R.talks.some((e: any) => /流木のある場所を知らない|あそこに流木がある/.test(e.text)),
@@ -227,7 +227,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   meet(R, ['lantern']);
   R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
   await run(R, 5);
-  now = Date.parse('2026-10-03T21:40:00Z');   // (the morning, Kamemaru far off)
+  now = Date.parse('2026-10-03T23:40:00Z');   // (the morning, Kamemaru far off)
   R.village.gaugeLog.push({ at: now - 3.6e6, processId: 'test', mark: 9 }); R.village.hypo = alarmHypo(now);
   await run(R, 3600, () => R.village.mornings > 0);
   meet(R, ['kame', 'lantern']); dot.pos.set(60, 2, -148); rakko.pos.set(62, 2, -152);

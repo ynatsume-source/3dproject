@@ -374,8 +374,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const storm = () => !!wxNow?.typhoon;
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0 && !storm();  // on the way / sitting round it (not in a typhoon: the custom waits)
   // (and in the morning, at the same place, the fire out: the one up all night says what the night showed, each says
-  // what it will do — so the day's work is known before it begins; owner's wish, 2026-10-06)
-  const morningHours = (hr: number) => hr >= 6.8 && hr < 7.6 && !storm();
+  // what it will do — so the day's work is known before it is far along, and before any raft puts out; owner's wish,
+  // 2026-10-06: at nine, talk from 9:00 to 9:30, those far off setting out a little before)
+  const morningHours = (hr: number) => hr >= 8.85 && hr < 9.5 && !storm();
   const meetHours = (hr: number) => gatherHours(hr) || morningHours(hr);
   let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0, lastFireAt = 0;
   const fireQueue: { who: string; line: string; isl?: Tok[]; en?: string }[] = [];
@@ -586,14 +587,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     raftLogs.forEach((m, k) => (m.visible = k < village.raft.parts));
   }
   let voyaging = false, labT = 0;
+  const voyageMs = (km: number) => islandWait((km + 0.5) * 3.6e6);   // (real ms: two km an island hour, there and back, half an hour ashore)
   /** The crossing, as the world judges the day it is tried: the weather, the light left, its battery, how far. */
   function voyageJudge(r: Resident, isleId: string): { go: boolean; why?: string; km: number } {
     const i = ISLES.find((x) => x.id === isleId)!, km = fromHome(i).km, hr = localHour(clockMs);
     if (storm()) return { go: false, why: '台風で海が荒れている', km };
     if (wxNow && wxNow.wind >= 8) return { go: false, why: `風が強い（${wxNow.wind.toFixed(1)}m/s）`, km };
-    if (hr < 6.5 || hr > 13.5) return { go: false, why: '日のあるうちに戻れない', km };
-    if (r.battery < 0.6) return { go: false, why: `電池が足りない（${Math.round(r.battery * 100)}%）`, km };
+    // (a crossing runs on the island's clock — out of sight, as the crops and the processes do: two km an island hour,
+    // there and back, and half an hour ashore; owner's decision 2026-10-06. Not before the morning gathering, and back
+    // before the light goes)
     if (km > RAFT_KM) return { go: false, why: `筏では遠すぎる（約${km.toFixed(1)}km）`, km };
+    if (hr < 9.5) return { go: false, why: '朝の集まりのあとで出る', km };
+    if (hr + voyageMs(km) / 3.6e6 > 17.5) return { go: false, why: '日のあるうちに戻れない', km };
+    if (r.battery < 0.6) return { go: false, why: `電池が足りない（${Math.round(r.battery * 100)}%）`, km };
     return { go: true, km };
   }
   /** Back from the crossing (or turned back): the map, the record, the reward. */
@@ -787,7 +793,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   };
 
   /* ---------- deciding what to do next ---------- */
-  function sleepTime(r: Resident, hr: number) { return r.sp.nightOwl ? hr > 8.5 && hr < 16.5 : hr >= 21.5 || hr < 5.8; }
+  function sleepTime(r: Resident, hr: number) { return r.sp.nightOwl ? hr > 10 && hr < 16.5 : hr >= 21.5 || hr < 5.8; }   // (Lantern up until ten: owner, 2026-10-06)
   function task(kind: string, at: [number, number] | null, act: Act, dur: number, extra: Partial<Task> = {}): Task | null {
     return at ? { kind, x: at[0], z: at[1], act, dur, t: 0, arrived: false, ...extra } : null;
   }
@@ -2164,7 +2170,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (tk.kind === 'voyage' && tk.arrived && !tk.data.started) {
       const j = voyageJudge(r, tk.data.isle), w = village.map.seen[tk.data.isle]?.word ?? '';
       if (!j.go) { report(r, tk, 'blocked', j.why); r.task = null; return; }
-      tk.data.started = true; tk.t = 0; tk.dur = ((j.km / 2) * 2 + 0.5) * 3600;   // (two km an hour, there and back, and half an hour ashore)
+      tk.data.started = true; tk.t = 0; tk.dur = voyageMs(j.km) / 1000;   // (on the island's clock: voyageJudge)
       voyaging = true; r.model.root.visible = false; drawRaft();
       r.diary.push({ at: clockMs, text: `筏で${w}へ出た（約${j.km.toFixed(1)}km）`, key: 'got' });
       res.onEvent('map', `${r.v.name}が筏で${w}へ向かった`, r);

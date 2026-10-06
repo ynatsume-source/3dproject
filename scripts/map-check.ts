@@ -60,9 +60,10 @@ const V = R.village;
   await run(1200, () => dm.results.some((r: any) => r.optionId === `voyage:${near.id}`));
   const r2 = dm.results.find((r: any) => r.optionId === `voyage:${near.id}`);
   want('3 a strong wind: not today', r2?.outcome === 'blocked' && /風が強い/.test(r2.detail ?? ''), r2?.detail ?? 'none');
-  R.setWeather(calm); dot.battery = 1; sim = Date.parse('2026-10-06T08:00:00+09:00'); think();
-  let away = false;
-  await run(4 * 3600, () => { if (dot.task?.kind === 'voyage' && dot.task.data?.started && !dot.model.root.visible) away = true; return !!V.map.reached[near.id]; });
+  R.setWeather(calm); dot.battery = 1; sim = Date.parse('2026-10-06T09:40:00+09:00'); think();   // (after the morning gathering)
+  let away = false, left = 0;
+  await run(4 * 3600, () => { if (dot.task?.kind === 'voyage' && dot.task.data?.started && !dot.model.root.visible) { away = true; left ||= sim; } return !!V.map.reached[near.id]; });
+  want('3 the crossing runs on the island\'s clock: about 3 island hours, a quarter of a real hour', left > 0 && sim - left > 10 * 60e3 && sim - left < 20 * 60e3, `${((sim - left) / 60e3).toFixed(1)} min`);
   want('3 on a calm morning it crosses — away from the island while it is out', away && !!V.map.reached[near.id]);
   want('3 what the raft brought home is on the shelf, as lots for Lantern\'s science', ['raw_clay', 'bamboo', 'reed'].every((m) => Object.values(R.lab.lots).some((l: any) => l.materialId === m && l.amount.unit === 'mg' && l.amount.value > 0 && l.location === 'shelf')), Object.values(R.lab.lots).map((l: any) => `${l.materialId} ${l.amount.value / 1e6}kg`).join(', '));
   want('3 back with what is there, and its map wider is its reward', dot.diary.some((e: any) => /にたどり着いて戻った。あったもの：竹.*持ち帰った：粘土 10kg/.test(e.text)) && (dm.values.m.get(`voyage:${near.id}`)?.sum ?? 0) > 1 && dot.model.root.visible, dot.diary.filter((e: any) => /筏で|たどり着いて/.test(e.text)).map((e: any) => e.text).join(' / '));
@@ -73,7 +74,7 @@ const V = R.village;
 { // 4
   const isle = ISLES.find((i: any) => i.id === 'east-flat')!;   // (too far today — so: as if it were near, to see a storm turn it back)
   isle.lat = 24.35; isle.lon = 124.0;
-  dot.battery = 1; sim = Date.parse('2026-10-07T08:00:00+09:00'); R.setWeather(calm);
+  dot.battery = 1; sim = Date.parse('2026-10-07T09:40:00+09:00'); R.setWeather(calm);
   want_ = (i) => i.options.find((o: any) => o.id === `voyage:${isle.id}`)?.id; think();
   await run(3600, () => dot.task?.kind === 'voyage' && !!dot.task.data?.started);
   R.setWeather({ ...calm, typhoon: true, wind: 18, pressure: 985 }); await run(30);

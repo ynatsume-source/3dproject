@@ -14,7 +14,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import type { BrainInput, Thought } from '../src/robots/agent/types';
 
-let now = Date.parse('2026-10-03T00:00:00Z');   // (09:00 at the island: Dot up and about)
+let now = Date.parse('2026-10-03T01:00:00Z');   // (10:00 at the island: Dot up and about, the morning gathering over)
 Date.now = () => now;
 Math.random = mulberry32(4004);
 const store = new Map<string, string>();
@@ -24,7 +24,7 @@ Object.defineProperty(globalThis, 'document', { value: { createElement: () => ({
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
 function island() {
-  store.clear(); now = Date.parse('2026-10-03T00:00:00Z'); Math.random = mulberry32(4004);
+  store.clear(); now = Date.parse('2026-10-03T01:00:00Z'); Math.random = mulberry32(4004);
   const f = () => 2, T: any = { ground: f, floor: f, top: f, landCover: () => ({ can: 0, sand: 1 }), vegH: () => 0, solids: new Solids() };
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
   const dot = R.list.find((r: any) => r.id === 'dot');
