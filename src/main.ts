@@ -2082,7 +2082,7 @@ async function prepareShaders(oc: Ocean) {
 // while the globe turns in toward it on the way down. Each job keeps its own stream of draws between slices, so the
 // sea is the same as one built straight through. One job at a time; one sea built ahead and not yet visited is kept.
 interface BuildJob { loc: Sea; gen: Generator<string, Ocean, unknown> | null; own: (() => number) | null; stage: string; done: Ocean | null; failed: boolean }
-let job: BuildJob | null = null, aheadId: string | null = null, aheadTimer = 0, globeHidden = 0;   // (globeHidden: from then on the veil covers the globe, which is not drawn — the time goes to the sea)
+let job: BuildJob | null = null, aheadId: string | null = null, aheadTimer = 0, globeHidden = 0, aheadLast = 0, aheadGap = 16, aheadBudget = 10, globeGap = 16, globeLast = 0;   // (globeGap: how often the globe's frames come with nothing being built)   // (globeHidden: from then on the veil covers the globe, which is not drawn — the time goes to the sea)
 const visited = new Set<string>(), prepared = new Set<string>();
 const STAGE_JA: Record<string, string> = { seabed: '海底', corals: 'サンゴ', rocks: '岩', life: '生きもの' };
 function startJob(loc: Sea): BuildJob {
@@ -2106,15 +2106,38 @@ function stepJob(j: BuildJob, ms: number): boolean {
 function aheadStep() {
   if (!job || busy || mode !== 'globe') return;
   if (job.failed) { job = null; return; }
-  // (a bigger share of the frame while the globe is left alone; a small one while it is being turned)
-  if (!stepJob(job, gv.dragging || performance.now() - gv.lastUser < 400 ? 6 : 30)) return;
+  // (none while the globe is being turned; otherwise a share of the frame that lets the globe run at 30 frames a
+  // second, or — on a device where it runs slower than that anyway — at most a third slower than it runs without)
+  const now = performance.now(), gap = aheadLast ? now - aheadLast : 16; aheadLast = now;
+  if (gv.dragging || now - gv.lastUser < 400) return;
+  aheadGap += (Math.min(gap, 300) - aheadGap) * 0.2;
+  const target = Math.max(33, globeGap * 1.3);
+  aheadBudget = aheadGap > target ? Math.max(3, aheadBudget * 0.85) : aheadGap < target - 4 ? Math.min(40, aheadBudget + 1) : aheadBudget;
+  if (!stepJob(job, aheadBudget)) return;
   const id = job.loc.id, oc = job.done!;
   if (aheadId && aheadId !== id && !visited.has(aheadId)) { delete oceans[aheadId]; prepared.delete(aheadId); }   // (only one kept that has not been visited)
   oceans[id] = oc; aheadId = id; job = null;
   // and its shaders, where the browser compiles them on threads of its own (otherwise when it is chosen, behind the veil)
   if (renderer.extensions.get('KHR_parallel_shader_compile') && !diagLog && SAFE === 0) void prepareShaders(oc).then(() => { if (oceans[id] === oc) prepared.add(id); });
 }
+// (on a touch screen there is no pointer resting on a card: the card in the middle of what the list shows, left there
+// for a moment, is the one looked at — not on a device short of memory, where a sea built and not visited costs most)
+const aheadOk = !((navigator as any).deviceMemory < 4);
+let midLoc: Sea | null = null, midSince = 0;
+function aheadByView(now: number) {
+  if (!isTouch || !aheadOk || busy || mode !== 'globe') return;
+  let best: Sea | null = null, bd = Infinity;
+  const cy = innerHeight / 2;
+  cardEls.forEach((b, i) => {
+    const loc = CARD_SEAS[i] as Sea; if ((loc as any).world) return;
+    const r = b.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight || r.height === 0) return;
+    const d = Math.abs((r.top + r.bottom) / 2 - cy); if (d < bd) { bd = d; best = loc; }
+  });
+  if (best !== midLoc) { midLoc = best; midSince = now; return; }
+  if (best && now - midSince > 1500 && !oceans[(best as Sea).id] && job?.loc !== best) startJob(best);
+}
 function buildAhead(loc: Sea) {
+  if (!aheadOk) return;
   clearTimeout(aheadTimer);
   if (oceans[loc.id] || loc.world) return;
   aheadTimer = window.setTimeout(() => { if (!busy && mode === 'globe' && !oceans[loc.id]) startJob(loc); }, 700);
@@ -3017,12 +3040,13 @@ function frameBody(ts: number) {
   U.uTime.value += dt;
   clock.advance(dt);
   if (mode === 'globe') {
+    { const g = globeLast ? now - globeLast : 16; globeLast = now; if (!job) { globeGap += (Math.min(g, 300) - globeGap) * 0.1; aheadLast = 0; } }
     aheadStep();   // (a sea a card asked for, built ahead a little each frame)
     updateGlobe(dt, now, clock.ms, reduceMotion);
     renderer.setRenderTarget(null);
     if (!globeHidden || now < globeHidden) renderer.render(globeScene, gcam);
     updatePins();
-    if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); }
+    if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); aheadByView(now); }
   } else if (cur) {
     if ((skyTimer += dt) > (clock.speed > 1 && !clock.live ? 0.05 : 0.5)) { skyTimer = 0; applySky(cur.loc); }
     if (shotHold) { camera.position.copy(drone.pos); camera.rotation.set(drone.pitch, drone.yaw, 0); } else updateDrone(dt, now);   // (drawing a photograph: held exactly where its eyes were)
@@ -3308,7 +3332,7 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), setGrass, gv, get tiers() { return { tier, seaTier, renderScale, pipOn }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), setGrass, gv, ahead: () => ({ job: job?.loc.id ?? null, stage: job?.stage ?? null, built: Object.keys(oceans), budget: Math.round(aheadBudget), base: Math.round(globeGap) }), get tiers() { return { tier, seaTier, renderScale, pipOn }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // Drawing a resident's photograph again (?journalshot: tools/journal/photos.cjs): from its eyes, looking where it
