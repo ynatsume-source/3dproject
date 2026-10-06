@@ -36,7 +36,8 @@ interface Group {
   act: number; fear: number; hunger: number; ready?: boolean;
   predT?: number;
   m?: THREE.Vector3; spread?: number;    // (where its fish are, their middle, and how far they spread from it)
-  lead?: number; leadAt?: THREE.Vector3; // (the one of it that is filmed, when one is: see leadOf)                         // (when a predator last frightened it, by its own clock: what it is shying from)
+  lead?: number; leadAt?: THREE.Vector3; // (the one of it that is filmed, when one is: see leadOf)
+  core?: number; coreF?: number;         // (see coreOf)                         // (when a predator last frightened it, by its own clock: what it is shying from)
   hunt: null | Hunt; cooldown: number;
   prey?: PreyGroup;
   ch?: Chase;                             // one of this group's fish is being chased
@@ -338,7 +339,7 @@ export function makeFishSystem(sp: Species, oc: any) {
 
   const caveMode0 = (g: Group) => (g.cr ? g.cr.mode : 'out');
   let target = 1;
-  let curNow = 0;   // (how hard the current runs: plankton feeders snap at what it brings)
+  let curNow = 0, frameNo = 0;   // (how hard the current runs: plankton feeders snap at what it brings; frames gone by)
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
     frame++;
     if (kelpLife) lastCam.copy(cam);
@@ -346,7 +347,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     const act = activity(sp.diel, env);
     target = act;
     const upX = -env.cur.x, upZ = -env.cur.z, curLen = Math.hypot(upX, upZ);
-    curNow = curLen;
+    curNow = curLen; frameNo++;
     let dirty = false;
     for (const g of groups) {
       g.t += dt;
@@ -652,7 +653,19 @@ export function makeFishSystem(sp: Species, oc: any) {
   }
   const leadPos = (g: Group) => () => { const i = leadOf(g); return (g.leadAt ??= new THREE.Vector3()).set(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]); };
   // how big what is filmed is: one fish, half its length; a group, how far its fish spread (and a fish's length)
-  const frameOf = (g: Group) => (g.n === 1 ? fs[g.start] * 0.64 : (g.spread ?? 1) + fs[g.start] * 0.5);
+  // (a group: the core of it, the distance from its middle that holds six in ten of its fish — a few strays far
+  // off, or fish right by the camera, do not make it the whole view; worked out once a frame, when asked for)
+  function coreOf(g: Group) {
+    if (g.coreF === frameNo && g.core != null) return g.core;
+    const m = g.m ?? g.c, d: number[] = [];
+    for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) d.push(Math.hypot(fp[i * 3] - m.x, fp[i * 3 + 1] - m.y, fp[i * 3 + 2] - m.z));
+    d.sort((a, b) => a - b);
+    g.coreF = frameNo; g.core = d.length ? d[Math.min(d.length - 1, Math.floor(d.length * 0.6))] : 1;
+    return g.core;
+  }
+  const frameOf = (g: Group) => (g.n === 1 ? fs[g.start] * 0.64 : coreOf(g) + fs[g.start] * 0.5);
+  // (how far off to film a group from: far enough back for its core to fit the view)
+  const groupSize = (g: Group) => Math.max(1.2, Math.min(6, coreOf(g) * 2.4));
   // what this group is doing right now, from its own state (not the species': one school bolting is not all of
   // them, and a grazer is said to graze only while it is biting the reef)
   function groupStatus(g: Group): string {
@@ -765,6 +778,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       frameR: g.type === 'anem' ? undefined : sp.big ? () => fs[leadOf(g)] * 0.64 : () => frameOf(g),
     };
     if (small) s.reach = 30;
+    if (small && g.n > 1) Object.defineProperty(s, 'size', { get: () => groupSize(g), enumerable: true });   // (filmed from as far back as its core needs)
     return { s, sc: bs };
   }
   // the nearest group, as something the director can be sent to film
@@ -788,7 +802,10 @@ export function makeFishSystem(sp: Species, oc: any) {
     const lead = sp.big && g.type !== 'anem' && g.n > 1, one = (g.n === 1 || lead) && g.type !== 'anem', at = new THREE.Vector3(), i0 = lead ? leadOf(g) : g.start;
     const pos = lead ? leadPos(g) : one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : g.type === 'anem' ? () => p : () => g.m ?? p;
     const label = g.n > 1 && g.type === 'reef' && !lead ? `${sp.ja}の群れ` : sp.ja;
-    return { key: `focus:${sp.id}`, label, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : lead ? sp.size[1] * 1.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, frameR: g.type === 'anem' ? undefined : one ? () => fs[lead ? leadOf(g) : i0] * 0.64 : () => frameOf(g), status: () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g)), live: () => g.placed };
+    const out: Subject = { key: `focus:${sp.id}`, label, kind: g.type === 'anem' ? 'anemone' : one ? 'big' : 'critter',   // (a small fish's school: filmed close and slowly, never with a big animal's moves)
+      prio: 5, size: g.type === 'anem' ? 0.5 : lead ? sp.size[1] * 1.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, frameR: g.type === 'anem' ? undefined : one ? () => fs[lead ? leadOf(g) : i0] * 0.64 : () => frameOf(g), status: () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g)), live: () => g.placed };
+    if (!one && g.type !== 'anem') Object.defineProperty(out, 'size', { get: () => groupSize(g), enumerable: true });
+    return out;
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,

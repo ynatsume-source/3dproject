@@ -1,5 +1,5 @@
 // LAB: every caption that actually comes up, written out to be read through (the heading, the name, the status line,
-// the note). Each sea, by day and by night, nothing drawn, the sea stepped at 1/10 s:
+// the note). Each sea, by day and by night, nothing drawn, the sea stepped 1/20 s a frame:
 //   cruise 240 s (the cruise's own captions, notices, and a tap on any NEW SIGHTING ring that comes up);
 //   "go and see" for every entry of the field guide and its places, 30 s each;
 //   the rare sights that can happen there, and a leap;
@@ -40,7 +40,7 @@ const fs = require('fs');
         const nm = $('newMark');
         if (nm.classList.contains('on') && Math.random() < 0.05) nm.click();
       };
-      const step = (sec) => { for (let i = 0; i < sec * 10; i++) { s.advance(1, 0.1); rec(); } };
+      const step = (sec) => { for (let i = 0; i < sec * 20; i++) { s.advance(1, 0.05); rec(); } };   // (a frame is at most 1/20 s of the sea's time)
       const free = () => { s.director.shot = null; step(3); };
       how = 'cruise'; step(CRUISE);
       for (const id of s.guideIds()) { how = 'guide:' + id; s.goTo(id); step(30); free(); }

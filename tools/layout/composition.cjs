@@ -67,7 +67,7 @@ async function one(name, vw, vh, mob) {
   };
   const bad = num(r.outOfFrame) > 10 || num(r.hidden) > 5 || num(r.under8pct) > 5 || num(r.nearOver35) > 3 || num(r.surfOver35) > 3;
   console.log(`${name} ${vw}x${vh}: subject width ${r.medianWidth} (under 8%: ${r.under8pct}), out of frame ${r.outOfFrame}, hidden ${r.hidden}, reef in the face ${r.nearOver35}, surface ${r.surfOver35}, ${r.shots} shots ${bad ? 'FAIL' : 'ok'}`);
-  if (process.env.DETAIL) { const by = {}; for (const x of obs) { const k = x.label || x.key; by[k] = by[k] || [0, 0]; by[k][0]++; if (!x.inView) by[k][1]++; } console.log('  observed (samples, out of frame):', JSON.stringify(by)); }
+  if (process.env.DETAIL) { const by = {}; for (const x of obs) { const k = x.label || x.key; by[k] = by[k] || [0, 0, 0]; by[k][0]++; if (!x.inView) by[k][1]++; if (x.hid) by[k][2]++; } console.log('  observed (samples, out of frame, hidden):', JSON.stringify(by)); }
   await b.close();
   return bad;
 }

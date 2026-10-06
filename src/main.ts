@@ -406,7 +406,9 @@ function updateCapRing(dt: number) {
   if (behind) { sx = w - sx; sy = h - sy; }
   const d = Math.max(0.5, camera.position.distanceTo(_sv.set(p!.x, p!.y, p!.z)));
   const pxm = h / (2 * Math.tan(camera.fov * Math.PI / 360));
-  const r = Math.min(Math.min(w, h) * 0.42, Math.max(22, bodyR(sj!) * 1.15 / d * pxm + 6));   // (just round it: its own spread, a little room)
+  const raw = bodyR(sj!) * 1.15 / d * pxm + 6, r = Math.min(Math.min(w, h) * 0.42, Math.max(22, raw));   // (just round it: its own spread, a little room)
+  // (close enough for it to fill the view — a turtle right by the lens, the camera in among a school: no ring is needed)
+  if (raw > Math.min(w, h) * 0.6 && !behind) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; return; }
   const m = 30, off = behind || sx < m || sy < m || sx > w - m || sy > h - m;
   if (off && !capHead) { el.classList.remove('on'); ringX = -1; return; }   // (only on the way is it pointed to; once there, out of view means no ring)
   if (off) {
@@ -612,11 +614,16 @@ function updateDrone(dt: number, now: number) {
     let lk: { x: number; y: number; z: number } = way === _rw ? (rest > 14 && !wayLookSeen ? _rl : shot.look) : way === shot.pos || way === _h ? shot.look : way;   // escaping the cave, or along the planned way: look where we are going
     // a tall, narrow screen (a phone held upright) sees about half as wide as a monitor: the room left ahead of a
     // swimming animal would put it at the edge or out of the frame, so there the camera looks at the animal itself
+    // (asked for from what is on the screen — a tap, a notice, a new sighting's ring: on the way there it is kept in
+    // the middle of the view, whichever way the route goes; the guide's far-off ones are looked at once in view)
+    const keepOn = !!shot.asked && shot.phase === 'approach' && !drone.hop && askKey === shot.subject.key && ['タップから', '案内から', '初めて見つけた'].includes(askFrom);
+    const kb = keepOn ? bodyAt(shot.subject) : null;
+    if (kb) lk = kb;
     const sp = lk === shot.look && narrowK > 0 && !shot.subject.breach ? shot.subject.pos() : null;   // (a leap: its framing already looks at the animal itself)
     if (sp) lk = _nl.set(shot.look.x + (sp.x - shot.look.x) * narrowK, shot.look.y + (sp.y - shot.look.y) * narrowK, shot.look.z + (sp.z - shot.look.z) * narrowK);
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const leap = !!shot.leapView && !shot.down && shot.phase === 'observe';
-    const k = Math.min(1, dt * (1 + 2.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
+    const k = Math.min(1, dt * (1 + 2.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : kb ? 2.6 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
     const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
@@ -841,8 +848,11 @@ function updateDrone(dt: number, now: number) {
   const lineUp = atLine && lastShot?.surface && drone.mode === 'auto' ? 1 : 0;
   camera.position.y += ride * swellAt(drone.pos.x, drone.pos.z) * (1 - 0.25 * atLine * (1 - lineUp)) + atLine * (0.06 * Math.sin(t * 1.3) + 0.04 * Math.sin(t * 2.9 + 1)) * (1 - 0.7 * lineUp) + 0.1 * lineUp;
   // a look around while cruising: the drag turns the view, and once let go it drifts back ahead
-  if (drone.mode === 'manual') { drone.yaw += look.yaw; drone.pitch = clamp(drone.pitch + look.pitch, -1.25, 1.25); look.yaw = look.pitch = 0; }
-  else if (!look.held && now - look.let > 900) { const k = 1 - Math.exp(-dt * 0.8); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
+  if (drone.mode === 'manual') { drone.yaw += look.yaw; drone.pitch = clamp(drone.pitch + look.pitch, -1.25, 1.25); look.yaw = look.pitch = 0; look.wy = NaN; }
+  // (turned to look at something while cruising: held on that bearing while the finger is down and for 4.5 s after —
+  // the cruise goes on, but the view stays on what was looked at — then it drifts back ahead)
+  else if (!isNaN(look.wy) && (look.held || (look.holdT -= dt) > 0)) { look.yaw = clamp(angDiff(look.wy, drone.yaw), -2.6, 2.6); look.pitch = clamp(look.wp - drone.pitch, -1.25, 1.25); }
+  else { look.wy = NaN; const k = 1 - Math.exp(-dt * 0.8); look.yaw -= look.yaw * k; look.pitch -= look.pitch * k; }
   // filming a hunt close up: a longer lens (the view narrows), and the slight life of a hand-held camera
   const huntCam = (!!lastShot?.close || (drone.sky && !!flyRun?.burst && !!cur?.flyfish?.flying())) && drone.mode === 'auto' && !watch.r;   // (racing alongside flying fish too)
   huntK += ((huntCam ? 1 : 0) - huntK) * Math.min(1, dt * 0.9);
@@ -1315,6 +1325,7 @@ function focusOn(s: Subject, from = '図鑑から') {
   if (!cur) return;
   askFrom = from; askKey = s.key;
   markUntil = 0; noticeSubj = null;   // (a new request: the last one's ring is not left behind)
+  look.yaw = look.pitch = 0; look.wy = NaN;   // (and the view turned by hand comes back to it: what was asked for is put in the middle)
   endOpening(false); tourQ = [];
   if (watch.r) stopWatch(false);
   if (drone.mode !== 'auto') setMode('auto');
@@ -2163,7 +2174,8 @@ document.querySelectorAll<HTMLElement>('#menu [data-cat]').forEach((b) => { b.on
 setCat((() => { try { return localStorage.getItem('seaglass.menuCat') || 'move'; } catch (e) { return 'move'; } })());
 // (a tap outside the menu closes it)
 document.addEventListener('pointerdown', (e) => { if (document.body.classList.contains('dock-open') && !(e.target as HTMLElement).closest('#menu, #btnMore, #volPanel, #timePanel')) setMenu(false); });
-const look = { yaw: 0, pitch: 0, held: false, let: 0 };
+const LOOK_HOLD = 4.5;   // (s, counted by the frames' own time)
+const look = { yaw: 0, pitch: 0, held: false, let: 0, wy: NaN, wp: 0, holdT: 0 };   // (wy, wp: the way the view was turned to, in the sea's own bearings)
 const pov = makePov($('pov'));
 const diaryBook = makeDiaryBook($('diaryBook'));
 const lanternStudyPanel = makeLanternStudyPanel({
@@ -2318,7 +2330,7 @@ function setPov(on: boolean) {
   watch.pov = on && !!watch.r;
   if (watch.pov) pov.show(watch.r); else pov.hide();
   if (cur?.residents) cur.residents.hide = watch.pov ? watch.r.id : '';
-  look.yaw = look.pitch = 0;
+  look.yaw = look.pitch = 0; look.wy = NaN;
   document.body.classList.toggle('pov', watch.pov); if (!watch.pov) { document.body.classList.remove('pov-ui'); $('povMenu').setAttribute('aria-pressed', 'false'); }
   renderWatch();
 }
@@ -2705,12 +2717,17 @@ canvas.addEventListener('pointermove', (e) => {
     tap.moved += Math.abs(dx) + Math.abs(dy);
     if (drone.mode === 'manual') { drone.lastInput = dragAt = performance.now(); drone.yaw -= dx * k; drone.pitch -= dy * k; }
     else if (watch.r && !watch.pov) { watch.off -= dx * k * 1.2; watch.el = clamp(watch.el + dy * k, -0.12, 1.45); }   // watching: drag to circle round it (all the way to its face) and tilt, down to eye level
-    else { look.held = true; look.yaw = clamp(look.yaw - dx * k, -2.6, 2.6); look.pitch = clamp(look.pitch - dy * k, -1.1, 1.1); }   // cruising: only the view turns
+    else {
+      // cruising: only the view turns — to a bearing of its own in the sea, which the cruise turning under it does not pull round
+      look.held = true;
+      look.wy = drone.yaw + clamp(look.yaw - dx * k, -2.6, 2.6); look.wp = drone.pitch + clamp(look.pitch - dy * k, -1.1, 1.1);
+      look.yaw = clamp(angDiff(look.wy, drone.yaw), -2.6, 2.6); look.pitch = clamp(look.wp - drone.pitch, -1.25, 1.25);
+    }
   }
 });
 const endP = (e: PointerEvent) => {
   if (mode === 'ocean' && pointers.has(e.pointerId)) {
-    look.held = false; look.let = performance.now();
+    look.held = false; look.let = performance.now(); look.holdT = LOOK_HOLD;
     if (tap.moved < 10 && performance.now() - tap.t < 450 && e.type === 'pointerup' && !tap.woke) { if (watch.r) { const s = pickAt(e.clientX, e.clientY); if (s && s.kind === 'robot') { const r = cur!.residents!.list.find((x: any) => x.subject === s); if (r) startWatch(r); } } else tapAt(e.clientX, e.clientY); }
   }
   pointers.delete(e.pointerId); if (pointers.size < 2) pinch0 = 0; if (!pointers.size) pinched = false;
@@ -3288,12 +3305,12 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   const d = Math.max(0.3, Math.hypot(dx, dy, dz));
   camera.fov = THREE.MathUtils.clamp(2 * Math.atan((size * 2.2) / d) * 180 / Math.PI, 22, 64); camera.updateProjectionMatrix();
   drone.pos.set(ex, ey, ez); drone.vel.set(0, 0, 0);
-  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)) + camera.fov * Math.PI / 180 * 0.12; look.yaw = look.pitch = 0;
+  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)) + camera.fov * Math.PI / 180 * 0.12; look.yaw = look.pitch = 0; look.wy = NaN;
   drone.lastInput = performance.now() + 1e9;   // (held: no drift back to the cruise)
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

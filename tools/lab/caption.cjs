@@ -1,9 +1,9 @@
 // LAB check: does the caption speak only of what is on screen, and say where the request came from?
-// (docs/proposals/kayama-review/CAPTION_FOCUS_TAP.md §4.) The sea is stepped at a fixed 1/10 s per frame, so the
+// (docs/proposals/kayama-review/CAPTION_FOCUS_TAP.md §4.) The sea is stepped frame by frame (a frame is at most 1/20 s of the sea's time), so the
 // numbers are the same however slow the renderer. Three runs, each from a fresh page:
 //   cruise — the default cruise for SECS seconds;
-//   guide  — "go and see" from the field guide, for a few kinds in turn, 50 s each;
-//   tap    — a tap on something in view, 50 s each, a few times;
+//   guide  — "go and see" from the field guide, for a few kinds in turn, 25 s each;
+//   tap    — a tap on something in view, 25 s each, a few times;
 //   tapfish — a tap on a fish in plain view (2–25 m, not behind the reef), 40 times: does it go to that fish's group?
 // Each frame, while the caption is up, its subject is tested for being seen — independently of the app's own test:
 // five points of its body (its middle, and out to the sides and up and down by its size) projected; one counts when
@@ -54,7 +54,8 @@ const { chromium } = require('playwright');
         }
         return false;
       };
-      // the ring: does it go round the subject's own fish (or its body), and is it about their size? The truth is read
+      // the ring: does it go round the subject's own fish (or its body), and is it about their size? (one at its largest,
+      // round a school wider than the view, only has to sit on the school's middle) The truth is read
       // here from the fish themselves: the group of that kind whose fish's middle is nearest the subject, projected
       window.__ringCheck = (c) => {
         const rg = document.getElementById('capRing'); if (!rg || !rg.classList.contains('on') || rg.classList.contains('edge') || !c.pos) return null;
@@ -75,14 +76,20 @@ const { chromium } = require('playwright');
           else if (best && bd < 12) for (const i of best.slice(0, 200)) pts.push(new V(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]));
         }
         if (!pts.length) pts = [new V(c.pos.x, c.pos.y, c.pos.z)];
+        const pts0 = pts.map((v) => v.clone());
         const sp = pts.map((v) => v.project(cam)).filter((v) => v.z < 1).map((v) => [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight]);
         if (!sp.length) return null;
         const inside = sp.filter(([x, y]) => Math.hypot(x - rx, y - ry) < R * 1.1).length / sp.length;
-        const mx = sp.reduce((a, p) => a + p[0], 0) / sp.length, my = sp.reduce((a, p) => a + p[1], 0) / sp.length;
+        // (its middle on screen: the middle of the fish in the sea, projected — not the average of where each fish falls on
+        // the screen, which the fish nearest the lens throw far out to the edges)
+        const c3 = pts0.reduce((a, v) => a.add(v), new V()).multiplyScalar(1 / pts0.length).project(cam), mx = (c3.x * 0.5 + 0.5) * innerWidth, my = (-c3.y * 0.5 + 0.5) * innerHeight;
         let spread = Math.sqrt(sp.reduce((a, p) => a + (p[0] - mx) ** 2 + (p[1] - my) ** 2, 0) / sp.length);
         // (one animal: how big it looks, half its length)
         if (pts.length === 1) spread = c.size * 0.5 / Math.max(0.5, cam.position.distanceTo(new V(c.pos.x, c.pos.y, c.pos.z))) * innerHeight / (2 * Math.tan(cam.fov * Math.PI / 360));
-        return { miss: inside < 0.5, loose: R > 2.5 * spread + 45, off: Math.hypot(mx - rx, my - ry), R, spread };
+        // (a ring at its largest — a third or more of the screen — round a school wider than the view: it must sit on
+        // the school's middle, as it cannot go round it all)
+        const capped = R >= Math.min(innerWidth, innerHeight) * 0.41, off = Math.hypot(mx - rx, my - ry);
+        return { miss: capped ? off > R * 0.6 : inside < 0.5, loose: R > 2.5 * spread + 45, off, R, spread };
       };
       window.__mid = (c) => { if (!c.pos) return false; const v = new s.camera.position.constructor(c.pos.x, c.pos.y, c.pos.z).project(s.camera); return v.z < 1 && Math.abs(v.x) < 0.6 && Math.abs(v.y) < 0.6; };
       // one step of the sea, and how the caption stands
@@ -103,9 +110,9 @@ const { chromium } = require('playwright');
         return out;
       };
     });
-    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose']) total[k] += o[k]; const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 10).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
+    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose']) total[k] += o[k]; const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 20).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
     if (run === 'cruise') {
-      for (let t = 0; t < SECS; t += 30) add(await p.evaluate((n) => window.__step(n), 300), `cruise ${t}-${t + 30} s`);
+      for (let t = 0; t < SECS; t += 15) add(await p.evaluate((n) => window.__step(n), 300), `cruise ${t}-${t + 15} s`);   // (a frame is at most 1/20 s of the sea's time)
     } else if (run === 'guide') {
       for (const id of (process.env.IDS || 'turtle,hibudai,umeiro,manta,napoleon,akashumoku').split(',')) {
         const ok = await p.evaluate((id) => { const s = window.seaglass; const before = s.director.shot; s.goTo(id); return s.director.shot !== before; }, id);
@@ -174,5 +181,5 @@ const { chromium } = require('playwright');
   await b.close();
   const q = (v) => (100 * v / Math.max(1, total.cap)).toFixed(1);
   const un = 100 * total.unseen / Math.max(1, total.cap), off = 100 * total.off / Math.max(1, total.obs), nm = 100 * total.named / Math.max(1, total.asked);
-  console.log(`caption up ${(total.cap / 10).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 10).toFixed(0)} s (want under 2%)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
+  console.log(`caption up ${(total.cap / 20).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 20).toFixed(0)} s (want under 2%)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
 })();
