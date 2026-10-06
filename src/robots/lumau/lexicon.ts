@@ -984,8 +984,8 @@ degree 度
 hpa ヘクトパスカル
 count_unit 個
 times 回
-do する
-thing もの`,
+do する @action
+thing もの @thing`,
   number: '',
 };
 
@@ -1072,7 +1072,9 @@ export function lexicon(): Entry[] {
   const roots: [string, string, Cat, boolean][] = [];
   for (const [cat, text] of Object.entries(ROOTS) as [Cat, string][]) for (const line of text.split('\n').map((l) => l.trim()).filter(Boolean)) {
     const basic = line.startsWith('*'), [id, ...ja] = line.replace(/^\*/, '').split(' ');
-    roots.push([id, ja.join(' '), cat, basic]);
+    // (a word added late keeps its place at the end of the list — so no older word's form moves — and says its own kind: '@action')
+    const own = ja.length > 1 && ja[ja.length - 1].startsWith('@') ? (ja.pop()!.slice(1) as Cat) : cat;
+    roots.push([id, ja.join(' '), own, basic]);
   }
   for (const [id, ja, cat, basic] of roots.filter((r) => r[3])) add({ id, ja, cat, form: coinWord(id, 2, taken), tier: 'basic' });
   for (const [id, ja, cat, basic] of roots.filter((r) => !r[3])) add({ id, ja, cat, form: coinWord(id, 3, taken), tier: 'more' });
