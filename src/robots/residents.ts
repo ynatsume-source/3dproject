@@ -390,10 +390,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // reads it); firewood as it was cut, wet (quality.water_ppm of the whole lot: its drying is the science side's to say).
   const COCONUT_BAD = 0.15, GREEN_WOOD_WATER = 450_000;
   const coconutsOnShelf = () => shelfLots().filter((l) => l.materialId === 'coconut' && !(l as any).reservedBy).reduce((n, l) => n + (l.quality?.count ?? 0), 0);
+  // (each nut a lot of its own: a run takes a lot whole, so one pressing does not take every nut on the shelf — the
+  // science side's request, 2026-10-06)
   function storeCoconut(mg: number) {
-    const lot = shelfLots().find((l) => l.materialId === 'coconut' && !(l as any).reservedBy);
-    if (lot) { lot.amount.value += mg; lot.quality = { ...(lot.quality ?? {}), count: (lot.quality?.count ?? 0) + 1 }; lab.world.worldVersion++; }
-    else addLot(lab, { materialId: 'coconut', amount: { value: mg, unit: 'mg' }, quality: { count: 1 }, location: 'shelf' });
+    addLot(lab, { materialId: 'coconut', amount: { value: mg, unit: 'mg' }, quality: { count: 1 }, location: 'shelf' });
     return coconutsOnShelf();
   }
   // Fresh water is rain, caught (owner's decision 2026-10-06): Lantern sets up a catcher by the shelf — a funnel of leaves
@@ -407,16 +407,25 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.7, 8), bam); m.position.set(-0.16 + k * 0.16, 0.35, 0); catchG.add(m); }
     const f = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.35, 10, 1, true), leaf); f.rotation.x = Math.PI; f.position.set(0, 0.95, 0); catchG.add(f); }
   const showCatcher = () => { catchG.visible = !!village.catcher; };
-  let rainCarry = 0;
+  // (as the science side asked, 2026-10-06: where the record has no rain figure nothing is added and the water held is
+  // marked as of unknown history; what passes 20 L runs over and is lost; whole mg; the first half millimetre of each
+  // shower only wets the leaves)
+  let rainCarry = 0, wetting = 0;
+  const WET_MM = 0.5;
   function catchRain(dt: number) {
     const c = village.catcher; if (!c) return;
-    const w = islandWeather(clockMs); if (!w || !(w.rain > 0)) return;
-    rainCarry += w.rain * (dt * ISLAND_RATE / 3600) * c.areaM2 * 1e6;   // (mm of rain on m² is litres: a million mg each)
+    const w = islandWeather(clockMs);
+    const water = () => shelfLots().find((l) => l.materialId === 'process_water' && !(l as any).reservedBy);
+    if (!w || w.rainMeasured === undefined) { const l = water(); if (l && l.quality?.history_complete !== 0) { l.quality = { ...(l.quality ?? {}), history_complete: 0 }; lab.world.worldVersion++; } rainCarry = 0; return; }
+    if (!(w.rainMeasured > 0)) { wetting = 0; return; }
+    let mm = w.rainMeasured * (dt * ISLAND_RATE / 3600);
+    if (wetting < WET_MM) { const wet = Math.min(mm, WET_MM - wetting); wetting += wet; mm -= wet; }
+    rainCarry += mm * c.areaM2 * 1e6;   // (mm of rain on m² is litres: a million mg each)
     if (rainCarry < 1e5) return;
     const held = shelfLots().filter((l) => l.materialId === 'process_water').reduce((n, l) => n + l.amount.value, 0);
     const add = Math.floor(Math.min(rainCarry, Math.max(0, c.capMg - held))); rainCarry = 0;
     if (add <= 0) return;
-    const lot = shelfLots().find((l) => l.materialId === 'process_water' && !(l as any).reservedBy);
+    const lot = water();
     if (lot) { lot.amount.value += add; lab.world.worldVersion++; } else addLot(lab, { materialId: 'process_water', amount: { value: add, unit: 'mg' }, quality: { history_complete: 1 }, location: 'shelf' });
   }
   let catalog: CatalogEntry[] = CATALOG;

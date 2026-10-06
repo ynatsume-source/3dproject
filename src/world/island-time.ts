@@ -38,6 +38,7 @@ export interface IslandWeather extends Weather {
    *  original time of the reading. Only the values measured there are in air / humidity / windMeasured / pressureMeasured. */
   record: { station: string; at: string };
   pressureMeasured?: number;
+  rainMeasured?: number;    // (the rain as recorded: undefined where the record has none — rain above is then 0, for the look)
 }
 type Record_ = { year: number; source: string; station: string; na: number; rows: number[] };
 const YEARS = ['2024', '2023', '2022'];   // (each island year replays the next, in turn; more years to come)
@@ -63,5 +64,5 @@ export function islandWeather(realMs: number): IslandWeather | null {
   const code = typhoon && rain > 2 ? 65 : rain >= 4 ? 65 : rain >= 1 ? 63 : rain > 0.1 ? 61 : cloud > 0.85 ? 3 : cloud > 0.45 ? 2 : 1;
   const day0 = new Date(Date.UTC(rec.year, 0, 1 + d.dayOfYear + (rec.year % 4 === 0 && d.dayOfYear >= 59 ? 1 : 0)));
   const at = `${day0.toISOString().slice(0, 10)}T${String(hour).padStart(2, '0')}:00+09:00`;
-  return { ok: true, at: realMs, cloud, rain, code, wind, windDir: dir, gust, air, humidity: rh, windMeasured: windM, pressure, pressureMeasured: p, typhoon, source: rec.source, record: { station: rec.station ?? 'era5', at } };
+  return { ok: true, at: realMs, cloud, rain, rainMeasured: val(2, 10), code, wind, windDir: dir, gust, air, humidity: rh, windMeasured: windM, pressure, pressureMeasured: p, typhoon, source: rec.source, record: { station: rec.station ?? 'era5', at } };
 }

@@ -37,12 +37,13 @@ want('a rain catcher from the bamboo', lantern.diary.some((e: any) => /雨受け
   const before = (Object.values(R.lab.lots) as any[]).filter((l) => l.materialId === 'process_water').reduce((n, l) => n + l.amount.value, 0), mm = islandWeather(t)?.rain ?? 0;
   now = t; for (let i = 0; i < 60 * 4; i++) { now += 250; R.update(0.25, now, new THREE.Vector3(0, 50, 0)); }
   const after = (Object.values(R.lab.lots) as any[]).filter((l) => l.materialId === 'process_water').reduce((n, l) => n + l.amount.value, 0);
-  const expect = mm * (60 * 365 / 28 / 3600) * 0.8 * 1e6;   // (a real minute of island rain on 0.8 m²)
+  const expect = Math.max(0, mm * (60 * 365 / 28 / 3600) - 0.5) * 0.8 * 1e6;   // (a real minute of island rain on 0.8 m², less the first half millimetre that wets the leaves)
   want('in the rain it fills: the record\'s rain on the funnel, on the island\'s clock', after - before > expect * 0.5 && after - before < expect * 2, `${mm} mm/h: +${((after - before) / 1e6).toFixed(3)} L (expected about ${(expect / 1e6).toFixed(3)})`);
 }
 { const lots = Object.values(R.lab.lots) as any[], water = lots.filter((l) => l.materialId === 'process_water'), nuts = lots.filter((l) => l.materialId === 'coconut');
-  console.log(`shelf: coconut ${nuts.map((l) => `${l.quality.count}個 ${(l.amount.value / 1e6).toFixed(2)}kg`).join(',')}; water ${water.map((l) => (l.amount.value / 1e6).toFixed(2) + 'L').join(',') || 'none (no rain in this stretch)'}`);
-  want('coconuts a lot of whole nuts, weighed', nuts.length === 1 && nuts[0].quality.count >= 1); }
+  console.log(`shelf: coconut ${nuts.map((l) => `${(l.amount.value / 1e6).toFixed(2)}kg`).join(',')}; water ${water.map((l) => (l.amount.value / 1e6).toFixed(2) + 'L').join(',') || 'none (no rain in this stretch)'}`);
+  want('coconuts: a lot for each nut (a run takes a lot whole), weighed in whole mg', nuts.length >= 1 && nuts.every((l) => l.quality.count === 1 && Number.isInteger(l.amount.value)));
+  want('rain water in whole mg, no more than 20 L', water.every((l) => Number.isInteger(l.amount.value) && l.amount.value <= 20e6)); }
 if (bad) console.log('mind', !!R.mind(lantern), 'act', lantern.act, lantern.task?.kind, 'holding', lantern.holding, 'diary', lantern.diary.slice(-5).map((e: any) => e.text).join(' | '));
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);
