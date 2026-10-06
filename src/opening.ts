@@ -1,6 +1,6 @@
 // The way into a sea (owner's idea, 2026-10): it begins in the air, the drone itself in the picture under the sky —
 // the sun, the moon, or the stars — then the view slides into the drone's own eye, it tips over toward the sea and
-// goes in at an angle, and the white of the bubbles clears to show the sea's best sight. Only where the camera
+// goes in at an angle, through a burst of bubbles, onto the sea's best sight. Only where the camera
 // is and which way it looks, second by second; the app lays it over the drone (and shows the whiteout).
 import * as THREE from 'three';
 import { smooth } from './core/math';
@@ -55,8 +55,10 @@ export function planOpening(end: { pos: THREE.Vector3; yaw: number; pitch: numbe
       const kDown = ease(Math.max(0, Math.min(1, (t - 3.4) / 2.6)));
       const kLevel = ease(Math.max(0, Math.min(1, (t - HOLD - FALL) / (UNDER * 0.85))));
       o.pitch = (skyPitch + (DIVE - skyPitch) * kDown) * (1 - kLevel) + end.pitch * kLevel;
-      // the white of the bubbles: all at once going in, clearing over the next couple of seconds
-      o.white = t < HOLD + FALL ? 0 : 1 - smooth(0.15, UNDER, t - HOLD - FALL);
+      // going in: a pale veil of churned water for a moment, clearing within a second or so — only a touch of it: what
+      // the eye sees is the bubbles (the app's), and the sea through them (a full white screen was too much: owner,
+      // 2026-10-06)
+      o.white = t < HOLD + FALL ? 0 : 0.35 * (1 - smooth(0.05, 1.2, t - HOLD - FALL));
       return o;
     },
   };

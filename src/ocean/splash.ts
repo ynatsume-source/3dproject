@@ -13,14 +13,15 @@ geo.setAttribute('aLife', new THREE.BufferAttribute(age, 1).setUsage(THREE.Dynam
 geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
 geo.setAttribute('aKind', new THREE.BufferAttribute(kind, 1));
 const spray = new THREE.Points(geo, mat(
-  `attribute float aLife; attribute float aSize; attribute float aKind; uniform float uPx; varying float vA; varying float vK; varying vec3 vWp;
+  `attribute float aLife; attribute float aSize; attribute float aKind; uniform float uPx; varying float vA; varying float vK; varying vec3 vWp; varying float vPs;
    void main(){
      vec4 mv = viewMatrix * vec4(position, 1.0); float d = -mv.z;
      vA = aLife; vK = aKind; vWp = position;
-     gl_PointSize = aLife > 0.0 ? clamp(uPx * aSize / max(d, 0.2), 1.0, aKind > 1.5 ? 220.0 : 48.0) : 0.0;
+     gl_PointSize = aLife > 0.0 ? clamp(uPx * aSize / max(d, 0.2), 1.0, aKind > 1.5 ? 220.0 : aKind > 0.5 ? 120.0 : 48.0) : 0.0;
+     vPs = gl_PointSize;
      gl_Position = projectionMatrix * mv;
    }`,
-  `varying float vA; varying float vK; varying vec3 vWp;
+  `varying float vA; varying float vK; varying vec3 vWp; varying float vPs;
    void main(){
      vec2 q = gl_PointCoord - 0.5; float r = length(q);
      if (vK > 1.5) {
@@ -29,8 +30,11 @@ const spray = new THREE.Points(geo, mat(
        vec3 c = vWp.y > 0.0 ? sunAirCol() * max(uAirSun.y, 0.0) * 0.7 + skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.95 + 0.06 : fogIt(vec3(0.8, 0.92, 0.95) * (0.4 + 0.8 * uSunI) + 0.12, vWp);
        gl_FragColor = vec4(c * a, 1.0);
      } else if (vK > 0.5) {
-       // a bubble: a bright rim catching the light from above
-       float ring = smoothstep(0.5, 0.36, r) * (0.35 + 0.65 * smoothstep(0.2, 0.42, r));
+       // a bubble: a bright rim catching the light from above (one close to the lens, big on the screen: a thin
+       // rim and a clear middle, a glint near its top — not a white disc)
+       float big = smoothstep(10.0, 50.0, vPs);
+       float ring = smoothstep(0.5, mix(0.36, 0.45, big), r) * (mix(0.35, 0.04, big) + mix(0.65, 0.9, big) * smoothstep(mix(0.2, 0.4, big), mix(0.42, 0.47, big), r))
+         + big * smoothstep(0.1, 0.0, length(q - vec2(-0.12, -0.16))) * 0.6;
        vec3 c = fogIt(vec3(0.75, 0.9, 0.95) * (0.4 + 0.8 * uSunI) + 0.15, vWp);
        gl_FragColor = vec4(c * ring * vA * 0.9, 1.0);
      } else {
@@ -94,6 +98,18 @@ export function bubblesAt(x: number, y: number, z: number, n = 2) {
   for (let k = 0; k < n; k++) emit(x + (Math.random() - 0.5) * 0.2, y, z + (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, 0.4 + Math.random() * 0.4, (Math.random() - 0.5) * 0.2, 1.2 + Math.random() * 1.8, 0.02 + Math.random() * 0.04, 1);
 }
 
+// going into the sea: the cloud of bubbles a body carries down with it, all round and in front of the lens (from a
+// few millimetres to a few centimetres across, the nearest filling a good part of the view), rising past it and
+// thinning out over a couple of seconds — the sea seen through them, not a white screen (owner, 2026-10-06)
+export function diveBubbles(x: number, y: number, z: number, fx: number, fz: number, n = 340) {
+  for (let k = 0; k < n; k++) {
+    const along = 0.25 + Math.pow(Math.random(), 1.6) * 3.2, side = (Math.random() - 0.5) * (0.6 + along * 0.9), up = (Math.random() - 0.6) * (0.5 + along * 0.6);
+    const big = Math.random() < 0.18;
+    emit(x + fx * along - fz * side, Math.min(-0.4, y + up - 0.2), z + fz * along + fx * side,
+      (Math.random() - 0.5) * 0.35, 0.5 + Math.random() * (big ? 1.1 : 0.7), (Math.random() - 0.5) * 0.35,
+      0.8 + Math.random() * 1.6, big ? 0.05 + Math.random() * 0.07 : 0.008 + Math.random() * 0.03, 1);
+  }
+}
 export function updateSplash(dt: number, pxScale: number) {
   (spray.material as THREE.ShaderMaterial).uniforms.uPx.value = pxScale;
   let any = false;

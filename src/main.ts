@@ -49,7 +49,7 @@ import { makeRecorder, KEEP } from './ui/replay';
 import { planOpening, type Opening, type OpeningPose } from './opening';
 import { makeHints } from './ui/hints';
 import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
-import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt } from './ocean/splash';
+import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt, diveBubbles } from './ocean/splash';
 initAnalytics();   // (on the public site only)
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
@@ -137,11 +137,14 @@ let dragAt = -1e9;   // (when the view was last turned by hand, flying manually)
 // slowly at the same distance) until the hand takes the controls again: the mode is the cruise's meanwhile
 let visit = false;
 // the way into a sea: from the air, the drone in the picture under the sky, into its eye, down into the water and the
-// white of the bubbles clearing on the sea's best sight (src/opening.ts); then a short tour of the best of what is
-// about. Once a day for each sea, on diving in from the globe; never for a shared view, a place taken up again, the
+// burst of bubbles clearing on the sea's best sight (src/opening.ts); then a few seconds there. Once a day for each sea, on diving in from the globe; never for a shared view, a place taken up again, the
 // test pages, or with reduced motion; a touch of the controls or a tap ends it where it is.
-let opening: { plan: Opening; t: number; pose: OpeningPose; view: 'fpv' | 'chase'; wet: boolean } | null = null;
+let opening: { plan: Opening; t: number; pose: OpeningPose; view: 'fpv' | 'chase'; wet: boolean; bubT?: number } | null = null;
 let tourQ: Subject[] = [], tourAt = 0, openK = 1;
+// the first seconds in a sea, the camera stays where it came in (see updateDrone)
+const ARRIVE = 5.5;
+const arrive = { t: 0, age: 0, yaw: 0, pitch: 0 };
+function arriveHere() { arrive.t = ARRIVE; arrive.age = 0; arrive.yaw = drone.yaw; arrive.pitch = drone.pitch; }
 const OPEN_KEY = 'seaglass.opening';
 function wantOpening(loc: Sea) {
   const q = location.search;
@@ -162,25 +165,17 @@ function startOpening(oc: Ocean) {
   setView('chase', false);
   try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); m[oc.loc.id] = new Date().toDateString(); localStorage.setItem(OPEN_KEY, JSON.stringify(m)); } catch (e) { /* storage blocked */ }
 }
-// done (or cut short by a touch of the controls): the view as it was chosen, and — when it ran to the end — a
-// short tour of the best of what is about, after a while in front of the sight
+// done (or cut short by a touch of the controls): the view as it was chosen
 function endOpening(done: boolean) {
   if (!opening) return;
   const view = opening.view;
   opening = null; openK = 1; $('openWhite').style.opacity = '0';
   setView(view, false);
   tourQ = [];
+  // (then the first seconds in front of what is here; after them the filming begins with what is in view and near,
+  // and goes on from one thing to the next — no tour of the sea's best any more: owner, 2026-10-06)
   if (!done || !cur) return;
-  const seen = new Set<string>();
-  // (not the same every time: the first is a school if there is one about — the water full of life — then
-  // two of the others, drawn by how good they are to watch rather than always the very best)
-  const about = allSubjects().filter((sj) => sj.live() && sj.pos() && sj.kind !== 'cave' && sj.kind !== 'robot' && !sj.tour && !sj.breach && drone.pos.distanceTo(sj.pos() as THREE.Vector3) < 70)
-    .filter((sj) => { const k = speciesOf(sj); if (seen.has(k)) return false; seen.add(k); return true; });
-  const draw = (list: Subject[]) => { const w = list.map((sj) => Math.max(0, director.weight(sj) * sj.prio)), tot = w.reduce((a, b) => a + b, 0); let q = Math.random() * tot; for (let i = 0; i < list.length; i++) if ((q -= w[i]) <= 0) return list[i]; return list[list.length - 1]; };
-  const school = about.filter((sj) => sj.kind === 'school');
-  if (school.length) tourQ.push(draw(school));
-  while (tourQ.length < 3) { const rest = about.filter((sj) => !tourQ.includes(sj)); if (!rest.length) break; tourQ.push(draw(rest)); }
-  tourAt = performance.now() + 12000;
+  arriveHere();
 }
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
@@ -582,7 +577,7 @@ function updateDrone(dt: number, now: number) {
   if (drone.skyHop && ((drone.skyAge += dt) > drone.skyStay || (!flyRun && drone.skyAge > 3))) setSky(false, true);
   if (visit && drone.mode === 'auto' && !director.shot) setMode('manual');   // (what it went to see is gone: back to the hand, hovering here)
   // (after the way in: the best of what is about, one after another, then the cruise as ever)
-  if (tourQ.length && !opening && drone.mode === 'auto' && !watch.r && !director.shot && now > tourAt) {
+  if (tourQ.length && !opening && arrive.t <= 0 && drone.mode === 'auto' && !watch.r && !director.shot && now > tourAt) {
     const sj = tourQ.shift()!;
     if (sj.live() && sj.pos()) director.show(sj, drone.pos);   // (as the cruise films anything: its usual while, then on — not a request held to the end)
   }
@@ -592,7 +587,7 @@ function updateDrone(dt: number, now: number) {
   const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260
     && ((skyNow?.night ?? 0) < 0.6 || U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y) > 0.25);   // (not on a dark night: the stars, not a black sea)
   const flyOn = drone.sky && drone.mode === 'auto' && !watch.r && !!flyRun && !!cur!.flyfish && !overLeap;
-  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn && !opening;
+  const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn && !opening && (arrive.t <= 0 || !!director.shot?.asked);
   const shot = film ? director.update(dt, drone.pos, () => (drone.sky ? R!.subjects() : performance.now() < drone.seaUntil ? allSubjects().filter((sj) => sj.kind !== 'robot' || (sj.pos()?.y ?? 0) < 0) : allSubjects()), (x, z) => Math.max(cur!.T.top(x, z), cur!.T.over ? cur!.T.over(x, z) : -1e9), U.uCamFwd.value) : null;
   if (shot !== lastShot) { onShotChange(lastShot, shot); lastShot = shot; stuckT = 0; }
   // stuck: filming something (not riding a tour through), well short of the spot and hardly moving
@@ -616,9 +611,10 @@ function updateDrone(dt: number, now: number) {
       // in: a burst of bubbles all round the lens, rising past it, and the spray where it went in
       op.wet = true;
       bigSplash(op.plan.entry.x, op.plan.entry.z, 0.35, 0.9);
-      const f = new THREE.Vector3(-Math.sin(drone.yaw), 0, -Math.cos(drone.yaw));
-      for (let i = 0; i < 70; i++) bubblesAt(drone.pos.x + f.x * rr(0.4, 3) + rr(-1.2, 1.2), drone.pos.y + rr(-1.5, 0.3), drone.pos.z + f.z * rr(0.4, 3) + rr(-1.2, 1.2), 3);
-    } else if (op.wet && Math.random() < dt * 20) bubblesAt(drone.pos.x + rr(-1, 1), drone.pos.y - rr(0.3, 1.2), drone.pos.z + rr(-1, 1), 2);
+      diveBubbles(drone.pos.x, Math.min(-0.3, drone.pos.y), drone.pos.z, -Math.sin(drone.yaw), -Math.cos(drone.yaw));
+      op.bubT = 0;
+    } else if (op.wet && (op.bubT = (op.bubT ?? 0) + dt) < 1.6) diveBubbles(drone.pos.x, drone.pos.y, drone.pos.z, -Math.sin(drone.yaw), -Math.cos(drone.yaw), Math.round(70 * dt * (1.6 - op.bubT)));   // (and more after it, thinning)
+    else if (op.wet && Math.random() < dt * 20) bubblesAt(drone.pos.x + rr(-1, 1), drone.pos.y - rr(0.3, 1.2), drone.pos.z + rr(-1, 1), 2);
     if (op.t >= op.plan.len) endOpening(true);
   } else if (povOn && watch.r) {
     const sn = cur!.residents!.sense(watch.r);
@@ -761,6 +757,15 @@ function updateDrone(dt: number, now: number) {
       : night > 0.5 ? nightPitch : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * (lc ? 1.2 : 0.35));
     drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * (lc ? 1.2 : 0.35));
+  } else if (drone.mode === 'auto' && arrive.t > 0 && !drone.sky) {
+    // just in (owner, 2026-10-06): a few seconds in front of what is here, full of fish — barely drifting on, the
+    // view turning a little one way and back — before the cruise sets off and the camera looks for anything
+    arrive.t -= dt; arrive.age += dt;
+    _v.set(-Math.sin(arrive.yaw) * 0.18, 0, -Math.cos(arrive.yaw) * 0.18);
+    drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
+    drone.yaw += angDiff(arrive.yaw + Math.sin(arrive.age * 0.55) * 0.2, drone.yaw) * Math.min(1, dt * 0.8);
+    drone.pitch += (arrive.pitch - drone.pitch) * Math.min(1, dt * 0.8);
+    if (arrive.t <= 0) { drone.s = nearestS(drone.pos); director.start(); }   // (and the filming begins here, with what is in front)
   } else if (drone.mode === 'auto') {
     const hasI = findInterest(drone.pos, U.uCamFwd.value);
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
@@ -1288,13 +1293,17 @@ addEventListener('pagehide', saveLog);
 
 /* ---------- sea log: what is happening around the drone ---------- */
 type Where = () => { x: number; y: number; z: number } | null;
-const logQueue: { text: string; at?: Where; label?: string; kind?: string; ref?: any }[] = [];
+const logQueue: { text: string; at?: Where; label?: string; kind?: string; ref?: any; t?: number }[] = [];
 const recent = new Map<string, number>();
 let logShownAt = -1e9;
 // While a hunt is on the caption, it stays with that hunt until it ends: other hunts elsewhere wait
 // (they still go into the day's log). Everyday moments of the same kind show at most every few minutes.
 const huntLock = { ref: null as any, until: 0 };
-const QUIET: Record<string, number> = { breathe: 300e3, rest: 300e3, manta: 240e3, octopus: 180e3 };
+const QUIET: Record<string, number> = { breathe: 480e3, rest: 480e3, manta: 420e3, octopus: 180e3, fishrest: 240e3, fishwake: 240e3, shy: 180e3 };
+// (and the log is varied: what is told next is what is waiting whose sort was told longest ago — the turtles' and
+// mantas' goings-on count as one sort each, however they are worded)
+const SORT: Record<string, string> = { breathe: 'turtle', rest: 'turtle', manta: 'manta', breach: 'manta' };
+const sortShown = new Map<string, number>();
 const lastKind = new Map<string, number>();
 const sameHunt = (a: any, b: any) => !!a && !!b && (a === b || Math.hypot(a.x - b.x, a.z - b.z) < 8);
 function seaLog(kind: string, text: string, at?: Where) {
@@ -1305,14 +1314,20 @@ function seaLog(kind: string, text: string, at?: Where) {
   const ref = at?.() ?? null;
   if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) return;
   recent.set(text, now); lastKind.set(kind, now);
-  if (kind === 'phase') logQueue.unshift({ text }); else if (logQueue.length < 3) logQueue.push({ text, at, kind, ref });
+  if (kind === 'phase') logQueue.unshift({ text }); else { logQueue.push({ text, at, kind, ref, t: now }); if (logQueue.length > 6) logQueue.shift(); }
 }
 function pumpLog(now: number) {
   // (watching a resident: the sea's goings-on are not told — nor kept to pop up stale once it is over)
   if (watch.r) { logQueue.length = 0; return; }
   if (!logQueue.length || now - logShownAt < 20000 || $('toast').classList.contains('on')) return;
+  // (what has waited over a minute is no longer news)
+  for (let i = logQueue.length - 1; i >= 0; i--) if (logQueue[i].t != null && now - logQueue[i].t! > 60000) logQueue.splice(i, 1);
+  if (!logQueue.length) return;
   logShownAt = now;
-  const e = logQueue.shift()!;
+  let pick = 0;
+  if (logQueue[0].kind) { let old = Infinity; logQueue.forEach((q, i) => { const k = SORT[q.kind ?? ''] ?? q.kind ?? '', at = sortShown.get(k) ?? -1e9; if (q.kind && at < old) { old = at; pick = i; } }); }
+  const e = logQueue.splice(pick, 1)[0];
+  if (e.kind) sortShown.set(SORT[e.kind] ?? e.kind, now);
   // (what happens to the one being filmed is told by the commentary, not here)
   const sp = lastShot?.subject.pos(), ep = e.ref ?? (e.at ? e.at() : null);
   if (sp && ep && Math.hypot(sp.x - ep.x, sp.y - ep.y, sp.z - ep.z) < 8) { logShownAt = now - 15000; return; }
@@ -1369,6 +1384,7 @@ function scanNotices(dt: number, now: number) {
   let best: Subject | null = null, bs = 0;
   for (const s of cur.eco.subjects()) {
     if (s === filming || s.key === filming?.key || s.kind === 'cave' || (noticed.get(speciesOf(s)) ?? -1e9) > now - 180000) continue;
+    if ((noticed.get('kind:' + s.kind) ?? -1e9) > now - 360000) continue;   // (not a manta, then a manta again: one of a sort every few minutes)
     const notable = s.kind === 'giant' || s.kind === 'manta' || s.kind === 'hunt' || (s.kind === 'school' && s.size >= 3) || (s.kind === 'big' && (s.len ?? s.size) >= 1) || (s.kind === 'critter' && s.prio >= 2);
     const p = s.pos(); if (!notable || !p || !s.live()) continue;
     const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
@@ -1377,7 +1393,7 @@ function scanNotices(dt: number, now: number) {
     if (sc > bs) { bs = sc; best = s; }
   }
   if (!best) return;
-  noticed.set(speciesOf(best), now); logShownAt = now;
+  noticed.set(speciesOf(best), now); noticed.set('kind:' + best.kind, now); logShownAt = now;
   const b = best;
   showToast(`${bearing(b.pos()!)}先に`, `${b.label}`, b.status());
   markAt = () => b.pos(); markText = b.label; markUntil = now + 9000; noticeSubj = b;
@@ -1444,6 +1460,7 @@ function focusOn(s: Subject, from = '図鑑から') {
   askFrom = from; askKey = s.key;
   markUntil = 0; noticeSubj = null;   // (a new request: the last one's ring is not left behind)
   look.yaw = look.pitch = 0; look.wy = NaN;   // (and the view turned by hand comes back to it: what was asked for is put in the middle)
+  arrive.t = 0;
   endOpening(false); tourQ = [];
   if (watch.r) stopWatch(false);
   if (drone.mode !== 'auto') setMode('auto');
@@ -2034,7 +2051,7 @@ function enterOcean(oc: Ocean) {
   const st0 = pickStart(oc);
   if (st0) { drone.pos.copy(st0.pos); drone.yaw = st0.yaw; drone.pitch = st0.pitch; drone.s = nearestS(drone.pos); director.reset(); }
   endOpening(false); tourQ = [];
-  if (wantOpening(oc.loc)) startOpening(oc);
+  if (wantOpening(oc.loc)) { startOpening(oc); arrive.t = 0; } else arriveHere();
   updateDrone(0.016, performance.now());
   camera.getWorldDirection(U.uCamFwd.value);
   for (const f of oc.fish) f.reset();

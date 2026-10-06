@@ -35,6 +35,7 @@ interface Group {
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
   predT?: number;
+  restLog?: boolean; shyLog?: number;     // (what the sea log was last told of it: resting or not; when it last hid from a hunter)
   m?: THREE.Vector3; spread?: number;    // (where its fish are, their middle, and how far they spread from it)
   lead?: number; leadAt?: THREE.Vector3; // (the one of it that is filmed, when one is: see leadOf)
   core?: number; coreF?: number;         // (see coreOf)                         // (when a predator last frightened it, by its own clock: what it is shying from)
@@ -340,6 +341,27 @@ export function makeFishSystem(sp: Species, oc: any) {
   const caveMode0 = (g: Group) => (g.cr ? g.cr.mode : 'out');
   let target = 1;
   let curNow = 0, frameNo = 0;   // (how hard the current runs: plankton feeders snap at what it brings; frames gone by)
+  // The reef's everyday fish in the sea log, as they really change: a group going to rest or waking (its activity
+  // crossing the line its status reads by), and a school pressing into the reef from a hunter (only near by:
+  // logEvent keeps to what the drone could notice). Said when it happens, of this group.
+  function tellReef(g: Group, env: Env, dc2: number) {
+    const resting = g.act < 0.35, rocky = !!oc.kelp, bommie = rocky ? '岩' : '根', at = () => g.m ?? g.c;
+    if (g.restLog === undefined) g.restLog = resting;
+    else if (resting !== g.restLog) {
+      g.restLog = resting;
+      if (dc2 < 45 * 45) {
+        const anem = g.type === 'anem', night = sp.diel === 'night';
+        const text = resting
+          ? (anem ? `${sp.ja}がイソギンチャクの奥へもぐり込み、休みはじめた` : night ? `${sp.ja}が${bommie}のそばに集まり、昼の休みに入った` : g.n > 1 ? `${sp.ja}の群れがほどけて、${bommie}のすき間へ眠りに入っていく` : `${sp.ja}が${bommie}のすき間に入り、眠りについた`)
+          : (anem ? `${sp.ja}がイソギンチャクから出てきて、泳ぎはじめた` : night ? `日が落ちて、${sp.ja}が${bommie}を離れ、動き出した` : `${sp.ja}が${bommie}のすき間から出てきて、泳ぎはじめた`);
+        logEvent(env, resting ? 'fishrest' : 'fishwake', text, g.c.x, g.c.z, at);
+      }
+    }
+    if (g.type === 'reef' && g.n > 2 && g.predT != null && g.t - g.predT < 0.3 && !(g.ch && g.t - g.ch.t < 2) && (g.shyLog == null || g.t - g.shyLog > 150) && dc2 < 40 * 40) {
+      g.shyLog = g.t;
+      logEvent(env, 'shy', `捕食者の気配に、${sp.ja}の群れが${rocky ? '岩礁' : 'サンゴ'}へさっと身を寄せた`, g.c.x, g.c.z, at);
+    }
+  }
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
     frame++;
     if (kelpLife) lastCam.copy(cam);
@@ -355,6 +377,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       g.act += (act - g.act) * Math.min(1, dt * 0.08);           // settle in / wake up over ~15 s
       g.fear = Math.max(0, g.fear - dt * 0.25);
       const dxc = g.c.x - cam.x, dzc = g.c.z - cam.z, dc2 = dxc * dxc + dzc * dzc;
+      if (g.placed && g.type !== 'roam' && !kelpLife) tellReef(g, env, dc2);
       if (g.type === 'anem') {
         if (!g.placed) place(g, cam, fx, fz, true);
         // (far off, the family is left be — and not drawn: one never yet come near would otherwise be drawn
@@ -708,6 +731,12 @@ export function makeFishSystem(sp: Species, oc: any) {
         out.push({ key, label: sp.ja, len: fs[leadOf(g)] * 1.28, adult: sp.size[1], kind: 'big', prio: 1.4, size: size * 1.5, pos: leadPos(g), frameR: () => fs[leadOf(g)] * 0.64, status: () => groupStatus(g), live: () => g.placed });
       } else if (g.type === 'anem') {
         out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status: () => groupStatus(g), live: () => true });
+      } else if (g.type === 'reef' && !sp.big && g.n >= 5 && g.act > 0.4) {
+        // a small fish's school over its patch of reef (the owner, 2026-10-06: the small fish are worth the cruise's
+        // look as much as the big ones): filmed as a tap on it is — close and slowly, round its core
+        const o: Subject = { key, label: `${sp.ja}の群れ`, kind: 'critter', prio: 1.6 * g.act, size: 1, pos: () => g.m ?? g.c, frameR: () => frameOf(g), status: () => groupStatus(g), live: () => g.placed };
+        Object.defineProperty(o, 'size', { get: () => groupSize(g), enumerable: true });
+        out.push(o);
       }
     });
     if (kelpLife && sp.id === 'senorita') {

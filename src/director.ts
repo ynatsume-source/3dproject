@@ -60,6 +60,8 @@ export class Director {
   private brN = 0; private brSince = -1e9;   // leaps watched lately (two or three, then on to something else for a while)
 
   reset() { this.shot = null; this.cooldown = 10; }
+  // look for something to film now (the first seconds in a sea are over)
+  start() { if (!this.shot) this.cooldown = 0; }
   // let go of what it is filming and go back to the cruise (asked to: the cruise button pressed mid-shot);
   // the subject is not held against (it may be filmed again when it next comes up)
   release() { if (!this.shot) return false; this.shot = null; this.cooldown = rr(4, 8); return true; }
@@ -89,6 +91,13 @@ export class Director {
     const [a, b] = DURATION[best.kind];
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
     if (best.brief?.() && best.hold == null) this.dur = Math.min(this.dur, rr(10, 16));   // (a turtle asleep under a ledge: a short look is enough)
+    // Cruising, a look is a look (owner, 2026-10-06: "at most about ten seconds" — not twenty or thirty on one
+    // thing): what it comes across is watched for 8–12 s (a giant 10–14 s) and the cruise goes on. What was asked
+    // for, a leap, a ride through the cave, a rare sight and a hunt still going keep their own time.
+    if (!forced && !best.tour && !best.breach && !best.comes && best.hold == null && !best.key.startsWith('rare:'))
+      this.dur = Math.min(this.dur, best.kind === 'giant' || best.kind === 'manta' ? rr(10, 14) : rr(8, 12));
+    this.watched.set(speciesOf(best), this.clock);
+    this.began = this.clock; this.brief = !forced && !best.tour && !best.breach && !best.comes && best.hold == null && !best.key.startsWith('rare:');
     this.recent.set(best.key, this.clock);
     this.bored.set(speciesOf(best), (this.bored.get(speciesOf(best)) ?? 0) + 1);
     this.recent.set('kind:' + best.kind, this.clock);
@@ -109,11 +118,17 @@ export class Director {
   // front of the lens and near, how worn the eye is by its kind already today (boredom fades over about
   // ten minutes), whether it was just filmed, how rare or grand it is, and the guide's own taste.
   private bored = new Map<string, number>();
+  // once a kind has been properly looked at, the cruise leaves it be for a while (owner, 2026-10-06: a turtle
+  // seen once need not be gone back to soon) — variety: the reef's small fish, the anemone's family, the rest
+  private watched = new Map<string, number>();
+  private began = 0; private brief = false;   // (when this shot began; whether it is one of the cruise's own short looks)
+  static readonly REST_KIND = 420;
   switchK = 1.6;   // (how much better something passing must be to switch to it, mid-shot)
   minHold = 8;     // (how long a shot is held before switching is considered)
   interest(s: Subject, drone: THREE.Vector3, fwd: THREE.Vector3, self = false) {
     const p = s.pos(); if (!p || !s.live()) return 0;
     if ((this.skipUntil.get(s.key) ?? 0) > this.clock) return 0;
+    if (!self && this.clock - (this.watched.get(speciesOf(s)) ?? -1e9) < Director.REST_KIND) return 0;
     const dx = p.x - drone.x, dy = p.y - drone.y, dz = p.z - drone.z, d = Math.hypot(dx, dy, dz);
     if (d > (s.reach ?? 42)) return 0;
     const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3);
@@ -123,8 +138,11 @@ export class Director {
     const seenAgo = this.clock - (this.recent.get(s.key) ?? -1e9), kindAgo = this.clock - (this.recent.get('kind:' + s.kind) ?? -1e9);
     const leftAgo = this.clock - (this.recent.get('left:' + speciesOf(s)) ?? -1e9);
     const recent = self ? 1 : (seenAgo < 240 ? 0.25 : 1) * (kindAgo < 150 ? 0.5 : 1) * (leftAgo < 90 ? 0.3 : 1);   // (just left: not straight back)
-    const grand = s.kind === 'giant' ? 1.4 : s.kind === 'manta' ? 1.3 : s.kind === 'big' ? 1.15 : s.kind === 'critter' ? 1.1 : 1;
-    return s.prio * vis * Math.max(0, near) * bored * recent * grand * this.weight(s);
+    // (auto filming, owner 2026-10-06: from what is in view and near, on to the next thing near — the eye goes
+    // from one to the next as a diver's does, rather than cruising the route and stopping now and then)
+    const flow = d < 18 && dot > 0.5 ? 1 + 1.4 * (1 - d / 18) * dot : 1;
+    const grand = s.kind === 'giant' ? 1.15 : s.kind === 'manta' ? 1.1 : s.kind === 'critter' ? 1.1 : 1;   // (the big ones a little ahead, no more: variety first)
+    return s.prio * vis * Math.max(0, near) * bored * recent * grand * flow * this.weight(s);
   }
 
   // A leap out of the sea, filmed one of three ways (not the same way twice running):
@@ -275,6 +293,11 @@ export class Director {
       return sh;
     }
     if (s.breach && p) return this.breach(sh, s, p, dt, drone, floor);
+    // (on its way to something it chose itself: if it is not there in about a quarter of a minute, something
+    // nearer will do — the cruise does not spend half a minute crossing the reef for one look)
+    if (sh.phase === 'approach' && !sh.forced && !sh.asked && !s.comes && s.kind !== 'hunt' && this.t > 14) {
+      this.recent.set('left:' + speciesOf(s), this.clock); this.shot = null; this.cooldown = rr(3, 6); return null;
+    }
     const far = p ? !sh.forced && Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : !sh.forced;
     // what it is filming is no longer there (gone from the sea, its season over, the event ended): a moment's
     // grace, then back to the cruise (a hunt has its own, below)
@@ -286,7 +309,9 @@ export class Director {
       if (this.goneT > 1.5 || this.waitT > Director.WAIT) { this.shot = null; this.cooldown = rr(4, 8); return null; }
       return sh;
     }
-    if (!p || far || this.goneT > 1.5 || (sh.phase === 'observe' && this.t > this.dur && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
+    // (one of its own looks: about a quarter of a minute in all, the way there included)
+    const over = sh.phase === 'observe' && (this.t > this.dur || (this.brief && this.clock - this.began > 15 && this.t > 4));
+    if (!p || far || this.goneT > 1.5 || (over && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
       this.recent.set('left:' + speciesOf(s), this.clock);
       this.shot = null;
       this.cooldown = rr(...this.rest);
