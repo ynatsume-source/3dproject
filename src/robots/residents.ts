@@ -386,7 +386,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo };
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo,
+    labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0 };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
@@ -1288,6 +1289,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     a.onUseful = (from, opt) => {
       r.stats.talkUse = Math.min(1, (r.stats.talkUse ?? 0) + 0.25); a.values.bonus(`heard:${from}`, `${byId[from]?.v.name ?? from}から聞いた情報`, 0.5);
       r.diary.push({ at: clockMs, text: `${byId[from]?.v.name ?? from}から聞いた情報で、${opt.split(':')[0] === 'gather' ? '拾えた' : 'できた'}（${opt}）`, key: 'mind' }); if (r.diary.length > 800) r.diary.shift();
+      village.heardOkAt = clockMs;
+    };
+    // (told where something was, and it was not there: it says so to the one who told it, when they next meet)
+    a.onWrong = (from, opt) => {
+      const what = /wood#/.test(opt) ? 'wood' : /shell#/.test(opt) ? 'shell' : 'thing';
+      village.feedback.push({ from: r.id, to: from, f: { act: 'heard-wrong', what }, at: clockMs }); if (village.feedback.length > 20) village.feedback.shift();
+      r.diary.push({ at: clockMs, text: `${byId[from]?.v.name ?? from}から聞いた場所に、${what === 'wood' ? '流木' : what === 'shell' ? '貝殻' : 'それ'}はなかった`, key: 'mind' });
     };
   }
   /** Who it is for its own mind: its role and how it tends to decide, and what has worked for it (its hits). */
@@ -1392,6 +1400,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const ended = out.find((c) => c.ok && ['completed', 'stopped', 'failed'].includes(c.status!));
       if (!ended) continue;
       village.labRuns.splice(village.labRuns.indexOf(x), 1); drawStore();
+      village.labDone.push({ at: clockMs, processId: x.processId, ok: ended.status === 'completed' }); if (village.labDone.length > 40) village.labDone.shift();
       for (const p of ended.produced ?? []) if (p.location !== 'shelf') p.location = 'shelf';
       const seen = run.observations.map((o) => o.text ?? (o.quantity ? `${o.quantity} ${o.value}${o.unit ?? ''}` : '')).filter(Boolean).slice(0, 3).join('、');
       const made = (ended.produced ?? []).map((p) => `${MATERIAL_JA[p.materialId] ?? p.materialId} ${+(p.amount.value / 1000).toFixed(1)}g`).join('・');
@@ -1522,6 +1531,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const k = r.stats.built; if (k >= HUT.length) { r.holding = ''; break; }
         r.holding = ''; r.stats.built++;
         launch(r, HUT[k], fast);
+        { const g = (r as any).gotWood; if (g && clockMs - g.at < 86_400_000) { village.feedback.push({ from: r.id, to: g.from, f: { act: 'helped', what: 'wood', became: 'piece' }, at: clockMs }); if (village.feedback.length > 20) village.feedback.shift(); } (r as any).gotWood = undefined; }
         note(r, r.stats.built === 18 ? 'done' : 'build', {}, r.stats.built === 18 ? '小屋を完成させた' : '小屋の部材をひとつ取りつけた');
         // now and then it stands back to look at what it has put up: from a couple of metres off, head on one
         // side and the other, a little lower once to see it level, a nod, and back to work. Only looking: it
@@ -1635,6 +1645,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const o = byId[tk.data.to];
         if (!o || r.holding !== 'wood' || o.holding) { tk.failed = 'unavailable'; break; }
         r.holding = ''; o.holding = 'wood'; if (o.id === 'dot') o.stats.wood = 1;
+        (o as any).gotWood = { from: r.id, at: clockMs };   // (what it becomes is told back: feedback, below)
         const q = requests.find((x) => x.from === o.id && x.to === r.id && x.status === 'accepted'); if (q) q.status = 'done';
         { const c = exchange(r, o); utter(r, { act: 'hand-over', what: 'wood' }, 0, c); utter(o, { act: 'received', what: 'wood' }, 2200, c); }
         r.diary.push({ at: clockMs, text: `${o.v.name}に流木を手渡した`, key: 'mind' });
@@ -2265,7 +2276,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.mornings ??= 0; }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
@@ -2353,6 +2364,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const p = w ? `（気圧 ${Math.round(w.pressure)}hPa・最大瞬間風速 ${Math.round(w.gust)}m/s）` : '';
       if (!was && storm()) {   // a typhoon comes in: everyone records it; those with a mind have something to think about
         stormSince = clockMs; hypoStorm(clockMs);
+        // (one who is up tells those near it, plainly: to shelter)
+        { const awake = (x: Resident) => !sleepTime(x, localHour(clockMs)) && !x.talk, caller = [byId.lantern, byId.dot].find((x) => x && awake(x));
+          if (caller) for (const o of list.filter((x) => x !== caller && awake(x) && Math.hypot(x.pos.x - caller.pos.x, x.pos.z - caller.pos.z) < 60).slice(0, 3)) {
+            const c = exchange(caller, o); utter(caller, { act: 'order', to: o.id as Who, deed: 'shelter', why: 'typhoon' }, 0, c); utter(o, { act: 'will-go' }, 2000, c);
+          } }
         for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${p}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
         res.onEvent('weather', `台風が来た${p}`, list[0]);
       } else if (was && !storm()) {   // it has passed: the beds and the rocky bottom are torn up; the sea brings things up the beach
@@ -2578,12 +2594,44 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       : r.stats.built < HUT.length ? 'hut' : Object.keys(village.map.seen).length > Object.keys(village.map.reached).length ? 'map' : 'wood';
   const morningPlans: Record<string, string> = {};
   let nightTold = false;
+  const say_ = (who: string, f: Frame) => { const m = phrase(f); return { who, line: m.ja, isl: m.isl, en: m.en }; };
+  const qs = (who: string, f: Frame) => fireQueue.push(say_(who, f));
+  let lastNight: { f: Frame; at: number; heard: Set<string> } | null = null;
+  // (what one has to tell another — that what it brought was of use, that what it was told was not there — said when
+  // both are at the gathering)
+  function deliverFeedback(seated: Resident[]) {
+    const ids = new Set(seated.map((r) => r.id));
+    for (const fb of [...village.feedback]) {
+      if (!ids.has(fb.from) || !ids.has(fb.to)) continue;
+      village.feedback.splice(village.feedback.indexOf(fb), 1);
+      qs(fb.from, fb.f); qs(fb.to, { act: 'noted' });
+      const to = byId[fb.to], from = byId[fb.from];
+      if (fb.f.act === 'helped') { to.diary.push({ at: clockMs, text: `${from.v.name}から、届けた流木が小屋の部材になったと聞いた`, key: 'met', with: from.id }); agentOf(to)?.values.bonus(`give:${from.id}`, `${from.v.name}に流木を届ける`, 0.5); }
+      else to.diary.push({ at: clockMs, text: `${from.v.name}から、教えた場所に${fb.f.act === 'heard-wrong' && fb.f.what === 'wood' ? '流木' : 'それ'}はなかったと聞いた`, key: 'met', with: from.id });
+    }
+  }
   function morningNight(seated: Resident[]) {
     const ln = byId.lantern;
     const night = village.gaugeLog.filter((g) => g.at > clockMs - 12 * 3.6e6), marks = night.filter((g) => g.mark !== undefined);
     const alarm = !!village.hypo?.alarm && !village.hypo.alarm.matched;
-    const m = phrase({ act: 'tell-night', reads: marks.length, mark: marks[marks.length - 1]?.mark, alarm });
-    fireQueue.unshift({ who: 'lantern', line: m.ja, isl: m.isl, en: m.en });
+    const nf: Frame = { act: 'tell-night', reads: marks.length, mark: marks[marks.length - 1]?.mark, alarm };
+    const lines: { who: string; line: string; isl?: Tok[]; en?: string }[] = [say_('lantern', nf)];
+    if (marks.length) lastNight = { f: nf, at: clockMs, heard: new Set(seated.map((r) => r.id)) };
+    // (its guess, as it stands, and how the world has answered it so far; how the gauge is read, the first time)
+    const h = village.hypo;
+    if (h) {
+      lines.push(say_('lantern', { act: 'tell-guess', if: 'mark-high', then: 'typhoon' }));
+      if (h.heat) lines.push(say_('lantern', { act: 'tell-guess', if: 'hot', then: 'mark-up' }));
+      if (h.status !== 'testing') lines.push(say_('lantern', { act: 'tell-guess-status', held: h.status === 'held', hits: h.hits, wrong: h.falses + h.misses }));
+      if (!village.taught['read-gauge']) { village.taught['read-gauge'] = clockMs; lines.push(say_('lantern', { act: 'teach', how: 'read-gauge' })); }
+    }
+    // (a storm may come: Lantern proposes to put food by, and that it will keep reading the gauge; the others agree)
+    if (alarm && clockMs - village.stormPrep > 86_400_000) {
+      lines.push(say_('lantern', { act: 'propose', deed: 'store-food', mine: 'gauge' }));
+      for (const t of seated) if (t !== ln) lines.push(say_(t.id, { act: 'agree-proposal' }));
+      lines.push({ who: '', line: 'prep' });
+    }
+    fireQueue.unshift(...lines);
     for (const t of seated) if (t !== ln && marks.length) {
       t.diary.push({ at: clockMs, text: `朝の集まりで、ランタンから夜の気圧計の話を聞いた（${marks.length}回読んで、目盛り${marks[marks.length - 1].mark}${alarm ? '。台風が来るかもしれない' : ''}）`, key: 'met', with: 'lantern' });
       const a = agentOf(t);
@@ -2597,16 +2645,32 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     { const m = phrase({ act: 'ask-plan', to: who.id as Who }); say(asker, m.ja, fireConv, fast, m.isl, m.en); }
     const doing = planOf(who); morningPlans[who.id] = doing;
     { const m = phrase({ act: 'plan', doing }); fireQueue.push({ who: who.id, line: m.ja, isl: m.isl, en: m.en }); }
+    // (out to sea in a wind: Kamemaru, who knows the sea, forbids it; asked why, it says)
+    if ((who.id === 'dot' || who.id === 'kame') && morningPlans.dot === 'map' && !morningPlans.seaTold && (wxNow?.windMeasured ?? wxNow?.wind ?? 0) >= 8 && seated.some((r) => r.id === 'kame')) {
+      morningPlans.seaTold = '1';
+      qs('kame', { act: 'forbid', to: 'dot', deed: 'sea' }); qs('dot', { act: 'ask-why' }); qs('kame', { act: 'tell-why', why: 'wind' }); qs('dot', { act: 'noted' });
+      fireQueue.push({ who: '', line: 'nosea' });
+    }
     for (const t of seated) if (t !== who) t.diary.push({ at: clockMs, text: `朝の集まりで、${who.v.name}は今日${PLAN_JA[doing]}と言った`, key: 'met', with: who.id });
     lastSpeaker = asker.id;
     // (all have said: the hut wants wood and Dot has none — Rakko, if it is not hungry, offers to bring it)
     if (seated.every((r) => fireUsed.has(r.id))) {
       const dot = seated.find((r) => r.id === 'dot'), rk = seated.find((r) => r.id === 'rakko');
-      if (dot && rk && morningPlans.dot === 'hut' && !dot.holding && morningPlans.rakko !== 'eat'
-        && !requests.some((q) => q.from === 'dot' && q.to === 'rakko' && (q.status === 'open' || q.status === 'accepted'))) {
+      const asked = requests.some((q) => q.from === 'dot' && q.to === 'rakko' && (q.status === 'open' || q.status === 'accepted'));
+      if (dot && rk && (morningPlans.dot === 'hut') && !dot.holding && morningPlans.rakko !== 'eat' && !asked) {
         { const m = phrase({ act: 'offer-help', to: 'dot', what: 'wood' }); fireQueue.push({ who: 'rakko', line: m.ja, isl: m.isl, en: m.en }); }
         { const m = phrase({ act: 'accept-help' }); fireQueue.push({ who: 'dot', line: m.ja, isl: m.isl, en: m.en }); }
         fireQueue.push({ who: '', line: 'help' });
+        // (and who does what, said back by one of the others)
+        const sum = seated.find((r) => r.id === 'kame') ?? seated.find((r) => r.id === 'lantern');
+        if (sum) qs(sum.id, { act: 'assign', parts: [{ who: 'dot', deed: 'hut' }, { who: 'rakko', deed: 'wood' }] });
+      } else if (dot && morningPlans.dot === 'hut' && !dot.holding && !asked) {
+        // (no one to bring it: Rakko is hungry, or not there — Dot asks whether it is, and where wood is)
+        if (rk && morningPlans.rakko === 'eat') { qs('dot', { act: 'ask-body', to: 'rakko', what: 'hungry' }); qs('rakko', { act: 'tell-body', hungry: true }); }
+        qs('dot', { act: 'ask-where', what: 'wood' });
+        const knows = seated.filter((o) => o !== dot).map((o) => ({ o, ob: tip(o, dot) })).find((x) => x.ob);
+        if (knows) { qs(knows.o.id, { act: 'tell-where', what: 'wood', metres: knows.ob!.dist }); agentOf(dot)?.hear(knows.ob!, knows.o.id, `${knows.o.v.name}によると、${knows.ob!.label}が${Math.round(knows.ob!.dist)}mほど先にある`, clockMs); }
+        else { const o = seated.find((x) => x !== dot); if (o) qs(o.id, { act: 'dont-know', what: 'wood' }); }
       }
     }
   }
@@ -2618,6 +2682,26 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     byId.dot.diary.push({ at: clockMs, text: '朝の集まりで、ラッコが流木を運んでくれることになった', key: 'met', with: 'rakko' });
     res.onEvent('fire', '朝の集まりで、ラッコがドットに流木を運ぶことになった', byId.rakko);
   }
+  // The evening, besides each one's day: what the rain catcher holds and how it is made (Lantern); what was told in the
+  // morning, passed on to one who was not there; and, after a day when something told was of use, a word that telling is.
+  const eveDone = new Set<string>();   // (each said once an evening, when the ones it needs have come)
+  function eveningOpen(seated: Resident[]) {
+    const ln = seated.find((r) => r.id === 'lantern');
+    if (ln && village.catcher && !eveDone.has('catcher')) { eveDone.add('catcher');
+      const l = shelfLots().filter((x) => x.materialId === 'process_water').reduce((n, x) => n + x.amount.value, 0) / 1e6;
+      if (l >= 1) qs('lantern', { act: 'tell-measure', what: 'water', n: l, unit: 'litre' });
+      if (!village.taught['catch-rain']) { village.taught['catch-rain'] = clockMs; qs('lantern', { act: 'teach', how: 'catch-rain' }); }
+    }
+    if (lastNight && clockMs - lastNight.at < 14 * 3.6e6 && (lastNight.f as any).alarm && !eveDone.has('relay')) {
+      const teller = seated.find((r) => r.id !== 'lantern' && lastNight!.heard.has(r.id)), absent = seated.find((r) => !lastNight!.heard.has(r.id));
+      if (teller && absent) { eveDone.add('relay'); qs(teller.id, { act: 'relay', from: 'lantern', said: lastNight.f }); qs(absent.id, { act: 'noted' }); lastNight.heard.add(absent.id); absent.diary.push({ at: clockMs, text: `焚き火の会で、${teller.v.name}から、ランタンの朝の話（台風が来るかもしれない）を聞いた`, key: 'met', with: teller.id }); }
+    }
+    const sage = seated.find((r) => r.id === 'kame') ?? ln;
+    if (sage && clockMs - village.heardOkAt < 14 * 3.6e6 && clockMs - (village.taught['lecture:tell-seen'] ?? 0) > 3 * 86_400_000) {
+      village.taught['lecture:tell-seen'] = clockMs; qs(sage.id, { act: 'lecture', deed: 'tell-seen', why: 'told-useful' });
+    }
+  }
+  const MADE_OF: [RegExp, 'charcoal' | 'oil' | 'pot' | 'clay'][] = [[/charcoal/, 'charcoal'], [/oil/, 'oil'], [/vessel|pot/, 'pot'], [/clay/, 'clay']];
   function fireCircle(dt: number, fast: boolean) {
     const hr = localHour(clockMs);
     const seated = list.filter((r) => r.task?.kind === 'fire' && r.task.arrived);
@@ -2637,7 +2721,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (seated.length >= 2 && !fireSaid && circleMorning) { fireSaid = true; res.onEvent('fire', '朝の集まりが始まった', seated[0]); for (const k of Object.keys(morningPlans)) delete morningPlans[k]; nightTold = false; }
     if (circleMorning && fireSaid && !nightTold && seated.some((r) => r.id === 'lantern')) { nightTold = true; morningNight(seated); }   // (when it has come: it was up all night)
     if (seated.length >= 2 && !fireSaid) {
-      fireSaid = true; res.onEvent('fire', '焚き火の会が始まった', seated[0]);
+      fireSaid = true; res.onEvent('fire', '焚き火の会が始まった', seated[0]); eveDone.clear();
       const found = village.treasures.filter((t) => t.at > lastFireAt);
       for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) { const m = SAY.found(t.what); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); } }
       if (village.pier === 'none' && village.fires >= 2) {
@@ -2647,12 +2731,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
     }
     if (seated.length < 2) return;
+    if (village.feedback.length) deliverFeedback(seated);
+    if (!circleMorning && fireSaid) eveningOpen(seated);
     if ((fireTalkT -= dt) > 0) return;
     fireTalkT = fast ? 60 : rr(9, 16);
     while (fireQueue.length) {
       const q = fireQueue.shift()!;
       if (q.line === 'pier') { village.pier = 'plan'; drawPier(); res.onEvent('pier', '桟橋を共同で作ることが決まった。まずカメマルが位置を測る', seated[0]); continue; }
       if (q.line === 'help') { morningHelp(); continue; }
+      if (q.line === 'prep') { village.stormPrep = clockMs; res.onEvent('fire', '朝の集まりで、台風に備えて食べ物をしまっておくことが決まった', seated[0]); for (const r of seated) { r.diary.push({ at: clockMs, text: '朝の集まりで、台風に備えて食べ物をしまっておくことに決めた', key: 'met', with: 'lantern' }); const a = agentOf(r); if (a) a.why = '台風に備えて、食べ物をしまっておくことになった'; } continue; }
+      if (q.line === 'nosea') { morningPlans.dot = byId.dot.stats.built < HUT.length ? 'hut' : 'wood'; byId.dot.diary.push({ at: clockMs, text: '朝の集まりで、カメマルに「海に出るな。風が強いから」と言われた', key: 'met', with: 'kame' }); const a = agentOf(byId.dot); if (a) a.why = 'カメマルに、風が強いので海に出るなと言われた'; continue; }
       const w = byId[q.who]; if (!w || !seated.includes(w)) continue;
       for (const r of seated) if (r !== w) r.saying = '';
       if (!fireConv) fireConv = heading(circleMorning ? '朝の集まり' : '焚き火の会');
@@ -2682,6 +2770,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!fireConv) fireConv = heading(circleMorning ? '朝の集まり' : '焚き火の会');
     { const m = phrase({ act: 'ask-day', to: who.id as Who }); say(asker, m.ja, fireConv, fast, m.isl, m.en); }
     { const did = dayCounts(who), m = phrase({ act: 'tell-day', did }); fireQueue.push({ who: who.id, line: m.ja, isl: m.isl, en: m.en }); }
+    // (Lantern, with processes ended today: asked how they went, it says)
+    if (who.id === 'lantern') {
+      const done = village.labDone.filter((d) => clockMs - d.at < 14 * 3.6e6).map((d) => ({ d, made: MADE_OF.find(([re]) => re.test(d.processId))?.[1] })).filter((x) => x.made).slice(-2);
+      if (done.length) { qs(asker.id, { act: 'ask-how', to: 'lantern' }); for (const x of done) qs('lantern', { act: 'tell-result', made: x.made!, ok: x.d.ok }); }
+    }
     lastSpeaker = asker.id;
   }
   // Dot at work, the piece flying into place, the chips, a newly fitted piece settling

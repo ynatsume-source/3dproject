@@ -25,7 +25,36 @@ export type Frame =
   | { act: 'ask-day'; to: Who }                                 // what did you do today? (round the evening fire)
   | { act: 'tell-day'; did: DayItem[] }                        // what it did today, as the world counted it
   | { act: 'ask-plan'; to: Who }                                // what will you do today? (the morning gathering)
-  | { act: 'tell-night'; reads: number; mark?: number; alarm: boolean };   // the night's gauge, told in the morning                        // what it did today, as the world counted it
+  | { act: 'tell-night'; reads: number; mark?: number; alarm: boolean }   // the night's gauge, told in the morning
+  // everyday talk
+  | { act: 'ask-why' }                                          // why?
+  | { act: 'tell-why'; why: Reason }                            // because …
+  | { act: 'ask-where'; what: Findable }                        // where is …?
+  | { act: 'dont-know'; what?: Findable }                       // I don't know (where … is)
+  | { act: 'ask-body'; to: Who; what: 'hungry' | 'sleepy' | 'battery' }   // are you hungry? how is your battery?
+  | { act: 'tell-body'; hungry?: boolean; sleepy?: boolean; battery?: number }   // as the world counts it
+  // sharing
+  | { act: 'tell-result'; made: Made; ok: boolean; why?: Reason }          // I tried making …; it worked / it didn't, because …
+  | { act: 'tell-measure'; what: Measured; n: number; unit: Unit }        // … is n (units)
+  | { act: 'tell-guess'; if: Cond; then: Cond }                           // if …, … may be so
+  | { act: 'tell-guess-status'; held: boolean; hits: number; wrong: number }   // that idea seems true / doubtful
+  | { act: 'relay'; from: Who; said: Frame }                              // according to …, …
+  | { act: 'teach'; how: 'catch-rain' | 'read-gauge' }                    // how it is done
+  // proposing
+  | { act: 'propose'; deed: Deed; mine?: Deed }                           // let's …; I'll …
+  | { act: 'agree-proposal' }                                             // okay, I'll help too
+  | { act: 'object-proposal'; why: Reason }                               // that's not good, because …
+  | { act: 'counter'; instead: Deed }                                     // rather than that, let's …
+  | { act: 'assign'; parts: { who: Who; deed: Deed }[] }                  // … does …, … does …
+  // feedback
+  | { act: 'helped'; what: 'wood'; became: 'piece' | 'raft' | 'catcher' } // … was of use: it became …
+  | { act: 'heard-wrong'; what: Findable }                                // where I was told, there was no …
+  | { act: 'correct'; said: Frame }                                       // no: …
+  | { act: 'ask-how'; to: Who }                                           // how did it go?
+  // stronger
+  | { act: 'order'; to: Who; deed: Deed; why?: Reason }                   // do …! (because …)
+  | { act: 'forbid'; to?: Who; deed: Deed; why?: Reason }                 // don't …! (because …)
+  | { act: 'lecture'; deed: Deed; why: Reason };                          // because …, we should …                        // what it did today, as the world counted it
 
 /** One thing done today, counted by the world (residents.ts dayCounts): pieces fitted to the hut, islands put on the
  *  map, shells gathered, notes written, cairns stacked, photographs taken. */
@@ -41,12 +70,63 @@ const DAY: Record<DayItem['what'], { ids: (n: number, w?: Who) => string[]; ja: 
   met: { ids: (_n, w) => [w!, 'with', 'speak', 'past'], ja: (_n, w) => `${NAME[w!].ja}と話した`, en: (_n, w) => `talked with ${NAME[w!].en}` },
 };
 
+export type Reason = 'hungry' | 'sleepy' | 'wind' | 'typhoon' | 'typhoon-soon' | 'rain' | 'far' | 'dark' | 'no-wood' | 'danger' | 'told-useful' | 'no-food';
+const REASON: Record<Reason, { ids: Ids; ja: string; en: string }> = {
+  hungry: { ids: ['me', 'topic', 'hungry'], ja: 'おなかがすいている', en: "I'm hungry" },
+  sleepy: { ids: ['me', 'topic', 'sleepy'], ja: '眠い', en: "I'm sleepy" },
+  wind: { ids: ['wind', 'topic', 'strong'], ja: '風が強い', en: 'the wind is strong' },
+  typhoon: { ids: ['typhoon', 'come', 'ongoing'], ja: '台風が来ている', en: 'a typhoon is here' },
+  'typhoon-soon': { ids: ['typhoon', 'come', 'future', 'maybe'], ja: '台風が来るかもしれない', en: 'a typhoon may come' },
+  rain: { ids: ['rain', 'there'], ja: '雨が降っている', en: "it's raining" },
+  far: { ids: ['that', 'place', 'topic', 'far'], ja: 'そこは遠い', en: "it's far" },
+  dark: { ids: ['now', 'topic', 'dark'], ja: '今は暗い', en: "it's dark now" },
+  'no-wood': { ids: ['wood', 'topic', 'lack'], ja: '流木が足りない', en: "there isn't enough driftwood" },
+  danger: { ids: ['that', 'topic', 'danger'], ja: 'それは危ない', en: "it's dangerous" },
+  'told-useful': { ids: ['tell', 'past', 'thing', 'topic', 'useful'], ja: '知らせたことは役に立つ', en: 'what is told is of use' },
+  'no-food': { ids: ['food', 'topic', 'lack'], ja: '食べ物が足りない', en: "there isn't enough food" },
+};
+const because = (r: Reason) => ({ ids: [...REASON[r].ids, 'because', '.'] as Ids, ja: `${REASON[r].ja}から。`, en: ` Because ${REASON[r].en}.` });
+/** Things one may do, with the forms Japanese gives them: as is, let's, do it!, (and so: don't, should). */
+export type Deed = 'shelter' | 'sea' | 'pier' | 'raft' | 'catcher' | 'store-food' | 'fix-hut' | 'hut' | 'wood' | 'gauge' | 'tell-seen' | 'sleep' | 'eat';
+const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }> = {
+  shelter: { ids: ['shelter_place', 'to', 'go'], ja: ['避難場所へ行く', '避難場所へ行こう', '避難場所へ行け'], en: 'go to shelter' },
+  sea: { ids: ['sea', 'to', 'go'], ja: ['海に出る', '海に出よう', '海に出ろ'], en: 'go out to sea' },
+  pier: { ids: ['pier', 'object', 'build'], ja: ['桟橋を作る', '桟橋を作ろう', '桟橋を作れ'], en: 'build the pier' },
+  raft: { ids: ['raft', 'object', 'build'], ja: ['筏を作る', '筏を作ろう', '筏を作れ'], en: 'build a raft' },
+  catcher: { ids: ['rain_catcher', 'object', 'build'], ja: ['雨受けを作る', '雨受けを作ろう', '雨受けを作れ'], en: 'build a rain catcher' },
+  'store-food': { ids: ['food', 'object', 'store'], ja: ['食べ物をしまっておく', '食べ物をしまっておこう', '食べ物をしまっておけ'], en: 'store food' },
+  'fix-hut': { ids: ['hut', 'object', 'fix'], ja: ['小屋を直す', '小屋を直そう', '小屋を直せ'], en: 'fix the hut' },
+  hut: { ids: ['hut', 'object', 'build'], ja: ['小屋を作る', '小屋を作ろう', '小屋を作れ'], en: 'work on the hut' },
+  wood: { ids: ['wood', 'object', 'gather'], ja: ['流木を集める', '流木を集めよう', '流木を集めろ'], en: 'gather driftwood' },
+  gauge: { ids: ['barometer', 'object', 'read'], ja: ['気圧計を読む', '気圧計を読もう', '気圧計を読め'], en: 'read the barometer' },
+  'tell-seen': { ids: ['see', 'past', 'thing', 'object', 'tell'], ja: ['見たことを知らせる', '見たことを知らせよう', '見たことを知らせろ'], en: 'tell what we saw' },
+  sleep: { ids: ['sleep'], ja: ['眠る', '眠ろう', '眠れ'], en: 'sleep' },
+  eat: { ids: ['eat'], ja: ['食べる', '食べよう', '食べろ'], en: 'eat' },
+};
+export type Findable = 'wood' | 'shell' | 'coconut' | 'water' | 'thing';
+const FIND: Record<Findable, { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'shells' }, coconut: { ja: 'ヤシの実', en: 'coconuts' }, water: { ja: '水', en: 'water' }, thing: { ja: '見慣れないもの', en: 'the new thing' } };
+export type Made = 'charcoal' | 'oil' | 'pot' | 'catcher' | 'raft' | 'clay';
+const MADE: Record<Made, { id: string; ja: string; en: string }> = { charcoal: { id: 'charcoal', ja: '炭', en: 'charcoal' }, oil: { id: 'oil', ja: '油', en: 'oil' }, pot: { id: 'pot', ja: '器', en: 'a pot' }, catcher: { id: 'rain_catcher', ja: '雨受け', en: 'a rain catcher' }, raft: { id: 'raft', ja: '筏', en: 'a raft' }, clay: { id: 'clay', ja: '粘土', en: 'clay' } };
+export type Measured = 'water' | 'coconut' | 'mark' | 'air' | 'wind' | 'island';
+const MEASURED: Record<Measured, { ids: Ids; ja: string; en: string }> = { water: { ids: ['water'], ja: 'たまった水', en: 'The water held' }, coconut: { ids: ['coconut'], ja: 'ヤシの実', en: 'The coconut' }, mark: { ids: ['mark'], ja: '目盛り', en: 'The mark' }, air: { ids: ['warmth'], ja: '暖かさ', en: 'The warmth' }, wind: { ids: ['wind', 'of', 'speed'], ja: '風の速さ', en: 'The wind' }, island: { ids: ['island', 'of', 'farness'], ja: '島までの遠さ', en: 'The island' } };
+export type Unit = 'kilogram' | 'litre' | 'degree' | 'metre' | 'percent' | 'mark' | 'none';
+const UNIT: Record<Unit, { id?: string; ja: string; en: string }> = { kilogram: { id: 'kilogram', ja: 'キロ', en: ' kg' }, litre: { id: 'litre', ja: 'リットル', en: ' L' }, degree: { id: 'degree', ja: '度', en: ' degrees' }, metre: { id: 'metre', ja: 'メートル', en: ' m' }, percent: { id: 'percent', ja: 'パーセント', en: '%' }, mark: { ja: '', en: '' }, none: { ja: '', en: '' } };
+/** What a guess is made of: a condition, and what may follow. */
+export type Cond = 'mark-high' | 'mark-up' | 'hot' | 'typhoon';
+const COND: Record<Cond, { ids: Ids; ja: string; en: string }> = {
+  'mark-high': { ids: ['mark', 'topic', 'high'], ja: '目盛りが高い', en: 'the mark is high' },
+  'mark-up': { ids: ['mark', 'topic', 'increase'], ja: '目盛りが上がる', en: 'the mark rises' },
+  hot: { ids: ['now', 'topic', 'hot'], ja: '暑い', en: "it's hot" },
+  typhoon: { ids: ['typhoon', 'come', 'future'], ja: '台風が来る', en: 'a typhoon comes' },
+};
+const n_ = (n: number): Ids => { const v = Math.round(n); return v < 0 ? ['minus', `#${-v}`] : [`#${v}`]; };
 const NAME: Record<Who, { ja: string; en: string }> = { dot: { ja: 'ドット', en: 'Dot' }, rakko: { ja: 'ラッコ', en: 'Rakko' }, kame: { ja: 'カメマル', en: 'Kamemaru' }, lantern: { ja: 'ランタン', en: 'Lantern' } };
 const THING: Record<'wood' | 'shell', { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'a shell' } };
 /** The reasons' Japanese, as the island writes them, to their frames. */
 export const NO_WHY: Record<string, NoWhy> = { 'おなかがすいている': 'hungry', '眠い': 'sleepy', '手がふさがっている': 'hands-full', '流木のある場所を知らない': 'not-seen', '今は貝殻を集めたい': 'busy-shells' };
 
 function make(ids: Ids, ja: string, en: string): Said { return { isl: render(ids), ja, en }; }
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 /** A meaning, said: the island's words, and what they mean in Japanese and English. */
 export function phrase(f: Frame): Said {
@@ -99,10 +179,62 @@ export function phrase(f: Frame): Said {
       if (!f.reads) return make(['me', 'topic', 'night', 'rest', 'past', '.'], '夜は休んだ。', 'I rested in the night.');
       const ids: Ids = ['me', 'topic', 'night', 'barometer', 'object', `#${f.reads}`, 'times', 'read', 'past', '.'];
       let ja = `夜、気圧計を${f.reads}回読んだ。`, en = `In the night I read the barometer ${f.reads === 1 ? 'once' : `${f.reads} times`}.`;
-      if (f.mark !== undefined && f.mark >= 0) { ids.push('mark', 'topic', `#${f.mark}`, '.'); ja += `目盛りは${f.mark}。`; en += ` The mark is ${f.mark}.`; }
+      if (f.mark !== undefined) { ids.push('mark', 'topic', ...n_(f.mark), '.'); ja += `目盛りは${Math.round(f.mark)}。`; en += ` The mark is ${Math.round(f.mark)}.`; }
       if (f.alarm) { ids.push('mark', 'topic', 'high', '.', 'typhoon', 'come', 'future', 'question', '.'); ja += '目盛りが高い。台風が来るかもしれない。'; en += ' The mark is high. A typhoon may come.'; }
       return make(ids, ja, en);
     }
+    case 'ask-why': return make(['why', 'question', '.'], 'なぜ？', 'Why?');
+    case 'tell-why': { const b = because(f.why); return make(b.ids, b.ja, b.en.trim()); }
+    case 'ask-where': return make([f.what, 'topic', 'where', 'at', 'there', 'question', '.'], `${FIND[f.what].ja}はどこにある？`, `Where ${f.what === 'shell' || f.what === 'coconut' ? 'are' : 'is'} ${FIND[f.what].en === 'driftwood' || f.what === 'water' ? 'the ' + FIND[f.what].en : FIND[f.what].en}?`);
+    case 'dont-know': return f.what
+      ? make(['me', 'topic', f.what, 'of', 'place', 'object', 'know', 'not', '.'], `${FIND[f.what].ja}のある場所を知らない。`, `I don't know where ${f.what === 'shell' || f.what === 'coconut' ? `${FIND[f.what].en} are` : `${FIND[f.what].en} is`}.`)
+      : make(['me', 'topic', 'know', 'not', '.'], '知らない。', "I don't know.");
+    case 'ask-body': return f.what === 'battery'
+      ? make([f.to, ',', 'you', 'of', 'battery', 'topic', 'howmany', 'question', '.'], `${NAME[f.to].ja}、電池はどれくらい？`, `${NAME[f.to].en}, how is your battery?`)
+      : make([f.to, ',', 'you', 'topic', f.what, 'question', '.'], `${NAME[f.to].ja}、${f.what === 'hungry' ? 'おなかはすいている' : '眠い'}？`, `${NAME[f.to].en}, are you ${f.what}?`);
+    case 'tell-body': {
+      const ids: Ids = [], ja: string[] = [], en: string[] = [];
+      if (f.hungry !== undefined) { ids.push('me', 'topic', 'hungry', ...(f.hungry ? [] : ['not']), '.'); ja.push(f.hungry ? 'おなかがすいている。' : 'おなかはすいていない。'); en.push(f.hungry ? "I'm hungry." : "I'm not hungry."); }
+      if (f.sleepy !== undefined) { ids.push('me', 'topic', 'sleepy', ...(f.sleepy ? [] : ['not']), '.'); ja.push(f.sleepy ? '眠い。' : '眠くない。'); en.push(f.sleepy ? "I'm sleepy." : "I'm not sleepy."); }
+      if (f.battery !== undefined) { ids.push('battery', 'topic', ...n_(f.battery), 'percent', '.'); ja.push(`電池は${Math.round(f.battery)}パーセント。`); en.push(`My battery is at ${Math.round(f.battery)}%.`); }
+      return make(ids, ja.join(''), en.join(' '));
+    }
+    case 'tell-result': {
+      const m = MADE[f.made], ids: Ids = [m.id, 'object', 'make', 'try', 'past', '.', f.ok ? 'succeed' : 'fail', 'past', '.'];
+      let ja = `${m.ja}を作ってみた。${f.ok ? 'うまくいった' : 'うまくいかなかった'}。`, en = `I tried making ${m.en}. ${f.ok ? 'It worked.' : "It didn't work."}`;
+      if (!f.ok && f.why) { const b = because(f.why); ids.push(...b.ids); ja += b.ja; en += b.en; }
+      return make(ids, ja, en);
+    }
+    case 'tell-measure': {
+      const w = MEASURED[f.what], u = UNIT[f.unit], v = Math.round(f.n);
+      return make([...w.ids, 'topic', ...n_(f.n), ...(u.id ? [u.id] : []), '.'], `${w.ja}は${v}${u.ja}。`, `${w.en} is ${v}${u.en}.`);
+    }
+    case 'tell-guess': { const a = COND[f.if], b = COND[f.then];
+      return make([...a.ids, 'if', ',', ...b.ids, 'maybe', '.'], `${a.ja}なら、${b.ja}かもしれない。`, `If ${a.en}, ${b.en.replace(/^a typhoon comes$/, 'a typhoon may come')}${b.en === 'a typhoon comes' ? '' : ', maybe'}.`); }
+    case 'tell-guess-status': return make(['that', 'idea', 'topic', 'true', ...(f.held ? [] : ['not']), 'maybe', '.', 'true', ...n_(f.hits), '.', 'wrong', ...n_(f.wrong), '.'],
+      `その考えは${f.held ? '本当' : '本当ではない'}かもしれない。当たり${f.hits}、外れ${f.wrong}。`, `That idea may ${f.held ? '' : 'not '}be true. Right ${f.hits}, wrong ${f.wrong}.`);
+    case 'relay': { const m = phrase(f.said); return { isl: [...render([f.from, 'according', ',']), ...m.isl], ja: `${NAME[f.from].ja}によると、${m.ja}`, en: `According to ${NAME[f.from].en}: ${m.en}` }; }
+    case 'teach': return f.how === 'catch-rain'
+      ? make(['bamboo', 'and', 'leaf', 'by', 'collect_rain', 'can', '.'], '竹と葉で、雨水をためられる。', 'With bamboo and leaves, you can catch rain.')
+      : make(['mark', 'object', 'count', '.', 'then', ',', 'pressure', 'object', 'know', 'can', '.'], '目盛りを数える。そうすると、気圧がわかる。', 'Count the marks. Then you know the pressure.');
+    case 'propose': { const d = DEED[f.deed]; const ids: Ids = ['we', 'topic', ...d.ids, 'lets', '.']; let ja = `みんなで${d.ja[1]}。`, en = `Let's ${d.en}.`;
+      if (f.mine) { const m = DEED[f.mine]; ids.push('me', 'topic', ...m.ids, 'future', '.'); ja += `僕は${m.ja[0]}。`; en += ` I'll ${m.en}.`; }
+      return make(ids, ja, en); }
+    case 'agree-proposal': return make(['agree', '.', 'me', 'also', 'help', 'future', '.'], 'わかった。僕も手伝う。', "Okay. I'll help too.");
+    case 'object-proposal': { const b = because(f.why); return make(['that', 'topic', 'good', 'not', '.', ...b.ids], `それはよくない。${b.ja}`, `That's not good.${b.en}`); }
+    case 'counter': { const d = DEED[f.instead]; return make(['that', 'than', ',', ...d.ids, 'lets', '.'], `それより、${d.ja[1]}。`, `Rather than that, let's ${d.en}.`); }
+    case 'assign': return make(f.parts.flatMap((p) => [p.who, 'topic', ...DEED[p.deed].ids, 'future', '.']), f.parts.map((p) => `${NAME[p.who].ja}は${DEED[p.deed].ja[0]}。`).join(''), f.parts.map((p) => `${NAME[p.who].en} will ${DEED[p.deed].en}.`).join(' '));
+    case 'helped': { const to = f.became === 'piece' ? { ids: ['hut', 'of', 'piece'], ja: '小屋の部材', en: 'a piece of the hut' } : f.became === 'raft' ? { ids: ['raft'], ja: '筏', en: 'the raft' } : { ids: ['rain_catcher'], ja: '雨受け', en: 'the rain catcher' };
+      return make([f.what, 'topic', 'useful', 'past', '.', ...to.ids, 'become', 'past', '.'], `${THING[f.what].ja}は役に立った。${to.ja}になった。`, `The ${THING[f.what].en} was of use. It became ${to.en}.`); }
+    case 'heard-wrong': return make(['hear', 'past', 'place', 'at', f.what, 'there', 'not', 'past', '.'], `聞いた場所に${FIND[f.what].ja}はなかった。`, `There was no ${FIND[f.what].en} where I was told.`);
+    case 'correct': { const m = phrase(f.said); return { isl: [...render(['wrong', '.']), ...m.isl], ja: `違う。${m.ja}`, en: `No. ${m.en}` }; }
+    case 'ask-how': return make([f.to, ',', 'result', 'topic', 'how', 'question', '.'], `${NAME[f.to].ja}、結果はどうだった？`, `${NAME[f.to].en}, how did it go?`);
+    case 'order': { const d = DEED[f.deed], b = f.why ? because(f.why) : null;
+      return make([f.to, ',', ...d.ids, 'command', '.', ...(b?.ids ?? [])], `${NAME[f.to].ja}、${d.ja[2]}。${b?.ja ?? ''}`, `${NAME[f.to].en}, ${d.en}!${b?.en ?? ''}`); }
+    case 'forbid': { const d = DEED[f.deed], b = f.why ? because(f.why) : null;
+      return make([...(f.to ? [f.to, ','] : []), ...d.ids, 'dont', '.', ...(b?.ids ?? [])], `${f.to ? NAME[f.to].ja + '、' : ''}${d.ja[0]}な。${b?.ja ?? ''}`, `${f.to ? NAME[f.to].en + ', d' : 'D'}on't ${d.en}!${b?.en ?? ''}`); }
+    case 'lecture': { const d = DEED[f.deed], r = REASON[f.why];
+      return make([...r.ids, 'because', ',', 'we', 'topic', ...d.ids, 'should', '.'], `${r.ja}から、${d.ja[0]}べきだ。`, `${cap(r.en)}, so we should ${d.en}.`); }
     case 'tell-day': {
       if (!f.did.length) return make(['me', 'topic', 'today', 'rest', 'past', '.'], '今日は休んだ。', 'I rested today.');
       const w = (d: DayItem) => (d.what === 'met' ? d.with : undefined);

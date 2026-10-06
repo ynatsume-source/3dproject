@@ -985,7 +985,15 @@ hpa ヘクトパスカル
 count_unit 個
 times 回
 do する @action
-thing もの @thing`,
+thing もの @thing
+*maybe 〜かもしれない @grammar
+*minus マイナス @unit
+*differ 異なる・違いがある @quality
+*together いっしょに @amount
+*command 〜しろ（命令） @grammar
+*dont 〜するな（禁止） @grammar
+*should 〜すべきだ @grammar
+*according 〜によると @grammar`,
   number: '',
 };
 

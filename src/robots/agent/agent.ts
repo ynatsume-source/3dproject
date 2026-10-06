@@ -21,6 +21,7 @@ export class Agent {
   why = 'まだ何も決めていない';
   /** Who told it of what (by the thing's id), to know when something heard turned out to be of use. */
   heardFrom = new Map<string, string>();
+  onWrong?: (from: string, optionId: string) => void;
   /** What has paid off, learnt from rewards the world counts (values.ts). */
   values = new Values();
   /** Told when something it heard from another led to a step done (the island learns talking pays). */
@@ -137,6 +138,8 @@ export class Agent {
       const text = `${optionId} は ${outcome}${detail ? `（${detail}）` : ''}`, same = this.knowledge.find((k) => k.source === 'tried' && k.text === text);
       if (same) { same.at = now; same.evidence = [...(same.evidence ?? []), r.eventId].slice(-5); }
       else this.knowledge.push({ id: this.id('k'), text, source: 'tried', at: now, evidence: [r.eventId] });
+      // (what another told it and then was not there: told back to the one who told it — residents.ts onWrong)
+      if (outcome === 'gone' && r.targetId && this.heardFrom.has(r.targetId)) { const from = this.heardFrom.get(r.targetId)!; this.heardFrom.delete(r.targetId); this.onWrong?.(from, optionId); }
       if (outcome === 'gone' && r.targetId) this.forget(r.targetId);
       // (a failure is a reason to think; something new it saw stays one too)
       this.why = `うまくいかなかった：${optionId}（${outcome}）${this.why.startsWith('はじめて') ? '・' + this.why : ''}`;

@@ -64,11 +64,23 @@ const frames: Frame[] = [{ act: 'ask-bring', to: 'rakko', what: 'wood' }, { act:
   ...(['typhoon', 'rain', 'wind'] as const).map((what) => ({ act: 'warn', what }) as Frame), ...(['hut', 'map', 'wood', 'shells', 'eat', 'nap'] as const).map((doing) => ({ act: 'plan', doing }) as Frame),
   { act: 'offer-help', to: 'dot', what: 'wood' }, { act: 'accept-help' }, { act: 'decline-help', why: 'has-wood' }, { act: 'decline-help', why: 'hut-done' }, { act: 'found', what: 'drift' },
   { act: 'ask-day', to: 'rakko' }, { act: 'tell-day', did: [] }, { act: 'tell-day', did: [{ what: 'piece', n: 2 }, { what: 'island', n: 1 }] },
-  ...(['shell', 'note', 'cairn', 'photo', 'eat'] as const).map((what) => ({ act: 'tell-day', did: [{ what, n: 3 }] }) as Frame), { act: 'tell-day', did: [{ what: 'shell', n: 4 }, { what: 'met', n: 2, with: 'kame' }] }];
+  ...(['shell', 'note', 'cairn', 'photo', 'eat'] as const).map((what) => ({ act: 'tell-day', did: [{ what, n: 3 }] }) as Frame), { act: 'tell-day', did: [{ what: 'shell', n: 4 }, { what: 'met', n: 2, with: 'kame' }] },
+  { act: 'ask-plan', to: 'dot' }, { act: 'plan', doing: 'sleep' }, { act: 'tell-night', reads: 4, mark: 9, alarm: true }, { act: 'tell-night', reads: 0, alarm: false }];
+// (the talk added 2026-10-06: everyday, sharing, proposing, feedback, and the stronger forms)
+const more: Frame[] = [{ act: 'ask-why' }, { act: 'tell-why', why: 'wind' }, { act: 'ask-where', what: 'wood' }, { act: 'dont-know' }, { act: 'dont-know', what: 'coconut' },
+  { act: 'ask-body', to: 'rakko', what: 'hungry' }, { act: 'ask-body', to: 'dot', what: 'battery' }, { act: 'tell-body', hungry: false, sleepy: true }, { act: 'tell-body', battery: 42 },
+  { act: 'tell-result', made: 'charcoal', ok: true }, { act: 'tell-result', made: 'pot', ok: false, why: 'rain' }, { act: 'tell-measure', what: 'water', n: 12, unit: 'litre' }, { act: 'tell-measure', what: 'mark', n: -12, unit: 'mark' },
+  { act: 'tell-guess', if: 'mark-high', then: 'typhoon' }, { act: 'tell-guess', if: 'hot', then: 'mark-up' }, { act: 'tell-guess-status', held: false, hits: 1, wrong: 7 },
+  { act: 'relay', from: 'lantern', said: { act: 'warn', what: 'typhoon' } }, { act: 'teach', how: 'catch-rain' }, { act: 'teach', how: 'read-gauge' },
+  { act: 'propose', deed: 'store-food', mine: 'gauge' }, { act: 'agree-proposal' }, { act: 'object-proposal', why: 'wind' }, { act: 'counter', instead: 'catcher' },
+  { act: 'assign', parts: [{ who: 'dot', deed: 'hut' }, { who: 'rakko', deed: 'wood' }] }, { act: 'helped', what: 'wood', became: 'piece' }, { act: 'heard-wrong', what: 'wood' },
+  { act: 'correct', said: { act: 'tell-where', what: 'wood', metres: 20 } }, { act: 'ask-how', to: 'lantern' },
+  { act: 'order', to: 'dot', deed: 'shelter', why: 'typhoon' }, { act: 'forbid', to: 'dot', deed: 'sea', why: 'wind' }, { act: 'forbid', deed: 'sea' }, { act: 'lecture', deed: 'store-food', why: 'typhoon-soon' }, { act: 'lecture', deed: 'tell-seen', why: 'told-useful' }];
+frames.push(...more);
 const badF: string[] = [];
 for (const f of frames) { try { const m = phrase(f); if (!m.isl.length || !m.ja || !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en)) badF.push(f.act); } catch (e) { badF.push(`${f.act}: ${(e as Error).message}`); } }
 want('7 the meanings make sentences', badF.length === 0, badF.join(' / ') || `${frames.length} frames`);
-if (!badF.length) for (const f of [...frames.slice(0, 3), ...frames.slice(-3)]) { const m = phrase(f); console.log(`   ${roman(m.isl)}  ${m.ja}  ${m.en}`); }
+if (!badF.length) for (const f of [...frames.slice(0, 3), ...(process.argv.includes('-v') ? more : more.slice(-3))]) { const m = phrase(f); console.log(`   ${roman(m.isl)}  ${m.ja}  ${m.en}`); }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
 console.log('all ok');
