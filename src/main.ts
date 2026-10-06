@@ -295,6 +295,36 @@ const bodyAt = (sj: Subject) => sj.breach?.body ?? sj.pos();
 // how far its body (or its group's fish) reaches from that middle: the spread it says it has, else half its length
 // (the size it is filmed by is not it: a reef fish's group is filmed by three times a fish's size)
 const bodyR = (sj: Subject) => sj.frameR?.() ?? (sj.len ? sj.len * 0.55 : sj.size * 0.45);
+// Fish of other kinds between the camera and it, close enough together to hide it: a school passing in front (a tiger
+// shark behind a wall of fusiliers is not seen, however near). The fish near the line to it are gathered once (a few
+// hundred of each kind's, spread evenly), and then a line of sight to a point of it is closed when one of them lies
+// across it — within a third of its length of the line, the depth of a fish's body seen side on.
+const _cov: number[] = [];
+const mineOf = (sj: Subject) => { const m = new Set(sj.key.split(':')); const e = entryOf(sj); if (e) m.add(e.id); return m; };
+function gatherCover(sj: Subject | null, P: { x: number; y: number; z: number }, reach: number) {
+  _cov.length = 0; if (!cur) return;
+  const o = camera.position, ux = P.x - o.x, uy = P.y - o.y, uz = P.z - o.z, d = Math.hypot(ux, uy, uz); if (d < 1) return;
+  const mine = sj ? mineOf(sj) : new Set<string>(), rareSj = !!sj && sj.key.startsWith('rare:');
+  const add = (x: number, y: number, z: number, len: number) => {
+    const t = ((x - o.x) * ux + (y - o.y) * uy + (z - o.z) * uz) / d; if (t < 0.3 || t > d - reach * 0.5) return;
+    const k = t / d, ex = x - o.x - ux * k, ey = y - o.y - uy * k, ez = z - o.z - uz * k;
+    if (Math.hypot(ex, ey, ez) < reach * k + len) _cov.push(x, y, z, len * 0.33);
+  };
+  for (const f of (cur.fish ?? []) as any[]) if (!mine.has(f.sp.id) && f.each) f.each(add, 1500);
+  const bait = (cur as any).bait; if (bait?.st.active && sj?.key !== 'baitball' && !mine.has(bait.bsp?.id)) bait.each?.(add, 1500);
+  const jk = (cur as any).jacks; if (jk && sj?.key !== 'jacks' && !mine.has(jk.sp?.id)) jk.each?.(add, 800);
+  const rn = (cur as any).rare?.running; if (rn?.bodies && !rareSj) rn.bodies(add);
+}
+function covered(x: number, y: number, z: number) {
+  if (!_cov.length) return false;
+  const o = camera.position, ux = x - o.x, uy = y - o.y, uz = z - o.z, d = Math.hypot(ux, uy, uz);
+  for (let i = 0; i < _cov.length; i += 4) {
+    const qx = _cov[i] - o.x, qy = _cov[i + 1] - o.y, qz = _cov[i + 2] - o.z, t = (qx * ux + qy * uy + qz * uz) / d;
+    if (t < 0.3 || t > d - 0.3) continue;
+    const k = t / d; if (Math.hypot(qx - ux * k, qy - uy * k, qz - uz * k) < _cov[i + 3]) return true;
+  }
+  return false;
+}
 function seenNow(sj: Subject) {
   const P = bodyAt(sj); if (!P || !cur) return false;
   const o = camera.position, T = cur.T, d = Math.hypot(P.x - o.x, P.y - o.y, P.z - o.z);
@@ -303,6 +333,7 @@ function seenNow(sj: Subject) {
   camera.updateMatrixWorld();
   const r = bodyR(sj), see = sightRange(cur) * 0.7;
   const rx = Math.cos(drone.yaw), rz = -Math.sin(drone.yaw), inCave = o.y < T.top(o.x, o.z) - 0.2;   // (in the cave, its roof is overhead: only the frame counts)
+  gatherCover(sj, P, r);
   for (let k = 0; k < 5; k++) {
     const ax = k === 1 ? rx * r : k === 2 ? -rx * r : 0, az = k === 1 ? rz * r : k === 2 ? -rz * r : 0, ay = k === 3 ? r * 0.5 : k === 4 ? -r * 0.5 : 0;
     const x = P.x + ax, y = P.y + ay, z = P.z + az, dd = Math.hypot(x - o.x, y - o.y, z - o.z);
@@ -310,7 +341,7 @@ function seenNow(sj: Subject) {
     _sv.set(x, y, z).project(camera); if (_sv.z > 1 || Math.abs(_sv.x) > 1 || Math.abs(_sv.y) > 1) continue;
     let open = true;
     if (!inCave) for (let t = 0.5; t < dd - 0.8; t += 0.5) { const q = t / dd; if (o.y + (y - o.y) * q < T.top(o.x + (x - o.x) * q, o.z + (z - o.z) * q) - 0.05) { open = false; break; } }
-    if (open) return true;
+    if (open && !covered(x, y, z)) return true;
   }
   return false;
 }
@@ -319,7 +350,13 @@ function seenNow(sj: Subject) {
 // 1.5 s it fades (over a second), and seen again before that it simply stays. On the way to something asked for,
 // only where it is going and why. A faint ring round the subject while the caption is up (an arrow at the edge
 // of the screen on the way, when it is out of the frame).
-let capVisT = 0, capLostT = 0, capUpT = 0, capSeenK = 0, capVis = false, capHead = false;
+let capVisT = 0, capLostT = 0, capUpT = 0, capSeenK = 0, capVis = false, capHead = false, capBig: Shot | null = null, capBigK = 0;
+// big in the picture now: a fifth of the screen's short side or more across, and seen
+function bigNow(sj: Subject) {
+  const P = bodyAt(sj); if (!P) return false;
+  const d = Math.max(0.5, camera.position.distanceTo(_sv.set(P.x, P.y, P.z))), pxm = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
+  return bodyR(sj) * 2 / d * pxm >= Math.min(innerWidth, innerHeight) * 0.2 && seenNow(sj);
+}
 function updateCaption(dt: number) {
   const el = $('caption'); let sh = lastShot;
   capClock += dt;
@@ -341,14 +378,17 @@ function updateCaption(dt: number) {
     }
     if (cruiseSubj) sh = { subject: cruiseSubj, phase: 'observe', pos: camera.position, look: camera.position, cruise: true } as any;
   } else cruiseSubj = null;
-  const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked) && (drone.mode === 'auto' || !!(sh as any).cruise) && !watch.r && sh.subject.kind !== 'cave';
+  // (on its way to something it chose itself, the camera may already have it big in the picture — a manta turning
+  // towards it in the middle of the screen: told then, not only once it has arrived)
+  if ((capBigK -= dt) <= 0) { capBigK = 0.25; if (capBig !== sh) capBig = !!sh && sh.phase === 'approach' && !sh.asked && bigNow(sh.subject) ? sh : null; }   // (once told, it stays told on the way)
+  const want = captionOn && !!sh && (sh.phase === 'observe' || !!sh.asked || capBig === sh) && (drone.mode === 'auto' || !!(sh as any).cruise) && !watch.r && sh.subject.kind !== 'cave';
   // (a passing one, once up, stays its reading time while it is in view: only something being filmed takes its place sooner)
   const lingering = capLeft > 0 && capShot && (capShot as any).cruise && captionOn && !watch.r && (!want || (sh as any).cruise);
   if (!lingering) {
     if (!want) { hideCaption(el); capShot = null; return; }
     if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
-    if (capShot !== sh || capPhase !== sh!.phase) {
-      capShot = sh; capPhase = sh!.phase; capT = 1; capVisT = 0; capLostT = 0; capUpT = 0; capSeenK = 0; capLeft = 0;
+    if (capShot !== sh || capPhase !== (sh!.asked ? sh!.phase : 'observe')) {   // (not asked for: the same words on the way and there)
+      capShot = sh; capPhase = sh!.asked ? sh!.phase : 'observe'; capT = 1; capVisT = 0; capLostT = 0; capUpT = 0; capSeenK = 0; capLeft = 0;
       el.classList.remove('on');
       const c = captionText(sh!.subject), asked = !!sh!.asked || !!sh!.zoom, sj = sh!.subject, cruise = !!(sh as any).cruise;
       const kindKey = sj.label.replace(/の群れ$/, '');
@@ -405,7 +445,7 @@ let ringX = -1, ringY = 0, ringR = 0;
 let ringShowT = 0, ringNeed = false, ringNeedK = 0, ringFor = '';
 const _cfp = new THREE.Vector3();
 function confusable(sj: Subject, d0: number, pxm: number, ratio = 0.5) {
-  const mine = new Set(sj.key.split(':')); const e = entryOf(sj); if (e) mine.add(e.id);
+  const mine = mineOf(sj);
   // (its own size on the screen: an animal's length, or one fish of its school)
   let unit = sj.len ?? 0;
   if (!unit) for (const f of (cur?.fish ?? []) as any[]) if (mine.has(f.sp.id)) { f.each?.((_x: number, _y: number, _z: number, len: number) => { unit = len; return true; }, 20); break; }
@@ -1346,8 +1386,19 @@ function scanNotices(dt: number, now: number) {
 function goToEvent() {
   if (!markAt || !cur || watch.r) return;
   if (noticeSubj && noticeSubj.live()) { const s = noticeSubj; noticeSubj = null; focusOn({ ...s, key: 'focus:' + s.key, prio: 5 }, '案内から'); return; }
-  const at = markAt, text = markText;
-  focusOn({ key: 'focus:event', label: text.replace(/[。、].*$/, ''), kind: 'big', prio: 5, size: 1.5, spot: true, pos: () => at(), status: () => '', live: () => !!at() }, 'SEA LOG から');
+  const at = markAt, text = markText, p0 = at();
+  // the one it is about, if it is there: the animal the line names (or else the nearest one) by the place it happened
+  let best: Subject | null = null, bd = 1e9;
+  if (p0) for (const s of allSubjects()) {
+    if (s.kind === 'cave' || s.spot || !s.live()) continue;
+    const q = s.pos(); if (!q) continue;
+    const d = Math.hypot(q.x - p0.x, q.y - p0.y, q.z - p0.z), named = text.includes(s.label.replace(/の(群れ|大群|ベイトボール)$/, ''));
+    const sc = named ? d * 0.4 : d; if ((named ? d < 12 : d < 4) && sc < bd) { bd = sc; best = s; }
+  }
+  if (best) { focusOn({ ...best, key: 'focus:' + best.key, prio: 5 }, 'SEA LOG から'); return; }
+  // (else the place itself: named by who it was about — the words before が/は — and the line itself as what goes on)
+  const who = text.match(/^(.{1,14}?)(?:の群れ)?[がは]/)?.[1] ?? 'できごとのあった場所', line = firstSentence(text);
+  focusOn({ key: 'focus:event', label: who, kind: 'big', prio: 5, size: 1.5, spot: true, pos: () => at(), status: () => line, live: () => !!at() }, 'SEA LOG から');
 }
 $('evMark').onclick = goToEvent;
 $('toast').addEventListener('click', goToEvent);
@@ -1357,10 +1408,12 @@ let rareT = 0;
 // whether a rare sight's animals are in the picture now: in the frame, within 70% of what the water lets one see, and
 // not behind the reef
 let rareLookT = 0;
-function rareInView(r: { bodies?(cb: (x: number, y: number, z: number, len: number) => boolean | void): void }, eyeDeg = 0) {
+function rareInView(r: { pos?(): THREE.Vector3 | null; bodies?(cb: (x: number, y: number, z: number, len: number) => boolean | void): void }, eyeDeg = 0) {
   if (!cur || !r.bodies || camera.position.y > 0) return false;
   camera.updateMatrixWorld();
   const o = camera.position, T = cur.T, see = sightRange(cur) * 0.7, pxm = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
+  // (and not behind a school of other fish: those near the way to where it is)
+  const c = r.pos?.(); if (c) gatherCover({ key: 'rare:', label: '' } as Subject, c, 14); else _cov.length = 0;
   // (seen: what is in view of it, taken together, at least 15 px — one manta far off in the blue, or a few small fish
   // of a school; a single little fish at the edge of sight is not yet a sighting)
   let hit = false, sum = 0, big = 0;
@@ -1369,6 +1422,7 @@ function rareInView(r: { bodies?(cb: (x: number, y: number, z: number, len: numb
     if (eyeDeg) { camera.getWorldDirection(_cfp); if ((_cfp.x * (x - o.x) + _cfp.y * (y - o.y) + _cfp.z * (z - o.z)) / d < Math.cos(eyeDeg * Math.PI / 180)) return; }   // (the eye's field, not the picture's)
     else { _sv.set(x, y, z).project(camera); if (_sv.z > 1 || Math.abs(_sv.x) > 1 || Math.abs(_sv.y) > 1) return; }
     for (let t = 0.5; t < d - 0.5; t += 0.5) { const k = t / d; if (o.y + (y - o.y) * k < T.top(o.x + (x - o.x) * k, o.z + (z - o.z) * k) - 0.05) return; }
+    if (covered(x, y, z)) return;
     big = Math.max(big, px);
     if ((sum += px) >= 15 && big >= 6) { hit = true; return true; }   // (and at least one of them plainly there)
   });

@@ -249,11 +249,14 @@ export function makeShoalSystem(sp: Species, oc: any) {
     }
     return best;
   }
+  // where the nearest of its fish is (a fish, not the leading point the school follows — that runs on ahead of it, in
+  // open water: a NEW SIGHTING ring put there went round nothing)
   function nearestPos(cam: THREE.Vector3, fwd: THREE.Vector3, maxD: number, out: THREE.Vector3) {
     let best = Infinity;
-    for (const L of leaders) {
-      const d = L.c.distanceTo(cam);
-      if (d < maxD && d < best) { best = d; out.copy(L.c); }
+    for (let i = 0; i < active; i += 7) {
+      if (dead[i]) continue;
+      const dx = p[i * 3] - cam.x, dy = p[i * 3 + 1] - cam.y, dz = p[i * 3 + 2] - cam.z, d = Math.hypot(dx, dy, dz);
+      if (d < maxD && d < best && (dx * fwd.x + dz * fwd.z) / Math.max(d, 1e-3) > 0.2) { best = d; out.set(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]); }
     }
     return best;
   }

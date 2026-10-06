@@ -502,12 +502,12 @@ body:not(.dock-open) #dock .opt { display: none; }
 #rare .n { font-size: 11.5px; line-height: 1.7; color: var(--ink-dim); margin-top: 6px; }
 body.mode-globe #rare, body.pov #rare { opacity: 0 !important; }
 /* the commentary: what is being filmed, at the top in the middle — a small sheet of frosted glass, as wide as its
-   words and no wider (the toast's own material), its note held to two lines, so the middle of the screen is never
+   words and no wider (the toast's colour, without its frosting), its note held to two lines, so the middle of the screen is never
    filled with words. Its heading carries a little ring: the same ring that is drawn round the subject itself. */
 #caption { left: 50%; top: calc(58px + env(safe-area-inset-top, 0px)); width: max-content; max-width: min(460px, calc(100vw - 40px)); text-align: center;
   padding: 9px 18px 10px; box-sizing: border-box; border-radius: 16px;
-  background: linear-gradient(180deg, rgba(6, 30, 38, .30), rgba(6, 30, 38, .44)); border: 1px solid rgba(214, 238, 233, .10);
-  box-shadow: 0 10px 30px -12px rgba(0, 8, 14, .45); backdrop-filter: blur(10px) saturate(1.15); -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  background: linear-gradient(180deg, rgba(6, 30, 38, .46), rgba(6, 30, 38, .58)); border: 1px solid rgba(214, 238, 233, .10);
+  box-shadow: 0 10px 30px -12px rgba(0, 8, 14, .45);   /* (no frosting behind it: blurring the moving sea under it every frame slowed the frame — and so the sea — by a fifth) */
   color: var(--ink); text-shadow: 0 1px 1px rgba(0, 10, 20, 0.45); opacity: 0; transform: translate(-50%, -4px);
   transition: opacity 1s ease, transform 1s ease; pointer-events: none; }
 #caption.on { opacity: 1; transform: translate(-50%, 0); }
@@ -547,6 +547,7 @@ body.mode-globe #caption, body.hud-off #caption, body.pov #caption, body.watchin
 #capRing i { position: absolute; left: calc(var(--r) * -1); top: calc(var(--r) * -1); width: calc(var(--r) * 2); height: calc(var(--r) * 2); box-sizing: border-box;
   border-radius: 50%; border: 1px solid rgba(226, 246, 240, .5); box-shadow: 0 0 14px rgba(143, 232, 216, .16), inset 0 0 14px rgba(143, 232, 216, .1);
   animation: capBreathe 4.5s ease-in-out infinite; }
+#capRing:not(.on) i { animation: none; }   /* (no breathing while it is not shown: an endless animation is drawn each frame) */
 @keyframes capBreathe { 0%, 100% { opacity: .65; scale: 1; } 50% { opacity: 1; scale: 1.035; } }
 #capRing.edge i { width: 12px; height: 12px; left: -6px; top: -6px; border-radius: 0; border-width: 1.5px 1.5px 0 0; border-color: rgba(143, 232, 216, .85); box-shadow: none;
   transform: rotate(calc(var(--rot, 0deg) + 45deg)); animation: none; }

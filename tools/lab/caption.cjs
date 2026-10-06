@@ -8,7 +8,8 @@
 // Each frame, while the caption is up, its subject is tested for being seen — independently of the app's own test:
 // five points of its body (its middle, and out to the sides and up and down by its size) projected; one counts when
 // it is inside the frame, nearer than 70% of what this water lets one see, and no seabed or rock stands between it
-// and the camera (a march along the line, the floor as creatures see it); and the whole looks at least 10 px big.
+// and the camera (a march along the line, the floor as creatures see it), nor a fish of another kind across the line
+// (every one of them, its body a third of its length deep); and the whole looks at least 10 px big.
 // Logged: the share of caption time with nothing of its subject seen (want under 2%), apart from what the rules allow
 // (on the way to something asked for, the heading that says only where it is going; and the first 4 s it stays up at
 // least, so as not to be cut off mid-reading), which are logged on their own; the share of observing time
@@ -44,13 +45,29 @@ const { chromium } = require('playwright');
         const pts = [[0, 0, 0], [right.x * r, 0, right.z * r], [-right.x * r, 0, -right.z * r], [0, r * 0.5, 0], [0, -r * 0.5, 0]];
         const inCave = o.y < T.top(o.x, o.z) - 0.2;
         const v = new o.constructor();
+        // (and no school of other fish across the line: every fish of another kind, its body a third of its length deep)
+        const parts = (c.key || '').split(':'), mine = (sp) => parts.includes(sp.id) || c.label === sp.ja || (c.label || '').startsWith(sp.ja + 'の');
+        const fishes = [];
+        const take = (x, y, z, len) => { fishes.push(x, y, z, len * 0.33); };
+        for (const f of s.cur.fish) if (!mine(f.sp)) f.each?.(take, 1e6);
+        const bb = s.cur.bait; if (bb?.st.active && c.key !== 'baitball' && !mine(bb.bsp)) bb.each?.(take, 1e6);
+        const jk = s.cur.jacks; if (jk && c.key !== 'jacks' && !mine(jk.sp)) jk.each?.(take, 1e6);
+        const blocked = (x, y, z) => {
+          const ux = x - o.x, uy = y - o.y, uz = z - o.z, dd = Math.hypot(ux, uy, uz);
+          for (let i = 0; i < fishes.length; i += 4) {
+            const qx = fishes[i] - o.x, qy = fishes[i + 1] - o.y, qz = fishes[i + 2] - o.z, t = (qx * ux + qy * uy + qz * uz) / dd;
+            if (t < 0.3 || t > dd - 0.3) continue; const k = t / dd;
+            if (Math.hypot(qx - ux * k, qy - uy * k, qz - uz * k) < fishes[i + 3]) return true;
+          }
+          return false;
+        };
         for (const [ax, ay, az] of pts) {
           const x = P.x + ax, y = P.y + ay, z = P.z + az, dd = Math.hypot(x - o.x, y - o.y, z - o.z);
           if (dd > see) continue;
           v.set(x, y, z).project(cam); if (v.z > 1 || Math.abs(v.x) > 1 || Math.abs(v.y) > 1) continue;
           let open = true;
           if (!inCave) for (let t = 0.5; t < dd - 0.8; t += 0.5) { const k = t / dd, qx = o.x + (x - o.x) * k, qy = o.y + (y - o.y) * k, qz = o.z + (z - o.z) * k; if (qy < T.top(qx, qz) - 0.05) { open = false; break; } }
-          if (open) return true;
+          if (open && !blocked(x, y, z)) return true;
         }
         return false;
       };

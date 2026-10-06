@@ -233,6 +233,7 @@ export function makeJacks(oc: any, fraction: number) {
 
   return {
     st, home, update, sp,
+    each(cb: (x: number, y: number, z: number, len: number) => boolean | void, most = 200) { if (hidden) return; const k = Math.max(1, Math.floor(N / most)); for (let i = 0; i < N; i += k) if (!gone[i] && cb(last[i * 6], last[i * 6 + 1], last[i * 6 + 2], sp.size[1]) === true) return; },
     get hidden() { return hidden; },
     subjects: (): Subject[] => (st.spread > 0.6 ? [] : [subject]),
     // (a day the stream runs hard over the edge: wound up tight for a while — the rare-scene entry)

@@ -376,6 +376,8 @@ export function makeBaitBall(oc: any, fraction: number) {
   };
   return {
     st, attract, update, bsp,
+    // each fish of the school as it is (a few hundred at most, spread evenly): where, and how long
+    each(cb: (x: number, y: number, z: number, len: number) => boolean | void, most = 200) { if (!st.placed) return; const k = Math.max(1, Math.floor(NB / most)); for (let i = 0; i < NB; i += k) if (!dead[i] && cb(bp[i * 3], bp[i * 3 + 1], bp[i * 3 + 2], bsp.size[1]) === true) return; },
     // how many bait fish to draw (the quality tier)
     setFraction(f: number) { if (!st.active) { NB = Math.round(NBMAX * clamp(f, 0.6, 1)); bmesh.count = NB; st.alive = Math.min(st.alive, NB); } },
     // (something has stirred the hunters: a rare day of them, or someone asking to see one) — they grow hungry now
