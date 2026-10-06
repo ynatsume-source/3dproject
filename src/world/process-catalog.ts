@@ -14,6 +14,9 @@ import { slakeStep, SLAKE_PROCESS } from '../science/step/slake';
 import { kneadStep, KNEAD_PROCESS } from '../science/step/knead';
 import { coconutMilkStep, coconutBoilStep, COCONUT_MILK_PROCESS, COCONUT_BOIL_PROCESS } from '../science/step/coconut';
 import { barometerStep, BAROMETER_PROCESS } from '../science/step/barometer';
+import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
+import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn } from '../science/step/vessel';
+import type { AssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
   processId: string; processVersion: string; catalogVersion: string; contract: string; clock: ProcessClock;
@@ -31,7 +34,7 @@ export interface CatalogEntry {
   ready: boolean; waits?: string;               // not ready: what it waits for
 }
 /** What the materials are called in the record (the island's own words come later). */
-export const MATERIAL_JA: Record<string, string> = { raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪' };
+export const MATERIAL_JA: Record<string, string> = { raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら' };
 const handsW = (w: number) => (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical', maxJ: Math.round(((to - from) / 1000) * w) }];
 const hands = handsW(3);
 const TEST = SCIENCE_CATALOG_VERSION;
@@ -74,4 +77,31 @@ export const CATALOG: CatalogEntry[] = [
     equipment: { kind: 'fixture_air_barometer', catalogEntry: 'fixture_air_barometer', catalogVersion: TEST, condition: 1, params: { bulbVolumeMl: 500, tubeBoreMm: 8, tubeLengthMm: 600, markMm: 5, bulbTauS: 900 }, ja: '試験用の気圧計' },
     step: barometerStep, env: 'record', tend: 'leave',
     ready: false, waits: '既製の試験用の設備で、島にはない。島で作る気圧計（器＋焼いた管＋水＋浮き）は別の工程になる' },
+  // (integrated 2026-10-06: the science team's final review FINAL_REVIEW_2026-10-06.md — charcoal and wood tar, and the
+  // sealed vessel; wood tar comes from the charcoal burn, so they came in together)
+  { processId: CHARCOAL_PROCESS.processId, processVersion: CHARCOAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
+    ja: '二重の壺で炭と木タールを作る', input: 'firewood', inputJa: '詰める薪（レトルトの中に1ロット）', also: [{ input: 'firewood', ja: '燃料の薪' }],
+    equipment: { kind: 'fixture_tar_retort', catalogEntry: 'fixture_tar_retort', catalogVersion: TEST, condition: 1, params: { heatCapJPerK: 4000, uaWPerK: 2.5, heatShare: 0.35, capacityMl: 8000, collectShare: 0.6 }, ja: '二重の壺（レトルト）' },
+    moreEquipment: [{ kind: 'open_fire_pit', catalogEntry: 'open_fire_pit', catalogVersion: TEST, condition: 1, params: { maxBurnKgPerH: 3 }, ja: '焚き火' }],
+    step: charcoalStep, env: 'record', tend: 'stay',
+    ready: false, waits: '薪の在庫と、焼いた二重の壺（試験用の設備 fixture。島で焼いた器で作る方法を決める）' },
+  { processId: TAR_SEAL_PROCESS.processId, processVersion: TAR_SEAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    ja: '器にタールを塗って口を封じる', input: 'fired_pot_test', inputJa: '焼いた器（封じていないもの）', also: [{ input: 'wood_tar', ja: '木タール' }],
+    equipment: { kind: 'fixture_tar_brush', catalogEntry: 'fixture_tar_brush', catalogVersion: TEST, condition: 1, params: {}, ja: 'タールの刷毛' },
+    step: tarSealStep, env: 'record', energy: handsW(15), tend: 'stay',
+    ready: false, waits: '焼いた器（器を焼く工程はこれから）と木タール（炭焼きが島で動いてから）と、' + NO_VESSEL },
+  { processId: LEAK_TEST_PROCESS.processId, processVersion: LEAK_TEST_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
+    ja: '器の漏れを試す（水を入れて待つ）', input: 'fired_pot_test', inputJa: '焼いた器', also: [{ input: 'process_water', ja: '真水（封じていない器に入れるとき）' }],
+    equipment: { kind: 'fixture_vessel_stand', catalogEntry: 'fixture_vessel_stand', catalogVersion: TEST, condition: 1, params: { sunExposure: 0 }, ja: '器の台' },
+    step: leakTestStep, env: 'record', finish: { action: 'take_out', afterMs: 86_400_000 }, tend: 'leave',
+    ready: false, waits: '焼いた器と、' + NO_VESSEL + '（水に沈めて泡を見る試しは科学側で保留）' },
 ];
+
+/** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,
+ *  integrated 2026-10-06). A worn one stays sealed and is no longer known to be airtight; its params then say it will
+ *  not do for a barometer's bulb (airtightKnown 0, airLeakTauMin 0) — not that it is perfectly airtight. A broken one
+ *  stays as it is for now: what it becomes (pot_sherds, potSherdsQuality) waits for its own review. */
+export const POT_ASSEMBLY: AssemblyTable = {
+  version: POT_ASSEMBLY_TABLE, kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, materials: ['fired_pot_test'],
+  toParams: potToEquipmentParams, qualityOnReturn: potQualityOnReturn,
+};

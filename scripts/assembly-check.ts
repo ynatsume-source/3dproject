@@ -8,9 +8,13 @@
 //    broken: a lot of sherds of the same mass, its quality from the table (the body's kept, the vessel's dropped); in use: refused
 //  4 a new version of the table: the params worked out again from the copy (not for equipment in use)
 //  5 saved and loaded (JSON): all of it as it was
+//  6 the science side's own table (civ-sci.pot-assembly/2, integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
+//    sealed pot is a bulb; worn, it stays sealed, not known airtight, and is no bulb when made up again; broken, it stays
+//    equipment (what a broken one becomes waits for its own review)
 // Usage: npx tsx scripts/assembly-check.ts
 import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, type AssemblyTable, type Ledger } from '../src/world/process-runner';
 import type { LotView } from '../src/world/science-contract';
+import { POT_ASSEMBLY } from '../src/world/process-catalog';
 
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -83,6 +87,21 @@ want('4 the same table again: nothing to do', refreshAssembled(L, T2).length ===
 // saved and loaded
 const L2: Ledger = JSON.parse(JSON.stringify(L));
 want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipment[e5.equipmentId].assembled?.from.quality?.air_leak_tau_min === 1000);
+
+{ // 6 the real table
+  const L6 = emptyLedger('island', 'test');
+  const lot = addLot(L6, { materialId: 'fired_pot_test', amount: { value: 615_000, unit: 'mg' }, quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1 }, location: 'shelf' });
+  const e = assemble(L6, lot.lotId, POT_ASSEMBLY, 1000).equipment!;
+  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/2', JSON.stringify(e?.params));
+  L6.equipment[e.equipmentId].condition = 0.9;
+  const back = disassemble(L6, e.equipmentId, POT_ASSEMBLY).lot!;
+  want('6 real table: worn, still sealed, not known airtight', back?.quality?.sealed === 1 && back.quality?.airtight_known === 0 && back.quality?.air_leak_tau_min === undefined && back.quality?.crack_ppm === 100000, JSON.stringify(back?.quality));
+  const e2 = assemble(L6, back.lotId, POT_ASSEMBLY, 2000).equipment!;
+  want('6 real table: made up again, no bulb', e2?.params?.airtightKnown === 0 && e2.params?.airLeakTauMin === 0, JSON.stringify(e2?.params));
+  L6.equipment[e2.equipmentId].condition = 0;
+  const br = disassemble(L6, e2.equipmentId, POT_ASSEMBLY);
+  want('6 real table: broken, it stays as it is for now', !!br.why && !!L6.equipment[e2.equipmentId], br.why ?? '');
+}
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
 console.log('all ok');
