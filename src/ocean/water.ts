@@ -8,6 +8,7 @@
 //
 // The sea level here is the model's mean sea (y = 0): the rendered sea has no tide (src/ocean/air.ts).
 import * as THREE from 'three';
+import { due, drain } from '../core/slice';
 
 export type WaterKind = 'sea' | 'lagoon' | 'pool' | 'inland' | 'dry';
 const KINDS: WaterKind[] = ['dry', 'sea', 'lagoon', 'pool', 'inland'];
@@ -29,14 +30,16 @@ const LAGOON_OFF = 40;     // … and this far from water 4 m deep (m): a lagoon
 
 /** f: the floor height (the land above the sea, the seabed below it); half: how far the land reaches from the
  *  middle (m), 0 for a sea with no island (all water below 0 is the sea). */
-export function classifyWater(f: (x: number, z: number) => number, half: number, cell = 2): Water {
+export function classifyWater(f: (x: number, z: number) => number, half: number, cell = 2): Water { return drain(classifyWaterSteps(f, half, cell)); }
+/** The same, giving way between rows of samples when a slice is up (core/slice.ts). */
+export function* classifyWaterSteps(f: (x: number, z: number) => number, half: number, cell = 2): Generator<string, Water, unknown> {
   if (!(half > 0)) {
     return { at: (x, z) => f(x, z) < 0 ? 'sea' : 'dry', swellK: () => 1, tex: null, x0: 0, z0: 0, size: 0,
       counts: { sea: 0, lagoon: 0, pool: 0, inland: 0, dry: 0 } };
   }
   const n = Math.round(half * 2 / cell) + 1, x0 = -half, N = n * n;
   const h = new Float32Array(N);
-  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) h[i + j * n] = f(x0 + i * cell, x0 + j * cell);
+  for (let j = 0; j < n; j++) { if (due()) yield 'seabed'; for (let i = 0; i < n; i++) h[i + j * n] = f(x0 + i * cell, x0 + j * cell); }
   const kind = new Uint8Array(N);   // index into KINDS
   // the open sea: from every wet cell on the edge, along the sides of cells
   const q = new Int32Array(N); let qh = 0, qt = 0;

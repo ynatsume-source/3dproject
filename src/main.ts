@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import './styles.css';
 import { U, mat } from './render/common';
 import { cloudAt } from './render/cloud';
-import { clamp, smooth, angDiff, rr } from './core/math';
+import { clamp, smooth, angDiff, rr, getStream, setStream } from './core/math';
 import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { sightRange } from './eco/unseen';
@@ -19,7 +19,7 @@ const split = new SplitView(), _sz = new THREE.Vector2();
 let airState = false;
 import { stepMeteors, activeShower, forceMeteors } from './ocean/meteors';
 import { planets } from './time/planets';
-import { buildOcean } from './ocean/build';
+import { buildOcean, buildOceanSteps, setSliceEnd } from './ocean/build';
 import { planRoute, alongRoute, floorCells, type RoutePlan } from './ocean/route';
 import { pickStart } from './ocean/start';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat, setGlobeFine } from './globe';
@@ -1739,8 +1739,8 @@ const cardEls = CARD_SEAS.map((loc, i) => {
     <span class="go">${isle ? '島をたずねる →' : 'この海へ潜る →'}</span></button>`;
   const b = li.firstElementChild as HTMLButtonElement;
   b.onclick = () => dive(loc);
-  b.onmouseenter = () => { if (loc.world) return; setHot(i); if (!gv.tween) focusLoc(loc); };
-  b.onmouseleave = () => setHot(-1);
+  b.onmouseenter = () => { if (loc.world) return; setHot(i); if (!gv.tween) focusLoc(loc); buildAhead(loc); };
+  b.onmouseleave = () => { setHot(-1); clearTimeout(aheadTimer); };
   b.onfocus = () => { if (!loc.world) setHot(i); };
   (li as any).rank = (loc.residents ? 100 : 0) + cardRank(loc.id);
   return b;
@@ -2077,22 +2077,84 @@ async function prepareShaders(oc: Ocean) {
     if (renderer.getContext().isContextLost()) return;
   }
 }
+// A sea built a slice at a time (ocean/build.ts buildOceanSteps): a few milliseconds each frame on the globe once a
+// card has been looked at for a moment (so that, more often than not, the sea is ready by the time it is chosen), and
+// while the globe turns in toward it on the way down. Each job keeps its own stream of draws between slices, so the
+// sea is the same as one built straight through. One job at a time; one sea built ahead and not yet visited is kept.
+interface BuildJob { loc: Sea; gen: Generator<string, Ocean, unknown> | null; own: (() => number) | null; stage: string; done: Ocean | null; failed: boolean }
+let job: BuildJob | null = null, aheadId: string | null = null, aheadTimer = 0, globeHidden = 0;   // (globeHidden: from then on the veil covers the globe, which is not drawn — the time goes to the sea)
+const visited = new Set<string>(), prepared = new Set<string>();
+const STAGE_JA: Record<string, string> = { seabed: '海底', corals: 'サンゴ', rocks: '岩', life: '生きもの' };
+function startJob(loc: Sea): BuildJob {
+  if (job && job.loc === loc) return job;
+  const j: BuildJob = job = { loc, gen: null, own: null, stage: 'seabed', done: null, failed: false };
+  (loc.land ? loadLand(loc.id, loc.land.half, loc.land.far) : Promise.resolve()).then(() => { j.gen = buildOceanSteps(loc); }, () => { j.failed = true; });   // (real terrain: the survey data first)
+  return j;
+}
+/** Work on a job for about ms milliseconds; true once its sea is built. */
+function stepJob(j: BuildJob, ms: number): boolean {
+  if (j.done) return true;
+  if (!j.gen || j.failed) return false;
+  const keep = getStream(); if (j.own) setStream(j.own);
+  setSliceEnd(performance.now() + ms);
+  try { const r = j.gen.next(); if (r.done) j.done = r.value; else j.stage = r.value; }
+  catch (e) { j.failed = true; console.error(e); }
+  finally { j.own = getStream(); setSliceEnd(Infinity); setStream(keep); }
+  return !!j.done;
+}
+// (on the globe: the job a card asked for, a little each frame; a finished one becomes the sea built ahead)
+function aheadStep() {
+  if (!job || busy || mode !== 'globe') return;
+  if (job.failed) { job = null; return; }
+  // (a bigger share of the frame while the globe is left alone; a small one while it is being turned)
+  if (!stepJob(job, gv.dragging || performance.now() - gv.lastUser < 400 ? 6 : 30)) return;
+  const id = job.loc.id, oc = job.done!;
+  if (aheadId && aheadId !== id && !visited.has(aheadId)) { delete oceans[aheadId]; prepared.delete(aheadId); }   // (only one kept that has not been visited)
+  oceans[id] = oc; aheadId = id; job = null;
+  // and its shaders, where the browser compiles them on threads of its own (otherwise when it is chosen, behind the veil)
+  if (renderer.extensions.get('KHR_parallel_shader_compile') && !diagLog && SAFE === 0) void prepareShaders(oc).then(() => { if (oceans[id] === oc) prepared.add(id); });
+}
+function buildAhead(loc: Sea) {
+  clearTimeout(aheadTimer);
+  if (oceans[loc.id] || loc.world) return;
+  aheadTimer = window.setTimeout(() => { if (!busy && mode === 'globe' && !oceans[loc.id]) startJob(loc); }, 700);
+}
 async function dive(loc: Sea) {
   keepAwake();
   if (busy) return; busy = true;
   setHot(LOCATIONS.indexOf(loc));
+  clearTimeout(aheadTimer);
+  // the globe turns in toward the sea while it is built (or finished, if it was begun on the globe), a slice a frame;
+  // what is left after that is built behind the veil, in bigger slices
+  let turned = false;
+  const turn = tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300).then(() => { turned = true; });
+  const tb = performance.now();
   if (!oceans[loc.id]) {
+    const j = startJob(loc);
+    let shown = false;
+    while (!j.done && !j.failed) {
+      if (turned && !shown) { veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています'); shown = true; globeHidden = performance.now() + 750; }
+      stepJob(j, shown ? 250 : 14);
+      if (shown) $('veilS').textContent = `海を用意しています・${STAGE_JA[j.stage] ?? ''}`;
+      await nextFrame();
+    }
+    if (job === j) job = null;
+    globeHidden = 0;
+    if (!j.done) {   // (a step went wrong: built straight through instead, as before)
+      if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);
+      oceans[loc.id] = buildOcean(loc);
+    } else oceans[loc.id] = j.done;
+  } else if (job) job = null;   // (a job for another sea is dropped)
+  const tc = performance.now();
+  await turn;
+  if (!prepared.has(loc.id)) {
     veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
-    await wait(500); await nextFrame(); await nextFrame();
-    if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);   // real terrain: the survey data first
-    const tb = performance.now();
-    oceans[loc.id] = buildOcean(loc);
-    const tc = performance.now();
+    await nextFrame();
     await prepareShaders(oceans[loc.id]);
-    if (dbg) console.log(`[load] build ${(tc - tb).toFixed(0)}ms shaders ${(performance.now() - tc).toFixed(0)}ms`);
-    veil(false); await wait(300);
+    prepared.add(loc.id);
   }
-  await tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300);
+  if (dbg) console.log(`[load] build ${(tc - tb).toFixed(0)}ms (with the globe turning) shaders ${(performance.now() - tc).toFixed(0)}ms`);
+  visited.add(loc.id);
   veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
   await wait(600);
   enterOcean(oceans[loc.id]);
@@ -2955,9 +3017,10 @@ function frameBody(ts: number) {
   U.uTime.value += dt;
   clock.advance(dt);
   if (mode === 'globe') {
+    aheadStep();   // (a sea a card asked for, built ahead a little each frame)
     updateGlobe(dt, now, clock.ms, reduceMotion);
     renderer.setRenderTarget(null);
-    renderer.render(globeScene, gcam);
+    if (!globeHidden || now < globeHidden) renderer.render(globeScene, gcam);
     updatePins();
     if ((globeTimer += dt) > 1) { globeTimer = 0; updateGlobeTimes(); }
   } else if (cur) {

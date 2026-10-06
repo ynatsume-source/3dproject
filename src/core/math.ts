@@ -38,6 +38,9 @@ export function mulberry32(seed: number): () => number {
 // One shared seeded stream: reseeded when a sea is built so its layout is stable between visits.
 let stream = mulberry32(1);
 export const seedRandom = (seed: number) => { stream = mulberry32(seed); };
+/** The stream of draws itself: a sea built a slice at a time keeps its own between slices (main.ts, ocean/build.ts). */
+export const getStream = () => stream;
+export const setStream = (s: () => number) => { stream = s; };
 export const R = (): number => stream();
 export const rr = (a: number, b: number): number => a + (b - a) * stream();
 export const pick = <T>(arr: T[]): T => arr[Math.floor(stream() * arr.length)];

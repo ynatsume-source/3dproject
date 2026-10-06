@@ -4,6 +4,7 @@
 // and the volumetric light read it, so the tunnel is dark, the walls around the entrances glow, and
 // the skylights pour shafts onto the floor — tilting with the sun through the day.
 import * as THREE from 'three';
+import { due, drain } from '../core/slice';
 import { smooth } from '../core/math';
 
 export interface CaveSpec { x: number; z: number; rot: number }
@@ -47,27 +48,32 @@ function vn3(x: number, y: number, z: number) {
 const _look = new THREE.Vector3(), _g = new THREE.Vector3();
 
 export class Cave {
-  readonly cx: number; readonly cz: number; readonly ca: number; readonly sa: number;
-  readonly step = 0.45;
-  readonly min: [number, number, number];          // local (u, y, v) of sample 0
-  readonly n: [number, number, number];
-  readonly d: Float32Array;                        // signed distance, negative inside rock
-  readonly top: number;                            // flat top of the massif
-  readonly tex: THREE.DataTexture;
-  readonly atlas: [number, number];   // the light volume's z-slices laid out in columns and rows of one flat texture
+  // (set by init, which the constructor runs, or the caller in steps: hence not readonly)
+  cx: number; cz: number; ca: number; sa: number;
+  step = 0.45;
+  min: [number, number, number];          // local (u, y, v) of sample 0
+  n: [number, number, number];
+  d: Float32Array;                        // signed distance, negative inside rock
+  top: number;                            // flat top of the massif
+  tex: THREE.DataTexture;
+  atlas: [number, number];   // the light volume's z-slices laid out in columns and rows of one flat texture
   private atlasAt: (i: number, j: number, k: number) => number;
-  readonly geo: THREE.BufferGeometry;
-  readonly skylights: { pos: THREE.Vector3; r: number; floor: number }[] = [];
-  readonly foot: (x: number, z: number) => number;
+  geo: THREE.BufferGeometry;
+  skylights: { pos: THREE.Vector3; r: number; floor: number }[] = [];
+  foot: (x: number, z: number) => number;
   private colTop: Float32Array;
   private sky: Float32Array;
   private job: { s: [number, number, number]; k: number; buf: Uint8Array } | null = null;
   private baked = new THREE.Vector3(0, -1, 0);
   private tour: { p: THREE.Vector3[]; look: THREE.Vector3[]; t: number[] } = { p: [], look: [], t: [] };
 
-  readonly floorAt: (x: number, z: number) => number;
+  floorAt: (x: number, z: number) => number;
 
-  constructor(spec: CaveSpec, floor: (x: number, z: number) => number) {
+  // (built in steps that give way when a slice is up — ocean/build.ts, core/slice.ts; lazy: the caller runs init itself)
+  constructor(spec: CaveSpec, floor: (x: number, z: number) => number, lazy = false) {
+    if (!lazy) drain(this.init(spec, floor));
+  }
+  *init(spec: CaveSpec, floor: (x: number, z: number) => number): Generator<string, void, unknown> {
     this.floorAt = floor;
     this.cx = spec.x; this.cz = spec.z; this.ca = Math.cos(spec.rot); this.sa = Math.sin(spec.rot);
     this.foot = caveFootprint(spec);
@@ -120,17 +126,17 @@ export class Cave {
     this.n[0] += this.n[0] % 2;   // an even row width keeps each two-byte-per-texel row 4-byte aligned for the GPU upload
     const [nx, ny, nz] = this.n;
     this.d = new Float32Array(nx * ny * nz);
-    for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) {
+    for (let k = 0; k < nz; k++) { if (due()) yield 'seabed'; for (let i = 0; i < nx; i++) {
       const u = U0 + i * s, v = V0 + k * s, ld = lobeDist(u, v), ytn = (vn3(u * 0.12, 1.7, v * 0.12) - 0.5) * 2.6, sp = vn3(u * 0.1, 3, v * 0.1) * 6;
       const vcu = vc(u), r = rad(u), c = yc(u);
       // the outermost samples are always open water, so the mesh closes even if the rock reaches the edge
       const edge = i < 2 || k < 2 || i > nx - 3 || k > nz - 3;
       for (let j = 0; j < ny; j++) { const d = sdf(u, this.min[1] + j * s, v, ld, ytn, sp, vcu, r, c); this.d[i + nx * (j + ny * k)] = edge ? Math.max(d, 0.3) : d; }
-    }
+    } }
     this.colTop = new Float32Array(nx * nz).fill(-1e9);
     for (let k = 0; k < nz; k++) for (let i = 0; i < nx; i++) for (let j = ny - 1; j >= 0; j--) if (this.d[i + nx * (j + ny * k)] < 0) { this.colTop[i + nx * k] = this.min[1] + (j + 0.5) * s; break; }
 
-    this.geo = this.mesh(floor);
+    this.geo = yield* this.meshSteps(floor);
 
     // skylights, for the beams
     for (const k of SKY) {
@@ -155,17 +161,17 @@ export class Cave {
 
     // light volume
     this.sky = new Float32Array(nx * ny * nz);
-    this.bakeSky();
+    yield* this.bakeSkySteps();
     // (four channels, though only two are used: two-channel 3D textures re-uploaded while drawing have
     // reset the GPU on Windows / Direct3D)
     const C = Math.ceil(Math.sqrt(nz)), Rw = Math.ceil(nz / C), W = nx * C, H = ny * Rw;
     this.atlas = [C, Rw];
     this.atlasAt = (i, j, k) => ((Math.floor(k / C) * ny + j) * W + (k % C) * nx + i) * 4;
     const data = new Uint8Array(W * H * 4);
-    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    for (let k = 0; k < nz; k++) { if (due()) yield 'seabed'; for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
       const a = this.atlasAt(i, j, k), v = Math.round(this.sky[i + nx * (j + ny * k)] * 255);
       data[a] = data[a + 1] = v; data[a + 3] = 255;   // sun starts as sky until its bake lands
-    }
+    } }
     this.tex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat, THREE.UnsignedByteType);
     this.tex.minFilter = this.tex.magFilter = THREE.LinearFilter;
     this.tex.wrapS = this.tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -250,7 +256,8 @@ export class Cave {
     return d;
   }
 
-  private bakeSky() {
+  private bakeSky() { drain(this.bakeSkySteps()); }
+  private *bakeSkySteps(): Generator<string, void, unknown> {
     const [nx, ny, nz] = this.n, C = 3;
     const cx = Math.ceil(nx / C) + 1, cy = Math.ceil(ny / C) + 1, cz = Math.ceil(nz / C) + 1;
     const coarse = new Float32Array(cx * cy * cz);
@@ -262,14 +269,14 @@ export class Cave {
       }
     }
     const wsum = dirs.reduce((a, d) => a + d[3], 0), p = [0, 0, 0];
-    for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) for (let i = 0; i < cx; i++) {
+    for (let k = 0; k < cz; k++) for (let j = 0; j < cy; j++) { if (due()) yield 'seabed'; for (let i = 0; i < cx; i++) {
       const fi = Math.min(nx - 1, i * C), fj = Math.min(ny - 1, j * C), fk = Math.min(nz - 1, k * C);
       const d = this.lifted(fi, fj, fk, p);
       let acc = 0;
       if (d > 6) acc = wsum;
       else if (d > -1.0) for (const [du, dy, dv, w] of dirs) acc += this.vis(p[0], p[1], p[2], du, dy, dv, 40) * w;
       coarse[i + cx * (j + cy * k)] = acc / wsum;
-    }
+    } }
     for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
       const fx = i / C, fy = j / C, fz = k / C, i0 = Math.floor(fx), j0 = Math.floor(fy), k0 = Math.floor(fz), tx = fx - i0, ty = fy - j0, tz = fz - k0;
       const g = (a: number, b: number, c: number) => coarse[a + cx * (b + cy * c)];
@@ -367,7 +374,7 @@ export class Cave {
   }
 
   // surface nets over the distance grid; faces buried in the seabed are dropped
-  private mesh(floor: (x: number, z: number) => number) {
+  private *meshSteps(floor: (x: number, z: number) => number): Generator<string, THREE.BufferGeometry, unknown> {
     const [nx, ny, nz] = this.n, s = this.step, D = this.d;
     const I = (i: number, j: number, k: number) => i + nx * (j + ny * k);
     const C = (i: number, j: number, k: number) => i + (nx - 1) * (j + (ny - 1) * k);
@@ -376,7 +383,7 @@ export class Cave {
     const CO = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
     const ED = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
     const val = new Float32Array(8);
-    for (let k = 0; k < nz - 1; k++) for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    for (let k = 0; k < nz - 1; k++) { if (due()) yield 'seabed'; for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
       let mask = 0;
       for (let c = 0; c < 8; c++) { val[c] = D[I(i + CO[c][0], j + CO[c][1], k + CO[c][2])]; if (val[c] < 0) mask |= 1 << c; }
       if (mask === 0 || mask === 255) continue;
@@ -389,10 +396,11 @@ export class Cave {
       }
       cellV[C(i, j, k)] = pos.length / 3;
       pos.push(this.min[0] + (i + ax / cnt) * s, this.min[1] + (j + ay / cnt) * s, this.min[2] + (k + az / cnt) * s);
-    }
+    } }
     // world positions, normals from the field, and whether each vertex is buried
     const nv = pos.length / 3, P = new Float32Array(nv * 3), N = new Float32Array(nv * 3), buried = new Uint8Array(nv), g = new THREE.Vector3();
     for (let q = 0; q < nv; q++) {
+      if ((q & 511) === 0 && due()) yield 'seabed';
       const [x, z] = this.toWorld(pos[q * 3], pos[q * 3 + 2]), y = pos[q * 3 + 1];
       P[q * 3] = x; P[q * 3 + 1] = y; P[q * 3 + 2] = z;
       this.grad(x, y, z, g); N[q * 3] = g.x; N[q * 3 + 1] = g.y; N[q * 3 + 2] = g.z;
@@ -409,12 +417,12 @@ export class Cave {
       if (dot >= 0) idx.push(a, b, c); else idx.push(a, c, b);
     };
     const quad = (a: number, b: number, c: number, d: number) => { if (a < 0 || b < 0 || c < 0 || d < 0) return; tri(a, b, c); tri(a, c, d); };
-    for (let k = 1; k < nz - 1; k++) for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) {
+    for (let k = 1; k < nz - 1; k++) { if (due()) yield 'seabed'; for (let j = 1; j < ny - 1; j++) for (let i = 1; i < nx - 1; i++) {
       const in0 = D[I(i, j, k)] < 0;
       if (in0 !== (D[I(i + 1, j, k)] < 0)) quad(cellV[C(i, j - 1, k - 1)], cellV[C(i, j, k - 1)], cellV[C(i, j, k)], cellV[C(i, j - 1, k)]);
       if (in0 !== (D[I(i, j + 1, k)] < 0)) quad(cellV[C(i - 1, j, k - 1)], cellV[C(i, j, k - 1)], cellV[C(i, j, k)], cellV[C(i - 1, j, k)]);
       if (in0 !== (D[I(i, j, k + 1)] < 0)) quad(cellV[C(i - 1, j - 1, k)], cellV[C(i, j - 1, k)], cellV[C(i, j, k)], cellV[C(i - 1, j, k)]);
-    }
+    } }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
