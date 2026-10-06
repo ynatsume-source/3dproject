@@ -23,7 +23,7 @@ import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './islandlang';
-import { islandDate, islandWait, islandWeather, type IslandWeather } from '../world/island-time';
+import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
 import { CATALOG, MATERIAL_JA, type CatalogEntry } from '../world/process-catalog';
@@ -34,7 +34,7 @@ import type { Subject } from '../eco/env';
 import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
 import type { StudyWorld, StudyPlace, StudyIntent } from './lantern-study-types';
-import { makeItems, type Item, type ItemKind } from './items';
+import { makeItems, type Item, type ItemKind, coconutGeo } from './items';
 import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
@@ -224,7 +224,8 @@ export interface Residents {
   setWeather(w: IslandWeather | null): void;       // the island's weather now (Dot's world: the replayed record — world/island-time.ts)
   observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
-  readonly drift: { kind: number; x: number; z: number; t: number; by: string };   // what the sea has washed up and not yet been taken (kind -1: none) — for checks
+  readonly drift: { kind: number; x: number; z: number; t: number; by: string };
+  readonly lab: import('../world/process-runner').Ledger;   // the world's lots and equipment (the shelf, Lantern's processes) — for checks   // what the sea has washed up and not yet been taken (kind -1: none) — for checks
   labCase(r: Resident): Record<string, unknown>;  // what a test report needs to find this moment again (src/ui/lab.ts)
   vitals(r: Resident): string;                     // its battery, or (an animal) how hungry and sleepy it is
   hide: string;                                    // (the one whose eyes we are looking through: not drawn)
@@ -288,7 +289,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const bench = new THREE.Group(); bench.position.copy(benchL); hut.add(bench);
   { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.45, 9), wood2); st.position.y = 0.22; bench.add(st);
     const top = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.3), wood); top.position.y = 0.47; bench.add(top); }
-  const itemMat = { wood: rmat(0xb3a390, 0.1), shell: shellM, stone: stoneM };
+  const itemMat = { wood: rmat(0xb3a390, 0.1), shell: shellM, stone: stoneM, coconut: rmat(0x6b4a2b, 0.05) };
   const benchLog = new THREE.Mesh(new THREE.BufferGeometry(), itemMat.wood); benchLog.position.y = 0.53; benchLog.visible = false; bench.add(benchLog);
   const benchPiece = new THREE.Mesh(new THREE.BufferGeometry(), wood); benchPiece.position.y = 0.53; benchPiece.visible = false; bench.add(benchPiece);
   const ghostM = new THREE.MeshBasicMaterial({ color: 0x8ff6ff, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false });
@@ -379,11 +380,45 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[] };
+  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number } };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
   const shelfLots = () => Object.values(lab.lots).filter((l) => l.location === 'shelf');
+  // Coconuts and firewood as the world's lots (ADR 0006, owner's decision 2026-10-06): made when they come to the shelf,
+  // their mass as the scale gives it. The coconuts kept in one lot of whole nuts (quality.count, as the science side
+  // reads it); firewood as it was cut, wet (quality.water_ppm of the whole lot: its drying is the science side's to say).
+  const COCONUT_BAD = 0.15, GREEN_WOOD_WATER = 450_000;
+  const coconutsOnShelf = () => shelfLots().filter((l) => l.materialId === 'coconut' && !(l as any).reservedBy).reduce((n, l) => n + (l.quality?.count ?? 0), 0);
+  function storeCoconut(mg: number) {
+    const lot = shelfLots().find((l) => l.materialId === 'coconut' && !(l as any).reservedBy);
+    if (lot) { lot.amount.value += mg; lot.quality = { ...(lot.quality ?? {}), count: (lot.quality?.count ?? 0) + 1 }; lab.world.worldVersion++; }
+    else addLot(lab, { materialId: 'coconut', amount: { value: mg, unit: 'mg' }, quality: { count: 1 }, location: 'shelf' });
+    return coconutsOnShelf();
+  }
+  // Fresh water is rain, caught (owner's decision 2026-10-06): Lantern sets up a catcher by the shelf — a funnel of leaves
+  // over bamboo tubes, from bamboo brought home — and the world fills it as the replayed record rains: the rain (mm) on
+  // the funnel's area, on the island's clock (water only waits to be caught), up to what the tubes hold. A dry spell
+  // leaves it short.
+  const CATCH_BAMBOO = 2e6, CATCH_AREA = 0.8, CATCH_CAP = 20e6;
+  const catchG = new THREE.Group(); catchG.visible = false; group.add(catchG);
+  { const w = atHut(3.2, -2.6); catchG.position.set(w.x, L.h(w.x, w.z), w.z);
+    const bam = new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 }), leaf = new THREE.MeshStandardMaterial({ color: 0x5f7d3a, roughness: 0.9, side: THREE.DoubleSide });
+    for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.7, 8), bam); m.position.set(-0.16 + k * 0.16, 0.35, 0); catchG.add(m); }
+    const f = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.35, 10, 1, true), leaf); f.rotation.x = Math.PI; f.position.set(0, 0.95, 0); catchG.add(f); }
+  const showCatcher = () => { catchG.visible = !!village.catcher; };
+  let rainCarry = 0;
+  function catchRain(dt: number) {
+    const c = village.catcher; if (!c) return;
+    const w = islandWeather(clockMs); if (!w || !(w.rain > 0)) return;
+    rainCarry += w.rain * (dt * ISLAND_RATE / 3600) * c.areaM2 * 1e6;   // (mm of rain on m² is litres: a million mg each)
+    if (rainCarry < 1e5) return;
+    const held = shelfLots().filter((l) => l.materialId === 'process_water').reduce((n, l) => n + l.amount.value, 0);
+    const add = Math.floor(Math.min(rainCarry, Math.max(0, c.capMg - held))); rainCarry = 0;
+    if (add <= 0) return;
+    const lot = shelfLots().find((l) => l.materialId === 'process_water' && !(l as any).reservedBy);
+    if (lot) { lot.amount.value += add; lab.world.worldVersion++; } else addLot(lab, { materialId: 'process_water', amount: { value: add, unit: 'mg' }, quality: { history_complete: 1 }, location: 'shelf' });
+  }
   let catalog: CatalogEntry[] = CATALOG;
   const RAFT_N = 6, RAFT_KM = 4;   // (a raft of six lashed pieces; a crossing it can make without a sail, there and back in a day)
   const pierAt = (() => {
@@ -435,11 +470,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const shelfItems = DRIFT.map((d, i) => { const m = new THREE.Mesh(d.geo, d.mat); m.position.set(-0.3 + i * 0.2, 0.66, 0); if (i === 2) m.rotation.z = Math.PI / 2; m.visible = false; shelf.add(m); return m; });
   // what Dot brought home from other islands, on the ground by the shelf (clay, bamboo, reeds, limestone)
   const storeG = new THREE.Group(); { const w = atHut(2.4, -1.5); storeG.position.set(w.x, L.h(w.x, w.z), w.z); storeG.rotation.y = hut.rotation.y; group.add(storeG); }
+  const COCONUT_GEO = coconutGeo();
   const STORE_LOOK: Record<string, () => THREE.Object3D> = {
     raw_clay: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 6), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 1 })); m.scale.y = 0.55; m.position.y = 0.1; return m; },
     bamboo: () => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 6), new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 })); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + (k % 2) * 0.06, -0.08 + k * 0.05); g.add(m); } return g; },
     reed: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.3, 7), new THREE.MeshStandardMaterial({ color: 0xc8b878, roughness: 1 })); m.rotation.z = Math.PI / 2; m.position.y = 0.09; return m; },
     limestone: () => { const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18), new THREE.MeshStandardMaterial({ color: 0xe8e4d8, roughness: 0.9 })); m.position.y = 0.12; return m; },
+    coconut: () => { const g = new THREE.Group(); for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(COCONUT_GEO, itemMat.coconut); m.position.set(-0.12 + k * 0.13, 0.1 + (k === 1 ? 0.1 : 0), (k % 2) * 0.06); g.add(m); } return g; },
+    firewood: () => { const g = new THREE.Group(); for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.9, 6), new THREE.MeshStandardMaterial({ color: 0x7b6a52, roughness: 1 })); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + Math.floor(k / 3) * 0.06, -0.08 + (k % 3) * 0.07); g.add(m); } return g; },
   };
   function drawStore() {
     storeG.clear();
@@ -630,6 +668,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     wood: { near: byId.dot.sp.home, rad: 160, ok: (x, z, h) => tideline(x, z, h) && clearOf(x, z, h), max: 8, every: 1200 },
     shell: { near: byId.rakko.sp.home, rad: 170, ok: (x, z, h) => tideline(x, z, h) && clearOf(x, z, h), max: 16, every: 260 },
     stone: { near: [byId.lantern.sp.home[0] - 40, byId.lantern.sp.home[1] + 20], rad: 140, ok: (x, z, h) => h > 1.2 && cover(x, z).can < 0.4 && clearOf(x, z, h), max: 12, every: 900 },
+    // (coconuts drop at the top of the beach, where the shore plants begin)
+    coconut: { near: byId.dot.sp.home, rad: 170, ok: (x, z, h) => h > 0.7 && h < 3.5 && cover(x, z).can < 0.6 && clearOf(x, z, h), max: 6, every: 1500 },
   }, itemMat, group);
 
   /* ---------- the diary and what happened today ---------- */
@@ -875,6 +915,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const night = 1 - day;
         if (night < 0.5) return task('rest', spot(home, 20, open) ?? home, 'idle', rr(300, 900));   // (evening and dawn: it waits by its hill)
         if (r.holding === 'stone') { const c = cairnSpots.find((c) => c[2] < 4) ?? null; return task('stack', c ? [c[0] - 0.7, c[1]] : spot(home, 40, (x, z, h) => h > 11), 'work', 5, { data: c }); }
+        if (r.holding === 'coconut') return task('store', shelfStand(), 'work', 3);
+        // (a rain catcher, once there is bamboo for it on the shelf)
+        if (!village.catcher && shelfLots().some((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO)) return task('catcher', shelfStand(), 'work', 20);
+        // (coconuts for the oil it means to make, while there are few on the shelf)
+        if (q < 0.45 && coconutsOnShelf() < 6) { const it = items.nearest('coconut', r.pos.x, r.pos.z, 200, r.id); if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'pick', 3, { data: it }); } }
         if (q < 0.3) return task('think', spot(home, 40, (x, z, h) => h > 11), 'think', rr(400, 1000));
         if (q < 0.5 && cairnSpots.length < 12) {   // a stone for the cairn it is building
           const it = items.nearest('stone', r.pos.x, r.pos.z, 160, r.id);
@@ -1415,7 +1460,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (fast) { t.pivot.visible = false; t.stump.visible = true; } else t.fallT = 0;
         const fx = Math.sin(t.dir), fz = Math.cos(t.dir);   // the logs lie where it fell
         items.addAt('wood', t.x + fx * 1.0, t.z + fz * 1.0); items.addAt('wood', t.x + fx * 1.9, t.z + fz * 1.9);
-        note(r, 'chop', {}, '若木を切り倒した'); break;
+        // (its branches, cut for firewood and laid by the shelf: green wood, as wet as it was cut)
+        { const mg = Math.round((3 + Math.random() * 3) * 1e6); addLot(lab, { materialId: 'firewood', amount: { value: mg, unit: 'mg' }, quality: { water_ppm: GREEN_WOOD_WATER }, location: 'shelf' }); drawStore(); }
+        note(r, 'chop', {}, '若木を切り倒した（枝は薪にして棚の脇へ）'); break;
       }
       case 'till': if (tk.data.s === 0) { tk.data.s = 1; drawField(); note(r, 'till', {}, '畑を耕した'); } break;
       case 'plant': if (tk.data.s === 1) { tk.data.s = 2; tk.data.at = clockMs; drawField(); note(r, 'plant', {}, '種をまいた'); } break;
@@ -1543,7 +1590,25 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         r.holding = ''; village.treasures.push({ what: DRIFT[drift.kind].ja, who: r.v.name, at: clockMs }); drift.kind = -1; drift.t = 0; drawShelf(); break;
       case 'fetch':
         if (!items.take(tk.data)) break;
-        r.holding = 'stone'; r.task = null; return;   // (decide() takes it to the cairn)
+        r.holding = tk.data.kind ?? 'stone'; r.task = null; return;   // (decide() takes it on: a stone to the cairn, a coconut to the shelf)
+      case 'catcher': {
+        const b = shelfLots().find((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO);
+        if (village.catcher || !b) break;
+        b.amount.value -= CATCH_BAMBOO; if (b.amount.value <= 0) delete lab.lots[b.lotId]; lab.world.worldVersion++;
+        village.catcher = { at: clockMs, areaM2: CATCH_AREA, capMg: CATCH_CAP }; showCatcher(); drawStore();
+        note(r, 'catcher', {}, `雨受けを作った（竹${CATCH_BAMBOO / 1e6}kgと葉。受ける広さ${CATCH_AREA}㎡、竹筒に${CATCH_CAP / 1e6}Lまで）`);
+        break;
+      }
+      case 'store': {
+        // (a coconut onto the shelf by the hut: the world makes it a lot, as it is — its mass on the scale, and now and then one
+        // that has gone bad inside, which Lantern finds when it lifts it and leaves it: ADR 0006, owner's decision 2026-10-06)
+        if (r.holding !== 'coconut') break;
+        r.holding = '';
+        if (Math.random() < COCONUT_BAD) { note(r, 'coconut-bad', {}, 'ヤシの実は中が腐っていた（棚に置かなかった）'); break; }
+        const mg = Math.round((1.15 + Math.random() * 0.7) * 1e6), n = storeCoconut(mg);
+        note(r, 'coconut', {}, `ヤシの実を棚に置いた（${(mg / 1e6).toFixed(2)}kg。棚に${n}個）`);
+        drawStore(); break;
+      }
       case 'stack': {
         if (r.holding !== 'stone') break;
         r.holding = '';
@@ -2113,7 +2178,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; }
+    showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
     delete (village as any).store;
@@ -2212,7 +2278,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
     },
     observe: (r) => observe(r),
-    solids, drift,
+    solids, drift, lab,
     labCase(r) {
       // (the save as it stands: its length and a short hash, so two reports can tell whether they began from the same)
       let snap = 'none';
@@ -2274,7 +2340,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     update(dt, ms, cam) {
       camAt.set(cam.x, cam.y, cam.z);
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
-      items.tick(dt); tickDrift(dt);
+      items.tick(dt); tickDrift(dt); catchRain(dt);
       if ((labT -= dt) < 0) { labT = 30; tickLab(); }
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
