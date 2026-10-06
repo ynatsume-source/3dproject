@@ -809,6 +809,8 @@ export function makeFishSystem(sp: Species, oc: any) {
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,
+    // each fish as it is (a few hundred at most, spread evenly): where, and how long
+    each(cb: (x: number, y: number, z: number, len: number) => boolean | void, most = 200) { const st = Math.max(1, Math.floor(total / most)); for (let i = 0; i < total; i += st) if (!dead[i] && cb(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2], fs[i] * 1.28) === true) return; },
     preyGroups: () => groups.filter((g) => g.prey).map((g) => g.prey!),
     setStart(f: number) { nearStart = f; },
     // a big one passing by early in a visit (the day's lot): put down out of sight off to one side, heading across the

@@ -310,6 +310,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,
+    each(cb: (x: number, y: number, z: number, len: number) => boolean | void, most = 200) { const st = Math.max(1, Math.floor(active / most)); for (let i = 0; i < active; i += st) if (!dead[i] && cb(p[i * 3], p[i * 3 + 1], p[i * 3 + 2], size[i] * 1.28) === true) return; },
     preyGroups: () => (sp.big ? [] : leaders.map((L) => L.prey)),
     dbg: { get fp() { return p; }, dead, get total() { return active; }, leaders },   // (for checks)
     reset() { for (const L of leaders) L.placed = false; },

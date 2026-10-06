@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
   const SEA = process.env.SEA || 'miyako', SECS = +(process.env.SECS || 240), W = +(process.env.W || 390), H = +(process.env.H || 844);
   const RUNS = (process.env.RUNS || 'cruise,guide,tap,tapfish').split(',');
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, asked: 0, named: 0 };
+  const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, asked: 0, named: 0, capsN: 0, ambNoRing: 0, ringNoAmb: 0, ringOn: 0 };
   for (const run of RUNS) {
     const p = await (await b.newContext({ viewport: { width: W, height: H }, isMobile: W < H, hasTouch: W < H })).newPage();
     p.setDefaultTimeout(1200000); p.on('pageerror', (e) => console.log('ERR', e.message));
@@ -91,10 +91,40 @@ const { chromium } = require('playwright');
         const capped = R >= Math.min(innerWidth, innerHeight) * 0.41, off = Math.hypot(mx - rx, my - ry);
         return { miss: capped ? off > R * 0.6 : inside < 0.5, loose: R > 2.5 * spread + 45, off, R, spread };
       };
+      // could the words be taken for something else on the screen? (read here apart from the app: another kind of fish
+      // or animal in the frame, at least half as big on screen as the subject, which is not itself the picture's lead)
+      window.__amb = (c) => {
+        if (!c.pos) return false;
+        const cam = s.camera, V = cam.position.constructor, o = cam.position, pxm = innerHeight / (2 * Math.tan(cam.fov * Math.PI / 360));
+        const P = new V(c.pos.x, c.pos.y, c.pos.z), d0 = Math.max(0.5, o.distanceTo(P)), q = P.clone().project(cam);
+        const parts = (c.key || '').split(':'), own = s.cur.fish.find((f) => parts.includes(f.sp.id) || c.label === f.sp.ja || c.label === f.sp.ja + 'の群れ');
+        let unit = c.len || 0; if (!unit && own?.each) own.each((x, y, z, len) => { unit = len; return true; }, 20); if (!unit) unit = c.size * 0.5;
+        const lead = Math.max(c.r || 0, unit) / d0 * pxm >= Math.min(innerWidth, innerHeight) * 0.25 && Math.abs(q.x) < 0.3 && Math.abs(q.y) < 0.3;
+        if (!(q.z < 1 && Math.abs(q.x) < 1 && Math.abs(q.y) < 1)) return false;   // (not on the screen itself: nothing to ring)
+        // (filling the view — the camera close to it, or in among its school — it is the picture: nothing to mistake)
+        if (Math.max(c.r || 0, unit * 0.55) * 1.15 / d0 * pxm + 6 > Math.min(innerWidth, innerHeight) * 0.6) return false;
+        const need = (lead ? 0.75 : 0.5) * unit / d0;   // (the picture's lead: only something nearly as big, three quarters of it)
+        // (each fish as it is, at its own length)
+        let hit = false;
+        for (const f of s.cur.fish) {
+          if (f === own || !f.each) continue;
+          f.each((x, y, z, len) => { const v = new V(x, y, z), d = v.distanceTo(o); if (d > 90 || len / d < need) return; v.project(cam); if (v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1) { hit = true; window.__ambWhy = `${f.sp.ja} ${len.toFixed(2)} m at ${d.toFixed(0)} m (subject ${unit.toFixed(2)} m at ${d0.toFixed(0)} m)`; return true; } }, 150);
+          if (hit) return true;
+        }
+        // (and the other animals: turtles, mantas, morays, sea snakes — not the fish's own groups, counted above)
+        for (const x of s.cur.eco.subjects()) {
+          if (x.key === c.key || parts.some((k) => k && x.key.split(':').includes(k)) || x.kind === 'cave' || s.cur.fish.some((f) => x.key.startsWith(f.sp.id + ':'))) continue;
+          const p = x.pos(); if (!p || !x.live()) continue;
+          const v = new V(p.x, p.y, p.z), d = v.distanceTo(o); if (d > 90 || (x.len ?? x.size * 0.5) / d < need) continue;
+          v.project(cam); if (v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1) { window.__ambWhy = `${x.label} at ${d.toFixed(0)} m (subject ${unit.toFixed(2)} m at ${d0.toFixed(0)} m)`; return true; }
+        }
+        return false;
+      };
       window.__mid = (c) => { if (!c.pos) return false; const v = new s.camera.position.constructor(c.pos.x, c.pos.y, c.pos.z).project(s.camera); return v.z < 1 && Math.abs(v.x) < 0.6 && Math.abs(v.y) < 0.6; };
       // one step of the sea, and how the caption stands
       window.__step = (n) => {
-        const out = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, rex: [], ex: [], ks: [] };
+        const out = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, rex: [], ex: [], ks: [], capsN: 0, ambNoRing: 0, ringNoAmb: 0, ringOn: 0, nex: [] };
+        const done = (cs) => { if (!cs || cs.n < 20) return; out.capsN++; if (cs.amb && !cs.ring) { out.ambNoRing++; if (out.nex.length < 4) out.nex.push(cs.label + (cs.why ? ' (' + cs.why + ')' : '')); } if (cs.ring && !cs.amb) out.ringNoAmb++; };
         for (let i = 0; i < n; i++) {
           s.advance(1, 0.1);
           const c = s.capState(); if (!c.on) continue;
@@ -104,13 +134,20 @@ const { chromium } = require('playwright');
           // it stays up so as not to be cut off mid-reading; or otherwise, which is what should not happen)
           if (!window.__seen(c)) if (c.head) out.head++; else if (c.upT < 4) out.hold++; else { out.unseen++; if (out.ex.length < 6 && i % 10 === 0) out.ex.push(`${c.label} [${c.k}] ${c.phase}${c.cruise ? ' cruise' : ''}  d ${c.pos ? Math.hypot(c.pos.x - s.camera.position.x, c.pos.y - s.camera.position.y, c.pos.z - s.camera.position.z).toFixed(0) : '-'} m`); }
           if (c.phase === 'observe' && !c.cruise) { out.obs++; if (!window.__mid(c)) out.off++; }
+          // (each caption, from when it comes up: was there anything to mistake it for in its first 2 s, and did a ring show)
+          if (!window.__cs || window.__cs.key !== c.key + '|' + c.phase) { done(window.__cs); window.__cs = { key: c.key + '|' + c.phase, label: c.label, n: 0, amb: false, ring: false }; }
+          const cs = window.__cs; cs.n++;
+          const ringOn = document.getElementById('capRing')?.classList.contains('on') && !document.getElementById('capRing')?.classList.contains('edge');
+          if (cs.n <= 40 && !c.head && window.__amb(c)) { cs.amb = true; cs.why = window.__ambWhy + ` [app: need ${c.ring?.need}, conf ${c.ring?.conf}, ring ${c.ring?.showT > 0 ? 'up' : 'down'}, r ${c.ring?.r?.toFixed(0)}]`; }
+          if (ringOn) { cs.ring = true; out.ringOn++; }
           const rc = window.__ringCheck(c);
           if (rc) { out.ringN++; if (rc.miss) out.ringMiss++; if (rc.loose) out.ringLoose++; if ((rc.miss || rc.loose) && out.rex.length < 4 && i % 10 === 0) out.rex.push(`${c.label} ${rc.miss ? 'miss' : 'loose'} (ring ${rc.R.toFixed(0)} px, fish ${rc.spread.toFixed(0)} px, ${rc.off.toFixed(0)} px off)`); }
         }
+        done(window.__cs); window.__cs = null;
         return out;
       };
     });
-    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose']) total[k] += o[k]; const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 20).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
+    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose', 'capsN', 'ambNoRing', 'ringNoAmb', 'ringOn']) total[k] += o[k]; if (o.nex.length) console.log('    no ring though there was something to mistake it for: ' + o.nex.join(' | ')); const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 20).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
     if (run === 'cruise') {
       for (let t = 0; t < SECS; t += 15) add(await p.evaluate((n) => window.__step(n), 300), `cruise ${t}-${t + 15} s`);   // (a frame is at most 1/20 s of the sea's time)
     } else if (run === 'guide') {
@@ -181,5 +218,5 @@ const { chromium } = require('playwright');
   await b.close();
   const q = (v) => (100 * v / Math.max(1, total.cap)).toFixed(1);
   const un = 100 * total.unseen / Math.max(1, total.cap), off = 100 * total.off / Math.max(1, total.obs), nm = 100 * total.named / Math.max(1, total.asked);
-  console.log(`caption up ${(total.cap / 20).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 20).toFixed(0)} s (want under 2%)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
+  console.log(`caption up ${(total.cap / 20).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 20).toFixed(0)} s (want under 2%); captions ${total.capsN}: something to mistake it for but no ring ${total.ambNoRing} (want 0), a ring with nothing to mistake it for ${total.ringNoAmb}; ring up ${(100 * total.ringOn / Math.max(1, total.cap)).toFixed(0)}% of caption time${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
 })();

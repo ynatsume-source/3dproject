@@ -395,10 +395,43 @@ function updateCaption(dt: number) {
 function hideCaption(el: HTMLElement) { if (el.classList.contains('on')) el.classList.remove('on'); capLeft = 0; }
 // the ring round what the caption is about: faint, as big as the subject looks, following it smoothly
 let ringX = -1, ringY = 0, ringR = 0;
+// The ring is there to tie the words to the right animal, and only when that could go wrong (CAPTION_FOCUS_TAP.md).
+// No ring when the viewer cannot mistake it: (A) it is what the picture is of — a quarter of the screen's short side
+// or more, and near the middle (within 30% of the centre), with nothing of another kind on the screen nearly as big
+// (three quarters of it); or (B) nothing else of another kind is on the screen as
+// big as half of it (fish of its own kind are not counted: what is said is true of them too). When it is needed, it
+// shows for 3 s and fades; it comes back for 3 s when something to mistake it for comes into view, or when the
+// subject itself comes back into view. On the way, out of the frame, the arrow at the edge stays: it is the way there.
+let ringShowT = 0, ringNeed = false, ringNeedK = 0, ringFor = '';
+const _cfp = new THREE.Vector3();
+function confusable(sj: Subject, d0: number, pxm: number, ratio = 0.5) {
+  const mine = new Set(sj.key.split(':')); const e = entryOf(sj); if (e) mine.add(e.id);
+  // (its own size on the screen: an animal's length, or one fish of its school)
+  let unit = sj.len ?? 0;
+  if (!unit) for (const f of (cur?.fish ?? []) as any[]) if (mine.has(f.sp.id)) { f.each?.((_x: number, _y: number, _z: number, len: number) => { unit = len; return true; }, 20); break; }
+  if (!unit) unit = sj.size * 0.5;
+  const need = ratio * unit / Math.max(d0, 0.5), see = sightRange(cur) * 0.7, o = camera.position;
+  // (something else on the screen at least half as big as it looks: its length over its distance, against the subject's)
+  const big = (x: number, y: number, z: number, len: number) => {
+    const d = Math.hypot(x - o.x, y - o.y, z - o.z); if (d > see || d < 0.3 || len / d < need) return false;
+    _cfp.set(x, y, z).project(camera); return _cfp.z < 1 && Math.abs(_cfp.x) < 1 && Math.abs(_cfp.y) < 1;
+  };
+  for (const f of (cur?.fish ?? []) as any[]) {
+    if (mine.has(f.sp.id) || !f.each) continue;
+    let hit = false; f.each((x: number, y: number, z: number, len: number) => (hit = big(x, y, z, len)) || undefined, 150);
+    if (hit) return true;
+  }
+  for (const x of allSubjects()) {
+    if (x === sj || x.key.split(':').some((k) => mine.has(k)) || x.kind === 'cave' || (cur?.fish as any[]).some((f) => x.key.startsWith(f.sp.id + ':'))) continue;
+    const q = x.pos(); if (q && x.live() && big(q.x, q.y, q.z, x.len ?? x.size * 0.5)) return true;
+  }
+  return false;
+}
 function updateCapRing(dt: number) {
   const el = $('capRing'), cap = $('caption'), sj = capShot?.subject, p = sj ? bodyAt(sj) : null;
   const up = !!sj && !!p && cap.classList.contains('on') && !watch.r && mode === 'ocean';
-  if (!up) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; return; }
+  if (!up) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; ringNeed = false; ringShowT = 0; return; }
+  if (ringFor !== sj!.key) { ringFor = sj!.key; ringNeed = false; ringNeedK = 0; ringShowT = 0; }
   camera.updateMatrixWorld();
   _sv.set(p!.x, p!.y, p!.z).project(camera);
   const w = innerWidth, h = innerHeight, behind = _sv.z > 1;
@@ -408,9 +441,9 @@ function updateCapRing(dt: number) {
   const pxm = h / (2 * Math.tan(camera.fov * Math.PI / 360));
   const raw = bodyR(sj!) * 1.15 / d * pxm + 6, r = Math.min(Math.min(w, h) * 0.42, Math.max(22, raw));   // (just round it: its own spread, a little room)
   // (close enough for it to fill the view — a turtle right by the lens, the camera in among a school: no ring is needed)
-  if (raw > Math.min(w, h) * 0.6 && !behind) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; return; }
+  if (raw > Math.min(w, h) * 0.6 && !behind) { if (el.classList.contains('on')) el.classList.remove('on'); ringX = -1; ringNeed = false; return; }
   const m = 30, off = behind || sx < m || sy < m || sx > w - m || sy > h - m;
-  if (off && !capHead) { el.classList.remove('on'); ringX = -1; return; }   // (only on the way is it pointed to; once there, out of view means no ring)
+  if (off && !capHead) { el.classList.remove('on'); ringX = -1; ringNeed = false; return; }   // (only on the way is it pointed to; once there, out of view means no ring)
   if (off) {
     const cx = w / 2, cy = h / 2, dx = sx - cx, dy = sy - cy, k = Math.min((cx - m) / Math.max(Math.abs(dx), 1e-3), (cy - m) / Math.max(Math.abs(dy), 1e-3));
     sx = cx + dx * k; sy = cy + dy * k;
@@ -421,7 +454,18 @@ function updateCapRing(dt: number) {
   el.classList.toggle('edge', off);
   el.style.transform = `translate(${ringX.toFixed(1)}px, ${ringY.toFixed(1)}px)`;
   el.style.setProperty('--r', `${(off ? 14 : ringR).toFixed(1)}px`);
-  el.classList.add('on');
+  // (needed? looked at four times a second; newly needed — just up, back in view, or something to mistake it for has
+  // come along — it shows for 3 s)
+  if (!off && (ringNeedK -= dt) <= 0) {
+    ringNeedK = 0.25;
+    const lead = raw >= Math.min(w, h) * 0.25 && Math.abs(sx / w * 2 - 1) < 0.3 && Math.abs(sy / h * 2 - 1) < 0.3;
+    // (even the picture's lead: not when something of another kind is on the screen nearly as big — three quarters of it)
+    const need = confusable(sj!, d, pxm) && (!lead || confusable(sj!, d, pxm, 0.75));
+    if (need && !ringNeed) ringShowT = 3;
+    ringNeed = need;
+  }
+  ringShowT -= dt;
+  el.classList.toggle('on', off || ringShowT > 0);
 }
 function onShotChange(prev: Shot | null, next: Shot | null) {
   if (viewNear !== 1) { viewNear = 1; director.distK = filmDistK(); }   // (a new subject: back to the usual distance)
@@ -3397,7 +3441,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
