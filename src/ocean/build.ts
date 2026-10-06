@@ -247,18 +247,19 @@ export function buildOcean(loc) {
     floorGeo.setAttribute('aReef', new THREE.BufferAttribute(r, 1));
     floorGeo.computeVertexNormals();
     // ambient occlusion from the height grid: how much of the sky each point sees past its neighbours
-    const N = SEGS + 1, cell = (WORLD * 2) / SEGS, ao = new Float32Array(p.count);
+    const N = SEGS + 1, cell = (WORLD * 2) / SEGS, ao = new Float32Array(p.count), Y = p.array as Float32Array;
     const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]], reach = [1, 3, 7];
+    // (the steepest of the three rises, then one angle for it: the angle grows with the rise, so it is the same horizon)
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const h0 = p.getY(j * N + i);
+      const h0 = Y[(j * N + i) * 3 + 1];
       let occ = 0;
       for (const [dx, dz] of dirs) {
         let m = 0;
         for (const k of reach) {
           const ii = Math.min(N - 1, Math.max(0, i + dx * k)), jj = Math.min(N - 1, Math.max(0, j + dz * k));
-          m = Math.max(m, Math.atan2(p.getY(jj * N + ii) - h0, k * cell * Math.hypot(dx, dz)));
+          m = Math.max(m, (Y[(jj * N + ii) * 3 + 1] - h0) / (k * cell * Math.hypot(dx, dz)));
         }
-        occ += Math.max(0, m) / (Math.PI / 2);
+        occ += Math.atan(m) / (Math.PI / 2);
       }
       ao[j * N + i] = 1 - Math.min(0.7, (occ / dirs.length) * 1.7);
     }
