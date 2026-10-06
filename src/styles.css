@@ -821,3 +821,7 @@ body:has(#guide:not([hidden])) #quick { display: none; }
 
 /* drawing a resident's photograph (?journalshot): the picture alone */
 body.journalshot > *:not(#scene) { visibility: hidden !important; }
+
+/* the lightest two tiers (main.ts setQuality): no frosted glass behind the panels — the blur is redone every frame
+   over the moving sea, and a slow GPU pays for it; the panels keep their own tint */
+body.lowfx *, body.lowfx *::before, body.lowfx *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }

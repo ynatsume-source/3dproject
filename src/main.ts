@@ -12,7 +12,7 @@ import { ridersFor } from './eco/riders';
 import { sightRange } from './eco/unseen';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
-import { oceanScene, sky, surface, grass, grassMat, grassGeo, snowGeo, snowMat, snow, shafts, BLADES, SEG, SNOW, LIMIT } from './ocean/scenery';
+import { oceanScene, sky, surface, grass, grassMat, setGrass, snowGeo, snowMat, snow, shafts, SNOW, LIMIT } from './ocean/scenery';
 import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss, useWater } from './ocean/air';
 import { SplitView, SPLIT_BAND } from './render/split';
 const split = new SplitView(), _sz = new THREE.Vector2();
@@ -22,7 +22,7 @@ import { planets } from './time/planets';
 import { buildOcean } from './ocean/build';
 import { planRoute, alongRoute, floorCells, type RoutePlan } from './ocean/route';
 import { pickStart } from './ocean/start';
-import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat } from './globe';
+import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat, setGlobeFine } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, speciesOf, type Shot } from './director';
 import type { Subject } from './eco/env';
@@ -78,7 +78,7 @@ canvas.addEventListener('webglcontextlost', (e) => {
   }
 });
 let renderer: THREE.WebGLRenderer;
-try { renderer = new THREE.WebGLRenderer({ canvas, antialias: SAFE === 0, powerPreference: 'high-performance' }); }
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: SAFE === 0 && noPost, powerPreference: 'high-performance' }); }   // (with the post chain the view is drawn off-screen and laid on the canvas as one quad: the canvas's own multisampling would only cost)
 catch (e) { $('err').hidden = false; throw e; }
 renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 setRTSupport(renderer.extensions.has('EXT_color_buffer_half_float') || renderer.extensions.has('EXT_color_buffer_float'));
@@ -108,12 +108,12 @@ const post = new Post(TIERS[tier]);
 const minimap = new MiniMap(document.getElementById('minimap')!);
 let mapTimer = 0;
 // the hunt window: a second, small camera on whatever is being hunted nearby
-const pipPost = new Post({ ...TIERS.low, vol: 0, bloom: 0, ao: 0 });
+const pipPost = new Post({ ...TIERS.low, vol: 0, bloom: 0, ao: 0 });   // (drawn at the main view's pixel ratio, the lightest two tiers at 0.6 of it)
 const pipCam = new THREE.PerspectiveCamera(42, 16 / 10, 0.08, 460);
 let pipOff = 0, pipLift = 0, pipClear = 0;
 const pipLook = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3();
 let pipShowUntil = 0, pipRestUntil = 0;   // (the hunt window: open until; and not again until)
-let pipOn = (() => { try { return localStorage.getItem('seaglass.pip') !== '0'; } catch (e) { return true; } })();
+let pipOn = (() => { try { const v = localStorage.getItem('seaglass.pip'); return v === null ? tier !== 'low' : v !== '0'; } catch (e) { return tier !== 'low'; } })();   // (on the lightest tier off until asked for: a second view of the sea every frame)
 let pipSubj: Subject | null = null, pipT = 0, pipFade = 0, pipScan = 0, pipAng = 0, pipBoost = 1, pipIdle = 0;
 const pipFrom = new THREE.Vector3(); let pipFromT = 0, pipSlow = false;   // (where the hunter was a few seconds ago: has anything happened since?)
 // How bright the hunt window would come out: the water behind the action (its colour at that depth, as
@@ -2416,14 +2416,16 @@ function setQuality(t: Tier, auto = false) {
   shafts.visible = !T.vol;
   U.uVolOff.value = T.vol ? 0 : 1;
   document.body.classList.toggle('post', T.post);
+  document.body.classList.toggle('lowfx', t === 'low' || t === 'lite');   // (no frosted glass behind the panels: re-blurred every frame)
   post.setTier(T);
+  setGlobeFine(TIER_ORDER.indexOf(t) >= TIER_ORDER.indexOf('medium'));
   applyTierToSea();
   resize();
 }
 const predatorsJa = (loc: Sea) => (loc.bait?.predators || []).map((p) => loc.species.find((s) => s.id === p.id)?.ja).filter(Boolean).slice(0, 2).join('や');
 function applyTierToSea() {
   const C = TIERS[seaTier];
-  grassGeo.setDrawRange(0, Math.floor(BLADES * C.grass) * SEG * 12);
+  setGrass(C.grass, C.grassTile, C.grassFlat ? 3 : 4, !C.grassFlat);
   snowGeo.setDrawRange(0, Math.floor(SNOW * C.snow));
   U.uLodR.value = C.lodR;
   if (!cur) return;
@@ -2836,7 +2838,7 @@ function renderPip(dt: number, air: boolean) {
   for (const c of cur.cells) { const d = Math.hypot(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
   sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, 0, pipCam.position.z);
   const surf = surface.visible, snw = snow.visible; surface.visible = snow.visible = true;
-  const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio(), H = innerHeight;
+  const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio() * (tier === 'low' || tier === 'lite' ? 0.6 : 1), H = innerHeight;
   const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
   if (w !== pipRect.w || h !== pipRect.h) { pipRect.w = w; pipRect.h = h; pipPost.setSize(Math.floor(w * dpr), Math.floor(h * dpr)); pipCam.aspect = w / h; pipCam.updateProjectionMatrix(); }
   if (air && skyNow) lightFor(skyNow, false);   // (the little window looks under the water: lit as it is down there, even when we are up in the air)
@@ -2864,9 +2866,27 @@ function setPip(on: boolean) {
   try { localStorage.setItem('seaglass.pip', on ? '1' : '0'); } catch (e) { /* ignore */ }
   $('btnPip').setAttribute('aria-pressed', String(on));
 }
+// How finely the view is drawn, under the tier's own resolution: while the frames run slow it comes down a step at a
+// time (to the tier's minScale), and goes back up when there is room again. A slow GPU is mostly slow at the pixels,
+// so this is the step that costs the look least. It works with a tier chosen by hand as well, and never while a
+// recording is under way (a recorder cannot follow a new size).
+let renderScale = 1, rsT0 = 0, rsN = 0, rsGood = 0;
+function adaptScale(now: number) {
+  if (mode !== 'ocean' || busy || replay.on || document.visibilityState !== 'visible') { rsT0 = 0; return; }
+  if (!rsT0) { rsT0 = now; rsN = 0; return; }
+  rsN++;
+  const span = (now - rsT0) / 1000;
+  if (rsN < 45 && !(span > 2 && rsN >= 4)) return;   // (some 45 frames; on a slow device, two seconds of them)
+  const fps = rsN / span, min = TIERS[tier].minScale;
+  rsT0 = now; rsN = 0;
+  let next = renderScale;
+  if (fps < 45) { next = Math.max(min, renderScale * (fps < 30 ? 0.85 : 0.92)); rsGood = 0; }
+  else if (fps > 56 && renderScale < 1 && ++rsGood >= 3) { next = Math.min(1, renderScale + 0.05); rsGood = 0; }
+  if (Math.abs(next - renderScale) > 0.005) { renderScale = next; resize(); }
+}
 function resize() {
   const w = innerWidth, h = innerHeight;
-  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 3 ? 0.5 : 1);
+  const dpr = Math.min(devicePixelRatio || 1, TIERS[tier].dpr) * (SAFE === 1 ? 0.75 : SAFE >= 3 ? 0.5 : 1) * renderScale;
   const cw = canvas.width, ch = canvas.height;
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   if (canvas.width !== cw || canvas.height !== ch) onCanvasSize?.();   // (a recording under way is saved as it is: a recorder cannot follow a new size)
@@ -3121,15 +3141,17 @@ function frameBody(ts: number) {
     // (a change of quality changes the look of the water — the glow of the light in it, how many fish are drawn —
     // so it waits for a cut: a new shot, the camera crossing the surface, the globe; at most half a minute)
     if (qWant && (qWant === tier || mode !== 'ocean' || lastShot !== qShot || Math.abs(camera.position.y) < 0.5 || now - qWantAt > 30000)) { if (qWant !== tier) setQuality(qWant, true); qWant = null; }
+    adaptScale(now);
     if (autoQ) {
       if (!fpsStart) fpsStart = now;
       else if (now - fpsStart > 2500) { fpsAcc += Math.min((now - (lastQNow || now)) / 1000, 0.25); fpsN++; }
       lastQNow = now;
-      if (fpsN > 200) {
+      if (fpsN > 90) {
         const fps = fpsN / Math.max(fpsAcc, 1e-3), i = TIER_ORDER.indexOf(tier);
         const cap = TIER_ORDER.indexOf(matchMedia('(pointer: coarse)').matches ? 'medium' : 'ultra');
         const early = now - qSince < 60000;
-        if (fps < (early ? 40 : 30) && i > 0) { qDowned = true; qWant = TIER_ORDER[i - 1]; qWantAt = now; qShot = lastShot; }
+        if (fps < 24 && i > 0) { qDowned = true; qWant = null; setQuality(TIER_ORDER[i - 1], true); }   // (far behind: at once, not waiting for a cut)
+        else if (fps < (early ? 40 : 30) && i > 0 && renderScale <= TIERS[tier].minScale + 0.01) { qDowned = true; qWant = TIER_ORDER[i - 1]; qWantAt = now; qShot = lastShot; }   // (the resolution first)
         else if (early && !qDowned && fps >= 56 && i < cap && qUps < 3) { qUps++; qWant = TIER_ORDER[i + 1]; qWantAt = now; qShot = lastShot; }
         else try { localStorage.setItem(TIER_KEY, tier); } catch (e) { /* ignore */ }
         fpsN = 0; fpsAcc = 0; fpsStart = now;
@@ -3198,7 +3220,7 @@ if (/[?&]lab\b/.test(location.search)) {
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), get tiers() { return { tier, seaTier }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), setGrass, gv, get tiers() { return { tier, seaTier, renderScale, pipOn }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;
 // Drawing a resident's photograph again (?journalshot: tools/journal/photos.cjs): from its eyes, looking where it

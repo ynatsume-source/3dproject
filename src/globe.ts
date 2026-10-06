@@ -6,7 +6,8 @@ import { LOCATIONS } from './data/locations';
 import { subsolar } from './time/astro';
 import earthUrl from './earth.jpg';
 import nightUrl from './night.jpg';
-import marbleUrl from './bluemarble.jpg';   // NASA Blue Marble shaded relief + bathymetry (public domain)   // NASA Black Marble 2016 (VIIRS, public domain)
+import marbleUrl from './bluemarble.jpg';   // NASA Blue Marble shaded relief + bathymetry (public domain)
+import marble2kUrl from './bluemarble-2048.jpg';   // (the same at 2048 px)
 
 const D2R = Math.PI / 180;
 export const globeScene = new THREE.Scene();
@@ -18,7 +19,16 @@ const earthTex = new THREE.TextureLoader().load(earthUrl);
 earthTex.minFilter = THREE.LinearFilter;
 earthTex.generateMipmaps = false;
 const nightTex = new THREE.TextureLoader().load(nightUrl);
-const marbleTex = new THREE.TextureLoader().load(marbleUrl);
+// The globe starts from the 2048 px Blue Marble (11 MB on the GPU rather than 45, a third of the download); the
+// 4096 px one is fetched only when the globe is drawn close, on a device that draws more than the lightest two tiers.
+const marbleTex = new THREE.TextureLoader().load(marble2kUrl);
+let fineMarble: THREE.Texture | null = null, fineOk = false;
+/** Whether the globe may fetch its fine image when drawn close (main.ts, from the graphics tier). */
+export function setGlobeFine(ok: boolean) { fineOk = ok; }
+function fineIfClose() {
+  if (!fineOk || fineMarble || gv.tween || gv.dist > 2.4) return;   // (not on the way down to a sea, or back up)
+  fineMarble = new THREE.TextureLoader().load(marbleUrl, (t) => { t.anisotropy = 4; earthMat.uniforms.uMarble.value = t; });
+}
 marbleTex.anisotropy = 4;
 const GBR_A = ll2v(-10.8, 143.9), GBR_B = ll2v(-24.2, 152.6), MV_A = ll2v(7.0, 72.9), MV_B = ll2v(-0.6, 73.2);
 
@@ -120,6 +130,7 @@ export function updateGlobe(dt: number, now: number, ms: number, reduceMotion: b
     gcam.lookAt(0, 0, 0);
     earthMat.uniforms.uCam.value.copy(gcam.position);
   }
+  fineIfClose();
   const ss = subsolar(ms);
   earthMat.uniforms.uLight.value.copy(ll2v(ss.lat, ss.lon));
 }

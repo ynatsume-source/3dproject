@@ -153,37 +153,42 @@ oceanScene.add(snow);
 // folded along its midrib (a shallow V), arches over, and carries its own tint, browned tip and a few
 // epiphyte specks, so the meadow has depth instead of reading as flat cut-outs.
 export const BLADES = 64000, SEG = 4, TILE = 50;
+// One leaf is drawn as an instance of a small strip (segments × midrib-and-two-edges); the blades only carry their
+// own place and shape. (Drawn without the instancing, the 64,000 leaves were ~1 million vertices of copied data,
+// ~62 MB, built at load whatever the tier.)
+function leafStrip(seg: number, fold: boolean) {
+  const cols = fold ? [-1, 0, 1] : [-1, 1], nc = cols.length, n = (seg + 1) * nc;
+  const vv = new Float32Array(n * 2), idx: number[] = [];
+  for (let s = 0, vi = 0; s <= seg; s++) for (const side of cols) { vv[vi * 2] = side; vv[vi * 2 + 1] = s / seg; vi++; }
+  for (let s = 0; s < seg; s++) for (let c = 0; c < nc - 1; c++) {
+    const r0 = s * nc + c, r1 = r0 + nc;
+    idx.push(r0, r0 + 1, r1, r1, r0 + 1, r1 + 1);
+  }
+  return { pos: new THREE.BufferAttribute(new Float32Array(n * 3), 3), vv: new THREE.BufferAttribute(vv, 2), idx: new THREE.BufferAttribute(new Uint16Array(idx), 1) };
+}
 function buildGrass() {
-  const vpb = (SEG + 1) * 3, n = BLADES * vpb;
-  const off = new Float32Array(n * 2), rnd = new Float32Array(n * 4), vv = new Float32Array(n * 2), ex = new Float32Array(n * 2), dummy = new Float32Array(n * 3);
-  const idx = new Uint32Array(BLADES * SEG * 12);
-  let vi = 0, ii = 0, b = 0;
+  // per blade: where in the tile (0..1, scaled by uTile in the shader), its threshold, height, width, heading, curve, tone
+  const off = new Float32Array(BLADES * 2), rnd = new Float32Array(BLADES * 4), ex = new Float32Array(BLADES * 2);
+  let b = 0;
   while (b < BLADES) {
     const sx = Math.random() * TILE, sz = Math.random() * TILE, th = Math.random(), a0 = Math.random() * Math.PI * 2;
     const leaves = Math.min(BLADES - b, 3 + Math.floor(Math.random() * 3)), tall = 0.6 + Math.random() * 0.7;
     for (let k = 0; k < leaves; k++, b++) {
       const ox = sx + (Math.random() - 0.5) * 0.04, oz = sz + (Math.random() - 0.5) * 0.04;
       const h = tall * (0.22 + Math.pow(Math.random(), 1.4) * 0.5) * (k === 0 ? 1.15 : 1), w = 0.008 + Math.random() * 0.008;
-      const a = a0 + (k - leaves / 2) * 0.5 + (Math.random() - 0.5) * 0.4, curve = (Math.random() - 0.3) * 1.2, tone = Math.random(), start = vi;
-      for (let s = 0; s <= SEG; s++) for (let side = -1; side <= 1; side++) {
-        off[vi * 2] = ox; off[vi * 2 + 1] = oz;
-        rnd[vi * 4] = th; rnd[vi * 4 + 1] = h; rnd[vi * 4 + 2] = w; rnd[vi * 4 + 3] = a;
-        vv[vi * 2] = side; vv[vi * 2 + 1] = s / SEG;
-        ex[vi * 2] = curve; ex[vi * 2 + 1] = tone; vi++;
-      }
-      for (let s = 0; s < SEG; s++) for (let c = 0; c < 2; c++) {
-        const r0 = start + s * 3 + c, r1 = r0 + 3;
-        idx[ii++] = r0; idx[ii++] = r0 + 1; idx[ii++] = r1; idx[ii++] = r1; idx[ii++] = r0 + 1; idx[ii++] = r1 + 1;
-      }
+      const a = a0 + (k - leaves / 2) * 0.5 + (Math.random() - 0.5) * 0.4, curve = (Math.random() - 0.3) * 1.2, tone = Math.random();
+      off[b * 2] = ox / TILE; off[b * 2 + 1] = oz / TILE;
+      rnd[b * 4] = th; rnd[b * 4 + 1] = h; rnd[b * 4 + 2] = w; rnd[b * 4 + 3] = a;
+      ex[b * 2] = curve; ex[b * 2 + 1] = tone;
     }
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(dummy, 3));
-  geo.setAttribute('aOff', new THREE.BufferAttribute(off, 2));
-  geo.setAttribute('aRnd', new THREE.BufferAttribute(rnd, 4));
-  geo.setAttribute('aV', new THREE.BufferAttribute(vv, 2));
-  geo.setAttribute('aEx', new THREE.BufferAttribute(ex, 2));
-  geo.setIndex(new THREE.BufferAttribute(idx, 1));
+  const geo = new THREE.InstancedBufferGeometry();
+  const st = leafStrip(SEG, true);
+  geo.setAttribute('position', st.pos); geo.setAttribute('aV', st.vv); geo.setIndex(st.idx);
+  geo.setAttribute('aOff', new THREE.InstancedBufferAttribute(off, 2));
+  geo.setAttribute('aRnd', new THREE.InstancedBufferAttribute(rnd, 4));
+  geo.setAttribute('aEx', new THREE.InstancedBufferAttribute(ex, 2));
+  geo.instanceCount = BLADES;
   return geo;
 }
 export const grassGeo = buildGrass();
@@ -201,7 +206,7 @@ export const grassMat = mat(
      return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
    }
    void main(){
-     vec2 base = uCamPos.xz + mod(aOff - uCamPos.xz + uTile * 0.5, uTile) - uTile * 0.5;
+     vec2 base = uCamPos.xz + mod(aOff * uTile - uCamPos.xz + uTile * 0.5, uTile) - uTile * 0.5;
      vec2 td = terr(base);
      // A meadow spreads by its runners, so its shoots stand together: thick clumps a metre or two across with
      // runs of bare sand between, not an even sprinkling (the same blades, gathered — not more of them)
@@ -235,6 +240,18 @@ export const grassMat = mat(
      gl_FragColor = vec4(fogIt(col, vWp), 1.0);
    }`,
   { uniforms: { uHeight: { value: null }, uTile: { value: TILE } }, opts: { side: THREE.DoubleSide } });
+/** How much seagrass is drawn: the share of the blades within a tile of this size (the same blades per square metre
+ *  whatever the size: a smaller tile only ends the meadow nearer), and how finely each leaf is drawn. */
+export function setGrass(frac: number, tile = TILE, seg = SEG, fold = true) {
+  if (grassGeo.userData.seg !== seg || grassGeo.userData.fold !== fold) {
+    const st = leafStrip(seg, fold);
+    grassGeo.setAttribute('position', st.pos); grassGeo.setAttribute('aV', st.vv); grassGeo.setIndex(st.idx);
+    grassGeo.userData.seg = seg; grassGeo.userData.fold = fold;
+  }
+  grassMat.uniforms.uTile.value = tile;
+  grassGeo.instanceCount = Math.floor(BLADES * frac * Math.min(1, (tile / TILE) ** 2));
+}
+grassGeo.userData.seg = SEG; grassGeo.userData.fold = true;
 export const grass = new THREE.Mesh(grassGeo, grassMat);
 grass.frustumCulled = false;
 grass.visible = false;
