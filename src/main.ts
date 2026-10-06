@@ -41,7 +41,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
+import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, blow, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -366,7 +366,7 @@ function updateCaption(dt: number) {
       }
       // the small heading: where it came from, and what is going on — said once, not again in the lines below
       const what = sj.breach ? 'ジャンプの瞬間' : sj.kind === 'hunt' ? '狩りの最中' : sj.key.startsWith('rare:') ? 'めったにない光景' : sh!.zoom && !sh!.asked ? '近くで観察' : '観察中';   // (asked for, it is always filmed close: that is no news)
-      (el.querySelector('.k') as HTMLElement).textContent = cruise ? 'いま目の前に' : capHead ? `${from} ・ 向かっています` : sh!.asked ? (from === 'めったにない光景' ? from : `${from} ・ ${what}`) : what;
+      (el.querySelector('.k') as HTMLElement).textContent = cruise ? 'いま目の前に' : capHead ? (sj.comes ? `${from} ・ 近づいてくる` : `${from} ・ 向かっています`) : sh!.asked ? (from === 'めったにない光景' ? from : `${from} ・ ${what}`) : what;
       if (cruise) c.n = c.n && !capNoted.has(kindKey + ':short') ? (capNoted.add(kindKey + ':short'), firstSentence(c.n)) : '';   // (passing by: one line of it, once)
       (el.querySelector('.t b') as HTMLElement).textContent = c.t; (el.querySelector('.t i') as HTMLElement).textContent = c.i;
       (el.querySelector('.s') as HTMLElement).textContent = c.s; (el.querySelector('.m') as HTMLElement).textContent = c.m;
@@ -379,7 +379,7 @@ function updateCaption(dt: number) {
   if (!capShot) return;
   // in view? (looked at five times a second; on the way, the heading is up whether or not it is in view yet)
   if ((capSeenK -= dt) <= 0) { capSeenK = 0.2; capVis = seenNow(capShot.subject); }
-  const vis = capHead || capVis;
+  const vis = (capHead && !capShot.subject.comes) || capVis;   // (on the way: the heading at once; but what is coming, only once it is in view)
   if (vis) { capVisT += dt; capLostT = 0; } else { capVisT = 0; capLostT += dt; }
   const on = el.classList.contains('on');
   if (on || capUpT > 0) {
@@ -668,7 +668,7 @@ function updateDrone(dt: number, now: number) {
     const lx = lk.x - camera.position.x, ly = lk.y - camera.position.y, lz = lk.z - camera.position.z;
     const leap = !!shot.leapView && !shot.down && shot.phase === 'observe';
     const k = Math.min(1, dt * (1 + 2.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : kb ? 2.6 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
-    drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
+    { const dy = angDiff(Math.atan2(-lx, -lz), drone.yaw) * k, cap = shot.subject.comes && shot.phase === 'approach' ? dt * 0.7 : Infinity; drone.yaw += clamp(dy, -cap, cap); }   // (turning to watch something come: no faster than 40°/s, as a hand would)
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
     const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
     drone.pitch += (clamp(wantP, -1.1, 1.15) - drone.pitch) * Math.min(1, leap && shot.tilt !== undefined ? dt * 3.2 : k);
@@ -1354,6 +1354,26 @@ $('toast').addEventListener('click', goToEvent);
 
 /* ---------- take me to it ---------- */
 let rareT = 0;
+// whether a rare sight's animals are in the picture now: in the frame, within 70% of what the water lets one see, and
+// not behind the reef
+let rareLookT = 0;
+function rareInView(r: { bodies?(cb: (x: number, y: number, z: number, len: number) => boolean | void): void }, eyeDeg = 0) {
+  if (!cur || !r.bodies || camera.position.y > 0) return false;
+  camera.updateMatrixWorld();
+  const o = camera.position, T = cur.T, see = sightRange(cur) * 0.7, pxm = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
+  // (seen: what is in view of it, taken together, at least 15 px — one manta far off in the blue, or a few small fish
+  // of a school; a single little fish at the edge of sight is not yet a sighting)
+  let hit = false, sum = 0, big = 0;
+  r.bodies((x, y, z, len) => {
+    const d = Math.hypot(x - o.x, y - o.y, z - o.z), px = len / Math.max(d, 0.5) * pxm; if (d > see || px < 5) return;   // (each one more than a speck)
+    if (eyeDeg) { camera.getWorldDirection(_cfp); if ((_cfp.x * (x - o.x) + _cfp.y * (y - o.y) + _cfp.z * (z - o.z)) / d < Math.cos(eyeDeg * Math.PI / 180)) return; }   // (the eye's field, not the picture's)
+    else { _sv.set(x, y, z).project(camera); if (_sv.z > 1 || Math.abs(_sv.x) > 1 || Math.abs(_sv.y) > 1) return; }
+    for (let t = 0.5; t < d - 0.5; t += 0.5) { const k = t / d; if (o.y + (y - o.y) * k < T.top(o.x + (x - o.x) * k, o.z + (z - o.z) * k) - 0.05) return; }
+    big = Math.max(big, px);
+    if ((sum += px) >= 15 && big >= 6) { hit = true; return true; }   // (and at least one of them plainly there)
+  });
+  return hit;
+}
 function announceRare(r: { info: { id: string; ja: string; note: string } }) {
   const el = $('rare');
   if (watch.r) { recordLog('rare', `めったに出会えない光景：${r.info.ja}`); return; }   // (watching a resident: noted in the log, not announced)
@@ -1362,7 +1382,7 @@ function announceRare(r: { info: { id: string; ja: string; note: string } }) {
   recordLog('rare', `めったに出会えない光景：${r.info.ja}`);
   if (drone.mode === 'auto' && !watch.r && cur) {
     if (drone.sky && r.info.id !== 'bigbait') setSky(false, true);
-    const sj: Subject[] = []; cur.rare.subjects(sj); if (sj[0]) { director.focus(sj[0], drone.pos); lastShot = null; askFrom = 'めったにない光景'; askKey = sj[0].key; markUntil = 0; }
+    const sj: Subject[] = []; cur.rare.subjects(sj); if (sj[0] && director.shot?.subject.key !== sj[0].key) { director.focus(sj[0], drone.pos); lastShot = null; askFrom = 'めったにない光景'; askKey = sj[0].key; markUntil = 0; }
   }
 }
 function focusOn(s: Subject, from = '図鑑から') {
@@ -1918,6 +1938,7 @@ function enterOcean(oc: Ocean) {
   }
   U.uSeaWorld.value = oc.loc.land ? oc.loc.land.far : 260;
   oc.eco.env.crunch = (d: number) => { if (d < 12) crunch(1 - d / 12); };
+  oc.eco.env.blow = (d: number) => { if (drone.pos.y < 0 && !watch.r) blow(d); };   // (heard under the water)
   oc.eco.env.sound = { frenzy, plop };
   oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt; oc.breach.fx.bubbles = bubblesAt;
   // (heard from where the camera is: in the air or under the water, and how far, the depth included)
@@ -3144,6 +3165,18 @@ function frameBody(ts: number) {
       pov.update(watch.r, cur.residents.sense(watch.r), cur.residents.status(watch.r), camera, innerWidth, innerHeight, dt, fish, cur.residents.gibber);
     }
     // a rare scene has begun: announce it, put it in the log, and (cruising) go and film it
+    // a rare sight is told of, and filmed, from the moment the first of it can be seen (not before: no one knows yet)
+    // (and caught first at the edge of the operator's eye — wider than the picture, 60° either side: the camera turns to
+    // it then, slowly, with nothing said yet; told once it is in the picture)
+    if (cur.rare?.pending && (rareLookT -= dt) <= 0) {
+      rareLookT = 0.25; const pr = cur.rare.pending as any;
+      if (rareInView(pr)) cur.rare.markSeen();
+      else if (!pr.noticed && drone.mode === 'auto' && !watch.r && !director.shot?.asked && rareInView(pr, 60)) {
+        cur.rare.markNoticed();
+        const sj: Subject[] = []; cur.rare.subjects(sj);
+        if (sj[0]) { director.focus(sj[0], drone.pos); lastShot = null; askFrom = 'めったにない光景'; askKey = sj[0].key; markUntil = 0; }
+      }
+    }
     { const rs = cur.rare?.takeStarted(); if (rs) announceRare(rs); }
     { const F = U.uFoam.value, fs = cur.breach.foams; for (let i = 0; i < 3; i++) { const f = fs[fs.length - 1 - i]; if (f) { const k = f.age / f.life; F[i].set(f.x, f.z, f.r * (1 + 1.6 * Math.sqrt(k)), Math.min(1, f.age * 4) * (1 - k)); } else F[i].w = 0; } }
     const ff = cur.flyfish;

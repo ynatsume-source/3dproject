@@ -471,6 +471,17 @@ function bubblePings(a: AudioContext, into: AudioNode, t0: number, n: number, sp
     o.connect(og).connect(into); o.start(tt); o.stop(tt + 0.12);
   }
 }
+// A whale breathing out at the surface, d metres off, heard from under the water: a long, low rush of breath
+// ("buhoooo"), muffled and rounded, carried far — often the first anyone knows of whales near (a heat run's
+// forewarning). A breath in after it, shorter and softer.
+export function blow(d: number) {
+  if (!ac || !audio.on || d > 400) return;
+  const a = ac, { t0, out } = leapPath(a, d, true);
+  { const n = noiseSrc(a, t0, 2.6, 0.45), g = shaped(a, t0, 0.12, 0.5, 0.5, 0.45), bp = filt(a, 'bandpass', 420, 0.8), lp = filt(a, 'lowpass', 700);
+    bp.frequency.setValueAtTime(520, t0); bp.frequency.exponentialRampToValueAtTime(300, t0 + 1.6); n.connect(bp).connect(lp).connect(g).connect(out); }
+  { const o = a.createOscillator(), g = shaped(a, t0, 0.15, 0.14, 0.4, 0.4); o.frequency.setValueAtTime(70, t0); o.frequency.exponentialRampToValueAtTime(48, t0 + 1.4); o.connect(g).connect(out); o.start(t0); o.stop(t0 + 3); }
+  { const t1 = t0 + 1.9, n = noiseSrc(a, t1, 1.0, 0.6), g = shaped(a, t1, 0.08, 0.18, 0.15, 0.2); n.connect(filt(a, 'bandpass', 650, 1.0)).connect(g).connect(out); }
+}
 // Coming down: "do-o-n" — the body hitting the water; "jaaaa" — the water it threw up crashing back;
 // "aa..." — the spray raining down; "ssss" — the foam fizzing out, long after. Below the water: a heavy,
 // muffled boom felt more than heard, then the roar of the bubble cloud and its ringing, and a fizz.

@@ -113,6 +113,8 @@ body:has(#joy:not([hidden])) #toast { bottom: calc(224px + env(safe-area-inset-b
 #toast .k { font: 500 8.5px/1 var(--f-mono); letter-spacing: .2em; color: var(--accent); opacity: .75; }
 #toast .t { font-size: 11.5px; font-weight: 500; letter-spacing: .04em; line-height: 1.5; }
 body:has(#rare.on) #toast { opacity: 0 !important; }
+/* (a rare sight's card up: it says what it is; the caption under it would only say it again, on top of it) */
+body:has(#rare.on) #caption { opacity: 0 !important; }
 #toast .s { font-size: 10px; font-style: italic; color: var(--ink-dim); }
 #toast .s:empty { display: none; }
 #toast.go { pointer-events: auto; cursor: pointer; }

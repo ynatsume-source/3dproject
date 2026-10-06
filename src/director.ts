@@ -10,6 +10,7 @@ export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subjec
   tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
   leapView?: 'line' | 'close' | 'air' | 'rise'; // how a leap is being filmed (below)
   risen?: boolean;                     // (a manta's leap, 'rise': up from under the water to the waterline, for the leap itself)
+  waitAt?: THREE.Vector3;              // (waiting for something that swims past: where the camera stopped when it saw it)
 }
 
 const DURATION: Record<Subject['kind'], [number, number]> = {
@@ -290,6 +291,17 @@ export class Director {
       this.shot = null;
       this.cooldown = rr(...this.rest);
       return null;
+    }
+    // Something that swims past, seen coming (a train of mantas, a river of fish, a school of hammerheads): the camera
+    // stops where it was when it saw it — slowing, not darting off to a better place — and turns to watch it come.
+    // Once it is near, it is filmed as anything else is. (It was not waited for before it could be seen: no one knew.)
+    if (s.comes && sh.phase === 'approach' && p) {
+      if (!sh.waitAt) sh.waitAt = new THREE.Vector3(drone.x, drone.y, drone.z);
+      sh.pos.copy(sh.waitAt); sh.look.set(p.x, p.y, p.z);
+      const d = Math.hypot(p.x - drone.x, p.y - drone.y, p.z - drone.z);
+      if (d < s.comes || this.t > 60) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
+      else this.t += dt;
+      return sh;
     }
     // a hunt: right in it, as if with a long lens from close by — level with the hunter, a little behind
     // and to the side of its line of attack, racing along with it, framing it and the fish it is after

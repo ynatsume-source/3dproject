@@ -38,6 +38,7 @@ export interface Subject {
   live(): boolean;                      // false once the moment is over (e.g. the hunt ended)
   reach?: number;                       // how far away the director will go for it (default 42 m)
   hold?: number;                        // stay with it this long (s), instead of the usual time for its kind
+  comes?: number;                       // it swims past: once it is seen, the camera stops and waits for it, and films it close from this near (m)
   spot?: boolean;                       // a place, not an animal (a reef spot, where something was logged): circled slowly, never filmed as a big animal's moves
   front?(): { x: number; y: number; z: number };
   heading?(): { x: number; z: number };   // which way its nose points (a turtle: to film it from its front, its side, above)
@@ -66,6 +67,7 @@ export interface Env {
   shy: number;                           // how far off animals start to mind the drone, as a factor (set by the app: less through its own eyes)
   events: SeaEvent[];
   crunch: (dist: number) => void;
+  blow?: (dist: number) => void;         // a whale breathing out at the surface, this far off (heard, set by the app)
   sound: { frenzy(level: number, dist: number): void; plop(dist: number): void };   // set by the app
 }
 
