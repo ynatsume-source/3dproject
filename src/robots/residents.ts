@@ -29,7 +29,7 @@ import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } fro
 import { CATALOG, MATERIAL_JA, type CatalogEntry } from '../world/process-catalog';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
-import { phrase, NO_WHY, type Frame, type Who } from './lumau/frames';
+import { phrase, NO_WHY, type Frame, type Who, type DayItem } from './lumau/frames';
 import type { Subject } from '../eco/env';
 import { createLanternStudy } from './lantern-study';
 import { requestLanternDecision } from './lantern-brain';
@@ -182,6 +182,7 @@ export interface Resident {
   talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   saidAt?: Record<string, number>;   // (what it last told whom, and when: not the same thing again straight away)
+  dayBase?: { day: string; built: number; isles: number; shells: number; notes: number; cairns: number };   // (its counts as the day began: what it did today is the difference)
   today: string[];                        // what it did today (for small talk and its diary)
   diary: Entry[];
   subject: Subject; blocked: number;
@@ -223,6 +224,7 @@ export interface Residents {
   setWeather(w: IslandWeather | null): void;       // the island's weather now (Dot's world: the replayed record — world/island-time.ts)
   observe(r: Resident): Observation[];            // what its own eyes see now                        // its body as the world sees it, what it carries included (robots/solids.ts)
   readonly solids: Solids;                        // what cannot be gone through
+  readonly drift: { kind: number; x: number; z: number; t: number; by: string };   // what the sea has washed up and not yet been taken (kind -1: none) — for checks
   labCase(r: Resident): Record<string, unknown>;  // what a test report needs to find this moment again (src/ui/lab.ts)
   vitals(r: Resident): string;                     // its battery, or (an animal) how hungry and sleepy it is
   hide: string;                                    // (the one whose eyes we are looking through: not drawn)
@@ -957,6 +959,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (x === r || x.talk || x.act === 'sleep' || (x.task?.kind === 'sleep' && x.task.arrived) || Math.hypot(x.pos.x - r.pos.x, x.pos.z - r.pos.z) > 25) continue;
       if (warn && fresh(`warn:${warn}:${x.id}`, 30)) out.push({ id: `say:warn:${warn}:${x.id}`, action: 'say', label: `${x.v.name}に「${WARN_JA[warn]}」と知らせる`, targetId: x.id });
       if (doing && fresh(`plan:${doing}:${x.id}`, 45)) out.push({ id: `say:plan:${doing}:${x.id}`, action: 'say', label: `${x.v.name}に、これから${PLAN_JA[doing]}と伝える`, targetId: x.id });
+      // (help offered: Rakko, the one who brings driftwood, to Dot at work on the hut with none in hand and none asked for)
+      if (r.id === 'rakko' && x.id === 'dot' && (!r.holding || r.holding === 'wood') && x.stats.built < HUT.length && !x.holding && fresh('offer:wood:dot', 40)
+        && !requests.some((q) => q.from === 'dot' && q.to === 'rakko' && (q.status === 'open' || q.status === 'accepted')))
+        out.push({ id: 'say:offer:wood:dot', action: 'say', label: 'ドットに「流木を運ぼうか」と申し出る', targetId: 'dot' });
+      // (something new on the beach it has seen, to one who has not seen it)
+      if (drift.kind >= 0 && !drift.by && agentOf(r)?.seen.has('drift') && !agentOf(x)?.seen.has('drift') && fresh(`found:drift:${x.id}`, 120))
+        out.push({ id: `say:found:drift:${x.id}`, action: 'say', label: `${x.v.name}に、浜に見慣れないものがあると知らせる`, targetId: x.id });
     }
     return out;
   }
@@ -1111,6 +1120,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (r.holding === 'wood') return { text: '流木を届ける', why: '持っている', plan: [has('post:') ?? 'give:dot'] };
       const tell = opts.find((o) => o.action === 'tell');
       if (tell && Math.random() < 0.3) return { text: 'ドットに流木の場所を教える', why: 'ドットが小屋の材料を探していた', plan: [tell.id] };
+      { const fd = has('say:found:'); if (fd) return { text: '見つけたものを知らせる', why: '浜に見慣れないものがある', plan: [fd] }; }
+      { const of = has('say:offer:'); if (of && Math.random() < 0.25) return { text: 'ドットに手伝いを申し出る', why: 'ドットが小屋の材料を探していた', plan: [of] }; }
       const q = Math.random(), c = near('collect');
       if (c && q < 0.55) return { text: '貝殻を集める', why: '役割：貝殻を集めて並べる', plan: [c, 'pile:beach'] };
       return q < 0.75 ? { text: '浮かんで休む', why: '急ぐことがない', plan: [has('float:') ?? 'wander:beach'] } : q < 0.9 ? { text: '毛づくろいする', why: '毛皮の手入れ', plan: [has('groom:') ?? 'wander:beach'] } : { text: '浜を歩く', why: '何かないか探す', plan: ['wander:beach'] };
@@ -1439,10 +1450,28 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       case 'say': {
         const o = byId[tk.data.to]; if (!o || o.talk) { tk.failed = 'unavailable'; break; }
-        const f: Frame = tk.data.kind === 'warn' ? { act: 'warn', what: tk.data.what } : { act: 'plan', doing: tk.data.what };
-        const c = exchange(r, o); utter(r, f, 0, c); utter(o, { act: 'noted' }, 2200, c);
-        (r.saidAt ??= {})[`${tk.data.kind}:${tk.data.what}:${o.id}`] = clockMs;
-        const what = tk.data.kind === 'warn' ? `「${WARN_JA[tk.data.what]}」と知らせた` : `これから${PLAN_JA[tk.data.what]}と伝えた`;
+        const kind = tk.data.kind, c = exchange(r, o);
+        (r.saidAt ??= {})[`${kind}:${tk.data.what}:${o.id}`] = clockMs;
+        let what: string;
+        if (kind === 'offer') {
+          // (Dot's answer, as things are: wood in hand, or the hut done — no need; else yes, and it is as if Dot had asked)
+          utter(r, { act: 'offer-help', to: 'dot', what: 'wood' }, 0, c);
+          const why = o.holding === 'wood' ? 'has-wood' : o.stats.built >= HUT.length ? 'hut-done' : '';
+          utter(o, why ? { act: 'decline-help', why } : { act: 'accept-help' }, 2200, c);
+          if (!why) {
+            const q: Request = { id: `req#${++reqN}`, from: o.id, to: r.id, what: 'bring-wood', at: clockMs, status: 'accepted', conv: c };
+            requests.push(q); if (requests.length > 30) requests.shift();
+            const a = agentOf(r); if (a) a.why = `申し出た：${o.v.name}に流木を届ける（${q.id}）`;
+          }
+          what = why ? '「流木を運ぼうか」と申し出たが、いらないと言われた' : '「流木を運ぼうか」と申し出て、頼まれた';
+        } else if (kind === 'found') {
+          utter(r, { act: 'found', what: 'drift' }, 0, c); utter(o, { act: 'noted' }, 2200, c);
+          if (drift.kind >= 0) agentOf(o)?.hear({ id: 'drift', kind: 'unknown', label: '浜に打ち上げられた見慣れないもの', x: drift.x, z: drift.z, dist: Math.hypot(drift.x - o.pos.x, drift.z - o.pos.z), at: clockMs }, r.id, `${r.v.name}によると、浜に見慣れないものがある`, clockMs);
+          what = '浜に見慣れないものがあると知らせた';
+        } else {
+          utter(r, kind === 'warn' ? { act: 'warn', what: tk.data.what } : { act: 'plan', doing: tk.data.what }, 0, c); utter(o, { act: 'noted' }, 2200, c);
+          what = kind === 'warn' ? `「${WARN_JA[tk.data.what]}」と知らせた` : `これから${PLAN_JA[tk.data.what]}と伝えた`;
+        }
         r.diary.push({ at: clockMs, text: `${o.v.name}に${what}`, key: 'mind' });
         res.onEvent('say', `${r.v.name}が${o.v.name}に${what}`, r);
         break;
@@ -1770,6 +1799,21 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // other gathers. Nothing is said for the saying of it. What one passes on, the other's mind keeps as heard.
   const WANTS: Record<string, string> = { dot: 'wood', rakko: 'shell' };
   const ITEM_JA: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
+  // What each did today, as the world counted it: the difference from its counts as the day began.
+  const isleCount = () => Object.keys(village.map.seen).length;
+  function dayStart(r: Resident) {
+    const day = dayOf(clockMs);
+    if (r.dayBase?.day !== day) r.dayBase = { day, built: r.stats.built, isles: r.id === 'dot' ? isleCount() : 0, shells: r.stats.shells, notes: r.stats.notes, cairns: r.stats.cairns };
+  }
+  function dayCounts(r: Resident): DayItem[] {
+    dayStart(r);
+    const b = r.dayBase!, out: DayItem[] = [];
+    const add = (what: DayItem['what'], n: number) => { if (n > 0) out.push({ what, n }); };
+    add('piece', r.stats.built - b.built); if (r.id === 'dot') add('island', isleCount() - b.isles);
+    add('shell', r.stats.shells - b.shells); add('note', r.stats.notes - b.notes); add('cairn', r.stats.cairns - b.cairns);
+    add('photo', photosOn(r, dayOf(clockMs)).length);
+    return out.slice(0, 2);
+  }
   function countsOf(r: Resident): Count[] {
     const s = r.stats;
     if (r.id === 'dot') return [{ what: 'hut', n: s.built, of: HUT.length }, { what: 'isle', n: Object.keys(village.map.seen).length }];
@@ -2023,7 +2067,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         ...(study ? { lanternStudy: study.serialize() } : {}),
         minds: Object.fromEntries(Object.entries(agents).map(([id, a]) => [id, a.save()])),
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), patches, beds, trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lab, lastFireAt, drift: drift.kind >= 0 ? drift : null,
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-800), holding: r.holding, photos: r.photos?.slice(-40) })),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-800), holding: r.holding, photos: r.photos?.slice(-40), dayBase: r.dayBase })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
@@ -2045,7 +2089,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     talks.push(...(s.talks || []));
     for (const d of s.list || []) {
       const r = byId[d.id]; if (!r) continue;
-      r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = r.sp.living ? 1 : d.battery; r.hunger = d.hunger ?? 0.4; r.sleepy = d.sleepy ?? 0.2; if (r.body && d.body) r.body = { ...r.body, ...d.body, learn: { ...r.body.learn, ...d.body.learn } }; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || [];
+      r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = r.sp.living ? 1 : d.battery; r.hunger = d.hunger ?? 0.4; r.sleepy = d.sleepy ?? 0.2; if (r.body && d.body) r.body = { ...r.body, ...d.body, learn: { ...r.body.learn, ...d.body.learn } }; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || []; r.dayBase = d.dayBase;
       r.holding = d.holding ?? (r.id === 'dot' && r.stats.wood > 0 ? 'wood' : '');
       if (Array.isArray(d.photos)) r.photos = d.photos;
     }
@@ -2151,7 +2195,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
     },
     observe: (r) => observe(r),
-    solids,
+    solids, drift,
     labCase(r) {
       // (the save as it stands: its length and a short hash, so two reports can tell whether they began from the same)
       let snap = 'none';
@@ -2222,6 +2266,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (asked while its body's needs come first — hungry, asleep — it does not leave the other waiting: a no, and why)
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
       if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
+      for (const r of list) dayStart(r);
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       for (let i = 0; i < utterQ.length; i++) {
         const u = utterQ[i]; if (u.at > clockMs) continue;
@@ -2405,10 +2450,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       return;
     }
-    fireUsed.add(who.id); fireLines++; lastSpeaker = who.id;
-    for (const r of seated) if (r !== who) r.saying = '';
+    // (one round the fire asks it what it did today — the one who spoke last, if not itself — and it answers from what
+    // the world counted of its day: the answer comes on the next turn)
+    fireUsed.add(who.id); fireLines++;
+    const asker = seated.find((r) => r.id === lastSpeaker && r !== who) ?? seated.find((r) => r !== who)!;
+    for (const r of seated) if (r !== asker) r.saying = '';
     if (!fireConv) fireConv = heading('焚き火の会');
-    { const m = SAY.report(countsOf(who)); say(who, m.ja, fireConv, fast, m.isl, m.en); }
+    { const m = phrase({ act: 'ask-day', to: who.id as Who }); say(asker, m.ja, fireConv, fast, m.isl, m.en); }
+    { const did = dayCounts(who), m = phrase({ act: 'tell-day', did }); fireQueue.push({ who: who.id, line: m.ja, isl: m.isl, en: m.en }); }
+    lastSpeaker = asker.id;
   }
   // Dot at work, the piece flying into place, the chips, a newly fitted piece settling
   let fieldT = 0;

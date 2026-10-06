@@ -6,6 +6,9 @@
 //    from it that what others tell it is of use
 //  D the same log: once one has it in hand (or on the way), the other is not offered it, and a plan naming it is not taken
 //  E what to say is its mind's to choose: what it is about to do, and the weather when there is some to tell
+//  F Rakko offers to bring Dot driftwood; Dot says yes — and it is as if Dot had asked: Rakko fetches and hands it over
+//  G something new on the beach, seen by Rakko, told to Dot, who knows it then as heard
+//  H round the evening fire, each is asked what it did today, and answers from what the world counted of its day
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/social-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -125,6 +128,41 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   await run(R, 1200, () => said('dot', /雨が降っている/));
   want('E in the rain, it is offered to warn, and does', said('dot', /今、雨が降っている/), R.talks.filter((e: any) => !e.head).slice(-3).map((e: any) => `${e.who}:${e.text}`).join(' / '));
   void dot; void rakko;
+}
+{ // F help offered
+  const { R, dot, rakko } = island(17);
+  wood(R, 61, -170);
+  R.setBrain(brains({
+    dot: (i) => i.now.holding === 'wood' ? { plan: ['craft:bench', 'place:hut'] } : { plan: ['look:shore'] },
+    rakko: (i) => opt(i, 'say:offer:') ? { plan: [opt(i, 'say:offer:')!] } : i.results.some((r) => r.optionId.startsWith('say:offer:') && r.outcome === 'done') ? (opt(i, 'give:') ? { plan: ['give:dot'] } : opt(i, 'gather:wood') ? { plan: [opt(i, 'gather:wood')!, 'give:dot'] } : { plan: ['wander:beach'] }) : { plan: ['wander:beach'] },
+  }));
+  await run(R, 1800, () => rakko.diary.some((e: any) => /手渡した/.test(e.text)));
+  const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+  want('F Rakko offers, Dot says yes', said('rakko', /流木を運ぼうか/) && said('dot', /手伝ってほしい/), R.talks.filter((e: any) => !e.head).slice(-4).map((e: any) => `${e.who}:${e.text}`).join(' / '));
+  want('F and Rakko brings it, as if asked', rakko.diary.some((e: any) => /申し出て、頼まれた/.test(e.text)) && rakko.diary.some((e: any) => /手渡した/.test(e.text)), R.mind(rakko).results.slice(-8).map((r: any) => `${r.optionId}:${r.outcome}`).join(' '));
+  void dot;
+}
+{ // G something new on the beach
+  const { R, dot, rakko } = island(19);
+  dot.pos.set(61, 2, -138);   // (out of sight of it: it lies beyond Rakko)
+  Object.assign(R.drift, { kind: 0, x: 61, z: -183, t: 0, by: '' });   // (some 45 m from Dot: further than it can see; 23 m in front of Rakko)
+  let seenOpts = '';
+  R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: (i) => { seenOpts = i.options.filter((o) => o.id.startsWith('say:')).map((o) => o.id).join(','); return opt(i, 'say:found:') ? { plan: [opt(i, 'say:found:')!] } : { plan: ['look:shore'] }; } }));
+  await run(R, 600, () => R.talks.some((e: any) => e.who === 'rakko' && /見慣れないもの/.test(e.text)));
+  await run(R, 10);
+  want('G Rakko tells Dot of it', R.talks.some((e: any) => e.who === 'rakko' && /浜に見慣れないものがある/.test(e.text)) && R.talks.some((e: any) => e.who === 'dot' && /わかった/.test(e.text)), `rakko sees it ${R.mind(rakko).seen.has('drift')}, dot ${R.mind(dot).seen.has('drift')}; offered ${seenOpts}`);
+  want('G and Dot knows of it, as heard', R.mind(dot).seen.has('drift') && R.mind(dot).knowledge.some((k: any) => k.source === 'heard' && /見慣れない/.test(k.text)));
+}
+{ // H round the fire
+  const { R, dot, rakko } = island(21);
+  R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
+  await run(R, 5);   // (the day's counts taken)
+  dot.stats.built += 2; rakko.stats.shells += 3;   // (what they did today)
+  now = Date.parse('2026-10-03T09:50:00Z');   // (evening on the island: the gathering at the fire)
+  const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+  await run(R, 1500, () => said('dot', /部材を2つ取りつけた/) && said('rakko', /貝殻を3つ集めた/));
+  want('H asked what it did today', R.talks.some((e: any) => /今日は何をした/.test(e.text)), R.talks.filter((e: any) => !e.head).slice(-4).map((e: any) => `${e.who}:${e.text}`).join(' / '));
+  want('H and each answers from its day', said('dot', /今日は部材を2つ取りつけた/) && said('rakko', /今日は貝殻を3つ集めた/));
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);

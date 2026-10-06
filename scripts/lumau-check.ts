@@ -61,11 +61,14 @@ want('6 at is ni', roman(SAY.found('ヤシの実').isl).includes('mau ni') && su
 const frames: Frame[] = [{ act: 'ask-bring', to: 'rakko', what: 'wood' }, { act: 'accept-bring', to: 'dot', what: 'wood' },
   ...(['hungry', 'sleepy', 'hands-full', 'not-seen', 'busy-shells'] as const).map((why) => ({ act: 'refuse', why }) as Frame),
   { act: 'hand-over', what: 'wood' }, { act: 'received', what: 'wood' }, { act: 'tell-where', what: 'wood', metres: 37 }, { act: 'tell-where', what: 'shell', metres: 5 }, { act: 'will-go' }, { act: 'noted' },
-  ...(['typhoon', 'rain', 'wind'] as const).map((what) => ({ act: 'warn', what }) as Frame), ...(['hut', 'map', 'wood', 'shells', 'eat', 'nap'] as const).map((doing) => ({ act: 'plan', doing }) as Frame)];
+  ...(['typhoon', 'rain', 'wind'] as const).map((what) => ({ act: 'warn', what }) as Frame), ...(['hut', 'map', 'wood', 'shells', 'eat', 'nap'] as const).map((doing) => ({ act: 'plan', doing }) as Frame),
+  { act: 'offer-help', to: 'dot', what: 'wood' }, { act: 'accept-help' }, { act: 'decline-help', why: 'has-wood' }, { act: 'decline-help', why: 'hut-done' }, { act: 'found', what: 'drift' },
+  { act: 'ask-day', to: 'rakko' }, { act: 'tell-day', did: [] }, { act: 'tell-day', did: [{ what: 'piece', n: 2 }, { what: 'island', n: 1 }] },
+  ...(['shell', 'note', 'cairn', 'photo'] as const).map((what) => ({ act: 'tell-day', did: [{ what, n: 3 }] }) as Frame)];
 const badF: string[] = [];
 for (const f of frames) { try { const m = phrase(f); if (!m.isl.length || !m.ja || !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en)) badF.push(f.act); } catch (e) { badF.push(`${f.act}: ${(e as Error).message}`); } }
 want('7 the meanings make sentences', badF.length === 0, badF.join(' / ') || `${frames.length} frames`);
-if (!badF.length) for (const f of frames.slice(0, 3)) { const m = phrase(f); console.log(`   ${roman(m.isl)}  ${m.ja}  ${m.en}`); }
+if (!badF.length) for (const f of [...frames.slice(0, 3), ...frames.slice(-8, -4)]) { const m = phrase(f); console.log(`   ${roman(m.isl)}  ${m.ja}  ${m.en}`); }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
 console.log('all ok');

@@ -983,7 +983,9 @@ centimetre センチメートル
 degree 度
 hpa ヘクトパスカル
 count_unit 個
-times 回`,
+times 回
+do する
+thing もの`,
   number: '',
 };
 

@@ -17,7 +17,25 @@ export type Frame =
   | { act: 'will-go' }                                          // okay, I'll go
   | { act: 'noted' }                                            // okay (heard it)
   | { act: 'warn'; what: 'typhoon' | 'rain' | 'wind' }          // the weather, told to one near
-  | { act: 'plan'; doing: 'hut' | 'map' | 'wood' | 'shells' | 'eat' | 'nap' };   // what it is about to do
+  | { act: 'plan'; doing: 'hut' | 'map' | 'wood' | 'shells' | 'eat' | 'nap' }    // what it is about to do
+  | { act: 'offer-help'; to: Who; what: 'wood' }                // shall I bring you …?
+  | { act: 'accept-help' }                                      // yes, please
+  | { act: 'decline-help'; why: 'has-wood' | 'hut-done' }       // no need, because …
+  | { act: 'found'; what: 'drift' }                             // there is something new on the beach
+  | { act: 'ask-day'; to: Who }                                 // what did you do today? (round the evening fire)
+  | { act: 'tell-day'; did: DayItem[] };                        // what it did today, as the world counted it
+
+/** One thing done today, counted by the world (residents.ts dayCounts): pieces fitted to the hut, islands put on the
+ *  map, shells gathered, notes written, cairns stacked, photographs taken. */
+export type DayItem = { what: 'piece' | 'island' | 'shell' | 'note' | 'cairn' | 'photo'; n: number };
+const DAY: Record<DayItem['what'], { ids: (n: number) => string[]; ja: (n: number) => string; en: (n: number) => string }> = {
+  piece: { ids: (n) => ['piece', `#${n}`, 'object', 'build', 'past'], ja: (n) => `部材を${n}つ取りつけた`, en: (n) => `fitted ${n === 1 ? 'a piece' : `${n} pieces`} to the hut` },
+  island: { ids: (n) => ['island', `#${n}`, 'object', 'found', 'past'], ja: (n) => `島を${n}つ見つけた`, en: (n) => `found ${n === 1 ? 'an island' : `${n} islands`}` },
+  shell: { ids: (n) => ['shell', `#${n}`, 'object', 'gather', 'past'], ja: (n) => `貝殻を${n}つ集めた`, en: (n) => `gathered ${n === 1 ? 'a shell' : `${n} shells`}` },
+  note: { ids: (n) => ['record_n', `#${n}`, 'object', 'write', 'past'], ja: (n) => `記録を${n}つ書いた`, en: (n) => `wrote ${n === 1 ? 'a note' : `${n} notes`}` },
+  cairn: { ids: (n) => ['cairn', `#${n}`, 'object', 'stack', 'past'], ja: (n) => `石積みを${n}つ積んだ`, en: (n) => `stacked ${n === 1 ? 'a cairn' : `${n} cairns`}` },
+  photo: { ids: (n) => ['picture', `#${n}`, 'object', 'photograph', 'past'], ja: (n) => `写真を${n}枚撮った`, en: (n) => `took ${n === 1 ? 'a photograph' : `${n} photographs`}` },
+};
 
 const NAME: Record<Who, { ja: string; en: string }> = { dot: { ja: 'ドット', en: 'Dot' }, rakko: { ja: 'ラッコ', en: 'Rakko' }, kame: { ja: 'カメマル', en: 'Kamemaru' }, lantern: { ja: 'ランタン', en: 'Lantern' } };
 const THING: Record<'wood' | 'shell', { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'a shell' } };
@@ -62,6 +80,22 @@ export function phrase(f: Frame): Said {
         case 'nap': return make(['me', 'topic', 'sea', 'at', 'sleep', 'future', '.'], '僕は海で眠る。', "I'll sleep on the sea.");
       }
       break;
+  }
+  switch (f.act) {
+    case 'offer-help': return make([f.to, ',', 'me', 'topic', f.what, 'object', 'you', 'to', 'carry', 'future', 'question', '.'], `${NAME[f.to].ja}、${THING[f.what].ja}を運ぼうか。`, `${NAME[f.to].en}, shall I bring you ${THING[f.what].en}?`);
+    case 'accept-help': return make(['agree', '.', 'help', 'please', '.'], 'うん。手伝ってほしい。', 'Yes, please help.');
+    case 'decline-help': return f.why === 'has-wood'
+      ? make(['not', '.', 'me', 'topic', 'wood', 'object', 'there', '.'], 'いいえ。流木はもう持っている。', 'No need. I have driftwood already.')
+      : make(['not', '.', 'hut', 'topic', 'build', 'past', '.'], 'いいえ。小屋はもうできた。', 'No need. The hut is built.');
+    case 'found': return make(['beach', 'at', 'new', 'thing', 'there', '.'], '浜に見慣れないものがある。', "There's something new on the beach.");
+    case 'ask-day': return make([f.to, ',', 'you', 'topic', 'today', 'what', 'object', 'do', 'past', 'question', '.'], `${NAME[f.to].ja}、今日は何をした？`, `${NAME[f.to].en}, what did you do today?`);
+    case 'tell-day': {
+      if (!f.did.length) return make(['me', 'topic', 'today', 'rest', 'past', '.'], '今日は休んだ。', 'I rested today.');
+      const [a, b] = f.did, ids = ['me', 'topic', 'today', ...DAY[a.what].ids(a.n), '.'];   // (the time after the topic, as 'now' is: grammar.ts)
+      let ja = `今日は${DAY[a.what].ja(a.n)}。`, en = `Today I ${DAY[a.what].en(a.n)}.`;
+      if (b) { ids.push('then', ',', ...DAY[b.what].ids(b.n), '.'); ja += `それから、${DAY[b.what].ja(b.n)}。`; en += ` And I ${DAY[b.what].en(b.n)}.`; }
+      return make(ids, ja, en);
+    }
   }
   throw new Error(`no phrase for ${JSON.stringify(f)}`);
 }
