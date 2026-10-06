@@ -165,6 +165,8 @@ const SPECS: Spec[] = [
 
 interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: number; arrived: boolean; wet?: boolean; then?: string; data?: any;
   opt?: string; failed?: Outcome; reported?: boolean; label?: string }   // (opt: the step of its own plan this is — ADR 0004 — and how it went)
+interface Hypo { at: number; by: string; mark: number; airs: number[]; alarm: null | { at: number; mark: number; air?: number; matched?: boolean }; storms: { at: number; end?: number; caught: boolean; settled: boolean }[];
+  hits: number; falses: number; misses: number; leads: number[]; status: 'testing' | 'held' | 'doubted'; heat: boolean }   // (Lantern's guess about its gauge and storms, and how the world has answered it)
 interface Line { who: string; text: string; isl?: Tok[]; en?: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number; shares: { from: Resident; to: Resident; ob: Observation }[] }
 export interface Mark { x: number; y: number; z: number; kind: string; label: string; sub?: string; hot?: boolean; color?: string }
@@ -380,7 +382,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number } };
+  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
@@ -407,6 +409,76 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.7, 8), bam); m.position.set(-0.16 + k * 0.16, 0.35, 0); catchG.add(m); }
     const f = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.35, 10, 1, true), leaf); f.rotation.x = Math.PI; f.position.set(0, 0.95, 0); catchG.add(f); }
   const showCatcher = () => { catchG.visible = !!village.catcher; };
+  // A flash of insight (ADR 0006, owner's decision ①): from what any engineer knows — the air's pressure falls before a
+  // storm — Lantern guesses that its gauge, a sealed bulb whose marks rise as the air outside thins, will rise past
+  // anything it has seen before a typhoon comes. The guess sets no value of the world's: the mark it watches for is the
+  // highest of its own first two island days and two more, and only the replayed record says whether a storm came. Each
+  // alarm is right (a storm is in, or comes within a day of the island's clock) or wrong; a storm with no alarm near it
+  // is missed. A wrong alarm on a hot day it notes, once (warmth swells the bulb too), and each wrong alarm raises the mark.
+  const HYPO_READS = 16, HYPO_DAY = islandWait(24 * 3.6e6);
+  const tally = (h: Hypo) => `当たり ${h.hits}・外れ ${h.falses}・見逃し ${h.misses}`;
+  function hypoNote(text: string, event = false) {
+    const r = byId.lantern; if (!r) return;
+    r.diary.push({ at: clockMs, text, key: 'study' }); if (r.diary.length > 800) r.diary.shift();
+    if (event) res.onEvent('science', `${r.v.name}：${text}`, r);
+  }
+  function hypoRead(at: number, mark: number) {
+    const h = village.hypo, marks = village.gaugeLog.filter((g) => g.mark !== undefined);
+    if (!h) {
+      if (marks.length < HYPO_READS) return;
+      const top = Math.max(...marks.map((g) => g.mark!));
+      village.hypo = { at, by: 'lantern', mark: top + 2, airs: marks.map((g) => islandWeather(g.at)?.air).filter((a): a is number => a !== undefined), alarm: null, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
+      hypoNote(`ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は${top}。目盛りが${top + 2}以上になったら、一日のうちに台風が来るのではないか。確かめていく`, true);
+      return;
+    }
+    if (h.alarm || mark < h.mark) return;
+    h.alarm = { at, mark, air: islandWeather(at)?.air };
+    const s = h.storms[h.storms.length - 1];
+    if (s && s.end === undefined) {   // (in a storm already: it rose with it)
+      h.alarm.matched = true;
+      if (!s.caught) { s.caught = true; h.leads.push(-Math.round((at - s.at) / 3.6e6 * ISLAND_RATE)); hypoNote(`台風の中で、気圧計が${mark}まで上がった`); }
+      return;
+    }
+    hypoNote(`気圧計が${mark}まで上がった。台風が来るかもしれない`, true);
+  }
+  // A storm runs from when it comes in to when it passes; one that comes back within a day of the island's clock is the
+  // same storm, its wind rising and falling. An alarm in the day before it or while it blows has caught it.
+  function hypoStorm(at: number) {
+    const h = village.hypo; if (!h) return;
+    const last = h.storms[h.storms.length - 1];
+    if (last && last.end !== undefined && at - last.end < HYPO_DAY) { last.end = undefined; return; }
+    const s = { at, caught: false, settled: false } as Hypo['storms'][number];
+    h.storms.push(s);
+    if (h.alarm && !h.alarm.matched && at - h.alarm.at <= HYPO_DAY) { s.caught = true; h.alarm.matched = true; h.leads.push(Math.round((at - h.alarm.at) / 3.6e6 * ISLAND_RATE)); }
+  }
+  function hypoStormEnd(at: number) { const s = village.hypo?.storms[village.hypo.storms.length - 1]; if (s && s.end === undefined) s.end = at; }
+  function hypoTick() {
+    const h = village.hypo; if (!h) return;
+    if (h.alarm && clockMs - h.alarm.at > HYPO_DAY) {
+      const a = h.alarm; h.alarm = null;
+      if (!a.matched) {
+        h.falses++; h.mark = Math.max(h.mark, a.mark + 2);
+        const usual = h.airs.length ? h.airs.reduce((n, x) => n + x, 0) / h.airs.length : undefined;
+        const hot = a.air !== undefined && usual !== undefined && a.air >= usual + 2;
+        hypoNote(`気圧計は${a.mark}まで上がったが、台風は来なかった（${tally(h)}）。次からは${h.mark}以上を待つ${hot && !h.heat ? '。あの時は暑かった。温まっても目盛りが上がるのかもしれない' : ''}`);
+        if (hot) h.heat = true;
+        hypoJudge();
+      }
+    }
+    for (const s of h.storms) if (!s.settled && s.end !== undefined && clockMs - s.end > HYPO_DAY) {
+      s.settled = true;
+      if (s.caught) { h.hits++; const lead = h.leads[h.leads.length - 1] ?? 0; hypoNote(lead > 0 ? `気圧計は台風の約${lead}時間前に上がっていた（${tally(h)}）` : `気圧計は台風が来てから上がった。前もってはわからなかった（${tally(h)}）`); }
+      else { h.misses++; hypoNote(`台風が来たのに、気圧計は${h.mark}まで上がらなかった（${tally(h)}）`); }
+      hypoJudge();
+    }
+  }
+  function hypoJudge() {
+    const h = village.hypo!, wrong = h.falses + h.misses;
+    const status = h.hits >= 2 && h.hits >= wrong ? 'held' : wrong >= 3 && h.hits * 2 < wrong ? 'doubted' : 'testing';
+    if (status === h.status) return;
+    h.status = status;
+    hypoNote(status === 'held' ? `気圧計の目盛りが上がると台風が来る、は確からしい（当たり ${h.hits}・外れ ${h.falses}・見逃し ${h.misses}）` : status === 'doubted' ? `気圧計で台風がわかる、は今のところ怪しい（当たり ${h.hits}・外れ ${h.falses}・見逃し ${h.misses}）` : `気圧計の考え、もう一度確かめ直す（当たり ${h.hits}・外れ ${h.falses}・見逃し ${h.misses}）`, true);
+  }
   // (as the science side asked, 2026-10-06: where the record has no rain figure nothing is added and the water held is
   // marked as of unknown history; what passes 20 L runs over and is lost; whole mg; the first half millimetre of each
   // shower only wets the leaves)
@@ -1294,6 +1366,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
   function tickLab() {
+    hypoTick();
     for (const x of [...village.labRuns]) {
       const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId), by = byId[x.by];
       if (!run || !e) { village.labRuns.splice(village.labRuns.indexOf(x), 1); continue; }
@@ -1309,6 +1382,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}` : o.text ? `${e.ja}：${o.text}` : '';
         if (!text) continue;
         (village.gaugeLog ??= []).push({ at: toReal(e.clock, o.at), processId: e.processId, ...(o.value !== undefined ? { mark: o.value } : { text: o.text }) }); if (village.gaugeLog.length > 400) village.gaugeLog.shift();
+        if (o.value !== undefined && by?.id === 'lantern') hypoRead(toReal(e.clock, o.at), o.value);
         if (by) { by.diary.push({ at: toReal(e.clock, o.at), text, key: 'study' }); if (by.diary.length > 800) by.diary.shift(); }
       }
       const ended = out.find((c) => c.ok && ['completed', 'stopped', 'failed'].includes(c.status!));
@@ -1327,7 +1401,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
     return {
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
-      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && shelfLots().length ? { store: storeNow() } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
+      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && shelfLots().length ? { store: storeNow() } : {}), ...(r.id === 'lantern' && village.hypo ? { guess: { 考え: `気圧計が${village.hypo.mark}以上なら一日のうちに台風`, 当たり: village.hypo.hits, 外れ: village.hypo.falses, 見逃し: village.hypo.misses, 判断: { testing: '確かめ中', held: '確からしい', doubted: '怪しい' }[village.hypo.status] } } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
       knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6),
     };
@@ -2187,7 +2261,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
@@ -2274,10 +2348,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const was = storm(); wxNow = w;
       const p = w ? `（気圧 ${Math.round(w.pressure)}hPa・最大瞬間風速 ${Math.round(w.gust)}m/s）` : '';
       if (!was && storm()) {   // a typhoon comes in: everyone records it; those with a mind have something to think about
-        stormSince = clockMs;
+        stormSince = clockMs; hypoStorm(clockMs);
         for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${p}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
         res.onEvent('weather', `台風が来た${p}`, list[0]);
       } else if (was && !storm()) {   // it has passed: the beds and the rocky bottom are torn up; the sea brings things up the beach
+        hypoStormEnd(clockMs);
         for (const b of beds) { regrowBed(b, clockMs); b.grass *= 0.35; }
         for (const pt of patches) { regrow(pt, clockMs); for (const k of Object.keys(pt.stock) as (keyof typeof pt.stock)[]) pt.stock[k] = Math.floor(pt.stock[k] / 2); }
         const hours = Math.max(1, Math.round((clockMs - stormSince) / 3.6e6));
