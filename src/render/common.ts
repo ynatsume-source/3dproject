@@ -46,6 +46,7 @@ export const U = {
   uBoil: { value: new THREE.Vector4(0, 0, 1, 0) },   // a bait ball churning the surface: x, z, radius, strength  // amplitude scale of the swell (m); significant wave height ≈ 2.4×   // direction of the last lightning strike, and its seed
   uCurrent: { value: new THREE.Vector2(0.9, 0.35) },
   uLodR: { value: 20 },          // detailed coral within this distance
+  uLowFx: { value: 0 },          // 1 on the lightest tier: one caustic net, one scale of reef rock, no corallite relief, triplanar from the main faces only
   uLodPos: { value: new THREE.Vector3() },   // measured from here: the drone itself, not the camera (which swings round it and bobs)
   uSandRot: { value: 0 },        // ripple crests run across the tidal current
   // the sea cave's light volume (see ocean/cave.ts); off in seas without one
@@ -81,7 +82,7 @@ uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; 
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud;
-uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR; uniform vec3 uLodPos;
+uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR; uniform vec3 uLodPos; uniform float uLowFx;
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
 ${CAVE_GLSL}
@@ -112,7 +113,9 @@ float caustic(vec2 uv, float t){
 // caustics are projected along the (refracted) sun direction and fade as the sun gets low
 float caus2(vec3 wp){
   vec2 xz = wp.xz - SUN.xz / max(SUN.y, 0.3) * wp.y;
-  return (caustic(xz * 0.075, uTime * 0.45) * 0.65 + caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45) * uSunI * 1.35 * smoothstep(0.5, 0.88, SUN.y) * caveLight(wp).x;   // (the dancing net of sunlight on the bottom: strong)
+  float c = caustic(xz * 0.075, uTime * 0.45) * 0.65;
+  if (uLowFx < 0.5) c += caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45; else c *= 1.5;   // (the lightest tier: the one net, as bright)
+  return c * uSunI * 1.35 * smoothstep(0.5, 0.88, SUN.y) * caveLight(wp).x;   // (the dancing net of sunlight on the bottom: strong)
 }
 float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), u.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x), u.y); }

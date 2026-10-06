@@ -266,21 +266,45 @@ export function buildOcean(loc) {
   }
   // (by an island, dry land is the aerial photograph, lit by the open air)
   const land = loc.land ? landOf(loc.id) : undefined;
-  const floor = new THREE.Mesh(floorGeo, mat(
+  // (by an island: a triangle wholly under the water is drawn as seabed alone, one wholly on dry land as land alone,
+  // and only those across the shore work out both and blend them — every pixel of the island no longer pays for the reef)
+  const floorMat = (defs: Record<string, number>) => mat(
     `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
     seabedSurface + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
+       #ifdef LAND_ONLY
+       vec3 col = vec3(0.0);
+       #else
        vec3 n;
        vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
        vec3 col = shade(alb, vWp, n, ${loc.habitat === 'kelp' ? '0.35' : '0.95'});
+       #endif
        #ifdef LAND
+       #ifdef LAND_ONLY
+       float dry = 1.0;
+       #else
        float dry = smoothstep(-0.1, 0.06, vWp.y);
+       #endif
        vec3 la = landAlbedo(vWp) * mix(1.0, vAO, 0.5);
        col = mix(col, fogIt(airLit(la, landNormal(vWp, normalize(vN)), vWp, 0.0), vWp), dry);
        #endif
        gl_FragColor = vec4(col, 1.0);
-     }`, { uniforms: { ...SURF_UNIFORMS, ...(land ? landUniforms(land) : {}) }, defines: land ? { LAND: 1 } : {} }));
+     }`, { uniforms: { ...SURF_UNIFORMS, ...(land ? landUniforms(land) : {}) }, defines: defs });
+  const shoreMat = floorMat(land ? { LAND: 1 } : {});
+  let floorMats: THREE.Material | THREE.Material[] = shoreMat;
+  if (land) {
+    const p = floorGeo.attributes.position, ix = floorGeo.index!, wet: number[] = [], dryT: number[] = [], both: number[] = [];
+    for (let t = 0; t < ix.count; t += 3) {
+      const a = ix.getX(t), b = ix.getX(t + 1), c = ix.getX(t + 2);
+      const lo = Math.min(p.getY(a), p.getY(b), p.getY(c)), hi = Math.max(p.getY(a), p.getY(b), p.getY(c));
+      (hi < -0.1 ? wet : lo > 0.06 ? dryT : both).push(a, b, c);
+    }
+    floorGeo.setIndex([...wet, ...dryT, ...both]);
+    floorGeo.addGroup(0, wet.length, 0); floorGeo.addGroup(wet.length, dryT.length, 1); floorGeo.addGroup(wet.length + dryT.length, both.length, 2);
+    floorMats = [floorMat({}), floorMat({ LAND: 1, LAND_ONLY: 1 }), shoreMat];
+  }
+  const floor = new THREE.Mesh(floorGeo, floorMats);
   if (!loc.pelagic) group.add(floor);   // the open ocean has no bottom within sight
   // an island larger than the modelled sea: the rest of it, and the lagoon round it, more coarsely
   if (land) {
@@ -298,7 +322,7 @@ export function buildOcean(loc) {
       if (!inside) keep.push(ix[t], ix[t + 1], ix[t + 2]);
     }
     g.setIndex(keep); g.computeVertexNormals();
-    const outer = new THREE.Mesh(g, floor.material); outer.frustumCulled = false;
+    const outer = new THREE.Mesh(g, shoreMat); outer.frustumCulled = false;
     group.add(outer);
   }
 

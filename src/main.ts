@@ -84,7 +84,8 @@ renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
 setRTSupport(renderer.extensions.has('EXT_color_buffer_half_float') || renderer.extensions.has('EXT_color_buffer_float'));
 
 const camera = new THREE.PerspectiveCamera(70, 1, 0.08, 460);
-setAnisotropy(Math.min(8, renderer.capabilities.getMaxAnisotropy()));
+const maxAniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+setAnisotropy(maxAniso);
 camera.rotation.order = 'YXZ';
 const CELL = 40;
 
@@ -2422,6 +2423,9 @@ function setQuality(t: Tier, auto = false) {
   document.body.classList.toggle('lowfx', t === 'low' || t === 'lite');   // (no frosted glass behind the panels: re-blurred every frame)
   post.setTier(T);
   setGlobeFine(TIER_ORDER.indexOf(t) >= TIER_ORDER.indexOf('medium'));
+  // the lightest tier's lighter shading (render/common.ts uLowFx) and texture filtering: what the eye least misses on a small slow GPU
+  U.uLowFx.value = t === 'low' ? 1 : 0;
+  setAnisotropy(t === 'low' ? Math.min(2, maxAniso) : maxAniso);
   applyTierToSea();
   resize();
 }
@@ -2873,7 +2877,7 @@ function setPip(on: boolean) {
 // time (to the tier's minScale), and goes back up when there is room again. A slow GPU is mostly slow at the pixels,
 // so this is the step that costs the look least. It works with a tier chosen by hand as well, and never while a
 // recording is under way (a recorder cannot follow a new size).
-let renderScale = 1, rsT0 = 0, rsN = 0, rsGood = 0;
+let renderScale = 1, rsT0 = 0, rsN = 0, rsGood = 0, rsResize = false;
 function adaptScale(now: number) {
   if (mode !== 'ocean' || busy || replay.on || document.visibilityState !== 'visible') { rsT0 = 0; return; }
   if (!rsT0) { rsT0 = now; rsN = 0; return; }
@@ -2885,7 +2889,7 @@ function adaptScale(now: number) {
   let next = renderScale;
   if (fps < 45) { next = Math.max(min, renderScale * (fps < 30 ? 0.85 : 0.92)); rsGood = 0; }
   else if (fps > 56 && renderScale < 1 && ++rsGood >= 3) { next = Math.min(1, renderScale + 0.05); rsGood = 0; }
-  if (Math.abs(next - renderScale) > 0.005) { renderScale = next; resize(); }
+  if (Math.abs(next - renderScale) > 0.005) { renderScale = next; rsResize = true; }   // (the new size is taken at the start of the next frame, just before it is drawn: a canvas resized after its frame shows black until the next)
 }
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -2929,6 +2933,7 @@ function frame(ts: number) {
 function frameBody(ts: number) {
   const dt = lastTs ? Math.min((ts - lastTs) / 1000, 0.05) : 0.016, now = performance.now();
   lastTs = ts;
+  if (rsResize) { rsResize = false; resize(); }
   if (gputest) return;   // (the GPU test draws only what it is testing)
   U.uTime.value += dt;
   clock.advance(dt);

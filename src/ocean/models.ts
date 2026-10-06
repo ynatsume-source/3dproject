@@ -514,7 +514,7 @@ export function coralMaterial(kind, lod = 0) {
          // branching and massive corals: raised polyp nubs; tables: a fine granular crust; leather coral: soft polyp fuzz
          float fade = 1.0 - smoothstep(2.5, 13.0, distance(vWp, uCamPos));
          float sc = KIND == 0 ? 70.0 : (KIND == 1 ? 95.0 : (KIND == 4 ? 110.0 : (vSeed >= 1.0 ? 120.0 : 0.0)));
-         if (sc > 0.0 && fade > 0.0) {
+         if (sc > 0.0 && fade > 0.0 && uLowFx < 0.5) {
            vec3 wv = pow(abs(normalize(vN)), vec3(4.0)); wv /= (wv.x + wv.y + wv.z);
            vec3 q = vWp * sc + vec3(vn2(vWp.xz * 9.0), vn2(vWp.zy * 9.0), 0.0) * 1.5;
            float h;

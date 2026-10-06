@@ -21,7 +21,14 @@ export const SURF_UNIFORMS = {
   tRockC: { value: tex(rockC) }, tRockN: { value: tex(rockN) },
   tRubC: { value: tex(rubC) }, tRubN: { value: tex(rubN) },
 };
-export function setAnisotropy(n: number) { for (const k in SURF_UNIFORMS) (SURF_UNIFORMS as any)[k].value.anisotropy = n; }
+export function setAnisotropy(n: number) {
+  for (const k in SURF_UNIFORMS) {
+    const t = (SURF_UNIFORMS as any)[k].value as THREE.Texture;
+    if (t.anisotropy === n) continue;
+    t.anisotropy = n;
+    if (t.image) t.needsUpdate = true;   // (three.js sets the filtering when it uploads)
+  }
+}
 
 export const SURFACE = /* glsl */ `
 uniform sampler2D tSandC; uniform sampler2D tSandN; uniform sampler2D tRockC; uniform sampler2D tRockN; uniform sampler2D tRubC; uniform sampler2D tRubN;
@@ -68,7 +75,7 @@ vec3 overgrow(vec3 base, vec3 p, vec3 n){
 // the seabed and reef rock at world point p with geometric normal n.
 // reef: 0 = open sand .. 1 = solid reef. Returns albedo (display space); writes the bumped normal.
 vec3 reefSurface(vec3 p, vec3 n, float reef, out vec3 nOut){
-  vec3 w = pow(abs(n), vec3(4.0)); w /= (w.x + w.y + w.z);
+  vec3 w = pow(abs(n), vec3(4.0)); w = max(w - step(0.5, uLowFx) * 0.12, 0.0); w /= (w.x + w.y + w.z);   // (the lightest tier: the faint projections dropped, the rest weighted up)
   vec3 px = dFdx(p), py = dFdy(p);
   float nz = vn2(p.xz * 0.3), nz2 = vn2(p.xz * 1.1 + 5.0);
   float rockM = smoothstep(0.32, 0.62, reef + (nz - 0.5) * 0.35 + (1.0 - n.y) * 0.45);
@@ -90,7 +97,7 @@ vec3 reefSurface(vec3 p, vec3 n, float reef, out vec3 nOut){
   if (rockM > 0.01) { vec3 c = vec3(0.0); triSample(tRockC, tRockN, p, px, py, w, 0.55, 1.2, c, dn, rockM);
     vec3 c2 = c, dn2 = vec3(0.0);
     #ifndef PROBE_NO_ROCK2
-    c2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, px * 0.23, py * 0.23, w, 0.55, 0.6, c2, dn2, rockM);   // a second, larger scale breaks the repeat
+    if (uLowFx < 0.5) { c2 = vec3(0.0); triSample(tRockC, tRockN, p * 0.23 + 7.0, px * 0.23, py * 0.23, w, 0.55, 0.6, c2, dn2, rockM); }   // a second, larger scale breaks the repeat (not on the lightest tier)
     #endif
     dn += dn2 * 0.6;
     col += overgrow(mix(c, c2, 0.35) * uRock * 2.3, p, n); }
