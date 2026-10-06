@@ -373,6 +373,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   let wxNow: IslandWeather | null = null, stormSince = 0;
   const storm = () => !!wxNow?.typhoon;
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0 && !storm();  // on the way / sitting round it (not in a typhoon: the custom waits)
+  // (and in the morning, at the same place, the fire out: the one up all night says what the night showed, each says
+  // what it will do — so the day's work is known before it begins; owner's wish, 2026-10-06)
+  const morningHours = (hr: number) => hr >= 6.8 && hr < 7.6 && !storm();
+  const meetHours = (hr: number) => gatherHours(hr) || morningHours(hr);
   let fireK = 0, fireTalkT = 5, lastSpeaker = '', fireSaid = false, fireConv = 0, fireLines = 0, lastFireAt = 0;
   const fireQueue: { who: string; line: string; isl?: Tok[]; en?: string }[] = [];
   const fireUsed = new Set<string>();
@@ -382,7 +386,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo };
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
@@ -1074,7 +1078,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // What it can say to someone near (ADR 0006, the island's language, step 3): a warning of the weather, what it is
   // about to do. Its mind (or its habits) picks one like any other doing; the words are made from the meaning.
   const WARN_JA: Record<string, string> = { typhoon: '台風が来ている', rain: '雨が降っている', wind: '風がとても強い' };
-  const PLAN_JA: Record<string, string> = { hut: '小屋を作る', map: '地図を作る', wood: '流木を集める', shells: '貝殻を集める', eat: '海で食べる', nap: '海で眠る' };
+  const PLAN_JA: Record<string, string> = { hut: '小屋を作る', map: '地図を作る', wood: '流木を集める', shells: '貝殻を集める', eat: '海で食べる', nap: '海で眠る', sleep: '眠る' };
   const warnNow = () => { const w = wxNow; return !w ? '' : w.typhoon ? 'typhoon' : w.rain > 1 ? 'rain' : (w.windMeasured ?? w.wind) >= 10 ? 'wind' : ''; };
   const doingNext = (r: Resident) => r.id === 'dot' ? (r.stats.built < HUT.length ? 'hut' : 'map') : r.id === 'rakko' ? (r.hunger > 0.4 ? 'eat' : r.sleepy > 0.55 ? 'nap' : 'shells') : '';
   function sayables(r: Resident): Option[] {
@@ -2112,13 +2116,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (r.talk) { if (r.talk.a === r) stepTalk(r.talk, dt, fast); placeY(r); return; }
     // the evening fire: everyone who is up comes and sits round it, and goes off again after
-    if (gatherHours(hr) && !sleepTime(r, hr) && r.task?.kind !== 'fire' && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
+    if (meetHours(hr) && !sleepTime(r, hr) && r.task?.kind !== 'fire' && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
       items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = '';
       const seat = seatAt(list.indexOf(r));
       r.task = task('fire', seat, 'sit', 1e9); r.blocked = 0;
     }
-    if (r.task?.kind === 'fire' && !gatherHours(hr)) {
-      if (atFire.has(r.id)) note(r, 'fire', {}, '焚き火の会に出た');
+    if (r.task?.kind === 'fire' && !meetHours(hr)) {
+      if (atFire.has(r.id)) note(r, 'fire', {}, hr < 12 ? '朝の集まりに出た' : '焚き火の会に出た');
       r.task = null; r.saying = '';
     }
     if (!r.task && r.resume) {
@@ -2261,7 +2265,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.mornings ??= 0; }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
@@ -2287,7 +2291,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return tk?.arrived ? labels[k] ?? '手帖を見返している' : '気になる場所へ歩いている';
     }
     const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
-    const going: Record<string, string> = { ask: `${byId[tk?.data?.to]?.v.name ?? '仲間'}のところへ頼みに行く`, give: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に流木を届けに行く`, tell: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に知らせに行く`, eat: '獲物をかかえて浮かんでいる', forage: '餌場へ泳いでいく', graze: '海草の原へ泳いでいく', bask: '甲羅干しの浜へ向かう', groom: '静かな水面へ', survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, review: '取りつけたところを見に、少し離れる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる', show: '見つけた貝殻を見せにいく' };
+    const going: Record<string, string> = { ask: `${byId[tk?.data?.to]?.v.name ?? '仲間'}のところへ頼みに行く`, give: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に流木を届けに行く`, tell: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に知らせに行く`, eat: '獲物をかかえて浮かんでいる', forage: '餌場へ泳いでいく', graze: '海草の原へ泳いでいく', bask: '甲羅干しの浜へ向かう', groom: '静かな水面へ', survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: circleMorning ? '朝の集まりへ向かっている' : '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, review: '取りつけたところを見に、少し離れる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる', show: '見つけた貝殻を見せにいく' };
     const prey = ({ urchin: 'ウニ', crab: 'カニ', clam: '貝' } as Record<string, string>)[tk?.data] ?? '';
     const k01 = tk ? tk.t / tk.dur : 0;
     const at: Record<string, string> = {
@@ -2303,7 +2307,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       shelter: '台風のあいだ、身を低くしてやりすごしている',
       chart: '浜から水平線を見渡し、見える島を地図に記している', lab: `${catalog.find((e) => e.processId === tk?.data?.processId)?.ja ?? '工程'}`, lash: '部材を筏に組んでいる',
       voyage: tk?.data?.started ? `筏で${village.map.seen[tk.data.isle]?.word ?? ''}へ渡っている（島にはいない）` : '筏で出る支度をしている',
-      survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
+      survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: circleMorning ? '朝の集まりで話している' : '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
     // (what it is doing now, from how its walk is going, not from what it means to do once there: held up on the
     // way, or still on its way, says so; only once there does it say it is doing it)
     if (tk && !tk.arrived && r.went === 'blocked' && r.blocked > 1.5) return '行く手がふさがっていて、回り道を探している';
@@ -2566,21 +2570,72 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Round the fire: the island's custom (not for warmth, not for company — it is what is done of an evening). Those
   // who are up sit round it, and each in turn reports: how far it has got, what it did, what it found; what one knows
   // that another gathers is passed on, as in any meeting. After a few evenings, a proposal to build a pier together.
+  let circleMorning = false;
+  // The morning: what the night showed (the gauge Lantern read while the others slept, and its guess about storms), and
+  // what each will do today, heard by all; one with the day's work in its hands and nothing to do it with is offered help.
+  const planOf = (r: Resident): 'hut' | 'map' | 'wood' | 'shells' | 'eat' | 'sleep' =>
+    r.id === 'lantern' ? 'sleep' : r.id === 'kame' ? 'eat' : r.id === 'rakko' ? (r.hunger > (r.body?.learn.eatAt ?? 0.5) ? 'eat' : 'shells')
+      : r.stats.built < HUT.length ? 'hut' : Object.keys(village.map.seen).length > Object.keys(village.map.reached).length ? 'map' : 'wood';
+  const morningPlans: Record<string, string> = {};
+  let nightTold = false;
+  function morningNight(seated: Resident[]) {
+    const ln = byId.lantern;
+    const night = village.gaugeLog.filter((g) => g.at > clockMs - 12 * 3.6e6), marks = night.filter((g) => g.mark !== undefined);
+    const alarm = !!village.hypo?.alarm && !village.hypo.alarm.matched;
+    const m = phrase({ act: 'tell-night', reads: marks.length, mark: marks[marks.length - 1]?.mark, alarm });
+    fireQueue.unshift({ who: 'lantern', line: m.ja, isl: m.isl, en: m.en });
+    for (const t of seated) if (t !== ln && marks.length) {
+      t.diary.push({ at: clockMs, text: `朝の集まりで、ランタンから夜の気圧計の話を聞いた（${marks.length}回読んで、目盛り${marks[marks.length - 1].mark}${alarm ? '。台風が来るかもしれない' : ''}）`, key: 'met', with: 'lantern' });
+      const a = agentOf(t);
+      if (a) { a.knowledge.push({ id: `k${a.knowledge.length + 1}:night`, text: `ランタンによると、夜に気圧計を${marks.length}回読んで目盛りは${marks[marks.length - 1].mark}${alarm ? '。台風が来るかもしれない' : ''}`, source: 'heard', at: clockMs }); if (alarm) a.why = 'ランタンが、台風が来るかもしれないと言った'; }
+    }
+  }
+  function morningAsk(who: Resident, seated: Resident[], fast: boolean) {
+    const asker = seated.find((r) => r.id === lastSpeaker && r !== who) ?? seated.find((r) => r !== who)!;
+    for (const r of seated) if (r !== asker) r.saying = '';
+    if (!fireConv) fireConv = heading('朝の集まり');
+    { const m = phrase({ act: 'ask-plan', to: who.id as Who }); say(asker, m.ja, fireConv, fast, m.isl, m.en); }
+    const doing = planOf(who); morningPlans[who.id] = doing;
+    { const m = phrase({ act: 'plan', doing }); fireQueue.push({ who: who.id, line: m.ja, isl: m.isl, en: m.en }); }
+    for (const t of seated) if (t !== who) t.diary.push({ at: clockMs, text: `朝の集まりで、${who.v.name}は今日${PLAN_JA[doing]}と言った`, key: 'met', with: who.id });
+    lastSpeaker = asker.id;
+    // (all have said: the hut wants wood and Dot has none — Rakko, if it is not hungry, offers to bring it)
+    if (seated.every((r) => fireUsed.has(r.id))) {
+      const dot = seated.find((r) => r.id === 'dot'), rk = seated.find((r) => r.id === 'rakko');
+      if (dot && rk && morningPlans.dot === 'hut' && !dot.holding && morningPlans.rakko !== 'eat'
+        && !requests.some((q) => q.from === 'dot' && q.to === 'rakko' && (q.status === 'open' || q.status === 'accepted'))) {
+        { const m = phrase({ act: 'offer-help', to: 'dot', what: 'wood' }); fireQueue.push({ who: 'rakko', line: m.ja, isl: m.isl, en: m.en }); }
+        { const m = phrase({ act: 'accept-help' }); fireQueue.push({ who: 'dot', line: m.ja, isl: m.isl, en: m.en }); }
+        fireQueue.push({ who: '', line: 'help' });
+      }
+    }
+  }
+  function morningHelp() {
+    const q: Request = { id: `req#${++reqN}`, from: 'dot', to: 'rakko', what: 'bring-wood', at: clockMs, status: 'accepted', conv: fireConv };
+    requests.push(q); if (requests.length > 30) requests.shift();
+    const a = agentOf(byId.rakko); if (a) a.why = `朝の集まりで申し出た：ドットに流木を届ける（${q.id}）`;
+    byId.rakko.diary.push({ at: clockMs, text: '朝の集まりで、ドットに流木を運ぶと申し出て、頼まれた', key: 'met', with: 'dot' });
+    byId.dot.diary.push({ at: clockMs, text: '朝の集まりで、ラッコが流木を運んでくれることになった', key: 'met', with: 'rakko' });
+    res.onEvent('fire', '朝の集まりで、ラッコがドットに流木を運ぶことになった', byId.rakko);
+  }
   function fireCircle(dt: number, fast: boolean) {
     const hr = localHour(clockMs);
     const seated = list.filter((r) => r.task?.kind === 'fire' && r.task.arrived);
-    if (!gatherHours(hr)) {
+    if (meetHours(hr)) circleMorning = morningHours(hr);   // (which of the two it is: they never overlap)
+    if (!meetHours(hr)) {
       if (atFire.size > 1) {   // the evening is over: those who were there have identified each other, at least
         const ids = [...atFire];
         for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const bd = bonds[pair(ids[i], ids[j])]; if (bd.stage < 1) bd.stage = 1; bd.last = clockMs; }
         const names = ids.map((id) => byId[id].v.name).join('・');
-        res.onEvent('fire', `${names}が焚き火の会に出た`, byId[ids[0]]);
-        village.fires++; lastFireAt = clockMs;
+        if (circleMorning) { res.onEvent('fire', `${names}が朝の集まりに出た`, byId[ids[0]]); village.mornings = (village.mornings ?? 0) + 1; }
+        else { res.onEvent('fire', `${names}が焚き火の会に出た`, byId[ids[0]]); village.fires++; lastFireAt = clockMs; }
       }
       fireQueue.length = 0;
       atFire.clear(); fireSaid = false; fireConv = 0; fireLines = 0; fireUsed.clear();
       return;
     }
+    if (seated.length >= 2 && !fireSaid && circleMorning) { fireSaid = true; res.onEvent('fire', '朝の集まりが始まった', seated[0]); for (const k of Object.keys(morningPlans)) delete morningPlans[k]; nightTold = false; }
+    if (circleMorning && fireSaid && !nightTold && seated.some((r) => r.id === 'lantern')) { nightTold = true; morningNight(seated); }   // (when it has come: it was up all night)
     if (seated.length >= 2 && !fireSaid) {
       fireSaid = true; res.onEvent('fire', '焚き火の会が始まった', seated[0]);
       const found = village.treasures.filter((t) => t.at > lastFireAt);
@@ -2597,9 +2652,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     while (fireQueue.length) {
       const q = fireQueue.shift()!;
       if (q.line === 'pier') { village.pier = 'plan'; drawPier(); res.onEvent('pier', '桟橋を共同で作ることが決まった。まずカメマルが位置を測る', seated[0]); continue; }
+      if (q.line === 'help') { morningHelp(); continue; }
       const w = byId[q.who]; if (!w || !seated.includes(w)) continue;
       for (const r of seated) if (r !== w) r.saying = '';
-      if (!fireConv) fireConv = heading('焚き火の会');
+      if (!fireConv) fireConv = heading(circleMorning ? '朝の集まり' : '焚き火の会');
       say(w, q.line, fireConv, fast, q.isl, q.en); lastSpeaker = w.id;
       return;
     }
@@ -2618,11 +2674,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return;
     }
     // (one round the fire asks it what it did today — the one who spoke last, if not itself — and it answers from what
-    // the world counted of its day: the answer comes on the next turn)
+    // the world counted of its day: the answer comes on the next turn; in the morning, what it will do)
     fireUsed.add(who.id); fireLines++;
+    if (circleMorning) { morningAsk(who, seated, fast); return; }
     const asker = seated.find((r) => r.id === lastSpeaker && r !== who) ?? seated.find((r) => r !== who)!;
     for (const r of seated) if (r !== asker) r.saying = '';
-    if (!fireConv) fireConv = heading('焚き火の会');
+    if (!fireConv) fireConv = heading(circleMorning ? '朝の集まり' : '焚き火の会');
     { const m = phrase({ act: 'ask-day', to: who.id as Who }); say(asker, m.ja, fireConv, fast, m.isl, m.en); }
     { const did = dayCounts(who), m = phrase({ act: 'tell-day', did }); fireQueue.push({ who: who.id, line: m.ja, isl: m.isl, en: m.en }); }
     lastSpeaker = asker.id;

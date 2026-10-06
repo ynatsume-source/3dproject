@@ -17,13 +17,15 @@ export type Frame =
   | { act: 'will-go' }                                          // okay, I'll go
   | { act: 'noted' }                                            // okay (heard it)
   | { act: 'warn'; what: 'typhoon' | 'rain' | 'wind' }          // the weather, told to one near
-  | { act: 'plan'; doing: 'hut' | 'map' | 'wood' | 'shells' | 'eat' | 'nap' }    // what it is about to do
+  | { act: 'plan'; doing: 'hut' | 'map' | 'wood' | 'shells' | 'eat' | 'nap' | 'sleep' }    // what it is about to do
   | { act: 'offer-help'; to: Who; what: 'wood' }                // shall I bring you …?
   | { act: 'accept-help' }                                      // yes, please
   | { act: 'decline-help'; why: 'has-wood' | 'hut-done' }       // no need, because …
   | { act: 'found'; what: 'drift' }                             // there is something new on the beach
   | { act: 'ask-day'; to: Who }                                 // what did you do today? (round the evening fire)
-  | { act: 'tell-day'; did: DayItem[] };                        // what it did today, as the world counted it
+  | { act: 'tell-day'; did: DayItem[] }                        // what it did today, as the world counted it
+  | { act: 'ask-plan'; to: Who }                                // what will you do today? (the morning gathering)
+  | { act: 'tell-night'; reads: number; mark?: number; alarm: boolean };   // the night's gauge, told in the morning                        // what it did today, as the world counted it
 
 /** One thing done today, counted by the world (residents.ts dayCounts): pieces fitted to the hut, islands put on the
  *  map, shells gathered, notes written, cairns stacked, photographs taken. */
@@ -80,6 +82,7 @@ export function phrase(f: Frame): Said {
         case 'shells': return make(['me', 'topic', 'shell', 'object', 'gather', 'future', '.'], '僕は貝殻を集める。', "I'll gather shells.");
         case 'eat': return make(['me', 'topic', 'sea', 'at', 'eat', 'future', '.'], '僕は海で食べる。', "I'll go and eat in the sea.");
         case 'nap': return make(['me', 'topic', 'sea', 'at', 'sleep', 'future', '.'], '僕は海で眠る。', "I'll sleep on the sea.");
+        case 'sleep': return make(['me', 'topic', 'sleep', 'future', '.'], '僕は眠る。', "I'll sleep.");
       }
       break;
   }
@@ -91,6 +94,15 @@ export function phrase(f: Frame): Said {
       : make(['not', '.', 'hut', 'topic', 'build', 'past', '.'], 'いいえ。小屋はもうできた。', 'No need. The hut is built.');
     case 'found': return make(['beach', 'at', 'new', 'thing', 'there', '.'], '浜に見慣れないものがある。', "There's something new on the beach.");
     case 'ask-day': return make([f.to, ',', 'you', 'topic', 'today', 'what', 'object', 'do', 'past', 'question', '.'], `${NAME[f.to].ja}、今日は何をした？`, `${NAME[f.to].en}, what did you do today?`);
+    case 'ask-plan': return make([f.to, ',', 'you', 'topic', 'today', 'what', 'object', 'do', 'future', 'question', '.'], `${NAME[f.to].ja}、今日は何をする？`, `${NAME[f.to].en}, what will you do today?`);
+    case 'tell-night': {
+      if (!f.reads) return make(['me', 'topic', 'night', 'rest', 'past', '.'], '夜は休んだ。', 'I rested in the night.');
+      const ids: Ids = ['me', 'topic', 'night', 'barometer', 'object', `#${f.reads}`, 'times', 'read', 'past', '.'];
+      let ja = `夜、気圧計を${f.reads}回読んだ。`, en = `In the night I read the barometer ${f.reads === 1 ? 'once' : `${f.reads} times`}.`;
+      if (f.mark !== undefined && f.mark >= 0) { ids.push('mark', 'topic', `#${f.mark}`, '.'); ja += `目盛りは${f.mark}。`; en += ` The mark is ${f.mark}.`; }
+      if (f.alarm) { ids.push('mark', 'topic', 'high', '.', 'typhoon', 'come', 'future', 'question', '.'); ja += '目盛りが高い。台風が来るかもしれない。'; en += ' The mark is high. A typhoon may come.'; }
+      return make(ids, ja, en);
+    }
     case 'tell-day': {
       if (!f.did.length) return make(['me', 'topic', 'today', 'rest', 'past', '.'], '今日は休んだ。', 'I rested today.');
       const w = (d: DayItem) => (d.what === 'met' ? d.with : undefined);

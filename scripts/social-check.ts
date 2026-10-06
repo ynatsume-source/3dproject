@@ -9,6 +9,8 @@
 //  F Rakko offers to bring Dot driftwood; Dot says yes — and it is as if Dot had asked: Rakko fetches and hands it over
 //  G something new on the beach, seen by Rakko, told to Dot, who knows it then as heard
 //  H round the evening fire, each is asked what it did today, and answers from what the world counted of its day
+//  I the morning gathering: Lantern says what the night's gauge showed (and that a storm may come, when its guess says
+//    so), all hear it; each says what it will do today; the hut wants wood and Dot has none, so Rakko offers to bring it
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/social-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -163,6 +165,25 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   await run(R, 1500, () => said('dot', /部材を2つ取りつけた/) && said('rakko', /貝殻を3つ集めた/));
   want('H asked what it did today', R.talks.some((e: any) => /今日は何をした/.test(e.text)), R.talks.filter((e: any) => !e.head).slice(-4).map((e: any) => `${e.who}:${e.text}`).join(' / '));
   want('H and each answers from its day', said('dot', /今日は部材を2つ取りつけた/) && said('rakko', /今日は貝殻を3つ集めた/));
+}
+{ // I the morning gathering
+  const { R, dot, rakko, rm } = island(23);
+  const lantern = R.list.find((r: any) => r.id === 'lantern'); lantern.pos.set(64, 2, -150); lantern.task = null; lantern.battery = 1;
+  rakko.pos.set(61, 2, -230);   // (apart until the gathering: nothing asked of each other before it)
+  R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
+  await run(R, 5);
+  now = Date.parse('2026-10-03T21:40:00Z');   // (06:40 on the island: the morning gathering is near)
+  R.village.gaugeLog.push({ at: now - 3 * 3.6e6, processId: 'test', mark: 6 }, { at: now - 3.6e6, processId: 'test', mark: 9 });
+  R.village.hypo = { at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
+  const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+  await run(R, 3600, () => R.village.mornings > 0);
+  const lines = R.talks.filter((e: any) => e.conv && R.talks.some((h: any) => h.head && h.conv === e.conv && /朝の集まり/.test(h.text)) && !e.head).map((e: any) => `${e.who}:${e.text}`);
+  console.log(lines.join('\n'));
+  want('I Lantern tells the night: the gauge, and that a storm may come', said('lantern', /夜、気圧計を2回読んだ。目盛りは9。目盛りが高い。台風が来るかもしれない/));
+  want('I and the others hear it, and have it to think about', [dot, rakko].every((r: any) => r.diary.some((e: any) => /ランタンから夜の気圧計の話を聞いた（2回読んで、目盛り9。台風が来るかもしれない）/.test(e.text))) && rm.knowledge.some((k: any) => k.source === 'heard' && /ランタンによると、夜に気圧計を2回読んで目盛りは9。台風が来るかもしれない/.test(k.text)));
+  want('I each is asked what it will do today, and says', said('dot', /^僕は小屋を作る/) && said('rakko', /^僕は貝殻を集める/) && said('lantern', /^僕は眠る/) && lines.some((l: string) => /今日は何をする/.test(l)));
+  want('I the hut wants wood: Rakko offers, Dot says yes, and it is taken on', said('rakko', /流木を運ぼうか/) && said('dot', /手伝ってほしい/) && rakko.diary.some((e: any) => /朝の集まりで、ドットに流木を運ぶと申し出て、頼まれた/.test(e.text)));
+  want('I it ends: counted as a morning, not an evening', R.village.mornings === 1 && R.village.fires === 0 && dot.diary.some((e: any) => /朝の集まりに出た/.test(e.text)), `mornings ${R.village.mornings}, fires ${R.village.fires}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);
