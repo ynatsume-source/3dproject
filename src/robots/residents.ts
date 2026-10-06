@@ -379,7 +379,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[] };
+  const village = { fires: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[] };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
@@ -810,7 +810,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!agentOf(r) && r.holding === 'drift') return task('shelve', (() => { const w = shelf.position; return [w.x + 0.6, w.z + 0.6] as [number, number]; })(), 'work', 4);
     // Lantern: a process it can run, with its material on the shelf — while it is awake (it works by its own light), hands
     // free (the world runs it)
-    if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed')) {
+    if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed' && !catalog.find((c) => c.processId === x.processId)?.gauge)) {   // (a gauge left reading does not keep it from other work)
       const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot?.lotId ?? '', more: e.more.map((l) => l.lotId) } });
     }
     // the pier, once they have agreed on it
@@ -1209,7 +1209,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** The processes that can run now: ready, with their material on the shelf and not in use. */
   function labReady() {
     const free = (id: string) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy);
-    return catalog.filter((e) => e.ready).flatMap((entry) => {
+    return catalog.filter((e) => e.ready && (e.env !== 'record' || islandWeather(clockMs))).flatMap((entry) => {   // (not before the island's record is in: a process given unknown weather would only fail)
       const lot = entry.input ? free(entry.input) : undefined, more = (entry.also ?? []).map((a) => free(a.input));
       return (entry.input && !lot) || more.some((m) => !m) || village.labRuns.some((x) => x.processId === entry.processId && !entry.input) ? [] : [{ entry, lot, more: more as LotView[] }];
     });
@@ -1244,8 +1244,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId), by = byId[x.by];
       if (!run || !e) { village.labRuns.splice(village.labRuns.indexOf(x), 1); continue; }
       const tending = by?.task?.kind === 'lab' && by.task.data?.runId === x.runId;
+      // (a gauge: read every so often from when it was set, up to now — an hour of its clock at a time, so the weather it is
+      // given follows the record)
+      const reads: { at: number; action: string }[] = [];
+      if (e.gauge) { const now = toClock(e.clock, clockMs); for (let k = Math.max(1, Math.ceil((run.lastTo - x.startOnClock) / e.gauge.everyMs)); x.startOnClock + k * e.gauge.everyMs <= now && reads.length < 40; k++) reads.push({ at: x.startOnClock + k * e.gauge.everyMs, action: e.gauge.action }); }
       const out = advance(lab, x.runId, e.step, { realNow: clockMs, environment: (at) => envFor(e, at), energy: e.tend === 'stay' && !tending ? undefined : e.energy,
-        actions: e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : [], ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+        actions: e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : reads, ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+      if (e.gauge) for (const c of out) for (const o of c.observations ?? []) {
+        // (what it read, as it read it: a count of marks on the stick, or what it saw instead)
+        const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}` : o.text ? `${e.ja}：${o.text}` : '';
+        if (!text) continue;
+        (village.gaugeLog ??= []).push({ at: toReal(e.clock, o.at), processId: e.processId, ...(o.value !== undefined ? { mark: o.value } : { text: o.text }) }); if (village.gaugeLog.length > 400) village.gaugeLog.shift();
+        if (by) { by.diary.push({ at: toReal(e.clock, o.at), text, key: 'study' }); if (by.diary.length > 800) by.diary.shift(); }
+      }
       const ended = out.find((c) => c.ok && ['completed', 'stopped', 'failed'].includes(c.status!));
       if (!ended) continue;
       village.labRuns.splice(village.labRuns.indexOf(x), 1); drawStore();

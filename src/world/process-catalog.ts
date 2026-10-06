@@ -31,6 +31,9 @@ export interface CatalogEntry {
   /** A process that ends when the operator does something (takes the tile off the rack): after how long, on its clock. */
   finish?: { action: string; afterMs: number };
   tend: 'stay' | 'leave';                       // hand work keeps Lantern at it; a process that only waits does not
+  /** A gauge: set once and left running; the operator reads it every so often (on its clock). It does not keep Lantern
+   *  from other work. */
+  gauge?: { action: string; everyMs: number };
   ready: boolean; waits?: string;               // not ready: what it waits for
 }
 /** What the materials are called in the record (the island's own words come later). */
@@ -75,8 +78,10 @@ export const CATALOG: CatalogEntry[] = [
   { processId: BAROMETER_PROCESS.processId, processVersion: BAROMETER_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '試験用の気圧計を置いて読む', input: '', inputJa: '',
     equipment: { kind: 'fixture_air_barometer', catalogEntry: 'fixture_air_barometer', catalogVersion: TEST, condition: 1, params: { bulbVolumeMl: 500, tubeBoreMm: 8, tubeLengthMm: 600, markMm: 5, bulbTauS: 900 }, ja: '試験用の気圧計' },
-    step: barometerStep, env: 'record', tend: 'leave',
-    ready: false, waits: '既製の試験用の設備で、島にはない。島で作る気圧計（器＋焼いた管＋水＋浮き）は別の工程になる' },
+    step: barometerStep, env: 'record', tend: 'leave', gauge: { action: 'read_gauge', everyMs: 3 * 3_600_000 },
+    // (owner's decision 2026-10-06: the typhoon forecast begins with this test gauge — it is Lantern's, on the island from
+    // the first; what its readings have to do with the storms is Lantern's to find out. The self-made one is a milestone.)
+    ready: true },
   // (integrated 2026-10-06: the science team's final review FINAL_REVIEW_2026-10-06.md — charcoal and wood tar, and the
   // sealed vessel; wood tar comes from the charcoal burn, so they came in together)
   { processId: CHARCOAL_PROCESS.processId, processVersion: CHARCOAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
