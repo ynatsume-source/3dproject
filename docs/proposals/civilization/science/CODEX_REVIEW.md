@@ -357,3 +357,8 @@ p16x 0.1.1・p17x 0.1.1、状態 `civ-sci.vessel-seal/2`・`civ-sci.vessel-leak/
 **Codex の診断を動かすための一時的な置き換え**（lab のファイルは変えていない）：submerge が拒否になったので、`retest`・`immersion`・`openImmersion` は生成物の代わりに status と理由を出すようにした。旧 `/1` 状態の復元（`oldState`）は、今は版の拒否になる（意図どおり）。
 
 **まだ扱わないもの**：封じた器を開ける工程（`airtight_known: 0` の器は棚に置いたまま）、気密を確かめ直す圧力の試験、ひびの幾何と滴る漏れ、蒸発で器が冷えること。
+
+
+## 355de03 の軽い再確認（Codex lab 3d18819）
+
+A1〜A6 は解消、C1・C2 も対応確認。追加の指摘なしで気密の器の保留解除。本体側の最終レビューへ（[FINAL_REVIEW_2026-10-06.md](FINAL_REVIEW_2026-10-06.md)、炭と一緒に）。9c3b611 の `potSherdsQuality` は今回も対象外。
