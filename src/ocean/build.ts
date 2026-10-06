@@ -356,8 +356,19 @@ export function buildOcean(loc) {
   // Staghorn thickets: on a sea that has them, patches of the shallow, gentle reef where branching Acropora
   // has grown into one tangled carpet (how much of the reef: loc.thicket). Where it is, h is the depth there.
   const TH = loc.thicket ?? 0;
-  const thicketK = (x: number, z: number, h: number) => TH <= 0 || (loc.f(x, z), false) ? 0   // (loc.f: TERR.reef for this spot)
-    : TH * smooth(0.5, 0.6, fbm(x * 0.021 + 7.3, z * 0.021 - 2.1, 3)) * smooth(-15, -7, h) * (1 - smooth(-1.4, -0.7, h)) * smooth(0.15, 0.45, TERR.reef) * (1 - smooth(0.45, 0.85, T.slope(x, z)));
+  // (the cheap factors first: most of the reef is not thicket, and there the reef cover and the slope — five more samples
+  // of the terrain — are not needed. The product is taken in the same order, so the value is the same to the last bit.)
+  const thicketK = (x: number, z: number, h: number) => {
+    if (TH <= 0) return 0;
+    const dA = smooth(-15, -7, h), dB = 1 - smooth(-1.4, -0.7, h);
+    if (dA === 0 || dB === 0) return 0;
+    const fb = smooth(0.5, 0.6, fbm(x * 0.021 + 7.3, z * 0.021 - 2.1, 3));
+    if (fb === 0) return 0;
+    loc.f(x, z);   // (TERR.reef for this spot)
+    const rf = smooth(0.15, 0.45, TERR.reef);
+    if (rf === 0) return 0;
+    return TH * fb * dA * dB * rf * (1 - smooth(0.45, 0.85, T.slope(x, z)));
+  };
   oc.thicketAt = (x: number, z: number) => thicketK(x, z, loc.f(x, z));   // (how much of a thicket is here: where a visit starts, src/ocean/start.ts)
   const thicketIn = (x0: number, z0: number, x1: number, z1: number, items: any, skip: ((x: number, z: number) => boolean) | null) => {
     const S = 0.9, pal = PALETTE.thicket;

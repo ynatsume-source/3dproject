@@ -47,16 +47,24 @@ export const TERR = { reef: 0 };
 
 function cellHash(i: number, j: number, s: number) { return hash(i * 1.37 + s * 17.1, j * 2.11 - s * 9.3); }
 
+// (each cell's draws are kept once worked out, per seed: the terrain is sampled millions of times while a sea is built,
+// and the same few thousand cells are asked for again and again — the values are the same, only not recomputed)
+const bommieMemo = new Map<number, Map<number, Float64Array>>();
+
 // Coral heads / pinnacles: flat-topped mounds scattered on a jittered grid. Returns [height, reefMask].
 export function bommieField(x: number, z: number, cell: number, prob: number, hMin: number, hMax: number,
   rMin: number, rMax: number, seed: number, edge = 0.55): [number, number] {
   const ci = Math.floor(x / cell), cj = Math.floor(z / cell);
   let h = 0, m = 0;
+  let memo = bommieMemo.get(seed); if (!memo) bommieMemo.set(seed, memo = new Map());
   for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
     const i = ci + di, j = cj + dj;
-    if (cellHash(i, j, seed) > prob) continue;
-    const cx = (i + 0.2 + 0.6 * cellHash(i, j, seed + 1)) * cell, cz = (j + 0.2 + 0.6 * cellHash(i, j, seed + 2)) * cell;
-    const r = rMin + (rMax - rMin) * cellHash(i, j, seed + 3), hh = hMin + (hMax - hMin) * cellHash(i, j, seed + 4);
+    const key = (i + 16384) * 32768 + (j + 16384);
+    let c = memo.get(key);
+    if (!c) { c = new Float64Array([cellHash(i, j, seed), cellHash(i, j, seed + 1), cellHash(i, j, seed + 2), cellHash(i, j, seed + 3), cellHash(i, j, seed + 4)]); memo.set(key, c); }
+    if (c[0] > prob) continue;
+    const cx = (i + 0.2 + 0.6 * c[1]) * cell, cz = (j + 0.2 + 0.6 * c[2]) * cell;
+    const r = rMin + (rMax - rMin) * c[3], hh = hMin + (hMax - hMin) * c[4];
     const dx = x - cx, dz = z - cz, dd = dx * dx + dz * dz, far = r * 1.05 * 1.08;
     if (dd > far * far) continue;   // (out of reach of this one: skip the trig)
     const ang = Math.atan2(dz, dx);
