@@ -1808,10 +1808,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function dayCounts(r: Resident): DayItem[] {
     dayStart(r);
     const b = r.dayBase!, out: DayItem[] = [];
-    const add = (what: DayItem['what'], n: number) => { if (n > 0) out.push({ what, n }); };
+    const add = (what: Exclude<DayItem['what'], 'met'>, n: number) => { if (n > 0) out.push({ what, n }); };
     add('piece', r.stats.built - b.built); if (r.id === 'dot') add('island', isleCount() - b.isles);
     add('shell', r.stats.shells - b.shells); add('note', r.stats.notes - b.notes); add('cairn', r.stats.cairns - b.cairns);
     add('photo', photosOn(r, dayOf(clockMs)).length);
+    // (meals and talks: from its diary, today's entries — a meal each time it came up from eating; whom it talked with,
+    // the one it talked with most)
+    const today = r.diary.filter((e) => dayOf(e.at) === b.day);
+    add('eat', today.filter((e) => e.key === 'eat' || e.key === 'graze').length);
+    { const n = new Map<string, number>(); for (const e of today) if (e.key === 'met' && e.with && byId[e.with]) n.set(e.with, (n.get(e.with) ?? 0) + 1);
+      const top = [...n.entries()].sort((x, y) => y[1] - x[1])[0]; if (top && out.length < 2) out.push({ what: 'met', n: top[1], with: top[0] as Who }); }
     return out.slice(0, 2);
   }
   function countsOf(r: Resident): Count[] {

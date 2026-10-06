@@ -27,14 +27,16 @@ export type Frame =
 
 /** One thing done today, counted by the world (residents.ts dayCounts): pieces fitted to the hut, islands put on the
  *  map, shells gathered, notes written, cairns stacked, photographs taken. */
-export type DayItem = { what: 'piece' | 'island' | 'shell' | 'note' | 'cairn' | 'photo'; n: number };
-const DAY: Record<DayItem['what'], { ids: (n: number) => string[]; ja: (n: number) => string; en: (n: number) => string }> = {
+export type DayItem = { what: 'piece' | 'island' | 'shell' | 'note' | 'cairn' | 'photo' | 'eat'; n: number } | { what: 'met'; n: number; with: Who };
+const DAY: Record<DayItem['what'], { ids: (n: number, w?: Who) => string[]; ja: (n: number, w?: Who) => string; en: (n: number, w?: Who) => string }> = {
   piece: { ids: (n) => ['piece', `#${n}`, 'object', 'build', 'past'], ja: (n) => `部材を${n}つ取りつけた`, en: (n) => `fitted ${n === 1 ? 'a piece' : `${n} pieces`} to the hut` },
   island: { ids: (n) => ['island', `#${n}`, 'object', 'found', 'past'], ja: (n) => `島を${n}つ見つけた`, en: (n) => `found ${n === 1 ? 'an island' : `${n} islands`}` },
   shell: { ids: (n) => ['shell', `#${n}`, 'object', 'gather', 'past'], ja: (n) => `貝殻を${n}つ集めた`, en: (n) => `gathered ${n === 1 ? 'a shell' : `${n} shells`}` },
   note: { ids: (n) => ['record_n', `#${n}`, 'object', 'write', 'past'], ja: (n) => `記録を${n}つ書いた`, en: (n) => `wrote ${n === 1 ? 'a note' : `${n} notes`}` },
   cairn: { ids: (n) => ['cairn', `#${n}`, 'object', 'stack', 'past'], ja: (n) => `石積みを${n}つ積んだ`, en: (n) => `stacked ${n === 1 ? 'a cairn' : `${n} cairns`}` },
   photo: { ids: (n) => ['picture', `#${n}`, 'object', 'photograph', 'past'], ja: (n) => `写真を${n}枚撮った`, en: (n) => `took ${n === 1 ? 'a photograph' : `${n} photographs`}` },
+  eat: { ids: (n) => ['sea', 'at', `#${n}`, 'times', 'eat', 'past'], ja: (n) => `海で${n}回食べた`, en: (n) => `ate in the sea ${n === 1 ? 'once' : `${n} times`}` },
+  met: { ids: (_n, w) => [w!, 'with', 'speak', 'past'], ja: (_n, w) => `${NAME[w!].ja}と話した`, en: (_n, w) => `talked with ${NAME[w!].en}` },
 };
 
 const NAME: Record<Who, { ja: string; en: string }> = { dot: { ja: 'ドット', en: 'Dot' }, rakko: { ja: 'ラッコ', en: 'Rakko' }, kame: { ja: 'カメマル', en: 'Kamemaru' }, lantern: { ja: 'ランタン', en: 'Lantern' } };
@@ -91,9 +93,10 @@ export function phrase(f: Frame): Said {
     case 'ask-day': return make([f.to, ',', 'you', 'topic', 'today', 'what', 'object', 'do', 'past', 'question', '.'], `${NAME[f.to].ja}、今日は何をした？`, `${NAME[f.to].en}, what did you do today?`);
     case 'tell-day': {
       if (!f.did.length) return make(['me', 'topic', 'today', 'rest', 'past', '.'], '今日は休んだ。', 'I rested today.');
-      const [a, b] = f.did, ids = ['me', 'topic', 'today', ...DAY[a.what].ids(a.n), '.'];   // (the time after the topic, as 'now' is: grammar.ts)
-      let ja = `今日は${DAY[a.what].ja(a.n)}。`, en = `Today I ${DAY[a.what].en(a.n)}.`;
-      if (b) { ids.push('then', ',', ...DAY[b.what].ids(b.n), '.'); ja += `それから、${DAY[b.what].ja(b.n)}。`; en += ` And I ${DAY[b.what].en(b.n)}.`; }
+      const w = (d: DayItem) => (d.what === 'met' ? d.with : undefined);
+      const [a, b] = f.did, ids = ['me', 'topic', 'today', ...DAY[a.what].ids(a.n, w(a)), '.'];   // (the time after the topic, as 'now' is: grammar.ts)
+      let ja = `今日は${DAY[a.what].ja(a.n, w(a))}。`, en = `Today I ${DAY[a.what].en(a.n, w(a))}.`;
+      if (b) { ids.push('then', ',', ...DAY[b.what].ids(b.n, w(b)), '.'); ja += `それから、${DAY[b.what].ja(b.n, w(b))}。`; en += ` And I ${DAY[b.what].en(b.n, w(b))}.`; }
       return make(ids, ja, en);
     }
   }
