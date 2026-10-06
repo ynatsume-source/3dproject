@@ -34,7 +34,9 @@ interface Group {
   goal?: { x: number; z: number };        // (a home patch further on: the group swims its patch there, at its own pace)   // (an anemone family left be, far off, and not drawn)
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
-  predT?: number;                         // (when a predator last frightened it, by its own clock: what it is shying from)
+  predT?: number;
+  m?: THREE.Vector3; spread?: number;    // (where its fish are, their middle, and how far they spread from it)
+  lead?: number; leadAt?: THREE.Vector3; // (the one of it that is filmed, when one is: see leadOf)                         // (when a predator last frightened it, by its own clock: what it is shying from)
   hunt: null | Hunt; cooldown: number;
   prey?: PreyGroup;
   ch?: Chase;                             // one of this group's fish is being chased
@@ -581,6 +583,15 @@ export function makeFishSystem(sp: Species, oc: any) {
         mesh.setMatrixAt(i, _mm);
         dirty = true;
       }
+      // where its fish actually are and how far they spread (the group's own point is the middle of its patch, which
+      // its fish swim round and off from: filmed and ringed there, the camera looked at empty water beside them)
+      if (alive && g.type !== 'anem') {
+        let mx = 0, my = 0, mz = 0, ss = 0;
+        for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) { mx += fp[i * 3]; my += fp[i * 3 + 1]; mz += fp[i * 3 + 2]; ss += fp[i * 3] ** 2 + fp[i * 3 + 1] ** 2 + fp[i * 3 + 2] ** 2; }
+        mx /= alive; my /= alive; mz /= alive;
+        if (!g.m) g.m = new THREE.Vector3(mx, my, mz); else g.m.set(mx, my, mz);
+        g.spread = Math.sqrt(Math.max(0, ss / alive - (mx * mx + my * my + mz * mz)));
+      }
       if (g.bodyCenter && alive) {
         g.bodyCenter.set(0, 0, 0);
         for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) {
@@ -627,6 +638,21 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (Math.abs(target - a) > 0.2) return target > a ? 'そろそろ動き出す' : 'そろそろ休む';
     return ({ plankton: 'プランクトンを食べている', algae: '藻をかじっている', invert: '餌を探している', fish: '巡回中', filter: 'プランクトンを濾して食べている' } as Record<string, string>)[sp.diet || 'plankton'];
   }
+  // One of a group to film and ring: the fish nearest its middle (or the one tapped), kept while it lives. A big reef
+  // fish's group grazes or hunts metres apart over its patch: no frame or ring holds them all, and what the caption
+  // tells of (its size, its age) is one fish's. Small fish in a school are filmed and ringed as the school.
+  function leadOf(g: Group, prefer = -1) {
+    if (prefer >= g.start && prefer < g.start + g.n && !dead[prefer]) g.lead = prefer;
+    if (g.lead == null || dead[g.lead] || g.lead < g.start || g.lead >= g.start + g.n) {
+      const m = g.m ?? g.c; let b = g.start, bd = Infinity;
+      for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) { const d = Math.hypot(fp[i * 3] - m.x, fp[i * 3 + 1] - m.y, fp[i * 3 + 2] - m.z); if (d < bd) { bd = d; b = i; } }
+      g.lead = b;
+    }
+    return g.lead;
+  }
+  const leadPos = (g: Group) => () => { const i = leadOf(g); return (g.leadAt ??= new THREE.Vector3()).set(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]); };
+  // how big what is filmed is: one fish, half its length; a group, how far its fish spread (and a fish's length)
+  const frameOf = (g: Group) => (g.n === 1 ? fs[g.start] * 0.64 : (g.spread ?? 1) + fs[g.start] * 0.5);
   // what this group is doing right now, from its own state (not the species': one school bolting is not all of
   // them, and a grazer is said to graze only while it is biting the reef)
   function groupStatus(g: Group): string {
@@ -664,9 +690,9 @@ export function makeFishSystem(sp: Species, oc: any) {
         out.push({ key: key + ':hunt', label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'hunt', prio: 4, size: 3, pos: () => g.c, status: () => (h.phase === 'burst' ? `${h.prey.label}を追いかけている` : h.phase === 'recover' ? `かわされて、次を狙っている` : `${h.prey.label}を狙っている`), live: () => g.hunt === h, target: () => (h.phase === 'burst' ? h.tp : h.prey), frameR: () => Math.max(0.4, fs[g.start] * 1.28) });
       } else if (g.type === 'roam' && sp.big) {
         const st = () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g));
-        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.c, status: st, live: () => g.placed });
+        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: giant ? 'giant' : 'big', prio: (giant ? 3.5 : 2.1) * (0.45 + 0.55 * g.act) + (g.cr && g.cr.mode !== 'out' ? 0.6 : 0), size, pos: () => g.m ?? g.c, frameR: () => frameOf(g), status: st, live: () => g.placed });
       } else if (g.type === 'reef' && sp.big && g.act > 0.5) {
-        out.push({ key, label: sp.ja, len: fs[g.start] * 1.28, adult: sp.size[1], kind: 'big', prio: 1.4, size: size * 3, pos: () => g.c, status: () => groupStatus(g), live: () => g.placed });
+        out.push({ key, label: sp.ja, len: fs[leadOf(g)] * 1.28, adult: sp.size[1], kind: 'big', prio: 1.4, size: size * 1.5, pos: leadPos(g), frameR: () => fs[leadOf(g)] * 0.64, status: () => groupStatus(g), live: () => g.placed });
       } else if (g.type === 'anem') {
         out.push({ key, label: sp.ja, kind: 'anemone', prio: 1.6, size: 0.5, pos: () => g.a!.pos, status: () => groupStatus(g), live: () => true });
       }
@@ -713,27 +739,30 @@ export function makeFishSystem(sp: Species, oc: any) {
   // is nearer; Infinity when it cannot be the one: off the tap, out of view, behind the reef).
   function tapAt(score: (x: number, y: number, z: number, r: number) => number): { s: Subject; sc: number } | null {
     if (kelpLife) return null;
-    let bg: Group | null = null, bgi = -1, bs = Infinity;
+    let bg: Group | null = null, bgi = -1, bs = Infinity, bi = -1;
     const step = Math.max(1, Math.floor(total / 400));
     groups.forEach((g, gi) => {
       if (!g.placed || g.away) return;
       for (let i = g.start; i < g.start + g.n; i += g.n > 40 ? step : 1) {
         if (dead[i]) continue;
         const sc = score(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2], fs[i] * 0.64);
-        if (sc < bs) { bs = sc; bg = g; bgi = gi; }
+        if (sc < bs) { bs = sc; bg = g; bgi = gi; bi = i; }
       }
     });
     if (!bg || !isFinite(bs)) return null;
     const g = bg as Group, gi = bgi, giant = sp.size[1] > 3;
-    const one = g.n === 1 && g.type !== 'anem', i0 = g.start, at = new THREE.Vector3();
-    const pos = g.type === 'anem' ? () => g.a!.pos : one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => g.bodyCenter || g.c;
+    // (a big fish: the one tapped; a small fish's school: the school)
+    if (sp.big && g.type !== 'anem') leadOf(g, bi);
+    const one = (g.n === 1 || sp.big) && g.type !== 'anem', i0 = sp.big ? leadOf(g) : g.start, at = new THREE.Vector3();
+    const pos = g.type === 'anem' ? () => g.a!.pos : sp.big ? leadPos(g) : one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => g.m ?? g.c;
     const st = () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g));
     const small = !sp.big && g.type !== 'anem';
     const s: Subject = {
-      key: `${sp.id}:${gi}`, label: g.n > 1 && g.type === 'reef' ? `${sp.ja}の群れ` : sp.ja,
+      key: `${sp.id}:${gi}`, label: g.n > 1 && g.type === 'reef' && !sp.big ? `${sp.ja}の群れ` : sp.ja,
       kind: g.type === 'anem' ? 'anemone' : small ? 'critter' : giant ? 'giant' : 'big', prio: 5,
       size: g.type === 'anem' ? 0.5 : small ? (g.n > 1 ? 1.2 : 0.6) : one ? sp.size[1] : Math.max(sp.size[1], 1.2),
       len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status: st, live: () => g.placed,
+      frameR: g.type === 'anem' ? undefined : sp.big ? () => fs[leadOf(g)] * 0.64 : () => frameOf(g),
     };
     if (small) s.reach = 30;
     return { s, sc: bs };
@@ -755,9 +784,11 @@ export function makeFishSystem(sp: Species, oc: any) {
     if (!best) return null;
     const g = best, p = g.type === 'anem' ? g.a!.pos : g.bodyCenter || g.c;
     // a lone fish: its own body (not the middle of its patch), and its own size
-    const one = g.n === 1 && g.type !== 'anem', at = new THREE.Vector3(), i0 = g.start;
-    const pos = one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : () => p;
-    return { key: `focus:${sp.id}`, label: sp.ja, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, status: () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g)), live: () => g.placed };
+    // (a big fish's group: one of it, as leadOf; a small fish's: the school)
+    const lead = sp.big && g.type !== 'anem' && g.n > 1, one = (g.n === 1 || lead) && g.type !== 'anem', at = new THREE.Vector3(), i0 = lead ? leadOf(g) : g.start;
+    const pos = lead ? leadPos(g) : one ? () => at.set(fp[i0 * 3], fp[i0 * 3 + 1], fp[i0 * 3 + 2]) : g.type === 'anem' ? () => p : () => g.m ?? p;
+    const label = g.n > 1 && g.type === 'reef' && !lead ? `${sp.ja}の群れ` : sp.ja;
+    return { key: `focus:${sp.id}`, label, kind: g.type === 'anem' ? 'anemone' : 'big', prio: 5, size: g.type === 'anem' ? 0.5 : lead ? sp.size[1] * 1.5 : Math.max(sp.size[1], g.n > 1 ? 1.2 : 0.4), len: one ? fs[i0] * 1.28 : undefined, adult: one ? sp.size[1] : undefined, pos, frameR: g.type === 'anem' ? undefined : one ? () => fs[lead ? leadOf(g) : i0] * 0.64 : () => frameOf(g), status: () => (g.cr && g.cr.mode !== 'out' ? (g.cr.mode === 'rest' ? '洞窟の底で休んでいる' : g.cr.mode === 'leave' ? '洞窟から出ていく' : '洞窟へ入っていく') : groupStatus(g)), live: () => g.placed };
   }
   return {
     sp, mesh, update, nearest, nearestPos, status, subjects, focus, tapAt,

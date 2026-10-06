@@ -39,7 +39,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   // fish i belongs to school i % S, so drawing the first N keeps every school proportionally filled
   let active = total;
   const leaders: Leader[] = [];
-  const acc = new Float64Array(S * 5), _cm = new THREE.Vector3();   // (per school: sums of where its fish are, for their middle and spread)
+  const acc = new Float64Array(S * 5);   // (per school: sums of where its fish are, for their middle and spread)
   for (let s = 0; s < S; s++) {
     const L: Leader = { c: new THREE.Vector3(), head: R() * 6.28, t: R() * 100, alt: rr((sp.alt || [4, 8])[0], (sp.alt || [4, 8])[1]), placed: false, fear: 0, prey: null as any };
     L.prey = {
@@ -233,7 +233,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     for (let q = 0; q < S; q++) {
       const o = q * 5, n = acc[o + 4], L = leaders[q]; if (!n) continue;
       const mx = acc[o] / n, my = acc[o + 1] / n, mz = acc[o + 2] / n;
-      if (!L.m) L.m = new THREE.Vector3(mx, my, mz); else if (L.m.distanceToSquared(_cm.set(mx, my, mz)) > 100) L.m.copy(_cm); else L.m.lerp(_cm, Math.min(1, dt * 3));   // (moved on somewhere else: there at once)
+      (L.m ??= new THREE.Vector3()).set(mx, my, mz);   // (as they are: the camera and the ring smooth their own way)
       L.spread = Math.sqrt(Math.max(0, acc[o + 3] / n - (mx * mx + my * my + mz * mz)));
     }
     for (let s = 0; s < S; s++) leaders[s].prey.alive = alive[s];

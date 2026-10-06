@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
   const SEA = process.env.SEA || 'miyako', SECS = +(process.env.SECS || 240), W = +(process.env.W || 390), H = +(process.env.H || 844);
   const RUNS = (process.env.RUNS || 'cruise,guide,tap,tapfish').split(',');
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, asked: 0, named: 0 };
+  const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, asked: 0, named: 0 };
   for (const run of RUNS) {
     const p = await (await b.newContext({ viewport: { width: W, height: H }, isMobile: W < H, hasTouch: W < H })).newPage();
     p.setDefaultTimeout(1200000); p.on('pageerror', (e) => console.log('ERR', e.message));
@@ -54,10 +54,40 @@ const { chromium } = require('playwright');
         }
         return false;
       };
+      // the ring: does it go round the subject's own fish (or its body), and is it about their size? The truth is read
+      // here from the fish themselves: the group of that kind whose fish's middle is nearest the subject, projected
+      window.__ringCheck = (c) => {
+        const rg = document.getElementById('capRing'); if (!rg || !rg.classList.contains('on') || rg.classList.contains('edge') || !c.pos) return null;
+        const mm = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(rg.style.transform), R = parseFloat(rg.style.getPropertyValue('--r'));
+        if (!mm || !R) return null;
+        const rx = +mm[1], ry = +mm[2], cam = s.camera, V = cam.position.constructor;
+        const parts = (c.key || '').split(':');
+        const f = s.cur.fish.find((q) => parts.includes(q.sp.id) || c.label === q.sp.ja || c.label === q.sp.ja + 'の群れ');
+        let pts = [];
+        if (f && f.dbg?.fp) {
+          const fp = f.dbg.fp, dead = f.dbg.dead, G = f.dbg.groups, Ls = f.dbg.leaders, n = f.dbg.total;
+          const sets = G ? G.filter((g) => g.placed && g.type !== 'anem').map((g) => { const a = []; for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) a.push(i); return a; })
+            : Ls ? Ls.map((L, si) => { const a = []; for (let i = si; i < n; i += Ls.length) if (!dead[i]) a.push(i); return a; }) : [];
+          let best = null, bd = 1e9;
+          for (const a of sets) { if (!a.length) continue; let x = 0, y = 0, z = 0; for (const i of a) { x += fp[i * 3]; y += fp[i * 3 + 1]; z += fp[i * 3 + 2]; } x /= a.length; y /= a.length; z /= a.length; const d = Math.hypot(x - c.pos.x, y - c.pos.y, z - c.pos.z); if (d < bd) { bd = d; best = a; } }
+          // (one fish — the subject is not "...の群れ": the fish of it at the subject's point; a school: its fish)
+          if (best && bd < 12 && !/の群れ$/.test(c.label) && f.sp.big) { let bi = -1, bb = 1e9; for (const a of sets) for (const i of a) { const d = Math.hypot(fp[i * 3] - c.pos.x, fp[i * 3 + 1] - c.pos.y, fp[i * 3 + 2] - c.pos.z); if (d < bb) { bb = d; bi = i; } } if (bi >= 0) pts.push(new V(fp[bi * 3], fp[bi * 3 + 1], fp[bi * 3 + 2])); }
+          else if (best && bd < 12) for (const i of best.slice(0, 200)) pts.push(new V(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]));
+        }
+        if (!pts.length) pts = [new V(c.pos.x, c.pos.y, c.pos.z)];
+        const sp = pts.map((v) => v.project(cam)).filter((v) => v.z < 1).map((v) => [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight]);
+        if (!sp.length) return null;
+        const inside = sp.filter(([x, y]) => Math.hypot(x - rx, y - ry) < R * 1.1).length / sp.length;
+        const mx = sp.reduce((a, p) => a + p[0], 0) / sp.length, my = sp.reduce((a, p) => a + p[1], 0) / sp.length;
+        let spread = Math.sqrt(sp.reduce((a, p) => a + (p[0] - mx) ** 2 + (p[1] - my) ** 2, 0) / sp.length);
+        // (one animal: how big it looks, half its length)
+        if (pts.length === 1) spread = c.size * 0.5 / Math.max(0.5, cam.position.distanceTo(new V(c.pos.x, c.pos.y, c.pos.z))) * innerHeight / (2 * Math.tan(cam.fov * Math.PI / 360));
+        return { miss: inside < 0.5, loose: R > 2.5 * spread + 45, off: Math.hypot(mx - rx, my - ry), R, spread };
+      };
       window.__mid = (c) => { if (!c.pos) return false; const v = new s.camera.position.constructor(c.pos.x, c.pos.y, c.pos.z).project(s.camera); return v.z < 1 && Math.abs(v.x) < 0.6 && Math.abs(v.y) < 0.6; };
       // one step of the sea, and how the caption stands
       window.__step = (n) => {
-        const out = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ex: [], ks: [] };
+        const out = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, rex: [], ex: [], ks: [] };
         for (let i = 0; i < n; i++) {
           s.advance(1, 0.1);
           const c = s.capState(); if (!c.on) continue;
@@ -67,11 +97,13 @@ const { chromium } = require('playwright');
           // it stays up so as not to be cut off mid-reading; or otherwise, which is what should not happen)
           if (!window.__seen(c)) if (c.head) out.head++; else if (c.upT < 4) out.hold++; else { out.unseen++; if (out.ex.length < 6 && i % 10 === 0) out.ex.push(`${c.label} [${c.k}] ${c.phase}${c.cruise ? ' cruise' : ''}  d ${c.pos ? Math.hypot(c.pos.x - s.camera.position.x, c.pos.y - s.camera.position.y, c.pos.z - s.camera.position.z).toFixed(0) : '-'} m`); }
           if (c.phase === 'observe' && !c.cruise) { out.obs++; if (!window.__mid(c)) out.off++; }
+          const rc = window.__ringCheck(c);
+          if (rc) { out.ringN++; if (rc.miss) out.ringMiss++; if (rc.loose) out.ringLoose++; if ((rc.miss || rc.loose) && out.rex.length < 4 && i % 10 === 0) out.rex.push(`${c.label} ${rc.miss ? 'miss' : 'loose'} (ring ${rc.R.toFixed(0)} px, fish ${rc.spread.toFixed(0)} px, ${rc.off.toFixed(0)} px off)`); }
         }
         return out;
       };
     });
-    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off']) total[k] += o[k]; const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 10).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
+    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose']) total[k] += o[k]; const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 10).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
     if (run === 'cruise') {
       for (let t = 0; t < SECS; t += 30) add(await p.evaluate((n) => window.__step(n), 300), `cruise ${t}-${t + 30} s`);
     } else if (run === 'guide') {
@@ -142,5 +174,5 @@ const { chromium } = require('playwright');
   await b.close();
   const q = (v) => (100 * v / Math.max(1, total.cap)).toFixed(1);
   const un = 100 * total.unseen / Math.max(1, total.cap), off = 100 * total.off / Math.max(1, total.obs), nm = 100 * total.named / Math.max(1, total.asked);
-  console.log(`caption up ${(total.cap / 10).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
+  console.log(`caption up ${(total.cap / 10).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 10).toFixed(0)} s (want under 2%)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
 })();

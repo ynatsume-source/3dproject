@@ -291,13 +291,16 @@ const _sv = new THREE.Vector3();
 // where the animal itself is (a leap's subject stands at the point where it will break the surface; the camera
 // films the animal, all the way up)
 const bodyAt = (sj: Subject) => sj.breach?.body ?? sj.pos();
+// how far its body (or its group's fish) reaches from that middle: the spread it says it has, else half its length
+// (the size it is filmed by is not it: a reef fish's group is filmed by three times a fish's size)
+const bodyR = (sj: Subject) => sj.frameR?.() ?? (sj.len ? sj.len * 0.55 : sj.size * 0.45);
 function seenNow(sj: Subject) {
   const P = bodyAt(sj); if (!P || !cur) return false;
   const o = camera.position, T = cur.T, d = Math.hypot(P.x - o.x, P.y - o.y, P.z - o.z);
   const px = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
   if (sj.size / Math.max(d, 0.5) * px < 10) return false;
   camera.updateMatrixWorld();
-  const r = Math.max(sj.frameR?.() ?? 0, sj.size * 0.35), see = sightRange(cur) * 0.7;
+  const r = bodyR(sj), see = sightRange(cur) * 0.7;
   const rx = Math.cos(drone.yaw), rz = -Math.sin(drone.yaw), inCave = o.y < T.top(o.x, o.z) - 0.2;   // (in the cave, its roof is overhead: only the frame counts)
   for (let k = 0; k < 5; k++) {
     const ax = k === 1 ? rx * r : k === 2 ? -rx * r : 0, az = k === 1 ? rz * r : k === 2 ? -rz * r : 0, ay = k === 3 ? r * 0.5 : k === 4 ? -r * 0.5 : 0;
@@ -402,7 +405,7 @@ function updateCapRing(dt: number) {
   if (behind) { sx = w - sx; sy = h - sy; }
   const d = Math.max(0.5, camera.position.distanceTo(_sv.set(p!.x, p!.y, p!.z)));
   const pxm = h / (2 * Math.tan(camera.fov * Math.PI / 360));
-  const r = Math.min(Math.min(w, h) * 0.32, Math.max(22, Math.max(sj!.frameR?.() ?? 0, sj!.size * 0.45) / d * pxm));
+  const r = Math.min(Math.min(w, h) * 0.42, Math.max(22, bodyR(sj!) * 1.15 / d * pxm + 6));   // (just round it: its own spread, a little room)
   const m = 30, off = behind || sx < m || sy < m || sx > w - m || sy > h - m;
   if (off && !capHead) { el.classList.remove('on'); ringX = -1; return; }   // (only on the way is it pointed to; once there, out of view means no ring)
   if (off) {
@@ -410,7 +413,7 @@ function updateCapRing(dt: number) {
     sx = cx + dx * k; sy = cy + dy * k;
     el.style.setProperty('--rot', `${Math.atan2(dy, dx) * 180 / Math.PI}deg`);
   }
-  const jump = ringX < 0 || el.classList.contains('edge') !== off, a = jump ? 1 : 1 - Math.exp(-dt * 10);
+  const jump = ringX < 0 || el.classList.contains('edge') !== off, a = jump ? 1 : 1 - Math.exp(-dt * 30);   // (just enough to take the shake out: never left behind as the camera swings round)
   ringX = jump ? sx : ringX + (sx - ringX) * a; ringY = jump ? sy : ringY + (sy - ringY) * a; ringR = jump ? r : ringR + (r - ringR) * a;
   el.classList.toggle('edge', off);
   el.style.transform = `translate(${ringX.toFixed(1)}px, ${ringY.toFixed(1)}px)`;
@@ -3285,7 +3288,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
