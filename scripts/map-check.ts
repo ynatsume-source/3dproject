@@ -3,7 +3,8 @@
 //    the map grown is its reward
 //  2 pieces lashed on the beach: a raft
 //  3 the crossing, as the world judges the day: too far for a raft, or a strong wind — not today; a calm morning to
-//    the near island — away from the island while it crosses, back with what is there, the map wider
+//    the near island — away from the island while it crosses, back with what is there, the map wider; with the
+//    bamboo home, Lantern sets up a rain catcher
 //  4 a typhoon while it is out: it turns back
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/map-check.ts
 import './node-land';
@@ -65,6 +66,9 @@ const V = R.village;
   want('3 on a calm morning it crosses — away from the island while it is out', away && !!V.map.reached[near.id]);
   want('3 what the raft brought home is on the shelf, as lots for Lantern\'s science', ['raw_clay', 'bamboo', 'reed'].every((m) => Object.values(R.lab.lots).some((l: any) => l.materialId === m && l.amount.unit === 'mg' && l.amount.value > 0 && l.location === 'shelf')), Object.values(R.lab.lots).map((l: any) => `${l.materialId} ${l.amount.value / 1e6}kg`).join(', '));
   want('3 back with what is there, and its map wider is its reward', dot.diary.some((e: any) => /にたどり着いて戻った。あったもの：竹.*持ち帰った：粘土 10kg/.test(e.text)) && (dm.values.m.get(`voyage:${near.id}`)?.sum ?? 0) > 1 && dot.model.root.visible, dot.diary.filter((e: any) => /筏で|たどり着いて/.test(e.text)).map((e: any) => e.text).join(' / '));
+  const lantern = R.list.find((r: any) => r.id === 'lantern');
+  await run(12 * 3600, () => !!V.catcher);
+  want('3 with the bamboo home, Lantern sets up a rain catcher by the shelf', !!V.catcher && lantern.diary.some((e: any) => /雨受けを作った/.test(e.text)) && Object.values(R.lab.lots).some((l: any) => l.materialId === 'bamboo' && l.amount.value === 4e6), lantern.diary.filter((e: any) => /雨受け/.test(e.text)).map((e: any) => e.text).join(' / ') || 'none');
 }
 { // 4
   const isle = ISLES.find((i: any) => i.id === 'east-flat')!;   // (too far today — so: as if it were near, to see a storm turn it back)
