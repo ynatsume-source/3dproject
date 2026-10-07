@@ -1,0 +1,42 @@
+{
+  "reviewDateJst": "2026-10-07",
+  "artifactScope": "Reviewer facts transcribed from retrieved source text, not raw publication bytes",
+  "calibrationEligible": false,
+  "id": "umd-firewood-moisture-fs1074-2018",
+  "title": "Measuring Wood Moisture & Drying Time for Hardwood Tree Species (FS-1074)",
+  "url": "https://extension.umd.edu/sites/extension.umd.edu/files/publications/MeasuringWoodMoisture_FS-1074.pdf",
+  "pages": [
+    2,
+    3,
+    4
+  ],
+  "method": {
+    "place": "Western Maryland, Piedmont and Blue Ridge",
+    "felling": "mid-April 2016",
+    "species": [
+      "black locust",
+      "hickory",
+      "black cherry",
+      "hackberry"
+    ],
+    "lengthInches": [
+      16,
+      18
+    ],
+    "preparation": "split, stacked on pallets, uncovered; shade until mid-morning",
+    "measurement": "A.W. Perkins meter; monthly for one year; 3 pieces/species/time; each split and measured near both ends and in middle",
+    "basis": "Report gives meter percentages, does not explicitly establish a wet-mass basis."
+  },
+  "results": {
+    "initialAveragePercent": [
+      25,
+      33
+    ],
+    "averagePercentAfter6_5Months": [
+      20,
+      26
+    ],
+    "hickoryAveragePercentAfterOneYear": 24
+  },
+  "limits": "Species and exposed interior matter. No matched island weather series, exact split thickness or oven-dry mass time series acquired."
+}

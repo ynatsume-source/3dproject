@@ -27,11 +27,13 @@ const SCHEMA = 'civ-sci.firewood-dry/1', EVAL = 'firewood-dry-eval/0.1.1';
 const STACK = 'firewood_stack';
 const STEP_MS = 30_000;
 
-/** The range the Hailwood–Horrobin fit covers (the Wood Handbook's table: −1.1..98.9 °C, 0..98 % RH). */
+/** Where the Hailwood–Horrobin form is used: the temperatures of the Wood Handbook's Table 4-2 (−1.1..98.9 °C). The table's
+ *  relative humidities are 5..95 %; above 98 % the form evaluated at h = 0.98 is held (maxH, this step's own assumption). */
 export const EMC_RANGE = { minC: -1.1, maxC: 98.9, maxH: 0.98 } as const;
 /** Equilibrium moisture content of wood (kg water / kg dry wood) at T °C and relative humidity h (0..1):
- *  Hailwood–Horrobin, USDA Wood Handbook (metric form). null outside the table's temperatures (not computed there);
- *  above 98 % the table's last row is used (an assumption beyond the source, Codex C1 on 29521cb). */
+ *  Hailwood–Horrobin, USDA Wood Handbook eq. 4-5 (metric form). null outside the table's temperatures (not computed
+ *  there). The table's humidities are 5..95 %; the form is also evaluated below 5 % and up to 98 %, and above 98 % it is
+ *  held at its value for h = 0.98: not a table value, an assumption of this step (Codex C1 on 29521cb / 511f647). */
 export function woodEmc(T: number, h: number): number | null {
   if (!(T >= EMC_RANGE.minC && T <= EMC_RANGE.maxC) || !(h >= 0 && h <= 1)) return null;
   const W = 349 + 1.29 * T + 0.0135 * T * T;

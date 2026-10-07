@@ -129,8 +129,8 @@ console.log('6. fixes from the review (Codex 29521cb A1, A2, C1)');
   ok(sum(noWind.last.released) === 0 && noWind.last.produced[0].quality!.history_complete === 0 && noWind.obs.length === 0, 'A2: the wind missing: not computed (history incomplete, nothing seen)');
   ok(sum(calm.last.released) > 0 && calm.last.produced[0].quality!.history_complete === 1 && sum(calm.last.released) < sum(stackFor(D, [WOOD()], []).last.released),
     'A2: an explicit calm (0 m/s) is computed, and dries more slowly than a breeze');
-  // C1: above 98 % the table's last row is used (stated as an assumption)
-  ok(woodEmc(25, 0.99) === woodEmc(25, 0.98) && woodEmc(25, 1) === woodEmc(25, 0.98), 'C1: above the table\'s 98 % the last row is used (an assumption, documented)');
+  // C1: above 98 % the form is held at h = 0.98 (this step's own assumption; the source table stops at 95 %)
+  ok(woodEmc(25, 0.99) === woodEmc(25, 0.98) && woodEmc(25, 1) === woodEmc(25, 0.98), 'C1: above 98 % RH the form evaluated at h = 0.98 is held (an assumption of this step, not a table value)');
 }
 
 console.log('5. requests that are refused');

@@ -372,3 +372,7 @@ A1〜A6 は解消、C1・C2 も対応確認。追加の指摘なしで気密の�
 ## 薪を乾かす 29521cb（Codex のレビュー、lab 未 push）
 
 A1（−60 °C・RH95% で EMC が負 → 水が負）、A2（風の欠測を無風として計算）、C1（RH99% の打ち切りは原典にない仮定）。p15x 0.1.1 で対応（[CODEX_REVIEW_REQUEST_firewood.md](CODEX_REVIEW_REQUEST_firewood.md) の追記）。HH 係数・表 361 点、雨の drawn、丸めない ppm、返却薪の吸水・乾燥 144 回の読み戻しは Codex が確認済み。共通の `wind10m()` が欠測を 0 にする件は、タイルの乾燥・粘土を浸す・器の漏れの試験にもあり、次のレビューに回す。
+
+## 511f647 の修正確認（Codex lab 162ee7c）
+
+A1・A2 は解消、追加の A/B なしで薪の保留解除。C1 の文言を訂正：原典の表（Table 4-2）は RH 5〜95%。98% 超は式を h = 0.98 で評価した値に固定する工程独自の仮定（表の値ではない）。Codex の資料4件（sources.proposed.json）を `data/science/sources.json` と `evidence/` に取り込んだ（SHA-256 一致）。本体の最終レビューへ：[FINAL_REVIEW_2026-10-07.md](FINAL_REVIEW_2026-10-07.md)。
