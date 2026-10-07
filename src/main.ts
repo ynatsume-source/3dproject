@@ -520,22 +520,29 @@ const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0, look: 0 }; 
 const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3();
 let yawRate = 0, interestW = 0;
 // Between one thing filmed and the next, the way leans toward life (owner, 2026-10-06: it drifted on over empty
-// water): once a second, the fish ahead within 35 m are counted in 8 m squares, and the fullest square (if it has a
-// good few) is where the cruise bends to — up to 18 m off its line, which goes on, so it never strays far.
-const life = { t: 0, ok: false, x: 0, z: 0, n: 0 };
-const _lifeBins = new Map<number, { n: number; x: number; z: number }>();
+// water) — and toward variety, not only numbers (owner, 2026-10-07: by numbers alone a jacks' tornado or a great
+// school would pull it in every time). Once a second, the fish ahead within 35 m are counted in 8 m squares, kind by
+// kind; a square is worth its number of kinds, plus a little for how many there are (log₂: 8 fish of one kind ≈ one
+// more kind, 1000 of it ≈ ten). The best square with at least two kinds or a good few fish is where the cruise bends
+// to — up to 18 m off its line, which goes on, so it never strays far.
+const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0 };
+const _lifeBins = new Map<number, { n: number; x: number; z: number; kinds: Set<string> }>();
 function findLife() {
   _lifeBins.clear(); life.ok = false;
   const o = drone.pos, fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
-  const add = (x: number, _y: number, z: number) => {
+  for (const f of (cur?.fish ?? []) as any[]) f.each?.((x: number, _y: number, z: number) => {
     const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz); if (d > 35 || d < 3 || (dx * fx + dz * fz) / d < -0.1) return;
-    const k = Math.floor(x / 8) * 4096 + Math.floor(z / 8), b = _lifeBins.get(k) ?? { n: 0, x: 0, z: 0 };
-    b.n++; b.x += x; b.z += z; _lifeBins.set(k, b);
-  };
-  for (const f of (cur?.fish ?? []) as any[]) f.each?.(add, 300);
-  let best: { n: number; x: number; z: number } | null = null;
-  for (const b of _lifeBins.values()) if (!best || b.n > best.n) best = b;
-  if (best && best.n >= 6) { life.ok = true; life.n = best.n; life.x = best.x / best.n; life.z = best.z / best.n; }
+    const k = Math.floor(x / 8) * 4096 + Math.floor(z / 8);
+    let b = _lifeBins.get(k); if (!b) { b = { n: 0, x: 0, z: 0, kinds: new Set() }; _lifeBins.set(k, b); }
+    b.n++; b.x += x; b.z += z; b.kinds.add(f.sp.id);
+  }, 300);
+  let best: { n: number; x: number; z: number; kinds: Set<string> } | null = null, bs = 0;
+  for (const b of _lifeBins.values()) {
+    if (b.kinds.size < 2 && b.n < 6) continue;
+    const sc = b.kinds.size + 0.33 * Math.log2(1 + b.n);
+    if (sc > bs) { bs = sc; best = b; }
+  }
+  if (best) { life.ok = true; life.kinds = best.kinds.size; life.x = best.x / best.n; life.z = best.z / best.n; }
 }
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
   let best = Infinity;
