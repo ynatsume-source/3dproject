@@ -1,5 +1,7 @@
 # 気密の器 355de03：修正の軽い再確認
 
+追記：本確認で対象外だった破片9c3b611は、[別途の確認](CODEX_SHERDS_REVIEW_9c3b611.md) を完了。以下は355de03の確認時点の記録。
+
 2026-10-06 JST。対象は科学側 `355de03bf7813b3315c9bd8a91b4209857246456`。
 オーナーの依頼・REVIEW_POLICYに従い、[e6668fbのA1〜A5・C1](CODEX_VESSEL_REVIEW_e6668fb.md) と
 [ce0cfc1のA6・C2](CODEX_VESSEL_ASSEMBLY_REVIEW_ce0cfc1.md)、修正で影響する再使用・観察・状態の版を確認した。
