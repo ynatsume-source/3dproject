@@ -46,6 +46,8 @@ function at(G: Grid, a: ArrayLike<number>, x: number, z: number) {
   return (a[k] * (1 - u) + a[k + 1] * u) * (1 - v) + (a[k + N] * (1 - u) + a[k + N + 1] * u) * v;
 }
 
+// let a sea's land go (its sea has been let go: src/main.ts, KEEP_SEAS) — loaded again if it is visited again
+export function forgetLand(id: string) { delete lands[id]; }
 export async function loadLand(id: string, half: number, farHalf: number): Promise<Land> {
   if (lands[id]) return lands[id];
   const base = `${import.meta.env?.BASE_URL ?? '/'}land/${id}`;

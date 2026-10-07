@@ -36,7 +36,7 @@ import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
 import { islandDate, islandWait, islandWeather, loadIslandWeather, type IslandWeather } from './world/island-time';
 import { Post, setRTSupport } from './render/post';
-import { loadLand } from './ocean/land';
+import { loadLand, forgetLand } from './ocean/land';
 import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
@@ -1447,6 +1447,9 @@ function seaLog(kind: string, text: string, at?: Where) {
   const ref = at?.() ?? null;
   if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) return;
   recent.set(text, now); lastKind.set(kind, now);
+  // (what was told over 90 s ago no longer matters: let it go — the residents' lines are each new, and an evening on
+  // the island would otherwise keep every one)
+  if (recent.size > 200) for (const [k, v] of recent) if (v < now - 90000) recent.delete(k);
   if (kind === 'phase') logQueue.unshift({ text }); else { logQueue.push({ text, at, kind, ref, t: now }); if (logQueue.length > 6) logQueue.shift(); }
 }
 function pumpLog(now: number) {
@@ -2353,6 +2356,37 @@ async function prepareShaders(oc: Ocean) {
 interface BuildJob { loc: Sea; gen: Generator<string, Ocean, unknown> | null; own: (() => number) | null; stage: string; done: Ocean | null; failed: boolean }
 let job: BuildJob | null = null, aheadId: string | null = null, aheadTimer = 0, globeHidden = 0, aheadLast = 0, aheadGap = 16, aheadBudget = 10, globeGap = 16, globeLast = 0;   // (globeGap: how often the globe's frames come with nothing being built)   // (globeHidden: from then on the veil covers the globe, which is not drawn — the time goes to the sea)
 const visited = new Set<string>(), prepared = new Set<string>();
+// Seas kept built: the one here and the KEEP_SEAS last visited before it (a visit back to one of them is at once); an
+// older one is let go — taken out of the scene and its geometries, materials and textures freed (those the sea here
+// also uses are left) — and built again if it is visited again. (Each holds its seabed, its fish and corals, its
+// textures: some 18 MB of the page's memory and more on the GPU; nine kept would be most of a phone's.) A sea with
+// residents is never let go: their day is in it.
+const KEEP_SEAS = 2;
+const lastIn = new Map<string, number>();
+function freeOcean(oc: any) {
+  const keep = new Set<string>();
+  const note = (o: any) => { if (o.geometry) keep.add(o.geometry.uuid); for (const m of [].concat(o.material || [])) { keep.add((m as any).uuid); for (const t of texturesOf(m)) keep.add(t.uuid); } };
+  for (const c of oceanScene.children) if (c !== oc.group) c.traverse(note);
+  if (cur && cur !== oc) { for (const t of [cur.grassTex, cur.cave?.tex]) if (t) keep.add(t.uuid); }
+  const done = new Set<string>(), free = (x: any) => { if (x && !keep.has(x.uuid) && !done.has(x.uuid)) { done.add(x.uuid); x.dispose(); } };
+  oc.group.traverse((o: any) => { free(o.geometry); for (const m of [].concat(o.material || [])) { for (const t of texturesOf(m)) free(t); free(m); } });
+  free(oc.grassTex); free(oc.cave?.tex);
+  oceanScene.remove(oc.group);
+}
+function texturesOf(m: any) {
+  const out: THREE.Texture[] = [];
+  for (const k in m) { const v = m[k]; if (v && v.isTexture) out.push(v); }
+  if (m.uniforms) for (const k in m.uniforms) { const v = m.uniforms[k]?.value; if (v && v.isTexture) out.push(v); }
+  return out;
+}
+function letGo(id: string) {
+  const oc = oceans[id]; if (!oc || oc === cur || (oc as any).residents) return;
+  freeOcean(oc); delete oceans[id]; prepared.delete(id); forgetLand(id); lastIn.delete(id);
+}
+function keepFew() {
+  const old = [...lastIn].filter(([id]) => id !== cur?.loc.id && oceans[id] && !(oceans[id] as any).residents).sort((a, b) => b[1] - a[1]);
+  for (const [id] of old.slice(KEEP_SEAS)) letGo(id);
+}
 const STAGE_JA: Record<string, string> = { seabed: '海底', corals: 'サンゴ', rocks: '岩', life: '生きもの' };
 function startJob(loc: Sea): BuildJob {
   if (job && job.loc === loc) return job;
@@ -2384,7 +2418,7 @@ function aheadStep() {
   aheadBudget = aheadGap > target ? Math.max(3, aheadBudget * 0.85) : aheadGap < target - 4 ? Math.min(40, aheadBudget + 1) : aheadBudget;
   if (!stepJob(job, aheadBudget)) return;
   const id = job.loc.id, oc = job.done!;
-  if (aheadId && aheadId !== id && !visited.has(aheadId)) { delete oceans[aheadId]; prepared.delete(aheadId); }   // (only one kept that has not been visited)
+  if (aheadId && aheadId !== id && !visited.has(aheadId)) letGo(aheadId);   // (only one kept that has not been visited: the other let go, freed)
   oceans[id] = oc; aheadId = id; job = null;
   // and its shaders, where the browser compiles them on threads of its own (otherwise when it is chosen, behind the veil)
   if (renderer.extensions.get('KHR_parallel_shader_compile') && !diagLog && SAFE === 0) void prepareShaders(oc).then(() => { if (oceans[id] === oc) prepared.add(id); });
@@ -2450,6 +2484,7 @@ async function dive(loc: Sea) {
   veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
   await wait(600);
   enterOcean(oceans[loc.id]);
+  lastIn.set(loc.id, performance.now()); keepFew();
   track('dive', { sea: loc.id });
   await nextFrame();
   veil(false); setHot(-1);
@@ -3681,7 +3716,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { gpu: () => ({ ...renderer.info.memory, programs: renderer.info.programs?.length ?? 0, seas: Object.keys(oceans) }), openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

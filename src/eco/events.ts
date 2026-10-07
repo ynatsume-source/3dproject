@@ -301,7 +301,7 @@ const KINDS: Kind[] = [
         bodies: (cb) => { let stop = false; for (const q of [sys, scout]) if (q && !stop) q.each?.((x: number, y2: number, z: number, len: number) => { if (cb(x, y2, z, len) === true) { stop = true; return true; } }, 80); },
         status: () => 'ハンマーの頭を並べて、群れが通り過ぎていく',
         gone: (c, gx, gz) => { let all = true; for (const q of [sys, scout]) q?.each?.((x: number, y2: number, z: number) => { if (!unseen(oc, x, y2, z, c, gx, gz, 2)) { all = false; return true; } }, 400); return all; },   // (every one of them out of sight)
-        dispose() { oc.group.remove(sys.mesh); sys.mesh.geometry.dispose(); if (scout) { oc.group.remove(scout.mesh); scout.mesh.geometry.dispose(); } },
+        dispose() { for (const m of scout ? [sys.mesh, scout.mesh] : [sys.mesh]) { oc.group.remove(m); m.geometry.dispose(); (m.material as THREE.Material).dispose(); } },   // (their material too: made for them, one each)
       };
     },
   },
