@@ -785,6 +785,95 @@
         "format": "UTF-8 JSON",
         "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
       }
+    },
+    {
+      "id": "hugget-clay-drying-stress-1999",
+      "title": "Drying-induced stress and deformation for clays: a numerical study of the problem",
+      "authors": [
+        "A. W. B. Hugget",
+        "W. J. Coumans",
+        "E. F. Kaasschieter"
+      ],
+      "year": 1999,
+      "publisher": "Technische Universiteit Eindhoven",
+      "report": "RANA 99-30",
+      "retrievalUrl": "https://pure.tue.nl/ws/portalfiles/portal/1370425/531526.pdf",
+      "accessedDateJst": "2026-10-07",
+      "sourceType": "primary-numerical-study-technical-report",
+      "verification": "institutional-pdf-body-text-read",
+      "locators": "PDF pp. 3–5, 8–10 (0-based indices in web extraction); abstract, introduction, mechanical model",
+      "facts": [
+        "Kaolin brick drying is modeled using moisture diffusion, shrinkage-dependent strains and elastic stress.",
+        "The abstract reports a cracking criterion maximum at the surface near a symmetry axis around 40 minutes, with an elevated initial risk period.",
+        "The mechanical model is explicitly a perfectly elastic approximation; moisture-dependent properties and missing viscoelastic data limit it."
+      ],
+      "supports": "Early moisture/shrinkage gradients can matter before a body's single lumped leather-hard threshold.",
+      "doesNotVerify": "No wind-pulse/recovery trial on coiled pots; no calibrated stress relaxation time or crack probability for island clay.",
+      "calibrationEligible": false,
+      "evidenceKind": "review-transcription-not-original-pdf",
+      "originalFileHash": null,
+      "toolRefs": [
+        "turn820564view1"
+      ],
+      "evidenceFile": "evidence/hugget-clay-drying-stress-1999.json",
+      "evidenceSha256": "91133d6cec26485036a6498d27dbf74dd3ec696d86126b78162091fd3fb63821",
+      "artifact": {
+        "path": "data/science/evidence/hugget-clay-drying-stress-1999.json",
+        "sha256": "91133d6cec26485036a6498d27dbf74dd3ec696d86126b78162091fd3fb63821",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
+      }
+    },
+    {
+      "id": "mal-laponite-cracking-2005",
+      "title": "Desiccation and Relaxation Regimes in Fracture of Drying Clay Films",
+      "authors": [
+        "Dibyendu Mal",
+        "Suparna Sinha",
+        "Tapati Dutta",
+        "S. Mitra",
+        "Sujata Tarafdar"
+      ],
+      "year": 2005,
+      "arxiv": "cond-mat/0504158v1",
+      "retrievalUrl": "https://arxiv.org/pdf/cond-mat/0504158",
+      "accessedDateJst": "2026-10-07",
+      "sourceType": "primary-experimental-preprint",
+      "verification": "author-preprint-body-text-read",
+      "locators": "PDF pp. 1–3 and 6; method, cracking sequence, limitations",
+      "conditions": {
+        "material": "Laponite RD and methanol suspension in a Petri dish",
+        "mixingDurationHours": "1–2",
+        "filmThicknessMmInFigure5": [
+          0.17,
+          0.2,
+          0.37,
+          0.4,
+          0.5
+        ],
+        "observations": "Continuous mass loss and interval photographs of cracks",
+        "matchedPotteryCalibration": false
+      },
+      "facts": [
+        "Earlier rapid shrinkage produces large cracks; later narrow cracks are interpreted in terms of residual stress and particle rearrangement.",
+        "The experiment distinguishes different stages of crack development rather than one whole-body hardness threshold."
+      ],
+      "doesNotVerify": "Methanol film is not water-based coiled pottery; no validated coefficients for weather pulses, stress decay or spontaneous healing.",
+      "calibrationEligible": false,
+      "evidenceKind": "review-transcription-not-original-pdf",
+      "originalFileHash": null,
+      "toolRefs": [
+        "turn800973view0",
+        "turn800973view1"
+      ],
+      "evidenceFile": "evidence/mal-laponite-cracking-2005.json",
+      "evidenceSha256": "475c8fc97eadbba37ad7d553fd0806a272f1aa41f9d2c136febc950feb69609c",
+      "artifact": {
+        "path": "data/science/evidence/mal-laponite-cracking-2005.json",
+        "sha256": "475c8fc97eadbba37ad7d553fd0806a272f1aa41f9d2c136febc950feb69609c",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
+      }
     }
   ]
 }

@@ -66,3 +66,7 @@ prepared_clay → p11y 器を形づくる（世界の時計・手）→ green_po
 - 手間の約89分は「手を動かした量」の仮定。本物の紐づくりは積む途中で乾くのを待つので、製作の始まりから終わりまでの時間ではない。
 - 共通の整数 ppm の読み書きは、総 mg は保つが化学種ごとの mg は少しずつ動く（灯皿を 100個続けて作ると、kaolinite −1,271 mg・quartz −1,238 mg・inert_mineral +2,495 mg。総量は同じ）。長い加工の連鎖で誤差の許容を決めるときに参照する。
 - 資料4件を取り込んだ（`sources.json`、すべて `calibrationEligible: false`）：Silva ほか 2013（減率乾燥の拡散モデル、高温の押出板なので係数は使わない）、Padilla Fernández / Sánchez López 2022（参与観察）、Lynn / Black（紐づくりの復元記録）、Idris ほか 2024（卵殻を混ぜた器の試作）。
+
+## 7. 保留解除と、次に回すもの（Codex a363557、2026-10-07）
+
+保留解除。次の全面レビューへ：極端な条件で返す `dry_flux_ratio_max_ppm` が入力の上限を超える件（C2）、割れのモデルを「ならされる湿り差・応力」と「残るひび」に分ける相談（[相談メモ](POTTERY_CRACK_MODEL_CONSULTATION_codex-a363557.md)）。資料2件（Hugget ほか 1999、Mal ほか 2005）を取り込んだ。
