@@ -54,7 +54,9 @@ export type Frame =
   // stronger
   | { act: 'order'; to: Who; deed: Deed; why?: Reason }                   // do …! (because …)
   | { act: 'forbid'; to?: Who; deed: Deed; why?: Reason }                 // don't …! (because …)
-  | { act: 'lecture'; deed: Deed; why: Reason };                          // because …, we should …                        // what it did today, as the world counted it
+  | { act: 'lecture'; deed: Deed; why: Reason }
+  | { act: 'ask-storm'; to: Who }                                          // will a typhoon come?
+  | { act: 'tell-storm'; likely: boolean; by: 'gauge' | 'swell' };         // what the gauge (or the swell) says                          // because …, we should …                        // what it did today, as the world counted it
 
 /** One thing done today, counted by the world (residents.ts dayCounts): pieces fitted to the hut, islands put on the
  *  map, shells gathered, notes written, cairns stacked, photographs taken. */
@@ -87,7 +89,7 @@ const REASON: Record<Reason, { ids: Ids; ja: string; en: string }> = {
 };
 const because = (r: Reason) => ({ ids: [...REASON[r].ids, 'because', '.'] as Ids, ja: `${REASON[r].ja}から。`, en: ` Because ${REASON[r].en}.` });
 /** Things one may do, with the forms Japanese gives them: as is, let's, do it!, (and so: don't, should). */
-export type Deed = 'shelter' | 'sea' | 'pier' | 'raft' | 'catcher' | 'store-food' | 'fix-hut' | 'hut' | 'wood' | 'gauge' | 'tell-seen' | 'sleep' | 'eat';
+export type Deed = 'shelter' | 'sea' | 'pier' | 'raft' | 'catcher' | 'store-food' | 'fix-hut' | 'hut' | 'wood' | 'gauge' | 'tell-seen' | 'sleep' | 'eat' | 'haul' | 'harvest';
 const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }> = {
   shelter: { ids: ['shelter_place', 'to', 'go'], ja: ['避難場所へ行く', '避難場所へ行こう', '避難場所へ行け'], en: 'go to shelter' },
   sea: { ids: ['sea', 'to', 'go'], ja: ['海に出る', '海に出よう', '海に出ろ'], en: 'go out to sea' },
@@ -102,6 +104,8 @@ const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }>
   'tell-seen': { ids: ['see', 'past', 'thing', 'object', 'tell'], ja: ['見たことを知らせる', '見たことを知らせよう', '見たことを知らせろ'], en: 'tell what we saw' },
   sleep: { ids: ['sleep'], ja: ['眠る', '眠ろう', '眠れ'], en: 'sleep' },
   eat: { ids: ['eat'], ja: ['食べる', '食べよう', '食べろ'], en: 'eat' },
+  haul: { ids: ['raft', 'object', 'high', 'place', 'to', 'carry'], ja: ['筏を高い所へ運ぶ', '筏を高い所へ運ぼう', '筏を高い所へ運べ'], en: 'carry the raft up high' },
+  harvest: { ids: ['harvest', 'object', 'gather'], ja: ['実を早めに収穫する', '実を早めに収穫しよう', '実を早めに収穫しろ'], en: 'harvest early' },
 };
 export type Findable = 'wood' | 'shell' | 'coconut' | 'water' | 'thing';
 const FIND: Record<Findable, { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'shells' }, coconut: { ja: 'ヤシの実', en: 'coconuts' }, water: { ja: '水', en: 'water' }, thing: { ja: '見慣れないもの', en: 'the new thing' } };
@@ -236,6 +240,13 @@ export function phrase(f: Frame): Said {
       return make([...(f.to ? [f.to, ','] : []), ...d.ids, 'dont', '.', ...(b?.ids ?? [])], `${f.to ? NAME[f.to].ja + '、' : ''}${d.ja[0]}な。${b?.ja ?? ''}`, `${f.to ? NAME[f.to].en + ', d' : 'D'}on't ${d.en}!${b?.en ?? ''}`); }
     case 'lecture': { const d = DEED[f.deed], r = REASON[f.why];
       return make([...r.ids, 'because', ',', 'we', 'topic', ...d.ids, 'should', '.'], `${r.ja}から、${d.ja[0]}べきだ。`, `${cap(r.en)}, so we should ${d.en}.`); }
+    case 'ask-storm': return make([f.to, ',', 'typhoon', 'come', 'future', 'question', '.'], `${NAME[f.to].ja}、台風は来る？`, `${NAME[f.to].en}, will a typhoon come?`);
+    case 'tell-storm': {
+      const sign: Ids = f.by === 'gauge' ? ['mark', 'topic', 'high', ...(f.likely ? [] : ['not']), '.'] : ['long', 'swell', 'come', ...(f.likely ? ['ongoing'] : ['not']), '.'];
+      const sja = f.by === 'gauge' ? (f.likely ? '目盛りが高い。' : '目盛りは高くない。') : (f.likely ? '長いうねりが来ている。' : '長いうねりは来ていない。');
+      const sen = f.by === 'gauge' ? (f.likely ? 'The mark is high.' : 'The mark is not high.') : (f.likely ? 'A long swell is coming in.' : 'No long swell is coming in.');
+      return make([...sign, 'typhoon', 'come', 'future', ...(f.likely ? [] : ['not']), 'maybe', '.'], `${sja}${f.likely ? '台風が来るかもしれない' : '台風は来そうにない'}。`, `${sen} A typhoon may${f.likely ? '' : ' not'} come.`);
+    }
     case 'tell-day': {
       if (!f.did.length) return make(['me', 'topic', 'today', 'rest', 'past', '.'], '今日は休んだ。', 'I rested today.');
       const w = (d: DayItem) => (d.what === 'met' ? d.with : undefined);

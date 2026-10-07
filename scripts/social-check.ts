@@ -20,6 +20,9 @@
 //  L a typhoon comes in: one who is up tells those near, plainly, to shelter
 //  M a long swell (9 s or more between crests) on a calm morning: Kamemaru, who knows the sea, says a typhoon may come;
 //    the world keeps count — a typhoon came after it
+//  N the typhoon as a test: forecast at the morning gathering, agreed, who does what said; Dot hauls the raft up the
+//    beach; the typhoon comes and passes and the raft is whole — getting ready paid, and it is remembered; the next
+//    morning Dot asks of itself whether a storm is coming. Unwarned, a raft left on the beach loses half its pieces
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/social-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -266,6 +269,36 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   want('M Kamemaru: a long swell is coming in, a typhoon may come', saidBy(R, 'kame', /長いうねりが来ているなら、台風が来るかもしれない/) && R.village.swellGuess.alarm > 0);
   R.setWeather({ ...calmSwell, typhoon: true, wind: 18, pressure: 988 }); await run(R, 40);
   want('M a typhoon came after it: counted', R.village.swellGuess.hits === 1 && R.village.swellGuess.alarm === 0 && R.list.find((r: any) => r.id === 'kame').diary.some((e: any) => /長いうねりのあとに台風が来た/.test(e.text)), JSON.stringify(R.village.swellGuess));
+}
+{ // N the typhoon as a test
+  const gale = { ok: true, at: 0, cloud: 1, rain: 8, code: 65, wind: 18, windDir: 90, gust: 30, pressure: 985, typhoon: true, thunder: false, source: 'test', record: { station: 'test', at: '' } };
+  const fair = { ...gale, cloud: 0.3, rain: 0, code: 2, wind: 4, gust: 6, pressure: 1010, typhoon: false };
+  { // warned
+    const { R, dot } = island(35);
+    meet(R, ['lantern', 'kame']); dot.stats.built = 99;
+    Object.assign(R.village.raft, { parts: 6, x: 58, z: -150, hauled: false });
+    R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
+    R.setWeather(fair); await run(R, 5);
+    now = Date.parse('2026-10-03T23:40:00Z');
+    R.village.gaugeLog.push({ at: now - 3.6e6, processId: 'test', mark: 9 }); R.village.hypo = alarmHypo(now);
+    await run(R, 3600, () => R.village.mornings > 0);
+    want('N forecast, agreed, and who does what is said', R.village.stormPrep > 0 && R.village.prepBy === 'lantern' && saidBy(R, 'lantern', /ドットは筏を高い所へ運ぶ/));
+    await run(R, 1800, () => R.village.raft.hauled);
+    want('N Dot hauls the raft up the beach', R.village.raft.hauled && dot.diary.some((e: any) => /筏を浜の上へ引き上げた/.test(e.text)));
+    R.setWeather(gale); await run(R, 60); R.setWeather(fair); await run(R, 5);
+    const log = R.village.stormLog.at(-1);
+    want('N it passes and the raft is whole: getting ready paid, and it is remembered', R.village.raft.parts === 6 && log?.warned && log.saved.includes('筏') && R.village.heed.dot === 1 && dot.diary.some((e: any) => /ランタンの知らせで備えた。筏は無事だった/.test(e.text)), JSON.stringify(log));
+    now = Date.parse('2026-10-04T23:40:00Z'); R.village.hypo.alarm = null;
+    await run(R, 3600, () => R.village.mornings > 1);
+    want('N the next morning Dot asks of itself whether a storm is coming', saidBy(R, 'dot', /ランタン、台風は来る？/) && saidBy(R, 'lantern', /目盛りは高くない。台風は来そうにない/));
+  }
+  { // unwarned
+    const { R, dot } = island(37);
+    Object.assign(R.village.raft, { parts: 6, x: 58, z: -150, hauled: false });
+    R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
+    R.setWeather(fair); await run(R, 5); R.setWeather(gale); await run(R, 60); R.setWeather(fair); await run(R, 5);
+    want('N unwarned, the raft left on the beach loses half its pieces', R.village.raft.parts === 3 && !R.village.stormLog.at(-1)?.warned && dot.diary.some((e: any) => /前もって知らなかった。筏の部材3本を失った/.test(e.text)) && !R.village.heed.dot);
+  }
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);

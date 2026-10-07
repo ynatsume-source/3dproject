@@ -75,7 +75,8 @@ const more: Frame[] = [{ act: 'ask-why' }, { act: 'tell-why', why: 'wind' }, { a
   { act: 'propose', deed: 'store-food', mine: 'gauge' }, { act: 'agree-proposal' }, { act: 'object-proposal', why: 'wind' }, { act: 'counter', instead: 'catcher' },
   { act: 'assign', parts: [{ who: 'dot', deed: 'hut' }, { who: 'rakko', deed: 'wood' }] }, { act: 'helped', what: 'wood', became: 'piece' }, { act: 'heard-wrong', what: 'wood' },
   { act: 'correct', said: { act: 'tell-where', what: 'wood', metres: 20 } }, { act: 'ask-how', to: 'lantern' },
-  { act: 'order', to: 'dot', deed: 'shelter', why: 'typhoon' }, { act: 'forbid', to: 'dot', deed: 'sea', why: 'wind' }, { act: 'forbid', deed: 'sea' }, { act: 'lecture', deed: 'store-food', why: 'typhoon-soon' }, { act: 'lecture', deed: 'tell-seen', why: 'told-useful' }];
+  { act: 'order', to: 'dot', deed: 'shelter', why: 'typhoon' }, { act: 'forbid', to: 'dot', deed: 'sea', why: 'wind' }, { act: 'forbid', deed: 'sea' }, { act: 'lecture', deed: 'store-food', why: 'typhoon-soon' }, { act: 'lecture', deed: 'tell-seen', why: 'told-useful' },
+  { act: 'ask-storm', to: 'lantern' }, { act: 'tell-storm', likely: true, by: 'gauge' }, { act: 'tell-storm', likely: false, by: 'swell' }, { act: 'assign', parts: [{ who: 'dot', deed: 'haul' }, { who: 'dot', deed: 'harvest' }, { who: 'rakko', deed: 'eat' }] }, { act: 'tell-guess', if: 'swell-long', then: 'typhoon' }];
 frames.push(...more);
 const badF: string[] = [];
 for (const f of frames) { try { const m = phrase(f); if (!m.isl.length || !m.ja || !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en)) badF.push(f.act); } catch (e) { badF.push(`${f.act}: ${(e as Error).message}`); } }
