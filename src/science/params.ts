@@ -174,6 +174,13 @@ export const PARAMS = {
   potInsideDryShare: P('potInsideDryShare', 0.5, 'ratio', 'assumed', [], '器の内側の面が外側に比べて乾く割合（中の空気がこもる）'),
   potCoverFluxFactor: P('potCoverFluxFactor', 0.4, 'ratio', 'assumed', [], '葉で覆った器の乾く速さ（覆わないときに対して）'),
   potFallingSlow: P('potFallingSlow', 10, 'ratio', 'assumed', [], '革のかたさを過ぎてから、壁 8 mm の器の水が出てくるのが試験片の何倍遅いか（壁の厚さに比例。面積あたりの水も壁に比例するので、乾く時間は壁の2乗：拡散の形）。器が乾ききるまで数日かかるように仮定'),
+  // the clay pit (step/clay-pit.ts): all assumed, no source read yet
+  clayPitLiningCm: P('clayPitLiningCm', 2, 'cm', 'assumed', [], '穴の底と壁に踏み固める生の粘土の厚さ'),
+  clayPitLiningDensity: P('clayPitLiningDensity', 1.8, 'g/cm3', 'assumed', [], '踏み固めた湿った粘土の密度'),
+  clayPitFillShare: P('clayPitFillShare', 0.9, 'ratio', 'assumed', [], '穴の内側のうち、粘土と水を入れてよい割合（縁まで入れない）'),
+  clayPitDigSecondsPerL: P('clayPitDigSecondsPerL', 15, 's/L', 'assumed', [], '砂を掘り出す手間（1 L あたり）'),
+  clayPitLineSecondsPerL: P('clayPitLineSecondsPerL', 300, 's/L', 'assumed', [], '粘土を湿らせて踏み固め、壁に塗る手間（粘土 1 L あたり）'),
+  clayPitHandPowerW: P('clayPitHandPowerW', 30, 'W', 'assumed', [], '掘る・踏み固める手の仕事率'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),

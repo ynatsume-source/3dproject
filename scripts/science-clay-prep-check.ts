@@ -5,6 +5,7 @@ import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/worl
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
 import { SLAKE_PROCESS, readRawClay } from '../src/science/step/slake';
+import { CLAY_PIT, CLAY_PIT_TABLE, clayPitMaterials, clayPitParams } from '../src/science/step/clay-pit';
 import { KNEAD_PROCESS } from '../src/science/step/knead';
 
 let pass = 0, fail = 0;
@@ -221,6 +222,24 @@ console.log('6. Codex review of dd781fc: what comes out goes on into the next ru
   ok(pcBack.last.status === 'completed' && wr(pcBack.out('settled_clay')!.quality!) < wr(pc.quality!), 'B3: too soft prepared clay can wait in the tub too');
   ok(step(sreq(0, H, null, [], { lots: [RAW()] })).status === 'failed', 'raw clay still needs water to soak in');
   ok(step(sreq(0, H, null, [], { lots: [{ ...pc, quality: { ...pc.quality, xc_quartz_ppm: 1000 } }] })).status === 'failed', 'sieved clay with coarse parts listed is refused (it has been sieved)');
+}
+
+console.log('9. the clay pit (the island\'s first tub)');
+{
+  const pitParams = clayPitParams({ diameterCm: 50, depthCm: 25 }), m = clayPitMaterials({ diameterCm: 50, depthCm: 25 });
+  ok(CLAY_PIT_TABLE === 'civ-sci.clay-pit/1' && pitParams.capacityMl > 25_000 && pitParams.capacityMl < 35_000 && pitParams.surfaceCm2 > 1200 && pitParams.surfaceCm2 < 1700,
+    'a pit 50 cm across and 25 cm deep, lined with 2 cm of clay, holds about 30 L under a water surface of about 1500 cm²', JSON.stringify(pitParams));
+  ok(m.rawClayMg > 15_000_000 && m.rawClayMg < 30_000_000 && m.handSeconds > 1800 && m.handSeconds < 4 * 3600,
+    'it takes about two raft loads of raw clay for the lining, and an hour or two of digging and treading', `${(m.rawClayMg / 1e6).toFixed(1)} kg, ${(m.handSeconds / 60).toFixed(0)} min at ${m.handPowerW} W`);
+  const PIT = (p = pitParams) => ({ equipmentId: 'eq:pit', kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: 'civ-sci-test-2', condition: 1, params: p });
+  const inPit = tub(10 * D, plan, { equipment: [PIT()] }), inTub = tub(10 * D, plan, { equipment: [TUB(pitParams)] });
+  ok(JSON.stringify([inPit.last.produced, inPit.last.released, inPit.obs]) === JSON.stringify([inTub.last.produced, inTub.last.released, inTub.obs]) && inPit.out('settled_clay') !== undefined,
+    'the soaking step takes the pit as its tub: 10 kg of raw clay and 15 L of water give the same clay as in a test tub of the same size');
+  const small = step(sreq(0, H, null, [], { equipment: [PIT(clayPitParams({ diameterCm: 30, depthCm: 15 }))] }));
+  ok(small.status === 'failed' && /do not fit/.test(String(small.evidence.notes)), 'a pit too small for the clay and the water is refused', String(small.evidence.notes));
+  let threw = 0;
+  for (const bad of [{ diameterCm: 5, depthCm: 25 }, { diameterCm: 50, depthCm: 100 }, { diameterCm: 50, depthCm: 25, sunExposure: 2 }, { diameterCm: NaN, depthCm: 25 }]) { try { clayPitParams(bad); } catch { threw++; } }
+  ok(threw === 4, 'sizes outside the table are refused');
 }
 
 console.log('—   every result above passed the contract checker');
