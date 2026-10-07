@@ -388,7 +388,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
   const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo,
-    labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0 };
+    labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
+    swellGuess: { alarm: 0, hits: 0, falses: 0 } };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
@@ -1384,7 +1385,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
   function tickLab() {
-    hypoTick();
+    hypoTick(); swellTick();
     for (const x of [...village.labRuns]) {
       const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId), by = byId[x.by];
       if (!run || !e) { village.labRuns.splice(village.labRuns.indexOf(x), 1); continue; }
@@ -2282,7 +2283,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
@@ -2651,6 +2652,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     { const m = phrase({ act: 'ask-plan', to: who.id as Who }); say(asker, m.ja, fireConv, fast, m.isl, m.en); }
     const doing = planOf(who); morningPlans[who.id] = doing;
     { const m = phrase({ act: 'plan', doing }); fireQueue.push({ who: who.id, line: m.ja, isl: m.isl, en: m.en }); }
+    // (Kamemaru, who knows the sea, tells of a long swell — the long-period kind that runs ahead of a storm, a thing any
+    // sailor knows; the world keeps count of whether a storm followed: swellTick)
+    if (who.id === 'kame') swellMorning();
     // (out to sea in a wind: Kamemaru, who knows the sea, forbids it; asked why, it says)
     if ((who.id === 'dot' || who.id === 'kame') && morningPlans.dot === 'map' && !morningPlans.seaTold && (wxNow?.windMeasured ?? wxNow?.wind ?? 0) >= 8 && seated.some((r) => r.id === 'kame')) {
       morningPlans.seaTold = '1';
@@ -2679,6 +2683,21 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         else { const o = seated.find((x) => x !== dot); if (o) qs(o.id, { act: 'dont-know', what: 'wood' }); }
       }
     }
+  }
+  const SWELL_T = 9, SWELL_WAIT = islandWait(48 * 3.6e6);   // (a swell of 9 s or more between crests; a storm within two island days)
+  function swellMorning() {
+    const w = wxNow, g = village.swellGuess;
+    if (!w || storm() || w.swellPeriod === undefined || w.swellPeriod < SWELL_T) return;
+    qs('kame', { act: 'tell-guess', if: 'swell-long', then: 'typhoon' });
+    if (g.hits + g.falses > 0) qs('kame', { act: 'tell-guess-status', held: g.hits >= g.falses, hits: g.hits, wrong: g.falses });
+    const txt = `朝の集まりで、カメマルが長いうねりの話をした（高さ${(w.swell ?? 0).toFixed(1)}m、${Math.round(w.swellPeriod)}秒ごと）`;
+    for (const r of list) if (r.task?.kind === 'fire') r.diary.push({ at: clockMs, text: txt, key: 'met', with: 'kame' });
+    if (!g.alarm) { g.alarm = clockMs; res.onEvent('fire', `カメマル：長いうねりが来ている。台風が来るかもしれない（${Math.round(w.swellPeriod)}秒ごとのうねり）`, byId.kame); }
+  }
+  function swellTick() {
+    const g = village.swellGuess; if (!g.alarm) return;
+    if (storm()) { g.hits++; g.alarm = 0; byId.kame.diary.push({ at: clockMs, text: `長いうねりのあとに台風が来た（当たり ${g.hits}・外れ ${g.falses}）`, key: 'study' }); }
+    else if (clockMs - g.alarm > SWELL_WAIT) { g.falses++; g.alarm = 0; byId.kame.diary.push({ at: clockMs, text: `長いうねりのあと、台風は来なかった（当たり ${g.hits}・外れ ${g.falses}）`, key: 'study' }); }
   }
   function morningHelp() {
     const q: Request = { id: `req#${++reqN}`, from: 'dot', to: 'rakko', what: 'bring-wood', at: clockMs, status: 'accepted', conv: fireConv };

@@ -52,5 +52,21 @@ let typhoonAt = 0;
   want('3 the beds and the rocky bottom are torn up', grass1.every((g: number, i: number) => g < grass0[i] * 0.5 + 1e-6) && stock1 <= stock0 / 2 + R.patches.length, `grass ${grass0.map((g: number) => g.toFixed(2))} → ${grass1.map((g: number) => g.toFixed(2))}, prey ${stock0} → ${stock1}`);
   want('3 …and it is in their record that it passed', R.list.every((r: any) => r.diary.some((e: any) => e.key === 'weather' && /台風が過ぎた/.test(e.text))));
 }
+{ // 4 the sea in the record: the swell, its period and where it comes from, and the thunder rule
+  const ty = islandWeather(Date.parse('2026-10-08T16:40:00Z'))!;   // (island July 24th: the record's typhoon, 2024-07-24)
+  want('4 every hour has its sea: wave, swell, period, direction', [ty.wave, ty.swell, ty.swellPeriod, ty.swellDir].every((x) => typeof x === 'number'), `wave ${ty.wave} m, swell ${ty.swell} m every ${ty.swellPeriod} s from ${ty.swellDir}°`);
+  want('4 the typhoon\'s sea is high and long', (ty.wave ?? 0) > 3 && (ty.swellPeriod ?? 0) >= 9);
+  // (a long swell runs ahead of the deep ones: in the two island days before they came in, the swell's period passed 9 s
+  // — for most, not all; and long swells come with no storm after them too)
+  const W2 = islandWait(48 * 3.6e6); let was = false, last = -1e15, deep = 0, ahead = 0;
+  for (let t = t0; t < t0 + 84 * 86400e3; t += 300e3) {
+    const w = islandWeather(t)!;
+    if (w.typhoon && !was && t - last > W2 && w.pressure < 996) { deep++; for (let u = t - W2; u < t; u += 300e3) if ((islandWeather(u)!.swellPeriod ?? 0) >= 9) { ahead++; break; } }
+    if (w.typhoon) last = t; was = w.typhoon;
+  }
+  want('4 most deep typhoons have a long swell before them', deep >= 3 && ahead * 2 > deep, `${ahead} of ${deep}`);
+  let n = 0, th = 0; for (let t = t0; t < t0 + 28 * 86400e3; t += 1800e3) { n++; if (islandWeather(t)!.thunder) th++; }
+  want('4 thunder now and then, not often (a typhoon in heavy rain, or a downpour)', th > 0 && th / n < 0.02, `${(th / n * 100).toFixed(2)}% of the time`);
+}
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

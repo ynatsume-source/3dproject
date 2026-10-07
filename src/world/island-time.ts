@@ -39,8 +39,14 @@ export interface IslandWeather extends Weather {
   record: { station: string; at: string };
   pressureMeasured?: number;
   rainMeasured?: number;    // (the rain as recorded: undefined where the record has none — rain above is then 0, for the look)
+  // the sea, from the wave model's archive (scripts/add-island-waves.py): for the look and for what the residents see,
+  // never for the science core
+  swell?: number;          // m: the swell's height (waves come from far away; a long one may run ahead of a storm)
+  swellPeriod?: number;    // s: the time between its crests
+  swellDir?: number;       // degrees, where it comes from
+  thunder: boolean;        // lightning and thunder: a typhoon in heavy rain, or a downpour (a rule on the record's own values)
 }
-type Record_ = { year: number; source: string; station: string; na: number; rows: number[] };
+type Record_ = { year: number; source: string; station: string; na: number; rows: number[]; fields?: string[] };
 const YEARS = ['2024', '2023', '2022'];   // (each island year replays the next, in turn; more years to come)
 const loaded = new Map<string, Record_>();
 let loading: Promise<void> | null = null;
@@ -51,18 +57,20 @@ export function loadIslandWeather(): Promise<void> {
     loaded.set(y, (m.default ?? m) as Record_);
   })).then(() => undefined));
 }
-const F = 8;   // fields a row
 /** The island's weather at a real moment: the record for the island's date, at the real hour of the day. */
 export function islandWeather(realMs: number): IslandWeather | null {
   const d = islandDate(realMs), rec = loaded.get(YEARS[(d.year - 1) % YEARS.length]); if (!rec) return null;
+  const F = rec.fields?.length ?? 8;   // (fields a row: eight measured and for the sky, then four of the sea)
   const hour = new Date(realMs + 9 * 3600000).getUTCHours(), i = (d.dayOfYear * 24 + hour) * F, r = rec.rows, NA = rec.na ?? -32768;
   if (i + F > r.length) return null;
   const val = (k: number, s: number, off = 0) => (r[i + k] === NA ? undefined : (r[i + k] + off) / s);
   const air = val(0, 10), rh = val(1, 100), rain = val(2, 10) ?? 0, p = val(3, 10, 9000), windM = val(4, 10), dir = r[i + 5] === NA ? 90 : r[i + 5] * 2;
   const gust = val(6, 10) ?? (windM ?? 4) * 1.5, cloud = val(7, 100) ?? (rain > 0.1 ? 0.9 : rh !== undefined && rh > 0.85 ? 0.65 : rh !== undefined && rh > 0.75 ? 0.4 : 0.2), /* (no reanalysis for the year: the sky as rain and humidity show it) */ wind = windM ?? 4, pressure = p ?? 1010;
   const typhoon = (p !== undefined && p < 996) || (windM !== undefined && windM >= 15) || gust >= 25;
-  const code = typhoon && rain > 2 ? 65 : rain >= 4 ? 65 : rain >= 1 ? 63 : rain > 0.1 ? 61 : cloud > 0.85 ? 3 : cloud > 0.45 ? 2 : 1;
+  const thunder = (typhoon && rain >= 3) || rain >= 15;
+  const code = thunder ? 95 : typhoon && rain > 2 ? 65 : rain >= 4 ? 65 : rain >= 1 ? 63 : rain > 0.1 ? 61 : cloud > 0.85 ? 3 : cloud > 0.45 ? 2 : 1;
+  const sea = F >= 12 ? { wave: val(8, 100), swell: val(9, 100), swellPeriod: val(10, 10), swellDir: r[i + 11] === NA ? undefined : r[i + 11] * 2 } : {};
   const day0 = new Date(Date.UTC(rec.year, 0, 1 + d.dayOfYear + (rec.year % 4 === 0 && d.dayOfYear >= 59 ? 1 : 0)));
   const at = `${day0.toISOString().slice(0, 10)}T${String(hour).padStart(2, '0')}:00+09:00`;
-  return { ok: true, at: realMs, cloud, rain, rainMeasured: val(2, 10), code, wind, windDir: dir, gust, air, humidity: rh, windMeasured: windM, pressure, pressureMeasured: p, typhoon, source: rec.source, record: { station: rec.station ?? 'era5', at } };
+  return { ok: true, at: realMs, cloud, rain, rainMeasured: val(2, 10), code, wind, windDir: dir, gust, air, humidity: rh, windMeasured: windM, pressure, pressureMeasured: p, typhoon, thunder, ...sea, source: rec.source, record: { station: rec.station ?? 'era5', at } };
 }

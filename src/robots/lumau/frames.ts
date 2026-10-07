@@ -112,12 +112,13 @@ const MEASURED: Record<Measured, { ids: Ids; ja: string; en: string }> = { water
 export type Unit = 'kilogram' | 'litre' | 'degree' | 'metre' | 'percent' | 'mark' | 'none';
 const UNIT: Record<Unit, { id?: string; ja: string; en: string }> = { kilogram: { id: 'kilogram', ja: 'キロ', en: ' kg' }, litre: { id: 'litre', ja: 'リットル', en: ' L' }, degree: { id: 'degree', ja: '度', en: ' degrees' }, metre: { id: 'metre', ja: 'メートル', en: ' m' }, percent: { id: 'percent', ja: 'パーセント', en: '%' }, mark: { ja: '', en: '' }, none: { ja: '', en: '' } };
 /** What a guess is made of: a condition, and what may follow. */
-export type Cond = 'mark-high' | 'mark-up' | 'hot' | 'typhoon';
+export type Cond = 'mark-high' | 'mark-up' | 'hot' | 'typhoon' | 'swell-long';
 const COND: Record<Cond, { ids: Ids; ja: string; en: string }> = {
   'mark-high': { ids: ['mark', 'topic', 'high'], ja: '目盛りが高い', en: 'the mark is high' },
   'mark-up': { ids: ['mark', 'topic', 'increase'], ja: '目盛りが上がる', en: 'the mark rises' },
   hot: { ids: ['now', 'topic', 'hot'], ja: '暑い', en: "it's hot" },
   typhoon: { ids: ['typhoon', 'come', 'future'], ja: '台風が来る', en: 'a typhoon comes' },
+  'swell-long': { ids: ['long', 'swell', 'come', 'ongoing'], ja: '長いうねりが来ている', en: 'a long swell is coming in' },
 };
 const n_ = (n: number): Ids => { const v = Math.round(n); return v < 0 ? ['minus', `#${-v}`] : [`#${v}`]; };
 const NAME: Record<Who, { ja: string; en: string }> = { dot: { ja: 'ドット', en: 'Dot' }, rakko: { ja: 'ラッコ', en: 'Rakko' }, kame: { ja: 'カメマル', en: 'Kamemaru' }, lantern: { ja: 'ランタン', en: 'Lantern' } };

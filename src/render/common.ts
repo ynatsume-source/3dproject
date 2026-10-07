@@ -30,6 +30,8 @@ export const U = {
   uShaftCol: { value: new THREE.Color(0.55, 0.9, 0.95) }, uShaftI: { value: 1 }, uGolden: { value: 0 },
   // the real weather at the site: wave state, rain on the surface, lightning
   uWave: { value: 1 }, uRain: { value: 0 }, uFlash: { value: 0 }, uFlashW: { value: 0 }, uCloud: { value: 0 },
+  // the wind: where it blows to (x, z: +x east, -z north) and how hard (m/s), with its gusts
+  uWind: { value: new THREE.Vector3(0, 1, 4) },
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 }, uMoonVeil: { value: 0 }, uGlowK: { value: 1 },
   // above the water: the real sky over the site
@@ -81,7 +83,7 @@ uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
-uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud;
+uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud; uniform vec3 uWind;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR; uniform vec3 uLodPos; uniform float uLowFx;
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir

@@ -271,7 +271,7 @@ export const rain = new THREE.LineSegments(rainGeo, mat(
   `attribute float aEnd; varying float vA;
    void main(){
      float B = 26.0;
-     vec3 fall = vec3(uCurrent.x * 1.5, -9.0, uCurrent.y * 1.5);
+     vec3 fall = vec3(uCurrent.x * 1.5 + uWind.x * uWind.z * 0.7, -9.0, uCurrent.y * 1.5 + uWind.y * uWind.z * 0.7);   // (slanting in the wind)
      vec3 wp = uCamPos + mod(position * B + fall * uTime - uCamPos + B * 0.5, B) - B * 0.5;
      wp -= fall * 0.045 * aEnd;
      float d = length(wp - uCamPos);

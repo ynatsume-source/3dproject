@@ -177,8 +177,11 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
      void main(){
        vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
        float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
-       // the crowns move in the wind: a slow lean and a quicker flutter of the leaf masses
-       w.xz += (vec2(sin(uTime * 0.9 + ph), cos(uTime * 0.7 + ph * 1.7)) * 0.12 + vec2(sin(uTime * 2.7 + ph * 3.0 + position.y * 9.0), cos(uTime * 2.3 + position.x * 7.0)) * 0.04 * aLeaf) * aSway * (0.4 + 0.6 * uWave);
+       // the crowns move in the wind: a slow lean and a quicker flutter of the leaf masses, harder as it blows, and bent
+       // away from it (more so in the gusts)
+       float wk = clamp(uWind.z / 10.0, 0.0, 1.8);
+       w.xz += (vec2(sin(uTime * 0.9 + ph), cos(uTime * 0.7 + ph * 1.7)) * 0.12 + vec2(sin(uTime * 2.7 + ph * 3.0 + position.y * 9.0), cos(uTime * 2.3 + position.x * 7.0)) * 0.04 * aLeaf * (1.0 + wk)) * aSway * (0.6 + 0.6 * wk)
+             + uWind.xy * aSway * wk * wk * 0.22 * (0.75 + 0.25 * sin(uTime * 1.3 + ph));
        vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
        vCol = aTint * (0.85 + 0.3 * fract(sin(ph * 12.9) * 43758.5)); vLeaf = aLeaf; vL = position; vSh = aSh; vMn = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * aMn);
        gl_Position = projectionMatrix * viewMatrix * w; }`,

@@ -41,7 +41,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, blow, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
+import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, setWind, setSea, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, blow, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -1242,21 +1242,29 @@ function lightFor(s: ReturnType<typeof skyState>, airView: boolean) {
   U.uShaftCol.value.lerp(_nightShaft, n);
   U.uTint.value.lerp(_nightTint, n);   // moonlight is only a little bluer than sunlight; keep the reef's colours
   nightLift = n;
-  const cloud = wxCloud();
-  U.uSunI.value *= 1 - 0.65 * cloud; U.uShaftI.value *= 1 - 0.85 * cloud; U.uAmb.value *= 1 - 0.22 * cloud;
+  const cloud = wxCloud(), st = stormK();
+  U.uSunI.value *= (1 - 0.65 * cloud) * (1 - 0.6 * st); U.uShaftI.value *= (1 - 0.85 * cloud) * (1 - st); U.uAmb.value *= (1 - 0.22 * cloud) * (1 - 0.45 * st);
 }
+// how much of a storm it is, 0..1: a gale, a downpour (the sky dark and low under it, the light dim)
+function stormK() { const w = liveWeather(); return clamp(Math.max(((w.windMeasured ?? w.wind) - 10) / 10, (w.rain - 2) / 10, isStorm(w) ? 0.7 : 0), 0, 1); }
 function applySky(loc: Sea, airView = drone.pos.y > 0) {
   const s = skyState(clock.ms, loc);
   skyNow = s;
   lightFor(s, airView);
   const w = liveWeather();
   const cloud = wxCloud();
-  const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), cloud * 0.7); };
-  U.uCloud.value = cloud;
+  const st = stormK();
+  const grey = (c: THREE.Color) => { const l = c.r * 0.3 + c.g * 0.5 + c.b * 0.2; c.lerp(_grey.setRGB(l, l, l * 1.05), Math.max(cloud * 0.7, st * 0.95)); c.multiplyScalar(1 - 0.55 * st); };
+  U.uCloud.value = Math.max(cloud, st);   // (a storm's sky is wholly overcast)
   U.uRain.value = w.code >= 51 && w.code <= 57 ? 0.25 : Math.min(1, w.rain / 3);
   U.uWave.value = Math.min(2.4, Math.max(0.45, 0.55 + (w.wave ?? w.wind / 7) * 0.65));
-  // the swell: today's measured wave height (never more than twice the usual, a reef lagoon is sheltered), or the usual
-  U.uSwell.value = Math.min(w.wave ?? loc.swellHs ?? 1, (loc.swellHs ?? 1) * 2) / 2.37;
+  // the swell: today's measured wave height (never more than twice the usual, a reef lagoon is sheltered), or the usual;
+  // on the island, the record's own swell (a long one may come a day or two before a storm: ADR 0006)
+  const sw = (w as { swell?: number }).swell ?? w.wave;
+  U.uSwell.value = Math.min(sw ?? loc.swellHs ?? 1, (loc.swellHs ?? 1) * ((w as { swell?: number }).swell !== undefined ? 2.5 : 2)) / 2.37;
+  // the wind: where it blows to (it is given as where it comes from) and how hard; the trees, the grass, the rain follow it
+  { const ws = w.windMeasured ?? w.wind, a = (w.windDir ?? 90) * Math.PI / 180; U.uWind.value.set(-Math.sin(a), Math.cos(a), ws); setWind(ws, w.gust); }
+  setSea(U.uWave.value);
   setRain(U.uRain.value);
   U.uSkyLo.value.setRGB(...s.skyLo); U.uSkyHi.value.setRGB(...s.skyHi);
   grey(U.uSkyLo.value); grey(U.uSkyHi.value);   // (after setting them: a cloudy sky is greyer)

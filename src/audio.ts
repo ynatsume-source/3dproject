@@ -555,11 +555,25 @@ export async function renderLeap(big: number, d: number, under: boolean, rise: b
 // Out in the air the underwater bed, bubbles and reef crackle give way to wind and the slap and wash
 // of waves around the drone.
 let inAir = false, airGain: GainNode | null = null, seaGain: GainNode | null = null, shoreK = 1;
+// the weather heard: the wind's strength and gusts, the waves' size (applySky); 1 is an ordinary day
+let windK = 1, gustK = 1, seaK = 1, windNode: GainNode | null = null, windBand: BiquadFilterNode | null = null, gustDepth: GainNode | null = null;
+export function setWind(ms: number, gust = ms * 1.5) {
+  windK = Math.min(2.6, Math.max(0.5, 0.45 + ms / 9)); gustK = Math.min(2, Math.max(0.6, (gust - ms) / 5));
+  if (!ac || !windNode) return;
+  const t = ac.currentTime;
+  windNode.gain.setTargetAtTime(0.35 * windK, t, 2);
+  windBand!.frequency.setTargetAtTime(520 + Math.max(0, ms - 6) * 35, t, 2);   // (a higher, harder note in a gale)
+  gustDepth!.gain.setTargetAtTime(0.2 * windK * gustK, t, 2);
+}
+export function setSea(wave: number) {
+  seaK = Math.min(2.2, Math.max(0.7, wave));
+  if (seaGain && ac) seaGain.gain.setTargetAtTime(0.35 * shoreK * seaK, ac.currentTime, 2);
+}
 // how near the sea is, 0..1 (1 over the water or on the beach; less and less inland): the waves fade with it
 export function setShore(k: number) {
   if (Math.abs(k - shoreK) < 0.01) return;
   shoreK = k;
-  if (seaGain && ac) seaGain.gain.setTargetAtTime(0.35 * k, ac.currentTime, 1.2);
+  if (seaGain && ac) seaGain.gain.setTargetAtTime(0.35 * k * seaK, ac.currentTime, 1.2);
 }
 export function setAir(on: boolean) {
   if (!ac || on === inAir) return;
@@ -571,8 +585,9 @@ export function setAir(on: boolean) {
     // wind: a breathy band that gusts
     const wind = a.createBufferSource(); wind.buffer = b; wind.loop = true;
     const wbp = a.createBiquadFilter(); wbp.type = 'bandpass'; wbp.frequency.value = 520; wbp.Q.value = 0.6;
-    const wg = a.createGain(); wg.gain.value = 0.35;
-    const gust = a.createOscillator(); gust.frequency.value = 0.07; const ga = a.createGain(); ga.gain.value = 0.2;
+    const wg = a.createGain(); wg.gain.value = 0.35 * windK;
+    const gust = a.createOscillator(); gust.frequency.value = 0.07; const ga = a.createGain(); ga.gain.value = 0.2 * windK * gustK;
+    windNode = wg; windBand = wbp; gustDepth = ga;
     gust.connect(ga).connect(wg.gain); gust.start();
     const sweep = a.createOscillator(); sweep.frequency.value = 0.045; const sa = a.createGain(); sa.gain.value = 180;
     sweep.connect(sa).connect(wbp.frequency); sweep.start();
@@ -584,7 +599,7 @@ export function setAir(on: boolean) {
     const swell = a.createOscillator(); swell.frequency.value = 0.13; const sw = a.createGain(); sw.gain.value = 0.45;
     swell.connect(sw).connect(sg.gain); swell.start();
     // (a little quieter than the wind's share; and fading inland)
-    seaGain = a.createGain(); seaGain.gain.value = 0.35 * shoreK;
+    seaGain = a.createGain(); seaGain.gain.value = 0.35 * shoreK * seaK;
     sea.connect(slp).connect(sg).connect(seaGain).connect(airGain); sea.start();
   }
   const t = ac.currentTime;

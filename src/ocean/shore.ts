@@ -125,7 +125,8 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   const canopyMat = mat(
     `attribute float aC; varying vec3 vWp; varying vec3 vN; varying float vC;
      void main(){ vec3 p = position; float w = smoothstep(1.0, 6.0, p.y);
-       p.xz += vec2(sin(uTime * 0.9 + p.x * 0.3 + p.z * 0.2), cos(uTime * 0.7 + p.z * 0.3)) * 0.06 * w * (0.4 + uWave);
+       float wk = clamp(uWind.z / 10.0, 0.0, 1.8);
+       p.xz += vec2(sin(uTime * 0.9 + p.x * 0.3 + p.z * 0.2), cos(uTime * 0.7 + p.z * 0.3)) * 0.06 * w * (0.5 + 0.8 * wk) + uWind.xy * w * wk * wk * 0.12;
        vWp = p; vN = normal; vC = aC; gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }`,
     `${LAND_TEX}
      ${AIRLIT}
@@ -219,7 +220,8 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
      void main(){
        vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
        float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
-       w.xz += vec2(sin(uTime * 1.3 + ph), cos(uTime * 1.1 + ph * 1.7)) * aSway * (0.05 + 0.1 * uWave);
+       float wk = clamp(uWind.z / 10.0, 0.0, 1.8);
+       w.xz += vec2(sin(uTime * 1.3 + ph), cos(uTime * 1.1 + ph * 1.7)) * aSway * (0.06 + 0.1 * wk) + uWind.xy * aSway * wk * wk * 0.08 * (0.7 + 0.3 * sin(uTime * 1.7 + ph));
        vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
        vCol = aTint * (0.85 + 0.3 * fract(sin(ph * 12.9) * 43758.5));
        gl_Position = projectionMatrix * viewMatrix * w; }`,

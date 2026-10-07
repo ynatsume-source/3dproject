@@ -18,6 +18,8 @@
 //    morning's warning passed on to one who was not there; what was brought was of use, what was told was not there;
 //    after a day when something told was of use, Kamemaru says that telling is
 //  L a typhoon comes in: one who is up tells those near, plainly, to shelter
+//  M a long swell (9 s or more between crests) on a calm morning: Kamemaru, who knows the sea, says a typhoon may come;
+//    the world keeps count — a typhoon came after it
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/social-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -251,6 +253,19 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   R.setWeather({ ok: true, at: 0, cloud: 0.9, rain: 8, code: 65, wind: 20, windDir: 90, gust: 30, pressure: 985, typhoon: true, source: 'test', record: { station: 'test', at: '' } });
   await run(R, 30);
   want('L told plainly to shelter, and it goes', saidBy(R, 'dot', /ラッコ、避難場所へ行け。台風が来ているから/) && saidBy(R, 'rakko', /わかった。行く/));
+}
+{ // M a long swell
+  const { R } = island(33);
+  meet(R, ['kame']);
+  R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
+  await run(R, 5);
+  now = Date.parse('2026-10-03T23:40:00Z');
+  const calmSwell = { ok: true, at: 0, cloud: 0.3, rain: 0, code: 2, wind: 5, windDir: 90, gust: 8, pressure: 1006, typhoon: false, thunder: false, swell: 1.6, swellPeriod: 10.5, swellDir: 150, source: 'test', record: { station: 'test', at: '' } };
+  R.setWeather(calmSwell);
+  await run(R, 3600, () => R.village.mornings > 0);
+  want('M Kamemaru: a long swell is coming in, a typhoon may come', saidBy(R, 'kame', /長いうねりが来ているなら、台風が来るかもしれない/) && R.village.swellGuess.alarm > 0);
+  R.setWeather({ ...calmSwell, typhoon: true, wind: 18, pressure: 988 }); await run(R, 40);
+  want('M a typhoon came after it: counted', R.village.swellGuess.hits === 1 && R.village.swellGuess.alarm === 0 && R.list.find((r: any) => r.id === 'kame').diary.some((e: any) => /長いうねりのあとに台風が来た/.test(e.text)), JSON.stringify(R.village.swellGuess));
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);
