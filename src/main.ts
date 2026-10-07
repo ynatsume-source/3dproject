@@ -571,11 +571,17 @@ let yawRate = 0, interestW = 0;
 // more kind, 1000 of it ≈ ten). The best square with at least two kinds or a good few fish is where the cruise bends
 // to — up to 18 m off its line, which goes on, so it never strays far.
 const NIGHT_DEEP = -12;   // (by night, deeper than this only where the life is rich: see the cruise)
-const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0, score: 0, deep: { ok: false, x: 0, z: 0, score: 0 } };
+const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0, score: 0, until: 0, deep: { ok: false, x: 0, z: 0, score: 0, until: 0 } };
+// (where the cruise leans to is held, and eased into: owner, 2026-10-07 — it had darted back and forth under a cliff,
+// a new "best" square each second as it turned toward the last; see findLife)
+const lean = { x: 0, z: 0, nx: 0, nz: 0 };
+const glance = { ok: false, until: 0, p: new THREE.Vector3() }, _gf = new THREE.Vector3();
 const _lifeBins = new Map<number, { n: number; x: number; z: number; kinds: Map<string, number> }>();
 function findLife() {
-  _lifeBins.clear(); life.ok = false;
-  const o = drone.pos, fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
+  _lifeBins.clear();
+  // (ahead: along the cruise's way, not the way the camera happens to face — turning toward one square must not bring
+  // another into "ahead" and the first out of it)
+  const o = drone.pos, [ax, az] = pathXZ(drone.s), b2 = pathXZ(drone.s + 0.002), pl = hyp(b2[0] - ax, b2[1] - az) || 1, fx = (b2[0] - ax) / pl, fz = (b2[1] - az) / pl;
   // (each kind counts by how much it is about at this hour — a day fish asleep in the reef by night 0.4, one awake 1:
   // by night the cruise goes where the night's fish are out, by day where the day's are)
   const env = cur!.eco.env;
@@ -590,7 +596,6 @@ function findLife() {
   }
   // (and, apart, the best square over water deeper than NIGHT_DEEP: by night the cruise goes down only to a rich one)
   let best: { n: number; x: number; z: number; kinds: Map<string, number> } | null = null, bs = 0, deep: typeof best = null, ds = 0;
-  life.deep.ok = false;
   for (const b of _lifeBins.values()) {
     if (b.kinds.size < 2 && b.n < 6) continue;
     let k = 0; for (const w of b.kinds.values()) k += w;
@@ -598,8 +603,19 @@ function findLife() {
     if (sc > bs) { bs = sc; best = b; }
     if (sc > ds && cur!.T.top(b.x / b.n, b.z / b.n) < NIGHT_DEEP) { ds = sc; deep = b; }
   }
-  if (best) { life.ok = true; life.kinds = best.kinds.size; life.score = bs; life.x = best.x / best.n; life.z = best.z / best.n; }
-  if (deep) { life.deep.ok = true; life.deep.score = ds; life.deep.x = deep.x / deep.n; life.deep.z = deep.z / deep.n; }
+  // Held: once a square is chosen it stays the one leaned to until it is reached (6 m), passed (4 m behind, along the
+  // way), or 8 s have gone by — unless one a third better turns up meanwhile. (Held 5 s and taken over by one a fifth
+  // better, it swung back and forth again: wander.cjs)
+  const now = U.uTime.value;
+  const keep = (L: { ok: boolean; x: number; z: number; score: number; until: number }, b: typeof best, sc: number) => {
+    const d = hyp(L.x - o.x, L.z - o.z), along = (L.x - o.x) * fx + (L.z - o.z) * fz;
+    const over = !L.ok || now > L.until || d < 6 || along < -4;
+    if (b && (over || sc > L.score * 1.3)) { L.ok = true; L.score = sc; L.x = b.x / b.n; L.z = b.z / b.n; L.until = now + 8; return b; }
+    if (over) L.ok = false;
+    return null;
+  };
+  const nb = keep(life, best, bs); if (nb) life.kinds = nb.kinds.size;
+  keep(life.deep, deep, ds);
 }
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
   let best = Infinity;
@@ -856,7 +872,20 @@ function updateDrone(dt: number, now: number) {
     // (a passing caption up: the eyes stay on what it is about, and the cruise all but stops — its reading time, at
     // least 4 s; let go if it falls more than 110° from the way the cruise is going, behind the camera's shoulder)
     const cf = capFollow();
-    const hasI = cf ? (_i.copy(cf), true) : findInterest(drone.pos, U.uCamFwd.value);
+    // (something worth a glance near by: held 4 s once chosen — looked for afresh each frame, turning to one brought
+    // another into view and the eyes swung back and forth: owner, 2026-10-07)
+    if (!cf) {
+      // (looked for ahead along the cruise's way, not where the eyes already are; the same one kept 4 s — what is found
+      // within 6 m of it is it, moved on — then whatever is nearest)
+      const [px0, pz0] = pathXZ(drone.s), pp = pathXZ(drone.s + 0.002), pl0 = hyp(pp[0] - px0, pp[1] - pz0) || 1;
+      _gf.set((pp[0] - px0) / pl0, 0, (pp[1] - pz0) / pl0);
+      const found = findInterest(drone.pos, _gf), fresh = U.uTime.value > glance.until || !glance.ok;
+      // (the point looked at is eased after it, never jumped: one fish of a school darting, or the next of it taken for
+      // it, had swung the eyes a radian at a time)
+      if (found && (fresh || _i.distanceTo(glance.p) < 6)) { if (fresh) { glance.until = U.uTime.value + 4; if (!glance.ok) glance.p.copy(_i); } glance.ok = true; glance.p.lerp(_i, Math.min(1, dt * 0.8)); }
+      else if (fresh) glance.ok = false;
+    }
+    const hasI = cf ? (_i.copy(cf), true) : glance.ok ? (_i.copy(glance.p), true) : false;
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * (cf ? 2 : 0.6));   // (onto what the caption is about: at once)
     const speed = (1.35 - interestW * (cf && !capLetGo ? 0.95 : 0.5)) * persona.cruise * (persona.pace ? persona.pace(t) : 1);   // (keeping something passing in view: nearly stopping)
     if ((whimT -= dt) < 0) { whimT = rr(240, 420); whim = WHIMS[Math.floor(Math.random() * WHIMS.length)]; }
@@ -874,19 +903,30 @@ function updateDrone(dt: number, now: number) {
     // is where the cruise goes: down to it, the lamp on)
     const goDeep = nightNow > 0.5 && richDeep && life.deep.score >= life.score * 0.85;
     if (nightNow > 0.5 && drone.pos.y < 0 && !cur!.loc.pelagic) {
+      let bx = 0, bz = 0;
       if (!richDeep && T0.top(_t.x, _t.z) < NIGHT_DEEP) {
-        let bx = 0, bz = 0, bt = T0.top(_t.x, _t.z);
+        let bt = T0.top(_t.x, _t.z);
         const b2 = pathXZ(drone.s + 0.002), [ax, az] = pathXZ(drone.s), tl = hyp(b2[0] - ax, b2[1] - az) || 1, nx = -(b2[1] - az) / tl, nz = (b2[0] - ax) / tl;
         for (let off = -30; off <= 30; off += 5) { const tp = T0.top(_t.x + nx * off, _t.z + nz * off); if (tp > bt && tp < -2.5) { bt = tp; bx = nx * off; bz = nz * off; } }
-        _t.x += bx; _t.z += bz;
       }
+      lean.nx += (bx - lean.nx) * Math.min(1, dt * 0.5); lean.nz += (bz - lean.nz) * Math.min(1, dt * 0.5);   // (eased: the shallower side is looked for afresh each frame)
+      _t.x += lean.nx; _t.z += lean.nz;
       _t.y = Math.min(-0.9, Math.max(T0.top(_t.x, _t.z) + 1.2, Math.min(_t.y, T0.top(_t.x, _t.z) + 2.5)));   // (within the lamp's reach of the reef)
     }
-    if (life.ok && drone.pos.y < 0 && !cur!.loc.pelagic && !(nightNow > 0.5 && !richDeep && T0.top(life.x, life.z) < NIGHT_DEEP)) {
-      const lx = goDeep ? life.deep.x : life.x, lz = goDeep ? life.deep.z : life.z;
-      let ox = (lx - _t.x) * 0.6, oz = (lz - _t.z) * 0.6; const ol = hyp(ox, oz);
-      if (ol > 18) { ox *= 18 / ol; oz *= 18 / ol; }
-      _t.x += ox; _t.z += oz;
+    {
+      let ox = 0, oz = 0;
+      const pull = life.ok && drone.pos.y < 0 && !cur!.loc.pelagic && !(nightNow > 0.5 && !richDeep && T0.top(life.x, life.z) < NIGHT_DEEP);
+      if (pull) {
+        const lx = goDeep ? life.deep.x : life.x, lz = goDeep ? life.deep.z : life.z;
+        ox = (lx - _t.x) * 0.6; oz = (lz - _t.z) * 0.6; const ol = hyp(ox, oz);
+        if (ol > 18) { ox *= 18 / ol; oz *= 18 / ol; }
+      }
+      // (eased into and out of, a few seconds either way: the way bends, it does not jump)
+      lean.x += (ox - lean.x) * Math.min(1, dt * 0.4); lean.z += (oz - lean.z) * Math.min(1, dt * 0.4);
+      if (!pull && hyp(lean.x, lean.z) < 0.05) { lean.x = lean.z = 0; }
+    }
+    if (drone.pos.y < 0 && !cur!.loc.pelagic && hyp(lean.x, lean.z) > 0.05) {
+      _t.x += lean.x; _t.z += lean.z;
       const tp = cur!.T.top(_t.x, _t.z);
       _t.y = nightNow > 0.5 ? Math.min(-0.9, tp + 2) : Math.min(-0.9, Math.max(_t.y, tp + 1.6));   // (over whatever reef is there, under the surface; by night down within the lamp's reach of it)
     }
@@ -3716,7 +3756,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { gpu: () => ({ ...renderer.info.memory, programs: renderer.info.programs?.length ?? 0, seas: Object.keys(oceans) }), openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { cruiseState: () => ({ s: drone.s, mode: drone.mode, sky: drone.sky, arrive: arrive.t, life: { ok: life.ok, x: life.x, z: life.z, score: life.score, deep: { ...life.deep } }, follow: !!capFollow(), letGo: capLetGo, night: cur?.eco.env.night ?? 0, interestW, stuckT, look: { yaw: look.yaw, held: look.held } }), gpu: () => ({ ...renderer.info.memory, programs: renderer.info.programs?.length ?? 0, seas: Object.keys(oceans) }), openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');
