@@ -170,7 +170,12 @@
 - 工程：炭と木タール `p14x_charcoal_tar_retort` 0.1.2（島の時計、状態 `civ-sci.charcoal-retort/2`）、器を封じる `p16x_vessel_tar_seal` 0.1.1（世界の時計、`civ-sci.vessel-seal/2`）、漏れの試験 `p17x_vessel_leak_test` 0.1.1（島の時計、`civ-sci.vessel-leak/2`）。換算表は `civ-sci.pot-assembly/2`。
 - 本体の目録（`src/world/process-catalog.ts`）に3つとも載せた。どれも試験用の設備（レトルト・刷毛・台）と試験用の焼いた器が要るので、島ではまだ「準備できていない」。待っているものは各項目に書いた。
 - 換算表は `POT_ASSEMBLY`（同じファイル）として本体の組み立てにつないだ。傷んでも `sealed: 1` のまま（傷みは開栓ではない）。`airtightKnown: 0`・`airLeakTauMin: 0` は「気圧計の器には使えない」の意味で、完全な気密の意味ではない。
-- **壊れた器はまだ設備のまま残す。** `potSherdsQuality`（かけらの品質）は Codex の確認がまだなので、つないでいない（上の「壊れた器は pot_sherds に戻す」は、その確認の後）。
+- ~~壊れた器はまだ設備のまま残す。~~ → 2026-10-07：`potSherdsQuality` は Codex の確認で保留解除（lab e2a4147、追加の指摘なし。科学側 FINAL_REVIEW_2026-10-06 §6、e265ff2）。`POT_ASSEMBLY` に `brokenMaterial: 'pot_sherds'`・`brokenQuality: potSherdsQuality` をつないだ。
+  - 壊れた器は、組み立てたときの写しと**同じ amount** の破片のロットに戻る。関数は写しの整数 ppm をそのまま写すので、丸めは増えない。
+  - 破片の成分は、ロット全体の mg × ppm の切り捨てで読む（分母は水とタールを含む全体）。0 ppm は省かれることがあり、欠けていれば 0。`history_complete` は元のまま（元になければ作らない）。
+  - 破片に残らないもの：`capacity_ml`・`coverage_ppm`・`sealed`・`airtight_known`・`air_leak_tau_min`・`crack_ppm`。
+  - 破片を乾かす・砕く・粘土に混ぜる工程はまだない。設備として使う間に壁の水やタールを増減させる工程を足すときは、元の写しとの精算を別に決める。
+  - 検査：`scripts/assembly-check.ts` 6（湿った・タールつき・来歴 0 の器を実際に破片へ戻す）。
 - `submerge`（水に沈めて泡を見る）は科学側で保留。漏れの試験は理由を付けて断る。気密が分からない器（`airtight_known: 0`）は棚に置いたまま。
 - 古い run（p14x 0.1.1、p16x/p17x 0.1.0、状態 /1）は、ほかの古い run と同じく中止して予約を解放する。
 - 科学の入口を本体の形で1つにした（`src/science/step/index.ts`。本体が持つ工程だけを並べる）。検査：炭 38件・器 52件・統合 93件・実行役・組み立て（本物の換算表の項目を足した）。目録の薪で焼くの版は、今回の目録で 0.1.5 にそろった。

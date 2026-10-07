@@ -9,8 +9,10 @@
 //  4 a new version of the table: the params worked out again from the copy (not for equipment in use)
 //  5 saved and loaded (JSON): all of it as it was
 //  6 the science side's own table (civ-sci.pot-assembly/2, integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
-//    sealed pot is a bulb; worn, it stays sealed, not known airtight, and is no bulb when made up again; broken, it stays
-//    equipment (what a broken one becomes waits for its own review)
+//    sealed pot is a bulb; worn, it stays sealed, not known airtight, and is no bulb when made up again; broken, it goes
+//    back to pot_sherds (potSherdsQuality, cleared by Codex lab e2a4147): a wet, tarred pot with no full history becomes
+//    sherds of the same amount, its absorption, tar, water and history_complete as they were (whole ppm, no new rounding;
+//    read as the whole lot's mg × ppm rounded down), nothing of the vessel kept; the equipment gone
 // Usage: npx tsx scripts/assembly-check.ts
 import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, type AssemblyTable, type Ledger } from '../src/world/process-runner';
 import type { LotView } from '../src/world/science-contract';
@@ -98,9 +100,22 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   want('6 real table: worn, still sealed, not known airtight', back?.quality?.sealed === 1 && back.quality?.airtight_known === 0 && back.quality?.air_leak_tau_min === undefined && back.quality?.crack_ppm === 100000, JSON.stringify(back?.quality));
   const e2 = assemble(L6, back.lotId, POT_ASSEMBLY, 2000).equipment!;
   want('6 real table: made up again, no bulb', e2?.params?.airtightKnown === 0 && e2.params?.airLeakTauMin === 0, JSON.stringify(e2?.params));
+  // (broken: a wet, tarred pot whose history is not complete — back to sherds)
+  const wetQ = { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1, airtight_known: 1, air_leak_tau_min: 1200, crack_ppm: 3000, x_wood_tar_ppm: 31234, x_water_ppm: 45678, history_complete: 0 };
+  const wet = addLot(L6, { materialId: 'fired_pot_test', amount: { value: 615_001, unit: 'mg' }, quality: { ...wetQ }, location: 'shelf' });
+  const e3 = assemble(L6, wet.lotId, POT_ASSEMBLY, 3000).equipment!;
+  L6.equipment[e3.equipmentId].condition = 0;
+  const br = disassemble(L6, e3.equipmentId, POT_ASSEMBLY), sh = br.lot!;
+  want('6 real table: broken, back to a pot_sherds lot of the same amount, the equipment gone', !!sh && sh.materialId === 'pot_sherds' && sh.amount.value === 615_001 && sh.amount.unit === 'mg' && sh.location === 'shelf' && !L6.equipment[e3.equipmentId] && !!L6.lots[sh.lotId], br.why ?? `${sh?.materialId} ${sh?.amount.value}${sh?.amount.unit}`);
+  want('6 real table: the body\'s absorption, tar, water and history kept, in the copy\'s own whole ppm', JSON.stringify(sh?.quality) === JSON.stringify({ absorption_ppm: 120000, x_wood_tar_ppm: 31234, x_water_ppm: 45678, history_complete: 0 }), JSON.stringify(sh?.quality));
+  want('6 real table: nothing of the vessel kept (capacity, coverage, seal, airtightness, crack)', ['capacity_ml', 'coverage_ppm', 'sealed', 'airtight_known', 'air_leak_tau_min', 'crack_ppm'].every((k) => !(k in (sh?.quality ?? {}))));
+  const mg = (ppm: number) => Math.floor(sh.amount.value * ppm / 1e6);   // (of the whole lot, water and tar included)
+  want('6 real table: read as the whole lot\'s mg × ppm, rounded down', mg(sh.quality!.x_wood_tar_ppm) === 19208 && mg(sh.quality!.x_water_ppm) === 28092, `tar ${mg(sh.quality!.x_wood_tar_ppm)} mg, water ${mg(sh.quality!.x_water_ppm)} mg`);
+  // (a dry, untarred one with its history: only what it has; 0 ppm left out, read as 0)
   L6.equipment[e2.equipmentId].condition = 0;
-  const br = disassemble(L6, e2.equipmentId, POT_ASSEMBLY);
-  want('6 real table: broken, it stays as it is for now', !!br.why && !!L6.equipment[e2.equipmentId], br.why ?? '');
+  const dry = disassemble(L6, e2.equipmentId, POT_ASSEMBLY).lot!;
+  want('6 real table: a dry, untarred one: absorption only (missing is 0), no history made up', dry?.materialId === 'pot_sherds' && dry.amount.value === 615_000 && JSON.stringify(dry.quality) === JSON.stringify({ absorption_ppm: 120000 }), JSON.stringify(dry?.quality));
+  want('6 real table: saved and loaded, the sherds as they were', JSON.stringify(JSON.parse(JSON.stringify(L6)).lots[sh.lotId]) === JSON.stringify(L6.lots[sh.lotId]));
 }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }

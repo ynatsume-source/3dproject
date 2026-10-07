@@ -15,7 +15,7 @@ import { kneadStep, KNEAD_PROCESS } from '../science/step/knead';
 import { coconutMilkStep, coconutBoilStep, COCONUT_MILK_PROCESS, COCONUT_BOIL_PROCESS } from '../science/step/coconut';
 import { barometerStep, BAROMETER_PROCESS } from '../science/step/barometer';
 import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
-import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn } from '../science/step/vessel';
+import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn, potSherdsQuality } from '../science/step/vessel';
 import type { AssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
@@ -105,8 +105,12 @@ export const CATALOG: CatalogEntry[] = [
 /** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,
  *  integrated 2026-10-06). A worn one stays sealed and is no longer known to be airtight; its params then say it will
  *  not do for a barometer's bulb (airtightKnown 0, airLeakTauMin 0) — not that it is perfectly airtight. A broken one
- *  stays as it is for now: what it becomes (pot_sherds, potSherdsQuality) waits for its own review. */
+ *  goes back to a lot of pot_sherds of the same amount as the copy, its quality from potSherdsQuality (cleared by Codex,
+ *  lab e2a4147; science FINAL_REVIEW_2026-10-06 §6): the body's absorption, the tar and the water in its walls and
+ *  history_complete as the copy had them, in its whole ppm (no further rounding) — read as the whole lot's mg × ppm,
+ *  rounded down (water and tar included in the whole); nothing of the vessel (capacity, coverage, seal, airtightness,
+ *  crack) is kept. */
 export const POT_ASSEMBLY: AssemblyTable = {
   version: POT_ASSEMBLY_TABLE, kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, materials: ['fired_pot_test'],
-  toParams: potToEquipmentParams, qualityOnReturn: potQualityOnReturn,
+  toParams: potToEquipmentParams, qualityOnReturn: potQualityOnReturn, brokenMaterial: 'pot_sherds', brokenQuality: potSherdsQuality,
 };
