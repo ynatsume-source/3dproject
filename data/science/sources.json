@@ -240,6 +240,74 @@
         "format": "UTF-8 JSON",
         "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
       }
+    },
+    {
+      "id": "fao-pond-water-requirements-ch2",
+      "title": "FAO Simple methods for aquaculture — Water: Estimates of water requirements, §2.1",
+      "url": "https://www.fao.org/fishery/static/FAO_Training/FAO_Training/General/x6705e/x6705e02.htm",
+      "sourceType": "primary-official-technical-manual",
+      "accessedDateJst": "2026-10-07",
+      "verification": "Official full chapter body via browser, including §2.1 tables",
+      "calibrationEligible": false,
+      "supports": "Puddled clay and loamy clay are listed at about 1 mm/day seepage, rather than zero.; New ponds initially lose more water; water losses depend on soil texture and structure.",
+      "doesNotVerify": "These are fish-pond guidance rates, not measurements on the island raw clay or a 20 mm lining. No site-specific calibration.; Do not transplant 1 mm/day to the simulation as a measured constant.",
+      "artifact": {
+        "path": "data/science/evidence/fao-pond-water-requirements-ch2.json",
+        "sha256": "dca9669452d66fce708687e2e20be81490d321d053456b16fc39e2b306fe1689",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original HTML/PDF"
+      }
+    },
+    {
+      "id": "fao-controlling-water-losses-ch3",
+      "title": "FAO Simple methods for aquaculture — Controlling water losses in ponds, §§3.2–3.4",
+      "url": "https://www.fao.org/fishery/static/FAO_Training/FAO_Training/General/x6709e/x6709e03.htm",
+      "sourceType": "primary-official-technical-manual",
+      "accessedDateJst": "2026-10-07",
+      "verification": "Official full chapter body via browser",
+      "calibrationEligible": false,
+      "supports": "Puddling breaks saturated soil structure to reduce seepage.; Soil blanket example uses two 15 cm layers, well graded with at least 20 percent clay, moistened and compacted.; Protected subsurface blanket for smaller ponds uses at least 5 cm compacted clayey soil beneath restored soil.; Blankets should be protected against drying cracks and mechanical rupture.",
+      "doesNotVerify": "These design examples cannot be used as a minimum thickness specification for a 34 L pottery pit.; Wetness and a roof do not independently establish zero permeability of a 2 cm lining.",
+      "artifact": {
+        "path": "data/science/evidence/fao-controlling-water-losses-ch3.json",
+        "sha256": "6d790c78384a3b266883a10d2156bf4ccea00f4da3d7335a1c530d3baf55af1d",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original HTML/PDF"
+      }
+    },
+    {
+      "id": "fao-pond-construction-ch12-labour",
+      "title": "FAO Pond construction for freshwater fish culture — Detailed planning, §12.7 Table 51",
+      "url": "https://www.fao.org/fishery/static/FAO_Training/FAO_Training/General/x6708e/x6708e12.htm",
+      "sourceType": "primary-official-technical-manual",
+      "accessedDateJst": "2026-10-07",
+      "verification": "Official full chapter body via browser, §12.7 Table 51",
+      "calibrationEligible": false,
+      "supports": "Manual soft alluvial/sandy soil excavation and throwing 1 m away for average-strength workers is 2.5–3 cubic metres per 8 hours by hoe and 3.5–4 by pick/shovel.; Higher soil hardness and excess water reduce outputs; these are planning standards.",
+      "doesNotVerify": "Not an experimental time series for improvised tools or an isolated island.; No matching lining, transport, roof-building or hand-power measurements obtained.",
+      "artifact": {
+        "path": "data/science/evidence/fao-pond-construction-ch12-labour.json",
+        "sha256": "5b8b70457e865670e51fac9ab830fc3c67bae733c971b50e9c0afcd29be885ac",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original HTML/PDF"
+      }
+    },
+    {
+      "id": "panno-et-al-compacted-soil-liner-1991",
+      "title": "Field-scale investigation of infiltration into a compacted soil liner",
+      "url": "https://www.usgs.gov/publications/field-scale-investigation-infiltration-a-compacted-soil-liner",
+      "sourceType": "primary-research-abstract-on-author-institution",
+      "accessedDateJst": "2026-10-07",
+      "verification": "Full abstract on USGS; original journal article and raw measurements not obtained",
+      "calibrationEligible": false,
+      "supports": "A compacted experimental liner 8 m × 15 m × 0.9 m was flooded in April 1988 and monitored for two years using ring infiltrometers and a water-balance method.; Estimated mean saturated hydraulic conductivity was 4.0e-8 cm/s and 3.4e-8 cm/s in first and second years using small-ring data.",
+      "doesNotVerify": "Liner thickness 0.9 m, engineered compaction, and waste-facility design differ from a 0.02 m hand-puddled clay potting pit.; These conductivity values must not be assigned to the island soil.; HTML hash identifies retrieved abstract page, not the journal PDF or raw data.",
+      "artifact": {
+        "path": "data/science/evidence/panno-et-al-compacted-soil-liner-1991.json",
+        "sha256": "df63b4daccdc2a57c1884fb0cfd101afae3e8901405c113161b942d9c74ced35",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original HTML/PDF"
+      }
     }
   ]
 }

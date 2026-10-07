@@ -18,6 +18,9 @@ import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
 import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn, potSherdsQuality } from '../science/step/vessel';
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
 import { potShapeStep, potDryStep, POT_SHAPE_PROCESS, POT_DRY_PROCESS } from '../science/step/pottery';
+import { clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
+/** The clay pit the residents dig (science table civ-sci.clay-pit/1): the recommended size, under the hut's roof. */
+export const CLAY_PIT_PLAN = { diameterCm: 50, depthCm: 25, sunExposure: 0 };
 import type { AssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
@@ -32,8 +35,16 @@ export interface CatalogEntry {
   energy?: (from: number, to: number) => EnergyOffer[];
   /** An operator action the first request carries at its start (what to make: p11y's plan). */
   start?: { action: string; params: Record<string, number> };
+  /** Equipment the residents make themselves first (its kind): the process waits until it stands. */
+  built?: string;
+  /** Clay that is too stiff: rain water measured out to bring it to this water ratio (per dry mass) as it is worked. */
+  wetTo?: number;
+  /** Not with less of its material than this (mg): what one go takes. */
+  minInputMg?: number;
   /** A process that ends when the operator does something (takes the tile off the rack): after how long, on its clock. */
   finish?: { action: string; afterMs: number };
+  /** The operator's work along the way, before it is finished (on its clock, from the start): soaking's sieve and pour-offs. */
+  steps?: { action: string; afterMs: number }[];
   tend: 'stay' | 'leave';                       // hand work keeps Lantern at it; a process that only waits does not
   /** A gauge: set once and left running; the operator reads it every so often (on its clock). It does not keep Lantern
    *  from other work. */
@@ -60,14 +71,21 @@ export const CATALOG: CatalogEntry[] = [
   // (integrated 2026-10-05: the science team's final review FINAL_REVIEW_2026-10-05.md §5)
   { processId: SLAKE_PROCESS.processId, processVersion: SLAKE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '粘土を水に浸して、こして沈める', input: 'raw_clay', inputJa: '粘土', also: [{ input: 'process_water', ja: '真水（乾いた土の1.5倍以上）' }],
-    equipment: { kind: 'fixture_clay_tub', catalogEntry: 'fixture_clay_tub', catalogVersion: TEST, condition: 1, params: { capacityMl: 40000, surfaceCm2: 1500, sunExposure: 0 }, ja: '桶' },
+    // (0.1.2: the residents' own clay pit is its tub — science final review 2026-10-07-clay-pit)
+    equipment: { kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: TEST, condition: 1, params: clayPitParams(CLAY_PIT_PLAN), ja: '粘土の池（小屋の屋根の下）' }, built: CLAY_PIT,
+    // (the operator's work as the science side's own check does it: sieve after a day, pour off at two and a half and at
+    // four, take out at nine and a quarter — island days)
     step: slakeStep, env: 'record', tend: 'leave',
-    ready: false, waits: '真水の元と、' + NO_VESSEL },
+    steps: [{ action: 'sieve', afterMs: 86_400_000 }, { action: 'decant', afterMs: 2.5 * 86_400_000 }, { action: 'decant', afterMs: 4 * 86_400_000 }],
+    finish: { action: 'take_out', afterMs: 9.25 * 86_400_000 },
+    ready: true, waits: '粘土の池（ランタンが掘る）と、雨受けの真水' },
   { processId: KNEAD_PROCESS.processId, processVersion: KNEAD_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
     ja: '沈めた粘土を練る', input: 'settled_clay', inputJa: '沈めた粘土',
-    equipment: { kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: TEST, condition: 1, params: {}, ja: '作業台' },
-    step: kneadStep, env: 'record', energy: handsW(25), tend: 'stay',
-    ready: false, waits: '沈めた粘土（粘土の下ごしらえが島で動いてから）' },
+    equipment: { kind: 'fixture_bench', catalogEntry: 'fixture_bench', catalogVersion: TEST, condition: 1, params: {}, ja: '作業台（ドットの作業台）' },
+    // (stiff clay — settled clay that has stood in the pit dries — is wetted as it is kneaded: the science side takes the
+    // whole of a water lot, so the world measures out what brings it to a quarter of its dry weight, as for coiling)
+    step: kneadStep, env: 'record', energy: handsW(25), tend: 'stay', wetTo: 0.25,
+    ready: true, waits: '沈めた粘土（粘土の池で浸してから）' },
   { processId: COCONUT_MILK_PROCESS.processId, processVersion: COCONUT_MILK_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
     ja: 'ヤシの実を割って、削って、しぼる', input: 'coconut', inputJa: 'ヤシの実',
     equipment: { kind: 'fixture_coconut_tools', catalogEntry: 'fixture_coconut_tools', catalogVersion: TEST, condition: 1, params: {}, ja: '割る・削る・しぼる道具' },
@@ -114,16 +132,16 @@ export const CATALOG: CatalogEntry[] = [
   // (pots, the first half: science final review 2026-10-07-pottery, Codex a363557. Coiled by hand — no tool; the first
   // request says what to make. Dried on the same rack as the tiles, under leaves; taken off part-dried, a pot keeps how far
   // it has dried and goes on in the next run)
-  { processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
-    ja: '粘土を紐にして積み、鍋を形づくる', input: 'prepared_clay', inputJa: '下ごしらえした粘土',
-    equipment: null, start: { action: 'plan', params: { form: 1, capacityMl: 3000 } },
-    step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay',
-    ready: false, waits: '下ごしらえした粘土（粘土を浸す桶＝粘土の池ができてから）' },
   { processId: POT_DRY_PROCESS.processId, processVersion: POT_DRY_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '器を棚で乾かす（葉で覆って）', input: 'green_pot', inputJa: '形づくった器',
-    equipment: { kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: TEST, condition: 1, params: { sunExposure: 0, covered: 1 }, ja: '乾燥の棚（葉で覆う）' },
+    equipment: { kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: TEST, condition: 1, params: { sunExposure: 0, covered: 1 }, ja: '乾燥の棚（小屋の棚、葉で覆う）' },
     step: potDryStep, env: 'record', finish: { action: 'take_off', afterMs: 14 * 86_400_000 }, tend: 'leave',
-    ready: false, waits: '形づくった器（形づくるのが島で動いてから）' },
+    ready: true, waits: '形づくった器' },
+  { processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    ja: '粘土を紐にして積み、鍋を形づくる', input: 'prepared_clay', inputJa: '下ごしらえした粘土',
+    equipment: null, start: { action: 'plan', params: { form: 1, capacityMl: 3000 } }, minInputMg: 1_500_000,   // (a 3 L cook pot takes about 1.4 kg)
+    step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay',
+    ready: true, waits: '下ごしらえした粘土（池で浸して練ってから）' },
 ];
 
 /** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,

@@ -1,0 +1,41 @@
+{
+  "reviewTarget": "7601336",
+  "retrievedOn": "2026-10-07",
+  "calibrationEligible": false,
+  "id": "panno-et-al-compacted-soil-liner-1991",
+  "title": "Field-scale investigation of infiltration into a compacted soil liner",
+  "authors": [
+    "Samuel V. Panno",
+    "Beverly L. Herzog",
+    "Keros Cartwright",
+    "Kenneth R. Rehfeldt",
+    "Ivan G. Krapac",
+    "Bruce R. Hensel"
+  ],
+  "url": "https://www.usgs.gov/publications/field-scale-investigation-infiltration-a-compacted-soil-liner",
+  "doi": "10.1111/j.1745-6584.1991.tb00579.x",
+  "sourceType": "primary-research-abstract-on-author-institution",
+  "retrieval": {
+    "scope": "Full abstract on USGS; original journal article and raw measurements not obtained",
+    "workspaceRawDownload": "HTTP 200 HTML, 86909 bytes",
+    "rawFileSha256": "6c73d4d420f472653ecbd221b5a3a05760f1efb3f27520aa4099d016292c6b9e"
+  },
+  "facts": [
+    {
+      "statement": "A compacted experimental liner 8 m × 15 m × 0.9 m was flooded in April 1988 and monitored for two years using ring infiltrometers and a water-balance method.",
+      "location": "USGS abstract"
+    },
+    {
+      "statement": "Estimated mean saturated hydraulic conductivity was 4.0e-8 cm/s and 3.4e-8 cm/s in first and second years using small-ring data.",
+      "location": "USGS abstract",
+      "firstYearK": 4e-08,
+      "secondYearK": 3.4e-08,
+      "unit": "cm/s"
+    }
+  ],
+  "limits": [
+    "Liner thickness 0.9 m, engineered compaction, and waste-facility design differ from a 0.02 m hand-puddled clay potting pit.",
+    "These conductivity values must not be assigned to the island soil.",
+    "HTML hash identifies retrieved abstract page, not the journal PDF or raw data."
+  ]
+}

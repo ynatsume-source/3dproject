@@ -26,7 +26,10 @@ import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
-import { CATALOG, MATERIAL_JA, type CatalogEntry } from '../world/process-catalog';
+import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, type CatalogEntry } from '../world/process-catalog';
+import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
+import { RAW_CLAY_SOUTH } from '../world/planet-map';
+import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
 import { phrase, NO_WHY, type Frame, type Who, type DayItem } from './lumau/frames';
@@ -455,6 +458,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
     felled: [] as { x: number; z: number; h: number; kind: number; at: number }[],
+    clayPit: null as null | { at: number; diameterCm: number; depthCm: number },
     prepBy: '', prepSaved: [] as string[], heed: {} as Record<string, number>, onsetHunger: {} as Record<string, number>, stormLog: [] as { at: number; warned: boolean; by: string; saved: string[]; lost: string[] }[] };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
@@ -862,7 +866,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (outcome === 'reached') {
       // what the raft brings home goes on the shelf by the hut, as the world's own lots: Lantern's science draws on them
       const brought = (i.carry ?? []).map((c) => ({ c, fresh: !Object.values(lab.lots).some((x) => x.materialId === c.materialId) }));
-      for (const b of brought) addLot(lab, { lotId: `lot:${i.id}:${++lab.seq}`, materialId: b.c.materialId, amount: { value: b.c.mg, unit: 'mg' }, location: 'shelf' });
+      for (const b of brought) addLot(lab, { lotId: `lot:${i.id}:${++lab.seq}`, materialId: b.c.materialId, amount: { value: b.c.mg, unit: 'mg' }, location: 'shelf', ...(b.c.quality ? { quality: { ...b.c.quality } } : {}) });
       drawStore();
       const firstTime = !village.map.reached[i.id];
       village.map.reached[i.id] = { at: clockMs };
@@ -1208,7 +1212,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // Lantern: a process it can run, with its material on the shelf — while it is awake (it works by its own light), hands
     // free (the world runs it)
     if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed' && !catalog.find((c) => c.processId === x.processId)?.gauge)) {   // (a gauge left reading does not keep it from other work)
-      const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot?.lotId ?? '', more: e.more.map((l) => l.lotId) } });
+      const pt = pitTask(); if (pt) return pt;   // (the clay pit first: the island's first tub)
+      const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 4 * 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot?.lotId ?? '', more: e.more.map((l) => l.lotId) } });
     }
     // the pier, once they have agreed on it
     if (village.pier === 'plan' && r.id === 'kame') return task('survey', along(1), 'look', rr(60, 120));
@@ -1640,13 +1645,53 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const from = (id: string) => [...new Set(shelfLots().filter((l) => l.materialId === id).map((l) => village.map.seen[l.lotId.split(':')[1]]?.word ?? '工程'))].join('・');
     return [...by].map(([id, mg]) => `${ja(id)} ${+(mg / 1e6).toFixed(1)}kg（${from(id)}から、小屋の棚）`);
   }
+  /* ---------- the clay pit: the island's first tub (science table civ-sci.clay-pit/1) ---------- */
+  // Lantern digs a round hole in the sand under the hut's roof and treads raw clay into its floor and walls — the clay from
+  // the shelf, as much as the table says — and the soaking step takes it as its tub. (The science side's pit is an
+  // idealisation: a sound lining holds its water. Nothing here teaches the residents that an earth pit never leaks.)
+  let pitG: THREE.Group | null = null;   // (made when first needed: three.js draws an id for each thing it makes)
+  function drawPit() {
+    if (!village.clayPit) { if (pitG) pitG.visible = false; return; }
+    if (!pitG) {
+      pitG = new THREE.Group();
+      const r = village.clayPit.diameterCm / 200, w = atHut(0.2, 0.1); pitG.position.set(w.x, L.h(w.x, w.z), w.z); group.add(pitG);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 6, 20), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 1 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.03; pitG.add(rim);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(r - 0.03, 20), new THREE.MeshStandardMaterial({ color: 0x6a5a48, roughness: 0.3 })); water.rotation.x = -Math.PI / 2; water.position.y = 0.01; pitG.add(water);
+    }
+    pitG.visible = true;
+  }
+  const PIT_NEEDS = clayPitMaterials(CLAY_PIT_PLAN);
+  const rawClayOnShelf = () => shelfLots().filter((l) => l.materialId === 'raw_clay' && !(l as any).reservedBy).reduce((n, l) => n + l.amount.value, 0);
+  /** Lantern digs the pit when there is a roof to put it under, clay enough for its lining and still some to soak, and
+   *  rain water to soak it in. */
+  function pitTask(): Task | null {
+    if (village.clayPit || !roofDone() || !village.catcher || rawClayOnShelf() < PIT_NEEDS.rawClayMg + 1e6) return null;
+    const w = atHut(0.2, 1.3); return task('pit', [w.x, w.z], 'dig', PIT_NEEDS.handSeconds, {});
+  }
+  function digPit(r: Resident) {
+    let need = PIT_NEEDS.rawClayMg;
+    for (const l of shelfLots().filter((x) => x.materialId === 'raw_clay' && !(x as any).reservedBy)) {
+      const take = Math.min(need, l.amount.value); l.amount.value -= take; need -= take;
+      if (l.amount.value <= 0) delete lab.lots[l.lotId];
+      if (need <= 0) break;
+    }
+    if (need > 0) return false;
+    lab.world.worldVersion++;
+    const params = clayPitParams(CLAY_PIT_PLAN);
+    lab.equipment[`eq:${CLAY_PIT}`] = { equipmentId: `eq:${CLAY_PIT}`, kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params };
+    village.clayPit = { at: clockMs, diameterCm: CLAY_PIT_PLAN.diameterCm, depthCm: CLAY_PIT_PLAN.depthCm };
+    drawPit(); drawStore();
+    note(r, 'pit', {}, `小屋の屋根の下に粘土の池を掘った（直径${CLAY_PIT_PLAN.diameterCm}cm・深さ${CLAY_PIT_PLAN.depthCm}cm。生の粘土${Math.round(PIT_NEEDS.rawClayMg / 1e6)}kgで底と壁を踏み固めた。入るのは約${Math.round(params.capacityMl / 1000)}L）`);
+    res.onEvent('pit', `${r.v.name}が粘土の池を掘った。粘土を浸せるようになった`, r);
+    return true;
+  }
   /* ---------- Lantern's processes (the science core, run by the world) ---------- */
   const shelfStand = (): [number, number] => { const w = atHut(1.6, -3.2); return [w.x, w.z]; };   // (in front of the shelf, clear of the hut: room for Lantern's wide body)
   /** The processes that can run now: ready, with their material on the shelf and not in use. */
   function labReady() {
-    const free = (id: string) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy);
-    return catalog.filter((e) => e.ready && (e.env !== 'record' || islandWeather(clockMs))).flatMap((entry) => {   // (not before the island's record is in: a process given unknown weather would only fail)
-      const lot = entry.input ? free(entry.input) : undefined, more = (entry.also ?? []).map((a) => free(a.input));
+    const free = (id: string, min = 0) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy && l.amount.value >= min);
+    return catalog.filter((e) => e.ready && (!e.built || !!lab.equipment[`eq:${e.built}`]) && (e.env !== 'record' || islandWeather(clockMs))).flatMap((entry) => {   // (equipment they make themselves: once it stands)   // (not before the island's record is in: a process given unknown weather would only fail)
+      const lot = entry.input ? free(entry.input, entry.minInputMg) : undefined, more = (entry.also ?? []).map((a) => free(a.input));
       return (entry.input && !lot) || more.some((m) => !m) || village.labRuns.some((x) => x.processId === entry.processId && !entry.input) ? [] : [{ entry, lot, more: more as LotView[] }];
     });
   }
@@ -1663,6 +1708,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const e = catalog.find((x) => x.processId === tk.data.processId), lot = tk.data.lotId ? lab.lots[tk.data.lotId] : undefined;
     const lotIds: string[] = [...(lot ? [lot.lotId] : []), ...((tk.data.more ?? []) as string[])];
     if (!e || (e.input && !lot) || lotIds.some((id) => !lab.lots[id] || (lab.lots[id] as any).reservedBy)) { tk.failed = 'gone'; tk.t = tk.dur; return; }
+    // (too stiff to work: rain water measured out of the shelf's to bring it to the entry's water ratio)
+    let wetted = 0;
+    if (e.wetTo && lot?.quality?.water_ppm !== undefined) {
+      const w = lot.quality.water_ppm / 1e6, water = lot.amount.value * w, need = Math.floor(e.wetTo * lot.amount.value * (1 - w) - water);
+      const src = need > 0 ? shelfLots().find((l) => l.materialId === 'process_water' && !(l as any).reservedBy && l.amount.value > need) : undefined;
+      if (src) { src.amount.value -= need; const add = addLot(lab, { materialId: 'process_water', amount: { value: need, unit: 'mg' }, location: src.location, ...(src.quality ? { quality: { ...src.quality } } : {}) }); lotIds.push(add.lotId); wetted = need; }
+    }
     const eqIds = [e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => {
       const eqId = `eq:${q.kind}`;
       if (!lab.equipment[eqId]) { const { ja: _, ...eq } = q; lab.equipment[eqId] = { ...eq, equipmentId: eqId }; }
@@ -1671,7 +1723,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const { run, why } = startRun(lab, { processId: e.processId, processVersion: e.processVersion, catalogVersion: e.catalogVersion, contract: e.contract, clock: e.clock, lotIds, equipmentIds: eqIds, operator: `res:${r.id}` }, clockMs);
     if (!run) { tk.failed = 'unavailable'; tk.t = tk.dur; r.diary.push({ at: clockMs, text: `${e.ja}：始められなかった（${why}）`, key: 'study' }); return; }
     tk.data.runId = run.runId; village.labRuns.push({ runId: run.runId, processId: e.processId, by: r.id, startOnClock: run.lastTo });
-    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${lot ? `${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、` : ''}${[e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => q!.ja).join('・') || '手だけ'}）`, key: 'study' });
+    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${lot ? `${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、` : ''}${wetted ? `硬いので水 ${+(wetted / 1000).toFixed(0)}g を足して、` : ''}${[e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => q!.ja).join('・') || '手だけ'}）`, key: 'study' });
     if (e.tend === 'leave') tk.t = tk.dur;
   }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
@@ -1686,8 +1738,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const reads: { at: number; action: string }[] = [];
       if (e.gauge) { const now = toClock(e.clock, clockMs); for (let k = Math.max(1, Math.ceil((run.lastTo - x.startOnClock) / e.gauge.everyMs)); x.startOnClock + k * e.gauge.everyMs <= now && reads.length < 40; k++) reads.push({ at: x.startOnClock + k * e.gauge.everyMs, action: e.gauge.action }); }
       // (the start's action — what to make — falls in the first request only)
-      const out = advance(lab, x.runId, e.step, { realNow: clockMs, environment: (at) => envFor(e, at), energy: e.tend === 'stay' && !tending ? undefined : e.energy,
-        actions: [...(e.start ? [{ at: x.startOnClock, action: e.start.action, params: e.start.params }] : []), ...(e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : reads)], ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+      const out = advance(lab, x.runId, e.step, { realNow: clockMs, environment: (at) => envFor(e, at), energy: e.tend === 'stay' && !tending ? (e.energy ? (f: number, t: number) => e.energy!(f, t).map((o) => ({ ...o, maxJ: 0 })) : undefined) : e.energy,   // (hands taken away: offered, but nothing)
+        actions: [...(e.start ? [{ at: x.startOnClock, action: e.start.action, params: e.start.params }] : []), ...(e.steps ?? []).map((q) => ({ at: x.startOnClock + q.afterMs, action: q.action })), ...(e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : reads)], ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+      if (tending && lab.runs[x.runId]?.status !== 'running' && lab.runs[x.runId]?.status !== 'starting') by.task!.t = by.task!.dur;   // (its hand work done: it is free)
       if (e.gauge) for (const c of out) for (const o of c.observations ?? []) {
         // (what it read, as it read it: a count of marks on the stick, or what it saw instead)
         const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}` : o.text ? `${e.ja}：${o.text}` : '';
@@ -2038,6 +2091,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (big) { note(r, 'house', {}, big); res.onEvent('house', `${r.v.name}：${big}`, r); }
         break;
       }
+      case 'pit': if (!village.clayPit && !digPit(r)) tk.failed = 'unavailable'; break;
       case 'fell': {
         const t = T.forest?.fell(tk.data.x, tk.data.z); if (!t) { tk.failed = 'gone'; break; }
         const dir = Math.atan2(t.x - r.pos.x, t.z - r.pos.z), fx = Math.sin(dir), fz = Math.cos(dir), n = t.h > 7 ? 3 : 2;
@@ -2623,9 +2677,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
+    // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
+    for (const l of Object.values(lab.lots)) if (l.materialId === 'raw_clay' && !l.quality?.water_ppm) l.quality = { ...RAW_CLAY_SOUTH };
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
     delete (village as any).store;
     // (a run saved under a process version the island no longer has is not resumed: it is ended, what it held freed)
@@ -2677,7 +2733,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     };
     if (tk && !tk.arrived && toward[k]) return toward[k] + left;
     const base: Record<string, string> = {
-      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
+      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
       explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
       visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を写真に撮っている`, answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',

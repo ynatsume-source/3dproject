@@ -9,12 +9,16 @@ export interface Isle {
   id: string; lat: number; lon: number; areaKm2: number;
   ja: string;                    // how the watcher is told of it (direction and size, not a human name)
   has: string[];                 // what is there that home has not (found when reached)
-  carry?: { materialId: string; ja: string; mg: number }[];   // what one raft trip brings home (for Lantern's science)
+  carry?: { materialId: string; ja: string; mg: number; quality?: Record<string, number> }[];   // what one raft trip brings home (for Lantern's science), and what it is made of
   earth: string;                 // the Earth's name, for the watcher's pages only — never to a resident
 }
 export const HOME = { lat: 24.361, lon: 123.997 };
+/** The clay of the island to the south, as dug: what it is made of (the science side reads it as raw_clay: water, the
+ *  fine part xd_* and the coarse part xc_* — sand, stones, roots). Assumed for now: the science team's own example of a
+ *  raw clay (scripts/science-clay-prep-check.ts RAW), until the island's clay is described from a source. */
+export const RAW_CLAY_SOUTH: Record<string, number> = { water_ppm: 200_000, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 350_000, xd_organic_c_ppm: 10_000, xc_quartz_ppm: 150_000, xc_inert_mineral_ppm: 50_000, xc_organic_c_ppm: 5_000 };
 export const ISLES: Isle[] = [
-  { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], carry: [{ materialId: 'raw_clay', ja: '粘土', mg: 10e6 }, { materialId: 'bamboo', ja: '竹', mg: 6e6 }, { materialId: 'reed', ja: '葦', mg: 3e6 }], earth: '小浜島' },
+  { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], carry: [{ materialId: 'raw_clay', ja: '粘土', mg: 10e6, quality: RAW_CLAY_SOUTH }, { materialId: 'bamboo', ja: '竹', mg: 6e6 }, { materialId: 'reed', ja: '葦', mg: 3e6 }], earth: '小浜島' },
   { id: 'east-flat', lat: 24.326, lon: 124.087, areaKm2: 5.4, ja: '東の平たい島', has: ['白い石灰岩'], carry: [{ materialId: 'limestone', ja: '石灰岩', mg: 15e6 }], earth: '竹富島' },
   { id: 'west-big', lat: 24.33, lon: 123.81, areaKm2: 289, ja: '西の大きな島', has: ['川（真水）', '大きな森', 'マングローブ'], earth: '西表島' },
   { id: 'east-big', lat: 24.4, lon: 124.15, areaKm2: 222, ja: '東の山のある島', has: ['山', 'いろいろな岩'], earth: '石垣島' },

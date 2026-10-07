@@ -1,0 +1,36 @@
+{
+  "reviewTarget": "7601336",
+  "retrievedOn": "2026-10-07",
+  "calibrationEligible": false,
+  "id": "fao-controlling-water-losses-ch3",
+  "title": "FAO Simple methods for aquaculture — Controlling water losses in ponds, §§3.2–3.4",
+  "url": "https://www.fao.org/fishery/static/FAO_Training/FAO_Training/General/x6709e/x6709e03.htm",
+  "sourceType": "primary-official-technical-manual",
+  "retrieval": {
+    "scope": "Official full chapter body via browser",
+    "workspaceRawDownload": "HTTP CONNECT 403",
+    "rawFileSha256": null
+  },
+  "facts": [
+    {
+      "statement": "Puddling breaks saturated soil structure to reduce seepage.",
+      "location": "§3.2"
+    },
+    {
+      "statement": "Soil blanket example uses two 15 cm layers, well graded with at least 20 percent clay, moistened and compacted.",
+      "location": "§3.4(1)"
+    },
+    {
+      "statement": "Protected subsurface blanket for smaller ponds uses at least 5 cm compacted clayey soil beneath restored soil.",
+      "location": "§3.4(2)"
+    },
+    {
+      "statement": "Blankets should be protected against drying cracks and mechanical rupture.",
+      "location": "§3.4(1)(g)"
+    }
+  ],
+  "limits": [
+    "These design examples cannot be used as a minimum thickness specification for a 34 L pottery pit.",
+    "Wetness and a roof do not independently establish zero permeability of a 2 cm lining."
+  ]
+}

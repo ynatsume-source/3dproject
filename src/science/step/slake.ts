@@ -29,11 +29,11 @@ import { pv } from '../params';
 import { pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, isInt, subStepEnd, wind10m } from './common';
 
-export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.1' } as const;
+export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.2' } as const;
 const SCHEMA = 'civ-sci.clay-slake/2';
-const EVAL = 'clay-slake-eval/0.1.1';
+const EVAL = 'clay-slake-eval/0.1.2';
 const FINE_CLAYS = ['settled_clay', 'prepared_clay'];
-const TUB = 'fixture_clay_tub';
+const TUB = 'fixture_clay_tub', PIT = 'clay_pit'; // 0.1.2: the island's clay pit (step/clay-pit.ts) is a tub too
 const STEP_MS = 30_000;
 const SOLID_DENSITY = 2.6; // g/cm³ of the dry part, for the tub's capacity only (assumed)
 
@@ -135,8 +135,8 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
   }
   const raw = clays[0], water: LotView | undefined = waters[0], fineInput = raw.materialId !== 'raw_clay';
   if (!fineInput && !water) return failed(req, EVAL, 'raw clay is soaked in water: reserve a process_water lot', SCHEMA);
-  const tub = req.equipment.find((e) => e.kind === TUB);
-  if (!tub && req.stop !== 'equipment-lost') return failed(req, EVAL, `no ${TUB}`, SCHEMA);
+  const tub = req.equipment.find((e) => e.kind === TUB || e.kind === PIT);
+  if (!tub && req.stop !== 'equipment-lost') return failed(req, EVAL, `no ${TUB} or ${PIT}`, SCHEMA);
   if (req.energy.length) return failed(req, EVAL, 'soaking and settling use no offered energy (evaporation takes its heat from the air)', SCHEMA);
   const fps = req.lots.map(fingerprint).sort();
   const eqFp = tub ? JSON.stringify([tub.equipmentId, Object.entries(tub.params ?? {}).sort(([a], [b]) => a.localeCompare(b))]) : '';
