@@ -96,7 +96,7 @@ export class Director {
     // for, a leap, a ride through the cave, a rare sight and a hunt still going keep their own time.
     if (!forced && !best.tour && !best.breach && !best.comes && best.hold == null && !best.key.startsWith('rare:'))
       this.dur = Math.min(this.dur, best.kind === 'giant' || best.kind === 'manta' ? rr(10, 14) : rr(8, 12));
-    this.watched.set(speciesOf(best), this.clock);
+    if (forced) this.watched.set(speciesOf(best), this.clock);   // (asked for: seen, whatever happens; else once it has had a look, below)
     this.began = this.clock; this.brief = !forced && !best.tour && !best.breach && !best.comes && best.hold == null && !best.key.startsWith('rare:');
     this.recent.set(best.key, this.clock);
     this.bored.set(speciesOf(best), (this.bored.get(speciesOf(best)) ?? 0) + 1);
@@ -119,7 +119,9 @@ export class Director {
   // ten minutes), whether it was just filmed, how rare or grand it is, and the guide's own taste.
   private bored = new Map<string, number>();
   // once a kind has been properly looked at, the cruise leaves it be for a while (owner, 2026-10-06: a turtle
-  // seen once need not be gone back to soon) — variety: the reef's small fish, the anemone's family, the rest
+  // seen once need not be gone back to soon) — variety: the reef's small fish, the anemone's family, the rest. The
+  // big ones and the turtles not at all; the reef's small lives (a school, an anemone's family, a critter) only less
+  // — when nothing new is near, they are still better than empty water
   private watched = new Map<string, number>();
   private began = 0; private brief = false;   // (when this shot began; whether it is one of the cruise's own short looks)
   static readonly REST_KIND = 420;
@@ -128,7 +130,9 @@ export class Director {
   interest(s: Subject, drone: THREE.Vector3, fwd: THREE.Vector3, self = false) {
     const p = s.pos(); if (!p || !s.live()) return 0;
     if ((this.skipUntil.get(s.key) ?? 0) > this.clock) return 0;
-    if (!self && this.clock - (this.watched.get(speciesOf(s)) ?? -1e9) < Director.REST_KIND) return 0;
+    const rested = !self && this.clock - (this.watched.get(speciesOf(s)) ?? -1e9) < Director.REST_KIND;
+    const small = s.kind === 'critter' || s.kind === 'anemone' || (s.kind === 'school' && !s.len);
+    if (rested && !small) return 0;
     const dx = p.x - drone.x, dy = p.y - drone.y, dz = p.z - drone.z, d = Math.hypot(dx, dy, dz);
     if (d > (s.reach ?? 42)) return 0;
     const dot = (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3);
@@ -142,7 +146,7 @@ export class Director {
     // from one to the next as a diver's does, rather than cruising the route and stopping now and then)
     const flow = d < 18 && dot > 0.5 ? 1 + 1.4 * (1 - d / 18) * dot : 1;
     const grand = s.kind === 'giant' ? 1.15 : s.kind === 'manta' ? 1.1 : s.kind === 'critter' ? 1.1 : 1;   // (the big ones a little ahead, no more: variety first)
-    return s.prio * vis * Math.max(0, near) * bored * recent * grand * flow * this.weight(s);
+    return s.prio * vis * Math.max(0, near) * bored * recent * grand * flow * (rested ? 0.3 : 1) * this.weight(s);
   }
 
   // A leap out of the sea, filmed one of three ways (not the same way twice running):
@@ -309,6 +313,9 @@ export class Director {
       if (this.goneT > 1.5 || this.waitT > Director.WAIT) { this.shot = null; this.cooldown = rr(4, 8); return null; }
       return sh;
     }
+    // (looked at properly — four seconds of it: the cruise leaves its kind be for a while; given up on the way there,
+    // it does not count, or the kinds near by would be used up by looks that never happened)
+    if (sh.phase === 'observe' && this.t > 4) this.watched.set(speciesOf(s), this.clock);
     // (one of its own looks: about a quarter of a minute in all, the way there included)
     const over = sh.phase === 'observe' && (this.t > this.dur || (this.brief && this.clock - this.began > 15 && this.t > 4));
     if (!p || far || this.goneT > 1.5 || (over && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {

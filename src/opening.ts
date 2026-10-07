@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { smooth } from './core/math';
 
 export interface OpeningPose { pos: THREE.Vector3; yaw: number; pitch: number; chase: number; white: number; under: boolean }
-export interface Opening { len: number; entry: THREE.Vector3; at(t: number, out: OpeningPose): OpeningPose }
+export interface Opening { len: number; entry: THREE.Vector3; end: { pos: THREE.Vector3; yaw: number }; at(t: number, out: OpeningPose): OpeningPose }
 
 const HOLD = 3.6, FALL = 3.0, UNDER = 2.8;
 const ease = (s: number) => s * s * (3 - 2 * s);
@@ -28,7 +28,7 @@ export function planOpening(end: { pos: THREE.Vector3; yaw: number; pitch: numbe
   const DIVE = -0.75;   // (the nose down at the surface: about the angle it comes in at)
   const len = HOLD + FALL + UNDER;
   return {
-    len, entry,
+    len, entry, end: { pos: end.pos.clone(), yaw: end.yaw },
     at(t, o) {
       o.under = false;
       if (t < HOLD) {

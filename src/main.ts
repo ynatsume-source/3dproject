@@ -519,6 +519,24 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
 const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0, look: 0 };   // (vert.look: the right-hand stick, -1 down to 1 up)
 const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3();
 let yawRate = 0, interestW = 0;
+// Between one thing filmed and the next, the way leans toward life (owner, 2026-10-06: it drifted on over empty
+// water): once a second, the fish ahead within 35 m are counted in 8 m squares, and the fullest square (if it has a
+// good few) is where the cruise bends to — up to 18 m off its line, which goes on, so it never strays far.
+const life = { t: 0, ok: false, x: 0, z: 0, n: 0 };
+const _lifeBins = new Map<number, { n: number; x: number; z: number }>();
+function findLife() {
+  _lifeBins.clear(); life.ok = false;
+  const o = drone.pos, fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
+  const add = (x: number, _y: number, z: number) => {
+    const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz); if (d > 35 || d < 3 || (dx * fx + dz * fz) / d < -0.1) return;
+    const k = Math.floor(x / 8) * 4096 + Math.floor(z / 8), b = _lifeBins.get(k) ?? { n: 0, x: 0, z: 0 };
+    b.n++; b.x += x; b.z += z; _lifeBins.set(k, b);
+  };
+  for (const f of (cur?.fish ?? []) as any[]) f.each?.(add, 300);
+  let best: { n: number; x: number; z: number } | null = null;
+  for (const b of _lifeBins.values()) if (!best || b.n > best.n) best = b;
+  if (best && best.n >= 6) { life.ok = true; life.n = best.n; life.x = best.x / best.n; life.z = best.z / best.n; }
+}
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
   let best = Infinity;
   const tmp = new THREE.Vector3();
@@ -773,6 +791,13 @@ function updateDrone(dt: number, now: number) {
     if ((whimT -= dt) < 0) { whimT = rr(240, 420); whim = WHIMS[Math.floor(Math.random() * WHIMS.length)]; }
     drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
     pathPoint(drone.s, _t);
+    if (drone.pos.y < 0 && (life.t -= dt) <= 0) { life.t = 1; findLife(); }
+    if (life.ok && drone.pos.y < 0 && !cur!.loc.pelagic) {
+      let ox = (life.x - _t.x) * 0.6, oz = (life.z - _t.z) * 0.6; const ol = Math.hypot(ox, oz);
+      if (ol > 18) { ox *= 18 / ol; oz *= 18 / ol; }
+      _t.x += ox; _t.z += oz;
+      _t.y = Math.min(-0.9, Math.max(_t.y, cur!.T.top(_t.x, _t.z) + 1.6));   // (over whatever reef is there, under the surface)
+    }
     _v.subVectors(_t, drone.pos);
     let L = _v.length();
     // far from the cruise line (just back from the island's middle, or from watching someone inland): fly
@@ -3271,7 +3296,10 @@ function frameBody(ts: number) {
     // the cruise otherwise; with the drone in the picture, a little more, and a little more when flown by hand)
     // (on Dot's planet the drones are Doron, who watch unseen and unheard: nothing there minds them — ADR 0007)
     cur.eco.env.shy = (cur.loc as any).world === 'planet' ? 0 : viewMode === 'chase' ? (drone.mode === 'manual' ? 0.85 : 0.6) : 0.35;
-    for (const ev of cur.eco.step(dt, U.uTime.value, drone.pos, fx, fz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
+    // (on the way in from the air, the sea lives round where the camera will be under the water, not round the drone
+    // high over the sea: the fish are found there, in front of it, when it comes in — they were placed round the air)
+    const ope = opening?.plan.end, ePos = ope ? ope.pos : drone.pos, efx = ope ? -Math.sin(ope.yaw) : fx, efz = ope ? -Math.cos(ope.yaw) : fz;
+    for (const ev of cur.eco.step(dt, U.uTime.value, ePos, efx, efz)) { seaLog(ev.kind, ev.text, ev.at); if (ev.kind === 'breach') track('breach_seen', { sea: cur.loc.id }); if (ev.text.startsWith('ベイトボール')) say('bait', {}, true); else if (ev.text.startsWith('沖で')) say('hunt'); }
     updateMarker(now);
     updateNewMark(dt);
     if ((wxTimer += dt) > (cur.loc.world ? 120 : 900)) { wxTimer = 0; refreshWeather(cur.loc); }   // (the island's record moves on by the hour, its date every two hours or so)
