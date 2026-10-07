@@ -4,6 +4,8 @@
 //    of the world's is in it
 //  2 an alarm with no storm in the day after is wrong, and raises the mark; a hot day it notes, once
 //  3 the replayed record's typhoon (island July 23rd–26th): the gauge rose in it, not before — counted as it came
+//  5 the second flash, once warmth is noted: compare with the same time the day before (the day's warmth comes round
+//    every day); its mark again from its own readings; the record's typhoon answers it too
 //  4 the tallies alone say whether the guess holds (Lantern's mind, when on, is given the guess and its tallies)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/hypo-check.ts
 import * as THREE from 'three';
@@ -40,10 +42,13 @@ const idea = said.find((t) => /^ひらめき/.test(t)) ?? '';
 want('1 a guess from its own first readings', !!h && firstMarks.length >= 16 && new RegExp(`これまでの最高は${Math.max(...firstMarks)}。目盛りが${Math.max(...firstMarks) + 2}以上`).test(idea), idea.slice(0, 60));
 const wrong = said.filter((t) => /台風は来なかった/.test(t));
 want('2 an alarm with no storm after it is wrong, and the mark goes up', h?.falses >= 1 && wrong.length === h.falses && wrong.every((t) => /次からは\d+以上を待つ/.test(t)) && h.mark > Math.max(...firstMarks) + 2, `${h?.falses} wrong, now ${h?.mark}`);
-want('2 a hot day noted once', said.filter((t) => /温まっても目盛りが上がる/.test(t)).length === (h?.heat ? 1 : 0));
+want('2 a hot day noted once', said.filter((t) => /温まっても目盛りが上がるのかもしれない/.test(t)).length === (h?.heat ? 1 : 0));
 const ty = h?.storms[0];
 want('3 the record\'s typhoon: the gauge rose in it, not before', !!ty && ty.caught && ty.settled && h.hits === 1 && (h.leads[0] ?? 1) <= 0 && said.some((t) => /台風の中で、気圧計が/.test(t)) && said.some((t) => /前もってはわからなかった/.test(t)), JSON.stringify({ storms: h?.storms.length, hits: h?.hits, leads: h?.leads }));
 const judged = h && (h.hits >= 2 && h.hits >= h.falses + h.misses ? 'held' : h.falses + h.misses >= 3 && h.hits * 2 < h.falses + h.misses ? 'doubted' : 'testing');
 want('4 the tallies alone say whether it holds', h?.status === judged, `${h?.status} (${h?.hits}/${h?.falses}/${h?.misses})`);
+const h2 = R.village.hypo2;
+want('5 the second flash: the day before, at the same time', !!h2 && h2.kind === 'day' && said.some((t) => /ひらめき：温まっても目盛りが上がるなら、前の日の同じ時刻と比べればいい/.test(t)), h2 ? `day mark ${h2.mark}` : 'none');
+want('5 the record\'s typhoon answers it too', !!h2 && h2.hits + h2.misses >= 1, JSON.stringify(h2 && { hits: h2.hits, falses: h2.falses, misses: h2.misses, leads: h2.leads }));
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 if (bad) process.exit(1);
