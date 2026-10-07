@@ -5,8 +5,12 @@
 //
 // Shape: a cylinder dug diameterCm × depthCm; the lining (clayPitLiningCm of raw clay, trampled wet) covers the bottom
 // and the wall; it is filled to clayPitFillShare of the inside. Everything is assumed (params.ts).
-// Not modelled: water seeping through the lining (assumed small while the lining is kept wet and under the roof; a
-// lining left to dry cracks and leaks — not computed), the lining slowly mixing into the clay soaked in it, rain.
+// An idealisation (Codex CP-C1 on 7601336): a sound lining is treated as a watertight tub. How well a real lining holds
+// water, drying damage and repairs are not evaluated; the roof and the wetness are how it is built, not a guarantee
+// that it does not leak (puddled clay still seeps, e.g. FAO's ~1 mm/day for fish ponds: not calibrated to this pit).
+// The lining's clay is a thin-wall estimate (outer perimeter × thickness), slightly more than the exact cylinder
+// difference (+0.5 kg at 50 × 25 cm, CP-C2): a margin for the work. Not modelled: the lining mixing into the clay
+// soaked in it, rain.
 
 import { pv } from '../params';
 import { finite } from './common';

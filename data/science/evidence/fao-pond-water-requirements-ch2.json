@@ -1,0 +1,30 @@
+{
+  "reviewTarget": "7601336",
+  "retrievedOn": "2026-10-07",
+  "calibrationEligible": false,
+  "id": "fao-pond-water-requirements-ch2",
+  "title": "FAO Simple methods for aquaculture — Water: Estimates of water requirements, §2.1",
+  "url": "https://www.fao.org/fishery/static/FAO_Training/FAO_Training/General/x6705e/x6705e02.htm",
+  "sourceType": "primary-official-technical-manual",
+  "retrieval": {
+    "scope": "Official full chapter body via browser, including §2.1 tables",
+    "workspaceRawDownload": "HTTP CONNECT 403",
+    "rawFileSha256": null
+  },
+  "facts": [
+    {
+      "statement": "Puddled clay and loamy clay are listed at about 1 mm/day seepage, rather than zero.",
+      "value": 1,
+      "unit": "mm/day",
+      "location": "§2.1 table, Puddled soil type"
+    },
+    {
+      "statement": "New ponds initially lose more water; water losses depend on soil texture and structure.",
+      "location": "§2.1 introductory paragraphs"
+    }
+  ],
+  "limits": [
+    "These are fish-pond guidance rates, not measurements on the island raw clay or a 20 mm lining. No site-specific calibration.",
+    "Do not transplant 1 mm/day to the simulation as a measured constant."
+  ]
+}

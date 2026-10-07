@@ -1,0 +1,37 @@
+{
+  "reviewTarget": "7601336",
+  "retrievedOn": "2026-10-07",
+  "calibrationEligible": false,
+  "id": "fao-pond-construction-ch12-labour",
+  "title": "FAO Pond construction for freshwater fish culture — Detailed planning, §12.7 Table 51",
+  "url": "https://www.fao.org/fishery/static/FAO_Training/FAO_Training/General/x6708e/x6708e12.htm",
+  "sourceType": "primary-official-technical-manual",
+  "retrieval": {
+    "scope": "Official full chapter body via browser, §12.7 Table 51",
+    "workspaceRawDownload": "not attempted",
+    "rawFileSha256": null
+  },
+  "facts": [
+    {
+      "statement": "Manual soft alluvial/sandy soil excavation and throwing 1 m away for average-strength workers is 2.5–3 cubic metres per 8 hours by hoe and 3.5–4 by pick/shovel.",
+      "location": "§12.7(5), Table 51",
+      "unit": "m3/8h",
+      "hoeRange": [
+        2.5,
+        3
+      ],
+      "pickShovelRange": [
+        3.5,
+        4
+      ]
+    },
+    {
+      "statement": "Higher soil hardness and excess water reduce outputs; these are planning standards.",
+      "location": "§12.7(3),(5)"
+    }
+  ],
+  "limits": [
+    "Not an experimental time series for improvised tools or an isolated island.",
+    "No matching lining, transport, roof-building or hand-power measurements obtained."
+  ]
+}
