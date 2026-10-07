@@ -3,7 +3,7 @@
 // and stay (nothing appears or leaves in view). How many, and how they spend their time, are design values,
 // never a local count. A plain otter body, not the island's resident Rakko: no look or identity is shared.
 import * as THREE from 'three';
-import { mulberry32 } from '../core/math';
+import { mulberry32, hyp } from '../core/math';
 import { creatureKit, type Food } from '../robots/creatures';
 import { cmats } from '../robots/residents';
 import type { Robot, Act } from '../robots/models';
@@ -37,7 +37,7 @@ export class LobosOtters {
     const canopy = anchors.filter((a) => a.top.y > -1.5 && ok(a.pos.x, a.pos.z));
     if (!canopy.length) return;
     const first = canopy[Math.floor(this.random() * canopy.length)].pos;
-    const near = canopy.filter((a) => { const d = Math.hypot(a.pos.x - first.x, a.pos.z - first.z); return d > 5 && d < 24; });
+    const near = canopy.filter((a) => { const d = hyp(a.pos.x - first.x, a.pos.z - first.z); return d > 5 && d < 24; });
     for (let i = 0; i < n; i++) {
       const a = i === 0 || !near.length ? first : near[Math.floor(this.random() * near.length)].pos;
       const home = new THREE.Vector3(a.x + (this.random() - 0.5) * 3, 0, a.z + (this.random() - 0.5) * 3);
@@ -71,7 +71,7 @@ export class LobosOtters {
         const a = r() * Math.PI * 2, rr = 3 + r() * 9, x = o.home.x + Math.cos(a) * rr, z = o.home.z + Math.sin(a) * rr;
         if (this.T.top(x, z) < -4 && Math.abs(x) < 90 && Math.abs(z) < 90) { o.to.set(x, 0, z); break; }
       }
-      o.dur = Math.hypot(o.to.x - o.pos.x, o.to.z - o.pos.z) / 0.55 + 2;
+      o.dur = hyp(o.to.x - o.pos.x, o.to.z - o.pos.z) / 0.55 + 2;
     }
     if (d === 'dive') o.floor = this.T.top(o.pos.x, o.pos.z);
   }
@@ -88,7 +88,7 @@ export class LobosOtters {
       const k = o.dur > 0 ? o.t / o.dur : 0;
       const y0 = swellAt(o.pos.x, o.pos.z); let y = y0, speed = 0;
       if (o.doing === 'swim') {
-        const dx = o.to.x - o.pos.x, dz = o.to.z - o.pos.z, d = Math.hypot(dx, dz);
+        const dx = o.to.x - o.pos.x, dz = o.to.z - o.pos.z, d = hyp(dx, dz);
         if (d > 0.3) { o.turn = Math.atan2(dx, dz); speed = Math.min(0.55, d * 0.4); }
       } else if (o.doing === 'dive') {
         // head first down, along the bottom feeling for food, then straight up with the catch
@@ -103,12 +103,12 @@ export class LobosOtters {
         // (a step of rock ahead, or straying from the canopy: it stops and turns rather than climbing it)
         const here = this.T.top(o.pos.x, o.pos.z);
         const blocked = [0.5, 1, 1.6].some((d) => this.T.top(o.pos.x + Math.sin(o.heading) * d, o.pos.z + Math.cos(o.heading) * d) > here + 0.25 * d)
-          || Math.hypot(o.pos.x + Math.sin(o.heading) * 1.6 - o.home.x, o.pos.z + Math.cos(o.heading) * 1.6 - o.home.z) > 16;
+          || hyp(o.pos.x + Math.sin(o.heading) * 1.6 - o.home.x, o.pos.z + Math.cos(o.heading) * 1.6 - o.home.z) > 16;
         if (blocked) { o.turn = o.heading + 1.2; speed *= 0.1; }
       } else {
         // floating: a slow drift round on the swell, staying by its spot in the kelp
         o.turn += Math.sin(o.clock * 0.05 + o.key) * dt * 0.08;
-        const dx = o.home.x - o.pos.x, dz = o.home.z - o.pos.z, d = Math.hypot(dx, dz);
+        const dx = o.home.x - o.pos.x, dz = o.home.z - o.pos.z, d = hyp(dx, dz);
         if (d > 10) { o.pos.x += dx / d * dt * 0.05; o.pos.z += dz / d * dt * 0.05; }
       }
       const dh = Math.atan2(Math.sin(o.turn - o.heading), Math.cos(o.turn - o.heading));

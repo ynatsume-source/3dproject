@@ -7,6 +7,7 @@
 // pulled straight wherever the water between two points is open, so it runs in long clean lines, and the
 // drone follows it by looking a few metres ahead along it. If there is no way through the water at all,
 // the planner says so, and the drone goes up and over in the air instead.
+import { hyp } from '../core/math';
 
 export interface RoutePlan {
   ok: boolean;              // a way through the water was found
@@ -41,7 +42,7 @@ export function floorCells(floor: (x: number, z: number) => number) {
  */
 export function planRoute(cells: (i: number, j: number) => number, ceil: number, bound: [number, number, number, number],
   ax: number, az: number, bx: number, bz: number): RoutePlan {
-  const d = Math.hypot(bx - ax, bz - az), pad = Math.max(24, d * 0.5);
+  const d = hyp(bx - ax, bz - az), pad = Math.max(24, d * 0.5);
   // (the grid sits on the world's own, so cells read for one plan serve the next)
   const x0 = Math.ceil(Math.max(bound[0], Math.min(ax, bx) - pad) / CELL) * CELL, x1 = Math.min(bound[1], Math.max(ax, bx) + pad);
   const z0 = Math.ceil(Math.max(bound[2], Math.min(az, bz) - pad) / CELL) * CELL, z1 = Math.min(bound[3], Math.max(az, bz) + pad);
@@ -77,7 +78,7 @@ export function planRoute(cells: (i: number, j: number) => number, ceil: number,
     return top;
   };
   const gi = g % W, gj = (g / W) | 0;
-  const hEst = (k: number) => Math.hypot((k % W) - gi, ((k / W) | 0) - gj);
+  const hEst = (k: number) => hyp((k % W) - gi, ((k / W) | 0) - gj);
   gs[s] = 0; push(s, hEst(s));
   let found = false, budget = 60000;
   while (heap.length && budget-- > 0) {
@@ -108,7 +109,7 @@ export function planRoute(cells: (i: number, j: number) => number, ceil: number,
   way.push(bx, bz);
   // pulled straight: from each point, on to the furthest later point it can see across open water
   const clearLine = (x0: number, z0: number, x1: number, z1: number) => {
-    const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.8);
+    const L = hyp(x1 - x0, z1 - z0), n = Math.ceil(L / 0.8);
     for (let t = 1; t < n; t++) {
       const k = ci(x0 + (x1 - x0) * t / n) + cj(z0 + (z1 - z0) * t / n) * W;
       if (!open(k)) return false;
@@ -122,7 +123,7 @@ export function planRoute(cells: (i: number, j: number) => number, ceil: number,
     pts.push(way[b * 2], way[b * 2 + 1]); a = b;
   }
   let len = 0;
-  for (let i = 2; i < pts.length; i += 2) len += Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
+  for (let i = 2; i < pts.length; i += 2) len += hyp(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]);
   return { ok: true, pts, len, gx: bx, gz: bz };
 }
 
@@ -141,12 +142,12 @@ export function alongRoute(p: RoutePlan, x: number, z: number, look: number, out
   // walk on from there
   let left = look, i = seg, t = tt, rest = 0, ox = P[P.length - 2], oz = P[P.length - 1];
   for (; i < P.length - 2; i += 2, t = 0) {
-    const dx = P[i + 2] - P[i], dz = P[i + 3] - P[i + 1], L = Math.hypot(dx, dz), r = L * (1 - t);
+    const dx = P[i + 2] - P[i], dz = P[i + 3] - P[i + 1], L = hyp(dx, dz), r = L * (1 - t);
     if (left <= r) { const u = t + left / Math.max(L, 1e-9); ox = P[i] + dx * u; oz = P[i + 1] + dz * u; left = 0; break; }
     left -= r;
   }
   out.x = ox; out.z = oz;
   // (what is left: from the closest point to the end)
-  for (let k = seg; k < P.length - 2; k += 2) { const L = Math.hypot(P[k + 2] - P[k], P[k + 3] - P[k + 1]); rest += k === seg ? L * (1 - tt) : L; }
+  for (let k = seg; k < P.length - 2; k += 2) { const L = hyp(P[k + 2] - P[k], P[k + 3] - P[k + 1]); rest += k === seg ? L * (1 - tt) : L; }
   return { rest, off: Math.sqrt(best) };
 }

@@ -1,6 +1,7 @@
 // The naked-eye planets, from JPL's approximate Keplerian elements (Standish, valid 1800-2050, good to
 // well under a degree): geocentric direction in the equatorial frame of the star catalogue, and an
 // approximate visual magnitude.
+import { hyp } from '../core/math';
 const D2R = Math.PI / 180;
 // a, e, I, L, long. perihelion, long. ascending node — and their rates per Julian century
 type El = [number, number, number, number, number, number];
@@ -43,7 +44,7 @@ export function planets(ms: number): PlanetPos[] {
   return PLANETS.map((name) => {
     const p = helio(name, T);
     const g = [p[0] - ea[0], p[1] - ea[1], p[2] - ea[2]];
-    const delta = Math.hypot(g[0], g[1], g[2]), rr = Math.hypot(p[0], p[1], p[2]), re = Math.hypot(ea[0], ea[1], ea[2]);
+    const delta = hyp(g[0], g[1], g[2]), rr = hyp(p[0], p[1], p[2]), re = hyp(ea[0], ea[1], ea[2]);
     // phase angle sun-planet-earth
     const cosi = (rr * rr + delta * delta - re * re) / (2 * rr * delta);
     const i = Math.acos(Math.max(-1, Math.min(1, cosi))) / D2R;

@@ -1,7 +1,7 @@
 // Habitat decisions for the existing Point Lobos fish. The species' day/night behaviour is
 // separate from fish.ts's steering, predator avoidance and rendering. Locations are sampled
 // only at placement; changing kelp drawing quality cannot change a fish's home or sand bed.
-import { smooth } from '../core/math';
+import { smooth, hyp } from '../core/math';
 import type { Species } from '../data/locations';
 
 type Point = { x: number; y: number; z: number };
@@ -87,7 +87,7 @@ export function makeKelpFishLife(sp: Species, oc: any, count: number) {
       if (!awake && act < 0.3 && (s.mode === 'swim' || s.mode === 'forage')) s.mode = 'seek-sand';
       if (s.mode === 'seek-sand' || s.mode === 'bury' || s.mode === 'sleep' || s.mode === 'wake') {
         s.weight = 1; s.x = bed.x; s.z = bed.z;
-        const near = Math.hypot(p.x - bed.x, p.z - bed.z) < 0.15;
+        const near = hyp(p.x - bed.x, p.z - bed.z) < 0.15;
         if (s.mode === 'seek-sand' && near && Math.abs(p.y - bed.y - 0.2) < 0.09) s.mode = 'bury';
         if (s.mode === 'bury' && near) { s.burial = Math.min(1, s.burial + dt * 0.22); if (s.burial === 1) s.mode = 'sleep'; }
         if (s.mode === 'wake') { s.burial = Math.max(0, s.burial - dt * 0.8); if (s.burial === 0) s.mode = 'swim'; }
@@ -106,7 +106,7 @@ export function makeKelpFishLife(sp: Species, oc: any, count: number) {
       s.x = a.x - (s.feedingOnLeaf ? Math.cos(s.heading) * size * 0.35 : 0);
       s.z = a.z - (s.feedingOnLeaf ? Math.sin(s.heading) * size * 0.35 : 0);
       const lift = s.feedingOnLeaf ? 0.085 : 0.25;
-      const near = Math.hypot(p.x - s.x, p.z - s.z) < 0.5 && Math.abs(p.y - a.y - lift) < 0.3;
+      const near = hyp(p.x - s.x, p.z - s.z) < 0.5 && Math.abs(p.y - a.y - lift) < 0.3;
       s.peck = near ? Math.pow(Math.max(0, Math.sin(t * 3.4 + s.phase)), 6) * s.weight : 0;
       s.y = a.y + lift - s.peck * (s.feedingOnLeaf ? 0.035 : 0.065);
       if (near && s.weight > 0.6) s.mode = 'forage';

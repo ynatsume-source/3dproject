@@ -23,6 +23,10 @@ export const smooth = (e0: number, e1: number, x: number): number => {
   return t * t * (3 - 2 * t);
 };
 export const clamp = (x: number, a: number, b: number): number => Math.max(a, Math.min(b, x));
+// Length of a 2- or 3-vector, for the hot loops (owner's sea, 2026-10-07): Math.hypot builds an array of its arguments
+// each call — with some fifty thousand fish and a dozen calls each a frame, the garbage it left behind was most of
+// what the app allocated (tools/lab/alloc.cjs), and its careful scaling against overflow buys nothing at these sizes.
+export const hyp = (a: number, b: number, c = 0): number => Math.sqrt(a * a + b * b + c * c);
 export const angDiff = (a: number, b: number): number => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 export function mulberry32(seed: number): () => number {

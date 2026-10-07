@@ -2,7 +2,7 @@
 // passing-cloud colour displays, blanches and jets away when the drone crowds it, and spends the
 // night tucked in its den.
 import * as THREE from 'three';
-import { clamp, smooth, R, rr } from '../core/math';
+import { clamp, smooth, R, rr, hyp } from '../core/math';
 import { mat } from '../render/common';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz } from '../ocean/zone';
@@ -130,7 +130,7 @@ function solid(T: any, x: number, z: number) {
 function slope(T: any, x: number, z: number, g: THREE.Vector3) {
   const e = 0.45;
   g.set((surf(T, x + e, z) - surf(T, x - e, z)) / (2 * e), 0, (surf(T, x, z + e) - surf(T, x, z - e)) / (2 * e));
-  return Math.hypot(g.x, g.z);
+  return hyp(g.x, g.z);
 }
 export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
   const T = oc.T, act = activity('day', env);
@@ -168,7 +168,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     if (st === 'den') { if (act > 0.6 && o.stateT > rr(20, 60) && (camD > 3 || env.shy <= 0)) { o.state = 'forage'; o.stateT = 0; } }
     else if (st === 'forage') {
       if (camD < 2.4 * Math.min(1, env.shy * 3)) { o.state = 'jet'; o.stateT = 0; o.head = Math.atan2(o.pos.z - cam.z, o.pos.x - cam.x); logEvent(env, 'octopus', oneOf(['ワモンダコが色を変えて、ジェット噴射で逃げた', 'ワモンダコが白く色を抜き、墨を残すように飛び去った', 'ドローンに驚いたワモンダコが、脚をそろえて一気に泳ぎ去った']), o.pos.x, o.pos.z, () => o.pos); }
-      else if (act < 0.4 || o.stateT > 150) { o.goal = o.den.clone(); if (Math.hypot(o.pos.x - o.den.x, o.pos.z - o.den.z) < 0.5) { o.state = 'den'; o.stateT = 0; } }
+      else if (act < 0.4 || o.stateT > 150) { o.goal = o.den.clone(); if (hyp(o.pos.x - o.den.x, o.pos.z - o.den.z) < 0.5) { o.state = 'den'; o.stateT = 0; } }
     } else if (st === 'jet') { if (o.stateT > 2.4) { o.state = 'settle'; o.stateT = 0; } }
     else if (st === 'settle') { if (o.stateT > 6) { o.state = act > 0.5 ? 'forage' : 'den'; o.stateT = 0; if (o.state === 'den') o.pos.copy(o.den); } }
 
@@ -177,7 +177,7 @@ export function updateOctopi(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     if (o.state === 'den') { spread = 0.25; lift = -0.08; }
     else if (o.state === 'forage') {
       // probe along the reef: the next spot is a crack or the edge of a coral head near the den
-      if (!o.goal || Math.hypot(o.pos.x - o.goal.x, o.pos.z - o.goal.z) < 0.4) {
+      if (!o.goal || hyp(o.pos.x - o.goal.x, o.pos.z - o.goal.z) < 0.4) {
         let best: THREE.Vector3 | null = null, bs = -1;
         for (let k = 0; k < 10; k++) {
           const a = R() * Math.PI * 2, r = rr(0.8, 3.5);

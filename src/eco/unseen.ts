@@ -2,7 +2,7 @@
 // is put down only where it cannot be seen — beyond what this water lets one see, or well behind the camera —
 // and swims in from there; one that is done is taken away only once it has gone the same way, out of sight.
 // Every event and every relocation of a school keeps to this (CLAUDE.md, "生き物は無から出ない").
-import { clamp, R } from '../core/math';
+import { clamp, R, hyp } from '../core/math';
 
 /** How far one can make out a large animal in this water (m): where the water has taken all but about a
  *  tenth of its contrast. Clear tropical water ~150 m, a green kelp coast ~80 m. */
@@ -15,10 +15,10 @@ export function sightRange(oc: any) {
  *  beyond sight, or not close by and well off to the side or behind — more than 75° off the way it looks
  *  (the widest view, a phone on its side, shows 50° either side; the rest is room for the camera turning). */
 export function unseen(oc: any, x: number, y: number, z: number, cam: { x: number; y: number; z: number }, fx: number, fz: number, r = 0) {
-  const dx = x - cam.x, dy = y - cam.y, dz = z - cam.z, d = Math.hypot(dx, dy, dz);
+  const dx = x - cam.x, dy = y - cam.y, dz = z - cam.z, d = hyp(dx, dy, dz);
   if (d - r > sightRange(oc)) return true;
   if (d - r <= 22) return false;
-  const fl = Math.hypot(fx, fz) || 1, hd = Math.hypot(dx, dz) || 1, along = (dx * fx + dz * fz) / fl;
+  const fl = hyp(fx, fz) || 1, hd = hyp(dx, dz) || 1, along = (dx * fx + dz * fz) / fl;
   // (the edge of what it covers, not its middle: its radius brings it that much nearer the view)
   return along / hd < Math.cos(75 * Math.PI / 180 + Math.min(0.5, r / hd));
 }

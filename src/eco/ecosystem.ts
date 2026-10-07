@@ -6,7 +6,7 @@ import { updateTurtles, updateMantas } from './animals';
 import { updateOctopi } from './octopus';
 import { updateWhales, whaleSubjects, inSeason } from './whale';
 import { unseen } from './unseen';
-import { rr, mulberry32 } from '../core/math';
+import { rr, mulberry32, hyp } from '../core/math';
 
 // ?month=2 previews a season's visitors (whales in winter) without changing the sky
 const SEASON_MONTH = typeof location !== 'undefined' && /[?&]month=(\d+)/.test(location.search) ? +RegExp.$1 : null;
@@ -52,7 +52,7 @@ export class Ecosystem {
   nearFishCount(cam: THREE.Vector3) {
     let near = 0;
     for (const f of this.oc.fish as any[]) for (const m of f.movers?.() ?? []) {
-      const d = Math.hypot(m.x - cam.x, m.z - cam.z), gd = m.goal ? Math.hypot(m.goal.x - cam.x, m.goal.z - cam.z) : 1e9;
+      const d = hyp(m.x - cam.x, m.z - cam.z), gd = m.goal ? hyp(m.goal.x - cam.x, m.goal.z - cam.z) : 1e9;
       if (d < Ecosystem.KEEP_NEAR || (m.going && gd < Ecosystem.KEEP_NEAR + 25)) near += m.n;
     }
     return near;
@@ -60,13 +60,13 @@ export class Ecosystem {
   private keepAbout(dt: number, cam: THREE.Vector3, fx: number, fz: number) {
     if ((this.keepT -= dt) > 0) return;
     this.keepT = 2;
-    const oc = this.oc, T = oc.T, fl = Math.hypot(fx, fz) || 1, ux = fx / fl, uz = fz / fl;
+    const oc = this.oc, T = oc.T, fl = hyp(fx, fz) || 1, ux = fx / fl, uz = fz / fl;
     if (oc.loc.pelagic || this.nearFishCount(cam) >= Ecosystem.KEEP_AIM) return;
     // the one to send: well off behind or to the side, out of sight, not already on its way (the biggest found)
     let best: any = null;
     for (const f of oc.fish as any[]) for (const m of f.movers?.() ?? []) {
       if (m.going) continue;
-      const dx = m.x - cam.x, dz = m.z - cam.z, d = Math.hypot(dx, dz);
+      const dx = m.x - cam.x, dz = m.z - cam.z, d = hyp(dx, dz);
       if (d < 45 || (dx * ux + dz * uz) / d > 0.2 || !unseen(oc, m.x, m.y, m.z, cam, ux, uz, 4)) continue;   // (well off, behind or to the side, out of sight)
       if (!best || m.n > best.n) best = m;
     }
@@ -125,7 +125,7 @@ export class Ecosystem {
     const giant = mantaName === 'オニイトマキエイ';
     this.oc.mantas.forEach((m: any, i: number) => {
       out.push({ key: `manta:${i}`, label: mantaName, len: m.span, adult: giant ? 6 : 4.5, lenK: 0.2, lenWhat: '翼幅', kind: 'manta', prio: 3.2, size: 4,
-        pos: () => m.pos, status: () => (m.transit || (m.stationTarget && Math.hypot(m.st.x - m.stationTarget.x, m.st.z - m.stationTarget.z) > 3) ? '次の場所へ泳いでいる' : m.feeding ? '口を開けてプランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });   // (its own state: on its way, feeding with its mouth open, or circling a reef top)
+        pos: () => m.pos, status: () => (m.transit || (m.stationTarget && hyp(m.st.x - m.stationTarget.x, m.st.z - m.stationTarget.z) > 3) ? '次の場所へ泳いでいる' : m.feeding ? '口を開けてプランクトンを食べている' : 'クリーニングステーションを回っている'), live: () => m.placed });   // (its own state: on its way, feeding with its mouth open, or circling a reef top)
     });
     for (const o of this.oc.octopi || []) out.push(o.subject);
     this.oc.critters?.subjects(out);

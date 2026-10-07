@@ -7,7 +7,7 @@ import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
-import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR } from '../core/math';
+import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR, hyp } from '../core/math';
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
 import { CORAL_GEO, CORAL_MAT, CORAL_GEO_HI, CORAL_MAT_HI, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
 import { makeFishSystem } from '../eco/fish';
@@ -44,7 +44,7 @@ class ObstacleMap {
     const N = this.N, i0 = Math.max(0, Math.floor(x - r + this.half)), i1 = Math.min(N - 1, Math.ceil(x + r + this.half));
     const j0 = Math.max(0, Math.floor(z - r + this.half)), j1 = Math.min(N - 1, Math.ceil(z + r + this.half));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
-      const d = Math.hypot(i + 0.5 - this.half - x, j + 0.5 - this.half - z) / Math.max(r, 0.3);
+      const d = hyp(i + 0.5 - this.half - x, j + 0.5 - this.half - z) / Math.max(r, 0.3);
       if (d >= 1) continue;
       const v = top - d * d * sy * 0.5, k = j * N + i;
       if (v > this.a[k]) this.a[k] = v;
@@ -97,7 +97,7 @@ export function makeT(loc) {
       const gx = loc.f(x + 2, z) - loc.f(x - 2, z), gz = loc.f(x, z + 2) - loc.f(x, z - 2);
       const d = Math.atan2(-gz, -gx) - head; return Math.atan2(Math.sin(d), Math.cos(d));
     },
-    slope: (x, z) => Math.hypot(loc.f(x + 0.7, z) - loc.f(x - 0.7, z), loc.f(x, z + 0.7) - loc.f(x, z - 0.7)) / 1.4,
+    slope: (x, z) => hyp(loc.f(x + 0.7, z) - loc.f(x - 0.7, z), loc.f(x, z + 0.7) - loc.f(x, z - 0.7)) / 1.4,
   };
   return T;
 }
@@ -201,7 +201,7 @@ function seat(kind: string, v: number, it: any, y0: number, f: (x: number, z: nu
   const lean = kind === 'table' || kind === 'fan' ? 0 : kind === 'branch' ? 0.35 : 0.785;
   if (lean > 0) {
     const r = Math.max(foot, 0.3);
-    const gx = (f(it.x + r, it.z) - f(it.x - r, it.z)) / (2 * r), gz = (f(it.x, it.z + r) - f(it.x, it.z - r)) / (2 * r), g = Math.hypot(gx, gz);
+    const gx = (f(it.x + r, it.z) - f(it.x - r, it.z)) / (2 * r), gz = (f(it.x, it.z + r) - f(it.x, it.z - r)) / (2 * r), g = hyp(gx, gz);
     if (g > 0.05) {
       const k = Math.min(g, Math.tan(lean)) / g; kx = gx * k; kz = gz * k;
       const n = new THREE.Vector3(-kx, 1, -kz).normalize(); it.up = [n.x, n.y, n.z];
@@ -268,7 +268,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
         let m = 0;
         for (const k of reach) {
           const ii = Math.min(N - 1, Math.max(0, i + dx * k)), jj = Math.min(N - 1, Math.max(0, j + dz * k));
-          m = Math.max(m, (Y[(jj * N + ii) * 3 + 1] - h0) / (k * cell * Math.hypot(dx, dz)));
+          m = Math.max(m, (Y[(jj * N + ii) * 3 + 1] - h0) / (k * cell * hyp(dx, dz)));
         }
         occ += Math.atan(m) / (Math.PI / 2);
       }
@@ -453,7 +453,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   yield* thicketIn(-EXT, -EXT, EXT, EXT, items, null);
 
   // anemones, each home to a few clownfish
-  const nearAnemone = (x: number, z: number, r: number) => oc.anemones.some((a: any) => Math.hypot(a.pos.x - x, a.pos.z - z) < a.s * 0.75 + r + 0.3);
+  const nearAnemone = (x: number, z: number, r: number) => oc.anemones.some((a: any) => hyp(a.pos.x - x, a.pos.z - z) < a.s * 0.75 + r + 0.3);
   const clown = loc.species.find((s) => s.habitat === 'anemone');
   for (let tries = 0; oc.anemones.length < loc.anemones && tries < 4000; tries++) {
     const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z), r = TERR.reef;
@@ -598,7 +598,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
         const i0 = Math.floor((x - hw - 4) / RG), i1 = Math.floor((x + hw + 4) / RG), j0 = Math.floor((z - hw - 4) / RG), j1 = Math.floor((z + hw + 4) / RG);
         for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) for (const r of rockGrid.get(i + ',' + j) ?? []) {
           if (r === on) continue;   // (the rock it grows on)
-          const d = Math.hypot(x - r.x, z - r.z), need = r.r + hw;   // (clear of the whole rock, not just its middle)
+          const d = hyp(x - r.x, z - r.z), need = r.r + hw;   // (clear of the whole rock, not just its middle)
           if (d >= need || ctop < r.under || y > r.top) continue;   // (clear of it, under its overhang, or over it)
           if (need - d > wd) { wd = need - d; worst = { r, d, need }; }
         }
@@ -735,7 +735,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
         const x = rr(lr[0], lr[2]), z = rr(lr[1], lr[3]); if (skip && skip(x, z)) continue;
         const h = hAt(x, z);
         if (TERR.reef < 0.35 || h < -22 || (cave && cave.routeDist(x, z) < 4)) continue;
-        const gx = (hAt(x + 0.7, z) - hAt(x - 0.7, z)) / 1.4, gz = (hAt(x, z + 0.7) - hAt(x, z - 0.7)) / 1.4, sl = Math.hypot(gx, gz);
+        const gx = (hAt(x + 0.7, z) - hAt(x - 0.7, z)) / 1.4, gz = (hAt(x, z + 0.7) - hAt(x, z - 0.7)) / 1.4, sl = hyp(gx, gz);
         if (sl < 0.8) continue;
         const ox = -gx / sl, oz = -gz / sl;                       // outward, down the slope
         if (ledges < 320 * frac && R() < 0.55) {
@@ -847,7 +847,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
       // let go of what is far behind
       for (const [k, b] of blocks) {
         const [bi, bj] = k.split(',').map(Number);
-        if (Math.hypot((bi + 0.5) * B - cam.x, (bj + 0.5) * B - cam.z) < DROP) continue;
+        if (hyp((bi + 0.5) * B - cam.x, (bj + 0.5) * B - cam.z) < DROP) continue;
         for (const m of b.meshes) {
           group.remove(m);
           // (free only what is this block's own — where each one stands, its colours — never the shapes all the blocks share)
@@ -865,7 +865,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
       const i0 = Math.floor((cam.x - GROW) / B), i1 = Math.floor((cam.x + GROW) / B), j0 = Math.floor((cam.z - GROW) / B), j1 = Math.floor((cam.z + GROW) / B);
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
         if (blocks.has(i + ',' + j) || (i + 1) * B < -E || i * B > E || (j + 1) * B < -E || j * B > E) continue;
-        const d = Math.hypot(Math.max(i * B - cam.x, 0, cam.x - (i + 1) * B), Math.max(j * B - cam.z, 0, cam.z - (j + 1) * B));
+        const d = hyp(Math.max(i * B - cam.x, 0, cam.x - (i + 1) * B), Math.max(j * B - cam.z, 0, cam.z - (j + 1) * B));
         if (d < bd) { bd = d; best = [i, j]; }
       }
       if (best) { growing = growBlock(best[0], best[1]); if (growing.next().done) growing = null; }
@@ -989,7 +989,7 @@ function buildCave(cave: Cave, group: THREE.Group, items: any) {
     if (y < cave.top - 3.5 || cave.skyAt(x, y + 0.5, z) < 0.7) continue;
     const q = R(), s = rr(0.5, 1.4);
     // (not out over a skylight's edge, and on rock all under it: seen from inside, one at the rim hung in the light)
-    if (cave.skylights.some((k: any) => Math.hypot(x - k.pos.x, z - k.pos.z) < k.r + 1.4 * s + 0.8)) continue;
+    if (cave.skylights.some((k: any) => hyp(x - k.pos.x, z - k.pos.z) < k.r + 1.4 * s + 0.8)) continue;
     { let ok = true; for (let k = 0; k < 8 && ok; k++) { const a = k * Math.PI / 4; if (cave.topAt(x + Math.cos(a) * 0.8 * s, z + Math.sin(a) * 0.8 * s) < y - 0.25) ok = false; } if (!ok) continue; }
     const kind = q < 0.35 ? 'branch' : q < 0.55 ? 'table' : q < 0.85 ? 'brain' : 'mushroom';
     const v = kind === 'branch' ? (R() < 0.5 ? 0 : 1) : kind === 'mushroom' ? (R() < 0.5 ? 0 : 1) : kind === 'brain' ? (R() < 0.5 ? 0 : 1) : 0;

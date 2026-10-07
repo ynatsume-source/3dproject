@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import './styles.css';
 import { U, mat } from './render/common';
 import { cloudAt } from './render/cloud';
-import { clamp, smooth, angDiff, rr, getStream, setStream } from './core/math';
+import { clamp, smooth, angDiff, rr, getStream, setStream, hyp } from './core/math';
 import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
 import { ridersFor } from './eco/riders';
 import { sightRange } from './eco/unseen';
@@ -195,7 +195,7 @@ function pathPoint(s: number, out: THREE.Vector3) {
     return out.set(x, -(6 + pathAlt(s) * 2.2 + 6 * Math.sin(s * 0.37)) * k, z);
   }
   if (r === 'wander' || r === 'free' || r === 'deep') {
-    const b = pathXZ(s + 0.002), tl = Math.hypot(b[0] - x, b[1] - z) || 1, nx = -(b[1] - z) / tl, nz = (b[0] - x) / tl;
+    const b = pathXZ(s + 0.002), tl = hyp(b[0] - x, b[1] - z) || 1, nx = -(b[1] - z) / tl, nz = (b[0] - x) / tl;
     let off = 0;
     if (r === 'wander') off = 9 * Math.sin(s * 5.3) + 4 * Math.sin(s * 11.7 + 1);
     else if (r === 'free') off = 16 * Math.sin(s * 2.1 + 0.4) * Math.sin(s * 0.7 + 2);
@@ -216,7 +216,7 @@ function pathPoint(s: number, out: THREE.Vector3) {
   if (r === 'surface') return out.set(x, Math.min(Math.max(top + 1.5, -2 - 1.6 * Math.sin(s * 2.7) ** 2), -1.4), z);
   return out.set(x, Math.min(top + alt, -1.4), z);
 }
-function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.001; }
+function pathRate(s: number) { const a = pathXZ(s), b = pathXZ(s + 0.001); return hyp(b[0] - a[0], b[1] - a[1]) / 0.001; }
 function nearestS(p: THREE.Vector3) {
   let best = drone.s, bd = Infinity;
   for (let i = 0; i < 2400; i++) { const s = i * 0.02; const [x, z] = pathXZ(s); const d = (x - p.x) ** 2 + (z - p.z) ** 2; if (d < bd) { bd = d; best = s; } }
@@ -239,7 +239,7 @@ const _rw = new THREE.Vector3(), _rl = new THREE.Vector3(), _ra = { x: 0, z: 0 }
 const routeFloor = (x: number, z: number) => { const T = cur!.T; return Math.max(T.ground(x, z), T.cave ? T.cave.topAt(x, z) : -1e9); };
 function landBetween(a: THREE.Vector3, b: THREE.Vector3) {
   // (the lie of the land itself: a coral head or a rock in the way is swum round or over, not flown over)
-  const f = cur!.loc.f, d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.ceil(d / 6);
+  const f = cur!.loc.f, d = hyp(b.x - a.x, b.z - a.z), n = Math.ceil(d / 6);
   for (let i = 1; i < n; i++) { const k = i / n; if (f(a.x + (b.x - a.x) * k, a.z + (b.z - a.z) * k) > -0.6) return true; }
   return false;
 }
@@ -298,12 +298,12 @@ const _cov: number[] = [];
 const mineOf = (sj: Subject) => { const m = new Set(sj.key.split(':')); const e = entryOf(sj); if (e) m.add(e.id); return m; };
 function gatherCover(sj: Subject | null, P: { x: number; y: number; z: number }, reach: number) {
   _cov.length = 0; if (!cur) return;
-  const o = camera.position, ux = P.x - o.x, uy = P.y - o.y, uz = P.z - o.z, d = Math.hypot(ux, uy, uz); if (d < 1) return;
+  const o = camera.position, ux = P.x - o.x, uy = P.y - o.y, uz = P.z - o.z, d = hyp(ux, uy, uz); if (d < 1) return;
   const mine = sj ? mineOf(sj) : new Set<string>(), rareSj = !!sj && sj.key.startsWith('rare:');
   const add = (x: number, y: number, z: number, len: number) => {
     const t = ((x - o.x) * ux + (y - o.y) * uy + (z - o.z) * uz) / d; if (t < 0.3 || t > d - reach * 0.5) return;
     const k = t / d, ex = x - o.x - ux * k, ey = y - o.y - uy * k, ez = z - o.z - uz * k;
-    if (Math.hypot(ex, ey, ez) < reach * k + len) _cov.push(x, y, z, len * 0.33);
+    if (hyp(ex, ey, ez) < reach * k + len) _cov.push(x, y, z, len * 0.33);
   };
   for (const f of (cur.fish ?? []) as any[]) if (!mine.has(f.sp.id) && f.each) f.each(add, 1500);
   const bait = (cur as any).bait; if (bait?.st.active && sj?.key !== 'baitball' && !mine.has(bait.bsp?.id)) bait.each?.(add, 1500);
@@ -312,17 +312,17 @@ function gatherCover(sj: Subject | null, P: { x: number; y: number; z: number },
 }
 function covered(x: number, y: number, z: number) {
   if (!_cov.length) return false;
-  const o = camera.position, ux = x - o.x, uy = y - o.y, uz = z - o.z, d = Math.hypot(ux, uy, uz);
+  const o = camera.position, ux = x - o.x, uy = y - o.y, uz = z - o.z, d = hyp(ux, uy, uz);
   for (let i = 0; i < _cov.length; i += 4) {
     const qx = _cov[i] - o.x, qy = _cov[i + 1] - o.y, qz = _cov[i + 2] - o.z, t = (qx * ux + qy * uy + qz * uz) / d;
     if (t < 0.3 || t > d - 0.3) continue;
-    const k = t / d; if (Math.hypot(qx - ux * k, qy - uy * k, qz - uz * k) < _cov[i + 3]) return true;
+    const k = t / d; if (hyp(qx - ux * k, qy - uy * k, qz - uz * k) < _cov[i + 3]) return true;
   }
   return false;
 }
 function seenNow(sj: Subject) {
   const P = bodyAt(sj); if (!P || !cur) return false;
-  const o = camera.position, T = cur.T, d = Math.hypot(P.x - o.x, P.y - o.y, P.z - o.z);
+  const o = camera.position, T = cur.T, d = hyp(P.x - o.x, P.y - o.y, P.z - o.z);
   const px = innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360));
   if (sj.size / Math.max(d, 0.5) * px < 10) return false;
   camera.updateMatrixWorld();
@@ -331,7 +331,7 @@ function seenNow(sj: Subject) {
   gatherCover(sj, P, r);
   for (let k = 0; k < 5; k++) {
     const ax = k === 1 ? rx * r : k === 2 ? -rx * r : 0, az = k === 1 ? rz * r : k === 2 ? -rz * r : 0, ay = k === 3 ? r * 0.5 : k === 4 ? -r * 0.5 : 0;
-    const x = P.x + ax, y = P.y + ay, z = P.z + az, dd = Math.hypot(x - o.x, y - o.y, z - o.z);
+    const x = P.x + ax, y = P.y + ay, z = P.z + az, dd = hyp(x - o.x, y - o.y, z - o.z);
     if (dd > see) continue;
     _sv.set(x, y, z).project(camera); if (_sv.z > 1 || Math.abs(_sv.x) > 1 || Math.abs(_sv.y) > 1) continue;
     let open = true;
@@ -363,7 +363,7 @@ const capPrev = new Map<string, { x: number; y: number; z: number; t: number }>(
 // them 14 px or more), or plainly a school (Subject.clump). Not asked for: what was tapped or chosen is always told.
 function smallFits(sj: Subject) {
   const one = sj.one?.(); if (!one) return true;
-  const d = Math.max(0.5, Math.hypot(one.x - camera.position.x, one.y - camera.position.y, one.z - camera.position.z));
+  const d = Math.max(0.5, hyp(one.x - camera.position.x, one.y - camera.position.y, one.z - camera.position.z));
   return one.len / d * innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)) >= 14 || !!sj.clump?.();
 }
 function canKeep(sj: Subject, cruise: boolean, asked: boolean) {
@@ -373,7 +373,7 @@ function canKeep(sj: Subject, cruise: boolean, asked: boolean) {
   const p = bodyAt(sj), q = capPrev.get(sj.key); if (!p || !q || capClock - q.t < 0.5) return false;
   const k = 4 / (capClock - q.t), o = camera.position;
   const x = p.x + (p.x - q.x) * k - (o.x + drone.vel.x * 2), y = p.y + (p.y - q.y) * k - (o.y + drone.vel.y * 2), z = p.z + (p.z - q.z) * k - (o.z + drone.vel.z * 2);
-  const d = Math.hypot(x, y, z), f = U.uCamFwd.value;
+  const d = hyp(x, y, z), f = U.uCamFwd.value;
   // (and not so near that it cannot be in the picture at all: a shark passing a metre off is more than the frame)
   return d > Math.max(0.8, (sj.len ?? 0) * 1.2) && d < 18 && (x * f.x + y * f.y + z * f.z) / d > Math.cos(60 * Math.PI / 180);
 }
@@ -398,7 +398,7 @@ function updateCaption(dt: number) {
       const fwd = U.uCamFwd.value; let best: Subject | null = null, bs = 0;
       for (const s of cur.eco.subjects()) {
         const p = s.pos(); if (!p || !s.live() || s.kind === 'cave' || s.kind === 'hunt') continue;
-        const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
+        const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = hyp(dx, dy, dz);
         if (d > 14 || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) < 0.75) continue;
         const sc = Math.max(s.len ?? 0, Math.min(s.size, 3)) / Math.max(d, 1);
         const keep = canKeep(s, true, false), bp = bodyAt(s);
@@ -490,7 +490,7 @@ function confusable(sj: Subject, d0: number, pxm: number, ratio = 0.5) {
   const need = ratio * unit / Math.max(d0, 0.5), see = sightRange(cur) * 0.7, o = camera.position;
   // (something else on the screen at least half as big as it looks: its length over its distance, against the subject's)
   const big = (x: number, y: number, z: number, len: number) => {
-    const d = Math.hypot(x - o.x, y - o.y, z - o.z); if (d > see || d < 0.3 || len / d < need) return false;
+    const d = hyp(x - o.x, y - o.y, z - o.z); if (d > see || d < 0.3 || len / d < need) return false;
     _cfp.set(x, y, z).project(camera); return _cfp.z < 1 && Math.abs(_cfp.x) < 1 && Math.abs(_cfp.y) < 1;
   };
   for (const f of (cur?.fish ?? []) as any[]) {
@@ -582,7 +582,7 @@ function findLife() {
   for (const f of (cur?.fish ?? []) as any[]) {
     const w = 0.4 + 0.6 * activity(f.sp.diel, env);
     f.each?.((x: number, _y: number, z: number) => {
-      const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz); if (d > 35 || d < 3 || (dx * fx + dz * fz) / d < -0.1) return;
+      const dx = x - o.x, dz = z - o.z, d = hyp(dx, dz); if (d > 35 || d < 3 || (dx * fx + dz * fz) / d < -0.1) return;
       const k = Math.floor(x / 8) * 4096 + Math.floor(z / 8);
       let b = _lifeBins.get(k); if (!b) { b = { n: 0, x: 0, z: 0, kinds: new Map() }; _lifeBins.set(k, b); }
       b.n++; b.x += x; b.z += z; b.kinds.set(f.sp.id, w);
@@ -619,12 +619,12 @@ function flyStep(dt: number) {
   if (!fr.burst) {
     // in toward the middle of the area first, so there is room for the chase across it (and land ahead: bear away)
     const lim = cur!.loc.land ? cur!.loc.land.roam : LIMIT, c = cur!.loc.land ? cur!.loc.land.center : [0, 0];
-    const room = Math.hypot(drone.pos.x - c[0], drone.pos.z - c[1]) < lim * 0.4;
+    const room = hyp(drone.pos.x - c[0], drone.pos.z - c[1]) < lim * 0.4;
     if (!room) wantYaw = Math.atan2(-(c[0] - drone.pos.x), -(c[1] - drone.pos.z));
     if (cur!.T.ground(drone.pos.x + fx * 25, drone.pos.z + fz * 25) > -1) wantYaw = drone.yaw + 0.8;
     _v.set(fx * 9, clamp((sea + 1.5 - drone.pos.y) * 0.8, -7, 2), fz * 9);
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
-    if (drone.pos.y < sea + 3 && Math.hypot(drone.vel.x, drone.vel.z) > 6 && fr.t > 2.5 && (room || fr.t > 20)) {
+    if (drone.pos.y < sea + 3 && hyp(drone.vel.x, drone.vel.z) > 6 && fr.t > 2.5 && (room || fr.t > 20)) {
       const d = rr(8, 13), off = rr(-0.4, 0.4);
       ff.burst(drone.pos.x + fx * d, drone.pos.z + fz * d, Math.atan2(fz, fx) + off);
       fr.burst = true; fr.t = 0; fr.side = off > 0 ? 1 : -1;   // (they veer one way: keep to the other side)
@@ -643,7 +643,7 @@ function flyStep(dt: number) {
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 2.4));
     // the lens on it: not snatched round to it, and a little ahead of it, where it is going
     const lx = L.x + D.x * 1.2 - camera.position.x, ly = L.y - camera.position.y, lz = L.z + D.z * 1.2 - camera.position.z;
-    wantYaw = Math.atan2(-lx, -lz); wantPitch = Math.atan2(ly, Math.hypot(lx, lz)); k = dt * 2.6;
+    wantYaw = Math.atan2(-lx, -lz); wantPitch = Math.atan2(ly, hyp(lx, lz)); k = dt * 2.6;
   } else {
     // the last of them gone: ease off and climb away
     _v.set(fx * 4, 1.5, fz * 4); drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
@@ -666,7 +666,7 @@ function updateDrone(dt: number, now: number) {
   const prevYaw = drone.yaw, t = U.uTime.value;
   // (the island's residents can be filmed from the sky as well; the treetops count as floor there)
   // (from the sky, a whale or manta leaping nearby is watched from above, whatever was being filmed)
-  const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && Math.hypot(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260
+  const bl = cur!.breach.leap, overLeap = drone.sky && drone.mode === 'auto' && !watch.r && !!bl && bl.t > 2 && hyp(bl.c.x - drone.pos.x, bl.c.z - drone.pos.z) < 260
     && ((skyNow?.night ?? 0) < 0.6 || U.uMoonIllum.value * Math.max(0, U.uAirMoon.value.y) > 0.25);   // (not on a dark night: the stars, not a black sea)
   const flyOn = drone.sky && drone.mode === 'auto' && !watch.r && !!flyRun && !!cur!.flyfish && !overLeap;
   const R = cur!.residents, film = drone.mode === 'auto' && !watch.r && (!drone.sky || !!R) && !overLeap && !flyOn && !opening && (arrive.t <= 0 || !!director.shot?.asked);
@@ -716,7 +716,7 @@ function updateDrone(dt: number, now: number) {
     _v.subVectors(_t, drone.pos);
     const L = _v.length();
     _v.multiplyScalar(Math.min(L * 1.6, 30) / Math.max(L, 1e-4));   // (across the island quickly when switching)
-    if (drone.pos.y < 0) { const h = Math.hypot(_v.x, _v.z), c = Math.min(1, 1.4 / Math.max(h, 1e-4)); _v.set(_v.x * c, 2.6, _v.z * c); }   // under the water: up through the surface first, unhurried
+    if (drone.pos.y < 0) { const h = hyp(_v.x, _v.z), c = Math.min(1, 1.4 / Math.max(h, 1e-4)); _v.set(_v.x * c, 2.6, _v.z * c); }   // under the water: up through the surface first, unhurried
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
     // looking a little past it, the way it is going — but only from behind and not too close; from the side,
     // in front of it or close up, at it (its face, when you have come round to see it)
@@ -725,18 +725,18 @@ function updateDrone(dt: number, now: number) {
     const lx = ax - camera.position.x, ly = p.y + mid - 0.1 * behind - camera.position.y, lz = az - camera.position.z;
     const k = Math.min(1, dt * 2.5);
     drone.yaw += angDiff(Math.atan2(-lx, -lz), drone.yaw) * k;
-    drone.pitch += (Math.atan2(ly, Math.hypot(lx, lz)) - drone.pitch) * k;
+    drone.pitch += (Math.atan2(ly, hyp(lx, lz)) - drone.pitch) * k;
   } else if (shot) {
     // glide to the viewpoint and keep the subject framed (from inside the cave: out along the tunnel first)
     let way = cur!.cave && shot.subject.kind !== 'cave' && cur!.cave.exitWay(drone.pos, shot.pos, _w) ? _w : shot.pos;
     // from sea to sea it swims, through the water; only to somewhere far up on the land (a resident ashore),
     // or with land in the way, does it go up and out, across in the air, and back down
-    const hd = Math.hypot(shot.pos.x - drone.pos.x, shot.pos.z - drone.pos.z);
+    const hd = hyp(shot.pos.x - drone.pos.x, shot.pos.z - drone.pos.z);
     if ((hopCheckT -= dt) < 0 || shot !== hopFor) { hopCheckT = 0.5; hopFor = shot; hopNeed = shot.pos.y > 0.3 || (shot.subject.kind === 'robot' && cur!.loc.f(shot.pos.x, shot.pos.z) > -0.3) || landBetween(drone.pos, shot.pos); }
     // through the water, the way is planned (round reef tops that come up near the surface), not a straight line
     const routing = way === shot.pos && drone.pos.y < 0 && shot.pos.y < 0 && !shot.close && !shot.subject.tour && shot.subject.kind !== 'cave' && hd > 5;
     if (!routing) { route = null; routeBlocked = false; }
-    else if (shot !== routeFor || !route || Math.hypot(route.gx - shot.pos.x, route.gz - shot.pos.z) > 3 && (routeT -= dt) < 0) {
+    else if (shot !== routeFor || !route || hyp(route.gx - shot.pos.x, route.gz - shot.pos.z) > 3 && (routeT -= dt) < 0) {
       const Z = ZONE, Lm = LIMIT - 2;
       const oc = cur as any; oc.routeCells ??= floorCells(routeFloor);   // (one per sea: the floor read once, kept)
       route = planRoute(oc.routeCells, ROUTE_CEIL, [Z.x - Lm, Z.x + Lm, Z.z - Lm, Z.z + Lm], drone.pos.x, drone.pos.z, shot.pos.x, shot.pos.z);
@@ -765,7 +765,7 @@ function updateDrone(dt: number, now: number) {
     // under the water: no faster than one swims (a hunt is followed at its own pace); on the way out, mostly up
     if (drone.pos.y < 0 && !shot.close) {
       // (and sent far through the water, a little quicker the further it has to go)
-      const h = Math.hypot(_v.x, _v.z), cap = drone.hop ? 1.6 : shot.phase === 'approach' && (shot.forced || shot.asked) ? Math.min(6, 3.2 + Math.max(0, hd - 30) * 0.03) : 3.2;
+      const h = hyp(_v.x, _v.z), cap = drone.hop ? 1.6 : shot.phase === 'approach' && (shot.forced || shot.asked) ? Math.min(6, 3.2 + Math.max(0, hd - 30) * 0.03) : 3.2;
       if (h > cap) { _v.x *= cap / h; _v.z *= cap / h; }
       if (drone.hop) _v.y = Math.max(_v.y, 2.2);
     }
@@ -788,7 +788,7 @@ function updateDrone(dt: number, now: number) {
     const k = Math.min(1, dt * (1 + 2.2 * narrowK) * (leap ? (shot.leapView === 'close' ? 3.5 : 2.4) : shot.close ? 3.2 : shot.giant ? 2.4 : kb ? 2.6 : shot.phase === 'approach' ? 0.9 : shot.zoom || shot.subject.size < 1.2 ? 3 : 1.6));   // (a small fish close up: keep it in the frame; a leap: with it; a narrow screen: sooner)
     { const dy = angDiff(Math.atan2(-lx, -lz), drone.yaw) * k, cap = shot.subject.comes && shot.phase === 'approach' ? dt * 0.7 : Infinity; drone.yaw += clamp(dy, -cap, cap); }   // (turning to watch something come: no faster than 40°/s, as a hand would)
     // (a leap from the waterline: the framing sets the tilt — a fifth sky while it comes up, four fifths while it is out)
-    const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, Math.hypot(lx, lz));
+    const wantP = leap && shot.tilt !== undefined ? shot.tilt : Math.atan2(ly, hyp(lx, lz));
     drone.pitch += (clamp(wantP, -1.1, 1.15) - drone.pitch) * Math.min(1, leap && shot.tilt !== undefined ? dt * 3.2 : k);
   } else if (flyOn) {
     flyStep(dt);
@@ -805,7 +805,7 @@ function updateDrone(dt: number, now: number) {
     if (cur!.loc.land) { const [cx, cz] = cur!.loc.land.center; _t.set(cx + _t.x * 3.2, _t.y, cz + _t.z * 3.2); }   // by an island: round the whole island
     if (cur!.loc.land) _t.y = Math.max(_t.y, cur!.T.ground(_t.x, _t.z) + 9, cur!.T.ground(drone.pos.x, drone.pos.z) + 7);   // over the island: clear of the trees
     // a bait ball nearby: wheel over it with the birds
-    const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && Math.hypot(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
+    const bb = cur!.bait?.st, overBall = !!bb && bb.active && bb.phase !== 'gather' && hyp(bb.c.x - drone.pos.x, bb.c.z - drone.pos.z) < 300;
     if (overBall) { const oa = st * 0.12; _t.set(bb!.c.x + Math.cos(oa) * 26, 13, bb!.c.z + Math.sin(oa) * 26); }
     // a leap: off to one side of its line and up, high enough to see the whole splash and the foam it leaves
     const lc = overLeap ? bl!.c : null;
@@ -814,7 +814,7 @@ function updateDrone(dt: number, now: number) {
     // first, up through the surface on a slant, carrying on the way we were going
     if (drone.pos.y < 0) _v.set(-Math.sin(drone.yaw) * 1.8, 2.4, -Math.cos(drone.yaw) * 1.8);
     else {
-      const L = Math.hypot(_v.x, _v.z);
+      const L = hyp(_v.x, _v.z);
       const top = lc ? 12 : 4.5;   // (to a leap: quickly, it will not wait)
       _v.x *= Math.min(top, L * 0.3) / Math.max(L, 1e-4); _v.z *= Math.min(top, L * 0.3) / Math.max(L, 1e-4);
       _v.y = clamp(_v.y * 0.5, -2.5, 3);
@@ -835,7 +835,7 @@ function updateDrone(dt: number, now: number) {
       else { wantYaw = drone.yaw + dt * 0.05; nightPitch = 0.75 + Math.sin(st * 0.05) * 0.12; }
     }
     else if (dusk > 0.3) wantYaw += angDiff(Math.atan2(-U.uAirSun.value.x, -U.uAirSun.value.z), wantYaw) * 0.7;   // face the sunset
-    const wantPitch = drone.pos.y < 0 ? 0.3 : lc ? -Math.atan2(drone.pos.y - (bl!.kind === 'whale' ? 2.5 : 0.8), Math.max(Math.hypot(lc.x - drone.pos.x, lc.z - drone.pos.z), 1)) : overBall ? -Math.atan2(drone.pos.y + 1, Math.max(Math.hypot(bb!.c.x - drone.pos.x, bb!.c.z - drone.pos.z), 1))                                  // rising: watch the surface come closer
+    const wantPitch = drone.pos.y < 0 ? 0.3 : lc ? -Math.atan2(drone.pos.y - (bl!.kind === 'whale' ? 2.5 : 0.8), Math.max(hyp(lc.x - drone.pos.x, lc.z - drone.pos.z), 1)) : overBall ? -Math.atan2(drone.pos.y + 1, Math.max(hyp(bb!.c.x - drone.pos.x, bb!.c.z - drone.pos.z), 1))                                  // rising: watch the surface come closer
       : night > 0.5 ? nightPitch : dusk > 0.3 ? 0.02 : -0.5 + Math.sin(st * 0.06) * 0.15 + skim * 0.4;
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * (lc ? 1.2 : 0.35));
     drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * (lc ? 1.2 : 0.35));
@@ -848,7 +848,7 @@ function updateDrone(dt: number, now: number) {
     // (a passing caption up meanwhile: the eyes on what it is about, as cruising)
     const cfa = capFollow();
     const ay = cfa ? Math.atan2(-(cfa.x - drone.pos.x), -(cfa.z - drone.pos.z)) : arrive.yaw + Math.sin(arrive.age * 0.55) * 0.2;
-    const ap = cfa ? Math.atan2(cfa.y - drone.pos.y, Math.hypot(cfa.x - drone.pos.x, cfa.z - drone.pos.z)) * 0.7 : arrive.pitch;
+    const ap = cfa ? Math.atan2(cfa.y - drone.pos.y, hyp(cfa.x - drone.pos.x, cfa.z - drone.pos.z)) * 0.7 : arrive.pitch;
     drone.yaw += angDiff(ay, drone.yaw) * Math.min(1, dt * 0.8);
     drone.pitch += (ap - drone.pitch) * Math.min(1, dt * 0.8);
     if (arrive.t <= 0) { drone.s = nearestS(drone.pos); director.start(); }   // (and the filming begins here, with what is in front)
@@ -876,7 +876,7 @@ function updateDrone(dt: number, now: number) {
     if (nightNow > 0.5 && drone.pos.y < 0 && !cur!.loc.pelagic) {
       if (!richDeep && T0.top(_t.x, _t.z) < NIGHT_DEEP) {
         let bx = 0, bz = 0, bt = T0.top(_t.x, _t.z);
-        const b2 = pathXZ(drone.s + 0.002), [ax, az] = pathXZ(drone.s), tl = Math.hypot(b2[0] - ax, b2[1] - az) || 1, nx = -(b2[1] - az) / tl, nz = (b2[0] - ax) / tl;
+        const b2 = pathXZ(drone.s + 0.002), [ax, az] = pathXZ(drone.s), tl = hyp(b2[0] - ax, b2[1] - az) || 1, nx = -(b2[1] - az) / tl, nz = (b2[0] - ax) / tl;
         for (let off = -30; off <= 30; off += 5) { const tp = T0.top(_t.x + nx * off, _t.z + nz * off); if (tp > bt && tp < -2.5) { bt = tp; bx = nx * off; bz = nz * off; } }
         _t.x += bx; _t.z += bz;
       }
@@ -884,7 +884,7 @@ function updateDrone(dt: number, now: number) {
     }
     if (life.ok && drone.pos.y < 0 && !cur!.loc.pelagic && !(nightNow > 0.5 && !richDeep && T0.top(life.x, life.z) < NIGHT_DEEP)) {
       const lx = goDeep ? life.deep.x : life.x, lz = goDeep ? life.deep.z : life.z;
-      let ox = (lx - _t.x) * 0.6, oz = (lz - _t.z) * 0.6; const ol = Math.hypot(ox, oz);
+      let ox = (lx - _t.x) * 0.6, oz = (lz - _t.z) * 0.6; const ol = hyp(ox, oz);
       if (ol > 18) { ox *= 18 / ol; oz *= 18 / ol; }
       _t.x += ox; _t.z += oz;
       const tp = cur!.T.top(_t.x, _t.z);
@@ -896,7 +896,7 @@ function updateDrone(dt: number, now: number) {
     // straight back to it, quickly, above the trees, and only then down into the water
     if (L > 20) {
       const T = cur!.T, gr = Math.max(T.ground(drone.pos.x, drone.pos.z), T.over ? T.over(drone.pos.x, drone.pos.z) : -1e9);
-      const hz = Math.hypot(_v.x, _v.z);
+      const hz = hyp(_v.x, _v.z);
       if (gr > -0.5 && hz > 12) { _v.y = Math.max(gr + 4, 3) - drone.pos.y; L = _v.length(); }
       _v.multiplyScalar(Math.min(L * 0.5, 18) / Math.max(L, 1e-4));
     } else _v.multiplyScalar(Math.min(L * 1.4, L > 6 ? 4.5 : 3) / Math.max(L, 1e-4));
@@ -904,12 +904,12 @@ function updateDrone(dt: number, now: number) {
     pathPoint(drone.s + 9 / Math.max(pathRate(drone.s), 1e-3), _a);
     const dx = _a.x - drone.pos.x, dz = _a.z - drone.pos.z, dy = _a.y - drone.pos.y;
     let wantYaw = Math.atan2(-dx, -dz) + (Math.sin(t * 0.09 * persona.sway) * 0.45 + Math.sin(t * 0.031 + 1) * 0.3) * (1 - interestW) * persona.sway;
-    let wantPitch = Math.atan2(dy, Math.hypot(dx, dz)) * 0.6 - 0.1 + Math.sin(t * 0.07) * 0.12;
+    let wantPitch = Math.atan2(dy, hyp(dx, dz)) * 0.6 - 0.1 + Math.sin(t * 0.07) * 0.12;
     if (cf && Math.abs(angDiff(Math.atan2(-(cf.x - drone.pos.x), -(cf.z - drone.pos.z)), Math.atan2(-dx, -dz))) > 110 * Math.PI / 180) capLetGo = true;
     if (interestW > 0.01 && hasI && !(cf && capLetGo)) {
       const ix = _i.x - drone.pos.x, iz = _i.z - drone.pos.z, iy = _i.y - drone.pos.y;
       wantYaw += angDiff(Math.atan2(-ix, -iz), wantYaw) * interestW * (cf ? 1 : 0.8);
-      wantPitch += (Math.atan2(iy, Math.hypot(ix, iz)) - wantPitch) * interestW * 0.7;
+      wantPitch += (Math.atan2(iy, hyp(ix, iz)) - wantPitch) * interestW * 0.7;
     }
     const turnK = cf && !capLetGo ? 1.6 : 0.7 * persona.turn;   // (keeping something passing in view: a quicker eye)
     drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * turnK);
@@ -947,7 +947,7 @@ function updateDrone(dt: number, now: number) {
   if (cur!.loc.land && drone.pos.y < 0 && !watch.r) {
     const f = cur!.loc.f, h0 = f(drone.pos.x, drone.pos.z);
     if (h0 > -1.9) {
-      const gx = f(drone.pos.x + 1.5, drone.pos.z) - f(drone.pos.x - 1.5, drone.pos.z), gz = f(drone.pos.x, drone.pos.z + 1.5) - f(drone.pos.x, drone.pos.z - 1.5), gl = Math.hypot(gx, gz) || 1;
+      const gx = f(drone.pos.x + 1.5, drone.pos.z) - f(drone.pos.x - 1.5, drone.pos.z), gz = f(drone.pos.x, drone.pos.z + 1.5) - f(drone.pos.x, drone.pos.z - 1.5), gl = hyp(gx, gz) || 1;
       const k = clamp((h0 + 1.9) * 1.5, 0, 2.5);
       const vn = (drone.vel.x * gx + drone.vel.z * gz) / gl;
       if (vn > 0) { drone.vel.x -= gx / gl * vn; drone.vel.z -= gz / gl * vn; }   // no further up the slope
@@ -956,7 +956,7 @@ function updateDrone(dt: number, now: number) {
   }
   // look ahead along the way we are moving and start climbing well before a rock or coral head
   // (flown by hand, the forest is trees to weave between, not a roof to keep above)
-  const G = drone.mode === 'manual' ? cur!.T.top : cur!.T.ground, hs = Math.hypot(drone.vel.x, drone.vel.z);
+  const G = drone.mode === 'manual' ? cur!.T.top : cur!.T.ground, hs = hyp(drone.vel.x, drone.vel.z);
   if (hs > 0.05 && !(watch.r && !watch.pov)) {   // (watching someone, the camera's own spot already keeps clear of the ground: no early climbing away from their eye level)
     let ahead = -1e9, rate = 0, wall = Infinity;
     // (outside the cave, its rock counts as ground to climb over; inside the tunnel, the roof doesn't)
@@ -984,14 +984,14 @@ function updateDrone(dt: number, now: number) {
   // (except close by it, where the trees are opened up anyway: there it may come down to eye level)
   // (once down under the trees with it, it stays down among the trunks rather than being lifted back over the roof)
   const openR = Math.max(13, watch.dist * 2.2);
-  if (watch.r && !watch.pov && cur!.T.over && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > openR - 0.5) {
+  if (watch.r && !watch.pov && cur!.T.over && hyp(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > openR - 0.5) {
     const roof = cur!.T.over(drone.pos.x, drone.pos.z);
-    if (drone.pos.y > roof - 2 || Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > openR + 12) drone.pos.y = Math.max(drone.pos.y, roof + 1.5);
+    if (drone.pos.y > roof - 2 || hyp(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) > openR + 12) drone.pos.y = Math.max(drone.pos.y, roof + 1.5);
   }
   // keep a clear bubble: the floor is the highest ground in a ring around the camera, not just under it,
   // and we rise onto it smoothly rather than popping up
   // (watching someone close by, the bushes and trees around them are opened up: only the bare ground counts)
-  const Gc = watch.r && !watch.pov && Math.hypot(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) < Math.max(13, watch.dist * 2.2) + 12 ? cur!.T.h : G;
+  const Gc = watch.r && !watch.pov && hyp(drone.pos.x - watch.r.pos.x, drone.pos.z - watch.r.pos.z) < Math.max(13, watch.dist * 2.2) + 12 ? cur!.T.h : G;
   let fh = Gc(drone.pos.x, drone.pos.z);
   for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; fh = Math.max(fh, Gc(drone.pos.x + Math.cos(a) * 0.7, drone.pos.z + Math.sin(a) * 0.7) - 0.25); }
   const clear = watch.r && !watch.pov ? 0.4 : 0.75;   // (watching someone close up: down nearer their eye level)
@@ -1438,7 +1438,7 @@ const QUIET: Record<string, number> = { breathe: 480e3, rest: 480e3, manta: 420e
 const SORT: Record<string, string> = { breathe: 'turtle', rest: 'turtle', manta: 'manta', breach: 'manta' };
 const sortShown = new Map<string, number>();
 const lastKind = new Map<string, number>();
-const sameHunt = (a: any, b: any) => !!a && !!b && (a === b || Math.hypot(a.x - b.x, a.z - b.z) < 8);
+const sameHunt = (a: any, b: any) => !!a && !!b && (a === b || hyp(a.x - b.x, a.z - b.z) < 8);
 function seaLog(kind: string, text: string, at?: Where) {
   recordLog(kind, text);
   const now = performance.now();
@@ -1466,7 +1466,7 @@ function pumpLog(now: number) {
   if (e.kind) sortShown.set(SORT[e.kind] ?? e.kind, now);
   // (what happens to the one being filmed is told by the commentary, not here)
   const sp = lastShot?.subject.pos(), ep = e.ref ?? (e.at ? e.at() : null);
-  if (sp && ep && Math.hypot(sp.x - ep.x, sp.y - ep.y, sp.z - ep.z) < 8) { logShownAt = now - 15000; return; }
+  if (sp && ep && hyp(sp.x - ep.x, sp.y - ep.y, sp.z - ep.z) < 8) { logShownAt = now - 15000; return; }
   noticeSubj = null;
   // (a hunt on the caption: keep with it — its end, caught or got away, releases it)
   if (e.kind === 'hunt' || e.kind === 'catch') {
@@ -1505,7 +1505,7 @@ const ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
 function bearing(p: { x: number; y: number; z: number }) {
   const dx = p.x - camera.position.x, dz = p.z - camera.position.z, yaw = drone.yaw;
   const f = dx * -Math.sin(yaw) + dz * -Math.cos(yaw), r = dx * Math.cos(yaw) + dz * -Math.sin(yaw);
-  const k = ((Math.round(Math.atan2(r, f) / (Math.PI / 4)) % 8) + 8) % 8, d = Math.hypot(dx, p.y - camera.position.y, dz);
+  const k = ((Math.round(Math.atan2(r, f) / (Math.PI / 4)) % 8) + 8) % 8, d = hyp(dx, p.y - camera.position.y, dz);
   return `${ARROWS[k]} ${d < 10 ? d.toFixed(0) : Math.round(d / 5) * 5}m`;
 }
 // Notices: something worth a look, in view and not far, that the camera is not filming (a school, a
@@ -1523,7 +1523,7 @@ function scanNotices(dt: number, now: number) {
     if ((noticed.get('kind:' + s.kind) ?? -1e9) > now - 360000) continue;   // (not a manta, then a manta again: one of a sort every few minutes)
     const notable = s.kind === 'giant' || s.kind === 'manta' || s.kind === 'hunt' || (s.kind === 'school' && s.size >= 3) || (s.kind === 'big' && (s.len ?? s.size) >= 1) || (s.kind === 'critter' && s.prio >= 2);
     const p = s.pos(); if (!notable || !p || !s.live()) continue;
-    const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = Math.hypot(dx, dy, dz);
+    const dx = p.x - camera.position.x, dy = p.y - camera.position.y, dz = p.z - camera.position.z, d = hyp(dx, dy, dz);
     if (d > 35 || d < 3 || (dx * fwd.x + dy * fwd.y + dz * fwd.z) / d < 0.3) continue;
     const sc = s.prio / (1 + d * 0.05);
     if (sc > bs) { bs = sc; best = s; }
@@ -1544,7 +1544,7 @@ function goToEvent() {
   if (p0) for (const s of allSubjects()) {
     if (s.kind === 'cave' || s.spot || !s.live()) continue;
     const q = s.pos(); if (!q) continue;
-    const d = Math.hypot(q.x - p0.x, q.y - p0.y, q.z - p0.z), named = text.includes(s.label.replace(/の(群れ|大群|ベイトボール)$/, ''));
+    const d = hyp(q.x - p0.x, q.y - p0.y, q.z - p0.z), named = text.includes(s.label.replace(/の(群れ|大群|ベイトボール)$/, ''));
     const sc = named ? d * 0.4 : d; if ((named ? d < 12 : d < 4) && sc < bd) { bd = sc; best = s; }
   }
   if (best) { focusOn({ ...best, key: 'focus:' + best.key, prio: 5 }, 'SEA LOG から'); return; }
@@ -1570,7 +1570,7 @@ function rareInView(r: { pos?(): THREE.Vector3 | null; bodies?(cb: (x: number, y
   // of a school; a single little fish at the edge of sight is not yet a sighting)
   let hit = false, sum = 0, big = 0;
   r.bodies((x, y, z, len) => {
-    const d = Math.hypot(x - o.x, y - o.y, z - o.z), px = len / Math.max(d, 0.5) * pxm; if (d > see || px < 5) return;   // (each one more than a speck)
+    const d = hyp(x - o.x, y - o.y, z - o.z), px = len / Math.max(d, 0.5) * pxm; if (d > see || px < 5) return;   // (each one more than a speck)
     if (eyeDeg) { camera.getWorldDirection(_cfp); if ((_cfp.x * (x - o.x) + _cfp.y * (y - o.y) + _cfp.z * (z - o.z)) / d < Math.cos(eyeDeg * Math.PI / 180)) return; }   // (the eye's field, not the picture's)
     else { _sv.set(x, y, z).project(camera); if (_sv.z > 1 || Math.abs(_sv.x) > 1 || Math.abs(_sv.y) > 1) return; }
     for (let t = 0.5; t < d - 0.5; t += 0.5) { const k = t / d; if (o.y + (y - o.y) * k < T.top(o.x + (x - o.x) * k, o.z + (z - o.z) * k) - 0.05) return; }
@@ -1925,7 +1925,7 @@ function updateNewMark(dt: number) {
   if (newMark.t > 7 || !p) { newMark = null; el.classList.remove('on'); el.tabIndex = -1; return; }
   _tp.set(p.x, p.y, p.z).project(camera);
   const vis = _tp.z < 1 && Math.abs(_tp.x) < 0.95 && Math.abs(_tp.y) < 0.95;
-  const d = Math.max(1, Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z));
+  const d = Math.max(1, hyp(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z));
   const r = Math.min(70, Math.max(18, (newMark.size * 0.6 / d) * innerHeight));
   el.style.transform = `translate(${(_tp.x * 0.5 + 0.5) * innerWidth}px, ${(-_tp.y * 0.5 + 0.5) * innerHeight}px)`;
   el.style.setProperty('--r', `${r}px`);
@@ -1937,7 +1937,7 @@ function observeNew() {
   const pos = () => { const p = m.at(); if (p) { last.x = p.x; last.y = p.y; last.z = p.z; } return last; };
   pos();
   // (the animal itself, if it is one of the sea's subjects: its own name, state and size; else just its place)
-  const p0 = m.at(), dd = (q: Where3 | null) => (q && p0 ? Math.hypot(q.x - p0.x, q.y - p0.y, q.z - p0.z) : Infinity);
+  const p0 = m.at(), dd = (q: Where3 | null) => (q && p0 ? hyp(q.x - p0.x, q.y - p0.y, q.z - p0.z) : Infinity);
   let real: Subject | null = allSubjects().filter((x) => x.label.replace(/の群れ$/, '') === m.ja && x.pos()).sort((a, b) => dd(a.pos()) - dd(b.pos()))[0] ?? null;
   if (!real) real = (cur.fish as any[]).find((f) => f.sp.ja === m.ja)?.focus(p0 ? new THREE.Vector3(p0.x, p0.y, p0.z) : drone.pos) ?? null;   // (a reef fish's group: no subject of its own)
   if (real) focusOn({ ...real, key: `new:${real.key}`, prio: 5, hold: 8 }, '初めて見つけた');
@@ -2149,7 +2149,7 @@ function enterOcean(oc: Ocean) {
   oc.eco.env.sound = { frenzy, plop };
   oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt; oc.breach.fx.bubbles = bubblesAt;
   // (heard from where the camera is: in the air or under the water, and how far, the depth included)
-  const leapHeard = (x: number, z: number) => ({ d: Math.hypot(x - camera.position.x, z - camera.position.z, camera.position.y), under: camera.position.y < 0 });
+  const leapHeard = (x: number, z: number) => ({ d: hyp(x - camera.position.x, z - camera.position.z, camera.position.y), under: camera.position.y < 0 });
   oc.breach.fx.sound = (big: number, x: number, z: number) => { const h = leapHeard(x, z); breachSound(big, h.d, h.under); };
   oc.breach.fx.rise = (big: number, x: number, z: number) => { const h = leapHeard(x, z); breachRise(big, h.d, h.under); };
   lastPhase = '';
@@ -2605,7 +2605,7 @@ function spotFish(at: Where3) {
   const n: Record<string, number> = {};
   for (const f of (cur?.fish ?? []) as any[]) {
     const fp = f.dbg?.fp, dead = f.dbg?.dead, tot = f.dbg?.total ?? 0; if (!fp) continue;
-    for (let i = 0; i < tot; i += Math.max(1, Math.floor(tot / 300))) if (!dead[i] && Math.hypot(fp[i * 3] - at.x, fp[i * 3 + 1] - at.y, fp[i * 3 + 2] - at.z) < 8) n[f.sp.ja] = (n[f.sp.ja] ?? 0) + 1;
+    for (let i = 0; i < tot; i += Math.max(1, Math.floor(tot / 300))) if (!dead[i] && hyp(fp[i * 3] - at.x, fp[i * 3 + 1] - at.y, fp[i * 3 + 2] - at.z) < 8) n[f.sp.ja] = (n[f.sp.ja] ?? 0) + 1;
   }
   return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([k]) => k);
 }
@@ -2630,7 +2630,7 @@ function pickAt(x: number, y: number): Subject | null {
   for (const s of allSubjects()) {
     if (byFish.has(s.key.split(':')[0]) && s.kind !== 'hunt') continue;
     const p = s.pos(); if (!p || !s.live()) continue;
-    const d = Math.hypot(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
+    const d = hyp(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z);
     if (d > (s.kind === 'robot' || s.kind === 'cave' ? 260 : 80) || d < 1) continue;
     if (floor && d > floor.d + Math.max(2, s.size * 0.5)) continue;
     _tp.set(p.x, p.y, p.z).project(camera);
@@ -2639,18 +2639,18 @@ function pickAt(x: number, y: number): Subject | null {
     // about as big as it looks on screen, never too small to hit, and never so big that a far school covers
     // the whole view; a nearer thing wins a close call
     const r = Math.min(110, Math.max(isTouch ? 56 : 40, (s.size * 0.7 / d) * innerHeight));
-    const off = Math.hypot(sx - x, sy - y);
+    const off = hyp(sx - x, sy - y);
     const sc = off / r + d * 0.004;
     if (off < r && sc < bs) { bs = sc; best = s; }
   }
   // each fish as it is on screen: hit when the tap is on it or close by (a fingertip's width), in front of the reef
   // there, and near enough to be made out in this water
   const fishScore = (fx: number, fy: number, fz: number, rad: number) => {
-    const d = Math.hypot(fx - camera.position.x, fy - camera.position.y, fz - camera.position.z);
+    const d = hyp(fx - camera.position.x, fy - camera.position.y, fz - camera.position.z);
     if (d < 0.6 || d > see || (floor && d > floor.d + 0.6)) return Infinity;
     _tp.set(fx, fy, fz).project(camera);
     if (_tp.z > 1 || Math.abs(_tp.x) > 1 || Math.abs(_tp.y) > 1) return Infinity;
-    const off = Math.hypot((_tp.x * 0.5 + 0.5) * innerWidth - x, (-_tp.y * 0.5 + 0.5) * innerHeight - y);
+    const off = hyp((_tp.x * 0.5 + 0.5) * innerWidth - x, (-_tp.y * 0.5 + 0.5) * innerHeight - y);
     const r = Math.max(isTouch ? 30 : 20, rad / d * pxm);
     return off < r ? off / r + d * 0.004 : Infinity;
   };
@@ -3082,7 +3082,7 @@ canvas.addEventListener('pointerdown', (e) => {
   tap.moved = 0; tap.t = performance.now();
   // (with the HUD hidden and asleep, a tap only wakes its way back: it does not also send the camera off)
   tap.woke = document.body.classList.contains('hud-off') && document.body.classList.contains('idle');
-  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); }
+  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch0 = hyp(a.x - b.x, a.y - b.y); }
 });
 canvas.addEventListener('pointermove', (e) => {
   const p = pointers.get(e.pointerId); if (!p) return;
@@ -3092,7 +3092,7 @@ canvas.addEventListener('pointermove', (e) => {
   if (mode === 'globe') {
     if (busy) return;
     gv.lastUser = performance.now(); gv.tween = null;
-    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) gv.dist = clamp(gv.dist * pinch0 / d, 1.35, 4.5); pinch0 = d; return; }
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; const d = hyp(a.x - b.x, a.y - b.y); if (pinch0) gv.dist = clamp(gv.dist * pinch0 / d, 1.35, 4.5); pinch0 = d; return; }
     // about as far as the surface under the finger moves (gentler zoomed in), and a fling that
     // carries on at the speed of the last moments of the drag, not of a single jumpy event
     const k = 0.1 * (gv.dist - 1.0), now = performance.now(), dtm = clamp((now - dragT) / 1000, 0.008, 0.1); dragT = now;
@@ -3100,7 +3100,7 @@ canvas.addEventListener('pointermove', (e) => {
     const a = Math.min(1, dtm * 12);
     gv.vlon += (-dx * k / dtm * 0.6 - gv.vlon) * a; gv.vlat += (dy * k / dtm * 0.6 - gv.vlat) * a;
   } else {
-    if (watch.r && pointers.size >= 2) { const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 1.2, 60); pinch0 = d; pinched = true; tap.moved += 99; return; }
+    if (watch.r && pointers.size >= 2) { const [a, b] = [...pointers.values()]; const d = hyp(a.x - b.x, a.y - b.y); if (pinch0) watch.dist = clamp(watch.dist * pinch0 / d, 1.2, 60); pinch0 = d; pinched = true; tap.moved += 99; return; }
     if (watch.r && pinched) return;
     const k = isTouch ? 0.006 : 0.0035;
     tap.moved += Math.abs(dx) + Math.abs(dy);
@@ -3133,7 +3133,7 @@ canvas.addEventListener('wheel', (e) => { if (mode === 'ocean' && watch.r && !wa
   const pad = $('joy'), knob = $('knob'); let jid: number | null = null;
   const setJ = (e: PointerEvent) => {
     const r = pad.getBoundingClientRect(), Rr = r.width / 2;
-    let x = (e.clientX - r.left - Rr) / Rr, y = (e.clientY - r.top - Rr) / Rr; const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+    let x = (e.clientX - r.left - Rr) / Rr, y = (e.clientY - r.top - Rr) / Rr; const l = hyp(x, y); if (l > 1) { x /= l; y /= l; }
     joy.x = x; joy.y = -y; knob.style.transform = `translate(${x * Rr * 0.6}px, ${y * Rr * 0.6}px)`; touchInput();
   };
   pad.addEventListener('pointerdown', (e) => { jid = e.pointerId; pad.setPointerCapture(jid); setJ(e); });
@@ -3180,7 +3180,7 @@ function renderPip(dt: number, air: boolean) {
     // a hunt that has gone quiet (missed, and the hunter barely moving) gives way to a livelier one nearby
     if (pipSubj && pipSubj.live()) {
       const p = pipSubj.pos(), el = pipT - pipFromT;
-      if (p && el > 2) { pipSlow = Math.hypot(p.x - pipFrom.x, p.y - pipFrom.y, p.z - pipFrom.z) / el < 0.35; if (el > 4) { pipFrom.set(p.x, p.y, p.z); pipFromT = pipT; } }
+      if (p && el > 2) { pipSlow = hyp(p.x - pipFrom.x, p.y - pipFrom.y, p.z - pipFrom.z) / el < 0.35; if (el > 4) { pipFrom.set(p.x, p.y, p.z); pipFromT = pipT; } }
       const st = pipSubj.status();
       pipIdle = !st.includes('追いかけ') && (st.includes('かわされ') || pipSlow) ? pipIdle + 0.5 : 0;
     }
@@ -3192,7 +3192,7 @@ function renderPip(dt: number, air: boolean) {
       for (const s of cur.eco.subjects()) {
         if (s.kind !== 'hunt' || !s.live() || s.key === filming || (was && s.key === was.key && pipIdle > 3) || !s.status().includes('追いかけ')) continue;
         const p = s.pos(); if (!p) continue;
-        const d = Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z) - (s.status().includes('追いかけ') ? 50 : 0);
+        const d = hyp(p.x - drone.pos.x, p.z - drone.pos.z) - (s.status().includes('追いかけ') ? 50 : 0);
         if (d < bd) { bd = d; best = s; }
       }
       if (best || !was || (!was.live() && performance.now() > pipShowUntil)) pipSubj = best;   // (an ended hunt stays on until its moment is told)
@@ -3220,7 +3220,7 @@ function renderPip(dt: number, air: boolean) {
   const q = pipSubj.target?.(), R = pipSubj.frameR?.() ?? pipSubj.size * 0.5;
   let sep = 0;
   _pa.set(p.x, p.y, p.z);
-  if (q) { sep = Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z); if (sep < 6) _pa.lerp(_pb.set(q.x, q.y, q.z), 0.35 * (1 - sep / 6) + 0.1); }
+  if (q) { sep = hyp(q.x - p.x, q.y - p.y, q.z - p.z); if (sep < 6) _pa.lerp(_pb.set(q.x, q.y, q.z), 0.35 * (1 - sep / 6) + 0.1); }
   if (q && sep > 0.3) pipAng += angDiff(Math.atan2(p.z - q.z, p.x - q.x) + 0.9, pipAng) * Math.min(1, dt * 0.8);
   const dist = clamp(R * 1.6 + 1.5 + Math.min(sep, 6) * 0.3, 2.0, 10) * (1.25 - 0.25 * Math.min(1, pipT / 3));
   // on the reef, swing round (or rise) until no rock or coral head stands between the camera and the hunt
@@ -3248,7 +3248,7 @@ function renderPip(dt: number, air: boolean) {
   const keepPos = U.uCamPos.value.clone(), keepFwd = U.uCamFwd.value.clone(), keepLod = U.uLodPos.value.clone();
   U.uCamPos.value.copy(pipCam.position); U.uLodPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
   const vis = cur.cells.map((c: any) => [c.mesh.visible, c.hi?.visible]);
-  for (const c of cur.cells) { const d = Math.hypot(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
+  for (const c of cur.cells) { const d = hyp(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
   sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, 0, pipCam.position.z);
   const surf = surface.visible, snw = snow.visible; surface.visible = snow.visible = true;
   const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio() * (tier === 'low' || tier === 'lite' ? 0.6 : 1), H = innerHeight;
@@ -3389,7 +3389,7 @@ function frameBody(ts: number) {
       if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; }
       // and open up the forest roof over it, so it can be seen from above
       const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(9, watch.dist * 1.6)); else cut.w = 0; }
-    const fl = Math.hypot(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
+    const fl = hyp(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.focus(watch.r);
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
     // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
@@ -3400,7 +3400,7 @@ function frameBody(ts: number) {
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; if (!watch.pov) renderWatch(); }
     if (watch.pov && watch.r && cur.residents) {
       // (Kamemaru names the creatures it sees)
-      const fish = watch.r.id === 'kame' ? cur.eco.subjects().filter((sj) => { const p = sj.pos(); return !!p && p.y < 0 && Math.hypot(p.x - drone.pos.x, p.z - drone.pos.z) < 25; }).slice(0, 8).map((sj) => { const p = sj.pos()!; return { x: p.x, y: p.y, z: p.z, kind: 'fish', label: sj.label, sub: sj.status() }; }) : [];
+      const fish = watch.r.id === 'kame' ? cur.eco.subjects().filter((sj) => { const p = sj.pos(); return !!p && p.y < 0 && hyp(p.x - drone.pos.x, p.z - drone.pos.z) < 25; }).slice(0, 8).map((sj) => { const p = sj.pos()!; return { x: p.x, y: p.y, z: p.z, kind: 'fish', label: sj.label, sub: sj.status() }; }) : [];
       pov.update(watch.r, cur.residents.sense(watch.r), cur.residents.status(watch.r), camera, innerWidth, innerHeight, dt, fish, cur.residents.gibber);
     }
     // a rare scene has begun: announce it, put it in the log, and (cruising) go and film it
@@ -3479,7 +3479,7 @@ function frameBody(ts: number) {
     if (cur.loc.land) { const m = cur.loc.land.far - LIMIT - 10; ZONE.x = clamp(drone.pos.x, -m, m); ZONE.z = clamp(drone.pos.z, -m, m); } else ZONE.x = ZONE.z = 0;
     const vis = air ? 400 : Math.min(3.1 / U.uFogDen.value, 150) * TIERS[seaTier].coralVis + CELL * 0.72;
     for (const c of cur.cells) {
-      const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = Math.hypot(dx, dz);
+      const dx = c.x - drone.pos.x, dz = c.z - drone.pos.z, d = hyp(dx, dz);
       const cs = c.big ? 80 : CELL;
       c.mesh.visible = d < (c.small ? (air ? 60 : 38) : vis + (cs - CELL) * 0.72) && (air || d < cs || (dx * fx + dz * fz) / d > -0.4);
       if (c.hi) c.hi.visible = c.mesh.visible && d < U.uLodR.value + CELL * 0.72;
@@ -3684,9 +3684,9 @@ function shotEye(eye: number[], look: number[], size: number): [number, number, 
   const L = new THREE.Vector3(look[0], look[1], look[2]), top = (x: number, z: number) => cur!.T.top(x, z);
   const lift = (x: number, y: number, z: number) => new THREE.Vector3(x, Math.max(y, top(x, z) + 0.3), z);
   // (too near to see it whole — a friend who came right up — a step back, to about as far as its size asks)
-  const minD = THREE.MathUtils.clamp(size * 2.5, 0.6, 4), hd0 = Math.hypot(eye[0] - L.x, eye[2] - L.z), back = hd0 < minD ? minD / Math.max(hd0, 0.05) : 1;
+  const minD = THREE.MathUtils.clamp(size * 2.5, 0.6, 4), hd0 = hyp(eye[0] - L.x, eye[2] - L.z), back = hd0 < minD ? minD / Math.max(hd0, 0.05) : 1;
   const ux = hd0 > 0.05 ? eye[0] - L.x : 1, uz = hd0 > 0.05 ? eye[2] - L.z : 0;
-  const e0 = lift(L.x + ux * (hd0 > 0.05 ? back : minD), Math.max(eye[1], hd0 < minD ? L.y + 0.3 : -1e9), L.z + uz * (hd0 > 0.05 ? back : minD)), hd = Math.hypot(e0.x - L.x, e0.z - L.z), a0 = Math.atan2(e0.x - L.x, e0.z - L.z);
+  const e0 = lift(L.x + ux * (hd0 > 0.05 ? back : minD), Math.max(eye[1], hd0 < minD ? L.y + 0.3 : -1e9), L.z + uz * (hd0 > 0.05 ? back : minD)), hd = hyp(e0.x - L.x, e0.z - L.z), a0 = Math.atan2(e0.x - L.x, e0.z - L.z);
   const tries = [e0, lift(e0.x, e0.y + 0.4, e0.z)];
   for (const da of [0.35, -0.35, 0.7, -0.7, 1.1, -1.1]) for (const up of [0, 0.5]) { const a = a0 + da, x = L.x + Math.sin(a) * hd, z = L.z + Math.cos(a) * hd; tries.push(lift(x, e0.y + up, z)); }
   for (const k of [0.55, 1]) for (const up of [0.8, 1.8]) for (const da of [0, 0.6, -0.6, 1.4, -1.4, Math.PI]) { const a = a0 + da, x = L.x + Math.sin(a) * hd * k, z = L.z + Math.cos(a) * hd * k; tries.push(lift(x, Math.max(e0.y, L.y) + up, z)); }   // (nearer and from above: over whatever is in the way)
@@ -3708,10 +3708,10 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   const dx = lx - ex, dy = ly - ey, dz = lz - ez;
   // (its lens closes in on what it meant to keep: a shell fills a good part of the picture, a place is seen whole;
   // and the subject sits a little below the middle, with what is round it above)
-  const d = Math.max(0.3, Math.hypot(dx, dy, dz));
+  const d = Math.max(0.3, hyp(dx, dy, dz));
   camera.fov = THREE.MathUtils.clamp(2 * Math.atan((size * 2.2) / d) * 180 / Math.PI, 22, 64); camera.updateProjectionMatrix();
   drone.pos.set(ex, ey, ez); drone.vel.set(0, 0, 0);
-  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, Math.hypot(dx, dz)) + camera.fov * Math.PI / 180 * 0.12; look.yaw = look.pitch = 0; look.wy = NaN;
+  drone.yaw = Math.atan2(-dx, -dz); drone.pitch = Math.atan2(dy, hyp(dx, dz)) + camera.fov * Math.PI / 180 * 0.12; look.yaw = look.pitch = 0; look.wy = NaN;
   drone.lastInput = performance.now() + 1e9;   // (held: no drift back to the cruise)
   shotHold = true;
   return shotNote || true;

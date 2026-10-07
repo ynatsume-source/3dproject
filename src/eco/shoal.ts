@@ -54,7 +54,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
         let best = -1, bs = Infinity;
         for (let k = 0; k < 40; k++) {
           const i = s + S * Math.floor(R() * (active / S)); if (i >= active || dead[i]) continue;
-          const dp = Math.hypot(p[i * 3] - x, p[i * 3 + 1] - y, p[i * 3 + 2] - z), out = Math.hypot(p[i * 3] - L.c.x, p[i * 3 + 2] - L.c.z);
+          const dp = Math.sqrt((p[i * 3] - x) ** 2 + (p[i * 3 + 1] - y) ** 2 + (p[i * 3 + 2] - z) ** 2), out = Math.sqrt((p[i * 3] - L.c.x) ** 2 + (p[i * 3 + 2] - L.c.z) ** 2);
           const sc = dp - out * 0.8;
           if (sc < bs) { bs = sc; best = i; }
         }
@@ -71,7 +71,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
         L.ch.x = x; L.ch.y = y; L.ch.z = z; L.ch.t = L.t; L.fear = 1;
       },
       // back in the thick of the school: lost among the others
-      safe(i) { return !dead[i] && Math.hypot(p[i * 3] - L.c.x, p[i * 3 + 1] - L.c.y, p[i * 3 + 2] - L.c.z) < 0.9; },
+      safe(i) { return !dead[i] && Math.sqrt((p[i * 3] - L.c.x) ** 2 + (p[i * 3 + 1] - L.c.y) ** 2 + (p[i * 3 + 2] - L.c.z) ** 2) < 0.9; },
       kill(i) { if (i < 0 || i >= active || dead[i]) return false; dead[i] = L.t || 1e-3; if (L.ch?.i === i) L.ch = undefined; return true; },
     };
     leaders.push(L);
@@ -118,9 +118,9 @@ export function makeShoalSystem(sp: Species, oc: any) {
       // (sent off a given way: a school leaving the scene)
       if (steer) { let d = steer.head - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.8); }
       // (sent on toward a point: until it is there)
-      else if ((L as any).goal && !orbit) { const gl = (L as any).goal, gd = Math.hypot(gl.x - L.c.x, gl.z - L.c.z); if (gd < 6) (L as any).goal = undefined; else { let d = Math.atan2(gl.z - L.c.z, gl.x - L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.9); } }
+      else if ((L as any).goal && !orbit) { const gl = (L as any).goal, gd = Math.sqrt((gl.x - L.c.x) ** 2 + (gl.z - L.c.z) ** 2); if (gd < 6) (L as any).goal = undefined; else { let d = Math.atan2(gl.z - L.c.z, gl.x - L.c.x) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 0.9); } }
       // (circling a point: a tornado of jacks)
-      if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.hypot(ox, oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
+      if (orbit) { const ox = L.c.x - orbit.x, oz = L.c.z - orbit.z, r = Math.sqrt(ox * ox + oz * oz) || 1; let d = Math.atan2(oz, ox) + orbit.dir * (Math.PI / 2 + clamp((r - orbit.r) / orbit.r, -0.6, 0.6)) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * Math.min(1, dt * 2); }
       if (outZone(L.c.x, L.c.z)) { let d = toZone(L.c.x, L.c.z) - L.head; d = Math.atan2(Math.sin(d), Math.cos(d)); L.head += d * dt; }
       L.head += T.shore(L.c.x, L.c.z, L.head, 8, 2.2) * Math.min(1, dt * 1.2);
       const pace = sp.speed * (0.35 + 0.65 * act);
@@ -181,7 +181,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const lx = L.c.x - px, ly = L.c.y - py, lz = L.c.z - pz;
       // (measured in the school's own frame, its length along its heading counting for less: a ribbon, not a ball)
       const hx = Math.cos(L.head), hz = Math.sin(L.head), along = lx * hx + lz * hz, across = -lx * hz + lz * hx;
-      const stretch = 1 + 1.6 * (1 - breath), ld = Math.hypot(along / stretch, ly * 1.3, across), ldt = Math.hypot(lx, ly, lz);
+      const stretch = 1 + 1.6 * (1 - breath), ld = Math.sqrt((along / stretch) ** 2 + (ly * 1.3) ** 2 + across * across), ldt = Math.sqrt(lx * lx + ly * ly + lz * lz);
       const pull = ld > radius ? (ld - radius) * 0.6 * (ldt / Math.max(ld, 0.01)) : 0.05;
       fx2 += lx / Math.max(ldt, 0.01) * pull + Math.cos(L.head) * 0.5 - lz / Math.max(ldt, 0.01) * 0.25;
       fy2 += ly / Math.max(ldt, 0.01) * pull * 0.8;
@@ -193,7 +193,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const ch = L.ch && L.ch.i === i && L.t - L.ch.t < 0.3 ? L.ch : null;
       if (ch) {
         // singled out: bolt away and jink, then dive back into the thick of the school
-        const ax = px - ch.x, ay = py - ch.y, az = pz - ch.z, ad = Math.hypot(ax, ay, az) || 1;
+        const ax = px - ch.x, ay = py - ch.y, az = pz - ch.z, ad = Math.sqrt(ax * ax + ay * ay + az * az) || 1;
         if ((ch.jukeT -= dt) < 0) { ch.juke = -ch.juke; ch.jukeT = rr(0.25, 0.6) * (ad < 2.5 ? 1 : 2); }
         const jang = ch.juke * (ad < 2.5 ? 1.25 : 0.45), cj = Math.cos(jang), sj = Math.sin(jang), hx = ax / ad, hz = az / ad;
         const bolt = sp.speed * 2.6;
@@ -205,7 +205,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       // flash away from predators
       if (!ch) for (const th of env.threats) {
         if (!th.r) continue;
-        const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.hypot(ddx, ddy, ddz), r = th.r + 2;
+        const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz), r = th.r + 2;
         if (dd < r) { const k = (r - dd) * 4 / Math.max(dd, 0.1); fx2 += ddx * k; fy2 += ddy * k; fz2 += ddz * k; L.fear = 1; }
       }
       if (((frame + i) % 6) === 0 || fhC[i] < -1e8) fhC[i] = T.top(px, pz);
@@ -213,7 +213,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       if (py < fh + 1) fy2 += (fh + 1 - py) * 3;
       if (py > -1.2) fy2 -= (py + 1.2) * 3;
       let vx = v[i * 3] + fx2 * dt, vy = v[i * 3 + 1] + fy2 * dt, vz = v[i * 3 + 2] + fz2 * dt;
-      const sp2 = Math.hypot(vx, vy, vz), maxS = sp.speed * (ch ? 2.8 : 1.6 + L.fear * 1.8), minS = 0.35 + 0.4 * target;
+      const sp2 = Math.sqrt(vx * vx + vy * vy + vz * vz), maxS = sp.speed * (ch ? 2.8 : 1.6 + L.fear * 1.8), minS = 0.35 + 0.4 * target;
       const k = sp2 > maxS ? maxS / sp2 : sp2 < minS ? minS / Math.max(sp2, 1e-3) : 1;
       vx *= k; vy *= k * 0.7; vz *= k;
       v[i * 3] = vx; v[i * 3 + 1] = vy; v[i * 3 + 2] = vz;
@@ -221,11 +221,18 @@ export function makeShoalSystem(sp: Species, oc: any) {
       if (oc.cave && oc.cave.pushOut(_cv.set(nx, ny, nz), 0.4)) { nx = _cv.x; ny = _cv.y; nz = _cv.z; }   // slide off the cave rock
       p[i * 3] = nx; p[i * 3 + 1] = ny; p[i * 3 + 2] = nz;
       { const o = s * 5; acc[o] += nx; acc[o + 1] += ny; acc[o + 2] += nz; acc[o + 3] += nx * nx + ny * ny + nz * nz; acc[o + 4]++; }
-      const hs = Math.hypot(vx, vz), hy = clamp(vy, -hs * 0.5, hs * 0.5);
-      _a.set(nx + vx, ny + hy, nz + vz); _b.set(nx, ny, nz);
-      _mm.lookAt(_a, _b, UPV); _ss.setScalar(size[i]); _mm.scale(_ss); _mm.setPosition(nx, ny, nz);
-      mesh.setMatrixAt(i, _mm);
-      shade.set(i, s, nx, ny, nz);
+      const hs = Math.sqrt(vx * vx + vz * vz), hy = clamp(vy, -hs * 0.5, hs * 0.5);
+      // (its body along the way it swims: the basis written straight in — what lookAt gave, without the calls, whose
+      // numbers were each boxed on the heap in a loop this long)
+      let bfx = vx, bfz = vz, bfy = hy; const hl = Math.sqrt(bfx * bfx + bfy * bfy + bfz * bfz);
+      if (hl > 1e-6) { bfx /= hl; bfy /= hl; bfz /= hl; } else { bfx = 1; bfy = 0; bfz = 0; }
+      let rx = bfz, rz = -bfx; const rl = Math.sqrt(rx * rx + rz * rz) || 1; rx /= rl; rz /= rl;
+      const ux = bfy * rz, uy = bfz * rx - bfx * rz, uz = -bfy * rx, sc = size[i], o = i * 16, E = mesh.instanceMatrix.array as Float32Array;
+      E[o] = rx * sc; E[o + 1] = 0; E[o + 2] = rz * sc; E[o + 3] = 0;
+      E[o + 4] = ux * sc; E[o + 5] = uy * sc; E[o + 6] = uz * sc; E[o + 7] = 0;
+      E[o + 8] = bfx * sc; E[o + 9] = bfy * sc; E[o + 10] = bfz * sc; E[o + 11] = 0;
+      E[o + 12] = nx; E[o + 13] = ny; E[o + 14] = nz; E[o + 15] = 1;
+      shade.setFrom(i, s, p, i * 3);
     }
     shade.end();
     // where each school's fish actually are, and how far they spread: what is filmed and ringed (the leading point
@@ -244,7 +251,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     let best = Infinity;
     for (let i = 0; i < active; i += 7) {
       if (dead[i]) continue;
-      const dx = p[i * 3] - cam.x, dy = p[i * 3 + 1] - cam.y, dz = p[i * 3 + 2] - cam.z, d = Math.hypot(dx, dy, dz);
+      const dx = p[i * 3] - cam.x, dy = p[i * 3 + 1] - cam.y, dz = p[i * 3 + 2] - cam.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (d < maxD && d < best && (dx * fwd.x + dy * fwd.y + dz * fwd.z) / Math.max(d, 1e-3) > 0.55) best = d;
     }
     return best;
@@ -255,7 +262,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     let best = Infinity;
     for (let i = 0; i < active; i += 7) {
       if (dead[i]) continue;
-      const dx = p[i * 3] - cam.x, dy = p[i * 3 + 1] - cam.y, dz = p[i * 3 + 2] - cam.z, d = Math.hypot(dx, dy, dz);
+      const dx = p[i * 3] - cam.x, dy = p[i * 3 + 1] - cam.y, dz = p[i * 3 + 2] - cam.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz);
       if (d < maxD && d < best && (dx * fwd.x + dz * fwd.z) / Math.max(d, 1e-3) > 0.2) { best = d; out.set(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]); }
     }
     return best;
@@ -286,9 +293,9 @@ export function makeShoalSystem(sp: Species, oc: any) {
   function fishOf(s: number) {
     const L = leaders[s], m = L.m ?? L.c, lim = Math.max(1.5, (L.spread ?? 2) * 1.2);
     let i = oneI[s] ?? -1;
-    if (i < 0 || dead[i] || Math.hypot(p[i * 3] - m.x, p[i * 3 + 1] - m.y, p[i * 3 + 2] - m.z) > lim) {
+    if (i < 0 || dead[i] || Math.sqrt((p[i * 3] - m.x) ** 2 + (p[i * 3 + 1] - m.y) ** 2 + (p[i * 3 + 2] - m.z) ** 2) > lim) {
       let bd = Infinity; i = -1;
-      for (let j = s; j < active; j += S) { if (dead[j]) continue; const d = Math.hypot(p[j * 3] - m.x, p[j * 3 + 1] - m.y, p[j * 3 + 2] - m.z); if (d < bd) { bd = d; i = j; } }
+      for (let j = s; j < active; j += S) { if (dead[j]) continue; const d = Math.sqrt((p[j * 3] - m.x) ** 2 + (p[j * 3 + 1] - m.y) ** 2 + (p[j * 3 + 2] - m.z) ** 2); if (d < bd) { bd = d; i = j; } }
       oneI[s] = i;
     }
     if (i < 0) return null;

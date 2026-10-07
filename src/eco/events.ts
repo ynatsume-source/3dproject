@@ -7,7 +7,7 @@
 // tide — and are not announced; they tell themselves once they show.)
 import * as THREE from 'three';
 import type { Species } from '../data/locations';
-import { R, rr, clamp } from '../core/math';
+import { R, rr, clamp, hyp } from '../core/math';
 import { makeShoalSystem } from './shoal';
 import { makeSchoolShade } from './schoolshade';
 import { sightRange, unseen, behind, clearDepth } from './unseen';
@@ -40,7 +40,7 @@ function ahead(oc: any, cam: THREE.Vector3, fx: number, fz: number, d: number, n
 // so it swims into the picture from the side, as things do, and is seen coming for a while before it is near. The
 // line needs water `need` deep along `len` metres of it. null if there is no such line here.
 function sideLine(oc: any, cam: THREE.Vector3, fx: number, fz: number, d: number, need: number, cross: number, pass: number, len: number, wide = 0, r = 6) {
-  const fl = Math.hypot(fx, fz) || 1, ux = fx / fl, uz = fz / fl, h = Math.atan2(uz, ux);
+  const fl = hyp(fx, fz) || 1, ux = fx / fl, uz = fz / fl, h = Math.atan2(uz, ux);
   for (let k = 0; k < 24; k++) {
     const sd = R() < 0.5 ? 1 : -1, a = h + sd * rr(100, 125) * Math.PI / 180, dd = d * rr(0.9, 1.15);
     const st = new THREE.Vector3(cam.x + Math.cos(a) * dd, 0, cam.z + Math.sin(a) * dd);
@@ -57,7 +57,7 @@ function sideLine(oc: any, cam: THREE.Vector3, fx: number, fz: number, d: number
 // the way ahead of where the camera is now — the camera's own way turns as it cruises, and a line laid down at the
 // start would pass behind it unseen. (Out of sight, its turning is no one's to see.) Returns the new heading.
 function reaim(from: THREE.Vector3, dir: THREE.Vector3, cam: THREE.Vector3, fx: number, fz: number, cross: number, pass: number, dt: number) {
-  const fl = Math.hypot(fx, fz) || 1, ux = fx / fl, uz = fz / fl, sd = (from.x - cam.x) * -uz + (from.z - cam.z) * ux >= 0 ? -1 : 1;
+  const fl = hyp(fx, fz) || 1, ux = fx / fl, uz = fz / fl, sd = (from.x - cam.x) * -uz + (from.z - cam.z) * ux >= 0 ? -1 : 1;
   const ax = cam.x + ux * cross - uz * sd * pass, az = cam.z + uz * cross + ux * sd * pass;
   const want = Math.atan2(az - from.z, ax - from.x), now = Math.atan2(dir.z, dir.x);
   const turn = clamp(Math.atan2(Math.sin(want - now), Math.cos(want - now)), -dt * 0.17, dt * 0.17);
@@ -284,7 +284,7 @@ const KINDS: Kind[] = [
       const sys = tempSchool(oc, { ...sp, alt: [10, 14], speed: 0.9 }, 60 + Math.floor(R() * 40), at, y, head, 14);
       sys.steerTo(head);
       // (the one ahead: put down further along the line, if that is out of sight too)
-      const sAt = at.clone().addScaledVector(ln.dir, 15), fl0 = Math.hypot(fx, fz) || 1;
+      const sAt = at.clone().addScaledVector(ln.dir, 15), fl0 = hyp(fx, fz) || 1;
       const scout = unseen(oc, sAt.x, y, sAt.z, cam, fx / fl0, fz / fl0, 3) ? tempSchool(oc, { ...sp, alt: [10, 14], speed: 0.9 }, 1, sAt, y + rr(-1, 1), head, 1) : null;
       scout?.steerTo(head);
       return {

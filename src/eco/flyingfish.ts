@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mat } from '../render/common';
 import { swellAt } from '../ocean/air';
-import { R, rr } from '../core/math';
+import { R, rr, hyp } from '../core/math';
 
 // One unit long, facing +z. aPart: 0 body, 1 pectoral fin, 2 pelvic fin, 3 tail; aW: signed position along the fin.
 function flyingFishGeometry() {
@@ -189,7 +189,7 @@ export function makeFlyingFish(group: THREE.Object3D) {
     const up = (f: Fish) => f.state === 'glide' || f.state === 'taxi';
     if (st.leadI < 0 || !up(fish[st.leadI])) {
       const had = st.leadI >= 0 || st.t > 0.5; st.leadI = -1; let bd = -1e9;
-      fish.forEach((f, i) => { if (up(f)) { const d = f.glideT - f.t + f.again * 3 - (had ? Math.hypot(f.p.x - lead.x, f.p.z - lead.z) * 0.35 : 0); if (d > bd) { bd = d; st.leadI = i; } } });
+      fish.forEach((f, i) => { if (up(f)) { const d = f.glideT - f.t + f.again * 3 - (had ? hyp(f.p.x - lead.x, f.p.z - lead.z) * 0.35 : 0); if (d > bd) { bd = d; st.leadI = i; } } });
     }
     if (st.leadI >= 0) { const b = fish[st.leadI]; lead.copy(b.p); dir.set(Math.cos(b.h), 0, Math.sin(b.h)); }
     if (st.t > 2 && !fish.some((f) => f.state !== 'gone' || f.t < 1.2)) st.active = false;

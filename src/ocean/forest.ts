@@ -8,7 +8,7 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat } from '../render/common';
-import { hash, mulberry32 } from '../core/math';
+import { hash, mulberry32, hyp } from '../core/math';
 
 const CELL = 40;
 const icoI = (detail = 1) => { const g = new THREE.IcosahedronGeometry(1, detail); g.deleteAttribute('normal'); g.deleteAttribute('uv'); return mergeVertices(g); };
@@ -295,9 +295,9 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
     update(cam: THREE.Vector3, r: number) {
       near = r;
       const R0 = r + CELL * 0.75, i0 = Math.floor((cam.x - R0) / CELL), i1 = Math.floor((cam.x + R0) / CELL), j0 = Math.floor((cam.z - R0) / CELL), j1 = Math.floor((cam.z + R0) / CELL);
-      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Math.hypot((i + 0.5) * CELL - cam.x, (j + 0.5) * CELL - cam.z) < R0) cellAt(i, j);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (hyp((i + 0.5) * CELL - cam.x, (j + 0.5) * CELL - cam.z) < R0) cellAt(i, j);
       const on: { trees: Tree[]; under: Tree[] }[] = [], hi: boolean[] = []; let k2 = '';
-      for (const [k, c] of cells) { const d = Math.hypot(c.cx - cam.x, c.cz - cam.z), LOD = r * 0.45; if (d < R0) { on.push(c); hi.push(d < LOD); k2 += k + (d < LOD ? 'h;' : 'l;'); } }
+      for (const [k, c] of cells) { const d = hyp(c.cx - cam.x, c.cz - cam.z), LOD = r * 0.45; if (d < R0) { on.push(c); hi.push(d < LOD); k2 += k + (d < LOD ? 'h;' : 'l;'); } }
       if (k2 !== key) { key = k2; fill(on, hi); }
     },
     // is there a trunk within r of (x, z)? (for those planning a way on foot: robots/residents.ts)
@@ -338,7 +338,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
       const c = cellAt(Math.floor(p.x / CELL), Math.floor(p.z / CELL));
       for (const t of c.trees) {
         if (!standing(t)) continue;
-        const dx = p.x - t.x, dz = p.z - t.z, d = Math.hypot(dx, dz), up = p.y - t.y;
+        const dx = p.x - t.x, dz = p.z - t.z, d = hyp(dx, dz), up = p.y - t.y;
         if (up < -0.5 || up > t.h || t.g >= YOUNG) continue;
         const rr0 = up < t.h * 0.4 ? 0.55 : t.h * 0.12;   // (the trunk; up in the crown, its thick middle)
         if (d < rr0) { const k = (rr0 - d) / Math.max(d, 1e-3); p.x += dx * k; p.z += dz * k; }

@@ -1,7 +1,7 @@
 // One wild harbor seal occasionally passes through Point Lobos. Session-local ecology, independent
 // of the island's resident otter. Timing/density are design values, never a local population estimate.
 import * as THREE from 'three';
-import { mulberry32 } from '../core/math';
+import { mulberry32, hyp } from '../core/math';
 import { makeHarborSeal, type HarborSealModel } from '../ocean/lobos-visitor-models';
 import { swellAt } from '../ocean/air';
 import { logEvent, type Env, type Subject, type Where } from './env';
@@ -25,7 +25,7 @@ export function sealRouteAt(route: SealRoute, u: number, out: THREE.Vector3) {
 function offshoreArc(route: SealRoute, seconds: number, out: THREE.Vector3) {
   const dx = route.end.x - route.start.x - Math.PI * route.bend.x;
   const dz = route.end.z - route.start.z - Math.PI * route.bend.z;
-  const l = Math.hypot(dx, dz), x = dx / l, z = dz / l;
+  const l = hyp(dx, dz), x = dx / l, z = dz / l;
   const radius = 7, a = seconds * 0.7 / radius;
   out.copy(route.end);
   out.x += x * radius * Math.sin(a) - z * radius * (1 - Math.cos(a));
@@ -143,7 +143,7 @@ export class LobosVisitors {
     sampleSealVisit(route, s.seconds + 0.1, water, this.ahead);
     const vx = this.ahead.x - this.target.x, vy = this.ahead.y - this.target.y, vz = this.ahead.z - this.target.z;
     const surface = ease((s.seconds - 88) / 7) * (1 - ease((s.seconds - 113) / 6));
-    const wantTilt = -Math.atan2(vy, Math.hypot(vx, vz)) * (1 - surface) - 0.34 * surface;
+    const wantTilt = -Math.atan2(vy, hyp(vx, vz)) * (1 - surface) - 0.34 * surface;
     const turn = Math.atan2(vx, vz) - this.heading;
     this.heading += Math.atan2(Math.sin(turn), Math.cos(turn)) * (dt > 0 ? 1 - Math.exp(-dt * 3) : 1);
     this.tilt += (wantTilt - this.tilt) * (dt > 0 ? 1 - Math.exp(-dt * 3) : 1);

@@ -90,7 +90,7 @@ export function makeBaitBall(oc: any, fraction: number) {
 
   // where the school is put down: out of sight, off to one side of the way ahead, heading across it
   function placeSchool(cam: THREE.Vector3, fx: number, fz: number) {
-    const fl = Math.hypot(fx, fz); if (fl < 1e-3) { fx = 0; fz = -1; } else { fx /= fl; fz /= fl; }
+    const fl = Math.sqrt(fx * fx + fz * fz); if (fl < 1e-3) { fx = 0; fz = -1; } else { fx /= fl; fz /= fl; }
     for (let k = 0; k < 60; k++) {
       const side = k % 2 ? 1 : -1, a = rr(85, 110) * Math.PI / 180, d = rr(60, 90) + (k > 30 ? 30 : 0);
       const x = zx(cam.x + (fx * Math.cos(a) - fz * Math.sin(a) * side) * d), z = zz(cam.z + (fz * Math.cos(a) + fx * Math.sin(a) * side) * d);
@@ -149,7 +149,7 @@ export function makeBaitBall(oc: any, fraction: number) {
   function update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number, audio: { frenzy(level: number, dist: number): void; plop(dist: number): void }) {
     const light = clamp(env.day + env.twilight * 0.8, 0, 1);
     if (!st.placed) { if (!placeSchool(cam, fx, fz)) { audio.frenzy(0, 1e9); return; } for (const k of packs) for (const p of k.list) placePred(p, cam, fx, fz); }
-    const dc = Math.hypot(st.c.x - cam.x, st.c.z - cam.z);
+    const dc = Math.sqrt((st.c.x - cam.x) ** 2 + (st.c.z - cam.z) ** 2);
     // left far behind and out of sight while nothing is happening: it is somewhere else in the sea now — put down
     // again off the way ahead (as any school is), out of sight
     if (!st.active && dc > 150 && unseen(oc, st.c.x, st.c.y, st.c.z, cam, fx, fz, SCHOOL_R)) { placeSchool(cam, fx, fz); for (const k of packs) for (const p of k.list) if (p.mode === 'cruise' && unseen(oc, p.p.x, p.p.y, p.p.z, cam, fx, fz, 3)) placePred(p, cam, fx, fz); }
@@ -179,7 +179,7 @@ export function makeBaitBall(oc: any, fraction: number) {
       if (p.mode === 'cruise') {
         // wandering its own stretch, unhurried — a stretch that keeps to where the school is (as hunters do: where
         // the food is), never right on it
-        const hd = Math.hypot(st.c.x - p.home.x, st.c.z - p.home.z);
+        const hd = Math.sqrt((st.c.x - p.home.x) ** 2 + (st.c.z - p.home.z) ** 2);
         if (hd > 60) { const k = Math.min(1, dt * 0.02); p.home.x += (st.c.x - p.home.x) * k; p.home.z += (st.c.z - p.home.z) * k; }
         const hx = p.home.x + Math.cos(p.t * 0.05 + p.ang) * 18, hz = p.home.z + Math.sin(p.t * 0.05 + p.ang) * 18;
         want.set(hx - p.p.x, (p.home.y - p.p.y) * 0.3, hz - p.p.z).normalize(); speed = pk.speed * 0.25 * p.pace;
@@ -335,7 +335,7 @@ export function makeBaitBall(oc: any, fraction: number) {
       }
       if (dead[i]) continue;
       let vx = (tx - px) * 1.8, vy = (ty - py) * 1.8, vz = (tz - pz) * 1.8;
-      const vl = Math.hypot(vx, vy, vz), mx = fear ? 5 : 2.6;
+      const vl = Math.sqrt(vx * vx + vy * vy + vz * vz), mx = fear ? 5 : 2.6;
       if (vl > mx) { vx *= mx / vl; vy *= mx / vl; vz *= mx / vl; }
       const kk = Math.min(1, dt * (fear ? 8 : 3.5));
       bv[i * 3] += (vx - bv[i * 3]) * kk; bv[i * 3 + 1] += (vy - bv[i * 3 + 1]) * kk; bv[i * 3 + 2] += (vz - bv[i * 3 + 2]) * kk;
@@ -345,14 +345,14 @@ export function makeBaitBall(oc: any, fraction: number) {
       const th = ang[i] + st.t * w * (0.8 + rf[i] * 0.4);
       let hx = bv[i * 3] + (ch * 0.8) * (1 - kB) - Math.sin(th) * 0.8 * kB, hy = bv[i * 3 + 1] * 0.3, hz = bv[i * 3 + 2] + (shd * 0.8) * (1 - kB) + Math.cos(th) * 0.8 * kB;
       // (its body along the way it swims: the basis written straight in — the same as lookAt, a good deal cheaper)
-      const hl = Math.hypot(hx, hy, hz) || 1; hx /= hl; hy /= hl; hz /= hl;
-      let rx = hz, rz = -hx; const rl = Math.hypot(rx, rz) || 1; rx /= rl; rz /= rl;
+      const hl = Math.sqrt(hx * hx + hy * hy + hz * hz) || 1; hx /= hl; hy /= hl; hz /= hl;
+      let rx = hz, rz = -hx; const rl = Math.sqrt(rx * rx + rz * rz) || 1; rx /= rl; rz /= rl;
       const ux = hy * rz, uy = hz * rx - hx * rz, uz = -hy * rx, sc = bs[i], o = i * 16;
       E[o] = rx * sc; E[o + 1] = 0; E[o + 2] = rz * sc; E[o + 3] = 0;
       E[o + 4] = ux * sc; E[o + 5] = uy * sc; E[o + 6] = uz * sc; E[o + 7] = 0;
       E[o + 8] = hx * sc; E[o + 9] = hy * sc; E[o + 10] = hz * sc; E[o + 11] = 0;
       E[o + 12] = nx; E[o + 13] = ny; E[o + 14] = nz; E[o + 15] = 1;
-      bshade.set(i, 0, nx, ny, nz);
+      bshade.setFrom(i, 0, bp, i * 3);
     }
     bshade.end();
     bmesh.instanceMatrix.needsUpdate = true;
@@ -385,7 +385,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     // out of sight, is about the way ahead instead.
     start: (cam: THREE.Vector3, fx: number, fz: number, _env: Env) => {
       if (!st.placed) placeSchool(cam, fx, fz);
-      else if (!st.active && Math.hypot(st.c.x - cam.x, st.c.z - cam.z) > 110 && unseen(oc, st.c.x, st.c.y, st.c.z, cam, fx, fz, SCHOOL_R)) placeSchool(cam, fx, fz);
+      else if (!st.active && Math.sqrt((st.c.x - cam.x) ** 2 + (st.c.z - cam.z) ** 2) > 110 && unseen(oc, st.c.x, st.c.y, st.c.z, cam, fx, fz, SCHOOL_R)) placeSchool(cam, fx, fz);
       for (const k of packs) for (const p of k.list) { p.hunger = Math.max(p.hunger, rr(0.7, 1)); if (p.mode === 'leave') p.mode = 'cruise'; }
       return true;
     },

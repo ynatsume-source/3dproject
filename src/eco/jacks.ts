@@ -124,7 +124,7 @@ export function makeJacks(oc: any, fraction: number) {
     x: home.x, y: home.y + 5, z: home.z, alive: N, label: sp.ja,
     scare() { st.threat = Math.max(st.threat, 0.6); },   // (a jack school holds together under threat: it tightens)
     take() { const i = Math.floor(R() * N); if (gone[i]) return false; gone[i] = 1; st.alive--; prey.alive--; return true; },
-    pick(x, y, z) { let b = -1, bs = Infinity; for (let q = 0; q < 40; q++) { const i = Math.floor(R() * N); if (gone[i]) continue; const d = Math.hypot(last[i * 6] - x, last[i * 6 + 1] - y, last[i * 6 + 2] - z); if (d < bs) { bs = d; b = i; } } return b; },
+    pick(x, y, z) { let b = -1, bs = Infinity; for (let q = 0; q < 40; q++) { const i = Math.floor(R() * N); if (gone[i]) continue; const d = Math.sqrt((last[i * 6] - x) ** 2 + (last[i * 6 + 1] - y) ** 2 + (last[i * 6 + 2] - z) ** 2); if (d < bs) { bs = d; b = i; } } return b; },
     at(i, out, vel) { if (i < 0 || gone[i]) return false; out.x = last[i * 6]; out.y = last[i * 6 + 1]; out.z = last[i * 6 + 2]; if (vel) { vel.x = last[i * 6 + 3]; vel.y = last[i * 6 + 4]; vel.z = last[i * 6 + 5]; } return true; },
     chased() { st.threat = Math.max(st.threat, 0.4); },
     safe() { return false; },
@@ -152,9 +152,9 @@ export function makeJacks(oc: any, fraction: number) {
     // the sea's state: daylight, the tidal stream across the edge (the drift of the water less its steady part),
     // a shark close by
     const light = clamp(env.day + env.twilight * 0.6, 0, 1);
-    st.stream = clamp(Math.hypot(env.cur.x - 0.12, env.cur.z - 0.05) / 0.8, 0, 1);
+    st.stream = clamp(Math.sqrt((env.cur.x - 0.12) ** 2 + (env.cur.z - 0.05) ** 2) / 0.8, 0, 1);
     let thr = 0;
-    for (const th of env.threats) if (th.r >= 3) { const d = Math.hypot(th.x - st.c.x, th.z - st.c.z); if (d < 25) thr = Math.max(thr, (1 - d / 25) * (th.r > 3 ? 1 : 0.5)); }   // (a hunter about: more so on the hunt)
+    for (const th of env.threats) if (th.r >= 3) { const d = Math.sqrt((th.x - st.c.x) ** 2 + (th.z - st.c.z) ** 2); if (d < 25) thr = Math.max(thr, (1 - d / 25) * (th.r > 3 ? 1 : 0.5)); }   // (a hunter about: more so on the hunt)
     st.threat = Math.max(thr, st.threat - dt * 0.05);
     surge = Math.max(0, surge - dt / 300);
     const drift = 0.1 * Math.sin(st.t * 0.004 + seed % 7);
@@ -171,7 +171,7 @@ export function makeJacks(oc: any, fraction: number) {
     prey.x = st.c.x; prey.z = st.c.z; prey.y = st.k > 0.5 ? (base() + top()) / 2 : base() + 2.2;
 
     // told once the column has formed and is in view, not before
-    const dc = Math.hypot(st.c.x - cam.x, st.c.z - cam.z);
+    const dc = Math.sqrt((st.c.x - cam.x) ** 2 + (st.c.z - cam.z) ** 2);
     const reach = 14 + 38 * st.spread;   // (how far its fish reach from its middle: the wheel and the lean; the night scatter)
     const inView = !unseen(oc, st.c.x, prey.y, st.c.z, cam, fx, fz, reach);
     if (st.k > 0.65 && st.spread < 0.3 && inView && dc < 60 && !st.told && st.t - st.toldAt > 1200) {
@@ -211,15 +211,15 @@ export function makeJacks(oc: any, fraction: number) {
       const ly = last[i * 6 + 1];
       if (ly < 0) Q.y = ly + clamp(Q.y - ly, -0.25 * fdt * 20, 0.45 * fdt * 20);
       // (and never faster than a fish darting (5 m/s), whatever pushed it: nothing jumps)
-      if (last[i * 6 + 1] < 0) { const mx = Q.x - last[i * 6], my = Q.y - last[i * 6 + 1], mz = Q.z - last[i * 6 + 2], ml = Math.hypot(mx, my, mz), cap = 5 * fdt; if (ml > cap) { const f = cap / ml; Q.set(last[i * 6] + mx * f, last[i * 6 + 1] + my * f, last[i * 6 + 2] + mz * f); } if (Q.y < flC[i] + 0.15) Q.y = Math.min(Math.max(Q.y, T.top(Q.x, Q.z) + 0.15), -0.6); }   // (out of the reef right where it is — not where it is heading)
+      if (last[i * 6 + 1] < 0) { const mx = Q.x - last[i * 6], my = Q.y - last[i * 6 + 1], mz = Q.z - last[i * 6 + 2], ml = Math.sqrt(mx * mx + my * my + mz * mz), cap = 5 * fdt; if (ml > cap) { const f = cap / ml; Q.set(last[i * 6] + mx * f, last[i * 6 + 1] + my * f, last[i * 6 + 2] + mz * f); } if (Q.y < flC[i] + 0.15) Q.y = Math.min(Math.max(Q.y, T.top(Q.x, Q.z) + 0.15), -0.6); }   // (out of the reef right where it is — not where it is heading)
       // (how it is moving: from where it was — no second placing; on the first frame, round the wheel)
       if (last[i * 6 + 1] < 0 && fdt > 0) V.set((Q.x - last[i * 6]) / fdt, (Q.y - last[i * 6 + 1]) / fdt, (Q.z - last[i * 6 + 2]) / fdt);
       else V.set(-(Q.z - st.c.z) * dir, 0, (Q.x - st.c.x) * dir);
       if (V.x * V.x + V.z * V.z < 1e-6) V.set(last[i * 6 + 3], 0, last[i * 6 + 5] || 1);
       last[i * 6] = Q.x; last[i * 6 + 1] = Q.y; last[i * 6 + 2] = Q.z; last[i * 6 + 3] = V.x; last[i * 6 + 4] = V.y; last[i * 6 + 5] = V.z;
       // (its body along the way it swims: the basis written straight in)
-      let hx = V.x, hy = V.y * 0.5, hz = V.z; const hl = Math.hypot(hx, hy, hz) || 1; hx /= hl; hy /= hl; hz /= hl;
-      let rx = hz, rz = -hx; const rl = Math.hypot(rx, rz) || 1; rx /= rl; rz /= rl;
+      let hx = V.x, hy = V.y * 0.5, hz = V.z; const hl = Math.sqrt(hx * hx + hy * hy + hz * hz) || 1; hx /= hl; hy /= hl; hz /= hl;
+      let rx = hz, rz = -hx; const rl = Math.sqrt(rx * rx + rz * rz) || 1; rx /= rl; rz /= rl;
       const ux = hy * rz, uy = hz * rx - hx * rz, uz = -hy * rx, sc = SZ[i];
       E[o] = rx * sc; E[o + 1] = 0; E[o + 2] = rz * sc; E[o + 3] = 0;
       E[o + 4] = ux * sc; E[o + 5] = uy * sc; E[o + 6] = uz * sc; E[o + 7] = 0;

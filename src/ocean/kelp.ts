@@ -2,7 +2,7 @@
 // Stipes carry individual blades and small basal pneumatocysts; the holdfast stays fixed.
 // This is an interpretive stand, not a survey of the real cove's present kelp cover.
 import * as THREE from 'three';
-import { mulberry32, TERR } from '../core/math';
+import { mulberry32, TERR, hyp } from '../core/math';
 import { mat } from '../render/common';
 import type { Sea } from '../data/locations';
 import { kelpCruiseHabitat, makeKelpUnderstory } from './kelp-understory';
@@ -265,7 +265,7 @@ export function makeKelpForest(loc: Sea, group: THREE.Group, T: any, cells: any[
   const update = (cam: THREE.Vector3) => {
     let busy = false;
     for (const c of kelpCells) {
-      const d = Math.hypot(c.x - cam.x, c.z - cam.z);
+      const d = hyp(c.x - cam.x, c.z - cam.z);
       if (c.kelpHi && d > FAR) { group.remove(c.kelpHi); c.kelpHi.geometry.dispose(); c.kelpHi = null; }
       if (!c.kelpHi && d < NEAR && !busy) {
         busy = true;

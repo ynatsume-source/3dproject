@@ -11,7 +11,7 @@
 // Jellyfish (クラゲ) pulse their bells to keep up in the water but go where the current takes them.
 import * as THREE from 'three';
 import { mat } from '../render/common';
-import { R, rr, clamp, smooth } from '../core/math';
+import { R, rr, clamp, smooth, hyp } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone } from '../ocean/zone';
 import type { Subject } from './env';
@@ -268,7 +268,7 @@ export function makeCritters(oc: any) {
     for (let k = 0; k < 400; k++) {
       const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z);
       if (h > -2.5 || h < -32 || T.slope(x, z) < 1.1 || T.reef(x, z) < 0.25) continue;
-      const gx = loc.f(x + 0.5, z) - loc.f(x - 0.5, z), gz = loc.f(x, z + 0.5) - loc.f(x, z - 0.5), gl = Math.hypot(gx, gz);
+      const gx = loc.f(x + 0.5, z) - loc.f(x - 0.5, z), gz = loc.f(x, z + 0.5) - loc.f(x, z - 0.5), gl = hyp(gx, gz);
       if (gl < 1e-3) continue;
       const d = new THREE.Vector3(-gx / gl, rr(-0.1, 0.2), -gz / gl).normalize();   // downhill: out of the rock
       const p = new THREE.Vector3(x, h - 0.15, z);
@@ -349,7 +349,7 @@ export function makeCritters(oc: any) {
             c.buried = T.top(c.head.x, c.head.z) > c.head.y + 0.02 || T.top(c.head.x + c.dir.x * 0.3, c.head.z + c.dir.z * 0.3) > c.head.y + 0.1;
           } else if (mm.kind === 'snake') {
             const s: Snake = c;
-            if (!s.placed || Math.hypot(s.pos.x - cam.x, s.pos.z - cam.z) > 75) {
+            if (!s.placed || hyp(s.pos.x - cam.x, s.pos.z - cam.z) > 75) {
               // (somewhere with water enough over the bottom: try a few spots, and if there is none just now,
               // wait out of sight rather than hopping about every frame)
               s.placed = false;
@@ -384,7 +384,7 @@ export function makeCritters(oc: any) {
           } else {
             const j: Jelly = c;
             const [d0, d1] = j.sp.depth ?? [2, 15];
-            if (!j.placed || Math.hypot(j.pos.x - cam.x, j.pos.z - cam.z) > 45) {
+            if (!j.placed || hyp(j.pos.x - cam.x, j.pos.z - cam.z) > 45) {
               const [x, z] = near(cam, fx, fz, 6, 32);
               const floorY = loc.pelagic ? -80 : T.top(x, z);
               j.pos.set(x, Math.max(-rr(d0, d1), floorY + 1.5), z); j.placed = true;

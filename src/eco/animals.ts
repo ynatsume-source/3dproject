@@ -3,7 +3,7 @@
 // sleep wedged against the reef at night, and rise to breathe now and then.
 // Mantas: circle a cleaning station by day; after dark they feed where plankton is thickest.
 import * as THREE from 'three';
-import { clamp, R, rr } from '../core/math';
+import { clamp, R, rr, hyp } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { activity, logEvent, oneOf, type Env } from './env';
@@ -82,7 +82,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
 
     // something coming too close (the drone): startled, it turns away and drives off with hard, quick
     // strokes of the fore flippers, each one surging it on, then eases back to its own pace once clear
-    const cdx = t.pos.x - cam.x, cdy = t.pos.y - cam.y, cdz = t.pos.z - cam.z, cd = Math.hypot(cdx, cdy, cdz) / t.size;
+    const cdx = t.pos.x - cam.x, cdy = t.pos.y - cam.y, cdz = t.pos.z - cam.z, cd = hyp(cdx, cdy, cdz) / t.size;
     const near = (t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0) * (env.shy > 0 ? Math.max(0.5, env.shy) : 0);   // (shy 0: a drone nothing can sense)
     // (only something in the water with it)
     if (cd < near && cam.y < 0.3) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
@@ -91,7 +91,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     let speed = 0.35, ty = Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.6, -1.2), stroke = 1, noseDown = 0;
     if (t.state === 'breathe') { ty = -0.2; speed = t.breath != null ? 0.12 : 0.3; if (t.breath != null) stroke = 0.4; }   // (at the surface: lying almost still, a lazy stroke now and then)
     else if (t.goal && (t.state === 'travel' || t.state === 'toRest')) {
-      const gx = t.goal.x - t.pos.x, gz = t.goal.z - t.pos.z, gd = Math.hypot(gx, gz);
+      const gx = t.goal.x - t.pos.x, gz = t.goal.z - t.pos.z, gd = hyp(gx, gz);
       let d = Math.atan2(gz, gx) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d));
       t.head += d * Math.min(1, dt * 0.5);
       if (gd < 2.0) {
@@ -162,7 +162,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     t.group.position.copy(t.pos);
     // orientation follows the swim direction through a slow turn rate, and the swim speed only fades the
     // pitch in and out, so a pause or a nudge never flips the body round in a frame
-    const hs = Math.hypot(t.vel.x, t.vel.z), mov = clamp((hs - 0.01) / 0.08, 0, 1);
+    const hs = hyp(t.vel.x, t.vel.z), mov = clamp((hs - 0.01) / 0.08, 0, 1);
     const yawT = t.state === 'rest' && t.restYaw !== undefined ? t.restYaw : hs > 0.005 ? Math.atan2(t.vel.x, t.vel.z) : (t.yaw ?? Math.PI / 2 - t.head);
     t.yaw ??= yawT;
     let dy = yawT - t.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
@@ -240,7 +240,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
         let ring = -1e9; for (let q = 0; q < 32; q++) { const a = q / 32 * Math.PI * 2; for (const rr0 of [6, 8.5, 11, 13.5, 16, 18.5]) ring = Math.max(ring, T.top(x + Math.cos(a) * rr0, z + Math.sin(a) * rr0)); }
         if (ring + need + 0.4 > -2.5) s -= 1e5;
         // (boxed in: and a straight way there from where it is, with room for it all along)
-        if (boxed) { const L = Math.hypot(x - m.pos.x, z - m.pos.z); for (let d = 2; d < L; d += 2) { const f = d / L; if (T.top(m.pos.x + (x - m.pos.x) * f, m.pos.z + (z - m.pos.z) * f) + need + 0.4 > -2.5) { s -= 1e5; break; } } }
+        if (boxed) { const L = hyp(x - m.pos.x, z - m.pos.z); for (let d = 2; d < L; d += 2) { const f = d / L; if (T.top(m.pos.x + (x - m.pos.x) * f, m.pos.z + (z - m.pos.z) * f) + need + 0.4 > -2.5) { s -= 1e5; break; } } }
         if (s > bs) { bs = s; best = [x, z]; }
       }
       // (nowhere ahead with room for it: if it is already about somewhere, out of sight, it stays there a
@@ -273,9 +273,9 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     m.stationTarget ??= m.st.clone(); m.radTarget ??= m.rad;
     if (m.transit) {
       // swimming over to its new circle: straight to the nearest point of it, at a depth with room under it
-      const tc = m.transit, toC = Math.hypot(m.pos.x - tc.x, m.pos.z - tc.z) || 1;
+      const tc = m.transit, toC = hyp(m.pos.x - tc.x, m.pos.z - tc.z) || 1;
       const gx = tc.x + (m.pos.x - tc.x) / toC * m.rad, gz = tc.z + (m.pos.z - tc.z) / toC * m.rad;
-      const hx = gx - m.pos.x, hz = gz - m.pos.z, hd = Math.hypot(hx, hz);
+      const hx = gx - m.pos.x, hz = gz - m.pos.z, hd = hyp(hx, hz);
       if (hd < 1.5) { m.a = Math.atan2(m.pos.z - tc.z, m.pos.x - tc.x); m.transit = undefined; }   // (arrived: on its circle from here)
       else {
         const sp = Math.min(1.6, hd) * dt, nx = m.pos.x + hx / hd * sp, nz = m.pos.z + hz / hd * sp;
@@ -359,7 +359,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     m.swimY = nextY;
     m.pos.set(px, m.swimY, pz);
     if (feeding) env.plankton.consume(px, pz, 0.002 * dt);
-    const moved = Math.hypot(px - prevX, pz - prevZ);
+    const moved = hyp(px - prevX, pz - prevZ);
     // Also face the slow migration between stations, rather than sliding sideways with the old orbit.
     const tx = moved > 1e-7 ? (px - prevX) / moved : -Math.sin(m.a) * m.dir;
     const tz = moved > 1e-7 ? (pz - prevZ) / moved : Math.cos(m.a) * m.dir;

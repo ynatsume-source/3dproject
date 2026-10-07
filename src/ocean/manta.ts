@@ -3,7 +3,7 @@
 // opening it therefore moves skin, lips and oral lining together (no overlay hole).
 import * as THREE from 'three';
 import { mat } from '../render/common';
-import { smooth } from '../core/math';
+import { smooth, hyp } from '../core/math';
 
 const FRONT = (x: number) => 0.325 - 0.06 * smooth(0, 0.2, Math.abs(x)) - 0.46 * Math.pow(Math.max(0, (Math.abs(x) - 0.2) / 0.8), 1.28);
 const BACK = (x: number) => -0.405 + 0.21 * Math.pow(Math.abs(x), 0.62);
@@ -26,7 +26,7 @@ export const MANTA_GEO = (() => {
   const tri = (a: number, b: number, c: number) => {
     const ux = pos[b * 3] - pos[a * 3], uy = pos[b * 3 + 1] - pos[a * 3 + 1], uz = pos[b * 3 + 2] - pos[a * 3 + 2];
     const vx = pos[c * 3] - pos[a * 3], vy = pos[c * 3 + 1] - pos[a * 3 + 1], vz = pos[c * 3 + 2] - pos[a * 3 + 2];
-    if (Math.hypot(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) > 1e-11) idx.push(a, b, c);
+    if (hyp(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx) > 1e-11) idx.push(a, b, c);
   };
   const patch = (us: number[], vs: number[], s: number, pt: number, sample: (u: number, v: number) => number[], params?: (u: number, v: number) => number[]) => {
     const start = pos.length / 3;

@@ -5,7 +5,7 @@
 // the skylights pour shafts onto the floor — tilting with the sun through the day.
 import * as THREE from 'three';
 import { due, drain } from '../core/slice';
-import { smooth } from '../core/math';
+import { smooth, hyp } from '../core/math';
 
 export interface CaveSpec { x: number; z: number; rot: number }
 
@@ -107,13 +107,13 @@ export class Cave {
       dm += (vn3(u * 0.14, y * 0.2, v * 0.14) - 0.5) * 3.2 + (vn3(u * 0.32, y * 0.32, v * 0.32) - 0.5) * 1.6 + (vn3(u * 0.55 + 7, y * 0.7, v * 0.55) - 0.5) * 0.9;
       dm += 0.3 * Math.sin(y * 1.7 + sp);                                   // strata: ledges along the bedding
       if (dm > 3) return dm;
-      const dt = Math.hypot((v - vcu) / 1.2, (y - c) / 0.95) - r;
+      const dt = hyp((v - vcu) / 1.2, (y - c) / 0.95) - r;
       const ex = (u - CH.u) / CH.r[0], ey = (y - CH.y) / CH.r[1], ez = (v - CH.v) / CH.r[2];
-      const k0 = Math.hypot(ex, ey, ez), k1 = Math.hypot(ex / CH.r[0], ey / CH.r[1], ez / CH.r[2]);
+      const k0 = hyp(ex, ey, ez), k1 = hyp(ex / CH.r[0], ey / CH.r[1], ez / CH.r[2]);
       let carve = smin(dt, k0 * (k0 - 1) / Math.max(k1, 1e-4), 2.0);
       for (let i = 0; i < SKY.length; i++) {
         const s = SKY[i], y0 = s.y0, dy = Math.max(y - y0, 0);
-        const ds = Math.hypot(u - (s.u + dy * s.tu), v - (s.v0 + dy * s.tv), Math.min(y - y0, 0)) - s.r * (1 + 0.2 * Math.sin(y * 1.3 + i * 2));
+        const ds = hyp(u - (s.u + dy * s.tu), v - (s.v0 + dy * s.tv), Math.min(y - y0, 0)) - s.r * (1 + 0.2 * Math.sin(y * 1.3 + i * 2));
         carve = smin(carve, ds, 1.0);
       }
       carve += (vn3(u * 0.6, y * 0.6, v * 0.6) - 0.5) * 0.9 + (vn3(u * 1.7, y * 1.7 + 5, v * 1.7) - 0.5) * 0.25;
@@ -249,7 +249,7 @@ export class Cave {
     if (d < 0.3) {
       const e = 0.3;
       let gu = this.at(u + e, y, v) - this.at(u - e, y, v), gy = this.at(u, y + e, v) - this.at(u, y - e, v), gv = this.at(u, y, v + e) - this.at(u, y, v - e);
-      const L = Math.hypot(gu, gy, gv) || 1; gu /= L; gy /= L; gv /= L;
+      const L = hyp(gu, gy, gv) || 1; gu /= L; gy /= L; gv /= L;
       const m = 0.3 - d; u += gu * m; y += gy * m; v += gv * m;
     }
     out[0] = u; out[1] = y; out[2] = v;
@@ -293,7 +293,7 @@ export class Cave {
     if (!this.job) {
       if (dir.angleTo(this.baked) < 0.012) return;
       this.baked.copy(dir);
-      const y = Math.max(dir.y, 0.25), L = Math.hypot(dir.x, y, dir.z);
+      const y = Math.max(dir.y, 0.25), L = hyp(dir.x, y, dir.z);
       const du = (dir.x * this.ca + dir.z * this.sa) / L, dv = (-dir.x * this.sa + dir.z * this.ca) / L;
       this.job = { s: [du, y / L, dv], k: 0, buf: new Uint8Array(nx * ny * nz) };
     }
@@ -335,7 +335,7 @@ export class Cave {
   // horizontal distance from (x, z) to the route through the tunnel (to keep its approaches clear)
   routeDist(x: number, z: number) {
     let d = Infinity;
-    for (let i = 0; i < this.tour.p.length; i += 2) { const q = this.tour.p[i]; d = Math.min(d, Math.hypot(q.x - x, q.z - z)); }
+    for (let i = 0; i < this.tour.p.length; i += 2) { const q = this.tour.p[i]; d = Math.min(d, hyp(q.x - x, q.z - z)); }
     return d;
   }
   // Inside the tunnel (rock overhead, near the route) and wanting to get to `toward` outside: the next
@@ -346,7 +346,7 @@ export class Cave {
     if (this.topAt(toward.x, toward.z) > toward.y + 0.5 && this.routeDist(toward.x, toward.z) < 7) return false;   // the goal is in here too
     let i = 0, bd = Infinity;
     for (let k = 0; k < n; k++) { const d = P[k].distanceToSquared(p); if (d < bd) { bd = d; i = k; } }
-    const dEnd0 = Math.hypot(P[0].x - toward.x, P[0].z - toward.z), dEnd1 = Math.hypot(P[n - 1].x - toward.x, P[n - 1].z - toward.z);
+    const dEnd0 = hyp(P[0].x - toward.x, P[0].z - toward.z), dEnd1 = hyp(P[n - 1].x - toward.x, P[n - 1].z - toward.z);
     const dir = dEnd1 < dEnd0 ? 1 : -1, j = Math.max(0, Math.min(n - 1, i + dir * 6));
     out.copy(P[j]);
     if (j === 0 || j === n - 1) out.add(P[j].clone().sub(P[j - dir * 4 < 0 || j - dir * 4 >= n ? j : j - dir * 4]).setY(0).normalize().multiplyScalar(4));   // and on out through the mouth

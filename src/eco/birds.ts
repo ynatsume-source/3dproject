@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { swellAt } from '../ocean/air';
-import { clamp, R, rr } from '../core/math';
+import { clamp, R, rr, hyp } from '../core/math';
 import type { BirdSpec } from '../data/locations';
 
 // A bird one unit across the wings, facing +z. aW: signed position along the wing (0 on the body).
@@ -149,14 +149,14 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D) {
         if (!b.placed || (dx * dx + dz * dz > (sp.crowd ? 200 : 170) ** 2 && !(at && at.on))) place(b, sp, cam, fx, fz, !b.placed);
         const sea = swellAt(b.p.x, b.p.z);
         const lure = at && at.on && sp.kind !== 'frigate' ? at : null;
-        const lx = lure ? lure.c.x - b.p.x : 0, lz = lure ? lure.c.z - b.p.z : 0, ld = Math.hypot(lx, lz);
+        const lx = lure ? lure.c.x - b.p.x : 0, lz = lure ? lure.c.z - b.p.z : 0, ld = hyp(lx, lz);
         if (b.state === 'dive') {
           // folded back into an arrow, straight at the fish
           b.fold += (0.85 - b.fold) * Math.min(1, dt * 5); b.flapping = 0; b.flap = 0;
-          const tx = (b.tx ?? b.p.x) - b.p.x, tz = (b.tz ?? b.p.z) - b.p.z, dh = Math.hypot(tx, tz);
+          const tx = (b.tx ?? b.p.x) - b.p.x, tz = (b.tz ?? b.p.z) - b.p.z, dh = hyp(tx, tz);
           b.speed = Math.min(b.dip ? 10 : 17, b.speed + dt * 9);
           const down = b.dip ? 0.5 : 1.4;
-          const hs = b.speed / Math.hypot(1, down), vy = -hs * down;
+          const hs = b.speed / hyp(1, down), vy = -hs * down;
           if (dh > 0.3) b.h = Math.atan2(tz, tx);
           b.p.x += Math.cos(b.h) * Math.min(hs, dh / 0.3) * dt; b.p.z += Math.sin(b.h) * Math.min(hs, dh / 0.3) * dt; b.p.y += vy * dt;
           b.pitch = -Math.atan2(-vy, hs) * 0.95; b.bank *= 0.9;

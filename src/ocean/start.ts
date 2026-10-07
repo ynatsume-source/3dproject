@@ -3,6 +3,7 @@
 // ground — and the camera is put where that fills the picture with clear water between, looking at it. (The
 // open ocean, the kelp forest and the residents' island keep their own way of arriving.)
 import * as THREE from 'three';
+import { hyp } from '../core/math';
 
 export interface Start { pos: THREE.Vector3; yaw: number; pitch: number; what: string }
 
@@ -55,7 +56,7 @@ export function pickStart(oc: any): Start | null {
     if (sc > bs) {
       bs = sc;
       const dx = target.x - x, dz = target.z - z, dy = target.y + 0.5 - y;
-      best = { pos: new THREE.Vector3(x, y, z), yaw: Math.atan2(-dx, -dz), pitch: Math.max(-0.6, Math.min(0.3, Math.atan2(dy, Math.hypot(dx, dz)))), what };
+      best = { pos: new THREE.Vector3(x, y, z), yaw: Math.atan2(-dx, -dz), pitch: Math.max(-0.6, Math.min(0.3, Math.atan2(dy, hyp(dx, dz)))), what };
     }
   }
   return best;

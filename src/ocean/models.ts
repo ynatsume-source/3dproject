@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { mat } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
-import { fbm, smooth, mulberry32 } from '../core/math';
+import { fbm, smooth, mulberry32, hyp } from '../core/math';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 /* ================= geometry helpers ================= */
@@ -67,12 +67,12 @@ export function tableCoralGeo() {
   const plate = new THREE.CylinderGeometry(1, 0.9, 0.09, 28, 3);
   const p = plate.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    const x = p.getX(i), z = p.getZ(i), r = hyp(x, z), a = Math.atan2(z, x);
     const k = 1 + 0.06 * Math.sin(a * 5) + 0.04 * Math.sin(a * 11 + 1);
     p.setX(i, x * k); p.setZ(i, z * k); p.setY(i, p.getY(i) + Math.sin(a * 7) * 0.025 * r - r * r * 0.05);
   }
   plate.computeVertexNormals();
-  pushGeo(acc, plate, new THREE.Matrix4().makeTranslation(0, 0.5, 0), (v) => Math.hypot(v.x, v.z));
+  pushGeo(acc, plate, new THREE.Matrix4().makeTranslation(0, 0.5, 0), (v) => hyp(v.x, v.z));
   pushGeo(acc, new THREE.CylinderGeometry(0.1, 0.2, 0.5, 7), new THREE.Matrix4().makeTranslation(0, 0.25, 0), () => 0);
   return accGeo(acc);
 }
@@ -173,13 +173,13 @@ export function tableCoralHi() {
   const plate = new THREE.CylinderGeometry(1, 0.94, 0.07, 72, 6);
   const p = plate.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    const x = p.getX(i), z = p.getZ(i), r = hyp(x, z), a = Math.atan2(z, x);
     const k = 1 + 0.06 * Math.sin(a * 5) + 0.04 * Math.sin(a * 11 + 1) + 0.018 * Math.sin(a * 37);
     p.setX(i, x * k); p.setZ(i, z * k);
     p.setY(i, p.getY(i) + Math.sin(a * 7) * 0.025 * r - r * r * 0.05 + Math.pow(Math.max(0, r - 0.85), 2) * 1.2 + (fbm(x * 4, z * 4, 2) - 0.5) * 0.02 * r);
   }
   plate.computeVertexNormals();
-  pushGeo(acc, plate, new THREE.Matrix4().makeTranslation(0, 0.5, 0), (v) => Math.hypot(v.x, v.z));
+  pushGeo(acc, plate, new THREE.Matrix4().makeTranslation(0, 0.5, 0), (v) => hyp(v.x, v.z));
   pushGeo(acc, new THREE.CylinderGeometry(0.1, 0.2, 0.5, 12), new THREE.Matrix4().makeTranslation(0, 0.25, 0), () => 0);
   return accGeo(acc);
 }
@@ -233,7 +233,7 @@ export function fanSheetGeo(seed) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.computeVertexNormals();
-  pushGeo(acc, g, new THREE.Matrix4(), (v) => Math.hypot(v.x, v.y - 0.2));
+  pushGeo(acc, g, new THREE.Matrix4(), (v) => hyp(v.x, v.y - 0.2));
   pushGeo(acc, new THREE.CylinderGeometry(0.022, 0.04, 0.23, 6), new THREE.Matrix4().makeTranslation(0, 0.115, 0), () => 0);
   return accGeo(acc);
 }
@@ -244,7 +244,7 @@ export function sarcophytonGeo() {
   const g = new THREE.LatheGeometry(pts, 56);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    const x = p.getX(i), z = p.getZ(i), r = hyp(x, z), a = Math.atan2(z, x);
     if (r > 0.25) {
       const k = (r - 0.25) / 0.28;
       p.setX(i, x * (1 + 0.1 * Math.sin(a * 5 + 1) * k)); p.setZ(i, z * (1 + 0.1 * Math.sin(a * 5 + 1) * k));
@@ -320,7 +320,7 @@ export function mushroomGeo() {
   const g = new THREE.LatheGeometry(pts, 24);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z), a = Math.atan2(z, x);
+    const x = p.getX(i), z = p.getZ(i), r = hyp(x, z), a = Math.atan2(z, x);
     if (r > 0.3) p.setY(i, p.getY(i) + Math.sin(a * 5) * 0.06 * (r - 0.3) / 0.22);
   }
   g.computeVertexNormals();
@@ -694,7 +694,7 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     let area = 0; for (let i = 0; i < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length]; area += x0 * z1 - x1 * z0; }
     const sgn = area > 0 ? 1 : -1;
     for (let i = 0; i < pts.length; i++) {
-      const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz) || 1;
+      const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length], dx = x1 - x0, dz = z1 - z0, l = hyp(dx, dz) || 1;
       const nx = (dz / l) * sgn, nz = (-dx / l) * sgn;
       const a = [x0, yc + th(x0), z0], b = [x1, yc + th(x1), z1], c = [x1, yc - th(x1), z1], d = [x0, yc - th(x0), z0];
       for (const v of [a, b, c, a, c, d]) { P.push(v[0], v[1], v[2]); N.push(nx, 0, nz); F.push(4); }

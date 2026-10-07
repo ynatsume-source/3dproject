@@ -2,7 +2,7 @@
 // census or measured Bluefish Cove speeds. Snail/anemone/sponge forms are deliberately
 // not assigned a species: the CDFW local record is broader than our identification.
 import * as THREE from 'three';
-import { mulberry32, TERR } from '../core/math';
+import { mulberry32, TERR, hyp } from '../core/math';
 import { mat } from '../render/common';
 import type { Sea } from '../data/locations';
 
@@ -217,7 +217,7 @@ export function buildLobosBenthos(loc: Sea, T: { top: Floor; slope: Floor }, gro
   for (let i = 0; i < 900 && patches.length < 34; i++) {
     const [px, pz] = loc.path(between(0, TAU)), close = patches.length < 24;
     const x = close ? px + between(-13, 13) : between(-125, 125), z = close ? pz + between(-13, 13) : between(-125, 125);
-    if (!eligible(x, z, 0.50) || patches.some(p => Math.hypot(p.x - x, p.z - z) < 7)) continue;
+    if (!eligible(x, z, 0.50) || patches.some(p => hyp(p.x - x, p.z - z) < 7)) continue;
     patches.push(new THREE.Vector3(x, floorAt(x, z), z));
   }
   const colors: Record<LobosBenthosKind, number[][]> = {

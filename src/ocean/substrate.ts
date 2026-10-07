@@ -5,6 +5,7 @@
 // of many colonies grown together: its own members may run into one another. A table's plate stands high, so it
 // can spread over a low colony beneath it (overtopping, as tabular Acropora does), but never through one.
 import * as THREE from 'three';
+import { hyp } from '../core/math';
 
 const NB = 6;                 // height bands a body is measured in
 const SHRINK = 0.8;           // (a body a little inside its widest reach: leaves touching tips alone)
@@ -16,7 +17,7 @@ export function profileOf(g: THREE.BufferGeometry) {
   let p = profiles.get(g); if (p) return p;
   if (!g.boundingBox) g.computeBoundingBox();
   const b = g.boundingBox!, P = g.attributes.position, h = b.max.y - b.min.y, r = new Array(NB).fill(0);
-  for (let j = 0; j < P.count; j++) { const i = Math.min(NB - 1, Math.floor((P.getY(j) - b.min.y) / h * NB)); r[i] = Math.max(r[i], Math.hypot(P.getX(j), P.getZ(j))); }
+  for (let j = 0; j < P.count; j++) { const i = Math.min(NB - 1, Math.floor((P.getY(j) - b.min.y) / h * NB)); r[i] = Math.max(r[i], hyp(P.getX(j), P.getZ(j))); }
   p = { r, lo: b.min.y, h }; profiles.set(g, p); return p;
 }
 
@@ -45,7 +46,7 @@ export class Bodies {
     for (let i = Math.floor((b.x - reach) / c); i <= Math.floor((b.x + reach) / c); i++) for (let j = Math.floor((b.z - reach) / c); j <= Math.floor((b.z + reach) / c); j++) {
       for (const o of this.map.get(this.key(i, j)) ?? []) {
         if (b.group >= 0 && o.group === b.group) continue;                 // (the same tangle)
-        const d = Math.hypot(b.x - o.x, b.z - o.z), gap = Math.max(0.05, 0.05 * Math.max(b.R, o.R));
+        const d = hyp(b.x - o.x, b.z - o.z), gap = Math.max(0.05, 0.05 * Math.max(b.R, o.R));
         if (d >= b.R + o.R + gap) continue;
         for (let p = 0; p < NB; p++) for (let q = 0; q < NB; q++) {
           if (b.y1[p] + 0.12 <= o.y0[q] || o.y1[q] + 0.12 <= b.y0[p]) continue;   // (one band clear above the other, by a hand's breadth)
