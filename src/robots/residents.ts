@@ -414,7 +414,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const shelterAt = (): [number, number] => { if (houseRoofed()) { const w = atHouse(houseLook.inside[0], houseLook.inside[1]); return [w.x, w.z]; } return [hut.position.x, hut.position.z]; };
   const anyRoof = () => houseRoofed() || roofDone();
   const wetNow = () => (wxNow?.rainMeasured ?? wxNow?.rain ?? 0) > 0.2;
-  const wearSlow = (r: Resident) => r.sp.living ? 1 : Math.max(0.45, 1 - Math.max(0, (r.wear ?? 0) - 0.3) * 0.8);
+  // (over 0.9 it is down to a tenth: it can still creep, but not much more — owner, 2026-10-07: never quite still)
+  const wearSlow = (r: Resident) => r.sp.living ? 1 : r.stuck ? 0.1 : Math.max(0.45, 1 - Math.max(0, (r.wear ?? 0) - 0.3) * 0.8);
   const roughK = () => !wxNow ? 0 : wxNow.typhoon ? 1 : Math.min(1, Math.max(0, ((wxNow.wave ?? 0) - 1) / 3));
   function weathering(r: Resident, dt: number) {
     const w = wxNow, isl = dt * ISLAND_RATE / 3600, c = roofCover(r), w0 = r.wear ?? 0;
@@ -426,7 +427,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (lv > was) {
       r.wearLv = lv;
       const why = w?.typhoon ? '台風の雨風で' : rain > 0.2 ? '雨に打たれて' : '強い風で';
-      note(r, 'wear', {}, lv === 3 ? `${why}関節が固まり、動けなくなった。乾くまで休む` : lv === 2 ? `${why}関節に水と砂が入り、動きがかなり鈍い` : `${why}関節が重くなってきた`, obs);
+      note(r, 'wear', {}, lv === 3 ? `${why}関節が固まり、ほとんど動けなくなった。${anyRoof() ? '屋根の下へゆっくり向かって' : 'その場で'}乾くのを待つ` : lv === 2 ? `${why}関節に水と砂が入り、動きがかなり鈍い` : `${why}関節が重くなってきた`, obs);
     } else if (lv < was && !(r.stuck && lv >= 2)) {
       r.wearLv = lv;
       if (lv === 0) note(r, 'wear', {}, c.roof ? '屋根の下で乾いて、体が軽くなった' : '乾いて、体が軽くなった', obs);
@@ -2400,9 +2401,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (r.talk) { if (r.talk.a === r) stepTalk(r.talk, dt, fast); placeY(r); return; }
     // (worn past moving: it stays where it is until it has dried — out on a crossing, the voyage's own rules)
-    if (r.stuck && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
-      if (r.task) { report(r, r.task, 'interrupted', '傷みで動けない'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; }
-      r.walk = 0; r.act = sleepTime(r, hr) ? 'sleep' : 'idle'; placeY(r); return;
+    // (worn past 0.9: no new work — at a tenth of its pace it creeps to the nearest roof, or rests where it is, until it
+    // has dried to 0.6; out on a crossing, the voyage's own rules)
+    if (r.stuck && r.task?.kind !== 'shelter' && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
+      if (r.task) { report(r, r.task, 'interrupted', '傷みでほとんど動けない'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; }
+      const roof = anyRoof() && !roofCover(r).roof ? shelterAt() : null;
+      r.task = roof && Math.hypot(roof[0] - r.pos.x, roof[1] - r.pos.z) < 400 ? task('shelter', roof, 'idle', 1e9, { data: { worn: true } }) : task('shelter', [r.pos.x, r.pos.z], 'idle', 1e9, { arrived: true, data: { worn: true } });
+      r.blocked = 0;
     }
     // (a worn robot in the rain goes in under the hut's roof, if there is one near: it dries there once the rain stops)
     if (!r.sp.living && anyRoof() && wetNow() && !storm() && (r.wear ?? 0) > 0.3 && !roofCover(r).roof && Math.hypot(r.pos.x - shelterAt()[0], r.pos.z - shelterAt()[1]) < 120
@@ -2411,7 +2416,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.task = task('shelter', shelterAt(), sleepTime(r, hr) ? 'sleep' : 'idle', 1e9, { data: { rain: true } }); r.blocked = 0;
     }
     // the evening fire: everyone who is up comes and sits round it, and goes off again after
-    if (meetHours(hr) && !sleepTime(r, hr) && r.task?.kind !== 'fire' && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
+    if (meetHours(hr) && !sleepTime(r, hr) && !r.stuck && r.task?.kind !== 'fire' && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
       items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = '';
       const seat = seatAt(list.indexOf(r));
       r.task = task('fire', seat, 'sit', 1e9); r.blocked = 0;
@@ -2434,7 +2439,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const home = r.sp.home, at = r.sp.living ? (spot(home, 60, water(1, 5)) ?? home) : houseRoofed() ? shelterAt() : (r.id === 'dot' ? [hut.position.x + 1.5, hut.position.z] as [number, number] : home);   // (a house with a roof: both robots in it)
       r.task = task('shelter', at, r.sp.living ? 'sleep' : 'idle', 1e9, r.sp.living ? { wet: true } : {}); r.blocked = 0;
     }
-    if (r.task?.kind === 'shelter' && !storm() && !(r.task.data?.rain && (wetNow() || ((r.wear ?? 0) > 0.3 && !meetHours(hr))))) r.task = null;   // (out of the rain: it stays to dry)
+    if (r.task?.kind === 'shelter' && !storm() && !(r.task.data?.worn && r.stuck) && !(r.task.data?.rain && (wetNow() || ((r.wear ?? 0) > 0.3 && !meetHours(hr))))) r.task = null;   // (out of the rain: it stays to dry; worn, until it has)
     if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && r.task.kind !== 'shelter' && r.task.kind !== 'voyage' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
       if (r.task) { report(r, r.task, 'interrupted', sleepTime(r, hr) ? '眠る時間になった' : '起きる時間になった'); items.release(r.id); }
       r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
@@ -2480,9 +2485,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if ((tk as any).via !== vk) { (tk as any).via = vk; r.path = undefined; }   // (a new leg: its way planned again)
       tk.arrived = via ? (move(r, via[0], via[1], dt, !!tk.wet, fast), false) : move(r, tk.x, tk.z, dt, !!tk.wet, fast);
       tk.t += dt;
-      if (tk.t > 1800 || r.blocked > 20) {
+      if (tk.t > 1800 / wearSlow(r) || r.blocked > 20) {   // (a slowed one is given the time its pace needs)
         if (r.id === 'lantern' && tk.data?.studyId) study?.interrupt(tk.data.studyId, studyWorld(fast), '道を進めなかった。別の場所から確かめよう。', true);
-        report(r, tk, tk.t > 1800 ? 'timeout' : r.went === 'no way' || r.went === 'nowhere to stand' ? r.went : 'blocked', r.went === 'no way' ? '道がなかった' : r.went === 'nowhere to stand' ? '立てる場所がなかった' : '進めなかった');
+        report(r, tk, tk.t > 1800 / wearSlow(r) ? 'timeout' : r.went === 'no way' || r.went === 'nowhere to stand' ? r.went : 'blocked', r.went === 'no way' ? '道がなかった' : r.went === 'nowhere to stand' ? '立てる場所がなかった' : '進めなかった');
         items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return;
       }   // could not get there: think again
       if (tk.arrived) tk.t = 0;

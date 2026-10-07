@@ -2,8 +2,9 @@
 // sea, on controlled ground (sea west of x = 0 and east of x = 300, land between) and made-up weather.
 //  1 a robot out in the rain wears (in proportion to the rain), and notes it past 0.3; in the dry it dries
 //  2 worn past 0.3 it is slower (walking and working); past 0.6 its battery runs down faster
-//  3 a typhoon out in the open: worn past 0.9 it cannot move — its task is let go and it stays still until it has dried
-//     to 0.6, then moves again (noted both times)
+//  3 a typhoon out in the open: worn past 0.9 it can hardly move — its task is let go; with no roof it rests where it is
+//     until it has dried to 0.6, then moves again (noted both times); with a roof near, it creeps to it at a tenth of its
+//     pace (owner, 2026-10-07: never quite still)
 //  4 under the hut's roof: half the rain; it dries faster there; a worn robot in the rain goes in under it
 //  5 the animals: a rough sea makes them hungrier than a calm one
 //  6 the wear is kept across a reload; the robot's mind is told it
@@ -53,6 +54,7 @@ const lines = (r: any) => r.diary.filter((e: any) => e.key === 'wear').map((e: a
   const wd = lantern.wear; run(R, Math.round(2 * HOUR), wx());
   want('1 in the dry it dries (outdoors, slowly)', Math.abs((wd - lantern.wear) - 0.04) < 0.006, `${wd.toFixed(3)} → ${lantern.wear.toFixed(3)}`);
 }
+let v0 = 0;
 { // 2 slower walking and working; battery faster
   const walkTime = (wear: number) => {
     const { R, dot } = island(); hold(dot, 100, 0); dot.wear = wear; dot.wearLv = wear > 0.6 ? 2 : wear > 0.3 ? 1 : 0;
@@ -60,7 +62,7 @@ const lines = (r: any) => r.diary.filter((e: any) => e.key === 'wear').map((e: a
     let t = 0; for (; t < 400 && !dot.task?.arrived; t++) { now += 1000; R.setWeather(wx()); R.update(1, now, new THREE.Vector3(0, 50, 0)); }
     return t;
   };
-  const t0 = walkTime(0), t7 = walkTime(0.75);
+  const t0 = walkTime(0), t7 = walkTime(0.75); v0 = 60 / t0;
   want('2 worn past 0.3 it walks slower', t7 > t0 * 1.4, `${t0}s fresh, ${t7}s at 0.75`);
   const drainAt = (wear: number) => {
     const { R, dot } = island(); hold(dot); dot.wear = wear; dot.wearLv = 2; dot.battery = 0.8;
@@ -76,10 +78,10 @@ const lines = (r: any) => r.diary.filter((e: any) => e.key === 'wear').map((e: a
   const { R, lantern } = island(); hold(lantern); lantern.wear = 0.5; lantern.wearLv = 1;
   const typhoon = wx({ typhoon: true, rain: 12, rainMeasured: 12, wind: 22, windMeasured: 22, wave: 6 });
   const got = run(R, Math.round(8 * HOUR), typhoon, () => !!lantern.stuck);
-  want('3 out in a typhoon it is worn past 0.9 and cannot move', got && lines(lantern).some((t: string) => /動けなくなった/.test(t)), `${lantern.wear.toFixed(2)}, ${lines(lantern).slice(-1)[0]}`);
+  want('3 out in a typhoon it is worn past 0.9 and can hardly move', got && lines(lantern).some((t: string) => /ほとんど動けなくなった。その場で乾くのを待つ/.test(t)), `${lantern.wear.toFixed(2)}, ${lines(lantern).slice(-1)[0]}`);
   const x0 = lantern.pos.x, z0 = lantern.pos.z;
   run(R, 300, wx({ rain: 3, rainMeasured: 3 }));
-  want('3 it stays where it is, its task let go', !!lantern.stuck && !lantern.task && Math.hypot(lantern.pos.x - x0, lantern.pos.z - z0) < 0.01, `stuck ${lantern.stuck}, task ${lantern.task?.kind ?? 'none'}`);
+  want('3 no roof: it rests where it is, its task let go', !!lantern.stuck && lantern.task?.kind === 'shelter' && lantern.task.data?.worn && Math.hypot(lantern.pos.x - x0, lantern.pos.z - z0) < 0.3, `stuck ${lantern.stuck}, task ${lantern.task?.kind ?? 'none'}`);
   const free = run(R, Math.round(30 * HOUR), wx(), () => !lantern.stuck);
   want('3 dried to 0.6, it moves again', free && lantern.wear < 0.6 && lines(lantern).some((t: string) => /また動けるようになった/.test(t)), `${lantern.wear.toFixed(2)}`);
 }
@@ -93,7 +95,13 @@ const lines = (r: any) => r.diary.filter((e: any) => e.key === 'wear').map((e: a
   want('4 under the roof, half the rain', !!hut && Math.abs(H.wear - 0.05) < 0.008, `${H.wear.toFixed(3)} (outdoors ≈0.10)`);
   H.wear = 0.4; hold(H, hx, hz); run(R, Math.round(2 * HOUR), wx());
   want('4 it dries faster under the roof', Math.abs((0.4 - H.wear) - 0.1) < 0.01, `0.40 → ${H.wear.toFixed(3)}`);
-  hold(H, hx + 20, hz + 5); H.wear = 0.45; H.wearLv = 1;
+  // (worn past 0.9, dry weather: it creeps to the roof at a tenth of its pace)
+  { const far = hut.localToWorld(new THREE.Vector3(0, 0, -25)); hold(H, far.x, far.z); }
+  H.wear = 0.95; H.wearLv = 3; H.stuck = true; H.task = null; H.battery = 1;
+  run(R, 2, wx()); const p0 = H.pos.clone(); run(R, 60, wx());
+  const v = H.pos.distanceTo(p0) / 60;
+  want('4 worn past 0.9, a roof near: it creeps to it at about a tenth of its pace', H.task?.kind === 'shelter' && H.task.data?.worn && v > v0 * 0.06 && v < v0 * 0.16, `${(v / v0 * 100).toFixed(0)}% of its pace`);
+  hold(H, hx + 20, hz + 5); H.wear = 0.45; H.wearLv = 1; H.stuck = false;
   const went = run(R, 300, wx({ rain: 4, rainMeasured: 4 }), () => H.task?.kind === 'shelter' && H.task.arrived);
   want('4 worn, in the rain, it goes in under the roof', went && Math.hypot(H.pos.x - hx, H.pos.z - hz) < 1.3, `${H.task?.kind} ${Math.hypot(H.pos.x - hx, H.pos.z - hz).toFixed(2)} m`);
 }
