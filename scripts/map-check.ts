@@ -74,7 +74,7 @@ const V = R.village;
 { // 4
   const isle = ISLES.find((i: any) => i.id === 'east-flat')!;   // (too far today — so: as if it were near, to see a storm turn it back)
   isle.lat = 24.35; isle.lon = 124.0;
-  dot.battery = 1; sim = Date.parse('2026-10-07T09:40:00+09:00'); R.setWeather(calm);
+  dot.battery = 1; dot.holding = ''; sim = Date.parse('2026-10-07T09:40:00+09:00'); R.setWeather(calm);   // (hands free: it may have picked up a log meanwhile)
   want_ = (i) => i.options.find((o: any) => o.id === `voyage:${isle.id}`)?.id; think();
   await run(3600, () => dot.task?.kind === 'voyage' && !!dot.task.data?.started);
   R.setWeather({ ...calm, typhoon: true, wind: 18, pressure: 985 }); await run(30);
