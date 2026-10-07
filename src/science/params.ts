@@ -196,6 +196,12 @@ export const PARAMS = {
   pitRainHalfMmH: P('pitRainHalfMmH', 2, 'mm/h', 'assumed', [], 'この雨で器に届く熱が半分になる'),
   pitBaseCrackP: P('pitBaseCrackP', 0.08, 'probability', 'assumed', [], '手で積んだ器の見えない欠陥：どれだけ気をつけても割れる割合'),
   pitHairlineCrackPpm: P('pitHairlineCrackPpm', 100000, 'ppm', 'assumed', [], '野焼きの細いひび（crack 1）の損傷指数 crack_ppm（器の組み立てのひびと同じ尺度）'),
+  // the residents' fired pots as equipment (step/fired-pot-assembly.ts): all assumed, no source read yet
+  firedPotLossWPerM2K: P('firedPotLossWPerM2K', 20, 'W/(m2·K)', 'assumed', [], '焼いた器の外側から空気へ逃げる熱（対流と放射、湯の温度あたり）'),
+  firedPotHeatShareCook: P('firedPotHeatShareCook', 0.2, 'ratio', 'assumed', [], '三つ石のかまどで、火の熱が鍋に入る割合の標準（本体が変えてよい）'),
+  firedPotHeatShareRetort: P('firedPotHeatShareRetort', 0.35, 'ratio', 'assumed', [], '火に囲まれた二重の壺に入る熱の割合の標準'),
+  firedRetortCollectShare: P('firedRetortCollectShare', 0.6, 'ratio', 'assumed', [], '二重の壺で、タールと水が下の壺に落ちる割合'),
+  firedRetortMinUpperMl: P('firedRetortMinUpperMl', 1000, 'mL', 'assumed', [], '上の壺（詰める方）の小ささの下限'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),

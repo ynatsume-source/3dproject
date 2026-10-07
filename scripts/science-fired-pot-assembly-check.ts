@@ -1,0 +1,89 @@
+// Checks for the residents' fired pots as equipment (table civ-sci.fired-pot-assembly/1).
+// Run: npx tsx --import ./scripts/node-assets.mjs scripts/science-fired-pot-assembly-check.ts
+import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
+import { scienceStep } from '../src/science/step';
+import { POT_DRY_PROCESS, POT_SHAPE_PROCESS } from '../src/science/step/pottery';
+import { PIT_FIRE_PROCESS } from '../src/science/step/pit-fire';
+import { cookPotParams, FIRED_POT_ASSEMBLY_TABLE, firedPotQualityOnReturn, firedPotSherdsQuality, lampDishParams, retortParams, TOOL_RECIPES } from '../src/science/step/fired-pot-assembly';
+
+let pass = 0, fail = 0;
+const ok = (c: unknown, name: string, detail = '') => {
+  if (c) { pass++; console.log(`  ok   ${name}${detail ? ` — ${detail}` : ''}`); } else { fail++; console.log(`  FAIL ${name}${detail ? ` — ${detail}` : ''}`); }
+};
+const H = 3600_000, D = 24 * H, W = { worldId: 'w', worldEpoch: 'e', worldVersion: 1 };
+const asLot = (p: ScienceStepResult['produced'][number], id: string): LotView => ({ lotId: id, materialId: p.materialId, amount: p.amount, location: 'site:shelf', quality: p.quality });
+
+/** A real fired pot: kneaded clay → shaped → dried 8 days in the shade → fired with care (the first seed that does not crack). */
+function firedPot(form: number, capacityMl: number, id: string): LotView {
+  const shaped = scienceStep({ contract: '0.2.0', requestId: 's', world: W, runId: `run:shape:${id}`, ...POT_SHAPE_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 4 * H }, state: null,
+    environment: { sampleId: 'env:0', source: 'record', effectiveAt: 0 }, lots: [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 5_000_000, unit: 'mg' }, location: 's', quality: { water_ppm: 200_000, xd_kaolinite_ppm: 600_000, xd_quartz_ppm: 380_000 } }],
+    equipment: [], energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: 4 * 3600 * 20 }], seed: 1, actions: [{ at: 0, residentId: 'res:lantern', action: 'plan', params: { form, capacityMl } }] });
+  const green = asLot(shaped.produced[0], `lot:green:${id}`);
+  let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+  for (let t = 0; t < 8 * D; t += 6 * H) {
+    r = scienceStep({ contract: '0.2.0', requestId: `d${t}`, world: W, runId: `run:dry:${id}`, ...POT_DRY_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: t, to: t + 6 * H }, state: st,
+      environment: { sampleId: `e${t}`, source: 'record', effectiveAt: t, airTempC: 28, humidity: 0.75, windMs: 2 }, lots: [green],
+      equipment: [{ equipmentId: 'eq:rack', kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: 'civ-sci-test-2', condition: 1, params: { sunExposure: 0 } }], energy: [], seed: 1,
+      actions: t + 6 * H >= 8 * D ? [{ at: t + 6 * H - 30_000, residentId: 'res:lantern', action: 'take_off' }] : [] });
+    st = r.state; if (r.status !== 'running') break;
+  }
+  const dry = asLot(r.produced[0], `lot:dry:${id}`);
+  for (let seed = 1; seed < 50; seed++) {
+    let fs: ScienceStepRequest['state'] = null, f!: ScienceStepResult;
+    for (let t = 0; t < 2 * D; t += 3 * H) {
+      f = scienceStep({ contract: '0.2.0', requestId: `f${t}`, world: W, runId: `run:fire:${id}`, ...PIT_FIRE_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: t, to: t + 3 * H }, state: fs,
+        environment: { sampleId: `e${t}`, source: 'record', effectiveAt: t, airTempC: 28, humidity: 0.75, windMs: 1, rainMmH: 0 },
+        lots: [dry, { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 40_000_000, unit: 'mg' }, location: 's', quality: { water_ppm: 150_000 } }],
+        equipment: [{ equipmentId: 'eq:pit', kind: 'open_fire_pit', catalogEntry: 'open_fire_pit', catalogVersion: 'civ-sci-test-2', condition: 1, params: {} }], energy: [], seed,
+        actions: t === 0 ? [{ at: 0, residentId: 'res:lantern', action: 'fire_plan', params: { preheatMin: 60, pace: 0, targetGlow: 1, holdMin: 30, forcedCooling: 0 } }] : [] });
+      fs = f.state; if (f.status !== 'running') break;
+    }
+    const p = f.produced[0];
+    if (p.materialId === 'fired_pot' && (p.quality?.crack ?? 0) === 0) return asLot(p, id);
+  }
+  throw new Error('no whole pot in 50 firings');
+}
+const cook = firedPot(1, 4000, 'lot:cook'), jar = firedPot(2, 2000, 'lot:jar'), lamp = firedPot(3, 80, 'lot:lamp');
+
+console.log('1. a cook pot, a tar retort and a lamp dish from the residents\' fired pots');
+{
+  const c = cookPotParams(cook);
+  ok(FIRED_POT_ASSEMBLY_TABLE === 'civ-sci.fired-pot-assembly/1' && c.capacityMl === 4000 && c.heatCapJPerK > 1000 && c.heatCapJPerK < 1600 && c.uaWPerK > 1.5 && c.uaWPerK < 3.5 && c.heatShare === 0.2,
+    'a 4 L cook pot: heat capacity from its mass, heat loss from its surface (near the test pot\'s 1800 J/K, 3 W/K)', JSON.stringify(c));
+  ok(cookPotParams(cook, { heatShare: 0.3 }).heatShare === 0.3, 'main may set how much of the fire goes into the pot (its hearth)');
+  const r = retortParams(cook, jar);
+  ok(r.capacityMl === 4000 && r.heatCapJPerK > c.heatCapJPerK && r.uaWPerK > c.uaWPerK && r.heatShare === 0.35 && r.collectShare === 0.6,
+    'a retort from the cook pot (upper, the charge) and a 2 L jar (lower, the tar): both pots\' heat capacity and surface', JSON.stringify(r));
+  const l = lampDishParams(lamp);
+  ok(l.capacityMl === 80 && l.absorptionPpm > 100_000, 'a lamp dish: how much oil it holds, and that its unglazed body soaks some up', JSON.stringify(l));
+}
+
+console.log('2. what is not assembled');
+{
+  const refuse = (name: string, f: () => unknown, why: RegExp) => { let msg = ''; try { f(); } catch (e) { msg = (e as Error).message; } ok(why.test(msg), name, msg); };
+  refuse('a cracked pot (it leaks)', () => cookPotParams({ ...cook, quality: { ...cook.quality, crack: 1, crack_ppm: 100_000 } }), /crack/);
+  refuse('a lamp dish as a cook pot', () => cookPotParams(lamp), /form/);
+  refuse('a cook pot as a lamp dish', () => lampDishParams(cook), /form/);
+  refuse('the same pot twice in a retort', () => retortParams(cook, cook), /two different/);
+  refuse('a small upper pot', () => retortParams({ ...jar, quality: { ...jar.quality, capacity_ml: 500 } }, cook), /at least/);
+  refuse('a test pot (fired_pot_test) — it has its own table', () => cookPotParams({ ...cook, materialId: 'fired_pot_test' }), /fired_pot/);
+  refuse('a heat share out of range', () => cookPotParams(cook, { heatShare: 2 }), /heatShare/);
+}
+
+console.log('3. back to a lot');
+{
+  const whole = firedPotQualityOnReturn(cook.quality!, 1), worn = firedPotQualityOnReturn(cook.quality!, 0.9), again = firedPotQualityOnReturn({ ...worn }, 0.95);
+  ok(JSON.stringify(whole) === JSON.stringify(cook.quality) && worn.crack === 1 && worn.crack_ppm === 100_000 && again.crack_ppm === 150_000,
+    'whole: the lot as it was; worn: the wear added to the crack index (and a cracked pot is not assembled again)');
+  const sherds = firedPotSherdsQuality(cook.quality!);
+  ok(sherds.absorption_ppm === cook.quality!.absorption_ppm && sherds.capacity_ml === undefined, 'broken: pot_sherds (the sealed vessel\'s form, same amount)', JSON.stringify(sherds));
+  let threw = false; try { firedPotQualityOnReturn(cook.quality!, NaN); } catch { threw = true; }
+  ok(threw, 'a condition that is not a number is refused');
+}
+
+console.log('4. tools main makes from materials');
+ok(TOOL_RECIPES.length === 5 && TOOL_RECIPES.every((t) => t.materials.every((m) => m.mg > 0) && t.handSeconds > 0), 'five tools, each with its materials and the hands\' work',
+  TOOL_RECIPES.map((t) => `${t.kind}: ${t.materials.map((m) => `${m.materialId} ${m.mg / 1e6} kg`).join(', ')}`).join(' / '));
+
+console.log(`\n${pass} passed, ${fail} failed`);
+if (fail) process.exit(1);

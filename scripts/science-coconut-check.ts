@@ -225,6 +225,14 @@ console.log('4. requests that are refused');
   refused('a missing interval', step(breq(2 * H, 3 * H, s0.state, [])), /noncontiguous/);
 }
 
+console.log('— island cook pot (table civ-sci.fired-pot-assembly/1)');
+{
+  const island = { ...POT(), kind: 'cook_pot', catalogEntry: 'cook_pot' };
+  const plan: Act[] = [[0, 'fire_level', 1], ...lookEvery(4 * H, 30 * 60_000)];
+  const a = boil(4 * H, plan, { equipment: [island, PIT] }), b = boil(4 * H, plan);
+  ok(JSON.stringify([a.last.produced, a.last.released, a.obs]) === JSON.stringify([b.last.produced, b.last.released, b.obs]), 'the residents\' cook_pot with the same params boils exactly as the test pot');
+}
+
 console.log('—   every result above passed the contract checker');
 ok(violations.length === 0, 'validateResult: no violation', violations.slice(0, 3).join(' / '));
 console.log(`\n${pass} passed, ${fail} failed`);
