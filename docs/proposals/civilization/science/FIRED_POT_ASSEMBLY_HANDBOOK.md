@@ -23,7 +23,7 @@
 | `firedPotQualityOnReturn(copy, condition)` | condition 1 なら写しのまま。傷んだら傷みを `crack_ppm` に足し（上限 1,000,000）、`crack: 1`（もう組み立てられない） |
 | `firedPotSherdsQuality(copy)` | 壊れたら（condition 0）同じ量の `pot_sherds`（気密の器と同じ形） |
 
-二重の壺は2つのロットから組み立てるので、写しも2つ持ち、それぞれに上の関数を使う。**本体の組み立て（ADR 0006）は今「ロット1つ」なので、2つのロットからの組み立てを足す必要がある**。
+二重の壺は2つのロットから組み立てるので、写しも2つ持つ。戻すときは `retortPartsOnReturn(upperCopy, lowerCopy, condition)` が2つのロットを返す（本体の質問「どちらかが割れたとき、それぞれ何に戻るか」への答え、2026-10-07 追加）：**傷みは上の器が受ける**（火の中で詰め物を抱える。下の器は地面で冷えたままタールを受ける。仮定の決まりで、乱数は使わない）。下の器はいつも写しのまま `fired_pot`。上の器は傷めば `firedPotQualityOnReturn`、condition 0 なら同じ量の `pot_sherds`。**本体の組み立て（ADR 0006）は今「ロット1つ」なので、2つのロットからの組み立てを足す必要がある**。
 
 ## 3. 道具（材料から本体が作る：`TOOL_RECIPES`）
 

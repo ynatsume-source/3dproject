@@ -65,6 +65,17 @@ export function firedPotQualityOnReturn(copy: Record<string, number>, condition:
 /** Broken (condition 0, ADR 0006): the copy becomes pot_sherds of the same amount (the sealed vessel's form). */
 export const firedPotSherdsQuality = (copy: Record<string, number>) => potSherdsQuality(copy);
 
+/** A retort goes back as two lots (main's question: when it breaks, what does each pot become?). The retort has one
+ *  condition; the wear is the upper pot's: it sits in the fire with the charge, while the lower one stays cool in the
+ *  ground catching the tar (assumed rule, no dice). So the lower pot comes back as its copy, the upper one as
+ *  firedPotQualityOnReturn, and at condition 0 the upper one is pot_sherds (same amount) and the lower one is whole. */
+export function retortPartsOnReturn(upperCopy: Record<string, number>, lowerCopy: Record<string, number>, condition: number):
+  { upper: { materialId: string; quality: Record<string, number> }; lower: { materialId: string; quality: Record<string, number> } } {
+  if (!finite(condition, 0, 1)) throw new Error('condition must be within 0..1');
+  const upper = condition <= 0 ? { materialId: 'pot_sherds', quality: firedPotSherdsQuality(upperCopy) } : { materialId: FIRED_POT, quality: firedPotQualityOnReturn(upperCopy, condition) };
+  return { upper, lower: { materialId: FIRED_POT, quality: { ...lowerCopy } } };
+}
+
 /** Tools main makes from materials (their kind is what the steps look for; no params change the physics).
  *  Masses assumed; stones and leaves are picked up where they lie (no lot). handSeconds at 15 W. */
 export const TOOL_RECIPES = [

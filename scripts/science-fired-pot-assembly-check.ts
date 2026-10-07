@@ -4,7 +4,7 @@ import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/worl
 import { scienceStep } from '../src/science/step';
 import { POT_DRY_PROCESS, POT_SHAPE_PROCESS } from '../src/science/step/pottery';
 import { PIT_FIRE_PROCESS } from '../src/science/step/pit-fire';
-import { cookPotParams, FIRED_POT_ASSEMBLY_TABLE, firedPotQualityOnReturn, firedPotSherdsQuality, lampDishParams, retortParams, TOOL_RECIPES } from '../src/science/step/fired-pot-assembly';
+import { cookPotParams, FIRED_POT_ASSEMBLY_TABLE, firedPotQualityOnReturn, firedPotSherdsQuality, lampDishParams, retortParams, retortPartsOnReturn, TOOL_RECIPES } from '../src/science/step/fired-pot-assembly';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -79,6 +79,14 @@ console.log('3. back to a lot');
   ok(sherds.absorption_ppm === cook.quality!.absorption_ppm && sherds.capacity_ml === undefined, 'broken: pot_sherds (the sealed vessel\'s form, same amount)', JSON.stringify(sherds));
   let threw = false; try { firedPotQualityOnReturn(cook.quality!, NaN); } catch { threw = true; }
   ok(threw, 'a condition that is not a number is refused');
+}
+
+{
+  const whole = retortPartsOnReturn(cook.quality!, jar.quality!, 1), worn = retortPartsOnReturn(cook.quality!, jar.quality!, 0.8), broken = retortPartsOnReturn(cook.quality!, jar.quality!, 0);
+  ok(JSON.stringify(whole.upper.quality) === JSON.stringify(cook.quality) && JSON.stringify(whole.lower.quality) === JSON.stringify(jar.quality)
+    && worn.upper.quality.crack === 1 && worn.upper.quality.crack_ppm === 200_000 && JSON.stringify(worn.lower.quality) === JSON.stringify(jar.quality)
+    && broken.upper.materialId === 'pot_sherds' && broken.lower.materialId === 'fired_pot' && JSON.stringify(broken.lower.quality) === JSON.stringify(jar.quality),
+    'a retort goes back as two lots: the wear is the upper pot\'s (in the fire); broken, the upper one is sherds and the lower one whole');
 }
 
 console.log('4. tools main makes from materials');
