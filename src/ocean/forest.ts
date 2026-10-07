@@ -260,11 +260,17 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
     cells.set(k, c);
     return c;
   };
+  // trees the residents have felled (by where they stood: the cells are worked out the same way every time), and the
+  // ground they cleared round them — the saplings and clumps there gone too (robots/residents.ts: the island's own clearing)
+  const tkey = (t: { x: number; z: number }) => t.x.toFixed(2) + ',' + t.z.toFixed(2);
+  const felled = new Set<string>(), clears: { x: number; z: number; r: number }[] = [];
+  const cleared = (x: number, z: number) => clears.some((c) => (c.x - x) ** 2 + (c.z - z) ** 2 < c.r * c.r);
+  const standing = (t: Tree) => !felled.has(tkey(t));
   // one instanced mesh per geometry for the whole forest, refilled from the cells in range when that set changes
   const meshes: (THREE.InstancedMesh | null)[] = new Array(G * 2).fill(null);
   const fill = (on: { trees: Tree[]; under: Tree[] }[], hi: boolean[]) => {
     const by: Tree[][] = meshes.map(() => []);
-    on.forEach((c, i) => { const o = hi[i] ? 0 : G; for (const t of c.trees) by[t.g + o].push(t); for (const t of c.under) by[t.g + o].push(t); });
+    on.forEach((c, i) => { const o = hi[i] ? 0 : G; for (const t of c.trees) if (standing(t)) by[t.g + o].push(t); for (const t of c.under) if (!clears.length || !cleared(t.x, t.z)) by[t.g + o].push(t); });
     let n = 0;
     by.forEach((list, g) => {
       let m = meshes[g];
@@ -298,15 +304,32 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
     trunkNear(x: number, z: number, r: number) {
       if (Math.abs(x) > E || Math.abs(z) > E) return false;
       const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
-      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if ((t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2) return true;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if ((t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2 && standing(t)) return true;
       return false;
     },
     // the trunks within r of (x, z), each as a solid (robots/solids.ts): the same trunks push() keeps a point out of
     trunks(x: number, z: number, r: number, f: (t: { x: number; z: number; y: number; h: number }) => void) {
       if (Math.abs(x) > E + r || Math.abs(z) > E + r) return;
       const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
-      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if (t.g < YOUNG && (t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2) f(t);
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if (t.g < YOUNG && (t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2 && standing(t)) f(t);
     },
+    // the grown trees standing within r of (x, z), for a resident to fell: where, how tall, which kind
+    standingNear(x: number, z: number, r: number) {
+      const out: { x: number; z: number; y: number; h: number; kind: number }[] = [];
+      this.trunks(x, z, r, (t) => { const tt = t as Tree; if ((tt.x - x) ** 2 + (tt.z - z) ** 2 < r * r) out.push({ x: tt.x, z: tt.z, y: tt.y, h: tt.h, kind: tt.g >> 1 }); });
+      return out;
+    },
+    /** Fell the grown tree at (x, z) (within half a metre); it and the undergrowth round it are gone. null: none there. */
+    fell(x: number, z: number) {
+      let hit: Tree | null = null;
+      this.trunks(x, z, 0.5, (t) => { const tt = t as Tree; if (!hit && (tt.x - x) ** 2 + (tt.z - z) ** 2 < 0.25) hit = tt; });
+      if (!hit) return null;
+      const t = hit as Tree;
+      felled.add(tkey(t)); clears.push({ x: t.x, z: t.z, r: Math.max(1.6, t.h * 0.22) }); key = '';   // (drawn again without it)
+      return { x: t.x, z: t.z, y: t.y, h: t.h, kind: t.g >> 1, clear: clears[clears.length - 1] };
+    },
+    cleared,
+    get clearings() { return clears; },
     // flying in among them: push a point out of any trunk (or the dense heart of a crown) it is inside
     push(p: THREE.Vector3) {
       // (the cell's trees worked out if they are not yet: those who walk here may be far from the camera,
@@ -314,6 +337,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
       if (Math.abs(p.x) > E || Math.abs(p.z) > E) return;
       const c = cellAt(Math.floor(p.x / CELL), Math.floor(p.z / CELL));
       for (const t of c.trees) {
+        if (!standing(t)) continue;
         const dx = p.x - t.x, dz = p.z - t.z, d = Math.hypot(dx, dz), up = p.y - t.y;
         if (up < -0.5 || up > t.h || t.g >= YOUNG) continue;
         const rr0 = up < t.h * 0.4 ? 0.55 : t.h * 0.12;   // (the trunk; up in the crown, its thick middle)

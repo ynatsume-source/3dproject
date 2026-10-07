@@ -5,7 +5,7 @@
 //    as ready until it has it; each step done shows its part and is its reward
 //  3 with the roof whole: no rain inside; a worn robot in the rain goes in under it
 //  4 the walls need bamboo and clay from the island to the south: a crossing for them brings a raft load home
-//  5 the walls daubed: a typhoon inside wears it only a little; both robots shelter in it
+//  5 the walls daubed: a typhoon inside wears it only a tenth, less than it dries there; both robots shelter in it
 //  6 a typhoon takes a course or two of thatch off a roof not weighed down — laid again first; weighed down, none
 //  7 the floor and Lantern's table: the house is done, and kept across a save
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/house-check.ts
@@ -77,7 +77,7 @@ for (const r of [dot, lantern]) { r.battery = 1; r.wear = 0; }
   const inn = houseG.localToWorld(new THREE.Vector3(0.5, 0, 0.5));
   wx = { ...calm, rain: 6, rainMeasured: 6 }; lantern.wear = 0.2;
   for (let s = 0; s < Math.round(2 * 3600 / ISLAND_RATE); s++) { lantern.pos.set(inn.x, lantern.pos.y, inn.z); lantern.task = { kind: 'wander', x: inn.x, z: inn.z, act: 'idle', dur: 1e9, t: 0, arrived: true }; await run(1); }
-  want('3 with the roof whole, no rain inside', Math.abs(lantern.wear - 0.2) < 0.002, `${lantern.wear.toFixed(3)}`);
+  want('3 with the roof whole, no rain inside: it does not wear (it dries there)', lantern.wear <= 0.2, `0.200 → ${lantern.wear.toFixed(3)}`);
   const out = houseG.localToWorld(new THREE.Vector3(6, 0, 3)); dot.pos.set(out.x, dot.pos.y, out.z); dot.wear = 0.45; dot.wearLv = 1; dot.task = null; dot.holding = '';
   const went = await run(400, () => dot.task?.kind === 'shelter' && dot.task.arrived);
   const v = local(dot.pos.x, dot.pos.z);
@@ -108,8 +108,8 @@ for (const r of [dot, lantern]) { r.battery = 1; r.wear = 0; }
   let both = false;
   for (let t = 0; t < 1800 && !both; t += 30) { both = await run(30, () => [dot, lantern].every((r: any) => r.task?.kind === 'shelter' && r.task.arrived)); }
   want('5 a typhoon: both robots shelter in the house', both && [dot, lantern].every((r: any) => { const v = local(r.pos.x, r.pos.z); return insideHouse(v.x, v.z); }), [dot, lantern].map((r: any) => `${r.id} ${r.task?.kind} ${r.task?.arrived}`).join(', '));
-  const w0 = dot.wear; await run(Math.round(4 * 3600 / ISLAND_RATE));
-  want('5 inside, a typhoon wears it only a little (a tenth)', dot.wear - w0 > 0 && dot.wear - w0 < 0.1, `${(dot.wear - w0).toFixed(3)} in 4 island hours (outside ≈ 0.80)`);
+  dot.wear = 0.5; dot.wearLv = 1; const w0 = dot.wear; await run(Math.round(4 * 3600 / ISLAND_RATE));
+  want('5 inside the walls, a typhoon wears it only a tenth — less than it dries there', dot.wear < w0 && w0 - dot.wear < 0.2, `${(dot.wear - w0).toFixed(3)} in 4 island hours (outside ≈ +0.80)`);
 }
 { // 6 thatch blown off, laid again; weighed down, kept
   wx = calm; await run(10);

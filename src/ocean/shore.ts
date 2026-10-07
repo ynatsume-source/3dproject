@@ -136,13 +136,14 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        vWp = p; vN = normal; vC = aC; gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }`,
     `${LAND_TEX}
      ${AIRLIT}
-     varying vec3 vWp; varying vec3 vN; varying float vC; uniform float uNear;
+     varying vec3 vWp; varying vec3 vN; varying float vC; uniform float uNear; uniform vec4 uClear[16];
      void main(){
        vec3 ph; vec4 cv; landTex(vWp.xz, ph, cv);
        float nz = vn2(vWp.xz * 0.9) * 0.6 + vn2(vWp.xz * 3.1 + 7.0) * 0.4;
        if (cv.r < 0.3 + 0.3 * nz) discard;                            // ragged where the forest ends
        if (length(vWp.xz - uCamPos.xz) < uNear * (0.9 + 0.2 * nz)) discard;   // (close by, the trees themselves: ocean/forest.ts)
        if (length(vWp.xz - uCut.xz) < uCut.w * (0.85 + 0.3 * nz)) discard;   // (opened up over a resident being watched from above)
+       for (int i = 0; i < 16; i++) { vec4 c = uClear[i]; if (c.w > 0.0 && length(vWp.xz - c.xy) < c.w * (0.9 + 0.2 * nz)) discard; }   // (where the residents have felled trees)
        vec3 n = normalize(vN);
        float under = gl_FrontFacing ? 1.0 : 0.3;                       // seen from beneath: the shade inside the crowns
        // leafy texture: clumps of light and shade at the scale of branches
@@ -159,7 +160,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        alb *= (0.68 + 0.5 * leaf) * mix(0.38, 1.1, smoothstep(0.2, 0.62, vn2(vWp.xz * 0.55 + 3.0)) * 0.7 + smoothstep(0.3, 0.7, cr) * 0.3) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // (crowns in light and shade; the sides of the forest in shade)
        gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), 1.0);
      }`,
-    { uniforms: { ...landUniforms(L), uNear: { value: 0 } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { ...landUniforms(L), uNear: { value: 0 }, uClear: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) } }, opts: { side: THREE.DoubleSide } });
   // a grid of step S over +-E1, leaving out what lies inside +-E0 (drawn finer by the other)
   const canopyMesh = (E0: number, E1: number, S: number) => {
     const N = Math.round(2 * E1 / S) + 1;
@@ -190,7 +191,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   // the drone and birds keep above the treetops: near the modelled sea from a 1 m grid, further out
   // from the shape itself
   T.over = (x: number, z: number) => (can(x, z) < 0.3 ? -1e9 : top(x, z).y + 0.5);
-  T.landCover = (x: number, z: number) => ({ can: can(x, z), sand: sand(x, z) });
+  T.landCover = (x: number, z: number) => ({ can: forest.cleared(x, z) ? 0 : can(x, z), sand: sand(x, z) });   // (felled ground: open)
   // (the canopy is no longer solid as a block: the drone cruising by keeps above it by T.over, but flown by
   // hand it can go in among the trees, which stand apart — see forest.push)
   void obst;
@@ -269,9 +270,20 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     const ux = Math.cos(p.ry), uz = -Math.sin(p.ry), w = Math.max(0.08, 0.06 * 0.45 * p.s), n = Math.ceil(p.s / (w * 2));
     for (let k = 0; k <= n; k++) { const t = -0.5 + k / n; solids.add({ kind: 'driftwood', x: p.x + ux * p.s * t, z: p.z + uz * p.s * t, r: k === 0 ? Math.max(w, 0.055 * p.s) : w, y0: p.y - 0.3, y1: p.y - 0.1 + 0.12 * 0.45 * p.s * (k === 0 ? 2 : 1) }); }
   }
+  // (the residents fell trees: robots/residents.ts. What they have cleared opens the canopy above it, too)
+  T.forest = {
+    standingNear: (x: number, z: number, r: number) => forest.standingNear(x, z, r),
+    fell: (x: number, z: number) => {
+      const t = forest.fell(x, z); if (!t) return null;
+      const v = (canopyMat.uniforms.uClear.value as THREE.Vector4[]), cl = forest.clearings, i = cl.length - 1;
+      if (i < 16) v[i].set(t.clear.x, t.clear.z, 0, t.clear.r + 0.6); else { v.copyWithin(0, 1); v[15] = new THREE.Vector4(t.clear.x, t.clear.z, 0, t.clear.r + 0.6); }
+      return t;
+    },
+    cleared: (x: number, z: number) => forest.cleared(x, z),
+  };
   solids.source((x, z, r, f) => forest.trunks(x, z, r, (t) => f({ kind: 'trunk', x: t.x, z: t.z, r: 0.55, y0: t.y - 0.5, y1: t.y + t.h })));
   T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)
-    let h = can(x, z) > 0.55 || forest.trunkNear(x, z, pad) ? 1 : 0;   // (in the forest; or by a tree's trunk, where it thins out)
+    let h = (can(x, z) > 0.55 && !forest.cleared(x, z)) || forest.trunkNear(x, z, pad) ? 1 : 0;   // (in the forest; or by a tree's trunk, where it thins out)
     const ci = Math.floor(x / 8), cj = Math.floor(z / 8);
     for (const kind in VEG) {
       const M = cellsOf[kind]; if (!M) continue; const [rk, hk] = VEG[kind];

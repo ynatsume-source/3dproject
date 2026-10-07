@@ -28,17 +28,20 @@ export const HOUSE_N = HOUSE_STEPS.length;
 export const stepsBefore = (kind: HouseStep['kind']) => HOUSE_STEPS.findIndex((s) => s.kind === kind);
 const ROOF_DONE = stepsBefore('wattle'), WALLS_DONE = stepsBefore('floor');
 export type HouseLevel = 'none' | 'frame' | 'roof' | 'house';
-/** How far it has come: 'roof' once every course of thatch is on (and none blown off), 'house' once the walls are daubed. */
-export function houseLevel(n: number, lost: number): HouseLevel {
-  if (n >= WALLS_DONE) return lost > 0 ? 'roof' : 'house';
-  if (n >= ROOF_DONE) return lost > 0 ? 'frame' : 'roof';
+/** How far it has come: 'roof' once every course of thatch has been laid, 'house' once the walls are daubed (a course
+ *  blown off since does not undo either: it lets rain in, below). */
+export function houseLevel(n: number, _lost = 0): HouseLevel {
+  if (n >= WALLS_DONE) return 'house';
+  if (n >= ROOF_DONE) return 'roof';
   return n > 0 ? 'frame' : 'none';
 }
 /** What it keeps off, inside (1 lets all of it through): a whole roof all the rain and half the wind; walls the wind too,
- *  and most of a typhoon (the proposal's table, §1). A stone wall, later, all but all of a typhoon. */
-export function houseCover(level: HouseLevel, stoneWall = false): { rain: number; wind: number; storm: number } {
-  if (level === 'house') return { rain: 0, wind: 0, storm: stoneWall ? 0.02 : 0.1 };
-  if (level === 'roof') return { rain: 0, wind: 0.5, storm: 0.6 };
+ *  and most of a typhoon (the proposal's table, §1). Each course of thatch blown off lets an eighth of the rain in, and a
+ *  little more of a typhoon. A stone wall, later, all but all of a typhoon. */
+export function houseCover(level: HouseLevel, lost = 0, stoneWall = false): { rain: number; wind: number; storm: number } {
+  const leak = Math.min(1, lost / 8);
+  if (level === 'house') return { rain: leak, wind: 0, storm: (stoneWall ? 0.02 : 0.1) + 0.05 * lost };
+  if (level === 'roof') return { rain: leak, wind: 0.5, storm: 0.6 };
   return { rain: 1, wind: 1, storm: 1 };
 }
 
