@@ -25,7 +25,7 @@ import { pickStart } from './ocean/start';
 import { globeScene, gcam, ll2v, gv, updateGlobe, tweenGlobe, earthMat, setGlobeFine } from './globe';
 import { clock, skyState, presetTime, localTimeString, SPEEDS, PRESET_LABEL, type Preset, setSeason, seasonOf, seaTemp, SEASON_LABEL, type Season } from './time/clock';
 import { Director, speciesOf, type Shot } from './director';
-import type { Subject } from './eco/env';
+import { activity, type Subject } from './eco/env';
 import { PERSONAS, personaById, line, type Persona, type Mood, type Taste } from './persona';
 import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { studio, guideThumbs } from './ui/thumbs';
@@ -346,7 +346,7 @@ function seenNow(sj: Subject) {
 // only where it is going and why. A faint ring round the subject while the caption is up (an arrow at the edge
 // of the screen on the way, when it is out of the frame).
 // what a passing caption is about, for the cruise's eyes to stay on (while it is up and in view; not once let go)
-let capLetGo = false;
+let capLetGo = false, capWhy = '';   // (why the last caption went: for the lab)
 function capFollow() {
   const el = $('caption'), sj = capShot && (capShot as any).cruise ? capShot.subject : null;
   if (!sj || capLetGo || !el.classList.contains('on') || capLeft <= 0) return null;
@@ -358,14 +358,24 @@ function capFollow() {
 // moving, the camera at half its speed — the cruise slows for it), within 60° of the way the camera faces now (the
 // eyes follow it that far) and near enough to see.
 const capPrev = new Map<string, { x: number; y: number; z: number; t: number }>();
+// A school of small fish is told of only when the picture shows it as such (owner, 2026-10-07: words about a few
+// scattered fish far off did not match what was on the screen): near enough that its fish can be told apart (one of
+// them 14 px or more), or plainly a school (Subject.clump). Not asked for: what was tapped or chosen is always told.
+function smallFits(sj: Subject) {
+  const one = sj.one?.(); if (!one) return true;
+  const d = Math.max(0.5, Math.hypot(one.x - camera.position.x, one.y - camera.position.y, one.z - camera.position.z));
+  return one.len / d * innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)) >= 14 || !!sj.clump?.();
+}
 function canKeep(sj: Subject, cruise: boolean, asked: boolean) {
   if (asked) return true;
+  if (!smallFits(sj)) return false;
   if (!cruise) return director.left() >= 4;
   const p = bodyAt(sj), q = capPrev.get(sj.key); if (!p || !q || capClock - q.t < 0.5) return false;
   const k = 4 / (capClock - q.t), o = camera.position;
   const x = p.x + (p.x - q.x) * k - (o.x + drone.vel.x * 2), y = p.y + (p.y - q.y) * k - (o.y + drone.vel.y * 2), z = p.z + (p.z - q.z) * k - (o.z + drone.vel.z * 2);
   const d = Math.hypot(x, y, z), f = U.uCamFwd.value;
-  return d > 0.8 && d < 18 && (x * f.x + y * f.y + z * f.z) / d > Math.cos(60 * Math.PI / 180);
+  // (and not so near that it cannot be in the picture at all: a shark passing a metre off is more than the frame)
+  return d > Math.max(0.8, (sj.len ?? 0) * 1.2) && d < 18 && (x * f.x + y * f.y + z * f.z) / d > Math.cos(60 * Math.PI / 180);
 }
 let capVisT = 0, capLostT = 0, capUpT = 0, capSeenK = 0, capVis = false, capHead = false, capBig: Shot | null = null, capBigK = 0;
 // big in the picture now: a fifth of the screen's short side or more across, and seen
@@ -379,7 +389,8 @@ function updateCaption(dt: number) {
   capClock += dt;
   // cruising (nothing being filmed): the commentary is about whatever is biggest on screen, close by — and in view
   capQuiet -= dt;
-  if (captionOn && !(sh && (sh.phase === 'observe' || sh.asked)) && !watch.r && cur && camera.position.y < 0) {   // (flown by hand too: what is in front of it)
+  // (only with nothing being filmed — on the way to something, the camera is the director's and cannot follow it)
+  if (captionOn && !sh && !watch.r && cur && camera.position.y < 0) {   // (flown by hand too: what is in front of it)
     if (capQuiet > 0 && !(capShot as any)?.cruise) cruiseSubj = null;   // (a while of nothing after one: the view to itself)
     else if ((cruiseT -= dt) < 0) {
       cruiseT = 1;
@@ -407,9 +418,10 @@ function updateCaption(dt: number) {
   const young = el.classList.contains('on') && capUpT < 4 && !!capShot && captionOn && !watch.r && !(sh?.asked && sh !== capShot);
   const lingering = young || (capLeft > 0 && (capUpT > 0 || el.classList.contains('on')) && capShot && (capShot as any).cruise && captionOn && !watch.r && (!want || (sh as any).cruise));
   if (!lingering) {
-    if (!want) { hideCaption(el); capShot = null; return; }
+    if (!want) { if (el.classList.contains('on')) capWhy = 'not wanted'; hideCaption(el); capShot = null; return; }
     if ((sh as any).cruise && capShot && (capShot as any).cruise && capShot.subject === sh!.subject) sh = capShot;
     if (capShot !== sh || capPhase !== (sh!.asked ? sh!.phase : 'observe')) {   // (not asked for: the same words on the way and there)
+      if (el.classList.contains('on')) capWhy = 'replaced by ' + sh!.subject.label;
       capShot = sh; capPhase = sh!.asked ? sh!.phase : 'observe'; capT = 1; capVisT = 0; capLostT = 0; capUpT = 0; capSeenK = 0; capLeft = 0;
       el.classList.remove('on');
       const c = captionText(sh!.subject), asked = !!sh!.asked || !!sh!.zoom, sj = sh!.subject, cruise = !!(sh as any).cruise;
@@ -448,12 +460,13 @@ function updateCaption(dt: number) {
     // (once up, its reading time runs whether or not it is in view; out of view, it fades, and back in view
     // it comes back while that time lasts)
     if (on) capUpT += dt;
-    if ((capLeft -= dt) <= 0 && (capUpT >= 4 || !on)) { hideCaption(el); if ((capShot as any).cruise) { capShot = null; cruiseSubj = null; capQuiet = rr(12, 20); } return; }
-    if (on && capUpT >= 4 && capLostT >= 1.5) el.classList.remove('on');
-    else if (!on && capVisT >= 0.5) el.classList.add('on');
+    if ((capLeft -= dt) <= 0 && (capUpT >= 4 || !on)) { if (on) capWhy = 'read, up ' + capUpT.toFixed(1) + ' s'; hideCaption(el); if ((capShot as any).cruise) { capShot = null; cruiseSubj = null; capQuiet = rr(12, 20); } return; }
+    if (on && capUpT >= 4 && capLostT >= ((capShot as any).cruise ? 0.6 : 1.5)) { el.classList.remove('on'); capWhy = 'out of view'; }   // (something passing, gone from the picture: gone from the words soon after)
+    else if (!on && capVisT >= 0.5 && capLeft > 4) el.classList.add('on');   // (back only for 4 s or more: not a flicker at the end of its time)
   } else if (capLeft > 0 && capVisT >= (capHead ? 0 : 0.5) && (capHead || canKeep(capShot.subject, !!(capShot as any).cruise, !!capShot.asked || !!capShot.zoom))) { el.classList.add('on'); capLetGo = false; }
   // (up about something being filmed: the camera stays with it for the 4 s it is read in, at least)
   if (el.classList.contains('on') && !(capShot as any).cruise && capUpT < 4) director.keep(4.2 - capUpT);
+  else if (el.classList.contains('on') && (capShot as any).cruise && capUpT < 4) director.hush(4.2 - capUpT);
   if (!capHead && (capT += dt) > 1) { capT = 0; (el.querySelector('.s') as HTMLElement).textContent = capShot.subject.status(); }
 }
 function hideCaption(el: HTMLElement) { if (el.classList.contains('on')) el.classList.remove('on'); capLeft = 0; }
@@ -554,27 +567,35 @@ let yawRate = 0, interestW = 0;
 // Between one thing filmed and the next, the way leans toward life (owner, 2026-10-06: it drifted on over empty
 // water) — and toward variety, not only numbers (owner, 2026-10-07: by numbers alone a jacks' tornado or a great
 // school would pull it in every time). Once a second, the fish ahead within 35 m are counted in 8 m squares, kind by
-// kind; a square is worth its number of kinds, plus a little for how many there are (log₂: 8 fish of one kind ≈ one
+// kind; a square is worth its number of kinds (each by how much it is about at this hour), plus a little for how many there are (log₂: 8 fish of one kind ≈ one
 // more kind, 1000 of it ≈ ten). The best square with at least two kinds or a good few fish is where the cruise bends
 // to — up to 18 m off its line, which goes on, so it never strays far.
-const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0 };
-const _lifeBins = new Map<number, { n: number; x: number; z: number; kinds: Set<string> }>();
+const NIGHT_DEEP = -12;   // (by night, deeper than this only where the life is rich: see the cruise)
+const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0, score: 0 };
+const _lifeBins = new Map<number, { n: number; x: number; z: number; kinds: Map<string, number> }>();
 function findLife() {
   _lifeBins.clear(); life.ok = false;
   const o = drone.pos, fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
-  for (const f of (cur?.fish ?? []) as any[]) f.each?.((x: number, _y: number, z: number) => {
-    const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz); if (d > 35 || d < 3 || (dx * fx + dz * fz) / d < -0.1) return;
-    const k = Math.floor(x / 8) * 4096 + Math.floor(z / 8);
-    let b = _lifeBins.get(k); if (!b) { b = { n: 0, x: 0, z: 0, kinds: new Set() }; _lifeBins.set(k, b); }
-    b.n++; b.x += x; b.z += z; b.kinds.add(f.sp.id);
-  }, 300);
-  let best: { n: number; x: number; z: number; kinds: Set<string> } | null = null, bs = 0;
+  // (each kind counts by how much it is about at this hour — a day fish asleep in the reef by night 0.4, one awake 1:
+  // by night the cruise goes where the night's fish are out, by day where the day's are)
+  const env = cur!.eco.env;
+  for (const f of (cur?.fish ?? []) as any[]) {
+    const w = 0.4 + 0.6 * activity(f.sp.diel, env);
+    f.each?.((x: number, _y: number, z: number) => {
+      const dx = x - o.x, dz = z - o.z, d = Math.hypot(dx, dz); if (d > 35 || d < 3 || (dx * fx + dz * fz) / d < -0.1) return;
+      const k = Math.floor(x / 8) * 4096 + Math.floor(z / 8);
+      let b = _lifeBins.get(k); if (!b) { b = { n: 0, x: 0, z: 0, kinds: new Map() }; _lifeBins.set(k, b); }
+      b.n++; b.x += x; b.z += z; b.kinds.set(f.sp.id, w);
+    }, 300);
+  }
+  let best: { n: number; x: number; z: number; kinds: Map<string, number> } | null = null, bs = 0;
   for (const b of _lifeBins.values()) {
     if (b.kinds.size < 2 && b.n < 6) continue;
-    const sc = b.kinds.size + 0.33 * Math.log2(1 + b.n);
+    let k = 0; for (const w of b.kinds.values()) k += w;
+    const sc = k + 0.33 * Math.log2(1 + b.n);
     if (sc > bs) { bs = sc; best = b; }
   }
-  if (best) { life.ok = true; life.kinds = best.kinds.size; life.x = best.x / best.n; life.z = best.z / best.n; }
+  if (best) { life.ok = true; life.kinds = best.kinds.size; life.score = bs; life.x = best.x / best.n; life.z = best.z / best.n; }
 }
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
   let best = Infinity;
@@ -820,21 +841,39 @@ function updateDrone(dt: number, now: number) {
     arrive.t -= dt; arrive.age += dt;
     _v.set(-Math.sin(arrive.yaw) * 0.18, 0, -Math.cos(arrive.yaw) * 0.18);
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 1.2));
-    drone.yaw += angDiff(arrive.yaw + Math.sin(arrive.age * 0.55) * 0.2, drone.yaw) * Math.min(1, dt * 0.8);
-    drone.pitch += (arrive.pitch - drone.pitch) * Math.min(1, dt * 0.8);
+    // (a passing caption up meanwhile: the eyes on what it is about, as cruising)
+    const cfa = capFollow();
+    const ay = cfa ? Math.atan2(-(cfa.x - drone.pos.x), -(cfa.z - drone.pos.z)) : arrive.yaw + Math.sin(arrive.age * 0.55) * 0.2;
+    const ap = cfa ? Math.atan2(cfa.y - drone.pos.y, Math.hypot(cfa.x - drone.pos.x, cfa.z - drone.pos.z)) * 0.7 : arrive.pitch;
+    drone.yaw += angDiff(ay, drone.yaw) * Math.min(1, dt * 0.8);
+    drone.pitch += (ap - drone.pitch) * Math.min(1, dt * 0.8);
     if (arrive.t <= 0) { drone.s = nearestS(drone.pos); director.start(); }   // (and the filming begins here, with what is in front)
   } else if (drone.mode === 'auto') {
-    // (a passing caption up: the eyes stay on what it is about, and the cruise slows — its reading time, at least 4 s;
-    // let go if it falls more than 70° behind the way the cruise is going)
+    // (a passing caption up: the eyes stay on what it is about, and the cruise all but stops — its reading time, at
+    // least 4 s; let go if it falls more than 110° from the way the cruise is going, behind the camera's shoulder)
     const cf = capFollow();
     const hasI = cf ? (_i.copy(cf), true) : findInterest(drone.pos, U.uCamFwd.value);
-    interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * 0.6);
-    const speed = (1.35 - interestW * 0.5) * persona.cruise * (persona.pace ? persona.pace(t) : 1);
+    interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * (cf ? 2 : 0.6));   // (onto what the caption is about: at once)
+    const speed = (1.35 - interestW * (cf && !capLetGo ? 0.95 : 0.5)) * persona.cruise * (persona.pace ? persona.pace(t) : 1);   // (keeping something passing in view: nearly stopping)
     if ((whimT -= dt) < 0) { whimT = rr(240, 420); whim = WHIMS[Math.floor(Math.random() * WHIMS.length)]; }
     drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
     pathPoint(drone.s, _t);
     if (drone.pos.y < 0 && (life.t -= dt) <= 0) { life.t = 1; findLife(); }
-    if (life.ok && drone.pos.y < 0 && !cur!.loc.pelagic) {
+    // By night (owner, 2026-10-06): the lamp lights only a few metres, so the cruise keeps low over the reef, and over
+    // water no deeper than NIGHT_DEEP — leaning (up to 20 m off its line) toward the shallower side — unless the life
+    // there is rich (a square worth three kinds awake or more): then it goes down to it, the dark sea lit by the lamp.
+    const nightNow = cur!.eco.env.night, T0 = cur!.T;
+    const richDeep = life.ok && life.score >= 3;
+    if (nightNow > 0.5 && drone.pos.y < 0 && !cur!.loc.pelagic) {
+      if (!richDeep && T0.top(_t.x, _t.z) < NIGHT_DEEP) {
+        let bx = 0, bz = 0, bt = T0.top(_t.x, _t.z);
+        const b2 = pathXZ(drone.s + 0.002), [ax, az] = pathXZ(drone.s), tl = Math.hypot(b2[0] - ax, b2[1] - az) || 1, nx = -(b2[1] - az) / tl, nz = (b2[0] - ax) / tl;
+        for (let off = -20; off <= 20; off += 5) { const tp = T0.top(_t.x + nx * off, _t.z + nz * off); if (tp > bt && tp < -2.5) { bt = tp; bx = nx * off; bz = nz * off; } }
+        _t.x += bx; _t.z += bz;
+      }
+      _t.y = Math.min(-0.9, Math.max(T0.top(_t.x, _t.z) + 1.2, Math.min(_t.y, T0.top(_t.x, _t.z) + 2.5)));   // (within the lamp's reach of the reef)
+    }
+    if (life.ok && drone.pos.y < 0 && !cur!.loc.pelagic && !(nightNow > 0.5 && !richDeep && T0.top(life.x, life.z) < NIGHT_DEEP)) {
       let ox = (life.x - _t.x) * 0.6, oz = (life.z - _t.z) * 0.6; const ol = Math.hypot(ox, oz);
       if (ol > 18) { ox *= 18 / ol; oz *= 18 / ol; }
       _t.x += ox; _t.z += oz;
@@ -855,14 +894,15 @@ function updateDrone(dt: number, now: number) {
     const dx = _a.x - drone.pos.x, dz = _a.z - drone.pos.z, dy = _a.y - drone.pos.y;
     let wantYaw = Math.atan2(-dx, -dz) + (Math.sin(t * 0.09 * persona.sway) * 0.45 + Math.sin(t * 0.031 + 1) * 0.3) * (1 - interestW) * persona.sway;
     let wantPitch = Math.atan2(dy, Math.hypot(dx, dz)) * 0.6 - 0.1 + Math.sin(t * 0.07) * 0.12;
-    if (cf && Math.abs(angDiff(Math.atan2(-(cf.x - drone.pos.x), -(cf.z - drone.pos.z)), Math.atan2(-dx, -dz))) > 70 * Math.PI / 180) capLetGo = true;
+    if (cf && Math.abs(angDiff(Math.atan2(-(cf.x - drone.pos.x), -(cf.z - drone.pos.z)), Math.atan2(-dx, -dz))) > 110 * Math.PI / 180) capLetGo = true;
     if (interestW > 0.01 && hasI && !(cf && capLetGo)) {
       const ix = _i.x - drone.pos.x, iz = _i.z - drone.pos.z, iy = _i.y - drone.pos.y;
-      wantYaw += angDiff(Math.atan2(-ix, -iz), wantYaw) * interestW * 0.8;
+      wantYaw += angDiff(Math.atan2(-ix, -iz), wantYaw) * interestW * (cf ? 1 : 0.8);
       wantPitch += (Math.atan2(iy, Math.hypot(ix, iz)) - wantPitch) * interestW * 0.7;
     }
-    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * 0.7 * persona.turn);
-    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * 0.7 * persona.turn);
+    const turnK = cf && !capLetGo ? 1.6 : 0.7 * persona.turn;   // (keeping something passing in view: a quicker eye)
+    drone.yaw += angDiff(wantYaw, drone.yaw) * Math.min(1, dt * turnK);
+    drone.pitch += (wantPitch - drone.pitch) * Math.min(1, dt * turnK);
   } else {
     const f = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0) + joy.y;
     const r = (keys.has('KeyD') ? 1 : 0) - (keys.has('KeyA') ? 1 : 0) + joy.x;
@@ -3630,7 +3670,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

@@ -51,6 +51,9 @@ export interface Subject {
   // round the whole school, mixed in with other small fish, did not say which fish were meant: owner, 2026-10-07).
   // The same fish while it lasts and keeps with the school; then the one nearest its middle.
   one?(): { x: number; y: number; z: number; len: number } | null;
+  // (and whether it is plainly a school — many fish close together, a mass the eye takes in as one — rather than a
+  // few scattered fish: told of from further off only then. Owner, 2026-10-07)
+  clump?(): boolean;
   len?: number; adult?: number; lenK?: number; lenWhat?: string;   // this individual's size (m), its species' adult size, growth rate, what is measured
   // a place to fly through rather than orbit: where the camera is and looks at t seconds in
   // a leap out of the sea (a breaching whale): film it from the waterline, this far off, side on to dir, looking h up

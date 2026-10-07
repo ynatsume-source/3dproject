@@ -706,6 +706,12 @@ export function makeFishSystem(sp: Species, oc: any) {
     _one.x = fp[i * 3]; _one.y = fp[i * 3 + 1]; _one.z = fp[i * 3 + 2]; _one.len = fs[i] * 1.28;
     return _one;
   }
+  // plainly a school: a dozen fish or more, packed (over 1.5 fish to each cubic metre of the sphere round its core)
+  function clumpOf(g: Group) {
+    let n = 0; for (let i = g.start; i < g.start + g.n; i++) if (!dead[i]) n++;
+    const r = Math.max(0.3, coreOf(g));
+    return n >= 12 && n / (4.19 * r * r * r) >= 1.5;
+  }
   function groupStatus(g: Group): string {
     const kelpSays = kelpLife?.status(); if (kelpSays) return kelpSays;
     // (the words for where it lives: a coral reef and its bommies; a rocky reef in the kelp; the open ocean)
@@ -749,7 +755,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       } else if (g.type === 'reef' && !sp.big && g.n >= 5 && g.act > 0.4) {
         // a small fish's school over its patch of reef (the owner, 2026-10-06: the small fish are worth the cruise's
         // look as much as the big ones): filmed as a tap on it is — close and slowly, round its core
-        const o: Subject = { key, label: `${sp.ja}の群れ`, kind: 'critter', prio: 1.6 * g.act, size: 1, pos: () => g.m ?? g.c, frameR: () => frameOf(g), status: () => groupStatus(g), live: () => g.placed, one: () => fishOf(g) };
+        const o: Subject = { key, label: `${sp.ja}の群れ`, kind: 'critter', prio: 1.6 * g.act, size: 1, pos: () => g.m ?? g.c, frameR: () => frameOf(g), status: () => groupStatus(g), live: () => g.placed, one: () => fishOf(g), clump: () => clumpOf(g) };
         Object.defineProperty(o, 'size', { get: () => groupSize(g), enumerable: true });
         out.push(o);
       }

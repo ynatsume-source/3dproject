@@ -299,7 +299,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
     leaders.forEach((L, s) => {
       if (!L.placed || !enough(s)) return;
       const full = Math.min(1, here(s) / Math.max(1, active / S));
-      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(s), one: () => fishOf(s) });
+      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(s), one: () => fishOf(s), clump: () => { const r = Math.max(0.3, L.spread ?? 2), n = here(s); return n >= 12 && n / (4.19 * r * r * r) >= 1.5; } });
     });
   }
   // A tap on the screen: the school with a fish nearest the tapped point (each fish projected, a few hundred at

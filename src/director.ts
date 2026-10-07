@@ -129,7 +129,10 @@ export class Director {
   static readonly LOOK = 18;
   // a caption has just come up about what it is filming: stay with it this long at least (it is read for 4 s)
   private keepT = 0;
-  keep(sec: number) { this.keepT = Math.max(this.keepT, sec); }   // (one of its own looks, the way there included, at most: s)
+  keep(sec: number) { this.keepT = Math.max(this.keepT, sec); }
+  // (and a caption about something passing has just come up: nothing new is begun for this long — the camera's eyes
+  // are on that)
+  hush(sec: number) { if (!this.shot) this.cooldown = Math.max(this.cooldown, sec); }   // (one of its own looks, the way there included, at most: s)
   // how long it will stay with what it is filming now, as things stand (for the caption: told only if it is kept in
   // the picture 4 s or more) — what was asked for, a leap, a ride, a rare sight or a hunt going on: as long as needed
   left() {

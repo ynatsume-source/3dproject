@@ -183,8 +183,10 @@ vec3 lamp(vec3 alb, vec3 wp, vec3 n){
   // (and while watching a resident after dark: a soft pool of light the drone casts down around it)
   vec3 sd = wp - uSpot.xyz; float pool = exp(-dot(sd.xz, sd.xz) * 0.014) * (1.0 - smoothstep(4.0, 14.0, abs(sd.y)));
   // (the drone's lamp: strong at a few metres, but with a soft shoulder close up, as a camera exposed for the
-  // lamp would see it — an animal a hand's breadth away is lit, not burnt out white into a glow)
-  float lk = uLamp * cone * max(dot(n, -dir), 0.0) * 3.6 / (1.0 + d * d * 0.07);
+  // lamp would see it — an animal a hand's breadth away is lit, not burnt out white into a glow. Its reach: a
+  // little longer than it was (owner, 2026-10-07, for the night dives) — 0.045 for 0.07: as bright within a few
+  // metres (the shoulder takes it), 4/10 more at 10 m, half again at 14 m)
+  float lk = uLamp * cone * max(dot(n, -dir), 0.0) * 3.6 / (1.0 + d * d * 0.045);
   lk = lk / (1.0 + max(lk - 0.6, 0.0) * 0.8);
   return alb * vec3(1.0, 0.93, 0.8) * lk
        + alb * vec3(0.92, 0.95, 1.0) * uSpot.w * pool * (0.35 + 0.65 * max(n.y, 0.0))
