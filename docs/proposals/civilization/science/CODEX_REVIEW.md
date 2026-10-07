@@ -367,3 +367,8 @@ A1〜A6 は解消、C1・C2 も対応確認。追加の指摘なしで気密の�
 ## 9c3b611 破片の quality（Codex lab e2a4147）
 
 `potSherdsQuality` は追加の A/B/C なし。本体の破損時の処理へつないでよい（`brokenMaterial: 'pot_sherds'`、`brokenQuality: potSherdsQuality`、組み立て時の写しと同じ amount）。7つの実際の経路（乾いた器・塗った器・水試験後・封止・欠測・傷み）で、破片の成分 mg が元の器の読み戻しと一致。[FINAL_REVIEW_2026-10-06.md](FINAL_REVIEW_2026-10-06.md) §6 に追記。
+
+
+## 薪を乾かす 29521cb（Codex のレビュー、lab 未 push）
+
+A1（−60 °C・RH95% で EMC が負 → 水が負）、A2（風の欠測を無風として計算）、C1（RH99% の打ち切りは原典にない仮定）。p15x 0.1.1 で対応（[CODEX_REVIEW_REQUEST_firewood.md](CODEX_REVIEW_REQUEST_firewood.md) の追記）。HH 係数・表 361 点、雨の drawn、丸めない ppm、返却薪の吸水・乾燥 144 回の読み戻しは Codex が確認済み。共通の `wind10m()` が欠測を 0 にする件は、タイルの乾燥・粘土を浸す・器の漏れの試験にもあり、次のレビューに回す。

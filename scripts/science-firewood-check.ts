@@ -3,7 +3,7 @@
 import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
-import { FIREWOOD_DRY_PROCESS, woodEmc } from '../src/science/step/firewood';
+import { EMC_RANGE, FIREWOOD_DRY_PROCESS, woodEmc } from '../src/science/step/firewood';
 import { fuelComp } from '../src/science/step/wood-fire';
 import { fuelLhvJPerMg } from '../src/science/physics';
 
@@ -43,7 +43,7 @@ const asLot = (r: ScienceStepResult): LotView => ({ lotId: 'lot:back', materialI
 
 console.log('1. the air sets how dry wood can get');
 {
-  const e = woodEmc(28, 0.75), dryAir = woodEmc(28, 0.4), damp = woodEmc(28, 0.95);
+  const e = woodEmc(28, 0.75)!, dryAir = woodEmc(28, 0.4)!, damp = woodEmc(28, 0.95)!;
   ok(e > 0.12 && e < 0.16 && dryAir < e && damp > e, 'equilibrium moisture (Wood Handbook form): about 14 % at 28 °C and 75 %, lower in dry air, higher in damp', `${(dryAir * 100).toFixed(1)} / ${(e * 100).toFixed(1)} / ${(damp * 100).toFixed(1)} %`);
 }
 
@@ -110,6 +110,27 @@ console.log('4. pieces, looks, unknown weather');
   const ref = stackFor(4 * D, [WOOD()], [[4 * D - 30_000, 'take_out']]);
   ok(gap.obs.length === 0 && gap.last.produced[0].quality!.history_complete === 0 && sum(gap.last.released) < sum(ref.last.released),
     'a day of unknown weather: nothing dries in it (nothing invented), and the run tells nothing more after it');
+}
+
+console.log('6. fixes from the review (Codex 29521cb A1, A2, C1)');
+{
+  // A1: outside the EMC fit's temperatures nothing is computed, and the water never goes below 0
+  const cold = stackFor(H, [WOOD({ water_ppm: 0 })], [[30 * 60_000, 'look']], {}, H, () => ({ t: -60, rh: 0.95, wind: 2, rain: 0 }));
+  ok(woodEmc(-60, 0.95) === null && sum(cold.last.released) === 0 && cold.last.energy.length === 0 && cold.last.produced[0].quality!.water_ppm === 0 && cold.last.produced[0].quality!.history_complete === 0 && cold.obs.length === 0,
+    'A1: −60 °C, RH 95 %: outside the fit (−1.1..98.9 °C), not computed — no vapour, no heat, water stays 0, history incomplete');
+  let minEmc = Infinity;
+  for (let T = EMC_RANGE.minC; T <= EMC_RANGE.maxC; T += 0.5) for (let h = 0; h <= 1.0001; h += 0.01) minEmc = Math.min(minEmc, woodEmc(T, Math.min(h, 1))!);
+  ok(minEmc >= 0, 'A1: inside the fit the equilibrium moisture is never negative', `min ${minEmc.toFixed(5)}`);
+  const bone = stackFor(D, [WOOD({ water_ppm: 0 })], [], {}, H, () => ({ t: 35, rh: 0.05, wind: 10, rain: 0 }));
+  ok(sum(bone.last.released) === 0 && bone.last.produced[0].quality!.water_ppm === 0 && bone.last.status !== 'failed', 'A1: wood with no water in very dry air gives no vapour (water never below 0)');
+  // A2: a missing wind is unknown; an explicit 0 is calm
+  const noWind = stackFor(D, [WOOD()], [[12 * H, 'look']], {}, H, () => ({ t: 28, rh: 0.75, wind: undefined as unknown as number, rain: 0 }));
+  const calm = stackFor(D, [WOOD()], [[12 * H, 'look']], {}, H, () => ({ t: 28, rh: 0.75, wind: 0, rain: 0 }));
+  ok(sum(noWind.last.released) === 0 && noWind.last.produced[0].quality!.history_complete === 0 && noWind.obs.length === 0, 'A2: the wind missing: not computed (history incomplete, nothing seen)');
+  ok(sum(calm.last.released) > 0 && calm.last.produced[0].quality!.history_complete === 1 && sum(calm.last.released) < sum(stackFor(D, [WOOD()], []).last.released),
+    'A2: an explicit calm (0 m/s) is computed, and dries more slowly than a breeze');
+  // C1: above 98 % the table's last row is used (stated as an assumption)
+  ok(woodEmc(25, 0.99) === woodEmc(25, 0.98) && woodEmc(25, 1) === woodEmc(25, 0.98), 'C1: above the table\'s 98 % the last row is used (an assumption, documented)');
 }
 
 console.log('5. requests that are refused');

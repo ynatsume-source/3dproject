@@ -11,7 +11,9 @@
 // Wood that is already drier than the air allows stays as it is (taking moisture back from humid air is not modelled).
 // An open stack (no roof) takes up a part of the rain that falls on its top, up to a soaked surface (drawn from the
 // air); a roofed stack is also in shade. An open stack with the rain unknown is not computed (nothing invented).
-// Weather unknown: the interval is not computed, the history is incomplete, and the run observes nothing more.
+// Weather unknown (temperature, humidity or wind missing; an explicit wind of 0 is calm), or the wood's temperature
+// outside the EMC fit (−1.1..98.9 °C): the interval is not computed, the history is incomplete, and the run observes
+// nothing more. The water never goes below 0.
 // Looking never touches the wood; a look between grid points reads the state at its own time from a copy.
 
 import type { Observation, ScienceStepRequest } from '../../world/science-contract';
@@ -20,19 +22,23 @@ import { pSat } from '../physics';
 import { allFinite, checkCommon, envUsable, failed, fingerprint, finite, subStepEnd, wind10m } from './common';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const FIREWOOD_DRY_PROCESS = { processId: 'p15x_firewood_dry', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.firewood-dry/1', EVAL = 'firewood-dry-eval/0.1.0';
+export const FIREWOOD_DRY_PROCESS = { processId: 'p15x_firewood_dry', processVersion: '0.1.1' } as const;
+const SCHEMA = 'civ-sci.firewood-dry/1', EVAL = 'firewood-dry-eval/0.1.1';
 const STACK = 'firewood_stack';
 const STEP_MS = 30_000;
 
+/** The range the Hailwood–Horrobin fit covers (the Wood Handbook's table: −1.1..98.9 °C, 0..98 % RH). */
+export const EMC_RANGE = { minC: -1.1, maxC: 98.9, maxH: 0.98 } as const;
 /** Equilibrium moisture content of wood (kg water / kg dry wood) at T °C and relative humidity h (0..1):
- *  Hailwood–Horrobin, USDA Wood Handbook (metric form). */
-export function woodEmc(T: number, h: number): number {
+ *  Hailwood–Horrobin, USDA Wood Handbook (metric form). null outside the table's temperatures (not computed there);
+ *  above 98 % the table's last row is used (an assumption beyond the source, Codex C1 on 29521cb). */
+export function woodEmc(T: number, h: number): number | null {
+  if (!(T >= EMC_RANGE.minC && T <= EMC_RANGE.maxC) || !(h >= 0 && h <= 1)) return null;
   const W = 349 + 1.29 * T + 0.0135 * T * T;
   const K = 0.805 + 0.000736 * T - 0.00000273 * T * T;
   const K1 = 6.27 - 0.00938 * T - 0.000303 * T * T;
   const K2 = 1.91 + 0.0407 * T - 0.000293 * T * T;
-  const Kh = K * Math.min(h, 0.99);
+  const Kh = K * Math.min(h, EMC_RANGE.maxH);
   return (1800 / W) * (Kh / (1 - Kh) + (K1 * Kh + 2 * K1 * K2 * Kh * Kh) / (1 + K1 * Kh + K1 * K2 * Kh * Kh)) / 100;
 }
 
@@ -87,11 +93,14 @@ export function firewoodDryStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const reads = req.actions.filter((a) => a.action === 'look' && a.at < endAt).sort((x, y) => x.at - y.at);
   const env = req.environment;
   const rain = env.rainMmH;
-  // an open stack needs the rain too; a roofed one does not
-  const known = envUsable(req) && env.humidity !== undefined && (d.covered || (rain !== undefined && finite(rain, 0, 1000)));
-  const Tw = known ? env.airTempC! + pv('sunSurfaceExcessC') * d.sun : NaN;
-  const hWood = known ? Math.min(1, (env.humidity! * pSat(env.airTempC!)) / pSat(Tw)) : NaN;
-  const emc = known ? woodEmc(Tw, hWood) : NaN;
+  // the drying needs temperature, humidity and the wind (a missing wind is unknown, an explicit 0 is calm: Codex A2);
+  // an open stack needs the rain too; a roofed one does not. Outside the EMC fit's temperatures nothing is computed (A1).
+  const weather = envUsable(req) && env.humidity !== undefined && env.windMs !== undefined && (d.covered || (rain !== undefined && finite(rain, 0, 1000)));
+  const Tw = weather ? env.airTempC! + pv('sunSurfaceExcessC') * d.sun : NaN;
+  const hWood = weather ? Math.min(1, (env.humidity! * pSat(env.airTempC!)) / pSat(Tw)) : NaN;
+  const emcOrNull = weather ? woodEmc(Tw, hWood) : null;
+  const known = emcOrNull !== null;
+  const emc = emcOrNull ?? NaN;
   const windStack = known ? wind10m(req) * pv('windRackFactor') : NaN, windRef = 2 * pv('windRackFactor');
   const tauS = known ? (pv('woodDryTauRefDays') * 86400 * (d.pieceMm / pv('woodPieceMm')) ** 2)
     / (((1 + 0.15 * windStack) / (1 + 0.15 * windRef)) * 2 ** ((Tw - 28) / 15)) : NaN;
@@ -100,7 +109,7 @@ export function firewoodDryStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const advance = (s: Wood, dt: number) => {
     const mc = s.water / s.dry;
     if (mc > emc) {
-      const e = (mc - emc) * s.dry * (1 - Math.exp(-dt / tauS));
+      const e = Math.min(s.water, (mc - emc) * s.dry * (1 - Math.exp(-dt / tauS)));
       s.water -= e; s.evapF += e;
     }
     if (raining) {
@@ -134,7 +143,7 @@ export function firewoodDryStep(req: ScienceStepRequest): ScienceStepResultV02 {
   }
   if (!known && endAt > req.interval.from) d.historyComplete = false;
   d.lastTo = endAt;
-  if (!allFinite(d)) return fail('non-finite state: refusing to return it');
+  if (!allFinite(d) || d.water < 0) return fail('non-finite or negative state: refusing to return it');
   const evapInt = Math.floor(d.evapF + 1e-6), rainInt = Math.floor(d.rainIn + 1e-6);
   const cumJ = Math.floor((evapInt / 1e6) * pv('latentHeatWater25') + 1e-9), usedJ = cumJ - d.reportedJ;
   d.reportedJ = cumJ;
