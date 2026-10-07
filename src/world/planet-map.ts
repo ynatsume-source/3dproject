@@ -3,6 +3,7 @@
 // seen, reached and named — in the island's own words. What is known of each is the map; how much has been seen and
 // reached is Dot's reward. (The islands' places and sizes are the Earth's own islands around Kayama; what each has is
 // what makes it worth the crossing: a little convenience is fine — ADR 0007.)
+import { islandClay } from '../science/island-clay';
 import { syllables } from '../robots/islandlang';
 
 export interface Isle {
@@ -13,10 +14,10 @@ export interface Isle {
   earth: string;                 // the Earth's name, for the watcher's pages only — never to a resident
 }
 export const HOME = { lat: 24.361, lon: 123.997 };
-/** The clay of the island to the south, as dug: what it is made of (the science side reads it as raw_clay: water, the
- *  fine part xd_* and the coarse part xc_* — sand, stones, roots). Assumed for now: the science team's own example of a
- *  raw clay (scripts/science-clay-prep-check.ts RAW), until the island's clay is described from a source. */
-export const RAW_CLAY_SOUTH: Record<string, number> = { water_ppm: 200_000, xd_kaolinite_ppm: 450_000, xd_quartz_ppm: 350_000, xd_organic_c_ppm: 10_000, xc_quartz_ppm: 150_000, xc_inert_mineral_ppm: 50_000, xc_organic_c_ppm: 5_000 };
+/** The clay of the island to the south, as dug: what it is made of — the science side's table (src/science/island-clay.ts,
+ *  civ-sci.island-clay/1; assumed: the checks' example clay, not the real island's geology). A lot keeps the make-up it
+ *  was dug with: a new table version changes only what is dug after it. */
+export const RAW_CLAY_SOUTH: Record<string, number> = { ...islandClay('south-near')!.quality };
 export const ISLES: Isle[] = [
   { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], carry: [{ materialId: 'raw_clay', ja: '粘土', mg: 10e6, quality: RAW_CLAY_SOUTH }, { materialId: 'bamboo', ja: '竹', mg: 6e6 }, { materialId: 'reed', ja: '葦', mg: 3e6 }], earth: '小浜島' },
   { id: 'east-flat', lat: 24.326, lon: 124.087, areaKm2: 5.4, ja: '東の平たい島', has: ['白い石灰岩'], carry: [{ materialId: 'limestone', ja: '石灰岩', mg: 15e6 }], earth: '竹富島' },
