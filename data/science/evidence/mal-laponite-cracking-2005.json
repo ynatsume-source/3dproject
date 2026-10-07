@@ -1,0 +1,28 @@
+{
+  "id": "mal-laponite-cracking-2005",
+  "title": "Desiccation and Relaxation Regimes in Fracture of Drying Clay Films",
+  "authors": ["Dibyendu Mal", "Suparna Sinha", "Tapati Dutta", "S. Mitra", "Sujata Tarafdar"],
+  "year": 2005,
+  "arxiv": "cond-mat/0504158v1",
+  "retrievalUrl": "https://arxiv.org/pdf/cond-mat/0504158",
+  "accessedDateJst": "2026-10-07",
+  "sourceType": "primary-experimental-preprint",
+  "verification": "author-preprint-body-text-read",
+  "locators": "PDF pp. 1–3 and 6; method, cracking sequence, limitations",
+  "conditions": {
+    "material": "Laponite RD and methanol suspension in a Petri dish",
+    "mixingDurationHours": "1–2",
+    "filmThicknessMmInFigure5": [0.17, 0.2, 0.37, 0.4, 0.5],
+    "observations": "Continuous mass loss and interval photographs of cracks",
+    "matchedPotteryCalibration": false
+  },
+  "facts": [
+    "Earlier rapid shrinkage produces large cracks; later narrow cracks are interpreted in terms of residual stress and particle rearrangement.",
+    "The experiment distinguishes different stages of crack development rather than one whole-body hardness threshold."
+  ],
+  "doesNotVerify": "Methanol film is not water-based coiled pottery; no validated coefficients for weather pulses, stress decay or spontaneous healing.",
+  "calibrationEligible": false,
+  "evidenceKind": "review-transcription-not-original-pdf",
+  "originalFileHash": null,
+  "toolRefs": ["turn800973view0", "turn800973view1"]
+}

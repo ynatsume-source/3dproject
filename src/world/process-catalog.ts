@@ -17,6 +17,7 @@ import { barometerStep, BAROMETER_PROCESS } from '../science/step/barometer';
 import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
 import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn, potSherdsQuality } from '../science/step/vessel';
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
+import { potShapeStep, potDryStep, POT_SHAPE_PROCESS, POT_DRY_PROCESS } from '../science/step/pottery';
 import type { AssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
@@ -24,11 +25,13 @@ export interface CatalogEntry {
   ja: string;                                   // what Lantern is doing, as the record says it
   input: string; inputJa: string;               // the material it takes from the shelf (one lot; '' none: a gauge)
   also?: { input: string; ja: string }[];       // more lots it takes together (water, firewood)
-  equipment: Omit<EquipmentView, 'equipmentId'> & { ja: string };   // what the world sets out for it
+  equipment: (Omit<EquipmentView, 'equipmentId'> & { ja: string }) | null;   // what the world sets out for it (null: the hands only)
   moreEquipment?: (Omit<EquipmentView, 'equipmentId'> & { ja: string })[];
   step: ScienceStep;
   env: 'record' | 'simulation';                 // the weather it is given: the island's replayed record, or (checks only) a simulation
   energy?: (from: number, to: number) => EnergyOffer[];
+  /** An operator action the first request carries at its start (what to make: p11y's plan). */
+  start?: { action: string; params: Record<string, number> };
   /** A process that ends when the operator does something (takes the tile off the rack): after how long, on its clock. */
   finish?: { action: string; afterMs: number };
   tend: 'stay' | 'leave';                       // hand work keeps Lantern at it; a process that only waits does not
@@ -38,7 +41,7 @@ export interface CatalogEntry {
   ready: boolean; waits?: string;               // not ready: what it waits for
 }
 /** What the materials are called in the record (the island's own words come later). */
-export const MATERIAL_JA: Record<string, string> = { raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら' };
+export const MATERIAL_JA: Record<string, string> = { raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
 const handsW = (w: number) => (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical', maxJ: Math.round(((to - from) / 1000) * w) }];
 const hands = handsW(3);
 const TEST = SCIENCE_CATALOG_VERSION;
@@ -108,6 +111,19 @@ export const CATALOG: CatalogEntry[] = [
     equipment: { kind: 'firewood_stack', catalogEntry: 'firewood_stack', catalogVersion: TEST, condition: 1, params: { covered: 1, sunExposure: 0, topAreaM2: 0.2 }, ja: '屋根の下の薪の山' },
     step: firewoodDryStep, env: 'record', finish: { action: 'take_out', afterMs: 30 * 86_400_000 }, tend: 'leave',
     ready: false, waits: '薪を積む屋根の下の場所（ドットの家の軒下にする案。島で決める）' },
+  // (pots, the first half: science final review 2026-10-07-pottery, Codex a363557. Coiled by hand — no tool; the first
+  // request says what to make. Dried on the same rack as the tiles, under leaves; taken off part-dried, a pot keeps how far
+  // it has dried and goes on in the next run)
+  { processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    ja: '粘土を紐にして積み、鍋を形づくる', input: 'prepared_clay', inputJa: '下ごしらえした粘土',
+    equipment: null, start: { action: 'plan', params: { form: 1, capacityMl: 3000 } },
+    step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay',
+    ready: false, waits: '下ごしらえした粘土（粘土を浸す桶＝粘土の池ができてから）' },
+  { processId: POT_DRY_PROCESS.processId, processVersion: POT_DRY_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
+    ja: '器を棚で乾かす（葉で覆って）', input: 'green_pot', inputJa: '形づくった器',
+    equipment: { kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: TEST, condition: 1, params: { sunExposure: 0, covered: 1 }, ja: '乾燥の棚（葉で覆う）' },
+    step: potDryStep, env: 'record', finish: { action: 'take_off', afterMs: 14 * 86_400_000 }, tend: 'leave',
+    ready: false, waits: '形づくった器（形づくるのが島で動いてから）' },
 ];
 
 /** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,

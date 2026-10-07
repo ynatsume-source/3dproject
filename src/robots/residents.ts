@@ -1663,7 +1663,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const e = catalog.find((x) => x.processId === tk.data.processId), lot = tk.data.lotId ? lab.lots[tk.data.lotId] : undefined;
     const lotIds: string[] = [...(lot ? [lot.lotId] : []), ...((tk.data.more ?? []) as string[])];
     if (!e || (e.input && !lot) || lotIds.some((id) => !lab.lots[id] || (lab.lots[id] as any).reservedBy)) { tk.failed = 'gone'; tk.t = tk.dur; return; }
-    const eqIds = [e.equipment, ...(e.moreEquipment ?? [])].map((q) => {
+    const eqIds = [e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => {
       const eqId = `eq:${q.kind}`;
       if (!lab.equipment[eqId]) { const { ja: _, ...eq } = q; lab.equipment[eqId] = { ...eq, equipmentId: eqId }; }
       return eqId;
@@ -1671,7 +1671,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const { run, why } = startRun(lab, { processId: e.processId, processVersion: e.processVersion, catalogVersion: e.catalogVersion, contract: e.contract, clock: e.clock, lotIds, equipmentIds: eqIds, operator: `res:${r.id}` }, clockMs);
     if (!run) { tk.failed = 'unavailable'; tk.t = tk.dur; r.diary.push({ at: clockMs, text: `${e.ja}：始められなかった（${why}）`, key: 'study' }); return; }
     tk.data.runId = run.runId; village.labRuns.push({ runId: run.runId, processId: e.processId, by: r.id, startOnClock: run.lastTo });
-    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${lot ? `${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、` : ''}${[e.equipment, ...(e.moreEquipment ?? [])].map((q) => q.ja).join('・')}）`, key: 'study' });
+    r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${lot ? `${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、` : ''}${[e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => q!.ja).join('・') || '手だけ'}）`, key: 'study' });
     if (e.tend === 'leave') tk.t = tk.dur;
   }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
@@ -1685,8 +1685,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // given follows the record)
       const reads: { at: number; action: string }[] = [];
       if (e.gauge) { const now = toClock(e.clock, clockMs); for (let k = Math.max(1, Math.ceil((run.lastTo - x.startOnClock) / e.gauge.everyMs)); x.startOnClock + k * e.gauge.everyMs <= now && reads.length < 40; k++) reads.push({ at: x.startOnClock + k * e.gauge.everyMs, action: e.gauge.action }); }
+      // (the start's action — what to make — falls in the first request only)
       const out = advance(lab, x.runId, e.step, { realNow: clockMs, environment: (at) => envFor(e, at), energy: e.tend === 'stay' && !tending ? undefined : e.energy,
-        actions: e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : reads, ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+        actions: [...(e.start ? [{ at: x.startOnClock, action: e.start.action, params: e.start.params }] : []), ...(e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : reads)], ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
       if (e.gauge) for (const c of out) for (const o of c.observations ?? []) {
         // (what it read, as it read it: a count of marks on the stick, or what it saw instead)
         const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}` : o.text ? `${e.ja}：${o.text}` : '';

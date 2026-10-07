@@ -64,6 +64,34 @@
       "note": "p11_pottery_shape の生成物。乾燥工程はまだ受け取らない（試験片の系統だけが乾燥へつながる）"
     },
     {
+      "id": "green_pot",
+      "label": "形づくった器（乾く前）",
+      "category": "ceramic-green",
+      "unit": "mg",
+      "quality": {
+        "water_ppm / xd_<species>_ppm": "粘土の組成（タイルと同じ読み書き）",
+        "form": "1=鍋、2=壺、3=灯皿",
+        "capacity_ml": "容量",
+        "wall_mm": "壁の厚さ",
+        "surface_cm2": "片面の面積",
+        "shaped_water_ratio_ppm": "形づくったときの含水比",
+        "linear_shrink_ppm": "乾いて縮んだ割合",
+        "crack": "0 なし、1 細いひび、2 割れて分かれた",
+        "history_complete": "1=全区間を計算済み",
+        "dry_stage": "0 やわらかい・1 革のかたさ・2 乾いた（乾燥で書く）",
+        "dry_flux_ratio_max_ppm": "これまでの乾燥で一番速かったときの割れやすさの比（世界の隠れた値）"
+      },
+      "note": "p11y の生成物。p12y で乾かす（乾ききる前に下ろすとこのまま）"
+    },
+    {
+      "id": "dry_pot",
+      "label": "乾いた器（焼く前）",
+      "category": "ceramic-green",
+      "unit": "mg",
+      "quality": "green_pot と同じ",
+      "note": "p12y の生成物。野焼き（p13y、これから）で焼く。割れて分かれた器（crack 2）は焼けない（粘土に戻す工程は後で）"
+    },
+    {
       "id": "test_tile_green",
       "label": "成形した比較用の試験片（未乾燥・未焼成）",
       "category": "ceramic-green",
@@ -482,6 +510,59 @@
       "clock": "island"
     },
     {
+      "id": "p11y_pot_shape",
+      "version": "0.1.0",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "world",
+      "label": "器を形づくる（紐づくり）",
+      "kind": "physical",
+      "inputs": [
+        "prepared_clay（water_ppm・xd_<species>_ppm）"
+      ],
+      "outputs": [
+        "green_pot",
+        "prepared_clay（残り）"
+      ],
+      "equipment": [],
+      "energyModel": {
+        "mode": "offer",
+        "kind": "mechanical",
+        "note": "手の仕事 15 W。20分＋粘土 1 kg あたり 40分（仮定）"
+      },
+      "operator": "plan（最初の依頼の interval.from に1回だけ：form 1 鍋 / 2 壺 / 3 灯皿、capacityMl、wallMm は任意）。開始時のレシピで、時刻つきの操作ではない",
+      "observation": "sight：形ができた／粘土がやわらかすぎてつぶれた／固すぎてひび割れた／壁が薄すぎてたわんだ",
+      "physics": "使う粘土＝片面の面積 × 壁の厚さ × 1.9 g/cm³。形：鍋は高さが幅の0.8倍、壺は気密の器と同じ形、灯皿は高さが幅の4分の1。含水比 0.17〜0.32 の外、壁が 3 + 1.5·∛(容量 L) mm より薄いと形にならず、粘土がそのまま戻る",
+      "readiness": "test-world-only",
+      "note": "手を動かす工程なので世界の時計。砂・貝殻の混ぜ物は野焼きと一緒に後で。状態 civ-sci.pot-shape/1"
+    },
+    {
+      "id": "p12y_pot_dry",
+      "version": "0.1.1",
+      "contract": "0.1.x / 0.2.x",
+      "clock": "island",
+      "label": "器を乾かす",
+      "kind": "drying",
+      "inputs": [
+        "green_pot"
+      ],
+      "outputs": [
+        "dry_pot（乾ききったとき）| green_pot（まだ湿っているとき）",
+        "water_vapour"
+      ],
+      "equipment": [
+        "drying_rack（sunExposure、covered 0/1：葉で覆う）"
+      ],
+      "energyModel": {
+        "mode": "none",
+        "note": "乾く熱は src:env-heat:"
+      },
+      "operator": "look（色を見る。物理に触れない）、take_off（下ろす＝終わり）",
+      "observation": "sight：やわらかく色が濃い／縁が先に白っぽい（革のかたさ）／全体が白っぽく乾いて軽い、ひび",
+      "physics": "試験片の乾燥の式を器の面（内側は外側の半分の効き）に使う。革のかたさを過ぎると、壁の中の水が出てくるのが遅い（試験片の 10 倍 ×（壁/8 mm）、仮定。面積あたりの水も壁に比例するので乾く時間は壁の2乗）。縁が先に乾く器（鍋・壺）は割れやすさ 1.3 倍。葉で覆うと乾く速さ 0.4 倍。4 L の鍋は日陰で約5日、葉で覆うと約2週間、暑い日なたと風では半日で乾くが半分近く割れる",
+      "readiness": "test-world-only",
+      "note": "待つ工程なので島の時計。気温・湿度・風（欠けたら分からない、明示の 0 は無風）が分からない区間は計算せず、その後は観察しない。状態 civ-sci.pot-dry/1。器は乾燥の履歴を持って次の run へ（dry_stage：0 やわらかい・1 革のかたさ・2 乾いた、dry_flux_ratio_max_ppm：これまでで一番速く乾いたときの割れやすさの比）"
+    },
+    {
       "id": "p20x_lime_calcine_test",
       "version": "0.2.1",
       "label": "試験用の焼成炉での炭酸カルシウムの熱分解",
@@ -857,7 +938,7 @@
       "note": "既製の対照設備。自作の気圧計（器＋焼いた管＋水＋浮き）は別の工程で置き換える。漏れ・蒸発・器の中の水蒸気・毛管現象は扱わない。設備を失う stop は interval.to で起き、それまでの温度と読みは残る（設備の寸法は状態に保つ）。状態 civ-sci.air-barometer/3（/2 は 10〜38 °C の仮定の幅を持つので拒否。置き直す）"
     }
   ],
-  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock. / p10x_clay_slake 0.1.0 and p10y_clay_knead 0.1.0 (2026-10-05): added (raw clay from the nearby islands → prepared_clay); materials raw_clay, settled_clay, clay_sieve_residue; equipment fixture_clay_tub. / m02x 0.1.2 (2026-10-05, Codex A2a on 0e7c023): an unknown air temperature widens the bulb's range to the whole accepted range (−60..70 °C), no climate assumed; gapAirMinC/MaxC removed; state /3 (/2 refused). / p30x_coconut_milk 0.1.0 and p31x_coconut_oil_boil 0.1.0 (2026-10-05): added (drift coconuts → milk → oil); species coconut_fat, plant_solids; equipment fixture_coconut_tools, fixture_cook_pot. / p10x 0.1.1 and p10y 0.1.1 (2026-10-05, Codex A1, A2, B1–B3 on dd781fc): the cloth is described from what is on it; poured-off water carries the run's history; clay make-ups written and read in whole ppm rounded down (handed-back lots read back); an empty tub settles; settled/prepared clay can wait in the tub again; slake state /2. / p31x 0.1.1 (2026-10-05, Codex A1, A2, B1 on eaa2a84): looking does not touch the pot; 0.25 s grid from the run's start; heat held by the pot reported as storedJ; lifted off before oil separates, the same material comes back; coconut_latik can be boiled again; state /2 (/1 refused, host cancels the run and releases its lots). / p31x 0.1.2 (2026-10-05, Codex A3 on 24b8ad4): with no new oil, the closing words follow the solids' colour (white, browning, brown, burnt); state unchanged (/2). / p14x_charcoal_tar_retort 0.1.0 (2026-10-05): added (charcoal and wood tar in a double-pot retort); species char, wood_tar, pyrolysis_gas; materials charcoal, wood_tar, wood_vinegar; equipment fixture_tar_retort. / p14x 0.1.1 (2026-10-05, Codex A1, B1, C1, C2 on 5555989): unknown weather stops the run with the pot closed (nothing burns); unfinished charcoal can be charged again; one lot in the retort, fuel outside; retort and fire pit may not change under a run; state /2 (/1 refused). / Common tile and lot make-ups (tileComp/tileQuality/lotComp/compQuality) read and written in whole ppm rounded down (Codex B2 on 5555989): p13x 0.2.1, m01x 0.2.1, p13w 0.1.5, p20x 0.2.1, p21x 0.2.1; state shapes unchanged. / p16x_vessel_tar_seal 0.1.0 and p17x_vessel_leak_test 0.1.0 (2026-10-05): added (a test fired pot sealed with wood tar, its leaks); material fired_pot_test; equipment fixture_tar_brush, fixture_vessel_stand. / 2026-10-05 (ADR 0006 assembly): fired_pot_test carries crack_ppm (a crack leaks; tar inside does not close it); equipment assembled_pot and the table civ-sci.pot-assembly/1 (potToEquipmentParams, potQualityOnReturn); material pot_sherds (no process yet). / p14x 0.1.2 (2026-10-05, Codex C3 on 1ecb9a7): the equipment fingerprint is independent of the params' key order; state unchanged (/2); a 0.1.1 run is refused by its version and cancelled by the host. / p16x 0.1.1 and p17x 0.1.1 (2026-10-06, Codex A1–A5 on e6668fb, A6 on ce0cfc1): a seal counts only before the hand work is done; a look between grid points reads the state at its own time (from a copy); the walls dry once the free water is gone; submerge held back (refused); after unknown weather the run observes nothing more; firewood that cannot burn comes back as it was; wear keeps a stopped pot stopped with airtight_known 0 (table civ-sci.pot-assembly/2, params airtightKnown); states /2 (/1 refused, host cancels the run and releases its lots). / p15x_firewood_dry 0.1.0 (2026-10-06): added (stacked firewood dries toward the air's equilibrium moisture; an open stack takes up rain, drawn as rain_water); equipment firewood_stack. / p15x 0.1.1 (2026-10-07, Codex A1, A2, C1 on 29521cb): outside the EMC fit's temperatures (−1.1..98.9 °C) nothing is computed and the water never goes below 0; a missing wind is unknown (an explicit 0 is calm); above 98 % RH the form is held at its value for h = 0.98 (this step's own assumption; the source table covers 5–95 %); state unchanged (/1), a 0.1.0 run is refused by its version.",
+  "processVersionNotes": "0.2.0 (2026-10-03): offers delivered evenly over their interval; integration grids divide 30 s; state schemas /2; /1 states refused (not migrated, test-only). / fixture-2 (2026-10-03): catalog civ-sci-test-2; stop (operator / equipment-lost) ends the run even when energy ran short; p11x_test_tile_shape added; simple-process state /2 (/1 refused as unsupported-schema). / p12x_test_tile_dry 0.3.0 (2026-10-03): environment.windMs is read as the 10 m wind and scaled to rack height (windRackFactor 0.6, assumed); state /3 (/1 and /2 refused). / p13w_test_tile_wood_fire 0.1.0 (2026-10-03): added (needs contract 0.2.x). Adding processes and materials keeps the catalog version; changing an existing entry bumps it. / p13w 0.1.1 (2026-10-03, Codex review of 3839fac): hearth lost before the first request is a plain refusal; burned wood settles rounded up to whole mg; the wood's incomplete history passes on to the tile. fixture-2 shaping now refuses an invalid dry make-up (input checks only: valid inputs give the same result). / p13w 0.1.2 (2026-10-04, Codex review of 65aa96b): each part of the wood settles by itself (whole mg, rounded up); usedJ is the heat of the dry wood burned; returned fractions unrounded; water_ppm up to 800000. Registered species only (no inherited keys) in shaping and in reading tiles and lots. / p13w 0.1.3 (2026-10-04, Codex review of 04808dd): firewood of any physical make-up is read (water and ash 0–100%), so a handed-back lot always reads back; wood without net heat does not catch (wont_burn); state /2 (/1, from before the heat definition changed, refused). / p13w 0.1.4 (2026-10-04, Codex A on 451ea82): a tile is test_tile_fired only when it was actually heated (above 300 °C); a run that ends without heat hands it back unfired, to be fired again (shared with the electric test kiln, whose normal results are unchanged). / fixture-3 (2026-10-04, Codex A on 70fed2f): weighing and shaping take the offer as arriving evenly over the interval; under-powered intervals pass with no progress (needs-input). Every step accepts contract 0.1.x and 0.2.x (wood firing 0.2.x only). validateResult checks that no offer was used before it arrived. / m02x_air_barometer_test 0.1.0 (2026-10-05): added (test barometer for the first invention; readings in marks). / m02x 0.1.1 (2026-10-05, Codex A1–A3 on 5971025): a gauge lost at interval.to keeps its readings and warming up to then; the known air temperature moves the bulb even with the pressure missing; water past an end of the tube is remembered (no numbers until set again); unknowns carried as bounds, never guessed; state /2 (/1 refused). / 2026-10-05 (ADR 0006): environment.source record (measured, replayed) is computed like live; windHeightM brings a measured wind to 10 m along a log profile (windRoughnessM 0.03, assumed); fixture-4 runs weighing and shaping on simulation or record weather; each process declares its clock. / p10x_clay_slake 0.1.0 and p10y_clay_knead 0.1.0 (2026-10-05): added (raw clay from the nearby islands → prepared_clay); materials raw_clay, settled_clay, clay_sieve_residue; equipment fixture_clay_tub. / m02x 0.1.2 (2026-10-05, Codex A2a on 0e7c023): an unknown air temperature widens the bulb's range to the whole accepted range (−60..70 °C), no climate assumed; gapAirMinC/MaxC removed; state /3 (/2 refused). / p30x_coconut_milk 0.1.0 and p31x_coconut_oil_boil 0.1.0 (2026-10-05): added (drift coconuts → milk → oil); species coconut_fat, plant_solids; equipment fixture_coconut_tools, fixture_cook_pot. / p10x 0.1.1 and p10y 0.1.1 (2026-10-05, Codex A1, A2, B1–B3 on dd781fc): the cloth is described from what is on it; poured-off water carries the run's history; clay make-ups written and read in whole ppm rounded down (handed-back lots read back); an empty tub settles; settled/prepared clay can wait in the tub again; slake state /2. / p31x 0.1.1 (2026-10-05, Codex A1, A2, B1 on eaa2a84): looking does not touch the pot; 0.25 s grid from the run's start; heat held by the pot reported as storedJ; lifted off before oil separates, the same material comes back; coconut_latik can be boiled again; state /2 (/1 refused, host cancels the run and releases its lots). / p31x 0.1.2 (2026-10-05, Codex A3 on 24b8ad4): with no new oil, the closing words follow the solids' colour (white, browning, brown, burnt); state unchanged (/2). / p14x_charcoal_tar_retort 0.1.0 (2026-10-05): added (charcoal and wood tar in a double-pot retort); species char, wood_tar, pyrolysis_gas; materials charcoal, wood_tar, wood_vinegar; equipment fixture_tar_retort. / p14x 0.1.1 (2026-10-05, Codex A1, B1, C1, C2 on 5555989): unknown weather stops the run with the pot closed (nothing burns); unfinished charcoal can be charged again; one lot in the retort, fuel outside; retort and fire pit may not change under a run; state /2 (/1 refused). / Common tile and lot make-ups (tileComp/tileQuality/lotComp/compQuality) read and written in whole ppm rounded down (Codex B2 on 5555989): p13x 0.2.1, m01x 0.2.1, p13w 0.1.5, p20x 0.2.1, p21x 0.2.1; state shapes unchanged. / p16x_vessel_tar_seal 0.1.0 and p17x_vessel_leak_test 0.1.0 (2026-10-05): added (a test fired pot sealed with wood tar, its leaks); material fired_pot_test; equipment fixture_tar_brush, fixture_vessel_stand. / 2026-10-05 (ADR 0006 assembly): fired_pot_test carries crack_ppm (a crack leaks; tar inside does not close it); equipment assembled_pot and the table civ-sci.pot-assembly/1 (potToEquipmentParams, potQualityOnReturn); material pot_sherds (no process yet). / p14x 0.1.2 (2026-10-05, Codex C3 on 1ecb9a7): the equipment fingerprint is independent of the params' key order; state unchanged (/2); a 0.1.1 run is refused by its version and cancelled by the host. / p16x 0.1.1 and p17x 0.1.1 (2026-10-06, Codex A1–A5 on e6668fb, A6 on ce0cfc1): a seal counts only before the hand work is done; a look between grid points reads the state at its own time (from a copy); the walls dry once the free water is gone; submerge held back (refused); after unknown weather the run observes nothing more; firewood that cannot burn comes back as it was; wear keeps a stopped pot stopped with airtight_known 0 (table civ-sci.pot-assembly/2, params airtightKnown); states /2 (/1 refused, host cancels the run and releases its lots). / p15x_firewood_dry 0.1.0 (2026-10-06): added (stacked firewood dries toward the air's equilibrium moisture; an open stack takes up rain, drawn as rain_water); equipment firewood_stack. / p15x 0.1.1 (2026-10-07, Codex A1, A2, C1 on 29521cb): outside the EMC fit's temperatures (−1.1..98.9 °C) nothing is computed and the water never goes below 0; a missing wind is unknown (an explicit 0 is calm); above 98 % RH the form is held at its value for h = 0.98 (this step's own assumption; the source table covers 5–95 %); state unchanged (/1), a 0.1.0 run is refused by its version. / p11y_pot_shape 0.1.0 and p12y_pot_dry 0.1.0 (2026-10-07): added (the residents' own pots: cook pot, jar, lamp dish; owner's decisions on POT_FIRING_DESIGN); materials green_pot, dry_pot; drying_rack param covered. physics.ts dryPhysics gains optional areaM2, fluxFactor, crackFactor, fallingSlow for pots (tiles unchanged). / p12y 0.1.1 (2026-10-07, Codex A1, A2, C1 on 042cc53): a pot carries its drying to the next run (dry_stage, dry_flux_ratio_max_ppm): put back leather hard it reads leather hard, and fast drying it had stays with it; after leather hard the slowing grows with the wall (not its square), so drying time goes as the wall squared; state unchanged (/1), a 0.1.0 run is refused by its version.",
   "unifies": "civ-sci-test-1（乾燥・焼成・浸漬・石灰）と civilization-fixture-1（秤量・成形、Codex lab 13a35fa）を一本にした（2026-10-03、本体の最終レビューの依頼 ③）",
   "equipment": [
     {
@@ -885,10 +966,12 @@
     {
       "id": "drying_rack",
       "processes": [
-        "p12x_test_tile_dry"
+        "p12x_test_tile_dry",
+        "p12y_pot_dry"
       ],
       "params": {
-        "sunExposure": "0 日陰 … 1 日なた"
+        "sunExposure": "0 日陰 … 1 日なた",
+        "covered": "0/1（任意、器の乾燥 p12y だけ：葉で覆う）"
       }
     },
     {

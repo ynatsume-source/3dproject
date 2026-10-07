@@ -1,0 +1,43 @@
+{
+  "id": "idris-eggshell-claypot-2024",
+  "publisher": "Universiti Tun Hussein Onn Malaysia, Journal of Advanced Industrial Technology and Application",
+  "authors": [
+    "Aliyu Idris et al."
+  ],
+  "title": "Development of Eggshell Powder Potential in Claypot for Water Filtration Process for Rural Dwellers in Nigeria",
+  "publicationYear": 2024,
+  "doi": "10.30880/jaita.2024.05.02.003",
+  "url": "https://doi.org/10.30880/jaita.2024.05.02.003",
+  "retrievalUrl": "https://journal.uthm.edu.my/index.php/jaita/article/download/18437/6907/89587",
+  "verification": "publisher-pdf-body-passages-read",
+  "scope": "12-page publisher PDF text; methods and results pp31–37 read. Not quantitative drying-curve data.",
+  "primarySource": true,
+  "calibrationEligible": false,
+  "accessedDateJst": "2026-10-07",
+  "supports": "Experimental clay/eggshell pots were bagged for 4–5 days to slow drying; 600 micrometre eggshell blends still cracked early. Changing mixture and particle size changed cracking even under the same stated laboratory regime.",
+  "conditions": {
+    "location": "Yola, Nigeria",
+    "laboratoryTemperatureC": 29.54,
+    "laboratoryRhPercent": 21.34,
+    "mixesClayEggshell": [
+      "1:1",
+      "1:2",
+      "2:1"
+    ],
+    "particleSizesMicrometre": [
+      300,
+      600
+    ],
+    "forming": "slab strip after coiling/throwing attempts"
+  },
+  "doesNotVerify": "High-eggshell filter pots differ from island clay. Bagging duration is not proved time-to-dry. Sample count and mass/dimension time series not acquired; no transferable 60% crack probability or leaves factor.",
+  "evidence": {
+    "kind": "review-transcription-of-retrieved-body",
+    "originalFileHash": null,
+    "shortExcerpt": "Specimens were constantly monitored for onset of cracks on the prototype clay pot.",
+    "locator": "Methods p31 and Results pp36–37",
+    "toolRefs": [
+      "turn349680view2"
+    ]
+  }
+}

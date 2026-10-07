@@ -1,0 +1,24 @@
+{
+  "id": "hugget-clay-drying-stress-1999",
+  "title": "Drying-induced stress and deformation for clays: a numerical study of the problem",
+  "authors": ["A. W. B. Hugget", "W. J. Coumans", "E. F. Kaasschieter"],
+  "year": 1999,
+  "publisher": "Technische Universiteit Eindhoven",
+  "report": "RANA 99-30",
+  "retrievalUrl": "https://pure.tue.nl/ws/portalfiles/portal/1370425/531526.pdf",
+  "accessedDateJst": "2026-10-07",
+  "sourceType": "primary-numerical-study-technical-report",
+  "verification": "institutional-pdf-body-text-read",
+  "locators": "PDF pp. 3–5, 8–10 (0-based indices in web extraction); abstract, introduction, mechanical model",
+  "facts": [
+    "Kaolin brick drying is modeled using moisture diffusion, shrinkage-dependent strains and elastic stress.",
+    "The abstract reports a cracking criterion maximum at the surface near a symmetry axis around 40 minutes, with an elevated initial risk period.",
+    "The mechanical model is explicitly a perfectly elastic approximation; moisture-dependent properties and missing viscoelastic data limit it."
+  ],
+  "supports": "Early moisture/shrinkage gradients can matter before a body's single lumped leather-hard threshold.",
+  "doesNotVerify": "No wind-pulse/recovery trial on coiled pots; no calibrated stress relaxation time or crack probability for island clay.",
+  "calibrationEligible": false,
+  "evidenceKind": "review-transcription-not-original-pdf",
+  "originalFileHash": null,
+  "toolRefs": ["turn820564view1"]
+}

@@ -230,3 +230,11 @@
 - 0.1.0 の run は版で拒否される。本体は読み込みのとき、版の違う run を中止して一覧から外す（既存の処理）。main には 0.1.0 が入ったことはない。
 - 次のレビューへ回すもの（非保留）：共通の `wind10m()` が風の欠測を 0 にする件（p12x・p10x・p17x）。焚き火の式に「生木は火がつきにくい」を足すか。
 
+### 追記（2026-10-07）：器を形づくる・乾かす（科学側、Codex a363557）
+
+- 統合したもの：`src/science/step/pottery.ts`（`p11y_pot_shape` 0.1.0、`p12y_pot_dry` 0.1.1）、共有の `src/science/physics.ts` の `dryPhysics` に任意の入力（`areaM2`・`fluxFactor`・`crackFactor`・`fallingSlow`。試験片は使わないので結果は変わらない：Codex が 200,072 条件 × 6出力で完全一致を確認）、`index.ts` の import と登録、`params.ts` の仮定の定数9つ、目録（工程2つ、材料 `green_pot`・`dry_pot`、`drying_rack` の `covered`）、資料6件（`data/science/sources.json` の抜粋に追加、`evidence/`）、検査 `scripts/science-pottery-check.ts`（40件）。
+- 本体の工程の一覧：工程の項目に `equipment: null`（手だけ）と、最初の依頼に付ける操作 `start` を足した。形づくるのは `plan`（鍋 form 1、3 L）を最初の依頼にだけ付ける（区間の外の操作は送らないので、後の依頼には付かない）。乾かすのは試験片と同じ棚を葉で覆って（`covered: 1`）、島の時計で14日で下ろす。途中で下ろした器は `green_pot` のまま乾き具合（`dry_stage`・`dry_flux_ratio_max_ppm`）を持ち、次の run で続きを乾かせる。
+- どちらも `ready: false`。島には下ごしらえした粘土がまだない（粘土を浸す桶＝粘土の池が要る）。
+- 本体側の検査：`scripts/pottery-host-check.ts`（一覧の項目のまま、道具なしで鍋を形づくり、残りの粘土が戻る。途中で下ろして、次の run で乾いた器になる）。
+- 次の全面レビューへ回すもの（非保留）：極端な条件での `dry_flux_ratio_max_ppm` が入力の上限を超える件（C2）、割れのモデル、共通の `wind10m()`。
+
