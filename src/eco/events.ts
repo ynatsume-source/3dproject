@@ -401,7 +401,8 @@ const KINDS: Kind[] = [
         // (a day the hunters are out in numbers and hungry: they come to the school, and the ball is theirs to make —
         // ADR 0005. Over once a ball has come and gone, or if none has formed in three minutes)
         info: KINDS[6].info, t: 0, dur: 600, size: 6, kind: 'hunt', seen: false, quiet: true,
-        update(dt: number) { this.t += dt; if (oc.bait.st.active) (this as any).seen = true; else if ((this as any).seen || this.t > 180) this.t = this.dur; },
+        // (over: past its time, so the controller lets it go — set to its time exactly, it was held there for ever)
+        update(dt: number) { this.t += dt; if (oc.bait.st.active) (this as any).seen = true; else if ((this as any).seen || this.t > 180) this.t = Math.max(this.t, this.dur + 0.01); },
         pos: () => (oc.bait.st.active ? oc.bait.st.c : null), status: () => '捕食者と海鳥が、四方から突っ込んでいる',
         dispose() { /* the bait ball winds itself down */ },
       };

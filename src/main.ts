@@ -571,7 +571,7 @@ let yawRate = 0, interestW = 0;
 // more kind, 1000 of it ≈ ten). The best square with at least two kinds or a good few fish is where the cruise bends
 // to — up to 18 m off its line, which goes on, so it never strays far.
 const NIGHT_DEEP = -12;   // (by night, deeper than this only where the life is rich: see the cruise)
-const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0, score: 0 };
+const life = { t: 0, ok: false, x: 0, z: 0, kinds: 0, score: 0, deep: { ok: false, x: 0, z: 0, score: 0 } };
 const _lifeBins = new Map<number, { n: number; x: number; z: number; kinds: Map<string, number> }>();
 function findLife() {
   _lifeBins.clear(); life.ok = false;
@@ -588,14 +588,18 @@ function findLife() {
       b.n++; b.x += x; b.z += z; b.kinds.set(f.sp.id, w);
     }, 300);
   }
-  let best: { n: number; x: number; z: number; kinds: Map<string, number> } | null = null, bs = 0;
+  // (and, apart, the best square over water deeper than NIGHT_DEEP: by night the cruise goes down only to a rich one)
+  let best: { n: number; x: number; z: number; kinds: Map<string, number> } | null = null, bs = 0, deep: typeof best = null, ds = 0;
+  life.deep.ok = false;
   for (const b of _lifeBins.values()) {
     if (b.kinds.size < 2 && b.n < 6) continue;
     let k = 0; for (const w of b.kinds.values()) k += w;
     const sc = k + 0.33 * Math.log2(1 + b.n);
     if (sc > bs) { bs = sc; best = b; }
+    if (sc > ds && cur!.T.top(b.x / b.n, b.z / b.n) < NIGHT_DEEP) { ds = sc; deep = b; }
   }
   if (best) { life.ok = true; life.kinds = best.kinds.size; life.score = bs; life.x = best.x / best.n; life.z = best.z / best.n; }
+  if (deep) { life.deep.ok = true; life.deep.score = ds; life.deep.x = deep.x / deep.n; life.deep.z = deep.z / deep.n; }
 }
 function findInterest(cam: THREE.Vector3, fwd: THREE.Vector3) {
   let best = Infinity;
@@ -856,28 +860,35 @@ function updateDrone(dt: number, now: number) {
     interestW += ((hasI ? 1 : 0) - interestW) * Math.min(1, dt * (cf ? 2 : 0.6));   // (onto what the caption is about: at once)
     const speed = (1.35 - interestW * (cf && !capLetGo ? 0.95 : 0.5)) * persona.cruise * (persona.pace ? persona.pace(t) : 1);   // (keeping something passing in view: nearly stopping)
     if ((whimT -= dt) < 0) { whimT = rr(240, 420); whim = WHIMS[Math.floor(Math.random() * WHIMS.length)]; }
-    drone.s += speed * dt / Math.max(pathRate(drone.s), 1e-3);
+    const darkDeep = cur!.eco.env.night > 0.5 && !cur!.loc.pelagic && cur!.T.top(drone.pos.x, drone.pos.z) < NIGHT_DEEP && !(life.deep.ok && life.deep.score >= 3);
+    drone.s += speed * (darkDeep && !cf ? 1.5 : 1) * dt / Math.max(pathRate(drone.s), 1e-3);
     pathPoint(drone.s, _t);
     if (drone.pos.y < 0 && (life.t -= dt) <= 0) { life.t = 1; findLife(); }
     // By night (owner, 2026-10-06): the lamp lights only a few metres, so the cruise keeps low over the reef, and over
-    // water no deeper than NIGHT_DEEP — leaning (up to 20 m off its line) toward the shallower side — unless the life
+    // water no deeper than NIGHT_DEEP — leaning (up to 30 m off its line) toward the shallower side, and over deep
+    // water with nothing much about, going on a little quicker, through it — unless the life
     // there is rich (a square worth three kinds awake or more): then it goes down to it, the dark sea lit by the lamp.
     const nightNow = cur!.eco.env.night, T0 = cur!.T;
-    const richDeep = life.ok && life.score >= 3;
+    const richDeep = life.deep.ok && life.deep.score >= 3;
+    // (by night, a rich square down in the deep water ahead — and as rich as the best of the shallows, near enough —
+    // is where the cruise goes: down to it, the lamp on)
+    const goDeep = nightNow > 0.5 && richDeep && life.deep.score >= life.score * 0.85;
     if (nightNow > 0.5 && drone.pos.y < 0 && !cur!.loc.pelagic) {
       if (!richDeep && T0.top(_t.x, _t.z) < NIGHT_DEEP) {
         let bx = 0, bz = 0, bt = T0.top(_t.x, _t.z);
         const b2 = pathXZ(drone.s + 0.002), [ax, az] = pathXZ(drone.s), tl = Math.hypot(b2[0] - ax, b2[1] - az) || 1, nx = -(b2[1] - az) / tl, nz = (b2[0] - ax) / tl;
-        for (let off = -20; off <= 20; off += 5) { const tp = T0.top(_t.x + nx * off, _t.z + nz * off); if (tp > bt && tp < -2.5) { bt = tp; bx = nx * off; bz = nz * off; } }
+        for (let off = -30; off <= 30; off += 5) { const tp = T0.top(_t.x + nx * off, _t.z + nz * off); if (tp > bt && tp < -2.5) { bt = tp; bx = nx * off; bz = nz * off; } }
         _t.x += bx; _t.z += bz;
       }
       _t.y = Math.min(-0.9, Math.max(T0.top(_t.x, _t.z) + 1.2, Math.min(_t.y, T0.top(_t.x, _t.z) + 2.5)));   // (within the lamp's reach of the reef)
     }
     if (life.ok && drone.pos.y < 0 && !cur!.loc.pelagic && !(nightNow > 0.5 && !richDeep && T0.top(life.x, life.z) < NIGHT_DEEP)) {
-      let ox = (life.x - _t.x) * 0.6, oz = (life.z - _t.z) * 0.6; const ol = Math.hypot(ox, oz);
+      const lx = goDeep ? life.deep.x : life.x, lz = goDeep ? life.deep.z : life.z;
+      let ox = (lx - _t.x) * 0.6, oz = (lz - _t.z) * 0.6; const ol = Math.hypot(ox, oz);
       if (ol > 18) { ox *= 18 / ol; oz *= 18 / ol; }
       _t.x += ox; _t.z += oz;
-      _t.y = Math.min(-0.9, Math.max(_t.y, cur!.T.top(_t.x, _t.z) + 1.6));   // (over whatever reef is there, under the surface)
+      const tp = cur!.T.top(_t.x, _t.z);
+      _t.y = nightNow > 0.5 ? Math.min(-0.9, tp + 2) : Math.min(-0.9, Math.max(_t.y, tp + 1.6));   // (over whatever reef is there, under the surface; by night down within the lamp's reach of it)
     }
     _v.subVectors(_t, drone.pos);
     let L = _v.length();
