@@ -1,0 +1,28 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:11:45). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 121 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/robots.html                           2.22 kB │ gzip:   1.30 kB
+dist/index.html                           14.35 kB │ gzip:   5.20 kB
+dist/assets/night-CpacLeom.jpg           140.79 kB
+dist/assets/sand_col-I84EFTTl.jpg        220.22 kB
+dist/assets/earth-Bt150d9S.jpg           247.66 kB
+dist/assets/sand_nrm-D1c_zV88.jpg        309.74 kB
+dist/assets/reefrock_col-BXZL9MIK.jpg    368.94 kB
+dist/assets/rubble_col-9JsGUi7C.jpg      421.03 kB
+dist/assets/milkyway-CeNCM5UO.jpg        508.12 kB
+dist/assets/reefrock_nrm-IY_WA2zN.jpg    523.46 kB
+dist/assets/rubble_nrm-BYmn8wAe.jpg      535.27 kB
+dist/assets/bluemarble-DjjgudTR.jpg    1,042.23 kB
+dist/assets/main-BZOCAIyH.css             63.64 kB │ gzip:  13.60 kB
+dist/assets/lab-rsoIy-am.js                7.40 kB │ gzip:   3.40 kB
+dist/assets/robots-B83K53Yv.js            34.23 kB │ gzip:  10.52 kB
+dist/assets/kayama-2024-BCE3ZL-h.js      237.58 kB │ gzip:  78.21 kB
+dist/assets/creatures-CQrlW1y_.js        644.41 kB │ gzip: 166.65 kB
+dist/assets/main-CdRn0_MT.js             981.65 kB │ gzip: 368.27 kB
+
+✓ built in 421ms

@@ -1,0 +1,18 @@
+{
+  "reviewDateJst": "2026-10-07",
+  "artifactScope": "Reviewer facts transcribed from retrieved source text, not raw publication bytes",
+  "calibrationEligible": false,
+  "id": "usda-emc-historic-data-2014",
+  "title": "Investigation of Historic Equilibrium Moisture Content Data from the Forest Products Laboratory",
+  "url": "https://research.fs.usda.gov/download/treesearch/45677.pdf",
+  "publication": "FPL-GTR-229 (January 2014)",
+  "pages": [
+    "abstract",
+    "1"
+  ],
+  "findings": [
+    "The historic EMC dataset remains useful for practical drying and conditioning.",
+    "Incomplete methodology, interpolation provenance and uncertainty make it unsuitable as a definitive thermodynamic validation dataset.",
+    "A good empirical equation fit is not direct measurement of all species or of drying rates."
+  ]
+}

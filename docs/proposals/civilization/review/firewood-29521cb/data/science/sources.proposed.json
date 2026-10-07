@@ -1,0 +1,80 @@
+{
+  "sources": [
+    {
+      "id": "usda-wood-handbook-ch4-2021",
+      "title": "Wood Handbook, Chapter 4: Moisture Relations and Physical Properties of Wood (2021)",
+      "url": "https://research.fs.usda.gov/download/treesearch/62243.pdf",
+      "publisher": "USDA Forest Service, Forest Products Laboratory, FPL-GTR-282",
+      "author": "Samuel V. Glass and Samuel L. Zelinka",
+      "sourceType": "primary-technical-publication",
+      "supports": "HH coefficients, dry basis, equation 4-5 and 361 values in Table 4-2.",
+      "doesNotVerify": "30-day time constant, thickness scaling, solar heating, rainfall capture, -60 C extrapolation.",
+      "accessedDateJst": "2026-10-07",
+      "verification": "relevant-primary-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/wood-handbook-2021.json",
+        "sha256": "b5a59099e3d2d3dfd2971e4dc9fa30c5b47360957cd96cb75a0edec5556a6b14",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or complete publication"
+      }
+    },
+    {
+      "id": "umd-firewood-moisture-fs1074-2018",
+      "title": "Measuring Wood Moisture & Drying Time for Hardwood Tree Species (FS-1074)",
+      "url": "https://extension.umd.edu/sites/extension.umd.edu/files/publications/MeasuringWoodMoisture_FS-1074.pdf",
+      "publisher": "University of Maryland Extension",
+      "author": "Jonathan Kays",
+      "sourceType": "primary-technical-publication",
+      "supports": "Direct university field experiment on species, splitting and drying time.",
+      "doesNotVerify": "An island 60 mm piece reaching 13% wet basis in 120 days; no matching climate calibration.",
+      "accessedDateJst": "2026-10-07",
+      "verification": "relevant-primary-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/umd-firewood-2018.json",
+        "sha256": "7bfb9b57831d2910084f63395849c88c8d153bf29369ab6a3bd637874c66baf4",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or complete publication"
+      }
+    },
+    {
+      "id": "usda-emc-historic-data-2014",
+      "title": "Investigation of Historic Equilibrium Moisture Content Data from the Forest Products Laboratory",
+      "url": "https://research.fs.usda.gov/download/treesearch/45677.pdf",
+      "publisher": "USDA Forest Service, Forest Products Laboratory",
+      "author": "Samuel V. Glass, Samuel L. Zelinka, Jay A. Johnson",
+      "sourceType": "primary-technical-publication",
+      "supports": "Limits on treating handbook EMC as universally measured calibration data.",
+      "doesNotVerify": "Game drying time constant or tropical firewood drying curves.",
+      "accessedDateJst": "2026-10-07",
+      "verification": "relevant-primary-body-read-via-web-text-extraction",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/usda-emc-history-2014.json",
+        "sha256": "13419692684902f02755d4696d2477e47e81e9f626399fe1970afd162ad17059",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or complete publication"
+      }
+    },
+    {
+      "id": "fortier-poplar-firewood-2021",
+      "title": "Natural Drying and Chemical Characteristics of Hybrid Poplar Firewood Produced from Agricultural Bioenergy Buffers in Southern Québec, Canada",
+      "url": "https://www.mdpi.com/1999-4907/12/2/122",
+      "publisher": "Forests 12(2), 122, MDPI",
+      "author": "Julien Fortier, Benoit Truax, Daniel Gagnon, France Lambert",
+      "sourceType": "primary-technical-publication",
+      "supports": "Publisher primary abstract reports covered/uncovered split-log moisture on wet basis.",
+      "doesNotVerify": "Full methods, complete time series, tropical calibration.",
+      "accessedDateJst": "2026-10-07",
+      "verification": "indexed-publisher-abstract-and-selected-body-excerpts; direct-current-page-429",
+      "calibrationEligible": false,
+      "artifact": {
+        "path": "data/science/evidence/fortier-firewood-2021.json",
+        "sha256": "5997cfa7e2005c6445afe18d23fcb702e5c3eae8c44ef9bbe6131aa9b8f2c6c5",
+        "format": "UTF-8 JSON, LF newlines",
+        "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or complete publication"
+      }
+    }
+  ]
+}

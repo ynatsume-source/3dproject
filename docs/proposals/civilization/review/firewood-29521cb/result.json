@@ -1,0 +1,590 @@
+{
+  "target": "/tmp/firewood-review-29521cb",
+  "checks": 387,
+  "controlFailures": [],
+  "findings": {
+    "cold": {
+      "inputWaterMg": 0,
+      "status": "stopped",
+      "mass": 3999953,
+      "ppm": -11.750138064122254,
+      "evap": 47,
+      "rain": 0,
+      "heat": 114,
+      "violations": [],
+      "comp": "firewood lot:returned needs quality.water_ppm (0–1000000, of the whole lot)",
+      "diag": {
+        "waterRatio": -0.000011774919653489561,
+        "emc": -0.49469584034211656,
+        "tauDays": 1750.5071780317755,
+        "evaporatedMg": 47.09967861395825,
+        "rainInMg": 0,
+        "historyComplete": true
+      },
+      "outputQuality": {
+        "water_ppm": -11.750138064122254,
+        "history_complete": 1
+      }
+    },
+    "missingWind": [
+      {
+        "wind": "missing",
+        "status": "stopped",
+        "mass": 2991401,
+        "ppm": 264558.6466007065,
+        "evap": 1008599,
+        "rain": 0,
+        "heat": 2450895,
+        "violations": [],
+        "comp": {
+          "water": 791401,
+          "ash": 22000,
+          "wood_dry": 2178000
+        },
+        "diag": {
+          "waterRatio": 0.35972733559424785,
+          "emc": 0.1409449418137897,
+          "tauDays": 35.39999999999999,
+          "evaporatedMg": 1008599.8616926388,
+          "rainInMg": 0,
+          "historyComplete": true
+        },
+        "history": 1,
+        "observations": [
+          {
+            "at": 3369600000,
+            "channel": "touch",
+            "quantity": "wood",
+            "text": "切り口に細かいひびが出てきて、少し軽くなった"
+          }
+        ]
+      },
+      {
+        "wind": 0,
+        "status": "stopped",
+        "mass": 2991401,
+        "ppm": 264558.6466007065,
+        "evap": 1008599,
+        "rain": 0,
+        "heat": 2450895,
+        "violations": [],
+        "comp": {
+          "water": 791401,
+          "ash": 22000,
+          "wood_dry": 2178000
+        },
+        "diag": {
+          "waterRatio": 0.35972733559424785,
+          "emc": 0.1409449418137897,
+          "tauDays": 35.39999999999999,
+          "evaporatedMg": 1008599.8616926388,
+          "rainInMg": 0,
+          "historyComplete": true
+        },
+        "history": 1,
+        "observations": [
+          {
+            "at": 3369600000,
+            "channel": "touch",
+            "quantity": "wood",
+            "text": "切り口に細かいひびが出てきて、少し軽くなった"
+          }
+        ]
+      },
+      {
+        "wind": 2,
+        "status": "stopped",
+        "mass": 2902818,
+        "ppm": 242115.76474997745,
+        "evap": 1097182,
+        "rain": 0,
+        "heat": 2666152,
+        "violations": [],
+        "comp": {
+          "water": 702818,
+          "ash": 22000,
+          "wood_dry": 2178000
+        },
+        "diag": {
+          "waterRatio": 0.31946264425102433,
+          "emc": 0.1409449418137897,
+          "tauDays": 30,
+          "evaporatedMg": 1097182.1826477493,
+          "rainInMg": 0,
+          "historyComplete": true
+        },
+        "history": 1,
+        "observations": [
+          {
+            "at": 3369600000,
+            "channel": "touch",
+            "quantity": "wood",
+            "text": "切り口に細かいひびが出てきて、少し軽くなった"
+          }
+        ]
+      },
+      {
+        "wind": 20,
+        "status": "stopped",
+        "mass": 2573048,
+        "ppm": 144982.91520406926,
+        "evap": 1426952,
+        "rain": 0,
+        "heat": 3467493,
+        "violations": [],
+        "comp": {
+          "water": 373048,
+          "ash": 22000,
+          "wood_dry": 2178000
+        },
+        "diag": {
+          "waterRatio": 0.16956704605970968,
+          "emc": 0.1409449418137897,
+          "tauDays": 12.642857142857144,
+          "evaporatedMg": 1426952.498668623,
+          "rainInMg": 0,
+          "historyComplete": true
+        },
+        "history": 1,
+        "observations": [
+          {
+            "at": 3369600000,
+            "channel": "touch",
+            "quantity": "wood",
+            "text": "乾いて軽い。打ち合わせると乾いた音がする"
+          }
+        ]
+      }
+    ]
+  },
+  "emcDomain": [
+    {
+      "T": -60,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.02138530081628619
+        },
+        {
+          "h": 0.75,
+          "emc": -0.034075149465851905
+        },
+        {
+          "h": 0.95,
+          "emc": -0.49469584034211656
+        },
+        {
+          "h": 1,
+          "emc": -1.2407534768518718
+        }
+      ]
+    },
+    {
+      "T": -59,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.02530421326790192
+        },
+        {
+          "h": 0.75,
+          "emc": -0.014378796708272959
+        },
+        {
+          "h": 0.95,
+          "emc": -0.25971321429833955
+        },
+        {
+          "h": 1,
+          "emc": -0.48969044436034176
+        }
+      ]
+    },
+    {
+      "T": -58,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.029004490345797395
+        },
+        {
+          "h": 0.75,
+          "emc": 0.002169574150568294
+        },
+        {
+          "h": 0.95,
+          "emc": -0.13660614434005264
+        },
+        {
+          "h": 1,
+          "emc": -0.23536507189829528
+        }
+      ]
+    },
+    {
+      "T": -55,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.03895072973721862
+        },
+        {
+          "h": 0.75,
+          "emc": 0.03906410402841853
+        },
+        {
+          "h": 0.95,
+          "emc": 0.028531449415668493
+        },
+        {
+          "h": 1,
+          "emc": 0.0227925225315936
+        }
+      ]
+    },
+    {
+      "T": -40,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.07121672993499825
+        },
+        {
+          "h": 0.75,
+          "emc": 0.11513246591625238
+        },
+        {
+          "h": 0.95,
+          "emc": 0.19239898325662239
+        },
+        {
+          "h": 1,
+          "emc": 0.2198358263769491
+        }
+      ]
+    },
+    {
+      "T": 0,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.09519403095519907
+        },
+        {
+          "h": 0.75,
+          "emc": 0.1491276668849823
+        },
+        {
+          "h": 0.95,
+          "emc": 0.2434328575969172
+        },
+        {
+          "h": 1,
+          "emc": 0.2790532463047166
+        }
+      ]
+    },
+    {
+      "T": 28,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.0903653319715512
+        },
+        {
+          "h": 0.75,
+          "emc": 0.1409449418137897
+        },
+        {
+          "h": 0.95,
+          "emc": 0.23528159016812147
+        },
+        {
+          "h": 1,
+          "emc": 0.2732202704244831
+        }
+      ]
+    },
+    {
+      "T": 70,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.07145792522287683
+        },
+        {
+          "h": 0.75,
+          "emc": 0.11442822933020066
+        },
+        {
+          "h": 0.95,
+          "emc": 0.20013715990555267
+        },
+        {
+          "h": 1,
+          "emc": 0.2372169459113401
+        }
+      ]
+    },
+    {
+      "T": 85,
+      "values": [
+        {
+          "h": 0.5,
+          "emc": 0.06307867341710054
+        },
+        {
+          "h": 0.75,
+          "emc": 0.1033798766707172
+        },
+        {
+          "h": 0.95,
+          "emc": 0.1844901348808807
+        },
+        {
+          "h": 1,
+          "emc": 0.22017883054377996
+        }
+      ]
+    }
+  ],
+  "handbook": {
+    "tableCases": 361,
+    "maxErrorPercentagePoints": 0.057182334486686415,
+    "maxCase": {
+      "tempC": 43.3,
+      "rh": 0.95,
+      "calculated": 22.457182334486685,
+      "table": 22.4
+    },
+    "at28C75": {
+      "dryBasis": 0.1409449418137897,
+      "wetBasis": 0.12353351739280763
+    },
+    "atSaturation": {
+      "implementation": 0.2732202704244831,
+      "unclampedSource": 0.284869451848192
+    }
+  },
+  "seasoning": {
+    "status": "stopped",
+    "mass": 2537368,
+    "ppm": 132959.82293463146,
+    "evap": 1462632,
+    "rain": 0,
+    "heat": 3554195,
+    "violations": [],
+    "comp": {
+      "water": 337368,
+      "ash": 22000,
+      "wood_dry": 2178000
+    },
+    "diag": {
+      "waterRatio": 0.1533489678835209,
+      "emc": 0.1409449418137897,
+      "tauDays": 30,
+      "evaporatedMg": 1462632.2706562676,
+      "rainInMg": 0,
+      "historyComplete": true
+    }
+  },
+  "partitions": [
+    {
+      "piece": 60,
+      "chunk": 3600000,
+      "status": "stopped",
+      "mass": 5440000,
+      "ppm": 375000,
+      "evap": 139909,
+      "rain": 1579909,
+      "heat": 339978,
+      "violations": [],
+      "comp": {
+        "water": 2040000,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.6,
+        "emc": 0.05040488190171403,
+        "tauDays": 12.706683501953101,
+        "evaporatedMg": 139909.6491247432,
+        "rainInMg": 1579909.6491244955,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 60,
+      "chunk": 30000,
+      "status": "stopped",
+      "mass": 5440000,
+      "ppm": 375000,
+      "evap": 139909,
+      "rain": 1579909,
+      "heat": 339978,
+      "violations": [],
+      "comp": {
+        "water": 2040000,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.6,
+        "emc": 0.05040488190171403,
+        "tauDays": 12.706683501953101,
+        "evaporatedMg": 139909.6491247432,
+        "rainInMg": 1579909.6491244955,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 60,
+      "chunk": 17000,
+      "status": "stopped",
+      "mass": 5440000,
+      "ppm": 375000,
+      "evap": 139921,
+      "rain": 1579921,
+      "heat": 340008,
+      "violations": [],
+      "comp": {
+        "water": 2040000,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.6,
+        "emc": 0.05040488190171403,
+        "tauDays": 12.706683501953101,
+        "evaporatedMg": 139921.25602830286,
+        "rainInMg": 1579921.2560281632,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 60,
+      "chunk": 1000,
+      "status": "stopped",
+      "mass": 5440000,
+      "ppm": 375000,
+      "evap": 139930,
+      "rain": 1579930,
+      "heat": 340029,
+      "violations": [],
+      "comp": {
+        "water": 2040000,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.6,
+        "emc": 0.05040488190171403,
+        "tauDays": 12.706683501953101,
+        "evaporatedMg": 139930.42826336232,
+        "rainInMg": 1579930.4282615157,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 5,
+      "chunk": 3600000,
+      "status": "stopped",
+      "mass": 4589906,
+      "ppm": 259244.08909463504,
+      "evap": 10930094,
+      "rain": 11520000,
+      "heat": 26560128,
+      "violations": [],
+      "comp": {
+        "water": 1189906,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.34997221340150964,
+        "emc": 0.05040488190171403,
+        "tauDays": 0.0882408576524521,
+        "evaporatedMg": 10930094.474434849,
+        "rainInMg": 11520000.000000002,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 5,
+      "chunk": 30000,
+      "status": "stopped",
+      "mass": 4589906,
+      "ppm": 259244.08909463504,
+      "evap": 10930094,
+      "rain": 11520000,
+      "heat": 26560128,
+      "violations": [],
+      "comp": {
+        "water": 1189906,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.34997221340150964,
+        "emc": 0.05040488190171403,
+        "tauDays": 0.0882408576524521,
+        "evaporatedMg": 10930094.474434849,
+        "rainInMg": 11520000.000000002,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 5,
+      "chunk": 17000,
+      "status": "stopped",
+      "mass": 4588825,
+      "ppm": 259069.587530577,
+      "evap": 10931175,
+      "rain": 11520000,
+      "heat": 26562755,
+      "violations": [],
+      "comp": {
+        "water": 1188825,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.3496542265388861,
+        "emc": 0.05040488190171403,
+        "tauDays": 0.0882408576524521,
+        "evaporatedMg": 10931175.629767876,
+        "rainInMg": 11519999.99999984,
+        "historyComplete": true
+      }
+    },
+    {
+      "piece": 5,
+      "chunk": 1000,
+      "status": "stopped",
+      "mass": 4587971,
+      "ppm": 258931.67153846438,
+      "evap": 10932029,
+      "rain": 11520000,
+      "heat": 26564830,
+      "violations": [],
+      "comp": {
+        "water": 1187971,
+        "ash": 34000,
+        "wood_dry": 3366000
+      },
+      "diag": {
+        "waterRatio": 0.3494032074153484,
+        "emc": 0.05040488190171403,
+        "tauDays": 0.0882408576524521,
+        "evaporatedMg": 10932029.09478231,
+        "rainInMg": 11520000.000006769,
+        "historyComplete": true
+      }
+    }
+  ],
+  "reuse": {
+    "runs": 144,
+    "errors": []
+  },
+  "roundingNote": "Float ppm preserves integer mg via fuelComp Math.round; no extra ppm quantization."
+}

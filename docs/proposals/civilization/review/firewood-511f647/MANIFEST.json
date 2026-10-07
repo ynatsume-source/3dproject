@@ -1,0 +1,23 @@
+{
+  "target": "511f6478354d7eacd94037d0c00b3651b936776e",
+  "reviewDate": "2026-10-07",
+  "scope": "targeted-fix-review-A1-A2-C1",
+  "decision": "A1/A2 resolved; no additional A/B; C1 wording remains nonblocking",
+  "previousBundle": "../firewood-29521cb",
+  "previousManifestSha256": "a903da8833d671e88d02e2d02745a34d7057307112fa53546c32ee7f08b59da3",
+  "previousFilesVerified": 15,
+  "report": {
+    "path": "docs/proposals/civilization/CODEX_FIREWOOD_REVIEW_511f647.md",
+    "sha256": "74e65e7670582bb7b6b119c3ce1fc5b84a3e96576af2656385ae86b8dbdb436b"
+  },
+  "files": {
+    "original-diagnostic.json": "4b339556c03764e742577d7dd93565ce3ee52cddce15b17d254aa4cc264548f4",
+    "result.json": "3fa8ec610f058ec5c8b285b0764a793a74d05564ae32a9f337fe87cb8a12023e",
+    "review.mjs": "2d9354c64c2acada68d8f6ac3219a45ebd90360aa66daba508169b247daf96eb",
+    "verification/build.log": "2b18af436727921f63f1b554c8dab48a0170433a42f31cb01190de7d4afd66d6",
+    "verification/check.log": "968e2eddb9d245a3e08275a4d70dce1674e0c5533e2d56d33d51c4acc9644343",
+    "verification/journal.log": "28e3f2264b95c527765fa8c3fc75068bf2907c282a8e1ca4a7a1a7709f9d073c",
+    "verification/og.log": "b1f693de45b54a4c1a8d556624a4017d8e39bbf93b73e49e066cbc9b45348f93",
+    "verification/typecheck.log": "0f0a21aa4cd6fe9ae7c54d992100915dc1fde9e821dd7865f88ef176bf95138b"
+  }
+}

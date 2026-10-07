@@ -1,0 +1,24 @@
+{
+  "target": "29521cb889c28db44e0b24630771b5d49492c6ae",
+  "reviewDateJst": "2026-10-07",
+  "labHeadUnchanged": "e2a4147",
+  "productionChanges": false,
+  "pushed": false,
+  "files": {
+    "REVIEW.md": "32f4a7d40d307379ef617b1da2e9db92e5e3e3943b25728d2ba54c98b72f09af",
+    "data/science/evidence/fortier-firewood-2021.json": "5997cfa7e2005c6445afe18d23fcb702e5c3eae8c44ef9bbe6131aa9b8f2c6c5",
+    "data/science/evidence/umd-firewood-2018.json": "7bfb9b57831d2910084f63395849c88c8d153bf29369ab6a3bd637874c66baf4",
+    "data/science/evidence/usda-emc-history-2014.json": "13419692684902f02755d4696d2477e47e81e9f626399fe1970afd162ad17059",
+    "data/science/evidence/wood-handbook-2021.json": "b5a59099e3d2d3dfd2971e4dc9fa30c5b47360957cd96cb75a0edec5556a6b14",
+    "data/science/sources.proposed.json": "e88ba34e907598cd0b54259eb420bedf7828622bc0e691952f4dd969bfd50fdf",
+    "result.json": "1a64bf0f92a99917753c25e0cdd34c70d7a056924caa0f84a168a96116635cb4",
+    "review-lib.mjs": "c799386cc1df801a5a2fdc30f0e994780d182c372d8165d80e667361afc1ca3d",
+    "review.mjs": "f0a8e73848f8c80d17858b0d14259400b1f354f0f44b3a2cbd4bd91427fc66cf",
+    "verification/build.log": "8d5de8c5f4bf4654534def3d90136321bab758dea0bdab5ccf8dfca2701621c1",
+    "verification/firewood-check.log": "ea90b9b91c16c937025cb7ecd5d622dd2d9ec9711002b63b26f23f79706524e7",
+    "verification/forced-failure.log": "3305d455351e449596b2ad300b809fc8ba64a87a3e7f4bdea71bea6fed7763c0",
+    "verification/journal.log": "28e3f2264b95c527765fa8c3fc75068bf2907c282a8e1ca4a7a1a7709f9d073c",
+    "verification/og.log": "b1f693de45b54a4c1a8d556624a4017d8e39bbf93b73e49e066cbc9b45348f93",
+    "verification/typecheck.log": "0f0a21aa4cd6fe9ae7c54d992100915dc1fde9e821dd7865f88ef176bf95138b"
+  }
+}

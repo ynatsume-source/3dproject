@@ -1,0 +1,21 @@
+{
+  "reviewDateJst": "2026-10-07",
+  "artifactScope": "Reviewer facts transcribed from retrieved source text, not raw publication bytes",
+  "calibrationEligible": false,
+  "id": "fortier-poplar-firewood-2021",
+  "title": "Natural Drying and Chemical Characteristics of Hybrid Poplar Firewood Produced from Agricultural Bioenergy Buffers in Southern Québec, Canada",
+  "url": "https://www.mdpi.com/1999-4907/12/2/122",
+  "doi": "10.3390/f12020122",
+  "retrievedScope": "Indexed publisher abstract and selected methods/results; direct subsequent page requests failed (429). Complete paper and raw data not acquired.",
+  "conditions": {
+    "location": "Southern Quebec",
+    "trialB": "40 cm split logs, outdoor seasoning, metal top cover versus uncovered",
+    "moistureBasis": "wet weight"
+  },
+  "results": {
+    "time": "one year",
+    "coveredPercentWet": 17.3,
+    "uncoveredPercentWet": 20.7
+  },
+  "limits": "Useful direction of shelter effect; does not calibrate four months in an island climate or thickness exponent."
+}

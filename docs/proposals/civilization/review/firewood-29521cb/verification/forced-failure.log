@@ -1,0 +1,33 @@
+1. the air sets how dry wood can get
+  ok   equilibrium moisture (Wood Handbook form): about 14 % at 28 °C and 75 %, lower in dry air, higher in damp — 7.5 / 14.1 / 23.5 %
+2. stacked under a roof in the shade
+  ok   fresh wood (45 % water) under a roof dries to seasoned firewood in about four months (island time) — 13.3 % water at 119 days
+  ok   it feels heavy and wet at first, light and dry at the end — 切り口が湿っていて、持つと重い / 切り口に細かいひびが出てきて、少し軽くなった / 乾いて軽い。打ち合わせると乾いた音がする
+  ok   wood = drier wood + vapour (no rain under a roof) — 1.46 kg of water gone
+  ok   the heat to dry it comes from the air (latent heat of the vapour) — 3.55 MJ
+  ok   dried, a kilogram of it gives far more heat in a fire — 8.7 → 15.1 MJ/kg
+  ok   the dried lot handed back goes onto the stack again (and gets no wetter)
+3. sun, size, rain
+  ok   in the open sun it dries faster than under the roof — 7.7 vs 20.2 % at 40 days
+  ok   logs twice as thick dry much more slowly (split the wood) — 38.5 vs 24.2 %
+  ok   a day of rain on an open stack soaks dry wood again (rain drawn from the air) — 1475 g taken up, 37.5 % water
+  ok   under the roof the same day leaves it dry
+  ok   an open stack with the rain unknown is not computed (nothing invented); a roofed one does not need the rain
+  ok   wood already drier than the air allows stays as it is (taking moisture back from humid air is not modelled)
+4. pieces, looks, unknown weather
+  ok   1 h = 30 s = 3 h pieces (rain, sun, looks between the grid points): the same wood and words
+  ok   looking changes nothing
+  ok   a look between grid points reads the wood at its own time (one piece = 1-second pieces) — 9590 s: 切り口が湿っていて、持つと重い
+  ok   a day of unknown weather: nothing dries in it (nothing invented), and the run tells nothing more after it
+5. requests that are refused
+  ok   contract 0.1.x (rain needs drawn) — unknown contract 0.1.0
+  ok   no stack — no firewood_stack (where the wood is stacked)
+  ok   a stack without saying roof or not — firewood_stack params.covered must be 0 (open) or 1 (under a roof)
+  ok   firewood without its water — firewood lot:wood needs quality.water_ppm (0–1000000, of the whole lot)
+  ok   an unknown action — unknown action turn (look, take_out)
+  ok   the stack changed under the run — changed-input: the stack changed under a running run (send stop equipment-lost when it is lost)
+  ok   a missing interval — noncontiguous-interval: expected from=3600000; send a missed interval with environment.source 'unknown'
+—   every result above passed the contract checker
+  ok   validateResult: no violation
+
+25 passed, 1 failed

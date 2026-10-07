@@ -1,0 +1,114 @@
+{
+  "target": "/tmp/firewood-fix-review-511f647",
+  "checks": 26,
+  "failures": [],
+  "cases": {
+    "cold-0": {
+      "status": "stopped",
+      "mass": 4000000,
+      "ppm": 0,
+      "evap": 0,
+      "rain": 0,
+      "heat": 0,
+      "violations": [],
+      "comp": {
+        "ash": 40000,
+        "wood_dry": 3960000
+      },
+      "diag": {
+        "waterRatio": 0,
+        "emc": null,
+        "tauDays": null,
+        "evaporatedMg": 0,
+        "rainInMg": 0,
+        "historyComplete": false
+      }
+    },
+    "cold-450000": {
+      "status": "stopped",
+      "mass": 4000000,
+      "ppm": 450000,
+      "evap": 0,
+      "rain": 0,
+      "heat": 0,
+      "violations": [],
+      "comp": {
+        "water": 1800000,
+        "ash": 22000,
+        "wood_dry": 2178000
+      },
+      "diag": {
+        "waterRatio": 0.8181818181818182,
+        "emc": null,
+        "tauDays": null,
+        "evaporatedMg": 0,
+        "rainInMg": 0,
+        "historyComplete": false
+      }
+    },
+    "missingWind": {
+      "status": "stopped",
+      "mass": 4000000,
+      "ppm": 450000,
+      "evap": 0,
+      "rain": 0,
+      "heat": 0,
+      "violations": [],
+      "comp": {
+        "water": 1800000,
+        "ash": 22000,
+        "wood_dry": 2178000
+      },
+      "diag": {
+        "waterRatio": 0.8181818181818182,
+        "emc": null,
+        "tauDays": null,
+        "evaporatedMg": 0,
+        "rainInMg": 0,
+        "historyComplete": false
+      }
+    },
+    "calm": {
+      "status": "stopped",
+      "mass": 3998248,
+      "ppm": 449758.9944395645,
+      "evap": 1752,
+      "rain": 0,
+      "heat": 4257,
+      "violations": [],
+      "comp": {
+        "water": 1798248,
+        "ash": 22000,
+        "wood_dry": 2178000
+      },
+      "diag": {
+        "waterRatio": 0.8173851627316032,
+        "emc": 0.1409449418137897,
+        "tauDays": 35.39999999999999,
+        "evaporatedMg": 1752.6419904730035,
+        "rainInMg": 0,
+        "historyComplete": true
+      }
+    }
+  },
+  "formulaDomain": {
+    "scanned": 1002001,
+    "invalid": 0,
+    "minimum": 0,
+    "maximum": 0.26956966103614394
+  },
+  "oldStateSource": "/tmp/firewood-review-29521cb",
+  "oldRun": {
+    "status": "failed",
+    "diagnostics": {
+      "error": "unknown processVersion 0.1.0"
+    }
+  },
+  "C1": {
+    "tableMaxRh": 0.95,
+    "capRh": 0.98,
+    "emcAt25C95PercentDry": 23.696837417786316,
+    "emcAt25C98PercentDry": 26.41523657588148,
+    "note": "The table ends at 95% RH. Evaluating the formula at 98% and holding it above 98% is an independent assumption, not using the last table row."
+  }
+}
