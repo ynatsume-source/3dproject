@@ -180,6 +180,7 @@ export interface Resident {
   id: string; v: Voice; sp: Spec; model: Robot;
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
   hunger: number; sleepy: number; meal: Record<string, number>; under: number;
+  wear?: number; wearLv?: number; stuck?: boolean;   // (the two robots: how worn by rain, wind and storm 0..1, the last line it noted, held still until it dries — the world counts it)
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
@@ -372,6 +373,36 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the island's weather (Dot's world: replayed, set from outside); a typhoon stops what is done outdoors
   let wxNow: IslandWeather | null = null, stormSince = 0;
   const storm = () => !!wxNow?.typhoon;
+  // ---------- wear (the owner's dwelling theme, 2026-10-07: docs/proposals/sumika-2026-10-07.md) ----------
+  // rain, salt and sand in a robot's joints: rain and wind of 10 m/s or more wear it, a typhoon a great deal; under a
+  // roof in the dry it dries out (outdoors in the dry, more slowly). What a place keeps off: the hut's roof half the rain,
+  // not the wind, not a storm. Over 0.3 it is slower, over 0.6 its battery runs down faster, over 0.9 it cannot move
+  // until it is down to 0.6 again. The two animals: a rough sea (or a typhoon) out in the open makes them hungrier.
+  const WEAR = { rain: 0.01, wind: 0.01, storm: 0.08, dryRoof: 0.05, dryOut: 0.02 };   // (a wear an island hour: rain per mm/h, wind per m/s over 10)
+  const roofDone = () => byId.dot.stats.built >= 18;   // (the hut's posts, beams and roof boards)
+  const underRoof = (r: Resident) => roofDone() && Math.hypot(r.pos.x - hut.position.x, r.pos.z - hut.position.z) < 1.3;
+  const roofCover = (r: Resident) => underRoof(r) ? { rain: 0.5, wind: 1, storm: 1, roof: true } : { rain: 1, wind: 1, storm: 1, roof: false };
+  const wetNow = () => (wxNow?.rainMeasured ?? wxNow?.rain ?? 0) > 0.2;
+  const wearSlow = (r: Resident) => r.sp.living ? 1 : Math.max(0.45, 1 - Math.max(0, (r.wear ?? 0) - 0.3) * 0.8);
+  const roughK = () => !wxNow ? 0 : wxNow.typhoon ? 1 : Math.min(1, Math.max(0, ((wxNow.wave ?? 0) - 1) / 3));
+  function weathering(r: Resident, dt: number) {
+    const w = wxNow, isl = dt * ISLAND_RATE / 3600, c = roofCover(r), w0 = r.wear ?? 0;
+    const rain = w ? (w.rainMeasured ?? w.rain) : 0, wind = w ? (w.windMeasured ?? w.wind) : 0;
+    const add = (rain * WEAR.rain * c.rain + Math.max(0, wind - 10) * WEAR.wind * c.wind + (w?.typhoon ? WEAR.storm * c.storm : 0)) * isl;
+    const dry = rain > 0.2 || w?.typhoon ? 0 : (c.roof ? WEAR.dryRoof : WEAR.dryOut) * isl;
+    r.wear = Math.min(1, Math.max(0, w0 + add - dry));
+    const lv = r.wear > 0.9 ? 3 : r.wear > 0.6 ? 2 : r.wear > 0.3 ? 1 : 0, was = r.wearLv ?? 0, obs = `傷み${Math.round(r.wear * 100)}`;
+    if (lv > was) {
+      r.wearLv = lv;
+      const why = w?.typhoon ? '台風の雨風で' : rain > 0.2 ? '雨に打たれて' : '強い風で';
+      note(r, 'wear', {}, lv === 3 ? `${why}関節が固まり、動けなくなった。乾くまで休む` : lv === 2 ? `${why}関節に水と砂が入り、動きがかなり鈍い` : `${why}関節が重くなってきた`, obs);
+    } else if (lv < was && !(r.stuck && lv >= 2)) {
+      r.wearLv = lv;
+      if (lv === 0) note(r, 'wear', {}, c.roof ? '屋根の下で乾いて、体が軽くなった' : '乾いて、体が軽くなった', obs);
+    }
+    if (!r.stuck && r.wear > 0.9) r.stuck = true;
+    if (r.stuck && r.wear < 0.6) { r.stuck = false; r.wearLv = 1; note(r, 'wear', {}, '乾いてきて、また動けるようになった', obs); }
+  }
   const gatherHours = (hr: number) => hr >= 18.9 && hr < 21.0 && !storm();  // on the way / sitting round it (not in a typhoon: the custom waits)
   // (and in the morning, at the same place, the fire out: the one up all night says what the night showed, each says
   // what it will do — so the day's work is known before it is far along, and before any raft puts out; owner's wish,
@@ -1496,7 +1527,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const hr = localHour(clockMs), now = observe(r), ids = new Set(now.map((o) => o.id));
     return {
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
-      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && shelfLots().length ? { store: storeNow() } : {}), ...(r.id === 'lantern' && village.hypo ? { guess: hyps().map((h) => ({ 考え: h.kind === 'day' ? `気圧計が前の日の同じ時刻より${h.mark}以上上がったら一日のうちに台風` : `気圧計が${h.mark}以上なら一日のうちに台風`, 当たり: h.hits, 外れ: h.falses, 見逃し: h.misses, 判断: { testing: '確かめ中', held: '確からしい', doubted: '怪しい' }[h.status] })) } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
+      now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && shelfLots().length ? { store: storeNow() } : {}), ...(r.id === 'lantern' && village.hypo ? { guess: hyps().map((h) => ({ 考え: h.kind === 'day' ? `気圧計が前の日の同じ時刻より${h.mark}以上上がったら一日のうちに台風` : `気圧計が${h.mark}以上なら一日のうちに台風`, 当たり: h.hits, 外れ: h.falses, 見逃し: h.misses, 判断: { testing: '確かめ中', held: '確からしい', doubted: '怪しい' }[h.status] })) } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), ...(r.sp.living ? {} : { wear: +(r.wear ?? 0).toFixed(2), underRoof: underRoof(r) }), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
       knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6),
     };
@@ -1888,7 +1919,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const dx = ax - r.pos.x, dz = az - r.pos.z, d = Math.max(Math.hypot(dx, dz), Math.min(d0, 0.7));
     let want = Math.atan2(dx, dz);
     const inWater = G(r.pos.x, r.pos.z) < 0.1;
-    const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1) * (r.id === 'kame' && r.hunger > NEEDS.slowAt ? 0.6 : 1);   // (a hungry turtle is a slow one)
+    const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1) * (r.id === 'kame' && r.hunger > NEEDS.slowAt ? 0.6 : 1) * wearSlow(r);   // (a hungry turtle is a slow one; a worn robot too)
     // walkers keep to land: if the way ahead is water, turn uphill along the shore (not when following a
     // planned way, which already keeps to the land: the two would pull it to and fro)
     if (!r.path && (!r.sp.swims || (!wetTask && !inWater))) {
@@ -2193,12 +2224,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const hr = localHour(clockMs), day = dayK(hr);
     // the battery: solar panels charge in daylight when resting; moving and thinking use it up
     const busy = r.walk > 0.1 || r.act === 'work' || r.act === 'swim' || r.act === 'think';
-    if (!r.sp.living) r.battery = Math.min(1, Math.max(0, r.battery + dt * ((busy ? -1 / 21600 : -1 / 72000) + (!busy ? day / 5400 : day / 21600))));
+    if (!r.sp.living) { r.battery = Math.min(1, Math.max(0, r.battery + dt * ((busy ? -1 / 21600 : -1 / 72000) * ((r.wear ?? 0) > 0.6 ? 1.5 : 1) + (!busy ? day / 5400 : day / 21600)))); weathering(r, dt); }
     else {
       // an otter must eat about a quarter of its weight a day, so it is soon hungry again; a turtle, slowly
       // (what it is doing decides how fast: a dive costs far more than floating — robots/body.ts)
       const dr = drain(r.id, r.act, r.task?.kind ?? '');
-      r.hunger = Math.min(1, r.hunger + dt * dr.hunger);
+      r.hunger = Math.min(1, r.hunger + dt * dr.hunger * (r.wet ? 1 + 0.6 * roughK() : 1));   // (a rough sea out in the open costs more: no quiet place yet)
       r.sleepy = Math.min(1, Math.max(0, r.sleepy + dt * dr.sleepy));
       const gt = r.task;
       if (gt?.kind === 'graze' && gt.arrived && r.act === 'graze') {   // (grazing is slow: an hour or more a meal — and the bed is grazed down)
@@ -2210,6 +2241,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (r.body && !fast) bodyCheck(r, hr, dt);
     }
     if (r.talk) { if (r.talk.a === r) stepTalk(r.talk, dt, fast); placeY(r); return; }
+    // (worn past moving: it stays where it is until it has dried — out on a crossing, the voyage's own rules)
+    if (r.stuck && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
+      if (r.task) { report(r, r.task, 'interrupted', '傷みで動けない'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; }
+      r.walk = 0; r.act = sleepTime(r, hr) ? 'sleep' : 'idle'; placeY(r); return;
+    }
+    // (a worn robot in the rain goes in under the hut's roof, if there is one near: it dries there once the rain stops)
+    if (!r.sp.living && roofDone() && wetNow() && !storm() && (r.wear ?? 0) > 0.3 && !underRoof(r) && Math.hypot(r.pos.x - hut.position.x, r.pos.z - hut.position.z) < 120
+      && !['shelter', 'fire', 'voyage'].includes(r.task?.kind ?? '')) {
+      if (r.task) { report(r, r.task, 'interrupted', '雨'); items.release(r.id); }
+      r.task = task('shelter', [hut.position.x, hut.position.z], sleepTime(r, hr) ? 'sleep' : 'idle', 1e9, { data: { rain: true } });
+    }
     // the evening fire: everyone who is up comes and sits round it, and goes off again after
     if (meetHours(hr) && !sleepTime(r, hr) && r.task?.kind !== 'fire' && !(r.task?.kind === 'voyage' && r.task.data?.started)) {
       items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = '';
@@ -2234,7 +2276,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const home = r.sp.home, at = r.sp.living ? (spot(home, 60, water(1, 5)) ?? home) : (r.id === 'dot' ? [hut.position.x + 1.5, hut.position.z] as [number, number] : home);
       r.task = task('shelter', at, r.sp.living ? 'sleep' : 'idle', 1e9, r.sp.living ? { wet: true } : {});
     }
-    if (r.task?.kind === 'shelter' && !storm()) r.task = null;
+    if (r.task?.kind === 'shelter' && !storm() && !(r.task.data?.rain && (wetNow() || ((r.wear ?? 0) > 0.3 && !meetHours(hr))))) r.task = null;   // (out of the rain: it stays to dry)
     if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && r.task.kind !== 'shelter' && r.task.kind !== 'voyage' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
       if (r.task) { report(r, r.task, 'interrupted', sleepTime(r, hr) ? '眠る時間になった' : '起きる時間になった'); items.release(r.id); }
       r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
@@ -2291,7 +2333,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (tk.kind === 'photo' && tk.data?.ob) { let d = Math.atan2(tk.data.ob.x - r.pos.x, tk.data.ob.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 2.5); }
       if (tk.kind === 'review' && tk.data) { let d = Math.atan2(tk.data.x - r.pos.x, tk.data.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 1.5); }
       if (tk.kind === 'watch' || tk.kind === 'look') { let d = Math.atan2(-r.pos.x + (r.sp.home[0] - 60), -r.pos.z + (r.sp.home[1] + 80)) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt); }
-      tk.t += dt;
+      tk.t += dt * (tk.act === 'work' ? wearSlow(r) : 1);   // (worn joints: work goes slower)
       if (r.sp.living && r.wet) {
         if (tk.kind === 'forage') { const k = tk.t / tk.dur; r.under = smooth01(0, 0.12, k) * (1 - smooth01(0.86, 1, k)); }   // (down head first, along the bottom, back up)
         else if (tk.kind === 'graze' || (r.id === 'kame' && tk.kind === 'sleep')) {
@@ -2331,7 +2373,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         ...(study ? { lanternStudy: study.serialize() } : {}),
         minds: Object.fromEntries(Object.entries(agents).map(([id, a]) => [id, a.save()])),
         at: Date.now(), clockMs, visited: [...visited], cairns: cairnSpots, bonds, talks: talks.slice(-160), items: items.save(), patches, beds, trees: TREES.map((t) => (t.down ? 1 : 0)), plots: PLOTS.map((pl) => [pl.s, pl.at]), village, lab, lastFireAt, drift: drift.kind >= 0 ? drift : null,
-        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-800), holding: r.holding, photos: r.photos?.slice(-40), dayBase: r.dayBase })),
+        list: list.map((r) => ({ id: r.id, pos: [r.pos.x, r.pos.z], head: r.head, battery: r.battery, hunger: r.hunger, sleepy: r.sleepy, body: r.body, stats: r.stats, today: r.today, diary: r.diary.slice(-800), holding: r.holding, photos: r.photos?.slice(-40), dayBase: r.dayBase, wear: r.wear, wearLv: r.wearLv, stuck: r.stuck })),
       }));
     } catch (e) { /* storage full or blocked: they live on in memory */ }
   }
@@ -2353,7 +2395,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     talks.push(...(s.talks || []));
     for (const d of s.list || []) {
       const r = byId[d.id]; if (!r) continue;
-      r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = r.sp.living ? 1 : d.battery; r.hunger = d.hunger ?? 0.4; r.sleepy = d.sleepy ?? 0.2; if (r.body && d.body) r.body = { ...r.body, ...d.body, learn: { ...r.body.learn, ...d.body.learn } }; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || []; r.dayBase = d.dayBase;
+      r.pos.set(d.pos[0], 0, d.pos[1]); r.head = d.head; r.battery = r.sp.living ? 1 : d.battery; r.hunger = d.hunger ?? 0.4; r.sleepy = d.sleepy ?? 0.2; if (r.body && d.body) r.body = { ...r.body, ...d.body, learn: { ...r.body.learn, ...d.body.learn } }; Object.assign(r.stats, d.stats); r.today = d.today || []; r.diary = d.diary || []; r.dayBase = d.dayBase; if (!r.sp.living) { r.wear = d.wear ?? 0; r.wearLv = d.wearLv ?? 0; r.stuck = !!d.stuck; }
       r.holding = d.holding ?? (r.id === 'dot' && r.stats.wood > 0 ? 'wood' : '');
       if (Array.isArray(d.photos)) r.photos = d.photos;
     }
