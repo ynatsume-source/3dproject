@@ -16,6 +16,7 @@ import { coconutMilkStep, coconutBoilStep, COCONUT_MILK_PROCESS, COCONUT_BOIL_PR
 import { barometerStep, BAROMETER_PROCESS } from '../science/step/barometer';
 import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
 import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn, potSherdsQuality } from '../science/step/vessel';
+import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
 import type { AssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
@@ -100,6 +101,13 @@ export const CATALOG: CatalogEntry[] = [
     equipment: { kind: 'fixture_vessel_stand', catalogEntry: 'fixture_vessel_stand', catalogVersion: TEST, condition: 1, params: { sunExposure: 0 }, ja: '器の台' },
     step: leakTestStep, env: 'record', finish: { action: 'take_out', afterMs: 86_400_000 }, tend: 'leave',
     ready: false, waits: '焼いた器と、' + NO_VESSEL + '（水に沈めて泡を見る試しは科学側で保留）' },
+  // (stacked firewood dries toward the air's equilibrium moisture — science final review 2026-10-07, Codex lab 162ee7c.
+  // The stack is a place, not a tool: whether it has a roof (covered) must be said; an open one takes up the recorded rain)
+  { processId: FIREWOOD_DRY_PROCESS.processId, processVersion: FIREWOOD_DRY_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
+    ja: '薪を積んで乾かす', input: 'firewood', inputJa: '積む薪（生木の枝）',
+    equipment: { kind: 'firewood_stack', catalogEntry: 'firewood_stack', catalogVersion: TEST, condition: 1, params: { covered: 1, sunExposure: 0, topAreaM2: 0.2 }, ja: '屋根の下の薪の山' },
+    step: firewoodDryStep, env: 'record', finish: { action: 'take_out', afterMs: 30 * 86_400_000 }, tend: 'leave',
+    ready: false, waits: '薪を積む屋根の下の場所（ドットの家の軒下にする案。島で決める）' },
 ];
 
 /** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,

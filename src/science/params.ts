@@ -158,6 +158,12 @@ export const PARAMS = {
   airLeakRefH: P('airLeakRefH', 2, 'h', 'assumed', [], '吸水率12%・何も塗らない器を封じたとき、中の空気が外と入れ替わる時定数'),
   wallUptakeTauS: P('wallUptakeTauS', 7200, 's', 'assumed', [], '水を入れた器の壁が水を吸う時定数'),
   tarSoftC: P('tarSoftC', 45, '°C', 'assumed', [], '木タールがやわらかくなって垂れ始める温度（日なたの器）'),
+  // drying firewood in a stack (step/firewood.ts): all assumed, no source read yet
+  woodPieceMm: P('woodPieceMm', 60, 'mm', 'assumed', [], '割った薪の太さの標準（quality.piece_mm がないとき）'),
+  woodDryTauRefDays: P('woodDryTauRefDays', 30, 'day', 'assumed', [], '太さ 6 cm の薪が日陰・28 °C・風 2 m/s（10 m）で平衡含水率へ近づく時定数。太さの2乗に比例'),
+  woodStackTopM2: P('woodStackTopM2', 0.2, 'm2', 'assumed', [], '薪の山の上面（雨を受ける面積）の標準'),
+  woodRainCapture: P('woodRainCapture', 0.3, 'ratio', 'assumed', [], '屋根のない薪の山の上に降った雨のうち、木にしみこむ割合（残りは流れ落ちる）'),
+  woodRainMcMax: P('woodRainMcMax', 0.6, 'kg/kg(dry)', 'assumed', [], '雨でしみこむ上限の含水率（表面が水を吸いきった山の平均）'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),

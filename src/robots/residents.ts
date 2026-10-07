@@ -1612,9 +1612,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (e.env === 'simulation') return { sampleId: `env:sim:${at}`, source: 'simulation', effectiveAt: at };
     const w = islandWeather(toReal(e.clock, at));
     if (!w) return { sampleId: `env:none:${at}`, source: 'unknown', effectiveAt: at };
-    // (measured values only, as replayed: the wind at the station's anemometer, 28.9 m above the ground — JMA station
+    // (measured values only, as replayed — a gap stays unknown, never 0: the rain as recorded, the wind at the station's anemometer, 28.9 m above the ground — JMA station
     // list, 2026-03; the science side brings it to its own height. The pressure is at sea level: the island is.)
-    return { sampleId: `env:record:jma-47918:${w.record.at}`, source: 'record', effectiveAt: at, airTempC: w.air, humidity: w.humidity, windMs: w.windMeasured, windHeightM: 28.9, rainMmH: w.rain, pressureHPa: w.pressureMeasured };
+    return { sampleId: `env:record:jma-47918:${w.record.at}`, source: 'record', effectiveAt: at, airTempC: w.air, humidity: w.humidity, windMs: w.windMeasured, windHeightM: 28.9, rainMmH: w.rainMeasured, pressureHPa: w.pressureMeasured };
   }
   function startLab(r: Resident, tk: Task) {
     const e = catalog.find((x) => x.processId === tk.data.processId), lot = tk.data.lotId ? lab.lots[tk.data.lotId] : undefined;
