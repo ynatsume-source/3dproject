@@ -29,6 +29,16 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      g += d3 * cos(dot(d3, p) * 1.7 + t * 2.3) * 0.04;
      g += d4 * cos(dot(d4, p) * 3.1 + t * 3.1) * 0.025;
      g *= uWave;                                                       // today's sea state at the site
+     // rain on the surface, seen from below: each drop a ring spreading out from where it fell
+     if (uRain > 0.01) {
+       for (int l = 0; l < 2; l++) {
+         float sc = 0.7 + float(l) * 0.45; vec2 q = p / sc + float(l) * 7.3; vec2 c = floor(q);
+         float tt = uTime * (1.3 + float(l) * 0.4) + hash2(c) * 9.0, age = fract(tt);
+         vec2 dc = q - c - (vec2(hash2(c + 3.1), hash2(c + 5.7)) * 0.6 + 0.2); float rr = length(dc);
+         float ring = sin((rr - age * 0.5) * 60.0) * exp(-abs(rr - age * 0.5) * 40.0) * (1.0 - age) * step(hash2(c + floor(tt) * 1.7), uRain);
+         g += dc / max(rr, 1e-3) * ring * 0.12 * smoothstep(25.0, 6.0, dist);
+       }
+     }
      // and over them the fine wind ripples, a hand's width to an arm's length, running every which way: a few
      // short waves summed (not a hashed noise, whose cells a phone's GPU draws as a grid of glassy squares),
      // faded with distance, where they would only shimmer

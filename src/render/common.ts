@@ -32,6 +32,8 @@ export const U = {
   uWave: { value: 1 }, uRain: { value: 0 }, uFlash: { value: 0 }, uFlashW: { value: 0 }, uCloud: { value: 0 },
   // the wind: where it blows to (x, z: +x east, -z north) and how hard (m/s), with its gusts
   uWind: { value: new THREE.Vector3(0, 1, 4) },
+  // how murky the water is, 0..1: rain washed in from the land and the bottom stirred by waves (the island's record)
+  uMurk: { value: 0 },
   uSkyLo: { value: new THREE.Color(0.62, 0.86, 0.92) }, uSkyHi: { value: new THREE.Color(0.86, 0.96, 1.0) },
   uMoonDir: { value: new THREE.Vector3(0, 1, 0) }, uMoonI: { value: 0 }, uMoonVeil: { value: 0 }, uGlowK: { value: 1 },
   // above the water: the real sky over the site
@@ -83,7 +85,7 @@ uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
-uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud; uniform vec3 uWind;
+uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud; uniform vec3 uWind; uniform float uMurk;
 uniform vec3 uSkyLo; uniform vec3 uSkyHi; uniform vec3 uMoonDir; uniform float uMoonI; uniform float uMoonVeil; uniform float uGlowK; uniform vec2 uCurrent; uniform float uLodR; uniform vec3 uLodPos; uniform float uLowFx;
 uniform float uSeaWorld; uniform float uVolOff; uniform float uSwell; uniform vec4 uBoil; uniform vec4 uFoam[3]; uniform vec3 uAirSun; uniform vec3 uAirMoon; uniform float uMoonIllum; uniform mat3 uStarM; uniform sampler2D uMilky; uniform float uAurora; uniform vec4 uBolt;
 #define SUN uSunDir
@@ -319,8 +321,8 @@ vec3 fogAir(vec3 col, vec3 wp){
     float dw = -wp.y / cw + smoothstep(SEA_WORLD - 143.0, SEA_WORLD - 26.0, edge) * 160.0;   // past the modelled seabed, the reef drops into the blue (in its last stretch only: an island's survey reaches far)
     dw += d * 0.08;   // the moving surface scrambles what lies far off below it
     vec3 dirW = normalize(vec3(dir.x * sw / max(sa, 1e-4), -cw, dir.z * sw / max(sa, 1e-4)));
-    vec3 T = exp(-uFogDen * vec3(1.4, 1.0, 0.78) * dw);
-    col = col * T + hazeCol(dirW) * vec3(0.4, 0.5, 0.62) * (1.0 - T);   // light scattered back up out of the deep: dark ultramarine
+    vec3 T = exp(-uFogDen * (1.0 + 2.2 * uMurk) * vec3(1.4, 1.0, 0.78) * dw);
+    col = col * T + mix(hazeCol(dirW) * vec3(0.4, 0.5, 0.62), vec3(0.2, 0.24, 0.17) * (0.3 + 0.7 * uSunI), uMurk * 0.6) * (1.0 - T);   // light scattered back up out of the deep: dark ultramarine
   } else if (uHaze > 0.0) {
     // inside the forest: the air between the trunks is hazy with light come down through the leaves
     vec3 hz = mix(uSkyLo, vec3(0.36, 0.44, 0.3), 0.55) * (0.3 + 0.55 * smoothstep(-0.05, 0.3, uAirSun.y));
@@ -330,9 +332,9 @@ vec3 fogAir(vec3 col, vec3 wp){
 }
 vec3 fogWater(vec3 col, vec3 wp){
   vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
-  float den = uFogDen * mix(1.0, 1.15, uNight);
+  float den = uFogDen * mix(1.0, 1.15, uNight) * (1.0 + 2.2 * uMurk);
   vec3 T = exp(-den * vec3(1.4, 1.0, 0.78) * d);
-  vec3 h = hazeCol(dir);
+  vec3 h = mix(hazeCol(dir), hazeCol(dir).ggg * vec3(0.95, 1.0, 0.72), uMurk * 0.55);   // (murky: greener and browner)
   if (uCaveOn > 0.5) h *= mix(0.1, 1.0, mix(uCamCave, caveLight(wp).y, 0.5));   // water inside the cave is dark
   col = col * T + h * (1.0 - T);
   // a light milky veil that settles in over the first dozen metres and then holds, so shapes soften

@@ -34,7 +34,7 @@ import { MiniMap } from './ui/minimap';
 import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
-import { islandDate, islandWeather, loadIslandWeather, type IslandWeather } from './world/island-time';
+import { islandDate, islandWait, islandWeather, loadIslandWeather, type IslandWeather } from './world/island-time';
 import { Post, setRTSupport } from './render/post';
 import { loadLand } from './ocean/land';
 import { STAGES } from './robots/voices';
@@ -1219,10 +1219,16 @@ async function refreshWeather(loc: Sea) {
   if (loc.world === 'planet') {
     await loadIslandWeather();
     const iw = islandWeather(Date.now());
+    // (how murky the lagoon is: the rain of the past island day washed in from the land, and the bottom stirred by
+    // big waves — it clears again as the record turns fair)
+    { let rain = 0, wave = 0; const step = islandWait(2 * 3.6e6);
+      for (let k = 0; k < 12; k++) { const p = islandWeather(Date.now() - k * step); if (p) { rain += p.rain / 12; wave = Math.max(wave, p.wave ?? 0); } }
+      U.uMurk.value = clamp(rain / 4 + Math.max(0, wave - 1.5) / 3, 0, 1); }
     if (cur && cur.loc === loc) { wx = iw ?? FAIR; cur.residents?.setWeather(iw); applySky(loc); updateTimeUi(); }
     return;
   }
   const w = await fetchWeather(loc.id, loc.lat, loc.lon);
+  U.uMurk.value = 0;
   if (cur && cur.loc === loc) { wx = w; applySky(loc); updateTimeUi(); }
 }
 let camCave = 1, camExpo = 1.4, expoAir = 1.25, expoSea = 1.4;   // how much open sky the camera sees (1 outside the cave), and exposure

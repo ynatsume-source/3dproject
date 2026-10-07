@@ -84,9 +84,15 @@ vec3 landAlbedo(vec3 wp){
   a /= max(sandW + grassW + litterW + rockW, 1e-3);
   a *= mix(1.0, 0.45 + 0.55 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun)
   landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (smoothstep(0.45, 0.15, leaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
-  // wet sand by the water: darker, a little glossy (see airLit's caller), then the swash line
-  float wet = 1.0 - smoothstep(0.02, 0.5, wp.y);
-  return mix(a, a * vec3(0.66, 0.7, 0.74), wet * 0.85);
+  // wet sand by the water: darker, a little glossy (see airLit's caller), then the swash line — the waves running up
+  // the sand and back, higher and whiter as they are bigger (in a storm, far up the beach)
+  float run = 0.08 + 0.22 * uWave, ph = vn2(wp.xz * 0.15) * 6.2832;
+  float swash = run * (0.55 + 0.45 * sin(uTime * 0.55 + ph));
+  float wet = 1.0 - smoothstep(0.02, 0.5 + run, wp.y);
+  vec3 col = mix(a, a * vec3(0.66, 0.7, 0.74), wet * 0.85);
+  float lace = smoothstep(0.35, 0.75, vn2(wp.xz * 2.2 + vec2(uTime * 0.25, -uTime * 0.18)) + 0.25 * vn2(wp.xz * 7.0));
+  float foam = (1.0 - smoothstep(0.0, 0.05 + 0.03 * uWave, abs(wp.y - swash))) * lace * sandW * smoothstep(0.45, 0.9, uWave);
+  return mix(col, vec3(0.92, 0.95, 0.96), foam * 0.8);
 }
 vec3 landNormal(vec3 wp, vec3 n){ return bumpN(n, wp, landH * 0.05); }
 `;
