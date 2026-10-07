@@ -823,7 +823,7 @@
         "drawn：o2"
       ],
       "equipment": [
-        "fixture_cook_pot",
+        "fixture_cook_pot｜cook_pot（住民の器、同じ params）",
         "open_fire_pit"
       ],
       "energyModel": {
@@ -860,7 +860,7 @@
         "drawn：o2"
       ],
       "equipment": [
-        "fixture_tar_retort",
+        "fixture_tar_retort｜tar_retort（住民の器、同じ params）",
         "open_fire_pit"
       ],
       "energyModel": {
