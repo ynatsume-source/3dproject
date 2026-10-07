@@ -11,6 +11,9 @@
 //   The tile drying law (physics.ts dryPhysics) on the pot's own surface: both sides of the wall dry, the inside less;
 //   the rim dries ahead of the body (a factor on the crack ratio for pots with a rim); leaves over the pot (rack
 //   param covered 1) slow it. A pot that dries too fast cracks when it passes the leather-hard point, as tiles do.
+//   The pot carries its drying to the next run (0.1.1): how hard it is (dry_stage) and the fastest drying it has had
+//   (dry_flux_ratio_max_ppm), so a pot taken off and put back is the same pot. After leather-hard the water comes out
+//   through the wall more slowly, in proportion to the wall: with the water per area also ∝ wall, time ∝ wall².
 // Every constant is assumed (params.ts). Not modelled yet: temper (sand, shell), the base drying slower than the rim
 // as a separate part, slumping while drying, reclaiming broken unfired pots (slaking them again).
 
@@ -22,9 +25,9 @@ import { draw } from '../rng';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, intDeltaFloor, subStepEnd, tileComp, tileQuality, wind10m } from './common';
 
 export const POT_SHAPE_PROCESS = { processId: 'p11y_pot_shape', processVersion: '0.1.0' } as const;
-export const POT_DRY_PROCESS = { processId: 'p12y_pot_dry', processVersion: '0.1.0' } as const;
+export const POT_DRY_PROCESS = { processId: 'p12y_pot_dry', processVersion: '0.1.1' } as const;
 const SHAPE_SCHEMA = 'civ-sci.pot-shape/1', SHAPE_EVAL = 'pot-shape-eval/0.1.0';
-const DRY_SCHEMA = 'civ-sci.pot-dry/1', DRY_EVAL = 'pot-dry-eval/0.1.0';
+const DRY_SCHEMA = 'civ-sci.pot-dry/1', DRY_EVAL = 'pot-dry-eval/0.1.1';
 export const GREEN_POT = 'green_pot', DRY_POT = 'dry_pot';
 const STEP_MS = 30_000;
 
@@ -174,6 +177,7 @@ export function potDryStep(req: ScienceStepRequest): ScienceStepResult {
     if (![0, 1, undefined].includes(p.covered)) return fail('drying_rack params.covered must be 0 or 1 (leaves over the pot)');
     const q = lot.quality ?? {};
     if (![1, 2, 3].includes(q.form) || !finite(q.wall_mm, 2, 20) || !finite(q.capacity_ml, 1, 1e5)) return fail(`${GREEN_POT} ${lot.lotId} needs form, capacity_ml and wall_mm`);
+    if (![0, 1, 2, undefined].includes(q.dry_stage) || !finite(q.dry_flux_ratio_max_ppm ?? 0, 0, 1e9)) return fail(`${GREEN_POT} ${lot.lotId}: dry_stage 0/1/2, dry_flux_ratio_max_ppm ≥ 0`);
     let comp: Composition;
     try { comp = tileComp(lot); } catch (e) { return fail((e as Error).message); }
     const water = comp.water ?? 0, dry = totalMg(comp) - water;
@@ -182,7 +186,9 @@ export function potDryStep(req: ScienceStepRequest): ScienceStepResult {
     d = { lotId: lot.lotId, fps, eqFp, startMs: req.interval.from, seed: req.seed, lastTo: req.interval.from, location: lot.location,
       amountMg: lot.amount.value, dryMg: dry, waterMg: water, evaporatedMg: 0,
       shapedWaterRatio: (q.shaped_water_ratio_ppm ?? (water * 1e6) / dry) / 1e6, linearShrink: (q.linear_shrink_ppm ?? 0) / 1e6,
-      fluxRatioMax: 0, crack: q.crack ?? 0, stage: 'formed', quality0: { ...q }, wallMm: q.wall_mm,
+      // what the pot carries from earlier drying (Codex A1, A2 on 042cc53): how hard it is now, and how fast it was dried
+      fluxRatioMax: (q.dry_flux_ratio_max_ppm ?? 0) / 1e6, crack: q.crack ?? 0,
+      stage: q.dry_stage === 2 ? 'dry' : q.dry_stage === 1 || water / dry <= pv('clayWaterCritical') ? 'leather' : 'formed', quality0: { ...q }, wallMm: q.wall_mm,
       areaM2: (potSurfaceCm2(q.form as Form, q.capacity_ml) * (1 + pv('potInsideDryShare'))) / 1e4, rimCrack: f.rimCrack,
       sun: p.sunExposure ?? 0, covered: p.covered === 1, historyComplete: (q.history_complete ?? 1) === 1, reportedJ: 0 };
   } else {
@@ -201,7 +207,7 @@ export function potDryStep(req: ScienceStepRequest): ScienceStepResult {
     const o = dryPhysics({ waterMg: s.waterMg, dryMg: d.dryMg, shapedWaterRatio: d.shapedWaterRatio, linearShrink: s.linearShrink,
       dimsMm: { w: 0, l: 0, t: d.wallMm }, airTempC: env.airTempC!, rh: env.humidity!, windMs: wind10m(req) * pv('windRackFactor'),
       sun: d.sun, dtS: dt, areaM2: d.areaM2, fluxFactor: d.covered ? pv('potCoverFluxFactor') : 1, crackFactor: d.rimCrack,
-      fallingSlow: pv('potFallingSlow') * (d.wallMm / 8) ** 2 });
+      fallingSlow: pv('potFallingSlow') * (d.wallMm / 8) }); // with the water per area also ∝ wall: drying time ∝ wall² (Codex C1)
     s.waterMg -= o.evapExactMg; s.evaporatedMg += o.evapExactMg; s.linearShrink = o.linearShrink; s.stage = o.stage;
     if (o.fluxRatio !== null) s.fluxRatioMax = Math.max(s.fluxRatioMax, o.fluxRatio);
     if (o.crossedCritical && s.crack === 0) {
@@ -256,7 +262,8 @@ export function potDryStep(req: ScienceStepRequest): ScienceStepResult {
   const hist = d.historyComplete ? 1 : 0;
   res.consumed = [{ lotId: lot.lotId, amount: { ...lot.amount } }];
   res.produced = [{ materialId: d.stage === 'dry' ? DRY_POT : GREEN_POT, amount: { value: out, unit: 'mg' }, into: d.location, quality: {
-    ...d.quality0, ...tileQuality(comp), linear_shrink_ppm: Math.round(d.linearShrink * 1e6), crack: d.crack, history_complete: hist } }];
+    ...d.quality0, ...tileQuality(comp), linear_shrink_ppm: Math.round(d.linearShrink * 1e6), crack: d.crack,
+    dry_stage: d.stage === 'dry' ? 2 : d.stage === 'leather' ? 1 : 0, dry_flux_ratio_max_ppm: Math.round(d.fluxRatioMax * 1e6), history_complete: hist } }];
   if (evapInt > 0) res.released = [{ materialId: 'water_vapour', amount: { value: evapInt, unit: 'mg' }, to: 'air' }];
   if (known && d.historyComplete) read(endAt, d);
   return res;

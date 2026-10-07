@@ -155,6 +155,39 @@ console.log('6. pieces, looks, unknown weather');
     'the wind missing: not computed; an explicit calm (0) is computed');
 }
 
+console.log('8. fixes from the review (Codex 042cc53 A1, A2, C1)');
+{
+  // A1: a pot taken off leather hard is leather hard when it is put back
+  let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult, t = 0;
+  for (; t < 8 * D; t += H) { r = step(dryReq(t, t + H, st, [greenCook], [], SHADE)); st = r.state; if ((r.diagnostics as { stage: string }).stage === 'leather') break; }
+  const off = step(dryReq(t + H, t + 2 * H, st, [greenCook], [[t + H, 'take_off']], SHADE));
+  const leather = potOf(off, 'lot:leather');
+  const back = dryFor(H, [leather], [[0, 'look']]);
+  ok(leather.quality!.dry_stage === 1 && /革のかたさ/.test(back.obs[0]?.text ?? ''), 'A1: a pot taken off leather hard reads leather hard when it is put back', back.obs[0]?.text);
+  // A2: the fastest drying it has had goes with the pot: hot wind for ten minutes (still soft), then gentle shade under leaves
+  const harsh: Env = { t: 32, rh: 0.55, wind: 6 };
+  let carried = 0, fresh = 0;
+  for (let s = 1; s <= 20; s++) {
+    const first = dryFor(10 * M, [greenCook], [], { seed: s, equipment: [RACK({ sunExposure: 1 })] }, 10 * M, () => harsh);
+    const p1 = potOf(first.last, 'lot:p1');
+    if ((p1.quality!.dry_stage ?? 0) !== 0) continue;
+    if (dryFor(10 * D, [p1], [], { seed: s, equipment: [RACK({ covered: 1 })] }).last.produced[0].quality!.crack >= 1) carried++;
+    if (dryFor(10 * D, [greenCook], [], { seed: s, equipment: [RACK({ covered: 1 })] }).last.produced[0].quality!.crack >= 1) fresh++;
+  }
+  ok(carried >= 5 && fresh === 0, 'A2: ten minutes of hot wind stay with the pot: put back under leaves, it still cracks at leather hard (a fresh pot under leaves does not)', `${carried}/20 vs ${fresh}/20`);
+  // C1: the time to dry goes as the wall squared (diffusion), not its cube
+  const daysToDry = (wall: number) => {
+    const p = potOf(step(shapeReq([CLAY(200_000, 9_000_000)], [plan(1, 4000, wall)])));
+    let s2: ScienceStepRequest['state'] = null;
+    for (let t2 = 0; t2 < 120 * D; t2 += 6 * H) { const x = step(dryReq(t2, t2 + 6 * H, s2, [p], [], SHADE, { equipment: [RACK({ covered: 1 })] })); s2 = x.state; if ((x.diagnostics as { stage: string }).stage === 'dry') return (t2 + 6 * H) / D; }
+    return Infinity;
+  };
+  const d8 = daysToDry(8), d16 = daysToDry(16);
+  ok(d16 / d8 > 3 && d16 / d8 < 5, 'C1: a wall twice as thick takes about four times as long to dry (wall², not wall³)', `${d8} → ${d16} days under leaves`);
+  const bad = step(dryReq(0, H, null, [{ ...greenCook, quality: { ...greenCook.quality, dry_stage: 5 } }], [], SHADE));
+  ok(bad.status === 'failed' && /dry_stage/.test(String(bad.evidence.notes)), 'a drying history that cannot be is refused');
+}
+
 console.log('7. requests that are refused');
 {
   const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));
