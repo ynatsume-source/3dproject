@@ -59,3 +59,13 @@ main `65cebcf` の一時 worktree に、2章のファイルだけを置いて確
 
 - `potSherdsQuality` の Codex 確認（本体が破損時の処理につなぐ前に）。
 - 自作の気圧計：設計案 [SELF_BAROMETER_DESIGN.md](SELF_BAROMETER_DESIGN.md)。オーナー決定（ランタンはひらめき型、自作の気圧計は節目）済み。管の用意・管を栓に通す封じ方（換算表 /3 の予定）・合わせ直しはこれから。
+
+## 6. 追記（2026-10-07、Codex lab e2a4147）：破片の quality も保留解除
+
+`potSherdsQuality`（9c3b611）の確認が終わり、追加の A/B/C はない。1章の「含めないもの」は取り消し、この束に含める。
+
+- 本体の `POT_ASSEMBLY` に `brokenMaterial: 'pot_sherds'`、`brokenQuality: potSherdsQuality` をつなぐ。破片のロットは、組み立て時の写しと**同じ amount** で作る（関数は写しの整数 ppm をそのままコピーするので、破片にするときの丸めは増えない）。
+- 破片の成分は、ロット全体の mg × ppm の切り捨てで読む（分母は水・タールを含む全体。乾いた重さに読み替えない）。0 ppm は省かれることがあり、欠けていれば 0。`history_complete` は 0/1 をそのまま保ち、元になければ作らない。
+- 破片に残らないもの：`capacity_ml`・`coverage_ppm`・`sealed`・`airtight_known`・`air_leak_tau_min`・`crack_ppm`。素地の吸水率を残すのは、器と同じ漏れにくさを破片に与える意味ではない。
+- 本体の組み立て検査の「壊れた設備は残る」は、湿った・タールつき・来歴 0 の器から実際に破片へ戻す検査へ更新する（Codex の勧め）。
+- 破片を乾かす・砕く・粘土に混ぜる工程はまだない。設備として使う間に壁の水やタールを増減させる工程を足すときは、元の写しとの精算を別に決める。

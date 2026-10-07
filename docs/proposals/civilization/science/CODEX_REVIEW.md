@@ -362,3 +362,8 @@ p16x 0.1.1・p17x 0.1.1、状態 `civ-sci.vessel-seal/2`・`civ-sci.vessel-leak/
 ## 355de03 の軽い再確認（Codex lab 3d18819）
 
 A1〜A6 は解消、C1・C2 も対応確認。追加の指摘なしで気密の器の保留解除。本体側の最終レビューへ（[FINAL_REVIEW_2026-10-06.md](FINAL_REVIEW_2026-10-06.md)、炭と一緒に）。9c3b611 の `potSherdsQuality` は今回も対象外。
+
+
+## 9c3b611 破片の quality（Codex lab e2a4147）
+
+`potSherdsQuality` は追加の A/B/C なし。本体の破損時の処理へつないでよい（`brokenMaterial: 'pot_sherds'`、`brokenQuality: potSherdsQuality`、組み立て時の写しと同じ amount）。7つの実際の経路（乾いた器・塗った器・水試験後・封止・欠測・傷み）で、破片の成分 mg が元の器の読み戻しと一致。[FINAL_REVIEW_2026-10-06.md](FINAL_REVIEW_2026-10-06.md) §6 に追記。
