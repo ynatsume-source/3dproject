@@ -164,6 +164,16 @@ export const PARAMS = {
   woodStackTopM2: P('woodStackTopM2', 0.2, 'm2', 'assumed', [], '薪の山の上面（雨を受ける面積）の標準'),
   woodRainCapture: P('woodRainCapture', 0.3, 'ratio', 'assumed', [], '屋根のない薪の山の上に降った雨のうち、木にしみこむ割合（残りは流れ落ちる）'),
   woodRainMcMax: P('woodRainMcMax', 0.6, 'kg/kg(dry)', 'assumed', [], '雨でしみこむ上限の含水率（表面が水を吸いきった山の平均）'),
+  // pots the residents make (step/pottery.ts): all assumed, no source read yet
+  potGreenDensity: P('potGreenDensity', 1.9, 'g/cm3', 'assumed', [], '積んだばかりの湿った粘土の密度（器の粘土の量＝片面の面積 × 壁の厚さ × これ）'),
+  potHandSecondsBase: P('potHandSecondsBase', 1200, 's', 'assumed', [], '紐を積んで器を作る手間の基本（20分）'),
+  potHandSecondsPerKg: P('potHandSecondsPerKg', 2400, 's/kg', 'assumed', [], '粘土 1 kg あたりの手間（40分）'),
+  potHandPowerW: P('potHandPowerW', 15, 'W', 'assumed', [], 'その手の仕事率'),
+  potShapeWaterMax: P('potShapeWaterMax', 0.32, 'kg/kg(dry)', 'assumed', [], 'これより湿った粘土は積んだ壁がつぶれる'),
+  potShapeWaterMin: P('potShapeWaterMin', 0.17, 'kg/kg(dry)', 'assumed', [], 'これより乾いた粘土は紐がひび割れてつながらない'),
+  potInsideDryShare: P('potInsideDryShare', 0.5, 'ratio', 'assumed', [], '器の内側の面が外側に比べて乾く割合（中の空気がこもる）'),
+  potCoverFluxFactor: P('potCoverFluxFactor', 0.4, 'ratio', 'assumed', [], '葉で覆った器の乾く速さ（覆わないときに対して）'),
+  potFallingSlow: P('potFallingSlow', 10, 'ratio', 'assumed', [], '革のかたさを過ぎてから、壁 8 mm の器の水が出てくるのが試験片の何倍遅いか（壁の厚さの2乗に比例）。器が乾ききるまで数日かかるように仮定'),
   // the air-and-water barometer (step/barometer.ts)
   waterDensity: P('waterDensity', 1000, 'kg/m3', 'assumed', [],
     '水の密度。OpenStax の密度表（sources.json openstax-density）は 4 °C の代表値で、島の水温での値ではない。水温による差は扱わない'),

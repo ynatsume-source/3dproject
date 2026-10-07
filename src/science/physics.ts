@@ -85,6 +85,12 @@ export interface DryInput {
   /** extra surface heating from sun on this rack, 0..1 of the assumed excess (0 = shade) */
   sun: number;
   dtS: number;
+  /** pots (step/pottery.ts): the drying surface at shaping size (m², before shrinkage) instead of the tile's top and
+   *  edges, a factor on the flux (leaves over the pot) and a factor on the crack ratio (the rim drying ahead of the
+   *  body). Absent for tiles: their results are unchanged. */
+  areaM2?: number; fluxFactor?: number; crackFactor?: number;
+  /** pots: below the leather-hard point the water comes out through the thick wall more slowly (≥ 1; tiles: 1) */
+  fallingSlow?: number;
 }
 export interface DryOutput {
   evapMg: number; evapExactMg: number; linearShrink: number; fluxRatio: number | null; crossedCritical: boolean;
@@ -97,11 +103,11 @@ export function dryPhysics(i: DryInput): DryOutput {
   const wr = i.waterMg / i.dryMg;
   const ts = i.airTempC + pv('sunSurfaceExcessC') * i.sun;
   const deficit = Math.max(0, pSat(ts) - i.rh * pSat(i.airTempC));
-  const fluxConst = pv('evapCoeff') * (1 + 0.5 * i.windMs) * deficit; // kg/(m²·s)
+  const fluxConst = pv('evapCoeff') * (1 + 0.5 * i.windMs) * deficit * (i.fluxFactor ?? 1); // kg/(m²·s)
   const shrink = 1 - i.linearShrink;
   const { w: gw, l: gl, t: gt } = i.dimsMm;
-  const areaM2 = ((gw * gl + 2 * (gw + gl) * gt) * shrink * shrink) / 1e6; // top + edges; bottom rests on the rack
-  const factor = wr > wc ? 1 : Math.max(0, (wr - weq) / (wc - weq));
+  const areaM2 = (i.areaM2 !== undefined ? i.areaM2 * 1e6 : gw * gl + 2 * (gw + gl) * gt) * shrink * shrink / 1e6; // tile: top + edges; bottom rests on the rack
+  const factor = wr > wc ? 1 : Math.max(0, (wr - weq) / (wc - weq)) / (i.fallingSlow ?? 1);
   const maxEvapExact = Math.max(0, i.waterMg - weq * i.dryMg);
   const evapExact = Math.min(maxEvapExact, fluxConst * factor * areaM2 * i.dtS * 1e6);
   const evap = Math.min(Math.max(0, i.waterMg - Math.round(weq * i.dryMg)), Math.round(fluxConst * factor * areaM2 * i.dtS * 1e6));
@@ -111,7 +117,7 @@ export function dryPhysics(i: DryInput): DryOutput {
     evapMg: evap,
     evapExactMg: evapExact,
     linearShrink: w0 > wc ? pv('clayShrinkLinear') * Math.min(1, Math.max(0, (w0 - Math.max(nwr, wc)) / (w0 - wc))) : i.linearShrink,
-    fluxRatio: wr > wc ? (fluxConst / pv('dryCrackFluxRef')) * (gt / 10) : null,
+    fluxRatio: wr > wc ? (fluxConst / pv('dryCrackFluxRef')) * (gt / 10) * (i.crackFactor ?? 1) : null,
     crossedCritical: wr > wc && nwr <= wc,
     stage: nwr <= weq * 1.5 + 0.005 ? 'dry' : nwr <= wc ? 'leather' : 'formed',
   };
