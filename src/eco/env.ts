@@ -47,6 +47,10 @@ export interface Subject {
   under?: number;                       // film it from right underneath, looking up (a tornado of fish): how far below its middle   // the open side to film it from (a moray looking out of its hole): no orbiting round it
   target?(): { x: number; y: number; z: number } | null;   // a hunt's prey, to frame together with the hunter
   frameR?(): number;                    // how big the action is right now (m), for close framing
+  // a school of small fish: one of its fish, the one shown for it (the caption's ring goes round that fish — a ring
+  // round the whole school, mixed in with other small fish, did not say which fish were meant: owner, 2026-10-07).
+  // The same fish while it lasts and keeps with the school; then the one nearest its middle.
+  one?(): { x: number; y: number; z: number; len: number } | null;
   len?: number; adult?: number; lenK?: number; lenWhat?: string;   // this individual's size (m), its species' adult size, growth rate, what is measured
   // a place to fly through rather than orbit: where the camera is and looks at t seconds in
   // a leap out of the sea (a breaching whale): film it from the waterline, this far off, side on to dir, looking h up

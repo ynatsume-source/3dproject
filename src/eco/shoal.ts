@@ -281,11 +281,25 @@ export function makeShoalSystem(sp: Species, oc: any) {
   // few left is not offered as a school to go and see — the camera would arrive at an empty patch of water
   const here = (s: number) => { let n = 0; for (let i = s; i < active; i += S) if (!dead[i]) n++; return n; };
   const enough = (s: number) => here(s) >= Math.max(8, 0.3 * active / S);
+  // one fish to show for a school (Subject.one): kept while alive and near the school's middle, else the nearest it
+  const oneI: number[] = [], _one = { x: 0, y: 0, z: 0, len: 0 };
+  function fishOf(s: number) {
+    const L = leaders[s], m = L.m ?? L.c, lim = Math.max(1.5, (L.spread ?? 2) * 1.2);
+    let i = oneI[s] ?? -1;
+    if (i < 0 || dead[i] || Math.hypot(p[i * 3] - m.x, p[i * 3 + 1] - m.y, p[i * 3 + 2] - m.z) > lim) {
+      let bd = Infinity; i = -1;
+      for (let j = s; j < active; j += S) { if (dead[j]) continue; const d = Math.hypot(p[j * 3] - m.x, p[j * 3 + 1] - m.y, p[j * 3 + 2] - m.z); if (d < bd) { bd = d; i = j; } }
+      oneI[s] = i;
+    }
+    if (i < 0) return null;
+    _one.x = p[i * 3]; _one.y = p[i * 3 + 1]; _one.z = p[i * 3 + 2]; _one.len = size[i] * 1.28;
+    return _one;
+  }
   function subjects(out: Subject[]) {
     leaders.forEach((L, s) => {
       if (!L.placed || !enough(s)) return;
       const full = Math.min(1, here(s) / Math.max(1, active / S));
-      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(s) });
+      out.push({ key: `${sp.id}:${s}`, label: `${sp.ja}の群れ`, kind: 'school', prio: 2.6 * (0.4 + 0.6 * target) * (0.5 + 0.5 * full), size: 3.5, pos: () => L.m ?? L.c, frameR: () => L.spread ?? 2, status: () => schoolStatus(L), live: () => L.placed && enough(s), one: () => fishOf(s) });
     });
   }
   // A tap on the screen: the school with a fish nearest the tapped point (each fish projected, a few hundred at

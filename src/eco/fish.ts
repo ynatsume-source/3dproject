@@ -35,7 +35,8 @@ interface Group {
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
   predT?: number;
-  restLog?: boolean; shyLog?: number;     // (what the sea log was last told of it: resting or not; when it last hid from a hunter)
+  restLog?: boolean; shyLog?: number;
+  oneI?: number;                          // (the fish shown for it: Subject.one)     // (what the sea log was last told of it: resting or not; when it last hid from a hunter)
   m?: THREE.Vector3; spread?: number;    // (where its fish are, their middle, and how far they spread from it)
   lead?: number; leadAt?: THREE.Vector3; // (the one of it that is filmed, when one is: see leadOf)
   core?: number; coreF?: number;         // (see coreOf)                         // (when a predator last frightened it, by its own clock: what it is shying from)
@@ -691,6 +692,20 @@ export function makeFishSystem(sp: Species, oc: any) {
   const groupSize = (g: Group) => Math.max(1.2, Math.min(6, coreOf(g) * 2.4));
   // what this group is doing right now, from its own state (not the species': one school bolting is not all of
   // them, and a grazer is said to graze only while it is biting the reef)
+  // one fish to show for a group (see Subject.one): kept while alive and within its core; else the nearest its middle
+  const _one = { x: 0, y: 0, z: 0, len: 0 };
+  function fishOf(g: Group) {
+    const m = g.m ?? g.c, core = coreOf(g);
+    let i = g.oneI ?? -1;
+    if (i < 0 || dead[i] || Math.hypot(fp[i * 3] - m.x, fp[i * 3 + 1] - m.y, fp[i * 3 + 2] - m.z) > core * 1.5) {
+      let bd = Infinity; i = -1;
+      for (let j = g.start; j < g.start + g.n; j++) { if (dead[j]) continue; const d = Math.hypot(fp[j * 3] - m.x, fp[j * 3 + 1] - m.y, fp[j * 3 + 2] - m.z); if (d < bd) { bd = d; i = j; } }
+      g.oneI = i;
+    }
+    if (i < 0) return null;
+    _one.x = fp[i * 3]; _one.y = fp[i * 3 + 1]; _one.z = fp[i * 3 + 2]; _one.len = fs[i] * 1.28;
+    return _one;
+  }
   function groupStatus(g: Group): string {
     const kelpSays = kelpLife?.status(); if (kelpSays) return kelpSays;
     // (the words for where it lives: a coral reef and its bommies; a rocky reef in the kelp; the open ocean)
@@ -734,7 +749,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       } else if (g.type === 'reef' && !sp.big && g.n >= 5 && g.act > 0.4) {
         // a small fish's school over its patch of reef (the owner, 2026-10-06: the small fish are worth the cruise's
         // look as much as the big ones): filmed as a tap on it is — close and slowly, round its core
-        const o: Subject = { key, label: `${sp.ja}の群れ`, kind: 'critter', prio: 1.6 * g.act, size: 1, pos: () => g.m ?? g.c, frameR: () => frameOf(g), status: () => groupStatus(g), live: () => g.placed };
+        const o: Subject = { key, label: `${sp.ja}の群れ`, kind: 'critter', prio: 1.6 * g.act, size: 1, pos: () => g.m ?? g.c, frameR: () => frameOf(g), status: () => groupStatus(g), live: () => g.placed, one: () => fishOf(g) };
         Object.defineProperty(o, 'size', { get: () => groupSize(g), enumerable: true });
         out.push(o);
       }

@@ -92,10 +92,11 @@ export class Director {
     this.dur = best.hold ?? rr(a, b) * this.dwellK;
     if (best.brief?.() && best.hold == null) this.dur = Math.min(this.dur, rr(10, 16));   // (a turtle asleep under a ledge: a short look is enough)
     // Cruising, a look is a look (owner, 2026-10-06: "at most about ten seconds" — not twenty or thirty on one
-    // thing): what it comes across is watched for 8–12 s (a giant 10–14 s) and the cruise goes on. What was asked
+    // thing; 2026-10-07: a fifth longer, it had become restless): what it comes across is watched for 9.5–14.5 s (a
+    // giant 12–17 s) and the cruise goes on. What was asked
     // for, a leap, a ride through the cave, a rare sight and a hunt still going keep their own time.
     if (!forced && !best.tour && !best.breach && !best.comes && best.hold == null && !best.key.startsWith('rare:'))
-      this.dur = Math.min(this.dur, best.kind === 'giant' || best.kind === 'manta' ? rr(10, 14) : rr(8, 12));
+      this.dur = Math.min(this.dur, best.kind === 'giant' || best.kind === 'manta' ? rr(12, 17) : rr(9.5, 14.5));
     if (forced) this.watched.set(speciesOf(best), this.clock);   // (asked for: seen, whatever happens; else once it has had a look, below)
     this.began = this.clock; this.brief = !forced && !best.tour && !best.breach && !best.comes && best.hold == null && !best.key.startsWith('rare:');
     this.recent.set(best.key, this.clock);
@@ -125,6 +126,19 @@ export class Director {
   private watched = new Map<string, number>();
   private began = 0; private brief = false;   // (when this shot began; whether it is one of the cruise's own short looks)
   static readonly REST_KIND = 420;
+  static readonly LOOK = 18;
+  // a caption has just come up about what it is filming: stay with it this long at least (it is read for 4 s)
+  private keepT = 0;
+  keep(sec: number) { this.keepT = Math.max(this.keepT, sec); }   // (one of its own looks, the way there included, at most: s)
+  // how long it will stay with what it is filming now, as things stand (for the caption: told only if it is kept in
+  // the picture 4 s or more) — what was asked for, a leap, a ride, a rare sight or a hunt going on: as long as needed
+  left() {
+    const sh = this.shot; if (!sh) return 0;
+    const s = sh.subject;
+    if (sh.asked || sh.forced || s.tour || s.breach || s.comes || s.key.startsWith('rare:') || (s.kind === 'hunt' && s.live())) return Infinity;
+    const lim = this.brief ? Director.LOOK - (this.clock - this.began) : Infinity;
+    return Math.min(lim, sh.phase === 'observe' ? this.dur - this.t : this.dur);
+  }
   switchK = 1.6;   // (how much better something passing must be to switch to it, mid-shot)
   minHold = 8;     // (how long a shot is held before switching is considered)
   interest(s: Subject, drone: THREE.Vector3, fwd: THREE.Vector3, self = false) {
@@ -226,7 +240,7 @@ export class Director {
   }
 
   update(dt: number, drone: THREE.Vector3, subjects: () => Subject[], floor: (x: number, z: number) => number, fwd: THREE.Vector3 = new THREE.Vector3(0, 0, -1)): Shot | null {
-    this.clock += dt;
+    this.clock += dt; this.keepT = this.shot ? this.keepT - dt : 0;
     for (const [k, v] of this.bored) { const nv = v * Math.exp(-dt / 600); if (nv < 0.05) this.bored.delete(k); else this.bored.set(k, nv); }
     // a whale or a manta on its way up to leap: drop everything (but what someone asked to see, or a
     // ride through the cave) and get to the waterline in time
@@ -254,7 +268,7 @@ export class Director {
     }
     // mid-shot: something better right in front of the lens (or the one being followed has got far
     // away while something good is close by): switch to it
-    if (this.shot && this.shot.phase === 'observe' && !this.shot.forced && !this.shot.asked && !this.shot.subject.tour && (this.switchT -= dt) < 0) {
+    if (this.shot && this.shot.phase === 'observe' && !this.shot.forced && !this.shot.asked && !this.shot.subject.tour && this.keepT <= 0 && (this.switchT -= dt) < 0) {
       this.switchT = 1;
       const cur = this.shot.subject, cp = cur.pos();
       const curD = cp ? Math.hypot(cp.x - drone.x, cp.y - drone.y, cp.z - drone.z) : 99;
@@ -299,7 +313,7 @@ export class Director {
     if (s.breach && p) return this.breach(sh, s, p, dt, drone, floor);
     // (on its way to something it chose itself: if it is not there in about a quarter of a minute, something
     // nearer will do — the cruise does not spend half a minute crossing the reef for one look)
-    if (sh.phase === 'approach' && !sh.forced && !sh.asked && !s.comes && s.kind !== 'hunt' && this.t > 14) {
+    if (sh.phase === 'approach' && !sh.forced && !sh.asked && !s.comes && s.kind !== 'hunt' && this.t > 14 && this.keepT <= 0) {
       this.recent.set('left:' + speciesOf(s), this.clock); this.shot = null; this.cooldown = rr(3, 6); return null;
     }
     const far = p ? !sh.forced && Math.hypot(p.x - drone.x, p.z - drone.z) > 55 : !sh.forced;
@@ -316,8 +330,8 @@ export class Director {
     // (looked at properly — four seconds of it: the cruise leaves its kind be for a while; given up on the way there,
     // it does not count, or the kinds near by would be used up by looks that never happened)
     if (sh.phase === 'observe' && this.t > 4) this.watched.set(speciesOf(s), this.clock);
-    // (one of its own looks: about a quarter of a minute in all, the way there included)
-    const over = sh.phase === 'observe' && (this.t > this.dur || (this.brief && this.clock - this.began > 15 && this.t > 4));
+    // (one of its own looks: about 18 s in all, the way there included)
+    const over = sh.phase === 'observe' && this.keepT <= 0 && (this.t > this.dur || (this.brief && this.clock - this.began > Director.LOOK && this.t > 4));
     if (!p || far || this.goneT > 1.5 || (over && !(s.kind === 'hunt' && s.live())) || (s.kind === 'hunt' && !s.live() && this.t > 4 && !s.hold)) {
       this.recent.set('left:' + speciesOf(s), this.clock);
       this.shot = null;

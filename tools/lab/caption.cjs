@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
   const SEA = process.env.SEA || 'miyako', SECS = +(process.env.SECS || 240), W = +(process.env.W || 390), H = +(process.env.H || 844);
   const RUNS = (process.env.RUNS || 'cruise,guide,tap,tapfish').split(',');
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, asked: 0, named: 0, capsN: 0, ambNoRing: 0, ringNoAmb: 0, ringOn: 0 };
+  const total = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, asked: 0, named: 0, capsN: 0, ambNoRing: 0, ringNoAmb: 0, ringOn: 0, short: 0, capsAll: 0 };
   for (const run of RUNS) {
     const p = await (await b.newContext({ viewport: { width: W, height: H }, isMobile: W < H, hasTouch: W < H })).newPage();
     p.setDefaultTimeout(1200000); p.on('pageerror', (e) => console.log('ERR', e.message));
@@ -92,7 +92,17 @@ const { chromium } = require('playwright');
           if (best && bd < 12 && !/の群れ$/.test(c.label) && f.sp.big) { let bi = -1, bb = 1e9; for (const a of sets) for (const i of a) { const d = Math.hypot(fp[i * 3] - c.pos.x, fp[i * 3 + 1] - c.pos.y, fp[i * 3 + 2] - c.pos.z); if (d < bb) { bb = d; bi = i; } } if (bi >= 0) pts.push(new V(fp[bi * 3], fp[bi * 3 + 1], fp[bi * 3 + 2])); }
           else if (best && bd < 12) for (const i of best.slice(0, 200)) pts.push(new V(fp[i * 3], fp[i * 3 + 1], fp[i * 3 + 2]));
         }
+        // (the jacks' tornado is its own school, apart from the roaming ギンガメアジ of the same name: its own fish)
+        if (c.key === 'jacks' && s.cur.jacks?.each) { pts = []; s.cur.jacks.each((x, y, z) => { pts.push(new V(x, y, z)); }, 200); }
         if (!pts.length) pts = [new V(c.pos.x, c.pos.y, c.pos.z)];
+        // (a school of small fish shown by one of its fish: the ring must go round a fish of that school, and be about
+        // that fish's size — half its length on screen, not the school's spread)
+        if (c.one && pts.length > 1 && f) {
+          const pxm = innerHeight / (2 * Math.tan(cam.fov * Math.PI / 360)), len = (f.sp.size?.[1] ?? 0.1);
+          let hit = false, half = 0;
+          for (const v of pts) { const d = cam.position.distanceTo(v), q = v.clone().project(cam); if (q.z > 1) continue; const x = (q.x * 0.5 + 0.5) * innerWidth, y = (-q.y * 0.5 + 0.5) * innerHeight; if (Math.hypot(x - rx, y - ry) < R * 1.1) { hit = true; half = Math.max(half, len * 0.5 / Math.max(d, 0.5) * pxm); } }
+          return { miss: !hit, loose: hit && R > 2.5 * half + 45, off: 0, R, spread: half };
+        }
         const pts0 = pts.map((v) => v.clone());
         const sp = pts.map((v) => v.project(cam)).filter((v) => v.z < 1).map((v) => [(v.x * 0.5 + 0.5) * innerWidth, (-v.y * 0.5 + 0.5) * innerHeight]);
         if (!sp.length) return null;
@@ -140,7 +150,7 @@ const { chromium } = require('playwright');
       window.__mid = (c) => { if (!c.pos) return false; const v = new s.camera.position.constructor(c.pos.x, c.pos.y, c.pos.z).project(s.camera); return v.z < 1 && Math.abs(v.x) < 0.6 && Math.abs(v.y) < 0.6; };
       // one step of the sea, and how the caption stands
       window.__step = (n) => {
-        const out = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, rex: [], ex: [], ks: [], capsN: 0, ambNoRing: 0, ringNoAmb: 0, ringOn: 0, nex: [] };
+        const out = { cap: 0, unseen: 0, head: 0, hold: 0, obs: 0, off: 0, ringN: 0, ringMiss: 0, ringLoose: 0, rex: [], ex: [], ks: [], capsN: 0, ambNoRing: 0, ringNoAmb: 0, ringOn: 0, nex: [], short: 0, capsAll: 0, sex: [] };
         const done = (cs) => { if (!cs || cs.n < 20) return; out.capsN++; if (cs.amb && !cs.ring) { out.ambNoRing++; if (out.nex.length < 4) out.nex.push(cs.label + (cs.why ? ' (' + cs.why + ')' : '')); } if (cs.ring && !cs.amb) out.ringNoAmb++; };
         for (let i = 0; i < n; i++) {
           s.advance(1, 0.1);
@@ -152,6 +162,9 @@ const { chromium } = require('playwright');
           if (!window.__seen(c)) if (c.head) out.head++; else if (c.upT < 4) out.hold++; else { out.unseen++; if (out.ex.length < 6 && i % 10 === 0) out.ex.push(`${c.label} [${c.k}] ${c.phase}${c.cruise ? ' cruise' : ''}  d ${c.pos ? Math.hypot(c.pos.x - s.camera.position.x, c.pos.y - s.camera.position.y, c.pos.z - s.camera.position.z).toFixed(0) : '-'} m`); }
           if (c.phase === 'observe' && !c.cruise) { out.obs++; if (!window.__mid(c)) out.off++; }
           // (each caption, from when it comes up: was there anything to mistake it for in its first 2 s, and did a ring show)
+          // (each caption as the viewer sees it — one subject, its way there and its look together: how long it was up)
+          if (!window.__cu || window.__cu.key !== c.key) { if (window.__cu && window.__cu.n < 80) { out.short++; if (out.sex.length < 6) out.sex.push(`${window.__cu.label} ${(window.__cu.n / 20).toFixed(1)} s`); } if (window.__cu) out.capsAll++; window.__cu = { key: c.key, label: c.label, n: 0 }; }
+          window.__cu.n++;
           if (!window.__cs || window.__cs.key !== c.key + '|' + c.phase) { done(window.__cs); window.__cs = { key: c.key + '|' + c.phase, label: c.label, n: 0, amb: false, ring: false }; }
           const cs = window.__cs; cs.n++;
           const ringOn = document.getElementById('capRing')?.classList.contains('on') && !document.getElementById('capRing')?.classList.contains('edge');
@@ -161,10 +174,11 @@ const { chromium } = require('playwright');
           if (rc) { out.ringN++; if (rc.miss) out.ringMiss++; if (rc.loose) out.ringLoose++; if ((rc.miss || rc.loose) && out.rex.length < 4 && i % 10 === 0) out.rex.push(`${c.label} ${rc.miss ? 'miss' : 'loose'} (ring ${rc.R.toFixed(0)} px, fish ${rc.spread.toFixed(0)} px, ${rc.off.toFixed(0)} px off)`); }
         }
         done(window.__cs); window.__cs = null;
+        if (window.__cu) { out.capsAll++; window.__cu = null; }   // (the last, cut off by the end of the run: not counted as short)
         return out;
       };
     });
-    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose', 'capsN', 'ambNoRing', 'ringNoAmb', 'ringOn']) total[k] += o[k]; if (o.nex.length) console.log('    no ring though there was something to mistake it for: ' + o.nex.join(' | ')); const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 20).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
+    const add = (o, tag) => { for (const k of ['cap', 'unseen', 'head', 'hold', 'obs', 'off', 'ringN', 'ringMiss', 'ringLoose', 'capsN', 'ambNoRing', 'ringNoAmb', 'ringOn', 'short', 'capsAll']) total[k] += o[k]; if (o.sex.length) console.log('    up under 4 s: ' + o.sex.join(' | ')); if (o.nex.length) console.log('    no ring though there was something to mistake it for: ' + o.nex.join(' | ')); const q = (v) => (100 * v / Math.max(1, o.cap)).toFixed(1); console.log(`  ${tag}: caption ${(o.cap / 20).toFixed(0)} s, unseen ${q(o.unseen)}% (+ on the way ${q(o.head)}%, in its first 4 s ${q(o.hold)}%), observing off-middle ${(100 * o.off / Math.max(1, o.obs)).toFixed(1)}%, ring off its fish ${(100 * o.ringMiss / Math.max(1, o.ringN)).toFixed(1)}% / too big ${(100 * o.ringLoose / Math.max(1, o.ringN)).toFixed(1)}%${o.rex.length ? ' [' + o.rex.join(' | ') + ']' : ''}${o.ex.length ? '; e.g. ' + o.ex.join(' | ') : ''}`); };
     if (run === 'cruise') {
       for (let t = 0; t < SECS; t += 15) add(await p.evaluate((n) => window.__step(n), 300), `cruise ${t}-${t + 15} s`);   // (a frame is at most 1/20 s of the sea's time)
     } else if (run === 'guide') {
@@ -235,5 +249,5 @@ const { chromium } = require('playwright');
   await b.close();
   const q = (v) => (100 * v / Math.max(1, total.cap)).toFixed(1);
   const un = 100 * total.unseen / Math.max(1, total.cap), off = 100 * total.off / Math.max(1, total.obs), nm = 100 * total.named / Math.max(1, total.asked);
-  console.log(`caption up ${(total.cap / 20).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 20).toFixed(0)} s (want under 2%); captions ${total.capsN}: something to mistake it for but no ring ${total.ambNoRing} (want 0), a ring with nothing to mistake it for ${total.ringNoAmb}; ring up ${(100 * total.ringOn / Math.max(1, total.cap)).toFixed(0)}% of caption time${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
+  console.log(`caption up ${(total.cap / 20).toFixed(0)} s: subject unseen ${un.toFixed(1)}% (want < 2%; besides, by the rules: on the way ${q(total.head)}%, in its first 4 s ${q(total.hold)}%, before this change all counted); observing, off the middle ${off.toFixed(1)}% (want < 5%, later step); heading names the source ${total.named}/${total.asked} = ${nm.toFixed(0)}% (want 100%); ring off its subject ${(100 * total.ringMiss / Math.max(1, total.ringN)).toFixed(1)}%, too big ${(100 * total.ringLoose / Math.max(1, total.ringN)).toFixed(1)}% of ${(total.ringN / 20).toFixed(0)} s (want under 2%); captions ${total.capsN}: something to mistake it for but no ring ${total.ambNoRing} (want 0), a ring with nothing to mistake it for ${total.ringNoAmb}; ring up ${(100 * total.ringOn / Math.max(1, total.cap)).toFixed(0)}% of caption time; captions up under 4 s ${total.short}/${total.capsAll} (want 0)${total.tapT ? `; a tap on a fish in view goes to its group ${total.tapOk}/${total.tapT} = ${(100 * total.tapOk / total.tapT).toFixed(0)}% (want 95%)` : ''}`);
 })();
