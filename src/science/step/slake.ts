@@ -29,9 +29,9 @@ import { pv } from '../params';
 import { pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, isInt, subStepEnd, wind10m } from './common';
 
-export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.2' } as const;
+export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.3' } as const; // 0.1.3: look (feel the clay in the tub, without touching the physics)
 const SCHEMA = 'civ-sci.clay-slake/2';
-const EVAL = 'clay-slake-eval/0.1.2';
+const EVAL = 'clay-slake-eval/0.1.3';
 const FINE_CLAYS = ['settled_clay', 'prepared_clay'];
 const TUB = 'fixture_clay_tub', PIT = 'clay_pit'; // 0.1.2: the island's clay pit (step/clay-pit.ts) is a tub too
 const STEP_MS = 30_000;
@@ -141,7 +141,7 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
   const fps = req.lots.map(fingerprint).sort();
   const eqFp = tub ? JSON.stringify([tub.equipmentId, Object.entries(tub.params ?? {}).sort(([a], [b]) => a.localeCompare(b))]) : '';
   for (const a of req.actions) {
-    if (!['sieve', 'decant', 'take_out'].includes(a.action)) return failed(req, EVAL, `unknown action ${a.action} (sieve, decant, take_out)`, SCHEMA);
+    if (!['sieve', 'decant', 'take_out', 'look'].includes(a.action)) return failed(req, EVAL, `unknown action ${a.action} (sieve, decant, look, take_out)`, SCHEMA);
     if (!(a.at >= req.interval.from && a.at < req.interval.to)) return failed(req, EVAL, `${a.action} must fall inside the interval`, SCHEMA);
   }
 
@@ -173,7 +173,8 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
 
   const takeOut = req.actions.filter((a) => a.action === 'take_out').map((a) => a.at).sort((x, y) => x - y)[0];
   const endAt = takeOut ?? req.interval.to;
-  const acts = req.actions.filter((a) => a.action !== 'take_out' && a.at < endAt).sort((x, y) => x.at - y.at || (x.action < y.action ? 1 : -1));
+  const acts = req.actions.filter((a) => a.action !== 'take_out' && a.action !== 'look' && a.at < endAt).sort((x, y) => x.at - y.at || (x.action < y.action ? 1 : -1));
+  const looks = req.actions.filter((a) => a.action === 'look' && a.at < endAt).sort((x, y) => x.at - y.at);
   const env = req.environment;
   const known = envUsable(req) && env.humidity !== undefined;
   const observations: Observation[] = [];
@@ -220,13 +221,25 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
     }
   };
 
-  let t = d.lastTo, k = 0;
+  // look (0.1.3): the clay is felt at the look's own time from a copy, so looking never splits the physics
+  // (the steps stay where they were without it); nothing is felt while the weather is unknown or after it
+  const feelNow = (at: number) => {
+    if (!known || !d.historyComplete) return;
+    const dry = tubDryMg(), wr = dry > 0 ? d.waterMg / dry : Infinity;
+    observations.push({ at, channel: 'touch', quantity: 'feel', text: dry === 0 ? (d.waterMg > 0 ? '桶には水しか残っていない' : '桶は空っぽ') : d.sievedAt >= 0 ? clayFeel(wr) : `こす前の泥。${clayFeel(wr)}` });
+  };
+  let t = d.lastTo, k = 0, j = 0;
   while (t < endAt) {
     const tEnd = Math.min(subStepEnd(t, d.startMs, STEP_MS, endAt), k < acts.length ? Math.max(acts[k].at, t) : Infinity);
+    for (; j < looks.length && looks[j].at <= t; j++) feelNow(looks[j].at);
+    for (; j < looks.length && looks[j].at < tEnd; j++) {
+      const saved = d; d = structuredClone(saved); evaporate((looks[j].at - t) / 1000); feelNow(looks[j].at); d = saved;
+    }
     evaporate((tEnd - t) / 1000);
     t = tEnd;
     for (; k < acts.length && acts[k].at <= t; k++) act(acts[k]);
   }
+  for (; j < looks.length; j++) feelNow(looks[j].at);
   for (; k < acts.length; k++) act(acts[k]); // actions at the very start of a zero-length remainder
   if (!known && endAt > req.interval.from) d.historyComplete = false;
   d.lastTo = endAt;

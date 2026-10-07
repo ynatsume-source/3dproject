@@ -120,6 +120,21 @@ console.log('4. pieces, looks, unknown weather');
     'weather unknown mid-fire: the run stops (a fire never burns on by itself); only "the fire fell while nobody watched"');
 }
 
+console.log('6. clay with organic matter (the island\'s clay, 0.1.1)');
+{
+  const organicPot: LotView = { ...dryPot, lotId: 'lot:organic', quality: { ...dryPot.quality, xd_organic_c_ppm: 10_000 } };
+  let r = fire(CAREFUL, {}, () => CALM, H, [organicPot, WOOD()]);
+  for (let seed = 2; seed < 30 && r.pot.materialId !== 'fired_pot'; seed++) r = fire(CAREFUL, { seed }, () => CALM, H, [organicPot, WOOD()]);
+  const o2 = sum((r.last as unknown as Drawn).drawn), o2Plain = sum((good.last as unknown as Drawn).drawn);
+  ok(r.pot.materialId === 'fired_pot' && (r.pot.quality!.xd_organic_c_ppm ?? 0) < 1000 && o2 > o2Plain && balanced(r.last),
+    'roots and leaf bits in the clay burn out in the open fire: more O2 drawn, the mass still closes', `organic left ${r.pot.quality!.xd_organic_c_ppm ?? 0} ppm, O2 +${((o2 - o2Plain) / 1000).toFixed(1)} g`);
+  const cool = fire(CAREFUL, {}, () => CALM, H, [organicPot, WOOD(450_000)]);
+  // Organic matter burns out from about 400 °C, below the clay's turn to ceramic: a fire on fresh-cut wood may clear it
+  // and still leave the pot unfired (dry_pot, or sherds if it cracked). The mass closes either way.
+  ok(cool.pot.materialId !== 'fired_pot' && cool.diag.peakKilnC < 550 && balanced(cool.last), 'a fire that never gets hot (fresh-cut wood) does not make ceramic, organic matter or not',
+    `peak ${cool.diag.peakKilnC.toFixed(0)} °C, ${cool.pot.materialId}, organic left ${cool.pot.quality!.xd_organic_c_ppm ?? 0} ppm`);
+}
+
 console.log('5. requests that are refused');
 {
   const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));

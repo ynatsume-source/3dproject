@@ -17,8 +17,10 @@ export interface WareState {
   wareC: number; maxWareC: number; steamRatioMax: number; duntRatioMax: number;
 }
 
-/** Advance the piece by dt seconds in a chamber at kilnC; returns the heat it took (J) by kind. */
-export function advanceWare(w: WareState, kilnC: number, dt: number): { sens: number; latent: number; chem: number } {
+/** Advance the piece by dt seconds in a chamber at kilnC; returns the heat it took (J) by kind. With burnOrganic
+ *  (open-fired pots, pit-fire.ts) organic matter in the body burns out in the air (the O2 is the caller's to draw);
+ *  without it (the tile steps, which refuse organic bodies) nothing about organics changes. */
+export function advanceWare(w: WareState, kilnC: number, dt: number, o: { burnOrganic?: boolean } = {}): { sens: number; latent: number; chem: number } {
   const now = wareComp(w.base, w.ext).comp;
   const tau = pv('wareLagS10mm') * (w.thicknessMm / 10) ** 2;
   const Tw = w.wareC + (kilnC - w.wareC) * (1 - Math.exp(-dt / tau));
@@ -34,7 +36,7 @@ export function advanceWare(w: WareState, kilnC: number, dt: number): { sens: nu
   }
   const adv = (x: number, k: number) => x + (1 - x) * (1 - Math.exp(-k * dt));
   const e = w.ext;
-  const ne: Ext = { water: adv(e.water, KINETICS.water(Tw)), organic: 0, dehydrox: adv(e.dehydrox, KINETICS.dehydrox(Tw)), calc: adv(e.calc, KINETICS.calcination(Tw)) };
+  const ne: Ext = { water: adv(e.water, KINETICS.water(Tw)), organic: o.burnOrganic ? adv(e.organic, KINETICS.organic(Tw)) : 0, dehydrox: adv(e.dehydrox, KINETICS.dehydrox(Tw)), calc: adv(e.calc, KINETICS.calcination(Tw)) };
   const latent = ((ne.water - e.water) * (w.base.water ?? 0) / 1e6) * pv('latentHeatWater100');
   const chem = ((ne.dehydrox - e.dehydrox) * (w.base.kaolinite ?? 0) / 1e6) * pv('dHDehydroxylation')
     + ((ne.calc - e.calc) * (w.base.calcite ?? 0) / 1000 / 100.09) * pv('dHCalcination');

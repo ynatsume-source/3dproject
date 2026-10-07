@@ -18,8 +18,9 @@
 // Crack draws are keyed by the run's seed and the pot (chunking never changes them). A pot broken apart (crack 2)
 // comes back as pot_sherds of the same mass; a pot never heated past 300 °C comes back as it went in.
 // Weather unknown (temperature, humidity, wind or rain missing) ends the run 'stopped': a fire is never left to burn
-// on by itself. Not modelled: temper (sand, shell, and shell's lime spalling), smoke blackening, the pot's own
-// strength from its wall, several pots in one fire.
+// on by itself. 0.1.1: organic matter in the body (the island's clay has some) burns out with O2 drawn from the air; a
+// pot fired too short keeps a dark core. Not modelled: the heat of that burning (small beside the fire's), temper
+// (sand, shell, and shell's lime spalling), smoke blackening, the pot's own strength from its wall, several pots in one fire.
 
 import type { LotView, Observation, ScienceStepRequest } from '../../world/science-contract';
 import { addComp, react, REACTIONS, totalMg, type Composition } from '../chem';
@@ -33,8 +34,8 @@ import { potSherdsQuality } from './vessel';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 import { DRY_POT, GREEN_POT } from './pottery';
 
-export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.pot-pit-fire/1', EVAL = 'pot-pit-fire-eval/0.1.0';
+export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.1.1' } as const;
+const SCHEMA = 'civ-sci.pot-pit-fire/1', EVAL = 'pot-pit-fire-eval/0.1.1';
 export const FIRED_POT = 'fired_pot';
 const STEP_MS = 30_000, UNLOAD_C = 60, RAMP_GIVE_UP_S = 2 * 3600;
 const GLOWS = ['dull_red', 'cherry', 'orange', 'yellow'] as const;
@@ -93,7 +94,6 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if ((q.crack ?? 0) >= 2) return fail(req, 'the pot is broken apart: it cannot be fired');
     let base: Composition;
     try { base = tileComp(pot); } catch (e) { return fail(req, (e as Error).message); }
-    if ((base.organic_c ?? 0) > 0) return fail(req, 'organic matter in the body burns out in its own step (not yet)');
     const fc = fuelComp(wood);
     if (typeof fc === 'string') return fail(req, fc);
     if (!known) return fail(req, `a fire is lit only with known weather (temperature, humidity, wind and rain; environment ${env.source})`);
@@ -128,7 +128,7 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     // cooling: pulled out of the embers it loses heat fast; left in the ashes the ash bed holds it in (assumed factors)
     const ua = s.phase === 'cool' ? p.uaWPerK * (s.forced ? p.forcedCoolingUaFactor : pv('pitAshCoolUaFactor')) : p.uaWPerK;
     const wall = ua * (s.kilnC - Ta) * dt;
-    const { sens, latent, chem } = advanceWare(s, s.kilnC, dt);
+    const { sens, latent, chem } = advanceWare(s, s.kilnC, dt, { burnOrganic: true }); // the island's clay has some organic matter: it burns out in the open fire
     s.kilnC += (chamberIn - wall - sens - latent - chem) / p.heatCapJPerK;
     s.peakKilnC = Math.max(s.peakKilnC, s.kilnC);
     s.cumUsedJ += gross; s.cumLostJ += (gross - chamberIn) + wall + latent; s.cumChemJ += chem;
@@ -252,7 +252,8 @@ function settle(res: ScienceStepResultV02, d: PitData, pot: LotView, wood: LotVi
   const vapour = (wc.out.water ?? 0) + (taken.water ?? 0) + (r.produced.water ?? 0), co2 = (wc.out.co2 ?? 0) + (r.produced.co2 ?? 0);
   if (vapour > 0) res.released.push({ materialId: 'water_vapour', amount: { value: vapour, unit: 'mg' }, to: 'air' });
   if (co2 > 0) res.released.push({ materialId: 'process_co2', amount: { value: co2, unit: 'mg' }, to: 'air' });
-  if (r.consumed.o2) res.drawn = [{ materialId: 'o2', amount: { value: r.consumed.o2, unit: 'mg' }, from: 'air' }];
+  const o2 = (r.consumed.o2 ?? 0) + (wc.inn.o2 ?? 0); // the wood's and the body's organic matter's
+  if (o2 > 0) res.drawn = [{ materialId: 'o2', amount: { value: o2, unit: 'mg' }, from: 'air' }];
   // after an unknown stretch the run tells nothing of the pot: only that the fire fell while nobody watched
   if (!d.runKnown) { o('fire', '見ていない間に火が落ちていた'); return; }
   o('glow', `いちばん熱いときの火の色：${glowCategory(d.peakKilnC)}`);
@@ -260,6 +261,7 @@ function settle(res: ScienceStepResultV02, d: PitData, pot: LotView, wood: LotVi
     o('crack', crack === 2 ? '割れて、かけらになっている' : crack === 1 ? '細いひびが見える' : 'ひびは見当たらない');
     if (done && crack < 2) o('tap', d.sinter > 0.5 ? '高く澄んだ音' : dehydroxExtent(wc.comp) >= pv('slakeIfDehydroxBelow') ? 'やや鈍いが、焼けた音' : 'こもった音', 'sound');
     if (!ceramic && crack < 2) o('pot', '焼きが足りず、まだ土のまま（水に入れると崩れる）');
+    else if (crack < 2 && (d.base.organic_c ?? 0) > 0 && d.ext.organic < 0.9) o('pot', '割ると、器の芯が黒い（土の中の草や根が燃え残っている）');
   } else o('pot', '器は焼けていない（火が届かなかった）');
   if (d.outcome === 'wont_burn') o('fire', '薪が湿っていて、火が育たなかった');
   if (d.outcome === 'fuel_exhausted') o('fire', '薪が尽きて、火が小さくなっていった');
