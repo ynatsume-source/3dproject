@@ -1,0 +1,33 @@
+{
+  "id": "lynn-black-cordmarked-replication-2003",
+  "publisher": "Texas Beyond History",
+  "authors": [
+    "Alvin Lynn",
+    "Steve Black"
+  ],
+  "title": "Making Cordmarked Pottery",
+  "publicationYear": 2003,
+  "url": "https://www.texasbeyondhistory.net/villagers/cordmarked/",
+  "retrievalUrl": "https://www.texasbeyondhistory.net/villagers/cordmarked/",
+  "verification": "original-institutional-webpage-body-read",
+  "scope": "Original exhibit text, including forming, drying and credits. Developer is potter who made shown replicas; not a generic blog or merely archaeological inference.",
+  "primarySource": true,
+  "calibrationEligible": false,
+  "accessedDateJst": "2026-10-07",
+  "supports": "Replication coils with paddle/anvil. Base and intermediate coils partly dry before more height; cold/wet conditions may stretch forming to two days. Finished greenware dries several days to a week. Reported worked example took about nine days from start through firing.",
+  "conditions": {
+    "location": "Texas Panhandle replication",
+    "material": "local clay plus nonplastic temper",
+    "forming": "coils, paddle and anvil, sometimes scraping"
+  },
+  "doesNotVerify": "No specimen-matched weather, wet density, work-time log or failure denominator. Reported 2–4 mm archaeological walls use skilled paddle/anvil techniques, not evidence that unsupported beginner coils stand at that thickness.",
+  "evidence": {
+    "kind": "review-transcription-of-retrieved-body",
+    "originalFileHash": null,
+    "shortExcerpt": "The completed \"greenware\" pot is allowed to dry for several days or a week before it can be fired.",
+    "locator": "Forming the pot; Credits and Sources; page dated 21 January 2003",
+    "toolRefs": [
+      "turn472983view1"
+    ]
+  }
+}

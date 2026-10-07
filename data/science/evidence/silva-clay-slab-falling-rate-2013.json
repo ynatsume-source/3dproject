@@ -1,0 +1,52 @@
+{
+  "id": "silva-clay-slab-falling-rate-2013",
+  "publisher": "Canadian Center of Science and Education",
+  "authors": [
+    "Wilton Pereira da Silva",
+    "Cleide Maria Diniz Pereira da Silva e Silva",
+    "Laerson Duarte da Silva",
+    "Vera Solange de Oliveira Farias"
+  ],
+  "title": "Drying of Clay Slabs during the Falling Rate Period: Optimization and Simulation of the Process Using Diffusion Models",
+  "doi": "10.5539/jmsr.v2n2p1",
+  "publicationYear": 2013,
+  "url": "https://ccsenet.org/journal/index.php/jmsr/article/view/23168",
+  "retrievalUrl": "https://www.researchgate.net/publication/285773384_Drying_of_Clay_Slabs_during_the_Falling_Rate_Period_Optimization_and_Simulation_of_the_Process_Using_Diffusion_Models",
+  "verification": "publisher-abstract-and-author-upload-body-passages-read",
+  "scope": "Methods 2.1–2.2, 2.7; equations 3, 6, 7; Tables 1, 2, 4. Author-uploaded body text read through web tool; original publisher PDF bytes unavailable.",
+  "primarySource": true,
+  "calibrationEligible": false,
+  "accessedDateJst": "2026-10-07",
+  "supports": "Falling-rate diffusion model separates internal D from surface coefficient h. Time terms exp[-mu_n^2 D t/(L/2)^2], Bi=h(L/2)/D. Assumptions: fixed thickness, uniform initial moisture, homogeneous isotropic body, constant parameters, diffusion-only interior.",
+  "conditions": {
+    "materialPreparation": "110 C drying, ball-milled, 180 micrometre sieve, extruded; approximately 0.11 kg/kg dry initial water",
+    "airTemperatureC": [
+      50,
+      60,
+      70,
+      80,
+      90
+    ],
+    "slabThicknessMm": [
+      6.05,
+      6.02,
+      5.96,
+      6.13,
+      5.92
+    ],
+    "dryMatterMethod": "105 C for 24 h after drying",
+    "ambientRoom": "25 C, 75% RH; not asserted to equal heated drying-air RH"
+  },
+  "doesNotVerify": "No island pot calibration: approximately 6 mm hot-air slabs, no capacity or coil joins; raw time-series CSV, repetition count, and controlled air velocity not acquired. Thickness-squared scaling requires constant dimensionless boundary behavior; fixed h changes Bi when L changes.",
+  "evidence": {
+    "kind": "review-transcription-of-retrieved-body",
+    "originalFileHash": null,
+    "shortExcerpt": "the thickness Lx does not vary during drying",
+    "locator": "Sections 2.1–2.2; Table 1 and Table 2",
+    "toolRefs": [
+      "turn464803view0",
+      "turn467520view0",
+      "turn349680view0"
+    ]
+  }
+}

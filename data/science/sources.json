@@ -709,6 +709,82 @@
         "format": "UTF-8 JSON, LF newlines",
         "hashScope": "Reviewer fact transcription only; NOT raw HTML/PDF or complete publication"
       }
+    },
+    {
+      "id": "idris-eggshell-claypot-2024",
+      "publisher": "Universiti Tun Hussein Onn Malaysia, Journal of Advanced Industrial Technology and Application",
+      "title": "Development of Eggshell Powder Potential in Claypot for Water Filtration Process for Rural Dwellers in Nigeria",
+      "url": "https://doi.org/10.30880/jaita.2024.05.02.003",
+      "retrievalUrl": "https://journal.uthm.edu.my/index.php/jaita/article/download/18437/6907/89587",
+      "accessedDateJst": "2026-10-07",
+      "verification": "publisher-pdf-body-passages-read",
+      "primarySource": true,
+      "calibrationEligible": false,
+      "scopeAndLimitationsInEvidenceArtifact": true,
+      "sourceType": "primary-technical-publication",
+      "artifact": {
+        "path": "data/science/evidence/idris-eggshell-claypot-2024.json",
+        "sha256": "580d2b337222a101644aa7fc705b8edbf831d44dc509008fd4bfd9b246d75f72",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
+      }
+    },
+    {
+      "id": "lynn-black-cordmarked-replication-2003",
+      "publisher": "Texas Beyond History",
+      "title": "Making Cordmarked Pottery",
+      "url": "https://www.texasbeyondhistory.net/villagers/cordmarked/",
+      "retrievalUrl": "https://www.texasbeyondhistory.net/villagers/cordmarked/",
+      "accessedDateJst": "2026-10-07",
+      "verification": "original-institutional-webpage-body-read",
+      "primarySource": true,
+      "calibrationEligible": false,
+      "scopeAndLimitationsInEvidenceArtifact": true,
+      "sourceType": "primary-technical-publication",
+      "artifact": {
+        "path": "data/science/evidence/lynn-black-cordmarked-replication-2003.json",
+        "sha256": "2f0676515e89249b992fbe5cea01b3eafcfcf3e47e2dc7535e355adb309de1b9",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
+      }
+    },
+    {
+      "id": "padilla-sanchez-iberia-pottery-water-2022",
+      "publisher": "Taylor & Francis / Universidad de Salamanca repository",
+      "title": "Clay, Fire, Air, and Mostly Water: Understanding the Importance of Water Resources in Pottery Workshops in Ancient Iberia by Integrating Ethnoarchaeological, Experimental, and Archaeological Research",
+      "url": "https://doi.org/10.1080/19442890.2022.2051281",
+      "retrievalUrl": "https://gredos.usal.es/bitstream/10366/155402/1/2.Padilla%20y%20Sanchez_Ethnoarchaeology_2021.pdf",
+      "accessedDateJst": "2026-10-07",
+      "verification": "university-repository-pdf-body-passages-read",
+      "primarySource": true,
+      "calibrationEligible": false,
+      "scopeAndLimitationsInEvidenceArtifact": true,
+      "sourceType": "primary-technical-publication",
+      "artifact": {
+        "path": "data/science/evidence/padilla-sanchez-iberia-pottery-water-2022.json",
+        "sha256": "b14a6cd788be9556909eb94732758e7271ecd0782a9e593df7ae387ceb684059",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
+      }
+    },
+    {
+      "id": "silva-clay-slab-falling-rate-2013",
+      "publisher": "Canadian Center of Science and Education",
+      "title": "Drying of Clay Slabs during the Falling Rate Period: Optimization and Simulation of the Process Using Diffusion Models",
+      "url": "https://ccsenet.org/journal/index.php/jmsr/article/view/23168",
+      "retrievalUrl": "https://www.researchgate.net/publication/285773384_Drying_of_Clay_Slabs_during_the_Falling_Rate_Period_Optimization_and_Simulation_of_the_Process_Using_Diffusion_Models",
+      "accessedDateJst": "2026-10-07",
+      "verification": "publisher-abstract-and-author-upload-body-passages-read",
+      "primarySource": true,
+      "calibrationEligible": false,
+      "scopeAndLimitationsInEvidenceArtifact": true,
+      "sourceType": "primary-technical-publication",
+      "artifact": {
+        "path": "data/science/evidence/silva-clay-slab-falling-rate-2013.json",
+        "sha256": "d3c12a3ee135a3f62140d8924320bf26243ce59e088bafa68d42577522059bda",
+        "format": "UTF-8 JSON",
+        "hashScope": "review transcription of retrieved passages; NOT original PDF/HTML"
+      }
     }
   ]
 }

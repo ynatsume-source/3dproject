@@ -1,0 +1,36 @@
+{
+  "id": "padilla-sanchez-iberia-pottery-water-2022",
+  "publisher": "Taylor & Francis / Universidad de Salamanca repository",
+  "authors": [
+    "Juan Jesús Padilla Fernández",
+    "Elena H. Sánchez López"
+  ],
+  "title": "Clay, Fire, Air, and Mostly Water: Understanding the Importance of Water Resources in Pottery Workshops in Ancient Iberia by Integrating Ethnoarchaeological, Experimental, and Archaeological Research",
+  "doi": "10.1080/19442890.2022.2051281",
+  "publicationYear": 2022,
+  "volumeNote": "Journal volume 13 (2021), online 29 March 2022",
+  "url": "https://doi.org/10.1080/19442890.2022.2051281",
+  "retrievalUrl": "https://gredos.usal.es/bitstream/10366/155402/1/2.Padilla%20y%20Sanchez_Ethnoarchaeology_2021.pdf",
+  "verification": "university-repository-pdf-body-passages-read",
+  "scope": "27-page PDF text accessible; method on p37 and drying pp42–43 read. Table 1 image not transcribed; screenshot retrieval failed; no original PDF bytes downloaded.",
+  "primarySource": true,
+  "calibrationEligible": false,
+  "accessedDateJst": "2026-10-07",
+  "supports": "2018 participant observation at Padilla Herrera brothers' Bailen workshop: initial shade and avoiding strong drafts; sun only near dry. Seasonal drying described as summer 3–4 days, spring/autumn 6–7 days.",
+  "conditions": {
+    "location": "Bailen, Jaen, Spain",
+    "technique": "wheel-thrown, local calcareous clay",
+    "fieldwork": "one year intensive participant observation in 2018"
+  },
+  "doesNotVerify": "No matched pot wall/capacity/density/weather/mass time series for those day ranges. No crack probabilities. Wheel throwing differs from untempered island coil pots. Article mass-loss discussion includes firing; do not infer ordinary drying mass or density from it.",
+  "evidence": {
+    "kind": "review-transcription-of-retrieved-body",
+    "originalFileHash": null,
+    "shortExcerpt": "Generally, in summer, drying requires 3–4 days, and in spring or autumn, drying requires 6–7 days.",
+    "locator": "p43, Drying the Pottery before Firing",
+    "toolRefs": [
+      "turn401863view0",
+      "turn771362view0"
+    ]
+  }
+}
