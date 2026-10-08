@@ -972,11 +972,11 @@ export function fishMaterial(sp, shade = false, low = false) {
          }
          float rim = 1.0 - smoothstep(0.03, 0.09, abs(rr - 0.87));   // (cf: from the scale's middle; rr: how far, its rim at 0.95)
          float shadeR = smoothstep(0.45, 0.88, rr);
-         float scl = smoothstep(0.17, 0.22, s) * isBody * fine * uScK;   // (none on the head)
+         float scl0 = smoothstep(0.17, 0.22, s) * isBody * fine, scl = scl0 * uScK;   // (none on the head; scl: how plainly the rims and relief show)
          #if BONY == 1
          // Napoleon: each scale crossed by a dark upright bar, the bars lining up into fine stripes down the flank
          float bar = (1.0 - smoothstep(0.04, 0.1, abs(cf.x - 0.45))) * (1.0 - smoothstep(0.3, 0.5, abs(cf.y)));
-         alb = mix(alb, uC3, bar * 0.4 * scl);
+         alb = mix(alb, uC3, bar * 0.4 * scl0);
          // the head a maze of fine wavy orange lines (the contours of a noise, so they wind and branch)
          vec2 hq = vL.zy * 20.0 + vec2(vL.x * 7.0, 0.0);
          float mz = (vn2(hq) * 0.7 + vn2(hq * 2.1 + 7.0) * 0.3) * 6.0;

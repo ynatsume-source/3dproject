@@ -60,7 +60,7 @@ export const BONY: Record<string, BonyStyle> = {
     pelvic: { s: 0.27, fin: [[0, 0.012], [0.05, 0.006], [0.075, -0.004], [0.06, -0.012], [0, -0.008]] },
     spines: 9,
     rays: { dorsal: 0.024, tail: 0.13, pect: 0.15 },
-    scales: [40, 36], row: 0.42, iris: [0.72, 0.58, 0.22], look: 1,
+    scales: [40, 36], row: 0.42, iris: [0.72, 0.58, 0.22], look: 1, scaleK: 0.3,   // (the rims kept faint: the owner found a field of crisp scales uncomfortable to look at; the bars stay)
   },
   // Giant grouper, Epinephelus lanceolatus: massive and thick-set, a broad head a third of the fish with a
   // huge mouth whose jaw juts a little; small eyes; a long low spiny dorsal, rounded soft fins, a rounded
