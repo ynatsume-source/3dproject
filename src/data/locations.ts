@@ -7,6 +7,7 @@ import type { WhaleSeason } from '../eco/whale';
 import { landOf } from '../ocean/land';
 import type { CritterSpec } from '../eco/critters';
 import type { DolphinSpec } from '../eco/dolphins';
+import type { EagleRaySpec } from '../eco/eaglerays';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -61,6 +62,7 @@ export interface Sea {
   wreck?: WreckSpec;                       // a shipwreck on the sand (ocean/wreck.ts)
   whales?: WhaleSeason;                    // humpbacks visit in these months
   dolphins?: DolphinSpec;                  // a pod that comes by every few minutes by day (eco/dolphins)
+  eaglerays?: EagleRaySpec;                // spotted eagle rays that keep about the reef (eco/eaglerays)
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
   thicket?: number;   // how much of the shallow reef is staghorn thicket (0..1)
@@ -706,6 +708,19 @@ export const LOCATIONS: Sea[] = [
       note: '世界の暖かい海に広く住む、いちばんよく知られたイルカ。ガラパゴスでは冷たい湧昇流の海で群れになって魚を追い込み、船の舳先の波に乗る。' },
   };
   for (const L of LOCATIONS) if (dol[L.id]) L.dolphins = dol[L.id];
+  // spotted eagle rays over the sand beside the reef: the ocellated eagle ray of the Indo-West Pacific and the Red Sea,
+  // and the Pacific white-spotted eagle ray of the eastern Pacific at the Galapagos
+  const ocel = { id: 'eagleray', ja: 'マダラトビエイ', sci: 'Aetobatus ocellatus',
+    note: '紺色の背に白い斑点が散る大型のトビエイ。体盤幅は3mに達する。とがった長い胸びれで羽ばたくように泳ぎ、数匹で列をつくって礁の縁を回る。アヒルのくちばしのような吻で砂を掘り、貝やカニを殻ごと噛み砕いて食べる。' };
+  const eag: Record<string, EagleRaySpec> = {
+    maldives: { ...ocel, groups: 3, size: [1, 5], span: [1.4, 2.4] },
+    miyako: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
+    gbr: { ...ocel, groups: 2, size: [1, 4], span: [1.4, 2.3] },
+    redsea: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
+    galapagos: { id: 'eagleray', ja: 'マダラトビエイ（東太平洋）', sci: 'Aetobatus laticeps', groups: 2, size: [2, 6], span: [1.3, 2.2],
+      note: '東太平洋に住むトビエイで、インド・西太平洋のマダラトビエイとは別の種とされる。紺色の背に白い斑点。ガラパゴスでは群れで礁の縁を羽ばたいて泳ぎ、砂地で貝を掘る。' },
+  };
+  for (const L of LOCATIONS) if (eag[L.id]) L.eaglerays = eag[L.id];
   // more of the big characters, where they really live
   const all = LOCATIONS.flatMap((l) => l.species);
   const add = (id: string, spId: string, o: Partial<Species> = {}) => { const L = LOCATIONS.find((l) => l.id === id)!; if (L.species.some((x) => x.id === spId)) return; L.species.push({ ...all.find((x) => x.id === spId)!, ...o }); };

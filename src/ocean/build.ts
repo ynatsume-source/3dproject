@@ -19,6 +19,7 @@ import { Ecosystem } from '../eco/ecosystem';
 import { makeOctopi } from '../eco/octopus';
 import { makeWhales } from '../eco/whale';
 import { makeDolphins } from '../eco/dolphins';
+import { makeEagleRays } from '../eco/eaglerays';
 import { makeBirds } from '../eco/birds';
 import { makeFlyingFish } from '../eco/flyingfish';
 import { loneLength } from '../eco/growth';
@@ -919,6 +920,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   if (an.octopus) oc.octopi = makeOctopi(oc, an.octopus, loc.rock);
   if (loc.whales) oc.whales = makeWhales(oc);
   oc.dolphins = makeDolphins(oc);
+  oc.eaglerays = makeEagleRays(oc);
   // (where there are bait balls, the diving birds also come in their dozens to one: a great flock out of sight till then)
   const diver = loc.bait && (loc.birds || []).find((b: any) => b.kind === 'booby' || b.kind === 'tern');
   if (loc.birds) oc.birds = makeBirds(diver ? [...loc.birds, { ...diver, count: 36, rest: 0, crowd: true }] : loc.birds, group);

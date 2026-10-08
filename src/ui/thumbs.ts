@@ -7,6 +7,7 @@ import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, CORAL_GEO, CORAL_MAT, PALETTE, speciesGeometry } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
 import { dolphinGeometry, dolphinMaterial } from '../ocean/dolphin';
+import { EAGLERAY_GEO, eagleRayMaterial } from '../ocean/eagleray';
 import { bonyFromShape } from '../ocean/bony';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
@@ -50,6 +51,11 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
     const g = dolphinGeometry(loc.dolphins.style).clone(); g.setAttribute('aDol', new THREE.InstancedBufferAttribute(new Float32Array([0, 0.5, 0.4, 0.3]), 4));
     const m = new THREE.InstancedMesh(g, dolphinMaterial(loc.dolphins.style), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
     return { obj: m, view: [1, 0.3, 0.55] };
+  }
+  if (id === 'eagleray' && loc.eaglerays) {
+    const g = EAGLERAY_GEO.clone(); g.boundingBox = new THREE.Box3(new THREE.Vector3(-1, -0.15, -1.1), new THREE.Vector3(1, 0.15, 0.6)); g.setAttribute('aRay', new THREE.InstancedBufferAttribute(new Float32Array([1.2, 0.6, 0.4, 0]), 4));
+    const m = new THREE.InstancedMesh(g, eagleRayMaterial(), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
+    return { obj: m, view: [0.5, 1.0, 0.9] };
   }
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
   if (id === 'sea-otter' && loc.id === 'pointlobos') { const o = creatureKit(cmats()).makeSeaOtter(); for (let i = 0; i < 40; i++) o.update(i * 0.1, 0.1, { act: 'eat', walk: 0, wet: true, food: 'urchin' }); o.root.scale.setScalar(1.15); o.root.position.y = 20; return { obj: o.root, view: [0.9, 0.7, 0.35] }; }   // (on its back, eating, up in the light)
