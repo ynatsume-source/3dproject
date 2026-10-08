@@ -39,6 +39,7 @@ export interface BonyStyle {
                                  // parrotfish, 5 trevally, 6 barracuda, 7 dogtooth tuna, 8 titan triggerfish)
   scaleK?: number;               // how plainly the scales show (1; tunas and groupers have small ones, the skin's pattern over them)
   rip?: number;                  // how far the soft dorsal and anal ripple (triggerfish swim on them)
+  light?: boolean;               // fewer rings and segments (the small fish, many of them near at once)
 }
 
 export const BONY: Record<string, BonyStyle> = {
@@ -213,6 +214,55 @@ export const BONY: Record<string, BonyStyle> = {
   },
 };
 
+// A small reef fish's lofted body, from the plain body plan it is otherwise drawn with (models.ts SHAPES: height,
+// width, pointed or blunt, hump, tail, fin heights), in the same frame, so its colour pattern (PAT) lands where it
+// did; look 0 keeps that pattern and adds the eye, fin rays, gill cover and faint scales. Null for the plans that
+// need their own pieces (sharks, the sunfish, bills, filaments, a tube snout).
+export function bonyFromShape(name: string, sh: any): string | null {
+  if (!sh || sh.lofted || sh.mola || sh.bill || sh.filament || sh.rear || sh.snout) return null;
+  const key = 'shape:' + name;
+  if (BONY[key]) return key;
+  const zs = (z: number) => (0.5 - z) / L;   // (fishGeometry's z to s)
+  const prof = (z: number) => (sh.pointy ? (z < 0 ? 1 + z * 1.3 : 1 - z * z * 1.6) : (z < 0 ? 1 + z * 1.15 : 1 - z * z * 0.7)) * (1 + (sh.head || 0) * smooth(0.04, 0.35, z));
+  const body: number[][] = [];
+  for (let k = 0; k <= 16; k++) {
+    const s = 0.765 * Math.pow(k / 16, 1.15), z = 0.5 - L * s;
+    let r = 0.5 * Math.sqrt(Math.max(0, 1 - 4 * z * z));
+    if (z < -0.2) r = Math.max(r, 0.2 - 0.12 * smooth(-0.2, -0.48, z));   // (a tail stock, not a point)
+    const f = prof(z) * (sh.flathead && z > 0 ? 1 - 0.4 * z : 1), fw = sh.flathead && z > 0 ? 1 + 0.25 * z : 1;
+    let top = sh.h * r * f, bot = -sh.h * r * f;
+    if (sh.hump && z > 0.1) top += sh.hump * Math.exp(-(((z - 0.32) / 0.12) ** 2));
+    body.push([s, Math.max(top, 0.004) / L, Math.min(bot, -0.004) / L, Math.max(sh.w * r * f * fw, 0.004) / L]);
+  }
+  const H = sh.h * 0.5, tb = zs(-0.42);
+  const pts = (a: number[][]) => a.map(([z, y]) => [zs(z), y / L]);
+  const tails: Record<string, number[][]> = {
+    fork: [[-0.42, H * 0.3], [-0.6, H * 0.8], [-0.8, H * 1.25], [-0.7, H * 0.55], [-0.62, 0], [-0.7, -H * 0.55], [-0.8, -H * 1.25], [-0.6, -H * 0.8], [-0.42, -H * 0.3]],
+    round: [[-0.42, H * 0.3], [-0.5, 0.2], [-0.6, 0.24], [-0.68, 0.18], [-0.72, 0], [-0.68, -0.18], [-0.6, -0.24], [-0.5, -0.2], [-0.42, -H * 0.3]],
+    trunc: [[-0.42, H * 0.3], [-0.6, H * 0.75], [-0.72, H], [-0.715, 0], [-0.72, -H], [-0.6, -H * 0.75], [-0.42, -H * 0.3]],
+    emarginate: [[-0.43, H * 0.22], [-0.6, H * 0.62], [-0.74, H * 0.88], [-0.715, H * 0.45], [-0.69, 0], [-0.715, -H * 0.45], [-0.74, -H * 0.88], [-0.6, -H * 0.62], [-0.43, -H * 0.22]],
+    lunate: [[-0.42, 0.02], [-0.6, H * 1.8], [-0.72, H * 3.2], [-0.66, H * 2.6], [-0.5, 0], [-0.66, -H * 2.6], [-0.72, -H * 3.2], [-0.6, -H * 1.8], [-0.42, -0.02]],
+  };
+  const d = sh.dorsal / L, an = sh.anal / L, pe = (sh.pect || 0.12) / L;
+  BONY[key] = {
+    body, wide: 0.45,
+    mouth: { s: 0.035, y: -0.006, lip: 0.2, slope: 0.04 },
+    eye: { s: zs(0.34), y: 0.035 / L, r: 0.024 },
+    gill: zs(0.19),
+    dorsal: [[zs(0.16), 0], [zs(0.1), d * 0.6], [zs(-0.05), d * 0.95], [zs(-0.12), d], [zs(-0.22), d * 0.75], [zs(-0.3), d * 0.3], [zs(-0.32), 0]],
+    spineEnd: sh.spines ? zs(-0.05) : zs(0.17),
+    anal: [[zs(-0.05), 0], [zs(-0.12), an * 0.8], [zs(-0.22), an], [zs(-0.3), an * 0.5], [zs(-0.33), 0]],
+    tail: pts(tails[sh.tail] ?? tails.trunc).map(([s, y], i, a) => [i === 0 || i === a.length - 1 ? tb : s, y]),
+    pect: { s: zs(0.17), y: -H * 0.35 / L, open: 0.55, fin: sh.roundPect ? [[0, 0.012], [pe * 0.4, 0.03], [pe * 0.85, 0.024], [pe, 0], [pe * 0.85, -0.024], [pe * 0.4, -0.03], [0, -0.012]].map(([b, y]) => [b, y * sh.h * 2])
+      : [[0, 0.008], [pe * 0.5, 0.014], [pe, 0.004], [pe * 0.9, -0.008], [pe * 0.45, -0.014], [0, -0.01]].map(([b, y]) => [b, y * sh.h * 2]) },
+    pelvic: { s: zs(0.1), fin: [[0, 0.008], [0.04, 0.004], [0.055, -0.003], [0.04, -0.008], [0, -0.006]] },
+    spines: sh.spines ?? 0,
+    rays: { dorsal: 0.018, tail: 0.11, pect: 0.16 },
+    scales: [34, 28], row: 0.3, iris: [0.72, 0.62, 0.36], look: 0, scaleK: 0.2, light: true,
+  };
+  return key;
+}
+
 // how high the gill cover reaches, above and below the axis (fractions of the length)
 function gillSpan(S: BonyStyle) {
   let i = 0; while (i < S.body.length - 2 && S.body[i + 1][0] < S.gill) i++;
@@ -243,7 +293,7 @@ export function bonyGeometry(name: string) {
       x += (x / l) * push; y += ((y - ym) / l) * push;
     }
     // the cheek and gill cover: full, standing a little proud of the flank at its back edge
-    const ge = S.gill - 0.9 * (y - ym) ** 2 / 0.12;   // (the edge bows back at mid flank, curving forward above and below)
+    const ge = S.gill - 0.17 * ((y - ym) / ((top - bot) * 0.5)) ** 2;   // (the edge bows back at mid flank, curving forward above and below, by the body's height)
     const inV = smooth(bot * 0.85 - 1e-4, bot * 0.4, y) * (1 - smooth(top * 0.45, top * 0.75 + 1e-4, y));   // (the 1e-4: a snout tip on the axis)
     const cover = smooth(S.gill - 0.13, S.gill - 0.05, s) * (1 - smooth(ge - 0.004, ge + 0.004, s)) * inV;
     x *= 1 + 0.05 * cover;
@@ -251,7 +301,7 @@ export function bonyGeometry(name: string) {
     const jaw = (1 - smooth(M.s * 0.8, M.s * 1.4, s)) * smooth(gy + 0.002, gy - 0.008, y);
     return { x: x * L, y: y * L, z: Z(s), edge, jaw };
   };
-  const RINGS = 72, RAD = 36;
+  const RINGS = S.light ? 40 : 72, RAD = S.light ? 24 : 36;   // (light: the small fish, drawn by the dozen)
   const P: number[] = [], B: number[] = [], F: number[] = [], idx: number[] = [];
   const ringS: number[] = [];
   for (let r = 0; r <= RINGS; r++) ringS.push(sb * Math.pow(r / RINGS, 1.35));
@@ -291,7 +341,7 @@ export function bonyGeometry(name: string) {
   };
   // a fin outline with more points along it, so it bends smoothly and its edge is round
   const dense = (o: number[][], n = 4) => { const out: number[][] = []; for (let i = 0; i < o.length - 1; i++) for (let k = 0; k < n; k++) { const t = k / n; out.push([o[i][0] + (o[i + 1][0] - o[i][0]) * t, o[i][1] + (o[i + 1][1] - o[i][1]) * t]); } out.push(o[o.length - 1]); return out; };
-  const T = 6;
+  const T = S.light ? 4 : 6;
   const put = (v: number[], n: number[], t: number[], id: number) => { P.push(v[0], v[1], v[2]); N.push(n[0], n[1], n[2]); B.push(t[0], t[1], t[2] ?? 0, t[3] ?? 0); F.push(id); };
   // a fan of rays from one point (the tail from the end of its stock, a pectoral from its root): spokes out
   // to each point of the outline, in rings, so the rays run straight and the fin can bend between them
@@ -362,7 +412,7 @@ export function bonyGeometry(name: string) {
     const u = ts.clone().normalize(), v = new THREE.Vector3().crossVectors(nrm, u).normalize();
     if (sx < 0) { nrm.x = -nrm.x; u.x = -u.x; v.x = -v.x; }
     const ctr = new THREE.Vector3(sx * c.x, c.y, c.z).addScaledVector(nrm, -er * L * 0.25);
-    const RG = 7, SG = 20, o = P.length / 3, rad = er * L;
+    const RG = S.light ? 4 : 7, SG = S.light ? 12 : 20, o = P.length / 3, rad = er * L;
     for (let i = 0; i <= RG; i++) {
       const th = (i / RG) * (Math.PI / 2), rr = Math.sin(th), hh = Math.cos(th);
       for (let k = 0; k < SG; k++) {

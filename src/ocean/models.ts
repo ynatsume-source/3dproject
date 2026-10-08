@@ -867,14 +867,19 @@ export function speciesGeometry(sp, low = false) {
 }
 // shade: the mesh carries aShade, how much sun and open water reaches each fish (see eco/schoolshade)
 // low: drawn on fishGeometry even if the species has a lofted body (speciesGeometry)
-export function fishMaterial(sp, shade = false, low = false) {
+// opts.bony: draw on that lofted body (a small fish's near copy, bonyFromShape); opts.hide: the far copy, whose
+// fish drawn by the near one are hidden by aHide
+export function fishMaterial(sp, shade = false, low = false, opts: { bony?: string; hide?: boolean } = {}) {
   const c = (a) => new THREE.Color(a[0], a[1], a[2]);
-  const bony = sp.model && !low ? BONY[sp.model] : null;
+  const bonyName = opts.bony ?? (sp.model && !low ? sp.model : null), bony = bonyName ? BONY[bonyName] : null;
   return mat(
     `attribute vec3 aSwim; attribute float aFin; attribute float aBend; uniform float uWig;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
      #ifdef SHADE
      attribute vec2 aShade;
+     #endif
+     #ifdef HIDE
+     attribute float aHide;
      #endif
      #ifdef BONY
      attribute vec4 aB; uniform float uRow; uniform float uRip; uniform vec2 uGill; varying vec4 vB; varying vec3 vAx; varying float vSz;
@@ -923,6 +928,9 @@ export function fishMaterial(sp, shade = false, low = false) {
        mat2 rr = mat2(cos(roll), sin(roll), -sin(roll), cos(roll));
        nl.xy = rr * nl.xy; side.xy = rr * side.xy;
        #endif
+       #ifdef HIDE
+       p *= 1.0 - aHide;   // (this fish is drawn by the near, finer copy)
+       #endif
        vec4 wp = modelMatrix * instanceMatrix * vec4(p, 1.0);
        mat3 toW = mat3(modelMatrix) * mat3(instanceMatrix);
        vWp = wp.xyz; vN = normalize(toW * nl); vSide = normalize(toW * side);
@@ -948,7 +956,7 @@ export function fishMaterial(sp, shade = false, low = false) {
        float z = vL.z, y = vL.y;
        float top = smoothstep(-0.08, 0.12, y);
        vec3 alb;
-       #if defined(BONY)
+       #if defined(BONY) && BONY > 0
          // a lofted big fish (ocean/bony): its skin by vB — along and around the body, the gill cover's edge,
          // the jaw; on the fins the rays; on the eye its disc
          float s = vB.x, ey = vL.y / 1.28;
@@ -1283,6 +1291,32 @@ export function fishMaterial(sp, shade = false, low = false) {
          alb = mix(alb, uC2, smoothstep(0.35, 0.5, max(abs(sc.x - 0.5), abs(sc.y - 0.5))) * 0.6);
          if (vFin > 0.5) alb = mix(uC1, uC2, 0.5);
        #endif
+       #if defined(BONY) && BONY == 0
+       // a small fish's near copy (bonyFromShape): its own pattern above, and on it the eye, the fin rays, the
+       // gill cover's edge, the mouth and faint scales
+       float s = vB.x, ey = vL.y / 1.28;
+       float isBody = step(vFin, 0.5), bEye = step(6.5, vFin);
+       float fine = smoothstep(1.5, 4.0, (vSz * 1.28 / uScl.x) / (length(uCamPos - vWp) * 0.0016 + 1e-4));
+       vec2 sg = vec2(s * uScl.x, vB.y * uScl.y);
+       sg.x += 0.5 * mod(floor(sg.y), 2.0);
+       vec2 cf = fract(sg) - vec2(0.3, 0.5);
+       float scl = smoothstep(0.2, 0.26, s) * isBody * fine * uScK;
+       alb *= 1.0 - 0.12 * smoothstep(0.3, 0.55, length(cf)) * scl;
+       float gy = uMouth.y + uMouth.z * s;
+       alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.001, 0.003, abs(ey - gy))) * (1.0 - smoothstep(uMouth.x * 0.85, uMouth.x * 1.1, s)) * isBody;
+       float gEdge = (1.0 - smoothstep(0.0, 0.006, abs(vB.z))) * smoothstep(uGill.x, uGill.x * 0.85, vL.y) * smoothstep(uGill.y, uGill.y * 0.85, vL.y) * isBody;
+       alb *= 1.0 - 0.35 * gEdge;
+       vec3 Tb = normalize(-vAx + n * dot(n, vAx) + 1e-4), Ta = cross(n, Tb);
+       n = normalize(n + (Tb * cf.x + Ta * cf.y) * 0.3 * scl + Tb * 0.3 * gEdge);
+       float ray = (1.0 - smoothstep(0.03, 0.1, abs(fract(vB.x + 0.5) - 0.5))) * fine;
+       if (vFin > 0.5 && vFin < 6.5) { alb *= 0.94 + 0.12 * ray * (1.0 - 0.5 * vB.y); n = normalize(n + vAx * sin(fract(vB.x) * 6.2832) * 0.2 * fine); }
+       if (vFin > 6.5) {
+         float r = length(vB.xy);
+         vec3 iris = uIris * (0.7 + 0.45 * vn2(vec2(atan(vB.y, vB.x) * 5.0, r * 3.0)));
+         alb = mix(vec3(0.006, 0.008, 0.01), mix(iris, uIris * 0.3, smoothstep(0.5, 0.66, r)), smoothstep(0.34, 0.4, r));
+         alb = mix(alb, alb * 0.6 + uC1 * 0.2, smoothstep(0.78, 0.92, r));
+       }
+       #endif
        alb *= vTint;
        #ifdef SILVER
        float mir = 0.0;
@@ -1378,7 +1412,7 @@ export function fishMaterial(sp, shade = false, low = false) {
        #endif
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}) }, uniforms: { ...(bony ? bonyUniforms(sp.model) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
+    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
       opts: { side: THREE.DoubleSide } });
 }
 

@@ -6,6 +6,7 @@ import { critterModel } from '../eco/critters';
 import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, CORAL_GEO, CORAL_MAT, PALETTE, speciesGeometry } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
+import { bonyFromShape } from '../ocean/bony';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
 import { makeHarborSeal } from '../ocean/lobos-visitor-models';
@@ -18,11 +19,14 @@ let renderer: THREE.WebGLRenderer | null = null;
 const cache = new Map<string, Record<string, string>>();
 
 function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, number, number] } | null {
-  const sp = loc.species.find((s) => s.id === id) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined) ?? ridersFor(loc).find((s) => s.id === id);
+  // (?debug: 'near:<id>' — a small fish's fine near copy, bonyFromShape)
+  const nearId = id.startsWith('near:') ? id.slice(5) : null;
+  const sp = loc.species.find((s) => s.id === (nearId ?? id)) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined) ?? ridersFor(loc).find((s) => s.id === id);
   if (sp) {
-    const g = speciesGeometry(sp);
+    const nk = nearId ? bonyFromShape(sp.shape, SHAPES[sp.shape]) : null;
+    const g = nk ? speciesGeometry({ ...sp, model: nk }) : speciesGeometry(sp);
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));
-    const m = new THREE.InstancedMesh(g, fishMaterial(sp), 1); m.setMatrixAt(0, new THREE.Matrix4());
+    const m = new THREE.InstancedMesh(g, fishMaterial(sp, false, false, nk ? { bony: nk } : {}), 1); m.setMatrixAt(0, new THREE.Matrix4());
     return { obj: m, view: sp.shape === 'hammer' ? [0.35, 1.0, 0.12] : [1, 0.22, 0.55] };   // a hammerhead is best seen from above
   }
   const cr = (loc.critters || []).find((c) => c.id === id);

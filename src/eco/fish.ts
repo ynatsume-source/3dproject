@@ -8,6 +8,7 @@ import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { unseen } from './unseen';
 import { SHAPES, fishGeometry, fishMaterial, UPV, speciesGeometry } from '../ocean/models';
+import { bonyFromShape } from '../ocean/bony';
 import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
@@ -90,9 +91,26 @@ export function makeFishSystem(sp: Species, oc: any) {
   const fb = new Float32Array(total), bendAttr = new THREE.InstancedBufferAttribute(new Float32Array(total), 1);
   bendAttr.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('aBend', bendAttr);
   const bigTurn = !!sp.big || sp.size[1] > 1.2, turnMax = 1.6 / (1 + sp.size[1]);
-  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp), total);
+  // The few fish nearest the camera are drawn again on a finer, lofted body of their own shape (ocean/bony
+  // bonyFromShape: an eye, fin rays, gill cover, the same pattern), and hidden in the plain copy; the rest, often
+  // hundreds, stay plain. Only drawing: positions, matrices and everything that reads them are the plain copy's.
+  const nearKey = !sp.model && total > 0 ? bonyFromShape(sp.shape, sh) : null;
+  const NEAR = nearKey ? Math.min(total, 16) : 0;
+  const hideA = nearKey ? new THREE.InstancedBufferAttribute(new Float32Array(total), 1) : null;
+  if (hideA) { hideA.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('aHide', hideA); }
+  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp, false, false, { hide: !!nearKey }), total);
   mesh.frustumCulled = false;
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  let near: THREE.InstancedMesh | null = null, nearSw: THREE.InstancedBufferAttribute | null = null, nearBend: THREE.InstancedBufferAttribute | null = null;
+  const nearOf = new Int32Array(NEAR).fill(-1), nearD = new Float32Array(NEAR);
+  if (nearKey) {
+    const ng = speciesGeometry({ ...sp, model: nearKey });
+    nearSw = new THREE.InstancedBufferAttribute(new Float32Array(NEAR * 3), 3); ng.setAttribute('aSwim', nearSw);
+    nearBend = new THREE.InstancedBufferAttribute(new Float32Array(NEAR), 1); nearBend.setUsage(THREE.DynamicDrawUsage); ng.setAttribute('aBend', nearBend);
+    near = new THREE.InstancedMesh(ng, fishMaterial(sp, false, false, { bony: nearKey }), NEAR);
+    near.frustumCulled = false; near.instanceMatrix.setUsage(THREE.DynamicDrawUsage); near.count = 0;
+    mesh.add(near);   // (the plain copy sits at the origin: its child draws in the same world frame)
+  }
   // parrotfish sleep inside a mucus cocoon they secrete at dusk
   let cocoon: THREE.InstancedMesh | null = null;
   if (sp.cocoon) {
@@ -632,6 +650,37 @@ export function makeFishSystem(sp: Species, oc: any) {
       (mesh.material as THREE.ShaderMaterial).uniforms.uWig.value = (sp.wig ?? 1) * (1 - 0.8 * resting);
     }
     if (dirty) { mesh.instanceMatrix.needsUpdate = true; if (bigTurn) bendAttr.needsUpdate = true; if (cocoon) cocoon.instanceMatrix.needsUpdate = true; }
+    if (near) pickNear(cam);
+  }
+
+  // the NEAR fish nearest the camera, within a reach that grows with the fish (a 10 cm damselfish from 4.5 m, a
+  // half-metre one from about 9): copied onto the fine body, hidden on the plain one
+  const _nm = new THREE.Matrix4();
+  function pickNear(cam: THREE.Vector3) {
+    let n = 0;
+    nearD.fill(Infinity);
+    const reachK = 4.5 / 0.1;
+    for (let i = 0; i < total; i++) {
+      if (dead[i]) continue;
+      const len = fs[i] * 1.28, reach = Math.min(9, Math.max(3.5, len * reachK * 0.5 + 2.2));
+      const dx = fp[i * 3] - cam.x, dy = fp[i * 3 + 1] - cam.y, dz = fp[i * 3 + 2] - cam.z, d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 > reach * reach) continue;
+      // keep the NEAR smallest (insertion into a short sorted list)
+      if (n < NEAR) n++; else if (d2 >= nearD[NEAR - 1]) continue;
+      let k = n - 1; while (k > 0 && nearD[k - 1] > d2) { nearD[k] = nearD[k - 1]; nearOf[k] = nearOf[k - 1]; k--; }
+      nearD[k] = d2; nearOf[k] = i;
+    }
+    const H = hideA!.array as Float32Array, E = mesh.instanceMatrix.array as Float32Array, sw = nearSw!.array as Float32Array, nb = nearBend!.array as Float32Array, fbA = bendAttr.array as Float32Array;
+    H.fill(0);
+    for (let k = 0; k < n; k++) {
+      const i = nearOf[k];
+      H[i] = 1;
+      _nm.fromArray(E, i * 16); near!.setMatrixAt(k, _nm);
+      sw[k * 3] = swim[i * 3]; sw[k * 3 + 1] = swim[i * 3 + 1]; sw[k * 3 + 2] = swim[i * 3 + 2];
+      nb[k] = fbA[i];
+    }
+    near!.count = n;
+    hideA!.needsUpdate = true; near!.instanceMatrix.needsUpdate = true; nearSw!.needsUpdate = true; nearBend!.needsUpdate = true;
   }
 
   function nearest(cam: THREE.Vector3, fwd: THREE.Vector3, maxD: number) {
