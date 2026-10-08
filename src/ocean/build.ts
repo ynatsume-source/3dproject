@@ -224,6 +224,11 @@ export function buildOcean(loc) { return drain(buildOceanSteps(loc)); }
 export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   seedRandom(loc.seed);
   const T = makeT(loc);
+  // The bed things are set down on: the lower of the smooth ground and the seabed as drawn (T.drawn: its flat
+  // triangles, which on a rim's curve fall short of the smooth ground by tens of centimetres — a coral or rock set
+  // on the smooth ground there stood off the drawn rock, seen from below; owner, 2026-10-08). Where the triangles
+  // run above it instead, it sits that little deeper in. (loc.f last: TERR is this spot's.)
+  const bed = (x: number, z: number) => { const d = T.drawn ? T.drawn(x, z) : Infinity, h = loc.f(x, z); return Math.min(h, d); };
   const obst = new ObstacleMap(loc.land ? loc.land.far : LIMIT + 45);   // (by an island, over the whole of it: its reef is filled in as the camera comes near — see grow)
   T.obst = obst;
   yield 'seabed';
@@ -393,11 +398,13 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
       if ((cave && cave.routeDist(jx, jz) < 3.5) || underWreck(jx, jz, h)) continue;
       // (mostly the tangle itself; here and there a corymbose dome among it)
       const dome = R() < 0.12, s = dome ? rr(0.9, 1.5) : rr(1.0, 1.55) * (0.75 + 0.25 * Math.min(1, k));
-      const it: any = { x: jx, z: jz, y: h - 0.1, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.15), sz: s * rr(0.85, 1.15) };
+      // (on the bed as drawn, down to the lowest of it under the tangle's foot)
+      let hb = bed(jx, jz); for (let k = 0; k < 6; k++) { const a = k * 1.047; hb = Math.min(hb, bed(jx + Math.cos(a) * 0.4 * s, jz + Math.sin(a) * 0.4 * s)); } loc.f(jx, jz);
+      const it: any = { x: jx, z: jz, y: hb - 0.1, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.15), sz: s * rr(0.85, 1.15) };
       // (neighbours mostly of one colour, as a thicket is often one or a few colonies grown together)
       const c = pal[Math.floor(fbm(jx * 0.15 + 3, jz * 0.15, 2) * pal.length * 1.6 + R() * 0.8) % pal.length];
       it.c = tintCol(c[0], 0.14); it.c2 = tintCol(c[1], 0.1); it.seed = R();
-      if (!fitUnder('branch', dome ? 1 : 2, it, h)) continue;   // (its top under the water)
+      if (!fitUnder('branch', dome ? 1 : 2, it, hb)) continue;   // (its top under the water)
       items.branch[dome ? 1 : 2].push(it);
       obst.stamp(jx, jz, 0.6 * it.sx, it.y + (dome ? 0.3 : 0.62) * it.sy, it.sy);
     }
@@ -422,7 +429,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     for (const k in w) { q -= w[k]; if (q <= 0) { kind = k; break; } }
     const pal = pick(PALETTE[kind]), seed = R();
     let s, it, vi = 0, sink = 0;
-    const y0 = loc.f(x, z);
+    const y0 = bed(x, z);
     if (kind === 'branch') { s = rr(0.6, 1.7); it = { x, z, y: y0 - 0.08, ry: R() * 6.28, sx: s, sy: s * rr(0.8, 1.2), sz: s }; vi = R() < 0.55 ? 0 : 1; }
     else if (kind === 'table') { s = rr(0.7, 2.1) * (0.6 + 0.6 * shallow); it = { x, z, y: y0 - 0.05, ry: R() * 6.28, sx: s, sy: rr(0.7, 1.1), sz: s * rr(0.85, 1.1), tx: (R() - 0.5) * 0.12, tz: (R() - 0.5) * 0.12 }; }
     else if (kind === 'brain') {
@@ -442,7 +449,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     it.c = tintCol(pl[0]); it.c2 = tintCol(pl[1]); it.seed = seed + (it.porites ? 1 : 0);
     // (its top under the water: grown less where the water is shallow, or not here at all — the random draws
     // above are the same either way, so the rest of the reef is laid out as before)
-    const y1 = seat(kind, vi, it, y0, loc.f); loc.f(x, z);   // (loc.f again: TERR is this spot's once more)
+    const y1 = seat(kind, vi, it, y0, bed); loc.f(x, z);   // (loc.f again: TERR is this spot's once more)
     if (y1 === null || !fitUnder(kind, vi, it, y1, sink)) return;
     it.floor = y1;   // (what it stands on: if it is moved off a rock, it is set down again from here)
     items[kind][vi].push(it);
@@ -543,7 +550,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
         if (k < 4 && R() > 0.25 + r * 1.5) continue;                              // litter thickest near the reef
         const s = k === 4 ? rr(1.1, 1.7) : k === 5 ? rr(0.7, 1.2) : rr(0.6, 1.6);
         const col = k === 4 ? [0.08, 0.075, 0.07] : k === 5 ? [0.16, 0.34, 0.86] : tintCol(pick([[0.92, 0.9, 0.84], [0.86, 0.8, 0.72], [0.8, 0.72, 0.7], [0.9, 0.86, 0.78]]));
-        list.push({ x, z, y: h + (k === 4 ? 0.02 : 0.005), ry: R() * 6.28, tx: (R() - 0.5) * 0.3, tz: (R() - 0.5) * 0.3, sx: s, sy: s, sz: s, c: col, c2: col, seed: R() });
+        list.push({ x, z, y: bed(x, z) + (k === 4 ? 0.02 : 0.005), ry: R() * 6.28, tx: (R() - 0.5) * 0.3, tz: (R() - 0.5) * 0.3, sx: s, sy: s, sz: s, c: col, c2: col, seed: R() });
       }
       debris.forEach((d, di) => {
         const bucket = new Map<string, any[]>();
@@ -614,7 +621,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
           const rf = (x: number, z: number) => { const h = rockTop(w.r, x, z); return h > -1e8 ? h : -1e3; };
           const ry0 = rf(it.x, it.z);
           if (ry0 > -1e2) {
-            const t = { ...it, y: it.y - (it.floor ?? loc.f(it.x, it.z)) + ry0, up: undefined };
+            const t = { ...it, y: it.y - (it.floor ?? bed(it.x, it.z)) + ry0, up: undefined };
             const ry1 = seat(kind, v, t, ry0, rf);
             if (ry1 !== null && fitUnder(kind, v, t, ry1, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y, w.r)) { Object.assign(it, t); it.floor = ry1; it.onRock = true; oc.onRock = (oc.onRock ?? 0) + 1; (oc.onRockAt ??= []).push([it.x, it.y, it.z, Math.max(it.sx, it.sz)]); return true; }
           }
@@ -625,10 +632,10 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
         if (push < 4) for (const a of [0, 0.6, -0.6, 1.2, -1.2]) {
           const c = Math.cos(a), sn = Math.sin(a), ux = ux0 * c - uz0 * sn, uz = ux0 * sn + uz0 * c;
           const nx = it.x + ux * push, nz = it.z + uz * push;
-          const y0 = it.floor ?? loc.f(it.x, it.z), ny0 = loc.f(nx, nz);
+          const y0 = it.floor ?? bed(it.x, it.z), ny0 = bed(nx, nz);
           if (Math.abs(ny0 - y0) > 0.6 || (cave && cave.routeDist(nx, nz) < 3.5) || underWreck(nx, nz, ny0)) continue;
           const t = { ...it, x: nx, z: nz, y: it.y + ny0 - y0, up: undefined };
-          const ny1 = seat(kind, v, t, ny0, loc.f);   // (set down on the reef there, as where it first grew)
+          const ny1 = seat(kind, v, t, ny0, bed);   // (set down on the reef there, as where it first grew)
           if (ny1 !== null && fitUnder(kind, v, t, ny1, SINK[kind] ?? 0) && !hits(t.x, t.z, half * Math.max(t.sx, t.sz), t.y + top * t.sy, t.y)) { Object.assign(it, t); return true; }
         }
         if (w.d < 0.8 * w.r.r) return false;                               // (its base in the rock, and nowhere near to go: none)
@@ -714,10 +721,11 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
         const s = a + Math.pow(R(), 2.2) * (b - a);
         const tilt = kind === 'angular' || kind === 'rubble' ? 0.9 : kind === 'slab' ? 0.25 : 0.35;
         const sy = s * (kind === 'pinnacle' ? rr(1.0, 1.6) : kind === 'slab' ? rr(0.7, 1.0) : rr(0.5, 0.9));
-        const it = { x, z, y: h - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
+        const hb = bed(x, z);
+        const it = { x, z, y: hb - sy * (kind === 'pinnacle' ? 0.15 : 0.3), ry: R() * 6.28, tx: (R() - 0.5) * tilt, tz: (R() - 0.5) * tilt, sx: s * rr(0.75, 1.35), sy, sz: s * rr(0.75, 1.35) };
         // (resting on the slope under all of it: down to its low side, or, on a drop too steep for that, not here)
-        { const r0 = 0.85 * Math.max(it.sx, it.sz); let lo = h; for (const ring of [0.5, 1]) for (let k = 0; k < 10; k++) { const a = (k + ring) * 0.628; lo = Math.min(lo, loc.f(x + Math.cos(a) * r0 * ring, z + Math.sin(a) * r0 * ring)); } loc.f(x, z);
-          const drop = h - lo - 0.12 * sy; if (drop > 1.1 * sy) continue; if (drop > 0) it.y -= drop; }
+        { const r0 = 0.85 * Math.max(it.sx, it.sz); let lo = hb; for (const ring of [0.5, 1]) for (let k = 0; k < 10; k++) { const a = (k + ring) * 0.628; lo = Math.min(lo, bed(x + Math.cos(a) * r0 * ring, z + Math.sin(a) * r0 * ring)); } loc.f(x, z);
+          const drop = hb - lo - 0.12 * sy; if (drop > 1.1 * sy) continue; if (drop > 0) it.y -= drop; }
         const li = ki * 2 + (R() < 0.5 ? 0 : 1); lists[li].push(it);
         if (s > 0.3) obst.stamp(x, z, 0.9 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.4 : 1), it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), sy);
         if (s > 0.3) addFoot({ x, z, r: 0.85 * Math.max(it.sx, it.sz) * (kind === 'slab' ? 1.3 : 1), top: it.y + sy * (kind === 'pinnacle' ? 1.9 : kind === 'slab' ? 0.45 : 0.85), under: -1e9, it, geo: kind === 'pinnacle' || kind === 'rubble' ? null : protos[li].geo }, feet);   // (geo: a top a colony can grow on)
@@ -728,7 +736,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
       // against it so shadowed gaps open behind them.
       const slabIdx = (kIdx: number) => kIdx * 2 + (R() < 0.5 ? 0 : 1);
       // (the anemones keep their patch of open reef: no rock or slab comes down on one)
-      const hAt = (x: number, z: number) => loc.f(x, z);
+      const hAt = (x: number, z: number) => bed(x, z);
       let ledges = 0, leaners = 0;
       for (let tries = 0; tries < 60000 * frac && (ledges < 320 * frac || leaners < 300 * frac); tries++) {
         if ((tries & 63) === 0 && due()) yield 'rocks';

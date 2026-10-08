@@ -6,6 +6,10 @@
 // the corals and under 1.5% of the rocks floating in every sea (before this fix: Miyako 26% and 31%, the Maldives
 // 38% and 36%; a steep wall's last few are measurement as much as anything). (A table's plate, a sea fan's blade and a soft coral's
 // crown are meant to stand clear: only the stalk is counted.)
+// The floor is the seabed as drawn (T.drawn, its flat 1.24 m triangles; owner report 2026-10-08: corals off the rock
+// seen from below, where a rim's triangles fall short of the smooth ground they were placed on) under any cave rock;
+// env GAP (default 0.3) the clearance that counts as floating, SMOOTH=1 to measure against the smooth ground (loc.f)
+// as before.
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/float-check.ts [miyako kayama gbr redsea maldives]
 import './node-land';
 import * as THREE from 'three';
@@ -17,12 +21,14 @@ import { CORAL_MAT, CORAL_GEO } from '../src/ocean/models';
 const KINDS = ['branch', 'table', 'brain', 'mushroom', 'fan', 'clam'];
 const m = new THREE.Matrix4(), pt = new THREE.Vector3();
 let bad = 0;
+const GAP = +(process.env.GAP || 0.3), SMOOTH = !!process.env.SMOOTH;
 const seas = process.argv.slice(2);
 for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'maldives']) {
   const loc: any = LOCATIONS.find((l) => l.id === id)!;
   if (loc.land) await loadLand(id, loc.land.half, loc.land.far);
   const oc: any = buildOcean(loc);
   const T = oc.T;
+  const ground = (x: number, z: number) => SMOOTH || !T.drawn ? T.h(x, z) : Math.max(T.drawn(x, z), oc.cave ? oc.cave.topAt(x, z) : -1e9);
   const tally: Record<string, [number, number]> = {};
   const worst: string[] = [];
   const meshes: { mesh: THREE.InstancedMesh; kind: string }[] = [];
@@ -43,8 +49,8 @@ for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'mal
     const k = Math.floor(m.elements[12] / RC) + ',' + Math.floor(m.elements[14] / RC); (RH.get(k) ?? RH.set(k, []).get(k)!).push({ m: m.clone(), mesh: rm });
   }
   const floorAt = (x: number, y: number, z: number) => {
-    let f = T.h(x, z);
-    if (y - f <= 0.3) return f;
+    let f = ground(x, z);
+    if (y - f <= GAP) return f;
     for (let i = Math.floor(x / RC) - 1; i <= Math.floor(x / RC) + 1; i++) for (let j = Math.floor(z / RC) - 1; j <= Math.floor(z / RC) + 1; j++) for (const r of RH.get(i + ',' + j) ?? []) {
       rc.set(o.set(x, y + 0.5, z), down); const h = rc.intersectObject(r.mesh, false); if (h.length) f = Math.max(f, h[0].point.y);
     }
@@ -71,8 +77,8 @@ for (const id of seas.length ? seas : ['miyako', 'kayama', 'gbr', 'redsea', 'mal
       let n = 0, up = 0, most = 0;
       for (let q = 0; q < low.length; q += step) {
         pt.fromBufferAttribute(P, low[q]).applyMatrix4(m);
-        const gap = kind === 'rock' ? pt.y - T.h(pt.x, pt.z) : pt.y - floorAt(pt.x, pt.y, pt.z);
-        n++; if (gap > 0.3) up++; most = Math.max(most, gap);
+        const gap = kind === 'rock' ? pt.y - ground(pt.x, pt.z) : pt.y - floorAt(pt.x, pt.y, pt.z);
+        n++; if (gap > GAP) up++; most = Math.max(most, gap);
       }
       t[0]++;
       if (up > n * 0.2) { t[1]++; if (process.env.DBG && kind !== "rock" && t[1] < 6) console.log("  ", kind, m.elements[12].toFixed(1), m.elements[13].toFixed(2), m.elements[14].toFixed(1), "gap", most.toFixed(2), "floor", T.h(m.elements[12], m.elements[14]).toFixed(2), "cave", oc.cave ? oc.cave.topAt(m.elements[12], m.elements[14]).toFixed(1) : "-", "scale", Math.hypot(m.elements[0], m.elements[1], m.elements[2]).toFixed(2)); if (worst.length < 4) worst.push(`${kind} at (${m.elements[12].toFixed(0)}, ${m.elements[14].toFixed(0)}) ${most.toFixed(2)} m`); }
