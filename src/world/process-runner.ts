@@ -144,19 +144,45 @@ export function assembleParts(L: Ledger, lotIds: Id[], T: PartsAssemblyTable, re
 /** Take equipment made of several lots apart: one lot (a new lotId) for each part, of its copy's amount and where it was,
  *  with what the table says it became for the equipment's condition. Nothing changes if the table's answer does not
  *  match the parts. */
-export function disassembleParts(L: Ledger, equipmentId: Id, T: PartsAssemblyTable): { lots?: LotView[]; why?: string } {
+//  The table answers for ordinary use only (the wear the upper pot's; science, 2026-10-08). What else befalls a part — it
+//  is dropped, or itself breaks — is the world's: `broken` names those parts, and each comes back as the one-lot table's
+//  broken material (sherds, with what that table keeps of the body), of its own copy's amount. A piece lost whole (washed
+//  away) is loseEquipment's.
+export function disassembleParts(L: Ledger, equipmentId: Id, T: PartsAssemblyTable, broken?: { parts: number[]; as: AssemblyTable }): { lots?: LotView[]; why?: string } {
   const e = L.equipment[equipmentId];
   if (!e) return { why: `no equipment ${equipmentId}` };
   const parts = e.assembled?.parts;
   if (!parts) return { why: `${equipmentId} was not made of several lots` };
   if (e.reservedBy) return { why: `${equipmentId} is in use (${e.reservedBy})` };
+  if (broken && (!broken.as.brokenMaterial || broken.parts.some((i) => !Number.isInteger(i) || i < 0 || i >= parts.length))) return { why: 'no broken material, or no such part' };
   let back: { materialId: Id; quality: Record<string, number> }[];
-  try { back = T.partsOnReturn(parts.map((p) => ({ ...(p.quality ?? {}) })), e.condition); } catch (err) { return { why: (err as Error).message }; }
+  try { back = T.partsOnReturn(parts.map((p) => ({ ...(p.quality ?? {}) })), e.condition); } catch (err) { return { why: (err as Error).message }; }   // (asked once, for all the parts)
   if (!Array.isArray(back) || back.length !== parts.length || back.some((b) => !b || typeof b.materialId !== 'string')) return { why: `the table gave ${back?.length ?? 0} parts back for ${parts.length}` };
-  const lots = back.map((b, i) => addLot(L, { materialId: b.materialId, amount: { ...parts[i].amount }, quality: { ...b.quality }, location: parts[i].location }));
+  if (broken) for (const i of broken.parts) {
+    let q: Record<string, number> | undefined;
+    try { q = broken.as.brokenQuality?.({ ...(parts[i].quality ?? {}) }); } catch (err) { return { why: (err as Error).message }; }
+    back[i] = { materialId: broken.as.brokenMaterial!, quality: q ?? {} };
+  }
+  const lots = back.map((b, i) => addLot(L, { materialId: b.materialId, amount: { ...parts[i].amount }, quality: { ...b.quality }, location: parts[i].location }));   // (each part its own amount, on its own side)
   delete L.equipment[equipmentId];
   L.world.worldVersion++;
   return { lots };
+}
+
+/** A piece of equipment lost whole (washed away in a flood, gone with all its parts): a run using it is told so
+ *  (stop: equipment-lost — the step settles what it can) and the equipment is gone; nothing comes back. */
+export function loseEquipment(L: Ledger, equipmentId: Id, step: ScienceStep | null, i: StepInput | null): { committed: Committed[]; why?: string } {
+  const e = L.equipment[equipmentId];
+  if (!e) return { committed: [], why: `no equipment ${equipmentId}` };
+  let committed: Committed[] = [];
+  const runId = e.reservedBy;
+  if (runId) {
+    if (step && i) committed = advance(L, runId, step, { ...i, stop: 'equipment-lost' });
+    if (L.runs[runId] && ['starting', 'running', 'needs-input'].includes(L.runs[runId].status)) abortRun(L, runId, `${equipmentId} was lost`);   // (the step would not settle it: freed, unconsumed)
+  }
+  delete L.equipment[equipmentId];
+  L.world.worldVersion++;
+  return { committed };
 }
 
 /** After loading: equipment assembled under another version of its table gets its params again from the lot it was

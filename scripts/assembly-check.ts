@@ -17,7 +17,7 @@
 //    pot; a copy of each kept; saved and loaded; worked out again for a new table; taken apart as the table says, each
 //    part of its own amount (worn: the upper pot cracked; broken: the upper pot to sherds, the lower one whole)
 // Usage: npx tsx scripts/assembly-check.ts
-import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, assembleParts, disassembleParts, refreshAssembledParts, type AssemblyTable, type PartsAssemblyTable, type Ledger } from '../src/world/process-runner';
+import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, assembleParts, disassembleParts, refreshAssembledParts, loseEquipment, startRun, type AssemblyTable, type PartsAssemblyTable, type Ledger } from '../src/world/process-runner';
 import type { LotView } from '../src/world/science-contract';
 import { POT_ASSEMBLY } from '../src/world/process-catalog';
 
@@ -154,6 +154,22 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const wrongT: PartsAssemblyTable = { ...T7, partsOnReturn: () => [{ materialId: 'fired_pot', quality: {} }] };
   const e2 = assembleParts(L7, [broken[1].lotId, pot(L7, 'lot:up2', 3000, 1_400_000).lotId], T7, 2000).equipment!;
   want('7 a table that answers for the wrong number of parts: refused, nothing changes', !!disassembleParts(L7, e2.equipmentId, wrongT).why && !!L7.equipment[e2.equipmentId]);
+  // (what the table does not decide — science, 2026-10-08 — is the world's: a part that breaks of itself, a dropped
+  // retort, one washed away whole)
+  let asked = 0; const T7n: PartsAssemblyTable = { ...T7, partsOnReturn: (c, k) => { asked++; return T7.partsOnReturn(c, k); } };
+  const L7d: Ledger = JSON.parse(JSON.stringify(L7));
+  const lowBroke = disassembleParts(L7d, e2.equipmentId, T7n, { parts: [1], as: POT_ASSEMBLY }).lots!;
+  want('7 the lower pot itself broken: it to sherds of its own amount (the one-pot table\'s body), the upper as the table says; the table asked once', asked === 1 && lowBroke[0].materialId === 'fired_pot' && lowBroke[0].amount.value === 900_000 && lowBroke[1].materialId === POT_ASSEMBLY.brokenMaterial && lowBroke[1].amount.value === 1_400_000 && !L7d.equipment[e2.equipmentId], lowBroke.map((l) => `${l.materialId} ${l.amount.value} ${JSON.stringify(l.quality)}`).join(' / '));
+  const L7e: Ledger = JSON.parse(JSON.stringify(L7)); L7e.equipment[e2.equipmentId].condition = 0;
+  const dropped = disassembleParts(L7e, e2.equipmentId, T7, { parts: [1], as: POT_ASSEMBLY }).lots!;
+  want('7 dropped: both to sherds, each of its own amount — not the sum on one, not both copied', dropped.every((l) => l.materialId === 'pot_sherds') && dropped[0].amount.value + dropped[1].amount.value === 2_300_000 && dropped[0].amount.value === 900_000, dropped.map((l) => `${l.materialId} ${l.amount.value}`).join(', '));
+  want('7 no such part: refused, nothing changes', !!disassembleParts(L7, e2.equipmentId, T7, { parts: [2], as: POT_ASSEMBLY }).why && !!L7.equipment[e2.equipmentId]);
+  const L7f: Ledger = JSON.parse(JSON.stringify(L7)), fw = addLot(L7f, { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 2_000_000, unit: 'mg' }, location: 'shelf' });
+  const run7 = startRun(L7f, { processId: 'p14x_charcoal_tar_retort', processVersion: '0', catalogVersion: 'x', contract: 'x', clock: 'world', lotIds: [fw.lotId], equipmentIds: [e2.equipmentId], operator: 'res:lantern' }, 3000).run!;
+  const before7f = Object.keys(L7f.lots).sort().join();
+  loseEquipment(L7f, e2.equipmentId, null, null);
+  const lots7f = Object.keys(L7f.lots).sort().join();
+  want('7 washed away whole while in use: the run stopped, its firewood free again, the retort and both pots gone', !L7f.equipment[e2.equipmentId] && L7f.runs[run7.runId].status === 'stopped' && !L7f.lots['lot:wood'].reservedBy && lots7f === before7f, `${L7f.runs[run7.runId].status}; lots ${before7f === lots7f ? 'unchanged (nothing came back)' : lots7f}`);
 }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
