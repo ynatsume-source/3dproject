@@ -1507,11 +1507,11 @@ function turtleGeos(hawk: boolean) {
   const W = hawk ? 0.39 : 0.41;
   const half = (zn: number) => W * Math.pow(Math.max(0, 1 - zn * zn), 0.55) * (1 + 0.1 * zn) * (0.78 + 0.22 * smooth(-1, -0.2, zn));
   const Z = (zn: number) => zn * (zn > 0 ? 0.47 : 0.53);
-  const dome = (xn: number, zn: number) => 0.255 * Math.pow(Math.max(0, 1 - xn * xn), 0.48) * Math.pow(Math.max(0, 1 - zn * zn), 0.36) * (1 + 0.1 * zn)   // (a deep, full dome: thicker than it looks from above)
+  const dome = (xn: number, zn: number) => 0.255 * Math.pow(Math.max(0, 1 - xn * xn), 0.62) * Math.pow(Math.max(0, 1 - zn * zn), 0.36) * (1 + 0.1 * zn)   // (a deep, full dome: thicker than it looks from above, falling away to the margins rather than standing up in a wall)
     + (hawk ? 0.012 * Math.max(0, 1 - Math.abs(xn) * 5) : 0);                          // hawksbill: a slight ridge
   const top = grid(40, 48, (u, v) => { const xn = u * 2 - 1, zn = -0.995 + v * 1.99; let y = dome(xn, zn);
     // marginal scutes flare out a little, and the hawksbill's rear margin is serrated
-    const rim = smooth(0.82, 1.0, Math.abs(xn)); y = y * (1 - rim * 0.6) + rim * 0.015;
+    const rim = smooth(0.72, 1.0, Math.abs(xn)); y = y * (1 - rim * 0.7) + rim * 0.014;
     let hw = half(zn); if (hawk && zn < -0.2) hw *= 1 - 0.04 * Math.max(0, Math.sin(zn * 40)) * rim;
     return [xn * hw, y, Z(zn)]; });
   add(top, 0, (x, y, z) => { const zn = z > 0 ? z / 0.47 : z / 0.53; return [x / Math.max(half(zn), 1e-3), zn]; });
@@ -1620,10 +1620,12 @@ const TURTLE_GEOS = { green: turtleGeos(false), hawksbill: turtleGeos(true) };
 export function turtleMaterial(style) {
   const s = TURTLE_STYLE[style], c = (a: number[]) => new THREE.Color(a[0], a[1], a[2]);
   return mat(
-    `attribute float aPart; attribute vec2 aCar; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar;
-     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart; vCar = aCar; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    `attribute float aPart; attribute vec2 aCar; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar; varying vec3 vTx; varying vec3 vTz;
+     void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart; vCar = aCar;
+       vTx = normalize(mat3(modelMatrix) * vec3(1.0, 0.0, 0.0)); vTz = normalize(mat3(modelMatrix) * vec3(0.0, 0.0, 1.0));   // (the shell's across and along, for its relief)
+       gl_Position = projectionMatrix * viewMatrix * w; }`,
     SURFACE + `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uRay; uniform vec3 uDark; uniform vec3 uSkin; uniform float uHawk; uniform float uSeed; uniform vec3 uEyeP;
-     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar;
+     varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec2 vCar; varying vec3 vTx; varying vec3 vTz;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        vec3 alb;
@@ -1669,7 +1671,12 @@ export function turtleMaterial(style) {
          alb *= 0.8 + 0.4 * vn2(vec2(x, z) * 3.0 + uSeed);                                    // broad mottling across the shell
          alb = mix(alb, uDark, smoothstep(0.55, 0.85, vn2(vec2(ang * 1.5, rr * 5.0) - cen * 7.0 + uSeed)) * (0.35 + 0.45 * uHawk));
          alb *= 0.85 + 0.25 * vn2(vL.xz * 60.0);
-         alb = mix(uDark * 0.8, alb, smoothstep(0.0, fw, seam - 0.006));              // the seams between scutes
+         alb = mix(mix(alb, uDark, 0.75), alb, smoothstep(0.0, fw, seam - 0.0035));    // the seams between scutes: fine grooves
+         // each scute a low dome, rising from the grooves of its seams toward its growth centre: the normal bent
+         // away from the centre near the seams, so the light picks out every plate
+         float rise = 1.0 - smoothstep(0.0, 0.07, seam);
+         vec2 dn = normalize(d + 1e-4) * rise * 0.55;
+         n = normalize(n + (vTx * dn.x + vTz * dn.y * (1.0 - 0.3 * uHawk)) * (1.0 - smoothstep(0.86, 0.97, ax)));
          // a little algae and the odd barnacle
          alb = mix(alb, vec3(0.22, 0.27, 0.13), smoothstep(0.66, 0.85, vn2(vL.xz * 9.0 + uSeed)) * 0.35 * (1.0 - uHawk * 0.5));
          float bc = cellF1(vL.xz * 38.0 + uSeed);
@@ -1716,10 +1723,18 @@ export function turtleMaterial(style) {
          // the claw on each fore flipper's leading edge
          alb = mix(alb, vec3(0.1, 0.08, 0.06), (1.0 - smoothstep(0.012, 0.02, length(vec2(vCar.x - 0.35, 0.0)) + abs(vL.z + 0.04) * 0.5)) * step(0.01, vCar.x));
        } else {
-         // plastron: creamy yellow with faint seams; the underside of the marginal scutes around it
-         float sm = min(abs(fract(vCar.y * 2.3 + 0.2) - 0.5), abs(abs(vCar.x) - 0.3));
-         alb = mix(vec3(0.62, 0.56, 0.4), vec3(0.8, 0.74, 0.55), smoothstep(0.0, 0.04, sm));
-         alb = mix(alb, mix(uC1, vec3(0.7, 0.64, 0.46), 0.5), smoothstep(0.72, 0.8, abs(vCar.x)));
+         // plastron: creamy yellow, its plates in pairs either side of a seam down the middle (gular, humeral,
+         // pectoral, abdominal, femoral, anal, front to back), a row of small inframarginals along each side
+         // where it meets the bridge; the seams fine grooves, not lines drawn on
+         float ax2 = abs(vCar.x), z2 = vCar.y;
+         float across = z2 + 0.08 * ax2 * ax2;
+         float cut = min(min(abs(across - 0.62), abs(across - 0.34)), min(min(abs(across - 0.02), abs(across + 0.38)), abs(across + 0.7)));
+         float sm = min(min(ax2, cut * 1.3), abs(ax2 - 0.62 - 0.05 * z2));
+         float infr = step(0.62 + 0.05 * z2, ax2) * (1.0 - smoothstep(0.004, 0.012, abs(fract(z2 * 3.2 + 0.3) - 0.5) * 0.5));
+         float fw2 = fwidth(z2) * 1.5 + 0.003;
+         alb = mix(vec3(0.84, 0.77, 0.56), vec3(0.76, 0.69, 0.5), smoothstep(0.2, 0.7, ax2));
+         alb *= 1.0 - 0.17 * (1.0 - smoothstep(0.0, fw2 + 0.006, sm)) - 0.14 * infr;
+         alb = mix(alb, mix(uC1, vec3(0.7, 0.64, 0.46), 0.55), smoothstep(0.84, 0.94, ax2));
          // and a life's wear underneath: rubbed and scratched from resting on rock, stained in places
          alb *= 0.82 + 0.3 * vn2(vL.xz * 6.0 + uSeed);
          alb = mix(alb, vec3(0.5, 0.45, 0.33), smoothstep(0.62, 0.8, vn2(vL.xz * 11.0 - uSeed)) * 0.3);
