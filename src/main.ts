@@ -31,6 +31,7 @@ import NOSLEEP_MEDIA from 'nosleep.js/src/media.js';
 import { studio, guideThumbs } from './ui/thumbs';
 import { PLACES } from './ui/places';
 import { MiniMap } from './ui/minimap';
+import { dolphinSubjects } from './eco/dolphins';
 import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
@@ -1710,6 +1711,12 @@ function goTo(id: string) {
     if (!W || (!W.seasonal && !W.active)) { showToast('ザトウクジラ', '今は北の海にいます', '冬（12月下旬〜4月上旬）に来遊。時刻パネルの「季節」で冬を選ぶと会えます'); return; }
     if (!W.active) { W.force = true; W.next = 0; }
     s = { key: 'focus:whale', label: name, kind: 'giant', prio: 5, size: 8, pos: () => (W.active ? W.pod[0].pos : null), status: () => statusOf('whale'), live: () => W.active || W.force };   // (gone when the pod has gone: no card left behind)
+  } else if (id === 'dolphin' && oc.dolphins) {
+    // a pod: the one here, or (by day) one called in from out of sight; at night they are out feeding in deep water
+    const D = oc.dolphins;
+    if (!D.active && oc.eco.env.night > 0.6) { showToast(name, '今は沖で狩りをしています', '昼に群れでやってきます'); return; }
+    if (!D.active) { D.force = true; D.next = 0; }
+    s = { key: 'focus:dolphin', label: `${name}の群れ`, kind: 'giant', prio: 5, size: 5, pos: () => { const a: Subject[] = []; dolphinSubjects(oc, a, true); return a[0]?.pos() ?? null; }, status: () => statusOf('dolphin'), live: () => D.active || D.force };
   } else if ((loc.critters || []).some((c) => c.id === id) && oc.critters) {
     // a moray, sea snake or jellyfish: the nearest one
     const all: Subject[] = []; oc.critters.subjects(all);
@@ -1807,6 +1814,7 @@ function statusOf(id: string): string {
     return W?.active ? (W.pod.length > 1 ? '親子で泳いでいる' : '悠々と泳いでいる') : W?.seasonal ? '近くの海で子育て中' : '今は北の海にいる（冬に来遊）';
   }
   if (id === 'manta' && cur.mantas.length) return mantaFocus(cur, '')?.status() ?? '';
+  if (id === 'dolphin' && cur.dolphins) { const a: Subject[] = []; dolphinSubjects(cur, a); return a[0]?.status() ?? (cur.eco.env.night > 0.6 ? '沖で狩りをしている' : 'ときどき群れでやってくる'); }
   if (id === 'sea-otter' && cur.lobosOtters) { const L = cur.lobosOtters.list; const i = L.indexOf(L.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b))); return cur.eco.subjects().find((s: Subject) => s.key === `sea-otter:${i}`)?.status() ?? ''; }
   if (id === 'harbor-seal' && cur.lobosVisitors) return cur.eco.subjects().find((s: Subject) => s.key === 'harbor-seal:visitor' && s.live())?.status() ?? '今は近くに姿が見えない';
   if (id === 'octopus' && cur.octopi?.length) { const o = cur.octopi.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b)); return o.subject.status(); }
@@ -1814,7 +1822,7 @@ function statusOf(id: string): string {
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
-const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.critters || []).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.dolphins ? [{ id: loc.dolphins.id, ja: loc.dolphins.ja, sci: loc.dolphins.sci, note: loc.dolphins.note }] : []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.critters || []).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
 let panelTab: 'guide' | 'log' | 'island' | 'talk' = 'guide';
 function renderLog() {
   const loc = cur!.loc;
@@ -2188,6 +2196,7 @@ function enterOcean(oc: Ocean) {
   oc.eco.env.blow = (d: number) => { if (drone.pos.y < 0 && !watch.r) blow(d); };   // (heard under the water)
   oc.eco.env.sound = { frenzy, plop };
   oc.breach.fx.splash = bigSplash; oc.breach.fx.stream = streamAt; oc.breach.fx.bubbles = bubblesAt;
+  if (oc.dolphins) { oc.dolphins.fx.splash = bigSplash; oc.dolphins.fx.bubbles = bubblesAt; }
   // (heard from where the camera is: in the air or under the water, and how far, the depth included)
   const leapHeard = (x: number, z: number) => ({ d: hyp(x - camera.position.x, z - camera.position.z, camera.position.y), under: camera.position.y < 0 });
   oc.breach.fx.sound = (big: number, x: number, z: number) => { const h = leapHeard(x, z); breachSound(big, h.d, h.under); };

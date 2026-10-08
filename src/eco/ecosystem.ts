@@ -5,6 +5,7 @@ import { Plankton } from './plankton';
 import { updateTurtles, updateMantas } from './animals';
 import { updateOctopi } from './octopus';
 import { updateWhales, whaleSubjects, inSeason } from './whale';
+import { updateDolphins, dolphinSubjects } from './dolphins';
 import { unseen } from './unseen';
 import { rr, mulberry32, hyp } from '../core/math';
 
@@ -133,6 +134,7 @@ export class Ecosystem {
     this.oc.lobosOtters?.subjects(out);
     this.oc.rare?.subjects(out);
     whaleSubjects(this.oc, out);
+    dolphinSubjects(this.oc, out);
     this.oc.breach?.subjects(out);
     if (this.oc.bait) out.push(...this.oc.bait.subjects());
     if (this.oc.jacks) out.push(...this.oc.jacks.subjects());
@@ -166,6 +168,7 @@ export class Ecosystem {
     const ws = this.oc.loc.whales;
     updateWhales(this.oc, dt, e, cam, !!ws && inSeason(e.month, e.mday, ws));
     this.oc.breach?.update(dt, e, cam, fx, fz, !!ws && inSeason(e.month, e.mday, ws));
+    updateDolphins(this.oc, dt, e, cam, fx, fz);
     if (this.oc.bait) this.oc.bait.update(dt, e, cam, fx, fz, e.sound);
     this.oc.jacks?.update(dt, e, cam, fx, fz);
     this.oc.riders?.update(dt, t);

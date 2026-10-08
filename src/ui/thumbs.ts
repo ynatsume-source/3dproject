@@ -6,6 +6,7 @@ import { critterModel } from '../eco/critters';
 import { U } from '../render/common';
 import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, CORAL_GEO, CORAL_MAT, PALETTE, speciesGeometry } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
+import { dolphinGeometry, dolphinMaterial } from '../ocean/dolphin';
 import { bonyFromShape } from '../ocean/bony';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
@@ -45,6 +46,11 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
   if (id === 'manta') return { obj: new THREE.Mesh(MANTA_GEO, mantaMaterial((loc.extraGuide || []).some((e) => e.id === 'manta' && e.ja === 'オニイトマキエイ'))), view: [0.35, 1.1, 0.75] };
   if (id === 'tobiuo' && !loc.species.some((s) => s.id === 'tobiuo')) { const m = flyingFishModel(); m.position.y = 20; return { obj: m, view: [0.3, 0.45, 0.4] }; }   // (in the air, wings spread)
   if (id === 'whale') return { obj: new THREE.Mesh(WHALE_GEO, whaleMaterial(0.3)), view: [1, 0.3, 0.45] };
+  if (id === 'dolphin' && loc.dolphins) {
+    const g = dolphinGeometry(loc.dolphins.style).clone(); g.setAttribute('aDol', new THREE.InstancedBufferAttribute(new Float32Array([0, 0.5, 0.4, 0.3]), 4));
+    const m = new THREE.InstancedMesh(g, dolphinMaterial(loc.dolphins.style), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
+    return { obj: m, view: [1, 0.3, 0.55] };
+  }
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
   if (id === 'sea-otter' && loc.id === 'pointlobos') { const o = creatureKit(cmats()).makeSeaOtter(); for (let i = 0; i < 40; i++) o.update(i * 0.1, 0.1, { act: 'eat', walk: 0, wet: true, food: 'urchin' }); o.root.scale.setScalar(1.15); o.root.position.y = 20; return { obj: o.root, view: [0.9, 0.7, 0.35] }; }   // (on its back, eating, up in the light)
   if (id === 'harbor-seal' && loc.id === 'pointlobos') return { obj: makeHarborSeal().group, view: [0.7, 0.3, 1] };

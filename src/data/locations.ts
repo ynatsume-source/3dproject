@@ -6,6 +6,7 @@ import type { WreckSpec } from '../ocean/wreck';
 import type { WhaleSeason } from '../eco/whale';
 import { landOf } from '../ocean/land';
 import type { CritterSpec } from '../eco/critters';
+import type { DolphinSpec } from '../eco/dolphins';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -59,6 +60,7 @@ export interface Sea {
   cave?: CaveSpec;                         // a limestone massif with a tunnel and skylights, on flat sand
   wreck?: WreckSpec;                       // a shipwreck on the sand (ocean/wreck.ts)
   whales?: WhaleSeason;                    // humpbacks visit in these months
+  dolphins?: DolphinSpec;                  // a pod that comes by every few minutes by day (eco/dolphins)
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
   thicket?: number;   // how much of the shallow reef is staghorn thicket (0..1)
@@ -691,6 +693,19 @@ export const LOCATIONS: Sea[] = [
     galapagos: [dovii], pacific: [pelagia],
   };
   for (const L of LOCATIONS) if (by[L.id]) L.critters = by[L.id];
+  // dolphins, where divers and boats meet them: the spinners of the Maldives' atolls, the Indo-Pacific bottlenose
+  // of the Red Sea's reefs, striped dolphins out in the Pacific, the bottlenose of the Galapagos
+  const dol: Record<string, DolphinSpec> = {
+    maldives: { id: 'dolphin', ja: 'ハシナガイルカ', sci: 'Stenella longirostris', style: 'spinner', pod: [8, 14], len: [1.5, 2.0], every: [150, 320], curious: 1, leaps: 0.25,
+      note: '細長いくちばしの小型のイルカ。昼は環礁の内側の穏やかな水で休み、夕方から沖へ出て狩りをする。水面から跳び上がって体を軸に何回転もする「スピン」が名前の由来。' },
+    redsea: { id: 'dolphin', ja: 'ミナミハンドウイルカ', sci: 'Tursiops aduncus', style: 'bottlenose', pod: [4, 8], len: [2.0, 2.6], every: [180, 360], curious: 2, leaps: 0.04,
+      note: '短く太いくちばしの、がっしりしたイルカ。成長するとおなかに黒い斑点が出る。好奇心が強く、ダイバーのまわりを回って様子をうかがうことがある。' },
+    pacific: { id: 'dolphin', ja: 'スジイルカ', sci: 'Stenella coeruleoalba', style: 'striped', pod: [8, 16], len: [1.9, 2.4], every: [200, 420], curious: 1, leaps: 0.12,
+      note: '目から肛門へ黒い筋が走り、背びれの下へ白い炎のような模様が伸びる。外洋で大きな群れをつくり、速く泳いで水面を跳ねながら進む。' },
+    galapagos: { id: 'dolphin', ja: 'ハンドウイルカ', sci: 'Tursiops truncatus', style: 'bottlenose', pod: [4, 9], len: [2.4, 3.2], every: [220, 420], curious: 2, leaps: 0.06,
+      note: '世界の暖かい海に広く住む、いちばんよく知られたイルカ。ガラパゴスでは冷たい湧昇流の海で群れになって魚を追い込み、船の舳先の波に乗る。' },
+  };
+  for (const L of LOCATIONS) if (dol[L.id]) L.dolphins = dol[L.id];
   // more of the big characters, where they really live
   const all = LOCATIONS.flatMap((l) => l.species);
   const add = (id: string, spId: string, o: Partial<Species> = {}) => { const L = LOCATIONS.find((l) => l.id === id)!; if (L.species.some((x) => x.id === spId)) return; L.species.push({ ...all.find((x) => x.id === spId)!, ...o }); };
