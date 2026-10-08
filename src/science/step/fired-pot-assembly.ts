@@ -66,9 +66,14 @@ export function firedPotQualityOnReturn(copy: Record<string, number>, condition:
 export const firedPotSherdsQuality = (copy: Record<string, number>) => potSherdsQuality(copy);
 
 /** A retort goes back as two lots (main's question: when it breaks, what does each pot become?). The retort has one
- *  condition; the wear is the upper pot's: it sits in the fire with the charge, while the lower one stays cool in the
- *  ground catching the tar (assumed rule, no dice). So the lower pot comes back as its copy, the upper one as
- *  firedPotQualityOnReturn, and at condition 0 the upper one is pot_sherds (same amount) and the lower one is whole. */
+ *  condition, given by main (the charcoal step reports no wear: equipmentWear is empty). In this version the wear of
+ *  normal use is put on the upper pot, which sits in the fire with the charge; the lower pot's own wear (hot vapour and
+ *  tar, heating and cooling, knocks when taken out) is not modelled. This is an assumed allocation, not a result of the
+ *  heat calculation (one temperature for both pots): the lower pot is not proven to stay cool. No dice.
+ *  So the lower pot comes back as its copy, the upper one as firedPotQualityOnReturn, and at condition 0 the upper one
+ *  is pot_sherds and the lower one whole. Not covered (Codex RT-C1, 7b23852 addendum): a fall, a flood, the lower pot
+ *  itself broken, or equipment-lost (the retort gone, which pot unknown): main decides those, not this table.
+ *  Only materialId and quality come back: main keeps each pot's own amount from assembly and settles each side once. */
 export function retortPartsOnReturn(upperCopy: Record<string, number>, lowerCopy: Record<string, number>, condition: number):
   { upper: { materialId: string; quality: Record<string, number> }; lower: { materialId: string; quality: Record<string, number> } } {
   if (!finite(condition, 0, 1)) throw new Error('condition must be within 0..1');
