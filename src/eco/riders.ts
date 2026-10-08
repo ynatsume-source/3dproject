@@ -5,7 +5,7 @@
 // host's own frame each frame (read back from the host's drawn transform), so they go wherever it goes.
 import * as THREE from 'three';
 import type { Species } from '../data/locations';
-import { SHAPES, fishGeometry, fishMaterial } from '../ocean/models';
+import { SHAPES, fishGeometry, fishMaterial, speciesGeometry } from '../ocean/models';
 
 export const REMORA: Species = { id: 'kobanzame', ja: 'コバンザメ', sci: 'Echeneis naucrates', note: '頭の上の小判形の吸盤で、ジンベエザメやマンタ、サメ、ウミガメの腹に吸いつく。大きな生きものに運んでもらい、食べこぼしや寄生虫を食べる。ときどき離れては、また吸いつき直す。',
   pat: 5, c1: [0.36, 0.36, 0.36], c2: [0.08, 0.08, 0.09], bands: 1.6, shape: 'barracuda', size: [0.35, 0.6], habitat: 'roam', speed: 1 };
@@ -65,7 +65,7 @@ export function makeRiders(oc: any) {
   for (const kind of ['remora', 'pilot', 'trevally'] as Kind[]) {
     const list = riders.filter((r) => r.kind === kind); if (!list.length) continue;
     const sp = kind === 'remora' ? REMORA : kind === 'pilot' ? PILOT : TREVALLY;
-    const g = fishGeometry(SHAPES[sp.shape]);
+    const g = speciesGeometry(sp);
     const sw = new Float32Array(list.length * 3);
     list.forEach((r, i) => { sw[i * 3] = r.ph; sw[i * 3 + 1] = kind === 'remora' ? 3 : 9 + rnd() * 3; sw[i * 3 + 2] = 0.9 + rnd() * 0.2; });
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(sw, 3));

@@ -85,7 +85,7 @@ function flowSchool(oc: any, sp: Species, n: number, where: (i: number, t: numbe
   for (let i = 0; i < n; i++) sw.set([R() * 6.28, rr((sp.freq || [7, 10])[0], (sp.freq || [7, 10])[1]), rr(0.9, 1.08)], i * 3);
   g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(sw, 3));
   const shade = makeSchoolShade(g, n, 1, { round: false });   // (a river or a tornado: its depth, not its width)
-  const mesh = new THREE.InstancedMesh(g, fishMaterial(sp, true), n); mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const mesh = new THREE.InstancedMesh(g, fishMaterial(sp, true, true), n); mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   oc.group.add(mesh);
   const size = Array.from({ length: n }, () => rr(sp.size[0], sp.size[1]) / 1.28);
   const p = new THREE.Vector3(), v = new THREE.Vector3(), m = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0), s = new THREE.Vector3(), tgt = new THREE.Vector3();

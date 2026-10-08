@@ -7,7 +7,7 @@ import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { unseen } from './unseen';
-import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
+import { SHAPES, fishGeometry, fishMaterial, UPV, speciesGeometry } from '../ocean/models';
 import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
@@ -65,7 +65,7 @@ export function makeFishSystem(sp: Species, oc: any) {
   else { for (let i = 0; i < (sp.count || 1); i++) mk('roam', 1); }
   if (!total) return null;
 
-  const geo = fishGeometry(sh);
+  const geo = speciesGeometry(sp);
   const swim = new Float32Array(total * 3);
   const fp = new Float32Array(total * 3), fv = new Float32Array(total * 3), fs = new Float32Array(total), fo = new Float32Array(total * 3);
   const dead = new Float32Array(total);   // 0 = alive, else time of death

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { clamp, smooth, R, rr } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
-import { SHAPES, fishGeometry, fishMaterial, UPV } from '../ocean/models';
+import { SHAPES, fishGeometry, fishMaterial, UPV, speciesGeometry } from '../ocean/models';
 import { makeSchoolShade } from './schoolshade';
 import { behind, unseen } from './unseen';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
@@ -22,7 +22,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
   const K = clamp(sp.size[1] / 0.5, 1, 4), CELL = 1.6 * K;
   const hashCell = (x: number, y: number, z: number) => ((Math.floor(x / CELL) * 73856093) ^ (Math.floor(y / CELL) * 19349663) ^ (Math.floor(z / CELL) * 83492791)) | 0;
   const S = sp.schools || 1, total = S * (sp.n || 100);
-  const geo = fishGeometry(SHAPES[sp.shape]);
+  const geo = speciesGeometry(sp);
   const swim = new Float32Array(total * 3);
   const p = new Float32Array(total * 3), v = new Float32Array(total * 3), size = new Float32Array(total), dead = new Float32Array(total);
   const schoolBase = Array.from({ length: S }, () => schoolLength(sp.size[0], sp.size[1]));

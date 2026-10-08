@@ -12,7 +12,7 @@
 //   frenzy — at the surface: attacks from below, birds from above, the sea boils
 //   scatter — no one pressing any more: it loosens and goes on
 import * as THREE from 'three';
-import { fishGeometry, fishMaterial, SHAPES } from '../ocean/models';
+import { fishGeometry, fishMaterial, SHAPES, speciesGeometry } from '../ocean/models';
 import { makeSchoolShade } from './schoolshade';
 import { unseen, sightRange } from './unseen';
 import { splashAt, bubblesAt } from '../ocean/splash';
@@ -48,7 +48,7 @@ export function makeBaitBall(oc: any, fraction: number) {
   for (let i = 0; i < NBMAX; i++) { swim[i * 3] = R() * 6.28; swim[i * 3 + 1] = rr(11, 15); swim[i * 3 + 2] = rr(0.85, 1.1); }
   bg.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
   const bshade = makeSchoolShade(bg, NBMAX);
-  const bmesh = new THREE.InstancedMesh(bg, fishMaterial(bsp, true), NBMAX);
+  const bmesh = new THREE.InstancedMesh(bg, fishMaterial(bsp, true, true), NBMAX);
   bmesh.count = NB; bmesh.frustumCulled = false; bmesh.visible = false; bmesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   oc.group.add(bmesh);
   const bp = new Float32Array(NBMAX * 3), bv = new Float32Array(NBMAX * 3), phi = new Float32Array(NBMAX), rf = new Float32Array(NBMAX), ang = new Float32Array(NBMAX), bs = new Float32Array(NBMAX), dead = new Uint8Array(NBMAX);
@@ -64,7 +64,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     const sp: Species | undefined = loc.species.find((s: Species) => s.id === id);
     if (!sp) return null;
     const count = Math.max(1, Math.round(n * 1.6));
-    const g = fishGeometry(SHAPES[sp.shape]);
+    const g = speciesGeometry(sp);
     const sw = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) { sw[i * 3] = R() * 6.28; sw[i * 3 + 1] = rr(5, 7); sw[i * 3 + 2] = rr(0.9, 1.05); }
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(sw, 3));

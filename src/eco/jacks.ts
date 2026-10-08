@@ -53,7 +53,7 @@ export function makeJacks(oc: any, fraction: number) {
   for (let i = 0; i < NMAX; i++) sw.set([R() * 6.28, rr((sp.freq || [7, 10])[0], (sp.freq || [7, 10])[1]), rr(0.9, 1.08)], i * 3);
   g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(sw, 3));
   const shade = makeSchoolShade(g, NMAX, 1, { round: false });
-  const mesh = new THREE.InstancedMesh(g, fishMaterial(sp, true), NMAX);
+  const mesh = new THREE.InstancedMesh(g, fishMaterial(sp, true, true), NMAX);
   mesh.count = N; mesh.userData.jacks = true; mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   oc.group.add(mesh);
   // each fish: height in the column, its own reach, phase, pace, tilt, place in the wheel and in the night scatter

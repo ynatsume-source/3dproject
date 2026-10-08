@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { ridersFor } from '../eco/riders';
 import { critterModel } from '../eco/critters';
 import { U } from '../render/common';
-import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, CORAL_GEO, CORAL_MAT, PALETTE } from '../ocean/models';
+import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, CORAL_GEO, CORAL_MAT, PALETTE, speciesGeometry } from '../ocean/models';
 import { octopusModel } from '../eco/octopus';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
@@ -20,7 +20,7 @@ const cache = new Map<string, Record<string, string>>();
 function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, number, number] } | null {
   const sp = loc.species.find((s) => s.id === id) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined) ?? ridersFor(loc).find((s) => s.id === id);
   if (sp) {
-    const g = fishGeometry(SHAPES[sp.shape]);
+    const g = speciesGeometry(sp);
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));
     const m = new THREE.InstancedMesh(g, fishMaterial(sp), 1); m.setMatrixAt(0, new THREE.Matrix4());
     return { obj: m, view: sp.shape === 'hammer' ? [0.35, 1.0, 0.12] : [1, 0.22, 0.55] };   // a hammerhead is best seen from above
@@ -93,6 +93,7 @@ let studioR: THREE.WebGLRenderer | null = null;
 export function studio(loc: Sea, id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}, w = 800, h = 500, bg: number | null = 0x2a5560): string {
   const m = model(loc, id); if (!m) return '';
   m.obj.traverse((o: any) => { const u = o.material?.uniforms; if (u) for (const k in set) if (u[k]) u[k].value = set[k]; });   // (e.g. a manta feeding: { uFeed: 1 })
+  if (set.swim) m.obj.traverse((o: any) => { const sw = o.geometry?.attributes.aSwim; if (sw) { sw.array[1] = set.swim; sw.needsUpdate = true; } });   // (a fish swimming: its beat, for posing it at uTime)
   if (!studioR) { studioR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, premultipliedAlpha: false }); studioR.setPixelRatio(1); }
   studioR.setSize(w, h, false);
   const keep = { sun: U.uSunDir.value.clone(), sunI: U.uSunI.value, amb: U.uAmb.value, fog: U.uFogDen.value, abs: U.uAbs.value.clone(), cam: U.uCamPos.value.clone(), lamp: U.uLamp.value, tint: U.uTint.value.clone() };

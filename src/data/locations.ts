@@ -22,6 +22,8 @@ export interface Species {
   cocoon?: boolean;                              // sleeps in a mucus cocoon (parrotfish)
   wreck?: boolean;                               // keeps to the wreck (glassfish in her shadows, anthias over her)
   rests?: 'cave';                                // lies still on the floor of the cave while inactive (whitetip reef shark)
+  model?: string;                                // a lofted body of its own (ocean/bony), for the big fish seen close
+  wear?: number;                                 // how scarred and grainy its skin is (default: 1 for the big ones)
 }
 // seabirds over the site: how they fly, and whether they rest on the water
 export interface BirdSpec {
@@ -118,7 +120,7 @@ export const LOCATIONS: Sea[] = [
       { id: 'parrot', ja: 'ナンヨウブダイ', sci: 'Chlorurus microrhinos', note: 'くちばし状の歯でサンゴをかじり、白い砂をつくり出す。',
         diel: 'day', diet: 'algae', pat: 10, c1: [0.18, 0.55, 0.55], c2: [0.85, 0.55, 0.55], shape: 'parrot', size: [0.5, 0.7], habitat: 'reef', schools: 3, n: 3, spread: [3, 1, 3], alt: [0.8, 2.5], speed: 1.0, big: true },
       { id: 'wrasse', ja: 'メガネモチノウオ', sci: 'Cheilinus undulatus', note: '通称ナポレオンフィッシュ。額のこぶが目印で、全長2mに達するベラ科最大種。',
-        diel: 'day', diet: 'invert', pat: 7, c1: [0.20, 0.46, 0.44], c2: [0.55, 0.78, 0.72], shape: 'wrasse', size: [1.3, 1.8], habitat: 'roam', count: 2, alt: [1.5, 4], speed: 0.7, big: true },
+        diel: 'day', diet: 'invert', pat: 7, c1: [0.16, 0.42, 0.42], c2: [0.86, 0.64, 0.3], c3: [0.04, 0.13, 0.14], shape: 'wrasse', model: 'napoleon', wig: 0.5, wear: 0.5, size: [1.3, 1.8], habitat: 'roam', count: 2, alt: [1.5, 4], speed: 0.7, big: true },
       { id: 'blacktip', ja: 'ツマグロ', sci: 'Carcharhinus melanopterus', note: '背びれと尾びれの先が黒い小型のサメ。昼夜を問わずリーフを巡回し、夕暮れから夜に狩りが活発になる。人には臆病。',
         diel: 'always', diet: 'fish', pat: 8, c1: [0.50, 0.52, 0.52], c2: [0.92, 0.92, 0.90], c3: [0.02, 0.02, 0.02], shape: 'shark', size: [1.3, 1.7], habitat: 'roam', count: 3, alt: [1.2, 4], speed: 1.2, big: true, eye: 0.45 },
       { id: 'mitsuji', ja: 'ミスジリュウキュウスズメダイ', sci: 'Dascyllus aruanus', note: '白地に黒い帯が3本。枝サンゴの上に小さな群れで暮らし、危ないとすぐ枝の間に隠れる。群れにはなわばりの順位がある。',

@@ -4,6 +4,7 @@ import { mat } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
 import { fbm, smooth, mulberry32, hyp } from '../core/math';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { bonyGeometry, bonyUniforms, BONY } from './bony';
 
 /* ================= geometry helpers ================= */
 export const _q = new THREE.Quaternion(), _e = new THREE.Euler(), _m4 = new THREE.Matrix4(), _p3 = new THREE.Vector3(), _s3 = new THREE.Vector3(), UPV = new THREE.Vector3(0, 1, 0);
@@ -859,17 +860,45 @@ export function fishGeometry(sh, low = false) {
   g.setAttribute('aFin', new THREE.Float32BufferAttribute(fin, 1));
   return g;
 }
+// A species' body: the big fish that have one are lofted (ocean/bony), the rest — and every fish in a school of
+// hundreds (low) — squeezed from a sphere by their shape.
+export function speciesGeometry(sp, low = false) {
+  return sp.model && !low ? bonyGeometry(sp.model) : fishGeometry(SHAPES[sp.shape], low);
+}
 // shade: the mesh carries aShade, how much sun and open water reaches each fish (see eco/schoolshade)
-export function fishMaterial(sp, shade = false) {
+// low: drawn on fishGeometry even if the species has a lofted body (speciesGeometry)
+export function fishMaterial(sp, shade = false, low = false) {
   const c = (a) => new THREE.Color(a[0], a[1], a[2]);
+  const bony = sp.model && !low ? BONY[sp.model] : null;
   return mat(
     `attribute vec3 aSwim; attribute float aFin; attribute float aBend; uniform float uWig;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
      #ifdef SHADE
      attribute vec2 aShade;
      #endif
+     #ifdef BONY
+     attribute vec4 aB; uniform float uRow; uniform vec2 uGill; varying vec4 vB; varying vec3 vAx; varying float vSz;
+     #endif
      void main(){
-       vec3 p = position;
+       vec3 p = position, n0 = normal;
+       #ifdef BONY
+       // the pectorals row: each swings about its root on the flank, forward and out, then back against
+       // the body, twisting a little as it goes (a wrasse cruises on them, the tail kept for bursts)
+       float ph = uTime * aSwim.y * 1.7 + aSwim.x * 3.0;
+       float isP = step(2.5, aFin) * step(aFin, 3.5), sxp = sign(p.x + 1e-5);
+       float phi = -sxp * uRow * sin(ph) * isP, cp = cos(phi), sp = sin(phi);
+       vec2 dr = vec2(p.x - sxp * aB.w, p.z - aB.z) * isP;
+       p.xz += vec2(dr.x * cp + dr.y * sp, -dr.x * sp + dr.y * cp) - dr;
+       p.y += isP * sin(ph + 1.3) * length(dr) * 0.3 * uRow;
+       n0.xz = mix(n0.xz, vec2(n0.x * cp + n0.z * sp, -n0.x * sp + n0.z * cp), isP);
+       // breathing: the mouth opens as the gill covers close on the cheeks, then shuts as they lift
+       float br = sin(uTime * 1.9 + aSwim.x * 5.0), isB = step(aFin, 0.5);
+       float cov = isB * smoothstep(-0.12, -0.06, aB.z) * (1.0 - smoothstep(-0.003, 0.003, aB.z)) * smoothstep(uGill.x, uGill.x * 0.6, position.y) * smoothstep(uGill.y, uGill.y * 0.6, position.y);
+       p.x += sign(p.x) * cov * max(-br, 0.0) * 0.007;
+       p.y -= isB * aB.w * max(br, 0.0) * 0.009;
+       // the soft dorsal and anal fins ripple along their edge
+       p.x += step(1.5, aFin) * step(aFin, 2.5) * sin(uTime * 2.3 + p.z * 26.0 + aSwim.x) * aB.y * 0.006;
+       #endif
        // turning: the body curves into a C, head and tail both swung toward the inside of the turn
        p.x += aBend * (p.z - 0.05) * (p.z - 0.05) * 1.6;
        float back = clamp((0.25 - p.z) / 1.0, 0.0, 1.0);
@@ -886,7 +915,7 @@ export function fishMaterial(sp, shade = false) {
        flex += (-4.5 * cos(wave) * back * back - 2.0 * sin(wave) * back * step(-0.75, p.z)) * 0.17 * uWig;
        #endif
        // a surface pushed sideways by x += f(z) tilts its normal by -f'(z) along the body
-       vec3 nl = vec3(normal.x, normal.y, normal.z - flex * normal.x), side = vec3(1.0, 0.0, -flex);
+       vec3 nl = vec3(n0.x, n0.y, n0.z - flex * n0.x), side = vec3(1.0, 0.0, -flex);
        #ifdef SILVER
        // no two fish in a school hold quite the same roll, and each rocks a little as it swims: enough for
        // one flank to catch the light while its neighbour's stays dark
@@ -898,6 +927,9 @@ export function fishMaterial(sp, shade = false) {
        mat3 toW = mat3(modelMatrix) * mat3(instanceMatrix);
        vWp = wp.xyz; vN = normalize(toW * nl); vSide = normalize(toW * side);
        vL = position; vFin = aFin; vTint = aSwim.z; vWear = aSwim.x;
+       #ifdef BONY
+       vB = aB; vAx = normalize(toW * vec3(0.0, 0.0, 1.0)); vSz = length(toW[0]);
+       #endif
        #ifdef SHADE
        vShade = aShade;
        #else
@@ -907,13 +939,89 @@ export function fishMaterial(sp, shade = false) {
      }`,
     `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye; uniform float uShine; uniform float uWear;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
+     #ifdef BONY
+     uniform vec2 uScl; uniform vec3 uMouth; uniform vec3 uEyeP; uniform vec3 uIris; uniform vec2 uGill; varying vec4 vB; varying vec3 vAx; varying float vSz;
+     #endif
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
        if (dot(n, V) < 0.0) n = -n;
        float z = vL.z, y = vL.y;
        float top = smoothstep(-0.08, 0.12, y);
        vec3 alb;
-       #if PAT == 0
+       #if defined(BONY)
+         // a lofted big fish (ocean/bony): its skin by vB — along and around the body, the gill cover's edge,
+         // the jaw; on the fins the rays; on the eye its disc
+         float s = vB.x, ey = vL.y / 1.28;
+         float isBody = step(vFin, 0.5), isFin = step(0.5, vFin) * step(vFin, 6.5), bEye = step(6.5, vFin);
+         // (fine detail fades out before it is smaller than a few pixels, where it would only shimmer)
+         float fine = smoothstep(1.5, 4.0, (vSz * 1.28 / uScl.x) / (length(uCamPos - vWp) * 0.0016 + 1e-4));
+         alb = mix(uC1 * 1.3 + vec3(0.05, 0.06, 0.05), uC1, smoothstep(-0.08, 0.02, ey));   // (paler toward the belly,
+         alb = mix(alb, uC1 * 0.7, smoothstep(0.05, 0.16, ey));                               //  darker along the back)
+         // scales: in rows, every other row offset by half, each overlapping the one behind it like a roof
+         // tile; at any point the scale on top is the foremost one that reaches it, and what shows of it is
+         // its rounded rear edge, with a shadow on the scale beneath
+         vec2 sg = vec2(s * uScl.x, vB.y * uScl.y);
+         vec2 cf = vec2(0.5, 0.0); float rr = 0.95, fx = 1e9;
+         for (int k = -1; k <= 1; k++) {
+           float row = floor(sg.y) + float(k), xo = 0.5 * mod(row, 2.0);
+           for (int j = 0; j <= 1; j++) {
+             vec2 c = vec2(floor(sg.x - xo) + xo - float(j), row + 0.5);
+             float l = length((sg - c) * vec2(0.85, 1.0));
+             if (l < 0.95 && c.x < fx) { fx = c.x; cf = sg - c; rr = l; }
+           }
+         }
+         float rim = 1.0 - smoothstep(0.03, 0.09, abs(rr - 0.87));   // (cf: from the scale's middle; rr: how far, its rim at 0.95)
+         float shadeR = smoothstep(0.45, 0.88, rr);
+         float scl = smoothstep(0.17, 0.22, s) * isBody * fine;   // (none on the head)
+         #if BONY == 1
+         // Napoleon: each scale crossed by a dark upright bar, the bars lining up into fine stripes down the flank
+         float bar = (1.0 - smoothstep(0.04, 0.1, abs(cf.x - 0.45))) * (1.0 - smoothstep(0.3, 0.5, abs(cf.y)));
+         alb = mix(alb, uC3, bar * 0.4 * scl);
+         // the head a maze of fine wavy orange lines (the contours of a noise, so they wind and branch)
+         vec2 hq = vL.zy * 20.0 + vec2(vL.x * 7.0, 0.0);
+         float mz = (vn2(hq) * 0.7 + vn2(hq * 2.1 + 7.0) * 0.3) * 6.0;
+         alb = mix(alb, uC2, smoothstep(0.8, 0.92, abs(fract(mz) - 0.5) * 2.0) * (1.0 - smoothstep(0.18, 0.24, s)) * isBody * 0.8);
+         // two dark lines running back from the eye, and one forward toward the lips
+         float dz = uEyeP.x - vL.z, dy = vL.y - uEyeP.y;
+         float lnB = min(abs(dy - 0.004 - dz * 0.12), abs(dy + 0.009 + dz * 0.34));
+         alb = mix(alb, uC3, (1.0 - smoothstep(0.0014, 0.0032, lnB)) * smoothstep(uEyeP.z, uEyeP.z * 1.5, dz) * (1.0 - smoothstep(0.06, 0.09, dz)) * isBody);
+         float lnF = abs(dy + 0.003 + dz * 0.25);
+         alb = mix(alb, uC3, (1.0 - smoothstep(0.002, 0.004, lnF)) * smoothstep(uEyeP.z, uEyeP.z * 1.5, -dz) * (1.0 - smoothstep(0.03, 0.05, -dz)) * isBody * 0.8);
+         #endif
+         alb *= 1.0 - (0.1 * shadeR + 0.13 * rim) * scl;
+         // the lips: full and paler, the gape a dark line between them back to the corner of the mouth
+         float gy = uMouth.y + 0.12 * s * uMouth.y;
+         float front = 1.0 - smoothstep(uMouth.x * 0.85, uMouth.x * 1.08, s);
+         alb = mix(alb, mix(uC1, uC2, 0.25) * 1.15, (1.0 - smoothstep(0.012, 0.026, abs(ey - gy))) * front * isBody * 0.4);
+         alb *= 1.0 - 0.8 * (1.0 - smoothstep(0.0012, 0.0035, abs(ey - gy))) * front * isBody;
+         // the gill cover's edge: a fine dark line
+         float gEdge = (1.0 - smoothstep(0.0, 0.006, abs(vB.z))) * smoothstep(uGill.x, uGill.x * 0.85, vL.y) * smoothstep(uGill.y, uGill.y * 0.85, vL.y) * isBody;
+         alb *= 1.0 - 0.5 * gEdge;
+         // relief: each scale domed (the normal bent away from its middle), the edge of the gill cover a step
+         vec3 Tb = normalize(-vAx + n * dot(n, vAx) + 1e-4), Ta = cross(n, Tb);
+         n = normalize(n + (Tb * cf.x + Ta * cf.y) * 0.4 * scl * (1.0 - rim) + Tb * 0.35 * gEdge);
+         // fins: rays, between them thin membrane; Napoleon's carry wavy lines and a pale margin
+         float ray = (1.0 - smoothstep(0.03, 0.1, abs(fract(vB.x + 0.5) - 0.5))) * fine;
+         if (vFin > 0.5 && vFin < 6.5) {
+           alb = uC1 * 1.15;
+           #if BONY == 1
+           // wavy bands across the rays, following the fin's edge
+           alb = mix(alb, uC2 * 0.9, (1.0 - smoothstep(0.2, 0.5, abs(fract(vB.y * 4.0 + 0.15 * sin(vB.x * 1.3)) - 0.5) * 2.0)) * 0.3 * step(vFin, 2.5));
+           if (vFin > 2.5 && vFin < 3.5) alb = mix(uC1, uC2, 0.4) * 1.1;
+           #endif
+           alb = mix(alb, uC2 * 1.1, smoothstep(0.86, 0.97, vB.y) * 0.6);
+           alb *= 0.88 + 0.22 * ray * (1.0 - 0.5 * vB.y);
+           n = normalize(n + vAx * sin(fract(vB.x) * 6.2832) * 0.2 * fine);
+         }
+         // the eye: black pupil, a golden iris streaked toward a dark outer ring, the skin around it
+         if (vFin > 6.5) {
+           float r = length(vB.xy);
+           vec3 iris = uIris * (0.7 + 0.45 * vn2(vec2(atan(vB.y, vB.x) * 5.0, r * 3.0)));
+           iris = mix(iris, uIris * 0.3, smoothstep(0.46, 0.62, r));
+           alb = mix(vec3(0.006, 0.008, 0.01), iris, smoothstep(0.27, 0.33, r));
+           alb = mix(alb, uC1 * 0.45, smoothstep(0.7, 0.86, r));
+         }
+       #elif PAT == 0
          alb = mix(uC2, uC1, top);
        #elif PAT == 1
          alb = uC1;
@@ -1150,7 +1258,7 @@ export function fishMaterial(sp, shade = false) {
          // (and the grain roughens the sheen: a leathery, not glassy, skin)
          nW = normalize(n + uWear * 0.18 * vec3(hash2(floor(q * 160.0 + sd)) - 0.5, hash2(floor(q * 160.0 + sd + 9.0)) - 0.5, 0.0));
        }
-       #if PAT != 9
+       #if PAT != 9 && !defined(BONY)
        float eye = (1.0 - smoothstep(0.022 * uEye, 0.034 * uEye, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        alb = mix(alb, vec3(0.02), eye);
        #endif
@@ -1183,6 +1291,13 @@ export function fishMaterial(sp, shade = false) {
        #else
        col = absorb(alb * (lightAt(n, cl) + uTint * uAmb * 0.1) * 1.3 + (spec + fres * vec3(0.7, 0.9, 1.0)) * uTint, vWp.y);
        #endif
+       #ifdef BONY
+       // fins: thin membrane between the rays, the water showing through it, lit from behind against the sun
+       if (vFin > 0.5 && vFin < 6.5) col = mix(hazeCol(-V), col, 0.8 + 0.15 * ray) + absorb(alb * uTint, vWp.y) * uSunI * 0.3 * pow(max(dot(-V, SUN), 0.0), 3.0) * vShade.x;
+       // the eye: wet and glassy, the sun and the bright water above held in it
+       vec3 Re = reflect(-V, n);
+       col += bEye * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 80.0) * 2.5 * cl.x + waterCol(Re) * 0.35, vWp.y);
+       #endif
        col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb * vShade.x;
        col += lamp(alb, vWp, n) * 1.2;
        #ifdef SILVER
@@ -1190,7 +1305,7 @@ export function fishMaterial(sp, shade = false) {
        #endif
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}) }, uniforms: { uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.big ? 1 : 0 } },
+    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}) }, uniforms: { ...(bony ? bonyUniforms(sp.model) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
       opts: { side: THREE.DoubleSide } });
 }
 
