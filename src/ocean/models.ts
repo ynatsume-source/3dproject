@@ -1370,17 +1370,17 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #endif
        #if defined(BONY) && BONY == 0
        // a small fish's near copy (bonyFromShape): its own pattern above, and on it the eye, the fin rays, the
-       // gill cover's edge, the mouth and faint scales
-       float s = vB.x, ey = vL.y / 1.28;
+       // gill cover's edge, the mouth and faint scales (sN, sgN: the pattern above may have an s or an sg of its own)
+       float sN = vB.x, ey = vL.y / 1.28;
        float isBody = step(vFin, 0.5), bEye = step(6.5, vFin);
        float fine = smoothstep(1.5, 4.0, (vSz * 1.28 / uScl.x) / (length(uCamPos - vWp) * 0.0016 + 1e-4));
-       vec2 sg = vec2(s * uScl.x, vB.y * uScl.y);
-       sg.x += 0.5 * mod(floor(sg.y), 2.0);
-       vec2 cf = fract(sg) - vec2(0.3, 0.5);
-       float scl = smoothstep(0.2, 0.26, s) * isBody * fine * uScK;
+       vec2 sgN = vec2(sN * uScl.x, vB.y * uScl.y);
+       sgN.x += 0.5 * mod(floor(sgN.y), 2.0);
+       vec2 cf = fract(sgN) - vec2(0.3, 0.5);
+       float scl = smoothstep(0.2, 0.26, sN) * isBody * fine * uScK;
        alb *= 1.0 - 0.12 * smoothstep(0.3, 0.55, length(cf)) * scl;
-       float gy = uMouth.y + uMouth.z * s;
-       alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.001, 0.003, abs(ey - gy))) * (1.0 - smoothstep(uMouth.x * 0.85, uMouth.x * 1.1, s)) * isBody;
+       float gy = uMouth.y + uMouth.z * sN;
+       alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.001, 0.003, abs(ey - gy))) * (1.0 - smoothstep(uMouth.x * 0.85, uMouth.x * 1.1, sN)) * isBody;
        float gEdge = (1.0 - smoothstep(0.0, 0.006, abs(vB.z))) * smoothstep(uGill.x, uGill.x * 0.85, vL.y) * smoothstep(uGill.y, uGill.y * 0.85, vL.y) * isBody;
        alb *= 1.0 - 0.35 * gEdge;
        vec3 Tb = normalize(-vAx + n * dot(n, vAx) + 1e-4), Ta = cross(n, Tb);
