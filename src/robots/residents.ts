@@ -44,6 +44,11 @@ import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
 // pat: 0 plain, 1 a green turtle's carapace (its scutes, from the shell's own coordinates), 2 scaled
 // skin (a turtle's head and flippers: dark scales edged pale), 3 fur (fine variation in the pile)
+// the plain things about the place (bundles, clay, the house's straw): lit as the residents are — the island's scene has
+// no lights, so a standard material would be black
+function smat(hex: number, spec = 0.05, both = false): THREE.Material {
+  const m = rmat(hex, spec); if (both) m.side = THREE.DoubleSide; return m;
+}
 function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
   return mat(
     `varying vec3 vWp; varying vec3 vN; varying vec2 vUv; varying vec3 vLp;
@@ -100,7 +105,7 @@ function rmat(hex: number, spec = 0.5, grid = false, pat = 0, scl = 1) {
        return mix(col, uCol * 0.62, seam * 0.75);
      }
      void main(){
-       vec3 n = normalize(vN), V = normalize(uCamPos - vWp);
+       vec3 n = normalize(vN), V = normalize(uCamPos - vWp); if (!gl_FrontFacing) n = -n;   // (the straw, seen from under the eaves)
        vec3 alb = uCol;
        if (uGrid > 0.5) { vec2 g = fract(vUv * vec2(10.0, 6.0)); alb = mix(vec3(0.05, 0.08, 0.17), vec3(0.72, 0.75, 0.8), max(step(0.9, g.x), step(0.88, g.y))); }
        if (uPat > 0.5 && uPat < 1.5) alb = carapace(vLp);
@@ -376,7 +381,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const fireHours = (hr: number) => hr >= 19.4 && hr < 21.1;   // lit
   // Dot's house (the dwelling theme: robots/house.ts): beside the hut, on the most level ground near it that is clear of
   // the field, the trees, the fire and the bench — the same place every time the island is opened
-  const houseLook = makeHouseLook({ wood, wood2 }), houseG = houseLook.group;
+  const houseLook = makeHouseLook({ wood, wood2, mk: smat }), houseG = houseLook.group;
   {
     const busy: [number, number][] = [[0, 0], [-2.3, 1.3], [1.6, -1.5], [2.4, -1.5], [3.4, 2.8], ...TREES.map((t) => { const v = hut.worldToLocal(new THREE.Vector3(t.x, 0, t.z)); return [v.x, v.z] as [number, number]; }), ...PLOTS.map((pl) => { const v = hut.worldToLocal(new THREE.Vector3(pl.x, 0, pl.z)); return [v.x, v.z] as [number, number]; })];
     let best: { x: number; z: number; y: number; bad: number } | null = null;
@@ -392,11 +397,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const atHouse = (x: number, z: number) => houseG.localToWorld(new THREE.Vector3(x, 0, z));
   const houseLocal = (x: number, z: number) => houseG.worldToLocal(new THREE.Vector3(x, houseG.position.y, z));
   // (the bamboo and clay brought for it, by the house; a bundle of thatch in the hands)
-  const yardBamboo = new THREE.Group(), yardClay = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 6), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 1 }));
+  const yardBamboo = new THREE.Group(), yardClay = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 6), smat(0x8a6a4c, 0.0));
   { const w = atHouse(HW + 1.2, -0.6); yardBamboo.position.set(w.x, L.h(w.x, w.z), w.z); yardBamboo.rotation.y = houseG.rotation.y + Math.PI / 2; group.add(yardBamboo);
-    for (let k = 0; k < 6; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.2, 6), new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 })); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + Math.floor(k / 3) * 0.07, -0.08 + (k % 3) * 0.08); yardBamboo.add(m); }
+    for (let k = 0; k < 6; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.2, 6), smat(0xa8b060, 0.18)); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + Math.floor(k / 3) * 0.07, -0.08 + (k % 3) * 0.08); yardBamboo.add(m); }
     const c = atHouse(HW + 1.2, 0.9); yardClay.position.set(c.x, L.h(c.x, c.z) + 0.05, c.z); yardClay.scale.y = 0.4; group.add(yardClay); }
-  const grassGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.9, 8), grassM = new THREE.MeshStandardMaterial({ color: 0xb59a5a, roughness: 1 });
+  const grassGeo = new THREE.CylinderGeometry(0.12, 0.09, 0.9, 8), grassM = smat(0xb59a5a, 0.0);
   // the island's weather (Dot's world: replayed, set from outside); a typhoon stops what is done outdoors
   let wxNow: IslandWeather | null = null, stormSince = 0;
   const storm = () => !!wxNow?.typhoon;
@@ -482,7 +487,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const CATCH_BAMBOO = 2e6, CATCH_AREA = 0.8, CATCH_CAP = 20e6;
   const catchG = new THREE.Group(); catchG.visible = false; group.add(catchG);
   { const w = atHut(3.2, -2.6); catchG.position.set(w.x, L.h(w.x, w.z), w.z);
-    const bam = new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 }), leaf = new THREE.MeshStandardMaterial({ color: 0x5f7d3a, roughness: 0.9, side: THREE.DoubleSide });
+    const bam = smat(0xa8b060, 0.18), leaf = smat(0x5f7d3a, 0.06, true);
     for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.7, 8), bam); m.position.set(-0.16 + k * 0.16, 0.35, 0); catchG.add(m); }
     const f = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.35, 10, 1, true), leaf); f.rotation.x = Math.PI; f.position.set(0, 0.95, 0); catchG.add(f); }
   const showCatcher = () => { catchG.visible = !!village.catcher; };
@@ -657,12 +662,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const storeG = new THREE.Group(); { const w = atHut(2.4, -1.5); storeG.position.set(w.x, L.h(w.x, w.z), w.z); storeG.rotation.y = hut.rotation.y; group.add(storeG); }
   const COCONUT_GEO = coconutGeo();
   const STORE_LOOK: Record<string, () => THREE.Object3D> = {
-    raw_clay: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 6), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 1 })); m.scale.y = 0.55; m.position.y = 0.1; return m; },
-    bamboo: () => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 6), new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 })); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + (k % 2) * 0.06, -0.08 + k * 0.05); g.add(m); } return g; },
-    reed: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.3, 7), new THREE.MeshStandardMaterial({ color: 0xc8b878, roughness: 1 })); m.rotation.z = Math.PI / 2; m.position.y = 0.09; return m; },
-    limestone: () => { const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18), new THREE.MeshStandardMaterial({ color: 0xe8e4d8, roughness: 0.9 })); m.position.y = 0.12; return m; },
+    raw_clay: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 6), smat(0x8a6a4c, 0.0)); m.scale.y = 0.55; m.position.y = 0.1; return m; },
+    bamboo: () => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 6), smat(0xa8b060, 0.18)); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + (k % 2) * 0.06, -0.08 + k * 0.05); g.add(m); } return g; },
+    reed: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.3, 7), smat(0xc8b878, 0.0)); m.rotation.z = Math.PI / 2; m.position.y = 0.09; return m; },
+    limestone: () => { const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18), smat(0xe8e4d8, 0.06)); m.position.y = 0.12; return m; },
     coconut: () => { const g = new THREE.Group(); for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(COCONUT_GEO, itemMat.coconut); m.position.set(-0.12 + k * 0.13, 0.1 + (k === 1 ? 0.1 : 0), (k % 2) * 0.06); g.add(m); } return g; },
-    firewood: () => { const g = new THREE.Group(); for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.9, 6), new THREE.MeshStandardMaterial({ color: 0x7b6a52, roughness: 1 })); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + Math.floor(k / 3) * 0.06, -0.08 + (k % 3) * 0.07); g.add(m); } return g; },
+    firewood: () => { const g = new THREE.Group(); for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.9, 6), smat(0x7b6a52, 0.0)); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + Math.floor(k / 3) * 0.06, -0.08 + (k % 3) * 0.07); g.add(m); } return g; },
   };
   function drawStore() {
     storeG.clear();
@@ -1655,8 +1660,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!pitG) {
       pitG = new THREE.Group();
       const r = village.clayPit.diameterCm / 200, w = atHut(0.2, 0.1); pitG.position.set(w.x, L.h(w.x, w.z), w.z); group.add(pitG);
-      const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 6, 20), new THREE.MeshStandardMaterial({ color: 0x8a6a4c, roughness: 1 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.03; pitG.add(rim);
-      const water = new THREE.Mesh(new THREE.CircleGeometry(r - 0.03, 20), new THREE.MeshStandardMaterial({ color: 0x6a5a48, roughness: 0.3 })); water.rotation.x = -Math.PI / 2; water.position.y = 0.01; pitG.add(water);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.06, 6, 20), smat(0x8a6a4c, 0.0)); rim.rotation.x = Math.PI / 2; rim.position.y = 0.03; pitG.add(rim);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(r - 0.03, 20), smat(0x6a5a48, 0.42)); water.rotation.x = -Math.PI / 2; water.position.y = 0.01; pitG.add(water);
     }
     pitG.visible = true;
   }
@@ -2974,7 +2979,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
   };
   (res as any).items = items;   // (for ?debug)
-  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
+  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).T = T; (res as any).houseG = houseG; (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[], en?: string) {

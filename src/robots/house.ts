@@ -50,11 +50,12 @@ export const HW = 1.35, HD = 1.8, EAVE = 2.1, OVER = 0.5;
 const RIDGE_Y = EAVE + HW, RIDGE_Z = HD - HW;   // (45°: the hips meet at the half-width's height; the ridge is the rest of the depth)
 
 export interface HouseLook { group: THREE.Group; parts: THREE.Object3D[]; posts: [number, number][]; wallDots: [number, number][][]; door: [number, number]; inside: [number, number] }
-export function makeHouseLook(mats: { wood: THREE.Material; wood2: THREE.Material }): HouseLook {
+// (mk: the island's own lit material, as the residents' are — the scene has no lights for a standard one)
+export function makeHouseLook(mats: { wood: THREE.Material; wood2: THREE.Material; mk: (hex: number, spec: number, both?: boolean) => THREE.Material }): HouseLook {
   const group = new THREE.Group(), parts: THREE.Object3D[] = [];
-  const straws = [0xa88f55, 0x9a8250, 0xb09858].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 1, side: THREE.DoubleSide, flatShading: true }));
-  const bamboo = new THREE.MeshStandardMaterial({ color: 0xa8b060, roughness: 0.7 });
-  const clay = new THREE.MeshStandardMaterial({ color: 0x9a7b5a, roughness: 1 });
+  const straws = [0xa88f55, 0x9a8250, 0xb09858].map((c) => mats.mk(c, 0.05, true));
+  const bamboo = mats.mk(0xa8b060, 0.2);
+  const clay = mats.mk(0x9a7b5a, 0.05);
   const rod = (a: THREE.Vector3, b: THREE.Vector3, r: number, m: THREE.Material) => {
     const d = b.clone().sub(a), l = d.length(), mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.1, l, 7), m);
     mesh.position.copy(a).add(b).multiplyScalar(0.5); mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); return mesh;

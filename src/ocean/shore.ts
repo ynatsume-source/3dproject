@@ -86,8 +86,8 @@ vec3 landAlbedo(vec3 wp){
   landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (smoothstep(0.45, 0.15, leaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
   // wet sand by the water: darker, a little glossy (see airLit's caller), then the swash line — the waves running up
   // the sand and back, higher and whiter as they are bigger (in a storm, far up the beach)
-  float run = 0.08 + 0.22 * uWave, ph = vn2(wp.xz * 0.15) * 6.2832;
-  float swash = run * (0.55 + 0.45 * sin(uTime * 0.55 + ph));
+  float run = 0.08 + 0.22 * uWave, sph = vn2(wp.xz * 0.15) * 6.2832;
+  float swash = run * (0.55 + 0.45 * sin(uTime * 0.55 + sph));
   float wet = 1.0 - smoothstep(0.02, 0.5 + run, wp.y);
   vec3 col = mix(a, a * vec3(0.66, 0.7, 0.74), wet * 0.85);
   float lace = smoothstep(0.35, 0.75, vn2(wp.xz * 2.2 + vec2(uTime * 0.25, -uTime * 0.18)) + 0.25 * vn2(wp.xz * 7.0));
@@ -136,14 +136,14 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        vWp = p; vN = normal; vC = aC; gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0); }`,
     `${LAND_TEX}
      ${AIRLIT}
-     varying vec3 vWp; varying vec3 vN; varying float vC; uniform float uNear; uniform vec4 uClear[16];
+     varying vec3 vWp; varying vec3 vN; varying float vC; uniform float uNear; uniform vec4 uClear[16]; uniform int uClearN;
      void main(){
        vec3 ph; vec4 cv; landTex(vWp.xz, ph, cv);
        float nz = vn2(vWp.xz * 0.9) * 0.6 + vn2(vWp.xz * 3.1 + 7.0) * 0.4;
        if (cv.r < 0.3 + 0.3 * nz) discard;                            // ragged where the forest ends
        if (length(vWp.xz - uCamPos.xz) < uNear * (0.9 + 0.2 * nz)) discard;   // (close by, the trees themselves: ocean/forest.ts)
        if (length(vWp.xz - uCut.xz) < uCut.w * (0.85 + 0.3 * nz)) discard;   // (opened up over a resident being watched from above)
-       for (int i = 0; i < 16; i++) { vec4 c = uClear[i]; if (c.w > 0.0 && length(vWp.xz - c.xy) < c.w * (0.9 + 0.2 * nz)) discard; }   // (where the residents have felled trees)
+       for (int i = 0; i < 16; i++) { if (i >= uClearN) break; vec4 c = uClear[i]; if (length(vWp.xz - c.xy) < c.w * (0.9 + 0.2 * nz)) discard; }   // (where the residents have felled trees)
        vec3 n = normalize(vN);
        float under = gl_FrontFacing ? 1.0 : 0.3;                       // seen from beneath: the shade inside the crowns
        // leafy texture: clumps of light and shade at the scale of branches
@@ -160,7 +160,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        alb *= (0.68 + 0.5 * leaf) * mix(0.38, 1.1, smoothstep(0.2, 0.62, vn2(vWp.xz * 0.55 + 3.0)) * 0.7 + smoothstep(0.3, 0.7, cr) * 0.3) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // (crowns in light and shade; the sides of the forest in shade)
        gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), 1.0);
      }`,
-    { uniforms: { ...landUniforms(L), uNear: { value: 0 }, uClear: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { ...landUniforms(L), uNear: { value: 0 }, uClear: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) }, uClearN: { value: 0 } }, opts: { side: THREE.DoubleSide } });
   // a grid of step S over +-E1, leaving out what lies inside +-E0 (drawn finer by the other)
   const canopyMesh = (E0: number, E1: number, S: number) => {
     const N = Math.round(2 * E1 / S) + 1;
@@ -277,6 +277,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
       const t = forest.fell(x, z); if (!t) return null;
       const v = (canopyMat.uniforms.uClear.value as THREE.Vector4[]), cl = forest.clearings, i = cl.length - 1;
       if (i < 16) v[i].set(t.clear.x, t.clear.z, 0, t.clear.r + 0.6); else { v.copyWithin(0, 1); v[15] = new THREE.Vector4(t.clear.x, t.clear.z, 0, t.clear.r + 0.6); }
+      canopyMat.uniforms.uClearN.value = Math.min(16, cl.length);   // (only as many as there are: nothing to do on most of the island)
       return t;
     },
     cleared: (x: number, z: number) => forest.cleared(x, z),
