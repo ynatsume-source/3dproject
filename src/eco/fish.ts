@@ -451,11 +451,15 @@ export function makeFishSystem(sp: Species, oc: any) {
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
           g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(pace);
           g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;
-          // rise ahead of a coral head instead of scaling it; come down slowly on the far side
+          // rise ahead of a coral head instead of scaling it; come down slowly on the far side. A big fish sees it
+          // coming from further off and climbs no faster than a gentle glide (it was going up a metre and a half a
+          // second over a reef mound, which read as a jump)
           let fl = floorC;
-          for (const s of [1.5, 3, 5]) fl = Math.max(fl, T.top(g.c.x + g.v.x * s, g.c.z + g.v.z * s));
+          for (const s of sp.big ? [1.5, 3, 5, 8, 12] : [1.5, 3, 5]) fl = Math.max(fl, T.top(g.c.x + g.v.x * s, g.c.z + g.v.z * s));
           const ty = Math.min(fl + g.alt * (0.4 + 0.6 * g.act) + Math.sin(g.t * 0.3) * 0.5, -1.4);
-          g.c.y += (ty - g.c.y) * Math.min(1, dt * (ty > g.c.y ? 0.6 : 0.25));
+          let dy = (ty - g.c.y) * Math.min(1, dt * (ty > g.c.y ? 0.6 : 0.25));
+          if (sp.big) dy = Math.max(-0.25 * dt, Math.min(0.35 * dt, dy));
+          g.c.y += dy;
         }
         env.threatsOut.push({ x: g.c.x, y: g.c.y, z: g.c.z, r: isPredator ? (hunting ? 7 : 3) : 0 });
       }
@@ -560,8 +564,14 @@ export function makeFishSystem(sp: Species, oc: any) {
           _w.set(px - cam.x, py - cam.y, pz - cam.z);
           // (the giants, a whale shark grazing on plankton, pay a small drone no mind)
           const cd = _w.length(), fr = (sp.diet === 'filter' || sp.size[1] > 3 ? 0 : sp.big ? 3.5 : 4.5) * env.shy;
-          if (cd < fr) { _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1)); g.fear = Math.max(g.fear, 0.5 * (1 - cd / fr)); }   // (startled: a quick dart, turning on a pin)
-          if (!isPredator && !ch) for (const th of env.threats) {
+          if (cd < fr) {
+            // a big fish (a barracuda, a wrasse, a grouper, a reef shark) is not startled by a diver-sized drone at the
+            // distance it is filmed from: it eases off sideways, level, keeping its distance; only one right up close
+            // makes it start (owner, 2026-10-08: a watched barracuda jumping up and down and turning of a sudden)
+            if (sp.big) { const kk = (fr - cd) * 0.45 / Math.max(cd, 0.1); _v.x += _w.x * kk; _v.z += _w.z * kk; if (cd < fr * 0.35) g.fear = Math.max(g.fear, 0.4 * (1 - cd / fr)); }
+            else { _v.addScaledVector(_w, (fr - cd) * 2.2 / Math.max(cd, 0.1)); g.fear = Math.max(g.fear, 0.5 * (1 - cd / fr)); }   // (startled: a quick dart, turning on a pin)
+          }
+          if (!isPredator && !ch && sp.size[1] < 1) for (const th of env.threats) {   // (a fish of a metre and more — a Napoleon, a bumphead — does not bolt from a reef shark going by)
             if (!th.r) continue;
             const ddx = px - th.x, ddy = py - th.y, ddz = pz - th.z, dd = Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz);
             if (dd < th.r) { const k = (th.r - dd) * 2.8 / Math.max(dd, 0.1); _v.x += ddx * k; _v.y += ddy * k; _v.z += ddz * k; g.fear = Math.max(g.fear, 0.8); g.predT = g.t; }
