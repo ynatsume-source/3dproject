@@ -1862,17 +1862,26 @@ export function whaleGeometry() {
     const cr = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
     return [Math.max(0.002, cr(p0[1], p1[1], p2[1], p3[1])), Math.max(0.002, cr(p0[2], p1[2], p2[2], p3[2])), cr(p0[3], p1[3], p2[3], p3[3])];
   };
-  const RINGS = 56, RAD = 22, pos: number[] = [], idx: number[] = [];
-  for (let r = 0; r <= RINGS; r++) {
-    const s = 0.9 * Math.pow(r / RINGS, 1.1), [h, w, yc] = at(s);
-    const flatTop = 1 - 0.35 * (1 - smooth(0.05, 0.3, s));          // the rostrum is flat on top
-    for (let k = 0; k < RAD; k++) {
-      const a = (k / RAD) * Math.PI * 2, sa = Math.sin(a), ca = Math.cos(a);
-      // the tail stock is a keel: taller than wide, pinched at the sides
-      const keel = smooth(0.66, 0.84, s);
-      const x = ca * w * (1 - keel * 0.25 * Math.abs(sa));
-      pos.push(x, yc + h * sa * (sa > 0 ? flatTop : 0.9), Z(s));
+  // the mouth: from the tip of the rostrum the gape sweeps down and back, then up in a long bow to its corner
+  // under the eye (as a fraction of the section's half-height below its middle)
+  const MC = 0.235;
+  const mouthY = (s: number) => { const [h, , yc] = at(s); const u = Math.min(1, s / MC); return yc + h * (-0.12 - 0.42 * Math.sin(u * Math.PI * 0.9) * (1 - 0.35 * u)); };
+  // a point on the skin: (s along, a round from the right flank upward); the lower jaw's lips stand out a little
+  // below the gape, the rostrum is flat on top, the tail stock a keel
+  const skin = (s: number, a: number) => {
+    const [h, w, yc] = at(s), sa = Math.sin(a), ca = Math.cos(a);
+    const flatTop = 1 - 0.35 * (1 - smooth(0.05, 0.3, s)), keel = smooth(0.66, 0.84, s);
+    let x = ca * w * (1 - keel * 0.25 * Math.abs(sa)), y = yc + h * sa * (sa > 0 ? flatTop : 0.9);
+    if (s < MC + 0.02) {
+      const below = smooth(mouthY(s) + 0.004, mouthY(s) - 0.012, y) * (1 - smooth(MC - 0.03, MC + 0.02, s));
+      x *= 1 + 0.06 * below; y -= 0.004 * below * Math.abs(ca);
     }
+    return [x, y, Z(s)];
+  };
+  const RINGS = 110, RAD = 40, pos: number[] = [], mo: number[] = [], idx: number[] = [];
+  for (let r = 0; r <= RINGS; r++) {
+    const s = 0.9 * Math.pow(r / RINGS, 1.15);
+    for (let k = 0; k < RAD; k++) { const a = (k / RAD) * Math.PI * 2, v = skin(s, a); pos.push(v[0], v[1], v[2]); mo.push(s < MC + 0.01 ? (v[1] - mouthY(s)) : 1); }
   }
   for (let r = 0; r < RINGS; r++) for (let k = 0; k < RAD; k++) {
     const a = r * RAD + k, b = r * RAD + (k + 1) % RAD, c = a + RAD, d = b + RAD;
@@ -1880,44 +1889,129 @@ export function whaleGeometry() {
   }
   const body = new THREE.BufferGeometry();
   body.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  body.setAttribute('aMouth', new THREE.Float32BufferAttribute(mo, 1));
   body.setIndex(idx); body.computeVertexNormals();
   const b = body.toNonIndexed();
-  const P = Array.from(b.attributes.position.array), N = Array.from(b.attributes.normal.array), A = new Array(b.attributes.position.count).fill(0);
-  const fin = (outline: number[][], map: (a: number, b: number) => number[], part: number, n: number[]) => {
-    const pts = outline.map(([a, c]) => new THREE.Vector2(a, c));
-    if (THREE.ShapeUtils.isClockWise(pts)) pts.reverse();
-    for (const t of THREE.ShapeUtils.triangulateShape(pts, [])) for (const i of t) { const v = map(pts[i].x, pts[i].y); P.push(v[0], v[1], v[2]); N.push(...n); A.push(part); }
+  const P = Array.from(b.attributes.position.array), N = Array.from(b.attributes.normal.array), A = new Array(b.attributes.position.count).fill(0), M = Array.from(b.attributes.aMouth.array);
+  const addGeo = (g: THREE.BufferGeometry, part: number) => {
+    const q = g.index ? g.toNonIndexed() : g; q.computeVertexNormals();
+    const pp = q.attributes.position, nn = q.attributes.normal;
+    for (let i = 0; i < pp.count; i++) { P.push(pp.getX(i), pp.getY(i), pp.getZ(i)); N.push(nn.getX(i), nn.getY(i), nn.getZ(i)); A.push(part); M.push(1); }
   };
-  // small dorsal fin on its hump
+  const grid = (nu: number, nv: number, f: (u: number, v: number) => number[], wrapV = false) => {
+    const pp: number[] = [], ix: number[] = [], cols = wrapV ? nv : nv + 1;
+    for (let i = 0; i <= nu; i++) for (let j = 0; j < cols; j++) pp.push(...f(i / nu, j / nv));
+    for (let i = 0; i < nu; i++) for (let j = 0; j < (wrapV ? nv : nv); j++) { const j1 = wrapV ? (j + 1) % nv : j + 1, a = i * cols + j, b2 = i * cols + j1, c = a + cols, d = b2 + cols; ix.push(a, c, b2, b2, c, d); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3)); g.setIndex(ix); return g;
+  };
+  // small dorsal fin on its hump, with some thickness at the root
   const top = (s: number) => { const [h, , yc] = at(s); return yc + h * 0.97; };
-  fin([[0.61, 0], [0.64, 0.012], [0.662, 0.026], [0.675, 0.03], [0.68, 0.02], [0.685, 0]], (s, dy) => [0, top(s) + dy - 0.003, Z(s)], 0, [1, 0, 0]);
-  // flukes: swept, with a scalloped trailing edge and a central notch
-  const half: number[][] = [[0.855, 0.012], [0.88, 0.06], [0.91, 0.115], [0.94, 0.155], [0.965, 0.172]];
-  const trail: number[][] = [];
-  for (let k = 0; k <= 10; k++) { const x = 0.165 - k * 0.0155, s = 0.972 - 0.012 * Math.sin(k / 10 * Math.PI) + (k % 2 ? 0.004 : 0) + (k === 10 ? 0.012 : 0); trail.push([s, x]); }
-  // assemble a simple, ordered loop: left leading edge out, left trailing edge in, notch, right trailing out, right leading in
-  const loop = [...half.map(([s, x]) => [s, -x]), ...trail.map(([s, x]) => [s, -x]).slice(1), [0.975, 0], ...trail.slice().reverse().slice(0, -1).map(([s, x]) => [s, x]), ...half.slice().reverse().map(([s, x]) => [s, x])];
-  fin(loop, (s, x) => [x, 0, Z(s)], 3, [0, 1, 0]);
-  // flippers: a third of the body long, narrow, with knobs along the leading edge
+  addGeo(grid(10, 12, (u, v) => {
+    const s0 = 0.61 + 0.075 * u, hgt = 0.03 * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.15)), 0.7) * (u < 0.87 ? 1 : 1 - (u - 0.87) / 0.13), a = v * Math.PI * 2;
+    const yy = Math.max(0, Math.cos(a)) * hgt, th = 0.006 * (1 - yy / (hgt + 1e-4)) * (1 - u * 0.5);
+    return [Math.sin(a) * th, top(s0) - 0.004 + yy + Math.min(0, Math.cos(a)) * 0.001, Z(s0 + Math.max(0, Math.cos(a)) * hgt * 0.6)];
+  }, true), 0);
+  // flukes: a third of the body across, an airfoil in section, swept leading edges, the trailing edge scalloped
+  // and serrated, a deep notch in the middle
+  const SPAN = 0.172;
+  const leadS = (ax: number) => 0.855 + (0.965 - 0.855) * Math.pow(ax / SPAN, 0.85) + 0.012 * Math.sin(ax / SPAN * Math.PI);
+  const trailS = (ax: number) => { const t = ax / SPAN; return 0.972 - 0.018 * Math.sin(t * Math.PI) + 0.005 * Math.abs(Math.sin(t * 22)) + 0.014 * (1 - smooth(0, 0.08, t)) - 0.01 * smooth(0.9, 1, t); };
+  addGeo(grid(60, 16, (u, v) => {
+    const x = (u * 2 - 1) * SPAN, ax = Math.abs(x), s0 = leadS(ax), s1 = Math.max(s0 + 0.004, trailS(ax)), a = v * Math.PI * 2;
+    const c = 0.5 - 0.5 * Math.cos(a), th = 0.009 * (1 - Math.pow(ax / SPAN, 1.6)) + 0.0012;
+    const yy = Math.sin(a) * th * (1 - c) * (1.4 - c) * 1.2;   // (thick at the leading edge, thin to the trailing)
+    return [x, yy, Z(s0 + (s1 - s0) * c)];
+  }, true), 3);
+  // flippers: a third of the body long, an airfoil thick at the leading edge, which carries a row of knobs
+  // (tubercles), tapering to a rounded tip; held down and back from the shoulder
+  const flipLead: { root: THREE.Vector3; dir: THREE.Vector3; chord: THREE.Vector3; nrm: THREE.Vector3 }[] = [];
   for (const sx of [-1, 1]) {
-    const [h, w, yc] = at(0.27), root = [sx * w * 0.8, yc - h * 0.55, Z(0.27)];
+    const [h, w, yc] = at(0.27), root = new THREE.Vector3(sx * w * 0.8, yc - h * 0.55, Z(0.27));
     const dir = new THREE.Vector3(sx * 0.78, -0.32, -0.54).normalize(), fwd = new THREE.Vector3(0, 0, 1);
     const chordDir = fwd.clone().addScaledVector(dir, -fwd.dot(dir)).normalize(), nrm = new THREE.Vector3().crossVectors(dir, chordDir).normalize();
-    const L = 0.31, pts: number[][] = [];
-    for (let k = 0; k <= 16; k++) { const a = k / 16 * L, c = 0.036 * (1 - 0.7 * (a / L)) * (1 + 0.14 * Math.pow(Math.abs(Math.sin(k * Math.PI * 0.5)), 2)); pts.push([a, c]); }   // knobbed leading edge
-    for (let k = 16; k >= 0; k--) { const a = k / 16 * L; pts.push([a, -0.026 * (1 - 0.62 * (a / L))]); }
-    fin(pts, (a, c) => [root[0] + dir.x * a + chordDir.x * c, root[1] + dir.y * a + chordDir.y * c, root[2] + dir.z * a + chordDir.z * c], sx < 0 ? 1 : 2, [nrm.x, nrm.y, nrm.z]);
+    const L = 0.31;
+    flipLead.push({ root, dir, chord: chordDir, nrm });
+    addGeo(grid(48, 18, (u, v) => {
+      const sp = u * L, lead = 0.036 * (1 - 0.68 * u) * (1 + 0.16 * Math.pow(Math.abs(Math.sin(u * Math.PI * 5.5)), 2.5) * (1 - u * 0.4)), trail = 0.026 * (1 - 0.6 * u);
+      const tip = Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, u - 0.9) / 0.1, 2)));
+      const a = v * Math.PI * 2, c = 0.5 - 0.5 * Math.cos(a);   // (0 leading edge .. 1 trailing)
+      const cx = (lead - (lead + trail) * c) * tip, th = 0.012 * (1 - 0.6 * u) * tip * (1 - c) * (1.3 - c);
+      const p = root.clone().addScaledVector(dir, sp).addScaledVector(chordDir, cx).addScaledVector(nrm, Math.sin(a) * th);
+      return [p.x, p.y, p.z];
+    }, true), sx < 0 ? 1 : 2);
   }
+  // the knobs (tubercles): fist-sized bumps in rows over the top of the rostrum and along the lower jaw, each a
+  // hair follicle; and the eye, small, set just above the corner of the mouth
+  const rnd = mulberry32(4441);
+  const dome = (c: THREE.Vector3, n: THREE.Vector3, r: number, hgt: number, part: number) => {
+    const g = new THREE.SphereGeometry(1, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+    g.scale(r, hgt, r); g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), n)); g.translate(c.x, c.y, c.z);
+    addGeo(g, part);
+  };
+  const nAt = (s: number, a: number) => {
+    const p = new THREE.Vector3(...skin(s, a)), ps = new THREE.Vector3(...skin(s + 0.002, a)).sub(p), pa = new THREE.Vector3(...skin(s, a + 0.02)).sub(p);
+    const n = new THREE.Vector3().crossVectors(pa, ps).normalize(); if (n.dot(new THREE.Vector3(p.x, p.y - at(s)[2], 0)) < 0) n.negate();
+    return { p, n };
+  };
+  for (let k = 0; k < 70; k++) {
+    // rostrum: in three loose rows either side of the midline, and a few down its middle
+    const s = 0.015 + rnd() * 0.19, row = Math.floor(rnd() * 4), a = Math.PI / 2 + (row === 0 ? (rnd() - 0.5) * 0.08 : (rnd() < 0.5 ? -1 : 1) * (0.28 + row * 0.2 + (rnd() - 0.5) * 0.08));
+    const { p, n } = nAt(s, a); dome(p.addScaledVector(n, -0.0006), n, 0.0032 + rnd() * 0.0016, 0.0026 + rnd() * 0.0012, 0);
+  }
+  for (let k = 0; k < 44; k++) {
+    // the lower jaw: along the lip below the gape, and the knobbed chin
+    const s = 0.012 + rnd() * (MC - 0.04), sx = rnd() < 0.5 ? -1 : 1;
+    let a = -0.2; for (let j = 0; j < 30; j++) { const aa = -0.2 - j * 0.04; if (skin(s, aa)[1] < mouthY(s) - 0.008 - rnd() * 0.01) { a = aa; break; } }
+    const { p, n } = nAt(s, sx > 0 ? a : Math.PI - a); dome(p.addScaledVector(n, -0.0006), n, 0.0034 + rnd() * 0.002, 0.003 + rnd() * 0.0016, 0);
+  }
+  for (const sx of [1, -1]) {
+    const s = MC - 0.006; let a = 0; for (let j = 0; j < 40; j++) { const aa = -0.6 + j * 0.03; if (skin(s, aa)[1] > mouthY(s) + 0.01) { a = aa; break; } }
+    const { p, n } = nAt(s, sx > 0 ? a : Math.PI - a); dome(p.addScaledVector(n, -0.001), n, 0.0055, 0.0034, 4);
+  }
+  // barnacles, as an old humpback carries them: crusts of chalky cones on the chin and the tip of the jaw, along
+  // the leading edges of the flippers and at the tips of the flukes (part 5; aMouth: height up the cone, 1.2 the
+  // opening at its top)
+  const cone = new THREE.CylinderGeometry(0.42, 1, 0.8, 7, 1, true).toNonIndexed(); cone.translate(0, 0.4, 0);
+  const capG = new THREE.CircleGeometry(0.42, 7).toNonIndexed(); capG.rotateX(-Math.PI / 2); capG.translate(0, 0.8, 0);
+  const qq = new THREE.Quaternion(), mm = new THREE.Matrix4(), vv = new THREE.Vector3(), nn2 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const barnacle = (c: THREE.Vector3, n: THREE.Vector3, r: number) => {
+    qq.setFromUnitVectors(up, n); mm.compose(c, qq, new THREE.Vector3(r, r * (0.7 + rnd() * 0.6), r));
+    for (const [gg, isCap] of [[cone, false], [capG, true]] as [THREE.BufferGeometry, boolean][]) {
+      gg.computeVertexNormals();
+      const gp = gg.attributes.position, gn = gg.attributes.normal;
+      for (let k = 0; k < gp.count; k++) {
+        vv.set(gp.getX(k), gp.getY(k), gp.getZ(k)); const hh = vv.y / 0.8; vv.applyMatrix4(mm); nn2.set(gn.getX(k), gn.getY(k), gn.getZ(k)).applyQuaternion(qq);
+        P.push(vv.x, vv.y, vv.z); N.push(nn2.x, nn2.y, nn2.z); A.push(5); M.push(isCap ? 1.2 : hh);
+      }
+    }
+  };
+  const cluster = (at0: () => { p: THREE.Vector3; n: THREE.Vector3 }, count: number, r0: number) => { for (let k = 0; k < count; k++) { const { p, n } = at0(); barnacle(p.addScaledVector(n, -r0 * 0.3), n, r0 * (0.5 + rnd() * 0.8)); } };
+  // the chin and the lower jaw's tip
+  for (let c = 0; c < 6; c++) {
+    const s0 = 0.008 + rnd() * 0.1, a0 = -Math.PI / 2 + (rnd() - 0.5) * 1.6;
+    cluster(() => nAt(Math.max(0.004, s0 + (rnd() - 0.5) * 0.02), a0 + (rnd() - 0.5) * 0.3), 9 + Math.floor(rnd() * 9), 0.0062);
+  }
+  // the flippers' leading edges
+  for (const f of flipLead) for (let c = 0; c < 5; c++) {
+    const u0 = 0.12 + rnd() * 0.8;
+    cluster(() => { const u = Math.min(0.97, Math.max(0.02, u0 + (rnd() - 0.5) * 0.06)), lead = 0.036 * (1 - 0.68 * u) * 0.92, side = rnd() < 0.5 ? 1 : -1;
+      const p = f.root.clone().addScaledVector(f.dir, u * 0.31).addScaledVector(f.chord, lead).addScaledVector(f.nrm, side * 0.004 * (1 - 0.6 * u));
+      return { p, n: f.chord.clone().multiplyScalar(0.6).addScaledVector(f.nrm, side * 0.8).normalize() }; }, 5 + Math.floor(rnd() * 6), 0.0052);
+  }
+  // the fluke tips
+  for (const sx of [-1, 1]) cluster(() => { const ax = SPAN * (0.82 + rnd() * 0.15), side = rnd() < 0.5 ? 1 : -1, s0 = leadS(ax) + (trailS(ax) - leadS(ax)) * rnd() * 0.5;
+    return { p: new THREE.Vector3(sx * ax, side * 0.0015, Z(s0)), n: new THREE.Vector3(0, side, 0) }; }, 10, 0.0042);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
   g.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1));
+  g.setAttribute('aMouth', new THREE.Float32BufferAttribute(M, 1));
   return g;
 }
 export const WHALE_GEO = whaleGeometry();
 export function whaleMaterial(seed: number) {
   return mat(
-    `attribute float aPart; uniform float uStroke; uniform float uPhase; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart;
+    `attribute float aPart; attribute float aMouth; uniform float uStroke; uniform float uPhase; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying float vMouth;
      void main(){
        vec3 p = position;
        // the stroke is vertical: a wave down the tail stock that lifts and drops the flukes
@@ -1926,10 +2020,10 @@ export function whaleMaterial(seed: number) {
        p.y += sin(ph - back * 2.2) * 0.045 * back * back * uStroke;
        // the flippers sweep slowly
        if (aPart > 0.5 && aPart < 2.5) p.y += sin(uTime * 0.45 + uPhase + aPart) * 0.06 * length(p.xz - vec2(0.0, 0.23)) * uStroke;
-       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart;
+       vec4 w = modelMatrix * vec4(p, 1.0); vWp = w.xyz; vN = normalize(mat3(modelMatrix) * normal); vL = position; vPart = aPart; vMouth = aMouth;
        gl_Position = projectionMatrix * viewMatrix * w;
      }`,
-    SURFACE + `uniform float uSeed; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart;
+    SURFACE + `uniform float uSeed; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying float vMouth;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        float z = vL.z, y = vL.y, x = vL.x;
@@ -1971,15 +2065,46 @@ export function whaleMaterial(seed: number) {
          hgt += cone * 2.2 - hole * 1.5 + lice * 0.3;
        }
        // flippers: white, dark along the upper leading edge; flukes: pale undersides with dark marks
-       if (vPart > 0.5 && vPart < 2.5) alb = mix(alb, mix(pale, dark, smoothstep(0.35, 0.8, vn2(vec2(x, z) * 30.0 + uSeed)) * 0.7), 1.0 - smoothstep(0.1, 0.5, clus));
+       if (vPart > 0.5 && vPart < 2.5) {
+         // (a North Pacific humpback's flippers: white beneath, the upper side mottled dark from the root, the white
+         // breaking through toward the tip; scratched)
+         float upSide = smoothstep(-0.2, 0.3, n.y), fm = vn2(vec2(x, z) * 70.0 + uSeed) * 0.6 + vn2(vec2(x, z) * 160.0) * 0.4;
+         vec3 fcol = mix(pale, mix(slate, dark, 0.4), smoothstep(0.38, 0.62, fm + upSide * 0.35 - smoothstep(0.25, 0.4, abs(x)) * 0.3) * (0.3 + 0.7 * upSide));
+         alb = mix(alb, fcol, 1.0 - smoothstep(0.1, 0.5, clus));
+       }
        if (vPart > 2.5) alb = mix(alb, n.y < 0.0 ? mix(pale, dark, smoothstep(0.4, 0.75, vn2(vec2(x, z) * 22.0 + uSeed))) : back, 1.0 - smoothstep(0.1, 0.5, clus));
        // rake marks and round healed bites: the scars an old whale carries, plain to see
        float scar = scarMarks(vec2(z, x + y) * 14.0, uSeed) + 0.7 * scarMarks(vec2(z, x - y) * 9.0, uSeed + 5.0);
        alb = mix(alb, alb * 0.35 + vec3(0.55, 0.55, 0.53), min(1.0, scar) * 0.7);
        // the skin itself: fine creases and peeling
        hgt += (vn2(vec2(z * 420.0, (x + y) * 160.0)) - 0.5) * 0.35 - min(1.0, scar) * 0.4;
+       // the mouth: the gape a deep dark groove from the tip of the rostrum in a long bow to its corner, the lips
+       // either side of it pale-edged; below it the lower jaw's lip, a lighter band
+       if (body) {
+         float gp = abs(vMouth);
+         alb = mix(alb, vec3(0.02, 0.018, 0.02), 1.0 - smoothstep(0.0009, 0.0024, gp));
+         alb = mix(alb, alb * 0.55 + vec3(0.25), (1.0 - smoothstep(0.0024, 0.006, gp)) * smoothstep(0.0009, 0.0024, gp) * 0.35);
+         hgt -= (1.0 - smoothstep(0.0, 0.004, gp)) * 2.5;
+         // the blowholes: two slits side by side on top of the head behind the splashguard, a raised pale ridge
+         float bz = z - (0.5 - 0.175), bx = abs(x) - 0.006;
+         float slit = (1.0 - smoothstep(0.0008, 0.002, abs(bx + bz * 0.25))) * (1.0 - smoothstep(0.008, 0.012, abs(bz))) * step(0.0, y);
+         float guard = (1.0 - smoothstep(0.003, 0.008, abs(bz - 0.014))) * (1.0 - smoothstep(0.01, 0.02, abs(x))) * step(0.0, y);
+         alb = mix(alb, vec3(0.02), slit * 0.9); alb = mix(alb, alb * 1.5 + 0.06, guard * 0.4); hgt += guard * 1.5 - slit * 1.5;
+       }
+       // the eye: small for so huge an animal, dark, with a rim of paler skin round it
+       if (vPart > 3.5 && vPart < 4.5) { alb = vec3(0.03, 0.025, 0.02); }
+       // a barnacle: chalky ridged plates rising to a dark opening, greened at the foot, whale lice about it
+       if (vPart > 4.5) {
+         float hb = vMouth;
+         alb = vec3(0.76, 0.74, 0.66) * (0.8 + 0.25 * hb) * (0.85 + 0.2 * vn2(vL.xz * 3000.0));
+         alb = mix(alb, vec3(0.32, 0.36, 0.22), (1.0 - smoothstep(0.0, 0.35, hb)) * 0.6);
+         if (hb > 1.1) alb = vec3(0.05, 0.045, 0.04);
+         hgt = 0.0;
+       }
        n = bumpN(n, vWp, hgt * 0.006);
-       gl_FragColor = vec4(shade(alb, vWp, n, 0.4), 1.0);
+       vec3 colW = shade(alb, vWp, n, 0.4);
+       if (vPart > 3.5 && vPart < 4.5) { vec3 Re = reflect(-V, n); colW += absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 60.0) * 1.5 + waterCol(Re) * 0.1, vWp.y); }
+       gl_FragColor = vec4(colW, 1.0);
      }`,
     { uniforms: { ...SURF_UNIFORMS, uStroke: { value: 1 }, uPhase: { value: seed * 6.28 }, uSeed: { value: seed * 17.0 } }, opts: { side: THREE.DoubleSide } });
 }
