@@ -185,10 +185,12 @@ export function makeBreach(oc: any) {
         const w = l.sw, u = (w.t += dt);
         // (drag; then settling a few metres down; then, its show over, diving away into the blue)
         let want = u < 7 ? -L * 0.25 : -Math.min(L * 1.2, L * 0.25 + (u - 7) * 1.1);
-        // (never down into the reef: kept over the bottom under it and just ahead, wings and all)
-        if (l.kind === 'manta') {
+        // (never down into the reef: kept over the bottom under it and just ahead, wings and all — a whale as much as a
+        // manta: its dive away was let sink into the seabed where the bottom was shallower than its dive, the owner
+        // saw it go slowly down into the ground, 2026-10-08)
+        {
           const T = oc.T, at = (a: number, d: number) => T.top(w.x + Math.sin(w.yaw + a) * d, w.z + Math.cos(w.yaw + a) * d);
-          const ah = Math.max(T.top(w.x, w.z), at(0, 3), at(0, 6), at(1.57, L * 0.55), at(-1.57, L * 0.55), at(0.6, L * 0.6), at(-0.6, L * 0.6));   // (under it, ahead, and under each wing)
+          const ah = Math.max(T.top(w.x, w.z), at(0, 3), at(0, 6), at(0, L * 0.5), at(Math.PI, L * 0.45), at(1.57, L * 0.55), at(-1.57, L * 0.55), at(0.6, L * 0.6), at(-0.6, L * 0.6));   // (under it, ahead, behind, and under each wing or flipper)
           want = Math.min(Math.max(want, ah + L * 0.3 + 0.6), -L * 0.12);
           // (shoaling ahead: it turns off toward the deeper side, as it would along a reef edge)
           if (ah > -L * 0.5 - 1.2) w.yaw += Math.sign(at(-0.9, 6) - at(0.9, 6) || 1) * dt * 0.9;

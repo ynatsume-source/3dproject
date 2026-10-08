@@ -359,6 +359,31 @@ for (const id of ['miyako', 'galapagos']) for (const dt of [1 / 30, 1 / 60, 1 / 
   });
 }
 
+// A whale watched all the way after its leap, for three minutes, the camera following: kept over the bottom (it was
+// let sink slowly into the seabed where its dive away ran over shallower reef; owner, 2026-10-08): a deep basin with a
+// reef round it, several starts.
+await check('whale_over_seabed', () => {
+  const id = 'miyako';
+  let worst = Infinity;
+  for (const seed of [11, 23, 37, 51]) {
+    seedRandom(seed); Math.random = mulberry32(seed * 7);
+    // (deep water round where it leaps, a reef rising to 7 m beyond: where it swims off to)
+    const oc = world(id), shelf = (x: number, z: number) => -30 + 23 * Math.min(1, Math.max(0, (Math.hypot(x, z) - 45) / 20));
+    oc.T.top = shelf as any; oc.T.h = shelf as any; (oc.T as any).wet = (x: number, z: number) => shelf(x, z) < -1.3;
+    const cam = new THREE.Vector3(0, 1, 0), env = environment(cam), b = makeBreach(oc);
+    assert(b.force('whale', cam, Math.sin(seed), -Math.cos(seed)), 'forced whale breach failed');
+    b.leap!.left = 1;
+    const mesh = oc.group.children[0] as THREE.Mesh, dt = 1 / 20;
+    for (let i = 0; i < 200 / dt && b.leap; i++) {
+      if (mesh.visible) cam.copy(mesh.position).add(new THREE.Vector3(14, 3, 0));
+      U.uCamFwd.value.copy(mesh.position).sub(cam).normalize();
+      U.uTime.value += dt; b.update(dt, env, cam, 0, -1, true);
+      if (b.leap?.sw) worst = Math.min(worst, mesh.position.y - oc.T.top(mesh.position.x, mesh.position.z) - b.leap.len * 0.12);
+    }
+  }
+  assert(worst > 0, `whale swam down into the seabed after its leap (its belly ${(-worst).toFixed(2)} m into it)`);
+  return { bellyClearanceMin: +worst.toFixed(2) };
+});
 await check('dark_night_and_debug', () => {
   seedRandom(771); const oc = world(), cam = new THREE.Vector3(0, 1, 0), env = environment(cam, 1);
   U.uMoonIllum.value = 0; U.uAirMoon.value.set(0, -1, 0); const b = makeBreach(oc);
