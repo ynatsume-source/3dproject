@@ -13,8 +13,11 @@
 //    back to pot_sherds (potSherdsQuality, cleared by Codex lab e2a4147): a wet, tarred pot with no full history becomes
 //    sherds of the same amount, its absorption, tar, water and history_complete as they were (whole ppm, no new rounding;
 //    read as the whole lot's mg × ppm rounded down), nothing of the vessel kept; the equipment gone
+//  7 several lots made into one piece (a tar retort from an upper and a lower pot): refused for the wrong lots or a cracked
+//    pot; a copy of each kept; saved and loaded; worked out again for a new table; taken apart as the table says, each
+//    part of its own amount (worn: the upper pot cracked; broken: the upper pot to sherds, the lower one whole)
 // Usage: npx tsx scripts/assembly-check.ts
-import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, type AssemblyTable, type Ledger } from '../src/world/process-runner';
+import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, assembleParts, disassembleParts, refreshAssembledParts, type AssemblyTable, type PartsAssemblyTable, type Ledger } from '../src/world/process-runner';
 import type { LotView } from '../src/world/science-contract';
 import { POT_ASSEMBLY } from '../src/world/process-catalog';
 
@@ -116,6 +119,41 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const dry = disassemble(L6, e2.equipmentId, POT_ASSEMBLY).lot!;
   want('6 real table: a dry, untarred one: absorption only (missing is 0), no history made up', dry?.materialId === 'pot_sherds' && dry.amount.value === 615_000 && JSON.stringify(dry.quality) === JSON.stringify({ absorption_ppm: 120000 }), JSON.stringify(dry?.quality));
   want('6 real table: saved and loaded, the sherds as they were', JSON.stringify(JSON.parse(JSON.stringify(L6)).lots[sh.lotId]) === JSON.stringify(L6.lots[sh.lotId]));
+}
+
+{ // 7 several lots made into one piece (a tar retort: an upper and a lower pot). The table here stands in for the science
+  // side's (fired-pot-assembly.ts retortParams / retortPartsOnReturn, civ-sci.fired-pot-assembly/1, not yet taken in):
+  // the wear is the upper pot's; the lower one comes back as it was; at condition 0 the upper one is sherds
+  const RT = (version: string, k = 1): PartsAssemblyTable => ({
+    version, kind: 'tar_retort', catalogEntry: 'tar_retort', catalogVersion: 'civ-sci-test-2', roles: ['upper', 'lower'], materials: ['fired_pot'],
+    toParams([up, low]) { if ((up.quality?.crack ?? 0) > 0 || (low.quality?.crack ?? 0) > 0) throw new Error('a cracked pot is not assembled'); return { capacityMl: up.quality!.capacity_ml * k, collectMl: low.quality!.capacity_ml }; },
+    partsOnReturn([up, low], condition) {
+      if (condition >= 1) return [{ materialId: 'fired_pot', quality: { ...up } }, { materialId: 'fired_pot', quality: { ...low } }];
+      if (condition <= 0) { const { capacity_ml: _c, crack: _k, ...body } = up; return [{ materialId: 'pot_sherds', quality: body }, { materialId: 'fired_pot', quality: { ...low } }]; }
+      return [{ materialId: 'fired_pot', quality: { ...up, crack: 1 } }, { materialId: 'fired_pot', quality: { ...low } }];
+    },
+  });
+  const pot = (L: Ledger, id: string, ml: number, mg: number, crack = 0) => addLot(L, { lotId: id, materialId: 'fired_pot', amount: { value: mg, unit: 'mg' }, quality: { capacity_ml: ml, absorption_ppm: 120000, crack }, location: 'shelf' });
+  const L7 = emptyLedger('island', 'test'), T7 = RT('civ-sci.fired-pot-assembly/1');
+  pot(L7, 'lot:up', 3000, 1_400_000); pot(L7, 'lot:low', 1500, 900_000); pot(L7, 'lot:cracked', 3000, 1_400_000, 1);
+  want('7 refused: one lot only, the same lot twice, a cracked pot — nothing changes', !!assembleParts(L7, ['lot:up'], T7, 1).why && !!assembleParts(L7, ['lot:up', 'lot:up'], T7, 1).why && !!assembleParts(L7, ['lot:cracked', 'lot:low'], T7, 1).why && Object.keys(L7.lots).length === 3 && !Object.keys(L7.equipment).length);
+  const e = assembleParts(L7, ['lot:up', 'lot:low'], T7, 1000).equipment!;
+  want('7 two pots, one retort: both lots off the shelf, a copy of each kept, in order', !!e && !L7.lots['lot:up'] && !L7.lots['lot:low'] && e.params.capacityMl === 3000 && e.params.collectMl === 1500 && L7.equipment[e.equipmentId].assembled?.parts?.map((p) => p.lotId).join() === 'lot:up,lot:low', JSON.stringify(e?.params));
+  want('7 the one-lot disassembly will not take it apart', !!disassemble(L7, e.equipmentId, POT_ASSEMBLY).why && !!L7.equipment[e.equipmentId]);
+  const L7b: Ledger = JSON.parse(JSON.stringify(L7));
+  want('7 saved and loaded, as it was', JSON.stringify(L7b) === JSON.stringify(L7));
+  want('7 a new version of the table: the params worked out again from both copies', refreshAssembledParts(L7b, RT('civ-sci.fired-pot-assembly/2', 2)).length === 1 && L7b.equipment[e.equipmentId].params.capacityMl === 6000);
+  const whole = disassembleParts(L7b, e.equipmentId, T7).lots!;
+  want('7 whole: both pots back as they were, their own amounts', whole.length === 2 && whole[0].amount.value === 1_400_000 && whole[1].amount.value === 900_000 && whole.every((l) => l.materialId === 'fired_pot' && !l.quality?.crack));
+  const L7c: Ledger = JSON.parse(JSON.stringify(L7)); L7c.equipment[e.equipmentId].condition = 0.7;
+  const worn = disassembleParts(L7c, e.equipmentId, T7).lots!;
+  want('7 worn: the upper pot cracked, the lower one as it was', worn[0].quality?.crack === 1 && worn[1].quality?.crack === 0, worn.map((l) => JSON.stringify(l.quality)).join(' / '));
+  L7.equipment[e.equipmentId].condition = 0;
+  const broken = disassembleParts(L7, e.equipmentId, T7).lots!;
+  want('7 broken: the upper pot to sherds of its amount, the lower one whole; the retort gone', broken[0].materialId === 'pot_sherds' && broken[0].amount.value === 1_400_000 && broken[1].materialId === 'fired_pot' && !L7.equipment[e.equipmentId], broken.map((l) => `${l.materialId} ${l.amount.value}`).join(', '));
+  const wrongT: PartsAssemblyTable = { ...T7, partsOnReturn: () => [{ materialId: 'fired_pot', quality: {} }] };
+  const e2 = assembleParts(L7, [broken[1].lotId, pot(L7, 'lot:up2', 3000, 1_400_000).lotId], T7, 2000).equipment!;
+  want('7 a table that answers for the wrong number of parts: refused, nothing changes', !!disassembleParts(L7, e2.equipmentId, wrongT).why && !!L7.equipment[e2.equipmentId]);
 }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }

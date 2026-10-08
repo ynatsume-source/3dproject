@@ -47,7 +47,7 @@ export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }):
 /* ---------- assembly: a lot made into equipment, and back (ADR 0006 addendum: main assembles, science gives the table) ---------- */
 
 /** What an assembled piece of equipment keeps: the lot it was made from (as it was), and the table's version. */
-export interface Assembled { from: LotView; table: string; at: number }
+export interface Assembled { from: LotView; table: string; at: number; parts?: LotView[] }   // (parts: made from several lots — all of them, in the table's role order; from is the first)
 /** The science side's table for one kind of equipment (e.g. vessel.ts: assembled_pot, civ-sci.pot-assembly/1). */
 export interface AssemblyTable {
   version: string; kind: Id; catalogEntry: Id; catalogVersion: string;
@@ -84,6 +84,7 @@ export function disassemble(L: Ledger, equipmentId: Id, T: AssemblyTable): { lot
   const e = L.equipment[equipmentId];
   if (!e) return { why: `no equipment ${equipmentId}` };
   if (!e.assembled) return { why: `${equipmentId} was not assembled from a lot` };
+  if (e.assembled.parts) return { why: `${equipmentId} is made of ${e.assembled.parts.length} lots (disassembleParts)` };
   if (e.reservedBy) return { why: `${equipmentId} is in use (${e.reservedBy})` };
   const from = e.assembled.from;
   let lot: LotView;
@@ -102,13 +103,80 @@ export function disassemble(L: Ledger, equipmentId: Id, T: AssemblyTable): { lot
   return { lot };
 }
 
+/* ---------- several lots made into one piece (a tar retort: an upper and a lower pot) ---------- */
+
+/** The science side's table for equipment made from several lots, one for each role (e.g. fired-pot-assembly.ts:
+ *  tar_retort from the upper and the lower pot). How it goes back is the table's: one lot for each part, of the same
+ *  amount as its copy (retortPartsOnReturn: the wear is the upper pot's). */
+export interface PartsAssemblyTable {
+  version: string; kind: Id; catalogEntry: Id; catalogVersion: string;
+  roles: string[];                                            // what each lot is, in order (upper, lower)
+  materials: Id[];                                            // the lots it can be made from
+  toParams(lots: LotView[]): Record<string, number>;
+  partsOnReturn(copies: Record<string, number>[], condition: number): { materialId: Id; quality: Record<string, number> }[];
+}
+
+/** Make several whole lots, one for each of the table's roles in order, into one piece of equipment. The lots leave the
+ *  shelf; the equipment keeps a copy of each. Refused for a missing or repeated lot, one in use, or one of a material
+ *  the table does not take; nothing changes then. */
+export function assembleParts(L: Ledger, lotIds: Id[], T: PartsAssemblyTable, realNow: number): { equipment?: EquipmentView; why?: string } {
+  if (lotIds.length !== T.roles.length) return { why: `${T.kind} is made of ${T.roles.length} lots (${T.roles.join(', ')})` };
+  if (new Set(lotIds).size !== lotIds.length) return { why: 'the same lot twice' };
+  const lots: (LotView & { reservedBy?: Id })[] = [];
+  for (const id of lotIds) {
+    const lot = L.lots[id];
+    if (!lot) return { why: `no lot ${id}` };
+    if (lot.reservedBy) return { why: `${id} is in use (${lot.reservedBy})` };
+    if (!T.materials.includes(lot.materialId)) return { why: `${lot.materialId} cannot be made into ${T.kind}` };
+    lots.push(lot);
+  }
+  let params: Record<string, number>;
+  try { params = T.toParams(lots); } catch (e) { return { why: (e as Error).message }; }
+  const parts = lots.map((l) => { const { reservedBy: _, ...copy } = l; return JSON.parse(JSON.stringify(copy)) as LotView; });
+  const equipmentId = `eq:${++L.seq}`;
+  L.equipment[equipmentId] = { equipmentId, kind: T.kind, catalogEntry: T.catalogEntry, catalogVersion: T.catalogVersion, condition: 1, params,
+    assembled: { from: parts[0], parts, table: T.version, at: realNow } };
+  for (const id of lotIds) delete L.lots[id];
+  L.world.worldVersion++;
+  return { equipment: L.equipment[equipmentId] };
+}
+
+/** Take equipment made of several lots apart: one lot (a new lotId) for each part, of its copy's amount and where it was,
+ *  with what the table says it became for the equipment's condition. Nothing changes if the table's answer does not
+ *  match the parts. */
+export function disassembleParts(L: Ledger, equipmentId: Id, T: PartsAssemblyTable): { lots?: LotView[]; why?: string } {
+  const e = L.equipment[equipmentId];
+  if (!e) return { why: `no equipment ${equipmentId}` };
+  const parts = e.assembled?.parts;
+  if (!parts) return { why: `${equipmentId} was not made of several lots` };
+  if (e.reservedBy) return { why: `${equipmentId} is in use (${e.reservedBy})` };
+  let back: { materialId: Id; quality: Record<string, number> }[];
+  try { back = T.partsOnReturn(parts.map((p) => ({ ...(p.quality ?? {}) })), e.condition); } catch (err) { return { why: (err as Error).message }; }
+  if (!Array.isArray(back) || back.length !== parts.length || back.some((b) => !b || typeof b.materialId !== 'string')) return { why: `the table gave ${back?.length ?? 0} parts back for ${parts.length}` };
+  const lots = back.map((b, i) => addLot(L, { materialId: b.materialId, amount: { ...parts[i].amount }, quality: { ...b.quality }, location: parts[i].location }));
+  delete L.equipment[equipmentId];
+  L.world.worldVersion++;
+  return { lots };
+}
+
 /** After loading: equipment assembled under another version of its table gets its params again from the lot it was
  *  made from (a run using it was already stopped with the process versions). Returns the ids worked out again. */
 export function refreshAssembled(L: Ledger, T: AssemblyTable): Id[] {
   const out: Id[] = [];
   for (const e of Object.values(L.equipment)) {
-    if (!e.assembled || e.kind !== T.kind || e.assembled.table === T.version || e.reservedBy) continue;
+    if (!e.assembled || e.assembled.parts || e.kind !== T.kind || e.assembled.table === T.version || e.reservedBy) continue;
     try { e.params = T.toParams(e.assembled.from); e.assembled.table = T.version; e.catalogVersion = T.catalogVersion; out.push(e.equipmentId); } catch { /* (kept as it was; the table no longer takes it) */ }
+  }
+  if (out.length) L.world.worldVersion++;
+  return out;
+}
+/** The same, for equipment made of several lots. */
+export function refreshAssembledParts(L: Ledger, T: PartsAssemblyTable): Id[] {
+  const out: Id[] = [];
+  for (const e of Object.values(L.equipment)) {
+    const parts = e.assembled?.parts;
+    if (!parts || e.kind !== T.kind || e.assembled!.table === T.version || e.reservedBy) continue;
+    try { e.params = T.toParams(parts); e.assembled!.table = T.version; e.catalogVersion = T.catalogVersion; out.push(e.equipmentId); } catch { /* (kept as it was) */ }
   }
   if (out.length) L.world.worldVersion++;
   return out;
