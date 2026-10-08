@@ -45,11 +45,13 @@ function tube(rings: number, rad: number, prof: (s: number) => [number, number, 
 // moray: deep, laterally flattened body, a big head with the gape running back past the eye, a long low
 // dorsal fin from behind the head to the tail, the tail flattened like a blade
 export const MORAY_GEO = (() => {
-  const g = tube(90, 16, (s) => {
-    const head = smooth(-0.02, 0.1, s), tail = 1 - smooth(0.62, 1.0, s);
-    const hh = 0.006 + 0.04 * head * (0.4 + 0.6 * tail) + 0.004 * Math.exp(-(((s - 0.1) / 0.04) ** 2));
-    const ww = hh * (0.55 + 0.25 * (1 - smooth(0.05, 0.2, s))) * (0.4 + 0.6 * tail);
-    return [hh, ww, 0];
+  // (the snout tapers to a point, narrow and a little down-turned; behind the eyes the head swells with the jaw
+  // muscles before the neck)
+  const g = tube(90, 20, (s) => {
+    const head = Math.pow(smooth(-0.004, 0.11, s), 0.75), tail = 1 - smooth(0.62, 1.0, s);
+    const hh = 0.0035 + 0.0405 * head * (0.4 + 0.6 * tail) + 0.005 * Math.exp(-(((s - 0.1) / 0.035) ** 2));
+    const ww = hh * (0.5 + 0.28 * smooth(0.0, 0.06, s) * (1 - smooth(0.06, 0.2, s))) * (0.4 + 0.6 * tail);
+    return [hh, ww, -0.003 * (1 - smooth(0.0, 0.07, s))];
   });
   // the fins: a ribbon along the back and (from the vent) along the belly
   const P = Array.from(g.attributes.position.array), S = Array.from(g.attributes.aS.array), A = Array.from(g.attributes.aA.array), idx = Array.from(g.index!.array);
@@ -251,7 +253,7 @@ export function jellyMaterial(sp: CritterSpec) {
 }
 
 /* ---------- the animals ---------- */
-interface Moray { sp: CritterSpec; i: number; pos: THREE.Vector3; dir: THREE.Vector3; len: number; out: number; outDay: number; head: THREE.Vector3; buried?: boolean }
+interface Moray { sp: CritterSpec; i: number; pos: THREE.Vector3; dir: THREE.Vector3; nrm: THREE.Vector3; len: number; out: number; outDay: number; head: THREE.Vector3; buried?: boolean }
 interface Snake { sp: CritterSpec; i: number; pos: THREE.Vector3; head: number; pitch: number; len: number; state: 'forage' | 'up' | 'breathe' | 'down'; t: number; next: number; placed: boolean; alt: number }
 interface Jelly { sp: CritterSpec; i: number; pos: THREE.Vector3; s: number; placed: boolean; bob: number }
 
@@ -263,19 +265,34 @@ export function makeCritters(oc: any) {
   const meshes: { mesh: THREE.InstancedMesh; kind: string; list: any[] }[] = [];
   const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _e = new THREE.Euler(), _z = new THREE.Vector3(0, 0, 1), _v = new THREE.Vector3();
 
-  // a moray's hole: a spot on a steep reef face; the body runs level into the rock, the head out into the water
-  const holeAt = (): { p: THREE.Vector3; d: THREE.Vector3 } | null => {
-    for (let k = 0; k < 400; k++) {
-      const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = loc.f(x, z);
+  // a moray's hole: a spot on a steep reef face; the body runs level into the rock, the head out into the water.
+  // On the face as drawn (T.drawn: the seabed mesh's flat triangles, which on a steep, curved face stand tens of
+  // centimetres off the smooth ground loc.f), with no boulder or coral head sitting on it; n: the face's normal there
+  const ground = (x: number, z: number) => (T.drawn ? T.drawn(x, z) : loc.f(x, z));
+  const _hq = new THREE.Vector3(), _hx = new THREE.Vector3(), _hy = new THREE.Vector3();
+  const holeAt = (len: number): { p: THREE.Vector3; d: THREE.Vector3; n: THREE.Vector3 } | null => {
+    for (let k = 0; k < 3000; k++) {   // (most of the sea is no steep face: many tries, each cheap until one is)
+      const x = rr(-LIMIT, LIMIT), z = rr(-LIMIT, LIMIT), h = ground(x, z);
       if (h > -2.5 || h < -32 || T.slope(x, z) < 1.1 || T.reef(x, z) < 0.25) continue;
-      const gx = loc.f(x + 0.5, z) - loc.f(x - 0.5, z), gz = loc.f(x, z + 0.5) - loc.f(x, z - 0.5), gl = hyp(gx, gz);
-      if (gl < 1e-3) continue;
+      const gx = (ground(x + 0.3, z) - ground(x - 0.3, z)) / 0.6, gz = (ground(x, z + 0.3) - ground(x, z - 0.3)) / 0.6, gl = hyp(gx, gz);
+      if (gl < 0.9) continue;   // (steep where it is drawn, too)
+      if (T.obst && T.obst.get(x, z) > h + 0.15) continue;   // (a rock or coral head over it)
       const d = new THREE.Vector3(-gx / gl, rr(-0.1, 0.2), -gz / gl).normalize();   // downhill: out of the rock
-      const p = new THREE.Vector3(x, h - 0.15, z);
-      // the head, a third of a (big) moray's length out, must be clear of the rock and any coral head
-      const hx = x + d.x * 0.6, hz = z + d.z * 0.6, hy = p.y + d.y * 0.6;
-      if (T.top(hx, hz) > hy - 0.3 || T.top(x + d.x * 1.2, z + d.z * 1.2) > hy - 0.3) continue;
-      return { p, d };
+      const n = new THREE.Vector3(-gx, 1, -gz).normalize();
+      const p = new THREE.Vector3(x, h, z);
+      // the opening lies flat on the face (a face curving away under it would leave its rim in the water)
+      _hx.set(-n.z, 0, n.x).normalize(); _hy.crossVectors(n, _hx);
+      const r = len * 0.075, sl = Math.min(1.8, 1 / Math.max(0.35, Math.abs(n.dot(d))));
+      let flat = true;
+      for (let j = 0; j < 12 && flat; j++) { const a = (j / 12) * Math.PI * 2; _hq.copy(p).addScaledVector(_hx, Math.cos(a) * r).addScaledVector(_hy, Math.sin(a) * r * sl); if (Math.abs(_hq.y - ground(_hq.x, _hq.z)) > 0.025) flat = false; }
+      if (!flat) continue;
+      // the body runs into the rock behind it, and the head, out by day and further at night, is clear of the rock
+      // and any coral head
+      let ok = true;
+      for (const f of [0.1, 0.3, 0.55]) { _hq.copy(p).addScaledVector(d, -len * f); if (_hq.y > ground(_hq.x, _hq.z) - 0.03) ok = false; }
+      for (const f of [0.2, 0.34, 0.47]) { _hq.copy(p).addScaledVector(d, len * f); if (_hq.y < T.top(_hq.x, _hq.z) + 0.08) ok = false; }
+      if (!ok) continue;
+      return { p, d, n };
     }
     return null;
   };
@@ -284,9 +301,8 @@ export function makeCritters(oc: any) {
     if (sp.kind === 'moray') {
       const list: Moray[] = [];
       for (let i = 0; i < n; i++) {
-        const hole = holeAt(); if (!hole) break;
-        const len = rr(sp.size[0], sp.size[1]);
-        list.push({ sp, i, pos: hole.p, dir: hole.d, len, out: 0.25, outDay: rr(0.24, 0.34), head: new THREE.Vector3() });
+        const len = rr(sp.size[0], sp.size[1]), hole = holeAt(len); if (!hole) break;
+        list.push({ sp, i, pos: hole.p, dir: hole.d, nrm: hole.n, len, out: 0.25, outDay: rr(0.24, 0.34), head: new THREE.Vector3() });
       }
       if (!list.length) continue;
       const g = MORAY_GEO.clone();
@@ -295,13 +311,23 @@ export function makeCritters(oc: any) {
       const mesh = new THREE.InstancedMesh(g, morayMaterial(sp), list.length); mesh.frustumCulled = false; mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       group.add(mesh); meshes.push({ mesh, kind: 'moray', list }); morays.push(...list);
       // the mouth of each hole: a ragged dark opening in the rock around the body
-      const hole = new THREE.CircleGeometry(1, 14), hp = hole.attributes.position;
-      for (let k = 1; k < hp.count; k++) { const a = Math.atan2(hp.getY(k), hp.getX(k)); const r = 1 + 0.25 * Math.sin(a * 3 + k) + 0.15 * Math.sin(a * 5); hp.setXY(k, hp.getX(k) * r * 1.3, hp.getY(k) * r); }
+      // (a shadowed opening that fades into the rock round it: dark in the middle, its ragged edge only a darkening)
+      const hole = new THREE.CircleGeometry(1.5, 32), hp = hole.attributes.position, hr = new Float32Array(hp.count);
+      for (let k = 1; k < hp.count; k++) { const a = Math.atan2(hp.getY(k), hp.getX(k)); const r = 1 + 0.12 * Math.sin(a * 3 + 1.7) + 0.07 * Math.sin(a * 7 + 0.4); hp.setXY(k, hp.getX(k) * r * 1.2, hp.getY(k) * r); hr[k] = 1.5; }
+      hole.setAttribute('aR', new THREE.Float32BufferAttribute(hr, 1));
       const holes = new THREE.InstancedMesh(hole, mat(
-        `varying vec3 vWp; varying float vR; void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vR = length(position.xy); gl_Position = projectionMatrix * viewMatrix * w; }`,
-        `varying vec3 vWp; varying float vR; void main(){ vec3 col = mix(vec3(0.004, 0.005, 0.006), vec3(0.03, 0.035, 0.03) * uAmb, smoothstep(0.5, 1.2, vR)); gl_FragColor = vec4(fogIt(col, vWp), 1.0); }`,
-        { opts: { side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 } }), list.length);
-      list.forEach((m, k) => { const at = m.pos.clone().addScaledVector(m.dir, 0.1 * m.len); _q.setFromUnitVectors(_z, m.dir); holes.setMatrixAt(k, _m.compose(at, _q, _s.setScalar(m.len * 0.075))); });
+        `attribute float aR; varying vec3 vWp; varying float vR; void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vR = aR; gl_Position = projectionMatrix * viewMatrix * w; }`,
+        `varying vec3 vWp; varying float vR; void main(){ vec3 col = vec3(0.004, 0.005, 0.006); float a = 1.0 - smoothstep(0.55, 1.45, vR); gl_FragColor = vec4(fogIt(col, vWp), a * 0.92); }`,
+        { opts: { side: THREE.DoubleSide, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 } }), list.length);
+      // (lying on the face, where the body comes out of it: the opening is the body's slanting cut through the face, longer
+      // across the slope's fall the steeper the body meets it)
+      const ax = new THREE.Vector3(), ay = new THREE.Vector3(), rot = new THREE.Matrix4();
+      list.forEach((m, k) => {
+        ax.set(-m.nrm.z, 0, m.nrm.x).normalize(); ay.crossVectors(m.nrm, ax);   // (across the face, and up it)
+        _q.setFromRotationMatrix(rot.makeBasis(ax, ay, m.nrm));
+        const sl = Math.min(1.8, 1 / Math.max(0.35, Math.abs(m.nrm.dot(m.dir))));
+        holes.setMatrixAt(k, _m.compose(m.pos.clone().addScaledVector(m.nrm, 0.012), _q, _s.set(m.len * 0.075, m.len * 0.075 * sl, 1)));
+      });
       holes.frustumCulled = false; group.add(holes);
     } else if (sp.kind === 'snake') {
       const list: Snake[] = [];
@@ -328,7 +354,7 @@ export function makeCritters(oc: any) {
     return [zx(cam.x + Math.cos(a) * d), zz(cam.z + Math.sin(a) * d)];
   };
   return {
-    group,
+    group, morays,   // (morays: for checks)
     update(dt: number, env: any, cam: THREE.Vector3, fx: number, fz: number) {
       const night = env.night, dusk = env.twilight;
       for (const mm of meshes) {
