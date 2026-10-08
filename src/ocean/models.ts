@@ -628,7 +628,11 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     const p0 = K[Math.max(0, i - 1)], p1 = K[i], p2 = K[i + 1], p3 = K[Math.min(K.length - 1, i + 2)];
     const t = (s - p1[0]) / Math.max(p2[0] - p1[0], 1e-6), t2 = t * t, t3 = t2 * t;
     const cr = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
-    return [Math.max(0, cr(p0[1], p1[1], p2[1], p3[1])), Math.max(0, cr(p0[2], p1[2], p2[2], p3[2])), cr(p0[3], p1[3], p2[3], p3[3])];
+    let h = Math.max(0, cr(p0[1], p1[1], p2[1], p3[1])), w = Math.max(0, cr(p0[2], p1[2], p2[2], p3[2]));
+    // (the snout rounded, not drawn to a needle: within its first few hundredths the section closes as a dome does)
+    const sn = 0.03;
+    if (s < sn && !S.cap && !S.hammer) { const [h1, w1] = [K[1][1] + (K[2][1] - K[1][1]) * ((sn - K[1][0]) / (K[2][0] - K[1][0])), K[1][2] + (K[2][2] - K[1][2]) * ((sn - K[1][0]) / (K[2][0] - K[1][0]))]; const k = Math.sqrt(Math.max(0, 1 - (1 - s / sn) ** 2)); h = Math.max(h, h1 * k); w = Math.max(w, w1 * k); }
+    return [h, w, cr(p0[3], p1[3], p2[3], p3[3])];
   };
   const RINGS = S.rad ? 64 : 40, RAD = S.rad ?? 18, pos: number[] = [], idx: number[] = [];
   for (let r = 0; r <= RINGS; r++) {
@@ -712,10 +716,37 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     const [h2, w2, yc2] = at(0.52), py = (yc2 - h2 * 0.7) * L;
     fin([[0.5, 0], [0.56, 0.035], [0.575, 0.03], [0.565, 0]], (s, d) => [sx * (w2 * 0.6 * L + d * L), py - d * L * 0.6, Z(s)], 2, [0, 1, 0]);
   }
+  // the eyes: low domes in the skin of the head's side, where the painted eye was (z 0.34, a little above the
+  // axis), facing out along the surface; aEye: the disc (−1…1) for the shader, 0 elsewhere (not the hammerhead's,
+  // at the ends of its hammer, nor the whale shark's, small and drawn)
+  const E = new Array((P.length / 3) * 2).fill(0);
+  if (!S.hammer && !S.cap) {
+    const se = (0.47 - 0.34) / L, [he, we, ye] = at(se), er = 0.0105 * (S.eyeR ?? 1);
+    const surf = (a: number) => { const sa = Math.sin(a); return new THREE.Vector3(Math.cos(a) * we * L, (ye + he * sa * (sa < 0 ? 0.82 : 1)) * L, Z(se)); };
+    let a = 0; for (let k = 0; k <= 40; k++) { const aa = -0.3 + (k / 40) * 1.6; if (surf(aa).y >= 0.026) { a = aa; break; } }
+    const c0 = surf(a), ta = surf(a + 0.02).sub(c0), [h1, w1, y1] = at(se + 0.004), sa1 = Math.sin(a);
+    const ts = new THREE.Vector3(Math.cos(a) * w1 * L, (y1 + h1 * sa1 * (sa1 < 0 ? 0.82 : 1)) * L, Z(se + 0.004)).sub(c0);
+    for (const sx of [-1, 1]) {
+      const nrm = new THREE.Vector3().crossVectors(ts, ta).normalize(); if (nrm.x < 0) nrm.negate();
+      const u = ts.clone().normalize(), v = new THREE.Vector3().crossVectors(nrm, u).normalize();
+      const ctr = c0.clone().addScaledVector(nrm, -er * 0.3);
+      if (sx < 0) { nrm.x = -nrm.x; u.x = -u.x; v.x = -v.x; ctr.x = -ctr.x; }
+      const RG = 6, SG = 18, pt = (i: number, k: number) => {
+        const th = (i / RG) * (Math.PI / 2), rr = Math.sin(th), hh = Math.cos(th), ph = (k / SG) * Math.PI * 2, px = Math.cos(ph) * rr, py = Math.sin(ph) * rr;
+        return { p: ctr.clone().addScaledVector(u, px * er).addScaledVector(v, py * er).addScaledVector(nrm, hh * er * 0.55), n: nrm.clone().multiplyScalar(hh / 0.55).addScaledVector(u, px).addScaledVector(v, py).normalize(), e: [px * sx, py] };
+      };
+      const tri = (A: any, B: any, C: any) => { for (const q of [A, B, C]) { P.push(q.p.x, q.p.y, q.p.z); N.push(q.n.x, q.n.y, q.n.z); F.push(7); E.push(q.e[0], q.e[1]); } };
+      for (let i = 0; i < RG; i++) for (let k = 0; k < SG; k++) {
+        const a0 = pt(i, k), a1 = pt(i, k + 1), b0 = pt(i + 1, k), b1 = pt(i + 1, k + 1);
+        tri(a0, b0, a1); if (i > 0) tri(a1, b0, b1); else tri(a1, b0, b1);
+      }
+    }
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
   g.setAttribute('aFin', new THREE.Float32BufferAttribute(F, 1));
+  g.setAttribute('aEye', new THREE.Float32BufferAttribute(E, 2));
   return g;
 }
 
@@ -881,6 +912,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
      #ifdef HIDE
      attribute float aHide;
      #endif
+     #ifdef SHARK
+     attribute vec2 aEye; varying vec2 vEye;
+     #endif
      #ifdef BONY
      attribute vec4 aB; uniform float uRow; uniform float uRip; uniform vec2 uGill; varying vec4 vB; varying vec3 vAx; varying float vSz;
      #endif
@@ -935,6 +969,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        mat3 toW = mat3(modelMatrix) * mat3(instanceMatrix);
        vWp = wp.xyz; vN = normalize(toW * nl); vSide = normalize(toW * side);
        vL = position; vFin = aFin; vTint = aSwim.z; vWear = aSwim.x;
+       #ifdef SHARK
+       vEye = aEye;
+       #endif
        #ifdef BONY
        vB = aB; vAx = normalize(toW * vec3(0.0, 0.0, 1.0)); vSz = length(toW[0]);
        #endif
@@ -947,6 +984,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
      }`,
     `uniform vec3 uC1; uniform vec3 uC2; uniform vec3 uC3; uniform float uBands; uniform float uEdge; uniform float uEye; uniform float uShine; uniform float uWear;
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
+     #ifdef SHARK
+     varying vec2 vEye;
+     #endif
      #ifdef BONY
      uniform vec2 uScl; uniform float uScK; uniform vec4 uMouth; uniform vec3 uEyeP; uniform vec3 uIris; uniform vec2 uGill; varying vec4 vB; varying vec3 vAx; varying float vSz;
      #endif
@@ -1137,7 +1177,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          #if PAT == 8
          // the pale flank band that runs back to the pelvic fins
          alb = mix(alb, uC2, (1.0 - smoothstep(0.004, 0.014, abs(y - 0.004 + (z + 0.1) * 0.05))) * smoothstep(-0.36, -0.2, z) * smoothstep(0.12, -0.02, z) * step(vFin, 0.5) * 0.8);
-         if (vFin > 0.5) alb = mix(uC1, uC3, smoothstep(0.14, 0.18, max(length(vL.xy), -z - 0.58)));
+         // (black only at the very tips: the pectorals' ends, the first dorsal's and the tail lobes')
+         float tipB = vFin > 2.5 ? smoothstep(0.2, 0.245, abs(vL.x)) : vFin > 1.5 ? smoothstep(0.124, 0.136, y) : max(max(smoothstep(0.15, 0.172, y), smoothstep(0.072, 0.086, -y)), smoothstep(0.765, 0.79, -z));
+         if (vFin > 0.5) alb = mix(uC1, uC3, tipB);
          #else
          // whitetip: bright tips on the first dorsal and the upper tail lobe; scattered dark spots
          vec2 sg = vec2(z * 38.0, y * 38.0 + z * 9.0), sf = fract(sg) - 0.5;
@@ -1150,12 +1192,14 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          // the underslung crescent mouth and the nostrils beneath the snout
          if (vFin < 0.5 && y < -0.01) {
            float mz = 0.39 - 9.0 * vL.x * vL.x;
-           alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.002, 0.005, abs(z - mz))) * step(abs(vL.x), 0.05);
+           alb *= 1.0 - 0.5 * (1.0 - smoothstep(0.002, 0.005, abs(z - mz))) * step(abs(vL.x), 0.05);
            alb *= 1.0 - 0.6 * (1.0 - smoothstep(0.004, 0.007, length(vec2(abs(vL.x) - 0.022, z - 0.44))));
          }
-         // five gill slits behind the eye
-         float gi = (z - 0.21) / 0.019;
-         alb *= 1.0 - 0.45 * smoothstep(0.36, 0.46, abs(fract(gi) - 0.5)) * step(0.0, gi) * step(gi, 5.0) * step(abs(y + 0.005), 0.035) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
+         // five gill slits behind the eye, each bowed a little back at its middle, with the light catching the flap
+         // of skin behind it
+         float gi = (z - 0.21 + 2.5 * (y + 0.005) * (y + 0.005)) / 0.019, gf = fract(gi) - 0.5, gOn = step(0.0, gi) * step(gi, 5.0) * (1.0 - smoothstep(0.028, 0.038, abs(y + 0.005))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
+         alb *= 1.0 - 0.5 * smoothstep(0.36, 0.47, abs(gf)) * gOn;
+         alb *= 1.0 + 0.16 * (1.0 - smoothstep(0.0, 0.18, abs(gf + 0.22))) * gOn;
        #elif PAT == 9
          // whale shark: blue-grey above, white below; on the back and flanks a checkerboard of thin pale
          // lines, a white spot in each square; on the head the spots are small and crowded, with no lines
@@ -1328,6 +1372,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          alb += uC1 * 0.25 * exp(-pow((y - 0.025 - 0.02 * z) / 0.014, 2.0)) * (1.0 - dark);
          alb *= 1.0 - 0.3 * exp(-pow((z - 0.27 - 2.2 * y * y) / 0.012, 2.0)) * step(0.02, abs(vL.x));
          mir = (1.0 - dark) * (0.82 + 0.18 * smoothstep(0.0, -0.1, y));
+         #ifdef BONY
+         mir *= 0.65;   // (a big fish's flank, seen close: more of its own grey, less a mirror of the bright water)
+         #endif
        }
        #endif
        // a lived-in skin on the big ones: fine grain, uneven mottling, old pale scars (bites, coral, lines)
@@ -1356,7 +1403,17 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          // (and the grain roughens the sheen: a leathery, not glassy, skin)
          nW = normalize(n + uWear * 0.18 * vec3(hash2(floor(q * 160.0 + sd)) - 0.5, hash2(floor(q * 160.0 + sd + 9.0)) - 0.5, 0.0));
        }
-       #if PAT != 9 && !defined(BONY)
+       #ifdef SHARK
+       // a shark's skin: dermal denticles, a fine grain running along the body; the eye a dome with a dark
+       // green-grey iris round a big pupil
+       alb *= 0.93 + 0.1 * vn2(vec2(vL.z * 90.0, vL.y * 420.0 + vL.x * 300.0)) * step(vFin, 6.5);
+       if (vFin > 6.5) {
+         float r = length(vEye), pu = length(vEye * vec2(1.6, 1.0));
+         alb = mix(vec3(0.16, 0.2, 0.17) * (0.8 + 0.4 * vn2(vec2(atan(vEye.y, vEye.x) * 4.0, r * 5.0))), uC1 * 0.55, smoothstep(0.62, 0.8, r));
+         alb = mix(vec3(0.005), alb, smoothstep(0.38, 0.45, pu));
+       }
+       #endif
+       #if PAT != 9 && !defined(BONY) && !defined(SHARKEYE)
        float eye = (1.0 - smoothstep(0.022 * uEye, 0.034 * uEye, length(vec2(y - 0.035, z - 0.34)))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
        alb = mix(alb, vec3(0.02), eye);
        #endif
@@ -1405,6 +1462,11 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        vec3 Re = reflect(-V, n);
        col += bEye * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 80.0) * 2.5 * cl.x + waterCol(Re) * 0.15, vWp.y);
        #endif
+       #ifdef SHARK
+       // (a fin is thin skin over cartilage: some light comes through it from the far side)
+       if (vFin > 0.5 && vFin < 3.5) col += absorb(alb * uTint * (uSunI * 0.35 * max(-dot(n, SUN), 0.0) * cl.x + uAmb * 0.1), vWp.y);
+       { vec3 Re = reflect(-V, n); col += step(6.5, vFin) * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 80.0) * 2.5 * cl.x + waterCol(Re) * 0.15, vWp.y); }
+       #endif
        col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb * vShade.x;
        col += lamp(alb, vWp, n) * 1.2;
        #ifdef SILVER
@@ -1412,7 +1474,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #endif
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
+    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}), ...(SHAPES[sp.shape]?.lofted ? { SHARK: 1, ...(!['hammer', 'whaleshark'].includes(SHAPES[sp.shape].lofted) ? { SHARKEYE: 1 } : {}) } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
       opts: { side: THREE.DoubleSide } });
 }
 
