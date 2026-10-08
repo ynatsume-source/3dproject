@@ -1,6 +1,6 @@
 // Headless check (ADR 0002 / 0006): Lantern runs a science process on the island, the world runs it.
-//  1 nothing is ready yet on the island (the record weather waits for contract 0.2.1): with clay on the shelf, Lantern
-//    starts nothing
+//  1 a little prepared clay on the shelf (45 g: too little for a pot, and the test tile's steps are not ready on the
+//    island): Lantern starts nothing
 //  2 with a ready process (here: the test tile's shaping, given a simulation for weather — checks only) and its
 //    material on the shelf, Lantern (awake from late afternoon) goes to the shelf and starts it; the world steps it; the tile lies on the
 //    shelf, the clay is gone, and Lantern's record says so
@@ -34,7 +34,7 @@ const clay = () => addLot(lab, { materialId: 'prepared_clay', amount: { value: 4
 { // 1
   const c = clay();
   await run(1800);
-  want('1 nothing ready on the island yet: no run started', Object.keys(lab.runs).length === 0 && CATALOG.every((e: any) => !e.ready || e.env !== 'record'), CATALOG.map((e: any) => `${e.processId}: ${e.waits}`).join(' / '));
+  want('1 a little clay, nothing it is enough for: no run started', Object.keys(lab.runs).length === 0, Object.values(lab.runs).map((r: any) => r.processId).join(', ') || CATALOG.filter((e: any) => e.ready).map((e: any) => e.processId).join(', ') + ' ready');
   delete lab.lots[c.lotId];
 }
 { // 2

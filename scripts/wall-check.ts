@@ -54,6 +54,7 @@ const ids = (who: string) => (last[who]?.options ?? []).map((o: any) => o.id);
   wx = calm;
 }
 { // 2
+  kame.task = null; kame.pos.x = kame.sp.home[0]; kame.pos.z = kame.sp.home[1];   // (in the sea by its home, not ashore basking)
   watchOn = kame; wx = rough; await run(3600, () => !!kame.mo.roughFelt); wx = calm;   // (it may have been ashore, basking)
   want('2 Kamemaru, having known the rough sea too: its ledge found and told', !!V.kameBed && kame.diary.some((e: any) => /岩棚の下の寝場所/.test(e.text)), kame.diary.find((e: any) => /岩棚/.test(e.text))?.text ?? (kame.mo.roughFelt ? 'felt, none found' : 'not felt'));
   kame.task = null; wx = rough; await run(400, () => !!V.kameBed && Math.hypot(kame.pos.x - V.kameBed[0], kame.pos.z - V.kameBed[1]) < 3);

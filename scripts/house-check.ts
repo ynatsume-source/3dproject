@@ -105,6 +105,7 @@ for (const r of [dot, lantern]) { r.battery = 1; r.wear = 0; }
   pick = () => 'look:shore';
   wx = { ...calm, typhoon: true, rain: 12, rainMeasured: 12, wind: 22, windMeasured: 22, wave: 5, pressure: 975 };
   for (const r of [dot, lantern]) { r.task = null; r.wear = 0; r.wearLv = 0; r.stuck = false; }
+  { const h = houseG.position; lantern.pos.x = h.x + 12; lantern.pos.z = h.z - 6; }   // (Lantern near by, as it is once it comes to live there — not 350 m off at its old place, where a typhoon would wear it to a crawl on the way)
   let both = false;
   for (let t = 0; t < 1800 && !both; t += 30) { both = await run(30, () => [dot, lantern].every((r: any) => r.task?.kind === 'shelter' && r.task.arrived)); }
   want('5 a typhoon: both robots shelter in the house', both && [dot, lantern].every((r: any) => { const v = local(r.pos.x, r.pos.z); return insideHouse(v.x, v.z); }), [dot, lantern].map((r: any) => `${r.id} ${r.task?.kind} ${r.task?.arrived}`).join(', '));

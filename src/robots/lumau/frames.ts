@@ -72,7 +72,7 @@ const DAY: Record<DayItem['what'], { ids: (n: number, w?: Who) => string[]; ja: 
   met: { ids: (_n, w) => [w!, 'with', 'speak', 'past'], ja: (_n, w) => `${NAME[w!].ja}と話した`, en: (_n, w) => `talked with ${NAME[w!].en}` },
 };
 
-export type Reason = 'hungry' | 'sleepy' | 'wind' | 'typhoon' | 'typhoon-soon' | 'rain' | 'far' | 'dark' | 'no-wood' | 'danger' | 'told-useful' | 'no-food';
+export type Reason = 'hungry' | 'sleepy' | 'wind' | 'typhoon' | 'typhoon-soon' | 'rain' | 'far' | 'dark' | 'no-wood' | 'danger' | 'told-useful' | 'no-food' | 'far-food' | 'my-place';
 const REASON: Record<Reason, { ids: Ids; ja: string; en: string }> = {
   hungry: { ids: ['me', 'topic', 'hungry'], ja: 'おなかがすいている', en: "I'm hungry" },
   sleepy: { ids: ['me', 'topic', 'sleepy'], ja: '眠い', en: "I'm sleepy" },
@@ -86,10 +86,12 @@ const REASON: Record<Reason, { ids: Ids; ja: string; en: string }> = {
   danger: { ids: ['that', 'topic', 'danger'], ja: 'それは危ない', en: "it's dangerous" },
   'told-useful': { ids: ['tell', 'past', 'thing', 'topic', 'useful'], ja: '知らせたことは役に立つ', en: 'what is told is of use' },
   'no-food': { ids: ['food', 'topic', 'lack'], ja: '食べ物が足りない', en: "there isn't enough food" },
+  'far-food': { ids: ['eating_place', 'topic', 'far', 'become', 'future'], ja: '食べ場が遠くなる', en: 'my feeding place would be far' },
+  'my-place': { ids: ['me', 'of', 'home', 'topic', 'here', 'there'], ja: '僕のすみかはここにある', en: 'my home is here' },
 };
 const because = (r: Reason) => ({ ids: [...REASON[r].ids, 'because', '.'] as Ids, ja: `${REASON[r].ja}から。`, en: ` Because ${REASON[r].en}.` });
 /** Things one may do, with the forms Japanese gives them: as is, let's, do it!, (and so: don't, should). */
-export type Deed = 'shelter' | 'sea' | 'pier' | 'raft' | 'catcher' | 'store-food' | 'fix-hut' | 'hut' | 'wood' | 'gauge' | 'tell-seen' | 'sleep' | 'eat' | 'haul' | 'harvest';
+export type Deed = 'shelter' | 'sea' | 'pier' | 'raft' | 'catcher' | 'store-food' | 'fix-hut' | 'hut' | 'wood' | 'gauge' | 'tell-seen' | 'sleep' | 'eat' | 'haul' | 'harvest' | 'live-near';
 const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }> = {
   shelter: { ids: ['shelter_place', 'to', 'go'], ja: ['避難場所へ行く', '避難場所へ行こう', '避難場所へ行け'], en: 'go to shelter' },
   sea: { ids: ['sea', 'to', 'go'], ja: ['海に出る', '海に出よう', '海に出ろ'], en: 'go out to sea' },
@@ -106,13 +108,14 @@ const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }>
   eat: { ids: ['eat'], ja: ['食べる', '食べよう', '食べろ'], en: 'eat' },
   haul: { ids: ['raft', 'object', 'high', 'place', 'to', 'carry'], ja: ['筏を高い所へ運ぶ', '筏を高い所へ運ぼう', '筏を高い所へ運べ'], en: 'carry the raft up high' },
   harvest: { ids: ['harvest', 'object', 'gather'], ja: ['実を早めに収穫する', '実を早めに収穫しよう', '実を早めに収穫しろ'], en: 'harvest early' },
+  'live-near': { ids: ['home', 'object', 'near', 'place', 'to', 'move'], ja: ['すみかを近くに移す', 'すみかを近くに移そう', 'すみかを近くに移せ'], en: 'move our homes near each other' },
 };
 export type Findable = 'wood' | 'shell' | 'coconut' | 'water' | 'thing';
 const FIND: Record<Findable, { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'shells' }, coconut: { ja: 'ヤシの実', en: 'coconuts' }, water: { ja: '水', en: 'water' }, thing: { ja: '見慣れないもの', en: 'the new thing' } };
 export type Made = 'charcoal' | 'oil' | 'pot' | 'catcher' | 'raft' | 'clay';
 const MADE: Record<Made, { id: string; ja: string; en: string }> = { charcoal: { id: 'charcoal', ja: '炭', en: 'charcoal' }, oil: { id: 'oil', ja: '油', en: 'oil' }, pot: { id: 'pot', ja: '器', en: 'a pot' }, catcher: { id: 'rain_catcher', ja: '雨受け', en: 'a rain catcher' }, raft: { id: 'raft', ja: '筏', en: 'a raft' }, clay: { id: 'clay', ja: '粘土', en: 'clay' } };
-export type Measured = 'water' | 'coconut' | 'mark' | 'air' | 'wind' | 'island';
-const MEASURED: Record<Measured, { ids: Ids; ja: string; en: string }> = { water: { ids: ['water'], ja: 'たまった水', en: 'The water held' }, coconut: { ids: ['coconut'], ja: 'ヤシの実', en: 'The coconut' }, mark: { ids: ['mark'], ja: '目盛り', en: 'The mark' }, air: { ids: ['warmth'], ja: '暖かさ', en: 'The warmth' }, wind: { ids: ['wind', 'of', 'speed'], ja: '風の速さ', en: 'The wind' }, island: { ids: ['island', 'of', 'farness'], ja: '島までの遠さ', en: 'The island' } };
+export type Measured = 'water' | 'coconut' | 'mark' | 'air' | 'wind' | 'island' | 'walk';
+const MEASURED: Record<Measured, { ids: Ids; ja: string; en: string }> = { water: { ids: ['water'], ja: 'たまった水', en: 'The water held' }, coconut: { ids: ['coconut'], ja: 'ヤシの実', en: 'The coconut' }, mark: { ids: ['mark'], ja: '目盛り', en: 'The mark' }, air: { ids: ['warmth'], ja: '暖かさ', en: 'The warmth' }, wind: { ids: ['wind', 'of', 'speed'], ja: '風の速さ', en: 'The wind' }, island: { ids: ['island', 'of', 'farness'], ja: '島までの遠さ', en: 'The island' }, walk: { ids: ['everyday', 'walk', 'of', 'distance'], ja: '毎日歩く道のり', en: 'The daily walk' } };
 export type Unit = 'kilogram' | 'litre' | 'degree' | 'metre' | 'percent' | 'mark' | 'none';
 const UNIT: Record<Unit, { id?: string; ja: string; en: string }> = { kilogram: { id: 'kilogram', ja: 'キロ', en: ' kg' }, litre: { id: 'litre', ja: 'リットル', en: ' L' }, degree: { id: 'degree', ja: '度', en: ' degrees' }, metre: { id: 'metre', ja: 'メートル', en: ' m' }, percent: { id: 'percent', ja: 'パーセント', en: '%' }, mark: { ja: '', en: '' }, none: { ja: '', en: '' } };
 /** What a guess is made of: a condition, and what may follow. */
