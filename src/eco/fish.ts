@@ -1,4 +1,4 @@
-import { loneLength, schoolLength, memberLength } from './growth';
+import { loneLength, schoolLength, memberLength, ageOf } from './growth';
 // Fish as groups with needs. Each group (a school, a pair, a loner or an anemone family) follows the
 // clock: active species forage the way their diet dictates, resting ones tuck into the reef, prey
 // scatter from predators and from the drone, and predators hunt when hungry, mostly at dusk and dawn.
@@ -87,6 +87,11 @@ export function makeFishSystem(sp: Species, oc: any) {
     }
   }
   geo.setAttribute('aSwim', new THREE.InstancedBufferAttribute(swim, 3));
+  // how far through its life each fish is, by its size (the same growth curve its caption's age is read from):
+  // 0 a young one, 1 an old one as big as its kind grows — the shader wears an old one's skin more
+  const ageK = new Float32Array(total), oldAge = ageOf(sp.size[1] * 1.12, sp.size[1]);
+  for (let i = 0; i < total; i++) ageK[i] = Math.min(1, Math.max(0, ageOf(fs[i] * 1.28, sp.size[1]) / oldAge));
+  geo.setAttribute('aAge', new THREE.InstancedBufferAttribute(ageK, 1));
   // how hard each fish is bending into a turn (big ones only), for the vertex shader
   const fb = new Float32Array(total), bendAttr = new THREE.InstancedBufferAttribute(new Float32Array(total), 1);
   bendAttr.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('aBend', bendAttr);
@@ -98,16 +103,17 @@ export function makeFishSystem(sp: Species, oc: any) {
   const NEAR = nearKey ? Math.min(total, 16) : 0;
   const hideA = nearKey ? new THREE.InstancedBufferAttribute(new Float32Array(total), 1) : null;
   if (hideA) { hideA.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('aHide', hideA); }
-  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp, false, false, { hide: !!nearKey }), total);
+  const mesh = new THREE.InstancedMesh(geo, fishMaterial(sp, false, false, { hide: !!nearKey, aged: true }), total);
   mesh.frustumCulled = false;
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  let near: THREE.InstancedMesh | null = null, nearSw: THREE.InstancedBufferAttribute | null = null, nearBend: THREE.InstancedBufferAttribute | null = null;
+  let near: THREE.InstancedMesh | null = null, nearSw: THREE.InstancedBufferAttribute | null = null, nearBend: THREE.InstancedBufferAttribute | null = null, nearAge: THREE.InstancedBufferAttribute | null = null;
   const nearOf = new Int32Array(NEAR).fill(-1), nearD = new Float32Array(NEAR);
   if (nearKey) {
     const ng = speciesGeometry({ ...sp, model: nearKey });
     nearSw = new THREE.InstancedBufferAttribute(new Float32Array(NEAR * 3), 3); ng.setAttribute('aSwim', nearSw);
     nearBend = new THREE.InstancedBufferAttribute(new Float32Array(NEAR), 1); nearBend.setUsage(THREE.DynamicDrawUsage); ng.setAttribute('aBend', nearBend);
-    near = new THREE.InstancedMesh(ng, fishMaterial(sp, false, false, { bony: nearKey }), NEAR);
+    nearAge = new THREE.InstancedBufferAttribute(new Float32Array(NEAR), 1); nearAge.setUsage(THREE.DynamicDrawUsage); ng.setAttribute('aAge', nearAge);
+    near = new THREE.InstancedMesh(ng, fishMaterial(sp, false, false, { bony: nearKey, aged: true }), NEAR);
     near.frustumCulled = false; near.instanceMatrix.setUsage(THREE.DynamicDrawUsage); near.count = 0;
     mesh.add(near);   // (the plain copy sits at the origin: its child draws in the same world frame)
   }
@@ -687,10 +693,10 @@ export function makeFishSystem(sp: Species, oc: any) {
       H[i] = 1;
       _nm.fromArray(E, i * 16); near!.setMatrixAt(k, _nm);
       sw[k * 3] = swim[i * 3]; sw[k * 3 + 1] = swim[i * 3 + 1]; sw[k * 3 + 2] = swim[i * 3 + 2];
-      nb[k] = fbA[i];
+      nb[k] = fbA[i]; (nearAge!.array as Float32Array)[k] = ageK[i];
     }
     near!.count = n;
-    hideA!.needsUpdate = true; near!.instanceMatrix.needsUpdate = true; nearSw!.needsUpdate = true; nearBend!.needsUpdate = true;
+    hideA!.needsUpdate = true; near!.instanceMatrix.needsUpdate = true; nearSw!.needsUpdate = true; nearBend!.needsUpdate = true; nearAge!.needsUpdate = true;
   }
 
   function nearest(cam: THREE.Vector3, fwd: THREE.Vector3, maxD: number) {

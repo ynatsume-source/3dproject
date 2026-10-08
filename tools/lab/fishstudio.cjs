@@ -2,7 +2,8 @@
 // side, three-quarter front, front, above and a close-up of the head, written as PNGs to OUT/<id>-<view>.png.
 // Usage (a build served at PORT): node tools/lab/fishstudio.cjs   (env PORT 4174, SEA maldives, IDS 'wrasse,tamakai',
 // OUT fishshots, T: the swim time in seconds to pose at, default 0.6; for motion: TS '0,0.2,0.4' and VIEW top, one
-// picture per time; SWIM 4: the fish's beat, else it is posed still)
+// picture per time; SWIM 4: the fish's beat, else it is posed still;
+// AGE 0..1: how far through its life, for its wear)
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -18,9 +19,9 @@ const fs = require('fs');
   const views = process.env.VIEW ? process.env.VIEW.split(',') : Object.keys(VIEWS);
   for (const id of IDS) for (const v of views) for (const t of TS) {
     const [dir, zoom, focus] = VIEWS[v];
-    const url = await p.evaluate(({ id, dir, zoom, focus, t, swim }) => { const s = window.seaglass; s.U.uTime.value = t; return s.studio(id, dir, zoom, focus, swim ? { swim } : {}); }, { id, dir, zoom, focus, t, swim: +(process.env.SWIM || 0) });
+    const url = await p.evaluate(({ id, dir, zoom, focus, t, swim, age }) => { const s = window.seaglass; s.U.uTime.value = t; return s.studio(id, dir, zoom, focus, { ...(swim ? { swim } : {}), ...(age != null ? { age } : {}) }); }, { id, dir, zoom, focus, t, swim: +(process.env.SWIM || 0), age: process.env.AGE != null ? +process.env.AGE : null });
     if (!url) { console.log('no model', id); break; }
-    fs.writeFileSync(`${OUT}/${id}-${v}${TS.length > 1 ? '-' + t : ''}.png`, Buffer.from(url.split(',')[1], 'base64'));
+    fs.writeFileSync(`${OUT}/${id}-${v}${TS.length > 1 ? '-' + t : ''}${process.env.AGE != null ? '-age' + process.env.AGE : ''}.png`, Buffer.from(url.split(',')[1], 'base64'));
   }
   console.log('done', IDS.join(' '));
   await b.close();

@@ -905,8 +905,8 @@ export function speciesGeometry(sp, low = false) {
 // shade: the mesh carries aShade, how much sun and open water reaches each fish (see eco/schoolshade)
 // low: drawn on fishGeometry even if the species has a lofted body (speciesGeometry)
 // opts.bony: draw on that lofted body (a small fish's near copy, bonyFromShape); opts.hide: the far copy, whose
-// fish drawn by the near one are hidden by aHide
-export function fishMaterial(sp, shade = false, low = false, opts: { bony?: string; hide?: boolean } = {}) {
+// fish drawn by the near one are hidden by aHide; opts.aged: the mesh carries aAge, each fish's share of its life
+export function fishMaterial(sp, shade = false, low = false, opts: { bony?: string; hide?: boolean; aged?: boolean } = {}) {
   const c = (a) => new THREE.Color(a[0], a[1], a[2]);
   const bonyName = opts.bony ?? (sp.model && !low ? sp.model : null), bony = bonyName ? BONY[bonyName] : null;
   return mat(
@@ -917,6 +917,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
      #endif
      #ifdef HIDE
      attribute float aHide;
+     #endif
+     #ifdef AGED
+     attribute float aAge; varying float vAge;
      #endif
      #ifdef SHARK
      attribute vec2 aEye; varying vec2 vEye;
@@ -990,6 +993,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #ifdef SHARK
        vEye = aEye;
        #endif
+       #ifdef AGED
+       vAge = aAge;
+       #endif
        #ifdef BONY
        vB = aB; vAx = normalize(toW * vec3(0.0, 0.0, 1.0)); vSz = length(toW[0]);
        #endif
@@ -1004,6 +1010,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
      varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vFin; varying float vTint; varying float vWear; varying vec2 vShade; varying vec3 vSide;
      #ifdef SHARK
      varying vec2 vEye;
+     #endif
+     #ifdef AGED
+     varying float vAge;   // (how far through its life this one is: 0 young, 1 old for its kind)
      #endif
      #ifdef SHARKEYE
      varying float vJaw;
@@ -1404,15 +1413,20 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        // a lived-in skin on the big ones: fine grain, uneven mottling, old pale scars (bites, coral, lines)
        // and a few darker bruises; different on every individual
        vec3 nW = n;
+       // (an old one carries more of it than a young one: the years in its scars, its skin gone dull)
+       float wK = uWear;
+       #ifdef AGED
+       wK = uWear * mix(0.15, 1.7, vAge);
+       #endif
        if (uWear > 0.0 && vFin < 5.5) {
          float sd = fract(vWear * 7.13) * 40.0;
          vec2 q = vec2(vL.z, vL.y + vL.x * 0.6);
          float grain = hash2(floor(q * 420.0 + sd)) - 0.5;
-         alb *= 1.0 + uWear * (0.1 * grain + 0.14 * (vn2(q * 7.0 + sd) - 0.5));
+         alb *= 1.0 + wK * (0.1 * grain + 0.14 * (vn2(q * 7.0 + sd) - 0.5));
          // scars: here and there a short stroke, or a rake of two or three parallel ones (teeth, coral, line)
          vec2 cq = q * 8.0 + sd, ci = floor(cq);
          float scar = 0.0;
-         if (hash2(ci * 1.3 + 0.7) > 0.76) {
+         if (hash2(ci * 1.3 + 0.7) > 0.9 - 0.2 * wK) {
            float a = hash2(ci + 4.1) * 6.2832; vec2 d = vec2(cos(a), sin(a)), nn = vec2(-d.y, d.x);
            vec2 pp = cq - ci - 0.5 - (vec2(hash2(ci + 1.3), hash2(ci + 2.7)) - 0.5) * 0.3;
            float along = dot(pp, d), across = dot(pp, nn) + along * along * 0.35 * (hash2(ci + 6.6) - 0.5);   // (slightly curved)
@@ -1421,12 +1435,26 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
            float w = 0.022 * (0.6 + hash2(ci + 3.3));
            scar = (1.0 - smoothstep(w * 0.5, w, abs(across - k * gap))) * (1.0 - smoothstep(0.22, 0.34 + 0.1 * hash2(ci + 5.5), abs(along)));
          }
-         alb = mix(alb, alb * 0.5 + vec3(0.46, 0.45, 0.43), scar * uWear * 0.55);
+         alb = mix(alb, alb * 0.5 + vec3(0.46, 0.45, 0.43), scar * min(wK, 1.5) * 0.6);
+         #ifdef AGED
+         // and on an old one, the healed crescent of a bite here and there: a row of pale tooth marks in an arc
+         vec2 bq = q * 3.2 + sd * 0.37, bi = floor(bq);
+         if (hash2(bi + 2.2) > 0.93 - 0.2 * vAge) {
+           vec2 bp = bq - bi - 0.5 - (vec2(hash2(bi + 3.3), hash2(bi + 4.4)) - 0.5) * 0.25;
+           float ba = hash2(bi + 5.5) * 6.2832; bp = mat2(cos(ba), sin(ba), -sin(ba), cos(ba)) * bp;
+           float br = length(bp), bt = atan(bp.y, bp.x);
+           float teeth = (1.0 - smoothstep(0.012, 0.03, abs(br - 0.26))) * step(0.0, bp.y) * (0.45 + 0.55 * step(0.45, fract(bt * 4.0)));
+           alb = mix(alb, alb * 0.45 + vec3(0.5, 0.48, 0.45), teeth * vAge * 0.75);
+         }
+         #endif
          float bruise = smoothstep(0.72, 0.85, vn2(q * 3.1 + sd * 0.7)) * step(vFin, 0.5);
-         alb = mix(alb, alb * vec3(0.72, 0.66, 0.7), bruise * uWear * 0.5);
+         alb = mix(alb, alb * vec3(0.72, 0.66, 0.7), bruise * min(wK, 1.3) * 0.5);
          // (and the grain roughens the sheen: a leathery, not glassy, skin)
-         nW = normalize(n + uWear * 0.18 * vec3(hash2(floor(q * 160.0 + sd)) - 0.5, hash2(floor(q * 160.0 + sd + 9.0)) - 0.5, 0.0));
+         nW = normalize(n + wK * 0.18 * vec3(hash2(floor(q * 160.0 + sd)) - 0.5, hash2(floor(q * 160.0 + sd + 9.0)) - 0.5, 0.0));
        }
+       #ifdef AGED
+       if (uWear > 0.0 && vFin < 6.5) { float gy = dot(alb, vec3(0.3, 0.5, 0.2)); alb = mix(alb, vec3(gy), 0.35 * vAge) * (1.0 - 0.14 * vAge); }
+       #endif
        #ifdef SHARK
        // a shark's skin: dermal denticles, a fine grain running along the body; the eye a dome with a dark
        // green-grey iris round a big pupil
@@ -1468,7 +1496,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        // in a school, the fish above take the sun from the ones below, and those in the thick of it see
        // less of the open water around them (vShade: sun, sky reaching this one; 1 for a fish on its own)
        vec2 cl = caveLight(vWp) * vShade;
-       float spec = pow(max(dot(reflect(-SUN, nW), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine * (1.0 - 0.6 * uWear) * vShade.x;   // silvery fish flash as they turn (a worn hide less)
+       float spec = pow(max(dot(reflect(-SUN, nW), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine * (1.0 - 0.6 * min(wK, 1.0)) * vShade.x;   // silvery fish flash as they turn (a worn hide less)
        float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb * vShade.y;
        vec3 col;
        #ifdef SILVER
@@ -1505,6 +1533,10 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #endif
        // (and light comes through it: a fin lit from the far side glows rather than going black)
        if (vFin > 0.5 && vFin < 6.5) col += absorb(alb * uTint * (uSunI * 0.55 * max(-dot(n, SUN), 0.0) * cl.x + uAmb * 0.12), vWp.y);
+       #ifdef AGED
+       // (an old fish's fins are torn here and there at the margin: nicks where the water shows through)
+       if (vFin > 0.5 && vFin < 6.5 && uWear > 0.0) { float nick = step(1.0 - 0.28 * vAge * step(0.6, vn2(vec2(vB.x * 1.7, vWear * 11.0))) * (0.5 + 0.5 * vn2(vec2(vB.x * 6.0, 3.0))), vB.y); col = mix(col, hazeCol(-V), nick * 0.85); }
+       #endif
        if (vFin > 0.5 && vFin < 6.5) col = mix(hazeCol(-V), col, 1.0 - see * (1.0 - 0.75 * ray)) + absorb(alb * uTint, vWp.y) * uSunI * 0.3 * pow(max(dot(-V, SUN), 0.0), 3.0) * vShade.x;
        // the eye: wet and glassy, the sun and the bright water above held in it
        vec3 Re = reflect(-V, n);
@@ -1522,7 +1554,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #endif
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}), ...(SHAPES[sp.shape]?.lofted ? { SHARK: 1, ...(!['hammer', 'whaleshark'].includes(SHAPES[sp.shape].lofted) ? { SHARKEYE: 1 } : {}) } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
+    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}), ...(opts.aged ? { AGED: 1 } : {}), ...(SHAPES[sp.shape]?.lofted ? { SHARK: 1, ...(!['hammer', 'whaleshark'].includes(SHAPES[sp.shape].lofted) ? { SHARKEYE: 1 } : {}) } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
       opts: { side: THREE.DoubleSide } });
 }
 

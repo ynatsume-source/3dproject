@@ -26,7 +26,8 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
     const nk = nearId ? bonyFromShape(sp.shape, SHAPES[sp.shape]) : null;
     const g = nk ? speciesGeometry({ ...sp, model: nk }) : speciesGeometry(sp);
     g.setAttribute('aSwim', new THREE.InstancedBufferAttribute(new Float32Array([0, 0, 1]), 3));
-    const m = new THREE.InstancedMesh(g, fishMaterial(sp, false, false, nk ? { bony: nk } : {}), 1); m.setMatrixAt(0, new THREE.Matrix4());
+    g.setAttribute('aAge', new THREE.InstancedBufferAttribute(new Float32Array([0.5]), 1));   // (a fish in the middle of its life; ?debug studio: set.age)
+    const m = new THREE.InstancedMesh(g, fishMaterial(sp, false, false, { ...(nk ? { bony: nk } : {}), aged: true }), 1); m.setMatrixAt(0, new THREE.Matrix4());
     return { obj: m, view: sp.shape === 'hammer' ? [0.35, 1.0, 0.12] : [1, 0.22, 0.55] };   // a hammerhead is best seen from above
   }
   const cr = (loc.critters || []).find((c) => c.id === id);
@@ -97,6 +98,7 @@ let studioR: THREE.WebGLRenderer | null = null;
 export function studio(loc: Sea, id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}, w = 800, h = 500, bg: number | null = 0x2a5560): string {
   const m = model(loc, id); if (!m) return '';
   m.obj.traverse((o: any) => { const u = o.material?.uniforms; if (u) for (const k in set) if (u[k]) u[k].value = set[k]; });   // (e.g. a manta feeding: { uFeed: 1 })
+  if (set.age != null) m.obj.traverse((o: any) => { const a = o.geometry?.attributes.aAge; if (a) { a.array[0] = set.age; a.needsUpdate = true; } });
   if (set.swim) m.obj.traverse((o: any) => { const sw = o.geometry?.attributes.aSwim; if (sw) { sw.array[1] = set.swim; sw.needsUpdate = true; } });   // (a fish swimming: its beat, for posing it at uTime)
   if (!studioR) { studioR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, premultipliedAlpha: false }); studioR.setPixelRatio(1); }
   studioR.setSize(w, h, false);
