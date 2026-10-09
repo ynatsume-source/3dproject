@@ -8,6 +8,8 @@ import { landOf } from '../ocean/land';
 import type { CritterSpec } from '../eco/critters';
 import type { DolphinSpec } from '../eco/dolphins';
 import type { EagleRaySpec } from '../eco/eaglerays';
+import type { SeaLionSpec } from '../eco/sealions';
+import type { IguanaSpec } from '../eco/iguanas';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -63,6 +65,8 @@ export interface Sea {
   whales?: WhaleSeason;                    // humpbacks visit in these months
   dolphins?: DolphinSpec;                  // a pod that comes by every few minutes by day (eco/dolphins)
   eaglerays?: EagleRaySpec;                // spotted eagle rays that keep about the reef (eco/eaglerays)
+  sealions?: SeaLionSpec;                  // sea lions that come by to play with the drone (eco/sealions)
+  iguanas?: IguanaSpec;                    // marine iguanas that come down to graze on the shallow rock (eco/iguanas)
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
   thicket?: number;   // how much of the shallow reef is staghorn thicket (0..1)
@@ -721,6 +725,12 @@ export const LOCATIONS: Sea[] = [
       note: '東太平洋に住むトビエイで、インド・西太平洋のマダラトビエイとは別の種とされる。紺色の背に白い斑点。ガラパゴスでは群れで礁の縁を羽ばたいて泳ぎ、砂地で貝を掘る。' },
   };
   for (const L of LOCATIONS) if (eag[L.id]) L.eaglerays = eag[L.id];
+  // marine iguanas live on Wolf too: now and then one comes down from the shore to graze the algae on the shallow rock
+  LOCATIONS.find((l) => l.id === 'galapagos')!.iguanas = { id: 'iguana', ja: 'ウミイグアナ', sci: 'Amblyrhynchus cristatus', len: [0.6, 1.1], every: [240, 480], deep: [3.5, 9],
+    note: '海で餌をとる、世界でただ一種のトカゲ。ガラパゴス諸島だけに住む。日光浴で体を温めてから海に入り、平たい尾をくねらせて泳いで潜り、岩に長い爪を立ててしがみつき、藻を横向きにかじり取る。体についた塩は鼻から勢いよく噴き出して捨てる。' };
+  // Galápagos sea lions at Wolf Island: the young and the females come out from the rocks to play with divers
+  LOCATIONS.find((l) => l.id === 'galapagos')!.sealions = { id: 'sealion', ja: 'ガラパゴスアシカ', sci: 'Zalophus wollebaeki', group: [1, 3], len: [1.1, 1.9], every: [150, 330],
+    note: 'ガラパゴス諸島だけに住むアシカ。長い前びれを翼のように打って泳ぎ、耳たぶがある（アザラシにはない）。若いアシカは好奇心が強く、ダイバーのまわりを回ったり、まっすぐ突っ込んできて目の前で身をかわしたり、鼻から泡を吐いたりして遊ぶ。' };
   // more of the big characters, where they really live
   const all = LOCATIONS.flatMap((l) => l.species);
   const add = (id: string, spId: string, o: Partial<Species> = {}) => { const L = LOCATIONS.find((l) => l.id === id)!; if (L.species.some((x) => x.id === spId)) return; L.species.push({ ...all.find((x) => x.id === spId)!, ...o }); };

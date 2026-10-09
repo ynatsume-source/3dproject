@@ -8,6 +8,8 @@ import { fishGeometry, fishMaterial, SHAPES, makeTurtle, MANTA_GEO, mantaMateria
 import { octopusModel } from '../eco/octopus';
 import { dolphinGeometry, dolphinMaterial } from '../ocean/dolphin';
 import { EAGLERAY_GEO, eagleRayMaterial } from '../ocean/eagleray';
+import { SEALION_GEO, seaLionMaterial } from '../ocean/sealion';
+import { IGUANA_GEO, iguanaMaterial } from '../ocean/iguana';
 import { bonyFromShape } from '../ocean/bony';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
@@ -20,7 +22,7 @@ const W = 176, H = 104;
 let renderer: THREE.WebGLRenderer | null = null;
 const cache = new Map<string, Record<string, string>>();
 
-function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, number, number] } | null {
+function model(loc: Sea, id: string, set: Record<string, number> = {}): { obj: THREE.Object3D; view: [number, number, number] } | null {
   // (?debug: 'near:<id>' — a small fish's fine near copy, bonyFromShape)
   const nearId = id.startsWith('near:') ? id.slice(5) : null;
   const sp = loc.species.find((s) => s.id === (nearId ?? id)) ?? (loc.bait?.sp.id === id ? loc.bait.sp : undefined) ?? ridersFor(loc).find((s) => s.id === id);
@@ -56,6 +58,16 @@ function model(loc: Sea, id: string): { obj: THREE.Object3D; view: [number, numb
     const g = EAGLERAY_GEO.clone(); g.boundingBox = new THREE.Box3(new THREE.Vector3(-1, -0.15, -1.1), new THREE.Vector3(1, 0.15, 0.6)); g.setAttribute('aRay', new THREE.InstancedBufferAttribute(new Float32Array([1.2, 0.6, 0.4, 0]), 4));
     const m = new THREE.InstancedMesh(g, eagleRayMaterial(), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
     return { obj: m, view: [0.5, 1.0, 0.9] };
+  }
+  if (id === 'sealion' && loc.sealions) {
+    const g = SEALION_GEO.clone(); g.setAttribute('aSl', new THREE.InstancedBufferAttribute(new Float32Array([+(set.ph ?? 1.0), +(set.stroke ?? 0.6), +(set.spread ?? 0), 0]), 4)); g.setAttribute('aSl2', new THREE.InstancedBufferAttribute(new Float32Array([+(set.age ?? 0.4), 0.3, +(set.hy ?? 0.25), +(set.hp ?? 0.1)]), 4));
+    const m = new THREE.InstancedMesh(g, seaLionMaterial(), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
+    return { obj: m, view: [1, 0.35, 0.7] };
+  }
+  if (id === 'iguana' && loc.iguanas) {
+    const g = IGUANA_GEO.clone(); g.setAttribute('aIg', new THREE.InstancedBufferAttribute(new Float32Array([+(set.ph ?? 1.0), +(set.swim ?? 0.5), +(set.legs ?? 1), +(set.pitch ?? 0)]), 4)); g.setAttribute('aIg2', new THREE.InstancedBufferAttribute(new Float32Array([+(set.age ?? 0.6), 0.4, +(set.sway ?? 0), 0]), 4));
+    const m = new THREE.InstancedMesh(g, iguanaMaterial(), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
+    return { obj: m, view: [0.8, 0.6, 0.7] };
   }
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
   if (id === 'sea-otter' && loc.id === 'pointlobos') { const o = creatureKit(cmats()).makeSeaOtter(); for (let i = 0; i < 40; i++) o.update(i * 0.1, 0.1, { act: 'eat', walk: 0, wet: true, food: 'urchin' }); o.root.scale.setScalar(1.15); o.root.position.y = 20; return { obj: o.root, view: [0.9, 0.7, 0.35] }; }   // (on its back, eating, up in the light)
@@ -108,7 +120,7 @@ export function guideThumbs(loc: Sea, ids: string[], budget = Infinity): Record<
 // A big portrait of one animal from any side, close in on a point of it (?debug: for checking models)
 let studioR: THREE.WebGLRenderer | null = null;
 export function studio(loc: Sea, id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}, w = 800, h = 500, bg: number | null = 0x2a5560): string {
-  const m = model(loc, id); if (!m) return '';
+  const m = model(loc, id, set); if (!m) return '';
   m.obj.traverse((o: any) => { const u = o.material?.uniforms; if (u) for (const k in set) if (u[k]) u[k].value = set[k]; });   // (e.g. a manta feeding: { uFeed: 1 })
   if (set.age != null) m.obj.traverse((o: any) => { const a = o.geometry?.attributes.aAge; if (a) { a.array[0] = set.age; a.needsUpdate = true; } });
   if (set.swim) m.obj.traverse((o: any) => { const sw = o.geometry?.attributes.aSwim; if (sw) { sw.array[1] = set.swim; sw.needsUpdate = true; } });   // (a fish swimming: its beat, for posing it at uTime)

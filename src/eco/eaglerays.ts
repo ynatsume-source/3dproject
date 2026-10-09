@@ -149,7 +149,7 @@ export function updateEagleRays(oc: any, dt: number, env: Env, cam: THREE.Vector
       if (r.pos.y < fl - 0.05) r.pos.y += (fl - 0.05 - r.pos.y) * Math.min(1, dt * 4);
       r.pos.y = Math.min(r.pos.y, -0.8);
       const turn = Math.atan2(v0.x * r.vel.z - v0.z * r.vel.x, v0.x * r.vel.x + v0.z * r.vel.z) / Math.max(dt, 1e-3);
-      r.roll += (clamp(-turn * 1.2, -0.6, 0.6) - r.roll) * Math.min(1, dt * 1.5);
+      r.roll += (clamp(turn * 1.2, -0.6, 0.6) - r.roll)   /* (turn > 0: round to its right, right wing down) */ * Math.min(1, dt * 1.5);
       r.lag += (clamp(turn * 0.5, -0.3, 0.3) - r.lag) * Math.min(1, dt * 2);
       const beatW = r.dig > 0 ? 0.25 : g.glide > 0 ? 0.08 : 0.75;
       r.beat += (beatW - r.beat) * Math.min(1, dt * 1.5);
