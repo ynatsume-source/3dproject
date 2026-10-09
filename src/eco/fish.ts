@@ -35,6 +35,7 @@ interface Group {
   goal?: { x: number; z: number };        // (a home patch further on: the group swims its patch there, at its own pace)   // (an anemone family left be, far off, and not drawn)
   bodyCenter?: THREE.Vector3;             // kelp fish can leave the group patch to feed / sleep
   act: number; fear: number; hunger: number; ready?: boolean;
+  course?: number;                        // (a roaming one's course, which it weaves about)
   predT?: number;
   restLog?: boolean; shyLog?: number;
   oneI?: number;                          // (the fish shown for it: Subject.one)     // (what the sea log was last told of it: resting or not; when it last hid from a hunter)
@@ -445,7 +446,14 @@ export function makeFishSystem(sp: Species, oc: any) {
         if (!hunting && !inCave) {
           // (a big one meanders in long, slow arcs: its wandering scaled to how fast it can turn)
           const wk = bigTurn ? Math.min(1, turnMax * 1.5) : 1;
-          g.head += (Math.sin(g.t * 0.23 * wk + g.start) * 0.35 + Math.sin(g.t * 0.07) * 0.2) * dt * wk;
+          // (it keeps a course that only drifts, slowly and both ways, and weaves either side of it: steering by a turn
+          // rate that wandered meant one that stayed the same way for half a minute took it round and round in one
+          // place — owner, 2026-10-09: a barracuda circling on the spot)
+          if (g.course === undefined || Math.abs(Math.atan2(Math.sin(g.course - g.head), Math.cos(g.course - g.head))) > 1.3) g.course = g.head;
+          g.course += Math.sin(g.t * 0.031 + g.start * 1.7) * 0.05 * dt;
+          const weave = g.course + Math.sin(g.t * 0.23 * wk + g.start) * 0.45 + Math.sin(g.t * 0.071 + g.start * 0.3) * 0.25;
+          const h0 = g.head;
+          g.head += Math.atan2(Math.sin(weave - g.head), Math.cos(weave - g.head)) * Math.min(1, dt * 0.6 * wk);
           if (kelpLife && Math.sqrt((g.c.x - g.anchor.x) ** 2 + (g.c.z - g.anchor.z) ** 2) > 13) {
             // Olive rockfish circle their kelp patch between hunts. Chases retain
             // their existing control and can carry a hunter beyond the forest edge.
@@ -454,6 +462,8 @@ export function makeFishSystem(sp: Species, oc: any) {
           }
           g.head += T.shore(g.c.x, g.c.z, g.head, 5 / wk, 1.2) * Math.min(1, dt * 1.5 * wk);
           if (outZone(g.c.x, g.c.z)) { let d = toZone(g.c.x, g.c.z) - g.head; d = Math.atan2(Math.sin(d), Math.cos(d)); g.head += d * dt * 0.8 * wk; }
+          // (turned off its course by the shore or the edge of the sea: its course turns with it)
+          g.course! += (g.head - h0) - Math.atan2(Math.sin(weave - h0), Math.cos(weave - h0)) * Math.min(1, dt * 0.6 * wk);
           const pace = sp.speed * 0.7 * (0.25 + 0.75 * g.act);
           g.v.set(Math.cos(g.head), 0, Math.sin(g.head)).multiplyScalar(pace);
           g.c.x += g.v.x * dt; g.c.z += g.v.z * dt;

@@ -13,7 +13,7 @@ import { outZone, toZone } from '../ocean/zone';
 // a species: how many groups, how many to a group, the wingspan range (m)
 export interface EagleRaySpec { id: string; ja: string; sci: string; note: string; groups: number; size: [number, number]; span: [number, number] }
 
-interface Ray { pos: THREE.Vector3; vel: THREE.Vector3; off: THREE.Vector3; span: number; ph: number; beat: number; roll: number; lag: number; dig: number; seed: number }
+interface Ray { pos: THREE.Vector3; vel: THREE.Vector3; off: THREE.Vector3; span: number; ph: number; beat: number; roll: number; lag: number; dig: number; seed: number; pit: number }
 interface Group { rays: Ray[]; c: THREE.Vector3; head: number; speed: number; alt: number; deep: number; cool: number; placed: boolean; t: number; glide: number; logged: number }
 
 const MAX = 14;
@@ -33,7 +33,7 @@ export function makeEagleRays(oc: any) {
     for (let i = 0; i < n; i++) {
       // echelon: each a little behind and to one side of the one before, a little higher or lower
       const off = new THREE.Vector3((i % 2 ? 1 : -1) * Math.ceil(i / 2) * rr(1.4, 2.2), (R() - 0.5) * 0.8, -i * rr(1.2, 2.0));
-      rays.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), off, span: rr(spec.span[0], spec.span[1]), ph: R() * 6.28, beat: 0.6, roll: 0, lag: 0, dig: 0, seed: R() });
+      rays.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), off, span: rr(spec.span[0], spec.span[1]), ph: R() * 6.28, beat: 0.6, roll: 0, lag: 0, dig: 0, seed: R(), pit: 0 });
     }
     groups.push({ rays, c: new THREE.Vector3(), head: R() * 6.28, speed: rr(0.9, 1.3), alt: rr(1.6, 3.5), deep: rr(6, 13), cool: 0, placed: false, t: R() * 100, glide: 0, logged: 0 });
   }
@@ -140,8 +140,8 @@ export function updateEagleRays(oc: any, dt: number, env: Env, cam: THREE.Vector
       const v0 = r.vel.clone();
       r.vel.lerp(_w, 1 - Math.exp(-dt * 0.9));
       if (r.dig <= 0 && r.vel.length() < 0.35) r.vel.setLength(r.vel.length() + (0.35 - r.vel.length()) * Math.min(1, dt * 1.5) + 1e-3);
-      // (and keep off the drone)
-      _s.subVectors(r.pos, cam); const cd = _s.length(); if (cd < r.span * 0.9 + 1.5) r.vel.addScaledVector(_s, Math.min(1, r.span * 0.9 + 1.5 - cd) * dt * 1.6 / Math.max(cd, 0.1));
+      // (and keep off the drone: round it, not bobbing over and under it)
+      _s.subVectors(r.pos, cam); const cd = _s.length(); _s.y *= 0.2; if (cd < r.span * 0.9 + 1.5) r.vel.addScaledVector(_s, Math.min(1, r.span * 0.9 + 1.5 - cd) * dt * 1.6 / Math.max(cd, 0.1));
       // (rising ahead of rock under it or under a wing: its own floor, looked for a little ahead)
       const hs0 = hyp(r.vel.x, r.vel.z) || 1e-3, fl = floorUnder(T, r.pos.x, r.pos.z, r.vel.x / hs0, r.vel.z / hs0, r.span) + clearOf(r);
       if (r.pos.y < fl + 0.3) r.vel.y += clamp(Math.min(0.8, (fl + 0.3 - r.pos.y) * 1.5) - r.vel.y, 0, dt * 1.5);
@@ -154,8 +154,10 @@ export function updateEagleRays(oc: any, dt: number, env: Env, cam: THREE.Vector
       const beatW = r.dig > 0 ? 0.25 : g.glide > 0 ? 0.08 : 0.75;
       r.beat += (beatW - r.beat) * Math.min(1, dt * 1.5);
       r.ph += dt * (r.dig > 0 ? 1.6 : 2.6) * (0.6 + 0.4 * r.beat);
-      const hs = hyp(r.vel.x, r.vel.z) || 1e-3, pitch = r.dig > 0 ? -0.5 : clamp(-Math.atan2(r.vel.y, hs) * 0.7, -0.3, 0.3);
-      _e.set(pitch, Math.atan2(r.vel.x, r.vel.z), r.roll, 'YXZ');
+      // (its nose follows its climb and descent only slowly: a big flat animal does not nod)
+      const hs = hyp(r.vel.x, r.vel.z) || 1e-3, pitch = r.dig > 0 ? -0.5 : clamp(-Math.atan2(r.vel.y, Math.max(hs, 0.6)) * 0.6, -0.25, 0.25);
+      r.pit += (pitch - r.pit) * Math.min(1, dt * 0.7);
+      _e.set(r.pit, Math.atan2(r.vel.x, r.vel.z), r.roll, 'YXZ');
       _q.setFromEuler(_e); _m.compose(r.pos, _q, _s.setScalar(r.span * 0.5));
       E.mesh.setMatrixAt(k, _m);
       A[k * 4] = r.ph; A[k * 4 + 1] = r.beat; A[k * 4 + 2] = r.seed; A[k * 4 + 3] = r.lag;
@@ -171,9 +173,12 @@ export function eagleRaySubjects(oc: any, out: Subject[]) {
   if (!E) return;
   E.groups.forEach((g, i) => {
     if (!g.placed) return;
-    const lead = g.rays[0], mid = new THREE.Vector3();
-    out.push({ key: `eagleray:${i}`, label: g.rays.length > 1 ? `${E.spec.ja}の群れ` : E.spec.ja, len: lead.span, adult: E.spec.span[1], lenK: 0.25, lenWhat: '体盤幅', kind: 'manta', prio: 3.4, size: lead.span + (g.rays.length - 1) * 1.2,
-      pos: () => { mid.set(0, 0, 0); for (const r of g.rays) mid.add(r.pos); return mid.multiplyScalar(1 / g.rays.length); },
+    const lead = g.rays[0], n = g.rays.length;
+    // (two are a pair, not a school; the caption's mark on one of them, the one nearest the drone, not on the open
+    // water between them)
+    const near = () => { const c = oc.eco?.env?.cam; return c ? g.rays.reduce((a, b) => (hyp(a.pos.x - c.x, a.pos.z - c.z) + Math.abs(a.pos.y - c.y) < hyp(b.pos.x - c.x, b.pos.z - c.z) + Math.abs(b.pos.y - c.y) ? a : b)) : lead; };
+    out.push({ key: `eagleray:${i}`, label: n >= 3 ? `${E.spec.ja}の群れ` : n === 2 ? `${E.spec.ja}（2匹）` : E.spec.ja, len: lead.span, adult: E.spec.span[1], lenK: 0.25, lenWhat: '体盤幅', kind: 'manta', prio: 3.4, size: lead.span + (g.rays.length - 1) * 1.2,
+      pos: () => near().pos,
       heading: () => ({ x: Math.cos(g.head), z: Math.sin(g.head) }),
       status: () => (g.rays.some((r) => r.dig > 0) ? (g.rays.length > 1 ? '一匹が砂地で貝を探している' : '砂地で貝を探している') : g.glide > 0 ? '翼を広げて滑るように泳いでいる' : 'ゆったり羽ばたいて泳いでいる'),
       live: () => g.placed });

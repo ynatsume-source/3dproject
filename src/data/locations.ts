@@ -719,7 +719,7 @@ export const LOCATIONS: Sea[] = [
   const eag: Record<string, EagleRaySpec> = {
     maldives: { ...ocel, groups: 3, size: [1, 5], span: [1.4, 2.4] },
     miyako: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
-    gbr: { ...ocel, groups: 2, size: [1, 4], span: [1.4, 2.3] },
+    gbr: { ...ocel, groups: 3, size: [1, 4], span: [1.4, 2.3] },
     redsea: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
     galapagos: { id: 'eagleray', ja: 'マダラトビエイ（東太平洋）', sci: 'Aetobatus laticeps', groups: 2, size: [2, 6], span: [1.3, 2.2],
       note: '東太平洋に住むトビエイで、インド・西太平洋のマダラトビエイとは別の種とされる。紺色の背に白い斑点。ガラパゴスでは群れで礁の縁を羽ばたいて泳ぎ、砂地で貝を掘る。' },
