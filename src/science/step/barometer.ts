@@ -51,7 +51,7 @@ interface GaugeData {
   historyComplete: boolean;
 }
 
-interface Geometry { V0: number; A: number; halfLengthM: number; markM: number; tauS: number }
+export interface Geometry { V0: number; A: number; halfLengthM: number; markM: number; tauS: number }
 
 function geometry(p: Record<string, number>): Geometry | string {
   for (const k of ['bulbVolumeMl', 'tubeBoreMm', 'tubeLengthMm', 'markMm', 'bulbTauS']) {
@@ -75,8 +75,8 @@ const sourceOk = (req: ScienceStepRequest) => {
 const tempKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.airTempC, AIR_RANGE_C[0], AIR_RANGE_C[1]);
 const presKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.pressureHPa, 800, 1100);
 
-const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、器の空気が泡になって抜けた' };
-const SPILLED = { top: '水があふれて減ったまま。両側の水面が、置いたときの印と合わない', bottom: '器の空気が抜けたまま。両側の水面が、置いたときの印と合わない' };
+export const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、器の空気が泡になって抜けた' };
+export const SPILLED = { top: '水があふれて減ったまま。両側の水面が、置いたときの印と合わない', bottom: '器の空気が抜けたまま。両側の水面が、置いたときの印と合わない' };
 
 export function barometerStep(req: ScienceStepRequest): ScienceStepResult {
   const bad = checkCommon(req, BAROMETER_PROCESS.processId, BAROMETER_PROCESS.processVersion, SCHEMA);
