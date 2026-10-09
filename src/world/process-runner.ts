@@ -250,7 +250,7 @@ export function nextRequest(L: Ledger, runId: Id, i: StepInput): ScienceStepRequ
   };
 }
 
-export interface Committed { ok: boolean; why?: string; status?: Run['status']; produced?: LotView[]; observations?: Observation[] }
+export interface Committed { ok: boolean; why?: string; status?: Run['status']; produced?: LotView[]; observations?: Observation[]; diagnostics?: Record<string, unknown> }   // (diagnostics: the world's own numbers, never told to a resident)
 /** Commit one result: checked, then applied exactly once (by requestId) — the run's state and clock, and, when the run
  *  ends, the lots it used and made. A result that breaks the contract is refused and changes nothing; a failed
  *  process ends its run and frees what it held, with nothing consumed. */
@@ -276,7 +276,7 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
     for (const id of r.equipmentIds) { const e = L.equipment[id], w = res.equipmentWear.find((x) => x.equipmentId === id); if (e && w) e.condition = Math.max(0, Math.min(1, e.condition + w.conditionDelta)); }
     end(L, r, res.status);
   } else r.status = res.status;
-  return { ok: true, status: r.status, produced, observations: res.observations };
+  return { ok: true, status: r.status, produced, observations: res.observations, diagnostics: res.diagnostics as Record<string, unknown> | undefined };
 }
 /** End a run without settling anything (its process version is gone, the world gave it up): what it held is free
  *  again, unconsumed (lots settle only when a run ends by the step's own word). */

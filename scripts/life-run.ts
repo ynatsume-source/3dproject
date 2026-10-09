@@ -29,7 +29,7 @@ const fakeEl = () => ({ getContext: () => ({ createRadialGradient: () => ({ addC
 Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: fakeEl, createElementNS: fakeEl, getElementById: () => null } });
 const R: any = buildOcean(loc).residents, V = R.village, lab = R.lab;
 const dot = R.list.find((r: any) => r.id === 'dot');
-const ORDER = ['place:', 'craft:', 'lash:', 'house:', 'wall:', 'wallfetch:', 'shelve:', 'find:', 'survey:', 'voyage:', 'twist:', 'cut:', 'harvest:', 'gather:', 'fell:', 'plant:', 'till:', 'chop:', 'charge:'];
+const ORDER = ['place:', 'take:', 'craft:', 'lash:', 'house:', 'wall:', 'wallfetch:', 'shelve:', 'find:', 'survey:', 'stow:', 'voyage:', 'twist:', 'cut:', 'harvest:', 'gather:', 'fell:', 'plant:', 'till:', 'chop:', 'charge:'];
 R.setBrain(async (i: any) => {
   if (i.who !== 'dot') return null;
   for (const p of ORDER) { const o = i.options.find((x: any) => x.id.startsWith(p) && x.ready !== false); if (o) return { goal: { text: '暮らしを進める', why: '順に' }, plan: [o.id] }; }
