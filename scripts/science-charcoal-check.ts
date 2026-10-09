@@ -156,6 +156,13 @@ console.log('4. requests that are refused');
   refused('a missing interval', step(req(2 * H, 3 * H, s0.state, [])), /noncontiguous/);
 }
 
+console.log('— island tar retort (table civ-sci.fired-pot-assembly/1)');
+{
+  const island = { ...RETORT(), kind: 'tar_retort', catalogEntry: 'tar_retort' };
+  const a = burn(7 * H, STD, { equipment: [island, PIT] }), b = burn(7 * H, STD);
+  ok(JSON.stringify([a.last.produced, a.last.released, a.obs]) === JSON.stringify([b.last.produced, b.last.released, b.obs]), 'the residents\' tar_retort with the same params gives exactly the test retort\'s charcoal and tar');
+}
+
 console.log('—   every result above passed the contract checker');
 ok(violations.length === 0, 'validateResult: no violation', violations.slice(0, 3).join(' / '));
 console.log(`\n${pass} passed, ${fail} failed`);

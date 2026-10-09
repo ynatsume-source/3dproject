@@ -7,6 +7,7 @@ import { validateResult } from '../src/science/step/validate';
 import { SLAKE_PROCESS, readRawClay } from '../src/science/step/slake';
 import { CLAY_PIT, CLAY_PIT_TABLE, clayPitMaterials, clayPitParams } from '../src/science/step/clay-pit';
 import { KNEAD_PROCESS } from '../src/science/step/knead';
+import { ISLAND_CLAY_TABLE, islandClay } from '../src/science/island-clay';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -240,6 +241,49 @@ console.log('9. the clay pit (the island\'s first tub)');
   let threw = 0;
   for (const bad of [{ diameterCm: 5, depthCm: 25 }, { diameterCm: 50, depthCm: 100 }, { diameterCm: 50, depthCm: 25, sunExposure: 2 }, { diameterCm: NaN, depthCm: 25 }]) { try { clayPitParams(bad); } catch { threw++; } }
   ok(threw === 4, 'sizes outside the table are refused');
+}
+
+console.log('10. feeling the clay in the pit (look, 0.1.3)');
+{
+  const pitP = clayPitParams({ diameterCm: 50, depthCm: 25 });
+  const PIT = { equipmentId: 'eq:pit', kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: 'civ-sci-test-2', condition: 1, params: pitP };
+  const looks: [number, string][] = Array.from({ length: 20 }, (_, n) => [4 * D + n * 12 * H + 1_000, 'look'] as [number, string]);
+  const withLooks = tub(10 * D, [...plan, ...looks], { equipment: [PIT] }), without = tub(10 * D, plan, { equipment: [PIT] });
+  ok(JSON.stringify([withLooks.last.produced, withLooks.last.released]) === JSON.stringify([without.last.produced, without.last.released]), 'looking changes nothing in the pit');
+  const feels = withLooks.obs.filter((o) => o.quantity === 'feel' && o.at < 9 * D).map((o) => o.text);
+  ok(feels.some((f) => /べったり/.test(f ?? '')) && feels.some((f) => /よくまとまる/.test(f ?? '')), 'day by day the clay in the pit goes from sticky to firm in the hand', [...new Set(feels)].join(' → '));
+  // a resident who takes it out when it feels right gets clay that holds its shape, where the fixed 9.25-day plan overshoots in the pit
+  let at = 0;
+  for (const o of withLooks.obs) if (o.quantity === 'feel' && /よくまとまる/.test(o.text ?? '')) { at = o.at; break; }
+  const byFeel = tub(10 * D, [[D, 'sieve'], [2.5 * D, 'decant'], [4 * D, 'decant'], [at + 30_000, 'take_out']], { equipment: [PIT] });
+  ok(at > 0 && /よくまとまる/.test(byFeel.obs.find((o) => o.quantity === 'feel')?.text ?? '') && /固く|乾いて/.test(without.obs.find((o) => o.quantity === 'feel')?.text ?? ''),
+    'taken out when it feels firm, it is ready to knead (on a fixed 9.25-day plan the pit dries it too far)', `${(at / D).toFixed(1)} days: ${byFeel.obs.find((o) => o.quantity === 'feel')?.text} / fixed plan: ${without.obs.find((o) => o.quantity === 'feel')?.text}`);
+  const unknown = tub(2 * D, [[D, 'look'], [2 * D - 30_000, 'take_out']], { equipment: [PIT] }, H, (t) => (t < D ? { ...CALM, source: 'unknown' } : CALM));
+  ok(unknown.obs.every((o) => o.quantity !== 'feel' || o.at >= 2 * D - 30_000) && unknown.obs.filter((o) => o.quantity === 'feel' && o.at < 2 * D - 30_000).length === 0, 'after unknown weather a look tells nothing');
+}
+
+console.log('12. looks: history and order (0.1.4, Codex A-S1 and A-S2 on 0a3de47)');
+{
+  const feel = (r: ReturnType<typeof tub>) => r.obs.filter((o) => o.quantity === 'feel');
+  const atLook = (r: ReturnType<typeof tub>) => feel(r).filter((o) => o.at === D);
+  const look1: [number, string][] = [[D, 'look'], [D + H, 'take_out']];
+  const sure = tub(2 * D, look1), clayGap = tub(2 * D, look1, { lots: [RAW({ history_complete: 0 }), WATER()] }),
+    waterGap = tub(2 * D, look1, { lots: [RAW(), { ...WATER(), quality: { history_complete: 0 } }] });
+  ok(atLook(sure).length === 1 && atLook(clayGap).length === 0 && atLook(waterGap).length === 0,
+    'clay or water that came in with an incomplete history is not felt as if its water were known (only the closing words)', `${atLook(sure)[0]?.text} / clay ${atLook(clayGap).length}, water ${atLook(waterGap).length}`);
+  const both: [number, string][] = [[12 * H, 'look'], [12 * H, 'sieve'], [12 * H + 17_003, 'look'], [D + H, 'take_out']];
+  const key = (r: ReturnType<typeof tub>) => JSON.stringify(r.obs.map((o) => [o.at, o.quantity, o.text]));
+  const one = tub(2 * D, both, {}, 2 * D), halves = tub(2 * D, both, {}, 12 * H), odd = tub(2 * D, both, {}, 12 * H + 17_003);
+  ok(key(one) === key(halves) && key(one) === key(odd) && /^どろ|^やわ/.test(feel(one)[0]?.text ?? ''),
+    'sieve and look at the same moment: the hands act first, whether the moment opens a request or falls inside one', feel(one).map((o) => o.text).join(' / '));
+}
+
+console.log('11. the island\'s clay (table civ-sci.island-clay/1, assumed)');
+{
+  const c = islandClay('south-near');
+  ok(ISLAND_CLAY_TABLE === 'civ-sci.island-clay/1' && c?.status === 'assumed' && JSON.stringify(c.quality) === JSON.stringify(RAW().quality) && readRawClay({ ...RAW(), quality: { ...c.quality } }).water === 2_000_000,
+    'the clay of the island to the south is the checks\' example raw clay (what main uses), marked assumed, and it reads as raw_clay');
+  ok(islandClay('east-flat') === undefined, 'an island with no clay described has none');
 }
 
 console.log('—   every result above passed the contract checker');

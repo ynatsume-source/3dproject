@@ -7,6 +7,11 @@
 // sandy, kaolinitic earthenware clay with a little organic matter (roots, leaf bits), nothing more. No claim is made about
 // the real island's geology. Codex is asked to check them against sources on the Yaeyama soils and old local pottery;
 // a change of values gets a new table version, and a lot keeps the quality it was dug with.
+// Codex on 0a3de47: sources on Ishigaki and Yonaguni clays support a mix of kaolin minerals, quartz and other minerals,
+// but not this deposit's make-up. Their kaolin share (e.g. 340–480 g/kg) is of the separated clay fraction, not of the
+// dry raw earth as here, so a similar number is not a match. organic_c is carbon, not soil organic matter; calcite is
+// not derived from exchangeable Ca or nearby limestone. Quartz 35 %, organic C 1 %, calcite 0 and the coarse part stay
+// uncalibrated.
 
 import type { ParamStatus } from './params';
 

@@ -31,16 +31,16 @@ import { allFinite, checkCommon, envUsable, failed, fingerprint, finite, intDelt
 import { foodQuality } from './coconut';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const CHARCOAL_PROCESS = { processId: 'p14x_charcoal_tar_retort', processVersion: '0.1.2' } as const; // 0.1.2: equipment fingerprint independent of params key order (Codex C3)
+export const CHARCOAL_PROCESS = { processId: 'p14x_charcoal_tar_retort', processVersion: '0.1.3' } as const; // 0.1.3: the residents' tar_retort as well // 0.1.2: equipment fingerprint independent of params key order (Codex C3)
 // /2 since 0.1.1 (the charcoal already in a charge, the equipment's identity): a /1 run is refused; the host cancels it
-const SCHEMA = 'civ-sci.charcoal-retort/2', EVAL = 'charcoal-retort-eval/0.1.2';
+const SCHEMA = 'civ-sci.charcoal-retort/2', EVAL = 'charcoal-retort-eval/0.1.3';
 const RETORT = 'fixture_tar_retort', HEARTH = 'open_fire_pit';
 const CHARGES = ['firewood', 'coconut_shell', 'coconut_husk', 'charcoal'];
 const COAL = ['char', 'wood_dry', 'ash', 'water'] as const;
 const FINE_MS = 250;
 const FIRE_KG_PER_H = [0.4, 0.8, 1.6] as const;
 const CP = { wood: 1.5, char: 1.0, water: 4.18, ash: 0.8 } as const; // J/(g·K), assumed
-const BULK_G_PER_ML = 0.4; // stacked pieces in the pot, for its capacity only (assumed)
+export const BULK_G_PER_ML = 0.4; // stacked pieces in the pot, for its capacity only (assumed)
 
 interface RetortData {
   chargeId: string; chargeMaterial: string; chargeFp: string; eqFp: string; char0: number; charredC0: number; fuelId: string; fuelFp: string; location: string; fuelLocation: string;
@@ -68,9 +68,9 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (!(a.at >= req.interval.from && a.at < req.interval.to)) return fail(`${a.action} must fall inside the interval`);
     if (a.action === 'fire_level' && ![0, 1, 2].includes(a.params?.level as number)) return fail('fire_level needs params.level 0 (low), 1 (medium) or 2 (high)');
   }
-  const retort = req.equipment.find((e) => e.kind === RETORT), hearth = req.equipment.find((e) => e.kind === HEARTH);
+  const retort = req.equipment.find((e) => e.kind === RETORT || e.kind === 'tar_retort'), hearth = req.equipment.find((e) => e.kind === HEARTH);
 
-  if (req.state === null && (!retort || !hearth)) return fail(`needs a ${RETORT} on an ${HEARTH}`);
+  if (req.state === null && (!retort || !hearth)) return fail(`needs a ${RETORT} (or the residents' tar_retort) on an ${HEARTH}`);
   let d: RetortData;
   const prev = req.state?.data as RetortData | undefined;
   const inRetort = (l: ScienceStepRequest['lots'][number]) => (prev ? l.location === prev.location : retort !== undefined && l.location === retort.equipmentId);
@@ -82,7 +82,7 @@ export function charcoalStep(req: ScienceStepRequest): ScienceStepResultV02 {
   }
   const eqFp = equipmentFp([retort?.equipmentId, retort?.params, hearth?.equipmentId, hearth?.params]);
   if (req.state === null) {
-    if (!retort || !hearth) return fail(`needs a ${RETORT} on an ${HEARTH}`);
+    if (!retort || !hearth) return fail(`needs a ${RETORT} (or the residents' tar_retort) on an ${HEARTH}`);
     const rp = retort.params ?? {};
     if (!finite(rp.heatCapJPerK, 1e-9) || !finite(rp.uaWPerK, 0) || !finite(rp.heatShare, 0, 1) || !finite(rp.capacityMl, 1) || !finite(rp.collectShare ?? 0.6, 0, 1)) {
       return fail(`${RETORT} needs params heatCapJPerK > 0, uaWPerK ≥ 0, heatShare 0..1, capacityMl > 0, collectShare 0..1 (optional)`);

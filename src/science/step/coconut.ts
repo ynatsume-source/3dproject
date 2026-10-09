@@ -30,10 +30,10 @@ import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint,
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
 export const COCONUT_MILK_PROCESS = { processId: 'p30x_coconut_milk', processVersion: '0.1.0' } as const;
-export const COCONUT_BOIL_PROCESS = { processId: 'p31x_coconut_oil_boil', processVersion: '0.1.2' } as const; // 0.1.2: the closing words follow the solids' colour (Codex A3)
+export const COCONUT_BOIL_PROCESS = { processId: 'p31x_coconut_oil_boil', processVersion: '0.1.3' } as const; // 0.1.3: the residents' cook_pot as well // 0.1.2: the closing words follow the solids' colour (Codex A3)
 const MILK_SCHEMA = 'civ-sci.coconut-milk/1', MILK_EVAL = 'coconut-milk-eval/0.1.0';
 // /2 since 0.1.1 (heat held by the pot, browning carried over): a /1 run is refused; the host cancels it and releases its lots
-const BOIL_SCHEMA = 'civ-sci.coconut-boil/2', BOIL_EVAL = 'coconut-boil-eval/0.1.2';
+const BOIL_SCHEMA = 'civ-sci.coconut-boil/2', BOIL_EVAL = 'coconut-boil-eval/0.1.3';
 const TOOLS = 'fixture_coconut_tools', POT = 'fixture_cook_pot', HEARTH = 'open_fire_pit';
 const FINE_MS = 250; // the pot is integrated on a 0.25 s grid from the run's start: near the end of the boil it changes fast
 const FIRE_KG_PER_H = [0.4, 0.8, 1.6] as const; // low, medium, high: wood the tender feeds (assumed), never above the hearth's max
@@ -176,11 +176,11 @@ export function coconutBoilStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (a.action === 'fire_level' && ![0, 1, 2].includes(a.params?.level as number)) return fail('fire_level needs params.level 0 (low), 1 (medium) or 2 (high)');
   }
   const food = foods[0], wood = woods[0];
-  const pot = req.equipment.find((e) => e.kind === POT), hearth = req.equipment.find((e) => e.kind === HEARTH);
+  const pot = req.equipment.find((e) => e.kind === POT || e.kind === 'cook_pot'), hearth = req.equipment.find((e) => e.kind === HEARTH);
 
   let d: BoilData;
   if (req.state === null) {
-    if (!pot || !hearth) return fail(`needs a ${POT} on an ${HEARTH}`);
+    if (!pot || !hearth) return fail(`needs a ${POT} (or the residents' cook_pot) on an ${HEARTH}`);
     const pp = pot.params ?? {};
     if (!finite(pp.heatCapJPerK, 1e-9) || !finite(pp.uaWPerK, 0) || !finite(pp.heatShare, 0, 1) || !finite(pp.capacityMl, 1)) return fail(`${POT} needs params heatCapJPerK > 0, uaWPerK ≥ 0, heatShare 0..1, capacityMl > 0`);
     if (!finite(hearth.params?.maxBurnKgPerH, 0)) return fail(`${HEARTH} params.maxBurnKgPerH must be finite and ≥ 0`);
