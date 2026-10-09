@@ -1399,7 +1399,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (!agentOf(r) && r.holding === 'drift') return task('shelve', (() => { const w = shelf.position; return [w.x + 0.6, w.z + 0.6] as [number, number]; })(), 'work', 4);
     // Lantern: a process it can run, with its material on the shelf — while it is awake (it works by its own light), hands
     // free (the world runs it)
-    if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed' && !catalog.find((c) => c.processId === x.processId)?.gauge)) {   // (a gauge left reading does not keep it from other work)
+    if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed' && catalog.find((c) => c.processId === x.processId)?.tend === 'stay')) {   // (only hand work keeps it: a gauge left reading, wood left a month to season, a pot left to dry do not — life-run 2026-10-09)
       const pt = pitTask(); if (pt) return pt;   // (the clay pit first: the island's first tub)
       const wt = workshopTask(); if (wt) return wt;   // (tools, the woodpile, a fired pot made a cook pot)
       const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 4 * 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot?.lotId ?? '', more: e.more.map((l) => l.lotId) } });
@@ -2458,6 +2458,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   };
   // (the water's edge too, at a price: the way out for one that has come down onto a strip of it)
   const edgeCost = (x: number, z: number) => G(x, z) < 0.2 ? Infinity : G(x, z) < 0.3 ? 6 : walkCost(x, z);
+  const wadeCost = (x: number, z: number) => G(x, z) < -0.6 ? Infinity : G(x, z) < 0.2 ? 8 : edgeCost(x, z);
   // Lantern, picking its way: it would rather go round a steep bit than up it, and round anywhere it has
   // tried the footing and found it would not do (its four long legs are sure on the level, careful on a slope)
   const lanternCost = (bad: [number, number][]) => (x: number, z: number) => {
@@ -2511,7 +2512,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           ?? (B !== BODY[r.id] ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id])) : null)
           ?? (r.sp.swims && base !== swimCost ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(B, swimCost)) : null)
           ?? (G(r.pos.x, r.pos.z) < 0.3 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], edgeCost)) : null)   // (on the strip by the water's edge, where the dry way does not reach: along the edge as it came)
-          ?? (d0 > 20 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], r.sp.swims ? swimCost : edgeCost), true) : null);   // (and last, the long way round: back the way it came, round a bay — life-run 2026-10-09)   // (one that swims, with no way on foot: round by the water — it came ashore where the land does not join up)   // (a log carried makes it wider: where only its own width goes through — the way it came in — the log is dragged through)
+          ?? (d0 > 20 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], r.sp.swims ? swimCost : edgeCost), true) : null)
+          ?? (!r.sp.swims && G(r.pos.x, r.pos.z) < 0.2 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], wadeCost), true) : null);   // (a walker found standing in the shallows: it wades back to the land, not stopped there for want of a dry way)   // (and last, the long way round: back the way it came, round a bay — life-run 2026-10-09)   // (one that swims, with no way on foot: round by the water — it came ashore where the land does not join up)   // (a log carried makes it wider: where only its own width goes through — the way it came in — the log is dragged through)
         if (!pts) { r.path = undefined; r.went = 'no way'; r.blocked = 99; r.walk = 0; return false; }
         r.path = { pts, tx, tz, t: clockMs };
       }
@@ -2519,6 +2521,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       while (pts.length > 1 && Math.hypot(pts[0][0] - r.pos.x, pts[0][1] - r.pos.z) < 0.9) pts.shift();
       if (pts.length > 1 || Math.hypot(r.path!.tx - tx, r.path!.tz - tz) < 4) { ax = pts[0][0]; az = pts[0][1]; }
     } else r.path = undefined;
+    // (a walker that has come to be standing in the water — pushed off the edge by a trunk: a step up toward the land is allowed)
+    const g0 = G(r.pos.x, r.pos.z), upOut = (x: number, z: number) => !r.sp.swims && g0 <= 0.2 && G(x, z) > g0 + 0.005;
     const dx = ax - r.pos.x, dz = az - r.pos.z, d = Math.max(Math.hypot(dx, dz), Math.min(d0, 0.7));
     let want = Math.atan2(dx, dz);
     const inWater = G(r.pos.x, r.pos.z) < 0.1;
@@ -2574,7 +2578,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         let best = -1, bx = 0, bz = 0;
         for (const da of [0.5, -0.5, 1.0, -1.0, 1.5, -1.5]) {
           const hx = r.pos.x + Math.sin(r.head + da) * step, hz = r.pos.z + Math.cos(r.head + da) * step;
-          if (over(hx, hz) > now + 1e-4 || !(r.sp.swims || G(hx, hz) > 0.2)) continue;
+          if (over(hx, hz) > now + 1e-4 || !(r.sp.swims || G(hx, hz) > 0.2 || upOut(hx, hz))) continue;
           const gain = d0 - Math.hypot(tx - hx, tz - hz);
           if (best < 0 || gain > best) { best = Math.max(0, gain); bx = hx; bz = hz; }
         }
@@ -2582,7 +2586,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         else { r.walk = 0; r.blocked += dt; r.went = 'blocked'; if (r.path && clockMs - r.path.t > 2000) r.path = undefined; return false; }
       }
     }
-    if (r.sp.swims || G(nx, nz) > 0.2) {
+    if (r.sp.swims || G(nx, nz) > 0.2 || upOut(nx, nz)) {
       r.pos.x = nx; r.pos.z = nz; moved = step;
       if (!fast && T.pushTrees) {
         // a trunk in the way: pushed back out of it. If that undoes the step, it is not getting on — think
