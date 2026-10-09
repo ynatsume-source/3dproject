@@ -29,9 +29,9 @@ import { pv } from '../params';
 import { pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, isInt, subStepEnd, wind10m } from './common';
 
-export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.4' } as const; // 0.1.3: look (feel the clay in the tub, without touching the physics) // 0.1.4: look silent on inherited incomplete history; actions before looks at the same time (Codex A-S1, A-S2)
+export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.5' } as const; // 0.1.5: a missing wind is unknown (not calm) // 0.1.3: look (feel the clay in the tub, without touching the physics) // 0.1.4: look silent on inherited incomplete history; actions before looks at the same time (Codex A-S1, A-S2)
 const SCHEMA = 'civ-sci.clay-slake/2';
-const EVAL = 'clay-slake-eval/0.1.4';
+const EVAL = 'clay-slake-eval/0.1.5';
 const FINE_CLAYS = ['settled_clay', 'prepared_clay'];
 const TUB = 'fixture_clay_tub', PIT = 'clay_pit'; // 0.1.2: the island's clay pit (step/clay-pit.ts) is a tub too
 const STEP_MS = 30_000;
@@ -176,7 +176,7 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
   const acts = req.actions.filter((a) => a.action !== 'take_out' && a.action !== 'look' && a.at < endAt).sort((x, y) => x.at - y.at || (x.action < y.action ? 1 : -1));
   const looks = req.actions.filter((a) => a.action === 'look' && a.at < endAt).sort((x, y) => x.at - y.at);
   const env = req.environment;
-  const known = envUsable(req) && env.humidity !== undefined;
+  const known = envUsable(req) && env.humidity !== undefined && env.windMs !== undefined; // 0.1.5: a missing wind is unknown, not calm
   const observations: Observation[] = [];
   const tubDryMg = () => totalMg(d.tubDry);
 

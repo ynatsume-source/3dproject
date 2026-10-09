@@ -119,6 +119,14 @@ const gap = run([0, 12 * H, 36 * H, 120 * H], { env: (i) => (i === 1 ? UNKNOWN :
 ok(gap.end.produced[0].quality!.history_complete === 0, 'an interval with unknown weather is not integrated; the lot is marked history-incomplete');
 ok(gap.end.released[0].amount.value <= once.end.released[0].amount.value, 'no evaporation is invented for the unknown interval');
 
+{ // 0.3.1: a missing wind is unknown, not calm (an explicit 0 is calm)
+  const noWind: EnvironmentSample = { ...ENV, windMs: undefined };
+  const windless = run([0, 12 * H, 36 * H, 120 * H], { env: (i) => (i === 1 ? noWind : ENV) });
+  const calm = run([0, 12 * H, 36 * H, 120 * H], { env: (i) => (i === 1 ? { ...ENV, windMs: 0 } : ENV) });
+  ok(JSON.stringify(windless.end.produced) === JSON.stringify(gap.end.produced) && JSON.stringify(windless.end.released) === JSON.stringify(gap.end.released)
+    && calm.end.produced[0].quality!.history_complete === 1, 'a missing wind is unknown weather (the same as an unknown interval); windMs 0 is calm and is integrated');
+}
+
 {
   const r1 = dryingStep(req({ from: T0, to: T0 + 2 * H }));
   const skip = dryingStep(req({ from: T0 + 3 * H, to: T0 + 4 * H, state: r1.state }));

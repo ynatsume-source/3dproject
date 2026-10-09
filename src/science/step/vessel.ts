@@ -33,9 +33,9 @@ import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint,
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
 export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.1' } as const;
-export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.1' } as const;
+export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.2' } as const; // 0.1.2: a missing wind is unknown (not calm)
 const SEAL_SCHEMA = 'civ-sci.vessel-seal/2', SEAL_EVAL = 'vessel-seal-eval/0.1.1';
-const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.1';
+const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.2';
 const POT = 'fired_pot_test';
 const STEP_MS = 30_000;
 const REF_ABSORPTION = 0.12, REF_AREA_M2 = 0.0366; // the reference pot: 12 % absorption, 500 mL
@@ -258,7 +258,7 @@ export function leakTestStep(req: ScienceStepRequest): ScienceStepResult {
   const takeOut = req.actions.filter((a) => a.action === 'take_out').map((a) => a.at).sort((x, y) => x - y)[0];
   const endAt = takeOut ?? req.interval.to;
   const reads = req.actions.filter((a) => a.action !== 'take_out' && a.at < endAt).sort((x, y) => x.at - y.at);
-  const env = req.environment, known = envUsable(req) && env.humidity !== undefined;
+  const env = req.environment, known = envUsable(req) && env.humidity !== undefined && env.windMs !== undefined; // 0.1.2: a missing wind is unknown, not calm
   const area = potAreaM2(d.pot.capacityMl), wallMax = (s: LeakPhys) => s.pot.absorption * s.pot.body * (1 - s.pot.coverage);
   const potC = () => (known ? env.airTempC! + pv('sunSurfaceExcessC') * d.sun : NaN);
   /** What dries off the outside now (mg/s), from the pot as it is and this interval's weather. With free water inside

@@ -153,7 +153,8 @@ export function envUsable(req: ScienceStepRequest): boolean {
 /** The wind as at 10 m above the ground: a measured wind is given with the height it was measured at (windHeightM,
  *  default 10 m) and brought to 10 m along a log profile over the island's ground (windRoughnessM, assumed). */
 export function wind10m(req: ScienceStepRequest): number {
-  const e = req.environment, v = e.windMs ?? 0, h = (e as { windHeightM?: number }).windHeightM ?? 10;
+  // a missing wind is unknown, never calm (an explicit 0 is calm): NaN, so a step that forgot to require it fails as non-finite
+  const e = req.environment, v = e.windMs ?? NaN, h = (e as { windHeightM?: number }).windHeightM ?? 10;
   if (h === 10) return v;
   const z0 = pv('windRoughnessM');
   return v * Math.log(10 / z0) / Math.log(h / z0);
