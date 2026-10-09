@@ -16,6 +16,9 @@ const fs = require('fs');
   p.setDefaultTimeout(1800000); p.on('pageerror', (e) => console.log('ERR', e.message));
   await p.goto(`http://localhost:${process.env.PORT || 4174}/?tier=${process.env.TIER || 'high'}&debug&lab&time=${process.env.TIME || '12:00'}&wx=clear#planet`, { waitUntil: 'commit' });
   await p.waitForFunction(() => !!(window.seaglass && window.seaglass.cur && window.seaglass.cur.shore), null, { timeout: 600000 });
+  // (the HUD's marks that point at something in the scene — a new sighting, a subject's ring — would be left from the sea
+  // the page opens in: the camera is put down on the island at once, as no camera moves. Hidden for these shots)
+  await p.addStyleTag({ content: '#newMark, #capRing { display: none !important; }' });
   const poses = await p.evaluate(() => {
     const s = window.seaglass; s.endOpening?.();
     const T = s.cur.T, sh = s.cur.shore, home = [61, -145];
