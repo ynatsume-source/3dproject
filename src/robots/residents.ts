@@ -664,7 +664,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // what Dot brought home from other islands, on the ground by the shelf (clay, bamboo, reeds, limestone)
   const storeG = new THREE.Group(); { const w = atHut(2.4, -1.5); storeG.position.set(w.x, L.h(w.x, w.z), w.z); storeG.rotation.y = hut.rotation.y; group.add(storeG); }
   const COCONUT_GEO = coconutGeo();
+  // (a round-bottomed pot, turned from its profile: made when first needed)
+  let potGeoC: THREE.BufferGeometry | null = null;
+  const potGeo = () => potGeoC ??= new THREE.LatheGeometry([[0, 0], [0.09, 0.01], [0.15, 0.06], [0.17, 0.13], [0.16, 0.2], [0.13, 0.24], [0.14, 0.26], [0.12, 0.27]].map(([x, y]) => new THREE.Vector2(x, y)), 14);
+  const potMesh = (hex: number, s = 1) => { const m = new THREE.Mesh(potGeo(), smat(hex, 0.05, true)); m.scale.setScalar(s); return m; };
   const STORE_LOOK: Record<string, () => THREE.Object3D> = {
+    green_pot: () => potMesh(0x6e5640, 0.9), dry_pot: () => potMesh(0xb39a7c, 0.9), fired_pot: () => potMesh(0xb0603a, 0.9),
+    pot_sherds: () => { const g = new THREE.Group(); for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.015, 0.06), smat(0xa85a36, 0.05)); m.position.set(Math.cos(k * 1.3) * 0.1, 0.01, Math.sin(k * 1.3) * 0.1); m.rotation.y = k; g.add(m); } return g; },
+    coconut_milk: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), smat(0x6b4a2b, 0.05, true)); m.position.y = 0.1; const w = new THREE.Mesh(new THREE.CircleGeometry(0.095, 12), smat(0xf2efe6, 0.3)); w.rotation.x = -Math.PI / 2; w.position.y = 0.095; const g = new THREE.Group(); g.add(m, w); return g; },
+    coconut_oil: () => { const g = new THREE.Group(), j = potMesh(0xb0603a, 0.45), o = new THREE.Mesh(new THREE.CircleGeometry(0.055, 12), smat(0xe8c060, 0.9)); o.rotation.x = -Math.PI / 2; o.position.y = 0.11; g.add(j, o); return g; },
+    wood_ash: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 5), smat(0x8c8a86, 0.0)); m.scale.y = 0.3; m.position.y = 0.02; return m; },
     raw_clay: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 9, 6), smat(0x8a6a4c, 0.0)); m.scale.y = 0.55; m.position.y = 0.1; return m; },
     bamboo: () => { const g = new THREE.Group(); for (let k = 0; k < 4; k++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.6, 6), smat(0xa8b060, 0.18)); m.rotation.z = Math.PI / 2; m.position.set(0, 0.04 + (k % 2) * 0.06, -0.08 + k * 0.05); g.add(m); } return g; },
     reed: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.3, 7), smat(0xc8b878, 0.0)); m.rotation.z = Math.PI / 2; m.position.y = 0.09; return m; },
@@ -692,6 +701,64 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (at && village.raft.hauled) { at[0] += (hut.position.x - at[0]) * 0.45; at[1] += (hut.position.z - at[1]) * 0.45; }   // (hauled up the beach, toward the hut)
     raftG.visible = !!at && village.raft.parts > 0 && !voyaging; if (at) raftG.position.set(at[0] + 1.2, L.h(at[0] + 1.2, at[1]), at[1]);
     raftLogs.forEach((m, k) => (m.visible = k < village.raft.parts));
+  }
+  /* ---------- what is made, as it is made (the woodpile under its roof, a pot fired in the open, oil boiling) ---------- */
+  // Shown from the world's own ledger: the woodpile's roof once it stands, as many logs as there is firewood; while a pot
+  // is fired the fire is heaped round it and the pot glows with the fire's heat (the run's own fire temperature); while
+  // milk boils, the island's pot sits on three stones over the fire, steaming; the cook pot by the shelf when it is idle.
+  let craftG: THREE.Group | null = null, stackG: THREE.Group | null = null, stackLogs: THREE.Mesh[] = [], heapG: THREE.Group | null = null, firePot: THREE.Mesh | null = null, potGlow: THREE.Mesh | null = null,
+    boilG: THREE.Group | null = null, steam: THREE.Mesh[] = [], idlePot: THREE.Object3D | null = null;
+  const glowM = () => new THREE.MeshBasicMaterial({ color: 0xff5a1a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  /** The colour of a thing at that heat (dull red to yellow), and how bright. */
+  function heatColour(c: number, out: THREE.Color): number {
+    if (c < 450) return 0;
+    const k = Math.min(1, (c - 450) / 650);
+    out.setRGB(1, 0.18 + 0.7 * k, 0.04 + 0.45 * k * k);
+    return Math.min(1, (c - 450) / 300);
+  }
+  function makeCraft() {
+    craftG = new THREE.Group(); group.add(craftG);
+    // the woodpile: four bamboo posts, a roof of leaves, the logs stacked under it
+    stackG = new THREE.Group(); const w = atHut(-2.8, -1.4); stackG.position.set(w.x, L.h(w.x, w.z), w.z); stackG.rotation.y = hut.rotation.y; craftG.add(stackG);
+    for (const [x, z] of [[-0.6, -0.4], [0.6, -0.4], [-0.6, 0.4], [0.6, 0.4]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.25, 6), smat(0xa8b060, 0.18)); m.position.set(x, 0.62, z); stackG.add(m); }
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 1.1), smat(0x5f7d3a, 0.06)); roof.position.y = 1.27; roof.rotation.z = 0.12; stackG.add(roof);
+    const logGeo = new THREE.CylinderGeometry(0.06, 0.07, 1.0, 7), logM = smat(0x7b6a52, 0.0);
+    stackLogs = Array.from({ length: 15 }, (_, k) => { const m = new THREE.Mesh(logGeo, logM); m.rotation.z = Math.PI / 2; const row = Math.floor(k / 5), c = k % 5; m.position.set(0, 0.07 + row * 0.12, -0.26 + c * 0.13 + (row % 2) * 0.06); m.visible = false; stackG!.add(m); return m; });
+    // the fire heaped round a pot, at the fire place
+    heapG = new THREE.Group(); heapG.position.copy(PIT); heapG.visible = false; craftG.add(heapG);
+    firePot = potMesh(0xb39a7c, 1.1); heapG.add(firePot);
+    for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28, m = new THREE.Mesh(logGeo, logM); m.position.set(Math.cos(a) * 0.22, 0.28, Math.sin(a) * 0.22); m.rotation.set(Math.sin(a) * 0.55, 0, -Math.cos(a) * 0.55); m.scale.set(1, 0.7, 1); heapG.add(m); }
+    potGlow = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), glowM()); potGlow.position.y = 0.16; heapG.add(potGlow);
+    // the island's pot over the fire on three stones, steaming
+    boilG = new THREE.Group(); boilG.position.copy(PIT); boilG.visible = false; craftG.add(boilG);
+    for (let k = 0; k < 3; k++) { const a = k / 3 * 6.28, m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.09), smat(0x8a8072, 0.05)); m.position.set(Math.cos(a) * 0.2, 0.07, Math.sin(a) * 0.2); boilG.add(m); }
+    const bp = potMesh(0xb0603a, 1.1); bp.position.y = 0.14; boilG.add(bp);
+    const sm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18, depthWrite: false });
+    steam = [0, 1, 2].map((k) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), sm); m.position.set(0, 0.5 + k * 0.18, 0); boilG!.add(m); return m; });
+    idlePot = potMesh(0xb0603a, 1.0); const ip = atHut(2.4, -3.0); idlePot.position.set(ip.x, L.h(ip.x, ip.z), ip.z); idlePot.visible = false; craftG.add(idlePot);
+  }
+  const _hc = new THREE.Color();
+  let craftShow: null | { fireC?: number; boil?: boolean } = null;   // (shots and checks only: show a pot fire or a boil without a run)
+  /** Each frame: what is being made now. Returns how much the fire place burns for it (0 none, up to 2 for a pot fire). */
+  function craftTick(tt: number): number {
+    const running = (pid: string) => village.labRuns.map((x) => lab.runs[x.runId]).find((r) => r?.processId === pid && ['starting', 'running', 'needs-input'].includes(r.status));
+    const firing = running('p13y_pot_pit_fire') ?? (craftShow?.fireC !== undefined ? { state: { data: { kilnC: craftShow.fireC } } } as any : undefined), boiling = running('p31x_coconut_oil_boil') ?? (craftShow?.boil ? {} as any : undefined);
+    const wood = shelfLots().filter((l) => l.materialId === 'firewood').reduce((n, l) => n + l.amount.value, 0);
+    if (!craftG && !lab.equipment['eq:firewood_stack'] && !firing && !boiling && !lab.equipment['eq:cook_pot']) return 0;
+    if (!craftG) makeCraft();
+    stackG!.visible = !!lab.equipment['eq:firewood_stack'];
+    const nLogs = Math.min(15, Math.ceil(wood / 3e6)); stackLogs.forEach((m, k) => (m.visible = k < nLogs));
+    heapG!.visible = !!firing; boilG!.visible = !!boiling && !firing;
+    idlePot!.visible = !!lab.equipment['eq:cook_pot'] && !boiling;
+    let burn = boiling ? 1 : 0;
+    if (firing) {
+      const c = (firing.state?.data as any)?.kilnC ?? 30, b = heatColour(c, _hc);
+      (potGlow!.material as THREE.MeshBasicMaterial).color.copy(_hc); (potGlow!.material as THREE.MeshBasicMaterial).opacity = b * (0.55 + 0.08 * Math.sin(tt * 5));
+      (firePot!.material as any).uniforms?.uCol?.value?.setRGB?.(0.7 + 0.3 * b, 0.6 - 0.2 * b, 0.48 - 0.3 * b);
+      burn = c < 120 ? 0.6 : Math.min(2, 0.8 + (c - 120) / 600);
+    }
+    if (boiling) steam.forEach((m, k) => { const t = (tt * 0.4 + k / 3) % 1; m.position.set(Math.sin(tt + k) * 0.05, 0.42 + t * 0.6, Math.cos(tt * 0.8 + k) * 0.05); m.scale.setScalar(0.6 + t * 1.4); (m.material as THREE.MeshBasicMaterial).opacity = 0.2 * (1 - t); });
+    return burn;
   }
   /* ---------- felling the island's own trees (owner, 2026-10-07: clearing land with their own hands) ---------- */
   // Any grown tree of the forest near home can be felled with the axe: logs (two, three from a tall one) to shape as the
@@ -3185,7 +3252,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
   };
   (res as any).items = items;   // (for ?debug)
-  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).T = T; (res as any).houseG = houseG; (res as any).shelterK = shelterK; (res as any).labReady = () => labReady().map((x) => x.entry.processId); (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
+  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).T = T; (res as any).houseG = houseG; (res as any).shelterK = shelterK; (res as any).labReady = () => labReady().map((x) => x.entry.processId); (res as any).craftShow = (v: typeof craftShow) => (craftShow = v); (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[], en?: string) {
@@ -3535,9 +3602,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (f.t > 4) { group.remove(f.pivot); f.pivot.traverse((o: any) => o.geometry?.dispose?.()); falling.splice(falling.indexOf(f), 1); }
     }
     // the fire: flames flicker, sparks rise, the light it throws
-    const hr = localHour(clockMs), lit = fireHours(hr) ? 1 : 0;
+    const tt = performance.now() / 1000, craft = craftTick(tt);   // (a pot fired, or oil boiling: the fire burns for it — a pot fire heaped high)
+    const hr = localHour(clockMs), lit = Math.max(fireHours(hr) ? 1 : 0, craft);
     fireK += (lit - fireK) * Math.min(1, dt * 0.5);
-    const tt = performance.now() / 1000;
     flames.forEach((f, k) => { const s = fireK * (0.8 + 0.3 * Math.sin(tt * (7 + k) + k * 2) + 0.15 * Math.sin(tt * 13.7 + k)); f.scale.set(s, s * (1 + 0.3 * Math.sin(tt * 9 + k)), s); f.visible = fireK > 0.02; f.rotation.y = tt * (0.5 + k * 0.2); });
     U.uFire.value.set(PIT.x, PIT.y + 0.5, PIT.z, fireK * (1.6 + 0.35 * Math.sin(tt * 11) + 0.2 * Math.sin(tt * 17.3)));
     if (fireK > 0.3 && Math.random() < dt * 6) { const sp = sparks.find((x) => x.t > 2); if (sp) { sp.p.set(PIT.x + (Math.random() - 0.5) * 0.2, PIT.y + 0.4, PIT.z + (Math.random() - 0.5) * 0.2); sp.v.set((Math.random() - 0.5) * 0.3, 0.8 + Math.random() * 0.8, (Math.random() - 0.5) * 0.3); sp.t = 0; } }
