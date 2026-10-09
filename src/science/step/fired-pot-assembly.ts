@@ -27,6 +27,8 @@ function readFired(lot: LotView, forms: number[], what: string) {
   if (!forms.includes(q.form)) throw new Error(`${what} needs a pot of form ${forms.join(' or ')} (1 cook pot, 2 jar, 3 lamp dish)`);
   if (!finite(q.capacity_ml, 1, 1e5) || !finite(q.surface_cm2, 1, 1e6) || !finite(q.absorption_ppm ?? 0, 0, 1e6)) throw new Error(`${lot.lotId} needs capacity_ml, surface_cm2 and absorption_ppm`);
   if ((q.crack ?? 0) >= 1 || (q.crack_ppm ?? 0) > 0) throw new Error(`${lot.lotId} has a crack: a cracked pot leaks and is not assembled`);
+  // a pot stopped with a plug and tar (the sealed vessel, p16x) has no open mouth: it is a barometer bulb, not a pot to cook in
+  if (q.sealed === 1) throw new Error(`${lot.lotId} is stopped with a plug (sealed): it is not assembled as an open pot`);
   return { massG: lot.amount.value / 1000, capacityMl: q.capacity_ml as number, areaM2: q.surface_cm2 / 1e4, absorptionPpm: q.absorption_ppm ?? 0 };
 }
 const heatCap = (g: number) => Math.round(g * pv('cpCeramic'));

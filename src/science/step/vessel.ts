@@ -32,15 +32,21 @@ import { fuelLhvJPerMg, pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, intDeltaFloor, isInt, subStepEnd, wind10m } from './common';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.1' } as const;
-export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.2' } as const; // 0.1.2: a missing wind is unknown (not calm)
-const SEAL_SCHEMA = 'civ-sci.vessel-seal/2', SEAL_EVAL = 'vessel-seal-eval/0.1.1';
-const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.2';
+export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.2' } as const; // 0.1.2: the residents' fired_pot as well
+export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.3' } as const; // 0.1.3: the residents' fired_pot as well // 0.1.2: a missing wind is unknown (not calm)
+const SEAL_SCHEMA = 'civ-sci.vessel-seal/2', SEAL_EVAL = 'vessel-seal-eval/0.1.2';
+const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.3';
 const POT = 'fired_pot_test';
+/** The pots these steps take: the test pot, and (0.1.2 / 0.1.3) the residents' own fired pot from the open fire. */
+export const VESSEL_POTS = [POT, 'fired_pot'] as const;
+const isPot = (l: LotView) => (VESSEL_POTS as readonly string[]).includes(l.materialId);
+/** The keys these steps write; any other key of the pot (its form, wall, surface, fired make-up, crack mark) goes back as it was. */
+const VESSEL_KEYS = ['capacity_ml', 'absorption_ppm', 'coverage_ppm', 'sealed', 'x_wood_tar_ppm', 'x_water_ppm', 'crack_ppm', 'airtight_known', 'air_leak_tau_min', 'history_complete'];
+const otherKeys = (q: Record<string, number> = {}) => Object.fromEntries(Object.entries(q).filter(([k]) => !VESSEL_KEYS.includes(k)));
 const STEP_MS = 30_000;
 const REF_ABSORPTION = 0.12, REF_AREA_M2 = 0.0366; // the reference pot: 12 % absorption, 500 mL
 
-export interface Pot { body: number; tar: number; water: number; capacityMl: number; absorption: number; coverage: number; sealed: boolean; airtightKnown: boolean; crack: number }
+export interface Pot { body: number; tar: number; water: number; capacityMl: number; absorption: number; coverage: number; sealed: boolean; airtightKnown: boolean; crack: number; areaM2: number }
 
 /** Read a pot lot. Throws with a reason. */
 export function readPot(lot: LotView): Pot {
@@ -52,8 +58,13 @@ export function readPot(lot: LotView): Pot {
   if ((q.x_wood_tar_ppm ?? 0) + (q.x_water_ppm ?? 0) > 1e6) throw new Error(`pot ${lot.lotId}: tar and water exceed the pot`);
   if (!finite(q.crack_ppm ?? 0, 0, 1e6)) throw new Error(`pot ${lot.lotId}: crack_ppm 0..1000000`);
   if (![0, 1, undefined].includes(q.airtight_known) || (q.airtight_known === 0 && q.sealed !== 1)) throw new Error(`pot ${lot.lotId}: airtight_known is 0 or 1, and 0 only on a sealed pot`);
+  // a fired pot's own make-up keys (water_ppm, xd_*) describe its fired body; water taken up by the walls is x_water_ppm
+  if (lot.materialId === 'fired_pot' && (q.water_ppm ?? 0) !== 0) throw new Error(`pot ${lot.lotId}: a fired pot's body holds no water of its own (water_ppm 0); water in its walls is x_water_ppm`);
+  if (q.surface_cm2 !== undefined && !finite(q.surface_cm2, 1, 1e6)) throw new Error(`pot ${lot.lotId}: surface_cm2 1..1000000`);
   const tar = Math.floor((lot.amount.value * (q.x_wood_tar_ppm ?? 0)) / 1e6), water = Math.floor((lot.amount.value * (q.x_water_ppm ?? 0)) / 1e6);
-  return { body: lot.amount.value - tar - water, tar, water, capacityMl: q.capacity_ml, absorption: q.absorption_ppm / 1e6, coverage: (q.coverage_ppm ?? 0) / 1e6, sealed: q.sealed === 1, airtightKnown: q.airtight_known !== 0, crack: (q.crack_ppm ?? 0) / 1e6 };
+  return { body: lot.amount.value - tar - water, tar, water, capacityMl: q.capacity_ml, absorption: q.absorption_ppm / 1e6, coverage: (q.coverage_ppm ?? 0) / 1e6, sealed: q.sealed === 1, airtightKnown: q.airtight_known !== 0, crack: (q.crack_ppm ?? 0) / 1e6,
+    // the pot's own surface when it has one (the residents' pots), else the test pot's assumed shape
+    areaM2: q.surface_cm2 !== undefined ? q.surface_cm2 / 1e4 : potAreaM2(q.capacity_ml) };
 }
 /** Inner surface (m²) of a pot holding capacityMl: a sphere's, a fifth more for the neck (assumed shape). */
 export const potAreaM2 = (capacityMl: number) => (4.836 * Math.pow(capacityMl, 2 / 3) * 1.2) / 1e4;
@@ -80,7 +91,7 @@ export function potQuality(p: Pot): Record<string, number> {
 // ---- assembly: a pot lot becomes equipment, and back (ADR 0006: main assembles; this is the table) -----------------
 
 /** The table's version: main records it on the equipment it assembles. */
-export const POT_ASSEMBLY_TABLE = 'civ-sci.pot-assembly/2';
+export const POT_ASSEMBLY_TABLE = 'civ-sci.pot-assembly/3'; // /3: the residents' fired_pot as well (fired_pot_test: the same results)
 export const ASSEMBLED_POT = 'assembled_pot'; // kind and catalogEntry of the equipment
 /** The equipment params of a pot assembled from a whole fired_pot_test lot (the lot's copy is kept by main). */
 export function potToEquipmentParams(lot: LotView): Record<string, number> {
@@ -98,7 +109,8 @@ export function potQualityOnReturn(copy: Record<string, number>, condition: numb
   if (!finite(condition, 0, 1)) throw new Error('condition must be within 0..1');
   if (condition >= 1) return { ...copy };
   const { air_leak_tau_min: _t, airtight_known: _k, ...rest } = copy;
-  return { ...rest, ...(copy.sealed === 1 ? { airtight_known: 0 } : {}), crack_ppm: Math.min(1e6, Math.round((copy.crack_ppm ?? 0) + (1 - condition) * 1e6)) };
+  return { ...rest, ...(copy.sealed === 1 ? { airtight_known: 0 } : {}), ...(copy.crack !== undefined ? { crack: Math.max(copy.crack, 1) } : {}), // a fired pot's crack mark shows the wear too
+    crack_ppm: Math.min(1e6, Math.round((copy.crack_ppm ?? 0) + (1 - condition) * 1e6)) };
 }
 
 /** The quality of the pot_sherds lot a broken pot goes back to (same mass as the lot copy, ADR 0006): what the body
@@ -119,9 +131,9 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const fail = (why: string) => failed(req, SEAL_EVAL, why, SEAL_SCHEMA) as ScienceStepResultV02;
   const bad = checkCommon(req, TAR_SEAL_PROCESS.processId, TAR_SEAL_PROCESS.processVersion, SEAL_SCHEMA, /^0\.2\.\d+$/);
   if (bad) return fail(bad);
-  const pots = req.lots.filter((l) => l.materialId === POT), tars = req.lots.filter((l) => l.materialId === 'wood_tar'), woods = req.lots.filter((l) => l.materialId === 'firewood');
+  const pots = req.lots.filter(isPot), tars = req.lots.filter((l) => l.materialId === 'wood_tar'), woods = req.lots.filter((l) => l.materialId === 'firewood');
   if (pots.length !== 1 || tars.length !== 1 || woods.length > 1 || pots.length + tars.length + woods.length !== req.lots.length) {
-    return fail(`expected one ${POT} lot, one wood_tar lot and, to warm them at the fire, at most one firewood lot`);
+    return fail(`expected one ${POT} (or fired_pot) lot, one wood_tar lot and, to warm them at the fire, at most one firewood lot`);
   }
   const pot = pots[0], tarLot = tars[0], wood = woods[0];
   const brush = req.equipment.find((e) => e.kind === 'fixture_tar_brush'), pit = req.equipment.find((e) => e.kind === 'open_fire_pit');
@@ -169,7 +181,7 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (!done) return res;
 
   // settle: the tar goes onto the pot; the warming fire burns its wood
-  const p = readPot(pot), area = potAreaM2(p.capacityMl);
+  const p = readPot(pot), area = p.areaM2;
   let burn = 0, fuel: Composition = {};
   // wood too wet (or without dry wood) to give heat does not burn: it comes back as it was (Codex C1)
   if (wood) { fuel = fuelComp(wood) as Composition; burn = fuelLhvJPerMg(fuel) > 0 ? Math.min(totalMg(fuel), Math.round(pv('warmWoodG') * 1000)) : 0; }
@@ -182,7 +194,7 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const out: Pot = { ...p, tar: p.tar + tarLot.amount.value, coverage, sealed };
   const hist = req.lots.every((l) => (l.quality?.history_complete ?? 1) === 1) ? 1 : 0;
   res.consumed = req.lots.map((l) => ({ lotId: l.lotId, amount: { ...l.amount } }));
-  res.produced.push({ materialId: POT, amount: { value: out.body + out.tar + out.water, unit: 'mg' }, into: pot.location, quality: { ...potQuality(out), history_complete: hist } });
+  res.produced.push({ materialId: pot.materialId, amount: { value: out.body + out.tar + out.water, unit: 'mg' }, into: pot.location, quality: { ...otherKeys(pot.quality), ...potQuality(out), history_complete: hist } });
   if (wood) {
     const ft = totalMg(fuel), taken: Composition = {};
     for (const part of ['wood_dry', 'water', 'ash'] as const) {
@@ -224,8 +236,8 @@ export function leakTestStep(req: ScienceStepRequest): ScienceStepResult {
   const fail = (why: string) => failed(req, LEAK_EVAL, why, LEAK_SCHEMA);
   const bad = checkCommon(req, LEAK_TEST_PROCESS.processId, LEAK_TEST_PROCESS.processVersion, LEAK_SCHEMA);
   if (bad) return fail(bad);
-  const pots = req.lots.filter((l) => l.materialId === POT), waters = req.lots.filter((l) => l.materialId === 'process_water');
-  if (pots.length !== 1 || waters.length > 1 || pots.length + waters.length !== req.lots.length) return fail(`expected one ${POT} lot and, to fill it, at most one process_water lot`);
+  const pots = req.lots.filter(isPot), waters = req.lots.filter((l) => l.materialId === 'process_water');
+  if (pots.length !== 1 || waters.length > 1 || pots.length + waters.length !== req.lots.length) return fail(`expected one ${POT} (or fired_pot) lot and, to fill it, at most one process_water lot`);
   if (req.energy.length) return fail('waiting uses no offered energy');
   const stand = req.equipment.find((e) => e.kind === 'fixture_vessel_stand');
   if (!stand && req.stop !== 'equipment-lost') return fail('no fixture_vessel_stand');
@@ -259,7 +271,7 @@ export function leakTestStep(req: ScienceStepRequest): ScienceStepResult {
   const endAt = takeOut ?? req.interval.to;
   const reads = req.actions.filter((a) => a.action !== 'take_out' && a.at < endAt).sort((x, y) => x.at - y.at);
   const env = req.environment, known = envUsable(req) && env.humidity !== undefined && env.windMs !== undefined; // 0.1.2: a missing wind is unknown, not calm
-  const area = potAreaM2(d.pot.capacityMl), wallMax = (s: LeakPhys) => s.pot.absorption * s.pot.body * (1 - s.pot.coverage);
+  const area = d.pot.areaM2 ?? potAreaM2(d.pot.capacityMl), wallMax = (s: LeakPhys) => s.pot.absorption * s.pot.body * (1 - s.pot.coverage);
   const potC = () => (known ? env.airTempC! + pv('sunSurfaceExcessC') * d.sun : NaN);
   /** What dries off the outside now (mg/s), from the pot as it is and this interval's weather. With free water inside
    *  the walls are kept wet and the water passes through; once it is gone the walls themselves dry, slower as they dry
@@ -337,7 +349,7 @@ export function leakTestStep(req: ScienceStepRequest): ScienceStepResult {
   const left = Math.max(0, Math.min(total - evapInt, Math.floor(d.waterIn + 1e-6)));
   const potOut: Pot = { ...d.pot, water: total - evapInt - left };
   res.consumed = req.lots.map((l) => ({ lotId: l.lotId, amount: { ...l.amount } }));
-  res.produced.push({ materialId: POT, amount: { value: potOut.body + potOut.tar + potOut.water, unit: 'mg' }, into: d.location, quality: { ...potQuality(potOut), history_complete: hist } });
+  res.produced.push({ materialId: pot.materialId, amount: { value: potOut.body + potOut.tar + potOut.water, unit: 'mg' }, into: d.location, quality: { ...otherKeys(pot.quality), ...potQuality(potOut), history_complete: hist } });
   if (left > 0) res.produced.push({ materialId: 'process_water', amount: { value: left, unit: 'mg' }, into: d.waterLocation, quality: { history_complete: hist } });
   if (evapInt > 0) res.released.push({ materialId: 'water_vapour', amount: { value: evapInt, unit: 'mg' }, to: 'air' });
   // how much the water went down is told only when every stretch of the run was computed (A5)
