@@ -19,7 +19,7 @@ type Mode = 'rest' | 'move' | 'forage';
 interface Shark {
   pos: THREE.Vector3; yaw: number; pitch: number; len: number; age: number; seed: number;
   mode: Mode; t: number; next: number; speed: number; swim: number; prop: number; ph: number; br: number; curl: number;
-  goal: { x: number; z: number; yaw: number } | null; settle: number; vy: number;
+  goal: { x: number; z: number; yaw: number } | null; settle: number; vy: number; lastGap?: number;
 }
 interface Group { sp: CarpetSpec; members: Shark[]; placed: boolean; home: THREE.Vector3; logged: number }
 
@@ -46,7 +46,8 @@ export function makeCarpetSharks(oc: any) {
 export type CarpetSharks = NonNullable<ReturnType<typeof makeCarpetSharks>>;
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3();
-const SAMPLES = [0.04, 0.12, 0.22, 0.32, 0.42, 0.52, 0.64, 0.78, 0.92];
+// (along it from the snout to the tail's tip, close enough that a coral head between two samples cannot go unseen)
+const SAMPLES = Array.from({ length: 25 }, (_, i) => 0.01 + i * 0.04);
 
 // how it lies on the ground at (x, z) heading yaw: the pitch of the ground along it, and the height that keeps every part
 // of its underside on or above the ground (touching where it is highest)
@@ -65,6 +66,23 @@ function fit(T: any, style: CarpetStyle, x: number, z: number, yaw: number, L: n
     rough = Math.max(rough, Math.abs(g[i] - (mg + slope * (d[i] - md))));
   });
   return { y: y + 0.01 + lift, pitch: -Math.atan(slope), rough };
+}
+
+// how high its middle must be for no part of its underside to be in the ground, lying at (x, z) along yaw with this pitch
+function floorFor(T: any, style: CarpetStyle, x: number, z: number, yaw: number, pitch: number, L: number) {
+  const hx = Math.sin(yaw), hz = Math.cos(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  let y = -1e9;
+  for (const s of SAMPLES) { const a = (0.5 - s) * L, q = carpetProfile(style, s); y = Math.max(y, T.top(x + hx * cp * a, z + hz * cp * a) + sp * a - cp * (q.y - q.h * 0.85) * L); }
+  return y + 0.01;
+}
+
+// how high it must swim, foraging, to clear the ground along its length now and a little ahead, and everything within
+// reach of its length all round (turning, its head and tail sweep across it)
+function swimFloor(T: any, style: CarpetStyle, x: number, z: number, yaw: number, pitch: number, L: number) {
+  let fa = floorFor(T, style, x, z, yaw, pitch, L);
+  for (const d of [0.7, 1.5, 3, 4.5]) fa = Math.max(fa, floorFor(T, style, x + Math.sin(yaw) * d, z + Math.cos(yaw) * d, yaw, pitch, L));
+  for (let k = 0; k < 24; k++) { const b = k * Math.PI / 12; for (const r of [L * 0.15, L * 0.3, L * 0.45, L * 0.6]) fa = Math.max(fa, T.top(x + Math.sin(b) * r, z + Math.cos(b) * r) + carpetBelly(style) * L + 0.02); }
+  return fa;
 }
 
 // a place to lie: a zebra on open sand, nurses at the foot of the reef with their noses toward it; level enough
@@ -89,8 +107,8 @@ function restSpot(oc: any, sp: CarpetSpec, x: number, z: number, L: number, trie
 function placeGroup(oc: any, gr: Group, cam: THREE.Vector3, fx: number, fz: number, night: boolean) {
   const T = oc.T, back = Math.atan2(-fz, -fx), L0 = gr.members[0].len;
   for (let k = 0; k < 400; k++) {
-    // (behind and to the sides, out of view, some way off; failing that, further)
-    const a = back + rr(-1.75, 1.75), d = rr(28, 55) * (1 + Math.floor(k / 150) * 0.4);
+    // (out to one side, a little ahead or behind, where the camera going on its way will pass it: out of view now)
+    const a = back + (R() < 0.5 ? -1 : 1) * rr(1.2, 1.85), d = rr(25, 42) * (1 + Math.floor(k / 150) * 0.4);
     const x = cam.x + Math.cos(a) * d, z = cam.z + Math.sin(a) * d;
     const spot = restSpot(oc, gr.sp, x, z, L0);
     if (!spot) continue;
@@ -102,7 +120,7 @@ function placeGroup(oc: any, gr: Group, cam: THREE.Vector3, fx: number, fz: numb
       const f = fit(T, gr.sp.style, px, pz, yaw, m.len, gr.sp.style === 'zebra' ? m.len * 0.012 : 0);
       if (f.rough > 0.1 + 0.02 * m.len) return false;
       m.pos.set(px, f.y, pz); m.yaw = yaw; m.pitch = f.pitch; m.mode = night ? 'forage' : 'rest'; m.t = 0; m.speed = night ? 0.35 : 0; m.swim = night ? 1 : 0; m.prop = night ? 0 : 1; m.goal = null; m.settle = 1;
-      if (night) m.pos.y += 0.3;
+      if (night) { m.pitch = 0; m.pos.y = swimFloor(T, gr.sp.style, px, pz, yaw, 0, m.len) + 0.3; }
       return unseen(oc, m.pos.x, m.pos.y, m.pos.z, cam, fx, fz, m.len * 0.6);
     });
     if (!ok) continue;
@@ -123,16 +141,22 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
     let k = 0;
     for (const gr of K.groups) {
       const g0 = gr.members[0];
-      const gone = hyp(g0.pos.x - cam.x, g0.pos.z - cam.z) > far && gr.members.every((m) => unseen(oc, m.pos.x, m.pos.y, m.pos.z, cam, fx, fz, m.len * 0.6));
+      const gone = gr.members.every((m) => hyp(m.pos.x - cam.x, m.pos.z - cam.z) > far && unseen(oc, m.pos.x, m.pos.y, m.pos.z, cam, fx, fz, m.len * 0.6 + 6));   // (well out of sight, with room to spare)
       if (!gr.placed || gone) { gr.placed = false; if (!placeGroup(oc, gr, cam, fx, fz, night)) continue; }
       for (const m of gr.members) {
         m.t += dt; m.next -= dt;
         const L = m.len, hx = Math.sin(m.yaw), hz = Math.cos(m.yaw);
-        const cd = hyp(m.pos.x - cam.x, m.pos.z - cam.z), close = m.pos.distanceTo(cam) < 1.1 + L * 0.35;
+        const cd = hyp(m.pos.x - cam.x, m.pos.z - cam.z), close = (() => {
+          // (they let a diver come close: only right up against it, at any part of it from the snout to the tail, does it go)
+          const ax = Math.sin(m.yaw), az = Math.cos(m.yaw), along = clamp((cam.x - m.pos.x) * ax + (cam.z - m.pos.z) * az, -L / 2, L / 2);
+          return hyp(cam.x - (m.pos.x + ax * along), cam.z - (m.pos.z + az * along), cam.y - m.pos.y) < 0.9;
+        })();
         // what it does: lie still by day, moving on now and then or when the drone crowds it; forage by night
         if (night && m.mode === 'rest') { m.mode = 'forage'; m.t = 0; m.goal = null; }
         if (!night && m.mode === 'forage') {
-          const s = restSpot(oc, sp, m.pos.x + hx * 2, m.pos.z + hz * 2, L, 2);
+          // (a place to lie down, somewhere about it: a few tries a moment, ahead and to the sides)
+          let s: { x: number; z: number; yaw: number } | null = null;
+          for (let k2 = 0; k2 < 4 && !s; k2++) { const a2 = m.yaw + rr(-1.4, 1.4), d2 = rr(2, 20); s = restSpot(oc, sp, m.pos.x + Math.sin(a2) * d2, m.pos.z + Math.cos(a2) * d2, L); }
           if (s) { m.goal = s; m.mode = 'move'; m.t = 0; } else m.goal = null;
         }
         if (m.mode === 'rest' && (close || (m.next < 0 && cd > 20))) {
@@ -142,8 +166,8 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
             const s = restSpot(oc, sp, m.pos.x + Math.cos(a) * d, m.pos.z + Math.sin(a) * d, L);
             if (s) { m.goal = s; m.mode = 'move'; m.t = 0; m.next = rr(500, 1200); break; }
           }
-          if (close && m.mode === 'rest' && gr.logged < 9) { /* (nowhere to go: it stays) */ }
-          if (close && m.mode === 'move' && gr.logged++ < 1) logEvent(env, 'carpet', `${sp.ja}が起き上がって、ゆっくり泳いで場所を移った`, m.pos.x, m.pos.z, () => m.pos);
+          if (close && m.mode === 'rest') { m.mode = 'forage'; m.t = 0; m.goal = null; m.yaw = Math.atan2(m.pos.x - cam.x, m.pos.z - cam.z); }   // (nowhere near to lie: off away from the drone, to lie down where it can)
+          if (close && m.mode !== 'rest' && gr.logged++ < 1) logEvent(env, 'carpet', `${sp.ja}が起き上がって、ゆっくり泳いで場所を移った`, m.pos.x, m.pos.z, () => m.pos);
           if (m.mode !== 'move') m.next = rr(200, 500);
         }
         if (m.mode === 'rest') {
@@ -152,6 +176,7 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
           m.prop += ((sp.style === 'zebra' ? 1 : 0.25) - m.prop) * Math.min(1, dt);
           const f = fit(T, sp.style, m.pos.x, m.pos.z, m.yaw, L, sp.style === 'zebra' ? L * 0.012 * m.prop : 0);
           m.pos.y += (f.y - m.pos.y) * Math.min(1, dt * 2); m.pitch += (f.pitch + (sp.style === 'zebra' ? -0.05 * m.prop : 0) - m.pitch) * Math.min(1, dt * 2);
+          { const need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L); if (m.pos.y < need) m.pos.y = need; }
         } else {
           // swimming slowly along the bottom: to its new place, or meandering about the reef by night
           let want = m.yaw;
@@ -168,20 +193,41 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
             m.speed += (0.35 - m.speed) * Math.min(1, dt * 0.5);
             if (m.mode === 'move' && !m.goal) m.mode = 'forage';
           }
-          // (and round the drone, not through it)
+          // (and round the drone, not through it; and round a wall of reef ahead rather than up it: of the ways a little
+          // either side, the one with the least rising ahead)
           if (m.pos.distanceTo(cam) < 1.5 + L * 0.5) want = Math.atan2(m.pos.x - cam.x, m.pos.z - cam.z);
+          // (coming in to its new place it heads straight there, nose to the rock if that is how it will lie)
+          const nearGoal = m.mode === 'move' && !!m.goal && hyp(m.goal.x - m.pos.x, m.goal.z - m.pos.z) < 4;
+          let bestA = 0, bestC = 1e9;
+          if (!nearGoal) for (const da of [-2.4, -1.6, -0.9, -0.45, 0, 0.45, 0.9, 1.6, 2.4]) {
+            const yw = want + da; let rise = 0;
+            for (const d of [2, 3.5, 5, 7]) rise = Math.max(rise, T.top(m.pos.x + Math.sin(yw) * (d + L * 0.5), m.pos.z + Math.cos(yw) * (d + L * 0.5)) - (m.pos.y - 0.4));
+            const c = Math.abs(da) * 0.5 + Math.max(0, rise) * 2;
+            if (c < bestC) { bestC = c; bestA = da; }
+          }
+          want += bestA;
           const dy = Math.atan2(Math.sin(want - m.yaw), Math.cos(want - m.yaw));
-          const turn = clamp(dy, -0.35 * dt, 0.35 * dt); m.yaw += turn;
+          // (turning swings its head and tail across what is beside it: while it is still climbing to clear it, slowly)
+          const lag = Math.max(0, m.lastGap ?? 0), tr = 0.35 * clamp(1 - lag / 0.5, 0.15, 1);
+          const turn = clamp(dy, -tr * dt, tr * dt); m.yaw += turn;
           m.pos.x += Math.sin(m.yaw) * m.speed * dt; m.pos.z += Math.cos(m.yaw) * m.speed * dt;
           // just over the bottom, rising ahead of rock and over it along its whole length, coming down gently to lie
           const lying = m.mode === 'move' && m.goal && hyp(m.goal.x - m.pos.x, m.goal.z - m.pos.z) < 0.8;
-          const f = fit(T, sp.style, m.pos.x, m.pos.z, m.yaw, L), ahead = fit(T, sp.style, m.pos.x + Math.sin(m.yaw) * 1.5, m.pos.z + Math.cos(m.yaw) * 1.5, m.yaw, L);
-          const ty = lying ? f.y + (sp.style === 'zebra' ? L * 0.012 : 0) : Math.max(f.y, ahead.y) + 0.3 + 0.15 * Math.sin(m.t * 0.3 + m.seed * 5);
-          m.vy += (clamp((ty - m.pos.y) * 0.8, -0.2, 0.3) - m.vy) * Math.min(1, dt * 2);
+          const f = fit(T, sp.style, m.pos.x, m.pos.z, m.yaw, L);
+          const ty = lying ? f.y + (sp.style === 'zebra' ? L * 0.012 : 0)
+            : nearGoal ? floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L) + 0.2
+            : swimFloor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L) + 0.3 + 0.15 * Math.sin(m.t * 0.3 + m.seed * 5);
+          m.lastGap = ty - m.pos.y - 0.3;
+          // (rock rising in its way faster than it can climb: it slows, climbs, and goes on over)
+          if (!lying && !nearGoal) { const cap = 0.35 * clamp(1 - (ty - m.pos.y - 0.2) / 0.6, 0.12, 1); if (m.speed > cap) m.speed += (cap - m.speed) * Math.min(1, dt * 3); }
+          m.vy += (clamp((ty - m.pos.y) * 0.8, -0.25, 0.45) - m.vy) * Math.min(1, dt * 2);
           m.pos.y += m.vy * dt;
-          if (m.pos.y < f.y) { m.pos.y += (f.y - m.pos.y) * Math.min(1, dt * 6); if (m.vy < 0) m.vy = 0; }
+          // (a long body: its nose tilts only a little and slowly as it rises and falls, or its tail would dip into the ground)
+          m.pitch += (clamp(lying ? f.pitch : f.pitch * 0.5 - m.vy * 0.4, lying ? -0.35 : -0.15, lying ? 0.35 : 0.15) - m.pitch) * Math.min(1, dt * (lying ? 2 : 0.8));
+          // (never with any part of it in the ground, as it is pitched now)
+          const need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L);
+          if (m.pos.y < need) { m.pos.y = need - m.pos.y < 0.025 ? m.pos.y + (need - m.pos.y) * Math.min(1, dt * 3) : need; if (m.vy < 0) m.vy = 0; }   // (a hair's breadth eased out, not popped)
           m.pos.y = Math.min(m.pos.y, -0.8);
-          m.pitch += (clamp(lying ? f.pitch : f.pitch * 0.6 - m.vy * 0.8, -0.35, 0.35) - m.pitch) * Math.min(1, dt * 2);
           m.swim += ((m.speed > 0.08 ? 1 : 0.2) - m.swim) * Math.min(1, dt * 1.5);
           m.prop += ((lying && sp.style === 'zebra' ? 1 : 0) - m.prop) * Math.min(1, dt);
           // (now and then, by night, it noses into the reef)

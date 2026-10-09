@@ -10,6 +10,7 @@ import type { DolphinSpec } from '../eco/dolphins';
 import type { EagleRaySpec } from '../eco/eaglerays';
 import type { SeaLionSpec } from '../eco/sealions';
 import type { IguanaSpec } from '../eco/iguanas';
+import type { CarpetSpec } from '../eco/carpetsharks';
 
 export interface Species {
   id: string; ja: string; sci: string; note: string;
@@ -67,6 +68,7 @@ export interface Sea {
   eaglerays?: EagleRaySpec;                // spotted eagle rays that keep about the reef (eco/eaglerays)
   sealions?: SeaLionSpec;                  // sea lions that come by to play with the drone (eco/sealions)
   iguanas?: IguanaSpec;                    // marine iguanas that come down to graze on the shallow rock (eco/iguanas)
+  carpets?: CarpetSpec[];                  // sharks that rest on the bottom by day (eco/carpetsharks)
   tempYear?: [number, number];             // sea surface temperature, coolest and warmest month (°C)
   corals: Record<string, number>;
   thicket?: number;   // how much of the shallow reef is staghorn thicket (0..1)
@@ -725,6 +727,14 @@ export const LOCATIONS: Sea[] = [
       note: '東太平洋に住むトビエイで、インド・西太平洋のマダラトビエイとは別の種とされる。紺色の背に白い斑点。ガラパゴスでは群れで礁の縁を羽ばたいて泳ぎ、砂地で貝を掘る。' },
   };
   for (const L of LOCATIONS) if (eag[L.id]) L.eaglerays = eag[L.id];
+  // carpet sharks that rest on the bottom by day: the zebra shark on open sand, tawny nurse sharks at the foot of the
+  // reef, often two or three together (the Maldives' famous for them)
+  const zebraSh = { id: 'torafuzame', ja: 'トラフザメ', sci: 'Stegostoma tigrinum', style: 'zebra' as const, len: [1.6, 2.4] as [number, number], depth: [5, 25] as [number, number],
+    note: '体に縦の隆起が走り、尾びれが体の半分ほどもある細長いサメ。黄褐色の地に黒褐色の斑点が散る（幼魚は黒地に白い縞で、和名のトラフはこれから）。昼は砂地で胸びれを突っ張って休み、夜に岩の隙間の貝やカニを探す。おとなしい。' };
+  const nurse = { id: 'ootenjikuzame', ja: 'オオテンジクザメ', sci: 'Nebrius ferrugineus', style: 'nurse' as const, len: [2.0, 3.0] as [number, number], depth: [4, 30] as [number, number],
+    note: '黄褐色の大きなサメ。頭は平たく、口の前に短いひげがある。背びれは2枚ともほぼ同じ大きさで後ろ寄り。昼は岩陰や棚の下の砂地で、何匹も寄り添って休み、夜になると泳ぎ出して岩の隙間の魚やタコを吸い込んで食べる。' };
+  LOCATIONS.find((l) => l.id === 'maldives')!.carpets = [{ ...zebraSh, groups: [1] }, { ...nurse, groups: [3, 2, 1] }];
+  LOCATIONS.find((l) => l.id === 'gbr')!.carpets = [{ ...zebraSh, groups: [1, 1] }, { ...nurse, groups: [2, 1] }];
   // marine iguanas live on Wolf too: now and then one comes down from the shore to graze the algae on the shallow rock
   LOCATIONS.find((l) => l.id === 'galapagos')!.iguanas = { id: 'iguana', ja: 'ウミイグアナ', sci: 'Amblyrhynchus cristatus', len: [0.6, 1.1], every: [240, 480], deep: [3.5, 9],
     note: '海で餌をとる、世界でただ一種のトカゲ。ガラパゴス諸島だけに住む。日光浴で体を温めてから海に入り、平たい尾をくねらせて泳いで潜り、岩に長い爪を立ててしがみつき、藻を横向きにかじり取る。体についた塩は鼻から勢いよく噴き出して捨てる。' };

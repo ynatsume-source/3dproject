@@ -35,6 +35,7 @@ import { dolphinSubjects } from './eco/dolphins';
 import { eagleRaySubjects } from './eco/eaglerays';
 import { seaLionSubjects } from './eco/sealions';
 import { iguanaSubjects } from './eco/iguanas';
+import { carpetSubjects } from './eco/carpetsharks';
 import { ageOf, describeSize } from './eco/growth';
 import { SHAPES } from './ocean/models';
 import { fetchWeather, FAIR, weatherLabel, isStorm, type Weather } from './time/weather';
@@ -1733,6 +1734,12 @@ function goTo(id: string) {
     if (!I.active) { I.force = true; I.next = 0; }
     s = { key: 'focus:iguana', label: name, kind: 'turtle', prio: 5, size: 1, hold: 120,   // (asked for: on with it down to the rock and its grazing)
        pos: () => (I.active ? I.pos : null), status: () => statusOf('iguana'), live: () => I.active || I.force };
+  } else if ((loc.carpets || []).some((c) => c.id === id) && oc.carpets) {
+    // a zebra or nurse shark: the nearest one, resting or (by night) out foraging
+    const all: Subject[] = []; carpetSubjects(oc, all, id);
+    const d2 = (x: Subject) => { const p = x.pos()!; return (p.x - cam.x) ** 2 + (p.z - cam.z) ** 2; };
+    const n = all.length ? all.reduce((b, c) => (d2(c) < d2(b) ? c : b)) : null;
+    s = n ? { ...n, key: 'focus:' + id, prio: 5 } : null;
   } else if (id === 'eagleray' && oc.eaglerays) {
     // the nearest group (each keeps about the reef; one left far behind is set down again out of sight)
     const all: Subject[] = []; eagleRaySubjects(oc, all);
@@ -1839,6 +1846,7 @@ function statusOf(id: string): string {
   if (id === 'dolphin' && cur.dolphins) { const a: Subject[] = []; dolphinSubjects(cur, a); return a[0]?.status() ?? (cur.eco.env.night > 0.6 ? '沖で狩りをしている' : 'ときどき群れでやってくる'); }
   if (id === 'sealion' && cur.sealions) { const a: Subject[] = []; seaLionSubjects(cur, a); return a[0]?.status() ?? (cur.eco.env.night > 0.6 ? '岩の上で休んでいる' : 'ときどき遊びにやってくる'); }
   if (id === 'iguana' && cur.iguanas) { const a: Subject[] = []; iguanaSubjects(cur, a); return a[0]?.status() ?? (cur.eco.env.night > 0.4 ? '岸の岩の上で眠っている' : 'ときどき浅い岩へ藻を食べにくる'); }
+  if ((cur.loc.carpets || []).some((c: any) => c.id === id) && cur.carpets) { const a: Subject[] = []; carpetSubjects(cur, a, id); const p = drone.pos, d = (x: Subject) => { const q = x.pos()!; return (q.x - p.x) ** 2 + (q.z - p.z) ** 2; }; const n = a.length ? a.reduce((x, y) => (d(x) < d(y) ? x : y)) : null; return n?.status() ?? ''; }
   if (id === 'eagleray' && cur.eaglerays) { const a: Subject[] = []; eagleRaySubjects(cur, a); const p = drone.pos, d = (x: Subject) => { const q = x.pos()!; return (q.x - p.x) ** 2 + (q.z - p.z) ** 2; }; const n = a.length ? a.reduce((x, y) => (d(x) < d(y) ? x : y)) : null; return n?.status() ?? '礁の縁を回っている'; }
   if (id === 'sea-otter' && cur.lobosOtters) { const L = cur.lobosOtters.list; const i = L.indexOf(L.reduce((a: any, b: any) => (a.pos.distanceTo(drone.pos) < b.pos.distanceTo(drone.pos) ? a : b))); return cur.eco.subjects().find((s: Subject) => s.key === `sea-otter:${i}`)?.status() ?? ''; }
   if (id === 'harbor-seal' && cur.lobosVisitors) return cur.eco.subjects().find((s: Subject) => s.key === 'harbor-seal:visitor' && s.live())?.status() ?? '今は近くに姿が見えない';
@@ -1847,7 +1855,7 @@ function statusOf(id: string): string {
   if (id === 'eel') return U.uNight.value > 0.5 ? '巣穴に引っ込んでいる' : '体を出して餌を待っている';
   return '';
 }
-const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.dolphins ? [{ id: loc.dolphins.id, ja: loc.dolphins.ja, sci: loc.dolphins.sci, note: loc.dolphins.note }] : []), ...(loc.eaglerays ? [{ id: loc.eaglerays.id, ja: loc.eaglerays.ja, sci: loc.eaglerays.sci, note: loc.eaglerays.note }] : []), ...(loc.sealions ? [{ id: loc.sealions.id, ja: loc.sealions.ja, sci: loc.sealions.sci, note: loc.sealions.note }] : []), ...(loc.iguanas ? [{ id: loc.iguanas.id, ja: loc.iguanas.ja, sci: loc.iguanas.sci, note: loc.iguanas.note }] : []), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.critters || []).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
+const guideEntries = (loc: Sea) => [...loc.species.map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.extraGuide || []), ...(loc.dolphins ? [{ id: loc.dolphins.id, ja: loc.dolphins.ja, sci: loc.dolphins.sci, note: loc.dolphins.note }] : []), ...(loc.eaglerays ? [{ id: loc.eaglerays.id, ja: loc.eaglerays.ja, sci: loc.eaglerays.sci, note: loc.eaglerays.note }] : []), ...(loc.sealions ? [{ id: loc.sealions.id, ja: loc.sealions.ja, sci: loc.sealions.sci, note: loc.sealions.note }] : []), ...(loc.iguanas ? [{ id: loc.iguanas.id, ja: loc.iguanas.ja, sci: loc.iguanas.sci, note: loc.iguanas.note }] : []), ...(loc.carpets || []).map((c) => ({ id: c.id, ja: c.ja, sci: c.sci, note: c.note })), ...(loc.birds || []).map((b) => ({ id: b.id, ja: b.ja, sci: b.sci, note: b.note })), ...(loc.bait ? [{ id: loc.bait.sp.id, ja: loc.bait.sp.ja, sci: loc.bait.sp.sci, note: loc.bait.sp.note }] : []), ...ridersFor(loc).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note })), ...(loc.critters || []).map((s) => ({ id: s.id, ja: s.ja, sci: s.sci, note: s.note }))];
 let panelTab: 'guide' | 'log' | 'island' | 'talk' = 'guide';
 function renderLog() {
   const loc = cur!.loc;

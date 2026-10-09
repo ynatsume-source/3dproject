@@ -10,6 +10,7 @@ import { dolphinGeometry, dolphinMaterial } from '../ocean/dolphin';
 import { EAGLERAY_GEO, eagleRayMaterial } from '../ocean/eagleray';
 import { SEALION_GEO, seaLionMaterial } from '../ocean/sealion';
 import { IGUANA_GEO, iguanaMaterial } from '../ocean/iguana';
+import { carpetGeometry, carpetMaterial } from '../ocean/carpetshark';
 import { bonyFromShape } from '../ocean/bony';
 import { birdModel } from '../eco/birds';
 import { flyingFishModel } from '../eco/flyingfish';
@@ -68,6 +69,12 @@ function model(loc: Sea, id: string, set: Record<string, number> = {}): { obj: T
     const g = IGUANA_GEO.clone(); g.setAttribute('aIg', new THREE.InstancedBufferAttribute(new Float32Array([+(set.ph ?? 1.0), +(set.swim ?? 0.5), +(set.legs ?? 1), +(set.pitch ?? 0)]), 4)); g.setAttribute('aIg2', new THREE.InstancedBufferAttribute(new Float32Array([+(set.age ?? 0.6), 0.4, +(set.sway ?? 0), 0]), 4));
     const m = new THREE.InstancedMesh(g, iguanaMaterial(), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
     return { obj: m, view: [0.8, 0.6, 0.7] };
+  }
+  const carpet = (loc.carpets || []).find((c) => c.id === id);
+  if (carpet) {
+    const g = carpetGeometry(carpet.style).clone(); g.setAttribute('aCs', new THREE.InstancedBufferAttribute(new Float32Array([+(set.ph ?? 1.0), +(set.swim ?? 0.4), +(set.prop ?? 0), 0]), 4)); g.setAttribute('aCs2', new THREE.InstancedBufferAttribute(new Float32Array([+(set.age ?? 0.5), 0.3, +(set.curl ?? 0), 0]), 4));
+    const m = new THREE.InstancedMesh(g, carpetMaterial(carpet.style), 1); m.setMatrixAt(0, new THREE.Matrix4()); m.frustumCulled = false;
+    return { obj: m, view: [0.9, 0.5, 0.75] };
   }
   if (id === 'octopus') return { obj: octopusModel(), view: [0.8, 0.9, 1] };
   if (id === 'sea-otter' && loc.id === 'pointlobos') { const o = creatureKit(cmats()).makeSeaOtter(); for (let i = 0; i < 40; i++) o.update(i * 0.1, 0.1, { act: 'eat', walk: 0, wet: true, food: 'urchin' }); o.root.scale.setScalar(1.15); o.root.position.y = 20; return { obj: o.root, view: [0.9, 0.7, 0.35] }; }   // (on its back, eating, up in the light)

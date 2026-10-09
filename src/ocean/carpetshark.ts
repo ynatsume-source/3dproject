@@ -122,7 +122,7 @@ export function carpetGeometry(style: CarpetStyle) {
   // the barbels: a short fleshy pair hanging from the nostrils under the snout
   for (const sx of [-1, 1]) {
     const q = carpetProfile(style, 0.018), x0 = sx * q.w * 0.45, y0 = q.y - q.h * 0.7, z0 = Z(0.018);
-    grid(4, 6, (u, v) => { const a = v * Math.PI * 2, r = 0.0022 * (1 - u * 0.6); return [x0 + Math.cos(a) * r, y0 - u * 0.018 + Math.sin(a) * r * 0.6, z0 - u * 0.006]; }, 5);
+    grid(4, 6, (u, v) => { const a = v * Math.PI * 2, r = 0.0034 * (1 - u * 0.55); return [x0 + Math.cos(a) * r, y0 - u * 0.011 + Math.sin(a) * r * 0.8, z0 - u * 0.004]; }, 5);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aPart', new THREE.Float32BufferAttribute(A, 1));
@@ -168,11 +168,11 @@ export function carpetMaterial(style: CarpetStyle) {
        vec3 alb;
        #if STYLE == 0
          // zebra: sandy yellow-brown, paler beneath; dark brown spots scattered over the back, flanks and fins, of
-         // uneven size and shape, a finger's width apart and more (not a pattern of holes: blotches, soft-edged)
-         alb = mix(vec3(0.72, 0.66, 0.52), vec3(0.6, 0.52, 0.36), up);
-         vec2 q = vec2(s * 46.0, (atan(y, x) * 0.07 + y * 0.6) * 46.0 + sd) + vec2(vn2(vec2(s, y) * 30.0), vn2(vec2(y, s) * 30.0 + 4.0)) * 0.6;
+         // uneven size and shape, well apart (not a pattern of holes: soft-edged blotches, few enough to read as a leopard's)
+         alb = mix(vec3(0.66, 0.6, 0.48), vec3(0.54, 0.46, 0.33), up);
+         vec2 q = vec2(s * 30.0, (atan(y, x) * 0.07 + y * 0.6) * 30.0 + sd) + vec2(vn2(vec2(s, y) * 30.0), vn2(vec2(y, s) * 30.0 + 4.0)) * 0.6;
          float f = cellF1(q), r = 0.17 + 0.12 * hash2(floor(q + 0.5) + 2.0);
-         float spot = (1.0 - smoothstep(r - 0.06, r + 0.03, f)) * step(0.3, hash2(floor(q + 0.5) + 9.0));
+         float spot = (1.0 - smoothstep(r - 0.08, r + 0.05, f)) * step(0.5, hash2(floor(q + 0.5) + 9.0));
          alb = mix(alb, vec3(0.2, 0.14, 0.09), spot * mix(0.35, 0.9, up) * smoothstep(0.02, 0.06, s));
        #else
          // tawny nurse: plain tawny brown, a little darker along the back, paler beneath
@@ -185,12 +185,17 @@ export function carpetMaterial(style: CarpetStyle) {
        float gs = fract((s - 0.1) / 0.017);
        float gill = step(0.5, abs(x) / max(abs(y) + abs(x), 1e-3)) * step(0.1, s) * step(s, 0.185) * (1.0 - smoothstep(0.05, 0.14, abs(gs - 0.5))) * smoothstep(-0.03, -0.005, y) * (1.0 - smoothstep(0.012, 0.03, y));
        alb *= 1.0 - 0.45 * gill * step(vPart, 0.5);
-       vec2 spr = vec2((s - ${(S.eye + 0.03).toFixed(3)}) / ${style === 'zebra' ? '0.009' : '0.005'}, (y - 0.03) / 0.007);
-       alb = mix(alb, vec3(0.05, 0.04, 0.03), (1.0 - smoothstep(0.7, 1.0, length(spr))) * step(0.02, abs(x)) * step(vPart, 0.5));
+       vec2 spr = vec2((s - ${(S.eye + 0.03).toFixed(3)}) / ${style === 'zebra' ? '0.007' : '0.004'}, (y - 0.03) / ${style === 'zebra' ? '0.005' : '0.003'});
+       alb = mix(alb, alb * 0.35, 0.8 * (1.0 - smoothstep(0.5, 1.0, length(spr))) * step(0.02, abs(x)) * step(vPart, 0.5));   // (a hole, not a second eye: soft, darker skin)
        float mouth = (1.0 - smoothstep(0.0008, 0.002, abs(s - 0.03 - x * x * 3.0))) * step(y, -0.008) * step(abs(x), 0.03);
        alb *= 1.0 - 0.6 * mouth * step(vPart, 0.5);
        float fin = step(0.5, vPart) * step(vPart, 3.5);
-       alb *= 1.0 - fin * 0.12;
+       // (the fins the colour of the back, on both faces: not the belly's because they hang low)
+       #if STYLE == 0
+         alb = mix(alb, vec3(0.5, 0.42, 0.3) * (0.9 + 0.15 * vn2(vec2(s * 40.0, x * 40.0) + sd)), fin);   // (the body's spots, wrapped round it, would stretch into streaks on a flat fin)
+       #else
+         alb = mix(alb, vec3(0.43, 0.32, 0.21), fin);
+       #endif
        float eye = step(3.5, vPart) * step(vPart, 4.5);
        alb = mix(alb, vec3(0.04, 0.045, 0.035), eye);
        vec3 col = shade(alb, vWp, n, 0.5);
