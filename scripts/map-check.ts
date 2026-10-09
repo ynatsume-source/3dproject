@@ -52,13 +52,14 @@ const V = R.village;
 }
 { // 3
   const far = ISLES.find((i: any) => i.id === 'west-big')!, near = ISLES.find((i: any) => i.id === 'south-near')!;
+  sim = Date.parse('2026-10-06T09:40:00+09:00');   // (an hour it could set out at: the distance, then the wind, is what stops it)
   want_ = (i) => i.options.find((o: any) => o.id === `voyage:${far.id}`)?.id; think();
   await run(1200, () => dm.results.some((r: any) => r.optionId === `voyage:${far.id}`));
   const r1 = dm.results.find((r: any) => r.optionId === `voyage:${far.id}`);
-  want('3 too far for a raft: not today, and why', r1?.outcome === 'blocked' && /遠すぎる/.test(r1.detail ?? ''), r1?.detail ?? 'none');
+  want('3 too far for a raft: not today, and why', ['blocked', 'unavailable'].includes(r1?.outcome) && /遠すぎる/.test(r1.detail ?? ''), r1?.detail ?? 'none');
   R.setWeather({ ...calm, wind: 11 }); want_ = (i) => i.options.find((o: any) => o.id === `voyage:${near.id}`)?.id; think();
-  await run(1200, () => dm.results.some((r: any) => r.optionId === `voyage:${near.id}`));
-  const r2 = dm.results.find((r: any) => r.optionId === `voyage:${near.id}`);
+  await run(1200, () => dm.results.some((r: any) => r.optionId === `voyage:${near.id}` && r.outcome === 'blocked'));   // (not a walk to the raft cut short by something it saw on the way)
+  const r2 = dm.results.find((r: any) => r.optionId === `voyage:${near.id}` && r.outcome === 'blocked');
   want('3 a strong wind: not today', r2?.outcome === 'blocked' && /風が強い/.test(r2.detail ?? ''), r2?.detail ?? 'none');
   R.setWeather(calm); dot.battery = 1; sim = Date.parse('2026-10-06T09:40:00+09:00'); think();   // (after the morning gathering)
   let away = false, left = 0;

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 
 export type ItemKind = 'wood' | 'shell' | 'stone' | 'coconut';
 const KINDS: ItemKind[] = ['wood', 'shell', 'stone', 'coconut'];
-export interface Item { id: number; kind: ItemKind; x: number; z: number; ry: number; s: number; by?: string }
+export interface Item { id: number; kind: ItemKind; x: number; z: number; ry: number; s: number; by?: string; away?: Record<string, number> }   // (away: until when one who could not get to it leaves it be)
 type Spot = (near: [number, number], rad: number, ok: (x: number, z: number, h: number) => boolean, tries?: number) => [number, number] | null;
 interface Where { near: [number, number]; rad: number; ok: (x: number, z: number, h: number) => boolean; max: number; every: number }
 
@@ -102,11 +102,11 @@ export function makeItems(h: (x: number, z: number) => number, spot: Spot, where
   return {
     get list() { return list; },
     geo: GEO,
-    // the nearest one not already spoken for
-    nearest(kind: ItemKind, x: number, z: number, maxD: number, who: string): Item | null {
+    // the nearest one not already spoken for, nor one it could not get to a little while ago
+    nearest(kind: ItemKind, x: number, z: number, maxD: number, who: string, now = Date.now()): Item | null {
       let best: Item | null = null, bd = maxD;
       for (const it of list) {
-        if (it.kind !== kind || (it.by && it.by !== who)) continue;
+        if (it.kind !== kind || (it.by && it.by !== who) || (it.away?.[who] ?? 0) > now) continue;
         const d = Math.hypot(it.x - x, it.z - z);
         if (d < bd) { bd = d; best = it; }
       }

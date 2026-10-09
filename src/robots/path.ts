@@ -6,9 +6,10 @@
 
 export type Cost = (x: number, z: number) => number;
 
-export function findPath(sx: number, sz: number, tx: number, tz: number, cost: Cost): [number, number][] | null {
+export function findPath(sx: number, sz: number, tx: number, tz: number, cost: Cost, wide = false): [number, number][] | null {
   const dist = Math.hypot(tx - sx, tz - sz);
-  const C = Math.min(4, Math.max(1, dist / 160)), M = Math.max(25, dist * 0.35);
+  // (wide: a way that may go a long way round — round a bay, back along the beach it came by — searched further out)
+  const C = Math.min(4, Math.max(1, dist / 160)), M = wide ? Math.max(90, dist) : Math.max(25, dist * 0.35);
   const x0 = Math.min(sx, tx) - M, z0 = Math.min(sz, tz) - M;
   const W = Math.ceil((Math.abs(tx - sx) + 2 * M) / C) + 1, H = Math.ceil((Math.abs(tz - sz) + 2 * M) / C) + 1, N = W * H;
   const cx = (i: number) => x0 + (i % W + 0.5) * C, cz = (i: number) => z0 + (Math.floor(i / W) + 0.5) * C;

@@ -61,5 +61,7 @@ console.log('  runs:', Object.values(lab.runs).map((r: any) => `${r.processId} $
 console.log('  house:', JSON.stringify(V.house), 'raft', JSON.stringify(V.raft), 'map', Object.keys(V.map.seen).length, 'seen', Object.keys(V.map.reached).length, 'reached');
 console.log('  dot last:', dot.diary.slice(-6).map((e: any) => e.text).join(' / '));
 { const tally = new Map<string, number>(); for (const r of R.list) for (const e of r.diary) { const m = /^(.+?)：(?:.*?)(進めなかった|道がなかった|立てる場所がなかった|時間がかかりすぎた|始められなかった|うまくいかなかった)/.exec(e.text); if (m) { const k = `${r.id} ${m[1].replace(/（.*$/, '')} — ${m[2]}`; tally.set(k, (tally.get(k) ?? 0) + 1); } }
-  console.log('— what went wrong, how often —'); for (const [k, n] of [...tally].sort((a, b) => b[1] - a[1]).slice(0, 15)) console.log(`  ${n}× ${k}`); }
+  console.log('— what went wrong, how often —'); for (const [k, n] of [...tally].sort((a, b) => b[1] - a[1]).slice(0, 15)) console.log(`  ${n}× ${k}`);
+  const why = new Map<string, number>(); for (const r of R.list) for (const e of r.diary) if (/(進めなかった|道がなかった|立てる場所がなかった|始められなかった)/.test(e.text)) { const k = `${r.id} ${e.text.replace(/（\d+m）/, '')}`; why.set(k, (why.get(k) ?? 0) + 1); }
+  console.log('— in its own words —'); for (const [k, n] of [...why].sort((a, b) => b[1] - a[1]).slice(0, 10)) console.log(`  ${n}× ${k}`); }
 console.log(`  (${((performance.now() - start) / 1000).toFixed(0)} s for ${DAYS} island days)`);

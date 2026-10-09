@@ -62,6 +62,15 @@ const ids = (who: string) => (last[who]?.options ?? []).map((o: any) => o.id);
   want('2 the sea rough: it goes under its ledge, and feels it less there', d < 3 && R.shelterK(kame) < 1, `${d.toFixed(1)} m, ${R.shelterK(kame)}`);
   wx = calm;
 }
+{ // 2b
+  const atBed = () => { kame.pos.x = V.kameBed[0]; kame.pos.z = V.kameBed[1]; return R.shelterK(kame); };
+  const k0 = atBed();
+  plans.rakko = (i) => i.options.some((o: any) => o.id === 'ledge:sea' && o.ready !== false) ? ['ledge:sea'] : i.options.some((o: any) => o.id === 'seastone:sea' && o.ready !== false) ? ['seastone:sea', 'ledge:sea'] : ['float:sea'];
+  rakko.task = null; rakko.holding = '';
+  let k = 0; while (V.ledge.n < 6 && k++ < 30) { const n0 = V.ledge.n; think(rakko); await run(400, () => V.ledge.n > n0); }
+  want('2b its own place made: Rakko sets six stones round Kamemaru\'s ledge', V.ledge.n === 6 && kame.diary.some((e: any) => /ラッコが岩棚の沖側に石を並べてくれた/.test(e.text)), `${V.ledge.n}/6`);
+  want('2b and Kamemaru feels a rough sea there less still', atBed() < k0, `${k0} → ${atBed()}`);
+}
 { // 3
   watchOn = dot;
   dot.stats.built = 24; V.house.n = HOUSE_N; V.house.lost = 0; V.house.weighed = false;
@@ -77,7 +86,7 @@ const ids = (who: string) => (last[who]?.options ?? []).map((o: any) => o.id);
   wx = { ...calm, typhoon: true, rain: 10, rainMeasured: 10, wind: 20, windMeasured: 20, pressure: 980, wave: 5 }; await run(30); wx = calm; await run(10);
   want('4 whole: a typhoon takes no thatch, though the roof was not weighed down', V.house.lost === 0, `thatch lost ${V.house.lost}`);
   R.save(); const saved = JSON.parse([...store.values()].find((v) => v.includes('"wall"')) ?? '{}');
-  want('4 kept in the save', saved.village?.wall?.n === 24 && saved.village?.nest?.n === 10 && !!saved.village?.kameBed);
+  want('4 kept in the save', saved.village?.wall?.n === 24 && saved.village?.nest?.n === 10 && !!saved.village?.kameBed && saved.village?.ledge?.n === 6);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

@@ -463,7 +463,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
-    wall: { n: 0, pile: 0 }, nest: { n: 0, at: null as null | [number, number] }, kameBed: null as null | [number, number],
+    wall: { n: 0, pile: 0 }, nest: { n: 0, at: null as null | [number, number] }, kameBed: null as null | [number, number], ledge: { n: 0 },
     walks: {} as Record<string, number[]>, settle: null as null | { at: number; by: string; asked: Record<string, 'yes' | 'no'>; homes: Record<string, [number, number]> },
     felled: [] as { x: number; z: number; h: number; kind: number; at: number }[],
     clayPit: null as null | { at: number; diameterCm: number; depthCm: number },
@@ -849,7 +849,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (village.house.rope < s.rope) return task('twist', benchStand(), 'work', rr(60, 90));
     if (s.need === 'grass' && !r.holding) return cutTask();
     if (s.need === 'piece' && !r.holding) {
-      const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id);
+      const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id, clockMs);
       if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
       const tr = TREES.find((t) => t.ok && !t.down); if (tr) return task('chop', [tr.x + 0.9, tr.z + 0.3], 'chop', rr(40, 70), { data: tr });
       const ft = fellable(r).find((t) => !windward(t.x, t.z)); if (ft) return fellTask(ft.x, ft.z);   // (a forest tree, not one of the windbreak)
@@ -881,7 +881,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the water — inside, the sea is quiet, and resting there a rough sea costs it little. Kamemaru's, once it has known one:
   // the bottom near its home where it drops away most steeply — a ledge to wedge itself under, as green turtles do; it
   // sleeps there, and a rough sea moves it less.
-  const WALL_N = 24, NEST_N = 10;
+  const WALL_N = 24, NEST_N = 10, LEDGE_N = 6;
   const SE: [number, number] = [Math.SQRT1_2, Math.SQRT1_2], ALONG: [number, number] = [Math.SQRT1_2, -Math.SQRT1_2];   // (+x east, +z south)
   const hash = (i: number) => { const v = Math.sin(i * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
   /** The nearest place to c (within maxR) where ok holds: ring by ring outward, the same every time. */
@@ -900,6 +900,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const nestAt = () => village.nest.at ?? (village.nest.at = nearestWhere(byId.rakko.sp.home, 140, (x, z, h) => water(0.6, 1.3)(x, z, h)));
   const nestWanted = () => roughFelt('rakko') && village.nest.n < NEST_N && !!nestAt();
   const nestDone = () => village.nest.n >= NEST_N && !!village.nest.at;
+  // (and then Kamemaru's ledge: stones piled round it on the open side, so the swell breaks before it gets in — Rakko's
+  // doing, once its own place is made; Kamemaru cannot carry a stone)
+  const ledgeWanted = () => nestDone() && !!village.kameBed && village.ledge.n < LEDGE_N;
   function wallStone(i: number) {
     const c = houseG.position, course = Math.floor(i / 8), t = (i % 8 - 3.5) * 0.66 + (course % 2 ? 0.33 : 0) - 0.16, d = 4.6 + (hash(i) - 0.5) * 0.12;
     const x = c.x + SE[0] * d + ALONG[0] * t, z = c.z + SE[1] * d + ALONG[1] * t;
@@ -922,11 +925,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** How much of a rough sea it feels where it is: in its quiet place, little. */
   const shelterK = (r: Resident) => {
     if (r.id === 'rakko' && nestDone() && Math.hypot(r.pos.x - village.nest.at![0], r.pos.z - village.nest.at![1]) < 2.5) return 0.2;
-    if (r.id === 'kame' && village.kameBed && Math.hypot(r.pos.x - village.kameBed[0], r.pos.z - village.kameBed[1]) < 3.5) return 0.35;
+    if (r.id === 'kame' && village.kameBed && Math.hypot(r.pos.x - village.kameBed[0], r.pos.z - village.kameBed[1]) < 3.5) return 0.35 - 0.15 * Math.min(1, village.ledge.n / LEDGE_N);
     return 1;
   };
   // (made when first needed: three.js draws an id for each thing it makes)
-  let stoneGeo: THREE.BufferGeometry | null = null, coralM: THREE.Material | null = null, wallG: THREE.Group | null = null, nestG: THREE.Group | null = null;
+  let stoneGeo: THREE.BufferGeometry | null = null, coralM: THREE.Material | null = null, wallG: THREE.Group | null = null, nestG: THREE.Group | null = null, ledgeG: THREE.Group | null = null;
   function stoneMesh(i: number, sx: number, sy = sx) {
     stoneGeo ??= new THREE.DodecahedronGeometry(0.24); coralM ??= smat(0xd6cfbd, 0.05);
     const m = new THREE.Mesh(stoneGeo, coralM); m.scale.set(sx * (0.9 + hash(i) * 0.35), sy * (0.75 + hash(i + 7) * 0.3), sx * (0.9 + hash(i + 3) * 0.3)); m.rotation.set(hash(i + 1) * 3, hash(i + 2) * 3, 0); return m;
@@ -949,13 +952,25 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       m.position.set(x, (h + top) / 2, z); nestG.add(m);
     }
   }
-  /** Rakko dives for a coral stone: for its own quiet place, or for Dot's wall. */
-  function seaStoneTask(r: Resident, forWhat: 'nest' | 'wall'): Task | null {
-    const near = forWhat === 'nest' ? nestAt() : stonePile(); if (!near) return null;
+  function drawLedge() {
+    const at = village.kameBed; if (!at || !village.ledge.n) { if (ledgeG) clearG(ledgeG); return; }
+    if (!ledgeG) { ledgeG = new THREE.Group(); group.add(ledgeG); }
+    clearG(ledgeG);
+    // (on the seaward side, away from the step it lies under: the way the swell comes in)
+    const home = byId.kame.sp.home, out = Math.atan2(at[1] - home[1], at[0] - home[0]);
+    for (let i = 0; i < Math.min(village.ledge.n, LEDGE_N); i++) {
+      const a = out + (i / (LEDGE_N - 1) - 0.5) * 2.2, x = at[0] + Math.cos(a) * 2.4, z = at[1] + Math.sin(a) * 2.4, m = stoneMesh(300 + i, 1.6, 1.3);
+      m.position.set(x, L.h(x, z) + 0.18, z); ledgeG.add(m);
+    }
+  }
+  /** Rakko dives for a coral stone: for its own quiet place, Kamemaru's ledge, or Dot's wall. */
+  function seaStoneTask(r: Resident, forWhat: 'nest' | 'ledge' | 'wall'): Task | null {
+    const near = forWhat === 'nest' ? nestAt() : forWhat === 'ledge' ? village.kameBed : stonePile(); if (!near) return null;
     const at = spot(near, 40, water(0.8, 4)) ?? spot(near, 80, water(0.8, 5)); if (!at) return null;
     return task('seastone', at, 'dive', rr(30, 50), { wet: true, data: { for: forWhat } });
   }
   const nestTask = (r: Resident): Task | null => { const at = nestAt(); return r.holding === 'stone' && at && village.nest.n < NEST_N ? task('nest', [at[0] + 1.6, at[1]], 'work', 6, { wet: true }) : null; };
+  const ledgeTask = (r: Resident): Task | null => { const at = village.kameBed; return r.holding === 'stone' && at && ledgeWanted() ? task('ledge', [at[0] + 2.4, at[1]], 'work', 6, { wet: true }) : null; };
   const dropTask = (r: Resident): Task | null => { const at = stonePile(); return r.holding === 'stone' && at && village.wall.n + village.wall.pile < WALL_N ? task('stonedrop', at, 'pick', 3) : null; };
   const wallTask = (r: Resident): Task | null => r.holding === 'stone' && hLevel() === 'house' && !wallDone() ? task('wall', wallStand(village.wall.n), 'work', rr(40, 70)) : null;
   const wallFetchTask = (r: Resident): Task | null => { const at = stonePile(); return !r.holding && village.wall.pile > 0 && at && !wallDone() ? task('wallfetch', at, 'pick', 4) : null; };
@@ -1024,6 +1039,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.battery < 0.6) return { go: false, why: `電池が足りない（${Math.round(r.battery * 100)}%）`, km };
     return { go: true, km };
   }
+  // (what it can know before it sets off — how far, and the hour: after the morning gathering, and back while it is light;
+  // otherwise the offer is not ready, rather than found out at the raft, six days running; life-run 2026-10-09)
+  const voyageHour = (km: number) => { const hr = localHour(clockMs); return km > RAFT_KM ? { ready: false, needs: `筏で渡れる近さ（約${RAFT_KM}km）であること。ここは遠すぎる（約${km.toFixed(1)}km）` } : hr >= 9.5 && hr + voyageMs(km) / 3.6e6 <= 17.5 ? {} : { ready: false, needs: '朝の集まりのあとに出て、日のあるうちに戻れる時刻であること' }; };
   /** Back from the crossing (or turned back): the map, the record, the reward. */
   function endVoyage(r: Resident, tk: Task, outcome: 'reached' | 'turned') {
     voyaging = false; r.model.root.visible = true; drawRaft();
@@ -1393,16 +1411,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (r.id === 'rakko' && r.holding === 'wood' && village.posts < village.bases) return task('post', pileStand(village.posts, true), 'work', 8, { wet: true });
       if (r.id === 'dot' && r.holding === 'plank') return task('deck', plankStand(village.deck), 'hammer', 8);
       if (r.id === 'rakko' && !r.holding && village.posts < village.bases && q < 0.3) {
-        const it = items.nearest('wood', r.pos.x, r.pos.z, 260, r.id);
+        const it = items.nearest('wood', r.pos.x, r.pos.z, 260, r.id, clockMs);
         if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
       }
       if (r.id === 'lantern' && !r.holding && village.bases < 4 && q < 0.35 && 1 - dayK(hr) > 0.5) {
-        const it = items.nearest('stone', r.pos.x, r.pos.z, 400, r.id);
+        const it = items.nearest('stone', r.pos.x, r.pos.z, 400, r.id, clockMs);
         if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'work', 3, { data: it }); }
       }
       if (r.id === 'kame' && q < 0.2) return task('inspect', along(4), 'look', rr(120, 300));   // keeping an eye on the work, and the tide
       if (r.id === 'dot' && !r.holding && village.posts >= 4 && village.deck < 8 && (r.stats.built >= HUT.length || q < 0.15) && q < 0.3) {
-        const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id);
+        const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id, clockMs);
         if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
       }
     }
@@ -1436,7 +1454,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           return q < 0.7 ? task('look', spot(home, 80, shore, 200), 'idle', rr(120, 400)) : task('wander', spot(home, 40, open), 'idle', rr(60, 200));   // (a rest between jobs)
         }
         if (q < 0.7 && r.stats.built < HUT.length) {
-          const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id);
+          const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id, clockMs);
           if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
           return task('look', spot(home, 80, shore, 200), 'idle', rr(60, 180));   // nothing washed up yet: watch the sea for it
         }
@@ -1466,10 +1484,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         // (a rain catcher, once there is bamboo for it on the shelf)
         if (!village.catcher && shelfLots().some((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO)) return task('catcher', shelfStand(), 'work', 20);
         // (coconuts for the oil it means to make, while there are few on the shelf)
-        if (q < 0.45 && coconutsOnShelf() < 6) { const it = items.nearest('coconut', r.pos.x, r.pos.z, 200, r.id); if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'pick', 3, { data: it }); } }
+        if (q < 0.45 && coconutsOnShelf() < 6) { const it = items.nearest('coconut', r.pos.x, r.pos.z, 200, r.id, clockMs); if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'pick', 3, { data: it }); } }
         if (q < 0.3) return task('think', spot(home, 40, (x, z, h) => h > 11), 'think', rr(400, 1000));
         if (q < 0.5 && cairnSpots.length < 12) {   // a stone for the cairn it is building
-          const it = items.nearest('stone', r.pos.x, r.pos.z, 160, r.id);
+          const it = items.nearest('stone', r.pos.x, r.pos.z, 160, r.id, clockMs);
           if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'work', 3, { data: it }); }
         }
         // explore: somewhere it has not been, on the island's open ground and paths
@@ -1478,13 +1496,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         return task('explore', best, 'look', rr(30, 90));
       }
       case 'rakko': {
-        if (r.holding === 'stone') return (nestWanted() ? nestTask(r) : null) ?? dropTask(r) ?? nestTask(r) ?? (r.holding = '', null);
-        if ((nestWanted() || wallWanted()) && q < 0.3) { const t = seaStoneTask(r, nestWanted() ? 'nest' : 'wall'); if (t) return t; }   // (its own quiet place first, then Dot's wall)
+        if (r.holding === 'stone') return (nestWanted() ? nestTask(r) : null) ?? (ledgeWanted() ? ledgeTask(r) : null) ?? dropTask(r) ?? nestTask(r) ?? (r.holding = '', null);
+        if ((nestWanted() || ledgeWanted() || wallWanted()) && q < 0.3) { const t = seaStoneTask(r, nestWanted() ? 'nest' : ledgeWanted() ? 'ledge' : 'wall'); if (t) return t; }   // (its own quiet place first, then Kamemaru's, then Dot's wall)
         if (r.holding === 'shell') return showTask(r) ?? task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3);
         if (q < 0.35) return task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
         if (q < 0.5) return task('groom', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'groom', rr(90, 200), { wet: true });   // (its fur is all that keeps it warm: it grooms for hours a day)
         if (q < 0.85) {
-          const it = items.nearest('shell', r.pos.x, r.pos.z, 200, r.id);
+          const it = items.nearest('shell', r.pos.x, r.pos.z, 200, r.id, clockMs);
           if (it) { items.claim(it, r.id); return task('collect', [it.x, it.z], 'pick', 3, { data: it }); }
         }
         return task('wander', spot(home, r.sp.range, beach), 'idle', rr(30, 90));
@@ -1577,14 +1595,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (const q of requests) if (q.to === r.id && q.status === 'open') o.push({ id: `accept:${q.id}`, action: 'accept', label: `${byId[q.from].v.name}の頼み（流木を届ける）を引き受ける` }, { id: `refuse:${q.id}`, action: 'refuse', label: `${byId[q.from].v.name}の頼みを断る` });
     if (r.id === 'rakko') {
       const dot = byId.dot;
-      for (const it of items.list) if (known(`${it.kind}#${it.id}`) && (!it.by || it.by === r.id) && !r.holding && (it.kind === 'shell' || it.kind === 'wood'))
+      for (const it of items.list) if (known(`${it.kind}#${it.id}`) && (!it.by || it.by === r.id) && !r.holding && (it.kind === 'shell' || it.kind === 'wood') && !((it.away?.[r.id] ?? 0) > clockMs))
         o.push({ id: `${it.kind === 'shell' ? 'collect' : 'gather'}:${it.kind}#${it.id}`, action: it.kind === 'shell' ? 'collect' : 'gather', label: `${it.kind === 'shell' ? '貝殻' : '流木'}を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `${it.kind}#${it.id}` });
       o.push({ id: 'give:dot', action: 'give', label: 'ドットに流木を手渡す', targetId: 'dot', ...(r.holding === 'wood' && !dot.holding && awake(dot) ? {} : { ready: false, needs: '流木を持っていて、ドットが起きていて手があいていること' }) });
       if (!r.holding && awake(dot)) for (const it of items.list) if (it.kind === 'wood' && known(`wood#${it.id}`) && !it.by) o.push({ id: `tell:dot:wood#${it.id}`, action: 'tell', label: `ドットに流木の場所を教える`, targetId: `wood#${it.id}` });
       o.push({ id: 'pile:beach', action: 'pile', label: '貝殻を浜の山に並べる', ...(r.holding === 'shell' ? {} : { ready: false, needs: '貝殻を持っていること' }) });
       // (no 'show it to someone': a shell is not shown off — ADR 0004, addendum 2026-10-04)
       if (village.pier === 'build' && village.posts < village.bases) o.push({ id: 'post:pier', action: 'post', label: '桟橋の柱を立てる', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っていること' }) });
-      if (nestWanted() || wallWanted()) o.push({ id: 'seastone:sea', action: 'seastone', label: nestWanted() ? `休み場の囲いにするサンゴ石を海の底から拾う（${village.nest.n}/${NEST_N}。荒れた日に波の静かな所ができる）` : `ドットの家の石垣にするサンゴ石を海の底から拾う（石垣${village.wall.n}/${WALL_N}、浜に${village.wall.pile}個）`, ...(r.holding ? { ready: false, needs: '手があいていること' } : {}) });
+      if (nestWanted() || ledgeWanted() || wallWanted()) o.push({ id: 'seastone:sea', action: 'seastone', label: nestWanted() ? `休み場の囲いにするサンゴ石を海の底から拾う（${village.nest.n}/${NEST_N}。荒れた日に波の静かな所ができる）` : ledgeWanted() ? `カメマルの岩棚のまわりに置くサンゴ石を海の底から拾う（${village.ledge.n}/${LEDGE_N}。うねりが岩棚に入りにくくなる）` : `ドットの家の石垣にするサンゴ石を海の底から拾う（石垣${village.wall.n}/${WALL_N}、浜に${village.wall.pile}個）`, ...(r.holding ? { ready: false, needs: '手があいていること' } : {}) });
+      if (ledgeWanted()) o.push({ id: 'ledge:sea', action: 'ledge', label: `石をカメマルの岩棚のまわりに置く（${village.ledge.n + 1}/${LEDGE_N}）`, ...(r.holding === 'stone' ? {} : { ready: false, needs: '石を持っていること' }) });
       if (nestWanted()) o.push({ id: 'nest:sea', action: 'nest', label: `石を休み場の囲いに積む（${village.nest.n + 1}/${NEST_N}）`, ...(r.holding === 'stone' ? {} : { ready: false, needs: '石を持っていること' }) });
       if (wallWanted()) o.push({ id: 'stonedrop:beach', action: 'stonedrop', label: `石をドットの家の近くの浜の石置き場に運ぶ（いま${village.wall.pile}個）`, ...(r.holding === 'stone' ? {} : { ready: false, needs: '石を持っていること' }) });
       if (!r.holding) o.push({ id: 'float:sea', action: 'float', label: '沖で仰向けに浮かぶ' }, { id: 'groom:sea', action: 'groom', label: '水面で毛づくろいする' });
@@ -1596,7 +1615,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (r.id === 'dot' && !r.holding && r.stats.built < HUT.length && agentOf(byId.rakko) && awake(byId.rakko) && !requests.some((q) => q.from === r.id && (q.status === 'open' || q.status === 'accepted' || (q.status === 'refused' && clockMs - q.at < 10 * 60e3))))   // (not again straight after a no)
       o.push({ id: 'ask:rakko:bring-wood', action: 'ask', label: 'ラッコに流木を届けてほしいと頼む', targetId: 'rakko' });
-    if (!r.holding) for (const it of items.list) if (it.kind === 'wood' && (!it.by || it.by === r.id) && known(`wood#${it.id}`)) o.push({ id: `gather:wood#${it.id}`, action: 'gather', label: `流木を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `wood#${it.id}` });
+    if (!r.holding) for (const it of items.list) if (it.kind === 'wood' && (!it.by || it.by === r.id) && known(`wood#${it.id}`) && !((it.away?.[r.id] ?? 0) > clockMs)) o.push({ id: `gather:wood#${it.id}`, action: 'gather', label: `流木を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `wood#${it.id}` });
     // (steps that become possible later are offered too, for planning, marked with what they need)
     o.push({ id: 'craft:bench', action: 'craft', label: '作業台で流木を部材に削る', targetId: 'bench', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っていること' }) });
     // (Dot's purpose, ADR 0006: the world widened — from the beach, the islands on the horizon put on its map)
@@ -1604,7 +1623,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.id === 'dot' && village.raft.parts < RAFT_N && Object.keys(village.map.seen).length) o.push({ id: 'lash:raft', action: 'lash', label: `部材を筏に組む（${village.raft.parts + 1}/${RAFT_N}）`, targetId: 'raft', ...(r.holding === 'piece' ? {} : { ready: false, needs: '削った部材を持っている' }) });
     if (r.id === 'dot' && village.raft.parts >= RAFT_N && !r.holding) for (const i of ISLES) {
       const s = village.map.seen[i.id]; if (!s || village.map.reached[i.id]) continue;
-      const f = fromHome(i); o.push({ id: `voyage:${i.id}`, action: 'voyage', label: `筏で${s.word}へ渡る（${dirJa(f.bearing)}に約${f.km.toFixed(1)}km）`, targetId: i.id });
+      // (the hour is its own to know: after the morning gathering, and back while it is light — not found out at the raft, six days running)
+      const f = fromHome(i); o.push({ id: `voyage:${i.id}`, action: 'voyage', label: `筏で${s.word}へ渡る（${dirJa(f.bearing)}に約${f.km.toFixed(1)}km）`, targetId: i.id, ...voyageHour(f.km) });
     }
     if (r.id === 'dot' && ISLES.some((i) => !village.map.seen[i.id])) o.push({ id: 'survey:horizon', action: 'survey', label: '浜から水平線を見渡し、見える島を地図に記す', targetId: 'horizon' });
     // (trades, ADR 0006: driftwood sunk in Rakko's water for shellfish to settle on — a log not put on the hut; a
@@ -1630,7 +1650,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (!r.holding && s.need === 'grass') o.push({ id: 'cut:grass', action: 'cut', label: '茅にする草を刈って束ねる', targetId: 'grass' });
       const src = ISLES.find((i) => i.carry?.some((c) => c.materialId === 'bamboo'));
       if (src && village.map.reached[src.id] && village.raft.parts >= RAFT_N && !r.holding && (left('bamboo') > h.bamboo || left('clay') > h.clay))
-        o.push({ id: `voyage:${src.id}`, action: 'voyage', label: `筏で${village.map.seen[src.id]?.word ?? src.id}へ家の竹と粘土を取りに行く（いま竹${h.bamboo}本・粘土${h.clay}kg、まだ要るのは竹${Math.max(0, left('bamboo') - h.bamboo)}本・粘土${Math.max(0, left('clay') - h.clay)}kg）`, targetId: src.id });
+        o.push({ id: `voyage:${src.id}`, action: 'voyage', label: `筏で${village.map.seen[src.id]?.word ?? src.id}へ家の竹と粘土を取りに行く（いま竹${h.bamboo}本・粘土${h.clay}kg、まだ要るのは竹${Math.max(0, left('bamboo') - h.bamboo)}本・粘土${Math.max(0, left('clay') - h.clay)}kg）`, targetId: src.id, ...voyageHour(fromHome(src).km) });
     }
     if (r.id === 'dot' && hLevel() === 'house' && !houseNext() && !wallDone()) {
       o.push({ id: 'wall:next', action: 'wall', label: `家の風上（南東）に石垣を積む（${village.wall.n + 1}/${WALL_N}。できると台風でも茅が飛ばない）`, targetId: 'house', ...(r.holding === 'stone' ? {} : { ready: false, needs: village.wall.pile ? '浜の石置き場から石を持ってくること' : '石（ラッコが海の底から浜の石置き場に運んでくる）' }) });
@@ -1659,8 +1679,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (action === 'house') t = houseTask(r);
     else if (action === 'wall') t = wallTask(r);
     else if (action === 'wallfetch') t = wallFetchTask(r);
-    else if (action === 'seastone') t = r.holding ? null : (nestWanted() ? seaStoneTask(r, 'nest') : wallWanted() ? seaStoneTask(r, 'wall') : null);
+    else if (action === 'seastone') t = r.holding ? null : (nestWanted() ? seaStoneTask(r, 'nest') : ledgeWanted() ? seaStoneTask(r, 'ledge') : wallWanted() ? seaStoneTask(r, 'wall') : null);
     else if (action === 'nest') t = nestTask(r);
+    else if (action === 'ledge') t = ledgeTask(r);
     else if (action === 'stonedrop') t = dropTask(r);
     else if (action === 'fell') { const [x, z] = target.split(',').map(Number); t = fellTask(x, z); }
     else if (action === 'twist') t = task('twist', benchStand(), 'work', rr(60, 90));
@@ -1742,8 +1763,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       if (r.holding === 'shell') { return { text: '貝殻を並べる', why: '貝殻を持っている', plan: ['pile:beach'] }; }
       if (r.holding === 'wood') return { text: '流木を届ける', why: '持っている', plan: [has('post:') ?? 'give:dot'] };
-      if (r.holding === 'stone') return { text: '石を運ぶ', why: '持っている', plan: [has('nest:') ?? has('stonedrop:') ?? 'wander:beach'] };
-      { const ss = has('seastone:'); if (ss && Math.random() < 0.3) return nestWanted() ? { text: '休み場の囲いを積む', why: '荒れた海で疲れた。波の静かな所がほしい', plan: [ss, 'nest:sea'] } : { text: 'ドットの石垣の石を運ぶ', why: '石は得意', plan: [ss, 'stonedrop:beach'] }; }
+      if (r.holding === 'stone') return { text: '石を運ぶ', why: '持っている', plan: [has('nest:') ?? has('ledge:') ?? has('stonedrop:') ?? 'wander:beach'] };
+      { const ss = has('seastone:'); if (ss && Math.random() < 0.3) return nestWanted() ? { text: '休み場の囲いを積む', why: '荒れた海で疲れた。波の静かな所がほしい', plan: [ss, 'nest:sea'] } : ledgeWanted() ? { text: 'カメマルの岩棚に石を置く', why: '自分の休み場はできた。カメマルの寝場所にも、荒れた日にうねりが入る', plan: [ss, 'ledge:sea'] } : { text: 'ドットの石垣の石を運ぶ', why: '石は得意', plan: [ss, 'stonedrop:beach'] }; }
       const tell = opts.find((o) => o.action === 'tell');
       if (tell && Math.random() < 0.3) return { text: 'ドットに流木の場所を教える', why: 'ドットが小屋の材料を探していた', plan: [tell.id] };
       { const fd = has('say:found:'); if (fd) return { text: '見つけたものを知らせる', why: '浜に見慣れないものがある', plan: [fd] }; }
@@ -2360,9 +2381,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         break;
       }
       case 'seastone':
-        r.holding = 'stone'; r.today.push(tk.data?.for === 'nest' ? '休み場の囲いにする石を海の底から拾った' : 'ドットの石垣にする石を海の底から拾った'); if (r.today.length > 6) r.today.shift();
+        r.holding = 'stone'; r.today.push(tk.data?.for === 'nest' ? '休み場の囲いにする石を海の底から拾った' : tk.data?.for === 'ledge' ? 'カメマルの岩棚に置く石を海の底から拾った' : 'ドットの石垣にする石を海の底から拾った'); if (r.today.length > 6) r.today.shift();
         if (agentOf(r)) { r.task = null; return; }   // (its next step is its own to choose)
-        r.task = (tk.data?.for === 'nest' ? nestTask(r) : dropTask(r)) ?? nestTask(r) ?? dropTask(r); if (r.task) return; break;
+        r.task = (tk.data?.for === 'nest' ? nestTask(r) : tk.data?.for === 'ledge' ? ledgeTask(r) : dropTask(r)) ?? nestTask(r) ?? ledgeTask(r) ?? dropTask(r); if (r.task) return; break;
+      case 'ledge': {
+        if (r.holding !== 'stone' || !ledgeWanted()) break;
+        r.holding = ''; village.ledge.n++; drawLedge();
+        if (village.ledge.n >= LEDGE_N) {
+          note(r, 'nest', {}, `カメマルの岩棚の沖側に石を${LEDGE_N}個置いた。うねりが岩棚の下に入りにくくなった`);
+          note(byId.kame, 'nest', {}, 'ラッコが岩棚の沖側に石を並べてくれた。荒れた日も、寝場所に入るうねりが弱い');
+          res.onEvent('nest', 'ラッコがカメマルの岩棚のまわりに石を並べた。荒れた日も、カメマルの寝場所は波が静か', r);
+        } else note(r, 'nest', {}, `カメマルの岩棚のまわりに石を置いた（${village.ledge.n}/${LEDGE_N}）`);
+        break;
+      }
       case 'nest': {
         if (r.holding !== 'stone' || village.nest.n >= NEST_N) break;
         r.holding = ''; village.nest.n++; drawNest();
@@ -2418,11 +2449,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // what it costs to cross a metre of the island on foot: the sea cannot be walked; growth above the waist
   // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
   const WAIST = 0.45;
+  // (one that swims: the sea and a lagoon are its way too)
+  const swimCost = (x: number, z: number) => G(x, z) < 0.2 ? (G(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
   const walkCost = (x: number, z: number) => {
     if (G(x, z) < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
+  // (the water's edge too, at a price: the way out for one that has come down onto a strip of it)
+  const edgeCost = (x: number, z: number) => G(x, z) < 0.2 ? Infinity : G(x, z) < 0.3 ? 6 : walkCost(x, z);
   // Lantern, picking its way: it would rather go round a steep bit than up it, and round anywhere it has
   // tried the footing and found it would not do (its four long legs are sure on the level, careful on a slope)
   const lanternCost = (bad: [number, number][]) => (x: number, z: number) => {
@@ -2444,6 +2479,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (!g || Math.hypot(g.tx - tx, g.tz - tz) > 0.25) {
         const ap = solids.approach(tx, tz, B, feet, r.pos.x, r.pos.z, (x, z) => standOn(r, wetTask)(x, z) || Math.hypot(x - tx, z - tz) < 0.05);
         r.goal = { tx, tz, x: ap ? ap[0] : tx, z: ap ? ap[1] : tz, none: !ap };
+        // (a walker going to something lower than it can walk to — a log at the water's edge: to where it can stand within
+        // reach of it, the way there planned as any other; none within reach — out in the water, on a bar — nowhere to stand,
+        // said at once, not found out by half an hour of turning back from the sea. Owner's watch, 2026-10-09.)
+        if (ap && !(r.sp.swims && wetTask) && G(r.goal.x, r.goal.z) < 0.3) {
+          let best: [number, number] | null = null, bd = 1e9;
+          for (let d = 0.4; d <= 1.4 && !best; d += 0.25) for (let k = 0; k < 12; k++) { const a = k / 12 * 6.28, x = r.goal.x + Math.cos(a) * d, z = r.goal.z + Math.sin(a) * d, dd = Math.hypot(x - r.pos.x, z - r.pos.z); if (G(x, z) >= 0.3 && !solids.hit(x, z, B, G(x, z)) && dd < bd) { bd = dd; best = [x, z]; } }
+          if (best) { r.goal.x = best[0]; r.goal.z = best[1]; } else if (G(r.goal.x, r.goal.z) < 0.2) r.goal.none = true;
+        }
       }
       if (r.goal!.none) { r.went = 'nowhere to stand'; r.blocked = 99; r.walk = 0; return false; }
       tx = r.goal!.x; tz = r.goal!.z;
@@ -2454,14 +2497,21 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // Round what is solid for its body, however short the walk: a short way that is clear goes straight; and no
     // way at all is no way (it does not set off straight at it instead).
     let ax = tx, az = tz;
-    if (!fast && G(r.pos.x, r.pos.z) > 0.2 && G(tx, tz) > 0.2) {
+    // (a swimmer from the land into the sea, or out of it: a way planned too, across the water as well — not straight
+    // at the sea through a stand of trees, wedged among their trunks)
+    const swimWay = r.sp.swims && wetTask && (G(r.pos.x, r.pos.z) > 0.2) !== (G(tx, tz) > 0.2);
+    if (!fast && ((G(r.pos.x, r.pos.z) > 0.2 && G(tx, tz) > 0.2) || swimWay)) {
       const P = r.path;
       if (!P || (Math.hypot(P.tx - tx, P.tz - tz) > 4 && clockMs - P.t > 3000)) {
         const C = Math.min(4, Math.max(1, d0 / 160)), pad = Math.min(0.5, C * 0.5), wide = { ...B, r: B.r + pad };
-        const base = r.id === 'lantern' ? lanternCost(r.mo.bad) : walkCost;
-        const costFor = (body: typeof B) => (x: number, z: number) => { const c = base(x, z); return isFinite(c) && solids.hit(x, z, body, G(x, z)) ? Infinity : c; };
+        const base = r.id === 'lantern' ? lanternCost(r.mo.bad) : swimWay ? swimCost : walkCost;
+        const costFor = (body: typeof B, f = base) => (x: number, z: number) => { const c = f(x, z); return isFinite(c) && solids.hit(x, z, body, G(x, z)) ? Infinity : c; };
         // (a long way keeps a margin round what is solid; where the only way is a narrow gap, it goes through at its own width)
-        const pts = d0 <= 2 && !solids.along(r.pos.x, r.pos.z, tx, tz, B, G) && isFinite(base((r.pos.x + tx) / 2, (r.pos.z + tz) / 2)) ? [[tx, tz]] as [number, number][] : findPath(r.pos.x, r.pos.z, tx, tz, costFor(wide)) ?? (pad > 0 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(B)) : null);
+        const pts = d0 <= 2 && !solids.along(r.pos.x, r.pos.z, tx, tz, B, G) && isFinite(base((r.pos.x + tx) / 2, (r.pos.z + tz) / 2)) ? [[tx, tz]] as [number, number][] : findPath(r.pos.x, r.pos.z, tx, tz, costFor(wide)) ?? (pad > 0 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(B)) : null)
+          ?? (B !== BODY[r.id] ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id])) : null)
+          ?? (r.sp.swims && base !== swimCost ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(B, swimCost)) : null)
+          ?? (G(r.pos.x, r.pos.z) < 0.3 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], edgeCost)) : null)   // (on the strip by the water's edge, where the dry way does not reach: along the edge as it came)
+          ?? (d0 > 20 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], r.sp.swims ? swimCost : edgeCost), true) : null);   // (and last, the long way round: back the way it came, round a bay — life-run 2026-10-09)   // (one that swims, with no way on foot: round by the water — it came ashore where the land does not join up)   // (a log carried makes it wider: where only its own width goes through — the way it came in — the log is dragged through)
         if (!pts) { r.path = undefined; r.went = 'no way'; r.blocked = 99; r.walk = 0; return false; }
         r.path = { pts, tx, tz, t: clockMs };
       }
@@ -2888,6 +2938,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (tk.t > 1800 / wearSlow(r) || r.blocked > 20) {   // (a slowed one is given the time its pace needs)
         if (r.id === 'lantern' && tk.data?.studyId) study?.interrupt(tk.data.studyId, studyWorld(fast), '道を進めなかった。別の場所から確かめよう。', true);
         report(r, tk, tk.t > 1800 / wearSlow(r) ? 'timeout' : r.went === 'no way' || r.went === 'nowhere to stand' ? r.went : 'blocked', r.went === 'no way' ? '道がなかった' : r.went === 'nowhere to stand' ? '立てる場所がなかった' : '進めなかった');
+        if (tk.data && typeof tk.data.id === 'number' && tk.data.kind) (tk.data.away ??= {})[r.id] = clockMs + 6 * 3.6e6;   // (a thing it could not get to: left be a while, not tried again straight away)
         items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; return;
       }   // could not get there: think again
       if (tk.arrived) tk.t = 0;
@@ -2967,7 +3018,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
@@ -3019,11 +3070,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const toward: Record<string, string> = {
       sleep: r.sp.swims && tk?.wet ? '眠る場所へ泳いでいく' : '寝床へ向かっている', charge: '日なたへ向かっている', look: '海の見える場所へ向かっている', watch: '海を観察する浜へ向かっている',
       rest: '丘のふもとへ向かっている', think: '丘の上へ歩いている', float: '静かな水面へ向かっている', nap: '昼寝のできる静かな水面へ向かっている', crack: '貝を割る場所へ向かっている',
-      carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている', house: '家の作業に向かっている', cut: '草を刈りに向かっている', tool: '棚へ道具を作りに向かっている', stackwood: '薪をまとめに向かっている', assemble: '焼いた器を取りに向かっている', seastone: '石を拾いに潜りに行く', nest: '休み場に石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行く', wall: '石を石垣へ運んでいる', shelter: '雨風をよけに屋根の下へ',
+      carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている', house: '家の作業に向かっている', cut: '草を刈りに向かっている', tool: '棚へ道具を作りに向かっている', stackwood: '薪をまとめに向かっている', assemble: '焼いた器を取りに向かっている', seastone: '石を拾いに潜りに行く', nest: '休み場に石を運んでいる', ledge: 'カメマルの岩棚へ石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行く', wall: '石を石垣へ運んでいる', shelter: '雨風をよけに屋根の下へ',
     };
     if (tk && !tk.arrived && toward[k]) return toward[k] + left;
     const base: Record<string, string> = {
-      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', tool: '道具を作っている', stackwood: '薪を1つの山にまとめている', assemble: '焼いた器を鍋にしている', seastone: '海の底で石を拾っている', nest: '休み場の囲いに石を積んでいる', stonedrop: '浜に石を置いている', wallfetch: '石置き場で石を取っている', wall: '石垣を積んでいる', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
+      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', tool: '道具を作っている', stackwood: '薪を1つの山にまとめている', assemble: '焼いた器を鍋にしている', seastone: '海の底で石を拾っている', nest: '休み場の囲いに石を積んでいる', ledge: 'カメマルの岩棚のまわりに石を置いている', stonedrop: '浜に石を置いている', wallfetch: '石置き場で石を取っている', wall: '石垣を積んでいる', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
       explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
       visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を写真に撮っている`, answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',
@@ -3397,7 +3448,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const toFood = (p: [number, number]) => { const ds = food.map((f) => Math.hypot(f[0] - p[0], f[1] - p[1])).sort((a, b) => a - b).slice(0, 3); return ds.length ? ds.reduce((a, b) => a + b, 0) / ds.length : 0; };
     const meals = isR ? 4 : 2, home = r.sp.home;
     const more = Math.round(meals * 2 * Math.max(0, toFood(at) - toFood(home))), saved = Math.max(0, Math.round(dailyWalk(r.id) - 4 * Math.hypot(at[0] - PIT.x, at[1] - PIT.z)));
-    const place = isR ? (village.nest.n > 0 ? `住処の近くに石の囲い（${village.nest.n}/${NEST_N}）がある` : '') : (village.kameBed ? '住処の近くに岩棚の寝場所がある' : '');
+    const place = isR ? (village.nest.n > 0 ? `住処の近くに石の囲い（${village.nest.n}/${NEST_N}）がある` : '') : (village.kameBed ? `住処の近くに岩棚の寝場所がある${village.ledge.n ? `（ラッコが石を${village.ledge.n}個置いた）` : ''}` : '');
     const text = `集落の前の海（火から${Math.round(Math.hypot(at[0] - PIT.x, at[1] - PIT.z))}m）に移ると、集まりへの道のりは1日約${saved}m減り、${isR ? '採餌場' : '藻場'}までの泳ぎは1日約${more}m増える${place ? `。${place}` : ''}`;
     if (place) return { yes: false, at, why: 'my-place', text };
     return { yes: saved > more, at, why: 'far-food', text };
@@ -3432,7 +3483,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (p.endsWith(':no')) { st.asked[p.slice(0, -3)] = 'no'; continue; }
       const [id, x, z] = p.split('@'); st.asked[id] = 'yes'; st.homes[id] = [+x, +z]; byId[id].sp.home = st.homes[id];
       if (id === 'rakko' && village.nest.n === 0) village.nest.at = null;   // (its quiet place, when it makes one: by its new home)
-      if (id === 'kame') village.kameBed = null;
+      if (id === 'kame') { village.kameBed = null; village.ledge.n = 0; drawLedge(); }   // (a new ledge, when it finds one: the stones counted afresh)
       res.onEvent('fire', `${byId[id].v.name}が、集落の前の海に休む場所を移すことにした`, byId[id]);
     }
     if (first) {
