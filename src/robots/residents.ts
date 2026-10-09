@@ -1846,7 +1846,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const water = mean('water_ppm', (l) => l.amount.value), ash = mean('ash_dry_ppm', (l) => l.amount.value * (1 - (l.quality?.water_ppm ?? 0) / 1e6));
     const hist = ws.every((l) => (l.quality?.history_complete ?? 1) === 1) ? 1 : 0;
     for (const l of ws) delete lab.lots[l.lotId];
-    addLot(lab, { materialId: 'firewood', amount: { value: mass, unit: 'mg' }, location: 'shelf', quality: { water_ppm: water, ...(ws.some((l) => l.quality?.ash_dry_ppm !== undefined) ? { ash_dry_ppm: ash } : {}), history_complete: hist } });
+    addLot(lab, { materialId: 'firewood', amount: { value: mass, unit: 'mg' }, location: 'shelf', quality: { water_ppm: water, ...(ws.every((l) => l.quality?.ash_dry_ppm !== undefined) ? { ash_dry_ppm: ash } : {}),   // (the ash only if every part says it: a part that does not is not 0)
+ history_complete: hist } });
     lab.world.worldVersion++; drawStore();
     note(r, 'tool', {}, `薪を1つの山にまとめた（${ws.length}つ、${+(mass / 1e6).toFixed(1)}kg、水分${(water / 1e4).toFixed(0)}%）`);
   }
