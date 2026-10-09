@@ -228,7 +228,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 0.4);
          vec3 alb = vCol * (0.88 + 0.28 * l2) * mix(0.75, 1.15, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
          alb = mix(alb, vec3(0.5, 0.56, 0.24), smoothstep(0.8, 0.96, l1) * 0.25);              // (new leaves, paler)
-         col = airLitF(alb, n, vWp, 0.8, 0.9);   // (the open sky all round, and the sand, light the crowns' undersides too)
+         col = airLitF(alb, n, vWp, 0.8, 1.6);   // (the open sky all round, and the sand, light the crowns' undersides too)
        } else {
          // bark: grey-brown, ridged, mossy on the shaded side
          float ridge = vn2(vec2(atan(vL.x, vL.z) * 3.0, vL.y * 40.0));
@@ -236,7 +236,8 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          alb = mix(alb, vec3(0.25, 0.3, 0.15), smoothstep(0.2, -0.6, dot(n, uAirSun)) * 0.35);
          col = airLit(alb, n, vWp, 0.0) + alb * vec3(0.16, 0.18, 0.13) * (1.0 - uNight * 0.8);   // (light thrown back from the leaves and the floor)
        }
-       col *= vSh + (1.0 - vSh) * 0.9 * dapple(vWp, vWp.y + 6.0);   // (shade inside the forest, flecks of sun)
+       float shade = vSh + (1.0 - vSh) * 0.9 * dapple(vWp, vWp.y + 6.0);   // (shade inside the forest, flecks of sun)
+       col *= mix(1.0, shade, mix(1.0, 0.6, step(0.5, vLeaf)));   // (the leaves less so: a crown is lit through, not a dark lid)
        gl_FragColor = vec4(fogIt(col, vWp), mix(1.0, cover, uA2C));
      }`, { opts: { side: THREE.DoubleSide, alphaToCoverage: true } });
   // geometries: two of each kind of tree, a sapling of each, and the clump on the forest floor

@@ -415,15 +415,17 @@ function casuarinaGeo() {
   const lean = V(0.08, 1, 0.03).normalize();
   const trunkTop = lean.clone().multiplyScalar(0.92);
   B.tube(V(0, 0, 0), trunkTop, 0.022, 0.008, bark, 0, 0.3, 7, V(0.015, 0, 0), 4);
-  const top = [0.56, 0.62, 0.42], deep = [0.2, 0.27, 0.17];
+  const top = [0.48, 0.58, 0.38], deep = [0.17, 0.25, 0.15];
   for (let t = 0; t < 12; t++) {
     const h = 0.32 + t * 0.052 + B.R() * 0.04, a = t * 2.4 + B.R() * 0.6, len = 0.09 + Math.sin((1 - t / 12) * Math.PI * 0.85) * 0.16;
     const base = lean.clone().multiplyScalar(h), tip = base.clone().add(V(Math.cos(a) * len, len * 0.55, Math.sin(a) * len));   // (the limbs angle up)
     B.tube(base, tip, 0.007, 0.003, bark, h * 0.3, h * 0.5, 5);
-    // a soft tuft hanging from the limb's end, longer than wide, and a smaller one partway along
-    const r = 0.045 + len * 0.28;
-    B.blob(tip.clone().add(V(0, -r * 0.55, 0)), r, r * 1.35, r * B.rr(0.85, 1.1), top, deep, h * 0.8, 2, null, 0, 0.8);
-    if (len > 0.14) { const m = base.clone().lerp(tip, 0.5); B.blob(m.add(V(0, -r * 0.5, 0)), r * 0.7, r * 1.0, r * 0.7, top, deep, h * 0.7, 1, null, 0, 0.8); }
+    // soft tassels of twigs hanging along the limb's outer half: long and narrow, lit as one crown round the trunk
+    const r = 0.03 + len * 0.16, axis = lean.clone().multiplyScalar(h);
+    for (let k = 0; k < 3; k++) {
+      const f = 0.45 + k * 0.27, c = base.clone().lerp(tip, f), rk = r * (0.8 + 0.25 * k);
+      B.blob(c.add(V(0, -rk * 1.2, 0)), rk * 0.55, rk * 1.7, rk * 0.55 * B.rr(0.9, 1.1), top, deep, h * 0.7 + k * 0.05, k === 2 ? 2 : 1, axis, 0.55, 0.9);
+    }
   }
   return B.geo();
 }
