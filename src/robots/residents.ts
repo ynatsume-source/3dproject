@@ -277,7 +277,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- things they make ---------- */
   // Dot's hut: four posts, a frame, then roof slats of driftwood — one piece at a time
-  const wood = rmat(0x8d7560, 0.1), wood2 = rmat(0x6f5a48, 0.1), shellM = rmat(0xf3e6d8, 0.6), stoneM = rmat(0x9a9186, 0.1);
+  const wood = rmat(0x8d7560, 0.1), wood2 = rmat(0x6f5a48, 0.1), shellM = rmat(0xf2d9c4, 0.6), stoneM = rmat(0xa49a8c, 0.1);   // (nature-look HANDOFF §4: warmer, paler)
   const hut = new THREE.Group(); group.add(hut);
   { const dh = SPECS.find((x) => x.id === 'dot')!.home; hut.position.set(dh[0] + 3, L.h(dh[0] + 3, dh[1] - 2), dh[1] - 2); hut.rotation.y = 0.4; hut.updateMatrixWorld(); }
   const HUT: THREE.Mesh[] = [];
@@ -302,7 +302,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const bench = new THREE.Group(); bench.position.copy(benchL); hut.add(bench);
   { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.45, 9), wood2); st.position.y = 0.22; bench.add(st);
     const top = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.3), wood); top.position.y = 0.47; bench.add(top); }
-  const itemMat = { wood: rmat(0xb3a390, 0.1), shell: shellM, stone: stoneM, coconut: rmat(0x6b4a2b, 0.05) };
+  const itemMat = { wood: rmat(0xcfc3ad, 0.1), shell: shellM, stone: stoneM, coconut: rmat(0x8a6640, 0.05) };
   const benchLog = new THREE.Mesh(new THREE.BufferGeometry(), itemMat.wood); benchLog.position.y = 0.53; benchLog.visible = false; bench.add(benchLog);
   const benchPiece = new THREE.Mesh(new THREE.BufferGeometry(), wood); benchPiece.position.y = 0.53; benchPiece.visible = false; bench.add(benchPiece);
   const ghostM = new THREE.MeshBasicMaterial({ color: 0x8ff6ff, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false });
@@ -700,7 +700,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const raftLogs = Array.from({ length: 6 }, (_, k) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 1.4, 7), wood); m.rotation.z = Math.PI / 2; m.position.set(0, 0.08, -0.35 + k * 0.14); m.visible = false; raftG.add(m); return m; });
   function raftAt(): [number, number] | null {
     if (!Number.isFinite(village.raft.x)) {   // (a stretch of shore near home it can walk to: the raft stays where it is first laid)
-      const h = byId.dot.sp.home, ok = (x: number, z: number, y: number) => shore(x, z, y) && !!findPath(h[0], h[1], x, z, walkCost);
+      // (clear of trunks and rocks a metre round, so Dot can come up to it and push it off — not laid among the trees)
+      const h = byId.dot.sp.home, ok = (x: number, z: number, y: number) => shore(x, z, y) && !solids.hit(x, z, { ...BODY.dot, r: 1.0 }, y) && !!findPath(h[0], h[1], x, z, walkCost);
       const at = [60, 110, 160].reduce<[number, number] | null>((a, rad) => a ?? spot(h, rad, ok, 40), null); if (!at) return null;
       village.raft.x = at[0]; village.raft.z = at[1];
     }
@@ -1909,7 +1910,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
    *  rain water to soak it in. */
   function pitTask(): Task | null {
     if (village.clayPit || !roofDone() || !village.catcher || rawClayOnShelf() < PIT_NEEDS.rawClayMg + 1e6) return null;
-    const w = atHut(0.2, 1.3); return task('pit', [w.x, w.z], 'dig', PIT_NEEDS.handSeconds, {});
+    const w = atHut(0.2, 1.3); return task('pit', [w.x, w.z], 'dig', Math.max(60, PIT_NEEDS.handSeconds - ((village as any).pitDug ?? 0)), {});   // (what is left of the digging)
   }
   function digPit(r: Resident) {
     let need = PIT_NEEDS.rawClayMg;
@@ -3091,7 +3092,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (r.id === 'lantern' && r.went === 'blocked') { r.mo.bad.push([r.pos.x, r.pos.z]); if (r.mo.bad.length > 12) r.mo.bad.shift(); (r.mo as any).lastPlan = undefined; }
         // (wedged in the same place three times running — between trunks it cannot be pushed out from: it works itself free,
         // to the nearest clear footing within a few metres, rather than trying from there for days; life-run 2026-10-09)
-        if (r.went === 'blocked' && !r.wet) {
+        if (!(tk.t > 1800 / wearSlow(r)) && r.went !== 'no way' && r.went !== 'nowhere to stand' && !r.wet) {   // (it gave up for being stuck — not for time, nor for no way)
           const w = (r.mo as any).wedged as { x: number; z: number; n: number } | undefined;
           const n = w && Math.hypot(w.x - r.pos.x, w.z - r.pos.z) < 1.5 ? w.n + 1 : 1; (r.mo as any).wedged = { x: r.pos.x, z: r.pos.z, n };
           if (n >= 3) {
@@ -3111,6 +3112,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (tk.kind === 'review' && tk.data) { let d = Math.atan2(tk.data.x - r.pos.x, tk.data.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 1.5); }
       if (tk.kind === 'watch' || tk.kind === 'look') { let d = Math.atan2(-r.pos.x + (r.sp.home[0] - 60), -r.pos.z + (r.sp.home[1] + 80)) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt); }
       tk.t += dt * (tk.act === 'work' ? wearSlow(r) : 1);   // (worn joints: work goes slower)
+      if (tk.kind === 'pit') (village as any).pitDug = ((village as any).pitDug ?? 0) + dt * (tk.act === 'work' ? wearSlow(r) : 1);   // (the digging done so far is kept: a gathering, or the night, does not fill the hole in again)
       if (r.sp.living && r.wet) {
         if (tk.kind === 'forage') { const k = tk.t / tk.dur; r.under = smooth01(0, 0.12, k) * (1 - smooth01(0.86, 1, k)); }   // (down head first, along the bottom, back up)
         else if (tk.kind === 'graze' || (r.id === 'kame' && tk.kind === 'sleep')) {

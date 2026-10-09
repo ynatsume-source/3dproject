@@ -52,16 +52,17 @@ const V = R.village;
 }
 { // 3
   const far = ISLES.find((i: any) => i.id === 'west-big')!, near = ISLES.find((i: any) => i.id === 'south-near')!;
-  sim = Date.parse('2026-10-06T09:40:00+09:00');   // (an hour it could set out at: the distance, then the wind, is what stops it)
+  dot.battery = 1; dot.holding = ''; sim = Date.parse('2026-10-06T09:40:00+09:00');   // (an hour it could set out at: the distance, then the wind, is what stops it; charged and hands free, so neither is)
   want_ = (i) => i.options.find((o: any) => o.id === `voyage:${far.id}`)?.id; think();
   await run(1200, () => dm.results.some((r: any) => r.optionId === `voyage:${far.id}`));
   const r1 = dm.results.find((r: any) => r.optionId === `voyage:${far.id}`);
   want('3 too far for a raft: not today, and why', ['blocked', 'unavailable'].includes(r1?.outcome) && /遠すぎる/.test(r1.detail ?? ''), r1?.detail ?? 'none');
+  dot.holding = ''; dot.task = null;   // (hands free again: it may have picked up a log meanwhile)
   R.setWeather({ ...calm, wind: 11 }); want_ = (i) => i.options.find((o: any) => o.id === `voyage:${near.id}`)?.id; think();
   await run(1200, () => dm.results.some((r: any) => r.optionId === `voyage:${near.id}` && r.outcome === 'blocked'));   // (not a walk to the raft cut short by something it saw on the way)
   const r2 = dm.results.find((r: any) => r.optionId === `voyage:${near.id}` && r.outcome === 'blocked');
   want('3 a strong wind: not today', r2?.outcome === 'blocked' && /風が強い/.test(r2.detail ?? ''), r2?.detail ?? 'none');
-  R.setWeather(calm); dot.battery = 1; sim = Date.parse('2026-10-06T09:40:00+09:00'); think();   // (after the morning gathering)
+  R.setWeather(calm); dot.battery = 1; dot.holding = ''; sim = Date.parse('2026-10-06T09:40:00+09:00'); think();   // (after the morning gathering)
   let away = false, left = 0;
   await run(4 * 3600, () => { if (dot.task?.kind === 'voyage' && dot.task.data?.started && !dot.model.root.visible) { away = true; left ||= sim; } return !!V.map.reached[near.id]; });
   want('3 the crossing runs on the island\'s clock: about 3 island hours, a quarter of a real hour', left > 0 && sim - left > 10 * 60e3 && sim - left < 20 * 60e3, `${((sim - left) / 60e3).toFixed(1)} min`);
@@ -75,7 +76,7 @@ const V = R.village;
 { // 4
   const isle = ISLES.find((i: any) => i.id === 'east-flat')!;   // (too far today — so: as if it were near, to see a storm turn it back)
   isle.lat = 24.35; isle.lon = 124.0;
-  dot.battery = 1; dot.holding = ''; sim = Date.parse('2026-10-07T09:40:00+09:00'); R.setWeather(calm);   // (hands free: it may have picked up a log meanwhile)
+  dot.battery = 1; dot.holding = ''; dot.task = null; sim = Date.parse('2026-10-07T09:40:00+09:00'); R.setWeather(calm);   // (hands free: it may have picked up a log meanwhile)
   want_ = (i) => i.options.find((o: any) => o.id === `voyage:${isle.id}`)?.id; think();
   await run(3600, () => dot.task?.kind === 'voyage' && !!dot.task.data?.started);
   R.setWeather({ ...calm, typhoon: true, wind: 18, pressure: 985 }); await run(30);

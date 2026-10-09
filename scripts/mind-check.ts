@@ -112,7 +112,7 @@ const gatherFirst = (i: BrainInput) => { const g = i.options.find((o) => o.actio
   const s = stub((i) => {
     round++;
     if (round === 1) return { plan: ['gather:wood#999', 'go:61,-100'] };   // (not offered: refused)
-    if (round === 2) return { plan: [i.options.find((o) => o.action === 'gather')!.id, 'craft:bench', 'place:hut'], hypothesis: '流木は作業台で削れば部材になる' };
+    if (round === 2) { const g2 = i.options.find((o) => o.action === 'gather'); return { plan: [...(g2 ? [g2.id] : []), 'craft:bench', 'place:hut'], hypothesis: '流木は作業台で削れば部材になる' }; }   // (a log already in hand: straight to the bench)
     hypId = i.knowledge.find((k) => k.status === 'hypothesis')?.id ?? '';
     const hat = i.knowledge.find((k) => k.id === hypId)?.at ?? 0, real = [...i.results].reverse().find((r) => r.action === 'craft' && r.outcome === 'done' && r.at >= hat);
     const g = i.options.find((o) => o.action === 'gather');

@@ -291,7 +291,8 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   const forest = buildForest(AIRLIT, group, f, can, top, FAR);
   // how tall the growth is at a point (m): for those who walk on the island and go round what is above their
   // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
-  const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75], pandanus: [0.38, 1], rock: [0.85, 0.5], casuarina: [0.05, 9] };   // (radius, height, per unit of its size)
+  const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75],   // (0.62, 0.55: the rounder mounds, nature-look HANDOFF §4)
+    pandanus: [0.38, 1], rock: [0.85, 0.5], casuarina: [0.05, 9] };   // (radius, height, per unit of its size)
   T.pushTrees = (p: THREE.Vector3) => forest.push(p);   // (keeping walkers out of the trunks)
   // what cannot be walked through (robots/solids.ts): the trunks, the rocks, the driftwood, each its own size
   // (from its geometry: a rock ~1.1 × its size across and 0.7 high; a casuarina's trunk 0.03, a pandanus with
@@ -317,7 +318,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     },
     cleared: (x: number, z: number) => forest.cleared(x, z),
   };
-  solids.source((x, z, r, f) => forest.trunks(x, z, r, (t) => f({ kind: 'trunk', x: t.x, z: t.z, r: 0.55, y0: t.y - 0.5, y1: t.y + t.h })));
+  solids.source((x, z, r, f) => forest.trunks(x, z, r, (t) => f({ kind: 'trunk', x: t.x, z: t.z, r: Math.max(0.55, 0.058 * t.h), y0: t.y - 0.5, y1: t.y + t.h })));   // (a tall tree's foot is wider: nature-look HANDOFF §4)
   T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)
     let h = (can(x, z) > 0.55 && !forest.cleared(x, z)) || forest.trunkNear(x, z, pad) ? 1 : 0;   // (in the forest; or by a tree's trunk, where it thins out)
     const ci = Math.floor(x / 8), cj = Math.floor(z / 8);
