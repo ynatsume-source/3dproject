@@ -1252,6 +1252,7 @@ function flyHop() { setSky(true, true); drone.skyHop = true; drone.skyStay = rr(
 function skyLabel() { $('btnSky').setAttribute('aria-pressed', String(drone.sky)); $('btnSky').querySelector('span')!.textContent = drone.sky ? '海へ' : '空へ'; }
 function setSky(on: boolean, natural = false) {
   if (!cur) return;
+  if (!natural) clearNewMark();
   if (watch.r && !natural) stopWatch(false);
   drone.sky = on; drone.skyT = 0; drone.skyAge = 0; flyRun = null; drone.skyHop = false;
   drone.seaUntil = on ? 0 : performance.now() + (natural ? 60000 : 150000);   // back into the sea: no flying straight off to the residents ashore
@@ -1654,6 +1655,7 @@ const usePost = () => TIERS[tier].post && !noPost && SAFE < 2;
 const allSubjects = () => (cur!.residents ? [...cur!.eco.subjects(), ...cur!.residents.subjects()] : cur!.eco.subjects());
 function goTo(id: string) {
   if (!cur) return;
+  clearNewMark();
   track('guide_go', { sea: cur.loc.id, item: id.startsWith('robot:') ? 'robot' : id });
   if (id.startsWith('robot:') && cur.residents) {
     const r = cur.residents.list.find((x: any) => 'robot:' + x.id === id);
@@ -1994,6 +1996,18 @@ let toastTimer = 0;
 // round it with its name, following it for a few seconds. A tap on it goes over to watch it for a while.
 type Where3 = { x: number; y: number; z: number };
 let newMark: { at: () => Where3 | null; id: string; ja: string; size: number; t: number } | null = null;
+/** The mark of a thing just found let go: where the view jumps (watching a resident, the sky, a dive, the guide), what
+ *  was found where it was is not where it now is (nature team, TO-MAIN-new-sighting, 2026-10-09). */
+function clearNewMark() { newMark = null; const el = $('newMark'); el.classList.remove('on'); el.tabIndex = -1; }
+/** Is p hidden from the camera: across the water's surface (one above it, the other below), or behind the ground? */
+function markHidden(p: Where3) {
+  const c = camera.position;
+  if ((c.y > 0.05 && p.y < -0.3) || (c.y < -0.05 && p.y > 0.3)) return true;
+  const f = cur?.loc.f; if (!f) return false;
+  const d = hyp(p.x - c.x, p.z - c.z), n = Math.min(12, Math.ceil(d / 4));
+  for (let i = 1; i < n; i++) { const k = i / n; if (f(c.x + (p.x - c.x) * k, c.z + (p.z - c.z) * k) > c.y + (p.y - c.y) * k + 0.2) return true; }
+  return false;
+}
 function updateNewMark(dt: number) {
   const el = $('newMark');
   if (!newMark) { el.classList.remove('on'); el.tabIndex = -1; return; }   // (not shown: not in the Tab order either)
@@ -2001,7 +2015,7 @@ function updateNewMark(dt: number) {
   const p = newMark.at();
   if (newMark.t > 7 || !p) { newMark = null; el.classList.remove('on'); el.tabIndex = -1; return; }
   _tp.set(p.x, p.y, p.z).project(camera);
-  const vis = _tp.z < 1 && Math.abs(_tp.x) < 0.95 && Math.abs(_tp.y) < 0.95;
+  const vis = _tp.z < 1 && Math.abs(_tp.x) < 0.95 && Math.abs(_tp.y) < 0.95 && !markHidden(p);
   const d = Math.max(1, hyp(p.x - camera.position.x, p.y - camera.position.y, p.z - camera.position.z));
   const r = Math.min(70, Math.max(18, (newMark.size * 0.6 / d) * innerHeight));
   el.style.transform = `translate(${(_tp.x * 0.5 + 0.5) * innerWidth}px, ${(-_tp.y * 0.5 + 0.5) * innerHeight}px)`;
@@ -2034,25 +2048,26 @@ function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3
   renderGuide();
 }
 function checkSightings() {
-  const cam = drone.pos, fwd = U.uCamFwd.value, loc = cur!.loc;
-  for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) {
+  const cam = drone.pos, fwd = U.uCamFwd.value, loc = cur!.loc, under = cam.y < 0;   // (what lives in the sea is found from in it)
+  if (under) for (const f of cur!.fish) if (f.nearest(cam, fwd, f.sp.big ? 16 : (f.sp.habitat === 'anemone' ? 5 : 9)) < Infinity) {
     const v = new THREE.Vector3();
     discover(f.sp, () => (f.nearestPos(drone.pos, U.uCamFwd.value, 30, v) < Infinity ? v : null), f.sp.size[1]);
   }
-  const first = <T,>(a: T[], ok: (t: T) => boolean) => { const o = a.find(ok); return o ? () => (o as any).pos as Where3 : undefined; };
   const extra = (id: string) => (loc.extraGuide || []).find((e) => e.id === id);
   const inView = (p: THREE.Vector3, maxD: number) => { _w.subVectors(p, cam); const d = _w.length(); return d < maxD && _w.dot(fwd) / d > 0.55; };
-  if (cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'), first(cur!.turtles as any[], (t) => inView(t.pos, 16)), 1.2);
-  if (cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'), first(cur!.mantas as any[], (m) => inView(m.pos, 22)), 4);
-  if ((cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'), first(cur!.lobosOtters!.list as any[], (o) => inView(o.pos, 22)), 1.2);
-  if (cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'), () => cur!.lobosVisitors!.state.position, 1.6);
-  if (cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'), first(cur!.colonies as any[], (c) => inView(c.pos, 13)), 1);
-  if ((cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'), first(cur!.octopi as any[], (o: any) => o.placed && inView(o.pos, 10)), 0.8);
+  // (its place for the mark only while it is still near and ahead, as for a fish: gone out of reach, the mark goes)
+  const first = <T,>(a: T[], ok: (t: T) => boolean, keep = 30) => { const o = a.find(ok); return o ? () => (inView((o as any).pos, keep) ? (o as any).pos as Where3 : null) : undefined; };
+  if (under && cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'), first(cur!.turtles as any[], (t) => inView(t.pos, 16)), 1.2);
+  if (under && cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'), first(cur!.mantas as any[], (m) => inView(m.pos, 22)), 4);
+  if (under && (cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'), first(cur!.lobosOtters!.list as any[], (o) => inView(o.pos, 22)), 1.2);
+  if (under && cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'), () => cur!.lobosVisitors!.state.position, 1.6);
+  if (under && cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'), first(cur!.colonies as any[], (c) => inView(c.pos, 13)), 1);
+  if (under && (cur!.octopi || []).some((o: any) => o.placed && inView(o.pos, 10))) discover(extra('octopus'), first(cur!.octopi as any[], (o: any) => o.placed && inView(o.pos, 10)), 0.8);
   const W = cur!.whales;
-  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'), first(W.pod as any[], (w: any) => inView(w.pos, 45)), 13);
+  if (W && W.active && W.pod.some((w: any) => inView(w.pos, 45))) discover(extra('whale'), first(W.pod as any[], (w: any) => inView(w.pos, 45), 60), 13);
   if (cur!.flyfish?.fish.some((f: any) => f.state !== 'wait' && f.state !== 'gone' && inView(f.p, 40))) discover(guideEntries(cur!.loc).find((e) => e.id === 'tobiuo'));
   if (cur!.birds && cam.y > 0) for (const b of cur!.birds.inView(cam, fwd, 80)) discover(b);
-  if (cur!.bait?.near(cam, 30)) discover(loc.bait!.sp);
+  if (under && cur!.bait?.near(cam, 30)) discover(loc.bait!.sp);
 }
 
 /* ================= globe UI ================= */
@@ -2525,7 +2540,7 @@ function buildAhead(loc: Sea) {
   aheadTimer = window.setTimeout(() => { if (!busy && mode === 'globe' && !oceans[loc.id]) startJob(loc); }, 700);
 }
 async function dive(loc: Sea) {
-  keepAwake();
+  keepAwake(); clearNewMark();
   if (busy) return; busy = true;
   setHot(LOCATIONS.indexOf(loc));
   clearTimeout(aheadTimer);
@@ -2783,6 +2798,7 @@ for (const ev of ['pointerdown', 'pointerleave', 'pointercancel'] as const) canv
 addEventListener('blur', hideHover);
 function startWatch(r: any) {
   if (!cur?.residents) return;
+  clearNewMark();
   if (drone.mode !== 'auto') setMode('auto');
   if (drone.sky) { drone.sky = false; skyLabel(); }
   director.reset(); lastShot = null;
@@ -2804,6 +2820,7 @@ function setPov(on: boolean) {
 }
 function stopWatch(resume: boolean) {
   if (!watch.r) return;
+  clearNewMark();
   if (watch.pov) { watch.r = null; setPov(false); }
   watch.r = null;
   renderWatch();
