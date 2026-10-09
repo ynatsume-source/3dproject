@@ -19,15 +19,20 @@ import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASS
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
 import { potShapeStep, potDryStep, POT_SHAPE_PROCESS, POT_DRY_PROCESS } from '../science/step/pottery';
 import { clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
+import { pitFireStep, PIT_FIRE_PROCESS, FIRED_POT } from '../science/step/pit-fire';
+import { cookPotParams, firedPotQualityOnReturn, firedPotSherdsQuality, retortParams, retortPartsOnReturn, COOK_POT, TAR_RETORT, FIRED_POT_ASSEMBLY_TABLE, TOOL_RECIPES } from '../science/step/fired-pot-assembly';
+import type { LotView } from './science-contract';
 /** The clay pit the residents dig (science table civ-sci.clay-pit/1): the recommended size, under the hut's roof. */
 export const CLAY_PIT_PLAN = { diameterCm: 50, depthCm: 25, sunExposure: 0 };
-import type { AssemblyTable } from './process-runner';
+import type { AssemblyTable, PartsAssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
   processId: string; processVersion: string; catalogVersion: string; contract: string; clock: ProcessClock;
   ja: string;                                   // what Lantern is doing, as the record says it
   input: string; inputJa: string;               // the material it takes from the shelf (one lot; '' none: a gauge)
-  also?: { input: string; ja: string }[];       // more lots it takes together (water, firewood)
+  also?: { input: string; ja: string; minMg?: number; ok?: (l: LotView) => boolean }[];   // more lots it takes together (water, firewood): at least so much, and such (dry enough)
+  /** Which lot of its material will do (dry enough wood, wood still wet enough to be worth drying). */
+  inputOk?: (l: LotView) => boolean;
   equipment: (Omit<EquipmentView, 'equipmentId'> & { ja: string }) | null;   // what the world sets out for it (null: the hands only)
   moreEquipment?: (Omit<EquipmentView, 'equipmentId'> & { ja: string })[];
   step: ScienceStep;
@@ -39,6 +44,8 @@ export interface CatalogEntry {
   built?: string;
   /** Clay that is too stiff: rain water measured out to bring it to this water ratio (per dry mass) as it is worked. */
   wetTo?: number;
+  /** Not while a lot of this is on the shelf, not yet used (milk is pressed when it will be boiled, not every nut found). */
+  enough?: string;
   /** Not with less of its material than this (mg): what one go takes. */
   minInputMg?: number;
   /** A process that ends when the operator does something (takes the tile off the rack): after how long, on its clock. */
@@ -52,10 +59,18 @@ export interface CatalogEntry {
   ready: boolean; waits?: string;               // not ready: what it waits for
 }
 /** What the materials are called in the record (the island's own words come later). */
-export const MATERIAL_JA: Record<string, string> = { raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
+export const MATERIAL_JA: Record<string, string> = { fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
 const handsW = (w: number) => (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical', maxJ: Math.round(((to - from) / 1000) * w) }];
 const hands = handsW(3);
 const TEST = SCIENCE_CATALOG_VERSION;
+// (one fire place by the hut for every process that burns wood on it: the cooking hearth's numbers, which the boil reads;
+// the pit fire and the retort read only that it is there and, the retort, its burn rate)
+const OPEN_FIRE = { kind: 'open_fire_pit', catalogEntry: 'open_fire_pit', catalogVersion: TEST, condition: 1, params: { heatCapJPerK: 20000, uaWPerK: 8, chamberFraction: 0.2, maxBurnKgPerH: 3, forcedCoolingUaFactor: 0 }, ja: '焚き火（小屋のそば）' };
+/** Wood dry enough to burn hot: a wet wood's flame is cool and smoky (science: pitWetFlameFrom 0.2 of the wet mass).
+ *  Thirty island days under a roof bring green wood (45 %) to about 28 % (science side, 2026-10-09): that will do,
+ *  with wood enough. */
+export const SEASONED_PPM = 300_000;
+const DRY_WOOD = (l: LotView) => (l.quality?.water_ppm ?? 1e6) <= SEASONED_PPM;
 const NO_VESSEL = '島に桶・鍋・道具がない（どれも試験用の設備 fixture。島で作る方法を決める）';
 export const CATALOG: CatalogEntry[] = [
   { processId: 'p11x_test_tile_shape', processVersion: 'fixture-4', catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'world',
@@ -89,14 +104,18 @@ export const CATALOG: CatalogEntry[] = [
   { processId: COCONUT_MILK_PROCESS.processId, processVersion: COCONUT_MILK_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
     ja: 'ヤシの実を割って、削って、しぼる', input: 'coconut', inputJa: 'ヤシの実',
     equipment: { kind: 'fixture_coconut_tools', catalogEntry: 'fixture_coconut_tools', catalogVersion: TEST, condition: 1, params: {}, ja: '割る・削る・しぼる道具' },
+    // (the tools from the science side's recipe — a stake and a stone, a shell to grate, woven pandanus to strain: Lantern
+    // makes them from bamboo and what lies about; FINAL_REVIEW_2026-10-09-pit-fire TOOL_RECIPES)
+    built: 'fixture_coconut_tools', enough: 'coconut_milk',
     step: coconutMilkStep, env: 'record', energy: handsW(35), tend: 'stay',
-    ready: false, waits: '浜のヤシの実を在庫にする決まり（何個・何 mg、腐った実）と、' + NO_VESSEL },
+    ready: true, waits: 'ヤシの実と、割る・削る・しぼる道具（竹から作る）' },
   { processId: COCONUT_BOIL_PROCESS.processId, processVersion: COCONUT_BOIL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
-    ja: 'ヤシのミルクを煮て油をとる', input: 'coconut_milk', inputJa: 'ヤシのミルク', also: [{ input: 'firewood', ja: '薪' }],
-    equipment: { kind: 'fixture_cook_pot', catalogEntry: 'fixture_cook_pot', catalogVersion: TEST, condition: 1, params: { heatCapJPerK: 1800, uaWPerK: 3, heatShare: 0.2, capacityMl: 5000 }, ja: '鍋' },
-    moreEquipment: [{ kind: 'open_fire_pit', catalogEntry: 'open_fire_pit', catalogVersion: TEST, condition: 1, params: { heatCapJPerK: 20000, uaWPerK: 8, chamberFraction: 0.2, maxBurnKgPerH: 2, forcedCoolingUaFactor: 0 }, ja: '焚き火' }],
+    ja: 'ヤシのミルクを煮て油をとる', input: 'coconut_milk', inputJa: 'ヤシのミルク', also: [{ input: 'firewood', ja: '乾いた薪', minMg: 2_000_000, ok: DRY_WOOD }],
+    // (0.1.3: in the residents' own pot, fired in the open and made a cook pot — science table civ-sci.fired-pot-assembly/1)
+    equipment: { kind: COOK_POT, catalogEntry: COOK_POT, catalogVersion: TEST, condition: 1, params: {}, ja: '焼いた鍋' }, built: COOK_POT,
+    moreEquipment: [OPEN_FIRE],
     step: coconutBoilStep, env: 'record', tend: 'stay',
-    ready: false, waits: 'ヤシのミルクと薪の在庫と、' + NO_VESSEL },
+    ready: true, waits: 'ヤシのミルクと、乾いた薪と、焼いた鍋' },
   { processId: BAROMETER_PROCESS.processId, processVersion: BAROMETER_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '試験用の気圧計を置いて読む', input: '', inputJa: '',
     equipment: { kind: 'fixture_air_barometer', catalogEntry: 'fixture_air_barometer', catalogVersion: TEST, condition: 1, params: { bulbVolumeMl: 500, tubeBoreMm: 8, tubeLengthMm: 600, markMm: 5, bulbTauS: 900 }, ja: '試験用の気圧計' },
@@ -109,7 +128,7 @@ export const CATALOG: CatalogEntry[] = [
   { processId: CHARCOAL_PROCESS.processId, processVersion: CHARCOAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '二重の壺で炭と木タールを作る', input: 'firewood', inputJa: '詰める薪（レトルトの中に1ロット）', also: [{ input: 'firewood', ja: '燃料の薪' }],
     equipment: { kind: 'fixture_tar_retort', catalogEntry: 'fixture_tar_retort', catalogVersion: TEST, condition: 1, params: { heatCapJPerK: 4000, uaWPerK: 2.5, heatShare: 0.35, capacityMl: 8000, collectShare: 0.6 }, ja: '二重の壺（レトルト）' },
-    moreEquipment: [{ kind: 'open_fire_pit', catalogEntry: 'open_fire_pit', catalogVersion: TEST, condition: 1, params: { maxBurnKgPerH: 3 }, ja: '焚き火' }],
+    moreEquipment: [OPEN_FIRE],
     step: charcoalStep, env: 'record', tend: 'stay',
     ready: false, waits: '薪の在庫と、焼いた二重の壺（試験用の設備 fixture。島で焼いた器で作る方法を決める）' },
   { processId: TAR_SEAL_PROCESS.processId, processVersion: TAR_SEAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
@@ -127,8 +146,11 @@ export const CATALOG: CatalogEntry[] = [
   { processId: FIREWOOD_DRY_PROCESS.processId, processVersion: FIREWOOD_DRY_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '薪を積んで乾かす', input: 'firewood', inputJa: '積む薪（生木の枝）',
     equipment: { kind: 'firewood_stack', catalogEntry: 'firewood_stack', catalogVersion: TEST, condition: 1, params: { covered: 1, sunExposure: 0, topAreaM2: 0.2 }, ja: '屋根の下の薪の山' },
+    // (the stack's roof from the science side's recipe: bamboo and leaves, by the hut; wood still wet, piled together first)
+    // (45 kg green is some 30 kg seasoned: one pit fire's worth — science side's sums, 2026-10-09)
+    built: 'firewood_stack', inputOk: (l) => (l.quality?.water_ppm ?? 0) > SEASONED_PPM, minInputMg: 45_000_000,
     step: firewoodDryStep, env: 'record', finish: { action: 'take_out', afterMs: 30 * 86_400_000 }, tend: 'leave',
-    ready: false, waits: '薪を積む屋根の下の場所（ドットの家の軒下にする案。島で決める）' },
+    ready: true, waits: '生木の薪（まとめて45kg以上）と、屋根の下の薪の山（竹から作る）' },
   // (pots, the first half: science final review 2026-10-07-pottery, Codex a363557. Coiled by hand — no tool; the first
   // request says what to make. Dried on the same rack as the tiles, under leaves; taken off part-dried, a pot keeps how far
   // it has dried and goes on in the next run)
@@ -142,6 +164,16 @@ export const CATALOG: CatalogEntry[] = [
     equipment: null, start: { action: 'plan', params: { form: 1, capacityMl: 3000 } }, minInputMg: 1_500_000,   // (a 3 L cook pot takes about 1.4 kg)
     step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay',
     ready: true, waits: '下ごしらえした粘土（池で浸して練ってから）' },
+  // (science final review 2026-10-09-pit-fire: a dry pot fired in the open, the fire heaped round it. Lantern plans it
+  // once — warmed beside the fire half an hour, built up at a normal pace to a cherry red, held there half an hour, left to
+  // cool in the ashes — and tends it. A fire that hot takes some 20 kg of seasoned wood, more of wood dried only 30 days
+  // (28 %: 30–40 kg — science side's sums, 2026-10-09; the wood's amount is from an assumed fire, not yet measured);
+  // green wood never brings a pot to red. Run out of wood with the pot fired, it is still a fired pot.)
+  { processId: PIT_FIRE_PROCESS.processId, processVersion: PIT_FIRE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
+    ja: '乾いた器を野焼きする（焚き火で囲んで焼く）', input: 'dry_pot', inputJa: '乾いた器', also: [{ input: 'firewood', ja: '乾いた薪（30kg以上）', minMg: 30_000_000, ok: DRY_WOOD }],
+    equipment: OPEN_FIRE, start: { action: 'fire_plan', params: { preheatMin: 30, pace: 1, targetGlow: 1, holdMin: 30, forcedCooling: 0 } },
+    step: pitFireStep as ScienceStep, env: 'record', tend: 'stay',
+    ready: true, waits: '乾いた器と、乾いた薪（30kg以上）' },
 ];
 
 /** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,
@@ -156,3 +188,20 @@ export const POT_ASSEMBLY: AssemblyTable = {
   version: POT_ASSEMBLY_TABLE, kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, materials: ['fired_pot_test'],
   toParams: potToEquipmentParams, qualityOnReturn: potQualityOnReturn, brokenMaterial: 'pot_sherds', brokenQuality: potSherdsQuality,
 };
+
+/** A fired cook pot (or jar) made into the residents' cook pot, and back (science table civ-sci.fired-pot-assembly/1,
+ *  final review 2026-10-09): its heat capacity and loss from the pot itself; a cracked pot is not made one (it leaks). */
+export const COOK_POT_ASSEMBLY: AssemblyTable = {
+  version: FIRED_POT_ASSEMBLY_TABLE, kind: COOK_POT, catalogEntry: COOK_POT, catalogVersion: TEST, materials: [FIRED_POT],
+  toParams: (l) => cookPotParams(l), qualityOnReturn: firedPotQualityOnReturn, brokenMaterial: 'pot_sherds', brokenQuality: firedPotSherdsQuality,
+};
+/** Two fired pots made into a tar retort, the upper holding the charge, the lower catching the tar (the same table): a
+ *  lower pot too small for all a full charge can drip is refused. Going back, the wear of use is the upper pot's (an
+ *  assumed allocation); each pot keeps its own amount (process-runner disassembleParts). */
+export const RETORT_ASSEMBLY: PartsAssemblyTable = {
+  version: FIRED_POT_ASSEMBLY_TABLE, kind: TAR_RETORT, catalogEntry: TAR_RETORT, catalogVersion: TEST, roles: ['upper', 'lower'], materials: [FIRED_POT],
+  toParams: ([u, l]) => retortParams(u, l),
+  partsOnReturn: ([u, l], condition) => { const r = retortPartsOnReturn(u, l, condition); return [r.upper, r.lower]; },
+};
+/** The tools the residents make from the science side's recipes (what they take, how long by hand). */
+export const TOOLS = TOOL_RECIPES;

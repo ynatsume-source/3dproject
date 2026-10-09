@@ -25,8 +25,8 @@ import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './islandlang';
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
-import { abortRun, addLot, advance, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
-import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, type CatalogEntry } from '../world/process-catalog';
+import { abortRun, addLot, advance, assemble, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
+import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, TOOLS, SEASONED_PPM, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
@@ -798,8 +798,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (pin === insideHouse(t.x, t.z)) return null;
     const [ix, iz] = [0, HD - 0.6], [ox, oz] = [0, HD + 1.0], inDoorway = Math.abs(p.x) < 0.4 && p.z > HD - 0.8 && p.z < HD + 0.8;
     const go = (x: number, z: number): [number, number] => { const w = atHouse(x, z); return [w.x, w.z]; };
-    if (!pin) return Math.hypot(p.x - ox, p.z - oz) < 0.7 || inDoorway ? go(ix, iz) : go(ox, oz);
-    return Math.hypot(p.x - ix, p.z - iz) < 0.7 || inDoorway ? go(ox, oz) : go(ix, iz);
+    if (inDoorway) return null;   // (in the doorway itself: straight on, in or out — a point just past it can count as reached while still in it)
+    if (!pin) return Math.hypot(p.x - ox, p.z - oz) < 0.7 ? go(ix, iz) : go(ox, oz);
+    return Math.hypot(p.x - ix, p.z - iz) < 0.7 ? go(ox, oz) : go(ix, iz);
   }
   function houseNow() {
     const h = village.house, s = houseNext(), lv = hLevel();
@@ -1315,6 +1316,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // free (the world runs it)
     if (r.id === 'lantern' && !r.holding && !sleepTime(r, hr) && !village.labRuns.some((x) => x.by === r.id && lab.runs[x.runId]?.status !== 'completed' && !catalog.find((c) => c.processId === x.processId)?.gauge)) {   // (a gauge left reading does not keep it from other work)
       const pt = pitTask(); if (pt) return pt;   // (the clay pit first: the island's first tub)
+      const wt = workshopTask(); if (wt) return wt;   // (tools, the woodpile, a fired pot made a cook pot)
       const e = labReady()[0]; if (e) return task('lab', shelfStand(), 'work', e.entry.tend === 'stay' ? 4 * 3600 : 12, { data: { processId: e.entry.processId, lotId: e.lot?.lotId ?? '', more: e.more.map((l) => l.lotId) } });
     }
     // the pier, once they have agreed on it
@@ -1388,7 +1390,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         }
         const night = 1 - day;
         if (night < 0.5) return task('rest', spot(home, 20, open) ?? home, 'idle', rr(300, 900));   // (evening and dawn: it waits by its hill)
-        if (r.holding === 'stone') { const c = cairnSpots.find((c) => c[2] < 4) ?? null; return task('stack', c ? [c[0] - 0.7, c[1]] : spot(home, 40, (x, z, h) => h > 11), 'work', 5, { data: c }); }
+        if (r.holding === 'stone') {
+          const c = cairnSpots.find((c) => c[2] < 4) ?? null, at = c ? [c[0] - 0.7, c[1]] as [number, number] : spot(home, 40, (x, z, h) => h > 11);
+          if (at) return task('stack', at, 'work', 5, { data: c });
+          items.addAt('stone', r.pos.x, r.pos.z); r.holding = '';   // (no high ground near to stack it on: it is put down, and the hands are free)
+        }
         if (r.holding === 'coconut') return task('store', shelfStand(), 'work', 3);
         // (a rain catcher, once there is bamboo for it on the shelf)
         if (!village.catcher && shelfLots().some((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO)) return task('catcher', shelfStand(), 'work', 20);
@@ -1804,13 +1810,63 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     res.onEvent('pit', `${r.v.name}が粘土の池を掘った。粘土を浸せるようになった`, r);
     return true;
   }
+  /* ---------- Lantern's workshop: the tools a process waits for, the woodpile, a fired pot made a cook pot ---------- */
+  // (science final review 2026-10-09-pit-fire) The tools are made from the science side's recipes (TOOL_RECIPES: what
+  // they take from the shelf, how long by hand; stones and leaves are picked up where they lie) once a process that is
+  // ready waits for them. Firewood lots — the branches of each tree felled, each sapling — are piled together into one,
+  // to be dried under a roof and burned as one: a pit fire takes some 20 kg of seasoned wood. Mass adds up; the water
+  // and ash in it are the mass-weighted mean (the ash per dry mass by dry mass); a pile whose part was of unknown
+  // history is of unknown history. A fired pot of a cook pot's form is made a cook pot (civ-sci.fired-pot-assembly/1).
+  // (a tool is made when it would be used: a process that waits for it, with its own material on the shelf)
+  const inputThere = (e: CatalogEntry) => !e.input || shelfLots().some((l) => l.materialId === e.input && !(l as any).reservedBy && l.amount.value >= (e.minInputMg ?? 0) && (!e.inputOk || e.inputOk(l)));
+  const recipeWanted = () => TOOLS.find((t) => !lab.equipment[`eq:${t.kind}`] && catalog.some((e) => e.ready && e.built === t.kind && inputThere(e))
+    && t.materials.every((m) => shelfLots().some((l) => l.materialId === m.materialId && !(l as any).reservedBy && l.amount.value >= m.mg)));
+  // (wet and seasoned wood in piles of their own: a dried pile is not wetted again by green branches)
+  const freeWood = () => { const all = shelfLots().filter((l) => l.materialId === 'firewood' && !(l as any).reservedBy) as LotView[], dry = (l: LotView) => (l.quality?.water_ppm ?? 1e6) <= SEASONED_PPM; const wet = all.filter((l) => !dry(l)), dried = all.filter(dry); return wet.length >= 2 ? wet : dried.length >= 2 ? dried : wet; };
+  const potForCook = () => !lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] ? shelfLots().find((l) => l.materialId === 'fired_pot' && !(l as any).reservedBy && [1, 2].includes(l.quality?.form ?? 0) && !(l.quality?.crack)) : undefined;
+  function workshopTask(): Task | null {
+    const t = recipeWanted(); if (t) return task('tool', shelfStand(), 'work', t.handSeconds, { data: { kind: t.kind } });
+    if (freeWood().length >= 2) return task('stackwood', shelfStand(), 'work', 60 + 20 * freeWood().length);
+    const p = potForCook(); if (p) return task('assemble', shelfStand(), 'work', 90, { data: { lotId: p.lotId } });
+    return null;
+  }
+  function makeTool(r: Resident, kind: string) {
+    const t = TOOLS.find((x) => x.kind === kind); if (!t || lab.equipment[`eq:${kind}`]) return;
+    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg); if (!l) return; }
+    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg)!; l.amount.value -= m.mg; if (l.amount.value <= 0) delete lab.lots[l.lotId]; }
+    const e = catalog.find((x) => x.built === kind), eq = [e?.equipment, ...(e?.moreEquipment ?? [])].find((q) => q?.kind === kind);
+    lab.equipment[`eq:${kind}`] = { equipmentId: `eq:${kind}`, kind, catalogEntry: kind, catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params: { ...(eq?.params ?? {}) } };
+    lab.world.worldVersion++; drawStore();
+    note(r, 'tool', {}, `${t.ja}を作った（${t.materials.map((m) => `${MATERIAL_JA[m.materialId] ?? m.materialId}${+(m.mg / 1e6).toFixed(1)}kg`).join('・')}と、${t.picked}）`);
+  }
+  function stackWood(r: Resident) {
+    const ws = freeWood(); if (ws.length < 2) return;
+    const mass = ws.reduce((n, l) => n + l.amount.value, 0);
+    const mean = (k: string, w: (l: LotView) => number) => { const tw = ws.reduce((n, l) => n + w(l), 0); return tw > 0 ? Math.round(ws.reduce((n, l) => n + (l.quality?.[k] ?? 0) * w(l), 0) / tw) : 0; };
+    const water = mean('water_ppm', (l) => l.amount.value), ash = mean('ash_dry_ppm', (l) => l.amount.value * (1 - (l.quality?.water_ppm ?? 0) / 1e6));
+    const hist = ws.every((l) => (l.quality?.history_complete ?? 1) === 1) ? 1 : 0;
+    for (const l of ws) delete lab.lots[l.lotId];
+    addLot(lab, { materialId: 'firewood', amount: { value: mass, unit: 'mg' }, location: 'shelf', quality: { water_ppm: water, ...(ws.some((l) => l.quality?.ash_dry_ppm !== undefined) ? { ash_dry_ppm: ash } : {}), history_complete: hist } });
+    lab.world.worldVersion++; drawStore();
+    note(r, 'tool', {}, `薪を1つの山にまとめた（${ws.length}つ、${+(mass / 1e6).toFixed(1)}kg、水分${(water / 1e4).toFixed(0)}%）`);
+  }
+  function makeCookPot(r: Resident, lotId: string) {
+    if (lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`]) return;
+    const { equipment, why } = assemble(lab, lotId, COOK_POT_ASSEMBLY, clockMs);
+    if (!equipment) { r.diary.push({ at: clockMs, text: `焼いた器を鍋にしようとしたが、できなかった（${why}）`, key: 'study' }); return; }
+    const id = `eq:${COOK_POT_ASSEMBLY.kind}`; lab.equipment[id] = { ...lab.equipment[equipment.equipmentId], equipmentId: id }; delete lab.equipment[equipment.equipmentId];
+    drawStore();
+    note(r, 'tool', {}, `焼いた器を鍋にした（${equipment.params.capacityMl / 1000}L。焚き火にかけて使う）`);
+    res.onEvent('science', `${r.v.name}：焼いた器が、島の鍋になった`, r);
+  }
   /* ---------- Lantern's processes (the science core, run by the world) ---------- */
   const shelfStand = (): [number, number] => { const w = atHut(1.6, -3.2); return [w.x, w.z]; };   // (in front of the shelf, clear of the hut: room for Lantern's wide body)
   /** The processes that can run now: ready, with their material on the shelf and not in use. */
   function labReady() {
-    const free = (id: string, min = 0) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy && l.amount.value >= min);
+    const free = (id: string, min = 0, ok?: (l: LotView) => boolean) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy && l.amount.value >= min && (!ok || ok(l)));
     return catalog.filter((e) => e.ready && (!e.built || !!lab.equipment[`eq:${e.built}`]) && (e.env !== 'record' || islandWeather(clockMs))).flatMap((entry) => {   // (equipment they make themselves: once it stands)   // (not before the island's record is in: a process given unknown weather would only fail)
-      const lot = entry.input ? free(entry.input, entry.minInputMg) : undefined, more = (entry.also ?? []).map((a) => free(a.input));
+      const lot = entry.input ? free(entry.input, entry.minInputMg, entry.inputOk) : undefined, more = (entry.also ?? []).map((a) => free(a.input, a.minMg, a.ok));
+      if (entry.enough && free(entry.enough)) return [];
       return (entry.input && !lot) || more.some((m) => !m) || village.labRuns.some((x) => x.processId === entry.processId && !entry.input) ? [] : [{ entry, lot, more: more as LotView[] }];
     });
   }
@@ -2249,6 +2305,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         else note(r, 'wall', {}, `石垣に石を積んだ（${village.wall.n}/${WALL_N}）`);
         break;
       }
+      case 'tool': makeTool(r, tk.data?.kind); break;
+      case 'stackwood': stackWood(r); break;
+      case 'assemble': makeCookPot(r, tk.data?.lotId); break;
       case 'twist': village.house.rope += 10; note(r, 'house', {}, `アダンの気根の繊維をよって縄をなった（10m。いま${village.house.rope}m）`); break;
       case 'cut': r.holding = 'grass'; note(r, 'house', {}, '茅にする草を刈って束ねた'); break;
       case 'weigh': if (!village.house.weighed) { village.house.weighed = true; village.prepSaved.push('家の屋根'); note(r, 'house', {}, '台風に備えて、家の屋根に重しの竿を渡して縛った'); } break;
@@ -2337,8 +2396,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // walkers keep to land: if the way ahead is water, turn uphill along the shore (not when following a
     // planned way, which already keeps to the land: the two would pull it to and fro)
     if (!r.path && (!r.sp.swims || (!wetTask && !inWater))) {
-      const ax = r.pos.x + Math.sin(want) * 2, az = r.pos.z + Math.cos(want) * 2;
-      if (G(ax, az) < 0.25 && !(r.sp.swims && wetTask)) {
+      // (looking no further ahead than where it is going, and the water's edge where that is lower than it: a log
+      // left at the tideline a step away is not 'the sea ahead' — owner's watch, 2026-10-09)
+      const look = Math.min(2, Math.max(0.5, d0)), ax = r.pos.x + Math.sin(want) * look, az = r.pos.z + Math.cos(want) * look;
+      if (G(ax, az) < Math.min(0.25, G(tx, tz) - 0.03) && !(r.sp.swims && wetTask)) {
         const gx = L.h(r.pos.x + 1.5, r.pos.z) - L.h(r.pos.x - 1.5, r.pos.z), gz = L.h(r.pos.x, r.pos.z + 1.5) - L.h(r.pos.x, r.pos.z - 1.5);
         const up = Math.atan2(gx, gz), side = want + (Math.sin(want - up) > 0 ? 1.2 : -1.2);
         want = Math.abs(gx) + Math.abs(gz) > 0.01 ? side : want + 1.5;
@@ -2878,11 +2939,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const toward: Record<string, string> = {
       sleep: r.sp.swims && tk?.wet ? '眠る場所へ泳いでいく' : '寝床へ向かっている', charge: '日なたへ向かっている', look: '海の見える場所へ向かっている', watch: '海を観察する浜へ向かっている',
       rest: '丘のふもとへ向かっている', think: '丘の上へ歩いている', float: '静かな水面へ向かっている', nap: '昼寝のできる静かな水面へ向かっている', crack: '貝を割る場所へ向かっている',
-      carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている', house: '家の作業に向かっている', cut: '草を刈りに向かっている', seastone: '石を拾いに潜りに行く', nest: '休み場に石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行く', wall: '石を石垣へ運んでいる', shelter: '雨風をよけに屋根の下へ',
+      carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている', house: '家の作業に向かっている', cut: '草を刈りに向かっている', tool: '棚へ道具を作りに向かっている', stackwood: '薪をまとめに向かっている', assemble: '焼いた器を取りに向かっている', seastone: '石を拾いに潜りに行く', nest: '休み場に石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行く', wall: '石を石垣へ運んでいる', shelter: '雨風をよけに屋根の下へ',
     };
     if (tk && !tk.arrived && toward[k]) return toward[k] + left;
     const base: Record<string, string> = {
-      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', seastone: '海の底で石を拾っている', nest: '休み場の囲いに石を積んでいる', stonedrop: '浜に石を置いている', wallfetch: '石置き場で石を取っている', wall: '石垣を積んでいる', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
+      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', tool: '道具を作っている', stackwood: '薪を1つの山にまとめている', assemble: '焼いた器を鍋にしている', seastone: '海の底で石を拾っている', nest: '休み場の囲いに石を積んでいる', stonedrop: '浜に石を置いている', wallfetch: '石置き場で石を取っている', wall: '石垣を積んでいる', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
       explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
       visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を写真に撮っている`, answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',
@@ -3123,7 +3184,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
   };
   (res as any).items = items;   // (for ?debug)
-  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).T = T; (res as any).houseG = houseG; (res as any).shelterK = shelterK; (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
+  (res as any).village = village; (res as any).items = items; (res as any).lab = lab; (res as any).T = T; (res as any).houseG = houseG; (res as any).shelterK = shelterK; (res as any).labReady = () => labReady().map((x) => x.entry.processId); (res as any).setCatalog = (c: CatalogEntry[]) => (catalog = c);   // (for checks)
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[], en?: string) {
