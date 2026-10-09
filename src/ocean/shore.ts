@@ -15,14 +15,17 @@ import { Solids } from '../robots/solids';
 // lighting in the open air: sun (reddened low down), moon and sky; the photo already carries the
 // look of the place, this only turns it with the time of day
 export const AIRLIT = /* glsl */ `
-vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){
+// (fill: how much more of the open sky's light reaches the faces turned away from it — a crown's underside is lit by
+// the bright sky all round it and the sand beneath, not only by what is straight above; 0 for most things)
+vec3 airLitF(vec3 alb, vec3 n, vec3 wp, float trans, float fill){
   float nl = dot(n, uAirSun);
   vec3 sun = sunAirCol() * (max(nl, 0.0) + trans * max(-nl, 0.0) * 0.6) * (1.0 - 0.7 * uCloud);
   vec3 moon = vec3(0.5, 0.55, 0.65) * max(dot(n, uAirMoon), 0.0) * uMoonI * 0.4;
   vec3 sky = skyAir(vec3(0.0, 1.0, 0.0), -1.0);
-  sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
+  sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y + fill * (0.6 - 0.4 * n.y)) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
   return alb * (sun * 0.8 + moon + sky * 0.55) + lamp(alb, wp, n);
 }
+vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){ return airLitF(alb, n, wp, trans, 0.0); }
 `;
 
 // the floor shader's view of the land: photo, cover, and how to light what is above the water
@@ -473,21 +476,23 @@ function shrubGeo(silver: boolean) {
   const B = new Builder(mulberry32(silver ? 47 : 45)), bark = [0.46, 0.4, 0.33];
   if (!silver) {
     const top = [0.32, 0.52, 0.18], deep = [0.11, 0.27, 0.09], mid = V(0, -0.05, 0);
-    B.blob(V(0, 0.22, 0), 0.36, 0.3, 0.36, top, deep, 0.15, 3, mid, 0.45, 0.6, 0);
+    // (within the 0.55 × 0.5 a resident walks round: robots/residents.ts VEG)
+    B.blob(V(0, 0.2, 0), 0.3, 0.28, 0.3, top, deep, 0.15, 3, mid, 0.45, 0.6, 0);
     for (let k = 0; k < 6; k++) {
-      const an = k / 6 * 6.28 + B.rr(-0.3, 0.3), d = B.rr(0.3, 0.4), r = B.rr(0.2, 0.27);
+      const an = k / 6 * 6.28 + B.rr(-0.3, 0.3), d = B.rr(0.22, 0.28), r = B.rr(0.18, 0.24);
       B.blob(V(Math.cos(an) * d, r * 0.55, Math.sin(an) * d), r, r * 0.85, r, top, deep, 0.2, 3, mid, 0.45, 0.6, 0);
     }
   } else {
     // a short crooked trunk, limbs out and up into the crown's puffs
-    const top0 = V(B.rr(-0.06, 0.06), 0.24, B.rr(-0.06, 0.06)), cc = top0.clone().add(V(0, 0.28, 0));
+    // (within the 0.5 × 0.75 a resident walks round)
+    const top0 = V(B.rr(-0.05, 0.05), 0.2, B.rr(-0.05, 0.05)), cc = top0.clone().add(V(0, 0.24, 0));
     B.tube(V(0, 0, 0), top0, 0.055, 0.04, bark, 0, 0.05, 7, V(0.03, 0, 0), 3);
     const top = [0.42, 0.55, 0.38], deep = [0.2, 0.29, 0.18];
-    B.blob(cc.clone().add(V(0, 0.12, 0)), 0.3, 0.24, 0.3, top, deep, 0.25, 2, cc, 0.5);
+    B.blob(cc.clone().add(V(0, 0.08, 0)), 0.26, 0.2, 0.26, top, deep, 0.25, 2, cc, 0.5);
     for (let k = 0; k < 5; k++) {
-      const an = k * 1.26 + B.R() * 0.5, e = cc.clone().add(V(Math.cos(an) * B.rr(0.24, 0.32), B.rr(-0.06, 0.06), Math.sin(an) * B.rr(0.24, 0.32)));
+      const an = k * 1.26 + B.R() * 0.5, e = cc.clone().add(V(Math.cos(an) * B.rr(0.18, 0.22), B.rr(-0.06, 0.04), Math.sin(an) * B.rr(0.18, 0.22)));
       B.tube(top0, e.clone().lerp(top0, 0.3), 0.03, 0.016, bark, 0.05, 0.25, 5, V(0, 0.04, 0));
-      const r = B.rr(0.2, 0.26); B.blob(e, r, r * 0.8, r, top, deep, 0.3, 2, cc, 0.5);
+      const r = B.rr(0.15, 0.2); B.blob(e, r, r * 0.8, r, top, deep, 0.3, 2, cc, 0.5);
     }
   }
   return B.geo();

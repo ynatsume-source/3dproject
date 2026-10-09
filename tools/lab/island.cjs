@@ -44,9 +44,13 @@ const fs = require('fs');
       if (can(x, z) > 0.85 && [0, 1, 2, 3, 4, 5].every((k) => can(x + Math.cos(k * 1.05) * 10, z + Math.sin(k * 1.05) * 10) > 0.7) && !(T.solids && T.solids.hit && T.solids.hit(x, z, { r: 0.8, y0: 0, y1: 2, step: 0.1 }, g(x, z)))) inn = [x, z, a];
     }
     if (inn) { const [x, z, a] = inn; out.inside = look([x, g(x, z) + 1.7, z], [x + Math.cos(a) * 10, g(x, z) + 2.4, z + Math.sin(a) * 10]); }
+    // the seam: from a little above Dot's home, looking over the forest to where the trees give way to the canopy's
+    // surface (the aerial photograph) — the way with the most forest from 60 to 160 m off
+    { let bestA = 0, bs = -1; for (let a = 0; a < 6.28; a += 0.1) { let sc = 0; for (let d = 60; d <= 160; d += 10) sc += can(home[0] + Math.cos(a) * d, home[1] + Math.sin(a) * d); if (sc > bs) { bs = sc; bestA = a; } }
+      const t = [home[0] + Math.cos(bestA) * 110, g(home[0], home[1]) + 4, home[1] + Math.sin(bestA) * 110]; out.seam = look([home[0] - Math.cos(bestA) * 10, g(home[0], home[1]) + 16, home[1] - Math.sin(bestA) * 10], t); }
     return out;
   });
-  const only = (process.env.ONLY || 'homestead,edge,beach,inside').split(',');
+  const only = (process.env.ONLY || 'homestead,edge,beach,inside,seam').split(',');
   for (const name of only) {
     const q = poses[name]; if (!q) { console.log('no place for', name); continue; }
     await p.evaluate((q) => { const s = window.seaglass; s.hold(true); s.aim(q.pos, q.yaw, q.pitch); s.advance(+(window.__N || 12), 0.1); }, q);

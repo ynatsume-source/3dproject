@@ -228,7 +228,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 0.4);
          vec3 alb = vCol * (0.88 + 0.28 * l2) * mix(0.75, 1.15, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
          alb = mix(alb, vec3(0.5, 0.56, 0.24), smoothstep(0.8, 0.96, l1) * 0.25);              // (new leaves, paler)
-         col = airLit(alb, n, vWp, 0.8) + alb * vec3(0.2, 0.2, 0.15) * max(-normalize(vN).y, 0.0) * (1.0 - uNight * 0.8);   // (the sunlit sand lights the crowns' undersides)
+         col = airLitF(alb, n, vWp, 0.8, 0.9);   // (the open sky all round, and the sand, light the crowns' undersides too)
        } else {
          // bark: grey-brown, ridged, mossy on the shaded side
          float ridge = vn2(vec2(atan(vL.x, vL.z) * 3.0, vL.y * 40.0));
