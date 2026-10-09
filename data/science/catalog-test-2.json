@@ -1238,7 +1238,7 @@
         "capacityMl": "上の器の容量（詰める量、1 L 以上）",
         "collectShare": "下の器に落ちる割合（標準 0.6）"
       },
-      "note": "住民の二重の壺：fired_pot 2つ（上に薪を詰め、下でタールを受ける）を本体が組み立てる。retortParams"
+      "note": "住民の二重の壺：fired_pot 2つ（上に薪を詰め、下でタールを受ける）を本体が組み立てる。retortParams。下の器は、上の器いっぱいの詰め物から落ちうる液（上の容量 × 0.4 g/mL × 0.32 × collectShare、1 g = 1 mL）を受けきれる大きさであること（Codex AS-A1、受けきれない組み合わせは retortParams が拒否）。戻すときは retortPartsOnReturn：通常使用の傷みは上の器、量は本体が上下それぞれ持つ"
     },
     {
       "id": "lamp_dish",
