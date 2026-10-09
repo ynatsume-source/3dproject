@@ -200,6 +200,17 @@ console.log('7. requests that are refused');
   refused('a pot without its shape', step(dryReq(0, H, null, [{ ...greenCook, quality: { water_ppm: 200_000, xd_kaolinite_ppm: 600_000 } }], [], SHADE)), /form, capacity_ml and wall_mm/);
 }
 
+console.log('9. the fastest drying is read back, however fast (p12y 0.1.2, Codex C2)');
+{
+  const blast = step(dryReq(0, 1000, null, [greenCook], [], { t: 70, rh: 0, wind: 80 }, { equipment: [RACK({ sunExposure: 1 })], stop: 'operator' }));
+  const hot = blast.produced[0];
+  const next = step(dryReq(0, H, null, [{ ...greenCook, quality: hot.quality }], [], SHADE, { stop: 'operator' }));
+  const huge = (ppm: number) => step(dryReq(0, H, null, [{ ...greenCook, quality: { ...hot.quality, dry_flux_ratio_max_ppm: ppm } }], [], SHADE, { stop: 'operator' }));
+  const a = huge(50_000_000), b = huge(3_000_000_000);
+  ok(next.status === 'stopped' && b.status === 'stopped' && JSON.stringify(a.produced[0].quality!.crack) === JSON.stringify(b.produced[0].quality!.crack),
+    'a pot dried in the fiercest weather the step accepts is read back by the next run; past saturation (50× or 3000×) the crack is the same', `${hot.quality!.dry_flux_ratio_max_ppm} ppm`);
+}
+
 console.log('—   every result above passed the contract checker');
 ok(violations.length === 0, 'validateResult: no violation', violations.slice(0, 3).join(' / '));
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -25,9 +25,9 @@ import { draw } from '../rng';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, intDeltaFloor, subStepEnd, tileComp, tileQuality, wind10m } from './common';
 
 export const POT_SHAPE_PROCESS = { processId: 'p11y_pot_shape', processVersion: '0.1.0' } as const;
-export const POT_DRY_PROCESS = { processId: 'p12y_pot_dry', processVersion: '0.1.1' } as const;
+export const POT_DRY_PROCESS = { processId: 'p12y_pot_dry', processVersion: '0.1.2' } as const; // 0.1.2: any finite fastest-drying ratio is read back (Codex C2)
 const SHAPE_SCHEMA = 'civ-sci.pot-shape/1', SHAPE_EVAL = 'pot-shape-eval/0.1.0';
-const DRY_SCHEMA = 'civ-sci.pot-dry/1', DRY_EVAL = 'pot-dry-eval/0.1.1';
+const DRY_SCHEMA = 'civ-sci.pot-dry/1', DRY_EVAL = 'pot-dry-eval/0.1.2';
 export const GREEN_POT = 'green_pot', DRY_POT = 'dry_pot';
 const STEP_MS = 30_000;
 
@@ -177,7 +177,11 @@ export function potDryStep(req: ScienceStepRequest): ScienceStepResult {
     if (![0, 1, undefined].includes(p.covered)) return fail('drying_rack params.covered must be 0 or 1 (leaves over the pot)');
     const q = lot.quality ?? {};
     if (![1, 2, 3].includes(q.form) || !finite(q.wall_mm, 2, 20) || !finite(q.capacity_ml, 1, 1e5)) return fail(`${GREEN_POT} ${lot.lotId} needs form, capacity_ml and wall_mm`);
-    if (![0, 1, 2, undefined].includes(q.dry_stage) || !finite(q.dry_flux_ratio_max_ppm ?? 0, 0, 1e9)) return fail(`${GREEN_POT} ${lot.lotId}: dry_stage 0/1/2, dry_flux_ratio_max_ppm ≥ 0`);
+    // 0.1.2 (Codex C2 on 042cc53): the fastest drying a pot has had is any finite, non-negative ratio. Its effect saturates
+    // (crack chance at pCrackMax from about 4×, severity at 3.2×), and under the weather this step accepts it stays
+    // below about 1e9 ppm (880×: 70 °C, RH 0, wind 80 m/s, full sun, 20 mm wall for a second), far inside whole-number
+    // range, so what a run writes is always read back; it is never cut short (that would change its meaning).
+    if (![0, 1, 2, undefined].includes(q.dry_stage) || !finite(q.dry_flux_ratio_max_ppm ?? 0, 0, Number.MAX_SAFE_INTEGER)) return fail(`${GREEN_POT} ${lot.lotId}: dry_stage 0/1/2, dry_flux_ratio_max_ppm ≥ 0`);
     let comp: Composition;
     try { comp = tileComp(lot); } catch (e) { return fail((e as Error).message); }
     const water = comp.water ?? 0, dry = totalMg(comp) - water;

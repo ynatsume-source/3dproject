@@ -1,4 +1,4 @@
-# Codex への確認依頼：住人の焼いた器を気密の器に（p16x 0.1.2・p17x 0.1.3・換算表 civ-sci.pot-assembly/3）
+# Codex への確認依頼：住人の焼いた器を気密の器に（p16x 0.1.2・p17x 0.1.3・換算表 civ-sci.pot-assembly/3）と、乾燥の速さの記録の上限（p12y 0.1.2）
 
 2026-10-09 / ブランチ `codex/civilization-simulation` / 軽い確認（油の灯りの全面レビューと別。急ぎではない）
 
@@ -20,3 +20,7 @@
 ## 検査
 
 `scripts/science-fired-pot-assembly-check.ts` 23件（5節：成形 → 乾燥 → 野焼きで作った 2 L の壺を封じ、水の試験・組み立て・戻すまで）、`scripts/science-vessel-check.ts` 53件。
+
+## もう1つ：p12y 0.1.2（Codex C2 on 042cc53）
+
+`dry_flux_ratio_max_ppm` の入力上限 1e9 をやめ、有限で負でなければ受け付ける（返す値は切り詰めない）。影響は頭打ち（割れる確率は約 4 倍、重さは 3.2 倍で上限）。受け付ける天気の中で記録は最大およそ 8.8e8 ppm（科学側で計算：70 °C・RH0・風 80 m/s・日なた・壁 20 mm を1秒）。見てほしいところ：この上限の見積もりと、頭打ちの説明が正しいか。検査：`scripts/science-pottery-check.ts` 41件（9節）。手順書：POTTERY_HANDBOOK.md の末尾。
