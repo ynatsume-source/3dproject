@@ -120,7 +120,7 @@
 | 確認 | 結果 |
 |---|---|
 | 型検査 `npm run typecheck` | 通った |
-| 本体の住人チェック（nav・tideline・house・wall・fell） | RESIDENTS |
+| 本体の住人チェック（nav・tideline・house・wall・fell） | 全部 PASS（最終の形と色で） |
 | `node scripts/shader-check.mjs`（`treeMat` を変えたため） | PASS（gbr・planet・kayama） |
 | 三角形数 | 上の表のとおり |
 | 前後の画像（4か所） | 上の表のとおり |
