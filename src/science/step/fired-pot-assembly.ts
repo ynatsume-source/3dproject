@@ -13,12 +13,12 @@
 
 import type { LotView } from '../../world/science-contract';
 import { pv } from '../params';
-import { finite } from './common';
+import { finite, isInt } from './common';
 import { BULK_G_PER_ML } from './charcoal';
 import { FIRED_POT } from './pit-fire';
 import { potSherdsQuality } from './vessel';
 
-export const FIRED_POT_ASSEMBLY_TABLE = 'civ-sci.fired-pot-assembly/1';
+export const FIRED_POT_ASSEMBLY_TABLE = 'civ-sci.fired-pot-assembly/2'; // /2: the fired body apart from the water and tar its walls hold (Codex VF-A1); bare pots as /1
 export const COOK_POT = 'cook_pot', TAR_RETORT = 'tar_retort', LAMP_DISH = 'lamp_dish';
 
 function readFired(lot: LotView, forms: number[], what: string) {
@@ -26,10 +26,17 @@ function readFired(lot: LotView, forms: number[], what: string) {
   if (lot.materialId !== FIRED_POT) throw new Error(`${what} is made from a ${FIRED_POT} lot (got ${lot.materialId})`);
   if (!forms.includes(q.form)) throw new Error(`${what} needs a pot of form ${forms.join(' or ')} (1 cook pot, 2 jar, 3 lamp dish)`);
   if (!finite(q.capacity_ml, 1, 1e5) || !finite(q.surface_cm2, 1, 1e6) || !finite(q.absorption_ppm ?? 0, 0, 1e6)) throw new Error(`${lot.lotId} needs capacity_ml, surface_cm2 and absorption_ppm`);
+  for (const k of ['x_wood_tar_ppm', 'x_water_ppm', 'coverage_ppm']) if (q[k] !== undefined && !(isInt(q[k]) && q[k] <= 1e6)) throw new Error(`${lot.lotId}: ${k} must be a whole ppm`);
   if ((q.crack ?? 0) >= 1 || (q.crack_ppm ?? 0) > 0) throw new Error(`${lot.lotId} has a crack: a cracked pot leaks and is not assembled`);
   // a pot stopped with a plug and tar (the sealed vessel, p16x) has no open mouth: it is a barometer bulb, not a pot to cook in
   if (q.sealed === 1) throw new Error(`${lot.lotId} is stopped with a plug (sealed): it is not assembled as an open pot`);
-  return { massG: lot.amount.value / 1000, capacityMl: q.capacity_ml as number, areaM2: q.surface_cm2 / 1e4, absorptionPpm: q.absorption_ppm ?? 0 };
+  // the fired body apart from what its walls hold (Codex VF-A1): tar and wall water are x_*_ppm of the whole lot (as the
+  // sealed vessel writes them), absorption_ppm is of the body. Mass and heat are the body's (the water and tar in the
+  // walls are not counted: an approximation); a lamp dish's walls take up oil only where water and tar leave room.
+  const tar = Math.floor((lot.amount.value * (q.x_wood_tar_ppm ?? 0)) / 1e6), water = Math.floor((lot.amount.value * (q.x_water_ppm ?? 0)) / 1e6);
+  const body = lot.amount.value - tar - water, abs = (q.absorption_ppm ?? 0) / 1e6;
+  const openAbs = Math.max(0, abs * (1 - (q.coverage_ppm ?? 0) / 1e6) - water / body);
+  return { massG: body / 1000, capacityMl: q.capacity_ml as number, areaM2: q.surface_cm2 / 1e4, absorptionPpm: Math.round(openAbs * 1e6) };
 }
 const heatCap = (g: number) => Math.round(g * pv('cpCeramic'));
 const loss = (m2: number) => Math.round(m2 * pv('firedPotLossWPerM2K') * 100) / 100;

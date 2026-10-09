@@ -1,4 +1,4 @@
-# 手順書：油の灯りをともす（p40x_oil_lamp 0.1.0）
+# 手順書：油の灯りをともす（p40x_oil_lamp 0.1.1）
 
 2026-10-09 / ブランチ `codex/civilization-simulation` / **未採択の提案**（Codex の全面レビューと本体の最終レビューの後に統合）
 
@@ -8,7 +8,7 @@
 
 | もの | 中身 |
 |---|---|
-| `coconut_oil` 1ロット | 澄んだ油（p31x の生成物そのまま。`x_coconut_fat_ppm`、水が少しあってもよい）。皿に入る量まで（密度 0.92） |
+| `coconut_oil` 1ロット | 澄んだ油（p31x の生成物そのまま）。`x_coconut_fat_ppm` と `x_water_ppm` で 1000000、水は 2% まで。皿に入る量まで（密度 0.92）。灯皿は 1000 mL まで |
 | `lamp_wick` 1ロット | quality `fiber`（1 アダン、2 ヤシの実の繊維、3 葦の髄）、`diameter_mm` 2〜10、`char_ppm`。本体が `WICK_RECIPES` の材料から作る（`wickQuality(fiber, diameterMm)`） |
 | 灯皿にしみこんだ油（あれば） | 前に使った皿なら、前回返った `coconut_oil`（`soaked_in_dish: 1`、皿の equipmentId に置く）も入れる |
 | `lamp_dish`（設備） | `lampDishParams(lot)` に、置き場所の `shelter`（風よけ 0〜1：屋外 0、小屋の中 0.8 など）と `roofed`（屋根の下 1）を本体が足す |
@@ -54,3 +54,20 @@
 ## 6. 次のレビューで見てほしいこと
 
 検査：`scripts/science-oil-lamp-check.ts` 34件。資料：`sources.json` に4件（`kahwaji-white-coconut-pcm-2019`・`sisi-vanuatu-straight-coconut-oils-2020`・`hughes-gale-lamp-consumption-2007`・`moullou-doulos-topalis-historical-lamp-photometry-2015`、すべて calibrationEligible: false）。
+
+## 7. 0.1.1 の変更（Codex の全面レビュー eb3cd0b：A1〜A6・B1）
+
+| 指摘 | 変更 |
+|---|---|
+| A1 要求の端や look で、消えるかどうかが変わる | run の始まりからの 1 秒のセル（手の操作でも区切る）の頭でだけ、灯るか・燃える速さ・しみこむ速さ・焦げる速さを決め、セルの間は保つ。途中の量はセルの頭からの式で出す。要求の端や look は何も決めない（Codex の境界の例、737 ms ごとの要求、29 分ごとで、状態の小数まで一致） |
+| A2 皿にしみた水を脂として返す | 皿の油は脂と水を別に持つ。壁が吸うのは脂だけ。しみこんだ油のロットは脂だけ（水があれば拒否） |
+| A3 水だけで灯る | 炎で燃えて明かりと熱になるのは脂だけ、水は飛ぶ。水が 2% を超える油は拒否（何も燃えない） |
+| B1 返した油が次の run で拒否される | 残った脂は澄んだ油（`coconut_oil`、脂だけ）、残った水は `process_water` として分けて返す（油と水は混ざらない）。返した油は必ず次でそのまま読める |
+| A4 見ていない間のともった時間を教える | 終わりの言葉は「灯を消した」「灯はもう消えていた」とすすだけ。ともった長さは `diagnostics.litSeconds`（世界用） |
+| A5 新しい芯を焦げとして切る | 先が焦げていない芯（焦げ 0.2 未満）は切らず「芯の先はまだ焦げていない」 |
+| A6 すすの炭素の熱まで数える | すすとして残る炭素の燃焼熱（32.76 J/mg）を差し引く |
+| C1 屋根なしでも天井がすすける | 屋根の下なら「屋根の裏」、なければ「皿のまわり」だけ |
+
+状態は `civ-sci.oil-lamp/2`。0.1.0 の run（状態 /1）は拒否される（本体は中止して予約を解放）。検査は 47 件（9〜11 節が今回の回帰）。§3 の数字は変わらない。
+
+本体へ：油に水が入っていた場合、終わりに `process_water` のロットも皿の場所に返る。灯皿は換算表 /2 の `lampDishParams`（壁の水・タールを除いた素地の重さと、油を吸える割合）。

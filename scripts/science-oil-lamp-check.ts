@@ -3,7 +3,7 @@
 import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
-import { OIL_LAMP_PROCESS, WICK_RECIPES, wickQuality } from '../src/science/step/oil-lamp';
+import { lampOilQuality, OIL_LAMP_PROCESS, readLampOil, WICK_RECIPES, wickQuality } from '../src/science/step/oil-lamp';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -43,6 +43,7 @@ function night(until: number, xs: A[], o: Partial<ScienceStepRequest> = {}, chun
   return { all, last, obs: all.flatMap((r) => r.observations), diag: last.diagnostics as Record<string, number | string>,
     out: (m: string, soaked = false) => last.produced.find((p) => p.materialId === m && ((p.quality?.soaked_in_dish ?? 0) === 1) === soaked) };
 }
+const refused0 = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));
 const words = (r: { obs: ScienceStepResult['observations'] }) => r.obs.map((o) => o.text).join(' / ');
 const hourly = Array.from({ length: 6 }, (_, i) => [i * H + 20 * M, 'look'] as A);
 
@@ -127,6 +128,85 @@ console.log('6. pieces, looks, unknown weather, a lost dish');
   const lostSplit = step(req(H, 2 * H, JSON.parse(JSON.stringify(first.state)), [OIL(), WICK()], [], NIGHT, { stop: 'equipment-lost', equipment: [] }));
   ok(JSON.stringify([lostWhole.produced, lostWhole.released]) === JSON.stringify([lostSplit.produced, lostSplit.released]) && lostWhole.status === 'stopped' && Number((lostWhole.diagnostics as Record<string, number>).litSeconds) === 7200,
     'a dish lost at 2 h: it burned until then, in one request or two');
+}
+
+console.log('9. the cells: a request\'s end or a look never decides (0.1.1, Codex A1 on eb3cd0b)');
+{
+  // Codex's case: a fully charred coir wick at 22.33 °C sits at the edge of going out
+  const edgeWick: LotView = { ...WICK(2), quality: { ...wickQuality(2, 4), char_ppm: 1_000_000 } };
+  const env: Env = { t: 22.33, wind: 2, rain: 0 };
+  const edgeDish = { equipment: [DISH({ absorptionPpm: 0 })] };
+  const run = (cuts: number[]) => {
+    const xs: A[] = [[1007, 'light'], [1107, 'look'], [2008, 'look'], [60_007, 'look']];
+    const bounds = [1007, ...cuts, 61_007];
+    let st: ScienceStepRequest['state'] = null; const all: ScienceStepResult[] = [];
+    for (let i = 0; i < bounds.length - 1; i++) {
+      const r = step(req(bounds[i], bounds[i + 1], st, [OIL(), edgeWick], acts(xs.filter(([at]) => at >= bounds[i] && at < bounds[i + 1])), env, { ...edgeDish, ...(i === bounds.length - 2 ? { stop: 'operator' } : {}) }));
+      all.push(r); st = JSON.parse(JSON.stringify(r.state));
+    }
+    const last = all[all.length - 1];
+    return JSON.stringify([last.produced, last.released, (last as unknown as Drawn).drawn, all.reduce((t, x) => t + (x.energy[0]?.usedJ ?? 0), 0), all.flatMap((x) => x.observations), (last.diagnostics as Record<string, number>).lumenSeconds, (last.diagnostics as Record<string, number>).litSeconds]);
+  };
+  const whole = run([]), atLook = run([1107]), many = run([1107, 1207, 2008, 2508, 30_007]);
+  ok(whole === atLook && whole === many, 'cutting at the first look (or at many odd moments) changes nothing at the edge of going out: same fuel, heat, light and words');
+  const obs = JSON.parse(whole)[4] as { text: string }[];
+  const outAt = obs.findIndex((x) => /消えた/.test(x.text)), brightAfter = obs.slice(outAt + 1).some((x) => /明るい|見える/.test(x.text));
+  ok(outAt < 0 || !brightAfter, 'the words never go from "it went out" back to "it is bright" without lighting again', obs.map((x) => x.text).join(' / '));
+  const warmNight = (chunk: number) => {
+    const xs: A[] = [[1007, 'light', { wickOut: 1 }], [40 * M + 3, 'look'], [70 * M + 11, 'trim'], [2 * H + 1007 - 1, 'look']];
+    let st: ScienceStepRequest['state'] = null; const all: ScienceStepResult[] = [];
+    for (let t = 1007; t < 2 * H + 1007; t += chunk) {
+      const e = Math.min(2 * H + 1007, t + chunk);
+      const r = step(req(t, e, st, [OIL(), WICK()], acts(xs.filter(([at]) => at >= t && at < e)), NIGHT, e === 2 * H + 1007 ? { stop: 'operator' } : {}));
+      all.push(r); st = JSON.parse(JSON.stringify(r.state));
+    }
+    const last = all[all.length - 1];
+    return JSON.stringify([last.produced, last.released, all.reduce((t, x) => t + (x.energy[0]?.usedJ ?? 0), 0), all.flatMap((x) => x.observations), last.state.data]);
+  };
+  ok(warmNight(2 * H) === warmNight(737) && warmNight(2 * H) === warmNight(29 * M + 13), 'a warm night started at 1007 ms: one request = 737 ms requests = 29 min pieces, down to the state\'s last decimal');
+  refused0('a 0.1.0 run (state /1) is refused; the host cancels it and gives its lots back', step(req(H, 2 * H, { schema: 'civ-sci.oil-lamp/1', data: {} }, [OIL(), WICK()], [], NIGHT)), /unsupported-state-schema/);
+}
+
+console.log('10. what is in the oil (Codex A2, A3, B1)');
+{
+  const wet = OIL(60_000, { x_coconut_fat_ppm: 980_000, x_water_ppm: 20_000 });
+  const parts = (p?: ScienceStepResult['produced'][number]) => (p ? readLampOil({ lotId: 'x', materialId: p.materialId, amount: p.amount, location: 'x', quality: p.quality }, p.quality?.soaked_in_dish === 1) : { fat: 0, water: 0 });
+  const sit = night(H + M, [[H, 'put_out']], {}, H, () => NIGHT, [wet, WICK()]);
+  const left = parts(sit.out('coconut_oil')), soaked = parts(sit.out('coconut_oil', true)), waterBack = sit.last.produced.find((x) => x.materialId === 'process_water')?.amount.value;
+  ok(waterBack === 1_200 && left.water === 0 && left.fat + soaked.fat === 58_800 && soaked.water === 0 && soaked.fat > 0, 'unlit, the dish soaks only fat: the water stays in the dish and comes back apart from the oil, each kept to the mg', `oil ${left.fat}, water ${waterBack}, soaked ${soaked.fat}`);
+  const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));
+  refused('water is not oil (more than 2 % water is refused, nothing burns)', step(req(0, H, null, [OIL(60_000, { x_coconut_fat_ppm: 0, x_water_ppm: 1_000_000 }), WICK()], acts([[0, 'light']]), NIGHT)), /too much water/);
+  refused('oil with 10 % water is refused', step(req(0, H, null, [OIL(60_000, { x_coconut_fat_ppm: 900_000, x_water_ppm: 100_000 }), WICK()], acts([[0, 'light']]), NIGHT)), /too much water/);
+  refused('the soaked oil in the wall must be fat only', step(req(0, H, null, [OIL(), WICK(), { lotId: 'lot:soaked', materialId: 'coconut_oil', amount: { value: 10_000, unit: 'mg' }, location: 'eq:dish', quality: { x_water_ppm: 1_000_000, soaked_in_dish: 1 } }], [], NIGHT)), /fat only/);
+  // the wet oil burns: light and heat come from the fat only; what it hands back lights again
+  const lit = night(17 * M + M, [[0, 'light'], [17 * M, 'put_out']], { equipment: [DISH({ absorptionPpm: 0 })] }, H, () => NIGHT, [wet, WICK()]);
+  const back = lit.out('coconut_oil')!;
+  const backLot: LotView = { lotId: 'lot:back', materialId: 'coconut_oil', amount: back.amount, location: 'eq:dish', quality: back.quality };
+  const again = night(H + M, [[0, 'light'], [H, 'put_out']], { equipment: [DISH({ absorptionPpm: 0 })] }, H, () => NIGHT, [backLot, { ...WICK(), lotId: 'lot:w2', quality: lit.out('lamp_wick')!.quality }]);
+  const rb = readLampOil(backLot), q2 = lampOilQuality(rb.fat, rb.water);
+  ok(again.last.status === 'completed' && JSON.stringify(q2) === JSON.stringify({ x_coconut_fat_ppm: back.quality!.x_coconut_fat_ppm, ...(back.quality!.x_water_ppm ? { x_water_ppm: back.quality!.x_water_ppm } : {}) }) && balanced(again.last),
+    'oil with a little water, burned and handed back, reads back to the same mg and lights the next evening', `${back.amount.value} mg, ${JSON.stringify(q2)}`);
+  const vap = (r: ReturnType<typeof night>) => r.last.released.find((x) => x.materialId === 'water_vapour')!.amount.value;
+  const dry = night(17 * M + M, [[0, 'light'], [17 * M, 'put_out']], { equipment: [DISH({ absorptionPpm: 0 })] }, H, () => NIGHT, [OIL(60_000), WICK()]);
+  const waterLeft = lit.last.produced.find((x) => x.materialId === 'process_water')?.amount.value ?? 0;
+  ok(Number(lit.diag.lumenSeconds) < Number(dry.diag.lumenSeconds) && waterLeft < 1_200 && vap(lit) > 0, 'the water in the oil gives no light and boils off with the flame', `${Number(lit.diag.lumenSeconds).toFixed(0)} vs ${Number(dry.diag.lumenSeconds).toFixed(0)} lm·s; water left ${waterLeft} of 1200 mg`);
+}
+
+console.log('11. what the resident is told, the wick, the heat (Codex A4, A5, A6)');
+{
+  const unseen = night(10 * H, [[0, 'light', { wickOut: 2 }], [9 * H, 'put_out']], {}, H, () => NIGHT, [OIL(30_000), WICK()]);
+  const end = unseen.last.observations.map((x) => x.text).join(' / ');
+  ok(!/刻|時間/.test(end) && /もう消えていた/.test(end), 'not watched, the lamp went out at some hour: the resident only sees that it is out, not for how long it burned', end);
+  const fresh = night(H, [[0, 'trim'], [M, 'put_out']]);
+  ok(!fresh.out('wick_char') && /まだ焦げていない/.test(fresh.obs.map((x) => x.text).join()), 'a new wick that has not burned is not cut as a charred tip');
+  const heat = (r: ReturnType<typeof night>) => {
+    const used = r.all.reduce((t, x) => t + (x.energy[0]?.usedJ ?? 0), 0);
+    const soot = r.last.released.find((x) => x.materialId === 'soot')?.amount.value ?? 0;
+    const fat = Number(r.diag.burnedMg), wick = 2_000 - (r.out('lamp_wick')?.amount.value ?? 0) - (r.out('wick_char')?.amount.value ?? 0);
+    return { used, expect: fat * 37.2 - soot * 32.76 + wick * 18, soot };
+  };
+  const long = heat(night(6 * H + M, [[0, 'light', { wickOut: 2 }], [6 * H, 'put_out']]));
+  ok(Math.abs(long.used - long.expect) < 60 && long.soot > 300, 'the heat of the soot\'s carbon, left unburned, is not counted as the flame\'s heat', `${long.used} J vs ${Math.round(long.expect)} J, soot ${long.soot} mg`);
 }
 
 console.log('7. requests that are refused');
