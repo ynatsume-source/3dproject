@@ -24,8 +24,8 @@ const icoI = (detail = 1) => { const g = new THREE.IcosahedronGeometry(1, detail
 // warm on top, deep beneath; a stout trunk flaring at the foot and a few smooth limbs running up into the puffs
 // (no thin twigs: inside the forest they read as a bundle of lines).
 const KINDS = [
-  { top: [0.28, 0.47, 0.14], deep: [0.1, 0.24, 0.09], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.85 },
-  { top: [0.45, 0.57, 0.18], deep: [0.18, 0.31, 0.1], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.7 },
+  { top: [0.22, 0.44, 0.13], deep: [0.1, 0.24, 0.09], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.85 },
+  { top: [0.4, 0.53, 0.17], deep: [0.17, 0.3, 0.1], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.7 },
   { top: [0.36, 0.55, 0.17], deep: [0.13, 0.29, 0.1], bark: [0.52, 0.48, 0.42], wide: 0.85, flat: 0.85 },
   { top: [0.24, 0.42, 0.13], deep: [0.08, 0.2, 0.08], bark: [0.48, 0.45, 0.39], wide: 1.35, flat: 0.75 },
 ];
@@ -101,7 +101,7 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
     crown(top.clone().add(new THREE.Vector3(0, 0.12, 0)), 0.26, 0.24, kind === 1 || kind === 3 ? 3 : 2, [top], 0.014);
   } else if (kind === 0) {
     const t = tilt(0.3), top = t.clone().multiplyScalar(rr(0.32, 0.4));
-    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.05, 0.036, 0.022), new THREE.Vector3(rr(-0.03, 0.03), 0, rr(-0.03, 0.03)));
+    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.044, 0.032, 0.014), new THREE.Vector3(rr(-0.03, 0.03), 0, rr(-0.03, 0.03)));
     crown(top.clone().add(new THREE.Vector3(0, 0.3, 0)), 0.44, 0.34, 8, [top], 0.028);
   } else if (kind === 1) {
     // two or three trunks sprawling from the foot, each kinked once; the crown low and broad over them
@@ -116,7 +116,7 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
     crown(new THREE.Vector3(0, 0.62, 0), 0.52, 0.24, 9, ends, 0.022);
   } else if (kind === 2) {
     const t = tilt(0.15), top = t.clone().multiplyScalar(rr(0.54, 0.6));
-    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.042, 0.03, 0.016), new THREE.Vector3(rr(-0.02, 0.02), 0, rr(-0.02, 0.02)));
+    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.038, 0.027, 0.012), new THREE.Vector3(rr(-0.02, 0.02), 0, rr(-0.02, 0.02)));
     crown(top.clone().add(new THREE.Vector3(0, 0.2, 0)), 0.32, 0.26, 6, [top], 0.022);
   } else {
     const t = tilt(0.12), top = t.clone().multiplyScalar(rr(0.32, 0.36));
@@ -228,7 +228,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 0.4);
          vec3 alb = vCol * (0.88 + 0.28 * l2) * mix(0.75, 1.15, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
          alb = mix(alb, vec3(0.5, 0.56, 0.24), smoothstep(0.8, 0.96, l1) * 0.25);              // (new leaves, paler)
-         col = airLit(alb, n, vWp, 0.8);
+         col = airLit(alb, n, vWp, 0.8) + alb * vec3(0.2, 0.2, 0.15) * max(-normalize(vN).y, 0.0) * (1.0 - uNight * 0.8);   // (the sunlit sand lights the crowns' undersides)
        } else {
          // bark: grey-brown, ridged, mossy on the shaded side
          float ridge = vn2(vec2(atan(vL.x, vL.z) * 3.0, vL.y * 40.0));

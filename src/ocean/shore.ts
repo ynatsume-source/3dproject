@@ -471,7 +471,7 @@ function pandanusGeo() {
 function shrubGeo(silver: boolean) {
   const B = new Builder(mulberry32(silver ? 47 : 45)), bark = [0.46, 0.4, 0.33];
   if (!silver) {
-    const top = [0.4, 0.58, 0.2], deep = [0.12, 0.28, 0.09], mid = V(0, -0.05, 0);
+    const top = [0.32, 0.52, 0.18], deep = [0.11, 0.27, 0.09], mid = V(0, -0.05, 0);
     B.blob(V(0, 0.22, 0), 0.36, 0.3, 0.36, top, deep, 0.15, 3, mid, 0.45, 0.6, 0);
     for (let k = 0; k < 6; k++) {
       const an = k / 6 * 6.28 + B.rr(-0.3, 0.3), d = B.rr(0.3, 0.4), r = B.rr(0.2, 0.27);
@@ -481,7 +481,7 @@ function shrubGeo(silver: boolean) {
     // a short crooked trunk, limbs out and up into the crown's puffs
     const top0 = V(B.rr(-0.06, 0.06), 0.24, B.rr(-0.06, 0.06)), cc = top0.clone().add(V(0, 0.28, 0));
     B.tube(V(0, 0, 0), top0, 0.055, 0.04, bark, 0, 0.05, 7, V(0.03, 0, 0), 3);
-    const top = [0.5, 0.6, 0.46], deep = [0.22, 0.3, 0.2];
+    const top = [0.42, 0.55, 0.38], deep = [0.2, 0.29, 0.18];
     B.blob(cc.clone().add(V(0, 0.12, 0)), 0.3, 0.24, 0.3, top, deep, 0.25, 2, cc, 0.5);
     for (let k = 0; k < 5; k++) {
       const an = k * 1.26 + B.R() * 0.5, e = cc.clone().add(V(Math.cos(an) * B.rr(0.24, 0.32), B.rr(-0.06, 0.06), Math.sin(an) * B.rr(0.24, 0.32)));
