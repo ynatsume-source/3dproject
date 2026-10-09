@@ -1,0 +1,911 @@
+{
+  "target": "self-barometer-7f4d1e3",
+  "processes": {
+    "seal": {
+      "processId": "p16x_vessel_tar_seal",
+      "processVersion": "0.1.3"
+    },
+    "gauge": {
+      "processId": "m03x_air_barometer_pot",
+      "processVersion": "0.1.0"
+    }
+  },
+  "passed": {
+    "fixtureTubeChain": {
+      "sealStatus": "completed",
+      "sealBalance": {
+        "in": 3081361,
+        "out": 3081361
+      },
+      "sealPot": {
+        "lotId": "back",
+        "materialId": "fired_pot_test",
+        "amount": {
+          "value": 735000,
+          "unit": "mg"
+        },
+        "location": "shelf",
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 995792,
+          "sealed": 1,
+          "x_wood_tar_ppm": 129251,
+          "air_leak_tau_min": 13032,
+          "x_tube_ppm": 54421,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 1000000,
+          "history_complete": 1
+        }
+      },
+      "sealRead": {
+        "body": 600002,
+        "tar": 94999,
+        "water": 0,
+        "capacityMl": 500,
+        "absorption": 0.12,
+        "coverage": 0.995792,
+        "sealed": true,
+        "airtightKnown": true,
+        "crack": 0,
+        "areaM2": 0.03655786918374963,
+        "tube": {
+          "mg": 39999,
+          "boreMm": 8,
+          "lengthMm": 600,
+          "jointCover": 1
+        }
+      },
+      "leakStatus": "completed",
+      "leakBalance": {
+        "in": 735000,
+        "out": 735000
+      },
+      "leakRead": {
+        "body": 600004,
+        "tar": 94998,
+        "water": 0,
+        "capacityMl": 500,
+        "absorption": 0.12,
+        "coverage": 0.995792,
+        "sealed": true,
+        "airtightKnown": true,
+        "crack": 0,
+        "areaM2": 0.03655786918374963,
+        "tube": {
+          "mg": 39998,
+          "boreMm": 8,
+          "lengthMm": 600,
+          "jointCover": 1
+        }
+      },
+      "assembledParams": {
+        "capacityMl": 500,
+        "absorptionPpm": 120000,
+        "coveragePpm": 995792,
+        "sealed": 1,
+        "airtightKnown": 1,
+        "crackPpm": 0,
+        "airLeakTauMin": 13032,
+        "tubeBoreMm": 8,
+        "tubeLengthMm": 600,
+        "bulbTauS": 739
+      },
+      "worn": {
+        "capacity_ml": 500,
+        "absorption_ppm": 120000,
+        "coverage_ppm": 995792,
+        "sealed": 1,
+        "x_wood_tar_ppm": 129250,
+        "x_tube_ppm": 54420,
+        "tube_bore_mm": 8,
+        "tube_length_mm": 600,
+        "joint_cover_ppm": 1000000,
+        "history_complete": 1,
+        "airtight_known": 0,
+        "crack_ppm": 100000
+      },
+      "sherdsQuality": {
+        "absorption_ppm": 120000,
+        "x_wood_tar_ppm": 129250,
+        "x_tube_ppm": 54420,
+        "history_complete": 1
+      },
+      "sameMassForSherds": 735000
+    },
+    "realPotChain": {
+      "input": {
+        "lotId": "real-fired",
+        "materialId": "fired_pot",
+        "amount": {
+          "value": 458232,
+          "unit": "mg"
+        },
+        "location": "shelf",
+        "quality": {
+          "form": 2,
+          "capacity_ml": 500,
+          "wall_mm": 9,
+          "surface_cm2": 366,
+          "water_ppm": 0,
+          "xd_quartz_ppm": 414724,
+          "xd_metakaolin_ppm": 563439,
+          "absorption_ppm": 143421,
+          "sinter_ppm": 5563,
+          "crack": 0,
+          "overfired": 0,
+          "history_complete": 1
+        }
+      },
+      "sealed": {
+        "lotId": "back",
+        "materialId": "fired_pot",
+        "amount": {
+          "value": 593232,
+          "unit": "mg"
+        },
+        "location": "shelf",
+        "quality": {
+          "form": 2,
+          "wall_mm": 9,
+          "surface_cm2": 366,
+          "water_ppm": 0,
+          "xd_quartz_ppm": 414724,
+          "xd_metakaolin_ppm": 563439,
+          "sinter_ppm": 5563,
+          "crack": 0,
+          "overfired": 0,
+          "capacity_ml": 500,
+          "absorption_ppm": 143421,
+          "coverage_ppm": 995765,
+          "sealed": 1,
+          "x_wood_tar_ppm": 160139,
+          "air_leak_tau_min": 11920,
+          "x_tube_ppm": 67427,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 1000000,
+          "history_complete": 1
+        }
+      },
+      "leakReturned": {
+        "lotId": "back",
+        "materialId": "fired_pot",
+        "amount": {
+          "value": 593232,
+          "unit": "mg"
+        },
+        "location": "shelf",
+        "quality": {
+          "form": 2,
+          "wall_mm": 9,
+          "surface_cm2": 366,
+          "water_ppm": 0,
+          "xd_quartz_ppm": 414724,
+          "xd_metakaolin_ppm": 563439,
+          "sinter_ppm": 5563,
+          "crack": 0,
+          "overfired": 0,
+          "capacity_ml": 500,
+          "absorption_ppm": 143421,
+          "coverage_ppm": 995765,
+          "sealed": 1,
+          "x_wood_tar_ppm": 160138,
+          "air_leak_tau_min": 11920,
+          "x_tube_ppm": 67425,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 1000000,
+          "history_complete": 1
+        }
+      },
+      "sealBalance": {
+        "in": 2939593,
+        "out": 2939593
+      },
+      "leakBalance": {
+        "in": 593232,
+        "out": 593232
+      },
+      "gaugeStatus": "completed",
+      "gaugeBalance": {
+        "in": 20000,
+        "out": 20000
+      },
+      "waterReturned": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "gaugeAgainStatus": "completed",
+      "gaugeAgainBalance": {
+        "in": 20000,
+        "out": 20000
+      },
+      "historyKept": 1
+    },
+    "boundaryReadKeepsMass": {
+      "setupStatus": "running",
+      "noRead": {
+        "condition": "spilled-top",
+        "produced": [
+          {
+            "materialId": "process_water",
+            "amount": {
+              "value": 14827,
+              "unit": "mg"
+            },
+            "into": "jar",
+            "quality": {
+              "history_complete": 1
+            }
+          }
+        ],
+        "released": [
+          {
+            "materialId": "process_water",
+            "amount": {
+              "value": 5173,
+              "unit": "mg"
+            },
+            "to": "ground"
+          }
+        ],
+        "spilledMg": 5173,
+        "balance": {
+          "in": 20000,
+          "out": 20000
+        }
+      },
+      "withRead": {
+        "condition": "spilled-top",
+        "produced": [
+          {
+            "materialId": "process_water",
+            "amount": {
+              "value": 14827,
+              "unit": "mg"
+            },
+            "into": "jar",
+            "quality": {
+              "history_complete": 1
+            }
+          }
+        ],
+        "released": [
+          {
+            "materialId": "process_water",
+            "amount": {
+              "value": 5173,
+              "unit": "mg"
+            },
+            "to": "ground"
+          }
+        ],
+        "spilledMg": 5173,
+        "balance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "observations": [
+          {
+            "at": 30000,
+            "channel": "instrument:bulb",
+            "quantity": "level",
+            "text": "水が開いた管の口まで上がって、あふれた"
+          }
+        ]
+      }
+    },
+    "minimumFillCheck": {
+      "needMg": 5027,
+      "belowStatus": "failed",
+      "belowReason": "the tube needs at least 5.0 mL of water to stand in both legs",
+      "belowConsumed": [],
+      "minimumStatus": "running"
+    },
+    "waterReturnChains": [
+      {
+        "p": 1010,
+        "hist": 0,
+        "condition": "ok",
+        "balance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "returned": {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "jar",
+          "quality": {
+            "history_complete": 0
+          }
+        },
+        "endAgainStatus": "completed",
+        "reusedBalance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "reusedHistory": 0
+      },
+      {
+        "p": 1010,
+        "hist": 1,
+        "condition": "ok",
+        "balance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "returned": {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "jar",
+          "quality": {
+            "history_complete": 1
+          }
+        },
+        "endAgainStatus": "completed",
+        "reusedBalance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "reusedHistory": 1
+      },
+      {
+        "p": 1100,
+        "hist": 0,
+        "condition": "spilled-bottom",
+        "balance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "returned": {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "jar",
+          "quality": {
+            "history_complete": 0
+          }
+        },
+        "endAgainStatus": "completed",
+        "reusedBalance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "reusedHistory": 0
+      },
+      {
+        "p": 1100,
+        "hist": 1,
+        "condition": "spilled-bottom",
+        "balance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "returned": {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "jar",
+          "quality": {
+            "history_complete": 1
+          }
+        },
+        "endAgainStatus": "completed",
+        "reusedBalance": {
+          "in": 20000,
+          "out": 20000
+        },
+        "reusedHistory": 1
+      }
+    ]
+  },
+  "findings": {
+    "extraWaterStock": {
+      "classification": "C",
+      "ordinaryImpactConfirmed": false,
+      "tubeNeedMg": 5027,
+      "runs": [
+        {
+          "waterMg": 5027,
+          "needMg": 5027,
+          "status": "completed",
+          "condition": "spilled-top",
+          "spilledMg": 5027,
+          "produced": [],
+          "released": [
+            {
+              "materialId": "process_water",
+              "amount": {
+                "value": 5027,
+                "unit": "mg"
+              },
+              "to": "ground"
+            }
+          ],
+          "balance": {
+            "in": 5027,
+            "out": 5027
+          },
+          "observations": [
+            {
+              "at": 60000,
+              "channel": "instrument:bulb",
+              "quantity": "level",
+              "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+            }
+          ]
+        },
+        {
+          "waterMg": 5028,
+          "needMg": 5027,
+          "status": "completed",
+          "condition": "spilled-top",
+          "spilledMg": 5028,
+          "produced": [],
+          "released": [
+            {
+              "materialId": "process_water",
+              "amount": {
+                "value": 5028,
+                "unit": "mg"
+              },
+              "to": "ground"
+            }
+          ],
+          "balance": {
+            "in": 5028,
+            "out": 5028
+          },
+          "observations": [
+            {
+              "at": 60000,
+              "channel": "instrument:bulb",
+              "quantity": "level",
+              "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+            }
+          ]
+        },
+        {
+          "waterMg": 20000,
+          "needMg": 5027,
+          "status": "completed",
+          "condition": "spilled-top",
+          "spilledMg": 12048,
+          "produced": [
+            {
+              "materialId": "process_water",
+              "amount": {
+                "value": 7952,
+                "unit": "mg"
+              },
+              "into": "jar",
+              "quality": {
+                "history_complete": 1
+              }
+            }
+          ],
+          "released": [
+            {
+              "materialId": "process_water",
+              "amount": {
+                "value": 12048,
+                "unit": "mg"
+              },
+              "to": "ground"
+            }
+          ],
+          "balance": {
+            "in": 20000,
+            "out": 20000
+          },
+          "observations": [
+            {
+              "at": 60000,
+              "channel": "instrument:bulb",
+              "quantity": "level",
+              "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+            }
+          ]
+        },
+        {
+          "waterMg": 100000,
+          "needMg": 5027,
+          "status": "completed",
+          "condition": "spilled-top",
+          "spilledMg": 12048,
+          "produced": [
+            {
+              "materialId": "process_water",
+              "amount": {
+                "value": 87952,
+                "unit": "mg"
+              },
+              "into": "jar",
+              "quality": {
+                "history_complete": 1
+              }
+            }
+          ],
+          "released": [
+            {
+              "materialId": "process_water",
+              "amount": {
+                "value": 12048,
+                "unit": "mg"
+              },
+              "to": "ground"
+            }
+          ],
+          "balance": {
+            "in": 100000,
+            "out": 100000
+          },
+          "observations": [
+            {
+              "at": 60000,
+              "channel": "instrument:bulb",
+              "quantity": "level",
+              "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "consultations": {
+    "tubePpmResolution": [
+      {
+        "i": 0,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39999,
+        "tubeAfterMg": 39998,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 1,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39998,
+        "tubeAfterMg": 39997,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 2,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39997,
+        "tubeAfterMg": 39996,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 3,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39996,
+        "tubeAfterMg": 39995,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 4,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39995,
+        "tubeAfterMg": 39994,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 5,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39994,
+        "tubeAfterMg": 39993,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 6,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39993,
+        "tubeAfterMg": 39992,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 7,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39992,
+        "tubeAfterMg": 39991,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 8,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39991,
+        "tubeAfterMg": 39990,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 9,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39990,
+        "tubeAfterMg": 39989,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 10,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39989,
+        "tubeAfterMg": 39988,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 11,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39988,
+        "tubeAfterMg": 39987,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 12,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39987,
+        "tubeAfterMg": 39986,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 13,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39986,
+        "tubeAfterMg": 39985,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 14,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39985,
+        "tubeAfterMg": 39984,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 15,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39984,
+        "tubeAfterMg": 39984,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 16,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39984,
+        "tubeAfterMg": 39984,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 17,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39984,
+        "tubeAfterMg": 39984,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 18,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39984,
+        "tubeAfterMg": 39984,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      },
+      {
+        "i": 19,
+        "totalBefore": 735000,
+        "totalAfter": 735000,
+        "tubeBeforeMg": 39984,
+        "tubeAfterMg": 39984,
+        "balance": {
+          "in": 735000,
+          "out": 735000
+        },
+        "history": 1
+      }
+    ],
+    "subPpmTube": {
+      "small": {
+        "status": "completed",
+        "produced": [
+          {
+            "materialId": "fired_pot_test",
+            "amount": {
+              "value": 630001,
+              "unit": "mg"
+            },
+            "into": "shelf",
+            "quality": {
+              "capacity_ml": 500,
+              "absorption_ppm": 120000,
+              "coverage_ppm": 646350,
+              "sealed": 1,
+              "x_wood_tar_ppm": 47618,
+              "air_leak_tau_min": 229,
+              "x_tube_ppm": 1,
+              "tube_bore_mm": 8,
+              "tube_length_mm": 600,
+              "joint_cover_ppm": 834701,
+              "history_complete": 1
+            }
+          }
+        ],
+        "balance": {
+          "in": 630001,
+          "out": 630001
+        },
+        "read": {
+          "accepted": true,
+          "read": {
+            "body": 600002,
+            "tar": 29999,
+            "water": 0,
+            "capacityMl": 500,
+            "absorption": 0.12,
+            "coverage": 0.64635,
+            "sealed": true,
+            "airtightKnown": true,
+            "crack": 0,
+            "areaM2": 0.03655786918374963,
+            "tube": {
+              "mg": 0,
+              "boreMm": 8,
+              "lengthMm": 600,
+              "jointCover": 0.834701
+            }
+          }
+        }
+      },
+      "heavy": {
+        "status": "completed",
+        "produced": [
+          {
+            "materialId": "fired_pot_test",
+            "amount": {
+              "value": 2030001,
+              "unit": "mg"
+            },
+            "into": "shelf",
+            "quality": {
+              "capacity_ml": 2000,
+              "absorption_ppm": 120000,
+              "coverage_ppm": 338010,
+              "sealed": 1,
+              "x_wood_tar_ppm": 14778,
+              "air_leak_tau_min": 261,
+              "x_tube_ppm": 0,
+              "tube_bore_mm": 8,
+              "tube_length_mm": 600,
+              "joint_cover_ppm": 834701,
+              "history_complete": 1
+            }
+          }
+        ],
+        "balance": {
+          "in": 2030001,
+          "out": 2030001
+        },
+        "read": {
+          "accepted": false,
+          "error": "pot back: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+        }
+      }
+    }
+  },
+  "summary": {
+    "calls": 90,
+    "violations": []
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "decision": "hold-p16x-and-m03x",
+  "counts": {
+    "A": 4,
+    "B": 0
+  },
+  "blockingFindings": [
+    {
+      "id": "SB-A1",
+      "classification": "A",
+      "title": "実行した継ぎ目のタール量が状態に残らず、未到達の操作も使われる",
+      "file": "src/science/step/vessel.ts",
+      "line": 222,
+      "evidence": "vessel/result.json:findings.jointActionStateCold / jointActionStateWarm / unreachedAction",
+      "expected": "実際に到達したsealの時刻・jointTarGを保存して精算。一括・分割・未到達操作の配列順で同じ結果",
+      "actual": "cold joint6g: 一括τ330min、10分+残りτ105min。warmは10268→119min。未到達の1800s操作の順だけで完了900sの精算が変わる"
+    },
+    {
+      "id": "SB-A2",
+      "classification": "A",
+      "title": "初回30秒にsealがなくても、60秒で封じる同じrunを開始できる必要がある",
+      "file": "src/science/step/vessel.ts",
+      "line": 181,
+      "evidence": "vessel/result.json:findings.jointActionStateCold.earlyChunks",
+      "expected": "後の区間で同じ60s sealを送れる。封じず終了する場合を実行結果として扱う",
+      "actual": "同じ材料と60s seal。一括はcompleted、最初0..30sはfailed。通常の区切りで結果/受理が変わる"
+    },
+    {
+      "id": "SB-A3",
+      "classification": "A",
+      "title": "セル内であふれた水が記帳されず、置き直しなしに目盛りが戻る",
+      "file": "src/science/step/barometer-pot.ts",
+      "line": 173,
+      "evidence": "intervals/result.json:gradualWeatherTerminalSpill / ordinaryTerminalSpill / transientSpillErased",
+      "expected": "readは写しのまま、セル内の確定overflowを物理イベントとして保持し、終了/次天気で消さない。groundへ水を一度だけ精算",
+      "actual": "実組立500mL,8mm/200mm,τ3096min。28°Cから5分ごと+0.25°C。3h17m29s読取「あふれた」、3h17m30sの30秒境界停止は全20g返却・ground0。自身の式でも12mg超過。別例は次セルのPa+0.1hPaで20→19markに復帰しground0"
+    },
+    {
+      "id": "SB-A4",
+      "classification": "A",
+      "title": "気圧が欠測したセル内の温度/空気量の極値を復帰判定へ含めない",
+      "file": "src/science/step/barometer-pot.ts",
+      "line": 165,
+      "evidence": "bounds/result.json:shortGap",
+      "expected": "欠測期間の実時刻の温度と空気量の幅/極値で過去の超過可能性を検査。否定できなければ置き直すまで数値なし",
+      "actual": "実器τ7755min,8mm/100mm。3660..3688sの気圧だけ隠し、実P最大20hPa/h以内。known対照は3672..3679sでoverflow、maskedは復帰3688sにconditionok/10mark。前のセル頭の温度/空気量だけを参照"
+    }
+  ],
+  "nonBlockingDetails": [
+    "mass/MEMO.md",
+    "vessel/MEMO.md",
+    "physics/MEMO.md",
+    "host/MEMO.md",
+    "carryover/MEMO.md"
+  ]
+}

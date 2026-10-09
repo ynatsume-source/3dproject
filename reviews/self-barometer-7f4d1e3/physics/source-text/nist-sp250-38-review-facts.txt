@@ -1,0 +1,4 @@
+Reviewer facts, 2026-10-09. Not original PDF bytes or a verbatim transcript.
+NIST Special Publication 250-38, Appendix B, printed B-1..B-4 (PDF pp.76..79).
+URL: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication250-38.pdf
+The gas state uses PV=NRT. Molecular-flow conductance relates molar flow to pressure difference divided by RT. Viscous-flow conductance depends on pressure and geometry. The two-volume relaxation has tau=V1*V2/[C*(V1+V2)]. A large receiving volume gives tau approximately V1/C. This is vacuum-leak metrology, not measurements of ceramic walls or tarred joints at atmospheric pressure.

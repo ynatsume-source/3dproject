@@ -1,0 +1,31 @@
+1. a tube through the plug: the joint leaks apart from the walls (p16x 0.1.3, table /4)
+  ok   the tube goes into the pot through the plug: its mass joins the pot lot (x_tube_ppm), the mass closes — {"tube":59701,"joint":997521}
+  ok   the more (and warmer) tar heaped on the joint, the longer the pot holds its air — bare joint 95 min / 1 g warm 311 / 6 g warm 3096
+  ok   walls sealed perfectly, the joint still leaks a little: a tubed pot is never perfect (jointLeakFloor) — no tube 1200000 min / tube with 60 g on the joint 7756 min
+  ok   a tube without a seal is refused (it goes through the plug) — a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)
+  ok   the same walls hold the air longer in a bigger pot (more air behind the same leak per area); the 500 mL reference pot is as before — 1200 → 1905 min
+  ok   the tubed pot reads back (body, tar, tube apart); broken, the tube stays in the pieces
+  ok   the leak test reads a tubed pot and hands it back with its tube
+2. the barometer on the residents' pot (m03x 0.1.0)
+  ok   the best pot (walls well tarred, the joint heaped high) reads near the test gauge and creeps back only slowly (the joint still leaks a little) — pot 4,9,14,18,19,18,17,17 / test 4,9,14,19,20,20,20,20 (τ 7755 min)
+  ok   a pot with a bare joint rises less while the pressure falls and creeps back once it stops: it shows the change, not the height — leaky 1,2,2,2,0,0,0,0 marks (τ 95 min)
+  ok   taken out, the tube's water comes back
+3. pieces, reads, unknown weather, a spill
+  ok   1 h = 30 s = 7.2 min = 2 h = 30 min pieces (reads between the cells): the same readings and state, to the last decimal
+  ok   reading changes nothing
+  ok   weather unknown: no reading; the air left is carried as a range (it may have leaked either way) — air 0.148539..0.185469
+  ok   a short tube and a deep fall: the water spills over the mouth, to the ground, and the gauge says so — 5173 mg spilled
+4. requests that are refused
+  ok   a pot without a tube — assembled_pot params.tubeBoreMm must be finite and > 0 (a pot with a gauge tube through its plug, table civ-sci.pot-assembly/4; markMm: the stick)
+  ok   no stick (markMm) — assembled_pot params.markMm must be finite and > 0 (a pot with a gauge tube through its plug, table civ-sci.pot-assembly/4; markMm: the stick)
+  ok   a pot whose air-holding is not known — assembled_pot must be sealed with its air-holding known (sealed 1, airtightKnown 1)
+  ok   too little water for the tube — the tube needs at least 15.1 mL of water to stand in both legs
+  ok   set without the pressure — the gauge is set only with known weather (air temperature and pressure)
+  ok   energy offered — the barometer uses no energy: offer none
+  ok   an unknown action — unknown action vent (read_gauge, take_out)
+  ok   a missing interval — noncontiguous-interval: expected from=3600000
+  ok   the bulb changed under the run — changed-input: the gauge changed under a running run
+—   every result above passed the contract checker
+  ok   validateResult: no violation
+
+24 passed, 0 failed

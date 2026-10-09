@@ -1,0 +1,291 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "selfExcluded": true,
+  "files": [
+    {
+      "path": "CLAUDE_PROMPT.md",
+      "bytes": 2262,
+      "sha256": "04a95d1e57e3839dcd6d1e6f026f0983f1306bb49cf816eed6d5cbe3457f6b87"
+    },
+    {
+      "path": "FINDINGS.json",
+      "bytes": 3067,
+      "sha256": "4779c9f0b7f630d95783a45634f11496356bebae43fd4417185391026e4bad7d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2467,
+      "sha256": "8c4a74b55fc137eb223f897acb8fa7b675f1a964d53ef6258eef2b360bbd14ed"
+    },
+    {
+      "path": "REVIEW.md",
+      "bytes": 10061,
+      "sha256": "812cc08574cc657a1c334e1199729d4bbd4263d0bfdc6162644745ad3d4ee40a"
+    },
+    {
+      "path": "SNAPSHOT.json",
+      "bytes": 72979,
+      "sha256": "903781e299b391750c98a8143724385c1cc74e435653c8ea11a6b0038b828ac3"
+    },
+    {
+      "path": "VERIFICATION_SUMMARY.json",
+      "bytes": 2107,
+      "sha256": "ba10e748d8487394ec279eb574d2fbe83de4332921b5f16493e9be0066d5e078"
+    },
+    {
+      "path": "bounds/MEMO.md",
+      "bytes": 6592,
+      "sha256": "0daa16eb52cb90c9f90dbd4a970c856db2aff576dbcadeb108b036c5d0de350a"
+    },
+    {
+      "path": "bounds/evidence/jma-ishigaki-20160124-hourly.csv",
+      "bytes": 661,
+      "sha256": "0d1df7ecca6e4800711edac9454ddc0c57307a2169139fcfd3442568c4ea2585"
+    },
+    {
+      "path": "bounds/evidence/jma-yonaguni-20150928-hourly.csv",
+      "bytes": 630,
+      "sha256": "1f0765897eb53e33be29c051378270cb0eb4183b18018ad6ac91bc074f66be5c"
+    },
+    {
+      "path": "bounds/evidence/manifest.json",
+      "bytes": 811,
+      "sha256": "f5d6e37400719bf94f0b524c9851b8dd171e7bf5b3a9b69e79dbd8a58d258528"
+    },
+    {
+      "path": "bounds/repro.mjs",
+      "bytes": 10849,
+      "sha256": "c9225e2388f71982e379d5ebafa1d5bf9d9ef1d4de308dcb6735c6c0970809c0"
+    },
+    {
+      "path": "bounds/result.json",
+      "bytes": 2215613,
+      "sha256": "eebe4bd04c9e9c12c443d99e4e2fb6ff8dd37d02f094c7bba87d57e838233284"
+    },
+    {
+      "path": "bounds/summary.json",
+      "bytes": 940,
+      "sha256": "a7fedf15e3c151bed1c30f9d9dcd74558f96300e829add39602b1dba0531dca2"
+    },
+    {
+      "path": "carryover/MEMO.md",
+      "bytes": 5070,
+      "sha256": "34d0a445921cabbb71dbc373646ded63a1ff0732edbea7bc1a3135b6caec394e"
+    },
+    {
+      "path": "carryover/status.json",
+      "bytes": 15432,
+      "sha256": "695d8329af8cba917b39315de0dd810c6ecd7531e849c777c9e2a9ec33518bf5"
+    },
+    {
+      "path": "host/MEMO.md",
+      "bytes": 6610,
+      "sha256": "3f67de3c02bd6d8daa8b3ab0694e9bb1c834bee7f234af0dfaeaa660407f307b"
+    },
+    {
+      "path": "host/repro.mjs",
+      "bytes": 15920,
+      "sha256": "8f8f866885be3a956b77a0eb2db986004bfd7ec72bab91de3d02e0afe2e1b8dd"
+    },
+    {
+      "path": "host/result.json",
+      "bytes": 31659,
+      "sha256": "e1bb23517430191fba0d4b588d1ffde2b965d0a04546028ff6cd055f56018e0d"
+    },
+    {
+      "path": "intervals/MEMO.md",
+      "bytes": 6408,
+      "sha256": "5ba1583101673bc95d14021f7d922a4be54a675ab3d792fedff82007f2d414f1"
+    },
+    {
+      "path": "intervals/repro.mjs",
+      "bytes": 18956,
+      "sha256": "eaf2d7426c8faab5464cb3361b677394ad1e3f9a57ee238e05ae9455516c2c47"
+    },
+    {
+      "path": "intervals/result.json",
+      "bytes": 52059,
+      "sha256": "416a3bc6f581e1d4d96b0847f4ce976b12fb61037982b9d1fbe3b74ee501b73d"
+    },
+    {
+      "path": "logs/build-journal.log",
+      "bytes": 25,
+      "sha256": "28e3f2264b95c527765fa8c3fc75068bf2907c282a8e1ca4a7a1a7709f9d073c"
+    },
+    {
+      "path": "logs/build-og.log",
+      "bytes": 90,
+      "sha256": "b1f693de45b54a4c1a8d556624a4017d8e39bbf93b73e49e066cbc9b45348f93"
+    },
+    {
+      "path": "logs/build-vite.log",
+      "bytes": 1548,
+      "sha256": "47bce83f32fb895341902e33956fd2f078926347531ea8158189eb05c832e4f7"
+    },
+    {
+      "path": "logs/science-barometer-check.log",
+      "bytes": 5493,
+      "sha256": "bac30c95ba68f295b8a3054ee4ca015e553c3ce2e51f50e6725ccd7331124c7b"
+    },
+    {
+      "path": "logs/science-barometer-pot-check.log",
+      "bytes": 3121,
+      "sha256": "19b54823238f36b3fe43610995db8e80f4c188388dbdd6554d147b7262abc503"
+    },
+    {
+      "path": "logs/science-fired-pot-assembly-check.log",
+      "bytes": 3887,
+      "sha256": "3b6211bb4ac8530dbc14f581e7a24a9bfadd5f283f3d482cc733805e4fa8c262"
+    },
+    {
+      "path": "logs/science-review-regressions.log",
+      "bytes": 12363,
+      "sha256": "77f16b07d7a4344b654af93ae1f12f6628345fe12bf047513fd7731d081f18e4"
+    },
+    {
+      "path": "logs/science-step-check.log",
+      "bytes": 4840,
+      "sha256": "386cb3809e91de185ac2bf3015e355e442e1eb1cbd9454fc9489ae1b24ec67c5"
+    },
+    {
+      "path": "logs/science-vessel-check.log",
+      "bytes": 6453,
+      "sha256": "53e6aee89b288da8ee9e0052e31d11f29f6611e29b8760e129303bc300efbd91"
+    },
+    {
+      "path": "logs/typecheck.log",
+      "bytes": 44,
+      "sha256": "0f0a21aa4cd6fe9ae7c54d992100915dc1fde9e821dd7865f88ef176bf95138b"
+    },
+    {
+      "path": "logs/verification.json",
+      "bytes": 7373,
+      "sha256": "9f599ce41d96ace30e0fa8232af28a46888c7d26e86426daf260a2a280dd177c"
+    },
+    {
+      "path": "mass/MEMO.md",
+      "bytes": 6056,
+      "sha256": "a98b91bce43ad23461ddd4d76f7cacb9f0a819c14649ae8f6e468bbc5a0a020c"
+    },
+    {
+      "path": "mass/repro.mjs",
+      "bytes": 11200,
+      "sha256": "9ca57ffb398083e6634976a592c918cacd23512f2673a06e0b39fca39958ef22"
+    },
+    {
+      "path": "mass/result.json",
+      "bytes": 21735,
+      "sha256": "60aa342ae43d0b7c5a31b7a159f5f0bd6c24deca88df9caf06a717d00889ca9a"
+    },
+    {
+      "path": "mass/summary.json",
+      "bytes": 1157,
+      "sha256": "d452e0c02d3292f5f79765fadb1367a211f4378851ef25e11b9a94d84660d8ec"
+    },
+    {
+      "path": "physics/MEMO.md",
+      "bytes": 6018,
+      "sha256": "761688a9469f8c0960b906152f911cf1efb8c53b7e70a62f747c8e5c475cdc33"
+    },
+    {
+      "path": "physics/SOURCES_AND_MODEL.md",
+      "bytes": 3955,
+      "sha256": "dde3ac76ed15457967d0812bb3fd11c1c8c67b43f4ec2a326d9a6ca2c327136b"
+    },
+    {
+      "path": "physics/openstax-reverified.json",
+      "bytes": 3671,
+      "sha256": "7b8a81b78e5b8c100fc8e4e9d62f4b65fde56a3546ddc4891e00f258366c90fe"
+    },
+    {
+      "path": "physics/repro.mjs",
+      "bytes": 9773,
+      "sha256": "b8c2ab0a40db198ef4eb66b7d834bb636110423ac4f27a1aad9f42f0d0e48307"
+    },
+    {
+      "path": "physics/result.json",
+      "bytes": 18055,
+      "sha256": "20f43d97b7928069db95dfe5c215ba30c106e61d66110e509b9f7057371a610d"
+    },
+    {
+      "path": "physics/source-text/m42192.cnxml",
+      "bytes": 47322,
+      "sha256": "ad4ae72ca439f4b19dffb47de0158c9dab7487a86e9702cde4f11279b366a68d"
+    },
+    {
+      "path": "physics/source-text/m42195.cnxml",
+      "bytes": 58170,
+      "sha256": "77cfe7d3d921a0e1ffc4aa34ecad2cd2721d10d589058908836bc843c0cc44f8"
+    },
+    {
+      "path": "physics/source-text/m42216.cnxml",
+      "bytes": 123362,
+      "sha256": "3f90ef9c3e6862e76c1d7e7bd4b25dbb65d94530fc6abc4d84a8bdeeaf6697d4"
+    },
+    {
+      "path": "physics/source-text/nist-sp250-38-review-facts.txt",
+      "bytes": 623,
+      "sha256": "56e3749f05063cdea15766fe95bd2db15021319233a9f5ddda9f55b965289659"
+    },
+    {
+      "path": "physics/source-text/uiowa-weatherglass-review-facts.txt",
+      "bytes": 498,
+      "sha256": "2cb68555c707a05ac2213314e7552a7a6001dd5ff9985eaba34639a1ad8b4c20"
+    },
+    {
+      "path": "physics/sources.proposed.json",
+      "bytes": 1561,
+      "sha256": "b2373599294e839a99021e537e59975b53cfb364bb943edf140d910b54f86772"
+    },
+    {
+      "path": "reference/CODEX_REVIEW_REQUEST_self_barometer.md",
+      "bytes": 2877,
+      "sha256": "fb6874a5f6f9a2ada5fa0d45f39c61ce3bd1eb4805adbb2bc32bbdb844ec81fd"
+    },
+    {
+      "path": "reference/FINAL_REVIEW_2026-10-09-lamp.md",
+      "bytes": 6632,
+      "sha256": "0869e62b0117ea9e01c7d93586abd774df76322e1d20e61f2c4774dbc3f1f4f1"
+    },
+    {
+      "path": "reference/REVIEW_POLICY.md",
+      "bytes": 3248,
+      "sha256": "b83ca895841bc5ea779b51437e94f0101b938fbc54a56ab7d056877c03c921c0"
+    },
+    {
+      "path": "reference/SELF_BAROMETER_DESIGN.md",
+      "bytes": 11587,
+      "sha256": "1e0095f547c1e0d956443475e18eb886362ed83cc82a27ba457e10410f43e1b5"
+    },
+    {
+      "path": "reference/SELF_BAROMETER_HANDBOOK.md",
+      "bytes": 6445,
+      "sha256": "446757bea5c12d754b3d9c1c1febea39412c068442058ccd41f77b0733c3a382"
+    },
+    {
+      "path": "run-diagnostics.py",
+      "bytes": 2869,
+      "sha256": "a70dbad82ba840fe3945c55ad04ba6e68c004e3133f7454da47392ee0823836c"
+    },
+    {
+      "path": "target.json",
+      "bytes": 560,
+      "sha256": "723f22ce9d59bfcbb433127568ef1e8ca0ee8decf32aa7646730d270a5d330cc"
+    },
+    {
+      "path": "vessel/MEMO.md",
+      "bytes": 5933,
+      "sha256": "7683ddd46da97c0e7346db04a3c3d4e48061b7ff7416a83f95ed877655c7b838"
+    },
+    {
+      "path": "vessel/repro.mjs",
+      "bytes": 11456,
+      "sha256": "4761d9e8172c291a2bc14e07a6332aee0ac35eb39e50f90295885b71049ddfc4"
+    },
+    {
+      "path": "vessel/result.json",
+      "bytes": 55582,
+      "sha256": "c87f603373697255ca4879177d6d90f8d9543bc3a2dc62146a59a26a1be944ec"
+    }
+  ]
+}

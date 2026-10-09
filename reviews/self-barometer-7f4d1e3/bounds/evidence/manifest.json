@@ -1,0 +1,14 @@
+[
+  {
+    "sourcePath": "data/science/evidence/jma-ishigaki-20160124-hourly.csv",
+    "reviewPath": "bounds/evidence/jma-ishigaki-20160124-hourly.csv",
+    "sha256": "0d1df7ecca6e4800711edac9454ddc0c57307a2169139fcfd3442568c4ea2585",
+    "meaning": "JMA hourly weather CSV already extracted in the science branch; not a barometer apparatus measurement. Diagnostic interpolation is a reviewer choice."
+  },
+  {
+    "sourcePath": "data/science/evidence/jma-yonaguni-20150928-hourly.csv",
+    "reviewPath": "bounds/evidence/jma-yonaguni-20150928-hourly.csv",
+    "sha256": "1f0765897eb53e33be29c051378270cb0eb4183b18018ad6ac91bc074f66be5c",
+    "meaning": "JMA hourly weather CSV already extracted in the science branch; not a barometer apparatus measurement. Diagnostic interpolation is a reviewer choice."
+  }
+]

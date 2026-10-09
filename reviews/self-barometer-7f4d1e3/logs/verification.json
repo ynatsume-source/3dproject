@@ -1,0 +1,198 @@
+[
+  {
+    "name": "science-barometer-pot-check",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/science-barometer-pot-check.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "  ok   energy offered \u2014 the barometer uses no energy: offer none",
+      "  ok   an unknown action \u2014 unknown action vent (read_gauge, take_out)",
+      "  ok   a missing interval \u2014 noncontiguous-interval: expected from=3600000",
+      "  ok   the bulb changed under the run \u2014 changed-input: the gauge changed under a running run",
+      "\u2014   every result above passed the contract checker",
+      "  ok   validateResult: no violation",
+      "",
+      "24 passed, 0 failed"
+    ]
+  },
+  {
+    "name": "science-vessel-check",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/science-vessel-check.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "  ok   a leak-test state from 0.1.0 (schema /1: no wall drying, sealed meant something else) \u2014 unsupported-state-schema: civ-sci.vessel-leak/1 is an older test state and is not migrated (current civ-sci.vessel-leak/2). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet.",
+      "  ok   a tar-seal state from 0.1.0 (schema /1: seal taken ahead of time) \u2014 unsupported-state-schema: civ-sci.vessel-seal/1 is an older test state and is not migrated (current civ-sci.vessel-seal/2). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet.",
+      "9. a missing wind (p17x 0.1.2)",
+      "  ok   a missing wind is unknown weather for the pot (nothing computed, history incomplete); wind 0 is calm",
+      "\u2014   every result above passed the contract checker",
+      "  ok   validateResult: no violation",
+      "",
+      "53 passed, 0 failed"
+    ]
+  },
+  {
+    "name": "science-barometer-check",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/science-barometer-check.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "  ok   900 s bulb: the bulb's range always holds the control's bulb temperature",
+      "  ok   21600 s bulb: after the hidden hour, every number given equals the control's (none invented) \u2014 2 numbers after 18:00; at 20:26:30 undefined vs -7",
+      "  ok   21600 s bulb: the bulb's range always holds the control's bulb temperature",
+      "  ok   a /2 state (bounds from the old 10..38 \u00b0C assumption) is refused: the gauge is set again",
+      "\u2014   every result above passed the contract checker",
+      "  ok   validateResult: no violation",
+      "",
+      "43 passed, 0 failed"
+    ]
+  },
+  {
+    "name": "science-fired-pot-assembly-check",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/science-fired-pot-assembly-check.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "  ok   a stopped jar is not a cook pot (its mouth is plugged) \u2014 lot:sealed-jar is stopped with a plug (sealed): it is not assembled as an open pot",
+      "  ok   a fired pot's body holds no water of its own (water in the walls is x_water_ppm) \u2014 pot lot:sealed-jar: a fired pot's body holds no water of its own (water_ppm 0); water in its walls is x_water_ppm",
+      "6. a lamp dish handed back wet from the water test (table /2, Codex VF-A1)",
+      "  ok   the dish's mass is its fired body (the water in its walls is not body), and the pores the water fills take up no oil \u2014 bare {\"capacityMl\":80,\"absorptionPpm\":143412,\"massG\":72} / wet {\"capacityMl\":80,\"absorptionPpm\":8,\"massG\":72} (lot 82484 mg)",
+      "  ok   handed back wet, assembled, pure oil set in it for an hour: it soaks less than the dry dish, never more \u2014 8214 \u2192 0 mg",
+      "  ok   a cook pot's heat capacity is its fired body's (the water in its walls is not counted as ceramic)",
+      "",
+      "26 passed, 0 failed"
+    ]
+  },
+  {
+    "name": "science-review-regressions",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/science-review-regressions.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "  ok   W4a: a tile carrying xd_toString_ppm is refused by the shared reading (tileComp) \u2014 invalid dry-basis species in quality: toString",
+      "  ok   W4a: shaping refuses xd___proto___ppm",
+      "  ok   W4a: a tile carrying xd___proto___ppm is refused by the shared reading (tileComp) \u2014 invalid dry-basis species in quality: __proto__",
+      "  ok   W5: firewood with an incomplete history \u2192 the fired tile is marked incomplete too",
+      "\u2014   every result above passed the contract checker",
+      "  ok   validateResult: no violation in the chained runs",
+      "",
+      "108 passed, 0 failed"
+    ]
+  },
+  {
+    "name": "science-step-check",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/science-step-check.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "  ok   the old fixture-1 / civilization-fixture-1 request is refused",
+      "7. same physics as the test-world prototype",
+      "  ok   ScienceStep drying evaporates what the prototype does (within 0.2%: the prototype rounds every step) \u2014 7962 vs 7949 mg",
+      "8. conditions matter: sun + 15 mm cracks, shade does not",
+      "  ok   drying cracks across 20 seeds \u2014 sun 13/20, shade 0/20",
+      "  ok   validateResult found no violation in any drying / shaping / weighing result",
+      "",
+      "48 passed, 0 failed"
+    ]
+  },
+  {
+    "name": "typecheck",
+    "command": [
+      "npm",
+      "run",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "",
+      "> seaglass@0.1.0 typecheck",
+      "> tsc --noEmit",
+      ""
+    ]
+  },
+  {
+    "name": "build-vite",
+    "command": [
+      "node",
+      "node_modules/vite/bin/vite.js",
+      "build"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "dist/assets/main-BZOCAIyH.css             63.64 kB \u2502 gzip:  13.60 kB",
+      "dist/assets/lab-rsoIy-am.js                7.40 kB \u2502 gzip:   3.40 kB",
+      "dist/assets/robots-B83K53Yv.js            34.23 kB \u2502 gzip:  10.52 kB",
+      "dist/assets/kayama-2024-BCE3ZL-h.js      237.58 kB \u2502 gzip:  78.21 kB",
+      "dist/assets/creatures-CQrlW1y_.js        644.41 kB \u2502 gzip: 166.65 kB",
+      "dist/assets/main-wm57JMde.js             981.65 kB \u2502 gzip: 368.27 kB",
+      "",
+      "\u2713 built in 408ms"
+    ]
+  },
+  {
+    "name": "build-og",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/og-pages.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "og pages: pointlobos, gbr, miyako, kayama, maldives, pacific, redsea, carnatic, galapagos"
+    ]
+  },
+  {
+    "name": "build-journal",
+    "command": [
+      "node",
+      "--import",
+      "tsx",
+      "--import",
+      "./scripts/node-assets.mjs",
+      "scripts/journal-pages.ts"
+    ],
+    "exitCode": 0,
+    "lastLines": [
+      "journal pages: 0 post(s)"
+    ]
+  }
+]

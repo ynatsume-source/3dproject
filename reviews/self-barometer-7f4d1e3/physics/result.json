@@ -1,0 +1,731 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.0"
+  },
+  "equation": "(Pa+2*rho*g*x)*(V0+A*x) = nR*Tb; dnR/dt = -V0/(T0*tau)*2*rho*g*x",
+  "rootSummary": {
+    "cases": 1440,
+    "maxAbsoluteErrorM": 2.220446049250313e-15,
+    "maxRelativeResidual": 2.9312819132017334e-16
+  },
+  "samples": [
+    {
+      "tauMin": 1,
+      "elapsedS": 30,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.02255011705340726,
+      "referenceM": 0.024189864731259315,
+      "errorMm": -1.639747677852056,
+      "actualMark": 5,
+      "referenceMark": 5,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 1,
+      "elapsedS": 60,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.015113609688095036,
+      "referenceM": 0.017395898152724208,
+      "errorMm": -2.2822884646291723,
+      "actualMark": 3,
+      "referenceMark": 3,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 1,
+      "elapsedS": 120,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.006781662559467748,
+      "referenceM": 0.008990306111334062,
+      "errorMm": -2.2086435518663134,
+      "actualMark": 1,
+      "referenceMark": 2,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 1,
+      "elapsedS": 91,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.010013947740651969,
+      "referenceM": 0.012370071937394247,
+      "errorMm": -2.356124196742278,
+      "actualMark": 2,
+      "referenceMark": 2,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 1,
+      "elapsedS": 182,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.0029737098446032907,
+      "referenceM": 0.004542570400254764,
+      "errorMm": -1.5688605556514736,
+      "actualMark": 1,
+      "referenceMark": 1,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 5,
+      "elapsedS": 30,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.031411645578469094,
+      "referenceM": 0.03148295127356172,
+      "errorMm": -0.07130569509262302,
+      "actualMark": 6,
+      "referenceMark": 6,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 5,
+      "elapsedS": 60,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.02934304580001033,
+      "referenceM": 0.029476472910038225,
+      "errorMm": -0.13342711002789498,
+      "actualMark": 6,
+      "referenceMark": 6,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 5,
+      "elapsedS": 120,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.025604151404622234,
+      "referenceM": 0.0258377128587594,
+      "errorMm": -0.23356145413716556,
+      "actualMark": 5,
+      "referenceMark": 5,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 5,
+      "elapsedS": 455,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.011953990296110112,
+      "referenceM": 0.012370071937394247,
+      "errorMm": -0.4160816412841356,
+      "actualMark": 2,
+      "referenceMark": 2,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 5,
+      "elapsedS": 910,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.004241019315678252,
+      "referenceM": 0.004542570400254764,
+      "errorMm": -0.3015510845765122,
+      "actualMark": 1,
+      "referenceMark": 1,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 95,
+      "elapsedS": 30,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03350890636506255,
+      "referenceM": 0.033509107939717765,
+      "errorMm": -0.00020157465521752904,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 95,
+      "elapsedS": 60,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03339281077208426,
+      "referenceM": 0.03339321253511309,
+      "errorMm": -0.0004017630288316587,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 95,
+      "elapsedS": 120,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03316181957399995,
+      "referenceM": 0.03316261758320581,
+      "errorMm": -0.0007980092058615385,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 95,
+      "elapsedS": 8645,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.012348562384635584,
+      "referenceM": 0.012370071937394247,
+      "errorMm": -0.02150955275866291,
+      "actualMark": 2,
+      "referenceMark": 2,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 95,
+      "elapsedS": 17290,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.004526754520533135,
+      "referenceM": 0.004542570400254764,
+      "errorMm": -0.015815879721629497,
+      "actualMark": 1,
+      "referenceMark": 1,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 3096,
+      "elapsedS": 30,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03362182911604711,
+      "referenceM": 0.033621829306049414,
+      "errorMm": -1.9000230555565878e-7,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 3096,
+      "elapsedS": 60,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03361825482638265,
+      "referenceM": 0.03361825520634739,
+      "errorMm": -3.799647402269457e-7,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 3096,
+      "elapsedS": 120,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03361110738187665,
+      "referenceM": 0.033611108141644724,
+      "errorMm": -7.597680748427926e-7,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 3096,
+      "elapsedS": 281735,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.012369456498193335,
+      "referenceM": 0.012370115895939303,
+      "errorMm": -0.0006593977459681821,
+      "actualMark": 2,
+      "referenceMark": 2,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 3096,
+      "elapsedS": 563471,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.0045421013426079045,
+      "referenceM": 0.004542586559615554,
+      "errorMm": -0.0004852170076494189,
+      "actualMark": 1,
+      "referenceMark": 1,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 7756,
+      "elapsedS": 30,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03362397686674505,
+      "referenceM": 0.03362397689702051,
+      "errorMm": -3.027546269240844e-8,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 7756,
+      "elapsedS": 60,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.033622550009734735,
+      "referenceM": 0.0336225500702831,
+      "errorMm": -6.054836493296634e-8,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 7756,
+      "elapsedS": 120,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.03361969647655187,
+      "referenceM": 0.033619696597638804,
+      "errorMm": -1.2108693214774036e-7,
+      "actualMark": 7,
+      "referenceMark": 7,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 7756,
+      "elapsedS": 705795,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.012369826275465623,
+      "referenceM": 0.012370089484520402,
+      "errorMm": -0.00026320905477904277,
+      "actualMark": 2,
+      "referenceMark": 2,
+      "condition": "ok"
+    },
+    {
+      "tauMin": 7756,
+      "elapsedS": 1411589,
+      "initialM": 0.03362540378403814,
+      "actualM": 0.004542396064778831,
+      "referenceM": 0.004542589751491966,
+      "errorMm": -0.0001936867131350356,
+      "actualMark": 1,
+      "referenceMark": 1,
+      "condition": "ok"
+    }
+  ],
+  "timeConstants": [
+    {
+      "volumeMl": 500,
+      "boreMm": 8,
+      "tauMin": 1,
+      "linearRatio": 1.5123902391176012,
+      "exactEFoldRatio": 1.516663872570462,
+      "exactEFoldS": 90.99983235422772
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 8,
+      "tauMin": 5,
+      "linearRatio": 1.5123902391176012,
+      "exactEFoldRatio": 1.516663872570462,
+      "exactEFoldS": 454.9991617711386
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 8,
+      "tauMin": 95,
+      "linearRatio": 1.5123902391176012,
+      "exactEFoldRatio": 1.5166638725704618,
+      "exactEFoldS": 8644.984073651633
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 8,
+      "tauMin": 3096,
+      "linearRatio": 1.5123902391176012,
+      "exactEFoldRatio": 1.516663872570462,
+      "exactEFoldS": 281735.480968689
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 8,
+      "tauMin": 7756,
+      "linearRatio": 1.5123902391176012,
+      "exactEFoldRatio": 1.516663872570462,
+      "exactEFoldS": 705794.6997393902
+    },
+    {
+      "volumeMl": 20,
+      "boreMm": 1,
+      "linearRatio": 1.2021539615268662
+    },
+    {
+      "volumeMl": 20,
+      "boreMm": 8,
+      "linearRatio": 13.937853537719434
+    },
+    {
+      "volumeMl": 20,
+      "boreMm": 30,
+      "linearRatio": 182.93856537417955
+    },
+    {
+      "volumeMl": 100,
+      "boreMm": 1,
+      "linearRatio": 1.0404307923053733
+    },
+    {
+      "volumeMl": 100,
+      "boreMm": 8,
+      "linearRatio": 3.587570707543887
+    },
+    {
+      "volumeMl": 100,
+      "boreMm": 30,
+      "linearRatio": 37.387713074835915
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 1,
+      "linearRatio": 1.0080861584610747
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 8,
+      "linearRatio": 1.5175141415087774
+    },
+    {
+      "volumeMl": 500,
+      "boreMm": 30,
+      "linearRatio": 8.277542614967182
+    },
+    {
+      "volumeMl": 2000,
+      "boreMm": 1,
+      "linearRatio": 1.0020215396152687
+    },
+    {
+      "volumeMl": 2000,
+      "boreMm": 8,
+      "linearRatio": 1.1293785353771943
+    },
+    {
+      "volumeMl": 2000,
+      "boreMm": 30,
+      "linearRatio": 2.8193856537417954
+    },
+    {
+      "volumeMl": 10000,
+      "boreMm": 1,
+      "linearRatio": 1.0004043079230538
+    },
+    {
+      "volumeMl": 10000,
+      "boreMm": 8,
+      "linearRatio": 1.025875707075439
+    },
+    {
+      "volumeMl": 10000,
+      "boreMm": 30,
+      "linearRatio": 1.363877130748359
+    }
+  ],
+  "tableProducedShortTau": {
+    "input": {
+      "lotId": "worn-but-known",
+      "materialId": "fired_pot_test",
+      "amount": {
+        "value": 600000,
+        "unit": "mg"
+      },
+      "location": "shelf",
+      "quality": {
+        "capacity_ml": 20,
+        "absorption_ppm": 400000,
+        "sealed": 1,
+        "crack_ppm": 1000000,
+        "x_tube_ppm": 100000,
+        "tube_bore_mm": 1,
+        "tube_length_mm": 600,
+        "joint_cover_ppm": 0
+      }
+    },
+    "params": {
+      "capacityMl": 20,
+      "absorptionPpm": 400000,
+      "coveragePpm": 0,
+      "sealed": 1,
+      "airtightKnown": 1,
+      "crackPpm": 1000000,
+      "airLeakTauMin": 1,
+      "tubeBoreMm": 1,
+      "tubeLengthMm": 600,
+      "bulbTauS": 5683,
+      "markMm": 5
+    },
+    "cases": [
+      {
+        "elapsedS": 30,
+        "actualM": 0.02477983189376058,
+        "referenceM": 0.027985896645396628,
+        "errorMm": -3.2060647516360468,
+        "condition": "ok",
+        "actualMark": 5,
+        "referenceMark": 6
+      },
+      {
+        "elapsedS": 60,
+        "actualM": 0.014469454631991277,
+        "referenceM": 0.01846191962252362,
+        "errorMm": -3.992464990532343,
+        "condition": "ok",
+        "actualMark": 3,
+        "referenceMark": 4
+      },
+      {
+        "elapsedS": 120,
+        "actualM": 0.0049287013682174285,
+        "referenceM": 0.008029846525281254,
+        "errorMm": -3.1011451570638258,
+        "condition": "ok",
+        "actualMark": 1,
+        "referenceMark": 2
+      },
+      {
+        "elapsedS": 300,
+        "actualM": 0.00019438030580737272,
+        "referenceM": 0.0006596573593040239,
+        "errorMm": -0.4652770534966512,
+        "condition": "ok",
+        "actualMark": 0,
+        "referenceMark": 0
+      }
+    ]
+  },
+  "syntheticShortTau": [
+    {
+      "tauMin": 0.016666666666666666,
+      "elapsedS": 30,
+      "actualM": -0.6624701631570002,
+      "referenceM": 8.201217514073666e-11,
+      "condition": "ok",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 59999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "text": "開いた管の水が底まで下がり、器の空気が泡になって抜けた"
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.016666666666666666,
+      "elapsedS": 60,
+      "actualM": -0.6624701631570002,
+      "referenceM": 1.9913506510074993e-19,
+      "condition": "spilled-bottom",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 89999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "text": "器の空気が抜けたまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.016666666666666666,
+      "elapsedS": 120,
+      "actualM": -0.6624701631570002,
+      "referenceM": 1.1740499116130818e-36,
+      "condition": "spilled-bottom",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "text": "器の空気が抜けたまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.1,
+      "elapsedS": 30,
+      "actualM": -0.07786892080291195,
+      "referenceM": 0.0012380808507701042,
+      "condition": "ok",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 59999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": -16,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.1,
+      "elapsedS": 60,
+      "actualM": 0.17786777840838341,
+      "referenceM": 0.000045397238550342395,
+      "condition": "ok",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 89999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 36,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.1,
+      "elapsedS": 120,
+      "actualM": -0.41977777430510765,
+      "referenceM": 6.101760965989421e-8,
+      "condition": "spilled-bottom",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "text": "器の空気が抜けたまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.2,
+      "elapsedS": 30,
+      "actualM": -0.021914575264147983,
+      "referenceM": 0.0064616232623755515,
+      "condition": "ok",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 59999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": -4,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.2,
+      "elapsedS": 60,
+      "actualM": 0.014328767377796307,
+      "referenceM": 0.0012380808507701042,
+      "condition": "ok",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 89999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 3,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "spilledMg": 0
+    },
+    {
+      "tauMin": 0.2,
+      "elapsedS": 120,
+      "actualM": 0.006108361306028282,
+      "referenceM": 0.000045397238550342395,
+      "condition": "ok",
+      "marks": [
+        {
+          "at": 30000,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 7,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149999,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "spilledMg": 0
+    }
+  ],
+  "temperatureCases": [
+    {
+      "elapsedS": 600,
+      "actualM": 0.006847961793994413,
+      "referenceM": 0.006836442428330003,
+      "errorMm": 0.011519365664409975,
+      "referenceConvergenceMm": -5.780098621954721e-12
+    },
+    {
+      "elapsedS": 1800,
+      "actualM": 0.009231949175977739,
+      "referenceM": 0.009218131596867032,
+      "errorMm": 0.013817579110706607,
+      "referenceConvergenceMm": 2.518818487118324e-12
+    },
+    {
+      "elapsedS": 7200,
+      "actualM": 0.00525438565651945,
+      "referenceM": 0.00525211597258292,
+      "errorMm": 0.002269683936529862,
+      "referenceConvergenceMm": -2.0431573100054834e-11
+    }
+  ],
+  "failures": []
+}

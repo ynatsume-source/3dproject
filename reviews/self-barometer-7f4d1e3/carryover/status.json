@@ -1,0 +1,314 @@
+{
+  "scope": "carryover inventory; read/hash/diff only; no new source search or repeated regressions",
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "classificationRule": "retained C is nonblocking; unchanged legacy issues not promoted to A/B; current new-process A/B are reviewed elsewhere",
+  "comparisons": [
+    {
+      "path": "src/science/step/oil-lamp.ts",
+      "sha256": {
+        "7f4d1e3": "6ff5f708c21a116452398521d90fad788741681a5ce3b485e6b40c6ca7e6a52d",
+        "79cdf9c": "6ff5f708c21a116452398521d90fad788741681a5ce3b485e6b40c6ca7e6a52d",
+        "d2e6abd": "2eda2ace659b84d43a8e2a13fd3da833bbc24a2c45bc10892425436e2b81d978",
+        "immediate_parent": "6ff5f708c21a116452398521d90fad788741681a5ce3b485e6b40c6ca7e6a52d"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": false,
+        "immediate_parent": true
+      }
+    },
+    {
+      "path": "src/science/step/fired-pot-assembly.ts",
+      "sha256": {
+        "7f4d1e3": "8ed0b8bf77293aa4b4376424a06de0ea95a076f2ac013c1a3307f6a1c010e504",
+        "79cdf9c": "8ed0b8bf77293aa4b4376424a06de0ea95a076f2ac013c1a3307f6a1c010e504",
+        "d2e6abd": "49915c5ca5a2b6d547ec5679d8714fa2dd3febd7147bd1af7ff609df5c764782",
+        "immediate_parent": "8ed0b8bf77293aa4b4376424a06de0ea95a076f2ac013c1a3307f6a1c010e504"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": false,
+        "immediate_parent": true
+      }
+    },
+    {
+      "path": "src/science/step/vessel.ts",
+      "sha256": {
+        "7f4d1e3": "ca1adb257ebcb5eea595c4400b8ecf2d56de63e8d1dbcda67183ea28ca1154f1",
+        "79cdf9c": "377cabf6c634c2b533e78a6e44da28752bff799a622fd477ce5452eb34624519",
+        "d2e6abd": "377cabf6c634c2b533e78a6e44da28752bff799a622fd477ce5452eb34624519",
+        "immediate_parent": "377cabf6c634c2b533e78a6e44da28752bff799a622fd477ce5452eb34624519",
+        "a363557": "c482a2f65697a96e3cd0dcbdd987d3c5a408ba792c429e358f1455cf7b8d034c"
+      },
+      "targetEquals": {
+        "79cdf9c": false,
+        "d2e6abd": false,
+        "immediate_parent": false,
+        "a363557": false
+      }
+    },
+    {
+      "path": "src/science/step/pottery.ts",
+      "sha256": {
+        "7f4d1e3": "c37d93fcbd82edf401486d5b9204691c1ecebe1092243ac740a241ffb8c22488",
+        "79cdf9c": "c37d93fcbd82edf401486d5b9204691c1ecebe1092243ac740a241ffb8c22488",
+        "d2e6abd": "c37d93fcbd82edf401486d5b9204691c1ecebe1092243ac740a241ffb8c22488",
+        "immediate_parent": "c37d93fcbd82edf401486d5b9204691c1ecebe1092243ac740a241ffb8c22488",
+        "a363557": "22ac732d64a9b213b7300fa26c95413e9ba8766be2a50ddb2f7979bddebd8661"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": true,
+        "immediate_parent": true,
+        "a363557": false
+      }
+    },
+    {
+      "path": "src/science/step/barometer.ts",
+      "sha256": {
+        "7f4d1e3": "3bc72857495651a151d24829d5492e04a446fceadec4f3145d1ac1ede9c6eb57",
+        "79cdf9c": "dcfabe900092d1bc58bdedef7fa115564c75a3f54beba99996a8abf9bc582752",
+        "d2e6abd": "dcfabe900092d1bc58bdedef7fa115564c75a3f54beba99996a8abf9bc582752",
+        "immediate_parent": "dcfabe900092d1bc58bdedef7fa115564c75a3f54beba99996a8abf9bc582752",
+        "a363557": "dcfabe900092d1bc58bdedef7fa115564c75a3f54beba99996a8abf9bc582752"
+      },
+      "targetEquals": {
+        "79cdf9c": false,
+        "d2e6abd": false,
+        "immediate_parent": false,
+        "a363557": false
+      }
+    },
+    {
+      "path": "src/science/step/common.ts",
+      "sha256": {
+        "7f4d1e3": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5",
+        "79cdf9c": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5",
+        "d2e6abd": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5",
+        "immediate_parent": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5",
+        "a363557": "fee7240b69c8980a54b344d70e0005bf90d532e1188ab6dbd0c9c690816107f9"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": true,
+        "immediate_parent": true,
+        "a363557": false
+      }
+    },
+    {
+      "path": "src/science/physics.ts",
+      "sha256": {
+        "7f4d1e3": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af",
+        "79cdf9c": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af",
+        "d2e6abd": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af",
+        "immediate_parent": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af",
+        "a363557": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": true,
+        "immediate_parent": true,
+        "a363557": true
+      }
+    },
+    {
+      "path": "src/science/params.ts",
+      "sha256": {
+        "7f4d1e3": "ed5d027f4d9fb441e0d78d83899d7ca87a1184bb3d0366f83fa8aace61e695ff",
+        "79cdf9c": "f489fc08fdbf2b763eacabe13bd78a2cfc5fac365ef25fa2dea2899a92c1947b",
+        "d2e6abd": "be375e28efe50897f221b9a04d7dc4b46c9e77bd0faf71967ff6847b4e59848c",
+        "immediate_parent": "f489fc08fdbf2b763eacabe13bd78a2cfc5fac365ef25fa2dea2899a92c1947b",
+        "a363557": "d9634756e24f70144b123539aec137572e1eb4e9fcd80dba0b8385e1e6ca37a7"
+      },
+      "targetEquals": {
+        "79cdf9c": false,
+        "d2e6abd": false,
+        "immediate_parent": false,
+        "a363557": false
+      }
+    },
+    {
+      "path": "src/science/chem.ts",
+      "sha256": {
+        "7f4d1e3": "7c356b3d06c302f3b7051376635e686e1ce3febc95fd9ba49dc79fb160cdd3aa",
+        "79cdf9c": "7c356b3d06c302f3b7051376635e686e1ce3febc95fd9ba49dc79fb160cdd3aa",
+        "d2e6abd": "7c356b3d06c302f3b7051376635e686e1ce3febc95fd9ba49dc79fb160cdd3aa",
+        "immediate_parent": "7c356b3d06c302f3b7051376635e686e1ce3febc95fd9ba49dc79fb160cdd3aa",
+        "a363557": "56a7cdb2e391f19c5e406570925ca795279cb5a96353bcc1ccbae6f8c4d9bd7b"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": true,
+        "immediate_parent": true,
+        "a363557": false
+      }
+    },
+    {
+      "path": "docs/proposals/civilization/science/POTTERY_CRACK_MODEL_CONSULTATION_codex-a363557.md",
+      "sha256": {
+        "7f4d1e3": "e4ea771b41af046c4b3c7d0cf96f4c81fd5bb127201b7ffe85ec0c5a4c821596",
+        "79cdf9c": "e4ea771b41af046c4b3c7d0cf96f4c81fd5bb127201b7ffe85ec0c5a4c821596",
+        "d2e6abd": "e4ea771b41af046c4b3c7d0cf96f4c81fd5bb127201b7ffe85ec0c5a4c821596",
+        "immediate_parent": "e4ea771b41af046c4b3c7d0cf96f4c81fd5bb127201b7ffe85ec0c5a4c821596"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": true,
+        "immediate_parent": true
+      }
+    },
+    {
+      "path": "docs/proposals/civilization/science/POTTERY_HANDBOOK.md",
+      "sha256": {
+        "7f4d1e3": "c864603f898ebe9693b4ba689295acef273a3763b861b578b397aaa305079417",
+        "79cdf9c": "c864603f898ebe9693b4ba689295acef273a3763b861b578b397aaa305079417",
+        "d2e6abd": "c864603f898ebe9693b4ba689295acef273a3763b861b578b397aaa305079417",
+        "immediate_parent": "c864603f898ebe9693b4ba689295acef273a3763b861b578b397aaa305079417",
+        "a363557": "14477a2178571f725733c4843d89aaecc51cb4208a0ba675286343f4992ae4e5"
+      },
+      "targetEquals": {
+        "79cdf9c": true,
+        "d2e6abd": true,
+        "immediate_parent": true,
+        "a363557": false
+      }
+    }
+  ],
+  "semanticDiffChecks": {
+    "barometerEqualsParentAfterRemovingThreeExportKeywords": true,
+    "paramsEquals79cdf9cAfterRemovingFourNewJointDefinitions": true,
+    "barometerDiff": "--- \n\n+++ \n\n@@ -51,7 +51,7 @@\n\n   historyComplete: boolean;\n }\n \n-interface Geometry { V0: number; A: number; halfLengthM: number; markM: number; tauS: number }\n+export interface Geometry { V0: number; A: number; halfLengthM: number; markM: number; tauS: number }\n \n function geometry(p: Record<string, number>): Geometry | string {\n   for (const k of ['bulbVolumeMl', 'tubeBoreMm', 'tubeLengthMm', 'markMm', 'bulbTauS']) {\n@@ -75,8 +75,8 @@\n\n const tempKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.airTempC, AIR_RANGE_C[0], AIR_RANGE_C[1]);\n const presKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.pressureHPa, 800, 1100);\n \n-const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、器の空気が泡になって抜けた' };\n-const SPILLED = { top: '水があふれて減ったまま。両側の水面が、置いたときの印と合わない', bottom: '器の空気が抜けたまま。両側の水面が、置いたときの印と合わない' };\n+export const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、器の空気が泡になって抜けた' };\n+export const SPILLED = { top: '水があふれて減ったまま。両側の水面が、置いたときの印と合わない', bottom: '器の空気が抜けたまま。両側の水面が、置いたときの印と合わない' };\n \n export function barometerStep(req: ScienceStepRequest): ScienceStepResult {\n   const bad = checkCommon(req, BAROMETER_PROCESS.processId, BAROMETER_PROCESS.processVersion, SCHEMA);"
+  },
+  "items": [
+    {
+      "id": "FX-C1",
+      "classification": "C",
+      "status": "retained-unchanged",
+      "assessment": "浮動の炭素熱控除と整数すすmgの端（前回最大正残差約4.34 J）。oil-lamp.ts・chem.tsは79cdf9cと同一、旧係数も変更なし。",
+      "originalEvidence": "79cdf9c REVIEW.md",
+      "relatedFiles": [
+        "src/science/step/oil-lamp.ts",
+        "src/science/chem.ts",
+        "src/science/params.ts"
+      ]
+    },
+    {
+      "id": "FX-C2",
+      "classification": "C",
+      "status": "retained-unchanged",
+      "assessment": "手書きの素地0/負になるtar/water ppmによるNaN/負params。readFiredを含むfired-pot-assembly.tsは79cdf9cと同一。通常生成ロットで再現するA/Bに変更しない。",
+      "originalEvidence": "79cdf9c REVIEW.md",
+      "relatedFiles": [
+        "src/science/step/fired-pot-assembly.ts"
+      ]
+    },
+    {
+      "id": "FX-C3",
+      "classification": "C",
+      "status": "retained-unchanged",
+      "assessment": "手書きの大きな吸油設備と約1 kg既存吸着油の端。oil-lamp/成形/換算ファイルは79cdf9cと同一。通常灯皿レシピ上界728640mgとの区別を維持。",
+      "originalEvidence": "79cdf9c REVIEW.md",
+      "relatedFiles": [
+        "src/science/step/oil-lamp.ts",
+        "src/science/step/pottery.ts",
+        "src/science/step/fired-pot-assembly.ts"
+      ]
+    },
+    {
+      "id": "VF-C1",
+      "classification": "C",
+      "status": "retained-unchanged",
+      "assessment": "約8.8e8ppmの見積もりは風高さ10mのみ。高さ1mなら1437998108ppm。コード/手順書はd2e6abdと同一、値域拡張自体は既に有効。",
+      "originalEvidence": "d2e6abd REVIEW.md; dry-flux/MEMO.md",
+      "relatedFiles": [
+        "src/science/step/pottery.ts",
+        "src/science/step/common.ts",
+        "src/science/physics.ts",
+        "docs/proposals/civilization/science/POTTERY_HANDBOOK.md"
+      ]
+    },
+    {
+      "id": "VF-C2",
+      "classification": "C",
+      "status": "retained-unchanged",
+      "assessment": "MAX_SAFE_INTEGER人工端のppm往復+1。pottery.ts同一。通常生成値の600万倍超なのでCを維持。",
+      "originalEvidence": "d2e6abd REVIEW.md; dry-flux/MEMO.md",
+      "relatedFiles": [
+        "src/science/step/pottery.ts"
+      ]
+    },
+    {
+      "id": "VF-C3",
+      "classification": "C",
+      "status": "retained-model-meaning",
+      "assessment": "surface_cm2は容量から生成する片面/薄壁の有効面積。生成のpottery.tsは同一。vessel.tsの漏れにも使うようになったが、実測外面積や内外差の校正になったわけではない。",
+      "originalEvidence": "d2e6abd REVIEW.md; area/MEMO.md",
+      "relatedFiles": [
+        "src/science/step/pottery.ts",
+        "src/science/step/vessel.ts"
+      ]
+    },
+    {
+      "id": "VF-C4",
+      "classification": "C",
+      "status": "structural-response-calibration-pending",
+      "assessment": "vessel.tsに容量比V/500mLと壁area比、継ぎ目の漏れが追加。旧500mL単独経験式のそのまま流用という構造は対応された。airLeakRefH/壁漏れ/継ぎ目係数は仮定のまま、壁厚による透過の独立項はない。現物時定数の校正済みとはしない。",
+      "originalEvidence": "d2e6abd REVIEW.md; target vessel.ts:88-100",
+      "relatedFiles": [
+        "src/science/step/vessel.ts",
+        "src/science/params.ts"
+      ]
+    },
+    {
+      "id": "BARO-C1",
+      "classification": "C",
+      "status": "retained-computation-unchanged",
+      "assessment": "旧m02xの異常state再利用（data:null/欠けたfield/別run・world/停止済み）。barometer.tsの差はexport3箇所だけ、common.tsは同一。m03xの新状態検証とは別に旧m02xのCは残る。",
+      "originalEvidence": "target CODEX_REVIEW.md:232; CODEX_REVIEW_REQUEST_barometer.md:83",
+      "relatedFiles": [
+        "src/science/step/barometer.ts",
+        "src/science/step/common.ts"
+      ]
+    },
+    {
+      "id": "BARO-C2",
+      "classification": "C",
+      "status": "retained-computation-unchanged",
+      "assessment": "旧m02x格子外の越流を初めて検出する時刻と言葉。spilledAtを物理的な越流の瞬間と説明しない。export以外の旧計算は同一。新m03xの今回A指摘へ同じ番号で混ぜない。",
+      "originalEvidence": "target CODEX_REVIEW.md:246",
+      "relatedFiles": [
+        "src/science/step/barometer.ts"
+      ]
+    },
+    {
+      "id": "DRY-PEAK-CONSULTATION",
+      "classification": "C",
+      "status": "retained-unchanged",
+      "assessment": "最大流束の永久保持は短時間の強風と長時間を区別しない。ならされる湿り差/応力と残る損傷を分ける相談は未実装。pottery.tsはd2e6abdと同一、相談文も同一。校正済み緩和時間はない。",
+      "originalEvidence": "target POTTERY_CRACK_MODEL_CONSULTATION_codex-a363557.md; CODEX_REVIEW.md:392",
+      "relatedFiles": [
+        "src/science/step/pottery.ts",
+        "src/science/physics.ts",
+        "docs/proposals/civilization/science/POTTERY_CRACK_MODEL_CONSULTATION_codex-a363557.md"
+      ]
+    },
+    {
+      "id": "BARO-GAP-EXTREMA-CONSULTATION",
+      "classification": "C",
+      "status": "retained-computation-unchanged",
+      "assessment": "気圧と器温の極値を同時刻で組にする改善、20hPa/hの1時間未満の検証は未対応。今回新工程の空気量幅とは分け、旧m02xの非保留相談を残す。",
+      "originalEvidence": "target CODEX_REVIEW.md:250",
+      "relatedFiles": [
+        "src/science/step/barometer.ts",
+        "src/science/params.ts"
+      ]
+    }
+  ],
+  "previousResolvedNotReopened": [
+    {
+      "id": "pottery a363557 original C2",
+      "status": "resolved-at-d2e6abd",
+      "note": "生成履歴が1e9上限を越えて次run拒否となる問題はd2e6abdで既に解消。VF-C1/VF-C2の説明と人工端、最大速度モデル相談が残る。"
+    }
+  ]
+}

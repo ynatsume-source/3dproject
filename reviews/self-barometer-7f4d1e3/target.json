@@ -1,0 +1,13 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "parent": "dcdcf554f75dc9b0d7578340bb31267ffd72ed63",
+  "archive": "/tmp/self-barometer-7f4d1e3",
+  "parentArchive": "/tmp/self-barometer-parent",
+  "originalLabHead": "162ee7c30e536d5c560e8360018e59a9b8c07695",
+  "originalStatus": "",
+  "localHeadsBefore": [
+    "refs/heads/codex/civilization-lab 162ee7c30e536d5c560e8360018e59a9b8c07695",
+    "refs/heads/codex/civilization-simulation 66ad17b1b1217131e755139b6341ae2135c4920f",
+    "refs/heads/work 68c4e4346638fe65e8942fc874f305522f7253a2"
+  ]
+}

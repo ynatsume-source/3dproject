@@ -1,0 +1,28 @@
+{
+  "sources": [
+    {
+      "id": "nist-gas-leak-theory-sp250-38",
+      "url": "https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication250-38.pdf",
+      "sourceType": "publisher-primary-report",
+      "verification": "publisher-text-read-via-web-tool; original raw file not downloaded",
+      "calibrationEligible": false,
+      "accessedDateJst": "2026-10-10",
+      "reviewEvidencePath": "physics/source-text/nist-sp250-38-review-facts.txt",
+      "reviewEvidenceSha256": "56e3749f05063cdea15766fe95bd2db15021319233a9f5ddda9f55b965289659",
+      "hashScope": "reviewer-written fact note only; NOT the PDF/HTML publisher bytes",
+      "doesNotVerify": "No measured calibration of ceramic walls, tar joints, gas leakage in this apparatus, or spill volume."
+    },
+    {
+      "id": "uiowa-weatherglass-apparatus",
+      "url": "https://instructional-resources.physics.uiowa.edu/2b3570-weatherglass-barometer",
+      "sourceType": "institution-apparatus-instructions",
+      "verification": "publisher-text-read-via-web-tool; original raw file not downloaded",
+      "calibrationEligible": false,
+      "accessedDateJst": "2026-10-10",
+      "reviewEvidencePath": "physics/source-text/uiowa-weatherglass-review-facts.txt",
+      "reviewEvidenceSha256": "2cb68555c707a05ac2213314e7552a7a6001dd5ff9985eaba34639a1ad8b4c20",
+      "hashScope": "reviewer-written fact note only; NOT the PDF/HTML publisher bytes",
+      "doesNotVerify": "No measured calibration of ceramic walls, tar joints, gas leakage in this apparatus, or spill volume."
+    }
+  ]
+}

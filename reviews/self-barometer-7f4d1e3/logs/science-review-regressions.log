@@ -1,0 +1,124 @@
+R1  splitting an interval never lets an earlier offer go unused or a later one stretch
+  ok   calciner: 30 s once = 1 s × 30 = 29 s + 1 s (used J) — 120000 / 120000 / 120000 J (was 120000 / 4000 / 4000)
+  ok   calciner: same chamber temperature within the discretisation tolerance — 33.0000 / 32.9824 / 32.9988 °C
+  ok   kiln: 30 s once = 1 s × 30 — 66666 / 66666 J, 29.6665 / 29.6616 °C (was 66667 / 15000 J)
+  ok   a whole calcination: 30-min chunks = 1-min chunks (on the 30 s grid: identical) — 32808501 J
+  ok   a weak offer split per second is never exceeded — 36000 J ≤ 36000 J
+  ok   weather can switch mid-step: each part uses its own interval
+R2  water-limited slaking settles without an exception
+  ok   water 9000 mg: completed, valid, elements balance — conversion 50.0%, max Δ 0.046 mmol
+  ok   water 10000 mg: completed, valid, elements balance — conversion 55.5%, max Δ 0.054 mmol
+  ok   water 12000 mg: completed, valid, elements balance — conversion 60.8%, max Δ 0.053 mmol
+  ok   water 15000 mg: completed, valid, elements balance — conversion 68.1%, max Δ 0.050 mmol
+  ok   water 18015 mg: completed, valid, elements balance — conversion 75.6%, max Δ 0.053 mmol
+  ok   water 20000 mg: completed, valid, elements balance — conversion 80.5%, max Δ 0.047 mmol
+  ok   sweep 1000–50000 mg water (step 101): no exception, all valid
+R3  zero / non-finite equipment values are refused
+  ok   calciner heatCapJPerK 0 → failed — fixture_calciner params.heatCapJPerK must be finite and > 0
+  ok   kiln heatCapJPerK 0 → failed — fixture_kiln params.heatCapJPerK must be finite and > 0
+  ok   calciner NaN loss coefficient → failed
+  ok   an infinite offer → failed
+  ok   a NaN air temperature is treated as unknown conditions, not integrated — stopped
+R4  validateResult rejects NaN times and cancelling energy entries
+  ok   NaN simulated.to is a violation
+  ok   +120001 J and −1 J against a 120000 J offer is a violation
+  ok   a negative storedJ (cooling) is still allowed
+R5  an incomplete history is never made complete again
+  ok   slaking keeps history_complete 0 from the quicklime
+  ok   calcination keeps history_complete 0 from the feed
+T1  a crack the tile already had is what the resident sees
+  ok   input crack 2 → seen as split, dull rattling tap — いちばん熱いときの火の色：橙 / 割れて分かれている / 濁ってびりつく音
+  ok   input crack 1 → a fine crack is seen
+T2  re-soaking a damp tile continues the uptake
+  ok   1 h + 1 h (re-soaked damp) = 2 h continuous, within mg rounding — 5666 → 9103 mg vs 9103 mg (was 5666 / 5666 / 9103)
+  ok   R5 (soak): the slurry keeps history_complete 0
+F1  the offer arrives evenly over its interval: a long request cannot spend it early
+  ok   calciner at 600 W for 24 h: one request = hourly = 30 s requests — 51840000 J, stopped, 100000 mg quicklime lot, CO2 0 mg (was: one request fully calcined, split almost none)
+  ok   kiln at 1000 W for 24 h: same product and J for every split — test_tile_dry 36290 mg, 86400000 J (was: fired when one request, dry when split)
+F2  integration accuracy: 30 s-aligned requests are exact; other splits stay within a measured tolerance
+  ok   slaking: 5 s and 1 s requests are identical (both on the grid) — 43928 J (was 47281 vs 45845 J)
+  ok   slaking: 0.737 s requests within 0.1% (J and product) — 43929 vs 43928 J
+  ok   calcination 4 kW: 7.3 s requests vs 30 s within 0.5% — 0.045% J, 0.000% mass
+  ok   firing 15 kW: 7.3 s requests vs 30 s within 0.5% — 0.214% J, 0.000% mass
+      off-grid summary: calcination 4 kW 0.045% J / 0.000% mass | firing 15 kW 0.214% J / 0.000% mass
+F3  states saved by an older version are refused explicitly, not misread
+  ok   drying: a new run saves state schema civ-sci.drying/3 — running civ-sci.drying/3 Dalton型蒸発・二段乾燥・収縮期の蒸発速度で割れ。係数は校正値・仮定（原典未照合）
+  ok   drying: an /1 state is refused as unsupported-state-schema
+  ok   drying: an /2 state is refused as unsupported-state-schema
+  ok   firing: a new run saves state schema civ-sci.tile-fire/2 — running civ-sci.tile-fire/2 焼成反応の熱の一部は出典あり（炭酸塩・蒸発）。脱水の熱・速度・焼結・割れの基準は校正値・仮定
+  ok   firing: an /1 state is refused as unsupported-state-schema
+  ok   soak: a new run saves state schema civ-sci.tile-soak/2 — running civ-sci.tile-soak/2 吸水の上限は焼結度からの校正値、冷水と煮沸の比0.8と吸水の時定数は仮定
+  ok   soak: an /1 state is refused as unsupported-state-schema
+  ok   calcination: a new run saves state schema civ-sci.lime-calcine/2 — running civ-sci.lime-calcine/2 反応熱は出典あり（298 K 標準値）。分解の速さ・炉の熱容量・損失は仮定。CO2 分圧との平衡は扱わない
+  ok   calcination: an /1 state is refused as unsupported-state-schema
+  ok   slaking: a new run saves state schema civ-sci.lime-hydrate/2 — running civ-sci.lime-hydrate/2 反応熱・水の比熱・蒸発潜熱は出典あり。反応の速さと固体の比熱、容器の熱容量は仮定。100 °C 未満の蒸発は扱わない
+  ok   slaking: an /1 state is refused as unsupported-state-schema
+  ok   process versions: firing and lime 0.2.1 with state /2 (0.2.1: whole ppm rounded down, Codex B2), drying 0.3.1 with /3
+  ok   a drying request for 0.2.0 is refused
+  ok   a request for the old process version 0.1.0 is refused
+G   the 30 s grid starts at the run start (not at world-clock zero)
+  ok   calciner 4 kW: a run starting at 1000 ms, cut every 30 s from its start = one request (identical) — 14400000 J
+  ok   kiln 15 kW: a run starting at 1000 ms, cut every 30 s from its start = one request (identical) — 10862283 J
+W   review of 3839fac (lab 7d671ea): wood firing, refusals in 0.2.x, shaping make-up
+  ok   W1: equipment lost before the first request → a plain refusal (nothing burned), no exception — the hearth was lost before the fire was lit: nothing burned
+  ok   W1: drying, equipment lost on the first request: no exception
+  ok   W1: firing, equipment lost on the first request: no exception
+  ok   W1: calcination, equipment lost on the first request: no exception
+  ok   W1: slaking, equipment lost on the first request: no exception
+  ok   W1: soak, equipment lost on the first request: no exception
+  ok   W2: drying answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: []) — failed 
+  ok   W2: weighing answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: []) — failed 
+  ok   W2: calcination answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: []) — running 
+  ok   W2: firing answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: []) — running 
+  ok   W2: soak answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: []) — stopped 
+  ok   W2: unknown process answers a 0.2.0 request in the 0.2.0 shape (contract echoed, drawn: []) — failed 
+  ok   W2: a 0.1.0 refusal carries no drawn
+  ok   0.2.0: drying gives the same results under 0.1.0 and 0.2.0 (only drawn: [] added) — 24 requests, ends running
+  ok   0.2.0: electric firing gives the same results under 0.1.0 and 0.2.0 (only drawn: [] added) — 11 requests, ends completed
+  ok   0.2.0: calcination gives the same results under 0.1.0 and 0.2.0 (only drawn: [] added) — 6 requests, ends running
+  ok   0.2.0: slaking gives the same results under 0.1.0 and 0.2.0 (only drawn: [] added) — 1 requests, ends completed
+  ok   0.2.0: soak gives the same results under 0.1.0 and 0.2.0 (only drawn: [] added) — 3 requests, ends running
+  ok   0.2.0: weighing gives the same reading under 0.1.0 and 0.2.0 (only drawn: [] added)
+  ok   W3: stopped after 1 ms: 1 mg of wood is settled as burned (with its O2), the heat reported is within it — 3 mg settled, 7 J ≤ 44.3 J (was: 0 mg settled, 7 J)
+  ok   W3: twenty 1 ms runs on the same wood never report more heat than the wood they used up — -746.9 J beyond the settled wood
+  ok   W3a: half-water wood stopped after 1 ms: heat only with dry wood used up (and its O2) — 8 J, dry wood back 499.000 mg of 500
+  ok   W3a: twenty 1 ms runs, each burning the wood the last one handed back: heat ≤ dry wood used × 18 J/mg, never heat without O2 — 21 J from 20.000 mg of dry wood, O2 20 mg (was 20 J, no dry wood, no O2)
+  ok   W3a: the handed-back lot reads back to whole mg of dry wood (fractions kept unrounded)
+  ok   W4: a valid make-up still shapes
+  ok   W4: a negative ppm is refused (clay-make-up-not-whole-ppm), nothing consumed, no heat — clay-make-up-not-whole-ppm
+  ok   W4: 137% of the dry part is refused (clay-make-up-exceeds-dry-part), nothing consumed, no heat — clay-make-up-exceeds-dry-part
+  ok   W4: an unknown species is refused (clay-make-up-unknown-species), nothing consumed, no heat — clay-make-up-unknown-species
+  ok   W4: a fractional ppm is refused (clay-make-up-not-whole-ppm), nothing consumed, no heat — clay-make-up-not-whole-ppm
+  ok   W3b: 80% water wood, stopped after 1 ms, hands back wetter wood that the next run reads — water_ppm 800000.8000 → next run stopped
+  ok   W3b: 8 mg of 20% ash wood stopped after 5 ms: the ashier wood handed back is read by the next run — ash_dry_ppm 250000
+  ok   W3b: a 60% water lot handed back run after run until it is too wet to catch: never refused, never heat without dry wood used up — 370 runs (was refused at run 335)
+  ok   W3b: 95% water: read, but it does not catch (no heat, the wood handed back whole)
+  ok   W3b: all water: read, but it does not catch (no heat, the wood handed back whole)
+  ok   W3b: all ash: read, but it does not catch (no heat, the wood handed back whole)
+  ok   W3b: water above 100% is refused (not a physical make-up)
+  ok   W3b: ash above 100% is refused (not a physical make-up)
+  ok   W3b: a run started before 0.1.2 (state /1, heat counted the old way) is refused, never resumed under the new version
+  ok   A: wood that never catches (30 s requests): the tile comes back unfired, as test_tile_dry — test_tile_dry
+  ok   A: the tile handed back, with new dry wood, fires to orange — completed, peak 980 °C
+  ok   A: an electric run with no heat offered, stopped after 3 h: the tile comes back unfired — stopped test_tile_dry
+  ok   A1: weighing, 10 J over 30 s (0.33 W for a 1 W balance): the balance does not run, nothing used, no reading — needs-input (was: completed at 10 s using 10 J; 3.33 J had arrived)
+  ok   A1: shaping, 120 J over 120 s (1 W for 2 W of work): no tile, nothing used — needs-input (was: a tile at 60 s using 120 J; 60 J had arrived)
+  ok   A1: weighing, 30 J over 30 s (1 W): done at 10 s using 10 J, which had arrived by then
+  ok   A1: 180 cases (3 processes × 6 intervals × 10 offers): never more energy than had arrived by the reported end; 0.1.0 and 0.2.0 agree — 180 cases, 0 early, 0 differ
+  ok   A1: validateResult flags energy used before it arrived (10 J by 5 s of a 30 J / 30 s offer)
+  ok   record: the drying computes the replayed weather as it does live or simulated weather — 4955.9 mg
+  ok   windHeightM: 10 m changes nothing; the same speed measured at 40 m is less wind at the rack (log profile) — 4955.9 vs 4666.6 mg
+  ok   windHeightM outside 1–300 m: the interval is not computed (nothing invented)
+  ok   fixture-4: weighing runs on the replayed weather (record)
+  ok   fixture-4: never on live weather (not used on the island)
+  ok   W4a: shaping refuses xd_constructor_ppm
+  ok   W4a: a tile carrying xd_constructor_ppm is refused by the shared reading (tileComp) — invalid dry-basis species in quality: constructor
+  ok   W4a: shaping refuses xd_toString_ppm
+  ok   W4a: a tile carrying xd_toString_ppm is refused by the shared reading (tileComp) — invalid dry-basis species in quality: toString
+  ok   W4a: shaping refuses xd___proto___ppm
+  ok   W4a: a tile carrying xd___proto___ppm is refused by the shared reading (tileComp) — invalid dry-basis species in quality: __proto__
+  ok   W5: firewood with an incomplete history → the fired tile is marked incomplete too
+—   every result above passed the contract checker
+  ok   validateResult: no violation in the chained runs
+
+108 passed, 0 failed

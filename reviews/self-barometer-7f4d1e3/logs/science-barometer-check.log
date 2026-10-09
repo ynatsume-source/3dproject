@@ -1,0 +1,54 @@
+1. what moves the water
+  ok   set at 1010 hPa, 28 °C: the levels stay equal (0 marks) while nothing changes
+  ok   30 hPa lower at the same temperature: the open leg rises about 10 cm (20 marks of 5 mm) — 101.1 mm, 20 marks
+  ok   5 °C warmer at the same pressure: it rises too (about 1.1 cm per °C), in the same direction as a falling pressure — 56.1 mm, 11 marks
+2. the bulb follows the air with a lag
+  ok   a bulb kept in water (6 h) moves much less with a warm afternoon than one in the air (15 min) — after 1 h: 11 vs 2 marks; after 3 h: 11 vs 4
+3. a storm on a warm island: what the resident has to tell apart
+  ok   on a calm day, the afternoon reading is well above the dawn reading (the warmth alone) — 12 marks between 05:00 and 14:00
+  ok   read at dawn every day, the storm stands out: flat, a big rise, back again — dawn readings 1, 1, 1, 6, 20, 1
+  ok   as the pressure falls, the climb through the day is larger than any calm day gives — 18 vs 12 marks
+4. chunking, outages, the ends of the tube
+  ok   hour by hour = every 30 s = 3 h at a time (weather changing every 3 h): the same readings and the same state
+  ok   an hour of unknown weather: no reading in it; the bulb might have gone anywhere the air can, a spill cannot be ruled out: no numbers until it is set again
+  ok   five minutes without the air temperature: no number while the bulb is uncertain, then the same numbers as the control — back after 71.0 min
+  ok   a short tube and a deep low: the water spills out of the open mouth, said in words; back at 1010 hPa it does not return to 0 marks — 水があふれて減ったまま。両側の水面が、置いたときの印と合わない / 水があふれて減ったまま。両側の水面が、置いたときの印と合わない
+5. what the resident gets
+  ok   a reading is a whole number of marks from the instrument: no hPa, no centimetres
+  ok   contract 0.1.0 and 0.2.0 give the same answer (0.2.0 adds drawn: [])
+  ok   the same request gives the same result
+  ok   the island replayed weather (record) is read like any measured weather
+  ok   taking the gauge down: stopped, nothing settled, no energy
+6. requests that are refused
+  ok   setting it without the pressure — the gauge is set only with known weather (air temperature and pressure)
+  ok   setting it with unknown weather — the gauge is set only with known weather (air temperature and pressure)
+  ok   no gauge — no fixture_air_barometer
+  ok   a gauge with no bulb — fixture_air_barometer params.bulbVolumeMl must be finite and > 0
+  ok   material lots — the test barometer takes no material lots
+  ok   an energy offer — the barometer uses no energy: offer none
+  ok   an unknown action — unknown action shake (only read_gauge)
+  ok   lost before it was set — the gauge was lost before it was set: nothing happened
+  ok   the gauge swapped under a running run — changed-input: the gauge changed under a running run
+  ok   a missing interval — noncontiguous-interval: expected from=3600000
+7. Codex review of 5971025 (A1–A3)
+  ok   A1: a gauge lost at the end of an interval: the readings before it stay, and one request = two requests — 21, 21
+  ok   A1: the same when the host no longer lists the lost gauge (the state keeps what the gauge was)
+  ok   A2: with only the pressure missing, the known warmth still warms the bulb; back again it reads like the control — 11 vs 11 marks, bulb 32.9084 °C
+  ok   A2: an hour without the pressure, a long tube: no low that fast could spill it, readings go on
+  ok   A2: six hours without the pressure, a short tube: a spill cannot be ruled out, so no number is given (until it is set again)
+  ok   A3: 600 mm tube, 900 hPa unread, then 1010 hPa: the spill is remembered, not 0 marks — 水があふれて減ったまま。両側の水面が、置いたときの印と合わない
+  ok   A3: 200 mm tube, 940 hPa unread, then 1010 hPa: the spill is remembered, not 0 marks — 水があふれて減ったまま。両側の水面が、置いたときの印と合わない
+  ok   A3: 200 mm tube, 980 hPa unread, then 1010 hPa: the spill is remembered, not 0 marks — 水があふれて減ったまま。両側の水面が、置いたときの印と合わない
+  ok   A3: read at the moment it spills: "it spilled"; a minute later: "still short of water" — 水が開いた管の口まで上がって、あふれた / 水があふれて減ったまま。両側の水面が、置いたときの印と合わない
+  ok   260 mm tube, a pressure gap and a falling pressure: 30 s = 1 h = 3 h pieces — condition unknown, 3 readings
+  ok   600 mm tube, a pressure gap and a falling pressure: 30 s = 1 h = 3 h pieces — condition ok, 9 readings
+8. Codex review of 0e7c023 (A2a): measured island weather, one hour hidden
+  ok   900 s bulb: after the hidden hour, every number given equals the control's (none invented) — 1 numbers after 18:00; at 20:26:30 undefined vs -10
+  ok   900 s bulb: the bulb's range always holds the control's bulb temperature
+  ok   21600 s bulb: after the hidden hour, every number given equals the control's (none invented) — 2 numbers after 18:00; at 20:26:30 undefined vs -7
+  ok   21600 s bulb: the bulb's range always holds the control's bulb temperature
+  ok   a /2 state (bounds from the old 10..38 °C assumption) is refused: the gauge is set again
+—   every result above passed the contract checker
+  ok   validateResult: no violation
+
+43 passed, 0 failed

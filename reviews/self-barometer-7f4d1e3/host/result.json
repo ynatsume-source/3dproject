@@ -1,0 +1,1001 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "scope": "host guards, versions, world/island entry, actual assembled vessel, saved state, resident observations",
+  "assertions": 49,
+  "failed": 0,
+  "executions": 82,
+  "checks": [
+    {
+      "name": "actual shaped/dried/fired jar accepts tube sealing and table4",
+      "passed": true,
+      "detail": {
+        "winningSeed": 1,
+        "pot": {
+          "lotId": "lot:pot",
+          "materialId": "fired_pot",
+          "amount": {
+            "value": 458232,
+            "unit": "mg"
+          },
+          "quality": {
+            "form": 2,
+            "capacity_ml": 500,
+            "wall_mm": 9,
+            "surface_cm2": 366,
+            "water_ppm": 0,
+            "xd_quartz_ppm": 414724,
+            "xd_metakaolin_ppm": 563439,
+            "absorption_ppm": 143421,
+            "sinter_ppm": 5563,
+            "crack": 0,
+            "overfired": 0,
+            "history_complete": 1
+          },
+          "location": "site:clay"
+        },
+        "bulbLot": {
+          "lotId": "lot:bulb",
+          "materialId": "fired_pot",
+          "amount": {
+            "value": 528232,
+            "unit": "mg"
+          },
+          "quality": {
+            "form": 2,
+            "wall_mm": 9,
+            "surface_cm2": 366,
+            "water_ppm": 0,
+            "xd_quartz_ppm": 414724,
+            "xd_metakaolin_ppm": 563439,
+            "sinter_ppm": 5563,
+            "crack": 0,
+            "overfired": 0,
+            "capacity_ml": 500,
+            "absorption_ppm": 143421,
+            "coverage_ppm": 968596,
+            "sealed": 1,
+            "x_wood_tar_ppm": 56793,
+            "air_leak_tau_min": 2663,
+            "x_tube_ppm": 75724,
+            "tube_bore_mm": 8,
+            "tube_length_mm": 600,
+            "joint_cover_ppm": 997521,
+            "history_complete": 1
+          },
+          "location": "site:clay"
+        },
+        "params": {
+          "capacityMl": 500,
+          "absorptionPpm": 143421,
+          "coveragePpm": 968596,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 2663,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 563,
+          "markMm": 5
+        }
+      }
+    },
+    {
+      "name": "p16x_vessel_tar_seal: one entry, current version, declared clock",
+      "passed": true,
+      "detail": {
+        "id": "p16x_vessel_tar_seal",
+        "version": "0.1.3",
+        "contract": "0.2.x",
+        "clock": "world",
+        "label": "器にタールを塗って口を封じる",
+        "kind": "sealing",
+        "inputs": [
+          "fired_pot_test または住人の fired_pot（封じていないもの。fired_pot は形・壁・表面積・組成をそのまま持って返る）",
+          "wood_tar（全部を使う）",
+          "firewood（任意：焚き火で器とタールを温める）",
+          "gauge_tube_test（任意：栓に通す。seal の params.jointTarG で継ぎ目に盛るタールの g）"
+        ],
+        "outputs": [
+          "fired_pot_test（タールの分だけ重く、coverage_ppm・sealed・air_leak_tau_min）",
+          "firewood（残り）・wood_ash・water_vapour・process_co2、drawn：o2（温めたとき）"
+        ],
+        "equipment": [
+          "fixture_tar_brush",
+          "open_fire_pit（温めるとき）"
+        ],
+        "energyModel": {
+          "mode": "offer",
+          "kind": "mechanical",
+          "note": "手の仕事 15 W、15分（仮定）。温める火は薪 300 g（src:combustion:）"
+        },
+        "operator": "seal（口を栓とタールで封じる。タール 5 g。手の仕事が終わる前の seal だけが効く）",
+        "observation": "sight：タールのしみこみ方、塗りすぎ、封じられたか",
+        "physics": "ふさがる割合 = 1 − (1 − 前)·e^(−塗ったタール g/m² / 基準)。基準は温めると 150、冷たいと 500 g/m²。内側の面積は容量の球の面積の1.2倍",
+        "readiness": "test-world-only",
+        "note": "手を動かす工程なので世界の時計。封じた器の内側は塗り直せない（開ける工程はまだない）。燃えない薪（水だけ等）は燃えず、そのまま戻る。状態 civ-sci.vessel-seal/2（0.1.0 の /1 は拒否）"
+      }
+    },
+    {
+      "name": "p17x_vessel_leak_test: one entry, current version, declared clock",
+      "passed": true,
+      "detail": {
+        "id": "p17x_vessel_leak_test",
+        "version": "0.1.4",
+        "contract": "0.1.x / 0.2.x",
+        "clock": "island",
+        "label": "器の漏れを試す（水を入れて待つ・空いた器を乾かす）",
+        "kind": "test",
+        "inputs": [
+          "fired_pot_test または住人の fired_pot（壁の面積は fired_pot なら surface_cm2）",
+          "process_water（任意、封じていない器に入れる）"
+        ],
+        "outputs": [
+          "fired_pot_test（壁が吸った水、日なたで減ったタール）",
+          "process_water（残り）",
+          "water_vapour（外で乾いた分）"
+        ],
+        "equipment": [
+          "fixture_vessel_stand（sunExposure 0〜1）"
+        ],
+        "energyModel": {
+          "mode": "none",
+          "note": "外で乾く熱は src:env-heat:"
+        },
+        "operator": "look（外側を触る・見る）、take_out（下ろす＝終わり）。submerge（水に沈めて泡を見る）は、空気の量・圧力・入ってくる水を扱うまで保留（拒否）",
+        "observation": "touch：外側の湿り（格子の間の look もその時刻の状態）。sight：タールが垂れる、水の減り方（run の全区間を計算したときだけ）",
+        "physics": "壁がまず水を吸い（吸水率 × 素地 × ふさがっていない割合、時定数2時間）、ふさがっていない穴から外へしみ出して乾く（基準 40 g/日、蒸気圧差に比例）。封じた器の空気の時定数 = 2 時間 ÷（吸水率/12% × ふさがっていない割合）。中の水がなくなると壁の水が乾く（湿っている割合に比例して遅くなる）。日なたで器が 45 °C を超えるとタールが垂れる",
+        "readiness": "test-world-only",
+        "note": "待つ工程なので島の時計。天気が分からない区間は計算しない（来歴が不完全）。その後はこの run では何も観察しない（器を下ろして置き直す）。冷えた夜のひび、油を入れたときは扱わない。状態 civ-sci.vessel-leak/2（0.1.0 の /1 は拒否）"
+      }
+    },
+    {
+      "name": "m03x_air_barometer_pot: one entry, current version, declared clock",
+      "passed": true,
+      "detail": {
+        "id": "m03x_air_barometer_pot",
+        "version": "0.1.0",
+        "contract": "0.1.x / 0.2.x",
+        "clock": "island",
+        "label": "自作の気圧計（住人の封じた器＋管＋水）",
+        "kind": "measurement",
+        "inputs": [
+          "process_water（管の水。両方の脚の真ん中まで入る量以上）"
+        ],
+        "outputs": [
+          "process_water（終わりにそのまま返る。口からあふれた分は ground へ）"
+        ],
+        "equipment": [
+          "assembled_pot（管つきの封じた器、換算表 civ-sci.pot-assembly/4 の params ＋ 本体が足す markMm：浮かべる棒の目盛り）"
+        ],
+        "energyModel": {
+          "mode": "none",
+          "rule": "エネルギーは使わない"
+        },
+        "operator": "read_gauge（目盛りを読む）、take_out（終わり：水を返す）",
+        "observation": "instrument：開いた側の管に浮かぶ棒の目盛り（整数）。両端が同じ目盛りのときだけ。あふれた・空気が抜けたときは言葉",
+        "environment": "気温と気圧（分からない間は器の温度と空気の量を幅で持つ。両端が同じ目盛りのときだけ読みを返す）",
+        "physics": "試験用の気圧計（m02x）の釣り合い式に、器の空気の漏れを足す：d(nR)/dt = −(V0/(T0·τ))·2ρg x（τ = airLeakTauMin）。読みの戻る時間は約 1.5 τ（水柱も動くため）。漏れの速さは 30 秒のセルの頭で決めてセルの間は保つ（要求の端や読みは何も決めない）",
+        "readiness": "test-world-only",
+        "note": "オーナー決定（2026-10-09、SELF_BAROMETER_DESIGN.md）：試験用の管から、管は栓に通して継ぎ目の漏れは壁と別、日陰に置く、管の水はロット、合わせ直しは住人の記録の仕事。試験用の気圧計（m02x）は残す（並べて比べられる）。状態 civ-sci.air-barometer-pot/1"
+      }
+    },
+    {
+      "name": "fresh actual gauge has recognized new state",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "ordinary JSON save/restore gives exactly same response",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "foreign/old/future schema civ-sci.air-barometer-pot/0 refuses without settlement",
+      "passed": true,
+      "detail": "unsupported-state-schema: civ-sci.air-barometer-pot/0 is an older test state and is not migrated (current civ-sci.air-barometer-pot/1). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet."
+    },
+    {
+      "name": "foreign/old/future schema civ-sci.air-barometer-pot/2 refuses without settlement",
+      "passed": true,
+      "detail": "unknown state schema civ-sci.air-barometer-pot/2"
+    },
+    {
+      "name": "foreign/old/future schema civ-sci.air-barometer/3 refuses without settlement",
+      "passed": true,
+      "detail": "unknown state schema civ-sci.air-barometer/3"
+    },
+    {
+      "name": "foreign/old/future schema civ-sci.oil-lamp/2 refuses without settlement",
+      "passed": true,
+      "detail": "unknown state schema civ-sci.oil-lamp/2"
+    },
+    {
+      "name": "0.1.0: current supported contract and drawn shape",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "0.1.7: current supported contract and drawn shape",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "0.2.0: current supported contract and drawn shape",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "0.2.1: current supported contract and drawn shape",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "0.3.0: current supported contract and drawn shape",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "old p16x/p17x versions fail before settlement; host can release reservations",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "actually returned worn sealed bulb refuses gauge until airtightness known",
+      "passed": true,
+      "detail": {
+        "wornParams": {
+          "capacityMl": 500,
+          "absorptionPpm": 143421,
+          "coveragePpm": 968596,
+          "sealed": 1,
+          "airtightKnown": 0,
+          "crackPpm": 100000,
+          "airLeakTauMin": 0,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 563,
+          "markMm": 5
+        },
+        "reason": "assembled_pot must be sealed with its air-holding known (sealed 1, airtightKnown 1)"
+      }
+    },
+    {
+      "name": "equipment lost at end retains earlier reads, settlement and final state",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "initial equipment-lost 0.1.0 plain refusal without consumption",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "initial equipment-lost 0.2.0 plain refusal without consumption",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "equipment parameter key order is irrelevant",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "water-mass mutation during reservation plainly refused",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "water-location mutation during reservation plainly refused",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "equipment-param mutation during reservation plainly refused",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unknown current interval provides no numeric reads and marks returned water incomplete",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "returned incomplete water permits freshly set known gauge; provenance stays incomplete",
+      "passed": true,
+      "detail": {
+        "water": {
+          "lotId": "lot:returned-water",
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "quality": {
+            "history_complete": 0
+          },
+          "location": "site:jar"
+        },
+        "observations": [
+          {
+            "at": 4030000,
+            "channel": "instrument:eq:bulb",
+            "quantity": "level",
+            "value": 0,
+            "unit": "mark",
+            "precision": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "record: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "record: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "live: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "live: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "simulation: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "simulation: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unknown: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "unknown: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "stale: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "stale: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "temperature missing: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "temperature missing: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "pressure missing: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "pressure missing: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "temperature NaN: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "temperature NaN: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "pressure Infinity: continued data stays finite and valid",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "pressure Infinity: first request only sets known temperature and pressure",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "numbers given to residents are integer marks only",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "observation text never gives hidden pressure, temperature, gas or leak time",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "carried malformed-save C2 is reproduced separately from normal state",
+      "passed": true,
+      "detail": [
+        {
+          "label": "null data",
+          "exception": "TypeError: Cannot read properties of null (reading 'lastTo')"
+        },
+        {
+          "label": "array data",
+          "status": "failed",
+          "reason": "noncontiguous-interval: expected from=undefined",
+          "finite": true
+        },
+        {
+          "label": "empty object",
+          "status": "failed",
+          "reason": "noncontiguous-interval: expected from=undefined",
+          "finite": true
+        },
+        {
+          "label": "missing g from a valid state",
+          "exception": "TypeError: Cannot read properties of undefined (reading 'tauS')"
+        },
+        {
+          "label": "missing s from a valid state",
+          "exception": "TypeError: Cannot read properties of undefined (reading 'tMs')"
+        },
+        {
+          "label": "missing ctl from a valid state",
+          "exception": "TypeError: Cannot read properties of undefined (reading 'tKnown')"
+        }
+      ]
+    },
+    {
+      "name": "old oil-lamp malformed-save C2 still behaves as a corrupt-state corner",
+      "passed": true,
+      "detail": {
+        "exception": "TypeError: Cannot read properties of null (reading 'fps')"
+      }
+    },
+    {
+      "name": "all ordinary accepted/rejected host results validate",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "violations": [],
+  "actual": {
+    "winningSeed": 1,
+    "pot": {
+      "lotId": "lot:pot",
+      "materialId": "fired_pot",
+      "amount": {
+        "value": 458232,
+        "unit": "mg"
+      },
+      "quality": {
+        "form": 2,
+        "capacity_ml": 500,
+        "wall_mm": 9,
+        "surface_cm2": 366,
+        "water_ppm": 0,
+        "xd_quartz_ppm": 414724,
+        "xd_metakaolin_ppm": 563439,
+        "absorption_ppm": 143421,
+        "sinter_ppm": 5563,
+        "crack": 0,
+        "overfired": 0,
+        "history_complete": 1
+      },
+      "location": "site:clay"
+    },
+    "bulbLot": {
+      "lotId": "lot:bulb",
+      "materialId": "fired_pot",
+      "amount": {
+        "value": 528232,
+        "unit": "mg"
+      },
+      "quality": {
+        "form": 2,
+        "wall_mm": 9,
+        "surface_cm2": 366,
+        "water_ppm": 0,
+        "xd_quartz_ppm": 414724,
+        "xd_metakaolin_ppm": 563439,
+        "sinter_ppm": 5563,
+        "crack": 0,
+        "overfired": 0,
+        "capacity_ml": 500,
+        "absorption_ppm": 143421,
+        "coverage_ppm": 968596,
+        "sealed": 1,
+        "x_wood_tar_ppm": 56793,
+        "air_leak_tau_min": 2663,
+        "x_tube_ppm": 75724,
+        "tube_bore_mm": 8,
+        "tube_length_mm": 600,
+        "joint_cover_ppm": 997521,
+        "history_complete": 1
+      },
+      "location": "site:clay"
+    },
+    "params": {
+      "capacityMl": 500,
+      "absorptionPpm": 143421,
+      "coveragePpm": 968596,
+      "sealed": 1,
+      "airtightKnown": 1,
+      "crackPpm": 0,
+      "airLeakTauMin": 2663,
+      "tubeBoreMm": 8,
+      "tubeLengthMm": 600,
+      "bulbTauS": 563,
+      "markMm": 5
+    }
+  },
+  "malformed": [
+    {
+      "label": "null data",
+      "exception": "TypeError: Cannot read properties of null (reading 'lastTo')"
+    },
+    {
+      "label": "array data",
+      "status": "failed",
+      "reason": "noncontiguous-interval: expected from=undefined",
+      "finite": true
+    },
+    {
+      "label": "empty object",
+      "status": "failed",
+      "reason": "noncontiguous-interval: expected from=undefined",
+      "finite": true
+    },
+    {
+      "label": "missing g from a valid state",
+      "exception": "TypeError: Cannot read properties of undefined (reading 'tauS')"
+    },
+    {
+      "label": "missing s from a valid state",
+      "exception": "TypeError: Cannot read properties of undefined (reading 'tMs')"
+    },
+    {
+      "label": "missing ctl from a valid state",
+      "exception": "TypeError: Cannot read properties of undefined (reading 'tKnown')"
+    }
+  ],
+  "lampCorrupt": {
+    "exception": "TypeError: Cannot read properties of null (reading 'fps')"
+  },
+  "guardCases": [
+    {
+      "label": "record",
+      "status": "running",
+      "observations": [
+        {
+          "at": 71007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          28,
+          28
+        ],
+        "airLeft": [
+          0.1676905196745808,
+          0.1676905196745808
+        ],
+        "spilledMg": 0,
+        "historyComplete": true
+      }
+    },
+    {
+      "label": "live",
+      "status": "running",
+      "observations": [
+        {
+          "at": 71007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          28,
+          28
+        ],
+        "airLeft": [
+          0.1676905196745808,
+          0.1676905196745808
+        ],
+        "spilledMg": 0,
+        "historyComplete": true
+      }
+    },
+    {
+      "label": "simulation",
+      "status": "running",
+      "observations": [
+        {
+          "at": 71007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          28,
+          28
+        ],
+        "airLeft": [
+          0.1676905196745808,
+          0.1676905196745808
+        ],
+        "spilledMg": 0,
+        "historyComplete": true
+      }
+    },
+    {
+      "label": "unknown",
+      "status": "running",
+      "observations": [],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          23.4335783507085,
+          30.179428514434562
+        ],
+        "airLeft": [
+          0.16768868480064125,
+          0.16769235454852033
+        ],
+        "spilledMg": 0,
+        "skipped": "environment unknown: air temperature and pressure not known",
+        "unreadable": 1,
+        "historyComplete": false
+      }
+    },
+    {
+      "label": "stale",
+      "status": "running",
+      "observations": [],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          23.4335783507085,
+          30.179428514434562
+        ],
+        "airLeft": [
+          0.16768868480064125,
+          0.16769235454852033
+        ],
+        "spilledMg": 0,
+        "skipped": "environment stale: air temperature and pressure not known",
+        "unreadable": 1,
+        "historyComplete": false
+      }
+    },
+    {
+      "label": "temperature missing",
+      "status": "running",
+      "observations": [],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          23.4335783507085,
+          30.179428514434562
+        ],
+        "airLeft": [
+          0.1676905196745808,
+          0.1676905196745808
+        ],
+        "spilledMg": 0,
+        "skipped": "environment record: air temperature not known",
+        "unreadable": 1,
+        "historyComplete": false
+      }
+    },
+    {
+      "label": "pressure missing",
+      "status": "running",
+      "observations": [],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          28,
+          28
+        ],
+        "airLeft": [
+          0.16768868480064125,
+          0.16769235454852033
+        ],
+        "spilledMg": 0,
+        "skipped": "environment record: pressure not known",
+        "unreadable": 1,
+        "historyComplete": false
+      }
+    },
+    {
+      "label": "temperature NaN",
+      "status": "running",
+      "observations": [],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          23.4335783507085,
+          30.179428514434562
+        ],
+        "airLeft": [
+          0.1676905196745808,
+          0.1676905196745808
+        ],
+        "spilledMg": 0,
+        "skipped": "environment record: air temperature not known",
+        "unreadable": 1,
+        "historyComplete": false
+      }
+    },
+    {
+      "label": "pressure Infinity",
+      "status": "running",
+      "observations": [],
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          28,
+          28
+        ],
+        "airLeft": [
+          0.16768868480064125,
+          0.16769235454852033
+        ],
+        "spilledMg": 0,
+        "skipped": "environment record: pressure not known",
+        "unreadable": 1,
+        "historyComplete": false
+      }
+    }
+  ],
+  "waterHistory": {
+    "taken": {
+      "drawn": [],
+      "contract": "0.2.0",
+      "requestId": "run:gauge@3661007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 3661007,
+        "to": 3691007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/1",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",143421],[\"airLeakTauMin\",2663],[\"airtightKnown\",1],[\"bulbTauS\",563],[\"capacityMl\",500],[\"coveragePpm\",968596],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",600]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 0.00005026548245743669,
+            "halfLengthM": 0.3,
+            "markM": 0.005,
+            "tauS": 563
+          },
+          "leakK": 2.038748821718523e-7,
+          "startMs": 1007,
+          "lastTo": 3691007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"value\":20000,\"unit\":\"mg\"},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 0,
+          "s": {
+            "tMs": 3691007,
+            "bLo": 213.28941986085374,
+            "bHi": 343.0834587027744,
+            "sLo": 0.1674684999278967,
+            "sHi": 0.16791253942126488
+          },
+          "ctl": {
+            "tKnown": false,
+            "Ta": 0,
+            "dsLo": -6.11624646515557e-8,
+            "dsHi": 6.11624646515557e-8
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 61007,
+          "gapLoMinK": 213.28941986085374,
+          "gapHiMaxK": 343.0834587027744,
+          "condition": "ok",
+          "spilledAt": -1,
+          "historyComplete": false
+        }
+      },
+      "status": "completed",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 0
+          }
+        }
+      ],
+      "released": [],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.0",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          -59.860580139146236,
+          69.93345870277443
+        ],
+        "airLeft": [
+          0.1674684999278967,
+          0.16791253942126488
+        ],
+        "spilledMg": 0,
+        "skipped": "environment unknown: air temperature and pressure not known",
+        "historyComplete": false
+      }
+    },
+    "reset": {
+      "drawn": [],
+      "contract": "0.2.0",
+      "requestId": "run:gauge@4000000",
+      "runId": "run:new-gauge",
+      "simulated": {
+        "from": 4000000,
+        "to": 4059999
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/1",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",143421],[\"airLeakTauMin\",2663],[\"airtightKnown\",1],[\"bulbTauS\",563],[\"capacityMl\",500],[\"coveragePpm\",968596],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",600]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 0.00005026548245743669,
+            "halfLengthM": 0.3,
+            "markM": 0.005,
+            "tauS": 563
+          },
+          "leakK": 2.038748821718523e-7,
+          "startMs": 4000000,
+          "lastTo": 4059999,
+          "waterFp": "[\"lot:returned-water\",\"process_water\",{\"value\":20000,\"unit\":\"mg\"},\"site:jar\",[[\"history_complete\",0]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 0,
+          "s": {
+            "tMs": 4059999,
+            "bLo": 301.15,
+            "bHi": 301.15,
+            "sLo": 0.1676905196745808,
+            "sHi": 0.1676905196745808
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 301.15,
+            "dsLo": 0,
+            "dsHi": 0
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 4059999,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "condition": "ok",
+          "spilledAt": -1,
+          "historyComplete": false
+        }
+      },
+      "status": "completed",
+      "consumed": [
+        {
+          "lotId": "lot:returned-water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 0
+          }
+        }
+      ],
+      "released": [],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 4030000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.0",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          28,
+          28
+        ],
+        "airLeft": [
+          0.1676905196745808,
+          0.1676905196745808
+        ],
+        "spilledMg": 0,
+        "historyComplete": false
+      }
+    }
+  },
+  "findings": [
+    {
+      "id": "HOST-C2",
+      "classification": "C",
+      "summary": "Current-schema null/missing state members can throw; normal returned JSON states are exact and finite. This includes the carried lamp C2 and new m03x."
+    }
+  ],
+  "hostConditions": [
+    "Every run uses one island clock for interval/actions/effectiveAt; sealing hand work is on world time.",
+    "Unknown environmental state must be sent as field missing/source unknown, never re-use a live weather sample that did not cover the interval.",
+    "Old version/schema failure is a cancellation: release reserved lots; no partial consumption was committed by this request.",
+    "Fresh setup with returned water history0 is physically re-set at known weather; its ledger provenance remains0."
+  ]
+}

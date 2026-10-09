@@ -1,0 +1,1771 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "parent": "self-barometer-parent",
+  "findings": {
+    "jointActionStateCold": {
+      "long": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 3600000,
+            "status": "completed",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+                ],
+                "eqFp": "[\"brush\",null]",
+                "lastTo": 900000,
+                "elapsedMs": 900000,
+                "durationMs": 900000,
+                "reportedHands": 13500,
+                "seal": true
+              }
+            },
+            "produced": [
+              {
+                "materialId": "fired_pot_test",
+                "amount": {
+                  "value": 671000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "capacity_ml": 500,
+                  "absorption_ppm": 120000,
+                  "coverage_ppm": 806259,
+                  "sealed": 1,
+                  "x_wood_tar_ppm": 61102,
+                  "air_leak_tau_min": 330,
+                  "x_tube_ppm": 44709,
+                  "tube_bore_mm": 8,
+                  "tube_length_mm": 600,
+                  "joint_cover_ppm": 834701,
+                  "history_complete": 1
+                }
+              }
+            ]
+          }
+        ],
+        "last": {
+          "contract": "0.2.0",
+          "requestId": "r:0",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 0,
+            "to": 900000
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": {
+              "fps": [
+                "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+              ],
+              "eqFp": "[\"brush\",null]",
+              "lastTo": 900000,
+              "elapsedMs": 900000,
+              "durationMs": 900000,
+              "reportedHands": 13500,
+              "seal": true
+            }
+          },
+          "status": "completed",
+          "consumed": [
+            {
+              "lotId": "pot",
+              "amount": {
+                "value": 600000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tar",
+              "amount": {
+                "value": 41000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tube",
+              "amount": {
+                "value": 30000,
+                "unit": "mg"
+              }
+            }
+          ],
+          "produced": [
+            {
+              "materialId": "fired_pot_test",
+              "amount": {
+                "value": 671000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "capacity_ml": 500,
+                "absorption_ppm": 120000,
+                "coverage_ppm": 806259,
+                "sealed": 1,
+                "x_wood_tar_ppm": 61102,
+                "air_leak_tau_min": 330,
+                "x_tube_ppm": 44709,
+                "tube_bore_mm": 8,
+                "tube_length_mm": 600,
+                "joint_cover_ppm": 834701,
+                "history_complete": 1
+              }
+            }
+          ],
+          "released": [],
+          "drawn": [],
+          "energy": [
+            {
+              "sourceId": "hands",
+              "kind": "mechanical",
+              "usedJ": 13500,
+              "lostJ": 13500,
+              "storedJ": 0
+            }
+          ],
+          "equipmentWear": [],
+          "observations": [
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "タールが固く、内側の表面に乗っているだけに見える"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "口を栓とタールでふさいだ"
+            }
+          ],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [
+              "S-wood"
+            ],
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）"
+          },
+          "diagnostics": {
+            "elapsedS": 900,
+            "durationS": 900,
+            "seal": true
+          }
+        },
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 806259,
+          "sealed": 1,
+          "x_wood_tar_ppm": 61102,
+          "air_leak_tau_min": 330,
+          "x_tube_ppm": 44709,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 834701,
+          "history_complete": 1
+        },
+        "assembly": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 806259,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 330,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 739
+        }
+      },
+      "split": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 600000,
+            "status": "running",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+                ],
+                "eqFp": "[\"brush\",null]",
+                "lastTo": 600000,
+                "elapsedMs": 600000,
+                "durationMs": 900000,
+                "reportedHands": 9000,
+                "seal": true
+              }
+            },
+            "produced": []
+          },
+          {
+            "from": 600000,
+            "to": 3600000,
+            "status": "completed",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+                ],
+                "eqFp": "[\"brush\",null]",
+                "lastTo": 900000,
+                "elapsedMs": 900000,
+                "durationMs": 900000,
+                "reportedHands": 13500,
+                "seal": true
+              }
+            },
+            "produced": [
+              {
+                "materialId": "fired_pot_test",
+                "amount": {
+                  "value": 671000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "capacity_ml": 500,
+                  "absorption_ppm": 120000,
+                  "coverage_ppm": 860470,
+                  "sealed": 1,
+                  "x_wood_tar_ppm": 61102,
+                  "air_leak_tau_min": 105,
+                  "x_tube_ppm": 44709,
+                  "tube_bore_mm": 8,
+                  "tube_length_mm": 600,
+                  "joint_cover_ppm": 0,
+                  "history_complete": 1
+                }
+              }
+            ]
+          }
+        ],
+        "last": {
+          "contract": "0.2.0",
+          "requestId": "r:600000",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 600000,
+            "to": 900000
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": {
+              "fps": [
+                "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+              ],
+              "eqFp": "[\"brush\",null]",
+              "lastTo": 900000,
+              "elapsedMs": 900000,
+              "durationMs": 900000,
+              "reportedHands": 13500,
+              "seal": true
+            }
+          },
+          "status": "completed",
+          "consumed": [
+            {
+              "lotId": "pot",
+              "amount": {
+                "value": 600000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tar",
+              "amount": {
+                "value": 41000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tube",
+              "amount": {
+                "value": 30000,
+                "unit": "mg"
+              }
+            }
+          ],
+          "produced": [
+            {
+              "materialId": "fired_pot_test",
+              "amount": {
+                "value": 671000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "capacity_ml": 500,
+                "absorption_ppm": 120000,
+                "coverage_ppm": 860470,
+                "sealed": 1,
+                "x_wood_tar_ppm": 61102,
+                "air_leak_tau_min": 105,
+                "x_tube_ppm": 44709,
+                "tube_bore_mm": 8,
+                "tube_length_mm": 600,
+                "joint_cover_ppm": 0,
+                "history_complete": 1
+              }
+            }
+          ],
+          "released": [],
+          "drawn": [],
+          "energy": [
+            {
+              "sourceId": "hands",
+              "kind": "mechanical",
+              "usedJ": 4500,
+              "lostJ": 4500,
+              "storedJ": 0
+            }
+          ],
+          "equipmentWear": [],
+          "observations": [
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "タールが固く、内側の表面に乗っているだけに見える"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "口を栓とタールでふさいだ"
+            }
+          ],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [
+              "S-wood"
+            ],
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）"
+          },
+          "diagnostics": {
+            "elapsedS": 900,
+            "durationS": 900,
+            "seal": true
+          }
+        },
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 860470,
+          "sealed": 1,
+          "x_wood_tar_ppm": 61102,
+          "air_leak_tau_min": 105,
+          "x_tube_ppm": 44709,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 0,
+          "history_complete": 1
+        },
+        "assembly": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 860470,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 105,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 739
+        }
+      },
+      "earlyChunks": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 30000,
+            "status": "failed",
+            "notes": "a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": null
+            },
+            "produced": []
+          }
+        ],
+        "last": {
+          "drawn": [],
+          "contract": "0.2.0",
+          "requestId": "r:0",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 0,
+            "to": 0
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": null
+          },
+          "status": "failed",
+          "consumed": [],
+          "produced": [],
+          "released": [],
+          "energy": [],
+          "equipmentWear": [],
+          "observations": [],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [],
+            "notes": "a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)"
+          },
+          "diagnostics": {
+            "error": "a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)"
+          }
+        },
+        "quality": null,
+        "assembly": null
+      },
+      "producedIdentical": false
+    },
+    "jointActionStateWarm": {
+      "long": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 3600000,
+            "status": "completed",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]",
+                  "[\"wood\",\"firewood\",{\"value\":2000000,\"unit\":\"mg\"},\"shelf\",[[\"water_ppm\",150000]]]"
+                ],
+                "eqFp": "[\"brush\",\"pit\"]",
+                "lastTo": 900000,
+                "elapsedMs": 900000,
+                "durationMs": 900000,
+                "reportedHands": 13500,
+                "seal": true
+              }
+            },
+            "produced": [
+              {
+                "materialId": "fired_pot_test",
+                "amount": {
+                  "value": 671000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "capacity_ml": 500,
+                  "absorption_ppm": 120000,
+                  "coverage_ppm": 995792,
+                  "sealed": 1,
+                  "x_wood_tar_ppm": 61102,
+                  "air_leak_tau_min": 10268,
+                  "x_tube_ppm": 44709,
+                  "tube_bore_mm": 8,
+                  "tube_length_mm": 600,
+                  "joint_cover_ppm": 997521,
+                  "history_complete": 1
+                }
+              },
+              {
+                "materialId": "firewood",
+                "amount": {
+                  "value": 1700000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "water_ppm": 150000,
+                  "ash_dry_ppm": 10000
+                }
+              },
+              {
+                "materialId": "wood_ash",
+                "amount": {
+                  "value": 2550,
+                  "unit": "mg"
+                },
+                "into": "shelf"
+              }
+            ]
+          }
+        ],
+        "last": {
+          "contract": "0.2.0",
+          "requestId": "r:0",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 0,
+            "to": 900000
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": {
+              "fps": [
+                "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]",
+                "[\"wood\",\"firewood\",{\"value\":2000000,\"unit\":\"mg\"},\"shelf\",[[\"water_ppm\",150000]]]"
+              ],
+              "eqFp": "[\"brush\",\"pit\"]",
+              "lastTo": 900000,
+              "elapsedMs": 900000,
+              "durationMs": 900000,
+              "reportedHands": 13500,
+              "seal": true
+            }
+          },
+          "status": "completed",
+          "consumed": [
+            {
+              "lotId": "pot",
+              "amount": {
+                "value": 600000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tar",
+              "amount": {
+                "value": 41000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tube",
+              "amount": {
+                "value": 30000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "wood",
+              "amount": {
+                "value": 2000000,
+                "unit": "mg"
+              }
+            }
+          ],
+          "produced": [
+            {
+              "materialId": "fired_pot_test",
+              "amount": {
+                "value": 671000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "capacity_ml": 500,
+                "absorption_ppm": 120000,
+                "coverage_ppm": 995792,
+                "sealed": 1,
+                "x_wood_tar_ppm": 61102,
+                "air_leak_tau_min": 10268,
+                "x_tube_ppm": 44709,
+                "tube_bore_mm": 8,
+                "tube_length_mm": 600,
+                "joint_cover_ppm": 997521,
+                "history_complete": 1
+              }
+            },
+            {
+              "materialId": "firewood",
+              "amount": {
+                "value": 1700000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "water_ppm": 150000,
+                "ash_dry_ppm": 10000
+              }
+            },
+            {
+              "materialId": "wood_ash",
+              "amount": {
+                "value": 2550,
+                "unit": "mg"
+              },
+              "into": "shelf"
+            }
+          ],
+          "released": [
+            {
+              "materialId": "water_vapour",
+              "amount": {
+                "value": 181313,
+                "unit": "mg"
+              },
+              "to": "air"
+            },
+            {
+              "materialId": "process_co2",
+              "amount": {
+                "value": 462498,
+                "unit": "mg"
+              },
+              "to": "air"
+            }
+          ],
+          "drawn": [
+            {
+              "materialId": "o2",
+              "amount": {
+                "value": 346361,
+                "unit": "mg"
+              },
+              "from": "air"
+            }
+          ],
+          "energy": [
+            {
+              "sourceId": "hands",
+              "kind": "mechanical",
+              "usedJ": 13500,
+              "lostJ": 13500,
+              "storedJ": 0
+            },
+            {
+              "sourceId": "src:combustion:run:p16x_vessel_tar_seal",
+              "kind": "heat",
+              "usedJ": 4544100,
+              "lostJ": 4544100,
+              "storedJ": 0
+            }
+          ],
+          "equipmentWear": [],
+          "observations": [
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "温めたタールが内側にしみこみ、黒く光っている"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "口を栓とタールでふさいだ"
+            }
+          ],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [
+              "S-wood"
+            ],
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）"
+          },
+          "diagnostics": {
+            "elapsedS": 900,
+            "durationS": 900,
+            "seal": true
+          }
+        },
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 995792,
+          "sealed": 1,
+          "x_wood_tar_ppm": 61102,
+          "air_leak_tau_min": 10268,
+          "x_tube_ppm": 44709,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 997521,
+          "history_complete": 1
+        },
+        "assembly": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 995792,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 10268,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 739
+        }
+      },
+      "split": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 600000,
+            "status": "running",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]",
+                  "[\"wood\",\"firewood\",{\"value\":2000000,\"unit\":\"mg\"},\"shelf\",[[\"water_ppm\",150000]]]"
+                ],
+                "eqFp": "[\"brush\",\"pit\"]",
+                "lastTo": 600000,
+                "elapsedMs": 600000,
+                "durationMs": 900000,
+                "reportedHands": 9000,
+                "seal": true
+              }
+            },
+            "produced": []
+          },
+          {
+            "from": 600000,
+            "to": 3600000,
+            "status": "completed",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]",
+                  "[\"wood\",\"firewood\",{\"value\":2000000,\"unit\":\"mg\"},\"shelf\",[[\"water_ppm\",150000]]]"
+                ],
+                "eqFp": "[\"brush\",\"pit\"]",
+                "lastTo": 900000,
+                "elapsedMs": 900000,
+                "durationMs": 900000,
+                "reportedHands": 13500,
+                "seal": true
+              }
+            },
+            "produced": [
+              {
+                "materialId": "fired_pot_test",
+                "amount": {
+                  "value": 671000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "capacity_ml": 500,
+                  "absorption_ppm": 120000,
+                  "coverage_ppm": 998591,
+                  "sealed": 1,
+                  "x_wood_tar_ppm": 61102,
+                  "air_leak_tau_min": 119,
+                  "x_tube_ppm": 44709,
+                  "tube_bore_mm": 8,
+                  "tube_length_mm": 600,
+                  "joint_cover_ppm": 0,
+                  "history_complete": 1
+                }
+              },
+              {
+                "materialId": "firewood",
+                "amount": {
+                  "value": 1700000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "water_ppm": 150000,
+                  "ash_dry_ppm": 10000
+                }
+              },
+              {
+                "materialId": "wood_ash",
+                "amount": {
+                  "value": 2550,
+                  "unit": "mg"
+                },
+                "into": "shelf"
+              }
+            ]
+          }
+        ],
+        "last": {
+          "contract": "0.2.0",
+          "requestId": "r:600000",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 600000,
+            "to": 900000
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": {
+              "fps": [
+                "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]",
+                "[\"wood\",\"firewood\",{\"value\":2000000,\"unit\":\"mg\"},\"shelf\",[[\"water_ppm\",150000]]]"
+              ],
+              "eqFp": "[\"brush\",\"pit\"]",
+              "lastTo": 900000,
+              "elapsedMs": 900000,
+              "durationMs": 900000,
+              "reportedHands": 13500,
+              "seal": true
+            }
+          },
+          "status": "completed",
+          "consumed": [
+            {
+              "lotId": "pot",
+              "amount": {
+                "value": 600000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tar",
+              "amount": {
+                "value": 41000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tube",
+              "amount": {
+                "value": 30000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "wood",
+              "amount": {
+                "value": 2000000,
+                "unit": "mg"
+              }
+            }
+          ],
+          "produced": [
+            {
+              "materialId": "fired_pot_test",
+              "amount": {
+                "value": 671000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "capacity_ml": 500,
+                "absorption_ppm": 120000,
+                "coverage_ppm": 998591,
+                "sealed": 1,
+                "x_wood_tar_ppm": 61102,
+                "air_leak_tau_min": 119,
+                "x_tube_ppm": 44709,
+                "tube_bore_mm": 8,
+                "tube_length_mm": 600,
+                "joint_cover_ppm": 0,
+                "history_complete": 1
+              }
+            },
+            {
+              "materialId": "firewood",
+              "amount": {
+                "value": 1700000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "water_ppm": 150000,
+                "ash_dry_ppm": 10000
+              }
+            },
+            {
+              "materialId": "wood_ash",
+              "amount": {
+                "value": 2550,
+                "unit": "mg"
+              },
+              "into": "shelf"
+            }
+          ],
+          "released": [
+            {
+              "materialId": "water_vapour",
+              "amount": {
+                "value": 181313,
+                "unit": "mg"
+              },
+              "to": "air"
+            },
+            {
+              "materialId": "process_co2",
+              "amount": {
+                "value": 462498,
+                "unit": "mg"
+              },
+              "to": "air"
+            }
+          ],
+          "drawn": [
+            {
+              "materialId": "o2",
+              "amount": {
+                "value": 346361,
+                "unit": "mg"
+              },
+              "from": "air"
+            }
+          ],
+          "energy": [
+            {
+              "sourceId": "hands",
+              "kind": "mechanical",
+              "usedJ": 4500,
+              "lostJ": 4500,
+              "storedJ": 0
+            },
+            {
+              "sourceId": "src:combustion:run:p16x_vessel_tar_seal",
+              "kind": "heat",
+              "usedJ": 4544100,
+              "lostJ": 4544100,
+              "storedJ": 0
+            }
+          ],
+          "equipmentWear": [],
+          "observations": [
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "温めたタールが内側にしみこみ、黒く光っている"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "塗りすぎたタールが底にたまった"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "口を栓とタールでふさいだ"
+            }
+          ],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [
+              "S-wood"
+            ],
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）"
+          },
+          "diagnostics": {
+            "elapsedS": 900,
+            "durationS": 900,
+            "seal": true
+          }
+        },
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 998591,
+          "sealed": 1,
+          "x_wood_tar_ppm": 61102,
+          "air_leak_tau_min": 119,
+          "x_tube_ppm": 44709,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 0,
+          "history_complete": 1
+        },
+        "assembly": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 998591,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 119,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 739
+        }
+      },
+      "earlyChunks": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 30000,
+            "status": "failed",
+            "notes": "a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": null
+            },
+            "produced": []
+          }
+        ],
+        "last": {
+          "drawn": [],
+          "contract": "0.2.0",
+          "requestId": "r:0",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 0,
+            "to": 0
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": null
+          },
+          "status": "failed",
+          "consumed": [],
+          "produced": [],
+          "released": [],
+          "energy": [],
+          "equipmentWear": [],
+          "observations": [],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [],
+            "notes": "a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)"
+          },
+          "diagnostics": {
+            "error": "a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)"
+          }
+        },
+        "quality": null,
+        "assembly": null
+      },
+      "producedIdentical": false
+    },
+    "unreachedAction": {
+      "chronological": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 3600000,
+            "status": "completed",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+                ],
+                "eqFp": "[\"brush\",null]",
+                "lastTo": 900000,
+                "elapsedMs": 900000,
+                "durationMs": 900000,
+                "reportedHands": 13500,
+                "seal": true
+              }
+            },
+            "produced": [
+              {
+                "materialId": "fired_pot_test",
+                "amount": {
+                  "value": 671000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "capacity_ml": 500,
+                  "absorption_ppm": 120000,
+                  "coverage_ppm": 806259,
+                  "sealed": 1,
+                  "x_wood_tar_ppm": 61102,
+                  "air_leak_tau_min": 330,
+                  "x_tube_ppm": 44709,
+                  "tube_bore_mm": 8,
+                  "tube_length_mm": 600,
+                  "joint_cover_ppm": 834701,
+                  "history_complete": 1
+                }
+              }
+            ]
+          }
+        ],
+        "last": {
+          "contract": "0.2.0",
+          "requestId": "r:0",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 0,
+            "to": 900000
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": {
+              "fps": [
+                "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+              ],
+              "eqFp": "[\"brush\",null]",
+              "lastTo": 900000,
+              "elapsedMs": 900000,
+              "durationMs": 900000,
+              "reportedHands": 13500,
+              "seal": true
+            }
+          },
+          "status": "completed",
+          "consumed": [
+            {
+              "lotId": "pot",
+              "amount": {
+                "value": 600000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tar",
+              "amount": {
+                "value": 41000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tube",
+              "amount": {
+                "value": 30000,
+                "unit": "mg"
+              }
+            }
+          ],
+          "produced": [
+            {
+              "materialId": "fired_pot_test",
+              "amount": {
+                "value": 671000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "capacity_ml": 500,
+                "absorption_ppm": 120000,
+                "coverage_ppm": 806259,
+                "sealed": 1,
+                "x_wood_tar_ppm": 61102,
+                "air_leak_tau_min": 330,
+                "x_tube_ppm": 44709,
+                "tube_bore_mm": 8,
+                "tube_length_mm": 600,
+                "joint_cover_ppm": 834701,
+                "history_complete": 1
+              }
+            }
+          ],
+          "released": [],
+          "drawn": [],
+          "energy": [
+            {
+              "sourceId": "hands",
+              "kind": "mechanical",
+              "usedJ": 13500,
+              "lostJ": 13500,
+              "storedJ": 0
+            }
+          ],
+          "equipmentWear": [],
+          "observations": [
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "タールが固く、内側の表面に乗っているだけに見える"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "口を栓とタールでふさいだ"
+            }
+          ],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [
+              "S-wood"
+            ],
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）"
+          },
+          "diagnostics": {
+            "elapsedS": 900,
+            "durationS": 900,
+            "seal": true
+          }
+        },
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 806259,
+          "sealed": 1,
+          "x_wood_tar_ppm": 61102,
+          "air_leak_tau_min": 330,
+          "x_tube_ppm": 44709,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 834701,
+          "history_complete": 1
+        },
+        "assembly": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 806259,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 330,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 739
+        }
+      },
+      "reverseInput": {
+        "trace": [
+          {
+            "from": 0,
+            "to": 3600000,
+            "status": "completed",
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）",
+            "state": {
+              "schema": "civ-sci.vessel-seal/2",
+              "data": {
+                "fps": [
+                  "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                  "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                  "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+                ],
+                "eqFp": "[\"brush\",null]",
+                "lastTo": 900000,
+                "elapsedMs": 900000,
+                "durationMs": 900000,
+                "reportedHands": 13500,
+                "seal": true
+              }
+            },
+            "produced": [
+              {
+                "materialId": "fired_pot_test",
+                "amount": {
+                  "value": 671000,
+                  "unit": "mg"
+                },
+                "into": "shelf",
+                "quality": {
+                  "capacity_ml": 500,
+                  "absorption_ppm": 120000,
+                  "coverage_ppm": 0,
+                  "sealed": 1,
+                  "x_wood_tar_ppm": 61102,
+                  "air_leak_tau_min": 119,
+                  "x_tube_ppm": 44709,
+                  "tube_bore_mm": 8,
+                  "tube_length_mm": 600,
+                  "joint_cover_ppm": 999979,
+                  "history_complete": 1
+                }
+              }
+            ]
+          }
+        ],
+        "last": {
+          "contract": "0.2.0",
+          "requestId": "r:0",
+          "runId": "run:p16x_vessel_tar_seal",
+          "simulated": {
+            "from": 0,
+            "to": 900000
+          },
+          "state": {
+            "schema": "civ-sci.vessel-seal/2",
+            "data": {
+              "fps": [
+                "[\"pot\",\"fired_pot_test\",{\"value\":600000,\"unit\":\"mg\"},\"shelf\",[[\"absorption_ppm\",120000],[\"capacity_ml\",500]]]",
+                "[\"tar\",\"wood_tar\",{\"value\":41000,\"unit\":\"mg\"},\"shelf\",[[\"x_wood_tar_ppm\",1000000]]]",
+                "[\"tube\",\"gauge_tube_test\",{\"value\":30000,\"unit\":\"mg\"},\"shelf\",[[\"bore_mm\",8],[\"length_mm\",600]]]"
+              ],
+              "eqFp": "[\"brush\",null]",
+              "lastTo": 900000,
+              "elapsedMs": 900000,
+              "durationMs": 900000,
+              "reportedHands": 13500,
+              "seal": true
+            }
+          },
+          "status": "completed",
+          "consumed": [
+            {
+              "lotId": "pot",
+              "amount": {
+                "value": 600000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tar",
+              "amount": {
+                "value": 41000,
+                "unit": "mg"
+              }
+            },
+            {
+              "lotId": "tube",
+              "amount": {
+                "value": 30000,
+                "unit": "mg"
+              }
+            }
+          ],
+          "produced": [
+            {
+              "materialId": "fired_pot_test",
+              "amount": {
+                "value": 671000,
+                "unit": "mg"
+              },
+              "into": "shelf",
+              "quality": {
+                "capacity_ml": 500,
+                "absorption_ppm": 120000,
+                "coverage_ppm": 0,
+                "sealed": 1,
+                "x_wood_tar_ppm": 61102,
+                "air_leak_tau_min": 119,
+                "x_tube_ppm": 44709,
+                "tube_bore_mm": 8,
+                "tube_length_mm": 600,
+                "joint_cover_ppm": 999979,
+                "history_complete": 1
+              }
+            }
+          ],
+          "released": [],
+          "drawn": [],
+          "energy": [
+            {
+              "sourceId": "hands",
+              "kind": "mechanical",
+              "usedJ": 13500,
+              "lostJ": 13500,
+              "storedJ": 0
+            }
+          ],
+          "equipmentWear": [],
+          "observations": [
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "タールが固く、内側の表面に乗っているだけに見える"
+            },
+            {
+              "at": 900000,
+              "channel": "sight",
+              "quantity": "pot",
+              "text": "口を栓とタールでふさいだ"
+            }
+          ],
+          "evidence": {
+            "evaluatorVersion": "vessel-seal-eval/0.1.3",
+            "sourceRefs": [
+              "S-wood"
+            ],
+            "notes": "タールが穴をふさぐ割合（温めたとき・冷たいとき）、封じに使うタール、温めるのに燃やす薪、手間はすべて仮定（出典未照合）"
+          },
+          "diagnostics": {
+            "elapsedS": 900,
+            "durationS": 900,
+            "seal": true
+          }
+        },
+        "quality": {
+          "capacity_ml": 500,
+          "absorption_ppm": 120000,
+          "coverage_ppm": 0,
+          "sealed": 1,
+          "x_wood_tar_ppm": 61102,
+          "air_leak_tau_min": 119,
+          "x_tube_ppm": 44709,
+          "tube_bore_mm": 8,
+          "tube_length_mm": 600,
+          "joint_cover_ppm": 999979,
+          "history_complete": 1
+        },
+        "assembly": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 0,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 119,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 600,
+          "bulbTauS": 739
+        }
+      }
+    }
+  },
+  "passed": {
+    "legacy500Ml": {
+      "conditions": 140,
+      "environmentSources": [
+        "record",
+        "live",
+        "simulation",
+        "unknown"
+      ],
+      "scenarios": 560,
+      "pairedIntervals": 109300,
+      "metadataOnly": 109300,
+      "mismatchCount": 0,
+      "mismatches": [],
+      "normalization": "evidence.evaluatorVersion only",
+      "helperChecks": [
+        {
+          "name": "raw500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "raw500 readPot",
+          "passed": true
+        },
+        {
+          "name": "raw500 return 1",
+          "passed": true
+        },
+        {
+          "name": "raw500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "raw500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "raw500 return 0",
+          "passed": true
+        },
+        {
+          "name": "raw500 sherds",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 readPot",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 return 1",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 return 0",
+          "passed": true
+        },
+        {
+          "name": "lowAbsorb500 sherds",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 readPot",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 return 1",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 return 0",
+          "passed": true
+        },
+        {
+          "name": "highAbsorb500 sherds",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 readPot",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 return 1",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 return 0",
+          "passed": true
+        },
+        {
+          "name": "noabsorb500 sherds",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 readPot",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 return 1",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 return 0",
+          "passed": true
+        },
+        {
+          "name": "tarred-wet500 sherds",
+          "passed": true
+        },
+        {
+          "name": "cracked500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "cracked500 readPot",
+          "passed": true
+        },
+        {
+          "name": "cracked500 return 1",
+          "passed": true
+        },
+        {
+          "name": "cracked500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "cracked500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "cracked500 return 0",
+          "passed": true
+        },
+        {
+          "name": "cracked500 sherds",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 equipment params",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 readPot",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 return 1",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 return 0.97",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 return 0.5",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 return 0",
+          "passed": true
+        },
+        {
+          "name": "sealed-unknown500 sherds",
+          "passed": true
+        }
+      ]
+    },
+    "assemblyReturn": {
+      "read": {
+        "body": 600002,
+        "tar": 40999,
+        "water": 0,
+        "capacityMl": 500,
+        "absorption": 0.12,
+        "coverage": 0.995792,
+        "sealed": true,
+        "airtightKnown": true,
+        "crack": 0,
+        "areaM2": 0.03655786918374963,
+        "tube": {
+          "mg": 29999,
+          "boreMm": 8,
+          "lengthMm": 600,
+          "jointCover": 0.997521
+        }
+      },
+      "params": {
+        "capacityMl": 500,
+        "absorptionPpm": 120000,
+        "coveragePpm": 995792,
+        "sealed": 1,
+        "airtightKnown": 1,
+        "crackPpm": 0,
+        "airLeakTauMin": 10268,
+        "tubeBoreMm": 8,
+        "tubeLengthMm": 600,
+        "bulbTauS": 739
+      },
+      "bulbTauMatchesBodyMath": true,
+      "wholeCopyUnchanged": true,
+      "wornQuality": {
+        "capacity_ml": 500,
+        "absorption_ppm": 120000,
+        "coverage_ppm": 995792,
+        "sealed": 1,
+        "x_wood_tar_ppm": 61102,
+        "x_tube_ppm": 44709,
+        "tube_bore_mm": 8,
+        "tube_length_mm": 600,
+        "joint_cover_ppm": 997521,
+        "history_complete": 1,
+        "airtight_known": 0,
+        "crack_ppm": 100000
+      },
+      "wornParams": {
+        "capacityMl": 500,
+        "absorptionPpm": 120000,
+        "coveragePpm": 995792,
+        "sealed": 1,
+        "airtightKnown": 0,
+        "crackPpm": 100000,
+        "airLeakTauMin": 0,
+        "tubeBoreMm": 8,
+        "tubeLengthMm": 600,
+        "bulbTauS": 739
+      }
+    },
+    "hotTarJoint": {
+      "before": {
+        "capacity_ml": 500,
+        "absorption_ppm": 120000,
+        "coverage_ppm": 995792,
+        "sealed": 1,
+        "x_wood_tar_ppm": 61102,
+        "air_leak_tau_min": 10268,
+        "x_tube_ppm": 44709,
+        "tube_bore_mm": 8,
+        "tube_length_mm": 600,
+        "joint_cover_ppm": 997521,
+        "history_complete": 1
+      },
+      "after": {
+        "capacity_ml": 500,
+        "absorption_ppm": 120000,
+        "coverage_ppm": 49577,
+        "sealed": 1,
+        "x_wood_tar_ppm": 61101,
+        "air_leak_tau_min": 125,
+        "x_tube_ppm": 44707,
+        "tube_bore_mm": 8,
+        "tube_length_mm": 600,
+        "joint_cover_ppm": 997521,
+        "history_complete": 1
+      },
+      "observations": [],
+      "status": "completed"
+    },
+    "tubeGuards": [
+      {
+        "name": "missingJoint",
+        "refused": true,
+        "reason": "pot made:normal: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+      },
+      {
+        "name": "negativeJoint",
+        "refused": true,
+        "reason": "pot made:normal: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+      },
+      {
+        "name": "jointOverOne",
+        "refused": true,
+        "reason": "pot made:normal: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+      },
+      {
+        "name": "negativeBore",
+        "refused": true,
+        "reason": "pot made:normal: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+      },
+      {
+        "name": "tooShort",
+        "refused": true,
+        "reason": "pot made:normal: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+      },
+      {
+        "name": "unsealedTube",
+        "refused": true,
+        "reason": "pot made:normal: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot"
+      }
+    ],
+    "reservedJointChange": {
+      "status": "failed",
+      "reason": "changed-input: a reserved lot changed under a running run",
+      "consumed": []
+    }
+  },
+  "calls": 13,
+  "violations": []
+}

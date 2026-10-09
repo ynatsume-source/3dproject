@@ -1,0 +1,41 @@
+{
+  "target": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "independentBlockers": [],
+  "crossReferences": [
+    {
+      "issue": "jointTarG not retained in p16x state",
+      "classification": "A",
+      "owner": "vessel reviewer"
+    },
+    {
+      "issue": "m03x ending overflow not posted",
+      "classification": "A",
+      "owner": "interval reviewer"
+    }
+  ],
+  "consultations": [
+    {
+      "id": "C-M1",
+      "classification": "C",
+      "issue": "large instant pressure step can spill input water beyond fixed minimum fill; excess water semantics need definition",
+      "source": "src/science/step/barometer-pot.ts",
+      "line": 86,
+      "ordinaryImpactConfirmed": false
+    },
+    {
+      "id": "C-M2",
+      "classification": "C",
+      "issue": "sub-ppm artificial tube input produces zero tube mass or unreadable returned record",
+      "source": "src/science/step/vessel.ts",
+      "line": 107,
+      "ordinaryImpactConfirmed": false
+    }
+  ],
+  "verification": {
+    "calls": 90,
+    "contractViolations": 0,
+    "actualFiredPotChain": "completed",
+    "normalTubeReturnReadable": true,
+    "originalBranchesChanged": false
+  }
+}

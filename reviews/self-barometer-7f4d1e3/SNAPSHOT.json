@@ -1,0 +1,1638 @@
+{
+  "checkedAtUtc": "2026-10-09T15:59:39.876194+00:00",
+  "repository": "/workspace/3dproject-civilization",
+  "head": "162ee7c30e536d5c560e8360018e59a9b8c07695",
+  "branch": "codex/civilization-lab",
+  "statusPorcelain": "",
+  "localHeadsAfter": [
+    "refs/heads/codex/civilization-lab 162ee7c30e536d5c560e8360018e59a9b8c07695",
+    "refs/heads/codex/civilization-simulation 66ad17b1b1217131e755139b6341ae2135c4920f",
+    "refs/heads/work 68c4e4346638fe65e8942fc874f305522f7253a2"
+  ],
+  "localHeadsUnchanged": true,
+  "mainCheckedOutOrUpdated": false,
+  "scienceBranchCheckedOutOrUpdated": false,
+  "committedOrPushed": false,
+  "networkAction": "git fetch origin codex/civilization-simulation; only remote tracking updated; no branch/source mutation",
+  "targetSourceBlobsRechecked": [
+    {
+      "path": "data/science/catalog-test-2.json",
+      "gitBlobSha": "e20768918d9a6988ef3deae614aabaac895cc28f",
+      "sha256": "b9a98a52130ff7141e88a0578ddb21353b78144ac4588db7c1b27fb7a630b33b"
+    },
+    {
+      "path": "data/science/evidence/ceramics-monthly-rhee-reclaiming-2018.json",
+      "gitBlobSha": "89dd99ba52bc45b83344e2027ea192677c49604f",
+      "sha256": "2bb6fedb11a250e45b856aed7b8806f77c8595e1a3c999e5f7e185ebead00c43"
+    },
+    {
+      "path": "data/science/evidence/digitalfire-slaking-bar-observation.json",
+      "gitBlobSha": "74951bc2a82448b86eda6d454f8fc19a09b603d8",
+      "sha256": "25b60a127af684943388a4fd59373823937be2e8b8484311081e33c14d450080"
+    },
+    {
+      "path": "data/science/evidence/digitalfire-slaking-original.json",
+      "gitBlobSha": "8ef036c413e0c1ec0413d1fdf8d8eb27a14deb9d",
+      "sha256": "737134bb4de91a6781a8b5620a3798f1cd995a226a077a1afc093f486f8eea30"
+    },
+    {
+      "path": "data/science/evidence/fao-coir-2002-whole-coconut.json",
+      "gitBlobSha": "82152ec04159bb40d3e339d0aac640ebba09e948",
+      "sha256": "fc538c3020e8416d7487513474c2d71a6c04f608cdc113659569c8254a611ff6"
+    },
+    {
+      "path": "data/science/evidence/fao-controlling-water-losses-ch3.json",
+      "gitBlobSha": "1eee5b6f79ead7f12585e1c0af42818c21019e8a",
+      "sha256": "6d790c78384a3b266883a10d2156bf4ccea00f4da3d7335a1c530d3baf55af1d"
+    },
+    {
+      "path": "data/science/evidence/fao-industrial-charcoal-1985-ch2.json",
+      "gitBlobSha": "36f1aa962a864dfbfa5cbc7b95bac3218b782073",
+      "sha256": "5687b29fa8c9a4c613afef7a1d01204e42399d26aff94df9aafb8ebd5f45b84c"
+    },
+    {
+      "path": "data/science/evidence/fao-pond-construction-ch12-labour.json",
+      "gitBlobSha": "088ebca19889ed7d85a84f597da04c776bf0d906",
+      "sha256": "5b8b70457e865670e51fac9ab830fc3c67bae733c971b50e9c0afcd29be885ac"
+    },
+    {
+      "path": "data/science/evidence/fao-pond-water-requirements-ch2.json",
+      "gitBlobSha": "831930d0f115e693a9e5f61bde9bc1a6a94a13e5",
+      "sha256": "dca9669452d66fce708687e2e20be81490d321d053456b16fc39e2b306fe1689"
+    },
+    {
+      "path": "data/science/evidence/fao-simple-charcoal-1983-ch7.json",
+      "gitBlobSha": "f8184829be08e8a0290b60768b909565f57cecbd",
+      "sha256": "f6e6964a483e6c6ebaaab6a51a1a75e143dd25574c4755afe433efe6cb9c142b"
+    },
+    {
+      "path": "data/science/evidence/fortier-firewood-2021.json",
+      "gitBlobSha": "56eb9b90fe364bcc1cba5fbb256deef68965c18d",
+      "sha256": "5997cfa7e2005c6445afe18d23fcb702e5c3eae8c44ef9bbe6131aa9b8f2c6c5"
+    },
+    {
+      "path": "data/science/evidence/hugget-clay-drying-stress-1999.json",
+      "gitBlobSha": "f2ceb8ae26b2182b6f788ce05c2784a4d93bd6c4",
+      "sha256": "91133d6cec26485036a6498d27dbf74dd3ec696d86126b78162091fd3fb63821"
+    },
+    {
+      "path": "data/science/evidence/hughes-gale-lamp-consumption-2007.json",
+      "gitBlobSha": "2979e4261bf98d4e792c113ec17d91d37157cc2e",
+      "sha256": "6686512a0a2c98a9afe2df1f331f460bba92dbf9de63261f651a2c6e395ecad3"
+    },
+    {
+      "path": "data/science/evidence/icar-cpcri-vco-bulletin-2016.json",
+      "gitBlobSha": "5203dfaf30d0a3c257978a69468cc6d2b0d80f3e",
+      "sha256": "a9a7450d50dc9c9a8fe1cfd142b5febf6118dcd27cbe5443b6f1c1728e3ae7dd"
+    },
+    {
+      "path": "data/science/evidence/idris-eggshell-claypot-2024.json",
+      "gitBlobSha": "02f0df4597c4ac002115fc6e1db0de55d3e76a3b",
+      "sha256": "580d2b337222a101644aa7fc705b8edbf831d44dc509008fd4bfd9b246d75f72"
+    },
+    {
+      "path": "data/science/evidence/jma-ishigaki-20160124-hourly.csv",
+      "gitBlobSha": "7f0b44ed656a0a47c6ec7aeabc8ae3478a1c4b21",
+      "sha256": "0d1df7ecca6e4800711edac9454ddc0c57307a2169139fcfd3442568c4ea2585"
+    },
+    {
+      "path": "data/science/evidence/jma-yonaguni-20150928-hourly.csv",
+      "gitBlobSha": "5b1a889e0102ab48a893597e767d219252706cca",
+      "sha256": "1f0765897eb53e33be29c051378270cb0eb4183b18018ad6ac91bc074f66be5c"
+    },
+    {
+      "path": "data/science/evidence/kahwaji-white-coconut-pcm-2019.json",
+      "gitBlobSha": "8cb71974d4f9c69a8a52ad475bf8315892427ab2",
+      "sha256": "7c878dd6df707f63c6c58716f2cfb861f96832e272d45092fbcfc13bf5f3d2cb"
+    },
+    {
+      "path": "data/science/evidence/lynn-black-cordmarked-replication-2003.json",
+      "gitBlobSha": "8494a65e3faf7c1a2bc92cd33030fd0305f7450b",
+      "sha256": "2f0676515e89249b992fbe5cea01b3eafcfcf3e47e2dc7535e355adb309de1b9"
+    },
+    {
+      "path": "data/science/evidence/mal-laponite-cracking-2005.json",
+      "gitBlobSha": "7c4643f18055d50a821a3f25c823269a37e2fcf6",
+      "sha256": "475c8fc97eadbba37ad7d553fd0806a272f1aa41f9d2c136febc950feb69609c"
+    },
+    {
+      "path": "data/science/evidence/mext-coconut-milk-07158-2023.json",
+      "gitBlobSha": "081f4ff1e386bd34f10cc12b6a48b00ddbec6562",
+      "sha256": "ebf252a337bc9253e2d77242c0c03ca3da1b29155994ff700dd798e17b7249e5"
+    },
+    {
+      "path": "data/science/evidence/moullou-doulos-topalis-historical-lamp-photometry-2015.json",
+      "gitBlobSha": "e379a00f87e04629c9ef317aa8965dcef5d684fe",
+      "sha256": "b1696fbe3b434dcd99e6dbbec534d37bd41ca223f4c02d817ea660caf972d7a9"
+    },
+    {
+      "path": "data/science/evidence/padilla-sanchez-iberia-pottery-water-2022.json",
+      "gitBlobSha": "49caf7a4d64c2d57d97fbf7617dd3f43fcf761dc",
+      "sha256": "b14a6cd788be9556909eb94732758e7271ecd0782a9e593df7ae387ceb684059"
+    },
+    {
+      "path": "data/science/evidence/panno-et-al-compacted-soil-liner-1991.json",
+      "gitBlobSha": "60071669184f296b4a9a3632bb2a852761431c27",
+      "sha256": "df63b4daccdc2a57c1884fb0cfd101afae3e8901405c113161b942d9c74ced35"
+    },
+    {
+      "path": "data/science/evidence/silva-clay-slab-falling-rate-2013.json",
+      "gitBlobSha": "cc62e6171ccdbbdcf68b749eb7d30357c176034f",
+      "sha256": "d3c12a3ee135a3f62140d8924320bf26243ce59e088bafa68d42577522059bda"
+    },
+    {
+      "path": "data/science/evidence/sisi-vanuatu-straight-coconut-oils-2020.json",
+      "gitBlobSha": "60534b596499a9df086387a92ad085d4c29964c7",
+      "sha256": "995788893a4bbbee70be55a489b9ef33706a1c09e8b1bb02bcb261ce4b0631a8"
+    },
+    {
+      "path": "data/science/evidence/spc-bawalan-vco-manual-2011.json",
+      "gitBlobSha": "89348e04b2fcb07b730729b4b45c6f50ccd12163",
+      "sha256": "b2c2fe9ec12be532729592d9599b077bf47ac26722b4f0d0a7f83a5af8567c22"
+    },
+    {
+      "path": "data/science/evidence/umd-firewood-2018.json",
+      "gitBlobSha": "492fc452e02754d7b06bb4b17066296eb9c93f62",
+      "sha256": "7bfb9b57831d2910084f63395849c88c8d153bf29369ab6a3bd637874c66baf4"
+    },
+    {
+      "path": "data/science/evidence/usda-emc-history-2014.json",
+      "gitBlobSha": "77473b6e6fb3133a241447eceaaa055ef01961f9",
+      "sha256": "13419692684902f02755d4696d2477e47e81e9f626399fe1970afd162ad17059"
+    },
+    {
+      "path": "data/science/evidence/usda-fpl19-pyrolysis-calorimetry-1964.json",
+      "gitBlobSha": "fc640ced2cab93335bc5daf1be00cc43679e834c",
+      "sha256": "8fbd345fc2e41257a66498fa0ad64096c65a983f54705e86133d43d30966b2c4"
+    },
+    {
+      "path": "data/science/evidence/wood-handbook-2021.json",
+      "gitBlobSha": "bc7aacad1a4aa96b2fae076663a3936b263c1607",
+      "sha256": "b5a59099e3d2d3dfd2971e4dc9fa30c5b47360957cd96cb75a0edec5556a6b14"
+    },
+    {
+      "path": "data/science/evidence/zhang-biomass-char-2015.json",
+      "gitBlobSha": "e2ebab15d42536b59d1dc31fbb492ac19f85177c",
+      "sha256": "d090402d5325ef2e287a05292b2ae6774c5287fb1b5160aeb6dbb47891a7d54f"
+    },
+    {
+      "path": "data/science/handoff-manifest.json",
+      "gitBlobSha": "f2037469ed1aeb5ac29e8b8d2d012a4126247680",
+      "sha256": "23e9554e67690a39338f98518f9b888b455185baa49f1798343a83cf22047dc9"
+    },
+    {
+      "path": "data/science/process-catalog.reference.json",
+      "gitBlobSha": "1483ac6f693634d8ce38f07a793db87e06d12135",
+      "sha256": "9d450282b92bc8bf915413d0759c93b392c7164c942503e2a6c4f385837aa916"
+    },
+    {
+      "path": "data/science/sources-thermochem.json",
+      "gitBlobSha": "932637a106f2e25be13f3f62bdbdb888ebc01ccd",
+      "sha256": "6eddad4310ba6eebce8d7d5a5ff32d993b09e5c8be46445b5ee76866de62b74c"
+    },
+    {
+      "path": "data/science/sources.json",
+      "gitBlobSha": "48d6bb68f77314f5a7ffb5fa23dba42af31b022e",
+      "sha256": "5ada138df4befe7ec68d0c2540efce86cbc8e107f6ce7113f84f1a99ce734314"
+    },
+    {
+      "path": "docs/proposals/civilization/science/ALIGNMENT.md",
+      "gitBlobSha": "9a80adb9dff1fa9a5a9a83d85a00755791ec562f",
+      "sha256": "b3fe08b0207d8da5c3bbc221fb905bbc8dd2cd584a606b418676a1406282e490"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CHARCOAL_HANDBOOK.md",
+      "gitBlobSha": "d871685fc0a71c8a7d9fda2ac8b1c2880bb1a98d",
+      "sha256": "b4c4ec4a1219a96ee2513a4b1b1db132f6200ea5533a555854a14c975889a596"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CLAY_PIT_HANDBOOK.md",
+      "gitBlobSha": "278c6e474d650a4760c512cd3a6fce26a542f527",
+      "sha256": "ec718adcd7067b114a88ca2b2bf92345709307cdddd93323ef278f525060c442"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CLAY_PREP_HANDBOOK.md",
+      "gitBlobSha": "35d4d9d1df8d788c6ac773b60eb55b906d97bb4d",
+      "sha256": "3e83f410d08d5a84404fde55a32fc54fc35d46e6841873fe461f7642137eed5c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/COCONUT_OIL_HANDBOOK.md",
+      "gitBlobSha": "7c7917a551c4da10dc807043d7d33df5ba653ae3",
+      "sha256": "b310898bd490e03275587c47a0e2a56847267a4bb0b9ddc6c76433a38351eb36"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW.md",
+      "gitBlobSha": "6ac67bf93562dd16feef5bbc1f0775b1ddf1b1cf",
+      "sha256": "e2b0a56d97aef7e87dd0a09b6fc915ac22d73445abf250782d7e74b38d8f6b60"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_3839fac.md",
+      "gitBlobSha": "f2f061baed681c00d4b4cc7a6790fb963a3f79a2",
+      "sha256": "7c4aa2c994a5e311365b223d72dd0d54903e88a5a7a804caa31dae6c1bff8af7"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_barometer.md",
+      "gitBlobSha": "55f571f5ccd06da8386fa4cbf740ea0c67980682",
+      "sha256": "1d95dc95c3f1110896f4763b0d7b8e831fcd99bd360edae249a074a7179c2d73"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_charcoal.md",
+      "gitBlobSha": "3194885ac9f15b55a979adbaea0be3ea8c1ab889",
+      "sha256": "4523490a10367bab8f0f6300700f8bb06b16fb7beb3c011e2847cfa465a58c1f"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_clay_pit.md",
+      "gitBlobSha": "c5935ee82bcb96ebe03c89e983195d3347bfd495",
+      "sha256": "3699f189218ba62358b7c6a021cafdbc3cd69670e423a988f3bacc50f8773dc1"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_clay_prep.md",
+      "gitBlobSha": "336020a9e28c329dc98201edc13172dba985159c",
+      "sha256": "30930390ace92c3bd30480d86ff2cfd645ce760208794486c7dee1a74faaeeee"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_coconut.md",
+      "gitBlobSha": "c0d659f3fd47a0aa8ae9d2db6b627d3e79dacb96",
+      "sha256": "9ac71dd9e46a93b7de108a80ccb52b42878f2f46bbd4f6c9ebcf26d0bb4e1d5b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_fired_pot_assembly.md",
+      "gitBlobSha": "ba3bb113dbb58fefa73a75128a493ee52db6631c",
+      "sha256": "ac0c2eddb9ebba52da17777243bdfe647c95f59c4a937fe7be04bdfb524a6678"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_firewood.md",
+      "gitBlobSha": "6d9b9693e96245d38b93c7d89904d98295a7e83b",
+      "sha256": "94367c7ccc7083f24d8bd87a79d1f4cde5fa4341d6636289f76092547e53cd0c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_fix_lamp_vessel.md",
+      "gitBlobSha": "72edc612606c0eca7be32fa6a810f723427cf2fc",
+      "sha256": "775cd392d98d72d4d02cc0ff5614bc363efe713ec4fd8c8b740156f86f6e6065"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_oil_lamp.md",
+      "gitBlobSha": "148c2632f6fce9f9930ce42e06ded93b8b175e97",
+      "sha256": "9a69ea909d08d3972ccf37e78d2e580bcff25979a5b1a64ec987089859f2b973"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_pit_fire.md",
+      "gitBlobSha": "121dbf64fae7eedea21445f70fa4e5200a095a58",
+      "sha256": "cdbefa56663c97a6a4d0a43fceb8a7cd15f46cc63a58c5cfa8113ad40e5d19a2"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_pottery.md",
+      "gitBlobSha": "ac874e863c294d5300f39308cd26c8d7e843df62",
+      "sha256": "59f945c6e2329f12df521f80788635a4e79ca6eb57614c6d4d6aa8222a73a44d"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_self_barometer.md",
+      "gitBlobSha": "5a9caa3a2beaffb9959e69e3d9e36c5d6ad2a4f5",
+      "sha256": "fb6874a5f6f9a2ada5fa0d45f39c61ce3bd1eb4805adbb2bc32bbdb844ec81fd"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_vessel.md",
+      "gitBlobSha": "eb6258a01bf7f9bb7586abb36aa751854c4978a1",
+      "sha256": "2b452ce70c15c32cede4509f5d2b3b53586c29dde9bb0ecb7effa4c26e65fc4b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_vessel_fired_pot.md",
+      "gitBlobSha": "6015a6a066d32137328aab25337ae9fd843ce7cf",
+      "sha256": "2f0be62ec1cac592ef866466f8e940be1324aeb9ec7ee607ac2b604f90fae95e"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_wind.md",
+      "gitBlobSha": "7dc7387bc6ffa0b9acec18c242c50a5586a97518",
+      "sha256": "13b5f47cee119eac6cd562f7a8a23ef2697a9df9b6618e279ccd40ddee6064d1"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CONTRACT.md",
+      "gitBlobSha": "3f5a9b1b5e2cbccf39e2a77664046e885cae389d",
+      "sha256": "c37e8a5c4ed76da73be9c276a544b1f2e3e1774c5d035020958a8667ac9b53da"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW.md",
+      "gitBlobSha": "4d814d8e74ff294478906aef54b08fe6734d49f5",
+      "sha256": "de55ffc6f0f196ba7243662049fa5006e7f8e3e1f93abf9f86450ee633b5b3bc"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-05.md",
+      "gitBlobSha": "b30c1c93b659f4297484aa9d0fc5000cea050a2d",
+      "sha256": "a9f30f3b5c13fc0f9a33eef469e1cb85868a9ef6ea4bc1d973afb3ed99d9c0ce"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-06.md",
+      "gitBlobSha": "82e88e4872e73c3de9fe341922b4cd2eaacca7c3",
+      "sha256": "ea329dfac485f1c2c9fc09a85296e7e79f84cb307445e7373cfc1fd308eb50f3"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-07-clay-pit.md",
+      "gitBlobSha": "da93de437aa5b2c9452d65f34cec02cf16d1324b",
+      "sha256": "ed0c46d965fcf732eebc7bae2e98b93c31486cdae946aa2591d5d20424660a20"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-07-pottery.md",
+      "gitBlobSha": "bbc1cb71a18eb5365905a90172e71a3bcf5f3950",
+      "sha256": "af54c39828e87546995cbea739a109b5a8548f7844dbf8c22f61e3851e02932a"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-07.md",
+      "gitBlobSha": "1e80f8ee41e64898e675ab6842ae06bd407cf871",
+      "sha256": "b5cf30d0e542050a09b25c53fe1955123e798821a682e616e096eaa966294431"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-09-lamp.md",
+      "gitBlobSha": "0b954a9165ed5ecb41e98c36778798b599db20a4",
+      "sha256": "0869e62b0117ea9e01c7d93586abd774df76322e1d20e61f2c4774dbc3f1f4f1"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-09-pit-fire.md",
+      "gitBlobSha": "007eecd67ab4c28b8f506e529fa03df5bf45b67f",
+      "sha256": "8231719352d49e2241af5528a17fba092deeca44b719360956197c4f4b4bd048"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-09-wind.md",
+      "gitBlobSha": "37cddfd3f58337f53cebef6e85281d93cb35b319",
+      "sha256": "9e971423f8cfb5d29bd960f869b384d48cfaa9a76d7d55c3a3bd8a237fcc68cd"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FIRED_POT_ASSEMBLY_HANDBOOK.md",
+      "gitBlobSha": "fcad8a935a3dfff78d2a2179643e28726029f887",
+      "sha256": "4fa1100853c4f10f3bc380afe64c16b8c05c7cb030c6986cf6455880725539db"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FIREWOOD_DRY_HANDBOOK.md",
+      "gitBlobSha": "37965df64c8191194bcd0b81eb350776e930264b",
+      "sha256": "04a5b890bcc1914aa6be53d7ea17d7c8365403256554e867ddf155ca0e20d80e"
+    },
+    {
+      "path": "docs/proposals/civilization/science/OIL_LAMP_DESIGN.md",
+      "gitBlobSha": "2b025f0670d7191b526eef54ddc3839f6293670b",
+      "sha256": "4531de712ce98c46943c3db22497a3915585297fdde3e53f0bbe719d75b1b924"
+    },
+    {
+      "path": "docs/proposals/civilization/science/OIL_LAMP_HANDBOOK.md",
+      "gitBlobSha": "11b69e576673691237a0411d5e21504ba5fef4d9",
+      "sha256": "9eaa9424f090b0efa058b2979e82d2f15c31dbe4a4c8ae0bec00c252a2053b34"
+    },
+    {
+      "path": "docs/proposals/civilization/science/PIT_FIRE_HANDBOOK.md",
+      "gitBlobSha": "1ae94e7f2fc89e3cfa1f1ffa19f39d3673c69e12",
+      "sha256": "da7986fdb5909c7a2b7a7d454d4758d94ca0d47f65f0033761e63c9b0001905b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/POTTERY_CRACK_MODEL_CONSULTATION_codex-a363557.md",
+      "gitBlobSha": "9500b46c728c90e844ed1f8935c2b0683be050d7",
+      "sha256": "e4ea771b41af046c4b3c7d0cf96f4c81fd5bb127201b7ffe85ec0c5a4c821596"
+    },
+    {
+      "path": "docs/proposals/civilization/science/POTTERY_HANDBOOK.md",
+      "gitBlobSha": "625db00fc5f86006b72750ad59f0a758ffd5f719",
+      "sha256": "c864603f898ebe9693b4ba689295acef273a3763b861b578b397aaa305079417"
+    },
+    {
+      "path": "docs/proposals/civilization/science/POT_FIRING_DESIGN.md",
+      "gitBlobSha": "c7586118c44ae5e7e3790db7c6d8c260da148abd",
+      "sha256": "b4dba38ac2345193797b451b259f65a5f12797d9f8d108aae66cddd329cf969c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/README.md",
+      "gitBlobSha": "a0a748feaed8280101fa04c70f3e94628bb05222",
+      "sha256": "6f07e4987db21390a9d958a2a6b7d11d7d85df94249ecb4f8c59bcd756a7f0b4"
+    },
+    {
+      "path": "docs/proposals/civilization/science/REPLY_science-requests-2026-10-06.md",
+      "gitBlobSha": "404c490c579f9fe18ce78a6a401c43f8e85b9803",
+      "sha256": "8134ecdcbcc0e139e8bfeba96439cac9c65cb093c721b744ec335464db15cbfb"
+    },
+    {
+      "path": "docs/proposals/civilization/science/REVIEW_POLICY.md",
+      "gitBlobSha": "3e444c3e4fdc1b22595d1ce07430ee82615b173e",
+      "sha256": "b83ca895841bc5ea779b51437e94f0101b938fbc54a56ab7d056877c03c921c0"
+    },
+    {
+      "path": "docs/proposals/civilization/science/ROADMAP.html",
+      "gitBlobSha": "33b82d40b5180b3c15610682fc24d84b61dab260",
+      "sha256": "25f91ae75043dea556ef2dffbde69de0698c312f58edc568588569d7bc73b491"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SEALED_VESSEL_DESIGN.md",
+      "gitBlobSha": "228d3f8373b73203f5bcd7f05323ae4deed38e04",
+      "sha256": "c1d44170cccc4aecd72b93d3a6e4945bb4eb431f0e61ac23c9336f1705d22b0c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SEALED_VESSEL_HANDBOOK.md",
+      "gitBlobSha": "1c80202e870cc6122e15db644b608599ffaa928c",
+      "sha256": "be3eb02261deb862abd3d8295fa747c71147c40e8f7bd356e4bacda4ea2b87fd"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SELF_BAROMETER_DESIGN.md",
+      "gitBlobSha": "08245d48908650057c55195fb5c8f7f5c561e9d9",
+      "sha256": "1e0095f547c1e0d956443475e18eb886362ed83cc82a27ba457e10410f43e1b5"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SELF_BAROMETER_HANDBOOK.md",
+      "gitBlobSha": "249da0207b9acd02a357cd95146ff3cc30b88983",
+      "sha256": "446757bea5c12d754b3d9c1c1febea39412c068442058ccd41f77b0733c3a382"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SHAPE_DRY_HANDBOOK.md",
+      "gitBlobSha": "4acf2a23995f85772ae1383aee6a30482943dceb",
+      "sha256": "9d867bb6b4fe37cdceede3c28301efa06b722e6abda653ce208bb0fc58e7b1f7"
+    },
+    {
+      "path": "docs/proposals/civilization/science/WEIGH_HANDBOOK.md",
+      "gitBlobSha": "eb54889a6f0386b4b34fc8969a1bf1c5fbb69c51",
+      "sha256": "4b441db47d00dc18d2963ded73968b2ef9e8118e205bb2416950bfc120717e8e"
+    },
+    {
+      "path": "docs/proposals/civilization/science/WOOD_FIRE_FINAL_REVIEW.md",
+      "gitBlobSha": "5d5f75b975bd6a79bbfba261ac076287f35eb824",
+      "sha256": "325b09272ae1d719afb949e153462772789415adfdb9d74ffa5a4b0833f00e6b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/WOOD_FIRE_HANDBOOK.md",
+      "gitBlobSha": "1b0a8061849aa1b29807589076362c6899099d70",
+      "sha256": "269d9df0ef70dee3d453fb41965d1e6bd376d50dabc1be28b872af5eb660eb98"
+    },
+    {
+      "path": "docs/proposals/civilization/science/runs/clay-loop-v0.html",
+      "gitBlobSha": "2ab2268dbe0081460d5af25309d37f693fa24898",
+      "sha256": "041acfdfcf2ab12d5235e9b72972cd6cc6bc75b39aa646d9f8946bc4a9538855"
+    },
+    {
+      "path": "docs/proposals/civilization/science/runs/clay-loop-v0.json",
+      "gitBlobSha": "eef7b8028115aecfdc0aef5a967a2f8e7d20c2d8",
+      "sha256": "aeac2ed5bed0bfb1503fded96ea025f4a217166861107f503fc565777ccd08b3"
+    },
+    {
+      "path": "docs/proposals/civilization/science/science-contract-0.2.0.proposed.diff",
+      "gitBlobSha": "f1d05f12e8eee6a05d14830f8c955c3543e5d269",
+      "sha256": "c9f3732e390be27052e790e485d48f6f4ef597de27b9881b352eee2abd4b9433"
+    },
+    {
+      "path": "docs/proposals/civilization/science/science-contract-0.2.1.proposed.diff",
+      "gitBlobSha": "c4e3ce779df3625171d8b456449d6c2311674617",
+      "sha256": "bf08acc2d779b689baf2dcaf6a9665f9295a2caac8507e4338052481be8b42de"
+    },
+    {
+      "path": "package-lock.json",
+      "gitBlobSha": "384f23dc2f3f4f225b5934fafe9b06613690ce41",
+      "sha256": "70c72831c175e249dd8959c61ccc0136441b8e6a7be026308890dad668556a0d"
+    },
+    {
+      "path": "package.json",
+      "gitBlobSha": "7ecd4d1318a954b82f6eabd84df4de39e05b027a",
+      "sha256": "ee9cbe74ddf7a2ae2aa2c219f8163190e6cc05dad1664f00e2c39523b7c754b0"
+    },
+    {
+      "path": "scripts/node-assets.mjs",
+      "gitBlobSha": "a9f7c9b8d90131e10ab25d9683e2526603dee1dc",
+      "sha256": "7fd0bac023a55519ac0c07e809dfae22c7f0ece46975b605ab8ef6aa48a2def0"
+    },
+    {
+      "path": "scripts/science-barometer-check.ts",
+      "gitBlobSha": "c6acb1d8356200f887b04f9e800187357016ad28",
+      "sha256": "264270c28cb79ca4a0df7563be1cae8e1de7fa46a56889f507643589602d65d6"
+    },
+    {
+      "path": "scripts/science-barometer-pot-check.ts",
+      "gitBlobSha": "8ad207568604bcd881e6eeef167656b3a99290ee",
+      "sha256": "b6a8830f99fdea19d8d06b73a5ba668e3e5e1d5f0b5680a88d6858313727d31f"
+    },
+    {
+      "path": "scripts/science-charcoal-check.ts",
+      "gitBlobSha": "330b508df36cb0bcefc4fc0360eaaddd0213545c",
+      "sha256": "dbfed82f46abe5314acd71702c66e8f8f4d4f7c35352005ff6ebfaedf7b92804"
+    },
+    {
+      "path": "scripts/science-clay-check.ts",
+      "gitBlobSha": "3dd7d60d2ad2b77071bb054f643ac2ee5c241cec",
+      "sha256": "bb12860db437cd769f4aac68b9403d0e5252a8abfb8f4499b6f03f6e6e07bf1b"
+    },
+    {
+      "path": "scripts/science-clay-prep-check.ts",
+      "gitBlobSha": "00de6beb377b3cc46e7145d66b3e15857a3f9e34",
+      "sha256": "f3c9d5fa5186f04762db3c6930a042a1b62c72f9ea61c841d8c7318b2bdf7699"
+    },
+    {
+      "path": "scripts/science-clay-report.ts",
+      "gitBlobSha": "c471a84793624b3c671333cc26ea09f3f142828e",
+      "sha256": "00491febef53db73f24316048b78c72610cf40ca1de4f67ea6173f9b1a1d2010"
+    },
+    {
+      "path": "scripts/science-coconut-check.ts",
+      "gitBlobSha": "46c917b0333a240c41ef6748759ce6810be634c3",
+      "sha256": "3e8191701485c256d288e6448a345ebc92692938422b99c950e07c884e7febb5"
+    },
+    {
+      "path": "scripts/science-fired-pot-assembly-check.ts",
+      "gitBlobSha": "abb15718f928e0506c6612883d2020b214b8fc4d",
+      "sha256": "b543ce544f0af83676a96fecf7f2f40c4db9d748d54fee31876459d8a234ad2c"
+    },
+    {
+      "path": "scripts/science-firewood-check.ts",
+      "gitBlobSha": "c0d05aebab84913c6bc4350d2fe51b322d2a8abd",
+      "sha256": "7bec944f4fe59b313371b837c551d3ee6b65ee0bfdf3a81cf88d72604beb3a79"
+    },
+    {
+      "path": "scripts/science-integration-check.ts",
+      "gitBlobSha": "b45307e819da45a84f0823e6373727f7689e9aa9",
+      "sha256": "3eff8a6ad78d89186b5f9b8875115bbca13afe8137a058eb59cc19d34ab5c12a"
+    },
+    {
+      "path": "scripts/science-lime-check.ts",
+      "gitBlobSha": "933cf815079963f83c38d6f66baab3e84a420e3c",
+      "sha256": "33b867651ef501dd33f9fa2014eb167220695e7239f9789cb4f5c27d3b597660"
+    },
+    {
+      "path": "scripts/science-oil-lamp-check.ts",
+      "gitBlobSha": "afcaa744faaf9d38614745ee2e646ccf606aaf6d",
+      "sha256": "d8b7bbee22a0df4964d2002aa835f16f55b396f58486efbd9da01c5413a2e6b2"
+    },
+    {
+      "path": "scripts/science-pit-fire-check.ts",
+      "gitBlobSha": "8445e2beee06d92878931ce68f875a5982f890b6",
+      "sha256": "5163e971d7f1d03d8d0a837348cac94f313a03d1d44a45a56e068548cf78cb6f"
+    },
+    {
+      "path": "scripts/science-pottery-check.ts",
+      "gitBlobSha": "5b2e8ed60d5cbe91c56f405192bf0b4f89908170",
+      "sha256": "8678a480d984125ecd551ba2e77a836b4e4624a63cf645bf732fa7e5b5d8141b"
+    },
+    {
+      "path": "scripts/science-review-regressions.ts",
+      "gitBlobSha": "9e99ff41a5e31976f396d5babad4de6f7bc2b144",
+      "sha256": "a94ee4012bb6d462915f0fd4ff36c87edd9b8f6a2bef1272f91a0e3231bf0d21"
+    },
+    {
+      "path": "scripts/science-step-check.ts",
+      "gitBlobSha": "f3f13e258630b6a428e78ee18f7c3e3366958e2d",
+      "sha256": "a2d02b519043b0297fc872afe24a999b32d5e9676d6113dbcd7412af2c2feb50"
+    },
+    {
+      "path": "scripts/science-tile-chain-check.ts",
+      "gitBlobSha": "aaa96c2917d48c39f3aa64fdce6a2c925e382f37",
+      "sha256": "3958aa7b8c673310d5413233a4110278036a2734a651f999d4c88b3991980e41"
+    },
+    {
+      "path": "scripts/science-vessel-check.ts",
+      "gitBlobSha": "2c453d541f9f525c1826f44d95ed818b91492ceb",
+      "sha256": "9a563ad9f787954544db82652513f373fd59c4b068b0c8d3b361f3efff70cb1c"
+    },
+    {
+      "path": "scripts/science-wood-fire-check.ts",
+      "gitBlobSha": "11d4cdc245ec1345ef91e96e34a4410bd4142770",
+      "sha256": "564942b1b4dff422be9b91b5d186a731ab22ca1ef89c67ea043885144bd071e8"
+    },
+    {
+      "path": "src/science/ceramic.ts",
+      "gitBlobSha": "e7ab4a7711c182bcbc0bd3e732113c6d81835421",
+      "sha256": "7bd520fb4a10a91c0cfaac61ebc85d0fb8a74e9333dd617aa74e62dd43e7b460"
+    },
+    {
+      "path": "src/science/chem.ts",
+      "gitBlobSha": "788e58afa9cc5798678b3cee5e5ff8c3ea6123a7",
+      "sha256": "7c356b3d06c302f3b7051376635e686e1ce3febc95fd9ba49dc79fb160cdd3aa"
+    },
+    {
+      "path": "src/science/clay.ts",
+      "gitBlobSha": "c899aaf6f39f5813cd4916640633fe86b5158e88",
+      "sha256": "436324c8d279389f9a58aee49594d6a71797a2386fb5c1ce0456f938000e0937"
+    },
+    {
+      "path": "src/science/core.ts",
+      "gitBlobSha": "4db2de518e9e44b8e9200cb4532eee116bbc4ee7",
+      "sha256": "ec16c37103e7644c1dfec8164fba1b94e123b8d09dff556938a34513082de550"
+    },
+    {
+      "path": "src/science/fixture/clay-world.ts",
+      "gitBlobSha": "2736384978f2bf36ed3b15f99693df505fe0a731",
+      "sha256": "77719029e51f14799d17af99abc3f986b655d7f97c3fb6f2f52b7a6b9c9f0c21"
+    },
+    {
+      "path": "src/science/fixture/scenario.ts",
+      "gitBlobSha": "1e5738c45a4b815f93d62cda3c90b36e206fe637",
+      "sha256": "7010388b9bb2854c785d3acd3f28be2330b178a0e05c5384df69909631f8f1c6"
+    },
+    {
+      "path": "src/science/fixture/world.ts",
+      "gitBlobSha": "ce97636a84a6631f036696b5dd312037fb6a82ca",
+      "sha256": "a4d5283caa3169ab3efe8d1ed5c3978f3d0a333ffbd3f0c7f0009bde7084f593"
+    },
+    {
+      "path": "src/science/island-clay.ts",
+      "gitBlobSha": "957570c6b73e1401ee7837d54c7085223b8e7c2c",
+      "sha256": "f7e7e98c5ebc306538c8e193cd5c884c273a7d00501e6694c4dbc21b62500b45"
+    },
+    {
+      "path": "src/science/params.ts",
+      "gitBlobSha": "b105700ffa31f3adde1da3322012e51110f01844",
+      "sha256": "ed5d027f4d9fb441e0d78d83899d7ca87a1184bb3d0366f83fa8aace61e695ff"
+    },
+    {
+      "path": "src/science/physics.ts",
+      "gitBlobSha": "19052597833ff80e8f87be67ed8d3a65044b72a1",
+      "sha256": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af"
+    },
+    {
+      "path": "src/science/research.ts",
+      "gitBlobSha": "680c8b25373b8614737c134df21ec979e632a964",
+      "sha256": "0b49a2e0a51574b0791a0b6c18aac633eb00fc0ee3e0a4f0ad5e875fda6c0867"
+    },
+    {
+      "path": "src/science/rng.ts",
+      "gitBlobSha": "e6e11ae55f723793baeea549a0d044d681c91978",
+      "sha256": "0b9f462504afaa006fa70bff274bec4c472fa3a08e74e52bc5469e555855b77d"
+    },
+    {
+      "path": "src/science/sources.ts",
+      "gitBlobSha": "f8ed3d45b3f588d6395f9b58ec4831884f57469a",
+      "sha256": "37c150305f3a621c4db513cdecd26902f96a6c1847584382e9964badfca99398"
+    },
+    {
+      "path": "src/science/step/barometer-pot.ts",
+      "gitBlobSha": "c4ffc9ecff2fe8dc5f64ec48703adeb866084234",
+      "sha256": "49657ed93e913a0a751c920631fca2a3daef0e016ebc52e4d74331c18d3c7cd8"
+    },
+    {
+      "path": "src/science/step/barometer.ts",
+      "gitBlobSha": "6a7b7d2c8953a795dcea55e994ab719b18d35bf3",
+      "sha256": "3bc72857495651a151d24829d5492e04a446fceadec4f3145d1ac1ede9c6eb57"
+    },
+    {
+      "path": "src/science/step/charcoal.ts",
+      "gitBlobSha": "9f7c4259ee883c0e8b80e735abb770bfe1849bc5",
+      "sha256": "6be8437ecb8e346ac80fbed529e396a791faeab0e2126b53ab5eb94e182d3c15"
+    },
+    {
+      "path": "src/science/step/clay-pit.ts",
+      "gitBlobSha": "a77c6fd06138fd6b060b94b888f2e1d6854a27d8",
+      "sha256": "05fb3901a8e027fe796cc8778f0b8bdcbf5bf6bff2b00afdfc6ee319bdadb470"
+    },
+    {
+      "path": "src/science/step/coconut.ts",
+      "gitBlobSha": "bbb351fda19998e7567b485425f561717490da25",
+      "sha256": "95966d31068ce7ea10a074ae9105ec9776e5aef3d5a039de021edf2db138797a"
+    },
+    {
+      "path": "src/science/step/common.ts",
+      "gitBlobSha": "dcef1b623ffabe3f01f9b366cb7f9b86fc73f82e",
+      "sha256": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5"
+    },
+    {
+      "path": "src/science/step/drying.ts",
+      "gitBlobSha": "7a96aae620bfb6fc71dcfa2c96631b39225604ea",
+      "sha256": "6ded340cdae7460a86b203926ade013755b03be416ffc541294569a17bf9b6bc"
+    },
+    {
+      "path": "src/science/step/fired-pot-assembly.ts",
+      "gitBlobSha": "3269a43dc89a58f1aa17c604cf3b30cf49c798b3",
+      "sha256": "8ed0b8bf77293aa4b4376424a06de0ea95a076f2ac013c1a3307f6a1c010e504"
+    },
+    {
+      "path": "src/science/step/firewood.ts",
+      "gitBlobSha": "6fec923b211a5a50f9976d245af0377a5c6f454a",
+      "sha256": "9ac7eb30ae66daa3b71b309286e52a01b8d57d037345477e9479b38444e6340c"
+    },
+    {
+      "path": "src/science/step/firing.ts",
+      "gitBlobSha": "d07870031d6c10ac35374258239b44a225ee9d7e",
+      "sha256": "f12dfd0a66ebd19bf9107dfd63540d62bbbbd29c57762244195fb4cca2cb1182"
+    },
+    {
+      "path": "src/science/step/fixture-profile.ts",
+      "gitBlobSha": "44affd62880530630137b5a58f51e8a6e0fdd793",
+      "sha256": "bd8e99a9a1cbfda22f254c567b6af5fb8dbdace5562ce0109285b7375d1b3df9"
+    },
+    {
+      "path": "src/science/step/index.ts",
+      "gitBlobSha": "6a0c7fc2ee1ef696c05d67dc1393a3591a7fc941",
+      "sha256": "fcfba3cb10e713c447325c1ea0964c74de64c2cac4e7cd2ea08b37f1f944f02f"
+    },
+    {
+      "path": "src/science/step/kiln-ware.ts",
+      "gitBlobSha": "0296a446fc474b807b8d034b55014c4a95265db6",
+      "sha256": "1efe14f7897a531982ba25b2eb0f32f259c6697ed9c28a176fc1e4a016f3b6da"
+    },
+    {
+      "path": "src/science/step/knead.ts",
+      "gitBlobSha": "079e7e8880254f73ad0a24fcd61327a296f30003",
+      "sha256": "76604125751abb722fb771a1735e0e3caaceffa73b8feb2bccc1e0e53e186ef8"
+    },
+    {
+      "path": "src/science/step/lime.ts",
+      "gitBlobSha": "46b611740b7d7feb8713ca02f1ee872393f69e2f",
+      "sha256": "04834fabd224c742ea8f6122bbcb9c8b471743fd0034eaf4837fd3048be6cc79"
+    },
+    {
+      "path": "src/science/step/oil-lamp.ts",
+      "gitBlobSha": "c4e0a96d5fa947c07c46ad2bf71cbb02925cb426",
+      "sha256": "6ff5f708c21a116452398521d90fad788741681a5ce3b485e6b40c6ca7e6a52d"
+    },
+    {
+      "path": "src/science/step/pit-fire.ts",
+      "gitBlobSha": "1cf7b60bf7e33811e93fcfb6fe20c50619b80a40",
+      "sha256": "501eff025fe969507a6624f7d4fadb30a7d923e2e3338a22c605bc065b3c9978"
+    },
+    {
+      "path": "src/science/step/pottery.ts",
+      "gitBlobSha": "12a996b3d85eace8fe4bbdd60c1a1513c3c91b3f",
+      "sha256": "c37d93fcbd82edf401486d5b9204691c1ecebe1092243ac740a241ffb8c22488"
+    },
+    {
+      "path": "src/science/step/simple.ts",
+      "gitBlobSha": "b66bf43c4f03221adcc461f24b2b04ee5f119d42",
+      "sha256": "1af8904de8b2f9f8a3a28d8ebc9212609c004cc6907b81ce1d8cc690dda126f9"
+    },
+    {
+      "path": "src/science/step/slake.ts",
+      "gitBlobSha": "0010ae4b228a8fbd015de703fd187f4c4bb40461",
+      "sha256": "722e59df893440b8ae9e94be026027274b8124f71d7dc2154a196a3aacfaedd0"
+    },
+    {
+      "path": "src/science/step/soak.ts",
+      "gitBlobSha": "6a5a414679240ebf6712d089d2015c8e1645f856",
+      "sha256": "ac59ebaa3a5d21322b2a134110159c63db58de6731b2bf3fba3a526a55fe7a2b"
+    },
+    {
+      "path": "src/science/step/validate.ts",
+      "gitBlobSha": "3f975b8e628d0019c4960ea1e0bd4865a269b6cd",
+      "sha256": "53afd837ebe9ada143c6cd863bc08bfd59eee71179fbb7a8d460aeb35b196a8a"
+    },
+    {
+      "path": "src/science/step/vessel.ts",
+      "gitBlobSha": "482d92d64196b9955b75655720f5ba6211d69a67",
+      "sha256": "ca1adb257ebcb5eea595c4400b8ecf2d56de63e8d1dbcda67183ea28ca1154f1"
+    },
+    {
+      "path": "src/science/step/wood-fire.ts",
+      "gitBlobSha": "ca4d84adea363cbeedcfdb33fa737b1a34244c02",
+      "sha256": "fa95fcceb1e99359eaff9757ba0b95ae8b385bba78aeaa91869376222434121e"
+    },
+    {
+      "path": "src/science/types.ts",
+      "gitBlobSha": "3080878e03ea18fff360786006c1be72bb2afc46",
+      "sha256": "130de59b7b60601559fed50e2555b5cb528935739cbac2f116dc0728fb3e9d33"
+    },
+    {
+      "path": "tools/science-lab/README.md",
+      "gitBlobSha": "da0cb6edaea14c5c0ff0ad420c8b832efc0d7eb0",
+      "sha256": "64da8a5140da661fd612d80eeea52f66391cf405c1fc00802e5b105af951f391"
+    },
+    {
+      "path": "tools/science-lab/app.mjs",
+      "gitBlobSha": "02dce192a63287800789a5be6f7d49444af60128",
+      "sha256": "2d54d9eb242b4a9393c5e4c66833ec0dcd1d73fc16d4e5b5e886ea0861ff5f24"
+    },
+    {
+      "path": "tools/science-lab/index.html",
+      "gitBlobSha": "24ab7b1673ded3beb72529cee2732cc449ecc119",
+      "sha256": "d3f0ab3473002e9ee5eae2e738a190c963b287374fce9ca72ff4276240e4f23d"
+    },
+    {
+      "path": "tools/science-lab/measurement-record.mjs",
+      "gitBlobSha": "528bbd9c97f9efe12ba3b71c1ac877953911bdd2",
+      "sha256": "6716c4f6405a7fc08033e6a155622748eb2afba20da473f69085d8efd6f0e3c0"
+    },
+    {
+      "path": "tools/science-lab/measurement-record.test.mjs",
+      "gitBlobSha": "9d4f97262699c33cbd60f23cf3f1fa8f1ff4e7cd",
+      "sha256": "4761a4753f8cbb3adfd64819026da6424ff1ce87f73818760a58d5f87b0ffd42"
+    },
+    {
+      "path": "tools/science-lab/measurements.mjs",
+      "gitBlobSha": "26ab280560bd6c1b446afc0f50902c5b30955e56",
+      "sha256": "a881d6d1fe1fef05508b6fa2fd8556ac711c34160e7d8f920e5c0527f1e3ba93"
+    },
+    {
+      "path": "tools/science-lab/measurements.test.mjs",
+      "gitBlobSha": "dc98eddce5893b82c140f033bc94f34cdd1cd399",
+      "sha256": "3be8c8b7ac06d30398085625857b74bf335e32f4c84b69a21068e540cc0e51ad"
+    },
+    {
+      "path": "tools/science-lab/style.css",
+      "gitBlobSha": "5f859874bed32f91bcc8c9339eeb0dd1b6f0bfa2",
+      "sha256": "08611ca3f02ad37a517a4895a0b43ece9e1c88f2255f2740cff69a0a99914031"
+    },
+    {
+      "path": "tsconfig.json",
+      "gitBlobSha": "d374d68172da2e1c6e765c7fb0e547ea4d9886be",
+      "sha256": "b96d0c5170654f55dd24e253497beff447bdb8eea49a2c0a183fe2283f110ecc"
+    },
+    {
+      "path": "vite.config.ts",
+      "gitBlobSha": "063d09ac4373fd557a550e5313d49ce1bd20f445",
+      "sha256": "343732c55d11bf9161bfde6bef6591133fd2c73860edd8493df503428832b7f7"
+    }
+  ],
+  "parentSourceBlobsRechecked": [
+    {
+      "path": "data/science/catalog-test-2.json",
+      "gitBlobSha": "1dae068e66cb5e227d67e9993313a8726444dffd",
+      "sha256": "4c4492871ec73375af91bd2b6f08a1b0b0c4873fd8a07eb16687efc711214240"
+    },
+    {
+      "path": "data/science/evidence/ceramics-monthly-rhee-reclaiming-2018.json",
+      "gitBlobSha": "89dd99ba52bc45b83344e2027ea192677c49604f",
+      "sha256": "2bb6fedb11a250e45b856aed7b8806f77c8595e1a3c999e5f7e185ebead00c43"
+    },
+    {
+      "path": "data/science/evidence/digitalfire-slaking-bar-observation.json",
+      "gitBlobSha": "74951bc2a82448b86eda6d454f8fc19a09b603d8",
+      "sha256": "25b60a127af684943388a4fd59373823937be2e8b8484311081e33c14d450080"
+    },
+    {
+      "path": "data/science/evidence/digitalfire-slaking-original.json",
+      "gitBlobSha": "8ef036c413e0c1ec0413d1fdf8d8eb27a14deb9d",
+      "sha256": "737134bb4de91a6781a8b5620a3798f1cd995a226a077a1afc093f486f8eea30"
+    },
+    {
+      "path": "data/science/evidence/fao-coir-2002-whole-coconut.json",
+      "gitBlobSha": "82152ec04159bb40d3e339d0aac640ebba09e948",
+      "sha256": "fc538c3020e8416d7487513474c2d71a6c04f608cdc113659569c8254a611ff6"
+    },
+    {
+      "path": "data/science/evidence/fao-controlling-water-losses-ch3.json",
+      "gitBlobSha": "1eee5b6f79ead7f12585e1c0af42818c21019e8a",
+      "sha256": "6d790c78384a3b266883a10d2156bf4ccea00f4da3d7335a1c530d3baf55af1d"
+    },
+    {
+      "path": "data/science/evidence/fao-industrial-charcoal-1985-ch2.json",
+      "gitBlobSha": "36f1aa962a864dfbfa5cbc7b95bac3218b782073",
+      "sha256": "5687b29fa8c9a4c613afef7a1d01204e42399d26aff94df9aafb8ebd5f45b84c"
+    },
+    {
+      "path": "data/science/evidence/fao-pond-construction-ch12-labour.json",
+      "gitBlobSha": "088ebca19889ed7d85a84f597da04c776bf0d906",
+      "sha256": "5b8b70457e865670e51fac9ab830fc3c67bae733c971b50e9c0afcd29be885ac"
+    },
+    {
+      "path": "data/science/evidence/fao-pond-water-requirements-ch2.json",
+      "gitBlobSha": "831930d0f115e693a9e5f61bde9bc1a6a94a13e5",
+      "sha256": "dca9669452d66fce708687e2e20be81490d321d053456b16fc39e2b306fe1689"
+    },
+    {
+      "path": "data/science/evidence/fao-simple-charcoal-1983-ch7.json",
+      "gitBlobSha": "f8184829be08e8a0290b60768b909565f57cecbd",
+      "sha256": "f6e6964a483e6c6ebaaab6a51a1a75e143dd25574c4755afe433efe6cb9c142b"
+    },
+    {
+      "path": "data/science/evidence/fortier-firewood-2021.json",
+      "gitBlobSha": "56eb9b90fe364bcc1cba5fbb256deef68965c18d",
+      "sha256": "5997cfa7e2005c6445afe18d23fcb702e5c3eae8c44ef9bbe6131aa9b8f2c6c5"
+    },
+    {
+      "path": "data/science/evidence/hugget-clay-drying-stress-1999.json",
+      "gitBlobSha": "f2ceb8ae26b2182b6f788ce05c2784a4d93bd6c4",
+      "sha256": "91133d6cec26485036a6498d27dbf74dd3ec696d86126b78162091fd3fb63821"
+    },
+    {
+      "path": "data/science/evidence/hughes-gale-lamp-consumption-2007.json",
+      "gitBlobSha": "2979e4261bf98d4e792c113ec17d91d37157cc2e",
+      "sha256": "6686512a0a2c98a9afe2df1f331f460bba92dbf9de63261f651a2c6e395ecad3"
+    },
+    {
+      "path": "data/science/evidence/icar-cpcri-vco-bulletin-2016.json",
+      "gitBlobSha": "5203dfaf30d0a3c257978a69468cc6d2b0d80f3e",
+      "sha256": "a9a7450d50dc9c9a8fe1cfd142b5febf6118dcd27cbe5443b6f1c1728e3ae7dd"
+    },
+    {
+      "path": "data/science/evidence/idris-eggshell-claypot-2024.json",
+      "gitBlobSha": "02f0df4597c4ac002115fc6e1db0de55d3e76a3b",
+      "sha256": "580d2b337222a101644aa7fc705b8edbf831d44dc509008fd4bfd9b246d75f72"
+    },
+    {
+      "path": "data/science/evidence/jma-ishigaki-20160124-hourly.csv",
+      "gitBlobSha": "7f0b44ed656a0a47c6ec7aeabc8ae3478a1c4b21",
+      "sha256": "0d1df7ecca6e4800711edac9454ddc0c57307a2169139fcfd3442568c4ea2585"
+    },
+    {
+      "path": "data/science/evidence/jma-yonaguni-20150928-hourly.csv",
+      "gitBlobSha": "5b1a889e0102ab48a893597e767d219252706cca",
+      "sha256": "1f0765897eb53e33be29c051378270cb0eb4183b18018ad6ac91bc074f66be5c"
+    },
+    {
+      "path": "data/science/evidence/kahwaji-white-coconut-pcm-2019.json",
+      "gitBlobSha": "8cb71974d4f9c69a8a52ad475bf8315892427ab2",
+      "sha256": "7c878dd6df707f63c6c58716f2cfb861f96832e272d45092fbcfc13bf5f3d2cb"
+    },
+    {
+      "path": "data/science/evidence/lynn-black-cordmarked-replication-2003.json",
+      "gitBlobSha": "8494a65e3faf7c1a2bc92cd33030fd0305f7450b",
+      "sha256": "2f0676515e89249b992fbe5cea01b3eafcfcf3e47e2dc7535e355adb309de1b9"
+    },
+    {
+      "path": "data/science/evidence/mal-laponite-cracking-2005.json",
+      "gitBlobSha": "7c4643f18055d50a821a3f25c823269a37e2fcf6",
+      "sha256": "475c8fc97eadbba37ad7d553fd0806a272f1aa41f9d2c136febc950feb69609c"
+    },
+    {
+      "path": "data/science/evidence/mext-coconut-milk-07158-2023.json",
+      "gitBlobSha": "081f4ff1e386bd34f10cc12b6a48b00ddbec6562",
+      "sha256": "ebf252a337bc9253e2d77242c0c03ca3da1b29155994ff700dd798e17b7249e5"
+    },
+    {
+      "path": "data/science/evidence/moullou-doulos-topalis-historical-lamp-photometry-2015.json",
+      "gitBlobSha": "e379a00f87e04629c9ef317aa8965dcef5d684fe",
+      "sha256": "b1696fbe3b434dcd99e6dbbec534d37bd41ca223f4c02d817ea660caf972d7a9"
+    },
+    {
+      "path": "data/science/evidence/padilla-sanchez-iberia-pottery-water-2022.json",
+      "gitBlobSha": "49caf7a4d64c2d57d97fbf7617dd3f43fcf761dc",
+      "sha256": "b14a6cd788be9556909eb94732758e7271ecd0782a9e593df7ae387ceb684059"
+    },
+    {
+      "path": "data/science/evidence/panno-et-al-compacted-soil-liner-1991.json",
+      "gitBlobSha": "60071669184f296b4a9a3632bb2a852761431c27",
+      "sha256": "df63b4daccdc2a57c1884fb0cfd101afae3e8901405c113161b942d9c74ced35"
+    },
+    {
+      "path": "data/science/evidence/silva-clay-slab-falling-rate-2013.json",
+      "gitBlobSha": "cc62e6171ccdbbdcf68b749eb7d30357c176034f",
+      "sha256": "d3c12a3ee135a3f62140d8924320bf26243ce59e088bafa68d42577522059bda"
+    },
+    {
+      "path": "data/science/evidence/sisi-vanuatu-straight-coconut-oils-2020.json",
+      "gitBlobSha": "60534b596499a9df086387a92ad085d4c29964c7",
+      "sha256": "995788893a4bbbee70be55a489b9ef33706a1c09e8b1bb02bcb261ce4b0631a8"
+    },
+    {
+      "path": "data/science/evidence/spc-bawalan-vco-manual-2011.json",
+      "gitBlobSha": "89348e04b2fcb07b730729b4b45c6f50ccd12163",
+      "sha256": "b2c2fe9ec12be532729592d9599b077bf47ac26722b4f0d0a7f83a5af8567c22"
+    },
+    {
+      "path": "data/science/evidence/umd-firewood-2018.json",
+      "gitBlobSha": "492fc452e02754d7b06bb4b17066296eb9c93f62",
+      "sha256": "7bfb9b57831d2910084f63395849c88c8d153bf29369ab6a3bd637874c66baf4"
+    },
+    {
+      "path": "data/science/evidence/usda-emc-history-2014.json",
+      "gitBlobSha": "77473b6e6fb3133a241447eceaaa055ef01961f9",
+      "sha256": "13419692684902f02755d4696d2477e47e81e9f626399fe1970afd162ad17059"
+    },
+    {
+      "path": "data/science/evidence/usda-fpl19-pyrolysis-calorimetry-1964.json",
+      "gitBlobSha": "fc640ced2cab93335bc5daf1be00cc43679e834c",
+      "sha256": "8fbd345fc2e41257a66498fa0ad64096c65a983f54705e86133d43d30966b2c4"
+    },
+    {
+      "path": "data/science/evidence/wood-handbook-2021.json",
+      "gitBlobSha": "bc7aacad1a4aa96b2fae076663a3936b263c1607",
+      "sha256": "b5a59099e3d2d3dfd2971e4dc9fa30c5b47360957cd96cb75a0edec5556a6b14"
+    },
+    {
+      "path": "data/science/evidence/zhang-biomass-char-2015.json",
+      "gitBlobSha": "e2ebab15d42536b59d1dc31fbb492ac19f85177c",
+      "sha256": "d090402d5325ef2e287a05292b2ae6774c5287fb1b5160aeb6dbb47891a7d54f"
+    },
+    {
+      "path": "data/science/handoff-manifest.json",
+      "gitBlobSha": "f2037469ed1aeb5ac29e8b8d2d012a4126247680",
+      "sha256": "23e9554e67690a39338f98518f9b888b455185baa49f1798343a83cf22047dc9"
+    },
+    {
+      "path": "data/science/process-catalog.reference.json",
+      "gitBlobSha": "1483ac6f693634d8ce38f07a793db87e06d12135",
+      "sha256": "9d450282b92bc8bf915413d0759c93b392c7164c942503e2a6c4f385837aa916"
+    },
+    {
+      "path": "data/science/sources-thermochem.json",
+      "gitBlobSha": "932637a106f2e25be13f3f62bdbdb888ebc01ccd",
+      "sha256": "6eddad4310ba6eebce8d7d5a5ff32d993b09e5c8be46445b5ee76866de62b74c"
+    },
+    {
+      "path": "data/science/sources.json",
+      "gitBlobSha": "48d6bb68f77314f5a7ffb5fa23dba42af31b022e",
+      "sha256": "5ada138df4befe7ec68d0c2540efce86cbc8e107f6ce7113f84f1a99ce734314"
+    },
+    {
+      "path": "docs/proposals/civilization/science/ALIGNMENT.md",
+      "gitBlobSha": "9a80adb9dff1fa9a5a9a83d85a00755791ec562f",
+      "sha256": "b3fe08b0207d8da5c3bbc221fb905bbc8dd2cd584a606b418676a1406282e490"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CHARCOAL_HANDBOOK.md",
+      "gitBlobSha": "d871685fc0a71c8a7d9fda2ac8b1c2880bb1a98d",
+      "sha256": "b4c4ec4a1219a96ee2513a4b1b1db132f6200ea5533a555854a14c975889a596"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CLAY_PIT_HANDBOOK.md",
+      "gitBlobSha": "278c6e474d650a4760c512cd3a6fce26a542f527",
+      "sha256": "ec718adcd7067b114a88ca2b2bf92345709307cdddd93323ef278f525060c442"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CLAY_PREP_HANDBOOK.md",
+      "gitBlobSha": "35d4d9d1df8d788c6ac773b60eb55b906d97bb4d",
+      "sha256": "3e83f410d08d5a84404fde55a32fc54fc35d46e6841873fe461f7642137eed5c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/COCONUT_OIL_HANDBOOK.md",
+      "gitBlobSha": "7c7917a551c4da10dc807043d7d33df5ba653ae3",
+      "sha256": "b310898bd490e03275587c47a0e2a56847267a4bb0b9ddc6c76433a38351eb36"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW.md",
+      "gitBlobSha": "6ac67bf93562dd16feef5bbc1f0775b1ddf1b1cf",
+      "sha256": "e2b0a56d97aef7e87dd0a09b6fc915ac22d73445abf250782d7e74b38d8f6b60"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_3839fac.md",
+      "gitBlobSha": "f2f061baed681c00d4b4cc7a6790fb963a3f79a2",
+      "sha256": "7c4aa2c994a5e311365b223d72dd0d54903e88a5a7a804caa31dae6c1bff8af7"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_barometer.md",
+      "gitBlobSha": "55f571f5ccd06da8386fa4cbf740ea0c67980682",
+      "sha256": "1d95dc95c3f1110896f4763b0d7b8e831fcd99bd360edae249a074a7179c2d73"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_charcoal.md",
+      "gitBlobSha": "3194885ac9f15b55a979adbaea0be3ea8c1ab889",
+      "sha256": "4523490a10367bab8f0f6300700f8bb06b16fb7beb3c011e2847cfa465a58c1f"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_clay_pit.md",
+      "gitBlobSha": "c5935ee82bcb96ebe03c89e983195d3347bfd495",
+      "sha256": "3699f189218ba62358b7c6a021cafdbc3cd69670e423a988f3bacc50f8773dc1"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_clay_prep.md",
+      "gitBlobSha": "336020a9e28c329dc98201edc13172dba985159c",
+      "sha256": "30930390ace92c3bd30480d86ff2cfd645ce760208794486c7dee1a74faaeeee"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_coconut.md",
+      "gitBlobSha": "c0d659f3fd47a0aa8ae9d2db6b627d3e79dacb96",
+      "sha256": "9ac71dd9e46a93b7de108a80ccb52b42878f2f46bbd4f6c9ebcf26d0bb4e1d5b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_fired_pot_assembly.md",
+      "gitBlobSha": "ba3bb113dbb58fefa73a75128a493ee52db6631c",
+      "sha256": "ac0c2eddb9ebba52da17777243bdfe647c95f59c4a937fe7be04bdfb524a6678"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_firewood.md",
+      "gitBlobSha": "6d9b9693e96245d38b93c7d89904d98295a7e83b",
+      "sha256": "94367c7ccc7083f24d8bd87a79d1f4cde5fa4341d6636289f76092547e53cd0c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_fix_lamp_vessel.md",
+      "gitBlobSha": "72edc612606c0eca7be32fa6a810f723427cf2fc",
+      "sha256": "775cd392d98d72d4d02cc0ff5614bc363efe713ec4fd8c8b740156f86f6e6065"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_oil_lamp.md",
+      "gitBlobSha": "148c2632f6fce9f9930ce42e06ded93b8b175e97",
+      "sha256": "9a69ea909d08d3972ccf37e78d2e580bcff25979a5b1a64ec987089859f2b973"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_pit_fire.md",
+      "gitBlobSha": "121dbf64fae7eedea21445f70fa4e5200a095a58",
+      "sha256": "cdbefa56663c97a6a4d0a43fceb8a7cd15f46cc63a58c5cfa8113ad40e5d19a2"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_pottery.md",
+      "gitBlobSha": "ac874e863c294d5300f39308cd26c8d7e843df62",
+      "sha256": "59f945c6e2329f12df521f80788635a4e79ca6eb57614c6d4d6aa8222a73a44d"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_vessel.md",
+      "gitBlobSha": "eb6258a01bf7f9bb7586abb36aa751854c4978a1",
+      "sha256": "2b452ce70c15c32cede4509f5d2b3b53586c29dde9bb0ecb7effa4c26e65fc4b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_vessel_fired_pot.md",
+      "gitBlobSha": "6015a6a066d32137328aab25337ae9fd843ce7cf",
+      "sha256": "2f0be62ec1cac592ef866466f8e940be1324aeb9ec7ee607ac2b604f90fae95e"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CODEX_REVIEW_REQUEST_wind.md",
+      "gitBlobSha": "7dc7387bc6ffa0b9acec18c242c50a5586a97518",
+      "sha256": "13b5f47cee119eac6cd562f7a8a23ef2697a9df9b6618e279ccd40ddee6064d1"
+    },
+    {
+      "path": "docs/proposals/civilization/science/CONTRACT.md",
+      "gitBlobSha": "3f5a9b1b5e2cbccf39e2a77664046e885cae389d",
+      "sha256": "c37e8a5c4ed76da73be9c276a544b1f2e3e1774c5d035020958a8667ac9b53da"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW.md",
+      "gitBlobSha": "4d814d8e74ff294478906aef54b08fe6734d49f5",
+      "sha256": "de55ffc6f0f196ba7243662049fa5006e7f8e3e1f93abf9f86450ee633b5b3bc"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-05.md",
+      "gitBlobSha": "b30c1c93b659f4297484aa9d0fc5000cea050a2d",
+      "sha256": "a9f30f3b5c13fc0f9a33eef469e1cb85868a9ef6ea4bc1d973afb3ed99d9c0ce"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-06.md",
+      "gitBlobSha": "82e88e4872e73c3de9fe341922b4cd2eaacca7c3",
+      "sha256": "ea329dfac485f1c2c9fc09a85296e7e79f84cb307445e7373cfc1fd308eb50f3"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-07-clay-pit.md",
+      "gitBlobSha": "da93de437aa5b2c9452d65f34cec02cf16d1324b",
+      "sha256": "ed0c46d965fcf732eebc7bae2e98b93c31486cdae946aa2591d5d20424660a20"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-07-pottery.md",
+      "gitBlobSha": "bbc1cb71a18eb5365905a90172e71a3bcf5f3950",
+      "sha256": "af54c39828e87546995cbea739a109b5a8548f7844dbf8c22f61e3851e02932a"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-07.md",
+      "gitBlobSha": "1e80f8ee41e64898e675ab6842ae06bd407cf871",
+      "sha256": "b5cf30d0e542050a09b25c53fe1955123e798821a682e616e096eaa966294431"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-09-lamp.md",
+      "gitBlobSha": "0b954a9165ed5ecb41e98c36778798b599db20a4",
+      "sha256": "0869e62b0117ea9e01c7d93586abd774df76322e1d20e61f2c4774dbc3f1f4f1"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-09-pit-fire.md",
+      "gitBlobSha": "007eecd67ab4c28b8f506e529fa03df5bf45b67f",
+      "sha256": "8231719352d49e2241af5528a17fba092deeca44b719360956197c4f4b4bd048"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FINAL_REVIEW_2026-10-09-wind.md",
+      "gitBlobSha": "37cddfd3f58337f53cebef6e85281d93cb35b319",
+      "sha256": "9e971423f8cfb5d29bd960f869b384d48cfaa9a76d7d55c3a3bd8a237fcc68cd"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FIRED_POT_ASSEMBLY_HANDBOOK.md",
+      "gitBlobSha": "fcad8a935a3dfff78d2a2179643e28726029f887",
+      "sha256": "4fa1100853c4f10f3bc380afe64c16b8c05c7cb030c6986cf6455880725539db"
+    },
+    {
+      "path": "docs/proposals/civilization/science/FIREWOOD_DRY_HANDBOOK.md",
+      "gitBlobSha": "37965df64c8191194bcd0b81eb350776e930264b",
+      "sha256": "04a5b890bcc1914aa6be53d7ea17d7c8365403256554e867ddf155ca0e20d80e"
+    },
+    {
+      "path": "docs/proposals/civilization/science/OIL_LAMP_DESIGN.md",
+      "gitBlobSha": "2b025f0670d7191b526eef54ddc3839f6293670b",
+      "sha256": "4531de712ce98c46943c3db22497a3915585297fdde3e53f0bbe719d75b1b924"
+    },
+    {
+      "path": "docs/proposals/civilization/science/OIL_LAMP_HANDBOOK.md",
+      "gitBlobSha": "11b69e576673691237a0411d5e21504ba5fef4d9",
+      "sha256": "9eaa9424f090b0efa058b2979e82d2f15c31dbe4a4c8ae0bec00c252a2053b34"
+    },
+    {
+      "path": "docs/proposals/civilization/science/PIT_FIRE_HANDBOOK.md",
+      "gitBlobSha": "1ae94e7f2fc89e3cfa1f1ffa19f39d3673c69e12",
+      "sha256": "da7986fdb5909c7a2b7a7d454d4758d94ca0d47f65f0033761e63c9b0001905b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/POTTERY_CRACK_MODEL_CONSULTATION_codex-a363557.md",
+      "gitBlobSha": "9500b46c728c90e844ed1f8935c2b0683be050d7",
+      "sha256": "e4ea771b41af046c4b3c7d0cf96f4c81fd5bb127201b7ffe85ec0c5a4c821596"
+    },
+    {
+      "path": "docs/proposals/civilization/science/POTTERY_HANDBOOK.md",
+      "gitBlobSha": "625db00fc5f86006b72750ad59f0a758ffd5f719",
+      "sha256": "c864603f898ebe9693b4ba689295acef273a3763b861b578b397aaa305079417"
+    },
+    {
+      "path": "docs/proposals/civilization/science/POT_FIRING_DESIGN.md",
+      "gitBlobSha": "c7586118c44ae5e7e3790db7c6d8c260da148abd",
+      "sha256": "b4dba38ac2345193797b451b259f65a5f12797d9f8d108aae66cddd329cf969c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/README.md",
+      "gitBlobSha": "a0a748feaed8280101fa04c70f3e94628bb05222",
+      "sha256": "6f07e4987db21390a9d958a2a6b7d11d7d85df94249ecb4f8c59bcd756a7f0b4"
+    },
+    {
+      "path": "docs/proposals/civilization/science/REPLY_science-requests-2026-10-06.md",
+      "gitBlobSha": "404c490c579f9fe18ce78a6a401c43f8e85b9803",
+      "sha256": "8134ecdcbcc0e139e8bfeba96439cac9c65cb093c721b744ec335464db15cbfb"
+    },
+    {
+      "path": "docs/proposals/civilization/science/REVIEW_POLICY.md",
+      "gitBlobSha": "3e444c3e4fdc1b22595d1ce07430ee82615b173e",
+      "sha256": "b83ca895841bc5ea779b51437e94f0101b938fbc54a56ab7d056877c03c921c0"
+    },
+    {
+      "path": "docs/proposals/civilization/science/ROADMAP.html",
+      "gitBlobSha": "33b82d40b5180b3c15610682fc24d84b61dab260",
+      "sha256": "25f91ae75043dea556ef2dffbde69de0698c312f58edc568588569d7bc73b491"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SEALED_VESSEL_DESIGN.md",
+      "gitBlobSha": "228d3f8373b73203f5bcd7f05323ae4deed38e04",
+      "sha256": "c1d44170cccc4aecd72b93d3a6e4945bb4eb431f0e61ac23c9336f1705d22b0c"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SEALED_VESSEL_HANDBOOK.md",
+      "gitBlobSha": "1c80202e870cc6122e15db644b608599ffaa928c",
+      "sha256": "be3eb02261deb862abd3d8295fa747c71147c40e8f7bd356e4bacda4ea2b87fd"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SELF_BAROMETER_DESIGN.md",
+      "gitBlobSha": "5312bb29182b1dae18c33814cded5d8f0e0bb778",
+      "sha256": "38cdbadf85a171c73868e7594e7299b1334d81f1d1b2a75f76ae07fe766c71f2"
+    },
+    {
+      "path": "docs/proposals/civilization/science/SHAPE_DRY_HANDBOOK.md",
+      "gitBlobSha": "4acf2a23995f85772ae1383aee6a30482943dceb",
+      "sha256": "9d867bb6b4fe37cdceede3c28301efa06b722e6abda653ce208bb0fc58e7b1f7"
+    },
+    {
+      "path": "docs/proposals/civilization/science/WEIGH_HANDBOOK.md",
+      "gitBlobSha": "eb54889a6f0386b4b34fc8969a1bf1c5fbb69c51",
+      "sha256": "4b441db47d00dc18d2963ded73968b2ef9e8118e205bb2416950bfc120717e8e"
+    },
+    {
+      "path": "docs/proposals/civilization/science/WOOD_FIRE_FINAL_REVIEW.md",
+      "gitBlobSha": "5d5f75b975bd6a79bbfba261ac076287f35eb824",
+      "sha256": "325b09272ae1d719afb949e153462772789415adfdb9d74ffa5a4b0833f00e6b"
+    },
+    {
+      "path": "docs/proposals/civilization/science/WOOD_FIRE_HANDBOOK.md",
+      "gitBlobSha": "1b0a8061849aa1b29807589076362c6899099d70",
+      "sha256": "269d9df0ef70dee3d453fb41965d1e6bd376d50dabc1be28b872af5eb660eb98"
+    },
+    {
+      "path": "docs/proposals/civilization/science/runs/clay-loop-v0.html",
+      "gitBlobSha": "2ab2268dbe0081460d5af25309d37f693fa24898",
+      "sha256": "041acfdfcf2ab12d5235e9b72972cd6cc6bc75b39aa646d9f8946bc4a9538855"
+    },
+    {
+      "path": "docs/proposals/civilization/science/runs/clay-loop-v0.json",
+      "gitBlobSha": "eef7b8028115aecfdc0aef5a967a2f8e7d20c2d8",
+      "sha256": "aeac2ed5bed0bfb1503fded96ea025f4a217166861107f503fc565777ccd08b3"
+    },
+    {
+      "path": "docs/proposals/civilization/science/science-contract-0.2.0.proposed.diff",
+      "gitBlobSha": "f1d05f12e8eee6a05d14830f8c955c3543e5d269",
+      "sha256": "c9f3732e390be27052e790e485d48f6f4ef597de27b9881b352eee2abd4b9433"
+    },
+    {
+      "path": "docs/proposals/civilization/science/science-contract-0.2.1.proposed.diff",
+      "gitBlobSha": "c4e3ce779df3625171d8b456449d6c2311674617",
+      "sha256": "bf08acc2d779b689baf2dcaf6a9665f9295a2caac8507e4338052481be8b42de"
+    },
+    {
+      "path": "package-lock.json",
+      "gitBlobSha": "384f23dc2f3f4f225b5934fafe9b06613690ce41",
+      "sha256": "70c72831c175e249dd8959c61ccc0136441b8e6a7be026308890dad668556a0d"
+    },
+    {
+      "path": "package.json",
+      "gitBlobSha": "7ecd4d1318a954b82f6eabd84df4de39e05b027a",
+      "sha256": "ee9cbe74ddf7a2ae2aa2c219f8163190e6cc05dad1664f00e2c39523b7c754b0"
+    },
+    {
+      "path": "scripts/node-assets.mjs",
+      "gitBlobSha": "a9f7c9b8d90131e10ab25d9683e2526603dee1dc",
+      "sha256": "7fd0bac023a55519ac0c07e809dfae22c7f0ece46975b605ab8ef6aa48a2def0"
+    },
+    {
+      "path": "scripts/science-barometer-check.ts",
+      "gitBlobSha": "c6acb1d8356200f887b04f9e800187357016ad28",
+      "sha256": "264270c28cb79ca4a0df7563be1cae8e1de7fa46a56889f507643589602d65d6"
+    },
+    {
+      "path": "scripts/science-charcoal-check.ts",
+      "gitBlobSha": "330b508df36cb0bcefc4fc0360eaaddd0213545c",
+      "sha256": "dbfed82f46abe5314acd71702c66e8f8f4d4f7c35352005ff6ebfaedf7b92804"
+    },
+    {
+      "path": "scripts/science-clay-check.ts",
+      "gitBlobSha": "3dd7d60d2ad2b77071bb054f643ac2ee5c241cec",
+      "sha256": "bb12860db437cd769f4aac68b9403d0e5252a8abfb8f4499b6f03f6e6e07bf1b"
+    },
+    {
+      "path": "scripts/science-clay-prep-check.ts",
+      "gitBlobSha": "00de6beb377b3cc46e7145d66b3e15857a3f9e34",
+      "sha256": "f3c9d5fa5186f04762db3c6930a042a1b62c72f9ea61c841d8c7318b2bdf7699"
+    },
+    {
+      "path": "scripts/science-clay-report.ts",
+      "gitBlobSha": "c471a84793624b3c671333cc26ea09f3f142828e",
+      "sha256": "00491febef53db73f24316048b78c72610cf40ca1de4f67ea6173f9b1a1d2010"
+    },
+    {
+      "path": "scripts/science-coconut-check.ts",
+      "gitBlobSha": "46c917b0333a240c41ef6748759ce6810be634c3",
+      "sha256": "3e8191701485c256d288e6448a345ebc92692938422b99c950e07c884e7febb5"
+    },
+    {
+      "path": "scripts/science-fired-pot-assembly-check.ts",
+      "gitBlobSha": "f880eb61a47d4515109437e823c0dbd841e384df",
+      "sha256": "8e2edaa52caf1dfd66adf74713acb82ef76b319e212fc3b6491a3174e894a155"
+    },
+    {
+      "path": "scripts/science-firewood-check.ts",
+      "gitBlobSha": "c0d05aebab84913c6bc4350d2fe51b322d2a8abd",
+      "sha256": "7bec944f4fe59b313371b837c551d3ee6b65ee0bfdf3a81cf88d72604beb3a79"
+    },
+    {
+      "path": "scripts/science-integration-check.ts",
+      "gitBlobSha": "b45307e819da45a84f0823e6373727f7689e9aa9",
+      "sha256": "3eff8a6ad78d89186b5f9b8875115bbca13afe8137a058eb59cc19d34ab5c12a"
+    },
+    {
+      "path": "scripts/science-lime-check.ts",
+      "gitBlobSha": "933cf815079963f83c38d6f66baab3e84a420e3c",
+      "sha256": "33b867651ef501dd33f9fa2014eb167220695e7239f9789cb4f5c27d3b597660"
+    },
+    {
+      "path": "scripts/science-oil-lamp-check.ts",
+      "gitBlobSha": "afcaa744faaf9d38614745ee2e646ccf606aaf6d",
+      "sha256": "d8b7bbee22a0df4964d2002aa835f16f55b396f58486efbd9da01c5413a2e6b2"
+    },
+    {
+      "path": "scripts/science-pit-fire-check.ts",
+      "gitBlobSha": "8445e2beee06d92878931ce68f875a5982f890b6",
+      "sha256": "5163e971d7f1d03d8d0a837348cac94f313a03d1d44a45a56e068548cf78cb6f"
+    },
+    {
+      "path": "scripts/science-pottery-check.ts",
+      "gitBlobSha": "5b2e8ed60d5cbe91c56f405192bf0b4f89908170",
+      "sha256": "8678a480d984125ecd551ba2e77a836b4e4624a63cf645bf732fa7e5b5d8141b"
+    },
+    {
+      "path": "scripts/science-review-regressions.ts",
+      "gitBlobSha": "9e99ff41a5e31976f396d5babad4de6f7bc2b144",
+      "sha256": "a94ee4012bb6d462915f0fd4ff36c87edd9b8f6a2bef1272f91a0e3231bf0d21"
+    },
+    {
+      "path": "scripts/science-step-check.ts",
+      "gitBlobSha": "f3f13e258630b6a428e78ee18f7c3e3366958e2d",
+      "sha256": "a2d02b519043b0297fc872afe24a999b32d5e9676d6113dbcd7412af2c2feb50"
+    },
+    {
+      "path": "scripts/science-tile-chain-check.ts",
+      "gitBlobSha": "aaa96c2917d48c39f3aa64fdce6a2c925e382f37",
+      "sha256": "3958aa7b8c673310d5413233a4110278036a2734a651f999d4c88b3991980e41"
+    },
+    {
+      "path": "scripts/science-vessel-check.ts",
+      "gitBlobSha": "baf00048fe09a00ba96d56ec592b380e5fe71a07",
+      "sha256": "026d095838620b23f2c08dc93bc777edd8946bdc4e1c6595781ab0424b30c680"
+    },
+    {
+      "path": "scripts/science-wood-fire-check.ts",
+      "gitBlobSha": "11d4cdc245ec1345ef91e96e34a4410bd4142770",
+      "sha256": "564942b1b4dff422be9b91b5d186a731ab22ca1ef89c67ea043885144bd071e8"
+    },
+    {
+      "path": "src/science/ceramic.ts",
+      "gitBlobSha": "e7ab4a7711c182bcbc0bd3e732113c6d81835421",
+      "sha256": "7bd520fb4a10a91c0cfaac61ebc85d0fb8a74e9333dd617aa74e62dd43e7b460"
+    },
+    {
+      "path": "src/science/chem.ts",
+      "gitBlobSha": "788e58afa9cc5798678b3cee5e5ff8c3ea6123a7",
+      "sha256": "7c356b3d06c302f3b7051376635e686e1ce3febc95fd9ba49dc79fb160cdd3aa"
+    },
+    {
+      "path": "src/science/clay.ts",
+      "gitBlobSha": "c899aaf6f39f5813cd4916640633fe86b5158e88",
+      "sha256": "436324c8d279389f9a58aee49594d6a71797a2386fb5c1ce0456f938000e0937"
+    },
+    {
+      "path": "src/science/core.ts",
+      "gitBlobSha": "4db2de518e9e44b8e9200cb4532eee116bbc4ee7",
+      "sha256": "ec16c37103e7644c1dfec8164fba1b94e123b8d09dff556938a34513082de550"
+    },
+    {
+      "path": "src/science/fixture/clay-world.ts",
+      "gitBlobSha": "2736384978f2bf36ed3b15f99693df505fe0a731",
+      "sha256": "77719029e51f14799d17af99abc3f986b655d7f97c3fb6f2f52b7a6b9c9f0c21"
+    },
+    {
+      "path": "src/science/fixture/scenario.ts",
+      "gitBlobSha": "1e5738c45a4b815f93d62cda3c90b36e206fe637",
+      "sha256": "7010388b9bb2854c785d3acd3f28be2330b178a0e05c5384df69909631f8f1c6"
+    },
+    {
+      "path": "src/science/fixture/world.ts",
+      "gitBlobSha": "ce97636a84a6631f036696b5dd312037fb6a82ca",
+      "sha256": "a4d5283caa3169ab3efe8d1ed5c3978f3d0a333ffbd3f0c7f0009bde7084f593"
+    },
+    {
+      "path": "src/science/island-clay.ts",
+      "gitBlobSha": "957570c6b73e1401ee7837d54c7085223b8e7c2c",
+      "sha256": "f7e7e98c5ebc306538c8e193cd5c884c273a7d00501e6694c4dbc21b62500b45"
+    },
+    {
+      "path": "src/science/params.ts",
+      "gitBlobSha": "5f9267d24de89017dc45dca41bd2dbba0f14b25a",
+      "sha256": "f489fc08fdbf2b763eacabe13bd78a2cfc5fac365ef25fa2dea2899a92c1947b"
+    },
+    {
+      "path": "src/science/physics.ts",
+      "gitBlobSha": "19052597833ff80e8f87be67ed8d3a65044b72a1",
+      "sha256": "1e4356bfc7a64ccf9d0488279a568984f6437ddd0809d1b61bc233623e73e7af"
+    },
+    {
+      "path": "src/science/research.ts",
+      "gitBlobSha": "680c8b25373b8614737c134df21ec979e632a964",
+      "sha256": "0b49a2e0a51574b0791a0b6c18aac633eb00fc0ee3e0a4f0ad5e875fda6c0867"
+    },
+    {
+      "path": "src/science/rng.ts",
+      "gitBlobSha": "e6e11ae55f723793baeea549a0d044d681c91978",
+      "sha256": "0b9f462504afaa006fa70bff274bec4c472fa3a08e74e52bc5469e555855b77d"
+    },
+    {
+      "path": "src/science/sources.ts",
+      "gitBlobSha": "f8ed3d45b3f588d6395f9b58ec4831884f57469a",
+      "sha256": "37c150305f3a621c4db513cdecd26902f96a6c1847584382e9964badfca99398"
+    },
+    {
+      "path": "src/science/step/barometer.ts",
+      "gitBlobSha": "fbcf28e026337bbacb70af8d7689e8ffd08f4d17",
+      "sha256": "dcfabe900092d1bc58bdedef7fa115564c75a3f54beba99996a8abf9bc582752"
+    },
+    {
+      "path": "src/science/step/charcoal.ts",
+      "gitBlobSha": "9f7c4259ee883c0e8b80e735abb770bfe1849bc5",
+      "sha256": "6be8437ecb8e346ac80fbed529e396a791faeab0e2126b53ab5eb94e182d3c15"
+    },
+    {
+      "path": "src/science/step/clay-pit.ts",
+      "gitBlobSha": "a77c6fd06138fd6b060b94b888f2e1d6854a27d8",
+      "sha256": "05fb3901a8e027fe796cc8778f0b8bdcbf5bf6bff2b00afdfc6ee319bdadb470"
+    },
+    {
+      "path": "src/science/step/coconut.ts",
+      "gitBlobSha": "bbb351fda19998e7567b485425f561717490da25",
+      "sha256": "95966d31068ce7ea10a074ae9105ec9776e5aef3d5a039de021edf2db138797a"
+    },
+    {
+      "path": "src/science/step/common.ts",
+      "gitBlobSha": "dcef1b623ffabe3f01f9b366cb7f9b86fc73f82e",
+      "sha256": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5"
+    },
+    {
+      "path": "src/science/step/drying.ts",
+      "gitBlobSha": "7a96aae620bfb6fc71dcfa2c96631b39225604ea",
+      "sha256": "6ded340cdae7460a86b203926ade013755b03be416ffc541294569a17bf9b6bc"
+    },
+    {
+      "path": "src/science/step/fired-pot-assembly.ts",
+      "gitBlobSha": "3269a43dc89a58f1aa17c604cf3b30cf49c798b3",
+      "sha256": "8ed0b8bf77293aa4b4376424a06de0ea95a076f2ac013c1a3307f6a1c010e504"
+    },
+    {
+      "path": "src/science/step/firewood.ts",
+      "gitBlobSha": "6fec923b211a5a50f9976d245af0377a5c6f454a",
+      "sha256": "9ac7eb30ae66daa3b71b309286e52a01b8d57d037345477e9479b38444e6340c"
+    },
+    {
+      "path": "src/science/step/firing.ts",
+      "gitBlobSha": "d07870031d6c10ac35374258239b44a225ee9d7e",
+      "sha256": "f12dfd0a66ebd19bf9107dfd63540d62bbbbd29c57762244195fb4cca2cb1182"
+    },
+    {
+      "path": "src/science/step/fixture-profile.ts",
+      "gitBlobSha": "44affd62880530630137b5a58f51e8a6e0fdd793",
+      "sha256": "bd8e99a9a1cbfda22f254c567b6af5fb8dbdace5562ce0109285b7375d1b3df9"
+    },
+    {
+      "path": "src/science/step/index.ts",
+      "gitBlobSha": "2c17e5448fe8b864db44f2e26a33838d3ec01d32",
+      "sha256": "f75fdda864f1dfd300020a2b90fa2587d8cecf31c1531df2ec636d656b547db8"
+    },
+    {
+      "path": "src/science/step/kiln-ware.ts",
+      "gitBlobSha": "0296a446fc474b807b8d034b55014c4a95265db6",
+      "sha256": "1efe14f7897a531982ba25b2eb0f32f259c6697ed9c28a176fc1e4a016f3b6da"
+    },
+    {
+      "path": "src/science/step/knead.ts",
+      "gitBlobSha": "079e7e8880254f73ad0a24fcd61327a296f30003",
+      "sha256": "76604125751abb722fb771a1735e0e3caaceffa73b8feb2bccc1e0e53e186ef8"
+    },
+    {
+      "path": "src/science/step/lime.ts",
+      "gitBlobSha": "46b611740b7d7feb8713ca02f1ee872393f69e2f",
+      "sha256": "04834fabd224c742ea8f6122bbcb9c8b471743fd0034eaf4837fd3048be6cc79"
+    },
+    {
+      "path": "src/science/step/oil-lamp.ts",
+      "gitBlobSha": "c4e0a96d5fa947c07c46ad2bf71cbb02925cb426",
+      "sha256": "6ff5f708c21a116452398521d90fad788741681a5ce3b485e6b40c6ca7e6a52d"
+    },
+    {
+      "path": "src/science/step/pit-fire.ts",
+      "gitBlobSha": "1cf7b60bf7e33811e93fcfb6fe20c50619b80a40",
+      "sha256": "501eff025fe969507a6624f7d4fadb30a7d923e2e3338a22c605bc065b3c9978"
+    },
+    {
+      "path": "src/science/step/pottery.ts",
+      "gitBlobSha": "12a996b3d85eace8fe4bbdd60c1a1513c3c91b3f",
+      "sha256": "c37d93fcbd82edf401486d5b9204691c1ecebe1092243ac740a241ffb8c22488"
+    },
+    {
+      "path": "src/science/step/simple.ts",
+      "gitBlobSha": "b66bf43c4f03221adcc461f24b2b04ee5f119d42",
+      "sha256": "1af8904de8b2f9f8a3a28d8ebc9212609c004cc6907b81ce1d8cc690dda126f9"
+    },
+    {
+      "path": "src/science/step/slake.ts",
+      "gitBlobSha": "0010ae4b228a8fbd015de703fd187f4c4bb40461",
+      "sha256": "722e59df893440b8ae9e94be026027274b8124f71d7dc2154a196a3aacfaedd0"
+    },
+    {
+      "path": "src/science/step/soak.ts",
+      "gitBlobSha": "6a5a414679240ebf6712d089d2015c8e1645f856",
+      "sha256": "ac59ebaa3a5d21322b2a134110159c63db58de6731b2bf3fba3a526a55fe7a2b"
+    },
+    {
+      "path": "src/science/step/validate.ts",
+      "gitBlobSha": "3f975b8e628d0019c4960ea1e0bd4865a269b6cd",
+      "sha256": "53afd837ebe9ada143c6cd863bc08bfd59eee71179fbb7a8d460aeb35b196a8a"
+    },
+    {
+      "path": "src/science/step/vessel.ts",
+      "gitBlobSha": "6e9d45094d2055296bdf2bf9ccbcb3d60178782e",
+      "sha256": "377cabf6c634c2b533e78a6e44da28752bff799a622fd477ce5452eb34624519"
+    },
+    {
+      "path": "src/science/step/wood-fire.ts",
+      "gitBlobSha": "ca4d84adea363cbeedcfdb33fa737b1a34244c02",
+      "sha256": "fa95fcceb1e99359eaff9757ba0b95ae8b385bba78aeaa91869376222434121e"
+    },
+    {
+      "path": "src/science/types.ts",
+      "gitBlobSha": "3080878e03ea18fff360786006c1be72bb2afc46",
+      "sha256": "130de59b7b60601559fed50e2555b5cb528935739cbac2f116dc0728fb3e9d33"
+    },
+    {
+      "path": "tools/science-lab/README.md",
+      "gitBlobSha": "da0cb6edaea14c5c0ff0ad420c8b832efc0d7eb0",
+      "sha256": "64da8a5140da661fd612d80eeea52f66391cf405c1fc00802e5b105af951f391"
+    },
+    {
+      "path": "tools/science-lab/app.mjs",
+      "gitBlobSha": "02dce192a63287800789a5be6f7d49444af60128",
+      "sha256": "2d54d9eb242b4a9393c5e4c66833ec0dcd1d73fc16d4e5b5e886ea0861ff5f24"
+    },
+    {
+      "path": "tools/science-lab/index.html",
+      "gitBlobSha": "24ab7b1673ded3beb72529cee2732cc449ecc119",
+      "sha256": "d3f0ab3473002e9ee5eae2e738a190c963b287374fce9ca72ff4276240e4f23d"
+    },
+    {
+      "path": "tools/science-lab/measurement-record.mjs",
+      "gitBlobSha": "528bbd9c97f9efe12ba3b71c1ac877953911bdd2",
+      "sha256": "6716c4f6405a7fc08033e6a155622748eb2afba20da473f69085d8efd6f0e3c0"
+    },
+    {
+      "path": "tools/science-lab/measurement-record.test.mjs",
+      "gitBlobSha": "9d4f97262699c33cbd60f23cf3f1fa8f1ff4e7cd",
+      "sha256": "4761a4753f8cbb3adfd64819026da6424ff1ce87f73818760a58d5f87b0ffd42"
+    },
+    {
+      "path": "tools/science-lab/measurements.mjs",
+      "gitBlobSha": "26ab280560bd6c1b446afc0f50902c5b30955e56",
+      "sha256": "a881d6d1fe1fef05508b6fa2fd8556ac711c34160e7d8f920e5c0527f1e3ba93"
+    },
+    {
+      "path": "tools/science-lab/measurements.test.mjs",
+      "gitBlobSha": "dc98eddce5893b82c140f033bc94f34cdd1cd399",
+      "sha256": "3be8c8b7ac06d30398085625857b74bf335e32f4c84b69a21068e540cc0e51ad"
+    },
+    {
+      "path": "tools/science-lab/style.css",
+      "gitBlobSha": "5f859874bed32f91bcc8c9339eeb0dd1b6f0bfa2",
+      "sha256": "08611ca3f02ad37a517a4895a0b43ece9e1c88f2255f2740cff69a0a99914031"
+    },
+    {
+      "path": "tsconfig.json",
+      "gitBlobSha": "d374d68172da2e1c6e765c7fb0e547ea4d9886be",
+      "sha256": "b96d0c5170654f55dd24e253497beff447bdb8eea49a2c0a183fe2283f110ecc"
+    },
+    {
+      "path": "vite.config.ts",
+      "gitBlobSha": "063d09ac4373fd557a550e5313d49ce1bd20f445",
+      "sha256": "343732c55d11bf9161bfde6bef6591133fd2c73860edd8493df503428832b7f7"
+    }
+  ],
+  "previousZips": [
+    {
+      "path": "/workspace/oil-lamp-eb3cd0b.zip",
+      "sha256": "04d3fdac8a0e0ff37b51d2a100b80af799a201686244e4f36df40dcd31ab86df",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/vessel-fired-d2e6abd.zip",
+      "sha256": "15c9f32ed9cca9f45072d78bd3d46daa9db5508880c1393d3ee487d8c9b89d53",
+      "unchanged": true
+    },
+    {
+      "path": "/workspace/lamp-vessel-79cdf9c.zip",
+      "sha256": "ad4aae2e718e64730ff771d2e328540753714338b2ae5cd6f87f3460266d225c",
+      "unchanged": true
+    }
+  ]
+}

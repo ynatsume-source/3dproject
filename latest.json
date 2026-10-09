@@ -1,0 +1,16 @@
+{
+  "repository": "ynatsume-source/3dproject",
+  "sharingBranch": "codex/science-reviews",
+  "targetScienceCommit": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
+  "reviewDirectory": "reviews/self-barometer-7f4d1e3",
+  "report": "reviews/self-barometer-7f4d1e3/REVIEW.md",
+  "claudePrompt": "reviews/self-barometer-7f4d1e3/CLAUDE_PROMPT.md",
+  "zip": "archives/self-barometer-7f4d1e3.zip",
+  "zipSha256": "692c547e751f79d682ef6fed2b0cb5d2f7500fb9e2457d9f5a74d1921eb87b84",
+  "decision": "hold-p16x-and-m03x",
+  "findingCounts": {
+    "A": 4,
+    "B": 0
+  },
+  "futureSharing": "Append a new immutable review directory; update LATEST.md and latest.json. Only push this sharing branch."
+}

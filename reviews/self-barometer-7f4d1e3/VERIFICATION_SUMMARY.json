@@ -1,0 +1,84 @@
+{
+  "officialRelevantTestsPassed": 302,
+  "typecheckPassed": true,
+  "buildComponentsPassed": [
+    "vite",
+    "og",
+    "journal"
+  ],
+  "findingCounts": {
+    "A": 4,
+    "B": 0
+  },
+  "independentChecks": {
+    "bounds": {
+      "target": "/tmp/self-barometer-7f4d1e3",
+      "process": {
+        "processId": "m03x_air_barometer_pot",
+        "processVersion": "0.1.0"
+      },
+      "calls": 103864,
+      "comparisonCount": 51840,
+      "differences": 0,
+      "validatorViolations": [],
+      "shortGapControlOverflow": true,
+      "shortGapMaskedNumeric": true,
+      "fixtureTaus": [
+        118,
+        3096,
+        7755
+      ],
+      "weatherSweeps": 36,
+      "shortGap": {
+        "baselinePressureHPa": 995.1897480833745,
+        "maskedFrom": 3660000,
+        "maskedTo": 3688000,
+        "cachedGapHiK": 301.15,
+        "actualGapEndHiK": 301.16859011491226,
+        "cachedGapTestRiseM": 0.04996001446416363,
+        "projectedGapEndTestRiseM": 0.05017105612854058,
+        "recoveredObservations": [
+          {
+            "at": 3688000,
+            "channel": "instrument:eq:bulb",
+            "quantity": "level",
+            "value": 10,
+            "unit": "mark",
+            "precision": 1
+          }
+        ],
+        "maxPreloadPressureChangeHPaPerH": 14.82190959581203
+      }
+    },
+    "intervals": {
+      "requests": 14567,
+      "checks": 61,
+      "failedChecks": 0,
+      "matrixComparisons": 34,
+      "unequalPhysicalComparisons": 0,
+      "unequalReadingComparisons": 0,
+      "exceptions": 0,
+      "nonFinite": 0,
+      "validatorFailures": 0
+    },
+    "host": {
+      "checks": 49,
+      "requests": 82,
+      "violations": 0
+    },
+    "legacyVessel": {
+      "conditions": 140,
+      "environmentSources": 4,
+      "scenarios": 560,
+      "intervalPairs": 109300,
+      "helperComparisons": 49,
+      "differences": 0
+    },
+    "equilibriumRootCases": 1440
+  },
+  "notes": [
+    "Official test counts are separate from diagnostic calls and comparison points.",
+    "Diagnostic exit zero does not mean no findings.",
+    "No all-science-tests claim."
+  ]
+}

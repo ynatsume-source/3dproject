@@ -1,0 +1,39 @@
+{
+  "target": "/tmp/self-barometer-7f4d1e3",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.0"
+  },
+  "calls": 103864,
+  "comparisonCount": 51840,
+  "differences": 0,
+  "validatorViolations": [],
+  "shortGapControlOverflow": true,
+  "shortGapMaskedNumeric": true,
+  "fixtureTaus": [
+    118,
+    3096,
+    7755
+  ],
+  "weatherSweeps": 36,
+  "shortGap": {
+    "baselinePressureHPa": 995.1897480833745,
+    "maskedFrom": 3660000,
+    "maskedTo": 3688000,
+    "cachedGapHiK": 301.15,
+    "actualGapEndHiK": 301.16859011491226,
+    "cachedGapTestRiseM": 0.04996001446416363,
+    "projectedGapEndTestRiseM": 0.05017105612854058,
+    "recoveredObservations": [
+      {
+        "at": 3688000,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "value": 10,
+        "unit": "mark",
+        "precision": 1
+      }
+    ],
+    "maxPreloadPressureChangeHPaPerH": 14.82190959581203
+  }
+}

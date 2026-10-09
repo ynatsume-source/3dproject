@@ -1,0 +1,4 @@
+Reviewer facts, 2026-10-09. Not original HTML bytes or a verbatim transcript.
+University of Iowa, 2B35.70 Weatherglass Barometer, Procedure.
+URL: https://instructional-resources.physics.uiowa.edu/2b3570-weatherglass-barometer
+The teaching apparatus is filled above the spout joint. Baby oil is added to limit evaporation. This supports treating initial fill and evaporation as apparatus-specific conditions. It supplies no tar-joint conductance, thermal time constant, or spill-volume calibration.
