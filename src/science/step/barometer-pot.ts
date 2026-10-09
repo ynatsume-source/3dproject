@@ -30,8 +30,9 @@ import { pv } from '../params';
 import { AIR_RANGE_C, rise, SPILL_NOW, SPILLED, type Geometry } from './barometer';
 import { allFinite, checkCommon, contractExtras, failed, fingerprint, finite, isInt } from './common';
 
-export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.air-barometer-pot/1', EVAL = 'air-barometer-pot-eval/0.1.0';
+export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.1.1' } as const;
+// /2 since 0.1.1 (the cell keeps its own pressure; a pressure gap keeps its extremes): a /1 run is refused; the host cancels it
+const SCHEMA = 'civ-sci.air-barometer-pot/2', EVAL = 'air-barometer-pot-eval/0.1.1';
 const BULB = 'assembled_pot';
 const CELL_MS = 30_000;
 
@@ -39,11 +40,11 @@ type Condition = 'ok' | 'spilled-top' | 'spilled-bottom' | 'unknown';
 /** The gauge at the start of a cell. */
 interface Snap { tMs: number; bLo: number; bHi: number; sLo: number; sHi: number }
 /** What was decided at the cell's start (rates per second). */
-interface Ctl { tKnown: boolean; Ta: number; dsLo: number; dsHi: number }
+interface Ctl { tKnown: boolean; Ta: number; pKnown: boolean; Pa: number; dsLo: number; dsHi: number }
 interface PotGaugeData {
   eqId: string; paramsFp: string; g: Geometry; leakK: number; startMs: number; lastTo: number;
   waterFp: string; waterMg: number; waterLocation: string; spilledMg: number;
-  s: Snap; ctl: Ctl; lastPaPa: number; lastPaAt: number; gapLoMinK: number; gapHiMaxK: number;
+  s: Snap; ctl: Ctl; lastPaPa: number; lastPaAt: number; gapOpen: boolean; gapLoMinK: number; gapHiMaxK: number; gapSLo: number; gapSHi: number;
   condition: Condition; spilledAt: number; historyComplete: boolean;
 }
 
@@ -89,8 +90,8 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
     const T0 = req.environment.airTempC! + 273.15, P0 = req.environment.pressureHPa! * 100, s0 = (P0 * b.g.V0) / T0;
     d = { eqId: eq.equipmentId, paramsFp: fpOf(eq.params ?? {}), g: b.g, leakK: (b.g.V0 / (T0 * b.tauMin * 60)) * k2, startMs: req.interval.from, lastTo: req.interval.from,
       waterFp: fingerprint(water), waterMg: water.amount.value, waterLocation: water.location, spilledMg: 0,
-      s: { tMs: req.interval.from, bLo: T0, bHi: T0, sLo: s0, sHi: s0 }, ctl: { tKnown: true, Ta: T0, dsLo: 0, dsHi: 0 },
-      lastPaPa: P0, lastPaAt: req.interval.from, gapLoMinK: T0, gapHiMaxK: T0, condition: 'ok', spilledAt: -1,
+      s: { tMs: req.interval.from, bLo: T0, bHi: T0, sLo: s0, sHi: s0 }, ctl: { tKnown: true, Ta: T0, pKnown: true, Pa: P0, dsLo: 0, dsHi: 0 },
+      lastPaPa: P0, lastPaAt: req.interval.from, gapOpen: false, gapLoMinK: T0, gapHiMaxK: T0, gapSLo: s0, gapSHi: s0, condition: 'ok', spilledAt: -1,
       historyComplete: (water.quality?.history_complete ?? 1) === 1 };
   } else {
     d = structuredClone(req.state.data as PotGaugeData);
@@ -115,16 +116,28 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
     return { tMs: t, bLo, bHi, sLo: Math.max(1e-12, s.sLo + c.dsLo * sec), sHi: Math.max(1e-12, s.sHi + c.dsHi * sec) };
   };
   const xBounds = (s: Snap, P: number) => [rise(g, s.sLo, P, s.bLo), rise(g, s.sHi, P, s.bHi)] as const;
-  /** Did the water pass an end (pressure known)? Certain → spilled (the water over the mouth goes to the ground);
-   *  only possible → unknown. */
-  const check = (t: number) => {
-    if (d.condition !== 'ok' || !pKnown) return;
-    const [xLo, xHi] = xBounds(d.s, Pa), certain = d.s.bLo === d.s.bHi && d.s.sLo === d.s.sHi;
-    const over = xHi > g.halfLengthM ? 'top' : xLo < -g.halfLengthM ? 'bottom' : null;
-    if (!over) return;
-    if (!certain) { d.condition = 'unknown'; return; }
-    d.condition = over === 'top' ? 'spilled-top' : 'spilled-bottom'; d.spilledAt = t;
-    if (over === 'top') d.spilledMg = Math.min(d.waterMg, Math.round((xHi - g.halfLengthM) * g.A * 1e9));
+  /** What the water did between the cell's start and `until`, at the pressure the cell was decided with (Codex SB-A3:
+   *  an end passed inside a cell is a physical event, whatever the next cell's weather). Known exactly: the levels are
+   *  scanned each second (and at `until`); the first moment past an end is the spill, and over the mouth the water
+   *  lost is the most it stood above it in the stretch (afterwards the gauge is no longer followed). With bounds: the widest the
+   *  bounds reach in the stretch (each bound moves one way within a cell) passing an end makes it unknown. */
+  const scan = (until: number): { kind: 'top' | 'bottom' | 'maybe'; at: number; excessM: number } | null => {
+    const c = d.ctl, s0 = d.s;
+    if (!c.pKnown || d.condition !== 'ok' || until <= s0.tMs) return null;
+    const s1 = at(until);
+    if (s0.bLo === s0.bHi && s0.sLo === s0.sHi && c.dsLo === c.dsHi && c.tKnown) {
+      // the first moment past an end, and for the mouth the highest the water stands over it in the rest of the stretch
+      let first: { kind: 'top' | 'bottom'; at: number; excessM: number } | null = null;
+      for (let t = s0.tMs; ; t = Math.min(until, t + 1000)) {
+        const x = rise(g, at(t).sHi, c.Pa, at(t).bHi);
+        if (!first && x > g.halfLengthM) first = { kind: 'top', at: t, excessM: 0 };
+        if (!first && x < -g.halfLengthM) return { kind: 'bottom', at: t, excessM: 0 };
+        if (first?.kind === 'top') first.excessM = Math.max(first.excessM, x - g.halfLengthM);
+        if (t >= until) return first;
+      }
+    }
+    const hi = rise(g, Math.max(s0.sHi, s1.sHi), c.Pa, Math.max(s0.bHi, s1.bHi)), lo = rise(g, Math.min(s0.sLo, s1.sLo), c.Pa, Math.min(s0.bLo, s1.bLo));
+    return hi > g.halfLengthM || lo < -g.halfLengthM ? { kind: 'maybe', at: until, excessM: 0 } : null;
   };
   /** Decide at a cell's start, with this request's weather. */
   const decide = () => {
@@ -135,37 +148,56 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
         dsLo = -d.leakK * cl(xHi); dsHi = -d.leakK * cl(xLo);
       } else { dsLo = -d.leakK * g.halfLengthM; dsHi = d.leakK * g.halfLengthM; } // the water anywhere in the tube
     }
-    d.ctl = { tKnown, Ta: tKnown ? Ta : 0, dsLo, dsHi };
+    d.ctl = { tKnown, Ta: tKnown ? Ta : 0, pKnown, Pa: pKnown ? Pa : 0, dsLo, dsHi };
   };
+  /** Close the stretch to t: what happened in it is recorded (a spill), then the gauge moves to t. */
   const commit = (t: number) => {
-    if (t > d.s.tMs) d.s = at(t);
-    if (!pKnown) { d.gapLoMinK = Math.min(d.gapLoMinK, d.s.bLo); d.gapHiMaxK = Math.max(d.gapHiMaxK, d.s.bHi); }
+    if (t <= d.s.tMs) return;
+    const e = scan(t);
+    if (e?.kind === 'maybe') d.condition = 'unknown';
+    else if (e) {
+      d.condition = e.kind === 'top' ? 'spilled-top' : 'spilled-bottom'; d.spilledAt = e.at;
+      if (e.kind === 'top') d.spilledMg = Math.min(d.waterMg, Math.max(1, Math.round(e.excessM * g.A * 1e9)));
+    }
+    d.s = at(t);
+    if (d.gapOpen) { d.gapLoMinK = Math.min(d.gapLoMinK, d.s.bLo); d.gapHiMaxK = Math.max(d.gapHiMaxK, d.s.bHi); d.gapSLo = Math.min(d.gapSLo, d.s.sLo); d.gapSHi = Math.max(d.gapSHi, d.s.sHi); }
   };
   const nextCell = (t: number) => d.startMs + (Math.floor((t - d.startMs) / CELL_MS) + 1) * CELL_MS;
   const rollTo = (t: number, inclusive: boolean) => {
-    for (let c = nextCell(d.s.tMs); inclusive ? c <= t : c < t; c = nextCell(c)) { commit(c); check(c); decide(); }
+    for (let c = nextCell(d.s.tMs); inclusive ? c <= t : c < t; c = nextCell(c)) { commit(c); decide(); }
   };
+  /** A read: what the gauge shows at t, never changing it (a spill earlier in this cell is seen as it will be recorded). */
   const read = (t: number) => {
     if (!pKnown || d.condition === 'unknown') { unreadable++; return; }
     if (d.condition !== 'ok') { obs(t, { text: (t === d.spilledAt ? SPILL_NOW : SPILLED)[d.condition === 'spilled-top' ? 'top' : 'bottom'] }); return; }
-    const s = at(t), [xLo, xHi] = xBounds(s, Pa), certain = s.bLo === s.bHi && s.sLo === s.sHi;
-    if (xHi > g.halfLengthM || xLo < -g.halfLengthM) { if (certain) obs(t, { text: SPILL_NOW[xHi > g.halfLengthM ? 'top' : 'bottom'] }); else unreadable++; return; }
+    const e = scan(t);
+    if (e?.kind === 'maybe') { unreadable++; return; }
+    if (e) { obs(t, { text: (e.at === t ? SPILL_NOW : SPILLED)[e.kind] }); return; }
+    const s = at(t), [xLo, xHi] = xBounds(s, Pa);
     const mLo = Math.round(xLo / g.markM), mHi = Math.round(xHi / g.markM);
     if (mLo === mHi) obs(t, { value: mHi, unit: 'mark', precision: 1 }); else unreadable++;
   };
 
   if (req.state === null) decide();
   else {
-    if (pKnown && d.lastPaAt < req.interval.from && d.condition === 'ok') {
-      // the pressure comes back after a gap: could the water have passed an end while nobody knew the pressure?
-      const T = (req.interval.from - d.lastPaAt) / 3_600_000, R = pv('pressureRateMaxHPaPerH'), P1 = d.lastPaPa / 100, P2 = Pa / 100;
-      if (R * T < Math.abs(P1 - P2)) d.condition = 'unknown';
-      else {
-        const pMin = Math.max(800, (P1 + P2 - R * T) / 2) * 100, pMax = Math.min(1100, (P1 + P2 + R * T) / 2) * 100;
-        if (rise(g, d.s.sHi, pMin, d.gapHiMaxK) > g.halfLengthM || rise(g, d.s.sLo, pMax, d.gapLoMinK) < -g.halfLengthM) d.condition = 'unknown';
+    // where the gauge is at this request's start, from the cell running across it (no decision is made here)
+    const now = at(req.interval.from);
+    if (!pKnown && !d.gapOpen) { d.gapOpen = true; d.gapLoMinK = now.bLo; d.gapHiMaxK = now.bHi; d.gapSLo = now.sLo; d.gapSHi = now.sHi; }
+    if (pKnown && d.gapOpen) {
+      // the pressure comes back: could the water have passed an end while nobody knew it? The bulb's temperature and
+      // the air are taken at their widest over the whole gap, up to this very moment (Codex SB-A4); the level being back
+      // inside the tube now does not show it never left it
+      d.gapLoMinK = Math.min(d.gapLoMinK, now.bLo); d.gapHiMaxK = Math.max(d.gapHiMaxK, now.bHi); d.gapSLo = Math.min(d.gapSLo, now.sLo); d.gapSHi = Math.max(d.gapSHi, now.sHi);
+      if (d.condition === 'ok') {
+        const T = (req.interval.from - d.lastPaAt) / 3_600_000, R = pv('pressureRateMaxHPaPerH'), P1 = d.lastPaPa / 100, P2 = Pa / 100;
+        if (R * T < Math.abs(P1 - P2)) d.condition = 'unknown';
+        else {
+          const pMin = Math.max(800, (P1 + P2 - R * T) / 2) * 100, pMax = Math.min(1100, (P1 + P2 + R * T) / 2) * 100;
+          if (rise(g, d.gapSHi, pMin, d.gapHiMaxK) > g.halfLengthM || rise(g, d.gapSLo, pMax, d.gapLoMinK) < -g.halfLengthM) d.condition = 'unknown';
+        }
       }
+      d.gapOpen = false;
     }
-    if (!pKnown && d.lastPaAt === req.interval.from) { d.gapLoMinK = d.s.bLo; d.gapHiMaxK = d.s.bHi; }
   }
   const reads = req.actions.filter((a) => a.action === 'read_gauge' && a.at < endAt).map((a) => a.at).sort((x, y) => x - y);
   for (const r of reads) { rollTo(r, true); read(r); }

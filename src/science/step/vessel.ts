@@ -32,9 +32,10 @@ import { fuelLhvJPerMg, pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, intDeltaFloor, isInt, subStepEnd, wind10m } from './common';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.3' } as const; // 0.1.3: a gauge tube through the plug // 0.1.2: the residents' fired_pot as well
+export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.4' } as const; // 0.1.4: the seal reached and its joint tar kept in the state; a tube may wait for a later seal (Codex SB-A1, SB-A2) // 0.1.3: a gauge tube through the plug // 0.1.2: the residents' fired_pot as well
 export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.4' } as const; // 0.1.4: the air-holding time scales with the pot's size, a tube's joint leaks; // 0.1.3: the residents' fired_pot as well // 0.1.2: a missing wind is unknown (not calm)
-const SEAL_SCHEMA = 'civ-sci.vessel-seal/2', SEAL_EVAL = 'vessel-seal-eval/0.1.3';
+// /3 since 0.1.4 (the seal reached, with its joint tar, kept in the state): a /2 run is refused; the host cancels it
+const SEAL_SCHEMA = 'civ-sci.vessel-seal/3', SEAL_EVAL = 'vessel-seal-eval/0.1.4';
 const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.4';
 const POT = 'fired_pot_test';
 /** The pots these steps take: the test pot, and (0.1.2 / 0.1.3) the residents' own fired pot from the open fire. */
@@ -149,7 +150,7 @@ export function potSherdsQuality(copy: Record<string, number>): Record<string, n
 
 // ---- p16x: brush on tar, stop the mouth ------------------------------------------------------------------------------
 
-interface SealData { fps: string[]; eqFp: string; lastTo: number; elapsedMs: number; durationMs: number; reportedHands: number; seal: boolean }
+interface SealData { fps: string[]; eqFp: string; lastTo: number; elapsedMs: number; durationMs: number; reportedHands: number; seal: boolean; sealAt: number; jointTarG: number }
 
 export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const fail = (why: string) => failed(req, SEAL_EVAL, why, SEAL_SCHEMA) as ScienceStepResultV02;
@@ -178,10 +179,9 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (tubeLot) {
       const tq = tubeLot.quality ?? {};
       if (!finite(tq.bore_mm, 1, 30) || !finite(tq.length_mm, 100, 3000) || !isInt(tubeLot.amount.value, 1)) return fail(`${GAUGE_TUBE} needs quality bore_mm 1..30 and length_mm 100..3000`);
-      if (!req.actions.some((a) => a.action === 'seal')) return fail('a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)');
     }
     if (wood) { const fc = fuelComp(wood); if (typeof fc === 'string') return fail(fc); }
-    d = { fps, eqFp, lastTo: req.interval.from, elapsedMs: 0, durationMs: pv('vesselHandSeconds') * 1000, reportedHands: 0, seal: false };
+    d = { fps, eqFp, lastTo: req.interval.from, elapsedMs: 0, durationMs: pv('vesselHandSeconds') * 1000, reportedHands: 0, seal: false, sealAt: -1, jointTarG: 0 };
   } else {
     d = structuredClone(req.state.data as SealData);
     if (d.fps.join('|') !== fps.join('|')) return fail('changed-input: a reserved lot changed under a running run');
@@ -195,7 +195,10 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   d.elapsedMs += worked;
   const done = d.elapsedMs >= d.durationMs, endAt = done ? req.interval.from + worked : req.interval.to;
   // a seal counts only when it comes before the work is done (an action at or after endAt was never reached: Codex A1)
-  if (req.actions.some((a) => a.at < endAt)) d.seal = true;
+  // the first seal reached is the one made (the plug goes in once; a later one finds it in): its time and the tar
+  // heaped on the tube's joint are kept in the state, so the settle never reads a request's actions again (Codex SB-A1)
+  const reached = req.actions.filter((a) => a.action === 'seal' && a.at < endAt).map((a, i) => ({ a, i })).sort((x, y) => x.a.at - y.a.at || x.i - y.i)[0]?.a;
+  if (reached && !d.seal) { d.seal = true; d.sealAt = reached.at; d.jointTarG = reached.params?.jointTarG ?? 0; }
   const h = intDeltaFloor((power * d.elapsedMs) / 1000, d.reportedHands);
   d.reportedHands = h.reported; d.lastTo = endAt;
   if (!allFinite(d)) return fail('non-finite state: refusing to return it');
@@ -219,14 +222,14 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const warm = wood !== undefined && burn >= 0.5 * pv('warmWoodG') * 1000;
   const plug = d.seal ? Math.min(tarLot.amount.value, Math.round(pv('sealPlugTarG') * 1000)) : 0;
   // tar heaped on the tube's joint (p16x 0.1.3): out of what is left after the plug; the rest coats the inside
-  const jointG = req.actions.filter((a) => a.action === 'seal').map((a) => a.params?.jointTarG ?? 0)[0] ?? 0;
-  const joint = tubeLot ? Math.min(tarLot.amount.value - plug, Math.round(jointG * 1000)) : 0;
+  const joint = tubeLot && d.seal ? Math.min(tarLot.amount.value - plug, Math.round(d.jointTarG * 1000)) : 0;
   const coat = tarLot.amount.value - plug - joint;
   const ref = warm ? pv('tarCoverRefWarmGm2') : pv('tarCoverRefColdGm2');
   const coverage = 1 - (1 - p.coverage) * Math.exp(-(coat / 1000 / area) / ref);
   const sealed = d.seal && plug >= Math.round(pv('sealPlugTarG') * 1000);
   const jointCover = 1 - Math.exp(-(joint / 1000) * (warm ? pv('jointTarWarmPerG') : pv('jointTarColdPerG')));
-  // the tube goes into the pot only through a plug that holds; otherwise it comes back as it was
+  // the tube goes into the pot only through a plug that holds; otherwise (no seal reached, or too little tar for the
+  // plug) it comes back as it was (Codex SB-A2: a tube may wait for a seal in a later request)
   const tube: Tube | undefined = tubeLot && sealed ? { mg: tubeLot.amount.value, boreMm: tubeLot.quality!.bore_mm, lengthMm: tubeLot.quality!.length_mm, jointCover } : undefined;
   const out: Pot = { ...p, tar: p.tar + tarLot.amount.value, coverage, sealed, ...(tube ? { tube } : {}) };
   if (tubeLot && !tube) res.produced.push({ materialId: GAUGE_TUBE, amount: { ...tubeLot.amount }, into: tubeLot.location, quality: { ...(tubeLot.quality ?? {}) } });

@@ -47,7 +47,8 @@ const best = seal({ warm: true, tarMg: 90_000, jointTarG: 60 }); // walls well t
   ok(noTube.quality!.air_leak_tau_min > heavy.quality!.air_leak_tau_min && heavy.quality!.air_leak_tau_min < 100_000, 'walls sealed perfectly, the joint still leaks a little: a tubed pot is never perfect (jointLeakFloor)',
     `no tube ${noTube.quality!.air_leak_tau_min} min / tube with 60 g on the joint ${heavy.quality!.air_leak_tau_min} min`);
   const notThrough = seal({ seal: false });
-  ok(notThrough.status === 'failed' && /seal/.test(String(notThrough.evidence.notes)), 'a tube without a seal is refused (it goes through the plug)', String(notThrough.evidence.notes));
+  ok(notThrough.status === 'completed' && notThrough.produced.some((x) => x.materialId === 'gauge_tube_test') && potOf(notThrough).quality!.x_tube_ppm === undefined,
+    'no seal reached: the tube comes back as it was, the pot unstopped (0.1.4, Codex SB-A2)');
   const small = { absorption: 0.12, coverage: 0.9, sealed: true, capacityMl: 500 }, big = { ...small, capacityMl: 2000 };
   ok(airLeakTauMin(small) === airLeakTauMin({ absorption: 0.12, coverage: 0.9, sealed: true }) && airLeakTauMin(big) > airLeakTauMin(small),
     'the same walls hold the air longer in a bigger pot (more air behind the same leak per area); the 500 mL reference pot is as before', `${airLeakTauMin(small)} → ${airLeakTauMin(big)} min`);
@@ -129,6 +130,71 @@ console.log('3. pieces, reads, unknown weather, a spill');
   const lost = spill.last.released.find((x) => x.materialId === 'process_water' && x.to === 'ground');
   ok(lost && lost.amount.value > 0 && sum(spill.last.consumed) === sum(spill.last.produced) + sum(spill.last.released) && /あふれ/.test(spill.all.flatMap((x) => x.observations).map((x) => x.text).join()),
     'a short tube and a deep fall: the water spills over the mouth, to the ground, and the gauge says so', `${lost?.amount.value} mg spilled`);
+}
+
+console.log('5. what was done is kept; what passed an end stays passed (p16x 0.1.4, m03x 0.1.1: Codex SB-A1–A4 on 7f4d1e3)');
+{
+  // SB-A1/A2: the seal reached (60 s, 6 g on the joint) decides, however the 15 minutes of hand work are split, and an
+  // action never reached (1800 s) does not, whatever the order it is sent in
+  const sealRun = (bounds: number[], acts: { at: number; jointTarG: number }[], warm: boolean) => {
+    let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+    const lots = [POT(), TAR(41_000), { ...TUBE, amount: { value: 30_000, unit: 'mg' as const } }, ...(warm ? [WOOD] : [])];
+    for (let i = 0; i < bounds.length - 1; i++) {
+      r = step({ contract: '0.2.0', requestId: `s${i}`, world: W, runId: 'run:sealsplit', ...TAR_SEAL_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: bounds[i], to: bounds[i + 1] }, state: st,
+        environment: { sampleId: 'e', source: 'simulation', effectiveAt: bounds[i], airTempC: 28 }, lots, equipment: warm ? [BRUSH, PIT] : [BRUSH],
+        energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: ((bounds[i + 1] - bounds[i]) / 1000) * 20 }], seed: 1,
+        actions: acts.filter((a) => a.at >= bounds[i] && a.at < bounds[i + 1]).map((a) => ({ at: a.at, residentId: 'res:lantern', action: 'seal', params: { jointTarG: a.jointTarG } })) });
+      st = JSON.parse(JSON.stringify(r.state)); if (r.status !== 'running') break;
+    }
+    return r;
+  };
+  const q = (r: ScienceStepResult) => JSON.stringify(potOf(r).quality);
+  for (const warm of [false, true]) {
+    const one = sealRun([0, H], [{ at: M, jointTarG: 6 }], warm), split = sealRun([0, 10 * M, H], [{ at: M, jointTarG: 6 }], warm), late = sealRun([0, 30_000, 10 * M, H], [{ at: M, jointTarG: 6 }], warm);
+    ok(one.status === 'completed' && q(one) === q(split) && q(one) === q(late), `${warm ? 'warm' : 'cold'}: the joint tar of the seal reached is kept; one request = 10 min + the rest = a first 30 s with no seal yet`,
+      `τ ${potOf(one).quality!.air_leak_tau_min} min, joint ${potOf(one).quality!.joint_cover_ppm} ppm`);
+  }
+  const ab = sealRun([0, H], [{ at: M, jointTarG: 6 }, { at: 30 * M, jointTarG: 60 }], false), ba = sealRun([0, H], [{ at: 30 * M, jointTarG: 60 }, { at: M, jointTarG: 6 }], false);
+  ok(q(ab) === q(ba) && q(ab) === q(sealRun([0, H], [{ at: M, jointTarG: 6 }], false)), 'an action after the work is done (1800 s, never reached) changes nothing, in either order');
+
+  // SB-A3: a bulb warming slowly spills inside a cell: stopped right after, the spill is settled (water to the ground)
+  const shortTube = bulb(warmWell, { tubeLengthMm: 200 });
+  const warming = (t: number): Env => ({ p: 1010, t: 28 + 0.25 * Math.floor(t / (5 * M)) });
+  const probe = gauge(6 * H, warming, Array.from({ length: 6 * 3600 }, (_, i) => i * 1000 + 500), { equipment: [shortTube] }, 5 * M);
+  const firstSpill = probe.all.flatMap((x) => x.observations).find((x) => /あふれ/.test(x.text ?? ''));
+  ok(firstSpill !== undefined, 'a slowly warming bulb on a short tube spills over at some moment', `${firstSpill ? (firstSpill.at / 1000).toFixed(1) : '-'} s`);
+  if (firstSpill) {
+    const cellEnd = Math.ceil((firstSpill.at + 1) / 30_000) * 30_000;
+    let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+    for (let t = 0; t < cellEnd; t += 5 * M) {
+      const e = Math.min(cellEnd, t + 5 * M);
+      r = step(greq(t, e, warming(t), st, [], { equipment: [shortTube], ...(e === cellEnd ? { stop: 'operator' } : {}) })); st = JSON.parse(JSON.stringify(r.state));
+    }
+    const ground = r.released.find((x) => x.to === 'ground')?.amount.value ?? 0;
+    ok(ground > 0 && sum(r.consumed) === sum(r.produced) + sum(r.released) && (r.diagnostics as { condition: string }).condition === 'spilled-top',
+      'stopped at the next cell\'s start, the spill inside the cell is settled once (to the ground), the mass closes', `${ground} mg`);
+    // the next cell's slightly higher pressure does not take it back: no number until the gauge is set again
+    const after = (t: number): Env => (t >= cellEnd ? { ...warming(t), p: 1010.1 } : warming(t));
+    const later = gauge(cellEnd + 2 * H, after, [cellEnd + 30 * M, cellEnd + 90 * M], { equipment: [shortTube] }, 5 * M);
+    const tail = later.all.flatMap((x) => x.observations).filter((x) => x.at >= cellEnd);
+    ok(tail.length > 0 && tail.every((x) => x.value === undefined), 'a passed end stays passed: the next weather does not bring the numbers back', tail.map((x) => x.text).join(' / '));
+  }
+
+  // SB-A4: the pressure hidden for a moment while the level is close to the top: the return looks at the whole gap,
+  // up to its very end, and never gives a number the hidden stretch could have spilled
+  const edgeTube = bulb(best, { tubeLengthMm: 100 });
+  const edge = (t: number): Env => ({ p: t < H ? 1010 : 995.4, t: 28 + 0.5 * Math.min(1, Math.max(0, (t - H) / (10 * M))) });
+  const control = gauge(H + 20 * M, edge, Array.from({ length: 1200 }, (_, i) => H + i * 1000 + 500), { equipment: [edgeTube] }, 1000);
+  const cSpill = control.all.flatMap((x) => x.observations).find((x) => /あふれ/.test(x.text ?? ''));
+  ok(cSpill !== undefined, 'the control (pressure always known) spills while the bulb warms', `${cSpill ? ((cSpill.at - H) / 1000).toFixed(1) : '-'} s after the drop`);
+  if (cSpill) {
+    const hideFrom = cSpill.at - 20_000, hideTo = cSpill.at + 8_000;
+    const masked = (t: number): Env => (t >= hideFrom && t < hideTo ? { ...edge(t), p: undefined } : edge(t));
+    const m = gauge(H + 20 * M, masked, [hideTo + 500, hideTo + 60_000], { equipment: [edgeTube] }, 1000);
+    const back = m.all.flatMap((x) => x.observations).filter((x) => x.at >= hideTo);
+    ok(back.every((x) => x.value === undefined), 'pressure hidden over the spill (28 s): after it returns no number is given (the spill cannot be ruled out)',
+      `${back.map((x) => x.text ?? x.value).join(' / ') || '(nothing read)'}; condition ${(m.last.diagnostics as { condition: string }).condition}`);
+  }
 }
 
 console.log('4. requests that are refused');
