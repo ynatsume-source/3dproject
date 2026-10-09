@@ -265,10 +265,12 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
                   if (hgt > 2.5 && hgt < 12 && deep(ax, az, 0.3)) { b.state = 'hover'; b.stateT = 0; b.tx = rr(1.2, 3.5); b.tz = b.p.y; tell(F, b, 'hover', `${sp.ja}が空中で止まって、水面の魚をねらっている`); }
                   else b.altT = sw + rr(4, 8);
                 } else if (k === 'booby') {
-                  if (hgt > 9 && deep(ax, az, 3)) { b.state = 'dive'; b.stateT = 0; b.dip = false; b.tx = b.p.x + Math.cos(b.h) * hgt * 0.35; b.tz = b.p.z + Math.sin(b.h) * hgt * 0.35; }
+                  const px = b.p.x + Math.cos(b.h) * hgt * 0.35, pz = b.p.z + Math.sin(b.h) * hgt * 0.35;
+                  if (hgt > 9 && deep(px, pz, 2) && deep(px + Math.cos(b.h) * 2, pz + Math.sin(b.h) * 2, 2)) { b.state = 'dive'; b.stateT = 0; b.dip = false; b.tx = px; b.tz = pz; }   // (a booby goes in a metre or two: two metres of water will do)
                   else { b.altT = sw + rr(12, 26); b.hunt = 4; }
                 } else if (k === 'shearwater') {
-                  if (hgt < 7 && deep(ax, az, 3)) { b.state = 'dive'; b.stateT = 0; b.dip = false; b.tx = b.p.x + Math.cos(b.h) * (hgt * 1.4 + 1); b.tz = b.p.z + Math.sin(b.h) * (hgt * 1.4 + 1); }
+                  const px = b.p.x + Math.cos(b.h) * (hgt * 1.4 + 1), pz = b.p.z + Math.sin(b.h) * (hgt * 1.4 + 1);
+                  if (hgt < 7 && deep(px, pz, 3) && deep(px + Math.cos(b.h) * 3, pz + Math.sin(b.h) * 3, 3)) { b.state = 'dive'; b.stateT = 0; b.dip = false; b.tx = px; b.tz = pz; }
                   else { b.altT = sw + rr(1.5, 5); b.hunt = 4; }
                 } else if (k === 'albatross') { if (deep(b.p.x, b.p.z, 0.5)) { b.state = 'land'; b.stateT = 0; } b.hunt = rr(60, 160); }
                 else if (k === 'frigate') {
