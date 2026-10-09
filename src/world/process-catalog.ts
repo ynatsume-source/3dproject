@@ -48,6 +48,9 @@ export interface CatalogEntry {
   enough?: string;
   /** Not with less of its material than this (mg): what one go takes. */
   minInputMg?: number;
+  /** Taken out when it feels right (p10x 0.1.4: the clay is felt with a look): felt every so often from a while after the
+   *  start, and taken out at the first feel that is ready — or that has gone too stiff; at the latest at lastMs. */
+  feelOut?: { action: string; fromMs: number; everyMs: number; ready: string; tooFar: string[]; lastMs: number };
   /** A process that ends when the operator does something (takes the tile off the rack): after how long, on its clock. */
   finish?: { action: string; afterMs: number };
   /** The operator's work along the way, before it is finished (on its clock, from the start): soaking's sieve and pour-offs. */
@@ -92,7 +95,9 @@ export const CATALOG: CatalogEntry[] = [
     // four, take out at nine and a quarter — island days)
     step: slakeStep, env: 'record', tend: 'leave',
     steps: [{ action: 'sieve', afterMs: 86_400_000 }, { action: 'decant', afterMs: 2.5 * 86_400_000 }, { action: 'decant', afterMs: 4 * 86_400_000 }],
-    finish: { action: 'take_out', afterMs: 9.25 * 86_400_000 },
+    // (0.1.4: taken out by feel — the science side's word for clay ready to work is 「手につかず、よくまとまる」: felt every half
+    // day from four and a half days, out at the first that is so, or already stiff; at the latest a fortnight)
+    feelOut: { action: 'look', fromMs: 4.5 * 86_400_000, everyMs: 12 * 3_600_000, ready: '手につかず、よくまとまる', tooFar: ['固く、曲げるとひびが入る', '乾いて固まっている'], lastMs: 14 * 86_400_000 },
     ready: true, waits: '粘土の池（ランタンが掘る）と、雨受けの真水' },
   { processId: KNEAD_PROCESS.processId, processVersion: KNEAD_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
     ja: '沈めた粘土を練る', input: 'settled_clay', inputJa: '沈めた粘土',

@@ -55,6 +55,8 @@ const shelfClay = () => Object.values(lab.lots).filter((l: any) => l.materialId 
   });
   const runs = Object.values(lab.runs).map((r: any) => `${r.processId} ${r.status}${r.why ? ' (' + r.why + ')' : ''}`);
   want('2 soaked in the pit, kneaded, a cook pot coiled, dried on the rack', done && ['settled_clay', 'prepared_clay', 'green_pot', 'dry_pot'].every((m) => stages.includes(m)), `${stages.join(' → ')} | ${runs.join(', ')}`);
+  const felt = lantern.diary.filter((e: any) => /浸して、こして沈める：さわってみた/.test(e.text)).map((e: any) => e.text.replace(/^.*さわってみた。/, ''));
+  want('2 taken out of the pit by feel (0.1.4 look): felt until it was ready to work', felt.length > 0 && felt.some((t: string) => /手につかず、よくまとまる|固く/.test(t)), felt.join(' → '));
   want('2 the soak ran in the pit (0.1.4)', Object.values(lab.runs).some((r: any) => r.processId === 'p10x_clay_slake' && r.processVersion === '0.1.4' && r.equipmentIds.includes('eq:clay_pit')));
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');

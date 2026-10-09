@@ -459,7 +459,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo,
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, labRuns: [] as { runId: string; processId: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo,
     labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
@@ -1980,10 +1980,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // given follows the record)
       const reads: { at: number; action: string }[] = [];
       if (e.gauge) { const now = toClock(e.clock, clockMs); for (let k = Math.max(1, Math.ceil((run.lastTo - x.startOnClock) / e.gauge.everyMs)); x.startOnClock + k * e.gauge.everyMs <= now && reads.length < 40; k++) reads.push({ at: x.startOnClock + k * e.gauge.everyMs, action: e.gauge.action }); }
+      // (taken out by feel: felt every so often until it is ready — then out, a moment after; at the latest, out anyway)
+      const fo = e.feelOut, feel: { at: number; action: string }[] = [];
+      if (fo) {
+        const now = toClock(e.clock, clockMs);
+        for (let at = x.startOnClock + fo.fromMs; at <= Math.min(now, x.startOnClock + fo.lastMs) && !x.outAt; at += fo.everyMs) if (at >= run.lastTo) feel.push({ at, action: fo.action });
+        feel.push({ at: x.outAt ?? x.startOnClock + fo.lastMs, action: 'take_out' });
+      }
       // (the start's action — what to make — falls in the first request only)
       const out = advance(lab, x.runId, e.step, { realNow: clockMs, environment: (at) => envFor(e, at), energy: e.tend === 'stay' && !tending ? (e.energy ? (f: number, t: number) => e.energy!(f, t).map((o) => ({ ...o, maxJ: 0 })) : undefined) : e.energy,   // (hands taken away: offered, but nothing)
-        actions: [...(e.start ? [{ at: x.startOnClock, action: e.start.action, params: e.start.params }] : []), ...(e.steps ?? []).map((q) => ({ at: x.startOnClock + q.afterMs, action: q.action })), ...(e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : reads)], ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
+        actions: [...(e.start ? [{ at: x.startOnClock, action: e.start.action, params: e.start.params }] : []), ...(e.steps ?? []).map((q) => ({ at: x.startOnClock + q.afterMs, action: q.action })), ...(e.finish ? [{ at: x.startOnClock + e.finish.afterMs, action: e.finish.action }] : fo ? feel : reads)], ...(e.gauge ? { maxMs: 3_600_000 } : {}), ...(e.tend === 'stay' && !tending ? { stop: 'operator' as const } : {}) });
       if (tending && lab.runs[x.runId]?.status !== 'running' && lab.runs[x.runId]?.status !== 'starting') by.task!.t = by.task!.dur;   // (its hand work done: it is free)
+      if (fo) for (const c of out) for (const o of c.observations ?? []) {
+        if (o.channel !== 'touch' || !o.text) continue;
+        if (o.text !== x.felt) { x.felt = o.text; by?.diary.push({ at: toReal(e.clock, o.at), text: `${e.ja}：さわってみた。${o.text}`, key: 'study' }); }
+        if (!x.outAt && (o.text.includes(fo.ready) || fo.tooFar.some((t) => o.text!.includes(t)))) x.outAt = Math.max(o.at + 60_000, lab.runs[x.runId]?.lastTo ?? 0);   // (out a moment after: the next request carries it)
+      }
       if (e.gauge) for (const c of out) for (const o of c.observations ?? []) {
         // (what it read, as it read it: a count of marks on the stick, or what it saw instead)
         const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}` : o.text ? `${e.ja}：${o.text}` : '';
