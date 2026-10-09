@@ -608,9 +608,10 @@ const SHARK_STYLE = {
   // scalloped hammer of a head with an eye at each end
   hammer: { body: [[0, 0, 0.02, -0.004], [0.03, 0.016, 0.03, -0.004], [0.07, 0.032, 0.04, -0.003], [0.13, 0.048, 0.05, 0], [0.22, 0.058, 0.054, 0.002], [0.32, 0.06, 0.052, 0.003], [0.45, 0.05, 0.042, 0.003], [0.55, 0.038, 0.031, 0.003], [0.64, 0.026, 0.02, 0.003], [0.7, 0.017, 0.012, 0.004], [0.745, 0.011, 0.008, 0.006], [0.76, 0.004, 0.004, 0.008]],
     d1: [[0.28, 0], [0.31, 0.05], [0.345, 0.1], [0.375, 0.13], [0.392, 0.135], [0.392, 0.105], [0.388, 0.05], [0.385, 0]], d2: 0.02, pect: 0.15, hammer: true },
-  // tiger shark: heavy, with a short, broad, almost square snout and a long upper tail lobe
-  tiger: { body: [[0, 0, 0.02, -0.004], [0.015, 0.024, 0.04, -0.006], [0.05, 0.046, 0.06, -0.004], [0.13, 0.068, 0.07, 0], [0.22, 0.078, 0.072, 0.002], [0.32, 0.076, 0.066, 0.003], [0.45, 0.064, 0.052, 0.003], [0.55, 0.048, 0.037, 0.003], [0.64, 0.031, 0.023, 0.003], [0.7, 0.019, 0.014, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
-    d1: [[0.3, 0], [0.33, 0.04], [0.37, 0.075], [0.41, 0.092], [0.43, 0.094], [0.425, 0.06], [0.42, 0.03], [0.415, 0]], d2: 0.03, pect: 0.18 },
+  // tiger shark: heavy, with a short, broad, blunt snout that ends abruptly (the head deep right behind it), a big
+  // black eye, and a long upper tail lobe
+  tiger: { body: [[0, 0, 0.026, -0.006], [0.012, 0.024, 0.046, -0.008], [0.04, 0.05, 0.064, -0.005], [0.09, 0.066, 0.072, -0.001], [0.13, 0.072, 0.074, 0], [0.22, 0.078, 0.072, 0.002], [0.32, 0.076, 0.066, 0.003], [0.45, 0.064, 0.052, 0.003], [0.55, 0.048, 0.037, 0.003], [0.64, 0.031, 0.023, 0.003], [0.7, 0.019, 0.014, 0.004], [0.745, 0.012, 0.009, 0.006], [0.76, 0.004, 0.004, 0.008]],
+    d1: [[0.3, 0], [0.33, 0.04], [0.37, 0.075], [0.41, 0.092], [0.43, 0.094], [0.425, 0.06], [0.42, 0.03], [0.415, 0]], d2: 0.03, pect: 0.18, eyeR: 2.2, eyeS: 0.058 },
   // whale shark: the head broad and flat, cut square across the front by the huge terminal mouth, the eyes
   // small and set at its corners; the body deepest a third of the way back and ridged — three ridges along
   // each upper flank, the lowest running on into a keel on the tail stock; the first dorsal set far back,
@@ -620,6 +621,9 @@ const SHARK_STYLE = {
     ridges: [0.32, 0.72, 1.12],
     tail: [[0.735, 0.014], [0.79, 0.06], [0.86, 0.12], [0.92, 0.168], [0.952, 0.188], [0.943, 0.158], [0.905, 0.1], [0.868, 0.042], [0.855, 0.002], [0.872, -0.05], [0.9, -0.1], [0.913, -0.122], [0.866, -0.094], [0.795, -0.042], [0.745, -0.01]] },
 };
+// where the mouth is (its middle's z, how its crescent curves back, its half-width): a tiger shark's is wide, round to
+// the sides of its head; and its eye is set well forward, close behind the blunt snout
+const MOUTH = { reef: { MZ: '0.392', MK: '7.0', MW: '0.058', EYEZ: '0.335' }, tiger: { MZ: '0.41', MK: '7.5', MW: '0.075', EYEZ: '0.396' } };   // (and where the brow shades the eye)
 export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' | 'tiger' | 'whaleshark') {
   const S: any = SHARK_STYLE[style], K = S.body, L = 1.28, Z = (s: number) => 0.47 - L * s;
   // Catmull-Rom through the body keys
@@ -650,7 +654,7 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
       // over the eye, so it looks out from under it)
       const sideA = Math.atan2(sa, Math.abs(ca));
       const brawn = S.cap || S.hammer ? 0 : 0.07 * Math.exp(-(((s - 0.27) / 0.13) ** 2)) * (1 - 0.5 * Math.max(0, -sa));
-      const brow = S.cap || S.hammer ? 0 : 0.07 * Math.exp(-(((s - 0.098) / 0.024) ** 2)) * Math.exp(-(((sideA - 1.08) / 0.17) ** 2));   // (above the eye, clear of it)
+      const brow = S.cap || S.hammer ? 0 : (S.eyeS ? 0.1 : 0.07) * Math.exp(-(((s - (S.eyeS ? S.eyeS - 0.004 : 0.098)) / 0.024) ** 2)) * Math.exp(-(((sideA - 1.08) / 0.17) ** 2));   // (above the eye, clear of it)
       const rr2 = (1 + bump * 0.045 * rk + keel) * (1 + brawn + brow);
       // flatter belly, a slightly squared-off back
       pos.push(ca * w * L * rr2, (yc + h * sa * (sa < 0 ? 0.82 * flat : flat) * (1 + bump * 0.04 * rk)) * L, Z(s));
@@ -726,7 +730,7 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
   // at the ends of its hammer, nor the whale shark's, small and drawn)
   const E = new Array((P.length / 3) * 2).fill(0);
   if (!S.hammer && !S.cap) {
-    const se = (0.47 - 0.34) / L, [he, we, ye] = at(se), er = 0.0074 * (S.eyeR ?? 1);   // (small for the head, as a requiem shark's are)
+    const se = S.eyeS ?? (0.47 - 0.34) / L, [he, we, ye] = at(se), er = 0.0074 * (S.eyeR ?? 1);   // (small for the head, as a requiem shark's are)
     const sw0 = 1 + 0.07 * Math.exp(-(((se - 0.27) / 0.13) ** 2));   // (the swell of the flank there, as the body was lofted)
     const surf = (a: number) => { const sa = Math.sin(a); return new THREE.Vector3(Math.cos(a) * we * L * sw0, (ye + he * sa * (sa < 0 ? 0.82 : 1) * sw0) * L, Z(se)); };
     let a = 0; for (let k = 0; k <= 40; k++) { const aa = -0.3 + (k / 40) * 1.6; if (surf(aa).y >= 0.026) { a = aa; break; } }
@@ -735,11 +739,12 @@ export function sharkGeometry(style: 'reef' | 'whitetip' | 'oceanic' | 'hammer' 
     for (const sx of [-1, 1]) {
       const nrm = new THREE.Vector3().crossVectors(ts, ta).normalize(); if (nrm.x < 0) nrm.negate();
       const u = ts.clone().normalize(), v = new THREE.Vector3().crossVectors(nrm, u).normalize();
-      const ctr = c0.clone().addScaledVector(nrm, -er * 0.12);   // (just proud of the skin: the brow above it shades it)
+      const ctr = c0.clone().addScaledVector(nrm, -er * (S.eyeS ? 0.16 : 0.12));   // (a tiger shark's set deeper in, under its heavier brow)   // (just proud of the skin: the brow above it shades it)
       if (sx < 0) { nrm.x = -nrm.x; u.x = -u.x; v.x = -v.x; ctr.x = -ctr.x; }
+      const eh = S.eyeS ? 0.34 : 0.42;   // (how far the dome stands out: a tiger shark's flatter, sunk under the brow)
       const RG = 6, SG = 18, pt = (i: number, k: number) => {
         const th = (i / RG) * (Math.PI / 2), rr = Math.sin(th), hh = Math.cos(th), ph = (k / SG) * Math.PI * 2, px = Math.cos(ph) * rr, py = Math.sin(ph) * rr;
-        return { p: ctr.clone().addScaledVector(u, px * er).addScaledVector(v, py * er).addScaledVector(nrm, hh * er * 0.42), n: nrm.clone().multiplyScalar(hh / 0.42).addScaledVector(u, px).addScaledVector(v, py).normalize(), e: [px * sx, py] };
+        return { p: ctr.clone().addScaledVector(u, px * er).addScaledVector(v, py * er).addScaledVector(nrm, hh * er * eh), n: nrm.clone().multiplyScalar(hh / eh).addScaledVector(u, px).addScaledVector(v, py).normalize(), e: [px * sx, py] };
       };
       const tri = (A: any, B: any, C: any) => { for (const q of [A, B, C]) { P.push(q.p.x, q.p.y, q.p.z); N.push(q.n.x, q.n.y, q.n.z); F.push(7); E.push(q.e[0], q.e[1]); } };
       for (let i = 0; i < RG; i++) for (let k = 0; k < SG; k++) {
@@ -935,8 +940,8 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #ifdef SHARKEYE
        // a cruising shark's jaws hang a little apart (it breathes by swimming): the floor of the mouth behind the
        // gape drops, opening a dark wedge with the teeth along its edges
-       float jmz = 0.392 - 7.0 * position.x * position.x;
-       float jaw = (1.0 - smoothstep(jmz - 0.004, jmz + 0.002, position.z)) * smoothstep(jmz - 0.075, jmz - 0.03, position.z) * smoothstep(-0.004, -0.014, position.y) * (1.0 - smoothstep(0.045, 0.06, abs(position.x))) * step(aFin, 0.5);
+       float jmz = MZ - MK * position.x * position.x;
+       float jaw = (1.0 - smoothstep(jmz - 0.004, jmz + 0.002, position.z)) * smoothstep(jmz - 0.075, jmz - 0.03, position.z) * smoothstep(-0.004, -0.014, position.y) * (1.0 - smoothstep(MW * 0.78, MW * 1.03, abs(position.x))) * step(aFin, 0.5);
        float gapeOpen = 0.7 + 0.3 * sin(uTime * 0.4 + aSwim.x * 3.0);
        p.y -= jaw * 0.011 * gapeOpen;
        vJaw = jaw;
@@ -1274,15 +1279,27 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          alb = mix(uC2, uC1, smoothstep(-0.12, 0.05, y)) * (0.8 + 0.25 * smoothstep(0.3, 0.5, max(abs(sq.x - 0.5), abs(sq.y - 0.5))));
          if (vFin > 0.5) alb = mix(uC1, vec3(0.98), step(0.9, fract(length(vL.yz) * 6.0)) * 0.7);
        #elif PAT == 21
-         // tiger shark: grey-brown above with dark vertical bars and blotches on the upper flanks, white below
-         alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));
-         float bars = smoothstep(0.55, 0.8, sin(z * 60.0 + vn2(vec2(z * 20.0, y * 30.0)) * 4.0) * 0.5 + 0.5) * smoothstep(0.0, 0.04, y) * step(z, 0.3);
-         alb = mix(alb, uC3, bars * 0.75);
-         if (vFin > 0.5) alb = uC1 * 0.9;
+         // tiger shark: grey-brown above, and a clean line along the flank to bright white below, rising toward the
+         // head to take in the lower jaw; the stripes narrow, many and upright on the upper flanks and back, ragged,
+         // fading forward and with age; the fins the colour of the back above, white beneath
+         float tl = -0.012 + 0.014 * smoothstep(0.2, 0.38, z) - 0.008 * smoothstep(0.0, -0.6, z) + 0.003 * sin(z * 23.0);
+         alb = mix(uC2, uC1, smoothstep(-0.004, 0.006, y - tl));
+         float bar = sin(z * 105.0 + vn2(vec2(z * 14.0, y * 22.0)) * 3.2 + y * 9.0) * 0.5 + 0.5;
+         float barK = smoothstep(0.6, 0.86, bar) * smoothstep(tl + 0.01, tl + 0.03, y) * (1.0 - smoothstep(0.2, 0.3, z)) * mix(0.3, 0.72, smoothstep(0.1, -0.45, z)) * (0.7 + 0.3 * vn2(vec2(z * 40.0, y * 60.0)));
+         #ifdef AGED
+         barK *= 1.0 - 0.45 * vAge;
+         #endif
+         alb = mix(alb, uC3, barK * step(vFin, 0.5));
+         if (vFin > 0.5) alb = uC1 * 0.95;
+         if (vFin > 2.5 && vFin < 3.5) alb = mix(uC1 * 0.9, uC2 * 0.8, 0.2 * step(n.y, 0.0));   // (dark as the back, a shade paler beneath)
          if (vFin < 0.5 && y < -0.01 && !SHARK_MOUTH) {
            float mz = 0.43 - 5.0 * vL.x * vL.x;
            alb *= 1.0 - 0.7 * (1.0 - smoothstep(0.002, 0.006, abs(z - mz))) * step(abs(vL.x), 0.06);
          }
+         // five gill slits ahead of the pectoral, bowed a little, the light on the flap behind each
+         float gt = (z - 0.215 + 2.5 * (y + 0.005) * (y + 0.005)) / 0.02, gtf = fract(gt) - 0.5, gtOn = step(0.0, gt) * step(gt, 5.0) * (1.0 - smoothstep(0.03, 0.04, abs(y + 0.004))) * step(0.02, abs(vL.x)) * step(vFin, 0.5);
+         alb *= 1.0 - 0.55 * smoothstep(0.36, 0.47, abs(gtf)) * gtOn;
+         alb *= 1.0 + 0.16 * (1.0 - smoothstep(0.0, 0.18, abs(gtf + 0.22))) * gtOn;
        #elif PAT == 19
          // oceanic whitetip: bronze-grey above, white below; every big fin ends in a mottled white tip
          alb = mix(uC2, uC1, smoothstep(-0.03, 0.03, y));
@@ -1466,11 +1483,11 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          alb *= 1.0 - 0.18 * smoothstep(0.02, 0.08, y);
          n = normalize(n + 0.08 * vec3(vn2(vL.zy * 260.0) - 0.5, vn2(vL.zy * 260.0 + 7.0) - 0.5, 0.0));
          // the brow juts over the eye: in its shadow
-         float ed = length(vec2((z - 0.335) * 0.8, y - 0.03));
-         alb *= 1.0 - 0.35 * (1.0 - smoothstep(0.006, 0.03, ed)) * smoothstep(0.022, 0.04, y) * step(0.02, abs(vL.x));
+         float ed = length(vec2((z - EYEZ) * 0.8, y - 0.03));
+         alb *= 1.0 - (PAT == 21 ? 0.55 : 0.35) * (1.0 - smoothstep(0.006, 0.03, ed)) * smoothstep(0.022, 0.04, y) * step(0.02, abs(vL.x));
          // the mouth, slung under the snout: a wide crescent, the gape dark, the teeth rows along it — blades
          // above, narrower points below
-         float mx = vL.x, mz = 0.392 - 7.0 * mx * mx, dz = z - mz, under = smoothstep(-0.004, -0.012, y) * step(abs(mx), 0.058);
+         float mx = vL.x, mz = MZ - MK * mx * mx, dz = z - mz, under = smoothstep(-0.004, -0.012, y) * step(abs(mx), MW);
          float tri = abs(fract(mx * 105.0) - 0.5) * 2.0;
          // the opened wedge behind the gape: dark inside; the upper teeth hang from its front edge, the lower
          // stand on its back edge
@@ -1478,7 +1495,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          float upper = step(0.0, -dz) * step(-dz, 0.0055 * (1.0 - tri)) * under;
          float lower = smoothstep(0.55, 0.75, vJaw) * (1.0 - smoothstep(0.85, 0.98, vJaw)) * step(0.45, 1.0 - tri) * step(dz, 0.0);
          alb = mix(alb, vec3(0.06, 0.025, 0.03), max(inside, (1.0 - smoothstep(0.001, 0.003, abs(dz))) * under));
-         alb = mix(alb, vec3(0.86, 0.84, 0.76), max(upper * step(abs(mx), 0.05), lower * 0.85));
+         alb = mix(alb, vec3(0.86, 0.84, 0.76), max(upper * step(abs(mx), MW * 0.86), lower * 0.85));
        }
        #endif
        if (vFin > 6.5) {
@@ -1486,6 +1503,9 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          float r = length(vEye), pu = length(vEye * vec2(2.2, 1.0));
          alb = mix(vec3(0.03, 0.035, 0.03), vec3(0.2, 0.2, 0.1) * (0.7 + 0.5 * vn2(vec2(atan(vEye.y, vEye.x) * 4.0, r * 5.0))), smoothstep(0.5, 0.62, r) * (1.0 - smoothstep(0.72, 0.8, r)));
          alb = mix(alb, uC1 * 0.35, smoothstep(0.8, 0.92, r));
+         #if PAT == 21
+         alb = mix(alb, vec3(0.012, 0.012, 0.014), 0.8 * (1.0 - smoothstep(0.78, 0.86, r)));   // (a tiger shark's: black, the ring barely there)
+         #endif
          alb = mix(vec3(0.004), alb, smoothstep(0.3, 0.36, pu));
        }
        #endif
@@ -1497,7 +1517,13 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        // less of the open water around them (vShade: sun, sky reaching this one; 1 for a fish on its own)
        vec2 cl = caveLight(vWp) * vShade;
        float spec = pow(max(dot(reflect(-SUN, nW), V), 0.0), 24.0 / uShine) * 0.6 * uSunI * uShine * (1.0 - 0.6 * min(wK, 1.0)) * vShade.x;   // silvery fish flash as they turn (a worn hide less)
+       #if PAT == 21
+       spec *= 1.0 - 0.85 * step(6.5, vFin);
+       #endif
        float fres = pow(1.0 - max(dot(n, V), 0.0), 3.0) * 0.3 * uAmb * vShade.y;
+       #if PAT == 21
+       fres *= 1.0 - 0.85 * step(6.5, vFin);   // (its eye dull, not a glassy bead)
+       #endif
        vec3 col;
        #ifdef SILVER
        // The mirrors in a fish's skin stand upright whatever the curve of the body under them, so a flank
@@ -1540,12 +1566,16 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        if (vFin > 0.5 && vFin < 6.5) col = mix(hazeCol(-V), col, 1.0 - see * (1.0 - 0.75 * ray)) + absorb(alb * uTint, vWp.y) * uSunI * 0.3 * pow(max(dot(-V, SUN), 0.0), 3.0) * vShade.x;
        // the eye: wet and glassy, the sun and the bright water above held in it
        vec3 Re = reflect(-V, n);
-       col += bEye * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 80.0) * 2.5 * cl.x + waterCol(Re) * 0.15, vWp.y);
+      col += bEye * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 80.0) * 2.5 * cl.x + waterCol(Re) * 0.15, vWp.y);
        #endif
        #ifdef SHARK
        // (a fin is thin skin over cartilage: some light comes through it from the far side)
        if (vFin > 0.5 && vFin < 3.5) col += absorb(alb * uTint * (uSunI * 0.35 * max(-dot(n, SUN), 0.0) * cl.x + uAmb * 0.1), vWp.y);
+       #if PAT == 21
+       { vec3 Re = reflect(-V, n); col += step(6.5, vFin) * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 160.0) * 0.6 * cl.x + waterCol(Re) * 0.04, vWp.y); }   // (a tiger shark's eye dull and black: little to catch the light)
+       #else
        { vec3 Re = reflect(-V, n); col += step(6.5, vFin) * absorb(uTint * uSunI * pow(max(dot(Re, SUN), 0.0), 80.0) * 2.5 * cl.x + waterCol(Re) * 0.15, vWp.y); }
+       #endif
        #endif
        col += absorb(vec3(0.9, 1.0, 0.9), vWp.y) * caus2(vWp) * max(n.y, 0.0) * 0.4 * alb * vShade.x;
        col += lamp(alb, vWp, n) * 1.2;
@@ -1554,7 +1584,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
        #endif
        gl_FragColor = vec4(fogIt(col, vWp), 1.0);
      }`,
-    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}), ...(opts.aged ? { AGED: 1 } : {}), ...(SHAPES[sp.shape]?.lofted ? { SHARK: 1, ...(!['hammer', 'whaleshark'].includes(SHAPES[sp.shape].lofted) ? { SHARKEYE: 1 } : {}) } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
+    { defines: { PAT: sp.pat, ...((sp.silver ?? (sp.shine ?? 1) >= 2.5) ? { SILVER: 1 } : {}), ...(shade ? { SHADE: 1 } : {}), ...(bony ? { BONY: bony.look } : {}), ...(opts.hide ? { HIDE: 1 } : {}), ...(opts.aged ? { AGED: 1 } : {}), ...(SHAPES[sp.shape]?.lofted ? { SHARK: 1, ...(!['hammer', 'whaleshark'].includes(SHAPES[sp.shape].lofted) ? { SHARKEYE: 1, ...MOUTH[SHAPES[sp.shape].lofted === 'tiger' ? 'tiger' : 'reef'] } : {}) } : {}) }, uniforms: { ...(bony ? bonyUniforms(bonyName) : {}), uC1: { value: c(sp.c1) }, uC2: { value: c(sp.c2 || sp.c1) }, uC3: { value: c(sp.c3 || [0, 0, 0]) }, uBands: { value: sp.bands || 3 }, uEdge: { value: sp.edge ?? 1 }, uWig: { value: sp.wig ?? 1 }, uEye: { value: sp.eye ?? 1 }, uShine: { value: sp.shine ?? 1 }, uWear: { value: sp.wear ?? (sp.big ? 1 : 0) } },
       opts: { side: THREE.DoubleSide } });
 }
 
