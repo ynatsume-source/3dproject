@@ -46,7 +46,7 @@ const fs = require('fs');
   const only = (process.env.ONLY || 'homestead,edge,beach,inside').split(',');
   for (const name of only) {
     const q = poses[name]; if (!q) { console.log('no place for', name); continue; }
-    await p.evaluate((q) => { const s = window.seaglass; s.hold(true); s.aim(q.pos, q.yaw, q.pitch); s.advance(40, 0.1); }, q);
+    await p.evaluate((q) => { const s = window.seaglass; s.hold(true); s.aim(q.pos, q.yaw, q.pitch); s.advance(+(window.__N || 12), 0.1); }, q);
     await p.screenshot({ path: `${OUT}/${TAG}-${name}.png` });
     console.log(name, q.pos.map((v) => v.toFixed(1)).join(','), q.yaw.toFixed(2), q.pitch.toFixed(2));
   }
