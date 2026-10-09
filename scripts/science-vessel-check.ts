@@ -212,6 +212,17 @@ console.log('5. requests that are refused');
   refused('a tar-seal state from 0.1.0 (schema /1: seal taken ahead of time)', step(sealReq([POT(), TAR()], false, { state: { schema: 'civ-sci.vessel-seal/1', data: {} } })), /unsupported-state-schema/);
 }
 
+console.log('9. a missing wind (p17x 0.1.2)');
+{
+  const acts: [number, string][] = [[2 * D, 'look'], [3 * D, 'take_out']];
+  const key = (r: ReturnType<typeof wait>) => JSON.stringify([r.last.produced, r.last.released, r.obs]);
+  const gapEnv = (e: Env) => (t: number) => (t >= D && t < D + 6 * H ? e : SHADE);
+  const noWind = wait(3 * D + H, [POT(), WATER()], acts, {}, H, gapEnv({ ...SHADE, wind: undefined } as unknown as Env));
+  const unknown = wait(3 * D + H, [POT(), WATER()], acts, {}, H, gapEnv({ ...SHADE, source: 'unknown' }));
+  const calm = wait(3 * D + H, [POT(), WATER()], acts, {}, H, gapEnv({ ...SHADE, wind: 0 }));
+  ok(key(noWind) === key(unknown) && key(calm) !== key(unknown), 'a missing wind is unknown weather for the pot (nothing computed, history incomplete); wind 0 is calm');
+}
+
 console.log('—   every result above passed the contract checker');
 ok(violations.length === 0, 'validateResult: no violation', violations.slice(0, 3).join(' / '));
 console.log(`\n${pass} passed, ${fail} failed`);

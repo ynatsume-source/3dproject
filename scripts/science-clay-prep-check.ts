@@ -278,6 +278,16 @@ console.log('12. looks: history and order (0.1.4, Codex A-S1 and A-S2 on 0a3de47
     'sieve and look at the same moment: the hands act first, whether the moment opens a request or falls inside one', feel(one).map((o) => o.text).join(' / '));
 }
 
+console.log('13. a missing wind (0.1.5)');
+{
+  const acts: [number, string][] = [[D, 'sieve'], [2 * D, 'decant'], [3 * D, 'take_out']];
+  const key = (r: ReturnType<typeof tub>) => JSON.stringify([r.last.produced, r.last.released, r.obs]);
+  const noWind = tub(4 * D, acts, {}, H, (t) => (t >= D + H && t < 2 * D ? ({ ...CALM, wind: undefined } as unknown as Env) : CALM));
+  const unknown = tub(4 * D, acts, {}, H, (t) => (t >= D + H && t < 2 * D ? { ...CALM, source: 'unknown' } : CALM));
+  const calm = tub(4 * D, acts, {}, H, (t) => (t >= D + H && t < 2 * D ? { ...CALM, wind: 0 } : CALM));
+  ok(key(noWind) === key(unknown) && key(calm) !== key(unknown), 'a missing wind is unknown weather in the tub (no evaporation, history incomplete); wind 0 is calm');
+}
+
 console.log('11. the island\'s clay (table civ-sci.island-clay/1, assumed)');
 {
   const c = islandClay('south-near');

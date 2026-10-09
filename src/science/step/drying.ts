@@ -24,7 +24,7 @@ import { allFinite, contractExtras, envUsable, finite, SCIENCE_CATALOG_VERSION, 
 import { crackP, dryPhysics } from '../physics';
 import { draw } from '../rng';
 
-export const DRYING_PROCESS = { processId: 'p12x_test_tile_dry', processVersion: '0.3.0' } as const;
+export const DRYING_PROCESS = { processId: 'p12x_test_tile_dry', processVersion: '0.3.1' } as const; // 0.3.1: a missing wind is unknown (not calm)
 export { SCIENCE_CATALOG_VERSION };
 export const DRYING_STATE_SCHEMA = 'civ-sci.drying/3';
 const EVALUATOR = 'drying-eval/0.1.0';
@@ -140,7 +140,7 @@ export function dryingStep(req: ScienceStepRequest): ScienceStepResult {
   const endAt = takeOff !== undefined ? takeOff : req.interval.to;
 
   const env = req.environment;
-  const known = envUsable(req) && env.humidity !== undefined;
+  const known = envUsable(req) && env.humidity !== undefined && env.windMs !== undefined; // 0.3.1: a missing wind is unknown, not calm
   const sun = rack?.params?.sunExposure ?? 0;
   if (!finite(sun, 0, 1)) return fail(req, 'drying_rack params.sunExposure must be within 0..1');
   const diagnostics: Record<string, unknown> = {};

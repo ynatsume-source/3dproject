@@ -3,6 +3,8 @@
 // where it stops, what is waiting for what. Dot's mind is a stand-in that takes the first ready step from a fixed order
 // (the real mind chooses for itself; this finds where the world's own steps stall). Rakko and Lantern by their habits.
 // Usage: DAYS=60 npx tsx --import ./scripts/node-assets.mjs scripts/life-run.ts
+//   SNAP=40 SNAPFILE=/tmp/i.json: the island saved at day 40 to a file; FROM=/tmp/i.json: carried on from one (DAYS then
+//   WHY=1: each failure as it happens, where. DAYS counts from the start of the first run, so DAYS=50 FROM=… runs days 40 to 50)
 import './node-land';
 import * as THREE from 'three';
 
@@ -10,6 +12,9 @@ const DAYS = Number(process.env.DAYS ?? 20);
 let sim = Date.parse('2026-10-06T08:00:00+09:00');
 Date.now = () => sim;
 const store = new Map<string, string>();
+const { readFileSync, writeFileSync } = await import('node:fs');
+const FROM = process.env.FROM ? JSON.parse(readFileSync(process.env.FROM, 'utf8')) : null;
+if (FROM) { sim = FROM.sim; for (const [k, v] of FROM.store) store.set(k, v); }
 Object.defineProperty(globalThis, 'localStorage', { value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) } });
 const { mulberry32 } = await import('../src/core/math'); Math.random = mulberry32(Number(process.env.SEED ?? 1));
 const { loadLand } = await import('../src/ocean/land');
@@ -30,7 +35,7 @@ R.setBrain(async (i: any) => {
   return { goal: { text: '見回る', why: 'することがない' }, plan: ['look:shore'] };
 });
 const cam = new THREE.Vector3();
-const t0 = sim, dayOf = () => (sim - t0) / (86_400_000 / ISLAND_RATE);
+const t0 = FROM?.t0 ?? sim, dayOf = () => (sim - t0) / (86_400_000 / ISLAND_RATE);
 const lots = (m: string) => Object.values(lab.lots).filter((l: any) => l.materialId === m) as any[];
 const kg = (m: string) => lots(m).reduce((n, l) => n + l.amount.value, 0) / 1e6;
 const marks: [string, () => boolean][] = [
@@ -49,6 +54,8 @@ for (let i = 0; dayOf() < DAYS; i++) {
   if (i % 60 === 0) R.setWeather(islandWeather(sim));
   R.update(1, sim, cam);
   if (i % 10 === 0) await Promise.resolve();
+  if (process.env.WHY) for (const r of R.list) for (const e of r.diary.slice(-3)) if (/(道がなかった|進めなかった|できなかった|時間がかかりすぎた)/.test(e.text) && !(e as any).__seen && ((e as any).__seen = 1)) console.log('WHY', dayOf().toFixed(2), r.id, e.text, `at ${r.pos.x.toFixed(1)},${r.pos.z.toFixed(1)} y ${r.pos.y.toFixed(2)} hold ${r.holding || '-'} went ${r.went ?? '-'}`);
+  if (process.env.SNAP && !(globalThis as any).__snapped && dayOf() >= +process.env.SNAP) { (globalThis as any).__snapped = 1; R.save(); writeFileSync(process.env.SNAPFILE ?? '/tmp/island.json', JSON.stringify({ sim, t0, store: [...store] })); console.log(`  (saved at day ${dayOf().toFixed(1)})`); }
   if (i % 600 === 0) for (const [k, f] of marks) if (got[k] === undefined && f()) { got[k] = dayOf(); console.log(`day ${dayOf().toFixed(1)}: ${k}`); }
   if (dayOf() - lastLog >= 5) { lastLog = dayOf(); console.log(`  … day ${dayOf().toFixed(0)} (${((performance.now() - start) / 1000).toFixed(0)} s) dot ${dot.task?.kind ?? '-'} built ${dot.stats.built} house ${V.house.n} shelf ${[...new Set(Object.values(lab.lots).map((l: any) => l.materialId))].join(',')}`); }
 }
