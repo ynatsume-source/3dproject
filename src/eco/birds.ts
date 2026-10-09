@@ -291,7 +291,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
           }
           // keep over the sea and clear of the land (and its trees)
           const ground = sea ? sea.ground(b.p.x, b.p.z) : -1;
-          const vyT = clamp((Math.max(b.altT, sw + (b.state === 'land' ? 0.05 : b.state === 'skim' ? 0.3 : 0.4), ground + 10) - b.p.y) * (b.state === 'hover' ? 2 : 0.6), -3.5, 2.5);
+          const vyT = clamp((Math.max(b.altT, sw + (b.state === 'land' ? 0.05 : b.state === 'skim' ? 0.3 : 0.4), ground + 10) - b.p.y) * (b.state === 'hover' ? 2 : b.state === 'chase' ? 1.2 : 0.6), b.state === 'chase' || b.state === 'skim' ? -8 : -3.5, 2.5);   // (a frigatebird stoops: down fast)
           b.vy += (vyT - b.vy) * Math.min(1, dt * (b.state === 'hover' ? 4 : 1.5));
           if (b.state !== 'hover' && (b.vy > 0.8 || b.speed < sp.speed * 0.7)) b.flapping = Math.max(b.flapping, 0.3);
           b.h += clamp(turn, -1.6, 1.6) * dt;

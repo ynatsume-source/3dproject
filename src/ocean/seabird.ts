@@ -335,7 +335,9 @@ export function seabirdMaterial(kind: BirdKind, L: BirdLook) {
        vec3 sun = sunAirCol() * sunL * (1.0 - 0.7 * uCloud);
        vec3 moon = vec3(0.5, 0.55, 0.65) * max(dot(n, uAirMoon), 0.0) * uMoonI * 0.4;
        vec3 sky = skyAir(vec3(0.0, 1.0, 0.0), -1.0) * (0.5 + 0.3 * n.y) + vec3(0.02, 0.025, 0.03);
-       vec3 col = alb * (sun * 1.15 + moon + sky * 0.85);
+       // (and from below: the sunlit sea and its glare, which lights a bird's underside seen against the sky)
+       vec3 bounce = (sunAirCol() * max(uAirSun.y, 0.0) * 0.45 * (1.0 - 0.6 * uCloud) + sky * 0.35) * max(-n.y, 0.0);
+       vec3 col = alb * (sun * 1.15 + moon + sky * 0.85 + bounce);
        float gloss = step(2.5, vPart) * (1.0 - step(3.5, vPart)) + step(4.5, vPart);
        col += gloss * sunAirCol() * pow(max(dot(reflect(-uAirSun, n), V), 0.0), 24.0) * 0.25 * (1.0 - uCloud);
        col = absorb(col, vWp.y);
