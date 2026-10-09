@@ -68,7 +68,10 @@ export function birdProfile(f: Form, t: number) {
   const a = PROF[i], b = PROF[i + 1], k = Math.min(1, Math.max(0, (t - a[0]) / (b[0] - a[0]))), e = k * k * (3 - 2 * k);
   const neck = t > 0.66 && t < 0.86 ? f.neck / 0.62 : 1, head = t > 0.84 ? f.head : 1;
   const m = (j: number) => a[j] + (b[j] - a[j]) * e;
-  return { w: m(1) * f.w * neck * head, h: m(2) * f.h * neck * head, y: m(3) * f.h, z: (t - SHOULDER_T) * f.body };
+  let w = m(1) * f.w * neck * head, h = m(2) * f.h * neck * head;
+  // (the face rounds down onto the bill's base: no step where the bill meets the head)
+  if (t > 0.9) { const q = Math.min(1, (t - 0.9) / 0.1), e2 = q * q * (3 - 2 * q); w += (f.bw * 1.08 - w) * e2 * e2; h += (f.bh * 1.08 - h) * e2 * e2; }
+  return { w, h, y: m(3) * f.h, z: (t - SHOULDER_T) * f.body };
 }
 const zOf = (f: Form, t: number) => (t - SHOULDER_T) * f.body;
 // where things are on each kind, for the shader and for the shots
