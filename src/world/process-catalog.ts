@@ -30,7 +30,7 @@ export interface CatalogEntry {
   processId: string; processVersion: string; catalogVersion: string; contract: string; clock: ProcessClock;
   ja: string;                                   // what Lantern is doing, as the record says it
   input: string; inputJa: string;               // the material it takes from the shelf (one lot; '' none: a gauge)
-  also?: { input: string; ja: string; minMg?: number; ok?: (l: LotView) => boolean }[];   // more lots it takes together (water, firewood): at least so much, and such (dry enough)
+  also?: { input: string; ja: string; minMg?: number; perDry?: number; ok?: (l: LotView) => boolean }[];   // more lots it takes together (water, firewood): at least so much, and such (dry enough)
   /** Which lot of its material will do (dry enough wood, wood still wet enough to be worth drying). */
   inputOk?: (l: LotView) => boolean;
   equipment: (Omit<EquipmentView, 'equipmentId'> & { ja: string }) | null;   // what the world sets out for it (null: the hands only)
@@ -88,7 +88,7 @@ export const CATALOG: CatalogEntry[] = [
     ready: false, waits: '形づくった試験タイル（成形が島で動いてから）' },
   // (integrated 2026-10-05: the science team's final review FINAL_REVIEW_2026-10-05.md §5)
   { processId: SLAKE_PROCESS.processId, processVersion: SLAKE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
-    ja: '粘土を水に浸して、こして沈める', input: 'raw_clay', inputJa: '粘土', also: [{ input: 'process_water', ja: '真水（乾いた土の1.5倍以上）' }],
+    ja: '粘土を水に浸して、こして沈める', input: 'raw_clay', inputJa: '粘土', also: [{ input: 'process_water', ja: '真水（乾いた土の1.5倍以上）', perDry: 1.6 }],   // (the science side's floor is 1.5: a little over it)
     // (0.1.2: the residents' own clay pit is its tub — science final review 2026-10-07-clay-pit)
     equipment: { kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: TEST, condition: 1, params: clayPitParams(CLAY_PIT_PLAN), ja: '粘土の池（小屋の屋根の下）' }, built: CLAY_PIT,
     // (the operator's work as the science side's own check does it: sieve after a day, pour off at two and a half and at
