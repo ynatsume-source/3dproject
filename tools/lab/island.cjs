@@ -19,7 +19,7 @@ const fs = require('fs');
   const poses = await p.evaluate(() => {
     const s = window.seaglass; s.endOpening?.();
     const T = s.cur.T, sh = s.cur.shore, home = [61, -145];
-    const can = (x, z) => T.landCover(x, z).can, g = (x, z) => T.ground(x, z);
+    const can = (x, z) => T.landCover(x, z).can, g = (x, z) => s.cur.loc.f(x, z);   // (the land itself: T.ground has the treetops over it)
     const look = (from, at) => { const d = [at[0] - from[0], at[1] - from[1], at[2] - from[2]], l = Math.hypot(...d); return { pos: from, yaw: Math.atan2(-d[0], -d[2]), pitch: Math.asin(d[1] / l) }; };
     const out = {};
     // the homestead, from a little above
@@ -38,7 +38,7 @@ const fs = require('fs');
     let inn = null;
     for (let r = 10; r < 120 && !inn; r += 3) for (let a = 0; a < 6.28 && !inn; a += 0.15) {
       const x = home[0] + Math.cos(a) * r, z = home[1] + Math.sin(a) * r;
-      if (can(x, z) > 0.85 && [0, 1, 2, 3, 4, 5].every((k) => can(x + Math.cos(k * 1.05) * 10, z + Math.sin(k * 1.05) * 10) > 0.7) && !T.solids?.near?.(x, z, 0.8)) inn = [x, z, a];
+      if (can(x, z) > 0.85 && [0, 1, 2, 3, 4, 5].every((k) => can(x + Math.cos(k * 1.05) * 10, z + Math.sin(k * 1.05) * 10) > 0.7) && !(T.solids && T.solids.hit && T.solids.hit(x, z, { r: 0.8, y0: 0, y1: 2, step: 0.1 }, g(x, z)))) inn = [x, z, a];
     }
     if (inn) { const [x, z, a] = inn; out.inside = look([x, g(x, z) + 1.7, z], [x + Math.cos(a) * 10, g(x, z) + 2.4, z + Math.sin(a) * 10]); }
     return out;
