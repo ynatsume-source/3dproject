@@ -164,6 +164,7 @@ export function carpetMaterial(style: CarpetStyle) {
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        float x = vL.x, y = vL.y, z = vL.z, s = 0.5 - z, sd = vCs2.y * 17.0, age = vCs2.x;
+       float upp = length(fwidth(vL));
        float up = smoothstep(-0.02, 0.012, y);
        vec3 alb;
        #if STYLE == 0
@@ -179,7 +180,7 @@ export function carpetMaterial(style: CarpetStyle) {
          alb = mix(vec3(0.62, 0.52, 0.38), vec3(0.45, 0.34, 0.22), up) * (0.93 + 0.12 * vn2(vec2(s * 9.0 + sd, y * 30.0)));
        #endif
        // a fine sandpaper skin; fins a shade darker at their edges; older ones a little duller and scuffed
-       alb *= 0.94 + 0.08 * vn2(vec2(s * 300.0, (y + x) * 300.0));
+       alb *= 0.94 + 0.08 * mix(0.5, vn2(vec2(s * 300.0, (y + x) * 300.0)), aaK(300.0, upp));
        alb = mix(alb, alb * 0.82 + vec3(0.06), age * 0.25 * vn2(vec2(s * 20.0, y * 40.0) + sd));
        // the five gill slits, low on the side over the pectoral's root; the spiracle behind the eye; the mouth
        float gs = fract((s - 0.1) / 0.017);

@@ -131,6 +131,7 @@ export function seaLionMaterial() {
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        float x = vL.x, y = vL.y, z = vL.z, age = vSl2.x, sd = vSl2.y * 13.0;
+       float upp = length(fwidth(vL));
        // wet fur: dark chocolate along the back, tan beneath, a warmer brown on the muzzle; a young one greyer, an
        // old one darker; fine streaks running with the lie of the fur
        vec3 back = mix(vec3(0.15, 0.125, 0.1), vec3(0.1, 0.075, 0.055), age), belly = mix(vec3(0.37, 0.31, 0.24), vec3(0.34, 0.25, 0.16), age);
@@ -139,7 +140,7 @@ export function seaLionMaterial() {
        alb = mix(alb, mix(alb, vec3(0.28, 0.21, 0.15), 0.5), smoothstep(0.43, 0.48, z));
        // (the bare dark skin round the big eyes)
        alb *= 1.0 - 0.45 * (1.0 - smoothstep(0.017, 0.028, length(vec3(abs(x) - 0.035, y - 0.033, (z - 0.432) * 0.8))));
-       alb *= 0.9 + 0.2 * vn2(vec2((x + y) * 140.0 + sd, z * 14.0)) + 0.08 * (vn2(vec2(x, z) * 9.0 + sd) - 0.5);
+       alb *= 0.9 + 0.2 * mix(0.5, vn2(vec2((x + y) * 140.0 + sd, z * 14.0)), aaK(140.0, upp)) + 0.08 * (vn2(vec2(x, z) * 9.0 + sd) - 0.5);
        // the whisker pads: paler (no dotted pores: a grid of holes is hard to look at for some); the nose dark, its nostrils two commas; the mouth
        float pad = smoothstep(0.455, 0.47, z) * (1.0 - smoothstep(0.49, 0.5, z)) * smoothstep(0.012, 0.022, abs(x)) * smoothstep(-0.02, -0.005, y) * (1.0 - smoothstep(0.012, 0.02, y));
        alb = mix(alb, vec3(0.5, 0.42, 0.33), pad * 0.6);

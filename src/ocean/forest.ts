@@ -191,11 +191,14 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
        if (cutSight(vWp)) discard;   // (the leaves between the camera and a resident being watched)
        vec3 n = normalize(vN), V = normalize(uCamPos - vWp); if (!gl_FrontFacing) n = -n;
        vec3 col;
+       // leaves: clumps of light and shade at the scale of twigs, a ragged edge where the mass turns away — the edge
+       // soft over a pixel and drawn as coverage when the scene is multisampled (a hard cut there crawled and
+       // twinkled as the view moved); cut at its middle when it is not
+       float l1 = vn2(vWp.xz * 3.1 + vWp.y * 2.3), l2 = vn2(vWp.xz * 9.0 - vWp.y * 6.0 + 5.0);
+       float edge = abs(dot(normalize(vMn), V)) - (0.32 * l2 + 0.06), ew = max(fwidth(edge), 1e-4);
+       float cover = mix(1.0, smoothstep(-ew, ew, edge), step(0.5, vLeaf));
+       if (cover < mix(0.5, 0.02, uA2C)) discard;
        if (vLeaf > 0.5) {
-         // leaves: clumps of light and shade at the scale of twigs, a ragged edge where the mass turns away
-         float l1 = vn2(vWp.xz * 3.1 + vWp.y * 2.3), l2 = vn2(vWp.xz * 9.0 - vWp.y * 6.0 + 5.0);
-         float edge = abs(dot(normalize(vMn), V));   // (each leaf mass ragged at its own edge)
-         if (edge < 0.32 * l2 + 0.06) discard;
          n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 1.1);
          vec3 alb = vCol * (0.75 + 0.7 * l2) * mix(0.62, 1.25, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
          alb = mix(alb, vec3(0.44, 0.48, 0.22), smoothstep(0.78, 0.95, l1) * 0.4);            // (new leaves, paler)
@@ -208,8 +211,8 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          col = airLit(alb, n, vWp, 0.0) + alb * vec3(0.16, 0.18, 0.13) * (1.0 - uNight * 0.8);   // (light thrown back from the leaves and the floor)
        }
        col *= vSh + (1.0 - vSh) * 0.9 * dapple(vWp, vWp.y + 6.0);   // (shade inside the forest, flecks of sun)
-       gl_FragColor = vec4(fogIt(col, vWp), 1.0);
-     }`, { opts: { side: THREE.DoubleSide } });
+       gl_FragColor = vec4(fogIt(col, vWp), mix(1.0, cover, uA2C));
+     }`, { opts: { side: THREE.DoubleSide, alphaToCoverage: true } });
   // geometries: two of each kind of tree, a sapling of each, and the clump on the forest floor
   // (each twice: as drawn near the camera, and coarser for the cells further off)
   const geos: THREE.BufferGeometry[] = [], geosLo: THREE.BufferGeometry[] = [];

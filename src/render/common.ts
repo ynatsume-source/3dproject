@@ -14,6 +14,7 @@ const EMPTY_CAVE = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1
 
 export const U = {
   uTime: { value: 0 },
+  uA2C: { value: 0 },   // (1 while the scene is drawn multisampled: cut-out edges fade by alpha to coverage instead of a hard cut)
   uCamPos: { value: new THREE.Vector3() },
   uCamFwd: { value: new THREE.Vector3(0, 0, -1) },
   uUp: { value: new THREE.Color() }, uHor: { value: new THREE.Color() }, uDown: { value: new THREE.Color() },
@@ -81,7 +82,7 @@ vec2 caveLight(vec3 wp){
 `;
 
 export const COMMON = /* glsl */ `
-uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd;
+uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd; uniform float uA2C;
 uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
@@ -123,6 +124,9 @@ float caus2(vec3 wp){
 }
 float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash2(i), hash2(i + vec2(1.0, 0.0)), u.x), mix(hash2(i + vec2(0.0, 1.0)), hash2(i + vec2(1.0, 1.0)), u.x), u.y); }
+// detail of freq cycles a unit, where one pixel spans upp units (length(fwidth(coord)), taken outside any branch):
+// 1 while the screen resolves it, fading to 0 as it nears a pixel — finer than that it would only twinkle as the view moves
+float aaK(float freq, float upp){ return 1.0 - smoothstep(0.2, 0.5, freq * upp); }
 // light through the leaves: under a forest canopy at wp, 1 in a fleck of sun, 0 in the shade; the flecks lie
 // along the sun's direction from the canopy above and drift a little as the crowns sway
 float dapple(vec3 wp, float top){

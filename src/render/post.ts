@@ -23,8 +23,10 @@ float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 *
 // highlights but still draw
 let RT_TYPE: THREE.TextureDataType = THREE.HalfFloatType;
 export function setRTSupport(half: boolean) { RT_TYPE = half ? THREE.HalfFloatType : THREE.UnsignedByteType; }
-function rt(w: number, h: number, depth = false) {
-  const t = new THREE.WebGLRenderTarget(Math.max(1, w), Math.max(1, h), { type: RT_TYPE, depthBuffer: depth, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter });
+let MAX_SAMPLES = 4;
+export function setMaxSamples(n: number) { MAX_SAMPLES = n; }
+function rt(w: number, h: number, depth = false, samples = 0) {
+  const t = new THREE.WebGLRenderTarget(Math.max(1, w), Math.max(1, h), { type: RT_TYPE, depthBuffer: depth, magFilter: THREE.LinearFilter, minFilter: THREE.LinearFilter, samples: Math.min(samples, MAX_SAMPLES) });
   if (depth) { t.depthTexture = new THREE.DepthTexture(Math.max(1, w), Math.max(1, h)); t.depthTexture.type = THREE.UnsignedIntType; }
   return t;
 }
@@ -273,10 +275,14 @@ export class Post {
     this.quad.frustumCulled = false;
     this.scene.add(this.quad);
     this.tier = tier;
+    this.main = rt(1, 1, true, Math.min(tier.msaa ?? 0, MAX_SAMPLES));
   }
 
   setTier(t: TierSettings) {
     this.tier = t;
+    // (the scene drawn multisampled, resolved — colour and depth — before the passes that read it)
+    const want = Math.min(t.msaa ?? 0, MAX_SAMPLES);
+    if (this.main.samples !== want) { this.main.dispose(); this.main = rt(this.w || 1, this.h || 1, true, want); }
     if (t.ao) { this.aoMat.defines.SAMPLES = t.ao; this.aoMat.needsUpdate = true; }
     if (t.vol) { this.volMat.defines.STEPS = t.vol; this.volMat.needsUpdate = true; }
     this.setSize(this.w, this.h);

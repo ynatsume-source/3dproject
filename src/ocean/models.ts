@@ -1031,6 +1031,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
        if (dot(n, V) < 0.0) n = -n;
+       float upp = length(fwidth(vL));   // (model units a pixel spans: for fading detail finer than the screen shows)
        float z = vL.z, y = vL.y;
        float top = smoothstep(-0.08, 0.12, y);
        vec3 alb;
@@ -1481,7 +1482,7 @@ export function fishMaterial(sp, shade = false, low = false, opts: { bony?: stri
          // a hide, not a toy's skin: blotched and rough, darker along the back
          alb *= 0.86 + 0.2 * vn2(vL.zy * vec2(18.0, 30.0) + vWear * 9.0);
          alb *= 1.0 - 0.18 * smoothstep(0.02, 0.08, y);
-         n = normalize(n + 0.08 * vec3(vn2(vL.zy * 260.0) - 0.5, vn2(vL.zy * 260.0 + 7.0) - 0.5, 0.0));
+         n = normalize(n + 0.08 * aaK(260.0, upp) * vec3(vn2(vL.zy * 260.0) - 0.5, vn2(vL.zy * 260.0 + 7.0) - 0.5, 0.0));   // (rough, close up; far off, its sparkle would only twinkle)
          // the brow juts over the eye: in its shadow
          float ed = length(vec2((z - EYEZ) * 0.8, y - 0.03));
          alb *= 1.0 - (PAT == 21 ? 0.55 : 0.35) * (1.0 - smoothstep(0.006, 0.03, ed)) * smoothstep(0.022, 0.04, y) * step(0.02, abs(vL.x));

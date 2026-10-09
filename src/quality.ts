@@ -22,17 +22,19 @@ export interface TierSettings {
   coralVis: number;     // coral cells drawn out to this fraction of the visibility distance
   lodR: number;         // detailed coral within this many metres
   ao: number;           // screen-space ambient occlusion samples (0 = off)
+  msaa: number;         // multisampling of the scene's own drawing (post chain): thin things — seagrass, coral branches, leaves,
+                        // the tree line far off — no longer crawl and twinkle along their edges as the view moves (0: none)
   minScale: number;     // the view may be drawn down to this fraction of the screen's resolution while the frames run slow
                         // (main.ts, renderScale: the picture softens a little before anything is left out of it)
 }
 
 export const TIERS: Record<Tier, TierSettings> = {
-  low: { label: '最軽量', dpr: 1.0, post: true, vol: 0, volScale: 0.25, bloom: 0, shoal: 0.5, grass: 0.4, grassTile: 32, grassFlat: true, snow: 0.5, coralVis: 0.65, lodR: 6, ao: 0, minScale: 0.6 },
+  low: { label: '最軽量', dpr: 1.0, post: true, vol: 0, volScale: 0.25, bloom: 0, shoal: 0.5, grass: 0.4, grassTile: 32, grassFlat: true, snow: 0.5, coralVis: 0.65, lodR: 6, ao: 0, minScale: 0.6, msaa: 0 },
   // light, but with the light in it: a small volumetric pass and bloom at screen resolution (phones that can)
-  lite: { label: 'バランス', dpr: 1.0, post: true, vol: 8, volScale: 0.25, bloom: 3, shoal: 0.65, grass: 0.55, grassTile: 40, grassFlat: false, snow: 0.65, coralVis: 0.75, lodR: 9, ao: 0, minScale: 0.7 },
-  medium: { label: '標準', dpr: 1.25, post: true, vol: 12, volScale: 0.35, bloom: 4, shoal: 0.75, grass: 0.75, grassTile: 50, grassFlat: false, snow: 0.8, coralVis: 0.85, lodR: 13, ao: 8, minScale: 0.8 },
-  high: { label: '高画質', dpr: 1.75, post: true, vol: 22, volScale: 0.5, bloom: 5, shoal: 1, grass: 1, grassTile: 50, grassFlat: false, snow: 1, coralVis: 1, lodR: 22, ao: 14, minScale: 0.85 },
-  ultra: { label: '最高', dpr: 2.0, post: true, vol: 30, volScale: 0.6, bloom: 6, shoal: 1, grass: 1, grassTile: 50, grassFlat: false, snow: 1, coralVis: 1, lodR: 30, ao: 18, minScale: 0.85 },
+  lite: { label: 'バランス', dpr: 1.0, post: true, vol: 8, volScale: 0.25, bloom: 3, shoal: 0.65, grass: 0.55, grassTile: 40, grassFlat: false, snow: 0.65, coralVis: 0.75, lodR: 9, ao: 0, minScale: 0.7, msaa: 4 },
+  medium: { label: '標準', dpr: 1.25, post: true, vol: 12, volScale: 0.35, bloom: 4, shoal: 0.75, grass: 0.75, grassTile: 50, grassFlat: false, snow: 0.8, coralVis: 0.85, lodR: 13, ao: 8, minScale: 0.8, msaa: 4 },
+  high: { label: '高画質', dpr: 1.75, post: true, vol: 22, volScale: 0.5, bloom: 5, shoal: 1, grass: 1, grassTile: 50, grassFlat: false, snow: 1, coralVis: 1, lodR: 22, ao: 14, minScale: 0.85, msaa: 4 },
+  ultra: { label: '最高', dpr: 2.0, post: true, vol: 30, volScale: 0.6, bloom: 6, shoal: 1, grass: 1, grassTile: 50, grassFlat: false, snow: 1, coralVis: 1, lodR: 30, ao: 18, minScale: 0.85, msaa: 4 },
 };
 
 /** A first guess from the device, before anything has been measured. */

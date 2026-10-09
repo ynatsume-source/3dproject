@@ -149,6 +149,7 @@ export function iguanaMaterial() {
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
        float x = vL.x, y = vL.y, z = vL.z, sd = vIg2.y * 11.0, age = vIg2.x;
+       float upp = length(fwidth(vL));
        // near-black slate, a little paler beneath (the legs too); a faint rust and green tinge in patches along the
        // flanks, a little stronger in an old one
        float leg = step(1.5, vPart) * step(vPart, 3.5);
@@ -158,11 +159,11 @@ export function iguanaMaterial() {
        alb = mix(alb, vec3(0.07, 0.1, 0.07), smoothstep(0.65, 0.88, vn2(vec2(z * 14.0 - sd, y * 24.0 + 3.0))) * 0.25);
        // granular scales all over (fine, soft: no hard pits)
        float gr = cellF1(vec2(z * 200.0, (y + x * 1.3) * 200.0) + sd);
-       alb *= 0.88 + 0.2 * smoothstep(0.15, 0.7, gr);
+       alb *= 0.88 + 0.2 * mix(0.45, smoothstep(0.15, 0.7, gr), aaK(200.0, upp));
        // the head: rough with big conical scales, greyer and crusted pale with salt on the crown (a merged roughness,
        // not separate dots)
        float head = smoothstep(0.42, 0.45, z) * step(vPart, 0.5);
-       float tb = smoothstep(0.55, 0.1, cellF1(vec2(x * 80.0, z * 80.0) + 7.0)) * (0.6 + 0.4 * vn2(vec2(x, z) * 160.0));
+       float tb = mix(0.35, smoothstep(0.55, 0.1, cellF1(vec2(x * 80.0, z * 80.0) + 7.0)) * (0.6 + 0.4 * vn2(vec2(x, z) * 160.0)), aaK(80.0, upp));
        alb = mix(alb, vec3(0.22, 0.215, 0.205), head * smoothstep(0.0, 0.02, y) * (0.35 + 0.35 * tb));
        // the mouth line and the nostrils
        float gape = 1.0 - smoothstep(0.0006, 0.0016, abs(y + 0.007 + (0.5 - z) * 0.1));

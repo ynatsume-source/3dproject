@@ -33,6 +33,7 @@ npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip
 シェーダーを変えたら `node scripts/shader-check.mjs`（`--all` で全部の海）：Chromium（ソフトウェア GL）で海を開き、コンパイルに失敗したシェーダーが1つでもあれば落ちる。ヘッドレスのチェックは GLSL をコンパイルしないので、変数の二重宣言などはこれでしか見つからない。`#if` の枝どうしは同じスコープなので、別の枝と同じ名前の変数を宣言しない。
 
 
+画面のチラつきは `node tools/lab/flicker.cjs`（ビルドを PORT で配信した状態で。`POSE=land` で島の砂地、`POSE='x,y,z,yaw,pitch'` で同じ位置）：カメラを 1/4 画素ずつずらして本番の描画経路で描き、画素の明るさの急な変化（2 階差分）の割合とその場所の画像を出す。細かい模様・細い形・`discard` の縁を足したら、直す前と同じ位置で比べる。模様は `aaK(周波数, length(fwidth(座標)))` で画素に近づいた細部を溶かし、`discard` の縁は `uA2C`（アルファ・トゥ・カバレッジ）で。docs/proposals/kayama-review/FLICKER.md。
 見た目の確認は `npx vite preview` + Playwright（Chromium は `/opt/pw-browsers`、SwiftShader で WebGL）。
 画面の部品の重なりは `node tools/layout/overlap.cjs`（ビルドを PORT で配信した状態で）：スマホ縦・横・タブレット・PC の7サイズで、HUNT の小窓・地図・丸ボタン・字幕・SEA LOG・下のバー・「巡航に戻る」を全部出して重なりと画面外を数える。HUD を変えたら必ず通す。
 構図は `node tools/layout/composition.cjs`（同上、1サイズずつ別ブラウザで順に。並行で動かすとソフトウェア描画が落ちる。`ONLY="phone portrait"` で1サイズ）：既定の巡航を数分撮り、観察中に被写体が画面外 10% 超・岩に隠れる 5% 超・幅 8% 未満が 5% 超、岩や水面が画面の1/3以上を占める瞬間が 3% 超なら不合格。1回の測定は数分ぶんなので数ポイントは揺れる。カメラ・監督を変えたら通す。

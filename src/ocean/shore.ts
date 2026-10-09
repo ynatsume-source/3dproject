@@ -49,10 +49,30 @@ ${AIRLIT}
 // from the land cover — coral sand (fine grain, ripples, bits of shell and coral, dark and glossy where the
 // sea has just left it), grassland (blades in clumps, dry patches, little flowers), the forest floor under
 // the trees (leaf litter over dark soil, roots), and grey limestone — each with its own relief.
-float landH;   // (the relief at the last point asked: for the normal)
+float landH;   // (the relief at the last point asked)
+vec4 landW;    // (the cover's weights there: sand, grass, litter, rock — for the relief's slope)
+float landFw;  // (how much ground a pixel covers there, m)
+// the ground's relief (its height is this × 0.05 m), from the same cover as its colour: sand ripples, grass clumps,
+// the leaves and roots of the forest floor, limestone; detail finer than the pixel left out, as in the colour
+float landRelief(vec2 p){
+  float rip = sin(dot(p, vec2(0.8, 0.6)) * 3.3 + vn2(p * 0.4) * 4.0) * 0.5 + 0.5;
+  float clump = vn2(p * 1.6) * 0.6 + vn2(p * 5.0) * 0.4;
+  float aaB = 1.0 - smoothstep(0.008, 0.022, landFw), aaL = 1.0 - smoothstep(0.02, 0.06, landFw);
+  float blade = mix(0.5, vn2(vec2(p.x * 38.0, p.y * 38.0) + vn2(p * 9.0) * 3.0), aaB);
+  vec2 pw = p + vec2(vn2(p * 2.3), vn2(p * 2.3 + 9.0)) * 0.5;
+  float leaf = min(cellF1(pw * 7.0), cellF1(pw * 11.0 + 3.0) * 1.2);
+  float root = 1.0 - smoothstep(0.0, 0.06, abs(vn2(p * 0.9 + 3.0) - 0.5));
+  vec3 rc = texture2D(tRockC, p * 0.4).rgb;
+  return landW.x * rip * 0.08 + landW.y * (blade * 0.25 + clump * 0.3) + landW.z * (mix(0.3, smoothstep(0.45, 0.15, leaf), aaL) * 0.2 + root * 0.35) + landW.w * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
+}
 vec3 landAlbedo(vec3 wp){
   vec3 ph; vec4 cv; landTex(wp.xz, ph, cv);
   vec2 p = wp.xz;
+  // how much ground one pixel covers here (m): detail finer than about two pixels is faded to its average, or it
+  // twinkles as the view moves (a fragment of shell, a grass blade, a flower, the size of a pixel or less, falls on
+  // a pixel in one frame and between pixels in the next). (Taken here, outside any branch.)
+  float fw = max(length(fwidth(p)), 1e-5);
+  float aaFrag = 1.0 - smoothstep(0.004, 0.012, fw), aaBlade = 1.0 - smoothstep(0.008, 0.022, fw), aaFlower = 1.0 - smoothstep(0.006, 0.018, fw), aaLeaf = 1.0 - smoothstep(0.02, 0.06, fw);
   float sandW = smoothstep(0.15, 0.6, cv.g), rockW = smoothstep(0.2, 0.7, cv.b) * (1.0 - sandW * 0.5), canW = smoothstep(0.25, 0.75, cv.r);
   float grassW = max(0.0, 1.0 - sandW - rockW) * (1.0 - canW) * smoothstep(0.45, 1.1, wp.y);   // (by the water it is all beach)
   sandW = max(sandW, 1.0 - smoothstep(0.45, 1.1, wp.y)) * (1.0 - rockW * 0.6);
@@ -62,19 +82,20 @@ vec3 landAlbedo(vec3 wp){
   float g = dot(texture2D(tSandC, p * 0.35).rgb, vec3(0.333)) / 0.6;
   float rip = sin(dot(p, vec2(0.8, 0.6)) * 3.3 + vn2(p * 0.4) * 4.0) * 0.5 + 0.5;
   vec3 sand = vec3(0.86, 0.82, 0.73) * (0.82 + 0.25 * g) * mix(vec3(1.0), ph / max(pl, 0.05), 0.25) * (0.94 + 0.08 * rip);
-  float frag = (1.0 - smoothstep(0.03, 0.09, cellF1(p * 6.0))) * step(0.82, hash2(floor(p * 6.0)));
+  float frag = (1.0 - smoothstep(0.03, 0.09, cellF1(p * 6.0))) * step(0.82, hash2(floor(p * 6.0))) * aaFrag;
   sand = mix(sand, vec3(0.96, 0.93, 0.86), frag * 0.8);
   // grass: clumps of blades (fine streaks), greener and yellower patches, bare sandy gaps, a few flowers
-  float clump = vn2(p * 1.6) * 0.6 + vn2(p * 5.0) * 0.4, blade = vn2(vec2(p.x * 38.0, p.y * 38.0) + vn2(p * 9.0) * 3.0);
+  float clump = vn2(p * 1.6) * 0.6 + vn2(p * 5.0) * 0.4, blade = mix(0.5, vn2(vec2(p.x * 38.0, p.y * 38.0) + vn2(p * 9.0) * 3.0), aaBlade);
   vec3 grass = mix(vec3(0.34, 0.42, 0.18), vec3(0.52, 0.5, 0.26), smoothstep(0.45, 0.75, vn2(p * 0.35 + 4.0)));
   grass = mix(grass, ph * 1.15, 0.3) * (0.7 + 0.45 * blade) * (0.8 + 0.3 * clump);
   grass = mix(grass, sand * 0.9, smoothstep(0.65, 0.85, vn2(p * 0.7 + 11.0)) * 0.6);
-  grass = mix(grass, vec3(0.9, 0.85, 0.5), (1.0 - smoothstep(0.02, 0.06, cellF1(p * 3.0 + 7.0))) * step(0.93, hash2(floor(p * 3.0 + 7.0))));
+  grass = mix(grass, vec3(0.9, 0.85, 0.5), (1.0 - smoothstep(0.02, 0.06, cellF1(p * 3.0 + 7.0))) * step(0.93, hash2(floor(p * 3.0 + 7.0))) * aaFlower);
   // the forest floor: dark soil under a layer of dry leaves (browns, ochres, the odd green one), roots
   vec2 pw = p + vec2(vn2(p * 2.3), vn2(p * 2.3 + 9.0)) * 0.5;   // (warped, so the leaves lie at random rather than in rows)
   float leaf = min(cellF1(pw * 7.0), cellF1(pw * 11.0 + 3.0) * 1.2), lv = hash2(floor(pw * 7.0)) * 0.6 + vn2(p * 3.0) * 0.4;
-  vec3 litter = mix(vec3(0.2, 0.16, 0.12), mix(vec3(0.4, 0.32, 0.22), vec3(0.3, 0.25, 0.18), lv), smoothstep(0.42, 0.22, leaf) * (0.45 + 0.4 * vn2(p * 0.8)));
-  litter = mix(litter, vec3(0.3, 0.36, 0.16), step(0.92, lv) * smoothstep(0.4, 0.2, leaf));
+  float leafK = mix(0.45, smoothstep(0.42, 0.22, leaf), aaLeaf);   // (far off, the leaves' average cover)
+  vec3 litter = mix(vec3(0.2, 0.16, 0.12), mix(vec3(0.4, 0.32, 0.22), vec3(0.3, 0.25, 0.18), lv), leafK * (0.45 + 0.4 * vn2(p * 0.8)));
+  litter = mix(litter, vec3(0.3, 0.36, 0.16), step(0.92, lv) * smoothstep(0.4, 0.2, leaf) * aaLeaf);
   float root = 1.0 - smoothstep(0.0, 0.06, abs(vn2(p * 0.9 + 3.0) - 0.5));
   litter = mix(litter, vec3(0.33, 0.27, 0.2), root * 0.6);
   // limestone: grey, pitted and sharp (raised coral rock), stained dark in the hollows
@@ -83,7 +104,9 @@ vec3 landAlbedo(vec3 wp){
   vec3 a = sand * sandW + grass * grassW + litter * litterW + rock * rockW;
   a /= max(sandW + grassW + litterW + rockW, 1e-3);
   a *= mix(1.0, 0.45 + 0.55 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun)
-  landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (smoothstep(0.45, 0.15, leaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
+  float wsum = max(sandW + grassW + litterW + rockW, 1e-3);
+  landW = vec4(sandW, grassW, litterW, rockW) / wsum; landFw = fw;
+  landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (mix(0.3, smoothstep(0.45, 0.15, leaf), aaLeaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
   // wet sand by the water: darker, a little glossy (see airLit's caller), then the swash line — the waves running up
   // the sand and back, higher and whiter as they are bigger (in a storm, far up the beach)
   float run = 0.08 + 0.22 * uWave, sph = vn2(wp.xz * 0.15) * 6.2832;
@@ -94,7 +117,16 @@ vec3 landAlbedo(vec3 wp){
   float foam = (1.0 - smoothstep(0.0, 0.05 + 0.03 * uWave, abs(wp.y - swash))) * lace * sandW * smoothstep(0.45, 0.9, uWave);
   return mix(col, vec3(0.92, 0.95, 0.96), foam * 0.8);
 }
-vec3 landNormal(vec3 wp, vec3 n){ return bumpN(n, wp, landH * 0.05); }
+// the relief's slope by differences over about a pixel's width of ground (not the screen's derivatives: those are
+// shared by each 2×2 block of pixels, and as the view moves the blocks slide across the ripples and the shading
+// twinkles — worst with the sun low)
+vec3 landNormal(vec3 wp, vec3 n){
+  float e = clamp(landFw, 0.01, 0.25);
+  vec2 p = wp.xz;
+  float h0 = landRelief(p), hx = landRelief(p + vec2(e, 0.0)), hz = landRelief(p + vec2(0.0, e));
+  vec2 g = vec2(hx - h0, hz - h0) / e * 0.05;
+  return normalize(n - vec3(g.x, 0.0, g.y));
+}
 `;
 
 // tree crowns: domes about 2.5 m across on a jittered 3.5 m grid
@@ -140,8 +172,11 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
      void main(){
        vec3 ph; vec4 cv; landTex(vWp.xz, ph, cv);
        float nz = vn2(vWp.xz * 0.9) * 0.6 + vn2(vWp.xz * 3.1 + 7.0) * 0.4;
-       if (cv.r < 0.3 + 0.3 * nz) discard;                            // ragged where the forest ends
-       if (length(vWp.xz - uCamPos.xz) < uNear * (0.9 + 0.2 * nz)) discard;   // (close by, the trees themselves: ocean/forest.ts)
+       // ragged where the forest ends, and opened where the trees close by take over (ocean/forest.ts): edges soft over a
+       // pixel and drawn as coverage when the scene is multisampled, so they do not crawl as the view moves
+       float e1 = cv.r - (0.3 + 0.3 * nz), e2 = length(vWp.xz - uCamPos.xz) - uNear * (0.9 + 0.2 * nz);
+       float cover = min(smoothstep(-1.0, 1.0, e1 / max(fwidth(e1), 1e-4)), smoothstep(-1.0, 1.0, e2 / max(fwidth(e2), 1e-4)));
+       if (cover < mix(0.5, 0.02, uA2C)) discard;
        if (length(vWp.xz - uCut.xz) < uCut.w * (0.85 + 0.3 * nz)) discard;   // (opened up over a resident being watched from above)
        for (int i = 0; i < 16; i++) { if (i >= uClearN) break; vec4 c = uClear[i]; if (length(vWp.xz - c.xy) < c.w * (0.9 + 0.2 * nz)) discard; }   // (where the residents have felled trees)
        vec3 n = normalize(vN);
@@ -158,9 +193,9 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
        float pl = dot(ph, vec3(0.333));
        vec3 alb = mix(tint * clamp(pl / 0.3, 0.7, 1.15), ph * 0.7, 0.15) * 0.82;
        alb *= (0.68 + 0.5 * leaf) * mix(0.38, 1.1, smoothstep(0.2, 0.62, vn2(vWp.xz * 0.55 + 3.0)) * 0.7 + smoothstep(0.3, 0.7, cr) * 0.3) * mix(0.55, 1.0, smoothstep(-0.3, 0.8, n.y));   // (crowns in light and shade; the sides of the forest in shade)
-       gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), 1.0);
+       gl_FragColor = vec4(fogIt(airLit(alb * under, n, vWp, 0.5), vWp), mix(1.0, cover, uA2C));
      }`,
-    { uniforms: { ...landUniforms(L), uNear: { value: 0 }, uClear: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) }, uClearN: { value: 0 } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { ...landUniforms(L), uNear: { value: 0 }, uClear: { value: Array.from({ length: 16 }, () => new THREE.Vector4()) }, uClearN: { value: 0 } }, opts: { side: THREE.DoubleSide, alphaToCoverage: true } });
   // a grid of step S over +-E1, leaving out what lies inside +-E0 (drawn finer by the other)
   const canopyMesh = (E0: number, E1: number, S: number) => {
     const N = Math.round(2 * E1 / S) + 1;
