@@ -133,5 +133,16 @@ for (const r of [dot, lantern]) { r.battery = 1; r.wear = 0; }
   R.save(); const saved = JSON.parse([...store.values()].find((v) => v.includes('"house"')) ?? '{}');
   want('7 kept across a save', saved.village?.house?.n === HOUSE_N);
 }
+{ // 8 out of the house: Lantern, at its place inside, goes out by the door to the shelf (life-run 2026-10-09: shut in)
+  const ins = houseG.localToWorld(new THREE.Vector3(-0.55, 0, -0.8));
+  { const d = new Date(sim); sim = Date.parse(`${d.toISOString().slice(0, 10)}T13:00:00Z`) + 86_400_000; }   // (22:00 on the island: Lantern is up)
+  lantern.pos.x = ins.x; lantern.pos.z = ins.z; lantern.task = null; lantern.path = undefined;
+  const sh = houseG.localToWorld(new THREE.Vector3(0, 0, 9));
+  lantern.task = { kind: 'look', x: sh.x, z: sh.z, act: 'look', dur: 5, t: 0, arrived: false };
+  const got = await run(240, () => Math.hypot(lantern.pos.x - sh.x, lantern.pos.z - sh.z) < 1.2);
+  const p = local(lantern.pos.x, lantern.pos.z);
+  const gl = lantern.goal ? local(lantern.goal.x, lantern.goal.z) : null;
+  want('8 from its place in the house out by the door', got, `${p.x.toFixed(1)}, ${p.z.toFixed(1)} (house-local), went ${lantern.went ?? '-'}, goal ${gl ? gl.x.toFixed(1) + ',' + gl.z.toFixed(1) : '-'} none ${lantern.goal?.none}, task ${lantern.task?.kind}`);
+}
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

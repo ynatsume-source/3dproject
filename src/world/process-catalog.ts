@@ -20,7 +20,8 @@ import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood'
 import { potShapeStep, potDryStep, POT_SHAPE_PROCESS, POT_DRY_PROCESS } from '../science/step/pottery';
 import { clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { pitFireStep, PIT_FIRE_PROCESS, FIRED_POT } from '../science/step/pit-fire';
-import { cookPotParams, firedPotQualityOnReturn, firedPotSherdsQuality, retortParams, retortPartsOnReturn, COOK_POT, TAR_RETORT, FIRED_POT_ASSEMBLY_TABLE, TOOL_RECIPES } from '../science/step/fired-pot-assembly';
+import { oilLampStep, OIL_LAMP_PROCESS, readLampOil, LAMP_DISH, LAMP_WICK, WICK_RECIPES } from '../science/step/oil-lamp';
+import { cookPotParams, lampDishParams, firedPotQualityOnReturn, firedPotSherdsQuality, retortParams, retortPartsOnReturn, COOK_POT, TAR_RETORT, FIRED_POT_ASSEMBLY_TABLE, TOOL_RECIPES } from '../science/step/fired-pot-assembly';
 import type { LotView } from './science-contract';
 /** The clay pit the residents dig (science table civ-sci.clay-pit/1): the recommended size, under the hut's roof. */
 export const CLAY_PIT_PLAN = { diameterCm: 50, depthCm: 25, sunExposure: 0 };
@@ -60,9 +61,17 @@ export interface CatalogEntry {
    *  from other work. */
   gauge?: { action: string; everyMs: number };
   ready: boolean; waits?: string;               // not ready: what it waits for
+  /** Two entries for one process (the pot shaped as a cook pot, or as a lamp dish): which one a task meant. */
+  key?: string;
+  /** The pot's form it shapes (1 cook pot, 3 lamp dish): not made while one of that form is already on its way. */
+  form?: number;
+  /** Only at this time of day, on the island's own hours: the lamp is lit at dusk. */
+  when?: 'dusk';
+  /** The lots kept with its equipment go in too (the oil soaked into the lamp dish's wall, held with the dish). */
+  withEquipmentLots?: boolean;
 }
 /** What the materials are called in the record (the island's own words come later). */
-export const MATERIAL_JA: Record<string, string> = { fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
+export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
 const handsW = (w: number) => (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical', maxJ: Math.round(((to - from) / 1000) * w) }];
 const hands = handsW(3);
 const TEST = SCIENCE_CATALOG_VERSION;
@@ -167,8 +176,15 @@ export const CATALOG: CatalogEntry[] = [
   { processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
     ja: '粘土を紐にして積み、鍋を形づくる', input: 'prepared_clay', inputJa: '下ごしらえした粘土',
     equipment: null, start: { action: 'plan', params: { form: 1, capacityMl: 3000 } }, minInputMg: 1_500_000,   // (a 3 L cook pot takes about 1.4 kg)
-    step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay',
+    step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay', key: 'pot', form: 1,
     ready: true, waits: '下ごしらえした粘土（池で浸して練ってから）' },
+  // (the same hands' work, a small shallow dish for a lamp — form 3, 100 mL: science table lampDishParams; made once the
+  // island has its cook pot, one at a time)
+  { processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    ja: '粘土で灯皿を形づくる', input: 'prepared_clay', inputJa: '下ごしらえした粘土',
+    equipment: null, start: { action: 'plan', params: { form: 3, capacityMl: 100 } }, minInputMg: 400_000,
+    step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay', key: 'dish', form: 3, built: COOK_POT,
+    ready: true, waits: '下ごしらえした粘土（鍋ができてから）' },
   // (science final review 2026-10-09-pit-fire: a dry pot fired in the open, the fire heaped round it. Lantern plans it
   // once — warmed beside the fire half an hour, built up at a normal pace to a cherry red, held there half an hour, left to
   // cool in the ashes — and tends it. A fire that hot takes some 20 kg of seasoned wood, more of wood dried only 30 days
@@ -179,6 +195,18 @@ export const CATALOG: CatalogEntry[] = [
     equipment: OPEN_FIRE, start: { action: 'fire_plan', params: { preheatMin: 30, pace: 1, targetGlow: 1, holdMin: 30, forcedCooling: 0 } },
     step: pitFireStep as ScienceStep, env: 'record', tend: 'stay',
     ready: true, waits: '乾いた器と、乾いた薪（30kg以上）' },
+  // (science final review 2026-10-09-lamp: the residents' own lamp — the island's coconut oil in a fired dish, a wick twisted
+  // from what the island has. On the world clock: lit at dusk, the tip trimmed once in the evening, put out at bedtime.
+  // The dish stands in the hut, under its roof, out of most of the wind. What comes back: the clear oil left to the shelf,
+  // the water (if the oil had any) to a jar of its own, the oil soaked into the dish's wall kept with the dish)
+  { processId: OIL_LAMP_PROCESS.processId, processVersion: OIL_LAMP_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    ja: '灯皿にヤシ油を入れ、芯を立てて灯す', input: 'coconut_oil', inputJa: 'ヤシ油', minInputMg: 20_000,
+    inputOk: (l) => (l.quality?.soaked_in_dish ?? 0) !== 1 && (() => { try { readLampOil(l); return true; } catch { return false; } })(),   // (clear oil only: at most 2 % water)
+    also: [{ input: LAMP_WICK, ja: '芯（アダン・ヤシの実の繊維・葦の髄から作る）' }],
+    equipment: { kind: LAMP_DISH, catalogEntry: LAMP_DISH, catalogVersion: TEST, condition: 1, params: {}, ja: '灯皿' }, built: LAMP_DISH, withEquipmentLots: true,
+    start: { action: 'light', params: { wickOut: 1 } }, steps: [{ action: 'trim', afterMs: 2.5 * 3_600_000 }], finish: { action: 'put_out', afterMs: 5 * 3_600_000 },
+    step: oilLampStep as ScienceStep, env: 'record', tend: 'leave', when: 'dusk',
+    ready: true, waits: 'ヤシ油と、芯と、焼いた灯皿' },
 ];
 
 /** A sealed pot made into equipment, and back (ADR 0006 addendum; the science side's table civ-sci.pot-assembly/2,
@@ -208,5 +236,14 @@ export const RETORT_ASSEMBLY: PartsAssemblyTable = {
   toParams: ([u, l]) => retortParams(u, l),
   partsOnReturn: ([u, l], condition) => { const r = retortPartsOnReturn(u, l, condition); return [r.upper, r.lower]; },
 };
+/** A fired dish of the lamp's form made the residents' lamp dish (science table civ-sci.fired-pot-assembly/2, lampDishParams),
+ *  with where it stands added by main: in the hut, under its roof (roofed 1), sheltered from most of the wind (0.8). */
+export const LAMP_DISH_STAND = { shelter: 0.8, roofed: 1 };
+export const LAMP_DISH_ASSEMBLY: AssemblyTable = {
+  version: FIRED_POT_ASSEMBLY_TABLE, kind: LAMP_DISH, catalogEntry: LAMP_DISH, catalogVersion: TEST, materials: [FIRED_POT],
+  toParams: (l) => ({ ...lampDishParams(l), ...LAMP_DISH_STAND }), qualityOnReturn: firedPotQualityOnReturn, brokenMaterial: 'pot_sherds', brokenQuality: firedPotSherdsQuality,
+};
+/** The wicks the residents twist (science WICK_RECIPES: the material, how much, how long by hand). */
+export const WICKS = WICK_RECIPES;
 /** The tools the residents make from the science side's recipes (what they take, how long by hand). */
 export const TOOLS = TOOL_RECIPES;
