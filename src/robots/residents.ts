@@ -25,8 +25,8 @@ import { VOICES, STAGES, type Voice } from './voices';
 import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './islandlang';
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
-import { abortRun, addLot, advance, assemble, emptyLedger, startRun, toClock, toReal } from '../world/process-runner';
-import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, TOOLS, SEASONED_PPM, type CatalogEntry } from '../world/process-catalog';
+import { abortRun, addLot, advance, assemble, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, toClock, toReal } from '../world/process-runner';
+import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, TOOLS, SEASONED_PPM, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
@@ -3048,6 +3048,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (a run saved under a process version the island no longer has is not resumed: it is ended, what it held freed)
     for (const x of [...village.labRuns]) { const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId);
       if (!run || !e || run.processVersion !== e.processVersion) { if (run) abortRun(lab, x.runId, `工程の版が変わった（${run.processVersion} → ${e?.processVersion ?? 'なし'}）`); village.labRuns.splice(village.labRuns.indexOf(x), 1); } }
+    // (and equipment made under another version of its table — the cook pot, the retort, a sealed pot: worked out again from
+    // the lots it was made of, as the assembly policy says, not its version name changed; science final review 2026-10-09-lamp)
+    refreshAssembled(lab, COOK_POT_ASSEMBLY); refreshAssembled(lab, POT_ASSEMBLY); refreshAssembledParts(lab, RETORT_ASSEMBLY);
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }

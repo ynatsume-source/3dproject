@@ -8,7 +8,7 @@
 //    broken: a lot of sherds of the same mass, its quality from the table (the body's kept, the vessel's dropped); in use: refused
 //  4 a new version of the table: the params worked out again from the copy (not for equipment in use)
 //  5 saved and loaded (JSON): all of it as it was
-//  6 the science side's own table (civ-sci.pot-assembly/2, integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
+//  6 the science side's own table (civ-sci.pot-assembly/3 since 2026-10-09; integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
 //    sealed pot is a bulb; worn, it stays sealed, not known airtight, and is no bulb when made up again; broken, it goes
 //    back to pot_sherds (potSherdsQuality, cleared by Codex lab e2a4147): a wet, tarred pot with no full history becomes
 //    sherds of the same amount, its absorption, tar, water and history_complete as they were (whole ppm, no new rounding;
@@ -97,7 +97,7 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const L6 = emptyLedger('island', 'test');
   const lot = addLot(L6, { materialId: 'fired_pot_test', amount: { value: 615_000, unit: 'mg' }, quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1 }, location: 'shelf' });
   const e = assemble(L6, lot.lotId, POT_ASSEMBLY, 1000).equipment!;
-  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/2', JSON.stringify(e?.params));
+  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/3', JSON.stringify(e?.params));
   L6.equipment[e.equipmentId].condition = 0.9;
   const back = disassemble(L6, e.equipmentId, POT_ASSEMBLY).lot!;
   want('6 real table: worn, still sealed, not known airtight', back?.quality?.sealed === 1 && back.quality?.airtight_known === 0 && back.quality?.air_leak_tau_min === undefined && back.quality?.crack_ppm === 100000, JSON.stringify(back?.quality));

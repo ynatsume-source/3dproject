@@ -4,6 +4,7 @@
 // (the real mind chooses for itself; this finds where the world's own steps stall). Rakko and Lantern by their habits.
 // Usage: DAYS=60 npx tsx --import ./scripts/node-assets.mjs scripts/life-run.ts
 //   SNAP=40 SNAPFILE=/tmp/i.json: the island saved at day 40 to a file; FROM=/tmp/i.json: carried on from one (DAYS then
+//   SNAPDIR=/dir: the island saved at each step reached, in daylight, for a digest film.
 //   WHY=1: each failure as it happens, where. DAYS counts from the start of the first run, so DAYS=50 FROM=… runs days 40 to 50)
 import './node-land';
 import * as THREE from 'three';
@@ -47,6 +48,7 @@ const marks: [string, () => boolean][] = [
   ['cook pot', () => !!lab.equipment['eq:cook_pot']], ['coconut milk', () => lots('coconut_milk').length > 0], ['coconut oil', () => lots('coconut_oil').length > 0],
 ];
 const got: Record<string, number> = {};
+const SNAPDIR = process.env.SNAPDIR, shots: string[] = SNAPDIR ? ['start'] : []; let nShot = 0;
 const wall = Date.now.call(null), start = performance.now();
 let lastLog = 0;
 for (let i = 0; dayOf() < DAYS; i++) {
@@ -56,7 +58,9 @@ for (let i = 0; dayOf() < DAYS; i++) {
   if (i % 10 === 0) await Promise.resolve();
   if (process.env.WHY) for (const r of R.list) for (const e of r.diary.slice(-3)) if (/(道がなかった|進めなかった|できなかった|時間がかかりすぎた)/.test(e.text) && !(e as any).__seen && ((e as any).__seen = 1)) console.log('WHY', dayOf().toFixed(2), r.id, e.text, `at ${r.pos.x.toFixed(1)},${r.pos.z.toFixed(1)} y ${r.pos.y.toFixed(2)} hold ${r.holding || '-'} went ${r.went ?? '-'}`);
   if (process.env.SNAP && !(globalThis as any).__snapped && dayOf() >= +process.env.SNAP) { (globalThis as any).__snapped = 1; R.save(); writeFileSync(process.env.SNAPFILE ?? '/tmp/island.json', JSON.stringify({ sim, t0, store: [...store] })); console.log(`  (saved at day ${dayOf().toFixed(1)})`); }
-  if (i % 600 === 0) for (const [k, f] of marks) if (got[k] === undefined && f()) { got[k] = dayOf(); console.log(`day ${dayOf().toFixed(1)}: ${k}`); }
+  if (i % 600 === 0) for (const [k, f] of marks) if (got[k] === undefined && f()) { got[k] = dayOf(); console.log(`day ${dayOf().toFixed(1)}: ${k}`); if (SNAPDIR) shots.push(k); }
+  // (SNAPDIR: the island saved at each step reached, at the next hour of good light — for a digest, scripts/digest-shots.mjs)
+  if (SNAPDIR && i % 600 === 0 && shots.length) { const hr = ((sim / 3.6e6 + 9) % 24 + 24) % 24; if (hr >= 10 && hr <= 15) { R.save(); const k = shots.join('+'); writeFileSync(`${SNAPDIR}/${String(nShot++).padStart(2, '0')}-${shots[0].replace(/\s+/g, '-')}.json`, JSON.stringify({ sim, t0, day: dayOf(), marks: shots, store: [...store] })); console.log(`  (saved ${k} at day ${dayOf().toFixed(1)})`); shots.length = 0; } }
   if (dayOf() - lastLog >= 5) { lastLog = dayOf(); console.log(`  … day ${dayOf().toFixed(0)} (${((performance.now() - start) / 1000).toFixed(0)} s) dot ${dot.task?.kind ?? '-'} built ${dot.stats.built} house ${V.house.n} shelf ${[...new Set(Object.values(lab.lots).map((l: any) => l.materialId))].join(',')}`); }
 }
 void wall;

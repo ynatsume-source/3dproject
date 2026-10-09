@@ -1,0 +1,72 @@
+{
+  "id": "kahwaji-white-coconut-pcm-2019",
+  "title": "Edible Oils as Practical Phase Change Materials for Thermal Energy Storage",
+  "authors": [
+    "Samer Kahwaji",
+    "Mary Anne White"
+  ],
+  "doi": "10.3390/app9081627",
+  "publisherUrl": "https://www.mdpi.com/2076-3417/9/8/1627",
+  "bodyObtainedFrom": "https://pdfs.semanticscholar.org/e8e6/65bfa0a7f6a2fc75e22e7f3911a1e05b383b.pdf",
+  "verification": "native-web-rendered-original-article-PDF-body-read; mirrored-PDF bytes not obtained",
+  "locations": {
+    "methods": "PDF pp.3–4 §2.2",
+    "table": "PDF p.7 Table 2, own measurements only",
+    "cooling": "PDF p.9 §3.2"
+  },
+  "quote": "the peak temperature will be reported as Tmpt",
+  "conditions": {
+    "DSC": "TA Q200, indium-calibrated",
+    "sampleMg": [
+      10,
+      15
+    ],
+    "pan": "hermetically sealed aluminum",
+    "HeMlMin": 25,
+    "temperatureRateKMin": 2,
+    "latentHeatRateKMin": 10,
+    "replicatesMinimumPerMaterial": 3
+  },
+  "table2": {
+    "R_CNO": {
+      "brand": "Suraj",
+      "peakC": 24.5,
+      "uncertaintyC": 1.5,
+      "fusionJg": 105,
+      "uncertaintyJg": 11
+    },
+    "V_CNO": {
+      "brand": "Our Finest",
+      "peakC": 23.9,
+      "uncertaintyC": 1.5,
+      "fusionJg": 106,
+      "uncertaintyJg": 11
+    },
+    "basis": "average first 20 heating curves; DSC peak, not onset or complete melt"
+  },
+  "secondCycle2KMinPeakC": {
+    "R_CNO": 24.4,
+    "V_CNO": 24.0,
+    "uncertaintyC": 1.5
+  },
+  "bulk_R_CNO": {
+    "sampleMl": 15,
+    "precycles": 10,
+    "meltingStartC": 21,
+    "opaqueMoltenC": 24.7,
+    "transparentC": 27.2,
+    "coolingSequenceC": [
+      22.5,
+      23.4,
+      22.5
+    ],
+    "final": "soft white solid",
+    "supercoolingK": 0.9
+  },
+  "micro_DSC_R_CNO": {
+    "supercoolingK_at10KMin": 19,
+    "supercoolingK_at0_5KMin": 10
+  },
+  "interpretation": "Fusion latent heat is not combustion heat. Peak ±uncertainty is not a hard freeze threshold. Heating, cooling, size, grade and history differ. Game boiled oil is not either retail sample.",
+  "calibrationEligible": false
+}

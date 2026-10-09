@@ -308,6 +308,95 @@
         "format": "UTF-8 JSON",
         "hashScope": "review transcription of retrieved passages; NOT original HTML/PDF"
       }
+    },
+    {
+      "id": "kahwaji-white-coconut-pcm-2019",
+      "title": "Edible Oils as Practical Phase Change Materials for Thermal Energy Storage",
+      "url": "https://www.mdpi.com/2076-3417/9/8/1627",
+      "sourceType": "primary-experimental-DSC-research-article",
+      "accessedDateJst": "2026-10-09",
+      "verification": "native-web-rendered-original-article-PDF-body-read; mirrored-PDF bytes not obtained",
+      "calibrationEligible": false,
+      "supports": "Near-24°C melting peak and grade/size/rate-dependent phase change; conditions in retained factual transcription.",
+      "doesNotVerify": "Combustion heat, oil-lamp consumption or light, homemade boiled-oil transition, exact binary freeze/ignite threshold.",
+      "author": "Samer Kahwaji; Mary Anne White",
+      "artifact": {
+        "path": "data/science/evidence/kahwaji-white-coconut-pcm-2019.json",
+        "sha256": "7c878dd6df707f63c6c58716f2cfb861f96832e272d45092fbcfc13bf5f3d2cb",
+        "format": "UTF-8 JSON",
+        "hashScope": "reviewer factual transcription, not original HTML/PDF bytes"
+      }
+    },
+    {
+      "id": "hughes-gale-lamp-consumption-2007",
+      "title": "A candle in the lab",
+      "url": "https://www.academia.edu/121046772/A_candle_in_the_lab",
+      "sourceType": "primary-experimental-lighting-author-manuscript",
+      "accessedDateJst": "2026-10-09",
+      "verification": "native-rendered-author-manuscript-body-read; original-PDF bytes not obtained",
+      "calibrationEligible": false,
+      "supports": "An observed olive-oil replica-lamp consumption over ten minutes, distinct from coconut oil.",
+      "doesNotVerify": "Olive oil and supplied wick are not coconut oil or local plant wick. No mass time series, wick geometry, fuel grade or consumption uncertainty reported. Manuscript prose/Table1 photometry labels conflict; values not adopted.",
+      "author": "Stephen W. Hughes; Andrew Gale",
+      "artifact": {
+        "path": "data/science/evidence/hughes-gale-lamp-consumption-2007.json",
+        "sha256": "6686512a0a2c98a9afe2df1f331f460bba92dbf9de63261f651a2c6e395ecad3",
+        "format": "UTF-8 JSON",
+        "hashScope": "reviewer factual transcription, not original author PDF bytes"
+      }
+    },
+    {
+      "id": "sisi-vanuatu-straight-coconut-oils-2020",
+      "title": "Performance and emission characteristics of a diesel engine employing straight vegetable oils from Vanuatu as fuels",
+      "url": "https://journals.sagepub.com/doi/10.1177/1687814020962351",
+      "sourceType": "primary-experiment",
+      "accessedDateJst": "2026-10-09",
+      "verification": "native-web-article-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "Reported heat values and sample conditions",
+      "doesNotVerify": [
+        "Do not relabel the reported value as LHV without resolving its basis.",
+        "Engine fuel flow is not lamp consumption.",
+        "Homemade boiled coconut oil is not the measured sample."
+      ],
+      "authors": [
+        "Misel J Sisi",
+        "M Rafiuddin Ahmed",
+        "David Rohindra"
+      ],
+      "artifact": {
+        "path": "data/science/evidence/sisi-vanuatu-straight-coconut-oils-2020.json",
+        "sha256": "995788893a4bbbee70be55a489b9ef33706a1c09e8b1bb02bcb261ce4b0631a8",
+        "format": "UTF-8 JSON",
+        "hashScope": "Selected received excerpts and reviewer factual transcription; not original HTML/PDF bytes"
+      }
+    },
+    {
+      "id": "moullou-doulos-topalis-historical-lamp-photometry-2015",
+      "title": "Artificial Light Sources in Roman, Byzantine, and Post-Byzantine Eras: An Evaluation of their Performance",
+      "url": "https://doi.org/10.31377/chr.v32i0.115",
+      "sourceType": "primary-replica-photometry-experiment",
+      "accessedDateJst": "2026-10-09",
+      "verification": "native-web-article-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "Replica lamp photometry with named plant wicks and dimensions",
+      "doesNotVerify": [
+        "Not coconut-oil photometry or a matched mass/time trial.",
+        "5.46 in Table 1 is lux, not g/h.",
+        "Flux, directional intensity and illuminance are different quantities.",
+        "Flax and Ballota do not establish pandanus, coir or reed performance."
+      ],
+      "authors": [
+        "Dorina Moullou",
+        "Lambros T. Doulos",
+        "Frangiskos V. Topalis"
+      ],
+      "artifact": {
+        "path": "data/science/evidence/moullou-doulos-topalis-historical-lamp-photometry-2015.json",
+        "sha256": "b1696fbe3b434dcd99e6dbbec534d37bd41ca223f4c02d817ea660caf972d7a9",
+        "format": "UTF-8 JSON",
+        "hashScope": "Selected received excerpts and reviewer factual transcription; not original HTML/PDF bytes"
+      }
     }
   ]
 }

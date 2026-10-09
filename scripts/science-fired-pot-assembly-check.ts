@@ -4,6 +4,8 @@ import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/worl
 import { scienceStep } from '../src/science/step';
 import { POT_DRY_PROCESS, POT_SHAPE_PROCESS } from '../src/science/step/pottery';
 import { PIT_FIRE_PROCESS } from '../src/science/step/pit-fire';
+import { LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, potQualityOnReturn, potToEquipmentParams, readPot, TAR_SEAL_PROCESS } from '../src/science/step/vessel';
+import { OIL_LAMP_PROCESS, wickQuality } from '../src/science/step/oil-lamp';
 import { cookPotParams, FIRED_POT_ASSEMBLY_TABLE, firedPotQualityOnReturn, firedPotSherdsQuality, lampDishParams, retortParams, retortPartsOnReturn, TOOL_RECIPES } from '../src/science/step/fired-pot-assembly';
 
 let pass = 0, fail = 0;
@@ -48,7 +50,7 @@ const cook = firedPot(1, 4000, 'lot:cook'), jar = firedPot(2, 2000, 'lot:jar'), 
 console.log('1. a cook pot, a tar retort and a lamp dish from the residents\' fired pots');
 {
   const c = cookPotParams(cook);
-  ok(FIRED_POT_ASSEMBLY_TABLE === 'civ-sci.fired-pot-assembly/1' && c.capacityMl === 4000 && c.heatCapJPerK > 1000 && c.heatCapJPerK < 1600 && c.uaWPerK > 1.5 && c.uaWPerK < 3.5 && c.heatShare === 0.2,
+  ok(FIRED_POT_ASSEMBLY_TABLE === 'civ-sci.fired-pot-assembly/2' && c.capacityMl === 4000 && c.heatCapJPerK > 1000 && c.heatCapJPerK < 1600 && c.uaWPerK > 1.5 && c.uaWPerK < 3.5 && c.heatShare === 0.2,
     'a 4 L cook pot: heat capacity from its mass, heat loss from its surface (near the test pot\'s 1800 J/K, 3 W/K)', JSON.stringify(c));
   ok(cookPotParams(cook, { heatShare: 0.3 }).heatShare === 0.3, 'main may set how much of the fire goes into the pot (its hearth)');
   const r = retortParams(cook, jar);
@@ -94,6 +96,70 @@ console.log('3. back to a lot');
 console.log('4. tools main makes from materials');
 ok(TOOL_RECIPES.length === 5 && TOOL_RECIPES.every((t) => t.materials.every((m) => m.mg > 0) && t.handSeconds > 0), 'five tools, each with its materials and the hands\' work',
   TOOL_RECIPES.map((t) => `${t.kind}: ${t.materials.map((m) => `${m.materialId} ${m.mg / 1e6} kg`).join(', ')}`).join(' / '));
+
+console.log('5. the residents\' jar as a sealed vessel (p16x 0.1.2, p17x 0.1.3, table civ-sci.pot-assembly/3)');
+{
+  const sum = (xs: { amount: { value: number } }[] = []) => xs.reduce((t, x) => t + x.amount.value, 0);
+  type Drawn = { drawn?: { amount: { value: number } }[] };
+  const closes = (r: ScienceStepResult) => sum(r.consumed) + sum((r as Drawn).drawn) === sum(r.produced) + sum(r.released);
+  const BRUSH = { equipmentId: 'eq:brush', kind: 'fixture_tar_brush', catalogEntry: 'fixture_tar_brush', catalogVersion: 'civ-sci-test-2', condition: 1 };
+  const STAND = { equipmentId: 'eq:stand', kind: 'fixture_vessel_stand', catalogEntry: 'fixture_vessel_stand', catalogVersion: 'civ-sci-test-2', condition: 1, params: { sunExposure: 0 } };
+  const TAR: LotView = { lotId: 'lot:tar', materialId: 'wood_tar', amount: { value: 40_000, unit: 'mg' }, location: 'eq:retort', quality: { x_wood_tar_ppm: 1_000_000 } };
+  const sealed = scienceStep({ contract: '0.2.0', requestId: 's', world: W, runId: 'run:seal', ...TAR_SEAL_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: H }, state: null,
+    environment: { sampleId: 'env:0', source: 'simulation', effectiveAt: 0 }, lots: [jar, TAR], equipment: [BRUSH], energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: 3600 * 20 }], seed: 1,
+    actions: [{ at: 60_000, residentId: 'res:lantern', action: 'seal' }] });
+  const pot = sealed.produced.find((p) => p.materialId === 'fired_pot')!;
+  const kept = ['form', 'wall_mm', 'surface_cm2', 'xd_quartz_ppm', 'sinter_ppm', 'crack'].every((k) => pot?.quality?.[k] === jar.quality![k]);
+  ok(sealed.status === 'completed' && pot && pot.quality!.sealed === 1 && (pot.quality!.air_leak_tau_min ?? 0) > 0 && kept && closes(sealed),
+    'the residents\' 2 L jar takes tar and a plug: it comes back as a fired_pot, its form, wall, surface and fired make-up as they were', `air_leak_tau_min ${pot?.quality?.air_leak_tau_min}`);
+  const potLot = asLot(pot, 'lot:sealed-jar');
+  let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+  for (let t = 0; t < 2 * D; t += 6 * H) {
+    r = scienceStep({ contract: '0.2.0', requestId: `l${t}`, world: W, runId: 'run:leak', ...LEAK_TEST_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: t, to: t + 6 * H }, state: st,
+      environment: { sampleId: `e${t}`, source: 'record', effectiveAt: t, airTempC: 28, humidity: 0.75, windMs: 2 }, lots: [potLot], equipment: [STAND], energy: [], seed: 1,
+      actions: t + 6 * H >= 2 * D ? [{ at: t + 6 * H - 30_000, residentId: 'res:lantern', action: 'take_out' }] : [] });
+    st = r.state; if (r.status !== 'running') break;
+  }
+  const back = r.produced.find((p) => p.materialId === 'fired_pot');
+  ok(r.status === 'completed' && back?.quality?.form === 2 && back.quality.sealed === 1 && closes(r), 'it stands two days on the stand as a fired_pot (the leak test reads the residents\' pot)');
+  const p = potToEquipmentParams(potLot);
+  ok(POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/3' && p.sealed === 1 && p.airLeakTauMin === pot.quality!.air_leak_tau_min && readPot(potLot).areaM2 === jar.quality!.surface_cm2 / 1e4,
+    'it assembles as a barometer bulb (the pot\'s own surface, not the test pot\'s assumed shape)', JSON.stringify(p));
+  const worn = potQualityOnReturn(potLot.quality!, 0.9);
+  ok(worn.crack === 1 && worn.airtight_known === 0 && worn.sealed === 1 && worn.form === 2, 'worn, it comes back still stopped, its air-holding unknown, and its crack mark shows the wear');
+  let stopped = ''; try { cookPotParams(potLot); } catch (e) { stopped = (e as Error).message; }
+  ok(/sealed/.test(stopped), 'a stopped jar is not a cook pot (its mouth is plugged)', stopped);
+  let threw = ''; try { readPot({ ...potLot, quality: { ...potLot.quality, water_ppm: 1000 } }); } catch (e) { threw = (e as Error).message; }
+  ok(/water_ppm 0/.test(threw), 'a fired pot\'s body holds no water of its own (water in the walls is x_water_ppm)', threw);
+}
+
+console.log('6. a lamp dish handed back wet from the water test (table /2, Codex VF-A1)');
+{
+  const STAND = { equipmentId: 'eq:stand', kind: 'fixture_vessel_stand', catalogEntry: 'fixture_vessel_stand', catalogVersion: 'civ-sci-test-2', condition: 1, params: { sunExposure: 0 } };
+  const WATER: LotView = { lotId: 'lot:water', materialId: 'process_water', amount: { value: 60_000, unit: 'mg' }, location: 'site:jar' };
+  let st: ScienceStepRequest['state'] = null, r!: ScienceStepResult;
+  for (let t = 0; t < D; t += 6 * H) {
+    r = scienceStep({ contract: '0.2.0', requestId: `w${t}`, world: W, runId: 'run:wet', ...LEAK_TEST_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: t, to: t + 6 * H }, state: st,
+      environment: { sampleId: `e${t}`, source: 'record', effectiveAt: t, airTempC: 28, humidity: 0.95, windMs: 1 }, lots: [lamp, WATER], equipment: [STAND], energy: [], seed: 1,
+      actions: t + 6 * H >= D ? [{ at: t + 6 * H - 30_000, residentId: 'res:lantern', action: 'take_out' }] : [] });
+    st = r.state; if (r.status !== 'running') break;
+  }
+  const wetDish = asLot(r.produced.find((p) => p.materialId === 'fired_pot')!, 'lot:wet-lamp');
+  const bare = lampDishParams(lamp), wet = lampDishParams(wetDish);
+  ok((wetDish.quality!.x_water_ppm ?? 0) > 0 && Math.abs(wet.massG - bare.massG) <= 1 && wet.absorptionPpm < bare.absorptionPpm,
+    'the dish\'s mass is its fired body (the water in its walls is not body), and the pores the water fills take up no oil', `bare ${JSON.stringify(bare)} / wet ${JSON.stringify(wet)} (lot ${wetDish.amount.value} mg)`);
+  const sitOil = (params: Record<string, number>) => scienceStep({ contract: '0.2.0', requestId: 'o', world: W, runId: 'run:lamp', ...OIL_LAMP_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: H }, state: null,
+    environment: { sampleId: 'e', source: 'record', effectiveAt: 0, airTempC: 27, humidity: 0.8, windMs: 1, rainMmH: 0 },
+    lots: [{ lotId: 'lot:oil', materialId: 'coconut_oil', amount: { value: 50_000, unit: 'mg' }, location: 'site:jar', quality: { x_coconut_fat_ppm: 1_000_000 } },
+      { lotId: 'lot:wick', materialId: 'lamp_wick', amount: { value: 2_000, unit: 'mg' }, location: 'site:shelf', quality: wickQuality(1, 4) }],
+    equipment: [{ equipmentId: 'eq:lamp', kind: 'lamp_dish', catalogEntry: 'lamp_dish', catalogVersion: 'civ-sci-test-2', condition: 1, params: { ...params, shelter: 0.8, roofed: 1 } }], energy: [], seed: 1,
+    actions: [{ at: H - 1000, residentId: 'res:lantern', action: 'put_out' }] });
+  const soakedBy = (x: ScienceStepResult) => x.produced.find((p) => p.quality?.soaked_in_dish === 1)?.amount.value ?? 0;
+  const sBare = soakedBy(sitOil(bare)), sWet = soakedBy(sitOil(wet));
+  ok(sWet < sBare, 'handed back wet, assembled, pure oil set in it for an hour: it soaks less than the dry dish, never more', `${sBare} → ${sWet} mg`);
+  const pot2 = cookPotParams({ ...jar, quality: { ...jar.quality, x_water_ppm: 50_000 }, amount: { value: Math.round(jar.amount.value / 0.95), unit: 'mg' } });
+  ok(Math.abs(pot2.heatCapJPerK - cookPotParams(jar).heatCapJPerK) <= 1, 'a cook pot\'s heat capacity is its fired body\'s (the water in its walls is not counted as ceramic)');
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

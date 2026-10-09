@@ -198,4 +198,8 @@ export const REACTIONS = {
   woodCombustion: { reactant: 'wood_dry' as SpeciesId, coeffs: { o2: -1.03, co2: 1, water: 0.72 }, closeInto: 'water' as SpeciesId },
   // CH0.4O0.09 + 1.055 O2 → CO2 + 0.2 H2O
   charCombustion: { reactant: 'char' as SpeciesId, coeffs: { o2: -1.055, co2: 1, water: 0.2 }, closeInto: 'water' as SpeciesId },
+  // C39H74O6 + 54.5 O2 → 39 CO2 + 37 H2O  (coconut oil burning in a lamp flame)
+  oilCombustion: { reactant: 'coconut_fat' as SpeciesId, coeffs: { o2: -54.5, co2: 39, water: 37 }, closeInto: 'water' as SpeciesId },
+  // C39H74O6 + 15.5 O2 → 39 C + 37 H2O  (the share of the oil that leaves as soot: the carbon not burned; C as organic_c)
+  oilSooting: { reactant: 'coconut_fat' as SpeciesId, coeffs: { o2: -15.5, organic_c: 39, water: 37 }, closeInto: 'water' as SpeciesId },
 };

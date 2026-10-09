@@ -13,6 +13,7 @@ import { leakTestStep, LEAK_TEST_PROCESS, tarSealStep, TAR_SEAL_PROCESS } from '
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from './firewood';
 import { potDryStep, potShapeStep, POT_DRY_PROCESS, POT_SHAPE_PROCESS } from './pottery';
 import { pitFireStep, PIT_FIRE_PROCESS } from './pit-fire';
+import { oilLampStep, OIL_LAMP_PROCESS } from './oil-lamp';
 import { coconutBoilStep, coconutMilkStep, COCONUT_BOIL_PROCESS, COCONUT_MILK_PROCESS } from './coconut';
 
 const PROCESSES: Record<string, ScienceStep> = {
@@ -31,6 +32,7 @@ const PROCESSES: Record<string, ScienceStep> = {
   [POT_SHAPE_PROCESS.processId]: potShapeStep,
   [POT_DRY_PROCESS.processId]: potDryStep,
   [PIT_FIRE_PROCESS.processId]: pitFireStep as ScienceStep, // contract 0.2.x only (the fire draws O2)
+  [OIL_LAMP_PROCESS.processId]: oilLampStep as ScienceStep, // contract 0.2.x only (the flame draws O2)
 };
 
 export const scienceStep: ScienceStep = (req: ScienceStepRequest): ScienceStepResult => {
