@@ -18,6 +18,8 @@
 
 撮り直し：`npx vite build && npx vite preview --port 4174` を動かした状態で `OUT=<dir> TAG=after node tools/lab/island.cjs`。1か所あたり数分かかる。
 
+林の中の2枚は撮り直した。最初の版には、海の中で見つけた生き物の「NEW SIGHTING」の印が、木越しに残って写っていた（本体への依頼 `TO-MAIN-new-sighting.md`）。撮影ツールは HUD の印を隠して撮るようにしてある。前の画像は、main 37782a1 を別にビルドして撮った。
+
 ## 2. 変えたファイルと中身
 
 ### 林の木：`src/ocean/forest.ts`（`treeGeo`、`shrubGeo`、`treeMat` の葉の部分）
