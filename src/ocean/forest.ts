@@ -14,112 +14,135 @@ const CELL = 40;
 const icoI = (detail = 1) => { const g = new THREE.IcosahedronGeometry(1, detail); g.deleteAttribute('normal'); g.deleteAttribute('uv'); return mergeVertices(g); };
 
 // the kinds of tree in the coastal forest of a Yaeyama islet, and how each grows
-//   0 テリハボク (Calophyllum): one short trunk, a few stout limbs rising, a dense dark rounded crown
+//   0 テリハボク (Calophyllum): one short trunk, a few stout limbs rising, a dense, deep green, rounded crown
 //   1 オオハマボウ (hau, Hibiscus tiliaceus): two or three trunks sprawling out from the foot, a low, broad, yellow-green crown
 //   2 ハスノハギリ (Hernandia): a tall clean trunk, a high crown of big, bright leaves
 //   3 ガジュマル (banyan): a thick fluted trunk, long level limbs with aerial roots hanging from them, a wide dark crown
-// leaf masses are small and many, flattened, clustered at the twig ends with gaps between; their normals are
-// bent outward from the crown's middle, so the crown is lit as one soft form rather than as a heap of balls
+// Drawn soft and rounded, a little like a picture book's trees but still these trees (owner's request 2026-10-09,
+// docs/proposals/nature-look-2026-10-09): the crown is a few big smooth puffs of foliage, flatter beneath, their
+// normals bent outward from the crown's middle so the whole crown is lit as one soft form; two greens, bright and
+// warm on top, deep beneath; a stout trunk flaring at the foot and a few smooth limbs running up into the puffs
+// (no thin twigs: inside the forest they read as a bundle of lines).
 const KINDS = [
-  { tint: [0.17, 0.3, 0.11], bark: [0.44, 0.41, 0.36], wide: 1.0 },
-  { tint: [0.3, 0.4, 0.15], bark: [0.42, 0.36, 0.28], wide: 1.25 },
-  { tint: [0.24, 0.4, 0.15], bark: [0.5, 0.48, 0.43], wide: 0.85 },
-  { tint: [0.15, 0.27, 0.11], bark: [0.48, 0.46, 0.41], wide: 1.35 },
+  { top: [0.36, 0.54, 0.16], deep: [0.07, 0.18, 0.07], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.78 },
+  { top: [0.6, 0.68, 0.24], deep: [0.22, 0.33, 0.1], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.6 },
+  { top: [0.48, 0.64, 0.22], deep: [0.13, 0.28, 0.09], bark: [0.52, 0.48, 0.42], wide: 0.85, flat: 0.78 },
+  { top: [0.3, 0.48, 0.15], deep: [0.05, 0.15, 0.06], bark: [0.48, 0.45, 0.39], wide: 1.35, flat: 0.68 },
 ];
 
-// one tree, unit height (ground at 0, crown top about 1); `young` makes a sapling — fewer twigs, a slimmer stem
-// (`seed` fixes its shape, so the near and the far version — `lo`: coarser leaf masses and limbs — are the same tree)
+// one tree, unit height (ground at 0, crown top about 1); `young` makes a sapling — a slim stem and a small crown
+// (`seed` fixes its shape, so the near and the far version — `lo`: coarser puffs and limbs — are the same tree:
+// nothing drawn from the random numbers depends on `lo`)
 export function treeGeo(kind: number, young: boolean, seed: number, lo = false) {
   const R = mulberry32(seed), rr = (a: number, b: number) => a + (b - a) * R();
   const P: number[] = [], N: number[] = [], C: number[] = [], W: number[] = [], L: number[] = [], I: number[] = [], M: number[] = [];
   const push = (p: THREE.Vector3, n: THREE.Vector3, c: number[], sway: number, leaf: number) => { P.push(p.x, p.y, p.z); N.push(n.x, n.y, n.z); M.push(n.x, n.y, n.z); C.push(c[0], c[1], c[2]); W.push(sway); L.push(leaf); return P.length / 3 - 1; };
   const K = KINDS[kind], bark = K.bark;
   const sw = (y: number) => 0.5 * Math.pow(Math.max(0, y), 1.6);
-  // a tapered limb from a to b
-  const limb = (a: THREE.Vector3, b: THREE.Vector3, r0: number, r1: number, S0 = 6) => {
-    const S = lo ? Math.min(S0, 4) : S0;
-    const ax = b.clone().sub(a).normalize(), u = Math.abs(ax.y) < 0.9 ? new THREE.Vector3(0, 1, 0).cross(ax).normalize() : new THREE.Vector3(1, 0, 0).cross(ax).normalize(), v = ax.clone().cross(u);
-    const st = P.length / 3;
-    for (let k = 0; k <= 1; k++) for (let j = 0; j < S; j++) {
-      const an = j / S * Math.PI * 2, n = u.clone().multiplyScalar(Math.cos(an)).addScaledVector(v, Math.sin(an));
-      const c = k ? b : a; push(c.clone().addScaledVector(n, (k ? r1 : r0) * 0.55), n, bark, sw(c.y), 0);
+  // a limb: a smooth tapered tube from a to b, bowed a little through its middle (`bow`, sideways), its radius
+  // at t given by rad(t); round in section, so it is lit as a rounded thing, not a ruled stick
+  const up = new THREE.Vector3(0, 1, 0);
+  const limb = (a: THREE.Vector3, b: THREE.Vector3, rad: (t: number) => number, bow = new THREE.Vector3()) => {
+    const S = lo ? 5 : 8, Rn = lo ? 2 : 5, st = P.length / 3;
+    const mid = a.clone().lerp(b, 0.5).add(bow);
+    for (let i = 0; i <= Rn; i++) {
+      const t = i / Rn, c = a.clone().multiplyScalar((1 - t) ** 2).addScaledVector(mid, 2 * t * (1 - t)).addScaledVector(b, t * t);
+      const ax = mid.clone().sub(a).multiplyScalar(2 * (1 - t)).addScaledVector(b.clone().sub(mid), 2 * t).normalize();
+      const u = (Math.abs(ax.y) < 0.95 ? up.clone() : new THREE.Vector3(1, 0, 0)).cross(ax).normalize(), v = ax.clone().cross(u);
+      for (let j = 0; j < S; j++) {
+        const an = j / S * Math.PI * 2, n = u.clone().multiplyScalar(Math.cos(an)).addScaledVector(v, Math.sin(an));
+        push(c.clone().addScaledVector(n, rad(t)), n, bark, sw(c.y), 0);
+      }
     }
-    for (let j = 0; j < S; j++) { const a0 = st + j, b0 = st + (j + 1) % S; I.push(a0, b0, a0 + S, b0, b0 + S, a0 + S); }
+    for (let i = 0; i < Rn; i++) for (let j = 0; j < S; j++) { const a0 = st + i * S + j, b0 = st + i * S + (j + 1) % S; I.push(a0, b0, a0 + S, b0, b0 + S, a0 + S); }
   };
-  // a leaf mass: a small lumpy flattened ball, a shade of the tree's green
-  const ico = icoI(lo ? 0 : 1); const ip = ico.attributes.position, ix = ico.index!.array;
-  const masses: { c: THREE.Vector3; st: number; n: number }[] = [];
-  const mass = (c: THREE.Vector3, r: number, flat = 0.6) => {
-    const st = P.length / 3, seed = R() * 50, j = rr(0.85, 1.15), tint = [K.tint[0] * j * rr(0.9, 1.1), K.tint[1] * j, K.tint[2] * j * rr(0.85, 1.15)];
+  const taper = (r0: number, r1: number, flare = 0) => (t: number) => r1 + (r0 - r1) * (1 - t) + flare * Math.pow(Math.max(0, 1 - t * 4), 2);
+  // a puff of foliage: a smooth ball, its underside flatter, gently lumpy (low, broad lumps only)
+  const ico = icoI(lo ? 1 : young ? 2 : 3); const ip = ico.attributes.position, ix = ico.index!.array;
+  const puffs: { c: THREE.Vector3; st: number; n: number; j: number }[] = [];
+  const puff = (c: THREE.Vector3, rx: number, ry: number) => {
+    const st = P.length / 3, s0 = R() * 50, j = rr(0.92, 1.08), rz = rx * rr(0.88, 1.08);
+    const n3 = new THREE.Vector3(), q = new THREE.Vector3();
     for (let k = 0; k < ip.count; k++) {
-      const n = new THREE.Vector3(ip.getX(k), ip.getY(k), ip.getZ(k)).normalize();
-      const bump = 0.75 + 0.4 * Math.abs(Math.sin(n.x * 5.1 + seed) * Math.sin(n.y * 4.3 + seed * 1.3) * Math.sin(n.z * 4.7 + seed * 0.7));
-      push(c.clone().add(new THREE.Vector3(n.x * r * bump, n.y * r * flat * bump, n.z * r * bump)), n, tint, sw(c.y) + 0.1, 1);
+      n3.set(ip.getX(k), ip.getY(k), ip.getZ(k)).normalize();
+      const lump = 1 + 0.07 * Math.sin(n3.x * 2.2 + s0) * Math.sin(n3.z * 2.4 + s0 * 1.3) + 0.05 * Math.sin(n3.y * 2.6 + s0 * 0.7);
+      const fy = n3.y < 0 ? 0.6 : 1;
+      q.set(n3.x * rx * lump, n3.y * ry * fy * lump, n3.z * rz * lump);
+      const mn = new THREE.Vector3(n3.x / rx, n3.y / (ry * fy), n3.z / rz).normalize();
+      push(c.clone().add(q), mn, K.top, sw(c.y) + 0.1, 1);
     }
     for (let k = 0; k < ix.length; k++) I.push(st + ix[k]);
-    masses.push({ c, st, n: ip.count });
+    puffs.push({ c, st, n: ip.count, j });
   };
-  // a branch and what grows from it: forking `depth` more times, a cluster of leaf masses at each twig's end
-  const up = new THREE.Vector3(0, 1, 0);
-  const branch = (a: THREE.Vector3, dir: THREE.Vector3, len: number, r0: number, depth: number, rise: number) => {
-    const b = a.clone().addScaledVector(dir, len);
-    limb(a, b, r0, r0 * 0.62, depth > 1 ? 6 : 4);
-    if (depth <= 0) {
-      const lr = rr(0.09, 0.13) * (kind === 2 ? 1.25 : 1) * (young ? 1.4 : 1);
-      mass(b.clone().add(new THREE.Vector3(0, lr * 0.4, 0)), lr, kind === 1 ? 0.5 : 0.62);
-      for (let k = 0, n = 1; k < n; k++) mass(b.clone().add(new THREE.Vector3(rr(-1, 1) * lr, rr(-0.3, 0.5) * lr, rr(-1, 1) * lr)), lr * rr(0.6, 0.85));
-      return;
+  // the crown: a big puff on top, a ring round it a little lower, a few more tucked in between (a sapling: two or three)
+  const crown = (c: THREE.Vector3, A: number, B: number, n: number, limbsFrom: THREE.Vector3[] | null, limbR: number) => {
+    const fl = K.flat, a0 = R() * 6.28, cs: THREE.Vector3[] = [];
+    puff(c.clone().add(new THREE.Vector3(rr(-0.05, 0.05) * A, B * 0.42, rr(-0.05, 0.05) * A)), A * rr(0.5, 0.6), A * rr(0.5, 0.6) * fl);
+    cs.push(puffs[puffs.length - 1].c);
+    const ring = Math.max(2, n - 1 - (n > 6 ? 2 : 0));
+    for (let k = 0; k < ring; k++) {
+      const an = a0 + k / ring * 6.28 + rr(-0.3, 0.3), d = A * rr(0.5, 0.68);
+      const pc = c.clone().add(new THREE.Vector3(Math.cos(an) * d, rr(-0.35, 0.05) * B, Math.sin(an) * d)), r = A * rr(0.38, 0.5);
+      puff(pc, r, r * fl); cs.push(pc);
     }
-    const n = depth > 1 && R() < 0.4 ? 3 : 2, a0 = R() * 6.28;
-    for (let k = 0; k < n; k++) {
-      const an = a0 + k / n * 6.28 + rr(-0.5, 0.5), side = new THREE.Vector3(Math.cos(an), 0, Math.sin(an));
-      const d = dir.clone().multiplyScalar(0.6).addScaledVector(side, rr(0.45, 0.8)).addScaledVector(up, rise).normalize();
-      branch(b, d, len * rr(0.55, 0.75), r0 * 0.62, depth - 1, rise);
+    for (let k = 0; k < n - 1 - ring; k++) {
+      const an = a0 + (k + 0.5) / (n - 1 - ring) * 6.28, d = A * rr(0.28, 0.4);
+      const pc = c.clone().add(new THREE.Vector3(Math.cos(an) * d, B * rr(0.12, 0.3), Math.sin(an) * d)), r = A * rr(0.4, 0.5);
+      puff(pc, r, r * fl); cs.push(pc);
     }
-    if (depth === 1 && R() < 0.6) mass(a.clone().lerp(b, 0.6).add(new THREE.Vector3(rr(-0.05, 0.05), 0.05, rr(-0.05, 0.05))), rr(0.08, 0.11));   // (leaves along the limb too)
+    // limbs up into the puffs (ending inside them)
+    if (limbsFrom) cs.forEach((pc, k) => { if (k === 0 && cs.length > 3) return; const f = limbsFrom[k % limbsFrom.length]; limb(f, f.clone().lerp(pc, 0.8), taper(limbR, limbR * 0.45), new THREE.Vector3(0, 0.04, 0)); });
   };
-  const D = young ? 1 : 2;
   const tilt = (x: number) => new THREE.Vector3((R() - 0.5) * x, 1, (R() - 0.5) * x).normalize();
-  if (kind === 0) {
-    const t = tilt(0.3), top = t.clone().multiplyScalar(rr(0.28, 0.38));
-    limb(new THREE.Vector3(0, -0.05, 0), top, young ? 0.03 : 0.05, 0.036);
-    const n = 3 + Math.floor(R() * 2);
-    for (let k = 0; k < n; k++) { const an = k / n * 6.28 + rr(-0.4, 0.4); branch(top, new THREE.Vector3(Math.cos(an) * 0.7, 0.75, Math.sin(an) * 0.7).normalize(), rr(0.2, 0.28), 0.026, D, 0.5); }
-    if (!young) branch(top, t, 0.22, 0.026, D, 0.7);
+  if (young) {
+    // a sapling: a slim stem, a small round crown
+    const t = tilt(0.25), top = t.clone().multiplyScalar(rr(0.5, 0.6));
+    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.026, 0.016, 0.006), new THREE.Vector3(rr(-0.03, 0.03), 0, rr(-0.03, 0.03)));
+    crown(top.clone().add(new THREE.Vector3(0, 0.12, 0)), 0.26, 0.24, kind === 1 || kind === 3 ? 3 : 2, [top], 0.014);
+  } else if (kind === 0) {
+    const t = tilt(0.3), top = t.clone().multiplyScalar(rr(0.32, 0.4));
+    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.05, 0.036, 0.022), new THREE.Vector3(rr(-0.03, 0.03), 0, rr(-0.03, 0.03)));
+    crown(top.clone().add(new THREE.Vector3(0, 0.3, 0)), 0.44, 0.34, 8, [top], 0.028);
   } else if (kind === 1) {
-    const n = young ? 1 : 2 + Math.floor(R() * 2), a0 = R() * 6.28;
+    // two or three trunks sprawling from the foot, each kinked once; the crown low and broad over them
+    const n = 2 + Math.floor(R() * 2), a0 = R() * 6.28, ends: THREE.Vector3[] = [];
     for (let k = 0; k < n; k++) {
       const an = a0 + k / n * 6.28 + rr(-0.4, 0.4), out = new THREE.Vector3(Math.cos(an), 0, Math.sin(an));
-      const m = out.clone().multiplyScalar(rr(0.12, 0.22)).add(new THREE.Vector3(0, rr(0.22, 0.3), 0));
-      const e2 = m.clone().add(out.clone().multiplyScalar(rr(0.04, 0.12))).add(new THREE.Vector3(0, rr(0.14, 0.2), 0));
-      limb(new THREE.Vector3(0, -0.05, 0), m, 0.04, 0.03); limb(m, e2, 0.03, 0.024);   // (a sprawling, kinked stem)
-      for (let j = 0; j < 2; j++) { const b2 = an + rr(-1.2, 1.2); branch(e2, new THREE.Vector3(Math.cos(b2), 0.55, Math.sin(b2)).normalize(), rr(0.18, 0.26), 0.02, D, 0.25); }
+      const m = out.clone().multiplyScalar(rr(0.12, 0.2)).add(new THREE.Vector3(0, rr(0.2, 0.26), 0));
+      const e2 = m.clone().add(out.clone().multiplyScalar(rr(0.06, 0.12))).add(new THREE.Vector3(0, rr(0.12, 0.16), 0));
+      limb(new THREE.Vector3(0, -0.05, 0), m, taper(0.04, 0.032, 0.012)); limb(m, e2, taper(0.032, 0.026));
+      ends.push(e2);
     }
+    crown(new THREE.Vector3(0, 0.62, 0), 0.52, 0.24, 9, ends, 0.022);
   } else if (kind === 2) {
-    const t = tilt(0.15), top = t.clone().multiplyScalar(rr(0.52, 0.6));
-    limb(new THREE.Vector3(0, -0.05, 0), top, young ? 0.028 : 0.042, 0.028);
-    const n = young ? 2 : 3;
-    for (let k = 0; k < n; k++) { const an = k / n * 6.28 + rr(-0.4, 0.4); branch(top, new THREE.Vector3(Math.cos(an) * 0.6, 0.8, Math.sin(an) * 0.6).normalize(), rr(0.16, 0.22), 0.02, D, 0.6); }
+    const t = tilt(0.15), top = t.clone().multiplyScalar(rr(0.54, 0.6));
+    limb(new THREE.Vector3(0, -0.05, 0), top, taper(0.042, 0.03, 0.016), new THREE.Vector3(rr(-0.02, 0.02), 0, rr(-0.02, 0.02)));
+    crown(top.clone().add(new THREE.Vector3(0, 0.2, 0)), 0.32, 0.26, 6, [top], 0.022);
   } else {
-    const t = tilt(0.12), top = t.clone().multiplyScalar(rr(0.3, 0.36));
+    const t = tilt(0.12), top = t.clone().multiplyScalar(rr(0.32, 0.36));
     // the fluted trunk: a bundle of stems fused together, buttressed at the foot
-    for (let k = 0; k < (young ? 1 : 4); k++) { const an = k * 1.57 + R(), o = new THREE.Vector3(Math.cos(an), 0, Math.sin(an)); limb(o.clone().multiplyScalar(0.07).setY(-0.05), top.clone().addScaledVector(o, 0.02), 0.045, 0.03); }
-    const n = young ? 3 : 5;
+    for (let k = 0; k < 4; k++) { const an = k * 1.57 + R(), o = new THREE.Vector3(Math.cos(an), 0, Math.sin(an)); limb(o.clone().multiplyScalar(0.06).setY(-0.05), top.clone().addScaledVector(o, 0.018), taper(0.04, 0.028, 0.012)); }
+    // long level limbs, aerial roots hanging from some, the crown wide over them
+    const n = 5, ends: THREE.Vector3[] = [];
     for (let k = 0; k < n; k++) {
       const an = k / n * 6.28 + rr(-0.3, 0.3), out = new THREE.Vector3(Math.cos(an), 0, Math.sin(an));
-      const e2 = top.clone().addScaledVector(out, rr(0.28, 0.38)).add(new THREE.Vector3(0, rr(0.08, 0.16), 0));
-      limb(top, e2, 0.03, 0.02);
-      if (!young && k % 2 === 0) for (let j = 0; j < 2; j++) { const r0 = top.clone().lerp(e2, rr(0.5, 1)); limb(r0, new THREE.Vector3(r0.x + rr(-0.02, 0.02), -0.05, r0.z + rr(-0.02, 0.02)), 0.004, 0.006, 3); }   // (aerial roots)
-      branch(e2, out.clone().add(new THREE.Vector3(0, 0.9, 0)).normalize(), rr(0.15, 0.2), 0.018, D, 0.45);
+      const e2 = top.clone().addScaledVector(out, rr(0.3, 0.4)).add(new THREE.Vector3(0, rr(0.1, 0.16), 0));
+      limb(top, e2, taper(0.03, 0.02), new THREE.Vector3(0, 0.03, 0)); ends.push(e2);
+      if (k % 2 === 0) { const r0 = top.clone().lerp(e2, rr(0.55, 0.9)); limb(r0, new THREE.Vector3(r0.x + rr(-0.02, 0.02), -0.05, r0.z + rr(-0.02, 0.02)), taper(0.007, 0.009)); }   // (aerial roots)
     }
+    crown(top.clone().add(new THREE.Vector3(0, 0.3, 0)), 0.58, 0.3, 10, ends, 0.02);
   }
-  // normals of the leaves bent outward from the crown's middle
-  const cc = new THREE.Vector3(); let nn = 0;
-  for (const m of masses) { cc.add(m.c); nn++; } cc.divideScalar(Math.max(1, nn)); cc.y -= 0.05;
+  // the crown lit as one form: each puff's normals bent outward from the crown's middle; its colour by how it faces
+  // and how high it is — the bright warm green on top, the deep green beneath
+  const cc = new THREE.Vector3(), lo3 = new THREE.Vector3(1e9, 1e9, 1e9), hi3 = new THREE.Vector3(-1e9, -1e9, -1e9);
+  for (const pf of puffs) for (let k = pf.st; k < pf.st + pf.n; k++) { const v = new THREE.Vector3(P[k * 3], P[k * 3 + 1], P[k * 3 + 2]); lo3.min(v); hi3.max(v); }
+  cc.addVectors(lo3, hi3).multiplyScalar(0.5); const ext = hi3.clone().sub(lo3).multiplyScalar(0.5).max(new THREE.Vector3(1e-3, 1e-3, 1e-3));
   const v3 = new THREE.Vector3(), o3 = new THREE.Vector3();
-  for (const m of masses) for (let k = m.st; k < m.st + m.n; k++) {
-    v3.set(N[k * 3], N[k * 3 + 1], N[k * 3 + 2]); o3.set(P[k * 3] - cc.x, (P[k * 3 + 1] - cc.y) * 1.5, P[k * 3 + 2] - cc.z).normalize();
-    v3.lerp(o3, 0.65).normalize(); N[k * 3] = v3.x; N[k * 3 + 1] = v3.y; N[k * 3 + 2] = v3.z;
+  for (const pf of puffs) for (let k = pf.st; k < pf.st + pf.n; k++) {
+    v3.set(N[k * 3], N[k * 3 + 1], N[k * 3 + 2]); o3.set((P[k * 3] - cc.x) / ext.x, (P[k * 3 + 1] - cc.y) / ext.y * 1.2 + 0.15, (P[k * 3 + 2] - cc.z) / ext.z).normalize();
+    v3.lerp(o3, 0.6).normalize(); N[k * 3] = v3.x; N[k * 3 + 1] = v3.y; N[k * 3 + 2] = v3.z;
+    const h = (P[k * 3 + 1] - cc.y) / ext.y, tt = smooth(0, 1, 0.45 + 0.4 * v3.y + 0.3 * h);
+    for (let i = 0; i < 3; i++) C[k * 3 + i] = (K.deep[i] + (K.top[i] - K.deep[i]) * tt) * pf.j;
   }
   // scaled so the crown top is at 1
   let ymax = 0; for (let k = 1; k < P.length; k += 3) ymax = Math.max(ymax, P[k]);
@@ -127,7 +150,7 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
   // how much open sky each part sees: the top of the crown all of it, the trunk and the inside of the crown little
   // (saplings live in the shade of the canopy)
   const Sh: number[] = [];
-  for (let k = 0; k < L.length; k++) { const y = P[k * 3 + 1]; Sh.push(young ? 0.55 : L[k] ? 0.55 + 0.45 * smooth(0.4, 0.95, y) : 0.55 + 0.35 * smooth(0.45, 1.0, y)); }
+  for (let k = 0; k < L.length; k++) { const y = P[k * 3 + 1]; Sh.push(young ? 0.6 : L[k] ? 0.6 + 0.4 * smooth(0.4, 0.95, y) : 0.55 + 0.35 * smooth(0.45, 1.0, y)); }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
@@ -141,19 +164,21 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
 }
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-// the forest floor's own growth: a low clump of ferns and seedlings (a few leaf masses close to the ground)
+// the forest floor's own growth: a low clump of ferns and seedlings — a soft mound of three or four small puffs
 function shrubGeo() {
   const R = mulberry32(77), rr = (a: number, b: number) => a + (b - a) * R();
   const P: number[] = [], N: number[] = [], C: number[] = [], W: number[] = [], L: number[] = [], I: number[] = [];
-  const ico = icoI(); const ip = ico.attributes.position, ix = ico.index!.array;
-  for (let m = 0; m < 5; m++) {
-    const st = P.length / 3, cx = rr(-0.5, 0.5), cz = rr(-0.5, 0.5), r = rr(0.3, 0.5), j = rr(0.8, 1.2), seed = R() * 40;
+  const ico = icoI(1); const ip = ico.attributes.position, ix = ico.index!.array;
+  const top = [0.34, 0.5, 0.17], deep = [0.08, 0.2, 0.07];
+  for (let m = 0; m < 4; m++) {
+    const st = P.length / 3, an = m * 1.9 + R(), d = m ? rr(0.25, 0.45) : 0, cx = Math.cos(an) * d, cz = Math.sin(an) * d, r = m ? rr(0.3, 0.42) : 0.48, j = rr(0.9, 1.1), seed = R() * 40;
     for (let k = 0; k < ip.count; k++) {
       const n = new THREE.Vector3(ip.getX(k), ip.getY(k), ip.getZ(k)).normalize();
-      const bump = 0.7 + 0.45 * Math.abs(Math.sin(n.x * 4.1 + seed) * Math.sin(n.z * 3.7 + seed));
-      P.push(cx + n.x * r * bump, Math.max(0, r * 0.6 + n.y * r * 0.7 * bump), cz + n.z * r * bump);
-      const o = new THREE.Vector3(cx * 0.5 + n.x, n.y + 0.6, cz * 0.5 + n.z).normalize(); N.push(o.x, o.y, o.z);
-      C.push(0.19 * j, 0.33 * j, 0.12 * j); W.push(0.15); L.push(1);
+      const lump = 1 + 0.06 * Math.sin(n.x * 2.1 + seed) * Math.sin(n.z * 2.3 + seed);
+      P.push(cx + n.x * r * lump, Math.max(0, r * 0.45 + n.y * r * (n.y < 0 ? 0.4 : 0.75) * lump), cz + n.z * r * lump);
+      const o = new THREE.Vector3(cx * 0.8 + n.x, n.y + 0.7, cz * 0.8 + n.z).normalize(); N.push(o.x, o.y, o.z);
+      const t = smooth(-0.2, 1, o.y * 0.8 + n.y * 0.3);
+      C.push((deep[0] + (top[0] - deep[0]) * t) * j, (deep[1] + (top[1] - deep[1]) * t) * j, (deep[2] + (top[2] - deep[2]) * t) * j); W.push(0.15); L.push(1);
     }
     for (let k = 0; k < ix.length; k++) I.push(st + ix[k]);
   }
@@ -195,13 +220,14 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
        // soft over a pixel and drawn as coverage when the scene is multisampled (a hard cut there crawled and
        // twinkled as the view moved); cut at its middle when it is not
        float l1 = vn2(vWp.xz * 3.1 + vWp.y * 2.3), l2 = vn2(vWp.xz * 9.0 - vWp.y * 6.0 + 5.0);
-       float edge = abs(dot(normalize(vMn), V)) - (0.32 * l2 + 0.06), ew = max(fwidth(edge), 1e-4);
+       float edge = abs(dot(normalize(vMn), V)) - (0.12 * l2 + 0.03), ew = max(fwidth(edge), 1e-4);   // (a soft, gently scalloped rim: the crowns are smooth puffs now)
        float cover = mix(1.0, smoothstep(-ew, ew, edge), step(0.5, vLeaf));
        if (cover < mix(0.5, 0.02, uA2C)) discard;
        if (vLeaf > 0.5) {
-         n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 1.1);
-         vec3 alb = vCol * (0.75 + 0.7 * l2) * mix(0.62, 1.25, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
-         alb = mix(alb, vec3(0.44, 0.48, 0.22), smoothstep(0.78, 0.95, l1) * 0.4);            // (new leaves, paler)
+         // (the leaf clumps' light and shade only a soft mottle over the rounded form)
+         n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 0.4);
+         vec3 alb = vCol * (0.88 + 0.28 * l2) * mix(0.75, 1.15, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
+         alb = mix(alb, vec3(0.5, 0.56, 0.24), smoothstep(0.8, 0.96, l1) * 0.25);              // (new leaves, paler)
          col = airLit(alb, n, vWp, 0.8);
        } else {
          // bark: grey-brown, ridged, mossy on the shaded side
