@@ -14,6 +14,7 @@
 import type { LotView } from '../../world/science-contract';
 import { pv } from '../params';
 import { finite } from './common';
+import { BULK_G_PER_ML } from './charcoal';
 import { FIRED_POT } from './pit-fire';
 import { potSherdsQuality } from './vessel';
 
@@ -46,6 +47,11 @@ export function retortParams(upper: LotView, lower: LotView, o: { heatShare?: nu
   if (u.capacityMl < pv('firedRetortMinUpperMl')) throw new Error(`the upper pot holds the charge: at least ${pv('firedRetortMinUpperMl')} mL`);
   const heatShare = o.heatShare ?? pv('firedPotHeatShareRetort'), collectShare = o.collectShare ?? pv('firedRetortCollectShare');
   if (!finite(heatShare, 0, 1) || !finite(collectShare, 0, 1)) throw new Error('heatShare and collectShare must be within 0..1');
+  // the lower pot must hold all a full charge can drip into it (Codex AS-A1): the retort step keeps no lower capacity,
+  // so the pair is refused here. Bound: the fullest charge (BULK_G_PER_ML of the upper pot), all of it dry wood broken
+  // down, tar and pyrolysis water at collectShare, counted 1 g = 1 mL (tar is denser than water, so this is generous).
+  const maxDripMl = Math.ceil(u.capacityMl * BULK_G_PER_ML * (pv('tarYield') + pv('pyroWaterYield')) * collectShare);
+  if (l.capacityMl < maxDripMl) throw new Error(`the lower pot holds ${l.capacityMl} mL: a full charge of the upper pot can drip up to ${maxDripMl} mL into it`);
   return { heatCapJPerK: heatCap(u.massG + l.massG), uaWPerK: loss(u.areaM2 + l.areaM2), heatShare, capacityMl: u.capacityMl, collectShare };
 }
 

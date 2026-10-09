@@ -40,7 +40,7 @@ const COAL = ['char', 'wood_dry', 'ash', 'water'] as const;
 const FINE_MS = 250;
 const FIRE_KG_PER_H = [0.4, 0.8, 1.6] as const;
 const CP = { wood: 1.5, char: 1.0, water: 4.18, ash: 0.8 } as const; // J/(g·K), assumed
-const BULK_G_PER_ML = 0.4; // stacked pieces in the pot, for its capacity only (assumed)
+export const BULK_G_PER_ML = 0.4; // stacked pieces in the pot, for its capacity only (assumed)
 
 interface RetortData {
   chargeId: string; chargeMaterial: string; chargeFp: string; eqFp: string; char0: number; charredC0: number; fuelId: string; fuelFp: string; location: string; fuelLocation: string;

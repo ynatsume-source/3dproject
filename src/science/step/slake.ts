@@ -29,9 +29,9 @@ import { pv } from '../params';
 import { pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, isInt, subStepEnd, wind10m } from './common';
 
-export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.3' } as const; // 0.1.3: look (feel the clay in the tub, without touching the physics)
+export const SLAKE_PROCESS = { processId: 'p10x_clay_slake', processVersion: '0.1.4' } as const; // 0.1.3: look (feel the clay in the tub, without touching the physics) // 0.1.4: look silent on inherited incomplete history; actions before looks at the same time (Codex A-S1, A-S2)
 const SCHEMA = 'civ-sci.clay-slake/2';
-const EVAL = 'clay-slake-eval/0.1.3';
+const EVAL = 'clay-slake-eval/0.1.4';
 const FINE_CLAYS = ['settled_clay', 'prepared_clay'];
 const TUB = 'fixture_clay_tub', PIT = 'clay_pit'; // 0.1.2: the island's clay pit (step/clay-pit.ts) is a tub too
 const STEP_MS = 30_000;
@@ -222,25 +222,27 @@ export function slakeStep(req: ScienceStepRequest): ScienceStepResult {
   };
 
   // look (0.1.3): the clay is felt at the look's own time from a copy, so looking never splits the physics
-  // (the steps stay where they were without it); nothing is felt while the weather is unknown or after it
+  // (the steps stay where they were without it); nothing is felt while the weather is unknown or after it, nor when
+  // the clay or the water came in with an incomplete history (0.1.4, Codex A-S1: its water was never computed)
   const feelNow = (at: number) => {
-    if (!known || !d.historyComplete) return;
+    if (!known || !d.historyComplete || d.hist < 1) return;
     const dry = tubDryMg(), wr = dry > 0 ? d.waterMg / dry : Infinity;
     observations.push({ at, channel: 'touch', quantity: 'feel', text: dry === 0 ? (d.waterMg > 0 ? '桶には水しか残っていない' : '桶は空っぽ') : d.sievedAt >= 0 ? clayFeel(wr) : `こす前の泥。${clayFeel(wr)}` });
   };
+  // at the same moment the hands act first, then feel (0.1.4, Codex A-S2: the same at the start of a request and inside it)
   let t = d.lastTo, k = 0, j = 0;
   while (t < endAt) {
-    const tEnd = Math.min(subStepEnd(t, d.startMs, STEP_MS, endAt), k < acts.length ? Math.max(acts[k].at, t) : Infinity);
+    for (; k < acts.length && acts[k].at <= t; k++) act(acts[k]);
     for (; j < looks.length && looks[j].at <= t; j++) feelNow(looks[j].at);
+    const tEnd = Math.min(subStepEnd(t, d.startMs, STEP_MS, endAt), k < acts.length ? acts[k].at : Infinity);
     for (; j < looks.length && looks[j].at < tEnd; j++) {
       const saved = d; d = structuredClone(saved); evaporate((looks[j].at - t) / 1000); feelNow(looks[j].at); d = saved;
     }
     evaporate((tEnd - t) / 1000);
     t = tEnd;
-    for (; k < acts.length && acts[k].at <= t; k++) act(acts[k]);
   }
-  for (; j < looks.length; j++) feelNow(looks[j].at);
   for (; k < acts.length; k++) act(acts[k]); // actions at the very start of a zero-length remainder
+  for (; j < looks.length; j++) feelNow(looks[j].at);
   if (!known && endAt > req.interval.from) d.historyComplete = false;
   d.lastTo = endAt;
   if (!allFinite(d)) return failed(req, EVAL, 'non-finite state: refusing to return it', SCHEMA);

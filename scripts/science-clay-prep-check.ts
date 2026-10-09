@@ -262,6 +262,22 @@ console.log('10. feeling the clay in the pit (look, 0.1.3)');
   ok(unknown.obs.every((o) => o.quantity !== 'feel' || o.at >= 2 * D - 30_000) && unknown.obs.filter((o) => o.quantity === 'feel' && o.at < 2 * D - 30_000).length === 0, 'after unknown weather a look tells nothing');
 }
 
+console.log('12. looks: history and order (0.1.4, Codex A-S1 and A-S2 on 0a3de47)');
+{
+  const feel = (r: ReturnType<typeof tub>) => r.obs.filter((o) => o.quantity === 'feel');
+  const atLook = (r: ReturnType<typeof tub>) => feel(r).filter((o) => o.at === D);
+  const look1: [number, string][] = [[D, 'look'], [D + H, 'take_out']];
+  const sure = tub(2 * D, look1), clayGap = tub(2 * D, look1, { lots: [RAW({ history_complete: 0 }), WATER()] }),
+    waterGap = tub(2 * D, look1, { lots: [RAW(), { ...WATER(), quality: { history_complete: 0 } }] });
+  ok(atLook(sure).length === 1 && atLook(clayGap).length === 0 && atLook(waterGap).length === 0,
+    'clay or water that came in with an incomplete history is not felt as if its water were known (only the closing words)', `${atLook(sure)[0]?.text} / clay ${atLook(clayGap).length}, water ${atLook(waterGap).length}`);
+  const both: [number, string][] = [[12 * H, 'look'], [12 * H, 'sieve'], [12 * H + 17_003, 'look'], [D + H, 'take_out']];
+  const key = (r: ReturnType<typeof tub>) => JSON.stringify(r.obs.map((o) => [o.at, o.quantity, o.text]));
+  const one = tub(2 * D, both, {}, 2 * D), halves = tub(2 * D, both, {}, 12 * H), odd = tub(2 * D, both, {}, 12 * H + 17_003);
+  ok(key(one) === key(halves) && key(one) === key(odd) && /^どろ|^やわ/.test(feel(one)[0]?.text ?? ''),
+    'sieve and look at the same moment: the hands act first, whether the moment opens a request or falls inside one', feel(one).map((o) => o.text).join(' / '));
+}
+
 console.log('11. the island\'s clay (table civ-sci.island-clay/1, assumed)');
 {
   const c = islandClay('south-near');

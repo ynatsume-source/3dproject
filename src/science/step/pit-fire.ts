@@ -34,8 +34,8 @@ import { potSherdsQuality } from './vessel';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 import { DRY_POT, GREEN_POT } from './pottery';
 
-export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.1.1' } as const;
-const SCHEMA = 'civ-sci.pot-pit-fire/1', EVAL = 'pot-pit-fire-eval/0.1.1';
+export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.1.2' } as const; // 0.1.2: a lost hearth stops the fire at interval.to, not at interval.from (Codex PF-A1)
+const SCHEMA = 'civ-sci.pot-pit-fire/1', EVAL = 'pot-pit-fire-eval/0.1.2';
 export const FIRED_POT = 'fired_pot';
 const STEP_MS = 30_000, UNLOAD_C = 60, RAMP_GIVE_UP_S = 2 * 3600;
 const GLOWS = ['dull_red', 'cherry', 'orange', 'yellow'] as const;
@@ -147,7 +147,8 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   let t = d.lastTo;
   const reads = req.actions.filter((a) => a.action === 'look').sort((x, y) => x.at - y.at);
   let k = 0;
-  if (known && req.stop !== 'equipment-lost') {
+  // a stop (equipment-lost too) ends the run at interval.to: the fire burns up to then, as in any other interval (PF-A1)
+  if (known) {
     const Ta = env.airTempC!;
     while (d.phase !== 'done' && t < req.interval.to) {
       const tEnd = subStepEnd(t, d.startMs, STEP_MS, req.interval.to);

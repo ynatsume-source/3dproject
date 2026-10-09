@@ -135,6 +135,18 @@ console.log('6. clay with organic matter (the island\'s clay, 0.1.1)');
     `peak ${cool.diag.peakKilnC.toFixed(0)} °C, ${cool.pot.materialId}, organic left ${cool.pot.quality!.xd_organic_c_ppm ?? 0} ppm`);
 }
 
+console.log('7. the hearth lost (0.1.2, Codex PF-A1 on 0a3de47)');
+{
+  const lost = { stop: 'equipment-lost' as const };
+  const whole = step(req(0, 2 * H, null, [dryPot, WOOD()], planAct(CAREFUL), CALM, lost));
+  const first = step(req(0, H, null, [dryPot, WOOD()], planAct(CAREFUL), CALM));
+  const second = step(req(H, 2 * H, JSON.parse(JSON.stringify(first.state)), [dryPot, WOOD()], [], CALM, { ...lost, equipment: [] }));
+  const key = (r: ScienceStepResult) => JSON.stringify([r.produced, r.released, (r as unknown as Drawn).drawn, r.simulated.to, r.status]);
+  const burned = (r: ScienceStepResult) => (r.diagnostics as Record<string, number>).burnedMg;
+  ok(whole.status === 'stopped' && key(whole) === key(second) && burned(whole) > 1_000_000 && balanced(whole),
+    'a hearth lost at 2 h: the fire burned until then, in one request or two (the same wood, pot and gases)', `burned ${(burned(whole) / 1e6).toFixed(2)} kg, pot ${whole.produced[0].materialId}`);
+}
+
 console.log('5. requests that are refused');
 {
   const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));

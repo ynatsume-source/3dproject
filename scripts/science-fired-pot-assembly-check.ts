@@ -65,6 +65,8 @@ console.log('2. what is not assembled');
   refuse('a lamp dish as a cook pot', () => cookPotParams(lamp), /form/);
   refuse('a cook pot as a lamp dish', () => lampDishParams(cook), /form/);
   refuse('the same pot twice in a retort', () => retortParams(cook, cook), /two different/);
+  refuse('a lower pot too small for what a full charge drips (Codex AS-A1: 8 L over 100 mL)',
+    () => retortParams({ ...cook, quality: { ...cook.quality, capacity_ml: 8000 } }, { ...jar, quality: { ...jar.quality, capacity_ml: 100 } }), /drip up to 615 mL/);
   refuse('a small upper pot', () => retortParams({ ...jar, quality: { ...jar.quality, capacity_ml: 500 } }, cook), /at least/);
   refuse('a test pot (fired_pot_test) — it has its own table', () => cookPotParams({ ...cook, materialId: 'fired_pot_test' }), /fired_pot/);
   refuse('a heat share out of range', () => cookPotParams(cook, { heatShare: 2 }), /heatShare/);
