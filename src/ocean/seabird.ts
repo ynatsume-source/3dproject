@@ -285,7 +285,7 @@ export function seabirdMaterial(kind: BirdKind, L: BirdLook) {
          // a female frigatebird's white breast (the male is all black, with his red throat)
          float br = uLook.w * (1.0 - male) * smoothstep(uZ.y - 0.05, uZ.y - 0.02, vL.z) * (1.0 - smoothstep(uZ.x - 0.004, uZ.x + 0.01, vL.z)) * (1.0 - up);
          alb = mix(alb, uBreast, br);
-         float throat = uLook.w * male * smoothstep(uZ.x - 0.004, uZ.x + 0.01, vL.z) * smoothstep(0.1, -0.5, vN0.y) * (1.0 - smoothstep(uZ.z - 0.012, uZ.z, vL.z));
+         float throat = uLook.w * male * smoothstep(uZ.x - 0.004, uZ.x + 0.008, vL.z) * smoothstep(-0.25, -0.65, vN0.y) * (1.0 - smoothstep(uEye.z - 0.006, uEye.z + 0.002, vL.z));   // (the male's bare throat, red beneath the bill)
          alb = mix(alb, vec3(0.75, 0.12, 0.1), throat);
          // the caps of the terns: a black crown to the nape; the crested's white forehead; the black-naped's band
          vec3 e = vec3(abs(vL.x), vL.y, vL.z) - uEye.xyz;
@@ -348,7 +348,7 @@ export function seabirdMaterial(kind: BirdKind, L: BirdLook) {
      }`,
     { uniforms: {
       uC1: { value: C(L.c1, [0.3, 0.3, 0.3]) }, uC2: { value: C(L.c2, [0.9, 0.9, 0.9]) }, uBill: { value: C(L.bill, [0.3, 0.3, 0.3]) },
-      uHead: { value: C(L.head, L.hood ? L.c1 : L.c2) }, uCapC: { value: C(L.capCol, [0.05, 0.05, 0.06]) }, uFeet: { value: C(L.feet, [0.12, 0.12, 0.12]) },
+      uHead: { value: C(L.head, L.hood || kind === 'frigate' ? L.c1 : L.c2) }, uCapC: { value: C(L.capCol, [0.05, 0.05, 0.06]) }, uFeet: { value: C(L.feet, [0.12, 0.12, 0.12]) },
       uIris: { value: C(L.iris, [0.06, 0.05, 0.05]) }, uFace: { value: C(L.face, [0.9, 0.9, 0.88]) }, uBreast: { value: C(L.breast, [0.94, 0.94, 0.92]) },
       uLook: { value: new THREE.Vector4(L.hood ? 1 : 0, capN === 4 ? 0 : capN, { white: 2, margin: 1, dark: 0 }[L.under ?? 'white'], L.sexes ? 1 : 0) },
       uLook2: { value: new THREE.Vector4(L.cheek ? 1 : 0, L.face ? 1 : 0, capN === 4 ? 1 : 0, kind === 'albatross' && L.c2[0] > 0.6 ? 1 : 0) },
