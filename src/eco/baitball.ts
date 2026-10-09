@@ -136,6 +136,7 @@ export function makeBaitBall(oc: any, fraction: number) {
         const dx = bp[i * 3] - x, dz = bp[i * 3 + 2] - z;
         if (dx * dx + dz * dz < 2.5) { dead[i] = 1; st.alive--; n++; }
       }
+      return n;
     },
   };
 

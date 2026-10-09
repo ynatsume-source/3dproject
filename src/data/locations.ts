@@ -1,4 +1,5 @@
 // The seas you can dive into. Terrain functions return height (m, surface = 0) and set TERR.reef (0..1 coral cover).
+import type { BirdLook } from '../ocean/seabird';
 import { POINT_LOBOS } from './pointlobos';
 import { fbm, smooth, clamp, bommieField, vnoise, TERR } from '../core/math';
 import { caveFootprint, type CaveSpec } from '../ocean/cave';
@@ -33,12 +34,13 @@ export interface Species {
 // seabirds over the site: how they fly, and whether they rest on the water
 export interface BirdSpec {
   id: string; ja: string; sci: string; note: string;
-  kind: 'booby' | 'tern' | 'albatross' | 'frigate';
+  kind: 'booby' | 'tern' | 'albatross' | 'frigate' | 'shearwater';
   count: number; span: number;            // wingspan (m)
   c1: number[]; c2: number[]; c3: number[];   // upperparts, underparts, bill / cap
   speed: number; glide: number;           // m/s; fraction of the time spent gliding
   alt: [number, number]; rest: number;     // flying height (m); how often it settles on the sea (0 never)
   crowd?: boolean;                         // a great flock that only comes in to a bait ball (out of sight otherwise)
+  look?: Partial<BirdLook>;                // its marks (ocean/seabird): cap, hood, underwing, feet, eye (c3 is the bill)
 }
 export interface GuideEntry { id: string; ja: string; sci: string; note: string }
 export interface Sea {
@@ -110,8 +112,8 @@ export const LOCATIONS: Sea[] = [
     corals: { branch: 0.30, table: 0.14, brain: 0.22, fan: 0.07, mushroom: 0.14, clam: 0.03 }, thicket: 0.7,
     anemones: 34, clamSize: [0.6, 1.1], eels: 0,
     birds: [
-      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
-      { id: 'ooajisashi', ja: 'オオアジサシ', sci: 'Thalasseus bergii', note: '黄色いくちばしと黒い冠羽のアジサシ。水面の上をふわふわと飛び、小魚を見つけると急降下する。', kind: 'tern', count: 6, span: 1.1, c1: [0.62, 0.64, 0.66], c2: [0.96, 0.96, 0.95], c3: [0.95, 0.85, 0.2], speed: 9, glide: 0.25, alt: [3, 14], rest: 0 },
+      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5, look: { hood: true, under: 'margin', feet: [0.86, 0.78, 0.34], iris: [0.86, 0.85, 0.7] } },
+      { id: 'ooajisashi', ja: 'オオアジサシ', sci: 'Thalasseus bergii', note: '黄色いくちばしと黒い冠羽のアジサシ。水面の上をふわふわと飛び、小魚を見つけると急降下する。', kind: 'tern', count: 6, span: 1.1, c1: [0.62, 0.64, 0.66], c2: [0.96, 0.96, 0.95], c3: [0.95, 0.85, 0.2], speed: 9, glide: 0.25, alt: [3, 14], rest: 0, look: { cap: 'crest', capCol: [0.05, 0.05, 0.06], feet: [0.06, 0.06, 0.06] } },
     ],
     bait: {
       sp: { id: 'mizun', ja: 'ミズン', sci: 'Herklotsichthys quadrimaculatus', note: 'リーフの浅場で何千匹もの群れをつくるニシンの仲間。ふだんは広がって漂い、捕食者に囲まれると身を寄せ合って球のように固まる（ベイトボール）。',
@@ -191,8 +193,8 @@ export const LOCATIONS: Sea[] = [
     corals: { branch: 0.30, table: 0.22, brain: 0.24, fan: 0.02, mushroom: 0.16, clam: 0.06 }, thicket: 0.9,
     anemones: 40, clamSize: [0.22, 0.38], eels: 14,
     birds: [
-      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5 },
-      { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に沖縄の岩礁で子育てし、サンゴ礁の上を軽やかに飛ぶ。', kind: 'tern', count: 10, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0 },
+      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。水面に浮かんで休むことも多い。', kind: 'booby', count: 7, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [4, 28], rest: 0.5, look: { hood: true, under: 'margin', feet: [0.86, 0.78, 0.34], iris: [0.86, 0.85, 0.7] } },
+      { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に沖縄の岩礁で子育てし、サンゴ礁の上を軽やかに飛ぶ。', kind: 'tern', count: 10, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0, look: { cap: 'nape', capCol: [0.04, 0.04, 0.05], feet: [0.06, 0.06, 0.06] } },
     ],
     bait: {
       sp: { id: 'mizun', ja: 'ミズン', sci: 'Herklotsichthys quadrimaculatus', note: 'リーフの浅場で何千匹もの群れをつくるニシンの仲間。ふだんは広がって漂い、捕食者に囲まれると身を寄せ合って球のように固まる（ベイトボール）。',
@@ -284,8 +286,8 @@ export const LOCATIONS: Sea[] = [
     corals: { branch: 0.12, table: 0.18, brain: 0.22, fan: 0.2, mushroom: 0.22, clam: 0.02 }, thicket: 0.35,
     anemones: 30, clamSize: [0.3, 0.5], eels: 12,
     birds: [
-      { id: 'gunkandori', ja: 'オオグンカンドリ', sci: 'Fregata minor', note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。', kind: 'frigate', count: 3, span: 2.2, c1: [0.06, 0.06, 0.07], c2: [0.9, 0.9, 0.9], c3: [0.5, 0.5, 0.55], speed: 9, glide: 0.95, alt: [25, 70], rest: 0 },
-      { id: 'shiroajisashi', ja: 'シロアジサシ', sci: 'Gygis alba', note: '全身真っ白で目が大きい、妖精のようなアジサシ。巣を作らず木の枝のくぼみに直接卵を産む。', kind: 'tern', count: 5, span: 0.78, c1: [0.97, 0.97, 0.97], c2: [0.99, 0.99, 0.99], c3: [0.08, 0.08, 0.1], speed: 8, glide: 0.2, alt: [4, 15], rest: 0 },
+      { id: 'gunkandori', ja: 'オオグンカンドリ', sci: 'Fregata minor', note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。', kind: 'frigate', count: 3, span: 2.2, c1: [0.06, 0.06, 0.07], c2: [0.9, 0.9, 0.9], c3: [0.5, 0.5, 0.55], speed: 9, glide: 0.95, alt: [25, 70], rest: 0, look: { sexes: true, under: 'dark', feet: [0.5, 0.35, 0.35], breast: [0.95, 0.95, 0.93] } },
+      { id: 'shiroajisashi', ja: 'シロアジサシ', sci: 'Gygis alba', note: '全身真っ白で目が大きい、妖精のようなアジサシ。巣を作らず木の枝のくぼみに直接卵を産む。', kind: 'tern', count: 5, span: 0.78, c1: [0.97, 0.97, 0.97], c2: [0.99, 0.99, 0.99], c3: [0.08, 0.08, 0.1], speed: 8, glide: 0.2, alt: [4, 15], rest: 0, look: { cap: 'ring', capCol: [0.05, 0.05, 0.06], bill: [0.08, 0.1, 0.16], feet: [0.35, 0.42, 0.55] } },
     ],
     bait: {
       sp: { id: 'kibinago', ja: 'キビナゴ', sci: 'Spratelloides gracilis', note: '銀色の体に青く光る縦帯の小魚。環礁のまわりに大群で暮らし、モルディブの伝統的なカツオ一本釣りでは生き餌として撒かれる。',
@@ -360,9 +362,9 @@ export const LOCATIONS: Sea[] = [
     corals: { branch: 0, table: 0, brain: 0, fan: 0, mushroom: 0, clam: 0 },
     anemones: 0, clamSize: [0.3, 0.4], eels: 0,
     birds: [
-      { id: 'onaga', ja: 'オナガミズナギドリ', sci: 'Ardenna pacifica', note: '細長い翼で波の上すれすれを滑空する海鳥。マグロやカツオの群れについて回り、群れに追い上げられた小魚を浅く潜って捕る。漁師はこの鳥の群れを目印にナブラを探す。', kind: 'booby', count: 6, span: 1.0, c1: [0.3, 0.26, 0.23], c2: [0.8, 0.77, 0.73], c3: [0.3, 0.3, 0.32], speed: 11, glide: 0.8, alt: [1.5, 9], rest: 0.35 },
-      { id: 'koahoudori', ja: 'コアホウドリ', sci: 'Phoebastria immutabilis', note: '翼を広げると2m。風と波の上昇気流を使う「ダイナミック・ソアリング」で、ほとんど羽ばたかずに大洋を何千kmも飛ぶ。ハワイ北西の島で繁殖し、北太平洋を回遊する。', kind: 'albatross', count: 2, span: 2.0, c1: [0.22, 0.2, 0.19], c2: [0.97, 0.97, 0.96], c3: [0.85, 0.72, 0.6], speed: 12, glide: 0.97, alt: [1, 12], rest: 0.35 },
-      { id: 'kuroashi', ja: 'クロアシアホウドリ', sci: 'Phoebastria nigripes', note: '全身が黒っぽいアホウドリ。船や漂流物についてくる好奇心の強い鳥で、北太平洋の真ん中でも出会う。', kind: 'albatross', count: 1, span: 2.1, c1: [0.18, 0.16, 0.15], c2: [0.3, 0.27, 0.25], c3: [0.2, 0.18, 0.17], speed: 12, glide: 0.97, alt: [1, 10], rest: 0.35 },
+      { id: 'onaga', ja: 'オナガミズナギドリ', sci: 'Ardenna pacifica', note: '細長い翼で波の上すれすれを滑空する海鳥。マグロやカツオの群れについて回り、群れに追い上げられた小魚を浅く潜って捕る。漁師はこの鳥の群れを目印にナブラを探す。', kind: 'shearwater', count: 6, span: 1.0, c1: [0.3, 0.26, 0.23], c2: [0.8, 0.77, 0.73], c3: [0.3, 0.3, 0.32], speed: 11, glide: 0.8, alt: [1.5, 9], rest: 0.35, look: { under: 'margin', feet: [0.78, 0.66, 0.62], head: [0.3, 0.26, 0.23] } },
+      { id: 'koahoudori', ja: 'コアホウドリ', sci: 'Phoebastria immutabilis', note: '翼を広げると2m。風と波の上昇気流を使う「ダイナミック・ソアリング」で、ほとんど羽ばたかずに大洋を何千kmも飛ぶ。ハワイ北西の島で繁殖し、北太平洋を回遊する。', kind: 'albatross', count: 2, span: 2.0, c1: [0.22, 0.2, 0.19], c2: [0.97, 0.97, 0.96], c3: [0.85, 0.72, 0.6], speed: 12, glide: 0.97, alt: [1, 12], rest: 0.35, look: { under: 'margin', feet: [0.8, 0.7, 0.72], head: [0.97, 0.97, 0.96] } },
+      { id: 'kuroashi', ja: 'クロアシアホウドリ', sci: 'Phoebastria nigripes', note: '全身が黒っぽいアホウドリ。船や漂流物についてくる好奇心の強い鳥で、北太平洋の真ん中でも出会う。', kind: 'albatross', count: 1, span: 2.1, c1: [0.18, 0.16, 0.15], c2: [0.3, 0.27, 0.25], c3: [0.2, 0.18, 0.17], speed: 12, glide: 0.97, alt: [1, 10], rest: 0.35, look: { under: 'dark', feet: [0.12, 0.11, 0.1], face: [0.9, 0.9, 0.88], head: [0.22, 0.2, 0.18] } },
     ],
     bait: {
       sp: { id: 'muroaji', ja: 'ムロアジの幼魚', sci: 'Decapterus spp.', note: '外洋の表層を群れで漂う小さなアジの仲間。マグロやカツオ、シイラの大事な餌で、群れが追い上げられると水面が沸き立つ「ナブラ」が起きる。',
@@ -427,9 +429,9 @@ export const LOCATIONS: Sea[] = [
     corals: { branch: 0.34, table: 0.16, brain: 0.3, fan: 0.0, mushroom: 0.14, clam: 0.06 }, thicket: 0.8,
     anemones: 26, clamSize: [0.2, 0.34], eels: 0,
     birds: [
-      { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に八重山の小島の岩場で子育てし、ラグーンの上を軽やかに飛んで小魚を捕る。', kind: 'tern', count: 12, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0 },
-      { id: 'beniajisashi', ja: 'ベニアジサシ', sci: 'Sterna dougallii', note: '淡い灰色の背に黒い頭、長い燕尾。夏に南の島の岩礁や砂浜で集団で子育てする。繁殖期には胸がうっすら桃色を帯びる。', kind: 'tern', count: 8, span: 0.76, c1: [0.8, 0.83, 0.86], c2: [0.99, 0.96, 0.96], c3: [0.04, 0.04, 0.04], speed: 8.5, glide: 0.2, alt: [3, 14], rest: 0 },
-      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。', kind: 'booby', count: 3, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [6, 30], rest: 0.4 },
+      { id: 'erigure', ja: 'エリグロアジサシ', sci: 'Sterna sumatrana', note: '真っ白な体に黒い後頭部。夏に八重山の小島の岩場で子育てし、ラグーンの上を軽やかに飛んで小魚を捕る。', kind: 'tern', count: 12, span: 0.62, c1: [0.9, 0.92, 0.94], c2: [0.98, 0.98, 0.98], c3: [0.05, 0.05, 0.05], speed: 8, glide: 0.2, alt: [3, 12], rest: 0, look: { cap: 'nape', capCol: [0.04, 0.04, 0.05], feet: [0.06, 0.06, 0.06] } },
+      { id: 'beniajisashi', ja: 'ベニアジサシ', sci: 'Sterna dougallii', note: '淡い灰色の背に黒い頭、長い燕尾。夏に南の島の岩礁や砂浜で集団で子育てする。繁殖期には胸がうっすら桃色を帯びる。', kind: 'tern', count: 8, span: 0.76, c1: [0.8, 0.83, 0.86], c2: [0.99, 0.96, 0.96], c3: [0.04, 0.04, 0.04], speed: 8.5, glide: 0.2, alt: [3, 14], rest: 0, look: { cap: 'cap', capCol: [0.04, 0.04, 0.04], feet: [0.75, 0.2, 0.18] } },
+      { id: 'katsuodori', ja: 'カツオドリ', sci: 'Sula leucogaster', note: '焦げ茶の背と白い腹の海鳥。高いところから翼をたたんで海へ突っ込み、魚を捕る。', kind: 'booby', count: 3, span: 1.4, c1: [0.24, 0.18, 0.13], c2: [0.94, 0.93, 0.9], c3: [0.9, 0.82, 0.45], speed: 11, glide: 0.55, alt: [6, 30], rest: 0.4, look: { hood: true, under: 'margin', feet: [0.86, 0.78, 0.34], iris: [0.86, 0.85, 0.7] } },
     ],
     species: pickSp([
       ['ocellaris'], ['chromis', { schools: 10 }], ['mitsuji', { schools: 9 }], ['sergeant'], ['idol'], ['auriga'], ['nokogiri'], ['yarai'], ['hibudai'],
@@ -508,7 +510,7 @@ export const LOCATIONS: Sea[] = [
     anemones: 20, clamSize: [0.25, 0.4], eels: 8,
     birds: [
       bird('katsuodori'),
-      { id: 'hoojiroajisashi', ja: 'ホオジロアジサシ', sci: 'Sterna repressa', note: '灰色の体に黒い帽子、頬の白い筋が目立つアジサシ。紅海とアラビアの沿岸だけで繁殖し、夏の海の上を群れで飛び回って小魚に飛び込む。', kind: 'tern', count: 6, span: 0.8, c1: [0.5, 0.52, 0.55], c2: [0.72, 0.73, 0.75], c3: [0.08, 0.08, 0.09], speed: 9, glide: 0.25, alt: [3, 14], rest: 0 },
+      { id: 'hoojiroajisashi', ja: 'ホオジロアジサシ', sci: 'Sterna repressa', note: '灰色の体に黒い帽子、頬の白い筋が目立つアジサシ。紅海とアラビアの沿岸だけで繁殖し、夏の海の上を群れで飛び回って小魚に飛び込む。', kind: 'tern', count: 6, span: 0.8, c1: [0.5, 0.52, 0.55], c2: [0.72, 0.73, 0.75], c3: [0.08, 0.08, 0.09], speed: 9, glide: 0.25, alt: [3, 14], rest: 0, look: { cap: 'cap', capCol: [0.05, 0.05, 0.06], cheek: true, feet: [0.6, 0.15, 0.12] } },
     ],
     bait: {
       sp: any('kibinago', { note: '銀色の体に青く光る縦帯の小魚。リーフの縁で大群をつくり、夕方にはアジやマグロの仲間に追い立てられる。' }),
@@ -574,7 +576,7 @@ export const LOCATIONS: Sea[] = [
     corals: { branch: 0.04, table: 0, brain: 0.12, fan: 0.4, mushroom: 0.4, clam: 0 },
     anemones: 0, clamSize: [0.2, 0.3], eels: 6,
     birds: [
-      { id: 'aoashi', ja: 'アオアシカツオドリ', sci: 'Sula nebouxii', note: '空色の足をもつカツオドリ。群れで高く舞い、いっせいに翼をたたんで海へ突き刺さるように飛び込む。求愛では青い足を交互に持ち上げて見せる。', kind: 'booby', count: 8, span: 1.5, c1: [0.4, 0.33, 0.27], c2: [0.95, 0.94, 0.92], c3: [0.4, 0.55, 0.62], speed: 11, glide: 0.5, alt: [5, 30], rest: 0.4 },
+      { id: 'aoashi', ja: 'アオアシカツオドリ', sci: 'Sula nebouxii', note: '空色の足をもつカツオドリ。群れで高く舞い、いっせいに翼をたたんで海へ突き刺さるように飛び込む。求愛では青い足を交互に持ち上げて見せる。', kind: 'booby', count: 8, span: 1.5, c1: [0.4, 0.33, 0.27], c2: [0.95, 0.94, 0.92], c3: [0.4, 0.55, 0.62], speed: 11, glide: 0.5, alt: [5, 30], rest: 0.4, look: { under: 'dark', feet: [0.25, 0.68, 0.82], head: [0.6, 0.52, 0.42], iris: [0.9, 0.85, 0.4] } },
       bird('gunkandori', { note: '細長い翼で上昇気流に乗り、何時間も羽ばたかずに舞う。ガラパゴスではオスが赤いのど袋をふくらませて求愛する。羽が水をはじかないので海に降りられず、ほかの鳥の獲物を空中で奪う。' }),
     ],
     bait: {

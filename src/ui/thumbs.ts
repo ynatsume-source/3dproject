@@ -80,7 +80,7 @@ function model(loc: Sea, id: string, set: Record<string, number> = {}): { obj: T
   if (id === 'sea-otter' && loc.id === 'pointlobos') { const o = creatureKit(cmats()).makeSeaOtter(); for (let i = 0; i < 40; i++) o.update(i * 0.1, 0.1, { act: 'eat', walk: 0, wet: true, food: 'urchin' }); o.root.scale.setScalar(1.15); o.root.position.y = 20; return { obj: o.root, view: [0.9, 0.7, 0.35] }; }   // (on its back, eating, up in the light)
   if (id === 'harbor-seal' && loc.id === 'pointlobos') return { obj: makeHarborSeal().group, view: [0.7, 0.3, 1] };
   const bird = (loc.birds || []).find((b) => b.id === id);
-  if (bird) { const m = birdModel(bird); m.position.y = 20; return { obj: m, view: [0.55, 0.9, 0.75] }; }   // lifted into the air, out of the water's haze
+  if (bird) { const m = birdModel(bird, set); m.position.y = 20; return { obj: m, view: [0.55, 0.9, 0.75] }; }   // lifted into the air, out of the water's haze
   // (garden eels duck into their burrows when a camera comes close, so they get no portrait)
   return null;
 }

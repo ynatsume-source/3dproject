@@ -929,7 +929,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   oc.carpets = makeCarpetSharks(oc);
   // (where there are bait balls, the diving birds also come in their dozens to one: a great flock out of sight till then)
   const diver = loc.bait && (loc.birds || []).find((b: any) => b.kind === 'booby' || b.kind === 'tern');
-  if (loc.birds) oc.birds = makeBirds(diver ? [...loc.birds, { ...diver, count: 36, rest: 0, crowd: true }] : loc.birds, group);
+  if (loc.birds) oc.birds = makeBirds(diver ? [...loc.birds, { ...diver, count: 36, rest: 0, crowd: true }] : loc.birds, group, T);
   // flying fish, where they live: bursts out of the sea and glides over it
   if ([...(loc.extraGuide || []), ...loc.species].some((e) => e.id === 'tobiuo')) oc.flyfish = makeFlyingFish(group);
   if (loc.bait) oc.bait = makeBaitBall(oc, 1);

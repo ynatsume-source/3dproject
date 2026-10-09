@@ -1683,14 +1683,9 @@ function goTo(id: string) {
     flyRun = { burst: false, t: 0, side: 1 };
     return;
   }
-  const flock = oc.birds?.flocks.find((f: any) => f.sp.id === id);
-  if (flock) {
+  if (oc.birds?.flocks.some((f: any) => f.sp.id === id)) {
     if (!drone.sky) setSky(true);
-    const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw);
-    flock.birds.slice(0, 3).forEach((b: any, i: number) => {
-      b.p.set(cam.x + fx * (25 + i * 6) + fz * (i - 1) * 8, Math.max(cam.y, 0) + 5 + i, cam.z + fz * (25 + i * 6) - fx * (i - 1) * 8);
-      b.state = 'fly'; b.fold = 0; b.h = Math.atan2(-fz, -fx) + (i - 1) * 0.4; b.stateT = 0;
-    });
+    oc.birds.call(id, cam, -Math.sin(drone.yaw), -Math.cos(drone.yaw));   // (a few come across in front: from out of sight if need be)
     return;
   }
   const place = id.startsWith('place:') ? (PLACES[loc.id] || []).find((p) => 'place:' + p.id === id) : null;
