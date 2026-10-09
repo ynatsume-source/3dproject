@@ -18,7 +18,7 @@ ynatsume-source/3dproject の codex/science-reviews をfetchして、LATEST.md�
 ## 作業中のブランチを変えず読む
 
 ```sh
-git fetch origin codex/science-reviews
+git fetch origin refs/heads/codex/science-reviews:refs/remotes/origin/codex/science-reviews
 git show origin/codex/science-reviews:LATEST.md
 git show origin/codex/science-reviews:reviews/self-barometer-7f4d1e3/REVIEW.md
 ```

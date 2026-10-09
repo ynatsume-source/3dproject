@@ -7,15 +7,15 @@
 このブランチはレビュー成果だけの独立した履歴として作成した。アプリの実装は科学側と本体側のブランチで扱う。作業中のmain・lab・科学側のcheckoutを切り替えず、Gitのオブジェクトを読んで共有内容を参照できる。
 
 ```sh
-git fetch origin codex/science-reviews
+git fetch origin refs/heads/codex/science-reviews:refs/remotes/origin/codex/science-reviews
 git show origin/codex/science-reviews:LATEST.md
 ```
 
 診断をローカルで読む/実行する場合は、別の一時ディレクトリへ展開する。
 
 ```sh
-mkdir -p /tmp/3dproject-review-read
-git archive origin/codex/science-reviews reviews/self-barometer-7f4d1e3 | tar -x -C /tmp/3dproject-review-read
+review_read_dir=$(mktemp -d /tmp/3dproject-review-read.XXXXXX)
+git archive origin/codex/science-reviews reviews/self-barometer-7f4d1e3 | tar -x -C "$review_read_dir"
 ```
 
 ## ファイル
