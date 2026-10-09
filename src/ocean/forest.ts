@@ -24,10 +24,10 @@ const icoI = (detail = 1) => { const g = new THREE.IcosahedronGeometry(1, detail
 // warm on top, deep beneath; a stout trunk flaring at the foot and a few smooth limbs running up into the puffs
 // (no thin twigs: inside the forest they read as a bundle of lines).
 const KINDS = [
-  { top: [0.36, 0.54, 0.16], deep: [0.07, 0.18, 0.07], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.78 },
-  { top: [0.6, 0.68, 0.24], deep: [0.22, 0.33, 0.1], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.6 },
-  { top: [0.48, 0.64, 0.22], deep: [0.13, 0.28, 0.09], bark: [0.52, 0.48, 0.42], wide: 0.85, flat: 0.78 },
-  { top: [0.3, 0.48, 0.15], deep: [0.05, 0.15, 0.06], bark: [0.48, 0.45, 0.39], wide: 1.35, flat: 0.68 },
+  { top: [0.28, 0.47, 0.14], deep: [0.1, 0.24, 0.09], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.85 },
+  { top: [0.45, 0.57, 0.18], deep: [0.18, 0.31, 0.1], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.7 },
+  { top: [0.36, 0.55, 0.17], deep: [0.13, 0.29, 0.1], bark: [0.52, 0.48, 0.42], wide: 0.85, flat: 0.85 },
+  { top: [0.24, 0.42, 0.13], deep: [0.08, 0.2, 0.08], bark: [0.48, 0.45, 0.39], wide: 1.35, flat: 0.75 },
 ];
 
 // one tree, unit height (ground at 0, crown top about 1); `young` makes a sapling — a slim stem and a small crown
@@ -66,7 +66,7 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
     for (let k = 0; k < ip.count; k++) {
       n3.set(ip.getX(k), ip.getY(k), ip.getZ(k)).normalize();
       const lump = 1 + 0.07 * Math.sin(n3.x * 2.2 + s0) * Math.sin(n3.z * 2.4 + s0 * 1.3) + 0.05 * Math.sin(n3.y * 2.6 + s0 * 0.7);
-      const fy = n3.y < 0 ? 0.6 : 1;
+      const fy = n3.y < 0 ? 0.78 : 1;
       q.set(n3.x * rx * lump, n3.y * ry * fy * lump, n3.z * rz * lump);
       const mn = new THREE.Vector3(n3.x / rx, n3.y / (ry * fy), n3.z / rz).normalize();
       push(c.clone().add(q), mn, K.top, sw(c.y) + 0.1, 1);
@@ -139,7 +139,7 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
   cc.addVectors(lo3, hi3).multiplyScalar(0.5); const ext = hi3.clone().sub(lo3).multiplyScalar(0.5).max(new THREE.Vector3(1e-3, 1e-3, 1e-3));
   const v3 = new THREE.Vector3(), o3 = new THREE.Vector3();
   for (const pf of puffs) for (let k = pf.st; k < pf.st + pf.n; k++) {
-    v3.set(N[k * 3], N[k * 3 + 1], N[k * 3 + 2]); o3.set((P[k * 3] - cc.x) / ext.x, (P[k * 3 + 1] - cc.y) / ext.y * 1.2 + 0.15, (P[k * 3 + 2] - cc.z) / ext.z).normalize();
+    v3.set(N[k * 3], N[k * 3 + 1], N[k * 3 + 2]); o3.set((P[k * 3] - cc.x) / ext.x, (P[k * 3 + 1] - cc.y) / ext.y * 1.2 + 0.35, (P[k * 3 + 2] - cc.z) / ext.z).normalize();
     v3.lerp(o3, 0.6).normalize(); N[k * 3] = v3.x; N[k * 3 + 1] = v3.y; N[k * 3 + 2] = v3.z;
     const h = (P[k * 3 + 1] - cc.y) / ext.y, tt = smooth(0, 1, 0.45 + 0.4 * v3.y + 0.3 * h);
     for (let i = 0; i < 3; i++) C[k * 3 + i] = (K.deep[i] + (K.top[i] - K.deep[i]) * tt) * pf.j;
