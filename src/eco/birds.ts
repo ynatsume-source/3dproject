@@ -195,18 +195,20 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
             // a frigatebird after a bird with a fish: fast, close on its tail, then down after what it drops
             const q = b.prey!, tx = (b.drop ? b.drop.p.x : q.p.x + Math.cos(q.h) * 2) - b.p.x, tz = (b.drop ? b.drop.p.z : q.p.z + Math.sin(q.h) * 2) - b.p.z;
             const ty = b.drop ? b.drop.p.y : q.p.y + 0.5, d = hyp(tx, tz, ty - b.p.y);
-            turn = ang(Math.atan2(tz, tx) - b.h) * 3; b.speed += (Math.min(16, sp.speed * 1.7) - b.speed) * Math.min(1, dt); b.altT = ty;
+            turn = ang(Math.atan2(tz, tx) - b.h) * 3; b.altT = ty;
+            // (closing fast, then matching its pace on its tail rather than overshooting)
+            b.speed += ((b.drop ? 15 : Math.min(16, q.speed + clamp(d * 0.4 - 1, 0, 8))) - b.speed) * Math.min(1, dt * 1.5);
             b.flapping = Math.max(b.flapping, 0.4); wantTail = 0.5;
             if (!b.drop) {
               q.chased = 1;
-              if (d < 4 && R() < dt * 0.35) {
+              if (d < 6 && R() < dt * 0.5) {
                 // (it gives up the fish: falling now)
                 b.drop = { p: q.p.clone(), v: new THREE.Vector3(Math.cos(q.h) * q.speed * 0.5, 1, Math.sin(q.h) * q.speed * 0.5) }; q.carry = 0; q.caught = false;
                 tell(F, b, 'rob', `${b.preySp!.ja}がたまらず魚を落とした`);
               }
             } else {
               b.drop.v.y -= 9.8 * dt; b.drop.p.addScaledVector(b.drop.v, dt); wantHead = 0.6;
-              if (d < 1.4) { b.carry = 40; b.caught = true; b.drop = null; b.state = 'fly'; b.stateT = 0; b.prey = null; b.hunt = rr(60, 150); b.altT = rr(sp.alt[0], sp.alt[1]); tell(F, b, 'robbed', `${sp.ja}が落ちる魚を空中でさらった`); }
+              if (d < 2.2) { b.carry = 40; b.caught = true; b.drop = null; b.state = 'fly'; b.stateT = 0; b.prey = null; b.hunt = rr(60, 150); b.altT = rr(sp.alt[0], sp.alt[1]); tell(F, b, 'robbed', `${sp.ja}が落ちる魚を空中でさらった`); }
               else if (b.drop.p.y < swellAt(b.drop.p.x, b.drop.p.z)) { fx2?.splash(b.drop.p.x, b.drop.p.z, 0.08); b.drop = null; b.state = 'fly'; b.stateT = 0; b.prey = null; b.hunt = rr(30, 80); b.altT = rr(sp.alt[0], sp.alt[1]); }
             }
             if (b.state === 'chase' && (b.stateT > 18 || (!b.drop && (q.carry <= 0 || q.state !== 'fly' && q.state !== 'takeoff')))) { b.state = 'fly'; b.stateT = 0; b.prey = null; b.hunt = rr(30, 90); b.altT = rr(sp.alt[0], sp.alt[1]); }
@@ -239,7 +241,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
               const tang = Math.atan2(lz, lx) + (b.seed % 2 < 1 ? 1 : -1) * Math.PI / 2 * clamp(orbit / Math.max(ld, 1), 0, 1.4);   // head in from afar, then wheel round
               turn = ang(tang - b.h) * 1.4 + turn * 0.3;
               b.altT = sw + (k === 'tern' ? rr(3, 6) : k === 'albatross' ? 1.5 : k === 'shearwater' ? 2.5 : 12 + (b.seed % 1) * 14);
-              if (ld < orbit + 6 && b.stateT > 2 && b.hunt < 0) {
+              if (ld < orbit + 6 && b.stateT > 2 && b.hunt < 0 && b.carry <= 0) {
                 const a = R() * 6.28, rr0 = Math.sqrt(R()) * lure.r;
                 if (k === 'tern' && R() < dt * 0.6) { b.state = 'hover'; b.stateT = 0; b.tx = rr(0.8, 2.2); b.tz = b.p.y; }
                 else if ((k === 'booby' || k === 'shearwater') && R() < dt * 0.35) { b.state = 'dive'; b.stateT = 0; b.dip = false; b.tx = lure.c.x + Math.cos(a) * rr0; b.tz = lure.c.z + Math.sin(a) * rr0; }
@@ -257,7 +259,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
             } else {
               if (r2 > 75 * 75) turn += ang(Math.atan2(-dz, -dx) - b.h) * 0.6;
               // fishing the open water about it
-              if (b.state === 'fly' && b.hunt < 0 && b.stateT > 4) {
+              if (b.state === 'fly' && b.hunt < 0 && b.stateT > 4 && (b.carry <= 0 || k === 'frigate')) {
                 const ax = b.p.x + Math.cos(b.h) * 8, az = b.p.z + Math.sin(b.h) * 8, hgt = b.p.y - sw;
                 if (k === 'tern') {
                   if (hgt > 2.5 && hgt < 12 && deep(ax, az, 0.3)) { b.state = 'hover'; b.stateT = 0; b.tx = rr(1.2, 3.5); b.tz = b.p.y; tell(F, b, 'hover', `${sp.ja}が空中で止まって、水面の魚をねらっている`); }
@@ -272,7 +274,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
                 else if (k === 'frigate') {
                   // a bird with a fish about: go after it; or down to skim the surface
                   let best: { b: Bird; sp: BirdSpec } | null = null, bd = 140;
-                  for (const c of carriers) { const d = c.b.p.distanceTo(b.p); if (d < bd && !c.b.chased) { bd = d; best = c; } }
+                  for (const c of carriers) { const d = c.b.p.distanceTo(b.p); if (d < bd && !c.b.chased && c.b.carry > 10) { bd = d; best = c; } }
                   if (best) { b.state = 'chase'; b.stateT = 0; b.prey = best.b; b.preySp = best.sp; b.drop = null; best.b.chased = 1; tell(F, b, 'chase', `${sp.ja}が${best.sp.ja}を追い回している。くわえた魚をねらっているらしい`); }
                   else if (deep(ax, az, 0.5) && R() < 0.4) { b.state = 'skim'; b.stateT = 0; const d = rr(30, 60); b.tx = b.p.x + Math.cos(b.h) * d; b.tz = b.p.z + Math.sin(b.h) * d; }
                   else b.hunt = rr(20, 50);

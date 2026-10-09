@@ -40,6 +40,7 @@ for (const id of seas.length ? seas : LOCATIONS.filter((l: any) => l.birds).map(
           if (b.state === 'skim') count(`${k} skim`);
           if (b.state === 'chase') count(`${k} chase`);
           if (b.state === 'land') count(`${k} land`);
+          if (q.state === 'chase' && b.carry > 30) count(`${k} robbed`);
           if (b.state === 'under') { count(`${k} under`); if (T.top(b.p.x, b.p.z) > -2) { shallow++; if (process.env.DEBUG) console.log('shallow plunge', F.sp.id, T.top(b.p.x, b.p.z).toFixed(1)); } }
         }
         // (banked into the turn: turning right, h rising, the bank positive — the left wing up)
