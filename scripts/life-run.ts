@@ -1,0 +1,65 @@
+// Report (not a pass/fail check): the island from nothing, on the real island and its replayed weather, and how far its
+// residents get on their own toward boiling coconut oil in a pot of their own — the day each step is first reached, and,
+// where it stops, what is waiting for what. Dot's mind is a stand-in that takes the first ready step from a fixed order
+// (the real mind chooses for itself; this finds where the world's own steps stall). Rakko and Lantern by their habits.
+// Usage: DAYS=60 npx tsx --import ./scripts/node-assets.mjs scripts/life-run.ts
+import './node-land';
+import * as THREE from 'three';
+
+const DAYS = Number(process.env.DAYS ?? 20);
+let sim = Date.parse('2026-10-06T08:00:00+09:00');
+Date.now = () => sim;
+const store = new Map<string, string>();
+Object.defineProperty(globalThis, 'localStorage', { value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) } });
+const { mulberry32 } = await import('../src/core/math'); Math.random = mulberry32(Number(process.env.SEED ?? 1));
+const { loadLand } = await import('../src/ocean/land');
+const { DOTWORLD } = await import('../src/data/locations');
+const { loadIslandWeather, islandWeather, ISLAND_RATE } = await import('../src/world/island-time');
+const loc: any = DOTWORLD;
+await loadLand('kayama', loc.land.half, loc.land.far);
+await loadIslandWeather();
+const { buildOcean } = await import('../src/ocean/build');
+const fakeEl = () => ({ getContext: () => ({ createRadialGradient: () => ({ addColorStop() {} }), fillRect() {}, drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(4) }) }), addEventListener() {}, removeEventListener() {}, setAttribute() {}, style: {}, width: 64, height: 64 });
+Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: fakeEl, createElementNS: fakeEl, getElementById: () => null } });
+const R: any = buildOcean(loc).residents, V = R.village, lab = R.lab;
+const dot = R.list.find((r: any) => r.id === 'dot');
+const ORDER = ['place:', 'craft:', 'lash:', 'house:', 'wall:', 'wallfetch:', 'shelve:', 'find:', 'survey:', 'voyage:', 'twist:', 'cut:', 'harvest:', 'gather:', 'fell:', 'plant:', 'till:', 'chop:', 'charge:'];
+R.setBrain(async (i: any) => {
+  if (i.who !== 'dot') return null;
+  for (const p of ORDER) { const o = i.options.find((x: any) => x.id.startsWith(p) && x.ready !== false); if (o) return { goal: { text: '暮らしを進める', why: '順に' }, plan: [o.id] }; }
+  return { goal: { text: '見回る', why: 'することがない' }, plan: ['look:shore'] };
+});
+const cam = new THREE.Vector3();
+const t0 = sim, dayOf = () => (sim - t0) / (86_400_000 / ISLAND_RATE);
+const lots = (m: string) => Object.values(lab.lots).filter((l: any) => l.materialId === m) as any[];
+const kg = (m: string) => lots(m).reduce((n, l) => n + l.amount.value, 0) / 1e6;
+const marks: [string, () => boolean][] = [
+  ['hut', () => dot.stats.built >= 24], ['raft', () => V.raft.parts >= 4], ['island reached', () => Object.keys(V.map.reached).length > 0],
+  ['raw clay', () => kg('raw_clay') > 0], ['rain catcher', () => !!V.catcher], ['clay pit', () => !!V.clayPit], ['settled clay', () => lots('settled_clay').length > 0],
+  ['prepared clay', () => lots('prepared_clay').length > 0], ['green pot', () => lots('green_pot').length > 0], ['dry pot', () => lots('dry_pot').length > 0],
+  ['house walls', () => V.house.n >= 40], ['firewood 45 kg', () => kg('firewood') >= 45], ['woodpile roof', () => !!lab.equipment['eq:firewood_stack']],
+  ['seasoned wood', () => lots('firewood').some((l) => (l.quality?.water_ppm ?? 1e6) <= 300_000)], ['pot fired', () => lots('fired_pot').length > 0 || !!lab.equipment['eq:cook_pot']],
+  ['cook pot', () => !!lab.equipment['eq:cook_pot']], ['coconut milk', () => lots('coconut_milk').length > 0], ['coconut oil', () => lots('coconut_oil').length > 0],
+];
+const got: Record<string, number> = {};
+const wall = Date.now.call(null), start = performance.now();
+let lastLog = 0;
+for (let i = 0; dayOf() < DAYS; i++) {
+  sim += 1000; cam.set(dot.pos.x, 30, dot.pos.z);
+  if (i % 60 === 0) R.setWeather(islandWeather(sim));
+  R.update(1, sim, cam);
+  if (i % 10 === 0) await Promise.resolve();
+  if (i % 600 === 0) for (const [k, f] of marks) if (got[k] === undefined && f()) { got[k] = dayOf(); console.log(`day ${dayOf().toFixed(1)}: ${k}`); }
+  if (dayOf() - lastLog >= 5) { lastLog = dayOf(); console.log(`  … day ${dayOf().toFixed(0)} (${((performance.now() - start) / 1000).toFixed(0)} s) dot ${dot.task?.kind ?? '-'} built ${dot.stats.built} house ${V.house.n} shelf ${[...new Set(Object.values(lab.lots).map((l: any) => l.materialId))].join(',')}`); }
+}
+void wall;
+console.log('\n— reached —'); for (const [k] of marks) console.log(`  ${k}: ${got[k] !== undefined ? 'day ' + got[k].toFixed(1) : 'not yet'}`);
+console.log('— where it stands —');
+console.log('  shelf:', Object.values(lab.lots).map((l: any) => `${l.materialId} ${(l.amount.value / 1e6).toFixed(2)}kg${l.reservedBy ? '*' : ''}`).join(', '));
+console.log('  equipment:', Object.keys(lab.equipment).join(', '), '| ready:', R.labReady().join(', '));
+console.log('  runs:', Object.values(lab.runs).map((r: any) => `${r.processId} ${r.status}${r.why ? ' (' + r.why + ')' : ''}`).slice(-12).join('; '));
+console.log('  house:', JSON.stringify(V.house), 'raft', JSON.stringify(V.raft), 'map', Object.keys(V.map.seen).length, 'seen', Object.keys(V.map.reached).length, 'reached');
+console.log('  dot last:', dot.diary.slice(-6).map((e: any) => e.text).join(' / '));
+{ const tally = new Map<string, number>(); for (const r of R.list) for (const e of r.diary) { const m = /^(.+?)：(?:.*?)(進めなかった|道がなかった|立てる場所がなかった|時間がかかりすぎた|始められなかった|うまくいかなかった)/.exec(e.text); if (m) { const k = `${r.id} ${m[1].replace(/（.*$/, '')} — ${m[2]}`; tally.set(k, (tally.get(k) ?? 0) + 1); } }
+  console.log('— what went wrong, how often —'); for (const [k, n] of [...tally].sort((a, b) => b[1] - a[1]).slice(0, 15)) console.log(`  ${n}× ${k}`); }
+console.log(`  (${((performance.now() - start) / 1000).toFixed(0)} s for ${DAYS} island days)`);
