@@ -1,0 +1,46 @@
+{
+  "id": "moullou-doulos-topalis-historical-lamp-photometry-2015",
+  "title": "Artificial Light Sources in Roman, Byzantine, and Post-Byzantine Eras: An Evaluation of their Performance",
+  "authors": ["Dorina Moullou", "Lambros T. Doulos", "Frangiskos V. Topalis"],
+  "year": 2015,
+  "journal": "Chronos 32, pp.119–132",
+  "doi": "10.31377/chr.v32i0.115",
+  "url": "https://doi.org/10.31377/chr.v32i0.115",
+  "bodyUrl": "https://www.researchgate.net/publication/320597654_Artificial_Light_Sources_in_Roman_Byzantine_and_Post-_Byzantine_Eras_An_Evaluation_of_their_Performance",
+  "sourceType": "primary-replica-photometry-experiment",
+  "accessedDateJst": "2026-10-09",
+  "calibrationEligible": false,
+  "retrieval": {
+    "tool": "native web open/find",
+    "bodyRead": true,
+    "copy": "Author-uploaded article; title, authors, DOI and issue agree",
+    "originalPdfBytesObtained": false,
+    "originalFileSha256": null,
+    "retainedContent": "Selected received lines plus factual transcription; not the original PDF",
+    "sections": ["Introduction and method", "Table 1", "Table 2", "Lighting Conditions inside a Room"],
+    "toolReferences": ["turn553586view1", "turn494992view3", "turn494992view5"]
+  },
+  "receivedExcerpts": [
+    "Clay Lamp (1) Olive oil Twisted ax",
+    "0.5 0.5 9.4 13.57 11.75 0.85",
+    "1.0 1.0 16.5 24.32 21.06 1.52"
+  ],
+  "facts": {
+    "measurement": "Goniophotometry of replicas, NTUA laboratory",
+    "table2Rows": [
+      {"lamp": "Clay Lamp (1)", "oil": "olive", "wick": "twisted flax", "freeLengthCm": 0.5, "thicknessCm": 0.5, "luminousFluxLm": 9.4, "verticalLuxAt25cm": 13.57, "tiltedLuxAt25cm": 11.75, "verticalLuxAt1m": 0.85},
+      {"lamp": "Clay Lamp (1)", "oil": "olive", "wick": "twisted flax", "freeLengthCm": 1.0, "thicknessCm": 1.0, "luminousFluxLm": 16.5, "verticalLuxAt25cm": 24.32, "tiltedLuxAt25cm": 21.06, "verticalLuxAt1m": 1.52}
+    ],
+    "table1PlantWick": {"lamp": "clay bowl", "oil": "olive", "wick": "Ballota acetabulosa", "luminousFluxLm": 3.0, "verticalLuxAt25cm": 5.46, "tiltedLuxAt25cm": 4.73, "verticalLuxAt1m": 0.34},
+    "tiltedSurfaceAngleFromVerticalDegrees": 30,
+    "oilConsumptionGPerHour": null,
+    "lampOilTemperatureC": null,
+    "repetitions": null
+  },
+  "limits": [
+    "Not coconut-oil photometry or a matched mass/time trial.",
+    "5.46 in Table 1 is lux, not g/h.",
+    "Flux, directional intensity and illuminance are different quantities.",
+    "Flax and Ballota do not establish pandanus, coir or reed performance."
+  ]
+}

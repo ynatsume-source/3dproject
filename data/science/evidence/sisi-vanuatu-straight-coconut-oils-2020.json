@@ -1,0 +1,40 @@
+{
+  "id": "sisi-vanuatu-straight-coconut-oils-2020",
+  "title": "Performance and emission characteristics of a diesel engine employing straight vegetable oils from Vanuatu as fuels",
+  "authors": ["Misel J Sisi", "M Rafiuddin Ahmed", "David Rohindra"],
+  "year": 2020,
+  "doi": "10.1177/1687814020962351",
+  "url": "https://journals.sagepub.com/doi/10.1177/1687814020962351",
+  "sourceType": "primary-experiment",
+  "accessedDateJst": "2026-10-09",
+  "calibrationEligible": false,
+  "retrieval": {
+    "tool": "native web open/find",
+    "bodyRead": true,
+    "originalHtmlBytesObtained": false,
+    "originalFileSha256": null,
+    "retainedContent": "Selected received lines plus factual transcription; not the original file",
+    "sections": ["Oils and testing of their properties", "Thermal analysis", "Table 2", "Table 3"],
+    "toolReferences": ["turn494992view0", "turn853937view0", "turn225438view2"]
+  },
+  "receivedExcerpts": [
+    "For finding the calorific value, an IKA calorimeter system, model C200, was used.",
+    "Fuel  | Diesel  | CPO  | VCO  | TMO  | NGO",
+    "Heating value (MJ/Kg)  | 45.63  | 37.41  | 37.18  | 38.89  | 39.45"
+  ],
+  "facts": {
+    "copraOil": {"reportedHeatingValue": 37.41, "unit": "MJ/kg", "densityAt28C": 908.24, "densityUnit": "kg/m3"},
+    "virginCoconutOil": {"reportedHeatingValue": 37.18, "unit": "MJ/kg", "densityAt28C": 911.76, "densityUnit": "kg/m3"},
+    "oilOrigin": "Vanuatu; straight oils, not biodiesel",
+    "preparation": "CPO: dried nuts, screw press. VCO: described as copra mill, limited heating.",
+    "heatBasis": "HHV/LHV not explicitly resolved in the retained article body",
+    "repeatCountForCalorimetry": null,
+    "combustionWaterPhase": null
+  },
+  "limits": [
+    "Do not relabel the reported value as LHV without resolving its basis.",
+    "Engine fuel flow is not lamp consumption.",
+    "Homemade boiled coconut oil is not the measured sample."
+  ],
+  "metadataNote": "Use the issue/copyright year 2020; the site displays an inconsistent first-online year. Article footer states CC BY 4.0."
+}

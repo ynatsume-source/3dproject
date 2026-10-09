@@ -1,0 +1,58 @@
+{
+  "id": "hughes-gale-lamp-consumption-2007",
+  "title": "A candle in the lab",
+  "authors": [
+    "Stephen W. Hughes",
+    "Andrew Gale"
+  ],
+  "year": 2007,
+  "journal": "Physics Education 42(3):271–274",
+  "doi": "10.1088/0031-9120/42/3/006",
+  "bodyUrl": "https://www.academia.edu/121046772/A_candle_in_the_lab",
+  "version": "author manuscript, COVER SHEET identifies 2007 IOP article",
+  "authorProfileLink": "https://independent.academia.edu/DrStephenHughes",
+  "officialBibliographyUrl": "https://smp.uq.edu.au/profile/6363/stephen-hughes",
+  "verification": "native-rendered-author-manuscript-body-read; original-PDF bytes not obtained",
+  "conditions": {
+    "oil": "supermarket olive oil",
+    "lamp": "Herodian replica, Historic Connections; supplied wick",
+    "wickPlant": null,
+    "wickDiameterMm": null,
+    "wickProjectionMm": null,
+    "airTemperatureC": null,
+    "environment": "fume cupboard",
+    "balance": "Sartorius BP210S",
+    "timedPeriodMin": 10,
+    "fuelConsumptionReplicatesReported": null
+  },
+  "results": {
+    "oliveOilGPerHour": 5.46,
+    "paraffinCandleGPerHour": 6.12,
+    "location": "manuscript p.3 Results",
+    "quote": "were 6.12 g per hour and 5.46 g h-1"
+  },
+  "photometryConflict": {
+    "description": "prose and Table 1 swap source labels for normalized lux",
+    "prose1mLux": {
+      "candle": 0.81,
+      "oilLamp": 1.34
+    },
+    "tableInputs": {
+      "oilLamp": {
+        "lux": 5.3,
+        "distanceM": 0.39
+      },
+      "candle": {
+        "lux": 7.4,
+        "distanceM": 0.425
+      }
+    },
+    "inverseSquareArithmetic1mLux": {
+      "oilLamp": 0.80613,
+      "candle": 1.336625
+    },
+    "decision": "No adoption of these illumination values; not total lumens. No fusion with Moullou2015 lux."
+  },
+  "calibrationEligible": false,
+  "limitation": "Olive oil and supplied wick are not coconut oil or local plant wick. No mass time series, wick geometry, fuel grade or consumption uncertainty reported."
+}
