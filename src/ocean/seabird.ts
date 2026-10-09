@@ -152,10 +152,20 @@ export function seabirdGeometry(kind: BirdKind) {
     const t = Math.min(1, Math.max(0, z / f.body + SHOULDER_T)), q = birdProfile(f, t), e = Math.min(1, Math.abs((y - q.y) / q.h));
     return q.w * Math.sqrt(1 - e * e);
   };
+  // (the planform's keys smoothed through, finer toward the tip: the leading edge curving back into the point
+  // without a kink)
+  const plan = (s: number) => {
+    let i = 0; while (i < f.wing.length - 2 && f.wing[i + 1][0] < s) i++;
+    const p0 = f.wing[Math.max(0, i - 1)], p1 = f.wing[i], p2 = f.wing[i + 1], p3 = f.wing[Math.min(f.wing.length - 1, i + 2)];
+    const t = (s - p1[0]) / (p2[0] - p1[0]), t2 = t * t, t3 = t2 * t;
+    const cr = (j: number) => 0.5 * (2 * p1[j] + (p2[j] - p0[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t2 + (3 * p1[j] - p0[j] - 3 * p2[j] + p3[j]) * t3);
+    return [s, cr(1), Math.max(0.004, cr(2))];
+  };
+  const STN = 18, stations = Array.from({ length: STN + 1 }, (_, i) => plan(1 - Math.pow(1 - i / STN, 1.35)));
   for (const sg of [1, -1]) {
     o = P.length / 3;
     const ring = CH.length * 2 - 2;
-    for (const st of f.wing) {
+    for (const st of stations) {
       const [s, le, c] = st, x = xs + s * (0.5 - xs), thk = 0.15 - 0.1 * s;
       for (let k = 0; k < ring; k++) {
         // around the section: along the top from the leading edge to the trailing edge, back along the bottom
@@ -169,7 +179,7 @@ export function seabirdGeometry(kind: BirdKind) {
         add([sg * x, y, z], 1, [s, u, side, sg], [sg * xf, yf, zf]);
       }
     }
-    grid(o, f.wing.length - 1, ring, sg < 0, true);
+    grid(o, STN, ring, sg < 0, true);
   }
   // the feet: a short leg and a webbed foot of three toes, tucked back under the tail
   const fl = f.feet, hip = birdProfile(f, 0.3);
