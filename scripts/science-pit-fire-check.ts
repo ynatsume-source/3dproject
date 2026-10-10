@@ -7,6 +7,9 @@ import { POT_DRY_PROCESS, POT_SHAPE_PROCESS } from '../src/science/step/pottery'
 import { PIT_FIRE_PROCESS } from '../src/science/step/pit-fire';
 import { fuelComp } from '../src/science/step/wood-fire';
 import { totalMg } from '../src/science/chem';
+import { crackP } from '../src/science/physics';
+import { draw } from '../src/science/rng';
+import { pv } from '../src/science/params';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -161,6 +164,55 @@ console.log('5. requests that are refused');
   refused('a second plan', step(req(H, 2 * H, s0.state, [dryPot, WOOD()], planAct(CAREFUL).map((a) => ({ ...a, at: H })), CALM)), /once/);
   refused('a missing interval', step(req(2 * H, 3 * H, s0.state, [dryPot, WOOD()], [], CALM)), /noncontiguous/);
   refused('the hearth changed', step(req(H, 2 * H, s0.state, [dryPot, WOOD()], [], CALM, { equipment: [{ ...PIT, equipmentId: 'eq:other' }] })), /changed-input/);
+}
+
+console.log('8. several pots in one fire (0.2.0, owner\'s decisions 2026-10-10)');
+{
+  const pot = (l: LotView, id: string): LotView => ({ ...l, lotId: id });
+  const three = [pot(dryPot, 'lot:pot-a'), pot(dryPot, 'lot:pot-b'), pot(dryPot, 'lot:pot-c'), WOOD()];
+  const one = fire(CAREFUL), many = fire(CAREFUL, {}, () => CALM, H, three);
+  const pots = many.last.produced.filter((p) => p.materialId !== 'firewood' && p.materialId !== 'wood_ash');
+  const ratio = many.diag.burnedMg / one.diag.burnedMg;
+  ok(many.last.status === 'completed' && pots.length === 3 && pots.every((p) => ['fired_pot', 'pot_sherds'].includes(p.materialId)) && many.diag.peakKilnC > 800,
+    'three dry pots in the same fire are all fired (one fire_plan for the fire)', pots.map((p) => p.materialId).join(', '));
+  ok(ratio > 1 && ratio < 1.15, 'the same fire: three pots burn only a little more wood than one (each takes its own heat)',
+    `${(one.diag.burnedMg / 1e6).toFixed(1)} → ${(many.diag.burnedMg / 1e6).toFixed(1)} kg (×${ratio.toFixed(3)}; per pot ×${(ratio / 3).toFixed(2)})`);
+  ok(balanced(many.last) && many.last.consumed.length === 4, 'the three pots and the wood balance (each pot consumed and produced by itself)');
+  const cracks = many.last.observations.filter((o) => /^crack:/.test(o.quantity ?? '')).map((o) => o.quantity);
+  ok(cracks.length === 3 && ['lot:pot-a', 'lot:pot-b', 'lot:pot-c'].every((id) => cracks.includes(`crack:${id}`)) && !many.last.observations.some((o) => o.quantity === 'crack'),
+    'each pot is looked at by itself: the observation names it (crack:<lotId>)', cracks.join(' '));
+  const split = fire(CAREFUL, {}, () => CALM, 7 * M, three);
+  ok(JSON.stringify(split.last.produced) === JSON.stringify(many.last.produced) && JSON.stringify(split.last.released) === JSON.stringify(many.last.released),
+    'chunking never changes several pots (1 h and 7 min requests give the same pots, wood and gases)');
+  const order = fire(CAREFUL, {}, () => CALM, H, [three[2], WOOD(), three[0], three[1]]);
+  ok(JSON.stringify(order.last.produced) === JSON.stringify(many.last.produced), 'the order of the lots in the request does not matter');
+  // a damp pot (one day dry) beside a dry one, built up fast: the damp one may burst from steam and throw its pieces
+  let bursts = 0, hit = 0, own = 0, damp = 0;
+  for (let s = 1; s <= 40; s++) {
+    const r = fire(CARELESS, { seed: s }, () => CALM, H, [pot(dampPot, 'lot:pot-a'), pot(dryPot, 'lot:pot-b'), WOOD()]);
+    const ps = (r.diag as unknown as { pots: { potId: string; steamRatioMax: number; duntRatioMax: number }[] }).pots;
+    const a = ps[0], b = ps[1], uneven = r.diag.unevenRatioMax;
+    const sev = (id: string, mech: string, ratio: number) => (crackP(ratio) > 0 && draw(s, 'run:fire', id, mech) < crackP(ratio) ? (draw(s, 'run:fire', id, mech, 'severity') < Math.min(0.8, 0.25 * ratio) ? 2 : 1) : 0);
+    const burst = sev(a.potId, 'steam', a.steamRatioMax) === 2;
+    const ownB = Math.max(sev(b.potId, 'steam', b.steamRatioMax), sev(b.potId, 'dunting', b.duntRatioMax), sev(b.potId, 'uneven', uneven),
+      draw(s, 'run:fire', b.potId, 'flaw') < pv('pitBaseCrackP') ? (draw(s, 'run:fire', b.potId, 'flaw', 'severity') < 0.5 ? 2 : 1) : 0);
+    const nb = burst && draw(s, 'run:fire', b.potId, 'neighbor', a.potId) < pv('pitNeighborBurstP') ? (draw(s, 'run:fire', b.potId, 'neighbor', a.potId, 'severity') < pv('pitNeighborBreakShare') ? 2 : 1) : 0;
+    const got = r.last.produced[1].materialId === 'pot_sherds' ? 2 : (r.last.produced[1].quality?.crack ?? 0);
+    if (burst) bursts++;
+    if (got === Math.max(ownB, nb)) own++;
+    if (nb > ownB) hit++;
+    if (a.steamRatioMax > b.steamRatioMax) damp++;
+    if (burst !== r.last.observations.some((o) => o.text === '火の中で器がはじけて、かけらが飛んだ')) own = -999;
+  }
+  ok(damp === 40 && bursts > 0, 'the damp pot steams harder than the dry one beside it, and sometimes bursts', `${bursts} of 40 fires`);
+  ok(own === 40, 'each pot cracks by its own steam, quartz, wind and flaws, and a burst neighbour may crack it (pitNeighborBurstP; the sound of it is heard)', `the burst cracked the dry pot in ${hit} fires`);
+  const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));
+  refused('four pots are too many for one fire', step(req(0, H, null, [...three.slice(0, 3), pot(dryPot, 'lot:pot-d'), WOOD()], planAct(CAREFUL), CALM)), /one to 3/);
+  refused('one broken pot among them', step(req(0, H, null, [three[0], { ...three[1], quality: { ...dryPot.quality, crack: 2 } }, WOOD()], planAct(CAREFUL), CALM)), /lot:pot-b is broken/);
+  const s0 = step(req(0, H, null, three, planAct(CAREFUL), CALM));
+  refused('a pot taken out of the running fire', step(req(H, 2 * H, s0.state, [three[0], three[1], WOOD()], [], CALM)), /changed-input/);
+  refused('an old run (0.1.2, state /1) is refused by its version', step(req(H, 2 * H, { schema: 'civ-sci.pot-pit-fire/1', data: {} }, [dryPot, WOOD()], [], CALM, { processVersion: '0.1.2' })), /processVersion 0\.1\.2/);
+  refused('a state /1 under 0.2.0 is refused (not migrated)', step(req(H, 2 * H, { schema: 'civ-sci.pot-pit-fire/1', data: {} }, [dryPot, WOOD()], [], CALM)), /schema|pot-pit-fire\/1/);
 }
 
 console.log('—   every result above passed the contract checker');
