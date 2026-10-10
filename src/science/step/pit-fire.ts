@@ -1,7 +1,10 @@
 // ScienceStep for firing the residents' own pots in an open fire on the ground (p13y_pot_pit_fire), contract 0.2.x only
 // (the fire draws O2). Island clock: a tended fire is waiting work. POT_FIRING_DESIGN.md, owner's decisions 2026-10-07.
 //
-// One pot (dry_pot, or a green_pot not yet dry: the steam then has its say) and a firewood lot, on an open_fire_pit.
+// One to three pots (dry_pot, or a green_pot not yet dry: the steam then has its say) and a firewood lot, on an
+// open_fire_pit. 0.2.0 (owner's decisions 2026-10-10): several pots in the same fire. They share the fire's heat (each
+// takes its own), each dries, heats and cracks by itself; a pot bursting from steam can crack its neighbours
+// (pitNeighborBurstP, assumed). No place in the fire differs from another. One pot fires exactly as in 0.1.2.
 // The resident decides once, at the start (one fire_plan action at interval.from of the first request):
 //   preheatMin   how long to warm the pot beside the fire first (あぶり, held at pitPreheatC)
 //   pace         0 slow / 1 normal / 2 fast: how fast the fire is built up around it
@@ -20,7 +23,7 @@
 // Weather unknown (temperature, humidity, wind or rain missing) ends the run 'stopped': a fire is never left to burn
 // on by itself. 0.1.1: organic matter in the body (the island's clay has some) burns out with O2 drawn from the air; a
 // pot fired too short keeps a dark core. Not modelled: the heat of that burning (small beside the fire's), temper
-// (sand, shell, and shell's lime spalling), smoke blackening, the pot's own strength from its wall, several pots in one fire.
+// (sand, shell, and shell's lime spalling), smoke blackening, the pot's own strength from its wall, where in the fire a pot stands.
 
 import type { LotView, Observation, ScienceStepRequest } from '../../world/science-contract';
 import { addComp, react, REACTIONS, totalMg, type Composition } from '../chem';
@@ -34,8 +37,9 @@ import { potSherdsQuality } from './vessel';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 import { DRY_POT, GREEN_POT } from './pottery';
 
-export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.1.2' } as const; // 0.1.2: a lost hearth stops the fire at interval.to, not at interval.from (Codex PF-A1)
-const SCHEMA = 'civ-sci.pot-pit-fire/1', EVAL = 'pot-pit-fire-eval/0.1.2';
+export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.2.1' } as const; // 0.2.1: fixed 30 s cells; a request ending inside a cell never splits it (Codex BATCH-A1) // 0.2.0: one to three pots in one fire (state /2) // 0.1.2: a lost hearth stops the fire at interval.to, not at interval.from (Codex PF-A1)
+const SCHEMA = 'civ-sci.pot-pit-fire/3', EVAL = 'pot-pit-fire-eval/0.2.1';
+export const PIT_MAX_POTS = 3;
 export const FIRED_POT = 'fired_pot';
 const STEP_MS = 30_000, UNLOAD_C = 60, RAMP_GIVE_UP_S = 2 * 3600;
 const GLOWS = ['dull_red', 'cherry', 'orange', 'yellow'] as const;
@@ -45,9 +49,14 @@ export const PIT_PACE_K_PER_H = { slow: 300, normal: 600, fast: 1200 } as const;
 
 type Outcome = 'done' | 'fuel_exhausted' | 'wont_burn' | 'peak_not_reached' | 'stopped' | 'untended';
 interface Fire { kilnC: number; peakKilnC: number; burnedMg: number; elapsedS: number; cumUsedJ: number; cumLostJ: number; cumChemJ: number; unevenRatioMax: number }
-interface PitData extends WareState, Fire {
-  potId: string; fps: string[]; eqFp: string; fuelId: string; location: string; fuelLocation: string; lastTo: number; startMs: number; seed: number;
-  fuel: Composition; heldBurnKgS: number; quality0: Record<string, number>; potMaterial: string;
+interface PotData extends WareState { potId: string; location: string; quality0: Record<string, number>; potMaterial: string }
+interface PitData extends Fire {
+  pots: PotData[]; fps: string[]; eqFp: string; fuelId: string; fuelLocation: string; lastTo: number; startMs: number; seed: number;
+  /** Fixed 30 s cells (0.2.1, Codex BATCH-A1): the physics stands at simT, a cell start, until a whole cell (or the run's end)
+   *  can be computed; a request ending inside a cell leaves that cell to the next request. The cell's weather and burn
+   *  rate are decided once at its start (cellAt) and held through it. */
+  simT: number; cellAt: number; cellTa: number; cellRain: number; cellWind: number;
+  fuel: Composition; heldBurnKgS: number;
   preheatS: number; rampKPerH: number; peakC: number; holdMin: number; forced: boolean; plan: { preheatMin: number; pace: string; glow: string };
   ambientC: number; phase: 'preheat' | 'ramp' | 'hold' | 'cool' | 'done'; holdStartS: number | null; outcome: Outcome | null;
   reportedUsed: number; reportedStored: number; historyComplete: boolean; runKnown: boolean;
@@ -65,9 +74,11 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const bad = checkCommon(req, PIT_FIRE_PROCESS.processId, PIT_FIRE_PROCESS.processVersion, SCHEMA, /^0\.2\.\d+$/);
   if (bad) return fail(req, bad);
   const pots = req.lots.filter((l) => l.materialId === DRY_POT || l.materialId === GREEN_POT), woods = req.lots.filter((l) => l.materialId === 'firewood');
-  if (pots.length !== 1 || woods.length !== 1 || req.lots.length !== 2) return fail(req, `expected one ${DRY_POT} (or ${GREEN_POT}) lot and one firewood lot`);
+  if (pots.length < 1 || pots.length > PIT_MAX_POTS || woods.length !== 1 || pots.length + 1 !== req.lots.length) return fail(req, `expected one to ${PIT_MAX_POTS} ${DRY_POT} (or ${GREEN_POT}) lots and one firewood lot`);
+  if (new Set(req.lots.map((l) => l.lotId)).size !== req.lots.length) return fail(req, 'a lot is listed twice (each lot once)');
+  pots.sort((x, y) => (x.lotId < y.lotId ? -1 : x.lotId > y.lotId ? 1 : 0));
   if (req.energy.length) return fail(req, 'an open fire burns its reserved firewood: offer no heat source as well');
-  const pot = pots[0], wood = woods[0];
+  const wood = woods[0];
   const hearth = req.equipment.find((e) => e.kind === 'open_fire_pit');
   // the open_fire_pit is the place; the fire heaped around the pot there is the science side's (assumed) bonfire
   const p = { heatCapJPerK: pv('pitHeatCapJPerK'), uaWPerK: pv('pitUaWPerK'), chamberFraction: pv('pitChamberFraction'), maxBurnKgPerH: pv('pitMaxBurnKgPerH'), forcedCoolingUaFactor: pv('pitPulledOutUaFactor') };
@@ -89,22 +100,27 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (!pace || !glow || !finite(pp.holdMin, 0, 24 * 60) || !finite(pp.preheatMin ?? 0, 0, 24 * 60) || ![0, 1, undefined].includes(pp.forcedCooling)) {
       return fail(req, 'fire_plan {preheatMin 0..1440, pace 0-2, targetGlow 0-3, holdMin 0..1440, forcedCooling 0/1}');
     }
-    const q = pot.quality ?? {};
-    if (![1, 2, 3].includes(q.form) || !finite(q.wall_mm, 2, 20)) return fail(req, `${pot.materialId} ${pot.lotId} needs form and wall_mm`);
-    if ((q.crack ?? 0) >= 2) return fail(req, 'the pot is broken apart: it cannot be fired');
-    let base: Composition;
-    try { base = tileComp(pot); } catch (e) { return fail(req, (e as Error).message); }
+    const potData: PotData[] = [];
+    for (const pot of pots) {
+      const q = pot.quality ?? {};
+      if (![1, 2, 3].includes(q.form) || !finite(q.wall_mm, 2, 20)) return fail(req, `${pot.materialId} ${pot.lotId} needs form and wall_mm`);
+      if ((q.crack ?? 0) >= 2) return fail(req, `the pot ${pot.lotId} is broken apart: it cannot be fired`);
+      let base: Composition;
+      try { base = tileComp(pot); } catch (e) { return fail(req, (e as Error).message); }
+      potData.push({ potId: pot.lotId, location: pot.location, quality0: { ...q }, potMaterial: pot.materialId,
+        base, ext: { water: 0, organic: 0, dehydrox: 0, calc: 0 }, sinter: 0, thicknessMm: q.wall_mm, wareC: env.airTempC ?? 0, maxWareC: env.airTempC ?? 0, steamRatioMax: 0, duntRatioMax: 0 });
+    }
     const fc = fuelComp(wood);
     if (typeof fc === 'string') return fail(req, fc);
     if (!known) return fail(req, `a fire is lit only with known weather (temperature, humidity, wind and rain; environment ${env.source})`);
     const Ta = env.airTempC!;
-    d = { potId: pot.lotId, fps, eqFp, fuelId: wood.lotId, location: pot.location, fuelLocation: wood.location, lastTo: req.interval.from, startMs: req.interval.from, seed: req.seed,
-      fuel: fc, heldBurnKgS: 0, quality0: { ...q }, potMaterial: pot.materialId,
-      base, ext: { water: 0, organic: 0, dehydrox: 0, calc: 0 }, sinter: 0, thicknessMm: q.wall_mm, wareC: Ta, maxWareC: Ta, steamRatioMax: 0, duntRatioMax: 0,
+    d = { pots: potData, fps, eqFp, fuelId: wood.lotId, fuelLocation: wood.location, lastTo: req.interval.from, startMs: req.interval.from, seed: req.seed,
+      simT: req.interval.from, cellAt: -1, cellTa: Ta, cellRain: 0, cellWind: 0,
+      fuel: fc, heldBurnKgS: 0,
       kilnC: Ta, peakKilnC: Ta, burnedMg: 0, elapsedS: 0, cumUsedJ: 0, cumLostJ: 0, cumChemJ: 0, unevenRatioMax: 0,
       preheatS: (pp.preheatMin ?? 0) * 60, rampKPerH: PIT_PACE_K_PER_H[pace], peakC: GLOW_TARGET_C[glow], holdMin: pp.holdMin, forced: pp.forcedCooling === 1,
       plan: { preheatMin: pp.preheatMin ?? 0, pace, glow }, ambientC: Ta, phase: (pp.preheatMin ?? 0) > 0 ? 'preheat' : 'ramp', holdStartS: null, outcome: null,
-      reportedUsed: 0, reportedStored: 0, historyComplete: (q.history_complete ?? 1) === 1 && (wood.quality?.history_complete ?? 1) === 1, runKnown: true };
+      reportedUsed: 0, reportedStored: 0, historyComplete: pots.every((l) => (l.quality?.history_complete ?? 1) === 1) && (wood.quality?.history_complete ?? 1) === 1, runKnown: true };
   } else {
     if (req.actions.some((a) => a.action === 'fire_plan')) return fail(req, 'the fire_plan is made once, at the start');
     d = structuredClone(req.state.data as PitData);
@@ -121,14 +137,16 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const windRatio = known ? wind10m(req) / pv('pitWindCrackRefMs') : 0;
   /** One sub-step of the fire and the pot (no decisions: those are taken at grid points). */
   const burnStep = (s: PitData, dt: number) => {
-    const Ta = env.airTempC!;
+    const Ta = s.cellTa, rainFactor = s.cellRain, windRatio = s.cellWind;
     const burn = Math.min(s.heldBurnKgS * dt * 1e6, fuelTotal - s.burnedMg);
     s.burnedMg += burn;
     const chamberIn = burn * lhv * p.chamberFraction * flame * rainFactor, gross = burn * dryShare * lhvDry;
     // cooling: pulled out of the embers it loses heat fast; left in the ashes the ash bed holds it in (assumed factors)
     const ua = s.phase === 'cool' ? p.uaWPerK * (s.forced ? p.forcedCoolingUaFactor : pv('pitAshCoolUaFactor')) : p.uaWPerK;
     const wall = ua * (s.kilnC - Ta) * dt;
-    const { sens, latent, chem } = advanceWare(s, s.kilnC, dt, { burnOrganic: true }); // the island's clay has some organic matter: it burns out in the open fire
+    // each pot takes its own heat from the same fire (the island's clay has some organic matter: it burns out in the open fire)
+    let sens = 0, latent = 0, chem = 0;
+    for (const w of s.pots) { const h = advanceWare(w, s.kilnC, dt, { burnOrganic: true }); sens += h.sens; latent += h.latent; chem += h.chem; }
     s.kilnC += (chamberIn - wall - sens - latent - chem) / p.heatCapJPerK;
     s.peakKilnC = Math.max(s.peakKilnC, s.kilnC);
     s.cumUsedJ += gross; s.cumLostJ += (gross - chamberIn) + wall + latent; s.cumChemJ += chem;
@@ -141,19 +159,22 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     const o = (quantity: string, text: string) => observations.push({ at, channel: 'sight', quantity, text });
     o('glow', s.kilnC < 400 ? (s.phase === 'preheat' ? '火の脇で器があたたまっている' : '火はまだ赤く光っていない') : `火の色：${glowCategory(s.kilnC)}`);
     if (s.phase !== 'cool' && s.phase !== 'done' && flame < 0.6) o('fire', '煙ばかりで、炎が弱い');
-    if (s.wareC > 90 && s.wareC < 250 && s.ext.water < 0.95 && (s.base.water ?? 0) > 0) o('pot', '器から白い湯気が出ている');
+    for (const w of s.pots) if (w.wareC > 90 && w.wareC < 250 && w.ext.water < 0.95 && (w.base.water ?? 0) > 0) o(potQ('pot', s, w), '器から白い湯気が出ている');
   };
 
-  let t = d.lastTo;
+  let t = d.simT;
   const reads = req.actions.filter((a) => a.action === 'look').sort((x, y) => x.at - y.at);
   let k = 0;
   // a stop (equipment-lost too) ends the run at interval.to: the fire burns up to then, as in any other interval (PF-A1)
+  const finalStop = req.stop === 'operator' || req.stop === 'equipment-lost';
   if (known) {
-    const Ta = env.airTempC!;
     while (d.phase !== 'done' && t < req.interval.to) {
       const tEnd = subStepEnd(t, d.startMs, STEP_MS, req.interval.to);
       const dt = (tEnd - t) / 1000;
-      if ((t - d.startMs) % STEP_MS === 0) {
+      if ((t - d.startMs) % STEP_MS === 0 && d.cellAt !== t) {
+        // the cell's weather, held through it (a later request inside the same cell does not change it)
+        d.cellAt = t; d.cellTa = env.airTempC!; d.cellRain = rainFactor; d.cellWind = windRatio;
+        const Ta = d.cellTa;
         let target: number | null = null, rampKs = 0;
         // warming beside the fire: the heat rises gently (pitPreheatKPerH) to pitPreheatC, then holds there
         if (d.phase === 'preheat') {
@@ -178,11 +199,18 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
       }
       for (; k < reads.length && reads[k].at <= t; k++) read(reads[k].at, d);
       for (; k < reads.length && reads[k].at < tEnd; k++) { const c = structuredClone(d); burnStep(c, (reads[k].at - t) / 1000); read(reads[k].at, c); }
+      // a request ending inside a cell: the cell is computed whole by the next request (its looks above read copies)
+      if ((tEnd - d.startMs) % STEP_MS !== 0 && !finalStop) break;
       burnStep(d, dt);
       t = tEnd;
-      if (d.phase === 'cool' && d.wareC < UNLOAD_C && (t - d.startMs) % STEP_MS === 0) { d.phase = 'done'; d.outcome ??= 'done'; }
+      if (d.phase === 'cool' && d.pots.every((w) => w.wareC < UNLOAD_C) && (t - d.startMs) % STEP_MS === 0) { d.phase = 'done'; d.outcome ??= 'done'; }
     }
-  } else if (!known) { d.historyComplete = false; d.runKnown = false; d.outcome = 'untended'; }
+  } else if (!known) {
+    // the fire falls at interval.from: a cell left open by the last request burns on to then, with its held weather
+    if (d.simT < req.interval.from && d.cellAt === d.simT) { burnStep(d, (req.interval.from - d.simT) / 1000); t = req.interval.from; }
+    d.historyComplete = false; d.runKnown = false; d.outcome = 'untended';
+  }
+  d.simT = t;
 
   const done = d.phase === 'done';
   const ending = done || !known || req.stop === 'operator' || req.stop === 'equipment-lost';
@@ -201,42 +229,69 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     equipmentWear: [], observations,
     evidence: { evaluatorVersion: EVAL, sourceRefs: ['S-thermo', 'S-latent', 'S-wood', 'S-kaol', 'S-quartz', 'S-steam', 'S-abs'],
       notes: '火と器は薪で焼く工程と焼き物の物理をそのまま使う。湿った薪の炎・風の片焼け・雨・手づくりの器の欠陥・あぶりの温度は仮定（出典未照合）' },
-    diagnostics: { phase: d.phase, outcome: d.outcome, kilnC: d.kilnC, wareC: d.wareC, maxWareC: d.maxWareC, peakKilnC: d.peakKilnC, sinter: d.sinter,
-      burnedMg: d.burnedMg, flameFactor: flame, steamRatioMax: d.steamRatioMax, duntRatioMax: d.duntRatioMax, unevenRatioMax: d.unevenRatioMax, plan: d.plan },
+    diagnostics: { phase: d.phase, outcome: d.outcome, kilnC: d.kilnC, wareC: Math.max(...d.pots.map((w) => w.wareC)), maxWareC: Math.max(...d.pots.map((w) => w.maxWareC)), peakKilnC: d.peakKilnC,
+      sinter: Math.min(...d.pots.map((w) => w.sinter)), burnedMg: d.burnedMg, flameFactor: flame, steamRatioMax: Math.max(...d.pots.map((w) => w.steamRatioMax)),
+      duntRatioMax: Math.max(...d.pots.map((w) => w.duntRatioMax)), unevenRatioMax: d.unevenRatioMax, plan: d.plan,
+      pots: d.pots.map((w) => ({ potId: w.potId, wareC: w.wareC, maxWareC: w.maxWareC, sinter: w.sinter, steamRatioMax: w.steamRatioMax, duntRatioMax: w.duntRatioMax })) },
   };
   if (!ending) return res;
-  settle(res, d, pot, wood, req.runId, endAt, done);
+  settle(res, d, wood, req.runId, endAt, done);
   return res;
 }
 
-function settle(res: ScienceStepResultV02, d: PitData, pot: LotView, wood: LotView, runId: string, endAt: number, done: boolean) {
-  const wc = wareComp(d.base, d.ext);
-  // heated at all (cracks can happen), and turned to ceramic (the clay mineral dehydroxylated: it no longer slakes)
-  const fired = d.maxWareC > 300, ceramic = fired && dehydroxExtent(wc.comp) >= pv('slakeIfDehydroxBelow');
-  // cracks: steam, quartz inversion, uneven heating in the wind, and the flaws of hand-built ware; keyed by seed and pot
-  let crack = d.quality0.crack ?? 0;
-  if (fired) {
-    for (const [mech, ratio] of [['steam', d.steamRatioMax], ['dunting', d.duntRatioMax], ['uneven', d.unevenRatioMax]] as const) {
-      const pc = crackP(ratio);
-      if (pc > 0 && draw(d.seed, runId, d.potId, mech) < pc) crack = Math.max(crack, draw(d.seed, runId, d.potId, mech, 'severity') < Math.min(0.8, 0.25 * ratio) ? 2 : 1);
+/** An observation's quantity names its pot when several stand in the fire ('crack:lot:pot-2'); one pot keeps the plain name. */
+function potQ(q: string, d: PitData, w: PotData): string {
+  return d.pots.length > 1 ? `${q}:${w.potId}` : q;
+}
+
+function settle(res: ScienceStepResultV02, d: PitData, wood: LotView, runId: string, endAt: number, done: boolean) {
+  // per pot: heated at all (cracks can happen), and turned to ceramic (the clay mineral dehydroxylated: it no longer slakes)
+  const each = d.pots.map((w) => {
+    const wc = wareComp(w.base, w.ext);
+    const fired = w.maxWareC > 300, ceramic = fired && dehydroxExtent(wc.comp) >= pv('slakeIfDehydroxBelow');
+    // cracks: steam, quartz inversion, uneven heating in the wind, and the flaws of hand-built ware; keyed by seed and pot
+    let crack = w.quality0.crack ?? 0, burst = false;
+    if (fired) {
+      for (const [mech, ratio] of [['steam', w.steamRatioMax], ['dunting', w.duntRatioMax], ['uneven', d.unevenRatioMax]] as const) {
+        const pc = crackP(ratio);
+        if (pc > 0 && draw(d.seed, runId, w.potId, mech) < pc) {
+          const sev = draw(d.seed, runId, w.potId, mech, 'severity') < Math.min(0.8, 0.25 * ratio) ? 2 : 1;
+          crack = Math.max(crack, sev);
+          if (mech === 'steam' && sev === 2) burst = true;
+        }
+      }
+      if (draw(d.seed, runId, w.potId, 'flaw') < pv('pitBaseCrackP')) crack = Math.max(crack, draw(d.seed, runId, w.potId, 'flaw', 'severity') < 0.5 ? 2 : 1);
     }
-    if (draw(d.seed, runId, d.potId, 'flaw') < pv('pitBaseCrackP')) crack = Math.max(crack, draw(d.seed, runId, d.potId, 'flaw', 'severity') < 0.5 ? 2 : 1);
+    return { w, wc, fired, ceramic, crack, burst };
+  });
+  // a pot that bursts from steam throws its pieces: each fired neighbour may crack (pitNeighborBurstP, assumed; keyed by both pots)
+  for (const e of each) {
+    if (!e.fired) continue;
+    for (const b of each) {
+      if (b === e || !b.burst) continue;
+      if (draw(d.seed, runId, e.w.potId, 'neighbor', b.w.potId) < pv('pitNeighborBurstP')) {
+        e.crack = Math.max(e.crack, draw(d.seed, runId, e.w.potId, 'neighbor', b.w.potId, 'severity') < pv('pitNeighborBreakShare') ? 2 : 1);
+      }
+    }
   }
-  const hist = d.historyComplete ? 1 : 0, mass = totalMg(wc.comp);
-  const absorption = Math.round((pv('absorptionLowFire') * (1 - d.sinter) + pv('absorptionVitrified') * d.sinter) * pv('coldSoakFraction') * 1e6);
-  const keep = (({ form, capacity_ml, wall_mm, surface_cm2 }) => ({ form, capacity_ml, wall_mm, surface_cm2 }))(d.quality0);
+  const hist = d.historyComplete ? 1 : 0;
   const o = (quantity: string, text: string, channel: Observation['channel'] = 'sight') => res.observations.push({ at: endAt, channel, quantity, text });
-  res.consumed = [{ lotId: d.potId, amount: { value: totalMg(d.base), unit: 'mg' } }, { lotId: d.fuelId, amount: { value: totalMg(d.fuel), unit: 'mg' } }];
-  if (!fired || (!ceramic && crack < 2)) {
-    const q: Record<string, number> = { ...d.quality0, ...tileQuality(wc.comp), crack, history_complete: hist };
-    for (const key of Object.keys(q)) if (/^xd_/.test(key) && !(key in tileQuality(wc.comp))) delete q[key];
-    res.produced.push({ materialId: d.potMaterial, amount: { value: mass, unit: 'mg' }, into: d.location, quality: q });
-  } else if (crack === 2) {
-    res.produced.push({ materialId: 'pot_sherds', amount: { value: mass, unit: 'mg' }, into: d.location, quality: potSherdsQuality({ absorption_ppm: absorption, history_complete: hist }) });
-  } else {
-    res.produced.push({ materialId: FIRED_POT, amount: { value: mass, unit: 'mg' }, into: d.location, quality: {
-      ...keep, ...tileQuality(wc.comp), absorption_ppm: absorption, sinter_ppm: Math.round(d.sinter * 1e6), crack,
-      ...(crack === 1 ? { crack_ppm: pv('pitHairlineCrackPpm') } : {}), overfired: d.maxWareC > pv('overfireC') ? 1 : 0, history_complete: hist } });
+  res.consumed = [...d.pots.map((w) => ({ lotId: w.potId, amount: { value: totalMg(w.base), unit: 'mg' as const } })), { lotId: d.fuelId, amount: { value: totalMg(d.fuel), unit: 'mg' } }];
+  for (const { w, wc, fired, ceramic, crack } of each) {
+    const mass = totalMg(wc.comp);
+    const absorption = Math.round((pv('absorptionLowFire') * (1 - w.sinter) + pv('absorptionVitrified') * w.sinter) * pv('coldSoakFraction') * 1e6);
+    const keep = (({ form, capacity_ml, wall_mm, surface_cm2 }) => ({ form, capacity_ml, wall_mm, surface_cm2 }))(w.quality0);
+    if (!fired || (!ceramic && crack < 2)) {
+      const q: Record<string, number> = { ...w.quality0, ...tileQuality(wc.comp), crack, history_complete: hist };
+      for (const key of Object.keys(q)) if (/^xd_/.test(key) && !(key in tileQuality(wc.comp))) delete q[key];
+      res.produced.push({ materialId: w.potMaterial, amount: { value: mass, unit: 'mg' }, into: w.location, quality: q });
+    } else if (crack === 2) {
+      res.produced.push({ materialId: 'pot_sherds', amount: { value: mass, unit: 'mg' }, into: w.location, quality: potSherdsQuality({ absorption_ppm: absorption, history_complete: hist }) });
+    } else {
+      res.produced.push({ materialId: FIRED_POT, amount: { value: mass, unit: 'mg' }, into: w.location, quality: {
+        ...keep, ...tileQuality(wc.comp), absorption_ppm: absorption, sinter_ppm: Math.round(w.sinter * 1e6), crack,
+        ...(crack === 1 ? { crack_ppm: pv('pitHairlineCrackPpm') } : {}), overfired: w.maxWareC > pv('overfireC') ? 1 : 0, history_complete: hist } });
+    }
   }
   // the firewood, as wood-fire.ts settles it: each part burned rounded up to whole mg, never more than the lot holds
   const share = (key: 'wood_dry' | 'water' | 'ash') => (d.fuel[key] ?? 0) / totalMg(d.fuel);
@@ -249,21 +304,26 @@ function settle(res: ScienceStepResultV02, d: PitData, pot: LotView, wood: LotVi
     res.produced.push({ materialId: 'firewood', amount: { value: totalMg(rest), unit: 'mg' }, into: d.fuelLocation,
       quality: { ...(wood.quality ?? {}), water_ppm: ((rest.water ?? 0) * 1e6) / totalMg(rest), ash_dry_ppm: restDry > 0 ? ((rest.ash ?? 0) * 1e6) / restDry : 0 } });
   }
-  if (taken.ash) res.produced.push({ materialId: 'wood_ash', amount: { value: taken.ash, unit: 'mg' }, into: d.location });
-  const vapour = (wc.out.water ?? 0) + (taken.water ?? 0) + (r.produced.water ?? 0), co2 = (wc.out.co2 ?? 0) + (r.produced.co2 ?? 0);
+  if (taken.ash) res.produced.push({ materialId: 'wood_ash', amount: { value: taken.ash, unit: 'mg' }, into: d.pots[0].location }) // where the (first) pot stood: the fire's place;
+  const sum = (f: (x: (typeof each)[number]) => number) => each.reduce((n, x) => n + f(x), 0);
+  const vapour = sum((x) => x.wc.out.water ?? 0) + (taken.water ?? 0) + (r.produced.water ?? 0), co2 = sum((x) => x.wc.out.co2 ?? 0) + (r.produced.co2 ?? 0);
   if (vapour > 0) res.released.push({ materialId: 'water_vapour', amount: { value: vapour, unit: 'mg' }, to: 'air' });
   if (co2 > 0) res.released.push({ materialId: 'process_co2', amount: { value: co2, unit: 'mg' }, to: 'air' });
-  const o2 = (r.consumed.o2 ?? 0) + (wc.inn.o2 ?? 0); // the wood's and the body's organic matter's
+  const o2 = (r.consumed.o2 ?? 0) + sum((x) => x.wc.inn.o2 ?? 0); // the wood's and the bodies' organic matter's
   if (o2 > 0) res.drawn = [{ materialId: 'o2', amount: { value: o2, unit: 'mg' }, from: 'air' }];
   // after an unknown stretch the run tells nothing of the pot: only that the fire fell while nobody watched
   if (!d.runKnown) { o('fire', '見ていない間に火が落ちていた'); return; }
   o('glow', `いちばん熱いときの火の色：${glowCategory(d.peakKilnC)}`);
-  if (fired) {
-    o('crack', crack === 2 ? '割れて、かけらになっている' : crack === 1 ? '細いひびが見える' : 'ひびは見当たらない');
-    if (done && crack < 2) o('tap', d.sinter > 0.5 ? '高く澄んだ音' : dehydroxExtent(wc.comp) >= pv('slakeIfDehydroxBelow') ? 'やや鈍いが、焼けた音' : 'こもった音', 'sound');
-    if (!ceramic && crack < 2) o('pot', '焼きが足りず、まだ土のまま（水に入れると崩れる）');
-    else if (crack < 2 && (d.base.organic_c ?? 0) > 0 && d.ext.organic < 0.9) o('pot', '割ると、器の芯が黒い（土の中の草や根が燃え残っている）');
-  } else o('pot', '器は焼けていない（火が届かなかった）');
+  for (const { w, wc, fired, ceramic, crack } of each) {
+    const q = (name: string) => potQ(name, d, w);
+    if (fired) {
+      o(q('crack'), crack === 2 ? '割れて、かけらになっている' : crack === 1 ? '細いひびが見える' : 'ひびは見当たらない');
+      if (done && crack < 2) o(q('tap'), w.sinter > 0.5 ? '高く澄んだ音' : dehydroxExtent(wc.comp) >= pv('slakeIfDehydroxBelow') ? 'やや鈍いが、焼けた音' : 'こもった音', 'sound');
+      if (!ceramic && crack < 2) o(q('pot'), '焼きが足りず、まだ土のまま（水に入れると崩れる）');
+      else if (crack < 2 && (w.base.organic_c ?? 0) > 0 && w.ext.organic < 0.9) o(q('pot'), '割ると、器の芯が黒い（土の中の草や根が燃え残っている）');
+    } else o(q('pot'), '器は焼けていない（火が届かなかった）');
+  }
+  if (each.some((x) => x.burst) && each.length > 1) o('fire', '火の中で器がはじけて、かけらが飛んだ', 'sound');
   if (d.outcome === 'wont_burn') o('fire', '薪が湿っていて、火が育たなかった');
   if (d.outcome === 'fuel_exhausted') o('fire', '薪が尽きて、火が小さくなっていった');
   if (d.outcome === 'peak_not_reached') o('fire', wetFlameFactor(d.fuel) < 0.6 ? '煙ばかりで、いくら薪を足しても火が赤くならなかった' : 'いくら薪を足しても、思った火の色にならなかった');

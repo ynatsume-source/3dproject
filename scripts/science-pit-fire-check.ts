@@ -7,6 +7,9 @@ import { POT_DRY_PROCESS, POT_SHAPE_PROCESS } from '../src/science/step/pottery'
 import { PIT_FIRE_PROCESS } from '../src/science/step/pit-fire';
 import { fuelComp } from '../src/science/step/wood-fire';
 import { totalMg } from '../src/science/chem';
+import { crackP } from '../src/science/physics';
+import { draw } from '../src/science/rng';
+import { pv } from '../src/science/params';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -37,6 +40,7 @@ function dried(days: number): LotView {
   return asLot(last.produced[0], 'lot:pot');
 }
 const dryPot = dried(8), dampPot = dried(1);
+const three0 = (): LotView => ({ ...dryPot, lotId: 'lot:pot-a' });
 const WOOD = (water = 150_000, mg = 40_000_000): LotView => ({ lotId: 'lot:wood', materialId: 'firewood', amount: { value: mg, unit: 'mg' }, location: 'site:woodpile', quality: { water_ppm: water } });
 const PIT = { equipmentId: 'eq:pit', kind: 'open_fire_pit', catalogEntry: 'open_fire_pit', catalogVersion: 'civ-sci-test-2', condition: 1, params: { heatCapJPerK: 20_000, uaWPerK: 30, chamberFraction: 0.2, maxBurnKgPerH: 25, forcedCoolingUaFactor: 2 } };
 type Env = { t: number; rh: number; wind?: number; rain?: number; source?: string };
@@ -161,6 +165,102 @@ console.log('5. requests that are refused');
   refused('a second plan', step(req(H, 2 * H, s0.state, [dryPot, WOOD()], planAct(CAREFUL).map((a) => ({ ...a, at: H })), CALM)), /once/);
   refused('a missing interval', step(req(2 * H, 3 * H, s0.state, [dryPot, WOOD()], [], CALM)), /noncontiguous/);
   refused('the hearth changed', step(req(H, 2 * H, s0.state, [dryPot, WOOD()], [], CALM, { equipment: [{ ...PIT, equipmentId: 'eq:other' }] })), /changed-input/);
+}
+
+console.log('8. several pots in one fire (0.2.0, owner\'s decisions 2026-10-10)');
+{
+  const pot = (l: LotView, id: string): LotView => ({ ...l, lotId: id });
+  const three = [pot(dryPot, 'lot:pot-a'), pot(dryPot, 'lot:pot-b'), pot(dryPot, 'lot:pot-c'), WOOD()];
+  const one = fire(CAREFUL), many = fire(CAREFUL, {}, () => CALM, H, three);
+  const pots = many.last.produced.filter((p) => p.materialId !== 'firewood' && p.materialId !== 'wood_ash');
+  const ratio = many.diag.burnedMg / one.diag.burnedMg;
+  ok(many.last.status === 'completed' && pots.length === 3 && pots.every((p) => ['fired_pot', 'pot_sherds'].includes(p.materialId)) && many.diag.peakKilnC > 800,
+    'three dry pots in the same fire are all fired (one fire_plan for the fire)', pots.map((p) => p.materialId).join(', '));
+  ok(ratio > 1 && ratio < 1.15, 'the same fire: three pots burn only a little more wood than one (each takes its own heat)',
+    `${(one.diag.burnedMg / 1e6).toFixed(1)} → ${(many.diag.burnedMg / 1e6).toFixed(1)} kg (×${ratio.toFixed(3)}; per pot ×${(ratio / 3).toFixed(2)})`);
+  ok(balanced(many.last) && many.last.consumed.length === 4, 'the three pots and the wood balance (each pot consumed and produced by itself)');
+  const cracks = many.last.observations.filter((o) => /^crack:/.test(o.quantity ?? '')).map((o) => o.quantity);
+  ok(cracks.length === 3 && ['lot:pot-a', 'lot:pot-b', 'lot:pot-c'].every((id) => cracks.includes(`crack:${id}`)) && !many.last.observations.some((o) => o.quantity === 'crack'),
+    'each pot is looked at by itself: the observation names it (crack:<lotId>)', cracks.join(' '));
+  const split = fire(CAREFUL, {}, () => CALM, 7 * M, three);
+  ok(JSON.stringify(split.last.produced) === JSON.stringify(many.last.produced) && JSON.stringify(split.last.released) === JSON.stringify(many.last.released),
+    'chunking never changes several pots (1 h and 7 min requests give the same pots, wood and gases)');
+  const order = fire(CAREFUL, {}, () => CALM, H, [three[2], WOOD(), three[0], three[1]]);
+  ok(JSON.stringify(order.last.produced) === JSON.stringify(many.last.produced), 'the order of the lots in the request does not matter');
+  // a damp pot (one day dry) beside a dry one, built up fast: the damp one may burst from steam and throw its pieces
+  let bursts = 0, hit = 0, own = 0, damp = 0;
+  for (let s = 1; s <= 40; s++) {
+    const r = fire(CARELESS, { seed: s }, () => CALM, H, [pot(dampPot, 'lot:pot-a'), pot(dryPot, 'lot:pot-b'), WOOD()]);
+    const ps = (r.diag as unknown as { pots: { potId: string; steamRatioMax: number; duntRatioMax: number }[] }).pots;
+    const a = ps[0], b = ps[1], uneven = r.diag.unevenRatioMax;
+    const sev = (id: string, mech: string, ratio: number) => (crackP(ratio) > 0 && draw(s, 'run:fire', id, mech) < crackP(ratio) ? (draw(s, 'run:fire', id, mech, 'severity') < Math.min(0.8, 0.25 * ratio) ? 2 : 1) : 0);
+    const burst = sev(a.potId, 'steam', a.steamRatioMax) === 2;
+    const ownB = Math.max(sev(b.potId, 'steam', b.steamRatioMax), sev(b.potId, 'dunting', b.duntRatioMax), sev(b.potId, 'uneven', uneven),
+      draw(s, 'run:fire', b.potId, 'flaw') < pv('pitBaseCrackP') ? (draw(s, 'run:fire', b.potId, 'flaw', 'severity') < 0.5 ? 2 : 1) : 0);
+    const nb = burst && draw(s, 'run:fire', b.potId, 'neighbor', a.potId) < pv('pitNeighborBurstP') ? (draw(s, 'run:fire', b.potId, 'neighbor', a.potId, 'severity') < pv('pitNeighborBreakShare') ? 2 : 1) : 0;
+    const got = r.last.produced[1].materialId === 'pot_sherds' ? 2 : (r.last.produced[1].quality?.crack ?? 0);
+    if (burst) bursts++;
+    if (got === Math.max(ownB, nb)) own++;
+    if (nb > ownB) hit++;
+    if (a.steamRatioMax > b.steamRatioMax) damp++;
+    if (burst !== r.last.observations.some((o) => o.text === '火の中で器がはじけて、かけらが飛んだ')) own = -999;
+  }
+  ok(damp === 40 && bursts > 0, 'the damp pot steams harder than the dry one beside it, and sometimes bursts', `${bursts} of 40 fires`);
+  ok(own === 40, 'each pot cracks by its own steam, quartz, wind and flaws, and a burst neighbour may crack it (pitNeighborBurstP; the sound of it is heard)', `the burst cracked the dry pot in ${hit} fires`);
+  const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));
+  refused('four pots are too many for one fire', step(req(0, H, null, [...three.slice(0, 3), pot(dryPot, 'lot:pot-d'), WOOD()], planAct(CAREFUL), CALM)), /one to 3/);
+  refused('one broken pot among them', step(req(0, H, null, [three[0], { ...three[1], quality: { ...dryPot.quality, crack: 2 } }, WOOD()], planAct(CAREFUL), CALM)), /lot:pot-b is broken/);
+  const s0 = step(req(0, H, null, three, planAct(CAREFUL), CALM));
+  refused('a pot taken out of the running fire', step(req(H, 2 * H, s0.state, [three[0], three[1], WOOD()], [], CALM)), /changed-input/);
+  refused('an old run (0.1.2, state /1) is refused by its version', step(req(H, 2 * H, { schema: 'civ-sci.pot-pit-fire/1', data: {} }, [dryPot, WOOD()], [], CALM, { processVersion: '0.1.2' })), /processVersion 0\.1\.2/);
+  refused('a state /1 under 0.2.0 is refused (not migrated)', step(req(H, 2 * H, { schema: 'civ-sci.pot-pit-fire/1', data: {} }, [dryPot, WOOD()], [], CALM)), /schema|pot-pit-fire\/1/);
+}
+
+console.log('9. a request ending inside a 30 s cell, saved and resumed (0.2.1, Codex BATCH-A1 on f372385)');
+{
+  // Codex's witness: three real 10 L jars (wall 8 mm, 20 % water, 1 % organic), 100 kg of wood, one world-pause at 69 min 45 s
+  const E = (at: number, o: Partial<{ rainMmH: number; windMs: number }> = {}) => ({ sampleId: 'env', source: 'record' as const, effectiveAt: at, airTempC: 28, humidity: 0.75, windMs: 1, rainMmH: 0, ...o });
+  const jar = step({ contract: '0.2.0', requestId: 'shape10', world: W, runId: 'run:shape', ...POT_SHAPE_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: 0, to: 24 * H }, state: null, environment: E(0),
+    lots: [{ lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 100_000_000, unit: 'mg' }, location: 'site:clay', quality: { water_ppm: 200_000, xd_kaolinite_ppm: 600_000, xd_quartz_ppm: 390_000, xd_organic_c_ppm: 10_000 } }],
+    equipment: [], energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: 24 * 3600 * 20 }], seed: 1, actions: [{ at: 0, residentId: 'r', action: 'plan', params: { form: 2, capacityMl: 10_000, wallMm: 8 } }] }).produced[0];
+  const jars = [0, 1, 2].map((i): LotView => ({ lotId: `lot:pot-${i}`, materialId: jar.materialId, amount: jar.amount, quality: jar.quality, location: 'site:pit' }));
+  const wood100: LotView = { lotId: 'lot:wood', materialId: 'firewood', amount: { value: 100_000_000, unit: 'mg' }, location: 'site:wood', quality: { water_ppm: 150_000 } };
+  const plan = { preheatMin: 60, pace: 0, targetGlow: 1, holdMin: 30, forcedCooling: 0 };
+  const chain = (cuts: number[], lots: LotView[], env: (from: number) => ReturnType<typeof E> = E, looks: number[] = [], pauseAt: number[] = []) => {
+    let st: ScienceStepRequest['state'] = null, from = 0, used = 0; const all: ScienceStepResult[] = [];
+    for (const to of [...cuts, 24 * H]) {
+      const acts = [...(from === 0 ? [{ at: 0, residentId: 'r', action: 'fire_plan', params: plan }] : []), ...looks.filter((a) => a >= from && a < to).map((at) => ({ at, residentId: 'r', action: 'look' }))];
+      const r = step({ contract: '0.2.0', requestId: `r:${from}`, world: W, runId: 'run:fire', ...PIT_FIRE_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from, to }, state: st, environment: env(from), lots,
+        equipment: [{ ...PIT, params: {} }], energy: [], seed: 1, actions: acts, ...(pauseAt.includes(to) ? { stop: 'world-pause' as const } : {}) });
+      all.push(r); used += r.energy.reduce((n, e) => n + e.usedJ, 0); st = JSON.parse(JSON.stringify(r.state)); from = to;
+      if (r.status !== 'running') break;
+    }
+    const last = all[all.length - 1];
+    return { last, used, obs: all.flatMap((r) => r.observations), key: JSON.stringify([last.produced, last.released, (last as unknown as Drawn).drawn, last.simulated.to, last.state]) };
+  };
+  const base = chain([4_170_000, 4_200_000], [...jars, wood100]), paused = chain([4_170_000, 4_185_000, 4_200_000], [...jars, wood100], E, [], [4_185_000]);
+  ok(base.key === paused.key && base.used === paused.used && JSON.stringify(base.obs) === JSON.stringify(paused.obs) && paused.last.produced[1].materialId === base.last.produced[1].materialId,
+    'Codex\'s witness: one world-pause at 69 min 45 s, saved as JSON and resumed, gives the same pots, wood, gases, heat and final state',
+    `2nd jar ${base.last.produced[1].materialId}/${base.last.produced[1].quality?.crack} both ways, ${base.used} J`);
+  const offGrid = [[1007], [4_215_000], [4_245_000], [61_111, 4_185_000, 9_000_001], [3_600_015, 3_600_020, 3_600_029]];
+  const same = offGrid.filter((cuts) => chain(cuts, [...jars, wood100], E, [], cuts).key === base.key && chain(cuts, [jars[1], wood100], E, [], cuts).key === chain([], [jars[1], wood100]).key).length;
+  ok(same === offGrid.length, 'requests ending inside cells, anywhere (1 ms after the start, mid-preheat, mid-ramp, three in one cell): three jars and one jar end exactly as in one request', `${same}/${offGrid.length} split sets`);
+  const looks = [4_175_000, 4_186_000, 4_199_000];
+  const lb = chain([], [...jars, wood100], E, looks), lp = chain([4_185_000], [...jars, wood100], E, looks, [4_185_000]);
+  ok(lb.key === base.key && lp.key === base.key && JSON.stringify(lb.obs.filter((o) => looks.includes(o.at))) === JSON.stringify(lp.obs.filter((o) => looks.includes(o.at))),
+    'looks inside the split cell see the same fire and pots, and change nothing');
+  // the cell's weather is held: rain arriving with a request that starts inside a cell counts from the next cell
+  const g = 4_170_000, wet = (from: number) => (from >= g + 15_000 ? E(from, { rainMmH: 4 }) : E(from));
+  const wetAligned = (from: number) => (from >= g + 30_000 ? E(from, { rainMmH: 4 }) : E(from));
+  const rs = chain([g, g + 15_000], [...jars, wood100], wet), ra = chain([g, g + 30_000], [...jars, wood100], wetAligned);
+  ok(rs.key === ra.key, 'weather sent with a request that starts inside a cell takes effect from the next cell (as if it came at the cell boundary)');
+  // weather lost inside a cell: the open cell burns on to the request's start with its held weather, then the fire falls
+  const lostEnv = (from: number) => (from >= g + 15_000 ? { sampleId: 'env', source: 'record' as const, effectiveAt: from, airTempC: 28, humidity: 0.75 } : E(from));
+  const lost = chain([g, g + 15_000], [...jars, wood100], lostEnv as typeof E);
+  ok(lost.last.status === 'stopped' && lost.last.simulated.to === g + 15_000 && balanced(lost.last) && lost.obs.some((o) => o.text === '見ていない間に火が落ちていた'),
+    'weather lost at a request starting inside a cell: the fire falls there (the open cell burned up to it), the pots and wood settle');
+  const dup = step(req(0, H, null, [three0(), three0(), WOOD()], planAct(CAREFUL), CALM));
+  ok(dup.status === 'failed' && /listed twice/.test(String(dup.evidence.notes)), 'the same pot listed twice is refused (Codex BATCH-HOST-C1)', String(dup.evidence.notes));
 }
 
 console.log('—   every result above passed the contract checker');

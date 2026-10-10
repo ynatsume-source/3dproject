@@ -2090,6 +2090,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (entry.equipment?.kind === LAMP_DISH_ASSEMBLY.kind) { const k = (entry.also ?? []).findIndex((a) => a.input === 'lamp_wick'), ws = shelfLots().filter((l) => l.materialId === 'lamp_wick' && !(l as any).reservedBy);
         const n = (l: LotView) => village.lampLog.filter((x) => x.fiber === l.quality?.fiber).length;
         if (k >= 0 && ws.length) more[k] = [...ws].sort((a, b) => n(a) - n(b))[0] as LotView; }
+      // (pots fired together: the other dry ones on the shelf go in the same fire, up to the batch — never a cracked one with
+      // others, never the same lot twice)
+      if (entry.batch && lot && !(lot.quality?.crack)) more.push(...shelfLots().filter((l) => l.lotId !== lot.lotId && l.materialId === entry.input && !(l as any).reservedBy && !(l.quality?.crack) && (!entry.inputOk || entry.inputOk(l))).slice(0, entry.batch - 1));
       if (entry.withEquipmentLots && entry.equipment) { const at = `eq:${entry.equipment.kind}`; for (const l of Object.values(lab.lots)) if (l.location === at && !(l as any).reservedBy && l.materialId === entry.input) more.push(l as LotView); }
       // (its equipment taken by a run still going — the clay pit soaking the last lot: not ready until it is free, rather than
       // tried and refused at every turn, 22 000 times in eight days — life-run 2026-10-09)

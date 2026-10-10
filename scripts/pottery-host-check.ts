@@ -5,6 +5,7 @@
 //  2 drying it on the rack under leaves, in the island's replayed weather (temperature, humidity and wind as recorded);
 //    taken off part-dried, it is still a green pot and carries how far it has dried; a second run goes on from there to
 //    a dry pot
+//  3 the island's pit fire entry (p13y 0.2.1): two dry pots in one fire with the seasoned wood — both fired, one run
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/pottery-host-check.ts
 import { emptyLedger, addLot, startRun, advance, toReal, type Ledger } from '../src/world/process-runner';
 import { CATALOG } from '../src/world/process-catalog';
@@ -23,7 +24,7 @@ const env = (clock: 'world' | 'island') => (at: number): EnvironmentSample => {
 const L: Ledger = emptyLedger('dotworld', 'e1');
 addLot(L, { lotId: 'lot:clay', materialId: 'prepared_clay', amount: { value: 6_000_000, unit: 'mg' }, location: 'shelf', quality: { water_ppm: 200_000, xd_kaolinite_ppm: 600_000, xd_quartz_ppm: 400_000 } });
 const T0 = Date.parse('2026-10-06T10:00:00+09:00');
-let pot: any = null;
+let pot: any = null, dryPot: any = null;
 { // 1
   want('1 the entry: the hands only, and what to make', shapeE.equipment === null && shapeE.start?.action === 'plan' && shapeE.start.params.form === 1);
   const { run, why } = startRun(L, { processId: shapeE.processId, processVersion: shapeE.processVersion, catalogVersion: shapeE.catalogVersion, contract: shapeE.contract, clock: shapeE.clock, lotIds: ['lot:clay'], equipmentIds: [], operator: 'res:lantern' }, T0);
@@ -48,8 +49,19 @@ let pot: any = null;
   want('2 taken off part-dried: still a green pot, how far it dried carried', a.every((c) => c.ok) && half?.materialId === 'green_pot' && half.quality?.dry_stage !== undefined && half.quality?.dry_flux_ratio_max_ppm !== undefined, a.filter((c) => !c.ok).map((c) => c.why ?? c.error)[0] ?? half?.quality);
   const T2 = T1 + 7 * 3600e3, r2 = startRun(L, { ...spec, lotIds: [half.lotId] }, T2).run!;
   const b = advance(L, r2.runId, dryE.step, { realNow: T2 + 30 * 3600e3, environment: env('island'), actions: [{ at: r2.lastTo + dryE.finish!.afterMs, action: dryE.finish!.action }] });
-  const dry = b.flatMap((c) => c.produced ?? []).find((l: any) => l.materialId === 'dry_pot');
+  const dry = b.flatMap((c) => c.produced ?? []).find((l: any) => l.materialId === 'dry_pot'); dryPot = dry;
   want('2 a second run goes on from there to a dry pot', b.every((c) => c.ok) && !!dry && dry.quality?.dry_stage === 2, b.filter((c) => !c.ok).map((c) => c.why ?? c.error)[0] ?? b.flatMap((c) => c.produced ?? []).map((l: any) => l.materialId));
+}
+{ // 3
+  const fireE = CATALOG.find((c) => c.processId === 'p13y_pot_pit_fire')!;
+  const second = addLot(L, { materialId: 'dry_pot', amount: { ...dryPot.amount }, location: 'shelf', quality: { ...dryPot.quality } });
+  const wood = addLot(L, { materialId: 'firewood', amount: { value: 35_000_000, unit: 'mg' }, location: 'shelf', quality: { water_ppm: 260_000, history_complete: 1 } });
+  L.equipment['eq:fire'] = { equipmentId: 'eq:fire', ...fireE.equipment! } as any; delete (L.equipment['eq:fire'] as any).ja;
+  want('3 the entry takes up to three pots at once', fireE.batch === 3 && !!fireE.inputOk?.(dryPot) && !!fireE.inputOk?.(second));
+  const T3 = T0 + 60 * 3600e3, run = startRun(L, { processId: fireE.processId, processVersion: fireE.processVersion, catalogVersion: fireE.catalogVersion, contract: fireE.contract, clock: fireE.clock, lotIds: [dryPot.lotId, second.lotId, wood.lotId], equipmentIds: ['eq:fire'], operator: 'res:lantern' }, T3).run!;
+  const out = advance(L, run.runId, fireE.step, { realNow: T3 + 30 * 3600e3, environment: env('island'), actions: [{ at: run.lastTo, action: fireE.start!.action, params: fireE.start!.params }] });
+  const fired = out.flatMap((c) => c.produced ?? []).filter((l: any) => l.materialId === 'fired_pot');
+  want('3 two pots fired in one fire', out.every((c) => c.ok) && L.runs[run.runId].status === 'completed' && fired.length === 2, `${L.runs[run.runId].status} ${L.runs[run.runId].why ?? ''} ${out.filter((c) => !c.ok).map((c) => c.why)[0] ?? ''} fired ${fired.length}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

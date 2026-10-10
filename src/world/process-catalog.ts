@@ -20,7 +20,7 @@ import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASS
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
 import { potShapeStep, potDryStep, POT_SHAPE_PROCESS, POT_DRY_PROCESS } from '../science/step/pottery';
 import { clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
-import { pitFireStep, PIT_FIRE_PROCESS, FIRED_POT } from '../science/step/pit-fire';
+import { pitFireStep, PIT_FIRE_PROCESS, PIT_MAX_POTS, FIRED_POT } from '../science/step/pit-fire';
 import { oilLampStep, OIL_LAMP_PROCESS, readLampOil, LAMP_DISH, LAMP_WICK, WICK_RECIPES } from '../science/step/oil-lamp';
 import { cookPotParams, lampDishParams, firedPotQualityOnReturn, firedPotSherdsQuality, retortParams, retortPartsOnReturn, COOK_POT, TAR_RETORT, FIRED_POT_ASSEMBLY_TABLE, TOOL_RECIPES } from '../science/step/fired-pot-assembly';
 import type { LotView } from './science-contract';
@@ -50,6 +50,8 @@ export interface CatalogEntry {
   enough?: string;
   /** How much of `enough` counts as enough (default: any). */
   enoughMg?: number;
+  /** More lots of its input it takes at once, up to this many in all (pots fired together in one fire). */
+  batch?: number;
   /** Not with less of its material than this (mg): what one go takes. */
   minInputMg?: number;
   /** Taken out when it feels right (p10x 0.1.4: the clay is felt with a look): felt every so often from a while after the
@@ -219,20 +221,23 @@ export const CATALOG: CatalogEntry[] = [
     ready: true, waits: '下ごしらえした粘土（鍋ができてから）' },
   // (after the lamp: two jars for the residents' retort — the upper 2 L to hold the charge (retortParams: at least 1 L), the
   // lower 0.3 L to catch all a full charge can drip (2 L × 0.4 g/mL × (0.12 + 0.2) × 0.6 ≈ 154 mL) — and, once the retort
-  // stands, a 0.5 L jar to seal with its tar. One of each, each once)
+  // stands, a 0.5 L jar to seal with its tar (not shaped with them: the rack dries one at a time, and the retort's jars
+  // waited behind it — life-run 2026-10-10). One of each, each once)
   ...([['upper', RETORT_UPPER_ML, 1_700_000, '乾留の器の上の壺', LAMP_DISH], ['lower', RETORT_LOWER_ML, 500_000, '乾留の器の下の壺', LAMP_DISH], ['seal', SEAL_JAR_ML, 700_000, '封じる壺', TAR_RETORT]] as const).map(([key, ml, mg, ja, after]) => ({
     processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world' as const,
     ja: `粘土で${ja}（${ml / 1000}L）を形づくる`, input: 'prepared_clay', inputJa: '下ごしらえした粘土',
     equipment: null, start: { action: 'plan', params: { form: 2, capacityMl: ml } }, minInputMg: mg,
     step: potShapeStep, env: 'record' as const, energy: handsW(15), tend: 'stay' as const, key, form: 2, built: after,
     ready: true, waits: `下ごしらえした粘土（${after === TAR_RETORT ? '乾留の器ができてから' : '灯皿ができてから'}）` })),
+  // (p13y 0.2.1, science final review 2026-10-10-pit-fire-batch: one to three dry pots in the same fire, the wood hardly
+  // more for three than for one — every dry pot on the shelf at the time goes in, up to three, a cracked one never with others)
   // (science final review 2026-10-09-pit-fire: a dry pot fired in the open, the fire heaped round it. Lantern plans it
   // once — warmed beside the fire half an hour, built up at a normal pace to a cherry red, held there half an hour, left to
   // cool in the ashes — and tends it. A fire that hot takes some 20 kg of seasoned wood, more of wood dried only 30 days
   // (28 %: 30–40 kg — science side's sums, 2026-10-09; the wood's amount is from an assumed fire, not yet measured);
   // green wood never brings a pot to red. Run out of wood with the pot fired, it is still a fired pot.)
   { processId: PIT_FIRE_PROCESS.processId, processVersion: PIT_FIRE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
-    ja: '乾いた器を野焼きする（焚き火で囲んで焼く）', input: 'dry_pot', inputJa: '乾いた器', also: [{ input: 'firewood', ja: '乾いた薪（30kg以上）', minMg: 30_000_000, ok: DRY_WOOD }],
+    ja: '乾いた器を野焼きする（焚き火で囲んで焼く）', input: 'dry_pot', inputJa: '乾いた器（3つまで一緒に）', inputOk: (l) => (l.quality?.crack ?? 0) < 2, batch: PIT_MAX_POTS, also: [{ input: 'firewood', ja: '乾いた薪（30kg以上）', minMg: 30_000_000, ok: DRY_WOOD }],
     equipment: OPEN_FIRE, start: { action: 'fire_plan', params: { preheatMin: 30, pace: 1, targetGlow: 1, holdMin: 30, forcedCooling: 0 } },
     step: pitFireStep as ScienceStep, env: 'record', tend: 'stay',
     ready: true, waits: '乾いた器と、乾いた薪（30kg以上）' },

@@ -200,6 +200,8 @@ export const PARAMS = {
   pitRainHalfMmH: P('pitRainHalfMmH', 2, 'mm/h', 'assumed', [], 'この雨で器に届く熱が半分になる'),
   pitBaseCrackP: P('pitBaseCrackP', 0.08, 'probability', 'assumed', [], '手で積んだ器の見えない欠陥：どれだけ気をつけても割れる割合'),
   pitHairlineCrackPpm: P('pitHairlineCrackPpm', 100000, 'ppm', 'assumed', [], '野焼きの細いひび（crack 1）の損傷指数 crack_ppm（器の組み立てのひびと同じ尺度）'),
+  pitNeighborBurstP: P('pitNeighborBurstP', 0.2, 'probability', 'assumed', [], 'まとめて焼くとき、蒸気ではじけた器のかけらで、隣の器にひびが入る確率（はじけた器1つにつき）'),
+  pitNeighborBreakShare: P('pitNeighborBreakShare', 0.3, 'ratio', 'assumed', [], 'そのひびが器を割ってしまう割合（残りは細いひび）'),
   // the residents' fired pots as equipment (step/fired-pot-assembly.ts): all assumed, no source read yet
   firedPotLossWPerM2K: P('firedPotLossWPerM2K', 20, 'W/(m2·K)', 'assumed', [], '焼いた器の外側から空気へ逃げる熱（対流と放射、湯の温度あたり）'),
   firedPotHeatShareCook: P('firedPotHeatShareCook', 0.2, 'ratio', 'assumed', [], '三つ石のかまどで、火の熱が鍋に入る割合の標準（本体が変えてよい）'),
