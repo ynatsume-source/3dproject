@@ -6,8 +6,13 @@
 //  3 saved and restored mid-run (JSON), it ends exactly as a run never interrupted
 //  4 what the world refuses: a lot in use, a result that breaks the contract (nothing changes); a refused process
 //    (not clay) ends its run with nothing used
+//  5 what a run lets go is booked (science final review 2026-10-10-barometer): the self-made barometer on a tubed pot, the
+//    pressure falling fast enough to push water out of the tube's mouth; taken out, the rest of the water back where it
+//    was, the spilled water released to the ground and in the ledger — none of it lost from the accounts
 // Usage: npx tsx scripts/process-runner-check.ts
-import { emptyLedger, addLot, startRun, advance, commit, nextRequest, toClock, toReal, type Ledger } from '../src/world/process-runner';
+import { emptyLedger, addLot, startRun, advance, commit, nextRequest, toClock, toReal, assemble, type Ledger } from '../src/world/process-runner';
+import { POT_ASSEMBLY } from '../src/world/process-catalog';
+import { barometerPotStep, BAROMETER_POT_PROCESS } from '../src/science/step/barometer-pot';
 import { simpleFixtureStep } from '../src/science/step/simple';
 import { dryingStep, DRYING_PROCESS, SCIENCE_CATALOG_VERSION } from '../src/science/step/drying';
 import { loadIslandWeather, islandWeather } from '../src/world/island-time';
@@ -85,6 +90,27 @@ const dryOnce = (interrupt: boolean) => {
   const M = world(); M.lots['lot:clay-1'].materialId = 'sand';
   const { run: s } = startRun(M, shapeSpec, T0), f = advance(M, s!.runId, simpleFixtureStep, { realNow: T0 + 3 * 60_000, environment: sim, energy: hands });
   want('4 not clay: the process refuses, the run ends, the sand is still there and free', f[0]?.status === 'failed' && M.lots['lot:clay-1']?.amount.value === 45_000 && !M.lots['lot:clay-1'].reservedBy, M.runs[s!.runId].why);
+}
+{ // 5
+  const L = emptyLedger('dotworld', 'e1');
+  const pot = addLot(L, { materialId: 'fired_pot_test', amount: { value: 640_000, unit: 'mg' }, location: 'site:hut',
+    quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1, x_tube_ppm: 39_000, tube_bore_mm: 8, tube_length_mm: 200, joint_cover_ppm: 900_000 } });
+  const eq = assemble(L, pot.lotId, POT_ASSEMBLY, T0).equipment!;
+  addLot(L, { lotId: 'lot:water', materialId: 'process_water', amount: { value: 20_000, unit: 'mg' }, location: 'jar:rain', quality: {} });
+  const { run, why } = startRun(L, { processId: BAROMETER_POT_PROCESS.processId, processVersion: BAROMETER_POT_PROCESS.processVersion, catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'world', lotIds: ['lot:water'], equipmentIds: [eq.equipmentId], operator: 'res:lantern' }, T0);
+  let hPa = 1010;
+  const env = (at: number) => ({ sampleId: `env:sim:${at}`, source: 'simulation' as const, effectiveAt: at, airTempC: 27, pressureHPa: hPa });
+  const a = advance(L, run!.runId, barometerPotStep, { realNow: T0 + 2 * 3_600_000, environment: env });
+  hPa = 950;   // (a deep fall for a short tube: the water pushed out of its open mouth)
+  const b = advance(L, run!.runId, barometerPotStep, { realNow: T0 + 3 * 3_600_000, environment: env });
+  const at = L.runs[run!.runId].lastTo;
+  const c = advance(L, run!.runId, barometerPotStep, { realNow: T0 + 3 * 3_600_000 + 60_000, environment: env, actions: [{ action: 'take_out', at }] });
+  const back = Object.values(L.lots).filter((l) => l.materialId === 'process_water'), spilled = (L.released ?? []).filter((x) => x.materialId === 'process_water' && x.to === 'ground').reduce((n, x) => n + x.mg, 0);
+  const kept = back.reduce((n, l) => n + l.amount.value, 0);
+  want('5 the gauge set and read, the fall spilled water, taken out', !why && [...a, ...b, ...c].every((x) => x.ok) && L.runs[run!.runId].status === 'completed', `${why ?? ''} ${L.runs[run!.runId].status} ${L.runs[run!.runId].why ?? ''} ${[...a, ...b, ...c].filter((x) => !x.ok).map((x) => x.why).join('; ')}`);
+  want('5 the rest of the water back where it was, the spill released to the ground and booked: 20 g in all', spilled > 0 && back.every((l) => l.location === 'jar:rain') && kept + spilled === 20_000, `back ${kept} mg @${back.map((l) => l.location).join(',')}, spilled ${spilled} mg`);
+  const L2: Ledger = JSON.parse(JSON.stringify(L));
+  want('5 the booking kept in the save', (L2.released ?? []).length === (L.released ?? []).length && (L2.released ?? []).length > 0);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

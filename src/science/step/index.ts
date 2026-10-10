@@ -6,6 +6,7 @@ import { simpleFixtureStep, SIMPLE_FIXTURE_PROCESSES } from './simple';
 import { woodFireStep, WOOD_FIRE_PROCESS } from './wood-fire';
 import { contractExtras } from './common';
 import { barometerStep, BAROMETER_PROCESS } from './barometer';
+import { barometerPotStep, BAROMETER_POT_PROCESS } from './barometer-pot';
 import { slakeStep, SLAKE_PROCESS } from './slake';
 import { kneadStep, KNEAD_PROCESS } from './knead';
 import { charcoalStep, CHARCOAL_PROCESS } from './charcoal';
@@ -21,6 +22,7 @@ const PROCESSES: Record<string, ScienceStep> = {
   ...Object.fromEntries(SIMPLE_FIXTURE_PROCESSES.map((id) => [id, simpleFixtureStep])),
   [WOOD_FIRE_PROCESS.processId]: woodFireStep,         // contract 0.2.x only
   [BAROMETER_PROCESS.processId]: barometerStep,
+  [BAROMETER_POT_PROCESS.processId]: barometerPotStep,
   [SLAKE_PROCESS.processId]: slakeStep,
   [KNEAD_PROCESS.processId]: kneadStep,
   [COCONUT_MILK_PROCESS.processId]: coconutMilkStep,

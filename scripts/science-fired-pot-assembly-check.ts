@@ -123,7 +123,7 @@ console.log('5. the residents\' jar as a sealed vessel (p16x 0.1.2, p17x 0.1.3, 
   const back = r.produced.find((p) => p.materialId === 'fired_pot');
   ok(r.status === 'completed' && back?.quality?.form === 2 && back.quality.sealed === 1 && closes(r), 'it stands two days on the stand as a fired_pot (the leak test reads the residents\' pot)');
   const p = potToEquipmentParams(potLot);
-  ok(POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/3' && p.sealed === 1 && p.airLeakTauMin === pot.quality!.air_leak_tau_min && readPot(potLot).areaM2 === jar.quality!.surface_cm2 / 1e4,
+  ok(POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/4' && p.sealed === 1 && p.airLeakTauMin === pot.quality!.air_leak_tau_min && readPot(potLot).areaM2 === jar.quality!.surface_cm2 / 1e4,
     'it assembles as a barometer bulb (the pot\'s own surface, not the test pot\'s assumed shape)', JSON.stringify(p));
   const worn = potQualityOnReturn(potLot.quality!, 0.9);
   ok(worn.crack === 1 && worn.airtight_known === 0 && worn.sealed === 1 && worn.form === 2, 'worn, it comes back still stopped, its air-holding unknown, and its crack mark shows the wear');

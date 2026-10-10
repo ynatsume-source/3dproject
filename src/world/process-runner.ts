@@ -36,8 +36,10 @@ export interface Ledger {
   equipment: Record<Id, EquipmentView & { reservedBy?: Id; assembled?: Assembled }>;
   runs: Record<Id, Run>;
   committed: Id[];                    // requestIds already committed (the last few hundred: a resend is refused)
+  released?: Released[];             // what runs let go out of the world's lots — water spilled on the ground, smoke to the air (the last few hundred)
   seq: number;                        // for new ids
 }
+export interface Released { runId: Id; processId: Id; at: number; materialId: Id; mg: number; to: 'air' | 'water' | 'ground' }
 export const emptyLedger = (worldId: Id, worldEpoch: Id): Ledger => ({ world: { worldId, worldEpoch, worldVersion: 0 }, lots: {}, equipment: {}, runs: {}, committed: [], seq: 0 });
 
 export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }): LotView {
@@ -271,6 +273,10 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
     // (the run settles its lots when it ends: what it used goes, what it made is new — where the step says, or where
     // its first lot was)
     for (const c of res.consumed) { const l = L.lots[c.lotId]; l.amount = { ...l.amount, value: l.amount.value - c.amount.value }; if (l.amount.value <= 0) delete L.lots[c.lotId]; }
+    // (and what it let go is booked where it went: the barometer's spilled water to the ground — science final review
+    // 2026-10-10-barometer; it leaves the lots, it is not lost from the accounts)
+    for (const x of res.released ?? []) (L.released ??= []).push({ runId: r.runId, processId: r.processId, at: res.simulated.to, materialId: x.materialId, mg: x.amount.value, to: x.to });
+    if ((L.released?.length ?? 0) > 300) L.released!.splice(0, L.released!.length - 300);
     const where = L.lots[r.lotIds[0]]?.location ?? req.lots[0]?.location ?? 'site:unknown';
     for (const p of res.produced) produced.push(addLot(L, { materialId: p.materialId, amount: { ...p.amount }, location: p.into ?? where, ...(p.quality ? { quality: { ...p.quality } } : {}) }));
     for (const id of r.equipmentIds) { const e = L.equipment[id], w = res.equipmentWear.find((x) => x.equipmentId === id); if (e && w) e.condition = Math.max(0, Math.min(1, e.condition + w.conditionDelta)); }

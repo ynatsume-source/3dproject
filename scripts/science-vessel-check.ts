@@ -118,8 +118,8 @@ console.log('6. assembly (ADR 0006): a pot lot becomes equipment and back');
 {
   const sealed = potOf(step(sealReq([warmPot, { ...TAR(), lotId: 'lot:tar4' }, WOOD()], true)));
   const params = potToEquipmentParams(sealed);
-  ok(params.capacityMl === 500 && params.sealed === 1 && params.airtightKnown === 1 && params.airLeakTauMin === sealed.quality!.air_leak_tau_min && params.crackPpm === 0 && POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/3',
-    'a sealed pot lot gives the equipment its capacity and how long it holds its air (table civ-sci.pot-assembly/3)', JSON.stringify(params));
+  ok(params.capacityMl === 500 && params.sealed === 1 && params.airtightKnown === 1 && params.airLeakTauMin === sealed.quality!.air_leak_tau_min && params.crackPpm === 0 && POT_ASSEMBLY_TABLE === 'civ-sci.pot-assembly/4',
+    'a sealed pot lot gives the equipment its capacity and how long it holds its air (table civ-sci.pot-assembly/4)', JSON.stringify(params));
   const whole = potQualityOnReturn(sealed.quality!, 1);
   ok(JSON.stringify(whole) === JSON.stringify(sealed.quality), 'back whole (condition 1): the lot is as it was');
   const worn = potQualityOnReturn(sealed.quality!, 0.9);

@@ -8,7 +8,7 @@
 //    broken: a lot of sherds of the same mass, its quality from the table (the body's kept, the vessel's dropped); in use: refused
 //  4 a new version of the table: the params worked out again from the copy (not for equipment in use)
 //  5 saved and loaded (JSON): all of it as it was
-//  6 the science side's own table (civ-sci.pot-assembly/3 since 2026-10-09; integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
+//  6 the science side's own table (civ-sci.pot-assembly/4 since 2026-10-10, /3 since 2026-10-09; integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
 //    sealed pot is a bulb; worn, it stays sealed, not known airtight, and is no bulb when made up again; broken, it goes
 //    back to pot_sherds (potSherdsQuality, cleared by Codex lab e2a4147): a wet, tarred pot with no full history becomes
 //    sherds of the same amount, its absorption, tar, water and history_complete as they were (whole ppm, no new rounding;
@@ -16,6 +16,8 @@
 //  7 several lots made into one piece (a tar retort from an upper and a lower pot): refused for the wrong lots or a cracked
 //    pot; a copy of each kept; saved and loaded; worked out again for a new table; taken apart as the table says, each
 //    part of its own amount (worn: the upper pot cracked; broken: the upper pot to sherds, the lower one whole)
+//  8 table /4 (science final review 2026-10-10-barometer): a sealed pot with a gauge tube through its plug is a barometer
+//    bulb — its tube and bulbTauS from the table, and the stick main carves (markMm); one without a tube has no markMm
 // Usage: npx tsx scripts/assembly-check.ts
 import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, assembleParts, disassembleParts, refreshAssembledParts, loseEquipment, startRun, type AssemblyTable, type PartsAssemblyTable, type Ledger } from '../src/world/process-runner';
 import type { LotView } from '../src/world/science-contract';
@@ -97,7 +99,7 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const L6 = emptyLedger('island', 'test');
   const lot = addLot(L6, { materialId: 'fired_pot_test', amount: { value: 615_000, unit: 'mg' }, quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1 }, location: 'shelf' });
   const e = assemble(L6, lot.lotId, POT_ASSEMBLY, 1000).equipment!;
-  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/3', JSON.stringify(e?.params));
+  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/4', JSON.stringify(e?.params));
   L6.equipment[e.equipmentId].condition = 0.9;
   const back = disassemble(L6, e.equipmentId, POT_ASSEMBLY).lot!;
   want('6 real table: worn, still sealed, not known airtight', back?.quality?.sealed === 1 && back.quality?.airtight_known === 0 && back.quality?.air_leak_tau_min === undefined && back.quality?.crack_ppm === 100000, JSON.stringify(back?.quality));
@@ -170,6 +172,17 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   loseEquipment(L7f, e2.equipmentId, null, null);
   const lots7f = Object.keys(L7f.lots).sort().join();
   want('7 washed away whole while in use: the run stopped, its firewood free again, the retort and both pots gone', !L7f.equipment[e2.equipmentId] && L7f.runs[run7.runId].status === 'stopped' && !L7f.lots['lot:wood'].reservedBy && lots7f === before7f, `${L7f.runs[run7.runId].status}; lots ${before7f === lots7f ? 'unchanged (nothing came back)' : lots7f}`);
+}
+
+{ // 8 a pot with a gauge tube through its plug
+  const L8 = emptyLedger('island', 'test');
+  const lot = addLot(L8, { materialId: 'fired_pot_test', amount: { value: 640_000, unit: 'mg' }, location: 'shelf',
+    quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1, x_tube_ppm: 39_000, tube_bore_mm: 8, tube_length_mm: 600, joint_cover_ppm: 900_000 } });
+  const e = assemble(L8, lot.lotId, POT_ASSEMBLY, 1000).equipment!, p = e?.params ?? {};
+  want('8 a tubed pot: a bulb with its tube, bulbTauS and the stick\'s marks', p.tubeBoreMm === 8 && p.tubeLengthMm === 600 && p.bulbTauS > 0 && p.markMm === 5 && p.airLeakTauMin > 0 && L8.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/4', JSON.stringify(p));
+  const plain = addLot(L8, { materialId: 'fired_pot_test', amount: { value: 615_000, unit: 'mg' }, location: 'shelf', quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1 } });
+  const e2 = assemble(L8, plain.lotId, POT_ASSEMBLY, 1000).equipment!;
+  want('8 without a tube: no stick, no tube', e2.params?.markMm === undefined && e2.params?.tubeBoreMm === undefined, JSON.stringify(e2.params));
 }
 
 if (bad) { console.log(`${bad} FAILED`); process.exit(1); }
