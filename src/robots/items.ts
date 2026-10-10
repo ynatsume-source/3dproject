@@ -11,78 +11,59 @@ export interface Item { id: number; kind: ItemKind; x: number; z: number; ry: nu
 type Spot = (near: [number, number], rad: number, ok: (x: number, z: number, h: number) => boolean, tries?: number) => [number, number] | null;
 interface Where { near: [number, number]; rad: number; ok: (x: number, z: number, h: number) => boolean; max: number; every: number }
 
-// The things' shapes: soft and rounded, smooth to the touch (owner's request 2026-10-09,
-// docs/proposals/nature-look-2026-10-09) — the same sizes as before (a resident carries them), smooth normals, few
-// triangles. Each shape from fixed numbers, never Math.random (that would shift where things wash up).
-function geoOf(P: number[], I: number[]) {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
-  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((P.length / 3) * 2).fill(0), 2));
-  g.setIndex(I); g.computeVertexNormals();
-  return g;
-}
-// a smooth tube along x through a gentle curve, radius by rad(t), its ends rounded over (`cap`: how far)
-function lathe(P: number[], I: number[], len: number, rad: (t: number) => number, at: (t: number) => [number, number], seg: number, rings: number, cap = 0.5) {
-  const st = P.length / 3;
-  for (let i = 0; i <= rings; i++) {
-    const t = i / rings, [cy, cz] = at(t), r = rad(t), x = (t - 0.5) * len;
-    for (let j = 0; j < seg; j++) { const an = j / seg * Math.PI * 2; P.push(x, cy + Math.cos(an) * r, cz + Math.sin(an) * r); }
-  }
-  for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) { const a = st + i * seg + j, b = st + i * seg + (j + 1) % seg; I.push(a, b, a + seg, b, b + seg, a + seg); }
-  for (const [t, base, sg] of [[0, st, -1], [1, st + rings * seg, 1]] as [number, number, number][]) {
-    const [cy, cz] = at(t), tip = P.length / 3; P.push((t - 0.5) * len + sg * rad(t) * cap, cy, cz);
-    for (let j = 0; j < seg; j++) { if (sg < 0) I.push(base + (j + 1) % seg, base + j, tip); else I.push(base + j, base + (j + 1) % seg, tip); }
-  }
-}
-// a piece of driftwood (0.8 m): a bleached, smooth, slightly crooked log, rounded at the ends, with the stub of a branch
+// a piece of driftwood: a bleached, slightly crooked log with the stub of a branch
 export function driftwoodGeo() {
-  const P: number[] = [], I: number[] = [];
-  lathe(P, I, 0.8, (t) => 0.043 - 0.012 * t + 0.004 * Math.sin(t * 9), (t) => [0.0, 0.05 * Math.sin(t * Math.PI) * 0.6 + 0.012 * Math.sin(t * 7)], 8, 6, 0.7);
-  // the stub, angled up and back, rounded off
-  const st = P.length / 3, P2: number[] = [], I2: number[] = [];
-  lathe(P2, I2, 0.13, (t) => 0.02 - 0.006 * t, () => [0, 0], 6, 1, 0.8);
-  const c = Math.cos(0.9), s = Math.sin(0.9);
-  for (let k = 0; k < P2.length; k += 3) { const x = P2[k], y = P2[k + 1]; P.push(0.1 + x * c - y * s + 0.05, 0.03 + x * s + y * c, P2[k + 2] + 0.01); }
-  for (const i of I2) I.push(st + i);
-  return geoOf(P, I);
+  const g = new THREE.CylinderGeometry(0.042, 0.032, 0.8, 7, 6);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const y = p.getY(i), k = y / 0.4;
+    p.setX(i, p.getX(i) + 0.05 * (1 - k * k) + Math.sin(i * 1.7) * 0.004);
+    p.setZ(i, p.getZ(i) + Math.sin(y * 7) * 0.012);
+  }
+  const stub = new THREE.CylinderGeometry(0.014, 0.022, 0.16, 5); stub.rotateZ(-0.9); stub.translate(0.1, 0.12, 0);
+  const merged = mergeTwo(g, stub);
+  merged.rotateZ(Math.PI / 2);   // lying along x
+  merged.computeVertexNormals();
+  return merged;
 }
-// a shell (about 10 cm): a top shell, its rounded whorls swelling one over the next to the point, lying on its side
 export function shellGeo() {
-  const P: number[] = [], I: number[] = [];
-  const whorl = (t: number) => { const f = (t * 3.2) % 1; return 0.82 + 0.18 * Math.sin(f * Math.PI); };
-  lathe(P, I, 0.1, (t) => Math.max(0.004, 0.034 * Math.pow(1 - t, 0.85) * whorl(t) + 0.004), (t) => [0.03 * Math.pow(1 - t, 0.85) - 0.004 * t, 0], 9, 9, 0.6);
-  return geoOf(P, I);
-}
-// a stone (about 26 cm): a smooth, flattened pebble, a little lopsided
-export function stoneGeo() {
-  const g0 = new THREE.IcosahedronGeometry(1, 2); g0.deleteAttribute('normal'); g0.deleteAttribute('uv');
-  const P = Array.from(g0.attributes.position.array as Float32Array), I: number[] = [];
-  // (the icosahedron comes unindexed: weld its corners so the pebble is smooth)
-  const key = new Map<string, number>(), Q: number[] = [];
-  for (let k = 0; k < P.length / 3; k++) {
-    const x = P[k * 3], y = P[k * 3 + 1], z = P[k * 3 + 2], id = `${x.toFixed(4)},${y.toFixed(4)},${z.toFixed(4)}`;
-    let i = key.get(id);
-    if (i === undefined) {
-      const l = Math.hypot(x, y, z), nx = x / l, ny = y / l, nz = z / l, lump = 1 + 0.06 * Math.sin(nx * 2.3 + 1.1) * Math.sin(nz * 2.1 + 0.4) + 0.04 * Math.sin(ny * 3 + 2);
-      i = Q.length / 3; key.set(id, i); Q.push(nx * 0.13 * lump, (ny < 0 ? ny * 0.06 : ny * 0.085) * lump, nz * 0.11 * lump);
-    }
-    I.push(i);
+  const g = new THREE.SphereGeometry(0.05, 10, 5, 0, Math.PI * 2, 0, Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {   // ribbed, and flattened like a cockle
+    const a = Math.atan2(p.getZ(i), p.getX(i));
+    p.setY(i, p.getY(i) * 0.55 * (1 + 0.08 * Math.sin(a * 12)));
+    p.setZ(i, p.getZ(i) * 1.25);
   }
-  g0.dispose();
-  return geoOf(Q, I);
-}
-// a coconut in its husk (about 29 cm): a smooth oval, a little three-sided, coming to a blunt point at one end
-export function coconutGeo() {
-  const P: number[] = [], I: number[] = [];
-  const st = 0, seg = 12, rings = 10;
-  for (let i = 0; i <= rings; i++) {
-    const t = i / rings, x = (t - 0.5) * 0.29, r0 = 0.112 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 0.96 + 0.02)), 0.62) * (1 - 0.18 * t * t);
-    for (let j = 0; j < seg; j++) { const an = j / seg * Math.PI * 2, r = r0 * (1 + 0.06 * Math.cos(an * 3)); P.push(x, 0.1 + Math.cos(an) * r * 0.92, Math.sin(an) * r); }
-  }
-  for (let i = 0; i < rings; i++) for (let j = 0; j < seg; j++) { const a = st + i * seg + j, b = st + i * seg + (j + 1) % seg; I.push(a, b, a + seg, b, b + seg, a + seg); }
-  for (const [x, base, sg] of [[-0.148, 0, -1], [0.15, rings * seg, 1]] as [number, number, number][]) { const tip = P.length / 3; P.push(x, 0.1, 0); for (let j = 0; j < seg; j++) { if (sg < 0) I.push(base + (j + 1) % seg, base + j, tip); else I.push(base + j, base + (j + 1) % seg, tip); } }
-  const g = geoOf(P, I); g.translate(0, -0.1, 0);
+  g.computeVertexNormals();
   return g;
+}
+export function stoneGeo() {
+  const g = new THREE.DodecahedronGeometry(0.13, 1);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) * 0.7 + Math.sin(i * 2.3) * 0.006);
+  g.computeVertexNormals();
+  return g;
+}
+// a coconut in its husk: a little longer than wide, three faint ridges
+export function coconutGeo() {
+  const g = new THREE.SphereGeometry(0.12, 12, 9);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, y);
+    const k = 1 + 0.05 * Math.cos(a * 3);
+    p.setXYZ(i, x * 1.22, y * 0.92 * k, z * 0.92 * k);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+function mergeTwo(a: THREE.BufferGeometry, b: THREE.BufferGeometry) {
+  const A = a.toNonIndexed(), B = b.toNonIndexed(), out = new THREE.BufferGeometry();
+  for (const k of ['position', 'normal', 'uv']) {
+    const x = A.attributes[k] as THREE.BufferAttribute, y = B.attributes[k] as THREE.BufferAttribute;
+    const arr = new Float32Array(x.array.length + y.array.length); arr.set(x.array as Float32Array); arr.set(y.array as Float32Array, x.array.length);
+    out.setAttribute(k, new THREE.BufferAttribute(arr, x.itemSize));
+  }
+  return out;
 }
 
 export function makeItems(h: (x: number, z: number) => number, spot: Spot, where: Record<ItemKind, Where>, mats: Record<ItemKind, THREE.Material>, group: THREE.Group) {
