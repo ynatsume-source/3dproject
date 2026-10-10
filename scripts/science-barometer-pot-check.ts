@@ -197,6 +197,37 @@ console.log('5. what was done is kept; what passed an end stays passed (p16x 0.1
   }
 }
 
+console.log('6. the reading follows the held pressure (m03x 0.1.2, Codex FX-SB-A1 on 7318506)');
+{
+  const tube100 = (mark: number) => bulb(best, { tubeLengthMm: 100, markMm: mark });
+  // a known pressure that changes inside a cell (3661 s) reads and moves exactly as one that changes at the next cell (3690 s)
+  const runSplit = (changeAt: number, mark: number, reads: number[], until = 3780_000) => {
+    const bounds = [0, H, changeAt, until];
+    let st: ScienceStepRequest['state'] = null; const all: ScienceStepResult[] = [];
+    for (let i = 0; i < bounds.length - 1; i++) {
+      const env: Env = { p: bounds[i] < H ? 1010 : bounds[i] < changeAt ? 995.6 : 995.3, t: 28 };
+      const acts: [number, string][] = [...reads.filter((x) => x >= bounds[i] && x < bounds[i + 1]).map((x) => [x, 'read_gauge'] as [number, string])];
+      const r = step(greq(bounds[i], bounds[i + 1], env, st, acts, { equipment: [tube100(mark)], ...(i === bounds.length - 2 ? { stop: 'operator' } : {}) }));
+      all.push(r); st = JSON.parse(JSON.stringify(r.state));
+    }
+    const last = all[all.length - 1];
+    return { all, last, obs: all.flatMap((x) => x.observations) };
+  };
+  const reads = Array.from({ length: 110 }, (_, i) => H + 1000 + i * 1000);
+  const key = (r: ReturnType<typeof runSplit>, from: number) => JSON.stringify([r.obs.filter((o) => o.at >= from), r.last.produced, r.last.released, r.last.state.data]);
+  const mid = runSplit(3661_000, 5, reads), edgeOfCell = runSplit(3690_000, 5, reads);
+  ok(JSON.stringify(mid.obs.filter((o) => o.at >= 3661_000 && o.at < 3690_000)) === JSON.stringify(edgeOfCell.obs.filter((o) => o.at >= 3661_000 && o.at < 3690_000)) && key(mid, 3690_000) === key(edgeOfCell, 3690_000),
+    'a known pressure changing inside a cell is read, leaks and spills from the next cell, exactly as one changing at that cell (5 mm marks)');
+  const quiet = runSplit(3661_000, 5, []);
+  ok(JSON.stringify([quiet.last.produced, quiet.last.released, quiet.last.state.data]) === JSON.stringify([mid.last.produced, mid.last.released, mid.last.state.data]), 'reading changes nothing');
+  // fine marks (0.5 mm) near the mouth (100 marks): a number never stands past the mouth, and what is seen spilling is settled
+  const fine = runSplit(3661_000, 0.5, reads);
+  const nums = fine.obs.filter((o) => o.value !== undefined).map((o) => o.value as number), spilledSeen = fine.obs.some((o) => /あふれ/.test(o.text ?? ''));
+  const ground = fine.last.released.find((x) => x.to === 'ground')?.amount.value ?? 0;
+  ok(nums.every((v) => v <= 100) && (!spilledSeen || ground > 0) && sum(fine.last.consumed) === sum(fine.last.produced) + sum(fine.last.released),
+    'fine marks near the mouth: no number past the mouth (100 marks); a spill that is seen is settled to the ground', `max ${Math.max(...nums)} marks, spill seen ${spilledSeen}, ground ${ground} mg`);
+}
+
 console.log('4. requests that are refused');
 {
   const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));

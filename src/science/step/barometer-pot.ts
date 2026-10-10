@@ -30,9 +30,9 @@ import { pv } from '../params';
 import { AIR_RANGE_C, rise, SPILL_NOW, SPILLED, type Geometry } from './barometer';
 import { allFinite, checkCommon, contractExtras, failed, fingerprint, finite, isInt } from './common';
 
-export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.1.1' } as const;
+export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.1.2' } as const; // 0.1.2: reads on the held pressure (Codex FX-SB-A1)
 // /2 since 0.1.1 (the cell keeps its own pressure; a pressure gap keeps its extremes): a /1 run is refused; the host cancels it
-const SCHEMA = 'civ-sci.air-barometer-pot/2', EVAL = 'air-barometer-pot-eval/0.1.1';
+const SCHEMA = 'civ-sci.air-barometer-pot/2', EVAL = 'air-barometer-pot-eval/0.1.2';
 const BULB = 'assembled_pot';
 const CELL_MS = 30_000;
 
@@ -167,13 +167,16 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
     for (let c = nextCell(d.s.tMs); inclusive ? c <= t : c < t; c = nextCell(c)) { commit(c); decide(); }
   };
   /** A read: what the gauge shows at t, never changing it (a spill earlier in this cell is seen as it will be recorded). */
+  // 0.1.2 (Codex FX-SB-A1 on 7318506): a read follows the same held trajectory as the leak and the spill: the pressure
+  // the cell was decided with, never this request's if it changed inside the cell (a known change counts from the next
+  // cell, as everywhere else in this step). So a number is never one the recorded water level could not show.
   const read = (t: number) => {
-    if (!pKnown || d.condition === 'unknown') { unreadable++; return; }
+    if (!pKnown || !d.ctl.pKnown || d.condition === 'unknown') { unreadable++; return; }
     if (d.condition !== 'ok') { obs(t, { text: (t === d.spilledAt ? SPILL_NOW : SPILLED)[d.condition === 'spilled-top' ? 'top' : 'bottom'] }); return; }
     const e = scan(t);
     if (e?.kind === 'maybe') { unreadable++; return; }
     if (e) { obs(t, { text: (e.at === t ? SPILL_NOW : SPILLED)[e.kind] }); return; }
-    const s = at(t), [xLo, xHi] = xBounds(s, Pa);
+    const s = at(t), [xLo, xHi] = xBounds(s, d.ctl.Pa);
     const mLo = Math.round(xLo / g.markM), mHi = Math.round(xHi / g.markM);
     if (mLo === mHi) obs(t, { value: mHi, unit: 'mark', precision: 1 }); else unreadable++;
   };
