@@ -24,7 +24,9 @@ vec3 airLitF(vec3 alb, vec3 n, vec3 wp, float trans, float fill){
   vec3 moon = vec3(0.5, 0.55, 0.65) * max(dot(n, uAirMoon), 0.0) * uMoonI * 0.4;
   vec3 sky = skyAir(vec3(0.0, 1.0, 0.0), -1.0);
   sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y + fill * (0.6 - 0.4 * n.y)) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
-  return alb * (sun * 0.8 + moon + sky * 0.55) + lamp(alb, wp, n);
+  // (a faint starlight on a moonless night, so the shapes of the island still read in the dark: owner 2026-10-10)
+  vec3 stars = vec3(0.05, 0.062, 0.1) * uNight * (0.75 + 0.25 * n.y) * (1.0 - 0.5 * uCloud);
+  return alb * (sun * 0.8 + moon + sky * 0.55 + stars) + lamp(alb, wp, n);
 }
 vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){ return airLitF(alb, n, wp, trans, 0.0); }
 `;
