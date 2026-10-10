@@ -47,6 +47,8 @@ export interface CatalogEntry {
   wetTo?: number;
   /** Not while a lot of this is on the shelf, not yet used (milk is pressed when it will be boiled, not every nut found). */
   enough?: string;
+  /** How much of `enough` counts as enough (default: any). */
+  enoughMg?: number;
   /** Not with less of its material than this (mg): what one go takes. */
   minInputMg?: number;
   /** Taken out when it feels right (p10x 0.1.4: the clay is felt with a look): felt every so often from a while after the
@@ -128,6 +130,9 @@ export const CATALOG: CatalogEntry[] = [
     // (0.1.3: in the residents' own pot, fired in the open and made a cook pot — science table civ-sci.fired-pot-assembly/1)
     equipment: { kind: COOK_POT, catalogEntry: COOK_POT, catalogVersion: TEST, condition: 1, params: {}, ja: '焼いた鍋' }, built: COOK_POT,
     moreEquipment: [OPEN_FIRE],
+    // (not while there is clear oil enough for an evening's lamp on the shelf: the dry wood kept for the next pot's fire —
+    // life-run 2026-10-10, the boil taking the seasoned stack again and again, the second pot never fired)
+    enough: 'coconut_oil', enoughMg: 20_000,
     step: coconutBoilStep, env: 'record', tend: 'stay',
     ready: true, waits: 'ヤシのミルクと、乾いた薪と、焼いた鍋' },
   { processId: BAROMETER_PROCESS.processId, processVersion: BAROMETER_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',

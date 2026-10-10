@@ -32,6 +32,10 @@ const dot = R.list.find((r: any) => r.id === 'dot');
 const ORDER = ['place:', 'take:', 'craft:', 'lash:', 'house:', 'wall:', 'wallfetch:', 'shelve:', 'find:', 'survey:', 'stow:', 'voyage:', 'twist:', 'cut:', 'harvest:', 'gather:', 'fell:', 'plant:', 'till:', 'chop:', 'charge:'];
 R.setBrain(async (i: any) => {
   if (i.who !== 'dot') return null;
+  // (a dry pot waiting and not wood enough for its fire — 45 kg green to stack, or 30 kg seasoned: the trees before the beach)
+  const wood = (dry: boolean) => Object.values(lab.lots).filter((l: any) => l.materialId === 'firewood' && ((l.quality?.water_ppm ?? 1e6) <= 300_000) === dry).reduce((n: number, l: any) => n + l.amount.value, 0);
+  const pot = Object.values(lab.lots).some((l: any) => l.materialId === 'dry_pot'), stacking = Object.values(lab.runs).some((x: any) => x.processId.includes('firewood') && x.status === 'running');
+  if (pot && !stacking && wood(true) < 30e6 && wood(false) < 45e6) { const o = i.options.find((x: any) => x.id.startsWith('fell:') && x.ready !== false); if (o) return { goal: { text: '薪を集める', why: '器を焼く薪が足りない' }, plan: [o.id] }; }
   for (const p of ORDER) { const o = i.options.find((x: any) => x.id.startsWith(p) && x.ready !== false); if (o) return { goal: { text: '暮らしを進める', why: '順に' }, plan: [o.id] }; }
   return { goal: { text: '見回る', why: 'することがない' }, plan: ['look:shore'] };
 });
@@ -39,6 +43,7 @@ const cam = new THREE.Vector3();
 const t0 = FROM?.t0 ?? sim, dayOf = () => (sim - t0) / (86_400_000 / ISLAND_RATE);
 const lots = (m: string) => Object.values(lab.lots).filter((l: any) => l.materialId === m) as any[];
 const kg = (m: string) => lots(m).reduce((n, l) => n + l.amount.value, 0) / 1e6;
+const lampLit = () => Object.values(lab.runs).some((x: any) => x.processId === 'p40x_oil_lamp' && x.status === 'running');
 const marks: [string, () => boolean][] = [
   ['hut', () => dot.stats.built >= 24], ['raft', () => V.raft.parts >= 4], ['island reached', () => Object.keys(V.map.reached).length > 0],
   ['raw clay', () => kg('raw_clay') > 0], ['rain catcher', () => !!V.catcher], ['clay pit', () => !!V.clayPit], ['settled clay', () => lots('settled_clay').length > 0],
@@ -46,6 +51,7 @@ const marks: [string, () => boolean][] = [
   ['house walls', () => V.house.n >= 40], ['firewood 45 kg', () => kg('firewood') >= 45], ['woodpile roof', () => !!lab.equipment['eq:firewood_stack']],
   ['seasoned wood', () => lots('firewood').some((l) => (l.quality?.water_ppm ?? 1e6) <= 300_000)], ['pot fired', () => lots('fired_pot').length > 0 || !!lab.equipment['eq:cook_pot']],
   ['cook pot', () => !!lab.equipment['eq:cook_pot']], ['coconut milk', () => lots('coconut_milk').length > 0], ['coconut oil', () => lots('coconut_oil').length > 0],
+  ['lamp dish', () => !!lab.equipment['eq:lamp_dish']], ['lamp lit', () => V.lampLog.length > 0 || lampLit()],
 ];
 const got: Record<string, number> = {};
 const SNAPDIR = process.env.SNAPDIR, shots: string[] = SNAPDIR ? ['start'] : []; let nShot = 0;
@@ -58,6 +64,9 @@ for (let i = 0; dayOf() < DAYS; i++) {
   if (i % 10 === 0) await Promise.resolve();
   if (process.env.WHY) for (const r of R.list) for (const e of r.diary.slice(-3)) if (/(道がなかった|進めなかった|できなかった|時間がかかりすぎた)/.test(e.text) && !(e as any).__seen && ((e as any).__seen = 1)) console.log('WHY', dayOf().toFixed(2), r.id, e.text, `at ${r.pos.x.toFixed(1)},${r.pos.z.toFixed(1)} y ${r.pos.y.toFixed(2)} hold ${r.holding || '-'} went ${r.went ?? '-'}`);
   if (process.env.SNAP && !(globalThis as any).__snapped && dayOf() >= +process.env.SNAP) { (globalThis as any).__snapped = 1; R.save(); writeFileSync(process.env.SNAPFILE ?? '/tmp/island.json', JSON.stringify({ sim, t0, store: [...store] })); console.log(`  (saved at day ${dayOf().toFixed(1)})`); }
+  // (LITFILE=/tmp/l.json: the island saved the first evening its lamp burns, an hour after it was lit — to look at it)
+  if (process.env.LITFILE && !(globalThis as any).__lit && lampLit()) (globalThis as any).__lit = sim;
+  if (process.env.LITFILE && (globalThis as any).__lit > 0 && sim - (globalThis as any).__lit >= 3.6e6) { (globalThis as any).__lit = -1; R.save(); writeFileSync(process.env.LITFILE, JSON.stringify({ sim, t0, day: dayOf(), marks: ['lamp lit'], store: [...store] })); console.log(`  (lamp: saved at day ${dayOf().toFixed(1)})`); }
   if (i % 600 === 0) for (const [k, f] of marks) if (got[k] === undefined && f()) { got[k] = dayOf(); console.log(`day ${dayOf().toFixed(1)}: ${k}`); if (SNAPDIR) shots.push(k); }
   // (SNAPDIR: the island saved at each step reached, at the next hour of good light — for a digest, scripts/digest-shots.mjs)
   if (SNAPDIR && i % 600 === 0 && shots.length) { const hr = ((sim / 3.6e6 + 9) % 24 + 24) % 24; if (hr >= 10 && hr <= 15) { R.save(); const k = shots.join('+'); writeFileSync(`${SNAPDIR}/${String(nShot++).padStart(2, '0')}-${shots[0].replace(/\s+/g, '-')}.json`, JSON.stringify({ sim, t0, day: dayOf(), marks: shots, store: [...store] })); console.log(`  (saved ${k} at day ${dayOf().toFixed(1)})`); shots.length = 0; } }

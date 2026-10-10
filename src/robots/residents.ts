@@ -878,11 +878,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const inHouseWay = (x: number, z: number) => { if (!houseLook.parts[stepsBefore('wattle')].visible) return false; const p = houseLocal(x, z); return insideHouse(p.x, p.z) || (Math.abs(p.x) < 0.6 && p.z > HD - 1 && p.z < HD + 2.3); };   // (out to two metres in front of the door: the way planned from there, clear of the walls — planned any nearer, a wide body found no way and searched far afield every time)
   function viaDoor(r: Resident, tx: number, tz: number): [number, number] | null {
     if (!houseLook.parts[stepsBefore('wattle')].visible) return null;
-    const p = houseLocal(r.pos.x, r.pos.z), t = houseLocal(tx, tz), pin = insideHouse(p.x, p.z);
-    if (pin === insideHouse(t.x, t.z)) return null;
+    const p = houseLocal(r.pos.x, r.pos.z), t = houseLocal(tx, tz), pin = insideHouse(p.x, p.z), tin = insideHouse(t.x, t.z);
     const [ix, iz] = [0, HD - 0.6], [ox, oz] = [0, HD + 1.0], inDoorway = Math.abs(p.x) < 0.4 && p.z > HD - 0.8 && p.z < HD + 0.8;
     const go = (x: number, z: number): [number, number] => { const w = atHouse(x, z); return [w.x, w.z]; };
-    if (inDoorway) return null;   // (in the doorway itself: straight on, in or out — a point just past it can count as reached while still in it)
+    // (in the doorway itself: on through it to clear of it, the way the target lies — straight at a target off to the side
+    // it walked back in past the jamb, and to the doorway again, until the time ran out; house-check 2026-10-10)
+    if (inDoorway) return Math.abs(t.x) < 0.4 && Math.abs(t.z - HD) < 1.8 ? null : tin ? go(0, HD - 1.4) : go(0, HD + 1.6);   // (going to the doorway itself, or just by it: straight there)
+    if (pin === tin) return null;
     if (!pin) return Math.hypot(p.x - ox, p.z - oz) < 0.7 ? go(ix, iz) : go(ox, oz);
     return Math.hypot(p.x - ix, p.z - iz) < 0.7 ? go(ox, oz) : go(ix, iz);
   }
@@ -1992,7 +1994,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     drawLamp();
   }
   // the dish in the hut, and its flame while a lamp burns
-  let lampG: THREE.Group | null = null, flame: THREE.Mesh | null = null;
+  let lampG: THREE.Group | null = null, flame: THREE.Mesh | null = null, halo: THREE.Sprite[] = [];
+  // (the scene has no lights: the flame's light is a soft warm glow round it, drawn over what is behind — a small one bright
+  // at the wick, a wide faint one for the light it throws in the hut)
+  const haloTex = () => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d')!; const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,214,140,1)'); gr.addColorStop(0.25, 'rgba(255,170,80,0.55)'); gr.addColorStop(1, 'rgba(255,140,40,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); };
   function drawLamp() {
     const has = !!lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`];
     if (!has) { if (lampG) lampG.visible = false; return; }
@@ -2000,6 +2005,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       lampG = new THREE.Group(); group.add(lampG);
       const dish = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.06, 0.04, 14), smat(0xa8653c, 0.05)); dish.position.y = 0.02; lampG.add(dish);
       flame = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.95, depthWrite: false })); flame.scale.set(1, 1.8, 1); flame.position.set(0.05, 0.08, 0); flame.visible = false; lampG.add(flame);
+      const tex = haloTex(); halo = [[0.32, 0.9], [1.9, 0.32]].map(([sz, op]) => { const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0xffffff, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false })); h.scale.set(sz, sz, 1); h.position.set(0.05, 0.09, 0); h.userData.op = op; h.visible = false; lampG!.add(h); return h; });
       const w = atHut(0.9, -0.9); lampG.position.set(w.x, L.h(w.x, w.z) + 0.75, w.z);   // (on the hut's shelf board, under its roof)
     }
     lampG.visible = true;
@@ -2007,8 +2013,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function lampTick(tt: number) {
     if (!lampG || !flame) return;
     const lit = village.labRuns.some((x) => x.processId === 'p40x_oil_lamp' && lab.runs[x.runId]?.status === 'running');
-    flame.visible = lit;
-    if (lit) { const k = 0.85 + 0.15 * Math.sin(tt * 9.1) * Math.sin(tt * 3.7); flame.scale.set(k, 1.8 * k, k); }
+    flame.visible = lit; for (const h of halo) h.visible = lit;
+    if (lit) { const k = 0.85 + 0.15 * Math.sin(tt * 9.1) * Math.sin(tt * 3.7); flame.scale.set(k, 1.8 * k, k); for (const h of halo) (h.material as THREE.SpriteMaterial).opacity = h.userData.op * (0.8 + 0.2 * k); }
   }
   function makeTool(r: Resident, kind: string) {
     const t = TOOLS.find((x) => x.kind === kind); if (!t || lab.equipment[`eq:${kind}`]) return;
@@ -2052,7 +2058,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return catalog.filter((e) => e.ready && (!e.built || !!lab.equipment[`eq:${e.built}`]) && (e.env !== 'record' || islandWeather(clockMs))).flatMap((entry) => {   // (equipment they make themselves: once it stands)   // (not before the island's record is in: a process given unknown weather would only fail)
       const lot = entry.input ? free(entry.input, entry.minInputMg, entry.inputOk) : undefined, dryOf = (l?: LotView) => l ? l.amount.value * (1 - (l.quality?.water_ppm ?? 0) / 1e6) : 0;
       const more: (LotView | undefined)[] = (entry.also ?? []).map((a) => free(a.input, Math.max(a.minMg ?? 0, (a.perDry ?? 0) * dryOf(lot)), a.ok));   // (water enough for this clay: so many times its dry weight)
-      if (entry.enough && free(entry.enough)) return [];
+      if (entry.enough && free(entry.enough, entry.enoughMg ?? 0, entry.enough === 'coconut_oil' ? (l) => (l.quality?.soaked_in_dish ?? 0) !== 1 : undefined)) return [];
       // (a pot of a form already on its way, or what it was for already made: not another — the cook pot, then one lamp dish)
       if (entry.form === 1 && (lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] || potsOfForm(1) >= 2)) return [];
       if (entry.form === 3 && (lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] || potsOfForm(3) >= 1)) return [];
@@ -3197,7 +3203,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
-    drawPier(); drawShelf(); drawRaft(); drawStore();
+    drawPier(); drawShelf(); drawRaft(); drawStore(); drawLamp();   // (the lamp dish is the lab's: drawn again once the lab is back)
     buildPile(); buildCairns();
     return Math.min(12 * 3600, Math.max(0, (Date.now() - s.at) / 1000));   // how long they lived on without us (up to half a day)
   }

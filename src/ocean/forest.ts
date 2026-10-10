@@ -332,14 +332,14 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
     // is there a trunk within r of (x, z)? (for those planning a way on foot: robots/residents.ts)
     trunkNear(x: number, z: number, r: number) {
       if (Math.abs(x) > E || Math.abs(z) > E) return false;
-      const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
+      const i0 = Math.floor((x - r - S) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r - S) / CELL), j1 = Math.floor((z + r) / CELL);   // (a tree jittered off the last row of its cell stands up to S into the next, +x/+z)
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if ((t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2 && standing(t)) return true;
       return false;
     },
     // the trunks within r of (x, z), each as a solid (robots/solids.ts): the same trunks push() keeps a point out of
     trunks(x: number, z: number, r: number, f: (t: { x: number; z: number; y: number; h: number }) => void) {
       if (Math.abs(x) > E + r || Math.abs(z) > E + r) return;
-      const i0 = Math.floor((x - r) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r) / CELL), j1 = Math.floor((z + r) / CELL);
+      const i0 = Math.floor((x - r - S) / CELL), i1 = Math.floor((x + r) / CELL), j0 = Math.floor((z - r - S) / CELL), j1 = Math.floor((z + r) / CELL);   // (a tree jittered off the last row of its cell stands up to S into the next, +x/+z)
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) for (const t of cellAt(i, j).trees) if (t.g < YOUNG && (t.x - x) ** 2 + (t.z - z) ** 2 < (r + 0.55) ** 2 && standing(t)) f(t);
     },
     // the grown trees standing within r of (x, z), for a resident to fell: where, how tall, which kind
