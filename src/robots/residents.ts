@@ -2874,7 +2874,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // what it is for — the island's custom; after that, how far each has got, and where something lies that the
   // other gathers. Nothing is said for the saying of it. What one passes on, the other's mind keeps as heard.
   const WANTS: Record<string, string> = { dot: 'wood', rakko: 'shell' };
-  const ITEM_JA: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石' };
+  const ITEM_JA: Record<string, string> = { wood: '流木', shell: '貝殻', stone: '石', coconut: 'ヤシの実' };
   // What each did today, as the world counted it: the difference from its counts as the day began.
   const isleCount = () => Object.keys(village.map.seen).length;
   function dayStart(r: Resident) {
@@ -2911,7 +2911,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const fa = agentOf(from);
     const it = items.list.filter((x) => x.kind === kind && !x.by && !ta.seen.has(`${kind}#${x.id}`) && (fa ? fa.seen.has(`${kind}#${x.id}`) : Math.hypot(x.x - from.pos.x, x.z - from.pos.z) < 40))
       .sort((p, q) => Math.hypot(p.x - to.pos.x, p.z - to.pos.z) - Math.hypot(q.x - to.pos.x, q.z - to.pos.z))[0];
-    return it ? { id: `${kind}#${it.id}`, kind, label: ITEM_JA[kind], x: it.x, z: it.z, dist: Math.hypot(it.x - to.pos.x, it.z - to.pos.z), at: clockMs } : null;
+    return it ? { id: `${kind}#${it.id}`, kind, label: ITEM_JA[kind] ?? kind, x: it.x, z: it.z, dist: Math.hypot(it.x - to.pos.x, it.z - to.pos.z), at: clockMs } : null;
   }
   function startTalk(a: Resident, b: Resident, fast: boolean) {
     const bd = bonds[pair(a.id, b.id)];
