@@ -168,6 +168,9 @@ export const CATALOG: CatalogEntry[] = [
     equipment: { kind: TAR_RETORT, catalogEntry: TAR_RETORT, catalogVersion: TEST, condition: 1, params: {}, ja: '二重の壺（乾留の器）' }, built: TAR_RETORT,
     moreEquipment: [OPEN_FIRE],
     start: { action: 'fire_level', params: { level: 1 } }, steps: [{ action: 'put_out', afterMs: 200 * 60_000 }], finish: { action: 'open', afterMs: 360 * 60_000 },
+    // (not while the shelf has tar enough to seal a jar or two: a burn takes Lantern six hours and ten kilos of dry wood, and
+    // burned on and on it took all its days — two hundred burns in eighty island days, the clay never prepared; life-run 2026-10-10)
+    enough: 'wood_tar', enoughMg: 30_000,
     step: charcoalStep as ScienceStep, env: 'record', tend: 'stay',
     ready: true, waits: '乾いた薪と、二重の壺（焼いた壺を2つ組む：上は2L、下は0.3L）' },
   // (the residents' own fired jar sealed with the tar from their retort — p16x takes fired_pot since 0.1.2; the brush and
