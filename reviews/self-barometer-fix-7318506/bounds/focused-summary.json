@@ -1,0 +1,56 @@
+{
+  "target": "/workspace/3dproject-self-barometer-fix-7318506",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.1"
+  },
+  "halfLengthM": 0.05,
+  "markM": 0.005,
+  "maxPressureRateHPaPerH": 20,
+  "baselinePressureHPa": 995.1897480833745,
+  "knownOutsideTubeNumeric": 8,
+  "firstBad": {
+    "at": 3672000,
+    "currentRiseM": 0.050012294414876396,
+    "heldRiseM": 0.04978761872848638,
+    "observations": [
+      {
+        "at": 3672000,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "value": 10,
+        "unit": "mark",
+        "precision": 1
+      }
+    ]
+  },
+  "maxKnownRiseM": 0.050064552492666003,
+  "backObservations": [
+    {
+      "at": 3690000,
+      "channel": "instrument:eq:bulb",
+      "quantity": "level",
+      "value": 10,
+      "unit": "mark",
+      "precision": 1
+    }
+  ],
+  "backCondition": "ok",
+  "backReleased": [],
+  "backProduced": [
+    {
+      "materialId": "process_water",
+      "amount": {
+        "value": 20000,
+        "unit": "mg"
+      },
+      "into": "site:jar",
+      "quality": {
+        "history_complete": 1
+      }
+    }
+  ],
+  "maskedRecoveryCondition": "unknown",
+  "maskedRecoveryObservations": [],
+  "validatorViolations": []
+}

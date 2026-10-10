@@ -1,16 +1,23 @@
 {
   "repository": "ynatsume-source/3dproject",
   "sharingBranch": "codex/science-reviews",
-  "targetScienceCommit": "7f4d1e3c50e29f1ecde7382219f13f19c32777d4",
-  "reviewDirectory": "reviews/self-barometer-7f4d1e3",
-  "report": "reviews/self-barometer-7f4d1e3/REVIEW.md",
-  "claudePrompt": "reviews/self-barometer-7f4d1e3/CLAUDE_PROMPT.md",
-  "zip": "archives/self-barometer-7f4d1e3.zip",
-  "zipSha256": "692c547e751f79d682ef6fed2b0cb5d2f7500fb9e2457d9f5a74d1921eb87b84",
-  "decision": "hold-p16x-and-m03x",
+  "targetScienceCommit": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "reviewDirectory": "reviews/self-barometer-fix-7318506",
+  "report": "reviews/self-barometer-fix-7318506/REVIEW.md",
+  "claudePrompt": "reviews/self-barometer-fix-7318506/CLAUDE_PROMPT.md",
+  "zip": "archives/self-barometer-fix-7318506.zip",
+  "zipSha256": "b3d582b11f349861abeb5b9310e1f9c33ae23eda8e0c9a9d91d2e5d5cf4d082a",
+  "decision": "clear-p16x-hold-m03x",
+  "resolvedOriginalFindings": [
+    "SB-A1",
+    "SB-A2",
+    "SB-A3",
+    "SB-A4"
+  ],
   "findingCounts": {
-    "A": 4,
-    "B": 0
+    "A": 1,
+    "B": 0,
+    "C": 1
   },
   "futureSharing": "Append a new immutable review directory; update LATEST.md and latest.json. Only push this sharing branch."
 }

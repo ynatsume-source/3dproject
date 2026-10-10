@@ -1,0 +1,133 @@
+{
+  "target": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "request": {
+    "contract": "0.2.0",
+    "requestId": "g:3674000:3675000",
+    "runId": "run:g",
+    "world": {
+      "worldId": "w",
+      "worldEpoch": "e",
+      "worldVersion": 1
+    },
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.1",
+    "catalogVersion": "civ-sci-test-2",
+    "interval": {
+      "from": 3674000,
+      "to": 3675000
+    },
+    "state": {
+      "schema": "civ-sci.air-barometer-pot/2",
+      "data": {
+        "eqId": "eq:bulb",
+        "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",7755],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",989527],[\"crackPpm\",0],[\"markMm\",0.5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",100]]",
+        "g": {
+          "V0": 0.0005,
+          "A": 0.00005026548245743669,
+          "halfLengthM": 0.05,
+          "markM": 0.0005,
+          "tauS": 739
+        },
+        "leakK": 7.000887314295844e-8,
+        "startMs": 0,
+        "lastTo": 3674000,
+        "waterFp": "[\"lot:water\",\"process_water\",{\"value\":20000,\"unit\":\"mg\"},\"site:jar\",[]]",
+        "waterMg": 20000,
+        "waterLocation": "site:jar",
+        "spilledMg": 0,
+        "s": {
+          "tMs": 3660000,
+          "bLo": 301.15,
+          "bHi": 301.15,
+          "sLo": 0.16768406148519974,
+          "sHi": 0.16768406148519974
+        },
+        "ctl": {
+          "tKnown": true,
+          "Ta": 301.15,
+          "pKnown": true,
+          "Pa": 99510.08003978455,
+          "dsLo": -3.5002251647486445e-9,
+          "dsHi": -3.5002251647486445e-9
+        },
+        "lastPaPa": 99502.85781756233,
+        "lastPaAt": 3674000,
+        "gapOpen": false,
+        "gapLoMinK": 301.15,
+        "gapHiMaxK": 301.15,
+        "gapSLo": 0.1676905196745808,
+        "gapSHi": 0.1676905196745808,
+        "condition": "ok",
+        "spilledAt": -1,
+        "historyComplete": true
+      }
+    },
+    "environment": {
+      "sampleId": "env:3674000",
+      "source": "record",
+      "effectiveAt": 3674000,
+      "airTempC": 28,
+      "pressureHPa": 995.0230226200676
+    },
+    "lots": [
+      {
+        "lotId": "lot:water",
+        "materialId": "process_water",
+        "amount": {
+          "value": 20000,
+          "unit": "mg"
+        },
+        "location": "site:jar"
+      }
+    ],
+    "equipment": [
+      {
+        "equipmentId": "eq:bulb",
+        "kind": "assembled_pot",
+        "catalogEntry": "assembled_pot",
+        "catalogVersion": "civ-sci-test-2",
+        "condition": 1,
+        "params": {
+          "capacityMl": 500,
+          "absorptionPpm": 120000,
+          "coveragePpm": 989527,
+          "sealed": 1,
+          "airtightKnown": 1,
+          "crackPpm": 0,
+          "airLeakTauMin": 7755,
+          "tubeBoreMm": 8,
+          "tubeLengthMm": 100,
+          "bulbTauS": 739,
+          "markMm": 0.5
+        }
+      }
+    ],
+    "energy": [],
+    "seed": 1,
+    "actions": [
+      {
+        "at": 3674000,
+        "residentId": "res:lantern",
+        "action": "read_gauge"
+      }
+    ]
+  },
+  "observations": [
+    {
+      "at": 3674000,
+      "channel": "instrument:eq:bulb",
+      "quantity": "level",
+      "value": 101,
+      "unit": "mark",
+      "precision": 1
+    }
+  ],
+  "heldPressureRiseMm": 49.9958893526853,
+  "currentPressureRiseMm": 50.25801741842245,
+  "heldMark": 100,
+  "currentMark": 101,
+  "maxTubeMark": 100,
+  "condition": "ok",
+  "spilledMg": 0,
+  "validatorViolations": []
+}

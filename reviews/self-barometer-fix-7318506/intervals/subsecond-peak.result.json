@@ -1,0 +1,244 @@
+{
+  "target": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "impact": "C",
+  "localPeak": {
+    "start": 1980000,
+    "sec": 14.641873841493975,
+    "peakAtMs": 1994642,
+    "sampledPeak": 0.10630915639940558,
+    "oneSecMax": 0.10630915530307387,
+    "half": 0.10630915585123973,
+    "tubeLengthMm": 212.61831170247947,
+    "peakMissWidthM": 1.0963317059742295e-09,
+    "derivativeAtStart": 3.817370757406012e-06,
+    "derivativeAtEnd": -3.923447530961558e-06
+  },
+  "reproduced": true,
+  "withRead": {
+    "last": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:1980000:2010000",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 1980000,
+        "to": 2010000
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",95],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",212.61831170247947]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.10630915585123973,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 5.714934854985713e-06,
+          "startMs": 0,
+          "lastTo": 2010000,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 0,
+          "s": {
+            "tMs": 2010000,
+            "bLo": 312.3266630099041,
+            "bHi": 312.3266630099041,
+            "sLo": 0.16679242062483693,
+            "sHi": 0.16679242062483693
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 313.15,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": -6.075393588170947e-07,
+            "dsHi": -6.075393588170947e-07
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 2010000,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "ok",
+          "spilledAt": -1,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 1994642,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水が開いた管の口まで上がって、あふれた"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          39.17666300990413,
+          39.17666300990413
+        ],
+        "airLeft": [
+          0.16679242062483693,
+          0.16679242062483693
+        ],
+        "spilledMg": 0,
+        "historyComplete": true
+      }
+    },
+    "observations": [
+      {
+        "at": 1994642,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "text": "水が開いた管の口まで上がって、あふれた"
+      }
+    ]
+  },
+  "withoutRead": {
+    "last": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:1980000:2010000",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 1980000,
+        "to": 2010000
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",95],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",212.61831170247947]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.10630915585123973,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 5.714934854985713e-06,
+          "startMs": 0,
+          "lastTo": 2010000,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 0,
+          "s": {
+            "tMs": 2010000,
+            "bLo": 312.3266630099041,
+            "bHi": 312.3266630099041,
+            "sLo": 0.16679242062483693,
+            "sHi": 0.16679242062483693
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 313.15,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": -6.075393588170947e-07,
+            "dsHi": -6.075393588170947e-07
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 2010000,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "ok",
+          "spilledAt": -1,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 20000,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "ok",
+        "bulbC": [
+          39.17666300990413,
+          39.17666300990413
+        ],
+        "airLeft": [
+          0.16679242062483693,
+          0.16679242062483693
+        ],
+        "spilledMg": 0,
+        "historyComplete": true
+      }
+    },
+    "observations": []
+  },
+  "summary": {
+    "requests": 202,
+    "exceptions": 0,
+    "validatorFailures": 0
+  }
+}

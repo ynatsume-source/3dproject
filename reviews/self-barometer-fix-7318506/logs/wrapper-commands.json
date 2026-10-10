@@ -1,0 +1,53 @@
+[
+  {
+    "group": "intervals",
+    "name": "repro",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix-7318506/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix-7318506/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix-7318506-wrapper/intervals/repro.mjs",
+      "/workspace/3dproject-self-barometer-fix-7318506",
+      "/tmp/self-barometer-fix-7318506-wrapper/intervals/repro.result.json"
+    ],
+    "exitCode": 0,
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  },
+  {
+    "group": "intervals",
+    "name": "scan-local",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix-7318506/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix-7318506/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix-7318506-wrapper/intervals/scan-local.mjs",
+      "/workspace/3dproject-self-barometer-fix-7318506",
+      "/tmp/self-barometer-fix-7318506-wrapper/intervals/scan-local.result.json"
+    ],
+    "exitCode": 0,
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  },
+  {
+    "group": "intervals",
+    "name": "subsecond-peak",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix-7318506/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix-7318506/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix-7318506-wrapper/intervals/subsecond-peak.mjs",
+      "/workspace/3dproject-self-barometer-fix-7318506",
+      "/tmp/self-barometer-fix-7318506-wrapper/intervals/subsecond-peak.result.json"
+    ],
+    "exitCode": 0,
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  }
+]

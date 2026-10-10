@@ -1,0 +1,4115 @@
+{
+  "summary": {
+    "target": "/workspace/3dproject-self-barometer-fix-7318506",
+    "process": {
+      "processId": "m03x_air_barometer_pot",
+      "processVersion": "0.1.1"
+    },
+    "cases": 180,
+    "calls": 23907,
+    "failures": 0,
+    "partitionFailures": 0,
+    "boundsFailures": 0,
+    "numericFailures": 0,
+    "validatorViolations": []
+  },
+  "cases": [
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 92007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 117999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 120999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 0,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 151000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 152000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 121000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 181000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 182000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 190000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 250000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 251000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 151001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 152001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 181001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 182001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 190001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 250001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 251001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 92007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 152007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 153007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 182007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 183007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 191007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 251007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 252007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 151999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 117999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 178999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 120999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 180999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 181999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 150999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 210999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 211999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 219999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 279999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 280999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 1,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 151000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 152000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 121000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 181000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 182000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 190000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 250000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 251000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 0,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 61001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 88001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 148001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 151001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 152001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 91001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 121001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 181001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 182001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 190001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 250001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 251001,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 62007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 123007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 89007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 149007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 92007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 152007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 153007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 122007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 182007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 183007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 191007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 251007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 252007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 1007,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 150999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 151999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 1000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 90999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 117999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 177999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 178999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 28000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 120999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 180999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 181999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 31000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 150999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 210999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 211999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 61000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "pressure",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": [
+        {
+          "at": 219999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 279999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        },
+        {
+          "at": 280999,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 1,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "temperature",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    },
+    {
+      "fixture": 2,
+      "offset": 29999,
+      "gapMs": 130000,
+      "mask": "both",
+      "partitionEqual": true,
+      "temperatureContains": true,
+      "airContains": true,
+      "numbersMatch": true,
+      "condition": "ok",
+      "observations": []
+    }
+  ],
+  "failures": []
+}

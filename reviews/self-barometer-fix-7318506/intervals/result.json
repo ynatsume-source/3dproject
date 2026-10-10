@@ -1,0 +1,1780 @@
+{
+  "target": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.1"
+  },
+  "fixture": {
+    "sealedLot": {
+      "lotId": "lot:sealed",
+      "materialId": "fired_pot_test",
+      "amount": {
+        "value": 670000,
+        "unit": "mg"
+      },
+      "quality": {
+        "capacity_ml": 500,
+        "absorption_ppm": 120000,
+        "coverage_ppm": 968721,
+        "sealed": 1,
+        "x_wood_tar_ppm": 44776,
+        "air_leak_tau_min": 3096,
+        "x_tube_ppm": 59701,
+        "tube_bore_mm": 8,
+        "tube_length_mm": 200,
+        "joint_cover_ppm": 997521,
+        "history_complete": 1
+      },
+      "location": "site:shelf"
+    },
+    "assembledParams": {
+      "capacityMl": 500,
+      "absorptionPpm": 120000,
+      "coveragePpm": 968721,
+      "sealed": 1,
+      "airtightKnown": 1,
+      "crackPpm": 0,
+      "airLeakTauMin": 3096,
+      "tubeBoreMm": 8,
+      "tubeLengthMm": 200,
+      "bulbTauS": 739,
+      "markMm": 5
+    }
+  },
+  "spillReadWithoutSettlement": null,
+  "ordinaryTerminalSpill": {
+    "request": {
+      "runStart": 1007,
+      "prefixKnownUntil": 31007,
+      "initialWeather": {
+        "airTempC": 28,
+        "pressureHPa": 1010
+      },
+      "subsequentWeather": {
+        "airTempC": 40,
+        "pressureHPa": 1010
+      },
+      "readRelativeMs": 1048000,
+      "stopRelativeMs": 1049000
+    },
+    "endRiseM": 0.10023929974121831,
+    "halfLengthM": 0.1,
+    "projectedSpillAtEndMg": 12,
+    "stopped": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:31007:1050007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 31007,
+        "to": 1050007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.1,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 1.7536137313425153e-07,
+          "startMs": 1007,
+          "lastTo": 1050007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 12,
+          "s": {
+            "tMs": 1050007,
+            "bLo": 310.1277056624638,
+            "bHi": 310.1277056624638,
+            "sLo": 0.16767980473219665,
+            "sHi": 0.16767980473219665
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 313.15,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": -1.7344105079860245e-08,
+            "dsHi": -1.7344105079860245e-08
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 1050007,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "spilled-top",
+          "spilledAt": 1045007,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 19988,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 12,
+            "unit": "mg"
+          },
+          "to": "ground"
+        }
+      ],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 1049007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "spilled-top",
+        "bulbC": [
+          36.97770566246385,
+          36.97770566246385
+        ],
+        "airLeft": [
+          0.16767980473219665,
+          0.16767980473219665
+        ],
+        "spilledMg": 12,
+        "historyComplete": true
+      }
+    },
+    "takenOut": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:31007:1051007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 31007,
+        "to": 1050007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.1,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 1.7536137313425153e-07,
+          "startMs": 1007,
+          "lastTo": 1050007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 12,
+          "s": {
+            "tMs": 1050007,
+            "bLo": 310.1277056624638,
+            "bHi": 310.1277056624638,
+            "sLo": 0.16767980473219665,
+            "sHi": 0.16767980473219665
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 313.15,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": -1.7344105079860245e-08,
+            "dsHi": -1.7344105079860245e-08
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 1050007,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "spilled-top",
+          "spilledAt": 1045007,
+          "historyComplete": true
+        }
+      },
+      "status": "completed",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 19988,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 12,
+            "unit": "mg"
+          },
+          "to": "ground"
+        }
+      ],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 1049007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "spilled-top",
+        "bulbC": [
+          36.97770566246385,
+          36.97770566246385
+        ],
+        "airLeft": [
+          0.16767980473219665,
+          0.16767980473219665
+        ],
+        "spilledMg": 12,
+        "historyComplete": true
+      }
+    },
+    "equipmentLostAtEnd": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:31007:1050007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 31007,
+        "to": 1050007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.1,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 1.7536137313425153e-07,
+          "startMs": 1007,
+          "lastTo": 1050007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 12,
+          "s": {
+            "tMs": 1050007,
+            "bLo": 310.1277056624638,
+            "bHi": 310.1277056624638,
+            "sLo": 0.16767980473219665,
+            "sHi": 0.16767980473219665
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 313.15,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": -1.7344105079860245e-08,
+            "dsHi": -1.7344105079860245e-08
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 1050007,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "spilled-top",
+          "spilledAt": 1045007,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 19988,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 12,
+            "unit": "mg"
+          },
+          "to": "ground"
+        }
+      ],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 1049007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "spilled-top",
+        "bulbC": [
+          36.97770566246385,
+          36.97770566246385
+        ],
+        "airLeft": [
+          0.16767980473219665,
+          0.16767980473219665
+        ],
+        "spilledMg": 12,
+        "historyComplete": true
+      }
+    },
+    "runThroughNextCell": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:31007:1052007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 31007,
+        "to": 1052007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.1,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 1.7536137313425153e-07,
+          "startMs": 1007,
+          "lastTo": 1052007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 14,
+          "s": {
+            "tMs": 1052007,
+            "bLo": 310.1358740205593,
+            "bHi": 310.1358740205593,
+            "sLo": 0.16767978738809158,
+            "sHi": 0.16767978738809158
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 313.15,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": 0,
+            "dsHi": 0
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 1052007,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "spilled-top",
+          "spilledAt": 1045007,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 19986,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 14,
+            "unit": "mg"
+          },
+          "to": "ground"
+        }
+      ],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 1051007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "spilled-top",
+        "bulbC": [
+          36.98587402055932,
+          36.98587402055932
+        ],
+        "airLeft": [
+          0.16767978738809158,
+          0.16767978738809158
+        ],
+        "spilledMg": 14,
+        "historyComplete": true
+      }
+    }
+  },
+  "transientSpillErased": {
+    "firstSpillReading": [
+      {
+        "at": 1049007,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+      }
+    ],
+    "beforeBoundaryState": {
+      "schema": "civ-sci.air-barometer-pot/2",
+      "data": {
+        "eqId": "eq:bulb",
+        "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+        "g": {
+          "V0": 0.0005,
+          "A": 5.026548245743669e-05,
+          "halfLengthM": 0.1,
+          "markM": 0.005,
+          "tauS": 739
+        },
+        "leakK": 1.7536137313425153e-07,
+        "startMs": 1007,
+        "lastTo": 1051007,
+        "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+        "waterMg": 20000,
+        "waterLocation": "site:jar",
+        "spilledMg": 0,
+        "s": {
+          "tMs": 1021007,
+          "bLo": 310.0067462906805,
+          "bHi": 310.0067462906805,
+          "sLo": 0.16768030771124398,
+          "sHi": 0.16768030771124398
+        },
+        "ctl": {
+          "tKnown": true,
+          "Ta": 313.15,
+          "pKnown": true,
+          "Pa": 101000,
+          "dsLo": -1.7344105079860245e-08,
+          "dsHi": -1.7344105079860245e-08
+        },
+        "lastPaPa": 101000,
+        "lastPaAt": 1051007,
+        "gapOpen": false,
+        "gapLoMinK": 301.15,
+        "gapHiMaxK": 301.15,
+        "gapSLo": 0.1676905196745808,
+        "gapSHi": 0.1676905196745808,
+        "condition": "ok",
+        "spilledAt": -1,
+        "historyComplete": true
+      }
+    },
+    "nextWeather": {
+      "airTempC": 28,
+      "pressureHPa": 1010.1
+    },
+    "recoveredResult": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:1051007:1081007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 1051007,
+        "to": 1081007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.1,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 1.7536137313425153e-07,
+          "startMs": 1007,
+          "lastTo": 1081007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 14,
+          "s": {
+            "tMs": 1081007,
+            "bLo": 309.7744749450006,
+            "bHi": 309.7744749450006,
+            "sLo": 0.16767978738809158,
+            "sHi": 0.16767978738809158
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 301.15,
+            "pKnown": true,
+            "Pa": 101010,
+            "dsLo": 0,
+            "dsHi": 0
+          },
+          "lastPaPa": 101010,
+          "lastPaAt": 1081007,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "spilled-top",
+          "spilledAt": 1045007,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 19986,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 14,
+            "unit": "mg"
+          },
+          "to": "ground"
+        }
+      ],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 1051007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        },
+        {
+          "at": 1080007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "spilled-top",
+        "bulbC": [
+          36.6244749450006,
+          36.6244749450006
+        ],
+        "airLeft": [
+          0.16767978738809158,
+          0.16767978738809158
+        ],
+        "spilledMg": 14,
+        "historyComplete": true
+      }
+    }
+  },
+  "gradualWeatherTerminalSpill": {
+    "changes": [
+      {
+        "at": 0,
+        "env": {
+          "airTempC": 28,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 300000,
+        "env": {
+          "airTempC": 28.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 600000,
+        "env": {
+          "airTempC": 28.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 900000,
+        "env": {
+          "airTempC": 28.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 1200000,
+        "env": {
+          "airTempC": 29,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 1500000,
+        "env": {
+          "airTempC": 29.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 1800000,
+        "env": {
+          "airTempC": 29.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 2100000,
+        "env": {
+          "airTempC": 29.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 2400000,
+        "env": {
+          "airTempC": 30,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 2700000,
+        "env": {
+          "airTempC": 30.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 3000000,
+        "env": {
+          "airTempC": 30.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 3300000,
+        "env": {
+          "airTempC": 30.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 3600000,
+        "env": {
+          "airTempC": 31,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 3900000,
+        "env": {
+          "airTempC": 31.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 4200000,
+        "env": {
+          "airTempC": 31.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 4500000,
+        "env": {
+          "airTempC": 31.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 4800000,
+        "env": {
+          "airTempC": 32,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 5100000,
+        "env": {
+          "airTempC": 32.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 5400000,
+        "env": {
+          "airTempC": 32.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 5700000,
+        "env": {
+          "airTempC": 32.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 6000000,
+        "env": {
+          "airTempC": 33,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 6300000,
+        "env": {
+          "airTempC": 33.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 6600000,
+        "env": {
+          "airTempC": 33.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 6900000,
+        "env": {
+          "airTempC": 33.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 7200000,
+        "env": {
+          "airTempC": 34,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 7500000,
+        "env": {
+          "airTempC": 34.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 7800000,
+        "env": {
+          "airTempC": 34.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 8100000,
+        "env": {
+          "airTempC": 34.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 8400000,
+        "env": {
+          "airTempC": 35,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 8700000,
+        "env": {
+          "airTempC": 35.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 9000000,
+        "env": {
+          "airTempC": 35.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 9300000,
+        "env": {
+          "airTempC": 35.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 9600000,
+        "env": {
+          "airTempC": 36,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 9900000,
+        "env": {
+          "airTempC": 36.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 10200000,
+        "env": {
+          "airTempC": 36.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 10500000,
+        "env": {
+          "airTempC": 36.75,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 10800000,
+        "env": {
+          "airTempC": 37,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 11100000,
+        "env": {
+          "airTempC": 37.25,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 11400000,
+        "env": {
+          "airTempC": 37.5,
+          "pressureHPa": 1010
+        }
+      },
+      {
+        "at": 11700000,
+        "env": {
+          "airTempC": 37.75,
+          "pressureHPa": 1010
+        }
+      }
+    ],
+    "readAt": 11850007,
+    "firstDiscoveredSpillReading": null,
+    "endRelativeMs": 11850000,
+    "endRiseM": 0.1002437215742811,
+    "projectedSpillAtEndMg": 12,
+    "last": {
+      "drawn": [],
+      "contract": "0.2.1",
+      "requestId": "g:11701007:11851007",
+      "runId": "run:gauge",
+      "simulated": {
+        "from": 11701007,
+        "to": 11851007
+      },
+      "state": {
+        "schema": "civ-sci.air-barometer-pot/2",
+        "data": {
+          "eqId": "eq:bulb",
+          "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+          "g": {
+            "V0": 0.0005,
+            "A": 5.026548245743669e-05,
+            "halfLengthM": 0.1,
+            "markM": 0.005,
+            "tauS": 739
+          },
+          "leakK": 1.7536137313425153e-07,
+          "startMs": 1007,
+          "lastTo": 11851007,
+          "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+          "waterMg": 20000,
+          "waterLocation": "site:jar",
+          "spilledMg": 12,
+          "s": {
+            "tMs": 11851007,
+            "bLo": 310.28837519769,
+            "bHi": 310.28837519769,
+            "sLo": 0.16759319389801897,
+            "sHi": 0.16759319389801897
+          },
+          "ctl": {
+            "tKnown": true,
+            "Ta": 310.9,
+            "pKnown": true,
+            "Pa": 101000,
+            "dsLo": -1.7531402592222437e-08,
+            "dsHi": -1.7531402592222437e-08
+          },
+          "lastPaPa": 101000,
+          "lastPaAt": 11851007,
+          "gapOpen": false,
+          "gapLoMinK": 301.15,
+          "gapHiMaxK": 301.15,
+          "gapSLo": 0.1676905196745808,
+          "gapSHi": 0.1676905196745808,
+          "condition": "spilled-top",
+          "spilledAt": 11824007,
+          "historyComplete": true
+        }
+      },
+      "status": "stopped",
+      "consumed": [
+        {
+          "lotId": "lot:water",
+          "amount": {
+            "unit": "mg",
+            "value": 20000
+          }
+        }
+      ],
+      "produced": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 19988,
+            "unit": "mg"
+          },
+          "into": "site:jar",
+          "quality": {
+            "history_complete": 1
+          }
+        }
+      ],
+      "released": [
+        {
+          "materialId": "process_water",
+          "amount": {
+            "value": 12,
+            "unit": "mg"
+          },
+          "to": "ground"
+        }
+      ],
+      "energy": [],
+      "equipmentWear": [],
+      "observations": [
+        {
+          "at": 11850007,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+        }
+      ],
+      "evidence": {
+        "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+        "sourceRefs": [],
+        "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+      },
+      "diagnostics": {
+        "condition": "spilled-top",
+        "bulbC": [
+          37.13837519769004,
+          37.13837519769004
+        ],
+        "airLeft": [
+          0.16759319389801897,
+          0.16759319389801897
+        ],
+        "spilledMg": 12,
+        "historyComplete": true
+      }
+    },
+    "observations": [
+      {
+        "at": 11850007,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+      }
+    ]
+  },
+  "matrix": [
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 95,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 0,
+      "tauMin": 3096,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 95,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "one-step-then-held",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "oneWeatherInterval",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "30s",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "1h",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "piecewise-off-grid",
+      "origin": 1007,
+      "tauMin": 3096,
+      "partition": "17min+137ms",
+      "exactPhysical": true,
+      "exactReadings": true,
+      "condition": "ok"
+    },
+    {
+      "scene": "held-737ms",
+      "origin": 0,
+      "partition": "737ms",
+      "exactPhysical": true,
+      "exactReadings": true
+    },
+    {
+      "scene": "held-737ms",
+      "origin": 1007,
+      "partition": "737ms",
+      "exactPhysical": true,
+      "exactReadings": true
+    }
+  ],
+  "stopControls": [
+    {
+      "origin": 0,
+      "endRelativeMs": 60000,
+      "lossSamePhysical": true,
+      "takeOutSamePhysical": true
+    },
+    {
+      "origin": 0,
+      "endRelativeMs": 60137,
+      "lossSamePhysical": true,
+      "takeOutSamePhysical": true
+    },
+    {
+      "origin": 1007,
+      "endRelativeMs": 60000,
+      "lossSamePhysical": true,
+      "takeOutSamePhysical": true
+    },
+    {
+      "origin": 1007,
+      "endRelativeMs": 60137,
+      "lossSamePhysical": true,
+      "takeOutSamePhysical": true
+    }
+  ],
+  "refusalControls": [
+    {
+      "name": "old /0 schema has an explicit unsupported-state-schema refusal",
+      "status": "failed",
+      "reason": "unsupported-state-schema: civ-sci.air-barometer-pot/0 is an older test state and is not migrated (current civ-sci.air-barometer-pot/2). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet."
+    },
+    {
+      "name": "future /3 state is rejected",
+      "status": "failed",
+      "reason": "unknown state schema civ-sci.air-barometer-pot/3"
+    },
+    {
+      "name": "old /1 state is explicitly rejected",
+      "status": "failed",
+      "reason": "unsupported-state-schema: civ-sci.air-barometer-pot/1 is an older test state and is not migrated (current civ-sci.air-barometer-pot/2). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet."
+    },
+    {
+      "name": "test gauge state cannot be attached to this different process",
+      "status": "failed",
+      "reason": "unknown state schema civ-sci.air-barometer/3"
+    },
+    {
+      "name": "changed reserved water is rejected",
+      "status": "failed",
+      "reason": "changed-input: the water lot changed under a running run"
+    },
+    {
+      "name": "changed water history is rejected",
+      "status": "failed",
+      "reason": "changed-input: the water lot changed under a running run"
+    },
+    {
+      "name": "changed dimensions are rejected",
+      "status": "failed",
+      "reason": "changed-input: the gauge changed under a running run"
+    },
+    {
+      "name": "changed equipment identity is rejected",
+      "status": "failed",
+      "reason": "changed-input: the gauge changed under a running run"
+    },
+    {
+      "name": "noncontiguous request is rejected",
+      "status": "failed",
+      "reason": "noncontiguous-interval: expected from=31007"
+    }
+  ],
+  "findings": [
+    {
+      "id": "SB-A3",
+      "impact": "A",
+      "title": "A spill between cell heads disappears at termination or a later pressure change",
+      "gradualWeatherReproduced": false,
+      "erasedSpillReproduced": false
+    }
+  ],
+  "summary": {
+    "requests": 15922,
+    "checks": 62,
+    "failedChecks": 0,
+    "matrixComparisons": 34,
+    "unequalPhysicalComparisons": 0,
+    "unequalReadingComparisons": 0,
+    "exceptions": 0,
+    "nonFinite": 0,
+    "validatorFailures": 0
+  },
+  "requests": 15922,
+  "exceptions": [],
+  "nonFinite": [],
+  "validatorFailures": [],
+  "checks": [
+    {
+      "name": "reading leaves full physical state unchanged: one-step-then-held/0/95",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/95/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/95/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/95/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/95/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: piecewise-off-grid/0/95",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/95/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/95/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/95/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/95/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: one-step-then-held/0/3096",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/3096/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/3096/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/3096/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/0/3096/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: piecewise-off-grid/0/3096",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/3096/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/3096/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/3096/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/0/3096/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: one-step-then-held/1007/95",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/95/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/95/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/95/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/95/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: piecewise-off-grid/1007/95",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/95/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/95/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/95/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/95/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: one-step-then-held/1007/3096",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/3096/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/3096/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/3096/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition one-step-then-held/1007/3096/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "reading leaves full physical state unchanged: piecewise-off-grid/1007/3096",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/3096/oneWeatherInterval",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/3096/30s",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/3096/1h",
+      "passed": true
+    },
+    {
+      "name": "same records and state in partition piecewise-off-grid/1007/3096/17min+137ms",
+      "passed": true
+    },
+    {
+      "name": "737ms parts match all physical floats and readings 0",
+      "passed": true
+    },
+    {
+      "name": "360 additional readings leave full physical state unchanged 0",
+      "passed": true
+    },
+    {
+      "name": "737ms parts match all physical floats and readings 1007",
+      "passed": true
+    },
+    {
+      "name": "360 additional readings leave full physical state unchanged 1007",
+      "passed": true
+    },
+    {
+      "name": "equipment lost at end preserves prior physical evolution 0/60000",
+      "passed": true
+    },
+    {
+      "name": "take_out vs operator ends at the same physical time 0/60000",
+      "passed": true
+    },
+    {
+      "name": "equipment lost at end preserves prior physical evolution 0/60137",
+      "passed": true
+    },
+    {
+      "name": "take_out vs operator ends at the same physical time 0/60137",
+      "passed": true
+    },
+    {
+      "name": "equipment lost at end preserves prior physical evolution 1007/60000",
+      "passed": true
+    },
+    {
+      "name": "take_out vs operator ends at the same physical time 1007/60000",
+      "passed": true
+    },
+    {
+      "name": "equipment lost at end preserves prior physical evolution 1007/60137",
+      "passed": true
+    },
+    {
+      "name": "take_out vs operator ends at the same physical time 1007/60137",
+      "passed": true
+    },
+    {
+      "name": "old /0 schema has an explicit unsupported-state-schema refusal",
+      "passed": true
+    },
+    {
+      "name": "future /3 state is rejected",
+      "passed": true
+    },
+    {
+      "name": "old /1 state is explicitly rejected",
+      "passed": true
+    },
+    {
+      "name": "test gauge state cannot be attached to this different process",
+      "passed": true
+    },
+    {
+      "name": "changed reserved water is rejected",
+      "passed": true
+    },
+    {
+      "name": "changed water history is rejected",
+      "passed": true
+    },
+    {
+      "name": "changed dimensions are rejected",
+      "passed": true
+    },
+    {
+      "name": "changed equipment identity is rejected",
+      "passed": true
+    },
+    {
+      "name": "noncontiguous request is rejected",
+      "passed": true
+    },
+    {
+      "name": "params key order does not change the fingerprint or restored physics",
+      "passed": true
+    }
+  ]
+}

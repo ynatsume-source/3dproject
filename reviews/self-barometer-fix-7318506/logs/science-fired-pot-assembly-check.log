@@ -1,0 +1,34 @@
+1. a cook pot, a tar retort and a lamp dish from the residents' fired pots
+  ok   a 4 L cook pot: heat capacity from its mass, heat loss from its surface (near the test pot's 1800 J/K, 3 W/K) — {"heatCapJPerK":1136,"uaWPerK":2.27,"heatShare":0.2,"capacityMl":4000}
+  ok   main may set how much of the fire goes into the pot (its hearth)
+  ok   a retort from the cook pot (upper, the charge) and a 2 L jar (lower, the tar): both pots' heat capacity and surface — {"heatCapJPerK":2175,"uaWPerK":4.11,"heatShare":0.35,"capacityMl":4000,"collectShare":0.6}
+  ok   a lamp dish: how much oil it holds, and that its unglazed body soaks some up — {"capacityMl":80,"absorptionPpm":143412,"massG":72}
+2. what is not assembled
+  ok   a cracked pot (it leaks) — lot:cook has a crack: a cracked pot leaks and is not assembled
+  ok   a lamp dish as a cook pot — a cook pot needs a pot of form 1 or 2 (1 cook pot, 2 jar, 3 lamp dish)
+  ok   a cook pot as a lamp dish — a lamp dish needs a pot of form 3 (1 cook pot, 2 jar, 3 lamp dish)
+  ok   the same pot twice in a retort — a retort takes two different pots
+  ok   a lower pot too small for what a full charge drips (Codex AS-A1: 8 L over 100 mL) — the lower pot holds 100 mL: a full charge of the upper pot can drip up to 615 mL into it
+  ok   a small upper pot — the upper pot holds the charge: at least 1000 mL
+  ok   a test pot (fired_pot_test) — it has its own table — a cook pot is made from a fired_pot lot (got fired_pot_test)
+  ok   a heat share out of range — heatShare must be within 0..1
+3. back to a lot
+  ok   whole: the lot as it was; worn: the wear added to the crack index (and a cracked pot is not assembled again)
+  ok   broken: pot_sherds (the sealed vessel's form, same amount) — {"absorption_ppm":143411,"history_complete":1}
+  ok   a condition that is not a number is refused
+  ok   a retort goes back as two lots: the wear is the upper pot's (in the fire); broken, the upper one is sherds and the lower one whole
+4. tools main makes from materials
+  ok   five tools, each with its materials and the hands' work — fixture_coconut_tools: bamboo 1.5 kg / fixture_tar_brush: bamboo 0.2 kg / fixture_vessel_stand: bamboo 1 kg / drying_rack: bamboo 3 kg / firewood_stack: bamboo 2 kg
+5. the residents' jar as a sealed vessel (p16x 0.1.2, p17x 0.1.3, table civ-sci.pot-assembly/3)
+  ok   the residents' 2 L jar takes tar and a plug: it comes back as a fired_pot, its form, wall, surface and fired make-up as they were — air_leak_tau_min 341
+  ok   it stands two days on the stand as a fired_pot (the leak test reads the residents' pot)
+  ok   it assembles as a barometer bulb (the pot's own surface, not the test pot's assumed shape) — {"capacityMl":2000,"absorptionPpm":143413,"coveragePpm":532353,"sealed":1,"airtightKnown":1,"crackPpm":0,"airLeakTauMin":341}
+  ok   worn, it comes back still stopped, its air-holding unknown, and its crack mark shows the wear
+  ok   a stopped jar is not a cook pot (its mouth is plugged) — lot:sealed-jar is stopped with a plug (sealed): it is not assembled as an open pot
+  ok   a fired pot's body holds no water of its own (water in the walls is x_water_ppm) — pot lot:sealed-jar: a fired pot's body holds no water of its own (water_ppm 0); water in its walls is x_water_ppm
+6. a lamp dish handed back wet from the water test (table /2, Codex VF-A1)
+  ok   the dish's mass is its fired body (the water in its walls is not body), and the pores the water fills take up no oil — bare {"capacityMl":80,"absorptionPpm":143412,"massG":72} / wet {"capacityMl":80,"absorptionPpm":8,"massG":72} (lot 82484 mg)
+  ok   handed back wet, assembled, pure oil set in it for an hour: it soaks less than the dry dish, never more — 8214 → 0 mg
+  ok   a cook pot's heat capacity is its fired body's (the water in its walls is not counted as ceramic)
+
+26 passed, 0 failed

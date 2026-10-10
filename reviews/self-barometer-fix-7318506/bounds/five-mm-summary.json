@@ -1,0 +1,539 @@
+{
+  "heldMarkDifferences": [
+    {
+      "at": 3661000,
+      "currentPressureHPa": 995.8390103486338,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04751563789097483,
+      "heldRiseM": 0.04749691779775234,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3661000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3662000,
+      "currentPressureHPa": 995.8334547930783,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04753429084297558,
+      "heldRiseM": 0.047496850632685786,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3662000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3663000,
+      "currentPressureHPa": 995.8278992375227,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04755294381882099,
+      "heldRiseM": 0.047496783467619104,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3663000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3664000,
+      "currentPressureHPa": 995.8223436819671,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.0475715968185115,
+      "heldRiseM": 0.047496716302551346,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3664000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3665000,
+      "currentPressureHPa": 995.8167881264116,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.0475902498420466,
+      "heldRiseM": 0.04749664913748299,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3665000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3666000,
+      "currentPressureHPa": 995.8112325708561,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04760890288942575,
+      "heldRiseM": 0.04749658197241404,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3666000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3667000,
+      "currentPressureHPa": 995.8056770153005,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04762755596064988,
+      "heldRiseM": 0.0474965148073445,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3667000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3668000,
+      "currentPressureHPa": 995.8001214597449,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04764620905571799,
+      "heldRiseM": 0.04749644764227436,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3668000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3669000,
+      "currentPressureHPa": 995.7945659041894,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04766486217463098,
+      "heldRiseM": 0.04749638047720409,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3669000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3670000,
+      "currentPressureHPa": 995.7890103486338,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.047683515317387376,
+      "heldRiseM": 0.047496313312132284,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3670000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3671000,
+      "currentPressureHPa": 995.7834547930782,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04770216848398954,
+      "heldRiseM": 0.04749624614706083,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3671000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3672000,
+      "currentPressureHPa": 995.7778992375227,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04772082167443598,
+      "heldRiseM": 0.047496178981988775,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3672000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3673000,
+      "currentPressureHPa": 995.7723436819672,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04773947488872523,
+      "heldRiseM": 0.047496111816915175,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3673000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3674000,
+      "currentPressureHPa": 995.7667881264116,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04775812812685964,
+      "heldRiseM": 0.04749604465184193,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3674000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3675000,
+      "currentPressureHPa": 995.7723436819672,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.047739340559631666,
+      "heldRiseM": 0.04749597748676761,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3675000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3676000,
+      "currentPressureHPa": 995.7778992375227,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04772055301608574,
+      "heldRiseM": 0.04749591032169269,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3676000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3677000,
+      "currentPressureHPa": 995.7834547930782,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.0477017654962219,
+      "heldRiseM": 0.04749584315661765,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3677000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3678000,
+      "currentPressureHPa": 995.7890103486338,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.047682978000039226,
+      "heldRiseM": 0.04749577599154107,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3678000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3679000,
+      "currentPressureHPa": 995.7945659041894,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04766419052754016,
+      "heldRiseM": 0.04749570882646483,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3679000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3680000,
+      "currentPressureHPa": 995.8001214597449,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04764540307872282,
+      "heldRiseM": 0.047495641661387526,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3680000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3681000,
+      "currentPressureHPa": 995.8056770153005,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04762661565358775,
+      "heldRiseM": 0.04749557449630963,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3681000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3682000,
+      "currentPressureHPa": 995.8112325708561,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04760782825213449,
+      "heldRiseM": 0.047495507331231125,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3682000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3683000,
+      "currentPressureHPa": 995.8167881264116,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04758904087436453,
+      "heldRiseM": 0.047495440166152515,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3683000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3684000,
+      "currentPressureHPa": 995.8223436819671,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04757025352027553,
+      "heldRiseM": 0.047495373001072344,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3684000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3685000,
+      "currentPressureHPa": 995.8278992375227,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04755146618986991,
+      "heldRiseM": 0.047495305835992534,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3685000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3686000,
+      "currentPressureHPa": 995.8334547930783,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04753267888314773,
+      "heldRiseM": 0.04749523867091212,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3686000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "at": 3687000,
+      "currentPressureHPa": 995.8390103486338,
+      "heldPressureHPa": 995.8445659041894,
+      "currentRiseM": 0.04751389160010663,
+      "heldRiseM": 0.04749517150583017,
+      "heldMark": 9,
+      "observations": [
+        {
+          "at": 3687000,
+          "channel": "instrument:eq:bulb",
+          "quantity": "level",
+          "value": 10,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    }
+  ],
+  "target": "/workspace/3dproject-self-barometer-fix-7318506",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.1"
+  },
+  "halfLengthM": 0.05,
+  "markM": 0.005,
+  "maxPressureRateHPaPerH": 20,
+  "baselinePressureHPa": 995.8445659041894,
+  "knownOutsideTubeNumeric": 0,
+  "firstBad": null,
+  "maxKnownRiseM": 0.04775812812685964,
+  "backObservations": [
+    {
+      "at": 3690000,
+      "channel": "instrument:eq:bulb",
+      "quantity": "level",
+      "value": 9,
+      "unit": "mark",
+      "precision": 1
+    }
+  ],
+  "backCondition": "ok",
+  "backReleased": [],
+  "backProduced": [
+    {
+      "materialId": "process_water",
+      "amount": {
+        "value": 20000,
+        "unit": "mg"
+      },
+      "into": "site:jar",
+      "quality": {
+        "history_complete": 1
+      }
+    }
+  ],
+  "maskedRecoveryCondition": "ok",
+  "maskedRecoveryObservations": [
+    {
+      "at": 3688000,
+      "channel": "instrument:eq:bulb",
+      "quantity": "level",
+      "value": 9,
+      "unit": "mark",
+      "precision": 1
+    }
+  ],
+  "validatorViolations": []
+}

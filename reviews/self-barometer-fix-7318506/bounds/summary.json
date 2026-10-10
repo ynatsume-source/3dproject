@@ -1,0 +1,30 @@
+{
+  "target": "/workspace/3dproject-self-barometer-fix-7318506",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.1"
+  },
+  "calls": 103864,
+  "comparisonCount": 51840,
+  "differences": 0,
+  "validatorViolations": [],
+  "shortGapControlOverflow": false,
+  "shortGapMaskedNumeric": false,
+  "fixtureTaus": [
+    118,
+    3096,
+    7755
+  ],
+  "weatherSweeps": 36,
+  "shortGap": {
+    "baselinePressureHPa": 995.1897480833745,
+    "maskedFrom": 3660000,
+    "maskedTo": 3688000,
+    "cachedGapHiK": 301.15,
+    "actualGapEndHiK": 301.16859011491226,
+    "cachedGapTestRiseM": 0.04996001446416363,
+    "projectedGapEndTestRiseM": 0.05017105612854058,
+    "recoveredObservations": [],
+    "maxPreloadPressureChangeHPaPerH": 14.82190959581203
+  }
+}

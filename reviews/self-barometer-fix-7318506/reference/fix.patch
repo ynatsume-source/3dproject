@@ -1,0 +1,219 @@
+diff --git a/src/science/step/barometer-pot.ts b/src/science/step/barometer-pot.ts
+index c4ffc9e..6a5eaca 100644
+--- a/src/science/step/barometer-pot.ts
++++ b/src/science/step/barometer-pot.ts
+@@ -30,8 +30,9 @@ import { pv } from '../params';
+ import { AIR_RANGE_C, rise, SPILL_NOW, SPILLED, type Geometry } from './barometer';
+ import { allFinite, checkCommon, contractExtras, failed, fingerprint, finite, isInt } from './common';
+ 
+-export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.1.0' } as const;
+-const SCHEMA = 'civ-sci.air-barometer-pot/1', EVAL = 'air-barometer-pot-eval/0.1.0';
++export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.1.1' } as const;
++// /2 since 0.1.1 (the cell keeps its own pressure; a pressure gap keeps its extremes): a /1 run is refused; the host cancels it
++const SCHEMA = 'civ-sci.air-barometer-pot/2', EVAL = 'air-barometer-pot-eval/0.1.1';
+ const BULB = 'assembled_pot';
+ const CELL_MS = 30_000;
+ 
+@@ -39,11 +40,11 @@ type Condition = 'ok' | 'spilled-top' | 'spilled-bottom' | 'unknown';
+ /** The gauge at the start of a cell. */
+ interface Snap { tMs: number; bLo: number; bHi: number; sLo: number; sHi: number }
+ /** What was decided at the cell's start (rates per second). */
+-interface Ctl { tKnown: boolean; Ta: number; dsLo: number; dsHi: number }
++interface Ctl { tKnown: boolean; Ta: number; pKnown: boolean; Pa: number; dsLo: number; dsHi: number }
+ interface PotGaugeData {
+   eqId: string; paramsFp: string; g: Geometry; leakK: number; startMs: number; lastTo: number;
+   waterFp: string; waterMg: number; waterLocation: string; spilledMg: number;
+-  s: Snap; ctl: Ctl; lastPaPa: number; lastPaAt: number; gapLoMinK: number; gapHiMaxK: number;
++  s: Snap; ctl: Ctl; lastPaPa: number; lastPaAt: number; gapOpen: boolean; gapLoMinK: number; gapHiMaxK: number; gapSLo: number; gapSHi: number;
+   condition: Condition; spilledAt: number; historyComplete: boolean;
+ }
+ 
+@@ -89,8 +90,8 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
+     const T0 = req.environment.airTempC! + 273.15, P0 = req.environment.pressureHPa! * 100, s0 = (P0 * b.g.V0) / T0;
+     d = { eqId: eq.equipmentId, paramsFp: fpOf(eq.params ?? {}), g: b.g, leakK: (b.g.V0 / (T0 * b.tauMin * 60)) * k2, startMs: req.interval.from, lastTo: req.interval.from,
+       waterFp: fingerprint(water), waterMg: water.amount.value, waterLocation: water.location, spilledMg: 0,
+-      s: { tMs: req.interval.from, bLo: T0, bHi: T0, sLo: s0, sHi: s0 }, ctl: { tKnown: true, Ta: T0, dsLo: 0, dsHi: 0 },
+-      lastPaPa: P0, lastPaAt: req.interval.from, gapLoMinK: T0, gapHiMaxK: T0, condition: 'ok', spilledAt: -1,
++      s: { tMs: req.interval.from, bLo: T0, bHi: T0, sLo: s0, sHi: s0 }, ctl: { tKnown: true, Ta: T0, pKnown: true, Pa: P0, dsLo: 0, dsHi: 0 },
++      lastPaPa: P0, lastPaAt: req.interval.from, gapOpen: false, gapLoMinK: T0, gapHiMaxK: T0, gapSLo: s0, gapSHi: s0, condition: 'ok', spilledAt: -1,
+       historyComplete: (water.quality?.history_complete ?? 1) === 1 };
+   } else {
+     d = structuredClone(req.state.data as PotGaugeData);
+@@ -115,16 +116,28 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
+     return { tMs: t, bLo, bHi, sLo: Math.max(1e-12, s.sLo + c.dsLo * sec), sHi: Math.max(1e-12, s.sHi + c.dsHi * sec) };
+   };
+   const xBounds = (s: Snap, P: number) => [rise(g, s.sLo, P, s.bLo), rise(g, s.sHi, P, s.bHi)] as const;
+-  /** Did the water pass an end (pressure known)? Certain → spilled (the water over the mouth goes to the ground);
+-   *  only possible → unknown. */
+-  const check = (t: number) => {
+-    if (d.condition !== 'ok' || !pKnown) return;
+-    const [xLo, xHi] = xBounds(d.s, Pa), certain = d.s.bLo === d.s.bHi && d.s.sLo === d.s.sHi;
+-    const over = xHi > g.halfLengthM ? 'top' : xLo < -g.halfLengthM ? 'bottom' : null;
+-    if (!over) return;
+-    if (!certain) { d.condition = 'unknown'; return; }
+-    d.condition = over === 'top' ? 'spilled-top' : 'spilled-bottom'; d.spilledAt = t;
+-    if (over === 'top') d.spilledMg = Math.min(d.waterMg, Math.round((xHi - g.halfLengthM) * g.A * 1e9));
++  /** What the water did between the cell's start and `until`, at the pressure the cell was decided with (Codex SB-A3:
++   *  an end passed inside a cell is a physical event, whatever the next cell's weather). Known exactly: the levels are
++   *  scanned each second (and at `until`); the first moment past an end is the spill, and over the mouth the water
++   *  lost is the most it stood above it in the stretch (afterwards the gauge is no longer followed). With bounds: the widest the
++   *  bounds reach in the stretch (each bound moves one way within a cell) passing an end makes it unknown. */
++  const scan = (until: number): { kind: 'top' | 'bottom' | 'maybe'; at: number; excessM: number } | null => {
++    const c = d.ctl, s0 = d.s;
++    if (!c.pKnown || d.condition !== 'ok' || until <= s0.tMs) return null;
++    const s1 = at(until);
++    if (s0.bLo === s0.bHi && s0.sLo === s0.sHi && c.dsLo === c.dsHi && c.tKnown) {
++      // the first moment past an end, and for the mouth the highest the water stands over it in the rest of the stretch
++      let first: { kind: 'top' | 'bottom'; at: number; excessM: number } | null = null;
++      for (let t = s0.tMs; ; t = Math.min(until, t + 1000)) {
++        const x = rise(g, at(t).sHi, c.Pa, at(t).bHi);
++        if (!first && x > g.halfLengthM) first = { kind: 'top', at: t, excessM: 0 };
++        if (!first && x < -g.halfLengthM) return { kind: 'bottom', at: t, excessM: 0 };
++        if (first?.kind === 'top') first.excessM = Math.max(first.excessM, x - g.halfLengthM);
++        if (t >= until) return first;
++      }
++    }
++    const hi = rise(g, Math.max(s0.sHi, s1.sHi), c.Pa, Math.max(s0.bHi, s1.bHi)), lo = rise(g, Math.min(s0.sLo, s1.sLo), c.Pa, Math.min(s0.bLo, s1.bLo));
++    return hi > g.halfLengthM || lo < -g.halfLengthM ? { kind: 'maybe', at: until, excessM: 0 } : null;
+   };
+   /** Decide at a cell's start, with this request's weather. */
+   const decide = () => {
+@@ -135,37 +148,56 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
+         dsLo = -d.leakK * cl(xHi); dsHi = -d.leakK * cl(xLo);
+       } else { dsLo = -d.leakK * g.halfLengthM; dsHi = d.leakK * g.halfLengthM; } // the water anywhere in the tube
+     }
+-    d.ctl = { tKnown, Ta: tKnown ? Ta : 0, dsLo, dsHi };
++    d.ctl = { tKnown, Ta: tKnown ? Ta : 0, pKnown, Pa: pKnown ? Pa : 0, dsLo, dsHi };
+   };
++  /** Close the stretch to t: what happened in it is recorded (a spill), then the gauge moves to t. */
+   const commit = (t: number) => {
+-    if (t > d.s.tMs) d.s = at(t);
+-    if (!pKnown) { d.gapLoMinK = Math.min(d.gapLoMinK, d.s.bLo); d.gapHiMaxK = Math.max(d.gapHiMaxK, d.s.bHi); }
++    if (t <= d.s.tMs) return;
++    const e = scan(t);
++    if (e?.kind === 'maybe') d.condition = 'unknown';
++    else if (e) {
++      d.condition = e.kind === 'top' ? 'spilled-top' : 'spilled-bottom'; d.spilledAt = e.at;
++      if (e.kind === 'top') d.spilledMg = Math.min(d.waterMg, Math.max(1, Math.round(e.excessM * g.A * 1e9)));
++    }
++    d.s = at(t);
++    if (d.gapOpen) { d.gapLoMinK = Math.min(d.gapLoMinK, d.s.bLo); d.gapHiMaxK = Math.max(d.gapHiMaxK, d.s.bHi); d.gapSLo = Math.min(d.gapSLo, d.s.sLo); d.gapSHi = Math.max(d.gapSHi, d.s.sHi); }
+   };
+   const nextCell = (t: number) => d.startMs + (Math.floor((t - d.startMs) / CELL_MS) + 1) * CELL_MS;
+   const rollTo = (t: number, inclusive: boolean) => {
+-    for (let c = nextCell(d.s.tMs); inclusive ? c <= t : c < t; c = nextCell(c)) { commit(c); check(c); decide(); }
++    for (let c = nextCell(d.s.tMs); inclusive ? c <= t : c < t; c = nextCell(c)) { commit(c); decide(); }
+   };
++  /** A read: what the gauge shows at t, never changing it (a spill earlier in this cell is seen as it will be recorded). */
+   const read = (t: number) => {
+     if (!pKnown || d.condition === 'unknown') { unreadable++; return; }
+     if (d.condition !== 'ok') { obs(t, { text: (t === d.spilledAt ? SPILL_NOW : SPILLED)[d.condition === 'spilled-top' ? 'top' : 'bottom'] }); return; }
+-    const s = at(t), [xLo, xHi] = xBounds(s, Pa), certain = s.bLo === s.bHi && s.sLo === s.sHi;
+-    if (xHi > g.halfLengthM || xLo < -g.halfLengthM) { if (certain) obs(t, { text: SPILL_NOW[xHi > g.halfLengthM ? 'top' : 'bottom'] }); else unreadable++; return; }
++    const e = scan(t);
++    if (e?.kind === 'maybe') { unreadable++; return; }
++    if (e) { obs(t, { text: (e.at === t ? SPILL_NOW : SPILLED)[e.kind] }); return; }
++    const s = at(t), [xLo, xHi] = xBounds(s, Pa);
+     const mLo = Math.round(xLo / g.markM), mHi = Math.round(xHi / g.markM);
+     if (mLo === mHi) obs(t, { value: mHi, unit: 'mark', precision: 1 }); else unreadable++;
+   };
+ 
+   if (req.state === null) decide();
+   else {
+-    if (pKnown && d.lastPaAt < req.interval.from && d.condition === 'ok') {
+-      // the pressure comes back after a gap: could the water have passed an end while nobody knew the pressure?
+-      const T = (req.interval.from - d.lastPaAt) / 3_600_000, R = pv('pressureRateMaxHPaPerH'), P1 = d.lastPaPa / 100, P2 = Pa / 100;
+-      if (R * T < Math.abs(P1 - P2)) d.condition = 'unknown';
+-      else {
+-        const pMin = Math.max(800, (P1 + P2 - R * T) / 2) * 100, pMax = Math.min(1100, (P1 + P2 + R * T) / 2) * 100;
+-        if (rise(g, d.s.sHi, pMin, d.gapHiMaxK) > g.halfLengthM || rise(g, d.s.sLo, pMax, d.gapLoMinK) < -g.halfLengthM) d.condition = 'unknown';
++    // where the gauge is at this request's start, from the cell running across it (no decision is made here)
++    const now = at(req.interval.from);
++    if (!pKnown && !d.gapOpen) { d.gapOpen = true; d.gapLoMinK = now.bLo; d.gapHiMaxK = now.bHi; d.gapSLo = now.sLo; d.gapSHi = now.sHi; }
++    if (pKnown && d.gapOpen) {
++      // the pressure comes back: could the water have passed an end while nobody knew it? The bulb's temperature and
++      // the air are taken at their widest over the whole gap, up to this very moment (Codex SB-A4); the level being back
++      // inside the tube now does not show it never left it
++      d.gapLoMinK = Math.min(d.gapLoMinK, now.bLo); d.gapHiMaxK = Math.max(d.gapHiMaxK, now.bHi); d.gapSLo = Math.min(d.gapSLo, now.sLo); d.gapSHi = Math.max(d.gapSHi, now.sHi);
++      if (d.condition === 'ok') {
++        const T = (req.interval.from - d.lastPaAt) / 3_600_000, R = pv('pressureRateMaxHPaPerH'), P1 = d.lastPaPa / 100, P2 = Pa / 100;
++        if (R * T < Math.abs(P1 - P2)) d.condition = 'unknown';
++        else {
++          const pMin = Math.max(800, (P1 + P2 - R * T) / 2) * 100, pMax = Math.min(1100, (P1 + P2 + R * T) / 2) * 100;
++          if (rise(g, d.gapSHi, pMin, d.gapHiMaxK) > g.halfLengthM || rise(g, d.gapSLo, pMax, d.gapLoMinK) < -g.halfLengthM) d.condition = 'unknown';
++        }
+       }
++      d.gapOpen = false;
+     }
+-    if (!pKnown && d.lastPaAt === req.interval.from) { d.gapLoMinK = d.s.bLo; d.gapHiMaxK = d.s.bHi; }
+   }
+   const reads = req.actions.filter((a) => a.action === 'read_gauge' && a.at < endAt).map((a) => a.at).sort((x, y) => x - y);
+   for (const r of reads) { rollTo(r, true); read(r); }
+diff --git a/src/science/step/vessel.ts b/src/science/step/vessel.ts
+index 482d92d..d1feb12 100644
+--- a/src/science/step/vessel.ts
++++ b/src/science/step/vessel.ts
+@@ -32,9 +32,10 @@ import { fuelLhvJPerMg, pSat } from '../physics';
+ import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, intDeltaFloor, isInt, subStepEnd, wind10m } from './common';
+ import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
+ 
+-export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.3' } as const; // 0.1.3: a gauge tube through the plug // 0.1.2: the residents' fired_pot as well
++export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.4' } as const; // 0.1.4: the seal reached and its joint tar kept in the state; a tube may wait for a later seal (Codex SB-A1, SB-A2) // 0.1.3: a gauge tube through the plug // 0.1.2: the residents' fired_pot as well
+ export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.4' } as const; // 0.1.4: the air-holding time scales with the pot's size, a tube's joint leaks; // 0.1.3: the residents' fired_pot as well // 0.1.2: a missing wind is unknown (not calm)
+-const SEAL_SCHEMA = 'civ-sci.vessel-seal/2', SEAL_EVAL = 'vessel-seal-eval/0.1.3';
++// /3 since 0.1.4 (the seal reached, with its joint tar, kept in the state): a /2 run is refused; the host cancels it
++const SEAL_SCHEMA = 'civ-sci.vessel-seal/3', SEAL_EVAL = 'vessel-seal-eval/0.1.4';
+ const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.4';
+ const POT = 'fired_pot_test';
+ /** The pots these steps take: the test pot, and (0.1.2 / 0.1.3) the residents' own fired pot from the open fire. */
+@@ -149,7 +150,7 @@ export function potSherdsQuality(copy: Record<string, number>): Record<string, n
+ 
+ // ---- p16x: brush on tar, stop the mouth ------------------------------------------------------------------------------
+ 
+-interface SealData { fps: string[]; eqFp: string; lastTo: number; elapsedMs: number; durationMs: number; reportedHands: number; seal: boolean }
++interface SealData { fps: string[]; eqFp: string; lastTo: number; elapsedMs: number; durationMs: number; reportedHands: number; seal: boolean; sealAt: number; jointTarG: number }
+ 
+ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
+   const fail = (why: string) => failed(req, SEAL_EVAL, why, SEAL_SCHEMA) as ScienceStepResultV02;
+@@ -178,10 +179,9 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
+     if (tubeLot) {
+       const tq = tubeLot.quality ?? {};
+       if (!finite(tq.bore_mm, 1, 30) || !finite(tq.length_mm, 100, 3000) || !isInt(tubeLot.amount.value, 1)) return fail(`${GAUGE_TUBE} needs quality bore_mm 1..30 and length_mm 100..3000`);
+-      if (!req.actions.some((a) => a.action === 'seal')) return fail('a tube goes through the plug: seal the mouth (seal, with jointTarG for its joint)');
+     }
+     if (wood) { const fc = fuelComp(wood); if (typeof fc === 'string') return fail(fc); }
+-    d = { fps, eqFp, lastTo: req.interval.from, elapsedMs: 0, durationMs: pv('vesselHandSeconds') * 1000, reportedHands: 0, seal: false };
++    d = { fps, eqFp, lastTo: req.interval.from, elapsedMs: 0, durationMs: pv('vesselHandSeconds') * 1000, reportedHands: 0, seal: false, sealAt: -1, jointTarG: 0 };
+   } else {
+     d = structuredClone(req.state.data as SealData);
+     if (d.fps.join('|') !== fps.join('|')) return fail('changed-input: a reserved lot changed under a running run');
+@@ -195,7 +195,10 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
+   d.elapsedMs += worked;
+   const done = d.elapsedMs >= d.durationMs, endAt = done ? req.interval.from + worked : req.interval.to;
+   // a seal counts only when it comes before the work is done (an action at or after endAt was never reached: Codex A1)
+-  if (req.actions.some((a) => a.at < endAt)) d.seal = true;
++  // the first seal reached is the one made (the plug goes in once; a later one finds it in): its time and the tar
++  // heaped on the tube's joint are kept in the state, so the settle never reads a request's actions again (Codex SB-A1)
++  const reached = req.actions.filter((a) => a.action === 'seal' && a.at < endAt).map((a, i) => ({ a, i })).sort((x, y) => x.a.at - y.a.at || x.i - y.i)[0]?.a;
++  if (reached && !d.seal) { d.seal = true; d.sealAt = reached.at; d.jointTarG = reached.params?.jointTarG ?? 0; }
+   const h = intDeltaFloor((power * d.elapsedMs) / 1000, d.reportedHands);
+   d.reportedHands = h.reported; d.lastTo = endAt;
+   if (!allFinite(d)) return fail('non-finite state: refusing to return it');
+@@ -219,14 +222,14 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
+   const warm = wood !== undefined && burn >= 0.5 * pv('warmWoodG') * 1000;
+   const plug = d.seal ? Math.min(tarLot.amount.value, Math.round(pv('sealPlugTarG') * 1000)) : 0;
+   // tar heaped on the tube's joint (p16x 0.1.3): out of what is left after the plug; the rest coats the inside
+-  const jointG = req.actions.filter((a) => a.action === 'seal').map((a) => a.params?.jointTarG ?? 0)[0] ?? 0;
+-  const joint = tubeLot ? Math.min(tarLot.amount.value - plug, Math.round(jointG * 1000)) : 0;
++  const joint = tubeLot && d.seal ? Math.min(tarLot.amount.value - plug, Math.round(d.jointTarG * 1000)) : 0;
+   const coat = tarLot.amount.value - plug - joint;
+   const ref = warm ? pv('tarCoverRefWarmGm2') : pv('tarCoverRefColdGm2');
+   const coverage = 1 - (1 - p.coverage) * Math.exp(-(coat / 1000 / area) / ref);
+   const sealed = d.seal && plug >= Math.round(pv('sealPlugTarG') * 1000);
+   const jointCover = 1 - Math.exp(-(joint / 1000) * (warm ? pv('jointTarWarmPerG') : pv('jointTarColdPerG')));
+-  // the tube goes into the pot only through a plug that holds; otherwise it comes back as it was
++  // the tube goes into the pot only through a plug that holds; otherwise (no seal reached, or too little tar for the
++  // plug) it comes back as it was (Codex SB-A2: a tube may wait for a seal in a later request)
+   const tube: Tube | undefined = tubeLot && sealed ? { mg: tubeLot.amount.value, boreMm: tubeLot.quality!.bore_mm, lengthMm: tubeLot.quality!.length_mm, jointCover } : undefined;
+   const out: Pot = { ...p, tar: p.tar + tarLot.amount.value, coverage, sealed, ...(tube ? { tube } : {}) };
+   if (tubeLot && !tube) res.produced.push({ materialId: GAUGE_TUBE, amount: { ...tubeLot.amount }, into: tubeLot.location, quality: { ...(tubeLot.quality ?? {}) } });

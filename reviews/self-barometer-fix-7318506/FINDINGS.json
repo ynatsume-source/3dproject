@@ -1,0 +1,44 @@
+{
+  "target": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "decision": "clear-p16x-hold-m03x",
+  "counts": {
+    "A": 1,
+    "B": 0,
+    "C": 1
+  },
+  "resolvedOriginalFindings": [
+    "SB-A1",
+    "SB-A2",
+    "SB-A3",
+    "SB-A4"
+  ],
+  "blockingFindings": [
+    {
+      "id": "FX-SB-A1",
+      "classification": "A",
+      "title": "あふれ判定と返す目盛りが別の気圧を使う",
+      "file": "src/science/step/barometer-pot.ts",
+      "line": 176,
+      "relatedLine": 132,
+      "evidence": [
+        "bounds/five-mm-result.json",
+        "bounds/fine-mark-result.json",
+        "independent-witness.json"
+      ],
+      "actual": "5mm保持軌道9→返り値10。0.5mmでは管口100を越え101を返し、次セルで100に復帰、終了時ok/ground0/水20000mg全量返却",
+      "expected": "保持する近似を採るなら読み・漏れ・あふれを同じセル気圧の軌道で扱う。現在の気圧を採るなら物理イベントもその軌道へそろえる"
+    }
+  ],
+  "nonBlockingFindings": [
+    {
+      "id": "SB-C3",
+      "classification": "C",
+      "title": "約1nmに合わせた管端で1秒標本間の山を読みだけが拾う",
+      "file": "src/science/step/barometer-pot.ts",
+      "line": 131,
+      "evidence": "intervals/subsecond-peak.result.json",
+      "disposition": "next-full-review; does-not-block-integration"
+    }
+  ],
+  "previousNonBlockingItems": "../self-barometer-7f4d1e3/carryover/status.json"
+}

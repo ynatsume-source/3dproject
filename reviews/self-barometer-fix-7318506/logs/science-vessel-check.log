@@ -1,0 +1,64 @@
+1. tar on a warm pot, and what it does to the water
+  ok   brushing tar on, warmed at the fire: 15 minutes of hand work; pot + tar + wood (+ O2) = tarred pot + wood left + ash + smoke
+  ok   the tar goes onto the pot: it is 15 g heavier
+  ok   warm tar runs into the pores; cold tar only sits on top — covered 935131 vs 559839 ppm
+  ok   an untarred pot of water: the outside is damp and cool, and the water clearly goes down in three days — 216 g gone
+  ok   tarred warm, it keeps its water best; tarred cold, in between — 216 / 95 / 14 g
+  ok   pot + water = pot (with the water its walls took up) + water left + vapour
+  ok   in damp, still air less water seeps away — 96 g
+2. stopping the mouth
+  ok   stopped with a plug and tar; not stopped, the pot holds no air (0: not usable as a bulb)
+  ok   holding it under water (submerge) is held back until air, pressure and water let in are modelled (Codex A4) — submerge is held back: what bubbles under water tell needs the air in the pot, its pressure and the water let in, which are not modelled yet
+  ok   the pot carries how long it holds its air (for the world: a barometer bulb made from it) — 120 / 743 / 11458 min
+  ok   a stopped pot is not tarred inside again (open it first)
+  ok   too little tar to stop the mouth: it stays open
+3. sun and heat
+  ok   in the sun the tar softens and runs: less of the pot stays covered — 935131 → 692762 ppm
+4. pieces, outages, the pot handed on
+  ok   1 h = 30 s = 3 h pieces (actions between the grid points): the same water, pot and words
+  ok   hours of unknown weather: nothing seeps in them (nothing invented), the history is incomplete
+  ok   the pot handed back (its walls still holding water) goes into the next test
+  ok   the leak test: contract 0.1.0 and 0.2.0 give the same answer
+6. assembly (ADR 0006): a pot lot becomes equipment and back
+  ok   a sealed pot lot gives the equipment its capacity and how long it holds its air (table civ-sci.pot-assembly/4) — {"capacityMl":500,"absorptionPpm":120000,"coveragePpm":989527,"sealed":1,"airtightKnown":1,"crackPpm":0,"airLeakTauMin":11458}
+  ok   back whole (condition 1): the lot is as it was
+  ok   back worn (condition 0.9): still stopped (nobody opened it), only its air-holding is no longer known; a crack index of 10 % added — {"capacity_ml":500,"absorption_ppm":120000,"coverage_ppm":989527,"sealed":1,"x_wood_tar_ppm":47617,"history_complete":1,"airtight_known":0,"crack_ppm":100000}
+  ok   the crack index adds up over uses and is capped at 1,000,000
+  ok   read back: stopped, air-holding not known (params airLeakTauMin 0: not usable as a bulb) — {"capacityMl":500,"absorptionPpm":120000,"coveragePpm":989527,"sealed":1,"airtightKnown":0,"crackPpm":100000,"airLeakTauMin":0}
+  ok   the worn stopped pot cannot be filled (the plug is still in)
+  ok   nor held under water to guess at its air
+  ok   nor tarred inside again (it is stopped: opening is a step of its own)
+  ok   stood empty for a day it stays stopped and not known — {"capacity_ml":500,"absorption_ppm":120000,"coverage_ppm":989527,"sealed":1,"x_wood_tar_ppm":47615,"crack_ppm":100000,"airtight_known":0,"history_complete":1}
+  ok   an open pot comes back open
+  ok   the leak test shows the crack: much more water lost than from the sound pot, and the crack stays with the pot — 302 g vs 14 g
+  ok   stopped, the cracked pot holds its air far less long: tar inside does not close a crack — 59 vs 11458 min
+  ok   broken: the sherds (same mass, by main) keep what the body was and the tar it carried, nothing of the pot — {"absorption_ppm":120000,"x_wood_tar_ppm":47617,"history_complete":1}
+7. fixes from the vessel review (Codex e6668fb A1–A5, C1)
+  ok   A1: a seal after the work is done (20 min, or at the 15-minute end) is never reached; one at 14 min is — 0/0/1
+  ok   A2: a look between grid points reads the state at its own time (one piece = 1-second pieces) — 95 s: 外側がしっとり濡れて、ひんやりする
+  ok   A2: 72 looks between grid points change nothing in the settlement
+  ok   A3: the wet pot dries with no water in it: its walls give their water to the air (and take the heat) — 72.0 → 0.0 g, 174960 J
+  ok   A3: just emptied the outside is still damp; after six days in the sun it is dry — 外側がしっとり濡れて、ひんやりする / 外側は乾いている
+  ok   A3: the dried pot is filled again
+  ok   A5: three days all unknown: nothing seen, not even how much water is left at the end
+  ok   A5: after an unknown stretch the run tells nothing more (take it out and set it up again to observe)
+  ok   C1: wood that is all water does not burn: no steam, no heat, the wood back, the tar cold
+5. requests that are refused
+  ok   a pot without its capacity — pot lot:pot needs quality.capacity_ml (1..1000000)
+  ok   no brush — needs a fixture_tar_brush
+  ok   warming without a fire pit — needs a fixture_tar_brush and an open_fire_pit to warm at
+  ok   tarring under contract 0.1.x — unknown contract 0.1.0
+  ok   more water than the pot holds — the water does not fit in the pot
+  ok   filling a stopped pot — the pot is stopped: it cannot be filled
+  ok   no stand — no fixture_vessel_stand
+  ok   an unknown action — unknown action shake (look, take_out)
+  ok   the stand changed under the run — changed-input: the stand changed under a running run (send stop equipment-lost when it is lost)
+  ok   a missing interval — noncontiguous-interval: expected from=3600000; send a missed interval with environment.source 'unknown'
+  ok   a leak-test state from 0.1.0 (schema /1: no wall drying, sealed meant something else) — unsupported-state-schema: civ-sci.vessel-leak/1 is an older test state and is not migrated (current civ-sci.vessel-leak/2). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet.
+  ok   a tar-seal state from 0.1.0 (schema /1: seal taken ahead of time) — unsupported-state-schema: civ-sci.vessel-seal/1 is an older test state and is not migrated (current civ-sci.vessel-seal/3). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet.
+9. a missing wind (p17x 0.1.2)
+  ok   a missing wind is unknown weather for the pot (nothing computed, history incomplete); wind 0 is calm
+—   every result above passed the contract checker
+  ok   validateResult: no violation
+
+53 passed, 0 failed

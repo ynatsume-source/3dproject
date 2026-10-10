@@ -1,0 +1,60 @@
+1. versions and inputs: unknown → failed, nothing consumed
+  ok   unknown contract 1.0.0 is refused, not guessed
+  ok   unknown processVersion is refused, not guessed
+  ok   unknown catalogVersion is refused, not guessed
+  ok   unknown state schema is refused, not guessed
+  ok   unknown process is refused, not guessed
+  ok   no drying rack → failed
+  ok   a robot battery offered as energy → failed
+  ok   dispatcher: concept-only / unimplemented process → failed
+2. determinism and resend
+  ok   the same request gives the same result
+  ok   committer applies each requestId once (resends are no-ops by construction)
+3. interval additivity: chunking never changes the outcome
+  ok   one interval = 12 h chunks = ragged chunks (settled lot, vapour, observations)
+  ok   integer J summed over chunks is identical — 19350 J
+  ok   a different seed on later requests does not change the outcome (seed fixed at run start)
+4. mass: the lot is settled once, at the end
+  ok   running steps consume, produce and release nothing
+  ok   Σconsumed = Σproduced + Σreleased, exactly in mg — 45000 = 37037 + 7963
+  ok   consumes only the reserved lot
+  ok   produced lot carries the new state as quality — {"water_ppm":20169,"shaped_water_ratio_ppm":240000,"width_mm":50,"length_mm":50,"thickness_mm":10,"linear_shrink_ppm":60000,"crack":0,"history_complete":1}
+5. energy: integer J, closed per entry, no double count
+  ok   every entry is integer and closes: used = lost + stored
+  ok   Σ reported J = latent heat of the integer vapour released (within 1 J of flooring) — 19350 J vs 19350.09 J
+  ok   heat is drawn from the environment source only (no fuel, no battery)
+6. operational vs in-world stops; unknown weather
+  ok   world-pause: nothing settles, the run keeps its state
+  ok   …and resuming gives the same outcome as never pausing
+  ok   operator stop settles the lot (status stopped)
+  ok   an interval with unknown weather is not integrated; the lot is marked history-incomplete
+  ok   no evaporation is invented for the unknown interval
+  ok   a missing wind is unknown weather (the same as an unknown interval); windMs 0 is calm and is integrated
+  ok   a gap the world did not report is refused (no weather is filled in)
+  ok   a reserved lot that changed under the running run is refused
+  ok   non-integer amounts are refused
+6b. shaping and weighing fixtures (ported from codex/civilization-lab)
+  ok   weighing returns only an instrument observation (100 mg resolution), no material change
+  ok   weighing uses 10 J of the offered electricity, closed
+  ok   shaping: one interval = two intervals; consumed/produced once at completion
+  ok   shaping keeps mass and records thickness
+  ok   too little offered work → needs-input, nothing produced
+6c. one catalog (civ-sci-test-2): weigh → shape a test tile → dry, and a stop with short energy
+  ok   shaping a test tile: the whole clay lot becomes one test_tile_green of the same mass — [{"materialId":"test_tile_green","amount":{"value":45000,"unit":"mg"},"into":"site:rack-shade","quality":{"water_ppm":193548,"xd_kaolinite_ppm":450000,"xd_quartz_ppm":300000,"xd_calcite_ppm":20000,"width_mm":50,"length_mm":50,"thickness_mm":10,"shaped_water_ratio_ppm":239999,"linear_shrink_ppm":0,"crack":0,"history_complete":1}}]
+  ok   the tile keeps the clay make-up and takes its size from the mould — {"water_ppm":193548,"xd_kaolinite_ppm":450000,"xd_quartz_ppm":300000,"xd_calcite_ppm":20000,"width_mm":50,"length_mm":50,"thickness_mm":10,"shaped_water_ratio_ppm":239999,"linear_shrink_ppm":0,"crack":0,"history_complete":1}
+  ok   the drying step takes the shaped tile as it is — completed Dalton型蒸発・二段乾燥・収縮期の蒸発速度で割れ。係数は校正値・仮定（原典未照合）
+  ok   a mould far too big for the clay is refused (1.5–2.3 g/cm³, assumed)
+  ok   clay without its make-up cannot become a test tile
+  ok   stop operator with 5 J over 10 s (0.5 W for a 1 W balance): the balance never ran, stopped, no reading, no energy used — stopped 10000
+  ok   stop equipment-lost with short energy: stopped
+  ok   a pause with short energy resumes later and finishes the reading — needs-input → completed
+  ok   no stop, short energy: still needs-input (the world offers more)
+  ok   a simple-process /1 state is refused (fixture-2 keeps state /2)
+  ok   the old fixture-1 / civilization-fixture-1 request is refused
+7. same physics as the test-world prototype
+  ok   ScienceStep drying evaporates what the prototype does (within 0.2%: the prototype rounds every step) — 7962 vs 7949 mg
+8. conditions matter: sun + 15 mm cracks, shade does not
+  ok   drying cracks across 20 seeds — sun 13/20, shade 0/20
+  ok   validateResult found no violation in any drying / shaping / weighing result
+
+48 passed, 0 failed

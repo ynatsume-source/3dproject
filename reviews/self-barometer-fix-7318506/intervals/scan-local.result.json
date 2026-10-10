@@ -1,0 +1,734 @@
+{
+  "target": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "prefix": {
+    "from": 11821007,
+    "state": {
+      "schema": "civ-sci.air-barometer-pot/2",
+      "data": {
+        "eqId": "eq:bulb",
+        "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+        "g": {
+          "V0": 0.0005,
+          "A": 5.026548245743669e-05,
+          "halfLengthM": 0.1,
+          "markM": 0.005,
+          "tauS": 739
+        },
+        "leakK": 1.7536137313425153e-07,
+        "startMs": 1007,
+        "lastTo": 11821007,
+        "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+        "waterMg": 20000,
+        "waterLocation": "site:jar",
+        "spilledMg": 0,
+        "s": {
+          "tMs": 11791007,
+          "bLo": 310.23664530983257,
+          "bHi": 310.23664530983257,
+          "sLo": 0.16759424429636385,
+          "sHi": 0.16759424429636385
+        },
+        "ctl": {
+          "tKnown": true,
+          "Ta": 310.9,
+          "pKnown": true,
+          "Pa": 101000,
+          "dsLo": -1.748187557070055e-08,
+          "dsHi": -1.748187557070055e-08
+        },
+        "lastPaPa": 101000,
+        "lastPaAt": 11821007,
+        "gapOpen": false,
+        "gapLoMinK": 301.15,
+        "gapHiMaxK": 301.15,
+        "gapSLo": 0.1676905196745808,
+        "gapSHi": 0.1676905196745808,
+        "condition": "ok",
+        "spilledAt": -1,
+        "historyComplete": true
+      }
+    }
+  },
+  "matrix": [
+    {
+      "duration": 28000,
+      "chunk": 28000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 11
+    },
+    {
+      "duration": 28000,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 11
+    },
+    {
+      "duration": 28000,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 11
+    },
+    {
+      "duration": 28000,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 11
+    },
+    {
+      "duration": 28000,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 11
+    },
+    {
+      "duration": 29000,
+      "chunk": 29000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29000,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29000,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29000,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29000,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29137,
+      "chunk": 29137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29137,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29137,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29137,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29137,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29737,
+      "chunk": 29737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29737,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29737,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29737,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29737,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29999,
+      "chunk": 29999,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29999,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29999,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29999,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 29999,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30000,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30000,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30000,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30000,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30000,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30137,
+      "chunk": 30137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30137,
+      "chunk": 30000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30137,
+      "chunk": 1000,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30137,
+      "chunk": 737,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    },
+    {
+      "duration": 30137,
+      "chunk": 137,
+      "physicalExact": true,
+      "observationsExact": true,
+      "condition": "spilled-top",
+      "spilledMg": 12
+    }
+  ],
+  "restored": {
+    "drawn": [],
+    "contract": "0.2.1",
+    "requestId": "g:11851007:11881007",
+    "runId": "run:gauge",
+    "simulated": {
+      "from": 11851007,
+      "to": 11881007
+    },
+    "state": {
+      "schema": "civ-sci.air-barometer-pot/2",
+      "data": {
+        "eqId": "eq:bulb",
+        "paramsFp": "[[\"absorptionPpm\",120000],[\"airLeakTauMin\",3096],[\"airtightKnown\",1],[\"bulbTauS\",739],[\"capacityMl\",500],[\"coveragePpm\",968721],[\"crackPpm\",0],[\"markMm\",5],[\"sealed\",1],[\"tubeBoreMm\",8],[\"tubeLengthMm\",200]]",
+        "g": {
+          "V0": 0.0005,
+          "A": 5.026548245743669e-05,
+          "halfLengthM": 0.1,
+          "markM": 0.005,
+          "tauS": 739
+        },
+        "leakK": 1.7536137313425153e-07,
+        "startMs": 1007,
+        "lastTo": 11881007,
+        "waterFp": "[\"lot:water\",\"process_water\",{\"unit\":\"mg\",\"value\":20000},\"site:jar\",[[\"history_complete\",1]]]",
+        "waterMg": 20000,
+        "waterLocation": "site:jar",
+        "spilledMg": 12,
+        "s": {
+          "tMs": 11881007,
+          "bLo": 310.3127071270351,
+          "bHi": 310.3127071270351,
+          "sLo": 0.1675926679559412,
+          "sHi": 0.1675926679559412
+        },
+        "ctl": {
+          "tKnown": true,
+          "Ta": 310.9,
+          "pKnown": true,
+          "Pa": 101000,
+          "dsLo": -1.7531402592222437e-08,
+          "dsHi": -1.7531402592222437e-08
+        },
+        "lastPaPa": 101010,
+        "lastPaAt": 11881007,
+        "gapOpen": false,
+        "gapLoMinK": 301.15,
+        "gapHiMaxK": 301.15,
+        "gapSLo": 0.1676905196745808,
+        "gapSHi": 0.1676905196745808,
+        "condition": "spilled-top",
+        "spilledAt": 11824007,
+        "historyComplete": true
+      }
+    },
+    "status": "stopped",
+    "consumed": [
+      {
+        "lotId": "lot:water",
+        "amount": {
+          "unit": "mg",
+          "value": 20000
+        }
+      }
+    ],
+    "produced": [
+      {
+        "materialId": "process_water",
+        "amount": {
+          "value": 19988,
+          "unit": "mg"
+        },
+        "into": "site:jar",
+        "quality": {
+          "history_complete": 1
+        }
+      }
+    ],
+    "released": [
+      {
+        "materialId": "process_water",
+        "amount": {
+          "value": 12,
+          "unit": "mg"
+        },
+        "to": "ground"
+      }
+    ],
+    "energy": [],
+    "equipmentWear": [],
+    "observations": [
+      {
+        "at": 11851007,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+      },
+      {
+        "at": 11881006,
+        "channel": "instrument:eq:bulb",
+        "quantity": "level",
+        "text": "水があふれて減ったまま。両側の水面が、置いたときの印と合わない"
+      }
+    ],
+    "evidence": {
+      "evaluatorVersion": "air-barometer-pot-eval/0.1.1",
+      "sourceRefs": [],
+      "notes": "理想気体と水の柱の釣り合い（OpenStax の本文で照合、器の実測ではない）。器の漏れ（空気を保つ時間、継ぎ目の漏れ）、器の温度の追従、分からない区間の気温・気圧の幅は仮定。蒸発・器の中の水蒸気・毛管現象は扱わない"
+    },
+    "diagnostics": {
+      "condition": "spilled-top",
+      "bulbC": [
+        37.162707127035105,
+        37.162707127035105
+      ],
+      "airLeft": [
+        0.1675926679559412,
+        0.1675926679559412
+      ],
+      "spilledMg": 12,
+      "historyComplete": true
+    }
+  },
+  "checks": [
+    {
+      "name": "no reads change physical settlement at 28000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 28000/28000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 28000/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 28000/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 28000/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 28000/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 28000/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 28000/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 28000",
+      "passed": true
+    },
+    {
+      "name": "no reads change physical settlement at 29000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29000/29000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29000/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29000/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29000/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29000/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 29000/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 29000/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 29000",
+      "passed": true
+    },
+    {
+      "name": "no reads change physical settlement at 29137",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29137/29137",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29137/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29137/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29137/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29137/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 29137/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 29137/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 29137",
+      "passed": true
+    },
+    {
+      "name": "no reads change physical settlement at 29737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29737/29737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29737/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29737/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29737/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29737/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 29737/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 29737/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 29737",
+      "passed": true
+    },
+    {
+      "name": "no reads change physical settlement at 29999",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29999/29999",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29999/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29999/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29999/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 29999/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 29999/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 29999/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 29999",
+      "passed": true
+    },
+    {
+      "name": "no reads change physical settlement at 30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30000/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30000/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30000/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30000/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30000/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 30000/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 30000/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 30000",
+      "passed": true
+    },
+    {
+      "name": "no reads change physical settlement at 30137",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30137/30137",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30137/30000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30137/1000",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30137/737",
+      "passed": true
+    },
+    {
+      "name": "same scan/settlement 30137/137",
+      "passed": true
+    },
+    {
+      "name": "same termination 30137/{\"take\":true}",
+      "passed": true
+    },
+    {
+      "name": "same termination 30137/{\"lose\":true,\"stop\":\"equipment-lost\"}",
+      "passed": true
+    },
+    {
+      "name": "mass is closed 30137",
+      "passed": true
+    },
+    {
+      "name": "fresh /2 state is returned",
+      "passed": true
+    },
+    {
+      "name": "current /2 JSON roundtrip preserves final floats and settlement",
+      "passed": true
+    },
+    {
+      "name": "old /1 refused without any physical settlement",
+      "passed": true
+    },
+    {
+      "name": "already spilled remains spilled on restore at new pressure",
+      "passed": true
+    }
+  ],
+  "summary": {
+    "requests": 2086,
+    "checks": 67,
+    "failed": 0,
+    "exceptions": 0,
+    "validatorFailures": 0
+  }
+}

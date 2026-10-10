@@ -1,0 +1,212 @@
+{
+  "officialTests": 310,
+  "officialChecks": [
+    {
+      "name": "science-barometer-pot-check",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-barometer-pot-check.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "  ok   the bulb changed under the run — changed-input: the gauge changed under a running run",
+        "—   every result above passed the contract checker",
+        "  ok   validateResult: no violation",
+        "",
+        "32 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "science-vessel-check",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-vessel-check.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "  ok   a missing wind is unknown weather for the pot (nothing computed, history incomplete); wind 0 is calm",
+        "—   every result above passed the contract checker",
+        "  ok   validateResult: no violation",
+        "",
+        "53 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "science-barometer-check",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-barometer-check.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "  ok   a /2 state (bounds from the old 10..38 °C assumption) is refused: the gauge is set again",
+        "—   every result above passed the contract checker",
+        "  ok   validateResult: no violation",
+        "",
+        "43 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "science-fired-pot-assembly-check",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-fired-pot-assembly-check.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "  ok   the dish's mass is its fired body (the water in its walls is not body), and the pores the water fills take up no oil — bare {\"capacityMl\":80,\"absorptionPpm\":143412,\"massG\":72} / wet {\"capacityMl\":80,\"absorptionPpm\":8,\"massG\":72} (lot 82484 mg)",
+        "  ok   handed back wet, assembled, pure oil set in it for an hour: it soaks less than the dry dish, never more — 8214 → 0 mg",
+        "  ok   a cook pot's heat capacity is its fired body's (the water in its walls is not counted as ceramic)",
+        "",
+        "26 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "science-review-regressions",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-review-regressions.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "  ok   W5: firewood with an incomplete history → the fired tile is marked incomplete too",
+        "—   every result above passed the contract checker",
+        "  ok   validateResult: no violation in the chained runs",
+        "",
+        "108 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "science-step-check",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-step-check.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "8. conditions matter: sun + 15 mm cracks, shade does not",
+        "  ok   drying cracks across 20 seeds — sun 13/20, shade 0/20",
+        "  ok   validateResult found no violation in any drying / shaping / weighing result",
+        "",
+        "48 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "",
+        "> seaglass@0.1.0 typecheck",
+        "> tsc --noEmit",
+        ""
+      ]
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exitCode": 1,
+      "lastLines": [
+        "  address: '/tmp/tsx-1000/108430.pipe',",
+        "  port: -1",
+        "}",
+        "",
+        "Node.js v24.19.0"
+      ],
+      "environmentOnlyFailure": "tsx CLI IPC socket unavailable; Vite succeeded"
+    },
+    {
+      "name": "build-og-loader",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/og-pages.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "og pages: pointlobos, gbr, miyako, kayama, maldives, pacific, redsea, carnatic, galapagos"
+      ]
+    },
+    {
+      "name": "build-journal-loader",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/journal-pages.ts"
+      ],
+      "exitCode": 0,
+      "lastLines": [
+        "journal pages: 0 post(s)"
+      ]
+    }
+  ],
+  "typecheckPassed": true,
+  "buildStagesPassed": true,
+  "buildMethod": "Vite via npm run build; tsx CLI sandbox IPC failure preserved; identical OG/journal scripts completed via node --import tsx",
+  "vesselAdditional": {
+    "requests": 46,
+    "assertions": 22,
+    "failures": 0
+  },
+  "legacyVessel": {
+    "intervalPairs": 109300,
+    "helperComparisons": 49,
+    "differences": 0
+  },
+  "intervals": {
+    "requests": 18210,
+    "controlChecks": 129,
+    "partitionComparisons": 69,
+    "failures": 0
+  },
+  "boundsOriginal": {
+    "requests": 103864,
+    "maskedComparisonPoints": 51840,
+    "differences": 0
+  },
+  "boundsAdditional": {
+    "requests": 23907,
+    "cases": 180,
+    "failures": 0
+  },
+  "newAIndependentlyConfirmed": true,
+  "wrapperIntervalsPassed": true
+}
