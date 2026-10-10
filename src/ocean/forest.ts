@@ -210,7 +210,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          alb = mix(alb, vec3(0.25, 0.3, 0.15), smoothstep(0.2, -0.6, dot(n, uAirSun)) * 0.35);
          col = airLitF(alb, n, vWp, 0.0, 0.6) + alb * vec3(0.16, 0.18, 0.13) * (1.0 - uNight * 0.8);   // (light thrown back from the leaves and the floor)
        }
-       col *= mix(1.0, vSh + (1.0 - vSh) * 0.9 * dapple(vWp, vWp.y + 6.0), 0.6);   // (shade inside the forest, flecks of sun — softened: it is lit through, not dark)
+       col *= mix(1.0, vSh + (1.0 - vSh) * 0.9 * dapple(vWp, vWp.y + 6.0), 0.6 * (1.0 - 0.7 * uNight));   // (shade inside the forest, flecks of sun — softened: it is lit through, not dark)
        gl_FragColor = vec4(fogIt(col, vWp), mix(1.0, cover, uA2C));
      }`, { opts: { side: THREE.DoubleSide, alphaToCoverage: true } });
   // geometries: two of each kind of tree, a sapling of each, and the clump on the forest floor
