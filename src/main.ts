@@ -3625,13 +3625,13 @@ function frameBody(ts: number) {
     }
     // the diorama finish (owner 2026-10-10, nature team: docs/proposals/nature-look-2026-10-09/DIORAMA.md): watching a
     // resident ashore from above, the island seen as a model through a lens close to it — the resident sharp, what is
-    // nearer and further soft by how far it is from them; it comes in as the camera rises and looks down, and is gone
-    // at eye level, under the water, high in the sky, and through a resident's eyes (?nodiorama: never)
+    // nearer and further soft by how far it is from them; it comes in as the camera rises and looks down (from about
+    // 1.5 m above the ground and 6° down; full by 5 m and 27°), and is gone at eye level, under the water, high in the sky, and through a resident's eyes (?nodiorama: never)
     {
       let want = 0;
       if (DIORAMA && air && watch.r && !watch.pov && cur.shore) {
         const above = camera.position.y - cur.loc.f(camera.position.x, camera.position.z), down = -U.uCamFwd.value.y;
-        want = smooth(2.5, 6, above) * smooth(0.25, 0.55, down) * (1 - smooth(40, 70, above));
+        want = smooth(1.5, 5, above) * smooth(0.1, 0.45, down) * (1 - smooth(40, 70, above));
         dioF += (camera.position.distanceTo(_dioAt.set(watch.r.pos.x, watch.r.pos.y + 0.4, watch.r.pos.z)) - dioF) * Math.min(1, dt * 4);
       }
       dioK += (want - dioK) * Math.min(1, dt * 1.5);
