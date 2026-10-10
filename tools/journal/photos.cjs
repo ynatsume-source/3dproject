@@ -23,7 +23,7 @@ const DATA = path.resolve(arg('--data', 'journal-data')), PORT = process.env.POR
     const page = await ctx.newPage(); page.setDefaultTimeout(600000);
     page.on('pageerror', (e) => console.log(`  ${p.id}: page error ${e.message}`));
     const at = new Date(p.at).toISOString();
-    await page.goto(`http://localhost:${PORT}/?tier=high&journalshot&nointro&wx=clear&at=${encodeURIComponent(at)}#kayama`, { waitUntil: 'commit' });
+    await page.goto(`http://localhost:${PORT}/?tier=high&journalshot&nointro&wx=clear&at=${encodeURIComponent(at)}#planet`, { waitUntil: 'commit' });
     const posed = await page.waitForFunction((rec) => !!window.seaglassShot && window.seaglassShot(rec), p, { timeout: 400000, polling: 1000 }).then(() => true, (e) => { console.log(`  ${p.id}: ${String(e.message).split('\n')[0].slice(0, 300)}`); return false; });
     if (!posed) { console.log(`  ${p.id}: the island did not come up`); await ctx.close(); continue; }
     // (a few seconds for the light, the trees round it and the detail to settle; posed again so nothing has moved)
