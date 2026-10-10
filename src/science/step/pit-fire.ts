@@ -37,8 +37,8 @@ import { potSherdsQuality } from './vessel';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 import { DRY_POT, GREEN_POT } from './pottery';
 
-export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.2.0' } as const; // 0.2.0: one to three pots in one fire (state /2) // 0.1.2: a lost hearth stops the fire at interval.to, not at interval.from (Codex PF-A1)
-const SCHEMA = 'civ-sci.pot-pit-fire/2', EVAL = 'pot-pit-fire-eval/0.2.0';
+export const PIT_FIRE_PROCESS = { processId: 'p13y_pot_pit_fire', processVersion: '0.2.1' } as const; // 0.2.1: fixed 30 s cells; a request ending inside a cell never splits it (Codex BATCH-A1) // 0.2.0: one to three pots in one fire (state /2) // 0.1.2: a lost hearth stops the fire at interval.to, not at interval.from (Codex PF-A1)
+const SCHEMA = 'civ-sci.pot-pit-fire/3', EVAL = 'pot-pit-fire-eval/0.2.1';
 export const PIT_MAX_POTS = 3;
 export const FIRED_POT = 'fired_pot';
 const STEP_MS = 30_000, UNLOAD_C = 60, RAMP_GIVE_UP_S = 2 * 3600;
@@ -52,6 +52,10 @@ interface Fire { kilnC: number; peakKilnC: number; burnedMg: number; elapsedS: n
 interface PotData extends WareState { potId: string; location: string; quality0: Record<string, number>; potMaterial: string }
 interface PitData extends Fire {
   pots: PotData[]; fps: string[]; eqFp: string; fuelId: string; fuelLocation: string; lastTo: number; startMs: number; seed: number;
+  /** Fixed 30 s cells (0.2.1, Codex BATCH-A1): the physics stands at simT, a cell start, until a whole cell (or the run's end)
+   *  can be computed; a request ending inside a cell leaves that cell to the next request. The cell's weather and burn
+   *  rate are decided once at its start (cellAt) and held through it. */
+  simT: number; cellAt: number; cellTa: number; cellRain: number; cellWind: number;
   fuel: Composition; heldBurnKgS: number;
   preheatS: number; rampKPerH: number; peakC: number; holdMin: number; forced: boolean; plan: { preheatMin: number; pace: string; glow: string };
   ambientC: number; phase: 'preheat' | 'ramp' | 'hold' | 'cool' | 'done'; holdStartS: number | null; outcome: Outcome | null;
@@ -71,6 +75,7 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (bad) return fail(req, bad);
   const pots = req.lots.filter((l) => l.materialId === DRY_POT || l.materialId === GREEN_POT), woods = req.lots.filter((l) => l.materialId === 'firewood');
   if (pots.length < 1 || pots.length > PIT_MAX_POTS || woods.length !== 1 || pots.length + 1 !== req.lots.length) return fail(req, `expected one to ${PIT_MAX_POTS} ${DRY_POT} (or ${GREEN_POT}) lots and one firewood lot`);
+  if (new Set(req.lots.map((l) => l.lotId)).size !== req.lots.length) return fail(req, 'a lot is listed twice (each lot once)');
   pots.sort((x, y) => (x.lotId < y.lotId ? -1 : x.lotId > y.lotId ? 1 : 0));
   if (req.energy.length) return fail(req, 'an open fire burns its reserved firewood: offer no heat source as well');
   const wood = woods[0];
@@ -110,6 +115,7 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (!known) return fail(req, `a fire is lit only with known weather (temperature, humidity, wind and rain; environment ${env.source})`);
     const Ta = env.airTempC!;
     d = { pots: potData, fps, eqFp, fuelId: wood.lotId, fuelLocation: wood.location, lastTo: req.interval.from, startMs: req.interval.from, seed: req.seed,
+      simT: req.interval.from, cellAt: -1, cellTa: Ta, cellRain: 0, cellWind: 0,
       fuel: fc, heldBurnKgS: 0,
       kilnC: Ta, peakKilnC: Ta, burnedMg: 0, elapsedS: 0, cumUsedJ: 0, cumLostJ: 0, cumChemJ: 0, unevenRatioMax: 0,
       preheatS: (pp.preheatMin ?? 0) * 60, rampKPerH: PIT_PACE_K_PER_H[pace], peakC: GLOW_TARGET_C[glow], holdMin: pp.holdMin, forced: pp.forcedCooling === 1,
@@ -131,7 +137,7 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const windRatio = known ? wind10m(req) / pv('pitWindCrackRefMs') : 0;
   /** One sub-step of the fire and the pot (no decisions: those are taken at grid points). */
   const burnStep = (s: PitData, dt: number) => {
-    const Ta = env.airTempC!;
+    const Ta = s.cellTa, rainFactor = s.cellRain, windRatio = s.cellWind;
     const burn = Math.min(s.heldBurnKgS * dt * 1e6, fuelTotal - s.burnedMg);
     s.burnedMg += burn;
     const chamberIn = burn * lhv * p.chamberFraction * flame * rainFactor, gross = burn * dryShare * lhvDry;
@@ -156,16 +162,19 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
     for (const w of s.pots) if (w.wareC > 90 && w.wareC < 250 && w.ext.water < 0.95 && (w.base.water ?? 0) > 0) o(potQ('pot', s, w), '器から白い湯気が出ている');
   };
 
-  let t = d.lastTo;
+  let t = d.simT;
   const reads = req.actions.filter((a) => a.action === 'look').sort((x, y) => x.at - y.at);
   let k = 0;
   // a stop (equipment-lost too) ends the run at interval.to: the fire burns up to then, as in any other interval (PF-A1)
+  const finalStop = req.stop === 'operator' || req.stop === 'equipment-lost';
   if (known) {
-    const Ta = env.airTempC!;
     while (d.phase !== 'done' && t < req.interval.to) {
       const tEnd = subStepEnd(t, d.startMs, STEP_MS, req.interval.to);
       const dt = (tEnd - t) / 1000;
-      if ((t - d.startMs) % STEP_MS === 0) {
+      if ((t - d.startMs) % STEP_MS === 0 && d.cellAt !== t) {
+        // the cell's weather, held through it (a later request inside the same cell does not change it)
+        d.cellAt = t; d.cellTa = env.airTempC!; d.cellRain = rainFactor; d.cellWind = windRatio;
+        const Ta = d.cellTa;
         let target: number | null = null, rampKs = 0;
         // warming beside the fire: the heat rises gently (pitPreheatKPerH) to pitPreheatC, then holds there
         if (d.phase === 'preheat') {
@@ -190,11 +199,18 @@ export function pitFireStep(req: ScienceStepRequest): ScienceStepResultV02 {
       }
       for (; k < reads.length && reads[k].at <= t; k++) read(reads[k].at, d);
       for (; k < reads.length && reads[k].at < tEnd; k++) { const c = structuredClone(d); burnStep(c, (reads[k].at - t) / 1000); read(reads[k].at, c); }
+      // a request ending inside a cell: the cell is computed whole by the next request (its looks above read copies)
+      if ((tEnd - d.startMs) % STEP_MS !== 0 && !finalStop) break;
       burnStep(d, dt);
       t = tEnd;
       if (d.phase === 'cool' && d.pots.every((w) => w.wareC < UNLOAD_C) && (t - d.startMs) % STEP_MS === 0) { d.phase = 'done'; d.outcome ??= 'done'; }
     }
-  } else if (!known) { d.historyComplete = false; d.runKnown = false; d.outcome = 'untended'; }
+  } else if (!known) {
+    // the fire falls at interval.from: a cell left open by the last request burns on to then, with its held weather
+    if (d.simT < req.interval.from && d.cellAt === d.simT) { burnStep(d, (req.interval.from - d.simT) / 1000); t = req.interval.from; }
+    d.historyComplete = false; d.runKnown = false; d.outcome = 'untended';
+  }
+  d.simT = t;
 
   const done = d.phase === 'done';
   const ending = done || !known || req.stop === 'operator' || req.stop === 'equipment-lost';
