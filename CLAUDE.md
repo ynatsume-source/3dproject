@@ -1,6 +1,6 @@
 # Utsushiyo（旧 Seaglass）開発ガイド
 
-実在の海と島を写した「もうひとつの地球」を、ドローンで眺め、そこで暮らす住民に再会できる Web アプリ。
+実在の海と島をドローンで眺める自然の世界と、地球と同じ形をした別の星でドットたち4人が暮らす島を持つ Web アプリ。地形と海の仕組みは共有し、住人のいる島へは `#planet` から入る（ADR 0007）。
 趣味として長く育てることが目的。今の観賞体験の心地よさを最優先し、商用・大規模化は将来の選択肢にとどめる。
 
 ## 最初に読むもの
@@ -22,14 +22,20 @@
 - 生き物は無から出ない・その場で消えない（オーナー決定、全イベント・全生き物共通）。新しく現れるものは見えない所（その海の見通しの外、または視線から75°より外で22 m以上先）に置いて泳いで入ってこさせ、いなくなるものは同じように見えなくなってから片づける。判定は `src/eco/unseen.ts`（`unseen`・`behind`・`sightRange`）を使い、`scripts/appear-check.ts` で確かめる。食べられる（捕食）は例外。
 - シェーダーは Windows（ANGLE / Direct3D11）で落ちやすい。テクスチャを読むシェーダーでは早期 return や分岐内のサンプリングを避ける（過去に白画面の原因になった）。
 
+実装と方針の差（2026-10-10）：通常モードの住人の更新はまだ観賞用の `clock.ms` を受け取る（`?lantern-study` のみ `Date.now()`）。共有世界のサーバーと、全用途を集計する月額 AI 上限は未実装。現在の保存と AI 通信はブラウザ内の試作で、上の採択方針を満たした本番の共有世界とは区別する。詳細は `docs/ARCHITECTURE.md` の時間・保存・外部通信を参照。
+
 ## 確認コマンド
 
 ```sh
 npm run typecheck
 npm run build
+npm run check:list                        # ヘッドレス検査の全一覧・分類
+npm run check:fast                        # PR / main の変更で回す検査
+npm run check:slow                        # 長い検査（夜間 / 手動 CI）
 npm run sim -- miyako                      # 生態系をヘッドレスで早回し
 npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip / cave / bait / jitter / motion / route / appear の各チェック
 ```
+検査の分類は `scripts/check-manifest.mjs`、実行は `scripts/checks.mjs`。各検査を別プロセスで順に動かし、ログと JSON の結果を残す。検査の未登録・失敗・タイムアウトは終了コードで失敗にする。数値を出すだけの診断は「実行完了」と記録し、受け入れ条件の合格とは区別する。`.github/workflows/checks.yml` は PR / main への push で型検査・ビルド・fast、毎日03:40 UTCと手動実行で slow を回す。ブラウザ・GLSL・HUD の検査は別に行う。
 シェーダーを変えたら `node scripts/shader-check.mjs`（`--all` で全部の海）：Chromium（ソフトウェア GL）で海を開き、コンパイルに失敗したシェーダーが1つでもあれば落ちる。ヘッドレスのチェックは GLSL をコンパイルしないので、変数の二重宣言などはこれでしか見つからない。`#if` の枝どうしは同じスコープなので、別の枝と同じ名前の変数を宣言しない。
 
 
@@ -45,7 +51,8 @@ npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip
 住人の主体性は ADR 0004（採択）。`src/robots/agent/`：観察（`observe`：視野・遮蔽・明るさ、物体 ID）→ 目的 → 計画（世界が出す選択肢 `optionsFor` の id だけ、ready=false は将来の手順）→ 行動（`taskFor`、世界が判定）→ 結果（`report`：done/gone/no way/blocked/interrupted/unavailable/timeout）→ 記憶（knowledge：saw/tried/heard/guessed、仮説は本物の結果でしか確定しない）。AI は節目だけ（`agent/config.ts` の MINDS が運用設定：モデル・1日の上限・間隔）。キーなし・予算切れ・応答なしでも習慣（HABIT）で動く。いまはドットとラッコが on。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/mind-check.ts`。住人どうしの頼む・断る・教える・渡す（`requests`、`ask`/`answer`/`tell`/`give`）と取り合いは `scripts/social-check.ts`。
 
 動物（ラッコ・カメマル）の体は `src/robots/body.ts`（ADR 0004 追記：体と食べ物）。おなか・ねむけは何をしているかで減る（`drain`）。食べ物は世界の在庫（ラッコの採餌場 `patches`：ウニ・カニ・貝、獲れば減り時間で戻る／カメマルの藻場 `beds`）。空腹・眠気が過ぎると困りごと（力が出ない・体が冷える・動けない・落とす・寝落ち）が起き、本人の日記と AI への結果に状態つきで残り、習慣の目安（`learn.eatAt`/`sleepAt`）が少し早まる（何事もない日は少し戻る）。AI にはルールを渡さず、体の状態（`now.body`）と体験だけを渡す。確認は `npx tsx --import ./scripts/node-assets.mjs scripts/body-check.ts`。
-島だより（住人のメディア、`/journal/`）は docs/JOURNAL.md。住人の写真（`photo:` 行為、1日3枚・最低1枚、`PhotoRecord`）、記事（`src/journal/write.ts`：本人の記録と写真だけ、検査つき）、毎日の島（`scripts/journal-run.ts`、状態は journal-data ブランチ）、写真の描画（`tools/journal/photos.cjs`、`?journalshot`）、ページ（`scripts/journal-pages.ts`、build で生成、承認＝マージ済みの `content/journal/` だけ）。確認は `scripts/journal-check.ts`。
+科学の工程は `src/world/process-catalog.ts`（使える工程と前提）と `process-runner.ts`（材料・設備の予約、時計、検査、結果の反映）を通して住人の暮らしから呼ぶ。粘土の池→下ごしらえ→器の成形・乾燥→野焼き→鍋・灯皿、ヤシ油→芯→油の灯り、焼いた壺2つ→乾留の器→炭・木タール→壺の封止まで接続済み。管を通した自作気圧計・漏れ試験・試験タイルの成形と乾燥は、工程表ではまだ `ready: false`。科学コアの計算そのものは科学側の持ち物。接続の確認は `scripts/island-science-check.ts`・`clay-chain-check.ts`・`pottery-host-check.ts`・`oil-chain-check.ts`・`lamp-check.ts`・`tar-chain-check.ts`。
+島だより（住人のメディア、`/journal/`）は docs/JOURNAL.md。住人の写真（`photo:` 行為、1日3枚まで、撮らない日は記事に自分で描いた絵（SVG）を載せる、`PhotoRecord`）、記事（`src/journal/write.ts`：本人の記録と写真または絵だけ、検査つき）、毎日の島（`scripts/journal-run.ts`、状態は journal-data ブランチ）、写真の描画（`tools/journal/photos.cjs`、`?journalshot`）、ページ（`scripts/journal-pages.ts`、build で生成、承認＝マージ済みの `content/journal/` だけ）。確認は `scripts/journal-check.ts`。
 `?debug` でコンソールに `seaglass` オブジェクト、`?diag` で GPU 診断パネル。
 
 ## 公開と報告
