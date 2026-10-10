@@ -338,9 +338,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const TREES = [[-0.4, 5.6], [1.9, 6.9], [-2.4, 7.3], [5.2, -2.6], [-4.8, -3.2]].map(([lx, lz], i) => {
     const w = atHut(lx, lz), g = new THREE.Group(); g.position.set(w.x, L.h(w.x, w.z), w.z); group.add(g);
     const pivot = new THREE.Group(); g.add(pivot);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7), wood2); trunk.position.y = 1.2; pivot.add(trunk);
-    const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);
-    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.42 - k * 0.05, 8, 6), leafM); b.position.set(Math.sin(k * 2.1 + i) * 0.25, k * 0.28 - 0.3, Math.cos(k * 2.1 + i) * 0.25); b.scale.y = 0.8; crown.add(b); }
+    // (drawn as the beach's own casuarinas are — their drooping twigs, the same light — only young: 2.7 m; nature team
+    // 2026-10-10. Where the shore is not built, a trunk and a crown of rounded masses as before)
+    const look = T.plantLook;
+    if (look) { const m = new THREE.InstancedMesh(look.geo.casuarina, look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(2.4, 2.7, 2.4))); m.frustumCulled = false; m.userData.shared = true; pivot.add(m); }
+    else {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7), wood2); trunk.position.y = 1.2; pivot.add(trunk);
+      const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);
+      for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.42 - k * 0.05, 8, 6), leafM); b.position.set(Math.sin(k * 2.1 + i) * 0.25, k * 0.28 - 0.3, Math.cos(k * 2.1 + i) * 0.25); b.scale.y = 0.8; crown.add(b); }
+    }
     const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.18, 7), wood2); stump.position.y = 0.09; stump.visible = false; g.add(stump);
     const ok = L.h(w.x, w.z) > 0.35;
     if (!ok) g.visible = false;
@@ -785,10 +791,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const m = new THREE.Mesh(stumpGeo!, wood2); m.position.set(x, L.h(x, z) + 0.1, z); felledG.add(m);
   }
   const falling: { pivot: THREE.Group; t: number; dir: number }[] = [];
-  function fallFrom(t: { x: number; z: number; y: number; h: number }, dir: number) {
+  function fallFrom(t: { x: number; z: number; y: number; h: number; kind?: number }, dir: number) {
     const g = new THREE.Group(); g.position.set(t.x, t.y, t.z); group.add(g);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.18, t.h * 0.6, 7), wood2); trunk.position.y = t.h * 0.3; g.add(trunk);
-    for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(t.h * (0.17 - k * 0.015), 8, 6), leafM); b.position.set(Math.sin(k * 2.1) * t.h * 0.12, t.h * (0.62 + k * 0.07), Math.cos(k * 2.1) * t.h * 0.12); g.add(b); }
+    // (the tree as the forest drew it, coming down — nature team 2026-10-10; else a trunk and rounded masses as before)
+    const fl = T.forest?.look?.(t.kind ?? 0);
+    if (fl) { const m = new THREE.InstancedMesh(fl.geo, fl.mat, 1); const w = t.h * fl.wide * 0.88; m.setMatrixAt(0, new THREE.Matrix4().makeScale(w, t.h, w)); m.frustumCulled = false; m.userData.shared = true; g.add(m); }
+    else {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.18, t.h * 0.6, 7), wood2); trunk.position.y = t.h * 0.3; g.add(trunk);
+      for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(t.h * (0.17 - k * 0.015), 8, 6), leafM); b.position.set(Math.sin(k * 2.1) * t.h * 0.12, t.h * (0.62 + k * 0.07), Math.cos(k * 2.1) * t.h * 0.12); g.add(b); }
+    }
     falling.push({ pivot: g, t: 0, dir });
   }
   const windward = (x: number, z: number) => { const c = houseG.position, dx = x - c.x, dz = z - c.z, d = Math.hypot(dx, dz); return d > 1 && d < 35 && (dx + dz) * Math.SQRT1_2 / d > 0.4; };   // (+x east, +z south)
@@ -3828,7 +3839,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (const f of [...falling]) {   // (a forest tree coming down; it is gone once it lies, the logs left where it fell)
       f.t += dt; const k = Math.min(1, f.t / 2.6), a = k * k * Math.PI / 2;
       f.pivot.rotation.set(Math.cos(f.dir) * a, 0, -Math.sin(f.dir) * a);
-      if (f.t > 4) { group.remove(f.pivot); f.pivot.traverse((o: any) => o.geometry?.dispose?.()); falling.splice(falling.indexOf(f), 1); }
+      if (f.t > 4) { group.remove(f.pivot); f.pivot.traverse((o: any) => { if (!o.userData?.shared) o.geometry?.dispose?.(); }); /* (not the forest's own shape: it draws with it still) */ falling.splice(falling.indexOf(f), 1); }
     }
     // the fire: flames flicker, sparks rise, the light it throws
     const tt = performance.now() / 1000, craft = craftTick(tt); lampTick(tt);   // (a pot fired, or oil boiling: the fire burns for it — a pot fire heaped high)

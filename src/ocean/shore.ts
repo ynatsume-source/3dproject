@@ -288,6 +288,9 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
   }
+  // (the beach plants' shapes and how they are drawn, for what the residents have growing by their home — the young
+  // casuarinas Dot clears for the field: robots/residents.ts. Shared: not to be disposed of)
+  T.plantLook = { geo: geos, mat: plantMat };
   const forest = buildForest(AIRLIT, group, f, can, top, FAR);
   // how tall the growth is at a point (m): for those who walk on the island and go round what is above their
   // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
@@ -316,6 +319,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
       return t;
     },
     cleared: (x: number, z: number) => forest.cleared(x, z),
+    look: (kind: number) => forest.look(kind),
   };
   solids.source((x, z, r, f) => forest.trunks(x, z, r, (t) => f({ kind: 'trunk', x: t.x, z: t.z, r: 0.55, y0: t.y - 0.5, y1: t.y + t.h })));
   T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)

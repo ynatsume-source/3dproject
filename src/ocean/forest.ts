@@ -293,6 +293,10 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
   let near = 85;
   return {
     get count() { return count; },
+    /** A kind's grown tree as the forest draws it (unit height; to be scaled by its height, and across by `wide` × it):
+     *  for a tree the residents fell, drawn as it comes down (robots/residents.ts). The geometry is the forest's own:
+     *  not to be disposed of. */
+    look(kind: number) { return { geo: geos[Math.max(0, Math.min(3, kind)) * 2], mat: treeMat, wide: KINDS[Math.max(0, Math.min(3, kind))].wide }; },
     get near() { return near; },
     // which cells to draw: those reaching within `near` of the camera (the canopy surface fills in beyond)
     update(cam: THREE.Vector3, r: number) {
