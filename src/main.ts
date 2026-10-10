@@ -8,6 +8,7 @@ import { U, mat } from './render/common';
 import { cloudAt } from './render/cloud';
 import { clamp, smooth, angDiff, rr, getStream, setStream, hyp } from './core/math';
 import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
+import { worldKey, seaHash, seaForHash, migrateSeen } from './world/location-id';
 import { ridersFor } from './eco/riders';
 import { sightRange } from './eco/unseen';
 import { makeDrone } from './ocean/drone';
@@ -157,7 +158,8 @@ function wantOpening(loc: Sea) {
   if (/[?&]nointro/.test(q)) return false;
   if (/[?&]intro\b/.test(q)) return true;
   if (shared || reduceMotion || /[?&](debug|lab|diag|gputest|probe|bisect|lantern-study|journalshot)/.test(q)) return false;
-  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); return m[loc.id] !== new Date().toDateString(); } catch (e) { return true; }
+  // Legacy markers use only the land id and cannot identify the world; rebuild this viewing cache.
+  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); return m[worldKey(loc)] !== new Date().toDateString(); } catch (e) { return true; }
 }
 function startOpening(oc: Ocean) {
   // what to look up at first: the sun if it is up, else a moon that gives light, else up into the stars
@@ -169,7 +171,7 @@ function startOpening(oc: Ocean) {
   drone.pos.copy(opening.pose.pos); drone.vel.set(0, 0, 0); drone.yaw = opening.pose.yaw; drone.pitch = opening.pose.pitch;
   drone.sky = false; openK = 1; chase.on = false;
   setView('chase', false);
-  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); m[oc.loc.id] = new Date().toDateString(); localStorage.setItem(OPEN_KEY, JSON.stringify(m)); } catch (e) { /* storage blocked */ }
+  try { const m = JSON.parse(localStorage.getItem(OPEN_KEY) || '{}'); delete m[oc.loc.id]; m[worldKey(oc.loc)] = new Date().toDateString(); localStorage.setItem(OPEN_KEY, JSON.stringify(m)); } catch (e) { /* storage blocked */ }
 }
 // done (or cut short by a touch of the controls): the view as it was chosen
 function endOpening(done: boolean) {
@@ -1197,9 +1199,9 @@ function reachable(s: Subject) {
 // what the guide knows of a subject, to weigh it: a shark? not yet in the field guide? and the hour
 const speciesKey = new Map<string, string | null>();
 function taste(s: Subject): Taste {
-  const lk = (cur?.loc.id ?? '') + '|' + s.label;
+  const lk = (cur ? worldKey(cur.loc) : '') + '|' + s.label;
   let key = speciesKey.get(lk);
-  if (key === undefined && cur) { const e = guideEntries(cur.loc).find((x) => s.label.startsWith(x.ja)); key = e ? cur.loc.id + ':' + e.id : null; speciesKey.set(lk, key); }
+  if (key === undefined && cur) { const e = guideEntries(cur.loc).find((x) => s.label.startsWith(x.ja)); key = e ? worldKey(cur.loc) + ':' + e.id : null; speciesKey.set(lk, key); }
   return { shark: isShark(s), isNew: !!key && !seen.has(key), night: skyNow?.night ?? 0, golden: skyNow?.golden ?? 0, whim };
 }
 // what the carefree guide fancies just now (a kind of subject), changing every few minutes
@@ -1450,11 +1452,13 @@ let saidRain = false;
 const LOG_KIND: Record<string, string> = { robot: '住人', voice: 'ガイド', phase: '時間', sighting: '発見', observe: '観察', hunt: '狩り', catch: '捕食', breathe: '息継ぎ', whale: 'クジラ', breach: '跳躍', rest: '休息', manta: '採餌' };
 function localDate(ms: number, tz: number) { const d = new Date(ms + tz * 3600000); return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
 function ensureDay() {
-  const key = `seaglass.log.${cur!.loc.id}.${localDate(clock.ms, cur!.loc.tz)}`;
+  const date = localDate(clock.ms, cur!.loc.tz), key = `seaglass.log.${worldKey(cur!.loc)}.${date}`;
   if (key === dayKey) return;
   saveLog();
   dayKey = key;
-  try { dayLog = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { dayLog = []; }
+  // Keep unambiguous Earth logs; old Kayama logs may mix worlds and are rebuilt.
+  try { const old = cur!.loc.id !== 'kayama' ? localStorage.getItem(`seaglass.log.${cur!.loc.id}.${date}`) : null;
+    dayLog = JSON.parse(localStorage.getItem(key) ?? old ?? '[]'); } catch (e) { dayLog = []; }
 }
 function saveLog() { if (!dayKey) return; try { localStorage.setItem(dayKey, JSON.stringify(dayLog.slice(-300))); } catch (e) { /* storage full or blocked */ } }
 function recordLog(kind: string, text: string) {
@@ -1826,7 +1830,7 @@ function updateTimeUi() {
 
 /* ---------- field guide ---------- */
 let seen = new Set<string>();
-try { seen = new Set(JSON.parse(localStorage.getItem('seaglass.seen') || '[]')); } catch (e) { /* storage unavailable */ }
+try { seen = new Set(migrateSeen(JSON.parse(localStorage.getItem('seaglass.seen') || '[]'), LOCATIONS)); } catch (e) { /* storage unavailable */ }
 const guideEl = $('guide');
 const TURTLE_STATE: Record<string, string> = { travel: 'ゆったり泳いで移動している', graze: '海底の藻や海草をはんでいる', toRest: '寝床の岩陰へ向かっている', rest: '岩陰で眠っている', breathe: '息継ぎに水面へ上がっていく' };
 function statusOf(id: string): string {
@@ -1922,7 +1926,7 @@ function renderIsland() {
 function renderGuide() {
   if (!cur) return;
   const loc = cur.loc, list = guideEntries(loc);
-  const n = list.filter((e) => seen.has(loc.id + ':' + e.id)).length;
+  const n = list.filter((e) => seen.has(worldKey(loc) + ':' + e.id)).length;
   $('seenCount').textContent = `${n}/${list.length}`;
   $('btnGuide').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'guide'));
   $('btnLog').setAttribute('aria-pressed', String(!guideEl.hidden && panelTab === 'log'));
@@ -1938,7 +1942,7 @@ function renderGuide() {
     <h3>行き先</h3>
     <ul class="places">${cur.cave ? `<li class="benthic"><i></i><b>海底洞窟</b><p>石灰岩の根を貫くトンネル。天井の穴から光の柱が差し込み、昼はネムリブカが奥で休んでいる。</p><button class="go" type="button" data-go="cave">洞窟へ行く</button></li>` : ''}${cur.bait ? `<li class="benthic"><i></i><b>ベイトボール</b><p>${cur.bait.st.active ? 'いま沖で起きている。' : ''}${predatorsJa(loc)}が${loc.bait!.sp.ja}の群れを水面へ追い上げ、海鳥が上から突っ込む。ふだんはまれにしか起きない。</p><button class="go" type="button" data-go="bait">${cur.bait.st.active ? '見に行く' : '探しに行く'}</button></li>` : ''}${(PLACES[loc.id] || []).map((pl) => `<li class="benthic"><i></i><b>${pl.ja}</b><p>${pl.note}</p><button class="go" type="button" data-go="place:${pl.id}">行ってみる</button></li>`).join('')}</ul>
     <h3>生きもの</h3>
-    <ul>${list.map((e) => `<li data-id="${e.id}" class="${seen.has(loc.id + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : thumbs[e.id] === '' ? '' : `<img class="pic" data-pic="${e.id}" alt="" hidden>`}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
+    <ul>${list.map((e) => `<li data-id="${e.id}" class="${seen.has(worldKey(loc) + ':' + e.id) ? 'seen' : ''}">${thumbs[e.id] ? `<img class="pic" src="${thumbs[e.id]}" alt="">` : thumbs[e.id] === '' ? '' : `<img class="pic" data-pic="${e.id}" alt="" hidden>`}<i></i><b>${e.ja}</b><em>${e.sci}</em><span class="st">いま：${statusOf(e.id)}</span><p>${e.note}</p><button class="go" type="button" data-go="${e.id}">会いに行く</button></li>`).join('')}</ul>
     <h3>${loc.pelagic ? '漂う生きもの' : loc.habitat === 'kelp' ? 'ケルプと底生生物' : 'サンゴと底生生物'}</h3>
     <ul>${loc.benthic.map(([ja, sci, note]) => `<li class="benthic"><i></i><b>${ja}</b><em>${sci}</em><p>${note}</p></li>`).join('')}</ul>${loc.flora ? `
     <h3>島の植物</h3>
@@ -1965,13 +1969,13 @@ function pumpThumbs() {
 function refreshGuide() {
   if (!cur || guideEl.hidden) return;
   if (panelTab !== 'guide') { renderGuide(); return; }
-  const loc = cur.loc, list = guideEntries(loc), n = list.filter((e) => seen.has(loc.id + ':' + e.id)).length;
+  const loc = cur.loc, list = guideEntries(loc), n = list.filter((e) => seen.has(worldKey(loc) + ':' + e.id)).length;
   $('seenCount').textContent = `${n}/${list.length}`;
   const h = guideEl.querySelector('h2 span'); if (h) h.textContent = `${n} / ${list.length} 発見`;
   for (const li of guideEl.querySelectorAll<HTMLElement>('li[data-id]')) {
     const id = li.dataset.id!, st = li.querySelector('.st'), txt = `いま：${statusOf(id)}`;
     if (st && st.textContent !== txt) st.textContent = txt;
-    li.classList.toggle('seen', seen.has(loc.id + ':' + id));
+    li.classList.toggle('seen', seen.has(worldKey(loc) + ':' + id));
   }
 }
 guideEl.addEventListener('click', (e) => {
@@ -2037,7 +2041,7 @@ function observeNew() {
 }
 function discover(e?: { id: string; ja: string; sci: string }, at?: () => Where3 | null, size = 1) {
   if (!e || !cur) return;
-  const key = cur.loc.id + ':' + e.id;
+  const key = worldKey(cur.loc) + ':' + e.id;
   if (seen.has(key)) return;
   seen.add(key);
   try { localStorage.setItem('seaglass.seen', JSON.stringify([...seen])); } catch (err) { /* ignore */ }
@@ -2195,7 +2199,7 @@ function leaveShared() {
 // this moment as a link: through the phone's share sheet, or copied
 async function shareMoment() {
   if (!cur) return;
-  const url = shareUrl({ base: location.origin + location.pathname.replace(/[^/]*$/, ''), sea: cur.loc.id, ms: clock.ms, tz: cur.loc.tz, speed: clock.speed, live: clock.live,
+  const url = shareUrl({ base: location.origin + location.pathname.replace(/[^/]*$/, ''), sea: seaHash(cur.loc).slice(1), ms: clock.ms, tz: cur.loc.tz, speed: clock.speed, live: clock.live,
     wx: wxFixed ?? wxKindOf(liveWeather()), guide: persona.id, view: viewMode });
   track('share_link', { sea: cur.loc.id });
   const title = `ウツシヨ — ${cur.loc.name}`;
@@ -2297,7 +2301,7 @@ function enterOcean(oc: Ocean) {
   $('locCoord').textContent = fmtLL(oc.loc.lat, oc.loc.lon);
   setMode('auto');
   renderGuide(); renderWatch();
-  try { history.replaceState(null, '', '#' + oc.loc.id); } catch (e) { /* ignore */ }
+  try { history.replaceState(null, '', seaHash(oc.loc)); } catch (e) { /* ignore */ }
   resize();
   requestAnimationFrame(resize);
 }
@@ -2475,10 +2479,12 @@ function texturesOf(m: any) {
 }
 function letGo(id: string) {
   const oc = oceans[id]; if (!oc || oc === cur || (oc as any).residents) return;
-  freeOcean(oc); delete oceans[id]; prepared.delete(id); forgetLand(id); lastIn.delete(id);
+  freeOcean(oc); delete oceans[id]; prepared.delete(id); lastIn.delete(id);
+  // Two worlds may share the same survey data. Keep it while either ocean (or a build job) still uses it.
+  if (!Object.values(oceans).some((other) => other.loc.id === oc.loc.id) && job?.loc.id !== oc.loc.id) forgetLand(oc.loc.id);
 }
 function keepFew() {
-  const old = [...lastIn].filter(([id]) => id !== cur?.loc.id && oceans[id] && !(oceans[id] as any).residents).sort((a, b) => b[1] - a[1]);
+  const old = [...lastIn].filter(([id]) => id !== (cur ? worldKey(cur.loc) : null) && oceans[id] && !(oceans[id] as any).residents).sort((a, b) => b[1] - a[1]);
   for (const [id] of old.slice(KEEP_SEAS)) letGo(id);
 }
 const STAGE_JA: Record<string, string> = { seabed: '海底', corals: 'サンゴ', rocks: '岩', life: '生きもの' };
@@ -2511,7 +2517,7 @@ function aheadStep() {
   const target = Math.max(33, globeGap * 1.3);
   aheadBudget = aheadGap > target ? Math.max(3, aheadBudget * 0.85) : aheadGap < target - 4 ? Math.min(40, aheadBudget + 1) : aheadBudget;
   if (!stepJob(job, aheadBudget)) return;
-  const id = job.loc.id, oc = job.done!;
+  const id = worldKey(job.loc), oc = job.done!;
   if (aheadId && aheadId !== id && !visited.has(aheadId)) letGo(aheadId);   // (only one kept that has not been visited: the other let go, freed)
   oceans[id] = oc; aheadId = id; job = null;
   // and its shaders, where the browser compiles them on threads of its own (otherwise when it is chosen, behind the veil)
@@ -2531,17 +2537,18 @@ function aheadByView(now: number) {
     const d = Math.abs((r.top + r.bottom) / 2 - cy); if (d < bd) { bd = d; best = loc; }
   });
   if (best !== midLoc) { midLoc = best; midSince = now; return; }
-  if (best && now - midSince > 1500 && !oceans[(best as Sea).id] && job?.loc !== best) startJob(best);
+  if (best && now - midSince > 1500 && !oceans[worldKey(best)] && job?.loc !== best) startJob(best);
 }
 function buildAhead(loc: Sea) {
   if (!aheadOk) return;
   clearTimeout(aheadTimer);
-  if (oceans[loc.id] || loc.world) return;
-  aheadTimer = window.setTimeout(() => { if (!busy && mode === 'globe' && !oceans[loc.id]) startJob(loc); }, 700);
+  if (oceans[worldKey(loc)] || loc.world) return;
+  aheadTimer = window.setTimeout(() => { if (!busy && mode === 'globe' && !oceans[worldKey(loc)]) startJob(loc); }, 700);
 }
 async function dive(loc: Sea) {
   keepAwake(); clearNewMark();
   if (busy) return; busy = true;
+  const key = worldKey(loc);
   setHot(LOCATIONS.indexOf(loc));
   clearTimeout(aheadTimer);
   // the globe turns in toward the sea while it is built (or finished, if it was begun on the globe), a slice a frame;
@@ -2549,7 +2556,7 @@ async function dive(loc: Sea) {
   let turned = false;
   const turn = tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300).then(() => { turned = true; });
   const tb = performance.now();
-  if (!oceans[loc.id]) {
+  if (!oceans[key]) {
     const j = startJob(loc);
     let shown = false;
     while (!j.done && !j.failed) {
@@ -2562,23 +2569,23 @@ async function dive(loc: Sea) {
     globeHidden = 0;
     if (!j.done) {   // (a step went wrong: built straight through instead, as before)
       if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);
-      oceans[loc.id] = buildOcean(loc);
-    } else oceans[loc.id] = j.done;
+      oceans[key] = buildOcean(loc);
+    } else oceans[key] = j.done;
   } else if (job) job = null;   // (a job for another sea is dropped)
   const tc = performance.now();
   await turn;
-  if (!prepared.has(loc.id)) {
+  if (!prepared.has(key)) {
     veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
     await nextFrame();
-    await prepareShaders(oceans[loc.id]);
-    prepared.add(loc.id);
+    await prepareShaders(oceans[key]);
+    prepared.add(key);
   }
   if (dbg) console.log(`[load] build ${(tc - tb).toFixed(0)}ms (with the globe turning) shaders ${(performance.now() - tc).toFixed(0)}ms`);
-  visited.add(loc.id);
+  visited.add(key);
   veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
   await wait(600);
-  enterOcean(oceans[loc.id]);
-  lastIn.set(loc.id, performance.now()); keepFew();
+  enterOcean(oceans[key]);
+  lastIn.set(key, performance.now()); keepFew();
   track('dive', { sea: loc.id });
   await nextFrame();
   veil(false); setHot(-1);
@@ -2988,7 +2995,7 @@ const RESUME_KEY = 'seaglass.resume';
 let soundWasOn = false;
 function keepPlace() {
   if (!cur || mode !== 'ocean' || shared) return;
-  try { localStorage.setItem(RESUME_KEY, JSON.stringify({ sea: cur.loc.id, p: drone.pos.toArray().map((v) => +v.toFixed(2)), yaw: +drone.yaw.toFixed(3), pitch: +drone.pitch.toFixed(3), sky: drone.sky, at: Date.now() })); } catch (e) { /* storage blocked */ }
+  try { localStorage.setItem(RESUME_KEY, JSON.stringify({ sea: worldKey(cur.loc), p: drone.pos.toArray().map((v) => +v.toFixed(2)), yaw: +drone.yaw.toFixed(3), pitch: +drone.pitch.toFixed(3), sky: drone.sky, at: Date.now() })); } catch (e) { /* storage blocked */ }
 }
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { keepPlace(); soundWasOn = pauseAudio() || soundWasOn; }
@@ -2999,7 +3006,8 @@ addEventListener('pagehide', keepPlace);
 function takeUpPlace(loc: Sea) {
   let r: any = null;
   try { r = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); } catch (e) { /* storage blocked */ }
-  if (!r || r.sea !== loc.id || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
+  // A legacy plain sea id could refer to either Kayama world. Discard the old view, never the resident save.
+  if (!r || r.sea !== worldKey(loc) || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
   const [x, y, z] = r.p;
   if (![x, y, z].every(Number.isFinite) || Math.abs(x - ZONE.x) > 1e4) return;
   endOpening(false);
@@ -3693,7 +3701,7 @@ setQuality(tier);
 resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
-const start = location.hash === '#planet' ? DOTWORLD : LOCATIONS.find((l) => l.id === location.hash.slice(1));
+const start = seaForHash(location.hash, LOCATIONS, DOTWORLD);
 if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start).then(() => takeUpPlace(start))), 300); }
 void smooth;
 
@@ -3744,11 +3752,11 @@ if (/[?&]lab\b/.test(location.search)) {
       const L = new Date(clock.ms + cur.loc.tz * 3600000), p2 = (n: number) => String(n).padStart(2, '0');
       const q = [`date=${L.getUTCFullYear()}-${p2(L.getUTCMonth() + 1)}-${p2(L.getUTCDate())}`, `time=${p2(L.getUTCHours())}:${p2(L.getUTCMinutes())}`, `wx=${wxFixed ?? wxKindOf(liveWeather())}`, `tier=${tier}`];
       if (!clock.live && clock.speed !== 1) q.push(`speed=${clock.speed}`);
-      return `${location.origin}/?${q.join('&')}&lab#${cur.loc.id}`;
+      return `${location.origin}/?${q.join('&')}&lab${seaHash(cur.loc)}`;
     },
   }));
 }
-if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = LOCATIONS.find((x) => x.id === id); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), setGrass, gv, ahead: () => ({ job: job?.loc.id ?? null, stage: job?.stage ?? null, built: Object.keys(oceans), budget: Math.round(aheadBudget), base: Math.round(globeGap) }), get tiers() { return { tier, seaTier, renderScale, pipOn }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), closeShot: (p: [number, number, number], at: [number, number, number]) => { camera.position.set(...p); camera.lookAt(...at); camera.updateMatrixWorld(); U.uCamPos.value.copy(camera.position); U.uLodPos.value.copy(camera.position); renderer.setRenderTarget(null); renderer.render(oceanScene, camera); },   // (LAB: one frame from a given point, straight to the canvas)
+if (location.search.includes('debug')) (window as any).seaglass = { get hints() { return hints; }, replay, get cur() { return cur; }, clock, drone, camera, swellAt, stepDrone: (dt: number) => updateDrone(dt, performance.now()), persona: (id: string) => setPersona(personaById(id)), watch, startWatch: (id: string) => startWatch(cur!.residents!.list.find((r: any) => r.id === id)), setPov: (on: boolean) => setPov(on), U, director, renderLeap, lobosVisit: () => cur?.lobosVisitors?.force(drone.pos) ?? false, goTo, dive: async (id: string) => { const l = seaForHash('#' + id, LOCATIONS, DOTWORLD); if (!l) return; if (mode === 'ocean') await toGlobe(); await dive(l); }, seaLog, forceMeteors, minimap, get bait() { return cur?.bait; }, fly: () => { if (drone.sky) flyRun = { burst: false, t: 0, side: 1 }; else { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx) + 0.8); } return !!cur?.flyfish; }, get flyRun() { return flyRun; }, breach: (kind: 'whale' | 'manta' = 'whale') => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.breach.force(kind, drone.pos, fx, fz); }, rare: (id: string) => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); return cur?.rare.start(id, cur.eco.env, drone.pos, fx, fz); }, pip: () => ({ pipOn, subj: pipSubj?.key, fade: pipFade, hidden: $('pip').hidden, rect: $('pip').getBoundingClientRect().toJSON() }), thumbs: () => guideThumbs(cur!.loc, guideEntries(cur!.loc).map((e) => e.id)), get opening() { return opening && { t: opening.t, len: opening.plan.len, view: viewMode, k: openK, white: +$('openWhite').style.opacity }; }, get tourQ() { return tourQ.map((t) => t.label); }, get dayLot() { return cur?.eco.dayLot; }, autoTier: (t: Tier) => setQuality(t, true), setGrass, gv, ahead: () => ({ job: job?.loc.id ?? null, stage: job?.stage ?? null, built: Object.keys(oceans), budget: Math.round(aheadBudget), base: Math.round(globeGap) }), get tiers() { return { tier, seaTier, renderScale, pipOn }; }, scene: oceanScene, tap: (x: number, y: number) => tapAt(x, y), pick: (x: number, y: number) => pickAt(x, y)?.key ?? null, seabedAt: (x: number, y: number) => seabedAt(x, y)?.d ?? null, studio: (id: string, view: [number, number, number], zoom = 1, focus: [number, number, number] | null = null, set: Record<string, number> = {}) => studio(cur!.loc, id, view, zoom, focus, set), closeShot: (p: [number, number, number], at: [number, number, number]) => { camera.position.set(...p); camera.lookAt(...at); camera.updateMatrixWorld(); U.uCamPos.value.copy(camera.position); U.uLodPos.value.copy(camera.position); renderer.setRenderTarget(null); renderer.render(oceanScene, camera); },   // (LAB: one frame from a given point, straight to the canvas)
   setWx: (w: Partial<Weather>) => { wx = { ...FAIR, ok: true, at: Date.now(), ...w }; if (cur) applySky(cur.loc); } };
 
 declare const __BUILD__: string;

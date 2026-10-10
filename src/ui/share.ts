@@ -58,7 +58,8 @@ export function shareUrl(o: { base: string; sea: string; ms: number; tz: number;
   if (!o.live && o.speed !== 1) q.push(`speed=${o.speed}`);
   q.push(`wx=${o.wx}`, `guide=${encodeURIComponent(o.guide)}`);
   q.push(`view=${o.view === 'chase' ? 'chase' : 'fpv'}`);   // (either way: the viewer's own setting must not decide it)
-  return `${o.base}${o.sea}/?${q.join('&')}`;   // (through the sea's own page: its card on SNS, then on to the app)
+  // The resident planet has no Earth sea/OG page; open the app with its own world hash.
+  return o.sea === 'planet' ? `${o.base}?${q.join('&')}#planet` : `${o.base}${o.sea}/?${q.join('&')}`;
 }
 
 /** A short line saying what the shared conditions are (for the badge). */
