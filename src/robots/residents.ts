@@ -334,6 +334,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /* ---------- the homestead round the hut: young trees to fell, a field, the fire pit ---------- */
   const leafM = rmat(0x4f7a3a, 0.2), soilM = rmat(0x4a3527, 0.05), fruitM = rmat(0xe08a2e, 0.5), cropM = rmat(0x6a9a40, 0.2);
   const atHut = (x: number, z: number) => hut.localToWorld(new THREE.Vector3(x, 0, z));
+  // (three.js draws an id from Math.random for each thing it makes — and the residents' own draws come after: where a
+  // look is now made of fewer things than before, the ids the old one drew are drawn all the same, so the island's
+  // random draws, and so its days, stay as they were. n: how many things fewer)
+  const sameDraws = (n: number) => { for (let k = 0; k < n; k++) THREE.MathUtils.generateUUID(); };
   // young casuarinas on the ground Dot will clear for the field (the first three), and two more beyond
   const TREES = [[-0.4, 5.6], [1.9, 6.9], [-2.4, 7.3], [5.2, -2.6], [-4.8, -3.2]].map(([lx, lz], i) => {
     const w = atHut(lx, lz), g = new THREE.Group(); g.position.set(w.x, L.h(w.x, w.z), w.z); group.add(g);
@@ -341,7 +345,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (drawn as the beach's own casuarinas are — their drooping twigs, the same light — only young: 2.7 m; nature team
     // 2026-10-10. Where the shore is not built, a trunk and a crown of rounded masses as before)
     const look = T.plantLook;
-    if (look) { const m = new THREE.InstancedMesh(look.geo.casuarina, look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(2.4, 2.7, 2.4))); m.frustumCulled = false; m.userData.shared = true; pivot.add(m); }
+    if (look) { const m = new THREE.InstancedMesh(look.geo.casuarina, look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(2.4, 2.7, 2.4))); m.frustumCulled = false; m.userData.shared = true; pivot.add(m); sameDraws(10); }
     else {
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7), wood2); trunk.position.y = 1.2; pivot.add(trunk);
       const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);
@@ -795,7 +799,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const g = new THREE.Group(); g.position.set(t.x, t.y, t.z); group.add(g);
     // (the tree as the forest drew it, coming down — nature team 2026-10-10; else a trunk and rounded masses as before)
     const fl = T.forest?.look?.(t.kind ?? 0);
-    if (fl) { const m = new THREE.InstancedMesh(fl.geo, fl.mat, 1); const w = t.h * fl.wide * 0.88; m.setMatrixAt(0, new THREE.Matrix4().makeScale(w, t.h, w)); m.frustumCulled = false; m.userData.shared = true; g.add(m); }
+    if (fl) { const m = new THREE.InstancedMesh(fl.geo, fl.mat, 1); const w = t.h * fl.wide * 0.88; m.setMatrixAt(0, new THREE.Matrix4().makeScale(w, t.h, w)); m.frustumCulled = false; m.userData.shared = true; g.add(m); sameDraws(11); }
     else {
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.18, t.h * 0.6, 7), wood2); trunk.position.y = t.h * 0.3; g.add(trunk);
       for (let k = 0; k < 5; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(t.h * (0.17 - k * 0.015), 8, 6), leafM); b.position.set(Math.sin(k * 2.1) * t.h * 0.12, t.h * (0.62 + k * 0.07), Math.cos(k * 2.1) * t.h * 0.12); g.add(b); }
