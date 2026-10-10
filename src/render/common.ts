@@ -289,8 +289,10 @@ vec3 skyAir(vec3 d, float disks){
       vec3 n = mu1 * mp.x + mv1 * mp.y - w * sqrt(1.0 - mr);
       float lit = smoothstep(-0.05, 0.12, dot(n, uAirSun));
       float mare = 0.72 + 0.28 * smoothstep(0.35, 0.6, vn2(mp * 2.3 + 5.0) * 0.6 + vn2(mp * 5.0) * 0.4);
-      vec3 mc = vec3(1.0, 0.97, 0.9) * mare * (lit * 2.4 + 0.035) * smoothstep(1.0, 0.9, mr);
-      c = mix(c, c * 0.3 + mc, smoothstep(1.0, 0.92, mr) * smoothstep(-0.02, 0.02, w.y));
+      // (by day the blue of the air lies in front of the moon: its dark side is the sky's own colour, not a grey disc,
+      // and its lit side a pale white over the blue, its seas still seen. At night the dark side hides the stars behind it)
+      vec3 mc = vec3(1.0, 0.97, 0.9) * mare * (lit * mix(2.4, 0.55, day) + 0.035 * (1.0 - day)) * smoothstep(1.0, 0.9, mr);
+      c = mix(c, c * mix(0.3, 1.0, day) + mc, smoothstep(1.0, 0.92, mr) * smoothstep(-0.02, 0.02, w.y));
     }
     c += vec3(0.55, 0.62, 0.78) * pow(max(dot(d, w), 0.0), 900.0) * 0.5 * uMoonIllum * (1.0 - day) * smoothstep(-0.02, 0.02, w.y);
   }
