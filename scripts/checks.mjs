@@ -6,7 +6,7 @@
 //   node scripts/checks.mjs --list
 import { spawn } from 'node:child_process';
 import { appendFile, mkdir, readdir, writeFile } from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
+import { closeSync, openSync, writeSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checks } from './check-manifest.mjs';
@@ -66,30 +66,32 @@ export function selectChecks(opts, manifest = checks) {
 
 export async function runCheck(check, directory, outputDirectory) {
   const args = ['--import', 'tsx', '--import', './scripts/node-assets.mjs', check.file];
-  const logName = `${check.name}.log`, log = createWriteStream(path.join(outputDirectory, logName));
+  const logName = `${check.name}.log`, logFd = openSync(path.join(outputDirectory, logName), 'w');
+  const log = (text) => writeSync(logFd, text);
   const start = performance.now();
-  log.write(`$ node ${args.join(' ')}\nTimeout: ${check.timeoutSeconds} s\n\n`);
-  return await new Promise((resolve) => {
-    const child = spawn(process.execPath, args, { cwd: directory, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32' });
+  log(`$ node ${args.join(' ')}\nTimeout: ${check.timeoutSeconds} s\n\n`);
+  try { return await new Promise((resolve) => {
+    // File stdout/stderr are synchronous in Node on Linux. A check's explicit
+    // process.exit() can discard buffered pipe output, so inherit the open file
+    // descriptor directly instead of relaying output through parent streams.
+    const child = spawn(process.execPath, args, { cwd: directory, stdio: ['ignore', logFd, logFd], detached: process.platform !== 'win32' });
     let timedOut = false, error = null, cancelledSignal = null, forceTimer;
     const kill = (signal) => {
       try { process.platform === 'win32' ? child.kill(signal) : process.kill(-child.pid, signal); } catch { /* already gone */ }
     };
     const timer = setTimeout(() => {
-      timedOut = true; log.write(`\nTIMEOUT after ${check.timeoutSeconds} s\n`); kill('SIGTERM');
+      timedOut = true; log(`\nTIMEOUT after ${check.timeoutSeconds} s\n`); kill('SIGTERM');
       forceTimer = setTimeout(() => kill('SIGKILL'), 3000);
     }, check.timeoutSeconds * 1000);
     const cancel = (signal) => {
       if (cancelledSignal) { kill('SIGKILL'); return; }
       cancelledSignal = signal; clearTimeout(timer);
-      log.write(`\nCANCELLED by ${signal}\n`); kill('SIGTERM');
+      log(`\nCANCELLED by ${signal}\n`); kill('SIGTERM');
       forceTimer = setTimeout(() => kill('SIGKILL'), 3000);
     };
     const interrupt = () => cancel('SIGINT'), terminate = () => cancel('SIGTERM');
     process.on('SIGINT', interrupt); process.on('SIGTERM', terminate);
-    child.stdout.on('data', (data) => log.write(data));
-    child.stderr.on('data', (data) => log.write(data));
-    child.on('error', (err) => { error = err.message; log.write(`\nSPAWN ERROR: ${error}\n`); });
+    child.on('error', (err) => { error = err.message; log(`\nSPAWN ERROR: ${error}\n`); });
     child.on('close', (code, signal) => {
       clearTimeout(timer); clearTimeout(forceTimer);
       process.off('SIGINT', interrupt); process.off('SIGTERM', terminate);
@@ -99,9 +101,10 @@ export async function runCheck(check, directory, outputDirectory) {
       const elapsedSeconds = +(performance.now() - start).toFixed(0) / 1000;
       const status = cancelledSignal ? 'cancelled' : timedOut ? 'timed-out' : error ? 'error' : code !== 0 ? 'failed' : check.kind === 'diagnostic' ? 'completed' : 'passed';
       const result = { ...check, status, exitCode: code, signal, cancelledSignal, elapsedSeconds, error, log: logName };
-      log.end(`\n${status.toUpperCase()}: exit=${code}, signal=${signal ?? '-'}, ${elapsedSeconds} s\n`, () => resolve(result));
+      log(`\n${status.toUpperCase()}: exit=${code}, signal=${signal ?? '-'}, ${elapsedSeconds} s\n`);
+      resolve(result);
     });
-  });
+  }); } finally { closeSync(logFd); }
 }
 
 function markdown(results, title) {
