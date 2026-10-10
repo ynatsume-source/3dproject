@@ -1,0 +1,102 @@
+{
+  "officialChecks": [
+    {
+      "name": "science-barometer-pot-check",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/science-barometer-pot-check.ts"
+      ],
+      "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+      "exitCode": 0,
+      "lastLines": [
+        "  ok   the bulb changed under the run — changed-input: the gauge changed under a running run",
+        "—   every result above passed the contract checker",
+        "  ok   validateResult: no violation",
+        "",
+        "35 passed, 0 failed"
+      ]
+    },
+    {
+      "name": "typecheck",
+      "command": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+      "exitCode": 0,
+      "lastLines": [
+        "",
+        "> seaglass@0.1.0 typecheck",
+        "> tsc --noEmit",
+        ""
+      ]
+    },
+    {
+      "name": "build-vite",
+      "command": [
+        "node",
+        "node_modules/vite/bin/vite.js",
+        "build"
+      ],
+      "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+      "exitCode": 0,
+      "lastLines": [
+        "dist/assets/kayama-2024-BCE3ZL-h.js      237.58 kB │ gzip:  78.21 kB",
+        "dist/assets/creatures-CQrlW1y_.js        644.41 kB │ gzip: 166.65 kB",
+        "dist/assets/main-CYY2uwMs.js             981.65 kB │ gzip: 368.26 kB",
+        "",
+        "✓ built in 333ms"
+      ]
+    },
+    {
+      "name": "build-og",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/og-pages.ts"
+      ],
+      "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+      "exitCode": 0,
+      "lastLines": [
+        "og pages: pointlobos, gbr, miyako, kayama, maldives, pacific, redsea, carnatic, galapagos"
+      ]
+    },
+    {
+      "name": "build-journal",
+      "command": [
+        "node",
+        "--import",
+        "tsx",
+        "--import",
+        "./scripts/node-assets.mjs",
+        "scripts/journal-pages.ts"
+      ],
+      "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+      "exitCode": 0,
+      "lastLines": [
+        "journal pages: 0 post(s)"
+      ]
+    }
+  ],
+  "officialTests": 35,
+  "typecheckPassed": true,
+  "buildStagesPassed": true,
+  "publishedWitnessScriptsUnchanged": 5,
+  "heldTrajectoryMatchingReads": 90,
+  "gapCases": 180,
+  "scanLocalChecks": 67,
+  "focusedIndependent": {
+    "requests": 81,
+    "checks": 57,
+    "failures": 0
+  },
+  "scope": "fix-local; no source edits or renewed source research"
+}

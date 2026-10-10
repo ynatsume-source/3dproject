@@ -1,0 +1,14 @@
+{
+  "phase": "before-sharing-push",
+  "remoteRefs": {
+    "codex/civilization-lab": "162ee7c30e536d5c560e8360018e59a9b8c07695",
+    "codex/civilization-simulation": "93ac6cc07c56a6619b65cbf0c9ce6bdd1ade717f",
+    "codex/science-reviews": "2486025b35ee8d391854f434c20f3acd84d70c24",
+    "main": "d3e321f2d124a5a47d490327971a9970810c3ee0"
+  },
+  "detachedSourceHead": "93ac6cc07c56a6619b65cbf0c9ce6bdd1ade717f",
+  "sourceStatus": "",
+  "labHead": "162ee7c30e536d5c560e8360018e59a9b8c07695",
+  "labStatus": "",
+  "mutationScope": "Only new review output and codex/science-reviews; no source edits or pushes to lab/science/main"
+}

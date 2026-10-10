@@ -1,0 +1,21 @@
+{
+  "kind": "reproduction-command-example",
+  "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "--import",
+    "./scripts/node-assets.mjs",
+    "/workspace/reviews/self-barometer-fix2-93ac6cc/focused/focused.mjs",
+    "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+    "/path/to/new-result.json"
+  ],
+  "originalIndependentResult": "focused/result.json",
+  "resultSummary": {
+    "requests": 81,
+    "checks": 57,
+    "failed": 0,
+    "validatorFailures": 0
+  }
+}

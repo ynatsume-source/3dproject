@@ -1,0 +1,23 @@
+{
+  "target": "93ac6cc07c56a6619b65cbf0c9ce6bdd1ade717f",
+  "decision": "clear-m03x-proceed-to-host-final-review",
+  "newCounts": {
+    "A": 0,
+    "B": 0,
+    "C": 0
+  },
+  "resolvedFindings": [
+    "FX-SB-A1"
+  ],
+  "blockingFindings": [],
+  "previousP16xClearance": "retained-0.1.4",
+  "retainedNonBlockingFindings": [
+    {
+      "id": "SB-C3",
+      "classification": "C",
+      "disposition": "next-full-review; does-not-block-integration",
+      "originalEvidence": "../self-barometer-fix-7318506/intervals/subsecond-peak.result.json"
+    }
+  ],
+  "knownOutsideTubeNumeric": "Residual27/8 uses current request pressure, not held model pressure; not a failing criterion for the accepted approximation."
+}

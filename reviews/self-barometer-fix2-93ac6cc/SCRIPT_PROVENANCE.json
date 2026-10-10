@@ -1,0 +1,32 @@
+[
+  {
+    "path": "bounds/five-mm.mjs",
+    "sourceBundle": "self-barometer-fix-7318506",
+    "unchanged": true,
+    "sha256": "c8dd0230b207ed5076ca74cfbd1b847166e0c34f5ddbe55021b40b624639a734"
+  },
+  {
+    "path": "bounds/fine-mark.mjs",
+    "sourceBundle": "self-barometer-fix-7318506",
+    "unchanged": true,
+    "sha256": "b2e41484a0ac8bf770960a938d7b69d2a613cc698cddfa1f9d0bf0a48118975e"
+  },
+  {
+    "path": "bounds/focused.mjs",
+    "sourceBundle": "self-barometer-fix-7318506",
+    "unchanged": true,
+    "sha256": "637156e4abff5106618eea9d40837710fecb21afc21becb4758196117cea7fa7"
+  },
+  {
+    "path": "bounds/gap-partitions.mjs",
+    "sourceBundle": "self-barometer-fix-7318506",
+    "unchanged": true,
+    "sha256": "de89ae954a10791dc960e9405435a7d1ccdbe14191a5f1989c6c4b6e00fd9917"
+  },
+  {
+    "path": "intervals/scan-local.mjs",
+    "sourceBundle": "self-barometer-fix-7318506",
+    "unchanged": true,
+    "sha256": "8de4ef7161a70c6ecec88d5213ee7533c412ac834b359424ad7a9042a6244162"
+  }
+]

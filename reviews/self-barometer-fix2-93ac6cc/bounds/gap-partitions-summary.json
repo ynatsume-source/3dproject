@@ -1,0 +1,14 @@
+{
+  "target": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+  "process": {
+    "processId": "m03x_air_barometer_pot",
+    "processVersion": "0.1.2"
+  },
+  "cases": 180,
+  "calls": 23907,
+  "failures": 0,
+  "partitionFailures": 0,
+  "boundsFailures": 0,
+  "numericFailures": 0,
+  "validatorViolations": []
+}

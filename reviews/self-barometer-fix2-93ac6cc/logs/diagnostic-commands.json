@@ -1,0 +1,93 @@
+[
+  {
+    "group": "bounds",
+    "name": "five-mm",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix2-93ac6cc-witnesses/bounds/five-mm.mjs",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc"
+    ],
+    "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+    "exitCode": 0,
+    "scriptSha256": "c8dd0230b207ed5076ca74cfbd1b847166e0c34f5ddbe55021b40b624639a734",
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  },
+  {
+    "group": "bounds",
+    "name": "fine-mark",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix2-93ac6cc-witnesses/bounds/fine-mark.mjs",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc"
+    ],
+    "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+    "exitCode": 0,
+    "scriptSha256": "b2e41484a0ac8bf770960a938d7b69d2a613cc698cddfa1f9d0bf0a48118975e",
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  },
+  {
+    "group": "bounds",
+    "name": "focused",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix2-93ac6cc-witnesses/bounds/focused.mjs",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc"
+    ],
+    "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+    "exitCode": 0,
+    "scriptSha256": "637156e4abff5106618eea9d40837710fecb21afc21becb4758196117cea7fa7",
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  },
+  {
+    "group": "bounds",
+    "name": "gap-partitions",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix2-93ac6cc-witnesses/bounds/gap-partitions.mjs",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc"
+    ],
+    "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+    "exitCode": 0,
+    "scriptSha256": "de89ae954a10791dc960e9405435a7d1ccdbe14191a5f1989c6c4b6e00fd9917",
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  },
+  {
+    "group": "intervals",
+    "name": "scan-local",
+    "command": [
+      "node",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/node_modules/tsx/dist/loader.mjs",
+      "--import",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc/scripts/node-assets.mjs",
+      "/tmp/self-barometer-fix2-93ac6cc-witnesses/intervals/scan-local.mjs",
+      "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+      "/tmp/self-barometer-fix2-93ac6cc-witnesses/intervals/scan-local-result.json"
+    ],
+    "cwd": "/workspace/3dproject-self-barometer-fix2-93ac6cc",
+    "exitCode": 0,
+    "scriptSha256": "8de4ef7161a70c6ecec88d5213ee7533c412ac834b359424ad7a9042a6244162",
+    "resultExists": true,
+    "exitZeroDoesNotMeanNoFindings": true
+  }
+]

@@ -1,0 +1,397 @@
+{
+  "target": "93ac6cc",
+  "fixture": {
+    "process": {
+      "processId": "p16x_vessel_tar_seal",
+      "processVersion": "0.1.4"
+    },
+    "params": {
+      "capacityMl": 500,
+      "absorptionPpm": 120000,
+      "coveragePpm": 968721,
+      "sealed": 1,
+      "airtightKnown": 1,
+      "crackPpm": 0,
+      "airLeakTauMin": 3096,
+      "tubeBoreMm": 8,
+      "tubeLengthMm": 600,
+      "bulbTauS": 739,
+      "markMm": 5
+    }
+  },
+  "cases": [
+    {
+      "contract": "0.1.0",
+      "unknownCtl": {
+        "tKnown": true,
+        "Ta": 301.15,
+        "pKnown": false,
+        "Pa": 0,
+        "dsLo": -5.260841194027546e-8,
+        "dsHi": 5.260841194027546e-8
+      },
+      "recoveryObservations": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "currentGapObservations": [],
+      "restoredStatus": "stopped",
+      "oldVersionRefusal": "unknown processVersion 0.1.1"
+    },
+    {
+      "contract": "0.1.7",
+      "unknownCtl": {
+        "tKnown": true,
+        "Ta": 301.15,
+        "pKnown": false,
+        "Pa": 0,
+        "dsLo": -5.260841194027546e-8,
+        "dsHi": 5.260841194027546e-8
+      },
+      "recoveryObservations": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "currentGapObservations": [],
+      "restoredStatus": "stopped",
+      "oldVersionRefusal": "unknown processVersion 0.1.1"
+    },
+    {
+      "contract": "0.2.0",
+      "unknownCtl": {
+        "tKnown": true,
+        "Ta": 301.15,
+        "pKnown": false,
+        "Pa": 0,
+        "dsLo": -5.260841194027546e-8,
+        "dsHi": 5.260841194027546e-8
+      },
+      "recoveryObservations": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "currentGapObservations": [],
+      "restoredStatus": "stopped",
+      "oldVersionRefusal": "unknown processVersion 0.1.1"
+    },
+    {
+      "contract": "0.2.1",
+      "unknownCtl": {
+        "tKnown": true,
+        "Ta": 301.15,
+        "pKnown": false,
+        "Pa": 0,
+        "dsLo": -5.260841194027546e-8,
+        "dsHi": 5.260841194027546e-8
+      },
+      "recoveryObservations": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ],
+      "currentGapObservations": [],
+      "restoredStatus": "stopped",
+      "oldVersionRefusal": "unknown processVersion 0.1.1"
+    }
+  ],
+  "checks": [
+    {
+      "name": "0.1.0: unknown cell starts and gives no numeric read",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: known weather mid-unknown-cell gives no number until next cell",
+      "passed": true,
+      "detail": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "name": "0.1.0: recovery reads do not mutate held physics",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: recovery boundary partition yields exact float state and readings",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: current missing weather suppresses reads even with a known held cell",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: gap reads do not mutate known held physics",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: fresh /2 restore survives JSON at an off-grid boundary",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: reads inside and on cell edges do not change final physics",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: old processVersion rejected without consumption despite schema /2",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: old /1 state still explicitly rejected",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: take_out at 60001 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: take_out at 60737 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: take_out at 90000 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.1.0: drawn follows contract",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: unknown cell starts and gives no numeric read",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: known weather mid-unknown-cell gives no number until next cell",
+      "passed": true,
+      "detail": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "name": "0.1.7: recovery reads do not mutate held physics",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: recovery boundary partition yields exact float state and readings",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: current missing weather suppresses reads even with a known held cell",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: gap reads do not mutate known held physics",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: fresh /2 restore survives JSON at an off-grid boundary",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: reads inside and on cell edges do not change final physics",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: old processVersion rejected without consumption despite schema /2",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: old /1 state still explicitly rejected",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: take_out at 60001 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: take_out at 60737 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: take_out at 90000 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.1.7: drawn follows contract",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: unknown cell starts and gives no numeric read",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: known weather mid-unknown-cell gives no number until next cell",
+      "passed": true,
+      "detail": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "name": "0.2.0: recovery reads do not mutate held physics",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: recovery boundary partition yields exact float state and readings",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: current missing weather suppresses reads even with a known held cell",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: gap reads do not mutate known held physics",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: fresh /2 restore survives JSON at an off-grid boundary",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: reads inside and on cell edges do not change final physics",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: old processVersion rejected without consumption despite schema /2",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: old /1 state still explicitly rejected",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: take_out at 60001 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: take_out at 60737 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: take_out at 90000 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.2.0: drawn follows contract",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: unknown cell starts and gives no numeric read",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: known weather mid-unknown-cell gives no number until next cell",
+      "passed": true,
+      "detail": [
+        {
+          "at": 61007,
+          "channel": "instrument:bulb",
+          "quantity": "level",
+          "value": 0,
+          "unit": "mark",
+          "precision": 1
+        }
+      ]
+    },
+    {
+      "name": "0.2.1: recovery reads do not mutate held physics",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: recovery boundary partition yields exact float state and readings",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: current missing weather suppresses reads even with a known held cell",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: gap reads do not mutate known held physics",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: fresh /2 restore survives JSON at an off-grid boundary",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: reads inside and on cell edges do not change final physics",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: old processVersion rejected without consumption despite schema /2",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: old /1 state still explicitly rejected",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: take_out at 60001 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: take_out at 60737 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: take_out at 90000 agrees with stopping there",
+      "passed": true
+    },
+    {
+      "name": "0.2.1: drawn follows contract",
+      "passed": true
+    },
+    {
+      "name": "all results pass current contract validator",
+      "passed": true,
+      "detail": []
+    }
+  ],
+  "summary": {
+    "requests": 81,
+    "checks": 57,
+    "failed": 0,
+    "validatorFailures": 0
+  }
+}

@@ -15,7 +15,7 @@ git show origin/codex/science-reviews:LATEST.md
 
 ```sh
 review_read_dir=$(mktemp -d /tmp/3dproject-review-read.XXXXXX)
-git archive origin/codex/science-reviews reviews/self-barometer-fix-7318506 | tar -x -C "$review_read_dir"
+git archive origin/codex/science-reviews reviews/self-barometer-fix2-93ac6cc | tar -x -C "$review_read_dir"
 ```
 
 ## ファイル

@@ -1,0 +1,23 @@
+{
+  "repository": "ynatsume-source/3dproject",
+  "targetScienceCommit": "93ac6cc07c56a6619b65cbf0c9ce6bdd1ade717f",
+  "previousReviewCommit": "731850666455de96a1e206028fc1cafe4f15f7c0",
+  "scope": "light-fix-check-FX-SB-A1",
+  "processVersion": "0.1.2",
+  "stateSchema": "civ-sci.air-barometer-pot/2",
+  "sourceSha256": {
+    "src/science/step/barometer-pot.ts": "115fa22fbb7dd4361f2d905030af5617a196bcc46e295dbca7296fc289e22228",
+    "src/science/step/vessel.ts": "da15b2b5c493959ca0a7e17d54d1de16513b40076a7188159c649a3f0cd1feaf",
+    "src/science/step/common.ts": "835c9e718e5c8b8b6a12ceb83a8342f50c17cf9e2cfe95d07490514e497461a5",
+    "src/science/step/barometer.ts": "3bc72857495651a151d24829d5492e04a446fceadec4f3145d1ac1ede9c6eb57",
+    "src/science/params.ts": "ed5d027f4d9fb441e0d78d83899d7ca87a1184bb3d0366f83fa8aace61e695ff",
+    "data/science/sources.json": "5ada138df4befe7ec68d0c2540efce86cbc8e107f6ce7113f84f1a99ce734314"
+  },
+  "unchangedFromPreviousReview": [
+    "src/science/step/vessel.ts",
+    "src/science/step/common.ts",
+    "src/science/step/barometer.ts",
+    "src/science/params.ts",
+    "data/science/sources.json"
+  ]
+}
