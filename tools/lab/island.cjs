@@ -4,7 +4,7 @@
 // time, so before and after can be shot from the same spots. Each is held there (seaglass.aim) and drawn through the
 // whole drawing path at noon.
 // Usage (a build served at PORT): node tools/lab/island.cjs   (env PORT 4174, OUT island, TAG now, TIER high, SIZE 1280x720,
-// TIME 12:00, ONLY 'homestead,edge,beach,inside')
+// TIME 12:00, ONLY 'homestead,edge,beach,inside,seam', DIO 0..1: the diorama finish, sharp at the spot's subject)
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -23,7 +23,7 @@ const fs = require('fs');
     const s = window.seaglass; s.endOpening?.();
     const T = s.cur.T, sh = s.cur.shore, home = [61, -145];
     const can = (x, z) => T.landCover(x, z).can, g = (x, z) => s.cur.loc.f(x, z);   // (the land itself: T.ground has the treetops over it)
-    const look = (from, at) => { const d = [at[0] - from[0], at[1] - from[1], at[2] - from[2]], l = Math.hypot(...d); return { pos: from, yaw: Math.atan2(-d[0], -d[2]), pitch: Math.asin(d[1] / l) }; };
+    const look = (from, at) => { const d = [at[0] - from[0], at[1] - from[1], at[2] - from[2]], l = Math.hypot(...d); return { pos: from, yaw: Math.atan2(-d[0], -d[2]), pitch: Math.asin(d[1] / l), focus: l }; };
     const out = {};
     // the homestead, from a little above
     { const t = [home[0], g(home[0], home[1]) + 0.5, home[1]]; out.homestead = look([t[0] + 9, t[1] + 7, t[2] + 9], t); }
@@ -53,7 +53,7 @@ const fs = require('fs');
   const only = (process.env.ONLY || 'homestead,edge,beach,inside,seam').split(',');
   for (const name of only) {
     const q = poses[name]; if (!q) { console.log('no place for', name); continue; }
-    await p.evaluate((q) => { const s = window.seaglass; s.hold(true); s.aim(q.pos, q.yaw, q.pitch); s.advance(+(window.__N || 12), 0.1); }, q);
+    await p.evaluate(([q, dio]) => { const s = window.seaglass; s.post?.setDiorama?.(dio, q.focus); s.hold(true); s.aim(q.pos, q.yaw, q.pitch); s.advance(+(window.__N || 12), 0.1); }, [q, +(process.env.DIO || 0)]);
     await p.screenshot({ path: `${OUT}/${TAG}-${name}.png` });
     console.log(name, q.pos.map((v) => v.toFixed(1)).join(','), q.yaw.toFixed(2), q.pitch.toFixed(2));
   }

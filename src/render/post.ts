@@ -222,12 +222,14 @@ export class Post {
       uAirK: { value: 0 },
       tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() }, uVolTexel: { value: new THREE.Vector2() },
       tDepth: { value: null }, uNear: { value: 0.08 }, uFar: { value: 460 },
+      uDio: { value: 0 }, uFocus: { value: 6 }, uDioR: { value: 0.022 },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tScene; uniform sampler2D tVol; uniform sampler2D tBloom; uniform sampler2D tAO; uniform float uUseAO; uniform vec2 uAOTexel; uniform vec2 uVolTexel;
       uniform sampler2D tDepth; uniform float uNear; uniform float uFar;
+      uniform float uDio; uniform float uFocus; uniform float uDioR;
       uniform float uAirK; uniform float uBloom; uniform float uUseVol; uniform float uUseBloom; uniform float uExposure; uniform float uTime; uniform float uAspect; uniform float uNight; uniform vec3 uWB;
       varying vec2 vUv;
       ${NOISE}
@@ -239,6 +241,27 @@ export class Post {
         // a little colour fringing toward the frame edge, as through a dome port
         vec2 ca = c * r2 * 0.004 * (1.0 - uAirK);   // no dome port in the air: it would split every star into three
         vec3 col = vec3(lin(texture2D(tScene, vUv + ca).rgb).r, lin(texture2D(tScene, vUv).rgb).g, lin(texture2D(tScene, vUv - ca).rgb).b);
+        #ifdef DIORAMA
+        // a diorama seen through a lens close to it (a miniature): sharp at the subject's distance, soft nearer and
+        // further — the blur by how far each point is from that distance (a lens's circle of confusion, 1/z), and a
+        // little more toward the top and the bottom of the frame (a tilted lens). Sixteen reads on a golden-angle
+        // disc, every one made (no reads in a branch); a read of something sharp in front counts for less, so a
+        // blurred far forest does not wash over a sharp near subject.
+        {
+          float zd0 = texture2D(tDepth, vUv).r, z = uNear * uFar / (uFar - zd0 * (uFar - uNear));
+          float coc = clamp(abs(1.0 / uFocus - 1.0 / max(z, 0.05)) * uFocus * 0.7 + pow(abs(c.y) * 2.0, 2.0) * 0.3, 0.0, 1.0) * uDio;
+          vec3 acc = col; float wsum = 1.0;
+          for (int i = 0; i < 16; i++) {
+            float fi = float(i), rr = sqrt((fi + 0.5) / 16.0), an = fi * 2.39996;
+            vec2 o = vec2(cos(an), sin(an)) * rr * coc * uDioR * vec2(1.0 / uAspect, 1.0);
+            vec3 sc = lin(texture2D(tScene, vUv + o).rgb);
+            float zs = texture2D(tDepth, vUv + o).r, zz = uNear * uFar / (uFar - zs * (uFar - uNear));
+            float w = mix(1.0, smoothstep(0.0, 0.3, abs(1.0 / uFocus - 1.0 / max(zz, 0.05)) * uFocus), step(zz, z - 0.5));
+            acc += sc * w; wsum += w;
+          }
+          col = mix(col, acc / wsum, smoothstep(0.0, 0.08, coc));
+        }
+        #endif
         if (uUseAO > 0.5) {
           vec2 o = uAOTexel;
           float ao = (texture2D(tAO, vUv + vec2(-o.x, -o.y)).r + texture2D(tAO, vUv + vec2(o.x, -o.y)).r + texture2D(tAO, vUv + vec2(-o.x, o.y)).r + texture2D(tAO, vUv + vec2(o.x, o.y)).r) * 0.25;
@@ -264,7 +287,13 @@ export class Post {
         col *= uWB * uExposure;
         col = aces(col);
         col = pow(col, vec3(1.0 / 2.2));
-        col *= 1.0 - smoothstep(0.18, 0.75, r2) * 0.42;                 // vignette
+        #ifdef DIORAMA
+        // the diorama's light: the shadows lifted (nothing goes black), a touch warmer, a little paler and softer
+        { float l = dot(col, vec3(0.299, 0.587, 0.114));
+          col = mix(col, mix(vec3(l), col, 0.88) * vec3(1.03, 1.0, 0.95), uDio);
+          col = mix(col, col * 0.93 + 0.05, uDio); }
+        #endif
+        col *= 1.0 - smoothstep(0.18, 0.75, r2) * mix(0.42, 0.22, uDio);   // vignette
         col += (h12(gl_FragCoord.xy + fract(uTime * 7.13) * 517.0) - 0.5) * 0.012;  // fine grain, hides banding (a new pattern every frame)
         gl_FragColor = vec4(col, 1.0);
       }`,
@@ -320,6 +349,13 @@ export class Post {
 
   // above the water: no water column to correct for, and no shafts in the air
   private air = false; private volClear = false;
+  /** The diorama finish (owner's direction 2026-10-10, docs/proposals/nature-look-2026-10-09): k 0 off .. 1 full, sharp at
+   *  focus metres from the camera. Compiled in only while it is on (the sixteen reads cost nothing when it is off). */
+  setDiorama(k: number, focus = 6) {
+    const c = this.compMat.uniforms, on = k > 0.001;
+    if (on !== !!this.compMat.defines.DIORAMA) { if (on) this.compMat.defines.DIORAMA = ''; else delete this.compMat.defines.DIORAMA; this.compMat.needsUpdate = true; }
+    c.uDio.value = k; c.uFocus.value = Math.max(0.3, focus);
+  }
   setAir(on: boolean) { this.air = on; this.compMat.uniforms.uAirK.value = on ? 1 : 0; }
 
   whiteBalance(depth: number, abs: THREE.Vector3, night: number, air = false) {
