@@ -27,6 +27,8 @@ const fs = require('fs');
     const out = {};
     // the homestead, from a little above
     { const t = [home[0], g(home[0], home[1]) + 0.5, home[1]]; out.homestead = look([t[0] + 9, t[1] + 7, t[2] + 9], t); }
+    // the homestead close, from above at a diorama's angle (about 35° down, 10 m off)
+    { const t = [home[0], g(home[0], home[1]) + 0.4, home[1]]; out.hero = look([t[0] + 6, t[1] + 6.5, t[2] + 5], t); }
     // the forest's edge: the nearest point to home where the forest starts, seen from the open ground 9 m off
     let best = null;
     for (let r = 6; r < 80 && !best; r += 2) for (let a = 0; a < 6.28 && !best; a += 0.1) {
@@ -50,7 +52,7 @@ const fs = require('fs');
       const t = [home[0] + Math.cos(bestA) * 110, g(home[0], home[1]) + 4, home[1] + Math.sin(bestA) * 110]; out.seam = look([home[0] - Math.cos(bestA) * 10, g(home[0], home[1]) + 16, home[1] - Math.sin(bestA) * 10], t); }
     return out;
   });
-  const only = (process.env.ONLY || 'homestead,edge,beach,inside,seam').split(',');
+  const only = (process.env.ONLY || 'homestead,edge,beach,inside,seam,hero').split(',');
   for (const name of only) {
     const q = poses[name]; if (!q) { console.log('no place for', name); continue; }
     await p.evaluate(([q, dio]) => { const s = window.seaglass; s.post?.setDiorama?.(dio, q.focus); s.hold(true); s.aim(q.pos, q.yaw, q.pitch); s.advance(+(window.__N || 12), 0.1); }, [q, +(process.env.DIO || 0)]);
