@@ -185,6 +185,9 @@ function endOpening(done: boolean) {
 }
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
+// the diorama finish's strength and focus (metres to the resident watched), eased frame by frame
+const DIORAMA = !location.search.includes('nodiorama');
+let dioK = 0, dioF = 6; const _dioAt = new THREE.Vector3();
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
@@ -3619,6 +3622,20 @@ function frameBody(ts: number) {
         }
       }
       setShore(Math.min(1, Math.exp(-(dist - 15) / 70)));
+    }
+    // the diorama finish (owner 2026-10-10, nature team: docs/proposals/nature-look-2026-10-09/DIORAMA.md): watching a
+    // resident ashore from above, the island seen as a model through a lens close to it — the resident sharp, what is
+    // nearer and further soft by how far it is from them; it comes in as the camera rises and looks down, and is gone
+    // at eye level, under the water, high in the sky, and through a resident's eyes (?nodiorama: never)
+    {
+      let want = 0;
+      if (DIORAMA && air && watch.r && !watch.pov && cur.shore) {
+        const above = camera.position.y - cur.loc.f(camera.position.x, camera.position.z), down = -U.uCamFwd.value.y;
+        want = smooth(2.5, 6, above) * smooth(0.25, 0.55, down) * (1 - smooth(40, 70, above));
+        dioF += (camera.position.distanceTo(_dioAt.set(watch.r.pos.x, watch.r.pos.y + 0.4, watch.r.pos.z)) - dioF) * Math.min(1, dt * 4);
+      }
+      dioK += (want - dioK) * Math.min(1, dt * 1.5);
+      post.setDiorama(dioK < 0.02 ? 0 : dioK, dioF);
     }
     post.setAir(air);
     post.whiteBalance(air ? 0 : -camera.position.y, U.uAbs.value, U.uNight.value, air);
