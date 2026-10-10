@@ -15,14 +15,18 @@ import { Solids } from '../robots/solids';
 // lighting in the open air: sun (reddened low down), moon and sky; the photo already carries the
 // look of the place, this only turns it with the time of day
 export const AIRLIT = /* glsl */ `
-vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){
+// (fill: how much more of the open sky's light, and the sunlit sand's, reaches the faces turned away from the sky — a
+// crown's underside, the shaded side of a trunk — so the shade stays soft and coloured, never a black lid; 0 for the
+// rest. Light: the diorama's soft light, owner's direction 2026-10-10, docs/proposals/nature-look-2026-10-09)
+vec3 airLitF(vec3 alb, vec3 n, vec3 wp, float trans, float fill){
   float nl = dot(n, uAirSun);
   vec3 sun = sunAirCol() * (max(nl, 0.0) + trans * max(-nl, 0.0) * 0.6) * (1.0 - 0.7 * uCloud);
   vec3 moon = vec3(0.5, 0.55, 0.65) * max(dot(n, uAirMoon), 0.0) * uMoonI * 0.4;
   vec3 sky = skyAir(vec3(0.0, 1.0, 0.0), -1.0);
-  sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
+  sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y + fill * (0.5 - 0.35 * n.y)) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
   return alb * (sun * 0.8 + moon + sky * 0.55) + lamp(alb, wp, n);
 }
+vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){ return airLitF(alb, n, wp, trans, 0.0); }
 `;
 
 // the floor shader's view of the land: photo, cover, and how to light what is above the water
@@ -94,7 +98,7 @@ vec3 landAlbedo(vec3 wp){
   vec2 pw = p + vec2(vn2(p * 2.3), vn2(p * 2.3 + 9.0)) * 0.5;   // (warped, so the leaves lie at random rather than in rows)
   float leaf = min(cellF1(pw * 7.0), cellF1(pw * 11.0 + 3.0) * 1.2), lv = hash2(floor(pw * 7.0)) * 0.6 + vn2(p * 3.0) * 0.4;
   float leafK = mix(0.45, smoothstep(0.42, 0.22, leaf), aaLeaf);   // (far off, the leaves' average cover)
-  vec3 litter = mix(vec3(0.2, 0.16, 0.12), mix(vec3(0.4, 0.32, 0.22), vec3(0.3, 0.25, 0.18), lv), leafK * (0.45 + 0.4 * vn2(p * 0.8)));
+  vec3 litter = mix(vec3(0.26, 0.21, 0.15), mix(vec3(0.44, 0.35, 0.24), vec3(0.34, 0.28, 0.2), lv), leafK * (0.45 + 0.4 * vn2(p * 0.8)));
   litter = mix(litter, vec3(0.3, 0.36, 0.16), step(0.92, lv) * smoothstep(0.4, 0.2, leaf) * aaLeaf);
   float root = 1.0 - smoothstep(0.0, 0.06, abs(vn2(p * 0.9 + 3.0) - 0.5));
   litter = mix(litter, vec3(0.33, 0.27, 0.2), root * 0.6);
@@ -103,7 +107,7 @@ vec3 landAlbedo(vec3 wp){
   vec3 rock = mix(vec3(0.62, 0.6, 0.55), rc * 1.3, 0.5) * (0.75 + 0.35 * vn2(p * 2.0));
   vec3 a = sand * sandW + grass * grassW + litter * litterW + rock * rockW;
   a /= max(sandW + grassW + litterW + rockW, 1e-3);
-  a *= mix(1.0, 0.45 + 0.55 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun)
+  a *= mix(1.0, 0.62 + 0.38 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun — a soft shade, the sky's light coming in between the crowns)
   float wsum = max(sandW + grassW + litterW + rockW, 1e-3);
   landW = vec4(sandW, grassW, litterW, rockW) / wsum; landFw = fw;
   landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (mix(0.3, smoothstep(0.45, 0.15, leaf), aaLeaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;

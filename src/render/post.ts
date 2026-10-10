@@ -222,7 +222,7 @@ export class Post {
       uAirK: { value: 0 },
       tScene: { value: null }, tVol: { value: null }, tBloom: { value: null }, tAO: { value: null }, uUseAO: { value: 0 }, uAOTexel: { value: new THREE.Vector2() }, uVolTexel: { value: new THREE.Vector2() },
       tDepth: { value: null }, uNear: { value: 0.08 }, uFar: { value: 460 },
-      uDio: { value: 0 }, uFocus: { value: 6 }, uDioR: { value: 0.022 },
+      uDio: { value: 0 }, uFocus: { value: 6 }, uDioR: { value: 0.015 },
       uBloom: { value: 0.12 }, uUseVol: { value: 1 }, uUseBloom: { value: 1 }, uExposure: { value: 1.4 },
       uTime: U.uTime, uAspect: { value: 1 }, uNight: U.uNight, uWB: { value: new THREE.Vector3(1, 1, 1) },
     },
