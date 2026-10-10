@@ -415,16 +415,16 @@ function casuarinaGeo() {
   const lean = V(0.08, 1, 0.03).normalize();
   const trunkTop = lean.clone().multiplyScalar(0.92);
   B.tube(V(0, 0, 0), trunkTop, 0.022, 0.008, bark, 0, 0.3, 7, V(0.015, 0, 0), 4);
-  const top = [0.56, 0.64, 0.46], deep = [0.26, 0.33, 0.22];
-  for (let t = 0; t < 12; t++) {
-    const h = 0.32 + t * 0.052 + B.R() * 0.04, a = t * 2.4 + B.R() * 0.6, len = 0.09 + Math.sin((1 - t / 12) * Math.PI * 0.85) * 0.16;
-    const base = lean.clone().multiplyScalar(h), tip = base.clone().add(V(Math.cos(a) * len, len * 0.55, Math.sin(a) * len));   // (the limbs angle up)
-    B.tube(base, tip, 0.007, 0.003, bark, h * 0.3, h * 0.5, 5);
-    // soft tassels of twigs hanging along the limb's outer half: long and narrow, lit as one crown round the trunk
-    const r = 0.03 + len * 0.16, axis = lean.clone().multiplyScalar(h);
-    for (let k = 0; k < 3; k++) {
-      const f = 0.45 + k * 0.27, c = base.clone().lerp(tip, f), rk = r * (0.8 + 0.25 * k);
-      B.blob(c.add(V(0, -rk * 0.9, 0)), rk * 0.7, rk * 1.25, rk * 0.7 * B.rr(0.9, 1.1), top, deep, h * 0.7 + k * 0.05, k === 2 ? 2 : 1, axis, 0.55, 0.9);
+  // the crown in soft, drooping tiers up the leaning trunk, widest low down: each tier two or three flat, wide puffs
+  // round the trunk, lit together as one tall, open crown (the sky shows between the tiers)
+  const top = [0.54, 0.62, 0.44], deep = [0.24, 0.31, 0.2];
+  for (let t = 0; t < 5; t++) {
+    const h = 0.4 + t * 0.12, c = lean.clone().multiplyScalar(h), w = 0.2 - t * 0.03, n = t < 3 ? 3 : 2, a0 = B.R() * 6.28;
+    // (a short limb out to each puff)
+    for (let k = 0; k < n; k++) {
+      const an = a0 + k / n * 6.28 + B.rr(-0.4, 0.4), d = w * B.rr(0.45, 0.65), pc = c.clone().add(V(Math.cos(an) * d, B.rr(-0.02, 0.03), Math.sin(an) * d));
+      B.tube(c, pc, 0.006, 0.004, bark, h * 0.3, h * 0.5, 4);
+      B.blob(pc, w * B.rr(0.6, 0.75), w * 0.38, w * B.rr(0.55, 0.7), top, deep, h * 0.7, 2, c.clone().add(V(0, -0.05, 0)), 0.55, 1.0);
     }
   }
   return B.geo();
