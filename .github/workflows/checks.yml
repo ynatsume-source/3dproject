@@ -1,0 +1,82 @@
+name: Headless checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '40 3 * * *'
+  workflow_dispatch:
+    inputs:
+      group:
+        description: Checks to run
+        type: choice
+        options: [all, fast, slow]
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+
+jobs:
+  fast:
+    if: github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.group != 'slow')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - id: install
+        run: npm ci
+      - name: Check complete manifest
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node scripts/checks.mjs all --list
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
+      - name: Fast headless checks
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node scripts/checks.mjs fast --out check-results/fast
+      - name: Keep check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-fast
+          path: check-results/fast
+          if-no-files-found: warn
+          retention-days: 14
+
+  slow:
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.group != 'fast')
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Slow headless checks (full default coverage)
+        run: node scripts/checks.mjs slow --shard ${{ matrix.shard }}/4 --out check-results/slow-${{ matrix.shard }}
+      - name: Keep check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-slow-${{ matrix.shard }}
+          path: check-results/slow-${{ matrix.shard }}
+          if-no-files-found: warn
+          retention-days: 14

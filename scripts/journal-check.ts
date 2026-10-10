@@ -9,7 +9,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
 import { Solids } from '../src/robots/solids';
@@ -88,7 +89,7 @@ async function run(R: any, secs: number, until?: () => boolean) {
   fs.writeFileSync(path.join(src, 'posts', '2026-10-02-rakko.json'), JSON.stringify({ ...post, id: '2026-10-02-rakko', day: '2026-10-02', title: '絵をかいた日', photos: [], drawing: { svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><rect width="800" height="600" fill="#9fd3e0"/></svg>', caption: '海の絵' } }));
   fs.writeFileSync(path.join(src, 'photos', 'rakko-2026-10-03-1.jpg'), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
   fs.writeFileSync(path.join(src, 'photos', 'rakko-2026-10-03-1.json'), JSON.stringify({ id: 'rakko-2026-10-03-1', at: Date.parse('2026-10-03T01:05:00Z'), subject: { label: '貝殻' } }));
-  execFileSync('npx', ['tsx', '--import', './scripts/node-assets.mjs', 'scripts/journal-pages.ts', '--src', src, '--out', out], { stdio: 'pipe' });
+  await promisify(execFile)(process.execPath, ['--import', 'tsx', '--import', './scripts/node-assets.mjs', 'scripts/journal-pages.ts', '--src', src, '--out', out]);
   const has = (f: string, s?: string) => fs.existsSync(path.join(out, f)) && (!s || fs.readFileSync(path.join(out, f), 'utf8').includes(s));
   want('3 the front page, with the post and the note that they are AI', has('index.html', 'きれいな貝殻') && has('index.html', '住人はAI'));
   want('3 the post page, its photograph and its time', has('2026-10-03-rakko/index.html', 'photos/rakko-2026-10-03-1.jpg') && has('2026-10-03-rakko/index.html', '10:05 撮影') && has('photos/rakko-2026-10-03-1.jpg'));
