@@ -52,6 +52,8 @@ export interface CatalogEntry {
   enoughMg?: number;
   /** More lots of its input it takes at once, up to this many in all (pots fired together in one fire). */
   batch?: number;
+  /** How many runs may share its equipment at once, each in a place of its own (pots side by side on the rack). */
+  places?: number;
   /** Not with less of its material than this (mg): what one go takes. */
   minInputMg?: number;
   /** Taken out when it feels right (p10x 0.1.4: the clay is felt with a look): felt every so often from a while after the
@@ -206,6 +208,10 @@ export const CATALOG: CatalogEntry[] = [
     ja: '器を棚で乾かす（葉で覆って）', input: 'green_pot', inputJa: '形づくった器',
     equipment: { kind: 'drying_rack', catalogEntry: 'drying_rack', catalogVersion: TEST, condition: 1, params: { sunExposure: 0, covered: 1 }, ja: '乾燥の棚（小屋の棚、葉で覆う）' },
     step: potDryStep, env: 'record', finish: { action: 'take_off', afterMs: 14 * 86_400_000 }, tend: 'leave',
+    // (up to three pots side by side on the rack, a run each — p12y works each pot by itself, its cracks drawn by itself; the
+    // owner's decision 2026-10-10, science side: no change. A cracked pot only on an empty rack; shade between them, if it
+    // matters, the science side adds)
+    places: 3,
     ready: true, waits: '形づくった器' },
   { processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
     ja: '粘土を紐にして積み、鍋を形づくる', input: 'prepared_clay', inputJa: '下ごしらえした粘土',

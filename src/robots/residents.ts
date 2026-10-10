@@ -2070,6 +2070,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** Jars of a size on their way (shaped, drying, fired and not yet sealed or made into the retort). */
   const jarsOf = (ml?: number) => Object.values(lab.lots).filter((l) => ['green_pot', 'dry_pot', 'fired_pot'].includes(l.materialId) && l.quality?.form === 2 && l.quality?.capacity_ml === ml && l.quality?.sealed !== 1 && !(l.quality?.crack)).length;
   const potsOfForm = (form: number) => Object.values(lab.lots).filter((l) => ['green_pot', 'dry_pot', 'fired_pot'].includes(l.materialId) && (l.quality?.form ?? 1) === form && !(l.quality?.crack)).length;
+  /** The places of an entry's equipment (the rack's first is the rack itself; the others its places beside it). */
+  const placesOf = (e: CatalogEntry) => Array.from({ length: e.places ?? 1 }, (_, i) => `eq:${e.equipment!.kind}${i ? `#${i + 1}` : ''}`);
   /** The processes that can run now: ready, with their material on the shelf and not in use. */
   function labReady() {
     const free = (id: string, min = 0, ok?: (l: LotView) => boolean) => shelfLots().find((l) => l.materialId === id && !(l as any).reservedBy && l.amount.value >= min && (!ok || ok(l)));
@@ -2096,7 +2098,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (entry.withEquipmentLots && entry.equipment) { const at = `eq:${entry.equipment.kind}`; for (const l of Object.values(lab.lots)) if (l.location === at && !(l as any).reservedBy && l.materialId === entry.input) more.push(l as LotView); }
       // (its equipment taken by a run still going — the clay pit soaking the last lot: not ready until it is free, rather than
       // tried and refused at every turn, 22 000 times in eight days — life-run 2026-10-09)
-      if ([entry.equipment, ...(entry.moreEquipment ?? [])].some((q) => q && (lab.equipment[`eq:${q.kind}`] as any)?.reservedBy)) return [];
+      // (equipment with places — the rack: free while one of its places is; a cracked pot only on an empty one)
+      if (entry.places && entry.equipment) { const busy = placesOf(entry).filter((id) => (lab.equipment[id] as any)?.reservedBy).length; if (busy >= entry.places || (busy > 0 && lot?.quality?.crack)) return []; }
+      if ([...(entry.places ? [] : [entry.equipment]), ...(entry.moreEquipment ?? [])].some((q) => q && (lab.equipment[`eq:${q.kind}`] as any)?.reservedBy)) return [];
       return (entry.input && !lot) || more.some((m) => !m) || village.labRuns.some((x) => x.processId === entry.processId && !entry.input) ? [] : [{ entry, lot, more: more as LotView[] }];
     });
   }
@@ -2133,8 +2137,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const src = need > 0 ? shelfLots().find((l) => l.materialId === 'process_water' && !(l as any).reservedBy && l.amount.value > need) : undefined;
       if (src) { src.amount.value -= need; const add = addLot(lab, { materialId: 'process_water', amount: { value: need, unit: 'mg' }, location: src.location, ...(src.quality ? { quality: { ...src.quality } } : {}) }); lotIds.push(add.lotId); wetted = need; }
     }
-    const eqIds = [e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => {
-      const eqId = `eq:${q.kind}`;
+    const eqIds = [e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q, i) => {
+      // (a place of its own on equipment with places: the first free one, set like the first)
+      const eqId = i === 0 && e.places ? placesOf(e).find((id) => !(lab.equipment[id] as any)?.reservedBy) ?? `eq:${q.kind}` : `eq:${q.kind}`;
+      if (!lab.equipment[eqId] && lab.equipment[`eq:${q.kind}`] && eqId !== `eq:${q.kind}`) { const { reservedBy: _, ...base } = lab.equipment[`eq:${q.kind}`] as any; lab.equipment[eqId] = { ...JSON.parse(JSON.stringify(base)), equipmentId: eqId }; }
       if (!lab.equipment[eqId]) { const { ja: _, ...eq } = q; lab.equipment[eqId] = { ...eq, equipmentId: eqId }; }
       return eqId;
     });
