@@ -38,6 +38,10 @@ let typhoonAt = 0;
   const f = (x: number) => (x < 0 || x > 300 ? -3 : 2), T: any = { ground: f, floor: f, top: f, landCover: () => ({ can: 0, sand: 1 }), vegH: () => 0, solids: new Solids() };
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
   R.setBrain(null);
+  // Lantern's real-island home (x = 405) is sea in this fixture; keep the walker on land and the animals in the sea.
+  const lantern = R.list.find((r: any) => r.id === 'lantern');
+  lantern.sp.home = [260, lantern.sp.home[1]]; lantern.pos.set(lantern.sp.home[0], f(lantern.sp.home[0]), lantern.sp.home[1]);
+  want('3 walking residents start and shelter on dry ground', R.list.filter((r: any) => !r.sp.swims).every((r: any) => f(r.pos.x) > 0.3 && f(r.sp.home[0]) > 0.3));
   const run = (secs: number) => { for (let i = 0; i < secs * 4; i++) { now += 250; R.update(0.25, now, new THREE.Vector3(0, 50, 0)); } };
   run(5);
   const fair = { ...islandWeather(t0)!, typhoon: false } as IslandWeather, gale = { ...fair, typhoon: true, pressure: 985, gust: 33, wind: 18 } as IslandWeather;
