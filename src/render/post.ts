@@ -186,12 +186,12 @@ export class Post {
   // bloom: bright-pass on the way down, tent-filtered on the way up
   private downMat = new THREE.ShaderMaterial({
     vertexShader: VS,
-    uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uFirst: { value: 0 }, tVol: { value: null } },
+    uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uFirst: { value: 0 }, uThr: { value: 1.1 }, uCap: { value: 1e4 }, tVol: { value: null } },
     fragmentShader: /* glsl */ `
-      uniform sampler2D tSrc; uniform sampler2D tVol; uniform vec2 uTexel; uniform float uFirst; varying vec2 vUv;
+      uniform sampler2D tSrc; uniform sampler2D tVol; uniform vec2 uTexel; uniform float uFirst; uniform float uThr; uniform float uCap; varying vec2 vUv;
       vec3 src(vec2 uv){
         vec3 c = texture2D(tSrc, uv).rgb;
-        if (uFirst > 0.5) { c = pow(clamp(c, 0.0, 40.0), vec3(2.2)) + texture2D(tVol, uv).rgb; c = max(c - 1.1, 0.0); if (any(notEqual(c, c))) c = vec3(0.0); }   // (a stray NaN or overflow must not spread through the bloom as a black block)
+        if (uFirst > 0.5) { c = pow(clamp(c, 0.0, 40.0), vec3(2.2)) + texture2D(tVol, uv).rgb; c = min(max(c - uThr, 0.0), vec3(uCap)); if (any(notEqual(c, c))) c = vec3(0.0); }   // (a stray NaN or overflow must not spread through the bloom as a black block)
         return c;
       }
       void main(){
@@ -408,6 +408,12 @@ export class Post {
     }
     if (t.bloom) {
       const d = this.downMat.uniforms, up = this.upMat.uniforms;
+      // (in the air, only what is brighter than the sky round a low sun glows, and no pixel more than a little: the sun's
+      // disc, thousands of times over the threshold, and the bright sky in every gap of the leaves, spread into a flat
+      // white ball much bigger than the sun, laid over the trunks in front of it. Under the water, as before)
+      // (at night, the lamps and the fire glow as they did: there is no bright sky then)
+      const nt = this.compMat.uniforms.uNight.value as number;
+      d.uThr.value = this.air ? 2.2 - 1.1 * nt : 1.1; d.uCap.value = this.air ? 20 + (1e4 - 20) * nt * nt : 1e4;
       let src: THREE.Texture = this.main.texture;
       this.mips.forEach((m, i) => {
         d.tSrc.value = src; d.uFirst.value = i === 0 ? 1 : 0; d.tVol.value = this.volHist[this.histIdx].texture;
