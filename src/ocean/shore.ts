@@ -23,7 +23,7 @@ vec3 airLitF(vec3 alb, vec3 n, vec3 wp, float trans, float fill){
   vec3 sun = sunAirCol() * (max(nl, 0.0) + trans * max(-nl, 0.0) * 0.6) * (1.0 - 0.7 * uCloud);
   vec3 moon = vec3(0.5, 0.55, 0.65) * max(dot(n, uAirMoon), 0.0) * uMoonI * 0.4;
   vec3 sky = skyAir(vec3(0.0, 1.0, 0.0), -1.0);
-  sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y + fill * (0.5 - 0.35 * n.y)) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
+  sky = mix(vec3(dot(sky, vec3(0.3, 0.5, 0.2))), sky, 0.35) * (0.55 + 0.3 * n.y + fill * (0.6 - 0.4 * n.y)) + vec3(0.02, 0.025, 0.03);   // skylight, only faintly blue
   return alb * (sun * 0.8 + moon + sky * 0.55) + lamp(alb, wp, n);
 }
 vec3 airLit(vec3 alb, vec3 n, vec3 wp, float trans){ return airLitF(alb, n, wp, trans, 0.0); }
@@ -107,7 +107,7 @@ vec3 landAlbedo(vec3 wp){
   vec3 rock = mix(vec3(0.62, 0.6, 0.55), rc * 1.3, 0.5) * (0.75 + 0.35 * vn2(p * 2.0));
   vec3 a = sand * sandW + grass * grassW + litter * litterW + rock * rockW;
   a /= max(sandW + grassW + litterW + rockW, 1e-3);
-  a *= mix(1.0, 0.62 + 0.38 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun — a soft shade, the sky's light coming in between the crowns)
+  a *= mix(1.0, 0.68 + 0.32 * dapple(wp, wp.y + 8.0), canW * (1.0 - sandW * 0.8));   // (in the shade of the trees, flecked with sun — a soft shade, the sky's light coming in between the crowns)
   float wsum = max(sandW + grassW + litterW + rockW, 1e-3);
   landW = vec4(sandW, grassW, litterW, rockW) / wsum; landFw = fw;
   landH = sandW * (rip * 0.08 + frag * 0.15) + grassW * (blade * 0.25 + clump * 0.3) + litterW * (mix(0.3, smoothstep(0.45, 0.15, leaf), aaLeaf) * 0.2 + root * 0.35) + rockW * (dot(rc, vec3(0.6)) + vn2(p * 3.0)) * 0.6;
