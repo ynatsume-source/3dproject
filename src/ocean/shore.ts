@@ -415,7 +415,7 @@ function casuarinaGeo() {
   const lean = V(0.08, 1, 0.03).normalize();
   const trunkTop = lean.clone().multiplyScalar(0.92);
   B.tube(V(0, 0, 0), trunkTop, 0.022, 0.008, bark, 0, 0.3, 7, V(0.015, 0, 0), 4);
-  const top = [0.48, 0.58, 0.38], deep = [0.17, 0.25, 0.15];
+  const top = [0.56, 0.64, 0.46], deep = [0.26, 0.33, 0.22];
   for (let t = 0; t < 12; t++) {
     const h = 0.32 + t * 0.052 + B.R() * 0.04, a = t * 2.4 + B.R() * 0.6, len = 0.09 + Math.sin((1 - t / 12) * Math.PI * 0.85) * 0.16;
     const base = lean.clone().multiplyScalar(h), tip = base.clone().add(V(Math.cos(a) * len, len * 0.55, Math.sin(a) * len));   // (the limbs angle up)
@@ -424,7 +424,7 @@ function casuarinaGeo() {
     const r = 0.03 + len * 0.16, axis = lean.clone().multiplyScalar(h);
     for (let k = 0; k < 3; k++) {
       const f = 0.45 + k * 0.27, c = base.clone().lerp(tip, f), rk = r * (0.8 + 0.25 * k);
-      B.blob(c.add(V(0, -rk * 1.2, 0)), rk * 0.55, rk * 1.7, rk * 0.55 * B.rr(0.9, 1.1), top, deep, h * 0.7 + k * 0.05, k === 2 ? 2 : 1, axis, 0.55, 0.9);
+      B.blob(c.add(V(0, -rk * 0.9, 0)), rk * 0.7, rk * 1.25, rk * 0.7 * B.rr(0.9, 1.1), top, deep, h * 0.7 + k * 0.05, k === 2 ? 2 : 1, axis, 0.55, 0.9);
     }
   }
   return B.geo();

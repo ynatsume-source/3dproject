@@ -24,10 +24,10 @@ const icoI = (detail = 1) => { const g = new THREE.IcosahedronGeometry(1, detail
 // warm on top, deep beneath; a stout trunk flaring at the foot and a few smooth limbs running up into the puffs
 // (no thin twigs: inside the forest they read as a bundle of lines).
 const KINDS = [
-  { top: [0.22, 0.44, 0.13], deep: [0.1, 0.24, 0.09], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.85 },
-  { top: [0.4, 0.53, 0.17], deep: [0.17, 0.3, 0.1], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.7 },
-  { top: [0.36, 0.55, 0.17], deep: [0.13, 0.29, 0.1], bark: [0.52, 0.48, 0.42], wide: 0.85, flat: 0.85 },
-  { top: [0.24, 0.42, 0.13], deep: [0.08, 0.2, 0.08], bark: [0.48, 0.45, 0.39], wide: 1.35, flat: 0.75 },
+  { top: [0.22, 0.44, 0.13], deep: [0.14, 0.31, 0.12], bark: [0.44, 0.38, 0.31], wide: 1.0, flat: 0.85 },
+  { top: [0.4, 0.53, 0.17], deep: [0.22, 0.36, 0.13], bark: [0.42, 0.35, 0.27], wide: 1.25, flat: 0.7 },
+  { top: [0.36, 0.55, 0.17], deep: [0.18, 0.35, 0.13], bark: [0.52, 0.48, 0.42], wide: 0.85, flat: 0.85 },
+  { top: [0.24, 0.42, 0.13], deep: [0.12, 0.27, 0.11], bark: [0.48, 0.45, 0.39], wide: 1.35, flat: 0.75 },
 ];
 
 // one tree, unit height (ground at 0, crown top about 1); `young` makes a sapling — a slim stem and a small crown
@@ -228,7 +228,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          n = normalize(n + vec3(l1 - 0.5, (l2 - 0.5) * 0.5, vn2(vWp.zx * 3.3) - 0.5) * 0.4);
          vec3 alb = vCol * (0.88 + 0.28 * l2) * mix(0.75, 1.15, smoothstep(-0.2, 0.9, vN.y));   // (sunlit tops, shaded undersides)
          alb = mix(alb, vec3(0.5, 0.56, 0.24), smoothstep(0.8, 0.96, l1) * 0.25);              // (new leaves, paler)
-         col = airLitF(alb, n, vWp, 0.8, 1.6);   // (the open sky all round, and the sand, light the crowns' undersides too)
+         col = airLitF(alb, n, vWp, 0.8, 2.0);   // (the open sky all round, and the sand, light the crowns' undersides too)
        } else {
          // bark: grey-brown, ridged, mossy on the shaded side
          float ridge = vn2(vec2(atan(vL.x, vL.z) * 3.0, vL.y * 40.0));
