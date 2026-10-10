@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsx --import ./scripts/node-assets.mjs scripts/og-pages.ts && tsx --import ./scripts/node-assets.mjs scripts/journal-pages.ts",
+    "build": "vite build && node --import tsx --import ./scripts/node-assets.mjs scripts/og-pages.ts && node --import tsx --import ./scripts/node-assets.mjs scripts/journal-pages.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "sim": "tsx --import ./scripts/node-assets.mjs scripts/sim-check.ts"
+    "sim": "tsx --import ./scripts/node-assets.mjs scripts/sim-check.ts",
+    "check:fast": "node scripts/checks.mjs fast",
+    "check:slow": "node scripts/checks.mjs slow",
+    "check:list": "node scripts/checks.mjs all --list"
   },
   "dependencies": {
     "nosleep.js": "^0.12.0",
