@@ -52,6 +52,7 @@ const marks: [string, () => boolean][] = [
   ['seasoned wood', () => lots('firewood').some((l) => (l.quality?.water_ppm ?? 1e6) <= 300_000)], ['pot fired', () => lots('fired_pot').length > 0 || !!lab.equipment['eq:cook_pot']],
   ['cook pot', () => !!lab.equipment['eq:cook_pot']], ['coconut milk', () => lots('coconut_milk').length > 0], ['coconut oil', () => lots('coconut_oil').length > 0],
   ['lamp dish', () => !!lab.equipment['eq:lamp_dish']], ['lamp lit', () => V.lampLog.length > 0 || lampLit()],
+  ['retort', () => !!lab.equipment['eq:tar_retort']], ['wood tar', () => lots('wood_tar').length > 0], ['sealed jar', () => lots('fired_pot').some((l) => l.quality?.sealed === 1)],
 ];
 const got: Record<string, number> = {};
 const SNAPDIR = process.env.SNAPDIR, shots: string[] = SNAPDIR ? ['start'] : []; let nShot = 0;

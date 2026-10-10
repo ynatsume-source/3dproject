@@ -75,6 +75,8 @@ export interface CatalogEntry {
 }
 /** What the materials are called in the record (the island's own words come later). */
 export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', gauge_tube_test: '試験用の管', assembled_pot: '封じた器', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
+/** The residents' retort and the jar they seal (mL), and the charge the upper jar holds with room (mg). */
+export const RETORT_UPPER_ML = 2000, RETORT_LOWER_ML = 300, SEAL_JAR_ML = 500, RETORT_CHARGE_MG = 700_000;
 const handsW = (w: number) => (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical', maxJ: Math.round(((to - from) / 1000) * w) }];
 const hands = handsW(3);
 const TEST = SCIENCE_CATALOG_VERSION;
@@ -155,17 +157,28 @@ export const CATALOG: CatalogEntry[] = [
     ready: false, waits: '管を栓に通して封じた器（木タールで封じる工程はこれから）と、真水' },
   // (integrated 2026-10-06: the science team's final review FINAL_REVIEW_2026-10-06.md — charcoal and wood tar, and the
   // sealed vessel; wood tar comes from the charcoal burn, so they came in together)
+  // (the residents' own retort — two fired jars, the upper packed with dry wood mouth down over the lower buried to catch
+  // what drips: civ-sci.fired-pot-assembly/2 retortParams, assembled by main (RETORT_ASSEMBLY). Lantern plans the burn
+  // as the science side's standard one: a medium fire, fed 200 minutes, then left to cool in place and opened at six
+  // hours. The charge is carved from a dry lot and laid in the retort (its location the retort's); the fuel is another dry
+  // lot, beside it. What comes out — charcoal, the tar and the wood vinegar caught in the lower jar — goes to the shelf.)
   { processId: CHARCOAL_PROCESS.processId, processVersion: CHARCOAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
-    ja: '二重の壺で炭と木タールを作る', input: 'firewood', inputJa: '詰める薪（レトルトの中に1ロット）', also: [{ input: 'firewood', ja: '燃料の薪' }],
-    equipment: { kind: 'fixture_tar_retort', catalogEntry: 'fixture_tar_retort', catalogVersion: TEST, condition: 1, params: { heatCapJPerK: 4000, uaWPerK: 2.5, heatShare: 0.35, capacityMl: 8000, collectShare: 0.6 }, ja: '二重の壺（レトルト）' },
+    ja: '二重の壺で炭と木タールを作る', input: 'firewood', inputJa: '詰める乾いた薪（上の壺に入るだけ）', minInputMg: RETORT_CHARGE_MG, inputOk: DRY_WOOD,
+    also: [{ input: 'firewood', ja: '燃料の乾いた薪（10kg以上）', minMg: 10_000_000, ok: DRY_WOOD }],
+    equipment: { kind: TAR_RETORT, catalogEntry: TAR_RETORT, catalogVersion: TEST, condition: 1, params: {}, ja: '二重の壺（乾留の器）' }, built: TAR_RETORT,
     moreEquipment: [OPEN_FIRE],
-    step: charcoalStep, env: 'record', tend: 'stay',
-    ready: false, waits: '薪の在庫と、焼いた二重の壺（試験用の設備 fixture。島で焼いた器で作る方法を決める）' },
+    start: { action: 'fire_level', params: { level: 1 } }, steps: [{ action: 'put_out', afterMs: 200 * 60_000 }], finish: { action: 'open', afterMs: 360 * 60_000 },
+    step: charcoalStep as ScienceStep, env: 'record', tend: 'stay',
+    ready: true, waits: '乾いた薪と、二重の壺（焼いた壺を2つ組む：上は2L、下は0.3L）' },
+  // (the residents' own fired jar sealed with the tar from their retort — p16x takes fired_pot since 0.1.2; the brush and
+  // plug from TOOL_RECIPES. No tube yet: the island has no gauge tube of its own)
   { processId: TAR_SEAL_PROCESS.processId, processVersion: TAR_SEAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
-    ja: '器にタールを塗って口を封じる', input: 'fired_pot_test', inputJa: '焼いた器（封じていないもの）', also: [{ input: 'wood_tar', ja: '木タール' }],
-    equipment: { kind: 'fixture_tar_brush', catalogEntry: 'fixture_tar_brush', catalogVersion: TEST, condition: 1, params: {}, ja: 'タールの刷毛' },
+    ja: '器にタールを塗って口を封じる', input: 'fired_pot', inputJa: '焼いた壺（封じていない0.5Lのもの）', inputOk: (l) => l.quality?.form === 2 && l.quality?.capacity_ml === SEAL_JAR_ML && l.quality?.sealed !== 1 && !l.quality?.crack,
+    also: [{ input: 'wood_tar', ja: '木タール' }],
+    equipment: { kind: 'fixture_tar_brush', catalogEntry: 'fixture_tar_brush', catalogVersion: TEST, condition: 1, params: {}, ja: 'タールの刷毛' }, built: 'fixture_tar_brush',
+    start: { action: 'seal', params: {} },
     step: tarSealStep, env: 'record', energy: handsW(15), tend: 'stay',
-    ready: false, waits: '焼いた器（器を焼く工程はこれから）と木タール（炭焼きが島で動いてから）と、' + NO_VESSEL },
+    ready: true, waits: '焼いた0.5Lの壺と、木タール（炭焼きから）と、タールの刷毛（竹から作る）' },
   { processId: LEAK_TEST_PROCESS.processId, processVersion: LEAK_TEST_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '器の漏れを試す（水を入れて待つ）', input: 'fired_pot_test', inputJa: '焼いた器', also: [{ input: 'process_water', ja: '真水（封じていない器に入れるとき）' }],
     equipment: { kind: 'fixture_vessel_stand', catalogEntry: 'fixture_vessel_stand', catalogVersion: TEST, condition: 1, params: { sunExposure: 0 }, ja: '器の台' },
@@ -201,6 +214,15 @@ export const CATALOG: CatalogEntry[] = [
     equipment: null, start: { action: 'plan', params: { form: 3, capacityMl: 100 } }, minInputMg: 400_000,
     step: potShapeStep, env: 'record', energy: handsW(15), tend: 'stay', key: 'dish', form: 3, built: COOK_POT,
     ready: true, waits: '下ごしらえした粘土（鍋ができてから）' },
+  // (after the lamp: two jars for the residents' retort — the upper 2 L to hold the charge (retortParams: at least 1 L), the
+  // lower 0.3 L to catch all a full charge can drip (2 L × 0.4 g/mL × (0.12 + 0.2) × 0.6 ≈ 154 mL) — and, once the retort
+  // stands, a 0.5 L jar to seal with its tar. One of each, each once)
+  ...([['upper', RETORT_UPPER_ML, 1_700_000, '乾留の器の上の壺', LAMP_DISH], ['lower', RETORT_LOWER_ML, 500_000, '乾留の器の下の壺', LAMP_DISH], ['seal', SEAL_JAR_ML, 700_000, '封じる壺', TAR_RETORT]] as const).map(([key, ml, mg, ja, after]) => ({
+    processId: POT_SHAPE_PROCESS.processId, processVersion: POT_SHAPE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world' as const,
+    ja: `粘土で${ja}（${ml / 1000}L）を形づくる`, input: 'prepared_clay', inputJa: '下ごしらえした粘土',
+    equipment: null, start: { action: 'plan', params: { form: 2, capacityMl: ml } }, minInputMg: mg,
+    step: potShapeStep, env: 'record' as const, energy: handsW(15), tend: 'stay' as const, key, form: 2, built: after,
+    ready: true, waits: `下ごしらえした粘土（${after === TAR_RETORT ? '乾留の器ができてから' : '灯皿ができてから'}）` })),
   // (science final review 2026-10-09-pit-fire: a dry pot fired in the open, the fire heaped round it. Lantern plans it
   // once — warmed beside the fire half an hour, built up at a normal pace to a cherry red, held there half an hour, left to
   // cool in the ashes — and tends it. A fire that hot takes some 20 kg of seasoned wood, more of wood dried only 30 days

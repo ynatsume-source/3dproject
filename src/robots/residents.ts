@@ -26,8 +26,8 @@ import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { wickQuality } from '../science/step/oil-lamp';
-import { abortRun, addLot, advance, assemble, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, toClock, toReal } from '../world/process-runner';
-import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, type CatalogEntry } from '../world/process-catalog';
+import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, toClock, toReal } from '../world/process-runner';
+import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
@@ -1950,10 +1950,26 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (freeWood().length >= 2) return task('stackwood', shelfStand(), 'work', 60 + 20 * freeWood().length);
     const p = potForCook(); if (p) return task('assemble', shelfStand(), 'work', 90, { data: { lotId: p.lotId } });
     const d = dishForLamp(); if (d) return task('assemble', shelfStand(), 'work', 60, { data: { lotId: d.lotId, as: 'dish' } });
+    const rt = jarsForRetort(); if (rt) return task('assemble', shelfStand(), 'work', 120, { data: { lotIds: rt, as: 'retort' } });
     const w = wickWanted(); if (w) return task('wick', shelfStand(), 'work', w.handSeconds, { data: { fiber: w.fiber } });
     return null;
   }
   /* ---------- the lamp (science final review 2026-10-09-lamp): a dish, a wick, the island's oil ---------- */
+  /** The two fired jars of the retort's sizes, upper and lower, while there is no retort. */
+  const jarsForRetort = (): [string, string] | undefined => {
+    if (lab.equipment[`eq:${RETORT_ASSEMBLY.kind}`]) return undefined;
+    const jar = (ml: number) => shelfLots().find((l) => l.materialId === 'fired_pot' && !(l as any).reservedBy && l.quality?.form === 2 && l.quality?.capacity_ml === ml && !(l.quality?.crack));
+    const u = jar(RETORT_UPPER_ML), lo = jar(RETORT_LOWER_ML); return u && lo ? [u.lotId, lo.lotId] : undefined;
+  };
+  function makeRetort(r: Resident, lotIds: string[]) {
+    if (lab.equipment[`eq:${RETORT_ASSEMBLY.kind}`] || !Array.isArray(lotIds)) return;
+    const { equipment, why } = assembleParts(lab, lotIds, RETORT_ASSEMBLY, clockMs);
+    if (!equipment) { r.diary.push({ at: clockMs, text: `焼いた壺を2つ組んで乾留の器にしようとしたが、できなかった（${why}）`, key: 'study' }); return; }
+    const id = `eq:${RETORT_ASSEMBLY.kind}`; lab.equipment[id] = { ...lab.equipment[equipment.equipmentId], equipmentId: id }; delete lab.equipment[equipment.equipmentId];
+    drawStore();
+    note(r, 'tool', {}, `焼いた壺を2つ組んで、乾留の器にした（上の壺${equipment.params.capacityMl / 1000}Lに薪を詰め、口を下にして下の壺に重ねる。焚き火の中で使う）`);
+    res.onEvent('science', `${r.v.name}：焼いた壺を2つ組んで、炭とタールをとる乾留の器ができた`, r);
+  }
   const dishForLamp = () => !lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] ? shelfLots().find((l) => l.materialId === 'fired_pot' && !(l as any).reservedBy && l.quality?.form === 3 && !(l.quality?.crack)) : undefined;
   const clearOil = () => shelfLots().find((l) => l.materialId === 'coconut_oil' && !(l as any).reservedBy && (l.quality?.soaked_in_dish ?? 0) !== 1);
   /** A wick wanted: the dish stands, oil to burn, no wick on the shelf. Which fibre: one not yet tried, of what the island
@@ -2051,6 +2067,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** The catalog entry a run or a task meant (two entries can share a process: the pot shaped as a cook pot or a lamp dish). */
   const entryOf = (processId: string, key?: string) => catalog.find((c) => c.processId === processId && (!key || c.key === key)) ?? catalog.find((c) => c.processId === processId);
   /** How many pots of a form are on their way (shaped, drying, fired, not yet made into anything). */
+  /** Jars of a size on their way (shaped, drying, fired and not yet sealed or made into the retort). */
+  const jarsOf = (ml?: number) => Object.values(lab.lots).filter((l) => ['green_pot', 'dry_pot', 'fired_pot'].includes(l.materialId) && l.quality?.form === 2 && l.quality?.capacity_ml === ml && l.quality?.sealed !== 1 && !(l.quality?.crack)).length;
   const potsOfForm = (form: number) => Object.values(lab.lots).filter((l) => ['green_pot', 'dry_pot', 'fired_pot'].includes(l.materialId) && (l.quality?.form ?? 1) === form && !(l.quality?.crack)).length;
   /** The processes that can run now: ready, with their material on the shelf and not in use. */
   function labReady() {
@@ -2062,6 +2080,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (a pot of a form already on its way, or what it was for already made: not another — the cook pot, then one lamp dish)
       if (entry.form === 1 && (lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] || potsOfForm(1) >= 2)) return [];
       if (entry.form === 3 && (lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] || potsOfForm(3) >= 1)) return [];
+      // (the jars: one of each size on its way at a time, none once what it was for is made — the retort; the jar to seal, while
+      // one sealed stands on the shelf)
+      if (entry.form === 2) { const ml = entry.start?.params.capacityMl; if (jarsOf(ml) >= 1 || (ml !== SEAL_JAR_ML && lab.equipment[`eq:${RETORT_ASSEMBLY.kind}`]) || (ml === SEAL_JAR_ML && shelfLots().some((l) => l.materialId === 'fired_pot' && l.quality?.sealed === 1))) return []; }
       // (the lamp at dusk, on the island's own hours: lit as the light goes, not in the afternoon)
       if (entry.when === 'dusk') { const hr = localHour(clockMs); if (hr < 18.3 || hr > 20.5) return []; }
       // (the oil soaked into the dish's wall goes in with the dish: it is the dish's, kept where the dish is)
@@ -2092,6 +2113,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (e && e.equipment?.kind === LAMP_DISH_ASSEMBLY.kind && lot && !(lot as any).reservedBy) {
       const cap = Number(lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`]?.params?.capacityMl ?? 0), fits = Math.floor(cap * 0.8 * 0.92 * 1000);
       if (fits > 0 && lot.amount.value > fits) { lot.amount.value -= fits; lot = addLot(lab, { materialId: lot.materialId, amount: { value: fits, unit: 'mg' }, location: lot.location, ...(lot.quality ? { quality: { ...lot.quality } } : {}) }); }
+    }
+    // (the retort: the charge carved from the dry lot and laid in the upper jar — its location the retort's; the fuel stays
+    // beside the fire, a lot of its own)
+    if (e && e.equipment?.kind === RETORT_ASSEMBLY.kind && lot && !(lot as any).reservedBy && lot.location !== `eq:${RETORT_ASSEMBLY.kind}`) {
+      const mg = Math.min(RETORT_CHARGE_MG, lot.amount.value);
+      if (lot.amount.value > mg) { lot.amount.value -= mg; lot = addLot(lab, { materialId: lot.materialId, amount: { value: mg, unit: 'mg' }, location: `eq:${RETORT_ASSEMBLY.kind}`, ...(lot.quality ? { quality: { ...lot.quality } } : {}) }); }
+      else lot.location = `eq:${RETORT_ASSEMBLY.kind}`;
     }
     const lotIds: string[] = [...(lot ? [lot.lotId] : []), ...((tk.data.more ?? []) as string[])];
     if (!e || (e.input && !lot) || lotIds.some((id) => !lab.lots[id] || (lab.lots[id] as any).reservedBy)) { tk.failed = 'gone'; tk.t = tk.dur; return; }
@@ -2552,7 +2580,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       case 'tool': makeTool(r, tk.data?.kind); break;
       case 'stackwood': stackWood(r); break;
-      case 'assemble': if (tk.data?.as === 'dish') makeLampDish(r, tk.data?.lotId); else makeCookPot(r, tk.data?.lotId); break;
+      case 'assemble': if (tk.data?.as === 'dish') makeLampDish(r, tk.data?.lotId); else if (tk.data?.as === 'retort') makeRetort(r, tk.data?.lotIds); else makeCookPot(r, tk.data?.lotId); break;
       case 'wick': makeWick(r, tk.data?.fiber); break;
       case 'twist': village.house.rope += 10; note(r, 'house', {}, `アダンの気根の繊維をよって縄をなった（10m。いま${village.house.rope}m）`); break;
       case 'cut': r.holding = 'grass'; note(r, 'house', {}, '茅にする草を刈って束ねた'); break;
