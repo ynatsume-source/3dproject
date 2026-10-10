@@ -15,11 +15,12 @@ const fs = require('fs');
   await p.goto(`http://localhost:${process.env.PORT || 4174}/?tier=${process.env.TIER || 'high'}&debug&lab&time=${process.env.TIME || '12:00'}&wx=clear${process.env.NODIO ? '&nodiorama' : ''}#planet`, { waitUntil: 'commit' });
   await p.waitForFunction(() => !!(window.seaglass && window.seaglass.cur && window.seaglass.cur.residents), null, { timeout: 600000 });
   await p.addStyleTag({ content: '#newMark, #capRing { display: none !important; }' });
-  await p.evaluate((who) => { const s = window.seaglass; s.endOpening?.(); s.startWatch(who); s.hold(true); s.advance(120, 0.1); }, WHO);
+  await p.evaluate(([who, warm]) => { const s = window.seaglass; s.endOpening?.(); s.startWatch(who); s.hold(true); s.advance(warm, 0.1); }, [WHO, +(process.env.WARM || 30)]);
+  console.log('watching', WHO);
   for (const [name, el, dist] of VIEWS) {
     const r = await p.evaluate(([el, dist]) => {
       const s = window.seaglass; s.watch.el = el; s.watch.dist = dist;
-      s.advance(60, 0.1);
+      s.advance(20, 0.1);
       const c = s.camera.position, u = s.post?.compMat?.uniforms;
       return { cam: [c.x, c.y, c.z].map((v) => +v.toFixed(1)), k: u ? +u.uDio.value.toFixed(2) : null, focus: u ? +u.uFocus.value.toFixed(1) : null };
     }, [el, dist]);
