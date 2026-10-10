@@ -93,3 +93,8 @@ A の見た目が決まってから相談する。
 - 画像：`before-edge.jpg` → `lightB-edge.jpg`、`before-inside.jpg` → `lightB-inside.jpg`、`lightB-hero.jpg`。
 - `shader-check`：PASS。住人のチェックは光 B のあとは回していない（色と光だけ）。フレーム時間は測っていない。
 - 変化は控えめ。参考の小川のように影までもっと明るくするかは、オーナーの判断待ち。
+- 比較画像（上が前、下が光 B）：`compare-lightB-edge.jpg`・`compare-lightB-inside.jpg`・`compare-lightB-hero.jpg`。hero の「前」は若木を描き直す前（玉の木）の画像。
+
+## ジオラマの仕上げは既定でオフ（2026-10-10、オーナー）
+
+ぼけは、オンのあいだ画面の点ごとに 16 回読むので重くなる。既定ではオフにし、URL に `?diorama` を付けたときだけ見守りで入る（`tools/lab/diorama.cjs` は `?diorama` 付きで開く。`NODIO=1` でなし）。

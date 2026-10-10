@@ -12,7 +12,7 @@ const fs = require('fs');
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await (await b.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 })).newPage();
   p.setDefaultTimeout(1800000); p.on('pageerror', (e) => console.log('ERR', e.message));
-  await p.goto(`http://localhost:${process.env.PORT || 4174}/?tier=${process.env.TIER || 'high'}&debug&lab&time=${process.env.TIME || '12:00'}&wx=clear${process.env.NODIO ? '&nodiorama' : ''}#planet`, { waitUntil: 'commit' });
+  await p.goto(`http://localhost:${process.env.PORT || 4174}/?tier=${process.env.TIER || 'high'}&debug&lab&time=${process.env.TIME || '12:00'}&wx=clear${process.env.NODIO ? '' : '&diorama'}#planet`, { waitUntil: 'commit' });
   await p.waitForFunction(() => !!(window.seaglass && window.seaglass.cur && window.seaglass.cur.residents), null, { timeout: 600000 });
   await p.addStyleTag({ content: '#newMark, #capRing { display: none !important; }' });
   await p.evaluate(([who, warm]) => { const s = window.seaglass; s.endOpening?.(); s.startWatch(who); const r = s.cur.residents.list.find((x) => x.id === who); s.drone.pos.set(r.pos.x + 4, r.pos.y + 2.5, r.pos.z + 4); s.hold(true); s.advance(warm, 0.1); }, [WHO, +(process.env.WARM || 30)]);   // (the drone put down by them: flying in from the sea takes minutes of drawing)

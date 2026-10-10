@@ -186,7 +186,7 @@ function endOpening(done: boolean) {
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
 // the diorama finish's strength and focus (metres to the resident watched), eased frame by frame
-const DIORAMA = !location.search.includes('nodiorama');
+const DIORAMA = /[?&]diorama(&|=|$)/.test(location.search);   // (off by default: owner 2026-10-10, for its cost; ?diorama turns it on)
 let dioK = 0, dioF = 6; const _dioAt = new THREE.Vector3();
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
@@ -3626,7 +3626,7 @@ function frameBody(ts: number) {
     // the diorama finish (owner 2026-10-10, nature team: docs/proposals/nature-look-2026-10-09/DIORAMA.md): watching a
     // resident ashore from above, the island seen as a model through a lens close to it — the resident sharp, what is
     // nearer and further soft by how far it is from them; it comes in as the camera rises and looks down (from about
-    // 1.5 m above the ground and 6° down; full by 5 m and 27°), and is gone at eye level, under the water, high in the sky, and through a resident's eyes (?nodiorama: never)
+    // 1.5 m above the ground and 6° down; full by 5 m and 27°), and is gone at eye level, under the water, high in the sky, and through a resident's eyes (only with ?diorama)
     {
       let want = 0;
       if (DIORAMA && air && watch.r && !watch.pov && cur.shore) {
