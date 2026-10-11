@@ -40,10 +40,12 @@ import { pv } from '../params';
 import { AIR_RANGE_C, SPILL_NOW, SPILLED, type Geometry } from './barometer';
 import { allFinite, checkCommon, contractExtras, failed, fingerprint, finite, isInt } from './common';
 
-export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.2.0' } as const; // 0.2.0: the weather pot (tubeForm 2) // 0.1.2: reads on the held pressure (Codex FX-SB-A1)
+export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.2.1' } as const; // 0.2.1: the leak's conductance from the empty pot's capacity, not the air left above the water (Codex BW-A1) // 0.2.0: the weather pot (tubeForm 2) // 0.1.2: reads on the held pressure (Codex FX-SB-A1)
 // /2 since 0.1.1 (the cell keeps its own pressure; a pressure gap keeps its extremes): a /1 run is refused; the host cancels it
-// /3 since 0.2.0 (the geometry carries the head factor and the two ends): a /2 run is refused; the host cancels it
-const SCHEMA = 'civ-sci.air-barometer-pot/3', EVAL = 'air-barometer-pot-eval/0.2.0';
+// /4 since 0.2.1 (the stored leakK of a 0.2.0 weather pot was too small; /3 since 0.2.0: the geometry carries the head
+// factor and the two ends): older states are refused, never resumed under a relabelled version; the host cancels the run
+// and releases its reservation
+const SCHEMA = 'civ-sci.air-barometer-pot/4', EVAL = 'air-barometer-pot-eval/0.2.1';
 const BULB = 'assembled_pot';
 const CELL_MS = 30_000;
 
@@ -64,7 +66,7 @@ interface PotGaugeData {
 
 /** The bulb's params from the assembled pot (table /5) and the stick main carved (markMm); the weather pot needs the
  *  water put in it (mg) as well. */
-function bulbGeometry(p: Record<string, number>, waterMg: number): { g: PotGeometry; tauMin: number } | string {
+function bulbGeometry(p: Record<string, number>, waterMg: number): { g: PotGeometry; tauMin: number; capM3: number } | string {
   if (p.sealed !== 1 || p.airtightKnown !== 1) return `${BULB} must be sealed with its air-holding known (sealed 1, airtightKnown 1)`;
   if (!finite(p.airLeakTauMin, 1e-9)) return `${BULB} params.airLeakTauMin must be > 0 (a pot that holds its air)`;
   for (const k of ['capacityMl', 'tubeBoreMm', 'tubeLengthMm', 'bulbTauS', 'markMm']) if (!finite(p[k], 1e-9)) return `${BULB} params.${k} must be finite and > 0 (a pot with a gauge tube through its plug, table civ-sci.pot-assembly/5; markMm: the stick)`;
@@ -72,19 +74,20 @@ function bulbGeometry(p: Record<string, number>, waterMg: number): { g: PotGeome
   const r = p.tubeBoreMm / 2000, A = Math.PI * r * r;
   if (p.tubeForm !== 2) {
     const half = p.tubeLengthMm / 2000;
-    return { g: { V0: p.capacityMl * 1e-6, A, halfLengthM: half, markM: p.markMm / 1000, tauS: p.bulbTauS, form: 1, headK: 2, topM: half, bottomM: half }, tauMin: p.airLeakTauMin };
+    return { g: { V0: p.capacityMl * 1e-6, A, halfLengthM: half, markM: p.markMm / 1000, tauS: p.bulbTauS, form: 1, headK: 2, topM: half, bottomM: half }, tauMin: p.airLeakTauMin, capM3: p.capacityMl * 1e-6 };
   }
   // the weather pot: its inside taken as a sphere's (assumed); the water stands on the widest section
   if (!finite(p.tubeOuterMm, p.tubeBoreMm, 60) || !finite(p.bulbHeatJPerK, 1e-9)) return `${BULB} params.tubeOuterMm and bulbHeatJPerK are needed for the weather pot (table /5)`;
   const V = p.capacityMl * 1e-6, D = Math.cbrt((6 * V) / Math.PI), Ares = (Math.PI * D * D) / 4;
   const W = waterMg * 1e-9 / (pv('waterDensity') / 1000), gap = pv('weatherPotTubeGapMm') / 1000, dip = W / Ares - gap;
-  if (W > pv('weatherPotMaxWaterShare') * V) return `too much water for the weather pot: at most ${(pv('weatherPotMaxWaterShare') * p.capacityMl).toFixed(0)} mL (air must stay above it)`;
+  // the limit itself is allowed (300 mL in a 500 mL pot)
+  if (W > pv('weatherPotMaxWaterShare') * V * (1 + 1e-12)) return `too much water for the weather pot: at most ${(pv('weatherPotMaxWaterShare') * p.capacityMl).toFixed(0)} mL (air must stay above it)`;
   if (dip < pv('weatherPotMinDipMm') / 1000) return `too little water for the weather pot: at least ${(((pv('weatherPotMinDipMm') / 1000 + gap) * Ares) * 1e6).toFixed(0)} mL (the tube's end must stand ${pv('weatherPotMinDipMm')} mm under it)`;
   const ro = p.tubeOuterMm / 2000, inside = D - gap, L = p.tubeLengthMm / 1000;
   if (L < inside + pv('weatherPotStickOutMm') / 1000) return `the tube is too short for this pot: at least ${((inside * 1000) + pv('weatherPotStickOutMm')).toFixed(0)} mm (down to the water and ${pv('weatherPotStickOutMm')} mm out of the plug)`;
   const V0 = V - W - Math.PI * ro * ro * inside;
   const tauS = p.bulbTauS * (1 + (waterMg / 1000) * pv('cpWater') / p.bulbHeatJPerK);
-  return { g: { V0, A, halfLengthM: Math.max(L - dip, dip), markM: p.markMm / 1000, tauS, form: 2, headK: 1 + A / Ares, topM: L - dip, bottomM: dip }, tauMin: p.airLeakTauMin };
+  return { g: { V0, A, halfLengthM: Math.max(L - dip, dip), markM: p.markMm / 1000, tauS, form: 2, headK: 1 + A / Ares, topM: L - dip, bottomM: dip }, tauMin: p.airLeakTauMin, capM3: V };
 }
 /** The rise for this gauge's head (the test gauge's rise() for the U-tube: the same numbers). */
 function riseOf(g: PotGeometry, sealed: number, PaPa: number, bulbK: number): number {
@@ -126,7 +129,10 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
     if (b.g.form === 1 && water.amount.value / 1000 < needMl) return fail(`the tube needs at least ${needMl.toFixed(1)} mL of water to stand in both legs`);
     if (!tKnown || !pKnown) return fail('the gauge is set only with known weather (air temperature and pressure)');
     const T0 = req.environment.airTempC! + 273.15, P0 = req.environment.pressureHPa! * 100, s0 = (P0 * b.g.V0) / T0;
-    d = { eqId: eq.equipmentId, paramsFp: fpOf(eq.params ?? {}), g: b.g, leakK: (b.g.V0 / (T0 * b.tauMin * 60)) * (b.g.headK * pv('waterDensity') * pv('gravity')), startMs: req.interval.from, lastTo: req.interval.from,
+    // the leak is the pot's fixed conductance: airLeakTauMin is defined on the EMPTY pot (its whole capacity: table /5),
+    // so alpha = capacity / (T0 · τ), whatever water is put in it (0.2.1, Codex BW-A1: not the air volume V0 left above
+    // the water, which made a half-filled weather pot leak half as fast). For the U-tube V0 is the capacity: as before.
+    d = { eqId: eq.equipmentId, paramsFp: fpOf(eq.params ?? {}), g: b.g, leakK: (b.capM3 / (T0 * b.tauMin * 60)) * (b.g.headK * pv('waterDensity') * pv('gravity')), startMs: req.interval.from, lastTo: req.interval.from,
       waterFp: fingerprint(water), waterMg: water.amount.value, waterLocation: water.location, spilledMg: 0,
       s: { tMs: req.interval.from, bLo: T0, bHi: T0, sLo: s0, sHi: s0 }, ctl: { tKnown: true, Ta: T0, pKnown: true, Pa: P0, dsLo: 0, dsHi: 0 },
       lastPaPa: P0, lastPaAt: req.interval.from, gapOpen: false, gapLoMinK: T0, gapHiMaxK: T0, gapSLo: s0, gapSHi: s0, condition: 'ok', spilledAt: -1,

@@ -299,8 +299,34 @@ console.log('7. the bamboo tube and the weather pot (p18x 0.1.0, p16x 0.1.5, tab
   const V0 = V - W0 - Math.PI * 0.0065 * 0.0065 * (Dm - 0.01), k = (1 + A / Ares) * 1000 * pv('gravity');
   const xAt = (P: number) => { const s0 = 101000 * V0, a = k * A, b = P * A + k * V0, c = P * V0 - s0; return (-2 * c) / (b + Math.sqrt(b * b - 4 * a * c)); };
   const ideal = Math.round(xAt(98000) / 0.005);
-  ok(w.last.status === 'completed' && w.marks.length === 8 && w.marks[3] > w.marks[0] && Math.abs(w.marks[3] - ideal) <= 3,
-    'the weather pot: as the pressure falls 30 hPa the water climbs the bamboo tube (about 3 mm/hPa), close to the leak-free column', `marks ${w.marks.join(', ')}; leak-free ${ideal} (dip ${(dip * 1000).toFixed(1)} mm)`);
+  // an independent reference (Codex BW-A1): the pot's fixed conductance from the EMPTY pot, alpha = capacity / (T0 · τ),
+  // ds/dt = −alpha · headK · ρg · x, stepped each second at 28 °C (no bulb lag at constant temperature)
+  const tau = pb.airLeakTauMin * 60, T0 = 301.15, kk = (1 + A / Ares) * 1000 * pv('gravity'), alpha = V / (T0 * tau);
+  const xOf = (sv: number, P: number) => { const a = kk * A, b = P * A + kk * V0, c = P * V0 - sv * T0; return (-2 * c) / (b + Math.sqrt(b * b - 4 * a * c)); };
+  const refMarks: number[] = []; let sv = (101000 * V0) / T0;
+  for (let t = 0, r = 0; t <= 2 * D && r < every6h.length; t += 1000) {
+    const P = (1010 - Math.min(30, (30 * t) / D)) * 100;
+    if (t === every6h[r]) { refMarks.push(Math.round(xOf(sv, P) / 0.005)); r++; }
+    sv += -alpha * kk * xOf(sv, P) * 1;
+  }
+  ok(w.last.status === 'completed' && w.marks.length === 8 && w.marks[3] > w.marks[0] && w.marks.every((m, i) => Math.abs(m - refMarks[i]) <= 1) && w.marks[7] === 11,
+    'the weather pot: as the pressure falls 30 hPa the water climbs the bamboo tube, then creeps back as the pot leaks — as the fixed-conductance reference (empty pot\'s τ, Codex BW-A1)',
+    `marks ${w.marks.join(', ')}; reference ${refMarks.join(', ')}; leak-free ${ideal}`);
+  const leakOf = (waterMg: number) => { const r = step(wreq(0, H, storm(0), null, [], waterMg)); const dd = r.state.data as { leakK: number; g: { headK: number } }; return (dd.leakK * T0) / (dd.g.headK * 1000 * pv('gravity')); };
+  const factors = [160_000, 250_000, 300_000].map(leakOf);
+  ok(factors.every((f) => Math.abs(f / (V / tau) - 1) < 1e-12), 'the leak\'s conductance is the empty pot\'s whatever water is put in (160 / 250 / 300 mL: capacity / τ)', factors.map((f) => (f * tau / V).toFixed(12)).join(' / '));
+  // a pressure gap: the air the control (pressure known) holds stays inside the bounds the masked run carries
+  const gapEnv = (t: number): Env => (t >= 6 * H && t < 12 * H ? { t: 28 } : storm(t));
+  const ctrl: number[] = [], bounds: [number, number][] = [];
+  { let a: ScienceStepRequest['state'] = null, b: ScienceStepRequest['state'] = null;
+    for (let t = 0; t < 14 * H; t += H) {
+      const ra = step(wreq(t, t + H, storm(t), a, [])), rb = step(wreq(t, t + H, gapEnv(t), b, []));
+      a = JSON.parse(JSON.stringify(ra.state)); b = JSON.parse(JSON.stringify(rb.state));
+      const sa = (a!.data as { s: { sLo: number } }).s, sb = (b!.data as { s: { sLo: number; sHi: number } }).s;
+      ctrl.push(sa.sLo); bounds.push([sb.sLo, sb.sHi]);
+    } }
+  ok(ctrl.every((c, i) => c >= bounds[i][0] * (1 - 1e-12) && c <= bounds[i][1] * (1 + 1e-12)) && bounds.slice(6, 12).some(([lo, hi]) => hi > lo),
+    'a pressure gap: the bounds on the air (with the corrected conductance) hold the known control\'s air at every hour');
   const back = w.last.produced.find((p) => p.materialId === 'process_water');
   ok(back?.amount.value === 250_000 && w.last.released.length === 0, 'the pot\'s water comes back whole at the end (nothing spilled)');
   const warm = wgauge(12 * H, (t) => ({ p: 1010, t: t < 6 * H ? 28 : 29 }), [6 * H - 2000, 12 * H - 2000]);
@@ -331,6 +357,8 @@ console.log('7. the bamboo tube and the weather pot (p18x 0.1.0, p16x 0.1.5, tab
   setFail('too much water: air must stay above it', 400_000, {}, /too much water/);
   setFail('a tube too short to reach the water and stand out of the plug', 250_000, { tubeLengthMm: 120 }, /too short/);
   refused('an old run (0.1.2, state /2) is refused', step({ ...greq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/2', data: {} }, []), processVersion: '0.1.2' }), /processVersion 0\.1\.2/);
+  refused('a 0.2.0 run (its stored leak too small) is refused by version', step({ ...wreq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/3', data: {} }, []), processVersion: '0.2.0' }), /processVersion 0\.2\.0/);
+  refused('a /3 state is refused under 0.2.1 (not resumed under a relabelled version)', step(wreq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/3', data: {} }, [])), /pot\/3|schema/);
 }
 
 console.log('—   every result above passed the contract checker');
