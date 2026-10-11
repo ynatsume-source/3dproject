@@ -30,6 +30,10 @@ const reads = lantern.diary.filter((e: any) => /試験用の気圧計を置い�
 want('started: Lantern set the gauge', lantern.diary.some((e: any) => /試験用の気圧計を置いて読む：始めた/.test(e.text)), lantern.diary.filter((e: any) => e.key === 'study').slice(0, 2).map((e: any) => e.text).join(' / '));
 want('read every few island hours, from the record', reads.length >= 4 && reads.some((e: any) => /目盛り -?\d+/.test(e.text)), `${reads.length}: ${reads.slice(0, 4).map((e: any) => e.text.split('：')[1]).join(', ')}`);
 
+{ // the air at each reading: its temperature kept in the log from the record (a gap: null), and in the diary only words
+  const marks = reads.filter((e: any) => /目盛り -?\d+/.test(e.text)), log = R.village.gaugeLog ?? [], felt = marks.map((e: any) => (e.text.match(/（(.*?)）$/) ?? [])[1]).filter(Boolean);
+  want('the air at each reading kept in the log (measured, or unknown), only words in the diary', marks.length >= 3 && log.length >= marks.length && log.every((g: any) => g.airC === null || Number.isFinite(g.airC)) && felt.every((f: string) => !/\d/.test(f)), `${log.slice(0, 3).map((g: any) => g.airC).join(', ')} °C; ${felt.slice(0, 3).join(', ') || 'no word (ordinary hours)'}`);
+}
 want('and meanwhile it takes coconuts to the shelf', lantern.diary.some((e: any) => /ヤシの実を棚に置いた|ヤシの実は中が腐っていた/.test(e.text)), lantern.diary.filter((e: any) => /ヤシの実/.test(e.text)).slice(0, 3).map((e: any) => e.text).join(' / '));
 want('a rain catcher from the bamboo', lantern.diary.some((e: any) => /雨受けを作った/.test(e.text)), lantern.diary.filter((e: any) => /雨受け/.test(e.text)).map((e: any) => e.text).join(' / '));
 { // a rainy stretch of the record: the catcher fills

@@ -460,7 +460,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo,
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as { at: number; processId: string; mark?: number; text?: string; airC?: number | null }[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo,
     labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
@@ -2151,6 +2151,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     r.diary.push({ at: clockMs, text: `${e.ja}：始めた（${lot ? `${e.inputJa} ${+(lot.amount.value / 1000).toFixed(1)}g、` : ''}${wetted ? `硬いので水 ${+(wetted / 1000).toFixed(0)}g を足して、` : ''}${[e.equipment, ...(e.moreEquipment ?? [])].filter((q) => !!q).map((q) => q!.ja).join('・') || '手だけ'}）`, key: 'study' });
     if (e.tend === 'leave') tk.t = tk.dur;
   }
+  /** How the air feels at a moment, in a resident's words (no number): sultry, hot, cool, chilly, windy — or nothing
+   *  when it is an ordinary hour, or the record has no temperature for it. */
+  function feelOf(w: ReturnType<typeof islandWeather>, at: number): string {
+    if (!w || w.air === undefined) return '';
+    const hr = localHour(at), part = hr < 5 || hr >= 19 ? '夜' : hr < 10 ? '朝' : hr < 16 ? '昼' : '夕方', t = w.air, rh = w.humidity ?? 0, wind = w.windMeasured ?? 0;
+    const word = t >= 27 && rh >= 0.8 ? '蒸し暑い' : t >= 30 ? '暑い' : t <= 18 ? '肌寒い' : t <= 22 ? (wind >= 5 ? '風が涼しい' : '涼しい') : wind >= 9 ? '風の強い' : '';
+    return word ? `${word}${part}` : '';
+  }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
   function tickLab() {
     hypoTick(); swellTick();
@@ -2180,9 +2188,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       if (e.gauge) for (const c of out) for (const o of c.observations ?? []) {
         // (what it read, as it read it: a count of marks on the stick, or what it saw instead)
-        const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}` : o.text ? `${e.ja}：${o.text}` : '';
+        // (and how the air felt then, in words — never its number: a resident has no thermometer. The air's temperature is
+        // kept in the log, from the island's record as measured, a gap unknown — science, 2026-10-11: a gauge moves with the
+        // heat too, and words like these may let a resident see it one day)
+        const at = toReal(e.clock, o.at), w = islandWeather(at), feel = feelOf(w, at);
+        const text = o.value !== undefined ? `${e.ja}：目盛り ${o.value}${feel ? `（${feel}）` : ''}` : o.text ? `${e.ja}：${o.text}` : '';
         if (!text) continue;
-        (village.gaugeLog ??= []).push({ at: toReal(e.clock, o.at), processId: e.processId, ...(o.value !== undefined ? { mark: o.value } : { text: o.text }) }); if (village.gaugeLog.length > 400) village.gaugeLog.shift();
+        (village.gaugeLog ??= []).push({ at, processId: e.processId, ...(o.value !== undefined ? { mark: o.value } : { text: o.text }), airC: w?.air ?? null }); if (village.gaugeLog.length > 400) village.gaugeLog.shift();
         if (o.value !== undefined && by?.id === 'lantern') { hypoRead(toReal(e.clock, o.at), o.value); hypoRead2(toReal(e.clock, o.at), o.value); }
         if (by) { by.diary.push({ at: toReal(e.clock, o.at), text, key: 'study' }); if (by.diary.length > 800) by.diary.shift(); }
       }
