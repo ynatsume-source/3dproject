@@ -32,24 +32,28 @@ import { fuelLhvJPerMg, pSat } from '../physics';
 import { allFinite, checkCommon, contractExtras, envUsable, failed, fingerprint, finite, intDeltaFloor, isInt, subStepEnd, wind10m } from './common';
 import { fuelComp, type ScienceStepResultV02 } from './wood-fire';
 
-export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.4' } as const; // 0.1.4: the seal reached and its joint tar kept in the state; a tube may wait for a later seal (Codex SB-A1, SB-A2) // 0.1.3: a gauge tube through the plug // 0.1.2: the residents' fired_pot as well
-export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.4' } as const; // 0.1.4: the air-holding time scales with the pot's size, a tube's joint leaks; // 0.1.3: the residents' fired_pot as well // 0.1.2: a missing wind is unknown (not calm)
+export const TAR_SEAL_PROCESS = { processId: 'p16x_vessel_tar_seal', processVersion: '0.1.5' } as const; // 0.1.5: the residents' bamboo tube (p18x) through the plug, for the weather pot // 0.1.4: the seal reached and its joint tar kept in the state; a tube may wait for a later seal (Codex SB-A1, SB-A2) // 0.1.3: a gauge tube through the plug // 0.1.2: the residents' fired_pot as well
+export const LEAK_TEST_PROCESS = { processId: 'p17x_vessel_leak_test', processVersion: '0.1.5' } as const; // 0.1.5: a pot with a bamboo tube (its joint leaks more) // 0.1.4: the air-holding time scales with the pot's size, a tube's joint leaks; // 0.1.3: the residents' fired_pot as well // 0.1.2: a missing wind is unknown (not calm)
 // /3 since 0.1.4 (the seal reached, with its joint tar, kept in the state): a /2 run is refused; the host cancels it
-const SEAL_SCHEMA = 'civ-sci.vessel-seal/3', SEAL_EVAL = 'vessel-seal-eval/0.1.4';
-const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.4';
+const SEAL_SCHEMA = 'civ-sci.vessel-seal/3', SEAL_EVAL = 'vessel-seal-eval/0.1.5';
+const LEAK_SCHEMA = 'civ-sci.vessel-leak/2', LEAK_EVAL = 'vessel-leak-eval/0.1.5';
 const POT = 'fired_pot_test';
 /** The pots these steps take: the test pot, and (0.1.2 / 0.1.3) the residents' own fired pot from the open fire. */
 export const VESSEL_POTS = [POT, 'fired_pot'] as const;
 const isPot = (l: LotView) => (VESSEL_POTS as readonly string[]).includes(l.materialId);
 /** The keys these steps write; any other key of the pot (its form, wall, surface, fired make-up, crack mark) goes back as it was. */
 const VESSEL_KEYS = ['capacity_ml', 'absorption_ppm', 'coverage_ppm', 'sealed', 'x_wood_tar_ppm', 'x_water_ppm', 'crack_ppm', 'airtight_known', 'air_leak_tau_min', 'history_complete',
-  'x_tube_ppm', 'tube_bore_mm', 'tube_length_mm', 'joint_cover_ppm'];
+  'x_tube_ppm', 'tube_bore_mm', 'tube_length_mm', 'joint_cover_ppm', 'tube_form', 'tube_outer_mm'];
 export const GAUGE_TUBE = 'gauge_tube_test';
+/** The residents' bamboo tube (p18x): straight, for the weather pot (tube_form 2). */
+export const BAMBOO_TUBE = 'bamboo_tube';
 const otherKeys = (q: Record<string, number> = {}) => Object.fromEntries(Object.entries(q).filter(([k]) => !VESSEL_KEYS.includes(k)));
 const STEP_MS = 30_000;
 const REF_ABSORPTION = 0.12, REF_AREA_M2 = 0.0366; // the reference pot: 12 % absorption, 500 mL
 
-export interface Tube { mg: number; boreMm: number; lengthMm: number; jointCover: number }
+/** form 1: the test gauge tube bent as a U outside the pot (as before); form 2 (p16x 0.1.5): a straight bamboo tube
+ *  through the plug, dipped into water inside the pot (the weather pot), with its outer diameter. */
+export interface Tube { mg: number; boreMm: number; lengthMm: number; jointCover: number; form?: 1 | 2; outerMm?: number }
 export interface Pot { body: number; tar: number; water: number; capacityMl: number; absorption: number; coverage: number; sealed: boolean; airtightKnown: boolean; crack: number; areaM2: number; tube?: Tube }
 
 /** Read a pot lot. Throws with a reason. */
@@ -69,13 +73,16 @@ export function readPot(lot: LotView): Pot {
   const tubeKeys = ['x_tube_ppm', 'tube_bore_mm', 'tube_length_mm', 'joint_cover_ppm'].filter((k) => q[k] !== undefined).length;
   if (tubeKeys !== 0 && (tubeKeys !== 4 || !isInt(q.x_tube_ppm, 1) || q.x_tube_ppm > 1e6 || !finite(q.tube_bore_mm, 1, 30) || !finite(q.tube_length_mm, 100, 3000) || !finite(q.joint_cover_ppm, 0, 1e6) || q.sealed !== 1))
     throw new Error(`pot ${lot.lotId}: a tube needs x_tube_ppm, tube_bore_mm 1..30, tube_length_mm 100..3000 and joint_cover_ppm, on a sealed pot`);
+  // the weather pot's bamboo tube (0.1.5): tube_form 2 with its outer diameter; without them a tube is the test U-tube
+  if ((q.tube_form !== undefined || q.tube_outer_mm !== undefined) && (!tubeKeys || q.tube_form !== 2 || !finite(q.tube_outer_mm, q.tube_bore_mm, 60)))
+    throw new Error(`pot ${lot.lotId}: tube_form 2 (a straight bamboo tube) comes with tube_outer_mm (above the bore, up to 60), on a pot with a tube`);
   const tubeMg = tubeKeys ? Math.floor((lot.amount.value * q.x_tube_ppm) / 1e6) : 0;
   if ((q.x_wood_tar_ppm ?? 0) + (q.x_water_ppm ?? 0) + (q.x_tube_ppm ?? 0) > 1e6) throw new Error(`pot ${lot.lotId}: tar, water and tube exceed the pot`);
   const tar = Math.floor((lot.amount.value * (q.x_wood_tar_ppm ?? 0)) / 1e6), water = Math.floor((lot.amount.value * (q.x_water_ppm ?? 0)) / 1e6);
   return { body: lot.amount.value - tar - water - tubeMg, tar, water, capacityMl: q.capacity_ml, absorption: q.absorption_ppm / 1e6, coverage: (q.coverage_ppm ?? 0) / 1e6, sealed: q.sealed === 1, airtightKnown: q.airtight_known !== 0, crack: (q.crack_ppm ?? 0) / 1e6,
     // the pot's own surface when it has one (the residents' pots), else the test pot's assumed shape
     areaM2: q.surface_cm2 !== undefined ? q.surface_cm2 / 1e4 : potAreaM2(q.capacity_ml),
-    ...(tubeKeys ? { tube: { mg: tubeMg, boreMm: q.tube_bore_mm, lengthMm: q.tube_length_mm, jointCover: q.joint_cover_ppm / 1e6 } } : {}) };
+    ...(tubeKeys ? { tube: { mg: tubeMg, boreMm: q.tube_bore_mm, lengthMm: q.tube_length_mm, jointCover: q.joint_cover_ppm / 1e6, ...(q.tube_form === 2 ? { form: 2 as const, outerMm: q.tube_outer_mm } : {}) } } : {}) };
 }
 /** Inner surface (m²) of a pot holding capacityMl: a sphere's, a fifth more for the neck (assumed shape). */
 export const potAreaM2 = (capacityMl: number) => (4.836 * Math.pow(capacityMl, 2 / 3) * 1.2) / 1e4;
@@ -95,7 +102,8 @@ const leakiness = (p: { absorption: number; coverage: number; crack?: number }) 
 export function airLeakTauMin(p: { absorption: number; coverage: number; sealed: boolean; airtightKnown?: boolean; crack?: number; capacityMl?: number; areaM2?: number; tube?: Tube }): number {
   if (!p.sealed || p.airtightKnown === false) return 0;
   const cap = p.capacityMl ?? REF_VOLUME_ML, area = p.areaM2 ?? potAreaM2(cap);
-  const joint = p.tube ? pv('jointLeakBase') * (1 - p.tube.jointCover) + pv('jointLeakFloor') : 0;
+  // a bamboo tube's joint leaks more: its outside is uneven and the tar does not close round it as well (assumed factor)
+  const joint = p.tube ? (pv('jointLeakBase') * (1 - p.tube.jointCover) + pv('jointLeakFloor')) * (p.tube.form === 2 ? pv('jointLeakBambooFactor') : 1) : 0;
   const conductance = leakiness(p) * (area / potAreaM2(REF_VOLUME_ML)) + joint;
   return Math.round((pv('airLeakRefH') * 60 * (cap / REF_VOLUME_ML)) / Math.max(conductance, 1e-4));
 }
@@ -105,13 +113,14 @@ export function potQuality(p: Pot): Record<string, number> {
   return { capacity_ml: p.capacityMl, absorption_ppm: Math.round(p.absorption * 1e6), coverage_ppm: Math.floor(p.coverage * 1e6), sealed: p.sealed ? 1 : 0,
     ...(p.tar ? { x_wood_tar_ppm: Math.floor((p.tar * 1e6) / t) } : {}), ...(p.water ? { x_water_ppm: Math.floor((p.water * 1e6) / t) } : {}),
     ...(p.crack ? { crack_ppm: Math.round(p.crack * 1e6) } : {}), ...(p.sealed && !p.airtightKnown ? { airtight_known: 0 } : { air_leak_tau_min: airLeakTauMin(p) }),
-    ...(p.tube ? { x_tube_ppm: Math.floor((p.tube.mg * 1e6) / t), tube_bore_mm: p.tube.boreMm, tube_length_mm: p.tube.lengthMm, joint_cover_ppm: Math.floor(p.tube.jointCover * 1e6) } : {}) };
+    ...(p.tube ? { x_tube_ppm: Math.floor((p.tube.mg * 1e6) / t), tube_bore_mm: p.tube.boreMm, tube_length_mm: p.tube.lengthMm, joint_cover_ppm: Math.floor(p.tube.jointCover * 1e6),
+      ...(p.tube.form === 2 ? { tube_form: 2, tube_outer_mm: p.tube.outerMm! } : {}) } : {}) };
 }
 
 // ---- assembly: a pot lot becomes equipment, and back (ADR 0006: main assembles; this is the table) -----------------
 
 /** The table's version: main records it on the equipment it assembles. */
-export const POT_ASSEMBLY_TABLE = 'civ-sci.pot-assembly/4'; // /4: the air-holding time scales with the pot's size, a tube's joint leaks, a tubed pot gives the bulb's params // /3: the residents' fired_pot as well
+export const POT_ASSEMBLY_TABLE = 'civ-sci.pot-assembly/5'; // /5: a pot with a bamboo tube is a weather pot (tubeForm 2, tubeOuterMm, bulbHeatJPerK) // /4: the air-holding time scales with the pot's size, a tube's joint leaks, a tubed pot gives the bulb's params // /3: the residents' fired_pot as well
 export const ASSEMBLED_POT = 'assembled_pot'; // kind and catalogEntry of the equipment
 /** The equipment params of a pot assembled from a whole fired_pot_test lot (the lot's copy is kept by main). */
 export function potToEquipmentParams(lot: LotView): Record<string, number> {
@@ -121,7 +130,9 @@ export function potToEquipmentParams(lot: LotView): Record<string, number> {
     // a pot with a gauge tube through its plug is a barometer bulb (m03x): its tube, and how fast its air follows the
     // outside temperature (the fired body's heat over its loss through the surface: assumed, as the cook pot's table)
     ...(p.tube ? { tubeBoreMm: p.tube.boreMm, tubeLengthMm: p.tube.lengthMm,
-      bulbTauS: Math.round((p.body / 1000) * pv('cpCeramic') / (pv('firedPotLossWPerM2K') * p.areaM2)) } : {}) };
+      bulbTauS: Math.round((p.body / 1000) * pv('cpCeramic') / (pv('firedPotLossWPerM2K') * p.areaM2)),
+      // the weather pot (/5): its straight tube's outside, and the fired body's heat (the water put in it adds its own, m03x)
+      ...(p.tube.form === 2 ? { tubeForm: 2, tubeOuterMm: p.tube.outerMm!, bulbHeatJPerK: Math.round((p.body / 1000) * pv('cpCeramic')) } : {}) } : {}) };
 }
 /** The quality of the lot a pot goes back to, from the lot copy kept at assembly (main passes the copy, not the last
  *  returned quality) and the equipment's condition (main sets it to 1 at each assembly, so 1 − condition is the wear of
@@ -157,9 +168,9 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const bad = checkCommon(req, TAR_SEAL_PROCESS.processId, TAR_SEAL_PROCESS.processVersion, SEAL_SCHEMA, /^0\.2\.\d+$/);
   if (bad) return fail(bad);
   const pots = req.lots.filter(isPot), tars = req.lots.filter((l) => l.materialId === 'wood_tar'), woods = req.lots.filter((l) => l.materialId === 'firewood');
-  const tubes = req.lots.filter((l) => l.materialId === GAUGE_TUBE);
+  const tubes = req.lots.filter((l) => l.materialId === GAUGE_TUBE || l.materialId === BAMBOO_TUBE);
   if (pots.length !== 1 || tars.length !== 1 || woods.length > 1 || tubes.length > 1 || pots.length + tars.length + woods.length + tubes.length !== req.lots.length) {
-    return fail(`expected one ${POT} (or fired_pot) lot, one wood_tar lot, at most one firewood lot (to warm them at the fire) and at most one ${GAUGE_TUBE} (through the plug)`);
+    return fail(`expected one ${POT} (or fired_pot) lot, one wood_tar lot, at most one firewood lot (to warm them at the fire) and at most one ${GAUGE_TUBE} or ${BAMBOO_TUBE} (through the plug)`);
   }
   const pot = pots[0], tarLot = tars[0], wood = woods[0], tubeLot = tubes[0];
   const brush = req.equipment.find((e) => e.kind === 'fixture_tar_brush'), pit = req.equipment.find((e) => e.kind === 'open_fire_pit');
@@ -178,7 +189,8 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (p.sealed) return fail('the pot is already stopped: open it before tarring its inside again');
     if (tubeLot) {
       const tq = tubeLot.quality ?? {};
-      if (!finite(tq.bore_mm, 1, 30) || !finite(tq.length_mm, 100, 3000) || !isInt(tubeLot.amount.value, 1)) return fail(`${GAUGE_TUBE} needs quality bore_mm 1..30 and length_mm 100..3000`);
+      if (!finite(tq.bore_mm, 1, 30) || !finite(tq.length_mm, 100, 3000) || !isInt(tubeLot.amount.value, 1)) return fail(`${tubeLot.materialId} needs quality bore_mm 1..30 and length_mm 100..3000`);
+      if (tubeLot.materialId === BAMBOO_TUBE && !finite(tq.outer_mm, tq.bore_mm, 60)) return fail(`${BAMBOO_TUBE} needs quality outer_mm (above its bore, up to 60)`);
     }
     if (wood) { const fc = fuelComp(wood); if (typeof fc === 'string') return fail(fc); }
     d = { fps, eqFp, lastTo: req.interval.from, elapsedMs: 0, durationMs: pv('vesselHandSeconds') * 1000, reportedHands: 0, seal: false, sealAt: -1, jointTarG: 0 };
@@ -230,9 +242,10 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const jointCover = 1 - Math.exp(-(joint / 1000) * (warm ? pv('jointTarWarmPerG') : pv('jointTarColdPerG')));
   // the tube goes into the pot only through a plug that holds; otherwise (no seal reached, or too little tar for the
   // plug) it comes back as it was (Codex SB-A2: a tube may wait for a seal in a later request)
-  const tube: Tube | undefined = tubeLot && sealed ? { mg: tubeLot.amount.value, boreMm: tubeLot.quality!.bore_mm, lengthMm: tubeLot.quality!.length_mm, jointCover } : undefined;
+  const tube: Tube | undefined = tubeLot && sealed ? { mg: tubeLot.amount.value, boreMm: tubeLot.quality!.bore_mm, lengthMm: tubeLot.quality!.length_mm, jointCover,
+    ...(tubeLot.materialId === BAMBOO_TUBE ? { form: 2 as const, outerMm: tubeLot.quality!.outer_mm } : {}) } : undefined;
   const out: Pot = { ...p, tar: p.tar + tarLot.amount.value, coverage, sealed, ...(tube ? { tube } : {}) };
-  if (tubeLot && !tube) res.produced.push({ materialId: GAUGE_TUBE, amount: { ...tubeLot.amount }, into: tubeLot.location, quality: { ...(tubeLot.quality ?? {}) } });
+  if (tubeLot && !tube) res.produced.push({ materialId: tubeLot.materialId, amount: { ...tubeLot.amount }, into: tubeLot.location, quality: { ...(tubeLot.quality ?? {}) } });
   const hist = req.lots.every((l) => (l.quality?.history_complete ?? 1) === 1) ? 1 : 0;
   res.consumed = req.lots.map((l) => ({ lotId: l.lotId, amount: { ...l.amount } }));
   res.produced.push({ materialId: pot.materialId, amount: { value: out.body + out.tar + out.water + (out.tube?.mg ?? 0), unit: 'mg' }, into: pot.location, quality: { ...otherKeys(pot.quality), ...potQuality(out), history_complete: hist } });

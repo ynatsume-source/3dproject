@@ -11,6 +11,7 @@ import { woodFireStep, WOOD_FIRE_PROCESS } from './wood-fire';
 import { contractExtras } from './common';
 import { barometerStep, BAROMETER_PROCESS } from './barometer';
 import { barometerPotStep, BAROMETER_POT_PROCESS } from './barometer-pot';
+import { bambooTubeStep, BAMBOO_TUBE_PROCESS } from './bamboo-tube';
 import { slakeStep, SLAKE_PROCESS } from './slake';
 import { kneadStep, KNEAD_PROCESS } from './knead';
 import { charcoalStep, CHARCOAL_PROCESS } from './charcoal';
@@ -31,6 +32,7 @@ const PROCESSES: Record<string, ScienceStep> = {
   [WOOD_FIRE_PROCESS.processId]: woodFireStep,   // contract 0.2.x (proposed) only: returns `drawn`
   [BAROMETER_PROCESS.processId]: barometerStep,
   [BAROMETER_POT_PROCESS.processId]: barometerPotStep,
+  [BAMBOO_TUBE_PROCESS.processId]: bambooTubeStep,
   [SLAKE_PROCESS.processId]: slakeStep,
   [KNEAD_PROCESS.processId]: kneadStep,
   [COCONUT_MILK_PROCESS.processId]: coconutMilkStep,
