@@ -32,10 +32,11 @@ npm run build
 npm run check:list                        # ヘッドレス検査の全一覧・分類
 npm run check:fast                        # PR / main の変更で回す検査
 npm run check:slow                        # 長い検査（夜間 / 手動 CI）
+npm run check:browser                     # build 後、世界切替を Chromium で確認
 npm run sim -- miyako                      # 生態系をヘッドレスで早回し
 npx tsx --import ./scripts/node-assets.mjs scripts/<name>.ts   # director / clip / cave / bait / jitter / motion / route / appear の各チェック
 ```
-検査の分類は `scripts/check-manifest.mjs`、実行は `scripts/checks.mjs`。各検査を別プロセスで順に動かし、ログと JSON の結果を残す。検査の未登録・失敗・タイムアウトは終了コードで失敗にする。数値を出すだけの診断は「実行完了」と記録し、受け入れ条件の合格とは区別する。`.github/workflows/checks.yml` は PR / main への push で型検査・ビルド・fast、毎日03:40 UTCと手動実行で slow を回す。ブラウザ・GLSL・HUD の検査は別に行う。
+検査の分類は `scripts/check-manifest.mjs`、実行は `scripts/checks.mjs`。各検査を別プロセスで順に動かし、ログと JSON の結果を残す。検査の未登録・失敗・タイムアウトは終了コードで失敗にする。数値を出すだけの診断は「実行完了」と記録し、受け入れ条件の合格とは区別する。`.github/workflows/checks.yml` は PR / main への push で型検査・ビルド・fast、毎日03:40 UTCと手動実行で slow を回す。世界切替の実ブラウザ検査は `scripts/worlds-browser-check.mjs`、手動 CI は `.github/workflows/browser-checks.yml`。ローカル実行には Playwright と Chromium が必要（手順は `docs/proposals/codex-hash-ci-followups-2026-10-11/BROWSER_CHECK.md`）。GLSL・HUD の個別検査は別に行う。
 シェーダーを変えたら `node scripts/shader-check.mjs`（`--all` で全部の海）：Chromium（ソフトウェア GL）で海を開き、コンパイルに失敗したシェーダーが1つでもあれば落ちる。ヘッドレスのチェックは GLSL をコンパイルしないので、変数の二重宣言などはこれでしか見つからない。`#if` の枝どうしは同じスコープなので、別の枝と同じ名前の変数を宣言しない。
 
 
