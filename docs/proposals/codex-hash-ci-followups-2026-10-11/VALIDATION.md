@@ -32,4 +32,4 @@ WORLD_SWITCH_MAIN=/tmp/codex-followups2-main-baseline.ts node --import tsx --imp
 
 本ブラウザ実行は Chromium 起動の `setsockopt EPERM` / `SIGTRAP` により終了2、0段階。localhost listen も `EPERM`。詳細コマンドと結果は [BROWSER_CHECK.md](BROWSER_CHECK.md)。環境権限待ちは追加していない。
 
-slow の52本は今回実行していない。最新 main の GitHub CI でも確認時点には結果がなく、前回記録した bait の失敗は未解決として残す（[前回 HANDOFF](../codex-followups-2026-10-10/HANDOFF.md)）。科学や住人の工程に対する source 修正は行っていない。
+slow の52本はローカルでは今回実行していない。07:36 UTC の確認時点では GitHub にも結果がなかったが、引き渡し前の17:41 UTC以降の再確認で夜間実行の52本と6失敗を取得した。[CI_RESULTS.md](CI_RESULTS.md) と HANDOFF に追加してあり、未実行のまま扱ったり失敗を除外したりしていない。前回の bait の失敗も未解決（[前回 HANDOFF](../codex-followups-2026-10-10/HANDOFF.md)）。科学や住人の工程に対する source 修正は行っていない。
