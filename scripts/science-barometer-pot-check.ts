@@ -1,5 +1,5 @@
 // Checks for the self-made barometer: a gauge tube through the plug (p16x 0.1.3, table civ-sci.pot-assembly/4) and the
-// barometer on the residents' pot (m03x_air_barometer_pot 0.1.0).
+// barometer on the residents' pot (m03x_air_barometer_pot 0.1.0); 7: the bamboo tube (p18x) and the weather pot (m03x 0.2.0).
 // Run: npx tsx --import ./scripts/node-assets.mjs scripts/science-barometer-pot-check.ts
 import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
@@ -7,6 +7,8 @@ import { validateResult } from '../src/science/step/validate';
 import { BAROMETER_PROCESS } from '../src/science/step/barometer';
 import { BAROMETER_POT_PROCESS } from '../src/science/step/barometer-pot';
 import { airLeakTauMin, LEAK_TEST_PROCESS, potSherdsQuality, potToEquipmentParams, readPot, TAR_SEAL_PROCESS } from '../src/science/step/vessel';
+import { BAMBOO_TUBE_PROCESS } from '../src/science/step/bamboo-tube';
+import { pv } from '../src/science/params';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -241,6 +243,122 @@ console.log('4. requests that are refused');
   const s0 = step(greq(0, H, storm(0), null, []));
   refused('a missing interval', step(greq(2 * H, 3 * H, storm(0), s0.state, [])), /noncontiguous/);
   refused('the bulb changed under the run', step(greq(H, 2 * H, storm(0), s0.state, [], { equipment: [bulb(coldBare)] })), /changed-input/);
+}
+
+console.log('7. the bamboo tube and the weather pot (p18x 0.1.0, p16x 0.1.5, table /5, m03x 0.2.0; owner\'s decisions 2026-10-10)');
+{
+  const BAMBOO = (mg = 30_000_000, q: Record<string, number> = {}): LotView => ({ lotId: 'lot:bamboo', materialId: 'bamboo', amount: { value: mg, unit: 'mg' }, location: 'site:shelf', quality: q });
+  const cutReq = (from: number, to: number, state: ScienceStepRequest['state'], lot: LotView, lengthMm: number | null, o: Partial<ScienceStepRequest> = {}): ScienceStepRequest => ({
+    contract: '0.2.0', requestId: `c@${from}`, world: W, runId: 'run:cut', ...BAMBOO_TUBE_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from, to }, state,
+    environment: { sampleId: 'e', source: 'simulation', effectiveAt: from }, lots: [lot], equipment: [], energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: ((to - from) / 1000) * 20 }], seed: 1,
+    actions: lengthMm === null ? [] : [{ at: from, residentId: 'res:lantern', action: 'cut', params: { lengthMm } }], ...o });
+  const cut = step(cutReq(0, H, null, BAMBOO(), 350));
+  const tube = cut.produced.find((p) => p.materialId === 'bamboo_tube')!;
+  ok(cut.status === 'completed' && tube && tube.quality!.length_mm === 350 && tube.quality!.bore_mm >= pv('bambooBoreMinMm') && tube.quality!.bore_mm <= pv('bambooBoreMaxMm') && sum(cut.consumed) === sum(cut.produced),
+    'one internode cut at both ends: a straight bamboo tube, its bore the bamboo\'s; the rest of the bamboo comes back (mass closes)', `${tube?.quality?.bore_mm} mm bore, ${tube?.amount.value} mg`);
+  const part1 = step(cutReq(0, 4 * M, null, BAMBOO(), 350)), part2 = step(cutReq(4 * M, H, JSON.parse(JSON.stringify(part1.state)), BAMBOO(), null));
+  ok(part1.status === 'running' && JSON.stringify(part2.produced) === JSON.stringify(cut.produced), 'the hand work may span requests: the same tube');
+  let splits = 0, greenSplits = 0;
+  for (let sd = 1; sd <= 60; sd++) {
+    if (step(cutReq(0, H, null, BAMBOO(), 300, { seed: sd })).produced.every((p) => p.materialId === 'bamboo')) splits++;
+    if (step(cutReq(0, H, null, BAMBOO(30_000_000, { water_ppm: 450_000 }), 300, { seed: sd })).produced.every((p) => p.materialId === 'bamboo')) greenSplits++;
+  }
+  ok(splits > 0 && splits < greenSplits, 'some pieces split along their length and are no tube (all the bamboo comes back); green bamboo splits more', `dry ${splits}/60, green ${greenSplits}/60`);
+  const refused = (name: string, r: ScienceStepResult, why: RegExp) => ok(r.status === 'failed' && why.test(String(r.evidence.notes)), name, String(r.evidence.notes));
+  refused('longer than one internode is refused (no node is pierced)', step(cutReq(0, H, null, BAMBOO(), 600)), /internode/);
+  refused('too little bamboo', step(cutReq(0, H, null, BAMBOO(10_000), 350)), /not enough bamboo/);
+  // through the plug of a sealed pot
+  const tubeLot: LotView = { lotId: 'lot:btube', materialId: 'bamboo_tube', amount: tube.amount, location: 'site:shelf', quality: { ...tube.quality, bore_mm: 8, outer_mm: 13 } };
+  const bSeal = seal({ warm: true, jointTarG: 6, tube: tubeLot }), tSeal = warmWell;
+  const bp = potOf(bSeal);
+  ok(bSeal.status === 'completed' && bp.quality!.tube_form === 2 && bp.quality!.tube_outer_mm === 13 && bp.quality!.x_tube_ppm! > 0 && bp.quality!.air_leak_tau_min < potOf(tSeal).quality!.air_leak_tau_min,
+    'the bamboo tube goes through the plug (tube_form 2); its uneven outside leaks more at the joint than the test tube with the same tar', `${bp.quality!.air_leak_tau_min} vs ${potOf(tSeal).quality!.air_leak_tau_min} min`);
+  const noSeal = seal({ tube: tubeLot, seal: false });
+  ok(noSeal.produced.some((p) => p.materialId === 'bamboo_tube' && p.amount.value === tubeLot.amount.value), 'no seal reached: the bamboo tube comes back as it was');
+  const pb = potToEquipmentParams(bp), pu = potToEquipmentParams(potOf(tSeal));
+  ok(pb.tubeForm === 2 && pb.tubeOuterMm === 13 && pb.bulbHeatJPerK > 0 && pu.tubeForm === undefined && pu.bulbHeatJPerK === undefined,
+    'table /5: the bamboo pot is a weather pot (tubeForm, tubeOuterMm, bulbHeatJPerK); the U-tube pot\'s params are as before', JSON.stringify(pb));
+  // the weather pot: 250 mL of water in the 500 mL pot, the tube 350 mm
+  const wpEq = (o: Record<string, number> = {}) => ({ equipmentId: 'eq:wpot', kind: 'assembled_pot', catalogEntry: 'assembled_pot', catalogVersion: 'civ-sci-test-2', condition: 1, params: { ...pb, markMm: 5, ...o } });
+  const wreq = (from: number, to: number, env: Env, state: ScienceStepRequest['state'], acts: [number, string][], waterMg = 250_000, eqo: Record<string, number> = {}): ScienceStepRequest => ({
+    ...greq(from, to, env, state, acts), runId: 'run:wpot', lots: [{ ...WATER(waterMg), lotId: 'lot:potwater' }], equipment: [wpEq(eqo)] });
+  function wgauge(until: number, env: (t: number) => Env, readsAt: number[], chunk = H, waterMg = 250_000, eqo: Record<string, number> = {}) {
+    let st: ScienceStepRequest['state'] = null; const all: ScienceStepResult[] = [];
+    for (let t = 0; t < until; t += chunk) {
+      const e = Math.min(until, t + chunk);
+      const acts: [number, string][] = [...readsAt.filter((x) => x >= t && x < e).map((x) => [x, 'read_gauge'] as [number, string]), ...(e === until ? [[until - 1000, 'take_out'] as [number, string]] : [])];
+      const r = step(wreq(t, e, env(t), st, acts, waterMg, eqo)); all.push(r); st = JSON.parse(JSON.stringify(r.state));
+      if (r.status !== 'running') break;
+    }
+    const last = all[all.length - 1];
+    return { all, last, obs: all.flatMap((r) => r.observations), marks: all.flatMap((r) => r.observations).filter((x) => x.value !== undefined).map((x) => x.value as number) };
+  }
+  const w = wgauge(2 * D, storm, every6h);
+  // the column a still, leak-free weather pot would show for 30 hPa (its own geometry, the same ideal gas)
+  const V = 500e-6, Dm = Math.cbrt((6 * V) / Math.PI), Ares = (Math.PI * Dm * Dm) / 4, A = Math.PI * 0.004 * 0.004, W0 = 250e-6, dip = W0 / Ares - 0.01;
+  const V0 = V - W0 - Math.PI * 0.0065 * 0.0065 * (Dm - 0.01), k = (1 + A / Ares) * 1000 * pv('gravity');
+  const xAt = (P: number) => { const s0 = 101000 * V0, a = k * A, b = P * A + k * V0, c = P * V0 - s0; return (-2 * c) / (b + Math.sqrt(b * b - 4 * a * c)); };
+  const ideal = Math.round(xAt(98000) / 0.005);
+  // an independent reference (Codex BW-A1): the pot's fixed conductance from the EMPTY pot, alpha = capacity / (T0 · τ),
+  // ds/dt = −alpha · headK · ρg · x, stepped each second at 28 °C (no bulb lag at constant temperature)
+  const tau = pb.airLeakTauMin * 60, T0 = 301.15, kk = (1 + A / Ares) * 1000 * pv('gravity'), alpha = V / (T0 * tau);
+  const xOf = (sv: number, P: number) => { const a = kk * A, b = P * A + kk * V0, c = P * V0 - sv * T0; return (-2 * c) / (b + Math.sqrt(b * b - 4 * a * c)); };
+  const refMarks: number[] = []; let sv = (101000 * V0) / T0;
+  for (let t = 0, r = 0; t <= 2 * D && r < every6h.length; t += 1000) {
+    const P = (1010 - Math.min(30, (30 * t) / D)) * 100;
+    if (t === every6h[r]) { refMarks.push(Math.round(xOf(sv, P) / 0.005)); r++; }
+    sv += -alpha * kk * xOf(sv, P) * 1;
+  }
+  ok(w.last.status === 'completed' && w.marks.length === 8 && w.marks[3] > w.marks[0] && w.marks.every((m, i) => Math.abs(m - refMarks[i]) <= 1) && w.marks[7] === 11,
+    'the weather pot: as the pressure falls 30 hPa the water climbs the bamboo tube, then creeps back as the pot leaks — as the fixed-conductance reference (empty pot\'s τ, Codex BW-A1)',
+    `marks ${w.marks.join(', ')}; reference ${refMarks.join(', ')}; leak-free ${ideal}`);
+  const leakOf = (waterMg: number) => { const r = step(wreq(0, H, storm(0), null, [], waterMg)); const dd = r.state.data as { leakK: number; g: { headK: number } }; return (dd.leakK * T0) / (dd.g.headK * 1000 * pv('gravity')); };
+  const factors = [160_000, 250_000, 300_000].map(leakOf);
+  ok(factors.every((f) => Math.abs(f / (V / tau) - 1) < 1e-12), 'the leak\'s conductance is the empty pot\'s whatever water is put in (160 / 250 / 300 mL: capacity / τ)', factors.map((f) => (f * tau / V).toFixed(12)).join(' / '));
+  // a pressure gap: the air the control (pressure known) holds stays inside the bounds the masked run carries
+  const gapEnv = (t: number): Env => (t >= 6 * H && t < 12 * H ? { t: 28 } : storm(t));
+  const ctrl: number[] = [], bounds: [number, number][] = [];
+  { let a: ScienceStepRequest['state'] = null, b: ScienceStepRequest['state'] = null;
+    for (let t = 0; t < 14 * H; t += H) {
+      const ra = step(wreq(t, t + H, storm(t), a, [])), rb = step(wreq(t, t + H, gapEnv(t), b, []));
+      a = JSON.parse(JSON.stringify(ra.state)); b = JSON.parse(JSON.stringify(rb.state));
+      const sa = (a!.data as { s: { sLo: number } }).s, sb = (b!.data as { s: { sLo: number; sHi: number } }).s;
+      ctrl.push(sa.sLo); bounds.push([sb.sLo, sb.sHi]);
+    } }
+  ok(ctrl.every((c, i) => c >= bounds[i][0] * (1 - 1e-12) && c <= bounds[i][1] * (1 + 1e-12)) && bounds.slice(6, 12).some(([lo, hi]) => hi > lo),
+    'a pressure gap: the bounds on the air (with the corrected conductance) hold the known control\'s air at every hour');
+  const back = w.last.produced.find((p) => p.materialId === 'process_water');
+  ok(back?.amount.value === 250_000 && w.last.released.length === 0, 'the pot\'s water comes back whole at the end (nothing spilled)');
+  const warm = wgauge(12 * H, (t) => ({ p: 1010, t: t < 6 * H ? 28 : 29 }), [6 * H - 2000, 12 * H - 2000]);
+  ok(warm.marks[1] - warm.marks[0] >= 1, 'it is a thermometer as well: 1 °C warmer in the shade, the water climbs too (keep it in the shade, note the temperature)', `${warm.marks.join(' → ')}`);
+  // the weather in 6 h steps (each request carries its own weather; both chunkings start a request at every step)
+  const storm6 = (t: number) => storm(Math.floor(t / (6 * H)) * 6 * H);
+  const byCuts = (cuts: number[], readsAt: number[]) => {
+    let st: ScienceStepRequest['state'] = null, from = 0; let last!: ScienceStepResult; const marks: number[] = [];
+    for (const to of cuts) {
+      const acts: [number, string][] = [...readsAt.filter((x) => x >= from && x < to).map((x) => [x, 'read_gauge'] as [number, string]), ...(to === cuts[cuts.length - 1] ? [[to - 1000, 'take_out'] as [number, string]] : [])];
+      last = step(wreq(from, to, storm6(from), st, acts)); st = JSON.parse(JSON.stringify(last.state)); from = to;
+      marks.push(...last.observations.filter((x) => x.value !== undefined).map((x) => x.value as number));
+    }
+    return { last, marks };
+  };
+  const hourly = byCuts(Array.from({ length: 48 }, (_, i) => (i + 1) * H), every6h);
+  const odd = byCuts([...new Set([...Array.from({ length: 8 }, (_, i) => (i + 1) * 6 * H), ...Array.from({ length: 300 }, (_, i) => (i + 1) * (9 * M + 7_013)).filter((x) => x < 2 * D)])].sort((x, y) => x - y), every6h);
+  const silent = byCuts(Array.from({ length: 48 }, (_, i) => (i + 1) * H), []);
+  ok(JSON.stringify(odd.last.produced) === JSON.stringify(hourly.last.produced) && JSON.stringify(odd.marks) === JSON.stringify(hourly.marks) && JSON.stringify(silent.last.state) === JSON.stringify(hourly.last.state),
+    'requests off the 30 s grid and reads change nothing (fixed cells, as the U-tube)', `${hourly.marks.join(', ')}`);
+  const plunge = wgauge(2 * D, (t) => ({ p: 1010 - Math.min(70, (70 * t) / D), t: 28 }), every6h, H, 250_000, { tubeLengthMm: 200 });
+  ok(plunge.last.released.some((r) => r.to === 'ground' && r.amount.value > 0) && plunge.obs.some((o) => /管の上から水があふれた|水があふれて減ったまま/.test(o.text ?? '')),
+    'a deep low with a short tube: the water spills from the top (to the ground) and the weather pot says so', `${plunge.last.released.map((r) => r.amount.value).join(',')} mg`);
+  const high = wgauge(D, (t) => ({ p: 1010 + Math.min(20, (20 * t) / (6 * H)), t: 28 }), every6h);
+  ok(high.obs.some((o) => /外の空気が泡になって壺に入った|壺に空気が入ったまま/.test(o.text ?? '')), 'a high: the water is pushed down to the tube\'s end and outside air bubbles into the pot');
+  const setFail = (name: string, waterMg: number, eqo: Record<string, number>, why: RegExp) => refused(name, step(wreq(0, H, storm(0), null, [], waterMg, eqo)), why);
+  setFail('too little water: the tube\'s end must stand in it', 60_000, {}, /too little water/);
+  setFail('too much water: air must stay above it', 400_000, {}, /too much water/);
+  setFail('a tube too short to reach the water and stand out of the plug', 250_000, { tubeLengthMm: 120 }, /too short/);
+  refused('an old run (0.1.2, state /2) is refused', step({ ...greq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/2', data: {} }, []), processVersion: '0.1.2' }), /processVersion 0\.1\.2/);
+  refused('a 0.2.0 run (its stored leak too small) is refused by version', step({ ...wreq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/3', data: {} }, []), processVersion: '0.2.0' }), /processVersion 0\.2\.0/);
+  refused('a /3 state is refused under 0.2.1 (not resumed under a relabelled version)', step(wreq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/3', data: {} }, [])), /pot\/3|schema/);
 }
 
 console.log('—   every result above passed the contract checker');

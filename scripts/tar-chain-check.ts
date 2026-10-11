@@ -3,8 +3,11 @@
 //  1 two fired jars of the retort's sizes (2 L upper, 0.3 L lower) made the retort (fired-pot-assembly/2 retortParams)
 //  2 the charge carved from a dry lot and laid in the upper jar, the fuel beside it; burned as planned (fed 200 minutes,
 //    opened at six hours): charcoal, the tar and the wood vinegar on the shelf; nothing left in the retort
-//  3 a 0.5 L fired jar, the tar, a brush made from bamboo: the jar sealed (sealed 1)
-//  4 the retort kept across a save
+//  3 a 0.5 L fired jar, the tar, a brush made from bamboo, a 350 mm tube cut from it: the jar sealed with the tube through
+//    its plug (science final review 2026-10-11-bamboo-tube)
+//  4 the weather pot: the sealed jar with its tube made a gauge (table /5, the stick added), 250 mL of rain water in it, read
+//    every few hours on the island's record — only marks and words in Lantern's diary, the air kept in the log
+//  5 the retort and the weather pot kept across a save
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/tar-chain-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -49,13 +52,22 @@ jar(2000, 1_400_000); jar(300, 420_000);
 }
 { // 3
   jar(500, 600_000);
-  addLot(lab, { materialId: 'bamboo', amount: { value: 1_000_000, unit: 'mg' }, location: 'shelf', quality: { history_complete: 1 } });
-  step(2 * 86400, () => lots('fired_pot').some((l) => l.quality?.sealed === 1));
-  const s = lots('fired_pot').find((l) => l.quality?.sealed === 1);
-  want('3 a 0.5 L jar sealed with the island\'s tar (a brush made first)', !!s && !!lab.equipment['eq:fixture_tar_brush'] && (s.quality.x_wood_tar_ppm ?? 0) > 0, JSON.stringify(s?.quality ?? runs('p16x_vessel_tar_seal').map((r) => `${r.status} ${r.why ?? ''}`)));
-  want('3 said in its own words', lantern.diary.some((e: any) => /乾留の器にした/.test(e.text)) && lantern.diary.some((e: any) => /封じ/.test(e.text)), lantern.diary.filter((e: any) => /乾留|封じ|炭/.test(e.text)).map((e: any) => e.text).slice(-3).join(' / '));
+  addLot(lab, { materialId: 'bamboo', amount: { value: 3_000_000, unit: 'mg' }, location: 'shelf', quality: { history_complete: 1 } });
+  addLot(lab, { materialId: 'process_water', amount: { value: 1_000_000, unit: 'mg' }, location: 'shelf', quality: { history_complete: 1 } });
+  step(3 * 86400, () => lots('fired_pot').some((l) => l.quality?.sealed === 1) || !!lab.equipment['eq:assembled_pot']);
+  const tube = runs('p18x_bamboo_tube').filter((r) => r.status === 'completed').length;
+  const s = lots('fired_pot').find((l) => l.quality?.sealed === 1) ?? (lab.equipment['eq:assembled_pot'] ? { quality: lab.equipment['eq:assembled_pot'].assembled?.copy?.quality } : undefined);
+  want('3 a 350 mm bamboo tube cut, the 0.5 L jar sealed with it through its plug (a brush made first)', tube >= 1 && !!s && s.quality?.tube_form === 2 && s.quality?.tube_length_mm === 350 && (s.quality?.x_wood_tar_ppm ?? 0) > 0 && !!lab.equipment['eq:fixture_tar_brush'], JSON.stringify(s?.quality ?? runs('p16x_vessel_tar_seal').map((r) => `${r.status} ${r.why ?? ''}`)) + ` tubes cut ${tube}`);
+}
+{ // 4
+  step(2 * 86400, () => (R.village.gaugeLog ?? []).filter((g: any) => g.processId === 'm03x_air_barometer_pot' && g.mark !== undefined).length >= 3);
+  const e = lab.equipment['eq:assembled_pot'], run = runs('m03x_air_barometer_pot')[0];
+  const water = run ? run.lotIds.map((id: string) => lab.lots[id]).find((l: any) => l?.materialId === 'process_water') : undefined;
+  want('4 the weather pot: tubeForm 2, the stick added, 250 mL of rain water in it', e?.params?.tubeForm === 2 && e.params.markMm === 5 && water?.amount.value === 250_000, `${JSON.stringify(e?.params)} water ${water?.amount.value} ${run?.status ?? 'no run'} ${run?.why ?? ''}`);
+  const log = (R.village.gaugeLog ?? []).filter((g: any) => g.processId === 'm03x_air_barometer_pot'), said = lantern.diary.filter((x: any) => /天気の壺を置いて読む.*：目盛り/.test(x.text)).map((x: any) => x.text);
+  want('4 read every few hours: marks in the diary (and at most a felt word, no number for the air), the air kept in the log', log.filter((g: any) => g.mark !== undefined).length >= 3 && said.length >= 3 && log.every((g: any) => g.airC === null || Number.isFinite(g.airC)) && said.every((t: string) => !/\d/.test((t.match(/（([^（）]*)）$/) ?? ['', ''])[1])), said.slice(0, 3).join(' / '));
 }
 R.save(); const saved = JSON.parse([...store.values()].find((v) => v.includes('tar_retort')) ?? '{}');
-want('4 the retort kept in the save', !!saved.lab?.equipment?.['eq:tar_retort']?.assembled);
+want('5 the retort and the weather pot kept in the save', !!saved.lab?.equipment?.['eq:tar_retort']?.assembled && !!saved.lab?.equipment?.['eq:assembled_pot']?.assembled);
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

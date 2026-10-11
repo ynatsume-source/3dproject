@@ -8,7 +8,7 @@
 //    broken: a lot of sherds of the same mass, its quality from the table (the body's kept, the vessel's dropped); in use: refused
 //  4 a new version of the table: the params worked out again from the copy (not for equipment in use)
 //  5 saved and loaded (JSON): all of it as it was
-//  6 the science side's own table (civ-sci.pot-assembly/4 since 2026-10-10, /3 since 2026-10-09; integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
+//  6 the science side's own table (civ-sci.pot-assembly/5 since 2026-10-11, /4 since 2026-10-10, /3 since 2026-10-09; integrated 2026-10-06: world/process-catalog.ts POT_ASSEMBLY): a whole
 //    sealed pot is a bulb; worn, it stays sealed, not known airtight, and is no bulb when made up again; broken, it goes
 //    back to pot_sherds (potSherdsQuality, cleared by Codex lab e2a4147): a wet, tarred pot with no full history becomes
 //    sherds of the same amount, its absorption, tar, water and history_complete as they were (whole ppm, no new rounding;
@@ -99,7 +99,7 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const L6 = emptyLedger('island', 'test');
   const lot = addLot(L6, { materialId: 'fired_pot_test', amount: { value: 615_000, unit: 'mg' }, quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1 }, location: 'shelf' });
   const e = assemble(L6, lot.lotId, POT_ASSEMBLY, 1000).equipment!;
-  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/4', JSON.stringify(e?.params));
+  want('6 real table: whole and sealed, a bulb', !!e && e.params?.airtightKnown === 1 && (e.params?.airLeakTauMin ?? 0) > 0 && L6.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/5', JSON.stringify(e?.params));
   L6.equipment[e.equipmentId].condition = 0.9;
   const back = disassemble(L6, e.equipmentId, POT_ASSEMBLY).lot!;
   want('6 real table: worn, still sealed, not known airtight', back?.quality?.sealed === 1 && back.quality?.airtight_known === 0 && back.quality?.air_leak_tau_min === undefined && back.quality?.crack_ppm === 100000, JSON.stringify(back?.quality));
@@ -179,9 +179,14 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const lot = addLot(L8, { materialId: 'fired_pot_test', amount: { value: 640_000, unit: 'mg' }, location: 'shelf',
     quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1, x_tube_ppm: 39_000, tube_bore_mm: 8, tube_length_mm: 600, joint_cover_ppm: 900_000 } });
   const e = assemble(L8, lot.lotId, POT_ASSEMBLY, 1000).equipment!, p = e?.params ?? {};
-  want('8 a tubed pot: a bulb with its tube, bulbTauS and the stick\'s marks', p.tubeBoreMm === 8 && p.tubeLengthMm === 600 && p.bulbTauS > 0 && p.markMm === 5 && p.airLeakTauMin > 0 && L8.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/4', JSON.stringify(p));
+  want('8 a tubed pot: a bulb with its tube, bulbTauS and the stick\'s marks', p.tubeBoreMm === 8 && p.tubeLengthMm === 600 && p.bulbTauS > 0 && p.markMm === 5 && p.airLeakTauMin > 0 && L8.equipment[e.equipmentId].assembled?.table === 'civ-sci.pot-assembly/5', JSON.stringify(p));
   const plain = addLot(L8, { materialId: 'fired_pot_test', amount: { value: 615_000, unit: 'mg' }, location: 'shelf', quality: { capacity_ml: 500, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1 } });
   const e2 = assemble(L8, plain.lotId, POT_ASSEMBLY, 1000).equipment!;
+  // (/5: the residents' own jar sealed with a bamboo tube — the weather pot: tubeForm 2, the tube's outside, the body's heat)
+  const bam = addLot(L8, { materialId: 'fired_pot', amount: { value: 640_000, unit: 'mg' }, location: 'shelf',
+    quality: { form: 2, capacity_ml: 500, surface_cm2: 366, absorption_ppm: 120000, coverage_ppm: 990000, sealed: 1, x_tube_ppm: 35_000, tube_bore_mm: 8, tube_length_mm: 350, joint_cover_ppm: 900_000, tube_form: 2, tube_outer_mm: 14, history_complete: 1 } });
+  const wp = assemble(L8, bam.lotId, POT_ASSEMBLY, 1000).equipment, q8 = wp?.params ?? {};
+  want('8 the residents\' jar sealed with a bamboo tube: the weather pot (table /5), the stick added', q8.tubeForm === 2 && q8.tubeOuterMm === 14 && q8.bulbHeatJPerK > 0 && q8.tubeLengthMm === 350 && q8.markMm === 5, JSON.stringify(q8));
   want('8 without a tube: no stick, no tube', e2.params?.markMm === undefined && e2.params?.tubeBoreMm === undefined, JSON.stringify(e2.params));
 }
 

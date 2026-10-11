@@ -15,6 +15,7 @@ import { kneadStep, KNEAD_PROCESS } from '../science/step/knead';
 import { coconutMilkStep, coconutBoilStep, COCONUT_MILK_PROCESS, COCONUT_BOIL_PROCESS } from '../science/step/coconut';
 import { barometerStep, BAROMETER_PROCESS } from '../science/step/barometer';
 import { barometerPotStep, BAROMETER_POT_PROCESS } from '../science/step/barometer-pot';
+import { bambooTubeStep, BAMBOO_TUBE_PROCESS, BAMBOO_TUBE } from '../science/step/bamboo-tube';
 import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
 import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn, potSherdsQuality } from '../science/step/vessel';
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
@@ -78,9 +79,11 @@ export interface CatalogEntry {
   withEquipmentLots?: boolean;
 }
 /** What the materials are called in the record (the island's own words come later). */
-export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', gauge_tube_test: '試験用の管', assembled_pot: '封じた器', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
+export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', gauge_tube_test: '試験用の管', bamboo_tube: '竹の管', assembled_pot: '封じた器', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
 /** The residents' retort and the jar they seal (mL), and the charge the upper jar holds with room (mg). */
 export const RETORT_UPPER_ML = 2000, RETORT_LOWER_ML = 300, SEAL_JAR_ML = 500, RETORT_CHARGE_MG = 700_000;
+/** The weather pot's tube (mm, the owner's decision 2026-10-11) and the rain water in its jar (mg: 250 mL). */
+export const BAMBOO_TUBE_MM = 350, WEATHER_POT_WATER_MG = 250_000;
 const handsW = (w: number) => (from: number, to: number): EnergyOffer[] => [{ sourceId: 'src:res-lantern-hands', kind: 'mechanical', maxJ: Math.round(((to - from) / 1000) * w) }];
 const hands = handsW(3);
 const TEST = SCIENCE_CATALOG_VERSION;
@@ -149,16 +152,16 @@ export const CATALOG: CatalogEntry[] = [
     // (owner's decision 2026-10-06: the typhoon forecast begins with this test gauge — it is Lantern's, on the island from
     // the first; what its readings have to do with the storms is Lantern's to find out. The self-made one is a milestone.)
     ready: true },
-  // (science final review 2026-10-10-barometer, m03x 0.1.2: the self-made barometer — the residents' own sealed pot with
-  // the test tube through its plug, water in the tube, a stick with marks beside it; stands in the hut's shade. The water
-  // goes in as a lot and comes back at the end; what spilled from the tube's mouth is released to the ground. The gauge
-  // is read on the cell's own held pressure; re-zeroing is the residents' note, the world does nothing. Not before a pot
-  // can be sealed with a tube on the island: p16x waits for wood tar.)
+  // (science final review 2026-10-11-bamboo-tube, m03x 0.2.1: the weather pot — a new 0.5 L jar of the residents' own, a
+  // 350 mm bamboo tube through its plug, 250 mL of rain water in its bottom, the tube's lower end dipped in it; a reed
+  // stick floating in the tube with marks 5 mm apart. It reads the outside pressure as the water rises in the tube (and the
+  // heat too: about 1 cm a degree in the shade). The water goes in as a lot and comes back at the end; what spills over
+  // the tube's top is released to the ground. Read on the cell's own held pressure; re-zeroing is the residents' note.)
   { processId: BAROMETER_POT_PROCESS.processId, processVersion: BAROMETER_POT_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
-    ja: '管を通して封じた器に水を入れ、目盛りの棒を添えて気圧計にする', input: 'process_water', inputJa: '真水（管の両脚の真ん中まで：8mm・600mmの管で15mL）', minInputMg: 16_000,
-    equipment: { kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, condition: 1, params: {}, ja: '管を通して封じた器' },
+    ja: '天気の壺を置いて読む（竹の管の水の高さ）', input: 'process_water', inputJa: '雨水（壺の底に250mL）', minInputMg: WEATHER_POT_WATER_MG,
+    equipment: { kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, condition: 1, params: {}, ja: '天気の壺（竹の管を通して封じた壺）' }, built: ASSEMBLED_POT,
     step: barometerPotStep, env: 'record', tend: 'leave', gauge: { action: 'read_gauge', everyMs: 3 * 3_600_000 },
-    ready: false, waits: '管を栓に通して封じた器（木タールで封じる工程はこれから）と、真水' },
+    ready: true, waits: '竹の管を通して封じた壺と、雨水' },
   // (integrated 2026-10-06: the science team's final review FINAL_REVIEW_2026-10-06.md — charcoal and wood tar, and the
   // sealed vessel; wood tar comes from the charcoal burn, so they came in together)
   // (the residents' own retort — two fired jars, the upper packed with dry wood mouth down over the lower buried to catch
@@ -180,12 +183,20 @@ export const CATALOG: CatalogEntry[] = [
   // (the residents' own fired jar sealed with the tar from their retort — p16x takes fired_pot since 0.1.2; the brush and
   // plug from TOOL_RECIPES. No tube yet: the island has no gauge tube of its own)
   { processId: TAR_SEAL_PROCESS.processId, processVersion: TAR_SEAL_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
-    ja: '器にタールを塗って口を封じる', input: 'fired_pot', inputJa: '焼いた壺（封じていない0.5Lのもの）', inputOk: (l) => l.quality?.form === 2 && l.quality?.capacity_ml === SEAL_JAR_ML && l.quality?.sealed !== 1 && !l.quality?.crack,
-    also: [{ input: 'wood_tar', ja: '木タール' }],
+    ja: '器にタールを塗り、竹の管を栓に通して口を封じる', input: 'fired_pot', inputJa: '焼いた壺（封じていない0.5Lのもの）', inputOk: (l) => l.quality?.form === 2 && l.quality?.capacity_ml === SEAL_JAR_ML && l.quality?.sealed !== 1 && !l.quality?.crack,
+    also: [{ input: 'wood_tar', ja: '木タール（栓に5g、管の継ぎ目に6g）', minMg: 11_000 }, { input: BAMBOO_TUBE, ja: '竹の管（栓に通す）' }],
     equipment: { kind: 'fixture_tar_brush', catalogEntry: 'fixture_tar_brush', catalogVersion: TEST, condition: 1, params: {}, ja: 'タールの刷毛' }, built: 'fixture_tar_brush',
-    start: { action: 'seal', params: {} },
+    start: { action: 'seal', params: { jointTarG: 6 } },   // (6 g of tar on the tube's joint, cold: the handbook's amount)
     step: tarSealStep, env: 'record', energy: handsW(15), tend: 'stay',
-    ready: true, waits: '焼いた0.5Lの壺と、木タール（炭焼きから）と、タールの刷毛（竹から作る）' },
+    ready: true, waits: '焼いた0.5Lの壺と、木タール（炭焼きから）と、竹の管と、タールの刷毛（竹から作る）' },
+  // (science p18x 0.1.0: a straight tube cut from one internode of the house's leftover bamboo, 350 mm (the owner's
+  // decision: water stands about 33 cm above the jar's water, a typhoon's fall still read; 400 mm is the internode's most).
+  // One in ten splits along its length and the bamboo goes back: cut again. Once the retort stands, for the weather pot)
+  { processId: BAMBOO_TUBE_PROCESS.processId, processVersion: BAMBOO_TUBE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    ja: '竹の節の間を切って、まっすぐな管にする', input: 'bamboo', inputJa: '竹（家の余り）', minInputMg: 200_000,
+    equipment: null, start: { action: 'cut', params: { lengthMm: BAMBOO_TUBE_MM } }, enough: BAMBOO_TUBE,
+    step: bambooTubeStep, env: 'record', energy: handsW(15), tend: 'stay', built: TAR_RETORT,
+    ready: true, waits: '竹（家の余り）と、乾留の器（タールが島でとれてから）' },
   { processId: LEAK_TEST_PROCESS.processId, processVersion: LEAK_TEST_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
     ja: '器の漏れを試す（水を入れて待つ）', input: 'fired_pot_test', inputJa: '焼いた器', also: [{ input: 'process_water', ja: '真水（封じていない器に入れるとき）' }],
     equipment: { kind: 'fixture_vessel_stand', catalogEntry: 'fixture_vessel_stand', catalogVersion: TEST, condition: 1, params: { sunExposure: 0 }, ja: '器の台' },
@@ -272,7 +283,7 @@ export const CATALOG: CatalogEntry[] = [
 /** The marks on the stick beside a self-made barometer's tube (mm apart): as the test gauge's. */
 export const GAUGE_MARK_MM = 5;
 export const POT_ASSEMBLY: AssemblyTable = {
-  version: POT_ASSEMBLY_TABLE, kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, materials: ['fired_pot_test'],
+  version: POT_ASSEMBLY_TABLE, kind: ASSEMBLED_POT, catalogEntry: ASSEMBLED_POT, catalogVersion: TEST, materials: ['fired_pot_test', FIRED_POT],
   // (table /4: a pot with a gauge tube through its plug gives the bulb's params; main adds the stick it carves to read it
   // by, marks GAUGE_MARK_MM apart, as the test gauge's — science final review 2026-10-10-barometer)
   toParams: (l) => { const p = potToEquipmentParams(l); return p.tubeBoreMm !== undefined ? { ...p, markMm: GAUGE_MARK_MM } : p; }, qualityOnReturn: potQualityOnReturn, brokenMaterial: 'pot_sherds', brokenQuality: potSherdsQuality,
