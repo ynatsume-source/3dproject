@@ -9,6 +9,7 @@ import { cloudAt } from './render/cloud';
 import { clamp, smooth, angDiff, rr, getStream, setStream, hyp } from './core/math';
 import { LOCATIONS, DOTWORLD, type Sea } from './data/locations';
 import { worldKey, seaHash, seaForHash, migrateSeen } from './world/location-id';
+import { createHashNavigation } from './world/hash-navigation';
 import { ridersFor } from './eco/riders';
 import { sightRange } from './eco/unseen';
 import { makeDrone } from './ocean/drone';
@@ -2208,7 +2209,7 @@ async function shareMoment() {
   catch (e) { prompt('この景色のリンク', url); }
 }
 
-function enterOcean(oc: Ocean) {
+function enterOcean(oc: Ocean, writeUrl = true) {
   if (cur !== oc) {
     // Observations belong to the sea that produced them. Its ecosystem pauses when
     // we leave, so old live() closures cannot be allowed to keep a hunt on screen.
@@ -2301,7 +2302,7 @@ function enterOcean(oc: Ocean) {
   $('locCoord').textContent = fmtLL(oc.loc.lat, oc.loc.lon);
   setMode('auto');
   renderGuide(); renderWatch();
-  try { history.replaceState(null, '', seaHash(oc.loc)); } catch (e) { /* ignore */ }
+  if (writeUrl && !hashNavigation.hasPending()) try { history.replaceState(null, '', seaHash(oc.loc)); } catch (e) { /* ignore */ }
   resize();
   requestAnimationFrame(resize);
 }
@@ -2545,67 +2546,78 @@ function buildAhead(loc: Sea) {
   if (oceans[worldKey(loc)] || loc.world) return;
   aheadTimer = window.setTimeout(() => { if (!busy && mode === 'globe' && !oceans[worldKey(loc)]) startJob(loc); }, 700);
 }
-async function dive(loc: Sea) {
+async function dive(loc: Sea, writeUrl = true) {
   keepAwake(); clearNewMark();
   if (busy) return; busy = true;
-  const key = worldKey(loc);
-  setHot(LOCATIONS.indexOf(loc));
-  clearTimeout(aheadTimer);
-  // the globe turns in toward the sea while it is built (or finished, if it was begun on the globe), a slice a frame;
-  // what is left after that is built behind the veil, in bigger slices
-  let turned = false;
-  const turn = tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300).then(() => { turned = true; });
-  const tb = performance.now();
-  if (!oceans[key]) {
-    const j = startJob(loc);
-    let shown = false;
-    while (!j.done && !j.failed) {
-      if (turned && !shown) { veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています'); shown = true; globeHidden = performance.now() + 750; }
-      stepJob(j, shown ? 250 : 14);
-      if (shown) $('veilS').textContent = `海を用意しています・${STAGE_JA[j.stage] ?? ''}`;
+  if (writeUrl) restoreStartup = false;
+  try {
+    const key = worldKey(loc);
+    setHot(LOCATIONS.indexOf(loc));
+    clearTimeout(aheadTimer);
+    // the globe turns in toward the sea while it is built (or finished, if it was begun on the globe), a slice a frame;
+    // what is left after that is built behind the veil, in bigger slices
+    let turned = false;
+    const turn = tweenGlobe(loc.lat, loc.lon, 1.16, reduceMotion ? 900 : 1300).then(() => { turned = true; });
+    const tb = performance.now();
+    if (!oceans[key]) {
+      const j = startJob(loc);
+      let shown = false;
+      while (!j.done && !j.failed) {
+        if (turned && !shown) { veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています'); shown = true; globeHidden = performance.now() + 750; }
+        stepJob(j, shown ? 250 : 14);
+        if (shown) $('veilS').textContent = `海を用意しています・${STAGE_JA[j.stage] ?? ''}`;
+        await nextFrame();
+      }
+      if (job === j) job = null;
+      globeHidden = 0;
+      if (!j.done) {   // (a step went wrong: built straight through instead, as before)
+        if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);
+        oceans[key] = buildOcean(loc);
+      } else oceans[key] = j.done;
+    } else if (job) job = null;   // (a job for another sea is dropped)
+    const tc = performance.now();
+    await turn;
+    if (!prepared.has(key)) {
+      veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
       await nextFrame();
+      await prepareShaders(oceans[key]);
+      prepared.add(key);
     }
-    if (job === j) job = null;
-    globeHidden = 0;
-    if (!j.done) {   // (a step went wrong: built straight through instead, as before)
-      if (loc.land) await loadLand(loc.id, loc.land.half, loc.land.far);
-      oceans[key] = buildOcean(loc);
-    } else oceans[key] = j.done;
-  } else if (job) job = null;   // (a job for another sea is dropped)
-  const tc = performance.now();
-  await turn;
-  if (!prepared.has(key)) {
-    veil(true, 'PREPARING', `${loc.name} · ${loc.site}`, '海を用意しています');
+    if (dbg) console.log(`[load] build ${(tc - tb).toFixed(0)}ms (with the globe turning) shaders ${(performance.now() - tc).toFixed(0)}ms`);
+    visited.add(key);
+    veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
+    await wait(600);
+    enterOcean(oceans[key], writeUrl);
+    lastIn.set(key, performance.now()); keepFew();
+    track('dive', { sea: loc.id });
     await nextFrame();
-    await prepareShaders(oceans[key]);
-    prepared.add(key);
+  } finally {
+    veil(false); setHot(-1);
+    busy = false;
+    void hashNavigation.flush();
   }
-  if (dbg) console.log(`[load] build ${(tc - tb).toFixed(0)}ms (with the globe turning) shaders ${(performance.now() - tc).toFixed(0)}ms`);
-  visited.add(key);
-  veil(true, 'DIVING', `${loc.name} · ${loc.site}`, `${fmtLL(loc.lat, loc.lon)} ／ 現地 ${localTimeString(clock.ms, loc.tz)}`);
-  await wait(600);
-  enterOcean(oceans[key]);
-  lastIn.set(key, performance.now()); keepFew();
-  track('dive', { sea: loc.id });
-  await nextFrame();
-  veil(false); setHot(-1);
-  busy = false;
 }
-async function toGlobe() {
+async function toGlobe(writeUrl = true) {
   if (busy || mode !== 'ocean') return; busy = true;
-  lanternStudyPanel.close();
-  const loc = cur!.loc;
-  veil(true, 'SURFACING', '地球儀へ戻ります', `${loc.name} から浮上中`);
-  await wait(750);
-  mode = 'globe'; syncReplay();
-  document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
-  setGuide(false); setTimePanel(false); setVolPanel(false); watch.r = null; setPov(false);
-  gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
-  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
-  resize();
-  veil(false);
-  await tweenGlobe(clamp(loc.lat, -40, 40), loc.lon, 3.5, 1800);
-  busy = false;
+  if (writeUrl) restoreStartup = false;
+  try {
+    lanternStudyPanel.close();
+    const loc = cur!.loc;
+    veil(true, 'SURFACING', '地球儀へ戻ります', `${loc.name} から浮上中`);
+    await wait(750);
+    mode = 'globe'; syncReplay();
+    document.body.classList.add('mode-globe'); document.body.classList.remove('mode-ocean');
+    setGuide(false); setTimePanel(false); setVolPanel(false); watch.r = null; setPov(false);
+    gv.lat = loc.lat; gv.lon = loc.lon; gv.dist = 1.2; gv.lastUser = performance.now();
+    if (writeUrl && !hashNavigation.hasPending()) try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
+    resize();
+    veil(false);
+    await tweenGlobe(clamp(loc.lat, -40, 40), loc.lon, 3.5, 1800);
+  } finally {
+    veil(false);
+    busy = false;
+    void hashNavigation.flush();
+  }
 }
 
 function setMode(m: 'auto' | 'manual') {
@@ -3007,7 +3019,7 @@ function takeUpPlace(loc: Sea) {
   let r: any = null;
   try { r = JSON.parse(localStorage.getItem(RESUME_KEY) || 'null'); } catch (e) { /* storage blocked */ }
   // A legacy plain sea id could refer to either Kayama world. Discard the old view, never the resident save.
-  if (!r || r.sea !== worldKey(loc) || Date.now() - r.at > 30 * 60000 || shared || !cur) return;
+  if (!r || r.sea !== worldKey(loc) || Date.now() - r.at > 30 * 60000 || shared || !cur || worldKey(cur.loc) !== worldKey(loc)) return;
   const [x, y, z] = r.p;
   if (![x, y, z].every(Number.isFinite) || Math.abs(x - ZONE.x) > 1e4) return;
   endOpening(false);
@@ -3020,7 +3032,7 @@ function takeUpPlace(loc: Sea) {
 // a touch's pointerdown is not a gesture to Safari, and the video it starts would be refused)
 for (const ev of ['pointerup', 'touchend', 'click'] as const) document.addEventListener(ev, keepAwake, { passive: true });
 
-$('btnBack').onclick = toGlobe;
+$('btnBack').onclick = () => { void toGlobe(); };
 $('btnGuide').onclick = () => openPanel('guide');
 $('btnLog').onclick = () => openPanel('log');
 $('btnTime').onclick = () => setTimePanel($('timePanel').hidden);
@@ -3702,7 +3714,23 @@ resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
 const start = seaForHash(location.hash, LOCATIONS, DOTWORLD);
-if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : dive(start).then(() => takeUpPlace(start))), 300); }
+let restoreStartup = true;
+const hashNavigation = createHashNavigation<Sea>({
+  resolve: (hash) => hash === '' || hash === '#' ? null : seaForHash(hash, LOCATIONS, DOTWORLD),
+  busy: () => busy,
+  current: (loc) => loc ? mode === 'ocean' && !!cur && worldKey(cur.loc) === worldKey(loc) : mode === 'globe',
+  navigate: async (loc) => {
+    if (!loc) { await toGlobe(false); return; }
+    const resume = restoreStartup; restoreStartup = false;
+    if (mode === 'ocean') { await toGlobe(false); if (hashNavigation.hasPending()) return; }
+    await dive(loc, false);
+    if (resume && !hashNavigation.hasPending() && location.hash === seaHash(loc)) takeUpPlace(loc);
+  },
+  onError: (error) => console.error('World navigation failed', error),
+});
+function navigateHash() { restoreStartup = false; hashNavigation.request(location.hash); }
+if (!gputest) addEventListener('hashchange', navigateHash);
+if (start) { gv.lat = start.lat; gv.lon = start.lon; setTimeout(() => (probe ? shaderProbe() : gputest ? gpuTest(start) : restoreStartup && hashNavigation.request(location.hash)), 300); }
 void smooth;
 
 // Inspect the live sim from the console with ?debug

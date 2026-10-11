@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { LOCATIONS, DOTWORLD } from '../src/data/locations';
 import { shareUrl } from '../src/ui/share';
+import { createHashNavigation } from '../src/world/hash-navigation';
 
 // WORLD_SWITCH_MAIN can point at a baseline copy to reproduce the old application's failure.
 const mainPath = process.env.WORLD_SWITCH_MAIN ?? new URL('../src/main.ts', import.meta.url);
@@ -28,16 +29,19 @@ const compile = (code: string, env: any) => {
   return new Function('env', `with (env) { ${js} }`)(env);
 };
 const actual = (name: string, env: any) => compile(`${functionNode(name).getText(ast)}\nreturn ${name};`, env);
-const historyCall = find(functionNode('enterOcean'), (n) => ts.isCallExpression(n) && n.expression.getText(ast) === 'history.replaceState').getText(ast);
+const historyWrite = find(functionNode('enterOcean'), (n) => (ts.isIfStatement(n) && n.expression.getText(ast).includes('writeUrl')) ||
+  (!source.includes('writeUrl = true') && ts.isTryStatement(n) && n.getText(ast).includes('history.replaceState'))).getText(ast);
 const start = ast.statements.flatMap((n) => ts.isVariableStatement(n) ? [...n.declarationList.declarations] : [])
   .find((n) => n.name.getText(ast) === 'start')?.initializer?.getText(ast);
 if (!start) throw new Error('main.ts start location missing');
 const shared = find(functionNode('shareMoment'), (n) => ts.isCallExpression(n) && n.expression.getText(ast) === 'shareUrl').getText(ast);
+const hashListener = source.includes("addEventListener('hashchange', navigateHash)");
 const earth = LOCATIONS.find((l) => l.id === 'kayama')!;
 const helperPath = new URL('../src/world/location-id.ts', import.meta.url);
 const helpers = fs.existsSync(helperPath) ? await import(pathToFileURL(helperPath.pathname).href) : {};
 let bad = 0;
 const want = (name: string, ok: boolean) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) bad++; };
+want('hash-only navigation is wired into the application', hashListener);
 const storage = () => {
   const m = new Map<string, string>([['seaglass.residents.v1', '{"memory":"keep me"}']]);
   return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => m.set(k, v) };
@@ -62,13 +66,15 @@ function fixture() {
     ZONE: { x: 0 }, endOpening: no, nearestS: () => 0, forgetLand: (id: string) => freed.push(id), freeOcean: no,
     aheadLast: 0, aheadGap: 16, globeGap: 16, globeLast: 0, aheadBudget: 10, aheadId: null,
     gv: { dragging: false, lastUser: -1e12 }, renderer: { extensions: { get: () => false } }, SAFE: 0,
+    hashNavigation: { flush: async () => {}, hasPending: () => false },
+    restoreStartup: true,
   };
   const ocean = (loc: any) => { counts.push(loc); return { loc, residents: loc.residents ? { memory: 'resident' } : null }; };
   env.buildOcean = ocean;
   env.startJob = (loc: any) => (env.job = { loc, done: ocean(loc), failed: false });
   env.stepJob = () => true;
   env.prepareShaders = async (oc: any) => { shaders.push(oc); };
-  env.enterOcean = (oc: any) => { env.cur = oc; env.mode = 'ocean'; compile(`${historyCall};`, { ...env, oc }); };
+  env.enterOcean = (oc: any, writeUrl = true) => { env.cur = oc; env.mode = 'ocean'; compile(`${historyWrite}`, { ...env, oc, writeUrl }); };
   env.letGo = actual('letGo', env); env.keepFew = actual('keepFew', env);
   env.localDate = actual('localDate', env); env.saveLog = actual('saveLog', env);
   env.ensureDay = actual('ensureDay', env); env.recordLog = actual('recordLog', env);
@@ -141,6 +147,102 @@ for (const loc of [earth, DOTWORLD]) {
   const migrated = helpers.migrateSeen ? helpers.migrateSeen(old, LOCATIONS) : old;
   want('legacy Earth sightings migrate; ambiguous Kayama sightings reset', migrated.includes('earth:miyako:testfish') && migrated.includes('planet:kayama:testfish') && !migrated.includes('kayama:testfish'));
   want('viewing log and sighting migration leave resident memory unchanged', env.localStorage.getItem('seaglass.residents.v1') === '{"memory":"keep me"}');
+}
+// Drive the application's real hash callback and controller setup. Rendering is
+// stubbed, but URL writes, busy states, entry/exit and cache selection are real.
+const navigationInit = ast.statements.flatMap((n) => ts.isVariableStatement(n) ? [...n.declarationList.declarations] : [])
+  .find((n) => n.name.getText(ast) === 'hashNavigation')?.initializer?.getText(ast);
+const settle = async () => { for (let i = 0; i < 100; i++) await Promise.resolve(); };
+const deferred = () => { let release!: () => void; const promise = new Promise<void>((r) => { release = r; }); return { promise, release }; };
+function navigationFixture() {
+  const f = fixture(), { env } = f, errors: unknown[] = [], writes: string[] = [];
+  Object.assign(env, {
+    createHashNavigation, restoreStartup: true, console: { error: (...e: unknown[]) => errors.push(e) },
+    lanternStudyPanel: { close() {} }, syncReplay() {}, document: { body: { classList: { add() {}, remove() {} } } },
+    setGuide() {}, setTimePanel() {}, setVolPanel() {}, watch: { r: null }, setPov() {}, resize() {}, clamp: (x: number) => x,
+  });
+  env.history.replaceState = (_s: unknown, _t: string, url: string) => { writes.push(url); env.location.hash = new URL(url, 'https://example.test').hash; };
+  env.dive = f.dive; env.toGlobe = actual('toGlobe', env); env.takeUpPlace = actual('takeUpPlace', env);
+  // The real frame only advances globe tweens in globe mode. Catch an ocean-to-
+  // ocean dive that would otherwise hang despite the fixture's instant tweens.
+  env.tweenGlobe = async (_lat: number, _lon: number, distance: number) => {
+    if (distance < 1.2 && env.mode !== 'globe') throw new Error('dive must start in globe mode');
+  };
+  if (navigationInit) env.hashNavigation = compile(`return ${navigationInit};`, env);
+  const handler = hashListener ? actual('navigateHash', env) : () => {};
+  const hash = (value: string) => { env.location.hash = value; handler(); };
+  return { ...f, hash, handler, errors, writes };
+}
+for (const order of [[earth, DOTWORLD], [DOTWORLD, earth]]) {
+  const f = navigationFixture(), { env, hash } = f;
+  env.location.pathname = '/app/'; env.location.search = '?debug&nollm';
+  for (const loc of order) {
+    hash(helpers.seaHash(loc)); await settle();
+    want(`hash only: enters ${helpers.worldKey(loc)}`, env.mode === 'ocean' && env.cur?.loc === loc && !!env.cur.residents === !!loc.residents);
+  }
+  want('hash navigation preserves history, path, query and resident save', f.writes.length === 0 && env.location.pathname === '/app/' && env.location.search === '?debug&nollm' && env.localStorage.getItem('seaglass.residents.v1') === '{"memory":"keep me"}');
+  const before = f.counts.length;
+  f.handler(); await settle();
+  want('same hash notification reuses the active world', f.counts.length === before && !env.busy);
+  hash('#unknown-world'); await settle();
+  want('unknown fragment leaves the world unchanged', env.cur?.loc === order[1] && !env.busy);
+  hash(''); await settle();
+  want('empty fragment surfaces to globe without replacing history', env.mode === 'globe' && env.location.hash === '');
+  hash(helpers.seaHash(order[1])); await settle();
+  want('globe can re-enter the world retained in cur', env.mode === 'ocean' && env.cur?.loc === order[1] && f.counts.length === before);
+  want('world transitions do not leave a busy loader or errors', !env.busy && f.errors.length === 0);
+}
+{
+  const f = navigationFixture(), gate = deferred();
+  f.env.wait = () => gate.promise;
+  f.hash('#kayama'); f.hash('#planet'); f.hash('#miyako');
+  gate.release(); await settle();
+  want('rapid hash requests finish in the latest world', f.env.cur?.loc.id === 'miyako' && !f.env.cur.loc.world && !f.env.busy);
+  want('superseded planet request is not built', !f.counts.includes(DOTWORLD));
+}
+{
+  const f = navigationFixture(), gate = deferred();
+  f.env.wait = () => gate.promise;
+  const loading = f.dive(earth); await settle();
+  f.hash('#planet'); gate.release(); await loading; await settle();
+  want('hash change during UI loading is queued and cannot be overwritten', f.env.cur?.loc === DOTWORLD && f.env.location.hash === '#planet' && f.writes.length === 0);
+}
+{
+  const f = navigationFixture(), gate = deferred();
+  f.env.wait = () => gate.promise;
+  const loading = f.dive(earth); await settle();
+  f.hash('#planet'); f.hash('#unknown-world'); gate.release(); await loading; await settle();
+  want('latest invalid fragment cancels an older queued destination', f.env.cur?.loc === earth && !f.counts.includes(DOTWORLD) && f.env.location.hash === '#unknown-world');
+}
+{
+  const f = navigationFixture();
+  let timer!: () => void;
+  const startup = ast.statements.find((n) => ts.isIfStatement(n) && n.expression.getText(ast) === 'start')!;
+  Object.assign(f.env, { start: DOTWORLD, probe: false, gputest: false, setTimeout: (fn: () => void) => { timer = fn; } });
+  compile(startup.getText(ast), f.env);
+  f.hash('#kayama'); timer(); await settle();
+  want('startup delay uses the current hash instead of its old snapshot', f.env.cur?.loc === earth && !f.counts.includes(DOTWORLD));
+}
+{
+  const f = navigationFixture(), gate = deferred();
+  let timer!: () => void;
+  const startup = ast.statements.find((n) => ts.isIfStatement(n) && n.expression.getText(ast) === 'start')!;
+  Object.assign(f.env, { start: DOTWORLD, probe: false, gputest: false, setTimeout: (fn: () => void) => { timer = fn; }, wait: () => gate.promise });
+  f.env.location.hash = '#planet';
+  compile(startup.getText(ast), f.env);
+  const loading = f.dive(earth); await settle(); timer(); gate.release(); await loading; await settle();
+  want('explicit UI navigation cancels a delayed startup destination', f.env.cur?.loc === earth && f.env.location.hash === '#kayama' && !f.counts.includes(DOTWORLD));
+}
+{
+  const f = navigationFixture();
+  if (navigationInit) {
+    let fail = true;
+    f.env.prepareShaders = async () => { if (fail) { fail = false; throw new Error('test preparation failure'); } };
+    f.hash('#planet'); await settle();
+    want('failed URL loading releases busy and reports the error', !f.env.busy && f.errors.length === 1);
+    f.hash('#kayama'); await settle();
+    want('URL navigation can retry after a preparation failure', f.env.cur?.loc === earth && !f.env.busy);
+  }
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS (world switch)');
 process.exit(bad ? 1 : 0);
