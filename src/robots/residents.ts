@@ -1057,7 +1057,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function voyageJudge(r: Resident, isleId: string): { go: boolean; why?: string; km: number } {
     const i = ISLES.find((x) => x.id === isleId)!, km = fromHome(i).km, hr = localHour(clockMs);
     if (storm()) return { go: false, why: '台風で海が荒れている', km };
-    if (wxNow && wxNow.wind >= 8) return { go: false, why: `風が強い（${wxNow.wind.toFixed(1)}m/s）`, km };
+    if (wxNow && wxNow.wind >= 8) return { go: false, why: '風が強い', km };
     // (a crossing runs on the island's clock — out of sight, as the crops and the processes do: two km an island hour,
     // there and back, and half an hour ashore; owner's decision 2026-10-06. Not before the morning gathering, and back
     // before the light goes)
@@ -1874,11 +1874,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (what it did for the other, paid back: taken on by one its reef has fed — a reward for having made it)
     if (yes && fa && trust(r, from) > 0.1 && patches.some((p) => p.by === from.id)) fa.values.bonus('reef:sea', '流木を沈めて漁礁をつくる', 0.5);
   }
-  /** The island's date, season and weather, as its mind is told them (the replayed record's values, as measured). */
+  /** The island's date, season and weather, as its mind is told them: what a body meets — the sky, the wind and the
+   *  warmth in words — never the record's numbers (ADR 0006: no hidden values; pressure is read on Lantern's own gauge). */
   function islandNow() {
-    const d = islandDate(clockMs), w = wxNow;
-    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: `${w.wind.toFixed(1)}m/s`, 気圧: `${Math.round(w.pressure)}hPa` } : {}) };
+    const d = islandDate(clockMs), w = wxNow, feel = w ? feelOf(w, clockMs) : '';
+    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: windWord(w), ...(feel ? { 体感: feel } : {}) } : {}) };
   }
+  /** The wind as a body meets it, in a word (not the station's m/s). */
+  function windWord(w: IslandWeather) { return w.wind < 1.5 ? 'ほとんどない' : w.wind < 5 ? '弱い' : w.wind < 8 ? 'やや強い' : '強い'; }
   /** Dot's map, as its mind is told it: each island seen, by its own word, direction, distance and size; and those reached. */
   function mapNow() {
     const m = village.map;
@@ -2062,7 +2065,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     addLot(lab, { materialId: 'firewood', amount: { value: mass, unit: 'mg' }, location: 'shelf', quality: { water_ppm: water, ...(ws.every((l) => l.quality?.ash_dry_ppm !== undefined) ? { ash_dry_ppm: ash } : {}),   // (the ash only if every part says it: a part that does not is not 0)
  history_complete: hist } });
     lab.world.worldVersion++; drawStore();
-    note(r, 'tool', {}, `薪を1つの山にまとめた（${ws.length}つ、${+(mass / 1e6).toFixed(1)}kg、水分${(water / 1e4).toFixed(0)}%）`);
+    // (the mass as weighed; the water is the model's, measured by no one — kept in the lot, not in the diary: ADR 0006)
+    note(r, 'tool', {}, `薪を1つの山にまとめた（${ws.length}つ、${+(mass / 1e6).toFixed(1)}kg）`);
   }
   function makeCookPot(r: Resident, lotId: string) {
     if (lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`]) return;
@@ -3259,10 +3263,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.spare ??= 0; village.lampLog ??= []; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); drawSpare(); drawLamp(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
-    // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
-    for (const l of Object.values(lab.lots)) if (l.materialId === 'raw_clay' && !l.quality?.water_ppm) l.quality = { ...RAW_CLAY_SOUTH };
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
     delete (village as any).store;
+    // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
+    for (const l of Object.values(lab.lots)) if (l.materialId === 'raw_clay' && !l.quality?.water_ppm) l.quality = { ...RAW_CLAY_SOUTH };
     // (a run saved under a process version the island no longer has is not resumed: it is ended, what it held freed)
     for (const x of [...village.labRuns]) { const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId);
       if (!run || !e || run.processVersion !== e.processVersion) { if (run) abortRun(lab, x.runId, `工程の版が変わった（${run.processVersion} → ${e?.processVersion ?? 'なし'}）`); village.labRuns.splice(village.labRuns.indexOf(x), 1); } }
@@ -3355,7 +3359,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           if (caller) for (const o of list.filter((x) => x !== caller && awake(x) && Math.hypot(x.pos.x - caller.pos.x, x.pos.z - caller.pos.z) < 60).slice(0, 3)) {
             const c = exchange(caller, o); utter(caller, { act: 'order', to: o.id as Who, deed: 'shelter', why: 'typhoon' }, 0, c); utter(o, { act: 'will-go' }, 2000, c);
           } }
-        for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${p}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
+        // (the diary is the residents' own: what a body meets, in words — the station's numbers stay in the viewer's log
+        // below; ADR 0006: no hidden values. The diary goes on into the day's post: journal/write.ts)
+        const felt = w ? `（風が${windWord(w)}${w.rain >= 1 ? '・雨が強い' : ''}）` : '';
+        for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${felt}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
         res.onEvent('weather', `台風が来た${p}`, list[0]);
       } else if (was && !storm()) {   // it has passed: the beds and the rocky bottom are torn up; the sea brings things up the beach
         hypoStormEnd(clockMs); stormOutcome();
