@@ -1,0 +1,123 @@
+{
+  "sourceCommit": "395beae25c3460d13cf04296375af2ee552186d7",
+  "harnessSha256": "5a632e95409f6e2809c7be230371c714ef54fefc9382f8090d63c7c5a728d652",
+  "mode": "synthetic fixture; visual shape changes deferred",
+  "fixtureSha256": "e8dd6edb7cf055f29743ab2cbd39aa6e0be4d74c1ee82a5edc5e529290972f4b",
+  "browser": "151.0.7922.173",
+  "measurements": [
+    {
+      "id": "phone-day",
+      "w": 390,
+      "h": 844,
+      "tier": "medium",
+      "time": "12:00",
+      "warmFrames": 4,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "timesMs": [
+        5976.700000000186,
+        6383.5999999996275,
+        6343
+      ],
+      "counts": [
+        {
+          "calls": 944,
+          "triangles": 11858416,
+          "points": 5049,
+          "lines": 0
+        },
+        {
+          "calls": 944,
+          "triangles": 11858416,
+          "points": 5049,
+          "lines": 0
+        },
+        {
+          "calls": 944,
+          "triangles": 11858416,
+          "points": 5049,
+          "lines": 0
+        }
+      ],
+      "objects": 2317,
+      "meshes": 2154,
+      "random": {
+        "draws": 611741,
+        "hash": 3170378031
+      },
+      "fire": 0,
+      "clockMs": 1791601200000,
+      "camera": [
+        68,
+        7.7075000405311584,
+        -137
+      ],
+      "rotation": [
+        -0.5,
+        0.7853981633974483,
+        0,
+        "YXZ"
+      ],
+      "drawingBuffer": [
+        390,
+        844
+      ],
+      "tiers": {
+        "tier": "medium",
+        "seaTier": "medium",
+        "renderScale": 1,
+        "pipOn": true
+      },
+      "pose": [
+        68,
+        7.7075000405311584,
+        -137,
+        0.7853981633974483,
+        -0.5
+      ],
+      "startupRandom": {
+        "draws": 611729,
+        "hash": 2006471544
+      },
+      "startStateSha256": "3cc2f0ffa587accc2ea7cfd018b82b0083e6a080e243f7f66b6bd14a8f279680",
+      "endStateSha256": "7dd5bdbbffd1326b07ab010b950fcd36d02feaa00b20c86f42891354698661f7",
+      "state": {
+        "shelfMg": 24000000,
+        "shelfKg": 24,
+        "roofExists": true,
+        "logModelLimit": 15,
+        "visibleLogModels": 8,
+        "lots": [
+          {
+            "id": "lot:firewood-study",
+            "mg": 24000000,
+            "waterPpm": 450000
+          }
+        ],
+        "felled": [
+          {
+            "x": 58.38611046145671,
+            "z": -142.20704856710074,
+            "kind": 1,
+            "height": 5.041346603324786,
+            "at": 1791601200000
+          }
+        ],
+        "saplingDown": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "firing": null,
+        "boiling": false,
+        "heapVisible": false,
+        "boilVisible": false,
+        "renderedFire": 0
+      },
+      "medianMs": 6343,
+      "errors": []
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,84 @@
+
+> seaglass@0.1.0 check:fast
+> node scripts/checks.mjs fast
+
+RUN assembly (assertion, timeout 120s)
+PASSED assembly: 0.52s, log /workspace/firewood-study/app/check-results/fast/assembly.log
+RUN body (assertion, timeout 120s)
+PASSED body: 2.306s, log /workspace/firewood-study/app/check-results/fast/body.log
+RUN house (assertion, timeout 120s)
+PASSED house: 70.494s, log /workspace/firewood-study/app/check-results/fast/house.log
+RUN hypo (assertion, timeout 120s)
+PASSED hypo: 15.925s, log /workspace/firewood-study/app/check-results/fast/hypo.log
+RUN island-science (assertion, timeout 120s)
+PASSED island-science: 1.605s, log /workspace/firewood-study/app/check-results/fast/island-science.log
+RUN island-time (assertion, timeout 120s)
+PASSED island-time: 0.784s, log /workspace/firewood-study/app/check-results/fast/island-time.log
+RUN journal (assertion, timeout 120s)
+PASSED journal: 1.031s, log /workspace/firewood-study/app/check-results/fast/journal.log
+RUN lamp (assertion, timeout 120s)
+PASSED lamp: 19.744s, log /workspace/firewood-study/app/check-results/fast/lamp.log
+RUN lantern (assertion, timeout 120s)
+PASSED lantern: 0.477s, log /workspace/firewood-study/app/check-results/fast/lantern.log
+RUN lantern-brain (assertion, timeout 120s)
+PASSED lantern-brain: 0.349s, log /workspace/firewood-study/app/check-results/fast/lantern-brain.log
+RUN lantern-residents (assertion, timeout 120s)
+PASSED lantern-residents: 1.686s, log /workspace/firewood-study/app/check-results/fast/lantern-residents.log
+RUN lantern-sky (assertion, timeout 120s)
+PASSED lantern-sky: 0.274s, log /workspace/firewood-study/app/check-results/fast/lantern-sky.log
+RUN lantern-study (assertion, timeout 120s)
+PASSED lantern-study: 0.271s, log /workspace/firewood-study/app/check-results/fast/lantern-study.log
+RUN lumau (assertion, timeout 120s)
+PASSED lumau: 0.253s, log /workspace/firewood-study/app/check-results/fast/lumau.log
+RUN map (assertion, timeout 120s)
+PASSED map: 22.395s, log /workspace/firewood-study/app/check-results/fast/map.log
+RUN mind (assertion, timeout 120s)
+PASSED mind: 3.201s, log /workspace/firewood-study/app/check-results/fast/mind.log
+RUN nav (assertion, timeout 120s)
+PASSED nav: 1.68s, log /workspace/firewood-study/app/check-results/fast/nav.log
+RUN pottery-host (assertion, timeout 120s)
+PASSED pottery-host: 0.442s, log /workspace/firewood-study/app/check-results/fast/pottery-host.log
+RUN process-runner (assertion, timeout 120s)
+PASSED process-runner: 0.432s, log /workspace/firewood-study/app/check-results/fast/process-runner.log
+RUN science-barometer-pot (assertion, timeout 120s)
+PASSED science-barometer-pot: 1.718s, log /workspace/firewood-study/app/check-results/fast/science-barometer-pot.log
+RUN science-charcoal (assertion, timeout 120s)
+PASSED science-charcoal: 1.494s, log /workspace/firewood-study/app/check-results/fast/science-charcoal.log
+RUN science-clay-prep (assertion, timeout 120s)
+PASSED science-clay-prep: 0.913s, log /workspace/firewood-study/app/check-results/fast/science-clay-prep.log
+RUN science-fired-pot-assembly (assertion, timeout 120s)
+PASSED science-fired-pot-assembly: 0.637s, log /workspace/firewood-study/app/check-results/fast/science-fired-pot-assembly.log
+RUN science-firewood (assertion, timeout 120s)
+PASSED science-firewood: 1.571s, log /workspace/firewood-study/app/check-results/fast/science-firewood.log
+RUN science-integration (assertion, timeout 120s)
+PASSED science-integration: 0.252s, log /workspace/firewood-study/app/check-results/fast/science-integration.log
+RUN science-oil-lamp (assertion, timeout 120s)
+PASSED science-oil-lamp: 0.935s, log /workspace/firewood-study/app/check-results/fast/science-oil-lamp.log
+RUN science-pit-fire (assertion, timeout 120s)
+PASSED science-pit-fire: 2.201s, log /workspace/firewood-study/app/check-results/fast/science-pit-fire.log
+RUN science-pottery (assertion, timeout 120s)
+PASSED science-pottery: 1.165s, log /workspace/firewood-study/app/check-results/fast/science-pottery.log
+RUN science-vessel (assertion, timeout 120s)
+PASSED science-vessel: 0.557s, log /workspace/firewood-study/app/check-results/fast/science-vessel.log
+RUN settle (assertion, timeout 120s)
+PASSED settle: 20.783s, log /workspace/firewood-study/app/check-results/fast/settle.log
+RUN social (assertion, timeout 120s)
+PASSED social: 18.63s, log /workspace/firewood-study/app/check-results/fast/social.log
+RUN values (assertion, timeout 120s)
+PASSED values: 0.164s, log /workspace/firewood-study/app/check-results/fast/values.log
+RUN wall (assertion, timeout 120s)
+PASSED wall: 10.823s, log /workspace/firewood-study/app/check-results/fast/wall.log
+RUN wear (assertion, timeout 120s)
+PASSED wear: 1.837s, log /workspace/firewood-study/app/check-results/fast/wear.log
+RUN words (assertion, timeout 120s)
+PASSED words: 0.53s, log /workspace/firewood-study/app/check-results/fast/words.log
+RUN world-switch (assertion, timeout 120s)
+PASSED world-switch: 1.533s, log /workspace/firewood-study/app/check-results/fast/world-switch.log
+RUN worlds (assertion, timeout 120s)
+PASSED worlds: 0.277s, log /workspace/firewood-study/app/check-results/fast/worlds.log
+Finished 37 checks: 37 assertion passes, 0 diagnostics completed, 0 failures.
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
