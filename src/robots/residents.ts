@@ -1878,8 +1878,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
    *  warmth in words — never the record's numbers (ADR 0006: no hidden values; pressure is read on Lantern's own gauge). */
   function islandNow() {
     const d = islandDate(clockMs), w = wxNow, feel = w ? feelOf(w, clockMs) : '';
-    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: w.wind < 1.5 ? 'ほとんどない' : w.wind < 5 ? '弱い' : w.wind < 8 ? 'やや強い' : '強い', ...(feel ? { 体感: feel } : {}) } : {}) };
+    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: windWord(w), ...(feel ? { 体感: feel } : {}) } : {}) };
   }
+  /** The wind as a body meets it, in a word (not the station's m/s). */
+  function windWord(w: IslandWeather) { return w.wind < 1.5 ? 'ほとんどない' : w.wind < 5 ? '弱い' : w.wind < 8 ? 'やや強い' : '強い'; }
   /** Dot's map, as its mind is told it: each island seen, by its own word, direction, distance and size; and those reached. */
   function mapNow() {
     const m = village.map;
@@ -2063,7 +2065,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     addLot(lab, { materialId: 'firewood', amount: { value: mass, unit: 'mg' }, location: 'shelf', quality: { water_ppm: water, ...(ws.every((l) => l.quality?.ash_dry_ppm !== undefined) ? { ash_dry_ppm: ash } : {}),   // (the ash only if every part says it: a part that does not is not 0)
  history_complete: hist } });
     lab.world.worldVersion++; drawStore();
-    note(r, 'tool', {}, `薪を1つの山にまとめた（${ws.length}つ、${+(mass / 1e6).toFixed(1)}kg、水分${(water / 1e4).toFixed(0)}%）`);
+    // (the mass as weighed; the water is the model's, measured by no one — kept in the lot, not in the diary: ADR 0006)
+    note(r, 'tool', {}, `薪を1つの山にまとめた（${ws.length}つ、${+(mass / 1e6).toFixed(1)}kg）`);
   }
   function makeCookPot(r: Resident, lotId: string) {
     if (lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`]) return;
@@ -3356,7 +3359,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           if (caller) for (const o of list.filter((x) => x !== caller && awake(x) && Math.hypot(x.pos.x - caller.pos.x, x.pos.z - caller.pos.z) < 60).slice(0, 3)) {
             const c = exchange(caller, o); utter(caller, { act: 'order', to: o.id as Who, deed: 'shelter', why: 'typhoon' }, 0, c); utter(o, { act: 'will-go' }, 2000, c);
           } }
-        for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${p}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
+        // (the diary is the residents' own: what a body meets, in words — the station's numbers stay in the viewer's log
+        // below; ADR 0006: no hidden values. The diary goes on into the day's post: journal/write.ts)
+        const felt = w ? `（風が${windWord(w)}${w.rain >= 1 ? '・雨が強い' : ''}）` : '';
+        for (const r of list) { r.diary.push({ at: clockMs, text: `台風が来た${felt}。外での作業と食事ができない`, key: 'weather' }); const a = agentOf(r); if (a) a.why = '台風が来た'; }
         res.onEvent('weather', `台風が来た${p}`, list[0]);
       } else if (was && !storm()) {   // it has passed: the beds and the rocky bottom are torn up; the sea brings things up the beach
         hypoStormEnd(clockMs); stormOutcome();

@@ -5,11 +5,16 @@
 //  2 the air not measured: no felt word for it (an unknown is not a feeling), the sky and wind still in words
 //  3 too much wind to cross: the crossing refused in words, and what Dot is told of it afterwards carries no m/s
 //  4 Lantern's own gauge (its marks, its guesses) stays its own: no other resident's input carries it
+//  5 a typhoon comes with no instrument read: the diary has it in words, and so has the day's post prompt (journal/
+//    write.ts, the AI a stand-in that only records the prompt); the viewer's log keeps the station's numbers
+//  6 green firewood piled together: the diary (and so the post's prompt) has the weighed mass, not the model's water %
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/brain-weather-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
 import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
+import { writePost } from '../src/journal/write';
+import { addLot } from '../src/world/process-runner';
 
 let now = Date.parse('2026-10-06T03:00:00Z');   // (noon on the island)
 Date.now = () => now;
@@ -60,6 +65,28 @@ const WIND = /^(ほとんどない|弱い|やや強い|強い)$/;
   think(); await run(60, () => ['dot', 'rakko', 'kame'].every((w) => !R.mind(byId(w)) || !!seen[w]));
   const others = Object.entries(seen).filter(([w]) => w !== 'lantern');
   want('4 no other resident is given Lantern\'s gauge', others.length > 0 && others.every(([, i]) => !('guess' in (i.now ?? {})) && !/m02x|目盛り|gauge/.test(JSON.stringify(i))), others.map(([w]) => w).join(','));
+}
+{ // 5
+  const events: string[] = []; R.onEvent = (_k: string, t: string) => events.push(t);
+  wx = day({ typhoon: true, pressure: 995, pressureMeasured: 995, wind: 22, windMeasured: 22, gust: 30, rain: 12, rainMeasured: 12, cloud: 1 });
+  const t0 = now; await run(3, () => false);
+  const lantern = byId('lantern'), lines = lantern.diary.filter((d: any) => d.at >= t0 && /台風が来た/.test(d.text));
+  const inp = { who: 'lantern', name: lantern.v.name, profile: 'テスト', day: '2026-10-06', entries: lantern.diary.filter((d: any) => d.at >= t0).map((d: any) => ({ time: '12:00', text: d.text, key: d.key })), photos: [], talks: [] };
+  const prompts: string[] = [];
+  await writePost(inp, async (system: string, user: string) => { prompts.push(system + '\n' + user); return null; }, 'stub');
+  want('5 a typhoon in the diary in words (no instrument read), and so in the post\'s prompt', lines.length === 1 && numbers(lines).length === 0 && /風が強い/.test(lines[0].text) && prompts.length === 1 && /台風が来た/.test(prompts[0]) && numbers(prompts[0]).length === 0, `${lines.map((d: any) => d.text).join(' / ')} | prompt ${numbers(prompts[0] ?? '').join(' ') || 'no numbers'}`);
+  want('5 the viewer\'s log still has the station\'s numbers', events.some((t) => /台風が来た.*995hPa.*30m\/s/.test(t)), events.find((t) => /台風/.test(t)) ?? '(none)');
+}
+{ // 6
+  wx = day({}); await run(5, () => false);
+  for (const kg of [6, 9]) addLot(R.lab, { materialId: 'firewood', amount: { value: kg * 1e6, unit: 'mg' }, location: 'shelf', quality: { water_ppm: 450_000, history_complete: 1 } });
+  const t0 = now, who = () => R.list.find((r: any) => r.diary.some((d: any) => d.at >= t0 && /薪を1つの山にまとめた/.test(d.text)));
+  await run(16 * 3600, () => !!who());   // (Lantern piles the wood, and works by night)
+  const r = who(), line = r?.diary.find((d: any) => d.at >= t0 && /薪を1つの山にまとめた/.test(d.text));
+  const prompts: string[] = [];
+  if (r) await writePost({ who: r.id, name: r.v.name, profile: 'テスト', day: '2026-10-06', entries: [{ time: '12:00', text: line.text, key: line.key }], photos: [], talks: [] }, async (system: string, user: string) => { prompts.push(system + '\n' + user); return null; }, 'stub');
+  const pile = Object.values(R.lab.lots).find((l: any) => l.materialId === 'firewood' && l.amount.value === 15e6) as any;
+  want('6 firewood piled: the weighed mass in the diary and the post\'s prompt, no model water %', !!line && /15kg/.test(line.text) && !/水分|%/.test(line.text) && prompts.length === 1 && !/水分\d|\d+%/.test(prompts[0]) && pile?.quality?.water_ppm === 450_000, `${line?.text ?? '(not piled)'} | lot water_ppm ${pile?.quality?.water_ppm}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);
