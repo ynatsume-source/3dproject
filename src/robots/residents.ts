@@ -3259,10 +3259,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.spare ??= 0; village.lampLog ??= []; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); drawSpare(); drawLamp(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
-    // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
-    for (const l of Object.values(lab.lots)) if (l.materialId === 'raw_clay' && !l.quality?.water_ppm) l.quality = { ...RAW_CLAY_SOUTH };
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
     delete (village as any).store;
+    // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
+    for (const l of Object.values(lab.lots)) if (l.materialId === 'raw_clay' && !l.quality?.water_ppm) l.quality = { ...RAW_CLAY_SOUTH };
     // (a run saved under a process version the island no longer has is not resumed: it is ended, what it held freed)
     for (const x of [...village.labRuns]) { const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId);
       if (!run || !e || run.processVersion !== e.processVersion) { if (run) abortRun(lab, x.runId, `工程の版が変わった（${run.processVersion} → ${e?.processVersion ?? 'なし'}）`); village.labRuns.splice(village.labRuns.indexOf(x), 1); } }
