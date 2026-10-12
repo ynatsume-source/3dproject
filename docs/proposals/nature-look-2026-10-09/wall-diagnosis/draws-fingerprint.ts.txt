@@ -1,0 +1,14 @@
+import './node-land';
+let sim = Date.parse('2026-10-06T10:00:00+09:00'); Date.now = () => sim;
+const store = new Map<string, string>();
+Object.defineProperty(globalThis, 'localStorage', { value: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) } });
+const { mulberry32 } = await import('../src/core/math'); const base = mulberry32(11); let n = 0; const tags: Record<string, number> = {};
+Math.random = () => { n++; (globalThis as any).__n = n; return base(); };
+const { loadLand } = await import('../src/ocean/land'); const { DOTWORLD } = await import('../src/data/locations'); const loc: any = DOTWORLD;
+await loadLand('kayama', loc.land.half, loc.land.far);
+const n0 = n;
+const { buildOcean } = await import('../src/ocean/build');
+const fakeEl = () => ({ getContext: () => ({ createRadialGradient: () => ({ addColorStop() {} }), fillRect() {}, drawImage() {}, getImageData: () => ({ data: new Uint8ClampedArray(4) }) }), addEventListener() {}, removeEventListener() {}, setAttribute() {}, style: {} });
+Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: fakeEl, createElementNS: fakeEl, getElementById: () => null } });
+const O: any = buildOcean(loc);
+console.log('draws before build', n0, 'after build', n);

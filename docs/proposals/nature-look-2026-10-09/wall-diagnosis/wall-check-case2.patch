@@ -1,0 +1,17 @@
+diff --git a/scripts/wall-check.ts b/scripts/wall-check.ts
+index 0fd80a2..3bdc2cc 100644
+--- a/scripts/wall-check.ts
++++ b/scripts/wall-check.ts
+@@ -54,8 +54,10 @@ const ids = (who: string) => (last[who]?.options ?? []).map((o: any) => o.id);
+   wx = calm;
+ }
+ { // 2
+-  kame.task = null; kame.pos.x = kame.sp.home[0]; kame.pos.z = kame.sp.home[1];   // (in the sea by its home, not ashore basking)
+-  watchOn = kame; wx = rough; await run(3600, () => !!kame.mo.roughFelt); wx = calm;   // (it may have been ashore, basking)
++  kame.task = null; { const h = kame.sp.home; let best: number[] | null = null;   // (SCRATCH: really in the sea by its home — the nearest open sea a metre or more deep — not ashore)
++    for (let rad = 2; rad < 120 && !best; rad += 2) for (let a = 0; a < 6.28 && !best; a += 0.1) { const x = h[0] + Math.cos(a) * rad, z = h[1] + Math.sin(a) * rad; if (O.water.at(x, z) === 'sea' && loc.f(x, z) < -1) best = [x, z]; }
++    kame.pos.x = best![0]; kame.pos.z = best![1]; kame.pos.y = loc.f(best![0], best![1]); kame.wet = true; console.log('KAME put at', best!.map((v) => v.toFixed(0)).join(','), 'home', h.map((v: number) => v.toFixed(0)).join(',')); }
++  watchOn = kame; wx = rough; { let t0 = 0; const T0 = sim; let lastK = ''; await run(3600, () => { const k = `${kame.task?.kind ?? '-'}/${kame.act}/${kame.wet ? 'wet' : 'dry'}`; if (k !== lastK || sim - T0 - t0 > 600000) { console.log('KAME', ((sim - T0) / 1000).toFixed(0), k, kame.pos.x.toFixed(0), kame.pos.z.toFixed(0), 'hunger', kame.hunger.toFixed(2), 'why', kame.task?.why ?? kame.task?.data?.why ?? ''); lastK = k; t0 = sim - T0; } return !!kame.mo.roughFelt; }); console.log('KAME felt at', ((sim - T0) / 1000).toFixed(0)); } wx = calm;   // (it may have been ashore, basking)
+   want('2 Kamemaru, having known the rough sea too: its ledge found and told', !!V.kameBed && kame.diary.some((e: any) => /岩棚の下の寝場所/.test(e.text)), kame.diary.find((e: any) => /岩棚/.test(e.text))?.text ?? (kame.mo.roughFelt ? 'felt, none found' : 'not felt'));
+   kame.task = null; wx = rough; await run(400, () => !!V.kameBed && Math.hypot(kame.pos.x - V.kameBed[0], kame.pos.z - V.kameBed[1]) < 3);
+   const d = V.kameBed ? Math.hypot(kame.pos.x - V.kameBed[0], kame.pos.z - V.kameBed[1]) : 1e9;
