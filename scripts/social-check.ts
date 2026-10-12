@@ -30,6 +30,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import type { BrainInput, Thought } from '../src/robots/agent/types';
 
+const GAUGE_SETUP = { processId: 'm02x_air_barometer_test', runId: 'social:test-gauge' };
 let now = Date.parse('2026-10-03T00:00:00Z');
 Date.now = () => now;
 const store = new Map<string, string>();
@@ -185,8 +186,10 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
   await run(R, 5);
   now = Date.parse('2026-10-03T23:40:00Z');   // (08:40 on the island: the morning gathering is near)
-  R.village.gaugeLog.push({ at: now - 3 * 3.6e6, processId: 'test', mark: 6 }, { at: now - 3.6e6, processId: 'test', mark: 9 });
-  R.village.hypo = { at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
+  R.village.gaugeLog.push({ at: now - 3 * 3.6e6, ...GAUGE_SETUP, mark: 6 }, { at: now - 3.6e6, ...GAUGE_SETUP, mark: 9 });
+  // A later pot reading must not become the test gauge's last mark or enter its read count.
+  R.village.gaugeLog.push({ at: now - 1000, processId: 'm03x_air_barometer_pot', runId: 'social:pot', mark: 999 });
+  R.village.hypo = { ...GAUGE_SETUP, at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
   const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
   await run(R, 3600, () => R.village.mornings > 0);
   const lines = R.talks.filter((e: any) => e.conv && R.talks.some((h: any) => h.head && h.conv === e.conv && /朝の集まり/.test(h.text)) && !e.head).map((e: any) => `${e.who}:${e.text}`);
@@ -199,7 +202,7 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
 }
 const meet = (R: any, ids: string[]) => { for (const id of ids) { const o = R.list.find((r: any) => r.id === id); o.pos.set(58 + Math.random() * 6, 2, -150 + Math.random() * 4); o.task = null; o.battery = 1; o.hunger = 0.1; o.sleepy = 0.1; } };
 const saidBy = (R: any, who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
-const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 1, falses: 3, misses: 1, leads: [], status: 'doubted', heat: true, ...extra });
+const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 1, falses: 3, misses: 1, leads: [], status: 'doubted', heat: true, ...extra });
 { // J the morning, more
   const { R, dot } = island(25);
   meet(R, ['lantern', 'kame']); dot.stats.built = 99;
@@ -208,7 +211,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   await run(R, 5);
   now = Date.parse('2026-10-03T23:40:00Z');
   R.setWeather({ ok: true, at: 0, cloud: 0.2, rain: 0, code: 1, wind: 10, windDir: 90, gust: 14, pressure: 1008, typhoon: false, source: 'test', record: { station: 'test', at: '' } });
-  R.village.gaugeLog.push({ at: now - 3.6e6, processId: 'test', mark: -4 });
+  R.village.gaugeLog.push({ at: now - 3.6e6, ...GAUGE_SETUP, mark: -4 });
   R.village.hypo = alarmHypo(now);
   await run(R, 3600, () => R.village.mornings > 0);
   want('J Lantern says its guess, what heat does, and how it has fared', saidBy(R, 'lantern', /目盛りが高いなら、台風が来るかもしれない/) && saidBy(R, 'lantern', /暑いなら、目盛りが上がるかもしれない/) && saidBy(R, 'lantern', /その考えは本当ではないかもしれない。当たり1、外れ4/) && saidBy(R, 'lantern', /目盛りは-4/));
@@ -233,7 +236,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
   R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
   await run(R, 5);
   now = Date.parse('2026-10-03T23:40:00Z');   // (the morning, Kamemaru far off)
-  R.village.gaugeLog.push({ at: now - 3.6e6, processId: 'test', mark: 9 }); R.village.hypo = alarmHypo(now);
+  R.village.gaugeLog.push({ at: now - 3.6e6, ...GAUGE_SETUP, mark: 9 }); R.village.hypo = alarmHypo(now);
   await run(R, 3600, () => R.village.mornings > 0);
   meet(R, ['kame', 'lantern']); dot.pos.set(60, 2, -148); rakko.pos.set(62, 2, -152);
   R.village.catcher = { at: now, areaM2: 0.8, capMg: 20e6 };
@@ -280,7 +283,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ at: 0, by: 'lantern', mar
     R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
     R.setWeather(fair); await run(R, 5);
     now = Date.parse('2026-10-03T23:40:00Z');
-    R.village.gaugeLog.push({ at: now - 3.6e6, processId: 'test', mark: 9 }); R.village.hypo = alarmHypo(now);
+    R.village.gaugeLog.push({ at: now - 3.6e6, ...GAUGE_SETUP, mark: 9 }); R.village.hypo = alarmHypo(now);
     await run(R, 3600, () => R.village.mornings > 0);
     want('N forecast, agreed, and who does what is said', R.village.stormPrep > 0 && R.village.prepBy === 'lantern' && saidBy(R, 'lantern', /ドットは筏を高い所へ運ぶ/));
     await run(R, 1800, () => R.village.raft.hauled);

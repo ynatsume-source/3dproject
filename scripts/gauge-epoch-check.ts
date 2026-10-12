@@ -4,7 +4,7 @@
 //    the island's water not doubled
 //  2 set again: a new run each; a placing record (setup, the one before and why it ended, the water out and in, the
 //    pressure and air of the moment kept for the world only); Lantern's diary says only that it was set again
-//  3 nothing earlier dropped: the old readings and the guesses as they were
+//  3 nothing earlier dropped: old readings and guesses kept; absolute guesses archived when the setup changes
 //  4 no reading compared across setups: a day-on-day guess raises nothing in the new setup's first day, and compares
 //    within it after (its marks from the new zero)
 //  5 a broken saved state: refused (corrupt-state), reservations freed, the water kept (its lot, or poured back into the
@@ -54,7 +54,9 @@ want('0 the island\'s two gauges running, read', !!old2 && !!old3 && !!oldWater,
 // (the save, its gauge runs made older versions; a day-on-day guess that would cry out at any comparison at all)
 R.save();
 const s = JSON.parse(store.get(KEY)!);
+delete s.village.hypoHistory; // a pre-change save has no archive field
 s.lab.runs[old2.runId].processVersion = '0.1.2'; s.lab.runs[old3.runId].processVersion = '0.2.1';
+s.village.hypo = { at: now - 3.6e6, by: 'lantern', mark: -1000, airs: [20], alarm: null, storms: [], hits: 2, falses: 1, misses: 0, leads: [3], status: 'held', heat: true };
 s.village.hypo2 = { at: now - 3.6e6, by: 'lantern', mark: -1000, airs: [], alarm: null, storms: [], hits: 1, falses: 2, misses: 0, leads: [3], status: 'testing', heat: true, kind: 'day' };
 store.set(KEY, JSON.stringify(s));
 const savedLog = JSON.stringify(s.village.gaugeLog), savedHypo = JSON.stringify(s.village.hypo ?? null), water0 = waterSum(s.lab);
@@ -67,6 +69,7 @@ R = make(); lab = R.lab; step = stepper(R);
 }
 const loadedAt = now;
 step(2 * 86400, () => !!live(lab, M2) && !!live(lab, M3));
+want('6 reinstallation retires the legacy absolute guess without losing its history', R.village.hypo === null && R.village.hypoHistory?.some((x: any) => JSON.stringify(x.hypothesis) === savedHypo));
 const foundAt = now, new2 = live(lab, M2), new3 = live(lab, M3), placed = (id: string) => R.village.gaugeLog.find((g: any) => g.placed && g.runId === id);
 { // 2
   const p2 = placed(new2?.runId), p3 = placed(new3?.runId), lantern = R.list.find((r: any) => r.id === 'lantern');
@@ -94,6 +97,27 @@ const placedAt = placed(new2?.runId)?.at ?? foundAt,   // (the record's time; wi
   step(2 * 86400, () => !!live(lab, M3));
   const again = live(lab, M3), p = placed(again?.runId);
   want('5 a broken saved state refused, reservations freed, the water kept, set again with its record', r.status === 'failed' && /corrupt/.test(r.why) && reserved(lab, run.runId) === 0 && (lab.lots[wl]?.amount.value === 250_000 || (!lab.lots[wl] && !!R.village.catcher)) && !!p && p.placed.from === run.runId && /corrupt/.test(p.placed.why) && JSON.stringify(p.placed.lotsOut) === JSON.stringify([wl]) && waterSum(lab) === w0, `${r.status} ${r.why?.slice(0, 40)}; ${JSON.stringify(p?.placed)}; water ${waterSum(lab)} / ${w0}`);
+}
+{ // 6: a corrupt test-gauge state also ends and releases reservations; its replacement gets a new setup.
+  const run = live(lab, M2); R.save(); const s3 = JSON.parse(store.get(KEY)!);
+  delete s3.lab.runs[run.runId].state.data.lastTo; store.set(KEY, JSON.stringify(s3));
+  R = make(); lab = R.lab; step = stepper(R);
+  step(6 * 3600, () => !LIVE.includes(lab.runs[run.runId]?.status));
+  step(2 * 86400, () => !!live(lab, M2));
+  const again = live(lab, M2), p = placed(again?.runId), old = lab.runs[run.runId];
+  want('6 broken test gauge refused and reinstalled with reason and released equipment', old.status === 'failed' && /corrupt/.test(old.why) && reserved(lab, old.runId) === 0 && again?.runId !== old.runId && p?.placed.from === old.runId && /corrupt/.test(p.placed.why));
+  step(6 * 3600, () => R.village.hypo?.runId === again?.runId);
+  want('6 new absolute hypothesis belongs to the replacement test gauge', R.village.hypo?.runId === again?.runId && R.village.hypo?.processId === M2);
+}
+{ // 7: actual residents save/load, not just a JSON clone; no user storage involved.
+  R.save(); const saved = JSON.parse(store.get(KEY)!);
+  R = make(); lab = R.lab; R.save(); const restored = JSON.parse(store.get(KEY)!);
+  const keys = ['gaugeLog', 'hypo', 'hypo2', 'hypoHistory'];
+  want('7 save/restore preserves readings, placement records, active guesses and archived guesses exactly', keys.every((k) => JSON.stringify(saved.village[k]) === JSON.stringify(restored.village[k])));
+  want('7 save/restore preserves water and live setup identities', waterSum(lab) === waterSum(saved.lab) && [M2, M3].every((p) => live(lab, p)?.runId === live(saved.lab, p)?.runId));
+  const history = JSON.stringify(R.village.hypoHistory), runId = live(lab, M2)?.runId;
+  step = stepper(R); step(3600, () => R.village.gaugeLog.some((g: any) => g.runId === runId && g.mark !== undefined && g.at > saved.clockMs));
+  want('7 normal same-setup continuation does not archive the restored active hypothesis again', R.village.hypo?.runId === runId && JSON.stringify(R.village.hypoHistory) === history);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

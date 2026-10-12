@@ -180,7 +180,7 @@ interface Task { kind: string; x: number; z: number; act: Act; dur: number; t: n
  *  only within one setup (science, 2026-10-12). Entries from before runId was kept have none: one setup of their own. The
  *  pressure and air at placing are the world's record only — never told to a resident. */
 interface GaugeEntry { at: number; processId: string; runId?: string; mark?: number; text?: string; airC?: number | null; placed?: { from?: string; why: string; lotsOut?: string[]; lotsIn: string[]; pressureHPa?: number | null } }
-interface Hypo { at: number; by: string; mark: number; airs: number[]; alarm: null | { at: number; mark: number; air?: number; matched?: boolean }; storms: { at: number; end?: number; caught: boolean; settled: boolean }[];
+interface Hypo { processId?: string; runId?: string; at: number; by: string; mark: number; airs: number[]; alarm: null | { at: number; mark: number; air?: number; matched?: boolean }; storms: { at: number; end?: number; caught: boolean; settled: boolean }[];
   hits: number; falses: number; misses: number; leads: number[]; status: 'testing' | 'held' | 'doubted'; heat: boolean; kind?: 'level' | 'day' }   // (Lantern's guess about its gauge and storms, and how the world has answered it)
 interface Line { who: string; text: string; isl?: Tok[]; en?: string }
 interface Talk { a: Resident; b: Resident; lines: Line[]; i: number; t: number; stage: number; pending?: boolean; waited?: number; conv: number; shares: { from: Resident; to: Resident; ob: Observation }[] }
@@ -465,7 +465,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as GaugeEntry[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo,
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as GaugeEntry[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo, hypoHistory: [] as { at: number; nextRunId?: string; hypothesis: Hypo }[],
     labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
@@ -516,12 +516,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** The readings of one setup of a gauge (its own zero): never compared with another's. */
   const sameSetup = (g: GaugeEntry, processId: string, runId?: string) => g.processId === processId && g.runId === runId && g.mark !== undefined;
   const TEST_GAUGE = 'm02x_air_barometer_test';
+  // Absolute marks belong to a setup. Keep the old guess (including its unfinished alarm and tallies) as history,
+  // not as an active prediction at the new zero. Untagged saved guesses have unknown provenance: do not re-label them.
+  // The day-difference hypothesis remains usable, but only with two readings from the same setup (dayAgo below).
+  function retireAbsoluteHypo(runId?: string) {
+    const h = village.hypo;
+    if (!h || (h.processId === TEST_GAUGE && h.runId === runId)) return;
+    village.hypoHistory.push({ at: clockMs, nextRunId: runId, hypothesis: h });
+    village.hypo = null;
+  }
   function hypoRead(at: number, mark: number, runId?: string) {
+    retireAbsoluteHypo(runId);
     const h = village.hypo, marks = village.gaugeLog.filter((g) => sameSetup(g, TEST_GAUGE, runId));
     if (!h) {
       if (marks.length < HYPO_READS) return;
       const top = Math.max(...marks.map((g) => g.mark!));
-      village.hypo = { at, by: 'lantern', mark: top + 2, airs: marks.map((g) => islandWeather(g.at)?.air).filter((a): a is number => a !== undefined), alarm: null, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
+      village.hypo = { processId: TEST_GAUGE, runId, at, by: 'lantern', mark: top + 2, airs: marks.map((g) => islandWeather(g.at)?.air).filter((a): a is number => a !== undefined), alarm: null, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: village.hypoHistory.some((x) => x.hypothesis.heat) };
       hypoNote(`ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は${top}。目盛りが${top + 2}以上になったら、一日のうちに台風が来るのではないか。確かめていく`, true);
       return;
     }
@@ -2186,7 +2196,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
    *  Nothing earlier is dropped: the old readings and guesses stay as they were. */
   function gaugePlaced(r: Resident, e: CatalogEntry, runId: string, lotIds: string[]) {
     const prev = Object.values(lab.runs).filter((x) => x.processId === e.processId && x.runId !== runId).sort((a, b) => b.lastTo - a.lastTo)[0];
-    const w = wxNow;
+    if (e.processId === TEST_GAUGE) retireAbsoluteHypo(runId);
+    const w = islandWeather(clockMs);
     (village.gaugeLog ??= []).push({ at: clockMs, processId: e.processId, runId, airC: w?.air ?? null, placed: { ...(prev ? { from: prev.runId, lotsOut: [...prev.lotIds] } : {}), why: prev ? `${prev.status}${prev.why ? `：${prev.why}` : ''}` : 'first', lotsIn: [...lotIds], pressureHPa: w?.pressureMeasured ?? null } });
     if (village.gaugeLog.length > 400) village.gaugeLog.shift();
     if (prev) r.diary.push({ at: clockMs, text: `${e.ja}：置き直した`, key: 'study' });
@@ -3276,7 +3287,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.spare ??= 0; village.lampLog ??= []; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); drawSpare(); drawLamp(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.hypoHistory ??= []; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.spare ??= 0; village.lampLog ??= []; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); drawSpare(); drawLamp(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
@@ -3620,7 +3631,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   function morningNight(seated: Resident[]) {
     const ln = byId.lantern;
-    const night = village.gaugeLog.filter((g) => g.at > clockMs - 12 * 3.6e6), marks = night.filter((g) => g.mark !== undefined);
+    // This report accompanies the test gauge's storm guess. A pot reading (or a previous zero) is not its last mark.
+    // Include placing events when selecting the setup: after reinstallation there may not be a new reading yet.
+    const latest = [...village.gaugeLog].reverse().find((g) => g.processId === TEST_GAUGE);
+    const marks = village.gaugeLog.filter((g) => sameSetup(g, TEST_GAUGE, latest?.runId) && g.at > clockMs - 12 * 3.6e6 && g.at <= clockMs);
     const alarm = lanternAlarm();
     const nf: Frame = { act: 'tell-night', reads: marks.length, mark: marks[marks.length - 1]?.mark, alarm };
     const lines: { who: string; line: string; isl?: Tok[]; en?: string }[] = [say_('lantern', nf)];
