@@ -130,6 +130,18 @@ export function finite(v: unknown, min = -Infinity, max = Infinity): v is number
 }
 
 /** True if every number anywhere in the value is finite (used before returning a state). */
+/** A saved state's data has the shape a step expects: an object whose listed keys are finite numbers, strings or
+ *  booleans (a state broken by hand, data null or a key missing, is refused rather than read; Codex BARO-C1 / HOST-C2).
+ *  It does not tell a state saved by another run from this run's: that stays the host's to keep apart. */
+export function stateShapeOk(data: unknown, shape: { num?: string[]; str?: string[]; bool?: string[]; obj?: string[] }): boolean {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  const d = data as Record<string, unknown>;
+  return (shape.num ?? []).every((k) => typeof d[k] === 'number' && Number.isFinite(d[k] as number))
+    && (shape.str ?? []).every((k) => typeof d[k] === 'string')
+    && (shape.bool ?? []).every((k) => typeof d[k] === 'boolean')
+    && (shape.obj ?? []).every((k) => !!d[k] && typeof d[k] === 'object');
+}
+
 export function allFinite(x: unknown): boolean {
   if (typeof x === 'number') return Number.isFinite(x);
   if (Array.isArray(x)) return x.every(allFinite);

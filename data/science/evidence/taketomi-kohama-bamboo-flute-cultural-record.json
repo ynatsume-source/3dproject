@@ -1,0 +1,38 @@
+{
+  "title": "竹と横笛（小浜島）",
+  "url": "https://54mademo.jp/datasheet/%E7%AB%B9",
+  "accessedDateJst": "2026-10-11",
+  "facts": [
+    {
+      "location": "Kohama Island",
+      "reportedSpecies": [
+        "リュウキュウチク",
+        "ダイモウダキ（タイミンチク）"
+      ],
+      "reportedUse": [
+        "横笛",
+        "建築補助材",
+        "垣根材",
+        "農業資材"
+      ],
+      "internodes": "long good-quality culms for flutes exist; no numerical distribution"
+    }
+  ],
+  "conditions": {
+    "location": "Kohama Island",
+    "material": "community heritage account; botanical vouchers not supplied",
+    "dimensions": "qualitative only",
+    "units": null,
+    "replicates": null
+  },
+  "bodyLocators": [
+    "lines 4–8; about page identifies council and FY2012 Agency for Cultural Affairs project"
+  ],
+  "verificationLimits": "browser-rendered article/database body was read; extracted strings/numbers and reviewer transcription only; original HTML/PDF bytes not obtained",
+  "calibrationEligible": false,
+  "retrievalCopy": {
+    "path": "sources/kohama-bamboo-culture.web-extract.txt",
+    "sha256": "d65d7c738ad9f715e46057b5a554e529a10e1ca75112b77a3c45b77e4871a003",
+    "hashScope": "UTF-8 browser-tool extraction received by reviewer, not original source bytes"
+  }
+}

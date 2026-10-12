@@ -38,16 +38,16 @@
 import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { pv } from '../params';
 import { AIR_RANGE_C, SPILL_NOW, SPILLED, type Geometry } from './barometer';
-import { allFinite, checkCommon, contractExtras, failed, fingerprint, finite, isInt } from './common';
+import { allFinite, stateShapeOk, checkCommon, contractExtras, failed, fingerprint, finite, isInt } from './common';
 
-export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.2.1' } as const; // 0.2.1: the leak's conductance from the empty pot's capacity, not the air left above the water (Codex BW-A1) // 0.2.0: the weather pot (tubeForm 2) // 0.1.2: reads on the held pressure (Codex FX-SB-A1)
+export const BAROMETER_POT_PROCESS = { processId: 'm03x_air_barometer_pot', processVersion: '0.2.2' } as const; // 0.2.2: reads sample the same whole seconds as the spill scan (SB-C3); the U-tube's bottom lets outside air in; impossible pots, very short τ and broken states refused // 0.2.1: the leak's conductance from the empty pot's capacity, not the air left above the water (Codex BW-A1) // 0.2.0: the weather pot (tubeForm 2) // 0.1.2: reads on the held pressure (Codex FX-SB-A1)
 // /2 since 0.1.1 (the cell keeps its own pressure; a pressure gap keeps its extremes): a /1 run is refused; the host cancels it
 // /4 since 0.2.1 (the stored leakK of a 0.2.0 weather pot was too small; /3 since 0.2.0: the geometry carries the head
 // factor and the two ends): older states are refused, never resumed under a relabelled version; the host cancels the run
 // and releases its reservation
-const SCHEMA = 'civ-sci.air-barometer-pot/4', EVAL = 'air-barometer-pot-eval/0.2.1';
+const SCHEMA = 'civ-sci.air-barometer-pot/4', EVAL = 'air-barometer-pot-eval/0.2.2';
 const BULB = 'assembled_pot';
-const CELL_MS = 30_000;
+const CELL_MS = 30_000, MIN_TAU_MIN = 10;
 
 /** The gauge's shape: the test gauge's, with the head per metre of rise (2 for the U-tube, 1 + A/Ares for the weather
  *  pot) and how far the water may rise (topM) or fall (bottomM) before it passes an end. */
@@ -69,6 +69,9 @@ interface PotGaugeData {
 function bulbGeometry(p: Record<string, number>, waterMg: number): { g: PotGeometry; tauMin: number; capM3: number } | string {
   if (p.sealed !== 1 || p.airtightKnown !== 1) return `${BULB} must be sealed with its air-holding known (sealed 1, airtightKnown 1)`;
   if (!finite(p.airLeakTauMin, 1e-9)) return `${BULB} params.airLeakTauMin must be > 0 (a pot that holds its air)`;
+  // the leak is held through each 30 s cell: a pot that loses its air in minutes is no gauge (and the held rate would
+  // overshoot; Codex PHYS-SHORT-TAU)
+  if (p.airLeakTauMin < MIN_TAU_MIN) return `${BULB} holds its air ${p.airLeakTauMin} min: too short to read (at least ${MIN_TAU_MIN} min)`;
   for (const k of ['capacityMl', 'tubeBoreMm', 'tubeLengthMm', 'bulbTauS', 'markMm']) if (!finite(p[k], 1e-9)) return `${BULB} params.${k} must be finite and > 0 (a pot with a gauge tube through its plug, table civ-sci.pot-assembly/5; markMm: the stick)`;
   if (![undefined, 2].includes(p.tubeForm)) return `${BULB} params.tubeForm is 2 (the weather pot) or absent (the U-tube)`;
   const r = p.tubeBoreMm / 2000, A = Math.PI * r * r;
@@ -85,7 +88,10 @@ function bulbGeometry(p: Record<string, number>, waterMg: number): { g: PotGeome
   if (dip < pv('weatherPotMinDipMm') / 1000) return `too little water for the weather pot: at least ${(((pv('weatherPotMinDipMm') / 1000 + gap) * Ares) * 1e6).toFixed(0)} mL (the tube's end must stand ${pv('weatherPotMinDipMm')} mm under it)`;
   const ro = p.tubeOuterMm / 2000, inside = D - gap, L = p.tubeLengthMm / 1000;
   if (L < inside + pv('weatherPotStickOutMm') / 1000) return `the tube is too short for this pot: at least ${((inside * 1000) + pv('weatherPotStickOutMm')).toFixed(0)} mm (down to the water and ${pv('weatherPotStickOutMm')} mm out of the plug)`;
+  // the tube must fit in the pot and leave air above the water (Codex BW-C2: a huge tube could make V0 negative)
+  if (2 * ro >= D / 2) return `the tube (outer ${p.tubeOuterMm} mm) is too thick for this pot (under ${((D / 2) * 1000).toFixed(0)} mm)`;
   const V0 = V - W - Math.PI * ro * ro * inside;
+  if (!(V0 > 0.1 * V)) return 'too little air left above the water and around the tube (at least a tenth of the pot)';
   const tauS = p.bulbTauS * (1 + (waterMg / 1000) * pv('cpWater') / p.bulbHeatJPerK);
   return { g: { V0, A, halfLengthM: Math.max(L - dip, dip), markM: p.markMm / 1000, tauS, form: 2, headK: 1 + A / Ares, topM: L - dip, bottomM: dip }, tauMin: p.airLeakTauMin, capM3: V };
 }
@@ -138,6 +144,9 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
       lastPaPa: P0, lastPaAt: req.interval.from, gapOpen: false, gapLoMinK: T0, gapHiMaxK: T0, gapSLo: s0, gapSHi: s0, condition: 'ok', spilledAt: -1,
       historyComplete: (water.quality?.history_complete ?? 1) === 1 };
   } else {
+    if (!stateShapeOk(req.state.data, { num: ['leakK', 'startMs', 'lastTo', 'waterMg', 'spilledMg', 'lastPaPa', 'lastPaAt', 'gapLoMinK', 'gapHiMaxK', 'gapSLo', 'gapSHi', 'spilledAt'],
+      str: ['eqId', 'paramsFp', 'waterFp', 'waterLocation', 'condition'], bool: ['gapOpen', 'historyComplete'], obj: ['g', 's', 'ctl'] }))
+      return fail('corrupt-state: the saved gauge is not one this step wrote (cancel the run and set it again)');
     d = structuredClone(req.state.data as PotGaugeData);
     if (req.interval.from !== d.lastTo) return fail(`noncontiguous-interval: expected from=${d.lastTo}`);
     if (fingerprint(water) !== d.waterFp) return fail('changed-input: the water lot changed under a running run');
@@ -166,19 +175,23 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
    *  scanned each second (and at `until`); the first moment past an end is the spill, and over the mouth the water
    *  lost is the most it stood above it in the stretch (afterwards the gauge is no longer followed). With bounds: the widest the
    *  bounds reach in the stretch (each bound moves one way within a cell) passing an end makes it unknown. */
-  const scan = (until: number): { kind: 'top' | 'bottom' | 'maybe'; at: number; excessM: number } | null => {
+  // 0.2.2 (SB-C3): a read samples the same whole seconds from the cell's start as the spill the cell records, never its
+  // own moment between them (a peak between two seconds, about a nanometre above them, was read as a spill that was
+  // never recorded); the run's end is a real moment and is sampled
+  const scan = (until: number, endSample = true): { kind: 'top' | 'bottom' | 'maybe'; at: number; excessM: number } | null => {
     const c = d.ctl, s0 = d.s;
     if (!c.pKnown || d.condition !== 'ok' || until <= s0.tMs) return null;
     const s1 = at(until);
     if (s0.bLo === s0.bHi && s0.sLo === s0.sHi && c.dsLo === c.dsHi && c.tKnown) {
       // the first moment past an end, and for the mouth the highest the water stands over it in the rest of the stretch
       let first: { kind: 'top' | 'bottom'; at: number; excessM: number } | null = null;
-      for (let t = s0.tMs; ; t = Math.min(until, t + 1000)) {
+      const last = endSample ? until : s0.tMs + Math.floor((until - s0.tMs) / 1000) * 1000;
+      for (let t = s0.tMs; ; t = Math.min(last, t + 1000)) {
         const x = riseOf(g, at(t).sHi, c.Pa, at(t).bHi);
         if (!first && x > g.topM) first = { kind: 'top', at: t, excessM: 0 };
         if (!first && x < -g.bottomM) return { kind: 'bottom', at: t, excessM: 0 };
         if (first?.kind === 'top') first.excessM = Math.max(first.excessM, x - g.topM);
-        if (t >= until) return first;
+        if (t >= last) return first;
       }
     }
     const hi = riseOf(g, Math.max(s0.sHi, s1.sHi), c.Pa, Math.max(s0.bHi, s1.bHi)), lo = riseOf(g, Math.min(s0.sLo, s1.sLo), c.Pa, Math.min(s0.bLo, s1.bLo));
@@ -218,10 +231,12 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
   const read = (t: number) => {
     if (!pKnown || !d.ctl.pKnown || d.condition === 'unknown') { unreadable++; return; }
     if (d.condition !== 'ok') { obs(t, { text: (t === d.spilledAt ? NOW : AFTER)[d.condition === 'spilled-top' ? 'top' : 'bottom'] }); return; }
-    const e = scan(t);
+    const e = scan(t, false);
     if (e?.kind === 'maybe') { unreadable++; return; }
     if (e) { obs(t, { text: (e.at === t ? NOW : AFTER)[e.kind] }); return; }
-    const s = at(t), [xLo, xHi] = xBounds(s, d.ctl.Pa);
+    // between two sampled seconds the level is within the tube by the samples' account (a sub-second excess is clamped)
+    const cl = (x: number) => Math.max(-g.bottomM, Math.min(g.topM, x));
+    const s = at(t), [xLo, xHi] = xBounds(s, d.ctl.Pa).map(cl);
     const mLo = Math.round(xLo / g.markM), mHi = Math.round(xHi / g.markM);
     if (mLo === mHi) obs(t, { value: mHi, unit: 'mark', precision: 1 }); else unreadable++;
   };

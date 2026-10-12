@@ -1031,6 +1031,112 @@
         "format": "UTF-8 JSON",
         "hashScope": "Selected received excerpts and reviewer factual transcription; not original HTML/PDF bytes"
       }
+    },
+    {
+      "id": "kahaku-ryukyuchiku-kohama-distribution",
+      "title": "琉球の植物データベース：リュウキュウチク Pleioblastus linearis (Hack.) Nakai",
+      "url": "https://www.kahaku.go.jp/research/activities/project/hotspot_japan/ryukyus/db/S579.html",
+      "sourceType": "primary-institutional-specimen-distribution-database",
+      "accessedDateJst": "2026-10-11",
+      "verification": "native-web-rendered-original-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "標本に基づく小浜島のリュウキュウチクの存在。",
+      "doesNotVerify": [
+        "小浜島での種別採取量、個々の内径・壁厚・節間長の分布、管の加工時間、割れ率。"
+      ],
+      "publisher": "国立科学博物館",
+      "artifact": {
+        "path": "data/science/evidence/kahaku-ryukyuchiku-kohama-distribution.json",
+        "sha256": "bdbb276d57f5e2a2b25196bb42f590f3d760c8c6f5f3bc9e7669f6a49b863652",
+        "format": "UTF-8 JSON",
+        "hashScope": "Reviewer factual transcription and retrieval metadata (Codex review of 475c7ff); not original HTML/PDF bytes"
+      }
+    },
+    {
+      "id": "taketomi-kohama-bamboo-flute-cultural-record",
+      "title": "竹と横笛（小浜島）",
+      "url": "https://54mademo.jp/datasheet/%E7%AB%B9",
+      "sourceType": "primary-local-cultural-heritage-account",
+      "accessedDateJst": "2026-10-11",
+      "verification": "native-web-rendered-original-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "地元の文化遺産記録に、小浜島のリュウキュウチクとタイミンチク、横笛用の長節材が記載される。",
+      "doesNotVerify": [
+        "150–400 mmや6–12 mmがこの島の全ロットで成立すること、内径と外径の換算、壁厚2.5 mm、加工時10%/35%の割れ率。"
+      ],
+      "publisher": "竹富町島じまの文化遺産の伝承・活用協議会",
+      "artifact": {
+        "path": "data/science/evidence/taketomi-kohama-bamboo-flute-cultural-record.json",
+        "sha256": "7040bba8c24238209e0e1a39a5d68fba5995c85661f8ddb5d5c057862db960c0",
+        "format": "UTF-8 JSON",
+        "hashScope": "Reviewer factual transcription and retrieval metadata (Codex review of 475c7ff); not original HTML/PDF bytes"
+      }
+    },
+    {
+      "id": "taketomi-nakamori-bamboo-flute-2002",
+      "title": "竹富町史だより第55号：小浜島―果報ぬ島・ちゅらさんの島―「竹と横笛」",
+      "url": "https://www.town.taketomi.lg.jp/sp/userfiles/files/topics/syabun/choshi/cyousidayori55.pdf",
+      "sourceType": "primary-local-essay-republished-by-municipal-history-editor",
+      "accessedDateJst": "2026-10-11",
+      "verification": "native-web-rendered-original-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "小浜島の地元筆者が竹の実際の利用・長節材・複数の俗称を記録。俗称を学名へ断定しない根拠。",
+      "doesNotVerify": [
+        "俗称「真竹」がPhyllostachys bambusoidesだと断定すること。直径/節間の測定値、加工割れ率、気密や吸水性能。"
+      ],
+      "publisher": "竹富町教育委員会",
+      "authors": [
+        "仲盛長儀"
+      ],
+      "artifact": {
+        "path": "data/science/evidence/taketomi-nakamori-bamboo-flute-2002.json",
+        "sha256": "cee60b62504a103c1017997d588cf8a41108e262f5a9034adf36835d4d12b639",
+        "format": "UTF-8 JSON",
+        "hashScope": "Reviewer factual transcription and retrieval metadata (Codex review of 475c7ff); not original HTML/PDF bytes"
+      }
+    },
+    {
+      "id": "ucke-eps-muse-weather-glass-2011",
+      "title": "The Weather Glass",
+      "url": "https://www.ucke.de/christian/physik/ftp/lectures/weatherglass.pdf",
+      "sourceType": "primary-author-experiment-and-equation-derivation",
+      "accessedDateJst": "2026-10-11",
+      "verification": "native-web-rendered-original-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "実際のボトル/シリンジ+管の天気の壺、有限の貯水面の補正、気圧と温度の同方向の応答、気温計を添えた読み。",
+      "doesNotVerify": [
+        "八重山の竹、球形の陶器、タール継ぎ目の漏れ、現実の台風予報精度、器・空気・水を1温度とする時定数、工程の1°C約1 cmが他の形でも同じこと。"
+      ],
+      "publisher": "European Physical Society, Physics Education Division, MUSE group",
+      "authors": [
+        "Christian Ucke"
+      ],
+      "artifact": {
+        "path": "data/science/evidence/ucke-eps-muse-weather-glass-2011.json",
+        "sha256": "320724e17c94d3aec37aa5802fcba4601b5285a68da23757ca13a3810c4ec877",
+        "format": "UTF-8 JSON",
+        "hashScope": "Reviewer factual transcription and retrieval metadata (Codex review of 475c7ff); not original HTML/PDF bytes"
+      }
+    },
+    {
+      "id": "ufpa-labdemon-goethe-weather-glass",
+      "title": "Barômetro de Goethe (Furukawa)",
+      "url": "https://labdemon.ufpa.br/fisica-termica/barometro-de-goethe",
+      "sourceType": "primary-institutional-owned-instrument-description",
+      "accessedDateJst": "2026-10-11",
+      "verification": "native-web-rendered-original-body-read-original-bytes-not-obtained",
+      "calibrationEligible": false,
+      "supports": "大学実験室が所有する実物の天気の壺と作製者の記録。温度一定の条件で相対変化を読むこと。",
+      "doesNotVerify": [
+        "内径/容量/漏れ時定数の校正、定量感度、竹の管での動作、水の熱の追従、地域の天候や予報成功率。歴史的起源や降雨原因の記述は採用しない。"
+      ],
+      "publisher": "Universidade Federal do Pará, Laboratório de Demonstrações",
+      "artifact": {
+        "path": "data/science/evidence/ufpa-labdemon-goethe-weather-glass.json",
+        "sha256": "a63fd18759051cfca2b32d82ed6663dd2f109d133399aff990a08f1d8326b481",
+        "format": "UTF-8 JSON",
+        "hashScope": "Reviewer factual transcription and retrieval metadata (Codex review of 475c7ff); not original HTML/PDF bytes"
+      }
     }
   ]
 }

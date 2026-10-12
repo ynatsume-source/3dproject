@@ -161,5 +161,12 @@ console.log('6. a lamp dish handed back wet from the water test (table /2, Codex
   ok(Math.abs(pot2.heatCapJPerK - cookPotParams(jar).heatCapJPerK) <= 1, 'a cook pot\'s heat capacity is its fired body\'s (the water in its walls is not counted as ceramic)');
 }
 
+{
+  // a hand-written fired pot whose tar and wall water leave no body is refused, never turned into NaN params (Codex FX-C2)
+  const noBody: LotView = { lotId: 'lot:nobody', materialId: 'fired_pot', amount: { value: 1_000_000, unit: 'mg' }, location: 's', quality: { form: 1, capacity_ml: 1000, surface_cm2: 600, absorption_ppm: 100_000, x_wood_tar_ppm: 600_000, x_water_ppm: 400_000 } };
+  let why = '';
+  try { cookPotParams(noBody); } catch (e) { why = (e as Error).message; }
+  ok(/no fired body/.test(why), 'a fired pot with no body left (tar + wall water = the whole lot) is refused, not read as NaN (FX-C2)', why);
+}
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

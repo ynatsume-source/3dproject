@@ -470,3 +470,7 @@ A 1件・B なし。BW-A1（換算表の airLeakTauMin は空の器の容量で�
 
 BW-A1・BW-C1 解消、新 A/B/C なし → m03x 0.2.1 の保留解除、本体の最終レビューへ（FINAL_REVIEW_2026-10-11-bamboo-tube.md、main 88e1e53 での予行は成功。assembly-check の版の決め打ち2か所だけ /5 に）。Codex の確認：最小診断（係数比 1、48 時間後 11）、欠測の幅、旧 0.2.0・/3 の拒否、/4 の JSON 復元、旧 U 字 64 条件・856 要求の厳密一致、水の上限ちょうどの受付と +1 mg の拒否、公式 57 件。BW-C2 と既存 C は次の全面レビューへ。
 
+## 2026-10-12：非保留の C の整理（オーナー了承）→ Codex へ全面レビュー依頼
+
+直したもの：U 字の底の言葉（m02x 0.1.3・m03x 0.2.2）、SB-C3（読みの標本の時刻をあふれの調べ方とそろえる。Codex の subsecond-peak.mjs で reproduced true → false）、BW-C2、短い τ、壊れた保存状態（BARO-C1・HOST-C2）、C-M2・FX-C2（入口の検査）。一次資料 5 件を取り込み（ハッシュ一致を確認）。残すものと理由は C_LEDGER_2026-10-12.md。U 字・天気の壺は 0.2.1 と 10,704 要求で一致。依頼書 CODEX_REVIEW_REQUEST_c_sweep.md。
+

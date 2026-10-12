@@ -35,6 +35,8 @@ function readFired(lot: LotView, forms: number[], what: string) {
   // walls are not counted: an approximation); a lamp dish's walls take up oil only where water and tar leave room.
   const tar = Math.floor((lot.amount.value * (q.x_wood_tar_ppm ?? 0)) / 1e6), water = Math.floor((lot.amount.value * (q.x_water_ppm ?? 0)) / 1e6);
   const body = lot.amount.value - tar - water, abs = (q.absorption_ppm ?? 0) / 1e6;
+  // tar and wall water leave a body to fire (Codex FX-C2: a lot written by hand with them at or above the whole gave no body, NaN params)
+  if (!(body > 0) || (q.x_wood_tar_ppm ?? 0) + (q.x_water_ppm ?? 0) >= 1e6) throw new Error(`${lot.lotId}: tar and wall water leave no fired body`);
   const openAbs = Math.max(0, abs * (1 - (q.coverage_ppm ?? 0) / 1e6) - water / body);
   return { massG: body / 1000, capacityMl: q.capacity_ml as number, areaM2: q.surface_cm2 / 1e4, absorptionPpm: Math.round(openAbs * 1e6) };
 }
