@@ -145,7 +145,9 @@ export function barometerPotStep(req: ScienceStepRequest): ScienceStepResult {
       historyComplete: (water.quality?.history_complete ?? 1) === 1 };
   } else {
     if (!stateShapeOk(req.state.data, { num: ['leakK', 'startMs', 'lastTo', 'waterMg', 'spilledMg', 'lastPaPa', 'lastPaAt', 'gapLoMinK', 'gapHiMaxK', 'gapSLo', 'gapSHi', 'spilledAt'],
-      str: ['eqId', 'paramsFp', 'waterFp', 'waterLocation', 'condition'], bool: ['gapOpen', 'historyComplete'], obj: ['g', 's', 'ctl'] }))
+      str: ['eqId', 'paramsFp', 'waterFp', 'waterLocation'], oneOf: { condition: ['ok', 'spilled-top', 'spilled-bottom', 'unknown'] }, bool: ['gapOpen', 'historyComplete'],
+      nested: { g: { num: ['V0', 'A', 'halfLengthM', 'markM', 'tauS', 'form', 'headK', 'topM', 'bottomM'] }, s: { num: ['tMs', 'bLo', 'bHi', 'sLo', 'sHi'] },
+        ctl: { num: ['Ta', 'Pa', 'dsLo', 'dsHi'], bool: ['tKnown', 'pKnown'] } } }))
       return fail('corrupt-state: the saved gauge is not one this step wrote (cancel the run and set it again)');
     d = structuredClone(req.state.data as PotGaugeData);
     if (req.interval.from !== d.lastTo) return fail(`noncontiguous-interval: expected from=${d.lastTo}`);

@@ -101,7 +101,9 @@ export function barometerStep(req: ScienceStepRequest): ScienceStepResult {
       sealed: (P0 * g0.V0) / T0, bulbLoK: T0, bulbHiK: T0, lastPaPa: P0, lastPaAt: req.interval.from,
       gapLoMinK: T0, gapHiMaxK: T0, condition: 'ok', spilledAt: -1, historyComplete: true };
   } else {
-    if (!stateShapeOk(req.state.data, { num: ['startMs', 'lastTo', 'sealed', 'bulbLoK', 'bulbHiK', 'lastPaPa', 'lastPaAt', 'gapLoMinK', 'gapHiMaxK', 'spilledAt'], str: ['eqId', 'paramsFp', 'condition'], bool: ['historyComplete'], obj: ['params'] }))
+    if (!stateShapeOk(req.state.data, { num: ['startMs', 'lastTo', 'sealed', 'bulbLoK', 'bulbHiK', 'lastPaPa', 'lastPaAt', 'gapLoMinK', 'gapHiMaxK', 'spilledAt'], str: ['eqId', 'paramsFp'],
+      oneOf: { condition: ['ok', 'spilled-top', 'spilled-bottom', 'unknown'] }, bool: ['historyComplete'], numMap: ['params'] })
+      || typeof geometry((req.state.data as GaugeData).params) === 'string')
       return failed(req, EVAL, 'corrupt-state: the saved gauge is not one this step wrote (cancel the run and set the gauge again)', SCHEMA);
     d = structuredClone(req.state.data as GaugeData);
     if (req.interval.from !== d.lastTo) return failed(req, EVAL, `noncontiguous-interval: expected from=${d.lastTo}`, SCHEMA);

@@ -391,6 +391,43 @@ console.log('8. the non-blocking findings put right (m02x 0.1.3, m03x 0.2.2, p16
   refused('a broken saved weather pot (data null) is refused', step({ ...wreqLike(250_000), interval: { from: H, to: 2 * H }, state: { schema: good.state.schema, data: null } }), /corrupt-state/);
   const missing = JSON.parse(JSON.stringify(good.state)); delete missing.data.leakK;
   refused('one key missing from it is refused too', step({ ...wreqLike(250_000), interval: { from: H, to: 2 * H }, state: missing }), /corrupt-state/);
+  // every key, inside g, s and ctl too, missing, of another type, or the object empty or an array: refused before any
+  // physics reads it, with nothing settled (Codex CS-B1: a missing s.tMs made the scan never end)
+  const breakings = (data: Record<string, any>) => {
+    const out: [string, (d: Record<string, any>) => void][] = [];
+    for (const [k, v] of Object.entries(data)) {
+      out.push([`${k} missing`, (d) => { delete d[k]; }], [`${k} another type`, (d) => { d[k] = typeof v === 'string' ? 5 : 'x'; }]);
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        out.push([`${k} {}`, (d) => { d[k] = {}; }], [`${k} []`, (d) => { d[k] = []; }]);
+        for (const kk of Object.keys(v)) out.push([`${k}.${kk} missing`, (d) => { delete d[k][kk]; }], [`${k}.${kk} a string`, (d) => { d[k][kk] = 'x'; }], [`${k}.${kk} null`, (d) => { d[k][kk] = null; }]);
+      }
+    }
+    out.push(['condition unknown word', (d) => { d.condition = 'flooded'; }]);
+    return out;
+  };
+  const corruptRun = (base: ScienceStepResult, req: ScienceStepRequest) => {
+    let bad = 0, n = 0; const which: string[] = [];
+    for (const [name, brk] of breakings(base.state.data as Record<string, any>)) {
+      const st = JSON.parse(JSON.stringify(base.state)); brk(st.data); n++;
+      const r = step({ ...req, state: st });
+      if (!(r.status === 'failed' && /corrupt-state/.test(String(r.evidence.notes)) && r.consumed.length === 0 && r.produced.length === 0)) { bad++; which.push(`${name}: ${r.status} ${String(r.evidence.notes).slice(0, 40)}`); }
+    }
+    if (which.length) console.log('      not refused:', which.slice(0, 12).join(' | '));
+    return { n, bad };
+  };
+  const nextReq = { ...wreqLike(250_000), interval: { from: H, to: 2 * H }, actions: [{ at: H + 1500, residentId: 'r', action: 'read_gauge' }] };
+  const cw = corruptRun(good, nextReq);
+  const uFirst = step(greq(0, H, storm(0), null, [])), cu = corruptRun(uFirst, { ...greq(H, 2 * H, storm(H), null, [[H + 1500, 'read_gauge']]) });
+  const normal = step({ ...nextReq, state: JSON.parse(JSON.stringify(good.state)) }), normalU = step({ ...greq(H, 2 * H, storm(H), JSON.parse(JSON.stringify(uFirst.state)), [[H + 1500, 'read_gauge']]) });
+  ok(cw.bad === 0 && cu.bad === 0 && normal.status === 'running' && normalU.status === 'running',
+    'a saved gauge broken anywhere (each key and each key inside g, s, ctl: missing, another type, null; the objects empty or arrays) is refused with nothing settled; the same state saved whole runs on (CS-B1)',
+    `weather pot ${cw.n}, U-tube ${cu.n} breakings`);
+  const m2Req = (from: number, state: ScienceStepRequest['state']): ScienceStepRequest => ({ contract: '0.2.0', requestId: `m2s@${from}`, world: W, runId: 'run:m02s', ...BAROMETER_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from, to: from + H }, state,
+    environment: { sampleId: `e${from}`, source: 'record', effectiveAt: from, airTempC: 28, pressureHPa: 1010 }, lots: [],
+    equipment: [{ equipmentId: 'eq:test', kind: 'fixture_air_barometer', catalogEntry: 'fixture_air_barometer', catalogVersion: 'civ-sci-test-2', condition: 1, params: { bulbVolumeMl: 500, tubeBoreMm: 8, tubeLengthMm: 600, markMm: 5, bulbTauS: 900 } }],
+    energy: [], seed: 1, actions: [{ at: from + 1500, residentId: 'r', action: 'read_gauge' }] });
+  const m2First = step(m2Req(0, null)), c2 = corruptRun(m2First, m2Req(H, null)), m2Normal = step(m2Req(H, JSON.parse(JSON.stringify(m2First.state))));
+  ok(c2.bad === 0 && m2Normal.status === 'running', 'the test gauge (m02x) too: its keys and its params (each missing, another type, null) are checked before it reads them', `${c2.n} breakings`);
   function wreqLike(waterMg: number): ScienceStepRequest { return { ...greq(0, H, storm(0), null, []), runId: 'run:wp3', lots: [{ ...WATER(waterMg), lotId: 'lot:pw' }], equipment: [wEq({})] }; }
   // input checks only (valid inputs give the same results): a sub-gram tube, a hand-written fired pot with no body
   refused('a tube under a gram is refused (its mass would vanish in the pot\'s ppm: C-M2)', seal({ tube: { ...TUBE, amount: { value: 1, unit: 'mg' } } }), /under 1 g/);

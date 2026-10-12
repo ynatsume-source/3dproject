@@ -474,3 +474,7 @@ BW-A1・BW-C1 解消、新 A/B/C なし → m03x 0.2.1 の保留解除、本体�
 
 直したもの：U 字の底の言葉（m02x 0.1.3・m03x 0.2.2）、SB-C3（読みの標本の時刻をあふれの調べ方とそろえる。Codex の subsecond-peak.mjs で reproduced true → false）、BW-C2、短い τ、壊れた保存状態（BARO-C1・HOST-C2）、C-M2・FX-C2（入口の検査）。一次資料 5 件を取り込み（ハッシュ一致を確認）。残すものと理由は C_LEDGER_2026-10-12.md。U 字・天気の壺は 0.2.1 と 10,704 要求で一致。依頼書 CODEX_REVIEW_REQUEST_c_sweep.md。
 
+## 2026-10-12：f7db219（Codex、C の整理の変更範囲）→ 修正
+
+A なし・B 1件（CS-B1）。CS-B1：`stateShapeOk` が g・s・ctl の内部を見ず、s.tMs だけ消した保存状態で読みの調べが終わらない（ae9bd08 でも再現、旧 HOST-C2 の未解消部分）→ 内部まで確かめる（`nested`・`numMap`・`oneOf`）。Codex の nested-state-minimal.mjs と同じ入力を、別プロセスに 10 秒の時間制限で実行（この環境では Worker が TS の読み込みを引き継がないため）：修正前は止まらず（timeout 124）、修正後は corrupt-state。検査：天気の壺・U 字で各 111 通り、m02x で 48 通りの壊し方をすべて断り、精算なし。非保留 C 4 項目（CS-SAMPLE-C1、CS-TAU-C1、CS-LEDGER-C1・C2）は台帳と手順書を直した。
+
