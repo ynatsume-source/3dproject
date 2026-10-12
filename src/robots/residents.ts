@@ -1057,7 +1057,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function voyageJudge(r: Resident, isleId: string): { go: boolean; why?: string; km: number } {
     const i = ISLES.find((x) => x.id === isleId)!, km = fromHome(i).km, hr = localHour(clockMs);
     if (storm()) return { go: false, why: '台風で海が荒れている', km };
-    if (wxNow && wxNow.wind >= 8) return { go: false, why: `風が強い（${wxNow.wind.toFixed(1)}m/s）`, km };
+    if (wxNow && wxNow.wind >= 8) return { go: false, why: '風が強い', km };
     // (a crossing runs on the island's clock — out of sight, as the crops and the processes do: two km an island hour,
     // there and back, and half an hour ashore; owner's decision 2026-10-06. Not before the morning gathering, and back
     // before the light goes)
@@ -1874,10 +1874,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (what it did for the other, paid back: taken on by one its reef has fed — a reward for having made it)
     if (yes && fa && trust(r, from) > 0.1 && patches.some((p) => p.by === from.id)) fa.values.bonus('reef:sea', '流木を沈めて漁礁をつくる', 0.5);
   }
-  /** The island's date, season and weather, as its mind is told them (the replayed record's values, as measured). */
+  /** The island's date, season and weather, as its mind is told them: what a body meets — the sky, the wind and the
+   *  warmth in words — never the record's numbers (ADR 0006: no hidden values; pressure is read on Lantern's own gauge). */
   function islandNow() {
-    const d = islandDate(clockMs), w = wxNow;
-    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: `${w.wind.toFixed(1)}m/s`, 気圧: `${Math.round(w.pressure)}hPa` } : {}) };
+    const d = islandDate(clockMs), w = wxNow, feel = w ? feelOf(w, clockMs) : '';
+    return { 日付: d.label, 季節: d.season, ...(w ? { 天気: w.typhoon ? '台風' : w.rain >= 1 ? '雨' : w.cloud > 0.7 ? '曇り' : '晴れ', 風: w.wind < 1.5 ? 'ほとんどない' : w.wind < 5 ? '弱い' : w.wind < 8 ? 'やや強い' : '強い', ...(feel ? { 体感: feel } : {}) } : {}) };
   }
   /** Dot's map, as its mind is told it: each island seen, by its own word, direction, distance and size; and those reached. */
   function mapNow() {
