@@ -3,14 +3,14 @@
 // Fast checks keep a 120 s per-file budget. Slow checks retain their full default
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
-  'assembly', 'body', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal',
+  'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal',
   'lamp',
   'lantern', 'lantern-brain', 'lantern-residents', 'lantern-sky', 'lantern-study',
   'lumau', 'map', 'mind', 'nav', 'pottery-host', 'process-runner',
   'science-barometer-pot', 'science-charcoal', 'science-clay-prep',
   'science-fired-pot-assembly', 'science-firewood', 'science-integration',
   'science-oil-lamp', 'science-pit-fire', 'science-pottery', 'science-vessel',
-  'settle', 'social', 'values', 'wall', 'wear', 'words', 'world-switch', 'worlds',
+  'save-migration', 'settle', 'social', 'values', 'wall', 'wear', 'words', 'world-switch', 'worlds',
 ];
 
 const slow = [
