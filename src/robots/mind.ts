@@ -54,14 +54,21 @@ async function boundedResponse(r: Response, max = 64 * 1024): Promise<unknown> {
 // Failures count too. No network work starts without a key; aborted requests do not hold the slot.
 /** What one call used, from the API's own count (for the operating log: robots/agent/config.ts). */
 export interface AiUsage { model: string; input: number; output: number; cacheRead: number; cacheWrite: number; ms: number }
-// (a pool: a resident's own allowance for the day, kept apart from the conversations' — ADR 0004)
+// (a pool: a resident's own allowance for the day, kept apart from the conversations' — ADR 0004; counted in memory as
+// well, as the conversations' are, so the cap holds when storage is unavailable)
+let memoryPoolDay = '', memoryPool: Record<string, number> = {};
 function poolUsed(name: string) {
   const day = new Date().toDateString();
-  try { const s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); return s?.d === day && Number.isSafeInteger(s[name]) ? s[name] as number : 0; } catch (e) { return 0; }
+  if (memoryPoolDay !== day) { memoryPoolDay = day; memoryPool = {}; }
+  try {
+    const s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}');
+    if (s?.d === day && Number.isSafeInteger(s[name]) && s[name] >= 0) memoryPool[name] = Math.max(memoryPool[name] ?? 0, s[name]);
+  } catch (e) { /* the cap still applies when storage is unavailable */ }
+  return memoryPool[name] ?? 0;
 }
 function poolCount(name: string) {
-  const day = new Date().toDateString();
-  try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== day) s = { d: day }; s[name] = (Number.isSafeInteger(s[name]) ? s[name] : 0) + 1; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session only */ }
+  memoryPool[name] = poolUsed(name) + 1;
+  try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== memoryPoolDay) s = { d: memoryPoolDay }; s[name] = memoryPool[name]; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session fallback */ }
 }
 export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
 export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number; maxChars?: number } = {}): Promise<string | null> {
