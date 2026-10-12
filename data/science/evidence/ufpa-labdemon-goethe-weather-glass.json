@@ -1,0 +1,30 @@
+{
+  "title": "Barômetro de Goethe (Furukawa)",
+  "url": "https://labdemon.ufpa.br/fisica-termica/barometro-de-goethe",
+  "accessedDateJst": "2026-10-11",
+  "facts": [
+    {
+      "instrument": "borosilicate-glass body, dyed water and trapped air",
+      "builderAndDonor": "Claudio Hiroyuki Furukawa",
+      "initialCondition": "tube and body water levels equal",
+      "reportedPressureResponse": "at fixed temperature, pressure rises -> column falls; pressure falls -> column rises"
+    }
+  ],
+  "conditions": {
+    "material": "borosilicate glass, dyed water",
+    "initialCondition": "equal water levels, air/water-tight body",
+    "temperature": "constant for pressure interpretation",
+    "units": "no dimensions/quantitative calibration provided",
+    "replicates": null
+  },
+  "bodyLocators": [
+    "lines 95,100–103,110–114"
+  ],
+  "verificationLimits": "browser-rendered article/database body was read; extracted strings/numbers and reviewer transcription only; original HTML/PDF bytes not obtained",
+  "calibrationEligible": false,
+  "retrievalCopy": {
+    "path": "sources/ufpa-weather-glass.web-extract.txt",
+    "sha256": "dbd7cb714dd0d44bbe2fc857e44e68bca0aec63873a903d53e16a4999540014f",
+    "hashScope": "UTF-8 browser-tool extraction received by reviewer, not original source bytes"
+  }
+}

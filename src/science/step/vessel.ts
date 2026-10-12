@@ -191,6 +191,8 @@ export function tarSealStep(req: ScienceStepRequest): ScienceStepResultV02 {
       const tq = tubeLot.quality ?? {};
       if (!finite(tq.bore_mm, 1, 30) || !finite(tq.length_mm, 100, 3000) || !isInt(tubeLot.amount.value, 1)) return fail(`${tubeLot.materialId} needs quality bore_mm 1..30 and length_mm 100..3000`);
       if (tubeLot.materialId === BAMBOO_TUBE && !finite(tq.outer_mm, tq.bore_mm, 60)) return fail(`${BAMBOO_TUBE} needs quality outer_mm (above its bore, up to 60)`);
+      // a tube's mass goes into the pot as a whole ppm: under a gram it would be lost in the rounding (Codex C-M2)
+      if (tubeLot.amount.value < 1000) return fail(`${tubeLot.materialId} under 1 g is not a gauge tube (its mass would be lost in the pot's ppm)`);
     }
     if (wood) { const fc = fuelComp(wood); if (typeof fc === 'string') return fail(fc); }
     d = { fps, eqFp, lastTo: req.interval.from, elapsedMs: 0, durationMs: pv('vesselHandSeconds') * 1000, reportedHands: 0, seal: false, sealAt: -1, jointTarG: 0 };
