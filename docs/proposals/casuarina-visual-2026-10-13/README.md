@@ -49,3 +49,9 @@ node tools/lab/casuarina-compare.mjs /tmp/casuarina-before/report.json /tmp/casu
 通常スクリプトの実行は `CASE=desktop-home-wide-day,desktop-home-wide-night,desktop-home-near-day,desktop-home-near-night,desktop-beach-day,desktop-beach-night,desktop-falling-day,phone-home-near-day,phone-home-near-night` を指定。夜の倒木は専用スクリプトを `CASE=desktop-falling-night` で別実行する。
 
 `casuarina-collect.mjs OUT REPORT...` は全10条件の成功行・画像の存在、重複なし、fixture/browser/source一致を要求して集約する。各条件の元harnessハッシュを保持し、その組合せを比較するため、A/Bで同じ条件に同じ撮影スクリプトを使ったことを確認できる。元runの失敗は`attempts`へ保持し、失敗した未測定条件を成功扱いにはしない。撮影をやり直した条件は、成功した別runがなければ集約は失敗する。
+
+### ブラウザで検出した準備処理の差
+
+旧葉材質の削除で既存`prepareShaders`のScene生成＋Mesh cloneが1組減り、16回分のグローバル乱数が減った。続く住人の行き先探索にも影響し、最初の昼景では合計76回分の差と保存ハッシュ差になったため、その撮影は棄却した。`evidence/rejected-browser-rng-diagnosis.json`にスタック別差を記録した。
+
+局所修正は最初の若木に描画しない旧葉材質Meshを保持すること。その1 UUIDを構築時の補償から差し引く。rendererや世界の乱数設計を変更しない。修正後の撮影は作業ツリーから開始し、その同じソースを`5598fa6`に保存した。報告の`sourceCommit`だけでなく、3つの実装ファイルの`sourceSha256`が一致することを確認する。
