@@ -63,3 +63,8 @@ GLBは約88KB、native `.blend`と再生成スクリプトも保存済み。Blen
 元のスクリーンショットを描き直さず、原寸のままラベル付きの文書に配置して撮影した。「独立表示試作・本体未接続／採用保留」と「形は初期案・ちらつき基準未達」を明示した。再現は`tools/lab/casuarina-art/compose-delivery.mjs OUT`。
 
 現行Library手順でこの2枚を一括保存しようとしたが、保存開始前の接続エラーで停止した。Library IDは取得できていない。ログは`evidence/library-delivery-error.log`。別方式での重複保存は行っていない。
+
+
+## 第2案（承認された初期造形を維持）
+
+[初期案→第2案の比較](evidence/v2/v1-v2-comparison.png) / [風とカメラの動き](evidence/v2/camera-and-wind.gif) / [検証記録](V2.md)。独立表示試作で、本体未接続・採用保留。
