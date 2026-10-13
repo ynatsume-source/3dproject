@@ -41,3 +41,11 @@ node tools/lab/casuarina-compare.mjs /tmp/casuarina-before/report.json /tmp/casu
 微小移動のちらつき診断は既存`tools/lab/flicker.cjs`の輝度2階差分を固定再生に組み込み、4m先の1/4画素相当ずつ4フレーム横移動する。近景の若木と浜の昼に実施。全条件を網羅した受入試験ではない。
 
 性能はSwiftShaderの全フレーム＋同期readback。暖機2・標本3の少数測定で実機FPSを保証しない。実機性能・Windows ANGLE・長時間運転は別途確認が必要。
+
+### 夜の倒木fixtureと結果の集約
+
+基準mainで夜の伐採taskが完了せず、通常の撮影は7条件完了時点で停止した。この失敗は実装の回帰ではなく、撮影fixtureの前提の問題。夜間行動を変更せず、`casuarina-night-fall-capture.mjs`だけは`Date.now()`（固定した昼の世界時刻）で実際の伐採処理を成立させ、表示時刻は夜にする。自発的な夜間伐採を検証したものではない。
+
+通常スクリプトの実行は `CASE=desktop-home-wide-day,desktop-home-wide-night,desktop-home-near-day,desktop-home-near-night,desktop-beach-day,desktop-beach-night,desktop-falling-day,phone-home-near-day,phone-home-near-night` を指定。夜の倒木は専用スクリプトを `CASE=desktop-falling-night` で別実行する。
+
+`casuarina-collect.mjs OUT REPORT...` は全10条件の成功行・画像の存在、重複なし、fixture/browser/source一致を要求して集約する。各条件の元harnessハッシュを保持し、その組合せを比較するため、A/Bで同じ条件に同じ撮影スクリプトを使ったことを確認できる。元runの失敗は`attempts`へ保持し、失敗した未測定条件を成功扱いにはしない。撮影をやり直した条件は、成功した別runがなければ集約は失敗する。
