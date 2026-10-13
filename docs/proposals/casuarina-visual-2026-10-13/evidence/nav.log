@@ -1,0 +1,10 @@
+long way round a rock (dot): arrived at (11.51, 0.31), deepest into a solid 0.000 m — want round it, arrived ok
+short last leg past a rock (dot): arrived at (1.31, -0.34), deepest into a solid 0.000 m — want round it, arrived ok
+a wall with no way through (dot): gave up (no way) at (0.00, 0.00), deepest into a solid 0.000 m — want gives up, not through it ok
+sent into the middle of a rock (dot): arrived at (10.14, 0.00), deepest into a solid 0.000 m — want stands just outside it ok
+past a driftwood log, low enough to step over (lantern): arrived at (11.44, 0.00), deepest into a solid 0.000 m — want steps over, arrived ok
+swimming past a coral head (kame): arrived at (11.43, 0.00), deepest into a solid 0.000 m, lowest under a coral top 0.00 m — want over it, arrived ok
+pushed back by a trunk, again and again (dot): gave up (blocked) at (3.00, 0.00), deepest into a solid 0.000 m — want gives up ok
+(setting up the homestead) (dot): arrived at (0.00, 0.00), deepest into a solid 0.000 m — want - ok
+to the workbench (dot): arrived at (63.29, -144.25), deepest into a solid 0.000 m — want arrived beside it ok
+PASS

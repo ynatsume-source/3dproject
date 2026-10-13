@@ -1,0 +1,30 @@
+{
+  "note": "Rejected prototype before hidden leaf-material warmup fix. Same fixed fixture, camera, one warmup and one measured frame. Stack aggregation strips bundle locations and JIT new-name differences. 16 shader preparation draws lost; resulting resident spot search uses 60 fewer draws. No performance comparison is valid.",
+  "differences": [
+    {
+      "stack": "    at generateUUID (URL)\n    at Object3D (URL)\n    at Scene (URL)\n    at scene (URL)\n    at prepareShaders (URL)",
+      "before": 628,
+      "rejectedAfter": 624
+    },
+    {
+      "stack": "    at generateUUID (URL)\n    at Material (URL)\n    at MeshBasicMaterial (URL)\n    at Mesh (URL)\n    at Mesh.clone (URL)",
+      "before": 396,
+      "rejectedAfter": 392
+    },
+    {
+      "stack": "    at spot (URL)\n    at decide (URL)\n    at step (URL)\n    at Object.update (URL)\n    at frameBody (URL)",
+      "before": 72,
+      "rejectedAfter": 12
+    },
+    {
+      "stack": "    at generateUUID (URL)\n    at BufferGeometry (URL)\n    at Mesh (URL)\n    at Mesh.clone (URL)\n    at scene (URL)",
+      "before": 396,
+      "rejectedAfter": 392
+    },
+    {
+      "stack": "    at generateUUID (URL)\n    at Object3D (URL)\n    at Mesh (URL)\n    at Mesh.clone (URL)\n    at scene (URL)",
+      "before": 396,
+      "rejectedAfter": 392
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+PASS: three 186 instance 4, old sapling 44, old falling 48 random draws
+PASS: hidden leaf material keeps shader-preparation traversal and constructor budget
