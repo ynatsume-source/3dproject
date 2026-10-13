@@ -291,6 +291,8 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
   }
+  // Shared beach geometry/material for the five young casuarinas; ownership stays with the shore.
+  T.plantLook = { geo: geos, mat: plantMat };
   const forest = buildForest(AIRLIT, group, f, can, top, FAR);
   // how tall the growth is at a point (m): for those who walk on the island and go round what is above their
   // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
@@ -320,6 +322,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
       return t;
     },
     cleared: (x: number, z: number) => forest.cleared(x, z),
+    look: (x: number, z: number) => forest.look(x, z),
   };
   solids.source((x, z, r, f) => forest.trunks(x, z, r, (t) => f({ kind: 'trunk', x: t.x, z: t.z, r: Math.max(0.55, 0.058 * t.h), y0: t.y - 0.5, y1: t.y + t.h })));   // (a tall tree's foot is wider: nature-look HANDOFF §4)
   T.vegH = (x: number, z: number, pad = 0) => {   // (pad: a margin round each plant, to keep clear of it)
@@ -411,19 +414,28 @@ const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
 // モクマオウ: a tall, thin, often leaning trunk with a few upward-angled limbs; the crown light and open, its
 // grey-green jointed twigs hanging in soft drooping tufts (it is no pine) — airy enough to see the sky between
 function casuarinaGeo() {
-  const B = new Builder(mulberry32(41)), bark = [0.42, 0.35, 0.28];
+  const B = new Builder(mulberry32(41)), bark = [0.36, 0.3, 0.25];
+  const jit = (c: number[], k: number) => { const t = 1 + (B.R() - 0.5) * k; return [c[0] * t, c[1] * t * (1 + (B.R() - 0.5) * k * 0.4), c[2] * t]; };
   const lean = V(0.08, 1, 0.03).normalize();
   const trunkTop = lean.clone().multiplyScalar(0.92);
-  B.tube(V(0, 0, 0), trunkTop, 0.022, 0.008, bark, 0, 0.3, 7, V(0.015, 0, 0), 4);
-  const top = [0.56, 0.62, 0.42], deep = [0.2, 0.27, 0.17];
+  B.tube(V(0, 0, 0), trunkTop, 0.02, 0.007, bark, 0, 0.3, 6);
   for (let t = 0; t < 12; t++) {
     const h = 0.32 + t * 0.052 + B.R() * 0.04, a = t * 2.4 + B.R() * 0.6, len = 0.09 + Math.sin((1 - t / 12) * Math.PI * 0.85) * 0.16;
     const base = lean.clone().multiplyScalar(h), tip = base.clone().add(V(Math.cos(a) * len, len * 0.55, Math.sin(a) * len));   // (the limbs angle up)
-    B.tube(base, tip, 0.007, 0.003, bark, h * 0.3, h * 0.5, 5);
-    // a soft tuft hanging from the limb's end, longer than wide, and a smaller one partway along
-    const r = 0.045 + len * 0.28;
-    B.blob(tip.clone().add(V(0, -r * 0.55, 0)), r, r * 1.35, r * B.rr(0.85, 1.1), top, deep, h * 0.8, 2, null, 0, 0.8);
-    if (len > 0.14) { const m = base.clone().lerp(tip, 0.5); B.blob(m.add(V(0, -r * 0.5, 0)), r * 0.7, r * 1.0, r * 0.7, top, deep, h * 0.7, 1, null, 0, 0.8); }
+    B.tube(base, tip, 0.006, 0.0025, bark, h * 0.3, h * 0.5, 4);
+    // curtains of fine twigs hanging from the limb: long, thin, curving down, light grey-green
+    for (let k = 0; k < 90; k++) {
+      const f = 0.2 + B.R() * 0.8, c = base.clone().lerp(tip, f).add(V((B.R() - 0.5) * 0.06, (B.R() - 0.2) * 0.05, (B.R() - 0.5) * 0.06));
+      let d = V(Math.cos(a) * 0.5 + (B.R() - 0.5) * 0.9, -0.5, Math.sin(a) * 0.5 + (B.R() - 0.5) * 0.9).normalize();
+      const L = 0.05 + B.R() * 0.07, col = jit([0.36, 0.44, 0.33], 0.22);
+      let p0 = c;
+      for (let s = 0; s < 3; s++) {   // (each twig a little curved: steeper toward the tip)
+        const p1 = p0.clone().addScaledVector(d, L / 3);
+        const side = V(-d.z, 0, d.x).normalize().multiplyScalar(0.0035);
+        B.quad(p0.clone().sub(side), p0.clone().add(side), p1.clone().add(side), p1.clone().sub(side), V(side.x, 0.6, side.z).normalize(), col, [h * 0.7 + s * 0.1, h * 0.7 + s * 0.1, h * 0.8 + s * 0.1, h * 0.8 + s * 0.1]);
+        p0 = p1; d.y -= 0.45; d.normalize();
+      }
+    }
   }
   return B.geo();
 }

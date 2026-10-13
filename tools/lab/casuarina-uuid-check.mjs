@@ -1,0 +1,7 @@
+import assert from 'node:assert/strict';
+import * as T from 'three';
+let n=0;Math.random=()=>{n++;return .5};const m=new T.MeshBasicMaterial(),g=new T.BoxGeometry();n=0;
+new T.InstancedMesh(g,m,1);assert.equal(n,4);n=0;
+new T.Mesh(new T.CylinderGeometry(.06,.1,2.4,7),m);new T.Group();for(let k=0;k<4;k++)new T.Mesh(new T.SphereGeometry(.42-k*.05,8,6),m);assert.equal(n,44);n=0;
+new T.Mesh(new T.CylinderGeometry(.1,.18,3,7),m);for(let k=0;k<5;k++)new T.Mesh(new T.SphereGeometry(1,8,6),m);assert.equal(n,48);
+console.log('PASS: three '+T.REVISION+' instance 4, old sapling 44, old falling 48 random draws');

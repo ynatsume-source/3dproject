@@ -319,6 +319,15 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
   let near = 85;
   return {
     get count() { return count; },
+    // Shared drawing of the exact tree, including its variant, width and lean. Also available just after felling.
+    // Geometry/material belong to the forest; callers must not dispose them or mutate the stored matrix.
+    look(x: number, z: number) {
+      for (const c of cells.values()) {
+        const t = c.trees.find((t) => t.x === x && t.z === z);
+        if (t) return { geo: geos[t.g], mat: treeMat, matrix: t.m };
+      }
+      return null;
+    },
     get near() { return near; },
     // which cells to draw: those reaching within `near` of the camera (the canopy surface fills in beyond)
     update(cam: THREE.Vector3, r: number) {
