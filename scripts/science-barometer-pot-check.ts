@@ -359,6 +359,78 @@ console.log('7. the bamboo tube and the weather pot (p18x 0.1.0, p16x 0.1.5, tab
   refused('an old run (0.1.2, state /2) is refused', step({ ...greq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/2', data: {} }, []), processVersion: '0.1.2' }), /processVersion 0\.1\.2/);
   refused('a 0.2.0 run (its stored leak too small) is refused by version', step({ ...wreq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/3', data: {} }, []), processVersion: '0.2.0' }), /processVersion 0\.2\.0/);
   refused('a /3 state is refused under 0.2.1 (not resumed under a relabelled version)', step(wreq(0, H, storm(0), { schema: 'civ-sci.air-barometer-pot/3', data: {} }, [])), /pot\/3|schema/);
+console.log('8. the non-blocking findings put right (m02x 0.1.3, m03x 0.2.2, p16x and fired-pot input checks; 2026-10-12)');
+  // the U-tube's bottom: the bulb's air is below the outside's, so outside air bubbles in (the owner's C)
+  const up = (t: number): Env => ({ p: 1010 + Math.min(90, (90 * t) / H), t: 28 });
+  const short = seal({ warm: true, jointTarG: 6, tube: { ...TUBE, quality: { bore_mm: 8, length_mm: 200 } } });
+  const uHigh = gauge(3 * H, up, [H - 1000, 2 * H - 1000], { equipment: [bulb(short)] });
+  const uText = uHigh.all.flatMap((r) => r.observations).map((o) => o.text ?? '').join(' / ');
+  ok(/外の空気が泡になって器に入った|器に外の空気が入ったまま/.test(uText) && !/器の空気が泡になって抜けた|器の空気が抜けたまま/.test(uText), 'the U-tube pushed to its bottom: outside air bubbles into the bulb (m03x)', uText.slice(0, 80));
+  let st: ScienceStepRequest['state'] = null; const t2: string[] = [];
+  for (let t = 0; t < 3 * H; t += H) {
+    const r = step({ contract: '0.2.0', requestId: `m2@${t}`, world: W, runId: 'run:m02', ...BAROMETER_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from: t, to: t + H }, state: st,
+      environment: { sampleId: `e${t}`, source: 'record', effectiveAt: t, airTempC: 28, pressureHPa: up(t).p }, lots: [],
+      equipment: [{ equipmentId: 'eq:test', kind: 'fixture_air_barometer', catalogEntry: 'fixture_air_barometer', catalogVersion: 'civ-sci-test-2', condition: 1, params: { bulbVolumeMl: 500, tubeBoreMm: 8, tubeLengthMm: 200, markMm: 5, bulbTauS: 900 } }],
+      energy: [], seed: 1, actions: [{ at: t + H - 1000, residentId: 'r', action: 'read_gauge' }] });
+    t2.push(...r.observations.map((o) => o.text ?? String(o.value))); st = JSON.parse(JSON.stringify(r.state));
+  }
+  ok(t2.some((x) => /外の空気が泡になって器に入った|器に外の空気が入ったまま/.test(x)), 'the test gauge (m02x 0.1.3) says the same', t2.filter((x) => x.length > 3).join(' / ').slice(0, 80));
+  // reads between whole seconds never see a spill the gauge does not record (SB-C3): a deep low read at odd milliseconds
+  const oddReads = Array.from({ length: 60 }, (_, i) => i * 47 * M + 517);
+  const oddLow = wgauge(2 * D, (t) => ({ p: 1010 - Math.min(70, (70 * t) / D), t: 28 }), oddReads, H, 250_000, { tubeLengthMm: 200 });
+  const saidSpill = oddLow.obs.some((o) => /あふれ/.test(o.text ?? '')), recorded = oddLow.last.released.some((r) => r.to === 'ground' && r.amount.value > 0);
+  ok(saidSpill === recorded && recorded, 'a spill read is a spill recorded, and the other way round (reads sample the same whole seconds as the cell, SB-C3)');
+  // impossible shapes and pots that cannot hold their air are refused at setting (BW-C2, short τ)
+  const wEq = (o: Record<string, number>) => ({ equipmentId: 'eq:wpot', kind: 'assembled_pot', catalogEntry: 'assembled_pot', catalogVersion: 'civ-sci-test-2', condition: 1, params: { ...pb0, markMm: 5, ...o } });
+  const pb0 = potToEquipmentParams(potOf(seal({ warm: true, jointTarG: 6, tube: { lotId: 'lot:bt', materialId: 'bamboo_tube', amount: { value: 22_000, unit: 'mg' }, location: 's', quality: { bore_mm: 8, outer_mm: 13, length_mm: 350 } } })));
+  const setW = (o: Record<string, number>, waterMg = 250_000, cap?: number) => step({ ...greq(0, H, storm(0), null, []), runId: 'run:wp2', lots: [{ ...WATER(waterMg), lotId: 'lot:pw' }], equipment: [wEq({ ...o, ...(cap ? { capacityMl: cap } : {}) })] });
+  refused('a tube too thick for the pot is refused (it would leave negative air: BW-C2)', setW({ tubeBoreMm: 30, tubeOuterMm: 60 }, 59_999, 100), /too thick|too little air/);
+  refused('a pot that holds its air only minutes is refused (the held leak would overshoot)', setW({ airLeakTauMin: 5 }), /too short to read/);
+  // a saved state broken by hand is refused, not read (BARO-C1 / HOST-C2)
+  const good = step(wreqLike(250_000));
+  refused('a broken saved weather pot (data null) is refused', step({ ...wreqLike(250_000), interval: { from: H, to: 2 * H }, state: { schema: good.state.schema, data: null } }), /corrupt-state/);
+  const missing = JSON.parse(JSON.stringify(good.state)); delete missing.data.leakK;
+  refused('one key missing from it is refused too', step({ ...wreqLike(250_000), interval: { from: H, to: 2 * H }, state: missing }), /corrupt-state/);
+  // every key, inside g, s and ctl too, missing, of another type, or the object empty or an array: refused before any
+  // physics reads it, with nothing settled (Codex CS-B1: a missing s.tMs made the scan never end)
+  const breakings = (data: Record<string, any>) => {
+    const out: [string, (d: Record<string, any>) => void][] = [];
+    for (const [k, v] of Object.entries(data)) {
+      out.push([`${k} missing`, (d) => { delete d[k]; }], [`${k} another type`, (d) => { d[k] = typeof v === 'string' ? 5 : 'x'; }]);
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        out.push([`${k} {}`, (d) => { d[k] = {}; }], [`${k} []`, (d) => { d[k] = []; }]);
+        for (const kk of Object.keys(v)) out.push([`${k}.${kk} missing`, (d) => { delete d[k][kk]; }], [`${k}.${kk} a string`, (d) => { d[k][kk] = 'x'; }], [`${k}.${kk} null`, (d) => { d[k][kk] = null; }]);
+      }
+    }
+    out.push(['condition unknown word', (d) => { d.condition = 'flooded'; }]);
+    return out;
+  };
+  const corruptRun = (base: ScienceStepResult, req: ScienceStepRequest) => {
+    let bad = 0, n = 0; const which: string[] = [];
+    for (const [name, brk] of breakings(base.state.data as Record<string, any>)) {
+      const st = JSON.parse(JSON.stringify(base.state)); brk(st.data); n++;
+      const r = step({ ...req, state: st });
+      if (!(r.status === 'failed' && /corrupt-state/.test(String(r.evidence.notes)) && r.consumed.length === 0 && r.produced.length === 0)) { bad++; which.push(`${name}: ${r.status} ${String(r.evidence.notes).slice(0, 40)}`); }
+    }
+    if (which.length) console.log('      not refused:', which.slice(0, 12).join(' | '));
+    return { n, bad };
+  };
+  const nextReq = { ...wreqLike(250_000), interval: { from: H, to: 2 * H }, actions: [{ at: H + 1500, residentId: 'r', action: 'read_gauge' }] };
+  const cw = corruptRun(good, nextReq);
+  const uFirst = step(greq(0, H, storm(0), null, [])), cu = corruptRun(uFirst, { ...greq(H, 2 * H, storm(H), null, [[H + 1500, 'read_gauge']]) });
+  const normal = step({ ...nextReq, state: JSON.parse(JSON.stringify(good.state)) }), normalU = step({ ...greq(H, 2 * H, storm(H), JSON.parse(JSON.stringify(uFirst.state)), [[H + 1500, 'read_gauge']]) });
+  ok(cw.bad === 0 && cu.bad === 0 && normal.status === 'running' && normalU.status === 'running',
+    'a saved gauge broken anywhere (each key and each key inside g, s, ctl: missing, another type, null; the objects empty or arrays) is refused with nothing settled; the same state saved whole runs on (CS-B1)',
+    `weather pot ${cw.n}, U-tube ${cu.n} breakings`);
+  const m2Req = (from: number, state: ScienceStepRequest['state']): ScienceStepRequest => ({ contract: '0.2.0', requestId: `m2s@${from}`, world: W, runId: 'run:m02s', ...BAROMETER_PROCESS, catalogVersion: 'civ-sci-test-2', interval: { from, to: from + H }, state,
+    environment: { sampleId: `e${from}`, source: 'record', effectiveAt: from, airTempC: 28, pressureHPa: 1010 }, lots: [],
+    equipment: [{ equipmentId: 'eq:test', kind: 'fixture_air_barometer', catalogEntry: 'fixture_air_barometer', catalogVersion: 'civ-sci-test-2', condition: 1, params: { bulbVolumeMl: 500, tubeBoreMm: 8, tubeLengthMm: 600, markMm: 5, bulbTauS: 900 } }],
+    energy: [], seed: 1, actions: [{ at: from + 1500, residentId: 'r', action: 'read_gauge' }] });
+  const m2First = step(m2Req(0, null)), c2 = corruptRun(m2First, m2Req(H, null)), m2Normal = step(m2Req(H, JSON.parse(JSON.stringify(m2First.state))));
+  ok(c2.bad === 0 && m2Normal.status === 'running', 'the test gauge (m02x) too: its keys and its params (each missing, another type, null) are checked before it reads them', `${c2.n} breakings`);
+  function wreqLike(waterMg: number): ScienceStepRequest { return { ...greq(0, H, storm(0), null, []), runId: 'run:wp3', lots: [{ ...WATER(waterMg), lotId: 'lot:pw' }], equipment: [wEq({})] }; }
+  // input checks only (valid inputs give the same results): a sub-gram tube, a hand-written fired pot with no body
+  refused('a tube under a gram is refused (its mass would vanish in the pot\'s ppm: C-M2)', seal({ tube: { ...TUBE, amount: { value: 1, unit: 'mg' } } }), /under 1 g/);
 }
 
 console.log('—   every result above passed the contract checker');

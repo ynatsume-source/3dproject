@@ -27,11 +27,11 @@
 
 import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { pv } from '../params';
-import { allFinite, checkCommon, contractExtras, failed, finite, isInt, subStepEnd } from './common';
+import { allFinite, stateShapeOk, checkCommon, contractExtras, failed, finite, isInt, subStepEnd } from './common';
 
-export const BAROMETER_PROCESS = { processId: 'm02x_air_barometer_test', processVersion: '0.1.2' } as const;
+export const BAROMETER_PROCESS = { processId: 'm02x_air_barometer_test', processVersion: '0.1.3' } as const; // 0.1.3: the water pushed to the bottom lets outside air in (the words were wrong); a broken saved state is refused
 const SCHEMA = 'civ-sci.air-barometer/3'; // /2 held bounds from the 10..38 °C assumption: refused, set the gauge again
-const EVAL = 'air-barometer-eval/0.1.2';
+const EVAL = 'air-barometer-eval/0.1.3';
 /** Air temperatures this step accepts as known; also the bounds an unknown stretch may reach. */
 export const AIR_RANGE_C = [-60, 70] as const;
 const GAUGE = 'fixture_air_barometer';
@@ -75,8 +75,10 @@ const sourceOk = (req: ScienceStepRequest) => {
 const tempKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.airTempC, AIR_RANGE_C[0], AIR_RANGE_C[1]);
 const presKnown = (req: ScienceStepRequest) => sourceOk(req) && finite(req.environment.pressureHPa, 800, 1100);
 
-export const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、器の空気が泡になって抜けた' };
-export const SPILLED = { top: '水があふれて減ったまま。両側の水面が、置いたときの印と合わない', bottom: '器の空気が抜けたまま。両側の水面が、置いたときの印と合わない' };
+// below the bottom the bulb's air is at less than the outside's (x < 0): outside air bubbles in (0.1.3, the owner's C
+// confirmed by Codex: the words said the bulb's air escaped)
+export const SPILL_NOW = { top: '水が開いた管の口まで上がって、あふれた', bottom: '開いた管の水が底まで下がり、外の空気が泡になって器に入った' };
+export const SPILLED = { top: '水があふれて減ったまま。両側の水面が、置いたときの印と合わない', bottom: '器に外の空気が入ったまま。両側の水面が、置いたときの印と合わない' };
 
 export function barometerStep(req: ScienceStepRequest): ScienceStepResult {
   const bad = checkCommon(req, BAROMETER_PROCESS.processId, BAROMETER_PROCESS.processVersion, SCHEMA);
@@ -99,6 +101,10 @@ export function barometerStep(req: ScienceStepRequest): ScienceStepResult {
       sealed: (P0 * g0.V0) / T0, bulbLoK: T0, bulbHiK: T0, lastPaPa: P0, lastPaAt: req.interval.from,
       gapLoMinK: T0, gapHiMaxK: T0, condition: 'ok', spilledAt: -1, historyComplete: true };
   } else {
+    if (!stateShapeOk(req.state.data, { num: ['startMs', 'lastTo', 'sealed', 'bulbLoK', 'bulbHiK', 'lastPaPa', 'lastPaAt', 'gapLoMinK', 'gapHiMaxK', 'spilledAt'], str: ['eqId', 'paramsFp'],
+      oneOf: { condition: ['ok', 'spilled-top', 'spilled-bottom', 'unknown'] }, bool: ['historyComplete'], numMap: ['params'] })
+      || typeof geometry((req.state.data as GaugeData).params) === 'string')
+      return failed(req, EVAL, 'corrupt-state: the saved gauge is not one this step wrote (cancel the run and set the gauge again)', SCHEMA);
     d = structuredClone(req.state.data as GaugeData);
     if (req.interval.from !== d.lastTo) return failed(req, EVAL, `noncontiguous-interval: expected from=${d.lastTo}`, SCHEMA);
     if (eq && (eq.equipmentId !== d.eqId || fpOf(eq.params ?? {}) !== d.paramsFp)) return failed(req, EVAL, 'changed-input: the gauge changed under a running run', SCHEMA);

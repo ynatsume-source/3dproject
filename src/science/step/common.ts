@@ -130,6 +130,25 @@ export function finite(v: unknown, min = -Infinity, max = Infinity): v is number
 }
 
 /** True if every number anywhere in the value is finite (used before returning a state). */
+/** The shape a saved state's data must have: keys that are finite numbers, strings, booleans; objects checked by their
+ *  own shape (`nested`), objects whose every value is a finite number (`numMap`), and strings from a fixed set (`oneOf`). */
+export interface StateShape { num?: string[]; str?: string[]; bool?: string[]; numMap?: string[]; oneOf?: Record<string, readonly string[]>; nested?: Record<string, StateShape> }
+/** A saved state's data has the shape a step expects, all the way down (a state broken by hand, data null, a key
+ *  missing or of another type, an array for an object, is refused before any physics reads it; Codex BARO-C1 / HOST-C2,
+ *  CS-B1: a missing s.tMs made a scan loop never end). It does not tell a state saved by another run from this run's:
+ *  that, the reservations and the clocks stay the host's. */
+export function stateShapeOk(data: unknown, shape: StateShape): boolean {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  const d = data as Record<string, unknown>;
+  const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
+  return (shape.num ?? []).every((k) => typeof d[k] === 'number' && Number.isFinite(d[k] as number))
+    && (shape.str ?? []).every((k) => typeof d[k] === 'string')
+    && (shape.bool ?? []).every((k) => typeof d[k] === 'boolean')
+    && (shape.numMap ?? []).every((k) => isObj(d[k]) && Object.values(d[k] as object).every((v) => typeof v === 'number' && Number.isFinite(v)))
+    && Object.entries(shape.oneOf ?? {}).every(([k, vs]) => typeof d[k] === 'string' && vs.includes(d[k] as string))
+    && Object.entries(shape.nested ?? {}).every(([k, sh]) => stateShapeOk(d[k], sh));
+}
+
 export function allFinite(x: unknown): boolean {
   if (typeof x === 'number') return Number.isFinite(x);
   if (Array.isArray(x)) return x.every(allFinite);

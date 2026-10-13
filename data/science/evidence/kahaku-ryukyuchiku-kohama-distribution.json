@@ -1,0 +1,28 @@
+{
+  "title": "琉球の植物データベース：リュウキュウチク Pleioblastus linearis (Hack.) Nakai",
+  "url": "https://www.kahaku.go.jp/research/activities/project/hotspot_japan/ryukyus/db/S579.html",
+  "accessedDateJst": "2026-10-11",
+  "facts": [
+    {
+      "taxon": "Pleioblastus linearis (Hack.) Nakai",
+      "kohamaSpecimenBasedDistribution": "present",
+      "otherYaeyamaEntries": "Ishigaki, Iriomote, Taketomi, Hatoma, Hateruma, Yonaguni"
+    }
+  ],
+  "conditions": {
+    "location": "Kohama Island / Yaeyama",
+    "material": "institutional distribution entries, not culm measurements",
+    "units": "presence entry; no dimensions",
+    "replicates": null
+  },
+  "bodyLocators": [
+    "lines 1–15,25–34"
+  ],
+  "verificationLimits": "browser-rendered article/database body was read; extracted strings/numbers and reviewer transcription only; original HTML/PDF bytes not obtained",
+  "calibrationEligible": false,
+  "retrievalCopy": {
+    "path": "sources/kahaku-ryukyuchiku.web-extract.txt",
+    "sha256": "85ae0c4427401d23723c1917aa2bbce5f01a914e5353da8bc1947abc9a0b415d",
+    "hashScope": "UTF-8 browser-tool extraction received by reviewer, not original source bytes"
+  }
+}
