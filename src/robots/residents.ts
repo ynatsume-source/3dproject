@@ -351,7 +351,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (drawn as the beach's own casuarinas are — their drooping twigs, the same light — only young: 2.7 m; nature team
     // 2026-10-10. Where the shore is not built, a trunk and a crown of rounded masses as before)
     const look = T.plantLook;
-    if (look) { const m = new THREE.InstancedMesh(look.geo.casuarina, look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(2.4, 2.7, 2.4)).setPosition(g.position)); m.position.copy(g.position).multiplyScalar(-1); m.frustumCulled = false; m.userData.shared = true; pivot.add(m); sameDraws(10); }
+    if (look) { const m = new THREE.InstancedMesh(look.geo.casuarina, look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(2.4, 2.7, 2.4)).setPosition(g.position)); m.position.copy(g.position).multiplyScalar(-1); m.frustumCulled = false; m.userData.shared = true; pivot.add(m);
+      // prepareShaders visits even hidden meshes, once per material. Keep the old leaf material in that
+      // traversal: removing it skips a Scene + Mesh clone (16 random draws) before residents first act.
+      // Reuse geometry and offset this Mesh's one UUID from the construction budget. It never renders.
+      if (i === 0) { const warmup = new THREE.Mesh(look.geo.casuarina, leafM); warmup.visible = false; pivot.add(warmup); }
+      sameDraws(i === 0 ? 9 : 10);
+    }
     else {
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7), wood2); trunk.position.y = 1.2; pivot.add(trunk);
       const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);

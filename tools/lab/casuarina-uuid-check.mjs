@@ -5,3 +5,6 @@ new T.InstancedMesh(g,m,1);assert.equal(n,4);n=0;
 new T.Mesh(new T.CylinderGeometry(.06,.1,2.4,7),m);new T.Group();for(let k=0;k<4;k++)new T.Mesh(new T.SphereGeometry(.42-k*.05,8,6),m);assert.equal(n,44);n=0;
 new T.Mesh(new T.CylinderGeometry(.1,.18,3,7),m);for(let k=0;k<5;k++)new T.Mesh(new T.SphereGeometry(1,8,6),m);assert.equal(n,48);
 console.log('PASS: three '+T.REVISION+' instance 4, old sapling 44, old falling 48 random draws');
+n=0;new T.Mesh(g,m);for(let i=0;i<9;i++)T.MathUtils.generateUUID();assert.equal(n,40,'Hidden warmup mesh replaces one construction UUID');
+const representative=new T.Mesh(g,m);n=0;const scene=new T.Scene();scene.add(representative.clone(false));assert.equal(n,16,'Existing shader preparation consumes 16 draws for one unique Mesh material');
+console.log('PASS: hidden leaf material keeps shader-preparation traversal and constructor budget');
