@@ -1,0 +1,161 @@
+{
+  "errors": [],
+  "rows": [
+    {
+      "triangles": 2864,
+      "calls": 11,
+      "renderTriangles": 6502,
+      "variant": "v1",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        3.8
+      ],
+      "rotation": [
+        -0.09966865249116198,
+        0.6818591181757395,
+        0.06294050859622338,
+        "XYZ"
+      ],
+      "worldLoaded": false
+    },
+    {
+      "triangles": 2864,
+      "calls": 11,
+      "renderTriangles": 6502,
+      "variant": "v1",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        5.7
+      ],
+      "rotation": [
+        -0.06656816377582378,
+        0.4971866376573815,
+        0.031786269526664745,
+        "XYZ"
+      ],
+      "worldLoaded": false
+    },
+    {
+      "triangles": 2864,
+      "calls": 11,
+      "renderTriangles": 6502,
+      "variant": "v1",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        10
+      ],
+      "rotation": [
+        -0.03798172516404017,
+        0.30040168132837375,
+        0.01124387523973399,
+        "XYZ"
+      ],
+      "worldLoaded": false
+    },
+    {
+      "triangles": 3326,
+      "calls": 11,
+      "renderTriangles": 7426,
+      "variant": "new",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        3.8
+      ],
+      "rotation": [
+        -0.09966865249116198,
+        0.6818591181757395,
+        0.06294050859622338,
+        "XYZ"
+      ],
+      "worldLoaded": false
+    },
+    {
+      "triangles": 3326,
+      "calls": 11,
+      "renderTriangles": 7426,
+      "variant": "new",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        5.7
+      ],
+      "rotation": [
+        -0.06656816377582378,
+        0.4971866376573815,
+        0.031786269526664745,
+        "XYZ"
+      ],
+      "worldLoaded": false
+    },
+    {
+      "triangles": 3326,
+      "calls": 11,
+      "renderTriangles": 7426,
+      "variant": "new",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        10
+      ],
+      "rotation": [
+        -0.03798172516404017,
+        0.30040168132837375,
+        0.01124387523973399,
+        "XYZ"
+      ],
+      "worldLoaded": false
+    }
+  ]
+}

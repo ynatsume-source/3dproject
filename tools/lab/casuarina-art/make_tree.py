@@ -21,19 +21,24 @@ def tuft(top,width,length,angle,shade,weight):
     # A hanging volume of twig bundles: broad shoulders, uneven flank, tapered ends.
     top=Vector(top);side=Vector((math.cos(angle),math.sin(angle),0));depth=Vector((-side.y,side.x,0));base=len(verts)
     profile=[(.0,.38),(.22,.94),(.53,1.0),(.81,.72),(1,.18)]
-    jitter=[rng.uniform(.84,1.16) for _ in range(9)]
+    jitter=[rng.uniform(.94,1.06) for _ in range(9)]
     for j,(t,r) in enumerate(profile):
         center=top+side*(.12*math.sin(t*math.pi))+Vector((0,0,-length*t))
         for k in range(9):
             an=math.tau*k/9;rad=r*jitter[k];p=center+side*math.cos(an)*width*rad+depth*math.sin(an)*width*.83*rad
             p.z+=width*.13*math.sin(an*3+angle)*r
-            if j==4:p.z+=length*.12*math.sin(an*3+angle)
+            if j==4:p.z+=length*.055*math.sin(an*3+angle)
             # Variation is broad and authored, with no hair-sized texture or alpha-cutout.
             c=[shade[0]*(1-.18*t),shade[1]*(1-.14*t),shade[2]*(1-.06*t)]
-            vert(p,c,weight+.16*t)
+            vert(p,c,weight+.12*t)
     for j in range(len(profile)-1):
         for k in range(9):
-            x=base+j*9+k;y=base+j*9+(k+1)%9;faces.append((x,y,y+9,x+9))
+            x=base+j*9+k;y=base+j*9+(k+1)%9
+            # Rings descend, unlike the trunk: this winding points OUT of the leaf bundle.
+            faces.append((x,x+9,y+9,y))
+    # Closed ends remove the open rims; shared vertices keep a soft normal transition.
+    faces.append(tuple(base+k for k in range(9)))
+    faces.append(tuple(base+36+k for k in reversed(range(9))))
 wood=(.24,.16,.095)
 tube((0,0,0),(.12,.035,3.17),.115,.023,wood,0,.20,8,8)
 for i in range(10):
@@ -63,4 +68,4 @@ bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'casuarina-original.blend'))
 bpy.ops.export_scene.gltf(filepath=str(out/'casuarina-original.glb'),export_format='GLB',use_selection=True,export_attributes=True,export_yup=True,export_vertex_color='ACTIVE',export_all_vertex_colors=True)
 mesh.calc_loop_triangles()
-(out/'asset-info.json').write_text(json.dumps({'generator':'Original Blender Python mesh, seed 4120','blender':bpy.app.version_string,'vertices':len(mesh.vertices),'triangles':len(mesh.loop_triangles),'materials':1,'textures':0,'attributes':['position','normal','color','_sway'],'root':'ground at origin, unit height, exported Y-up'},indent=2)+'\n')
+(out/'asset-info.json').write_text(json.dumps({'generator':'Original Blender Python mesh v2, seed 4120','blender':bpy.app.version_string,'vertices':len(mesh.vertices),'triangles':len(mesh.loop_triangles),'materials':1,'textures':0,'attributes':['position','normal','color','_sway'],'root':'ground at origin, unit height, exported Y-up'},indent=2)+'\n')

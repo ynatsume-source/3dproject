@@ -1,0 +1,15 @@
+{
+  "generator": "Original Blender Python mesh, seed 4120",
+  "blender": "4.3.2",
+  "vertices": 1797,
+  "triangles": 2864,
+  "materials": 1,
+  "textures": 0,
+  "attributes": [
+    "position",
+    "normal",
+    "color",
+    "_sway"
+  ],
+  "root": "ground at origin, unit height, exported Y-up"
+}
