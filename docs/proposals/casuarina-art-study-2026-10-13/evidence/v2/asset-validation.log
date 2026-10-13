@@ -1,0 +1,6 @@
+ASSET_VALIDATION [{"variant": "v1", "bundleSideFaces": 1188, "outward": 0, "inward": 1188, "finiteAttributes": true}, {"variant": "v2", "bundleSideFaces": 1188, "outward": 1188, "inward": 0, "finiteAttributes": true}]
+Blender 4.3.2
+Read blend: "/workspace/casuarina-art-study/app/tools/lab/casuarina-art/source/v1/casuarina-original.blend"
+Read blend: "/workspace/casuarina-art-study/app/tools/lab/casuarina-art/source/casuarina-original.blend"
+
+Blender quit

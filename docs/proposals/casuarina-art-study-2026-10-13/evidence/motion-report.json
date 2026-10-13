@@ -1,0 +1,265 @@
+{
+  "note": "Isolated display stage; no world, saves, AI, AIRLIT or game postprocessing. SwiftShader, not real GPU FPS. Camera x slides while its look-at tracks 20% of x.",
+  "assetSha256": "0a3e448d238825f52ed6f4c5e4d64d32d1f76b34c9de575d5abfb292eda3e476",
+  "errors": [],
+  "rows": [
+    {
+      "triangles": 3336,
+      "calls": 11,
+      "renderTriangles": 7446,
+      "variant": "main",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        5.7
+      ],
+      "rotation": [
+        -0.06656816377582378,
+        0.4971866376573815,
+        0.031786269526664745,
+        "XYZ"
+      ],
+      "worldLoaded": false,
+      "distance": 5.7,
+      "frames": 8,
+      "step": 0.0011222950717643245,
+      "windFrozen": true,
+      "over12": 0.00038736979166666667,
+      "over25": 0.00002170138888888889,
+      "timesMs": [
+        1.199999999254942,
+        2.800000000745058,
+        2.300000000745058,
+        1.3999999985098839,
+        0.8000000007450581,
+        1.1000000014901161,
+        1.199999999254942,
+        1.1000000014901161
+      ],
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "triangles": 3336,
+      "calls": 11,
+      "renderTriangles": 7446,
+      "variant": "main",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        10
+      ],
+      "rotation": [
+        -0.03798172516404017,
+        0.30040168132837375,
+        0.01124387523973399,
+        "XYZ"
+      ],
+      "worldLoaded": false,
+      "distance": 10,
+      "frames": 8,
+      "step": 0.0011222950717643245,
+      "windFrozen": true,
+      "over12": 0.00007378472222222222,
+      "over25": 0.0000010850694444444444,
+      "timesMs": [
+        0.5,
+        3.100000001490116,
+        1.1000000014901161,
+        0.6999999992549419,
+        0.8000000007450581,
+        1.0999999977648258,
+        0.5999999977648258,
+        1.199999999254942
+      ],
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "triangles": 6696,
+      "calls": 11,
+      "renderTriangles": 14166,
+      "variant": "old",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        5.7
+      ],
+      "rotation": [
+        -0.06656816377582378,
+        0.4971866376573815,
+        0.031786269526664745,
+        "XYZ"
+      ],
+      "worldLoaded": false,
+      "distance": 5.7,
+      "frames": 8,
+      "step": 0.0011222950717643245,
+      "windFrozen": true,
+      "over12": 0.0005056423611111111,
+      "over25": 0.00002170138888888889,
+      "timesMs": [
+        0.8000000007450581,
+        4.600000001490116,
+        2.2000000029802322,
+        0.8000000007450581,
+        1.3999999985098839,
+        0.8999999985098839,
+        1.5,
+        1.1000000014901161
+      ],
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "triangles": 6696,
+      "calls": 11,
+      "renderTriangles": 14166,
+      "variant": "old",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        10
+      ],
+      "rotation": [
+        -0.03798172516404017,
+        0.30040168132837375,
+        0.01124387523973399,
+        "XYZ"
+      ],
+      "worldLoaded": false,
+      "distance": 10,
+      "frames": 8,
+      "step": 0.0011222950717643245,
+      "windFrozen": true,
+      "over12": 0.00011827256944444445,
+      "over25": 0.0000010850694444444444,
+      "timesMs": [
+        0.30000000074505806,
+        3.699999999254942,
+        0.6999999992549419,
+        1.3999999985098839,
+        1.5,
+        1.1000000014901161,
+        1.0999999977648258,
+        1
+      ],
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "triangles": 2864,
+      "calls": 11,
+      "renderTriangles": 6502,
+      "variant": "new",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        5.7
+      ],
+      "rotation": [
+        -0.06656816377582378,
+        0.4971866376573815,
+        0.031786269526664745,
+        "XYZ"
+      ],
+      "worldLoaded": false,
+      "distance": 5.7,
+      "frames": 8,
+      "step": 0.0011222950717643245,
+      "windFrozen": true,
+      "over12": 0.0005707465277777778,
+      "over25": 0.00002170138888888889,
+      "timesMs": [
+        0.5,
+        0.7999999970197678,
+        0.5999999977648258,
+        0.6000000014901161,
+        1.1000000014901161,
+        2.300000000745058,
+        0.6000000014901161,
+        0.8000000007450581
+      ],
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "triangles": 2864,
+      "calls": 11,
+      "renderTriangles": 6502,
+      "variant": "new",
+      "assetAttributes": [
+        "_sway",
+        "position",
+        "normal",
+        "color",
+        "aTint",
+        "aSway"
+      ],
+      "camera": [
+        3.1,
+        1.75,
+        10
+      ],
+      "rotation": [
+        -0.03798172516404017,
+        0.30040168132837375,
+        0.01124387523973399,
+        "XYZ"
+      ],
+      "worldLoaded": false,
+      "distance": 10,
+      "frames": 8,
+      "step": 0.0011222950717643245,
+      "windFrozen": true,
+      "over12": 0.00015299479166666668,
+      "over25": 0.0000010850694444444444,
+      "timesMs": [
+        0.5,
+        0.6999999992549419,
+        1.4000000022351742,
+        1,
+        1.1000000014901161,
+        0.6999999992549419,
+        0.9000000022351742,
+        0.7000000029802322
+      ],
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  ]
+}
