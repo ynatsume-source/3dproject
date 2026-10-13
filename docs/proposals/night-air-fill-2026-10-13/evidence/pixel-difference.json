@@ -1,0 +1,74 @@
+[
+  {
+    "case": "desktop-cloudy-night",
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      6.092336154513889,
+      7.8728515625,
+      11.891064453125
+    ]
+  },
+  {
+    "case": "desktop-day",
+    "identicalPixels": true,
+    "meanAbsoluteRgb": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "case": "desktop-full-moon",
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      4.225208333333334,
+      5.737800564236111,
+      7.656457248263889
+    ]
+  },
+  {
+    "case": "desktop-new-moon",
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      10.27373263888889,
+      13.553285590277778,
+      21.141712239583335
+    ]
+  },
+  {
+    "case": "phone-cloudy-night",
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      6.581638109126261,
+      8.504320087495444,
+      13.334001701300279
+    ]
+  },
+  {
+    "case": "phone-day",
+    "identicalPixels": true,
+    "meanAbsoluteRgb": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "case": "phone-full-moon",
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      4.831197593875319,
+      6.406109490825131,
+      8.917420099647588
+    ]
+  },
+  {
+    "case": "phone-new-moon",
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      11.106865961842265,
+      14.648174140235751,
+      23.808069024182767
+    ]
+  }
+]

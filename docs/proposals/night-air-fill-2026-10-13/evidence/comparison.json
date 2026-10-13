@@ -1,0 +1,85 @@
+{
+  "note": "Synchronous whole frame + gl.finish + 1px readback on SwiftShader; not real GPU FPS",
+  "rows": [
+    {
+      "case": "desktop-day",
+      "relativeMedian": 1.0018927256739856,
+      "beforeMs": 20129.699999999255,
+      "afterMs": 20167.799999998882,
+      "beforeCalls": 976,
+      "afterCalls": 976,
+      "beforeTriangles": 12471592,
+      "afterTriangles": 12471592
+    },
+    {
+      "case": "desktop-new-moon",
+      "relativeMedian": 0.9792026347394501,
+      "beforeMs": 21315.200000000186,
+      "afterMs": 20871.89999999851,
+      "beforeCalls": 983,
+      "afterCalls": 983,
+      "beforeTriangles": 12471667,
+      "afterTriangles": 12471667
+    },
+    {
+      "case": "desktop-full-moon",
+      "relativeMedian": 0.8085677293453174,
+      "beforeMs": 26646.5,
+      "afterMs": 21545.5,
+      "beforeCalls": 983,
+      "afterCalls": 983,
+      "beforeTriangles": 12471667,
+      "afterTriangles": 12471667
+    },
+    {
+      "case": "desktop-cloudy-night",
+      "relativeMedian": 0.9745527645960882,
+      "beforeMs": 20693.800000000745,
+      "afterMs": 20167.199999999255,
+      "beforeCalls": 983,
+      "afterCalls": 983,
+      "beforeTriangles": 12471667,
+      "afterTriangles": 12471667
+    },
+    {
+      "case": "phone-day",
+      "relativeMedian": 0.8884977171463057,
+      "beforeMs": 10907.399999999441,
+      "afterMs": 9691.200000001118,
+      "beforeCalls": 944,
+      "afterCalls": 944,
+      "beforeTriangles": 11858416,
+      "afterTriangles": 11858416
+    },
+    {
+      "case": "phone-new-moon",
+      "relativeMedian": 1.0656669679072979,
+      "beforeMs": 9516.200000000186,
+      "afterMs": 10141.099999999627,
+      "beforeCalls": 946,
+      "afterCalls": 946,
+      "beforeTriangles": 11858456,
+      "afterTriangles": 11858456
+    },
+    {
+      "case": "phone-full-moon",
+      "relativeMedian": 0.9453089532199159,
+      "beforeMs": 10352.700000000186,
+      "afterMs": 9786.5,
+      "beforeCalls": 946,
+      "afterCalls": 946,
+      "beforeTriangles": 11858456,
+      "afterTriangles": 11858456
+    },
+    {
+      "case": "phone-cloudy-night",
+      "relativeMedian": 0.9634364483430427,
+      "beforeMs": 9895.099999999627,
+      "afterMs": 9533.299999998882,
+      "beforeCalls": 946,
+      "afterCalls": 946,
+      "beforeTriangles": 11858456,
+      "afterTriangles": 11858456
+    }
+  ]
+}
