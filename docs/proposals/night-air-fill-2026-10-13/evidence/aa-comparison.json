@@ -1,0 +1,34 @@
+[
+  {
+    "case": "desktop-new-moon",
+    "relativeMedian": 1.1211245741883427,
+    "beforeMs": 20871.89999999851,
+    "afterMs": 23400,
+    "beforeCalls": 983,
+    "afterCalls": 983,
+    "beforeTriangles": 12471667,
+    "afterTriangles": 12471667,
+    "identicalPixels": false,
+    "meanAbsoluteRgb": [
+      0.11895182291666667,
+      0.13210069444444444,
+      0.12217122395833334
+    ]
+  },
+  {
+    "case": "phone-new-moon",
+    "relativeMedian": 1.318022699707291,
+    "beforeMs": 10141.099999999627,
+    "afterMs": 13366.200000001118,
+    "beforeCalls": 946,
+    "afterCalls": 946,
+    "beforeTriangles": 11858456,
+    "afterTriangles": 11858456,
+    "identicalPixels": true,
+    "meanAbsoluteRgb": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  }
+]
