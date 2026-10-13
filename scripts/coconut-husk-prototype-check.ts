@@ -93,3 +93,97 @@ assert.equal(commit(ledger,final,run(final)).ok,false);assert.equal(JSON.stringi
 assert.equal(Object.values(ledger.lots).reduce((n,l)=>n+l.amount.value,0),3_000_010);
 assert.ok(Object.values(ledger.lots).every(l=>!l.reservedBy));assert.ok(!ledger.equipment.basin.reservedBy);
 console.log(`PASS coconut husk isolated prototype: ${checks} contract-checked steps; partition/save/observation/gap/stop/recovery/corruption/ledger assertions`);
+
+// Independent review reproductions: collect every failure on the reviewed head.
+const reviewStep = createHuskPrototype({...assumptions,eligibleMs:60_000});
+const reviewRun = (q: Request, implementation=reviewStep) => {
+  const r=implementation(q);assert.deepEqual(validateResult(q,r),[]);return r;
+};
+const outcome = (r: ReturnType<typeof reviewStep>) => ({status:r.status,simulated:r.simulated,
+  state:r.state,consumed:r.consumed,produced:r.produced,released:r.released});
+let reviewFailures=0;
+function reviewCheck(name:string,test:()=>void) {
+  try {test();console.log(`PASS ${name}`);} catch(error) {reviewFailures++;console.error(`FAIL ${name}: ${error.message}`);}
+}
+const reviewSaved=reviewRun(request(0,60_000)).state;
+for(const stop of ['operator','world-pause','shutdown','equipment-lost'] as const) {
+  reviewCheck(`HUSK-1 ${stop}`,()=>{
+    const combined=request(60_000,90_000,clone(reviewSaved));combined.stop=stop;
+    combined.actions=[{at:70_000,residentId:'test',action:'recover_fixture'}];
+    if(stop==='equipment-lost')combined.equipment=[];
+    const split=request(60_000,80_000,clone(reviewSaved));split.actions=clone(combined.actions);
+    const expected=reviewRun(split),actual=reviewRun(combined);
+    assert.equal(expected.status,'completed');assert.equal(expected.simulated.to,70_000);
+    assert.deepEqual(expected.produced.map(p=>[p.materialId,p.amount.value]),[
+      ['plant_fiber',333333],['pith',666670],['process_water',2000007]]);
+    assert.deepEqual(expected.released,[]);assert.deepEqual(outcome(actual),outcome(expected));
+  });
+}
+reviewCheck('HUSK-2 contradictory water_ppm',()=>{
+  const q=request(0,1);q.stop='operator';q.lots[1].quality={water_ppm:0};
+  const parsed=readHuskPrototypeLot(q.lots[1]),r=reviewRun(q);
+  assert.equal(parsed,null);assert.equal(r.status,'failed');assert.deepEqual(r.consumed,[]);assert.deepEqual(r.produced,[]);
+});
+reviewCheck('HUSK-3 assumption key order',()=>{
+  const config={...assumptions,eligibleMs:60_000};
+  const mid=clone(reviewRun(request(0,12_345)).state);
+  const reversed=Object.fromEntries(Object.entries(config).reverse()) as unknown as HuskAssumptions;
+  const resumed=reviewRun(request(12_345,60_000,mid),createHuskPrototype(reversed));
+  assert.equal(resumed.status,'running');assert.deepEqual(resumed.state,reviewRun(request(0,60_000)).state);
+});
+for(const stop of ['operator','world-pause','shutdown','equipment-lost'] as const) {
+  reviewCheck(`HUSK-1 half-open boundary ${stop}`,()=>{
+    const tied=request(60_000,70_000,clone(reviewSaved));tied.stop=stop;
+    tied.actions=[{at:70_000,residentId:'test',action:'recover_fixture'}];
+    if(stop==='equipment-lost')tied.equipment=[];
+    const rejected=reviewRun(tied);assert.equal(rejected.status,'failed');
+    assert.deepEqual(rejected.consumed,[]);assert.deepEqual(rejected.produced,[]);assert.deepEqual(rejected.released,[]);
+    // Valid boundary encoding: stop belongs to the preceding interval, action to the next.
+    const stopped=reviewRun({...tied,actions:[]});
+    const next=request(70_000,80_000,stopped.state);next.actions=clone(tied.actions);
+    const terminal=stop==='operator'||stop==='equipment-lost';
+    assert.equal(stopped.status,terminal?'stopped':'running');
+    const resumed=reviewRun(next);assert.equal(resumed.status,terminal?'failed':'completed');
+    if(terminal)assert.deepEqual(resumed.consumed,[]);
+    else {assert.equal(resumed.simulated.to,70_000);assert.deepEqual(resumed.released,[]);}
+  });
+}
+reviewCheck('HUSK-1 duplicate and unsorted recoveries settle earliest once',()=>{
+  const q=request(60_000,90_000,clone(reviewSaved));q.stop='equipment-lost';q.equipment=[];
+  q.actions=[80_000,70_000,70_000].map(at=>({at,residentId:'test',action:'recover_fixture'}));
+  const expected={...q,stop:undefined,equipment:request().equipment,actions:[q.actions[1]]};
+  assert.deepEqual(outcome(reviewRun(q)),outcome(reviewRun(expected)));
+});
+reviewCheck('HUSK-2 water quality combinations',()=>{
+  for(const quality of [undefined,{}, {water_ppm:1_000_000}, {prototype_water_mg:2_000_007},
+    {water_ppm:1_000_000,prototype_water_mg:2_000_007}]) {
+    const q=request(0,1);q.lots[1].quality=quality;
+    assert.deepEqual(readHuskPrototypeLot(q.lots[1]),{waterMg:2_000_007,dryMg:0});assert.equal(reviewRun(q).status,'running');
+  }
+  for(const quality of [{water_ppm:999999},{water_ppm:0,prototype_water_mg:2_000_007},
+    {water_ppm:1_000_000,prototype_water_mg:2_000_006}]) {
+    const q=request(0,1);q.lots[1].quality=quality;assert.equal(readHuskPrototypeLot(q.lots[1]),null);
+    const r=reviewRun(q);assert.equal(r.status,'failed');assert.deepEqual(r.consumed,[]);
+  }
+});
+reviewCheck('HUSK-3 legacy schema /1 bindings normalize without value migration',()=>{
+  const mid=clone(reviewRun(request(0,12_345)).state);
+  // Original /1 encoded Object.entries insertion order, including non-default callers.
+  for(const config of [{...assumptions,eligibleMs:60_000},Object.fromEntries(Object.entries({...assumptions,eligibleMs:60_000}).reverse())]) {
+    const legacy=clone(mid),parts=JSON.parse((legacy.data as any).binding);parts[3]=config;
+    (legacy.data as any).binding=JSON.stringify(parts);
+    assert.deepEqual(reviewRun(request(12_345,60_000,legacy)).state,reviewSaved);
+  }
+  for(const key of Object.keys(assumptions) as (keyof HuskAssumptions)[]) {
+    const config={...assumptions,eligibleMs:60_000};
+    (config as any)[key]=typeof config[key]==='number' ? Number(config[key])+1 : 'different';
+    const r=reviewRun(request(12_345,60_000,mid),createHuskPrototype(config));
+    assert.equal(r.status,'failed');assert.deepEqual(r.consumed,[]);
+  }
+  for(const binding of ['{','null','[]','[0,0,0,[],[]]',123]) {
+    const corrupt=clone(mid);(corrupt.data as any).binding=binding;
+    assert.equal(reviewRun(request(12_345,60_000,corrupt)).status,'failed');
+  }
+});
+console.log(`Independent review and boundary failed expectations: ${reviewFailures}`);
+assert.equal(reviewFailures,0);

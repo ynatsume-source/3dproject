@@ -39,6 +39,7 @@ export function readHuskPrototypeLot(lot: LotView): { waterMg: number; dryMg: nu
   if (q.prototype_eligible_ms !== undefined && !isInt(q.prototype_eligible_ms)) return null;
   const ppm = q.water_ppm;
   if (ppm !== undefined && (!isInt(ppm) || ppm > 1_000_000)) return null;
+  if (lot.materialId === 'process_water' && ppm !== undefined && ppm !== 1_000_000) return null;
   const water = q.prototype_water_mg ?? (lot.materialId === 'process_water' ? lot.amount.value
     : isInt(ppm) && ppm <= 1_000_000 ? fraction(lot.amount.value, ppm) : NaN);
   if (!isInt(water) || water > lot.amount.value) return null;
@@ -48,8 +49,20 @@ export function readHuskPrototypeLot(lot: LotView): { waterMg: number; dryMg: nu
   return { waterMg: water, dryMg: lot.amount.value - water };
 }
 
+// Schema /1 stored an object here. Normalize only its key order so existing saves
+// remain readable; all values and every other binding component must still match.
+function canonicalBinding(binding: unknown): string | null {
+  if (typeof binding !== 'string') return null;
+  try {
+    const parts = JSON.parse(binding);
+    if (!Array.isArray(parts) || parts.length !== 5 || !object(parts[3])) return null;
+    parts[3] = Object.fromEntries(Object.entries(parts[3]).sort(([a], [b]) => a.localeCompare(b)));
+    return JSON.stringify(parts);
+  } catch { return null; }
+}
+
 function validState(v: unknown, binding: string, from: number, limit: number): v is State {
-  if (!object(v) || v.binding !== binding || !isInt(v.origin) || !isInt(v.lastTo)
+  if (!object(v) || canonicalBinding(v.binding) !== binding || !isInt(v.origin) || !isInt(v.lastTo)
     || typeof v.equipmentId !== 'string' || !v.equipmentId
     || v.lastTo !== from || v.origin > from || !isInt(v.eligible) || v.eligible > limit || v.eligible > from - v.origin
     || typeof v.completeHistory !== 'boolean' || v.terminal !== false) return false;
@@ -85,13 +98,14 @@ export function createHuskPrototype(assumptions: HuskAssumptions): ScienceStep {
     if (!lost && (req.equipment.length !== 1 || req.equipment[0].kind !== 'fixture_coir_basin'
       || req.equipment[0].condition <= 0 || req.equipment[0].params?.capacityMg !== a.capacityMg)) return reject('missing fixture basin');
     // Equipment may disappear only on the explicit loss boundary. The material reservation remains authoritative.
-    const binding = JSON.stringify([req.world.worldId, req.world.worldEpoch, req.runId, a,
-      req.lots.map(fingerprint).sort()]);
+    const binding = canonicalBinding(JSON.stringify([req.world.worldId, req.world.worldEpoch, req.runId, a,
+      req.lots.map(fingerprint).sort()]))!;
     let s: State;
     if (req.state) {
       if (!validState(req.state.data, binding, from, a.eligibleMs)) return reject('corrupt or incompatible nested state');
       if (!lost && req.equipment[0].equipmentId !== req.state.data.equipmentId) return reject('changed reserved equipment');
       s = structuredClone(req.state.data);
+      s.binding = binding;
     } else {
       if (lost) return reject('cannot start without basin');
       // Only saved states resume progress. Returned lots keep provenance, but do not transfer
@@ -99,7 +113,10 @@ export function createHuskPrototype(assumptions: HuskAssumptions): ScienceStep {
       s = { binding, equipmentId: req.equipment[0].equipmentId, origin: from, lastTo: from, eligible: 0,
         completeHistory: husk.quality?.history_complete !== 0 && water.quality?.history_complete !== 0, terminal: false, cell: null };
     }
-    const recovery = req.stop ? undefined : req.actions.filter(x => x.action === 'recover_fixture').sort((x,y) => x.at-y.at)[0];
+    // Actions are in [from,to), while stop occurs at to. An earlier recovery wins
+    // over every later stop, including equipment loss. Same-time recoveries settle once.
+    const recovery = req.actions.filter(x => x.action === 'recover_fixture').sort((x,y) => x.at-y.at)[0];
+    const ending = recovery ? 'recovery' : req.stop;
     const end = recovery?.at ?? to;
     for (let t = from; t < end;) {
       const start = s.origin + Math.floor((t - s.origin) / 30_000) * 30_000;
@@ -115,10 +132,10 @@ export function createHuskPrototype(assumptions: HuskAssumptions): ScienceStep {
       t = next;
     }
     s.lastTo = end;
-    s.terminal = !!recovery || req.stop === 'operator' || lost;
+    s.terminal = ending === 'recovery' || ending === 'operator' || ending === 'equipment-lost';
     const result: ScienceStepResult = {
       contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from, to: end },
-      state: { schema: HUSK_SCHEMA, data: s }, status: s.terminal ? recovery ? 'completed' : 'stopped' : 'running',
+      state: { schema: HUSK_SCHEMA, data: s }, status: s.terminal ? ending === 'recovery' ? 'completed' : 'stopped' : 'running',
       consumed: [], produced: [], released: [], drawn: [], energy: [], equipmentWear: [],
       observations: req.actions.filter(x => x.action === 'look' && x.at < end).map(x => ({ at: x.at, channel: 'sight', text: '殻が水に浸かっている。' })),
       evidence: { evaluatorVersion: 'prototype/0.0.1', sourceRefs: [], notes: 'Uncalibrated fixture assumptions; not a retting or pounding model.' },
@@ -132,13 +149,13 @@ export function createHuskPrototype(assumptions: HuskAssumptions): ScienceStep {
         history_complete: Number(s.completeHistory), ...extra,
       } });
     };
-    if (recovery && s.eligible === a.eligibleMs) {
+    if (ending === 'recovery' && s.eligible === a.eligibleMs) {
       // Split wet solids in the same ratio: no unaccounted drying, uptake, decay or dissolved solids.
       const dryFiber = fraction(h.dryMg, a.fiberPpm), wetFiber = fraction(h.waterMg, a.fiberPpm);
       produce('plant_fiber', dryFiber + wetFiber, wetFiber);
       produce('pith', husk.amount.value - dryFiber - wetFiber, h.waterMg - wetFiber);
     } else produce('coconut_husk', husk.amount.value, h.waterMg, { prototype_eligible_ms: s.eligible });
-    if (lost) result.released.push({ materialId: 'process_water', amount: { ...water.amount }, to: 'ground' });
+    if (ending === 'equipment-lost') result.released.push({ materialId: 'process_water', amount: { ...water.amount }, to: 'ground' });
     else produce('process_water', water.amount.value, w.waterMg);
     return result;
   };
