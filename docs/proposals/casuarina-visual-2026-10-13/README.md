@@ -55,3 +55,5 @@ node tools/lab/casuarina-compare.mjs /tmp/casuarina-before/report.json /tmp/casu
 旧葉材質の削除で既存`prepareShaders`のScene生成＋Mesh cloneが1組減り、16回分のグローバル乱数が減った。続く住人の行き先探索にも影響し、最初の昼景では合計76回分の差と保存ハッシュ差になったため、その撮影は棄却した。`evidence/rejected-browser-rng-diagnosis.json`にスタック別差を記録した。
 
 局所修正は最初の若木に描画しない旧葉材質Meshを保持すること。その1 UUIDを構築時の補償から差し引く。rendererや世界の乱数設計を変更しない。修正後の撮影は作業ツリーから開始し、その同じソースを`5598fa6`に保存した。報告の`sourceCommit`だけでなく、3つの実装ファイルの`sourceSha256`が一致することを確認する。
+
+[全10条件の比較結果と画像](RESULTS.md)
