@@ -1,0 +1,612 @@
+{
+  "minds": {
+    "dot": {
+      "goal": null,
+      "results": [],
+      "knowledge": [],
+      "seen": [],
+      "n": 0,
+      "values": []
+    },
+    "rakko": {
+      "goal": null,
+      "results": [],
+      "knowledge": [],
+      "seen": [],
+      "n": 0,
+      "values": []
+    }
+  },
+  "at": 1791601200000,
+  "clockMs": 1791601200000,
+  "visited": [],
+  "cairns": [],
+  "bonds": {
+    "dot|kame": {
+      "stage": 0,
+      "know": 0,
+      "talks": 0,
+      "last": -1000000000000,
+      "toldWorry": 0
+    },
+    "dot|lantern": {
+      "stage": 0,
+      "know": 0,
+      "talks": 0,
+      "last": -1000000000000,
+      "toldWorry": 0
+    },
+    "dot|rakko": {
+      "stage": 0,
+      "know": 0,
+      "talks": 0,
+      "last": -1000000000000,
+      "toldWorry": 0
+    },
+    "kame|lantern": {
+      "stage": 0,
+      "know": 0,
+      "talks": 0,
+      "last": -1000000000000,
+      "toldWorry": 0
+    },
+    "kame|rakko": {
+      "stage": 0,
+      "know": 0,
+      "talks": 0,
+      "last": -1000000000000,
+      "toldWorry": 0
+    },
+    "lantern|rakko": {
+      "stage": 0,
+      "know": 0,
+      "talks": 0,
+      "last": -1000000000000,
+      "toldWorry": 0
+    }
+  },
+  "talks": [],
+  "items": [
+    [
+      "wood",
+      156.38,
+      -35.16,
+      5.17,
+      1.17
+    ],
+    [
+      "wood",
+      151.22,
+      -44.21,
+      5.63,
+      0.95
+    ],
+    [
+      "wood",
+      46.75,
+      -77.98,
+      3.72,
+      1.15
+    ],
+    [
+      "wood",
+      -54.21,
+      -158.58,
+      3.4,
+      1.24
+    ],
+    [
+      "shell",
+      -93.95,
+      -241.12,
+      3.69,
+      1.21
+    ],
+    [
+      "shell",
+      -75.37,
+      -183.91,
+      2.17,
+      0.84
+    ],
+    [
+      "shell",
+      -117.87,
+      -320.42,
+      0.37,
+      0.9
+    ],
+    [
+      "shell",
+      -47.98,
+      -155.2,
+      1.58,
+      0.88
+    ],
+    [
+      "coconut",
+      76.53,
+      -149.82,
+      1.31,
+      0.88
+    ],
+    [
+      "coconut",
+      150.64,
+      -56.5,
+      2.4,
+      1.11
+    ],
+    [
+      "coconut",
+      122.21,
+      -83.5,
+      5.73,
+      0.99
+    ],
+    [
+      "coconut",
+      49.85,
+      -189.25,
+      1.04,
+      1.12
+    ],
+    [
+      "coconut",
+      -70,
+      -195.47,
+      1.08,
+      0.91
+    ],
+    [
+      "coconut",
+      78.31,
+      -108.1,
+      4.67,
+      1.2
+    ]
+  ],
+  "patches": [
+    {
+      "id": "patch#0",
+      "x": -165.54219138257227,
+      "z": -319.1906191376564,
+      "max": {
+        "urchin": 2,
+        "crab": 2,
+        "clam": 3
+      },
+      "stock": {
+        "urchin": 2,
+        "crab": 2,
+        "clam": 3
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#1",
+      "x": -176.65517293347472,
+      "z": -276.563822832853,
+      "max": {
+        "urchin": 3,
+        "crab": 1,
+        "clam": 5
+      },
+      "stock": {
+        "urchin": 3,
+        "crab": 1,
+        "clam": 5
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#2",
+      "x": -155.63228237181133,
+      "z": -256.21481173831694,
+      "max": {
+        "urchin": 2,
+        "crab": 3,
+        "clam": 3
+      },
+      "stock": {
+        "urchin": 2,
+        "crab": 3,
+        "clam": 3
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#3",
+      "x": -160.26589093381347,
+      "z": -271.1182511630317,
+      "max": {
+        "urchin": 5,
+        "crab": 3,
+        "clam": 5
+      },
+      "stock": {
+        "urchin": 5,
+        "crab": 3,
+        "clam": 5
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#4",
+      "x": -170.62488767936821,
+      "z": -297.93806811279933,
+      "max": {
+        "urchin": 2,
+        "crab": 2,
+        "clam": 3
+      },
+      "stock": {
+        "urchin": 2,
+        "crab": 2,
+        "clam": 3
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#5",
+      "x": -191.53725624055187,
+      "z": -255.88821271118601,
+      "max": {
+        "urchin": 5,
+        "crab": 3,
+        "clam": 5
+      },
+      "stock": {
+        "urchin": 5,
+        "crab": 3,
+        "clam": 5
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#6",
+      "x": -155.84595441747493,
+      "z": -197.04454967087972,
+      "max": {
+        "urchin": 2,
+        "crab": 2,
+        "clam": 2
+      },
+      "stock": {
+        "urchin": 2,
+        "crab": 2,
+        "clam": 2
+      },
+      "at": 1791601200000
+    },
+    {
+      "id": "patch#7",
+      "x": -160.8202124334539,
+      "z": -347.9178313416612,
+      "max": {
+        "urchin": 2,
+        "crab": 1,
+        "clam": 3
+      },
+      "stock": {
+        "urchin": 2,
+        "crab": 1,
+        "clam": 3
+      },
+      "at": 1791601200000
+    }
+  ],
+  "beds": [
+    {
+      "id": "bed#0",
+      "x": 339.47746389201376,
+      "z": 128.98708236303875,
+      "grass": 1,
+      "at": 1791601200000
+    },
+    {
+      "id": "bed#1",
+      "x": 257.0695343532575,
+      "z": 105.84355644498424,
+      "grass": 1,
+      "at": 1791601200000
+    },
+    {
+      "id": "bed#2",
+      "x": 299.72076686271873,
+      "z": 128.64299036632278,
+      "grass": 1,
+      "at": 1791601200000
+    },
+    {
+      "id": "bed#3",
+      "x": 321.0059699057841,
+      "z": 151.98628872717617,
+      "grass": 1,
+      "at": 1791601200000
+    },
+    {
+      "id": "bed#4",
+      "x": 250.16260933505782,
+      "z": 82.12030804787233,
+      "grass": 1,
+      "at": 1791601200000
+    }
+  ],
+  "trees": [
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "plots": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "village": {
+    "fires": 0,
+    "mornings": 0,
+    "pier": "none",
+    "bases": 0,
+    "posts": 0,
+    "deck": 0,
+    "treasures": [],
+    "map": {
+      "seen": {},
+      "reached": {}
+    },
+    "raft": {
+      "parts": 0,
+      "x": null,
+      "z": null,
+      "hauled": false
+    },
+    "spare": 0,
+    "lampLog": [],
+    "labRuns": [],
+    "gaugeLog": [],
+    "catcher": null,
+    "hypo": null,
+    "hypo2": null,
+    "labDone": [],
+    "taught": {},
+    "feedback": [],
+    "stormPrep": 0,
+    "heardOkAt": 0,
+    "swellGuess": {
+      "alarm": 0,
+      "hits": 0,
+      "falses": 0
+    },
+    "house": {
+      "n": 0,
+      "rope": 0,
+      "bamboo": 0,
+      "clay": 0,
+      "lost": 0,
+      "weighed": false
+    },
+    "wall": {
+      "n": 0,
+      "pile": 0
+    },
+    "nest": {
+      "n": 0,
+      "at": null
+    },
+    "kameBed": null,
+    "ledge": {
+      "n": 0
+    },
+    "walks": {},
+    "settle": null,
+    "felled": [
+      {
+        "x": 58.38611046145671,
+        "z": -142.20704856710074,
+        "kind": 1,
+        "h": 5.041346603324786,
+        "at": 1791601200000
+      }
+    ],
+    "clayPit": null,
+    "prepBy": "",
+    "prepSaved": [],
+    "heed": {},
+    "onsetHunger": {},
+    "stormLog": []
+  },
+  "lab": {
+    "world": {
+      "worldId": "dotworld",
+      "worldEpoch": "e1",
+      "worldVersion": 0
+    },
+    "lots": {
+      "lot:firewood-study": {
+        "lotId": "lot:firewood-study",
+        "materialId": "firewood",
+        "amount": {
+          "value": 24000000,
+          "unit": "mg"
+        },
+        "location": "shelf",
+        "quality": {
+          "water_ppm": 450000
+        }
+      }
+    },
+    "equipment": {
+      "eq:firewood_stack": {
+        "equipmentId": "eq:firewood_stack",
+        "kind": "firewood_stack",
+        "catalogEntry": "firewood_stack",
+        "catalogVersion": "civ-sci-test-2",
+        "condition": 1,
+        "params": {
+          "covered": 1,
+          "sunExposure": 0,
+          "topAreaM2": 0.2
+        }
+      }
+    },
+    "runs": {},
+    "committed": [],
+    "seq": 0
+  },
+  "lastFireAt": 0,
+  "drift": null,
+  "list": [
+    {
+      "id": "dot",
+      "pos": [
+        61,
+        -145
+      ],
+      "head": 2.640109534421936,
+      "battery": 0.8,
+      "hunger": 0.4,
+      "sleepy": 0.2,
+      "stats": {
+        "built": 0,
+        "notes": 0,
+        "shells": 0,
+        "cracked": 0,
+        "visited": 0,
+        "cairns": 0,
+        "wood": 0,
+        "food": 0,
+        "felled": 0
+      },
+      "today": [],
+      "diary": [],
+      "holding": ""
+    },
+    {
+      "id": "kame",
+      "pos": [
+        333,
+        66
+      ],
+      "head": 4.4885898284334695,
+      "battery": 1,
+      "hunger": 0.4,
+      "sleepy": 0.2,
+      "body": {
+        "learn": {
+          "eatAt": 0.45,
+          "sleepAt": 0.6
+        },
+        "day": "",
+        "troubles": {},
+        "eatStarts": [],
+        "hit": {
+          "hunger": false,
+          "sleep": false
+        },
+        "known": []
+      },
+      "stats": {
+        "built": 0,
+        "notes": 0,
+        "shells": 0,
+        "cracked": 0,
+        "visited": 0,
+        "cairns": 0,
+        "wood": 0,
+        "food": 0,
+        "felled": 0
+      },
+      "today": [],
+      "diary": [],
+      "holding": ""
+    },
+    {
+      "id": "lantern",
+      "pos": [
+        405,
+        -285
+      ],
+      "head": 0.2365869533084333,
+      "battery": 0.8,
+      "hunger": 0.4,
+      "sleepy": 0.2,
+      "stats": {
+        "built": 0,
+        "notes": 0,
+        "shells": 0,
+        "cracked": 0,
+        "visited": 0,
+        "cairns": 0,
+        "wood": 0,
+        "food": 0,
+        "felled": 0
+      },
+      "today": [],
+      "diary": [],
+      "holding": ""
+    },
+    {
+      "id": "rakko",
+      "pos": [
+        -117,
+        -290
+      ],
+      "head": 3.451784330699593,
+      "battery": 1,
+      "hunger": 0.4,
+      "sleepy": 0.2,
+      "body": {
+        "learn": {
+          "eatAt": 0.5,
+          "sleepAt": 0.65
+        },
+        "day": "",
+        "troubles": {},
+        "eatStarts": [],
+        "hit": {
+          "hunger": false,
+          "sleep": false
+        },
+        "known": []
+      },
+      "stats": {
+        "built": 0,
+        "notes": 0,
+        "shells": 0,
+        "cracked": 0,
+        "visited": 0,
+        "cairns": 0,
+        "wood": 0,
+        "food": 0,
+        "felled": 0
+      },
+      "today": [],
+      "diary": [],
+      "holding": ""
+    }
+  ]
+}

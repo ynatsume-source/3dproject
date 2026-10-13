@@ -1,0 +1,30 @@
+loading desktop-day
+loaded desktop-day
+prepared desktop-day
+measured desktop-day {"times":[12562.699999999953,14023.09999999986,12594.40000000014],"counts":{"calls":976,"triangles":12471592,"points":5049,"lines":0}}
+desktop-day {"medianMs":12594.40000000014,"random":{"draws":611738,"hash":2781275615},"counts":{"calls":976,"triangles":12471592,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0}}
+loading desktop-evening
+loaded desktop-evening
+prepared desktop-evening
+measured desktop-evening {"times":[13806.800000000047,13818.300000000047,13280.399999999907],"counts":{"calls":976,"triangles":12471592,"points":5049,"lines":0}}
+desktop-evening {"medianMs":13806.800000000047,"random":{"draws":611760,"hash":1196925947},"counts":{"calls":976,"triangles":12471592,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0}}
+loading desktop-night
+loaded desktop-night
+prepared desktop-night
+measured desktop-night {"times":[14071.700000000186,13329.899999999907,13523.699999999953],"counts":{"calls":983,"triangles":12471667,"points":5049,"lines":0}}
+desktop-night {"medianMs":13523.699999999953,"random":{"draws":611668,"hash":3057451153},"counts":{"calls":983,"triangles":12471667,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0.27106720032041204}}
+loading phone-day
+loaded phone-day
+prepared phone-day
+measured phone-day {"times":[6056.399999999907,5933.600000000093,6246.199999999953],"counts":{"calls":944,"triangles":11858416,"points":5049,"lines":0}}
+phone-day {"medianMs":6056.399999999907,"random":{"draws":611741,"hash":3170378031},"counts":{"calls":944,"triangles":11858416,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0}}
+loading phone-evening
+loaded phone-evening
+prepared phone-evening
+measured phone-evening {"times":[29436.5,5822.199999999953,6181.100000000093],"counts":{"calls":944,"triangles":11858416,"points":5049,"lines":0}}
+phone-evening {"medianMs":6181.100000000093,"random":{"draws":611760,"hash":1196925947},"counts":{"calls":944,"triangles":11858416,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0}}
+loading phone-night
+loaded phone-night
+prepared phone-night
+measured phone-night {"times":[6395.800000000047,6700.199999999953,6225.399999999907],"counts":{"calls":946,"triangles":11858456,"points":5049,"lines":0}}
+phone-night {"medianMs":6395.800000000047,"random":{"draws":611636,"hash":4056847087},"counts":{"calls":946,"triangles":11858456,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0.27106720032041204}}

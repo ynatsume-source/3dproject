@@ -1,0 +1,15 @@
+{
+  "note": "Synchronous whole frame + gl.finish + 1px readback on SwiftShader; not real GPU FPS",
+  "rows": [
+    {
+      "case": "phone-day",
+      "relativeMedian": 1.0473218413579184,
+      "beforeMs": 6056.399999999907,
+      "afterMs": 6343,
+      "beforeCalls": 944,
+      "afterCalls": 944,
+      "beforeTriangles": 11858416,
+      "afterTriangles": 11858416
+    }
+  ]
+}
