@@ -346,7 +346,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const pivot = new THREE.Group(); g.add(pivot);
     const trunk = new THREE.Mesh(workedWood(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7)), wood2); trunk.position.y = 1.2; pivot.add(trunk);
     const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);
-    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(youngBundles(new THREE.SphereGeometry(0.42 - k * 0.05, 8, 6), 0.42 - k * 0.05, k + i), leafM); b.position.set(Math.sin(k * 2.1 + i) * 0.12, k * 0.35 - 0.5, Math.cos(k * 2.1 + i) * 0.12); b.scale.y = 1.0; crown.add(b); }
+    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(youngBundles(new THREE.SphereGeometry(0.42 - k * 0.05, 8, 6), k, i), leafM); b.position.set(Math.sin(k * 2.1 + i) * 0.12, k * 0.35 - 0.5, Math.cos(k * 2.1 + i) * 0.12); b.scale.y = 1.0; crown.add(b); }
     const stump = new THREE.Mesh(workedWood(new THREE.CylinderGeometry(0.1, 0.11, 0.18, 7)), wood2); stump.position.y = 0.09; stump.visible = false; g.add(stump);
     const ok = L.h(w.x, w.z) > 0.35;
     if (!ok) g.visible = false;

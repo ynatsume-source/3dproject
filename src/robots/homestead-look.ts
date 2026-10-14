@@ -1,6 +1,7 @@
 // Display-only study: edit existing geometry containers. No Object3D/Material/Geometry
 // construction here: Three UUID construction consumes the world's Math.random stream.
 import * as THREE from 'three';
+import crown from './casuarina-young-crown.json';
 
 function replace(g: THREE.BufferGeometry, p: number[], ix: number[]) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
@@ -10,50 +11,25 @@ function replace(g: THREE.BufferGeometry, p: number[], ix: number[]) {
   return g;
 }
 
-/** Hanging twig volumes with a rounded shoulder and separate, soft branchlet ends. */
-export function youngBundles(g: THREE.BufferGeometry, radius: number, phase: number) {
-  const p: number[] = [], ix: number[] = [], colors: number[] = [];
-  const tuft = (ox: number, oz: number, top: number, width: number, length: number,
-    angle: number, n: number, profile: number[], fringe: boolean) => {
-    const base = p.length / 3;
-    for (let j = 0; j < profile.length; j++) {
-      const t = j / (profile.length - 1);
-      const bend = width * .55 * Math.sin(t * Math.PI * .8);
-      for (let k = 0; k < n; k++) {
-        const az = k / n * Math.PI * 2;
-        const rib = fringe ? 1 : 1 + .13 * Math.cos(az * 8 + angle);
-        const r = width * profile[j] * rib;
-        p.push(ox + Math.cos(angle) * bend + Math.cos(az) * r,
-          top - t * length + width * .10 * Math.sin(az * 3 + angle) * t,
-          oz + Math.sin(angle) * bend + Math.sin(az) * r * .83);
-        const light = .82 - .12 * t + .045 * Math.cos(az * 8 + angle);
-        colors.push(light * 1.08, light, light * .88);
-      }
-    }
-    for (let j = 0; j < profile.length - 1; j++) for (let k = 0; k < n; k++) {
-      const a = base + j * n + k, b = base + j * n + (k + 1) % n;
-      ix.push(a, b, a + n, b, b + n, a + n);
-    }
-    for (let k = 1; k < n - 1; k++) {
-      ix.push(base, base + k + 1, base + k);
-      const end = base + (profile.length - 1) * n; ix.push(end, end + k, end + k + 1);
-    }
-  };
-  // PR14's overlapping shoulder/descending-volume structure, divided into small twig groups.
-  // No leaf blades, hair texture or transparent cutout. All pieces remain in the old mesh.
-  for (let b = 0; b < 3; b++) {
-    const angle = phase * 1.3 + b * 2.399;
-    const ox = Math.cos(angle) * radius * .43, oz = Math.sin(angle) * radius * .43;
-    const top = radius * (.48 + .16 * Math.sin(angle)), length = radius * (1.15 + .14 * Math.cos(angle));
-    const width = radius * (.33 + .035 * Math.sin(angle));
-    tuft(ox,oz,top,width,length,angle,24,[.38,.84,1,.90,.65,.32,.10],false);
-    for(let k=0;k<5;k++) {
-      const a=angle+k*2.399, spread=width*.52;
-      tuft(ox+Math.cos(a)*spread,oz+Math.sin(a)*spread,top-length*.55,
-        radius*(.035+.005*(k%3)),length*(.48+.12*Math.sin(k+angle)),a,8,[.65,1,.85,.50,.14],true);
-    }
+/** PR14's original closed twig bundles, divided over the four existing crown meshes. */
+export function youngBundles(g: THREE.BufferGeometry, slot: number, tree: number) {
+  const part = crown.parts[slot], p: number[] = [], normal: number[] = [], colors: number[] = [];
+  const angle = tree * .61, ca = Math.cos(angle), sa = Math.sin(angle);
+  // Cancel the existing mesh's placement within the crown; roots/crown/pivot stay unchanged.
+  const ox = Math.sin(slot * 2.1 + tree) * .12, oy = 2.3 + slot * .35 - .5;
+  const oz = Math.cos(slot * 2.1 + tree) * .12;
+  const base = new THREE.Color(0x4f7a3a);
+  for(let i=0;i<part.position.length;i+=3) {
+    const x=part.position[i]*2.7,y=part.position[i+1]*3.2,z=part.position[i+2]*2.7;
+    p.push(ca*x+sa*z-ox,y-oy,-sa*x+ca*z-oz);
+    const nx=part.normal[i]/2.7,ny=part.normal[i+1]/3.2,nz=part.normal[i+2]/2.7;
+    const l=Math.hypot(nx,ny,nz);normal.push((ca*nx+sa*nz)/l,ny/l,(-sa*nx+ca*nz)/l);
+    // Reference vertex colour, adapted to the island's shared leaf material, without gloss.
+    colors.push(part.color[i]*.72/base.r,part.color[i+1]*.72/base.g,part.color[i+2]*.72/base.b);
   }
-  replace(g,p,ix);g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
+  replace(g,p,part.index);
+  g.setAttribute('normal',new THREE.Float32BufferAttribute(normal,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
 }
 
 /** Use vertex tint only on authored meshes; default white leaves shared users unchanged. */
