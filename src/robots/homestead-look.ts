@@ -10,30 +10,71 @@ function replace(g: THREE.BufferGeometry, p: number[], ix: number[]) {
   return g;
 }
 
-/** Two hanging leaf bundles per existing crown mesh; broad forms, closed outward faces. */
+/** Layered, drooping sprays, combined inside each existing crown mesh. */
 export function youngBundles(g: THREE.BufferGeometry, radius: number, phase: number) {
-  const p: number[] = [], ix: number[] = [], n = 8;
-  for (let b = 0; b < 2; b++) {
-    const base = p.length / 3, angle = phase * 1.3 + b * 2.8;
-    const ox = Math.cos(angle) * radius * .30, oz = Math.sin(angle) * radius * .30;
-    for (let j = 0; j < 5; j++) {
-      const t = j / 4, profile = [.30, .86, 1, .70, .10][j];
+  const p: number[] = [], ix: number[] = [], colors: number[] = [], n = 10;
+  for (let b = 0; b < 5; b++) {
+    const base = p.length / 3, angle = phase * 1.3 + b * 2.399;
+    const ca = Math.cos(angle), sa = Math.sin(angle);
+    for (let j = 0; j < 6; j++) {
+      const t = j / 5, profile = [.10, .75, 1, .82, .42, .025][j];
+      const reach = radius * (.08 + 1.45 * t), drop = radius * (.35 - 1.7 * t * t + (b % 2) * .15);
       for (let k = 0; k < n; k++) {
-        const a = k / n * Math.PI * 2, r = radius * .72 * profile * (1 + .035 * Math.sin(k * 2.1 + phase));
-        p.push(ox + Math.cos(a) * r + .06 * radius * Math.sin(t * Math.PI), radius * (.95 - 2 * t) + radius * .035 * Math.sin(a * 3 + phase), oz + Math.sin(a) * r * .8);
+        const a = k / n * Math.PI * 2;
+        const side = Math.cos(a) * radius * .50 * profile;
+        const thick = Math.sin(a) * radius * .20 * profile;
+        p.push(ca * reach - sa * side, drop + thick, sa * reach + ca * side);
+        const light = .76 + .14 * Math.sin(a) + .055 * (b % 3);
+        colors.push(light * 1.10, light, light * .86);
       }
     }
-    // Rings descend: opposite winding to an upward trunk.
-    for (let j = 0; j < 4; j++) for (let k = 0; k < n; k++) {
+    for (let j = 0; j < 5; j++) for (let k = 0; k < n; k++) {
       const a = base + j * n + k, c = base + j * n + (k + 1) % n;
       ix.push(a, c, a + n, c, c + n, a + n);
     }
     for (let k = 1; k < n - 1; k++) {
       ix.push(base, base + k + 1, base + k);
-      const end = base + 4 * n; ix.push(end, end + k, end + k + 1);
+      const end = base + 5 * n; ix.push(end, end + k, end + k + 1);
     }
   }
-  return replace(g, p, ix);
+  for (let i = 0; i < ix.length; i += 3) [ix[i + 1], ix[i + 2]] = [ix[i + 2], ix[i + 1]];
+  replace(g, p, ix);
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  return g;
+}
+
+/** Use vertex tint only on authored meshes; default white leaves shared users unchanged. */
+export function homesteadMaterial<T extends THREE.Material>(m: T): T {
+  const shader = m as unknown as THREE.ShaderMaterial;
+  shader.vertexColors = true;
+  shader.vertexShader = 'varying vec3 vHomesteadTint;\n' + shader.vertexShader.replace('void main(){', `void main(){
+    vHomesteadTint = vec3(1.0);
+    #ifdef USE_COLOR
+    vHomesteadTint = color;
+    #endif
+  `);
+  shader.fragmentShader = 'varying vec3 vHomesteadTint;\n' + shader.fragmentShader.replace('vec3 alb = uCol;', `vec3 alb = uCol * vHomesteadTint;
+    float homesteadSpec = mix(0.08, 1.0, step(0.999, min(vHomesteadTint.r, min(vHomesteadTint.g, vHomesteadTint.b))));`)
+    .replaceAll('uSpec *', 'uSpec * homesteadSpec *');
+  return m;
+}
+
+/** Separated thick slats in one existing mesh, retaining its external dimensions. */
+export function slattedBoard(g: THREE.BufferGeometry, w: number, h: number, d: number, count: number) {
+  const p: number[] = [], ix: number[] = [], colors: number[] = [];
+  const width = d / count, gap = .006;
+  for (let s = 0; s < count; s++) {
+    const base = p.length / 3, z0 = -d / 2 + s * width, z1 = z0 + width;
+    const ring = [[-w/2+.025,z0+gap],[w/2-.025,z0+gap],[w/2,z0+.02],[w/2,z1-.02],[w/2-.025,z1-gap],[-w/2+.025,z1-gap],[-w/2,z1-.02],[-w/2,z0+.02]];
+    for (const [y,shrink] of [[-h/2,.985],[-h*.24,1],[h*.24,1],[h/2,.985]]) for (const [x,z] of ring) {
+      p.push(x*shrink,y,z);
+      const light = .72 + (s % 3) * .07 + (y > 0 ? .14 : 0);
+      colors.push(light * 1.06,light,light*.88);
+    }
+    for(let j=0;j<3;j++)for(let k=0;k<8;k++){const a=base+j*8+k,b=base+j*8+(k+1)%8;ix.push(a,a+8,b,b,a+8,b+8)}
+    for(let k=1;k<7;k++){ix.push(base,base+k,base+k+1);ix.push(base+24,base+24+k+1,base+24+k)}
+  }
+  replace(g,p,ix);g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
 }
 
 /** Broad bevels on a board: same outer dimensions and attachment origin. */
@@ -60,7 +101,13 @@ export function softStone(g: THREE.BufferGeometry) {
 
 /** Slightly irregular cross-section, never exceeding the existing cylinder radius. */
 export function workedWood(g: THREE.BufferGeometry) {
-  const p=g.getAttribute('position');
-  for(let i=0;i<p.count;i++) {const x=p.getX(i),z=p.getZ(i),k=.97+.03*Math.cos(Math.atan2(z,x)*3);p.setXYZ(i,x*k,p.getY(i),z*k)}
-  p.needsUpdate=true;g.computeVertexNormals();return g;
+  const p=g.getAttribute('position'), norm=g.getAttribute('normal'), colors: number[]=[];
+  for(let i=0;i<p.count;i++) {
+    const x=p.getX(i),z=p.getZ(i),a=Math.atan2(z,x),k=.94+.06*Math.cos(a*3);
+    p.setXYZ(i,x*k,p.getY(i),z*k);
+    const end=Math.abs(norm.getY(i))>.8, light=end?1.18:.66+.15*Math.cos(a*3);
+    colors.push(light*1.12,light,light*.78);
+  }
+  p.needsUpdate=true;g.computeVertexNormals();
+  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
 }
