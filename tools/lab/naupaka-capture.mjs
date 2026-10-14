@@ -1,5 +1,5 @@
 // Fixed synthetic-save captures. Fresh, offline browser context per case; no application changes.
-// Env: URL (local preview), PLAYWRIGHT_MODULE, CHROME, FIXTURE, OUT, CASE, WARM (20), SAMPLES (6).
+// Env: URL (local preview), PLAYWRIGHT_MODULE, CHROME, FIXTURE, OUT, CASE, WARM (2), SAMPLES (3).
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -16,13 +16,10 @@ const sha = x => createHash('sha256').update(typeof x === 'string' ? x : JSON.st
 const out = process.env.OUT || 'check-results/firewood'; fs.mkdirSync(out, { recursive: true });
 const warmFrames = Number(process.env.WARM || 2); assert(Number.isInteger(warmFrames) && warmFrames > 0);
 const samples = Number(process.env.SAMPLES || 3); assert(samples > 0 && Number.isInteger(samples));
-const cases = [
-  ...['day','evening','night'].flatMap(light=>[['desktop',1280,720,'high'],['phone',390,844,'medium']].map(([device,w,h,tier])=>({id:`${device}-home-wide-${light}`,view:'home-wide',w,h,tier,time:light==='day'?'12:00':light==='evening'?'17:30':'20:30',date:'2026-10-10',weather:'clear'}))),
-  {id:'desktop-home-near-day',view:'home-near',w:1280,h:720,tier:'high',time:'12:00',date:'2026-10-10',weather:'clear'}
-];
+const cases = ['day','evening','night'].flatMap(light=>[['desktop',1280,720,'high'],['phone',390,844,'medium']].map(([device,w,h,tier])=>({id:`${device}-home-near-${light}`,view:'home-near',w,h,tier,time:light==='day'?'12:00':light==='evening'?'17:30':'20:30',date:'2026-10-10',weather:'clear'})));
 const browser = await pw.chromium.launch({ ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}), args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader'] });
 process.once('SIGTERM', async () => { await browser.close(); process.exit(143); });
-const report = { sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), sourceSha256:sha(['src/ocean/shore.ts','src/ocean/forest.ts','src/robots/residents.ts'].map(p=>fs.readFileSync(p,'utf8')).join('')), harnessSha256:sha(fs.readFileSync(new URL(import.meta.url),'utf8')+fs.readFileSync(new URL('./firewood-state.mjs',import.meta.url),'utf8')), mode: 'homestead visual study; synthetic fixed save', fixtureSha256: sha(fixtureText), browser: browser.version(), measurements: [], failures: [] };
+const report = { sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(), sourceSha256:sha(['src/ocean/shore.ts','src/ocean/forest.ts','src/robots/residents.ts','src/ocean/naupaka-rosette.ts'].map(p=>fs.existsSync(p)?fs.readFileSync(p,'utf8'):'<absent>').join('')), harnessSha256:sha(fs.readFileSync(new URL(import.meta.url),'utf8')+fs.readFileSync(new URL('./firewood-state.mjs',import.meta.url),'utf8')), mode: 'homestead visual study; synthetic fixed save', fixtureSha256: sha(fixtureText), browser: browser.version(), measurements: [], failures: [] };
 try {
   for (const c of cases.filter(c => !process.env.CASE || process.env.CASE.split(',').includes(c.id))) {
     const context = await browser.newContext({ viewport: {width:c.w,height:c.h}, deviceScaleFactor:1 });
