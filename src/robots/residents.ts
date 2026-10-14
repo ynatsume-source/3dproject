@@ -1,3 +1,4 @@
+import { youngBundles, slattedBoard, softStone, workedWood, homesteadMaterial } from './homestead-look';
 // The island's residents on Kayama-jima: two robots and two animals, each living its own life. The robots
 // charge in the sun — Dot builds a hut of driftwood, Lantern walks the island by night mapping it and
 // thinks on the hill. The animals live as their kind does: Kamemaru, an old green turtle, grazes the
@@ -282,7 +283,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   /* ---------- things they make ---------- */
   // Dot's hut: four posts, a frame, then roof slats of driftwood — one piece at a time
-  const wood = rmat(0x8d7560, 0.1), wood2 = rmat(0x6f5a48, 0.1), shellM = rmat(0xf2d9c4, 0.6), stoneM = rmat(0xa49a8c, 0.1);   // (nature-look HANDOFF §4: warmer, paler)
+  const wood = homesteadMaterial(rmat(0x8d7560, 0.1)), wood2 = homesteadMaterial(rmat(0x6f5a48, 0.1)), shellM = rmat(0xf2d9c4, 0.6), stoneM = rmat(0xa49a8c, 0.1);   // (nature-look HANDOFF §4: warmer, paler)
   const hut = new THREE.Group(); group.add(hut);
   { const dh = SPECS.find((x) => x.id === 'dot')!.home; hut.position.set(dh[0] + 3, L.h(dh[0] + 3, dh[1] - 2), dh[1] - 2); hut.rotation.y = 0.4; hut.updateMatrixWorld(); }
   const HUT: THREE.Mesh[] = [];
@@ -305,8 +306,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // place shown as a faint outline while Dot works on it; the piece on its way from Dot's hands to its place
   const benchL = new THREE.Vector3(-2.3, 0, 1.3);
   const bench = new THREE.Group(); bench.position.copy(benchL); hut.add(bench);
-  { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.45, 9), wood2); st.position.y = 0.22; bench.add(st);
-    const top = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.3), wood); top.position.y = 0.47; bench.add(top); }
+  { const st = new THREE.Mesh(workedWood(new THREE.CylinderGeometry(0.22, 0.26, 0.45, 9)), wood2); st.position.y = 0.22; bench.add(st);
+    const top = new THREE.Mesh(slattedBoard(new THREE.BoxGeometry(1.1, 0.05, 0.3), 1.1, 0.05, 0.3, 3), wood); top.position.y = 0.47; bench.add(top); }
   const itemMat = { wood: rmat(0xcfc3ad, 0.1), shell: shellM, stone: stoneM, coconut: rmat(0x8a6640, 0.05) };
   const benchLog = new THREE.Mesh(new THREE.BufferGeometry(), itemMat.wood); benchLog.position.y = 0.53; benchLog.visible = false; bench.add(benchLog);
   const benchPiece = new THREE.Mesh(new THREE.BufferGeometry(), wood); benchPiece.position.y = 0.53; benchPiece.visible = false; bench.add(benchPiece);
@@ -337,16 +338,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const reveal: { m: THREE.Mesh; t: number }[] = [];
 
   /* ---------- the homestead round the hut: young trees to fell, a field, the fire pit ---------- */
-  const leafM = rmat(0x4f7a3a, 0.2), soilM = rmat(0x4a3527, 0.05), fruitM = rmat(0xe08a2e, 0.5), cropM = rmat(0x6a9a40, 0.2);
+  const leafM = homesteadMaterial(rmat(0x4f7a3a, 0.2)), soilM = rmat(0x4a3527, 0.05), fruitM = rmat(0xe08a2e, 0.5), cropM = rmat(0x6a9a40, 0.2);
   const atHut = (x: number, z: number) => hut.localToWorld(new THREE.Vector3(x, 0, z));
   // young casuarinas on the ground Dot will clear for the field (the first three), and two more beyond
   const TREES = [[-0.4, 5.6], [1.9, 6.9], [-2.4, 7.3], [5.2, -2.6], [-4.8, -3.2]].map(([lx, lz], i) => {
     const w = atHut(lx, lz), g = new THREE.Group(); g.position.set(w.x, L.h(w.x, w.z), w.z); group.add(g);
     const pivot = new THREE.Group(); g.add(pivot);
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7), wood2); trunk.position.y = 1.2; pivot.add(trunk);
+    const trunk = new THREE.Mesh(workedWood(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7)), wood2); trunk.position.y = 1.2; pivot.add(trunk);
     const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);
-    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.42 - k * 0.05, 8, 6), leafM); b.position.set(Math.sin(k * 2.1 + i) * 0.25, k * 0.28 - 0.3, Math.cos(k * 2.1 + i) * 0.25); b.scale.y = 0.8; crown.add(b); }
-    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.11, 0.18, 7), wood2); stump.position.y = 0.09; stump.visible = false; g.add(stump);
+    for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(youngBundles(new THREE.SphereGeometry(0.42 - k * 0.05, 8, 6), k, i), leafM); b.position.set(Math.sin(k * 2.1 + i) * 0.12, k * 0.35 - 0.5, Math.cos(k * 2.1 + i) * 0.12); b.scale.y = 1.0; crown.add(b); }
+    const stump = new THREE.Mesh(workedWood(new THREE.CylinderGeometry(0.1, 0.11, 0.18, 7)), wood2); stump.position.y = 0.09; stump.visible = false; g.add(stump);
     const ok = L.h(w.x, w.z) > 0.35;
     if (!ok) g.visible = false;
     return { g, pivot, stump, x: w.x, z: w.z, ok, down: !ok, fallT: -1, dir: Math.random() * 6.28 };
@@ -377,7 +378,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the fire pit: a ring of stones and a stack of wood; lit in the evening
   const pitW = atHut(3.4, 2.8), PIT = new THREE.Vector3(pitW.x, L.h(pitW.x, pitW.z), pitW.z);
   const pit = new THREE.Group(); pit.position.copy(PIT); group.add(pit);
-  for (let k = 0; k < 9; k++) { const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.11, 0), stoneM); const a = k / 9 * 6.28; st.position.set(Math.cos(a) * 0.45, 0.06, Math.sin(a) * 0.45); st.rotation.set(k, k * 2, 0); pit.add(st); }
+  for (let k = 0; k < 9; k++) { const st = new THREE.Mesh(softStone(new THREE.DodecahedronGeometry(0.11, 0)), stoneM); const a = k / 9 * 6.28; st.position.set(Math.cos(a) * 0.45, 0.06, Math.sin(a) * 0.45); st.rotation.set(k, k * 2, 0); pit.add(st); }
   for (let k = 0; k < 3; k++) { const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.6, 6), wood2); lg.rotation.set(1.2, k * 2.1, 0); lg.position.y = 0.12; pit.add(lg); }
   const flameM = [0xffb347, 0xff7a2a, 0xffe08a].map((c) => new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
   const flames = [0, 1, 2, 3, 4].map((k) => { const f = new THREE.Mesh(new THREE.ConeGeometry(0.12 - k * 0.012, 0.5, 7, 1, true), flameM[k % 3]); f.position.set(Math.sin(k * 2.4) * 0.08, 0.35, Math.cos(k * 2.4) * 0.08); pit.add(f); return f; });
@@ -749,9 +750,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     craftG = new THREE.Group(); group.add(craftG);
     // the woodpile: four bamboo posts, a roof of leaves, the logs stacked under it
     stackG = new THREE.Group(); const w = atHut(-2.8, -1.4); stackG.position.set(w.x, L.h(w.x, w.z), w.z); stackG.rotation.y = hut.rotation.y; craftG.add(stackG);
-    for (const [x, z] of [[-0.6, -0.4], [0.6, -0.4], [-0.6, 0.4], [0.6, 0.4]]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 1.25, 6), smat(0xa8b060, 0.18)); m.position.set(x, 0.62, z); stackG.add(m); }
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.06, 1.1), smat(0x5f7d3a, 0.06)); roof.position.y = 1.27; roof.rotation.z = 0.12; stackG.add(roof);
-    const logGeo = new THREE.CylinderGeometry(0.06, 0.07, 1.0, 7), logM = smat(0x7b6a52, 0.0);
+    for (const [x, z] of [[-0.6, -0.4], [0.6, -0.4], [-0.6, 0.4], [0.6, 0.4]]) { const m = new THREE.Mesh(workedWood(new THREE.CylinderGeometry(0.03, 0.035, 1.25, 6)), homesteadMaterial(smat(0x9a9470, 0.08))); m.position.set(x, 0.62, z); stackG.add(m); }
+    const roof = new THREE.Mesh(slattedBoard(new THREE.BoxGeometry(1.5, 0.06, 1.1), 1.5, 0.06, 1.1, 7), homesteadMaterial(smat(0x62734b, 0.06))); roof.position.y = 1.27; roof.rotation.z = 0.12; stackG.add(roof);
+    const logGeo = workedWood(new THREE.CylinderGeometry(0.06, 0.07, 1.0, 7)), logM = homesteadMaterial(smat(0x85725a, 0.0));
     stackLogs = Array.from({ length: 15 }, (_, k) => { const m = new THREE.Mesh(logGeo, logM); m.rotation.z = Math.PI / 2; const row = Math.floor(k / 5), c = k % 5; m.position.set(0, 0.07 + row * 0.12, -0.26 + c * 0.13 + (row % 2) * 0.06); m.visible = false; stackG!.add(m); return m; });
     // the fire heaped round a pot, at the fire place
     heapG = new THREE.Group(); heapG.position.copy(PIT); heapG.visible = false; craftG.add(heapG);

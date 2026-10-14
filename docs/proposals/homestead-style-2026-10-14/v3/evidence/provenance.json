@@ -1,0 +1,13 @@
+{
+  "renderedSourceCommit": "000859bffe9d643a2355fdca698795679be2c617",
+  "sourceUnchangedAfterBuild": true,
+  "referenceCommit": "e754ce36ce0a1e0f7a93e7a5f267fd35ec23fc3d",
+  "fixtureFileSha256": "14bfd3b60168e8780b744a31dba2e26e852b30d6266b9de4967705e7cd5b36a1",
+  "extractedGeometrySha256": "66ffc5f5d9f38c3e9beac2852fd787e3a4b20e13faac1cb8bb3aea444ae82de9",
+  "mainBundles": [
+    {
+      "file": "dist/assets/main-D-nILsbV.js",
+      "sha256": "0bec2528510066d4f9e4979c4d3b73a20f6e0b251647764148d357c05c8c90ad"
+    }
+  ]
+}

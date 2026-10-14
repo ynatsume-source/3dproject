@@ -1,0 +1,37 @@
+{
+  "sourceCommit": "c29829f53a2e19852ced6650ecefdff34473edbc",
+  "seed": 11,
+  "center": [
+    61,
+    -145
+  ],
+  "shore": {
+    "casuarina": {
+      "generated": 340,
+      "within25m": 1
+    },
+    "pandanus": {
+      "generated": 460,
+      "within25m": 5
+    },
+    "naupaka": {
+      "generated": 560,
+      "within25m": 18
+    },
+    "heliotrope": {
+      "generated": 120,
+      "within25m": 4
+    },
+    "drift": {
+      "generated": 101,
+      "within25m": 0
+    },
+    "rock": {
+      "generated": 178,
+      "within25m": 0
+    }
+  },
+  "grownForestWithin100m": 1237,
+  "worldFileSha256": "07aed0a8a94b2cf3fc90af167ec73d045b5b50deeed0e1ac022038ce13affb83",
+  "note": "Synthetic fresh-world inventory, not a user save. Forest count is grown standing trees in the stated radius, not an island total."
+}

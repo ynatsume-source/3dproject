@@ -1,0 +1,13 @@
+✔ shelf includes reserved real mass; excludes building timber and off-shelf fuel; reader is pure (1.623725ms)
+✔ empty, missing roof, full, and overflow do not invent physical log counts (0.339489ms)
+✔ internal drying changes neither shelf state nor visible progress (1.042683ms)
+✔ firing takes display precedence over boiling and ends with its actual run (0.309595ms)
+✔ local forest stumps and legacy saplings retain separate facts (0.297053ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 175.953102
