@@ -25,7 +25,7 @@ export function youngBundles(g: THREE.BufferGeometry, slot: number, tree: number
     const nx=part.normal[i]/2.7,ny=part.normal[i+1]/3.2,nz=part.normal[i+2]/2.7;
     const l=Math.hypot(nx,ny,nz);normal.push((ca*nx+sa*nz)/l,ny/l,(-sa*nx+ca*nz)/l);
     // Reference vertex colour, adapted to the island's shared leaf material, without gloss.
-    colors.push(part.color[i]*.72/base.r,part.color[i+1]*.72/base.g,part.color[i+2]*.72/base.b);
+    colors.push(part.color[i]*.66/base.r,part.color[i+1]*.66/base.g,part.color[i+2]*.66/base.b);
   }
   replace(g,p,part.index);
   g.setAttribute('normal',new THREE.Float32BufferAttribute(normal,3));
