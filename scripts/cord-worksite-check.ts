@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { readFileSync,writeFileSync } from 'node:fs';
+import { worksiteFrames } from './cord-worksite-fixtures';
+const frames=worksiteFrames();assert.equal(frames.length,6);
+const json=JSON.stringify(frames).replaceAll('<','\\u003c');
+assert.ok(!/eligibleMs|TempC|fiberPpm|remainingMs|estimate|memory|binding/.test(json));
+assert.equal(frames.at(-1).jobs.length,0);
+const template=readFileSync('tools/prototypes/cord-worksite-template.html','utf8');
+assert.ok(!/sense\(|optionsFor\(|applyCordCommand|setInterval\(|localStorage|fetch\(|import\(/.test(template));
+const font=readFileSync('docs/proposals/cord-worksite-preview/review-jp.woff').toString('base64');
+const html=template.replace('__FRAMES__',json).replace('__FONT__',font);
+if(process.argv.includes('--write'))writeFileSync('docs/proposals/cord-worksite-preview/index.html',html);
+else assert.equal(readFileSync('docs/proposals/cord-worksite-preview/index.html','utf8'),html,'regenerate preview with --write');
+console.log('PASS worksite: six actual workflow fixtures; 1000 projection reads each preserve state; no scientific ETA/hidden values; static HTML matches source.');

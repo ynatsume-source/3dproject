@@ -1,0 +1,199 @@
+{
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "parallel",
+      "coversActor": false,
+      "worldVisible": 0.8137261279424032,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 19,
+      "current": "浸して待つ",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "check",
+      "coversActor": false,
+      "worldVisible": 0.8135756111145019,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 19,
+      "current": "取り出して確認へ",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "working",
+      "coversActor": false,
+      "worldVisible": 0.8166293350855509,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 19,
+      "current": "回収の手作業中",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "paused",
+      "coversActor": false,
+      "worldVisible": 0.8135756111145019,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 19,
+      "current": "中断・続きは保持",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "recovered",
+      "coversActor": false,
+      "worldVisible": 0.8140555508931477,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 19,
+      "current": "回収済み・縄は未完成",
+      "eta": "回収物を確認・完成縄なし"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "missing",
+      "coversActor": false,
+      "worldVisible": 0.8169351895650228,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 19,
+      "current": "水不足・開始前",
+      "eta": "材料が揃うまで開始しない"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "parallel",
+      "coversActor": false,
+      "worldVisible": 0.7123249032762315,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 14,
+      "current": "浸して待つ",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "check",
+      "coversActor": false,
+      "worldVisible": 0.7119759220547146,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 14,
+      "current": "取り出して確認へ",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "working",
+      "coversActor": false,
+      "worldVisible": 0.7190808624691434,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 14,
+      "current": "回収の手作業中",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "paused",
+      "coversActor": false,
+      "worldVisible": 0.7119759220547146,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 14,
+      "current": "中断・続きは保持",
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "recovered",
+      "coversActor": false,
+      "worldVisible": 0.7130926619635688,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 14,
+      "current": "回収済み・縄は未完成",
+      "eta": "回収物を確認・完成縄なし"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "missing",
+      "coversActor": false,
+      "worldVisible": 0.7197915151384142,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "minMainTextPx": 14,
+      "current": "水不足・開始前",
+      "eta": "材料が揃うまで開始しない"
+    }
+  ],
+  "failures": [],
+  "note": "Conservative world visibility = stage area minus union of header/footer/labels/caption rectangles. Schematic scene; not production footage.",
+  "status": "passed"
+}
