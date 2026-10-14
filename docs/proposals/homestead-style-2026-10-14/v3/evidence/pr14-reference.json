@@ -18,5 +18,6 @@
     "docs/proposals/casuarina-art-study-2026-10-13/evidence/v2/new-close.png",
     "docs/proposals/casuarina-art-study-2026-10-13/evidence/v2/new-normal.png"
   ],
-  "generatorInspected": "tools/lab/casuarina-art/make_tree.py"
+  "generatorInspected": "tools/lab/casuarina-art/make_tree.py",
+  "viewerInspected": "tools/lab/casuarina-art/viewer.ts"
 }

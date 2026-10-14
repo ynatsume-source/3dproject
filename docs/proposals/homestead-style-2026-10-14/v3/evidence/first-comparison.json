@@ -1,0 +1,35 @@
+{
+  "note": "Synchronous whole frame + gl.finish + 1px readback on SwiftShader; not real GPU FPS",
+  "rows": [
+    {
+      "case": "desktop-home-near-day",
+      "relativeMedian": 1.4330825689941333,
+      "beforeMs": 29469.900000000373,
+      "afterMs": 42232.800000000745,
+      "beforeObjects": 2317,
+      "afterObjects": 2317,
+      "beforeMeshes": 2154,
+      "afterMeshes": 2154,
+      "beforeCalls": 981,
+      "afterCalls": 981,
+      "beforeTriangles": 12517808,
+      "afterTriangles": 12529438,
+      "beforeFlicker": {
+        "frames": 4,
+        "step": 0.0019450209394714158,
+        "w": 1280,
+        "h": 720,
+        "over12": 0.004802517361111111,
+        "over25": 0.0014756944444444444
+      },
+      "afterFlicker": {
+        "frames": 4,
+        "step": 0.0019450209394714158,
+        "w": 1280,
+        "h": 720,
+        "over12": 0.005264756944444444,
+        "over25": 0.0016710069444444444
+      }
+    }
+  ]
+}

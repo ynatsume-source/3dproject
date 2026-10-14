@@ -19,7 +19,7 @@ try{
  }
  board.computeBoundingBox();assert(board.boundingBox!.max.x<=.550001&&board.boundingBox!.max.y<=.025001&&board.boundingBox!.max.z<=.150001);
  assert.equal([leaves,...otherLeaves].reduce((n,g)=>n+g.index!.count/3,0),2838);
- for(const g of [leaves,...otherLeaves]){const c=g.getAttribute('color');for(let i=0;i<c.count;i++){assert(Math.min(c.getX(i),c.getY(i),c.getZ(i))<.999,'Imported foliage must retain matte specular mask');assert(c.getY(i)*122/255>.38&&c.getY(i)*122/255<.47,'glTF linear colour must be adapted to island display space');}}assert.equal(board.index!.count/3,60);
+ for(const g of [leaves,...otherLeaves]){const c=g.getAttribute('color'),n=g.getAttribute('normal');for(let i=0;i<n.count;i++)assert(Math.abs(Math.hypot(n.getX(i),n.getY(i),n.getZ(i))-1)<1e-5,'Imported normals must stay normalized after scale');for(let i=0;i<c.count;i++){assert(Math.min(c.getX(i),c.getY(i),c.getZ(i))<.999,'Imported foliage must retain matte specular mask');assert(c.getY(i)*122/255>.38&&c.getY(i)*122/255<.47,'glTF linear colour must be adapted to island display space');}}assert.equal(board.index!.count/3,60);
  slats.computeBoundingBox();assert(slats.boundingBox!.max.x<=.750001&&slats.boundingBox!.max.y<=.030001&&slats.boundingBox!.max.z<=.550001);
  console.log('PASS: no RNG consumption, finite attributes, unchanged stone positions, outward closed bundles/boards, board dimensions.');
 }finally{Math.random=random}

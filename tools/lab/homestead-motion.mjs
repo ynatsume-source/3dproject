@@ -134,6 +134,7 @@ try {
     }
     await motionCDP.detach();
     metrics.motionFrames=motionFrames;
+    metrics.motionEndStateSha256=sha(await page.evaluate(()=>{seaglass.cur.residents.save();return JSON.parse(localStorage.getItem('seaglass.residents.v1'));}));
     const sorted=[...metrics.timesMs].sort((a,b)=>a-b);
     let flicker=null;
     if(process.env.FLICKER==='1' && ['desktop-home-near-day','desktop-beach-day'].includes(c.id)) {

@@ -1,6 +1,6 @@
 import struct,json,hashlib,sys
 from pathlib import Path
-p=Path(sys.argv[1]);b=p.read_bytes();n=struct.unpack_from('<I',b,12)[0];g=json.loads(b[20:20+n]);data=b[28+n:]
+p=Path(sys.argv[1]);b=p.read_bytes();assert hashlib.sha256(b).hexdigest()=='ba0f7eba86c977cb898a39264d51b66961214c952cba08399ddd4ccbba509d88','Expected exact PR14 v2 GLB';n=struct.unpack_from('<I',b,12)[0];g=json.loads(b[20:20+n]);data=b[28+n:]
 def acc(i):
  a=g['accessors'][i];v=g['bufferViews'][a['bufferView']];sizes={'SCALAR':1,'VEC3':3,'VEC4':4};sz=sizes[a['type']];fmt={5126:'f',5123:'H',5125:'I'}[a['componentType']];stride=v.get('byteStride',struct.calcsize(fmt)*sz);off=v.get('byteOffset',0)+a.get('byteOffset',0)
  return [struct.unpack_from('<'+fmt*sz,data,off+j*stride) for j in range(a['count'])]
