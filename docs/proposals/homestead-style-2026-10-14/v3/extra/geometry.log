@@ -1,0 +1,1 @@
+PASS: neither Math.random nor shared world R consumed, finite attributes, unchanged stone positions, outward closed bundles/boards, board dimensions.

@@ -1,0 +1,13 @@
+{
+  "v2": {
+    "head": "18ad2bf457dd98e10611ed3ca088874db3fe399f",
+    "servedBundle": "./assets/main-DLcbaNMH.js",
+    "bundleSha256": "745e98a053b828c33d908042e70b972a6aee14d0265adc3a0a456d1e6fa42bbd"
+  },
+  "v3": {
+    "head": "f406dbc533dcf6340aa7501550b379b68b2353cc",
+    "servedBundle": "./assets/main-D-nILsbV.js",
+    "bundleSha256": "0bec2528510066d4f9e4979c4d3b73a20f6e0b251647764148d357c05c8c90ad"
+  },
+  "v3ProductionUnchangedFrom": "64a8d87f002b1baaf33f1ff3f2a5112fd1344ab1"
+}

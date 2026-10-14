@@ -1,0 +1,1 @@
+PASS: same 20 crown meshes; phone frustum includes 15 -> 20. Visible crown triangles 8700 -> 14190; +5 calls / +5490 triangles exactly accounts for measured difference.

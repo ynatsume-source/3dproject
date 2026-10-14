@@ -117,7 +117,7 @@ try {
     await cdp.detach();
     // 12 deterministic frames / 8 fps. Camera starts at the still pose and moves 6 cm.
     // This is an offline low-frame-rate sequence, not a live GPU performance test.
-    const motionFrames=[];
+    const motionFrames=[],motionRenderCounts=[];
     fs.mkdirSync(path.join(out,'frames'),{recursive:true});
     const motionCDP=await context.newCDPSession(page);
     for(let i=0;i<12;i++) {
@@ -125,15 +125,17 @@ try {
         const s=seaglass,d=window.__firewood,gl=s.renderer.getContext();
         const dx=.06*i/11;
         s.aim([pose[0]+Math.cos(pose[3])*dx,pose[1],pose[2]-Math.sin(pose[3])*dx],pose[3],pose[4]);
-        d.ms+=125;s.advance(1,.125);gl.finish();
-        return {i,camera:s.camera.position.toArray(),rotation:s.camera.rotation.toArray(),projection:s.camera.projectionMatrix.toArray(),clockMs:s.clock.ms,random:{draws:d.draws,hash:d.hash}};
+        const r=s.renderer,originalRender=r.render,counts={calls:0,triangles:0,points:0,lines:0};
+        r.render=function(...args){const value=originalRender.apply(this,args);for(const k of Object.keys(counts))counts[k]+=r.info.render[k];return value;};
+        try{d.ms+=125;s.advance(1,.125);gl.finish();}finally{r.render=originalRender;}
+        return {counts,i,camera:s.camera.position.toArray(),rotation:s.camera.rotation.toArray(),projection:s.camera.projectionMatrix.toArray(),clockMs:s.clock.ms,random:{draws:d.draws,hash:d.hash}};
       },{i,pose:setup.pose});
       const frame=await motionCDP.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       fs.writeFileSync(path.join(out,'frames',String(i).padStart(3,'0')+'.png'),Buffer.from(frame.data,'base64'));
-      motionFrames.push(m);console.log('motion frame',i);
+      motionRenderCounts.push(m.counts);delete m.counts;motionFrames.push(m);console.log('motion frame',i);
     }
     await motionCDP.detach();
-    metrics.motionFrames=motionFrames;
+    metrics.motionFrames=motionFrames;metrics.motionRenderCounts=motionRenderCounts;
     metrics.motionEndStateSha256=sha(await page.evaluate(()=>{seaglass.cur.residents.save();return JSON.parse(localStorage.getItem('seaglass.residents.v1'));}));
     const sorted=[...metrics.timesMs].sort((a,b)=>a-b);
     let flicker=null;

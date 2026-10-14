@@ -1,0 +1,65 @@
+{
+  "note": "Compare matching frames; total scene counts can change during existing world updates.",
+  "deltas": [
+    {
+      "frame": 0,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 1,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 2,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 3,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 4,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 5,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 6,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 7,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 8,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 9,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 10,
+      "calls": 5,
+      "triangles": 5490
+    },
+    {
+      "frame": 11,
+      "calls": 5,
+      "triangles": 5490
+    }
+  ]
+}

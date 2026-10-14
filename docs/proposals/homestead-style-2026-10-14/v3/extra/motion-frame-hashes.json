@@ -1,0 +1,105 @@
+{
+  "note": "12 offline frames each; camera, rotation, projection, clock, RNG and end save match. PNG hashes before encoding.",
+  "variants": [
+    [
+      {
+        "file": "000.png",
+        "sha256": "45c37a4874a569e41dc445c5b18933fbcd30fdc0e8ba0241ea2a7b771a6ac316"
+      },
+      {
+        "file": "001.png",
+        "sha256": "e4a8eef698c7cd4c7c70c8a3449b5e54ef64fddc254d9eb895890bcfee41ecf5"
+      },
+      {
+        "file": "002.png",
+        "sha256": "be23f1a451e374c66a820d3b4612921347040c2dc9440e004954710eea7f4480"
+      },
+      {
+        "file": "003.png",
+        "sha256": "718842a26594dc7c1b471f4843c684ff1ea6c0c3e0593f6a495357ff8f591d11"
+      },
+      {
+        "file": "004.png",
+        "sha256": "6ce435c63168504238d42dd63aa61826cd319a57391d98d3b671dfef21c5137d"
+      },
+      {
+        "file": "005.png",
+        "sha256": "8d8920c59275db8894edb00726095280136276381054ecafa755da225ce20946"
+      },
+      {
+        "file": "006.png",
+        "sha256": "ecd68e72a307103726bb7bf209027561619d51145bc53feb7ea5bed383b6510d"
+      },
+      {
+        "file": "007.png",
+        "sha256": "8aabe7783e3fe322b1f9df4b3c52a04b68c1daa1a04ba1233b48d4d47a097c57"
+      },
+      {
+        "file": "008.png",
+        "sha256": "26a8d9517209be251e076b18566f351fd2e25f30a63d4921d91de453de7b7b07"
+      },
+      {
+        "file": "009.png",
+        "sha256": "e42f140a99aa0a219a78b9cb6bd0873db342924671458aedeededeba57600ebf"
+      },
+      {
+        "file": "010.png",
+        "sha256": "eb5fc535001805b923daf7a2c73c30fdc504fedf2c1255c81c81cc88bc29f446"
+      },
+      {
+        "file": "011.png",
+        "sha256": "6deb996ffd9394c591e5c631765dc8f486f22b4a1b2b2d88afc58d7300c81ee8"
+      }
+    ],
+    [
+      {
+        "file": "000.png",
+        "sha256": "4b45ce51bc22b5de02b52ad8b30924843abeda4dac6318d2a53df462fecd8fe9"
+      },
+      {
+        "file": "001.png",
+        "sha256": "bf2234362558713a406519eb9de6b1a2c386304e66e8592116307b2786058b3c"
+      },
+      {
+        "file": "002.png",
+        "sha256": "645e2d8d1b7b6b5e001b1c17f58d968b3b9c1792c7c77961ae0e7c17f4d34628"
+      },
+      {
+        "file": "003.png",
+        "sha256": "ba40dc2dc639fce3ec4f5f4471b57b37fa238d57869fb362a7338d79efa54254"
+      },
+      {
+        "file": "004.png",
+        "sha256": "a21b5c42f631fb9db1c5f855d498dafc0677bb00329c1c56a45dad8ac2c7f93c"
+      },
+      {
+        "file": "005.png",
+        "sha256": "bcd1805695aaebf6dfae1ec636a67b5f455c2eb6c56ad4c64677f8ff31a6f8e2"
+      },
+      {
+        "file": "006.png",
+        "sha256": "b407e417a8bc6f858ba2de55bb5ce87ba18b2e2ae7f328fed26f3f383ec7411d"
+      },
+      {
+        "file": "007.png",
+        "sha256": "fbf3a39faf1c45a92da15ddab201b7e47f660e08a08b8f493f1817057963aae1"
+      },
+      {
+        "file": "008.png",
+        "sha256": "7af8bbf096449cba532c9b395ee9acb2d789ec468cb3ef0484f55a1e75db6e61"
+      },
+      {
+        "file": "009.png",
+        "sha256": "5af99b233c003ff37a9147471855a7d7f1bfb2aedb3501e795eb2847ef99aa47"
+      },
+      {
+        "file": "010.png",
+        "sha256": "102bb76dd88bdf485d2003c485e178645ba1a75da23b2fe35773d81249af4f06"
+      },
+      {
+        "file": "011.png",
+        "sha256": "24e70ef3c6bdd018ec36367e860d19b9c83b8fb60f5331d1325e59d0a477414f"
+      }
+    ]
+  ]
+}
