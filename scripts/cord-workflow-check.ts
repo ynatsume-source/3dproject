@@ -84,3 +84,78 @@ assert.match(projectCordWorkflow(gap)[0].stopReason!,/環境記録/);
 assert.ok(!cordResidentMemory(gap,'dot').some(m=>m.text.includes('環境記録')));
 if(process.env.CORD_SNAPSHOT_OUT)writeFileSync(process.env.CORD_SNAPSHOT_OUT,JSON.stringify(snapshots,null,2));
 console.log(`PASS cord workflow: ${count} immutable command checks; passive release, parallel work, interruption, JSON restore, conservation, retries, read-only projection and hidden-state isolation`);
+
+// PR18 independent static-review counterexamples; run each before fixing the core.
+function zeroFiber(fiberPpm:number, small=false) {
+  let x=fixture();if(small)x.ledger.lots['h:a'].amount.value=1;
+  x=act(x,{type:'start',job:'a',actor:'dot',lots:['h:a','w:a'],equipment:'basin:a',plan,assumptions:{...A,fiberPpm}});
+  x=tick(x,toReal('island',x.jobs.a.startIsland+120_000)+1);
+  for(let i=0;i<3;i++){x=begin(x);x=tick(x,x.nowWorld+5_000);}
+  return tick(x,x.nowWorld+10_000);
+}
+let reviewFailures=0;
+function reviewCheck(name:string,fn:()=>void) {try{fn();console.log(`PASS ${name}`);}catch(e){reviewFailures++;console.error(`FAIL ${name}: ${e.message}`);}}
+for(const [name,ppm,small] of [['zero yield',0,false],['integer rounding',1,true]] as const) {
+  reviewCheck(`CORD-1 ${name}`,()=>{
+    const x=zeroFiber(ppm,small);const materials=x.jobs.a.outputLotIds.map(id=>x.ledger.lots[id].materialId);
+    assert.equal(x.jobs.a.phase,'recovered');assert.deepEqual(materials,['pith','process_water']);
+    assert.ok(!projectCordWorkflow(x)[0].next.includes('殻が未分離で戻った'));
+    assert.deepEqual(restoreCordSession(JSON.stringify(x),x.nowWorld).ledger,x.ledger);
+  });
+}
+reviewCheck('CORD-2 forged recovered phase',()=>{
+  const x=start(fixture(),'a');x.jobs.a.phase='recovered';
+  assert.equal(x.ledger.runs[x.jobs.a.runId].status,'starting');assert.equal(x.ledger.lots['h:a'].reservedBy,x.jobs.a.runId);
+  assert.throws(()=>restoreCordSession(JSON.stringify(x),x.nowWorld),/inconsistent/);
+});
+reviewCheck('CORD-3 missing water before memory',()=>{
+  const original=fixture(),before=JSON.stringify(original);
+  const cmd={type:'start',job:'a',actor:'dot',lots:['h:a'],equipment:'basin:a',plan,assumptions:A};
+  let accepted:CordSession|undefined;
+  try {accepted=act(original,cmd);} catch {}
+  if(accepted) {
+    const after=tick(accepted,ready);
+    console.log(JSON.stringify({counterexample:'missing water',phase:after.jobs.a.phase,run:after.ledger.runs[after.jobs.a.runId].status,memory:cordResidentMemory(after,'dot')}));
+  }
+  assert.throws(()=>act(original,cmd));assert.equal(JSON.stringify(original),before);
+});
+reviewCheck('CORD-1 legacy null result is unknown, never a fabricated husk',()=>{
+  const x=zeroFiber(0);x.jobs.a.result=null;
+  const restored=restoreCordSession(JSON.stringify(x),x.nowWorld);
+  assert.equal(restored.jobs.a.result,null);assert.match(projectCordWorkflow(restored)[0].next,/未確認/);
+  assert.ok(!projectCordWorkflow(restored)[0].next.includes('殻が未分離'));
+});
+reviewCheck('CORD-2 valid saves and reservation ownership',()=>{
+  let x=start(fixture(),'a');
+  const check=(y:CordSession)=>{const before=JSON.stringify(y);const loaded=restoreCordSession(before,y.nowWorld);
+    assert.deepEqual(loaded.ledger,y.ledger);assert.equal(loaded.jobs.a.workedWorldMs,y.jobs.a.workedWorldMs);assert.equal(JSON.stringify(y),before);};
+  check(x);x=tick(x,ready);check(x);x=begin(x);x=tick(x,x.nowWorld+2_000);check(x);
+  x=act(x,{type:'interrupt',job:'a',actor:'dot'});check(x);
+  for(let i=0;i<2;i++){x=begin(x);x=tick(x,x.nowWorld+5_000);}
+  assert.equal(x.jobs.a.phase,'settling');check(x);
+  x=tick(x,x.nowWorld+10_000);check(x);
+  const corrupt=clone(x);corrupt.ledger.equipment['basin:a'].reservedBy=corrupt.jobs.a.runId;
+  assert.throws(()=>restoreCordSession(JSON.stringify(corrupt),corrupt.nowWorld),/inconsistent/);
+  // A settled basin may legitimately be reserved by a different run.
+  x=act(x,{type:'start',job:'b',actor:'lantern',lots:['h:b','w:b'],equipment:'basin:a',plan,assumptions:A});check(x);
+  x=act(x,{type:'cancel',job:'b',actor:'lantern'});check(x);
+  let failed=start(fixture(),'a');failed.ledger.equipment['basin:a'].condition=0;
+  failed=tick(failed,ready);assert.equal(failed.ledger.runs[failed.jobs.a.runId].status,'failed');check(failed);
+  for(const mutate of [
+    (y:any)=>{y.jobs.a.phase='stopped';},
+    (y:any)=>{y.ledger.runs[y.jobs.a.runId].status='completed';},
+    (y:any)=>{delete y.ledger.lots['h:a'].reservedBy;},
+    (y:any)=>{y.ledger.equipment['basin:a'].reservedBy='another-run';},
+    (y:any)=>{y.jobs.copy={...y.jobs.a,id:'copy'};},
+  ]) {const y=start(fixture(),'a');mutate(y);assert.throws(()=>restoreCordSession(JSON.stringify(y),y.nowWorld),/inconsistent/);}
+});
+reviewCheck('CORD-3 invalid setup is atomic and valid setup stays unadvanced',()=>{
+  for(const mutate of [
+    (y:any)=>{y.ledger.lots['w:a'].materialId='sand';},
+    (y:any)=>{y.ledger.lots['w:a'].quality={water_ppm:0};},
+    (y:any)=>{y.ledger.equipment['basin:a'].kind='wrong-basin';},
+  ]) {const y=fixture();mutate(y);const before=JSON.stringify(y);assert.throws(()=>start(y,'a'),/invalid start/);assert.equal(JSON.stringify(y),before);}
+  const y=start(fixture(),'a');assert.equal(y.ledger.runs[y.jobs.a.runId].state,null);
+  assert.deepEqual(y.ledger.committed,[]);assert.equal(cordResidentMemory(y,'dot').length,1);assert.equal(total(y),6_000_020);
+});
+console.log(`PR18 review failed expectations: ${reviewFailures}`);assert.equal(reviewFailures,0);

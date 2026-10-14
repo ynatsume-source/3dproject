@@ -1,5 +1,5 @@
 // Isolated scheduling experiment on top of PR12. Never imported by resident/UI production code.
-import { advance, startRun, toClock, toReal, type Ledger } from '../process-runner';
+import { advance, startRun, nextRequest, toClock, toReal, type Ledger } from '../process-runner';
 import type { EnvironmentSample, OperatorAction } from '../science-contract';
 import { createHuskPrototype, HUSK_PROTOTYPE, type HuskAssumptions } from '../../science/prototypes/coconut-husk';
 
@@ -14,7 +14,7 @@ interface Job {
   lease: null | { actor: string; fromWorld: number; creditedThroughWorld: number; untilWorld: number };
   phase: 'soaking' | 'checking' | 'working' | 'settling' | 'recovered' | 'stopped';
   stopReason: string | null; recoveryAt: number | null; recoveryActor: string | null; outputLotIds: string[];
-  result: 'fiber-fixture' | 'husk-returned' | null;
+  result: 'fiber-fixture' | 'husk-returned' | 'no-fiber' | null;
   dataStatus: 'unobserved' | 'available' | 'incomplete';
   looks: OperatorAction[];
 }
@@ -39,7 +39,17 @@ function valid(s: CordSession) {
       || j.workedWorldMs>j.plan.recoveryWorkWorldMs || !Array.isArray(j.looks) || !Array.isArray(j.outputLotIds)
       || !['soaking','checking','working','settling','recovered','stopped'].includes(j.phase)
       || (j.recoveryAt!==null&&(!integer(j.recoveryAt)||typeof j.recoveryActor!=='string'))
-      || !['unobserved','available','incomplete'].includes(j.dataStatus) || (j.phase==='working'&&!j.lease) || ![null,'fiber-fixture','husk-returned'].includes(j.result)) throw Error('invalid job save');
+      || !['unobserved','available','incomplete'].includes(j.dataStatus) || (j.phase==='working'&&!j.lease) || ![null,'fiber-fixture','husk-returned','no-fiber'].includes(j.result)) throw Error('invalid job save');
+    const run=s.ledger.runs[j.runId];
+    const statusMatches=active(j)?['starting','running','needs-input'].includes(run.status)
+      :j.phase==='recovered'?run.status==='completed':['failed','stopped'].includes(run.status);
+    if(!statusMatches)throw Error('inconsistent workflow phase and run status');
+    if(active(j)) {
+      if(run.lotIds.some(id=>s.ledger.lots[id]?.reservedBy!==run.runId)
+        || run.equipmentIds.some(id=>s.ledger.equipment[id]?.reservedBy!==run.runId))throw Error('inconsistent active reservations');
+    } else if([...Object.values(s.ledger.lots),...Object.values(s.ledger.equipment)].some(x=>x.reservedBy===run.runId)) {
+      throw Error('inconsistent terminal reservations');
+    }
     if (j.lease && (!active(j) || j.phase!=='working' || !j.lease.actor || !integer(j.lease.fromWorld)
       || !integer(j.lease.creditedThroughWorld) || !integer(j.lease.untilWorld)
       || j.lease.fromWorld>j.lease.creditedThroughWorld || j.lease.creditedThroughWorld>s.nowWorld
@@ -47,6 +57,8 @@ function valid(s: CordSession) {
   }
   const actors=Object.values(s.jobs).flatMap(j=>j.lease?[j.lease.actor]:[]);
   if(new Set(actors).size!==actors.length)throw Error('duplicate actor lease');
+  const runs=Object.values(s.jobs).map(j=>j.runId);
+  if(new Set(runs).size!==runs.length)throw Error('inconsistent duplicate job run');
 }
 export function newCordSession(ledger: Ledger, nowWorld: number): CordSession {
   const s: CordSession={schema:'cord-workflow/1',sequence:0,nowWorld,ledger:structuredClone(ledger),jobs:{},memory:[]};valid(s);return s;
@@ -86,6 +98,7 @@ function drive(s: CordSession, atWorld: number, weather: (islandAt:number)=>Envi
       j.outputLotIds.push(...(r.produced??[]).map(l=>l.lotId));
       if(r.produced?.some(l=>l.materialId==='plant_fiber'))j.result='fiber-fixture';
       else if(r.produced?.some(l=>l.materialId==='coconut_husk'))j.result='husk-returned';
+      else if(r.status==='completed')j.result='no-fiber';
       for(const o of r.observations??[]) {
         for(const observer of j.looks.filter(a=>a.at===o.at))
           if(o.text)s.memory.push({actor:observer.residentId,job:j.id,atWorld:toReal('island',o.at),text:o.text});
@@ -113,6 +126,12 @@ export function applyCordCommand(state: CordSession, cmd: CordCommand, weather: 
     if(!cmd.job || !cmd.actor || Object.hasOwn(s.jobs,cmd.job) || new Set(cmd.lots).size!==cmd.lots.length)throw Error('invalid job identity');
     const started=startRun(s.ledger,{processId:HUSK_PROTOTYPE,processVersion:'0.0.1',catalogVersion:'civ-sci-test-2',contract:'0.2.1',clock:'island',lotIds:cmd.lots,equipmentIds:[cmd.equipment],operator:cmd.actor},s.nowWorld);
     if(!started.run)throw Error(started.why);
+    // Validate the actual reserved inputs with PR12 before recording a successful setup.
+    // The first grid mark is after now: this pause request has zero duration, and is
+    // never committed. Failure discards the transaction's reservations and sequence.
+    const check=nextRequest(s.ledger,started.run.runId,{realNow:s.nowWorld,stop:'world-pause',
+      environment:at=>({sampleId:'env:preflight',source:'unknown',effectiveAt:at})});
+    if(!check || createHuskPrototype(cmd.assumptions)(check).status==='failed')throw Error('invalid start inputs');
     const j:Job={id:cmd.job,runId:started.run.runId,startIsland:started.run.lastTo,workedWorldMs:0,
       plan:structuredClone(cmd.plan),assumptions:structuredClone(cmd.assumptions),lease:null,phase:'soaking',stopReason:null,recoveryAt:null,recoveryActor:null,result:null,dataStatus:'unobserved',outputLotIds:[],looks:[]};
     Object.defineProperty(s.jobs,cmd.job,{value:j,writable:true,enumerable:true,configurable:true});
@@ -160,7 +179,7 @@ export function projectCordWorkflow(s: CordSession) {
     current:({soaking:'浸して待つ',checking:'取り出して確かめる',working:'回収の手作業',settling:'回収結果の反映待ち',recovered:'回収済み・縄は未完成',stopped:'停止'} as const)[j.phase],
     estimate:j.phase==='soaking'?{kind:'確認予定まで（試験計画・完了保証なし）',clock:'island',remainingMs:Math.max(0,j.plan.inspectionAfterIslandMs-(s.ledger.runs[j.runId].lastTo-j.startIsland))}
       :{kind:'残りの手作業（未校正の試験量）',clock:'world',remainingMs:Math.max(0,j.plan.recoveryWorkWorldMs-j.workedWorldMs)},
-    dataStatus:j.dataStatus,stopReason:j.stopReason??(j.dataStatus==='incomplete'?'環境記録が不足（完了保証なし）':null),next:j.phase==='recovered'?(j.result==='fiber-fixture'?'試験繊維を回収。乾燥・撚りは未実装':'殻が未分離で戻った。条件を見直す'):j.phase==='stopped'?'残った材料を確認して計画し直す':'待機中は別の暮らしへ／手作業は小分けで再開',
+    dataStatus:j.dataStatus,stopReason:j.stopReason??(j.dataStatus==='incomplete'?'環境記録が不足（完了保証なし）':null),next:j.phase==='recovered'?(j.result==='fiber-fixture'?'試験繊維を回収。乾燥・撚りは未実装':j.result==='husk-returned'?'殻が未分離で戻った。条件を見直す':j.result==='no-fiber'?'繊維の生成量は0。回収物を確認して条件を見直す':'回収物の種類は未確認。記録を確認する'):j.phase==='stopped'?'残った材料を確認して計画し直す':'待機中は別の暮らしへ／手作業は小分けで再開',
     settledLots:j.outputLotIds.slice(),prototype:true,
   }));
 }
