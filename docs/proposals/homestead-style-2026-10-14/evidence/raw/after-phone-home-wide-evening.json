@@ -1,0 +1,154 @@
+{
+  "sourceCommit": "d4b75398883cdedc3fbfe2741b03b6ef2f76359f",
+  "sourceSha256": "bac0a28d25375ed331c4875e775900ddac6c8faafbf23ba68a090fe6e67f0d25",
+  "harnessSha256": "239b84fd861e14b59b06e7889430006165b8e674f9f74e0dc1cfc8bd6167d504",
+  "mode": "homestead visual study; synthetic fixed save",
+  "fixtureSha256": "14bfd3b60168e8780b744a31dba2e26e852b30d6266b9de4967705e7cd5b36a1",
+  "browser": "151.0.7922.173",
+  "measurements": [
+    {
+      "id": "phone-home-wide-evening",
+      "view": "home-wide",
+      "w": 390,
+      "h": 844,
+      "tier": "medium",
+      "time": "17:30",
+      "date": "2026-10-10",
+      "weather": "clear",
+      "flicker": null,
+      "warmFrames": 2,
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "timesMs": [
+        13982.199999999255,
+        13327.300000000745,
+        14960.099999999627
+      ],
+      "counts": [
+        {
+          "calls": 944,
+          "triangles": 11859376,
+          "points": 5049,
+          "lines": 0
+        },
+        {
+          "calls": 944,
+          "triangles": 11859376,
+          "points": 5049,
+          "lines": 0
+        },
+        {
+          "calls": 944,
+          "triangles": 11859376,
+          "points": 5049,
+          "lines": 0
+        }
+      ],
+      "objects": 2317,
+      "meshes": 2154,
+      "random": {
+        "draws": 611752,
+        "hash": 2101292802
+      },
+      "fire": 0,
+      "sky": {
+        "night": 0,
+        "cloud": 0.0425,
+        "moonI": 0.0003086056881557527,
+        "moonIllum": 0.000446410891815352,
+        "moonY": 0.11870984481149356
+      },
+      "projection": [
+        2.416493796038235,
+        0,
+        0,
+        0,
+        0,
+        1.1166262801598479,
+        0,
+        0,
+        0,
+        0,
+        -1.0000017777793582,
+        -1,
+        0,
+        0,
+        -0.16000014222234865,
+        0
+      ],
+      "clockMs": 1791621000000,
+      "camera": [
+        68,
+        7.7075000405311584,
+        -137
+      ],
+      "rotation": [
+        -0.5,
+        0.7853981633974483,
+        0,
+        "YXZ"
+      ],
+      "drawingBuffer": [
+        390,
+        844
+      ],
+      "tiers": {
+        "tier": "medium",
+        "seaTier": "medium",
+        "renderScale": 1,
+        "pipOn": true
+      },
+      "pose": [
+        68,
+        7.7075000405311584,
+        -137,
+        0.7853981633974483,
+        -0.5
+      ],
+      "target": null,
+      "startupRandom": {
+        "draws": 611740,
+        "hash": 3798053186
+      },
+      "startStateSha256": "f5ca89ffb9d8367fcede0c8d5ef80cb9169939d788af724a4cf0daf8a8b58959",
+      "endStateSha256": "eb21d68ca66d864ed0eae8dd3e28334d19df1e0f031d2fb6dc05cd98ba5ee362",
+      "state": {
+        "shelfMg": 24000000,
+        "shelfKg": 24,
+        "roofExists": true,
+        "logModelLimit": 15,
+        "visibleLogModels": 8,
+        "lots": [
+          {
+            "id": "lot:firewood-study",
+            "mg": 24000000,
+            "waterPpm": 450000
+          }
+        ],
+        "felled": [
+          {
+            "x": 58.38611046145671,
+            "z": -142.20704856710074,
+            "kind": 1,
+            "height": 5.041346603324786,
+            "at": 1791601200000
+          }
+        ],
+        "saplingDown": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "firing": null,
+        "boiling": false,
+        "heapVisible": false,
+        "boilVisible": false,
+        "renderedFire": 0
+      },
+      "medianMs": 13982.199999999255,
+      "errors": []
+    }
+  ],
+  "failures": []
+}

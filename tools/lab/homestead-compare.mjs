@@ -17,6 +17,7 @@ for(const a of before.measurements) {
   for(const k of ['date','weather','sky','projection','warmFrames','w','h','tier','time','pose','clockMs','camera','rotation','drawingBuffer','tiers','renderer','startupRandom','random','startStateSha256','endStateSha256','state','view','target'])
     assert.deepEqual(a[k],b[k],`${a.id}: ${k} differs; comparison is invalid`);
   assert.equal(a.timesMs.length,b.timesMs.length,'Different sample counts');
+  assert.equal(a.objects,b.objects,'Object count changed');assert.equal(a.meshes,b.meshes,'Mesh count changed');
   rows.push({case:a.id,relativeMedian:b.medianMs/a.medianMs,beforeMs:a.medianMs,afterMs:b.medianMs,
     beforeObjects:a.objects,afterObjects:b.objects,beforeMeshes:a.meshes,afterMeshes:b.meshes,
     beforeCalls:a.counts.at(-1).calls,afterCalls:b.counts.at(-1).calls,
