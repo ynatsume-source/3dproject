@@ -1,0 +1,25 @@
+{
+  "before": {
+    "head": "c29829f53a2e19852ced6650ecefdff34473edbc",
+    "sourceFiles": {
+      "src/ocean/shore.ts": "a802a00a0a8f8baaaf28da827d7ea1a4d72e9375a9f6d63de3bd4e2db9d6edae",
+      "src/ocean/naupaka-rosette.ts": null,
+      "src/robots/residents.ts": "6469ed7cc25c95744e1f70f9a69b024b82e438a452fe1fcc777db3c659bf7b2b"
+    },
+    "bundles": {
+      "dist/assets/main-C6uWMJ38.js": "c0910cdd4530d698d1182d53d340dbdf44326de7b63689215960eb9de8d6b98c"
+    }
+  },
+  "after": {
+    "head": "c24f9d53a46c145b8b6d448b745b5462f7069236",
+    "sourceFiles": {
+      "src/ocean/shore.ts": "ceddf3618d8cb5b0b56f3ec7232f0d84e4c3d9bb480eefc92434f14cd2076f8c",
+      "src/ocean/naupaka-rosette.ts": "056f4c85193e8b74847690c49964ec7e905821f23c8d33d4bed97def85bb3fc6",
+      "src/robots/residents.ts": "6469ed7cc25c95744e1f70f9a69b024b82e438a452fe1fcc777db3c659bf7b2b"
+    },
+    "bundles": {
+      "dist/assets/main-CXUpZqIL.js": "3275577159c172ae4eafcd550f0d75bfed954acc9c6a937b0c50c5e0352f146a"
+    }
+  },
+  "productionSourceUnchangedFrom": "3cf4f36"
+}

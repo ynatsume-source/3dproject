@@ -1,0 +1,17 @@
+loading motion-home-near-day
+loaded motion-home-near-day
+prepared motion-home-near-day
+measured motion-home-near-day {"times":[24946.39999999851,23202.19999999553,26569.20000000298],"counts":{"calls":981,"triangles":12516272,"points":5049,"lines":0}}
+motion frame 0
+motion frame 1
+motion frame 2
+motion frame 3
+motion frame 4
+motion frame 5
+motion frame 6
+motion frame 7
+motion frame 8
+motion frame 9
+motion frame 10
+motion frame 11
+motion-home-near-day {"medianMs":24946.39999999851,"random":{"draws":611730,"hash":3128295696},"counts":{"calls":981,"triangles":12516272,"points":5049,"lines":0},"state":{"shelfMg":24000000,"shelfKg":24,"roofExists":true,"logModelLimit":15,"visibleLogModels":8,"lots":[{"id":"lot:firewood-study","mg":24000000,"waterPpm":450000}],"felled":[{"x":58.38611046145671,"z":-142.20704856710074,"kind":1,"height":5.041346603324786,"at":1791601200000}],"saplingDown":[0,0,0,0,0],"firing":null,"boiling":false,"heapVisible":false,"boilVisible":false,"renderedFire":0}}
