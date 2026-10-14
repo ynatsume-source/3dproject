@@ -1,0 +1,39 @@
+{
+  "bothSharedRandomStreamsEqual": true,
+  "otherFivePlantGeometriesIdentical": true,
+  "fullLifeSavePlacementCollisionFingerprintEqual": true,
+  "beforeNaupaka": {
+    "triangles": 2240,
+    "vertices": 1134,
+    "sha256": "ad98f8a39b59c1b8e22e3c3c0af372c859e5c42374c88b2ac2c8d68707ff6e06",
+    "bounds": {
+      "min": [
+        -0.5884947180747986,
+        0.005087363533675671,
+        -0.5919747352600098
+      ],
+      "max": [
+        0.5716112852096558,
+        0.5327867269515991,
+        0.5634240508079529
+      ]
+    }
+  },
+  "afterNaupaka": {
+    "triangles": 1828,
+    "vertices": 3656,
+    "sha256": "c8ec99bfb89a4f603ce8bd5021437401caea20f19c2db5396957c346268e854a",
+    "bounds": {
+      "min": [
+        -0.7832406759262085,
+        -0.03248899430036545,
+        -0.8044726252555847
+      ],
+      "max": [
+        0.6881880760192871,
+        0.656209409236908,
+        0.7515318393707275
+      ]
+    }
+  }
+}
