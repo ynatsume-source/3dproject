@@ -10,34 +10,40 @@ function replace(g: THREE.BufferGeometry, p: number[], ix: number[]) {
   return g;
 }
 
-/** Layered, drooping sprays, combined inside each existing crown mesh. */
+/** Rounded, hanging branchlet bundles: no broad leaf blades or alpha-cutout. */
 export function youngBundles(g: THREE.BufferGeometry, radius: number, phase: number) {
-  const p: number[] = [], ix: number[] = [], colors: number[] = [], n = 10;
-  for (let b = 0; b < 5; b++) {
-    const base = p.length / 3, angle = phase * 1.3 + b * 2.399;
-    const ca = Math.cos(angle), sa = Math.sin(angle);
-    for (let j = 0; j < 6; j++) {
-      const t = j / 5, profile = [.10, .75, 1, .82, .42, .025][j];
-      const reach = radius * (.08 + 1.45 * t), drop = radius * (.35 - 1.7 * t * t + (b % 2) * .15);
+  const p: number[] = [], ix: number[] = [], colors: number[] = [], n = 8, rings = 7;
+  // Three overlapping tufts per existing crown slot, following the PR14 branch-tip grouping.
+  // Seven coarse branchlet strands per tuft keep gaps visible without hair-sized detail.
+  for (let bundle = 0; bundle < 3; bundle++) for (let strand = 0; strand < 7; strand++) {
+    const base = p.length / 3, angle = phase * 1.3 + bundle * 2.399;
+    const a = strand * 2.399 + phase * .31;
+    const spread = strand === 0 ? 0 : radius * (.19 + (strand % 2) * .055);
+    const ox = Math.cos(angle) * radius * .48 + Math.cos(a) * spread;
+    const oz = Math.sin(angle) * radius * .48 + Math.sin(a) * spread;
+    const length = radius * (1.32 + .26 * Math.sin(strand * 1.7 + bundle + phase));
+    for (let j = 0; j < rings; j++) {
+      const t = j / (rings - 1), profile = [.45, .92, 1, .92, .74, .48, .16][j];
+      const bend = radius * (.24 * Math.sin(t * Math.PI * .9) + .09 * t * t);
       for (let k = 0; k < n; k++) {
-        const a = k / n * Math.PI * 2;
-        const side = Math.cos(a) * radius * .50 * profile;
-        const thick = Math.sin(a) * radius * .20 * profile;
-        p.push(ca * reach - sa * side, drop + thick, sa * reach + ca * side);
-        const light = .76 + .14 * Math.sin(a) + .055 * (b % 3);
-        colors.push(light * 1.10, light, light * .86);
+        const az = k / n * Math.PI * 2;
+        const r = radius * (.068 + .008 * (strand % 3)) * profile;
+        p.push(ox + Math.cos(angle) * bend + Math.cos(az) * r,
+          radius * (.43 + .12 * Math.sin(bundle + strand * .7)) - t * length,
+          oz + Math.sin(angle) * bend + Math.sin(az) * r);
+        const light = .76 + .055 * (strand % 3) - .10 * t;
+        colors.push(light * 1.08, light, light * .88);
       }
     }
-    for (let j = 0; j < 5; j++) for (let k = 0; k < n; k++) {
+    for (let j = 0; j < rings - 1; j++) for (let k = 0; k < n; k++) {
       const a = base + j * n + k, c = base + j * n + (k + 1) % n;
       ix.push(a, c, a + n, c, c + n, a + n);
     }
     for (let k = 1; k < n - 1; k++) {
       ix.push(base, base + k + 1, base + k);
-      const end = base + 5 * n; ix.push(end, end + k, end + k + 1);
+      const end = base + (rings - 1) * n; ix.push(end, end + k, end + k + 1);
     }
   }
-  for (let i = 0; i < ix.length; i += 3) [ix[i + 1], ix[i + 2]] = [ix[i + 2], ix[i + 1]];
   replace(g, p, ix);
   g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   return g;

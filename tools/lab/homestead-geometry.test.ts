@@ -17,7 +17,7 @@ try{
   assert([...edges.values()].every(n=>n===2),'Closed manifold');
  }
  board.computeBoundingBox();assert(board.boundingBox!.max.x<=.550001&&board.boundingBox!.max.y<=.025001&&board.boundingBox!.max.z<=.150001);
- assert.equal(leaves.index!.count/3,580);assert.equal(board.index!.count/3,60);
+ assert.equal(leaves.index!.count/3,2268);assert.equal(board.index!.count/3,60);
  slats.computeBoundingBox();assert(slats.boundingBox!.max.x<=.750001&&slats.boundingBox!.max.y<=.030001&&slats.boundingBox!.max.z<=.550001);
  console.log('PASS: no RNG consumption, finite attributes, unchanged stone positions, outward closed bundles/boards, board dimensions.');
 }finally{Math.random=random}
