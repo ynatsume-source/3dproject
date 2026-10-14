@@ -12,24 +12,24 @@ function replace(g: THREE.BufferGeometry, p: number[], ix: number[]) {
 
 /** Rounded, hanging branchlet bundles: no broad leaf blades or alpha-cutout. */
 export function youngBundles(g: THREE.BufferGeometry, radius: number, phase: number) {
-  const p: number[] = [], ix: number[] = [], colors: number[] = [], n = 8, rings = 7;
+  const p: number[] = [], ix: number[] = [], colors: number[] = [], n = 6, rings = 7;
   // Three overlapping tufts per existing crown slot, following the PR14 branch-tip grouping.
-  // Seven coarse branchlet strands per tuft keep gaps visible without hair-sized detail.
-  for (let bundle = 0; bundle < 3; bundle++) for (let strand = 0; strand < 7; strand++) {
+  // Fifteen varied branchlets per tuft soften the outline without broad leaf blades.
+  for (let bundle = 0; bundle < 3; bundle++) for (let strand = 0; strand < 15; strand++) {
     const base = p.length / 3, angle = phase * 1.3 + bundle * 2.399;
     const a = strand * 2.399 + phase * .31;
-    const spread = strand === 0 ? 0 : radius * (.19 + (strand % 2) * .055);
+    const spread = strand === 0 ? 0 : radius * (.10 + .18 * Math.sqrt(strand / 14));
     const ox = Math.cos(angle) * radius * .48 + Math.cos(a) * spread;
     const oz = Math.sin(angle) * radius * .48 + Math.sin(a) * spread;
-    const length = radius * (1.32 + .26 * Math.sin(strand * 1.7 + bundle + phase));
+    const length = radius * (1.08 + .40 * Math.sin(strand * 1.7 + bundle + phase));
     for (let j = 0; j < rings; j++) {
       const t = j / (rings - 1), profile = [.45, .92, 1, .92, .74, .48, .16][j];
-      const bend = radius * (.24 * Math.sin(t * Math.PI * .9) + .09 * t * t);
+      const bend = radius * (.12 * Math.sin(t * Math.PI * .9 + strand * .21) + .04 * t * t);
       for (let k = 0; k < n; k++) {
         const az = k / n * Math.PI * 2;
-        const r = radius * (.068 + .008 * (strand % 3)) * profile;
+        const r = radius * (.031 + .006 * (strand % 3)) * profile;
         p.push(ox + Math.cos(angle) * bend + Math.cos(az) * r,
-          radius * (.43 + .12 * Math.sin(bundle + strand * .7)) - t * length,
+          radius * (.43 + .19 * Math.sin(bundle + strand * .7)) - t * length,
           oz + Math.sin(angle) * bend + Math.sin(az) * r);
         const light = .76 + .055 * (strand % 3) - .10 * t;
         colors.push(light * 1.08, light, light * .88);
