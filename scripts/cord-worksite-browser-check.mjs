@@ -29,14 +29,17 @@ try {
     const outside=boxes.filter(r=>r.x<-.5||r.y<-.5||r.x+r.w>stage.width+.5||r.y+r.h>stage.height+.5);
     const textBoxes=[...document.querySelectorAll('footer .k,footer strong,footer p')].map(e=>{const range=document.createRange();range.selectNodeContents(e);const r=range.getBoundingClientRect();return {text:e.textContent,x:r.x,y:r.y,w:r.width,h:r.height};});
     const textOverlaps=[];for(let i=0;i<textBoxes.length;i++)for(let j=i+1;j<textBoxes.length;j++){const a=textBoxes[i],b=textBoxes[j];if(Math.min(a.x+a.w,b.x+b.w)>Math.max(a.x,b.x)+1&&Math.min(a.y+a.h,b.y+b.h)>Math.max(a.y,b.y)+1)textOverlaps.push([a.text,b.text]);}
-    const person=rect(document.querySelector('#dot')),label=rect(document.querySelector('#person-tag'));
-    const coversActor=Math.min(person.x+person.w,label.x+label.w)>Math.max(person.x,label.x)&&Math.min(person.y+person.h,label.y+label.h)>Math.max(person.y,label.y);
-    return {coversActor,worldVisible:1-covered/(stage.width*stage.height),clipping,overlap,outside,textOverlaps,minMainTextPx:Math.min(...[...document.querySelectorAll('footer strong')].map(e=>parseFloat(getComputedStyle(e).fontSize))),current:document.querySelector('#current').textContent,eta:document.querySelector('#eta').textContent};
+    // Every person (including background figures), against every overlay.
+    // Full rendered bounds conservatively include limbs and shadows as well as head/torso.
+    const people=[...document.querySelectorAll('[data-person]')].map(e=>({id:e.id,...rect(e)}));
+    const personOverlaps=[];
+    for(const person of people)for(const [i,label] of boxes.entries())if(Math.min(person.x+person.w,label.x+label.w)>Math.max(person.x,label.x)&&Math.min(person.y+person.h,label.y+label.h)>Math.max(person.y,label.y))personOverlaps.push({person:person.id,overlay:i});
+    return {people,personOverlaps,worldVisible:1-covered/(stage.width*stage.height),clipping,overlap,outside,textOverlaps,minMainTextPx:Math.min(...[...document.querySelectorAll('footer strong')].map(e=>parseFloat(getComputedStyle(e).fontSize))),current:document.querySelector('#current').textContent,eta:document.querySelector('#eta').textContent};
    });
    report.viewports.push({viewport,id,...layout});
    await page.screenshot({path:path.join(out,`${viewport.width}-${id}.png`)});
    assert.ok(layout.worldVisible>=.70,`${viewport.width}/${id}: world visibility ${layout.worldVisible}`);
-   assert.deepEqual(layout.clipping,[],`${id} clipped text`);assert.deepEqual(layout.overlap,[],`${id} HUD overlap`);assert.deepEqual(layout.outside,[],`${id} HUD outside stage`);assert.deepEqual(layout.textOverlaps,[],`${id} text overlap`);assert.ok(layout.minMainTextPx>=14);assert.equal(layout.coversActor,false,'label must not cover the resident');
+   assert.deepEqual(layout.clipping,[],`${id} clipped text`);assert.deepEqual(layout.overlap,[],`${id} HUD overlap`);assert.deepEqual(layout.outside,[],`${id} HUD outside stage`);assert.deepEqual(layout.textOverlaps,[],`${id} text overlap`);assert.ok(layout.minMainTextPx>=14);assert.equal(layout.people.length,2,'both scene residents must be checked');assert.deepEqual(layout.personOverlaps,[],`${viewport.width}/${id}: overlays must not cover any resident`);
    assert.ok(!/[0-9]+\s*(秒|分|時間)/.test(layout.eta),'no fixture ETA');
    assert.equal(await page.evaluate(()=>window.worksiteReview.snapshot()),before);
   }

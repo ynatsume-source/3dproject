@@ -6,7 +6,23 @@
         "height": 720
       },
       "id": "parallel",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 836,
+          "y": 467,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.8137261279424032,
       "clipping": [],
       "overlap": [],
@@ -22,7 +38,23 @@
         "height": 720
       },
       "id": "check",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.8135756111145019,
       "clipping": [],
       "overlap": [],
@@ -38,7 +70,23 @@
         "height": 720
       },
       "id": "working",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 481,
+          "y": 427,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.8166293350855509,
       "clipping": [],
       "overlap": [],
@@ -54,7 +102,23 @@
         "height": 720
       },
       "id": "paused",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.8135756111145019,
       "clipping": [],
       "overlap": [],
@@ -70,7 +134,23 @@
         "height": 720
       },
       "id": "recovered",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.8140555508931477,
       "clipping": [],
       "overlap": [],
@@ -86,7 +166,23 @@
         "height": 720
       },
       "id": "missing",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.8169351895650228,
       "clipping": [],
       "overlap": [],
@@ -102,7 +198,23 @@
         "height": 360
       },
       "id": "parallel",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 418,
+          "y": 233.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.7123249032762315,
       "clipping": [],
       "overlap": [],
@@ -118,7 +230,23 @@
         "height": 360
       },
       "id": "check",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.7119759220547146,
       "clipping": [],
       "overlap": [],
@@ -134,7 +262,23 @@
         "height": 360
       },
       "id": "working",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 240.5,
+          "y": 213.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.7190808624691434,
       "clipping": [],
       "overlap": [],
@@ -150,7 +294,23 @@
         "height": 360
       },
       "id": "paused",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.7119759220547146,
       "clipping": [],
       "overlap": [],
@@ -166,7 +326,23 @@
         "height": 360
       },
       "id": "recovered",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.7130926619635688,
       "clipping": [],
       "overlap": [],
@@ -182,7 +358,23 @@
         "height": 360
       },
       "id": "missing",
-      "coversActor": false,
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
       "worldVisible": 0.7197915151384142,
       "clipping": [],
       "overlap": [],

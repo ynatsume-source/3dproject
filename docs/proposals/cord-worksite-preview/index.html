@@ -21,8 +21,8 @@ footer{position:absolute;bottom:0;left:0;right:0;height:84px;display:grid;grid-t
 <g id="basin-a"><path d="M297 376v67q102 69 203 0v-67" fill="#a87d55" stroke="#735b44" stroke-width="3"/><ellipse cx="399" cy="376" rx="102" ry="41" fill="#d6ad76" stroke="#735b44" stroke-width="3"/><ellipse cx="399" cy="378" rx="88" ry="30" fill="#638f84" id="water"/><g id="husks" fill="#936947" stroke="#74553c" stroke-width="2"><ellipse cx="373" cy="374" rx="21" ry="12" transform="rotate(-15 373 374)"/><ellipse cx="422" cy="386" rx="24" ry="12"/><ellipse cx="411" cy="364" rx="18" ry="11"/></g><path d="M325 422q75 36 148 0" fill="none" stroke="#d1a171" stroke-width="3"/></g>
 <g id="bench"><path d="M727 451v73M924 459v74M794 488v66" stroke="#795e45" stroke-width="14"/><path d="M695 421l136-44 150 61-140 54Z" fill="#ad875d" stroke="#735e44" stroke-width="3"/><path d="M695 421v16l146 68v-13M841 505l140-52v-15" fill="#866e4f"/><path d="M742 409l145 66M790 393l144 64" stroke="#cfab79" stroke-width="2"/><ellipse cx="830" cy="430" rx="27" ry="12" fill="#846044"/><path d="M878 409l35 16" stroke="#686952" stroke-width="10" stroke-linecap="round"/></g>
 <g id="fiber" style="display:none" stroke="#b1955f" stroke-width="3" fill="none"><path d="M337 498q45-30 92-7M336 505q45-28 98-10M337 512q49-27 98-9M340 519q54-27 96-10M345 526q42-23 85-8"/></g>
-<g id="dot" transform="translate(875 510)"><use href="#robot"/></g>
-<g transform="translate(1050 556) scale(.72)"><ellipse cy="22" rx="30" ry="9" fill="#657451" opacity=".2"/><path d="M-23-1l-10 24M23-1l10 24" stroke="#76684b" stroke-width="7"/><rect x="-28" y="-42" width="56" height="48" rx="16" fill="#d8bf70" stroke="#7f7453" stroke-width="3"/><circle cy="-22" r="10" fill="#f1e2b6"/></g>
+<g id="dot" data-person transform="translate(875 510)"><use href="#robot"/></g>
+<g id="background-person" data-person transform="translate(1050 556) scale(.72)"><ellipse cy="22" rx="30" ry="9" fill="#657451" opacity=".2"/><path d="M-23-1l-10 24M23-1l10 24" stroke="#76684b" stroke-width="7"/><rect x="-28" y="-42" width="56" height="48" rx="16" fill="#d8bf70" stroke="#7f7453" stroke-width="3"/><circle cy="-22" r="10" fill="#f1e2b6"/></g>
 <g fill="#6e8259" opacity=".5"><path d="M171 570l-9-27 20 20 10-25 4 31M600 425l-7-23 17 14 11-19 0 25M1122 610l-5-29 15 15 16-18-6 30"/></g>
 </svg>
 <header data-occluder><strong>縄づくりの作業場 <span class="desktop">／読取専用見本</span></strong><nav aria-label="保存状態の切替"><button id="prev" aria-label="前の保存状態">‹</button><select id="states" aria-label="表示する保存状態"></select><button id="next" aria-label="次の保存状態">›</button></nav></header>
@@ -49,6 +49,7 @@ function render(index){selected=(index+frames.length)%frames.length;const f=fram
  $('dot').setAttribute('transform',b?.actor?'translate(875 510)':a?.actor?'translate(520 470)':'translate(650 550)');
  $('water').style.display=f.error?'none':'';$('husks').style.display=f.error||phase==='recovered'?'none':'';$('fiber').style.display=phase==='recovered'&&hasFiber?'':'none';
  $('person-tag').style.left=b?.actor?'73%':a?.actor?'47%':'56%';
+ $('person-tag').style.top=b?.actor?'63%':'72%';
  document.documentElement.dataset.state=f.id;
 }
 states.addEventListener('change',()=>render(frames.findIndex(f=>f.id===states.value)));
