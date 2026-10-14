@@ -1,3 +1,4 @@
+import { restoreNaupaka } from './naupaka-rosette';
 // Ashore, where a sea has real land (ocean/land.ts): the forest canopy as a surface draped with the
 // aerial photograph (bumpy with tree crowns, ragged where the photo's canopy ends), and the plants of a
 // Yaeyama beach, placed where the photograph shows them: casuarina (モクマオウ) and screw pine (アダン)
@@ -493,7 +494,10 @@ function shrubGeo(silver: boolean) {
       const r = B.rr(0.2, 0.26); B.blob(e, r, r * 0.8, r, top, deep, 0.3, 2, cc, 0.5);
     }
   }
-  return B.geo();
+  // Keep original blob/cache and geometry construction order for both RNG streams.
+  // Only replace the low naupaka attributes; heliotrope and all placements stay unchanged.
+  const g = B.geo();
+  return silver ? g : restoreNaupaka(g);
 }
 // driftwood thrown up along the high-tide line: a bleached, smooth, gently bent log, rounded at the ends, a stub of a
 // branch, the worn root plate at one end; and beach rocks: smooth, warm grey boulders
