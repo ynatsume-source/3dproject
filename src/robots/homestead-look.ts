@@ -10,43 +10,50 @@ function replace(g: THREE.BufferGeometry, p: number[], ix: number[]) {
   return g;
 }
 
-/** Rounded, hanging branchlet bundles: no broad leaf blades or alpha-cutout. */
+/** Hanging twig volumes with a rounded shoulder and separate, soft branchlet ends. */
 export function youngBundles(g: THREE.BufferGeometry, radius: number, phase: number) {
-  const p: number[] = [], ix: number[] = [], colors: number[] = [], n = 6, rings = 7;
-  // Three overlapping tufts per existing crown slot, following the PR14 branch-tip grouping.
-  // Fifteen varied branchlets per tuft soften the outline without broad leaf blades.
-  for (let bundle = 0; bundle < 3; bundle++) for (let strand = 0; strand < 15; strand++) {
-    const base = p.length / 3, angle = phase * 1.3 + bundle * 2.399;
-    const a = strand * 2.399 + phase * .31;
-    const spread = strand === 0 ? 0 : radius * (.10 + .18 * Math.sqrt(strand / 14));
-    const ox = Math.cos(angle) * radius * .48 + Math.cos(a) * spread;
-    const oz = Math.sin(angle) * radius * .48 + Math.sin(a) * spread;
-    const length = radius * (1.08 + .40 * Math.sin(strand * 1.7 + bundle + phase));
-    for (let j = 0; j < rings; j++) {
-      const t = j / (rings - 1), profile = [.45, .92, 1, .92, .74, .48, .16][j];
-      const bend = radius * (.12 * Math.sin(t * Math.PI * .9 + strand * .21) + .04 * t * t);
+  const p: number[] = [], ix: number[] = [], colors: number[] = [];
+  const tuft = (ox: number, oz: number, top: number, width: number, length: number,
+    angle: number, n: number, profile: number[], fringe: boolean) => {
+    const base = p.length / 3;
+    for (let j = 0; j < profile.length; j++) {
+      const t = j / (profile.length - 1);
+      const bend = width * .55 * Math.sin(t * Math.PI * .8);
       for (let k = 0; k < n; k++) {
         const az = k / n * Math.PI * 2;
-        const r = radius * (.031 + .006 * (strand % 3)) * profile;
+        const rib = fringe ? 1 : 1 + .13 * Math.cos(az * 8 + angle);
+        const r = width * profile[j] * rib;
         p.push(ox + Math.cos(angle) * bend + Math.cos(az) * r,
-          radius * (.43 + .19 * Math.sin(bundle + strand * .7)) - t * length,
-          oz + Math.sin(angle) * bend + Math.sin(az) * r);
-        const light = .76 + .055 * (strand % 3) - .10 * t;
+          top - t * length + width * .10 * Math.sin(az * 3 + angle) * t,
+          oz + Math.sin(angle) * bend + Math.sin(az) * r * .83);
+        const light = .82 - .12 * t + .045 * Math.cos(az * 8 + angle);
         colors.push(light * 1.08, light, light * .88);
       }
     }
-    for (let j = 0; j < rings - 1; j++) for (let k = 0; k < n; k++) {
-      const a = base + j * n + k, c = base + j * n + (k + 1) % n;
-      ix.push(a, c, a + n, c, c + n, a + n);
+    for (let j = 0; j < profile.length - 1; j++) for (let k = 0; k < n; k++) {
+      const a = base + j * n + k, b = base + j * n + (k + 1) % n;
+      ix.push(a, b, a + n, b, b + n, a + n);
     }
     for (let k = 1; k < n - 1; k++) {
       ix.push(base, base + k + 1, base + k);
-      const end = base + (rings - 1) * n; ix.push(end, end + k, end + k + 1);
+      const end = base + (profile.length - 1) * n; ix.push(end, end + k, end + k + 1);
+    }
+  };
+  // PR14's overlapping shoulder/descending-volume structure, divided into small twig groups.
+  // No leaf blades, hair texture or transparent cutout. All pieces remain in the old mesh.
+  for (let b = 0; b < 3; b++) {
+    const angle = phase * 1.3 + b * 2.399;
+    const ox = Math.cos(angle) * radius * .43, oz = Math.sin(angle) * radius * .43;
+    const top = radius * (.48 + .16 * Math.sin(angle)), length = radius * (1.15 + .14 * Math.cos(angle));
+    const width = radius * (.33 + .035 * Math.sin(angle));
+    tuft(ox,oz,top,width,length,angle,24,[.38,.84,1,.90,.65,.32,.10],false);
+    for(let k=0;k<5;k++) {
+      const a=angle+k*2.399, spread=width*.52;
+      tuft(ox+Math.cos(a)*spread,oz+Math.sin(a)*spread,top-length*.55,
+        radius*(.035+.005*(k%3)),length*(.48+.12*Math.sin(k+angle)),a,8,[.65,1,.85,.50,.14],true);
     }
   }
-  replace(g, p, ix);
-  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  return g;
+  replace(g,p,ix);g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
 }
 
 /** Use vertex tint only on authored meshes; default white leaves shared users unchanged. */
