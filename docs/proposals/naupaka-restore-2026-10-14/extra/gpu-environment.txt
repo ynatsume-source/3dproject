@@ -1,0 +1,6 @@
+Selected execution environment, checked 2026-10-14 UTC:
+- /dev/dri is absent.
+- nvidia-smi is not available on PATH.
+- Captured WebGL renderer: ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver).
+- Chromium viewport emulation only; no physical smartphone testing was performed.
+These observations describe available access; they do not claim knowledge of the host's underlying physical hardware.

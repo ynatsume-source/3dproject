@@ -1,0 +1,185 @@
+{
+  "note": "Fixed small rendered control patches; not proof that every other object/pixel is unchanged. Foliage occlusion is expected to change.",
+  "regions": [
+    {
+      "case": "desktop-home-near-evening",
+      "region": "young_trunk",
+      "box": [
+        633,
+        370,
+        641,
+        450
+      ],
+      "changedPixels": 0,
+      "pixels": 640
+    },
+    {
+      "case": "desktop-home-near-evening",
+      "region": "hearth",
+      "box": [
+        782,
+        347,
+        849,
+        382
+      ],
+      "changedPixels": 0,
+      "pixels": 2345
+    },
+    {
+      "case": "desktop-home-near-evening",
+      "region": "clear_ground",
+      "box": [
+        550,
+        430,
+        580,
+        460
+      ],
+      "changedPixels": 0,
+      "pixels": 900
+    },
+    {
+      "case": "desktop-home-near-night",
+      "region": "young_trunk",
+      "box": [
+        633,
+        370,
+        641,
+        450
+      ],
+      "changedPixels": 0,
+      "pixels": 640
+    },
+    {
+      "case": "desktop-home-near-night",
+      "region": "hearth",
+      "box": [
+        782,
+        347,
+        849,
+        382
+      ],
+      "changedPixels": 0,
+      "pixels": 2345
+    },
+    {
+      "case": "desktop-home-near-night",
+      "region": "clear_ground",
+      "box": [
+        550,
+        430,
+        580,
+        460
+      ],
+      "changedPixels": 0,
+      "pixels": 900
+    },
+    {
+      "case": "phone-home-near-day",
+      "region": "young_trunk",
+      "box": [
+        190,
+        410,
+        195,
+        500
+      ],
+      "changedPixels": 0,
+      "pixels": 450
+    },
+    {
+      "case": "phone-home-near-day",
+      "region": "hearth",
+      "box": [
+        324,
+        414,
+        355,
+        443
+      ],
+      "changedPixels": 0,
+      "pixels": 899
+    },
+    {
+      "case": "phone-home-near-day",
+      "region": "clear_ground",
+      "box": [
+        220,
+        430,
+        270,
+        470
+      ],
+      "changedPixels": 0,
+      "pixels": 2000
+    },
+    {
+      "case": "phone-home-near-evening",
+      "region": "young_trunk",
+      "box": [
+        190,
+        410,
+        195,
+        500
+      ],
+      "changedPixels": 0,
+      "pixels": 450
+    },
+    {
+      "case": "phone-home-near-evening",
+      "region": "hearth",
+      "box": [
+        324,
+        414,
+        355,
+        443
+      ],
+      "changedPixels": 0,
+      "pixels": 899
+    },
+    {
+      "case": "phone-home-near-evening",
+      "region": "clear_ground",
+      "box": [
+        220,
+        430,
+        270,
+        470
+      ],
+      "changedPixels": 0,
+      "pixels": 2000
+    },
+    {
+      "case": "phone-home-near-night",
+      "region": "young_trunk",
+      "box": [
+        190,
+        410,
+        195,
+        500
+      ],
+      "changedPixels": 0,
+      "pixels": 450
+    },
+    {
+      "case": "phone-home-near-night",
+      "region": "hearth",
+      "box": [
+        324,
+        414,
+        355,
+        443
+      ],
+      "changedPixels": 0,
+      "pixels": 899
+    },
+    {
+      "case": "phone-home-near-night",
+      "region": "clear_ground",
+      "box": [
+        220,
+        430,
+        270,
+        470
+      ],
+      "changedPixels": 0,
+      "pixels": 2000
+    }
+  ]
+}
