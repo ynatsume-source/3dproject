@@ -18,14 +18,16 @@ export function youngBundles(g: THREE.BufferGeometry, slot: number, tree: number
   // Cancel the existing mesh's placement within the crown; roots/crown/pivot stay unchanged.
   const ox = Math.sin(slot * 2.1 + tree) * .12, oy = 2.3 + slot * .35 - .5;
   const oz = Math.cos(slot * 2.1 + tree) * .12;
-  const base = new THREE.Color(0x4f7a3a);
+  // The island shaders use display-space colours (render/common.ts), unlike glTF.
+  const display = (v: number) => v <= .0031308 ? 12.92*v : 1.055*Math.pow(v,1/2.4)-.055;
+  const base = [79/255,122/255,58/255];
   for(let i=0;i<part.position.length;i+=3) {
     const x=part.position[i]*2.7,y=part.position[i+1]*3.2,z=part.position[i+2]*2.7;
     p.push(ca*x+sa*z-ox,y-oy,-sa*x+ca*z-oz);
     const nx=part.normal[i]/2.7,ny=part.normal[i+1]/3.2,nz=part.normal[i+2]/2.7;
     const l=Math.hypot(nx,ny,nz);normal.push((ca*nx+sa*nz)/l,ny/l,(-sa*nx+ca*nz)/l);
     // Reference vertex colour, adapted to the island's shared leaf material, without gloss.
-    colors.push(part.color[i]*.66/base.r,part.color[i+1]*.66/base.g,part.color[i+2]*.66/base.b);
+    colors.push(display(part.color[i])*.82/base[0],display(part.color[i+1])*.82/base[1],display(part.color[i+2])*.82/base[2]);
   }
   replace(g,p,part.index);
   g.setAttribute('normal',new THREE.Float32BufferAttribute(normal,3));
