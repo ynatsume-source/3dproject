@@ -1,0 +1,22 @@
+{
+  "commit": "e754ce36ce0a1e0f7a93e7a5f267fd35ec23fc3d",
+  "path": "public/lab/casuarina-art/casuarina-original.glb",
+  "sha256": "ba0f7eba86c977cb898a39264d51b66961214c952cba08399ddd4ccbba509d88",
+  "meshes": 1,
+  "triangles": 3326,
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "Original_vertex_colour",
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.949999988079071
+      }
+    }
+  ],
+  "imagesInspected": [
+    "docs/proposals/casuarina-art-study-2026-10-13/evidence/v2/new-close.png",
+    "docs/proposals/casuarina-art-study-2026-10-13/evidence/v2/new-normal.png"
+  ],
+  "generatorInspected": "tools/lab/casuarina-art/make_tree.py"
+}
