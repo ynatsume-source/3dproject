@@ -70,5 +70,23 @@ if(!R.village.felled.length)throw Error('Felling probe did not complete task');
 for(let k=0;k<50;k++){sim+=100;R.update(0.1,sim,cam);await Promise.resolve();}
 if(disposed)throw Error('Shared forest geometry disposed by falling cleanup');
 R.save();fingerprint.afterFelling={random:{draws,hash},saveSha256:sha(JSON.parse(store.get(key)!))};
+// Exercise the actual young-tree action and its original standing/falling/stump pivot.
+// Action-only probe requires the precondition of a finished hut; NOT the screenshot fixture.
+dot.stats.built=24;dot.task=null;dot.holding='';dot.battery=1;dot.wear=0;
+dot.pos.set(62.8,loc.f(62.8,-139.7),-139.7);
+R.setBrain(async (input:any)=>input.who==='dot'?{goal:{text:'fixture chop',why:'validation'},plan:['chop:tree#0']}:null);
+const mind=R.mind(dot);mind.lastCall=-1e12;mind.why='fixture chop';
+let young:any=null;
+for(let i=0;i<30&&!young;i++){sim+=500;R.update(.5,sim,dot.pos);await Promise.resolve();await Promise.resolve();if(dot.task?.kind==='chop')young=dot.task.data;}
+if(!young)throw Error('Young tree action unavailable');
+const geometry=young.pivot.children[1].children.map((m:any)=>m.geometry);
+dot.pos.set(dot.task.x,loc.f(dot.task.x,dot.task.z),dot.task.z);dot.task.arrived=true;dot.task.dur=0;dot.task.t=1;
+sim+=100;R.update(.1,sim,dot.pos);await Promise.resolve();R.setBrain(null);
+if(!young.down||!young.pivot.visible||young.stump.visible)throw Error('Young tree did not enter falling state');
+if(!young.pivot.children[1].children.every((m:any,i:number)=>m.geometry===geometry[i]))throw Error('Young tree changed geometry on fall');
+for(let i=0;i<40;i++){sim+=100;R.update(.1,sim,dot.pos);await Promise.resolve();}
+if(young.pivot.visible||!young.stump.visible)throw Error('Young tree stump transition failed');
+R.save();const chopped=JSON.parse(store.get(key)!);if(chopped.trees[0]!==1)throw Error('Young stump missing from save');
+fingerprint.youngChop={random:{draws,hash},saveSha256:sha(chopped),trees:chopped.trees,pivot:young.pivot.visible,stump:young.stump.visible};
 fs.writeFileSync(path.join(out, 'fingerprint.json'), JSON.stringify(fingerprint, null, 2) + '\n');
 console.log(JSON.stringify(fingerprint));

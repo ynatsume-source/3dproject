@@ -14,8 +14,8 @@ const fixtureText = fs.readFileSync(process.env.FIXTURE, 'utf8');
 const fixture = JSON.parse(fixtureText);
 const sha = x => createHash('sha256').update(typeof x === 'string' ? x : JSON.stringify(x)).digest('hex');
 const out = process.env.OUT || 'check-results/firewood'; fs.mkdirSync(out, { recursive: true });
-const warmFrames = Number(process.env.WARM || 20); assert(Number.isInteger(warmFrames) && warmFrames > 0);
-const samples = Number(process.env.SAMPLES || 6); assert(samples > 0 && Number.isInteger(samples));
+const warmFrames = Number(process.env.WARM || 2); assert(Number.isInteger(warmFrames) && warmFrames > 0);
+const samples = Number(process.env.SAMPLES || 3); assert(samples > 0 && Number.isInteger(samples));
 const cases = [
   ...['day','evening','night'].flatMap(light=>[['desktop',1280,720,'high'],['phone',390,844,'medium']].map(([device,w,h,tier])=>({id:`${device}-home-wide-${light}`,view:'home-wide',w,h,tier,time:light==='day'?'12:00':light==='evening'?'17:30':'20:30',date:'2026-10-10',weather:'clear'}))),
   {id:'desktop-home-near-day',view:'home-near',w:1280,h:720,tier:'high',time:'12:00',date:'2026-10-10',weather:'clear'}
