@@ -2,9 +2,11 @@
 <style>
 @font-face{font-family:ReviewJP;src:url(data:font/woff;base64,__FONT__) format('woff');font-weight:100 900;font-display:block}
 *{box-sizing:border-box}body{margin:0;background:#162e34;color:#233a38;font-family:ReviewJP,sans-serif}button,select{font:inherit}#stage{width:min(100vw,177.7778vh);aspect-ratio:16/9;position:relative;margin:auto;overflow:hidden;background:#8dc5bf}body{min-height:100vh;display:grid;place-items:center}svg{position:absolute;inset:0;width:100%;height:100%}
-header{position:absolute;top:0;left:0;right:0;height:36px;background:#f7f4e7;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:14px;gap:10px}header strong{font-weight:700}nav{display:flex;align-items:center;gap:5px}button{border:1px solid #839a91;background:transparent;border-radius:5px;min-width:30px;height:27px;color:#1b514a;cursor:pointer}select{max-width:200px;background:#f7f4e7;border:0;font-size:14px;color:#1b514a;cursor:pointer}button:focus-visible,select:focus-visible{outline:3px solid #dc8a3a;outline-offset:1px}
-footer{position:absolute;bottom:0;left:0;right:0;height:84px;display:grid;grid-template-columns:1.12fr 1fr 1.15fr;background:#f7f4e7;padding:9px 18px;gap:22px}footer section{min-width:0}footer .k{font-size:12px;color:#64766b;margin:0 0 3px}footer strong{display:block;font-size:19px;line-height:1.35;font-weight:650;white-space:nowrap}footer p{font-size:13px;line-height:1.4;margin:3px 0 0;white-space:nowrap}.tag{position:absolute;background:#f7f4e7;border:1px solid #526e60;border-radius:6px;padding:5px 9px;font-size:14px;line-height:1.4;white-space:nowrap;box-shadow:0 2px 0 #31534320}.tag::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#40877b;margin:0 6px 2px 0}.tag.a{left:23%;top:36%}.tag.b{left:61%;top:47%}.tag.person{left:73%;top:72%;background:#fff5d9}.caption{position:absolute;right:15px;top:48px;background:#f7f4e7e8;border-radius:4px;padding:3px 7px;font-size:11px;color:#4a6458}.future{color:#786a52}#material-note{fill:#3c5c48;font-size:17px}svg .stroke{stroke:#52674a;stroke-width:2}#dot{transition:none}
-@media(max-width:850px){header{height:24px;padding:0 9px;font-size:12px}header .desktop{display:none}nav{gap:2px}button{height:24px;min-width:25px}select{font-size:12px;max-width:160px}footer{height:62px;padding:5px 10px;gap:12px}footer .k{font-size:11px;margin-bottom:2px}footer strong{font-size:14px}footer p{font-size:11px;margin-top:3px}.tag{font-size:11px;padding:3px 6px}.caption{font-size:10px;top:30px;right:9px}.tag.person{top:72%}}
+[hidden]{display:none!important}
+header{position:absolute;top:0;left:0;right:0;height:36px;background:#f7f4e7;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;gap:10px}header strong{font-weight:700;white-space:nowrap}nav{display:flex;align-items:center;gap:5px}button{border:1px solid #839a91;background:transparent;border-radius:5px;min-width:30px;height:28px;color:#1b514a;cursor:pointer}select{width:250px;max-width:250px;background:#f7f4e7;border:0;font-size:16px;color:#1b514a;cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid #dc8a3a;outline-offset:-2px}
+footer{position:absolute;bottom:0;left:0;right:0;background:#f7f4e7;padding:5px 18px}#summary{display:grid;grid-template-columns:1fr 1fr;column-gap:24px;grid-auto-rows:28px}#summary p{margin:0;font-size:18px;line-height:28px;white-space:nowrap}#summary strong{font-weight:650}#summary .key{color:#64766b;font-weight:400}#details{display:flex;gap:18px;border-top:1px solid #b6c2af;margin-top:4px;padding-top:4px}#details p{margin:0;font-size:15px;line-height:24px;white-space:nowrap}.future{color:#786a52}
+.tag{position:absolute;background:#f7f4e7;border:1px solid #526e60;border-radius:6px;padding:2px 7px;font-size:16px;line-height:20px;white-space:nowrap}.tag.a{left:29%;top:44%}.tag.b{left:63%;top:48%}#dot{transition:none}
+@media(max-width:850px){header{height:24px;padding:0 9px;font-size:14px}header .desktop{display:none}nav{gap:3px}button{height:24px;min-width:25px;padding:0 5px;font-size:14px}select{font-size:14px;width:220px;max-width:220px}footer{padding:2px 10px}#summary{column-gap:12px;grid-auto-rows:21px}#summary p{font-size:14px;line-height:21px}#details{margin-top:0;padding-top:0;border-top:0;gap:12px}#details p{font-size:14px;line-height:21px}.tag{font-size:14px;padding:1px 5px;line-height:18px}}
 </style>
 <main id="stage" aria-label="縄づくりの隔離作業場見本">
 <svg viewBox="0 0 1280 720" role="img" aria-labelledby="scene-title scene-desc"><title id="scene-title">海辺の作業場の配置見本</title><desc id="scene-desc">浸漬容器Aと作業台B。人物の位置は模式図で、実世界の移動を再現した映像ではありません。</desc>
@@ -25,10 +27,12 @@ footer{position:absolute;bottom:0;left:0;right:0;height:84px;display:grid;grid-t
 <g id="background-person" data-person transform="translate(1050 556) scale(.72)"><ellipse cy="22" rx="30" ry="9" fill="#657451" opacity=".2"/><path d="M-23-1l-10 24M23-1l10 24" stroke="#76684b" stroke-width="7"/><rect x="-28" y="-42" width="56" height="48" rx="16" fill="#d8bf70" stroke="#7f7453" stroke-width="3"/><circle cy="-22" r="10" fill="#f1e2b6"/></g>
 <g fill="#6e8259" opacity=".5"><path d="M171 570l-9-27 20 20 10-25 4 31M600 425l-7-23 17 14 11-19 0 25M1122 610l-5-29 15 15 16-18-6 30"/></g>
 </svg>
-<header data-occluder><strong>縄づくりの作業場 <span class="desktop">／読取専用見本</span></strong><nav aria-label="保存状態の切替"><button id="prev" aria-label="前の保存状態">‹</button><select id="states" aria-label="表示する保存状態"></select><button id="next" aria-label="次の保存状態">›</button></nav></header>
-<div class="caption" data-occluder>模式図・保存記録</div>
-<div class="tag a" id="a-tag" data-occluder>A｜浸して待つ</div><div class="tag b" id="b-tag" data-occluder>B｜別バッチの作業台</div><div class="tag person" id="person-tag" data-occluder>ドット｜別の作業へ</div>
-<footer data-occluder aria-live="polite"><section><div class="k">いまの工程・A</div><strong id="current"></strong><p id="eta"></p></section><section><div class="k">並行する仕事・手の空き</div><strong id="parallel"></strong><p id="reason"></p></section><section><div class="k">次にすること</div><strong id="following"></strong><p class="future">乾燥・撚り・完成縄は未実装</p></section></footer>
+<header data-occluder><strong>縄づくり／模式図<span class="desktop">・読取専用</span></strong><nav aria-label="保存状態の切替"><button id="prev" aria-label="前の保存状態">‹</button><select id="states" aria-label="表示する保存状態"></select><button id="next" aria-label="次の保存状態">›</button><button id="details-toggle" aria-expanded="false" aria-controls="details">詳細</button></nav></header>
+<div class="tag a" data-occluder aria-label="浸漬容器A">A</div><div class="tag b" data-occluder aria-label="作業台B">B</div>
+<footer data-occluder aria-live="polite"><div id="summary">
+<p><span class="key">A：</span><strong id="current"></strong></p><p><strong id="parallel"></strong></p>
+<p><span class="key">状態：</span><strong id="reason"></strong></p><p><span class="key">次：</span><strong id="following"></strong></p>
+</div><div id="details" hidden><p id="eta"></p><p class="future">乾燥・撚り・完成縄は未実装</p></div></footer>
 </main>
 <script>
 'use strict';
@@ -40,18 +44,16 @@ function render(index){selected=(index+frames.length)%frames.length;const f=fram
  const phase=a?.phase,hasFiber=!!a?.next.startsWith('試験繊維');
  $('current').textContent=f.error?'水不足・開始前':phase==='soaking'?'浸して待つ':phase==='working'?'回収の手作業中':phase==='recovered'?'回収済み・縄は未完成':a?.stopReason?'中断・続きは保持':'取り出して確認へ';
  $('eta').textContent=f.error?'材料が揃うまで開始しない':phase==='recovered'?'回収物を確認・完成縄なし':'自然処理の完了時刻：不明';
- $('parallel').textContent=b?.actor?'ドット → Bの手作業':a?.actor?'ドット → Aの手作業':'ドットの手は空いている';
- $('reason').textContent=a?.stopReason?'中断した作業から再開できる':b?.actor?'Aは待機中・Bは作業中':a?.actor?'一区切りで手を離せる':'別の暮らしを選べる';
+ $('parallel').textContent=b?.actor?'ドット：Bで手作業':a?.actor?'ドット：Aで手作業':'ドット：手は空いている';
+ $('reason').textContent=f.error?'水が揃わず開始できない':a?.stopReason?'中断・続きあり':phase==='recovered'?'縄は未完成':b?.actor?'Aは待機・Bは作業':a?.actor?'一区切りで手を離せる':'完成未確認・手は空いている';
  $('following').textContent=f.error?'水を用意して再検討':phase==='recovered'?'回収物を見て次を検討':phase==='working'?'一区切りで続きへ':a?.stopReason?'残りの手作業を再開':'戻って取り出し・確認';
- $('a-tag').textContent=f.error?'A｜未開始':phase==='soaking'?'A｜浸漬中・住人は解放':phase==='working'?'A｜回収の手作業':phase==='recovered'?(hasFiber?'A｜回収済み・試験繊維':'A｜回収物を確認'):a?.stopReason?'A｜手作業中断・続きあり':'A｜確認待ち・完成未確認';
- $('b-tag').textContent=b?.actor?'B｜別バッチを作業中':'B｜空き作業台';
- $('person-tag').textContent=b?.actor?'ドット｜Bを作業中':a?.actor?'ドット｜Aを作業中':'ドット｜手は空いている';
  $('dot').setAttribute('transform',b?.actor?'translate(875 510)':a?.actor?'translate(520 470)':'translate(650 550)');
  $('water').style.display=f.error?'none':'';$('husks').style.display=f.error||phase==='recovered'?'none':'';$('fiber').style.display=phase==='recovered'&&hasFiber?'':'none';
- $('person-tag').style.left=b?.actor?'73%':a?.actor?'47%':'56%';
- $('person-tag').style.top=b?.actor?'63%':'72%';
  document.documentElement.dataset.state=f.id;
 }
+function showDetails(open){$('details').hidden=!open;$('details-toggle').setAttribute('aria-expanded',String(open));$('details-toggle').textContent=open?'閉じる':'詳細';}
+$('details-toggle').addEventListener('click',()=>showDetails($('details').hidden));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('details').hidden){showDetails(false);$('details-toggle').focus();}});
 states.addEventListener('change',()=>render(frames.findIndex(f=>f.id===states.value)));
 $('prev').addEventListener('click',()=>render(selected-1));$('next').addEventListener('click',()=>render(selected+1));
 window.worksiteReview=Object.freeze({snapshot:()=>JSON.stringify(frames),get selected(){return frames[selected].id;}});render(0);

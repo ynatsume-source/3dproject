@@ -6,6 +6,7 @@
         "height": 720
       },
       "id": "parallel",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -23,13 +24,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.8137261279424032,
+      "worldVisible": 0.8568592664930555,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
-      "minMainTextPx": 19,
-      "current": "浸して待つ",
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": null,
+      "summary": [
+        "浸して待つ",
+        "ドット：Bで手作業",
+        "Aは待機・Bは作業",
+        "戻って取り出し・確認"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "parallel",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 836,
+          "y": 467,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.8110259331597223,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": 15,
+      "summary": [
+        "浸して待つ",
+        "ドット：Bで手作業",
+        "Aは待機・Bは作業",
+        "戻って取り出し・確認"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -38,6 +86,7 @@
         "height": 720
       },
       "id": "check",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -55,13 +104,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.8135756111145019,
+      "worldVisible": 0.8568592664930555,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
-      "minMainTextPx": 19,
-      "current": "取り出して確認へ",
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": null,
+      "summary": [
+        "取り出して確認へ",
+        "ドット：手は空いている",
+        "完成未確認・手は空いている",
+        "戻って取り出し・確認"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "check",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.8110259331597223,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": 15,
+      "summary": [
+        "取り出して確認へ",
+        "ドット：手は空いている",
+        "完成未確認・手は空いている",
+        "戻って取り出し・確認"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -70,6 +166,7 @@
         "height": 720
       },
       "id": "working",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -87,13 +184,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.8166293350855509,
+      "worldVisible": 0.8568592664930555,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
-      "minMainTextPx": 19,
-      "current": "回収の手作業中",
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": null,
+      "summary": [
+        "回収の手作業中",
+        "ドット：Aで手作業",
+        "一区切りで手を離せる",
+        "一区切りで続きへ"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "working",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 481,
+          "y": 427,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.8110259331597223,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": 15,
+      "summary": [
+        "回収の手作業中",
+        "ドット：Aで手作業",
+        "一区切りで手を離せる",
+        "一区切りで続きへ"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -102,6 +246,7 @@
         "height": 720
       },
       "id": "paused",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -119,13 +264,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.8135756111145019,
+      "worldVisible": 0.8568592664930555,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
-      "minMainTextPx": 19,
-      "current": "中断・続きは保持",
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": null,
+      "summary": [
+        "中断・続きは保持",
+        "ドット：手は空いている",
+        "中断・続きあり",
+        "残りの手作業を再開"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "paused",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.8110259331597223,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": 15,
+      "summary": [
+        "中断・続きは保持",
+        "ドット：手は空いている",
+        "中断・続きあり",
+        "残りの手作業を再開"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -134,6 +326,7 @@
         "height": 720
       },
       "id": "recovered",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -151,13 +344,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.8140555508931477,
+      "worldVisible": 0.8568592664930555,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
-      "minMainTextPx": 19,
-      "current": "回収済み・縄は未完成",
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": null,
+      "summary": [
+        "回収済み・縄は未完成",
+        "ドット：手は空いている",
+        "縄は未完成",
+        "回収物を見て次を検討"
+      ],
+      "eta": "回収物を確認・完成縄なし"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "recovered",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.8110259331597223,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": 15,
+      "summary": [
+        "回収済み・縄は未完成",
+        "ドット：手は空いている",
+        "縄は未完成",
+        "回収物を見て次を検討"
+      ],
       "eta": "回収物を確認・完成縄なし"
     },
     {
@@ -166,6 +406,7 @@
         "height": 720
       },
       "id": "missing",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -183,13 +424,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.8169351895650228,
+      "worldVisible": 0.8568592664930555,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
-      "minMainTextPx": 19,
-      "current": "水不足・開始前",
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": null,
+      "summary": [
+        "水不足・開始前",
+        "ドット：手は空いている",
+        "水が揃わず開始できない",
+        "水を用意して再検討"
+      ],
+      "eta": "材料が揃うまで開始しない"
+    },
+    {
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "id": "missing",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 611,
+          "y": 507,
+          "w": 78,
+          "h": 79
+        },
+        {
+          "id": "background-person",
+          "x": 1026.239990234375,
+          "y": 525.760009765625,
+          "w": 47.52001953125,
+          "h": 52.55999755859375
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.8110259331597223,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 16,
+      "minDetailTextPx": 15,
+      "summary": [
+        "水不足・開始前",
+        "ドット：手は空いている",
+        "水が揃わず開始できない",
+        "水を用意して再検討"
+      ],
       "eta": "材料が揃うまで開始しない"
     },
     {
@@ -198,6 +486,7 @@
         "height": 360
       },
       "id": "parallel",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -215,13 +504,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.7123249032762315,
+      "worldVisible": 0.8015719943576389,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
+      "textOutside": [],
       "minMainTextPx": 14,
-      "current": "浸して待つ",
+      "minDetailTextPx": null,
+      "summary": [
+        "浸して待つ",
+        "ドット：Bで手作業",
+        "Aは待機・Bは作業",
+        "戻って取り出し・確認"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "parallel",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 418,
+          "y": 233.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.7432386610243056,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 14,
+      "minDetailTextPx": 14,
+      "summary": [
+        "浸して待つ",
+        "ドット：Bで手作業",
+        "Aは待機・Bは作業",
+        "戻って取り出し・確認"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -230,6 +566,7 @@
         "height": 360
       },
       "id": "check",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -247,13 +584,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.7119759220547146,
+      "worldVisible": 0.8015719943576389,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
+      "textOutside": [],
       "minMainTextPx": 14,
-      "current": "取り出して確認へ",
+      "minDetailTextPx": null,
+      "summary": [
+        "取り出して確認へ",
+        "ドット：手は空いている",
+        "完成未確認・手は空いている",
+        "戻って取り出し・確認"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "check",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.7432386610243056,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 14,
+      "minDetailTextPx": 14,
+      "summary": [
+        "取り出して確認へ",
+        "ドット：手は空いている",
+        "完成未確認・手は空いている",
+        "戻って取り出し・確認"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -262,6 +646,7 @@
         "height": 360
       },
       "id": "working",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -279,13 +664,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.7190808624691434,
+      "worldVisible": 0.8015719943576389,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
+      "textOutside": [],
       "minMainTextPx": 14,
-      "current": "回収の手作業中",
+      "minDetailTextPx": null,
+      "summary": [
+        "回収の手作業中",
+        "ドット：Aで手作業",
+        "一区切りで手を離せる",
+        "一区切りで続きへ"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "working",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 240.5,
+          "y": 213.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.7432386610243056,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 14,
+      "minDetailTextPx": 14,
+      "summary": [
+        "回収の手作業中",
+        "ドット：Aで手作業",
+        "一区切りで手を離せる",
+        "一区切りで続きへ"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -294,6 +726,7 @@
         "height": 360
       },
       "id": "paused",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -311,13 +744,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.7119759220547146,
+      "worldVisible": 0.8015719943576389,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
+      "textOutside": [],
       "minMainTextPx": 14,
-      "current": "中断・続きは保持",
+      "minDetailTextPx": null,
+      "summary": [
+        "中断・続きは保持",
+        "ドット：手は空いている",
+        "中断・続きあり",
+        "残りの手作業を再開"
+      ],
+      "eta": "自然処理の完了時刻：不明"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "paused",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.7432386610243056,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 14,
+      "minDetailTextPx": 14,
+      "summary": [
+        "中断・続きは保持",
+        "ドット：手は空いている",
+        "中断・続きあり",
+        "残りの手作業を再開"
+      ],
       "eta": "自然処理の完了時刻：不明"
     },
     {
@@ -326,6 +806,7 @@
         "height": 360
       },
       "id": "recovered",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -343,13 +824,60 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.7130926619635688,
+      "worldVisible": 0.8015719943576389,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
+      "textOutside": [],
       "minMainTextPx": 14,
-      "current": "回収済み・縄は未完成",
+      "minDetailTextPx": null,
+      "summary": [
+        "回収済み・縄は未完成",
+        "ドット：手は空いている",
+        "縄は未完成",
+        "回収物を見て次を検討"
+      ],
+      "eta": "回収物を確認・完成縄なし"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "recovered",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.7432386610243056,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 14,
+      "minDetailTextPx": 14,
+      "summary": [
+        "回収済み・縄は未完成",
+        "ドット：手は空いている",
+        "縄は未完成",
+        "回収物を見て次を検討"
+      ],
       "eta": "回収物を確認・完成縄なし"
     },
     {
@@ -358,6 +886,7 @@
         "height": 360
       },
       "id": "missing",
+      "mode": "compact",
       "people": [
         {
           "id": "dot",
@@ -375,17 +904,64 @@
         }
       ],
       "personOverlaps": [],
-      "worldVisible": 0.7197915151384142,
+      "worldVisible": 0.8015719943576389,
       "clipping": [],
       "overlap": [],
       "outside": [],
       "textOverlaps": [],
+      "textOutside": [],
       "minMainTextPx": 14,
-      "current": "水不足・開始前",
+      "minDetailTextPx": null,
+      "summary": [
+        "水不足・開始前",
+        "ドット：手は空いている",
+        "水が揃わず開始できない",
+        "水を用意して再検討"
+      ],
+      "eta": "材料が揃うまで開始しない"
+    },
+    {
+      "viewport": {
+        "width": 640,
+        "height": 360
+      },
+      "id": "missing",
+      "mode": "details",
+      "people": [
+        {
+          "id": "dot",
+          "x": 305.5,
+          "y": 253.5,
+          "w": 39,
+          "h": 39.5
+        },
+        {
+          "id": "background-person",
+          "x": 513.1199951171875,
+          "y": 262.8800048828125,
+          "w": 23.760009765625,
+          "h": 26.279998779296875
+        }
+      ],
+      "personOverlaps": [],
+      "worldVisible": 0.7432386610243056,
+      "clipping": [],
+      "overlap": [],
+      "outside": [],
+      "textOverlaps": [],
+      "textOutside": [],
+      "minMainTextPx": 14,
+      "minDetailTextPx": 14,
+      "summary": [
+        "水不足・開始前",
+        "ドット：手は空いている",
+        "水が揃わず開始できない",
+        "水を用意して再検討"
+      ],
       "eta": "材料が揃うまで開始しない"
     }
   ],
   "failures": [],
-  "note": "Conservative world visibility = stage area minus union of header/footer/labels/caption rectangles. Schematic scene; not production footage.",
+  "note": "Stage area minus union of all visible overlay rectangles. Full bounds of both people protected. Compact >=80%, details >=70%. Schematic saved projections, not production footage.",
   "status": "passed"
 }
