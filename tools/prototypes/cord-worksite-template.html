@@ -1,0 +1,60 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>縄づくりの作業場 — 読取専用見本</title>
+<style>
+@font-face{font-family:ReviewJP;src:url(data:font/woff;base64,__FONT__) format('woff');font-weight:100 900;font-display:block}
+*{box-sizing:border-box}body{margin:0;background:#162e34;color:#233a38;font-family:ReviewJP,sans-serif}button,select{font:inherit}#stage{width:min(100vw,177.7778vh);aspect-ratio:16/9;position:relative;margin:auto;overflow:hidden;background:#8dc5bf}body{min-height:100vh;display:grid;place-items:center}svg{position:absolute;inset:0;width:100%;height:100%}
+[hidden]{display:none!important}
+header{position:absolute;top:0;left:0;right:0;height:36px;background:#f7f4e7;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;gap:10px}header strong{font-weight:700;white-space:nowrap}nav{display:flex;align-items:center;gap:5px}button{border:1px solid #839a91;background:transparent;border-radius:5px;min-width:30px;height:28px;color:#1b514a;cursor:pointer}select{width:250px;max-width:250px;background:#f7f4e7;border:0;font-size:16px;color:#1b514a;cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid #dc8a3a;outline-offset:-2px}
+footer{position:absolute;bottom:0;left:0;right:0;background:#f7f4e7;padding:5px 18px}#summary{display:grid;grid-template-columns:1fr 1fr;column-gap:24px;grid-auto-rows:28px}#summary p{margin:0;font-size:18px;line-height:28px;white-space:nowrap}#summary strong{font-weight:650}#summary .key{color:#64766b;font-weight:400}#details{display:flex;gap:18px;border-top:1px solid #b6c2af;margin-top:4px;padding-top:4px}#details p{margin:0;font-size:15px;line-height:24px;white-space:nowrap}.future{color:#786a52}
+.tag{position:absolute;background:#f7f4e7;border:1px solid #526e60;border-radius:6px;padding:2px 7px;font-size:16px;line-height:20px;white-space:nowrap}.tag.a{left:29%;top:44%}.tag.b{left:63%;top:48%}#dot{transition:none}
+@media(max-width:850px){header{height:24px;padding:0 9px;font-size:14px}header .desktop{display:none}nav{gap:3px}button{height:24px;min-width:25px;padding:0 5px;font-size:14px}select{font-size:14px;width:220px;max-width:220px}footer{padding:2px 10px}#summary{column-gap:12px;grid-auto-rows:21px}#summary p{font-size:14px;line-height:21px}#details{margin-top:0;padding-top:0;border-top:0;gap:12px}#details p{font-size:14px;line-height:21px}.tag{font-size:14px;padding:1px 5px;line-height:18px}}
+</style>
+<main id="stage" aria-label="縄づくりの隔離作業場見本">
+<svg viewBox="0 0 1280 720" role="img" aria-labelledby="scene-title scene-desc"><title id="scene-title">海辺の作業場の配置見本</title><desc id="scene-desc">浸漬容器Aと作業台B。人物の位置は模式図で、実世界の移動を再現した映像ではありません。</desc>
+<defs><linearGradient id="sea" x2="0" y2="1"><stop stop-color="#75b6bb"/><stop offset="1" stop-color="#b7d7b5"/></linearGradient><linearGradient id="sand" x2=".8" y2="1"><stop stop-color="#efe1b9"/><stop offset="1" stop-color="#d6cb9d"/></linearGradient><pattern id="ripple" width="125" height="65" patternUnits="userSpaceOnUse"><path d="M12 18q20 9 40 0 M70 50q20 7 42 0" fill="none" stroke="#e4edce" stroke-width="2" opacity=".35"/></pattern><filter id="shadow"><feGaussianBlur stdDeviation="7"/></filter>
+<g id="palm"><path d="M0 0q-8-88 15-151" stroke="#88745a" stroke-width="14" fill="none"/><path d="M15-146Q-51-201-89-148Q-38-173 15-146M15-146Q44-220 99-182Q55-187 15-146M15-146Q84-159 97-99Q63-140 15-146M15-146Q-39-159-55-92Q-27-134 15-146M15-146Q-3-217-49-217Q-10-185 15-146" fill="#507f58"/><circle cx="14" cy="-143" r="10" fill="#776448"/></g>
+<g id="robot"><ellipse cy="26" rx="26" ry="10" fill="#53644e" opacity=".22"/><path d="M-15 8l-7 16M15 8l7 16" stroke="#5e6b63" stroke-width="9" stroke-linecap="round"/><rect x="-25" y="-43" width="50" height="55" rx="17" fill="#e4e6d6" stroke="#647b70" stroke-width="3"/><path d="M-18-32h36v21h-36z" fill="#3c6966"/><circle cx="-8" cy="-22" r="3" fill="#e2efd3"/><circle cx="8" cy="-22" r="3" fill="#e2efd3"/><path d="M-27-13l-12 18M27-13l12 18" stroke="#697e6f" stroke-width="7" stroke-linecap="round"/></g></defs>
+<rect width="1280" height="720" fill="url(#sea)"/><rect width="1280" height="720" fill="url(#ripple)"/>
+<path d="M0 280Q250 175 458 240Q660 300 805 240Q1100 160 1280 300V720H0Z" fill="#e3e6c2"/><path d="M0 309Q240 212 452 271Q655 339 819 273Q1080 211 1280 330V720H0Z" fill="url(#sand)"/>
+<path d="M0 329Q247 232 447 292Q660 360 823 295Q1080 232 1280 350" fill="none" stroke="#fff6d9" stroke-width="7" opacity=".6"/>
+<path d="M75 660Q310 525 543 520T1040 445" fill="none" stroke="#c0b98c" stroke-width="54" opacity=".45"/>
+<g opacity=".75" fill="#8b9b67"><ellipse cx="125" cy="502" rx="90" ry="42"/><ellipse cx="1110" cy="423" rx="130" ry="49"/></g>
+<g transform="translate(130 478)"><use href="#palm"/></g><g transform="translate(1120 360) scale(.85)"><use href="#palm"/></g><g transform="translate(1210 412) scale(.65)"><use href="#palm"/></g>
+<ellipse cx="405" cy="495" rx="125" ry="38" fill="#6f7853" opacity=".17" filter="url(#shadow)"/>
+<g id="basin-a"><path d="M297 376v67q102 69 203 0v-67" fill="#a87d55" stroke="#735b44" stroke-width="3"/><ellipse cx="399" cy="376" rx="102" ry="41" fill="#d6ad76" stroke="#735b44" stroke-width="3"/><ellipse cx="399" cy="378" rx="88" ry="30" fill="#638f84" id="water"/><g id="husks" fill="#936947" stroke="#74553c" stroke-width="2"><ellipse cx="373" cy="374" rx="21" ry="12" transform="rotate(-15 373 374)"/><ellipse cx="422" cy="386" rx="24" ry="12"/><ellipse cx="411" cy="364" rx="18" ry="11"/></g><path d="M325 422q75 36 148 0" fill="none" stroke="#d1a171" stroke-width="3"/></g>
+<g id="bench"><path d="M727 451v73M924 459v74M794 488v66" stroke="#795e45" stroke-width="14"/><path d="M695 421l136-44 150 61-140 54Z" fill="#ad875d" stroke="#735e44" stroke-width="3"/><path d="M695 421v16l146 68v-13M841 505l140-52v-15" fill="#866e4f"/><path d="M742 409l145 66M790 393l144 64" stroke="#cfab79" stroke-width="2"/><ellipse cx="830" cy="430" rx="27" ry="12" fill="#846044"/><path d="M878 409l35 16" stroke="#686952" stroke-width="10" stroke-linecap="round"/></g>
+<g id="fiber" style="display:none" stroke="#b1955f" stroke-width="3" fill="none"><path d="M337 498q45-30 92-7M336 505q45-28 98-10M337 512q49-27 98-9M340 519q54-27 96-10M345 526q42-23 85-8"/></g>
+<g id="dot" data-person transform="translate(875 510)"><use href="#robot"/></g>
+<g id="background-person" data-person transform="translate(1050 556) scale(.72)"><ellipse cy="22" rx="30" ry="9" fill="#657451" opacity=".2"/><path d="M-23-1l-10 24M23-1l10 24" stroke="#76684b" stroke-width="7"/><rect x="-28" y="-42" width="56" height="48" rx="16" fill="#d8bf70" stroke="#7f7453" stroke-width="3"/><circle cy="-22" r="10" fill="#f1e2b6"/></g>
+<g fill="#6e8259" opacity=".5"><path d="M171 570l-9-27 20 20 10-25 4 31M600 425l-7-23 17 14 11-19 0 25M1122 610l-5-29 15 15 16-18-6 30"/></g>
+</svg>
+<header data-occluder><strong>縄づくり／模式図<span class="desktop">・読取専用</span></strong><nav aria-label="保存状態の切替"><button id="prev" aria-label="前の保存状態">‹</button><select id="states" aria-label="表示する保存状態"></select><button id="next" aria-label="次の保存状態">›</button><button id="details-toggle" aria-expanded="false" aria-controls="details">詳細</button></nav></header>
+<div class="tag a" data-occluder aria-label="浸漬容器A">A</div><div class="tag b" data-occluder aria-label="作業台B">B</div>
+<footer data-occluder aria-live="polite"><div id="summary">
+<p><span class="key">A：</span><strong id="current"></strong></p><p><strong id="parallel"></strong></p>
+<p><span class="key">状態：</span><strong id="reason"></strong></p><p><span class="key">次：</span><strong id="following"></strong></p>
+</div><div id="details" hidden><p id="eta"></p><p class="future">乾燥・撚り・完成縄は未実装</p></div></footer>
+</main>
+<script>
+'use strict';
+const freeze=o=>{if(o&&typeof o==='object'){Object.values(o).forEach(freeze);Object.freeze(o);}return o;};
+const frames=freeze(__FRAMES__);let selected=0;
+const $=id=>document.getElementById(id);const states=$('states');
+for(const f of frames){const o=document.createElement('option');o.value=f.id;o.textContent=f.label;states.append(o);}
+function render(index){selected=(index+frames.length)%frames.length;const f=frames[selected],a=f.jobs.find(j=>j.id==='a'),b=f.jobs.find(j=>j.id==='b');states.value=f.id;
+ const phase=a?.phase,hasFiber=!!a?.next.startsWith('試験繊維');
+ $('current').textContent=f.error?'水不足・開始前':phase==='soaking'?'浸して待つ':phase==='working'?'回収の手作業中':phase==='recovered'?'回収済み・縄は未完成':a?.stopReason?'中断・続きは保持':'取り出して確認へ';
+ $('eta').textContent=f.error?'材料が揃うまで開始しない':phase==='recovered'?'回収物を確認・完成縄なし':'自然処理の完了時刻：不明';
+ $('parallel').textContent=b?.actor?'ドット：Bで手作業':a?.actor?'ドット：Aで手作業':'ドット：手は空いている';
+ $('reason').textContent=f.error?'水が揃わず開始できない':a?.stopReason?'中断・続きあり':phase==='recovered'?'縄は未完成':b?.actor?'Aは待機・Bは作業':a?.actor?'一区切りで手を離せる':'完成未確認・手は空いている';
+ $('following').textContent=f.error?'水を用意して再検討':phase==='recovered'?'回収物を見て次を検討':phase==='working'?'一区切りで続きへ':a?.stopReason?'残りの手作業を再開':'戻って取り出し・確認';
+ $('dot').setAttribute('transform',b?.actor?'translate(875 510)':a?.actor?'translate(520 470)':'translate(650 550)');
+ $('water').style.display=f.error?'none':'';$('husks').style.display=f.error||phase==='recovered'?'none':'';$('fiber').style.display=phase==='recovered'&&hasFiber?'':'none';
+ document.documentElement.dataset.state=f.id;
+}
+function showDetails(open){$('details').hidden=!open;$('details-toggle').setAttribute('aria-expanded',String(open));$('details-toggle').textContent=open?'閉じる':'詳細';}
+$('details-toggle').addEventListener('click',()=>showDetails($('details').hidden));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('details').hidden){showDetails(false);$('details-toggle').focus();}});
+states.addEventListener('change',()=>render(frames.findIndex(f=>f.id===states.value)));
+$('prev').addEventListener('click',()=>render(selected-1));$('next').addEventListener('click',()=>render(selected+1));
+window.worksiteReview=Object.freeze({snapshot:()=>JSON.stringify(frames),get selected(){return frames[selected].id;}});render(0);
+</script></html>
