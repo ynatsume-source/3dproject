@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createCoirCordModel, type CoirInput, type CoirContext, type CoirInterval} from '../src/science/prototypes/coir-cord';
 import {createCordDamageModel,currentCordStrength,type CordDamageEvent} from '../src/science/prototypes/coir-cord-damage';
-import {COIR_CORD_ASSUMPTION_ID as ID,COIR_CORD_RULES as R,type CoirMass,type CoirBundle,type CoirPiece} from '../src/science/prototypes/coir-cord-types';
+import {COIR_CORD_ASSUMPTION_ID as ID,COIR_CORD_RULES as R,cordShape,type CoirMass,type CoirBundle,type CoirPiece} from '../src/science/prototypes/coir-cord-types';
 import {createManualHuskSeparation} from '../src/science/prototypes/manual-husk-separation';
 import {MANUAL_HUSK_ASSUMPTION,createManualHuskAssumptionProfile} from '../src/science/prototypes/manual-husk-assumptions';
 
@@ -38,6 +38,7 @@ const exposure=(fromIslandMs:number,toIslandMs:number,shade=false,eventId='sun')
  eventId,worldId:'fixture',worldEpoch:'1',runId:'damage',clock:'island',atMs:toIslandMs,kind:'exposure',fromIslandMs,toIslandMs,shade,
 });
 test('explicit versioned assumptions, valid clocks, no default recipe',()=>{
+ assert.equal(cordShape({'a|b':1},['a','b']),false);
  const i:CoirInput={operation:'dry',bundle:bundle(),roofed:true};
  rejects(()=>createCoirCordModel(i,undefined,ctx('dry')));
  rejects(()=>createCoirCordModel(i,'calibrated-default',ctx('dry')));

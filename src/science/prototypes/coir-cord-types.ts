@@ -21,7 +21,9 @@ export function cordAssert(ok: unknown, why: string): asserts ok { if (!ok) thro
 export function cordInteger(x: unknown, min = 0): x is number { return typeof x === 'number' && Number.isSafeInteger(x) && x >= min; }
 export const cordId = (x: unknown): x is string => typeof x === 'string' && x.trim().length > 0;
 export function cordShape(v: unknown, keys: readonly string[]): v is Record<string, any> {
- return !!v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).sort().join('|') === [...keys].sort().join('|');
+ if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+ const actual = Object.keys(v).sort(), expected = [...keys].sort();
+ return actual.length === expected.length && actual.every((key, i) => key === expected[i]);
 }
 export function cordCanonical(v: any): string {
  if(Array.isArray(v))return '['+v.map(cordCanonical).join(',')+']';
