@@ -27,7 +27,7 @@ const mass=(v:{dryMg:number;waterMg:number})=>BigInt(v.dryMg)+BigInt(v.waterMg);
 const mat=():SailMat=>({lotId:'mat',material:'sail_mat',dryMg:900000,waterMg:180000,areaCm2:20000,baseStrengthGf:60000,torn:false,damage:{sunMs:0,shadeMs:0,rainMs:0}});
 const mast=():BambooMast=>({lotId:'mast',material:'bamboo_mast',dryMg:2000000,waterMg:100000,lengthMm:2500,baseStrengthGf:40000,broken:false});
 const cord=(lotId='cord',lengthMm=8000,baseStrengthGf=100000):CoirPiece=>({lotId,material:'coir_rope',fiberDryMg:lengthMm*17,pithDryMg:0,waterMg:0,lengthMm,baseStrengthGf,damage:{sunMs:0,shadeMs:0,abrasions:0}});
-const rig=():SailRig=>({lotId:'rig',material:'sail_raft',hull:{lotId:'hull',material:'raft',dryMg:50000000,waterMg:1000000},mat:mat(),mast:mast(),cords:[cord()]});
+const rig=():SailRig=>({lotId:'rig',material:'sail_raft',hull:{lotId:'hull',material:'raft',dryMg:50000000,waterMg:1000000},mat:mat(),mast:mast(),cords:[cord()],cordUseRemainders:[{lotId:'cord',worldMs:0}]});
 const vc:VoyageContext={worldId:'fixture',worldEpoch:'1',runId:'voyage',seed:12345,openedAtWorldMs:1000,openedAtIslandMs:10000};
 function cell(i=0,patch:Partial<SailCell>={}):SailCell{
  return {cellId:'cell:'+i,worldId:vc.worldId,worldEpoch:vc.worldEpoch,runId:vc.runId,
@@ -101,6 +101,18 @@ test('partial leaf allocations conserve each component and retain reusable remai
   assert.equal(p.material,null);assert.ok(p.product.dryMg>=0&&other.waterMg>=0);
  }
 });
+test('split outputs can be woven after rounding, including nearly standard and tiny sources',()=>{
+ for(const d of [55,1000001,...Array.from({length:120},(_,i)=>50+i)]){
+  const input=leaves('pandanus_leaves',d,Math.floor(d/5)),s=make({operation:'split',source:input}),p=s.at(s.at(0).requiredMs);
+  const strips=p.material as PlantMass;assert.ok(BigInt(strips.waterMg)*5n<=BigInt(strips.dryMg));
+  const area=Math.floor(strips.dryMg/45),woven=make({operation:'weave',source:strips,requestedAreaCm2:area});
+  assert.equal(woven.at(woven.at(0).requiredMs).status,'completed');
+  assert.equal(mass(p.material!)+mass(p.scrap!),mass(input));
+ }
+ const small=make({operation:'split',source:leaves('pandanus_leaves',9,1)});
+ const state=small.m.commit(small.m.start(),receipt(small.c,1000,1000+small.at(0).requiredMs));
+ assert.ok(small.m.observe(state)[0].includes('目立った屑は残らなかった'));
+});
 test('mast cutting needs sufficient long bamboo and returns the exact unused length and mass',()=>{
  const a=make({operation:'mast',source:{...leaves('bamboo',3000000,900000),lengthMm:3000}},'mast');
  const p=a.at(600000);assert.equal(p.material!.dryMg,2500000);assert.equal(p.material!.waterMg,750000);
@@ -111,7 +123,7 @@ test('mast cutting needs sufficient long bamboo and returns the exact unused len
  reject(()=>make({operation:'mast',source:{...leaves('bamboo',2000000,0),lengthMm:3000}}));
 });
 test('rigging encapsulates all chosen pieces without consuming excess cord invisibly',()=>{
- const r=rig(),input:SailManufactureInput={operation:'rig',hull:r.hull,mat:r.mat,mast:r.mast,cords:[cord('a',5000),cord('b',5000)]};
+ const r=rig(),input:SailManufactureInput={operation:'rig',hull:r.hull,mat:r.mat,mast:r.mast,cords:[cord('a',5000),cord('b',5000)],cordUseRemainders:[{lotId:'a',worldMs:0},{lotId:'b',worldMs:0}]};
  const p=make(input,'rigging').at(1800000);assert.equal(p.rig!.cords.reduce((n,p)=>n+p.lengthMm,0),10000);
  assert.equal(allMass(p.rig!),allMass({...r,cords:input.cords}));
  reject(()=>make({...input,cords:[cord('short',7999)]}));
@@ -126,7 +138,7 @@ test('manufacturing partitions, pauses, JSON and durable replay match lumped wor
  {operation:'split',source:leaves('pandanus_leaves',1000000,200000)},
  {operation:'weave',source:leaves('pandanus_strips',900000,180000),requestedAreaCm2:20000},
  {operation:'mast',source:{...leaves('bamboo',2000000,300000),lengthMm:2500}},
- {operation:'rig',hull:r.hull,mat:r.mat,mast:r.mast,cords:r.cords}];
+ {operation:'rig',hull:r.hull,mat:r.mat,mast:r.mast,cords:r.cords,cordUseRemainders:r.cordUseRemainders}];
  for(const input of inputs){
   const a=make(input),duration=a.at(0).requiredMs,split=Math.floor(duration/3);
   const first=receipt(a.c,1000,1000+split,'one'),s=a.m.commit(a.m.start(),first);
@@ -197,7 +209,7 @@ test('sail and mast fail only above the quantized load, never at equality',()=>{
 });
 test('cord equality and fracture are decided by the PR21 integer damage model',()=>{
  for(const strength of [50536,50535]){
-  const r=rig();r.cords=[cord('line',8000,strength)];
+  const r=rig();r.cords=[cord('line',8000,strength)];r.cordUseRemainders=[{lotId:'line',worldMs:0}];
   const m=createSailRaftVoyage(r,ID,vc),p=m.project(m.commit(m.start(),cell(0,{windMmS:10000,gustMmS:14000})));
   const cm=createIntegerCordDamageModel(r.cords[0],CORD_ID,cordVoyageContext(vc,'line'));let s=cm.start();
   for(const e of p.cordEvents)s=cm.commit(s,e.event);
@@ -206,7 +218,7 @@ test('cord equality and fracture are decided by the PR21 integer damage model',(
  }
 });
 test('all simultaneous overloads are retained in deterministic margin order, then propulsion stops',()=>{
- const r=rig();r.mat.baseStrengthGf=40000;r.mast.baseStrengthGf=30000;r.cords=[cord('line',8000,80000)];
+ const r=rig();r.mat.baseStrengthGf=40000;r.mast.baseStrengthGf=30000;r.cords=[cord('line',8000,80000)];r.cordUseRemainders=[{lotId:'line',worldMs:0}];
  const m=createSailRaftVoyage(r,ID,vc),s=m.commit(m.start(),[cell(0,{gustMmS:18000}),cell(1)]),p=m.project(s);
  assert.deepEqual(p.broken.map(b=>b.part),['mast','cord','sail']);
  assert.equal(p.distance.eastMm,6000);assert.ok(p.trace.every(t=>!t.powered));
@@ -224,6 +236,30 @@ test('an hour emits one abrasion per cord and external PR21 replay has the same 
  const cm=createIntegerCordDamageModel(r.cords[0],CORD_ID,cordVoyageContext(vc,r.cords[0].lotId));let cs=cm.start();
  for(const e of p.cordEvents)cs=cm.commit(cs,e.event);
  assert.deepEqual(cm.project(cs).pieces,p.rig.cords);assert.equal(p.distance.eastMm,1587600);
+});
+test('calm or sub-mm powered speed never invents movement observations or abrasion',()=>{
+ for(const wind of [0,1]){
+  const m=createSailRaftVoyage(rig(),ID,vc),cells=Array.from({length:120},(_,i)=>cell(i,{windMmS:wind})),state=m.commit(m.start(),cells),p=m.project(state);
+  assert.ok(p.trace.every(t=>!t.powered));assert.equal(p.sailingMs,0);assert.equal(p.rig.cords[0].damage.abrasions,0);
+  assert.equal(p.rig.cordUseRemainders[0].worldMs,0);
+  assert.ok(!m.observe(state).some(s=>s.includes('帆が張り')||s.includes('景色が流れていく')));
+  if(wind===0){assert.equal(p.distance.eastMm,0);assert.ok(m.observe(state).some(s=>s.includes('景色は動いていない')));}
+ }
+});
+test('returned rig carries per-cord sailing fractions into a new voyage or new rigging',()=>{
+ const source=rig(),all=createSailRaftVoyage(source,ID,vc),cells=Array.from({length:120},(_,i)=>cell(i));
+ const full=all.project(all.commit(all.start(),cells));
+ const half=all.project(all.commit(all.start(),cells.slice(0,60)));
+ assert.equal(half.rig.cordUseRemainders[0].worldMs,1800000);
+ const nextContext={...vc,runId:'next',openedAtWorldMs:vc.openedAtWorldMs+1800000,openedAtIslandMs:vc.openedAtIslandMs+1800000};
+ const next=createSailRaftVoyage(half.rig,ID,nextContext);
+ const remaining=cells.slice(60).map(c=>({...c,runId:'next'}));
+ const done=next.project(next.commit(next.start(),remaining));
+ assert.deepEqual(done.rig,full.rig);assert.equal(done.rig.cords[0].damage.abrasions,1);
+ const input:SailManufactureInput={operation:'rig',hull:half.rig.hull,mat:half.rig.mat,mast:half.rig.mast,cords:half.rig.cords,cordUseRemainders:half.rig.cordUseRemainders};
+ const rerig=make(input,'rerig').at(1800000).rig!;
+ assert.deepEqual(rerig.cordUseRemainders,half.rig.cordUseRemainders);
+ reject(()=>make({...input,cordUseRemainders:[]}));reject(()=>createSailRaftVoyage({...source,cordUseRemainders:[]},ID,vc));
 });
 test('cell batches, JSON restoration and replay are exactly identical',()=>{
  const r=rig(),cells=Array.from({length:12},(_,i)=>cell(i,{headingDeg:i%3===0?30:0,windToDeg:i%4===0?90:0,rain:i%2===0}));

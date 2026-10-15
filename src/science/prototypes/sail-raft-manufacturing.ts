@@ -5,20 +5,21 @@ import {INTEGER_HALF_LIFE_POLICY_ID} from './integer-half-life';
 import {SAIL_RAFT_ID,SAIL_RULES as R,choose,check,uint,shape,id,canonical,copy,sum,mulDiv,ceilDiv,
  qualityPpm,validateMat,validateMast,sailStrength,type PlantMass,type SailMat,type BambooMast} from './sail-raft-rules';
 export interface RaftHull {lotId:string;material:'raft';dryMg:number;waterMg:number}
-export interface SailRig {lotId:string;material:'sail_raft';hull:RaftHull;mat:SailMat;mast:BambooMast;cords:CoirPiece[]}
+export interface CordUseRemainder {lotId:string;worldMs:number}
+export interface SailRig {lotId:string;material:'sail_raft';hull:RaftHull;mat:SailMat;mast:BambooMast;cords:CoirPiece[];cordUseRemainders:CordUseRemainder[]}
 export type SailManufactureInput=
  | {operation:'harvest';source:PlantMass}
  | {operation:'dry';source:PlantMass;roofed:true}
  | {operation:'split';source:PlantMass}
  | {operation:'weave';source:PlantMass;requestedAreaCm2:number}
  | {operation:'mast';source:PlantMass}
- | {operation:'rig';hull:RaftHull;mat:SailMat;mast:BambooMast;cords:CoirPiece[]};
+ | {operation:'rig';hull:RaftHull;mat:SailMat;mast:BambooMast;cords:CoirPiece[];cordUseRemainders:CordUseRemainder[]};
 export interface SailManufactureState {schema:'prototype-sail-manufacture/1';binding:string;intervals:CoirInterval[]}
 export function validateRig(r:SailRig){
- check(shape(r,['lotId','material','hull','mat','mast','cords'])&&id(r.lotId)&&r.material==='sail_raft','invalid-rig');
- validateParts(r.hull,r.mat,r.mast,r.cords);
+ check(shape(r,['lotId','material','hull','mat','mast','cords','cordUseRemainders'])&&id(r.lotId)&&r.material==='sail_raft','invalid-rig');
+ validateParts(r.hull,r.mat,r.mast,r.cords,r.cordUseRemainders);
 }
-function validateParts(h:RaftHull,m:SailMat,b:BambooMast,cords:CoirPiece[]){
+function validateParts(h:RaftHull,m:SailMat,b:BambooMast,cords:CoirPiece[],use:CordUseRemainder[]){
  check(shape(h,['lotId','material','dryMg','waterMg'])&&id(h.lotId)&&h.material==='raft'&&uint(h.dryMg,1)&&uint(h.waterMg),'invalid-raft');
  sum(h.dryMg,h.waterMg);validateMat(m);validateMast(b);
  check(!m.torn&&!b.broken&&sailStrength(m)>0,'broken-rig-part');
@@ -28,6 +29,8 @@ function validateParts(h:RaftHull,m:SailMat,b:BambooMast,cords:CoirPiece[]){
   check(p.lengthMm>=2&&BigInt(p.fiberDryMg)*BigInt(Math.floor(p.lengthMm/2))/BigInt(p.lengthMm)>0n,'unsplittable-rig-cord');
  }
  check(sum(...cords.map(p=>p.lengthMm))>=R.minRigCordMm,'insufficient-rig-cord');
+ check(Array.isArray(use)&&use.length===cords.length&&new Set(use.map(u=>u?.lotId)).size===use.length,'cord-use-history-required');
+ for(const u of use)check(shape(u,['lotId','worldMs'])&&cords.some(p=>p.lotId===u.lotId)&&uint(u.worldMs)&&u.worldMs<R.abrasionWorldMs,'invalid-cord-use-remainder');
  const ids=[h.lotId,m.lotId,b.lotId,...cords.map(p=>p.lotId)];
  check(new Set(ids).size===ids.length,'duplicate-rig-part');
  sum(h.dryMg,h.waterMg,m.dryMg,m.waterMg,b.dryMg,b.waterMg,...cords.flatMap(p=>[p.fiberDryMg,p.pithDryMg,p.waterMg]));
@@ -45,8 +48,8 @@ export function createSailManufacturingModel(original:SailManufactureInput,assum
  check(ctx.clock===(op==='dry'?'island':'world'),'wrong-clock');
  let duration=0,mastDry=0,mastWater=0,strength=0;
  if(original.operation==='rig'){
-  check(shape(original,['operation','hull','mat','mast','cords']),'invalid-rig-input');
-  validateParts(original.hull,original.mat,original.mast,original.cords);duration=R.rigMs;
+  check(shape(original,['operation','hull','mat','mast','cords','cordUseRemainders']),'invalid-rig-input');
+  validateParts(original.hull,original.mat,original.mast,original.cords,original.cordUseRemainders);duration=R.rigMs;
  }else{
   check(shape(original,op==='dry'?['operation','source','roofed']:op==='weave'?['operation','source','requestedAreaCm2']:['operation','source']),'invalid-stage-input');
   source(original.source);const s=original.source;
@@ -95,7 +98,7 @@ export function createSailManufacturingModel(original:SailManufactureInput,assum
   let product={dryMg:0,waterMg:0},rig:SailRig|null=null;
   const lotId=c.runId+':product';
   if(input.operation==='rig'){
-   if(done)rig={lotId,material:'sail_raft',hull:copy(input.hull),mat:copy(input.mat),mast:copy(input.mast),cords:copy(input.cords)};
+   if(done)rig={lotId,material:'sail_raft',hull:copy(input.hull),mat:copy(input.mat),mast:copy(input.mast),cords:copy(input.cords),cordUseRemainders:copy(input.cordUseRemainders)};
   }else{
    const s=input.source;
    if(input.operation==='harvest'){
@@ -106,7 +109,7 @@ export function createSailManufacturingModel(original:SailManufactureInput,assum
     releasedWaterMg=duration?mulDiv(s.waterMg-Math.floor(s.dryMg/5),work,duration):0;
     product={dryMg:s.dryMg,waterMg:s.waterMg-releasedWaterMg};if(done)material={lotId,material:'pandanus_leaves',...product};
    }else if(input.operation==='split'){
-    const d=mulDiv(Math.floor(s.dryMg/10),work,duration),w=mulDiv(s.waterMg,d,s.dryMg);
+    const d=mulDiv(Math.floor(s.dryMg/10),work,duration),w=s.waterMg-mulDiv(s.waterMg,s.dryMg-d,s.dryMg);
     product={dryMg:s.dryMg-d,waterMg:s.waterMg-w};scrap={lotId:c.runId+':scrap',material:'pandanus_leaf_scrap',dryMg:d,waterMg:w};
     if(done)material={lotId,material:'pandanus_strips',...product};
    }else if(input.operation==='weave'){
@@ -131,6 +134,6 @@ export function createSailManufacturingModel(original:SailManufactureInput,assum
    receipts([...state.intervals,r]);return save([...state.intervals,r]);
   },
   observe(v:SailManufactureState):string[]{
-   const p=project(v);return [p.status==='completed'?({harvest:'葉を取り終えた。',dry:'葉は乾いて、しなやかになった。',split:'葉を細く裂いた。とげと葉脈の屑が残っている。',weave:'編んだむしろが広がっている。',mast:'竹のマストを切り出した。',rig:'筏にマストとむしろ帆を据え、縄で結んだ。'}[op]):'手元の材料は、まだ作業の途中だ。'];
+   const p=project(v);return [p.status==='completed'?({harvest:'葉を取り終えた。',dry:'葉は乾いて、しなやかになった。',split:p.scrap&&(p.scrap.dryMg+p.scrap.waterMg)>0?'葉を細く裂いた。とげと葉脈の屑が残っている。':'葉を細く裂いた。目立った屑は残らなかった。',weave:'編んだむしろが広がっている。',mast:'竹のマストを切り出した。',rig:'筏にマストとむしろ帆を据え、縄で結んだ。'}[op]):'手元の材料は、まだ作業の途中だ。'];
   }});
 }

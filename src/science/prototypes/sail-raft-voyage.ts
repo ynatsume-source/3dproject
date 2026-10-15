@@ -30,7 +30,7 @@ export function createSailRaftVoyage(original:SailRig,assumptionId:string,origin
  function replay(records:unknown){
   check(Array.isArray(records),'invalid-cell-history');const seen=new Set<string>();
   let lastWorld=c.openedAtWorldMs,lastIsland=c.openedAtIslandMs;
-  const mat=copy(rig.mat),mast=copy(rig.mast),cords=rig.cords.map(p=>({sourceLotId:p.lotId,pieces:[copy(p)],broken:false}));
+  const mat=copy(rig.mat),mast=copy(rig.mast),cords=rig.cords.map(p=>({sourceLotId:p.lotId,pieces:[copy(p)],broken:false,carry:rig.cordUseRemainders.find(u=>u.lotId===p.lotId)!.worldMs}));
   let east=0n,north=0n,along=0n,side=0n,sailingMs=0;
   const maxLoads=[{part:'sail',lotId:mat.lotId,gf:0},{part:'mast',lotId:mast.lotId,gf:0},...cords.map(p=>({part:'cord',lotId:p.sourceLotId,gf:0}))];
   const broken:{cellId:string;part:string;lotId:string;marginGf:number}[]=[];
@@ -71,7 +71,7 @@ export function createSailRaftVoyage(original:SailRig,assumptionId:string,origin
    }
    candidates.sort((a,b)=>a.marginGf!==b.marginGf?(a.marginGf<b.marginGf?-1:1):(a.part+':'+a.lotId<b.part+':'+b.lotId?-1:1));
    for(const b of candidates){broken.push(b);if(b.part==='sail')mat.torn=true;if(b.part==='mast')mast.broken=true;}
-   const survived=up&&candidates.length===0,powered=survived&&Math.abs(delta)<=60;
+   const survived=up&&candidates.length===0,powered=survived&&Math.abs(delta)<=60&&speed>0;
    if(powered){
     const mm=BigInt(speed)*30n;along+=mm*DEN;
     east+=mm*BigInt(cosDeg(cell.headingDeg))*50n;north+=mm*BigInt(sinDeg(cell.headingDeg))*50n;
@@ -81,9 +81,7 @@ export function createSailRaftVoyage(original:SailRig,assumptionId:string,origin
     along+=mm*BigInt(cosDeg(delta));side+=mm*BigInt(sinDeg(delta));
     east+=mm*BigInt(cosDeg(cell.windToDeg));north+=mm*BigInt(sinDeg(cell.windToDeg));
    }
-   const abrasionsBefore=Math.floor(sailingMs/R.abrasionWorldMs);
    if(powered)sailingMs=sum(sailingMs,R.cellWorldMs);
-   const abrasion=Math.floor(sailingMs/R.abrasionWorldMs)-abrasionsBefore;
    if(survived){
     const dt=cell.toIslandMs-cell.fromIslandMs,field=cell.rain?'rainMs':'sunMs';
     mat.damage[field]=sum(mat.damage[field],dt);
@@ -93,6 +91,7 @@ export function createSailRaftVoyage(original:SailRig,assumptionId:string,origin
      const e:CordDamageEvent={kind:'exposure',clock:'island',eventId:cell.cellId+':exposure',worldId:c.worldId,worldEpoch:c.worldEpoch,runId:ctx.runId,
       atMs:cell.toIslandMs,fromIslandMs:cell.fromIslandMs,toIslandMs:cell.toIslandMs,shade:false};
      s=m.commit(s,e);cordEvents.push({sourceLotId:p.sourceLotId,event:e});
+     const used=sum(p.carry,powered?R.cellWorldMs:0),abrasion=Math.floor(used/R.abrasionWorldMs);p.carry=used%R.abrasionWorldMs;
      if(abrasion){
       const a:CordDamageEvent={kind:'abrasion',clock:'world',eventId:cell.cellId+':abrasion',worldId:c.worldId,worldEpoch:c.worldEpoch,runId:ctx.runId,atMs:cell.toWorldMs,count:abrasion};
       s=m.commit(s,a);cordEvents.push({sourceLotId:p.sourceLotId,event:a});
@@ -102,7 +101,7 @@ export function createSailRaftVoyage(original:SailRig,assumptionId:string,origin
    }
    trace.push({cellId:cell.cellId,powered,speedMmS:powered?speed:Math.floor(cell.windMmS/50),forceGf:force,gustSource:cell.gustMmS===null?'assumed-1.4':'measured'});
   }
-  return {rig:{...copy(rig),mat,mast,cords:cords.flatMap(p=>p.pieces)},distance:{eastMm:signed(east/DEN),northMm:signed(north/DEN),
+  return {rig:{...copy(rig),mat,mast,cords:cords.flatMap(p=>p.pieces),cordUseRemainders:cords.flatMap(p=>p.pieces.map(piece=>({lotId:piece.lotId,worldMs:p.carry})))},distance:{eastMm:signed(east/DEN),northMm:signed(north/DEN),
    alongHeadingMm:signed(along/DEN),sidewaysMm:signed(side/DEN)},maxLoads,broken,cordEvents,sailExposures,sailingMs,trace};
  }
  function restore(v:unknown):VoyageState{
@@ -122,7 +121,7 @@ export function createSailRaftVoyage(original:SailRig,assumptionId:string,origin
    if(!last)return ['筏と帆は、まだ動かしていない。'];
    const t=p.trace.at(-1)!;
    const words=[last.windMmS===0?'風をほとんど感じない。':last.windMmS<3000?'頬に弱い風を感じる。':last.windMmS<8000?'風が体を押す。':last.windMmS<15000?'強い風に体を支えたくなる。':'激しい風が体を押しつける。'];
-   words.push(!last.sailUp?'帆はたたまれている。':p.rig.mat.torn?'むしろ帆は裂けている。':t.powered?'むしろ帆が張り、景色が流れていく。':'帆がばたつき、景色がゆっくり流れていく。');
+   words.push(!last.sailUp?'帆はたたまれている。':p.rig.mat.torn?'むしろ帆は裂けている。':last.windMmS===0?'帆はゆるみ、景色は動いていない。':t.powered?'むしろ帆が張り、景色が流れていく。':t.speedMmS===0?'帆はゆるみ、景色の動きはほとんど感じられない。':'帆がばたつき、景色がゆっくり流れていく。');
    if(p.rig.mast.broken)words.push('竹のマストが折れている。');
    else if(t.forceGf>0)words.push('マストがきしむ。');
    if(p.broken.some(b=>b.part==='cord'))words.push('帆を張る縄が切れている。');
