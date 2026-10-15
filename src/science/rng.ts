@@ -11,10 +11,13 @@ function fnv1a(s: string): number {
 }
 
 /** Uniform [0,1) from a seed and string keys (splitmix-style finaliser). */
-export function draw(seed: number, ...keys: string[]): number {
+export function drawUint32(seed: number, ...keys: string[]): number {
   let x = (fnv1a(`${seed}|${keys.join('|')}`) ^ (seed >>> 0)) >>> 0;
   x = Math.imul(x ^ (x >>> 16), 0x85ebca6b) >>> 0;
   x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35) >>> 0;
   x = (x ^ (x >>> 16)) >>> 0;
-  return x / 4294967296;
+  return x;
 }
+
+/** Legacy floating [0,1) projection; its integer mixing is unchanged. */
+export function draw(seed: number, ...keys: string[]): number { return drawUint32(seed,...keys) / 4294967296; }
