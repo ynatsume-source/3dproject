@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createManualHuskSeparation, type WetUnseparatedHusk, type ManualSeparationTestProfile,
  type ConfirmedManualInterval, type ManualSeparationState} from '../src/science/prototypes/manual-husk-separation';
+import {MANUAL_HUSK_ASSUMPTION, createManualHuskAssumptionProfile} from '../src/science/prototypes/manual-husk-assumptions';
 const input: WetUnseparatedHusk={materialId:'wet_unseparated_coconut_husk',lotId:'wet-husk:fixture',separation:'never-separated',dryMg:1003,waterMg:997,
  soakHistory:[{recordId:'soak-record',runId:'prior-soak',fromWorldMs:100,toWorldMs:900}]};
 const context={worldId:'fixture',worldEpoch:'1',runId:'manual:1',openedAtWorldMs:1000};
@@ -118,4 +119,144 @@ test('defensive copies and safe large integer arithmetic',()=>{
  s=big.commit(big.start(),interval('big',1000,1002));audit(s,large.dryMg,10);
  assert.equal(s.pools.fiber.dryMg,Number(BigInt(large.dryMg)*2n/3n));
 });
+
+test('owner assumption is a versioned explicit opt-in, not an implicit default',()=>{
+ assert.equal(MANUAL_HUSK_ASSUMPTION.evidence,'owner-assumption-not-calibrated');
+ assert.ok(Object.isFrozen(MANUAL_HUSK_ASSUMPTION) && Object.isFrozen(MANUAL_HUSK_ASSUMPTION.knots)
+  && MANUAL_HUSK_ASSUMPTION.knots.every(Object.isFrozen));
+ const h={...input,dryMg:300000,waterMg:600000};
+ const p=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+ assert.equal(p.kind,'uncalibrated-test-profile');
+ assert.deepEqual(p.knots,[
+  knot(0),knot(60000,36000,7200,36000,21600,90000),
+  knot(120000,58000,11600,58000,34800,140000),
+  knot(240000,72000,14400,72000,43200,180000),
+ ]);
+ rejects(()=>createManualHuskAssumptionProfile(h,undefined));
+ rejects(()=>createManualHuskAssumptionProfile(h,'guess-a-recipe' as any));
+ rejects(()=>createManualHuskSeparation(h,undefined,context));
+});
+test('assumed standard husk has declining recovery and exact dry/water balances',()=>{
+ const h={...input,dryMg:300000,waterMg:600000};
+ const m=createManualHuskSeparation(h,createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id),context);
+ const at=(t:number)=>m.commit(m.start(),interval('at',1000,1000+t));
+ assert.deepEqual(at(90000).pools,{fiber:{dryMg:47000,waterMg:47000},attachedPith:{dryMg:9400,waterMg:28200},
+  residualHusk:{dryMg:243600,waterMg:409800},dischargedWaterMg:115000});
+ assert.deepEqual(at(240000).pools,{fiber:{dryMg:72000,waterMg:72000},attachedPith:{dryMg:14400,waterMg:43200},
+  residualHusk:{dryMg:213600,waterMg:304800},dischargedWaterMg:180000});
+ const amounts=[at(60000).pools.fiber.dryMg,at(120000).pools.fiber.dryMg,at(240000).pools.fiber.dryMg];
+ assert.ok(amounts[0]/60000>(amounts[1]-amounts[0])/60000);
+ assert.ok((amounts[1]-amounts[0])/60000>(amounts[2]-amounts[1])/120000);
+ assert.equal(m.project(at(239999)).status,'partial-or-unworked');
+ assert.equal(m.project(at(240000)).status,'profile-exhausted');
+ assert.deepEqual(at(900000).pools,at(240000).pools);
+ for(const t of [1,59999,60000,60001,119999,120000,120001,239999,240000,240001])audit(at(t),h.dryMg,h.waterMg);
+});
+test('dry-mass scaling covers half, double and non-integral standard equivalents',()=>{
+ // Literal expectations supplied independently of the helper calculation.
+ const cases=[
+  {dry:150000,water:300000,end:120000,f:36000,p:7200,fw:36000,pw:21600,d:90000,rd:106800,rw:152400},
+  {dry:600000,water:1200000,end:480000,f:144000,p:28800,fw:144000,pw:86400,d:360000,rd:427200,rw:609600},
+  {dry:300001,water:600002,end:240001,f:72000,p:14400,fw:72000,pw:43200,d:180000,rd:213601,rw:304802},
+ ];
+ for(const x of cases){
+  const h={...input,dryMg:x.dry,waterMg:x.water},p=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+  assert.equal(p.knots.at(-1)!.workMs,x.end);
+  const m=createManualHuskSeparation(h,p,context),s=m.commit(m.start(),interval('end',1000,1000+x.end));
+  audit(s,h.dryMg,h.waterMg);
+  assert.deepEqual(s.pools,{fiber:{dryMg:x.f,waterMg:x.fw},attachedPith:{dryMg:x.p,waterMg:x.pw},
+   residualHusk:{dryMg:x.rd,waterMg:x.rw},dischargedWaterMg:x.d});
+ }
+});
+test('assumed retention never invents water and extra input water remains residual',()=>{
+ for(const water of [295200,295201,600000,600001]){
+  const h={...input,dryMg:300000,waterMg:water},m=createManualHuskSeparation(h,createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id),context);
+  const s=m.commit(m.start(),interval('end',1000,241000));audit(s,h.dryMg,h.waterMg);
+  assert.equal(s.pools.residualHusk.waterMg,water-295200);
+  assert.equal(s.pools.fiber.dryMg,72000);
+ }
+ rejects(()=>createManualHuskAssumptionProfile({...input,dryMg:300000,waterMg:295199},MANUAL_HUSK_ASSUMPTION.id));
+ for(const bad of [{dryMg:0},{dryMg:-1},{dryMg:0.5},{waterMg:0},{waterMg:NaN},{waterMg:Infinity},
+  {dryMg:Number.MAX_SAFE_INTEGER},{dryMg:Number.MAX_SAFE_INTEGER+1}]){
+  rejects(()=>createManualHuskAssumptionProfile({...input,...bad},MANUAL_HUSK_ASSUMPTION.id));
+ }
+});
+test('tiny audit lots coalesce millisecond knots without phantom carriers or nonmonotone outputs',()=>{
+ for(let dry=1;dry<=128;dry++){
+  const h={...input,dryMg:dry,waterMg:2*dry},p=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+  assert.ok(p.knots.length>=2);
+  assert.equal(p.knots[0].workMs,0);
+  p.knots.slice(1).forEach((k,i)=>assert.ok(k.workMs>p.knots[i].workMs));
+  const m=createManualHuskSeparation(h,p,context);
+  let previous=[0,0,0,0,0];
+  for(let t=1;t<=p.knots.at(-1)!.workMs+1;t++){
+   const s=m.commit(m.start(),interval('at',1000,1000+t));audit(s,h.dryMg,h.waterMg);
+   const q=s.pools,now=[q.fiber.dryMg,q.attachedPith.dryMg,q.fiber.waterMg,q.attachedPith.waterMg,q.dischargedWaterMg];
+   now.forEach((v,i)=>assert.ok(v>=previous[i]));previous=now;
+   if(!q.fiber.dryMg)assert.deepEqual([q.attachedPith.dryMg,q.fiber.waterMg,q.attachedPith.waterMg],[0,0,0]);
+   if(!q.attachedPith.dryMg)assert.equal(q.attachedPith.waterMg,0);
+  }
+ }
+ const h={...input,dryMg:10,waterMg:20},m=createManualHuskSeparation(h,createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id),context);
+ assert.deepEqual(m.commit(m.start(),interval('end',1000,1008)).pools,{
+  fiber:{dryMg:2,waterMg:2},attachedPith:{dryMg:0,waterMg:0},residualHusk:{dryMg:8,waterMg:12},dischargedWaterMg:6,
+ });
+});
+test('assumed profiles agree across off-knot partitions, pauses, JSON restore and durable replay',()=>{
+ for(const dry of [5,20,1003,150000,300000,300001,600000]){
+  const h={...input,dryMg:dry,waterMg:dry*2},p=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+  const m=createManualHuskSeparation(h,p,context),end=p.knots.at(-1)!.workMs+13;
+  const whole=m.project(m.commit(m.start(),interval('whole',1000,1000+end)));
+  const schedules=dry<=20?[[1],[3,1,7]]:[[737],[29000],[59999,2,60000,17,120001]];
+  for(const schedule of schedules){
+   let s=m.start(),work=0,cursor=1000,i=0;
+   while(work<end){
+    const dt=Math.min(schedule[i%schedule.length],end-work),c=interval('piece:'+i,cursor,cursor+dt);
+    s=m.commit(s,c);audit(s,h.dryMg,h.waterMg);work+=dt;cursor+=dt;
+    if(i%7===0){
+     const fresh=createManualHuskSeparation(structuredClone(h),createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id),{...context});
+     s=fresh.restore(JSON.parse(JSON.stringify(s)));
+    }
+    if(i%3===0)cursor+=101; // no work during a host pause
+    i++;
+   }
+   assert.deepEqual(m.project(s),whole);
+   const saved=JSON.stringify(s);
+   s=m.commit(m.restore(JSON.parse(saved)),s.confirmedIntervals[0]);
+   assert.equal(JSON.stringify(s),saved);
+   rejects(()=>m.commit(s,{...s.confirmedIntervals[0],actorId:'changed'}));
+  }
+ }
+});
+test('assumption profile copies, save binding and host-only projection remain explicit',()=>{
+ const h={...input,dryMg:300000,waterMg:600000},p=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+ const m=createManualHuskSeparation(h,p,context),s=m.commit(m.start(),interval('a',1000,91000));
+ p.knots[1].fiberDryMg=0; // returned profile is a copy, not the frozen recipe or the run
+ assert.equal(m.restore(JSON.parse(JSON.stringify(s))).pools.fiber.dryMg,47000);
+ assert.equal(createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id).knots[1].fiberDryMg,36000);
+ for(const newInput of [{...h,dryMg:300001},{...h,waterMg:600001}]){
+  const changed=createManualHuskSeparation(newInput,createManualHuskAssumptionProfile(newInput,MANUAL_HUSK_ASSUMPTION.id),context);
+  rejects(()=>changed.restore(s));
+ }
+ const changed=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+ changed.knots[1].fiberDryMg++; // same ID cannot silently change the saved curve
+ rejects(()=>createManualHuskSeparation(h,changed,context).restore(s));
+ changed.knots[1].fiberDryMg--;changed.profileId+=':changed';
+ rejects(()=>createManualHuskSeparation(h,changed,context).restore(s));
+ const view=m.project(s),legacy=model.project(model.start());
+ assert.deepEqual(Object.keys(view).sort(),Object.keys(legacy).sort());
+ assert.equal(view.calibration,'uncalibrated-test-profile');
+ for(const key of ['ready','eta','assumedHuskCount','residentObservation'])assert.equal((view as any)[key],undefined);
+});
+test('assumption scaling retains exact safe-integer arithmetic near the maximum total mass',()=>{
+ const h={...input,dryMg:3002399751580330,waterMg:6004799503160660};
+ const p=createManualHuskAssumptionProfile(h,MANUAL_HUSK_ASSUMPTION.id);
+ assert.equal(p.knots.at(-1)!.workMs,2401919801264264);
+ const m=createManualHuskSeparation(h,p,context);
+ const s=m.commit(m.start(),interval('large',1000,2401919801265264));audit(s,h.dryMg,h.waterMg);
+ assert.deepEqual(s.pools,{fiber:{dryMg:720575940379279,waterMg:720575940379279},
+  attachedPith:{dryMg:144115188075855,waterMg:432345564227567},
+  residualHusk:{dryMg:2137708623125196,waterMg:3050438147605616},dischargedWaterMg:1801439850948198});
+});
+
 console.log(`PASS manual husk separation: ${groups} groups; dry/water conservation, partition/resume/replay, zero yield, invalid inputs and read-only invariance.`);
