@@ -3,6 +3,8 @@
 // Fast checks keep a 120 s per-file budget. Slow checks retain their full default
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
+  'manual-husk-workflow',
+  'manual-husk-work',
   'manual-husk-separation',
   'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal',
   'lamp',
