@@ -5,7 +5,7 @@ import {
 } from './coir-cord-types';
 import {currentCordStrength} from './coir-cord-damage';
 import {draw} from '../rng';
-export const COIR_CORD_MODEL_SCHEMA='prototype-coir-cord/2' as const;
+export const COIR_CORD_MODEL_SCHEMA='prototype-coir-cord/3' as const;
 
 export type CoirInput =
  | {operation:'dry'; bundle:CoirBundle; roofed:true}
@@ -114,7 +114,7 @@ export function createCoirCordModel(original:CoirInput,assumptionId:string,ctx:C
   check(shape(value,['schema','binding','intervals'])&&value.schema===COIR_CORD_MODEL_SCHEMA&&value.binding===binding,'incompatible-save');
   rebuild(value.intervals);return stateOf(value.intervals);
  }
- function project(value:CoirState) {
+ function snapshot(value:CoirState,abandon:boolean) {
   const state=restore(value),{total}=rebuild(state.intervals),work=Math.min(total,duration),completed=total>=duration;
   let product=zero(),remaining:CoirMass[]=[],fallenPith=zero(),releasedWaterMg=0,lengthMm=0;
   if(input.operation==='dry'){
@@ -138,8 +138,10 @@ export function createCoirCordModel(original:CoirInput,assumptionId:string,ctx:C
     remaining.push({...a.remaining});
    }
   }
+  // A sub-minimum rope is unwound; return each original strand in full.
+  if(abandon&&!completed&&input.operation==='ply'&&lengthMm<2){product=zero();remaining=input.strands.map(mass);lengthMm=0;}
   const productId=context.runId+':product';
-  const piece:CoirPiece|null=(op==='twist'||op==='ply')&&completed?{
+  const piece:CoirPiece|null=(op==='twist'||op==='ply')&&(completed||abandon)&&lengthMm>=(op==='ply'?2:1)?{
    ...product,lotId:productId,material:op==='twist'?'coir_strand':'coir_rope',lengthMm,baseStrengthGf:strength,
    damage:{sunMs:0,shadeMs:0,abrasions:0},
    ...(input.operation==='ply'?{inheritedWear:{faded:input.strands.some(x=>x.inheritedWear?.faded||x.damage.sunMs/R.yearIslandMs+x.damage.shadeMs/(10*R.yearIslandMs)>=1),abraded:input.strands.some(x=>x.inheritedWear?.abraded||x.damage.abrasions>0)}}:{})}:null;
@@ -148,8 +150,10 @@ export function createCoirCordModel(original:CoirInput,assumptionId:string,ctx:C
    damage:{...input.strands[i].damage},...(input.strands[i].inheritedWear?{inheritedWear:{...input.strands[i].inheritedWear}}:{})})).filter(x=>x.lengthMm>0):null;
   return {status:completed?'completed' as const:'partial' as const,clock:context.clock,totalTimeMs:total,
    product,remaining,fallenPith,releasedWaterMg,lengthMm,piece,leftovers,
-   bundle:(op==='dry'||op==='sieve')&&completed?{...product,lotId:productId}:null};
+   bundle:(op==='dry'||op==='sieve')&&(completed||abandon)?{...product,lotId:productId}:null};
  }
+ function projectForAbandon(value:CoirState){return snapshot(value,true);}
+ function project(value:CoirState){return snapshot(value,false);}
  function observe(value:CoirState,measurement?:{kind:'host-confirmed-length-measurement';worldId:string;worldEpoch:string;runId:string;atMs:number}) {
   const p=project(value),{last}=rebuild(value.intervals);
   let text:string;
@@ -168,7 +172,7 @@ export function createCoirCordModel(original:CoirInput,assumptionId:string,ctx:C
   return out;
  }
  return Object.freeze({
-  start:()=>stateOf([]),restore,project,observe,
+  start:()=>stateOf([]),restore,project,projectForAbandon,observe,
   commit(value:CoirState,receipt:CoirInterval):CoirState{
    const state=restore(value);interval(receipt);
    const old=state.intervals.find(x=>x.confirmationId===receipt.confirmationId);

@@ -7,9 +7,9 @@ import {createManualHuskSeparation, type WetUnseparatedHusk, type ManualSeparati
 import {MANUAL_HUSK_ASSUMPTION, createManualHuskAssumptionProfile} from '../science/prototypes/manual-husk-assumptions';
 
 export const MANUAL_HUSK_WORK = Object.freeze({
-  processId: 'prototype_manual_husk_work', processVersion: 'host-1',
+  processId: 'prototype_manual_husk_work', processVersion: 'host-2',
   catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'world' as const,
-  schema: 'civ-world.manual-husk-work/1', quantumMs: 30_000,
+  schema: 'civ-world.manual-husk-work/2', quantumMs: 30_000,
 });
 export interface HuskWorksite {locationId: string; x: number; z: number; reachM: number}
 export interface HuskWorkSpec {
@@ -27,10 +27,11 @@ export interface HuskExecutorSpan {
   targetLotId: string | null; targetSiteId: string | null; arrived: boolean;
   fromPosition: {x: number; z: number}; toPosition: {x: number; z: number};
 }
-interface Segment {fromWorldMs: number; toWorldMs: number}
+interface Segment {fromWorldMs: number; toWorldMs: number; actorId: string}
+interface Assignment {actorId: string; atWorldMs: number}
 interface HostData {
   binding: string; worldId: string; worldEpoch: string; runId: string;
-  spec: HuskWorkSpec; source: LotView; frames: HuskExecutorSpan[];
+  spec: HuskWorkSpec; source: LotView; frames: HuskExecutorSpan[]; assignments: Assignment[]; abandonedAtWorldMs: number | null;
   science: ManualSeparationState; pending: Segment[]; pendingWorkMs: number;
   observedThroughWorldMs: number; completedAtWorldMs: number | null;
 }
@@ -86,17 +87,27 @@ function checkFrame(f: HuskExecutorSpan, d: Pick<HostData,'worldId'|'worldEpoch'
     && (f.targetLotId === null || id(f.targetLotId)) && (f.targetSiteId === null || id(f.targetSiteId))
     && typeof f.arrived === 'boolean' && point(f.fromPosition) && point(f.toPosition), 'invalid-executor-span');
 }
-function isWork(f: HuskExecutorSpan, spec: HuskWorkSpec) {
+function assignedActor(assignments: Assignment[], at: number): string {
+  return assignments.filter(a=>a.atWorldMs<=at).at(-1)!.actorId;
+}
+function isWork(f: HuskExecutorSpan, spec: HuskWorkSpec, assignments: Assignment[]) {
   const site = spec.worksite, near = (p: {x:number;z:number}) => Math.hypot(p.x-site.x, p.z-site.z) <= site.reachM;
-  return f.actorId === spec.operatorId && f.activity === 'separate-wet-husk' && f.arrived
+  return f.actorId === assignedActor(assignments,f.fromWorldMs) && f.activity === 'separate-wet-husk' && f.arrived
     && f.targetLotId === spec.input.lotId && f.targetSiteId === site.locationId
     && near(f.fromPosition) && near(f.toPosition);
 }
 /** Rebuild from authoritative recorded spans. Adjacent work is normalized before
  * quantum boundaries are derived, so the capture/saving frequency cannot change them. */
-function rebuild(worldId: string, worldEpoch: string, runId: string, spec: HuskWorkSpec, source: LotView, frames: HuskExecutorSpan[]): HostData {
+function rebuild(worldId: string, worldEpoch: string, runId: string, spec: HuskWorkSpec, source: LotView, frames: HuskExecutorSpan[], assignments: Assignment[]=[{actorId:spec.operatorId,atWorldMs:spec.openedAtWorldMs}], abandonedAtWorldMs: number|null=null): HostData {
   requireHost(id(worldId) && id(worldEpoch) && id(runId), 'invalid-host-context');
   checkSpec(spec); checkSource(source, spec); requireHost(Array.isArray(frames), 'invalid-frame-history');
+  requireHost(Array.isArray(assignments)&&assignments.length>0,'invalid-assignment-history');
+  let assignedAt=spec.openedAtWorldMs;
+  for(let i=0;i<assignments.length;i++){
+    const a=assignments[i];requireHost(shape(a,['actorId','atWorldMs'])&&id(a.actorId)&&uint(a.atWorldMs)
+      &&a.atWorldMs>=assignedAt&&(i>0?a.actorId!==assignments[i-1].actorId:a.actorId===spec.operatorId&&a.atWorldMs===spec.openedAtWorldMs),'invalid-assignment-history');
+    assignedAt=a.atWorldMs;
+  }
   const base = {worldId,worldEpoch,runId,spec}, profile = createManualHuskAssumptionProfile(spec.input, MANUAL_HUSK_ASSUMPTION.id);
   const model = createManualHuskSeparation(spec.input, profile, {worldId,worldEpoch,runId,openedAtWorldMs:spec.openedAtWorldMs});
   let observed = spec.openedAtWorldMs, available = 0;
@@ -105,11 +116,12 @@ function rebuild(worldId: string, worldEpoch: string, runId: string, spec: HuskW
     checkFrame(f, base);
     requireHost(!seen.has(f.spanId) && f.fromWorldMs >= observed, 'duplicate-or-overlapping-executor-spans');
     seen.add(f.spanId); observed = f.toWorldMs;
-    if (!isWork(f, spec)) continue;
+    requireHost(!assignments.some(a=>a.atWorldMs>f.fromWorldMs&&a.atWorldMs<f.toWorldMs),'span-crosses-assignment');
+    if (!isWork(f, spec, assignments)) continue;
     available = add(available, f.toWorldMs-f.fromWorldMs);
     const last = segments.at(-1);
-    if (last?.toWorldMs === f.fromWorldMs) last.toWorldMs = f.toWorldMs;
-    else segments.push({fromWorldMs:f.fromWorldMs,toWorldMs:f.toWorldMs});
+    if (last?.toWorldMs === f.fromWorldMs && last.actorId===f.actorId) last.toWorldMs = f.toWorldMs;
+    else segments.push({fromWorldMs:f.fromWorldMs,toWorldMs:f.toWorldMs,actorId:f.actorId});
   }
   const Q = MANUAL_HUSK_WORK.quantumMs, horizon = profile.knots.at(-1)!.workMs;
   const completionWork = Number((BigInt(horizon)+BigInt(Q)-1n)/BigInt(Q)*BigInt(Q));
@@ -125,17 +137,17 @@ function rebuild(worldId: string, worldEpoch: string, runId: string, spec: HuskW
     while (needed > 0) {
       const s = segments[index]; requireHost(s, 'work-segments-exhausted');
       const n = Math.min(needed, s.toWorldMs-s.fromWorldMs);
-      pieces.push({fromWorldMs:s.fromWorldMs,toWorldMs:s.fromWorldMs+n});
+      pieces.push({fromWorldMs:s.fromWorldMs,toWorldMs:s.fromWorldMs+n,actorId:s.actorId});
       s.fromWorldMs += n; needed -= n;
       if (s.fromWorldMs === s.toWorldMs) index++;
     }
     const quantumEnd = pieces.at(-1)!.toWorldMs, quantum = (budget-remaining)/Q;
     // Preserve real attestation times, including a later bulk recording. Only
     // physical output, work and balances are partition-invariant; audit times need not be.
-    const certifiedAt = Math.max(...frames.filter(f => isWork(f,spec) && pieces.some(p => f.fromWorldMs<p.toWorldMs && f.toWorldMs>p.fromWorldMs)).map(f => f.confirmedAtWorldMs));
+    const certifiedAt = Math.max(...frames.filter(f => isWork(f,spec,assignments) && pieces.some(p => f.fromWorldMs<p.toWorldMs && f.toWorldMs>p.fromWorldMs)).map(f => f.confirmedAtWorldMs));
     for (const p of pieces) science = model.commit(science, {
       kind:'host-confirmed-manual-work',confirmationId:runId+':work:'+quantum+':'+part++,
-      worldId,worldEpoch,runId,actorId:spec.operatorId,attendance:'present',operation:'separate-wet-husk',
+      worldId,worldEpoch,runId,attendance:'present',operation:'separate-wet-husk',
       ...p,confirmedAtWorldMs:certifiedAt,
     });
     remaining -= Q;
@@ -144,8 +156,9 @@ function rebuild(worldId: string, worldEpoch: string, runId: string, spec: HuskW
   if (completedAt === null) for (let i=index; i<segments.length; i++) {
     const s=segments[i]; if(s.toWorldMs>s.fromWorldMs) pending.push({...s});
   }
+  requireHost(abandonedAtWorldMs===null||(uint(abandonedAtWorldMs)&&abandonedAtWorldMs>=Math.max(observed,assignedAt)&&completedAt===null),'invalid-abandon-time');
   return {binding:canonical([MANUAL_HUSK_WORK,worldId,worldEpoch,runId,spec,source]),worldId,worldEpoch,runId,
-    spec:clone(spec),source:clone(source),frames:clone(frames),science,pending,
+    spec:clone(spec),source:clone(source),frames:clone(frames),assignments:clone(assignments),abandonedAtWorldMs,science,pending,
     pendingWorkMs:pending.reduce((n,s)=>add(n,s.toWorldMs-s.fromWorldMs),0),
     observedThroughWorldMs:observed,completedAtWorldMs:completedAt};
 }
@@ -156,12 +169,12 @@ function dataOf(L: Ledger, runId: string): {run: Run; data: HostData} {
     && v?.schema===MANUAL_HUSK_WORK.schema && v.data && typeof v.data==='object', 'unsupported-host-run-or-state');
   const d=v.data as HostData;
   requireHost(d.worldId===L.world.worldId && d.worldEpoch===L.world.worldEpoch && d.runId===runId, 'wrong-world-or-run');
-  const expected=rebuild(d.worldId,d.worldEpoch,d.runId,d.spec,d.source,d.frames);
+  const expected=rebuild(d.worldId,d.worldEpoch,d.runId,d.spec,d.source,d.frames,d.assignments,d.abandonedAtWorldMs);
   requireHost(canonical(d)===canonical(expected), 'corrupt-host-or-science-state');
-  requireHost(r.operator===d.spec.operatorId && r.lotIds.length===1 && r.lotIds[0]===d.source.lotId && r.equipmentIds.length===0, 'changed-run-binding');
-  const terminal=d.completedAtWorldMs!==null;
-  requireHost(terminal ? r.status==='completed' : ['starting','running'].includes(r.status), 'unexpected-run-status');
-  requireHost(r.lastTo===(terminal?d.completedAtWorldMs:d.observedThroughWorldMs), 'changed-run-clock');
+  requireHost(r.operator===d.assignments.at(-1)!.actorId && r.lotIds.length===1 && r.lotIds[0]===d.source.lotId && r.equipmentIds.length===0, 'changed-run-binding');
+  const terminal=d.completedAtWorldMs!==null||d.abandonedAtWorldMs!==null;
+  requireHost(terminal ? r.status===(d.abandonedAtWorldMs!==null?'stopped':'completed') : ['starting','running'].includes(r.status), 'unexpected-run-status');
+  requireHost(r.lastTo===(d.abandonedAtWorldMs??d.completedAtWorldMs??d.observedThroughWorldMs), 'changed-run-clock');
   if (!terminal) {
     const current=L.lots[d.source.lotId];
     requireHost(current && current.reservedBy===runId && canonical(withoutReservation(current))===canonical(d.source), 'lost-or-changed-reserved-husk');
@@ -206,10 +219,10 @@ export function beginManualHuskWork(L: Ledger, spec: HuskWorkSpec): {runId: stri
 export function projectManualHuskWork(L: Ledger, runId: string) {
   const {run,data:d}=dataOf(L,runId);
   return {status:run.status,certifiedWorkMs:d.science.totalWorkMs,pendingWorkMs:d.pendingWorkMs,
-    pools:clone(d.science.pools),completedAtWorldMs:d.completedAtWorldMs};
+    pools:clone(d.science.pools),completedAtWorldMs:d.completedAtWorldMs,abandonedAtWorldMs:d.abandonedAtWorldMs};
 }
 export function observeManualHuskWork(L: Ledger, runId: string): Observation[] {
-  const {data:d}=dataOf(L,runId); return observations(d,d.completedAtWorldMs??d.observedThroughWorldMs);
+  const {data:d}=dataOf(L,runId); return observations(d,d.abandonedAtWorldMs??d.completedAtWorldMs??d.observedThroughWorldMs);
 }
 function settlement(d: HostData): ScienceStepResult['produced'] {
   const p=d.science.pools, history=d.source.quality!.history_complete, produced: ScienceStepResult['produced']=[];
@@ -235,10 +248,10 @@ export function recordManualHuskSpan(L: Ledger, runId: string, span: HuskExecuto
     requireHost(canonical(previous)===canonical(span), 'conflicting-span-replay');
     return {status:old.run.status,observations:observeManualHuskWork(L,runId)};
   }
-  requireHost(old.data.completedAtWorldMs===null, 'run-already-settled');
+  requireHost(old.data.completedAtWorldMs===null&&old.data.abandonedAtWorldMs===null, 'run-already-settled');
   return transact(L, copy => {
     const {run:r,data:d}=dataOf(copy,runId);
-    const next=rebuild(d.worldId,d.worldEpoch,runId,d.spec,d.source,[...d.frames,clone(span)]);
+    const next=rebuild(d.worldId,d.worldEpoch,runId,d.spec,d.source,[...d.frames,clone(span)],d.assignments);
     const to=next.completedAtWorldMs??span.toWorldMs;
     const req: ScienceStepRequest={
       contract:r.contract,requestId:runId+':span:'+JSON.stringify(span.spanId),world:{...copy.world},
@@ -259,5 +272,43 @@ export function recordManualHuskSpan(L: Ledger, runId: string, span: HuskExecuto
     };
     const applied=commit(copy,req,result); requireHost(applied.ok,applied.why??'settlement-refused');
     return {status:r.status,observations:nextObs};
+  });
+}
+
+/** Arrangement-only reassignment; original source/spec and work fragments remain. */
+export function reassignManualHuskWork(L:Ledger,runId:string,actorId:string,atWorldMs:number):void{
+  transact(L,copy=>{
+    const {run:r,data:d}=dataOf(copy,runId);
+    requireHost(d.completedAtWorldMs===null&&d.abandonedAtWorldMs===null,'run-already-settled');
+    requireHost(id(actorId)&&actorId!==r.operator&&uint(atWorldMs)
+      &&atWorldMs>=Math.max(d.observedThroughWorldMs,d.assignments.at(-1)!.atWorldMs),'invalid-reassignment');
+    const next=rebuild(d.worldId,d.worldEpoch,runId,d.spec,d.source,d.frames,[...d.assignments,{actorId,atWorldMs}]);
+    r.operator=actorId;r.state={schema:MANUAL_HUSK_WORK.schema,data:next};copy.world.worldVersion++;
+  });
+}
+/** Settle complete quanta only; no original whole husk is returned. */
+export function abandonManualHuskWork(L:Ledger,runId:string,atWorldMs:number):void{
+  const old=dataOf(L,runId);
+  if(old.data.abandonedAtWorldMs!==null){
+    requireHost(old.data.abandonedAtWorldMs===atWorldMs,'conflicting-abandon-replay');return;
+  }
+  requireHost(old.data.completedAtWorldMs===null,'run-already-settled');
+  transact(L,copy=>{
+    const {run:r,data:d}=dataOf(copy,runId),next=rebuild(d.worldId,d.worldEpoch,runId,d.spec,d.source,d.frames,d.assignments,atWorldMs);
+    const req:ScienceStepRequest={
+      contract:r.contract,requestId:runId+':abandon',world:{...copy.world},runId,
+      processId:r.processId,processVersion:r.processVersion,catalogVersion:r.catalogVersion,
+      interval:{from:r.lastTo,to:atWorldMs},state:clone(r.state),
+      environment:{sampleId:'env:manual-husk-unused',source:'unknown',effectiveAt:r.lastTo},
+      lots:[withoutReservation(copy.lots[d.source.lotId])],equipment:[],energy:[],actions:[],seed:r.seed,
+    };
+    const res:ScienceStepResult={
+      contract:r.contract,requestId:req.requestId,runId,simulated:{from:r.lastTo,to:atWorldMs},
+      state:{schema:MANUAL_HUSK_WORK.schema,data:next},status:'stopped',
+      consumed:[{lotId:d.source.lotId,amount:clone(d.source.amount)}],produced:settlement(next),
+      released:[],drawn:[],energy:[],equipmentWear:[],observations:[{at:atWorldMs,channel:'sight',text:'途中までほぐした殻を脇に置いた。'}],
+      evidence:{evaluatorVersion:MANUAL_HUSK_WORK.processVersion,sourceRefs:[],notes:'owner-assumption-not-calibrated; partial settlement'},
+    };
+    const applied=commit(copy,req,res);requireHost(applied.ok,applied.why??'settlement-refused');
   });
 }
