@@ -292,9 +292,9 @@ export function readCordWorksite(L:CordWorkLedger,siteId:string,asOfWorldMs:numb
  nextStep:complete?'回収した材料を確認し、次の作業を選ぶ。':!engaged?'続けたい意図と実際の作業条件を確認する。':manual?'実際に手を動かした区間を確認する。':'屋根の下に置かれていた区間を確認する。',observations};
  });
 }
-export function readCordWorkerObservations(L:CordWorkLedger,runId:string,actorId:string):{channel:'touch';text:string}[]{
+export function readCordWorkerObservations(L:CordWorkLedger,runId:string,actorId:string):{channel:'sight';text:string}[]{
  return safe(()=>{arrangement(L);const d=raw(L,runId);if(d.spec.operation==='dry'||actor(d)!==actorId||!d.frames.some(f=>f.kind==='executor-activity-span'&&f.actorId===actorId&&f.fromWorldMs>=d.controls.filter(c=>['start','takeover'].includes(c.kind)).at(-1)!.atWorldMs&&eligible(f,d.spec,d.controls)))return [];
- return [{channel:'touch',text:model(d).observe(d.science).text}];});
+ return [{channel:'sight',text:model(d).observe(d.science).text}];});
 }
 /** Public failure words are deliberately separate from internal error codes. */
 export function cordFailureObservations(error:unknown,attempt?:{kind:'host-confirmed-on-site-attempt'}):{channel:'touch'|'sight';text:string}[]{
