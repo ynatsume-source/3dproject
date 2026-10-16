@@ -1,6 +1,7 @@
 // Scientific work arrangement, phase 1: PR20 only. Decisions, movement and UI
 // remain in the host. This metadata lives inside the existing Ledger JSON.
 import type {Ledger} from './process-runner';
+import {otherScienceWorkBusy} from './science-work-occupancy';
 import type {HuskWorkSpec,HuskExecutorSpan} from './manual-husk-work';
 import {MANUAL_HUSK_WORK,beginManualHuskWork,recordManualHuskSpan,projectManualHuskWork,observeManualHuskWork} from './manual-husk-work';
 export const HUSK_WORKFLOW_SCHEMA='civ-world.manual-husk-arrangement/1';
@@ -103,6 +104,8 @@ export function applyHuskIntent(L:HuskWorkflowLedger,i:HuskIntent,expectedRevisi
  return transaction(L,(draft,state)=>{
   version(state,expectedRevision);ensure(i.atWorldMs>=state.authorityAtWorldMs,'backdated-intent');state.authorityAtWorldMs=i.atWorldMs;let j:Job;
   if(i.kind==='start'){
+   const foreign=otherScienceWorkBusy(draft,i.actorId,i.siteId,MANUAL_HUSK_WORK.processId);
+   ensure(!foreign.actor&&!foreign.site,'other-science-work-busy');
    ensure(facts&&shape(facts,['assumptionId','huskCount','input','worksite'])&&facts.input?.lotId===i.lotId&&facts.worksite?.locationId===i.siteId,'start-facts-required');
    ensure(!state.jobs.some(x=>authority(draft,x).p.status!=='completed'&&x.siteId===i.siteId),'worksite-reserved');
    ensure(!state.jobs.some(x=>authority(draft,x).p.status!=='completed'&&active(x)&&x.actorId===i.actorId),'actor-busy');
@@ -115,6 +118,7 @@ export function applyHuskIntent(L:HuskWorkflowLedger,i:HuskIntent,expectedRevisi
    ensure(a.p.status!=='completed','work-already-completed');
    ensure(i.atWorldMs>=Math.max(j.controls.at(-1)!.atWorldMs,a.through),'intent-precedes-certified-work');
    if(i.kind==='resume'){
+    ensure(!otherScienceWorkBusy(draft,i.actorId,'',MANUAL_HUSK_WORK.processId).actor,'other-science-work-busy');
     ensure(!state.jobs.some(x=>x!==j&&authority(draft,x).p.status!=='completed'&&active(x)&&x.actorId===i.actorId),'actor-busy');
     ensure(!active(j),'already-engaged');
    }else ensure(active(j),'already-paused');
