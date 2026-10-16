@@ -147,6 +147,7 @@ export function recordHuskWorkflowSpan(L:HuskWorkflowLedger,runId:string,f:HuskE
   const a=authority(draft,j),isWork=worksAt(f,a.spec);
   if(isWork)ensure(permitted(j,f),'work-outside-engaged-interval');
   recordManualHuskSpan(draft,runId,f,nowWorldMs);
+  state.authorityAtWorldMs=Math.max(state.authorityAtWorldMs,f.confirmedAtWorldMs);
   state.receipts.push({key:k,payload,runId});
  });
 }

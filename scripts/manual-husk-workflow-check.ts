@@ -146,6 +146,15 @@ test('same actor and occupied site cannot be double booked; pause permits anothe
  const third={...json(a.L.lots.other),lotId:'third',location:'site'};delete third.reservedBy;addLot(a.L,third);
  unchanged(a,()=>applyHuskIntent(a.L,{...i,intentId:'third',actorId:'other-actor',lotId:'third',siteId:'site'} as HuskIntent,rev(a),2000,same));
 });
+test('a completed run cannot free its operator retroactively for overlapping work',()=>{
+ const a=fixture();work(a,0,240000);
+ const f=json(a.facts);f.input.lotId='second';f.worksite.locationId='next-site';
+ addLot(a.L,{lotId:'second',materialId:'wet_unseparated_coconut_husk',amount:{value:900000,unit:'mg'},location:'next-site',
+ quality:{dry_mg:300000,water_mg:600000,husk_count:1,unseparated:1,history_complete:1}});
+ const i={...a.intent,intentId:'second',lotId:'second',siteId:'next-site',atWorldMs:2000} as HuskIntent;
+ unchanged(a,()=>applyHuskIntent(a.L,i,rev(a),241000,f));
+ applyHuskIntent(a.L,{...i,atWorldMs:241000},rev(a),241000,f);
+});
 test('only the original operator resumes phase one and no scheduled time declares readiness',()=>{
  const a=fixture();control(a,'stop',0);
  unchanged(a,()=>applyHuskIntent(a.L,{kind:'resume',intentId:'steal',runId:a.runId,actorId:'other',atWorldMs:1000,presence:'here'},rev(a),1000));
