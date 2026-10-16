@@ -8,13 +8,13 @@ export function otherScienceWorkBusy(L:Ledger,actorId:string,siteId:string,ownPr
   const d=r.state?.data as any;
   let who:string,where:string,engaged:boolean,manual=true;
   if(r.processId==='prototype_manual_husk_work'){
-   if(r.state?.schema!=='civ-world.manual-husk-work/1'||!d?.spec)throw Error('invalid-science-occupancy');
+   if(r.state?.schema!=='civ-world.manual-husk-work/2'||!d?.spec)throw Error('invalid-science-occupancy');
    const j=(L as any).manualHuskArrangement?.jobs?.find((j:any)=>j.runId===r.runId);
    if(!j||!Array.isArray(j.controls)||!j.controls.length)throw Error('missing-science-arrangement');
-   who=d.spec.operatorId;where=d.spec.worksite?.locationId;engaged=['start','resume'].includes(j.controls.at(-1).kind);
+   who=j.actorId;where=d.spec.worksite?.locationId;engaged=['start','resume','takeover'].includes(j.controls.at(-1).kind);
   }else{
-   if(r.state?.schema!=='civ-world.coir-work/1'||!d?.spec||!Array.isArray(d.controls)||!d.controls.length)throw Error('invalid-science-occupancy');
-   who=d.spec.actorId;where=d.spec.facts?.worksite?.locationId;manual=d.spec.operation!=='dry';engaged=['start','resume'].includes(d.controls.at(-1).kind);
+   if(r.state?.schema!=='civ-world.coir-work/2'||!d?.spec||!Array.isArray(d.controls)||!d.controls.length)throw Error('invalid-science-occupancy');
+   who=d.controls.at(-1).actorId;where=d.spec.facts?.worksite?.locationId;manual=d.spec.operation!=='dry';engaged=['start','resume','takeover'].includes(d.controls.at(-1).kind);
   }
   if(typeof who!=='string'||typeof where!=='string'||r.operator!==who)throw Error('changed-science-occupancy');
   if(where===siteId)site=true;if(manual&&engaged&&who===actorId)actor=true;
