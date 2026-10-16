@@ -1,0 +1,8 @@
+PASS actual PR22 output decodes complete water/provenance and canonical roundtrip
+PASS tiny and maximum-safe bundles conserve integers; overflow refuses
+PASS wrong mass, quantity, hidden fields, material, provenance and codecs reject
+PASS piece roundtrip keeps all hidden damage and inherited wear with defensive objects
+PASS malformed piece fields and nested damage refuse while zero strength is valid
+PASS fallen pith cannot hide fiber and cannot be reread as a strand or bundle
+PASS deterministic 500-case serialization sweep preserves component and hidden strength
+PASS coir cord lots: 7 groups.

@@ -1,0 +1,11 @@
+PASS takeover only paused by another free actor, not passive dry
+PASS new actor inherits 17-second fragments; old actor no longer advances
+PASS takeover after restore preserves work and cannot double book a cord actor
+PASS abandon ignores subquantum work, closes once, and rejects further frames
+PASS sieve partial settlement returns fallen pith and bundle, with provenance
+PASS twist partial product preserves initial strength and conservative leftover
+PASS ply partial product and each remaining strand retain exact mass and wear
+PASS dry partial removal books only actual vapor and no takeover
+PASS abandoned partitions, JSON and repeated commands preserve all products
+PASS schema relabeling and changed operator/history are refused atomically
+PASS coir handover/cleanup: 10 groups.

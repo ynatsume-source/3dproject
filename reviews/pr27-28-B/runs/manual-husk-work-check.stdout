@@ -1,0 +1,21 @@
+PASS explicit assumptions and a whole single husk are mandatory; original science inputs unchanged
+PASS exact opening time and real 30-second work quanta, without future-mark delay
+PASS rest, travel, unknown, wrong actor/target and non-arrival never certify work
+PASS pending real fragments cross a rest without counting the rest
+PASS JSON save keeps pending work and reservation; an offline gap creates no work
+PASS standard completion settles exactly once into three distinct conservative lots
+PASS one large span stops at the same actual completion time as smaller spans
+PASS different capture partitions and JSON resumes preserve physical results and observations
+PASS durable frame/start replay survives later work, JSON and a trimmed global committed list
+PASS future spans, wrong worlds, malformed facts and temporal overlap reject atomically
+PASS changed source amount, composition, place or reservation is never consumed
+PASS corrupt saved accounting, provenance and host state reject before any ledger change
+PASS reservation prevents a second run; generic husks or two-husk lots are not inferred
+PASS observations have only sight/touch words and never expose numerical accounting
+PASS a non-30-second profile horizon rounds host effort up without extrapolating yield
+PASS tiny integer-mg source never invents a fiber carrier or loses water
+PASS unrelated ledger lots and active runs remain unchanged
+PASS caller mutations of specs, frames and returned views cannot alter saved work
+PASS returned residual cannot be presented as a new never-separated whole husk
+PASS deterministic mixed work/rest/JSON cases match certified work without clock-derived output
+PASS manual husk host boundary: 20 groups; no live resident registration.

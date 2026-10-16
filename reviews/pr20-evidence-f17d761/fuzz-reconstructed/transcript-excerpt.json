@@ -1,0 +1,41 @@
+[
+ {
+  "tool_use_id": "toolu_01CzdstmbEXK3gJq9xQNAvj5",
+  "use": {
+   "jsonl_line": 11376,
+   "timestamp": "2026-10-15T02:01:18.209Z",
+   "command": "S=/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr20; cat > $S/fuzz.ts <<'EOF'\nimport { createManualHuskSeparation } from './co/src/science/prototypes/manual-husk-separation';\nlet rnd = 12345; const r = (n: number) => { rnd = (rnd * 1103515245 + 12345) % 2147483648; return rnd % n; };\nlet cases = 0, bad: string[] = [];\nfor (let c = 0; c < 400; c++) {\n  const dry = 1 + r(5000), water = 1 + r(5000);\n  const nk = 2 + r(5); const knots: any[] = [{ workMs: 0, fiberDryMg: 0, attachedPithDryMg: 0, fiberWaterMg: 0, attachedPithWaterMg: 0, dischargedWaterMg: 0 }];\n  let ok = true;\n  for (let i = 1; i < nk; i++) {\n    const p = knots[i - 1];\n    const fd = Math.min(dry, p.fiberDryMg + r(dry / nk + 2)), pd = Math.min(dry - fd, p.attachedPithDryMg + r(dry / nk + 2));\n    const fw = p.fiberWaterMg + r(water / (3 * nk) + 2), pw = p.attachedPithWaterMg + r(water / (3 * nk) + 2), dw = p.dischargedWaterMg + r(water / (3 * nk) + 2);\n    const k = { workMs: p.workMs + 1 + r(50), fiberDryMg: fd, attachedPithDryMg: Math.max(pd, p.attachedPithDryMg), fiberWaterMg: fd > 0 ? fw : 0, attachedPithWaterMg: (pd > 0 && fd > 0) ? pw : 0, dischargedWaterMg: dw };\n    if (k.fiberDryMg === 0) { k.attachedPithDryMg = 0; }\n    if (k.attachedPithDryMg < p.attachedPithDryMg || k.fiberWaterMg < p.fiberWaterMg || k.attachedPithWaterMg < p.attachedPithWaterMg) ok = false;\n    if (k.fiberDryMg + k.attachedPithDryMg > dry || k.fiberWaterMg + k.attachedPithWaterMg + k.dischargedWaterMg > water) ok = false;\n    knots.push(k);\n  }\n  if (!ok) continue;\n  let m: any;\n  try { m = createManualHuskSeparation({ materialId: 'wet_unseparated_coconut_husk', lotId: 'l', separation: 'never-separated', dryMg: dry, waterMg: water, soakHistory: [] }, { kind: 'uncalibrated-test-profile', profileId: 'p', knots }, { worldId: 'w', worldEpoch: 'e', runId: 'r', openedAtWorldMs: 0 }); }\n  catch { continue; }\n  cases++;\n  const H = knots.at(-1).workMs + 5; let prev: any = null;\n  for (let t = 0; t <= H; t++) {\n    const s = t === 0 ? m.start() : m.commit(m.start(), { kind: 'host-confirmed-manual-work', confirmationId: 'x', worldId: 'w', worldEpoch: 'e', runId: 'r', actorId: 'a', attendance: 'present', operation: 'separate-wet-husk', fromWorldMs: 0, toWorldMs: t, confirmedAtWorldMs: t });\n    const p = s.pools;\n    if (p.fiber.dryMg + p.attachedPith.dryMg + p.residualHusk.dryMg !== dry) bad.push(`dry c${c} t${t}`);\n    if (p.fiber.waterMg + p.attachedPith.waterMg + p.residualHusk.waterMg + p.dischargedWaterMg !== water) bad.push(`water c${c} t${t}`);\n    if (Object.values(p).flatMap((v: any) => typeof v === 'number' ? [v] : Object.values(v)).some((v: any) => !(Number.isSafeInteger(v) && v >= 0))) bad.push(`neg c${c} t${t}`);\n    if ((p.fiber.dryMg === 0 && (p.fiber.waterMg || p.attachedPith.dryMg || p.attachedPith.waterMg)) || (p.attachedPith.dryMg === 0 && p.attachedPith.waterMg)) bad.push(`carrier c${c} t${t}`);\n    if (prev && (p.fiber.dryMg < prev.fiber.dryMg || p.attachedPith.dryMg < prev.attachedPith.dryMg || p.fiber.waterMg < prev.fiber.waterMg || p.attachedPith.waterMg < prev.attachedPith.waterMg || p.dischargedWaterMg < prev.dischargedWaterMg || p.residualHusk.dryMg > prev.residualHusk.dryMg || p.residualHusk.waterMg > prev.residualHusk.waterMg)) bad.push(`monotone c${c} t${t} ${JSON.stringify(prev)} -> ${JSON.stringify(p)}`);\n    prev = p;\n  }\n}\nconsole.log({ cases, bad: bad.length, first: bad.slice(0, 3) });\nEOF\ncd $S && node --import tsx --import ./co/scripts/node-assets.mjs fuzz.ts 2>&1 | tail -5"
+  },
+  "result": {
+   "jsonl_line": 11377,
+   "timestamp": "2026-10-15T02:01:18.312Z",
+   "content": "    at ModuleLoader.import (node:internal/modules/esm/loader:663:21) {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\nNode.js v22.22.0\nShell cwd was reset to /home/user/3dproject"
+  }
+ },
+ {
+  "tool_use_id": "toolu_011nVngKyW2ZyQ7WeSRchTEs",
+  "use": {
+   "jsonl_line": 11385,
+   "timestamp": "2026-10-15T02:01:22.351Z",
+   "command": "S=/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr20; mkdir -p $S/co/scratch-review && sed \"s#'./co/src/science/prototypes/manual-husk-separation'#'../src/science/prototypes/manual-husk-separation'#\" $S/fuzz.ts > $S/co/scratch-review/fuzz.ts && cd $S/co && node --import tsx --import ./scripts/node-assets.mjs scratch-review/fuzz.ts 2>&1 | tail -8"
+  },
+  "result": {
+   "jsonl_line": 11386,
+   "timestamp": "2026-10-15T02:01:22.752Z",
+   "content": "{ cases: 6, bad: 0, first: [] }\nShell cwd was reset to /home/user/3dproject"
+  }
+ },
+ {
+  "tool_use_id": "toolu_014xrQYcFwTzNp3xM38Mwght",
+  "use": {
+   "jsonl_line": 11389,
+   "timestamp": "2026-10-15T02:01:34.088Z",
+   "command": "S=/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr20; python3 -I - <<'EOF'\np='/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr20/co/scratch-review/fuzz.ts'; s=open(p).read()\ni=s.index(\"  const nk = 2 + r(5);\"); j=s.index(\"  if (!ok) continue;\")\nnew='''  const nk = 2 + r(5); let ok = true;\n  const FD = 1 + r(dry), PD = r(dry - FD + 1), FW = r(water + 1), PW = PD > 0 ? r(water - FW + 1) : 0, DW = r(water - FW - PW + 1);\n  const series = (F: number, positive: boolean) => { const v = Array.from({ length: nk - 1 }, () => (positive ? 1 : 0) + r(Math.max(1, F))).map((x) => Math.min(F, x)).sort((a, b) => a - b); v[v.length - 1] = F; return [0, ...v]; };\n  const fd = series(FD, true), pd = series(PD, false), fw = series(FW, false), pw = series(PW, false), dw = series(DW, false);\n  const knots: any[] = []; let w = 0;\n  for (let i = 0; i < nk; i++) { if (i) w += 1 + r(60); knots.push({ workMs: w, fiberDryMg: fd[i], attachedPithDryMg: pd[i], fiberWaterMg: fw[i], attachedPithWaterMg: pd[i] > 0 ? pw[i] : 0, dischargedWaterMg: dw[i] }); }\n  for (let i = 1; i < nk; i++) if (knots[i].attachedPithWaterMg < knots[i - 1].attachedPithWaterMg) ok = false;\n'''\ns=s[:i]+new+s[j:]\ns=s.replace(\"for (let c = 0; c < 400; c++)\",\"for (let c = 0; c < 3000; c++)\")\nopen(p,'w').write(s)\nEOF\ncd $S/co && node --import tsx --import ./scripts/node-assets.mjs scratch-review/fuzz.ts 2>&1 | tail -5"
+  },
+  "result": {
+   "jsonl_line": 11390,
+   "timestamp": "2026-10-15T02:01:42.450Z",
+   "content": "{ cases: 3000, bad: 0, first: [] }\nShell cwd was reset to /home/user/3dproject"
+  }
+ }
+]

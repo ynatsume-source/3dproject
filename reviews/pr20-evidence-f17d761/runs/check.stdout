@@ -1,0 +1,12 @@
+PASS explicit partial partition and separate dry/water balances
+PASS pause/absence gaps contribute no work; partial save resumes
+PASS all single split points and 1ms chunks match lumped work, including profile exhaustion
+PASS durable exact replays, conflicts, overlaps and cross-run work
+PASS no unworked, absent, planned, future or display-replay separation
+PASS zero recovery, explicit drainage, no phantom water carriers
+PASS reject separated fibre/pith and raw PR12 outputs; no implicit adapter
+PASS soak history is provenance only, no readiness or temperature multiplier
+PASS required, bounded, monotone profile; no hidden defaults
+PASS save/accounting corruption and changed input/profile rejected; key order preserved semantically
+PASS defensive copies and safe large integer arithmetic
+PASS manual husk separation: 11 groups; dry/water conservation, partition/resume/replay, zero yield, invalid inputs and read-only invariance.
