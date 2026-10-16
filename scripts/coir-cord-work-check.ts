@@ -109,7 +109,7 @@ test('returned dry bundle, strand and leftover preserve hidden traits and proven
  const strand=Object.values(b.L.lots).find(l=>l.materialId==='coir_strand')!,piece=readCordPiece(strand);
  assert.equal(piece.lengthMm,1000);assert.ok(currentCordStrength(piece)>0);assert.ok('base_strength_gf' in strand.quality!);
  const rest=Object.values(b.L.lots).find(l=>l.materialId==='coir_fiber_bundle')!;readCordBundle(rest);
- safe(readCordWorkerObservations(b.L,b.runId,'actor'));safe(readCordWorksite(b.L,'site',T+120000));
+ const observed=readCordWorkerObservations(b.L,b.runId,'actor');assert.ok(observed.length>0);assert.ok(observed.every(o=>o.channel==='sight'));safe(observed);safe(readCordWorksite(b.L,'site',T+120000));
 });
 test('zero-duration no-op stages settle exactly once and pith-only tiny remainder is not disguised as fiber',()=>{
  const a=fixture('dry',false,false);a.L.lots.bundle.quality!.water_mg=0;a.L.lots.bundle.amount.value=79200;
