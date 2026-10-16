@@ -288,8 +288,8 @@ export function readCordWorkerObservations(L:CordWorkLedger,runId:string,actorId
 export function cordFailureObservations(error:unknown,attempt?:{kind:'host-confirmed-on-site-attempt'}):{channel:'touch'|'sight';text:string}[]{
  if(!attempt||!shape(attempt,['kind'])||attempt.kind!=='host-confirmed-on-site-attempt')return [{channel:'sight',text:'作業場で材料を確かめたい。'}];
  const code=error instanceof CordWorkError?error.code:'unknown';
- const words:Record<string,string>={'wet-fiber-cannot-twist':'繊維が湿っていて、撚れない。','too-much-pith-sieve-first':'髄が多く残っている。先に振るいたい。',
+ const words:Record<string,string>={'wet-fiber-cannot-twist':'繊維が湿っていて、撚れない。','too-much-pith-sieve-first':'髄が多く、撚るとぼろぼろ崩れる。',
  'insufficient-fiber':'撚るための繊維が足りない。','strands-too-short':'撚り糸が短く、合わせられない。','strands-not-similar-length':'撚り糸の長さがそろっていない。',
- 'three-distinct-strands-required':'別々の撚り糸をそろえたい。'};
+ 'three-distinct-strands-required':'同じ撚り糸どうしでは合わせられない。'};
  return [{channel:'touch',text:Object.hasOwn(words,code)?words[code]:'作業を進められない。材料と作業場を確かめたい。'}];
 }
