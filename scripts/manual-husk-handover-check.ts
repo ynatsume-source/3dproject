@@ -42,7 +42,7 @@ function action(a:F,kind:'takeover'|'abandon',at:number,actorId='actor',intentId
 const balance=(a:F)=>{
  const lots=Object.values(a.L.lots);assert.equal(lots.reduce((n,l)=>n+BigInt(l.amount.value),0n),900000n);
  let dry=0n,water=0n;for(const l of lots){const q=l.quality!;if(l.materialId==='coir_fiber_bundle'){dry+=BigInt(q.fiber_dry_mg+q.attached_pith_dry_mg);water+=BigInt(q.water_mg);}
- else if(l.materialId==='partially_separated_coconut_husk'){dry+=BigInt(q.dry_mg);water+=BigInt(q.water_mg);}else if(l.materialId==='husk_drainage_water')water+=BigInt(q.water_mg);else assert.fail(l.materialId);}
+ else if(['wet_unseparated_coconut_husk','partially_separated_coconut_husk'].includes(l.materialId)){dry+=BigInt(q.dry_mg);water+=BigInt(q.water_mg);}else if(l.materialId==='husk_drainage_water')water+=BigInt(q.water_mg);else assert.fail(l.materialId);}
  assert.equal(dry,300000n);assert.equal(water,600000n);assert.ok(lots.every(l=>!l.reservedBy));
 };
 test('takeover and cleanup require pause; new actor differs and history remains',()=>{
@@ -65,8 +65,8 @@ test('restore allows a different actor and returned actor must reconfirm own wor
  action(a,'takeover',1014000,'actor','back');assert.deepEqual(readHuskResidentObservations(a.L,a.runId,'actor'),[]);
  assert.equal(projectManualHuskWork(a.L,a.runId).certifiedWorkMs,30000);
 });
-test('all cleanup checkpoints close dry/water and never return a new whole husk',()=>{
- for(const ms of [0,1,17000,29999,30000,47000,60000,119999,239999]){
+test('certified partial cleanup checkpoints close dry/water and never return a new whole husk',()=>{
+ for(const ms of [30000,47000,60000,119999,239999]){
  const a=fixture();if(ms)work(a,0,ms);const p=projectManualHuskWork(a.L,a.runId);
  control(a,'stop',ms);action(a,'abandon',ms);const q=projectManualHuskWork(a.L,a.runId);
  assert.equal(q.status,'stopped');assert.deepEqual(q.pools,p.pools);assert.equal(q.certifiedWorkMs,Math.floor(ms/30000)*30000);balance(a);
@@ -101,4 +101,48 @@ test('cleanup frees the worksite and public data contains no hidden numbers or r
  function safe(v:any){if(Array.isArray(v)){v.forEach(safe);return;}if(v&&typeof v==='object'){Object.values(v).forEach(safe);return;}assert.notEqual(typeof v,'number');if(typeof v==='string')assert.ok(!/[0-9]|mg|gf|seed|仮定|キメ値|先に振る/.test(v));}
  safe(v);safe(readHuskResidentObservations(a.L,a.runId,'actor'));balance(a);
 });
+
+test('B1 zero certified work releases the exact original husk without replacing it',()=>{
+ for(const ms of [0,1,17000,29999]){
+ // Extra quality is part of the immutable source; start with it recorded.
+ const b=fixture(false);b.L.lots.husk.quality!.extra_provenance=7;
+ const original=json(b.L.lots.husk);
+ b.runId=applyHuskIntent(b.L,b.intent,0,1000,b.facts).runId;
+ const seq=b.L.seq;if(ms)work(b,0,ms);control(b,'stop',ms);action(b,'abandon',ms);
+ assert.deepEqual(b.L.lots,{husk:original});assert.equal(b.L.seq,seq);
+ assert.equal(p(b).certifiedWorkMs,0);assert.equal(p(b).status,'stopped');
+ assert.equal(readHuskWorksite(b.L,'site',1000+ms).stage,'手つかずの殻を片付けた');
+ assert.deepEqual(readHuskResidentObservations(b.L,b.runId,'actor'),[{channel:'sight',text:'殻を手つかずのまま脇に置いた。'}]);
+ assert.equal(b.L.runs[b.runId].observations.at(-1)!.text,'殻を手つかずのまま脇に置いた。');
+ balance(b);
+ }
+});
+test('B1 the untouched same husk can restart, survive replay/restore, and finish',()=>{
+ for(const ms of [0,1,17000,29999]){
+ const a=fixture();if(ms)work(a,0,ms);control(a,'stop',ms);
+ const abandonedRun=a.runId,close:HuskIntent={kind:'abandon',intentId:'abandon',actorId:'actor',runId:abandonedRun,atWorldMs:1000+ms};
+ applyHuskIntent(a.L,close,rev(a),1000+ms);
+ const freshAt=2000+ms;
+ a.runId=applyHuskIntent(a.L,{...a.intent,intentId:'fresh-start',atWorldMs:freshAt},rev(a),freshAt,a.facts).runId;
+ assert.notEqual(a.runId,abandonedRun);assert.equal(a.L.lots.husk.reservedBy,a.runId);assert.equal(p(a).certifiedWorkMs,0);
+ a.L=json(a.L);a.L.committed=[];const before=json(a.L);
+ assert.equal(applyHuskIntent(a.L,close,0,freshAt).runId,abandonedRun);assert.deepEqual(a.L,before);
+ a.L=restoreHuskArrangement(json(a.L),freshAt);
+ control(a,'resume',ms+1000,'fresh-resume');
+ work(a,ms+1000,ms+1000+239999,'fresh-prefix');
+ assert.equal(p(a).status,'running');assert.equal(p(a).certifiedWorkMs,210000);
+ work(a,ms+1000+239999,ms+1000+240000,'fresh-last');
+ assert.equal(p(a).status,'completed');assert.equal(p(a).certifiedWorkMs,240000);balance(a);
+ const complete=json(a.L);applyHuskIntent(a.L,close,0,freshAt+240000);assert.deepEqual(a.L,complete);
+ }
+});
+test('B1 pending work across takeover is still untouched when the job is abandoned',()=>{
+ const a=fixture(),original=json(a.L.lots.husk);delete original.reservedBy;
+ work(a,0,17000);control(a,'stop',17000);action(a,'takeover',20000,'new');
+ work(a,20000,32000,'new-span',{actorId:'new'});
+ applyHuskIntent(a.L,{kind:'stop',intentId:'stop-new',actorId:'new',runId:a.runId,atWorldMs:33000},rev(a),33000);
+ action(a,'abandon',32000,'new');assert.equal(p(a).certifiedWorkMs,0);
+ assert.deepEqual(a.L.lots,{husk:original});balance(a);
+});
+
 console.log('PASS manual husk handover: '+groups+' groups.');

@@ -286,7 +286,7 @@ export function reassignManualHuskWork(L:Ledger,runId:string,actorId:string,atWo
     r.operator=actorId;r.state={schema:MANUAL_HUSK_WORK.schema,data:next};copy.world.worldVersion++;
   });
 }
-/** Settle complete quanta only; no original whole husk is returned. */
+/** Settle complete quanta only; untouched husks keep their original identity. */
 export function abandonManualHuskWork(L:Ledger,runId:string,atWorldMs:number):void{
   const old=dataOf(L,runId);
   if(old.data.abandonedAtWorldMs!==null){
@@ -302,11 +302,14 @@ export function abandonManualHuskWork(L:Ledger,runId:string,atWorldMs:number):vo
       environment:{sampleId:'env:manual-husk-unused',source:'unknown',effectiveAt:r.lastTo},
       lots:[withoutReservation(copy.lots[d.source.lotId])],equipment:[],energy:[],actions:[],seed:r.seed,
     };
+    // Pending sub-quantum work has not changed the material. End the run and
+    // release its reservation without consuming or re-identifying the source.
+    const untouched=next.science.totalWorkMs===0;
     const res:ScienceStepResult={
       contract:r.contract,requestId:req.requestId,runId,simulated:{from:r.lastTo,to:atWorldMs},
       state:{schema:MANUAL_HUSK_WORK.schema,data:next},status:'stopped',
-      consumed:[{lotId:d.source.lotId,amount:clone(d.source.amount)}],produced:settlement(next),
-      released:[],drawn:[],energy:[],equipmentWear:[],observations:[{at:atWorldMs,channel:'sight',text:'途中までほぐした殻を脇に置いた。'}],
+      consumed:untouched?[]:[{lotId:d.source.lotId,amount:clone(d.source.amount)}],produced:untouched?[]:settlement(next),
+      released:[],drawn:[],energy:[],equipmentWear:[],observations:[{at:atWorldMs,channel:'sight',text:untouched?'殻を手つかずのまま脇に置いた。':'途中までほぐした殻を脇に置いた。'}],
       evidence:{evaluatorVersion:MANUAL_HUSK_WORK.processVersion,sourceRefs:[],notes:'owner-assumption-not-calibrated; partial settlement'},
     };
     const applied=commit(copy,req,res);requireHost(applied.ok,applied.why??'settlement-refused');

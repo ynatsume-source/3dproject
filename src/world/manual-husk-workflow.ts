@@ -144,7 +144,7 @@ function permitted(j:Job,f:HuskExecutorSpan){
  }return false;
 }
 function observations(L:Ledger,j:Job,worker?:string):{channel:'sight'|'touch';text:string}[]{
- const a=authority(L,j);if(a.p.status==='stopped')return [{channel:'sight',text:'途中までほぐした殻を脇に置いた。'}];
+ const a=authority(L,j);if(a.p.status==='stopped')return [{channel:'sight',text:a.p.certifiedWorkMs===0?'殻を手つかずのまま脇に置いた。':'途中までほぐした殻を脇に置いた。'}];
  const assignmentAt=a.assignments.at(-1)!.atWorldMs;
  if(!a.frames.some(f=>(worker===undefined||f.actorId===worker&&f.fromWorldMs>=assignmentAt)&&worksAt(f,a.spec,actorAt(j,f.fromWorldMs))))return [];
  return observeManualHuskWork(L,j.runId).map(o=>({channel:o.channel as 'sight'|'touch',text:o.text!}));
@@ -196,7 +196,7 @@ export function readHuskWorksite(L:HuskWorkflowLedger,siteId:string,asOfWorldMs:
  const a=authority(L,j),last=j.controls.at(-1)!;
  ensure(asOfWorldMs>=Math.max(last.atWorldMs,a.through),'view-before-record');
  const visible=observations(L,j).filter(o=>o.channel==='sight');
- if(a.p.status==='stopped')return {title:'ヤシ殻の作業場',stage:'途中までの殻を片付けた',activity:'abandoned',materialsReserved:false,operatorFree:true,reason:null,nextStep:'本体が選んだ作業の意図を受け取る。',observations:visible};
+ if(a.p.status==='stopped')return {title:'ヤシ殻の作業場',stage:a.p.certifiedWorkMs===0?'手つかずの殻を片付けた':'途中までの殻を片付けた',activity:'abandoned',materialsReserved:false,operatorFree:true,reason:null,nextStep:'本体が選んだ作業の意図を受け取る。',observations:visible};
  if(a.p.status==='completed')return {title:'ヤシ殻の作業場',stage:'ほぐす作業を終えた',activity:'completed',materialsReserved:false,operatorFree:true,reason:null,nextStep:'回収したものを確認し、次の作業を選ぶ。',observations:visible};
  if(!active(j))return {title:'ヤシ殻の作業場',stage:'手作業を中断・続きあり',activity:'paused',materialsReserved:true,operatorFree:true,
  reason:last.kind==='restore'?'保存から復帰したため、作業の再確認を待つ。':'本体から中断の意図を受け取った。',nextStep:'続けたい意図を受け取り、在席と手仕事を確認する。',observations:visible};
