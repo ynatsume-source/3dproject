@@ -1,98 +1,104 @@
 <!doctype html>
-<!-- ライブ配信の画面案（横 1920×1080、2026-10-17）。アプリのコードではない、設計のモック。
-     背景は utsushiyo.earth の #planet をソフトウェア描画で撮った画（HUD を消したもの）。実際の GPU の画とは色や細かさが違う。
-     場面：#day #rope #isle #night #talk #milestone。書体：&a（ゴシック）/ 既定（明朝）。&notext で文字を消し、背景と幕だけ（明るさの比を測る用）。
-     文言：状態の文・出来事の文・会話は residents.ts / islandlang.ts にある文をそのまま使う。ただし「ヤシの殻を打っている」は仮（殻と縄はまだ接続されていない）。日付・時刻は仮。 -->
+<!-- ライブ配信の画面案「観測の窓」第2版（横 1920×1080、2026-10-17）。アプリのコードではない、設計のモック。
+     背景は utsushiyo.earth の #planet をソフトウェア描画で撮った画（アプリの表示を消したもの）。実際の GPU の画とは色や細かさが違う。
+     場面：#day #rope #isle #night #talk #milestone。言語：既定は日本語、&en で英語の型（英語の文は islandlang.ts にある会話の訳のほかは仮）。
+     &notext で文字を消し、背景と曇りだけ（明るさの比を測る用）。
+     文言：状態の文・出来事の文・会話は residents.ts / islandlang.ts にある文をそのまま使う。「ヤシの殻を打っている」は仮（殻と縄はまだ接続されていない）。
+     日付・時刻は仮。節目の場面の灯りの光はモックのために描き足したもの（実際の見た目は自然班）。 -->
 <html lang="ja"><head><meta charset="utf-8"><title>live screens</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@500;700&family=Zen+Old+Mincho:wght@600;700&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400&family=Zen+Kaku+Gothic+New:wght@500&family=Zen+Old+Mincho:wght@500;600;700&display=block">
 <style>
+  /* The type scale, from the frame up (1080 px high; see README §3):
+     s1 22 · s2 26 · s3 32 · s4 40 · s5 46 · s6 56  — about 1.2 a step. On a phone held sideways (the frame ≈ 390 px high)
+     these are ≈ 8 · 9 · 12 · 14 · 17 · 20 px; on a 1080p screen, as written. */
   :root {
-    --ink: #f4f1ea;            /* warm white */
-    --ink2: rgba(244, 241, 234, .78);
-    --sand: #ebcb8b;           /* the tideline: the one accent */
-    --done: #bfd9d1;
-    --shade: 4, 10, 12;
-    --serif: "Zen Old Mincho", serif;
-    --sans: "Zen Kaku Gothic New", sans-serif;
-    --mono: "IBM Plex Mono", monospace;
+    --s1: 22px; --s2: 26px; --s3: 32px; --s4: 40px; --s5: 46px; --s6: 56px;
+    --ink: rgba(248, 245, 238, .97);      /* warm white, not quite opaque: the scene shows a little through */
+    --ink2: rgba(246, 243, 236, .82);
+    --ink3: rgba(246, 243, 236, .66);
+    --sand: #e9cf98;                       /* the tideline: the one accent */
+    --done: rgba(196, 224, 214, .8);
+    --shade: 6, 12, 14;
+    --jp: "Zen Old Mincho", serif;
+    --lat: "Cormorant Garamond", "Zen Old Mincho", serif;
     --caps: "Cormorant SC", serif;
-    --main: var(--serif);
+    --mono: "IBM Plex Mono", monospace;
+    --text: var(--jp);
+    /* how much the scene is dimmed under the words: little, and less where it is already dark (the app measures it) */
+    --pa: .34; --pb: .74; --blur: 6px;
   }
-  .a { --main: var(--sans); }
+  .en { --text: var(--lat); font-variant-numeric: lining-nums; }
+  body.mid { --pa: .1; --pb: .92; }
+  body.dim { --pa: 0; --pb: 1; --blur: 0px; }
   html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; color: var(--ink); }
   .bg { position: absolute; inset: 0; background: center/cover no-repeat; }
-  .shade { position: absolute; pointer-events: none; }
-  .t { text-shadow: 0 1px 2px rgba(0,0,0,.35), 0 0 18px rgba(0,0,0,.35); }
   [hidden] { display: none !important; }
 
-  /* the shade under the words: a soft fall of dark, never a box */
-  /* smoked glass under the words: the scene behind blurred and darkened, its edges feathered away — no box lines, and
-     only where there are words, so the island stays as it is everywhere else */
+  /* words carry their own soft shadow; under them, a faint smoked glass whose edges dissolve — barely there */
+  .t { text-shadow: 0 0 2px rgba(0, 0, 0, .5), 0 0 6px rgba(0, 0, 0, .34), 0 1px 14px rgba(0, 0, 0, .3); }
   .plate { position: absolute; pointer-events: none;
-    --fl: 0px; --fr: 420px; --ft: 170px; --fb: 0px;
-    background: rgba(var(--shade), var(--pa)); -webkit-backdrop-filter: blur(24px) brightness(var(--pb)); backdrop-filter: blur(24px) brightness(var(--pb));
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, #000 var(--ft), #000 calc(100% - var(--fb)), transparent);
-    -webkit-mask-composite: source-in;
-    mask-image: linear-gradient(to right, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent), linear-gradient(to bottom, transparent, #000 var(--ft), #000 calc(100% - var(--fb)), transparent);
-    mask-composite: intersect; }
-  .plate.r { --fl: 420px; --fr: 0px; --ft: 0px; --fb: 150px; }
-  .plate.c { --fl: 380px; --fr: 380px; --ft: 130px; --fb: 130px; }
-  .plate.soft { --fl: 0px; --fr: 300px; --ft: 0px; --fb: 130px; background: rgba(var(--shade), calc(var(--pa) * .7)); }
-  /* how dark the glass is follows how bright the scene is behind the words (the app would measure it; here, set by the scene) */
-  body { --pa: .6; --pb: .6; }
-  body.dim { --pa: .22; --pb: .9; }
-  body.mid { --pa: .42; --pb: .75; }
+    background: rgba(var(--shade), var(--pa)); -webkit-backdrop-filter: blur(var(--blur)) brightness(var(--pb)); backdrop-filter: blur(var(--blur)) brightness(var(--pb));
+    /* a bell, not a disc: no edge anywhere for the eye to find */
+    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 0%, rgba(0,0,0,.88) 26%, rgba(0,0,0,.5) 55%, rgba(0,0,0,.16) 78%, transparent 100%);
+    mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 0%, rgba(0,0,0,.88) 26%, rgba(0,0,0,.5) 55%, rgba(0,0,0,.16) 78%, transparent 100%); }
+  .plate.top { background: rgba(var(--shade), calc(var(--pa) * .7)); -webkit-backdrop-filter: brightness(calc(var(--pb) + .08)); backdrop-filter: brightness(calc(var(--pb) + .08)); }
   /* brand: top left */
-  #brand { position: absolute; left: 112px; top: 72px; }
-  #brand .n { font: 600 40px/1 var(--caps); letter-spacing: .32em; }
-  #brand .s { font: 600 28px/1 var(--serif); letter-spacing: .2em; color: var(--ink2); margin-top: 14px; }
+  #brand { position: absolute; left: 96px; top: 64px; }
+  #brand .n { font: 500 var(--s3)/1 var(--caps); letter-spacing: .34em; }
+  #brand .s { font: 500 var(--s1)/1 var(--text); letter-spacing: .24em; color: var(--ink2); margin-top: 12px; }
+  .en #brand .s { letter-spacing: .12em; font-style: italic; font-size: var(--s2); }
 
   /* the island's time: top right */
-  #clock { position: absolute; right: 112px; top: 68px; text-align: right; }
-  #clock .d { font: 600 40px/1 var(--serif); letter-spacing: .12em; }
-  #clock .d i { display: inline-block; width: 2px; height: 34px; background: var(--ink2); margin: 0 22px; vertical-align: -5px; }
-  #clock .h { font: 500 44px/1 var(--mono); letter-spacing: .04em; }
-  #clock .ai { font: 600 30px/1 var(--serif); letter-spacing: .14em; color: var(--ink2); margin-top: 22px; }
+  #clock { position: absolute; right: 96px; top: 62px; text-align: right; }
+  #clock .d { font: 500 var(--s2)/1 var(--text); letter-spacing: .14em; color: var(--ink2); }
+  #clock .d .h { font: 400 var(--s2)/1 var(--mono); letter-spacing: .06em; color: var(--ink); margin-left: 18px; }
+  #clock .ai { font: 500 var(--s1)/1 var(--text); letter-spacing: .14em; color: var(--ink3); margin-top: 14px; }
+  .en #clock .d, .en #clock .ai { letter-spacing: .06em; font-size: calc(var(--s2) + 2px); }
+  .en #clock .ai { font-size: var(--s2); font-style: italic; }
 
   /* the lower third: who, and what it is doing */
-  #lower { position: absolute; left: 112px; bottom: 104px; padding-left: 34px; border-left: 2px solid rgba(244, 241, 234, .6); max-width: 1540px; }
-  #lower .meta { font: 600 32px/1 var(--caps); letter-spacing: .24em; color: var(--ink2); }
-  #lower .meta b { font: 500 30px/1 var(--mono); letter-spacing: .08em; color: var(--ink); margin-right: 16px; }
-  #lower .who { display: flex; align-items: center; gap: 22px; margin-top: 22px; }
-  #lower .who svg { height: 44px; width: auto; }
-  #lower .who .ja { font: 600 52px/1 var(--serif); letter-spacing: .1em; }
-  #lower .who .c { width: 40px; height: 3px; border-radius: 2px; }
-  #lower .steps { margin-top: 22px; font: 500 40px/1.2 var(--sans); letter-spacing: .06em; }
-  #lower .steps .lab { font: 600 34px/1 var(--serif); color: var(--ink2); margin-right: 26px; letter-spacing: .14em; }
+  #lower { position: absolute; left: 96px; bottom: 88px; padding-left: 26px; border-left: 1px solid rgba(246, 243, 236, .38); max-width: 1500px; }
+  #lower .meta { font: 500 var(--s1)/1 var(--caps); letter-spacing: .28em; color: var(--ink3); }
+  #lower .meta b { font: 400 var(--s1)/1 var(--mono); letter-spacing: .1em; color: var(--ink2); margin-right: 10px; }
+  #lower .who { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+  #lower .who svg { height: 26px; width: auto; color: var(--ink2); }
+  #lower .who .nm { font: 500 var(--s3)/1 var(--text); letter-spacing: .12em; }
+  #lower .who .c { width: 26px; height: 2px; border-radius: 1px; opacity: .9; }
+  #lower .steps { margin-top: 16px; font: 500 var(--s2)/1.2 var(--text); letter-spacing: .08em; color: var(--ink2); }
+  #lower .steps .lab { color: var(--ink3); margin-right: 18px; }
   #lower .steps .done { color: var(--done); }
-  #lower .steps .now { color: var(--sand); font-weight: 700; border-bottom: 3px solid var(--sand); padding-bottom: 2px; }
-  #lower .steps .skip { text-decoration: line-through; text-decoration-thickness: 3px; color: var(--ink2); }
-  #lower .steps .dot { color: var(--ink2); margin: 0 12px; }
-  #lower .status { margin-top: 22px; font: 700 72px/1.2 var(--main); letter-spacing: .04em; }
+  #lower .steps .now { color: var(--sand); border-bottom: 1px solid var(--sand); padding-bottom: 3px; }
+  #lower .steps .skip { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--ink3); }
+  #lower .steps .dot { color: var(--ink3); margin: 0 10px; }
+  #lower .status { margin-top: 14px; font: 600 var(--s4)/1.3 var(--text); letter-spacing: .06em; }
+  .en #lower .status { font-size: calc(var(--s4) + 4px); letter-spacing: .02em; }
+  .en #lower .who .nm { font-size: calc(var(--s3) + 2px); letter-spacing: .06em; }
 
   /* the island at a glance (Doron 13) */
-  #roll { display: flex; gap: 46px; margin-top: 24px; }
-  #roll .r { display: flex; align-items: center; gap: 14px; }
-  #roll svg { height: 34px; width: auto; }
-  #roll .ja { font: 600 38px/1 var(--serif); letter-spacing: .08em; }
-  #roll .st { font: 600 28px/1 var(--serif); color: var(--ink2); letter-spacing: .1em; }
-  #roll .sleep { opacity: .62; }
-  #roll .c { width: 22px; height: 3px; border-radius: 2px; }
+  #roll { display: flex; gap: 34px; margin-top: 16px; }
+  #roll .r { display: flex; align-items: center; gap: 10px; }
+  #roll svg { height: 20px; width: auto; color: var(--ink2); }
+  #roll .nm { font: 500 var(--s2)/1 var(--text); letter-spacing: .1em; }
+  #roll .sleep { opacity: .5; }
+  #roll .c { width: 16px; height: 2px; border-radius: 1px; }
 
   /* what is said: at the foot, like a film's subtitle */
-  #talk { position: absolute; left: 0; right: 0; bottom: 104px; text-align: center; }
-  #talk .sp { font: 600 32px/1 var(--serif); letter-spacing: .18em; color: var(--ink2); }
-  #talk .sp i { display: inline-block; width: 30px; height: 3px; border-radius: 2px; vertical-align: 9px; margin-right: 14px; }
-  #talk .isl { margin-top: 20px; }
-  #talk .isl svg { height: 46px; width: auto; }
-  #talk .ja { margin-top: 18px; font: 700 62px/1.3 var(--main); letter-spacing: .04em; }
+  #talk { position: absolute; left: 0; right: 0; bottom: 84px; text-align: center; }
+  #talk .sp { font: 500 var(--s1)/1 var(--text); letter-spacing: .24em; color: var(--ink2); }
+  #talk .sp i { display: inline-block; width: 22px; height: 2px; border-radius: 1px; vertical-align: 6px; margin-right: 12px; }
+  #talk .isl { margin-top: 16px; color: var(--ink2); }
+  #talk .isl svg { height: 30px; width: auto; }
+  #talk .tr { margin-top: 14px; font: 600 var(--s5)/1.4 var(--text); letter-spacing: .05em; }
+  .en #talk .tr { font-size: calc(var(--s5) + 4px); letter-spacing: .01em; font-weight: 500; }
 
   /* a milestone: a title card in the upper middle, for a few seconds */
-  #mile { position: absolute; left: 0; right: 0; top: 330px; text-align: center; }
-  #mile .rule { width: 300px; height: 2px; background: var(--sand); margin: 0 auto; opacity: .9; }
-  #mile .k { margin-top: 30px; font: 600 34px/1 var(--serif); letter-spacing: .5em; color: var(--sand); padding-left: .5em; }
-  #mile .m { margin: 30px 0; font: 700 76px/1.25 var(--serif); letter-spacing: .06em; }
-  #mile .d { margin-bottom: 30px; font: 600 32px/1 var(--serif); letter-spacing: .2em; color: var(--ink2); }
+  #mile { position: absolute; left: 0; right: 0; top: 352px; text-align: center; }
+  #mile .rule { width: 160px; height: 1px; background: var(--sand); margin: 0 auto; opacity: .8; }
+  #mile .k { margin-top: 26px; font: 500 var(--s1)/1 var(--text); letter-spacing: .6em; padding-left: .6em; color: var(--sand); }
+  #mile .m { margin: 24px 0 22px; font: 500 var(--s6)/1.3 var(--text); letter-spacing: .08em; }
+  #mile .d { margin-bottom: 26px; font: 500 var(--s1)/1 var(--text); letter-spacing: .24em; color: var(--ink2); }
+  .en #mile .m { font-size: calc(var(--s6) + 6px); letter-spacing: .02em; }
+  .en #mile .k, .en #mile .d { letter-spacing: .3em; font-size: var(--s2); }
 
   .notext .t, .notext .t * { color: transparent !important; text-shadow: none !important; border-color: transparent !important; background-color: transparent !important; }
   .notext svg { visibility: hidden; }
@@ -101,27 +107,27 @@
 <div id="glow" hidden style="position:absolute;left:1380px;top:600px;width:620px;height:360px;background:radial-gradient(ellipse 50% 50% at 50% 55%, rgba(255,214,140,.9) 0%, rgba(255,186,96,.35) 18%, rgba(255,170,80,.12) 45%, transparent 75%)"></div><!-- (the lamp's light: drawn in for the mock only; how it really looks is the nature team's) -->
 <div id="plates"></div>
 
-<div class="t" id="brand"><div class="n">UTSUSHIYO</div><div class="s">ドットたちの島</div></div>
-<div class="t" id="clock"><div class="d"><span id="date">島暦1年 6月1日</span><i></i><span class="h" id="hour">10:24</span></div><div class="ai">住人はAIです ・ 映像は自動で撮影しています</div></div>
+<div class="t" id="brand"><div class="n">UTSUSHIYO</div><div class="s" data-ja="ドットたちの島" data-en="Dot's Island">ドットたちの島</div></div>
+<div class="t" id="clock"><div class="d"><span id="date">島暦1年 6月1日</span><span class="h" id="hour">10:24</span></div><div class="ai" data-ja="住人はAIです ・ 映像は自動で撮影しています" data-en="The residents are AI · filmed automatically">住人はAIです ・ 映像は自動で撮影しています</div></div>
 
 <div class="t" id="lower">
-  <div class="meta"><b id="dno">01</b><span id="drole">DORON ・ 付き添い</span></div>
-  <div class="who" id="who"><span id="gl"></span><span class="ja" id="name">ドット</span><span class="c" id="col"></span></div>
+  <div class="meta"><b id="dno">01</b><span id="drole">DORON</span></div>
+  <div class="who" id="who"><span id="gl"></span><span class="nm" id="name">ドット</span><span class="c" id="col"></span></div>
   <div id="roll" hidden></div>
-  <div class="steps" id="steps" hidden><span class="lab">縄づくり</span><span class="done">浸ける</span><span class="dot">・</span><span class="now">打つ</span><span class="dot">・</span>乾かす<span class="dot">・</span><span class="skip">振るう</span><span class="dot">・</span>撚る<span class="dot">・</span>縒る</div>
+  <div class="steps" id="steps" hidden><span class="lab" data-ja="縄づくり" data-en="Cord">縄づくり</span><span class="done" data-ja="浸ける" data-en="soak">浸ける</span><span class="dot">・</span><span class="now" data-ja="打つ" data-en="beat">打つ</span><span class="dot">・</span><span data-ja="乾かす" data-en="dry">乾かす</span><span class="dot">・</span><span class="skip" data-ja="振るう" data-en="hackle">振るう</span><span class="dot">・</span><span data-ja="撚る" data-en="spin">撚る</span><span class="dot">・</span><span data-ja="縒る" data-en="ply">縒る</span></div>
   <div class="status" id="status">流木を拾っている</div>
 </div>
 
-<div class="t" id="talk" hidden><div class="sp"><i id="spc"></i><span id="spn">ランタン</span></div><div class="isl" id="tisl"></div><div class="ja" id="tja"></div></div>
+<div class="t" id="talk" hidden><div class="sp"><i id="spc"></i><span id="spn">ランタン</span></div><div class="isl" id="tisl"></div><div class="tr" id="ttr"></div></div>
 
-<div class="t" id="mile" hidden><div class="rule"></div><div class="k">島で初めて</div><div class="m">ランタンが、島で初めて灯りをともした</div><div class="d">島暦1年 6月14日 ・ 19:06</div><div class="rule"></div></div>
+<div class="t" id="mile" hidden><div class="rule"></div><div class="k" data-ja="島で初めて" data-en="A first on the island">島で初めて</div><div class="m" id="mm">ランタンが、島で初めて灯りをともした</div><div class="d" id="md">島暦1年 6月14日 ・ 19:06</div><div class="rule"></div></div>
 
 <script>
 // The island's letters (as src/robots/islandlang.ts draws them: one sign a syllable — a consonant's shape and its vowel's mark).
 const BASE = { '': '<circle cx="5" cy="8" r="3"/>', p: '<path d="M5 3V13"/>', t: '<path d="M2 3H8M5 3V13"/>', k: '<path d="M8 3L2 8L8 13"/>', m: '<path d="M2 13V7Q5 1 8 7V13"/>', n: '<path d="M1.5 8Q3.25 4.5 5 8T8.5 8"/>', s: '<path d="M8 3L2 13"/>', h: '<path d="M3 3V13M7 3V13"/>', l: '<path d="M6 3V11Q6 13 3.5 13"/>', w: '<path d="M2 3L5 13L8 3"/>' };
 const MARK = { a: '', i: '<circle cx="5" cy="1" r="0.9" class="f"/>', u: '<circle cx="5" cy="15.2" r="0.9" class="f"/>', e: '<path d="M11 6V10"/>', o: '<circle cx="11" cy="8" r="1.3"/>' };
 const syl = (w) => [...w.matchAll(/([ptkmnshlw]?)([aiueo])/g)].map((m) => [m[1], m[2]]);
-function glyphs(toks, sw = 1.4) {
+function glyphs(toks, sw = 1.25) {
   let x = 0; const parts = [];
   for (const t of toks) {
     if (t === '.') { parts.push(`<circle cx="${x + 2}" cy="12.5" r="1.1" class="f"/>`); x += 6; continue; }
@@ -131,40 +137,47 @@ function glyphs(toks, sw = 1.4) {
   }
   return `<svg viewBox="-1 -1 ${x + 2} 18" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><style>.f{fill:currentColor;stroke:none}</style>${parts.join('')}</svg>`;
 }
-const R = { dot: { w: 'toto', ja: 'ドット', c: '#ffd98a', n: '01' }, lantern: { w: 'lanta', ja: 'ランタン', c: '#9fe8ff', n: '02' }, kame: { w: 'kamemalu', ja: 'カメマル', c: '#8fe0bd', n: '03' }, rakko: { w: 'lako', ja: 'ラッコ', c: '#f7a36b', n: '04' } };
+const R = { dot: { w: 'toto', ja: 'ドット', en: 'Dot', c: '#ffd98a', n: '01' }, lantern: { w: 'lanta', ja: 'ランタン', en: 'Lantern', c: '#9fe8ff', n: '02' }, kame: { w: 'kamemalu', ja: 'カメマル', en: 'Kamemaru', c: '#8fe0bd', n: '03' }, rakko: { w: 'lako', ja: 'ラッコ', en: 'Rakko', c: '#f7a36b', n: '04' } };
 const $ = (id) => document.getElementById(id);
-const h = location.hash.slice(1).split('&'), scene = h[0] || 'day';
-if (h.includes('a')) document.body.classList.add('a');
+const h = location.hash.slice(1).split('&'), scene = h[0] || 'day', L = h.includes('en') ? 'en' : 'ja';
+if (L === 'en') { document.body.classList.add('en'); document.documentElement.lang = 'en'; document.querySelectorAll('[data-en]').forEach((e) => { e.textContent = e.dataset.en; }); }
 if (h.includes('notext')) document.body.classList.add('notext');
-const who = (id) => { const r = R[id]; $('gl').innerHTML = glyphs([r.w]); $('name').textContent = r.ja; $('col').style.background = r.c; $('dno').textContent = r.n; };
+// (the English below is a stand-in for templates that do not exist yet — only the spoken line comes from islandlang.ts)
+const T = (ja, en) => (L === 'en' ? en : ja);
+const date = (d, m) => T(`島暦1年 ${m}月${d}日`, `Island year 1 · ${['', '', '', '', '', '', 'June'][m]} ${d}`);
+const who = (id) => { const r = R[id]; $('gl').innerHTML = glyphs([r.w]); $('name').textContent = r[L]; $('col').style.background = r.c; $('dno').textContent = r.n; };
 const bg = (f) => { $('bg').style.backgroundImage = `url(${f})`; };
-who('dot'); bg('bg-day.jpg');
-if (scene === 'rope') { $('steps').hidden = false; $('status').textContent = 'ヤシの殻を打っている'; $('hour').textContent = '14:10'; }
+who('dot'); bg('bg-day.jpg'); $('date').textContent = date(1, 6); $('status').textContent = T('流木を拾っている', 'Picking up driftwood');
+if (scene === 'rope') { $('steps').hidden = false; $('status').textContent = T('ヤシの殻を打っている', 'Beating a coconut husk'); $('hour').textContent = '14:10'; }
 if (scene === 'isle') {
-  document.body.classList.add('mid'); bg('bg-dusk.jpg'); $('dno').textContent = '13'; $('drole').textContent = 'DORON ・ 島をめぐる'; $('who').hidden = true; $('roll').hidden = false;
-  $('roll').innerHTML = ['dot', 'rakko', 'kame', 'lantern'].map((id) => { const r = R[id], z = false; return `<div class="r${z ? ' sleep' : ''}"><span class="c" style="background:${r.c}"></span>${glyphs([r.w])}<span class="ja">${r.ja}</span></div>`; }).join('');
-  $('status').textContent = '焚き火の会が始まった'; $('hour').textContent = '18:12';
+  document.body.classList.add('mid'); bg('bg-dusk.jpg'); $('dno').textContent = '13'; $('who').hidden = true; $('roll').hidden = false;
+  $('roll').innerHTML = ['dot', 'rakko', 'kame', 'lantern'].map((id) => { const r = R[id]; return `<div class="r"><span class="c" style="background:${r.c}"></span>${glyphs([r.w])}<span class="nm">${r[L]}</span></div>`; }).join('');
+  $('status').textContent = T('焚き火の会が始まった', 'The evening fire has begun'); $('hour').textContent = '18:12';
 }
-if (scene === 'night' || scene === 'talk' || scene === 'milestone') { document.body.classList.add('dim'); bg('bg-night.jpg'); who('lantern'); $('hour').textContent = '22:40'; $('status').textContent = '丘の上で星を見て考えごとをしている'; }
+if (scene === 'night' || scene === 'talk' || scene === 'milestone') { document.body.classList.add('dim'); bg('bg-night.jpg'); who('lantern'); $('hour').textContent = '22:40'; $('status').textContent = T('丘の上で星を見て考えごとをしている', 'Watching the stars on the hill, thinking'); }
 if (scene === 'talk') {
-  $('status').hidden = true; $('talk').hidden = false; 
-  $('spc').style.background = R.lantern.c; $('spn').textContent = 'ランタン';
+  $('talk').hidden = false; $('lower').hidden = true;   // (while a line is being said, the lower third steps aside: the speaker's name is on the subtitle)
+  $('spc').style.background = R.lantern.c; $('spn').textContent = R.lantern[L];
   $('tisl').innerHTML = glyphs(['simo', ',', 'tika', 'kami', 'pila', ',', 'neka', 'nuki', 'hono', 'tasu', '.']);
-  // (a long line breaks after its first 「。」, never in the middle of a phrase)
-  const line = '記録：星空を手帖に記録した。次の夜に同じ条件で比べる';
-  $('tja').innerHTML = line.length > 20 ? line.replace('。', '。<br>') : line;
-  // (while a line is being said, the lower third steps aside: the speaker's name is on the subtitle, and the line is what is happening)
-  $('lower').hidden = true;
+  // (SAY.starsRecorded() in islandlang.ts: its Japanese and its English, as written there; a long line breaks after its first sentence)
+  const line = T('記録：星空を手帖に記録した。次の夜に同じ条件で比べる', 'Record: wrote down the stars in my notebook. Next night I will compare them the same way.');
+  $('ttr').innerHTML = L === 'en' ? line.replace('. ', '.<br>') : line.length > 20 ? line.replace('。', '。<br>') : line;
 }
-// (a plate under each block of words, sized to the words with room around them)
+if (scene === 'milestone') {
+  $('mile').hidden = false; $('glow').hidden = false; $('hour').textContent = '19:06'; $('date').textContent = date(14, 6);
+  $('mm').textContent = T('ランタンが、島で初めて灯りをともした', 'Lantern lit the first light on the island');
+  $('md').textContent = `${date(14, 6)} ・ 19:06`;
+  $('status').textContent = T('灯皿にヤシ油を入れ、芯を立てて灯す', 'Oil in the lamp dish, the wick set, and lit');
+}
+// (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
 const fit = () => {
   const P = $('plates'); P.innerHTML = '';
-  const add = (id, pad, cls = '') => { const e = $(id); if (!e || e.hidden || e.closest('[hidden]')) return; const r = e.getBoundingClientRect(), [t, rr, bb, l] = pad;
-    let x = r.left - l, w = r.width + l + rr; if (cls === 'c') { const ww = Math.min(1920, [...e.children].reduce((m, c) => Math.max(m, c.getBoundingClientRect().width), 0) + l + rr); x = (1920 - ww) / 2; w = ww; }
-    const d = document.createElement('div'); d.className = 'plate ' + cls; Object.assign(d.style, { left: x + 'px', top: (r.top - t) + 'px', width: w + 'px', height: (r.height + t + bb) + 'px' }); P.appendChild(d); };
-  add('lower', [170, 460, 200, 140]); add('clock', [120, 140, 150, 440], 'r'); add('brand', [120, 300, 130, 140], 'soft'); add('talk', [150, 420, 80, 420], 'c'); add('mile', [150, 440, 150, 440], 'c');
+  const add = (id, padX, padY) => { const e = $(id); if (!e || e.hidden || e.closest('[hidden]')) return; const r = e.getBoundingClientRect();
+    let x = r.left - padX, w = r.width + padX * 2;
+    if (id === 'talk' || id === 'mile') { const ww = [...e.children].reduce((m, c) => Math.max(m, c.getBoundingClientRect().width), 0) + padX * 2; x = (1920 - ww) / 2; w = ww; }
+    const d = document.createElement('div'); d.className = 'plate' + (id === 'clock' || id === 'brand' ? ' top' : ''); Object.assign(d.style, { left: x + 'px', top: (r.top - padY) + 'px', width: w + 'px', height: (r.height + padY * 2) + 'px' }); P.appendChild(d); };
+  add('lower', 300, 160); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
 };
 requestAnimationFrame(fit); document.fonts.ready.then(fit);
-if (scene === 'milestone') { $('mile').hidden = false; $('hour').textContent = '19:06'; $('date').textContent = '島暦1年 6月14日'; $('glow').hidden = false; $('status').textContent = '灯皿にヤシ油を入れ、芯を立てて灯す'; }
 </script>
 </body></html>
