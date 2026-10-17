@@ -1,0 +1,61 @@
+1. a night by the lamp (pandanus wick, medium, a warm night under the roof)
+  ok   it burns the night through, a few grams of oil an hour — 6.0 h, 3.73 g/h
+  ok   the light fades as the wick tip chars — そばにいる顔が見える → そばにいる顔が見える → そばにいる顔が見える → 手元が見える → 手元が見える → 手元が見える
+  ok   a new unglazed dish soaks oil into its wall first (handed back as its own lot, kept with the dish) — 14.4 g
+  ok   oil + wick + O2 = oil left + soaked oil + wick left + CO2 + water + soot (whole mg)
+  ok   trimming the charred tip brings the light back (more light over the night) — 45 → 58 lm·h
+  ok   the lots handed back light again the next evening; a dish that has soaked takes no more — 5.0 g burned
+2. the wick: how far out, and what it is made of
+  ok   further out, more light — 4.0 / 9.7 / 9.8 lm
+  ok   a long wick smokes (soot) — soot 122 / 435 mg
+  ok   pandanus, coir and reed pith wicks give different nights (the world decides; nobody is told) — 29 lm·h / 19 lm·h / 25 lm·h
+3. coconut oil sets on a cool night
+  ok   at 18 °C the oil is set: the wick will not light — 油が白く固まっていて、芯に火がつかない
+  ok   warmed by the fire first, it lights, and the flame keeps the oil soft enough — 2.0 h; 皿の油が温まって、澄んだ液になった / 皿の油が半分白くにごっている
+  ok   on a cold night (12 °C) it starves and goes out as the oil sets again — 0.5 h
+4. wind and rain
+  ok   in the open the wind blows it out; sheltered it burns — 風で火がすぐ消えてしまう / 灯はついていない / 皿の油は澄んでいる / 油が皿にしみこんで、皿の外がにじんでいる / 皿の外側が油でしっとりしている
+  ok   rain puts out a lamp with no roof over it
+  ok   with no roof the rain must be known, and the wind always (a missing value is unknown weather: nothing is computed)
+5. the oil runs out
+  ok   a little oil in a new dish (it soaks some first) burns out before the night ends — 4.0 h
+6. pieces, looks, unknown weather, a lost dish
+  ok   1 h = 30 s = 3 h = 17 min pieces (actions and looks between the grid points): the same lamp, gases, heat and words
+  ok   looking changes nothing
+  ok   at the same moment the hands act first: the look sees the wick already pulled out (smoke)
+  ok   weather unknown: the run stops where it was known; only "the lamp went out while nobody watched"
+  ok   a dish lost at 2 h: it burned until then, in one request or two
+9. the cells: a request's end or a look never decides (0.1.1, Codex A1 on eb3cd0b)
+  ok   cutting at the first look (or at many odd moments) changes nothing at the edge of going out: same fuel, heat, light and words
+  ok   the words never go from "it went out" back to "it is bright" without lighting again — 芯が油を吸わず、火がすぐ消えてしまう / 灯はついていない / 皿の油が半分白くにごっている / 灯はついていない / 皿の油が半分白くにごっている / 灯はついていない / 皿の油が半分白くにごっている
+  ok   a warm night started at 1007 ms: one request = 737 ms requests = 29 min pieces, down to the state's last decimal
+  ok   a 0.1.0 run (state /1) is refused; the host cancels it and gives its lots back — unsupported-state-schema: civ-sci.oil-lamp/1 is an older test state and is not migrated (current civ-sci.oil-lamp/3). Cancel the run and release its reservation: lots settle only when a run ends, so nothing was consumed yet.
+10. what is in the oil (Codex A2, A3, B1)
+  ok   unlit, the dish soaks only fat: the water stays in the dish and comes back apart from the oil, each kept to the mg — oil 46390, water 1200, soaked 12410
+  ok   water is not oil (more than 2 % water is refused, nothing burns) — too much water for a lamp: lot:oil (at most 20000 ppm)
+  ok   oil with 10 % water is refused — too much water for a lamp: lot:oil (at most 20000 ppm)
+  ok   the soaked oil in the wall must be fat only — the oil in the dish's wall is fat only: lot:soaked has water
+  ok   oil with a little water, burned and handed back, reads back to the same mg and lights the next evening — 57411 mg, {"x_coconut_fat_ppm":1000000}
+  ok   the water in the oil gives no light and boils off with the flame — 9996 vs 10200 lm·s; water left 1171 of 1200 mg
+11. what the resident is told, the wick, the heat (Codex A4, A5, A6)
+  ok   not watched, the lamp went out at some hour: the resident only sees that it is out, not for how long it burned — 灯はもう消えていた / 皿のまわりと屋根の裏が黒くすすけている / 皿の外側が油でしっとりしている
+  ok   a new wick that has not burned is not cut as a charred tip
+  ok   the heat of the soot's carbon, left unburned, is not counted as the flame's heat — 793505 J vs 793515 J, soot 708 mg
+7. requests that are refused
+  ok   no wick — expected one coconut_oil lot, one lamp_wick lot, and the oil soaked in the dish (coconut_oil, soaked_in_dish 1) if the dish has soaked before
+  ok   milk, not oil — the lamp burns clear oil: lot:oil needs x_coconut_fat_ppm and x_water_ppm (whole ppm, summing to 1000000)
+  ok   too much oil for the dish — the oil does not fit in the dish
+  ok   a dish without where it stands — lamp_dish needs params capacityMl 1..1000, absorptionPpm, massG (lampDishParams) and where it stands: shelter 0..1, roofed 0/1
+  ok   a wick of no known fibre — lamp_wick needs quality fiber 1 (pandanus), 2 (coir) or 3 (reed pith) and diameter_mm 2..10
+  ok   energy offered — a lamp burns its own oil: offer no energy
+  ok   an unknown action — unknown action blow (light, wick_out, trim, warm, look, put_out)
+  ok   wick_out without a level — wick_out needs params.wickOut 0, 1 or 2
+  ok   a missing interval — noncontiguous-interval: expected from=3600000
+  ok   the dish changed under the run — changed-input: the dish changed under a running run
+  ok   contract 0.1 (the flame draws O2) — unknown contract 0.1.0
+8. wicks main makes
+  ok   three wicks from what the island has — pandanus_leaf 2 g / coconut_husk 2 g / reed 1 g
+—   every result above passed the contract checker
+  ok   validateResult: no violation
+
+47 passed, 0 failed
