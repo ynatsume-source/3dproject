@@ -1,0 +1,8 @@
+PASS no-break load, abrasion and exposure preserve one original ID and every mass
+PASS many same-ID events and JSON snapshots preserve chronology and monotone damage
+PASS only fracture creates two new IDs, retaining independent child identity
+PASS old intact replay after later fracture is idempotent and never resurrects
+PASS retired source cannot return and latest hidden quality cannot be replaced
+PASS identity receipts and old schemas are verified before changes
+PASS known relocation is allowed; extant-only validation permits later consumption
+PASS stable cord identity: 7 groups.
