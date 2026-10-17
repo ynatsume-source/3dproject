@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import {createCoirCordModel, type CoirInput, type CoirContext, type CoirInterval} from '../src/science/prototypes/coir-cord';
+import {draw} from '../src/science/rng';
+import {createCoirCordModel, COIR_CORD_MODEL_SCHEMA, type CoirInput, type CoirContext, type CoirInterval} from '../src/science/prototypes/coir-cord';
 import {createCordDamageModel,currentCordStrength,type CordDamageEvent} from '../src/science/prototypes/coir-cord-damage';
-import {COIR_CORD_ASSUMPTION_ID as ID,COIR_CORD_RULES as R,cordShape,type CoirMass,type CoirBundle,type CoirPiece} from '../src/science/prototypes/coir-cord-types';
+import {COIR_CORD_ASSUMPTION_ID as ID,COIR_CORD_RULES as R,cordShape,cordCanonical,type CoirMass,type CoirBundle,type CoirPiece} from '../src/science/prototypes/coir-cord-types';
 import {createManualHuskSeparation} from '../src/science/prototypes/manual-husk-separation';
 import {MANUAL_HUSK_ASSUMPTION,createManualHuskAssumptionProfile} from '../src/science/prototypes/manual-husk-assumptions';
 
@@ -104,7 +105,7 @@ test('same seed is deterministic, different seeds vary only hidden twist quality
   const p=a.at(12000).piece!,q=b.at(12000).piece!;
   assert.deepEqual(p,q);assert.ok(p.baseStrengthGf>=34000&&p.baseStrengthGf<=46000);strengths.add(p.baseStrengthGf);
   observations.add(JSON.stringify(a.m.observe(a.m.commit(a.m.start(),receipt(a.c,1000,13000)))));
-  const high=make({operation:'twist',bundle:bundle(1000,200,0),requestedLengthMm:100},'high',seed).at(12000).piece!;
+  const high=make({operation:'twist',bundle:bundle(1000,200,0),requestedLengthMm:100},'seeded',seed).at(12000).piece!;
   assert.ok(Math.abs(high.baseStrengthGf-p.baseStrengthGf*0.7)<=1);
  }
  assert.ok(strengths.size>20);assert.equal(observations.size,1);
@@ -278,5 +279,70 @@ test('PR20 extraction to drying, sieving, strands and rope closes the complete 9
  assert.equal(rope.lengthMm,4752);assert.equal(total(rope.product),87120n);
  assert.equal(total(rope.product)+total(sieved.fallenPith)+BigInt(d.releasedWaterMg)+BigInt(hp.residualHusk.dryMg)+BigInt(hp.residualHusk.waterMg)+BigInt(hp.dischargedWaterMg),900000n);
  assert.equal(rope.product.fiberDryMg,72000);assert.equal(rope.product.pithDryMg,7200);assert.equal(rope.product.waterMg,7920);
+});
+test('C1 draw keys include run and source lot, with stable JSON/replay decisions',()=>{
+ const runStrengths=new Set<number>(),lotStrengths=new Set<number>(),seed=12345;
+ const input:CoirInput={operation:'twist',bundle:bundle(1000,100,0),requestedLengthMm:100};
+ for(let k=0;k<64;k++){
+  const runId='keyed:'+k,lotId='source:'+k;
+  const run=make(input,runId,seed),lot=make({...input,bundle:{...input.bundle,lotId}},'keyed',seed);
+  const first=run.m.commit(run.m.start(),receipt(run.c,1000,1737,'a'));
+  const resumed=createCoirCordModel(json(input),ID,json(run.c));
+  const s=resumed.commit(resumed.restore(json(first)),receipt(run.c,2000,13263,'b'));
+  const replayed=resumed.commit(resumed.restore(json(s)),receipt(run.c,1000,1737,'a'));
+  assert.deepEqual(resumed.project(s),run.at(12000));assert.deepEqual(replayed,s);
+  const ppm=R.jitterMinPpm+Math.floor(draw(seed,runId,input.bundle.lotId,'coir-twist-quality')*(R.jitterRangePpm+1));
+  assert.equal(run.at(12000).piece!.baseStrengthGf,Number(BigInt(R.strandStrengthGf)*BigInt(ppm)/1000000n));
+  runStrengths.add(run.at(12000).piece!.baseStrengthGf);lotStrengths.add(lot.at(12000).piece!.baseStrengthGf);
+  assert.deepEqual(lot.at(12000).product,run.at(12000).product);assert.deepEqual(lot.m.observe(lot.m.start()),run.m.observe(run.m.start()));
+ }
+ assert.ok(runStrengths.size>50);assert.ok(lotStrengths.size>50);
+});
+test('C1 algorithm version rejects old saves, including schema-only relabel',()=>{
+ const input:CoirInput={operation:'twist',bundle:bundle(1000,100,0),requestedLengthMm:100},a=make(input);
+ const fresh=a.m.start(),old={...json(fresh),schema:'prototype-coir-cord/1',binding:cordCanonical([ID,R,input,a.c])};
+ assert.equal(fresh.schema,COIR_CORD_MODEL_SCHEMA);rejects(()=>a.m.restore(old));rejects(()=>a.m.restore({...old,schema:COIR_CORD_MODEL_SCHEMA}));
+ assert.deepEqual(a.m.restore(json(fresh)),fresh);
+});
+test('A explicit cleanup yields returnable partial bundles and fixed-strength strands',()=>{
+ const inputs:CoirInput[]=[{operation:'dry',bundle:bundle(),roofed:true},{operation:'sieve',bundle:bundle(72000,14400,8640)},{operation:'twist',bundle:bundle(900,90,99),requestedLengthMm:100}];
+ inputs.forEach(input=>{
+  const a=make(input),s=a.m.commit(a.m.start(),receipt(a.c,1000,1737)),old=json(s),p=a.m.projectForAbandon(s);
+  assert.equal(a.m.project(s).piece,null);assert.equal(a.m.project(s).bundle,null);
+  massCheck(input.bundle,[p.product,...(input.operation==='twist'?p.remaining:[p.fallenPith])],p.releasedWaterMg);
+  assert.ok(input.operation==='twist'?p.piece:p.bundle);assert.deepEqual(s,old);
+  if(p.piece)assert.equal(p.piece.baseStrengthGf,a.at(12000).piece!.baseStrengthGf);
+ });
+});
+test('A rope below two mm unwinds; partial rope and suffixes retain damage and balance',()=>{
+ const ss:[CoirPiece,CoirPiece,CoirPiece]=[{...strand(1000,'a'),damage:{sunMs:R.yearIslandMs,shadeMs:23,abrasions:4},inheritedWear:{faded:true,abraded:true}},strand(1050,'b'),strand(1100,'c')],a=make({operation:'ply',strands:ss});
+ const initial=ss.reduce((v,x)=>({fiberDryMg:v.fiberDryMg+x.fiberDryMg,pithDryMg:v.pithDryMg+x.pithDryMg,waterMg:v.waterMg+x.waterMg}),{fiberDryMg:0,pithDryMg:0,waterMg:0});
+ for(const t of [0,1,59,60,61,119,120,737,53999,54000]){
+  const s=t?a.m.commit(a.m.start(),receipt(a.c,1000,1000+t)):a.m.start(),p=a.m.projectForAbandon(s);
+  massCheck(initial,[...(p.piece?[p.piece]:[]),...p.leftovers!]);
+  if(t<120){assert.equal(p.piece,null);assert.equal(p.lengthMm,0);ss.forEach((x,i)=>{const y=p.leftovers![i];assert.equal(y.lengthMm,x.lengthMm);assert.equal(total(y),total(x));assert.deepEqual(y.damage,x.damage);});}
+  else{assert.equal(p.piece!.baseStrengthGf,a.at(54000).piece!.baseStrengthGf);assert.deepEqual(p.piece!.inheritedWear,{faded:true,abraded:true});}
+ }
+});
+test('A cleanup partition, changed actor, JSON/replay agree and old state is rejected',()=>{
+ const inputs:CoirInput[]=[{operation:'dry',bundle:bundle(),roofed:true},{operation:'sieve',bundle:bundle(72000,14400,8640)},{operation:'twist',bundle:bundle(900,90,99),requestedLengthMm:100},{operation:'ply',strands:[strand(1000,'a'),strand(1050,'b'),strand(1100,'c')]}];
+ inputs.forEach((input,k)=>{
+  const a=make(input),t=[90001,30001,6737,737][k],cut=Math.floor(t/3),r=receipt(a.c,1000,1000+cut,'old'),r2=receipt(a.c,999999,999999+t-cut,'new');if(input.operation!=='dry')r2.actorId='replacement';
+  let s=a.m.commit(a.m.start(),r);s=a.m.commit(a.m.restore(json(s)),r2);assert.deepEqual(a.m.commit(s,r),s);
+  const whole=a.m.commit(a.m.start(),receipt(a.c,1000,1000+t));assert.deepEqual(a.m.projectForAbandon(s),a.m.projectForAbandon(whole));
+  const fresh=a.m.start(),old={...json(fresh),schema:'prototype-coir-cord/2',binding:fresh.binding.replace('prototype-coir-cord/3','prototype-coir-cord/2')};
+  rejects(()=>a.m.restore(old));rejects(()=>a.m.restore({...old,schema:COIR_CORD_MODEL_SCHEMA}));assert.equal(fresh.schema,'prototype-coir-cord/3');
+  const end=[R.dryIslandMs,60000,12000,54000][k],done=a.m.commit(a.m.start(),receipt(a.c,1000,1000+end));assert.deepEqual(a.m.projectForAbandon(done),a.m.project(done));
+ });
+});
+test('A deterministic 400-case partial sweep closes components and readable suffixes',()=>{
+ let n=12345;const rand=()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n;};
+ for(let k=0;k<400;k++){
+  const f=100+rand()%100000,p=Math.floor(f*(rand()%21)/100),b=bundle(f,p,Math.floor((f+p)/10)),len=1+rand()%Math.floor((f+p)/5),a=make({operation:'twist',bundle:b,requestedLengthMm:len},'cleanup:'+k,rand()),t=rand()%(len*120+1),s=t?a.m.commit(a.m.start(),receipt(a.c,1000,1000+t)):a.m.start(),q=a.m.projectForAbandon(s);
+  massCheck(b,[q.product,...q.remaining]);if(q.piece)assert.equal(total(q.piece),total(q.product));
+  const L=3+rand()%1000,ss:[CoirPiece,CoirPiece,CoirPiece]=[strand(L,'a'),strand(L+Math.floor(L/20),'b'),strand(L+Math.floor(L/10),'c')],ply=make({operation:'ply',strands:ss},'ply:'+k),pt=rand()%(Math.floor(L*9/10)*60+1),ps=pt?ply.m.commit(ply.m.start(),receipt(ply.c,1000,1000+pt)):ply.m.start(),r=ply.m.projectForAbandon(ps);
+  const initial=ss.reduce((v,x)=>({fiberDryMg:v.fiberDryMg+x.fiberDryMg,pithDryMg:v.pithDryMg+x.pithDryMg,waterMg:v.waterMg+x.waterMg}),{fiberDryMg:0,pithDryMg:0,waterMg:0});
+  massCheck(initial,[...(r.piece?[r.piece]:[]),...r.leftovers!]);for(const x of r.leftovers!)assert.ok(x.fiberDryMg>0&&x.fiberDryMg+x.pithDryMg>=x.lengthMm);
+ }
 });
 console.log('PASS coir cord science: '+groups+' groups; isolated owner assumptions only.');
