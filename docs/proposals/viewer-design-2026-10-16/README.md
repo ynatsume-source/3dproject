@@ -393,7 +393,7 @@ main の計画の最小構成（視点の名前・島の時刻・状態の1行�
 14. ~~状態の文に20字を超えるものがあるか~~ → この担当が数えた（§3-2）。ライブ用の整え方（距離と括弧を外す・文字を下げる）を main が受け入れるか
 
 **規約の確認（この担当が、決める前に公式で確かめる）**
-15. ~~YouTube の規約~~ → §13 で確認済み。残り：API で上げた動画を公開にできるか（Y7、実際に試す）、ライブの視聴時間がメンバーシップの条件に数えられるか（Y11）、チャットの書き込みを自動で集計できるか（Y10）
+15. ~~YouTube の規約~~ → §13 で確認済み。残り：API で上げた動画を公開にできるか（Y7、実際に試す）、ライブの視聴時間がメンバーシップの条件に数えられるか（Y11）。チャットの自動集計は Y15 で確認済み
 16. YouTube の画面上の安全な範囲（公式の記載なし → 試験配信で測る）、配信が途切れて戻ったときに同じ配信（同じ URL）に何分まで戻れるか（記載なし → 試験で測る）。遅延は通常のモードに決めてよい（Y4）
 
 ---
@@ -502,6 +502,10 @@ YouTube ヘルプと YouTube Data API の公式ページを読んで確かめた
 | Y9 | チャットの管理 | 使える機能：モデレーター、ブロックする単語、不適切な可能性があるメッセージの保留（なし／基本／厳しい）、低速モード、登録者限定。チャットは既定でオン（子ども向けの配信を除く）（[9826490](https://support.google.com/youtube/answer/9826490)、[15268877](https://support.google.com/youtube/answer/15268877)） | 開始時の設定案：保留は「厳しい」、ブロックする単語のリスト、低速モード（例：10〜30秒）。モデレーターを誰にするかはオーナー（§9） |
 | Y10 | チャットのアンケート | チャンネルの所有者がライブ中に作れる。選択肢2〜4、最長24時間、投票は変えられない（[15268877](https://support.google.com/youtube/answer/15268877)、[2524549](https://support.google.com/youtube/answer/2524549)）。意味の薄いアンケートの乱発はスパムの例（[2801973](https://support.google.com/youtube/answer/2801973)） | **「視点の投票」（§6）を作り直す**：頻繁な自動の投票はしない。所有者が1日1回程度、意味のある問い（例：今夜はランタンと眠っている住人のどちらを長く見たいか）を出す形から。チャットの書き込みを自動で集計する方式は、API で読めるかを含めて要確認 |
 | Y11 | 配信とメンバーシップの条件 | 配信：チャンネルの確認（電話番号）、過去90日に配信の制限がない、16歳以上（[2474026](https://support.google.com/youtube/answer/2474026)）。メンバーシップ：拡大版 YPP の条件（登録者500人、過去90日に公開動画3本、過去12か月の総再生時間3,000時間か、過去90日のショート300万回）。日本も対象（[13429240](https://support.google.com/youtube/answer/13429240)、[7636690](https://support.google.com/youtube/answer/7636690)） | **チャンネルの準備（確認）は早めに**。メンバーシップは条件を満たしてから（開始してしばらく後）。ライブの視聴時間が総再生時間に数えられるかは要確認。同時に動かせる配信は1チャンネル10本まで（[2474026](https://support.google.com/youtube/answer/2474026?hl=ja)） |
+| Y12 | ライブの分析 | 配信中：同時視聴者数、平均視聴時間、チャットレートなど。終了後：ピーク同時視聴者数、総再生時間、新しい登録者など、数分で反映。ライブにも「主なシーンでの視聴者維持率」がある（[2853833](https://support.google.com/youtube/answer/2853833?hl=en)、[9314356](https://support.google.com/youtube/answer/9314356?hl=en)）。分析の API に `averageConcurrentViewers`・`peakConcurrentViewers` と配信内の位置 `livestreamPosition` はあるが、時間の単位は日と月だけで時間帯（hour）は無い（[metrics](https://developers.google.com/youtube/analytics/metrics)、[dimensions](https://developers.google.com/youtube/analytics/dimensions)）。12時間を超える配信の分析がどう残るかは**記載なし** | 時間帯ごと・視点ごとの人数は**自前で記録**する：Data API の `liveStreamingDetails.concurrentViewers` を5分おきに読む（[videos](https://developers.google.com/youtube/v3/docs/videos)、`TEST_REVIEW.md` B-4） |
+| Y13 | 戻ってくる視聴者 | 新規・ライト（過去1年で1〜5か月視聴）・コア（6か月以上）の3つ。チャンネル単位、期間は7日・28日・90日、1〜2日ごとに更新。API には無い（[10246996](https://support.google.com/youtube/answer/10246996?hl=en)） | 「戻ってくる」の指標は**チャンネルのライト＋コアの割合**にする。D20 の週ごとの数字に含めてもらう |
+| Y14 | 音量と音声の設定 | 目標の音量（LUFS など）は**記載なし**。「一定音量」が既定でオン（[14106294](https://support.google.com/youtube/answer/14106294?hl=en)）。ライブの推奨は AAC、ステレオ 44.1 kHz、128 kbps（[2853702](https://support.google.com/youtube/answer/2853702?hl=en)） | 音量の目標は自分たちで決め、試験配信で聞いて調整する（`TEST_REVIEW.md` A-5） |
+| Y15 | チャットの自動の読み取り | `liveChatMessages.streamList`（推奨、接続を保ったまま新しい書き込みが届く）か `list`、どちらも1回5ユニット。チャットの ID は配信中だけ取れる（[streamList](https://developers.google.com/youtube/v3/live/docs/liveChatMessages/streamList)、[list](https://developers.google.com/youtube/v3/live/docs/liveChatMessages/list)） | 視点の投票をチャットの書き込みで自動集計することは**できる**（Y10 の要確認が解けた）。ただし開始時は所有者のアンケートからでよい。読んだチャットは世界・住人の AI に渡さない（D4） |
 
 ### 13-1. main の受け入れ（2026-10-17）と、試験配信での撮影の手順
 
