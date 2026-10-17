@@ -51,16 +51,28 @@ test('retired source cannot return and latest hidden quality cannot be replaced'
  const a=fixture();applyCordLoad(a,req('cord','first',{kind:'abrasion',count:1}));a.lots.cord.quality!.abrasions=0;
  assert.throws(()=>validateCordLoadLedger(a),CordLoadError);atomic(a,()=>applyCordLoad(a,req('cord','rewind',{kind:'load',gf:0},1001,1001)));
 });
-test('identity receipts and old schemas are verified before changes',()=>{
- const L=fixture();applyCordLoad(L,req('cord','first',{kind:'load',gf:0}));
- for(const f of [(x:any)=>x.coirCordLoads.schema='civ-world.coir-cord-load-ledger/1',
- (x:any)=>x.coirCordLoads.records[0].lotIds[0]='another',(x:any)=>x.runs['run:1'].state.schema='civ-world.coir-cord-load/1',
- (x:any)=>x.runs['run:1'].processVersion='host-1']){
- const a=json(L);f(a);atomic(a,()=>applyCordLoad(a,req('cord','second',{kind:'load',gf:0},1001,1001)));
- }
- const a=json(L);(a.coirCordLoads as any).schema='civ-world.coir-cord-load-ledger/1';
- assert.throws(()=>validateCordLoadLedger(a),(e:any)=>e instanceof CordLoadError&&e.code==='unsupported-load-schema');
+test('identity receipts and old schemas are verified before changes', () => {
+  const L = fixture();
+  applyCordLoad(L, req('cord', 'first', { kind: 'load', gf: 0 }));
+  const mutations: ((x: any) => void)[] = [
+    x => { x.coirCordLoads.schema = 'civ-world.coir-cord-load-ledger/1'; },
+    x => { x.coirCordLoads.cords.cord.recent[0].result.lotIds[0] = 'another'; },
+    x => { x.coirCordLoads.strengthPolicyId = 'legacy-floating-strength'; },
+    x => { x.coirCordLoads.cords.cord.latest.quality.base_strength_gf++; },
+  ];
+  for (const mutate of mutations) {
+    const bad = json(L);
+    mutate(bad);
+    atomic(bad, () => applyCordLoad(bad,
+      req('cord', 'second', { kind: 'load', gf: 0 }, 1001, 1001)));
+  }
+  const unsupported = json(L);
+  (unsupported.coirCordLoads as any).schema = 'civ-world.coir-cord-load-ledger/1';
+  assert.throws(() => validateCordLoadLedger(unsupported),
+    (error: unknown) => error instanceof CordLoadError
+      && error.code === 'unsupported-load-schema');
 });
+
 test('known relocation is allowed; extant-only validation permits later consumption',()=>{
  const L=fixture();applyCordLoad(L,req('cord','first',{kind:'load',gf:0}));L.lots.cord.location='elsewhere';
  applyCordLoad(L,req('cord','next',{kind:'load',gf:0},1001,1001));assert.equal(L.lots.cord.location,'elsewhere');

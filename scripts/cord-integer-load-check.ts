@@ -1,7 +1,8 @@
+import { applyCordLoad as applyLegacyCordLoad } from './fixtures/coir-cord-load-v3';
 import assert from 'node:assert/strict';
 import { addLot, emptyLedger } from '../src/world/process-runner';
 import {
-  applyCordLoad, validateCordLoadLedger, COIR_CORD_LOAD,
+  applyCordLoad, applyCordLoadForResident, validateCordLoadLedger, COIR_CORD_LOAD,
   CordLoadError, type CordLoadLedger, type CordLoadRequest,
 } from '../src/world/coir-cord-load';
 import { readCordPiece, writeCordPiece } from '../src/world/coir-cord-lots';
@@ -21,6 +22,7 @@ function test(name: string, check: () => void): void {
   console.log('PASS ' + name);
 }
 const json = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const legacyApply = applyLegacyCordLoad as unknown as typeof applyCordLoad;
 function aged(): CoirPiece {
   return {
     lotId: 'cord:aged', material: 'coir_rope', lengthMm: 7_000,
@@ -77,15 +79,24 @@ function direct(L: CordLoadLedger, q: CordLoadRequest, runId: string, integer = 
 }
 
 test('load and receipt versions bind the operational integer policy', () => {
-  assert.equal(COIR_CORD_LOAD.processVersion, 'host-3');
-  assert.equal(COIR_CORD_LOAD.schema, 'civ-world.coir-cord-load/3');
-  assert.equal(COIR_CORD_LOAD.ledgerSchema, 'civ-world.coir-cord-load-ledger/3');
+  assert.equal(COIR_CORD_LOAD.processVersion, 'host-4');
+  assert.equal(COIR_CORD_LOAD.schema, 'civ-world.coir-cord-load/4');
+  assert.equal(COIR_CORD_LOAD.ledgerSchema, 'civ-world.coir-cord-load-ledger/4');
   assert.equal(COIR_CORD_LOAD.strengthPolicyId, INTEGER_HALF_LIFE_POLICY_ID);
   const L = fixture();
-  const out = applyCordLoad(L, request(0));
-  const d = L.runs[out.runId].state!.data as any;
-  assert.equal(d.damage.schema, 'prototype-coir-cord-damage/2');
-  assert.ok(d.damage.binding.includes(INTEGER_HALF_LIFE_POLICY_ID));
+  const q = request(0);
+  const out = applyCordLoad(L, q);
+  const saved = L.coirCordLoads as any;
+  const checkpoint = saved.cords[q.lotId];
+  assert.equal(L.coirCordLoadFormat, COIR_CORD_LOAD.ledgerSchema);
+  assert.equal(saved.strengthPolicyId, INTEGER_HALF_LIFE_POLICY_ID);
+  assert.equal(saved.receiptLimit, 64);
+  assert.equal(checkpoint.kind, 'live');
+  assert.equal(checkpoint.latest.lotId, q.lotId);
+  assert.deepEqual(checkpoint.recent[0].request, q);
+  assert.deepEqual(checkpoint.recent[0].result, out);
+  assert.equal(typeof checkpoint.digest, 'number');
+  assert.equal(L.runs[out.runId], undefined);
   validateCordLoadLedger(json(L));
 });
 
@@ -150,7 +161,7 @@ test('cumulative exposure and abrasion preserve integer decisions after JSON and
 
 test('old ledger and run versions are rejected without replay or mutation', () => {
   const original = fixture();
-  const out = applyCordLoad(original, request(0));
+  const out = legacyApply(original, request(0));
   for (const schema of [
     'civ-world.coir-cord-load-ledger/1', 'civ-world.coir-cord-load-ledger/2',
   ]) {
@@ -176,7 +187,7 @@ test('outer version relabeling cannot hide a legacy damage binding', () => {
   const original = fixture();
   const before = json(original);
   const q = request(0);
-  const out = applyCordLoad(original, q);
+  const out = legacyApply(original, q);
   const legacy = direct(before, q, out.runId, false).state;
   for (const relabelInner of [false, true]) {
     const L = json(original);
@@ -191,10 +202,17 @@ test('outer version relabeling cannot hide a legacy damage binding', () => {
 test('hidden numeric policy never enters witnessed sensory observations', () => {
   for (const gf of [37_765, 37_766]) {
     const L = fixture();
-    const out = applyCordLoad(L, request(gf));
+    const q = request(gf);
+    const out = applyCordLoad(L, q);
     assert.ok(out.observations.every(text => !/[0-9]|gf|mg|policy|strength|seed/.test(text)));
-    const publicRows = L.runs[out.runId].observations;
-    assert.ok(publicRows.every(row => row.value === undefined && row.unit === undefined));
+    const before = json(L);
+    const publicView = applyCordLoadForResident(L, q);
+    assert.equal(publicView.ok, true);
+    assert.deepEqual(Object.keys(publicView).sort(), ['observations', 'ok']);
+    assert.deepEqual(publicView.observations, out.observations);
+    assert.deepEqual(L, before);
+    assert.equal(L.runs[out.runId], undefined);
   }
 });
+
 console.log('PASS integer cord load: ' + groups + ' groups.');
