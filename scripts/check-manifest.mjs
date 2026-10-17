@@ -4,6 +4,7 @@
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
   'husk-soak', 'husk-host',
+  'science-wet-wick', 'science-dry-wick-comparison',
   'coir-cord-identity',
   'manual-husk-handover', 'coir-cord-handover',
   'coir-cord-work', 'coir-cord-lots', 'coir-cord-load', 'coir-cord-science',
