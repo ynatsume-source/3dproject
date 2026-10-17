@@ -1,0 +1,9 @@
+1 a fresh island: every husk and cord place, nothing standing, nothing lying: site:husk-pool[|] site:husk-work[|] site:cord-dry[|] site:cord-work[|] site:cord-hang[|] ok
+2 the rack stands once fibre is laid out on it, not before; the bundle on it, wet: site:cord-dry[|] → site:cord-dry[drying-rack|fiber-bundle:wet] ok
+3 a bundle dry once its water is a tenth of its dry mass, wet above: dry / wet ok
+3 a husk left from the beating the same: wet, then dry: wet / dry ok
+3 a strand: smooth, fuzzy, frayed when rubbed or a year in the sun (ten in the shade), broken on the ground: {"smooth":"smooth","fuzzy":"fuzzy","rubbed":"frayed","sun":"frayed","almost":"smooth","shade":"frayed","broken":"broken"} ok
+3 a rope drawn as cord, a strand as yarn: cord ok
+4 ids stable, not lot ids; no amount in what is drawn: thing:18mrupx ok
+5 reading the looks takes nothing from the island's draws, and no look reaches a resident's mind: 0 draws, 2 inputs ok
+PASS
