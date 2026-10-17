@@ -14,7 +14,9 @@ host-4では履歴を最新チェックポイントと直近64件の再送receip
 
 ## 保存の版
 
-現在はhost-4・一時結果/ledger /4。検証したhost-3/run/ledger /3を読み、最新状態と上限つき再送窓へ移行する。形式マーカーも/4を明示する。\n\n履歴：当初のID維持はhost-2・run/ledger /2。PR23のC2で、現在は荷重を帆と同じ整数モデルへそろえ、process host-3、状態civ-world.coir-cord-load/3、Ledger内記録civ-world.coir-cord-load-ledger/3にした。
+現在はhost-4・一時結果/ledger /4。検証したhost-3/run/ledger /3を読み、最新状態と上限つき再送窓へ移行する。形式マーカーも/4を明示する。
+
+履歴：当初のID維持はhost-2・run/ledger /2。PR23のC2で、現在は荷重を帆と同じ整数モデルへそろえ、process host-3、状態civ-world.coir-cord-load/3、Ledger内記録civ-world.coir-cord-load-ledger/3にした。
 旧ledger /1・/2は明示的なunsupported-load-schemaとして拒否し、暗黙移行しない。旧runや内部の旧damage bindingも拒否する。旧保存の移行は別作業であり、旧イベントを勝手に再実行しない。素材qualityの形式と、切れない限り同じIDを保つルールは維持する。[整数化の範囲](sail-raft-main-integer-load.md)を参照。
 
 ## C2：言葉と感覚をそろえる
