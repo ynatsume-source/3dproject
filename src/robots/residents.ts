@@ -235,6 +235,8 @@ export interface Residents {
   save(): void;
   /** What the husk and cord worksites look like, for drawing only (robots/worksite-looks.ts): never a resident's. */
   worksiteLooks(): WorksiteLook[];
+  /** Where each worksite of worksiteLooks() lies on the ground (for drawing it: robots/coir-look.ts). */
+  worksiteSpots(): Record<string, { x: number; z: number }>;
   focus(r: Resident | null): void;        // the one being watched: mark where it is heading
   bubbles(camera: THREE.Camera, w: number, h: number): void;
   onEvent: (kind: string, text: string, r: Resident) => void;
@@ -3667,6 +3669,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return `おなか：${r.hunger > 0.7 ? 'ぺこぺこ' : r.hunger > 0.45 ? 'すいてきた' : r.hunger > 0.2 ? 'ほどほど' : 'いっぱい'}・ねむけ：${r.sleepy > 0.7 ? 'ねむい' : r.sleepy > 0.4 ? 'すこし' : 'すっきり'}`;
     },
     save,
+    worksiteSpots: () => { const h = husk.sites(), c = cord.sites(); return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang].map((p) => [p.id, { x: p.x, z: p.z }])); },
     worksiteLooks: () => { const h = husk.sites(), c = cord.sites();
       return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack } }); },
     focus(r) { focused = r; },

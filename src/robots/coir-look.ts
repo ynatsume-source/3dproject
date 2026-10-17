@@ -298,7 +298,17 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
     for (const ms of Object.values(sets)) for (const m of ms) m.instanceMatrix.needsUpdate = true;
   }
   const counts = () => Object.fromEntries(Object.entries(sets).map(([k, ms]) => [k, ms[0].count]));
-  return { group, set, counts };
+  /** Keep to what the world says: read `looks()` and `spots()` (the residents' worksiteLooks / worksiteSpots) about once
+   *  a second while drawn — laid out again only when something there has changed. */
+  let readAt = -1e9, last = '';
+  function follow(looks: () => WorksiteLook[], spots: () => Record<string, { x: number; z: number }>, face = 0.4) {
+    sets['fiber-bundle/wet'][0].onBeforeRender = () => {   // (always drawn: frustumCulled off; a mesh's hook, so it costs nothing when the sea is not)
+      const now = performance.now(); if (now - readAt < 1000) return; readAt = now;
+      const L = looks(), key = JSON.stringify(L); if (key === last) return; last = key;
+      const S = spots(); set(L, (id) => (S[id] ? { x: S[id].x, z: S[id].z, face } : null));
+    };
+  }
+  return { group, set, follow, counts };
 }
 
 /** LAB: the test knob's worksite by Dot's home: ?coirlook=wet|dry|bare — main's test data (WORKSITE_LOOK_FIXTURES 'fiber-wet':

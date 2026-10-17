@@ -116,3 +116,16 @@ three.js は物を作るたびに `Math.random` を引く。この見た目の�
 - 画像：`fixtures.jpg`（昼の近く、夜の近く、見守りの高さ）。
 - 確認：指紋は PR #33 の先頭（425c1f6）とバイト単位で一致。shader-check（PR #32 版、仕上げなし・あり）12 件 PASS。typecheck、build。
 - 本体への提案：品物に `on?: fixtureId`（その設備の上・掛けてある）があれば、干している繊維を竿に掛けて、打っている殻を台の上に描ける。
+
+## その5：世界の台帳につなぐ（PR #38 のあと、main 6517970 の上）
+
+- `residents.worksiteSpots()` を足した（`residents.ts`、本体のファイル）。`worksiteLooks()` と同じ5つの作業場の地面の位置を返す。中身は `husk.sites()`／`cord.sites()` の位置そのまま。
+- `coirLook.follow(looks, spots)`：描かれているあいだ、だいたい1秒に1回だけ窓口を読む。中身が変わったときだけ置き直す。物は作らない。
+- `build.ts`：試験用のつまみ（`?coirlook=`）がないときは、`residents.worksiteLooks()` と `worksiteSpots()` に従う。
+- 確認：
+  - 指紋：main とバイト単位で一致。
+  - 窓口を毎回読んでも世界は変わらない：`firewood-fixture.ts` の更新のたびに `worksiteLooks()`・`worksiteSpots()` を読む版で、指紋・行動・保存が一致した。
+  - `check:fast`：61 件すべて合格。
+  - 新しい世界ではどの作業場も空で、何も描かれない（ブラウザで確認）。
+  - 窓口を試験の値に差し替えると、知っている作業場の物だけが描かれる。知らない作業場の物は描かれない。
+  - `real-sites.png`：試験の値を実際の作業場の位置に置いた画像。打つ台と品物が作業台のそば、干し場が小屋の前。
