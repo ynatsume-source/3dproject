@@ -1,0 +1,13 @@
+PASS takeover and cleanup require pause; new actor differs and history remains
+PASS 17s old and 13s new certify 30s while former actor afterward does nothing
+PASS restore allows a different actor and returned actor must reconfirm own work
+PASS certified partial cleanup checkpoints close dry/water and never return a new whole husk
+PASS cleanup replay after JSON/global trim never consumes twice or resumes
+PASS cleanup partitions and takeover produce the same physical lots
+PASS former actor cannot control new actor and cross-assignment spans reject
+PASS old schemas and forged assignment histories fail before inventory changes
+PASS cleanup frees the worksite and public data contains no hidden numbers or recipe
+PASS B1 zero certified work releases the exact original husk without replacing it
+PASS B1 the untouched same husk can restart, survive replay/restore, and finish
+PASS B1 pending work across takeover is still untouched when the job is abandoned
+PASS manual husk handover: 12 groups.
