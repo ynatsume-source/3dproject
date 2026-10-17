@@ -1,6 +1,6 @@
 // LAB: the husk-and-cord things at a worksite as the stream sees them (src/robots/coir-look.ts): the test worksite by
 // Dot's home (?coirlook=wet|dry|both), held at a close view and a watch's view from a little above, and shot.
-// Usage (a build served at PORT): node tools/lab/coir-look.cjs   (env PORT 4174, OUT coir, LOOK both|all|cord|wet|dry|none,
+// Usage (a build served at PORT): node tools/lab/coir-look.cjs   (env PORT 4174, OUT coir, LOOK both|all|cord|wet|dry|bare|none,
 // TIME 12:00, DATE (none: today), WX clear, SIZE 1920x1080, TIER high, VIEWS 'close,watch')
 const { chromium } = require('playwright');
 const fs = require('fs');
