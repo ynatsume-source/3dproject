@@ -15,8 +15,17 @@ export interface WorksiteThing {
   kind: WorksiteThingKind;
   look: WorksiteThingLook;
 }
+/** What stands at a worksite for the work, when it is there: the board the husks are beaten on, the rack the fibre
+ *  dries on under the eaves. Listed only once the world has put it there — a viewer is never shown a thing to come. */
+export type WorksiteFixtureKind = 'beat-board' | 'drying-rack';
+export interface WorksiteFixture {
+  /** Stable while it stands (the seed of its look). */
+  id: string;
+  kind: WorksiteFixtureKind;
+}
 export interface WorksiteLook {
   siteId: string;
+  fixtures: WorksiteFixture[];
   items: WorksiteThing[];
 }
 
@@ -26,6 +35,8 @@ export function thingKindOf(materialId: string): WorksiteThingKind | null {
     case 'wet_unseparated_coconut_husk': return 'wet-husk';
     case 'partially_separated_coconut_husk': return 'partial-husk';
     case 'coir_fiber_bundle': return 'fiber-bundle';
+    case 'coir_strand': return 'yarn';
+    case 'coir_rope': return 'cord';
     default: return null;
   }
 }
@@ -33,6 +44,7 @@ export function thingKindOf(materialId: string): WorksiteThingKind | null {
 /** Fixed looks for drawing before main's connection fills them (the nature team's first item: the fibre bundle,
  *  wet and dry). Test data only. */
 export const WORKSITE_LOOK_FIXTURES: Readonly<Record<string, WorksiteLook>> = Object.freeze({
-  'fiber-wet': { siteId: 'fixture:husk-site', items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'wet' }, { id: 'fixture:husk-1', kind: 'partial-husk', look: 'wet' }] },
-  'fiber-dry': { siteId: 'fixture:husk-site', items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'dry' }] },
+  'fiber-wet': { siteId: 'fixture:husk-site', fixtures: [{ id: 'fixture:board-1', kind: 'beat-board' }], items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'wet' }, { id: 'fixture:husk-1', kind: 'partial-husk', look: 'wet' }] },
+  'fiber-dry': { siteId: 'fixture:cord-dry', fixtures: [{ id: 'fixture:rack-1', kind: 'drying-rack' }], items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'dry' }] },
+  'bare-site': { siteId: 'fixture:husk-site', fixtures: [], items: [] },   // (nothing put there yet: nothing drawn)
 });
