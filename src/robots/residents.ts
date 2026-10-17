@@ -30,7 +30,7 @@ import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refres
 import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
-import { makeHuskHost, emptyHuskHostState, type HuskHostState, type HuskDevEntry } from './husk-host';
+import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry } from './husk-host';
 import { draw } from '../science/rng';
 import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
@@ -2675,6 +2675,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'tool': makeTool(r, tk.data?.kind); break;
       case 'stackwood': stackWood(r); break;
       case 'husk-soak': case 'husk-takeout': case 'husk-clear': {
+        if (fast) { tk.failed = 'interrupted'; break; }   // (no hand work in the hours it is caught up on by habit)
         const w = tk.kind === 'husk-soak' ? husk.putInPool(r.id, clockMs) : tk.kind === 'husk-takeout' ? husk.takeOut(r.id, clockMs) : husk.clearAway(r.id, clockMs);
         if (w) tk.data = { ...tk.data, detail: w }; else tk.failed = 'blocked';
         break;
@@ -3518,7 +3519,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (those with a mind of their own keep looking while they work; something new stops them — between steps)
       // (asked while its body's needs come first — hungry, asleep — it does not leave the other waiting: a no, and why)
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
-      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r)); if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
+      if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r));
+        // (at the tide pool, it sees how the husks lying there are: only when it is there; noted once, as it changes)
+        { const p = husk.sites().pool, seen = husk.lookIntoPool(r.id, Math.hypot(r.pos.x - p.x, r.pos.z - p.z) <= POOL_REACH_M ? 'here' : 'away', clockMs); if (seen) act(r, 'got', `潮だまりの殻を見た：${seen}`); } if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       for (const r of list) dayStart(r);
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       for (let i = 0; i < utterQ.length; i++) {
@@ -4088,6 +4091,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   (res as any).huskDev = huskDev;   // (the developer's record of the science side's refusals: read by checks, never by a resident)
+  (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)
   // wake up where they were, and catch up on the hours nobody was watching
   initStudyPlaces();
   const behind = load(Date.now());

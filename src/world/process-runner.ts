@@ -46,6 +46,17 @@ export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }):
   const l = { ...lot, lotId: lot.lotId ?? `lot:${++L.seq}` } as LotView; L.lots[l.lotId] = l; L.world.worldVersion++; return l;
 }
 
+/** Carry a whole lot to another place (the world's own move: a body took it there). Refused for a lot in use — a run's
+ *  lots stay where the run has them. Nothing about the lot changes but where it is. */
+export function moveLot(L: Ledger, lotId: Id, location: Id): { lot?: LotView; why?: string } {
+  const lot = L.lots[lotId];
+  if (!lot) return { why: `no lot ${lotId}` };
+  if (lot.reservedBy) return { why: `${lotId} is in use (${lot.reservedBy})` };
+  if (lot.location === location) return { lot };
+  lot.location = location; L.world.worldVersion++;
+  return { lot };
+}
+
 /* ---------- assembly: a lot made into equipment, and back (ADR 0006 addendum: main assembles, science gives the table) ---------- */
 
 /** What an assembled piece of equipment keeps: the lot it was made from (as it was), and the table's version. */

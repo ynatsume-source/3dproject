@@ -7,6 +7,10 @@
 //    side's code in the developer's log only
 //  4 soaked five island days, taken out, beaten: the husk comes apart into a fibre bundle at the worksite
 //  5 stopped half way (another task), saved and loaded an hour later: no work counted for the time away; resumed, it is finished
+//  7 a place full is not offered (the pool with husks in it, the worksite with another's hands at a husk); what lies in
+//    the pool is seen only by one standing at it (presence 'here'), noted once as it changes
+//  8 the hours caught up on by habit after a load do no hand work: nothing put in, taken out or beaten, no work counted;
+//    the pool's time across the load is sent as one span, from the last confirmed moment to the first one back
 //  6 nothing a resident is told carries the amounts (marker masses) or a code: not its diary, not what its mind is
 //    given, not the day's post prompt, not its saved memory
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/husk-host-check.ts
@@ -65,6 +69,11 @@ const husk = () => addLot(R.lab, { materialId: 'coconut_husk', amount: { value: 
   want('1 Dot is offered the husk among its other options (nothing it cannot do yet: no beating, no taking out)', opts.length > 2 && !opts.some((o: any) => ['beat:husk', 'takeout:pool', 'clear:husk'].includes(o.id)), opts.map((o: any) => o.id).slice(0, 14).join(','));
   const run = runsOf('prototype_husk_soak')[0], lot = lots('coconut_husk')[0];
   want('2 put in the tide pool when Dot was there: a soaking run, the husks at the pool', ok && run?.status === 'running' && lot?.location === 'site:husk-pool' && lot.reservedBy === run.runId, `${run?.status} ${lot?.location}`);
+  const extra = husk(), o7 = R.huskHost.options('dot', now).map((o: any) => o.id); delete R.lab.lots[extra.lotId];
+  want('7 the pool full (husks soaking in it): putting more in not offered, with husks still on the shelf', !o7.includes('soak:pool') && o7.includes('takeout:pool'), o7.join(','));
+  step(2);
+  const p = R.huskHost.sites().pool, at = Math.hypot(dot().pos.x - p.x, dot().pos.z - p.z);
+  want('7 standing at the pool: what it sees of the husks, in words', at > 3 || said(/潮だまりの殻を見た：(殻は水を含み、重い|まだ硬く、乾いている|殻が水を吸って重くなってきた)$/), `${at.toFixed(1)} m; ${dot().diary.filter((e: any) => /潮だまりの殻を見た/.test(e.text)).map((e: any) => e.text).join(' / ')}`);
   step(600);
   const fr = R.lab.runs[run.runId].state.data.frames;
   want('2 the pool\'s time confirmed as it passes', (fr?.length ?? 0) > 0, `${fr?.length} spans`);
@@ -81,7 +90,28 @@ for (const d of R.huskDev) allCodes.add(d.code);
 store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math.random = mulberry32(7); R = make(); husk(); step(5);   // (6:00 on the island: the taking out and the beating fall in the afternoon)
 { // 4
   await choose('soak:pool', () => runsOf('prototype_husk_soak').length > 0);
-  step(Math.ceil(islandWait(5.2 * 86400e3) / 1000));   // (five island days and a little: about nine and a half hours)
+  const soakId = runsOf('prototype_husk_soak')[0].runId, half = Math.ceil(islandWait(2.6 * 86400e3) / 1000);
+  step(half);
+  // (saved and loaded three hours later: the hours caught up on by habit)
+  const shelf0 = lots('coconut_husk').filter((l) => l.location === 'shelf').length;
+  addLot(R.lab, { materialId: 'coconut_husk', amount: { value: MASS, unit: 'mg' }, location: 'shelf', quality: { count: 2, water_ppm: 300_000, ash_dry_ppm: 20_000, history_complete: 1 } });
+  R.save(); const s8 = JSON.parse(store.get(KEY)!), from8 = s8.village.huskHost.soak[soakId], runs8 = Object.keys(s8.lab.runs).length;
+  now += 3 * 3600e3; R = make();
+  want('8 caught up on by habit: no hand work — nothing put in, taken out or started, the husks where they were', Object.keys(R.lab.runs).length === runs8 && R.lab.runs[soakId].status === 'running' && lots('coconut_husk').filter((l) => l.location === 'shelf').length === shelf0 + 1 && R.huskDev.length === 0, `runs ${runs8}→${Object.keys(R.lab.runs).length}, ${R.lab.runs[soakId].status}, on the shelf ${lots('coconut_husk').filter((l) => l.location === 'shelf').length}, refusals ${R.huskDev.map((d: any) => d.code).join(',')}`);
+  for (const l of lots('coconut_husk').filter((l) => l.location === 'shelf')) delete R.lab.lots[l.lotId];
+  const back = now; step(2);
+  const fr8 = R.lab.runs[soakId].state.data.frames, one = fr8.find((f: any) => f.fromWorldMs === from8);
+  want('8 the pool\'s time across the load: one span, from the last confirmed moment to the first one back', !!one && one.toWorldMs >= back && fr8.filter((f: any) => f.fromWorldMs < back && f.toWorldMs > from8 + 1000).length === 1, one ? `${Math.round((one.toWorldMs - one.fromWorldMs) / 60e3)} min` : `(no span from ${from8})`);
+  step(Math.ceil(islandWait(2.6 * 86400e3) / 1000) - half);
+  { // (seen only from the pool: away, nothing; there, what it sees now)
+    const p = R.huskHost.sites().pool, d = dot(), n0 = d.diary.length;
+    delete R.village.huskHost.looked.dot;   // (as if it had not looked since: it may have passed by the pool on the way)
+    d.task = null; d.pos.x = p.x + 20; d.pos.z = p.z; step(3);
+    const away = d.diary.slice(n0).filter((e: any) => /潮だまりの殻を見た/.test(e.text));
+    d.task = null; d.pos.x = p.x + 0.5; d.pos.z = p.z; step(2);
+    const there = d.diary.slice(n0).filter((e: any) => /潮だまりの殻を見た/.test(e.text));
+    want('7 away from the pool nothing seen of it; at it, how the husks are now', away.length === 0 && there.some((e: any) => /水を吸って重くなってきた/.test(e.text)), there.map((e: any) => e.text).join(' / '));
+  }
   await choose('takeout:pool', () => lots('wet_unseparated_coconut_husk').length === 2);
   await choose('beat:husk', () => lots('coir_fiber_bundle').length > 0);
   const fb = lots('coir_fiber_bundle')[0];
@@ -91,6 +121,9 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   await choose('beat:husk', () => runsOf('prototype_manual_husk_work').some((r) => ['running', 'starting'].includes(r.status)) && dot().task?.data?.engaged, 600);
   step(60);
   const run = runsOf('prototype_manual_husk_work').find((r) => ['running', 'starting'].includes(r.status));
+  const wet = addLot(R.lab, { materialId: 'wet_unseparated_coconut_husk', amount: { value: MASS, unit: 'mg' }, location: 'site:husk-pool', quality: { water_ppm: 600_000, history_complete: 1 } });
+  const o7 = R.huskHost.options('lantern', now).map((o: any) => o.id), mine = R.huskHost.options('dot', now).map((o: any) => o.id); delete R.lab.lots[wet.lotId];
+  want('7 the worksite taken (Dot\'s hands at a husk): beating or clearing not offered to another, a wet husk free all the same', !o7.includes('beat:husk') && !o7.includes('clear:husk') && mine.includes('beat:husk'), `lantern ${o7.join(',') || '(none)'}; dot ${mine.join(',')}`);
   dot().task = null;   // (called away: another task)
   step(2);
   const job = () => R.lab.manualHuskArrangement.jobs.find((j: any) => j.runId === run.runId);
