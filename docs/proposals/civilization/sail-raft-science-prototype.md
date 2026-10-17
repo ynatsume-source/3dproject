@@ -1,6 +1,6 @@
 # 帆と帆で進む筏：隔離科学試作 v1
 
-2026-10-15。オーナー決定の**仮定（キメ値）**。必須IDは `owner-assumption/sail-raft/2026-10-15/v1`。省略・未知のIDを拒否する。文献照合は進行条件にせず、今回行わない。起点はPR21の科学受入済み `aeabb0df57a2ae1a4e43d541340e1baa2b55b14a`。main統合、本体接続、住人運用、UI・航海の判断・操作の表示は対象外。
+2026-10-15。オーナー決定の**仮定（キメ値）**。必須IDは `owner-assumption/sail-raft/2026-10-15/v1`。省略・未知のIDを拒否する。文献照合は進行条件にせず、今回行わない。起点はPR21の科学受入済み `aeabb0df57a2ae1a4e43d541340e1baa2b55b14a`。C1で main `d6a6d039cddcb5b4f7a9a3b8fe8705b1854914b7` を取り込み、両方の検査一覧を保持した。main統合、本体接続、住人運用、UI・航海の判断・操作の表示は対象外。
 
 ## ファイルと境界
 
@@ -50,7 +50,7 @@
 
 擦れは4095回までBigIntで厳密な `(99/100)^n` を使う。4096回以上では安全整数の最大初期強度でも1gf未満になるため0。1回なら100,000→99,000 gf。
 
-PR21の既存 `currentCordStrength/createCordDamageModel` と保存schema /1は旧評価・旧bindingを維持する。**新しい帆の経路だけ** `currentIntegerCordStrength/createIntegerCordDamageModel` を明示選択し、schema /2とbindingへ整数policy IDを入れる。旧stateのschema文字だけを書き換えても拒否する。PR21の受入済みブランチは変更しない。PR21 C2を全経路で解消したとは扱わない。
+PR21の既存 `currentCordStrength/createCordDamageModel` と保存schema /1は旧互換のため維持する。**帆の経路と、世界の縄の荷重経路** `coir-cord-load.ts` は `currentIntegerCordStrength/createIntegerCordDamageModel` を明示選択し、damage schema /2とbindingへ整数policy IDを入れる。世界の荷重はhost-3、run/ledgerは/3に上げ、旧/1・/2は暗黙移行せず拒否する。外側や内部の版文字だけを付け替えても旧bindingを拒否する。材料codecは変えない。受入済みの製造は変更せず、撚り合わせ時に新縄の初期強さを一度決める旧製造仮定と、その縄の以後の荷重時の現在強度を区別する。詳細は [C1・C2の記録](sail-raft-main-integer-load.md)。PR21の受入済みブランチは変更しない。
 
 縄の荷重判定・二分・成分配分は同じ内部damage factoryで共有する。帆側はloadイベントを送り、その返答がbrokenかだけを使う。帆側で独自の第二の切断判定は行わない。
 

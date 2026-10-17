@@ -1,10 +1,25 @@
 // World-only event adapter. Persist coirCordLoads in the same Ledger.
 import {startRun,commit,type Ledger,type Run} from './process-runner';
 import type {LotView,ScienceStepRequest,ScienceStepResult} from './science-contract';
-import {createCordDamageModel,type CordDamageEvent} from '../science/prototypes/coir-cord-damage';
+import {
+  createIntegerCordDamageModel,
+  type CordDamageEvent,
+} from '../science/prototypes/coir-cord-damage';
+import { INTEGER_HALF_LIFE_POLICY_ID } from '../science/prototypes/integer-half-life';
 import {COIR_CORD_ASSUMPTION_ID,cordCanonical as canonical,cordInteger as uint,cordId as id,cordShape as shape} from '../science/prototypes/coir-cord-types';
 import {readCordPiece,readCordHistory,writeCordPiece} from './coir-cord-lots';
-export const COIR_CORD_LOAD=Object.freeze({processId:'prototype_coir_cord_load',processVersion:'host-2',contract:'0.2.1',catalogVersion:'civ-sci-test-2',schema:'civ-world.coir-cord-load/2',ledgerSchema:'civ-world.coir-cord-load-ledger/2'});
+/** The operational load path uses the same integer policy as sail voyages.
+ * Old receipts are rejected, never replayed under a different strength formula.
+ */
+export const COIR_CORD_LOAD = Object.freeze({
+  processId: 'prototype_coir_cord_load',
+  processVersion: 'host-3',
+  contract: '0.2.1',
+  catalogVersion: 'civ-sci-test-2',
+  schema: 'civ-world.coir-cord-load/3',
+  ledgerSchema: 'civ-world.coir-cord-load-ledger/3',
+  strengthPolicyId: INTEGER_HALF_LIFE_POLICY_ID,
+});
 export type CordHostEvent={kind:'load';gf:number;breakAtMm?:number}|{kind:'abrasion';count:number}|{kind:'exposure';fromIslandMs:number;toIslandMs:number;shade:boolean};
 export interface CordLoadRequest{commandId:string;assumptionId:string;lotId:string;worldAtMs:number;islandAtMs:number;event:CordHostEvent}
 export interface CordLoadResult{runId:string;lotIds:string[];observations:string[]}
@@ -25,12 +40,31 @@ function request(q:CordLoadRequest){
  else if(e.kind==='abrasion')need(shape(e,['kind','count'])&&uint(e.count),'invalid-request');
  else need(e.kind==='exposure'&&shape(e,['kind','fromIslandMs','toIslandMs','shade'])&&uint(e.fromIslandMs)&&uint(e.toIslandMs)&&e.toIslandMs>e.fromIslandMs&&e.toIslandMs<=q.islandAtMs&&typeof e.shade==='boolean','invalid-request');
 }
-function science(source:LotView,q:CordLoadRequest,worldId:string,worldEpoch:string,runId:string){
- const e=q.event,m=createCordDamageModel(readCordPiece(source),q.assumptionId,{worldId,worldEpoch,runId,openedAtWorldMs:q.worldAtMs,openedAtIslandMs:e.kind==='exposure'?e.fromIslandMs:q.islandAtMs});
- const common={eventId:q.commandId,worldId,worldEpoch,runId};
- const event:CordDamageEvent=e.kind==='exposure'?{...common,...clone(e),clock:'island',atMs:e.toIslandMs}:{...common,...clone(e),clock:'world',atMs:q.worldAtMs};
- const state=m.commit(m.start(),event),p=m.project(state);
- return{state,produced:p.pieces.map(x=>writeCordPiece(x,source.location,readCordHistory(source))),observations:m.observe(state)};
+function science(
+  source: LotView,
+  q: CordLoadRequest,
+  worldId: string,
+  worldEpoch: string,
+  runId: string,
+) {
+  const e = q.event;
+  const model = createIntegerCordDamageModel(readCordPiece(source), q.assumptionId, {
+    worldId, worldEpoch, runId,
+    openedAtWorldMs: q.worldAtMs,
+    openedAtIslandMs: e.kind === 'exposure' ? e.fromIslandMs : q.islandAtMs,
+  });
+  const common = { eventId: q.commandId, worldId, worldEpoch, runId };
+  const event: CordDamageEvent = e.kind === 'exposure'
+    ? { ...common, ...clone(e), clock: 'island', atMs: e.toIslandMs }
+    : { ...common, ...clone(e), clock: 'world', atMs: q.worldAtMs };
+  const state = model.commit(model.start(), event);
+  const projected = model.project(state);
+  return {
+    state,
+    produced: projected.pieces.map(piece =>
+      writeCordPiece(piece, source.location, readCordHistory(source))),
+    observations: model.observe(state),
+  };
 }
 function chronology(q:CordLoadRequest,previous?:Tracked){
  if(!previous)return;
@@ -90,7 +124,7 @@ export function applyCordLoad(L:CordLoadLedger,q:CordLoadRequest):CordLoadResult
    interval:{from:q.worldAtMs,to:q.worldAtMs},state:null,environment:{sampleId:'env:cord-event-unused',source:'unknown',effectiveAt:q.worldAtMs},lots:[source],equipment:[],energy:[],actions:[],seed:r.seed};
   const res:ScienceStepResult={contract:r.contract,requestId:req.requestId,runId:r.runId,simulated:{...req.interval},state:{schema:COIR_CORD_LOAD.schema,data:{request:clone(q),source:clone(source),damage:s.state,outputLotIds}},
    status:'completed',consumed:[{lotId:q.lotId,amount:clone(source.amount)}],produced:s.produced,released:[],drawn:[],energy:[],equipmentWear:[],
-   observations:s.observations.map(text=>({at:q.worldAtMs,channel:'sight' as const,text})),evidence:{evaluatorVersion:COIR_CORD_LOAD.processVersion,sourceRefs:[],notes:'owner-assumption-not-calibrated; explicit '+q.assumptionId}};
+   observations:s.observations.map(text=>({at:q.worldAtMs,channel:'sight' as const,text})),evidence:{evaluatorVersion:COIR_CORD_LOAD.processVersion,sourceRefs:[],notes:'owner-assumption-not-calibrated; explicit '+q.assumptionId+'; strength policy '+INTEGER_HALF_LIFE_POLICY_ID}};
   const result=commit(copy,req,res);need(result.ok&&result.produced,'event-refused');
   // Existing commit validates/settles inside this private clone. An intact
   // physical cord retains its public identity before the transaction is exposed.
