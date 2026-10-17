@@ -76,7 +76,7 @@ function damageFactory<S extends 'prototype-coir-cord-damage/1'|'prototype-coir-
   check(shape(ctx, ['worldId', 'worldEpoch', 'runId', 'openedAtIslandMs', 'openedAtWorldMs']) && id(ctx.worldId) && id(ctx.worldEpoch) && id(ctx.runId)
   && integer(ctx.openedAtIslandMs) && integer(ctx.openedAtWorldMs), 'invalid-damage-context');
   const source = copy(original), context = structuredClone(ctx), binding = canonical(integerPolicy?[COIR_CORD_ASSUMPTION_ID, R, source, context, INTEGER_HALF_LIFE_POLICY_ID]: [COIR_CORD_ASSUMPTION_ID, R, source, context]);
-  const stateOf = (events: CordDamageEvent[]): DamageState<S >= >({
+  const stateOf = (events: CordDamageEvent[]): DamageState<S> => ({
     schema,
     binding,
     events: structuredClone(events)
