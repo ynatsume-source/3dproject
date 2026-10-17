@@ -30,6 +30,8 @@ import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refres
 import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
+import { makeHuskHost, emptyHuskHostState, type HuskHostState, type HuskDevEntry } from './husk-host';
+import { draw } from '../science/rng';
 import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
 import { LEX } from './islandlang';
@@ -465,7 +467,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as GaugeEntry[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo, hypoHistory: [] as { at: number; nextRunId?: string; hypothesis: Hypo }[],
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], huskHost: emptyHuskHostState() as HuskHostState, labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as GaugeEntry[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo, hypoHistory: [] as { at: number; nextRunId?: string; hypothesis: Hypo }[],
     labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
@@ -1216,6 +1218,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const beach = (x: number, z: number, h: number) => h > 0.35 && h < 1.4 && cover(x, z).sand > 0.5;
   // the beach proper: water within a few steps
   const shore = (x: number, z: number, h: number) => beach(x, z, h) && [0, 1.57, 3.14, 4.71].some((a) => L.h(x + Math.cos(a) * 9, z + Math.sin(a) * 9) < 0);
+  // The coconut husk's hands-on work (robots/husk-host.ts: the science side's soaking and separating, wired to the
+  // bodies): the tide pool on the shore nearest Dot's home, the worksite by the bench. Found once, without the world's
+  // draws (a fixed search outward), and kept with the village.
+  const huskDev: HuskDevEntry[] = [];   // (the science side's refusal codes, for the developer: not saved, never a resident's)
+  const husk = makeHuskHost({ lab, state: () => (village.huskHost ??= emptyHuskHostState()), dev: huskDev, placeSites: () => {
+    const [hx, hz] = byId.dot.sp.home; let pool: [number, number] = [hx, hz];
+    found: for (let d = 10; d <= 240; d += 5) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, x = hx + Math.cos(a) * d, z = hz + Math.sin(a) * d; if (shore(x, z, L.h(x, z))) { pool = [x, z]; break found; } }
+    const [bx, bz] = benchStand();
+    return { pool: { id: 'site:husk-pool', x: pool[0], z: pool[1] }, work: { id: 'site:husk-work', x: bx + 1.2, z: bz, reachM: 2 } };
+  } });
   // the water's edge itself, where the sea leaves things
   const tideline = (x: number, z: number, h: number) => h > 0.15 && h < 1.1 && cover(x, z).can < 0.3 && [0, 0.79, 1.57, 2.36, 3.14, 3.93, 4.71, 5.5].some((a) => L.h(x + Math.cos(a) * 6, z + Math.sin(a) * 6) < 0);
 
@@ -1709,6 +1721,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const ww = windward(t.x, t.z);
       o.push({ id: `fell:${t.x.toFixed(2)},${t.z.toFixed(2)}`, action: 'fell', label: `林の木を切り倒す（${KIND_JA[t.kind] ?? '木'}、高さ約${Math.round(t.h)}m、${Math.round(t.d)}m先。丸太${t.h > 7 ? 3 : 2}本と薪、切った所は開けた土地になる${ww ? '。家の風上（南東）の木：防風林が薄くなる' : ''}）`, targetId: `forest:${t.x.toFixed(1)},${t.z.toFixed(1)}` });
     }
+    // (the coconut husk: every hand action its materials and places allow, set among the rest at a place the island,
+    // the one deciding and the moment choose — not after the steps of a recipe)
+    if (!r.sp.living) { const h = husk.options(r.id, clockMs); if (h.length) o.splice(Math.floor(draw(0x6875736b, r.id, String(clockMs), 'options-at') * (o.length + 1)), 0, ...h); }
     if (r.battery < 0.6) o.push({ id: 'charge:sun', action: 'charge', label: '日なたで充電する' });
     o.push({ id: 'look:shore', action: 'look', label: '浜から海を眺める（流木が打ち上がるのを待つ）' }, { id: 'wander:near', action: 'wander', label: '近くを歩いてまわりを見る' });
     return o;
@@ -1768,6 +1783,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (action === 'post') t = r.holding === 'wood' && village.pier === 'build' && village.posts < village.bases ? task('post', pileStand(village.posts, true), 'work', 8, { wet: true }) : null;
     else if (action === 'float') t = task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
     else if (action === 'groom') t = task('groom', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'groom', rr(90, 200), { wet: true });
+    else if (action === 'soak' || action === 'takeout') { const p = husk.sites().pool; t = task(action === 'soak' ? 'husk-soak' : 'husk-takeout', [p.x, p.z], 'pick', 4); }
+    else if (action === 'beat') { const w = husk.sites().work; t = task('husk-beat', [w.x, w.z], 'work', 900, { data: {} }); }   // (a quarter hour at most at a time; the rest another time)
+    else if (action === 'clear') { const w = husk.sites().work; t = task('husk-clear', [w.x, w.z], 'pick', 3); }
     else if (action === 'charge') t = task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
     else if (action === 'look') t = task('look', spot(home, 80, shore, 200) ?? spot(home, 40, open), 'idle', rr(60, 180));
     else if (action === 'wander') t = task('wander', spot(home, r.sp.range, target === 'beach' ? beach : open), 'idle', rr(20, 60));
@@ -2656,6 +2674,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       case 'tool': makeTool(r, tk.data?.kind); break;
       case 'stackwood': stackWood(r); break;
+      case 'husk-soak': case 'husk-takeout': case 'husk-clear': {
+        const w = tk.kind === 'husk-soak' ? husk.putInPool(r.id, clockMs) : tk.kind === 'husk-takeout' ? husk.takeOut(r.id, clockMs) : husk.clearAway(r.id, clockMs);
+        if (w) tk.data = { ...tk.data, detail: w }; else tk.failed = 'blocked';
+        break;
+      }
+      case 'husk-beat': husk.stopBeating(r.id, r.pos, clockMs); tk.failed = 'interrupted'; break;   // (its quarter hour up: the rest another time)
       case 'assemble': if (tk.data?.as === 'dish') makeLampDish(r, tk.data?.lotId); else if (tk.data?.as === 'retort') makeRetort(r, tk.data?.lotIds); else if (tk.data?.as === 'gauge') makeWeatherPot(r, tk.data?.lotId); else makeCookPot(r, tk.data?.lotId); break;
       case 'wick': makeWick(r, tk.data?.fiber); break;
       case 'twist': village.house.rope += 10; note(r, 'house', {}, `アダンの気根の繊維をよって縄をなった（10m。いま${village.house.rope}m）`); break;
@@ -3080,6 +3104,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /* ---------- one resident, one step ---------- */
   function step(r: Resident, dt: number, fast: boolean) {
     studyFast = fast;
+    // (its hands left the husk — another task, a storm, the night, the time it was away: what it did is confirmed, then it stops)
+    if (husk.isBeating(r.id) && (fast || !(r.task?.kind === 'husk-beat' && r.task.data?.engaged))) husk.stopBeating(r.id, r.pos, clockMs);
     cancelLostStudy(r, fast);
     const hr = localHour(clockMs), day = dayK(hr);
     // the battery: solar panels charge in daylight when resting; moving and thinking use it up
@@ -3154,6 +3180,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // the crossing: at the raft the world judges the day; out at sea it is away (not seen on the island) until it is
     // back — or turned back by a storm
     if (tk.kind === 'lab' && tk.arrived && !tk.data.runId && !tk.failed) startLab(r, tk);
+    // (at the worksite with its hands to a husk: the science side is told it is here and at it — or what it felt, if the husk would not come apart)
+    if (tk.kind === 'husk-beat' && tk.arrived && !tk.data?.engaged && !tk.failed) {
+      if (fast) { r.task = null; return; }   // (no hand work in the hours it is caught up on by habit)
+      const b = husk.beginBeating(r.id, r.pos, clockMs);
+      if (b.ok === false) { report(r, tk, 'blocked', b.felt ?? undefined); r.task = null; return; }
+      tk.data = { ...tk.data, engaged: true };
+    }
     if (tk.kind === 'voyage' && tk.arrived && !tk.data.started) {
       const j = voyageJudge(r, tk.data.isle), w = village.map.seen[tk.data.isle]?.word ?? '';
       if (!j.go) { report(r, tk, 'blocked', j.why); r.task = null; return; }
@@ -3222,6 +3255,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (tk.kind === 'review' && tk.data) { let d = Math.atan2(tk.data.x - r.pos.x, tk.data.z - r.pos.z) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt * 1.5); }
       if (tk.kind === 'watch' || tk.kind === 'look') { let d = Math.atan2(-r.pos.x + (r.sp.home[0] - 60), -r.pos.z + (r.sp.home[1] + 80)) - r.head; d = Math.atan2(Math.sin(d), Math.cos(d)); r.head += d * Math.min(1, dt); }
       tk.t += dt * (tk.act === 'work' ? wearSlow(r) : 1);   // (worn joints: work goes slower)
+      if (tk.kind === 'husk-beat' && tk.data?.engaged) {
+        const h = husk.beating(r.id, r.pos, clockMs);
+        if (h.done) { report(r, tk, 'done', h.words.map((w) => w.replace(/。$/, '')).join('。') || undefined); r.task = null; placeY(r); return; }
+      }
       if (tk.kind === 'pit') (village as any).pitDug = ((village as any).pitDug ?? 0) + dt * (tk.act === 'work' ? wearSlow(r) : 1);   // (the digging done so far is kept: a gathering, or the night, does not fill the hole in again)
       if (r.sp.living && r.wet) {
         if (tk.kind === 'forage') { const k = tk.t / tk.dur; r.under = smooth01(0, 0.12, k) * (1 - smooth01(0.86, 1, k)); }   // (down head first, along the bottom, back up)
@@ -3250,7 +3287,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           }
         }
       }
-      if (tk.t > tk.dur) { done(r, tk, fast); report(r, tk, tk.failed ?? 'done'); }
+      if (tk.t > tk.dur) { done(r, tk, fast); report(r, tk, tk.failed ?? 'done', tk.data?.detail); }
     }
     placeY(r);
   }
@@ -3304,6 +3341,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (and equipment made under another version of its table — the cook pot, the retort, a sealed pot: worked out again from
     // the lots it was made of, as the assembly policy says, not its version name changed; science final review 2026-10-09-lamp)
     refreshAssembled(lab, COOK_POT_ASSEMBLY); refreshAssembled(lab, POT_ASSEMBLY); refreshAssembledParts(lab, RETORT_ASSEMBLY);
+    // (the coconut husk's work: no hands are at a husk across a load — the time it was off is not work; the pool's time goes on
+    // from where it was confirmed, in one span once the island is back: robots/husk-host.ts)
+    village.huskHost ??= emptyHuskHostState(); husk.restore(clockMs);
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
@@ -3471,6 +3511,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
       items.tick(dt); tickDrift(dt); catchRain(dt);
       if ((labT -= dt) < 0) { labT = 30; tickLab(); }
+      husk.tick(clockMs);   // (the time the husks lie in the tide pool, confirmed as it passes)
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
       if (!settled) { settled = true; for (const r of list) { const ap = solids.approach(r.pos.x, r.pos.z, bodyOf(r), feetAt(r), r.pos.x + 1, r.pos.z, standOn(r, r.wet)); if (ap && (ap[0] !== r.pos.x || ap[1] !== r.pos.z)) { r.pos.x = ap[0]; r.pos.z = ap[1]; placeY(r); } } }
@@ -4046,6 +4087,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return el;
   }
 
+  (res as any).huskDev = huskDev;   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   // wake up where they were, and catch up on the hours nobody was watching
   initStudyPlaces();
   const behind = load(Date.now());
