@@ -37,6 +37,7 @@ import { classifyWaterSteps } from './water';
 import { due, drain } from '../core/slice';
 export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
+import { makeCoirLook, coirLookTest } from '../robots/coir-look';
 import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
@@ -506,6 +507,12 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     T.water = oc.water.at;   // (where the residents may go into the water: the sea, not a pool cut off from it)
     oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja), { lanternStudy });
     group.add(oc.residents.group);
+    // what the husk-and-cord work leaves at its worksites, as it looks (robots/coir-look.ts: no world draws). The host
+    // lays it out from its WorksiteLook; ?coirlook=wet|dry|both lays a test worksite by Dot's home (LAB)
+    oc.coirLook = makeCoirLook(group, (x: number, z: number) => loc.f(x, z));
+    const test = typeof location !== 'undefined' ? coirLookTest(location.search) : null;
+    const dh = oc.residents.list.find((r: any) => r.id === 'dot')?.sp.home;
+    if (test && dh) oc.coirLook.set(test, () => ({ x: dh[0] + 1.8, z: dh[1] + 3.0, face: 0.4 }));
   }
   // (the corals are drawn once the rocks are down: see clearOfRocks, after placeRocks below)
 
