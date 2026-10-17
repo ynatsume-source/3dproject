@@ -50,7 +50,11 @@ let R: any = make();
 const dot = () => R.list.find((r: any) => r.id === 'dot');
 const lots = (m: string) => Object.values(R.lab.lots).filter((l: any) => l.materialId === m) as any[];
 const runsOf = (op: string) => Object.values(R.lab.runs).filter((r: any) => r.processId === 'prototype_coir_work' && r.state?.data?.spec?.operation === op) as any[];
-const records = () => R.lab.coirCordLoads?.records ?? [];
+// Inspect only the bounded receipts retained by each physical cord.
+const records = () => Object.values(R.lab.coirCordLoads?.cords ?? {})
+  .flatMap((checkpoint: any) => checkpoint.recent.map((receipt: any) =>
+    ({ request: receipt.request, ...receipt.result })))
+  .sort((a: any, b: any) => Number(a.runId.slice(4)) - Number(b.runId.slice(4)));
 const step = (secs: number, until?: () => boolean) => { for (let i = 0; i < secs; i++) { now += 1000; R.update(1, now, new THREE.Vector3(0, 50, 0)); if (i % 60 === 0) R.setWeather(islandWeather(now)); for (const r of R.list) if (!r.sp.living) { r.battery = 1; r.hunger = 0.2; } if (until?.()) return true; } return false; };
 const choose = async (id: string, until: () => boolean, secs = 3600) => {
   pick = id; const a = R.mind(dot()); a.why = 'テスト'; a.lastCall = -1e12;
@@ -158,5 +162,7 @@ for (const d of R.cordDev) allCodes.add(d.code);
   want('7 no number in any cord option it was offered, all along', cordOpts.length >= 6 && cordOpts.every((o) => !/[0-9０-９]/.test(o.id + o.label)), cordOpts.map((o) => o.label).join(' / '));
   want('7 the cord\'s words in its diary', said(/繊維の束を軒下に広げた/) && said(/鍋を縄で軒下に吊るした/), d.diary.filter((e: any) => /繊維|縄|撚/.test(e.text)).slice(-6).map((e: any) => e.text).join(' / '));
 }
+want('8 completed load runs do not accumulate in the world ledger',
+  !Object.values(R.lab.runs).some((run: any) => run.processId === 'prototype_coir_cord_load'));
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);
