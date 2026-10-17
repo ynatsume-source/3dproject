@@ -123,6 +123,14 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
   if (R.village.cordHost.hang) {
     const n = sun().length, w = R.cordHost.unhang('dot', now), potId = Object.values(R.lab.lots).find((l: any) => l.materialId === 'fired_pot')!;
     want('5 the pot taken down to the shelf, the rope with it, its sun sent first', !!w && !R.village.cordHost.hang && (potId as any).location === 'shelf' && R.lab.lots[rope].location === 'shelf' && sun().length === n + 1 && sun().at(-1).request.event.shade === true, `${w}`);
+    // (hung again, the same pot on the same rope: a new hanging, its own load; a refusal not tried again)
+    now += 60e3; step(1);
+    const loads0 = loads().length, dev0 = R.cordDev.length, again = R.cordHost.hang('dot', now);
+    want('5 taken down and hung again, the same pot on the same rope: the second hanging\'s load is sent', !!again && R.village.cordHost.hang?.cordLotId === rope && loads().length === loads0 + 1 && loads().at(-1).request.event.gf === Math.ceil((POT + WATER) / 1000) && R.cordDev.length === dev0, `${again} loads ${loads0}→${loads().length} refusals ${R.cordDev.slice(dev0).map((d: any) => d.code).join(',')}`);
+    const h = R.village.cordHost.hang, dev1 = R.cordDev.length, n1 = records().length;
+    R.lab.lots[rope].reservedBy = 'run:test'; h.maxGf = 0;   // (the rope in use elsewhere for a moment: a load on it refused)
+    step(5); delete R.lab.lots[rope].reservedBy;
+    want('5 a load refused is not sent again and again: tried once, then left (the developer\'s log has it once)', R.cordDev.length - dev1 === 1 && records().length === n1 && h.maxGf === Math.ceil((POT + WATER) / 1000), `refusals ${R.cordDev.length - dev1} (${R.cordDev.slice(dev1).map((d: any) => d.code).join(',')}), records ${n1}→${records().length}`);
   }
 }
 { // 6
