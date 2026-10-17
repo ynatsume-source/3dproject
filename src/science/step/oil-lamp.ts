@@ -340,10 +340,11 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
     ? wickSettlement.burned.waterMg
     : d.s.wickBurned * d.wickParts.waterMg / d.wick0;
   const wickLatentHeatJ = wickWaterEvaporatedMg / 1e6 * pv('latentHeatWater100');
-  const oilLatentHeatJ = d.s.waterGone / 1e6 * pv('latentHeatWater100');
-  const latentHeatJ = wickLatentHeatJ + oilLatentHeatJ;
-  const directAirHeatJ = d.s.usedJ - latentHeatJ;
-  if (directAirHeatJ < -1e-6) {
+  // Separate only the new wick-water term. The remaining air-loss term
+  // keeps the old oil/pool model intact; it includes its heat and light.
+  const latentHeatJ = wickLatentHeatJ;
+  const otherAirHeatJ = d.s.usedJ - latentHeatJ;
+  if (otherAirHeatJ < -1e-6) {
     return fail('latent heat exceeds the heat released by combustion');
   }
   const res: ScienceStepResultV02 = {
@@ -381,9 +382,8 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
       outEvents: d.outEvents.join(','),
       wickWaterEvaporatedMg,
       wickLatentHeatJ,
-      oilLatentHeatJ,
       latentHeatJ,
-      directAirHeatJ,
+      otherAirHeatJ,
     },
   };
   if (!ending) return res;

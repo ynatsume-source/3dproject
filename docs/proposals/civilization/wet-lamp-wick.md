@@ -22,9 +22,9 @@ wickQuality(fiber, diameterMm, { fiberDryMg, pithDryMg, waterMg })がこの形�
 
 ## 熱を二度数えない
 
-水の潜熱は既存のlatentHeatWater100=2,256,000 J/kgを使う。usedJは放出した燃焼熱、lostJは空気へ出る熱の合計。このlostJの内側を、水蒸気が持ち出す潜熱と、それ以外の放熱・光へ分ける。潜熱をlostJへもう一度加えず、usedJから引いたうえでさらに放熱として引くこともしない。storedJは従来どおり0。
+水の潜熱は既存のlatentHeatWater100=2,256,000 J/kgを使う。usedJは放出した燃焼熱、lostJは空気へ出る熱の合計。このlostJの内側を、芯の水蒸気が持ち出す潜熱と、それ以外の従来の放熱項へ分ける。潜熱をlostJへもう一度加えず、usedJから引いたうえでさらに放熱として引くこともしない。storedJは従来どおり0。
 
-診断だけにwickWaterEvaporatedMg・wickLatentHeatJ・oilLatentHeatJ・latentHeatJ・directAirHeatJを追加する。directAirHeatJ+latentHeatJは累積の燃焼熱に一致し、整数Jの報告は従来どおり累積の切捨て差。これらの数値は住人の観察へ渡さない。油に入っていた水の診断は従来の連続量を使う。
+診断だけにwickWaterEvaporatedMg・wickLatentHeatJ・latentHeatJ・otherAirHeatJを追加する。otherAirHeatJ+latentHeatJは累積の燃焼熱に一致し、整数Jの報告は従来どおり累積の切捨て差。これらの数値は住人の観察へ渡さない。油に入っていた水の従来の近似には手を加えず、otherAirHeatJはその既存の放熱・光も含む。新たに分けるのは芯の水の潜熱だけで、油の水の予算を再解釈して古い乾いた芯を拒否しない。
 
 濡れた芯の終端では、実際に精算する切上げ後の乾物燃料の熱を一度だけ計上する。補正は乾いた木の1mg未満分（最大18J未満）。これにより微小なrunでも、1mgへ丸めた水の蒸発熱が燃料の報告熱を超えない。水0の従来の芯ではこの補正を行わず、過去の整数Jと一致させる。連続量と整数mgの丸めは同一のrunの区切りで変わらないが、別のrunへ何度も精算すると毎回mg丸めが入る。
 
@@ -37,6 +37,6 @@ processVersionは0.2.0、状態はciv-sci.oil-lamp/3、evaluatorはoil-lamp-eval
 ## 検査
 
 - science-wet-wick-check.ts：13群。成分の拒否、1割の境界と1mg超過、待機/観察/湿った先の切り取り、潜熱の内訳、O2を含む収支、髄の化学、返却・再点火、737ms等の区切り・JSON・再送、微小成分、微小runの連鎖、旧状態・版と観察の秘密を検査する。
-- science-dry-wick-comparison-check.ts：main c29829fの0.1.1実装をfixtureとして固定。移したのはimportの相対位置だけ。3種の芯、温度・加温・切りそろえ・雨・油の水・設備喪失・返却物の再投入を57通りで、全区間を比較する。
+- science-dry-wick-comparison-check.ts：main c29829fの0.1.1実装をfixtureとして固定。移したのはimportの相対位置だけ。3種の芯、温度・加温・切りそろえ・雨・油の水・設備喪失・返却物の再投入を75通りで、全区間を比較する。
 - 比較から除くのは版名、旧データから導く追加wickParts、追加の熱内訳診断だけ。消費・生成・放出・O2・整数J・言葉・既存診断・それ以外の保存状態は完全一致を要求する。
 - 既存のscience-oil-lamp-checkとlamp-checkを含むfast検査を残す。fixtureは比較用に元の書式を保管し、新しいsrcコードは通常の改行・インデントで書く。

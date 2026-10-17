@@ -254,8 +254,8 @@ test('combustion closes O2 and spends latent heat once within total loss', () =>
   const latent = d(r.last, 'wickLatentHeatJ');
   assert.ok(water > 0);
   assert.ok(Math.abs(latent - water * pv('latentHeatWater100') / 1e6) < 1e-8);
-  assert.ok(d(r.last, 'directAirHeatJ') >= 0);
-  assert.ok(Math.abs(d(r.last, 'directAirHeatJ') + d(r.last, 'latentHeatJ') - r.usedJ) < 1.01);
+  assert.ok(d(r.last, 'otherAirHeatJ') >= 0);
+  assert.ok(Math.abs(d(r.last, 'otherAirHeatJ') + d(r.last, 'latentHeatJ') - r.usedJ) < 1.01);
   assert.equal(r.usedJ, r.lostJ);
 });
 

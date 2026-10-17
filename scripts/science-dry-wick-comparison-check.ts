@@ -17,6 +17,10 @@ type Scenario = {
   rain?: number;
   roofed?: number;
   lost?: boolean;
+  oilMg?: number;
+  dishMassG?: number;
+  absorptionPpm?: number;
+  diameterMm?: number;
 };
 const H = 3_600_000;
 const scenarios: Scenario[] = [
@@ -61,14 +65,31 @@ const scenarios: Scenario[] = [
     actions: [[0, 'light'], [7_003, 'look']],
     lost: true,
   },
+  {
+    name: 'large porous dish preserves the existing wet-oil approximation',
+    temperature: 27,
+    end: 60_017,
+    oilMg: 900_000,
+    oilWaterPpm: 20_000,
+    dishMassG: 96_000,
+    absorptionPpm: 1_000_000,
+    diameterMm: 10,
+    actions: [[0, 'light', { wickOut: 2 }], [60_016, 'put_out']],
+  },
+  {
+    name: 'a one-ms dry-wick burn with water in the oil',
+    temperature: 27,
+    end: 2,
+    oilWaterPpm: 20_000,
+    actions: [[0, 'light'], [1, 'put_out']],
+  },
 ];
 
 const extraDiagnostics = [
   'wickWaterEvaporatedMg',
   'wickLatentHeatJ',
-  'oilLatentHeatJ',
   'latentHeatJ',
-  'directAirHeatJ',
+  'otherAirHeatJ',
 ];
 
 function normal(result: ScienceStepResult) {
@@ -90,7 +111,7 @@ function lots(fiber: 1 | 2 | 3, scenario: Scenario): LotView[] {
     {
       lotId: 'oil',
       materialId: 'coconut_oil',
-      amount: { value: 60_000, unit: 'mg' },
+      amount: { value: scenario.oilMg ?? 60_000, unit: 'mg' },
       location: 'shelf',
       quality: {
         x_coconut_fat_ppm: 1_000_000 - water,
@@ -104,7 +125,7 @@ function lots(fiber: 1 | 2 | 3, scenario: Scenario): LotView[] {
       amount: { value: 2000, unit: 'mg' },
       location: 'shelf',
       quality: {
-        ...wickQuality(fiber, 4),
+        ...wickQuality(fiber, scenario.diameterMm ?? 4),
         char_ppm: scenario.charPpm ?? 0,
         history_complete: 1,
       },
@@ -149,9 +170,9 @@ function compare(
         catalogVersion: 'civ-sci-test-2',
         condition: 1,
         params: {
-          capacityMl: 100,
-          absorptionPpm: 50_000,
-          massG: 100,
+          capacityMl: 1000,
+          absorptionPpm: scenario.absorptionPpm ?? 50_000,
+          massG: scenario.dishMassG ?? 100,
           shelter: 0.8,
           roofed: scenario.roofed ?? 1,
         },
