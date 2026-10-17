@@ -1,0 +1,18 @@
+live: http://utsushiyo.earth/ (deploy run 39007025231, main d6a6d03)
+before index assets:
+src="./assets/main-BLpI82HI.js"
+href="./assets/creatures-Dry7-X_J.js"
+href="./assets/voice-B1-Z3qoX.js"
+href="./assets/main-CTJZuHg8.css"
+after index assets:
+src="./assets/main-BJ_FkztU.js"
+href="./assets/creatures-Dry7-X_J.js"
+href="./assets/voice-B1-Z3qoX.js"
+href="./assets/main-CTJZuHg8.css"
+cdcba9d8165425e06bb3051dcc9ebb2e87b6640effe996d1e9da22216d9348c1  before/creatures-Dry7-X_J.js
+e408c4246f4960c8b2d3b864c76af5342ca0be205153df20fb6e2a54e8ef4863  before/main-BLpI82HI.js
+c0bf04c4a3e5b6c0eac3825ef1ac1b6671a1d93be468b2bbbaf5f096e47fbfb7  before/voice-B1-Z3qoX.js
+60b2564fd0e96e273794fc73f9ec4fc90dd355b72c5081ba03315bce8becd676  before/main-CTJZuHg8.css
+9cfb0cf2ea3f4b9a665fec10b9e64d4b8eae32415ef4e8077b5ac28d8e6194b3  after/main-BJ_FkztU.js
+main JS: same length 1526875; differing byte offsets: 1517916 1517918 1517919 1517922 1525941 1525943 1525944 1525947 
+difference = __BUILD__ stamp only: 2026-10-13 11:33 -> 2026-10-17 05:39
