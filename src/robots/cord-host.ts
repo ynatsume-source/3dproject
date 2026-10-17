@@ -35,7 +35,7 @@ export interface CordHostState {
   sunAt: number;                                                                 // the world time the sun was last sent to all
   newAt?: number;                                                                // the world time new cords were last looked for
   rack?: boolean;                                                                // the drying rack stands under the eaves (once fibre was laid out)
-  hang: { potLotId: string; cordLotId: string; maxGf: number } | null;           // a pot hung by a cord under the eaves
+  hang: { potLotId: string; cordLotId: string; maxGf: number; hungAt?: number } | null;   // a pot hung by a cord under the eaves (since hungAt)
   raft: { cordLotId: string; out: number | null; wind: number } | null;          // the raft's lashing (and a crossing under way)
 }
 export const emptyCordHostState = (): CordHostState => ({ sites: null, dry: {}, engaged: {}, decisions: {}, looked: {}, sun: {}, sunAt: 0, hang: null, raft: null });
@@ -275,8 +275,10 @@ export function makeCordHost(ctx: {
   function loadPot(nowWorldMs: number, actorId = ''): string | null {
     const h = st().hang!; const gf = potGf();
     sunOn(h.cordLotId, nowWorldMs);
-    const r = event(h.cordLotId, `hang:${h.cordLotId}:${h.potLotId}:${gf}`, { kind: 'load', gf }, nowWorldMs, actorId); if (!r) return null;
+    // (each hanging its own loads: the same pot on the same cord, taken down and hung again, is a new hanging; and a
+    // weight tried once is not tried again, held or refused — the developer's log has a refusal)
     h.maxGf = Math.max(h.maxGf, gf);
+    const r = event(h.cordLotId, `hang:${h.cordLotId}:${h.potLotId}:${h.hungAt ?? 0}:${gf}`, { kind: 'load', gf }, nowWorldMs, actorId); if (!r) return null;
     if (r.lotIds.length > 1) {   // (the cord gave: the pot is on the ground below, and so are the pieces)
       moveLot(L(), h.potLotId, 'ground');
       for (const id of r.lotIds) ground(id, nowWorldMs);
@@ -288,7 +290,7 @@ export function makeCordHost(ctx: {
   function hang(actorId: string, nowWorldMs: number): string | null {
     const p = pot(), c = cords(ROPE)[0], s = sites().hang; if (!p || !c || st().hang) return null;
     if (!carry(p.lotId, s.id, nowWorldMs, actorId) || !carry(c.lotId, s.id, nowWorldMs, actorId)) return null;
-    st().hang = { potLotId: p.lotId, cordLotId: c.lotId, maxGf: 0 };
+    st().hang = { potLotId: p.lotId, cordLotId: c.lotId, maxGf: 0, hungAt: nowWorldMs };
     const w = loadPot(nowWorldMs, actorId);
     return st().hang ? `鍋を縄で軒下に吊るした${w ? `。${w}` : ''}` : `鍋を縄で吊るそうとした${w ? `。${w}` : ''}`;
   }

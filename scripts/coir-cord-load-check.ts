@@ -65,13 +65,27 @@ test('reserved, unsplittable and altered hidden material is never consumed',()=>
  const changed=fixture(),a=applyCordLoad(changed,req('cord','first',{kind:'abrasion',count:0}));changed.lots[a.lotIds[0]].quality!.base_strength_gf=50000;
  atomic(changed,()=>applyCordLoad(changed,req(a.lotIds[0],'changed',{kind:'load',gf:1},1001,1001)));
 });
-test('corrupt nested receipts, cursor metadata and saved state reject atomically',()=>{
- const L=fixture(),a=applyCordLoad(L,req('cord','first',{kind:'abrasion',count:1}));
- for(const f of [(x:any)=>delete x.coirCordLoads,(x:any)=>x.coirCordLoads.records[0].request.event.count=2,(x:any)=>x.coirCordLoads.records[0].lotIds[0]='other',
- (x:any)=>x.runs[a.runId].state.data.damage.events[0].count++,(x:any)=>x.runs[a.runId].observations[0].text='hidden 40000']){
- const b=json(L);f(b);assert.throws(()=>validateCordLoadLedger(b),CordLoadError);atomic(b,()=>applyCordLoad(b,req(a.lotIds[0],'next',{kind:'load',gf:0},1001,1001)));
- }
+test('corrupt nested receipts, cursor metadata and saved checkpoints reject atomically', () => {
+  const L = fixture();
+  const a = applyCordLoad(L, req('cord', 'first', { kind: 'abrasion', count: 1 }));
+  const mutations: ((x: any) => void)[] = [
+    x => { delete x.coirCordLoads; },
+    x => { delete x.coirCordLoadFormat; },
+    x => { x.coirCordLoads.cords.cord.recent[0].request.event.count = 2; },
+    x => { x.coirCordLoads.cords.cord.recent[0].result.lotIds[0] = 'other'; },
+    x => { x.coirCordLoads.cords.cord.latest.quality.abrasions++; },
+    x => { x.coirCordLoads.cords.cord.recent[0].result.observations[0] = 'hidden 40000'; },
+    x => { x.coirCordLoads.cords.cord.cursor.islandAtMs--; },
+  ];
+  for (const mutate of mutations) {
+    const bad = json(L);
+    mutate(bad);
+    assert.throws(() => validateCordLoadLedger(bad), CordLoadError);
+    atomic(bad, () => applyCordLoad(bad,
+      req(a.lotIds[0], 'next', { kind: 'load', gf: 0 }, 1001, 1001)));
+  }
 });
+
 test('resident wrapper whitelists only observed words with no quantities or routing IDs',()=>{
  const L=fixture(),v=applyCordLoadForResident(L,req('cord','resident',{kind:'load',gf:40001}));
  assert.deepEqual(Object.keys(v).sort(),['observations','ok']);assert.ok(!/\d|gf|mg|strength|seed|lot:|run:/.test(JSON.stringify(v)));
