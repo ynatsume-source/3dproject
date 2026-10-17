@@ -17,7 +17,7 @@ export interface WorksiteThing {
 }
 export interface WorksiteLook {
   siteId: string;
-  things: WorksiteThing[];
+  items: WorksiteThing[];
 }
 
 /** The kind a material is drawn as, or null for one a worksite does not draw. */
@@ -33,6 +33,6 @@ export function thingKindOf(materialId: string): WorksiteThingKind | null {
 /** Fixed looks for drawing before main's connection fills them (the nature team's first item: the fibre bundle,
  *  wet and dry). Test data only. */
 export const WORKSITE_LOOK_FIXTURES: Readonly<Record<string, WorksiteLook>> = Object.freeze({
-  'fiber-wet': { siteId: 'fixture:husk-site', things: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'wet' }, { id: 'fixture:husk-1', kind: 'partial-husk', look: 'wet' }] },
-  'fiber-dry': { siteId: 'fixture:husk-site', things: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'dry' }] },
+  'fiber-wet': { siteId: 'fixture:husk-site', items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'wet' }, { id: 'fixture:husk-1', kind: 'partial-husk', look: 'wet' }] },
+  'fiber-dry': { siteId: 'fixture:husk-site', items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'dry' }] },
 });
