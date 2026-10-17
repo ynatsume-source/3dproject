@@ -6,7 +6,7 @@
 //  - spans the executor has confirmed: the world-clock time a resident's hands were at the work (every 30 s, split at
 //    every stop, never across a gap), and the time a bundle lay under the roof (every 60 s; across a load, one span);
 //  - the world's own events on a cord: a pot hung from it (its weight from the ledger), a crossing lashed with it (the
-//    day's strongest wind), the sun on it (island clock, hourly, in the shade or not);
+//    day's strongest wind), the sun on it (island clock, in the shade or not: before a load, a rubbing, a move or its use, else once a day);
 // and it takes back only the words a resident could see or feel, and the lots the work settled. The science side's
 // codes, the amounts, a cord's strength and wear stay out of a resident's mind: codes go to the developer's log here.
 // The lengths a resident may twist are two fixed uses (a pot's hanging cord, a raft's lashing), never a number its mind
@@ -32,7 +32,8 @@ export interface CordHostState {
   decisions: Record<string, number>;
   looked: Record<string, string>;                                                // actor → what it last saw at a cord site
   sun: Record<string, number>;                                                   // cord lotId → the island time its sun was sent through
-  sunAt: number;                                                                 // the world time the sun was last sent
+  sunAt: number;                                                                 // the world time the sun was last sent to all
+  newAt?: number;                                                                // the world time new cords were last looked for
   hang: { potLotId: string; cordLotId: string; maxGf: number } | null;           // a pot hung by a cord under the eaves
   raft: { cordLotId: string; out: number | null; wind: number } | null;          // the raft's lashing (and a crossing under way)
 }
@@ -40,7 +41,10 @@ export const emptyCordHostState = (): CordHostState => ({ sites: null, dry: {}, 
 export interface CordDevEntry { at: number; actorId: string; action: string; code: string }
 
 const SEED = 0x636f7264;   // 'cord'
-const DRY_EVERY_MS = 60_000, WORK_EVERY_MS = 30_000, SUN_EVERY_MS = 3_600_000;
+// (the sun on a cord is sent before each load or rubbing, before it is moved or used, and otherwise once a day at
+// most: the record of each sending is kept with the island, and the cord's wear is the same however it is cut up —
+// science, PR #35 review B1)
+const DRY_EVERY_MS = 60_000, WORK_EVERY_MS = 30_000, SUN_EVERY_MS = 86_400_000, NEW_CORD_EVERY_MS = 60_000;
 /** The two uses a resident twists for: the length is the use's, fixed here (science 2026-10-17), never its mind's. */
 export const CORD_USES = { pot: { mm: 1000, ja: '鍋吊り用の長さ' }, raft: { mm: 2000, ja: '筏の縛り用の長さ' } } as const;
 const RAFT_ROPE_MIN_MM = 1500;   // (a rope long enough to go round a raft's pieces: a strand of the raft's length, plied)
@@ -64,6 +68,8 @@ export interface CordHost {
   isWorking(actorId: string): boolean;
   /** Under the eaves, a pot from the shelf hung by a cord. */
   hang(actorId: string, nowWorldMs: number): string | null;
+  /** Under the eaves, the hung pot taken down to the shelf. */
+  unhang(actorId: string, nowWorldMs: number): string | null;
   /** At the raft, its pieces lashed with a rope. */
   lash(actorId: string, nowWorldMs: number): string | null;
   voyageOut(nowWorldMs: number): void;
@@ -99,6 +105,7 @@ export function makeCordHost(ctx: {
   const dryRun = () => runs().find((r) => dataOf(r)?.spec?.operation === 'dry' && dataOf(r).spec.facts.worksite.locationId === sites().dry.id);
   const workRun = () => runs().find((r) => dataOf(r)?.spec?.operation !== 'dry' && dataOf(r)?.spec?.facts.worksite.locationId === sites().work.id);
   const inUse = () => new Set([st().hang?.cordLotId, st().raft?.cordLotId].filter(Boolean) as string[]);
+  const isCord = (l?: LotView) => !!l && (l.materialId === STRAND || l.materialId === ROPE);
   const bundle = () => lots().filter((l) => l.materialId === BUNDLE && !l.reservedBy).sort(byId)[0];
   const cords = (m: string) => lots().filter((l) => l.materialId === m && !l.reservedBy && !inUse().has(l.lotId)).sort(byId);
   const lengthOf = (l: LotView) => Number(l.quality?.length_mm ?? 0);   // (the world's own measure of a piece: never told)
@@ -126,24 +133,28 @@ export function makeCordHost(ctx: {
       o.push({ id: 'cord:clear', action: 'cord-clear', label: 'やりかけの縄仕事を片付ける', targetId: 'cord-work' });
     }
     if (!st().hang && pot() && cords(ROPE).length) o.push({ id: 'cord:hang', action: 'cord-hang', label: '縄で鍋を軒下に吊るす', targetId: 'cord-hang' });
+    if (st().hang) o.push({ id: 'cord:unhang', action: 'cord-unhang', label: '軒下に吊るした鍋を下ろす', targetId: 'cord-hang' });
     if (ctx.raftWhole() && !st().raft && cords(ROPE).some((l) => lengthOf(l) >= RAFT_ROPE_MIN_MM)) o.push({ id: 'cord:lash', action: 'cord-lash', label: '縄で筏の部材を縛る', targetId: 'raft' });
     const n = (st().decisions[actorId] = (st().decisions[actorId] ?? 0) + 1);
     return o.map((x) => [x, draw(SEED, actorId, String(nowWorldMs), String(n), 'options', x.id)] as const).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
   }
 
+  // (a cord's sun up to the moment it is moved or used: its place — in the shade or not — changes after)
   function carry(lotId: string, to: string, at: number, actorId: string): boolean {
+    if (isCord(L().lots[lotId])) sunOn(lotId, at);
     const m = moveLot(L(), lotId, to); if (!m.lot) log(at, actorId, 'carry', m.why); return !!m.lot;
   }
+  function ground(lotId: string, at: number) { if (isCord(L().lots[lotId])) sunOn(lotId, at); moveLot(L(), lotId, 'ground'); }
   const facts = (site: CordSite, extra: Partial<CordStartFacts> = {}): CordStartFacts => ({ assumptionId: COIR_CORD_ASSUMPTION_ID, worksite: { locationId: site.id, x: site.x, z: site.z, reachM: site.reachM }, ...extra });
 
   function putToDry(actorId: string, nowWorldMs: number): string | null {
-    const b = bundle(), s = sites().dry; if (!b || !ctx.roofed() || dryRun()) return null;
+    const b = bundle(), s = sites().dry, was = b?.location; if (!b || !ctx.roofed() || dryRun()) return null;
     if (!carry(b.lotId, s.id, nowWorldMs, actorId)) return null;
     try {
       const { runId } = intent({ intentId: `dry:${actorId}:${nowWorldMs}`, kind: 'start', actorId, atWorldMs: nowWorldMs, operation: 'dry', lotIds: [b.lotId], siteId: s.id, presence: 'here' }, nowWorldMs, facts(s, { roofed: true }));
       st().dry[runId] = nowWorldMs;
       return '繊維の束を軒下に広げた';
-    } catch (e) { log(nowWorldMs, actorId, 'dry', e); return null; }
+    } catch (e) { moveLot(L(), b.lotId, was!); log(nowWorldMs, actorId, 'dry', e); return null; }   // (it could not be laid out: back where it was)
   }
 
   function confirmDry(nowWorldMs: number) {
@@ -267,7 +278,7 @@ export function makeCordHost(ctx: {
     h.maxGf = Math.max(h.maxGf, gf);
     if (r.lotIds.length > 1) {   // (the cord gave: the pot is on the ground below, and so are the pieces)
       moveLot(L(), h.potLotId, 'ground');
-      for (const id of r.lotIds) moveLot(L(), id, 'ground');
+      for (const id of r.lotIds) ground(id, nowWorldMs);
       st().hang = null;
     } else h.cordLotId = r.lotIds[0];
     return r.words[0]?.replace(/。$/, '') ?? null;   // (whether it held: the wear is for the one who looks at it closely)
@@ -281,10 +292,17 @@ export function makeCordHost(ctx: {
     return st().hang ? `鍋を縄で軒下に吊るした${w ? `。${w}` : ''}` : `鍋を縄で吊るそうとした${w ? `。${w}` : ''}`;
   }
 
+  // (the pot taken down: back on the shelf, and the rope with it — the sun on the rope up to then)
+  function unhang(actorId: string, nowWorldMs: number): string | null {
+    const h = st().hang; if (!h) return null;
+    if (!carry(h.cordLotId, 'shelf', nowWorldMs, actorId)) return null;
+    moveLot(L(), h.potLotId, 'shelf'); st().hang = null;
+    return '吊るしていた鍋を下ろして棚に戻した';
+  }
+
   function lash(actorId: string, nowWorldMs: number): string | null {
     const c = cords(ROPE).filter((l) => lengthOf(l) >= RAFT_ROPE_MIN_MM)[0]; if (!c || st().raft || !ctx.raftWhole()) return null;
     if (!carry(c.lotId, 'site:raft', nowWorldMs, actorId)) return null;
-    sunOn(c.lotId, nowWorldMs);
     st().raft = { cordLotId: c.lotId, out: null, wind: 0 };
     return '筏の部材を縄で縛った';
   }
@@ -300,8 +318,8 @@ export function makeCordHost(ctx: {
       const b = event(a.lotIds[0], `raft:${a.lotIds[0]}:${out}:abrasion`, { kind: 'abrasion', count: 1 }, nowWorldMs);
       if (b) words.push(...b.words);
       const now = (b ?? a).lotIds;
-      if (now.length === 1) r.cordLotId = now[0]; else { st().raft = null; for (const id of now) moveLot(L(), id, 'ground'); }
-    } else { st().raft = null; for (const id of a.lotIds) moveLot(L(), id, 'ground'); }
+      if (now.length === 1) r.cordLotId = now[0]; else { st().raft = null; for (const id of now) ground(id, nowWorldMs); }
+    } else { st().raft = null; for (const id of a.lotIds) ground(id, nowWorldMs); }
     return words.length ? `筏の縄：${words.map((w) => w.replace(/。$/, '')).join('。')}` : null;
   }
 
@@ -322,9 +340,13 @@ export function makeCordHost(ctx: {
     const r = st().raft; if (r && r.out !== null && windMs !== null) r.wind = Math.max(r.wind, windMs);
     const d = dryRun(); if (d && nowWorldMs - (st().dry[d.runId] ?? -Infinity) >= DRY_EVERY_MS) confirmDry(nowWorldMs);
     if (st().hang && potGf() > st().hang!.maxGf) loadPot(nowWorldMs);   // (heavier than it has yet been: the cord takes the new weight)
+    if (nowWorldMs - (st().newAt ?? 0) >= NEW_CORD_EVERY_MS) {   // (a cord just made: its sun counted from now — nothing sent)
+      st().newAt = nowWorldMs;
+      for (const l of lots()) if (isCord(l) && st().sun[l.lotId] === undefined) st().sun[l.lotId] = island(nowWorldMs);
+    }
     if (nowWorldMs - st().sunAt < SUN_EVERY_MS) return;
     st().sunAt = nowWorldMs;
-    for (const l of lots().filter((x) => x.materialId === STRAND || x.materialId === ROPE)) if (L().lots[l.lotId]) sunOn(l.lotId, nowWorldMs);
+    for (const l of lots().filter(isCord)) if (L().lots[l.lotId]) sunOn(l.lotId, nowWorldMs);
     for (const id of Object.keys(st().sun)) if (!L().lots[id]) delete st().sun[id];
   }
 
@@ -335,5 +357,5 @@ export function makeCordHost(ctx: {
     try { Object.assign(ctx.lab, restoreCordWork(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-cord', e); }
   }
 
-  return { options, putToDry, takeIn, beginWork, working, stopWork, clearAway, isWorking: (a) => !!st().engaged[a], hang, lash, voyageOut, voyageHome, look, tick, restore, sites, raftLashed: () => !!st().raft };
+  return { options, putToDry, takeIn, beginWork, working, stopWork, clearAway, isWorking: (a) => !!st().engaged[a], hang, unhang, lash, voyageOut, voyageHome, look, tick, restore, sites, raftLashed: () => !!st().raft };
 }

@@ -1804,7 +1804,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (target === 'dry' || target === 'takein') t = task(`cord-${target}`, [s.dry.x, s.dry.z], 'pick', 4);
       else if (['sieve', 'twist', 'ply', 'resume'].includes(target)) t = task('cord-work', [s.work.x, s.work.z], 'work', 900, { data: { op: target, use } });   // (a quarter hour at most at a time)
       else if (target === 'clear') t = task('cord-clear', [s.work.x, s.work.z], 'pick', 3);
-      else if (target === 'hang') t = task('cord-hang', [s.hang.x, s.hang.z], 'pick', 5);
+      else if (target === 'hang' || target === 'unhang') t = task(`cord-${target}`, [s.hang.x, s.hang.z], 'pick', 5);
       else if (target === 'lash') { const at = raftAt(); t = at ? task('cord-lash', at, 'work', 40) : null; }
     }
     else if (action === 'charge') t = task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
@@ -2702,9 +2702,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         break;
       }
       case 'husk-beat': husk.stopBeating(r.id, r.pos, clockMs); tk.failed = 'interrupted'; break;   // (its quarter hour up: the rest another time)
-      case 'cord-dry': case 'cord-takein': case 'cord-clear': case 'cord-hang': case 'cord-lash': {
+      case 'cord-dry': case 'cord-takein': case 'cord-clear': case 'cord-hang': case 'cord-unhang': case 'cord-lash': {
         if (fast) { tk.failed = 'interrupted'; break; }   // (no hand work in the hours it is caught up on by habit)
-        const w = tk.kind === 'cord-dry' ? cord.putToDry(r.id, clockMs) : tk.kind === 'cord-takein' ? cord.takeIn(r.id, clockMs) : tk.kind === 'cord-clear' ? cord.clearAway(r.id, clockMs) : tk.kind === 'cord-hang' ? cord.hang(r.id, clockMs) : cord.lash(r.id, clockMs);
+        const w = tk.kind === 'cord-dry' ? cord.putToDry(r.id, clockMs) : tk.kind === 'cord-takein' ? cord.takeIn(r.id, clockMs) : tk.kind === 'cord-clear' ? cord.clearAway(r.id, clockMs) : tk.kind === 'cord-hang' ? cord.hang(r.id, clockMs) : tk.kind === 'cord-unhang' ? cord.unhang(r.id, clockMs) : cord.lash(r.id, clockMs);
         if (w) tk.data = { ...tk.data, detail: w }; else tk.failed = 'blocked';
         break;
       }

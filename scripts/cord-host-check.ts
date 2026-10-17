@@ -9,7 +9,8 @@
 //    three hours later — no hand work in the hours caught up on, and the roof's time across the load one span
 //  4 twisted three strands of the pot's length, plied into a rope at the worksite
 //  5 a pot hung by the rope: its weight from the ledger sent as a load, once; the same load sent again is the same record;
-//    the rope that held keeps its lotId; a heavier pot (water in it) a new load; the sun on the rope, in the shade
+//    the rope that held keeps its lotId; a heavier pot (water in it) a new load; the sun sent before a load, a move or
+//    plying, not hourly; the pot taken down
 //  6 a raft lashed with a weak rope: a crossing's load and its rubbing; the rope gave — two new pieces, the old id gone
 //  7 no number in any cord option offered along the way; nothing a resident is told carries the amounts (marker masses) or a code: not its diary, not what its mind is
 //    given, not the day's post prompt, not its saved memory
@@ -97,8 +98,11 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
 { // 4
   for (let k = 0; k < 3; k++) await choose('cord:twist:pot', () => lots('coir_strand').length === k + 1);
   want('4 three strands of the pot\'s length twisted at the worksite', lots('coir_strand').length === 3 && lots('coir_strand').every((l) => l.location === 'site:cord-work'), lots('coir_strand').map((l) => l.location).join(','));
+  const strands = lots('coir_strand').map((l) => l.lotId);
   await choose('cord:ply', () => lots('coir_rope').length === 1);
   want('4 plied into a rope', lots('coir_rope').length === 1 && lots('coir_strand').length === 0, `${lots('coir_rope').length} rope`);
+  const sunBefore = records().filter((x: any) => x.request.event.kind === 'exposure' && strands.includes(x.request.lotId));
+  want('4 the strands\' sun sent before they were plied (out by the bench: not in the shade)', sunBefore.length >= 2 && sunBefore.every((x: any) => x.request.event.shade === false), sunBefore.map((x: any) => `${x.request.lotId}:${x.request.event.shade}`).join(','));
 }
 { // 5
   addLot(R.lab, { materialId: 'fired_pot', amount: { value: POT, unit: 'mg' }, location: 'shelf', quality: { form: 7, capacity_ml: 900, history_complete: 1 } });
@@ -112,9 +116,14 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
   addLot(R.lab, { materialId: 'process_water', amount: { value: WATER, unit: 'mg' }, location: R.village.cordHost.hang.potLotId });
   step(3);
   want('5 water in the pot: the heavier weight a new load', loads().length === 2 && loads()[1].request.event.gf === Math.ceil((POT + WATER) / 1000), loads().map((x: any) => x.request.event.gf).join(','));
-  step(3700);
-  const sun = records().filter((x: any) => x.request.event.kind === 'exposure' && x.request.lotId === rope);
-  want('5 the sun on the rope, hourly, in the shade of the eaves', sun.length >= 1 && sun.every((x: any) => x.request.event.shade === true), sun.map((x: any) => `${x.request.event.shade}`).join(','));
+  const sun = () => records().filter((x: any) => x.request.event.kind === 'exposure' && x.request.lotId === rope);
+  want('5 the rope\'s sun sent before the new weight, under the eaves (and, if any time had passed, before it was carried from the bench)', sun().length >= 1 && sun().at(-1).request.event.shade === true && sun().slice(0, -1).every((x: any) => x.request.event.shade === false), sun().map((x: any) => `${x.request.event.shade}`).join(','));
+  const n5 = sun().length; step(3 * 3600);
+  want('5 three hours hanging, nothing else: no sun sent (once a day at most, or before a load or a move)', R.village.cordHost.hang?.cordLotId !== rope || sun().length === n5, `${n5} → ${sun().length}${R.village.cordHost.hang ? '' : ' (taken down meanwhile)'}`);
+  if (R.village.cordHost.hang) {
+    const n = sun().length, w = R.cordHost.unhang('dot', now), potId = Object.values(R.lab.lots).find((l: any) => l.materialId === 'fired_pot')!;
+    want('5 the pot taken down to the shelf, the rope with it, its sun sent first', !!w && !R.village.cordHost.hang && (potId as any).location === 'shelf' && R.lab.lots[rope].location === 'shelf' && sun().length === n + 1 && sun().at(-1).request.event.shade === true, `${w}`);
+  }
 }
 { // 6
   const p = writeCordPiece({ lotId: 'x', material: 'coir_rope', fiberDryMg: 30_000, pithDryMg: 1_000, waterMg: 1_000, lengthMm: 1_800, baseStrengthGf: 30_000, damage: { sunMs: 0, shadeMs: 0, abrasions: 0 } }, 'shelf', 1);
