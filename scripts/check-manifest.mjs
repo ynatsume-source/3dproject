@@ -3,6 +3,7 @@
 // Fast checks keep a 120 s per-file budget. Slow checks retain their full default
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
+  'husk-soak',
   'coir-cord-identity',
   'manual-husk-handover', 'coir-cord-handover',
   'coir-cord-work', 'coir-cord-lots', 'coir-cord-load', 'coir-cord-science',
