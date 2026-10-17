@@ -116,6 +116,8 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   await choose('beat:husk', () => lots('coir_fiber_bundle').length > 0);
   const fb = lots('coir_fiber_bundle')[0];
   want('4 soaked five island days, taken out, beaten: a fibre bundle at the worksite', !!fb && fb.location === 'site:husk-work', `${fb?.location}`);
+  const site = R.worksiteLooks().find((x: any) => x.siteId === 'site:husk-work');
+  want('4 drawn at the worksite: the beating board (a husk was beaten there), the fibre bundle on it', site?.fixtures.some((x: any) => x.kind === 'beat-board') && site.items.some((x: any) => x.kind === 'fiber-bundle'), JSON.stringify(site));
 }
 { // 5
   await choose('beat:husk', () => runsOf('prototype_manual_husk_work').some((r) => ['running', 'starting'].includes(r.status)) && dot().task?.data?.engaged, 600);

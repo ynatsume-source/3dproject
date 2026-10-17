@@ -30,6 +30,7 @@ export interface HuskHostState {
   engaged: Record<string, { runId: string; from: number; at: { x: number; z: number } }>;   // actor → its hands on a husk
   decisions: Record<string, number>;                     // actor → how many times it has been offered the husk work
   looked?: Record<string, string>;                       // actor → what it last saw at the pool (so a sight is noted once)
+  board?: boolean;                                       // the beating board stands at the worksite (once a husk was beaten there)
 }
 export const emptyHuskHostState = (): HuskHostState => ({ sites: null, soak: {}, engaged: {}, decisions: {}, looked: {} });
 /** The developer's record of what the science side said no to, and why (codes). Not saved; not a resident's. */
@@ -166,6 +167,7 @@ export function makeHuskHost(ctx: {
         runId = intent({ intentId: `start:${actorId}:${nowWorldMs}`, kind: 'start', processId: MANUAL_HUSK_WORK.processId, lotId: lot.lotId, siteId: work.id, presence: 'here', ...base }, nowWorldMs, facts).runId;
       }
       st().engaged[actorId] = { runId, from: nowWorldMs, at: { x: at.x, z: at.z } };
+      st().board = true;
       return { ok: true };
     } catch (e) { log(nowWorldMs, actorId, 'beat', e); return { ok: false, felt: null }; }
   }

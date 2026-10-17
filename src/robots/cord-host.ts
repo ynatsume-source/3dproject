@@ -34,6 +34,7 @@ export interface CordHostState {
   sun: Record<string, number>;                                                   // cord lotId → the island time its sun was sent through
   sunAt: number;                                                                 // the world time the sun was last sent to all
   newAt?: number;                                                                // the world time new cords were last looked for
+  rack?: boolean;                                                                // the drying rack stands under the eaves (once fibre was laid out)
   hang: { potLotId: string; cordLotId: string; maxGf: number; hungAt?: number } | null;   // a pot hung by a cord under the eaves (since hungAt)
   raft: { cordLotId: string; out: number | null; wind: number } | null;          // the raft's lashing (and a crossing under way)
 }
@@ -152,7 +153,7 @@ export function makeCordHost(ctx: {
     if (!carry(b.lotId, s.id, nowWorldMs, actorId)) return null;
     try {
       const { runId } = intent({ intentId: `dry:${actorId}:${nowWorldMs}`, kind: 'start', actorId, atWorldMs: nowWorldMs, operation: 'dry', lotIds: [b.lotId], siteId: s.id, presence: 'here' }, nowWorldMs, facts(s, { roofed: true }));
-      st().dry[runId] = nowWorldMs;
+      st().dry[runId] = nowWorldMs; st().rack = true;
       return '繊維の束を軒下に広げた';
     } catch (e) { moveLot(L(), b.lotId, was!); log(nowWorldMs, actorId, 'dry', e); return null; }   // (it could not be laid out: back where it was)
   }
