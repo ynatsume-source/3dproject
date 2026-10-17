@@ -32,6 +32,8 @@ import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry } from './husk-host';
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
+import { readWorksiteLooks } from './worksite-looks';
+import type { WorksiteLook } from '../world/worksite-look';
 import { draw } from '../science/rng';
 import { SCIENCE_CATALOG_VERSION } from '../science/step/drying';
 import { ISLES, coin, dirJa, emptyMap, fromHome, mapScore } from '../world/planet-map';
@@ -231,6 +233,8 @@ export interface Residents {
   subjects(): Subject[];
   status(r: Resident): string;
   save(): void;
+  /** What the husk and cord worksites look like, for drawing only (robots/worksite-looks.ts): never a resident's. */
+  worksiteLooks(): WorksiteLook[];
   focus(r: Resident | null): void;        // the one being watched: mark where it is heading
   bubbles(camera: THREE.Camera, w: number, h: number): void;
   onEvent: (kind: string, text: string, r: Resident) => void;
@@ -3648,6 +3652,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return `おなか：${r.hunger > 0.7 ? 'ぺこぺこ' : r.hunger > 0.45 ? 'すいてきた' : r.hunger > 0.2 ? 'ほどほど' : 'いっぱい'}・ねむけ：${r.sleepy > 0.7 ? 'ねむい' : r.sleepy > 0.4 ? 'すこし' : 'すっきり'}`;
     },
     save,
+    worksiteLooks: () => { const h = husk.sites(), c = cord.sites();
+      return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack } }); },
     focus(r) { focused = r; },
     bubbles(camera, w, h) {
       const v = new THREE.Vector3();
