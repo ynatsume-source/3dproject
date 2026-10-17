@@ -5,7 +5,7 @@
 const fast = [
   'cord-integer-load',
   'sail-raft-science',
-  'husk-soak', 'husk-host',
+  'husk-soak', 'husk-host', 'cord-host',
   'science-wet-wick', 'science-dry-wick-comparison',
   'coir-cord-identity',
   'manual-husk-handover', 'coir-cord-handover',
