@@ -217,6 +217,34 @@ test('per-cord windows reject evicted commands without duplicate effects', () =>
   reject(L, all[0], 'expired-command');
   assert.equal(readCordPiece(L.lots['cord:0']).damage.abrasions, 80);
 });
+test('eviction at identical clocks fails closed while either clock may advance', () => {
+  const L = fixture();
+  const requests: CordLoadRequest[] = [];
+  for (let i = 0; i < 65; i++) {
+    const q = request('cord:0', 'equal-clock:' + i, { kind: 'abrasion', count: 0 }, 10, 20);
+    requests.push(q);
+    applyCordLoad(L, q);
+  }
+  const last = requests.at(-1)!;
+  const stable = JSON.stringify(L);
+  const replay = applyCordLoad(L, last);
+  assert.equal(JSON.stringify(L), stable);
+  assert.deepEqual(applyCordLoad(json(L), last), replay);
+  reject(L, requests[0], 'expired-command');
+  reject(L, request('cord:0', 'unknown-at-floor', { kind: 'load', gf: 0 }, 10, 20),
+    'expired-command');
+  applyCordLoad(L, request('cord:0', 'world-advanced', { kind: 'load', gf: 0 }, 11, 20));
+  applyCordLoad(L, request('cord:0', 'island-advanced', { kind: 'load', gf: 0 }, 11, 21));
+});
+test('invalid first /3 apply leaves the complete old save unchanged', () => {
+  const { L } = legacy(3);
+  reject(L, request('cord:missing', 'bad-migration', { kind: 'load', gf: 0 }, 10),
+    'missing-material');
+  assert.equal(store(L).schema, 'civ-world.coir-cord-load-ledger/3');
+  reject(L, request('cord:0', 'backward-migration', { kind: 'load', gf: 0 }, 0),
+    'out-of-order-event');
+  assert.equal(Object.keys(L.runs).length, 3);
+});
 test('schema-only relabel, inner corruption and incomplete checkpoints are refused', () => {
   const old = legacy(2).L;
   store(old).schema = COIR_CORD_LOAD.ledgerSchema;
