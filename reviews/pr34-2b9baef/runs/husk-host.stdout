@@ -1,0 +1,14 @@
+1 only what the materials allow: with husks on the shelf, putting them in the pool: soak:pool ok
+1 Dot is offered the husk among its other options (nothing it cannot do yet: no beating, no taking out): photo:fire,soak:pool,photo:kame,photo:rakko,photo:lantern,photo:hut,photo:shelf,photo:bench,photo:tree#3,say:plan:hut:kame,say:plan:hut:lantern,say:plan:hut:rakko,craft:bench,survey:horizon ok
+2 put in the tide pool when Dot was there: a soaking run, the husks at the pool: running site:husk-pool ok
+2 the pool's time confirmed as it passes: 10 spans ok
+3 taken out early: two husks, one by one: site:husk-pool,site:husk-pool ok
+3 tried at the worksite, too little soaked: what it felt, from the science side's own words: manual husk: assumption has insufficient input water for this recipe ok
+4 soaked five island days, taken out, beaten: a fibre bundle at the worksite: site:husk-work ok
+5 stopped half way: the stop told (its mind may take it up again at once), the husk kept: start,stop,resume ok
+5 saved and loaded an hour later: paused (its hands left the husk at the load), no work counted for the time away: start,stop,resume,restore ok
+5 resumed: the second husk finished: completed bundles 2 ok
+6 (the markers are real: the world's own ledger holds them, and the developer's log holds a code): manual husk: assumption has insufficient input water for this recipe ok
+6 no amount or code in its diary, its mind's input, the day's post prompt or its saved memory:  /  /  /  ok
+6 the husk's words in its diary: 濡れた殻を打ってほぐす / 濡れた殻を打ってほぐす / 濡れた殻を打ってほぐす / 濡れた殻を打ってほぐす：できた（ほぐれた繊維が束になっている。残った殻にも筋がついている。繊維と殻はしっとりしている） ok
+PASS
