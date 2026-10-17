@@ -1,0 +1,44 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vite.config.ts:11:45). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+vite v8.3.1 building client environment for production...
+transforming...
+✓ 178 modules transformed.
+
+(!) outDir /tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/merge-runs/dist-merged is not inside project root and will not be emptied.
+Use --emptyOutDir to override.
+
+rendering chunks...
+computing gzip size...
+../merge-runs/dist-merged/robots.html                              2.30 kB │ gzip:   1.32 kB
+../merge-runs/dist-merged/talk.html                                4.47 kB │ gzip:   2.09 kB
+../merge-runs/dist-merged/index.html                              14.86 kB │ gzip:   5.35 kB
+../merge-runs/dist-merged/assets/night-CpacLeom.jpg              140.79 kB
+../merge-runs/dist-merged/assets/sand_col-I84EFTTl.jpg           220.22 kB
+../merge-runs/dist-merged/assets/earth-Bt150d9S.jpg              247.66 kB
+../merge-runs/dist-merged/assets/sand_nrm-D1c_zV88.jpg           309.74 kB
+../merge-runs/dist-merged/assets/reefrock_col-BXZL9MIK.jpg       368.94 kB
+../merge-runs/dist-merged/assets/bluemarble-2048-CBmAmB1V.jpg    393.47 kB
+../merge-runs/dist-merged/assets/rubble_col-9JsGUi7C.jpg         421.03 kB
+../merge-runs/dist-merged/assets/milkyway-CeNCM5UO.jpg           508.12 kB
+../merge-runs/dist-merged/assets/reefrock_nrm-IY_WA2zN.jpg       523.46 kB
+../merge-runs/dist-merged/assets/rubble_nrm-BYmn8wAe.jpg         535.27 kB
+../merge-runs/dist-merged/assets/bluemarble-DjjgudTR.jpg       1,042.23 kB
+../merge-runs/dist-merged/assets/main-CTJZuHg8.css                65.27 kB │ gzip:  13.90 kB
+../merge-runs/dist-merged/assets/lab-rsoIy-am.js                   7.40 kB │ gzip:   3.40 kB
+../merge-runs/dist-merged/assets/robots-BPMHz5dZ.js                7.90 kB │ gzip:   3.71 kB
+../merge-runs/dist-merged/assets/talk-ByBg0Cf5.js                 10.39 kB │ gzip:   4.84 kB
+../merge-runs/dist-merged/assets/gallery-kit-B2FSFdsx.js          26.67 kB │ gzip:   7.16 kB
+../merge-runs/dist-merged/assets/voice-B1-Z3qoX.js                39.51 kB │ gzip:  19.25 kB
+../merge-runs/dist-merged/assets/kayama-2024-CyA5sziq.js         350.60 kB │ gzip: 116.13 kB
+../merge-runs/dist-merged/assets/kayama-2023-BZtNlu6w.js         412.92 kB │ gzip:  99.57 kB
+../merge-runs/dist-merged/assets/kayama-2022-BRmySxPq.js         413.65 kB │ gzip: 101.05 kB
+../merge-runs/dist-merged/assets/creatures-Dry7-X_J.js           646.63 kB │ gzip: 167.44 kB
+../merge-runs/dist-merged/assets/main-oQ4LtHR7.js              1,526.87 kB │ gzip: 553.96 kB
+
+✓ built in 1.74s
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 1200 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
