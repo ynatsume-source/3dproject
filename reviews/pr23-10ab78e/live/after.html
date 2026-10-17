@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#03161d">
+  <meta name="description" content="ウツシヨ（Utsushiyo）— 現実を写した、もうひとつの地球。実在の海を再現した海中を、ドローンでゆっくり巡る。現地の空と時刻に合わせて光が変わるサンゴ礁のシミュレーション。">
+  <title>Utsushiyo — ウツシヨ</title>
+  <link rel="canonical" href="https://utsushiyo.earth/">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="ウツシヨ Utsushiyo">
+  <meta property="og:title" content="ウツシヨ — 現実を写した、もうひとつの地球"><meta property="og:url" content="https://utsushiyo.earth/">
+  <meta property="og:description" content="実在の海を再現した海中を、ドローンでゆっくり巡る。現地の空と時刻、天気に合わせて光が変わる。">
+  <meta property="og:image" content="https://utsushiyo.earth/og/miyako.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="https://utsushiyo.earth/og/miyako.jpg">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+  <script type="module" crossorigin src="./assets/main-Cao9BQ6m.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/creatures-Dry7-X_J.js">
+  <link rel="modulepreload" crossorigin href="./assets/voice-B1-Z3qoX.js">
+  <link rel="stylesheet" crossorigin href="./assets/main-CTJZuHg8.css">
+</head>
+<body>
+<canvas id="scene" aria-label="海中ドローンのライブ映像"></canvas>
+<div id="openWhite" aria-hidden="true"></div>
+<div id="vignette"></div>
+
+<!-- globe mode -->
+<section id="picker" class="g-ui" aria-label="海を選ぶ">
+  <div class="name">Utsushiyo <span class="kana">ウツシヨ</span></div>
+  <h1>潜る海を選ぶ</h1>
+  <p class="lead">地球儀はドラッグで回転、スクロールかピンチで拡大できます。昼と夜の境目は、いまの実際の太陽の位置です。ピンかカードを選ぶと、その海へ潜航します。</p>
+  <ol id="locList"></ol>
+  <p class="foot">地形・サンゴ・生きものの配置は手続き生成です。登場する種類は、それぞれの海に実際に暮らしているものを選んでいます。<br>ピアノ音源：Salamander Grand Piano（Alexander Holm, CC BY 3.0）<br>衛星画像：Sentinel-2 cloudless by EOX（Copernicus Sentinel data 2016, CC BY 4.0）／地球：NASA Blue Marble・Black Marble（GIBS）／地図・嘉弥真島の地形と航空写真：国土地理院・Sentinel-2 cloudless 2023 by EOX（Copernicus Sentinel data 2023, CC BY 4.0）／恒星：d3-celestial（Olaf Frohn, BSD-3）・天の川：NASA/Goddard SVS, Gaia DR2 (ESA/Gaia/DPAC)／天気：Open-Meteo（CC BY 4.0）<br>アクセス解析に Google アナリティクス（Cookie を使用）を利用しています。個人を特定する情報は収集しません。</p>
+</section>
+<div id="pins" class="g-ui"></div>
+
+<!-- ocean mode -->
+<div id="brand" class="hud">
+  <div class="name">Utsushiyo <button id="btnBack" type="button" aria-label="地球儀に戻って別の海を選ぶ（G）">‹ 地球儀へ戻る</button></div>
+  <div class="sub" id="locName">—</div>
+  <div class="coord" id="locCoord">—</div>
+</div>
+<dl id="tele" class="hud">
+  <dt id="lDepth">DEPTH</dt><dd><span id="tDepth">—</span><small>m</small></dd>
+  <dt>ALT</dt><dd><span id="tAlt">—</span><small>m</small></dd>
+  <dt>SPEED</dt><dd><span id="tSpd">—</span><small>m/s</small></dd>
+  <dt>TEMP</dt><dd><span id="tTemp">—</span><small>°C</small></dd>
+  <dt>VIS</dt><dd><span id="tVis">—</span><small>m</small></dd>
+  <dt>TIDE</dt><dd><span id="tTide">—</span><small>m</small> <small id="tTideDir"></small></dd>
+</dl>
+<div id="rec" class="hud"><i></i><span id="tMode">AUTO CRUISE</span></div>
+<div id="compass" class="hud"><div class="strip" id="strip"></div></div>
+<div id="hdgnum" class="hud">000°</div>
+<button id="evMark" class="hud" type="button" hidden aria-label="この出来事のところへ行く"><i></i></button>
+<button id="backCruise" class="hud" type="button" aria-label="見に行くのをやめて巡航に戻る" tabindex="-1">巡航に戻る</button>
+<div id="toast" class="hud" aria-live="polite"><span class="k" id="toastK">NEW SIGHTING</span><span class="t" id="toastT"></span><span class="s" id="toastS"></span></div>
+<div id="hint" class="hud"></div>
+<div id="rare" class="hud" aria-live="polite"><div class="k">めったに出会えない光景</div><div class="t"></div><div class="n"></div></div>
+<div id="capRing" aria-hidden="true"><i></i></div><div id="caption" class="hud" aria-live="polite"><div class="k"></div><div class="t"><b></b><i></i></div><div class="s"></div><div class="m"></div><div class="n"></div></div>
+<div id="watchBar" class="hud" hidden role="group" aria-label="住人を見守る"></div>
+<section id="watchCard" class="hud" hidden aria-live="polite"></section>
+<div id="pov" hidden aria-hidden="true"></div>
+<div id="diaryBook" hidden></div>
+<button id="povExit" class="hud" type="button">‹ 上から</button>
+<button id="povMenu" class="hud" type="button" aria-pressed="false">メニュー</button>
+<aside id="guide" class="hud" hidden aria-label="この海の生きもの"></aside>
+
+<section id="timePanel" class="hud" hidden aria-label="時刻">
+  <div class="tp-head">
+    <span>現地の時刻</span>
+    <button id="btnLive" type="button" aria-pressed="true"><span class="dot"></span>実時間に戻す <kbd>0</kbd></button>
+  </div>
+  <div class="tp-row" id="presetRow"></div>
+  <div class="tp-label">季節 <span id="clockDate"></span></div>
+  <div class="tp-row seasons" id="seasonRow"></div>
+  <div class="tp-label">早回し</div>
+  <div class="tp-row speeds" id="speedRow"></div>
+  <p class="tp-wx" id="wxLine"></p>
+  <p class="tp-note">実時間では、現地の太陽・月・潮の位置をそのまま再現します。季節を選ぶと、同じ時刻のままその季節の日付になり、日の長さ・水温・季節の生き物（冬のザトウクジラなど）が変わります。</p>
+</section>
+
+<section id="volPanel" class="hud" hidden aria-label="音量">
+  <label>全体<input type="range" id="volAll" min="0" max="100" step="1"><output id="volAllO"></output></label>
+  <label>音楽<input type="range" id="volMusic" min="0" max="100" step="1"><output id="volMusicO"></output></label>
+  <label>海の音<input type="range" id="volNature" min="0" max="100" step="1"><output id="volNatureO"></output></label>
+</section>
+
+<div id="joy" class="hud" hidden><i id="knob"></i></div>
+<div id="vbtns" class="hud" hidden role="slider" aria-label="視点を上下に向ける" aria-orientation="vertical"><span class="ar up" aria-hidden="true"></span><i id="vknob"></i><span class="ar dn" aria-hidden="true"></span></div>
+
+<div id="dock" class="hud">
+  <div class="group" role="group" aria-label="移動">
+    <button id="btnGuide" type="button" aria-pressed="false">図鑑 <span id="seenCount">0/0</span> <kbd>Z</kbd></button>
+  </div>
+  <div class="group" role="group" aria-label="時刻">
+    <button id="btnTime" type="button" aria-expanded="false" class="live">
+      <span class="clk" id="clockTime">--:--</span><span id="clockPhase">—</span>
+      <span class="sub" id="clockMode">実時間</span><kbd>T</kbd>
+    </button>
+    <span class="moon" id="clockMoon"></span>
+  </div>
+  <div class="group" role="group" aria-label="録画">
+    <button id="btnReplay" type="button" aria-label="録画（2回押すと開始、もう一度で保存。最長15秒）"><span class="ring" aria-hidden="true"><i></i></span><span class="lbl" id="replayLbl">録画</span><span class="sec" id="replaySec" aria-hidden="true"></span></button>
+  </div>
+  <div class="group" role="group" aria-label="メニュー">
+    <button id="btnShare" type="button" aria-label="この景色を共有" title="この景色のリンクを共有">↗</button>
+    <button id="btnMore" type="button" aria-expanded="false" aria-label="メニューを開く">⋯</button>
+  </div>
+</div>
+
+<!-- quick controls: the few things wanted on the spot, as round buttons on the right -->
+<div id="quick" class="hud" role="group" aria-label="すぐに使う操作">
+  <button id="btnMode" type="button" aria-pressed="false" title="自動巡航／手動操縦（P）"><svg viewBox="0 0 24 24"><path d="M12 13V6"/><circle cx="12" cy="5" r="2.2"/><path d="M5 15h14l-1.5 5h-11z"/><path d="M4 11a8 8 0 0 1 3-6 M20 11a8 8 0 0 0-3-6" class="auto"/></svg><span>手動で操縦</span></button>
+  <button id="btnLamp" type="button" aria-pressed="false" title="ライト（L）"><svg viewBox="0 0 24 24"><path d="M9 3h6l-1 6h-4z M10 9h4v4a2 2 0 0 1-4 0z" /><path d="M12 15v6 M6 6l-2-2 M18 6l2-2 M12 2v-1" class="ray"/></svg><span>ライト</span></button>
+  <button id="btnSky" type="button" aria-pressed="false" title="空へ／海へ（U）"><svg viewBox="0 0 24 24"><path d="M3 15c2 0 2-2 4.5-2S10 15 12 15s2-2 4.5-2S19 15 21 15 M3 19c2 0 2-2 4.5-2S10 19 12 19s2-2 4.5-2S19 19 21 19"/><path d="M12 11V3 M9 6l3-3 3 3" class="arrow"/></svg><span>空へ</span></button>
+  <button id="btnView" type="button" aria-pressed="false" title="ドローン視点（V）"><svg viewBox="0 0 24 24"><rect x="5" y="9" width="14" height="7" rx="3.5"/><circle cx="12" cy="12.5" r="2"/><path d="M3 10h2 M19 10h2 M7 18l-2 2 M17 18l2 2"/></svg><span>ドローン視点</span></button>
+  <button id="btnCaption" type="button" aria-pressed="true" title="解説"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6 M12 7.5v.5"/></svg><span>解説</span></button>
+  <button id="btnSound" type="button" aria-pressed="false" title="サウンド（M）"><svg viewBox="0 0 24 24"><path d="M4 10h4l5-4v12l-5-4H4z"/><path d="M16 9c1.5 1.5 1.5 4.5 0 6 M18.5 6.5c3 3 3 8 0 11" class="waves"/></svg><span>サウンド</span></button>
+</div>
+
+<!-- the menu: settings by category -->
+<div id="menu" class="hud" role="dialog" aria-label="メニュー">
+  <nav class="cats" role="tablist">
+    <button type="button" data-cat="move" role="tab">動き</button>
+    <button type="button" data-cat="view" role="tab">表示</button>
+    <button type="button" data-cat="sound" role="tab">音</button>
+    <button type="button" data-cat="log" role="tab">記録</button>
+  </nav>
+  <section data-sec="move">
+    <p class="lead">ドローンの動かし方と、案内役の性格</p>
+    <div class="rows">
+      <button id="btnAuto" type="button" aria-pressed="true"><span class="dot"></span>自動巡航<kbd>P</kbd></button>
+      <button id="btnManual" type="button" aria-pressed="false"><span class="dot"></span>手動操縦</button>
+      <button id="btnSeaOnly" type="button" aria-pressed="false" title="自動巡航は海の中だけを巡ります（トビウオが飛び出したときだけ、数秒空へ追いかけます）"><span class="dot"></span>海だけ（空へは上がらない）</button>
+    </div>
+    <p class="lead sub">案内役の性格</p>
+    <div id="personas" class="rows pick" role="radiogroup" aria-label="案内役の性格"></div>
+    <p id="personaBlurb" class="blurb"></p>
+  </section>
+  <section data-sec="view">
+    <p class="lead">画面に出すもの</p>
+    <div class="rows">
+      <button id="btnInst" type="button" aria-pressed="false"><span class="dot"></span>計器（深さ・速さ・方位）</button>
+      <button id="btnPip" type="button" aria-pressed="true" title="近くで狩りが起きると、小さな窓で映します"><span class="dot"></span>狩りの小窓</button>
+      <button id="btnAwake" type="button" aria-pressed="true" title="見ている間、端末の画面が自動で消えないようにします"><span class="dot"></span>画面をつけたままにする</button>
+      <button id="btnSubLang" type="button" title="住人の吹き出しで、島の文字の下に出す訳の言葉">住人の言葉の訳：日本語</button>
+      <button id="btnHud" type="button">文字をすべて隠す<kbd>H</kbd></button>
+      <button id="btnQuality" type="button">画質 高</button>
+      <button id="btnFull" type="button">全画面<kbd>F</kbd></button>
+    </div>
+  </section>
+  <section data-sec="sound">
+    <p class="lead">海の音と音楽</p>
+    <div class="rows">
+      <button id="btnMusic" type="button" aria-pressed="true"><span class="dot"></span>音楽<kbd>N</kbd></button>
+      <button id="btnVoices" type="button" aria-pressed="true" title="島の住人が話すとき、それぞれの声で島の言葉を読み上げます"><span class="dot"></span>住人の声</button>
+      <button id="btnVol" type="button" aria-expanded="false" aria-label="音量">音量の調整</button>
+    </div>
+  </section>
+  <section data-sec="log">
+    <p class="lead">今日の出来事の記録</p>
+    <div class="rows">
+      <button id="btnLog" type="button" aria-pressed="false">今日のログ<kbd>J</kbd></button>
+      <a class="row-link" href="./journal/" target="_blank" rel="noopener">島だより — 住人が撮って書くメディア ↗</a>
+    </div>
+  </section>
+</div>
+
+<div id="sharedBadge" class="hud" hidden><span class="k">共有された景色</span><span id="sharedWhat"></span><button id="sharedBack" type="button">いまの海に戻す</button></div>
+<button id="reveal" type="button">HUD</button>
+<div id="minimap" title="タップで広域図と切り替え"><canvas width="336" height="336"></canvas><div class="cr"></div></div>
+<div id="bubbles" aria-live="polite"></div>
+<div id="tapRing" aria-hidden="true"></div><button id="newMark" type="button" aria-label="初めて見つけた生きもの。タップで近づいて観察"><i></i><span><b>NEW SIGHTING</b><em id="newMarkName"></em></span></button><div id="hoverTag" aria-hidden="true"></div>
+<div id="pip" hidden><div class="k">HUNT</div><div class="t" id="pipText"></div></div>
+<div id="veil"><div><div class="k" id="veilK">DIVING</div><div class="t" id="veilT"></div><div class="s" id="veilS"></div></div></div>
+<div id="err" hidden>WebGLを初期化できませんでした。<br>ハードウェアアクセラレーションが有効なブラウザで開いてください。</div>
+</body>
+</html>
