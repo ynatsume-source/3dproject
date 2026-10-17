@@ -4,6 +4,12 @@
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
   'science-wet-wick', 'science-dry-wick-comparison',
+  'coir-cord-identity',
+  'manual-husk-handover', 'coir-cord-handover',
+  'coir-cord-work', 'coir-cord-lots', 'coir-cord-load', 'coir-cord-science',
+  'manual-husk-workflow',
+  'manual-husk-work',
+  'manual-husk-separation',
   'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal',
   'lamp',
   'lantern', 'lantern-brain', 'lantern-residents', 'lantern-sky', 'lantern-study',
