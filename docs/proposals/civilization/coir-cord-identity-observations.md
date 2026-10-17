@@ -14,8 +14,8 @@ A（交代・部分精算）とは別の固定commit。PR25-C1/C2を扱い、科
 
 ## 保存の版
 
-荷重のprocess host-2、状態civ-world.coir-cord-load/2、Ledger内記録civ-world.coir-cord-load-ledger/2。
-旧/1は明示的なunsupported-load-schemaとして拒否し、暗黙移行しない。状態名だけ新しくしてもrunの版・保存スナップショットとの照合で拒否する。旧保存の移行は別作業であり、旧イベントを勝手に再実行しない。科学のdamageモデルと素材qualityの形式は変えない。
+当初のID維持はhost-2・run/ledger /2。PR23のC2で、現在は荷重を帆と同じ整数モデルへそろえ、process host-3、状態civ-world.coir-cord-load/3、Ledger内記録civ-world.coir-cord-load-ledger/3にした。
+旧ledger /1・/2は明示的なunsupported-load-schemaとして拒否し、暗黙移行しない。旧runや内部の旧damage bindingも拒否する。旧保存の移行は別作業であり、旧イベントを勝手に再実行しない。素材qualityの形式と、切れない限り同じIDを保つルールは維持する。[整数化の範囲](sail-raft-main-integer-load.md)を参照。
 
 ## C2：言葉と感覚をそろえる
 

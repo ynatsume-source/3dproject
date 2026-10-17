@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import {emptyLedger,addLot,startRun} from '../src/world/process-runner';
 import {COIR_CORD_ASSUMPTION_ID as ID,COIR_CORD_RULES as R,type CoirPiece} from '../src/science/prototypes/coir-cord-types';
-import {currentCordStrength,createCordDamageModel} from '../src/science/prototypes/coir-cord-damage';
+import {
+  currentIntegerCordStrength as currentCordStrength,
+  createIntegerCordDamageModel as createCordDamageModel,
+} from '../src/science/prototypes/coir-cord-damage';
 import {readCordPiece,writeCordPiece} from '../src/world/coir-cord-lots';
 import {applyCordLoad,applyCordLoadForResident,validateCordLoadLedger,CordLoadError,type CordLoadLedger,type CordLoadRequest,type CordHostEvent} from '../src/world/coir-cord-load';
 let groups=0;function test(n:string,f:()=>void){f();groups++;console.log('PASS '+n);}
