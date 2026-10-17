@@ -3,6 +3,7 @@
 // Fast checks keep a 120 s per-file budget. Slow checks retain their full default
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
+  'cord-load-compaction',
   'cord-integer-load',
   'sail-raft-science',
   'husk-soak', 'husk-host',
