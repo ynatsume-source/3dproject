@@ -1,3 +1,6 @@
+import { createCheckpointVoyage } from './sail-raft-checkpoint';
+import { SAIL_RAFT_ISLAND_ID, SAIL_RAFT_WORLD_ID } from './sail-raft-rules';
+export type { SailCellV2, SailVoyageCheckpoint, CordVoyageEffect } from './sail-raft-checkpoint';
 import type {
   CoirPiece
 } from './coir-cord-types';
@@ -84,7 +87,7 @@ export function cordVoyageContext(c: VoyageContext, lotId: string): CordDamageCo
   };
 }
 const DEN = 50000000n;
-export function createSailRaftVoyage(original: SailRig, assumptionId: string, originalContext: VoyageContext) {
+export function createLegacySailRaftVoyage(original: SailRig, assumptionId: string, originalContext: VoyageContext) {
   choose(assumptionId);
   validateRig(original);
   context(originalContext);
@@ -404,4 +407,18 @@ export function createSailWearModel(original: SailMat, assumptionId: string, ope
       return save([...s.events, e]);
     }
   });
+}
+
+/** V1 remains an explicit historical API; v2 uses the bounded checkpoint policy. */
+export function createSailRaftVoyage(original: SailRig,
+  assumptionId: typeof SAIL_RAFT_ISLAND_ID | typeof SAIL_RAFT_WORLD_ID,
+  originalContext: VoyageContext): ReturnType<typeof createCheckpointVoyage>;
+export function createSailRaftVoyage(original: SailRig, assumptionId: string,
+  originalContext: VoyageContext): ReturnType<typeof createLegacySailRaftVoyage>;
+export function createSailRaftVoyage(original: SailRig, assumptionId: string,
+  originalContext: VoyageContext) {
+  if (assumptionId === SAIL_RAFT_ISLAND_ID || assumptionId === SAIL_RAFT_WORLD_ID) {
+    return createCheckpointVoyage(original, assumptionId, originalContext);
+  }
+  return createLegacySailRaftVoyage(original, assumptionId, originalContext);
 }

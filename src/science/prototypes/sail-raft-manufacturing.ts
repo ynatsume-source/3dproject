@@ -13,6 +13,8 @@ import {
 } from './integer-half-life';
 import {
   SAIL_RAFT_ID,
+  SAIL_RAFT_ISLAND_ID,
+  SAIL_RAFT_WORLD_ID,
   SAIL_RULES as R,
   choose,
   check,
@@ -330,6 +332,270 @@ export function createSailManufacturingModel(original: SailManufactureInput, ass
         mast: '竹のマストを切り出した。',
         rig: '筏にマストとむしろ帆を据え、縄で結んだ。'
       }[op]): '手元の材料は、まだ作業の途中だ。'];
+    }
+  });
+}
+
+/** Bounded cumulative manufacturing state. Numeric fields are safe integers.
+ * Old confirmations outside recent are rejected by the chronological cursor;
+ * only the most recent 64 confirmations support exact replay.
+ */
+export interface SailManufactureCheckpoint {
+  schema: 'prototype-sail-manufacture/2';
+  binding: string;
+  totalWorkMs: number;
+  lastAtMs: number;
+  floorAtMs: number | null;
+  recent: {
+    confirmationId: string;
+    fromMs: number;
+    toMs: number;
+    confirmedAtMs: number;
+    actorId: string | null;
+  }[];
+}
+
+export const SAIL_MANUFACTURE_RECEIPT_LIMIT = 64;
+
+/** The v2 world adapter uses this entry, rather than retaining every interval.
+ * The accepted v1 cumulative arithmetic remains the projection oracle: a single
+ * synthetic interval carries the exact total and never represents new work.
+ */
+export function createCompactSailManufacturingModel(
+  original: SailManufactureInput,
+  assumptionId: string,
+  ctx: CoirContext
+) {
+  check(
+    assumptionId === SAIL_RAFT_ISLAND_ID || assumptionId === SAIL_RAFT_WORLD_ID,
+    'explicit-v2-sail-assumption-required'
+  );
+  const input = copy(original);
+  const model = createSailManufacturingModel(input, SAIL_RAFT_ID, ctx);
+  const context = copy(ctx);
+  const drying = input.operation === 'dry';
+  const binding = canonical([
+    'prototype-sail-manufacture/2',
+    assumptionId,
+    R,
+    INTEGER_HALF_LIFE_POLICY_ID,
+    input,
+    context
+  ]);
+
+  function interval(r: unknown): asserts r is CoirInterval {
+    const keys = [
+      'confirmationId', 'worldId', 'worldEpoch', 'runId', 'clock',
+      'fromMs', 'toMs', 'confirmedAtMs', 'kind',
+      ...(drying ? [] : ['actorId', 'attendance'])
+    ];
+    check(shape(r, keys), 'invalid-confirmation');
+    check(
+      id(r.confirmationId) &&
+      r.worldId === context.worldId &&
+      r.worldEpoch === context.worldEpoch &&
+      r.runId === context.runId &&
+      r.clock === context.clock &&
+      uint(r.fromMs) &&
+      uint(r.toMs) &&
+      uint(r.confirmedAtMs) &&
+      r.fromMs >= context.openedAtMs &&
+      r.toMs > r.fromMs &&
+      r.confirmedAtMs >= r.toMs,
+      'invalid-confirmed-work'
+    );
+    check(
+      drying
+        ? r.kind === 'host-confirmed-roofed-wait'
+        : r.kind === 'host-confirmed-manual-work' &&
+          id(r.actorId) &&
+          r.attendance === 'present',
+      'unconfirmed-attendance-or-roof'
+    );
+  }
+
+  function compact(r: CoirInterval): SailManufactureCheckpoint['recent'][number] {
+    return {
+      confirmationId: r.confirmationId,
+      fromMs: r.fromMs,
+      toMs: r.toMs,
+      confirmedAtMs: r.confirmedAtMs,
+      actorId: drying ? null : r.actorId!
+    };
+  }
+
+  function restore(value: unknown): SailManufactureCheckpoint {
+    check(
+      shape(value, [
+        'schema', 'binding', 'totalWorkMs', 'lastAtMs',
+        'floorAtMs', 'recent'
+      ]) &&
+      value.schema === 'prototype-sail-manufacture/2' &&
+      value.binding === binding,
+      'unsupported-manufacture-save'
+    );
+    check(
+      uint(value.totalWorkMs) &&
+      uint(value.lastAtMs) &&
+      value.lastAtMs >= context.openedAtMs &&
+      value.totalWorkMs <= value.lastAtMs - context.openedAtMs &&
+      (value.floorAtMs === null ||
+        uint(value.floorAtMs) &&
+        value.floorAtMs > context.openedAtMs &&
+        value.floorAtMs <= value.lastAtMs) &&
+      Array.isArray(value.recent) &&
+      value.recent.length <= SAIL_MANUFACTURE_RECEIPT_LIMIT,
+      'invalid-manufacture-checkpoint'
+    );
+    let last = value.floorAtMs ?? context.openedAtMs;
+    let retainedWork = 0;
+    const seen = new Set<string>();
+    for (const r of value.recent) {
+      check(
+        shape(r, [
+          'confirmationId', 'fromMs', 'toMs', 'confirmedAtMs', 'actorId'
+        ]) &&
+        id(r.confirmationId) &&
+        !seen.has(r.confirmationId) &&
+        uint(r.fromMs) &&
+        uint(r.toMs) &&
+        uint(r.confirmedAtMs) &&
+        r.fromMs >= last &&
+        r.toMs > r.fromMs &&
+        r.confirmedAtMs >= r.toMs &&
+        (drying ? r.actorId === null : id(r.actorId)),
+        'invalid-manufacture-receipt'
+      );
+      seen.add(r.confirmationId);
+      retainedWork = sum(retainedWork, r.toMs - r.fromMs);
+      last = r.toMs;
+    }
+    check(
+      last === value.lastAtMs &&
+      retainedWork <= value.totalWorkMs &&
+      (value.floorAtMs === null
+        ? retainedWork === value.totalWorkMs
+        : value.recent.length === SAIL_MANUFACTURE_RECEIPT_LIMIT &&
+          value.totalWorkMs > retainedWork &&
+          value.totalWorkMs - retainedWork <=
+            value.floorAtMs - context.openedAtMs) &&
+      (value.recent.length > 0 ||
+        value.totalWorkMs === 0 && value.lastAtMs === context.openedAtMs),
+      'invalid-manufacture-totals'
+    );
+    return copy(value) as SailManufactureCheckpoint;
+  }
+
+  function legacyTotal(totalWorkMs: number): SailManufactureState {
+    check(uint(totalWorkMs), 'invalid-confirmed-work-total');
+    if (totalWorkMs === 0) return model.start();
+    const toMs = sum(context.openedAtMs, totalWorkMs);
+    const r: CoirInterval = {
+      confirmationId: 'sail:compact-total',
+      worldId: context.worldId,
+      worldEpoch: context.worldEpoch,
+      runId: context.runId,
+      clock: context.clock,
+      fromMs: context.openedAtMs,
+      toMs,
+      confirmedAtMs: toMs,
+      kind: drying ? 'host-confirmed-roofed-wait' : 'host-confirmed-manual-work',
+      ...(drying ? {} : { actorId: 'sail:compact-actor', attendance: 'present' as const })
+    };
+    return model.commit(model.start(), r);
+  }
+
+  function projectTotalForAbandon(totalWorkMs: number) {
+    const p = model.project(legacyTotal(totalWorkMs));
+    if (p.status === 'completed' || input.operation === 'rig') return p;
+    if (input.operation === 'harvest' && p.product.dryMg > 0) {
+      p.material = {
+        lotId: context.runId + ':product',
+        material: 'pandanus_leaves',
+        ...p.product
+      };
+    } else if (input.operation === 'dry' || input.operation === 'split') {
+      // Partly split leaves are still leaves. The actual scrap remains scrap;
+      // restarting cannot claim an unfinished bundle as ready weaving strips.
+      p.material = {
+        lotId: context.runId + ':product',
+        material: 'pandanus_leaves',
+        ...p.product
+      };
+    } else if (input.operation === 'weave' && p.areaCm2 > 0) {
+      p.material = {
+        lotId: context.runId + ':product',
+        material: 'sail_mat',
+        ...p.product,
+        areaCm2: p.areaCm2,
+        baseStrengthGf: mulDiv(
+          p.areaCm2,
+          R.sailGfPerCm2 * qualityPpm(
+            context.seed,
+            context.runId,
+            input.source.lotId,
+            'sail-weave-quality',
+            850000,
+            300000
+          ),
+          1000000
+        ),
+        torn: false,
+        damage: { sunMs: 0, shadeMs: 0, rainMs: 0 }
+      };
+    }
+    return p;
+  }
+
+  return Object.freeze({
+    start: (): SailManufactureCheckpoint => ({
+      schema: 'prototype-sail-manufacture/2',
+      binding,
+      totalWorkMs: 0,
+      lastAtMs: context.openedAtMs,
+      floorAtMs: null,
+      recent: []
+    }),
+    restore,
+    /** Pure host-certified cumulative totals; this does not certify attendance. */
+    projectTotal(totalWorkMs: number) {
+      return model.project(legacyTotal(totalWorkMs));
+    },
+    observeTotal(totalWorkMs: number): string[] {
+      return model.observe(legacyTotal(totalWorkMs));
+    },
+    projectTotalForAbandon,
+    project(value: SailManufactureCheckpoint) {
+      return model.project(legacyTotal(restore(value).totalWorkMs));
+    },
+    observe(value: SailManufactureCheckpoint): string[] {
+      return model.observe(legacyTotal(restore(value).totalWorkMs));
+    },
+    commit(
+      value: SailManufactureCheckpoint,
+      confirmation: CoirInterval
+    ): SailManufactureCheckpoint {
+      const state = restore(value);
+      interval(confirmation);
+      const receipt = compact(confirmation);
+      const old = state.recent.find(
+        x => x.confirmationId === confirmation.confirmationId
+      );
+      if (old) {
+        check(canonical(old) === canonical(receipt), 'conflicting-work-replay');
+        return state;
+      }
+      check(confirmation.fromMs >= state.lastAtMs, 'expired-or-overlapping-work');
+      state.totalWorkMs = sum(
+        state.totalWorkMs,
+        confirmation.toMs - confirmation.fromMs
+      );
+      state.lastAtMs = confirmation.toMs;
+      state.recent.push(receipt);
+      if (state.recent.length > SAIL_MANUFACTURE_RECEIPT_LIMIT) {
+        state.floorAtMs = state.recent.shift()!.toMs;
+      }
+      return state;
     }
   });
 }
