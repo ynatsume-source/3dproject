@@ -220,7 +220,7 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
     const sailSpeed = up && hasWind ? equilibriumSpeedMmS(cell.windMmS!, p.mat.areaCm2, delta) : 0;
     const gust = cell.gustMmS === null
       ? safe(BigInt(cell.windMmS ?? 0) * 14n / 10n) : cell.gustMmS;
-    const force = up && hasWind ? sailForceGf(p.mat.areaCm2, Math.max(0, gust - sailSpeed)) : 0;
+    const force = up && hasWind ? sailForceGf(p.mat.areaCm2, Math.max(0, gust - Math.max(PADDLE_MM_S, sailSpeed))) : 0;
     const ropeForce = sum(force, force);
     const candidates: BrokenPart[] = [];
     if (up) {
@@ -234,11 +234,7 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
       });
       for (let i = 0; i < p.cords.length; i++) {
         const cord = p.cords[i], piece = cord.pieces[0];
-        // Exposure precedes this cell's load; abrasion follows it. Unknown rain
-        // uses sun, and a raised healthy sail still ages while the crew paddles.
-        const islandMs = cell.toIslandMs - cell.fromIslandMs;
-        cord.sunMs = sum(cord.sunMs, islandMs);
-        piece.damage.sunMs = sum(piece.damage.sunMs, islandMs);
+        // Preserve the accepted LOAD -> surviving-cell exposure -> abrasion order.
         const strength = currentIntegerCordStrength(piece);
         cord.maxLoadGf = Math.max(cord.maxLoadGf, ropeForce);
         p.maxLoads[i + 2].gf = Math.max(p.maxLoads[i + 2].gf, ropeForce);
@@ -257,7 +253,7 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
           cord.pieces = [a, b];
           cord.break = {
             gf: ropeForce, atWorldMs: cell.fromWorldMs,
-            atIslandMs: cell.toIslandMs, breakAtMm: cut,
+            atIslandMs: cell.fromIslandMs, breakAtMm: cut,
           };
           candidates.push({
             cellId: cell.cellId, part: 'cord', lotId: cord.sourceLotId,
@@ -290,6 +286,8 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
       const field = cell.rain === true ? 'rainMs' : 'sunMs';
       p.mat.damage[field] = sum(p.mat.damage[field], islandMs);
       for (const cord of p.cords) {
+        cord.sunMs = sum(cord.sunMs, islandMs);
+        cord.pieces[0].damage.sunMs = sum(cord.pieces[0].damage.sunMs, islandMs);
         const used = sum(cord.carryMs, motionMs);
         const count = Math.floor(used / R.abrasionWorldMs);
         cord.carryMs = used % R.abrasionWorldMs;
