@@ -309,6 +309,7 @@ test('6-hour cell cost and whole-session storage stay bounded', () => {
   const f = fixture(400_000, epoch, epoch), begun = { runId: f.runId };
   // Retained inputs use lossless compact integers; epoch-sized times exercise actual saves.
   let firstMs = 0, lastMs = 0, at64Bytes = 0, atEndBytes = 0;
+  const costs: number[] = [];
   for (let n = 0; n < cells; n++) {
     const c = cell(begun.runId, n, {
       fromWorldMs: epoch + n * 30_000, toWorldMs: epoch + (n + 1) * 30_000,
@@ -318,17 +319,21 @@ test('6-hour cell cost and whole-session storage stay bounded', () => {
     const at = performance.now();
     recordSailCell(f.L, begun.runId, c, c.toWorldMs);
     const elapsed = performance.now() - at;
+    costs.push(elapsed);
     if (n < 64) firstMs += elapsed;
     if (n >= cells - 64) lastMs += elapsed;
     if (n === 63) at64Bytes = new TextEncoder().encode(JSON.stringify(f.L)).length;
     if (n === cells - 1) atEndBytes = new TextEncoder().encode(JSON.stringify(f.L)).length;
   }
   const meanMs = lastMs / 64;
+  const sorted = costs.slice(64).sort((a, b) => a - b);
+  const p95CellMs = sorted[Math.floor(sorted.length * 0.95)];
+  expect(p95CellMs <= 5, 'per-cell p95 > 5 ms: ' + p95CellMs);
   expect(meanMs <= 5, 'per-cell mean > 5 ms: ' + meanMs);
-  expect(atEndBytes <= 10_240, 'session save > 10 KB: ' + atEndBytes);
+  expect(atEndBytes <= 10_000, 'session save > 10 KB: ' + atEndBytes);
   expect(atEndBytes - at64Bytes < 1024, 'save grows with voyage duration');
   expect(lastMs / 64 <= Math.max(5, firstMs / 64 * 4), 'cell work grows with history');
   console.log(JSON.stringify({ cells, firstMeanMs: firstMs / 64, lastMeanMs: meanMs,
-    at64Bytes, atEndBytes, boundedReceipts: SAIL_VOYAGE.receiptLimit }));
+    at64Bytes, atEndBytes, p95CellMs, maxCellMs: Math.max(...costs), boundedReceipts: SAIL_VOYAGE.receiptLimit }));
 });
 console.log('sail-voyage-check: ' + groups + ' groups PASS');

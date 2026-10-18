@@ -44,5 +44,5 @@ disassemblePartsの第5引数 { keepLotIds:true } は選択時だけ有効。
 sail-lots、sail-work、sail-voyage、sail-cord-settlementをfast登録。
 成分収支、既定とkeepLotIds、予約、作業の分割・保存・再送・部分精算、航海の復帰空白、
 64件の上限、null天気/漕ぎ、破損/健全の連続航海、旧荷重と集計の150場面比較、
-6時間の全航海保存10KiB未満/一セル平均5ms以下を確認する。
+6時間の全航海保存10KB未満/一セル平均・p95が5ms以下を確認する。
 公開bundleへの住人接続とmainマージはレビュー後の別判断。
