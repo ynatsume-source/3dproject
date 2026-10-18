@@ -155,7 +155,8 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
         && piece.damage.abrasions === sum(p.initial.damage.abrasions, p.abrasions)
         && canonical(piece.inheritedWear) === canonical(p.initial.inheritedWear),
       'corrupt-cord-damage');
-      const used = BigInt(source.cordUseRemainders[i].worldMs) + BigInt(value.sailingMs);
+      const used = BigInt(source.cordUseRemainders.find(u => u.lotId === p.sourceLotId)!.worldMs)
+        + BigInt(value.sailingMs);
       check(p.shadeMs === 0
         && p.sunMs === value.mat.damage.sunMs - source.mat.damage.sunMs
           + value.mat.damage.rainMs - source.mat.damage.rainMs

@@ -5,9 +5,9 @@ import {
   SAIL_MOTION_CLOCK, SAIL_RULES as R, equilibriumSpeedMmS, sailForceGf,
   sailStrength, cosDeg, sinDeg, angleDelta, canonical,
 } from '../src/science/prototypes/sail-raft-rules';
-import type { SailRig } from '../src/science/prototypes/sail-raft-manufacturing';
+import { createSailManufacturingModel, type SailRig } from '../src/science/prototypes/sail-raft-manufacturing';
 import {
-  createSailRaftVoyage, type VoyageContext, type SailCell,
+  createSailRaftVoyage, createLegacySailRaftVoyage, createSailWearModel, type VoyageContext, type SailCell,
 } from '../src/science/prototypes/sail-raft-voyage';
 import {
   createCheckpointVoyage, type SailCellV2, type SailVoyageCheckpoint,
@@ -76,7 +76,7 @@ function fullReplay(original: SailRig, cells: SailCellV2[], clock: 'island' | 'w
   const out = json(original);
   const effects = original.cords.map((p, i) => ({
     sourceLotId: p.lotId, initial: json(p), pieces: [json(p)], sunMs: 0, shadeMs: 0,
-    abrasions: 0, maxLoadGf: 0, carry: original.cordUseRemainders[i].worldMs,
+    abrasions: 0, maxLoadGf: 0, carry: original.cordUseRemainders.find(u => u.lotId === p.lotId)!.worldMs,
     fracture: undefined as undefined | {
       gf: number; atWorldMs: number; atIslandMs: number; breakAtMm: number;
     },
@@ -216,6 +216,31 @@ test('explicit clock IDs bind saves and the configured initial clock is island',
   assert.throws(() => a.restoreCheckpoint({ ...a.startCheckpoint(), assumptionId: SAIL_RAFT_WORLD_ID }));
   assert.throws(() => createCheckpointVoyage(rig(), SAIL_RAFT_ID, ctx));
 });
+test('legacy factories reject v2 assumption IDs rather than creating v1-bound saves', () => {
+  const source = rig();
+  const leaves = {
+    operation: 'harvest' as const,
+    source: {
+      lotId: 'standing', material: 'pandanus_standing_leaves' as const,
+      dryMg: 1000000, waterMg: 2000000,
+    },
+  };
+  const workContext = {
+    worldId: ctx.worldId, worldEpoch: ctx.worldEpoch, runId: 'harvest', seed: ctx.seed,
+    clock: 'world' as const, openedAtMs: 1000,
+  };
+  for (const policy of [SAIL_RAFT_ISLAND_ID, SAIL_RAFT_WORLD_ID]) {
+    assert.throws(() => createLegacySailRaftVoyage(source, policy, ctx));
+    assert.throws(() => createSailManufacturingModel(leaves, policy, workContext));
+    assert.throws(() => createSailWearModel(source.mat, policy, 1000));
+  }
+  assert.equal(createLegacySailRaftVoyage(source, SAIL_RAFT_ID, ctx).start().schema,
+    'prototype-sail-raft/1');
+  assert.equal(createSailManufacturingModel(leaves, SAIL_RAFT_ID, workContext).start().schema,
+    'prototype-sail-manufacture/1');
+  assert.equal(createSailWearModel(source.mat, SAIL_RAFT_ID, 1000).start().schema,
+    'prototype-sail-wear/1');
+});
 test('fold equals independent full replay for 240 seeded voyages under both clocks', () => {
   let seed = 12345;
   const random = (n: number) => {
@@ -316,6 +341,25 @@ test('paddling, frozen wind load and island/world distance selection obey the v2
     assert.equal(unknown.rig.cords[0].damage.sunMs, 390000);
     assert.equal(unknown.maxLoads[0].gf, 0);
   }
+});
+test('cord abrasion remainders follow lot IDs even when assembly arrays have different order', () => {
+  const source = rig(), extra = json(source.cords[0]);
+  extra.lotId = 'other';
+  source.cords.push(extra);
+  source.cordUseRemainders = [
+    { lotId: 'other', worldMs: 3599999 },
+    { lotId: 'cord', worldMs: 0 },
+  ];
+  const m = createCheckpointVoyage(source, SAIL_RAFT_ISLAND_ID, ctx);
+  const zero = m.restoreCheckpoint(json(m.startCheckpoint()));
+  assert.deepEqual(zero.cords.map(p => p.carryMs), [0, 3599999]);
+  const saved = m.step(zero, cell(0));
+  assert.deepEqual(saved.cords.map(p => p.carryMs), [390000, 389999]);
+  assert.deepEqual(saved.cords.map(p => p.abrasions), [0, 1]);
+  const expected = fullReplay(source, [cell(0)], 'island');
+  const actual = m.projectCheckpoint(m.restoreCheckpoint(json(saved)));
+  assert.deepEqual(actual.rig, expected.rig);
+  assert.deepEqual(actual.cordEffects, expected.effects);
 });
 test('force uses the actual faster motion and exact equality precedes cell wear', () => {
   const source = rig();
