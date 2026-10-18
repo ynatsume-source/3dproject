@@ -267,7 +267,7 @@ function thingMat(t: Tone, far: number): THREE.Material {
 
 // what each kind looks like in each of its states, and how wide it lies (for laying them side by side)
 const TONES: Record<string, Tone> = {
-  'fiber-bundle/wet': { out: 0x3a271a, inn: 0x3a271a, spec: 0.7 }, 'fiber-bundle/dry': { out: 0xa98052, inn: 0xa98052, spec: 0.05 },
+  'fiber-bundle/wet': { out: 0x5c3d24, inn: 0x5c3d24, spec: 0.7 }, 'fiber-bundle/dry': { out: 0xa98052, inn: 0xa98052, spec: 0.05 },
   'wet-husk/wet': { out: 0x3b2a1c, inn: 0x4a2c1a, spec: 0.25 }, 'wet-husk/dry': { out: 0x7a6248, inn: 0x9a6c42, spec: 0.08 },
   'partial-husk/wet': { out: 0x3b2a1c, inn: 0x5a3820, spec: 0.25, streak: 0.22 }, 'partial-husk/dry': { out: 0x7a6248, inn: 0xb0844f, spec: 0.06, streak: 0.18 },
   'yarn/fuzzy': { out: 0xa47c4b, inn: 0xa47c4b, spec: 0.03, twist: 0.25 }, 'yarn/smooth': { out: 0x93693e, inn: 0x93693e, spec: 0.12, twist: 0.35 },
