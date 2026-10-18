@@ -45,12 +45,13 @@ function lotForQuality(
  */
 export function sailRigParts(
   cordCount: number,
-  cordMaterials: readonly CordMaterial[] = Array.from(
-    { length: cordCount },
-    () => 'coir_rope' as const
-  )
+  selectedMaterials?: readonly CordMaterial[]
 ): PartsAssemblyTable {
   need(cordInteger(cordCount, 1), 'cords-required');
+  const cordMaterials = selectedMaterials ?? Array.from(
+    { length: cordCount },
+    () => 'coir_rope' as const
+  );
   need(
     Array.isArray(cordMaterials) && cordMaterials.length === cordCount
       && cordMaterials.every(material => material === 'coir_rope' || material === 'coir_strand'),
@@ -76,6 +77,8 @@ export function sailRigParts(
       const mat = readSailMat(lots[0]);
       const mast = readBambooMast(lots[1]);
       const cords = lots.slice(2).map(readCordPiece);
+      const totalMass = lots.reduce((sum, lot) => sum + BigInt(lot.amount.value), 0n);
+      need(totalMass <= BigInt(Number.MAX_SAFE_INTEGER), 'rig-mass-overflow');
       need(!mat.torn && !mast.broken && sailStrength(mat) > 0, 'broken-rig-part');
       let cordLength = 0n;
       for (const cord of cords) {
