@@ -131,6 +131,7 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
     for (const key of ['sunMs', 'shadeMs', 'rainMs'] as const) {
       check(value.mat.damage[key] >= source.mat.damage[key], 'corrupt-sail-damage');
     }
+    check(value.mat.damage.shadeMs === source.mat.damage.shadeMs, 'corrupt-sail-shade');
     check(value.mat.lotId === source.mat.lotId && value.mast.lotId === source.mast.lotId
       && Array.isArray(value.cords) && value.cords.length === source.cords.length,
     'corrupt-voyage-parts');
@@ -151,13 +152,30 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
         && piece.material === p.initial.material
         && piece.damage.sunMs === sum(p.initial.damage.sunMs, p.sunMs)
         && piece.damage.shadeMs === sum(p.initial.damage.shadeMs, p.shadeMs)
-        && piece.damage.abrasions === sum(p.initial.damage.abrasions, p.abrasions),
+        && piece.damage.abrasions === sum(p.initial.damage.abrasions, p.abrasions)
+        && canonical(piece.inheritedWear) === canonical(p.initial.inheritedWear),
       'corrupt-cord-damage');
-      if (p.break) check(shape(p.break, ['gf', 'atWorldMs', 'atIslandMs', 'breakAtMm'])
-        && uint(p.break.gf) && uint(p.break.atWorldMs) && uint(p.break.atIslandMs)
-        && uint(p.break.breakAtMm, 1) && p.break.breakAtMm < p.initial.lengthMm,
-      'corrupt-cord-break');
-      else check(p.pieces[0].lotId === p.sourceLotId, 'corrupt-cord-id');
+      const used = BigInt(source.cordUseRemainders[i].worldMs) + BigInt(value.sailingMs);
+      check(p.shadeMs === 0
+        && p.sunMs === value.mat.damage.sunMs - source.mat.damage.sunMs
+          + value.mat.damage.rainMs - source.mat.damage.rainMs
+        && BigInt(p.abrasions) === used / BigInt(R.abrasionWorldMs)
+        && BigInt(p.carryMs) === used % BigInt(R.abrasionWorldMs), 'corrupt-cord-carry');
+      if (p.break) {
+        check(shape(p.break, ['gf', 'atWorldMs', 'atIslandMs', 'breakAtMm'])
+          && uint(p.break.gf) && uint(p.break.atWorldMs, c.openedAtWorldMs)
+          && p.break.atWorldMs < value.nextWorldMs
+          && uint(p.break.atIslandMs, c.openedAtIslandMs) && p.break.atIslandMs < value.nextIslandMs
+          && uint(p.break.breakAtMm, 1) && p.break.breakAtMm < p.initial.lengthMm
+          && p.break.gf > currentIntegerCordStrength(p.pieces[0]), 'corrupt-cord-break');
+        check(p.pieces[0].lengthMm === p.break.breakAtMm
+          && p.pieces[0].lotId === c.runId + ':cord:' + i + ':1'
+          && p.pieces[1].lotId === c.runId + ':cord:' + i + ':2', 'corrupt-fracture-pieces');
+        for (const key of ['fiberDryMg', 'pithDryMg', 'waterMg'] as const) {
+          check(BigInt(p.pieces[0][key]) === BigInt(p.initial[key]) * BigInt(p.break.breakAtMm)
+            / BigInt(p.initial.lengthMm), 'corrupt-fracture-mass');
+        }
+      } else check(p.pieces[0].lotId === p.sourceLotId, 'corrupt-cord-id');
     }
     check(Array.isArray(value.maxLoads) && value.maxLoads.length === source.cords.length + 2,
       'corrupt-load-checkpoint');
@@ -167,7 +185,8 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
         : i === 1 ? { part: 'mast', lotId: source.mast.lotId }
         : { part: 'cord', lotId: source.cords[i - 2].lotId };
       check(shape(p, ['part', 'lotId', 'gf']) && p.part === expected.part
-        && p.lotId === expected.lotId && uint(p.gf), 'corrupt-load-checkpoint');
+        && p.lotId === expected.lotId && uint(p.gf)
+        && (i < 2 || p.gf === value.cords[i - 2].maxLoadGf), 'corrupt-load-checkpoint');
     }
     check(Array.isArray(value.broken) && value.broken.length <= source.cords.length + 2,
       'corrupt-break-checkpoint');
@@ -175,10 +194,17 @@ export function createCheckpointVoyage(original: SailRig, assumptionId: string, 
     for (const b of value.broken) {
       check(shape(b, ['cellId', 'part', 'lotId', 'marginGf']) && id(b.cellId)
         && ['sail', 'mast', 'cord'].includes(b.part) && id(b.lotId)
-        && Number.isSafeInteger(b.marginGf) && b.marginGf < 0 && !brokenIds.has(b.lotId),
+        && Number.isSafeInteger(b.marginGf) && b.marginGf < 0 && !brokenIds.has(b.lotId)
+        && (b.part === 'sail' ? b.lotId === source.mat.lotId && value.mat.torn
+          : b.part === 'mast' ? b.lotId === source.mast.lotId && value.mast.broken
+          : value.cords.some((p: CordCheckpoint) => p.sourceLotId === b.lotId && p.break)),
       'corrupt-break-checkpoint');
       brokenIds.add(b.lotId);
     }
+    check(value.mat.torn === brokenIds.has(source.mat.lotId)
+      && value.mast.broken === brokenIds.has(source.mast.lotId)
+      && value.cords.every((p: CordCheckpoint) => !!p.break === brokenIds.has(p.sourceLotId)),
+    'corrupt-broken-parts');
     if (value.last !== null) check(shape(value.last,
       ['cellId', 'digest', 'powered', 'paddling', 'speedMmS', 'forceGf', 'windMmS', 'sailUp'])
       && id(value.last.cellId) && uint(value.last.digest) && value.last.digest <= 0xffffffff

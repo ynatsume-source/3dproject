@@ -227,6 +227,16 @@ test('fold equals independent full replay for 240 seeded voyages under both cloc
     source.mat.baseStrengthGf = 20000 + random(100000);
     source.mast.baseStrengthGf = 10000 + random(90000);
     source.cords[0].baseStrengthGf = 5000 + random(160000);
+    if (trial % 3 !== 0) {
+      const first = source.cords[0];
+      source.cords.push({ ...json(first), lotId: 'second', baseStrengthGf: first.baseStrengthGf + 1000 });
+      source.cordUseRemainders.push({ lotId: 'second', worldMs: random(3600000) });
+    }
+    if (trial % 5 === 0) {
+      const first = source.cords[0];
+      source.cords.push({ ...json(first), lotId: 'third', baseStrengthGf: first.baseStrengthGf + 2000 });
+      source.cordUseRemainders.push({ lotId: 'third', worldMs: random(3600000) });
+    }
     const cells = Array.from({ length: 5 + random(30) }, (_, i) => {
       const missing = random(9) === 0, wind = random(23000);
       return cell(i, {
@@ -306,6 +316,20 @@ test('paddling, frozen wind load and island/world distance selection obey the v2
     assert.equal(unknown.rig.cords[0].damage.sunMs, 390000);
     assert.equal(unknown.maxLoads[0].gf, 0);
   }
+});
+test('force uses the actual faster motion and exact equality precedes cell wear', () => {
+  const source = rig();
+  const force = sailForceGf(20000, 7000 - PADDLE_MM_S);
+  source.cords[0].baseStrengthGf = force * 2;
+  const m = createCheckpointVoyage(source, SAIL_RAFT_ISLAND_ID, ctx);
+  const first = m.step(m.startCheckpoint(), cell(0));
+  assert.equal(first.last!.forceGf, force);
+  assert.equal(first.cords[0].break, undefined);
+  const second = m.step(first, cell(1));
+  assert.ok(second.cords[0].break);
+  const outside = createCheckpointVoyage(rig(), SAIL_RAFT_ISLAND_ID, ctx);
+  const p = outside.projectCheckpoint(outside.step(outside.startCheckpoint(), cell(0, { headingDeg: 61 })));
+  assert.equal(p.last!.forceGf, force);
 });
 test('gaps do not advance distance or abrasion, and malformed saves and duplicate edits reject', () => {
   const m = createCheckpointVoyage(rig(), SAIL_RAFT_ISLAND_ID, ctx);
