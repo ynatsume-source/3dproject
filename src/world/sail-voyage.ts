@@ -20,6 +20,7 @@ import { sailRigParts } from './sail-rig-parts';
 import { readCordPiece } from './coir-cord-lots';
 import { applyCordVoyageSummary } from './sail-cord-settlement';
 import type { CordLoadLedger } from './coir-cord-load';
+import { otherScienceWorkBusy } from './science-work-occupancy';
 
 export const SAIL_VOYAGE = Object.freeze({
   processId: 'prototype_sail_voyage',
@@ -268,7 +269,8 @@ function raw(L: SailVoyageLedger, runId: string): { r: Run; d: Data; m: Model } 
   need(r && r.runId === runId && r.processId === SAIL_VOYAGE.processId
     && r.processVersion === SAIL_VOYAGE.version && r.state?.schema === SAIL_VOYAGE.schema
     && ['starting', 'running'].includes(r.status)
-    && r.clock === 'world' && r.lotIds.length === 0 && id(r.operator)
+    && r.clock === 'world' && r.contract === '0.2.1' && r.catalogVersion === 'civ-sci-test-2'
+    && r.lotIds.length === 0 && id(r.operator)
     && uint(r.seed) && d && shape(d, ['assumptionId', 'openedAtWorldMs',
       'openedAtIslandMs', 'hull', 'equipmentFingerprint', 'checkpoint',
       'paused', 'nextWorldMs', 'nextIslandMs', 'nextCell', 'cells', 'vocabulary', 'digest'])
@@ -288,6 +290,9 @@ function raw(L: SailVoyageLedger, runId: string): { r: Run; d: Data; m: Model } 
   }
   const m = model(L, r, d);
   m.restoreCheckpoint(d.checkpoint);
+  need(d.checkpoint.cellCount === d.nextCell
+    && d.checkpoint.nextWorldMs <= d.nextWorldMs
+    && d.checkpoint.nextIslandMs <= d.nextIslandMs, 'changed-cell-cursor');
   need(r.lastTo === d.nextWorldMs, 'changed-run-clock');
   return { r, d, m };
 }
@@ -358,9 +363,11 @@ export function beginSailVoyage(L: SailVoyageLedger, q: BeginSailVoyage): { runI
     const e = draft.equipment[q.rigEquipmentId];
     need(e && !e.reservedBy && e.kind === 'sail_rig' && e.assembled?.parts,
       'missing-or-reserved-rig');
+    need(!otherScienceWorkBusy(draft, q.actorId, '', SAIL_VOYAGE.processId).actor,
+      'actor-busy');
     for (const r of Object.values(draft.runs)) {
-      need(r.processId !== SAIL_VOYAGE.processId || r.operator !== q.actorId,
-        'actor-already-aboard');
+      need(r.processId !== SAIL_VOYAGE.processId || r.operator !== q.actorId
+        || (r.state?.data as Data)?.paused === true, 'actor-already-aboard');
     }
     const parts = e.assembled.parts;
     const T = sailRigParts(parts.length - 2, parts.slice(2).map(p => p.materialId as CoirPiece['material']));
@@ -448,6 +455,12 @@ export function resumeSailVoyage(L: SailVoyageLedger, runId: string, q: ResumeSa
   need(d.paused && r.operator === q.actorId, 'not-this-paused-voyage');
   need(q.atWorldMs >= s.authorityAtWorldMs && q.atWorldMs >= d.nextWorldMs
     && q.atIslandMs >= d.nextIslandMs, 'backdated-resume');
+  need(!otherScienceWorkBusy(L, q.actorId, '', SAIL_VOYAGE.processId).actor, 'actor-busy');
+  for (const other of Object.values(L.runs)) {
+    need(other.runId === runId || other.processId !== SAIL_VOYAGE.processId
+      || other.operator !== q.actorId || (other.state?.data as Data)?.paused === true,
+    'actor-already-aboard');
+  }
   const next = copy(d), meta = copy(s);
   next.paused = false;
   next.nextWorldMs = q.atWorldMs;
