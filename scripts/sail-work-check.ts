@@ -255,6 +255,32 @@ test('same actor and worksite cannot be double-booked; waiting leaves actor free
   unchanged(a, () => applySailIntent(a.L, {...intent, actorId: 'other'} as SailIntent,
     revision(a), T, a.facts));
 });
+test('completed work and command receipts have fixed retained limits', () => {
+  const a = fixture('mast', false);
+  let at = T;
+  for (let n = 0; n < 80; n++) {
+    const lotId = n === 0 ? 'input' : 'bamboo:' + n;
+    if (n > 0) addPlant(a.L, {lotId, material: 'bamboo',
+      dryMg: 5_000_000, waterMg: 2_000_000, lengthMm: 6_000});
+    const intent = {...a.intent, intentId: 'batch:' + n,
+      atWorldMs: at, lotIds: [lotId]} as SailIntent;
+    const runId = applySailIntent(a.L, intent, revision(a), at, a.facts).runId;
+    const f = {kind: 'executor-activity-span' as const,
+      spanId: 'batch:' + n, worldId: a.L.world.worldId,
+      worldEpoch: a.L.world.worldEpoch, runId, actorId: 'actor',
+      fromWorldMs: at, toWorldMs: at + R.mastMs,
+      confirmedAtWorldMs: at + R.mastMs, activity: 'cut-mast' as const,
+      targetLotId: lotId, targetSiteId: site.locationId, arrived: true,
+      fromPosition: {x: 0, z: 0}, toPosition: {x: 0, z: 0}};
+    recordSailSpan(a.L, runId, f, revision(a), at + R.mastMs);
+    at += R.mastMs;
+    assert.equal(Object.keys(a.L.runs).length, 0);
+    assert.ok(a.L.sailArrangement!.finished.length <= 64);
+    assert.ok(a.L.sailArrangement!.receipts.length <= 64);
+  }
+  assert.equal(a.L.sailArrangement!.finished.length, 64);
+  assert.equal(a.L.sailArrangement!.receipts.length, 64);
+});
 test('future, malformed, changed reservation and corrupt state failures are atomic', () => {
   for (const patch of [{worldEpoch: 'wrong'}, {runId: 'wrong'}, {fromPosition: null},
     {activity: 'invented'}, {confirmedAtWorldMs: T - 1}, {extra: true}]) {
