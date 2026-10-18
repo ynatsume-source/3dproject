@@ -117,7 +117,7 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   const fb = lots('coir_fiber_bundle')[0];
   want('4 soaked five island days, taken out, beaten: a fibre bundle at the worksite', !!fb && fb.location === 'site:husk-work', `${fb?.location}`);
   const site = R.worksiteLooks().find((x: any) => x.siteId === 'site:husk-work');
-  want('4 drawn at the worksite: the beating board (a husk was beaten there), the fibre bundle on it', site?.fixtures.some((x: any) => x.kind === 'beat-board') && site.items.some((x: any) => x.kind === 'fiber-bundle'), JSON.stringify(site));
+  want('4 drawn at the worksite: the beating board (a husk was beaten there), the fibre bundle there', site?.fixtures.some((x: any) => x.kind === 'beat-board') && site.items.some((x: any) => x.kind === 'fiber-bundle'), JSON.stringify(site));
 }
 { // 5
   await choose('beat:husk', () => runsOf('prototype_manual_husk_work').some((r) => ['running', 'starting'].includes(r.status)) && dot().task?.data?.engaged, 600);
@@ -130,6 +130,8 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   step(2);
   const job = () => R.lab.manualHuskArrangement.jobs.find((j: any) => j.runId === run.runId);
   const kinds = () => job()?.controls.map((c: any) => c.kind) ?? [];
+  { const site = R.worksiteLooks().find((x: any) => x.siteId === 'site:husk-work'), board = site?.fixtures[0]?.id;
+    want('5 drawn while at work: the husk in hand on the board, the bundle beside it', !!board && site.items.some((x: any) => x.kind === 'wet-husk' && x.on === board) && site.items.filter((x: any) => x.kind === 'fiber-bundle').every((x: any) => x.on === undefined), JSON.stringify(site?.items)); }
   want('5 stopped half way: the stop told (its mind may take it up again at once), the husk kept', !!run && kinds().indexOf('stop') > kinds().indexOf('start') && kinds().indexOf('start') === 0, kinds().join(','));
   R.save(); const s = store.get(KEY)!;
   now += 3600e3; R = make();
