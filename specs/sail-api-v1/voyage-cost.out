@@ -1,0 +1,5 @@
+cell 1: commit 2.7 ms, state 1822 chars
+cell 120: commit 28.1 ms, state 36173 chars
+cell 360: commit 91.2 ms, state 106148 chars
+cell 720: commit 179.6 ms, state 212708 chars
+project+observe at 720: 341.5 ms
