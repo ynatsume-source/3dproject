@@ -15,6 +15,10 @@
     "check:browser": "node scripts/worlds-browser-check.mjs"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/cormorant-sc": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/zen-old-mincho": "^5.3.1",
     "nosleep.js": "^0.12.0",
     "three": "0.186.1"
   },

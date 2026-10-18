@@ -68,6 +68,10 @@ const canvas = $('scene') as HTMLCanvasElement;
 // ?nopost: draw straight to the screen, without the post-processing chain (and ?nopip without the hunt
 // window); the second recovery reload does the same
 const noPost = /[?&]nopost/.test(location.search), noPip = /[?&]nopip/.test(location.search);
+// ?live: the 24-hour stream (src/live/live.ts): straight into the island, the app's own controls put away, the drone
+// following each resident in turn, the observation window over it; the island on its own clock (now, as it is)
+const live = /[?&]live\b/.test(location.search);
+let liveUi: { update(dt: number): void } | null = null;
 const SAFE = (() => { try { return +(sessionStorage.getItem('seaglass.safe') || 0); } catch (e) { return 0; } })();
 let lostCount = 0;
 canvas.addEventListener('webglcontextlost', (e) => {
@@ -156,7 +160,7 @@ function arriveHere() { arrive.t = ARRIVE; arrive.age = 0; arrive.yaw = drone.ya
 const OPEN_KEY = 'seaglass.opening';
 function wantOpening(loc: Sea) {
   const q = location.search;
-  if (/[?&]nointro/.test(q)) return false;
+  if (/[?&](nointro|live\b)/.test(q)) return false;   // (?live: the stream goes straight in)
   if (/[?&]intro\b/.test(q)) return true;
   if (shared || reduceMotion || /[?&](debug|lab|diag|gputest|probe|bisect|lantern-study|journalshot)/.test(q)) return false;
   // Legacy markers use only the land id and cannot identify the world; rebuild this viewing cache.
@@ -3515,6 +3519,7 @@ function frameBody(ts: number) {
     if (watch.r && watch.pov && cur.residents) { const sn = cur.residents.sense(watch.r); camera.position.copy(sn.eye); povEye.copy(sn.eye); }
     lanternStudyPanel.update(dt);
     if (watch.r && (watch.infoT -= dt) < 0) { watch.infoT = 1; if (!watch.pov) renderWatch(); }
+    liveUi?.update(dt);
     if (watch.pov && watch.r && cur.residents) {
       // (Kamemaru names the creatures it sees)
       const fish = watch.r.id === 'kame' ? cur.eco.subjects().filter((sj) => { const p = sj.pos(); return !!p && p.y < 0 && hyp(p.x - drone.pos.x, p.z - drone.pos.z) < 25; }).slice(0, 8).map((sj) => { const p = sj.pos()!; return { x: p.x, y: p.y, z: p.z, kind: 'fish', label: sj.label, sub: sj.status() }; }) : [];
@@ -3713,6 +3718,8 @@ setQuality(tier);
 resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
+if (live && (!location.hash || location.hash === '#')) history.replaceState(null, '', location.pathname + location.search + '#planet');   // (the stream is the island)
+if (live) import('./live/live').then((m) => { liveUi = m.makeLive({ residents: () => (mode === 'ocean' ? cur?.residents ?? null : null), watched: () => watch.r, watch: (r) => startWatch(r), clockMs: () => clock.ms, tz: () => cur?.loc.tz ?? 9 }); });
 const start = seaForHash(location.hash, LOCATIONS, DOTWORLD);
 let restoreStartup = true;
 const hashNavigation = createHashNavigation<Sea>({
