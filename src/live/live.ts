@@ -14,6 +14,7 @@ import './live.css';
 import { islandDate } from '../world/island-time';
 import { localTimeString } from '../time/clock';
 import { trimStatus, wrapStatus } from './status-line';
+import { luminance, brightTenth, hazeFor, hazeStyle } from './scrim';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -41,7 +42,7 @@ export function makeLive(ctx: LiveCtx) {
   const measure = document.createElement('canvas').getContext('2d')!;
   let turn = 0, tick = 0, shownFor = '', shownText = '', swapT = 0;
 
-  const awake = (r: any) => r.act !== 'sleep' && r.model?.root?.visible !== false;
+  const awake = (r: any) => r.act !== 'sleep' && r.task?.kind !== 'sleep' && !(r.task?.kind === 'voyage' && r.task.data?.started);   // (asleep, or away at sea: not followed)
   function next(R: any) {
     const now = ctx.watched(), i = now ? ORDER.indexOf(now.id) : -1;
     for (let k = 1; k <= ORDER.length; k++) { const r = R.list.find((x: any) => x.id === ORDER[(i + k) % ORDER.length]); if (r && awake(r)) return r; }
@@ -62,7 +63,7 @@ export function makeLive(ctx: LiveCtx) {
     if (!R) return;
     turn -= dt;
     let r = ctx.watched();
-    if (!r || turn <= 0) { const n = next(R); if (n && n !== r) ctx.watch(n); r = n; turn = TURN_S; }
+    if (!r || turn <= 0 || (!awake(r) && turn < TURN_S - 30)) { const n = next(R); if (n && n !== r) ctx.watch(n); r = n; turn = TURN_S; }   // (one that falls asleep is left after half a minute)
     if ((tick -= dt) > 0) return; tick = 1;   // (the words read once a second)
     const d = islandDate(ctx.clockMs());
     $('.when .date').textContent = `島暦${d.year}年 ${d.month}月${d.day}日`;
@@ -77,5 +78,32 @@ export function makeLive(ctx: LiveCtx) {
       setTimeout(() => { show(r, text); status.classList.remove('off'); }, 600);
     }
   }
-  return { update };
+  // The haze under each group of words (src/live/scrim.ts): once a second, right after the frame is drawn, the picture
+  // shrunk to 64 × 36; the bright tenth of what lies behind each group sets its haze, eased over a second (CSS).
+  const SW = 64, SH = 36, shrink = document.createElement('canvas'); shrink.width = SW; shrink.height = SH;
+  const sctx = shrink.getContext('2d', { willReadFrequently: true })!;
+  const groups = ['.brand', '.when', '.band'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
+  let sampleAt = 0;
+  function sample(canvas: HTMLCanvasElement) {
+    const now = performance.now(); if (now - sampleAt < 1000) return; sampleAt = now;
+    try { sctx.drawImage(canvas, 0, 0, SW, SH); } catch (e) { return; }
+    const px = sctx.getImageData(0, 0, SW, SH).data, sx = SW / innerWidth, sy = SH / innerHeight;
+    for (const g of groups) {
+      const r = g.el.getBoundingClientRect(), shown = r.width > 0 && !g.el.classList.contains('off');
+      const pad = innerHeight / 1080 * 28, x0 = Math.max(r.left - pad * 1.5, r.left - (innerWidth - r.right)), y0 = r.top - pad, w = Math.min(r.width + pad * 3, innerWidth - x0), hh = r.height + pad * 2;   // (never past the screen's edge)
+      Object.assign(g.haze.style, { left: `${x0}px`, top: `${y0}px`, width: `${w}px`, height: `${hh}px` });
+      const lum: number[] = [];
+      for (let y = Math.max(0, Math.floor(r.top * sy)); y <= Math.min(SH - 1, Math.floor(r.bottom * sy)); y++)
+        for (let x = Math.max(0, Math.floor(r.left * sx)); x <= Math.min(SW - 1, Math.floor(r.right * sx)); x++) { const i = (y * SW + x) * 4; lum.push(luminance(px[i], px[i + 1], px[i + 2])); }
+      g.h = shown ? hazeFor(brightTenth(lum)) : 0;
+      const st = hazeStyle(g.h), u = innerHeight / 1080;
+      g.haze.style.setProperty('--black', st.black.toFixed(3));
+      g.haze.style.setProperty('--bright', st.bright.toFixed(3));
+      g.haze.style.setProperty('--blur', `${(st.blurPx * u).toFixed(2)}px`);
+    }
+  }
+  /** For the stream's log (the test week): how hazy each group is now, 0–1. */
+  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'band'][i], +g.h.toFixed(3)]));
+
+  return { update, sample, haze };
 }
