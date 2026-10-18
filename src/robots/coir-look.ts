@@ -115,16 +115,17 @@ function huskGeo(partial: boolean, fringe = false): THREE.BufferGeometry {
 // (the length is the world's hidden value: a coil never says how long it is.) Yarn a thin strand; cord about twice as
 // thick, its plies twisted round one another (helical bands in the shader, aTw). 'fuzzy' yarn and 'frayed' cord have
 // short fibre ends standing off the strand; 'broken' cord lies in two, the ends at the break splayed. The fibre ends are
-// drawn near only (LOD_M), as the bundles'.
+// drawn near only (LOD_M), as the bundles'. Far off the strand is drawn thicker and coarser (as the bundles' far fibres):
+// at a watch's distance a yarn is about two pixels across, and its thin edges would shimmer as the camera moves.
 // (a loose coil as one would lay it down by hand: rounder in one place, flatter in another, not a perfect spiral)
 function coilAt(t: number, turns: number, r0: number, r1: number) {
   const pt = (t: number) => { const a = t * turns * Math.PI * 2, r = (r0 + (r1 - r0) * Math.sqrt(t)) * (1 + 0.16 * Math.sin(a * 1.5 + 0.7) + 0.07 * Math.sin(a * 3.7 + 2.1)); return new THREE.Vector3(Math.cos(a) * r * 1.15, 0, Math.sin(a) * r * 0.9); };
   const p = pt(t), d = pt(Math.min(1, t + 0.002)).sub(pt(Math.max(0, t - 0.002))).normalize();
   return { p, d };
 }
-function strandGeo(cord: boolean, part: 'body' | 'fuzz', fuzzy: boolean, broken: boolean): THREE.BufferGeometry {
+function strandGeo(cord: boolean, part: 'body' | 'fuzz', fuzzy: boolean, broken: boolean, far = false): THREE.BufferGeometry {
   const pos: number[] = [], col: number[] = [], tw: number[] = [], idx: number[] = [];
-  const R = cord ? 0.009 : 0.0045, turns = cord ? 1.7 : 2.1, r0 = cord ? 0.05 : 0.035, r1 = cord ? 0.14 : 0.1, N = 140, SEG = 7, plies = cord ? 3 : 2;
+  const R = (cord ? 0.009 : 0.0045) * (far ? (cord ? 1.5 : 1.9) : 1), turns = cord ? 1.7 : 2.1, r0 = cord ? 0.05 : 0.035, r1 = cord ? 0.14 : 0.1, N = far ? 70 : 140, SEG = far ? 5 : 7, plies = cord ? 3 : 2;
   const gap = (t: number) => broken && t > 0.55 && t < 0.6;   // (the break: a short gap, both ends splayed)
   const up = new THREE.Vector3(0, 1, 0), side = new THREE.Vector3(), nrm = new THREE.Vector3();
   if (part === 'body') {
@@ -259,11 +260,12 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
       sets[`wet-husk/${look}`] = [mk(huskGeo(false), TONES[`wet-husk/${look}`], -1)];
       sets[`partial-husk/${look}`] = [mk(huskGeo(true), TONES[`partial-husk/${look}`], -1), mk(huskGeo(true, true), TONES[`partial-husk/${look}`], 0)];
     }
-    sets['yarn/fuzzy'] = [mk(strandGeo(false, 'body', true, false), TONES['yarn/fuzzy'], -1), mk(strandGeo(false, 'fuzz', true, false), TONES['yarn/fuzzy'], 0)];
-    sets['yarn/smooth'] = [mk(strandGeo(false, 'body', false, false), TONES['yarn/smooth'], -1)];
-    sets['cord/smooth'] = [mk(strandGeo(true, 'body', false, false), TONES['cord/smooth'], -1)];
-    sets['cord/frayed'] = [mk(strandGeo(true, 'body', false, false), TONES['cord/frayed'], -1), mk(strandGeo(true, 'fuzz', false, false), TONES['cord/frayed'], 0)];
-    sets['cord/broken'] = [mk(strandGeo(true, 'body', false, true), TONES['cord/broken'], -1), mk(strandGeo(true, 'fuzz', false, true), TONES['cord/broken'], 0)];
+    const strand = (k: string, cord: boolean, fuzzy: boolean, broken: boolean, fuzz: boolean) => [mk(strandGeo(cord, 'body', fuzzy, broken), TONES[k], 0), mk(strandGeo(cord, 'body', fuzzy, broken, true), TONES[k], 1), ...(fuzz ? [mk(strandGeo(cord, 'fuzz', fuzzy, broken), TONES[k], 0)] : [])];
+    sets['yarn/fuzzy'] = strand('yarn/fuzzy', false, true, false, true);
+    sets['yarn/smooth'] = strand('yarn/smooth', false, false, false, false);
+    sets['cord/smooth'] = strand('cord/smooth', true, false, false, false);
+    sets['cord/frayed'] = strand('cord/frayed', true, false, false, true);
+    sets['cord/broken'] = strand('cord/broken', true, false, true, true);
     sets['fixture/beat-board'] = [mk(boardGeo(), TONES['fixture/beat-board'], -1)];
     sets['fixture/drying-rack'] = [mk(rackGeo(), TONES['fixture/drying-rack'], -1)];
     return { group, sets };
