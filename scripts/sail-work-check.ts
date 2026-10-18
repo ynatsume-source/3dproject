@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import {addLot, emptyLedger, type Ledger} from '../src/world/process-runner';
+import {addLot, assembleParts, emptyLedger, type Ledger} from '../src/world/process-runner';
 import {ISLAND_EPOCH, ISLAND_RATE} from '../src/world/island-time';
 import {SAIL_RULES as R, type PlantMass} from '../src/science/prototypes/sail-raft-rules';
 import {
   readPlantMass, readSailMat, readBambooMast, writePlantMass,
+  writeSailMat, writeBambooMast, raftHullFromPieces,
 } from '../src/world/sail-lots';
 import {
   SAIL_WORK, applySailIntent, recordSailSpan, restoreSailWork, sailWorkRevision,
@@ -12,6 +13,12 @@ import {
   type Operation, type SailIntent, type SailSpan,
   type SailStartFacts, type SailWorkLedger,
 } from '../src/world/sail-work';
+
+import {writeCordPiece} from '../src/world/coir-cord-lots';
+import {sailRigParts} from '../src/world/sail-rig-parts';
+import {
+  beginSailVoyage, resumeSailVoyage, restoreSailVoyage,
+} from '../src/world/sail-voyage';
 
 const ID = 'owner-assumption/sail-raft/2026-10-18/v2-island';
 const T = ISLAND_EPOCH + 1_000;
@@ -280,6 +287,55 @@ test('completed work and command receipts have fixed retained limits', () => {
   }
   assert.equal(a.L.sailArrangement!.finished.length, 64);
   assert.equal(a.L.sailArrangement!.receipts.length, 64);
+});
+test('work and real voyages share actor occupancy in both directions', () => {
+  const a = fixture();
+  const location = 'shore';
+  const mat = {lotId: 'mat', material: 'sail_mat' as const,
+    dryMg: 900_000, waterMg: 180_000, areaCm2: 20_000,
+    baseStrengthGf: 60_000, torn: false,
+    damage: {sunMs: 0, shadeMs: 0, rainMs: 0}};
+  const mast = {lotId: 'mast', material: 'bamboo_mast' as const,
+    dryMg: 2_100_000, waterMg: 300_000, lengthMm: 2_500,
+    baseStrengthGf: 40_000, broken: false};
+  const cord = {lotId: 'cord', material: 'coir_rope' as const,
+    fiberDryMg: 60_000, pithDryMg: 6_000, waterMg: 6_600,
+    lengthMm: 12_000, baseStrengthGf: 400_000,
+    damage: {sunMs: 0, shadeMs: 0, abrasions: 0},
+    inheritedWear: {faded: false, abraded: false}};
+  const products = [
+    writeSailMat(mat, location, 1), writeBambooMast(mast, location, 1),
+    writeCordPiece(cord, location, 1),
+  ];
+  products.forEach((p, n) => addLot(a.L, {lotId: ['mat', 'mast', 'cord'][n],
+    materialId: p.materialId, amount: p.amount, quality: p.quality, location}));
+  const made = assembleParts(a.L, ['mat', 'mast', 'cord'], sailRigParts(1), T);
+  assert.ok(made.equipment);
+  const departure = {commandId: 'voyage', rigEquipmentId: made.equipment.equipmentId,
+    hull: raftHullFromPieces('raft', 6), actorId: 'actor', presence: 'here' as const,
+    atWorldMs: T, atIslandMs: T};
+  unchanged(a, () => beginSailVoyage(a.L, departure));
+  control(a, 'stop', 0);
+  const voyage = beginSailVoyage(a.L, departure);
+  unchanged(a, () => control(a, 'resume', 0));
+  const otherSite = {...site, locationId: 'other-site'};
+  const start = {...a.intent, intentId: 'other-start', lotIds: ['other-leaves'],
+    siteId: otherSite.locationId} as SailIntent;
+  const p = writePlantMass({lotId: 'other-leaves', material: 'pandanus_strips',
+    dryMg: 900_000, waterMg: 0}, otherSite.locationId, 1);
+  addLot(a.L, {lotId: 'other-leaves', materialId: p.materialId,
+    amount: p.amount, quality: p.quality, location: p.into!});
+  unchanged(a, () => applySailIntent(a.L, start, revision(a), T,
+    {...a.facts, worksite: otherSite}));
+  a.L = restoreSailVoyage(json(a.L), T + 1_000);
+  control(a, 'resume', 1_000);
+  const resume = {commandId: 'voyage-resume', actorId: 'actor',
+    presence: 'here' as const, atWorldMs: T + 1_000, atIslandMs: T + 13_000};
+  unchanged(a, () => resumeSailVoyage(a.L, voyage.runId, resume));
+  control(a, 'stop', 1_000);
+  resumeSailVoyage(a.L, voyage.runId, resume);
+  assert.equal(readSailWorksite(a.L, site.locationId, T + 1_000).activity, 'paused');
+  assert.equal(a.L.lots.input.reservedBy, a.runId);
 });
 test('future, malformed, changed reservation and corrupt state failures are atomic', () => {
   for (const patch of [{worldEpoch: 'wrong'}, {runId: 'wrong'}, {fromPosition: null},
