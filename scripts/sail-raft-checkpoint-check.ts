@@ -299,7 +299,7 @@ test('fold equals independent full replay for 240 seeded voyages under both cloc
       const { powered, paddling, speedMmS, forceGf } = actual.last!;
       assert.deepEqual({ powered, paddling, speedMmS, forceGf }, expected.last);
       assert.deepEqual(m.replayCheckpoint(cells), saved);
-      assert.ok(m.observeCheckpoint(saved).every(s => !/[0-9]|gf|mm|seed|係数|強さ/.test(s)));
+      assert.ok(m.observeCheckpoint(saved).every(s => !/[0-9]|gf|mm|seed|係数|強度|耐荷重|(?:縄|帆|マスト)の強さ/.test(s)));
     }
   }
 });
@@ -423,10 +423,13 @@ test('six-hour and longer checkpoint storage is bounded and per-cell folding sta
   // Warm batch averages are insensitive to scheduler pauses; report maximum too.
   const first = costs.slice(64, 364).reduce((a, b) => a + b, 0) / 300;
   const last = costs.slice(-300).reduce((a, b) => a + b, 0) / 300;
-  assert.ok(first <= 5 && last <= 5, JSON.stringify({ first, last }));
+  const sorted = costs.slice(64).sort((a, b) => a - b);
+  const p95CellMs = sorted[Math.floor(sorted.length * 0.95)];
+  assert.ok(first <= 5 && last <= 5 && p95CellMs <= 5,
+    JSON.stringify({ first, last, p95CellMs }));
   console.log(JSON.stringify({
     sixHourCheckpointBytes: sixBytes, twelveHourCheckpointBytes: bytes,
-    earlyMeanCellMs: first, lateMeanCellMs: last, maxCellMs: Math.max(...costs),
+    earlyMeanCellMs: first, lateMeanCellMs: last, p95CellMs, maxCellMs: Math.max(...costs),
   }));
 });
 console.log('PASS sail raft checkpoint: ' + groups + ' groups.');
