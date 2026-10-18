@@ -45,7 +45,7 @@ const show = (ls: any[]) => ls.map((s) => `${s.siteId}[${s.fixtures.map((x: any)
   const before = R.worksiteLooks().find((s: any) => s.siteId === 'site:cord-dry');
   const w = R.cordHost.putToDry('dot', now);
   const after = R.worksiteLooks().find((s: any) => s.siteId === 'site:cord-dry');
-  want('2 the rack stands once fibre is laid out on it, not before; the bundle on it, wet', before.fixtures.length === 0 && !!w && after.fixtures.length === 1 && after.fixtures[0].kind === 'drying-rack' && after.items.length === 1 && after.items[0].kind === 'fiber-bundle' && after.items[0].look === 'wet', `${show([before])} → ${show([after])}`);
+  want('2 the rack stands once fibre is laid out on it, not before; the bundle hung on it (on: the rack), wet', before.fixtures.length === 0 && !!w && after.fixtures.length === 1 && after.fixtures[0].kind === 'drying-rack' && after.items.length === 1 && after.items[0].kind === 'fiber-bundle' && after.items[0].look === 'wet' && after.items[0].on === after.fixtures[0].id && before.items.every((x: any) => x.on === undefined), `${show([before])} → ${show([after])}`);
 }
 { // 3
   const at = (p: any, location = 'site:cord-work') => lookOf({ lotId: 'lot:x', materialId: p.materialId, amount: p.amount, location, quality: p.quality } as any)!.look;

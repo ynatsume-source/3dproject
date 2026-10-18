@@ -45,14 +45,17 @@ export function lookOf(l: LotView): WorksiteThing | null {
 /** Every husk and cord place, what stands there and what lies there now. */
 export function readWorksiteLooks(L: Ledger, p: WorksitePlaces): WorksiteLook[] {
   const lots = Object.values(L.lots) as LotView[];
-  const site = (siteId: string, fixtures: WorksiteFixture[]): WorksiteLook => ({
+  // (on: what lies on a fixture — at the beating place the husk in someone's work (its lot held by a running job) is on
+  // the board, the rest beside it; at the drying place all the fibre there hangs on the rack)
+  const site = (siteId: string, fixtures: WorksiteFixture[], onIt: (l: LotView & { reservedBy?: string }) => boolean = () => false): WorksiteLook => ({
     siteId, fixtures,
-    items: lots.filter((l) => l.location === siteId).sort((a, b) => a.lotId.localeCompare(b.lotId, 'en', { numeric: true })).map(lookOf).filter(Boolean) as WorksiteThing[],
+    items: lots.filter((l) => l.location === siteId).sort((a, b) => a.lotId.localeCompare(b.lotId, 'en', { numeric: true }))
+      .map((l) => { const t = lookOf(l); return t && fixtures[0] && onIt(l) ? { ...t, on: fixtures[0].id } : t; }).filter(Boolean) as WorksiteThing[],
   });
   return [
     site(p.husk.pool, []),
-    site(p.husk.work, p.husk.board ? [{ id: 'fixture:husk-board', kind: 'beat-board' }] : []),
-    site(p.cord.dry, p.cord.rack ? [{ id: 'fixture:cord-rack', kind: 'drying-rack' }] : []),
+    site(p.husk.work, p.husk.board ? [{ id: 'fixture:husk-board', kind: 'beat-board' }] : [], (l) => !!l.reservedBy),
+    site(p.cord.dry, p.cord.rack ? [{ id: 'fixture:cord-rack', kind: 'drying-rack' }] : [], () => true),
     site(p.cord.work, []),
     site(p.cord.hang, []),
   ];
