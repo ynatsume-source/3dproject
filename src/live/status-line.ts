@@ -25,3 +25,14 @@ export function wrapStatus(text: string, fits: (line: string) => boolean): strin
   const at = (pool.length ? pool : cuts).reduce((a, b) => (Math.abs(b - text.length / 2) < Math.abs(a - text.length / 2) ? b : a));
   return [text.slice(0, at), text.slice(at)];
 }
+
+/** The subtitle's translation (viewer design v2 §4): over twenty characters (English: more than one sentence), broken
+ *  after its first sentence — a 。 (or . ! ?) not at the very end; otherwise one line. */
+export function subtitleLines(text: string, lang: 'ja' | 'en' = 'ja'): string[] {
+  const t = text.trim();
+  if (lang === 'ja') {
+    if (t.length <= 20) return [t];
+    const i = t.indexOf('。'); return i >= 0 && i < t.length - 1 ? [t.slice(0, i + 1), t.slice(i + 1)] : [t];
+  }
+  const m = /^(.+?[.!?])\s+(\S.*)$/.exec(t); return m ? [m[1], m[2]] : [t];
+}

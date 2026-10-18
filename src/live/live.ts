@@ -13,7 +13,8 @@ import '@fontsource/cormorant-garamond/500-italic.css';
 import './live.css';
 import { islandDate } from '../world/island-time';
 import { localTimeString } from '../time/clock';
-import { trimStatus, wrapStatus } from './status-line';
+import { trimStatus, wrapStatus, subtitleLines } from './status-line';
+import { glyphs, LEX } from '../robots/islandlang';
 import { luminance, brightTenth, hazeFor, hazeStyle } from './scrim';
 
 export interface LiveCtx {
@@ -35,7 +36,8 @@ export function makeLive(ctx: LiveCtx) {
     <div class="brand"><div class="en">UTSUSHIYO</div><div class="ja">ドットたちの島</div></div>
     <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">住人はAIです ・ 映像は自動で撮影しています</div></div>
     <div class="band fade off"><div class="doron"><span class="n"></span>DORON</div>
-      <div class="who"><span class="name"></span><span class="line"></span></div><div class="status fade"></div></div>`;
+      <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div></div>
+    <div class="sub fade off"><div class="who"><span class="line"></span><span class="name"></span></div><div class="isl-line"></div><div class="tr"></div></div>`;
   document.body.appendChild(root);
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const band = $('.band'), status = $('.status');
@@ -54,8 +56,37 @@ export function makeLive(ctx: LiveCtx) {
     const lines = wrapStatus(trimStatus(text), fits);
     status.innerHTML = lines.map((l) => `<span>${l.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'))}</span>`).join('');
     $('.doron .n').textContent = DORON[r.id] ?? '13';
-    $('.who .name').textContent = r.v?.name ?? '';
-    ($('.who .line')).style.setProperty('--c', r.sp?.color ?? '#fff');
+    $('.band .who .name').textContent = r.v?.name ?? '';
+    $('.band .who .isl-name').innerHTML = islName(r);
+    ($('.band .who .line')).style.setProperty('--c', r.sp?.color ?? '#fff');
+  }
+
+  const esc = (t: string) => t.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'));
+  const islName = (r: any) => { const w = (LEX as Record<string, string>)[r.id]; return w ? glyphs([w], 'isl', 1.25) : ''; };
+  // (who is speaking, of the one followed and whoever it is with: the followed one, the one it talks with, or one
+  // speaking near it at the fire)
+  const speaker = (R: any, r: any) => {
+    if (r.saying) return r;
+    const o = r.talk ? (r.talk.a === r ? r.talk.b : r.talk.a) : null; if (o?.saying) return o;
+    return R.list.find((x: any) => x !== r && x.saying && Math.hypot(x.pos.x - r.pos.x, x.pos.z - r.pos.z) < 20) ?? null;
+  };
+  // The subtitle (viewer design v2 §4): while someone speaks the band steps back, and at the bottom centre — who speaks,
+  // the line in the island's letters, its meaning (broken after its first sentence when long). Instead of the bubbles.
+  const sub = $('.sub');
+  let subKey = '';
+  function subtitle(R: any, r: any) {
+    const sp = r ? speaker(R, r) : null, key = sp ? `${sp.id}|${sp.saying}` : '';
+    if (key === subKey) return; subKey = key;
+    if (!sp) { sub.classList.add('off'); if (r) band.classList.remove('off'); return; }
+    band.classList.add('off');
+    const fill = () => {
+      ($('.sub .who .line')).style.setProperty('--c', sp.sp?.color ?? '#fff');
+      $('.sub .who .name').textContent = sp.v?.name ?? '';
+      $('.sub .isl-line').innerHTML = sp.sayIsl?.length ? glyphs(sp.sayIsl, 'isl', 1.25) : '';
+      $('.sub .tr').innerHTML = subtitleLines(sp.saying, 'ja').map((l) => `<span>${esc(l)}</span>`).join('');
+      sub.classList.remove('off');
+    };
+    if (sub.classList.contains('off')) fill(); else { sub.classList.add('off'); setTimeout(() => { if (subKey === key) fill(); }, 600); }
   }
 
   function update(dt: number) {
@@ -64,6 +95,7 @@ export function makeLive(ctx: LiveCtx) {
     turn -= dt;
     let r = ctx.watched();
     if (!r || turn <= 0 || (!awake(r) && turn < TURN_S - 30)) { const n = next(R); if (n && n !== r) ctx.watch(n); r = n; turn = TURN_S; }   // (one that falls asleep is left after half a minute)
+    subtitle(R, r);   // (every frame: a line begins and ends with the voice)
     if ((tick -= dt) > 0) return; tick = 1;   // (the words read once a second)
     const d = islandDate(ctx.clockMs());
     $('.when .date').textContent = `島暦${d.year}年 ${d.month}月${d.day}日`;
@@ -72,7 +104,7 @@ export function makeLive(ctx: LiveCtx) {
     const text = R.status(r) as string;
     if (r.id !== shownFor) {   // (another one followed: the band fades out, changes, fades in)
       band.classList.add('off'); shownFor = r.id; shownText = text; swapT = 0.6;
-      setTimeout(() => { show(r, text); band.classList.remove('off'); }, 600);
+      setTimeout(() => { show(r, text); if (!subKey) band.classList.remove('off'); }, 600);
     } else if (text !== shownText && (swapT -= 1) <= 0) {   // (its doing changed: the line alone fades and changes)
       shownText = text; status.classList.add('off');
       setTimeout(() => { show(r, text); status.classList.remove('off'); }, 600);
@@ -82,7 +114,7 @@ export function makeLive(ctx: LiveCtx) {
   // shrunk to 64 × 36; the bright tenth of what lies behind each group sets its haze, eased over a second (CSS).
   const SW = 64, SH = 36, shrink = document.createElement('canvas'); shrink.width = SW; shrink.height = SH;
   const sctx = shrink.getContext('2d', { willReadFrequently: true })!;
-  const groups = ['.brand', '.when', '.band'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
+  const groups = ['.brand', '.when', '.band', '.sub'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
   let sampleAt = 0;
   function sample(canvas: HTMLCanvasElement) {
     const now = performance.now(); if (now - sampleAt < 1000) return; sampleAt = now;
@@ -103,7 +135,7 @@ export function makeLive(ctx: LiveCtx) {
     }
   }
   /** For the stream's log (the test week): how hazy each group is now, 0–1. */
-  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'band'][i], +g.h.toFixed(3)]));
+  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'band', 'sub'][i], +g.h.toFixed(3)]));
 
   return { update, sample, haze };
 }

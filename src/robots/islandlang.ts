@@ -83,8 +83,8 @@ const MARK: Record<string, string> = {
   e: '<path d="M11 6V10"/>',
   o: '<circle cx="11" cy="8" r="1.3"/>',
 };
-/** The island's own letters, as an inline SVG (current colour, about a line high). */
-export function glyphs(toks: Tok[], cls = 'isl') {
+/** The island's own letters, as an inline SVG (current colour, about a line high; `stroke` the line's weight). */
+export function glyphs(toks: Tok[], cls = 'isl', stroke = 1.4) {
   let x = 0; const parts: string[] = [];
   for (const t of toks) {
     if (t === '.') { parts.push(`<circle cx="${x + 2}" cy="12.5" r="1.1" class="f"/>`); x += 6; continue; }
@@ -92,7 +92,7 @@ export function glyphs(toks: Tok[], cls = 'isl') {
     if (x) x += 4;   // (between words)
     for (const [c, v] of syllables(t)) { parts.push(`<g transform="translate(${x} 0)">${BASE[c]}${MARK[v]}</g>`); x += 12; }
   }
-  return `<svg class="${cls}" viewBox="-1 -1 ${x + 2} 18" height="1.2em" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><style>.f{fill:currentColor;stroke:none}</style>${parts.join('')}</svg>`;
+  return `<svg class="${cls}" viewBox="-1 -1 ${x + 2} 18" height="1.2em" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><style>.f{fill:currentColor;stroke:none}</style>${parts.join('')}</svg>`;
 }
 
 /* ---------- what is said: one meaning, its words and its subtitle ---------- */
