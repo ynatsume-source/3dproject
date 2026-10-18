@@ -20,6 +20,19 @@ export {
   canonical,
   integerSqrt
 };
+/** Motion clock is selected only here. Saved v2 IDs retain the selected policy. */
+export const SAIL_MOTION_CLOCK: 'island' | 'world' = 'island';
+export const SAIL_RAFT_ISLAND_ID = 'owner-assumption/sail-raft/2026-10-18/v2-island' as const;
+export const SAIL_RAFT_WORLD_ID = 'owner-assumption/sail-raft/2026-10-18/v2-world' as const;
+export const PADDLE_MM_S = 556;
+export function sailAssumptionId(clock: 'island' | 'world' = SAIL_MOTION_CLOCK): typeof SAIL_RAFT_ISLAND_ID | typeof SAIL_RAFT_WORLD_ID {
+  return clock === 'island' ? SAIL_RAFT_ISLAND_ID : SAIL_RAFT_WORLD_ID;
+}
+export function sailMotionClock(assumptionId: string): 'island' | 'world' {
+  check(assumptionId === SAIL_RAFT_ISLAND_ID || assumptionId === SAIL_RAFT_WORLD_ID,
+    'explicit-sail-v2-assumption-required');
+  return assumptionId === SAIL_RAFT_ISLAND_ID ? 'island' : 'world';
+}
 export const SAIL_RAFT_ID = 'owner-assumption/sail-raft/2026-10-15/v1' as const;
 export const SAIL_RULES = Object.freeze({
   id: SAIL_RAFT_ID,
@@ -85,7 +98,7 @@ export const mulDiv = (a: number, b: number, c: number) => safe(BigInt(a)*BigInt
 export const ceilDiv = (a: number, b: number, c: number) => safe((BigInt(a)*BigInt(b)+BigInt(c)-1n)/BigInt(c));
 export const copy = <T>(v: T): T => structuredClone(v);
 export function choose(idValue: string) {
-  check(idValue === SAIL_RAFT_ID, 'explicit-sail-assumption-required');
+  check([SAIL_RAFT_ID, SAIL_RAFT_ISLAND_ID, SAIL_RAFT_WORLD_ID].includes(idValue as typeof SAIL_RAFT_ID), 'explicit-sail-assumption-required');
 }
 export function qualityPpm(seed: number, runId: string, lotId: string, purpose: string, min: number, range: number): number {
   check(uint(seed) && seed <= 0xffffffff && id(runId) && id(lotId), 'invalid-draw-context');
