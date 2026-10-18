@@ -473,8 +473,12 @@ export function createCompactSailManufacturingModel(
     check(
       last === value.lastAtMs &&
       retainedWork <= value.totalWorkMs &&
-      (value.floorAtMs !== null ||
-        retainedWork === value.totalWorkMs) &&
+      (value.floorAtMs === null
+        ? retainedWork === value.totalWorkMs
+        : value.recent.length === SAIL_MANUFACTURE_RECEIPT_LIMIT &&
+          value.totalWorkMs > retainedWork &&
+          value.totalWorkMs - retainedWork <=
+            value.floorAtMs - context.openedAtMs) &&
       (value.recent.length > 0 ||
         value.totalWorkMs === 0 && value.lastAtMs === context.openedAtMs),
       'invalid-manufacture-totals'

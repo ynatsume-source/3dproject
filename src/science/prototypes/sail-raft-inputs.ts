@@ -37,7 +37,9 @@ export function sailCellWeather(
     'invalid-sail-weather'
   );
   const windMmS = Math.round(rec.windMeasuredMs * 1000);
-  const windToDeg = ((270 - Math.round(rec.windFromDeg)) % 360 + 360) % 360;
+  // Quantize the converted mathematical angle once to the model's one-degree
+  // table. Rounding the source bearing first reverses half-degree ties.
+  const windToDeg = Math.round(((270 - rec.windFromDeg) % 360 + 360) % 360) % 360;
   check(uint(windMmS), 'invalid-sail-weather');
   let gustMmS: number | null = null;
   if (rec.gustMs != null) {

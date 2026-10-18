@@ -41,7 +41,7 @@ function random(n: number) {
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 test('raw measured weather uses mathematical wind-to coordinates', () => {
-  for (const [from, to] of [[0, 270], [90, 180], [180, 90], [270, 0], [360, 270]]) {
+  for (const [from, to] of [[0, 270], [90, 180], [180, 90], [270, 0], [360, 270], [22.5, 248]]) {
     equal(
       sailCellWeather({ windMeasuredMs: 5.1234, windFromDeg: from, rainMeasuredMm: 0 }),
       { windMmS: 5123, windToDeg: to, gustMmS: null, rain: false },
