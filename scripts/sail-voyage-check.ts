@@ -15,10 +15,11 @@ import { writeCordPiece, readCordPiece } from '../src/world/coir-cord-lots';
 import { validateCordLoadLedger } from '../src/world/coir-cord-load';
 import { createSailRaftVoyage } from '../src/science/prototypes/sail-raft-voyage';
 import {
-  sailAssumptionId, canonical, SAIL_MOTION_CLOCK, PADDLE_MM_S,
+  sailAssumptionId, sailStrength, canonical, SAIL_MOTION_CLOCK, PADDLE_MM_S,
 } from '../src/science/prototypes/sail-raft-rules';
 import type { SailRig } from '../src/science/prototypes/sail-raft-manufacturing';
 import type { CoirPiece } from '../src/science/prototypes/coir-cord-types';
+import { currentIntegerCordStrength } from '../src/science/prototypes/coir-cord-damage';
 
 let groups = 0;
 function expect(value: unknown, message: string): asserts value {
@@ -46,12 +47,12 @@ function add(L: SailVoyageLedger, p: Produced, lotId: string): LotView {
     quality: p.quality, location: p.into!,
   });
 }
-function fixture(strength = 400_000, openedAtWorldMs = 0, openedAtIslandMs = 0) {
+function fixture(strength = 400_000, openedAtWorldMs = 0, openedAtIslandMs = 0, matStrength = 60_000) {
   const L = emptyLedger('world:sail', 'epoch:sail') as SailVoyageLedger;
   const hull = raftHullFromPieces('raft:host', 6);
   const mat = {
     lotId: 'mat', material: 'sail_mat' as const, dryMg: 900_000,
-    waterMg: 180_000, areaCm2: 20_000, baseStrengthGf: 60_000,
+    waterMg: 180_000, areaCm2: 20_000, baseStrengthGf: matStrength,
     torn: false, damage: { sunMs: 0, shadeMs: 0, rainMs: 0 },
   };
   const mast = {
@@ -153,7 +154,7 @@ test('restore pauses; resume skips the offline gap and preserves distance fracti
   recordSailCell(f.L, f.runId, first, first.toWorldMs);
   const before = readSailVoyage(f.L, f.runId);
   f.L = restoreSailVoyage(JSON.parse(JSON.stringify(f.L)), 7_200_000);
-  same(readSailVoyage(f.L, f.runId), before, 'restore advanced voyage');
+  same(readSailVoyage(f.L, f.runId), { ...before, moving: false }, 'restore advanced voyage or showed movement');
   refused(f.L, () => recordSailCell(f.L, f.runId, cell(f.runId, 1), 7_230_000));
   const q = {
     commandId: 'return-to-oar', actorId: 'dot', presence: 'here' as const,
@@ -244,6 +245,41 @@ test('breaks release material exactly once with mat/mast IDs and real cord child
     p.cordEffects[0].pieces.map(stripId), 'break summary physical parity');
   expect(result.lotIds.reduce((n, id) => n + f.L.lots[id].amount.value, 0) === total, 'settlement mass');
   validateCordLoadLedger(f.L);
+});
+test('unbroken parts which wear to zero release without trapping settlement', () => {
+  for (const part of ['mat', 'cord'] as const) {
+    const f = fixture(part === 'cord' ? 1 : 400_000, 0, 0, part === 'mat' ? 1 : 60_000);
+    const c = cell(f.runId, 0, {
+      windMmS: null, windToDeg: null, gustMmS: null, rain: null,
+    });
+    recordSailCell(f.L, f.runId, c, c.toWorldMs);
+    const p = projection(f).project();
+    expect(!p.rig.mat.torn && !p.broken.some(b => b.part === 'cord'), 'unexpected break');
+    expect(part === 'mat' ? sailStrength(p.rig.mat) === 0
+      : currentIntegerCordStrength(p.rig.cords[0]) === 0, 'fixture did not wear to zero');
+    const result = settleSailVoyage(f.L, f.runId, {
+      commandId: 'weak-' + part, actorId: 'dot', atWorldMs: c.toWorldMs, reason: 'arrived',
+    });
+    expect(result.rigEquipmentId === null && !f.L.equipment[f.equipmentId]
+      && !f.L.runs[f.runId], 'unusable equipment or completed run retained');
+    same(result.lotIds, ['mat', 'mast', 'cord'], 'unbroken material IDs changed');
+    validateCordLoadLedger(f.L);
+  }
+});
+test('lost-condition gear cannot begin another voyage', () => {
+  const f = fixture();
+  settleSailVoyage(f.L, f.runId, {
+    commandId: 'end-before-loss', actorId: 'dot', atWorldMs: 0, reason: 'interrupted',
+  });
+  for (const condition of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    f.L.equipment[f.equipmentId].condition = condition;
+    const before = structuredClone(f.L);
+    let failed = false;
+    try { beginSailVoyage(f.L, { ...f.q, commandId: 'condition-' + String(condition) }); }
+    catch { failed = true; }
+    expect(failed, 'invalid equipment condition accepted');
+    same(f.L, before, 'condition refusal changed ledger');
+  }
 });
 test('null weather and lowered sails paddle on the selected motion clock', () => {
   for (const nullWeather of [true, false]) {
