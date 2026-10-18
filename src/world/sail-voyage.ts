@@ -7,10 +7,11 @@ import {
   createSailRaftVoyage, type VoyageContext, type SailCellV2, type SailVoyageCheckpoint,
 } from '../science/prototypes/sail-raft-voyage';
 import {
-  sailAssumptionId, canonical, copy, id, uint, shape,
+  sailAssumptionId, sailStrength, canonical, copy, id, uint, shape,
 } from '../science/prototypes/sail-raft-rules';
 import type { RaftHull, SailRig } from '../science/prototypes/sail-raft-manufacturing';
 import type { CoirPiece } from '../science/prototypes/coir-cord-types';
+import { currentIntegerCordStrength } from '../science/prototypes/coir-cord-damage';
 import { COIR_CORD_ASSUMPTION_ID } from '../science/prototypes/coir-cord-types';
 import {
   readSailMat, readBambooMast, readSailHistory, writeSailMat,
@@ -361,7 +362,8 @@ export function beginSailVoyage(L: SailVoyageLedger, q: BeginSailVoyage): { runI
   return atomic(L, draft => {
     const next = copy(storeOf(draft));
     const e = draft.equipment[q.rigEquipmentId];
-    need(e && !e.reservedBy && e.kind === 'sail_rig' && e.assembled?.parts,
+    need(e && !e.reservedBy && e.kind === 'sail_rig' && e.assembled?.parts
+      && Number.isFinite(e.condition) && e.condition > 0 && e.condition <= 1,
       'missing-or-reserved-rig');
     need(!otherScienceWorkBusy(draft, q.actorId, '', SAIL_VOYAGE.processId).actor,
       'actor-busy');
@@ -478,7 +480,7 @@ export function readSailVoyage(L: SailVoyageLedger, runId: string): SailVoyageVi
     eastMm: p.distance.eastMm, northMm: p.distance.northMm,
     sailUp: p.last?.sailUp ?? false, matTorn: p.rig.mat.torn,
     mastBroken: p.rig.mast.broken, cordBroken: p.broken.some(b => b.part === 'cord'),
-    moving: !!p.last && p.last.speedMmS > 0,
+    moving: !d.paused && !!p.last && p.last.speedMmS > 0,
   };
 }
 export function readSailVoyageObservations(L: SailVoyageLedger, runId: string): string[] {
@@ -520,10 +522,10 @@ export function settleSailVoyage(
     delete e.reservedBy;
     const disassembled = disassembleParts(draft, equipmentId, T, undefined, { keepLotIds: true });
     need(disassembled.lots, 'rig-disassembly-refused');
-    draft.lots[original[0].lotId] = producedLot(original[0],
-      writeSailMat(p.rig.mat, original[0].location, readSailHistory(original[0])));
-    draft.lots[original[1].lotId] = producedLot(original[1],
-      writeBambooMast(p.rig.mast, original[1].location, readSailHistory(original[1])));
+    put(draft.lots, original[0].lotId, producedLot(original[0],
+      writeSailMat(p.rig.mat, original[0].location, readSailHistory(original[0]))));
+    put(draft.lots, original[1].lotId, producedLot(original[1],
+      writeBambooMast(p.rig.mast, original[1].location, readSailHistory(original[1]))));
     const cordIds: string[] = [];
     for (let n = 0; n < p.cordEffects.length; n++) {
       const effect = p.cordEffects[n];
@@ -545,7 +547,9 @@ export function settleSailVoyage(
       }
     }
     const healthy = !p.rig.mat.torn && !p.rig.mast.broken
-      && !p.broken.some(b => b.part === 'cord');
+      && !p.broken.some(b => b.part === 'cord')
+      && sailStrength(p.rig.mat) > 0
+      && p.rig.cords.every(piece => currentIntegerCordStrength(piece) > 0);
     const allIds = [original[0].lotId, original[1].lotId, ...cordIds];
     if (healthy) {
       const parts = allIds.map(lotId => copy(draft.lots[lotId]));

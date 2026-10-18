@@ -98,7 +98,7 @@ export const mulDiv = (a: number, b: number, c: number) => safe(BigInt(a)*BigInt
 export const ceilDiv = (a: number, b: number, c: number) => safe((BigInt(a)*BigInt(b)+BigInt(c)-1n)/BigInt(c));
 export const copy = <T>(v: T): T => structuredClone(v);
 export function choose(idValue: string) {
-  check([SAIL_RAFT_ID, SAIL_RAFT_ISLAND_ID, SAIL_RAFT_WORLD_ID].includes(idValue as typeof SAIL_RAFT_ID), 'explicit-sail-assumption-required');
+  check(idValue === SAIL_RAFT_ID, 'explicit-sail-assumption-required');
 }
 export function qualityPpm(seed: number, runId: string, lotId: string, purpose: string, min: number, range: number): number {
   check(uint(seed) && seed <= 0xffffffff && id(runId) && id(lotId), 'invalid-draw-context');
