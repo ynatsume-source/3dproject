@@ -14,6 +14,9 @@ export interface WorksiteThing {
   id: string;
   kind: WorksiteThingKind;
   look: WorksiteThingLook;
+  /** The fixture it lies on or hangs from (a WorksiteFixture's id), when it does: the husk being beaten on the board,
+   *  the fibre hung on the drying rack. Absent: it lies on the ground beside. */
+  on?: string;
 }
 /** What stands at a worksite for the work, when it is there: the board the husks are beaten on, the rack the fibre
  *  dries on under the eaves. Listed only once the world has put it there — a viewer is never shown a thing to come. */
