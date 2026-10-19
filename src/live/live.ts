@@ -37,6 +37,7 @@ export function makeLive(ctx: LiveCtx) {
     <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">住人はAIです ・ 映像は自動で撮影しています</div></div>
     <div class="band fade off"><div class="doron"><span class="n"></span>DORON</div>
       <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div></div>
+    <div class="card fade off"><div class="rule"></div><div class="head">島で初めて</div><div class="what"></div><div class="at"></div><div class="rule"></div></div>
     <div class="sub fade off"><div class="who"><span class="line"></span><span class="name"></span></div><div class="isl-line"></div><div class="tr"></div></div>`;
   document.body.appendChild(root);
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -114,7 +115,7 @@ export function makeLive(ctx: LiveCtx) {
   // shrunk to 64 × 36; the bright tenth of what lies behind each group sets its haze, eased over a second (CSS).
   const SW = 64, SH = 36, shrink = document.createElement('canvas'); shrink.width = SW; shrink.height = SH;
   const sctx = shrink.getContext('2d', { willReadFrequently: true })!;
-  const groups = ['.brand', '.when', '.band', '.sub'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
+  const groups = ['.brand', '.when', '.band', '.sub', '.card'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
   let sampleAt = 0;
   function sample(canvas: HTMLCanvasElement) {
     const now = performance.now(); if (now - sampleAt < 1000) return; sampleAt = now;
@@ -135,7 +136,25 @@ export function makeLive(ctx: LiveCtx) {
     }
   }
   /** For the stream's log (the test week): how hazy each group is now, 0–1. */
-  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'band', 'sub'][i], +g.h.toFixed(3)]));
+  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'band', 'sub', 'card'][i], +g.h.toFixed(3)]));
 
-  return { update, sample, haze };
+  // The milestone card (viewer design v2 §4): when the world marks an event the first of its kind on the island, at the
+  // upper centre between two gold hair lines — "島で初めて", the event's own sentence (to its first 。), the island's
+  // date and time — for about eight seconds, then it fades. Several at once wait their turn.
+  const card = $('.card'), queue: { text: string; at: number }[] = [];
+  let cardT = 0;
+  function event(_kind: string, text: string, _r: any, meta?: { milestone?: string }) {
+    if (meta?.milestone) queue.push({ text, at: ctx.clockMs() });
+  }
+  function cardTick(dt: number) {
+    if (cardT > 0) { cardT -= dt; if (cardT <= 0) card.classList.add('off'); return; }
+    if (cardT > -0.8) { cardT -= dt; return; }   // (a breath between two cards)
+    const m = queue.shift(); if (!m) return;
+    const first = m.text.split('。')[0], d = islandDate(m.at);
+    $('.card .what').textContent = trimStatus(first);
+    $('.card .at').innerHTML = `島暦${d.year}年 ${d.month}月${d.day}日 <span class="t">${localTimeString(m.at, ctx.tz())}</span>`;
+    card.classList.remove('off'); cardT = 8;
+  }
+
+  return { update: (dt: number) => { update(dt); cardTick(dt); }, sample, haze, event };
 }

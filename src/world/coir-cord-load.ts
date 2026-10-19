@@ -311,6 +311,9 @@ function chronology(q: CordLoadRequest, x?: Checkpoint): void {
     'out-of-order-event');
   if (q.event.kind === 'exposure') {
     need(q.event.fromIslandMs >= x.cursor.islandAtMs, 'out-of-order-event');
+  } else if (q.event.kind === 'voyage-summary') {
+    need(q.islandAtMs - q.event.sunMs - q.event.shadeMs >= x.cursor.islandAtMs,
+      'out-of-order-event');
   }
 }
 

@@ -3,10 +3,12 @@
 // Fast checks keep a 120 s per-file budget. Slow checks retain their full default
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
+  'sail-lots', 'sail-work', 'sail-voyage', 'sail-cord-settlement',
+  'sail-raft-checkpoint', 'sail-inputs',
   'cord-load-compaction',
   'cord-integer-load',
   'sail-raft-science',
-  'husk-soak', 'husk-host', 'cord-host', 'worksite-look-fill', 'live-status', 'live-scrim',
+  'husk-soak', 'husk-host', 'cord-host', 'worksite-look-fill', 'live-status', 'live-scrim', 'milestone',
   'science-wet-wick', 'science-dry-wick-comparison',
   'coir-cord-identity',
   'manual-husk-handover', 'coir-cord-handover',
@@ -32,7 +34,7 @@ const slow = [
   'jump', 'keep-about', 'lab', 'lobos-benthos', 'lobos-fish-life',
   'lobos-forest', 'lobos-otters', 'lobos-visitors', 'manta', 'manta-stuck',
   'manta-terrain', 'manta-transit', 'moray', 'motion', 'oil-chain',
-  'passthrough', 'pointlobos', 'route', 'sealion', 'sim', 'status',
+  'passthrough', 'pointlobos', 'route', 'sail-host', 'sealion', 'sim', 'status',
   'stuck', 'tar-chain', 'tideline', 'trade', 'turtle-breath', 'turtle-view',
   'water',
 ];

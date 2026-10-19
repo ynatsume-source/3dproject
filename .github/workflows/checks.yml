@@ -46,6 +46,18 @@ jobs:
       - name: Fast headless checks
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: node scripts/checks.mjs fast --out check-results/fast
+      - name: Show sail API check evidence
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import { existsSync, readFileSync } from 'node:fs';
+          const names = ['sail-raft-checkpoint', 'sail-inputs', 'sail-lots',
+            'sail-work', 'sail-voyage', 'sail-cord-settlement'];
+          for (const name of names) {
+            const file = 'check-results/fast/' + name + '.log';
+            if (existsSync(file)) console.log(file + '\n' + readFileSync(file, 'utf8'));
+          }
+          JS
       - name: Keep check results
         if: always()
         uses: actions/upload-artifact@v4
