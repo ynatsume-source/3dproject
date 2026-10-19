@@ -32,6 +32,7 @@ import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry } from './husk-host';
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
+import { makeSailHost, emptySailHostState, type SailHostState, type SailDevEntry } from './sail-host';
 import { readWorksiteLooks } from './worksite-looks';
 import type { WorksiteLook } from '../world/worksite-look';
 import { draw } from '../science/rng';
@@ -484,7 +485,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // Out from the beach in front of the hut into the lagoon: four pilings (a stone base Lantern brings,
   // a post Rakko swims out and sets on it) and eight deck planks Dot shapes and lays. Kamemaru surveys
   // it first. It starts once they have sat round the fire together a few times.
-  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], huskHost: emptyHuskHostState() as HuskHostState, cordHost: emptyCordHostState() as CordHostState, labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as GaugeEntry[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo, hypoHistory: [] as { at: number; nextRunId?: string; hypothesis: Hypo }[],
+  const village = { fires: 0, mornings: 0, pier: 'none' as 'none' | 'plan' | 'build' | 'done', bases: 0, posts: 0, deck: 0, treasures: [] as { what: string; who: string; at: number }[], map: emptyMap(), raft: { parts: 0, x: NaN, z: NaN, hauled: false }, spare: 0, lampLog: [] as { at: number; fiber: number; lumenS: number; litS: number; soot: number }[], huskHost: emptyHuskHostState() as HuskHostState, cordHost: emptyCordHostState() as CordHostState, sailHost: emptySailHostState() as SailHostState, labRuns: [] as { runId: string; processId: string; key?: string; by: string; startOnClock: number; outAt?: number; felt?: string }[], gaugeLog: [] as GaugeEntry[], catcher: null as null | { at: number; areaM2: number; capMg: number }, hypo: null as null | Hypo, hypo2: null as null | Hypo, hypoHistory: [] as { at: number; nextRunId?: string; hypothesis: Hypo }[],
     labDone: [] as { at: number; processId: string; ok: boolean }[], taught: {} as Record<string, number>, feedback: [] as { from: string; to: string; f: Frame; at: number }[], stormPrep: 0, heardOkAt: 0,
     swellGuess: { alarm: 0, hits: 0, falses: 0 },
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
@@ -1261,6 +1262,21 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const [bx, bz] = benchStand(), eave = (dx: number) => { const w = hut.localToWorld(new THREE.Vector3(dx, 0, 1.4)); return { x: w.x, z: w.z }; };
       return { dry: { id: 'site:cord-dry', ...eave(1.1), reachM: 2 }, hang: { id: 'site:cord-hang', ...eave(-1.1), reachM: 2 }, work: { id: 'site:cord-work', x: bx - 1.2, z: bz, reachM: 2 } };
     } });
+  // The raft's sail (robots/sail-host.ts: the science side's cutting, drying, splitting, weaving and the mast): two pandanus
+  // on the sand nearest Dot's home (apart from the tide pool and from each other), the leaves dried under the hut's back
+  // eaves, the bench's other side for the rest. Found once, by a fixed search outward, and kept with the village.
+  const sailDev: SailDevEntry[] = [];
+  const sail = makeSailHost({ lab, state: () => (village.sailHost ??= emptySailHostState()), dev: sailDev,
+    roofed: () => byId.dot.stats.built >= HUT.length, wanted: () => village.raft.parts >= RAFT_N,
+    placeSites: () => {
+      const [hx, hz] = byId.dot.sp.home, p = husk.sites().pool, trees: { id: string; x: number; z: number; reachM: number }[] = [];
+      const clear = (x: number, z: number) => Math.hypot(x - p.x, z - p.z) > 8 && trees.every((t) => Math.hypot(x - t.x, z - t.z) > 6) && !solids.hit(x, z, { ...BODY.dot, r: 1.0 }, L.h(x, z));
+      found: for (let d = 12; d <= 240; d += 4) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, x = hx + Math.cos(a) * d, z = hz + Math.sin(a) * d;
+        if (beach(x, z, L.h(x, z)) && clear(x, z)) { trees.push({ id: `site:sail-tree-${trees.length}`, x, z, reachM: 2 }); if (trees.length === 2) break found; } }
+      while (trees.length < 2) trees.push({ id: `site:sail-tree-${trees.length}`, x: hx + 6 + trees.length * 6, z: hz, reachM: 2 });   // (no sand near: by the home)
+      const [bx, bz] = benchStand(), back = hut.localToWorld(new THREE.Vector3(0, 0, -1.4));
+      return { trees, dry: { id: 'site:sail-dry', x: back.x, z: back.z, reachM: 2 }, work: { id: 'site:sail-work', x: bx, z: bz + 1.4, reachM: 2 } };
+    } });
   // the water's edge itself, where the sea leaves things
   const tideline = (x: number, z: number, h: number) => h > 0.15 && h < 1.1 && cover(x, z).can < 0.3 && [0, 0.79, 1.57, 2.36, 3.14, 3.93, 4.71, 5.5].some((a) => L.h(x + Math.cos(a) * 6, z + Math.sin(a) * 6) < 0);
 
@@ -1758,6 +1774,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // the one deciding and the moment choose — not after the steps of a recipe)
     if (!r.sp.living) { const h = husk.options(r.id, clockMs); if (h.length) o.splice(Math.floor(draw(0x6875736b, r.id, String(clockMs), 'options-at') * (o.length + 1)), 0, ...h); }
     if (!r.sp.living) { const c = cord.options(r.id, clockMs); if (c.length) o.splice(Math.floor(draw(0x636f7264, r.id, String(clockMs), 'options-at') * (o.length + 1)), 0, ...c); }
+    if (!r.sp.living) { const c = sail.options(r.id, clockMs); if (c.length) o.splice(Math.floor(draw(0x7361696c, r.id, String(clockMs), 'options-at') * (o.length + 1)), 0, ...c); }
     if (r.battery < 0.6) o.push({ id: 'charge:sun', action: 'charge', label: '日なたで充電する' });
     o.push({ id: 'look:shore', action: 'look', label: '浜から海を眺める（流木が打ち上がるのを待つ）' }, { id: 'wander:near', action: 'wander', label: '近くを歩いてまわりを見る' });
     return o;
@@ -1827,6 +1844,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       else if (target === 'clear') t = task('cord-clear', [s.work.x, s.work.z], 'pick', 3);
       else if (target === 'hang' || target === 'unhang') t = task(`cord-${target}`, [s.hang.x, s.hang.z], 'pick', 5);
       else if (target === 'lash') { const at = raftAt(); t = at ? task('cord-lash', at, 'work', 40) : null; }
+    }
+    else if (action === 'sail') {   // (sail:harvest:near|far, sail:dry, sail:takein, sail:split|weave|mast:work, sail:resume:<place>, sail:clear:<place>)
+      const place = target === 'dry' || target === 'takein' ? 'dry' : id.split(':')[2] ?? '', s = sail.site(place);
+      if (!s) t = null;
+      else if (target === 'dry' || target === 'takein') t = task(`sail-${target}`, [s.x, s.z], 'pick', 4);
+      else if (target === 'clear') t = task('sail-clear', [s.x, s.z], 'pick', 3, { data: { place } });
+      else if (['harvest', 'split', 'weave', 'mast', 'resume'].includes(target)) t = task('sail-work', [s.x, s.z], 'work', 900, { data: { op: target, place } });   // (a quarter hour at most at a time)
     }
     else if (action === 'charge') t = task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
     else if (action === 'look') t = task('look', spot(home, 80, shore, 200) ?? spot(home, 40, open), 'idle', rr(60, 180));
@@ -2730,6 +2754,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         break;
       }
       case 'cord-work': cord.stopWork(r.id, r.pos, clockMs); tk.failed = 'interrupted'; break;
+      case 'sail-dry': case 'sail-takein': case 'sail-clear': {
+        if (fast) { tk.failed = 'interrupted'; break; }   // (no hand work in the hours it is caught up on by habit)
+        const w = tk.kind === 'sail-dry' ? sail.putToDry(r.id, clockMs) : tk.kind === 'sail-takein' ? sail.takeIn(r.id, clockMs) : sail.clearAway(r.id, tk.data?.place, clockMs);
+        if (w) tk.data = { ...tk.data, detail: w }; else tk.failed = 'blocked';
+        break;
+      }
+      case 'sail-work': sail.stopWork(r.id, r.pos, clockMs); tk.failed = 'interrupted'; break;
       case 'assemble': if (tk.data?.as === 'dish') makeLampDish(r, tk.data?.lotId); else if (tk.data?.as === 'retort') makeRetort(r, tk.data?.lotIds); else if (tk.data?.as === 'gauge') makeWeatherPot(r, tk.data?.lotId); else makeCookPot(r, tk.data?.lotId); break;
       case 'wick': makeWick(r, tk.data?.fiber); break;
       case 'twist': village.house.rope += 10; note(r, 'house', {}, `アダンの気根の繊維をよって縄をなった（10m。いま${village.house.rope}m）`); break;
@@ -3157,6 +3188,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (its hands left the husk — another task, a storm, the night, the time it was away: what it did is confirmed, then it stops)
     if (husk.isBeating(r.id) && (fast || !(r.task?.kind === 'husk-beat' && r.task.data?.engaged))) husk.stopBeating(r.id, r.pos, clockMs);
     if (cord.isWorking(r.id) && (fast || !(r.task?.kind === 'cord-work' && r.task.data?.engaged))) cord.stopWork(r.id, r.pos, clockMs);
+    if (sail.isWorking(r.id) && (fast || !(r.task?.kind === 'sail-work' && r.task.data?.engaged))) sail.stopWork(r.id, r.pos, clockMs);
     cancelLostStudy(r, fast);
     const hr = localHour(clockMs), day = dayK(hr);
     // the battery: solar panels charge in daylight when resting; moving and thinking use it up
@@ -3244,6 +3276,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (b.ok === false) { report(r, tk, 'blocked', b.felt ?? undefined); r.task = null; return; }
       tk.data = { ...tk.data, engaged: true };
     }
+    if (tk.kind === 'sail-work' && tk.arrived && !tk.data?.engaged && !tk.failed) {
+      if (fast) { r.task = null; return; }   // (no hand work in the hours it is caught up on by habit)
+      const b = sail.beginWork(r.id, tk.data.op, tk.data.place, r.pos, clockMs);
+      if (b.ok === false) { report(r, tk, 'blocked', b.felt ?? undefined); r.task = null; return; }
+      tk.data = { ...tk.data, engaged: true };
+    }
     if (tk.kind === 'voyage' && tk.arrived && !tk.data.started) {
       const j = voyageJudge(r, tk.data.isle), w = village.map.seen[tk.data.isle]?.word ?? '';
       if (!j.go) { report(r, tk, 'blocked', j.why); r.task = null; return; }
@@ -3318,6 +3356,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       }
       if (tk.kind === 'cord-work' && tk.data?.engaged) {
         const h = cord.working(r.id, r.pos, clockMs);
+        if (h.done) { report(r, tk, 'done', h.words.map((w) => w.replace(/。$/, '')).join('。') || undefined); r.task = null; placeY(r); return; }
+      }
+      if (tk.kind === 'sail-work' && tk.data?.engaged) {
+        const h = sail.working(r.id, r.pos, clockMs);
         if (h.done) { report(r, tk, 'done', h.words.map((w) => w.replace(/。$/, '')).join('。') || undefined); r.task = null; placeY(r); return; }
       }
       if (tk.kind === 'pit') (village as any).pitDug = ((village as any).pitDug ?? 0) + dt * (tk.act === 'work' ? wearSlow(r) : 1);   // (the digging done so far is kept: a gathering, or the night, does not fill the hole in again)
@@ -3406,6 +3448,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // from where it was confirmed, in one span once the island is back: robots/husk-host.ts)
     village.huskHost ??= emptyHuskHostState(); husk.restore(clockMs);
     village.cordHost ??= emptyCordHostState(); cord.restore(clockMs);   // (the cord the same: hands off at the load, the roof's time in one span)
+    village.sailHost ??= emptySailHostState(); sail.restore(clockMs);   // (and the sail)
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
@@ -3575,6 +3618,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if ((labT -= dt) < 0) { labT = 30; tickLab(); }
       husk.tick(clockMs);   // (the time the husks lie in the tide pool, confirmed as it passes)
       cord.tick(clockMs, voyaging && wxNow ? (wxNow.windMeasured ?? wxNow.wind) : null);   // (the roof's time, the sun on the cords, a crossing's wind)
+      sail.tick(clockMs);   // (the leaves' time under the back eaves)
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
       if (!settled) { settled = true; for (const r of list) { const ap = solids.approach(r.pos.x, r.pos.z, bodyOf(r), feetAt(r), r.pos.x + 1, r.pos.z, standOn(r, r.wet)); if (ap && (ap[0] !== r.pos.x || ap[1] !== r.pos.z)) { r.pos.x = ap[0]; r.pos.z = ap[1]; placeY(r); } } }
@@ -3584,7 +3628,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r));
         // (at the tide pool, it sees how the husks lying there are: only when it is there; noted once, as it changes)
         { const p = husk.sites().pool, seen = husk.lookIntoPool(r.id, Math.hypot(r.pos.x - p.x, r.pos.z - p.z) <= POOL_REACH_M ? 'here' : 'away', clockMs); if (seen) act(r, 'got', `潮だまりの殻を見た：${seen}`); }
-        { const seen = cord.look(r.id, r.pos, clockMs); if (seen) act(r, 'got', `縄の作業場を見た：${seen}`); } if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
+        { const seen = cord.look(r.id, r.pos, clockMs); if (seen) act(r, 'got', `縄の作業場を見た：${seen}`); }
+        if (village.raft.parts >= RAFT_N) { const seen = sail.look(r.id, r.pos, clockMs); if (seen) act(r, 'got', `帆の作業場を見た：${seen}`); } if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       for (const r of list) dayStart(r);
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
       for (let i = 0; i < utterQ.length; i++) {
@@ -3669,7 +3714,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return `おなか：${r.hunger > 0.7 ? 'ぺこぺこ' : r.hunger > 0.45 ? 'すいてきた' : r.hunger > 0.2 ? 'ほどほど' : 'いっぱい'}・ねむけ：${r.sleepy > 0.7 ? 'ねむい' : r.sleepy > 0.4 ? 'すこし' : 'すっきり'}`;
     },
     save,
-    worksiteSpots: () => { const h = husk.sites(), c = cord.sites(); return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang].map((p) => [p.id, { x: p.x, z: p.z }])); },
+    worksiteSpots: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
+      return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang, ...(s ? [...s.trees, s.dry, s.work] : [])].map((p) => [p.id, { x: p.x, z: p.z }])); },
     worksiteLooks: () => { const h = husk.sites(), c = cord.sites();
       return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack } }); },
     focus(r) { focused = r; },
@@ -4158,7 +4204,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   (res as any).huskDev = huskDev;   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)
-  (res as any).cordDev = cordDev; (res as any).cordHost = cord;
+  (res as any).cordDev = cordDev; (res as any).cordHost = cord; (res as any).sailDev = sailDev; (res as any).sailHost = sail;
   // wake up where they were, and catch up on the hours nobody was watching
   initStudyPlaces();
   const behind = load(Date.now());
