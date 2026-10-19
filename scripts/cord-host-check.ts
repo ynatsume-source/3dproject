@@ -116,6 +116,7 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
   want('5 hung: the pot\'s weight from the ledger, sent as a load, once', loads().length === 1 && loads()[0].request.event.gf === Math.ceil(POT / 1000) && said(/鍋を縄で軒下に吊るした/), `${loads().map((x: any) => x.request.event.gf).join(',')}`);
   const n = records().length, again = applyCordLoad(R.lab, loads()[0].request);
   want('5 the same load sent again: the same record, nothing doubled', records().length === n && again.runId === loads()[0].runId, `${n} → ${records().length}`);
+  want('5 the first rope and the first pot hung marked as the island\'s firsts (world/milestones.ts)', R.village.firsts?.rope > 0 && R.village.firsts?.hang > 0, JSON.stringify(R.village.firsts));
   want('5 the rope that held keeps its lotId', R.village.cordHost.hang?.cordLotId === rope && !!R.lab.lots[rope], rope);
   addLot(R.lab, { materialId: 'process_water', amount: { value: WATER, unit: 'mg' }, location: R.village.cordHost.hang.potLotId });
   step(3);
