@@ -11,13 +11,15 @@
 // Not modelled: a green tube drying and shrinking after it is made, the bore's taper (it hardly matters to the weather
 // pot: the reading is the column's height, and the tube's area only enters through the small volume it moves).
 
-import type { Observation, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
+import type { LotView, Observation, ScienceStepRequest, ScienceStepResult } from '../../world/science-contract';
 import { pv } from '../params';
 import { draw } from '../rng';
 import { allFinite, checkCommon, contractExtras, failed, fingerprint, finite, intDeltaFloor, isInt } from './common';
 
-export const BAMBOO_TUBE_PROCESS = { processId: 'p18x_bamboo_tube', processVersion: '0.1.0' } as const;
-const SCHEMA = 'civ-sci.bamboo-tube/1', EVAL = 'bamboo-tube-eval/0.1.0';
+export const BAMBOO_TUBE_PROCESS = { processId: 'p18x_bamboo_tube', processVersion: '0.1.1' } as const;
+// The work-state shape is unchanged; saved 0.1.0 cuts may finish with the fix.
+export const BAMBOO_TUBE_RESUME_VERSIONS = ['0.1.0'] as const;
+const SCHEMA = 'civ-sci.bamboo-tube/1', EVAL = 'bamboo-tube-eval/0.1.1';
 export const BAMBOO = 'bamboo', BAMBOO_TUBE = 'bamboo_tube';
 
 interface TubeData { fps: string[]; lastTo: number; elapsedMs: number; durationMs: number; reportedHands: number; lengthMm: number; seed: number }
@@ -29,13 +31,46 @@ export function bambooTubeMg(boreMm: number, lengthMm: number, waterPpm = 0): nu
   return Math.round(dryMg / (1 - waterPpm / 1e6));
 }
 
+/** Keep absolute mass/length metadata consistent without inventing it for old bamboo. */
+function remainingBambooQuality(
+  lot: LotView,
+  remainingMg: number
+): Record<string, number> | undefined {
+  const q = lot.quality;
+  if (!q || Object.keys(q).length === 0) return undefined;
+  if (q.dry_mg === undefined) return { ...q };
+  const mass = BigInt(lot.amount.value);
+  const remaining = BigInt(remainingMg);
+  // Floor water, assigning the sub-mg residual to dry matter. The sum is exact
+  // and a positive dry input retains at least 1 mg even at the smallest remainder.
+  const waterMg = Number(BigInt(q.water_mg) * remaining / mass);
+  return {
+    ...q,
+    dry_mg: remainingMg - waterMg,
+    water_mg: waterMg,
+    length_mm: Number(BigInt(q.length_mm) * remaining / mass)
+  };
+}
+
 export function bambooTubeStep(req: ScienceStepRequest): ScienceStepResult {
   const fail = (why: string) => failed(req, EVAL, why, SCHEMA);
-  const bad = checkCommon(req, BAMBOO_TUBE_PROCESS.processId, BAMBOO_TUBE_PROCESS.processVersion, SCHEMA);
+  const supportedVersion = req.processVersion === BAMBOO_TUBE_RESUME_VERSIONS[0]
+    ? req.processVersion
+    : BAMBOO_TUBE_PROCESS.processVersion;
+  const bad = checkCommon(req, BAMBOO_TUBE_PROCESS.processId, supportedVersion, SCHEMA);
   if (bad) return fail(bad);
   if (req.lots.length !== 1 || req.lots[0].materialId !== BAMBOO) return fail(`expected one ${BAMBOO} lot`);
   const lot = req.lots[0], q = lot.quality ?? {};
   if (!isInt(lot.amount.value, 1)) return fail('the bamboo lot needs a whole positive mg');
+  const hasMassQuality = q.dry_mg !== undefined || q.water_mg !== undefined;
+  if (hasMassQuality) {
+    if (!isInt(q.dry_mg, 1) || !isInt(q.water_mg) || !isInt(q.length_mm)) {
+      return fail('bamboo dry_mg, water_mg and length_mm must be whole non-negative values (dry_mg positive)');
+    }
+    if (BigInt(q.dry_mg) + BigInt(q.water_mg) !== BigInt(lot.amount.value)) {
+      return fail('bamboo dry_mg + water_mg must match the lot mass');
+    }
+  }
   if (!finite(q.water_ppm ?? 0, 0, 800_000)) return fail('bamboo water_ppm must be within 0..800000');
   for (const a of req.actions) {
     if (a.action !== 'cut') return fail(`unknown action ${a.action} (cut: choose an internode and cut it at both ends)`);
@@ -97,7 +132,16 @@ export function bambooTubeStep(req: ScienceStepRequest): ScienceStepResult {
   }
   res.produced = [{ materialId: BAMBOO_TUBE, amount: { value: tubeMg, unit: 'mg' }, into: lot.location,
     quality: { bore_mm: bore, length_mm: d.lengthMm, outer_mm: Math.round((bore + 2 * pv('bambooWallMm')) * 10) / 10, ...(water ? { water_ppm: water } : {}), history_complete: hist } }];
-  if (lot.amount.value - tubeMg > 0) res.produced.push({ materialId: BAMBOO, amount: { value: lot.amount.value - tubeMg, unit: 'mg' }, into: lot.location, quality: { ...q } });
+  const remainingMg = lot.amount.value - tubeMg;
+  if (remainingMg > 0) {
+    const quality = remainingBambooQuality(lot, remainingMg);
+    res.produced.push({
+      materialId: BAMBOO,
+      amount: { value: remainingMg, unit: 'mg' },
+      into: lot.location,
+      ...(quality === undefined ? {} : { quality })
+    });
+  }
   o('tube', `節の間を切って、まっすぐな管ができた（穴は${bore < 8 ? '細い' : bore < 10 ? '指の先ほど' : 'やや太い'}）`);
   return res;
 }
