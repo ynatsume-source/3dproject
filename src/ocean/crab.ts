@@ -214,12 +214,19 @@ function crabMat(kind: CrabKind): THREE.Material {
     { uniforms: { uLod: { value: CRAB_LOD_M }, uSink: { value: k.sink }, uLift: { value: k.lift }, uBase: { value: new THREE.Vector3(...k.base) }, uAlt: { value: new THREE.Vector3(...k.alt) }, uEdge: { value: k.edge }, uLegTip: { value: k.legTip }, uTip: { value: new THREE.Vector3(...k.tip) } }, opts: { side: THREE.DoubleSide } });
 }
 
-export interface CrabPose { kind: CrabKind; x: number; z: number; y: number; head: number; phase: number; run: number; sunk: number; eyes: number; id: string }
+export interface CrabPose {
+  kind: CrabKind; id: string; x: number; z: number; y: number;
+  /** which way its head points on the sand (rad, as a yaw) */
+  head: number; phase: number; run: number; sunk: number; eyes: number;
+  /** clinging to something upright (a trunk): the way out from its surface where the crab is, and the way its head
+   *  points along that surface (both unit vectors; head up a trunk: [0, 1, 0]). Absent: on the sand, by `head`. */
+  on?: { n: [number, number, number]; fwd: [number, number, number] };
+}
 /** Up to `cap` crabs of each kind, drawn from `poses` each frame (the world's, once there is one: today only the lab
  *  knob's). */
 export function makeCrabLook(parent: THREE.Group, cap = 16) {
   return quiet('crab-look', () => {
-    const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
+    const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3();
     const sets = (Object.keys(KIND) as CrabKind[]).map((kind) => {
       const geo = KIND[kind].geo();
       const aCr = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4), aCr2 = new THREE.InstancedBufferAttribute(new Float32Array(cap * 4), 4);
@@ -234,7 +241,11 @@ export function makeCrabLook(parent: THREE.Group, cap = 16) {
         for (const c of poses) {
           if (c.kind !== S.kind || n >= cap) continue;
           const size = 0.85 + 0.3 * u(c.id, 'size');
-          _e.set(0, c.head, 0); _q.setFromEuler(_e); _m.compose(_p.set(c.x, c.y, c.z), _q, _s.set(size, size, size)); S.mesh.setMatrixAt(n, _m);
+          if (c.on) {   // (its back out from the surface, its head along it: the crab's own y and z)
+            _y.set(...c.on.n); _z.set(...c.on.fwd); _x.crossVectors(_y, _z).normalize(); _z.crossVectors(_x, _y);
+            _m.makeBasis(_x, _y, _z).scale(_s.set(size, size, size)).setPosition(c.x, c.y, c.z);
+          } else { _e.set(0, c.head, 0); _q.setFromEuler(_e); _m.compose(_p.set(c.x, c.y, c.z), _q, _s.set(size, size, size)); }
+          S.mesh.setMatrixAt(n, _m);
           S.aCr.setXYZW(n, c.phase, c.run, c.sunk, c.eyes); S.aCr2.setXYZW(n, u(c.id, 'seed'), size, u(c.id, 'colour'), 0); n++;
         }
         S.mesh.count = n; S.mesh.instanceMatrix.needsUpdate = true; S.aCr.needsUpdate = true; S.aCr2.needsUpdate = true;
