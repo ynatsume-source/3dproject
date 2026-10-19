@@ -1,0 +1,5 @@
+PASS 150 histories preserve exact wear, threshold outcomes, mass and world IDs
+PASS an old maximum load is never retested against later weakened intact cord
+PASS invalid cumulative state and conflicting receipt fail before mutation
+PASS a later ordinary load uses the same updated /4 checkpoint
+PASS sail cord settlement: 4 groups.

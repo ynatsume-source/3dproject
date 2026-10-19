@@ -1,0 +1,12 @@
+PASS explicit clock IDs bind saves and the configured initial clock is island
+PASS legacy factories reject v2 assumption IDs rather than creating v1-bound saves
+PASS fold equals independent full replay for 240 seeded voyages under both clocks
+PASS v1 replay and words remain identical to the pinned original in 200 voyages including drift
+PASS paddling, frozen wind load and island/world distance selection obey the v2 policy
+PASS cord abrasion remainders follow lot IDs even when assembly arrays have different order
+PASS force uses the actual faster motion and exact equality precedes cell wear
+PASS gaps do not advance distance or abrasion, and malformed saves and duplicate edits reject
+PASS load-surviving-exposure-abrasion and fracture metadata agree with integer PR21 without lost mass
+{"sixHourCheckpointBytes":1454,"twelveHourCheckpointBytes":1458,"earlyMeanCellMs":0.10366266000001512,"lateMeanCellMs":0.11777076666667806,"p95CellMs":0.1601120000004812,"maxCellMs":0.9771949999994831}
+PASS six-hour and longer checkpoint storage is bounded and per-cell folding stays under 5 ms
+PASS sail raft checkpoint: 10 groups.

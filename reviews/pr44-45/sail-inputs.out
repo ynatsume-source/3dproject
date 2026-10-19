@@ -1,0 +1,9 @@
+PASS raw measured weather uses mathematical wind-to coordinates
+PASS missing weather remains unknown and display fallbacks are ignored
+PASS malformed measured values are refused
+PASS legacy bamboo conserves every integer mg with BigInt before multiplication
+PASS compact projections match accepted cumulative arithmetic for 250 random works
+PASS compact work history stays bounded and rejects expired or conflicting receipts
+PASS v2 clock identities and schemas cannot be relabeled into compatible saves
+PASS abandon products preserve mass without declaring unfinished strips completed
+sail-inputs-check: 8 groups PASS

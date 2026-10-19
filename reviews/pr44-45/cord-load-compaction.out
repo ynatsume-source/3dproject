@@ -1,0 +1,17 @@
+PASS version identifies bounded format and explicit integer policy
+PASS /3 migration preserves lots, IDs, wear, sequence and world metadata
+PASS first apply reads /3 and preserves next legacy run and fracture IDs
+PASS migration removes only old completed load runs and retains other reservations
+PASS legacy parity includes thresholds, fracture, child and observations
+PASS replay survives JSON and conflicting reuse is refused
+PASS different confirmed events at same clocks remain distinct
+PASS per-cord windows reject evicted commands without duplicate effects
+PASS eviction at identical clocks fails closed while either clock may advance
+PASS invalid first /3 apply leaves the complete old save unchanged
+PASS schema-only relabel, inner corruption and incomplete checkpoints are refused
+PASS warm apply neither traverses other checkpoints nor scans or clones ledger maps
+{"events":2190,"utf16SaveBytes":322298,"earlyMeanMs":2.09808496111111,"lateMeanMs":1.5293486722222749,"deterministicTraversalGuard":true}
+PASS six cords for a full year: bounded saves, no retained runs and steady work
+PASS retired summary replays break but cannot resurrect consumed parent
+PASS resident sees sensory words without checkpoint data
+PASS cord load compaction: 15 groups.

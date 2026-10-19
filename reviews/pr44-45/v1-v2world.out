@@ -1,0 +1,2 @@
+paddle 10 cells, island 60s vs 120s per cell: 333600 667200
+PASS v1(world) == v2-world checkpoint: voyages 120, cells compared 131, voyages ending in a break 120

@@ -1,0 +1,12 @@
+PASS plant codecs close integer mass, preserve history, and round-trip all material kinds
+PASS mat and mast retain hidden wear, strength, broken flags, water and provenance
+PASS legacy bamboo conversion uses integer mass and does not invent provenance
+PASS strict material quality refuses unknown keys, fractional mass, wrong sums and versions
+PASS virtual raft hull has six exact pieces and rejects nonintegers and overflow
+PASS rig takes whole mat, mast and mixed cords; the virtual hull is not a part
+PASS keepLotIds returns exact original IDs, mixed cord materials, current wear and all mass
+PASS default disassembly continues to allocate fresh IDs and equal mass
+PASS retained ID collision, repeated ID and reserved equipment refuse atomically
+PASS broken override keeps ID and mass; a table failure leaves everything untouched
+PASS too little cord, wrong material roles, torn mat and broken mast refuse before mutation
+sail-lots-check: 11 groups passed

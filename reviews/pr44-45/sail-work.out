@@ -1,0 +1,17 @@
+PASS explicit assumption, fixed area and confirmed presence; reads never advance work
+PASS all five manufacturing operations close dry matter and water and retire runs
+PASS seventeen seconds plus thirteen after a pause certifies one quantum
+PASS actor, activity, arrival and actual positions determine manual work
+PASS save restoration pauses manual work without adding offline time
+PASS roofed waiting uses only confirmed island intervals, including a restored gap
+PASS takeover preserves the quantum remainder but does not count the previous actor
+PASS zero-work abandonment preserves source identity and allows a fresh start
+PASS partial abandonment conserves materials without granting a completed mast or strips
+PASS partitioning, JSON and retries preserve outputs; histories stay bounded
+PASS bounded receipts reject expired and conflicting commands without duplicating work
+PASS same actor and worksite cannot be double-booked; waiting leaves actor free
+PASS completed work and command receipts have fixed retained limits
+PASS work and real voyages share actor occupancy in both directions
+PASS future, malformed, changed reservation and corrupt state failures are atomic
+PASS public failures require a confirmed attempt and never expose hidden values
+PASS sail work: 16 groups; no resident or UI connection.

@@ -1,0 +1,14 @@
+PASS begin reserves only the assembled equipment and preserves material IDs
+PASS 64 exact cell receipts replay without mutation and reject conflicts or eviction
+PASS world folding equals the scientific checkpoint and public payloads stay narrow
+PASS restore pauses; resume skips the offline gap and preserves distance fractions
+PASS healthy settlement agrees with cord /4 and preserves equipment and original IDs
+PASS two healthy voyages carry abrasion fractions through JSON and same equipment
+PASS breaks release material exactly once with mat/mast IDs and real cord children
+PASS unbroken parts which wear to zero release without trapping settlement
+PASS lost-condition gear cannot begin another voyage
+PASS null weather and lowered sails paddle on the selected motion clock
+PASS invalid cells, ownership and corrupt restore are atomic
+{"cells":720,"firstMeanMs":0.780263265624999,"lastMeanMs":1.0882177812500125,"at64Bytes":9203,"atEndBytes":9217,"p95CellMs":1.7557839999999487,"maxCellMs":3.9721490000001722,"boundedReceipts":64}
+PASS 6-hour cell cost and whole-session storage stay bounded
+sail-voyage-check: 12 groups PASS
