@@ -1,0 +1,20 @@
+1 no mat, mast or cords yet: no rigging offered:  ok
+1 a whole mat, a whole mast and cords enough: the rigging offered, no number in it: 筏に帆とマストを取りつける ok
+2 rigged by the raft with Dot's hands (half an hour, in quarter hours): 1800000 6 ok
+2 the cords' sun sent before they were carried to the raft: 4 ok
+2 rigged: not offered again:  ok
+3 set off under sail: a voyage run with the rig, Dot aboard: run:27 ok
+3 rule 1: the cords' sun sent through to the moment it set off: 0,0,0,0 ok
+3 a cell every 30 s of the world's clock: 10 cells in 300 s ok
+4 home again: the voyage settled, no run left: テスト島にたどり着いて戻った。あったもの：竹・葦・粘土。持ち帰った：粘土 10kg・竹 6kg・葦 3kg（小屋の棚） / 家の材料を筏で運んだ：竹20本・粘土80kg（家のそば） / 筏でテスト島へ渡る（南西に約2.6km）：できた / やりとげた：テスト ok
+4 the rig taken apart with the same lots, laid by the raft, still rigged: lot:1,lot:2,lot:3,lot:4,lot:5,lot:6 ok
+4 the voyage's cord summary written to each cord's record: 4 ok
+4 rule 2: cord-host counts the cords' sun from the settling: 0,0,0,0 ok
+4 no load of the cord's own on the raft (the voyage counted the cords):  ok
+4 what it saw aboard in its diary: 帆の筏：風が体を押す。櫂で漕ぎ、景色がゆっくり流れていく。マストがきしむ ok
+4 the island's firsts: rigged, and (if it got there) a crossing under sail: {"rig":1791250568000,"crossing":1791251370000} ok
+5 closed at sea: on loading the crossing ended where it was last confirmed, no run left, the parts back by the raft: 筏でテスト島へ渡る（南西に約2.6km）：できた / やりとげた：テスト ok
+5 no motion made up for the time away: settled at the load, not later: 0 s ok
+6 (the markers are real: the ledger holds them):  ok
+6 no amount or code in its diary, its mind's input, the day's post prompt or its saved memory:  /  /  /  ok
+PASS
