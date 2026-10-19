@@ -47,7 +47,7 @@ export interface Sea {
   habitat?: 'kelp';                     // cold-water rocky habitat, without tropical reef defaults
   id: string; name: string; site: string; region: string; lat: number; lon: number;
   depth: string; vis: number; temp: number; seed: number;
-  tz: number; tide: { amp: number; lag: number; axis: [number, number] };
+  tz: number; tide: { amp: number; lag: number; axis: [number, number]; diurnal?: { d: number; lag: number } };   // (diurnal: the once-a-day share, astro.ts tide)
   blurb: string;
   charm?: string;   // what draws people to it, in a line (the card on the globe)
   water: { up: number[]; hor: number[]; down: number[]; fog: number; abs: number[] };
@@ -411,7 +411,7 @@ export const LOCATIONS: Sea[] = [
   const HALF = 300;
   const kayama: Sea = {
     id: 'kayama', swellHs: 0.35, name: '嘉弥真島', site: '島の南西の浜とラグーン', region: 'Japan · Okinawa · Yaeyama',
-    lat: 24.36107, lon: 123.99674, depth: '0–8 m', vis: 25, temp: 28.6, tempYear: [22, 30], seed: 57, tz: 9, tide: { amp: 0.8, lag: 0.25, axis: [0.8, 0.6] },
+    lat: 24.36107, lon: 123.99674, depth: '0–8 m', vis: 25, temp: 28.6, tempYear: [22, 30], seed: 57, tz: 9, tide: { amp: 0.8, lag: 0.25, axis: [0.8, 0.6], diurnal: { d: 0.3, lag: 2 * Math.PI / 3 } },   // (diurnal: science review 2026-10-19, specs/tide-diurnal)
     blurb: '小浜島の北に浮かぶ、周囲2kmほどの無人島。白い砂浜とモクマオウやアダンの森、浅いサンゴ礁のラグーン。地形・海岸線・植生は国土地理院の標高データと航空写真から再現。',
     charm: '白い砂の浜とモクマオウの森、浅いサンゴ礁のラグーン。人の手の入っていない小さな島',
     water: { up: [0.34, 0.80, 0.92], hor: [0.05, 0.40, 0.58], down: [0.02, 0.17, 0.28], fog: 0.026, abs: [0.26, 0.055, 0.03] },

@@ -61,11 +61,18 @@ export function subsolar(ms: number): { lat: number; lon: number } {
 }
 
 // Tide from the principal lunar (M2) and solar (S2) semidiurnal constituents, phased on the local
-// hour angles of moon and sun; spring tides fall near new and full moon as a result.
-export function tide(ms: number, lat: number, lon: number, amp: number, lag: number): { h: number; rate: number } {
+// hour angles of moon and sun; spring tides fall near new and full moon as a result. Where a sea has a diurnal
+// share (`diurnal`: the K1/O1 pair, science review 2026-10-19 specs/tide-diurnal), a once-a-day term is added, as
+// large as the moon's and the sun's declination makes it: the two low waters of a day are no longer alike — in
+// Yaeyama's winter the deep ones fall in the evening, in summer in the morning. d: its size against amp; lag: its
+// phase (rad).
+const SIN_2EPS = Math.sin(2 * 23.44 * D2R);
+export function tide(ms: number, lat: number, lon: number, amp: number, lag: number, diurnal?: { d: number; lag: number }): { h: number; rate: number } {
   const at = (t: number) => {
-    const mh = moon(t, lat, lon).ha, sh = sun(t, lat, lon).ha;
-    return amp * (0.72 * Math.cos(2 * mh - lag) + 0.28 * Math.cos(2 * sh - lag));
+    const m = moon(t, lat, lon), s = sun(t, lat, lon), mh = m.ha, sh = s.ha;
+    const semi = 0.72 * Math.cos(2 * mh - lag) + 0.28 * Math.cos(2 * sh - lag);
+    const day = diurnal ? diurnal.d * (0.68 * Math.sin(2 * m.dec) * Math.cos(mh - diurnal.lag) + 0.32 * Math.sin(2 * s.dec) * Math.cos(sh - diurnal.lag)) / SIN_2EPS : 0;
+    return amp * (semi + day);
   };
   const h = at(ms), h2 = at(ms + 600000);
   return { h, rate: (h2 - h) / 600 }; // m per second
