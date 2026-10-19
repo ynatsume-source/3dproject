@@ -26,6 +26,8 @@ const KINDS: [kind: string, re: RegExp, key: (m: RegExpMatchArray) => string][] 
   ['cord', /縄が切れた/, () => 'cord-break'],
   ['sail', /帆のむしろを編み上げた/, () => 'sail'],
   ['sail', /竹のマストを切り出した/, () => 'mast'],
+  ['sail', /筏に帆とマストを取りつけた/, () => 'rig'],
+  ['sail', /帆を張って(.+?)まで渡った/, () => 'sail-crossing'],
 ];
 
 /** The kind of first this event would be, or null for an event that is never a milestone. */
