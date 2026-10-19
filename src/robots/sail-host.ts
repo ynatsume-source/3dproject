@@ -117,7 +117,8 @@ export function makeSailHost(ctx: {
     if (!paused(s.work.id, '帆の仕事', 'work')) {   // (the bench holds one piece of work at a time)
       if (sourceFor('split', 'work')) o.push({ id: 'sail:split:work', action: 'sail-work', label: 'アダンの葉を細く裂く', targetId: 'sail-work' });
       if (sourceFor('weave', 'work')) o.push({ id: 'sail:weave:work', action: 'sail-work', label: '裂いた葉で帆のむしろを編む', targetId: 'sail-work' });
-      if (sourceFor('mast', 'work') && !lots().some((l) => l.materialId === MAST)) o.push({ id: 'sail:mast:work', action: 'sail-work', label: '竹を切ってマストにする', targetId: 'sail-work' });
+      if (sourceFor('mast', 'work') && !lots().some((l) => l.materialId === MAST) && !Object.values(L().equipment).some((e) => e.assembled?.parts?.some((p) => p.materialId === MAST)))   // (one mast: on the beach, or up in the rig at sea)
+      o.push({ id: 'sail:mast:work', action: 'sail-work', label: '竹を切ってマストにする', targetId: 'sail-work' });
     }
     const n = (st().decisions[actorId] = (st().decisions[actorId] ?? 0) + 1);
     return o.map((x) => [x, draw(SEED, actorId, String(nowWorldMs), String(n), 'options', x.id)] as const).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
