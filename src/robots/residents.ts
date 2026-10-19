@@ -32,7 +32,7 @@ import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry } from './husk-host';
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
-import { makeSailHost, emptySailHostState, type SailHostState, type SailDevEntry } from './sail-host';
+import { makeSailHost, emptySailHostState, PANDANUS, type SailHostState, type SailDevEntry } from './sail-host';
 import { makeSailVoyageHost } from './sail-voyage-host';
 import { readWorksiteLooks } from './worksite-looks';
 import { milestoneKey } from '../world/milestones';
@@ -3674,6 +3674,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if ((labT -= dt) < 0) { labT = 30; tickLab(); }
       husk.tick(clockMs);   // (the time the husks lie in the tide pool, confirmed as it passes)
       cord.tick(clockMs, voyaging && wxNow ? (wxNow.windMeasured ?? wxNow.wind) : null);   // (the roof's time, the sun on the cords, a crossing's wind)
+      if (!village.sailHost?.sites) sail.sites();   // (the pandanus by the shore stand from the first: found once, by a fixed search, and kept)
       sail.tick(clockMs);   // (the leaves' time under the back eaves)
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
@@ -3772,8 +3773,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     save,
     worksiteSpots: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
       return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang, ...(s ? [...s.trees, s.dry, s.work] : [])].map((p) => [p.id, { x: p.x, z: p.z }])); },
-    worksiteLooks: () => { const h = husk.sites(), c = cord.sites();
-      return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack } }); },
+    worksiteLooks: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
+      return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack },
+        ...(s ? { sail: { trees: s.trees.map((t) => t.id), dry: s.dry.id, work: s.work.id, raft: village.raft.parts >= RAFT_N ? 'site:raft' : null, rigged: sailSea.rigged(), dried: [...(village.sailHost?.dried ?? [])], perTree: PANDANUS.lotsPerTree } } : {}) }); },
     focus(r) { focused = r; },
     bubbles(camera, w, h) {
       const v = new THREE.Vector3();
