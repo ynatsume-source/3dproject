@@ -167,10 +167,40 @@ function strandGeo(cord: boolean, part: 'body' | 'fuzz', fuzzy: boolean, broken:
   return g;
 }
 
+// Hung on the drying rack (WorksiteThing.on): the same hank folded over the pole, half down each side. Origin at the
+// pole's middle, the pole along x, the fibres hanging in y–z. Wet: heavy, the two halves hanging straight and close.
+// Dry: lighter, the ends springing apart and out, each fibre with its slight wave.
+function hungGeo(dry: boolean, far = false): THREE.BufferGeometry {
+  const pos: number[] = [], col: number[] = [], idx: number[] = [];
+  const RP = 0.022, TOP = 4, SIDE = 7;   // (round the pole, its fibre, then down each side)
+  for (let f = 0; f < (far ? FAR_FIBRES : FIBRES); f++) {
+    const r = (k: string) => u('fibre-hung', dry ? 'dry' : 'wet', String(f), k);
+    const x0 = (r('x') - 0.5) * (dry ? 0.07 : 0.055), w = (dry ? 0.007 : 0.009) * (far ? 3.5 : 1), tone = 0.8 + 0.4 * r('tone');
+    const La = 0.14 + 0.05 * r('la'), Lb = 0.14 + 0.05 * r('lb'), rp = RP + 0.012 * r('rp'), ph = r('ph') * 6.28;
+    const splay = dry ? 0.02 + 0.05 * r('sp') : 0.004 + 0.006 * r('sp'), wave = dry ? 0.005 + 0.005 * r('wave') : 0.001;
+    const pts: number[][] = [];
+    const side = (sg: number, L: number, down: boolean) => { for (let s = 0; s <= SIDE; s++) { const h = (down ? s : SIDE - s) / SIDE, e = h * h;
+      pts.push([x0 * (1 + (dry ? 1.2 : 0.2) * e) + Math.sin(h * 8 + ph) * wave, -h * L, sg * (rp + splay * e) + Math.cos(h * 6 + ph) * wave]); } };
+    side(-1, La, false);
+    for (let s = 1; s < TOP; s++) { const th = -Math.PI / 2 + Math.PI * s / TOP; pts.push([x0, rp * Math.cos(th), rp * Math.sin(th)]); }
+    side(1, Lb, true);
+    const base = pos.length / 3;
+    pts.forEach((q, s) => {
+      for (const sd of [-1, 1]) { pos.push(q[0] + sd * w * 0.5, q[1], q[2]); col.push(tone, tone * (0.97 + 0.06 * s / pts.length), tone); }
+      if (s < pts.length - 1) { const i = base + s * 2; idx.push(i, i + 2, i + 1, i + 1, i + 2, i + 3); }
+    });
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setAttribute('aIn', new THREE.Float32BufferAttribute(new Array(pos.length / 3).fill(1), 1)); g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
 /* ---------- what stands at a worksite: the beating board and the drying rack ---------- */
 // Drawn only once the world has put one there (WorksiteLook.fixtures). The board: a thick plank of weathered wood laid
 // on the sand, about 60 × 28 cm, its grain along it. The rack: a pole on two forked sticks, about 1.1 m long and 0.85 m
-// up — what is drying hangs or lies by it as the world says (not drawn on it unless told).
+// up — what is drying hangs on it when the world says so (WorksiteThing.on), else lies by it.
 function woodGeo(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const g = mergeGeometries(parts.map((p) => { p.deleteAttribute('uv'); return p.index ? p.toNonIndexed() : p; }))!;
   const n = g.getAttribute('position').count;
@@ -237,7 +267,7 @@ function thingMat(t: Tone, far: number): THREE.Material {
 
 // what each kind looks like in each of its states, and how wide it lies (for laying them side by side)
 const TONES: Record<string, Tone> = {
-  'fiber-bundle/wet': { out: 0x3a271a, inn: 0x3a271a, spec: 0.7 }, 'fiber-bundle/dry': { out: 0xa98052, inn: 0xa98052, spec: 0.05 },
+  'fiber-bundle/wet': { out: 0x5c3d24, inn: 0x5c3d24, spec: 0.7 }, 'fiber-bundle/dry': { out: 0xa98052, inn: 0xa98052, spec: 0.05 },
   'wet-husk/wet': { out: 0x3b2a1c, inn: 0x4a2c1a, spec: 0.25 }, 'wet-husk/dry': { out: 0x7a6248, inn: 0x9a6c42, spec: 0.08 },
   'partial-husk/wet': { out: 0x3b2a1c, inn: 0x5a3820, spec: 0.25, streak: 0.22 }, 'partial-husk/dry': { out: 0x7a6248, inn: 0xb0844f, spec: 0.06, streak: 0.18 },
   'yarn/fuzzy': { out: 0xa47c4b, inn: 0xa47c4b, spec: 0.03, twist: 0.25 }, 'yarn/smooth': { out: 0x93693e, inn: 0x93693e, spec: 0.12, twist: 0.35 },
@@ -256,6 +286,7 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
     for (const look of ['wet', 'dry']) {
       const dry = look === 'dry';
       sets[`fiber-bundle/${look}`] = [mk(bundleGeo(dry), TONES[`fiber-bundle/${look}`], 0), mk(bundleGeo(dry, true), TONES[`fiber-bundle/${look}`], 1)];
+      sets[`fiber-bundle/${look}/hung`] = [mk(hungGeo(dry), TONES[`fiber-bundle/${look}`], 0), mk(hungGeo(dry, true), TONES[`fiber-bundle/${look}`], 1)];
       sets[`wet-husk/${look}`] = [mk(huskGeo(false), TONES[`wet-husk/${look}`], -1)];
       sets[`partial-husk/${look}`] = [mk(huskGeo(true), TONES[`partial-husk/${look}`], -1), mk(huskGeo(true, true), TONES[`partial-husk/${look}`], 0)];
     }
@@ -273,24 +304,47 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
   /** Lay out what each worksite has. `where` gives a worksite's spot on the ground ([x, z] and which way it faces);
    *  sites it does not know are not drawn. Drawn: fibre bundles, soaked and beaten husks (each wet or dry), yarn
    *  (fuzzy, smooth) and cord (smooth, frayed, broken); any other kind/look pair is skipped. */
+  function put(ms: THREE.InstancedMesh[], x: number, y: number, z: number, rot: number, sc: number) {
+    if (ms[0].count >= CAP) return;
+    _e.set(0, rot, 0); _q.setFromEuler(_e); _m.compose(_p.set(x, y, z), _q, _s.set(sc, sc, sc));
+    const k = ms[0].count; for (const m of ms) { m.setMatrixAt(k, _m); m.count = k + 1; }
+  }
+  // where a thing goes on a fixture (WorksiteThing.on): on the board, laid along its top; on the rack, fibre hung over
+  // the pole. Anything else said to be on one lies beside it, in the row.
+  const ON: Record<string, { up: number; span: number; step: number; hung?: boolean; takes: (kind: string) => boolean }> = {
+    'beat-board': { up: 0.067, span: 0.3, step: 0.26, takes: (k) => k === 'wet-husk' || k === 'partial-husk' || k === 'fiber-bundle' },
+    'drying-rack': { up: 0.85, span: 0.8, step: 0.15, hung: true, takes: (k) => k === 'fiber-bundle' },
+  };
+  /** Lay out what each worksite has. `where` gives a worksite's spot on the ground ([x, z] and which way it faces);
+   *  sites it does not know are not drawn. Drawn: fibre bundles, soaked and beaten husks (each wet or dry), yarn
+   *  (fuzzy, smooth) and cord (smooth, frayed, broken); any other kind/look pair is skipped. A thing on a fixture
+   *  (WorksiteThing.on) lies on the board or hangs on the rack; one whose fixture is not there lies in the row. */
   function set(looks: WorksiteLook[], where: (siteId: string) => { x: number; z: number; face: number } | null) {
     for (const ms of Object.values(sets)) for (const m of ms) m.count = 0;
     for (const site of looks) {
       const at = where(site.siteId); if (!at) continue;
-      // (what stands there first — only what the world has put there — then the things, side by side along the site)
-      const shown = [...(site.fixtures ?? []).map((f) => ({ id: f.id, kind: f.kind, key: `fixture/${f.kind}` })), ...site.items.map((it) => ({ id: it.id, kind: it.kind, key: `${it.kind}/${it.look}` }))].filter((it) => sets[it.key]);
+      const fixtures = (site.fixtures ?? []).filter((f) => sets[`fixture/${f.kind}`]);
+      const kindOf = new Map(fixtures.map((f) => [f.id, f.kind]));
+      const onIt = (it: WorksiteLook['items'][number]) => { const fk = it.on ? kindOf.get(it.on) : undefined; return fk && ON[fk].takes(it.kind) && sets[`${it.kind}/${it.look}${ON[fk].hung ? '/hung' : ''}`] ? fk : null; };
+      // (what stands there first — only what the world has put there — then the things not on one, side by side)
+      const shown = [...fixtures.map((f) => ({ id: f.id, kind: f.kind, key: `fixture/${f.kind}` })), ...site.items.filter((it) => !onIt(it)).map((it) => ({ id: it.id, kind: it.kind, key: `${it.kind}/${it.look}` }))].filter((it) => sets[it.key]);
       const width = shown.reduce((w, it) => w + WIDE[it.kind], 0);
       let off = -width / 2;
       for (const it of shown) {
-        const ms = sets[it.key], w = WIDE[it.kind]; off += w / 2;
-        if (ms[0].count < CAP) {
-          // (side by side across the worksite, as they would be laid down; each its own small turn and size)
-          const j = (u(it.id, 'jit') - 0.5) * 0.04;
-          const x = at.x + Math.cos(at.face) * off - Math.sin(at.face) * j, z = at.z - Math.sin(at.face) * off - Math.cos(at.face) * j;
-          _e.set(0, at.face + (it.key.startsWith('fixture/') ? 0 : Math.PI / 2) + (u(it.id, 'turn') - 0.5) * (it.key.startsWith('fixture/') ? 0.12 : it.kind === 'fiber-bundle' ? 0.35 : 0.8), 0); _q.setFromEuler(_e);
-          const sc = it.key.startsWith('fixture/') ? 1 : 0.9 + 0.2 * u(it.id, 'size');
-          _m.compose(_p.set(x, groundAt(x, z), z), _q, _s.set(sc, sc, sc));
-          const k = ms[0].count; for (const m of ms) { m.setMatrixAt(k, _m); m.count = k + 1; }
+        const w = WIDE[it.kind], fx = it.key.startsWith('fixture/'); off += w / 2;
+        // (side by side across the worksite, as they would be laid down; each its own small turn and size)
+        const j = (u(it.id, 'jit') - 0.5) * 0.04;
+        const x = at.x + Math.cos(at.face) * off - Math.sin(at.face) * j, z = at.z - Math.sin(at.face) * off - Math.cos(at.face) * j, y = groundAt(x, z);
+        const rot = at.face + (fx ? 0 : Math.PI / 2) + (u(it.id, 'turn') - 0.5) * (fx ? 0.12 : it.kind === 'fiber-bundle' ? 0.35 : 0.8);
+        put(sets[it.key], x, y, z, rot, fx ? 1 : 0.9 + 0.2 * u(it.id, 'size'));
+        if (fx) {
+          // what the world says is on this one: spread along its top or its pole, in the order listed
+          const S = ON[it.kind], on = site.items.filter((t) => t.on === it.id && onIt(t)), n = on.length, step = Math.min(S.step, n > 1 ? S.span / (n - 1) : 0);
+          on.forEach((t, i) => {
+            const along = (i - (n - 1) / 2) * step, c = Math.cos(rot), s2 = Math.sin(rot);
+            const tx = x + c * along, tz = z - s2 * along, sc = 0.9 + 0.2 * u(t.id, 'size');
+            put(sets[`${t.kind}/${t.look}${S.hung ? '/hung' : ''}`], tx, y + S.up, tz, rot + (S.hung ? 0 : (u(t.id, 'turn') - 0.5) * 0.25), sc);
+          });
         }
         off += w / 2;
       }
@@ -314,9 +368,13 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
 /** LAB: the test knob's worksite by Dot's home: ?coirlook=wet|dry|bare — main's test data (WORKSITE_LOOK_FIXTURES 'fiber-wet':
  *  the beating board with wet fibre and a beaten husk; 'fiber-dry': the drying rack with dry fibre; 'bare-site': nothing); ?coirlook=both — two bundles of each look side by side; ?coirlook=all — every kind drawn so far, wet
  *  and dry (a soaked husk, a beaten husk and a bundle of each); ?coirlook=cord — yarn fuzzy and smooth, cord smooth,
- *  frayed and broken. */
+ *  frayed and broken; ?coirlook=on — things on fixtures (WorksiteThing.on): a beaten husk on the board with a wet bundle
+ *  beside it, and three dry bundles and a wet one hung on the rack. */
 export function coirLookTest(q: string): WorksiteLook[] | null {
-  const m = /[?&]coirlook=(wet|dry|bare|both|all|cord)/.exec(q); if (!m) return null;
+  const m = /[?&]coirlook=(wet|dry|bare|both|all|cord|on)/.exec(q); if (!m) return null;
+  if (m[1] === 'on') return [{ siteId: 'test', fixtures: [{ id: 'test-board', kind: 'beat-board' }, { id: 'test-rack', kind: 'drying-rack' }], items: [
+    { id: 'test-husk-on', kind: 'partial-husk', look: 'wet', on: 'test-board' }, { id: 'test-bundle-by', kind: 'fiber-bundle', look: 'wet' },
+    ...[0, 1, 2].map((i) => ({ id: `test-hung-${i}`, kind: 'fiber-bundle' as const, look: 'dry' as const, on: 'test-rack' })), { id: 'test-hung-wet', kind: 'fiber-bundle', look: 'wet', on: 'test-rack' }] }];
   if (m[1] === 'wet' || m[1] === 'dry' || m[1] === 'bare') return [WORKSITE_LOOK_FIXTURES[m[1] === 'wet' ? 'fiber-wet' : m[1] === 'dry' ? 'fiber-dry' : 'bare-site']];
   if (m[1] === 'cord') return [{ siteId: 'test', fixtures: [], items: ([['yarn', 'fuzzy'], ['yarn', 'smooth'], ['cord', 'smooth'], ['cord', 'frayed'], ['cord', 'broken']] as const).map(([kind, look], i) => ({ id: `test-${kind}-${i}`, kind, look })) }];
   const list: [WorksiteLook['items'][number]['kind'], 'wet' | 'dry'][] = m[1] === 'both' ? [['fiber-bundle', 'wet'], ['fiber-bundle', 'wet'], ['fiber-bundle', 'dry'], ['fiber-bundle', 'dry']]
