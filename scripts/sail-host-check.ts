@@ -7,7 +7,8 @@
 //  4 dried under the back eaves on the island's clock; saved and loaded three hours later — no hand work in the hours
 //    caught up on, the roof's time across the load one span; dried, the world knows those leaves are dry
 //  5 split at the bench, then woven into the sail's mat (one fixed size), each over several quarter hours
-//  6 a mast cut from bamboo brought home before the sail (an old lot, no recorded quality)
+//  6 a mast cut from bamboo brought home before the sail (an old lot, no recorded quality); the mat and the mast are
+//    the island's firsts (world/milestones.ts)
 //  7 no number in any sail option; nothing a resident is told carries the amounts (marker masses) or a code: not its
 //    diary, not what its mind is given, not the day's post prompt, not its saved memory
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/sail-host-check.ts
@@ -133,6 +134,7 @@ step(5);
   await workUntil('sail:mast:work', 'work', () => lots('bamboo_mast').length === 1);
   want('6 a mast cut from the old bamboo; no second mast offered', lots('bamboo_mast').length === 1 && said(/竹のマストを切り出した/) && !(await options()).some((o: any) => o.id === 'sail:mast:work'), `${lots('bamboo_mast').length}`);
 }
+want('6 the island\'s firsts: the sail\'s mat and the mast, each marked once', typeof R.village.firsts?.sail === 'number' && R.village.firsts.sail > 0 && typeof R.village.firsts?.mast === 'number' && R.village.firsts.mast > 0, JSON.stringify({ sail: R.village.firsts?.sail, mast: R.village.firsts?.mast }));
 for (const d of R.sailDev) allCodes.add(d.code);
 { // 7
   R.save();

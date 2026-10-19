@@ -71,7 +71,7 @@ const noPost = /[?&]nopost/.test(location.search), noPip = /[?&]nopip/.test(loca
 // ?live: the 24-hour stream (src/live/live.ts): straight into the island, the app's own controls put away, the drone
 // following each resident in turn, the observation window over it; the island on its own clock (now, as it is)
 const live = /[?&]live\b/.test(location.search);
-let liveUi: { update(dt: number): void; sample(canvas: HTMLCanvasElement): void; haze(): Record<string, number> } | null = null;
+let liveUi: { update(dt: number): void; sample(canvas: HTMLCanvasElement): void; haze(): Record<string, number>; event(kind: string, text: string, r: any, meta?: { milestone?: string }): void } | null = null;
 const SAFE = (() => { try { return +(sessionStorage.getItem('seaglass.safe') || 0); } catch (e) { return 0; } })();
 let lostCount = 0;
 canvas.addEventListener('webglcontextlost', (e) => {
@@ -2232,7 +2232,7 @@ function enterOcean(oc: Ocean, writeUrl = true) {
   for (const l of U.uLights.value) l.w = 0;   // (only the island's residents carry lights)
   U.uFire.value.w = 0;   // (only the island has a fire)
   if (oc.residents) {
-    oc.residents.onEvent = (_k: string, text: string, r: any) => seaLog('robot', text, () => r.pos);
+    oc.residents.onEvent = (k: string, text: string, r: any, meta?: { milestone?: string }) => { seaLog('robot', text, () => r.pos); liveUi?.event(k, text, r, meta); };
     // their voices, when the camera is close enough to hear them
     oc.residents.onSay = (r: any, text: string) => {
       const d = camera.position.distanceTo(r.pos); if (d > 40) return;
