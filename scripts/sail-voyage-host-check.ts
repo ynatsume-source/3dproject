@@ -8,14 +8,17 @@
 //    cords' sun counted by cord-host from the settling (rule 2); the voyage's cord summary in the cords' record; no load
 //    of the cord's own on the raft's lashing; what it saw aboard in its diary; the island's firsts
 //  5 closed at sea: on loading, the crossing ends where it was last confirmed — no motion made up, no run left
+//  7 every crossing in reach comes home: by paddle and under sail, 1.0–4.0 km, five bearings (science review B1)
 //  6 nothing a resident is told carries the amounts (marker masses) or a code
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/sail-voyage-host-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
 import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
-import { loadIslandWeather, islandWeather } from '../src/world/island-time';
-import { addLot, toClock } from '../src/world/process-runner';
+import { loadIslandWeather, islandWeather, islandWait } from '../src/world/island-time';
+import { addLot, toClock, emptyLedger } from '../src/world/process-runner';
+import { makeSailVoyageHost } from '../src/robots/sail-voyage-host';
+import { emptySailHostState } from '../src/robots/sail-host';
 import { writeSailMat, writeBambooMast } from '../src/world/sail-lots';
 import { writeCordPiece } from '../src/world/coir-cord-lots';
 import { writePost } from '../src/journal/write';
@@ -118,12 +121,14 @@ let settleAt = 0;
   now += 3600e3; step(60);
   await choose('voyage:south-near', () => !!R.village.sailHost.voyage, 1200);
   step(120);
-  const v = R.village.sailHost.voyage;
+  const v = R.village.sailHost.voyage, lastCell = v?.next.w, cords5 = [...(R.village.sailHost.rig?.lotIds ?? [])].slice(2);
   R.save(); for (const d of R.sailDev) allCodes.add(d.code); for (const d of R.cordDev) allCodes.add(d.code);
   now += 2 * 3600e3; R = make();
   want('5 closed at sea: on loading the crossing ended where it was last confirmed, no run left, the parts back by the raft', !!v && !R.village.sailHost.voyage && voyageRuns().length === 0 && said(/帆の筏での渡航は途中で終わった/) && Object.values(R.lab.equipment).every((e: any) => e.kind !== 'sail_rig'), dot().diary.slice(-2).map((e: any) => e.text).join(' / '));
   const last = R.lab.sailVoyages?.recent?.at(-1);
-  want('5 no motion made up for the time away: settled at the load, not later', !!last && last.atWorldMs <= now && last.atWorldMs >= now - 60e3, `${last && Math.round((now - last.atWorldMs) / 1000)} s`);
+  want('5 no motion made up for the time away: settled at the last confirmed cell, not at the load', !!last && last.atWorldMs === lastCell, `${last && Math.round((now - last.atWorldMs) / 1000)} s before the load`);
+  const sun5 = R.village.cordHost.sun;
+  want('5 the cords\' sun counted by cord-host from that cell (the time closed is its usual span)', cords5.length === 4 && cords5.every((id: string) => sun5[id] === island(lastCell)), cords5.map((id: string) => sun5[id] - island(lastCell)).join(','));
 }
 for (const d of R.sailDev) allCodes.add(d.code); for (const d of R.cordDev) allCodes.add(d.code);
 { // 6
@@ -135,6 +140,26 @@ for (const d of R.sailDev) allCodes.add(d.code); for (const d of R.cordDev) allC
   const codes = [...allCodes], leaks = (t: string) => [...MARKS.filter((m) => new RegExp(`(?<![\\d.])${m}(?![\\d.])`).test(t)), ...codes.filter((c) => t.includes(c))];
   want('6 (the markers are real: the ledger holds them)', MARKS.slice(0, 2).every((m) => JSON.stringify(JSON.parse(saved).lab).includes(m)), codes.join(','));
   want('6 no amount or code in its diary, its mind\'s input, the day\'s post prompt or its saved memory', [diary, minds, prompts.join(''), mem].every((t) => leaks(t).length === 0), [diary, minds, prompts.join(''), mem].map(leaks).map((x) => x.join('|')).join(' / '));
+}
+{ // 7 (science review of PR #51, B1: every crossing in reach comes home — by paddle and under sail, 1.0–4.0 km, five bearings)
+  const fails: string[] = [];
+  for (const sailing of [false, true]) for (let km10 = 10; km10 <= 40; km10++) for (const bearing of [0, 77, 151, 221, 300]) {
+    const L = emptyLedger('w', 'sweep'), st: any = { ...emptySailHostState() }, dev: any[] = [];
+    const ids = [writeSailMat({ lotId: 'x', material: 'sail_mat', dryMg: 900_000, waterMg: 50_000, areaCm2: 20_000, baseStrengthGf: 60_000, torn: false, damage: { sunMs: 0, shadeMs: 0, rainMs: 0 } }, 'site:raft', 1),
+      writeBambooMast({ lotId: 'x', material: 'bamboo_mast', dryMg: MAST_DRY, waterMg: MAST_WATER, lengthMm: 2500, baseStrengthGf: 40_000, broken: false }, 'site:raft', 1),
+      ...[0, 1, 2, 3].map(() => writeCordPiece({ lotId: 'x', material: 'coir_strand', fiberDryMg: FIBER, pithDryMg: 1_000, waterMg: 1_000, lengthMm: 2_000, baseStrengthGf: 400_000, damage: { sunMs: 0, shadeMs: 0, abrasions: 0 } }, 'site:raft', 1))]
+      .map((p) => addLot(L, { materialId: p.materialId, amount: p.amount, location: 'site:raft', quality: p.quality }).lotId);
+    st.rig = { lotIds: ids, workMs: 1_800_000, done: true };
+    const cordStub: any = { sunUpTo() {}, sunCountedTo() {}, busy: () => [] };
+    const wx = sailing ? { windMeasured: 9, windDirMeasured: (bearing + 200) % 360, gustMeasured: 11, rainMeasured: 0 } : null;
+    const H = makeSailVoyageHost({ lab: L, state: () => st, cord: cordStub, raftPieces: () => 6, raftWhole: () => true, weather: () => wx as any, hourNow: () => 10, islandWait, dev });
+    let t = Date.parse('2026-10-06T01:00:00Z');
+    if (!H.depart('dot', { km: km10 / 10, bearing }, t)) { fails.push(`${sailing ? 'sail' : 'paddle'} ${km10 / 10}km ${bearing}°: no departure ${dev.map((d) => d.code)}`); continue; }
+    let home = false;
+    for (let k = 0; k < 2000 && !home; k++) { t += 30_000; home = H.sail(t, false).home; }
+    if (!home) fails.push(`${sailing ? 'sail' : 'paddle'} ${km10 / 10}km ${bearing}°`);
+  }
+  want('7 every crossing in reach comes home (paddle and sail, 1.0–4.0 km by 0.1, five bearings)', fails.length === 0, fails.slice(0, 6).join(' / ') || '310 crossings');
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

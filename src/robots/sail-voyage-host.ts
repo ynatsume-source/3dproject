@@ -20,7 +20,7 @@ import type { Option } from './agent/types';
 import type { IslandWeather } from '../world/island-time';
 import type { CordHost } from './cord-host';
 import type { SailHostState, SailDevEntry } from './sail-host';
-import { SAIL_RULES } from '../science/prototypes/sail-raft-rules';
+import { SAIL_RULES, sailMotionClock, sailAssumptionId } from '../science/prototypes/sail-raft-rules';
 import { sailCellWeather } from '../science/prototypes/sail-raft-inputs';
 import { readSailMat, readBambooMast, raftHullFromPieces } from '../world/sail-lots';
 import { readCordPiece } from '../world/coir-cord-lots';
@@ -181,16 +181,24 @@ export function makeSailVoyageHost(ctx: {
   function sail(nowWorldMs: number, storm: boolean): { home: false } | { home: true; turned: string | null; reached: boolean; words: string[] } {
     const v = st().voyage; if (!v) return { home: false };
     while (v.next.w + CELL_MS <= nowWorldMs) {
+      // (there once a cell reaches it or goes past it: a cell carries the raft further than any fixed nearness — it would
+      // otherwise step back and forth across the mark for ever; science review of PR #51, B1)
+      const goal = () => v.phase === 'out' ? v.target : { e: 0, n: 0 };
+      const p0 = readSailVoyage(L(), v.runId), d0 = Math.hypot(goal().e - p0.eastMm, goal().n - p0.northMm);
       if (!cell(v, nowWorldMs, storm)) break;
+      const p1 = readSailVoyage(L(), v.runId), moved = Math.hypot(p1.eastMm - p0.eastMm, p1.northMm - p0.northMm);
+      const there = Math.hypot(goal().e - p1.eastMm, goal().n - p1.northMm) <= NEAR_MM || (moved > 0 && d0 <= moved);
       if (v.phase === 'out') {
-        if (distTo(v, v.target) <= NEAR_MM) v.phase = 'back';   // (there: and straight back)
+        if (there) v.phase = 'back';   // (there: and straight back)
         else {
-          // (can it still be back in the light, at the paddle's pace? if not, it turns for home)
-          const left = distTo(v, v.target) + Math.hypot(v.target.e, v.target.n), hours = ctx.islandWait(left / PADDLE_MM_S * 1000) / 3.6e6;
+          // (can it still be back in the light, at the paddle's pace? if not, it turns for home — the paddle's time on the
+          // clock the science side moves the raft by: science review of PR #51, C2)
+          const left = distTo(v, v.target) + Math.hypot(v.target.e, v.target.n), ms = left / PADDLE_MM_S * 1000;
+          const hours = (sailMotionClock(sailAssumptionId()) === 'island' ? ctx.islandWait(ms) : ms) / 3.6e6;
           const why = storm ? '台風' : ctx.hourNow(v.next.w) + hours > 18.5 ? '日のあるうちに戻れない' : null;
           if (why) { v.phase = 'back'; v.turned = why; }
         }
-      } else if (distTo(v, { e: 0, n: 0 }) <= NEAR_MM) return settle(v, v.next.w, v.turned ? 'turned' : 'arrived');
+      } else if (there) return settle(v, v.next.w, v.turned ? 'turned' : 'arrived');
     }
     return { home: false };
   }
@@ -219,11 +227,11 @@ export function makeSailVoyageHost(ctx: {
   function restore(nowWorldMs: number): { actorId: string; words: string[] } | null {
     engaged = {}; seen = [];
     const v = st().voyage;
+    // (the app was closed at sea: no motion is made up for the time it was away — the crossing ends where and when it was
+    // last confirmed, and cord-host counts the cords' sun on the beach from then, in its usual span; science review C1)
+    const r = v ? settle(v, v.next.w, 'interrupted') : null;
     if (L().sailVoyages) { try { Object.assign(ctx.lab, restoreSailVoyage(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-voyage', e); } }
-    if (!v) return null;
-    // (the app was closed at sea: no motion is made up for the time it was away — the crossing ends where it was confirmed)
-    const r = settle(v, nowWorldMs, 'interrupted');
-    return { actorId: v.actorId, words: r.words };
+    return v && r ? { actorId: v.actorId, words: r.words } : null;
   }
 
   return { options, beginRig, rigging, stopRig, isRigging: (a) => !!engaged[a], inUse: () => [...(rig()?.lotIds ?? [])], rigged: () => !!rig()?.done && rigIntact(),
