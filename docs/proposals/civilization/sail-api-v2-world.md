@@ -40,6 +40,13 @@ disassemblePartsの第5引数 { keepLotIds:true } は選択時だけ有効。
 出発直前までの日照を先に精算し、決着後はsunカーソルを決着時刻へ進める。
 艤装の材料は予約/装備の中だけが持つ。隠れたqualityとViewを住人の知識へ展開しない。
 
+## v1の横流れとの違い
+v2は確定仕様§9.2に従い、漕ぎを含めてheadingDegの向きへ進むため、sidewaysMmは常に0。
+旧試作v1には風下への漂流があり、scripts/sail-raft-science-check.tsはsidewaysMmも直接検査する。
+この検査と、凍結v1とのproject全体の比較は旧IDの互換性の保証として残し、v2へ漂流の期待値を流用しない。
+v2の全再生との比較ではsidewaysMmも0として照合する。
+v1とv2の観察の言葉は、どちらもsidewaysMmを参照しない。地図上の移動にはeastMm・northMmを使う。
+
 ## 検査
 sail-lots、sail-work、sail-voyage、sail-cord-settlementをfast登録。
 成分収支、既定とkeepLotIds、予約、作業の分割・保存・再送・部分精算、航海の復帰空白、
