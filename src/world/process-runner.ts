@@ -156,27 +156,81 @@ export function assembleParts(L: Ledger, lotIds: Id[], T: PartsAssemblyTable, re
 
 /** Take equipment made of several lots apart: one lot (a new lotId) for each part, of its copy's amount and where it was,
  *  with what the table says it became for the equipment's condition. Nothing changes if the table's answer does not
- *  match the parts. */
+ *  match the parts. Pass options.keepLotIds only when the same physical part IDs must return; all ID
+ *  collisions are checked before any change. Omitting the option keeps the existing new-ID behavior. */
 //  The table answers for ordinary use only (the wear the upper pot's; science, 2026-10-08). What else befalls a part — it
 //  is dropped, or itself breaks — is the world's: `broken` names those parts, and each comes back as the one-lot table's
 //  broken material (sherds, with what that table keeps of the body), of its own copy's amount. A piece lost whole (washed
 //  away) is loseEquipment's.
-export function disassembleParts(L: Ledger, equipmentId: Id, T: PartsAssemblyTable, broken?: { parts: number[]; as: AssemblyTable }): { lots?: LotView[]; why?: string } {
+export function disassembleParts(
+  L: Ledger,
+  equipmentId: Id,
+  T: PartsAssemblyTable,
+  broken?: { parts: number[]; as: AssemblyTable },
+  options?: { keepLotIds?: boolean }
+): { lots?: LotView[]; why?: string } {
   const e = L.equipment[equipmentId];
   if (!e) return { why: `no equipment ${equipmentId}` };
   const parts = e.assembled?.parts;
   if (!parts) return { why: `${equipmentId} was not made of several lots` };
   if (e.reservedBy) return { why: `${equipmentId} is in use (${e.reservedBy})` };
-  if (broken && (!broken.as.brokenMaterial || broken.parts.some((i) => !Number.isInteger(i) || i < 0 || i >= parts.length))) return { why: 'no broken material, or no such part' };
+  if (broken && (
+    !broken.as.brokenMaterial
+      || broken.parts.some(i => !Number.isInteger(i) || i < 0 || i >= parts.length)
+  )) return { why: 'no broken material, or no such part' };
+
+  const keepLotIds = options?.keepLotIds === true;
+  if (keepLotIds && (
+    parts.some(part => typeof part.lotId !== 'string' || !part.lotId.trim())
+      || new Set(parts.map(part => part.lotId)).size !== parts.length
+      || parts.some(part => Object.hasOwn(L.lots, part.lotId))
+  )) return { why: 'a returned part ID is missing, repeated, or already in use' };
+
   let back: { materialId: Id; quality: Record<string, number> }[];
-  try { back = T.partsOnReturn(parts.map((p) => ({ ...(p.quality ?? {}) })), e.condition); } catch (err) { return { why: (err as Error).message }; }   // (asked once, for all the parts)
-  if (!Array.isArray(back) || back.length !== parts.length || back.some((b) => !b || typeof b.materialId !== 'string')) return { why: `the table gave ${back?.length ?? 0} parts back for ${parts.length}` };
-  if (broken) for (const i of broken.parts) {
-    let q: Record<string, number> | undefined;
-    try { q = broken.as.brokenQuality?.({ ...(parts[i].quality ?? {}) }); } catch (err) { return { why: (err as Error).message }; }
-    back[i] = { materialId: broken.as.brokenMaterial!, quality: q ?? {} };
+  try {
+    back = T.partsOnReturn(parts.map(part => ({ ...(part.quality ?? {}) })), e.condition);
+  } catch (err) {
+    return { why: (err as Error).message };
   }
-  const lots = back.map((b, i) => addLot(L, { materialId: b.materialId, amount: { ...parts[i].amount }, quality: { ...b.quality }, location: parts[i].location }));   // (each part its own amount, on its own side)
+  if (
+    !Array.isArray(back) || back.length !== parts.length
+      || back.some(part => !part || typeof part.materialId !== 'string')
+  ) return { why: `the table gave ${back?.length ?? 0} parts back for ${parts.length}` };
+
+  if (broken) {
+    for (const index of broken.parts) {
+      let quality: Record<string, number> | undefined;
+      try {
+        quality = broken.as.brokenQuality?.({ ...(parts[index].quality ?? {}) });
+      } catch (err) {
+        return { why: (err as Error).message };
+      }
+      back[index] = {
+        materialId: broken.as.brokenMaterial!,
+        quality: quality ?? {}
+      };
+    }
+  }
+
+  // Validate all retained IDs and all table answers before changing the ledger.
+  const returned = back.map((part, index) => ({
+    materialId: part.materialId,
+    amount: { ...parts[index].amount },
+    quality: { ...part.quality },
+    location: parts[index].location
+  }));
+  const lots = returned.map((part, index) => {
+    if (!keepLotIds) return addLot(L, part);
+    const lot: LotView = { ...part, lotId: parts[index].lotId };
+    Object.defineProperty(L.lots, lot.lotId, {
+      value: lot,
+      enumerable: true,
+      writable: true,
+      configurable: true
+    });
+    L.world.worldVersion++;
+    return lot;
+  });
   delete L.equipment[equipmentId];
   L.world.worldVersion++;
   return { lots };
