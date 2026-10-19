@@ -38,7 +38,7 @@ import { due, drain } from '../core/slice';
 export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
 import { makeCoirLook, coirLookTest } from '../robots/coir-look';
-import { makeCrabLook, crabLookTest, crabTestPoses } from './crab';
+import { makeCrabLook, makeBurrowLook, crabLookTest, crabTestPoses } from './crab';
 import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
@@ -516,10 +516,11 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     if (test && dh) oc.coirLook.set(test, () => ({ x: dh[0] + 1.8, z: dh[1] + 3.0, face: 0.4 }));
     else oc.coirLook.follow(() => oc.residents.worksiteLooks(), () => oc.residents.worksiteSpots());   // (what the world has at its worksites)
     // the night beach's ghost crabs, as they look (ocean/crab.ts: no world draws). Only behind the lab knob for now:
-    // ?crablook puts four on the sand by Dot's home, standing, running, going into a burrow, eyes laid down (LAB)
-    if (dh && typeof location !== 'undefined' && crabLookTest(location.search)) {
-      const crabs = makeCrabLook(group), at = { x: dh[0] + 3.0, z: dh[1] + 1.5 }, ground = (x: number, z: number) => loc.f(x, z);
-      crabs.mesh.onBeforeRender = () => crabs.show(crabTestPoses(performance.now() / 1000, at, ground));
+    // ?crablook puts ghost crabs, their burrows and a coconut crab on the sand by Dot's home (LAB)
+    const crabTest = dh && typeof location !== 'undefined' ? crabLookTest(location.search) : null;
+    if (crabTest) {
+      const crabs = makeCrabLook(group), burrows = makeBurrowLook(group), at = { x: dh[0] + 3.0, z: dh[1] + 1.5 }, ground = (x: number, z: number) => loc.f(x, z);
+      crabs.mesh.onBeforeRender = () => { const P = crabTestPoses(crabTest === 'still' ? 2.2 : performance.now() / 1000, at, ground); crabs.show(P.crabs); burrows.show(P.burrows); };
       oc.crabLook = crabs;
     }
   }
