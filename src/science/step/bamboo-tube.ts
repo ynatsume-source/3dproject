@@ -114,8 +114,14 @@ export function bambooTubeStep(req: ScienceStepRequest): ScienceStepResult {
   if (!done && !stopped) return res;
   res.consumed = [{ lotId: lot.lotId, amount: { ...lot.amount } }];
   const hist = (q.history_complete ?? 1) === 1 ? 1 : 0;
+  const unchangedQuality = Object.keys(q).length === 0 ? {} : { quality: { ...q } };
   if (stopped) { // stopped before the cut was finished: the bamboo comes back as it was
-    res.produced = [{ materialId: BAMBOO, amount: { ...lot.amount }, into: lot.location, quality: { ...q } }];
+    res.produced = [{
+      materialId: BAMBOO,
+      amount: { ...lot.amount },
+      into: lot.location,
+      ...unchangedQuality
+    }];
     return res;
   }
   const lo = pv('bambooBoreMinMm'), hi = pv('bambooBoreMaxMm');
@@ -126,7 +132,12 @@ export function bambooTubeStep(req: ScienceStepRequest): ScienceStepResult {
   const tubeMg = bambooTubeMg(bore, d.lengthMm, water);
   const o = (quantity: string, text: string) => observations.push({ at: endAt, channel: 'sight', quantity, text });
   if (split) {
-    res.produced = [{ materialId: BAMBOO, amount: { ...lot.amount }, into: lot.location, quality: { ...q } }];
+    res.produced = [{
+      materialId: BAMBOO,
+      amount: { ...lot.amount },
+      into: lot.location,
+      ...unchangedQuality
+    }];
     o('tube', '切っているうちに、竹が縦に割れてしまった（管にならない）');
     return res;
   }

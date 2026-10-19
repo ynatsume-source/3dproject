@@ -395,13 +395,17 @@ test('qualityless legacy bamboo stays qualityless and keeps the frozen cutting r
       const actual = bambooTubeStep(req);
       const expected = legacyBambooTubeStep({ ...req, processVersion: '0.1.0' });
       assert.deepEqual(comparable(actual), comparable(expected));
-      if (actual.produced.some(p => p.materialId === 'bamboo_tube') && quality !== undefined && Object.keys(quality).length) {
-        continue;
-      }
-      if (actual.produced.some(p => p.materialId === 'bamboo_tube')) {
-        const rest = lot('lot:remaining', actual.produced.find(p => p.materialId === 'bamboo')!);
-        assert.equal(rest.quality, undefined);
-        assert.doesNotThrow(() => readPlantMass(rest));
+      const stopReq = { ...cutRequest(source, seed, 0, 30_000), stop: 'operator' as const };
+      const stopped = bambooTubeStep(stopReq);
+      assert.deepEqual(comparable(stopped), comparable(legacyBambooTubeStep({
+        ...stopReq, processVersion: '0.1.0'
+      })));
+      if (quality === undefined || Object.keys(quality).length === 0) {
+        for (const out of [actual, stopped]) {
+          const rest = lot('lot:remaining', out.produced.find(p => p.materialId === 'bamboo')!);
+          assert.equal(rest.quality, undefined);
+          assert.doesNotThrow(() => readPlantMass(rest));
+        }
       }
     }
   }
