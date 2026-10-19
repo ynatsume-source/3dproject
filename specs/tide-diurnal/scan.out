@@ -1,0 +1,13 @@
+now (M2+S2): winter {"deep":29,"eve":15,"morn":14,"mid":0,"lowest":-0.8} summer {"deep":27,"eve":13,"morn":14,"mid":0,"lowest":-0.8}
+L=  0° winter {"deep":30,"eve":11,"morn":19,"mid":0,"lowest":-0.88} summer {"deep":31,"eve":19,"morn":12,"mid":0,"lowest":-0.88}
+L= 30° winter {"deep":22,"eve":17,"morn":0,"mid":2,"lowest":-0.99} summer {"deep":23,"eve":0,"morn":23,"mid":0,"lowest":-0.99}
+L= 60° winter {"deep":26,"eve":19,"morn":0,"mid":2,"lowest":-1.15} summer {"deep":27,"eve":0,"morn":26,"mid":1,"lowest":-1.15}
+L= 90° winter {"deep":27,"eve":23,"morn":0,"mid":1,"lowest":-1.22} summer {"deep":29,"eve":0,"morn":27,"mid":2,"lowest":-1.23}
+L=120° winter {"deep":27,"eve":23,"morn":0,"mid":1,"lowest":-1.2} summer {"deep":28,"eve":0,"morn":25,"mid":3,"lowest":-1.2}
+L=150° winter {"deep":26,"eve":24,"morn":0,"mid":0,"lowest":-1.07} summer {"deep":26,"eve":0,"morn":23,"mid":3,"lowest":-1.08}
+L=180° winter {"deep":32,"eve":20,"morn":12,"mid":0,"lowest":-0.88} summer {"deep":31,"eve":12,"morn":18,"mid":1,"lowest":-0.88}
+L=210° winter {"deep":22,"eve":0,"morn":22,"mid":0,"lowest":-0.99} summer {"deep":22,"eve":18,"morn":0,"mid":1,"lowest":-0.99}
+L=240° winter {"deep":27,"eve":0,"morn":27,"mid":0,"lowest":-1.15} summer {"deep":27,"eve":21,"morn":0,"mid":1,"lowest":-1.15}
+L=270° winter {"deep":28,"eve":0,"morn":27,"mid":1,"lowest":-1.23} summer {"deep":27,"eve":22,"morn":0,"mid":1,"lowest":-1.22}
+L=300° winter {"deep":28,"eve":0,"morn":27,"mid":1,"lowest":-1.2} summer {"deep":26,"eve":24,"morn":0,"mid":0,"lowest":-1.2}
+L=330° winter {"deep":25,"eve":0,"morn":24,"mid":1,"lowest":-1.08} summer {"deep":25,"eve":24,"morn":0,"mid":0,"lowest":-1.07}

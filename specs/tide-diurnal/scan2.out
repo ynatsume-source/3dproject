@@ -1,0 +1,5 @@
+D=0.25 L=120°: winter {"deep":23,"eve":22,"morn":0,"mid":0,"lowest":-1} (19–21h below −0.7 m: 13), summer {"deep":23,"eve":0,"morn":23,"mid":0,"lowest":-1}, year's lowest -1
+D=0.3 L=120°: winter {"deep":24,"eve":22,"morn":0,"mid":0,"lowest":-1.03} (19–21h below −0.7 m: 13), summer {"deep":23,"eve":0,"morn":23,"mid":0,"lowest":-1.04}, year's lowest -1.04
+D=0.35 L=120°: winter {"deep":25,"eve":22,"morn":0,"mid":0,"lowest":-1.07} (19–21h below −0.7 m: 13), summer {"deep":23,"eve":0,"morn":23,"mid":0,"lowest":-1.08}, year's lowest -1.08
+D=0.4 L=120°: winter {"deep":26,"eve":23,"morn":0,"mid":0,"lowest":-1.11} (19–21h below −0.7 m: 14), summer {"deep":28,"eve":0,"morn":25,"mid":3,"lowest":-1.12}, year's lowest -1.12
+D=0.5 L=120°: winter {"deep":27,"eve":23,"morn":0,"mid":1,"lowest":-1.2} (19–21h below −0.7 m: 14), summer {"deep":28,"eve":0,"morn":25,"mid":3,"lowest":-1.2}, year's lowest -1.2
