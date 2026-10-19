@@ -13,12 +13,12 @@ export function trimStatus(text: string): string {
   return text.replace(STILL_TO_GO, '').replace(NUMBER_ONLY, '').replace(/\s{2,}/g, ' ').trim();
 }
 
-/** Broken into at most two lines when `fits` says one is too long: after the 、 or 。 nearest the middle that leaves
+/** Broken into at most two lines when `fits` says one is too long: after the 、 or 。 (English: , or ;) nearest the middle that leaves
  *  both halves fitting, else the one that leaves the first fitting. With no 、 or 。, one line, whole. */
 export function wrapStatus(text: string, fits: (line: string) => boolean): string[] {
   if (fits(text)) return [text];
   const cuts: number[] = [];
-  for (let i = 0; i < text.length - 1; i++) if (text[i] === '、' || text[i] === '。') cuts.push(i + 1);
+  for (let i = 0; i < text.length - 1; i++) if (text[i] === '、' || text[i] === '。') cuts.push(i + 1); else if ((text[i] === ',' || text[i] === ';') && text[i + 1] === ' ') cuts.push(i + 2);   // (English: after a comma or a semicolon)
   if (!cuts.length) return [text];
   const both = cuts.filter((c) => fits(text.slice(0, c)) && fits(text.slice(c)));
   const pool = both.length ? both : cuts.filter((c) => fits(text.slice(0, c)));
