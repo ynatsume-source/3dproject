@@ -34,7 +34,7 @@ const slow = [
   'jump', 'keep-about', 'lab', 'lobos-benthos', 'lobos-fish-life',
   'lobos-forest', 'lobos-otters', 'lobos-visitors', 'manta', 'manta-stuck',
   'manta-terrain', 'manta-transit', 'moray', 'motion', 'oil-chain',
-  'passthrough', 'pointlobos', 'route', 'sealion', 'sim', 'status',
+  'passthrough', 'pointlobos', 'route', 'sail-host', 'sealion', 'sim', 'status',
   'stuck', 'tar-chain', 'tideline', 'trade', 'turtle-breath', 'turtle-view',
   'water',
 ];
