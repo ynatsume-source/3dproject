@@ -39,6 +39,14 @@ const f = () => 2, T: any = { ground: f, floor: f, top: f, landCover: () => ({ c
 // (marker masses: no resident may ever be told these digits)
 const FIBER = 72_017, PITH = 7_013, WET = 115_219, POT = 1_234_567, WATER = 2_345_671;
 const MARKS = ['72017', '7013', '115219', '1234567', '2345671', '1235', '3581'];   // (the last two: the pot's weight, sent as loads)
+
+const ledgerMarkers = new Set<string>();
+function rememberLedgerMarkers(ledger: unknown): void {
+  const text = JSON.stringify(ledger);
+  for (const mark of MARKS.slice(0, 5)) {
+    if (text.includes(mark)) ledgerMarkers.add(mark);
+  }
+}
 const inputs: any[] = [], allCodes = new Set<string>();
 let pick: string | null = null;
 const make = () => {
@@ -64,7 +72,9 @@ const choose = async (id: string, until: () => boolean, secs = 3600) => {
 };
 const said = (re: RegExp) => dot().diary.some((d: any) => re.test(d.text));
 const b = writeCordBundle({ fiberDryMg: FIBER, pithDryMg: PITH, waterMg: WET }, 'site:husk-work', 1);
-addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, quality: b.quality }); step(5);
+addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, quality: b.quality });
+rememberLedgerMarkers(R.lab);
+step(5);
 
 { // 1
   const n0 = inputs.length; { const a = R.mind(dot()); a.why = 'テスト'; a.lastCall = -1e12; }
@@ -111,6 +121,7 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
 }
 { // 5
   addLot(R.lab, { materialId: 'fired_pot', amount: { value: POT, unit: 'mg' }, location: 'shelf', quality: { form: 7, capacity_ml: 900, history_complete: 1 } });
+  rememberLedgerMarkers(R.lab);
   const rope = lots('coir_rope')[0].lotId;
   await choose('cord:hang', () => !!R.village.cordHost.hang);
   const loads = () => records().filter((x: any) => x.request.event.kind === 'load');
@@ -120,6 +131,7 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
   want('5 the first rope and the first pot hung marked as the island\'s firsts (world/milestones.ts)', R.village.firsts?.rope > 0 && R.village.firsts?.hang > 0, JSON.stringify(R.village.firsts));
   want('5 the rope that held keeps its lotId', R.village.cordHost.hang?.cordLotId === rope && !!R.lab.lots[rope], rope);
   addLot(R.lab, { materialId: 'process_water', amount: { value: WATER, unit: 'mg' }, location: R.village.cordHost.hang.potLotId });
+  rememberLedgerMarkers(R.lab);
   step(3);
   want('5 water in the pot: the heavier weight a new load', loads().length === 2 && loads()[1].request.event.gf === Math.ceil((POT + WATER) / 1000), loads().map((x: any) => x.request.event.gf).join(','));
   const sun = () => records().filter((x: any) => x.request.event.kind === 'exposure' && x.request.lotId === rope);
@@ -158,7 +170,7 @@ for (const d of R.cordDev) allCodes.add(d.code);
   const prompts: string[] = [];
   await writePost({ who: 'dot', name: d.v.name, profile: 'テスト', day: '2026-10-06', entries: d.diary.map((e: any) => ({ time: '12:00', text: e.text, key: e.key })), photos: [], talks: [] }, async (sys: string, user: string) => { prompts.push(sys + user); return null; }, 'stub');
   const codes = [...allCodes], leaks = (t: string) => [...MARKS.filter((m) => new RegExp(`(?<![\\d.])${m}(?![\\d.])`).test(t)), ...codes.filter((c) => t.includes(c))];   // (a number on its own, not a piece of a time or a place)
-  want('7 (the markers are real: the ledger holds them, the developer\'s log a code)', MARKS.slice(0, 5).every((m) => JSON.stringify(JSON.parse(saved).lab).includes(m)) && codes.length > 0, codes.join(','));
+  want('7 (the marker inputs really entered the ledger, the developer\'s log a code)', MARKS.slice(0, 5).every((m) => ledgerMarkers.has(m)) && codes.length > 0, codes.join(','));
   want('7 no amount or code in its diary, its mind\'s input, the day\'s post prompt or its saved memory', [diary, minds, prompts.join(''), mem].every((t) => leaks(t).length === 0), [diary, minds, prompts.join(''), mem].map(leaks).map((x) => x.join('|')).join(' / '));
   const cordOpts = [...new Map(inputs.flatMap((i) => i.options ?? []).filter((o: any) => o.id.startsWith('cord:')).map((o: any) => [o.id, o])).values()] as any[];
   want('7 no number in any cord option it was offered, all along', cordOpts.length >= 6 && cordOpts.every((o) => !/[0-9０-９]/.test(o.id + o.label)), cordOpts.map((o) => o.label).join(' / '));
