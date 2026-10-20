@@ -14,7 +14,8 @@ import type { LotView } from '../world/science-contract';
 import { addLot, moveLot } from '../world/process-runner';
 import type { Option } from './agent/types';
 import { draw } from '../science/rng';
-import { sailAssumptionId } from '../science/prototypes/sail-raft-rules';
+import { sailAssumptionId, SAIL_RULES } from '../science/prototypes/sail-raft-rules';
+import { readPlantMass } from '../world/sail-lots';
 import { applySailIntent, recordSailSpan, restoreSailWork, sailWorkRevision, readSailWorksite, readSailWorkerObservations, sailFailureObservations, projectSailWork,
   SAIL_WORK, type SailWorkLedger, type SailStartFacts, type SailManualSpan, type Operation } from '../world/sail-work';
 
@@ -95,10 +96,12 @@ export function makeSailHost(ctx: {
   const wetLeaves = () => free(LEAVES).filter((l) => !st().dried.includes(l.lotId));
   const intent = (i: Parameters<typeof applySailIntent>[1], now: number, facts?: SailStartFacts) => applySailIntent(L(), i, sailWorkRevision(L()), now, facts);
   const facts = (s: SailSite, extra: Partial<SailStartFacts> = {}): SailStartFacts => ({ assumptionId: sailAssumptionId(), worksite: { locationId: s.id, x: s.x, z: s.z, reachM: s.reachM }, ...extra });
+  // (a bamboo shorter than a mast can never be one: its length is plain to see — not offered; science review of PR #50)
+  const longEnough = (l: LotView) => { try { return (readPlantMass(l).lengthMm ?? 0) >= SAIL_RULES.mastMm; } catch { return false; } };
   // (what a piece of work at the bench would take: the oldest of its kind; a mast from the bamboo on the shelf)
   const sourceFor = (op: Hand, place: string): LotView | undefined =>
     op === 'harvest' ? free(STANDING, site(place)?.id)[0] : op === 'split' ? free(LEAVES).filter((l) => l.location !== sites().dry.id || st().dried.includes(l.lotId))[0]
-      : op === 'weave' ? free(STRIPS)[0] : free('bamboo', 'shelf')[0];
+      : op === 'weave' ? free(STRIPS)[0] : free('bamboo', 'shelf').find(longEnough);
 
   function options(actorId: string, nowWorldMs: number): Option[] {
     if (!ctx.wanted()) return [];
@@ -117,7 +120,8 @@ export function makeSailHost(ctx: {
     if (!paused(s.work.id, '帆の仕事', 'work')) {   // (the bench holds one piece of work at a time)
       if (sourceFor('split', 'work')) o.push({ id: 'sail:split:work', action: 'sail-work', label: 'アダンの葉を細く裂く', targetId: 'sail-work' });
       if (sourceFor('weave', 'work')) o.push({ id: 'sail:weave:work', action: 'sail-work', label: '裂いた葉で帆のむしろを編む', targetId: 'sail-work' });
-      if (sourceFor('mast', 'work') && !lots().some((l) => l.materialId === MAST)) o.push({ id: 'sail:mast:work', action: 'sail-work', label: '竹を切ってマストにする', targetId: 'sail-work' });
+      if (sourceFor('mast', 'work') && !lots().some((l) => l.materialId === MAST) && !Object.values(L().equipment).some((e) => e.assembled?.parts?.some((p) => p.materialId === MAST)))   // (one mast: on the beach, or up in the rig at sea)
+      o.push({ id: 'sail:mast:work', action: 'sail-work', label: '竹を切ってマストにする', targetId: 'sail-work' });
     }
     const n = (st().decisions[actorId] = (st().decisions[actorId] ?? 0) + 1);
     return o.map((x) => [x, draw(SEED, actorId, String(nowWorldMs), String(n), 'options', x.id)] as const).sort((a, b) => a[1] - b[1]).map((x) => x[0]);

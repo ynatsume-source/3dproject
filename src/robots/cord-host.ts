@@ -83,6 +83,12 @@ export interface CordHost {
   restore(nowWorldMs: number): void;
   sites(): NonNullable<CordHostState['sites']>;
   raftLashed(): boolean;
+  /** The sun on these cords sent up to now (before they go into a sail's rig: robots/sail-voyage-host.ts). */
+  sunUpTo(lotIds: string[], nowWorldMs: number): void;
+  /** These cords' sun already counted up to now elsewhere (a sail voyage settled it): counted from here on. */
+  sunCountedTo(lotIds: string[], nowWorldMs: number): void;
+  /** Cords at a use of the cord's own: the pot's, the raft's lashing. */
+  busy(): string[];
 }
 
 export function makeCordHost(ctx: {
@@ -93,6 +99,7 @@ export function makeCordHost(ctx: {
   raftWhole: () => boolean;
   raftAt: () => { x: number; z: number } | null;
   dev: CordDevEntry[];
+  inUse?: () => string[];          // (cords the world has put to another use: a sail's rig)
 }): CordHost {
   const L = () => ctx.lab as CordWorkLedger & CordLoadLedger;
   const st = () => ctx.state();
@@ -105,7 +112,7 @@ export function makeCordHost(ctx: {
   const dataOf = (r: { state?: { data?: unknown } | null }) => r.state?.data as any;
   const dryRun = () => runs().find((r) => dataOf(r)?.spec?.operation === 'dry' && dataOf(r).spec.facts.worksite.locationId === sites().dry.id);
   const workRun = () => runs().find((r) => dataOf(r)?.spec?.operation !== 'dry' && dataOf(r)?.spec?.facts.worksite.locationId === sites().work.id);
-  const inUse = () => new Set([st().hang?.cordLotId, st().raft?.cordLotId].filter(Boolean) as string[]);
+  const inUse = () => new Set([st().hang?.cordLotId, st().raft?.cordLotId, ...(ctx.inUse?.() ?? [])].filter(Boolean) as string[]);
   const isCord = (l?: LotView) => !!l && (l.materialId === STRAND || l.materialId === ROPE);
   const bundle = () => lots().filter((l) => l.materialId === BUNDLE && !l.reservedBy).sort(byId)[0];
   const cords = (m: string) => lots().filter((l) => l.materialId === m && !l.reservedBy && !inUse().has(l.lotId)).sort(byId);
@@ -360,5 +367,8 @@ export function makeCordHost(ctx: {
     try { Object.assign(ctx.lab, restoreCordWork(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-cord', e); }
   }
 
-  return { options, putToDry, takeIn, beginWork, working, stopWork, clearAway, isWorking: (a) => !!st().engaged[a], hang, unhang, lash, voyageOut, voyageHome, look, tick, restore, sites, raftLashed: () => !!st().raft };
+  return { options, putToDry, takeIn, beginWork, working, stopWork, clearAway, isWorking: (a) => !!st().engaged[a], hang, unhang, lash, voyageOut, voyageHome, look, tick, restore, sites, raftLashed: () => !!st().raft,
+    sunUpTo: (ids, now) => { for (const id of ids) if (isCord(L().lots[id])) sunOn(id, now); },
+    busy: () => [st().hang?.cordLotId, st().raft?.cordLotId].filter(Boolean) as string[],
+    sunCountedTo: (ids, now) => { for (const id of ids) if (isCord(L().lots[id])) st().sun[id] = island(now); } };
 }

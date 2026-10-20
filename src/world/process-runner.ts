@@ -46,6 +46,20 @@ export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }):
   const l = { ...lot, lotId: lot.lotId ?? `lot:${++L.seq}` } as LotView; L.lots[l.lotId] = l; L.world.worldVersion++; return l;
 }
 
+/** Mass taken from a lot for a thing made by hand (a rain catcher, a tool). A lot that records its own dry matter and
+ *  water (and length: bamboo) keeps them in proportion — the rule of the science side's bamboo tube 0.1.1, water floored
+ *  and the sub-mg rest to the dry — so what is left still reads whole; a lot without them loses only its mass. All of
+ *  it taken: the lot is gone. */
+export function takeMass(L: Ledger, lot: LotView, mg: number): void {
+  const before = lot.amount.value, left = before - mg, q = lot.quality;
+  if (left > 0 && q && q.dry_mg !== undefined && q.water_mg !== undefined) {
+    const water = Number(BigInt(q.water_mg) * BigInt(left) / BigInt(before));
+    lot.quality = { ...q, dry_mg: left - water, water_mg: water, ...(q.length_mm !== undefined ? { length_mm: Number(BigInt(q.length_mm) * BigInt(left) / BigInt(before)) } : {}) };
+  }
+  lot.amount.value = left; if (left <= 0) delete L.lots[lot.lotId];
+  L.world.worldVersion++;
+}
+
 /** Carry a whole lot to another place (the world's own move: a body took it there). Refused for a lot in use — a run's
  *  lots stay where the run has them. Nothing about the lot changes but where it is. */
 export function moveLot(L: Ledger, lotId: Id, location: Id): { lot?: LotView; why?: string } {

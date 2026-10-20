@@ -16,6 +16,8 @@ import { localTimeString } from '../time/clock';
 import { trimStatus, wrapStatus, subtitleLines } from './status-line';
 import { glyphs, LEX } from '../robots/islandlang';
 import { luminance, brightTenth, hazeFor, hazeStyle } from './scrim';
+import { statusEn, firstEn, asLine, FIXED_EN, NAMES_EN } from './en';
+import { captionSender } from './captions';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -31,13 +33,21 @@ const TURN_S = 360;   // (each one followed for six minutes, then the next one a
 
 export function makeLive(ctx: LiveCtx) {
   document.body.classList.add('live');
-  const root = document.createElement('div'); root.id = 'live';
+  // (?lang=en: the same window in English — the world's words turned on this side only: src/live/en.ts; ?captions=<url>:
+  // what is said, and the island's firsts, sent as captions to the stream PC's own sender, tools/live/captions.mjs — in
+  // their own language, English unless ?captionLang=ja: a Japanese screen carries English captions, viewer design v2 §6)
+  const q = new URLSearchParams(location.search), en = q.get('lang') === 'en', captions = captionSender(q.get('captions'));
+  const capEn = q.get('captionLang') !== 'ja';
+  const nameIn = (r: any, inEn: boolean) => (inEn ? NAMES_EN[r?.v?.name] ?? r?.v?.name : r?.v?.name) ?? '';
+  const nameOf = (r: any) => nameIn(r, en);
+  const dateOf = (ms: number) => { const d = islandDate(ms); return en ? FIXED_EN.date(d.year, d.month, d.day) : `島暦${d.year}年 ${d.month}月${d.day}日`; };
+  const root = document.createElement('div'); root.id = 'live'; if (en) root.classList.add('en');
   root.innerHTML = `
-    <div class="brand"><div class="en">UTSUSHIYO</div><div class="ja">ドットたちの島</div></div>
-    <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">住人はAIです ・ 映像は自動で撮影しています</div></div>
+    <div class="brand"><div class="en">UTSUSHIYO</div><div class="ja">${en ? FIXED_EN.brand : 'ドットたちの島'}</div></div>
+    <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">${en ? FIXED_EN.ai : '住人はAIです ・ 映像は自動で撮影しています'}</div></div>
     <div class="band fade off"><div class="doron"><span class="n"></span>DORON</div>
       <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div></div>
-    <div class="card fade off"><div class="rule"></div><div class="head">島で初めて</div><div class="what"></div><div class="at"></div><div class="rule"></div></div>
+    <div class="card fade off"><div class="rule"></div><div class="head">${en ? FIXED_EN.first : '島で初めて'}</div><div class="what"></div><div class="at"></div><div class="rule"></div></div>
     <div class="sub fade off"><div class="who"><span class="line"></span><span class="name"></span></div><div class="isl-line"></div><div class="tr"></div></div>`;
   document.body.appendChild(root);
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
@@ -52,12 +62,13 @@ export function makeLive(ctx: LiveCtx) {
     return now ?? R.list.find((x: any) => x.id === 'dot');
   }
   // (the line fits the band's width at its own size and face: broken after a 、 or 。 if not)
-  const fits = (line: string) => { measure.font = `500 ${status.style.fontSize || getComputedStyle(status).fontSize} 'Zen Old Mincho'`; return measure.measureText(line).width <= innerWidth * 0.5 - innerHeight / 1080 * 24; };
+  const fits = (line: string) => { measure.font = `500 ${status.style.fontSize || getComputedStyle(status).fontSize} ${en ? "'Cormorant Garamond'" : "'Zen Old Mincho'"}`; return measure.measureText(line).width <= innerWidth * 0.5 - innerHeight / 1080 * 24; };
   function show(r: any, text: string) {
-    const lines = wrapStatus(trimStatus(text), fits);
+    const line = en ? statusEn(trimStatus(text)) : trimStatus(text);   // (English the table does not have: no line, the name alone)
+    const lines = line ? wrapStatus(en ? asLine(line) : line, fits) : [];
     status.innerHTML = lines.map((l) => `<span>${l.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'))}</span>`).join('');
     $('.doron .n').textContent = DORON[r.id] ?? '13';
-    $('.band .who .name').textContent = r.v?.name ?? '';
+    $('.band .who .name').textContent = nameOf(r);
     $('.band .who .isl-name').innerHTML = islName(r);
     ($('.band .who .line')).style.setProperty('--c', r.sp?.color ?? '#fff');
   }
@@ -79,12 +90,15 @@ export function makeLive(ctx: LiveCtx) {
     const sp = r ? speaker(R, r) : null, key = sp ? `${sp.id}|${sp.saying}` : '';
     if (key === subKey) return; subKey = key;
     if (!sp) { sub.classList.add('off'); if (r) band.classList.remove('off'); return; }
+    const said = en ? sp.sayEn ?? '' : sp.saying;   // (in English, its own English line: none, and only the island's letters show)
+    const cap = capEn ? sp.sayEn ?? '' : sp.saying;
+    if (cap) captions.send(`${nameIn(sp, capEn)}: ${cap}`, ctx.clockMs());
     band.classList.add('off');
     const fill = () => {
       ($('.sub .who .line')).style.setProperty('--c', sp.sp?.color ?? '#fff');
-      $('.sub .who .name').textContent = sp.v?.name ?? '';
+      $('.sub .who .name').textContent = nameOf(sp);
       $('.sub .isl-line').innerHTML = sp.sayIsl?.length ? glyphs(sp.sayIsl, 'isl', 1.25) : '';
-      $('.sub .tr').innerHTML = subtitleLines(sp.saying, 'ja').map((l) => `<span>${esc(l)}</span>`).join('');
+      $('.sub .tr').innerHTML = said ? subtitleLines(said, en ? 'en' : 'ja').map((l) => `<span>${esc(l)}</span>`).join('') : '';
       sub.classList.remove('off');
     };
     if (sub.classList.contains('off')) fill(); else { sub.classList.add('off'); setTimeout(() => { if (subKey === key) fill(); }, 600); }
@@ -98,8 +112,7 @@ export function makeLive(ctx: LiveCtx) {
     if (!r || turn <= 0 || (!awake(r) && turn < TURN_S - 30)) { const n = next(R); if (n && n !== r) ctx.watch(n); r = n; turn = TURN_S; }   // (one that falls asleep is left after half a minute)
     subtitle(R, r);   // (every frame: a line begins and ends with the voice)
     if ((tick -= dt) > 0) return; tick = 1;   // (the words read once a second)
-    const d = islandDate(ctx.clockMs());
-    $('.when .date').textContent = `島暦${d.year}年 ${d.month}月${d.day}日`;
+    $('.when .date').textContent = dateOf(ctx.clockMs());
     $('.when .time').textContent = localTimeString(ctx.clockMs(), ctx.tz());
     if (!r) { band.classList.add('off'); return; }
     const text = R.status(r) as string;
@@ -143,16 +156,20 @@ export function makeLive(ctx: LiveCtx) {
   // date and time — for about eight seconds, then it fades. Several at once wait their turn.
   const card = $('.card'), queue: { text: string; at: number }[] = [];
   let cardT = 0;
-  function event(_kind: string, text: string, _r: any, meta?: { milestone?: string }) {
-    if (meta?.milestone) queue.push({ text, at: ctx.clockMs() });
+  function event(_kind: string, text: string, r: any, meta?: { milestone?: string }) {
+    if (!meta?.milestone) return;
+    const ja = trimStatus(text.split('。')[0]), esc1 = (t: string) => t.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'));
+    const html = en ? firstEn(meta.milestone, r?.v?.name ?? '', true) : esc1(ja);
+    if (html) queue.push({ text: html, at: ctx.clockMs() });   // (a first the English table does not have: no card rather than one in the wrong tongue)
+    const cap = capEn ? firstEn(meta.milestone, r?.v?.name ?? '') : ja;
+    if (cap) captions.send(`${capEn ? FIXED_EN.first : '島で初めて'}: ${cap}`, ctx.clockMs());
   }
   function cardTick(dt: number) {
     if (cardT > 0) { cardT -= dt; if (cardT <= 0) card.classList.add('off'); return; }
     if (cardT > -0.8) { cardT -= dt; return; }   // (a breath between two cards)
     const m = queue.shift(); if (!m) return;
-    const first = m.text.split('。')[0], d = islandDate(m.at);
-    $('.card .what').textContent = trimStatus(first);
-    $('.card .at').innerHTML = `島暦${d.year}年 ${d.month}月${d.day}日 <span class="t">${localTimeString(m.at, ctx.tz())}</span>`;
+    $('.card .what').innerHTML = m.text;   // (escaped as it was made: only an island's word in italics)
+    $('.card .at').innerHTML = `${esc(dateOf(m.at))} <span class="t">${localTimeString(m.at, ctx.tz())}</span>`;
     card.classList.remove('off'); cardT = 8;
   }
 

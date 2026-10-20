@@ -127,6 +127,9 @@ step(5);
   want('5 woven over several quarter hours: the sail\'s mat at the bench', lots('sail_mat').length === 1 && lots('sail_mat')[0].quality.area_cm2 === 20_000 && said(/編んだむしろが広がっている/), `${n2} rounds`);
 }
 { // 6
+  addLot(R.lab, { materialId: 'bamboo', amount: { value: 2_000_000, unit: 'mg' }, location: 'shelf' });   // (too short for a mast)
+  const short = await options();
+  want('6 a bamboo too short for a mast: no mast offered', !short.some((o: any) => o.id === 'sail:mast:work'), short.map((o: any) => o.id).join(','));
   addLot(R.lab, { materialId: 'bamboo', amount: { value: BAMBOO, unit: 'mg' }, location: 'shelf' });
   R.save(); marked = (store.get(KEY) ?? '').includes(MARKS[0]);
   const opts = await options();

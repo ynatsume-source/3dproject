@@ -18,8 +18,11 @@ export const HOME = { lat: 24.361, lon: 123.997 };
  *  civ-sci.island-clay/1; assumed: the checks' example clay, not the real island's geology). A lot keeps the make-up it
  *  was dug with: a new table version changes only what is dug after it. */
 export const RAW_CLAY_SOUTH: Record<string, number> = { ...islandClay('south-near')!.quality };
+/** A raft load of bamboo from the island to the south, as the science side reads it (sail spec v2 §9.4, 2026-10-18;
+ *  set once the bamboo tube kept a cut bamboo's quality whole, PR #52): 7 kg — 5 kg dry, 2 kg water — of 6 m canes. */
+export const BAMBOO_SOUTH: Record<string, number> = { dry_mg: 5_000_000, water_mg: 2_000_000, length_mm: 6_000, history_complete: 1, sail_codec: 1 };
 export const ISLES: Isle[] = [
-  { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], carry: [{ materialId: 'raw_clay', ja: '粘土', mg: 10e6, quality: RAW_CLAY_SOUTH }, { materialId: 'bamboo', ja: '竹', mg: 6e6 }, { materialId: 'reed', ja: '葦', mg: 3e6 }], earth: '小浜島' },
+  { id: 'south-near', lat: 24.343, lon: 123.98, areaKm2: 7.8, ja: '南のすぐ近くの島', has: ['竹', '葦', '粘土'], carry: [{ materialId: 'raw_clay', ja: '粘土', mg: 10e6, quality: RAW_CLAY_SOUTH }, { materialId: 'bamboo', ja: '竹', mg: 7e6, quality: BAMBOO_SOUTH }, { materialId: 'reed', ja: '葦', mg: 3e6 }], earth: '小浜島' },
   { id: 'east-flat', lat: 24.326, lon: 124.087, areaKm2: 5.4, ja: '東の平たい島', has: ['白い石灰岩'], carry: [{ materialId: 'limestone', ja: '石灰岩', mg: 15e6 }], earth: '竹富島' },
   { id: 'west-big', lat: 24.33, lon: 123.81, areaKm2: 289, ja: '西の大きな島', has: ['川（真水）', '大きな森', 'マングローブ'], earth: '西表島' },
   { id: 'east-big', lat: 24.4, lon: 124.15, areaKm2: 222, ja: '東の山のある島', has: ['山', 'いろいろな岩'], earth: '石垣島' },

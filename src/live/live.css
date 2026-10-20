@@ -58,3 +58,9 @@ body.live #diaryBook, body.live #newMark, body.live #hoverTag, body.live #tapRin
 #live .card .what { font-size: var(--s6); line-height: 1.35; }
 #live .card .at { font-size: var(--s1); color: var(--ink2); margin: calc(var(--u) * 16) 0 calc(var(--u) * 22); letter-spacing: 0.06em; }
 #live .card .at .t { font-family: var(--mono); font-weight: 400; margin-left: 0.6em; }
+/* in English (?lang=en): the Latin face for the world's words; less spacing, which suits Mincho, not Garamond */
+#live.en .brand .ja, #live.en .when .date, #live.en .when .ai, #live.en .band .who .name, #live.en .band .status, #live.en .sub .who, #live.en .sub .tr,
+#live.en .card .head, #live.en .card .what, #live.en .card .at { font-family: var(--latin); letter-spacing: 0.01em; }
+#live.en .card .head { letter-spacing: 0.3em; text-transform: uppercase; }
+#live.en .band .status { font-size: calc(var(--s4) * 1.1); }   /* (Garamond's small x-height reads a step smaller than Mincho at one size) */
+#live.en { font-variant-numeric: lining-nums; }   /* (Garamond's old-style 1 reads as an i: "Island year 1") */
