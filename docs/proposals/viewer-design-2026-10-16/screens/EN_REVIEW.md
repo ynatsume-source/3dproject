@@ -1,5 +1,7 @@
 # ライブ画面の英語（L5、PR #55）へのレビュー（2026-10-19）
 
+> **2026-10-20：A〜E はすべて main に入った**（PR #57、main c23be19）。この担当が origin/main で、決まり文句・日付・cairn・fitting・初めてのカード・揃い数字・`captionLang`（既定は英語）を読んで確かめた。配信の画面と YouTube 側の字幕は、試験配信で見る（`../TEST_REVIEW.md` A-8）。
+
 対象：main の `src/live/en.ts`・`src/live/live.ts`・`src/live/live.css`・`tools/live/caption-format.mjs`（origin/main 3432fe1 時点）。コードは読んだだけで、実際の配信の画面はまだ見ていない。
 英文は英国式のつづり（favour・fibre・round）でそろっているので、それに合わせた。
 
