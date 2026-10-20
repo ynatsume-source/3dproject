@@ -26,7 +26,7 @@ import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { wickQuality } from '../science/step/oil-lamp';
-import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, toClock, toReal } from '../world/process-runner';
+import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, takeMass, toClock, toReal } from '../world/process-runner';
 import { CATALOG, canResumeProcessVersion, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
@@ -516,6 +516,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the funnel's area, on the island's clock (water only waits to be caught), up to what the tubes hold. A dry spell
   // leaves it short.
   const CATCH_BAMBOO = 2e6, CATCH_AREA = 0.8, CATCH_CAP = 20e6;
+  const takeFrom = (l: LotView, mg: number) => takeMass(lab, l, mg);   // (a thing made by hand: world/process-runner.ts)
   const catchG = new THREE.Group(); catchG.visible = false; group.add(catchG);
   { const w = atHut(3.2, -2.6); catchG.position.set(w.x, L.h(w.x, w.z), w.z);
     const bam = smat(0xa8b060, 0.18), leaf = smat(0x5f7d3a, 0.06, true);
@@ -2171,7 +2172,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function makeTool(r: Resident, kind: string) {
     const t = TOOLS.find((x) => x.kind === kind); if (!t || lab.equipment[`eq:${kind}`]) return;
     for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg); if (!l) return; }
-    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg)!; l.amount.value -= m.mg; if (l.amount.value <= 0) delete lab.lots[l.lotId]; }
+    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg)!; takeFrom(l, m.mg); }
     const e = catalog.find((x) => x.built === kind), eq = [e?.equipment, ...(e?.moreEquipment ?? [])].find((q) => q?.kind === kind);
     lab.equipment[`eq:${kind}`] = { equipmentId: `eq:${kind}`, kind, catalogEntry: kind, catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params: { ...(eq?.params ?? {}) } };
     lab.world.worldVersion++; drawStore();
@@ -2662,7 +2663,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'catcher': {
         const b = shelfLots().find((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO);
         if (village.catcher || !b) break;
-        b.amount.value -= CATCH_BAMBOO; if (b.amount.value <= 0) delete lab.lots[b.lotId]; lab.world.worldVersion++;
+        takeFrom(b, CATCH_BAMBOO);
         village.catcher = { at: clockMs, areaM2: CATCH_AREA, capMg: CATCH_CAP }; showCatcher(); drawStore();
         note(r, 'catcher', {}, `雨受けを作った（竹${CATCH_BAMBOO / 1e6}kgと葉。受ける広さ${CATCH_AREA}㎡、竹筒に${CATCH_CAP / 1e6}Lまで）`);
         break;
