@@ -26,7 +26,7 @@ import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { wickQuality } from '../science/step/oil-lamp';
-import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, takeMass, toClock, toReal } from '../world/process-runner';
+import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, canTakeMass, refreshAssembled, refreshAssembledParts, startRun, takeMass, toClock, toReal } from '../world/process-runner';
 import { CATALOG, canResumeProcessVersion, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
@@ -1610,7 +1610,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         }
         if (r.holding === 'coconut') return task('store', shelfStand(), 'work', 3);
         // (a rain catcher, once there is bamboo for it on the shelf)
-        if (!village.catcher && shelfLots().some((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO)) return task('catcher', shelfStand(), 'work', 20);
+        if (!village.catcher && shelfLots().some((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && canTakeMass(l, CATCH_BAMBOO))) return task('catcher', shelfStand(), 'work', 20);
         // (coconuts for the oil it means to make, while there are few on the shelf)
         if (q < 0.45 && coconutsOnShelf() < 6) { const it = items.nearest('coconut', r.pos.x, r.pos.z, 200, r.id, clockMs); if (it) { items.claim(it, r.id); return task('fetch', [it.x, it.z], 'pick', 3, { data: it }); } }
         if (q < 0.3) return task('think', spot(home, 40, (x, z, h) => h > 11), 'think', rr(400, 1000));
@@ -2067,7 +2067,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (a tool is made when it would be used: a process that waits for it, with its own material on the shelf)
   const inputThere = (e: CatalogEntry) => !e.input || shelfLots().some((l) => l.materialId === e.input && !(l as any).reservedBy && l.amount.value >= (e.minInputMg ?? 0) && (!e.inputOk || e.inputOk(l)));
   const recipeWanted = () => TOOLS.find((t) => !lab.equipment[`eq:${t.kind}`] && catalog.some((e) => e.ready && e.built === t.kind && inputThere(e))
-    && t.materials.every((m) => shelfLots().some((l) => l.materialId === m.materialId && !(l as any).reservedBy && l.amount.value >= m.mg)));
+    && t.materials.every((m) => shelfLots().some((l) => l.materialId === m.materialId && !(l as any).reservedBy && canTakeMass(l, m.mg))));
   // (wet and seasoned wood in piles of their own: a dried pile is not wetted again by green branches)
   const freeWood = () => { const all = shelfLots().filter((l) => l.materialId === 'firewood' && !(l as any).reservedBy) as LotView[], dry = (l: LotView) => (l.quality?.water_ppm ?? 1e6) <= SEASONED_PPM; const wet = all.filter((l) => !dry(l)), dried = all.filter(dry); return wet.length >= 2 ? wet : dried.length >= 2 ? dried : wet; };
   const potForCook = () => !lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] ? shelfLots().find((l) => l.materialId === 'fired_pot' && !(l as any).reservedBy && [1, 2].includes(l.quality?.form ?? 0) && !(l.quality?.crack)) : undefined;
@@ -2171,8 +2171,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   function makeTool(r: Resident, kind: string) {
     const t = TOOLS.find((x) => x.kind === kind); if (!t || lab.equipment[`eq:${kind}`]) return;
-    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg); if (!l) return; }
-    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && x.amount.value >= m.mg)!; takeFrom(l, m.mg); }
+    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && canTakeMass(x, m.mg)); if (!l) return; }   // (every material checked takeable before any is taken: none is spent on a tool that cannot be made)
+    for (const m of t.materials) { const l = shelfLots().find((x) => x.materialId === m.materialId && !(x as any).reservedBy && canTakeMass(x, m.mg))!; takeFrom(l, m.mg); }
     const e = catalog.find((x) => x.built === kind), eq = [e?.equipment, ...(e?.moreEquipment ?? [])].find((q) => q?.kind === kind);
     lab.equipment[`eq:${kind}`] = { equipmentId: `eq:${kind}`, kind, catalogEntry: kind, catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params: { ...(eq?.params ?? {}) } };
     lab.world.worldVersion++; drawStore();
@@ -2661,7 +2661,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!items.take(tk.data)) break;
         r.holding = tk.data.kind ?? 'stone'; r.task = null; return;   // (decide() takes it on: a stone to the cairn, a coconut to the shelf)
       case 'catcher': {
-        const b = shelfLots().find((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && l.amount.value >= CATCH_BAMBOO);
+        const b = shelfLots().find((l) => l.materialId === 'bamboo' && !(l as any).reservedBy && canTakeMass(l, CATCH_BAMBOO));
         if (village.catcher || !b) break;
         takeFrom(b, CATCH_BAMBOO);
         village.catcher = { at: clockMs, areaM2: CATCH_AREA, capMg: CATCH_CAP }; showCatcher(); drawStore();

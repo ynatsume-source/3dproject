@@ -5,10 +5,12 @@
 //    left reads whole, the sum exact; all of it taken, the lot is gone
 //  3 a lot without them (an old bamboo, raw clay) loses only its mass, its quality untouched
 //  4 what is left after a rain catcher still makes a mast
+//  6 part of any other mass codec (a pith's, one to come) is refused before anything changes; more than there is cannot
+//    be taken
 //  5 part of a cord or fibre (its own codec) is refused, never left reading wrong; the whole of it may be taken
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/bamboo-carry-check.ts
 import { ISLES, BAMBOO_SOUTH } from '../src/world/planet-map';
-import { emptyLedger, addLot, takeMass } from '../src/world/process-runner';
+import { emptyLedger, addLot, takeMass, canTakeMass } from '../src/world/process-runner';
 import { readPlantMass } from '../src/world/sail-lots';
 import { SAIL_RULES } from '../src/science/prototypes/sail-raft-rules';
 
@@ -43,6 +45,14 @@ const lot = () => addLot(L, { materialId: 'bamboo', amount: { value: carry.mg, u
   let refused = false; try { takeMass(L, rope, 400); } catch { refused = true; }
   const whole = addLot(L, { materialId: 'coir_rope', amount: { value: 1000, unit: 'mg' }, location: 'shelf', quality: { fiber_dry_mg: 900, attached_pith_dry_mg: 50, water_mg: 50 } }); takeMass(L, whole, 1000);
   want('5 part of a cord is refused (its own codec), the cord untouched; all of it may be taken', refused && rope.amount.value === 1000 && rope.quality?.fiber_dry_mg === 900 && !L.lots[whole.lotId]);
+}
+{ // 6
+  const pith = addLot(L, { materialId: 'coir_pith', amount: { value: 1000, unit: 'mg' }, location: 'shelf', quality: { pith_dry_mg: 600, water_mg: 400, history_complete: 1, codec_version: 1 } });
+  const future = addLot(L, { materialId: 'x', amount: { value: 1000, unit: 'mg' }, location: 'shelf', quality: { leaf_dry_mg: 700, water_mg: 300 } });
+  const b = lot();
+  want('6 any mass codec but dry and water (a pith, one to come): part of it refused before anything changes; the whole may go',
+    !canTakeMass(pith, 500) && !canTakeMass(future, 500) && canTakeMass(pith, 1000) && (() => { try { takeMass(L, pith, 500); return false; } catch { return pith.amount.value === 1000 && pith.quality?.pith_dry_mg === 600; } })());
+  want('6 more than there is, or nothing, cannot be taken; bamboo can', !canTakeMass(b, b.amount.value + 1) && !canTakeMass(b, 0) && canTakeMass(b, 2_000_000));
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);
