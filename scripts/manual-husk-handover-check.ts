@@ -113,7 +113,8 @@ test('B1 zero certified work releases the exact original husk without replacing 
  assert.equal(p(b).certifiedWorkMs,0);assert.equal(p(b).status,'stopped');
  assert.equal(readHuskWorksite(b.L,'site',1000+ms).stage,'手つかずの殻を片付けた');
  assert.deepEqual(readHuskResidentObservations(b.L,b.runId,'actor'),[{channel:'sight',text:'殻を手つかずのまま脇に置いた。'}]);
- assert.equal(b.L.runs[b.runId].observations.at(-1)!.text,'殻を手つかずのまま脇に置いた。');
+ assert.equal(b.L.runs[b.runId],undefined);
+ assert.equal((b.L as any).manualHuskRecords.finished.at(-1).projection.abandonedAtWorldMs,1000+ms);
  balance(b);
  }
 });

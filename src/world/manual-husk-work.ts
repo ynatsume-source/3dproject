@@ -11,6 +11,9 @@ export const MANUAL_HUSK_WORK = Object.freeze({
   catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'world' as const,
   schema: 'civ-world.manual-husk-work/2', quantumMs: 30_000,
 });
+export const MANUAL_HUSK_RECORDS_SCHEMA = 'civ-world.manual-husk-records/1';
+export const MANUAL_HUSK_RECORD_LIMIT = 64;
+
 export interface HuskWorksite {locationId: string; x: number; z: number; reachM: number}
 export interface HuskWorkSpec {
   commandId: string; assumptionId: string; operatorId: string; huskCount: 1;
@@ -193,10 +196,268 @@ function observations(d: HostData, at: number): Observation[] {
   out.push({at,channel:'touch',text:p.fiber.waterMg+p.attachedPith.waterMg+p.residualHusk.waterMg>0?'繊維と殻はしっとりしている。':'繊維と殻は乾いた手ざわりだ。'});
   return out;
 }
+
+interface ManualProjection {
+  status: Run['status'];
+  certifiedWorkMs: number;
+  pendingWorkMs: number;
+  pools: ManualSeparationState['pools'];
+  completedAtWorldMs: number | null;
+  abandonedAtWorldMs: number | null;
+}
+interface FinishedManualWork {
+  runId: string;
+  commandId: string;
+  startPayload: string;
+  actorId: string;
+  throughWorldMs: number;
+  hadWork: boolean;
+  observationActorId: string | null;
+  projection: ManualProjection;
+  observations: Observation[];
+}
+interface ManualReceipt {
+  key: string;
+  payload: string;
+  runId: string;
+}
+interface ManualRecords {
+  schema: typeof MANUAL_HUSK_RECORDS_SCHEMA;
+  worldId: string;
+  worldEpoch: string;
+  floorAtWorldMs: number | null;
+  finished: FinishedManualWork[];
+  receipts: ManualReceipt[];
+}
+type RecordsLedger = Ledger & { manualHuskRecords?: ManualRecords };
+
+function recordState(L: Ledger): ManualRecords {
+  const records = (L as RecordsLedger).manualHuskRecords;
+  if (!records) {
+    return {
+      schema: MANUAL_HUSK_RECORDS_SCHEMA,
+      worldId: L.world.worldId,
+      worldEpoch: L.world.worldEpoch,
+      floorAtWorldMs: null,
+      finished: [],
+      receipts: []
+    };
+  }
+  requireHost(shape(records, [
+    'schema', 'worldId', 'worldEpoch', 'floorAtWorldMs', 'finished', 'receipts'
+  ]) && records.schema === MANUAL_HUSK_RECORDS_SCHEMA
+    && records.worldId === L.world.worldId && records.worldEpoch === L.world.worldEpoch
+    && (records.floorAtWorldMs === null || uint(records.floorAtWorldMs)) && Array.isArray(records.finished)
+    && records.finished.length <= MANUAL_HUSK_RECORD_LIMIT
+    && Array.isArray(records.receipts)
+    && records.receipts.length <= MANUAL_HUSK_RECORD_LIMIT, 'invalid-manual-records');
+  const keys = new Set<string>();
+  for (const receipt of records.receipts) {
+    requireHost(shape(receipt, ['key', 'payload', 'runId']) && id(receipt.key)
+      && typeof receipt.payload === 'string' && id(receipt.runId)
+      && !keys.has(receipt.key), 'invalid-manual-receipt');
+    keys.add(receipt.key);
+  }
+  return records;
+}
+
+
+function validateManualFinish(L: Ledger, item: FinishedManualWork): void {
+    requireHost(shape(item, [
+      'runId', 'commandId', 'startPayload', 'actorId', 'throughWorldMs',
+      'hadWork', 'observationActorId', 'projection', 'observations'
+    ]) && id(item.runId) && id(item.commandId)
+      && typeof item.startPayload === 'string' && id(item.actorId)
+      && uint(item.throughWorldMs) && typeof item.hadWork === 'boolean'
+      && (item.observationActorId === null || id(item.observationActorId)),
+      'invalid-manual-finish');
+    const p = item.projection;
+    requireHost(shape(p, [
+      'status', 'certifiedWorkMs', 'pendingWorkMs', 'pools',
+      'completedAtWorldMs', 'abandonedAtWorldMs'
+    ]) && ['completed', 'stopped'].includes(p.status)
+      && uint(p.certifiedWorkMs) && uint(p.pendingWorkMs)
+      && p.pendingWorkMs < MANUAL_HUSK_WORK.quantumMs
+      && (p.completedAtWorldMs === null || uint(p.completedAtWorldMs))
+      && (p.abandonedAtWorldMs === null || uint(p.abandonedAtWorldMs))
+      && (p.status === 'completed'
+        ? p.completedAtWorldMs !== null && p.abandonedAtWorldMs === null
+        : p.completedAtWorldMs === null && p.abandonedAtWorldMs !== null),
+      'invalid-manual-finish-projection');
+    let spec: HuskWorkSpec;
+    try {
+      spec = JSON.parse(item.startPayload);
+      checkSpec(spec);
+    } catch {
+      throw Error('manual husk host: invalid-manual-finish-source');
+    }
+    requireHost(canonical(spec) === item.startPayload
+      && spec.commandId === item.commandId
+      && item.throughWorldMs >= spec.openedAtWorldMs
+      && (item.observationActorId === null || item.observationActorId === item.actorId),
+      'invalid-manual-finish-source');
+    const end = p.abandonedAtWorldMs ?? p.completedAtWorldMs!;
+    requireHost(end >= spec.openedAtWorldMs
+      && (p.status === 'stopped' ? end >= item.throughWorldMs : end <= item.throughWorldMs),
+      'invalid-manual-finish-time');
+    const profile = createManualHuskAssumptionProfile(spec.input, MANUAL_HUSK_ASSUMPTION.id);
+    const model = createManualHuskSeparation(spec.input, profile, {
+      worldId: L.world.worldId, worldEpoch: L.world.worldEpoch,
+      runId: item.runId, openedAtWorldMs: spec.openedAtWorldMs
+    });
+    const horizon = profile.knots.at(-1)!.workMs;
+    const quantum = MANUAL_HUSK_WORK.quantumMs;
+    const maximum = Number((BigInt(horizon) + BigInt(quantum) - 1n)
+      / BigInt(quantum) * BigInt(quantum));
+    requireHost(p.certifiedWorkMs % quantum === 0 && p.certifiedWorkMs <= maximum
+      && (p.status === 'completed' ? p.certifiedWorkMs >= horizon : p.certifiedWorkMs < horizon)
+      && item.hadWork === (p.certifiedWorkMs > 0 || p.pendingWorkMs > 0),
+      'invalid-manual-finish-work');
+    let science = model.start();
+    if (p.certifiedWorkMs > 0) {
+      science = model.commit(science, {
+        kind: 'host-confirmed-manual-work', confirmationId: 'summary-validation',
+        worldId: L.world.worldId, worldEpoch: L.world.worldEpoch,
+        runId: item.runId, actorId: spec.operatorId, attendance: 'present',
+        operation: 'separate-wet-husk', fromWorldMs: spec.openedAtWorldMs,
+        toWorldMs: add(spec.openedAtWorldMs, p.certifiedWorkMs),
+        confirmedAtWorldMs: add(spec.openedAtWorldMs, p.certifiedWorkMs)
+      });
+    }
+    requireHost(canonical(science.pools) === canonical(p.pools),
+      'invalid-manual-finish-pools');
+    requireHost(Array.isArray(item.observations) && item.observations.length <= 4
+      && item.observations.every(o => shape(o, ['at', 'channel', 'text'])
+        && uint(o.at) && ['sight', 'touch'].includes(o.channel)
+        && typeof o.text === 'string'), 'invalid-manual-finish-observations');
+
+}
+
+/** Full validation belongs to save restoration. Hot reads inspect their selected
+ * bounded entry, not every historical finished job. */
+export function validateManualHuskRecords(L: Ledger): void {
+  const records = recordState(L);
+  const ids = new Set<string>();
+  for (const item of records.finished) {
+    requireHost(!ids.has(item.runId), 'duplicate-manual-finish');
+    ids.add(item.runId);
+    validateManualFinish(L, item);
+  }
+}
+
+function finishedWork(L: Ledger, runId: string): FinishedManualWork {
+  const item = recordState(L).finished.find(r => r.runId === runId);
+  requireHost(item, 'unknown-or-expired-manual-run');
+  validateManualFinish(L, item);
+  return item;
+}
+
+function projectionOf(run: Run, d: HostData): ManualProjection {
+  return {
+    status: run.status,
+    certifiedWorkMs: d.science.totalWorkMs,
+    pendingWorkMs: d.pendingWorkMs,
+    pools: clone(d.science.pools),
+    completedAtWorldMs: d.completedAtWorldMs,
+    abandonedAtWorldMs: d.abandonedAtWorldMs
+  };
+}
+
+function archiveManualWork(L: Ledger, run: Run, d: HostData): void {
+  requireHost(d.completedAtWorldMs !== null || d.abandonedAtWorldMs !== null,
+    'cannot-archive-active-manual-run');
+  const records = clone(recordState(L));
+  const assignedAt = d.assignments.at(-1)!.atWorldMs;
+  const worked = d.frames.filter(f => isWork(f, d.spec, d.assignments));
+  const item: FinishedManualWork = {
+    runId: run.runId,
+    commandId: d.spec.commandId,
+    startPayload: canonical(d.spec),
+    actorId: run.operator,
+    throughWorldMs: d.observedThroughWorldMs,
+    hadWork: worked.length > 0,
+    observationActorId: worked.some(f => f.actorId === run.operator
+      && f.fromWorldMs >= assignedAt) ? run.operator : null,
+    projection: projectionOf(run, d),
+    observations: observations(d,
+      d.abandonedAtWorldMs ?? d.completedAtWorldMs ?? d.observedThroughWorldMs)
+  };
+  requireHost(!records.finished.some(r => r.runId === run.runId),
+    'duplicate-manual-finish');
+  records.finished.push(item);
+  for (const frame of d.frames.slice(-MANUAL_HUSK_RECORD_LIMIT)) {
+    records.receipts.push({
+      key: JSON.stringify([run.runId, frame.spanId]),
+      payload: canonical(frame),
+      runId: run.runId
+    });
+  }
+  records.receipts = records.receipts.slice(-MANUAL_HUSK_RECORD_LIMIT);
+  while (records.finished.length > MANUAL_HUSK_RECORD_LIMIT) {
+    const removed = records.finished.shift()!;
+    const spec = JSON.parse(removed.startPayload) as HuskWorkSpec;
+    records.floorAtWorldMs = Math.max(records.floorAtWorldMs ?? 0, spec.openedAtWorldMs);
+  }
+  (L as RecordsLedger).manualHuskRecords = records;
+  delete L.runs[run.runId];
+}
+
+/** Validate old terminal states before replacing their replay history with a
+ * bounded world-only summary. The ID allocator and material lots are untouched. */
+export function compactManualHuskRecords(L: Ledger): void {
+  recordState(L);
+  for (const run of Object.values(L.runs)) {
+    if (run.processId !== MANUAL_HUSK_WORK.processId
+      || !['completed', 'stopped'].includes(run.status)) continue;
+    const checked = dataOf(L, run.runId);
+    archiveManualWork(L, checked.run, checked.data);
+  }
+}
+
+/** Current authority is read independently of the retained ledger run. A finished
+ * entry contains only the projection and safe observations, not replay frames. */
+export function readManualHuskWorkAuthority(L: Ledger, runId: string) {
+  if (!L.runs[runId]) {
+    const done = finishedWork(L, runId);
+    return {
+      projection: clone(done.projection),
+      spec: JSON.parse(done.startPayload) as HuskWorkSpec,
+      operatorId: done.actorId,
+      observedThroughWorldMs: done.throughWorldMs,
+      hadWork: done.hadWork,
+      observationActorId: done.observationActorId,
+      observations: clone(done.observations)
+    };
+  }
+  const { run, data } = dataOf(L, runId);
+  const worked = data.frames.filter(f => isWork(f, data.spec, data.assignments));
+  const assignedAt = data.assignments.at(-1)!.atWorldMs;
+  return {
+    projection: projectionOf(run, data),
+    spec: clone(data.spec),
+    operatorId: run.operator,
+    observedThroughWorldMs: data.observedThroughWorldMs,
+    hadWork: worked.length > 0,
+    observationActorId: worked.some(f => f.actorId === run.operator
+      && f.fromWorldMs >= assignedAt) ? run.operator : null,
+    observations: observations(data,
+      data.abandonedAtWorldMs ?? data.completedAtWorldMs ?? data.observedThroughWorldMs)
+  };
+}
+
 /** Only the WORLD calls this with a known single husk and explicit dry/water
  * facts. No conversion from the generic main coconut_husk, guessed ppm/counts. */
 export function beginManualHuskWork(L: Ledger, spec: HuskWorkSpec): {runId: string} {
   checkSpec(spec);
+  const records = recordState(L);
+  const prior = records.finished.find(r => r.commandId === spec.commandId);
+  if (prior) {
+    validateManualFinish(L, prior);
+    requireHost(prior.startPayload === canonical(spec), 'conflicting-start-replay');
+    return { runId: prior.runId };
+  }
+  requireHost(records.floorAtWorldMs === null || spec.openedAtWorldMs > records.floorAtWorldMs,
+    'expired-manual-command');
   for (const r of Object.values(L.runs)) if (r.processId===MANUAL_HUSK_WORK.processId && (r.state?.data as HostData)?.spec?.commandId===spec.commandId) {
     const old=dataOf(L,r.runId);
     requireHost(canonical(old.data.spec)===canonical(spec), 'conflicting-start-replay');
@@ -217,12 +478,12 @@ export function beginManualHuskWork(L: Ledger, spec: HuskWorkSpec): {runId: stri
 }
 /** Full world-only accounting, not an AI/resident input. */
 export function projectManualHuskWork(L: Ledger, runId: string) {
-  const {run,data:d}=dataOf(L,runId);
-  return {status:run.status,certifiedWorkMs:d.science.totalWorkMs,pendingWorkMs:d.pendingWorkMs,
-    pools:clone(d.science.pools),completedAtWorldMs:d.completedAtWorldMs,abandonedAtWorldMs:d.abandonedAtWorldMs};
+  if (!L.runs[runId]) return clone(finishedWork(L, runId).projection);
+  const {run, data} = dataOf(L, runId);
+  return projectionOf(run, data);
 }
 export function observeManualHuskWork(L: Ledger, runId: string): Observation[] {
-  const {data:d}=dataOf(L,runId); return observations(d,d.abandonedAtWorldMs??d.completedAtWorldMs??d.observedThroughWorldMs);
+  return readManualHuskWorkAuthority(L, runId).observations;
 }
 function settlement(d: HostData): ScienceStepResult['produced'] {
   const p=d.science.pools, history=d.source.quality!.history_complete, produced: ScienceStepResult['produced']=[];
@@ -241,6 +502,16 @@ function settlement(d: HostData): ScienceStepResult['produced'] {
 /** No timers: a gap stays a gap. Saves retain pending sub-30-second work, while
  * restoring the ledger cannot generate new attendance or settle inventory. */
 export function recordManualHuskSpan(L: Ledger, runId: string, span: HuskExecutorSpan, nowWorldMs: number): {status: Run['status']; observations: Observation[]} {
+  if (!L.runs[runId]) {
+    const done = finishedWork(L, runId);
+    const prior = recordState(L).receipts.find(r =>
+      r.key === JSON.stringify([runId, span?.spanId]));
+    requireHost(prior && prior.payload === canonical(span),
+      'unknown-or-conflicting-finished-span');
+    requireHost(uint(nowWorldMs) && uint(span?.confirmedAtWorldMs)
+      && span.confirmedAtWorldMs <= nowWorldMs, 'future-or-unconfirmed-span');
+    return { status: done.projection.status, observations: clone(done.observations) };
+  }
   const old=dataOf(L,runId); checkFrame(span,old.data);
   requireHost(uint(nowWorldMs) && span.confirmedAtWorldMs<=nowWorldMs && span.toWorldMs<=nowWorldMs, 'future-or-unconfirmed-span');
   const previous=old.data.frames.find(f=>f.spanId===span.spanId);
@@ -271,7 +542,9 @@ export function recordManualHuskSpan(L: Ledger, runId: string, span: HuskExecuto
       evidence:{evaluatorVersion:MANUAL_HUSK_WORK.processVersion,sourceRefs:[],notes:'owner-assumption-not-calibrated; explicit '+d.spec.assumptionId},
     };
     const applied=commit(copy,req,result); requireHost(applied.ok,applied.why??'settlement-refused');
-    return {status:r.status,observations:nextObs};
+    const status = r.status;
+    if (next.completedAtWorldMs !== null) archiveManualWork(copy, r, next);
+    return {status, observations: nextObs};
   });
 }
 
@@ -288,6 +561,12 @@ export function reassignManualHuskWork(L:Ledger,runId:string,actorId:string,atWo
 }
 /** Settle complete quanta only; untouched husks keep their original identity. */
 export function abandonManualHuskWork(L:Ledger,runId:string,atWorldMs:number):void{
+  if (!L.runs[runId]) {
+    const done = finishedWork(L, runId);
+    requireHost(done.projection.abandonedAtWorldMs === atWorldMs,
+      'conflicting-abandon-replay');
+    return;
+  }
   const old=dataOf(L,runId);
   if(old.data.abandonedAtWorldMs!==null){
     requireHost(old.data.abandonedAtWorldMs===atWorldMs,'conflicting-abandon-replay');return;
@@ -313,5 +592,6 @@ export function abandonManualHuskWork(L:Ledger,runId:string,atWorldMs:number):vo
       evidence:{evaluatorVersion:MANUAL_HUSK_WORK.processVersion,sourceRefs:[],notes:'owner-assumption-not-calibrated; partial settlement'},
     };
     const applied=commit(copy,req,res);requireHost(applied.ok,applied.why??'settlement-refused');
+    archiveManualWork(copy, r, next);
   });
 }
