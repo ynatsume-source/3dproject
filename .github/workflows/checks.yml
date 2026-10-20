@@ -66,6 +66,24 @@ jobs:
             if (existsSync(file)) console.log(file + '\n' + readFileSync(file, 'utf8'));
           }
           JS
+      - name: Show cord load check evidence
+        if: always()
+        run: |
+          node --input-type=module <<'JS'
+          import { existsSync, readFileSync } from 'node:fs';
+          const names = new Set(['cord-load-compaction', 'coir-cord-load',
+            'coir-cord-identity', 'cord-integer-load']);
+          const file = 'check-results/fast/results.json';
+          if (existsSync(file)) {
+            for (const result of JSON.parse(readFileSync(file, 'utf8'))) {
+              if (!['passed', 'completed'].includes(result.status)) names.add(result.name);
+            }
+          }
+          for (const name of names) {
+            const log = 'check-results/fast/' + name + '.log';
+            if (existsSync(log)) console.log(log + '\n' + readFileSync(log, 'utf8'));
+          }
+          JS
       - name: Keep check results
         if: always()
         uses: actions/upload-artifact@v4
