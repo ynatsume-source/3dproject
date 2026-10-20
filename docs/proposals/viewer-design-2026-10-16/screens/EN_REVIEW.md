@@ -16,7 +16,7 @@
 
 | いま | 案 | なぜ |
 |---|---|---|
-| `Dot's island` | `Dot's Island` | 島の名前（固有名）なので語頭を大文字に |
+| `Dot's island` | `Dot's Island` | 島の名前（固有名）なので語頭を大文字に（→ 2026-10-20 の D23 で、ブランドの2行目は `Series 1 · Lumau` に改めた。英語では「Dot's Island」を使わない） |
 | `The residents are AIs · Filmed automatically` | `The residents are AI · filmed automatically` | 英語では AI を数えない言い方が自然。中点のあとは続きの文なので小文字 |
 | `Island year 1 · Dec 17` | `Island year 1 · 17 December` | 略さないほうが落ち着く。英国式の日付の順に合わせる |
 | `busy at something`（表にない状態） | **何も出さない**（名前だけにする） | 「何かで忙しい」は、休んでいるときにも出ると事実と違う。分からないときは書かないほうが、この画面の「事実だけ」の方針に合う |

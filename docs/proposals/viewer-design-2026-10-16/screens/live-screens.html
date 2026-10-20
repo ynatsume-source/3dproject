@@ -44,9 +44,11 @@
   .plate.top { background: rgba(var(--shade), calc(var(--pa) * .7)); -webkit-backdrop-filter: brightness(calc(var(--pb) + .08)); backdrop-filter: brightness(calc(var(--pb) + .08)); }
   /* brand: top left */
   #brand { position: absolute; left: 96px; top: 64px; }
-  #brand .n { font: 500 var(--s3)/1 var(--caps); letter-spacing: .34em; }
-  #brand .s { font: 500 var(--s1)/1 var(--text); letter-spacing: .24em; color: var(--ink2); margin-top: 12px; }
-  .en #brand .s { letter-spacing: .12em; font-style: italic; font-size: var(--s2); }
+  /* the project, then the series (D23): Utsushiyo Project / Series 1 ルマウ */
+  #brand .n { font: 500 var(--s2)/1 var(--caps); letter-spacing: .3em; }
+  #brand .s { font: 500 var(--s2)/1 var(--text); font-variant-numeric: lining-nums; letter-spacing: .24em; color: var(--ink2); margin-top: 12px; }
+  #brand .ser { font: italic 500 var(--s2)/1 var(--lat); font-variant-numeric: lining-nums; letter-spacing: .06em; margin-right: .7em; color: var(--ink3); }
+  .en #brand .s { letter-spacing: .12em; font-style: italic; }
 
   /* the island's time: top right */
   #clock { position: absolute; right: 96px; top: 62px; text-align: right; }
@@ -107,7 +109,7 @@
 <div id="glow" hidden style="position:absolute;left:1380px;top:600px;width:620px;height:360px;background:radial-gradient(ellipse 50% 50% at 50% 55%, rgba(255,214,140,.9) 0%, rgba(255,186,96,.35) 18%, rgba(255,170,80,.12) 45%, transparent 75%)"></div><!-- (the lamp's light: drawn in for the mock only; how it really looks is the nature team's) -->
 <div id="plates"></div>
 
-<div class="t" id="brand"><div class="n">UTSUSHIYO</div><div class="s" data-ja="ドットたちの島" data-en="Dot's Island">ドットたちの島</div></div>
+<div class="t" id="brand"><div class="n">UTSUSHIYO PROJECT</div><div class="s"><i class="ser">Series 1</i><span data-ja="ルマウ" data-en="Lumau">ルマウ</span></div></div>
 <div class="t" id="clock"><div class="d"><span id="date">島暦1年 6月1日</span><span class="h" id="hour">10:24</span></div><div class="ai" data-ja="住人はAIです ・ 映像は自動で撮影しています" data-en="The residents are AI · filmed automatically">住人はAIです ・ 映像は自動で撮影しています</div></div>
 
 <div class="t" id="lower">

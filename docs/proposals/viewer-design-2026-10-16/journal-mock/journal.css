@@ -74,6 +74,11 @@ img { display: block; width: 100%; height: auto; }
 /* front page */
 .intro { margin: 80px auto 0; text-align: center; max-width: 640px; }
 .intro p { font: 500 15px/2.1 var(--jp); color: var(--ink2); margin: 0; }
+.intro .series { margin: 0 0 34px; color: var(--ink); }
+.intro .series i { display: block; font: italic 500 17px/1 "Cormorant Garamond", serif; font-variant-numeric: lining-nums; letter-spacing: .08em; color: var(--ink3); }
+.intro .series { font: 600 30px/1 var(--jp); letter-spacing: .42em; text-indent: .42em; }
+.intro .series i { margin-bottom: 14px; text-indent: 0; }
+.intro .series span { display: block; font: 500 15px/1 var(--jp); letter-spacing: .36em; text-indent: .36em; color: var(--ink2); margin-top: 16px; }
 .intro .rule { width: 80px; height: 1px; background: var(--sand); opacity: .7; margin: 30px auto 0; }
 .list { margin: 72px auto 0; max-width: 980px; }
 .day { display: grid; grid-template-columns: 150px 1fr; gap: 30px; padding: 36px 0; border-top: 1px solid var(--line); }
@@ -96,11 +101,13 @@ img { display: block; width: 100%; height: auto; }
 .live-band p { font: 500 14px/1.9 var(--jp); color: var(--ink2); margin: 10px 0 0; }
 .foot { margin-top: 0; padding: 50px 0 70px; font: 500 12px/2 var(--jp); color: var(--ink3); letter-spacing: .08em; }
 .foot .n { font: 500 13px/1 var(--caps); letter-spacing: .34em; color: var(--ink2); }
+.foot .n i { font: italic 500 14px/1 "Cormorant Garamond", serif; font-variant-numeric: lining-nums; letter-spacing: .06em; margin: 0 .5em 0 .6em; }
+.foot .n .j { font-family: var(--jp); letter-spacing: .24em; }
 
 @media (max-width: 720px) {
   body { font-size: 16px; }
   .mast { top: 22px; } .mast nav { gap: 16px; font-size: 13px; } .mast nav a:not(.live) { display: none; }
-  .home .t { font-size: 22px; }
+  .home .n { letter-spacing: .22em; font-size: 13px; } .home .t { font-size: 22px; }
   .hero { height: 82vh; min-height: 560px; }
   .hero .cap { bottom: 40px; }
   .word { margin-top: 56px; } .word p { font-size: 18px; }
