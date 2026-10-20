@@ -37,7 +37,7 @@ export function otherScienceWorkBusy(
       manual = false;
       engaged = false;
     } else if (r.processId === 'prototype_sail_work') {
-      if (r.state?.schema !== 'civ-world.sail-work/1' || !d?.spec
+      if (!['civ-world.sail-work/1', 'civ-world.sail-work/2'].includes(r.state?.schema ?? '') || !d?.spec
         || typeof d.actorId !== 'string' || typeof d.engaged !== 'boolean') {
         throw Error('invalid-science-occupancy');
       }
