@@ -291,7 +291,9 @@ const WIDE: Record<string, number> = { 'fiber-bundle': 0.16, 'wet-husk': 0.2, 'p
 // (fixtures drawn at their worksite's own spot rather than in the row: the sail's pandanus, the raft (main draws its
 // logs; on it, what the world says is aboard); the row then lies this far to one side of it)
 const ANCHOR: Record<string, number> = { 'pandanus-tree': 1.5, raft: 1.4 };
-const RAFT_DECK = 0.16;   // (the top of main's raft logs over the sand: residents.ts drawRaft)
+const RAFT_DECK = 0.16;
+// (how far each thing reaches across the row, laid as it is: what lies into a room from a wall needs it)
+const DEEP: Record<string, number> = { 'pandanus-leaves': 1.4, 'pandanus-strips': 1.05, 'sail-mat': 1.3, 'bamboo-mast': SAIL_SIZE.mastL + 0.05, 'beat-board': 0.3, 'drying-rack': 0.2 };   // (the top of main's raft logs over the sand: residents.ts drawRaft)
 const CAP = 12;   // of each kind and look, over all worksites
 
 export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: number) => number, plantMat?: THREE.Material) {
@@ -350,7 +352,10 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
    *  sites it does not know are not drawn. Drawn: fibre bundles, soaked and beaten husks (each wet or dry), yarn
    *  (fuzzy, smooth) and cord (smooth, frayed, broken); any other kind/look pair is skipped. A thing on a fixture
    *  (WorksiteThing.on) lies on the board or hangs on the rack; one whose fixture is not there lies in the row. */
-  function set(looks: WorksiteLook[], where: (siteId: string) => { x: number; z: number; face: number } | null, lab = false) {
+  // where(siteId): the site's spot and the way its row runs; `wall`: the spot is at a wall (the world gave the site its own
+  // facing: residents.ts worksiteSpots face, the drying place under the hut's back roof) — the things then lie into the
+  // room from it (toward the facing's own +z), their far ends at the spot, not across the wall.
+  function set(looks: WorksiteLook[], where: (siteId: string) => { x: number; z: number; face: number; wall?: boolean } | null, lab = false) {
     for (const ms of Object.values(sets)) for (const m of ms) m.count = 0;
     for (const site of looks) {
       const at = where(site.siteId); if (!at) continue;
@@ -375,7 +380,7 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
       for (const it of shown) {
         const w = wide(it), fx = it.key.startsWith('fixture/'); off += w / 2;
         // (side by side across the worksite, as they would be laid down; each its own small turn and size)
-        const j = (u(it.id, 'jit') - 0.5) * 0.04;
+        const j = (u(it.id, 'jit') - 0.5) * 0.04 - (at.wall ? (DEEP[it.kind] ?? 0.4) / 2 + 0.05 : 0);   // (j: toward −z of the facing)
         const x = at.x + ox + Math.cos(at.face) * off - Math.sin(at.face) * j, z = at.z + oz - Math.sin(at.face) * off - Math.cos(at.face) * j, y = groundAt(x, z);
         const rot = at.face + (fx ? 0 : Math.PI / 2) + (u(it.id, 'turn') - 0.5) * (fx ? 0.12 : it.kind === 'fiber-bundle' ? 0.35 : it.kind === 'sail-mat' || it.kind === 'bamboo-mast' ? 0.15 : 0.8);
         put(sets[it.key], x, y, z, rot, fx || it.kind === 'sail-mat' || it.kind === 'bamboo-mast' ? 1 : 0.9 + 0.2 * u(it.id, 'size'));
@@ -415,11 +420,11 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
   /** Keep to what the world says: read `looks()` and `spots()` (the residents' worksiteLooks / worksiteSpots) about once
    *  a second while drawn — laid out again only when something there has changed. */
   let readAt = -1e9, last = '';
-  function follow(looks: () => WorksiteLook[], spots: () => Record<string, { x: number; z: number }>, face = 0.4) {
+  function follow(looks: () => WorksiteLook[], spots: () => Record<string, { x: number; z: number; face?: number }>, face = 0.4) {
     sets['fiber-bundle/wet'][0].onBeforeRender = () => {   // (always drawn: frustumCulled off; a mesh's hook, so it costs nothing when the sea is not)
       const now = performance.now(); if (now - readAt < 1000) return; readAt = now;
       const L = looks(), key = JSON.stringify(L); if (key === last) return; last = key;
-      const S = spots(); set(L, (id) => (S[id] ? { x: S[id].x, z: S[id].z, face } : null));
+      const S = spots(); set(L, (id) => (S[id] ? { x: S[id].x, z: S[id].z, face: S[id].face ?? face, wall: S[id].face !== undefined } : null));   // (a site's own facing: at a wall)
     };
   }
   return { group, set, follow, counts };
