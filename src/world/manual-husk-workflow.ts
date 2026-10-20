@@ -37,6 +37,9 @@ interface Arrangement {
   finished: FinishedJob[];
   floorAtWorldMs: number | null;
 }
+interface LegacyArrangement extends Omit<Arrangement, 'schema' | 'finished' | 'floorAtWorldMs'> {
+  schema: 'civ-world.manual-husk-arrangement/2';
+}
 export type HuskWorkflowLedger=Ledger&{manualHuskArrangement?:Arrangement};
 export interface HuskWorksiteView {
  title:string;stage:string;activity:'available'|'waiting'|'working'|'paused'|'completed'|'abandoned';
@@ -125,9 +128,9 @@ function metadata(L:HuskWorkflowLedger):Arrangement{
  }
  return m;
 }
-function legacyMetadata(L:HuskWorkflowLedger):Arrangement{
- const m=(L as any).manualHuskArrangement;
- if(!m){ensure(!Object.values(L.runs).some(r=>r.processId===MANUAL_HUSK_WORK.processId),'missing-arrangement');return empty(L);}
+function legacyMetadata(L:HuskWorkflowLedger):LegacyArrangement{
+ const m=(L as unknown as {manualHuskArrangement?:LegacyArrangement}).manualHuskArrangement;
+ ensure(m,'missing-arrangement');
  ensure(shape(m,['schema','worldId','worldEpoch','revision','authorityAtWorldMs','jobs','receipts'])&&m.schema==='civ-world.manual-husk-arrangement/2'&&m.worldId===L.world.worldId&&m.worldEpoch===L.world.worldEpoch
  &&uint(m.revision)&&uint(m.authorityAtWorldMs)&&Array.isArray(m.jobs)&&Array.isArray(m.receipts),'unsupported-arrangement');
  const jobs=new Set<string>(),sites=new Set<string>(),actors=new Set<string>();
