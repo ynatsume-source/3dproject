@@ -1,0 +1,16 @@
+1 the pool at the lagoon's or the sea's edge, about −0.2 m: -0.17 m, lagoon ok
+1 a dry spot to stand on, within reach: 0.47 m, 2.3 m off ok
+1 a pool saved before: placed again, its id kept: (63.4, -78.9) ok
+2 every other worksite above the highest tide and its run-up: husk-work 1.71, cord-dry 1.77, cord-work 1.69, cord-hang 1.73, sail-tree-0 1.13, sail-tree-1 1.40, sail-dry 1.82, sail-work 1.67 ok
+2 every lot at a worksite above it too: 6 lots at worksites ok
+3 each minute under the water or not by the sea at its middle: 64 spans ok
+3 low water not counted: 13.9 of 13.9 island hours under (100%) FAIL
+3 closed twelve hours and loaded: the same spans, the same time under: 13.9 h FAIL
+/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr73/scripts/husk-tide-check.ts:71
+  const fr: any[] = (Object.values(L.runs)[0] as any).state.data.frames, wet = Object.values(L.lots).filter((l: any) => l.materialId === 'wet_unseparated_coconut_husk') as any[];
+                                            ^
+
+TypeError: Cannot read properties of undefined (reading 'state')
+    at <anonymous> (/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr73/scripts/husk-tide-check.ts:71:45)
+
+Node.js v22.22.0

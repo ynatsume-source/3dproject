@@ -1,0 +1,46 @@
+diff --cc src/robots/husk-host.ts
+index 1ee2fc5,4070b3c..0000000
+--- a/src/robots/husk-host.ts
++++ b/src/robots/husk-host.ts
+@@@ -122,16 -139,21 +145,21 @@@ export function makeHuskHost(ctx: 
+      } catch (e) { moveLot(L(), lot.lotId, was); log(nowWorldMs, actorId, 'soak', e); return null; }
+    }
+  
+-   function tick(nowWorldMs: number) {
++   // The pool's time, confirmed in spans of a minute of the world's clock (about 13 island minutes): each one under the
++   // water or not by the sea at its middle (science 2026-10-20, (c)). A long time away — the world closed, up to 12
++   // hours — is sent the same way, a minute at a time, so the tide's comings and goings are in it; the sea is the time's
++   // alone, so a reload gives the same spans as staying open. `all`: up to now, the last part-minute too (taking out).
++   function tick(nowWorldMs: number, all = false) {
+      for (const r of soakRuns()) {
+-       const from = st().soak[r.runId]; if (from === undefined) { st().soak[r.runId] = nowWorldMs; continue; }
+-       if (nowWorldMs - from < SOAK_EVERY_MS) continue;
+-       // (v1, science 2026-10-17: in the pool the whole time it lies there — the tide and a storm do not cut the span)
+-       try {
+-         recordHuskSoakSpan(L(), r.runId, { recordId: `${r.runId}:${from}`, worldId: L().world.worldId, worldEpoch: L().world.worldEpoch, runId: r.runId,
+-           siteId: sites().pool.id, fromWorldMs: from, toWorldMs: nowWorldMs, fromIslandMs: island(from), toIslandMs: island(nowWorldMs), confirmedAtWorldMs: nowWorldMs, immersed: true }, nowWorldMs);
+-         st().soak[r.runId] = nowWorldMs;
+-       } catch (e) { log(nowWorldMs, '', 'soak-span', e); }
++       let from = st().soak[r.runId]; if (from === undefined) { st().soak[r.runId] = nowWorldMs; continue; }
++       while (nowWorldMs - from >= SOAK_EVERY_MS || (all && nowWorldMs > from)) {
++         const to = Math.min(nowWorldMs, from + SOAK_EVERY_MS);
++         try {
++           recordHuskSoakSpan(L(), r.runId, { recordId: `${r.runId}:${from}`, worldId: L().world.worldId, worldEpoch: L().world.worldEpoch, runId: r.runId,
+ -            siteId: sites().pool.id, fromWorldMs: from, toWorldMs: to, fromIslandMs: island(from), toIslandMs: island(to), confirmedAtWorldMs: nowWorldMs, immersed: immersed(from, to) }, nowWorldMs);
+++            siteId: sites().pool.id, fromWorldMs: from, toWorldMs: to, fromIslandMs: island(from), toIslandMs: island(to), confirmedAtWorldMs: to, immersed: immersed(from, to) }, nowWorldMs);
++           st().soak[r.runId] = from = to;
++         } catch (e) { log(nowWorldMs, '', 'soak-span', e); break; }
++       }
+      }
+    }
+  
+@@@ -231,7 -254,8 +260,8 @@@
+  
+    function restore(nowWorldMs: number) {
+      st().engaged = {};   // (no hands are at a husk across a load: its time off is not work)
+ -    try { restoreHuskSoak(L()); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
+ +    try { Object.assign(ctx.lab, restoreHuskSoak(L())); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
++     carryUp(nowWorldMs);   // (husks taken out before, and left at the pool: carried up)
+      if (!L().manualHuskArrangement) return;
+      try { Object.assign(ctx.lab, restoreHuskArrangement(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-husk', e); }
+    }

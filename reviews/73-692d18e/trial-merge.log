@@ -1,0 +1,6 @@
+Auto-merging scripts/check-manifest.mjs
+Auto-merging scripts/husk-host-check.ts
+Auto-merging src/robots/husk-host.ts
+CONFLICT (content): Merge conflict in src/robots/husk-host.ts
+Auto-merging src/robots/residents.ts
+Automatic merge failed; fix conflicts and then commit the result.

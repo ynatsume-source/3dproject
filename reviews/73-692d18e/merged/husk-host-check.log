@@ -1,0 +1,31 @@
+1 only what the materials allow: with husks on the shelf, putting them in the pool: soak:pool ok
+1 Dot is offered the husk among its other options (nothing it cannot do yet: no beating, no taking out): photo:fire,soak:pool,photo:kame,photo:rakko,photo:lantern,photo:hut,photo:shelf,photo:bench,photo:tree#3,say:plan:hut:kame,say:plan:hut:lantern,say:plan:hut:rakko,craft:bench,survey:horizon ok
+2 put in the tide pool when Dot was there: a soaking run, the husks at the pool: running site:husk-pool ok
+7 the pool full (husks soaking in it): putting more in not offered, with husks still on the shelf: takeout:pool ok
+7 standing at the pool: what it sees of the husks, in words: 0.4 m; 潮だまりの殻を見た：まだ硬く、乾いている ok
+2 the pool's time confirmed as it passes: 10 spans ok
+3 taken out early: two husks, one by one: site:husk-work,site:husk-work ok
+3 tried at the worksite, too little soaked: what it felt, from the science side's own words: manual husk: assumption has insufficient input water for this recipe ok
+8 caught up on by habit: no hand work — nothing put in, taken out or started, the husks where they were: runs 2→2, running, on the shelf 1, refusals  ok
+8 the pool's time across the load: a minute at a time, from the last confirmed moment to the first one back, no gap: 64 spans FAIL
+7 away from the pool nothing seen of it; at it, how the husks are now: 潮だまりの殻を見た：殻が水を吸って重くなってきた ok
+4 soaked five island days, taken out, beaten: a fibre bundle at the worksite: site:husk-work ok
+4 drawn at the worksite: the beating board (a husk was beaten there), the fibre bundle there: {"siteId":"site:husk-work","fixtures":[{"id":"fixture:husk-board","kind":"beat-board"}],"items":[{"id":"thing:1akp2kq","kind":"fiber-bundle","look":"wet"},{"id":"thing:1auoo9p","kind":"partial-husk","look":"wet"},{"id":"thing:o483y6","kind":"wet-husk","look":"wet"}]} ok
+7 the worksite taken (Dot's hands at a husk): beating or clearing not offered to another, a wet husk free all the same: lantern soak:pool; dot beat:husk,soak:pool ok
+5 drawn while at work: the husk in hand on the board, the bundle beside it: [{"id":"thing:1akp2kq","kind":"fiber-bundle","look":"wet"},{"id":"thing:1auoo9p","kind":"partial-husk","look":"wet"},{"id":"thing:o483y6","kind":"wet-husk","look":"wet","on":"fixture:husk-board"}] ok
+5 stopped half way: the stop told (its mind may take it up again at once), the husk kept: start,stop,resume ok
+5 saved and loaded an hour later: paused (its hands left the husk at the load), no work counted for the time away: start,stop,resume,restore ok
+5 resumed: the second husk finished: completed bundles 2 ok
+6 (the markers are real: the world's own ledger holds them, and the developer's log holds a code): manual husk: assumption has insufficient input water for this recipe ok
+6 no amount or code in its diary, its mind's input, the day's post prompt or its saved memory:  /  /  /  ok
+6 the husk's words in its diary: 濡れた殻を打ってほぐす / 濡れた殻を打ってほぐす / 濡れた殻を打ってほぐす / 濡れた殻を打ってほぐす：できた（ほぐれた繊維が束になっている。残った殻にも筋がついている。繊維と殻はしっとりしている） ok
+/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr73/src/robots/husk-host.ts:93
+    if (s.pool.ground === undefined || !s.pool.stand) s.pool = ctx.repool(s.pool);   // (the id kept: the lots and the run there stay as they are)
+                                                                   ^
+
+TypeError: ctx.repool is not a function
+    at sites (/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr73/src/robots/husk-host.ts:93:68)
+    at Object.putInPool (/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr73/src/robots/husk-host.ts:137:18)
+    at <anonymous> (/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/pr73/scripts/husk-host-check.ts:174:50)
+
+Node.js v22.22.0

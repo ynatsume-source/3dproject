@@ -1,0 +1,27 @@
+import './node-land';
+const { makeHuskHost, emptyHuskHostState, IMMERSED_M } = await import('../src/robots/husk-host');
+const { addLot, emptyLedger } = await import('../src/world/process-runner');
+const { tide } = await import('../src/time/astro');
+const { DOTWORLD } = await import('../src/data/locations'); const loc: any = DOTWORLD;
+const sea = (ms: number) => tide(ms, loc.lat, loc.lon, loc.tide.amp, loc.tide.lag, loc.tide.diurnal).h;
+const pool = { id: 'site:husk-pool', x: 0, z: 0, ground: -0.2, stand: [2, 0] as [number, number] }, work = { id: 'site:husk-work', x: 20, z: 0, reachM: 2 };
+const t0 = Date.parse('2026-10-06T00:00:00Z'), END = t0 + 12 * 3600e3;
+const run = (every: number) => {
+  const L = emptyLedger('w', 'tide'), st = emptyHuskHostState();
+  addLot(L, { materialId: 'coconut_husk', amount: { value: 2_400_017, unit: 'mg' }, location: 'shelf', quality: { count: 2, water_ppm: 300_000, ash_dry_ppm: 20_000, history_complete: 1 } });
+  const H = makeHuskHost({ lab: L, state: () => st, dev: [], placeSites: () => ({ pool: { ...pool }, work }), repool: () => ({ ...pool }), seaAt: sea });
+  H.putInPool('dot', t0);
+  for (let t = t0 + every; t <= END; t += every) H.tick(t);
+  const d: any = (Object.values(L.runs)[0] as any).state.data;
+  return { L, H, d };
+};
+let expectUnder = 0; for (let f = t0; f + 60_000 <= END; f += 60_000) if (sea(f + 30_000) >= pool.ground + IMMERSED_M) expectUnder++;
+const o = run(10_000), c = run(12 * 3600e3);
+const pick = (d: any) => JSON.stringify({ n: d.frameCount, u: d.totalImmersedMs, dg: d.digest, f: d.frames.map((x: any) => [x.fromWorldMs, x.toWorldMs, x.immersed]) });
+console.log('frameCount', o.d.frameCount, c.d.frameCount, 'kept', o.d.frames.length);
+console.log('immersed island h', (o.d.totalImmersedMs / 3600e3).toFixed(2), (c.d.totalImmersedMs / 3600e3).toFixed(2), 'minutes under expected', expectUnder, 'of 720');
+console.log('open == closed (count, total, digest, kept frames):', pick(o.d) === pick(c.d));
+o.H.takeOut('dot', END + 25_000); c.H.takeOut('dot', END + 25_000);
+const wet = (L: any) => Object.values(L.lots).filter((l: any) => l.materialId === 'wet_unseparated_coconut_husk').map((l: any) => [l.location, l.amount.value, JSON.stringify(l.quality)]);
+console.log('wet lots open', JSON.stringify(wet(o.L)));
+console.log('wet lots equal open/closed', JSON.stringify(wet(o.L)) === JSON.stringify(wet(c.L)));
