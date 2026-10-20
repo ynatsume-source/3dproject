@@ -1,0 +1,30 @@
+1 offered what the materials allow: drying, sieving, twisting for either use (no plying, no hanging yet): cord:twist:raft,cord:twist:pot,cord:dry,cord:sieve ok
+1 no number in an option (the length is the use it is for): ヤシの繊維を撚って糸にする（筏の縛り用の長さ） / ヤシの繊維を撚って糸にする（鍋吊り用の長さ） / ヤシの繊維の束を軒下に干す / ヤシの繊維を振るって髄を落とす ok
+2 twisting the wet bundle: what it felt, in the science side's words; the code for the developer only: wet-fiber-cannot-twist ok
+3 put under the eaves: a drying run, the bundle at the drying place: running site:cord-dry ok
+3 the roof's time confirmed as it passes: 11 spans ok
+3 caught up on by habit: no hand work (no new run, the second bundle where it was): runs 2→2 ok
+3 the roof's time across the load: one span, from the last confirmed moment to the first one back: 180 min ok
+3 dried: the bundle back under the eaves, drier: completed ok
+4 three strands of the pot's length twisted at the worksite: site:cord-work,site:cord-work,site:cord-work ok
+4 plied into a rope: 1 rope ok
+4 the strands' sun sent before they were plied (out by the bench: not in the shade): lot:11:false,lot:14:false ok
+5 hung: the pot's weight from the ledger, sent as a load, once: 1235 ok
+5 the same load sent again: the same record, nothing doubled: 3 → 3 ok
+5 the first rope and the first pot hung marked as the island's firsts (world/milestones.ts): {"fibre":0,"rope":1791267262000,"hang":1791267278000} ok
+5 the rope that held keeps its lotId: lot:24 ok
+5 water in the pot: the heavier weight a new load: 1235,3581 ok
+5 the rope's sun sent before the new weight, under the eaves (and, if any time had passed, before it was carried from the bench): true ok
+5 three hours hanging, nothing else: no sun sent (once a day at most, or before a load or a move): 1 → 1 ok
+5 the pot taken down to the shelf, the rope with it, its sun sent first: 吊るしていた鍋を下ろして棚に戻した ok
+5 taken down and hung again, the same pot on the same rope: the second hanging's load is sent: 鍋を縄で軒下に吊るした。縄はつながっている loads 2→3 refusals  ok
+5 a load refused is not sent again and again: tried once, then left (the developer's log has it once): refusals 1 (conflicting-replay), records 8→8 ok
+6 the raft lashed with the long rope: 筏の部材を縄で縛った lot:39 ok
+6 home: the crossing's load from its strongest wind: 52000 ok
+6 the weak rope gave: two new pieces, the old id gone, the raft unlashed; told in words: lot:43,lot:44 / 筏の縄：縄は二本に切れた。目立った色あせはない。目立った擦れの跡はない ok
+7 (the markers are real: the input and current ledger hold them, the developer's log a code): wet-fiber-cannot-twist,conflicting-replay ok
+7 no amount or code in its diary, its mind's input, the day's post prompt or its saved memory:  /  /  /  ok
+7 no number in any cord option it was offered, all along: ヤシの繊維を撚って糸にする（筏の縛り用の長さ） / ヤシの繊維を撚って糸にする（鍋吊り用の長さ） / ヤシの繊維の束を軒下に干す / ヤシの繊維を振るって髄を落とす / 軒下に干した繊維を取り込む / 撚り糸を三本合わせて縄にする / 縄で鍋を軒下に吊るす / 軒下に吊るした鍋を下ろす ok
+7 the cord's words in its diary: ヤシの繊維を撚って糸にする（鍋吊り用の長さ）：できた（毛羽の少ない細い撚り糸になっている） / 撚り糸を三本合わせて縄にする / 縄の作業場を見た：毛羽の少ない三本を合わせた太めの縄になっている / 撚り糸を三本合わせて縄にする：できた（毛羽の少ない三本を合わせた太めの縄になっている） / 縄で鍋を軒下に吊るす / 縄で鍋を軒下に吊るす：できた（鍋を縄で軒下に吊るした。縄はつながっている） ok
+8 completed load runs do not accumulate in the world ledger:  ok
+PASS

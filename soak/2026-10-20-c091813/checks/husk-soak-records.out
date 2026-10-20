@@ -1,0 +1,8 @@
+{"cycles":100,"bytesAt70":221371,"bytesAt100":221688}
+PASS one hundred soak-and-beat cycles leave no terminal runs and reach a metadata plateau
+{"activeSpans":2000,"bytesAt600":55922,"bytesAt2000":56615}
+PASS long active soaking stores cumulative time and only the latest sixty-four exact spans
+PASS old active saves migrate once without changing clocks, reservations or sequence
+PASS an old active save retains its original uptake slope after partial take-out and re-soaking
+PASS producer deletion preserves old wet lots and the fingerprint of a reserved hand-work input
+husk-soak-records-check: 5 groups passed

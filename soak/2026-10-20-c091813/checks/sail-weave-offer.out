@@ -1,0 +1,4 @@
+PASS a single short bundle is never offered; equality is offered
+PASS partial bundles at one worksite are offered by their total
+PASS different places do not make a sufficient group
+PASS sail weave offer: 3 groups

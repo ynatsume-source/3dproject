@@ -1,0 +1,8 @@
+PASS direct manual work removes completed runs and retains exact recent replay
+PASS old active and terminal saves validate and migrate without changing lots, IDs or physics
+PASS a legacy save with more than sixty-four completed jobs migrates before eviction
+PASS old terminal proof corruption and relabeled schemas are rejected before conversion
+PASS hundreds of finished husks retain bounded metadata, not completed work states
+PASS active command replay window is bounded across long pause/resume histories
+PASS terminal summary corruption is rejected and compaction preserves the allocator
+manual-husk-records-check: 7 groups passed
