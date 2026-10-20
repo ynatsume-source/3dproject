@@ -748,10 +748,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     return [village.raft.x, village.raft.z];
   }
-  function drawRaft() {
-    const at = Number.isFinite(village.raft.x) ? [village.raft.x, village.raft.z] : null;
+  // (where the raft is drawn: its place on the ledger, a little seaward of where Dot stands to push it off; hauled up the
+  // beach, toward the hut. The worksite window's raft is drawn here too: worksiteSpots)
+  function raftDrawnAt(): [number, number] | null {
+    const at: [number, number] | null = Number.isFinite(village.raft.x) ? [village.raft.x, village.raft.z] : null;
     if (at && village.raft.hauled) { at[0] += (hut.position.x - at[0]) * 0.45; at[1] += (hut.position.z - at[1]) * 0.45; }   // (hauled up the beach, toward the hut)
-    raftG.visible = !!at && village.raft.parts > 0 && !voyaging; if (at) raftG.position.set(at[0] + 1.2, L.h(at[0] + 1.2, at[1]), at[1]);
+    return at && [at[0] + 1.2, at[1]];
+  }
+  // (the raft in the worksite window: once it stands, and not while it is away at sea — its mast and sail go with it)
+  const raftWindow = () => village.raft.parts >= RAFT_N && !voyaging && Number.isFinite(village.raft.x);
+  function drawRaft() {
+    const at = raftDrawnAt();
+    raftG.visible = !!at && village.raft.parts > 0 && !voyaging; if (at) raftG.position.set(at[0], L.h(at[0], at[1]), at[1]);
     raftLogs.forEach((m, k) => (m.visible = k < village.raft.parts));
   }
   /* ---------- what is made, as it is made (the woodpile under its roof, a pot fired in the open, oil boiling) ---------- */
@@ -3773,10 +3781,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     },
     save,
     worksiteSpots: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
-      return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang, ...(s ? [...s.trees, s.dry, s.work] : [])].map((p) => [p.id, { x: p.x, z: p.z }])); },
+      const raft = raftWindow() ? raftDrawnAt() : null;   // (the raft as it is drawn, its logs along the world's x: nature's mast and sail sit on it)
+      return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang, ...(s ? [...s.trees, s.dry, s.work] : []), ...(raft ? [{ id: 'site:raft', x: raft[0], z: raft[1] }] : [])].map((p) => [p.id, { x: p.x, z: p.z }])); },
     worksiteLooks: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
       return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack },
-        ...(s ? { sail: { trees: s.trees.map((t) => t.id), dry: s.dry.id, work: s.work.id, raft: village.raft.parts >= RAFT_N ? 'site:raft' : null, rigged: sailSea.rigged(), dried: [...(village.sailHost?.dried ?? [])], perTree: PANDANUS.lotsPerTree } } : {}) }); },
+        ...(s ? { sail: { trees: s.trees.map((t) => t.id), dry: s.dry.id, work: s.work.id, raft: raftWindow() ? 'site:raft' : null, rigged: sailSea.rigged(), dried: [...(village.sailHost?.dried ?? [])], perTree: PANDANUS.lotsPerTree } } : {}) }); },
     focus(r) { focused = r; },
     bubbles(camera, w, h) {
       const v = new THREE.Vector3();
