@@ -6,9 +6,12 @@
 // the island's draws, so drawing more never moves the world's random sequence.
 
 /** The kinds of thing a worksite can show. */
-export type WorksiteThingKind = 'wet-husk' | 'partial-husk' | 'fiber-bundle' | 'yarn' | 'cord';
+export type WorksiteThingKind = 'wet-husk' | 'partial-husk' | 'fiber-bundle' | 'yarn' | 'cord'
+  | 'pandanus-leaves' | 'pandanus-strips' | 'leaf-scrap' | 'sail-mat' | 'bamboo-mast';   // (the sail's: 2026-10-19, nature proposal sail-look)
 /** Its visible state: what a viewer could tell by looking. */
-export type WorksiteThingLook = 'wet' | 'dry' | 'fuzzy' | 'smooth' | 'frayed' | 'broken';
+export type WorksiteThingLook = 'wet' | 'dry' | 'fuzzy' | 'smooth' | 'frayed' | 'broken'
+  // (cut leaves: just cut, laid out drying, dried; the mat: being woven, woven, torn; the mast: cut, or broken)
+  | 'fresh' | 'drying' | 'weaving' | 'done' | 'torn' | 'cut';
 export interface WorksiteThing {
   /** Stable while the thing exists (the seed of its look). Not a lot id a viewer is shown. */
   id: string;
@@ -20,11 +23,16 @@ export interface WorksiteThing {
 }
 /** What stands at a worksite for the work, when it is there: the board the husks are beaten on, the rack the fibre
  *  dries on under the eaves. Listed only once the world has put it there — a viewer is never shown a thing to come. */
-export type WorksiteFixtureKind = 'beat-board' | 'drying-rack';
+export type WorksiteFixtureKind = 'beat-board' | 'drying-rack' | 'pandanus-tree' | 'raft';
+/** A fixture's visible state, for those that have one: a pandanus as full of standing leaves as it grew, thinned by
+ *  cutting, or stripped (its leaves do not grow back: v1); the raft bare, or rigged — its mast stepped and the sail
+ *  furled on it, ashore. No count of cuttings. */
+export type WorksiteFixtureLook = 'full' | 'thinned' | 'stripped' | 'bare' | 'rigged';
 export interface WorksiteFixture {
   /** Stable while it stands (the seed of its look). */
   id: string;
   kind: WorksiteFixtureKind;
+  look?: WorksiteFixtureLook;
 }
 export interface WorksiteLook {
   siteId: string;
@@ -40,6 +48,11 @@ export function thingKindOf(materialId: string): WorksiteThingKind | null {
     case 'coir_fiber_bundle': return 'fiber-bundle';
     case 'coir_strand': return 'yarn';
     case 'coir_rope': return 'cord';
+    case 'pandanus_leaves': return 'pandanus-leaves';
+    case 'pandanus_strips': return 'pandanus-strips';
+    case 'pandanus_leaf_scrap': return 'leaf-scrap';
+    case 'sail_mat': return 'sail-mat';
+    case 'bamboo_mast': return 'bamboo-mast';
     default: return null;
   }
 }
@@ -50,4 +63,10 @@ export const WORKSITE_LOOK_FIXTURES: Readonly<Record<string, WorksiteLook>> = Ob
   'fiber-wet': { siteId: 'fixture:husk-site', fixtures: [{ id: 'fixture:board-1', kind: 'beat-board' }], items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'wet' }, { id: 'fixture:husk-1', kind: 'partial-husk', look: 'wet' }] },
   'fiber-dry': { siteId: 'fixture:cord-dry', fixtures: [{ id: 'fixture:rack-1', kind: 'drying-rack' }], items: [{ id: 'fixture:bundle-1', kind: 'fiber-bundle', look: 'dry' }] },
   'bare-site': { siteId: 'fixture:husk-site', fixtures: [], items: [] },   // (nothing put there yet: nothing drawn)
+  // (the sail's places: a pandanus thinned with its cut leaves beside it; leaves drying under the back eaves, and dried;
+  // the bench with strips, scrap, a mat being woven and the mast; the raft rigged, the mat and mast on it)
+  'sail-tree': { siteId: 'fixture:sail-tree', fixtures: [{ id: 'fixture:pandanus-1', kind: 'pandanus-tree', look: 'thinned' }], items: [{ id: 'fixture:leaves-1', kind: 'pandanus-leaves', look: 'fresh' }] },
+  'sail-dry': { siteId: 'fixture:sail-dry', fixtures: [], items: [{ id: 'fixture:leaves-2', kind: 'pandanus-leaves', look: 'drying' }, { id: 'fixture:leaves-3', kind: 'pandanus-leaves', look: 'dry' }] },
+  'sail-work': { siteId: 'fixture:sail-work', fixtures: [], items: [{ id: 'fixture:strips-1', kind: 'pandanus-strips', look: 'dry' }, { id: 'fixture:scrap-1', kind: 'leaf-scrap', look: 'dry' }, { id: 'fixture:mat-1', kind: 'sail-mat', look: 'weaving' }, { id: 'fixture:mast-1', kind: 'bamboo-mast', look: 'cut' }] },
+  'sail-raft': { siteId: 'fixture:raft', fixtures: [{ id: 'fixture:raft-1', kind: 'raft', look: 'rigged' }], items: [{ id: 'fixture:mat-2', kind: 'sail-mat', look: 'done', on: 'fixture:raft-1' }, { id: 'fixture:mast-2', kind: 'bamboo-mast', look: 'cut', on: 'fixture:raft-1' }, { id: 'fixture:cord-1', kind: 'cord', look: 'smooth', on: 'fixture:raft-1' }] },
 });

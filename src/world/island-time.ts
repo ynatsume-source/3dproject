@@ -38,6 +38,8 @@ export interface IslandWeather extends Weather {
    *  original time of the reading. Only the values measured there are in air / humidity / windMeasured / pressureMeasured. */
   record: { station: string; at: string };
   pressureMeasured?: number;
+  windDirMeasured?: number; // degrees, where the wind comes from, as recorded (undefined where the record has none — windDir is then 90, for the look)
+  gustMeasured?: number;    // m/s, as recorded (undefined where the record has none — gust is then 1.5 × the mean, for the look)
   rainMeasured?: number;    // (the rain as recorded: undefined where the record has none — rain above is then 0, for the look)
   // the sea, from the wave model's archive (scripts/add-island-waves.py): for the look and for what the residents see,
   // never for the science core
@@ -72,5 +74,5 @@ export function islandWeather(realMs: number): IslandWeather | null {
   const sea = F >= 12 ? { wave: val(8, 100), swell: val(9, 100), swellPeriod: val(10, 10), swellDir: r[i + 11] === NA ? undefined : r[i + 11] * 2 } : {};
   const day0 = new Date(Date.UTC(rec.year, 0, 1 + d.dayOfYear + (rec.year % 4 === 0 && d.dayOfYear >= 59 ? 1 : 0)));
   const at = `${day0.toISOString().slice(0, 10)}T${String(hour).padStart(2, '0')}:00+09:00`;
-  return { ok: true, at: realMs, cloud, rain, rainMeasured: val(2, 10), code, wind, windDir: dir, gust, air, humidity: rh, windMeasured: windM, pressure, pressureMeasured: p, typhoon, thunder, ...sea, source: rec.source, record: { station: rec.station ?? 'era5', at } };
+  return { ok: true, at: realMs, cloud, rain, rainMeasured: val(2, 10), code, wind, windDir: dir, gust, air, humidity: rh, windMeasured: windM, windDirMeasured: r[i + 5] === NA ? undefined : r[i + 5] * 2, gustMeasured: val(6, 10), pressure, pressureMeasured: p, typhoon, thunder, ...sea, source: rec.source, record: { station: rec.station ?? 'era5', at } };
 }
