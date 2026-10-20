@@ -49,12 +49,17 @@ export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }):
 /** Mass taken from a lot for a thing made by hand (a rain catcher, a tool). A lot that records its own dry matter and
  *  water (and length: bamboo) keeps them in proportion — the rule of the science side's bamboo tube 0.1.1, water floored
  *  and the sub-mg rest to the dry — so what is left still reads whole; a lot without them loses only its mass. All of
- *  it taken: the lot is gone. A cord or fibre (its fiber_dry_mg codec) is never cut down here: refused. */
+ *  it taken: the lot is gone. Part of a lot in any other mass codec (a cord's fiber_dry_mg, a pith's pith_dry_mg, one to
+ *  come: any *_mg key besides dry_mg and water_mg) is not this rule's to share out: refused, the lot untouched. */
+export function canTakeMass(lot: LotView, mg: number): boolean {
+  if (!(mg > 0) || mg > lot.amount.value) return false;
+  if (mg === lot.amount.value) return true;   // (the whole of it: nothing left to read wrong)
+  return !Object.keys(lot.quality ?? {}).some((k) => k.endsWith('_mg') && k !== 'dry_mg' && k !== 'water_mg');
+}
 export function takeMass(L: Ledger, lot: LotView, mg: number): void {
   const before = lot.amount.value, left = before - mg, q = lot.quality;
-  // (a cord or a fibre bundle records its mass in its own codec — fiber, pith, water, length: part of one is not this
-  // rule's to share out, so it is refused rather than left reading wrong; science review of PR #58)
-  if (q && q.fiber_dry_mg !== undefined && left > 0) throw new Error(`takeMass: ${lot.materialId} is taken whole or through the cord's own rules`);
+  // (refused before anything is changed; science reviews of PR #58 and #60)
+  if (!canTakeMass(lot, mg)) throw new Error(`takeMass: ${mg} mg of ${lot.materialId} cannot be taken by this rule`);
   if (left > 0 && q && q.dry_mg !== undefined && q.water_mg !== undefined) {
     const water = Number(BigInt(q.water_mg) * BigInt(left) / BigInt(before));
     lot.quality = { ...q, dry_mg: left - water, water_mg: water, ...(q.length_mm !== undefined ? { length_mm: Number(BigInt(q.length_mm) * BigInt(left) / BigInt(before)) } : {}) };
