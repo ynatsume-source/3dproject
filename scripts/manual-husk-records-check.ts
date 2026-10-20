@@ -147,6 +147,27 @@ test('old active and terminal saves validate and migrate without changing lots, 
   }
 });
 
+test('a legacy save with more than sixty-four completed jobs migrates before eviction', () => {
+  const L: any = emptyLedger('world:legacy-many', 'epoch:legacy-many');
+  let lastRun = '';
+  for (let index = 0; index < 65; index++) {
+    const f = facts(index);
+    stock(L, f);
+    const at = 1_000 + index * 300_000;
+    lastRun = legacyIntent(L, start(f, at, index), legacyRevision(L), at, f).runId;
+    const span = frame(L, lastRun, f, at, 240_000);
+    legacySpan(L, lastRun, span, legacyRevision(L), span.confirmedAtWorldMs);
+    L.lots = {};
+  }
+  const expected = legacyProject(L, lastRun);
+  const restored = restoreHuskArrangement(json(L), 65 * 300_000);
+  assert.equal(Object.keys(restored.runs).length, 0);
+  assert.equal(restored.manualHuskArrangement!.jobs.length, 0);
+  assert.equal(restored.manualHuskArrangement!.finished.length, 64);
+  assert.equal((restored as any).manualHuskRecords.finished.length, 64);
+  assert.deepEqual(projectManualHuskWork(restored, lastRun), expected);
+});
+
 test('old terminal proof corruption and relabeled schemas are rejected before conversion', () => {
   const old = fixture(true, true);
   const corrupt = json(old.L);

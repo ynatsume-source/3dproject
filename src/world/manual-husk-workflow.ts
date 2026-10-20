@@ -186,7 +186,6 @@ function trimRecords(m: Arrangement): void {
 }
 
 function finishJobs(L: HuskWorkflowLedger, m: Arrangement): void {
-  compactManualHuskRecords(L);
   const activeJobs: Job[] = [];
   for (const job of m.jobs) {
     const p = projectManualHuskWork(L, job.runId);
@@ -206,6 +205,9 @@ function finishJobs(L: HuskWorkflowLedger, m: Arrangement): void {
       workerObservations: observations(L, job, job.actorId)
     });
   }
+  // Capture every old terminal view before the bounded low-level archive can
+  // evict early entries while migrating a large pre-compaction save.
+  compactManualHuskRecords(L);
   m.jobs = activeJobs;
   trimRecords(m);
 }
