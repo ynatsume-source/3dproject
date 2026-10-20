@@ -5,7 +5,7 @@
 const fast = [
   'science-records', 'manual-husk-records', 'husk-soak-records',
   'sail-lots', 'sail-work', 'sail-voyage', 'sail-cord-settlement',
-  'sail-raft-checkpoint', 'sail-inputs', 'sail-weave-offer',
+  'sail-raft-checkpoint', 'sail-inputs', 'sail-weave-offer', 'cord-twist-offer',
   'cord-load-compaction',
   'cord-integer-load',
   'sail-raft-science',
