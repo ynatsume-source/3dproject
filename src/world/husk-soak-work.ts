@@ -4,17 +4,21 @@ import type { LotView, Observation, ScienceStepRequest, ScienceStepResult } from
 import { otherScienceWorkBusy } from './science-work-occupancy';
 import {
   HUSK_SOAK_ASSUMPTION, computeHuskSoak, readCoconutHusk, splitSoakedHusks,
-  type SoakedHuskPiece,
+  readHuskSoakOrigin, withHuskSoakOrigin, huskSoakOriginForPiece,
+  type SoakedHuskPiece, type HuskSoakOrigin,
 } from '../science/prototypes/husk-soak';
 
 export const HUSK_SOAK_WORK = Object.freeze({
   processId: 'prototype_husk_soak',
-  processVersion: 'host-1',
+  processVersion: 'host-2',
   catalogVersion: 'civ-sci-test-2',
   contract: '0.2.1',
   clock: 'island' as const,
-  schema: 'civ-world.husk-soak/1',
+  schema: 'civ-world.husk-soak/2',
 });
+
+const LEGACY_VERSION = 'host-1';
+const LEGACY_SCHEMA = 'civ-world.husk-soak/1';
 
 type Presence = 'here' | 'away' | 'unknown';
 export interface HuskSoakStart {
@@ -58,6 +62,8 @@ interface SoakData {
   spec: HuskSoakStart;
   source: LotView;
   frames: HuskSoakSpan[];
+  previousHistory?: SoakedHuskPiece['input']['soakHistory'];
+  origin?: HuskSoakOrigin | null;
   takeOut: HuskSoakTakeOut | null;
   totalImmersedMs: number;
   historyComplete: 0 | 1;
@@ -133,9 +139,20 @@ function rebuild(
   source: LotView,
   frames: HuskSoakSpan[],
   takeOut: HuskSoakTakeOut | null,
+  previousHistory: SoakedHuskPiece['input']['soakHistory'] = [],
+  legacyQuality = false,
+  origin: HuskSoakOrigin | null = null,
 ): SoakData {
   requireSoak([worldId, worldEpoch, runId].every(id), 'invalid-world-or-run');
   checkStart(spec, source);
+  requireSoak(Array.isArray(previousHistory) && previousHistory.every(record =>
+    shape(record, ['recordId', 'runId', 'fromWorldMs', 'toWorldMs'])
+      && id(record.recordId) && id(record.runId)
+      && uint(record.fromWorldMs) && uint(record.toWorldMs)
+      && record.fromWorldMs <= record.toWorldMs && record.toWorldMs <= spec.atWorldMs),
+    'invalid-previous-soaking-history');
+  requireSoak(new Set(previousHistory.map(record => record.recordId)).size
+    === previousHistory.length, 'duplicate-previous-soaking-history');
   requireSoak(Array.isArray(frames), 'invalid-span-history');
   let worldAt = spec.atWorldMs;
   let islandAt = spec.atIslandMs;
@@ -143,7 +160,7 @@ function rebuild(
   let total = 0n;
   let complete = readCoconutHusk(source).historyComplete === 1;
   const seen = new Set<string>();
-  const history: SoakedHuskPiece['input']['soakHistory'] = [];
+  const history: SoakedHuskPiece['input']['soakHistory'] = copy(previousHistory);
   let lastImmersed: HuskSoakSpan | null = null;
   for (const f of frames) {
     requireSoak(shape(f, [
@@ -183,7 +200,8 @@ function rebuild(
     islandAt = f.toIslandMs;
     certifiedAt = Math.max(certifiedAt, f.confirmedAtWorldMs);
   }
-  const physical = computeHuskSoak(source, spec.assumptionId, Number(total));
+  const uptakeSource = origin ? withHuskSoakOrigin(source, origin) : source;
+  const physical = computeHuskSoak(uptakeSource, spec.assumptionId, Number(total));
   let outputs: SoakedHuskPiece[] = [];
   let drawn: NonNullable<ScienceStepResult['drawn']> = [];
   if (takeOut !== null) {
@@ -192,9 +210,9 @@ function rebuild(
       && takeOut.atIslandMs >= islandAt, 'take-out-precedes-certified-span');
     if (takeOut.atWorldMs !== worldAt || takeOut.atIslandMs !== islandAt) complete = false;
     if (physical.certifiedIslandMs > 0) {
-      outputs = splitSoakedHusks(source, spec.assumptionId, Number(total), {
+      outputs = splitSoakedHusks(uptakeSource, spec.assumptionId, Number(total), {
         runId, fromWorldMs: spec.atWorldMs, toWorldMs: takeOut.atWorldMs,
-      });
+      }, legacyQuality);
       for (const piece of outputs) {
         piece.quality.history_complete = complete ? 1 : 0;
         piece.input.soakHistory = copy(history);
@@ -212,22 +230,25 @@ function rebuild(
     worldId, worldEpoch, runId, spec: copy(spec), source: copy(source), frames: copy(frames),
     takeOut: copy(takeOut), totalImmersedMs: Number(total),
     historyComplete: complete ? 1 : 0, outputs, drawn,
+    ...(legacyQuality ? {} : { previousHistory: copy(previousHistory), origin: copy(origin) }),
   };
 }
 
 function dataOf(L: Ledger, runId: string): { run: Run; data: SoakData } {
   const r = L.runs[runId];
+  const legacy = r?.processVersion === LEGACY_VERSION && r.state?.schema === LEGACY_SCHEMA;
   requireSoak(r && r.processId === HUSK_SOAK_WORK.processId
-    && r.processVersion === HUSK_SOAK_WORK.processVersion
+    && (legacy || r.processVersion === HUSK_SOAK_WORK.processVersion)
     && r.catalogVersion === HUSK_SOAK_WORK.catalogVersion
     && r.contract === HUSK_SOAK_WORK.contract && r.clock === 'island'
-    && r.state?.schema === HUSK_SOAK_WORK.schema, 'unsupported-soak-run-or-state');
-  const saved = r.state.data as SoakData;
+    && (legacy || r.state?.schema === HUSK_SOAK_WORK.schema), 'unsupported-soak-run-or-state');
+  const saved = r.state!.data as SoakData;
   requireSoak(saved && saved.worldId === L.world.worldId
     && saved.worldEpoch === L.world.worldEpoch && saved.runId === runId,
     'wrong-world-or-run');
   const expected = rebuild(saved.worldId, saved.worldEpoch, runId, saved.spec,
-    saved.source, saved.frames, saved.takeOut);
+    saved.source, saved.frames, saved.takeOut, saved.previousHistory ?? [], legacy,
+    saved.origin ?? null);
   requireSoak(canonical(saved) === canonical(expected), 'corrupt-soak-state');
   requireSoak(r.operator === expected.spec.actorId && r.lotIds.length === 1
     && r.lotIds[0] === expected.source.lotId && r.equipmentIds.length === 0,
@@ -276,6 +297,17 @@ export function beginHuskSoak(
     const lot = draft.lots[spec.lotId];
     requireSoak(lot && !lot.reservedBy, 'missing-or-reserved-husk');
     const source = sourceCopy(lot);
+    let origin: HuskSoakOrigin | null = null;
+    let previousHistory: SoakedHuskPiece['input']['soakHistory'] = [];
+    if (source.materialId === 'wet_unseparated_coconut_husk') {
+      try {
+        previousHistory = readSoakedHuskInput(draft, source.lotId).soakHistory;
+      } catch (error) {
+        requireSoak(error instanceof HuskSoakError && error.code === 'unknown-soaked-husk',
+          'changed-or-missing-soaked-husk');
+      }
+      origin = readHuskSoakOrigin(readHuskResoakSource(draft, source.lotId));
+    }
     checkStart(spec, source);
     const busy = otherScienceWorkBusy(draft, spec.actorId, spec.site.locationId,
       HUSK_SOAK_WORK.processId);
@@ -297,7 +329,8 @@ export function beginHuskSoak(
     r.status = 'running';
     r.state = {
       schema: HUSK_SOAK_WORK.schema,
-      data: rebuild(draft.world.worldId, draft.world.worldEpoch, r.runId, spec, source, [], null),
+      data: rebuild(draft.world.worldId, draft.world.worldEpoch, r.runId, spec, source, [], null,
+        previousHistory, false, origin),
     };
     return { runId: r.runId };
   });
@@ -320,7 +353,7 @@ function result(
 ): ScienceStepResult {
   return {
     contract: req.contract, requestId: req.requestId, runId: req.runId,
-    simulated: copy(req.interval), state: { schema: HUSK_SOAK_WORK.schema, data: d }, status,
+    simulated: copy(req.interval), state: { schema: req.state?.schema ?? HUSK_SOAK_WORK.schema, data: d }, status,
     consumed: [], produced: [], released: [], drawn: [], energy: [], equipmentWear: [],
     observations: [],
     evidence: {
@@ -349,7 +382,8 @@ export function recordHuskSoakSpan(
   transaction(L, draft => {
     const { run: r, data: d } = dataOf(draft, runId);
     const next = rebuild(d.worldId, d.worldEpoch, runId, d.spec, d.source,
-      [...d.frames, copy(span)], null);
+      [...d.frames, copy(span)], null, d.previousHistory ?? [],
+      r.state!.schema === LEGACY_SCHEMA, d.origin ?? null);
     const req = request(draft, r, d, runId + ':span:' + JSON.stringify(span.recordId),
       span.toIslandMs);
     const applied = commit(draft, req, result(req, next, 'running'));
@@ -375,7 +409,8 @@ export function takeOutHuskSoak(
     const { run: r, data: d } = dataOf(draft, runId);
     requireSoak(!otherScienceWorkBusy(draft, intent.actorId, '', HUSK_SOAK_WORK.processId).actor,
       'actor-busy');
-    const next = rebuild(d.worldId, d.worldEpoch, runId, d.spec, d.source, d.frames, intent);
+    const next = rebuild(d.worldId, d.worldEpoch, runId, d.spec, d.source, d.frames, intent,
+      d.previousHistory ?? [], r.state!.schema === LEGACY_SCHEMA, d.origin ?? null);
     for (const p of next.outputs) {
       requireSoak(!Object.hasOwn(draft.lots, p.lotId), 'output-lot-id-collision');
     }
@@ -414,7 +449,8 @@ export function projectHuskSoak(L: Ledger, runId: string) {
   const { run, data: d } = dataOf(L, runId);
   return {
     status: run.status,
-    ...computeHuskSoak(d.source, d.spec.assumptionId, d.totalImmersedMs),
+    ...computeHuskSoak(d.origin ? withHuskSoakOrigin(d.source, d.origin) : d.source,
+      d.spec.assumptionId, d.totalImmersedMs),
     pendingIslandMs: d.totalImmersedMs % HUSK_SOAK_ASSUMPTION.quantumMs,
     historyComplete: d.historyComplete,
     outputs: copy(d.outputs),
@@ -440,6 +476,46 @@ export function readSoakedHuskInput(L: Ledger, lotId: string): SoakedHuskPiece['
   throw new HuskSoakError('unknown-soaked-husk');
 }
 
+/** A read-only bridge for old wet lots whose original uptake clock lived in a
+ * completed run. C's save compaction must retain this carry before deleting it.
+ */
+export function readHuskResoakSource(L: Ledger, lotId: string): LotView {
+  const lot = L.lots[lotId];
+  requireSoak(lot && lot.materialId === 'wet_unseparated_coconut_husk',
+    'requires-one-unseparated-wet-husk');
+  const source = sourceCopy(lot);
+  readCoconutHusk(source);
+  if (readHuskSoakOrigin(source)) return source;
+  for (const r of Object.values(L.runs)) {
+    if (r.processId !== HUSK_SOAK_WORK.processId) continue;
+    const d = dataOf(L, r.runId).data;
+    const index = d.outputs.findIndex(piece => piece.lotId === lotId);
+    if (index < 0) continue;
+    const piece = d.outputs[index];
+    requireSoak(source.amount.value === piece.amountMg
+      && canonical(source.quality) === canonical(piece.quality),
+      'changed-or-missing-soaked-husk');
+    let origin = huskSoakOriginForPiece(d.origin ? withHuskSoakOrigin(d.source, d.origin) : d.source,
+      d.totalImmersedMs, index,
+      r.state!.schema === LEGACY_SCHEMA);
+    // Nearly full old odd-count splits can already be one mg over a piece's
+    // capacity. Keep that old allocation readable rather than deleting water.
+    if (origin.splitPolicy === 1) {
+      const current = { ...origin, splitPolicy: 2 as const };
+      try {
+        withHuskSoakOrigin(source, current);
+        origin = current;
+      } catch {
+        // The legacy allocation remains an explicitly marked compatibility case.
+      }
+    }
+    return withHuskSoakOrigin(source, origin);
+  }
+  // Explicit wet material without an old producer has no attested earlier
+  // uptake clock: start this run from its actual water, never guessed history.
+  return source;
+}
+
 /** A save/load alone never attests submersion or advances the island clock. */
 export function restoreHuskSoak(saved: unknown): Ledger {
   const L = copy(saved) as Ledger;
@@ -453,7 +529,8 @@ export function restoreHuskSoak(saved: unknown): Ledger {
 /** Public allowlist: no durations, counts, ratios, IDs, quality or recipe. */
 export function readHuskSoakWorksite(L: Ledger, runId: string) {
   const { data: d } = dataOf(L, runId);
-  const p = computeHuskSoak(d.source, d.spec.assumptionId, d.totalImmersedMs);
+  const p = computeHuskSoak(d.origin ? withHuskSoakOrigin(d.source, d.origin) : d.source,
+    d.spec.assumptionId, d.totalImmersedMs);
   const text = d.takeOut
     ? (d.outputs.length ? '浸けた殻を引き上げた' : '殻を手つかずのまま引き上げた。')
     : p.drawnWaterMg > 0 ? '殻が水を吸って重くなってきた。'

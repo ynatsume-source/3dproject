@@ -89,12 +89,18 @@ export function makeHuskHost(ctx: {
   const poolFull = () => soakRuns().some((r) => (r.state?.data as any)?.spec?.site?.locationId === sites().pool.id);
   const workTakenBy = (actorId: string) => jobs().some((j) => live(L().runs[j.runId]?.status ?? '') && engagedNow(j) && j.actorId !== actorId);
   const pausedJobs = () => jobs().filter((j) => live(L().runs[j.runId]?.status ?? '') && !engagedNow(j));
-  const shelfHusk = () => Object.values(L().lots).filter((l: any) => l.materialId === 'coconut_husk' && l.location === 'shelf' && !l.reservedBy).sort((a, b) => a.lotId.localeCompare(b.lotId))[0];
+  const shelfHusk = () => Object.values(L().lots)
+    .filter(l => !l.reservedBy && (
+      l.materialId === 'coconut_husk' && l.location === 'shelf'
+      || l.materialId === WET && ['shelf', sites().pool.id, sites().work.id].includes(l.location)
+    ))
+    .sort((a, b) => Number(a.materialId === WET) - Number(b.materialId === WET)
+      || a.lotId.localeCompare(b.lotId))[0];
   const wetHusks = () => Object.values(L().lots).filter((l: any) => l.materialId === WET && !l.reservedBy && [sites().pool.id, sites().work.id].includes(l.location)).sort((a, b) => a.lotId.localeCompare(b.lotId));
 
   function options(actorId: string, nowWorldMs: number): Option[] {
     const o: Option[] = [];
-    if (shelfHusk() && !poolFull()) o.push({ id: 'soak:pool', action: 'soak', label: '棚のヤシの殻を潮だまりに浸ける', targetId: 'pool' });
+    if (shelfHusk() && !poolFull()) o.push({ id: 'soak:pool', action: 'soak', label: 'ヤシの殻を潮だまりに浸ける', targetId: 'pool' });
     if (soakRuns().length) o.push({ id: 'takeout:pool', action: 'takeout', label: '潮だまりの殻を引き上げる', targetId: 'pool' });
     if ((wetHusks().length || pausedJobs().length) && !workTakenBy(actorId)) o.push({ id: 'beat:husk', action: 'beat', label: '濡れた殻を打ってほぐす', targetId: 'husk-site' });
     if (pausedJobs().length && !workTakenBy(actorId)) o.push({ id: 'clear:husk', action: 'clear', label: '打ちかけの殻を片付ける', targetId: 'husk-site' });
