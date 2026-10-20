@@ -125,6 +125,32 @@ function metadata(L:HuskWorkflowLedger):Arrangement{
      && ['sight','touch'].includes(o.channel) && typeof o.text==='string'),
     'invalid-finished-observations');
   }
+  if (item.status === 'stopped') {
+   const expected = [{
+    channel: 'sight',
+    text: item.certifiedWorkMs === 0
+     ? '殻を手つかずのまま脇に置いた。' : '途中までほぐした殻を脇に置いた。'
+   }];
+   ensure(canon(item.observations) === canon(expected)
+    && canon(item.workerObservations) === canon(expected), 'changed-finished-observations');
+  } else {
+   const possible: {channel: 'sight' | 'touch'; text: string}[][] = [];
+   for (const fiber of [false, true]) for (const residual of [false, true]) for (const wet of [false, true]) {
+    const words: {channel: 'sight' | 'touch'; text: string}[] = [{
+     channel: 'sight', text: fiber ? 'ほぐれた繊維が束になっている。' : '殻には繊維の筋がついている。'
+    }];
+    if (residual) words.push({channel: 'sight', text: '残った殻にも筋がついている。'});
+    words.push({
+     channel: 'touch',
+     text: wet ? '繊維と殻はしっとりしている。' : '繊維と殻は乾いた手ざわりだ。'
+    });
+    possible.push(words);
+   }
+   ensure(possible.some(words => canon(words) === canon(item.observations))
+    && (item.workerObservations.length === 0
+     || canon(item.workerObservations) === canon(item.observations)),
+    'changed-finished-observations');
+  }
  }
  return m;
 }

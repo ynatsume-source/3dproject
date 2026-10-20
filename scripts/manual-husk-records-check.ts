@@ -248,6 +248,12 @@ test('terminal summary corruption is rejected and compaction preserves the alloc
   const bad = json(a.L);
   bad.manualHuskRecords.finished[0].projection.pools.fiber.dryMg++;
   assert.throws(() => projectManualHuskWork(bad, a.runId));
+  const words = json(a.L);
+  words.manualHuskRecords.finished[0].observations[0].text = '強さは四万だ。';
+  assert.throws(() => projectManualHuskWork(words, a.runId));
+  const publicWords = json(a.L);
+  publicWords.manualHuskArrangement.finished[0].observations[0].text = '強さは四万だ。';
+  assert.throws(() => readHuskWorksite(publicWords, 'site:manual', 241_000));
 });
 
 console.log('manual-husk-records-check: ' + groups + ' groups passed');
