@@ -334,6 +334,12 @@ test('waiting reserves the site, not the actor, through the actual shared occupa
   const a = fixture();
   assert.deepEqual(otherScienceWorkBusy(a.L, ACTOR, SITE, 'prototype_manual_husk_work'),
     { actor: false, site: true });
+  for (const process of ['prototype_coir_work', 'prototype_sail_work']) {
+    assert.deepEqual(otherScienceWorkBusy(a.L, ACTOR, 'site:elsewhere', process),
+      { actor: false, site: false });
+    assert.deepEqual(otherScienceWorkBusy(a.L, ACTOR, SITE, process),
+      { actor: false, site: true });
+  }
   const second = sourceLot();
   second.lotId = 'lot:second-source';
   addLot(a.L, second);
