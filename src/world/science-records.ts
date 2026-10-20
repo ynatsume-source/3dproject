@@ -192,8 +192,9 @@ export function compactScienceLedger(L: Ledger): Ledger {
     && (L.released === undefined || Array.isArray(L.released)));
   const runs = Object.values(L.runs);
   for (const run of runs) {
-    requireRecords(record(run) && Array.isArray(run.observations)
-      && run.observations.every(validObservation));
+    requireRecords(record(run) && id(run.runId) && id(run.processId)
+      && ['starting', 'running', 'needs-input', 'completed', 'stopped', 'failed'].includes(run.status)
+      && Array.isArray(run.observations) && run.observations.every(validObservation));
   }
   // Validate every legacy summary before altering the ledger.
   const ended = runs.filter(run =>
