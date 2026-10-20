@@ -240,7 +240,9 @@ export interface Residents {
   /** What the husk and cord worksites look like, for drawing only (robots/worksite-looks.ts): never a resident's. */
   worksiteLooks(): WorksiteLook[];
   /** Where each worksite of worksiteLooks() lies on the ground (for drawing it: robots/coir-look.ts). */
-  worksiteSpots(): Record<string, { x: number; z: number }>;
+  /** Each worksite's spot on the ground; `face` where the place itself has a way it runs (yaw, as coir-look's `face`: its
+   *  rows along (cos face, −sin face)) — the drying place under the back eaves along the hut's back wall. Absent: none. */
+  worksiteSpots(): Record<string, { x: number; z: number; face?: number }>;
   focus(r: Resident | null): void;        // the one being watched: mark where it is heading
   bubbles(camera: THREE.Camera, w: number, h: number): void;
   onEvent: (kind: string, text: string, r: Resident, meta?: { milestone?: string }) => void;   // (meta.milestone: the first time this kind of thing happened on the island — world/milestones.ts)
@@ -1280,6 +1282,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // on the sand nearest Dot's home (apart from the tide pool and from each other), the leaves dried under the hut's back
   // eaves, the bench's other side for the rest. Found once, by a fixed search outward, and kept with the village.
   const sailDev: SailDevEntry[] = [];
+  const FACE: Record<string, () => number> = { 'site:sail-dry': () => hut.rotation.y };   // (worksiteSpots: which way a place runs)
   const sail = makeSailHost({ lab, state: () => (village.sailHost ??= emptySailHostState()), dev: sailDev,
     roofed: () => byId.dot.stats.built >= HUT.length, wanted: () => village.raft.parts >= RAFT_N,
     placeSites: () => {
@@ -3782,9 +3785,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       return `おなか：${r.hunger > 0.7 ? 'ぺこぺこ' : r.hunger > 0.45 ? 'すいてきた' : r.hunger > 0.2 ? 'ほどほど' : 'いっぱい'}・ねむけ：${r.sleepy > 0.7 ? 'ねむい' : r.sleepy > 0.4 ? 'すこし' : 'すっきり'}`;
     },
     save,
+    // (a place that runs along something: the drying place under the back eaves, along the hut's back wall — the hut's own x)
     worksiteSpots: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
       const raft = raftWindow() ? raftDrawnAt() : null;   // (the raft as it is drawn, its logs along the world's x: nature's mast and sail sit on it)
-      return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang, ...(s ? [...s.trees, s.dry, s.work] : []), ...(raft ? [{ id: 'site:raft', x: raft[0], z: raft[1] }] : [])].map((p) => [p.id, { x: p.x, z: p.z }])); },
+      return Object.fromEntries([h.pool, h.work, c.dry, c.work, c.hang, ...(s ? [...s.trees, s.dry, s.work] : []), ...(raft ? [{ id: 'site:raft', x: raft[0], z: raft[1] }] : [])].map((p) => [p.id, { x: p.x, z: p.z, ...(FACE[p.id] ? { face: FACE[p.id]() } : {}) }])); },
     worksiteLooks: () => { const h = husk.sites(), c = cord.sites(), s = village.sailHost?.sites;   // (the sail's places once the world has found them: drawing never places them)
       return readWorksiteLooks(lab, { husk: { pool: h.pool.id, work: h.work.id, board: !!village.huskHost?.board }, cord: { dry: c.dry.id, work: c.work.id, hang: c.hang.id, rack: !!village.cordHost?.rack },
         ...(s ? { sail: { trees: s.trees.map((t) => t.id), dry: s.dry.id, work: s.work.id, raft: raftWindow() ? 'site:raft' : null, rigged: sailSea.rigged(), dried: [...(village.sailHost?.dried ?? [])], perTree: PANDANUS.lotsPerTree } } : {}) }); },

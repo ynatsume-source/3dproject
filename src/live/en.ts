@@ -11,7 +11,7 @@ const name = (ja: string) => NAMES_EN[ja] ?? ja;   // (an island word for a plac
 
 /** The set phrases of the screen. */
 export const FIXED_EN = {
-  brand: "Dot's Island",
+  brand: 'Lumau',   // (the series' name, D23: Series 1 · Lumau; "Dot's Island" is not used in English)
   ai: 'The residents are AI · filmed automatically',
   first: 'A first on the island',
   date: (y: number, m: number, d: number) => `Island year ${y} · ${d} ${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1]}`,

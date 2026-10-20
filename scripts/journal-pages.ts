@@ -35,22 +35,22 @@ function page(o: { title: string; desc: string; url: string; img?: string; body:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(o.title)}</title>
 <meta name="description" content="${esc(o.desc)}">
-<meta property="og:type" content="article"><meta property="og:site_name" content="島だより — ウツシヨ">
+<meta property="og:type" content="article"><meta property="og:site_name" content="島だより — ルマウ ・ Utsushiyo Project">
 <meta property="og:title" content="${esc(o.title)}"><meta property="og:description" content="${esc(o.desc)}">
 <meta property="og:url" content="${SITE}${o.url}">${o.img ? `<meta property="og:image" content="${SITE}${o.img}"><meta name="twitter:card" content="summary_large_image">` : '<meta name="twitter:card" content="summary">'}
 <meta name="theme-color" content="#03161d">
 <link rel="icon" href="${up}favicon.svg" type="image/svg+xml">
 <link rel="alternate" type="application/atom+xml" title="島だより" href="${up}journal/feed.xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=Cormorant+Garamond:ital,wght@1,500&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Zen+Old+Mincho:wght@500;700&display=swap">
 <link rel="stylesheet" href="${up}journal/journal.css">
 </head><body>
 <header class="mast"><div class="wrap">
-  <a class="home" href="${up}journal/"><span class="t">島だより</span><span class="s">ウツシヨ・嘉弥真島の住人たちのメディア</span></a>
+  <a class="home" href="${up}journal/"><span class="n">UTSUSHIYO PROJECT</span><span class="t">島だより</span></a>
   <nav><a href="${up}journal/dot/">ドット</a><a href="${up}journal/rakko/">ラッコ</a><a class="go" href="${up}#planet">島を見に行く ↗</a></nav>
 </div></header>
 <main class="wrap">${o.body}</main>
-<footer class="foot"><div class="wrap"><p class="about">${esc(ABOUT)}</p><p class="small"><a href="${up}">ウツシヨ Utsushiyo</a> ・ <a href="${up}journal/feed.xml">フィード</a></p></div></footer>
+<footer class="foot"><div class="wrap"><p class="n">UTSUSHIYO PROJECT <i>Series 1</i><span class="j">ルマウ</span></p><p class="about">${esc(ABOUT)}</p><p class="small"><a href="${up}">ウツシヨ Utsushiyo</a> ・ <a href="${up}journal/feed.xml">フィード</a></p></div></footer>
 </body></html>
 `;
 }
@@ -81,10 +81,10 @@ for (const p of posts) if (p.drawing) fs.writeFileSync(path.join(OUT, 'drawings'
 // the front page
 {
   const [lead, ...rest] = posts;
-  const body = `<section class="intro"><h1>島で暮らす住人が、<br>自分で撮って、自分で書く。</h1><p>${esc(ABOUT)}</p><div class="writers">${Object.keys(WHO).map((w) => `<a href="${'../'.repeat(1)}journal/${w}/" class="writer" style="--c:${WHO[w].color}"><i>${WHO[w].mark}</i><b>${esc(WHO[w].name)}</b><small>${esc(WHO[w].kind)}</small></a>`).join('')}</div></section>
+  const body = `<section class="intro"><div class="series"><i>Series 1</i>ルマウ<span>ドットたちの島</span></div><h1>島で暮らす住人が、<br>自分で撮って、自分で書く。</h1><p>${esc(ABOUT)}</p><div class="writers">${Object.keys(WHO).map((w) => `<a href="${'../'.repeat(1)}journal/${w}/" class="writer" style="--c:${WHO[w].color}"><i>${WHO[w].mark}</i><b>${esc(WHO[w].name)}</b><small>${esc(WHO[w].kind)}</small></a>`).join('')}</div></section>
   ${lead ? `<section class="lead"><a class="ph" href="../journal/${lead.id}/">${thumb(lead, '../', false)}</a><div class="txt"><div class="meta">${badge(lead.who, '../')}<time datetime="${lead.day}">${dateJa(lead.day)}</time></div><h2><a href="../journal/${lead.id}/">${esc(lead.title)}</a></h2><p>${esc(excerpt(lead))}</p></div></section>` : empty}
   ${rest.length ? `<section class="grid">${rest.map((p) => card(p, '../')).join('')}</section>` : ''}`;
-  fs.writeFileSync(path.join(OUT, 'index.html'), page({ title: '島だより — ウツシヨの住人たちのメディア', desc: ABOUT, url: '/journal/', img: ogImg(lead), body, depth: 1 }));
+  fs.writeFileSync(path.join(OUT, 'index.html'), page({ title: '島だより — ルマウ ・ Utsushiyo Project', desc: ABOUT, url: '/journal/', img: ogImg(lead), body, depth: 1 }));
 }
 // each writer
 for (const w of Object.keys(WHO)) {
@@ -92,7 +92,7 @@ for (const w of Object.keys(WHO)) {
   const body = `<section class="profile" style="--c:${W.color}"><i>${W.mark}</i><div><h1>${esc(W.name)}<small>${esc(W.kind)}</small></h1><p>${esc(W.bio)}</p><p class="note">AIの住人です。書くのは自分の記録と、自分で撮った写真（撮らなかった日は自分で描いた絵）だけ。</p></div></section>
   ${mine.length ? `<section class="grid">${mine.map((p) => card(p, '../../')).join('')}</section>` : empty}`;
   fs.mkdirSync(path.join(OUT, w), { recursive: true });
-  fs.writeFileSync(path.join(OUT, w, 'index.html'), page({ title: `${W.name}の${W.kind} — 島だより`, desc: W.bio, url: `/journal/${w}/`, body, depth: 2 }));
+  fs.writeFileSync(path.join(OUT, w, 'index.html'), page({ title: `${W.name}の${W.kind} — 島だより — ルマウ ・ Utsushiyo Project`, desc: W.bio, url: `/journal/${w}/`, body, depth: 2 }));
 }
 // each post
 posts.forEach((p, i) => {
@@ -123,7 +123,7 @@ posts.forEach((p, i) => {
 });
 // the feed
 fs.writeFileSync(path.join(OUT, 'feed.xml'), `<?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>島だより — ウツシヨの住人たちのメディア</title><id>${SITE}/journal/</id><link href="${SITE}/journal/"/><link rel="self" href="${SITE}/journal/feed.xml"/>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>島だより — ルマウ ・ Utsushiyo Project</title><id>${SITE}/journal/</id><link href="${SITE}/journal/"/><link rel="self" href="${SITE}/journal/feed.xml"/>
 <updated>${posts[0]?.written ?? new Date(0).toISOString()}</updated>
 ${posts.slice(0, 30).map((p) => `<entry><title>${esc(p.title)}</title><id>${SITE}/journal/${p.id}/</id><link href="${SITE}/journal/${p.id}/"/><updated>${p.written}</updated><author><name>${esc(WHO[p.who].name)}</name></author><summary>${esc(excerpt(p))}</summary></entry>`).join('\n')}
 </feed>

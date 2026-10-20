@@ -177,9 +177,13 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   if (wet) wet.location = host.sites().work.id;
   want('9 the wet husk at the worksite may be put back in the pool',
     host.options('dot', later + 1).some(o => o.id === 'soak:pool'));
+  const placed = host.putInPool('dot', later + 1);
+  // beginHuskSoak atomically replaces the lot map; inspect the committed lot,
+  // not the old object that was moved before the transaction.
+  const currentWet = wet ? L.lots[wet.lotId] : undefined;
   want('9 putting it back reserves that same wet husk and moves it to the pool',
-    !!host.putInPool('dot', later + 1) && wet?.location === host.sites().pool.id
-      && !!wet.reservedBy);
+    !!placed && currentWet?.location === host.sites().pool.id
+      && !!currentWet.reservedBy);
 }
 
 console.log(bad ? `FAIL (${bad})` : 'PASS');
