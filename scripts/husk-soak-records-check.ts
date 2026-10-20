@@ -65,21 +65,26 @@ function handSpec(L: Ledger, lotId: string, at: number): HuskWorkSpec {
 function finishBeating(L: Ledger, runId: string, s: HuskWorkSpec): number {
   const profile = createManualHuskAssumptionProfile(s.input, MANUAL_HUSK_ASSUMPTION.id);
   const duration = Math.ceil(profile.knots.at(-1)!.workMs / Q) * Q;
-  const fact = {
-    kind: 'executor-activity-span' as const, spanId: 'beat:' + runId,
-    worldId: L.world.worldId, worldEpoch: L.world.worldEpoch, runId, actorId: ACTOR,
-    fromWorldMs: s.openedAtWorldMs, toWorldMs: s.openedAtWorldMs + duration,
-    confirmedAtWorldMs: s.openedAtWorldMs + duration,
-    activity: 'separate-wet-husk' as const, targetLotId: s.input.lotId,
-    targetSiteId: SITE, arrived: true,
-    fromPosition: { x: 0, z: 0 }, toPosition: { x: 0, z: 0 },
-  };
-  recordManualHuskSpan(L, runId, fact, fact.confirmedAtWorldMs);
+  let lastFact: Parameters<typeof recordManualHuskSpan>[2] | undefined;
+  for (let offset = 0; offset < duration; offset += Q) {
+    const fact = {
+      kind: 'executor-activity-span' as const, spanId: 'beat:' + runId + ':' + offset,
+      worldId: L.world.worldId, worldEpoch: L.world.worldEpoch, runId, actorId: ACTOR,
+      fromWorldMs: s.openedAtWorldMs + offset,
+      toWorldMs: s.openedAtWorldMs + Math.min(offset + Q, duration),
+      confirmedAtWorldMs: s.openedAtWorldMs + Math.min(offset + Q, duration),
+      activity: 'separate-wet-husk' as const, targetLotId: s.input.lotId,
+      targetSiteId: SITE, arrived: true,
+      fromPosition: { x: 0, z: 0 }, toPosition: { x: 0, z: 0 },
+    };
+    recordManualHuskSpan(L, runId, fact, fact.confirmedAtWorldMs);
+    lastFact = fact;
+  }
   assert.equal(projectManualHuskWork(L, runId).status, 'completed');
   const settled = json(L);
-  recordManualHuskSpan(L, runId, fact, fact.confirmedAtWorldMs);
+  recordManualHuskSpan(L, runId, lastFact!, lastFact!.confirmedAtWorldMs);
   assert.deepEqual(L, settled);
-  return fact.toWorldMs;
+  return s.openedAtWorldMs + duration;
 }
 function counts(L: Ledger) {
   const m = (L as any).huskSoakRecords;
@@ -131,7 +136,7 @@ test('long active soaking stores cumulative time and only the latest sixty-four 
   addLot(L, source());
   const start = 1_000, s = spec(start);
   const { runId } = beginHuskSoak(L, s, start);
-  let bytesAt100 = 0;
+  let bytesAt600 = 0;
   for (let n = 0; n < 2_000; n++) {
     const f = span(L, runId, start + n * Q, start + (n + 1) * Q, 'span:' + n);
     recordHuskSoakSpan(L, runId, f, f.confirmedAtWorldMs);
@@ -141,10 +146,10 @@ test('long active soaking stores cumulative time and only the latest sixty-four 
     assert.equal(d.frameCount, n + 1);
     assert.equal(d.totalImmersedMs, (n + 1) * Q);
     counts(L);
-    if (n === 99) bytesAt100 = JSON.stringify(L).length;
+    if (n === 599) bytesAt600 = JSON.stringify(L).length;
   }
   const bytesAt2000 = JSON.stringify(L).length;
-  assert.ok(bytesAt2000 <= bytesAt100 + 5_000, JSON.stringify({ bytesAt100, bytesAt2000 }));
+  assert.ok(bytesAt2000 <= bytesAt600 + 5_000, JSON.stringify({ bytesAt600, bytesAt2000 }));
   const before = json(L);
   assert.throws(() => recordHuskSoakSpan(L, runId, span(L, runId, start, start + Q, 'span:0'), start + 2_000 * Q));
   assert.deepEqual(L, before);
@@ -158,7 +163,7 @@ test('long active soaking stores cumulative time and only the latest sixty-four 
   const once = beginHuskSoak(whole, s, start);
   recordHuskSoakSpan(whole, once.runId, span(whole, once.runId, start, now), now);
   assert.deepEqual(result, take(whole, once.runId, now));
-  console.log(JSON.stringify({ activeSpans: 2_000, bytesAt100, bytesAt2000 }));
+  console.log(JSON.stringify({ activeSpans: 2_000, bytesAt600, bytesAt2000 }));
 });
 
 function oldSave(version: 1 | 2, completed = false) {
