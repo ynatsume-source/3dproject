@@ -1,0 +1,12 @@
+ok   Kayama has a diurnal share ({"d":0.3,"lag":2.0943951023931953})
+ok   winter: deep lows in the evening 48, in the morning 3
+ok   12/20–1/31: deep lows from 19:00 to 21:59 on 13 evenings (9 without the diurnal share)
+ok   summer: deep lows in the morning 50, in the evening 2
+ok   the year's lowest -1.040 m (deeper than −0.8, not below −1.1)
+ok   the same moment gives the same height (-1.034928 m)
+ok   2026-12-24T19:30 JST: -1.034928 m (fixed -1.034928)
+ok   2027-01-08T19:40 JST: -1.014504 m (fixed -1.014504)
+ok   2027-07-01T09:00 JST: 0.147132 m (fixed 0.147132)
+ok   Math.random drawn 0 times
+ok   a sea without a diurnal share is unchanged
+PASS
