@@ -1,0 +1,4 @@
+seed 1: live cords 96, /4 checkpoints 272 (478595 B), /5 checkpoints 122 (244738 B)
+seed 2: live cords 104, /4 checkpoints 274 (461141 B), /5 checkpoints 115 (206962 B)
+seed 3: live cords 121, /4 checkpoints 269 (466890 B), /5 checkpoints 127 (246488 B)
+{"ok":43202,"err":12003,"consumed":1748,"assembled":914,"returned":723,"replays":1839,"roundtrips":591,"maxCheckpoints":166,"maxBytes":294830,"mismatches":0}

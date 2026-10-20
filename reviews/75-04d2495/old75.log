@@ -1,0 +1,4 @@
+break children [ 'lot:4', 'lot:5' ]
+checkpoints left [ 'cord:other' ] commands 64
+old:a refused missing-material ledger unchanged true
+old:b refused missing-material ledger unchanged true
