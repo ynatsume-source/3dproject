@@ -15,7 +15,7 @@ import { kneadStep, KNEAD_PROCESS } from '../science/step/knead';
 import { coconutMilkStep, coconutBoilStep, COCONUT_MILK_PROCESS, COCONUT_BOIL_PROCESS } from '../science/step/coconut';
 import { barometerStep, BAROMETER_PROCESS } from '../science/step/barometer';
 import { barometerPotStep, BAROMETER_POT_PROCESS } from '../science/step/barometer-pot';
-import { bambooTubeStep, BAMBOO_TUBE_PROCESS, BAMBOO_TUBE } from '../science/step/bamboo-tube';
+import { bambooTubeStep, BAMBOO_TUBE_PROCESS, BAMBOO_TUBE, BAMBOO_TUBE_RESUME_VERSIONS } from '../science/step/bamboo-tube';
 import { charcoalStep, CHARCOAL_PROCESS } from '../science/step/charcoal';
 import { tarSealStep, leakTestStep, TAR_SEAL_PROCESS, LEAK_TEST_PROCESS, POT_ASSEMBLY_TABLE, ASSEMBLED_POT, potToEquipmentParams, potQualityOnReturn, potSherdsQuality } from '../science/step/vessel';
 import { firewoodDryStep, FIREWOOD_DRY_PROCESS } from '../science/step/firewood';
@@ -31,6 +31,8 @@ import type { AssemblyTable, PartsAssemblyTable } from './process-runner';
 
 export interface CatalogEntry {
   processId: string; processVersion: string; catalogVersion: string; contract: string; clock: ProcessClock;
+  /** Explicit old process versions whose work-state shape remains compatible. */
+  resumeVersions?: readonly string[];
   ja: string;                                   // what Lantern is doing, as the record says it
   input: string; inputJa: string;               // the material it takes from the shelf (one lot; '' none: a gauge)
   also?: { input: string; ja: string; minMg?: number; perDry?: number; ok?: (l: LotView) => boolean }[];   // more lots it takes together (water, firewood): at least so much, and such (dry enough)
@@ -78,6 +80,15 @@ export interface CatalogEntry {
   /** The lots kept with its equipment go in too (the oil soaked into the lamp dish's wall, held with the dish). */
   withEquipmentLots?: boolean;
 }
+/** The host may resume only the current version or an explicit compatible alias. */
+export function canResumeProcessVersion(
+  entry: CatalogEntry,
+  version: string
+): boolean {
+  return version === entry.processVersion
+    || entry.resumeVersions?.includes(version) === true;
+}
+
 /** What the materials are called in the record (the island's own words come later). */
 export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', gauge_tube_test: '試験用の管', bamboo_tube: '竹の管', assembled_pot: '封じた器', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
 /** The residents' retort and the jar they seal (mL), and the charge the upper jar holds with room (mg). */
@@ -189,10 +200,11 @@ export const CATALOG: CatalogEntry[] = [
     start: { action: 'seal', params: { jointTarG: 6 } },   // (6 g of tar on the tube's joint, cold: the handbook's amount)
     step: tarSealStep, env: 'record', energy: handsW(15), tend: 'stay',
     ready: true, waits: '焼いた0.5Lの壺と、木タール（炭焼きから）と、竹の管と、タールの刷毛（竹から作る）' },
-  // (science p18x 0.1.0: a straight tube cut from one internode of the house's leftover bamboo, 350 mm (the owner's
+  // (science p18x 0.1.1: a straight tube cut from one internode of the house's leftover bamboo, 350 mm (the owner's
   // decision: water stands about 33 cm above the jar's water, a typhoon's fall still read; 400 mm is the internode's most).
   // One in ten splits along its length and the bamboo goes back: cut again. Once the retort stands, for the weather pot)
   { processId: BAMBOO_TUBE_PROCESS.processId, processVersion: BAMBOO_TUBE_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'world',
+    resumeVersions: BAMBOO_TUBE_RESUME_VERSIONS,
     ja: '竹の節の間を切って、まっすぐな管にする', input: 'bamboo', inputJa: '竹（家の余り）', minInputMg: 200_000,
     equipment: null, start: { action: 'cut', params: { lengthMm: BAMBOO_TUBE_MM } }, enough: BAMBOO_TUBE,
     step: bambooTubeStep, env: 'record', energy: handsW(15), tend: 'stay', built: TAR_RETORT,

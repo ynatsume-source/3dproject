@@ -27,7 +27,7 @@ import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather 
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { wickQuality } from '../science/step/oil-lamp';
 import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, refreshAssembled, refreshAssembledParts, startRun, toClock, toReal } from '../world/process-runner';
-import { CATALOG, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
+import { CATALOG, canResumeProcessVersion, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry } from './husk-host';
@@ -3483,9 +3483,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     delete (village as any).store;
     // (raw clay brought before it was described: what the island's clay is made of — world/planet-map.ts)
     for (const l of Object.values(lab.lots)) if (l.materialId === 'raw_clay' && !l.quality?.water_ppm) l.quality = { ...RAW_CLAY_SOUTH };
-    // (a run saved under a process version the island no longer has is not resumed: it is ended, what it held freed)
+    // (only the current or an explicitly compatible process version resumes; other runs end and free what they held)
     for (const x of [...village.labRuns]) { const run = lab.runs[x.runId], e = catalog.find((c) => c.processId === x.processId);
-      if (!run || !e || run.processVersion !== e.processVersion) { if (run) abortRun(lab, x.runId, `工程の版が変わった（${run.processVersion} → ${e?.processVersion ?? 'なし'}）`); village.labRuns.splice(village.labRuns.indexOf(x), 1); } }
+      if (!run || !e || !canResumeProcessVersion(e, run.processVersion)) { if (run) abortRun(lab, x.runId, `工程の版が変わった（${run.processVersion} → ${e?.processVersion ?? 'なし'}）`); village.labRuns.splice(village.labRuns.indexOf(x), 1); } }
     // (and equipment made under another version of its table — the cook pot, the retort, a sealed pot: worked out again from
     // the lots it was made of, as the assembly policy says, not its version name changed; science final review 2026-10-09-lamp)
     refreshAssembled(lab, COOK_POT_ASSEMBLY); refreshAssembled(lab, POT_ASSEMBLY); refreshAssembledParts(lab, RETORT_ASSEMBLY);

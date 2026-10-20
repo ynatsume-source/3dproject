@@ -6,7 +6,7 @@ import {
   emptyLedger,
   type AssemblyTable
 } from '../src/world/process-runner';
-import type { LotView, ScienceStepResult } from '../src/world/science-contract';
+import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import {
   readPlantMass,
   readSailMat,
@@ -27,6 +27,19 @@ import type {
   SailMat,
   BambooMast
 } from '../src/science/prototypes/sail-raft-rules';
+
+
+import {
+  BAMBOO_TUBE_PROCESS,
+  bambooTubeStep
+} from '../src/science/step/bamboo-tube';
+import { bambooTubeStep as legacyBambooTubeStep } from './fixtures/bamboo-tube-v010';
+import { validateResult } from '../src/science/step/validate';
+import { CATALOG, canResumeProcessVersion } from '../src/world/process-catalog';
+import {
+  createSailManufacturingModel
+} from '../src/science/prototypes/sail-raft-manufacturing';
+import { SAIL_RAFT_ID, SAIL_RULES } from '../src/science/prototypes/sail-raft-rules';
 
 type Produced = ScienceStepResult['produced'][number];
 let groups = 0;
@@ -268,6 +281,223 @@ test('too little cord, wrong material roles, torn mat and broken mast refuse bef
     const before = JSON.stringify(f.L);
     assert.ok(assembleParts(f.L, ['mat', 'mast', 'rope'], f.table, 1000).why);
     assert.equal(JSON.stringify(f.L), before);
+  }
+});
+
+
+function bambooSource(dryMg = 5_000_003, waterMg = 2_000_004, lengthMm = 6_001): LotView {
+  return lot('lot:bamboo-cut', writePlantMass({
+    lotId: 'lot:bamboo-cut', material: 'bamboo', dryMg, waterMg, lengthMm
+  }, 'site:bamboo', 0));
+}
+
+function cutRequest(
+  bamboo: LotView,
+  seed = 1,
+  from = 0,
+  to = 600_000,
+  state: ScienceStepRequest['state'] = null
+): ScienceStepRequest {
+  return {
+    contract: '0.2.1',
+    requestId: 'cut@' + from,
+    world: { worldId: 'world:bamboo', worldEpoch: 'epoch:bamboo', worldVersion: 1 },
+    runId: 'run:cut',
+    ...BAMBOO_TUBE_PROCESS,
+    catalogVersion: 'civ-sci-test-2',
+    interval: { from, to },
+    state,
+    environment: { sampleId: 'env:cut', source: 'record', effectiveAt: from },
+    lots: [bamboo],
+    equipment: [],
+    energy: [{ sourceId: 'src:hands', kind: 'mechanical', maxJ: (to - from) * 20 / 1_000 }],
+    actions: state === null
+      ? [{ at: from, residentId: 'res:worker', action: 'cut', params: { lengthMm: 350 } }]
+      : [],
+    seed
+  };
+}
+
+function finishedCut(source: LotView): ScienceStepResult {
+  for (let seed = 1; seed <= 100; seed++) {
+    const req = cutRequest(source, seed);
+    const out = bambooTubeStep(req);
+    assert.equal(out.status, 'completed');
+    assert.deepEqual(validateResult(req, out), []);
+    if (out.produced.some(p => p.materialId === 'bamboo_tube')) return out;
+  }
+  throw Error('No successful cut in fixed seeds');
+}
+
+test('tube remainders preserve mass and proportions and can become a mast', () => {
+  for (const codec of [true, false]) {
+    const source = bambooSource();
+    if (!codec) {
+      delete source.quality!.sail_codec;
+      delete source.quality!.history_complete;
+    }
+    const before = json(source);
+    const out = finishedCut(source);
+    assert.deepEqual(source, before);
+    const remainder = lot('lot:remaining', out.produced.find(p => p.materialId === 'bamboo')!);
+    const p = readPlantMass(remainder);
+    const r = BigInt(remainder.amount.value);
+    const m = BigInt(source.amount.value);
+    assert.equal(p.waterMg, Number(BigInt(source.quality!.water_mg) * r / m));
+    assert.equal(p.dryMg, remainder.amount.value - p.waterMg);
+    assert.equal(p.lengthMm, Number(BigInt(source.quality!.length_mm) * r / m));
+    assert.deepEqual(Object.keys(remainder.quality!).sort(), Object.keys(source.quality!).sort());
+    assert.equal(readSailHistory(remainder), 0);
+    assert.equal(out.produced.reduce((n, x) => n + x.amount.value, 0), source.amount.value);
+    const model = createSailManufacturingModel(
+      { operation: 'mast', source: p },
+      SAIL_RAFT_ID,
+      { worldId: 'world:bamboo', worldEpoch: 'epoch:bamboo', runId: 'run:mast',
+        seed: 1, clock: 'world', openedAtMs: 0 }
+    );
+    const state = model.commit(model.start(), {
+      confirmationId: 'work:mast', worldId: 'world:bamboo', worldEpoch: 'epoch:bamboo',
+      runId: 'run:mast', clock: 'world', fromMs: 0, toMs: SAIL_RULES.mastMs,
+      confirmedAtMs: SAIL_RULES.mastMs, kind: 'host-confirmed-manual-work',
+      actorId: 'res:worker', attendance: 'present'
+    });
+    const result = model.project(state);
+    assert.equal(result.status, 'completed');
+    assert.equal(result.material!.material, 'bamboo_mast');
+    assert.equal(
+      result.material!.dryMg + result.material!.waterMg
+        + result.remaining!.dryMg + result.remaining!.waterMg,
+      remainder.amount.value
+    );
+  }
+});
+
+test('qualityless legacy bamboo stays qualityless and keeps the frozen cutting result', () => {
+  const comparable = (out: ScienceStepResult) => {
+    const value = json(out);
+    value.evidence.evaluatorVersion = 'comparison';
+    for (const p of value.produced) {
+      if (p.quality && Object.keys(p.quality).length === 0) delete p.quality;
+    }
+    return value;
+  };
+  const qualities: (Record<string, number> | undefined)[] = [
+    undefined, {}, { water_ppm: 450_000, history_complete: 0 }
+  ];
+  for (const quality of qualities) {
+    const source: LotView = {
+      lotId: 'lot:bamboo-cut', materialId: 'bamboo',
+      amount: { value: 7_000_000, unit: 'mg' }, location: 'site:bamboo',
+      ...(quality === undefined ? {} : { quality })
+    };
+    for (let seed = 1; seed <= 64; seed++) {
+      const req = cutRequest(source, seed);
+      const actual = bambooTubeStep(req);
+      const expected = legacyBambooTubeStep({ ...req, processVersion: '0.1.0' });
+      assert.deepEqual(comparable(actual), comparable(expected));
+      const stopReq = { ...cutRequest(source, seed, 0, 30_000), stop: 'operator' as const };
+      const stopped = bambooTubeStep(stopReq);
+      assert.deepEqual(comparable(stopped), comparable(legacyBambooTubeStep({
+        ...stopReq, processVersion: '0.1.0'
+      })));
+      if (quality === undefined || Object.keys(quality).length === 0) {
+        for (const out of [actual, stopped]) {
+          const rest = lot('lot:remaining', out.produced.find(p => p.materialId === 'bamboo')!);
+          assert.equal(rest.quality, undefined);
+          assert.doesNotThrow(() => readPlantMass(rest));
+        }
+      }
+    }
+  }
+});
+
+test('old bamboo work saves resume under the original or current version without state migration', () => {
+  const source = bambooSource();
+  const req = { ...cutRequest(source, 1, 0, 240_000), processVersion: '0.1.0' };
+  const first = legacyBambooTubeStep(req);
+  assert.equal(first.status, 'running');
+  assert.equal(first.state.schema, 'civ-sci.bamboo-tube/1');
+  const expected = bambooTubeStep(cutRequest(source));
+  for (const version of ['0.1.0', BAMBOO_TUBE_PROCESS.processVersion]) {
+    const next = cutRequest(source, 1, 240_000, 600_000, json(first.state));
+    next.processVersion = version;
+    const out = bambooTubeStep(next);
+    assert.equal(out.status, 'completed');
+    assert.deepEqual(out.produced, expected.produced);
+    assert.deepEqual(out.state, expected.state);
+    assert.deepEqual(bambooTubeStep(next), out);
+    assert.deepEqual(validateResult(next, out), []);
+  }
+  const entry = CATALOG.find(e => e.processId === BAMBOO_TUBE_PROCESS.processId)!;
+  assert.equal(entry.processVersion, '0.1.1');
+  assert.equal(canResumeProcessVersion(entry, '0.1.0'), true);
+  assert.equal(canResumeProcessVersion(entry, '0.1.1'), true);
+  assert.equal(canResumeProcessVersion(entry, '0.0.9'), false);
+  assert.equal(bambooTubeStep({ ...cutRequest(source), processVersion: '0.1.2' }).status, 'failed');
+  const other = CATALOG.find(e => e.processId !== entry.processId)!;
+  assert.equal(canResumeProcessVersion(other, other.processVersion), true);
+  assert.equal(canResumeProcessVersion(other, 'unknown'), false);
+});
+
+test('bamboo cut ratios use BigInt at safe-integer limits and preserve positive dry matter', () => {
+  for (const [dryMg, waterMg] of [
+    [6_000_000_000_000_001, 2_000_000_000_000_001],
+    [1, 7_000_002],
+    [7_000_003, 0]
+  ]) {
+    const source = bambooSource(dryMg, waterMg, 6_000_000_000_001);
+    const out = finishedCut(source);
+    const rest = lot('lot:remaining', out.produced.find(p => p.materialId === 'bamboo')!);
+    const p = readPlantMass(rest);
+    const r = BigInt(rest.amount.value);
+    const m = BigInt(source.amount.value);
+    assert.equal(p.waterMg, Number(BigInt(waterMg) * r / m));
+    assert.equal(p.dryMg, rest.amount.value - p.waterMg);
+    assert.equal(p.lengthMm, Number(BigInt(source.quality!.length_mm) * r / m));
+    assert.ok(p.dryMg >= 1);
+    assert.ok(p.waterMg <= waterMg && p.dryMg <= dryMg);
+  }
+});
+
+test('returned bamboo remains readable after repeated cuts; split and stop preserve quality', () => {
+  let source = bambooSource();
+  for (let i = 0; i < 30; i++) {
+    const out = finishedCut(source);
+    source = lot('lot:bamboo-cut', out.produced.find(p => p.materialId === 'bamboo')!);
+    const mass = readPlantMass(source);
+    assert.equal(mass.dryMg + mass.waterMg, source.amount.value);
+  }
+  let split = false;
+  for (let seed = 1; seed <= 100; seed++) {
+    const out = bambooTubeStep(cutRequest(source, seed));
+    if (out.produced.length === 1) {
+      split = true;
+      assert.deepEqual(out.produced[0].quality, source.quality);
+      assert.deepEqual(out.produced[0].amount, source.amount);
+      break;
+    }
+  }
+  assert.ok(split);
+  const req = { ...cutRequest(source, 1, 0, 30_000), stop: 'operator' as const };
+  const stopped = bambooTubeStep(req);
+  assert.equal(stopped.status, 'stopped');
+  assert.deepEqual(stopped.produced[0].quality, source.quality);
+  assert.deepEqual(stopped.produced[0].amount, source.amount);
+});
+
+test('partial, fractional or nonclosing bamboo mass metadata is refused before BigInt settlement', () => {
+  for (const mutate of [
+    (q: Record<string, number>) => { delete q.water_mg; },
+    (q: Record<string, number>) => { q.dry_mg += 0.5; },
+    (q: Record<string, number>) => { q.length_mm = -1; },
+    (q: Record<string, number>) => { q.water_mg++; }
+  ]) {
+    const source = bambooSource();
+    mutate(source.quality!);
+    const out = bambooTubeStep(cutRequest(source));
+    assert.equal(out.status, 'failed');
+    assert.deepEqual(out.consumed, []);
+    assert.deepEqual(out.produced, []);
   }
 });
 
