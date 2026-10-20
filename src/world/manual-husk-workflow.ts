@@ -3,8 +3,9 @@
 import type {Ledger} from './process-runner';
 import {otherScienceWorkBusy} from './science-work-occupancy';
 import type {HuskWorkSpec,HuskExecutorSpan} from './manual-husk-work';
-import {MANUAL_HUSK_WORK,beginManualHuskWork,recordManualHuskSpan,projectManualHuskWork,observeManualHuskWork,reassignManualHuskWork,abandonManualHuskWork} from './manual-husk-work';
-export const HUSK_WORKFLOW_SCHEMA='civ-world.manual-husk-arrangement/2';
+import {MANUAL_HUSK_WORK,beginManualHuskWork,recordManualHuskSpan,projectManualHuskWork,observeManualHuskWork,reassignManualHuskWork,abandonManualHuskWork,compactManualHuskRecords,readManualHuskWorkAuthority,validateManualHuskRecords} from './manual-husk-work';
+export const HUSK_WORKFLOW_SCHEMA = 'civ-world.manual-husk-arrangement/3';
+export const HUSK_WORKFLOW_RECORD_LIMIT = 64;
 type Presence='here'|'away'|'unknown';
 export type HuskIntent=
  | {intentId:string;kind:'start';atWorldMs:number;actorId:string;processId:string;lotId:string;siteId:string;presence:Presence}
@@ -14,7 +15,31 @@ export type HuskStartFacts=Pick<HuskWorkSpec,'assumptionId'|'huskCount'|'input'|
 interface Control {kind:'start'|'resume'|'stop'|'restore'|'takeover'|'abandon';actorId:string;atWorldMs:number;presence:Presence}
 interface Job {runId:string;actorId:string;lotId:string;siteId:string;controls:Control[]}
 interface Receipt {key:string;payload:string;runId:string}
-interface Arrangement {schema:typeof HUSK_WORKFLOW_SCHEMA;worldId:string;worldEpoch:string;revision:number;authorityAtWorldMs:number;jobs:Job[];receipts:Receipt[]}
+interface FinishedJob {
+  runId: string;
+  actorId: string;
+  lotId: string;
+  siteId: string;
+  atWorldMs: number;
+  status: 'completed' | 'stopped';
+  certifiedWorkMs: number;
+  observations: {channel: 'sight' | 'touch'; text: string}[];
+  workerObservations: {channel: 'sight' | 'touch'; text: string}[];
+}
+interface Arrangement {
+  schema: typeof HUSK_WORKFLOW_SCHEMA;
+  worldId: string;
+  worldEpoch: string;
+  revision: number;
+  authorityAtWorldMs: number;
+  jobs: Job[];
+  receipts: Receipt[];
+  finished: FinishedJob[];
+  floorAtWorldMs: number | null;
+}
+interface LegacyArrangement extends Omit<Arrangement, 'schema' | 'finished' | 'floorAtWorldMs'> {
+  schema: 'civ-world.manual-husk-arrangement/2';
+}
 export type HuskWorkflowLedger=Ledger&{manualHuskArrangement?:Arrangement};
 export interface HuskWorksiteView {
  title:string;stage:string;activity:'available'|'waiting'|'working'|'paused'|'completed'|'abandoned';
@@ -46,12 +71,67 @@ function authority(L:Ledger,j:Job){
  }catch(e){if(e instanceof HuskWorkflowError)throw e;throw new HuskWorkflowError('invalid-world-or-material-state');}
 }
 function empty(L:Ledger):Arrangement{
- return {schema:HUSK_WORKFLOW_SCHEMA,worldId:L.world.worldId,worldEpoch:L.world.worldEpoch,revision:0,authorityAtWorldMs:0,jobs:[],receipts:[]};
+ return {schema:HUSK_WORKFLOW_SCHEMA,worldId:L.world.worldId,worldEpoch:L.world.worldEpoch,revision:0,authorityAtWorldMs:0,jobs:[],receipts:[],finished:[],floorAtWorldMs:null};
 }
 function metadata(L:HuskWorkflowLedger):Arrangement{
  const m=L.manualHuskArrangement;
  if(!m){ensure(!Object.values(L.runs).some(r=>r.processId===MANUAL_HUSK_WORK.processId),'missing-arrangement');return empty(L);}
- ensure(shape(m,['schema','worldId','worldEpoch','revision','authorityAtWorldMs','jobs','receipts'])&&m.schema===HUSK_WORKFLOW_SCHEMA&&m.worldId===L.world.worldId&&m.worldEpoch===L.world.worldEpoch
+ ensure(shape(m,['schema','worldId','worldEpoch','revision','authorityAtWorldMs','jobs','receipts','finished','floorAtWorldMs'])&&m.schema===HUSK_WORKFLOW_SCHEMA&&m.worldId===L.world.worldId&&m.worldEpoch===L.world.worldEpoch
+ &&uint(m.revision)&&uint(m.authorityAtWorldMs)
+ &&(m.floorAtWorldMs===null||uint(m.floorAtWorldMs)&&m.floorAtWorldMs<=m.authorityAtWorldMs)&&Array.isArray(m.jobs)&&Array.isArray(m.receipts)
+ &&m.receipts.length<=HUSK_WORKFLOW_RECORD_LIMIT&&Array.isArray(m.finished)
+ &&m.finished.length<=HUSK_WORKFLOW_RECORD_LIMIT,'unsupported-arrangement');
+ const jobs=new Set<string>(),sites=new Set<string>(),actors=new Set<string>();
+ for(const j of m.jobs){
+  ensure(shape(j,['runId','actorId','lotId','siteId','controls'])&&[j.runId,j.actorId,j.lotId,j.siteId].every(id)
+   &&!jobs.has(j.runId)&&Array.isArray(j.controls)&&j.controls.length>0,'invalid-job');jobs.add(j.runId);
+  const a=authority(L,j);ensure(!ended(a.p.status),'terminal-job-not-compacted');let at=a.spec.openedAtWorldMs,actor=a.spec.operatorId;
+  for(let i=0;i<j.controls.length;i++){
+   const c=j.controls[i];ensure(shape(c,['kind','actorId','atWorldMs','presence'])&&id(c.actorId)&&uint(c.atWorldMs)&&c.atWorldMs>=at&&c.atWorldMs<=m.authorityAtWorldMs&&['here','away','unknown'].includes(c.presence)
+    &&(i===0?c.kind==='start'&&c.atWorldMs===at:['resume','stop','restore','takeover','abandon'].includes(c.kind)),'invalid-control-history');at=c.atWorldMs;
+   if(i>0)ensure(['start','resume','takeover'].includes(j.controls[i-1].kind)?['stop','restore'].includes(c.kind):
+    j.controls[i-1].kind!=='abandon'&&['resume','takeover','abandon'].includes(c.kind),'invalid-control-transition');
+   ensure(c.kind==='takeover'?c.actorId!==actor:c.actorId===actor,'invalid-assignment-history');actor=c.actorId;
+   if(c.kind!=='restore')ensure(m.floorAtWorldMs!==null&&c.atWorldMs<=m.floorAtWorldMs||m.receipts.some(r=>{
+    try{const v=JSON.parse(r.payload)[0];return r.runId===j.runId&&r.key===key('intent',v.intentId)&&v.kind===c.kind&&(c.kind!=='start'||v.intentId===a.spec.commandId&&v.lotId===j.lotId&&v.siteId===j.siteId)&&v.actorId===c.actorId&&v.atWorldMs===c.atWorldMs&&(['stop','abandon'].includes(c.kind)||v.presence===c.presence);}catch{return false;}
+   }),'control-without-intent');
+  }
+  ensure(actor===j.actorId&&canon(a.assignments)===canon(j.controls.filter(c=>['start','takeover'].includes(c.kind)).map(c=>({actorId:c.actorId,atWorldMs:c.atWorldMs}))), 'changed-job-assignment');
+  const abandoned=j.controls.at(-1)!.kind==='abandon';
+  ensure(abandoned?a.p.status==='stopped'&&a.p.abandonedAtWorldMs===j.controls.at(-1)!.atWorldMs:a.p.status!=='stopped','changed-abandon-state');
+  for(const f of a.frames)if(worksAt(f,a.spec,actorAt(j,f.fromWorldMs)))ensure(permitted(j,f),'saved-work-outside-intent');
+  if(!ended(a.p.status)){
+   ensure(!sites.has(j.siteId),'worksite-double-booked');sites.add(j.siteId);
+   if(active(j)){ensure(!actors.has(j.actorId),'actor-double-booked');actors.add(j.actorId);}
+  }
+ }
+ const receipts=new Set<string>();for(const r of m.receipts){
+  ensure(shape(r,['key','payload','runId'])&&id(r.key)&&typeof r.payload==='string'&&id(r.runId)&&!receipts.has(r.key),'invalid-receipt');receipts.add(r.key);
+ }
+ const finished = new Set<string>();
+ for (const item of m.finished) {
+  ensure(shape(item, [
+   'runId', 'actorId', 'lotId', 'siteId', 'atWorldMs', 'status',
+   'certifiedWorkMs', 'observations', 'workerObservations'
+  ]) && [item.runId, item.actorId, item.lotId, item.siteId].every(id)
+   && !jobs.has(item.runId) && !finished.has(item.runId)
+   && uint(item.atWorldMs) && item.atWorldMs<=m.authorityAtWorldMs
+   && ['completed','stopped'].includes(item.status) && uint(item.certifiedWorkMs),
+   'invalid-finished-job');
+  finished.add(item.runId);
+  for (const words of [item.observations, item.workerObservations]) {
+   ensure(Array.isArray(words) && words.length<=4
+    && words.every(o=>shape(o,['channel','text'])
+     && ['sight','touch'].includes(o.channel) && typeof o.text==='string'),
+    'invalid-finished-observations');
+  }
+ }
+ return m;
+}
+function legacyMetadata(L:HuskWorkflowLedger):LegacyArrangement{
+ const m=(L as unknown as {manualHuskArrangement?:LegacyArrangement}).manualHuskArrangement;
+ ensure(m,'missing-arrangement');
+ ensure(shape(m,['schema','worldId','worldEpoch','revision','authorityAtWorldMs','jobs','receipts'])&&m.schema==='civ-world.manual-husk-arrangement/2'&&m.worldId===L.world.worldId&&m.worldEpoch===L.world.worldEpoch
  &&uint(m.revision)&&uint(m.authorityAtWorldMs)&&Array.isArray(m.jobs)&&Array.isArray(m.receipts),'unsupported-arrangement');
  const jobs=new Set<string>(),sites=new Set<string>(),actors=new Set<string>();
  for(const j of m.jobs){
@@ -82,11 +162,77 @@ function metadata(L:HuskWorkflowLedger):Arrangement{
  }
  return m;
 }
+
+function receiptAt(receipt: Receipt): number {
+  let value: any;
+  try {
+    value = JSON.parse(receipt.payload);
+    if (Array.isArray(value)) value = value[0];
+  } catch {
+    throw new HuskWorkflowError('invalid-receipt-payload');
+  }
+  const at = value?.confirmedAtWorldMs ?? value?.atWorldMs;
+  ensure(uint(at), 'invalid-receipt-time');
+  return at;
+}
+
+function trimRecords(m: Arrangement): void {
+  while (m.receipts.length > HUSK_WORKFLOW_RECORD_LIMIT) {
+    m.floorAtWorldMs = Math.max(m.floorAtWorldMs ?? 0, receiptAt(m.receipts.shift()!));
+  }
+  while (m.finished.length > HUSK_WORKFLOW_RECORD_LIMIT) {
+    m.floorAtWorldMs = Math.max(m.floorAtWorldMs ?? 0, m.finished.shift()!.atWorldMs);
+  }
+}
+
+function finishJobs(L: HuskWorkflowLedger, m: Arrangement): void {
+  const activeJobs: Job[] = [];
+  for (const job of m.jobs) {
+    const p = projectManualHuskWork(L, job.runId);
+    if (!ended(p.status)) {
+      activeJobs.push(job);
+      continue;
+    }
+    m.finished.push({
+      runId: job.runId,
+      actorId: job.actorId,
+      lotId: job.lotId,
+      siteId: job.siteId,
+      atWorldMs: p.abandonedAtWorldMs ?? p.completedAtWorldMs!,
+      status: p.status as 'completed' | 'stopped',
+      certifiedWorkMs: p.certifiedWorkMs,
+      observations: observations(L, job),
+      workerObservations: observations(L, job, job.actorId)
+    });
+  }
+  // Capture every old terminal view before the bounded low-level archive can
+  // evict early entries while migrating a large pre-compaction save.
+  compactManualHuskRecords(L);
+  m.jobs = activeJobs;
+  trimRecords(m);
+}
+
+function migrateArrangement(L: HuskWorkflowLedger): void {
+  const value = (L as any).manualHuskArrangement;
+  if (!value || value.schema === HUSK_WORKFLOW_SCHEMA) return;
+  // Validate the complete old proofs before dropping old terminal frames.
+  const old = legacyMetadata(L);
+  const next: Arrangement = {
+    ...copy(old),
+    schema: HUSK_WORKFLOW_SCHEMA,
+    finished: [],
+    floorAtWorldMs: null
+  };
+  finishJobs(L, next);
+  L.manualHuskArrangement = next;
+  metadata(L);
+}
+
 function transaction<T>(L:HuskWorkflowLedger,fn:(draft:HuskWorkflowLedger,m:Arrangement)=>T):T{
  try{
   metadata(L);const draft=copy(L),m=copy(metadata(draft)),value=fn(draft,m);
   ensure(m.revision<Number.MAX_SAFE_INTEGER,'revision-overflow');m.revision++;
-  draft.manualHuskArrangement=m;metadata(draft);Object.assign(L,draft);return value;
+  finishJobs(draft,m);draft.manualHuskArrangement=m;metadata(draft);Object.assign(L,draft);return value;
  }catch(e){if(e instanceof HuskWorkflowError)throw e;throw new HuskWorkflowError('invalid-world-or-material-state');}
 }
 function version(m:Arrangement,expected:number){ensure(uint(expected)&&m.revision===expected,'stale-arrangement');}
@@ -143,11 +289,25 @@ function permitted(j:Job,f:HuskExecutorSpan){
   if(['start','resume','takeover'].includes(c.kind)&&c.actorId===f.actorId&&f.fromWorldMs>=c.atWorldMs&&f.toWorldMs<=end)return true;
  }return false;
 }
-function observations(L:Ledger,j:Job,worker?:string):{channel:'sight'|'touch';text:string}[]{
- const a=authority(L,j);if(a.p.status==='stopped')return [{channel:'sight',text:a.p.certifiedWorkMs===0?'殻を手つかずのまま脇に置いた。':'途中までほぐした殻を脇に置いた。'}];
- const assignmentAt=a.assignments.at(-1)!.atWorldMs;
- if(!a.frames.some(f=>(worker===undefined||f.actorId===worker&&f.fromWorldMs>=assignmentAt)&&worksAt(f,a.spec,actorAt(j,f.fromWorldMs))))return [];
- return observeManualHuskWork(L,j.runId).map(o=>({channel:o.channel as 'sight'|'touch',text:o.text!}));
+function observations(
+  L: Ledger,
+  j: Job,
+  worker?: string
+): {channel: 'sight' | 'touch'; text: string}[] {
+  const a = readManualHuskWorkAuthority(L, j.runId);
+  if (a.projection.status === 'stopped') {
+    return [{
+      channel: 'sight',
+      text: a.projection.certifiedWorkMs === 0
+        ? '殻を手つかずのまま脇に置いた。'
+        : '途中までほぐした殻を脇に置いた。'
+    }];
+  }
+  if (!a.hadWork || worker !== undefined && a.observationActorId !== worker) return [];
+  return a.observations.map(o => ({
+    channel: o.channel as 'sight' | 'touch',
+    text: o.text!
+  }));
 }
 function worksAt(f:HuskExecutorSpan,s:HuskWorkSpec,actorId:string){
  const near=(p:{x:number;z:number})=>Math.hypot(p.x-s.worksite.x,p.z-s.worksite.z)<=s.worksite.reachM;
@@ -170,7 +330,11 @@ export function recordHuskWorkflowSpan(L:HuskWorkflowLedger,runId:string,f:HuskE
 /** Called at the real load boundary, not by rendering. Open attendance is
  * invalidated; pending work/material reservations remain unchanged. */
 export function restoreHuskArrangement(saved:unknown,atWorldMs:number):HuskWorkflowLedger{
- const L=copy(saved) as HuskWorkflowLedger,m=metadata(L);
+ const L=copy(saved) as HuskWorkflowLedger;
+ migrateArrangement(L);
+ validateManualHuskRecords(L);
+ compactManualHuskRecords(L);
+ const m=metadata(L);
  ensure(uint(atWorldMs)&&atWorldMs>=m.authorityAtWorldMs,'invalid-restore-time');
  for(const j of m.jobs)ensure(atWorldMs>=Math.max(j.controls.at(-1)!.atWorldMs,authority(L,j).through),'restore-before-saved-events');
  if(!m.jobs.length)return L;
@@ -183,8 +347,12 @@ export function restoreHuskArrangement(saved:unknown,atWorldMs:number):HuskWorkf
  });return L;
 }
 export function readHuskResidentObservations(L:HuskWorkflowLedger,runId:string,actorId:string){
- const j=metadata(L).jobs.find(x=>x.runId===runId);ensure(j,'unknown-job');
- return j.actorId===actorId?observations(L,j,actorId):[];
+ const m = metadata(L);
+ const j = m.jobs.find(x => x.runId === runId);
+ if (j) return j.actorId === actorId ? observations(L, j, actorId) : [];
+ const done = m.finished.find(x => x.runId === runId);
+ ensure(done, 'unknown-or-expired-job');
+ return done.actorId === actorId ? copy(done.workerObservations) : [];
 }
 /** Strict public whitelist. No counts, times, ratios, IDs, quality or snapshots.
  * asOf comes from the host; read-only calls never certify presence/work. */
@@ -192,7 +360,25 @@ export function readHuskWorksite(L:HuskWorkflowLedger,siteId:string,asOfWorldMs:
  ensure(id(siteId)&&uint(asOfWorldMs),'invalid-view-context');
  const m=metadata(L),all=m.jobs.filter(j=>j.siteId===siteId);
  const j=all.find(x=>!ended(authority(L,x).p.status))??all.at(-1);
- if(!j)return {title:'ヤシ殻の作業場',stage:'開始前',activity:'available',materialsReserved:false,operatorFree:true,reason:null,nextStep:'本体が選んだ作業の意図を受け取る。',observations:[]};
+ if (!j) {
+  const done = m.finished.filter(x => x.siteId === siteId).at(-1);
+  if (done) {
+   ensure(asOfWorldMs >= done.atWorldMs, 'view-before-record');
+   return {
+    title: 'ヤシ殻の作業場',
+    stage: done.status === 'stopped'
+     ? done.certifiedWorkMs === 0 ? '手つかずの殻を片付けた' : '途中までの殻を片付けた'
+     : 'ほぐす作業を終えた',
+    activity: done.status === 'stopped' ? 'abandoned' : 'completed',
+    materialsReserved: false,
+    operatorFree: true,
+    reason: null,
+    nextStep: '本体が選んだ作業の意図を受け取る。',
+    observations: copy(done.observations).filter(o => o.channel === 'sight')
+   };
+  }
+  return {title:'ヤシ殻の作業場',stage:'開始前',activity:'available',materialsReserved:false,operatorFree:true,reason:null,nextStep:'本体が選んだ作業の意図を受け取る。',observations:[]};
+ }
  const a=authority(L,j),last=j.controls.at(-1)!;
  ensure(asOfWorldMs>=Math.max(last.atWorldMs,a.through),'view-before-record');
  const visible=observations(L,j).filter(o=>o.channel==='sight');

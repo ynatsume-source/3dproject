@@ -28,7 +28,7 @@ export function otherScienceWorkBusy(
       where = d.spec.worksite?.locationId;
       engaged = ['start', 'resume', 'takeover'].includes(job.controls.at(-1).kind);
     } else if (r.processId === 'prototype_husk_soak') {
-      if (!['civ-world.husk-soak/1', 'civ-world.husk-soak/2'].includes(r.state?.schema ?? '')
+      if (!['civ-world.husk-soak/1', 'civ-world.husk-soak/2', 'civ-world.husk-soak/3'].includes(r.state?.schema ?? '')
         || d?.spec?.site?.kind !== 'coastal-tide-pool') {
         throw Error('invalid-science-occupancy');
       }
@@ -52,7 +52,7 @@ export function otherScienceWorkBusy(
       where = '';
       engaged = !d.paused;
     } else {
-      if (r.state?.schema !== 'civ-world.coir-work/2' || !d?.spec
+      if (!['civ-world.coir-work/2', 'civ-world.coir-work/3'].includes(r.state?.schema ?? '') || !d?.spec
         || !Array.isArray(d.controls) || !d.controls.length) {
         throw Error('invalid-science-occupancy');
       }

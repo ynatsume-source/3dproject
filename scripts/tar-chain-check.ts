@@ -15,6 +15,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather } from '../src/world/island-time';
 import { addLot } from '../src/world/process-runner';
+import { recentScienceRuns } from '../src/world/science-records';
 
 let now = Date.parse('2026-10-06T00:00:00Z');   // (9:00 on the island)
 Date.now = () => now;
@@ -31,7 +32,7 @@ R.setBrain(null);
 const lantern = R.list.find((r: any) => r.id === 'lantern'), lab = R.lab;
 const step = (secs: number, until?: () => boolean) => { for (let i = 0; i < secs; i++) { now += 1000; R.update(1, now, new THREE.Vector3(0, 50, 0)); if (i % 60 === 0) R.setWeather(islandWeather(now)); for (const r of R.list) if (!r.sp.living) { r.battery = 1; r.hunger = 0.2; } if (until?.()) return true; } return false; };
 const lots = (m: string) => Object.values(lab.lots).filter((l: any) => l.materialId === m) as any[];
-const runs = (p: string) => Object.values(lab.runs).filter((r: any) => r.processId === p) as any[];
+const runs = (p: string) => [...Object.values(lab.runs), ...recentScienceRuns(lab)].filter((r: any) => r.processId === p) as any[];
 const jar = (ml: number, mg: number) => addLot(lab, { materialId: 'fired_pot', amount: { value: mg, unit: 'mg' }, location: 'shelf', quality: { form: 2, capacity_ml: ml, surface_cm2: Math.round(4.836 * Math.pow(ml, 2 / 3) * 1.2), absorption_ppm: 120_000, history_complete: 1 } });
 // (the island as the lamp leaves it: its cook pot and lamp dish stand; seasoned wood in a pile; and two jars fired for the retort)
 lab.equipment['eq:cook_pot'] = { equipmentId: 'eq:cook_pot', kind: 'cook_pot', catalogEntry: 'cook_pot', catalogVersion: 'x', condition: 1, params: { capacityMl: 3000 } };

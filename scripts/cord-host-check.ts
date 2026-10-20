@@ -22,6 +22,7 @@ import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather, islandWait } from '../src/world/island-time';
 import { addLot } from '../src/world/process-runner';
 import { writeCordBundle, writeCordPiece } from '../src/world/coir-cord-lots';
+import { projectCordWork } from '../src/world/coir-cord-work';
 import { applyCordLoad } from '../src/world/coir-cord-load';
 import { writePost } from '../src/journal/write';
 
@@ -95,9 +96,9 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
   const back = now; step(2);
   const fr2 = R.lab.runs[run.runId].state.data.frames, one = fr2.find((x: any) => x.fromWorldMs === from);
   want('3 the roof\'s time across the load: one span, from the last confirmed moment to the first one back', !!one && one.toWorldMs >= back, one ? `${Math.round((one.toWorldMs - one.fromWorldMs) / 60e3)} min` : `(no span from ${from})`);
-  step(Math.ceil(islandWait(3.1 * 86400e3) / 1000), () => R.lab.runs[run.runId].status === 'completed');
+  step(Math.ceil(islandWait(3.1 * 86400e3) / 1000), () => projectCordWork(R.lab, run.runId).status === 'completed');
   const dried = lots('coir_fiber_bundle')[0];
-  want('3 dried: the bundle back under the eaves, drier', R.lab.runs[run.runId].status === 'completed' && !!dried && dried.quality.water_mg < WET, `${R.lab.runs[run.runId].status}`);
+  want('3 dried: the bundle back under the eaves, drier', projectCordWork(R.lab, run.runId).status === 'completed' && !!dried && dried.quality.water_mg < WET, `${projectCordWork(R.lab, run.runId).status}`);
 }
 { // 4
   for (let k = 0; k < 3; k++) await choose('cord:twist:pot', () => lots('coir_strand').length === k + 1);

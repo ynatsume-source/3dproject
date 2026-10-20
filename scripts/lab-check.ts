@@ -18,6 +18,7 @@ const { loadLand } = await import('../src/ocean/land');
 const { DOTWORLD } = await import('../src/data/locations');
 const { CATALOG } = await import('../src/world/process-catalog');
 const { addLot } = await import('../src/world/process-runner');
+const { recentScienceRuns } = await import('../src/world/science-records');
 const loc: any = DOTWORLD;
 await loadLand('kayama', loc.land.half, loc.land.far);
 const { buildOcean } = await import('../src/ocean/build');
@@ -40,8 +41,8 @@ const clay = () => addLot(lab, { materialId: 'prepared_clay', amount: { value: 4
 { // 2
   R.setCatalog(CATALOG.map((e: any) => e.processId === 'p11x_test_tile_shape' ? { ...e, env: 'simulation', ready: true } : e));
   const c = clay();
-  await run(3 * 3600, () => Object.values(lab.runs).some((x: any) => x.status === 'completed'));
-  const r = Object.values(lab.runs)[0] as any, tile = Object.values(lab.lots).find((l: any) => l.materialId === 'test_tile_green') as any;
+  await run(3 * 3600, () => recentScienceRuns(lab).some(x => x.status === 'completed'));
+  const r = recentScienceRuns(lab).at(-1), tile = Object.values(lab.lots).find((l: any) => l.materialId === 'test_tile_green') as any;
   want('2 Lantern started it at the shelf, and the world ran it to the end', r?.status === 'completed' && r.operator === 'res:lantern', r ? `${r.processId} ${r.status}` : 'none');
   want('2 the tile lies on the shelf; the clay is gone; nothing is held', !!tile && tile.location === 'shelf' && !lab.lots[c.lotId] && !Object.values(lab.equipment).some((e: any) => e.reservedBy), tile ? `${tile.materialId} ${tile.amount.value}mg` : 'none');
   const t = lan.diary.filter((e: any) => /試験タイル/.test(e.text)).map((e: any) => e.text);

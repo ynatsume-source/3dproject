@@ -56,6 +56,8 @@ const SCHEMA = 'civ-sci.oil-lamp/3';
 const EVAL = 'oil-lamp-eval/0.2.0';
 export const LAMP_DISH = 'lamp_dish', LAMP_WICK = 'lamp_wick';
 const CELL_MS = 1000;
+/** Diagnostic history only; the last event drives the current observation. */
+export const LAMP_OUT_EVENT_LIMIT = 64;
 /** Wick fibres (lamp_wick quality.fiber). */
 export const WICK_FIBERS = { 1: 'pandanus', 2: 'coir', 3: 'reed_pith' } as const;
 const DRAW = { 1: 'lampDrawPandanusGPerH', 2: 'lampDrawCoirGPerH', 3: 'lampDrawReedGPerH' } as const;
@@ -200,6 +202,11 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
     if (req.interval.from !== d.lastTo) return fail(`noncontiguous-interval: expected from=${d.lastTo}`);
   }
 
+  if (!Array.isArray(d.outEvents) || d.outEvents.some(event => typeof event !== 'string')) {
+    return fail('corrupt-state: the saved lamp event history is invalid');
+  }
+  d.outEvents = d.outEvents.slice(-LAMP_OUT_EVENT_LIMIT);
+
   const known = knownFor(d.roofed);
   const putOut = req.actions.filter((a) => a.action === 'put_out').map((a) => a.at).sort((x, y) => x - y)[0];
   const endAt = !known ? req.interval.from : putOut ?? req.interval.to;
@@ -218,7 +225,13 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
     return { r, fatShare: pool > 0 ? s.fat / pool : 0 };
   };
   const sootOf = (s: Snap) => pv('lampSootBase') + (d.wickOut === 2 ? pv('lampSootLongWick') : 0) + pv('lampSootChar') * s.char;
-  const goOut = (why: string) => { d.ctl.lit = false; d.outEvents.push(why); };
+  const goOut = (why: string) => {
+    d.ctl.lit = false;
+    d.outEvents.push(why);
+    if (d.outEvents.length > LAMP_OUT_EVENT_LIMIT) {
+      d.outEvents.splice(0, d.outEvents.length - LAMP_OUT_EVENT_LIMIT);
+    }
+  };
 
   /** The state at time t inside the current cell: closed forms of the time since the cell's start (no decisions). */
   const at = (t: number): Snap => {

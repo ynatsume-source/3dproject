@@ -11,6 +11,12 @@ import type { EnergyOffer, EnvironmentSample, EquipmentView, Id, LotView, Observ
   ScienceStep, ScienceStepRequest, ScienceStepResult } from './science-contract';
 import { ISLAND_EPOCH as EPOCH, ISLAND_RATE } from './island-time';
 import { validateResult } from '../science/step/validate';
+import {
+  archiveScienceRun,
+  ensureScienceRecords,
+  SCIENCE_RECORD_LIMITS,
+  type ScienceRecords
+} from './science-records';
 
 export type ProcessClock = 'world' | 'island';
 /** A real moment on a process's clock, and back. Integer ms. */
@@ -37,6 +43,7 @@ export interface Ledger {
   runs: Record<Id, Run>;
   committed: Id[];                    // requestIds already committed (the last few hundred: a resend is refused)
   released?: Released[];             // what runs let go out of the world's lots — water spilled on the ground, smoke to the air (the last few hundred)
+  scienceRecords?: ScienceRecords;   // bounded terminal summaries; old saves omitted it
   seq: number;                        // for new ids
 }
 export interface Released { runId: Id; processId: Id; at: number; materialId: Id; mg: number; to: 'air' | 'water' | 'ground' }
@@ -344,9 +351,10 @@ export interface Committed { ok: boolean; why?: string; status?: Run['status']; 
  *  ends, the lots it used and made. A result that breaks the contract is refused and changes nothing; a failed
  *  process ends its run and frees what it held, with nothing consumed. */
 export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResult): Committed {
+  ensureScienceRecords(L);
+  if (L.committed.includes(req.requestId)) return { ok: false, why: 'already committed' };
   const r = L.runs[req.runId];
   if (!r) return { ok: false, why: 'no such run' };
-  if (L.committed.includes(req.requestId)) return { ok: false, why: 'already committed' };
   if (req.interval.from !== r.lastTo) return { ok: false, why: 'not the run\'s next interval' };
   const problems = validateResult(req, res);
   if (problems.length) { r.attempt++; return { ok: false, why: `refused: ${problems.join('; ')}` }; }
@@ -355,6 +363,9 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
   if (res.status === 'failed') { end(L, r, 'failed', String((res.diagnostics as any)?.code ?? (res.diagnostics as any)?.error ?? res.evidence?.notes ?? 'failed')); return { ok: true, status: 'failed' }; }
   r.state = res.state; r.lastTo = res.status === 'needs-input' || res.simulated.to <= req.interval.from ? req.interval.to : res.simulated.to;
   r.observations.push(...res.observations);
+  if (r.observations.length > SCIENCE_RECORD_LIMITS.observations) {
+    r.observations.splice(0, r.observations.length - SCIENCE_RECORD_LIMITS.observations);
+  }
   const produced: LotView[] = [];
   if (res.status === 'completed' || res.status === 'stopped') {
     // (the run settles its lots when it ends: what it used goes, what it made is new — where the step says, or where
@@ -373,11 +384,14 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
 }
 /** End a run without settling anything (its process version is gone, the world gave it up): what it held is free
  *  again, unconsumed (lots settle only when a run ends by the step's own word). */
-export function abortRun(L: Ledger, runId: Id, why: string) { const r = L.runs[runId]; if (r && ['starting', 'running', 'needs-input'].includes(r.status)) { end(L, r, 'stopped', why); L.world.worldVersion++; } }
+export function abortRun(L: Ledger, runId: Id, why: string) { ensureScienceRecords(L); const r = L.runs[runId]; if (r && ['starting', 'running', 'needs-input'].includes(r.status)) { end(L, r, 'stopped', why); L.world.worldVersion++; } }
 function end(L: Ledger, r: Run, status: Run['status'], why?: string) {
   r.status = status; if (why) r.why = why;
   for (const id of r.lotIds) if (L.lots[id]?.reservedBy === r.runId) delete L.lots[id].reservedBy;
   for (const id of r.equipmentIds) if (L.equipment[id]?.reservedBy === r.runId) delete L.equipment[id].reservedBy;
+  // Prototype adapters still need the just-ended state to build their compact
+  // domain projection. They explicitly retire it inside that same transaction.
+  if (!r.processId.startsWith('prototype_')) archiveScienceRun(L, r.runId);
 }
 
 /** Step a run as far as realNow, interval by interval, committing each. Returns what was committed, in order. */
