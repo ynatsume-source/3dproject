@@ -520,7 +520,9 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     const crabTest = dh && typeof location !== 'undefined' ? crabLookTest(location.search) : null;
     if (crabTest) {
       const crabs = makeCrabLook(group), burrows = makeBurrowLook(group), at = { x: dh[0] + 3.0, z: dh[1] + 1.5 }, ground = (x: number, z: number) => loc.f(x, z);
-      crabs.mesh.onBeforeRender = () => { const P = crabTestPoses(crabTest === 'still' ? 2.2 : performance.now() / 1000, at, ground); crabs.show(P.crabs); burrows.show(P.burrows); };
+      let trunk: any = null, best = 1e9;   // (the nearest pandanus, for one to climb)
+      oc.shore?.trunks(at.x, at.z, 15, (t: any) => { const d = Math.hypot(t.base.x - at.x, t.base.z - at.z); if (t.kind === 'pandanus' && d < best) { best = d; trunk = t; } });
+      crabs.mesh.onBeforeRender = () => { const P = crabTestPoses(crabTest === 'still' ? 2.2 : performance.now() / 1000, at, ground, trunk); crabs.show(P.crabs); burrows.show(P.burrows); };
       oc.crabLook = crabs;
     }
   }

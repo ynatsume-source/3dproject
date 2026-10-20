@@ -22,7 +22,7 @@
 // object made inside quiet().
 import * as THREE from 'three';
 import { mat } from '../render/common';
-import { AIRLIT } from './shore';
+import { AIRLIT, type TrunkLine } from './shore';
 import { draw } from '../science/rng';
 
 const SEED = 0x63726162;   // 'crab'
@@ -294,10 +294,11 @@ export function makeBurrowLook(parent: THREE.Group, cap = 16) {
 
 /** LAB: ?crablook — on the sand by Dot's home (test only, not the world's): four ghost crabs (one standing with its eyes
  *  up, one running back and forth sideways, one going down its burrow and coming out again, one with its eyes laid
- *  down), two burrow mouths (the one it goes down, and an empty one), and a coconut crab walking slowly to and fro.
+ *  down), two burrow mouths (the one it goes down, and an empty one), a coconut crab walking slowly to and fro, and one
+ *  climbing up and down the nearest pandanus (on its trunk as drawn: ocean/shore.ts trunks).
  *  ?crablook=still holds them at one moment (mid-stride, half down the burrow), for tools/lab/flicker.cjs. */
 export function crabLookTest(q: string): 'move' | 'still' | null { const m = /[?&]crablook(=still)?\b/.exec(q); return m ? (m[1] ? 'still' : 'move') : null; }
-export function crabTestPoses(t: number, at: { x: number; z: number }, groundAt: (x: number, z: number) => number): { crabs: CrabPose[]; burrows: BurrowPose[] } {
+export function crabTestPoses(t: number, at: { x: number; z: number }, groundAt: (x: number, z: number) => number, trunk?: TrunkLine | null): { crabs: CrabPose[]; burrows: BurrowPose[] } {
   const crabs: CrabPose[] = [], burrows: BurrowPose[] = [];
   const put = (kind: CrabKind, id: string, dx: number, dz: number, head: number, phase: number, run: number, sunk: number, eyes: number) => {
     const x = at.x + dx, z = at.z + dz; crabs.push({ kind, id, x, z, y: groundAt(x, z), head, phase, run, sunk, eyes });
@@ -313,5 +314,13 @@ export function crabTestPoses(t: number, at: { x: number; z: number }, groundAt:
   // (the coconut crab walks forward, along its own z, slowly)
   const c = Math.sin(t * 0.15), hd = -1.9 + (Math.cos(t * 0.15) < 0 ? Math.PI : 0);
   put('coconut', 'test-coconut', 1.3 + Math.sin(-1.9) * c * 0.5, -0.9 + Math.cos(-1.9) * c * 0.5, hd, t * 4.5, Math.min(1, Math.abs(Math.cos(t * 0.15)) * 1.6) * 0.6, 0, 1);
+  // (and one climbing the nearest pandanus, slowly up and down its drawn trunk, on the side towards the worksite)
+  if (trunk) {
+    const ax = trunk.top.clone().sub(trunk.base), len = ax.length(); ax.normalize();
+    const f = 0.3 + 0.25 * (1 + Math.sin(t * 0.12)), up = Math.cos(t * 0.12) >= 0, c = trunk.base.clone().addScaledVector(ax, len * f);
+    const n = new THREE.Vector3(at.x - c.x, 0, at.z - c.z); n.addScaledVector(ax, -n.dot(ax)).normalize();   // (out from the trunk, square to it)
+    const p = c.addScaledVector(n, trunk.r0 + (trunk.r1 - trunk.r0) * f), fw = up ? ax : ax.clone().negate();
+    crabs.push({ kind: 'coconut', id: 'test-climb', x: p.x, z: p.z, y: p.y, head: 0, phase: t * 3, run: Math.abs(Math.cos(t * 0.12)) * 0.5, sunk: 0, eyes: 1, on: { n: [n.x, n.y, n.z], fwd: [fw.x, fw.y, fw.z] } });
+  }
   return { crabs, burrows };
 }
