@@ -52,7 +52,11 @@ const JA = /[぀-ヿ一-鿿]/;
   const missing = keys.filter((k) => { const t = firstEn(k, 'ドット'); return !t || JA.test(t); });
   want(`3 every first the world grades has its English card (${keys.length} kinds)`, keys.length >= 20 && missing.length === 0, missing.join(','));
   want('3 a crossing names its island (plain for captions; in italics, escaped, on the card)', firstEn('crossing:Pata', 'ドット') === 'Dot crossed by raft to Pata and back' && firstEn('crossing:P<a', 'ドット', true) === 'Dot crossed by raft to <i>P&lt;a</i> and back', `${firstEn('crossing:P<a', 'ドット', true)}`);
-  want('3 the set phrases (viewer design review B)', FIXED_EN.brand === "Dot's Island" && FIXED_EN.ai === 'The residents are AI · filmed automatically' && FIXED_EN.date(1, 12, 17) === 'Island year 1 · 17 December' && firstEn('light', 'ドット') === "Dot lit the island's first lamp", `${FIXED_EN.date(1, 12, 17)} / ${firstEn('light', 'ドット')}`);
+  { // (the names, D23 2026-10-20: UTSUSHIYO PROJECT / Series 1 ルマウ (Lumau); "ドットたちの島" only as the series' subtitle, never on the live screen)
+    const live = fs.readFileSync('src/live/live.ts', 'utf8'), css = fs.readFileSync('src/live/live.css', 'utf8');
+    want('3 the brand: the project, then Series 1 and the series\' name', live.includes('>UTSUSHIYO PROJECT<') && live.includes('<i class="ser">Series 1</i>') && live.includes("'ルマウ'") && !live.includes('ドットたちの島') && /\.brand \.ser \{[^}]*lining-nums/.test(css));
+  }
+  want('3 the set phrases (viewer design review B)', FIXED_EN.brand === 'Lumau' && FIXED_EN.ai === 'The residents are AI · filmed automatically' && FIXED_EN.date(1, 12, 17) === 'Island year 1 · 17 December' && firstEn('light', 'ドット') === "Dot lit the island's first lamp", `${FIXED_EN.date(1, 12, 17)} / ${firstEn('light', 'ドット')}`);
 }
 { // 4
   const fits = (l: string) => l.length <= 40;
