@@ -1,0 +1,8 @@
+classified in 756 ms; cells: sea 441771, lagoon 31018, pool 21, inland 17, dry 106294
+  (-83.5, -193.5) floor -0.19: pool, surface moves 0.000 m — want cut off, still ok
+  (271.5, 10.5) floor -0.23: inland, surface moves 0.000 m — want cut off, still ok
+  (709, -213) floor -0.22: pool, surface moves 0.000 m — want cut off, still ok
+  (389, -575) floor -0.05: dry, surface moves 0.018 m — want not the sea, near still ok
+  (0, 600) floor -10.16: sea, surface moves 0.446 m — want the sea, all its swell ok
+  (-152, -296) floor -0.92: lagoon, surface moves 0.162 m — want a lagoon, some of the swell ok
+PASS
