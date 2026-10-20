@@ -80,21 +80,22 @@ export function makeHuskHost(ctx: {
   lab: Ledger;
   state: () => HuskHostState;
   placeSites: () => NonNullable<HuskHostState['sites']>;
-  /** The pool placed again from where it was (a pool saved before it had its ground and its standing spot). */
-  repool: (was: HuskSite) => HuskPool;
-  /** The sea's height at a world moment (time/sea-level.ts seaLevel: the time alone). */
-  seaAt: (worldMs: number) => number;
+  /** The pool placed again from where it was (a pool saved before it had its ground and its standing spot). None: kept
+   *  where it is, its husks always under (v1). */
+  repool?: (was: HuskSite) => HuskPool;
+  /** The sea's height at a world moment (time/sea-level.ts seaLevel: the time alone). None: mean sea level. */
+  seaAt?: (worldMs: number) => number;
   dev: HuskDevEntry[];
 }): HuskHost {
   const L = () => ctx.lab as HuskWorkflowLedger;
   const st = () => ctx.state();
   const sites = () => {
     const s = (st().sites ??= ctx.placeSites());
-    if (s.pool.ground === undefined || !s.pool.stand) s.pool = ctx.repool(s.pool);   // (the id kept: the lots and the run there stay as they are)
+    if (s.pool.ground === undefined || !s.pool.stand) s.pool = ctx.repool?.(s.pool) ?? { ...s.pool, ground: -1, stand: [s.pool.x, s.pool.z] };   // (the id kept: the lots and the run there stay as they are)
     return s;
   };
   // (whether the husks lay under the water over a span: the sea at the span's middle, against the pool's ground)
-  const immersed = (from: number, to: number) => ctx.seaAt(Math.floor((from + to) / 2)) >= sites().pool.ground! + IMMERSED_M;
+  const immersed = (from: number, to: number) => (ctx.seaAt?.(Math.floor((from + to) / 2)) ?? 0) >= sites().pool.ground! + IMMERSED_M;
   // (husks taken out are carried up off the shore, out of the tide's reach: the worksite — never left in the water, wet
   // and not soaking; science 2026-10-20)
   const carryUp = (nowWorldMs: number) => {
@@ -150,7 +151,7 @@ export function makeHuskHost(ctx: {
         const to = Math.min(nowWorldMs, from + SOAK_EVERY_MS);
         try {
           recordHuskSoakSpan(L(), r.runId, { recordId: `${r.runId}:${from}`, worldId: L().world.worldId, worldEpoch: L().world.worldEpoch, runId: r.runId,
-            siteId: sites().pool.id, fromWorldMs: from, toWorldMs: to, fromIslandMs: island(from), toIslandMs: island(to), confirmedAtWorldMs: nowWorldMs, immersed: immersed(from, to) }, nowWorldMs);
+            siteId: sites().pool.id, fromWorldMs: from, toWorldMs: to, fromIslandMs: island(from), toIslandMs: island(to), confirmedAtWorldMs: to, immersed: immersed(from, to) }, to);   // (each minute confirmed as it ends: the record keeps its moments in order)
           st().soak[r.runId] = from = to;
         } catch (e) { log(nowWorldMs, '', 'soak-span', e); break; }
       }
