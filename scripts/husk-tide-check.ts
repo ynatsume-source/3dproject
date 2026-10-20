@@ -26,6 +26,7 @@ Object.defineProperty(globalThis, 'document', { configurable: true, value: { cre
 const oc: any = buildOcean(loc);
 const { makeHuskHost, emptyHuskHostState, IMMERSED_M, POOL_REACH_M } = await import('../src/robots/husk-host');
 const { addLot, emptyLedger } = await import('../src/world/process-runner');
+const { readSoakedHuskInput } = await import('../src/world/husk-soak-work');
 
 let bad = 0;
 const want = (what: string, ok: boolean, got: unknown = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -50,27 +51,31 @@ const R = oc.residents, W = oc.water, HIGH = 0.91, RUNUP = 0.2;
   const sea = (ms: number) => tide(ms, loc.lat, loc.lon, loc.tide.amp, loc.tide.lag, loc.tide.diurnal).h;
   const pool = { id: 'site:husk-pool', x: 0, z: 0, ground: -0.2, stand: [2, 0] as [number, number] }, work = { id: 'site:husk-work', x: 20, z: 0, reachM: 2 };
   const t0 = Date.parse('2026-10-06T00:00:00Z'), HOURS = 12;
-  const run = (every: number) => {
+  const out = t0 + HOURS * 3600e3 + 25_000;   // (taken out a part-minute after the last whole one)
+  // (the husks' record of their time under, as the science side keeps it on the wet husk: immersed stretches, joined)
+  const run = (every: number, seaAt = sea) => {
     const L = emptyLedger('w', 'tide'), st = emptyHuskHostState();
     addLot(L, { materialId: 'coconut_husk', amount: { value: 2_400_017, unit: 'mg' }, location: 'shelf', quality: { count: 2, water_ppm: 300_000, ash_dry_ppm: 20_000, history_complete: 1 } });
-    const H = makeHuskHost({ lab: L, state: () => st, dev: [], placeSites: () => ({ pool: { ...pool }, work }), repool: () => ({ ...pool }), seaAt: sea });
+    const H = makeHuskHost({ lab: L, state: () => st, dev: [], placeSites: () => ({ pool: { ...pool }, work }), repool: () => ({ ...pool }), seaAt });
     H.putInPool('dot', t0);
     for (let t = t0 + every; t <= t0 + HOURS * 3600e3; t += every) H.tick(t);
-    const r: any = Object.values(L.runs)[0];
-    return { L, H, frames: r.state.data.frames as any[] };
+    H.takeOut('dot', out);
+    const wet = Object.values(L.lots).filter((l: any) => l.materialId === 'wet_unseparated_coconut_husk') as any[];
+    const hist = wet.length ? readSoakedHuskInput(L, wet[0].lotId).soakHistory.map((h: any) => [h.fromWorldMs, h.toWorldMs]) : [];
+    return { L, wet, hist };
   };
+  // (what it should be: each world minute from the start, under or not by the sea at its middle, the last part-minute
+  // up to the taking out; the stretches under joined)
+  const want3: number[][] = [];
+  for (let a = t0; a < out; a += 60_000) { const b = Math.min(out, a + 60_000); if (sea(Math.floor((a + b) / 2)) >= pool.ground + IMMERSED_M) { const last = want3.at(-1); if (last && last[1] === a) last[1] = b; else want3.push([a, b]); } }
   const open = run(10_000), closed = run(HOURS * 3600e3);
-  const under = (fr: any[]) => fr.filter((f) => f.immersed).reduce((a, f) => a + f.toIslandMs - f.fromIslandMs, 0), all = (fr: any[]) => fr.reduce((a, f) => a + f.toIslandMs - f.fromIslandMs, 0);
-  const expect = open.frames.every((f) => f.immersed === (sea(Math.floor((f.fromWorldMs + f.toWorldMs) / 2)) >= pool.ground + IMMERSED_M));
-  want('3 each minute under the water or not by the sea at its middle', expect && open.frames.every((f) => f.toWorldMs - f.fromWorldMs === 60_000), `${open.frames.length} spans`);
-  const u = under(open.frames), a = all(open.frames);
-  want('3 low water not counted', u > 0 && u < a, `${(u / 3600e3).toFixed(1)} of ${(a / 3600e3).toFixed(1)} island hours under (${(100 * u / a).toFixed(0)}%)`);
-  want('3 closed twelve hours and loaded: the same spans, the same time under', JSON.stringify(closed.frames.map((f) => [f.fromWorldMs, f.toWorldMs, f.immersed])) === JSON.stringify(open.frames.map((f) => [f.fromWorldMs, f.toWorldMs, f.immersed])) && under(closed.frames) === u, `${(under(closed.frames) / 3600e3).toFixed(1)} h`);
-  // (taken out: up to the moment, the last part-minute too; the husks carried up to the worksite, none left in the water)
-  const H = open.H, L = open.L, out = t0 + HOURS * 3600e3 + 25_000; H.takeOut('dot', out);
-  const fr: any[] = (Object.values(L.runs)[0] as any).state.data.frames, wet = Object.values(L.lots).filter((l: any) => l.materialId === 'wet_unseparated_coconut_husk') as any[];
-  want('3 taken out: the time up to the moment it lifted them', fr.at(-1).toWorldMs === out, `${(out - fr.at(-1).fromWorldMs) / 1000} s last`);
-  want('2 taken out: carried up to the worksite, none left at the pool', wet.length > 0 && wet.every((l) => l.location === work.id) && !Object.values(L.lots).some((l: any) => l.location === pool.id), wet.map((l) => l.location).join(','));
+  const sum = (h: number[][]) => h.reduce((x, [a, b]) => x + b - a, 0);
+  want('3 each minute under the water or not by the sea at its middle (the stretches under, as kept on the husk)', JSON.stringify(open.hist) === JSON.stringify(want3), `${open.hist.length} stretches under`);
+  want('3 low water not counted', sum(open.hist) > 0 && sum(open.hist) < out - t0, `${(100 * sum(open.hist) / (out - t0)).toFixed(0)}% of ${HOURS} hours under`);
+  want('3 closed twelve hours and loaded: the same stretches, the same time under', JSON.stringify(closed.hist) === JSON.stringify(open.hist), `${(sum(closed.hist) / 3600e3).toFixed(2)} world h`);
+  const always = run(HOURS * 3600e3, () => 0);
+  want('3 taken out: the time up to the moment it lifted them', always.hist.length === 1 && always.hist[0][0] === t0 && always.hist[0][1] === out, JSON.stringify(always.hist));
+  want('2 taken out: carried up to the worksite, none left at the pool', open.wet.length > 0 && open.wet.every((l) => l.location === work.id) && !Object.values(open.L.lots).some((l: any) => l.location === pool.id), open.wet.map((l) => l.location).join(','));
 }
 console.log(bad ? `FAIL ${bad}` : 'all ok');
 process.exit(bad ? 1 : 0);
