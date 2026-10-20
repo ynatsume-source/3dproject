@@ -454,6 +454,7 @@ function trimRecords(m: Records, L: Ledger): void {
   }
 }
 function inputMatches(L: Ledger, lotId: string, input: SoakedHuskPiece['input']): void {
+  requireSoak(input && typeof input === 'object' && !Array.isArray(input), 'corrupt-soak-provenance');
   const lot = L.lots[lotId];
   requireSoak(lot && lot.materialId === 'wet_unseparated_coconut_husk'
     && lot.amount.unit === 'mg' && uint(lot.amount.value) && lot.amount.value > 0
@@ -723,7 +724,7 @@ function soakTransaction<T>(L: Ledger, body: (draft: Ledger, m: Records) => T): 
 }
 
 /** Start waiting at a confirmed tide-pool visit; waiting never holds the actor. */
-export function beginHuskSoak(
+function beginHuskSoakImpl(
   L: Ledger, spec: HuskSoakStart, nowWorldMs: number,
 ): { runId: string } {
   requireSoak(uint(nowWorldMs) && uint(spec?.atWorldMs)
@@ -738,7 +739,7 @@ export function beginHuskSoak(
     const source = sourceCopy(lot);
     let previousHistory: SoakHistory = [], origin: HuskSoakOrigin | null = null;
     if (source.materialId === 'wet_unseparated_coconut_husk') {
-      const proof = next.provenance[source.lotId];
+      const proof = Object.hasOwn(next.provenance, source.lotId) ? next.provenance[source.lotId] : undefined;
       if (proof) {
         inputMatches(draft, source.lotId, proof.input);
         previousHistory = copy(proof.input.soakHistory);
@@ -798,7 +799,7 @@ function result(
     },
   };
 }
-export function recordHuskSoakSpan(
+function recordHuskSoakSpanImpl(
   L: Ledger, runId: string, span: HuskSoakSpan, nowWorldMs: number,
 ): SoakProjection {
   requireSoak(uint(nowWorldMs) && uint(span?.confirmedAtWorldMs)
@@ -816,7 +817,7 @@ export function recordHuskSoakSpan(
   });
   return projectHuskSoak(L, runId);
 }
-export function takeOutHuskSoak(
+function takeOutHuskSoakImpl(
   L: Ledger, runId: string, intent: HuskSoakTakeOut, nowWorldMs: number,
 ): SoakProjection {
   checkTakeOut(intent);
@@ -879,6 +880,29 @@ export function takeOutHuskSoak(
     return copy(projection);
   });
 }
+
+function mutateSoak<T>(L: Ledger, body: (draft: Ledger) => T): T {
+  const draft = copy(L);
+  const answer = body(draft);
+  Object.assign(L, draft);
+  return answer;
+}
+export function beginHuskSoak(
+  L: Ledger, spec: HuskSoakStart, nowWorldMs: number,
+): { runId: string } {
+  return mutateSoak(L, draft => beginHuskSoakImpl(draft, spec, nowWorldMs));
+}
+export function recordHuskSoakSpan(
+  L: Ledger, runId: string, span: HuskSoakSpan, nowWorldMs: number,
+): SoakProjection {
+  return mutateSoak(L, draft => recordHuskSoakSpanImpl(draft, runId, span, nowWorldMs));
+}
+export function takeOutHuskSoak(
+  L: Ledger, runId: string, intent: HuskSoakTakeOut, nowWorldMs: number,
+): SoakProjection {
+  return mutateSoak(L, draft => takeOutHuskSoakImpl(draft, runId, intent, nowWorldMs));
+}
+
 /** World-only accounting, never a resident knowledge payload. */
 export function projectHuskSoak(L: Ledger, runId: string): SoakProjection {
   const m = records(L), finished = m.finished.find(f => f.runId === runId);
@@ -886,7 +910,7 @@ export function projectHuskSoak(L: Ledger, runId: string): SoakProjection {
 }
 /** Provenance belongs to live wet lots, not to completed producer runs. */
 export function readSoakedHuskInput(L: Ledger, lotId: string): SoakedHuskPiece['input'] {
-  const m = records(L), p = m.provenance[lotId];
+  const m = records(L), p = Object.hasOwn(m.provenance, lotId) ? m.provenance[lotId] : undefined;
   if (!p) throw new HuskSoakError('unknown-soaked-husk');
   inputMatches(L, lotId, p.input);
   return copy(p.input);
@@ -899,7 +923,7 @@ export function readHuskResoakSource(L: Ledger, lotId: string): LotView {
   const source = sourceCopy(lot);
   readCoconutHusk(source);
   if (readHuskSoakOrigin(source)) return source;
-  const proof = m.provenance[lotId];
+  const proof = Object.hasOwn(m.provenance, lotId) ? m.provenance[lotId] : undefined;
   if (proof) {
     inputMatches(L, lotId, proof.input);
     return proof.origin ? withHuskSoakOrigin(source, proof.origin) : source;
