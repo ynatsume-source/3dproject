@@ -1,0 +1,5 @@
+frameCount 720 720 kept 64
+immersed island h 97.55 97.55 minutes under expected 449 of 720
+open == closed (count, total, digest, kept frames): true
+wet lots open [["site:husk-work",2273983,"{\"dry_mg\":840006,\"water_mg\":1433977,\"husk_count\":1,\"unseparated\":1,\"history_complete\":1,\"soak_origin_dry_mg\":1680012,\"soak_origin_water_mg\":720005,\"soak_origin_count\":2,\"soak_piece_index\":0,\"soak_elapsed_ms\":351480000,\"soak_split_policy\":2}"],["site:husk-work",2273982,"{\"dry_mg\":840006,\"water_mg\":1433976,\"husk_count\":1,\"unseparated\":1,\"history_complete\":1,\"soak_origin_dry_mg\":1680012,\"soak_origin_water_mg\":720005,\"soak_origin_count\":2,\"soak_piece_index\":1,\"soak_elapsed_ms\":351480000,\"soak_split_policy\":2}"]]
+wet lots equal open/closed true
