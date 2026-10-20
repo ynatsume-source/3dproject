@@ -3517,6 +3517,7 @@ function frameBody(ts: number) {
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
     // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
     cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos);
+    if (cur.residents) cur.crabs?.update(dt, cur.residents.worldTime, camera.position);   // (the night beach's crabs, by the island's clock)
     // (through its eyes: the camera on where they are now that the model has been posed for this frame)
     if (watch.r && watch.pov && cur.residents) { const sn = cur.residents.sense(watch.r); camera.position.copy(sn.eye); povEye.copy(sn.eye); }
     lanternStudyPanel.update(dt);
