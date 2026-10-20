@@ -1,0 +1,68 @@
+{
+ "wallSec": 40,
+ "savedKBAtClose": 267,
+ "catchUpMs": 454,
+ "brainCalls": 523,
+ "picks": {
+  "sail": 202,
+  "give": 8,
+  "say": 12,
+  "photo": 3,
+  "groom": 10,
+  "nap": 8,
+  "pile": 16,
+  "soak": 6,
+  "wander": 40,
+  "float": 9,
+  "takeout": 6,
+  "till": 1,
+  "gather": 3,
+  "twist": 3,
+  "beat": 105,
+  "craft": 14,
+  "shelve": 13,
+  "plant": 2,
+  "house": 13,
+  "look": 15,
+  "survey": 13,
+  "reef": 19,
+  "harvest": 2
+ },
+ "errors": [],
+ "huskDev": {
+  "beat-trial:manual husk: assumption has insufficient input water for this recipe": 55
+ },
+ "cordDev": {},
+ "sailDev": {
+  "start-weave:insufficient-weave-material": 59
+ }
+}
+{"at":"12-01T10:00","saveKB":128,"lots":16,"runs":3,"cordLoadsKB":0,"committed":77,"meanMs":0.6,"maxMs":124.5,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":1,"prototype_sail_work:running":1}}
+{"at":"12-01T11:00","saveKB":159,"lots":17,"runs":4,"cordLoadsKB":0,"committed":232,"meanMs":0.72,"maxMs":7.4,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-01T12:00","saveKB":182,"lots":20,"runs":6,"cordLoadsKB":0,"committed":386,"meanMs":0.85,"maxMs":24.3,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":3,"prototype_sail_work:running":2}}
+{"at":"12-01T13:00","saveKB":212,"lots":25,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.63,"maxMs":6.6,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":5,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-01T14:00","saveKB":229,"lots":27,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.67,"maxMs":16.8,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-01T15:00","saveKB":236,"lots":28,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.36,"maxMs":8.6,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-01T16:00","saveKB":248,"lots":29,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.36,"maxMs":10,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-01T17:00","saveKB":255,"lots":25,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.4,"maxMs":20.9,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-01T18:00","saveKB":258,"lots":25,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.41,"maxMs":20.7,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-01T19:00","saveKB":264,"lots":25,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.4,"maxMs":24.6,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-01T20:00","saveKB":266,"lots":25,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.25,"maxMs":6.4,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-01T21:00","saveKB":267,"lots":25,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.26,"maxMs":5.4,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T09:00","saveKB":267,"lots":31,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0,"maxMs":0,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T10:00","saveKB":298,"lots":32,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.52,"maxMs":78.3,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T11:00","saveKB":304,"lots":33,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.68,"maxMs":27,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T12:00","saveKB":308,"lots":34,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.46,"maxMs":52.4,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T13:00","saveKB":301,"lots":34,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.37,"maxMs":37,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-02T14:00","saveKB":301,"lots":34,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.35,"maxMs":19.3,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-02T15:00","saveKB":304,"lots":34,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.3,"maxMs":39.2,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-02T16:00","saveKB":307,"lots":34,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.34,"maxMs":19,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-02T17:00","saveKB":310,"lots":34,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.3,"maxMs":17.6,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:starting":1}}
+{"at":"12-02T18:00","saveKB":312,"lots":34,"runs":7,"cordLoadsKB":0,"committed":500,"meanMs":0.29,"maxMs":16.1,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6}}
+{"at":"12-02T19:00","saveKB":315,"lots":34,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.38,"maxMs":32.2,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T20:00","saveKB":317,"lots":34,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.58,"maxMs":7.3,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+{"at":"12-02T21:00","saveKB":319,"lots":34,"runs":8,"cordLoadsKB":0,"committed":500,"meanMs":0.49,"maxMs":45.6,"errors":0,"husk":"0束","strand":0,"rope":0,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:completed":6,"prototype_sail_work:running":1}}
+dot: 裂いた葉で帆のむしろを編む / 帆の作業場を見た：葉を細く裂いた。とげと葉脈の屑が残っている / 裂いた葉で帆のむしろを編む：進めなかった（葉の帯が足りず、むしろがつながらない） / 帆の作業場を見た：葉を取り終えた
+kame: 
+lantern: 朝の集まりで、ラッコは今日貝殻を集めると言った
+rakko: 帆の作業場を見た：手元の材料は、まだ作業の途中だ / 帆の作業場を見た：作業中の材料を脇に置いた / 帆の作業場を見た：手元の材料は、まだ作業の途中だ / 帆の作業場を見た：葉を取り終えた
