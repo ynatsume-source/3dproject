@@ -93,6 +93,10 @@ R.village.map.seen['south-near'] = { word: 'テスト島', at: now };
     const spot = R.worksiteSpots()['site:raft'], look = R.worksiteLooks().find((x: any) => x.siteId === 'site:raft');
     want('3 ashore: the raft in the window where it is drawn, rigged', !!spot && Math.abs(spot.x - (R.village.raft.x + 1.2)) < 1e-9 && spot.z === R.village.raft.z && look?.fixtures[0]?.look === 'rigged', JSON.stringify(spot));
   }
+  { // (nature 2026-10-20: the drying place under the back eaves says which way it runs — along the hut's back wall; others say none)
+    const S = R.worksiteSpots(), f = S['site:sail-dry']?.face;
+    want('3 the drying place runs along the hut\'s back wall; the others have no way of their own', Number.isFinite(f) && Object.entries(S).every(([id, p]: any) => id === 'site:sail-dry' || p.face === undefined), `face ${f?.toFixed(3)}`);
+  }
   let departAt = 0;
   await choose('voyage:south-near', () => { if (!departAt && R.village.sailHost.voyage) departAt = now; return !!R.village.sailHost.voyage; }, 1200);
   const v = R.village.sailHost.voyage, run = v && R.lab.runs[v.runId];

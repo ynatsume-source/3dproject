@@ -4,7 +4,7 @@
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
   'sail-lots', 'sail-work', 'sail-voyage', 'sail-cord-settlement',
-  'sail-raft-checkpoint', 'sail-inputs',
+  'sail-raft-checkpoint', 'sail-inputs', 'sail-weave-offer',
   'cord-load-compaction',
   'cord-integer-load',
   'sail-raft-science',
