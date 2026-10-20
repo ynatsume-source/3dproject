@@ -16,7 +16,7 @@ import { localTimeString } from '../time/clock';
 import { trimStatus, wrapStatus, subtitleLines } from './status-line';
 import { glyphs, LEX } from '../robots/islandlang';
 import { luminance, brightTenth, hazeFor, hazeStyle } from './scrim';
-import { statusEn, firstEn, BUSY_EN, FIXED_EN, NAMES_EN } from './en';
+import { statusEn, firstEn, asLine, FIXED_EN, NAMES_EN } from './en';
 import { captionSender } from './captions';
 
 export interface LiveCtx {
@@ -34,9 +34,12 @@ const TURN_S = 360;   // (each one followed for six minutes, then the next one a
 export function makeLive(ctx: LiveCtx) {
   document.body.classList.add('live');
   // (?lang=en: the same window in English — the world's words turned on this side only: src/live/en.ts; ?captions=<url>:
-  // what is said, and the island's firsts, sent as captions to the stream PC's own sender, tools/live/captions.mjs)
+  // what is said, and the island's firsts, sent as captions to the stream PC's own sender, tools/live/captions.mjs — in
+  // their own language, English unless ?captionLang=ja: a Japanese screen carries English captions, viewer design v2 §6)
   const q = new URLSearchParams(location.search), en = q.get('lang') === 'en', captions = captionSender(q.get('captions'));
-  const nameOf = (r: any) => (en ? NAMES_EN[r?.v?.name] ?? r?.v?.name : r?.v?.name) ?? '';
+  const capEn = q.get('captionLang') !== 'ja';
+  const nameIn = (r: any, inEn: boolean) => (inEn ? NAMES_EN[r?.v?.name] ?? r?.v?.name : r?.v?.name) ?? '';
+  const nameOf = (r: any) => nameIn(r, en);
   const dateOf = (ms: number) => { const d = islandDate(ms); return en ? FIXED_EN.date(d.year, d.month, d.day) : `島暦${d.year}年 ${d.month}月${d.day}日`; };
   const root = document.createElement('div'); root.id = 'live'; if (en) root.classList.add('en');
   root.innerHTML = `
@@ -61,7 +64,8 @@ export function makeLive(ctx: LiveCtx) {
   // (the line fits the band's width at its own size and face: broken after a 、 or 。 if not)
   const fits = (line: string) => { measure.font = `500 ${status.style.fontSize || getComputedStyle(status).fontSize} ${en ? "'Cormorant Garamond'" : "'Zen Old Mincho'"}`; return measure.measureText(line).width <= innerWidth * 0.5 - innerHeight / 1080 * 24; };
   function show(r: any, text: string) {
-    const lines = wrapStatus(en ? statusEn(trimStatus(text)) ?? BUSY_EN : trimStatus(text), fits);
+    const line = en ? statusEn(trimStatus(text)) : trimStatus(text);   // (English the table does not have: no line, the name alone)
+    const lines = line ? wrapStatus(en ? asLine(line) : line, fits) : [];
     status.innerHTML = lines.map((l) => `<span>${l.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'))}</span>`).join('');
     $('.doron .n').textContent = DORON[r.id] ?? '13';
     $('.band .who .name').textContent = nameOf(r);
@@ -87,7 +91,8 @@ export function makeLive(ctx: LiveCtx) {
     if (key === subKey) return; subKey = key;
     if (!sp) { sub.classList.add('off'); if (r) band.classList.remove('off'); return; }
     const said = en ? sp.sayEn ?? '' : sp.saying;   // (in English, its own English line: none, and only the island's letters show)
-    if (said) captions.send(`${nameOf(sp)}: ${said}`, ctx.clockMs());
+    const cap = capEn ? sp.sayEn ?? '' : sp.saying;
+    if (cap) captions.send(`${nameIn(sp, capEn)}: ${cap}`, ctx.clockMs());
     band.classList.add('off');
     const fill = () => {
       ($('.sub .who .line')).style.setProperty('--c', sp.sp?.color ?? '#fff');
@@ -153,16 +158,17 @@ export function makeLive(ctx: LiveCtx) {
   let cardT = 0;
   function event(_kind: string, text: string, r: any, meta?: { milestone?: string }) {
     if (!meta?.milestone) return;
-    const t = en ? firstEn(meta.milestone, r?.v?.name ?? '') : trimStatus(text.split('。')[0]);
-    if (!t) return;   // (a first the English table does not have: no card rather than one in the wrong tongue)
-    queue.push({ text: t, at: ctx.clockMs() });
-    captions.send(`${en ? FIXED_EN.first : '島で初めて'}: ${t}`, ctx.clockMs());
+    const ja = trimStatus(text.split('。')[0]), esc1 = (t: string) => t.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'));
+    const html = en ? firstEn(meta.milestone, r?.v?.name ?? '', true) : esc1(ja);
+    if (html) queue.push({ text: html, at: ctx.clockMs() });   // (a first the English table does not have: no card rather than one in the wrong tongue)
+    const cap = capEn ? firstEn(meta.milestone, r?.v?.name ?? '') : ja;
+    if (cap) captions.send(`${capEn ? FIXED_EN.first : '島で初めて'}: ${cap}`, ctx.clockMs());
   }
   function cardTick(dt: number) {
     if (cardT > 0) { cardT -= dt; if (cardT <= 0) card.classList.add('off'); return; }
     if (cardT > -0.8) { cardT -= dt; return; }   // (a breath between two cards)
     const m = queue.shift(); if (!m) return;
-    $('.card .what').textContent = m.text;
+    $('.card .what').innerHTML = m.text;   // (escaped as it was made: only an island's word in italics)
     $('.card .at').innerHTML = `${esc(dateOf(m.at))} <span class="t">${localTimeString(m.at, ctx.tz())}</span>`;
     card.classList.remove('off'); cardT = 8;
   }

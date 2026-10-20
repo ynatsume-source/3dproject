@@ -10,10 +10,10 @@
 //  6 captions go only to a sender on this machine (127.0.0.1 / localhost); none without ?captions
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/live-en-check.ts
 import fs from 'node:fs';
-import { statusEn, firstEn, BUSY_EN } from '../src/live/en';
+import { statusEn, firstEn, asLine, FIXED_EN } from '../src/live/en';
 import { trimStatus, wrapStatus } from '../src/live/status-line';
 import { captionSender } from '../src/live/captions';
-import { captionBodies, captionStamp } from '../tools/live/caption-format.mjs';
+import { captionBodies, captionStamp, readMs } from '../tools/live/caption-format.mjs';
 
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -35,10 +35,11 @@ const JA = /[぀-ヿ一-鿿]/;
     if (parts.has(lit) || lit.startsWith('（あと') || lit.startsWith('${catalog')) continue;
     n++;
     const ja = trimStatus(fill(lit)), en = statusEn(ja);
-    if (!en || JA.test(en) || en === BUSY_EN) missing.push(`${ja} → ${en}`);
+    if (!en || JA.test(en)) missing.push(`${ja} → ${en}`);
   }
   want(`1 every status sentence has its English (${n} sentences)`, n > 140 && missing.length === 0, missing.slice(0, 8).join(' / '));
-  want('1 an unknown sentence is not guessed (the caller shows "busy")', statusEn('知らない文') === null);
+  want('1 an unknown sentence is not guessed (the caller shows the name alone)', statusEn('知らない文') === null);
+  want('1 a line is shown with its first letter a capital', asLine(statusEn('息つぎに浮かんできた')!) === 'Coming up for a breath', asLine(statusEn('息つぎに浮かんできた')!));
 }
 { // 2
   const got = [statusEn('ひと休みしている（おなかがすいている）'), statusEn('眠っている（ねむそう）'), statusEn(trimStatus('筏でPataへ渡っている（島にはいない）'))];
@@ -50,7 +51,8 @@ const JA = /[぀-ヿ一-鿿]/;
   const keys = [...src.matchAll(/\(\) => '([^']+)'/g)].map((m) => m[1]);
   const missing = keys.filter((k) => { const t = firstEn(k, 'ドット'); return !t || JA.test(t); });
   want(`3 every first the world grades has its English card (${keys.length} kinds)`, keys.length >= 20 && missing.length === 0, missing.join(','));
-  want('3 a crossing names its island', firstEn('crossing:Pata', 'ドット') === 'Dot crossed by raft to Pata and back', `${firstEn('crossing:Pata', 'ドット')}`);
+  want('3 a crossing names its island (plain for captions; in italics, escaped, on the card)', firstEn('crossing:Pata', 'ドット') === 'Dot crossed by raft to Pata and back' && firstEn('crossing:P<a', 'ドット', true) === 'Dot crossed by raft to <i>P&lt;a</i> and back', `${firstEn('crossing:P<a', 'ドット', true)}`);
+  want('3 the set phrases (viewer design review B)', FIXED_EN.brand === "Dot's Island" && FIXED_EN.ai === 'The residents are AI · filmed automatically' && FIXED_EN.date(1, 12, 17) === 'Island year 1 · 17 December' && firstEn('light', 'ドット') === "Dot lit the island's first lamp", `${FIXED_EN.date(1, 12, 17)} / ${firstEn('light', 'ドット')}`);
 }
 { // 4
   const fits = (l: string) => l.length <= 40;
@@ -63,7 +65,9 @@ const JA = /[぀-ヿ一-鿿]/;
   want('5 the stamp: UTC, milliseconds, no zone letter', captionStamp(at) === '2026-12-24T03:04:05.067', captionStamp(at));
   const ok = bodies.every((b) => { const ls = b.split('\n'); return /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}$/.test(ls[0]) && ls.length <= 4 && ls.slice(1).every((l) => l.length <= 42) && b.endsWith('\n'); });
   const all = bodies.map((b) => b.split('\n').slice(1).join(' ').trim()).join(' ');
-  want('5 a long line: caption-sized pieces (a stamp, at most two lines of 42), 2.5 s apart, nothing lost', bodies.length === 2 && ok && bodies[1].startsWith('2026-12-24T03:04:07.567') && all === 'Dot: The wind is good today. Let us take the raft out past the reef and see the island to the south.', JSON.stringify(bodies));
+  const first = bodies[0].split('\n').slice(1).join('\n').replace(/\n$/, ''), wait = readMs(first);
+  want('5 a long line: caption-sized pieces (a stamp, at most two lines of 42), the next once the one before is read (max 2.5 s, 15 characters a second), nothing lost', bodies.length === 2 && ok && wait === Math.max(2500, Math.round(first.replace(/\n/g, ' ').length / 15 * 1000)) && bodies[1].startsWith(captionStamp(at + wait)) && all === 'Dot: The wind is good today. Let us take the raft out past the reef and see the island to the south.', `${wait} ms; ${JSON.stringify(bodies)}`);
+  want('5 a short caption is still left 2.5 s', readMs('Dot: hello') === 2500);
 }
 { // 6
   const sent: string[] = [];

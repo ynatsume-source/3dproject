@@ -1,6 +1,7 @@
 // The body YouTube's caption ingestion takes (an HTTP POST per caption, to the stream's caption URL with &seq=N): a
 // timestamp in UTC — YYYY-MM-DDTHH:MM:SS.mmm, no zone letter — on its own line, then the caption's text. A caption is
-// two lines at most of 42 characters, broken at a space; a longer line goes on in the next caption, 2.5 s later.
+// two lines at most of 42 characters, broken at a space; a longer line goes on in the next caption, after the time it
+// takes to read the one before: max(2.5 s, its characters ÷ 15 a second).
 export function captionStamp(ms) {
   return new Date(ms).toISOString().replace('Z', '');
 }
@@ -17,7 +18,10 @@ export function captionPieces(text, width = 42) {
   for (let i = 0; i < lines.length; i += 2) pieces.push(lines.slice(i, i + 2).join('\n'));
   return pieces;
 }
-/** The bodies to post for one line said: one per piece, each stamped 2.5 s after the one before. */
+/** How long a caption is left to be read: max(2.5 s, its characters at 15 a second). */
+export const readMs = (piece) => Math.max(2500, Math.round(piece.replace(/\n/g, ' ').length / 15 * 1000));
+/** The bodies to post for one line said: one per piece, each stamped once the one before has been read. */
 export function captionBodies(text, ms) {
-  return captionPieces(text).map((p, i) => `${captionStamp(ms + i * 2500)}\n${p}\n`);
+  let at = ms;
+  return captionPieces(text).map((p) => { const b = `${captionStamp(at)}\n${p}\n`; at += readMs(p); return b; });
 }
