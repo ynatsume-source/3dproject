@@ -39,6 +39,7 @@ export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
 import { makeCoirLook, coirLookTest } from '../robots/coir-look';
 import { makeCrabLook, makeBurrowLook, crabLookTest, crabTestPoses } from './crab';
+import { makeCrabHost } from '../eco/crab-host';
 import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
@@ -525,7 +526,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
       oc.shore?.trunks(at.x, at.z, 15, (t: any) => { const d = Math.hypot(t.base.x - at.x, t.base.z - at.z); if (t.kind === 'pandanus' && d < best) { best = d; trunk = t; } });
       crabs.mesh.onBeforeRender = () => { const P = crabTestPoses(crabTest === 'still' ? 2.2 : performance.now() / 1000, at, ground, trunk); crabs.show(P.crabs); burrows.show(P.burrows); };
       oc.crabLook = crabs;
-    }
+    } else if (dh && oc.shore) oc.crabs = makeCrabHost(loc, T, oc.shore, dh, group);   // (the night beach's crabs: eco/crab-host.ts)
   }
   // (the corals are drawn once the rocks are down: see clearOfRocks, after placeRocks below)
 
