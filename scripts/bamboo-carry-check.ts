@@ -5,6 +5,7 @@
 //    left reads whole, the sum exact; all of it taken, the lot is gone
 //  3 a lot without them (an old bamboo, raw clay) loses only its mass, its quality untouched
 //  4 what is left after a rain catcher still makes a mast
+//  5 part of a cord or fibre (its own codec) is refused, never left reading wrong; the whole of it may be taken
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/bamboo-carry-check.ts
 import { ISLES, BAMBOO_SOUTH } from '../src/world/planet-map';
 import { emptyLedger, addLot, takeMass } from '../src/world/process-runner';
@@ -36,6 +37,12 @@ const lot = () => addLot(L, { materialId: 'bamboo', amount: { value: carry.mg, u
 { // 4
   const l = lot(); takeMass(L, l, 2_000_000); const p = readPlantMass(l);
   want('4 the rest after a rain catcher still makes a mast', p.lengthMm >= SAIL_RULES.mastMm, `${p.lengthMm} mm`);
+}
+{ // 5
+  const rope = addLot(L, { materialId: 'coir_rope', amount: { value: 1000, unit: 'mg' }, location: 'shelf', quality: { fiber_dry_mg: 900, attached_pith_dry_mg: 50, water_mg: 50 } });
+  let refused = false; try { takeMass(L, rope, 400); } catch { refused = true; }
+  const whole = addLot(L, { materialId: 'coir_rope', amount: { value: 1000, unit: 'mg' }, location: 'shelf', quality: { fiber_dry_mg: 900, attached_pith_dry_mg: 50, water_mg: 50 } }); takeMass(L, whole, 1000);
+  want('5 part of a cord is refused (its own codec), the cord untouched; all of it may be taken', refused && rope.amount.value === 1000 && rope.quality?.fiber_dry_mg === 900 && !L.lots[whole.lotId]);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);
