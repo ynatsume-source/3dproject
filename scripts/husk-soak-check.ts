@@ -588,15 +588,17 @@ test('old in-progress and old taken-out saves keep their old water and can conti
 
 test('taking out repeatedly does not reset the uptake clock or manufacture fractional water', () => {
   const a = fixture(sourceLot(123_457, 1, 123_456));
-  const total = 17 * 30_000;
+  const rounds = 33;
+  const total = rounds * 30_000;
   record(a, 0, 30_000);
   take(a, 30_000);
   let current = wetLots(a)[0].lotId;
   let gained = projection(a).drawnWaterMg;
-  for (let i = 1; i < 17; i++) {
+  for (let i = 1; i < rounds; i++) {
     a.L = restoreHuskSoak(json(a.L));
     const out = repeatSoak(a.L, current, i * 30_000, 30_000, 'tiny:' + i);
     current = out.projection.outputs[0].lotId;
+    assert.ok(current.length < 100, 'resumed lot IDs must not recursively contain old IDs');
     gained += out.projection.drawnWaterMg;
   }
   const whole = fixture(sourceLot(123_457, 1, 123_456));

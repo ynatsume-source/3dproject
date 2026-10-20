@@ -284,7 +284,11 @@ export function splitSoakedHusks(
     const origin = huskSoakOriginForPiece(source, certifiedIslandMs, index, legacyQuality);
     const waterMg = Number(legacyQuality ? divided(water, count, i)
       : allocatedWater(origin, originWater(origin, origin.elapsedMs)));
-    const identity = JSON.stringify([context.runId, source.lotId, index]);
+    // The run already uniquely binds its source. Never nest an old output ID:
+    // repeated take-out/re-soak would otherwise escape and double that string.
+    const identity = legacyQuality
+      ? JSON.stringify([context.runId, source.lotId, index])
+      : context.runId + ':' + index;
     const lotId = 'lot:husk-soak:' + identity;
     const base: LotView = {
       lotId, materialId: 'wet_unseparated_coconut_husk',
