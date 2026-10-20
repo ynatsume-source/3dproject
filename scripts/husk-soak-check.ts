@@ -588,7 +588,7 @@ test('old in-progress and old taken-out saves keep their old water and can conti
 
 test('taking out repeatedly does not reset the uptake clock or manufacture fractional water', () => {
   const a = fixture(sourceLot(123_457, 1, 123_456));
-  const rounds = 33;
+  const rounds = 100;
   const total = rounds * 30_000;
   record(a, 0, 30_000);
   take(a, 30_000);
