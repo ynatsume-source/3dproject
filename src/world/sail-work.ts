@@ -17,8 +17,8 @@ import {
 
 export const SAIL_WORK = {
   processId: 'prototype_sail_work',
-  version: 'host-1',
-  schema: 'civ-world.sail-work/1',
+  version: 'host-2',
+  schema: 'civ-world.sail-work/2',
   arrangement: 'civ-world.sail-arrangement/1',
   quantumMs: 30_000,
   receiptLimit: 64,
@@ -70,6 +70,7 @@ interface Data {
   seed: number;
   spec: Spec;
   source: LotView;
+  sources: LotView[];
   actorId: string;
   engaged: boolean;
   controlAtWorldMs: number;
@@ -171,11 +172,31 @@ function model(d: Pick<Data, 'spec' | 'source' | 'worldId' | 'worldEpoch' | 'run
     clock: clock(d.spec), openedAtMs: toClock(clock(d.spec), d.spec.openedAtWorldMs),
   });
 }
-function specOk(s: Spec, source: LotView): void {
+function combineSources(sources: LotView[]): LotView {
+  demand(Array.isArray(sources) && sources.length > 0, 'source-materials-required');
+  if (sources.length === 1) return copy(sources[0]);
+  const first = sources[0];
+  const plants = sources.map(readPlantMass);
+  demand(plants.every(p => p.material === plants[0].material) &&
+    ['pandanus_leaves', 'pandanus_strips'].includes(plants[0].material),
+  'matching-batch-material-required');
+  const dryMg = sum(...plants.map(p => p.dryMg));
+  const waterMg = sum(...plants.map(p => p.waterMg));
+  const lotId = 'batch:' + canonical(sources.map(l => l.lotId));
+  const made = writePlantMass({
+    lotId, material: plants[0].material, dryMg, waterMg,
+  }, first.location, sources.every(l => readSailHistory(l) === 1) ? 1 : 0);
+  return {lotId, materialId: made.materialId, amount: copy(made.amount),
+    quality: copy(made.quality), location: first.location};
+}
+function specOk(s: Spec, sources: LotView[], source: LotView): void {
   demand(shape(s, ['commandId', 'actorId', 'operation', 'lotIds', 'openedAtWorldMs', 'facts']) &&
     id(s.commandId) && id(s.actorId) && uint(s.openedAtWorldMs) &&
     ['harvest', 'dry', 'split', 'weave', 'mast'].includes(s.operation) &&
-    Array.isArray(s.lotIds) && s.lotIds.length === 1 && id(s.lotIds[0]),
+    Array.isArray(s.lotIds) && s.lotIds.length > 0 && s.lotIds.every(id) &&
+    new Set(s.lotIds).size === s.lotIds.length &&
+    canonical(s.lotIds) === canonical([...s.lotIds].sort()) &&
+    (['dry', 'weave'].includes(s.operation) || s.lotIds.length === 1),
   'invalid-spec');
   const facts = s.facts;
   demand(shape(facts, ['assumptionId', 'worksite',
@@ -187,8 +208,21 @@ function specOk(s: Spec, source: LotView): void {
     facts.worksite.reachM > 0, 'invalid-worksite');
   if (s.operation === 'dry') demand(facts.roofed === true, 'roof-required');
   if (s.operation === 'weave') demand(facts.requestedAreaCm2 === 20_000, 'fixed-sail-area-required');
-  demand(source.lotId === s.lotIds[0] &&
-    source.location === facts.worksite.locationId, 'wrong-source-place');
+  demand(Array.isArray(sources) && sources.length === s.lotIds.length,
+    'invalid-source-list');
+  for (let n = 0; n < sources.length; n++) {
+    const lot = sources[n];
+    demand(lot.lotId === s.lotIds[n] &&
+      lot.location === facts.worksite.locationId, 'wrong-source-place');
+    const plant = readPlantMass(lot);
+    readSailHistory(lot);
+    if (s.operation === 'dry') demand(plant.material === 'pandanus_leaves',
+      'matching-batch-material-required');
+    if (s.operation === 'weave') demand(plant.material === 'pandanus_strips',
+      'matching-batch-material-required');
+  }
+  demand(canonical(source) === canonical(combineSources(sources)),
+    'changed-combined-source');
   readPlantMass(source);
   readSailHistory(source);
 }
@@ -198,7 +232,7 @@ function raw(L: SailWorkLedger, runId: string): Data {
     r.processVersion === SAIL_WORK.version && r.contract === '0.2.1' &&
     r.catalogVersion === 'civ-sci-test-2' && r.state?.schema === SAIL_WORK.schema &&
     ['starting', 'running'].includes(r.status), 'unsupported-run-or-state');
-  demand(shape(d, ['worldId', 'worldEpoch', 'runId', 'seed', 'spec', 'source',
+  demand(shape(d, ['worldId', 'worldEpoch', 'runId', 'seed', 'spec', 'source', 'sources',
     'actorId', 'engaged', 'controlAtWorldMs', 'totalWorkMs', 'pendingMs',
     'observedThroughWorldMs', 'lastConfirmedAtWorldMs', 'lastWasWork',
     'seenByActor', 'assignments', 'digest']) &&
@@ -219,14 +253,16 @@ function raw(L: SailWorkLedger, runId: string): Data {
     d.assignments.at(-1)!.actorId === d.actorId, 'corrupt-work-state');
   const {digest: checksum, ...body} = d;
   demand(checksum === digest(body), 'corrupt-work-checksum');
-  specOk(d.spec, d.source);
+  specOk(d.spec, d.sources, d.source);
   demand(r.operator === d.actorId && r.seed === d.seed && r.clock === clock(d.spec) &&
     canonical(r.lotIds) === canonical(d.spec.lotIds) && r.equipmentIds.length === 0 &&
     r.lastTo === toClock(clock(d.spec), d.observedThroughWorldMs), 'changed-run-binding');
-  const current = L.lots[d.source.lotId];
-  demand(current?.reservedBy === runId, 'lost-reservation');
-  const {reservedBy: _, ...lot} = current;
-  demand(canonical(lot) === canonical(d.source), 'changed-reserved-material');
+  for (const source of d.sources) {
+    const current = L.lots[source.lotId];
+    demand(current?.reservedBy === runId, 'lost-reservation');
+    const {reservedBy: _, ...lot} = current;
+    demand(canonical(lot) === canonical(source), 'changed-reserved-material');
+  }
   const p = model(d).projectTotal(d.totalWorkMs);
   demand(p.status !== 'completed', 'completed-run-retained');
   return d;
@@ -339,13 +375,13 @@ function finish(L: SailWorkLedger, m: Arrangement, d: Data, at: number, abandone
     interval: {from: r.lastTo, to: Math.max(r.lastTo, toClock(clock(d.spec), at))},
     state: r.state, environment: {sampleId: 'env:sail-work-unused',
       source: 'unknown', effectiveAt: r.lastTo},
-    lots: [copy(d.source)], equipment: [], energy: [], actions: [], seed: d.seed,
+    lots: copy(d.sources), equipment: [], energy: [], actions: [], seed: d.seed,
   };
   const result: ScienceStepResult = {
     contract: req.contract, requestId: req.requestId, runId: d.runId,
     simulated: {...req.interval}, state: {schema: SAIL_WORK.schema, data: d},
     status: abandoned ? 'stopped' : 'completed',
-    consumed: untouched ? [] : [{lotId: d.source.lotId, amount: copy(d.source.amount)}],
+    consumed: untouched ? [] : d.sources.map(l => ({lotId: l.lotId, amount: copy(l.amount)})),
     produced: untouched ? [] : parts(d, abandoned),
     released: !untouched && p.releasedWaterMg > 0 ? [{materialId: 'water_vapor',
       amount: {value: p.releasedWaterMg, unit: 'mg'}, to: 'air'}] : [],
@@ -404,15 +440,22 @@ export function applySailIntent(
           'worksite-reserved');
         if (i.operation !== 'dry') demand(!busy.actor && !current.some(j =>
           j.engaged && j.spec.operation !== 'dry' && j.actorId === i.actorId), 'actor-busy');
-        demand(Array.isArray(i.lotIds) && i.lotIds.length === 1 && id(i.lotIds[0]),
-          'one-source-required');
-        const lot = draft.lots[i.lotIds[0]];
-        demand(lot && !lot.reservedBy, 'missing-or-reserved-material');
-        const {reservedBy: _, ...source} = lot;
+        demand(Array.isArray(i.lotIds) && i.lotIds.length > 0 &&
+          i.lotIds.every(id) && new Set(i.lotIds).size === i.lotIds.length &&
+          (['dry', 'weave'].includes(i.operation) || i.lotIds.length === 1),
+        'invalid-source-list');
+        const lotIds = [...i.lotIds].sort();
+        const sources = lotIds.map(lotId => {
+          const lot = draft.lots[lotId];
+          demand(lot && !lot.reservedBy, 'missing-or-reserved-material');
+          const {reservedBy: _, ...source} = lot;
+          return copy(source);
+        });
+        const source = combineSources(sources);
         const spec: Spec = {commandId: i.intentId, actorId: i.actorId,
-          operation: i.operation, lotIds: copy(i.lotIds),
+          operation: i.operation, lotIds,
           openedAtWorldMs: i.atWorldMs, facts: copy(facts)};
-        specOk(spec, source);
+        specOk(spec, sources, source);
         const started = startRun(draft, {processId: SAIL_WORK.processId,
           processVersion: SAIL_WORK.version, catalogVersion: 'civ-sci-test-2',
           contract: '0.2.1', clock: clock(spec), lotIds: spec.lotIds,
@@ -420,7 +463,7 @@ export function applySailIntent(
         demand(started.run, 'reservation-refused');
         const r = started.run;
         d = {worldId: draft.world.worldId, worldEpoch: draft.world.worldEpoch,
-          runId: r.runId, seed: r.seed, spec, source: copy(source), actorId: i.actorId,
+          runId: r.runId, seed: r.seed, spec, source, sources, actorId: i.actorId,
           engaged: true, controlAtWorldMs: i.atWorldMs, totalWorkMs: 0,
           pendingMs: 0, observedThroughWorldMs: i.atWorldMs,
           lastConfirmedAtWorldMs: i.atWorldMs, lastWasWork: false,
@@ -501,7 +544,7 @@ function eligible(f: SailSpan, d: Data): boolean {
     (p.x - s.x) * (p.x - s.x) + (p.z - s.z) * (p.z - s.z) <= s.reachM * s.reachM;
   return d.engaged && f.actorId === d.actorId && d.spec.operation !== 'dry' &&
     f.activity === activities[d.spec.operation] && f.arrived &&
-    f.targetLotId === d.source.lotId && f.targetSiteId === s.locationId &&
+    f.targetLotId === d.spec.lotIds[0] && f.targetSiteId === s.locationId &&
     near(f.fromPosition) && near(f.toPosition);
 }
 export function recordSailSpan(
@@ -547,9 +590,32 @@ export function recordSailSpan(
     });
   });
 }
+function migrateSavedSailWork(L: SailWorkLedger): void {
+  for (const r of Object.values(L.runs)) {
+    if (r.processId !== SAIL_WORK.processId) continue;
+    if (r.processVersion !== 'host-1' || r.state?.schema !== 'civ-world.sail-work/1') {
+      continue;
+    }
+    const old = r.state.data as Omit<Data, 'sources'>;
+    demand(shape(old, ['worldId', 'worldEpoch', 'runId', 'seed', 'spec', 'source',
+      'actorId', 'engaged', 'controlAtWorldMs', 'totalWorkMs', 'pendingMs',
+      'observedThroughWorldMs', 'lastConfirmedAtWorldMs', 'lastWasWork',
+      'seenByActor', 'assignments', 'digest']), 'corrupt-legacy-work-state');
+    const {digest: checksum, ...body} = old;
+    demand(checksum === digest(body), 'corrupt-work-checksum');
+    demand(Array.isArray(old.spec?.lotIds) && old.spec.lotIds.length === 1,
+      'corrupt-legacy-source-list');
+    const d: Data = {...old, sources: [copy(old.source)], digest: 0};
+    r.processVersion = SAIL_WORK.version;
+    r.state = {schema: SAIL_WORK.schema, data: seal(d)};
+    raw(L, r.runId);
+  }
+}
 export function restoreSailWork(saved: unknown, nowWorldMs: number): SailWorkLedger {
   return safe(() => {
-    const L = copy(saved) as SailWorkLedger, m = metadata(L);
+    const L = copy(saved) as SailWorkLedger;
+    migrateSavedSailWork(L);
+    const m = metadata(L);
     demand(uint(nowWorldMs) && nowWorldMs >= m.authorityAtWorldMs, 'invalid-restore-time');
     transaction(L, (draft, state) => {
       state.authorityAtWorldMs = nowWorldMs;
