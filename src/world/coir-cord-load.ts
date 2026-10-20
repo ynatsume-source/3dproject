@@ -306,7 +306,7 @@ function checkRetention(s: Store): void {
   need(r.head !== null && r.tail !== null && r.scan !== null
     && has(r.nodes, r.scan), 'corrupt-save');
   const seen = new Set<string>();
-  let key = r.head;
+  let key: string | null = r.head;
   let previous: string | null = null;
   while (key !== null) {
     need(!seen.has(key) && has(r.nodes, key), 'corrupt-save');
