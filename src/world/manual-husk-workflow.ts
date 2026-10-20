@@ -125,6 +125,28 @@ function metadata(L:HuskWorkflowLedger):Arrangement{
      && ['sight','touch'].includes(o.channel) && typeof o.text==='string'),
     'invalid-finished-observations');
   }
+  if (item.status === 'stopped') {
+   const expected = [{
+    channel: 'sight',
+    text: item.certifiedWorkMs === 0
+     ? '殻を手つかずのまま脇に置いた。' : '途中までほぐした殻を脇に置いた。'
+   }];
+   ensure(canon(item.observations) === canon(expected)
+    && canon(item.workerObservations) === canon(expected), 'changed-finished-observations');
+  } else {
+   const words = item.observations;
+   const first = words[0], last = words.at(-1);
+   ensure((words.length === 2 || words.length === 3)
+    && first.channel === 'sight'
+    && ['ほぐれた繊維が束になっている。', '殻には繊維の筋がついている。'].includes(first.text)
+    && (words.length === 2 || words[1].channel === 'sight'
+     && words[1].text === '残った殻にも筋がついている。')
+    && last?.channel === 'touch'
+    && ['繊維と殻はしっとりしている。', '繊維と殻は乾いた手ざわりだ。'].includes(last.text)
+    && (item.workerObservations.length === 0
+     || canon(item.workerObservations) === canon(words)),
+    'changed-finished-observations');
+  }
  }
  return m;
 }

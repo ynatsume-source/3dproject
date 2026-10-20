@@ -330,6 +330,9 @@ function validateManualFinish(L: Ledger, item: FinishedManualWork): void {
       && item.observations.every(o => shape(o, ['at', 'channel', 'text'])
         && uint(o.at) && ['sight', 'touch'].includes(o.channel)
         && typeof o.text === 'string'), 'invalid-manual-finish-observations');
+    const expectedWords = observations({ science: { pools: p.pools } } as HostData, end);
+    requireHost(canonical(item.observations) === canonical(expectedWords),
+      'changed-manual-finish-observations');
 
 }
 

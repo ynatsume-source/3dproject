@@ -231,7 +231,7 @@ export function makeHuskHost(ctx: {
 
   function restore(nowWorldMs: number) {
     st().engaged = {};   // (no hands are at a husk across a load: its time off is not work)
-    try { restoreHuskSoak(L()); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
+    try { Object.assign(ctx.lab, restoreHuskSoak(L())); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
     if (!L().manualHuskArrangement) return;
     try { Object.assign(ctx.lab, restoreHuskArrangement(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-husk', e); }
   }
