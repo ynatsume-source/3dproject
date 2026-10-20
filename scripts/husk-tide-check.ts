@@ -59,10 +59,14 @@ const R = oc.residents, W = oc.water, HIGH = 0.91, RUNUP = 0.2;
     const H = makeHuskHost({ lab: L, state: () => st, dev: [], placeSites: () => ({ pool: { ...pool }, work }), repool: () => ({ ...pool }), seaAt });
     H.putInPool('dot', t0);
     for (let t = t0 + every; t <= t0 + HOURS * 3600e3; t += every) H.tick(t);
+    // (the run as the science side keeps it before the taking out: with records bounded (#71) its count, time under and
+    // digest; before that, every span)
+    const d: any = (Object.values(L.runs)[0] as any).state.data;
+    const kept = d.frameCount !== undefined ? { frameCount: d.frameCount, totalImmersedMs: d.totalImmersedMs, digest: d.digest } : { frames: d.frames.map((f: any) => [f.fromWorldMs, f.toWorldMs, f.immersed]) };
     H.takeOut('dot', out);
     const wet = Object.values(L.lots).filter((l: any) => l.materialId === 'wet_unseparated_coconut_husk') as any[];
     const hist = wet.length ? readSoakedHuskInput(L, wet[0].lotId).soakHistory.map((h: any) => [h.fromWorldMs, h.toWorldMs]) : [];
-    return { L, wet, hist };
+    return { L, wet, hist, kept, lots: JSON.stringify(wet.map((l) => [l.lotId, l.amount, l.quality])) };
   };
   // (what it should be: each world minute from the start, under or not by the sea at its middle, the last part-minute
   // up to the taking out; the stretches under joined)
@@ -73,6 +77,7 @@ const R = oc.residents, W = oc.water, HIGH = 0.91, RUNUP = 0.2;
   want('3 each minute under the water or not by the sea at its middle (the stretches under, as kept on the husk)', JSON.stringify(open.hist) === JSON.stringify(want3), `${open.hist.length} stretches under`);
   want('3 low water not counted', sum(open.hist) > 0 && sum(open.hist) < out - t0, `${(100 * sum(open.hist) / (out - t0)).toFixed(0)}% of ${HOURS} hours under`);
   want('3 closed twelve hours and loaded: the same stretches, the same time under', JSON.stringify(closed.hist) === JSON.stringify(open.hist), `${(sum(closed.hist) / 3600e3).toFixed(2)} world h`);
+  want('3 … and the same run kept (its spans, or their count, time under and digest) and the same husks taken out', JSON.stringify(closed.kept) === JSON.stringify(open.kept) && closed.lots === open.lots, Object.keys(open.kept).join('/'));
   const always = run(HOURS * 3600e3, () => 0);
   want('3 taken out: the time up to the moment it lifted them', always.hist.length === 1 && always.hist[0][0] === t0 && always.hist[0][1] === out, JSON.stringify(always.hist));
   want('2 taken out: carried up to the worksite, none left at the pool', open.wet.length > 0 && open.wet.every((l) => l.location === work.id) && !Object.values(open.L.lots).some((l: any) => l.location === pool.id), open.wet.map((l) => l.location).join(','));
