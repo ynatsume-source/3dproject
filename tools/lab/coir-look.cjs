@@ -1,7 +1,7 @@
 // LAB: the husk-and-cord things at a worksite as the stream sees them (src/robots/coir-look.ts): the test worksite by
 // Dot's home (?coirlook=wet|dry|both), held at a close view and a watch's view from a little above, and shot.
 // Usage (a build served at PORT): node tools/lab/coir-look.cjs   (env PORT 4174, OUT coir, LOOK both|all|cord|wet|dry|bare|none,
-// TIME 12:00, DATE (none: today), WX clear, SIZE 1920x1080, TIER high, VIEWS 'close,watch')
+// TIME 12:00, DATE (none: today), WX clear, SIZE 1920x1080, TIER high, VIEWS 'close,watch'; name@k: at the k-th test site, wide: further off, top: high over it, low: a little above, close in front)
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
@@ -19,13 +19,15 @@ const fs = require('fs');
   for (const v of views) {
     const r = await p.evaluate((v) => {
       const s = window.seaglass; s.endOpening?.();
-      const dh = s.cur.residents.list.find((x) => x.id === 'dot').sp.home, t = [dh[0] + 1.8, 0, dh[1] + 3.0]; t[1] = s.cur.loc.f(t[0], t[2]) + 0.05;
-      const off = v === 'close' ? [1.4, 1.1, 1.6] : [4.2, 3.2, -2.0];   // (close: a person crouched by it; watch: the usual view a little above)
+      // (name@k: at the k-th test site, as build.ts lays them along the beach; wide: further off and higher)
+      const [name, kk] = v.split('@'), k = +(kk || 0), dh = s.cur.residents.list.find((x) => x.id === 'dot').sp.home;
+      const t = [dh[0] + 1.8 + k * 3.6 * Math.cos(0.4), 0, dh[1] + 3.0 - k * 3.6 * Math.sin(0.4)]; t[1] = s.cur.loc.f(t[0], t[2]) + 0.05;
+      const off = name === 'close' ? [1.4, 1.1, 1.6] : name === 'wide' ? [5.0, 3.6, 5.5] : name === 'top' ? [3.0, 11.0, 7.5] : name === 'low' ? [0.6, 1.6, 3.4] : name === 'side' ? [-2.6, 1.5, 1.2] : name === 'over' ? [0.4, 3.2, 0.9] : name === 'back' ? [1.2, 1.8, -3.2] : [4.2, 3.2, -2.0];   // (close: a person crouched by it; watch: the usual view a little above)
       const pos = [t[0] + off[0], t[1] + off[1], t[2] + off[2]], d = [t[0] - pos[0], t[1] - pos[1], t[2] - pos[2]], l = Math.hypot(...d);
       s.hold(true); s.aim(pos, Math.atan2(-d[0], -d[2]), Math.asin(d[1] / l)); s.advance(+(window.__N || 10), 0.1);
       const c = s.cur.coirLook?.counts?.(); return { counts: c, pos: pos.map((x) => +x.toFixed(1)) };
     }, v);
-    await p.screenshot({ path: `${OUT}/${LOOK}-${TIME.replace(':', '')}-${v}.png` });
+    await p.screenshot({ path: `${OUT}/${LOOK}-${TIME.replace(':', '')}-${v.replace('@', '-')}.png` });
     console.log(v, JSON.stringify(r));
   }
   await b.close();

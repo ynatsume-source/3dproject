@@ -425,8 +425,10 @@ function casuarinaGeo() {
   return B.geo();
 }
 // アダン: a short trunk on stilt roots, forking into branches, each ending in a spiral of long
-// arching, sword-like leaves; a few dead leaves hang brown underneath
-function pandanusGeo() {
+// arching, sword-like leaves; a few dead leaves hang brown underneath. cut (a sail tree, robots/coir-look.ts): leaves
+// cut for the sail leave a short stub where they grew — 'thinned' every other grown leaf, 'stripped' all but the young
+// ones at each head's middle. The same random numbers are drawn whatever cut is: the beach's own are as they were.
+function pandanusGeo(cut: 'full' | 'thinned' | 'stripped' = 'full') {
   const B = new Builder(), bark = [0.42, 0.38, 0.3];
   const top = V(0.05, 0.42, 0);
   B.tube(V(0, 0.12, 0), top, 0.035, 0.028, bark, 0, 0.05, 6);
@@ -445,6 +447,12 @@ function pandanusGeo() {
       const len = 0.42 + R() * 0.22, w = 0.028;
       const col = l < 18 ? jit([0.4, 0.52, 0.24], 0.3) : jit([0.52, 0.4, 0.24], 0.2);
       let p0 = tip.clone(), d = dir.clone();
+      const gone = l < 18 && (cut === 'stripped' ? l < 14 : cut === 'thinned' && l % 2 === 0);
+      if (gone) {   // (cut: a short stub of the leaf's base, its cut end drying brown)
+        const p1 = p0.clone().addScaledVector(d, 0.035), side = V(-d.z, 0, d.x).normalize().multiplyScalar(w);
+        B.quad(p0.clone().sub(side), p0.clone().add(side), p1.clone().add(side), p1.clone().sub(side), V(0, 1, 0).addScaledVector(d, -0.3).normalize(), [0.5, 0.44, 0.28], [0.3, 0.3, 0.32, 0.32]);
+        continue;
+      }
       for (let s = 0; s < 4; s++) {   // arching: each segment droops more
         const p1 = p0.clone().addScaledVector(d, len / 4);
         const side = V(-d.z, 0, d.x).normalize().multiplyScalar(w * (1 - s * 0.22));
@@ -565,3 +573,9 @@ function rockGeo() {
 }
 // (LAB: the beach plants' and things' geometries, for counting and portraits)
 export const __plantGeos = () => fineGeos();
+/** A sail tree's pandanus (robots/coir-look.ts): the beach's shape, as full of leaves as it grew or with some cut
+ *  (pandanusGeo cut). Its own random numbers, from seed: the island's and Math.random are handed back untouched. */
+export function pandanusCutGeo(cut: 'full' | 'thinned' | 'stripped', seed: number): THREE.BufferGeometry {
+  const keepS = getStream(), keepM = Math.random; setStream(mulberry32(seed)); Math.random = mulberry32(seed ^ 0x5a17);
+  try { return pandanusGeo(cut); } finally { setStream(keepS); Math.random = keepM; }
+}
