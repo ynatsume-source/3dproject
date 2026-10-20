@@ -871,7 +871,8 @@ function takeOutHuskSoakImpl(
       delete draft.lots[generated.lotId];
       draft.lots[piece.lotId] = { ...generated, lotId: piece.lotId };
       next.provenance[piece.lotId] = provenanceOf(piece.input,
-        readHuskSoakOrigin(draft.lots[piece.lotId]));
+        readHuskSoakOrigin(draft.lots[piece.lotId])
+          ?? huskSoakOriginForPiece(sourceFor(d), d.totalImmersedMs, index, d.legacyQuality));
     }
     const projection = projectionOf(d, status, outputs, drawn);
     rememberFinished(next, runId, intent.atWorldMs, projection);

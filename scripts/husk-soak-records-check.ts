@@ -227,6 +227,28 @@ test('old active saves migrate once without changing clocks, reservations or seq
   }
 });
 
+test('an old active save retains its original uptake slope after partial take-out and re-soaking', () => {
+  const old = oldSave(1), half = FULL / 2;
+  let L = restoreHuskSoak(json(old.L));
+  recordHuskSoakSpan(L, old.runId,
+    span(L, old.runId, old.start + Q, old.start + half, 'partial'), old.start + half);
+  const partial = take(L, old.runId, old.start + half);
+  assert.equal(L.runs[old.runId], undefined);
+  const wet = partial.outputs[0], unchanged = json(L.lots[wet.lotId]);
+  assert.equal(wet.quality.soak_origin_dry_mg, undefined);
+  const carry = readHuskResoakSource(L, wet.lotId);
+  assert.equal(carry.quality!.soak_elapsed_ms, half);
+  assert.deepEqual(L.lots[wet.lotId], unchanged);
+  L = restoreHuskSoak(json(L));
+  const start = old.start + half;
+  const again = beginHuskSoak(L, { ...spec(start, 'again'), lotId: wet.lotId }, start);
+  recordHuskSoakSpan(L, again.runId, span(L, again.runId, start, old.start + FULL, 'continued'),
+    old.start + FULL);
+  const out = take(L, again.runId, old.start + FULL, 'again-out');
+  assert.equal(out.waterMg, computeHuskSoak(old.original, HUSK_SOAK_ASSUMPTION.id, FULL).waterMg);
+  assert.equal(out.waterMg, 600_000);
+});
+
 test('producer deletion preserves old wet lots and the fingerprint of a reserved hand-work input', () => {
   const old = oldSave(1, true), wet = old.outputs[0], at = old.start + FULL + 1;
   const hand: HuskWorkSpec = {
