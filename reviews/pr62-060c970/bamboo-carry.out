@@ -1,0 +1,10 @@
+1 a raft load: 7 kg, 5 dry, 2 water, 6 m: {"lotId":"lot:1","material":"bamboo","dryMg":5000000,"waterMg":2000000,"lengthMm":6000} ok
+2 a rain catcher taken: what is left reads whole, in proportion: {"lotId":"lot:2","material":"bamboo","dryMg":3571429,"waterMg":1428571,"lengthMm":4285} ok
+2 an odd amount: still whole, the sum exact: {"lotId":"lot:3","material":"bamboo","dryMg":4118167,"waterMg":1647266,"lengthMm":4941} ok
+2 all of it taken: gone:  ok
+3 without dry and water: only the mass:  ok
+4 the rest after a rain catcher still makes a mast: 4285 mm ok
+5 part of a cord is refused (its own codec), the cord untouched; all of it may be taken:  ok
+6 any mass codec but dry and water (a pith, one to come): part of it refused before anything changes; the whole may go:  ok
+6 more than there is, or nothing, cannot be taken; bamboo can:  ok
+PASS
