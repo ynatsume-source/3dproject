@@ -235,7 +235,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   void obst;
 
   /* ---------- plants of the beach and the forest edge ---------- */
-  type Spot = { x: number; z: number; y: number; s: number; ry: number };
+  type Spot = { x: number; z: number; y: number; s: number; ry: number; m?: THREE.Matrix4 };   // (m: where it is drawn, kept as placed)
   const lists: Record<string, Spot[]> = { casuarina: [], pandanus: [], naupaka: [], heliotrope: [], drift: [], rock: [] };
   const cellsOf: Record<string, Map<string, Spot[]>> = {};
   const far = (list: Spot[], x: number, z: number, d: number) => {   // nothing of this kind within d
@@ -290,6 +290,7 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
       q.setFromEuler(e.set((R() - 0.5) * 0.12, it.ry, (R() - 0.5) * 0.12));
       if (kind === 'drift') s3.set(it.s, it.s * 0.45, it.s * 0.45); else s3.set(it.s * rr(0.85, 1.15), it.s, it.s * rr(0.85, 1.15));
       mesh.setMatrixAt(i, m4.compose(p3.set(it.x, it.y - 0.1, it.z), q, s3));
+      it.m = m4.clone();   // (kept for trunks() below: no draw of its own)
     });
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
@@ -340,8 +341,17 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
     }
     return h;
   };
+  // the beach trees' trunks as they are drawn (each from its own geometry above: pandanusGeo, casuarinaGeo), within rad of
+  // (x, z): the trunk's foot and top and its girth there, in the world — for a coconut crab to climb (ocean/crab.ts)
+  const trunks = (x: number, z: number, rad: number, out: (t: TrunkLine) => void) => {
+    for (const kind of ['pandanus', 'casuarina'] as const) for (const it of lists[kind]) {
+      if (!it.m || Math.abs(it.x - x) > rad || Math.abs(it.z - z) > rad) continue;
+      const T0 = TRUNK[kind];
+      out({ kind, base: new THREE.Vector3(...T0.base).applyMatrix4(it.m), top: new THREE.Vector3(...T0.top).applyMatrix4(it.m), r0: T0.r0 * it.s, r1: T0.r1 * it.s });
+    }
+  };
   return {
-    canopy, plants: count, lists, forest,
+    canopy, plants: count, lists, forest, trunks,
     // each frame: the trees near the camera, and the canopy surface stepping aside for them
     update(cam: THREE.Vector3, near: number) {
       forest.update(cam, near); (canopyMat.uniforms.uNear as { value: number }).value = near;
@@ -424,6 +434,13 @@ function casuarinaGeo() {
   }
   return B.geo();
 }
+/** A beach tree's trunk as drawn: its foot and top (world), its radius at each end (m). */
+export interface TrunkLine { kind: 'pandanus' | 'casuarina'; base: THREE.Vector3; top: THREE.Vector3; r0: number; r1: number }
+// (each one's trunk in its own geometry, per unit of its size: the tubes pandanusGeo and casuarinaGeo lay first)
+const TRUNK = {
+  pandanus: { base: [0, 0.12, 0] as [number, number, number], top: [0.05, 0.42, 0] as [number, number, number], r0: 0.035, r1: 0.028 },
+  casuarina: { base: [0, 0, 0] as [number, number, number], top: (() => { const l = Math.hypot(0.08, 1, 0.03); return [0.08 / l * 0.92, 1 / l * 0.92, 0.03 / l * 0.92] as [number, number, number]; })(), r0: 0.02, r1: 0.007 },
+};
 // アダン: a short trunk on stilt roots, forking into branches, each ending in a spiral of long
 // arching, sword-like leaves; a few dead leaves hang brown underneath. cut (a sail tree, robots/coir-look.ts): leaves
 // cut for the sail leave a short stub where they grew — 'thinned' every other grown leaf, 'stripped' all but the young
