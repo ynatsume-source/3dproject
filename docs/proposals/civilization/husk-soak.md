@@ -67,7 +67,7 @@ LotViewのqualityは数値専用なので、`soakHistory` は各製品の入力�
 数値qualityの soak_origin_dry_mg / soak_origin_water_mg / soak_origin_count /
 soak_piece_index / soak_elapsed_ms に保持する。soak_split_policy は1が旧等分、2が容量付き等分。
 元のまとめロットで整数吸水を一度計算し、同じ添字へ配るので、途中で取り出しても
-端数mgを消さず、確定した浸漬時間の合計が同じなら同じ水になる。
+端数mgを消さず、確定した30秒単位の浸漬時間の合計が同じなら同じ水になる。
 30秒未満は従来どおり各runの未確定端数で、0の取り出しでは材料を変えない。
 
 新しい等分は、各個体の水が乾物の2倍に達したら、残りの整数mgを容量の残る個体へ配る。
