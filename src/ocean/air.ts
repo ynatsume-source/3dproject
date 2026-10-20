@@ -6,7 +6,7 @@ import { oceanScene } from './scenery';
 import type { Water } from './water';
 
 // A disc of rings, dense near the camera and stretching to the horizon (huge two-triangle planes clip
-// badly), lying flat at y = 0 and following the camera.
+// badly), lying flat at the sea's height (y = uSeaH: time/sea-level.ts) and following the camera.
 function discGeo(r0: number, r1: number, rings: number, seg: number) {
   const pos: number[] = [0, 0, 0], idx: number[] = [];
   for (let i = 0; i < rings; i++) {
@@ -70,6 +70,10 @@ export function useWater(w: Water | null) {
   seaK = w?.tex ? (x, z) => w.swellK(x, z) : () => 1;
   if (w?.tex) { U.uSeaK.value = w.tex; U.uSeaKBox.value.set(w.x0, w.z0, w.size, 1); } else U.uSeaKBox.value.w = 0;
 }
+// (the sea's height now: time/sea-level.ts seaLevel, the same for the GPU (U.uSeaH) and the CPU (swellAt, surfaceAt))
+let seaH = 0;
+export function setSeaLevel(h: number) { seaH = h; U.uSeaH.value = h; }
+export function seaHeight() { return seaH; }
 export function swellAt(x: number, z: number): number {
   const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value * seaK(x, z);
   let h = 0;
@@ -77,7 +81,7 @@ export function swellAt(x: number, z: number): number {
     const a = Math.atan2(cu.y, cu.x) + 0.6 + da, k = 2 * Math.PI / lam;
     h += A * S * Math.cos((Math.cos(a) * x + Math.sin(a) * z) * k - Math.sqrt(9.81 * k) * t + i * 2.1);
   });
-  return h;
+  return seaH + h;
 }
 
 // The height of the drawn surface right above (x, z): the drawn waves also lean to and fro (swellShift), so the
@@ -214,7 +218,7 @@ const starMat = mat(
      float h = hash2(position.xy * 91.0);
      float tw = 1.0 + (0.22 + 0.5 * (1.0 - smoothstep(0.0, 0.4, d.y))) * sin(uTime * (7.0 + h * 11.0) + h * 60.0) * (1.0 - 0.85 * aPl);   // stars twinkle, most low down; planets hardly
      float b = pow(10.0, -0.4 * (aMag - 3.3)) * smoothstep(lim, lim - 1.2, aMag);
-     vA = min(sqrt(b) * 0.85, 2.6) * tw * smoothstep(0.0, 0.1, d.y) * (1.0 - cloudAt(d)) * step(0.0, uCamPos.y);
+     vA = min(sqrt(b) * 0.85, 2.6) * tw * smoothstep(0.0, 0.1, d.y) * (1.0 - cloudAt(d)) * step(uSeaH, uCamPos.y);
      vC = mix(vec3(0.68, 0.8, 1.0), vec3(1.0, 0.72, 0.45), smoothstep(-0.1, 1.5, aBV));
      gl_PointSize = uDpr * clamp(1.9 + (4.5 - aMag) * 0.65, 1.6, 6.0);
      gl_Position = projectionMatrix * viewMatrix * vec4(uCamPos + d * 380.0, 1.0);
@@ -275,7 +279,7 @@ export const rain = new THREE.LineSegments(rainGeo, mat(
      vec3 wp = uCamPos + mod(position * B + fall * uTime - uCamPos + B * 0.5, B) - B * 0.5;
      wp -= fall * 0.045 * aEnd;
      float d = length(wp - uCamPos);
-     vA = step(hash2(position.xz * 57.0), uRain) * smoothstep(0.4, 2.0, d) * (1.0 - smoothstep(8.0, 13.0, d)) * step(0.0, wp.y);
+     vA = step(hash2(position.xz * 57.0), uRain) * smoothstep(0.4, 2.0, d) * (1.0 - smoothstep(8.0, 13.0, d)) * step(uSeaH, wp.y);
      gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
    }`,
   `varying float vA; void main(){ gl_FragColor = vec4(skyAir(vec3(0.0, 0.6, 0.8), -1.0) * vA * 0.35 * (1.0 + uFlash * 3.0), 1.0); }`,
@@ -285,11 +289,11 @@ oceanScene.add(rain);
 
 // once a frame: follow the camera, and show only what belongs on this side of the surface
 export function updateAir(cam: THREE.PerspectiveCamera, px: number, dpr: number) {
-  const up = cam.position.y > 0;
+  const up = cam.position.y > seaH;
   seaTop.visible = abyss.visible = stars.visible = planetPts.visible = up;
   rain.visible = up && U.uRain.value > 0.01;
-  seaTop.position.set(cam.position.x, 0, cam.position.z);
-  abyss.position.set(cam.position.x, -200, cam.position.z);
+  seaTop.position.set(cam.position.x, seaH, cam.position.z);
+  abyss.position.set(cam.position.x, seaH - 200, cam.position.z);
   const su = (seaTop.material as THREE.ShaderMaterial).uniforms;
   su.uPxA.value = 2 * Math.tan(cam.fov * Math.PI / 360) / Math.max(px, 1);
   su.uProj.value.copy(cam.projectionMatrix);

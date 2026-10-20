@@ -203,7 +203,8 @@ test('independent dry/water remainders and deterministic IDs', () => {
   const p = projection(a);
   p.outputs.forEach((out, i) => {
     assert.equal(out.quality.dry_mg, Math.floor(p.dryMg / p.count) + (i < p.dryMg % p.count ? 1 : 0));
-    assert.equal(out.quality.water_mg, Math.floor(p.waterMg / p.count) + (i < p.waterMg % p.count ? 1 : 0));
+    assert.ok(out.quality.water_mg <= 2 * out.quality.dry_mg);
+    assert.equal(out.quality.soak_split_policy, 2);
   });
   const b = fixture();
   record(b, 0, FULL);
@@ -333,6 +334,12 @@ test('waiting reserves the site, not the actor, through the actual shared occupa
   const a = fixture();
   assert.deepEqual(otherScienceWorkBusy(a.L, ACTOR, SITE, 'prototype_manual_husk_work'),
     { actor: false, site: true });
+  for (const process of ['prototype_coir_work', 'prototype_sail_work']) {
+    assert.deepEqual(otherScienceWorkBusy(a.L, ACTOR, 'site:elsewhere', process),
+      { actor: false, site: false });
+    assert.deepEqual(otherScienceWorkBusy(a.L, ACTOR, SITE, process),
+      { actor: false, site: true });
+  }
   const second = sourceLot();
   second.lotId = 'lot:second-source';
   addLot(a.L, second);
@@ -460,4 +467,145 @@ test('public views are read-only sensory facts without hidden values or recipe g
   assert.ok(readHuskSoakWorksite(a.L, a.runId).observations
     .some(o => o.text === '浸けた殻を引き上げた'));
 });
+
+function repeatSoak(L: Ledger, lotId: string, offset: number, duration: number, command: string) {
+  const spec = {
+    commandId: command, assumptionId: HUSK_SOAK_ASSUMPTION.id,
+    actorId: ACTOR, lotId, site: { locationId: SITE, kind: 'coastal-tide-pool' as const },
+    atWorldMs: WORLD + offset, atIslandMs: ISLAND + offset, presence: 'here' as const,
+  };
+  const before = json(L.lots[lotId]);
+  const started = beginHuskSoak(L, spec, spec.atWorldMs);
+  if (duration > 0) {
+    const fact = {
+      recordId: command + ':span', worldId: L.world.worldId, worldEpoch: L.world.worldEpoch,
+      runId: started.runId, siteId: SITE,
+      fromWorldMs: WORLD + offset, toWorldMs: WORLD + offset + duration,
+      fromIslandMs: ISLAND + offset, toIslandMs: ISLAND + offset + duration,
+      confirmedAtWorldMs: WORLD + offset + duration, immersed: true,
+    };
+    recordHuskSoakSpan(L, started.runId, fact, fact.confirmedAtWorldMs);
+  }
+  const intent = {
+    intentId: command + ':out', kind: 'take-out' as const, actorId: ACTOR, presence: 'here' as const,
+    atWorldMs: WORLD + offset + duration, atIslandMs: ISLAND + offset + duration,
+  };
+  const out = takeOutHuskSoak(L, started.runId, intent, intent.atWorldMs);
+  const settled = json(L);
+  takeOutHuskSoak(L, started.runId, intent, intent.atWorldMs);
+  assert.deepEqual(L, settled);
+  assert.equal(sum(out.outputs.map(p => p.amountMg)),
+    out.outputs.length ? BigInt(before.amount.value) + BigInt(out.drawnWaterMg) : 0n);
+  return { ...started, projection: out };
+}
+
+function asLegacySoakSave(L: Ledger): Ledger {
+  const old = json(L);
+  for (const run of Object.values(old.runs)) {
+    if (run.processId !== HUSK_SOAK_WORK.processId) continue;
+    run.processVersion = 'host-1';
+    run.state!.schema = 'civ-world.husk-soak/1';
+    const data = run.state!.data as any;
+    delete data.previousHistory;
+    delete data.origin;
+    for (const piece of data.outputs) {
+      for (const key of Object.keys(piece.quality)) {
+        if (key.startsWith('soak_')) delete piece.quality[key];
+      }
+      if (old.lots[piece.lotId]) old.lots[piece.lotId].quality = json(piece.quality);
+    }
+  }
+  return old;
+}
+
+test('an early take-out can be soaked again at the original rate and then beaten', () => {
+  const a = fixture(sourceLot(1_120_000, 1, 250_000));
+  record(a, 0, DAY);
+  take(a, DAY);
+  const early = wetLots(a)[0];
+  assert.equal(early.quality!.dry_mg, 840_000);
+  assert.throws(() => beginManualHuskWork(a.L, handSpec(a.L, early.lotId, WORLD + DAY)));
+  const earlyWater = early.quality!.water_mg;
+  const next = repeatSoak(a.L, early.lotId, DAY, FULL - DAY, 'resoak');
+  const continued = fixture(sourceLot(1_120_000, 1, 250_000));
+  record(continued, 0, FULL);
+  take(continued, FULL);
+  assert.equal(next.projection.waterMg, projection(continued).waterMg);
+  assert.equal(next.projection.drawnWaterMg + earlyWater, next.projection.waterMg);
+  assert.equal(next.projection.outputs[0].input.soakHistory.length, 2);
+  a.L = restoreHuskSoak(json(a.L));
+  completeHandWork(a, next.projection.outputs[0].lotId, WORLD + FULL + 1);
+});
+
+test('odd count splits retain every fractional mg over repeated take-outs and cap each new piece', () => {
+  for (const source of [sourceLot(900_007, 3, 250_000), sourceLot(17, 4, 0)]) {
+    const continuous = fixture(source);
+    record(continuous, 0, FULL);
+    take(continuous, FULL);
+    const expected = projection(continuous).outputs;
+    const interrupted = fixture(source);
+    record(interrupted, 0, DAY);
+    take(interrupted, DAY);
+    let offset = DAY;
+    for (let i = 0; i < projection(interrupted).outputs.length; i++) {
+      const piece = projection(interrupted).outputs[i];
+      const middle = repeatSoak(interrupted.L, piece.lotId, offset, DAY, 'again:' + i);
+      offset += DAY;
+      interrupted.L = restoreHuskSoak(json(interrupted.L));
+      const final = repeatSoak(interrupted.L, middle.projection.outputs[0].lotId,
+        offset, FULL - 2 * DAY, 'final:' + i);
+      offset += FULL - 2 * DAY;
+      const actual = final.projection.outputs[0];
+      assert.equal(actual.quality.dry_mg, expected[i].quality.dry_mg);
+      assert.equal(actual.quality.water_mg, expected[i].quality.water_mg);
+      assert.ok(actual.quality.water_mg <= 2 * actual.quality.dry_mg);
+    }
+  }
+});
+
+test('old in-progress and old taken-out saves keep their old water and can continue soaking', () => {
+  const oldActive = fixture(sourceLot(1_120_000, 1, 250_000));
+  record(oldActive, 0, DAY);
+  oldActive.L = restoreHuskSoak(asLegacySoakSave(oldActive.L));
+  const before = projection(oldActive).waterMg;
+  record(oldActive, DAY, 2 * DAY, 'after-old-load');
+  assert.ok(projection(oldActive).waterMg > before);
+  take(oldActive, 2 * DAY);
+  const oldWet = wetLots(oldActive)[0];
+  oldActive.L = restoreHuskSoak(asLegacySoakSave(oldActive.L));
+  const oldQuality = json(oldActive.L.lots[oldWet.lotId].quality);
+  const zero = repeatSoak(oldActive.L, oldWet.lotId, 2 * DAY, 29_999, 'old-zero');
+  assert.deepEqual(oldActive.L.lots[oldWet.lotId].quality, oldQuality);
+  assert.equal(zero.projection.outputs.length, 0);
+  oldActive.L = restoreHuskSoak(json(oldActive.L));
+  const resumed = repeatSoak(oldActive.L, oldWet.lotId, 2 * DAY + 29_999,
+    FULL - 2 * DAY, 'old-resoak');
+  assert.equal(resumed.projection.waterMg, 1_680_000);
+  assert.ok(resumed.projection.outputs[0].quality.soak_elapsed_ms === FULL);
+  completeHandWork(oldActive, resumed.projection.outputs[0].lotId,
+    WORLD + FULL + 30_000);
+});
+
+test('taking out repeatedly does not reset the uptake clock or manufacture fractional water', () => {
+  const a = fixture(sourceLot(123_457, 1, 123_456));
+  const rounds = 100;
+  const total = rounds * 30_000;
+  record(a, 0, 30_000);
+  take(a, 30_000);
+  let current = wetLots(a)[0].lotId;
+  let gained = projection(a).drawnWaterMg;
+  for (let i = 1; i < rounds; i++) {
+    a.L = restoreHuskSoak(json(a.L));
+    const out = repeatSoak(a.L, current, i * 30_000, 30_000, 'tiny:' + i);
+    current = out.projection.outputs[0].lotId;
+    assert.ok(current.length < 100, 'resumed lot IDs must not recursively contain old IDs');
+    gained += out.projection.drawnWaterMg;
+  }
+  const whole = fixture(sourceLot(123_457, 1, 123_456));
+  record(whole, 0, total);
+  take(whole, total);
+  assert.equal(a.L.lots[current].quality!.water_mg, projection(whole).waterMg);
+  assert.equal(gained, projection(whole).drawnWaterMg);
+});
+
 console.log('PASS husk soak science and host boundary: ' + groups + ' groups; no resident registration.');

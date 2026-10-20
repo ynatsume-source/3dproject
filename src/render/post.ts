@@ -92,13 +92,13 @@ export class Post {
     defines: { STEPS: 16 },
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden, uNight: U.uNight,
+      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uSeaH: U.uSeaH, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden, uNight: U.uNight,
       uCaveTex: U.uCaveTex, uCaveAtlas: U.uCaveAtlas, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
       uFrame: { value: 0 }, uStrength: { value: 0.72 },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tDepth; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uCamPos;
-      uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs;
+      uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs; uniform float uSeaH;
       uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden; uniform float uNight;
       uniform float uFrame; uniform float uStrength;
       varying vec2 vUv;
@@ -128,10 +128,10 @@ export class Post {
           float t = dist * pow(s0, 1.6);
           float stepLen = dist * (pow(s1, 1.6) - pow(s0, 1.6));
           vec3 p = uCamPos + dir * t;
-          float wet = step(p.y, -0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
-          vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
+          float wet = step(p.y, uSeaH - 0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
+          vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * (p.y - uSeaH);
           float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 1.0) + 0.1 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
-          vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
+          vec3 down = exp(uAbs * (p.y - uSeaH) * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
           acc += light * down * back * stepLen * caveLight(p).x * wet;   // rock shadows the water behind it; skylights let beams through
         }

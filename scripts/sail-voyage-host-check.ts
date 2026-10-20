@@ -89,6 +89,14 @@ R.village.map.seen['south-near'] = { word: 'テスト島', at: now };
 }
 { // 3
   const { cords } = R.parts, n0 = cordRecords().length;
+  { // (ashore: the raft's place in the window where the raft is drawn — 1.2 m seaward of its ledger place — rigged)
+    const spot = R.worksiteSpots()['site:raft'], look = R.worksiteLooks().find((x: any) => x.siteId === 'site:raft');
+    want('3 ashore: the raft in the window where it is drawn, rigged', !!spot && Math.abs(spot.x - (R.village.raft.x + 1.2)) < 1e-9 && spot.z === R.village.raft.z && look?.fixtures[0]?.look === 'rigged', JSON.stringify(spot));
+  }
+  { // (nature 2026-10-20: the drying place under the back eaves says which way it runs — along the hut's back wall; others say none)
+    const S = R.worksiteSpots(), f = S['site:sail-dry']?.face;
+    want('3 the drying place runs along the hut\'s back wall; the others have no way of their own', Number.isFinite(f) && Object.entries(S).every(([id, p]: any) => id === 'site:sail-dry' || p.face === undefined), `face ${f?.toFixed(3)}`);
+  }
   let departAt = 0;
   await choose('voyage:south-near', () => { if (!departAt && R.village.sailHost.voyage) departAt = now; return !!R.village.sailHost.voyage; }, 1200);
   const v = R.village.sailHost.voyage, run = v && R.lab.runs[v.runId];
@@ -96,6 +104,7 @@ R.village.map.seen['south-near'] = { word: 'テスト島', at: now };
   const last = cords.map((id: string) => Math.max(...cordRecords().filter((q: any) => q.lotId === id && q.event.kind === 'exposure').map((q: any) => q.islandAtMs)));
   want('3 rule 1: the cords\' sun sent through to the moment it set off', last.every((t: number) => t === island(departAt)), last.map((t: number) => t - island(departAt)).join(','));
   void n0;
+  want('3 at sea: no raft in the window (its mast and sail are not left on the beach)', !R.worksiteSpots()['site:raft'] && !R.worksiteLooks().some((x: any) => x.siteId === 'site:raft'));
   step(300);
   const cells = R.village.sailHost.voyage?.n ?? 0;
   want('3 a cell every 30 s of the world\'s clock', cells >= 9 && cells <= 10, `${cells} cells in 300 s`);

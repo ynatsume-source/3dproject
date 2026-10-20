@@ -28,7 +28,7 @@ export function otherScienceWorkBusy(
       where = d.spec.worksite?.locationId;
       engaged = ['start', 'resume', 'takeover'].includes(job.controls.at(-1).kind);
     } else if (r.processId === 'prototype_husk_soak') {
-      if (r.state?.schema !== 'civ-world.husk-soak/1'
+      if (!['civ-world.husk-soak/1', 'civ-world.husk-soak/2'].includes(r.state?.schema ?? '')
         || d?.spec?.site?.kind !== 'coastal-tide-pool') {
         throw Error('invalid-science-occupancy');
       }

@@ -11,7 +11,7 @@ export const oceanScene = new THREE.Scene();
 
 export const sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16), mat(
   `varying vec3 vWp; void main(){ vec4 w = modelMatrix * vec4(position,1.0); vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
-  `varying vec3 vWp; void main(){ vec3 d = normalize(vWp - uCamPos); gl_FragColor = vec4(uCamPos.y > 0.0 ? skyAir(d, 1.0) : hazeCol(d), 1.0); }`,
+  `varying vec3 vWp; void main(){ vec3 d = normalize(vWp - uCamPos); gl_FragColor = vec4(uCamPos.y > uSeaH ? skyAir(d, 1.0) : hazeCol(d), 1.0); }`,
   { opts: { side: THREE.BackSide, depthWrite: false } }));
 sky.renderOrder = -1;
 oceanScene.add(sky);
@@ -72,7 +72,7 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      air += vec3(0.8, 0.88, 1.0) * star * uNight * (1.0 - smoothstep(0.3, 0.8, uCloud)) * (0.6 + 0.4 * sin(uTime * 3.0 + hash2(floor(sg)) * 40.0)) * 1.5;
      // outside the window the surface is a mirror of the water below it: over a shallow, sunlit reef that is
      // the bright blue of lit sand and coral, not the dark of the deep (the underside of a clear sea glows)
-     float shallowK = exp(-max(-uCamPos.y, 0.0) / 9.0) * (1.0 - uNight);
+     float shallowK = exp(-max(uSeaH - uCamPos.y, 0.0) / 9.0) * (1.0 - uNight);
      vec3 lit = (uUp * 1.05 + vec3(0.03, 0.09, 0.12)) * (0.35 + 0.55 * uSunI);
      // (rippled: each little facet of the surface catches more or less of that light — dark troughs, bright crests)
      float facet = clamp(0.5 + dot(n.xz, normalize(vec2(SUN.x, SUN.z) + 1e-4)) * 6.0, 0.0, 1.0);
@@ -82,7 +82,7 @@ export const surface = new THREE.Mesh(new THREE.PlaneGeometry(900, 900, 1, 1).ro
      // white water overhead: the light comes through it soft and pale
      float sf = seaFoam(p);
      col = mix(col, (uSkyHi * 0.9 + uTint * uSunI * 0.5 + vec3(0.04)) * (1.0 + uFlash), sf * 0.85);
-     col *= exp(-max(-uCamPos.y, 0.0) * vec3(0.05, 0.02, 0.015));
+     col *= exp(-max(uSeaH - uCamPos.y, 0.0) * vec3(0.05, 0.02, 0.015));
      gl_FragColor = vec4(fogIt(col, vWp), 1.0);
    }`, { opts: { side: THREE.DoubleSide } }));
 oceanScene.add(surface);
@@ -109,7 +109,7 @@ export const shafts = new THREE.Mesh(buildShafts(70), mat(
      vec2 drift = vec2(uTime * 0.25, uTime * 0.12);
      vec2 base = uCamPos.xz + mod(aBase * 2.0 * R + drift - uCamPos.xz + R, 2.0 * R) - R;
      vec3 rayDir = -SUN;
-     vec3 along = vec3(base.x, 0.0, base.y) + rayDir * 48.0 * aCorner.y;
+     vec3 along = vec3(base.x, uSeaH, base.y) + rayDir * 48.0 * aCorner.y;
      vec3 side = normalize(cross(rayDir, normalize(uCamPos - along)));
      vec3 wp = along + side * aCorner.x * aRnd.x * (0.55 + 0.7 * aCorner.y);
      vA = (0.5 + 0.5 * sin(uTime * 0.5 + aRnd.y)) * smoothstep(1.5, 7.0, length(wp - uCamPos)) * (1.0 - smoothstep(22.0, 42.0, length(base - uCamPos.xz)));
@@ -118,7 +118,7 @@ export const shafts = new THREE.Mesh(buildShafts(70), mat(
    }`,
   `varying vec2 vC; varying float vA;
    void main(){
-     float a = pow(1.0 - abs(vC.x), 1.8) * pow(1.0 - vC.y, 1.6) * vA * 0.085 * mix(0.45, 1.0, exp(min(uCamPos.y, 0.0) * 0.03)) * uShaftI * uCamCave;   // none of these open-water shafts inside the cave
+     float a = pow(1.0 - abs(vC.x), 1.8) * pow(1.0 - vC.y, 1.6) * vA * 0.085 * mix(0.45, 1.0, exp(min(uCamPos.y - uSeaH, 0.0) * 0.03)) * uShaftI * uCamCave;   // none of these open-water shafts inside the cave
      gl_FragColor = vec4(uShaftCol * 1.3 * a, 1.0);
    }`,
   { opts: { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide } }));

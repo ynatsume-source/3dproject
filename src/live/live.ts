@@ -43,7 +43,7 @@ export function makeLive(ctx: LiveCtx) {
   const dateOf = (ms: number) => { const d = islandDate(ms); return en ? FIXED_EN.date(d.year, d.month, d.day) : `島暦${d.year}年 ${d.month}月${d.day}日`; };
   const root = document.createElement('div'); root.id = 'live'; if (en) root.classList.add('en');
   root.innerHTML = `
-    <div class="brand"><div class="en">UTSUSHIYO</div><div class="ja">${en ? FIXED_EN.brand : 'ドットたちの島'}</div></div>
+    <div class="brand"><div class="en">UTSUSHIYO PROJECT</div><div class="ja"><i class="ser">Series 1</i>${en ? FIXED_EN.brand : 'ルマウ'}</div></div>
     <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">${en ? FIXED_EN.ai : '住人はAIです ・ 映像は自動で撮影しています'}</div></div>
     <div class="band fade off"><div class="doron"><span class="n"></span>DORON</div>
       <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div></div>

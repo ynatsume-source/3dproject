@@ -15,7 +15,8 @@ import { sightRange } from './eco/unseen';
 import { makeDrone } from './ocean/drone';
 import { ZONE } from './ocean/zone';
 import { oceanScene, sky, surface, grass, grassMat, setGrass, snowGeo, snowMat, snow, shafts, SNOW, LIMIT } from './ocean/scenery';
-import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss, useWater } from './ocean/air';
+import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss, useWater, setSeaLevel, seaHeight } from './ocean/air';
+import { seaLevel } from './time/sea-level';
 import { SplitView, SPLIT_BAND } from './render/split';
 const split = new SplitView(), _sz = new THREE.Vector2();
 let airState = false;
@@ -3370,7 +3371,7 @@ function renderPip(dt: number, air: boolean) {
   U.uCamPos.value.copy(pipCam.position); U.uLodPos.value.copy(pipCam.position); pipCam.getWorldDirection(U.uCamFwd.value);
   const vis = cur.cells.map((c: any) => [c.mesh.visible, c.hi?.visible]);
   for (const c of cur.cells) { const d = hyp(c.x - pipCam.position.x, c.z - pipCam.position.z); c.mesh.visible = d < 70; if (c.hi) c.hi.visible = d < 20; }
-  sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, 0, pipCam.position.z);
+  sky.position.copy(pipCam.position); surface.position.set(pipCam.position.x, seaHeight(), pipCam.position.z);
   const surf = surface.visible, snw = snow.visible; surface.visible = snow.visible = true;
   const r = el.getBoundingClientRect(), dpr = renderer.getPixelRatio() * (tier === 'low' || tier === 'lite' ? 0.6 : 1), H = innerHeight;
   const w = Math.max(1, Math.round(r.width)), h = Math.max(1, Math.round(r.height));
@@ -3391,7 +3392,7 @@ function renderPip(dt: number, air: boolean) {
   U.uSpot.value.copy(keepSpot);
   U.uCamPos.value.copy(keepPos); U.uCamFwd.value.copy(keepFwd); U.uLodPos.value.copy(keepLod);
   cur.cells.forEach((c: any, i: number) => { c.mesh.visible = vis[i][0]; if (c.hi) c.hi.visible = vis[i][1]; });
-  sky.position.copy(camera.position); surface.position.set(camera.position.x, 0, camera.position.z);
+  sky.position.copy(camera.position); surface.position.set(camera.position.x, seaHeight(), camera.position.z);
   surface.visible = surf; snow.visible = snw;
   void air;
 }
@@ -3464,6 +3465,7 @@ function frameBody(ts: number) {
   if (gputest) return;   // (the GPU test draws only what it is testing)
   U.uTime.value += dt;
   clock.advance(dt);
+  setSeaLevel(seaLevel(clock.ms, cur?.loc));   // (the sea's height, from the time alone: ADR 0009, time/sea-level.ts)
   if (mode === 'globe') {
     { const g = globeLast ? now - globeLast : 16; globeLast = now; if (!job) { globeGap += (Math.min(g, 300) - globeGap) * 0.1; aheadLast = 0; } }
     aheadStep();   // (a sea a card asked for, built ahead a little each frame)
@@ -3515,6 +3517,7 @@ function frameBody(ts: number) {
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
     // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
     cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos);
+    if (cur.residents) cur.crabs?.update(dt, cur.residents.worldTime, camera.position);   // (the night beach's crabs, by the island's clock)
     // (through its eyes: the camera on where they are now that the model has been posed for this frame)
     if (watch.r && watch.pov && cur.residents) { const sn = cur.residents.sense(watch.r); camera.position.copy(sn.eye); povEye.copy(sn.eye); }
     lanternStudyPanel.update(dt);
@@ -3608,7 +3611,7 @@ function frameBody(ts: number) {
     }
     cur.kelp?.update(drone.pos);   // (a kelp forest: the plants near the camera drawn finely)
     sky.position.copy(camera.position);
-    surface.position.set(camera.position.x, 0, camera.position.z);
+    surface.position.set(camera.position.x, seaHeight(), camera.position.z);
     setHum(drone.vel.length());
     {
       // the rotors heard only when pulling hard in the air: speeding up along the way it is going

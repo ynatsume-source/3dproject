@@ -151,5 +151,39 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   want('6 no amount or code in its diary, its mind\'s input, the day\'s post prompt or its saved memory', [diary, minds, prompts.join(''), mem].every((t) => leaks(t).length === 0), [diary, minds, prompts.join(''), mem].map(leaks).map((x) => x.join('|')).join(' / '));
   want('6 the husk\'s words in its diary', said(/潮だまり/) && said(/ほぐれた繊維が束になっている|殻には繊維の筋/), d.diary.filter((e: any) => /殻|繊維/.test(e.text)).slice(-4).map((e: any) => e.text).join(' / '));
 }
+
+{ // An actual wet husk taken out early is offered for the same pool again.
+  const L = emptyLedger('world:resoak-host', 'epoch:1');
+  const state = emptyHuskHostState();
+  addLot(L, {
+    materialId: 'coconut_husk', amount: { value: 1_120_000, unit: 'mg' },
+    location: 'shelf',
+    quality: { count: 1, water_ppm: 250_000, ash_dry_ppm: 0, history_complete: 1 },
+  });
+  const host = makeHuskHost({
+    lab: L, state: () => state, dev: [],
+    placeSites: () => ({
+      pool: { id: 'site:resoak-pool', x: 0, z: 0 },
+      work: { id: 'site:resoak-work', x: 1, z: 0, reachM: 2 },
+    }),
+  });
+  const at = now + 1_000;
+  want('9 first pool placement succeeds', !!host.putInPool('dot', at));
+  const later = at + Math.ceil(islandWait(86400e3));
+  host.tick(later);
+  want('9 early take-out succeeds', !!host.takeOut('dot', later));
+  const wet = Object.values(L.lots).find(l => l.materialId === 'wet_unseparated_coconut_husk');
+  if (wet) wet.location = host.sites().work.id;
+  want('9 the wet husk at the worksite may be put back in the pool',
+    host.options('dot', later + 1).some(o => o.id === 'soak:pool'));
+  const placed = host.putInPool('dot', later + 1);
+  // beginHuskSoak atomically replaces the lot map; inspect the committed lot,
+  // not the old object that was moved before the transaction.
+  const currentWet = wet ? L.lots[wet.lotId] : undefined;
+  want('9 putting it back reserves that same wet husk and moves it to the pool',
+    !!placed && currentWet?.location === host.sites().pool.id
+      && !!currentWet.reservedBy);
+}
+
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

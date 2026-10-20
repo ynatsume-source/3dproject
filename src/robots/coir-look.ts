@@ -15,6 +15,8 @@ import { AIRLIT } from '../ocean/shore';
 import { draw } from '../science/rng';
 
 import { WORKSITE_LOOK_FIXTURES, type WorksiteLook } from '../world/worksite-look';
+import { leavesGeo, stripsGeo, scrapGeo, matGeo, mastGeo, SAIL_SIZE } from './sail-look';
+import { pandanusCutGeo } from '../ocean/shore';
 
 const SEED = 0x6c6f6f6b;   // 'look'
 const u = (id: string, ...k: string[]) => draw(SEED, id, 'look', ...k);
@@ -234,18 +236,19 @@ function rackGeo(): THREE.BufferGeometry {
 // uFar: 0 drawn only near (closer than LOD_M), 1 only far, -1 always. Near and far each hold every thing of theirs; each
 // keeps only its own side of LOD_M from the camera, the other's collapsed out of view — chosen per thing in the vertex
 // shader, with no work on the CPU each frame. uStreak: the scored inside of a beaten husk (long, soft streaks along it).
-type Tone = { out: number; inn: number; spec: number; streak?: number; twist?: number };
+// uWeave: a sail mat's woven face (aIn 1), two families of soft bands crossing on the diagonal, from aWv.
+type Tone = { out: number; inn: number; spec: number; streak?: number; twist?: number; weave?: number };
 function thingMat(t: Tone, far: number): THREE.Material {
   return mat(
-    `uniform float uFar; uniform float uLod; attribute vec3 color; attribute float aIn; attribute float aTw; varying vec3 vWp; varying vec3 vN; varying vec3 vC; varying float vIn; varying vec3 vLp; varying float vTw;
+    `uniform float uFar; uniform float uLod; attribute vec3 color; attribute float aIn; attribute float aTw; attribute vec2 aWv; varying vec3 vWp; varying vec3 vN; varying vec3 vC; varying float vIn; varying vec3 vLp; varying float vTw; varying vec2 vWv;
      void main(){ mat4 mm = modelMatrix;
        #ifdef USE_INSTANCING
        mm = mm * instanceMatrix;
        #endif
-       vec4 w = mm * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(mm) * normal); vC = color; vIn = aIn; vLp = position; vTw = aTw; gl_Position = projectionMatrix * viewMatrix * w;
+       vec4 w = mm * vec4(position, 1.0); vWp = w.xyz; vN = normalize(mat3(mm) * normal); vC = color; vIn = aIn; vLp = position; vTw = aTw; vWv = aWv; gl_Position = projectionMatrix * viewMatrix * w;
        float isFar = step(uLod, distance(uCamPos, (mm * vec4(0.0, 0.0, 0.0, 1.0)).xyz));
        if (uFar > -0.5 && abs(isFar - uFar) > 0.5) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); }`,
-    AIRLIT + `uniform vec3 uOut; uniform vec3 uIn; uniform float uSpec; uniform float uStreak; uniform float uTwist; varying vec3 vWp; varying vec3 vN; varying vec3 vC; varying float vIn; varying vec3 vLp; varying float vTw;
+    AIRLIT + `uniform vec3 uOut; uniform vec3 uIn; uniform float uSpec; uniform float uStreak; uniform float uTwist; uniform float uWeave; varying vec3 vWp; varying vec3 vN; varying vec3 vC; varying float vIn; varying vec3 vLp; varying float vTw; varying vec2 vWv;
      void main(){
        vec3 n = normalize(vN), V = normalize(uCamPos - vWp); if (!gl_FrontFacing) n = -n;
        if (n.y < 0.0) n = normalize(n + vec3(0.0, 0.8, 0.0));   // (a fibre's underside still faces the thing's own light)
@@ -254,7 +257,10 @@ function thingMat(t: Tone, far: number): THREE.Material {
        float streak = 1.0 - uStreak * vIn * aa * (0.5 + 0.5 * sin(sc + sin(vLp.x * 40.0) * 1.5));
        // (a cord's plies: helical bands round it, faded where they would be finer than a pixel)
        float twa = clamp(1.0 - fwidth(vTw) * 0.35, 0.0, 1.0), twist = 1.0 - uTwist * twa * (0.5 + 0.5 * cos(vTw));
-       vec3 alb = mix(uOut, uIn, vIn) * vC * streak * twist;
+       // (a mat's weave: the strips' two directions as soft bands, each faded where finer than a pixel — no dots)
+       float ws = (vWv.x + vWv.y) * 35.7, wt = (vWv.x - vWv.y) * 35.7, wa = clamp(1.0 - length(fwidth(vWv)) * 35.7 * 0.8, 0.0, 1.0);
+       float weave = 1.0 - uWeave * vIn * wa * (0.55 * (0.5 + 0.5 * cos(6.2832 * ws)) + 0.45 * (0.5 + 0.5 * cos(6.2832 * wt)));
+       vec3 alb = mix(uOut, uIn, vIn) * vC * streak * twist * weave;
        vec3 col = airLit(alb, n, vWp, 0.45);
        col += alb * sunAirCol() * max(uAirSun.y, 0.0) * 0.12;   // light thrown back up by the sand
        vec3 H = normalize(uAirSun + V);
@@ -262,7 +268,7 @@ function thingMat(t: Tone, far: number): THREE.Material {
        col = fogIt(col, vWp);
        gl_FragColor = vec4(col, 1.0);
      }`,
-    { uniforms: { uOut: { value: new THREE.Color(t.out) }, uIn: { value: new THREE.Color(t.inn) }, uSpec: { value: t.spec }, uStreak: { value: t.streak ?? 0 }, uTwist: { value: t.twist ?? 0 }, uFar: { value: far }, uLod: { value: LOD_M } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { uOut: { value: new THREE.Color(t.out) }, uIn: { value: new THREE.Color(t.inn) }, uSpec: { value: t.spec }, uStreak: { value: t.streak ?? 0 }, uTwist: { value: t.twist ?? 0 }, uWeave: { value: t.weave ?? 0 }, uFar: { value: far }, uLod: { value: LOD_M } }, opts: { side: THREE.DoubleSide } });
 }
 
 // what each kind looks like in each of its states, and how wide it lies (for laying them side by side)
@@ -272,16 +278,27 @@ const TONES: Record<string, Tone> = {
   'partial-husk/wet': { out: 0x3b2a1c, inn: 0x5a3820, spec: 0.25, streak: 0.22 }, 'partial-husk/dry': { out: 0x7a6248, inn: 0xb0844f, spec: 0.06, streak: 0.18 },
   'yarn/fuzzy': { out: 0xa47c4b, inn: 0xa47c4b, spec: 0.03, twist: 0.25 }, 'yarn/smooth': { out: 0x93693e, inn: 0x93693e, spec: 0.12, twist: 0.35 },
   'fixture/beat-board': { out: 0x8a7457, inn: 0x8a7457, spec: 0.04, streak: 0.14 }, 'fixture/drying-rack': { out: 0x9a8660, inn: 0x9a8660, spec: 0.04, streak: 0.1 },
+  // the sail's: cut pandanus leaves fresh green, yellowing, straw; the strips and scrap straw; the mat woven straw; bamboo
+  'pandanus-leaves/fresh': { out: 0x4d6a2c, inn: 0x4d6a2c, spec: 0.25 }, 'pandanus-leaves/drying': { out: 0x6f7d36, inn: 0x6f7d36, spec: 0.1 }, 'pandanus-leaves/dry': { out: 0xb39a63, inn: 0xb39a63, spec: 0.04 },
+  'pandanus-strips/dry': { out: 0xbfa46c, inn: 0xbfa46c, spec: 0.04 }, 'leaf-scrap/dry': { out: 0xa48d58, inn: 0xa48d58, spec: 0.03 },
+  'sail-mat/weaving': { out: 0xbaa06a, inn: 0xb59c66, spec: 0.04, weave: 0.32 }, 'sail-mat/done': { out: 0x8f6a44, inn: 0xb59c66, spec: 0.04, weave: 0.32 }, 'sail-mat/torn': { out: 0xab9461, inn: 0xa89260, spec: 0.03, weave: 0.3 },
+  'bamboo-mast/cut': { out: 0xa3904f, inn: 0xa3904f, spec: 0.3 }, 'bamboo-mast/broken': { out: 0x968449, inn: 0x968449, spec: 0.22 },
+  'lab/raft-logs': { out: 0x7a6248, inn: 0x7a6248, spec: 0.04, streak: 0.1 },
   'cord/smooth': { out: 0x87603a, inn: 0x87603a, spec: 0.1, twist: 0.4 }, 'cord/frayed': { out: 0x9f7c55, inn: 0x9f7c55, spec: 0.04, twist: 0.3 }, 'cord/broken': { out: 0x9f7c55, inn: 0x9f7c55, spec: 0.04, twist: 0.3 },
 };
-const WIDE: Record<string, number> = { 'fiber-bundle': 0.16, 'wet-husk': 0.2, 'partial-husk': 0.24, yarn: 0.2, cord: 0.26, 'beat-board': 0.7, 'drying-rack': 1.3 };
+const WIDE: Record<string, number> = { 'fiber-bundle': 0.16, 'wet-husk': 0.2, 'partial-husk': 0.24, yarn: 0.2, cord: 0.26, 'beat-board': 0.7, 'drying-rack': 1.3,
+  'pandanus-leaves': 0.32, 'pandanus-strips': 0.22, 'leaf-scrap': 0.36, 'sail-mat': SAIL_SIZE.matL + 0.12, 'sail-mat/done': 0.24, 'bamboo-mast': 0.14 };
+// (fixtures drawn at their worksite's own spot rather than in the row: the sail's pandanus, the raft (main draws its
+// logs; on it, what the world says is aboard); the row then lies this far to one side of it)
+const ANCHOR: Record<string, number> = { 'pandanus-tree': 1.5, raft: 1.4 };
+const RAFT_DECK = 0.16;   // (the top of main's raft logs over the sand: residents.ts drawRaft)
 const CAP = 12;   // of each kind and look, over all worksites
 
-export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: number) => number) {
+export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: number) => number, plantMat?: THREE.Material) {
   // per kind/look: the meshes that together draw it (each holding every one of them; see thingMat)
   const built = quiet('coir-look', () => {
     const group = new THREE.Group(); group.name = 'coir-look'; parent.add(group);
-    const mk = (g: THREE.BufferGeometry, t: Tone, far: number) => { if (!g.getAttribute('aTw')) g.setAttribute('aTw', new THREE.Float32BufferAttribute(new Array(g.getAttribute('position').count).fill(0), 1)); const m = new THREE.InstancedMesh(g, thingMat(t, far), CAP); m.count = 0; m.frustumCulled = false; group.add(m); return m; };
+    const mk = (g: THREE.BufferGeometry, t: Tone, far: number) => { const n = g.getAttribute('position').count; if (!g.getAttribute('aTw')) g.setAttribute('aTw', new THREE.Float32BufferAttribute(new Array(n).fill(0), 1)); if (!g.getAttribute('aWv')) g.setAttribute('aWv', new THREE.Float32BufferAttribute(new Array(n * 2).fill(0), 2)); const m = new THREE.InstancedMesh(g, thingMat(t, far), CAP); m.count = 0; m.frustumCulled = false; group.add(m); return m; };
     const sets: Record<string, THREE.InstancedMesh[]> = {};
     for (const look of ['wet', 'dry']) {
       const dry = look === 'dry';
@@ -297,6 +314,19 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
     sets['cord/broken'] = [mk(strandGeo(true, 'body', false, true), TONES['cord/broken'], -1), mk(strandGeo(true, 'fuzz', false, true), TONES['cord/broken'], 0)];
     sets['fixture/beat-board'] = [mk(boardGeo(), TONES['fixture/beat-board'], -1)];
     sets['fixture/drying-rack'] = [mk(rackGeo(), TONES['fixture/drying-rack'], -1)];
+    // the sail's things (robots/sail-look.ts)
+    for (const look of ['fresh', 'drying', 'dry'] as const) sets[`pandanus-leaves/${look}`] = [mk(leavesGeo(look), TONES[`pandanus-leaves/${look}`], -1)];
+    sets['pandanus-strips/dry'] = [mk(stripsGeo(), TONES['pandanus-strips/dry'], -1)];
+    sets['leaf-scrap/dry'] = [mk(scrapGeo(), TONES['leaf-scrap/dry'], -1)];
+    for (const look of ['weaving', 'done', 'torn'] as const) sets[`sail-mat/${look}`] = [mk(matGeo(look), TONES[`sail-mat/${look}`], -1)];
+    for (const look of ['cut', 'broken'] as const) sets[`bamboo-mast/${look}`] = [mk(mastGeo(look), TONES[`bamboo-mast/${look}`], -1)];
+    // the sail's pandanus: the beach's own shape and light (ocean/shore.ts), one tree cut by stages (the same tree each
+    // look: the cut leaves leave their stubs)
+    if (plantMat) for (const look of ['full', 'thinned', 'stripped'] as const) { const m = new THREE.InstancedMesh(pandanusCutGeo(look, 0x61646e), plantMat, 4); m.count = 0; m.frustumCulled = false; group.add(m); sets[`fixture/pandanus-tree/${look}`] = [m]; }
+    sets['fixture/raft'] = [];   // (main draws the raft itself: nothing of the fixture's own here)
+    { const logs = mergeGeometries(Array.from({ length: 6 }, (_, k) => { const c = new THREE.CylinderGeometry(0.07, 0.08, 1.4, 7); c.deleteAttribute('uv'); c.rotateZ(Math.PI / 2); c.translate(0, 0.08, -0.35 + k * 0.14); return c; }))!;
+      const n = logs.getAttribute('position').count; logs.setAttribute('color', new THREE.Float32BufferAttribute(new Array(n * 3).fill(1), 3)); logs.setAttribute('aIn', new THREE.Float32BufferAttribute(new Array(n).fill(1), 1));
+      sets['lab/raft-logs'] = [mk(logs, TONES['lab/raft-logs'], -1)]; }   // (LAB: a stand-in for main's raft under a test site's)
     return { group, sets };
   });
   const { group, sets } = built;
@@ -304,9 +334,10 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
   /** Lay out what each worksite has. `where` gives a worksite's spot on the ground ([x, z] and which way it faces);
    *  sites it does not know are not drawn. Drawn: fibre bundles, soaked and beaten husks (each wet or dry), yarn
    *  (fuzzy, smooth) and cord (smooth, frayed, broken); any other kind/look pair is skipped. */
-  function put(ms: THREE.InstancedMesh[], x: number, y: number, z: number, rot: number, sc: number) {
-    if (ms[0].count >= CAP) return;
-    _e.set(0, rot, 0); _q.setFromEuler(_e); _m.compose(_p.set(x, y, z), _q, _s.set(sc, sc, sc));
+  function put(ms: THREE.InstancedMesh[], x: number, y: number, z: number, rot: number, sc: number, tilt = 0) {
+    if (!ms.length || ms[0].count >= (ms[0].instanceMatrix.count ?? CAP)) return;
+    // (tilt: about its own length's square, after the turn — a mast stood up)
+    _e.set(0, rot, tilt); _q.setFromEuler(_e); _m.compose(_p.set(x, y, z), _q, _s.set(sc, sc, sc));
     const k = ms[0].count; for (const m of ms) { m.setMatrixAt(k, _m); m.count = k + 1; }
   }
   // where a thing goes on a fixture (WorksiteThing.on): on the board, laid along its top; on the rack, fibre hung over
@@ -319,24 +350,35 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
    *  sites it does not know are not drawn. Drawn: fibre bundles, soaked and beaten husks (each wet or dry), yarn
    *  (fuzzy, smooth) and cord (smooth, frayed, broken); any other kind/look pair is skipped. A thing on a fixture
    *  (WorksiteThing.on) lies on the board or hangs on the rack; one whose fixture is not there lies in the row. */
-  function set(looks: WorksiteLook[], where: (siteId: string) => { x: number; z: number; face: number } | null) {
+  function set(looks: WorksiteLook[], where: (siteId: string) => { x: number; z: number; face: number } | null, lab = false) {
     for (const ms of Object.values(sets)) for (const m of ms) m.count = 0;
     for (const site of looks) {
       const at = where(site.siteId); if (!at) continue;
-      const fixtures = (site.fixtures ?? []).filter((f) => sets[`fixture/${f.kind}`]);
+      const fixtures = (site.fixtures ?? []).filter((f) => sets[`fixture/${f.kind}`] ?? sets[`fixture/${f.kind}/${f.look}`]);
       const kindOf = new Map(fixtures.map((f) => [f.id, f.kind]));
-      const onIt = (it: WorksiteLook['items'][number]) => { const fk = it.on ? kindOf.get(it.on) : undefined; return fk && ON[fk].takes(it.kind) && sets[`${it.kind}/${it.look}${ON[fk].hung ? '/hung' : ''}`] ? fk : null; };
+      const onIt = (it: WorksiteLook['items'][number]) => { const fk = it.on ? kindOf.get(it.on) : undefined; return fk && ON[fk]?.takes(it.kind) && sets[`${it.kind}/${it.look}${ON[fk].hung ? '/hung' : ''}`] ? fk : null; };
+      // (the sail's pandanus and the raft stand at the worksite's own spot; the row lies to one side of them)
+      let side = 0;
+      for (const f of fixtures) {
+        if (ANCHOR[f.kind] === undefined) continue;
+        side = Math.max(side, ANCHOR[f.kind]);
+        if (f.kind === 'pandanus-tree') { const sc = 2.9 + 0.6 * u(f.id, 'size'); put(sets[`fixture/pandanus-tree/${f.look ?? 'full'}`] ?? [], at.x, groundAt(at.x, at.z) - 0.1, at.z, u(f.id, 'turn') * Math.PI * 2, sc); }
+        if (f.kind === 'raft') aboard(site, f, at, lab);
+      }
+      const ox = -Math.sin(at.face) * side, oz = -Math.cos(at.face) * side;
       // (what stands there first — only what the world has put there — then the things not on one, side by side)
-      const shown = [...fixtures.map((f) => ({ id: f.id, kind: f.kind, key: `fixture/${f.kind}` })), ...site.items.filter((it) => !onIt(it)).map((it) => ({ id: it.id, kind: it.kind, key: `${it.kind}/${it.look}` }))].filter((it) => sets[it.key]);
-      const width = shown.reduce((w, it) => w + WIDE[it.kind], 0);
+      const shown = [...fixtures.filter((f) => ANCHOR[f.kind] === undefined).map((f) => ({ id: f.id, kind: f.kind as string, key: `fixture/${f.kind}` })),
+        ...site.items.filter((it) => !onIt(it) && !(it.on && kindOf.get(it.on) === 'raft')).map((it) => ({ id: it.id, kind: it.kind as string, key: `${it.kind}/${it.look}` }))].filter((it) => sets[it.key]);
+      const wide = (it: { kind: string; key: string }) => WIDE[it.key] ?? WIDE[it.kind];
+      const width = shown.reduce((w, it) => w + wide(it), 0);
       let off = -width / 2;
       for (const it of shown) {
-        const w = WIDE[it.kind], fx = it.key.startsWith('fixture/'); off += w / 2;
+        const w = wide(it), fx = it.key.startsWith('fixture/'); off += w / 2;
         // (side by side across the worksite, as they would be laid down; each its own small turn and size)
         const j = (u(it.id, 'jit') - 0.5) * 0.04;
-        const x = at.x + Math.cos(at.face) * off - Math.sin(at.face) * j, z = at.z - Math.sin(at.face) * off - Math.cos(at.face) * j, y = groundAt(x, z);
-        const rot = at.face + (fx ? 0 : Math.PI / 2) + (u(it.id, 'turn') - 0.5) * (fx ? 0.12 : it.kind === 'fiber-bundle' ? 0.35 : 0.8);
-        put(sets[it.key], x, y, z, rot, fx ? 1 : 0.9 + 0.2 * u(it.id, 'size'));
+        const x = at.x + ox + Math.cos(at.face) * off - Math.sin(at.face) * j, z = at.z + oz - Math.sin(at.face) * off - Math.cos(at.face) * j, y = groundAt(x, z);
+        const rot = at.face + (fx ? 0 : Math.PI / 2) + (u(it.id, 'turn') - 0.5) * (fx ? 0.12 : it.kind === 'fiber-bundle' ? 0.35 : it.kind === 'sail-mat' || it.kind === 'bamboo-mast' ? 0.15 : 0.8);
+        put(sets[it.key], x, y, z, rot, fx || it.kind === 'sail-mat' || it.kind === 'bamboo-mast' ? 1 : 0.9 + 0.2 * u(it.id, 'size'));
         if (fx) {
           // what the world says is on this one: spread along its top or its pole, in the order listed
           const S = ON[it.kind], on = site.items.filter((t) => t.on === it.id && onIt(t)), n = on.length, step = Math.min(S.step, n > 1 ? S.span / (n - 1) : 0);
@@ -351,7 +393,25 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
     }
     for (const ms of Object.values(sets)) for (const m of ms) m.instanceMatrix.needsUpdate = true;
   }
-  const counts = () => Object.fromEntries(Object.entries(sets).map(([k, ms]) => [k, ms[0].count]));
+  // what is aboard the raft (WorksiteThing.on its id), on main's logs (along x, the deck RAFT_DECK up): rigged, the mast
+  // stepped upright at the middle and the sail furled against it; bare, the mast and the rolled mat lying along the deck.
+  // A broken mast lies in its pieces, a torn mat spread over the deck, whatever the rig; cords coiled at the stern.
+  function aboard(site: WorksiteLook, raft: WorksiteLook['fixtures'][number], at: { x: number; z: number }, lab: boolean) {
+    const y = groundAt(at.x, at.z), deck = y + RAFT_DECK, rigged = raft.look === 'rigged';
+    if (lab) put(sets['lab/raft-logs'], at.x, y, at.z, 0, 1);
+    const on = site.items.filter((t) => t.on === raft.id);
+    const mast = on.find((t) => t.kind === 'bamboo-mast'), stood = rigged && mast?.look === 'cut';
+    if (mast) put(sets[`bamboo-mast/${mast.look}`], at.x, stood ? deck + SAIL_SIZE.mastL / 2 : deck, at.z + (stood ? 0 : -0.18), 0, 1, stood ? Math.PI / 2 : 0);
+    for (const t of on) {
+      if (t.kind === 'sail-mat') {
+        if (t.look === 'torn') put(sets['sail-mat/torn'], at.x, deck, at.z, Math.PI / 2, 0.75);
+        else if (t.look === 'done' && stood) put(sets['sail-mat/done'], at.x + 0.1, deck + 0.05 + SAIL_SIZE.matW / 2, at.z, 0, 1, Math.PI / 2);   // (furled against the mast)
+        else put(sets[`sail-mat/${t.look}`], at.x, deck, at.z + 0.18, 0, t.look === 'done' ? 1 : 0.75);
+      }
+      if (t.kind === 'yarn' || t.kind === 'cord') put(sets[`${t.kind}/${t.look}`] ?? [], at.x - 0.5, deck, at.z + 0.22, u(t.id, 'turn') * 6.28, 0.9);
+    }
+  }
+  const counts = () => Object.fromEntries(Object.entries(sets).filter(([, ms]) => ms.length).map(([k, ms]) => [k, ms[0].count]));
   /** Keep to what the world says: read `looks()` and `spots()` (the residents' worksiteLooks / worksiteSpots) about once
    *  a second while drawn — laid out again only when something there has changed. */
   let readAt = -1e9, last = '';
@@ -369,9 +429,23 @@ export function makeCoirLook(parent: THREE.Group, groundAt: (x: number, z: numbe
  *  the beating board with wet fibre and a beaten husk; 'fiber-dry': the drying rack with dry fibre; 'bare-site': nothing); ?coirlook=both — two bundles of each look side by side; ?coirlook=all — every kind drawn so far, wet
  *  and dry (a soaked husk, a beaten husk and a bundle of each); ?coirlook=cord — yarn fuzzy and smooth, cord smooth,
  *  frayed and broken; ?coirlook=on — things on fixtures (WorksiteThing.on): a beaten husk on the board with a wet bundle
- *  beside it, and three dry bundles and a wet one hung on the rack. */
+ *  beside it, and three dry bundles and a wet one hung on the rack; ?coirlook=sail-tree|sail-dry|sail-work|sail-raft|sail|sail-all —
+ *  the sail's (below). */
 export function coirLookTest(q: string): WorksiteLook[] | null {
-  const m = /[?&]coirlook=(wet|dry|bare|both|all|cord|on)/.exec(q); if (!m) return null;
+  const m = /[?&]coirlook=(wet|dry|bare|both|all|cord|on|sail-tree|sail-dry|sail-work|sail-raft|sail-all|sail)\b/.exec(q); if (!m) return null;
+  // the sail's (main's test data: a pandanus thinned, leaves drying and dried, the bench's things, the raft rigged), each
+  // its own site; sail-all — every look: the tree full, thinned and stripped; all the leaves, the mats and the masts;
+  // a bare raft with the mat rolled and the mast lying aboard, beside the rigged one
+  const F = WORKSITE_LOOK_FIXTURES;
+  if (m[1].startsWith('sail-') && m[1] !== 'sail-all') return [F[m[1]]];
+  if (m[1] === 'sail') return [F['sail-tree'], F['sail-dry'], F['sail-work'], F['sail-raft']];
+  if (m[1] === 'sail-all') return [
+    ...(['full', 'thinned', 'stripped'] as const).map((look, i) => ({ siteId: `test-tree-${i}`, fixtures: [{ id: `test-pandanus-${i}`, kind: 'pandanus-tree' as const, look }], items: [] })),
+    { siteId: 'test-leaves', fixtures: [], items: (['fresh', 'drying', 'dry'] as const).map((look, i) => ({ id: `test-leaves-${i}`, kind: 'pandanus-leaves' as const, look })).concat([{ id: 'test-strips', kind: 'pandanus-strips' as any, look: 'dry' as any }, { id: 'test-scrap', kind: 'leaf-scrap' as any, look: 'dry' as any }]) },
+    { siteId: 'test-mats', fixtures: [], items: [...(['weaving', 'done', 'torn'] as const).map((look, i) => ({ id: `test-mat-${i}`, kind: 'sail-mat' as const, look })), ...(['cut', 'broken'] as const).map((look, i) => ({ id: `test-mast-${i}`, kind: 'bamboo-mast' as const, look }))] },
+    F['sail-raft'],
+    { siteId: 'test-raft-bare', fixtures: [{ id: 'test-raft', kind: 'raft', look: 'bare' }], items: [{ id: 'test-mat-aboard', kind: 'sail-mat', look: 'done', on: 'test-raft' }, { id: 'test-mast-aboard', kind: 'bamboo-mast', look: 'cut', on: 'test-raft' }, { id: 'test-cord-aboard', kind: 'cord', look: 'smooth', on: 'test-raft' }] },
+  ];
   if (m[1] === 'on') return [{ siteId: 'test', fixtures: [{ id: 'test-board', kind: 'beat-board' }, { id: 'test-rack', kind: 'drying-rack' }], items: [
     { id: 'test-husk-on', kind: 'partial-husk', look: 'wet', on: 'test-board' }, { id: 'test-bundle-by', kind: 'fiber-bundle', look: 'wet' },
     ...[0, 1, 2].map((i) => ({ id: `test-hung-${i}`, kind: 'fiber-bundle' as const, look: 'dry' as const, on: 'test-rack' })), { id: 'test-hung-wet', kind: 'fiber-bundle', look: 'wet', on: 'test-rack' }] }];

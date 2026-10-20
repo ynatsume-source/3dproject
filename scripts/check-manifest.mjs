@@ -4,11 +4,11 @@
 // durations and locations; a failure is never a reason to move or skip a check.
 const fast = [
   'sail-lots', 'sail-work', 'sail-voyage', 'sail-cord-settlement',
-  'sail-raft-checkpoint', 'sail-inputs',
+  'sail-raft-checkpoint', 'sail-inputs', 'sail-weave-offer', 'cord-twist-offer',
   'cord-load-compaction',
   'cord-integer-load',
   'sail-raft-science',
-  'husk-soak', 'husk-host', 'cord-host', 'sail-voyage-host', 'worksite-look-fill', 'live-status', 'live-scrim', 'live-en', 'sail-look', 'milestone',
+  'husk-soak', 'husk-host', 'cord-host', 'sail-voyage-host', 'worksite-look-fill', 'live-status', 'live-scrim', 'live-en', 'sail-look', 'bamboo-carry', 'milestone',
   'science-wet-wick', 'science-dry-wick-comparison',
   'coir-cord-identity',
   'manual-husk-handover', 'coir-cord-handover',
@@ -16,7 +16,7 @@ const fast = [
   'manual-husk-workflow',
   'manual-husk-work',
   'manual-husk-separation',
-  'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal',
+  'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal', 'tide', 'crabs', 'sea-level',
   'lamp',
   'lantern', 'lantern-brain', 'lantern-residents', 'lantern-sky', 'lantern-study',
   'lumau', 'map', 'mind', 'nav', 'pottery-host', 'process-runner',

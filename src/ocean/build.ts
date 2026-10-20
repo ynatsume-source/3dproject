@@ -39,6 +39,7 @@ export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
 import { makeCoirLook, coirLookTest } from '../robots/coir-look';
 import { makeCrabLook, makeBurrowLook, crabLookTest, crabTestPoses } from './crab';
+import { makeCrabHost } from '../eco/crab-host';
 import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
@@ -510,10 +511,11 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     group.add(oc.residents.group);
     // what the husk-and-cord work leaves at its worksites, as it looks (robots/coir-look.ts: no world draws). The host
     // lays it out from its WorksiteLook; ?coirlook=wet|dry|bare|both|all|cord lays a test worksite by Dot's home (LAB)
-    oc.coirLook = makeCoirLook(group, (x: number, z: number) => loc.f(x, z));
+    oc.coirLook = makeCoirLook(group, (x: number, z: number) => loc.f(x, z), T.plantLook?.mat);
     const test = typeof location !== 'undefined' ? coirLookTest(location.search) : null;
     const dh = oc.residents.list.find((r: any) => r.id === 'dot')?.sp.home;
-    if (test && dh) oc.coirLook.set(test, () => ({ x: dh[0] + 1.8, z: dh[1] + 3.0, face: 0.4 }));
+    // (each test site its own spot, in a line along the beach from the first)
+    if (test && dh) oc.coirLook.set(test, (id) => { const k = Math.max(0, test.findIndex((l) => l.siteId === id)); return { x: dh[0] + 1.8 + k * 3.6 * Math.cos(0.4), z: dh[1] + 3.0 - k * 3.6 * Math.sin(0.4), face: 0.4 }; }, true);
     else oc.coirLook.follow(() => oc.residents.worksiteLooks(), () => oc.residents.worksiteSpots());   // (what the world has at its worksites)
     // the night beach's ghost crabs, as they look (ocean/crab.ts: no world draws). Only behind the lab knob for now:
     // ?crablook puts ghost crabs, their burrows and a coconut crab on the sand by Dot's home (LAB)
@@ -524,7 +526,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
       oc.shore?.trunks(at.x, at.z, 15, (t: any) => { const d = Math.hypot(t.base.x - at.x, t.base.z - at.z); if (t.kind === 'pandanus' && d < best) { best = d; trunk = t; } });
       crabs.mesh.onBeforeRender = () => { const P = crabTestPoses(crabTest === 'still' ? 2.2 : performance.now() / 1000, at, ground, trunk); crabs.show(P.crabs); burrows.show(P.burrows); };
       oc.crabLook = crabs;
-    }
+    } else if (dh && oc.shore) oc.crabs = makeCrabHost(loc, T, oc.shore, dh, group);   // (the night beach's crabs: eco/crab-host.ts)
   }
   // (the corals are drawn once the rocks are down: see clearOfRocks, after placeRocks below)
 
