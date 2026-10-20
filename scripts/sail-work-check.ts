@@ -561,4 +561,46 @@ test('host existing dry and weave intents explicitly gather same-place bundles',
   assert.equal(dev.length, 0);
 });
 
+
+test('host batch transport rolls every bundle back on refusal and the same action can retry', () => {
+  const L: SailWorkLedger = emptyLedger('world:batch-rollback', 'epoch:batch-rollback');
+  const state = emptySailHostState(), dev: any[] = [];
+  const sites = {
+    trees: [{id: 'tree:a', x: 2, z: 0, reachM: 1},
+      {id: 'tree:b', x: 4, z: 0, reachM: 1}],
+    dry: {id: 'site:dry', x: 0, z: 0, reachM: 1},
+    work: {id: 'site:work', x: 0, z: 0, reachM: 1},
+  };
+  const host = makeSailHost({lab: L, state: () => state, placeSites: () => sites,
+    roofed: () => true, wanted: () => true, dev});
+  host.sites();
+  const put = (lotId: string, dryMg: number, waterMg: number) => {
+    const p = writePlantMass({lotId, material: 'pandanus_strips', dryMg, waterMg},
+      'site:stash', 1);
+    return addLot(L, {lotId, materialId: p.materialId, amount: p.amount,
+      location: p.into!, quality: p.quality});
+  };
+  put('strips:a', 400_000, 80_000);
+  put('strips:b', 400_000, 80_000);
+  const originals = json([L.lots['strips:a'], L.lots['strips:b']]);
+  const first = host.beginWork('worker', 'weave', 'work', {x: 0, z: 0}, T);
+  assert.equal(first.ok, false);
+  if (!first.ok) assert.match(first.felt!, /足りず/);
+  assert.deepEqual([L.lots['strips:a'], L.lots['strips:b']], originals);
+  assert.equal(Object.keys(L.runs).length, 0);
+  assert.equal(dev.at(-1).code, 'insufficient-weave-material');
+  put('strips:c', 100_000, 20_000);
+  const before = mass(L);
+  assert.deepEqual(host.beginWork('worker', 'weave', 'work', {x: 0, z: 0}, T + 1),
+    {ok: true});
+  const r = Object.values(L.runs).find(r => r.processId === SAIL_WORK.processId)!;
+  assert.equal(r.lotIds.length, 3);
+  assert.equal(host.working('worker', {x: 0, z: 0},
+    T + 1 + 20_000 * R.weaveMsPerCm2).done, true);
+  assert.equal(mass(L), before);
+  const made = Object.values(L.lots).find(l => l.materialId === 'sail_mat')!;
+  assert.equal(readSailMat(made).dryMg, 900_000);
+  assert.equal(readSailMat(made).waterMg, 180_000);
+});
+
 console.log('PASS sail work: ' + groups + ' groups; no resident or UI connection.');
