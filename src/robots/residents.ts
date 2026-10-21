@@ -4295,6 +4295,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   (res as any).huskDev = huskDev;
   (res as any).huskSites = () => husk.sites(); (res as any).huskRepool = (was: { id: string; x: number; z: number }) => tidePool(was.x, was.z);   // (the pool's place, for checks)   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)
+  (res as any).sailHost = sail;     // (and the sail's)
   (res as any).cordDev = cordDev; (res as any).cordHost = cord; (res as any).sailDev = sailDev; (res as any).sailHost = sail;
   (res as any).tell = tell;   // (for checks: the world telling an event, and whether it is a first)
   // wake up where they were, and catch up on the hours nobody was watching

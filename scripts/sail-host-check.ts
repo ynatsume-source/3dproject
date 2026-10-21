@@ -3,7 +3,8 @@
 //  1 the options: none before there is a raft; then the cutting at each pandanus, with no number in them; the order seeded
 //  2 the leaves cut over two quarter hours (its hands off between, and across a save and load: no work counted for the
 //    time away), then resumed until cut; the standing leaves become cut leaves at the tree
-//  3 splitting wet leaves: "葉がまだ湿っていて、うまく裂けない" as felt; the code in the developer's log only
+//  3 wet leaves are not offered for splitting (science soak 2026-10-21: dry-leaves-required, no mat in 36 hours): nothing
+//    tried, nothing refused, the leaves where they were
 //  4 dried under the back eaves on the island's clock; saved and loaded three hours later — no hand work in the hours
 //    caught up on, the roof's time across the load one span; dried, the world knows those leaves are dry
 //  5 split at the bench, then woven into the sail's mat (one fixed size), each over several quarter hours
@@ -97,8 +98,8 @@ step(5);
 }
 { // 3
   const dev0 = R.sailDev.length;
-  await choose('sail:split:work', () => said(/葉がまだ湿っていて、うまく裂けない/));
-  want('3 splitting the wet leaves: what it felt; the code for the developer only', said(/葉がまだ湿っていて、うまく裂けない/) && R.sailDev.slice(dev0).some((d: any) => d.code === 'dry-leaves-required') && runsOf('split').length === 0, R.sailDev.slice(dev0).map((d: any) => d.code).join(','));
+  await choose('sail:split:work', () => false, 120);   // (its mind names it: it is not there to be done)
+  want('3 the wet leaves: not offered for splitting — nothing tried, nothing refused, no run', !said(/葉がまだ湿っていて、うまく裂けない/) && !R.sailDev.slice(dev0).some((d: any) => d.code === 'dry-leaves-required') && runsOf('split').length === 0 && !R.sailHost.options('dot', now).some((o: any) => o.id === 'sail:split:work'), R.sailDev.slice(dev0).map((d: any) => d.code).join(',') || '(none)');
   want('3 the leaves put back where they were', lots('pandanus_leaves')[0].location === R.village.sailHost.sites.trees[0].id, lots('pandanus_leaves')[0].location);
 }
 { // 4
@@ -108,6 +109,9 @@ step(5);
   step(600);
   const seen = R.lab.runs[run.runId].state.data.observedThroughWorldMs;
   want('4 the roof\'s time confirmed as it passes', seen > run.state.data.spec.openedAtWorldMs, `${Math.round((seen - run.state.data.spec.openedAtWorldMs) / 60e3)} min`);
+  // (drying under the roof: not offered to be taken in half way — science soak 2026-10-21, 26 dryings and 26 takings-in)
+  const takein = R.sailHost.options('dot', now).some((o: any) => o.id === 'sail:takein');
+  want('4 drying under the roof: not offered to be taken in half way', !takein);
   R.save(); const s = JSON.parse(store.get(KEY)!), from = s.village.sailHost.dry[run.runId], runs0 = Object.keys(s.lab.runs).length;
   for (const d of R.sailDev) allCodes.add(d.code);
   now += 3 * 3600e3; R = make();
@@ -145,8 +149,10 @@ for (const d of R.sailDev) allCodes.add(d.code);
   const mem = JSON.stringify({ minds: JSON.parse(saved).minds, list: JSON.parse(saved).list });
   const prompts: string[] = [];
   await writePost({ who: 'dot', name: d.v.name, profile: 'テスト', day: '2026-10-06', entries: d.diary.map((e: any) => ({ time: '12:00', text: e.text, key: e.key })), photos: [], talks: [] }, async (sys: string, user: string) => { prompts.push(sys + user); return null; }, 'stub');
-  const codes = [...allCodes], leaks = (t: string) => [...MARKS.filter((m) => new RegExp(`(?<![\\d.])${m}(?![\\d.])`).test(t)), ...codes.filter((c) => t.includes(c))];
-  want('7 (the markers are real: the ledger holds them, the developer\'s log a code)', marked && codes.length > 0, codes.join(','));
+  // (the codes: those the developer's log took, and the sail work's own refusals whether or not one came up — none is
+  // ever a resident's)
+  const codes = [...new Set([...allCodes, 'dry-leaves-required', 'dry-strips-required', 'insufficient-weave-material', 'long-bamboo-required', 'insufficient-mast-dry-mass', 'invalid-world-or-material-state'])], leaks = (t: string) => [...MARKS.filter((m) => new RegExp(`(?<![\\d.])${m}(?![\\d.])`).test(t)), ...codes.filter((c) => t.includes(c))];
+  want('7 (the markers are real: the ledger holds them; the codes looked for)', marked && codes.length > 0, codes.join(','));
   want('7 no amount or code in its diary, its mind\'s input, the day\'s post prompt or its saved memory', [diary, minds, prompts.join(''), mem].every((t) => leaks(t).length === 0), [diary, minds, prompts.join(''), mem].map(leaks).map((x) => x.join('|')).join(' / '));
   const sailOpts = [...new Map(inputs.flatMap((i) => i.options ?? []).filter((o: any) => o.id.startsWith('sail:')).map((o: any) => [o.id, o])).values()] as any[];
   want('7 no number in any sail option it was offered, all along', sailOpts.length >= 6 && sailOpts.every((o) => !/[0-9０-９]/.test(o.id + o.label + (o.targetId ?? ''))), sailOpts.map((o) => o.label).join(' / '));
