@@ -1,0 +1,16 @@
+as saved: 60 frames mean 87.3 ms
+569ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+2ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+13ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+1ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+9ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+489ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+11ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+1ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+10ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+1ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+387ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+0ms act=carry task=-@null went=no way blocked=99 hold=plank pos=62.6,-143.9
+dot keys id,v,sp,model,pos,head,mo,battery,hunger,sleepy,meal,under,task,walk,act,wet,talk,saying,sayT,stats,today,diary,blocked,subject,holding,held,beam,dayBase,wear,wearLv,stuck,photos,path,goal,went,lightK
+dot.mo {"stride":0,"px":62.55042220821671,"pz":-143.90499366498207,"ph":9.22363745870207,"gait":0,"key":1,"t":59,"act":"carry","task":null,"look":null,"why":"","hold":-60,"glance":15.524821407161653,"probe":-1,"since":0,"fails":0,"bad":[],"recheck":0,"forTask":{"kind":"deck","x":40.88770459182257,"z":-79.5680355033236,"act":"hammer","dur":8,"t":1,"arrived":false,"via":""},"lastPlan":{"t":1796364056000,"tx":40.88770459182257,"tz":-79.5680355033236,"pts":null}}
+dot holding nothing: 60 frames mean 5.7 ms
