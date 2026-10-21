@@ -1,0 +1,16 @@
+1 found on the island: inland,lagoon,pool,sea ok
+1 the sea and the lagoon all of it; a pool and a pond none: {"inland":0,"lagoon":1,"pool":0,"sea":1} ok
+2 at +0.8 m: the water top 0.8 in the sea and the lagoon, 0 in a pool and a pond: {"inland":0,"lagoon":0.8,"pool":0,"sea":0.8} ok
+2 the waves ride on it (the surface lifted by just that): {"inland":0,"lagoon":0.8,"pool":0,"sea":0.8} ok
+2 under the water: 0.5 m up in the sea yes, in a pool no:  ok
+2 at mean sea level all as before:  ok
+3 the GPU's sea lifted where the tide reaches, by the same map:  ok
+4 at +0.91 m: 95% or more of the shore joined to the sea from 0 to 0.91 m under the water: 96.5% of 5988 m² (+0.6: 99.1%, +0.3: 99.9%) ok
+4 and the pools and ponds still at mean sea level:  ok
+5 Kayama's tide's top: the year's highest +0.91 m and the run-up: 1.109 ok
+5 each sea its own: its year's highest (every 10 min) and the run-up, within 2 cm: kayama 1.11, pointlobos 0.95, gbr 1.30, miyako 1.15, maldives 0.70, pacific 0.50, redsea 0.50, carnatic 0.60, galapagos 1.20 ok
+5 the seas with bigger tides higher (GBR, Galápagos, Miyako above Kayama):  ok
+5 the husks' standing spot at the year's highest: under, but shallow enough to walk (WADE_M 0.5): 0.44 m ok
+6 at the world's high tide: the husks' standing spot walked; ground more than 0.5 m under not: stand 1, deep (ground 0.33) 1 → Infinity ok
+6 the drawn sea's height changes nothing of the residents' way: [1,1] ok
+all ok
