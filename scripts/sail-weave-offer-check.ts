@@ -1,4 +1,4 @@
-// Main's insufficient-weave offer guard, extended to explicit same-place bundles; and no splitting of leaves still wet.
+// Main's insufficient-weave offer guard, extended to explicit same-place bundles; no splitting of leaves still wet; one sail.
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/sail-weave-offer-check.ts
 import assert from 'node:assert/strict';
 import {emptyLedger, addLot} from '../src/world/process-runner';
@@ -73,5 +73,20 @@ test('leaves still wet are not offered for splitting; dry ones are (science soak
   assert.equal(split(), false);
   leaves('lot:leaves:dry', 1_000_000, 200_000);
   assert.equal(split(), true);
+});
+test('one sail: no weaving once a whole mat lies there or is up in the rig; a part-mat or a torn one is not the sail (science soak 2026-10-21)', () => {
+  const mat = (L: any, lotId: string, area: number, torn: 0 | 1) => addLot(L, {lotId, materialId: 'sail_mat', amount: {value: area * 45 + area * 9, unit: 'mg'}, location: 'site:sail-work',
+    quality: {dry_mg: area * 45, water_mg: area * 9, history_complete: 1, sail_codec: 1, area_cm2: area, base_strength_gf: 900_000, torn, sun_ms: 0, shade_ms: 0, rain_ms: 0}});
+  const a = fixture(); a.strips('lot:strips', need);
+  assert.equal(a.weave(), true);
+  mat(a.L, 'lot:mat:part', 1_250, 0);
+  assert.equal(a.weave(), true);
+  mat(a.L, 'lot:mat:torn', 20_000, 1);
+  assert.equal(a.weave(), true);
+  mat(a.L, 'lot:mat:whole', 20_000, 0);
+  assert.equal(a.weave(), false);
+  const b = fixture(); b.strips('lot:strips', need);
+  (b.L.equipment as any)['eq:raft'] = {equipmentId: 'eq:raft', assembled: {parts: [{lotId: 'lot:mat:up', materialId: 'sail_mat'}]}};
+  assert.equal(b.weave(), false);
 });
 console.log('PASS sail weave offer: ' + groups + ' groups');
