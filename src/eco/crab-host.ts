@@ -31,6 +31,14 @@ export function makeCrabHost(loc: any, T: any, shore: any, home: [number, number
   let dark: [number, number] | null = null, wxAt = -1, keen = 1;
   return {
     life,
+    /** The crab up nearest (x, z) within `r` m — out, going out, or going down its burrow — or null: for the camera to
+     *  come down to it (main.ts, watching a resident). Its ground position and what it is doing. */
+    near(x: number, z: number, r: number): { x: number; y: number; z: number; kind: 'ghost' | 'coconut'; going: boolean } | null {
+      const c = life.poses({ x, z }).crabs[0];
+      if (!c || Math.hypot(c.x - x, c.z - z) > r) return null;
+      const m = life.state(c.id)?.mode;
+      return { x: c.x, y: c.y, z: c.z, kind: c.kind, going: m === 'home' || m === 'down' };
+    },
     /** A frame on: `nowMs` the island's time, `cam` the camera. */
     update(dt: number, nowMs: number, cam: THREE.Vector3) {
       if (!dark || nowMs < dark[0] || nowMs > dark[1]) dark = darkAround(nowMs, loc.lat, loc.lon);

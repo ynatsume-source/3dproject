@@ -3,6 +3,8 @@
 // GAUGE_RESIDENTS can point at the fixed review SHA's residents.ts to reproduce the two reported failures.
 import fs from 'node:fs';
 import ts from 'typescript';
+import { emptyLedger } from '../src/world/process-runner';
+import { recentScienceRuns } from '../src/world/science-records';
 const source = fs.readFileSync(process.env.GAUGE_RESIDENTS ?? new URL('../src/robots/residents.ts', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('residents.ts', source, ts.ScriptTarget.Latest, true);
 const host = ast.statements.find((n): n is ts.FunctionDeclaration => ts.isFunctionDeclaration(n) && n.name?.text === 'makeResidents')!;
@@ -23,7 +25,7 @@ const hypothesis = (runId?: string) => ({ at: 10, by: 'lantern', ...(runId ? { p
 function fixture() {
   const lantern = { id: 'lantern', diary: [] }, listener = { id: 'dot', diary: [] as any[] }, frames: any[] = [], notes: string[] = [];
   const env: any = { village: { gaugeLog: [], hypo: null, hypo2: null, hypoHistory: [], taught: {} },
-    clockMs: DAY * 3, HYPO_DAY: DAY, HYPO_READS: 16, ISLAND_RATE: 1, islandWait: (x: number) => x,
+    recentScienceRuns, clockMs: DAY * 3, HYPO_DAY: DAY, HYPO_READS: 16, ISLAND_RATE: 1, islandWait: (x: number) => x,
     islandWeather: () => ({ air: 20, pressureMeasured: 1001, rainMeasured: 0 }), wxNow: { air: 99, pressureMeasured: 999 }, hypoNote: (s: string) => notes.push(s),
     byId: { lantern }, lastNight: null, fireQueue: [],
     say_: (who: string, frame: any) => { frames.push(frame); return { who, line: frame.act }; },
@@ -70,7 +72,7 @@ for (const legacy of [false, true]) {
 {
   const { env, api } = fixture(); env.village.hypo = hypothesis('old');
   const saved = copy(env.village.hypo);
-  env.lab = { runs: { old: { processId: M2, runId: 'old', lastTo: 1, lotIds: [], status: 'stopped', why: 'version' } } };
+  env.lab = { ...emptyLedger('world', 'epoch'), runs: { old: { processId: M2, runId: 'old', lastTo: 1, lotIds: [], status: 'stopped', why: 'version' } } };
   api.gaugePlaced(env.byId.lantern, { processId: M2, ja: '試験用の気圧計' }, 'new', []);
   want('placing retires the old absolute guess before any new reading', env.village.hypo === null && JSON.stringify(env.village.hypoHistory[0]?.hypothesis) === JSON.stringify(saved));
   const p = env.village.gaugeLog[0];
@@ -80,7 +82,7 @@ for (const legacy of [false, true]) {
 {
   const { env, api } = fixture();
   const lot = (lotId: string, value: number, reservedBy?: string) => ({ lotId, materialId: 'process_water', amount: { value, unit: 'mg' }, quality: { history_complete: 1 }, reservedBy });
-  env.lab = { world: { worldVersion: 1 }, lots: { oldWater: lot('oldWater', 250000), jar: lot('jar', 500000), newWater: lot('newWater', 250000, 'pot2') },
+  env.lab = { ...emptyLedger('world', 'epoch'), lots: { oldWater: lot('oldWater', 250000), jar: lot('jar', 500000), newWater: lot('newWater', 250000, 'pot2') },
     runs: { pot1: { processId: M3, runId: 'pot1', lastTo: 1, lotIds: ['oldWater'], status: 'failed', why: 'corrupt-state' } } };
   env.village.catcher = { areaM2: 1, capMg: 20000000 }; env.rainCarry = 0; env.wetting = 0;
   env.shelfLots = () => Object.values(env.lab.lots); env.drawStore = () => {};

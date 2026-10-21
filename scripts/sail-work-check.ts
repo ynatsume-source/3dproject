@@ -20,6 +20,13 @@ import {
   beginSailVoyage, resumeSailVoyage, restoreSailVoyage,
 } from '../src/world/sail-voyage';
 
+import {
+  applySailIntent as applyLegacySailIntent,
+  recordSailSpan as recordLegacySailSpan,
+  sailWorkRevision as legacySailWorkRevision,
+} from './fixtures/sail-work-v1';
+import {makeSailHost, emptySailHostState} from '../src/robots/sail-host';
+
 const ID = 'owner-assumption/sail-raft/2026-10-18/v2-island';
 const T = ISLAND_EPOCH + 1_000;
 const site = {locationId: 'site:sail', x: 0, z: 0, reachM: 1};
@@ -367,4 +374,233 @@ test('public failures require a confirmed attempt and never expose hidden values
   assert.match(words[0].text, /湿って/);
   visible(words);
 });
+
+function batch(
+  operation: 'dry' | 'weave',
+  values: [number, number][],
+  start = true,
+  reverse = false
+): F {
+  const a = fixture(operation, false);
+  delete a.L.lots.input;
+  const ids = values.map((v, n) => n === 0 ? 'input' : 'input:' + n);
+  values.forEach(([dryMg, waterMg], n) => addPlant(a.L, {
+    lotId: ids[n], material: operation === 'dry' ? 'pandanus_leaves' : 'pandanus_strips',
+    dryMg, waterMg,
+  }));
+  a.intent = {...a.intent, kind: 'start', operation, lotIds: reverse ? [...ids].reverse() : ids};
+  if (start) a.runId = applySailIntent(a.L, a.intent, 0, T, a.facts).runId;
+  return a;
+}
+
+test('multiple strips weave a fixed mat and return one exact combined remainder', () => {
+  const values: [number, number][] = [[420_001, 83_999], [420_002, 84_000], [99_999, 20_000]];
+  const outputs: ReturnType<typeof holdings>[] = [];
+  for (const reverse of [false, true]) {
+    const b = batch('weave', values, false, reverse);
+    b.L.lots['input:1'].quality!.history_complete = 0;
+    b.runId = applySailIntent(b.L, b.intent, 0, T, b.facts).runId;
+    const before = mass(b.L);
+    assert.equal(b.L.runs[b.runId].lotIds.length, 3);
+    const duration = 20_000 * R.weaveMsPerCm2;
+    work(b, 0, 17_000, 'one');
+    b.L = restoreSailWork(json(b.L), T + 20_000);
+    control(b, 'resume', 20_000);
+    work(b, 20_000, duration + 3_000, 'two');
+    assert.equal(current(b).status, 'completed');
+    assert.equal(mass(b.L), before);
+    const matLot = Object.values(b.L.lots).find(l => l.materialId === 'sail_mat')!;
+    const rest = Object.values(b.L.lots).filter(l => l.materialId === 'pandanus_strips');
+    assert.equal(readSailMat(matLot).dryMg, 900_000);
+    assert.equal(readSailMat(matLot).waterMg, 179_999);
+    assert.equal(rest.length, 1);
+    assert.deepEqual(readPlantMass(rest[0]), {
+      lotId: rest[0].lotId, material: 'pandanus_strips', dryMg: 40_002, waterMg: 8_000,
+    });
+    assert.equal(matLot.quality!.history_complete, 0);
+    assert.equal(rest[0].quality!.history_complete, 0);
+    assert.ok(['input', 'input:1', 'input:2'].every(id => !b.L.lots[id]));
+    const beforeReplay = json(b.L);
+    recordSailSpan(b.L, b.runId, span(b, 20_000, duration + 3_000, 'two'),
+      revision(b), T + duration + 3_000);
+    assert.deepEqual(b.L, beforeReplay);
+    outputs.push(holdings(b.L));
+  }
+  assert.deepEqual(outputs[0], outputs[1]);
+});
+
+test('multiple leaf bundles dry as one mixed bundle on the island clock', () => {
+  const a = batch('dry', [[500_003, 1_000_001], [500_004, 400_000]]);
+  const before = mass(a.L);
+  const wait = Math.ceil(R.roofDryMs / ISLAND_RATE) + 1;
+  work(a, 0, Math.floor(wait / 2), 'one');
+  a.L = restoreSailWork(json(a.L), T + Math.floor(wait / 2));
+  work(a, Math.floor(wait / 2), wait, 'two');
+  assert.equal(current(a).status, 'completed');
+  const leaves = Object.values(a.L.lots).filter(l => l.materialId === 'pandanus_leaves');
+  assert.equal(leaves.length, 1);
+  assert.equal(readPlantMass(leaves[0]).dryMg, 1_000_007);
+  assert.equal(readPlantMass(leaves[0]).waterMg, 200_001);
+  assert.equal(mass(a.L), before);
+});
+
+test('batch start and each reserved source are checked atomically', () => {
+  const values: [number, number][] = [[500_000, 80_000], [500_000, 80_000]];
+  for (const edit of [
+    (a: F) => { (a.intent as any).lotIds = ['input', 'input']; },
+    (a: F) => { a.L.lots['input:1'].location = 'site:elsewhere'; },
+    (a: F) => { a.L.lots['input:1'].materialId = 'pandanus_leaves'; },
+    (a: F) => {
+      a.L.lots['input:1'].quality!.water_mg = 120_001;
+      a.L.lots['input:1'].amount.value = 620_001;
+    },
+  ]) {
+    const a = batch('weave', values, false);
+    edit(a);
+    unchanged(a, () => applySailIntent(a.L, a.intent, 0, T, a.facts));
+  }
+  const a = batch('weave', values);
+  a.L.lots['input:1'].quality!.dry_mg--;
+  a.L.lots['input:1'].quality!.water_mg++;
+  unchanged(a, () => work(a, 0, 30_000));
+});
+
+test('batch abandonment releases all untouched IDs or settles partial work once', () => {
+  const values: [number, number][] = [[500_000, 80_000], [500_000, 80_000]];
+  const untouched = batch('weave', values);
+  const initial = json(Object.values(untouched.L.lots).map(({reservedBy: _, ...l}) => l));
+  work(untouched, 0, 17_000);
+  control(untouched, 'stop', 17_000);
+  control(untouched, 'abandon', 17_000);
+  assert.deepEqual(Object.values(untouched.L.lots), initial);
+  const before = json(untouched.L);
+  const replayIntent = {kind: 'abandon', runId: untouched.runId, actorId: 'actor',
+    intentId: 'abandon:17000:actor', atWorldMs: T + 17_000} as const;
+  applySailIntent(untouched.L, replayIntent, revision(untouched), T + 17_000);
+  assert.deepEqual(untouched.L, before);
+  const partial = batch('weave', values);
+  const originalMass = mass(partial.L);
+  work(partial, 0, 60_000);
+  control(partial, 'stop', 60_000);
+  control(partial, 'abandon', 60_000);
+  assert.equal(mass(partial.L), originalMass);
+  assert.equal(Object.values(partial.L.lots).filter(l => l.materialId === 'sail_mat').length, 1);
+  assert.equal(Object.values(partial.L.lots).filter(l => l.materialId === 'pandanus_strips').length, 1);
+  assert.ok(!partial.L.lots.input && !partial.L.lots['input:1']);
+});
+
+function oldOneSourceSave(): SailWorkLedger {
+  const a = fixture('weave', false);
+  a.runId = applyLegacySailIntent(a.L, a.intent, 0, T, a.facts).runId;
+  recordLegacySailSpan(a.L, a.runId, span(a, 0, 17_000),
+    legacySailWorkRevision(a.L), T + 17_000);
+  return json(a.L);
+}
+
+test('legacy one-source saves migrate only after their original checksum verifies', () => {
+  const a = fixture();
+  work(a, 0, 17_000);
+  const old = oldOneSourceSave();
+  const currentSave = restoreSailWork(json(a.L), T + 30_000);
+  a.L = restoreSailWork(old, T + 30_000);
+  assert.deepEqual(a.L, currentSave);
+  assert.equal(a.L.runs[a.runId].state!.schema, SAIL_WORK.schema);
+  control(a, 'resume', 30_000);
+  work(a, 30_000, 43_000, 'restored');
+  assert.equal(current(a).certifiedMs, 30_000);
+  assert.equal(current(a).pendingMs, 0);
+  const corrupt = json(old);
+  (corrupt.runs[a.runId].state!.data as any).totalWorkMs += 30_000;
+  assert.throws(() => restoreSailWork(corrupt, T + 30_000));
+  const relabeled = json(old);
+  relabeled.runs[a.runId].processVersion = SAIL_WORK.version;
+  relabeled.runs[a.runId].state!.schema = SAIL_WORK.schema;
+  assert.throws(() => restoreSailWork(relabeled, T + 30_000));
+});
+
+test('host existing dry and weave intents explicitly gather same-place bundles', () => {
+  const L: SailWorkLedger = emptyLedger('world:batch-host', 'epoch:batch-host');
+  const state = emptySailHostState(), dev: any[] = [];
+  const sites = {
+    trees: [{id: 'tree:near', x: 2, z: 0, reachM: 1},
+      {id: 'tree:far', x: 4, z: 0, reachM: 1}],
+    dry: {id: 'site:dry', x: 0, z: 0, reachM: 1},
+    work: {id: 'site:work', x: 0, z: 0, reachM: 1},
+  };
+  const host = makeSailHost({lab: L, state: () => state, placeSites: () => sites,
+    roofed: () => true, wanted: () => true, dev});
+  host.sites();
+  const put = (lotId: string, material: PlantMass['material'],
+    dryMg: number, waterMg: number, location: string) => {
+    const p = writePlantMass({lotId, material, dryMg, waterMg}, location, 1);
+    addLot(L, {lotId, materialId: p.materialId, amount: p.amount,
+      location, quality: p.quality});
+  };
+  for (let n = 0; n < 3; n++) {
+    put('strips:' + n, 'pandanus_strips', 420_000, 80_000, sites.work.id);
+  }
+  put('aaa:remote-strips', 'pandanus_strips', 100_000, 10_000, 'site:remote');
+  assert.deepEqual(host.beginWork('worker', 'weave', 'work', {x: 0, z: 0}, T), {ok: true});
+  const weave = Object.values(L.runs).find(r => r.processId === SAIL_WORK.processId)!;
+  assert.equal(weave.lotIds.length, 3);
+  assert.equal(L.lots['aaa:remote-strips'].reservedBy, undefined);
+  assert.equal(host.working('worker', {x: 0, z: 0}, T + 20_000 * R.weaveMsPerCm2).done, true);
+  assert.equal(Object.values(L.lots).filter(l => l.materialId === 'sail_mat').length, 1);
+  for (let n = 0; n < 9; n++) {
+    put('leaves:' + n, 'pandanus_leaves', 50_001, 100_000, sites.dry.id);
+  }
+  put('aaa:remote-leaves', 'pandanus_leaves', 100_000, 200_000, 'site:remote');
+  const dryAt = T + 20_000 * R.weaveMsPerCm2 + 1;
+  assert.equal(host.putToDry('worker', dryAt), 'アダンの葉を軒下に広げた');
+  const dry = Object.values(L.runs).find(r => r.processId === SAIL_WORK.processId)!;
+  assert.equal(dry.lotIds.length, 9);
+  assert.equal(L.lots['aaa:remote-leaves'].reservedBy, undefined);
+  host.tick(dryAt + Math.ceil(R.roofDryMs / ISLAND_RATE) + 1);
+  assert.equal(L.runs[dry.runId], undefined);
+  assert.equal(state.dried.length, 1);
+  assert.equal(dev.length, 0);
+});
+
+
+test('host batch transport rolls every bundle back on refusal and the same action can retry', () => {
+  const L: SailWorkLedger = emptyLedger('world:batch-rollback', 'epoch:batch-rollback');
+  const state = emptySailHostState(), dev: any[] = [];
+  const sites = {
+    trees: [{id: 'tree:a', x: 2, z: 0, reachM: 1},
+      {id: 'tree:b', x: 4, z: 0, reachM: 1}],
+    dry: {id: 'site:dry', x: 0, z: 0, reachM: 1},
+    work: {id: 'site:work', x: 0, z: 0, reachM: 1},
+  };
+  const host = makeSailHost({lab: L, state: () => state, placeSites: () => sites,
+    roofed: () => true, wanted: () => true, dev});
+  host.sites();
+  const put = (lotId: string, dryMg: number, waterMg: number) => {
+    const p = writePlantMass({lotId, material: 'pandanus_strips', dryMg, waterMg},
+      'site:stash', 1);
+    return addLot(L, {lotId, materialId: p.materialId, amount: p.amount,
+      location: p.into!, quality: p.quality});
+  };
+  put('strips:a', 500_000, 150_000);
+  put('strips:b', 500_000, 150_000);
+  const originals = json([L.lots['strips:a'], L.lots['strips:b']]);
+  const first = host.beginWork('worker', 'weave', 'work', {x: 0, z: 0}, T);
+  assert.equal(first.ok, false);
+  if (!first.ok) assert.match(first.felt!, /湿って/);
+  assert.deepEqual([L.lots['strips:a'], L.lots['strips:b']], originals);
+  assert.equal(Object.keys(L.runs).length, 0);
+  assert.equal(dev.at(-1).code, 'dry-strips-required');
+  put('strips:c', 500_000, 0);
+  const before = mass(L);
+  assert.deepEqual(host.beginWork('worker', 'weave', 'work', {x: 0, z: 0}, T + 1),
+    {ok: true});
+  const r = Object.values(L.runs).find(r => r.processId === SAIL_WORK.processId)!;
+  assert.equal(r.lotIds.length, 3);
+  assert.equal(host.working('worker', {x: 0, z: 0},
+    T + 1 + 20_000 * R.weaveMsPerCm2).done, true);
+  assert.equal(mass(L), before);
+  const made = Object.values(L.lots).find(l => l.materialId === 'sail_mat')!;
+  assert.equal(readSailMat(made).dryMg, 900_000);
+  assert.equal(readSailMat(made).waterMg, 180_000);
+});
+
 console.log('PASS sail work: ' + groups + ' groups; no resident or UI connection.');

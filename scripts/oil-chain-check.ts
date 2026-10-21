@@ -13,6 +13,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather } from '../src/world/island-time';
 import { addLot, emptyLedger, startRun, advance, toReal, type Ledger } from '../src/world/process-runner';
+import { recentScienceRuns } from '../src/world/science-records';
 import { CATALOG } from '../src/world/process-catalog';
 
 let now = Date.parse('2026-10-06T08:00:00Z');   // (17:00 on the island: Lantern is up)
@@ -61,9 +62,9 @@ for (let k = 0; k < 2; k++) addLot(lab, { materialId: 'coconut', amount: { value
 { // 2..5
   const stages: string[] = [], seen = (m: string, ok: () => boolean) => { if (!stages.includes(m) && ok()) stages.push(m); };
   const done = step(300 * 3600, () => {
-    seen('drying', () => Object.values(lab.runs).some((r: any) => r.processId === 'p15x_firewood_dry'));
+    seen('drying', () => [...Object.values(lab.runs), ...recentScienceRuns(lab)].some((r: any) => r.processId === 'p15x_firewood_dry'));
     seen('seasoned', () => lots('firewood').some((l) => l.quality.water_ppm <= 250_000));
-    seen('firing', () => Object.values(lab.runs).some((r: any) => r.processId === 'p13y_pot_pit_fire'));
+    seen('firing', () => [...Object.values(lab.runs), ...recentScienceRuns(lab)].some((r: any) => r.processId === 'p13y_pot_pit_fire'));
     seen('fired_pot', () => has('fired_pot') || !!lab.equipment['eq:cook_pot']);
     seen('sherds', () => has('pot_sherds'));
     seen('cook_pot', () => !!lab.equipment['eq:cook_pot']);
@@ -71,7 +72,7 @@ for (let k = 0; k < 2; k++) addLot(lab, { materialId: 'coconut', amount: { value
     seen('oil', () => has('coconut_oil'));
     return has('coconut_oil') || has('pot_sherds') || lots('fired_pot').some((l) => (l.quality.crack ?? 0) >= 1);
   });
-  const runs = Object.values(lab.runs).map((r: any) => `${r.processId} ${r.status}${r.why ? ' (' + r.why + ')' : ''}`);
+  const runs = [...Object.values(lab.runs), ...recentScienceRuns(lab)].map((r: any) => `${r.processId} ${r.status}${r.why ? ' (' + r.why + ')' : ''}`);
   const wood = lots('firewood').map((l) => `${(l.amount.value / 1e6).toFixed(1)}kg ${(l.quality.water_ppm / 1e4).toFixed(0)}%`).join(', ');
   console.log('stages', stages.join(' → '), '| runs', runs.join(', '), '| wood', wood);
   want('2 the pile dried under its roof: seasoned wood', stages.includes('seasoned'), diary(/薪を積んで乾かす：できた/).slice(0, 120));
@@ -79,11 +80,11 @@ for (let k = 0; k < 2; k++) addLot(lab, { materialId: 'coconut', amount: { value
   const fp = lots('fired_pot')[0], cracked = !lab.equipment['eq:cook_pot'] && !!fp && (fp.quality.crack ?? 0) >= 1;
   console.log('  fired pot:', JSON.stringify(fp?.quality ?? lab.equipment['eq:cook_pot']?.assembled?.from?.quality ?? {}));
   if (stages.includes('sherds')) console.log('  (the pot broke in the fire: a real outcome — the rest needs another pot)');
-  else if (cracked) { console.log('  (a hairline crack from the fire: a real outcome — a cracked pot leaks and is not made a cook pot; the rest needs another pot)'); want('4 a cracked pot is not made a cook pot', !lab.equipment['eq:cook_pot'] && !Object.values(lab.runs).some((r: any) => r.processId === 'p31x_coconut_oil_boil')); }
+  else if (cracked) { console.log('  (a hairline crack from the fire: a real outcome — a cracked pot leaks and is not made a cook pot; the rest needs another pot)'); want('4 a cracked pot is not made a cook pot', !lab.equipment['eq:cook_pot'] && ![...Object.values(lab.runs), ...recentScienceRuns(lab)].some((r: any) => r.processId === 'p31x_coconut_oil_boil')); }
   else {
     want('4 the fired pot made the island\'s cook pot', stages.includes('cook_pot'), `${diary(/焼いた器を鍋にした/)} ${JSON.stringify(lab.equipment['eq:cook_pot']?.params ?? {})}`);
     const oil = lots('coconut_oil')[0];   // (a boil stopped — taken off when its tender was called away — keeps the oil it had made)
-    want('5 a coconut pressed, its milk boiled in that pot: coconut oil', done && !!oil && Object.values(lab.runs).some((r: any) => r.processId === 'p31x_coconut_oil_boil' && ['completed', 'stopped'].includes(r.status) && r.equipmentIds.includes('eq:cook_pot')), oil ? `${(oil.amount.value / 1000).toFixed(1)} g — ${Object.values(lab.runs).filter((r: any) => r.processId === 'p31x_coconut_oil_boil').map((r: any) => r.status).join(',')} — ${lantern.diary.filter((e: any) => /煮て油をとる：|野焼きする：/.test(e.text)).map((e: any) => e.text).join(' / ').slice(0, 400)}` : 'none');
+    want('5 a coconut pressed, its milk boiled in that pot: coconut oil', done && !!oil && [...Object.values(lab.runs), ...recentScienceRuns(lab)].some((r: any) => r.processId === 'p31x_coconut_oil_boil' && ['completed', 'stopped'].includes(r.status) && r.equipmentIds.includes('eq:cook_pot')), oil ? `${(oil.amount.value / 1000).toFixed(1)} g — ${[...Object.values(lab.runs), ...recentScienceRuns(lab)].filter((r: any) => r.processId === 'p31x_coconut_oil_boil').map((r: any) => r.status).join(',')} — ${lantern.diary.filter((e: any) => /煮て油をとる：|野焼きする：/.test(e.text)).map((e: any) => e.text).join(' / ').slice(0, 400)}` : 'none');
   }
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');

@@ -113,12 +113,18 @@ export function makeHuskHost(ctx: {
   const poolFull = () => soakRuns().some((r) => (r.state?.data as any)?.spec?.site?.locationId === sites().pool.id);
   const workTakenBy = (actorId: string) => jobs().some((j) => live(L().runs[j.runId]?.status ?? '') && engagedNow(j) && j.actorId !== actorId);
   const pausedJobs = () => jobs().filter((j) => live(L().runs[j.runId]?.status ?? '') && !engagedNow(j));
-  const shelfHusk = () => Object.values(L().lots).filter((l: any) => l.materialId === 'coconut_husk' && l.location === 'shelf' && !l.reservedBy).sort((a, b) => a.lotId.localeCompare(b.lotId))[0];
+  const shelfHusk = () => Object.values(L().lots)
+    .filter(l => !l.reservedBy && (
+      l.materialId === 'coconut_husk' && l.location === 'shelf'
+      || l.materialId === WET && ['shelf', sites().pool.id, sites().work.id].includes(l.location)
+    ))
+    .sort((a, b) => Number(a.materialId === WET) - Number(b.materialId === WET)
+      || a.lotId.localeCompare(b.lotId))[0];
   const wetHusks = () => Object.values(L().lots).filter((l: any) => l.materialId === WET && !l.reservedBy && [sites().pool.id, sites().work.id].includes(l.location)).sort((a, b) => a.lotId.localeCompare(b.lotId));
 
   function options(actorId: string, nowWorldMs: number): Option[] {
     const o: Option[] = [];
-    if (shelfHusk() && !poolFull()) o.push({ id: 'soak:pool', action: 'soak', label: '棚のヤシの殻を潮だまりに浸ける', targetId: 'pool' });
+    if (shelfHusk() && !poolFull()) o.push({ id: 'soak:pool', action: 'soak', label: 'ヤシの殻を潮だまりに浸ける', targetId: 'pool' });
     if (soakRuns().length) o.push({ id: 'takeout:pool', action: 'takeout', label: '潮だまりの殻を引き上げる', targetId: 'pool' });
     if ((wetHusks().length || pausedJobs().length) && !workTakenBy(actorId)) o.push({ id: 'beat:husk', action: 'beat', label: '濡れた殻を打ってほぐす', targetId: 'husk-site' });
     if (pausedJobs().length && !workTakenBy(actorId)) o.push({ id: 'clear:husk', action: 'clear', label: '打ちかけの殻を片付ける', targetId: 'husk-site' });
@@ -215,7 +221,7 @@ export function makeHuskHost(ctx: {
     const e = st().engaged[actorId]; if (!e) return { done: false };
     if (nowWorldMs - e.from >= WORK_EVERY_MS) confirm(actorId, at, nowWorldMs);
     const run = L().runs[e.runId];
-    if (run && !live(run.status)) {
+    if (!run || !live(run.status)) {
       delete st().engaged[actorId];
       const words = (() => { try { return readHuskResidentObservations(L(), e.runId, actorId).map((o) => o.text); } catch (err) { log(nowWorldMs, actorId, 'observe', err); return []; } })();
       return { done: true, words };
@@ -255,7 +261,7 @@ export function makeHuskHost(ctx: {
 
   function restore(nowWorldMs: number) {
     st().engaged = {};   // (no hands are at a husk across a load: its time off is not work)
-    try { restoreHuskSoak(L()); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
+    try { Object.assign(ctx.lab, restoreHuskSoak(L())); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
     carryUp(nowWorldMs);   // (husks taken out before, and left at the pool: carried up)
     if (!L().manualHuskArrangement) return;
     try { Object.assign(ctx.lab, restoreHuskArrangement(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-husk', e); }

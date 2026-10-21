@@ -3,7 +3,7 @@
 import type { LotView, ScienceStepRequest, ScienceStepResult } from '../src/world/science-contract';
 import { scienceStep } from '../src/science/step';
 import { validateResult } from '../src/science/step/validate';
-import { lampOilQuality, OIL_LAMP_PROCESS, readLampOil, WICK_RECIPES, wickQuality } from '../src/science/step/oil-lamp';
+import { lampOilQuality, LAMP_OUT_EVENT_LIMIT, OIL_LAMP_PROCESS, readLampOil, WICK_RECIPES, wickQuality } from '../src/science/step/oil-lamp';
 
 let pass = 0, fail = 0;
 const ok = (c: unknown, name: string, detail = '') => {
@@ -228,6 +228,34 @@ console.log('7. requests that are refused');
 
 console.log('8. wicks main makes');
 ok(WICK_RECIPES.length === 3 && WICK_RECIPES.every((w) => w.mg > 0 && w.handSeconds > 0 && w.diameterMm >= 2), 'three wicks from what the island has', WICK_RECIPES.map((w) => `${w.materialId} ${w.mg / 1000} g`).join(' / '));
+
+
+console.log('9. lamp diagnostic history is bounded and old saves retain the same flame');
+{
+  const lots = [OIL(), WICK()];
+  const equipment = [DISH({ shelter: 0 })];
+  let state: ScienceStepRequest['state'] = null;
+  let at = 0;
+  for (let i = 0; i < 160; i++) {
+    const lit = step(req(at, at + 1_000, state, lots, acts([[at, 'light']]),
+      { t: 27, wind: 0, rain: 0 }, { equipment }));
+    state = JSON.parse(JSON.stringify(lit.state));
+    const blown = step(req(at + 1_000, at + 2_000, state, lots,
+      acts([[at + 1_000, 'look']]), { t: 27, wind: 40, rain: 0 }, { equipment }));
+    state = JSON.parse(JSON.stringify(blown.state));
+    at += 2_000;
+  }
+  const data = state!.data as { outEvents: string[] };
+  ok(data.outEvents.length === LAMP_OUT_EVENT_LIMIT && data.outEvents.every(x => x === 'wind'),
+    'repeated real blowouts retain only the recent diagnostic reasons');
+  const legacy = JSON.parse(JSON.stringify(state)) as NonNullable<ScienceStepRequest['state']>;
+  (legacy.data as { outEvents: string[] }).outEvents = Array.from({ length: 1_000 }, () => 'wind');
+  const run = (saved: ScienceStepRequest['state']) => step(req(at, at + 1_000, saved, lots,
+    acts([[at, 'look']]), { t: 27, wind: 40, rain: 0 }, { equipment }));
+  const compact = run(state), restored = run(legacy);
+  ok(JSON.stringify(compact) === JSON.stringify(restored),
+    'an old unbounded history is read without changing material, heat, flame or current words');
+}
 
 console.log('—   every result above passed the contract checker');
 ok(violations.length === 0, 'validateResult: no violation', violations.slice(0, 3).join(' / '));

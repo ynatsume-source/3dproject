@@ -12,6 +12,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather } from '../src/world/island-time';
 import { addLot } from '../src/world/process-runner';
+import { recentScienceRuns } from '../src/world/science-records';
 
 let now = Date.parse('2026-10-06T06:00:00Z');   // (15:00 on the island)
 Date.now = () => now;
@@ -30,7 +31,7 @@ const hour = () => ((now / 3.6e6 + 9) % 24 + 24) % 24;
 const step = (secs: number, until?: () => boolean) => { for (let i = 0; i < secs; i++) { now += 1000; R.update(1, now, new THREE.Vector3(0, 50, 0)); if (i % 60 === 0) R.setWeather(islandWeather(now)); for (const r of R.list) if (!r.sp.living) { r.battery = 1; r.hunger = 0.2; } if (until?.()) return true; } return false; };
 const lots = (m: string) => Object.values(lab.lots).filter((l: any) => l.materialId === m) as any[];
 const going = (r: any) => ['starting', 'running', 'needs-input'].includes(r?.status);
-const lampRuns = () => Object.values(lab.runs).filter((r: any) => r.processId === 'p40x_oil_lamp') as any[];
+const lampRuns = () => [...recentScienceRuns(lab), ...Object.values(lab.runs)].filter((r: any) => r.processId === 'p40x_oil_lamp') as any[];
 // (the island as the oil chain leaves it: its cook pot, its oil — with a little water in it — and the husks and reeds about;
 // and a small dish fired with the pot)
 lab.equipment['eq:cook_pot'] = { equipmentId: 'eq:cook_pot', kind: 'cook_pot', catalogEntry: 'cook_pot', catalogVersion: 'x', condition: 1, params: { capacityMl: 3000 } };

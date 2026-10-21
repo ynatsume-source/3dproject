@@ -17,7 +17,7 @@ import type { LotView } from '../world/science-contract';
 import { toClock, moveLot } from '../world/process-runner';
 import type { Option } from './agent/types';
 import { draw } from '../science/rng';
-import { COIR_CORD_ASSUMPTION_ID } from '../science/prototypes/coir-cord-types';
+import { COIR_CORD_ASSUMPTION_ID, COIR_CORD_RULES } from '../science/prototypes/coir-cord-types';
 import { applyCordIntent, recordCordSpan, restoreCordWork, cordWorkRevision, readCordWorksite, readCordWorkerObservations, cordFailureObservations,
   CORD_WORK, type CordWorkLedger, type CordStartFacts, type CordManualSpan } from '../world/coir-cord-work';
 import { applyCordLoad, type CordLoadLedger, type CordHostEvent } from '../world/coir-cord-load';
@@ -115,6 +115,10 @@ export function makeCordHost(ctx: {
   const inUse = () => new Set([st().hang?.cordLotId, st().raft?.cordLotId, ...(ctx.inUse?.() ?? [])].filter(Boolean) as string[]);
   const isCord = (l?: LotView) => !!l && (l.materialId === STRAND || l.materialId === ROPE);
   const bundle = () => lots().filter((l) => l.materialId === BUNDLE && !l.reservedBy).sort(byId)[0];
+  // (a bundle with too little fibre for a use's length can never be twisted to it: not offered — science soak 2026-10-20,
+  // insufficient-fiber 14 to 31 times a day. The oldest bundle that has enough; its drying and its pith are the hands' to find)
+  const twistable = (use: keyof typeof CORD_USES) => lots().filter((l) => l.materialId === BUNDLE && !l.reservedBy).sort(byId).find((l) => {
+    try { const q = l.quality ?? {}; return (Number(q.fiber_dry_mg) + Number(q.attached_pith_dry_mg)) >= CORD_USES[use].mm * COIR_CORD_RULES.dryMgPerStrandMm; } catch { return false; } });
   const cords = (m: string) => lots().filter((l) => l.materialId === m && !l.reservedBy && !inUse().has(l.lotId)).sort(byId);
   const lengthOf = (l: LotView) => Number(l.quality?.length_mm ?? 0);   // (the world's own measure of a piece: never told)
   // (three strands of one length lying in one place: the oldest three)
@@ -133,7 +137,7 @@ export function makeCordHost(ctx: {
     if (!w) {   // (the worksite holds one piece of work at a time)
       if (bundle()) {
         o.push({ id: 'cord:sieve', action: 'cord-work', label: 'ヤシの繊維を振るって髄を落とす', targetId: 'cord-work' });
-        for (const [use, u] of Object.entries(CORD_USES)) o.push({ id: `cord:twist:${use}`, action: 'cord-work', label: `ヤシの繊維を撚って糸にする（${u.ja}）`, targetId: 'cord-work' });
+        for (const [use, u] of Object.entries(CORD_USES)) if (twistable(use as keyof typeof CORD_USES)) o.push({ id: `cord:twist:${use}`, action: 'cord-work', label: `ヤシの繊維を撚って糸にする（${u.ja}）`, targetId: 'cord-work' });
       }
       if (plyable()) o.push({ id: 'cord:ply', action: 'cord-work', label: '撚り糸を三本合わせて縄にする', targetId: 'cord-work' });
     } else if (!takenByOther && !engagedNow(wd)) {
@@ -199,7 +203,7 @@ export function makeCordHost(ctx: {
         runId = intent({ intentId: `${mine ? 'resume' : 'takeover'}:${actorId}:${nowWorldMs}`, kind: mine ? 'resume' : 'takeover', runId: w.runId, presence: 'here', ...base }, nowWorldMs).runId;
       } else {
         if (op === 'resume') return { ok: false, felt: null };
-        const src = op === 'ply' ? plyable() : [bundle()].filter(Boolean) as LotView[]; if (!src?.length) return { ok: false, felt: null };
+        const src = op === 'ply' ? plyable() : [op === 'twist' ? twistable(use ?? 'pot') : bundle()].filter(Boolean) as LotView[]; if (!src?.length) return { ok: false, felt: null };
         for (const l of src) if (!carry(l.lotId, s.id, nowWorldMs, actorId)) return { ok: false, felt: null };   // (it brings them to the worksite)
         const extra = op === 'twist' ? { requestedLengthMm: CORD_USES[use ?? 'pot'].mm } : {};
         try { runId = intent({ intentId: `start:${actorId}:${nowWorldMs}`, kind: 'start', operation: op, lotIds: src.map((l) => l.lotId), siteId: s.id, presence: 'here', ...base }, nowWorldMs, facts(s, extra)).runId; }
@@ -228,7 +232,7 @@ export function makeCordHost(ctx: {
     const e = st().engaged[actorId]; if (!e) return { done: false };
     if (nowWorldMs - e.from >= WORK_EVERY_MS) confirm(actorId, at, nowWorldMs);
     const run = L().runs[e.runId];
-    if (run && !live(run.status)) {
+    if (!run || !live(run.status)) {
       delete st().engaged[actorId];
       const words = (() => { try { return readCordWorkerObservations(L(), e.runId, actorId).map((o) => o.text); } catch (err) { log(nowWorldMs, actorId, 'observe', err); return []; } })();
       return { done: true, words };

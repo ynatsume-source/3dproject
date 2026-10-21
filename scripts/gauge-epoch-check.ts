@@ -16,6 +16,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather, islandWait } from '../src/world/island-time';
 import { addLot } from '../src/world/process-runner';
+import { recentScienceRuns, readScienceRunSummary } from '../src/world/science-records';
 
 let now = Date.parse('2026-10-06T00:00:00Z');
 Date.now = () => now;
@@ -43,7 +44,7 @@ lab.equipment['eq:lamp_dish'] = { equipmentId: 'eq:lamp_dish', kind: 'lamp_dish'
 addLot(lab, { materialId: 'firewood', amount: { value: 30_000_000, unit: 'mg' }, location: 'shelf', quality: { water_ppm: 250_000, history_complete: 1 } });
 jar(2000, 1_400_000); jar(300, 420_000);
 step(3600, () => !!lab.equipment['eq:tar_retort']);
-step(2 * 86400, () => Object.values(lab.runs).some((r: any) => r.processId === 'p14x_charcoal_tar_retort' && !LIVE.includes(r.status)));
+step(2 * 86400, () => recentScienceRuns(lab).some(r => r.processId === 'p14x_charcoal_tar_retort' && r.status === 'completed'));
 jar(500, 600_000);
 addLot(lab, { materialId: 'bamboo', amount: { value: 3_000_000, unit: 'mg' }, location: 'shelf', quality: { history_complete: 1 } });
 addLot(lab, { materialId: 'process_water', amount: { value: 1_000_000, unit: 'mg' }, location: 'shelf', quality: { history_complete: 1 } });
@@ -62,7 +63,7 @@ store.set(KEY, JSON.stringify(s));
 const savedLog = JSON.stringify(s.village.gaugeLog), savedHypo = JSON.stringify(s.village.hypo ?? null), water0 = waterSum(s.lab);
 R = make(); lab = R.lab; step = stepper(R);
 { // 1
-  const a = lab.runs[old2.runId], b = lab.runs[old3.runId], w = lab.lots[oldWater];
+  const a = readScienceRunSummary(lab, old2.runId)!, b = readScienceRunSummary(lab, old3.runId)!, w = lab.lots[oldWater];
   want('1 the old-version runs ended, not re-labelled; reservations freed', a.status === 'stopped' && b.status === 'stopped' && /工程の版が変わった/.test(b.why) && a.processVersion === '0.1.2' && reserved(lab, old2.runId) + reserved(lab, old3.runId) === 0, `${a.status} ${a.why} / ${b.status} ${b.why}`);
   want('1 the pot\'s water the same lot, kept (250 g, free); the island\'s water the same', w?.amount.value === 250_000 && !w.reservedBy && waterSum(lab) === water0, `${oldWater} ${w?.amount.value} ${w?.reservedBy ?? 'free'}; ${waterSum(lab)} / ${water0}`);
   want('3 nothing dropped on load: the readings and the guesses as saved', JSON.stringify(R.village.gaugeLog) === savedLog && JSON.stringify(R.village.hypo ?? null) === savedHypo && R.village.hypo2?.hits === 1 && R.village.hypo2?.leads?.[0] === 3, `${R.village.gaugeLog.length} entries`);
@@ -93,7 +94,7 @@ const placedAt = placed(new2?.runId)?.at ?? foundAt,   // (the record's time; wi
   const w0 = waterSum(s2.lab), wl = waterOf(lab, run);
   R = make(); lab = R.lab; step = stepper(R);
   step(6 * 3600, () => !LIVE.includes(lab.runs[run.runId]?.status));
-  const r = lab.runs[run.runId];
+  const r = readScienceRunSummary(lab, run.runId)!;
   step(2 * 86400, () => !!live(lab, M3));
   const again = live(lab, M3), p = placed(again?.runId);
   want('5 a broken saved state refused, reservations freed, the water kept, set again with its record', r.status === 'failed' && /corrupt/.test(r.why) && reserved(lab, run.runId) === 0 && (lab.lots[wl]?.amount.value === 250_000 || (!lab.lots[wl] && !!R.village.catcher)) && !!p && p.placed.from === run.runId && /corrupt/.test(p.placed.why) && JSON.stringify(p.placed.lotsOut) === JSON.stringify([wl]) && waterSum(lab) === w0, `${r.status} ${r.why?.slice(0, 40)}; ${JSON.stringify(p?.placed)}; water ${waterSum(lab)} / ${w0}`);
@@ -104,7 +105,7 @@ const placedAt = placed(new2?.runId)?.at ?? foundAt,   // (the record's time; wi
   R = make(); lab = R.lab; step = stepper(R);
   step(6 * 3600, () => !LIVE.includes(lab.runs[run.runId]?.status));
   step(2 * 86400, () => !!live(lab, M2));
-  const again = live(lab, M2), p = placed(again?.runId), old = lab.runs[run.runId];
+  const again = live(lab, M2), p = placed(again?.runId), old = readScienceRunSummary(lab, run.runId)!;
   want('6 broken test gauge refused and reinstalled with reason and released equipment', old.status === 'failed' && /corrupt/.test(old.why) && reserved(lab, old.runId) === 0 && again?.runId !== old.runId && p?.placed.from === old.runId && /corrupt/.test(p.placed.why));
   step(6 * 3600, () => R.village.hypo?.runId === again?.runId);
   want('6 new absolute hypothesis belongs to the replacement test gauge', R.village.hypo?.runId === again?.runId && R.village.hypo?.processId === M2);

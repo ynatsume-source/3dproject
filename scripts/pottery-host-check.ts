@@ -8,6 +8,7 @@
 //  3 the island's pit fire entry (p13y 0.2.1): two dry pots in one fire with the seasoned wood — both fired, one run
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/pottery-host-check.ts
 import { emptyLedger, addLot, startRun, advance, toReal, type Ledger } from '../src/world/process-runner';
+import { readScienceRunSummary } from '../src/world/science-records';
 import { CATALOG } from '../src/world/process-catalog';
 import { loadIslandWeather, islandWeather } from '../src/world/island-time';
 import type { EnvironmentSample } from '../src/world/science-contract';
@@ -30,11 +31,11 @@ let pot: any = null, dryPot: any = null;
   const { run, why } = startRun(L, { processId: shapeE.processId, processVersion: shapeE.processVersion, catalogVersion: shapeE.catalogVersion, contract: shapeE.contract, clock: shapeE.clock, lotIds: ['lot:clay'], equipmentIds: [], operator: 'res:lantern' }, T0);
   want('1 started with no equipment', !!run, why ?? '');
   const start = run!.lastTo, out: any[] = [];
-  for (let k = 1; k <= 12 && !['completed', 'failed', 'cancelled'].includes(L.runs[run!.runId].status); k++)
+  for (let k = 1; k <= 12 && !!L.runs[run!.runId] && !['completed', 'failed', 'cancelled'].includes(L.runs[run!.runId].status); k++)
     out.push(...advance(L, run!.runId, shapeE.step, { realNow: T0 + k * 15 * 60_000, environment: env('world'), energy: shapeE.energy, actions: [{ at: start, action: shapeE.start!.action, params: shapeE.start!.params }] }));
   const made = out.flatMap((c) => c.produced ?? []);
   pot = made.find((l: any) => l.materialId === 'green_pot');
-  want('1 a cook pot coiled by hand (the plan in the first request only)', out.every((c) => c.ok) && L.runs[run!.runId].status === 'completed' && !!pot && pot.quality?.form === 1 && pot.quality?.capacity_ml === 3000, out.filter((c) => !c.ok).map((c) => c.why ?? c.error)[0] ?? pot?.quality);
+  want('1 a cook pot coiled by hand (the plan in the first request only)', out.every((c) => c.ok) && readScienceRunSummary(L, run!.runId)?.status === 'completed' && !!pot && pot.quality?.form === 1 && pot.quality?.capacity_ml === 3000, out.filter((c) => !c.ok).map((c) => c.why ?? c.error)[0] ?? pot?.quality);
   want('1 what clay is left comes back as prepared_clay', made.some((l: any) => l.materialId === 'prepared_clay') && !L.lots['lot:clay'], made.map((l: any) => `${l.materialId} ${l.amount.value}`));
 }
 { // 2
@@ -61,7 +62,7 @@ let pot: any = null, dryPot: any = null;
   const T3 = T0 + 60 * 3600e3, run = startRun(L, { processId: fireE.processId, processVersion: fireE.processVersion, catalogVersion: fireE.catalogVersion, contract: fireE.contract, clock: fireE.clock, lotIds: [dryPot.lotId, second.lotId, wood.lotId], equipmentIds: ['eq:fire'], operator: 'res:lantern' }, T3).run!;
   const out = advance(L, run.runId, fireE.step, { realNow: T3 + 30 * 3600e3, environment: env('island'), actions: [{ at: run.lastTo, action: fireE.start!.action, params: fireE.start!.params }] });
   const fired = out.flatMap((c) => c.produced ?? []).filter((l: any) => l.materialId === 'fired_pot');
-  want('3 two pots fired in one fire', out.every((c) => c.ok) && L.runs[run.runId].status === 'completed' && fired.length === 2, `${L.runs[run.runId].status} ${L.runs[run.runId].why ?? ''} ${out.filter((c) => !c.ok).map((c) => c.why)[0] ?? ''} fired ${fired.length}`);
+  want('3 two pots fired in one fire', out.every((c) => c.ok) && readScienceRunSummary(L, run.runId)?.status === 'completed' && fired.length === 2, `${readScienceRunSummary(L, run.runId)?.status} ${readScienceRunSummary(L, run.runId)?.why ?? ''} ${out.filter((c) => !c.ok).map((c) => c.why)[0] ?? ''} fired ${fired.length}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

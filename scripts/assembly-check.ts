@@ -20,6 +20,7 @@
 //    bulb — its tube and bulbTauS from the table, and the stick main carves (markMm); one without a tube has no markMm
 // Usage: npx tsx scripts/assembly-check.ts
 import { emptyLedger, addLot, assemble, disassemble, refreshAssembled, assembleParts, disassembleParts, refreshAssembledParts, loseEquipment, startRun, type AssemblyTable, type PartsAssemblyTable, type Ledger } from '../src/world/process-runner';
+import { readScienceRunSummary } from '../src/world/science-records';
 import type { LotView } from '../src/world/science-contract';
 import { POT_ASSEMBLY } from '../src/world/process-catalog';
 
@@ -171,7 +172,7 @@ want('5 saved and loaded', JSON.stringify(L2) === JSON.stringify(L) && L2.equipm
   const before7f = Object.keys(L7f.lots).sort().join();
   loseEquipment(L7f, e2.equipmentId, null, null);
   const lots7f = Object.keys(L7f.lots).sort().join();
-  want('7 washed away whole while in use: the run stopped, its firewood free again, the retort and both pots gone', !L7f.equipment[e2.equipmentId] && L7f.runs[run7.runId].status === 'stopped' && !L7f.lots['lot:wood'].reservedBy && lots7f === before7f, `${L7f.runs[run7.runId].status}; lots ${before7f === lots7f ? 'unchanged (nothing came back)' : lots7f}`);
+  want('7 washed away whole while in use: the run stopped, its firewood free again, the retort and both pots gone', !L7f.equipment[e2.equipmentId] && readScienceRunSummary(L7f, run7.runId)?.status === 'stopped' && !L7f.lots['lot:wood'].reservedBy && lots7f === before7f, `${readScienceRunSummary(L7f, run7.runId)?.status}; lots ${before7f === lots7f ? 'unchanged (nothing came back)' : lots7f}`);
 }
 
 { // 8 a pot with a gauge tube through its plug

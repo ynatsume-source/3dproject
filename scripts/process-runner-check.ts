@@ -11,6 +11,7 @@
 //    was, the spilled water released to the ground and in the ledger — none of it lost from the accounts
 // Usage: npx tsx scripts/process-runner-check.ts
 import { emptyLedger, addLot, startRun, advance, commit, nextRequest, toClock, toReal, assemble, type Ledger } from '../src/world/process-runner';
+import { readScienceRunSummary } from '../src/world/science-records';
 import { POT_ASSEMBLY } from '../src/world/process-catalog';
 import { barometerPotStep, BAROMETER_POT_PROCESS } from '../src/science/step/barometer-pot';
 import { simpleFixtureStep } from '../src/science/step/simple';
@@ -42,7 +43,7 @@ let tileId = '';
   want('1 part way: running, nothing settled', a.length > 0 && a.every((c) => c.ok && c.status === 'running') && !!L.lots['lot:clay-1'], a.map((c) => c.status));
   const b = advance(L, run!.runId, simpleFixtureStep, { realNow: T0 + 3 * 60_000, environment: sim, energy: hands });
   const tile = b.flatMap((c) => c.produced ?? [])[0];
-  want('1 done: one green tile, the clay gone, nothing reserved', L.runs[run!.runId].status === 'completed' && tile?.materialId === 'test_tile_green' && tile.amount.value === 45_000 && !L.lots['lot:clay-1'] && !L.equipment['eq:bench-1'].reservedBy, tile);
+  want('1 done: one green tile, the clay gone, nothing reserved', !L.runs[run!.runId] && readScienceRunSummary(L, run!.runId)?.status === 'completed' && tile?.materialId === 'test_tile_green' && tile.amount.value === 45_000 && !L.lots['lot:clay-1'] && !L.equipment['eq:bench-1'].reservedBy, tile);
   // a resend of the last request: refused, nothing changes
   const last = Object.keys(L.lots).length, req = { ...nextRequest(L, run!.runId, { realNow: T0 + 4 * 60_000, environment: sim, energy: hands }) };
   want('1 the run has ended: nothing more to ask', Object.keys(req).length === 0);
@@ -67,7 +68,7 @@ const dryOnce = (interrupt: boolean) => {
     const c = advance(led, run!.runId, dryingStep, { realNow: start + h * 3600_000, environment: env, actions: [{ at: off, action: 'take_off' }] });
     steps.push(...c.map((x) => (x.ok ? x.status! : `refused ${x.why}`)));
   }
-  return { L: led, run: led.runs[run!.runId], steps, start, off };
+  return { L: led, run: readScienceRunSummary(led, run!.runId)!, steps, start, off };
 };
 {
   const { L, run, steps, start, off } = dryOnce(false);
@@ -89,7 +90,7 @@ const dryOnce = (interrupt: boolean) => {
   want('4 a result that breaks the contract is refused, nothing changes', !r[0].ok && JSON.stringify(L.lots) === before && L.runs[run!.runId].status === 'starting', r[0].why);
   const M = world(); M.lots['lot:clay-1'].materialId = 'sand';
   const { run: s } = startRun(M, shapeSpec, T0), f = advance(M, s!.runId, simpleFixtureStep, { realNow: T0 + 3 * 60_000, environment: sim, energy: hands });
-  want('4 not clay: the process refuses, the run ends, the sand is still there and free', f[0]?.status === 'failed' && M.lots['lot:clay-1']?.amount.value === 45_000 && !M.lots['lot:clay-1'].reservedBy, M.runs[s!.runId].why);
+  want('4 not clay: the process refuses, the run ends, the sand is still there and free', f[0]?.status === 'failed' && M.lots['lot:clay-1']?.amount.value === 45_000 && !M.lots['lot:clay-1'].reservedBy, readScienceRunSummary(M, s!.runId)?.why);
 }
 { // 5
   const L = emptyLedger('dotworld', 'e1');
@@ -107,7 +108,7 @@ const dryOnce = (interrupt: boolean) => {
   const c = advance(L, run!.runId, barometerPotStep, { realNow: T0 + 3 * 3_600_000 + 60_000, environment: env, actions: [{ action: 'take_out', at }] });
   const back = Object.values(L.lots).filter((l) => l.materialId === 'process_water'), spilled = (L.released ?? []).filter((x) => x.materialId === 'process_water' && x.to === 'ground').reduce((n, x) => n + x.mg, 0);
   const kept = back.reduce((n, l) => n + l.amount.value, 0);
-  want('5 the gauge set and read, the fall spilled water, taken out', !why && [...a, ...b, ...c].every((x) => x.ok) && L.runs[run!.runId].status === 'completed', `${why ?? ''} ${L.runs[run!.runId].status} ${L.runs[run!.runId].why ?? ''} ${[...a, ...b, ...c].filter((x) => !x.ok).map((x) => x.why).join('; ')}`);
+  want('5 the gauge set and read, the fall spilled water, taken out', !why && [...a, ...b, ...c].every((x) => x.ok) && !L.runs[run!.runId] && readScienceRunSummary(L, run!.runId)?.status === 'completed', `${why ?? ''} ${readScienceRunSummary(L, run!.runId)?.status} ${readScienceRunSummary(L, run!.runId)?.why ?? ''} ${[...a, ...b, ...c].filter((x) => !x.ok).map((x) => x.why).join('; ')}`);
   want('5 the rest of the water back where it was, the spill released to the ground and booked: 20 g in all', spilled > 0 && back.every((l) => l.location === 'jar:rain') && kept + spilled === 20_000, `back ${kept} mg @${back.map((l) => l.location).join(',')}, spilled ${spilled} mg`);
   const L2: Ledger = JSON.parse(JSON.stringify(L));
   want('5 the booking kept in the save', (L2.released ?? []).length === (L.released ?? []).length && (L2.released ?? []).length > 0);
