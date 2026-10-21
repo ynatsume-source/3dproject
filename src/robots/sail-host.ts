@@ -175,7 +175,9 @@ export function makeSailHost(ctx: {
     };
     s.trees.forEach((t, i) => { if (!paused(t.id, `アダンの葉の刈り取り（${TREE_JA[i]}）`, TREES[i]) && free(STANDING, t.id).length) o.push({ id: `sail:harvest:${TREES[i]}`, action: 'sail-work', label: `アダンの葉を刈り取る（${TREE_JA[i]}）`, targetId: `sail-${TREES[i]}` }); });
     if (ctx.roofed() && wetLeaves().length && !dryRun()) o.push({ id: 'sail:dry', action: 'sail-dry', label: '刈ったアダンの葉を裏の軒下に干す', targetId: 'sail-dry' });
-    if (dryRun()) o.push({ id: 'sail:takein', action: 'sail-takein', label: '裏の軒下に干したアダンの葉を取り込む', targetId: 'sail-dry' });
+    // (the leaves drying are not taken in half way: a drying once over is the world's own (settled, dried); only with the
+    // roof gone are they taken in — science soak 2026-10-21, 26 dryings and 26 takings-in in 36 hours, none finished)
+    if (dryRun() && !ctx.roofed()) o.push({ id: 'sail:takein', action: 'sail-takein', label: '裏の軒下に干したアダンの葉を取り込む', targetId: 'sail-dry' });
     if (!paused(s.work.id, '帆の仕事', 'work')) {   // (the bench holds one piece of work at a time)
       if (sourceFor('split', 'work')) o.push({ id: 'sail:split:work', action: 'sail-work', label: 'アダンの葉を細く裂く', targetId: 'sail-work' });
       if (sourceFor('weave', 'work')) o.push({ id: 'sail:weave:work', action: 'sail-work', label: '裂いた葉で帆のむしろを編む', targetId: 'sail-work' });
