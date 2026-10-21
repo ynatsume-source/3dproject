@@ -1,4 +1,4 @@
-// Main's insufficient-weave offer guard, extended to explicit same-place bundles.
+// Main's insufficient-weave offer guard, extended to explicit same-place bundles; and no splitting of leaves still wet.
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/sail-weave-offer-check.ts
 import assert from 'node:assert/strict';
 import {emptyLedger, addLot} from '../src/world/process-runner';
@@ -61,5 +61,17 @@ test('different places do not make a sufficient group', () => {
   assert.equal(a.weave(), false);
   a.strips('lot:whole-elsewhere', need, 'site:elsewhere');
   assert.equal(a.weave(), true);
+});
+test('leaves still wet are not offered for splitting; dry ones are (science soak 2026-10-21, dry-leaves-required)', () => {
+  const a = fixture();
+  const leaves = (lotId: string, dry: number, water: number) => addLot(a.L, {lotId, materialId: 'pandanus_leaves',
+    amount: {value: dry + water, unit: 'mg'}, location: 'site:sail-work', quality: {dry_mg: dry, water_mg: water, history_complete: 1, sail_codec: 1}});
+  const split = () => a.host.options('dot', 1_000_000).some(o => o.id === 'sail:split:work');
+  leaves('lot:leaves:wet', 1_000_000, 2_000_000);
+  assert.equal(split(), false);
+  leaves('lot:leaves:damp', 1_000_000, 200_001);
+  assert.equal(split(), false);
+  leaves('lot:leaves:dry', 1_000_000, 200_000);
+  assert.equal(split(), true);
 });
 console.log('PASS sail weave offer: ' + groups + ' groups');

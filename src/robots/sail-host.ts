@@ -116,8 +116,11 @@ export function makeSailHost(ctx: {
     }
   };
   // (what a piece of work at the bench would take: the oldest of its kind; a mast from the bamboo on the shelf)
+  // (leaves still wet cannot be split — science soak 2026-10-21, dry-leaves-required 17 to 24 times in 12 hours, and no
+  // mat in 36 hours: not offered until they are dry, at the science side's own line, water at most a fifth of the dry)
+  const dryEnough = (l: LotView) => { try { const m = readPlantMass(l); return m.waterMg * 5 <= m.dryMg; } catch { return false; } };
   const sourceFor = (op: Hand, place: string): LotView | undefined =>
-    op === 'harvest' ? free(STANDING, site(place)?.id)[0] : op === 'split' ? free(LEAVES).filter((l) => l.location !== sites().dry.id || st().dried.includes(l.lotId))[0]
+    op === 'harvest' ? free(STANDING, site(place)?.id)[0] : op === 'split' ? free(LEAVES).filter((l) => (l.location !== sites().dry.id || st().dried.includes(l.lotId)) && dryEnough(l))[0]
       : op === 'weave' ? weaveSources()[0] : free('bamboo', 'shelf').find(longEnough);
 
   // A single intent may gather several bundles from the same place. The list is

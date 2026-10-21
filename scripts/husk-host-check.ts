@@ -4,7 +4,7 @@
 //    seeded by the island, the one deciding and the moment (the same moment, the same order) — not the work's order
 //  2 the husks put in the tide pool from the shelf, when Dot is there: a soaking run; the pool's time confirmed as it passes
 //  3 taken out too early and tried: "殻が硬く、ほぐれない" as felt, only because it was there and tried; the science
-//    side's code in the developer's log only
+//    side's code in the developer's log only; a husk so tried let be a while (an hour of the world) before it is offered again
 //  4 soaked five island days, taken out, beaten: the husk comes apart into a fibre bundle at the worksite
 //  5 stopped half way (another task), saved and loaded an hour later: no work counted for the time away; resumed, it is finished
 //  7 a place full is not offered (the pool with husks in it, the worksite with another's hands at a husk); what lies in
@@ -85,6 +85,14 @@ const husk = () => addLot(R.lab, { materialId: 'coconut_husk', amount: { value: 
   const dev0 = R.huskDev.length;
   await choose('beat:husk', () => said(/殻が硬く、ほぐれない/), 600);
   want('3 tried at the worksite, too little soaked: what it felt, from the science side\'s own words', said(/殻が硬く、ほぐれない/) && R.huskDev.length > dev0, `${R.huskDev.slice(dev0).map((d: any) => d.code).join(',')}`);
+  // (a husk tried and found too little soaked is let be a while before it is offered again: the other one tried too, then
+  // nothing to beat; an hour of the world later, both again — science soak 2026-10-21, up to 26 tries in 12 hours)
+  const tries0 = R.huskDev.length;
+  await choose('beat:husk', () => R.huskDev.length > tries0, 600);
+  const tried = Object.keys(R.village.huskHost.tried ?? {}), offered = () => R.huskHost.options('dot', now).some((o: any) => o.id === 'beat:husk');
+  want('3 both tried: not offered for beating a while', tried.length === 2 && !offered(), `${tried.length} tried`);
+  step(3600);
+  want('3 an hour of the world later: offered again', offered());
 }
 for (const d of R.huskDev) allCodes.add(d.code);
 // (afresh, for the full course: a new island with its husks)
