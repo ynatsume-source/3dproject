@@ -1,0 +1,221 @@
+{
+ "wallSec": 305,
+ "savedKBAtClose": 0,
+ "catchUpMs": 0,
+ "brainCalls": 353,
+ "picks": {
+  "cord": 232,
+  "harvest": 4,
+  "sail:split": 1,
+  "sail:clear": 1,
+  "sail:dry": 1,
+  "look": 13,
+  "reef": 11,
+  "shelve": 15,
+  "house": 9,
+  "sail:resume": 1,
+  "sail:weave": 1,
+  "plant": 7,
+  "wander": 16,
+  "craft": 13,
+  "say": 7,
+  "survey": 12,
+  "photo": 3
+ },
+ "errors": [],
+ "huskDev": {},
+ "cordDev": {},
+ "sailDev": {}
+}
+{"at":"12-07T09:00","saveKB":815,"lots":102,"runs":2,"cordLoadsKB":95,"committed":500,"meanMs":0,"maxMs":0,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-07T10:00","saveKB":812,"lots":103,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":1.35,"maxMs":89.2,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2}}
+{"at":"12-07T11:00","saveKB":814,"lots":105,"runs":4,"cordLoadsKB":84,"committed":500,"meanMs":1.6,"maxMs":34.7,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2,"prototype_coir_work:running":1}}
+{"at":"12-07T12:00","saveKB":830,"lots":105,"runs":4,"cordLoadsKB":84,"committed":500,"meanMs":3.72,"maxMs":45.5,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2,"prototype_coir_work:running":1}}
+{"at":"12-07T13:00","saveKB":844,"lots":105,"runs":4,"cordLoadsKB":84,"committed":500,"meanMs":4.55,"maxMs":56.3,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2,"prototype_coir_work:running":1}}
+{"at":"12-07T14:00","saveKB":853,"lots":103,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":4.7,"maxMs":58.2,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1,"prototype_sail_work:running":1}}
+{"at":"12-07T15:00","saveKB":878,"lots":103,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":5.55,"maxMs":73.3,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1,"prototype_sail_work:running":1}}
+{"at":"12-07T16:00","saveKB":893,"lots":103,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":6.51,"maxMs":90.8,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1,"prototype_sail_work:running":1}}
+{"at":"12-07T17:00","saveKB":813,"lots":104,"runs":1,"cordLoadsKB":84,"committed":500,"meanMs":4.67,"maxMs":97.4,"errors":0,"husk":"16束","strand":1,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1}}
+{"at":"12-07T18:00","saveKB":833,"lots":107,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":2.74,"maxMs":37.6,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-07T19:00","saveKB":843,"lots":107,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":3.53,"maxMs":44.6,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-07T20:00","saveKB":858,"lots":107,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":1.15,"maxMs":42.2,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-07T21:00","saveKB":868,"lots":107,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":5.5,"maxMs":83.3,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-07T22:00","saveKB":883,"lots":107,"runs":3,"cordLoadsKB":84,"committed":500,"meanMs":6.01,"maxMs":66.6,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-07T23:00","saveKB":812,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":6.02,"maxMs":69,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T00:00","saveKB":812,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":1.43,"maxMs":15.8,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T01:00","saveKB":811,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":1.48,"maxMs":28.6,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T02:00","saveKB":811,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":1.33,"maxMs":41.5,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T03:00","saveKB":811,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":0.36,"maxMs":32.9,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T04:00","saveKB":810,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":0.28,"maxMs":20.2,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T05:00","saveKB":810,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":0.3,"maxMs":22.6,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T06:00","saveKB":811,"lots":107,"runs":2,"cordLoadsKB":84,"committed":500,"meanMs":0.36,"maxMs":19.6,"errors":0,"husk":"16束","strand":4,"rope":32,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T07:00","saveKB":827,"lots":109,"runs":3,"cordLoadsKB":87,"committed":500,"meanMs":1.91,"maxMs":79.3,"errors":0,"husk":"16束","strand":4,"rope":34,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:starting":1}}
+{"at":"12-08T08:00","saveKB":862,"lots":110,"runs":4,"cordLoadsKB":101,"committed":500,"meanMs":2.94,"maxMs":53.5,"errors":0,"husk":"16束","strand":0,"rope":39,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":2}}
+{"at":"12-08T09:00","saveKB":871,"lots":115,"runs":3,"cordLoadsKB":110,"committed":500,"meanMs":2.45,"maxMs":80.3,"errors":0,"husk":"16束","strand":3,"rope":41,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-08T10:00","saveKB":901,"lots":116,"runs":4,"cordLoadsKB":135,"committed":500,"meanMs":1.5,"maxMs":49.1,"errors":0,"husk":"16束","strand":1,"rope":43,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":2}}
+{"at":"12-08T11:00","saveKB":896,"lots":120,"runs":3,"cordLoadsKB":129,"committed":500,"meanMs":1.91,"maxMs":75.4,"errors":0,"husk":"16束","strand":3,"rope":45,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-08T12:00","saveKB":897,"lots":123,"runs":2,"cordLoadsKB":136,"committed":500,"meanMs":1.48,"maxMs":78.7,"errors":0,"husk":"16束","strand":4,"rope":47,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T13:00","saveKB":896,"lots":128,"runs":2,"cordLoadsKB":137,"committed":500,"meanMs":2.28,"maxMs":100.6,"errors":0,"husk":"16束","strand":8,"rope":48,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T14:00","saveKB":898,"lots":124,"runs":2,"cordLoadsKB":137,"committed":500,"meanMs":1.4,"maxMs":130.9,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-08T15:00","saveKB":889,"lots":124,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.82,"maxMs":99.6,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-08T16:00","saveKB":885,"lots":124,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.8,"maxMs":79.1,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:starting":1}}
+{"at":"12-08T17:00","saveKB":884,"lots":124,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.69,"maxMs":106.1,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:starting":1}}
+{"at":"12-08T18:00","saveKB":883,"lots":125,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.69,"maxMs":96.3,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-08T19:00","saveKB":884,"lots":125,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.98,"maxMs":97.3,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-08T20:00","saveKB":898,"lots":125,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.83,"maxMs":56.2,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-08T21:00","saveKB":914,"lots":125,"runs":3,"cordLoadsKB":137,"committed":500,"meanMs":0.85,"maxMs":49.9,"errors":0,"husk":"16束","strand":1,"rope":51,"mat":0,"mast":1,"voyages":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+dot: ヤシの繊維を振るって髄を落とす / ヤシの繊維を振るって髄を落とす：できた / 軒下に干した繊維を取り込む / 軒下に干した繊維を取り込む
+kame: 
+lantern: 
+rakko: 
+--- lots at the end
+lot:19 bamboo_mast site:sail-work 2916666 {"dry_mg":2083333,"water_mg":833333,"length_mm":2500,"base_strength_gf":37321,"broken":0,"history_complete":1,"sail_codec":1}
+lot:20 bamboo site:sail-work 4083334 {"dry_mg":2916667,"water_mg":1166667,"length_mm":3500,"history_complete":1,"sail_codec":1}
+lot:529 partially_separated_coconut_husk site:husk-work 674003 {"dry_mg":598080,"water_mg":75923,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:530 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:533 partially_separated_coconut_husk site:husk-work 602870 {"dry_mg":598080,"water_mg":4790,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:534 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:556 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:559 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:774 partially_separated_coconut_husk site:husk-work 1451520 {"dry_mg":598080,"water_mg":853440,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:775 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:802 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:821 partially_separated_coconut_husk site:husk-work 634586 {"dry_mg":598080,"water_mg":36506,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:822 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:941 coir_pith site:cord-work 21261 {"pith_dry_mg":19328,"water_mg":1933,"history_complete":1,"codec_version":1}
+lot:1010 partially_separated_coconut_husk site:husk-work 1451520 {"dry_mg":598080,"water_mg":853440,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1011 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1100 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:1220 coir_pith site:cord-work 2 {"pith_dry_mg":1,"water_mg":1,"history_complete":1,"codec_version":1}
+lot:1224 partially_separated_coconut_husk site:husk-work 716261 {"dry_mg":598080,"water_mg":118181,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1225 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1250 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:1256 partially_separated_coconut_husk site:husk-work 801878 {"dry_mg":598080,"water_mg":203798,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1257 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1345 pandanus_leaf_scrap site:sail-work 20000 {"dry_mg":16666,"water_mg":3334,"history_complete":1,"sail_codec":1}
+lot:1347 pandanus_strips site:sail-work 1062000 {"dry_mg":885001,"water_mg":176999,"history_complete":1,"sail_codec":1}
+lot:1348 pandanus_leaf_scrap site:sail-work 118000 {"dry_mg":98333,"water_mg":19667,"history_complete":1,"sail_codec":1}
+lot:1351 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:1436 partially_separated_coconut_husk site:husk-work 1451520 {"dry_mg":598080,"water_mg":853440,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1437 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1570 partially_separated_coconut_husk site:husk-work 653378 {"dry_mg":598080,"water_mg":55298,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1571 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1577 coir_pith site:cord-work 3 {"pith_dry_mg":2,"water_mg":1,"history_complete":1,"codec_version":1}
+lot:1604 coir_pith site:cord-work 44951 {"pith_dry_mg":20160,"water_mg":24791,"history_complete":1,"codec_version":1}
+lot:1625 partially_separated_coconut_husk site:husk-work 1451520 {"dry_mg":598080,"water_mg":853440,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1626 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1741 partially_separated_coconut_husk site:husk-work 627620 {"dry_mg":598080,"water_mg":29540,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1742 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1748 coir_pith site:cord-work 45213 {"pith_dry_mg":20160,"water_mg":25053,"history_complete":1,"codec_version":1}
+lot:1792 coir_pith site:cord-work 46347 {"pith_dry_mg":20160,"water_mg":26187,"history_complete":1,"codec_version":1}
+lot:1840 partially_separated_coconut_husk site:husk-work 599570 {"dry_mg":598080,"water_mg":1490,"husk_count":1,"unseparated":0,"history_complete":1}
+lot:1841 husk_drainage_water site:husk-work 504000 {"water_mg":504000,"unclassified_drainage":1,"history_complete":1}
+lot:1887 coir_pith site:cord-work 47040 {"pith_dry_mg":20160,"water_mg":26880,"history_complete":1,"codec_version":1}
+lot:1974 pandanus_leaf_scrap site:sail-work 20000 {"dry_mg":16666,"water_mg":3334,"history_complete":1,"sail_codec":1}
+lot:1984 pandanus_leaf_scrap site:sail-work 20000 {"dry_mg":16666,"water_mg":3334,"history_complete":1,"sail_codec":1}
+lot:1991 pandanus_leaf_scrap site:sail-work 20000 {"dry_mg":16666,"water_mg":3334,"history_complete":1,"sail_codec":1}
+lot:1996 pandanus_leaves site:sail-dry 2400000 {"dry_mg":2000000,"water_mg":400000,"history_complete":1,"sail_codec":1}
+lot:1998 pandanus_strips site:sail-work 3186000 {"dry_mg":2655002,"water_mg":530998,"history_complete":1,"sail_codec":1}
+lot:1999 pandanus_leaf_scrap site:sail-work 354000 {"dry_mg":295000,"water_mg":59000,"history_complete":1,"sail_codec":1}
+lot:86 coir_rope site:cord-work 15951 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":951,"length_mm":900,"base_strength_gf":94747,"sun_ms":7682207142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:113 coir_rope site:cord-work 15951 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":951,"length_mm":900,"base_strength_gf":99029,"sun_ms":7632932142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:146 coir_rope site:cord-work 31899 {"fiber_dry_mg":27342,"attached_pith_dry_mg":2658,"water_mg":1899,"length_mm":1800,"base_strength_gf":95900,"sun_ms":7593825000,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:154 coir_rope site:cord-work 15951 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":951,"length_mm":900,"base_strength_gf":89596,"sun_ms":7590696428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:190 coir_rope site:cord-work 15951 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":951,"length_mm":900,"base_strength_gf":90155,"sun_ms":7553935714,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:204 coir_rope site:cord-work 31899 {"fiber_dry_mg":27342,"attached_pith_dry_mg":2658,"water_mg":1899,"length_mm":1800,"base_strength_gf":88518,"sun_ms":7539857142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:242 coir_rope site:cord-work 15951 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":951,"length_mm":900,"base_strength_gf":90700,"sun_ms":7488235714,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:271 coir_rope site:cord-work 31899 {"fiber_dry_mg":27342,"attached_pith_dry_mg":2658,"water_mg":1899,"length_mm":1800,"base_strength_gf":100097,"sun_ms":7459296428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:309 coir_rope site:cord-work 15950 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":950,"length_mm":900,"base_strength_gf":99587,"sun_ms":7313817857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:343 coir_rope site:cord-work 15950 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":950,"length_mm":900,"base_strength_gf":95729,"sun_ms":6886767857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:370 coir_rope site:cord-work 31897 {"fiber_dry_mg":27342,"attached_pith_dry_mg":2658,"water_mg":1897,"length_mm":1800,"base_strength_gf":94528,"sun_ms":6864085714,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:379 coir_rope site:cord-work 15949 {"fiber_dry_mg":13671,"attached_pith_dry_mg":1329,"water_mg":949,"length_mm":900,"base_strength_gf":96068,"sun_ms":6860957142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:391 coir_rope site:cord-work 31898 {"fiber_dry_mg":27342,"attached_pith_dry_mg":2658,"water_mg":1898,"length_mm":1800,"base_strength_gf":86751,"sun_ms":6851571428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:422 coir_rope site:cord-work 31896 {"fiber_dry_mg":27342,"attached_pith_dry_mg":2658,"water_mg":1896,"length_mm":1800,"base_strength_gf":104680,"sun_ms":6800732142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:968 coir_rope site:cord-work 33000 {"fiber_dry_mg":26516,"attached_pith_dry_mg":3484,"water_mg":3000,"length_mm":1800,"base_strength_gf":79009,"sun_ms":4516092857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1038 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":88444,"sun_ms":4443353571,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1055 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":101854,"sun_ms":4428492857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1064 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":100735,"sun_ms":4423017857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1089 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":94508,"sun_ms":4393296428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1122 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":107490,"sun_ms":4353407142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1137 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":91108,"sun_ms":4337764285,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1173 coir_rope site:cord-work 33000 {"fiber_dry_mg":27270,"attached_pith_dry_mg":2730,"water_mg":3000,"length_mm":1800,"base_strength_gf":89734,"sun_ms":4301785714,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1188 coir_rope site:cord-work 16500 {"fiber_dry_mg":13635,"attached_pith_dry_mg":1365,"water_mg":1500,"length_mm":900,"base_strength_gf":93314,"sun_ms":4272846428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1384 coir_rope site:cord-work 16500 {"fiber_dry_mg":13636,"attached_pith_dry_mg":1364,"water_mg":1500,"length_mm":900,"base_strength_gf":96025,"sun_ms":3209132142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1392 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":92001,"sun_ms":3204439285,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1409 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":90361,"sun_ms":3180975000,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1447 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":87072,"sun_ms":3127789285,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1464 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":100128,"sun_ms":3117621428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1491 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":91279,"sun_ms":3097285714,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1516 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":95387,"sun_ms":3065217857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1524 coir_rope site:cord-work 33000 {"fiber_dry_mg":27270,"attached_pith_dry_mg":2730,"water_mg":3000,"length_mm":1800,"base_strength_gf":89856,"sun_ms":3060525000,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:1552 coir_rope site:cord-work 16500 {"fiber_dry_mg":13637,"attached_pith_dry_mg":1363,"water_mg":1500,"length_mm":900,"base_strength_gf":90183,"sun_ms":3014378571,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2033 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":97820,"sun_ms":130617857,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2060 coir_rope site:cord-work 16500 {"fiber_dry_mg":13637,"attached_pith_dry_mg":1363,"water_mg":1500,"length_mm":900,"base_strength_gf":82617,"sun_ms":104807142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2081 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":101704,"sun_ms":86035714,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2093 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":92536,"sun_ms":78214285,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2113 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":90828,"sun_ms":68828571,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2124 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":92998,"sun_ms":65700000,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2141 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":92988,"sun_ms":51621428,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2180 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":88209,"sun_ms":12514285,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2188 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":88199,"sun_ms":11732142,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2283 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":95484,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2293 coir_pith site:cord-work 42642 {"pith_dry_mg":20160,"water_mg":22482,"history_complete":1,"codec_version":1}
+lot:2302 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":96711,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2332 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":95890,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2349 coir_rope site:cord-work 16500 {"fiber_dry_mg":13638,"attached_pith_dry_mg":1362,"water_mg":1500,"length_mm":900,"base_strength_gf":100638,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2370 coir_rope site:cord-work 33000 {"fiber_dry_mg":27273,"attached_pith_dry_mg":2727,"water_mg":3000,"length_mm":1800,"base_strength_gf":103754,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2384 coir_rope site:cord-work 16500 {"fiber_dry_mg":13635,"attached_pith_dry_mg":1365,"water_mg":1500,"length_mm":900,"base_strength_gf":97792,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2431 coir_rope site:cord-work 16500 {"fiber_dry_mg":13636,"attached_pith_dry_mg":1364,"water_mg":1500,"length_mm":900,"base_strength_gf":94171,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2446 coir_strand site:cord-work 11000 {"fiber_dry_mg":9090,"attached_pith_dry_mg":910,"water_mg":1000,"length_mm":2000,"base_strength_gf":43731,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2463 coir_rope site:cord-work 33000 {"fiber_dry_mg":27270,"attached_pith_dry_mg":2730,"water_mg":3000,"length_mm":1800,"base_strength_gf":87967,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2476 coir_rope site:cord-work 33000 {"fiber_dry_mg":27270,"attached_pith_dry_mg":2730,"water_mg":3000,"length_mm":1800,"base_strength_gf":89160,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2502 coir_rope site:cord-work 16500 {"fiber_dry_mg":13635,"attached_pith_dry_mg":1365,"water_mg":1500,"length_mm":900,"base_strength_gf":90708,"sun_ms":0,"shade_ms":0,"abrasions":0,"inherited_faded":0,"inherited_abraded":0,"history_complete":1,"cord_codec":1}
+lot:2588 coir_pith site:cord-work 3 {"pith_dry_mg":2,"water_mg":1,"history_complete":1,"codec_version":1}
+lot:2605 coir_fiber_bundle site:cord-dry 402762 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":181002,"history_complete":1,"codec_version":1}
+lot:2609 coir_fiber_bundle site:cord-work 4252 {"fiber_dry_mg":3645,"attached_pith_dry_mg":355,"water_mg":252,"history_complete":1,"codec_version":1}
+lot:2611 coir_fiber_bundle site:cord-dry 429192 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":207432,"history_complete":1,"codec_version":1}
+lot:2613 coir_fiber_bundle site:cord-dry 457116 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":235356,"history_complete":1,"codec_version":1}
+lot:2615 coir_fiber_bundle site:cord-dry 4252 {"fiber_dry_mg":3645,"attached_pith_dry_mg":355,"water_mg":252,"history_complete":1,"codec_version":1}
+lot:2617 coir_fiber_bundle site:cord-dry 1936 {"fiber_dry_mg":1599,"attached_pith_dry_mg":161,"water_mg":176,"history_complete":1,"codec_version":1}
+lot:2619 coir_fiber_bundle site:cord-work 1933 {"fiber_dry_mg":1599,"attached_pith_dry_mg":159,"water_mg":175,"history_complete":1,"codec_version":1}
+lot:2621 coir_fiber_bundle site:cord-work 412232 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":190472,"history_complete":1,"codec_version":1}
+lot:2623 coir_fiber_bundle site:cord-work 369258 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":147498,"history_complete":1,"codec_version":1}
+lot:2625 coir_fiber_bundle site:cord-work 4252 {"fiber_dry_mg":3645,"attached_pith_dry_mg":355,"water_mg":252,"history_complete":1,"codec_version":1}
+lot:2627 coir_fiber_bundle site:cord-work 484623 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":262863,"history_complete":1,"codec_version":1}
+lot:2629 coir_fiber_bundle site:cord-work 458076 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":236316,"history_complete":1,"codec_version":1}
+lot:2631 coir_fiber_bundle site:cord-work 4252 {"fiber_dry_mg":3645,"attached_pith_dry_mg":355,"water_mg":252,"history_complete":1,"codec_version":1}
+lot:2633 coir_fiber_bundle site:cord-work 2849 {"fiber_dry_mg":2356,"attached_pith_dry_mg":235,"water_mg":258,"history_complete":1,"codec_version":1}
+lot:2635 coir_fiber_bundle site:cord-dry 434687 {"fiber_dry_mg":201600,"attached_pith_dry_mg":20160,"water_mg":212927,"history_complete":1,"codec_version":1}
+lot:2638 coir_fiber_bundle site:cord-work 1933 {"fiber_dry_mg":1599,"attached_pith_dry_mg":159,"water_mg":175,"history_complete":1,"codec_version":1}
+--- husk host state {"sites":{"pool":{"id":"site:husk-pool","x":61,"z":-145,"ground":-1,"stand":[61,-145]},"work":{"id":"site:husk-work","x":63.8214545641798,"z":-144.35432192408462,"reachM":2}},"soak":{},"engaged":{},"decisions":{"dot":6740},"looked":{"dot":"run:1833|殻が水を吸って重くなってきた。"},"tried":{"lot:husk-soak:run:1827:0":1796536320000},"board":true}
+--- save composition (KB)
+   1390 visited (len)
+  634.6 lab
+    500 lab.committed (len)
+    400 village.gaugeLog (len)
+  179.7 list
+    179 lab.released (len)
+    160 talks (len)
+  140.7 lab.huskSoakRecords
+  136.8 lab.coirCordLoads
+  120.3 lab.coirCordLoads.cords
+  114.6 lab.huskSoakRecords.finished
+   76.4 lab.cordArrangement
+     71 minds.dot.values (len)
+   64.4 lab.manualHuskRecords
+     64 lab.runs.run:13.observations (len)
+     64 lab.sailArrangement.receipts (len)
+     64 lab.sailArrangement.finished (len)
+     64 lab.cordArrangement.receipts (len)
+     64 lab.cordArrangement.finished (len)
+     64 lab.huskSoakRecords.recent (len)
+     64 lab.huskSoakRecords.finished (len)
+     64 lab.manualHuskArrangement.receipts (len)
+     64 lab.manualHuskRecords.receipts (len)
+   51.4 lab.sailArrangement
+     51 lab.cordArrangement.finished
+     48 lab.manualHuskArrangement
+   46.6 lab.runs
+   45.8 village
+   42.2 lab.manualHuskArrangement.receipts
+     40 minds.dot.seen (len)

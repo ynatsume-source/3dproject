@@ -1,0 +1,12 @@
+PASS batch and modern singles match frozen /3 over both bounded receipt windows
+PASS direct legacy /1 and /2 batches migrate exactly like frozen singles and fail atomically
+PASS different successful batch boundaries, gaps, JSON and replay give one byte-identical ledger
+PASS malformed, future, conflicting, overlapping and expired batches fail before any write
+PASS empty batches are read-only, and inputs do not become aliases of stored frames
+PASS a full proof cache is shared without reading or cloning unrelated proof bodies
+PASS a warm read still checks the selected finished summary
+PASS cold JSON loads validate unrelated proof corruption before accepting new work
+PASS full-cache batch, single, and JSON-resumed records are byte-identical
+{"fullCache":{"finished":64,"provenance":64,"historyPerProof":64,"recent":64,"serializedBytes":2139544},"spansPerBatch":720,"warmBatchMs":[26.143529000000854,29.417002999998658,38.32455999999729,21.840812000002188,23.164818000001105],"coldBatchMs":[56.640433999997185,68.90381300000081,75.7612990000016,54.88036999999895,52.86857400000008],"warmMedianMs":26.143529000000854,"coldMedianMs":56.640433999997185,"singleMedianMs":1.7514620000001742,"singleMeanMs":1.933456624999902,"singleP95Ms":2.792934000000969}
+PASS full-cache 720-span catch-up and warm singles meet the stated CPU targets
+PASS husk soak batch: 10 groups.
