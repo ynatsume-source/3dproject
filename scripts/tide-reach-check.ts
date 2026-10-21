@@ -8,6 +8,9 @@
 //  5 each sea's tide's top its own: its year's highest tide (its own tide) and the run-up — Kayama +0.91 + 0.2, the
 //    seas with bigger tides higher (science C2); the husks' standing spot shallow enough to walk at the year's highest
 //    (WADE_M 0.5: science C1)
+//  6 the residents' way on foot by the world's own sea (its clock's sea level × the island's own tide map), never the drawn
+//    one: at the world's high tide the husks' standing spot walked, ground under more than 0.5 m not; the drawn sea's
+//    height (setSeaLevel: the viewing clock) changes nothing (science B1 on #81)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/tide-reach-check.ts
 import './node-land';
 import * as THREE from 'three';
@@ -86,6 +89,21 @@ want('3 the GPU\'s sea lifted where the tide reaches, by the same map', /float t
   const stand = oc.residents.huskSites?.().pool?.stand;
   if (stand) { setSeaLevel(0.91); const depth = waterTopAt(stand[0], stand[1]) - loc.f(stand[0], stand[1]); setSeaLevel(0);
     want('5 the husks\' standing spot at the year\'s highest: under, but shallow enough to walk (WADE_M 0.5)', depth > 0 && depth <= 0.5, `${depth.toFixed(2)} m`); }
+}
+{ // 6
+  const R = oc.residents, wc = R.walkCost as (x: number, z: number) => number, stand = R.huskSites().pool.stand as [number, number];
+  // (dry shore the tide reaches, ground 0.3 to 0.4 m: walked at mean sea level, more than 0.5 m under at +0.91)
+  let deep: [number, number] | null = null;
+  for (let r0 = 0; r0 < 40 && !deep; r0 += 0.5) for (let a = 0; a < 6.28 && !deep; a += 0.1) { const x = stand[0] + Math.cos(a) * r0, z = stand[1] + Math.sin(a) * r0, g = loc.f(x, z); if (g >= 0.32 && g <= 0.39 && W.tideK(x, z) === 1 && isFinite(wc(x, z))) deep = [x, z]; }
+  const s0 = wc(...stand), d0 = deep ? wc(...deep) : NaN;
+  R.setSeaAt(() => 0.91);   // (the world's clock at the year's highest tide)
+  const s1 = wc(...stand), d1 = deep ? wc(...deep) : NaN;
+  want('6 at the world\'s high tide: the husks\' standing spot walked; ground more than 0.5 m under not', isFinite(s1) && !!deep && isFinite(d0) && d1 === Infinity, `stand ${s1}, deep (ground ${deep ? loc.f(...deep).toFixed(2) : '-'}) ${d0} → ${d1}`);
+  R.setSeaAt(() => 0);
+  const before = [wc(...stand), deep ? wc(...deep) : 0]; setSeaLevel(0.9);   // (the drawn sea high: the viewing clock's)
+  const after = [wc(...stand), deep ? wc(...deep) : 0]; setSeaLevel(0);
+  want('6 the drawn sea\'s height changes nothing of the residents\' way', JSON.stringify(before) === JSON.stringify(after), JSON.stringify(after));
+  void s0;
 }
 console.log(bad ? `FAIL ${bad}` : 'all ok');
 process.exit(bad ? 1 : 0);

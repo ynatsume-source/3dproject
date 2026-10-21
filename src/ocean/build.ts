@@ -508,6 +508,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   if (loc.residents) {
     const lanternStudy = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lantern-study');
     T.water = oc.water.at;   // (where the residents may go into the water: the sea, not a pool cut off from it)
+    T.tideK = oc.water.tideK;   // (how much of the tide reaches each place on the island: the residents' own sea, robots/residents.ts)
     oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja), { lanternStudy });
     group.add(oc.residents.group);
     // what the husk-and-cord work leaves at its worksites, as it looks (robots/coir-look.ts: no world draws). The host

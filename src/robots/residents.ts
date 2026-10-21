@@ -33,10 +33,6 @@ import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry, type HuskPool } from './husk-host';
 import { seaLevel } from '../time/sea-level';
-import { waterTopAt } from '../ocean/air';
-/** How deep the tide may be over the shore and a body still walk through it (m): the husks' standing spot (+0.47 m) is
- *  0.44 m under at the year's highest tide (science 2026-10-21). */
-const WADE_M = 0.5;
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
 import { makeSailHost, emptySailHostState, PANDANUS, type SailHostState, type SailDevEntry } from './sail-host';
 import { makeSailVoyageHost } from './sail-voyage-host';
@@ -55,6 +51,9 @@ import type { StudyWorld, StudyPlace, StudyIntent } from './lantern-study-types'
 import { makeItems, type Item, type ItemKind, coconutGeo } from './items';
 import { makeHouseLook, HOUSE_STEPS, HOUSE_N, HOUSE_BAMBOO, HOUSE_CLAY, HOUSE_JA, houseLevel, houseCover, insideHouse, underHouseRoof, stepsBefore, HW, HD, EAVE as EAVE_H, type HouseStep } from './house';
 import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
+/** How deep the tide may be over the shore and a body still walk through it (m): the husks' standing spot (+0.47 m) is
+ *  0.44 m under at the year's highest tide (science 2026-10-21). */
+const WADE_M = 0.5;
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
 // pat: 0 plain, 1 a green turtle's carapace (its scutes, from the shell's own coordinates), 2 scaled
@@ -1241,6 +1240,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) bonds[pair(list[i].id, list[j].id)] = { stage: 0, know: 0, talks: 0, last: -1e12, toldWorry: 0 };
   const talks: Entry[] = [];
   const visited = new Set<string>();
+  // the sea over the residents' shore: the world's own clock's sea level (time/sea-level.ts), where the tide reaches on the
+  // island's own map (T.tideK: ocean/water.ts) — never the drawn sea's (the viewing clock's, the sea being looked at)
+  let seaAt = (ms: number) => seaLevel(ms, loc);
+  const waterTop = (x: number, z: number) => seaAt(clockMs) * (T.tideK ? T.tideK(x, z) : 1);
   let clockMs = Date.now(), inspectCool = 180, admireCool = 60, seeCool = 90, showCool = 0;
   const shownTo: Record<string, number> = {};   // (when Rakko last showed something to each of the others)
   const _ey = new THREE.Vector3(), _fd = new THREE.Vector3(), _fp = new THREE.Vector3();   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
@@ -1287,7 +1290,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     found: for (let d = 10; d <= 240; d += 5) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, x = hx + Math.cos(a) * d, z = hz + Math.sin(a) * d; if (shore(x, z, L.h(x, z))) { pool = [x, z]; break found; } }
     const [bx, bz] = benchStand();
     return { pool: tidePool(pool[0], pool[1]), work: { id: 'site:husk-work', x: bx + 1.2, z: bz, reachM: 2 } };
-  }, repool: (was) => tidePool(was.x, was.z), seaAt: (ms) => seaLevel(ms, loc) });
+  }, repool: (was) => tidePool(was.x, was.z), seaAt: (ms) => seaAt(ms) });
   // The coir cord (robots/cord-host.ts: the science side's drying, sieving, twisting, plying and the loads on a cord):
   // the drying place and the pot's hook under the hut's eaves (a roof once the hut is up), the worksite by the bench.
   const cordDev: CordDevEntry[] = [];
@@ -2853,8 +2856,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (one that swims: the sea and a lagoon are its way too)
   const swimCost = (x: number, z: number) => G(x, z) < 0.2 ? (G(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
   const walkCost = (x: number, z: number) => {
-    if (G(x, z) < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
-    if (waterTopAt(x, z) - G(x, z) > WADE_M) return Infinity;   // (the tide in over the shore: walked through while shallow)
+    const g = G(x, z);
+    if (g < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
+    // (the tide in over the shore: walked through while shallow — the island's map read only where the sea could be that
+    // deep at all, so the way is no slower to find while the sea is low)
+    if (g < seaAt(clockMs) - WADE_M && waterTop(x, z) - g > WADE_M) return Infinity;
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
@@ -4298,6 +4304,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   (res as any).huskDev = huskDev;
+  (res as any).walkCost = walkCost; (res as any).setSeaAt = (f: (ms: number) => number) => { seaAt = f; };   // (for checks: the way on foot, and a sea to try it with)
   (res as any).huskSites = () => husk.sites(); (res as any).huskRepool = (was: { id: string; x: number; z: number }) => tidePool(was.x, was.z);   // (the pool's place, for checks)   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)
   (res as any).cordDev = cordDev; (res as any).cordHost = cord; (res as any).sailDev = sailDev; (res as any).sailHost = sail;
