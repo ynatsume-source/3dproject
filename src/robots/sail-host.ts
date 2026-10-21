@@ -15,7 +15,7 @@ import { addLot, moveLot } from '../world/process-runner';
 import type { Option } from './agent/types';
 import { draw } from '../science/rng';
 import { sailAssumptionId, SAIL_RULES } from '../science/prototypes/sail-raft-rules';
-import { readPlantMass } from '../world/sail-lots';
+import { readPlantMass, readSailMat } from '../world/sail-lots';
 import { applySailIntent, recordSailSpan, restoreSailWork, sailWorkRevision, readSailWorksite, readSailWorkerObservations, sailFailureObservations, projectSailWork,
   SAIL_WORK, type SailWorkLedger, type SailStartFacts, type SailManualSpan, type Operation } from '../world/sail-work';
 
@@ -162,6 +162,11 @@ export function makeSailHost(ctx: {
   }
 
 
+  // (one sail: a whole mat, not torn, on the beach — or up in the rig — and no more is woven, as no second mast is cut;
+  // science soak 2026-10-21, nine mats after the rigging. A part-mat (a weaving cleared away half done) or a torn one is
+  // not the sail)
+  const wholeMat = (l: LotView) => { try { const m = readSailMat(l); return !m.torn && m.areaCm2 >= SAIL_AREA_CM2; } catch { return false; } };
+  const haveMat = () => lots().some((l) => l.materialId === MAT && wholeMat(l)) || Object.values(L().equipment).some((e) => e.assembled?.parts?.some((p) => p.materialId === MAT));
   function options(actorId: string, nowWorldMs: number): Option[] {
     if (!ctx.wanted()) return [];
     const o: Option[] = [], s = sites();
@@ -180,7 +185,7 @@ export function makeSailHost(ctx: {
     if (dryRun() && !ctx.roofed()) o.push({ id: 'sail:takein', action: 'sail-takein', label: '裏の軒下に干したアダンの葉を取り込む', targetId: 'sail-dry' });
     if (!paused(s.work.id, '帆の仕事', 'work')) {   // (the bench holds one piece of work at a time)
       if (sourceFor('split', 'work')) o.push({ id: 'sail:split:work', action: 'sail-work', label: 'アダンの葉を細く裂く', targetId: 'sail-work' });
-      if (sourceFor('weave', 'work')) o.push({ id: 'sail:weave:work', action: 'sail-work', label: '裂いた葉で帆のむしろを編む', targetId: 'sail-work' });
+      if (sourceFor('weave', 'work') && !haveMat()) o.push({ id: 'sail:weave:work', action: 'sail-work', label: '裂いた葉で帆のむしろを編む', targetId: 'sail-work' });
       if (sourceFor('mast', 'work') && !lots().some((l) => l.materialId === MAST) && !Object.values(L().equipment).some((e) => e.assembled?.parts?.some((p) => p.materialId === MAST)))   // (one mast: on the beach, or up in the rig at sea)
       o.push({ id: 'sail:mast:work', action: 'sail-work', label: '竹を切ってマストにする', targetId: 'sail-work' });
     }
