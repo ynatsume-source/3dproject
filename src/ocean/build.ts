@@ -34,6 +34,7 @@ import { Wreck, wreckMaterial } from './wreck';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
 import { classifyWaterSteps } from './water';
+import { tideTop } from '../time/sea-level';
 import { due, drain } from '../core/slice';
 export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
@@ -247,7 +248,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
   yield 'seabed';
-  oc.water = yield* classifyWaterSteps(loc.f, loc.land ? loc.land.far : 0);   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
+  oc.water = yield* classifyWaterSteps(loc.f, loc.land ? loc.land.far : 0, 2, loc.land ? tideTop(loc) : undefined);   // (the tide's top: its own sea's, where it has a shore)   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
   yield 'seabed';
   // a wreck on the sand: solid to everything that swims (its outline into the obstacle map)
   const wreck = loc.wreck ? new Wreck(loc.wreck, loc.f) : null;

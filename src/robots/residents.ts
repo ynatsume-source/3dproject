@@ -33,6 +33,10 @@ import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry, type HuskPool } from './husk-host';
 import { seaLevel } from '../time/sea-level';
+import { waterTopAt } from '../ocean/air';
+/** How deep the tide may be over the shore and a body still walk through it (m): the husks' standing spot (+0.47 m) is
+ *  0.44 m under at the year's highest tide (science 2026-10-21). */
+const WADE_M = 0.5;
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
 import { makeSailHost, emptySailHostState, PANDANUS, type SailHostState, type SailDevEntry } from './sail-host';
 import { makeSailVoyageHost } from './sail-voyage-host';
@@ -2850,6 +2854,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const swimCost = (x: number, z: number) => G(x, z) < 0.2 ? (G(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
   const walkCost = (x: number, z: number) => {
     if (G(x, z) < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
+    if (waterTopAt(x, z) - G(x, z) > WADE_M) return Infinity;   // (the tide in over the shore: walked through while shallow)
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
