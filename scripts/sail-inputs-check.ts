@@ -6,6 +6,7 @@ import {
   createCompactSailManufacturingModel,
   createSailManufacturingModel,
   SAIL_MANUFACTURE_RECEIPT_LIMIT,
+  SAIL_LEAF_DRYING_ID,
   type SailManufactureInput
 } from '../src/science/prototypes/sail-raft-manufacturing';
 import {
@@ -195,4 +196,87 @@ test('abandon products preserve mass without declaring unfinished strips complet
   }
 });
 
-console.log('sail-inputs-check: ' + groups + ' groups PASS');
+
+test('explicit remaining-water drying is proportional with exact fresh-leaf and floor boundaries', () => {
+  const dryValues = [1, 2, 5, 7, 999999, 1000000, Math.floor(Number.MAX_SAFE_INTEGER / 4)];
+  for (const dryMg of dryValues) {
+    const target = Math.floor(dryMg / 5);
+    for (const waterMg of [0, target, target + 1, dryMg, 2 * dryMg, 3 * dryMg]) {
+      const input: SailManufactureInput = {operation: 'dry', roofed: true,
+        source: {lotId: 'leaves', material: 'pandanus_leaves', dryMg, waterMg}};
+      const c = context(input, 1);
+      const model = createCompactSailManufacturingModel(input, SAIL_RAFT_ISLAND_ID,
+        c, SAIL_LEAF_DRYING_ID);
+      const fifths = 5n * BigInt(waterMg) - BigInt(dryMg);
+      const denominator = 9n * BigInt(dryMg);
+      const required = fifths <= 0n ? 0 :
+        Number((fifths * 172800000n + denominator - 1n) / denominator);
+      equal(model.projectTotal(0).requiredMs, required, 'rational ceil milliseconds');
+      if (waterMg === 2 * dryMg) equal(required, 172800000, 'fresh leaves take exactly two days');
+      if (waterMg > target) check(required >= 1, 'positive surplus never vanishes in time rounding');
+      let previous = waterMg;
+      for (const work of [0, Math.floor(required / 2), required, required + 1]) {
+        const p = model.projectTotal(work);
+        check(p.product.waterMg <= previous, 'drying stays monotone');
+        check(p.product.waterMg >= Math.min(waterMg, target), 'no target overshoot');
+        check(BigInt(p.product.dryMg) + BigInt(p.product.waterMg) +
+          BigInt(p.releasedWaterMg) === BigInt(dryMg) + BigInt(waterMg), 'integer mass closes');
+        previous = p.product.waterMg;
+      }
+      equal(model.projectTotal(required).product.waterMg, Math.min(waterMg, target),
+        'same integer final water');
+    }
+  }
+  const source = {lotId: 'example', material: 'pandanus_leaves' as const,
+    dryMg: 1000000, waterMg: 201009};
+  const i = {operation: 'dry' as const, source, roofed: true as const};
+  equal(createCompactSailManufacturingModel(i, SAIL_RAFT_ISLAND_ID,
+    context(i, 2), SAIL_LEAF_DRYING_ID).projectTotal(0).requiredMs, 96864, 'reported almost-dry example');
+});
+
+test('new drying checkpoints bind the explicit policy and cannot relabel old timing', () => {
+  const i: SailManufactureInput = {operation: 'dry', roofed: true,
+    source: {lotId: 'leaves', material: 'pandanus_leaves', dryMg: 1000000, waterMg: 201009}};
+  const c = context(i, 3);
+  const old = createCompactSailManufacturingModel(i, SAIL_RAFT_ISLAND_ID, c);
+  const current = createCompactSailManufacturingModel(i, SAIL_RAFT_ISLAND_ID,
+    c, SAIL_LEAF_DRYING_ID);
+  equal(old.start().schema, 'prototype-sail-manufacture/2', 'old checkpoint schema unchanged');
+  equal(current.start().schema, 'prototype-sail-manufacture/3', 'new explicit checkpoint schema');
+  equal(old.projectTotal(1000000).status, 'partial', 'old calls retain two-day timing');
+  equal(current.projectTotal(1000000).status, 'completed', 'new calls finish remaining water');
+  rejects(() => current.restore({...old.start(), schema: 'prototype-sail-manufacture/3'}),
+    'schema-only relabel is refused');
+  rejects(() => old.restore({...current.start(), schema: 'prototype-sail-manufacture/2'}),
+    'new state cannot be downgraded');
+  rejects(() => createCompactSailManufacturingModel(i, SAIL_RAFT_ISLAND_ID,
+    c, 'default'), 'unknown drying policy refused');
+  const weave = cases.find(x => x.operation === 'weave')!;
+  rejects(() => createCompactSailManufacturingModel(weave, SAIL_RAFT_ISLAND_ID,
+    context(weave, 4), SAIL_LEAF_DRYING_ID), 'drying policy cannot change another operation');
+});
+
+test('remaining-water dry confirms, partitions, resumes and replays without changing the projection', () => {
+  for (let n = 0; n < 200; n++) {
+    const dryMg = 5 * (random(1000000) + 1);
+    const waterMg = Math.floor(dryMg / 5) + random(dryMg * 2) + 1;
+    const i: SailManufactureInput = {operation: 'dry', roofed: true,
+      source: {lotId: 'leaves', material: 'pandanus_leaves', dryMg, waterMg}};
+    const c = context(i, 1000 + n);
+    const model = createCompactSailManufacturingModel(i, SAIL_RAFT_ISLAND_ID,
+      c, SAIL_LEAF_DRYING_ID);
+    const required = model.projectTotal(0).requiredMs;
+    const total = Math.max(3, required);
+    const cuts = [0, Math.floor(total / 3), Math.floor(total * 2 / 3), total];
+    let state = model.start();
+    for (let part = 0; part < 3; part++) {
+      const r = receipt(c, part, c.openedAtMs + cuts[part], c.openedAtMs + cuts[part + 1]);
+      state = model.commit(clone(state), r);
+      equal(model.commit(clone(state), r), state, 'same confirmation replays once');
+    }
+    equal(model.project(state), model.projectTotal(total), 'partition/JSON and cumulative agree');
+    equal(model.project(state).status, 'completed', 'new proportional drying completes');
+  }
+});
+
+console.log('PASS sail inputs: ' + groups + ' groups.');

@@ -25,6 +25,15 @@ import {
   recordSailSpan as recordLegacySailSpan,
   sailWorkRevision as legacySailWorkRevision,
 } from './fixtures/sail-work-v1';
+import {
+  SAIL_LEAF_DRYING_ID,
+} from '../src/science/prototypes/sail-raft-manufacturing';
+import {
+  applySailIntent as applyV2SailIntent,
+  recordSailSpan as recordV2SailSpan,
+  restoreSailWork as restoreV2SailWork,
+  sailWorkRevision as v2SailWorkRevision,
+} from './fixtures/sail-work-v2';
 import {makeSailHost, emptySailHostState} from '../src/robots/sail-host';
 
 const ID = 'owner-assumption/sail-raft/2026-10-18/v2-island';
@@ -67,7 +76,8 @@ function fixture(operation: Operation = 'weave', start = true) {
     siteId: site.locationId, presence: 'here'};
   const facts: SailStartFacts = {assumptionId: ID, worksite: {...site},
     ...(operation === 'weave' ? {requestedAreaCm2: 20_000 as const}
-      : operation === 'dry' ? {roofed: true as const} : {})};
+      : operation === 'dry' ? {roofed: true as const,
+        dryingPolicyId: SAIL_LEAF_DRYING_ID} : {})};
   const runId = start ? applySailIntent(L, intent, 0, T, facts).runId : '';
   return {L, runId, operation, facts, intent};
 }
@@ -601,6 +611,143 @@ test('host batch transport rolls every bundle back on refusal and the same actio
   const made = Object.values(L.lots).find(l => l.materialId === 'sail_mat')!;
   assert.equal(readSailMat(made).dryMg, 900_000);
   assert.equal(readSailMat(made).waterMg, 180_000);
+});
+
+
+function almostDry(waterMg = 201_009, dryMg = 1_000_000): F {
+  const a = fixture('dry', false);
+  delete a.L.lots.input;
+  addPlant(a.L, {lotId: 'input', material: 'pandanus_leaves', dryMg, waterMg});
+  return a;
+}
+function startCurrentDry(a: F): void {
+  a.runId = applySailIntent(a.L, a.intent, revision(a), T, a.facts).runId;
+}
+test('new dry runs explicitly choose remaining-water timing and finish at the existing water target', () => {
+  const a = almostDry();
+  const before = mass(a.L);
+  const missing = almostDry();
+  delete missing.facts.dryingPolicyId;
+  unchanged(missing, () => applySailIntent(missing.L, missing.intent, 0, T, missing.facts));
+  startCurrentDry(a);
+  const r = a.L.runs[a.runId];
+  assert.equal(r.processVersion, SAIL_WORK.dryVersion);
+  assert.equal(r.state!.schema, SAIL_WORK.drySchema);
+  assert.equal((r.state!.data as any).dryingPolicyId, SAIL_LEAF_DRYING_ID);
+  assert.equal(current(a).projection.requiredMs, 96_864);
+  const first = Math.ceil(90_000 / ISLAND_RATE);
+  work(a, 0, first, 'first');
+  assert.equal(current(a).status, 'running');
+  assert.equal(current(a).certifiedMs, 90_000);
+  assert.equal(current(a).projection.product.waterMg, 200_072);
+  const complete = Math.ceil(120_000 / ISLAND_RATE);
+  const f = span(a, first, complete, 'last');
+  recordSailSpan(a.L, a.runId, f, revision(a), f.confirmedAtWorldMs);
+  assert.equal(current(a).status, 'completed');
+  const leaves = Object.values(a.L.lots).find(l => l.materialId === 'pandanus_leaves')!;
+  assert.equal(readPlantMass(leaves).waterMg, 200_000);
+  assert.equal(mass(a.L), before);
+  const stable = json(a.L);
+  recordSailSpan(a.L, a.runId, f, revision(a), f.confirmedAtWorldMs);
+  assert.deepEqual(a.L, stable);
+});
+test('partly dried leaves can be taken in and dried again without another whole two days', () => {
+  const a = almostDry();
+  const before = mass(a.L);
+  startCurrentDry(a);
+  const step = Math.ceil(30_000 / ISLAND_RATE);
+  work(a, 0, step, 'one-quantum');
+  control(a, 'stop', step);
+  control(a, 'abandon', step);
+  const leaves = Object.values(a.L.lots).find(l => l.materialId === 'pandanus_leaves')!;
+  const remaining = readPlantMass(leaves).waterMg;
+  assert.ok(remaining > 200_000 && remaining < 201_009);
+  const restart: SailIntent = {...a.intent, intentId: 'redry', atWorldMs: T + step,
+    lotIds: [leaves.lotId]};
+  a.runId = applySailIntent(a.L, restart, revision(a), T + step, a.facts).runId;
+  const required = current(a).projection.requiredMs;
+  assert.ok(required > 0 && required < 96_864);
+  a.L = restoreSailWork(json(a.L), T + step);
+  const certified = Math.ceil(required / 30_000) * 30_000;
+  const through = step + Math.ceil(certified / ISLAND_RATE);
+  recordSailSpan(a.L, a.runId, span(a, step, through, 'redry-done'),
+    revision(a), T + through);
+  assert.equal(current(a).status, 'completed');
+  assert.equal(readPlantMass(Object.values(a.L.lots)[0]).waterMg, 200_000);
+  assert.equal(mass(a.L), before);
+});
+test('genuine old host-2 nearly dry saves retain the original two-day schedule', () => {
+  const a = almostDry();
+  delete a.facts.dryingPolicyId;
+  a.runId = applyV2SailIntent(a.L, a.intent, 0, T, a.facts).runId;
+  const elapsed = Math.ceil(3_600_000 / ISLAND_RATE);
+  const f = span(a, 0, elapsed, 'old-hour');
+  recordV2SailSpan(a.L, a.runId, f, v2SailWorkRevision(a.L), f.confirmedAtWorldMs);
+  const old = restoreV2SailWork(json(a.L), T + elapsed);
+  const state = json(a.L.runs[a.runId].state);
+  a.L = restoreSailWork(json(a.L), T + elapsed);
+  assert.equal(a.L.runs[a.runId].processVersion, 'host-2');
+  assert.equal(a.L.runs[a.runId].state!.schema, 'civ-world.sail-work/2');
+  assert.equal((a.L.runs[a.runId].state!.data as any).dryingPolicyId, undefined);
+  assert.deepEqual(a.L.runs[a.runId].state, state);
+  assert.equal(current(a).status, 'running');
+  assert.equal(current(a).projection.requiredMs, R.roofDryMs);
+  assert.equal(current(a).projection.product.waterMg, 200_988);
+  const through = Math.ceil(R.roofDryMs / ISLAND_RATE) + 1;
+  const last = span(a, elapsed, through, 'old-finish');
+  recordV2SailSpan(old, a.runId, last, v2SailWorkRevision(old), last.confirmedAtWorldMs);
+  recordSailSpan(a.L, a.runId, last, revision(a), last.confirmedAtWorldMs);
+  assert.deepEqual(a.L, old);
+});
+test('new and old dry states cannot be reinterpreted by a version-only relabel', () => {
+  const a = almostDry();
+  delete a.facts.dryingPolicyId;
+  a.runId = applyV2SailIntent(a.L, a.intent, 0, T, a.facts).runId;
+  const old = json(a.L);
+  old.runs[a.runId].processVersion = SAIL_WORK.dryVersion;
+  old.runs[a.runId].state!.schema = SAIL_WORK.drySchema;
+  assert.throws(() => restoreSailWork(old, T), SailWorkError);
+  const b = almostDry();
+  startCurrentDry(b);
+  const changed = json(b.L);
+  changed.runs[b.runId].processVersion = SAIL_WORK.version;
+  changed.runs[b.runId].state!.schema = SAIL_WORK.schema;
+  assert.throws(() => restoreSailWork(changed, T), SailWorkError);
+});
+test('new drying partitions and JSON saves agree, and already dry leaves complete without added water', () => {
+  const whole = almostDry(), split = almostDry();
+  startCurrentDry(whole);
+  startCurrentDry(split);
+  const end = Math.ceil(120_000 / ISLAND_RATE);
+  work(whole, 0, end, 'whole');
+  const cut = Math.ceil(30_000 / ISLAND_RATE);
+  work(split, 0, cut, 'one');
+  split.L = restoreSailWork(json(split.L), T + cut);
+  work(split, cut, end, 'two');
+  assert.deepEqual(holdings(split.L), holdings(whole.L));
+  assert.deepEqual(split.L.released, whole.L.released);
+  assert.equal(mass(split.L), mass(whole.L));
+  for (const water of [0, 199_999, 200_000]) {
+    const a = almostDry(water);
+    const before = mass(a.L);
+    startCurrentDry(a);
+    assert.equal(current(a).status, 'completed');
+    assert.equal(readPlantMass(Object.values(a.L.lots)[0]).waterMg, water);
+    assert.equal(mass(a.L), before);
+  }
+});
+test('non-drying runs retain the old version, seed and exact results', () => {
+  for (const operation of ['harvest', 'split', 'weave', 'mast'] as const) {
+    const a = fixture(operation, false), b = fixture(operation, false);
+    a.runId = applySailIntent(a.L, a.intent, 0, T, a.facts).runId;
+    b.runId = applyV2SailIntent(b.L, b.intent, 0, T, b.facts).runId;
+    assert.deepEqual(a.L, b.L);
+    assert.equal(a.L.runs[a.runId].processVersion, 'host-2');
+    const f = span(a, 0, 30_000, 'same-work');
+    recordSailSpan(a.L, a.runId, f, revision(a), f.confirmedAtWorldMs);
+    recordV2SailSpan(b.L, b.runId, f, v2SailWorkRevision(b.L), f.confirmedAtWorldMs);
+    assert.deepEqual(a.L, b.L);
+  }
 });
 
 console.log('PASS sail work: ' + groups + ' groups; no resident or UI connection.');
