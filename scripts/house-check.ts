@@ -76,7 +76,8 @@ for (const r of [dot, lantern]) { r.battery = 1; r.wear = 0; }
   pick = () => 'look:shore';
   const inn = houseG.localToWorld(new THREE.Vector3(0.5, 0, 0.5));
   wx = { ...calm, rain: 6, rainMeasured: 6 }; lantern.wear = 0.2;
-  for (let s = 0; s < Math.round(2 * 3600 / ISLAND_RATE); s++) { lantern.pos.set(inn.x, lantern.pos.y, inn.z); lantern.task = { kind: 'wander', x: inn.x, z: inn.z, act: 'idle', dur: 1e9, t: 0, arrived: true }; await run(1); }
+  // (an island hour of rain is enough to see it dry rather than wear; two took the check past its 120 s — 2026-10-21)
+  for (let s = 0; s < Math.round(3600 / ISLAND_RATE); s++) { lantern.pos.set(inn.x, lantern.pos.y, inn.z); lantern.task = { kind: 'wander', x: inn.x, z: inn.z, act: 'idle', dur: 1e9, t: 0, arrived: true }; await run(1); }
   want('3 with the roof whole, no rain inside: it does not wear (it dries there)', lantern.wear <= 0.2, `0.200 → ${lantern.wear.toFixed(3)}`);
   const out = houseG.localToWorld(new THREE.Vector3(6, 0, 3)); dot.pos.set(out.x, dot.pos.y, out.z); dot.wear = 0.45; dot.wearLv = 1; dot.task = null; dot.holding = '';
   const went = await run(400, () => dot.task?.kind === 'shelter' && dot.task.arrived);
