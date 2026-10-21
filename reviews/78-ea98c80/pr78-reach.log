@@ -1,0 +1,5 @@
+by kind [points, reach 1, between, 0]: {"sea":[982419,982419,0,0],"lagoon":[80550,80055,495,0],"pool":[52,0,2,50],"inland":[68,0,0,68]}
+dry ground below the highest tide (+0.91 m): 6812 points; reach 1 757, between 5665, 0 390
+sea/lagoon above the lowest tide (−1.04 m, bared at low water): 64810 points; reach 1 64315
+husk pool (#73) lagoon -0.18 reach 1.000
+dry 0..+0.91 m ground (2 m grid, 1670 pts): distance to the sea/lagoon m — median 2, 90% 4, max 99 (99 = >30 m)
