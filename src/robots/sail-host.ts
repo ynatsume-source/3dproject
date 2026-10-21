@@ -10,6 +10,7 @@
 // The mat's size is the raft's one sail, fixed here and by the science side, never a number its mind picks. The options
 // are every hand action the materials and places allow, in an order seeded by the island, the resident and the moment.
 import type { Ledger } from '../world/process-runner';
+import { SAIL_LEAF_DRYING_ID } from '../science/prototypes/sail-raft-manufacturing';
 import type { LotView } from '../world/science-contract';
 import { addLot, moveLot } from '../world/process-runner';
 import type { Option } from './agent/types';
@@ -198,7 +199,19 @@ export function makeSailHost(ctx: {
     const previous = carryBatch(sources, s.id, nowWorldMs, actorId);
     if (!previous) return null;
     try {
-      const { runId } = intent({ intentId: `dry:${actorId}:${nowWorldMs}`, kind: 'start', actorId, atWorldMs: nowWorldMs, operation: 'dry', lotIds: sources.map(l => l.lotId), siteId: s.id, presence: 'here' }, nowWorldMs, facts(s, { roofed: true }));
+      const { runId } = intent({
+        intentId: `dry:${actorId}:${nowWorldMs}`,
+        kind: 'start',
+        actorId,
+        atWorldMs: nowWorldMs,
+        operation: 'dry',
+        lotIds: sources.map(l => l.lotId),
+        siteId: s.id,
+        presence: 'here',
+      }, nowWorldMs, facts(s, {
+        roofed: true,
+        dryingPolicyId: SAIL_LEAF_DRYING_ID,
+      }));
       st().dry[runId] = nowWorldMs;
       return 'アダンの葉を軒下に広げた';
     } catch (e) { putBatchBack(previous); log(nowWorldMs, actorId, 'dry', e); return null; }   // (it could not be laid out: back where it was)

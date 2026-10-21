@@ -5,7 +5,7 @@ import {commit, startRun, toClock, type Ledger} from './process-runner';
 import type {HuskExecutorSpan, HuskWorksite} from './manual-husk-work';
 import {otherScienceWorkBusy} from './science-work-occupancy';
 import {
-  createCompactSailManufacturingModel,
+  createCompactSailManufacturingModel, SAIL_LEAF_DRYING_ID,
   type SailManufactureInput,
 } from '../science/prototypes/sail-raft-manufacturing';
 import {
@@ -19,6 +19,9 @@ export const SAIL_WORK = {
   processId: 'prototype_sail_work',
   version: 'host-2',
   schema: 'civ-world.sail-work/2',
+  dryVersion: 'host-3',
+  drySchema: 'civ-world.sail-work/3',
+  dryingPolicyId: SAIL_LEAF_DRYING_ID,
   arrangement: 'civ-world.sail-arrangement/1',
   quantumMs: 30_000,
   receiptLimit: 64,
@@ -53,6 +56,7 @@ export interface SailStartFacts {
   worksite: HuskWorksite;
   requestedAreaCm2?: 20_000;
   roofed?: true;
+  dryingPolicyId?: typeof SAIL_LEAF_DRYING_ID;
 }
 interface Spec {
   commandId: string;
@@ -81,6 +85,7 @@ interface Data {
   lastWasWork: boolean;
   seenByActor: boolean;
   assignments: Assignment[];
+  dryingPolicyId?: typeof SAIL_LEAF_DRYING_ID;
   digest: number;
 }
 interface Receipt {
@@ -166,11 +171,11 @@ function inputOf(d: Pick<Data, 'spec' | 'source'>): SailManufactureInput {
     default: return {operation: d.spec.operation, source};
   }
 }
-function model(d: Pick<Data, 'spec' | 'source' | 'worldId' | 'worldEpoch' | 'runId' | 'seed'>) {
+function model(d: Pick<Data, 'spec' | 'source' | 'worldId' | 'worldEpoch' | 'runId' | 'seed' | 'dryingPolicyId'>) {
   return createCompactSailManufacturingModel(inputOf(d), d.spec.facts.assumptionId, {
     worldId: d.worldId, worldEpoch: d.worldEpoch, runId: d.runId, seed: d.seed,
     clock: clock(d.spec), openedAtMs: toClock(clock(d.spec), d.spec.openedAtWorldMs),
-  });
+  }, d.dryingPolicyId);
 }
 function combineSources(sources: LotView[]): LotView {
   demand(Array.isArray(sources) && sources.length > 0, 'source-materials-required');
@@ -189,7 +194,12 @@ function combineSources(sources: LotView[]): LotView {
   return {lotId, materialId: made.materialId, amount: copy(made.amount),
     quality: copy(made.quality), location: first.location};
 }
-function specOk(s: Spec, sources: LotView[], source: LotView): void {
+function specOk(
+  s: Spec,
+  sources: LotView[],
+  source: LotView,
+  dryingPolicyId?: typeof SAIL_LEAF_DRYING_ID
+): void {
   demand(shape(s, ['commandId', 'actorId', 'operation', 'lotIds', 'openedAtWorldMs', 'facts']) &&
     id(s.commandId) && id(s.actorId) && uint(s.openedAtWorldMs) &&
     ['harvest', 'dry', 'split', 'weave', 'mast'].includes(s.operation) &&
@@ -200,13 +210,18 @@ function specOk(s: Spec, sources: LotView[], source: LotView): void {
   'invalid-spec');
   const facts = s.facts;
   demand(shape(facts, ['assumptionId', 'worksite',
-    ...(s.operation === 'dry' ? ['roofed'] : s.operation === 'weave' ? ['requestedAreaCm2'] : [])]) &&
+    ...(s.operation === 'dry' ? ['roofed', ...(dryingPolicyId === undefined
+      ? [] : ['dryingPolicyId'])] : s.operation === 'weave' ? ['requestedAreaCm2'] : [])]) &&
     id(facts.assumptionId), 'explicit-operation-facts-required');
   demand(shape(facts.worksite, ['locationId', 'x', 'z', 'reachM']) &&
     id(facts.worksite.locationId) && Number.isFinite(facts.worksite.x) &&
     Number.isFinite(facts.worksite.z) && Number.isFinite(facts.worksite.reachM) &&
     facts.worksite.reachM > 0, 'invalid-worksite');
-  if (s.operation === 'dry') demand(facts.roofed === true, 'roof-required');
+  if (s.operation === 'dry') {
+    demand(facts.roofed === true, 'roof-required');
+    demand(dryingPolicyId === undefined || facts.dryingPolicyId === dryingPolicyId,
+      'explicit-leaf-drying-policy-required');
+  }
   if (s.operation === 'weave') demand(facts.requestedAreaCm2 === 20_000, 'fixed-sail-area-required');
   demand(Array.isArray(sources) && sources.length === s.lotIds.length,
     'invalid-source-list');
@@ -228,14 +243,18 @@ function specOk(s: Spec, sources: LotView[], source: LotView): void {
 }
 function raw(L: SailWorkLedger, runId: string): Data {
   const r = L.runs[runId], d = r?.state?.data as Data;
+  const proportional = r?.processVersion === SAIL_WORK.dryVersion
+    && r.state?.schema === SAIL_WORK.drySchema;
+  const legacy = r?.processVersion === SAIL_WORK.version
+    && r.state?.schema === SAIL_WORK.schema;
   demand(r && r.runId === runId && r.processId === SAIL_WORK.processId &&
-    r.processVersion === SAIL_WORK.version && r.contract === '0.2.1' &&
-    r.catalogVersion === 'civ-sci-test-2' && r.state?.schema === SAIL_WORK.schema &&
+    (legacy || proportional) && r.contract === '0.2.1' &&
+    r.catalogVersion === 'civ-sci-test-2' &&
     ['starting', 'running'].includes(r.status), 'unsupported-run-or-state');
   demand(shape(d, ['worldId', 'worldEpoch', 'runId', 'seed', 'spec', 'source', 'sources',
     'actorId', 'engaged', 'controlAtWorldMs', 'totalWorkMs', 'pendingMs',
     'observedThroughWorldMs', 'lastConfirmedAtWorldMs', 'lastWasWork',
-    'seenByActor', 'assignments', 'digest']) &&
+    'seenByActor', 'assignments', ...(proportional ? ['dryingPolicyId'] : []), 'digest']) &&
     d.worldId === L.world.worldId && d.worldEpoch === L.world.worldEpoch &&
     d.runId === runId && uint(d.seed) && d.seed <= 0xffffffff &&
     id(d.actorId) && typeof d.engaged === 'boolean' &&
@@ -251,9 +270,11 @@ function raw(L: SailWorkLedger, runId: string): Data {
     d.assignments.every(a => shape(a, ['actorId', 'atWorldMs']) &&
       id(a.actorId) && uint(a.atWorldMs)) &&
     d.assignments.at(-1)!.actorId === d.actorId, 'corrupt-work-state');
+  demand(!proportional || d.spec.operation === 'dry'
+    && d.dryingPolicyId === SAIL_LEAF_DRYING_ID, 'changed-drying-policy');
   const {digest: checksum, ...body} = d;
   demand(checksum === digest(body), 'corrupt-work-checksum');
-  specOk(d.spec, d.sources, d.source);
+  specOk(d.spec, d.sources, d.source, d.dryingPolicyId);
   demand(r.operator === d.actorId && r.seed === d.seed && r.clock === clock(d.spec) &&
     canonical(r.lotIds) === canonical(d.spec.lotIds) && r.equipmentIds.length === 0 &&
     r.lastTo === toClock(clock(d.spec), d.observedThroughWorldMs), 'changed-run-binding');
@@ -371,7 +392,7 @@ function finish(L: SailWorkLedger, m: Arrangement, d: Data, at: number, abandone
   const req: ScienceStepRequest = {
     contract: r.contract, requestId: key(d.runId, abandoned ? 'abandon' : 'complete'),
     world: {...L.world}, runId: d.runId, processId: SAIL_WORK.processId,
-    processVersion: SAIL_WORK.version, catalogVersion: r.catalogVersion,
+    processVersion: r.processVersion, catalogVersion: r.catalogVersion,
     interval: {from: r.lastTo, to: Math.max(r.lastTo, toClock(clock(d.spec), at))},
     state: r.state, environment: {sampleId: 'env:sail-work-unused',
       source: 'unknown', effectiveAt: r.lastTo},
@@ -379,14 +400,14 @@ function finish(L: SailWorkLedger, m: Arrangement, d: Data, at: number, abandone
   };
   const result: ScienceStepResult = {
     contract: req.contract, requestId: req.requestId, runId: d.runId,
-    simulated: {...req.interval}, state: {schema: SAIL_WORK.schema, data: d},
+    simulated: {...req.interval}, state: {schema: r.state!.schema, data: d},
     status: abandoned ? 'stopped' : 'completed',
     consumed: untouched ? [] : d.sources.map(l => ({lotId: l.lotId, amount: copy(l.amount)})),
     produced: untouched ? [] : parts(d, abandoned),
     released: !untouched && p.releasedWaterMg > 0 ? [{materialId: 'water_vapor',
       amount: {value: p.releasedWaterMg, unit: 'mg'}, to: 'air'}] : [],
     drawn: [], energy: [], equipmentWear: [], observations: [],
-    evidence: {evaluatorVersion: SAIL_WORK.version, sourceRefs: [],
+    evidence: {evaluatorVersion: r.processVersion, sourceRefs: [],
       notes: 'owner-assumption-not-calibrated; explicit ' + d.spec.facts.assumptionId},
   };
   const applied = commit(L, req, result);
@@ -404,7 +425,7 @@ function updateRun(L: SailWorkLedger, d: Data): void {
   r.operator = d.actorId;
   r.lastTo = toClock(clock(d.spec), d.observedThroughWorldMs);
   r.status = 'running';
-  r.state = {schema: SAIL_WORK.schema, data: seal(d)};
+  r.state = {schema: r.state!.schema, data: seal(d)};
 }
 export function sailWorkRevision(L: SailWorkLedger): number {
   return safe(() => metadata(L).revision);
@@ -455,9 +476,11 @@ export function applySailIntent(
         const spec: Spec = {commandId: i.intentId, actorId: i.actorId,
           operation: i.operation, lotIds,
           openedAtWorldMs: i.atWorldMs, facts: copy(facts)};
-        specOk(spec, sources, source);
+        specOk(spec, sources, source,
+          i.operation === 'dry' ? SAIL_LEAF_DRYING_ID : undefined);
         const started = startRun(draft, {processId: SAIL_WORK.processId,
-          processVersion: SAIL_WORK.version, catalogVersion: 'civ-sci-test-2',
+          processVersion: i.operation === 'dry' ? SAIL_WORK.dryVersion : SAIL_WORK.version,
+          catalogVersion: 'civ-sci-test-2',
           contract: '0.2.1', clock: clock(spec), lotIds: spec.lotIds,
           equipmentIds: [], operator: i.actorId}, i.atWorldMs);
         demand(started.run, 'reservation-refused');
@@ -468,10 +491,12 @@ export function applySailIntent(
           pendingMs: 0, observedThroughWorldMs: i.atWorldMs,
           lastConfirmedAtWorldMs: i.atWorldMs, lastWasWork: false,
           seenByActor: false, assignments: [{actorId: i.actorId, atWorldMs: i.atWorldMs}],
+          ...(i.operation === 'dry' ? {dryingPolicyId: SAIL_LEAF_DRYING_ID} : {}),
           digest: 0};
         model(d).projectTotal(0);
         r.lastTo = toClock(clock(spec), i.atWorldMs);
-        r.state = {schema: SAIL_WORK.schema, data: seal(d)};
+        r.state = {schema: i.operation === 'dry' ? SAIL_WORK.drySchema : SAIL_WORK.schema,
+          data: seal(d)};
         if (model(d).projectTotal(0).status === 'completed') finish(draft, m, d, i.atWorldMs, false);
       } else {
         demand(facts === undefined && id(i.runId), 'invalid-control');

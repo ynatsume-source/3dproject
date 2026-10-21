@@ -116,7 +116,20 @@ function source(p: PlantMass) {
   && id(p.lotId) && uint(p.dryMg, 1) && uint(p.waterMg), 'invalid-plant-material');
   sum(p.dryMg, p.waterMg);
 }
-export function createSailManufacturingModel(original: SailManufactureInput, assumptionId: string, ctx: CoirContext) {
+/** Explicit opt-in for the remaining-water drying rule. Older calls keep v1 timing. */
+export const SAIL_LEAF_DRYING_ID =
+  'owner-assumption/sail-leaf-drying/2026-10-21/v1' as const;
+
+export function createSailManufacturingModel(
+  original: SailManufactureInput,
+  assumptionId: string,
+  ctx: CoirContext,
+  dryingPolicyId?: string
+) {
+  check(dryingPolicyId === undefined || dryingPolicyId === SAIL_LEAF_DRYING_ID,
+    'explicit-leaf-drying-policy-required');
+  check(dryingPolicyId === undefined || original?.operation === 'dry',
+    'leaf-drying-policy-only-for-dry');
   choose(assumptionId);
   check(shape(ctx, ['worldId', 'worldEpoch', 'runId', 'seed', 'clock', 'openedAtMs']) && id(ctx.worldId) && id(ctx.worldEpoch) && id(ctx.runId)
   && uint(ctx.seed) && ctx.seed <= 0xffffffff && uint(ctx.openedAtMs), 'invalid-context');
@@ -137,7 +150,13 @@ export function createSailManufacturingModel(original: SailManufactureInput, ass
       duration = ceilDiv(s.dryMg, R.harvestMs, R.leafReferenceDryMg);
     } else if (original.operation === 'dry') {
       check(s.material === 'pandanus_leaves' && s.lengthMm === undefined && original.roofed === true, 'roofed-leaves-required');
-      duration = s.waterMg>Math.floor(s.dryMg/5)?R.roofDryMs: 0;
+      const excessFifths = 5n * BigInt(s.waterMg) - BigInt(s.dryMg);
+      const denominator = 9n * BigInt(s.dryMg);
+      duration = dryingPolicyId === undefined
+        ? (s.waterMg > Math.floor(s.dryMg / 5) ? R.roofDryMs : 0)
+        : excessFifths <= 0n ? 0
+          : Number((excessFifths * BigInt(R.roofDryMs) + denominator - 1n) /
+            denominator);
     } else if (original.operation === 'split') {
       check(s.material === 'pandanus_leaves' && s.lengthMm === undefined && BigInt(s.waterMg)*5n <= BigInt(s.dryMg), 'dry-leaves-required');
       duration = ceilDiv(s.dryMg, R.splitMs, R.leafReferenceDryMg);
@@ -156,7 +175,11 @@ export function createSailManufacturingModel(original: SailManufactureInput, ass
     }
   }
   check(uint(duration), 'invalid-duration');
-  const input = copy(original), c = copy(ctx), binding = canonical([SAIL_RAFT_ID, R, INTEGER_HALF_LIFE_POLICY_ID, input, c]);
+  const input = copy(original), c = copy(ctx);
+  const binding = canonical([
+    SAIL_RAFT_ID, R, INTEGER_HALF_LIFE_POLICY_ID, input, c,
+    ...(dryingPolicyId === undefined ? [] : [dryingPolicyId])
+  ]);
   const save = (intervals: CoirInterval[]): SailManufactureState => ({
     schema: 'prototype-sail-manufacture/1',
     binding,
@@ -341,7 +364,7 @@ export function createSailManufacturingModel(original: SailManufactureInput, ass
  * only the most recent 64 confirmations support exact replay.
  */
 export interface SailManufactureCheckpoint {
-  schema: 'prototype-sail-manufacture/2';
+  schema: 'prototype-sail-manufacture/2' | 'prototype-sail-manufacture/3';
   binding: string;
   totalWorkMs: number;
   lastAtMs: number;
@@ -364,23 +387,28 @@ export const SAIL_MANUFACTURE_RECEIPT_LIMIT = 64;
 export function createCompactSailManufacturingModel(
   original: SailManufactureInput,
   assumptionId: string,
-  ctx: CoirContext
+  ctx: CoirContext,
+  dryingPolicyId?: string
 ) {
   check(
     assumptionId === SAIL_RAFT_ISLAND_ID || assumptionId === SAIL_RAFT_WORLD_ID,
     'explicit-v2-sail-assumption-required'
   );
   const input = copy(original);
-  const model = createSailManufacturingModel(input, SAIL_RAFT_ID, ctx);
+  const model = createSailManufacturingModel(input, SAIL_RAFT_ID, ctx, dryingPolicyId);
+  const checkpointSchema = dryingPolicyId === undefined
+    ? 'prototype-sail-manufacture/2' as const
+    : 'prototype-sail-manufacture/3' as const;
   const context = copy(ctx);
   const drying = input.operation === 'dry';
   const binding = canonical([
-    'prototype-sail-manufacture/2',
+    checkpointSchema,
     assumptionId,
     R,
     INTEGER_HALF_LIFE_POLICY_ID,
     input,
-    context
+    context,
+    ...(dryingPolicyId === undefined ? [] : [dryingPolicyId])
   ]);
 
   function interval(r: unknown): asserts r is CoirInterval {
@@ -430,7 +458,7 @@ export function createCompactSailManufacturingModel(
         'schema', 'binding', 'totalWorkMs', 'lastAtMs',
         'floorAtMs', 'recent'
       ]) &&
-      value.schema === 'prototype-sail-manufacture/2' &&
+      value.schema === checkpointSchema &&
       value.binding === binding,
       'unsupported-manufacture-save'
     );
@@ -549,7 +577,7 @@ export function createCompactSailManufacturingModel(
 
   return Object.freeze({
     start: (): SailManufactureCheckpoint => ({
-      schema: 'prototype-sail-manufacture/2',
+      schema: checkpointSchema,
       binding,
       totalWorkMs: 0,
       lastAtMs: context.openedAtMs,
