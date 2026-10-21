@@ -7,7 +7,7 @@ import { MANUAL_HUSK_ASSUMPTION, createManualHuskAssumptionProfile } from '../sr
 import { beginManualHuskWork, projectManualHuskWork, recordManualHuskSpan, type HuskWorkSpec } from '../src/world/manual-husk-work';
 import { applyHuskIntent } from '../src/world/manual-husk-workflow';
 import { otherScienceWorkBusy } from '../src/world/science-work-occupancy';
-import { HUSK_SOAK_ASSUMPTION } from '../src/science/prototypes/husk-soak';
+import { HUSK_SOAK_ASSUMPTION, computeHuskSoak, splitSoakedHusks } from '../src/science/prototypes/husk-soak';
 import {
   beginHuskSoak, recordHuskSoakSpan, takeOutHuskSoak, projectHuskSoak,
   readSoakedHuskInput, restoreHuskSoak, readHuskSoakWorksite,
@@ -499,8 +499,77 @@ function repeatSoak(L: Ledger, lotId: string, offset: number, duration: number, 
   return { ...started, projection: out };
 }
 
-function asLegacySoakSave(L: Ledger): Ledger {
+function asLegacySoakSave(L: Ledger, originalSource: LotView): Ledger {
   const old = json(L);
+  const records = (L as any).huskSoakRecords;
+  if (records) {
+    // A real pre-compaction representation, reconstructed from exact retained
+    // commands. Merely changing /3's tag would correctly be refused.
+    delete (old as any).huskSoakRecords;
+    delete (old as any).huskSoakRecordFormat;
+    const begins = records.recent.filter((r: any) => JSON.parse(r.key)[0] === 'begin');
+    for (const begin of begins) {
+      const spec = JSON.parse(begin.payload);
+      const runId = begin.runId;
+      const frames = records.recent
+        .filter((r: any) => r.runId === runId && JSON.parse(r.key)[0] === 'span')
+        .map((r: any) => JSON.parse(r.payload));
+      const taken = records.recent.find((r: any) => r.runId === runId
+        && JSON.parse(r.key)[0] === 'take-out');
+      const takeOut = taken ? JSON.parse(taken.payload) : null;
+      let totalImmersedMs = 0;
+      let historyComplete = originalSource.quality!.history_complete;
+      let worldAt = spec.atWorldMs, islandAt = spec.atIslandMs;
+      let lastImmersed: any = null;
+      const history: {recordId: string; runId: string; fromWorldMs: number; toWorldMs: number}[] = [];
+      for (const frame of frames) {
+        if (frame.fromWorldMs !== worldAt || frame.fromIslandMs !== islandAt || frame.immersed === null) {
+          historyComplete = 0;
+        }
+        if (frame.immersed) {
+          totalImmersedMs += frame.toIslandMs - frame.fromIslandMs;
+          if (lastImmersed?.toWorldMs === frame.fromWorldMs
+            && lastImmersed.toIslandMs === frame.fromIslandMs) {
+            history[history.length - 1].toWorldMs = frame.toWorldMs;
+          } else {
+            history.push({recordId: 'record:husk-soak:' + JSON.stringify([runId, history.length]),
+              runId, fromWorldMs: frame.fromWorldMs, toWorldMs: frame.toWorldMs});
+          }
+          lastImmersed = frame;
+        } else lastImmersed = null;
+        worldAt = frame.toWorldMs;
+        islandAt = frame.toIslandMs;
+      }
+      const p = computeHuskSoak(originalSource, spec.assumptionId, totalImmersedMs);
+      const outputs = takeOut && p.certifiedIslandMs > 0
+        ? splitSoakedHusks(originalSource, spec.assumptionId, totalImmersedMs, {
+          runId, fromWorldMs: spec.atWorldMs, toWorldMs: takeOut.atWorldMs
+        }, true) : [];
+      if (takeOut && (takeOut.atWorldMs !== worldAt || takeOut.atIslandMs !== islandAt)) {
+        historyComplete = 0;
+      }
+      for (const piece of outputs) {
+        piece.quality.history_complete = historyComplete as 0 | 1;
+        piece.input.soakHistory = json(history);
+      }
+      const drawn = outputs.length && p.drawnWaterMg > 0
+        ? [{materialId: 'sea_water', amount: {value: p.drawnWaterMg, unit: 'mg'}, from: 'water'}] : [];
+      old.runs[runId] = {
+        runId, processId: HUSK_SOAK_WORK.processId, processVersion: 'host-1',
+        catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'island',
+        lotIds: [originalSource.lotId], equipmentIds: [], operator: spec.actorId,
+        seed: old.runs[runId]?.seed ?? 1, lastTo: takeOut?.atIslandMs ?? islandAt,
+        attempt: 0, status: takeOut ? outputs.length ? 'completed' : 'stopped' : 'running',
+        observations: [],
+        state: {schema: 'civ-world.husk-soak/1', data: {
+          worldId: old.world.worldId, worldEpoch: old.world.worldEpoch, runId,
+          spec: json(spec), source: json(originalSource), frames, takeOut,
+          totalImmersedMs, historyComplete, outputs, drawn,
+        }},
+      };
+    }
+    return old;
+  }
   for (const run of Object.values(old.runs)) {
     if (run.processId !== HUSK_SOAK_WORK.processId) continue;
     run.processVersion = 'host-1';
@@ -566,13 +635,13 @@ test('odd count splits retain every fractional mg over repeated take-outs and ca
 test('old in-progress and old taken-out saves keep their old water and can continue soaking', () => {
   const oldActive = fixture(sourceLot(1_120_000, 1, 250_000));
   record(oldActive, 0, DAY);
-  oldActive.L = restoreHuskSoak(asLegacySoakSave(oldActive.L));
+  oldActive.L = restoreHuskSoak(asLegacySoakSave(oldActive.L, oldActive.source));
   const before = projection(oldActive).waterMg;
   record(oldActive, DAY, 2 * DAY, 'after-old-load');
   assert.ok(projection(oldActive).waterMg > before);
   take(oldActive, 2 * DAY);
   const oldWet = wetLots(oldActive)[0];
-  oldActive.L = restoreHuskSoak(asLegacySoakSave(oldActive.L));
+  oldActive.L = restoreHuskSoak(asLegacySoakSave(oldActive.L, oldActive.source));
   const oldQuality = json(oldActive.L.lots[oldWet.lotId].quality);
   const zero = repeatSoak(oldActive.L, oldWet.lotId, 2 * DAY, 29_999, 'old-zero');
   assert.deepEqual(oldActive.L.lots[oldWet.lotId].quality, oldQuality);

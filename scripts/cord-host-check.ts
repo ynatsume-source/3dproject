@@ -22,6 +22,7 @@ import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather, islandWait } from '../src/world/island-time';
 import { addLot } from '../src/world/process-runner';
 import { writeCordBundle, writeCordPiece } from '../src/world/coir-cord-lots';
+import { projectCordWork } from '../src/world/coir-cord-work';
 import { applyCordLoad } from '../src/world/coir-cord-load';
 import { writePost } from '../src/journal/write';
 
@@ -63,7 +64,9 @@ const choose = async (id: string, until: () => boolean, secs = 3600) => {
 };
 const said = (re: RegExp) => dot().diary.some((d: any) => re.test(d.text));
 const b = writeCordBundle({ fiberDryMg: FIBER, pithDryMg: PITH, waterMg: WET }, 'site:husk-work', 1);
-addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, quality: b.quality }); step(5);
+addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, quality: b.quality });
+const initialMarkerLedger = JSON.stringify(R.lab);
+step(5);
 
 { // 1
   const n0 = inputs.length; { const a = R.mind(dot()); a.why = 'テスト'; a.lastCall = -1e12; }
@@ -95,9 +98,9 @@ addLot(R.lab, { materialId: b.materialId, amount: b.amount, location: b.into!, q
   const back = now; step(2);
   const fr2 = R.lab.runs[run.runId].state.data.frames, one = fr2.find((x: any) => x.fromWorldMs === from);
   want('3 the roof\'s time across the load: one span, from the last confirmed moment to the first one back', !!one && one.toWorldMs >= back, one ? `${Math.round((one.toWorldMs - one.fromWorldMs) / 60e3)} min` : `(no span from ${from})`);
-  step(Math.ceil(islandWait(3.1 * 86400e3) / 1000), () => R.lab.runs[run.runId].status === 'completed');
+  step(Math.ceil(islandWait(3.1 * 86400e3) / 1000), () => projectCordWork(R.lab, run.runId).status === 'completed');
   const dried = lots('coir_fiber_bundle')[0];
-  want('3 dried: the bundle back under the eaves, drier', R.lab.runs[run.runId].status === 'completed' && !!dried && dried.quality.water_mg < WET, `${R.lab.runs[run.runId].status}`);
+  want('3 dried: the bundle back under the eaves, drier', projectCordWork(R.lab, run.runId).status === 'completed' && !!dried && dried.quality.water_mg < WET, `${projectCordWork(R.lab, run.runId).status}`);
 }
 { // 4
   for (let k = 0; k < 3; k++) await choose('cord:twist:pot', () => lots('coir_strand').length === k + 1);
@@ -157,7 +160,7 @@ for (const d of R.cordDev) allCodes.add(d.code);
   const prompts: string[] = [];
   await writePost({ who: 'dot', name: d.v.name, profile: 'テスト', day: '2026-10-06', entries: d.diary.map((e: any) => ({ time: '12:00', text: e.text, key: e.key })), photos: [], talks: [] }, async (sys: string, user: string) => { prompts.push(sys + user); return null; }, 'stub');
   const codes = [...allCodes], leaks = (t: string) => [...MARKS.filter((m) => new RegExp(`(?<![\\d.])${m}(?![\\d.])`).test(t)), ...codes.filter((c) => t.includes(c))];   // (a number on its own, not a piece of a time or a place)
-  want('7 (the markers are real: the ledger holds them, the developer\'s log a code)', MARKS.slice(0, 5).every((m) => JSON.stringify(JSON.parse(saved).lab).includes(m)) && codes.length > 0, codes.join(','));
+  want('7 (the markers are real: the input and current ledger hold them, the developer\'s log a code)', MARKS.slice(0, 5).every((m) => (initialMarkerLedger + JSON.stringify(JSON.parse(saved).lab)).includes(m)) && codes.length > 0, codes.join(','));
   want('7 no amount or code in its diary, its mind\'s input, the day\'s post prompt or its saved memory', [diary, minds, prompts.join(''), mem].every((t) => leaks(t).length === 0), [diary, minds, prompts.join(''), mem].map(leaks).map((x) => x.join('|')).join(' / '));
   const cordOpts = [...new Map(inputs.flatMap((i) => i.options ?? []).filter((o: any) => o.id.startsWith('cord:')).map((o: any) => [o.id, o])).values()] as any[];
   want('7 no number in any cord option it was offered, all along', cordOpts.length >= 6 && cordOpts.every((o) => !/[0-9０-９]/.test(o.id + o.label)), cordOpts.map((o) => o.label).join(' / '));

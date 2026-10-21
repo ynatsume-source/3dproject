@@ -21,6 +21,7 @@ import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather, islandWait } from '../src/world/island-time';
 import { addLot, emptyLedger } from '../src/world/process-runner';
+import { projectManualHuskWork } from '../src/world/manual-husk-work';
 import { writePost } from '../src/journal/write';
 
 let now = Date.parse('2026-10-06T00:00:00Z');   // (9:00 on the island)
@@ -137,8 +138,8 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   now += 3600e3; R = make();
   const j2 = R.lab.manualHuskArrangement.jobs.find((j: any) => j.runId === run.runId);
   want('5 saved and loaded an hour later: paused (its hands left the husk at the load), no work counted for the time away', ['stop', 'restore'].includes(j2?.controls.at(-1).kind) && JSON.parse(s).lab.runs[run.runId].state.data.science.totalWorkMs === R.lab.runs[run.runId].state.data.science.totalWorkMs, j2?.controls.map((c: any) => c.kind).join(','));
-  await choose('beat:husk', () => R.lab.runs[run.runId].status === 'completed');
-  want('5 resumed: the second husk finished', R.lab.runs[run.runId].status === 'completed' && lots('coir_fiber_bundle').length === 2, `${R.lab.runs[run.runId].status} bundles ${lots('coir_fiber_bundle').length}`);
+  await choose('beat:husk', () => projectManualHuskWork(R.lab, run.runId).status === 'completed');
+  want('5 resumed: the second husk finished', projectManualHuskWork(R.lab, run.runId).status === 'completed' && lots('coir_fiber_bundle').length === 2, `${projectManualHuskWork(R.lab, run.runId).status} bundles ${lots('coir_fiber_bundle').length}`);
 }
 { // 6
   const d = dot(), diary = JSON.stringify(d.diary), minds = JSON.stringify(inputs), saved = store.get(KEY) ?? '';

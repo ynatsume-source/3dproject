@@ -26,6 +26,7 @@ import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { wickQuality } from '../science/step/oil-lamp';
+import { compactScienceLedger, recentScienceRuns } from '../world/science-records';
 import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, canTakeMass, refreshAssembled, refreshAssembledParts, startRun, takeMass, toClock, toReal } from '../world/process-runner';
 import { CATALOG, canResumeProcessVersion, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
@@ -2315,7 +2316,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
    *  of the moment (the new zero's — the world's record, not the resident's); in the diary only that it was set again.
    *  Nothing earlier is dropped: the old readings and guesses stay as they were. */
   function gaugePlaced(r: Resident, e: CatalogEntry, runId: string, lotIds: string[]) {
-    const prev = Object.values(lab.runs).filter((x) => x.processId === e.processId && x.runId !== runId).sort((a, b) => b.lastTo - a.lastTo)[0];
+    const prev = [...Object.values(lab.runs), ...recentScienceRuns(lab)].filter((x) => x.processId === e.processId && x.runId !== runId).sort((a, b) => b.lastTo - a.lastTo)[0];
     if (e.processId === TEST_GAUGE) retireAbsoluteHypo(runId);
     const w = islandWeather(clockMs);
     (village.gaugeLog ??= []).push({ at: clockMs, processId: e.processId, runId, airC: w?.air ?? null, placed: { ...(prev ? { from: prev.runId, lotsOut: [...prev.lotIds] } : {}), why: prev ? `${prev.status}${prev.why ? `：${prev.why}` : ''}` : 'first', lotsIn: [...lotIds], pressureHPa: w?.pressureMeasured ?? null } });
@@ -3506,6 +3507,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     village.huskHost ??= emptyHuskHostState(); husk.restore(clockMs);
     village.cordHost ??= emptyCordHostState(); cord.restore(clockMs);   // (the cord the same: hands off at the load, the roof's time in one span)
     village.sailHost ??= emptySailHostState(); sail.restore(clockMs);   // (and the sail)
+    compactScienceLedger(lab);   // (migrate old completed step runs and keep only bounded observation/settlement records)
     { const back = sailSea.restore(clockMs), who = back && byId[back.actorId];   // (closed at sea: the crossing ends where it was last confirmed)
       if (who) who.diary.push({ at: clockMs, text: `帆の筏での渡航は途中で終わった${back.words.length ? `。${back.words.map((w) => w.replace(/。$/, '')).join('。')}` : ''}`, key: 'got' }); }
     // (the firsts the island had before it kept them: not told again as firsts — world/milestones.ts)

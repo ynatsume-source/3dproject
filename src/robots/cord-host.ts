@@ -232,7 +232,7 @@ export function makeCordHost(ctx: {
     const e = st().engaged[actorId]; if (!e) return { done: false };
     if (nowWorldMs - e.from >= WORK_EVERY_MS) confirm(actorId, at, nowWorldMs);
     const run = L().runs[e.runId];
-    if (run && !live(run.status)) {
+    if (!run || !live(run.status)) {
       delete st().engaged[actorId];
       const words = (() => { try { return readCordWorkerObservations(L(), e.runId, actorId).map((o) => o.text); } catch (err) { log(nowWorldMs, actorId, 'observe', err); return []; } })();
       return { done: true, words };

@@ -9,6 +9,7 @@ import {applyCordIntent,recordCordSpan,restoreCordWork,cordWorkRevision,projectC
 import {beginManualHuskWork,recordManualHuskSpan} from '../src/world/manual-husk-work';
 import {applyHuskIntent,huskArrangementRevision} from '../src/world/manual-husk-workflow';
 import {MANUAL_HUSK_ASSUMPTION as HA} from '../src/science/prototypes/manual-husk-assumptions';
+import * as legacyCord from './fixtures/coir-work-v2';
 const T=ISLAND_EPOCH+1000;
 let groups=0;
 const test=(name:string,f:()=>void)=>{f();groups++;console.log('PASS '+name);};
@@ -187,4 +188,132 @@ test('actual PR22 output traverses drying, sieve, three twists and rope with int
  assert.equal(Object.values(L.lots).reduce((n,l)=>n+BigInt(l.amount.value),0n)+L.released!.reduce((n,r)=>n+BigInt(r.mg),0n),900000n);
  assert.equal(Object.values(L.lots).find(l=>l.materialId==='coir_rope')!.amount.value,87120);
 });
+
+test('completed work keeps only bounded summaries and recent exact command receipts', () => {
+  const L: CordWorkLedger = emptyLedger('bounded', '1');
+  const facts: CordStartFacts = {
+    assumptionId: ID,
+    worksite: {locationId: 'site', x: 0, z: 0, reachM: 1},
+    requestedLengthMm: 1_000
+  };
+  let at = T;
+  let earliest: CordIntent | null = null;
+  let previousBytes = 0;
+  for (let n = 0; n < 200; n++) {
+    const lotId = 'bundle:' + n;
+    addProduced(L, writeCordBundle({
+      fiberDryMg: 72_000, pithDryMg: 7_200, waterMg: 7_920
+    }, 'site', 1), lotId);
+    const intent: CordIntent = {
+      kind: 'start', intentId: 'start:' + n, actorId: 'actor',
+      atWorldMs: at, operation: 'twist', lotIds: [lotId],
+      siteId: 'site', presence: 'here'
+    };
+    if (n === 0) earliest = json(intent);
+    const runId = applyCordIntent(L, intent, cordWorkRevision(L), at, facts).runId;
+    const frame: CordSpan = {
+      kind: 'executor-activity-span', spanId: 'span:' + n,
+      worldId: 'bounded', worldEpoch: '1', runId, actorId: 'actor',
+      fromWorldMs: at, toWorldMs: at + 120_000, confirmedAtWorldMs: at + 120_000,
+      activity: 'twist-coir', arrived: true, targetLotId: lotId, targetSiteId: 'site',
+      fromPosition: {x: 0, z: 0}, toPosition: {x: 0, z: 0}
+    };
+    const mass = Object.values(L.lots).reduce((t, l) => t + l.amount.value, 0);
+    recordCordSpan(L, runId, frame, cordWorkRevision(L), at + 120_000);
+    assert.equal(L.runs[runId], undefined);
+    assert.equal(projectCordWork(L, runId).status, 'completed');
+    assert.equal(Object.values(L.lots).reduce((t, l) => t + l.amount.value, 0), mass);
+    const before = json(L);
+    recordCordSpan(L, runId, frame, 0, at + 120_000);
+    assert.deepEqual(L, before);
+    assert.equal(applyCordIntent(L, intent, 0, at + 120_000, facts).runId, runId);
+    assert.deepEqual(L, before);
+    const metadata = (L as any).cordArrangement;
+    assert.ok(metadata.receipts.length <= 64 && metadata.finished.length <= 64);
+    assert.equal(Object.keys(L.runs).length, 0);
+    assert.ok(metadata.finished.every((f: any) =>
+      !('frames' in f) && !('science' in f) && !('sources' in f)));
+    safe(readCordWorksite(L, 'site', at + 120_000));
+    // Physical inventory is real accumulated output, not a replay cache.
+    for (const id of Object.keys(L.lots)) delete L.lots[id];
+    at += 121_000;
+    if (n === 99) previousBytes = JSON.stringify(metadata).length;
+  }
+  const metadata = (L as any).cordArrangement;
+  assert.equal(metadata.receipts.length, 64);
+  assert.equal(metadata.finished.length, 64);
+  assert.ok(JSON.stringify(metadata).length < previousBytes * 1.1);
+  assert.ok(JSON.stringify(metadata).length < 200_000);
+  const before = json(L);
+  assert.throws(() => applyCordIntent(L, earliest!, 0, at, facts),
+    (e: unknown) => e instanceof CordWorkError && e.code === 'expired-command');
+  assert.deepEqual(L, before);
+  const restored = restoreCordWork(json(L), at);
+  assert.equal(Object.keys(restored.runs).length, 0);
+  assert.deepEqual(restored.lots, L.lots);
+  console.log('coir record plateau bytes: ' + JSON.stringify(metadata).length);
+});
+
+test('legacy /2 active and completed saves validate then migrate without changing products or identity', () => {
+  for (const complete of [false, true]) {
+    const a = fixture('twist', false, false);
+    a.runId = legacyCord.applyCordIntent(a.L as any, a.intent, 0, T, a.facts).runId;
+    const dt = complete ? 120_000 : 30_000;
+    const f = span(a, 0, dt);
+    legacyCord.recordCordSpan(a.L as any, a.runId, f,
+      legacyCord.cordWorkRevision(a.L as any), T + dt);
+    const saved = json(a.L);
+    const oldProjection = legacyCord.projectCordWork(saved as any, a.runId);
+    const oldHoldings = holdings(saved);
+    const restored = restoreCordWork(saved, T + dt);
+    assert.deepEqual(projectCordWork(restored, a.runId), oldProjection);
+    assert.deepEqual(holdings(restored), oldHoldings);
+    assert.equal(restored.seq, saved.seq);
+    assert.equal((restored as any).cordArrangement.schema, 'civ-world.coir-arrangement/3');
+    if (complete) {
+      assert.equal(restored.runs[a.runId], undefined);
+      const before = json(restored);
+      assert.equal(applyCordIntent(restored, a.intent, 0, T + dt, a.facts).runId, a.runId);
+      assert.deepEqual(restored, before);
+    } else {
+      assert.equal(restored.runs[a.runId].state!.schema, 'civ-world.coir-work/3');
+      const old = legacyCord.restoreCordWork(json(saved), T + dt);
+      const resume: CordIntent = {
+        kind: 'resume', intentId: 'resume:migrated', actorId: 'actor',
+        runId: a.runId, atWorldMs: T + dt, presence: 'here'
+      };
+      legacyCord.applyCordIntent(old as any, resume, legacyCord.cordWorkRevision(old as any), T + dt);
+      applyCordIntent(restored, resume, cordWorkRevision(restored), T + dt);
+      const tail = span(a, dt, 120_000, 'tail');
+      legacyCord.recordCordSpan(old as any, a.runId, tail,
+        legacyCord.cordWorkRevision(old as any), T + 120_000);
+      recordCordSpan(restored, a.runId, tail, cordWorkRevision(restored), T + 120_000);
+      assert.deepEqual(holdings(restored), holdings(old));
+      assert.deepEqual(projectCordWork(restored, a.runId),
+        legacyCord.projectCordWork(old as any, a.runId));
+      assert.equal(restored.runs[a.runId], undefined);
+    }
+    const disguised = json(saved) as any;
+    disguised.cordArrangement.schema = 'civ-world.coir-arrangement/3';
+    assert.throws(() => restoreCordWork(disguised, T + dt));
+  }
+});
+
+test('receipt eviction does not invalidate an ongoing job or permit an old event twice', () => {
+  const a = fixture();
+  const first = span(a, 0, 1_000, 'first', {activity: 'rest'});
+  recordCordSpan(a.L, a.runId, first, rev(a), T + 1_000);
+  for (let n = 1; n <= 80; n++) {
+    work(a, n * 1_000, (n + 1) * 1_000, 'idle:' + n, {activity: 'rest'});
+  }
+  assert.equal(p(a).certifiedMs, 0);
+  assert.equal((a.L as any).cordArrangement.receipts.length, 64);
+  const before = json(a.L);
+  assert.throws(() => recordCordSpan(a.L, a.runId, first, 0, T + 81_000));
+  assert.deepEqual(a.L, before);
+  work(a, 81_000, 201_000, 'actual-work');
+  assert.equal(p(a).status, 'completed');
+  assert.equal(a.L.runs[a.runId], undefined);
+});
+
 console.log('PASS coir work arrangement: '+groups+' groups; no production resident/UI registration.');
