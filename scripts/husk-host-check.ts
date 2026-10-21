@@ -21,7 +21,7 @@ import { makeHuskHost, emptyHuskHostState } from '../src/robots/husk-host';
 import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
 import { loadIslandWeather, islandWeather, islandWait } from '../src/world/island-time';
-import { addLot, emptyLedger } from '../src/world/process-runner';
+import { addLot, emptyLedger, toClock } from '../src/world/process-runner';
 import { projectManualHuskWork } from '../src/world/manual-husk-work';
 import { writePost } from '../src/journal/write';
 
@@ -196,6 +196,61 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   want('9 putting it back reserves that same wet husk and moves it to the pool',
     !!placed && currentWet?.location === host.sites().pool.id
       && !!currentWet.reservedBy);
+}
+
+{ // A reopened pool keeps every minute's tide decision in one transaction.
+  const L = emptyLedger('world:pool-catchup', 'epoch:1');
+  const state = emptyHuskHostState(), dev: any[] = [];
+  const start = now + 10_000, minute = 60_000, count = 720;
+  const seaSamples: number[] = [];
+  addLot(L, {
+    materialId: 'coconut_husk', amount: { value: 900_000, unit: 'mg' },
+    location: 'shelf',
+    quality: { count: 1, water_ppm: 0, ash_dry_ppm: 0, history_complete: 1 },
+  });
+  const host = makeHuskHost({
+    lab: L, state: () => state, dev,
+    placeSites: () => ({
+      pool: { id: 'site:catchup-pool', x: 0, z: 0, ground: -1, stand: [0, 0] },
+      work: { id: 'site:catchup-work', x: 1, z: 0, reachM: 2 },
+    }),
+    seaAt: (at) => {
+      seaSamples.push(at);
+      return Math.floor((at - start) / minute) % 3 === 0 ? 0 : -2;
+    },
+  });
+  want('10 catch-up fixture starts at the pool', !!host.putInPool('dot', start));
+  const runId = Object.values(L.runs).find(r => r.processId === 'prototype_husk_soak')!.runId;
+  // This unrelated owner's value cannot be structured-cloned or inspected.
+  // Recording the pool's spans must leave it alone.
+  const unrelated = new Proxy({}, {
+    ownKeys: () => { throw Error('unrelated owner traversed'); },
+    get: () => { throw Error('unrelated owner read'); },
+  });
+  (L as any).unrelatedOwner = unrelated;
+  const end = start + count * minute;
+  const caughtAt = performance.now();
+  host.tick(end);
+  const catchUpMs = performance.now() - caughtAt;
+  const data = L.runs[runId].state!.data as any;
+  let expectedImmersion = 0;
+  for (let n = 0; n < count; n++) {
+    if (n % 3 === 0) {
+      expectedImmersion += Math.round(toClock('island', start + (n + 1) * minute))
+        - Math.round(toClock('island', start + n * minute));
+    }
+  }
+  want('10 twelve-hour catch-up certifies all 720 minute records without cloning other owners',
+    dev.length === 0 && data.frameCount === count && state.soak[runId] === end
+      && (L as any).unrelatedOwner === unrelated,
+    `${catchUpMs.toFixed(3)} ms; ${data.frameCount} spans; ${dev.map(d => d.code).join(',')}`);
+  want('10 tide samples and confirmed immersion keep the original minute boundaries',
+    seaSamples.length === count
+      && seaSamples.every((at, n) => at === start + n * minute + minute / 2)
+      && data.totalImmersedMs === expectedImmersion
+      && data.frames.length === 64
+      && data.frames.at(-1).recordId === `${runId}:${end - minute}`);
+  delete (L as any).unrelatedOwner;
 }
 
 console.log(bad ? `FAIL (${bad})` : 'PASS');

@@ -2,6 +2,7 @@ import type { Ledger, Run } from './process-runner';
 import { commit, startRun } from './process-runner';
 import type { LotView, Observation, ScienceStepRequest, ScienceStepResult } from './science-contract';
 import { otherScienceWorkBusy } from './science-work-occupancy';
+import { ensureScienceRecords } from './science-records';
 import {
   HUSK_SOAK_ASSUMPTION, computeHuskSoak, readCoconutHusk, splitSoakedHusks,
   readHuskSoakOrigin, withHuskSoakOrigin, huskSoakOriginForPiece,
@@ -466,7 +467,9 @@ function inputMatches(L: Ledger, lotId: string, input: SoakedHuskPiece['input'])
     && lot.quality.husk_count === 1 && lot.quality.unseparated === 1,
     'changed-or-missing-soaked-husk');
 }
-function checkedRecords(L: Ledger): Records {
+const checkedWorlds = new WeakMap<Ledger, { worldId: string; worldEpoch: string }>();
+
+function checkedRecordsHeader(L: Ledger): Records {
   const target = L as SoakLedger, m = target.huskSoakRecords;
   requireSoak(m && target.huskSoakRecordFormat === HUSK_SOAK_WORK.ledgerSchema
     && shape(m, ['schema', 'worldId', 'worldEpoch', 'authorityAtWorldMs',
@@ -479,22 +482,34 @@ function checkedRecords(L: Ledger): Records {
     && Array.isArray(m.finished) && m.finished.length <= HUSK_SOAK_WORK.receiptLimit
     && m.provenance && typeof m.provenance === 'object' && !Array.isArray(m.provenance),
     'unsupported-soak-records');
+  return m;
+}
+function checkedReceipt(m: Records, r: Receipt): void {
+  requireSoak(shape(r, ['key', 'payload', 'runId', 'atWorldMs'])
+    && id(r.key) && typeof r.payload === 'string' && id(r.runId)
+    && uint(r.atWorldMs) && r.atWorldMs <= m.authorityAtWorldMs,
+    'corrupt-soak-receipt');
+}
+function checkedFinished(L: Ledger, f: Finished): void {
+  requireSoak(shape(f, ['runId', 'atWorldMs', 'projection', 'digest'])
+    && id(f.runId) && uint(f.atWorldMs) && !L.runs[f.runId]
+    && uint(f.digest), 'corrupt-soak-summary');
+  const { digest: checksum, ...body } = f;
+  requireSoak(checksum === digest(body)
+    && ['completed', 'stopped'].includes(f.projection?.status), 'corrupt-soak-summary');
+}
+function checkedRecords(L: Ledger): Records {
+  const m = checkedRecordsHeader(L);
   const receipts = new Set<string>();
   for (const r of m.recent) {
-    requireSoak(shape(r, ['key', 'payload', 'runId', 'atWorldMs'])
-      && id(r.key) && typeof r.payload === 'string' && id(r.runId)
-      && uint(r.atWorldMs) && r.atWorldMs <= m.authorityAtWorldMs
-      && !receipts.has(r.key), 'corrupt-soak-receipt');
+    checkedReceipt(m, r);
+    requireSoak(!receipts.has(r.key), 'corrupt-soak-receipt');
     receipts.add(r.key);
   }
   const finished = new Set<string>();
   for (const f of m.finished) {
-    requireSoak(shape(f, ['runId', 'atWorldMs', 'projection', 'digest'])
-      && id(f.runId) && uint(f.atWorldMs) && !L.runs[f.runId]
-      && !finished.has(f.runId) && uint(f.digest), 'corrupt-soak-summary');
-    const { digest: checksum, ...body } = f;
-    requireSoak(checksum === digest(body)
-      && ['completed', 'stopped'].includes(f.projection.status), 'corrupt-soak-summary');
+    checkedFinished(L, f);
+    requireSoak(!finished.has(f.runId), 'corrupt-soak-summary');
     finished.add(f.runId);
   }
   for (const [lotId, p] of Object.entries(m.provenance)) {
@@ -508,8 +523,24 @@ function checkedRecords(L: Ledger): Records {
       if (p.origin) withHuskSoakOrigin(sourceCopy(L.lots[lotId]), p.origin);
     }
   }
+  checkedWorlds.set(L, { worldId: L.world.worldId, worldEpoch: L.world.worldEpoch });
   return m;
 }
+/** A live ledger is owned by world transactions. A restored/new ledger must be
+ * fully checked; a known root may have been legitimately cloned by another
+ * world transaction, so object identity of the large record store is not proof.
+ */
+function spanRecords(L: Ledger): Records {
+  const target = L as SoakLedger;
+  if (target.huskSoakRecordFormat === undefined && target.huskSoakRecords === undefined) {
+    return records(L);
+  }
+  const m = checkedRecordsHeader(L);
+  const world = checkedWorlds.get(L);
+  return world?.worldId === L.world.worldId && world.worldEpoch === L.world.worldEpoch
+    ? m : checkedRecords(L);
+}
+
 function freshData(
   L: Ledger,
   runId: string,
@@ -531,7 +562,10 @@ function freshData(
   trimHistory(base);
   return sealData(base);
 }
-function checkSpan(d: CompactData, f: HuskSoakSpan): void {
+function checkSpan(
+  d: Pick<CompactData, 'worldId' | 'worldEpoch' | 'runId' | 'spec' | 'worldAt' | 'islandAt'>,
+  f: HuskSoakSpan,
+): void {
   requireSoak(shape(f, ['recordId', 'worldId', 'worldEpoch', 'runId', 'siteId',
     'fromWorldMs', 'toWorldMs', 'fromIslandMs', 'toIslandMs', 'confirmedAtWorldMs', 'immersed'])
     && id(f.recordId) && f.worldId === d.worldId && f.worldEpoch === d.worldEpoch
@@ -543,21 +577,20 @@ function checkSpan(d: CompactData, f: HuskSoakSpan): void {
     && (f.immersed === true || f.immersed === false || f.immersed === null),
     'invalid-or-overlapping-submersion-span');
 }
-function appendSpan(d: CompactData, span: HuskSoakSpan): CompactData {
-  checkSpan(d, span);
-  const { digest: _, ...next } = copy(d);
-  const contiguous = span.fromWorldMs === d.worldAt && span.fromIslandMs === d.islandAt;
+function appendSpanInPlace(next: Omit<CompactData, 'digest'>, span: HuskSoakSpan): void {
+  checkSpan(next, span);
+  const contiguous = span.fromWorldMs === next.worldAt && span.fromIslandMs === next.islandAt;
   if (!contiguous || span.immersed === null) next.historyComplete = 0;
   if (span.immersed === true) {
     const total = BigInt(next.totalImmersedMs) + BigInt(span.toIslandMs - span.fromIslandMs);
     requireSoak(total <= BigInt(Number.MAX_SAFE_INTEGER), 'submersion-time-overflow');
     next.totalImmersedMs = Number(total);
-    if (d.lastImmersed && contiguous && next.history.at(-1)?.runId === d.runId) {
+    if (next.lastImmersed && contiguous && next.history.at(-1)?.runId === next.runId) {
       next.history[next.history.length - 1].toWorldMs = span.toWorldMs;
     } else {
       next.history.push({
-        recordId: 'record:husk-soak:' + JSON.stringify([d.runId, next.historyCount]),
-        runId: d.runId, fromWorldMs: span.fromWorldMs, toWorldMs: span.toWorldMs,
+        recordId: 'record:husk-soak:' + JSON.stringify([next.runId, next.historyCount]),
+        runId: next.runId, fromWorldMs: span.fromWorldMs, toWorldMs: span.toWorldMs,
       });
       next.historyCount++;
       requireSoak(uint(next.historyCount), 'history-count-overflow');
@@ -573,8 +606,13 @@ function appendSpan(d: CompactData, span: HuskSoakSpan): CompactData {
   if (next.frames.length > HUSK_SOAK_WORK.receiptLimit) next.frames.shift();
   trimHistory(next);
   physical(next);
+}
+function appendSpan(d: CompactData, span: HuskSoakSpan): CompactData {
+  const { digest: _, ...next } = copy(d);
+  appendSpanInPlace(next, span);
   return sealData(next);
 }
+
 function compactDataOf(L: Ledger, runId: string): { run: Run; data: CompactData } {
   const r = L.runs[runId], d = r?.state?.data as CompactData;
   requireSoak(r && r.processId === HUSK_SOAK_WORK.processId
@@ -632,6 +670,7 @@ function remember(m: Records, key: string, payload: string, runId: string, atWor
 function replay(m: Records, key: string, payload: string, atWorldMs: number): Receipt | null {
   const old = m.recent.find(r => r.key === key);
   if (old) {
+    checkedReceipt(m, old);
     requireSoak(old.payload === payload, 'conflicting-command-replay');
     return old;
   }
@@ -775,13 +814,14 @@ function beginHuskSoakImpl(
 }
 function request(
   L: Ledger, r: Run, d: CompactData, requestId: string, to: number,
+  snapshot = true,
 ): ScienceStepRequest {
   return {
     contract: r.contract, requestId, world: copy(L.world), runId: r.runId,
     processId: r.processId, processVersion: r.processVersion, catalogVersion: r.catalogVersion,
-    interval: { from: r.lastTo, to }, state: copy(r.state),
+    interval: { from: r.lastTo, to }, state: snapshot ? copy(r.state) : r.state,
     environment: { sampleId: 'env:husk-soak-unused', source: 'unknown', effectiveAt: r.lastTo },
-    lots: [copy(d.source)], equipment: [], energy: [], actions: [], seed: r.seed,
+    lots: [snapshot ? copy(d.source) : d.source], equipment: [], energy: [], actions: [], seed: r.seed,
   };
 }
 function result(
@@ -799,24 +839,86 @@ function result(
     },
   };
 }
-function recordHuskSoakSpanImpl(
-  L: Ledger, runId: string, span: HuskSoakSpan, nowWorldMs: number,
-): SoakProjection {
-  requireSoak(uint(nowWorldMs) && uint(span?.confirmedAtWorldMs)
-    && span.confirmedAtWorldMs <= nowWorldMs, 'future-or-unconfirmed-span');
-  const m = records(L), key = canonical(['span', runId, span.recordId]);
-  if (replay(m, key, canonical(span), span.confirmedAtWorldMs)) return projectHuskSoak(L, runId);
-  soakTransaction(L, (draft, next) => {
-    const { run, data } = compactDataOf(draft, runId);
-    const d = appendSpan(data, span);
-    const req = request(draft, run, data, runId + ':span:' + JSON.stringify(span.recordId),
-      span.toIslandMs);
-    const applied = commit(draft, req, result(req, d, 'running'));
-    requireSoak(applied.ok, applied.why ?? 'span-commit-refused');
-    remember(next, key, canonical(span), runId, span.confirmedAtWorldMs);
-  });
-  return projectHuskSoak(L, runId);
+/** Receipts are trimmed after EACH accepted span, including their expiry floor.
+ * Other record rows do not change during a running span and are not cloned.
+ */
+function spanReceiptWindow(m: Records): void {
+  while (m.recent.length > HUSK_SOAK_WORK.receiptLimit) {
+    const old = m.recent.shift()!;
+    m.floorAtWorldMs = Math.max(m.floorAtWorldMs ?? 0, old.atWorldMs);
+  }
 }
+function spanRecordCopy(m: Records, L: Ledger): Records {
+  const next = { ...m, recent: m.recent.slice() };
+  for (const lotId of Object.keys(m.provenance)) {
+    if (L.lots[lotId]?.materialId !== 'wet_unseparated_coconut_husk') {
+      if (next.provenance === m.provenance) next.provenance = { ...m.provenance };
+      delete next.provenance[lotId];
+    }
+  }
+  return next;
+}
+function projectionFromRecords(L: Ledger, m: Records, runId: string): SoakProjection {
+  const finished = m.finished.find(f => f.runId === runId);
+  if (finished) {
+    checkedFinished(L, finished);
+    return copy(finished.projection);
+  }
+  return projectionOf(compactDataOf(L, runId).data);
+}
+function recordHuskSoakSpansImpl(
+  L: Ledger, runId: string, spans: HuskSoakSpan[], nowWorldMs: number,
+): SoakProjection {
+  requireSoak(uint(nowWorldMs) && Array.isArray(spans), 'future-or-unconfirmed-span');
+  const m = spanRecords(L);
+  if (spans.length === 0) return projectionFromRecords(L, m, runId);
+  // Check the shared envelope once. The private mini-ledger commits the same
+  // running-only results, while unrelated summaries are never rechecked per span.
+  ensureScienceRecords(L);
+  const next = spanRecordCopy(m, L);
+  let mini: Ledger | undefined;
+  let run: Run | undefined;
+  let data: CompactData | undefined;
+  let changed = false;
+  for (const span of spans) {
+    requireSoak(uint(span?.confirmedAtWorldMs) && span.confirmedAtWorldMs <= nowWorldMs,
+      'future-or-unconfirmed-span');
+    const key = canonical(['span', runId, span.recordId]), payload = canonical(span);
+    if (replay(next, key, payload, span.confirmedAtWorldMs)) continue;
+    if (!mini) {
+      const current = compactDataOf(L, runId);
+      data = copy(current.data);
+      run = { ...current.run, observations: current.run.observations.slice(),
+        state: { schema: HUSK_SOAK_WORK.schema, data } };
+      mini = {
+        world: copy(L.world), seq: L.seq, lots: {}, equipment: {},
+        runs: { [runId]: run }, committed: L.committed.slice(),
+      };
+    }
+    appendSpanInPlace(data!, span);
+    const req = request(mini, run!, data!,
+      runId + ':span:' + JSON.stringify(span.recordId), span.toIslandMs, false);
+    const applied = commit(mini, req, result(req, data!, 'running'));
+    requireSoak(applied.ok, applied.why ?? 'span-commit-refused');
+    remember(next, key, payload, runId, span.confirmedAtWorldMs);
+    spanReceiptWindow(next);
+    changed = true;
+  }
+  if (!changed) return projectionFromRecords(L, m, runId);
+  // Intermediate checksums are unobservable inside this atomic transaction.
+  // The final body and key order are exactly appendSpan's sequential result.
+  const { digest: _, ...body } = data!;
+  const final = sealData(body);
+  run!.state = { schema: HUSK_SOAK_WORK.schema, data: final };
+  const answer = projectionOf(final);
+  L.world = mini!.world;
+  L.committed = mini!.committed;
+  L.runs[runId] = run!;
+  install(L, next);
+  checkedWorlds.set(L, { worldId: L.world.worldId, worldEpoch: L.world.worldEpoch });
+  return answer;
+}
+
 function takeOutHuskSoakImpl(
   L: Ledger, runId: string, intent: HuskSoakTakeOut, nowWorldMs: number,
 ): SoakProjection {
@@ -886,6 +988,8 @@ function mutateSoak<T>(L: Ledger, body: (draft: Ledger) => T): T {
   const draft = copy(L);
   const answer = body(draft);
   Object.assign(L, draft);
+  const world = checkedWorlds.get(draft);
+  if (world) checkedWorlds.set(L, world);
   return answer;
 }
 export function beginHuskSoak(
@@ -893,11 +997,32 @@ export function beginHuskSoak(
 ): { runId: string } {
   return mutateSoak(L, draft => beginHuskSoakImpl(draft, spec, nowWorldMs));
 }
+/** Atomic ordered batch. It has the exact effects of sequential single-span
+ * calls, including individual receipts, frame counters and expiry decisions.
+ * An empty batch only reads the current projection.
+ */
+export function recordHuskSoakSpans(
+  L: Ledger, runId: string, spans: HuskSoakSpan[], nowWorldMs: number,
+): SoakProjection {
+  const target = L as SoakLedger;
+  if (target.huskSoakRecordFormat === undefined && target.huskSoakRecords === undefined) {
+    const draft = copy(L);
+    const answer = recordHuskSoakSpansImpl(draft, runId, spans, nowWorldMs);
+    if (spans.length) {
+      Object.assign(L, draft);
+      const world = checkedWorlds.get(draft);
+      if (world) checkedWorlds.set(L, world);
+    }
+    return answer;
+  }
+  return recordHuskSoakSpansImpl(L, runId, spans, nowWorldMs);
+}
 export function recordHuskSoakSpan(
   L: Ledger, runId: string, span: HuskSoakSpan, nowWorldMs: number,
 ): SoakProjection {
-  return mutateSoak(L, draft => recordHuskSoakSpanImpl(draft, runId, span, nowWorldMs));
+  return recordHuskSoakSpans(L, runId, [span], nowWorldMs);
 }
+
 export function takeOutHuskSoak(
   L: Ledger, runId: string, intent: HuskSoakTakeOut, nowWorldMs: number,
 ): SoakProjection {
@@ -906,8 +1031,7 @@ export function takeOutHuskSoak(
 
 /** World-only accounting, never a resident knowledge payload. */
 export function projectHuskSoak(L: Ledger, runId: string): SoakProjection {
-  const m = records(L), finished = m.finished.find(f => f.runId === runId);
-  return finished ? copy(finished.projection) : projectionOf(compactDataOf(L, runId).data);
+  return projectionFromRecords(L, spanRecords(L), runId);
 }
 /** Provenance belongs to live wet lots, not to completed producer runs. */
 export function readSoakedHuskInput(L: Ledger, lotId: string): SoakedHuskPiece['input'] {
