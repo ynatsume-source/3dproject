@@ -1,0 +1,32 @@
+first frame after 12 h closed (save-a.json): 19,384 ms
+self ms
+    6677 structuredClone js_transferable
+    4386 canonical husk-soak-work.ts
+    2269 checkedRecords husk-soak-work.ts
+    1758 (garbage collector) 
+    1737 (anon) husk-soak-work.ts
+    1428 digest husk-soak-work.ts
+     463 shape husk-soak-work.ts
+     233 (anon) cord-host.ts
+     230 compactDataOf husk-soak-work.ts
+     120 (idle) 
+     100 compileSourceTextModule utils
+      94 (anon) sail-host.ts
+inclusive ms (.ts)
+   18501 (anon) zz-prof.ts
+   17690 update residents.ts
+   17594 tick husk-host.ts
+   17569 recordHuskSoakSpan husk-soak-work.ts
+   17567 (anon) husk-soak-work.ts
+   17563 mutateSoak husk-soak-work.ts
+   14815 recordHuskSoakSpanImpl husk-soak-work.ts
+   10365 soakTransaction husk-soak-work.ts
+    9626 checkedRecords husk-soak-work.ts
+    7465 digest husk-soak-work.ts
+    6073 canonical husk-soak-work.ts
+    5796 records husk-soak-work.ts
+    2459 projectHuskSoak husk-soak-work.ts
+     983 compactDataOf husk-soak-work.ts
+     797 makeResidents residents.ts
+     566 step residents.ts
+     509 decide residents.ts
