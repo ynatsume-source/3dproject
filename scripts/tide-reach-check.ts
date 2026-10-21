@@ -5,6 +5,12 @@
 //  3 the GPU's sea is lifted by the same reach (tideReach in the swell's shader, from the same map)
 //  4 the rising tide comes up the shore: at the year's highest (+0.91 m) at least 95% of the ground from 0 to 0.91 m
 //    joined to the sea (on a 1 m grid of its own, through ground below the tide's top) is under the water (science B1)
+//  5 each sea's tide's top its own: its year's highest tide (its own tide) and the run-up — Kayama +0.91 + 0.2, the
+//    seas with bigger tides higher (science C2); the husks' standing spot shallow enough to walk at the year's highest
+//    (WADE_M 0.5: science C1)
+//  6 the residents' way on foot by the world's own sea (its clock's sea level × the island's own tide map), never the drawn
+//    one: at the world's high tide the husks' standing spot walked, ground under more than 0.5 m not; the drawn sea's
+//    height (setSeaLevel: the viewing clock) changes nothing (science B1 on #81)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/tide-reach-check.ts
 import './node-land';
 import * as THREE from 'three';
@@ -24,7 +30,10 @@ const fakeEl = () => ({ getContext: () => ({ createRadialGradient: () => ({ addC
 Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: fakeEl, createElementNS: fakeEl, getElementById: () => null } });
 const oc: any = buildOcean(loc);
 const { useWater, setSeaLevel, swellAt, waterTopAt, underWater, tideReach, SWELL } = await import('../src/ocean/air');
-const { TIDE_TOP_M } = await import('../src/ocean/water');
+const { tideTop, RUN_UP_M } = await import('../src/time/sea-level');
+const { LOCATIONS } = await import('../src/data/locations');
+const { tide } = await import('../src/time/astro');
+const TIDE_TOP_M = tideTop(loc);
 const { U } = await import('../src/render/common');
 const fs = await import('node:fs');
 
@@ -70,6 +79,31 @@ want('3 the GPU\'s sea lifted where the tide reaches, by the same map', /float t
   const at91 = share(0.91), at60 = share(0.6), at30 = share(0.3);
   want('4 at +0.91 m: 95% or more of the shore joined to the sea from 0 to 0.91 m under the water', at91.all > 1000 && at91.pc >= 95, `${at91.pc.toFixed(1)}% of ${at91.all} m² (+0.6: ${at60.pc.toFixed(1)}%, +0.3: ${at30.pc.toFixed(1)}%)`);
   want('4 and the pools and ponds still at mean sea level', ['pool', 'inland'].every((kk) => { setSeaLevel(0.91); const v = waterTopAt(...pick[kk]); setSeaLevel(0); return v === 0; }));
+}
+{ // 5
+  const yearHi = (l: any) => { let hi = -9; for (let ms = Date.UTC(2026, 0, 1); ms < Date.UTC(2027, 0, 1); ms += 600_000) hi = Math.max(hi, tide(ms, l.lat, l.lon, l.tide.amp, l.tide.lag, l.tide.diurnal).h); return hi; };
+  const kay = tideTop(loc), rows = [loc, ...LOCATIONS.filter((l: any) => l.tide && l.id !== 'kayama')].map((l: any) => ({ id: l.id, top: tideTop(l), hi: yearHi(l) }));
+  want('5 Kayama\'s tide\'s top: the year\'s highest +0.91 m and the run-up', Math.abs(kay - (0.91 + RUN_UP_M)) < 0.01, kay.toFixed(3));
+  want('5 each sea its own: its year\'s highest (every 10 min) and the run-up, within 2 cm', rows.every((r) => Math.abs(r.top - (r.hi + RUN_UP_M)) < 0.02), rows.map((r) => `${r.id} ${r.top.toFixed(2)}`).join(', '));
+  want('5 the seas with bigger tides higher (GBR, Galápagos, Miyako above Kayama)', ['gbr', 'galapagos', 'miyako'].every((id) => rows.find((r) => r.id === id)!.top > kay));
+  const stand = oc.residents.huskSites?.().pool?.stand;
+  if (stand) { setSeaLevel(0.91); const depth = waterTopAt(stand[0], stand[1]) - loc.f(stand[0], stand[1]); setSeaLevel(0);
+    want('5 the husks\' standing spot at the year\'s highest: under, but shallow enough to walk (WADE_M 0.5)', depth > 0 && depth <= 0.5, `${depth.toFixed(2)} m`); }
+}
+{ // 6
+  const R = oc.residents, wc = R.walkCost as (x: number, z: number) => number, stand = R.huskSites().pool.stand as [number, number];
+  // (dry shore the tide reaches, ground 0.3 to 0.4 m: walked at mean sea level, more than 0.5 m under at +0.91)
+  let deep: [number, number] | null = null;
+  for (let r0 = 0; r0 < 40 && !deep; r0 += 0.5) for (let a = 0; a < 6.28 && !deep; a += 0.1) { const x = stand[0] + Math.cos(a) * r0, z = stand[1] + Math.sin(a) * r0, g = loc.f(x, z); if (g >= 0.32 && g <= 0.39 && W.tideK(x, z) === 1 && isFinite(wc(x, z))) deep = [x, z]; }
+  const s0 = wc(...stand), d0 = deep ? wc(...deep) : NaN;
+  R.setSeaAt(() => 0.91);   // (the world's clock at the year's highest tide)
+  const s1 = wc(...stand), d1 = deep ? wc(...deep) : NaN;
+  want('6 at the world\'s high tide: the husks\' standing spot walked; ground more than 0.5 m under not', isFinite(s1) && !!deep && isFinite(d0) && d1 === Infinity, `stand ${s1}, deep (ground ${deep ? loc.f(...deep).toFixed(2) : '-'}) ${d0} → ${d1}`);
+  R.setSeaAt(() => 0);
+  const before = [wc(...stand), deep ? wc(...deep) : 0]; setSeaLevel(0.9);   // (the drawn sea high: the viewing clock's)
+  const after = [wc(...stand), deep ? wc(...deep) : 0]; setSeaLevel(0);
+  want('6 the drawn sea\'s height changes nothing of the residents\' way', JSON.stringify(before) === JSON.stringify(after), JSON.stringify(after));
+  void s0;
 }
 console.log(bad ? `FAIL ${bad}` : 'all ok');
 process.exit(bad ? 1 : 0);

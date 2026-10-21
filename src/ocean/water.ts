@@ -16,8 +16,8 @@ export type WaterKind = 'sea' | 'lagoon' | 'pool' | 'inland' | 'dry';
 const KINDS: WaterKind[] = ['dry', 'sea', 'lagoon', 'pool', 'inland'];
 /** How much of the sea's swell reaches each kind of water (0 still .. 1 all of it). */
 const SWELL_K: Record<WaterKind, number> = { dry: 0, sea: 1, lagoon: 0.35, pool: 0, inland: 0 };
-/** The highest the tide comes up the shore (m above mean sea level): the year's highest tide at Kayama (+0.91 m, time/astro
- *  tide) and the waves' run-up (0.2 m). Dry ground below it and joined to the sea is the tide's. */
+/** The highest the tide comes up the shore when a sea's own is not given (m above mean sea level): Kayama's, the year's
+ *  highest tide (+0.91 m) and the waves' run-up (0.2 m). Each sea gives its own (time/sea-level.ts tideTop). */
 export const TIDE_TOP_M = 0.91 + 0.2;
 
 export interface Water {
@@ -39,9 +39,10 @@ const LAGOON_OFF = 40;     // … and this far from water 4 m deep (m): a lagoon
 
 /** f: the floor height (the land above the sea, the seabed below it); half: how far the land reaches from the
  *  middle (m), 0 for a sea with no island (all water below 0 is the sea). */
-export function classifyWater(f: (x: number, z: number) => number, half: number, cell = 2): Water { return drain(classifyWaterSteps(f, half, cell)); }
+export function classifyWater(f: (x: number, z: number) => number, half: number, cell = 2, tideTop = TIDE_TOP_M): Water { return drain(classifyWaterSteps(f, half, cell, tideTop)); }
 /** The same, giving way between rows of samples when a slice is up (core/slice.ts). */
-export function* classifyWaterSteps(f: (x: number, z: number) => number, half: number, cell = 2): Generator<string, Water, unknown> {
+/** tideTop: the highest the tide comes up this sea's shore (time/sea-level.ts tideTop). */
+export function* classifyWaterSteps(f: (x: number, z: number) => number, half: number, cell = 2, tideTop = TIDE_TOP_M): Generator<string, Water, unknown> {
   if (!(half > 0)) {
     return { at: (x, z) => f(x, z) < 0 ? 'sea' : 'dry', swellK: () => 1, tideK: () => 1, tex: null, x0: 0, z0: 0, size: 0,
       counts: { sea: 0, lagoon: 0, pool: 0, inland: 0, dry: 0 } };
@@ -97,7 +98,7 @@ export function* classifyWaterSteps(f: (x: number, z: number) => number, half: n
   // their sides (a pool's or a pond's cells are not passed through: their water stays as it is, ADR 0009 §3)
   const t0 = new Float32Array(N); qh = qt = 0;
   for (let c = 0; c < N; c++) if (kind[c] === 1 || kind[c] === 2) { t0[c] = 1; q[qt++] = c; }
-  while (qh < qt) { const c = q[qh++]; for (const d of nb(c, tmp)) if (!t0[d] && kind[d] === 0 && h[d] < TIDE_TOP_M) { t0[d] = 1; q[qt++] = d; } }
+  while (qh < qt) { const c = q[qh++]; for (const d of nb(c, tmp)) if (!t0[d] && kind[d] === 0 && h[d] < tideTop) { t0[d] = 1; q[qt++] = d; } }
   const tk = new Float32Array(N);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
     const c = i + j * n; if (kind[c] >= 3) continue;   // (still water stays still)

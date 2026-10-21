@@ -34,6 +34,7 @@ import { Wreck, wreckMaterial } from './wreck';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
 import { classifyWaterSteps } from './water';
+import { tideTop } from '../time/sea-level';
 import { due, drain } from '../core/slice';
 export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
@@ -247,7 +248,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
   yield 'seabed';
-  oc.water = yield* classifyWaterSteps(loc.f, loc.land ? loc.land.far : 0);   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
+  oc.water = yield* classifyWaterSteps(loc.f, loc.land ? loc.land.far : 0, 2, loc.land ? tideTop(loc) : undefined);   // (the tide's top: its own sea's, where it has a shore)   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
   yield 'seabed';
   // a wreck on the sand: solid to everything that swims (its outline into the obstacle map)
   const wreck = loc.wreck ? new Wreck(loc.wreck, loc.f) : null;
@@ -507,6 +508,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   if (loc.residents) {
     const lanternStudy = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lantern-study');
     T.water = oc.water.at;   // (where the residents may go into the water: the sea, not a pool cut off from it)
+    T.tideK = oc.water.tideK;   // (how much of the tide reaches each place on the island: the residents' own sea, robots/residents.ts)
     oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja), { lanternStudy });
     group.add(oc.residents.group);
     // what the husk-and-cord work leaves at its worksites, as it looks (robots/coir-look.ts: no world draws). The host
