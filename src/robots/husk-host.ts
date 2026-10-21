@@ -34,6 +34,7 @@ export interface HuskHostState {
   engaged: Record<string, { runId: string; from: number; at: { x: number; z: number } }>;   // actor → its hands on a husk
   decisions: Record<string, number>;                     // actor → how many times it has been offered the husk work
   looked?: Record<string, string>;                       // actor → what it last saw at the pool (so a sight is noted once)
+  tried?: Record<string, number>;                        // wet husk → when hands last tried it and it would not come apart
   board?: boolean;                                       // the beating board stands at the worksite (once a husk was beaten there)
 }
 export const emptyHuskHostState = (): HuskHostState => ({ sites: null, soak: {}, engaged: {}, decisions: {}, looked: {} });
@@ -42,6 +43,9 @@ export interface HuskDevEntry { at: number; actorId: string; action: string; cod
 
 const SEED = 0x6875736b;   // 'husk'
 const SOAK_EVERY_MS = 60_000, WORK_EVERY_MS = 30_000;
+/** A husk tried and found too little soaked is let be this long (world time, about half an island day) before it is
+ *  offered for beating again (science soak 2026-10-21: up to 26 tries in 12 hours). */
+const RETRY_BEAT_MS = 3_600_000;
 /** Under the water (science 2026-10-20): the sea at least this far above the husks' ground, at a span's middle. */
 export const IMMERSED_M = 0.05;
 /** How near the pool a body must stand to see into it (presence 'here'). */
@@ -122,11 +126,13 @@ export function makeHuskHost(ctx: {
       || a.lotId.localeCompare(b.lotId))[0];
   const wetHusks = () => Object.values(L().lots).filter((l: any) => l.materialId === WET && !l.reservedBy && [sites().pool.id, sites().work.id].includes(l.location)).sort((a, b) => a.lotId.localeCompare(b.lotId));
 
+  // (wet husks to beat: not one tried a little while ago and found too little soaked)
+  const beatable = (nowWorldMs: number) => wetHusks().filter((l) => !(nowWorldMs - (st().tried?.[l.lotId] ?? -Infinity) < RETRY_BEAT_MS));
   function options(actorId: string, nowWorldMs: number): Option[] {
     const o: Option[] = [];
     if (shelfHusk() && !poolFull()) o.push({ id: 'soak:pool', action: 'soak', label: 'ヤシの殻を潮だまりに浸ける', targetId: 'pool' });
     if (soakRuns().length) o.push({ id: 'takeout:pool', action: 'takeout', label: '潮だまりの殻を引き上げる', targetId: 'pool' });
-    if ((wetHusks().length || pausedJobs().length) && !workTakenBy(actorId)) o.push({ id: 'beat:husk', action: 'beat', label: '濡れた殻を打ってほぐす', targetId: 'husk-site' });
+    if ((beatable(nowWorldMs).length || pausedJobs().length) && !workTakenBy(actorId)) o.push({ id: 'beat:husk', action: 'beat', label: '濡れた殻を打ってほぐす', targetId: 'husk-site' });
     if (pausedJobs().length && !workTakenBy(actorId)) o.push({ id: 'clear:husk', action: 'clear', label: '打ちかけの殻を片付ける', targetId: 'husk-site' });
     // (no order of the work: shuffled by the island, the one deciding and the moment — the same moment, the same order)
     const n = (st().decisions[actorId] = (st().decisions[actorId] ?? 0) + 1);
@@ -187,7 +193,7 @@ export function makeHuskHost(ctx: {
       if (own) runId = intent({ intentId: `resume:${actorId}:${nowWorldMs}`, kind: 'resume', runId: own.runId, presence: 'here', ...base }, nowWorldMs).runId;
       else if (other) runId = intent({ intentId: `takeover:${actorId}:${nowWorldMs}`, kind: 'takeover', runId: other.runId, presence: 'here', ...base }, nowWorldMs).runId;
       else {
-        const lot = wetHusks()[0]; if (!lot) return { ok: false, felt: null };
+        const lot = beatable(nowWorldMs)[0]; if (!lot) return { ok: false, felt: null };
         // (it carries the husk to the worksite: the world's own move)
         const moved = moveLot(L(), lot.lotId, work.id); if (!moved.lot) { log(nowWorldMs, actorId, 'beat-carry', moved.why); return { ok: false, felt: null }; }
         const facts: HuskStartFacts = { assumptionId: MANUAL_HUSK_ASSUMPTION.id, huskCount: 1, input: readSoakedHuskInput(L(), lot.lotId) as any,
@@ -197,6 +203,8 @@ export function makeHuskHost(ctx: {
         try { beginManualHuskWork(structuredClone(L()), { ...facts, commandId: 'trial', operatorId: actorId, openedAtWorldMs: nowWorldMs }); }
         catch (e) {
           log(nowWorldMs, actorId, 'beat-trial', e);
+          const tried = (st().tried ??= {}); tried[lot.lotId] = nowWorldMs;
+          for (const id of Object.keys(tried)) if (!L().lots[id]) delete tried[id];   // (husks no longer there: forgotten)
           const felt = huskWorkFailureObservations(e, { kind: 'executor-confirmed-husk-attempt', actorId, lotId: lot.lotId, presence: 'here', attempted: true, atWorldMs: nowWorldMs, confirmedAtWorldMs: nowWorldMs }, nowWorldMs);
           return { ok: false, felt: felt[0]?.text ?? null };
         }

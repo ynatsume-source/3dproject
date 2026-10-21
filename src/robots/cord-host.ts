@@ -117,8 +117,11 @@ export function makeCordHost(ctx: {
   const bundle = () => lots().filter((l) => l.materialId === BUNDLE && !l.reservedBy).sort(byId)[0];
   // (a bundle with too little fibre for a use's length can never be twisted to it: not offered — science soak 2026-10-20,
   // insufficient-fiber 14 to 31 times a day. The oldest bundle that has enough; its drying and its pith are the hands' to find)
+  // (nor a wet one: fibre still wet cannot be twisted — science soak 2026-10-21, wet-fiber-cannot-twist 19 to 39 times in
+  // 12 hours; dry enough is the science side's own line, water at most a tenth of the dry. It is dried first)
   const twistable = (use: keyof typeof CORD_USES) => lots().filter((l) => l.materialId === BUNDLE && !l.reservedBy).sort(byId).find((l) => {
-    try { const q = l.quality ?? {}; return (Number(q.fiber_dry_mg) + Number(q.attached_pith_dry_mg)) >= CORD_USES[use].mm * COIR_CORD_RULES.dryMgPerStrandMm; } catch { return false; } });
+    try { const q = l.quality ?? {}, dry = Number(q.fiber_dry_mg) + Number(q.attached_pith_dry_mg);
+      return dry >= CORD_USES[use].mm * COIR_CORD_RULES.dryMgPerStrandMm && Number(q.water_mg) * COIR_CORD_RULES.waterPerDryDenominator <= dry; } catch { return false; } });
   const cords = (m: string) => lots().filter((l) => l.materialId === m && !l.reservedBy && !inUse().has(l.lotId)).sort(byId);
   const lengthOf = (l: LotView) => Number(l.quality?.length_mm ?? 0);   // (the world's own measure of a piece: never told)
   // (three strands of one length lying in one place: the oldest three)

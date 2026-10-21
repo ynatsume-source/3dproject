@@ -3,8 +3,8 @@
 // step named.
 //  1 the options: the cord's hand actions offered when the materials and places allow, with no number in them (the two
 //    lengths are the uses they are for); the order seeded, not the work's
-//  2 twisting a wet bundle: "繊維が湿っていて、撚れない" as felt, only because it was there and tried; the code in the
-//    developer's log only
+//  2 a wet bundle is not offered for twisting (science soak 2026-10-21: wet-fiber-cannot-twist 19 to 39 times in 12
+//    hours): nothing tried, nothing refused; it is dried first
 //  3 dried under the eaves: a drying run on the island's clock, the roof's time confirmed as it passes; saved and loaded
 //    three hours later — no hand work in the hours caught up on, and the roof's time across the load one span
 //  4 twisted three strands of the pot's length, plied into a rope at the worksite
@@ -73,13 +73,13 @@ step(5);
   for (let i = 0; i < 3600 && !inputs.slice(n0).some((x) => x.who === 'dot'); i++) { step(1); await Promise.resolve(); await Promise.resolve(); }
   step(120);   // (its mind's answer — nothing — taken, before the next step is chosen)
   const opts = (inputs.slice(n0).find((i) => i.who === 'dot')?.options ?? []).filter((o: any) => o.id.startsWith('cord:'));
-  want('1 offered what the materials allow: drying, sieving, twisting for either use (no plying, no hanging yet)', ['cord:dry', 'cord:sieve', 'cord:twist:pot', 'cord:twist:raft'].every((id) => opts.some((o: any) => o.id === id)) && !opts.some((o: any) => ['cord:ply', 'cord:hang', 'cord:lash'].includes(o.id)), opts.map((o: any) => o.id).join(','));
+  want('1 offered what the materials allow: drying, sieving (no twisting a wet bundle, no plying, no hanging yet)', ['cord:dry', 'cord:sieve'].every((id) => opts.some((o: any) => o.id === id)) && !opts.some((o: any) => ['cord:twist:pot', 'cord:twist:raft', 'cord:ply', 'cord:hang', 'cord:lash'].includes(o.id)), opts.map((o: any) => o.id).join(','));
   want('1 no number in an option (the length is the use it is for)', opts.every((o: any) => !/[0-9０-９]/.test(o.id + o.label)), opts.map((o: any) => o.label).join(' / '));
 }
 { // 2
   const dev0 = R.cordDev.length;
-  await choose('cord:twist:pot', () => said(/繊維が湿っていて、撚れない/));
-  want('2 twisting the wet bundle: what it felt, in the science side\'s words; the code for the developer only', said(/繊維が湿っていて、撚れない/) && R.cordDev.slice(dev0).some((d: any) => d.code === 'wet-fiber-cannot-twist') && runsOf('twist').length === 0, R.cordDev.slice(dev0).map((d: any) => d.code).join(','));
+  await choose('cord:twist:pot', () => false, 120);   // (its mind names it: it is not there to be done)
+  want('2 the wet bundle: no twisting tried, nothing refused, no run', !said(/繊維が湿っていて、撚れない/) && !R.cordDev.slice(dev0).some((d: any) => d.code === 'wet-fiber-cannot-twist') && runsOf('twist').length === 0, R.cordDev.slice(dev0).map((d: any) => d.code).join(',') || '(none)');
 }
 { // 3
   await choose('cord:dry', () => runsOf('dry').some((r) => r.status === 'running'));
