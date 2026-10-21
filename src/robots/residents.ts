@@ -31,7 +31,8 @@ import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, canTak
 import { CATALOG, canResumeProcessVersion, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
 import { RAW_CLAY_SOUTH } from '../world/planet-map';
-import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry } from './husk-host';
+import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry, type HuskPool } from './husk-host';
+import { seaLevel } from '../time/sea-level';
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
 import { makeSailHost, emptySailHostState, PANDANUS, type SailHostState, type SailDevEntry } from './sail-host';
 import { makeSailVoyageHost } from './sail-voyage-host';
@@ -1262,12 +1263,27 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // bodies): the tide pool on the shore nearest Dot's home, the worksite by the bench. Found once, without the world's
   // draws (a fixed search outward), and kept with the village.
   const huskDev: HuskDevEntry[] = [];   // (the science side's refusal codes, for the developer: not saved, never a resident's)
+  // The pool (science 2026-10-20, (c)): from the shore found first, the nearest spot at the sea's or a lagoon's edge whose
+  // ground is about 0.2 m below mean sea level (under the tide 60% of the year), with dry footing within reach to stand
+  // on. The husks lie there; a body stands on the dry spot. None found: the shore as before, its husks always under (v1).
+  const tidePool = (sx: number, sz: number): HuskPool => {
+    let best: { x: number; z: number; g: number; stand: [number, number]; score: number } | null = null;
+    for (let r = 0; r <= 24; r += 0.5) for (let a = 0; a < Math.PI * 2; a += 0.1) {
+      const x = sx + Math.cos(a) * r, z = sz + Math.sin(a) * r, g = L.h(x, z);
+      if (g < -0.26 || g > -0.14 || (T.water && !['sea', 'lagoon'].includes(T.water(x, z)))) continue;
+      const score = Math.abs(g + 0.2) * 20 + r; if (best && score >= best.score) continue;
+      let stand: [number, number] | null = null;
+      for (let q = 0.5; q <= POOL_REACH_M - 0.2 && !stand; q += 0.25) for (let b = 0; b < Math.PI * 2; b += 0.2) { const u = x + Math.cos(b) * q, v = z + Math.sin(b) * q; if (L.h(u, v) >= 0.45) { stand = [u, v]; break; } }
+      if (stand) best = { x, z, g, stand, score };
+    }
+    return best ? { id: 'site:husk-pool', x: best.x, z: best.z, ground: best.g, stand: best.stand } : { id: 'site:husk-pool', x: sx, z: sz, ground: -1, stand: [sx, sz] };
+  };
   const husk = makeHuskHost({ lab, state: () => (village.huskHost ??= emptyHuskHostState()), dev: huskDev, placeSites: () => {
     const [hx, hz] = byId.dot.sp.home; let pool: [number, number] = [hx, hz];
     found: for (let d = 10; d <= 240; d += 5) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2, x = hx + Math.cos(a) * d, z = hz + Math.sin(a) * d; if (shore(x, z, L.h(x, z))) { pool = [x, z]; break found; } }
     const [bx, bz] = benchStand();
-    return { pool: { id: 'site:husk-pool', x: pool[0], z: pool[1] }, work: { id: 'site:husk-work', x: bx + 1.2, z: bz, reachM: 2 } };
-  } });
+    return { pool: tidePool(pool[0], pool[1]), work: { id: 'site:husk-work', x: bx + 1.2, z: bz, reachM: 2 } };
+  }, repool: (was) => tidePool(was.x, was.z), seaAt: (ms) => seaLevel(ms, loc) });
   // The coir cord (robots/cord-host.ts: the science side's drying, sieving, twisting, plying and the loads on a cord):
   // the drying place and the pot's hook under the hut's eaves (a roof once the hut is up), the worksite by the bench.
   const cordDev: CordDevEntry[] = [];
@@ -1866,7 +1882,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (action === 'post') t = r.holding === 'wood' && village.pier === 'build' && village.posts < village.bases ? task('post', pileStand(village.posts, true), 'work', 8, { wet: true }) : null;
     else if (action === 'float') t = task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
     else if (action === 'groom') t = task('groom', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'groom', rr(90, 200), { wet: true });
-    else if (action === 'soak' || action === 'takeout') { const p = husk.sites().pool; t = task(action === 'soak' ? 'husk-soak' : 'husk-takeout', [p.x, p.z], 'pick', 4); }
+    else if (action === 'soak' || action === 'takeout') { const p = husk.sites().pool; t = task(action === 'soak' ? 'husk-soak' : 'husk-takeout', p.stand ?? [p.x, p.z], 'pick', 4); }   // (on the dry spot by the pool, reaching in)
     else if (action === 'beat') { const w = husk.sites().work; t = task('husk-beat', [w.x, w.z], 'work', 900, { data: {} }); }   // (a quarter hour at most at a time; the rest another time)
     else if (action === 'clear') { const w = husk.sites().work; t = task('husk-clear', [w.x, w.z], 'pick', 3); }
     else if (action === 'cord') {   // (cord:dry, cord:takein, cord:sieve, cord:twist:<use>, cord:ply, cord:resume, cord:clear, cord:hang, cord:lash)
@@ -4276,7 +4292,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     return el;
   }
 
-  (res as any).huskDev = huskDev;   // (the developer's record of the science side's refusals: read by checks, never by a resident)
+  (res as any).huskDev = huskDev;
+  (res as any).huskSites = () => husk.sites(); (res as any).huskRepool = (was: { id: string; x: number; z: number }) => tidePool(was.x, was.z);   // (the pool's place, for checks)   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)
   (res as any).cordDev = cordDev; (res as any).cordHost = cord; (res as any).sailDev = sailDev; (res as any).sailHost = sail;
   (res as any).tell = tell;   // (for checks: the world telling an event, and whether it is a first)

@@ -10,7 +10,8 @@
 //  7 a place full is not offered (the pool with husks in it, the worksite with another's hands at a husk); what lies in
 //    the pool is seen only by one standing at it (presence 'here'), noted once as it changes
 //  8 the hours caught up on by habit after a load do no hand work: nothing put in, taken out or beaten, no work counted;
-//    the pool's time across the load is sent as one span, from the last confirmed moment to the first one back
+//    the pool's time across the load is sent a minute at a time (science 2026-10-20: the tide comes and goes in it), from
+//    the last confirmed moment to the first one back, without a gap
 //  6 nothing a resident is told carries the amounts (marker masses) or a code: not its diary, not what its mind is
 //    given, not the day's post prompt, not its saved memory
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/husk-host-check.ts
@@ -109,8 +110,11 @@ store.clear(); inputs.length = 0; now = Date.parse('2026-10-06T21:00:00Z'); Math
   want('8 caught up on by habit: no hand work — nothing put in, taken out or started, the husks where they were', Object.keys(R.lab.runs).length === runs8 && R.lab.runs[soakId].status === 'running' && lots('coconut_husk').filter((l) => l.location === 'shelf').length === shelf0 + 1 && R.huskDev.length === 0, `runs ${runs8}→${Object.keys(R.lab.runs).length}, ${R.lab.runs[soakId].status}, on the shelf ${lots('coconut_husk').filter((l) => l.location === 'shelf').length}, refusals ${R.huskDev.map((d: any) => d.code).join(',')}`);
   for (const l of lots('coconut_husk').filter((l) => l.location === 'shelf')) delete R.lab.lots[l.lotId];
   const back = now; step(2);
-  const fr8 = R.lab.runs[soakId].state.data.frames, one = fr8.find((f: any) => f.fromWorldMs === from8);
-  want('8 the pool\'s time across the load: one span, from the last confirmed moment to the first one back', !!one && one.toWorldMs >= back && fr8.filter((f: any) => f.fromWorldMs < back && f.toWorldMs > from8 + 1000).length === 1, one ? `${Math.round((one.toWorldMs - one.fromWorldMs) / 60e3)} min` : `(no span from ${from8})`);
+  // (the spans sent, as the science side counts them: all kept, or — records bounded — their count and the last few)
+  const d8 = R.lab.runs[soakId].state.data, d0 = s8.lab.runs[soakId].state.data, count = (d: any) => d.frameCount ?? d.frames.length, sent = count(d8) - count(d0);
+  const tail = d8.frames.filter((f: any) => f.fromWorldMs >= from8 && f.fromWorldMs < back), upTo = d8.worldAt ?? d8.frames.at(-1).toWorldMs;
+  const joined = tail.every((f: any, i: number) => (i === 0 || f.fromWorldMs === tail[i - 1].toWorldMs) && f.toWorldMs - f.fromWorldMs <= 60_000);
+  want('8 the pool\'s time across the load: a minute at a time, from the last confirmed moment to the first one back, no gap', sent >= 180 && joined && upTo >= back - 60_000 && sent === Math.floor((upTo - from8) / 60_000), `${sent} spans`);
   step(Math.ceil(islandWait(2.6 * 86400e3) / 1000) - half);
   { // (seen only from the pool: away, nothing; there, what it sees now)
     const p = R.huskHost.sites().pool, d = dot(), n0 = d.diary.length;
