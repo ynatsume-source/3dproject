@@ -197,7 +197,19 @@ export function makeSailHost(ctx: {
     const previous = carryBatch(sources, s.id, nowWorldMs, actorId);
     if (!previous) return null;
     try {
-      const { runId } = intent({ intentId: `dry:${actorId}:${nowWorldMs}`, kind: 'start', actorId, atWorldMs: nowWorldMs, operation: 'dry', lotIds: sources.map(l => l.lotId), siteId: s.id, presence: 'here' }, nowWorldMs, facts(s, { roofed: true, dryingPolicyId: SAIL_LEAF_DRYING_ID }));
+      const { runId } = intent({
+        intentId: `dry:${actorId}:${nowWorldMs}`,
+        kind: 'start',
+        actorId,
+        atWorldMs: nowWorldMs,
+        operation: 'dry',
+        lotIds: sources.map(l => l.lotId),
+        siteId: s.id,
+        presence: 'here',
+      }, nowWorldMs, facts(s, {
+        roofed: true,
+        dryingPolicyId: SAIL_LEAF_DRYING_ID,
+      }));
       st().dry[runId] = nowWorldMs;
       return 'アダンの葉を軒下に広げた';
     } catch (e) { putBatchBack(previous); log(nowWorldMs, actorId, 'dry', e); return null; }   // (it could not be laid out: back where it was)
