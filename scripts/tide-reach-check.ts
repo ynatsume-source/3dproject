@@ -3,6 +3,8 @@
 //    mean sea level (ADR 0009 §3), the husks' pool aside (it lies at the lagoon's edge)
 //  2 the CPU's water top and "under the water" follow it; the waves ride on it; at mean sea level all is as before
 //  3 the GPU's sea is lifted by the same reach (tideReach in the swell's shader, from the same map)
+//  4 the rising tide comes up the shore: at the year's highest (+0.91 m) at least 95% of the ground from 0 to 0.91 m
+//    joined to the sea (on a 1 m grid of its own, through ground below the tide's top) is under the water (science B1)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/tide-reach-check.ts
 import './node-land';
 import * as THREE from 'three';
@@ -22,6 +24,7 @@ const fakeEl = () => ({ getContext: () => ({ createRadialGradient: () => ({ addC
 Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: fakeEl, createElementNS: fakeEl, getElementById: () => null } });
 const oc: any = buildOcean(loc);
 const { useWater, setSeaLevel, swellAt, waterTopAt, underWater, tideReach, SWELL } = await import('../src/ocean/air');
+const { TIDE_TOP_M } = await import('../src/ocean/water');
 const { U } = await import('../src/render/common');
 const fs = await import('node:fs');
 
@@ -52,6 +55,21 @@ setSeaLevel(0);
 want('2 at mean sea level all as before', kinds.every((k) => swellAt(...pick[k]) === before[k] && waterTopAt(...pick[k]) === 0), '');
 // (the GPU: the drawn sea lifted by uSeaH × tideReach, and the waterline view's surface the same)
 const air = fs.readFileSync('src/ocean/air.ts', 'utf8'), split = fs.readFileSync('src/render/split.ts', 'utf8');
-want('3 the GPU\'s sea lifted where the tide reaches, by the same map', SWELL.includes('float tideReach(vec2 p){ return smoothstep(0.0, 0.3, seaK(p)); }') && /w\.y \+= swell\(p0, uTime, dist\)\.x \+ uSeaH \* tideReach\(p0\)/.test(air) && split.includes('uSeaH * tideReach(p)'), '');
+want('3 the GPU\'s sea lifted where the tide reaches, by the same map', /float tideReach\(vec2 p\)\{[^}]*texture2D\(uSeaK[^}]*\.g;/.test(SWELL) && /w\.y \+= swell\(p0, uTime, dist\)\.x \+ uSeaH \* tideReach\(p0\)/.test(air) && split.includes('uSeaH * tideReach(p)'), '');
+{ // 4 (the ground joined to the sea, found here on a 1 m grid of its own: from the sea and the lagoons, through dry ground
+  // below the tide's top; the year's highest tide, then lower ones)
+  const R = 600, n = 2 * R + 1, at = (i: number, j: number) => i + j * n, h = new Float32Array(n * n), k = new Uint8Array(n * n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x = i - R, z = j - R, w = W.at(x, z); h[at(i, j)] = loc.f(x, z); k[at(i, j)] = w === 'sea' || w === 'lagoon' ? 1 : w === 'dry' ? 0 : 2; }
+  const seen = new Uint8Array(n * n), q: number[] = [];
+  for (let c = 0; c < n * n; c++) if (k[c] === 1) { seen[c] = 1; q.push(c); }
+  for (let qi = 0; qi < q.length; qi++) { const c = q[qi], i = c % n, j = (c - i) / n;
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const ii = i + a, jj = j + b; if (ii < 0 || jj < 0 || ii >= n || jj >= n) continue; const d = at(ii, jj); if (!seen[d] && k[d] === 0 && h[d] < TIDE_TOP_M) { seen[d] = 1; q.push(d); } } }
+  const share = (level: number) => { setSeaLevel(level); let all = 0, under = 0;
+    for (let c = 0; c < n * n; c++) if (seen[c] && k[c] === 0 && h[c] >= 0 && h[c] <= level) { all++; const i = c % n, j = (c - i) / n; if (underWater(i - R, j - R, h[c])) under++; }
+    setSeaLevel(0); return { all, under, pc: 100 * under / Math.max(1, all) }; };
+  const at91 = share(0.91), at60 = share(0.6), at30 = share(0.3);
+  want('4 at +0.91 m: 95% or more of the shore joined to the sea from 0 to 0.91 m under the water', at91.all > 1000 && at91.pc >= 95, `${at91.pc.toFixed(1)}% of ${at91.all} m² (+0.6: ${at60.pc.toFixed(1)}%, +0.3: ${at30.pc.toFixed(1)}%)`);
+  want('4 and the pools and ponds still at mean sea level', ['pool', 'inland'].every((kk) => { setSeaLevel(0.91); const v = waterTopAt(...pick[kk]); setSeaLevel(0); return v === 0; }));
+}
 console.log(bad ? `FAIL ${bad}` : 'all ok');
 process.exit(bad ? 1 : 0);
