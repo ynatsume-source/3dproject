@@ -103,9 +103,12 @@ test('one large span stops at the same actual completion time as smaller spans',
  record(b,0,120000,'1');record(b,120000,240000,'2');
  assert.deepEqual(view(a),view(b));assert.deepEqual(holdings(a.L),holdings(b.L));
  unchanged(b,()=>record(b,240000,300000,'past-end'));
- assert.equal(data(a).science.totalWorkMs,240000);
- // Bulk certification happened later: keep that truth in the audit history.
- assert.ok(data(a).science.confirmedIntervals.every((r:any)=>r.confirmedAtWorldMs===a.spec.openedAtWorldMs+300000));
+ assert.equal(view(a).certifiedWorkMs,240000);
+ assert.equal(a.L.runs[a.runId],undefined);
+ // Recent exact replay receipts retain the later bulk attestation, without
+ // keeping the completed science state or its per-quantum replay history.
+ const records=(a.L as any).manualHuskRecords;
+ assert.ok(records.receipts.every((r:any)=>JSON.parse(r.payload).confirmedAtWorldMs===a.spec.openedAtWorldMs+300000));
 });
 test('different capture partitions and JSON resumes preserve physical results and observations',()=>{
  const whole=fixture();record(whole,0,240000,'all');

@@ -99,13 +99,65 @@ export function makeSailHost(ctx: {
   const facts = (s: SailSite, extra: Partial<SailStartFacts> = {}): SailStartFacts => ({ assumptionId: sailAssumptionId(), worksite: { locationId: s.id, x: s.x, z: s.z, reachM: s.reachM }, ...extra });
   // (a bamboo shorter than a mast can never be one: its length is plain to see — not offered; science review of PR #50)
   const longEnough = (l: LotView) => { try { return (readPlantMass(l).lengthMm ?? 0) >= SAIL_RULES.mastMm; } catch { return false; } };
-  // (strips too few for one mat — the whole sail's area — can never be woven into one: not offered until the science side
-  // takes several together; science soak 2026-10-20, 59 weaves refused in a row)
-  const enoughToWeave = (l: LotView) => { try { return readPlantMass(l).dryMg >= SAIL_AREA_CM2 * SAIL_RULES.weaveDryMgPerCm2; } catch { return false; } };
+  // The existing offer guard applies to a whole same-place group, not each
+  // partial bundle. It still refuses an insufficient aggregate before carrying.
+  const enoughToWeave = (bundles: LotView[]): boolean => {
+    try {
+      let dry = 0n, water = 0n;
+      for (const lot of bundles) {
+        const mass = readPlantMass(lot);
+        dry += BigInt(mass.dryMg);
+        water += BigInt(mass.waterMg);
+      }
+      return dry + water <= BigInt(Number.MAX_SAFE_INTEGER)
+        && dry >= BigInt(SAIL_AREA_CM2) * BigInt(SAIL_RULES.weaveDryMgPerCm2);
+    } catch {
+      return false;
+    }
+  };
   // (what a piece of work at the bench would take: the oldest of its kind; a mast from the bamboo on the shelf)
   const sourceFor = (op: Hand, place: string): LotView | undefined =>
     op === 'harvest' ? free(STANDING, site(place)?.id)[0] : op === 'split' ? free(LEAVES).filter((l) => l.location !== sites().dry.id || st().dried.includes(l.lotId))[0]
-      : op === 'weave' ? free(STRIPS).find(enoughToWeave) : free('bamboo', 'shelf').find(longEnough);
+      : op === 'weave' ? weaveSources()[0] : free('bamboo', 'shelf').find(longEnough);
+
+  // A single intent may gather several bundles from the same place. The list is
+  // explicit at the science boundary; reserved lots and other places stay put.
+  const together = (candidates: LotView[], place: string): LotView[] => {
+    const first = candidates.find(l => l.location === place) ?? candidates[0];
+    return first ? candidates.filter(l => l.location === first.location) : [];
+  };
+  function weaveSources(): LotView[] {
+    const candidates = free(STRIPS);
+    const places = [...new Set([sites().work.id, ...candidates.map(l => l.location)])];
+    for (const place of places) {
+      const group = candidates.filter(l => l.location === place);
+      if (enoughToWeave(group)) return group;
+    }
+    return [];
+  }
+  const sourcesFor = (op: Hand, place: string): LotView[] => {
+    if (op === 'weave') return weaveSources();
+    const source = sourceFor(op, place);
+    return source ? [source] : [];
+  };
+  function carryBatch(
+    sources: LotView[], to: string, at: number, actorId: string
+  ): {lotId: string; location: string}[] | null {
+    const previous = sources.map(l => ({lotId: l.lotId, location: l.location}));
+    const moved: typeof previous = [];
+    for (const original of previous) {
+      if (!carry(original.lotId, to, at, actorId)) {
+        for (const back of moved) moveLot(L(), back.lotId, back.location);
+        return null;
+      }
+      moved.push(original);
+    }
+    return previous;
+  }
+  function putBatchBack(previous: {lotId: string; location: string}[]): void {
+    for (const original of previous) moveLot(L(), original.lotId, original.location);
+  }
+
 
   function options(actorId: string, nowWorldMs: number): Option[] {
     if (!ctx.wanted()) return [];
@@ -136,13 +188,15 @@ export function makeSailHost(ctx: {
   }
 
   function putToDry(actorId: string, nowWorldMs: number): string | null {
-    const b = wetLeaves()[0], s = sites().dry, was = b?.location; if (!b || !ctx.roofed() || dryRun()) return null;
-    if (!carry(b.lotId, s.id, nowWorldMs, actorId)) return null;
+    const s = sites().dry, sources = together(wetLeaves(), s.id);
+    if (!sources.length || !ctx.roofed() || dryRun()) return null;
+    const previous = carryBatch(sources, s.id, nowWorldMs, actorId);
+    if (!previous) return null;
     try {
-      const { runId } = intent({ intentId: `dry:${actorId}:${nowWorldMs}`, kind: 'start', actorId, atWorldMs: nowWorldMs, operation: 'dry', lotIds: [b.lotId], siteId: s.id, presence: 'here' }, nowWorldMs, facts(s, { roofed: true }));
+      const { runId } = intent({ intentId: `dry:${actorId}:${nowWorldMs}`, kind: 'start', actorId, atWorldMs: nowWorldMs, operation: 'dry', lotIds: sources.map(l => l.lotId), siteId: s.id, presence: 'here' }, nowWorldMs, facts(s, { roofed: true }));
       st().dry[runId] = nowWorldMs;
       return 'アダンの葉を軒下に広げた';
-    } catch (e) { moveLot(L(), b.lotId, was!); log(nowWorldMs, actorId, 'dry', e); return null; }   // (it could not be laid out: back where it was)
+    } catch (e) { putBatchBack(previous); log(nowWorldMs, actorId, 'dry', e); return null; }   // (it could not be laid out: back where it was)
   }
 
   // (a dry run that finished: the leaves it left are dry — the world remembers which, a resident sees how they are)
@@ -187,12 +241,13 @@ export function makeSailHost(ctx: {
         runId = intent({ intentId: `${mine ? 'resume' : 'takeover'}:${actorId}:${nowWorldMs}`, kind: mine ? 'resume' : 'takeover', runId: w.runId, presence: 'here', ...base }, nowWorldMs).runId;
       } else {
         if (op === 'resume' || (op === 'harvest') !== TREES.includes(place as never)) return { ok: false, felt: null };
-        const src = sourceFor(op, place); if (!src) return { ok: false, felt: null };
-        const was = src.location;
-        if (!carry(src.lotId, s.id, nowWorldMs, actorId)) return { ok: false, felt: null };   // (it brings it to the bench: a tree's leaves are where they grow)
-        try { runId = intent({ intentId: `start:${actorId}:${nowWorldMs}`, kind: 'start', operation: op, lotIds: [src.lotId], siteId: s.id, presence: 'here', ...base }, nowWorldMs, facts(s, op === 'weave' ? { requestedAreaCm2: SAIL_AREA_CM2 } : {})).runId; }
+        const sources = sourcesFor(op, place);
+        if (!sources.length) return { ok: false, felt: null };
+        const previous = carryBatch(sources, s.id, nowWorldMs, actorId);
+        if (!previous) return { ok: false, felt: null };
+        try { runId = intent({ intentId: `start:${actorId}:${nowWorldMs}`, kind: 'start', operation: op, lotIds: sources.map(l => l.lotId), siteId: s.id, presence: 'here', ...base }, nowWorldMs, facts(s, op === 'weave' ? { requestedAreaCm2: SAIL_AREA_CM2 } : {})).runId; }
         catch (e) {   // (it put its hands to it, and it would not go: what it felt, from the science side's own words)
-          log(nowWorldMs, actorId, `start-${op}`, e); moveLot(L(), src.lotId, was);   // (back where it was)
+          log(nowWorldMs, actorId, `start-${op}`, e); putBatchBack(previous);   // (back where it was)
           return { ok: false, felt: sailFailureObservations(e, { kind: 'host-confirmed-on-site-attempt' })[0]?.text.replace(/。$/, '') ?? null };
         }
       }

@@ -192,7 +192,7 @@ function endOpening(done: boolean) {
   arriveHere();
 }
 // watching one of the island's residents from above: the camera stays with it until let go
-const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false };
+const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false, crabK: 0, crab: null as null | { x: number; y: number; z: number } };   // (crabK, crab: come down to a crab near it after dark)
 const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
@@ -576,7 +576,7 @@ function onShotChange(prev: Shot | null, next: Shot | null) {
   }
 }
 const keys = new Set<string>(), joy = { x: 0, y: 0 }, vert = { v: 0, look: 0 };   // (vert.look: the right-hand stick, -1 down to 1 up)
-const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3();
+const _t = new THREE.Vector3(), _a = new THREE.Vector3(), _i = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _h = new THREE.Vector3(), _c = new THREE.Vector3();   // (_c: the watched centre, between a resident and a crab near it)
 let yawRate = 0, interestW = 0;
 // Between one thing filmed and the next, the way leans toward life (owner, 2026-10-06: it drifted on over empty
 // water) — and toward variety, not only numbers (owner, 2026-10-07: by numbers alone a jacks' tornado or a great
@@ -738,10 +738,20 @@ function updateDrone(dt: number, now: number) {
   } else if (watch.r) {
     // behind it and a little above, a little to one side, following where it is heading (slowly, so a
     // turn does not swing the view about), looking past it to what lies ahead: it, and its world
-    const p = watch.r.pos, T = cur!.T, h = watch.r.head ?? 0, fx = Math.sin(h), fz = Math.cos(h);
+    const T = cur!.T, h = watch.r.head ?? 0, fx = Math.sin(h), fz = Math.cos(h);
+    // (after dark, a crab out near it — at the edge of its light, or running from it: down low and close to the crab, the
+    // resident beyond it, the crab as it is (a few pixels from the watching height otherwise; nature 2026-10-20). Let go a
+    // little after it has gone in.)
+    const cb = cur!.crabs?.near(watch.r.pos.x, watch.r.pos.z, 10) ?? null;
+    if (cb) watch.crab = cb;
+    watch.crabK += ((cb ? 1 : 0) - watch.crabK) * Math.min(1, dt * (cb ? 1.5 : 0.35));
+    const ck = watch.crab ? watch.crabK * watch.crabK * (3 - 2 * watch.crabK) : 0, cr = watch.crab ?? watch.r.pos;
+    const p = _c.set(watch.r.pos.x + (cr.x - watch.r.pos.x) * 0.85 * ck, watch.r.pos.y + (cr.y - watch.r.pos.y) * 0.85 * ck, watch.r.pos.z + (cr.z - watch.r.pos.z) * 0.85 * ck);
+    if (watch.crabK < 0.01) watch.crab = null;
     watch.ang += angDiff(Math.atan2(-fz, -fx) + watch.off, watch.ang) * Math.min(1, dt * 0.5);
-    const ce = Math.cos(watch.el), se = Math.sin(watch.el), mid = watch.r.sp?.living ? 0.3 : 0.55;   // (round its middle: a turtle is low, a robot taller)
-    _t.set(p.x + Math.cos(watch.ang) * ce * watch.dist, p.y + mid + se * watch.dist, p.z + Math.sin(watch.ang) * ce * watch.dist);
+    const dist = watch.dist + (Math.min(watch.dist, 1.6) - watch.dist) * ck, el = watch.el + (0.3 - watch.el) * ck;
+    const ce = Math.cos(el), se = Math.sin(el), mid = (watch.r.sp?.living ? 0.3 : 0.55) * (1 - 0.7 * ck);   // (round its middle: a turtle is low, a robot taller; down at a crab's height when close to one)
+    _t.set(p.x + Math.cos(watch.ang) * ce * dist, p.y + mid + se * dist, p.z + Math.sin(watch.ang) * ce * dist);
     _t.y = Math.max(_t.y, T.h(_t.x, _t.z) + 0.3, 0.25);   // (the bare ground: T.top would be the treetops, the canopy being solid to everything else)   // (the bare ground: the bushes and trees close round it are opened up, not climbed over)   // clear of the ground, and out of the water (the trees overhead are opened up around it)
     _v.subVectors(_t, drone.pos);
     const L = _v.length();
@@ -750,7 +760,7 @@ function updateDrone(dt: number, now: number) {
     drone.vel.lerp(_v, 1 - Math.exp(-dt * 3));
     // looking a little past it, the way it is going — but only from behind and not too close; from the side,
     // in front of it or close up, at it (its face, when you have come round to see it)
-    const behind = clamp(Math.cos(watch.off), 0, 1) * clamp((watch.dist - 2.5) / 4, 0, 1);
+    const behind = clamp(Math.cos(watch.off), 0, 1) * clamp((dist - 2.5) / 4, 0, 1);
     const ax = p.x + fx * 2.2 * behind, az = p.z + fz * 2.2 * behind;
     const lx = ax - camera.position.x, ly = p.y + mid - 0.1 * behind - camera.position.y, lz = az - camera.position.z;
     const k = Math.min(1, dt * 2.5);
@@ -3861,7 +3871,7 @@ if (/[?&]journalshot\b/.test(location.search)) (window as any).seaglassShot =(re
   shotHold = true;
   return shotNote || true;
 };
-if (location.search.includes('debug')) Object.assign((window as any).seaglass, { cruiseState: () => ({ s: drone.s, mode: drone.mode, sky: drone.sky, arrive: arrive.t, life: { ok: life.ok, x: life.x, z: life.z, score: life.score, deep: { ...life.deep } }, follow: !!capFollow(), letGo: capLetGo, night: cur?.eco.env.night ?? 0, interestW, stuckT, look: { yaw: look.yaw, held: look.held } }), gpu: () => ({ ...renderer.info.memory, programs: renderer.info.programs?.length ?? 0, seas: Object.keys(oceans) }), openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, get renderer() { return renderer; }, get post() { return post; }, /* aim: (LAB) the camera held at a given point and heading through the whole drawing path (tools/lab/flicker.cjs) */ hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, aim: (p: [number, number, number] | null, yaw = 0, pitch = 0) => { if (!p) { shotHold = false; return null; } shotHold = true; drone.pos.set(...p); drone.yaw = yaw; drone.pitch = pitch; return null; }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
+if (location.search.includes('debug')) Object.assign((window as any).seaglass, { cruiseState: () => ({ s: drone.s, mode: drone.mode, sky: drone.sky, arrive: arrive.t, life: { ok: life.ok, x: life.x, z: life.z, score: life.score, deep: { ...life.deep } }, follow: !!capFollow(), letGo: capLetGo, night: cur?.eco.env.night ?? 0, interestW, stuckT, look: { yaw: look.yaw, held: look.held } }), gpu: () => ({ ...renderer.info.memory, programs: renderer.info.programs?.length ?? 0, seas: Object.keys(oceans) }), openStudy: () => lanternStudyPanel.show(), endOpening: () => endOpening(true), flyHop: () => { const fx = -Math.sin(drone.yaw), fz = -Math.cos(drone.yaw); cur?.flyfish?.burst(drone.pos.x + fx * 9, drone.pos.z + fz * 9, Math.atan2(fz, fx)); flyHop(); }, get seaOnly() { return seaOnly; }, watchState: () => ({ crabK: watch.crabK, crab: watch.crab, dist: watch.dist, cam: [camera.position.x, camera.position.y, camera.position.z] }), look, lookBy: (dy: number, dp: number) => { look.wy = drone.yaw + look.yaw + dy; look.wp = drone.pitch + look.pitch + dp; look.held = false; look.holdT = LOOK_HOLD; }, guideIds: () => [...guideEntries(cur!.loc).map((e) => e.id), ...(PLACES[cur!.loc.id] || []).map((q) => 'place:' + q.id)], capState: () => { const el = $('caption'), sj = capShot?.subject; return { on: el.classList.contains('on'), key: sj?.key ?? null, label: sj?.label ?? null, k: (el.querySelector('.k') as HTMLElement).textContent, t: (el.querySelector('.t b') as HTMLElement).textContent, s: (el.querySelector('.s') as HTMLElement).textContent, pos: sj && bodyAt(sj) ? { x: bodyAt(sj)!.x, y: bodyAt(sj)!.y, z: bodyAt(sj)!.z } : null, size: sj?.size ?? 0, len: sj?.len ?? 0, r: sj?.frameR?.() ?? 0, phase: capShot?.phase ?? null, vis: capVis, head: capHead, ring: { on: $('capRing').classList.contains('on'), edge: $('capRing').classList.contains('edge'), x: ringX, y: ringY, r: ringR, need: ringNeed, showT: ringShowT, k: ringNeedK, conf: sj && bodyAt(sj) ? [0.5, 0.75].map((q) => confusable(sj, Math.max(0.5, camera.position.distanceTo(bodyAt(sj) as any)), innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)), q)) : null }, upT: capUpT, lostT: capLostT, left: capLeft, visT: capVisT, asked: !!capShot?.asked, cruise: !!(capShot as any)?.cruise, one: !!sj?.one, why: capWhy }; }, get renderer() { return renderer; }, get post() { return post; }, /* aim: (LAB) the camera held at a given point and heading through the whole drawing path (tools/lab/flicker.cjs) */ hold: (on: boolean) => { held = on; heldTs = lastTs || performance.now(); }, aim: (p: [number, number, number] | null, yaw = 0, pitch = 0) => { if (!p) { shotHold = false; return null; } shotHold = true; drone.pos.set(...p); drone.yaw = yaw; drone.pitch = pitch; return null; }, advance: (n = 1, step = 1 / 30) => { for (let i = 0; i < n; i++) { lastTs = heldTs; heldTs += step * 1000; frameBody(heldTs); } } });
 // ?diag: what this machine's browser and GPU report, for tracking down a blank or white screen
 if (location.search.includes('diag')) {
   const box = document.createElement('pre');

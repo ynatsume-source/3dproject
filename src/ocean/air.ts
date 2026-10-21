@@ -6,7 +6,7 @@ import { oceanScene } from './scenery';
 import type { Water } from './water';
 
 // A disc of rings, dense near the camera and stretching to the horizon (huge two-triangle planes clip
-// badly), lying flat at the sea's height (y = uSeaH: time/sea-level.ts) and following the camera.
+// badly), lying flat at y = 0 and following the camera; the sea's height (uSeaH) is added where it reaches (tideReach).
 function discGeo(r0: number, r1: number, rings: number, seg: number) {
   const pos: number[] = [0, 0, 0], idx: number[] = [];
   for (let i = 0; i < rings; i++) {
@@ -40,6 +40,9 @@ float seaK(vec2 p){   // how much of the sea's swell reaches here: none into a p
   float inside = step(0.5, uSeaKBox.w) * step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
   return mix(1.0, k, inside);
 }
+// how much of the sea's rise and fall (the tide: uSeaH) reaches here — the sea and a lagoon all of it, a pool or a pond
+// none (its water stays at mean sea level: ADR 0009), eased over a cell at their edges. From the same map as the swell.
+float tideReach(vec2 p){ return smoothstep(0.0, 0.3, seaK(p)); }
 const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
 const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
 const float SW_D[6] = float[](${SW.map((w) => w[2].toFixed(2)).join(', ')});
@@ -74,6 +77,13 @@ export function useWater(w: Water | null) {
 let seaH = 0;
 export function setSeaLevel(h: number) { seaH = h; U.uSeaH.value = h; }
 export function seaHeight() { return seaH; }
+/** How much of the sea's rise and fall reaches (x, z): 1 for the sea and a lagoon, 0 for a pool or a pond (the GPU's
+ *  tideReach, from the same map). */
+export function tideReach(x: number, z: number): number { const t = Math.min(1, Math.max(0, seaK(x, z) / 0.3)); return t * t * (3 - 2 * t); }
+/** The water's still top at (x, z), without the waves: the sea's height where the sea reaches, mean sea level in a pool. */
+export function waterTopAt(x: number, z: number): number { return seaH * tideReach(x, z); }
+/** Whether a point is under the water now (its still top: the waves aside). */
+export function underWater(x: number, z: number, y: number): boolean { return y < waterTopAt(x, z); }
 export function swellAt(x: number, z: number): number {
   const cu = U.uCurrent.value, t = U.uTime.value, S = U.uSwell.value * seaK(x, z);
   let h = 0;
@@ -81,7 +91,7 @@ export function swellAt(x: number, z: number): number {
     const a = Math.atan2(cu.y, cu.x) + 0.6 + da, k = 2 * Math.PI / lam;
     h += A * S * Math.cos((Math.cos(a) * x + Math.sin(a) * z) * k - Math.sqrt(9.81 * k) * t + i * 2.1);
   });
-  return seaH + h;
+  return waterTopAt(x, z) + h;
 }
 
 // The height of the drawn surface right above (x, z): the drawn waves also lean to and fro (swellShift), so the
@@ -108,7 +118,7 @@ export const seaTop = new THREE.Mesh(DISC, mat(
      float dist = length(w.xz - uCamPos.xz); vFade = dist;
      vec2 p0 = w.xz;
      w.xz += swellShift(p0, uTime, dist);
-     w.y += swell(p0, uTime, dist).x;
+     w.y += swell(p0, uTime, dist).x + uSeaH * tideReach(p0);   // (the sea's height where it reaches: time/sea-level.ts)
      w.y -= uDrop * (1.0 - smoothstep(1.5, 10.0, dist));   // (lowered round the lens only: see the split view)
      vWp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w;
    }`,
@@ -292,7 +302,7 @@ export function updateAir(cam: THREE.PerspectiveCamera, px: number, dpr: number)
   const up = cam.position.y > seaH;
   seaTop.visible = abyss.visible = stars.visible = planetPts.visible = up;
   rain.visible = up && U.uRain.value > 0.01;
-  seaTop.position.set(cam.position.x, seaH, cam.position.z);
+  seaTop.position.set(cam.position.x, 0, cam.position.z);   // (the sea's height is added where it reaches: tideReach)
   abyss.position.set(cam.position.x, seaH - 200, cam.position.z);
   const su = (seaTop.material as THREE.ShaderMaterial).uniforms;
   su.uPxA.value = 2 * Math.tan(cam.fov * Math.PI / 360) / Math.max(px, 1);

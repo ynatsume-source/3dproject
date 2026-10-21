@@ -18,7 +18,7 @@ export class SplitView {
     `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
     SWELL + `uniform sampler2D tA; uniform sampler2D tW; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uEye; varying vec2 vUv;
      float surfH(vec2 p){
-       return uSeaH + swell(p, uTime, 0.0).x
+       return uSeaH * tideReach(p) + swell(p, uTime, 0.0).x
          + 0.016 * sin(dot(p, vec2(6.1, 2.3)) - uTime * 2.7) + 0.011 * sin(dot(p, vec2(-3.7, 8.9)) + uTime * 3.6)
          + 0.006 * sin(dot(p, vec2(13.0, -9.0)) - uTime * 5.3);
      }
