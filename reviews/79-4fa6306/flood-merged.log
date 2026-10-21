@@ -1,0 +1,14 @@
+sea at +0.3 m: dry ground between 0 and +0.3 m: 2007 points, under the drawn water 1954 (97%), left dry 53
+sea at +0.6 m: dry ground between 0 and +0.6 m: 3942 points, under the drawn water 3791 (96%), left dry 151
+sea at +0.91 m: dry ground between 0 and +0.91 m: 6197 points, under the drawn water 5777 (93%), left dry 420
+husk pool 63.4 -78.9 ground -0.17 reach 1.000
+husk stand 0.47 m, reach 1.000 water over it at +0.91: 0.44 m
+site:husk-pool -0.17 reach 1.000 under at +0.91: true
+site:husk-work 1.71 reach 0.000 under at +0.91: false
+site:cord-dry 1.77 reach 0.000 under at +0.91: false
+site:cord-work 1.69 reach 0.000 under at +0.91: false
+site:cord-hang 1.73 reach 0.000 under at +0.91: false
+site:sail-tree-0 1.13 reach 0.520 under at +0.91: false
+site:sail-tree-1 1.40 reach 0.017 under at +0.91: false
+site:sail-dry 1.82 reach 0.000 under at +0.91: false
+site:sail-work 1.67 reach 0.000 under at +0.91: false

@@ -1,0 +1,10 @@
+1 found on the island: inland,lagoon,pool,sea ok
+1 the sea and the lagoon all of it; a pool and a pond none: {"inland":0,"lagoon":1,"pool":0,"sea":1} ok
+2 at +0.8 m: the water top 0.8 in the sea and the lagoon, 0 in a pool and a pond: {"inland":0,"lagoon":0.8,"pool":0,"sea":0.8} ok
+2 the waves ride on it (the surface lifted by just that): {"inland":0,"lagoon":0.8,"pool":0,"sea":0.8} ok
+2 under the water: 0.5 m up in the sea yes, in a pool no:  ok
+2 at mean sea level all as before:  ok
+3 the GPU's sea lifted where the tide reaches, by the same map:  ok
+4 at +0.91 m: 95% or more of the shore joined to the sea from 0 to 0.91 m under the water: 96.5% of 5988 m² (+0.6: 99.1%, +0.3: 99.9%) ok
+4 and the pools and ponds still at mean sea level:  ok
+all ok

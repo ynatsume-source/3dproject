@@ -1,0 +1,11 @@
+sea at +0.3 m: dry ground between 0 and +0.3 m: 2007 points, under the drawn water 1954 (97%), left dry 53
+sea at +0.6 m: dry ground between 0 and +0.6 m: 3942 points, under the drawn water 3791 (96%), left dry 151
+sea at +0.91 m: dry ground between 0 and +0.91 m: 6197 points, under the drawn water 5777 (93%), left dry 420
+/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/livebuild/scripts/zz-r2.mts:43
+  const p = R.huskSites().pool; const spots = R.worksiteSpots();
+              ^
+
+TypeError: R.huskSites is not a function
+    at <anonymous> (/tmp/claude-0/-home-user-3dproject/4db7e567-5529-5795-9b08-c7b02441b831/scratchpad/livebuild/scripts/zz-r2.mts:43:15)
+
+Node.js v22.22.0
