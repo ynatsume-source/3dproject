@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
-import { addLot, emptyLedger, startRun } from '../src/world/process-runner';
+import {
+  addLot, emptyLedger, startRun, assemble, assembleParts, disassembleParts,
+  type PartsAssemblyTable,
+} from '../src/world/process-runner';
 import {
   COIR_CORD_ASSUMPTION_ID as ID, COIR_CORD_RULES as RULES, type CoirPiece,
 } from '../src/science/prototypes/coir-cord-types';
@@ -12,6 +15,11 @@ import {
   type CordHostEvent, type CordLoadLedger, type CordLoadRequest, type CordLoadResult,
 } from '../src/world/coir-cord-load';
 import { applyCordLoad as applyV3 } from './fixtures/coir-cord-load-v3';
+import { applyCordLoad as applyV4 } from './fixtures/coir-cord-load-v4';
+import {
+  applyCordIntent, recordCordSpan, cordWorkRevision, projectCordWork,
+  type CordSpan, type CordWorkLedger,
+} from '../src/world/coir-cord-work';
 
 const DAY = 86_400_000;
 const LIMIT = 64;
@@ -81,11 +89,13 @@ function legacy(count: number) {
 }
 
 test('version identifies bounded format and explicit integer policy', () => {
-  assert.equal(COIR_CORD_LOAD.processVersion, 'host-4');
-  assert.equal(COIR_CORD_LOAD.schema, 'civ-world.coir-cord-load/4');
-  assert.equal(COIR_CORD_LOAD.ledgerSchema, 'civ-world.coir-cord-load-ledger/4');
+  assert.equal(COIR_CORD_LOAD.processVersion, 'host-5');
+  assert.equal(COIR_CORD_LOAD.schema, 'civ-world.coir-cord-load/5');
+  assert.equal(COIR_CORD_LOAD.ledgerSchema, 'civ-world.coir-cord-load-ledger/5');
   assert.equal(COIR_CORD_LOAD.receiptLimit, LIMIT);
   assert.equal(typeof COIR_CORD_LOAD.strengthPolicyId, 'string');
+  assert.equal(COIR_CORD_LOAD.orphanGrace, LIMIT);
+  assert.equal(COIR_CORD_LOAD.gcScanLimit, 8);
 });
 test('/3 migration preserves lots, IDs, wear, sequence and world metadata', () => {
   const { L, requests, results } = legacy(80);
@@ -179,7 +189,11 @@ test('legacy parity includes thresholds, fracture, child and observations', () =
   const migrated = json(original);
   compactCordLoadLedger(migrated);
   samePhysical(migrated, original);
-  assert.deepEqual(store(migrated), store(modern));
+  const { retention: migratedGc, ...migratedPhysical } = store(migrated);
+  const { retention: modernGc, ...modernPhysical } = store(modern);
+  assert.deepEqual(migratedPhysical, modernPhysical);
+  assert.equal(migratedGc.generation, 0, 'old saves get a conservative new grace window');
+  assert.ok(modernGc.generation > 0);
 });
 test('replay survives JSON and conflicting reuse is refused', () => {
   const L = fixture(2);
@@ -259,6 +273,9 @@ test('schema-only relabel, inner corruption and incomplete checkpoints are refus
     L => { L.coirCordLoads.cords['cord:0'].recent[0].request.event.gf = -1; },
     L => { L.coirCordLoads.cords['cord:0'].recent[0].result.lotIds = ['invented']; },
     L => { L.coirCordLoads.commands.valid = 'missing-cord'; },
+    L => { delete L.coirCordLoads.retention; },
+    L => { L.coirCordLoads.retention.generation = -1; },
+    L => { L.coirCordLoads.retention.nodes['cord:0'].next = 'missing-cord'; },
   ];
   for (const mutate of mutations) {
     const bad = json(good);
@@ -360,4 +377,205 @@ test('resident sees sensory words without checkpoint data', () => {
   assert.deepEqual(Object.keys(result).sort(), ['observations', 'ok']);
   assert.ok(!/\d|strength|seed|gf|mg|lot:|run:|receipt/.test(JSON.stringify(result)));
 });
+
+function metadataBytes(L: CordLoadLedger): number {
+  return JSON.stringify({ format: L.coirCordLoadFormat, loads: L.coirCordLoads }).length * 2;
+}
+function pulse(L: CordLoadLedger, number: number) {
+  return applyCordLoad(L, request('cord:0', 'gc:pulse:' + number,
+    { kind: 'load', gf: 0 }, 1_000_000 + number));
+}
+function settlePly(L: CordLoadLedger, ids: string[], openedAt: number, tag: string) {
+  const beforeIds = new Set(Object.keys(L.lots));
+  const world = L as CordLoadLedger & CordWorkLedger;
+  const runId = applyCordIntent(world, {
+    kind: 'start', intentId: 'ply:' + tag, actorId: 'gc-worker',
+    atWorldMs: openedAt, operation: 'ply', lotIds: ids,
+    siteId: 'site:shore', presence: 'here',
+  }, cordWorkRevision(world), openedAt, {
+    assumptionId: ID, worksite: { locationId: 'site:shore', x: 0, z: 0, reachM: 1 },
+  }).runId;
+  const frame: CordSpan = {
+    kind: 'executor-activity-span', spanId: 'ply:span:' + tag,
+    worldId: L.world.worldId, worldEpoch: L.world.worldEpoch, runId,
+    fromWorldMs: openedAt, toWorldMs: openedAt + 60_000,
+    confirmedAtWorldMs: openedAt + 60_000, actorId: 'gc-worker', activity: 'ply-coir',
+    arrived: true, targetLotId: ids[0], targetSiteId: 'site:shore',
+    fromPosition: { x: 0, z: 0 }, toPosition: { x: 0, z: 0 },
+  };
+  recordCordSpan(world, runId, frame, cordWorkRevision(world), frame.confirmedAtWorldMs);
+  assert.equal(projectCordWork(world, runId).status, 'completed');
+  return Object.values(L.lots).filter(lot => lot.materialId === 'coir_rope'
+    && !beforeIds.has(lot.lotId));
+}
+function addStrands(L: CordLoadLedger, tag: string): string[] {
+  return [0, 1, 2].map(n => {
+    const strand = {
+      ...piece('strand:' + tag + ':' + n), material: 'coir_strand' as const,
+      lengthMm: 1_000, fiberDryMg: 5_000, pithDryMg: 0, waterMg: 0,
+    };
+    const out = writeCordPiece(strand, 'site:shore', 1);
+    addLot(L, {
+      lotId: strand.lotId, materialId: out.materialId, amount: out.amount,
+      quality: out.quality, location: out.into!,
+    });
+    return strand.lotId;
+  });
+}
+
+test('/4 migration preserves physical state and recent replay before the orphan grace expires', () => {
+  const old = fixture(3);
+  const applyOld = applyV4 as unknown as typeof applyCordLoad;
+  const q = request('cord:1', 'v4:break',
+    { kind: 'load', gf: 40_001, breakAtMm: 4_000 }, 1);
+  const broken = applyOld(old, q);
+  applyOld(old, request('cord:2', 'v4:consumed', { kind: 'abrasion', count: 2 }, 1));
+  delete old.lots['cord:2']; // A consumed input, like a strand used in plying.
+  const before = json(old);
+  const L = json(old);
+  compactCordLoadLedger(L);
+  assert.deepEqual(L.lots, before.lots);
+  assert.deepEqual(L.world, before.world);
+  assert.equal(L.seq, before.seq);
+  assert.deepEqual(L.committed, before.committed);
+  assert.equal(store(L).retention.generation, 0);
+  assert.deepEqual(applyCordLoad(L, q), broken);
+  const generation = store(L).retention.generation;
+  reject(L, request('absent', 'v5:invalid', { kind: 'load', gf: 0 }, 2), 'missing-material');
+  assert.equal(store(L).retention.generation, generation);
+  for (let n = 0; n < LIMIT - 1; n++) pulse(L, n);
+  assert.ok(store(L).cords['cord:1']);
+  assert.ok(store(L).cords['cord:2']);
+  const saved = json(L);
+  assert.deepEqual(applyCordLoad(saved, q), broken);
+  assert.equal(store(saved).retention.generation, LIMIT - 1);
+  pulse(saved, LIMIT - 1);
+  compactCordLoadLedger(saved);
+  assert.equal(store(saved).cords['cord:1'], undefined);
+  assert.equal(store(saved).cords['cord:2'], undefined);
+  assert.ok(broken.lotIds.every(lotId => store(saved).cords[lotId]));
+  assert.ok(broken.lotIds.every(lotId => saved.lots[lotId]));
+  const stable = json(saved);
+  reject(saved, q);
+  assert.deepEqual(saved, stable);
+  const relabel = json(before);
+  relabel.coirCordLoadFormat = COIR_CORD_LOAD.ledgerSchema;
+  store(relabel).schema = COIR_CORD_LOAD.ledgerSchema;
+  assert.throws(() => compactCordLoadLedger(relabel), CordLoadError);
+});
+
+test('cut branches expire while live children and their chronology remain usable', () => {
+  const L = fixture(2);
+  const q = request('cord:1', 'gc:cut', { kind: 'load', gf: 40_001, breakAtMm: 4_000 }, 1);
+  const first = applyCordLoad(L, q);
+  const child = first.lotIds[0], removedChild = first.lotIds[1];
+  delete L.lots[removedChild]; // A discarded physical piece; never delete its metadata in the fixture.
+  const replayStable = json(L);
+  assert.deepEqual(applyCordLoad(L, q), first);
+  assert.deepEqual(L, replayStable, 'replay must neither age nor sweep records');
+  for (let n = 0; n < 160; n++) pulse(L, n);
+  assert.equal(store(L).cords['cord:1'], undefined);
+  assert.equal(store(L).cords[removedChild], undefined);
+  assert.equal(store(L).commands['gc:cut'], undefined);
+  assert.ok(store(L).cords[child]);
+  reject(L, request(child, 'gc:old-child', {
+    kind: 'exposure', fromIslandMs: 0, toIslandMs: 2, shade: false,
+  }, 2, 2), 'out-of-order-event');
+  const physicalBefore = json(L.lots[child]);
+  const intact = applyCordLoad(L, request(child, 'gc:child-now', { kind: 'load', gf: 0 }, 2));
+  assert.deepEqual(intact.lotIds, [child]);
+  assert.deepEqual(L.lots[child], physicalBefore);
+  compactCordLoadLedger(json(L));
+});
+
+test('a strand consumed long after its grace window is revisited and collected', () => {
+  const L = fixture();
+  const ids = addStrands(L, 'late');
+  for (const id of ids) {
+    applyCordLoad(L, request(id, 'late:touch:' + id, { kind: 'load', gf: 0 }, 1));
+  }
+  for (let n = 0; n < 100; n++) pulse(L, n);
+  assert.ok(ids.every(id => store(L).cords[id]), 'existing strands must survive old touches');
+  const ropes = settlePly(L, ids, 2_000_000, 'late');
+  assert.equal(ropes.length, 1);
+  assert.ok(ids.every(id => !L.lots[id]));
+  for (let n = 100; n < 180; n++) pulse(L, n);
+  assert.ok(ids.every(id => store(L).cords[id] === undefined));
+  assert.ok(ids.every(id => store(L).commands['late:touch:' + id] === undefined));
+  validateCordLoadLedger(json(L));
+});
+
+test('assembled parts and a single assembled source are returnable, not garbage', () => {
+  const L = fixture(4);
+  for (const lotId of ['cord:1', 'cord:2', 'cord:3']) {
+    applyCordLoad(L, request(lotId, 'assembly:touch:' + lotId,
+      { kind: 'abrasion', count: 1 }, 1));
+  }
+  const original = json(L.lots);
+  const table: PartsAssemblyTable = {
+    version: 'fixture/1', kind: 'cord-parts-fixture', catalogEntry: 'fixture',
+    catalogVersion: 'fixture', roles: ['left', 'right'], materials: ['coir_rope'],
+    toParams: () => ({}),
+    partsOnReturn: qualities => qualities.map(quality => ({ materialId: 'coir_rope', quality })),
+  };
+  const parts = assembleParts(L, ['cord:1', 'cord:2'], table, 2).equipment;
+  assert.ok(parts);
+  const single = assemble(L, 'cord:3', {
+    version: 'single-fixture/1', kind: 'single-fixture', catalogEntry: 'fixture',
+    catalogVersion: 'fixture', materials: ['coir_rope'], toParams: () => ({}),
+    qualityOnReturn: quality => quality,
+  }, 2).equipment;
+  assert.ok(single);
+  for (let n = 0; n < 160; n++) pulse(L, n);
+  const restored = json(L);
+  compactCordLoadLedger(restored);
+  assert.ok(['cord:1', 'cord:2', 'cord:3'].every(lotId => store(restored).cords[lotId]));
+  assert.ok(!restored.lots['cord:1'] && !restored.lots['cord:2'] && !restored.lots['cord:3']);
+  const returned = disassembleParts(restored, parts.equipmentId, table, undefined,
+    { keepLotIds: true });
+  assert.deepEqual(returned.lots?.map(lot => lot.lotId), ['cord:1', 'cord:2']);
+  assert.deepEqual(restored.lots['cord:1'], original['cord:1']);
+  assert.deepEqual(restored.lots['cord:2'], original['cord:2']);
+  const same = request('cord:1', 'assembly:touch:cord:1', { kind: 'abrasion', count: 1 }, 1);
+  const stable = json(restored);
+  applyCordLoad(restored, same);
+  assert.deepEqual(restored, stable, 'a returning part retains its replay and damage cursor');
+});
+
+test('one thousand real plying operations keep only bounded load bookkeeping', () => {
+  let L = fixture();
+  let bytesAt200 = 0;
+  let maxRows = 0;
+  let now = 10_000_000;
+  for (let batch = 0; batch < 1_000; batch++) {
+    const ids = addStrands(L, 'batch:' + batch);
+    for (const lotId of ids) {
+      applyCordLoad(L, request(lotId, 'batch:touch:' + lotId,
+        { kind: 'abrasion', count: 0 }, now));
+    }
+    const ropes = settlePly(L, ids, now + 1, 'batch:' + batch);
+    assert.equal(ropes.length, 1);
+    assert.equal(ropes[0].amount.value, 15_000);
+    assert.equal(readCordPiece(ropes[0]).lengthMm, 900);
+    assert.ok(ids.every(id => !L.lots[id]));
+    maxRows = Math.max(maxRows, Object.keys(store(L).cords).length);
+    if (batch === 199) bytesAt200 = metadataBytes(L);
+    // Finished ropes remain as real inventory. Only coirCordLoads is measured;
+    // the accepted workflow independently bounds its completed-job bookkeeping.
+    if (batch % 37 === 0) L = json(L);
+    now += 100_000;
+  }
+  for (let n = 0; n < 160; n++) pulse(L, n);
+  const bytesAt1000 = metadataBytes(L);
+  assert.ok(maxRows < 256, 'expired rows must not grow with every new strand');
+  assert.ok(bytesAt1000 < 64 * 1024, 'only the anchor and bounded bookkeeping remain');
+  assert.ok(bytesAt1000 <= bytesAt200 + 8_000);
+  assert.ok(Object.keys(store(L).cords).length <= 2);
+  assert.ok(Object.keys(store(L).commands).length <= LIMIT);
+  validateCordLoadLedger(json(L));
+  console.log(JSON.stringify({
+    plyingOperations: 1_000, strandsConsumed: 3_000, bytesAt200, bytesAt1000, maxRows,
+  }));
+});
+
 console.log('PASS cord load compaction: ' + groups + ' groups.');

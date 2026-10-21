@@ -79,9 +79,9 @@ function direct(L: CordLoadLedger, q: CordLoadRequest, runId: string, integer = 
 }
 
 test('load and receipt versions bind the operational integer policy', () => {
-  assert.equal(COIR_CORD_LOAD.processVersion, 'host-4');
-  assert.equal(COIR_CORD_LOAD.schema, 'civ-world.coir-cord-load/4');
-  assert.equal(COIR_CORD_LOAD.ledgerSchema, 'civ-world.coir-cord-load-ledger/4');
+  assert.equal(COIR_CORD_LOAD.processVersion, 'host-5');
+  assert.equal(COIR_CORD_LOAD.schema, 'civ-world.coir-cord-load/5');
+  assert.equal(COIR_CORD_LOAD.ledgerSchema, 'civ-world.coir-cord-load-ledger/5');
   assert.equal(COIR_CORD_LOAD.strengthPolicyId, INTEGER_HALF_LIFE_POLICY_ID);
   const L = fixture();
   const q = request(0);
