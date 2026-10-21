@@ -54,7 +54,7 @@ jobs:
           const names = new Set(['sail-raft-checkpoint', 'sail-inputs', 'sail-lots',
             'sail-work', 'sail-voyage', 'sail-cord-settlement',
             'husk-soak', 'husk-host', 'science-records', 'manual-husk-records',
-            'coir-cord-work', 'husk-soak-records']);
+            'coir-cord-work', 'husk-soak-records', 'husk-soak-batch']);
           const resultsFile = 'check-results/fast/results.json';
           if (existsSync(resultsFile)) {
             for (const result of JSON.parse(readFileSync(resultsFile, 'utf8'))) {

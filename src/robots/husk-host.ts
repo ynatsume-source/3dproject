@@ -17,7 +17,11 @@ import type { Option } from './agent/types';
 import { draw } from '../science/rng';
 import { HUSK_SOAK_ASSUMPTION } from '../science/prototypes/husk-soak';
 import { MANUAL_HUSK_ASSUMPTION } from '../science/prototypes/manual-husk-assumptions';
-import { beginHuskSoak, recordHuskSoakSpan, takeOutHuskSoak, readSoakedHuskInput, readHuskSoakWorksite, huskWorkFailureObservations, restoreHuskSoak, HUSK_SOAK_WORK } from '../world/husk-soak-work';
+import {
+  beginHuskSoak, recordHuskSoakSpans, takeOutHuskSoak, readSoakedHuskInput,
+  readHuskSoakWorksite, huskWorkFailureObservations, restoreHuskSoak, HUSK_SOAK_WORK,
+  type HuskSoakSpan,
+} from '../world/husk-soak-work';
 import { applyHuskIntent, huskArrangementRevision, recordHuskWorkflowSpan, restoreHuskArrangement, readHuskResidentObservations, type HuskWorkflowLedger, type HuskStartFacts } from '../world/manual-husk-workflow';
 import { beginManualHuskWork, MANUAL_HUSK_WORK, type HuskExecutorSpan } from '../world/manual-husk-work';
 
@@ -158,14 +162,38 @@ export function makeHuskHost(ctx: {
   // alone, so a reload gives the same spans as staying open. `all`: up to now, the last part-minute too (taking out).
   function tick(nowWorldMs: number, all = false) {
     for (const r of soakRuns()) {
-      let from = st().soak[r.runId]; if (from === undefined) { st().soak[r.runId] = nowWorldMs; continue; }
-      while (nowWorldMs - from >= SOAK_EVERY_MS || (all && nowWorldMs > from)) {
-        const to = Math.min(nowWorldMs, from + SOAK_EVERY_MS);
-        try {
-          recordHuskSoakSpan(L(), r.runId, { recordId: `${r.runId}:${from}`, worldId: L().world.worldId, worldEpoch: L().world.worldEpoch, runId: r.runId,
-            siteId: sites().pool.id, fromWorldMs: from, toWorldMs: to, fromIslandMs: island(from), toIslandMs: island(to), confirmedAtWorldMs: to, immersed: immersed(from, to) }, to);   // (each minute confirmed as it ends: the record keeps its moments in order)
-          st().soak[r.runId] = from = to;
-        } catch (e) { log(nowWorldMs, '', 'soak-span', e); break; }
+      const from = st().soak[r.runId];
+      if (from === undefined) {
+        st().soak[r.runId] = nowWorldMs;
+        continue;
+      }
+      const spans: HuskSoakSpan[] = [];
+      let through = from;
+      while (nowWorldMs - through >= SOAK_EVERY_MS || (all && nowWorldMs > through)) {
+        const to = Math.min(nowWorldMs, through + SOAK_EVERY_MS);
+        spans.push({
+          recordId: `${r.runId}:${through}`,
+          worldId: L().world.worldId,
+          worldEpoch: L().world.worldEpoch,
+          runId: r.runId,
+          siteId: sites().pool.id,
+          fromWorldMs: through,
+          toWorldMs: to,
+          fromIslandMs: island(through),
+          toIslandMs: island(to),
+          confirmedAtWorldMs: to,
+          immersed: immersed(through, to),
+        });
+        through = to;
+      }
+      if (spans.length === 0) continue;
+      try {
+        // Keep the same minute records, tide checks and IDs. A catch-up settles
+        // them in one atomic transaction; the host cursor moves only on success.
+        recordHuskSoakSpans(L(), r.runId, spans, nowWorldMs);
+        st().soak[r.runId] = through;
+      } catch (error) {
+        log(nowWorldMs, '', 'soak-span', error);
       }
     }
   }
