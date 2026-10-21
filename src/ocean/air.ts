@@ -40,9 +40,15 @@ float seaK(vec2 p){   // how much of the sea's swell reaches here: none into a p
   float inside = step(0.5, uSeaKBox.w) * step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
   return mix(1.0, k, inside);
 }
-// how much of the sea's rise and fall (the tide: uSeaH) reaches here — the sea and a lagoon all of it, a pool or a pond
-// none (its water stays at mean sea level: ADR 0009), eased over a cell at their edges. From the same map as the swell.
-float tideReach(vec2 p){ return smoothstep(0.0, 0.3, seaK(p)); }
+// how much of the sea's rise and fall (the tide: uSeaH) reaches here — the sea, a lagoon and the low shore joined to them
+// all of it, a pool or a pond none (its water stays at mean sea level: ADR 0009), eased over a cell at their edges. The
+// same map's green (src/ocean/water.ts), read the same way.
+float tideReach(vec2 p){
+  vec2 uv = (p - uSeaKBox.xy) / max(uSeaKBox.z, 1e-3);
+  float k = texture2D(uSeaK, clamp(uv, 0.0, 1.0)).g;
+  float inside = step(0.5, uSeaKBox.w) * step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
+  return mix(1.0, k, inside);
+}
 const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
 const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
 const float SW_D[6] = float[](${SW.map((w) => w[2].toFixed(2)).join(', ')});
@@ -68,18 +74,19 @@ vec2 swellShift(vec2 p, float t, float dist){
   return s;
 }`;
 // (the CPU's copy of seaK: set for the sea the camera is in, useWater)
-let seaK: (x: number, z: number) => number = () => 1;
+let seaK: (x: number, z: number) => number = () => 1, tideK: (x: number, z: number) => number = () => 1;
 export function useWater(w: Water | null) {
   seaK = w?.tex ? (x, z) => w.swellK(x, z) : () => 1;
+  tideK = w?.tex ? (x, z) => w.tideK(x, z) : () => 1;
   if (w?.tex) { U.uSeaK.value = w.tex; U.uSeaKBox.value.set(w.x0, w.z0, w.size, 1); } else U.uSeaKBox.value.w = 0;
 }
 // (the sea's height now: time/sea-level.ts seaLevel, the same for the GPU (U.uSeaH) and the CPU (swellAt, surfaceAt))
 let seaH = 0;
 export function setSeaLevel(h: number) { seaH = h; U.uSeaH.value = h; }
 export function seaHeight() { return seaH; }
-/** How much of the sea's rise and fall reaches (x, z): 1 for the sea and a lagoon, 0 for a pool or a pond (the GPU's
- *  tideReach, from the same map). */
-export function tideReach(x: number, z: number): number { const t = Math.min(1, Math.max(0, seaK(x, z) / 0.3)); return t * t * (3 - 2 * t); }
+/** How much of the sea's rise and fall reaches (x, z): 1 for the sea, a lagoon and the low shore joined to them, 0 for a
+ *  pool or a pond (the GPU's tideReach, from the same map). */
+export function tideReach(x: number, z: number): number { return tideK(x, z); }
 /** The water's still top at (x, z), without the waves: the sea's height where the sea reaches, mean sea level in a pool. */
 export function waterTopAt(x: number, z: number): number { return seaH * tideReach(x, z); }
 /** Whether a point is under the water now (its still top: the waves aside). */
