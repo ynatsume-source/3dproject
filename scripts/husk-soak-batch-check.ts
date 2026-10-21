@@ -1,13 +1,15 @@
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
-import { addLot, emptyLedger, type Ledger } from '../src/world/process-runner';
+import { addLot, emptyLedger, startRun, type Ledger } from '../src/world/process-runner';
 import type { LotView } from '../src/world/science-contract';
 import {
   beginHuskSoak, recordHuskSoakSpan, recordHuskSoakSpans, takeOutHuskSoak,
   projectHuskSoak, restoreHuskSoak, HuskSoakError,
   type HuskSoakStart, type HuskSoakSpan,
 } from '../src/world/husk-soak-work';
-import { HUSK_SOAK_ASSUMPTION } from '../src/science/prototypes/husk-soak';
+import { HUSK_SOAK_ASSUMPTION, splitSoakedHusks } from '../src/science/prototypes/husk-soak';
+import { beginManualHuskWork } from '../src/world/manual-husk-work';
+import { MANUAL_HUSK_ASSUMPTION } from '../src/science/prototypes/manual-husk-assumptions';
 import {
   beginHuskSoak as beginV3,
   recordHuskSoakSpan as recordV3,
@@ -147,6 +149,64 @@ test('batch and modern singles match frozen /3 over both bounded receipt windows
   }
 });
 
+
+function oldSave(version: 1 | 2) {
+  const L = emptyLedger('world:soak-batch-old', 'epoch:1');
+  const source = raw('lot:batch-old');
+  addLot(L, source);
+  const spec = { ...start(BASE, source.lotId, 'begin:old'), atIslandMs: BASE };
+  const { run } = startRun(L, {
+    processId: 'prototype_husk_soak', processVersion: 'host-' + version,
+    catalogVersion: 'civ-sci-test-2', contract: '0.2.1', clock: 'island',
+    lotIds: [source.lotId], equipmentIds: [], operator: ACTOR,
+  }, BASE);
+  assert.ok(run);
+  const frame = {
+    ...fact(L, run.runId, BASE, BASE + MINUTE, 'old:first'),
+    fromIslandMs: BASE, toIslandMs: BASE + MINUTE,
+  };
+  run.status = 'running';
+  run.lastTo = frame.toIslandMs;
+  run.state = { schema: 'civ-world.husk-soak/' + version, data: {
+    worldId: L.world.worldId, worldEpoch: L.world.worldEpoch, runId: run.runId,
+    spec, source, frames: [frame], takeOut: null,
+    totalImmersedMs: MINUTE, historyComplete: 1, outputs: [], drawn: [],
+    ...(version === 2 ? { previousHistory: [], origin: null } : {}),
+  } };
+  return { L, runId: run.runId };
+}
+
+test('direct legacy /1 and /2 batches migrate exactly like frozen singles and fail atomically', () => {
+  for (const version of [1, 2] as const) {
+    const initial = oldSave(version);
+    const before = json(initial.L);
+    const projection = recordHuskSoakSpans(initial.L, initial.runId, [], BASE + MINUTE);
+    assert.equal(projection.certifiedIslandMs, MINUTE);
+    same(initial.L, before, 'empty legacy read does not install migration');
+    const spans = Array.from({ length: 73 }, (_, n) => {
+      const from = BASE + (n + 1) * MINUTE;
+      return {
+        ...fact(initial.L, initial.runId, from, from + MINUTE, 'old:next:' + n),
+        fromIslandMs: from, toIslandMs: from + MINUTE,
+      };
+    });
+    const now = spans.at(-1)!.confirmedAtWorldMs;
+    reject(initial.L, initial.runId, [spans[0], { ...spans[1], worldEpoch: 'wrong' }], now);
+    const old = json(initial.L);
+    const single = json(initial.L);
+    let expected: ReturnType<typeof recordV3> | undefined;
+    for (const span of spans) {
+      expected = recordV3(old, initial.runId, span, now);
+      recordHuskSoakSpan(single, initial.runId, span, now);
+    }
+    const batch = json(initial.L);
+    same(recordHuskSoakSpans(batch, initial.runId, spans, now), expected,
+      'direct legacy projection ' + version);
+    same(batch, old, 'direct legacy batch full ledger ' + version);
+    same(single, old, 'direct legacy single full ledger ' + version);
+  }
+});
+
 test('different successful batch boundaries, gaps, JSON and replay give one byte-identical ledger', () => {
   const reference = fixture();
   const spans = series(reference.L, reference.runId, 215, true);
@@ -269,6 +329,27 @@ function median(values: number[]): number {
 test('a full proof cache is shared without reading or cloning unrelated proof bodies', () => {
   const { L, runId, at } = saturatedFixture();
   recordHuskSoakSpans(L, runId, [], at); // Register the valid load before adding traps.
+  const previousRecords = (L as any).huskSoakRecords;
+  // Another accepted world component uses structuredClone + Object.assign(L,...).
+  // Keep that real transaction outside the measured span: it must not make the
+  // next span rescan every unrelated soak proof solely because objects changed.
+  const piece = splitSoakedHusks(raw('lot:foreign-producer-input'),
+    HUSK_SOAK_ASSUMPTION.id, HUSK_SOAK_ASSUMPTION.durationMs, {
+      runId: 'run:foreign-producer', fromWorldMs: 0, toWorldMs: at - 1,
+    })[0];
+  piece.input.soakHistory = [{
+    recordId: 'record:foreign-soak', runId: 'run:foreign-producer',
+    fromWorldMs: 0, toWorldMs: at - 1,
+  }];
+  addLot(L, { lotId: piece.lotId, materialId: piece.input.materialId,
+    amount: { value: piece.amountMg, unit: 'mg' }, location: SITE, quality: piece.quality });
+  beginManualHuskWork(L, {
+    commandId: 'begin:unrelated-hand-work', assumptionId: MANUAL_HUSK_ASSUMPTION.id,
+    operatorId: 'res:other-worker', huskCount: 1, input: piece.input,
+    worksite: { locationId: SITE, x: 0, z: 0, reachM: 1 }, openedAtWorldMs: at,
+  });
+  assert.notEqual((L as any).huskSoakRecords, previousRecords,
+    'the real transaction replaced nested identities on the same ledger root');
   const records = (L as any).huskSoakRecords;
   const originals = records.finished.slice();
   const proofs = { ...records.provenance };
@@ -307,6 +388,15 @@ test('a full proof cache is shared without reading or cloning unrelated proof bo
   after.finished = originals;
   after.provenance = proofs;
   restoreHuskSoak(json(L));
+});
+
+
+test('a warm read still checks the selected finished summary', () => {
+  const { L, runId, at } = saturatedFixture();
+  recordHuskSoakSpans(L, runId, [], at);
+  const selected = (L as any).huskSoakRecords.finished[0];
+  selected.digest++;
+  reject(L, selected.runId, [], at);
 });
 
 test('cold JSON loads validate unrelated proof corruption before accepting new work', () => {
