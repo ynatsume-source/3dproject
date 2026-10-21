@@ -484,24 +484,32 @@ function checkedRecordsHeader(L: Ledger): Records {
     'unsupported-soak-records');
   return m;
 }
+function checkedReceipt(m: Records, r: Receipt): void {
+  requireSoak(shape(r, ['key', 'payload', 'runId', 'atWorldMs'])
+    && id(r.key) && typeof r.payload === 'string' && id(r.runId)
+    && uint(r.atWorldMs) && r.atWorldMs <= m.authorityAtWorldMs,
+    'corrupt-soak-receipt');
+}
+function checkedFinished(L: Ledger, f: Finished): void {
+  requireSoak(shape(f, ['runId', 'atWorldMs', 'projection', 'digest'])
+    && id(f.runId) && uint(f.atWorldMs) && !L.runs[f.runId]
+    && uint(f.digest), 'corrupt-soak-summary');
+  const { digest: checksum, ...body } = f;
+  requireSoak(checksum === digest(body)
+    && ['completed', 'stopped'].includes(f.projection?.status), 'corrupt-soak-summary');
+}
 function checkedRecords(L: Ledger): Records {
   const m = checkedRecordsHeader(L);
   const receipts = new Set<string>();
   for (const r of m.recent) {
-    requireSoak(shape(r, ['key', 'payload', 'runId', 'atWorldMs'])
-      && id(r.key) && typeof r.payload === 'string' && id(r.runId)
-      && uint(r.atWorldMs) && r.atWorldMs <= m.authorityAtWorldMs
-      && !receipts.has(r.key), 'corrupt-soak-receipt');
+    checkedReceipt(m, r);
+    requireSoak(!receipts.has(r.key), 'corrupt-soak-receipt');
     receipts.add(r.key);
   }
   const finished = new Set<string>();
   for (const f of m.finished) {
-    requireSoak(shape(f, ['runId', 'atWorldMs', 'projection', 'digest'])
-      && id(f.runId) && uint(f.atWorldMs) && !L.runs[f.runId]
-      && !finished.has(f.runId) && uint(f.digest), 'corrupt-soak-summary');
-    const { digest: checksum, ...body } = f;
-    requireSoak(checksum === digest(body)
-      && ['completed', 'stopped'].includes(f.projection.status), 'corrupt-soak-summary');
+    checkedFinished(L, f);
+    requireSoak(!finished.has(f.runId), 'corrupt-soak-summary');
     finished.add(f.runId);
   }
   for (const [lotId, p] of Object.entries(m.provenance)) {
@@ -662,6 +670,7 @@ function remember(m: Records, key: string, payload: string, runId: string, atWor
 function replay(m: Records, key: string, payload: string, atWorldMs: number): Receipt | null {
   const old = m.recent.find(r => r.key === key);
   if (old) {
+    checkedReceipt(m, old);
     requireSoak(old.payload === payload, 'conflicting-command-replay');
     return old;
   }
@@ -851,7 +860,11 @@ function spanRecordCopy(m: Records, L: Ledger): Records {
 }
 function projectionFromRecords(L: Ledger, m: Records, runId: string): SoakProjection {
   const finished = m.finished.find(f => f.runId === runId);
-  return finished ? copy(finished.projection) : projectionOf(compactDataOf(L, runId).data);
+  if (finished) {
+    checkedFinished(L, finished);
+    return copy(finished.projection);
+  }
+  return projectionOf(compactDataOf(L, runId).data);
 }
 function recordHuskSoakSpansImpl(
   L: Ledger, runId: string, spans: HuskSoakSpan[], nowWorldMs: number,
