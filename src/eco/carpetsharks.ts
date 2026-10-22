@@ -210,7 +210,7 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
           const dy = Math.atan2(Math.sin(want - m.yaw), Math.cos(want - m.yaw));
           // (turning swings its head and tail across what is beside it: while it is still climbing to clear it, slowly)
           const lag = Math.max(0, m.lastGap ?? 0), tr = 0.35 * clamp(1 - lag / 0.5, 0.15, 1);
-          const turn = clamp(dy, -tr * dt, tr * dt); m.yaw += turn;
+          const turn = clamp(dy, -tr * dt, tr * dt), was = { x: m.pos.x, z: m.pos.z, yaw: m.yaw }; m.yaw += turn;
           m.pos.x += Math.sin(m.yaw) * m.speed * dt; m.pos.z += Math.cos(m.yaw) * m.speed * dt;
           // just over the bottom, rising ahead of rock and over it along its whole length, coming down gently to lie
           const lying = m.mode === 'move' && m.goal && hyp(m.goal.x - m.pos.x, m.goal.z - m.pos.z) < 0.8;
@@ -226,7 +226,15 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
           // (a long body: its nose tilts only a little and slowly as it rises and falls, or its tail would dip into the ground)
           m.pitch += (clamp(lying ? f.pitch : f.pitch * 0.5 - m.vy * 0.4, lying ? -0.35 : -0.15, lying ? 0.35 : 0.15) - m.pitch) * Math.min(1, dt * (lying ? 2 : 0.8));
           // (never with any part of it in the ground, as it is pitched now)
-          const need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L);
+          let need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L);
+          // (a turn or a step that would swing part of its long body into the rock beside it: not this step — it climbs first,
+          // as it does for rock ahead; it was put up on top of it, half a metre in one step: carpet-check, maldives by night)
+          if (need - m.pos.y > 0.025) {   // (the turn first: on along its old heading)
+            const f0 = Math.sin(m.yaw) * m.speed * dt, g0 = Math.cos(m.yaw) * m.speed * dt; m.yaw = was.yaw;
+            m.pos.x = was.x + Math.sin(m.yaw) * Math.hypot(f0, g0); m.pos.z = was.z + Math.cos(m.yaw) * Math.hypot(f0, g0);
+            need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L);
+            if (need - m.pos.y > 0.025) { m.pos.x = was.x; m.pos.z = was.z; need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L); }   // (and then the step)
+          }
           if (m.pos.y < need) { m.pos.y = need - m.pos.y < 0.025 ? m.pos.y + (need - m.pos.y) * Math.min(1, dt * 3) : need; if (m.vy < 0) m.vy = 0; }   // (a hair's breadth eased out, not popped)
           m.pos.y = Math.min(m.pos.y, waterTopAt(m.pos.x, m.pos.z) - 0.8);
           m.swim += ((m.speed > 0.08 ? 1 : 0.2) - m.swim) * Math.min(1, dt * 1.5);

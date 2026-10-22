@@ -344,8 +344,12 @@ function breachRun(api: BreachApi, kind: 'manta' | 'whale', dt: number, flip = 0
     assert(maxMouthInAir < 0.3, 'mouth remains open while airborne');
     assert(controls(mesh).air < 0.05, 'air pose persists after underwater recovery');
   }
-  // Turn away: cleanup is allowed once the show has ended and the actor is out of view.
+  // Turn away: cleanup is allowed once the show has ended and the actor is out of view — and far enough off that it is
+  // not just behind the lens (nothing goes out of nowhere, 99d81c7: close by, it stays until it has swum off)
   api.U.uCamFwd.value.copy(cam).sub(mesh.position).normalize();
+  b.update(dt, env, cam, 0, -1, kind === 'whale');
+  assert(b.leap, 'finished actor vanishes close behind the camera');
+  cam.copy(mesh.position).add(new THREE.Vector3(40, 3, 0)); api.U.uCamFwd.value.copy(cam).sub(mesh.position).normalize();
   b.update(dt, env, cam, 0, -1, kind === 'whale');
   assert.equal(b.leap, null, 'finished actor does not retire after camera turns away');
   return { stats: rounded(stats), maxHeight: round(maxHeight), recoveryDepth: round(recoveryDepth), exit, landing,
@@ -407,6 +411,9 @@ for (const id of ['miyako', 'galapagos']) await check(`train_${id}`, () => {
   }
   assert(visible > 0, 'train never enters view'); assert(stats.maxSpeed < 3, 'train motion jumps');
   assert(stats.maxPhaseSpeed < 6, 'train wing phase jumps');
+  // (offered to the director only once the app has seen it in the picture: markSeen, 6b4449f)
+  const before: any[] = []; r.subjects(before); assert(!before.some(s => s.key === 'rare:mantatrain'), 'train offered before it is seen');
+  r.markSeen();
   const subjects: any[] = []; r.subjects(subjects); assert(subjects.some(s => s.key === 'rare:mantatrain' && s.pos()), 'director loses train subject');
   r.running?.dispose(); return { members: meshes.length, oceanic: oceanic(oc.loc), ...rounded(stats), subjectAvailable: true };
 });
