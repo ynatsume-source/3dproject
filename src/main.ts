@@ -17,6 +17,7 @@ import { ZONE } from './ocean/zone';
 import { oceanScene, sky, surface, grass, grassMat, setGrass, snowGeo, snowMat, snow, shafts, SNOW, LIMIT } from './ocean/scenery';
 import { updateAir, setPlanets, topScene, setRefraction, swellAt, seaTop, abyss, useWater, setSeaLevel, seaHeight, waterTopAt } from './ocean/air';
 import { seaLevel } from './time/sea-level';
+import { setWetLine } from './ocean/wet';
 import { SplitView, SPLIT_BAND } from './render/split';
 const split = new SplitView(), _sz = new THREE.Vector2();
 let airState = false;
@@ -3488,6 +3489,7 @@ function frameBody(ts: number) {
   U.uTime.value += dt;
   clock.advance(dt);
   setSeaLevel(SEA_TEST ?? seaLevel(clock.ms, cur?.loc));   // (the sea's height, from the time alone: ADR 0009, time/sea-level.ts)
+  setWetLine(SEA_TEST, clock.ms, cur?.loc);   // (how high it stood a little while ago: the reef below that is still wet — ocean/wet.ts)
   if (mode === 'globe') {
     { const g = globeLast ? now - globeLast : 16; globeLast = now; if (!job) { globeGap += (Math.min(g, 300) - globeGap) * 0.1; aheadLast = 0; } }
     aheadStep();   // (a sea a card asked for, built ahead a little each frame)
