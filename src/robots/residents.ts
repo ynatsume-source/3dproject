@@ -54,6 +54,10 @@ import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
 /** How deep the tide may be over the shore and a body still walk through it (m): the husks' standing spot (+0.47 m) is
  *  0.44 m under at the year's highest tide (science 2026-10-21). */
 const WADE_M = 0.5;
+// (a place it found no way to: not looked for again for a while; and a task there that came to nothing three times, set aside
+// for an hour so another is chosen — Dot, a plank in hand, set off for the deck's end and found no way, again and again for
+// hours, the whole island searched each time; science soak on the island, 2026-10-21)
+const NO_WAY_MS = 10 * 60e3, SET_ASIDE_MS = 3.6e6, SET_ASIDE_N = 3;
 
 /* ---------- materials: lit by the sea's own sky, sun and water ---------- */
 // pat: 0 plain, 1 a green turtle's carapace (its scutes, from the shell's own coordinates), 2 scaled
@@ -696,11 +700,27 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   const pileStand = (i: number, wet: boolean): [number, number] => { const [x, z] = along(PILE_T[i]); return wet ? [x + pierAt.dz * 0.8, z - pierAt.dx * 0.8] : [x - pierAt.dx * 1.2, z - pierAt.dz * 1.2]; };
   const plankStand = (k: number): [number, number] => along(Math.max(-0.6, 0.6 + k * 1.2 - 1.2));   // (on the last plank laid)
+  // (where the pier meets ground one walks on: the first point back from its root a little clear of the water's edge — on a
+  // low shore, the strip between is trodden as a path to it)
+  const PIER_LAND_T = (() => { for (let t = -0.8; t > -8; t -= 0.2) { const [x, z] = along(t); if (L.h(x, z) >= 0.35) return t; } return -0.8; })();
+  const pierLocal = (x: number, z: number) => { const rx = x - pierAt.x, rz = z - pierAt.z; return { t: rx * pierAt.dx + rz * pierAt.dz, side: Math.abs(rx * pierAt.dz - rz * pierAt.dx) }; };
   // the ground under foot, counting the pier's deck as far as it is laid
   function G(x: number, z: number) {
     const h = L.h(x, z); if (!village.deck) return h;
-    const rx = x - pierAt.x, rz = z - pierAt.z, t = rx * pierAt.dx + rz * pierAt.dz, side = Math.abs(rx * pierAt.dz - rz * pierAt.dx);
-    return t > -0.8 && t < 0.6 * 0 + village.deck * 1.2 && side < 0.6 ? Math.max(h, 1.01) : h;
+    const { t, side } = pierLocal(x, z);
+    return t > -0.8 && t < 0.6 * 0 + village.deck * 1.2 && side < 0.6 ? Math.max(h, 1.01) : t > PIER_LAND_T && t <= -0.8 && side < 0.6 ? Math.max(h, 0.35) : h;
+  }
+  // the way onto the pier and along it: straight, as in the house — the paths' grid, a metre to the cell, finds no way along a
+  // deck 1.2 m wide that runs aslant of it (Dot, a plank in hand, found "no way" to the deck's end every few seconds for hours;
+  // science soak on the island, 2026-10-21)
+  const onDeck = (x: number, z: number) => { if (!village.deck) return false; const { t, side } = pierLocal(x, z); return t > PIER_LAND_T && t < village.deck * 1.2 && side < 0.6; };
+  const pierLanding = () => along(PIER_LAND_T - 0.6);
+  /** On the pier, or on its line just ashore of it: where a resident walks straight. */
+  const onPierWay = (x: number, z: number) => { if (!village.deck) return false; const { t, side } = pierLocal(x, z); return onDeck(x, z) || (t > PIER_LAND_T - 1.4 && t <= PIER_LAND_T + 0.01 && side < 0.9); };
+  function viaPier(r: Resident, tx: number, tz: number): [number, number] | null {
+    const on = onDeck(r.pos.x, r.pos.z), to = onDeck(tx, tz);
+    if (on === to || (to && onPierWay(r.pos.x, r.pos.z))) return null;   // (both on it, or at its landing: straight on)
+    const [lx, lz] = pierLanding(); return on && Math.hypot(r.pos.x - lx, r.pos.z - lz) < 0.6 ? null : [lx, lz];
   }
 
   /* ---------- things the sea brings from far away ---------- */
@@ -1570,9 +1590,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // the pier, once they have agreed on it
     if (village.pier === 'plan' && r.id === 'kame') return task('survey', along(1), 'look', rr(60, 120));
     if (village.pier === 'build') {
-      if (r.id === 'lantern' && r.holding === 'stone' && village.bases < 4) return task('base', along(-0.8), 'work', 6);   // (from the shore it hands the stone out)
-      if (r.id === 'rakko' && r.holding === 'wood' && village.posts < village.bases) return task('post', pileStand(village.posts, true), 'work', 8, { wet: true });
-      if (r.id === 'dot' && r.holding === 'plank') return task('deck', plankStand(village.deck), 'hammer', 8);
+      if (r.id === 'lantern' && r.holding === 'stone' && village.bases < 4 && !setAside(r, ...along(-0.8))) return task('base', along(-0.8), 'work', 6);   // (from the shore it hands the stone out)
+      if (r.id === 'rakko' && r.holding === 'wood' && village.posts < village.bases && !setAside(r, ...pileStand(village.posts, true))) return task('post', pileStand(village.posts, true), 'work', 8, { wet: true });
+      if (r.id === 'dot' && r.holding === 'plank' && !setAside(r, ...plankStand(village.deck))) return task('deck', plankStand(village.deck), 'hammer', 8);
       if (r.id === 'rakko' && !r.holding && village.posts < village.bases && q < 0.3) {
         const it = items.nearest('wood', r.pos.x, r.pos.z, 260, r.id, clockMs);
         if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
@@ -2879,6 +2899,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const feetAt = (r: Resident) => (x: number, z: number) => r.wet ? r.pos.y : G(x, z);
   // a place it can stand: dry ground for one that walks; for one that swims, the sea or a lagoon too
   const standOn = (r: Resident, wet: boolean) => (x: number, z: number) => G(x, z) > 0.2 || (r.sp.swims && wet && (!T.water || ['sea', 'lagoon'].includes(T.water(x, z))));
+  type NoWay = { x: number; z: number; t: number; n: number };
+  const noWayAt = (r: Resident, x: number, z: number) => ((r.mo as any).noWay as NoWay[] | undefined)?.find((w) => Math.hypot(w.x - x, w.z - z) < 1);
+  function noteNoWay(r: Resident, x: number, z: number, failed: boolean) {
+    const ws: NoWay[] = (r.mo as any).noWay ??= []; let w = noWayAt(r, x, z);
+    if (!w) { w = { x, z, t: clockMs, n: 0 }; ws.push(w); if (ws.length > 8) ws.shift(); }
+    w.t = clockMs; if (failed) w.n++;
+  }
+  const wayFound = (r: Resident, x: number, z: number) => { const ws = (r.mo as any).noWay as NoWay[] | undefined; if (ws?.length) (r.mo as any).noWay = ws.filter((w) => Math.hypot(w.x - x, w.z - z) >= 1); };
+  /** A place its tasks have found no way to, time and again: set aside a while. */
+  const setAside = (r: Resident, x: number, z: number) => { const w = noWayAt(r, x, z); return !!w && w.n >= SET_ASIDE_N && clockMs - w.t < SET_ASIDE_MS; };
   function move(r: Resident, tx: number, tz: number, dt: number, wetTask: boolean, fast = false) {
     // (in the house and through its door, a wide one draws itself in — Lantern folds its long legs — to pass a door 0.9 m wide)
     const B0 = bodyOf(r), B = !fast && inHouseWay(r.pos.x, r.pos.z) ? { ...B0, r: Math.min(B0.r, 0.3) } : B0, feet = feetAt(r);
@@ -2913,6 +2943,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // (in the house, or at its door: straight — the room is clear, and a grid a metre to the cell finds no way through a door
     // under a metre wide; Lantern, living in the house, was shut in by its walls — life-run 2026-10-09)
     if (!fast && inHouseWay(r.pos.x, r.pos.z)) { r.path = { pts: [[tx, tz]], tx, tz, t: clockMs, house: true } as any; }
+    else if (!fast && onPierWay(r.pos.x, r.pos.z) && onPierWay(tx, tz)) { r.path = { pts: [[tx, tz]], tx, tz, t: clockMs, house: true } as any; }   // (along the pier: straight)
     else if (!fast && ((G(r.pos.x, r.pos.z) > 0.2 && G(tx, tz) > 0.2) || swimWay)) {
       const P = r.path;
       // (a way planned to the same place a moment ago, dropped since because it was pushed back off a trunk: that way again,
@@ -2923,6 +2954,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         r.path = { pts: LP.pts.map((q) => [q[0], q[1]] as [number, number]), tx, tz, t: clockMs };
       }
       else if (!P || (P as any).house || (Math.hypot(P.tx - tx, P.tz - tz) > 4 && clockMs - P.t > 3000)) {   // (out of the house: a way planned afresh)
+        const nw = noWayAt(r, tx, tz);
+        if (nw && clockMs - nw.t < NO_WAY_MS) { r.path = undefined; r.went = 'no way'; r.blocked = 99; r.walk = 0; return false; }   // (found none there a little while ago)
         const C = Math.min(4, Math.max(1, d0 / 160)), pad = Math.min(0.5, C * 0.5), wide = { ...B, r: B.r + pad };
         const base = r.id === 'lantern' ? lanternCost(r.mo.bad) : swimWay ? swimCost : walkCost;
         const costFor = (body: typeof B, f = base) => (x: number, z: number) => { const c = f(x, z); return isFinite(c) && solids.hit(x, z, body, G(x, z)) ? Infinity : c; };
@@ -2934,6 +2967,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           ?? (d0 > 20 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], r.sp.swims ? swimCost : edgeCost), true) : null)
           ?? (!r.sp.swims && G(r.pos.x, r.pos.z) < 0.2 ? findPath(r.pos.x, r.pos.z, tx, tz, costFor(BODY[r.id], wadeCost), true) : null);   // (a walker found standing in the shallows: it wades back to the land, not stopped there for want of a dry way)   // (and last, the long way round: back the way it came, round a bay — life-run 2026-10-09)   // (one that swims, with no way on foot: round by the water — it came ashore where the land does not join up)   // (a log carried makes it wider: where only its own width goes through — the way it came in — the log is dragged through)
         (r.mo as any).lastPlan = { t: clockMs, tx, tz, pts: pts ? pts.map((q) => [q[0], q[1]]) : null };
+        if (pts) wayFound(r, tx, tz); else noteNoWay(r, tx, tz, false);
         if (!pts) { r.path = undefined; r.went = 'no way'; r.blocked = 99; r.walk = 0; return false; }
         r.path = { pts, tx, tz, t: clockMs };
       }
@@ -3320,7 +3354,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.task?.kind === 'shelter' && !storm() && !(r.task.data?.worn && r.stuck) && !(r.task.data?.rain && (wetNow() || ((r.wear ?? 0) > 0.3 && !meetHours(hr))))) r.task = null;   // (out of the rain: it stays to dry; worn, until it has)
     if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && r.task.kind !== 'shelter' && r.task.kind !== 'voyage' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
       if (r.task) { report(r, r.task, 'interrupted', sleepTime(r, hr) ? '眠る時間になった' : '起きる時間になった'); items.release(r.id); }
-      r.task = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr);
+      { const nt = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr); r.task = nt && setAside(r, nt.x, nt.z) ? null : nt; }
       r.blocked = 0; r.mo.fails = 0;
       if (!r.task) { r.act = 'idle'; r.walk = 0; placeY(r); return; }
     }
@@ -3394,13 +3428,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if ((r.mo as any).forTask !== tk) { (r.mo as any).forTask = tk; r.blocked = 0; }
     if (!tk.arrived) {
       r.act = r.wet ? 'swim' : r.holding ? 'carry' : 'walk';
-      const via = viaDoor(r, tk.x, tk.z), vk = via ? via.join() : '';   // (into or out of the house: by its doorway)
+      const via = viaDoor(r, tk.x, tk.z) ?? viaPier(r, tk.x, tk.z), vk = via ? via.join() : '';   // (into or out of the house: by its doorway; onto or off the pier: by its landing)
       if ((tk as any).via !== vk) { (tk as any).via = vk; r.path = undefined; }   // (a new leg: its way planned again)
       tk.arrived = via ? (move(r, via[0], via[1], dt, !!tk.wet, fast), false) : move(r, tk.x, tk.z, dt, !!tk.wet, fast);
       if (tk.arrived && r.mo.backFrom) { walked(r, Math.hypot(r.pos.x - r.mo.backFrom[0], r.pos.z - r.mo.backFrom[1])); r.mo.backFrom = undefined; }   // (the way back from a gathering: to where it went next)
       tk.t += dt;
       if (tk.t > 1800 / wearSlow(r) || r.blocked > 20) {   // (a slowed one is given the time its pace needs)
         if (r.id === 'lantern' && tk.data?.studyId) study?.interrupt(tk.data.studyId, studyWorld(fast), '道を進めなかった。別の場所から確かめよう。', true);
+        if (r.went === 'no way' && !(tk.t > 1800 / wearSlow(r))) noteNoWay(r, tk.x, tk.z, true);
         report(r, tk, tk.t > 1800 / wearSlow(r) ? 'timeout' : r.went === 'no way' || r.went === 'nowhere to stand' ? r.went : 'blocked', r.went === 'no way' ? '道がなかった' : r.went === 'nowhere to stand' ? '立てる場所がなかった' : '進めなかった');
         if (tk.data && typeof tk.data.id === 'number' && tk.data.kind) (tk.data.away ??= {})[r.id] = clockMs + 6 * 3.6e6;
         // (wedged where it could not get on: Lantern keeps the spot among the places it goes round, so the next way it plans
@@ -4305,6 +4340,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
 
   (res as any).huskDev = huskDev;
   (res as any).walkCost = walkCost; (res as any).setSeaAt = (f: (ms: number) => number) => { seaAt = f; };   // (for checks: the way on foot, and a sea to try it with)
+  (res as any).pierHost = { at: pierAt, along, G, plankStand, landing: pierLanding, onDeck, drawPier }; (res as any).noWayHost = { at: noWayAt, setAside };   // (for checks: the pier's way, and the places no way was found to)
   (res as any).huskSites = () => husk.sites(); (res as any).huskRepool = (was: { id: string; x: number; z: number }) => tidePool(was.x, was.z);   // (the pool's place, for checks)   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)
   (res as any).sailHost = sail;     // (and the sail's)
