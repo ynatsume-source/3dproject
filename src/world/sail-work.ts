@@ -288,7 +288,7 @@ function raw(L: SailWorkLedger, runId: string): Data {
   demand(p.status !== 'completed', 'completed-run-retained');
   return d;
 }
-function metadata(L: SailWorkLedger): Arrangement {
+function metadataHeader(L: SailWorkLedger): Arrangement {
   const m = L.sailArrangement;
   if (!m) {
     demand(!Object.values(L.runs).some(r => r.processId === SAIL_WORK.processId),
@@ -305,6 +305,22 @@ function metadata(L: SailWorkLedger): Arrangement {
     Array.isArray(m.receipts) && m.receipts.length <= SAIL_WORK.receiptLimit &&
     Array.isArray(m.finished) && m.finished.length <= SAIL_WORK.receiptLimit,
   'invalid-arrangement');
+  return m;
+}
+
+function checkFinished(f: Finished): void {
+  demand(shape(f, ['runId', 'actorId', 'siteId', 'operation', 'status',
+    'atWorldMs', 'certifiedMs', 'lotIds', 'observations']) &&
+    id(f.runId) && id(f.actorId) && id(f.siteId) &&
+    ['harvest', 'dry', 'split', 'weave', 'mast'].includes(f.operation) &&
+    ['completed', 'abandoned'].includes(f.status) && uint(f.atWorldMs) &&
+    uint(f.certifiedMs) && Array.isArray(f.lotIds) && f.lotIds.every(id) &&
+    Array.isArray(f.observations) && f.observations.every(o =>
+      shape(o, ['channel', 'text']) && o.channel === 'sight' && publicWords.has(o.text)),
+  'invalid-finished-summary');
+}
+
+function checkMetadataRecords(m: Arrangement): void {
   const seen = new Set<string>();
   for (const r of m.receipts) {
     demand(shape(r, ['key', 'payload', 'runId', 'atWorldMs']) &&
@@ -312,16 +328,74 @@ function metadata(L: SailWorkLedger): Arrangement {
       uint(r.atWorldMs) && !seen.has(r.key), 'invalid-receipt');
     seen.add(r.key);
   }
-  for (const f of m.finished) {
-    demand(shape(f, ['runId', 'actorId', 'siteId', 'operation', 'status',
-      'atWorldMs', 'certifiedMs', 'lotIds', 'observations']) &&
-      id(f.runId) && id(f.actorId) && id(f.siteId) &&
-      ['harvest', 'dry', 'split', 'weave', 'mast'].includes(f.operation) &&
-      ['completed', 'abandoned'].includes(f.status) && uint(f.atWorldMs) &&
-      uint(f.certifiedMs) && Array.isArray(f.lotIds) && f.lotIds.every(id) &&
-      Array.isArray(f.observations) && f.observations.every(o =>
-        shape(o, ['channel', 'text']) && o.channel === 'sight' && publicWords.has(o.text)),
-    'invalid-finished-summary');
+  for (const f of m.finished) checkFinished(f);
+}
+
+function metadata(L: SailWorkLedger): Arrangement {
+  try {
+    const m = metadataHeader(L);
+    checkMetadataRecords(m);
+    return m;
+  } catch (error) {
+    checkedWorksiteMetadata.delete(L);
+    throw error;
+  }
+}
+
+interface WorksiteMetadataStamp {
+  arrangement: Arrangement;
+  worldId: string;
+  worldEpoch: string;
+  revision: number;
+  authorityAtWorldMs: number;
+  floorAtWorldMs: number | null;
+  receipts: Receipt[];
+  finished: Finished[];
+  receiptCount: number;
+  finishedCount: number;
+  receiptRows: Receipt[];
+  finishedRows: Finished[];
+}
+const checkedWorksiteMetadata =
+  new WeakMap<SailWorkLedger, WorksiteMetadataStamp>();
+
+/** Cache only this read path. World transactions and restores keep strict
+ * metadata checks; replacing or revising their owned envelope invalidates a read.
+ */
+function worksiteMetadata(L: SailWorkLedger): Arrangement {
+  const m = metadataHeader(L);
+  const previous = checkedWorksiteMetadata.get(L);
+  if (previous?.arrangement === m &&
+    previous.worldId === L.world.worldId &&
+    previous.worldEpoch === L.world.worldEpoch &&
+    previous.revision === m.revision &&
+    previous.authorityAtWorldMs === m.authorityAtWorldMs &&
+    previous.floorAtWorldMs === m.floorAtWorldMs &&
+    previous.receipts === m.receipts &&
+    previous.finished === m.finished &&
+    previous.receiptCount === m.receipts.length &&
+    previous.finishedCount === m.finished.length &&
+    previous.receiptRows.every((row, index) => row === m.receipts[index]) &&
+    previous.finishedRows.every((row, index) => row === m.finished[index])) {
+    return m;
+  }
+  checkedWorksiteMetadata.delete(L);
+  checkMetadataRecords(m);
+  if (L.sailArrangement === m) {
+    checkedWorksiteMetadata.set(L, {
+      arrangement: m,
+      worldId: L.world.worldId,
+      worldEpoch: L.world.worldEpoch,
+      revision: m.revision,
+      authorityAtWorldMs: m.authorityAtWorldMs,
+      floorAtWorldMs: m.floorAtWorldMs,
+      receipts: m.receipts,
+      finished: m.finished,
+      receiptCount: m.receipts.length,
+      finishedCount: m.finished.length,
+      receiptRows: m.receipts.slice(),
+      finishedRows: m.finished.slice(),
+    });
   }
   return m;
 }
@@ -666,20 +740,26 @@ export function projectSailWork(L: SailWorkLedger, runId: string) {
 }
 export function readSailWorksite(L: SailWorkLedger, siteId: string, asOfWorldMs: number) {
   return safe(() => {
-    const m = metadata(L);
-    demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= m.authorityAtWorldMs,
-      'invalid-view-context');
-    const d = jobs(L).find(j => j.spec.facts.worksite.locationId === siteId);
-    if (!d) {
-      const ended = m.finished.filter(f => f.siteId === siteId).at(-1);
-      return {activity: ended?.status ?? 'available',
-        observations: copy(ended?.observations ?? [])};
+    try {
+      const m = worksiteMetadata(L);
+      demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= m.authorityAtWorldMs,
+        'invalid-view-context');
+      const d = jobs(L).find(j => j.spec.facts.worksite.locationId === siteId);
+      if (!d) {
+        const ended = m.finished.filter(f => f.siteId === siteId).at(-1);
+        if (ended) checkFinished(ended);
+        return {activity: ended?.status ?? 'available',
+          observations: copy(ended?.observations ?? [])};
+      }
+      const working = d.spec.operation !== 'dry' && d.engaged &&
+        d.lastWasWork && d.lastConfirmedAtWorldMs === asOfWorldMs;
+      return {activity: !d.engaged ? 'paused' : working ? 'working' : 'waiting',
+        observations: d.seenByActor ? model(d).observeTotal(d.totalWorkMs)
+          .map(text => ({channel: 'sight' as const, text})) : []};
+    } catch (error) {
+      checkedWorksiteMetadata.delete(L);
+      throw error;
     }
-    const working = d.spec.operation !== 'dry' && d.engaged &&
-      d.lastWasWork && d.lastConfirmedAtWorldMs === asOfWorldMs;
-    return {activity: !d.engaged ? 'paused' : working ? 'working' : 'waiting',
-      observations: d.seenByActor ? model(d).observeTotal(d.totalWorkMs)
-        .map(text => ({channel: 'sight' as const, text})) : []};
   });
 }
 export function readSailWorkerObservations(
