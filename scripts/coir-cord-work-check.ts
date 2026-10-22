@@ -316,4 +316,215 @@ test('receipt eviction does not invalidate an ongoing job or permit an old event
   assert.equal(a.L.runs[a.runId], undefined);
 });
 
+
+let cachedCordReadFixture: {L: CordWorkLedger; at: number} | undefined;
+
+function beginCordReadFixture(L: CordWorkLedger, at: number, suffix: string) {
+  const lotId = 'read-bundle:' + suffix;
+  addProduced(L, writeCordBundle({
+    fiberDryMg: 72_000, pithDryMg: 7_200, waterMg: 7_920
+  }, 'site', 1), lotId);
+  const facts: CordStartFacts = {
+    assumptionId: ID,
+    worksite: {locationId: 'site', x: 0, z: 0, reachM: 1},
+    requestedLengthMm: 1_000
+  };
+  const intent: CordIntent = {
+    kind: 'start', intentId: 'read-start:' + suffix, actorId: 'actor',
+    atWorldMs: at, operation: 'twist', lotIds: [lotId],
+    siteId: 'site', presence: 'here'
+  };
+  const runId = applyCordIntent(L, intent, cordWorkRevision(L), at, facts).runId;
+  return {L, at, lotId, runId};
+}
+
+function fullCordReadFixture() {
+  if (!cachedCordReadFixture) {
+    const L: CordWorkLedger = emptyLedger('world:cord-read-cache', 'epoch:1');
+    let at = T;
+    for (let n = 0; n < 64; n++) {
+      const a = beginCordReadFixture(L, at, String(n));
+      const f: CordSpan = {
+        kind: 'executor-activity-span', spanId: 'read-complete:' + n,
+        worldId: L.world.worldId, worldEpoch: L.world.worldEpoch,
+        runId: a.runId, actorId: 'actor',
+        fromWorldMs: at, toWorldMs: at + 120_000,
+        confirmedAtWorldMs: at + 120_000, activity: 'twist-coir',
+        arrived: true, targetLotId: a.lotId, targetSiteId: 'site',
+        fromPosition: {x: 0, z: 0}, toPosition: {x: 0, z: 0}
+      };
+      recordCordSpan(L, a.runId, f, cordWorkRevision(L), f.confirmedAtWorldMs);
+      assert.equal(L.runs[a.runId], undefined);
+      for (const lotId of Object.keys(L.lots)) delete L.lots[lotId];
+      at += 121_000;
+    }
+    assert.equal(L.cordArrangement!.finished.length, 64);
+    assert.equal(L.cordArrangement!.receipts.length, 64);
+    cachedCordReadFixture = {L: json(L), at};
+  }
+  return {L: json(cachedCordReadFixture.L), at: cachedCordReadFixture.at};
+}
+
+test('warm cord worksite reads skip unrelated finished bodies without changing the ledger', () => {
+  for (const active of [true, false]) {
+    const {L, at} = fullCordReadFixture();
+    if (active) beginCordReadFixture(L, at, 'active');
+    const expected = readCordWorksite(json(L), 'site', at);
+    const available = readCordWorksite(json(L), 'unused-site', at);
+    readCordWorksite(L, 'site', at);
+    // Another world commit changes the counter, not this arrangement.
+    L.world.worldVersion++;
+    const before = JSON.stringify(L);
+    const rows = L.cordArrangement!.finished;
+    const selectedIndex = active ? -1 : rows.length - 1;
+    const descriptors = rows.map(row => Object.getOwnPropertyDescriptor(row, 'projection')!);
+    let unrelatedBodyReads = 0;
+    let selectedBodyReads = 0;
+    rows.forEach((row, n) => {
+      const value = descriptors[n].value;
+      Object.defineProperty(row, 'projection', {
+        configurable: true, enumerable: true,
+        get() {
+          if (n === selectedIndex) selectedBodyReads++;
+          else unrelatedBodyReads++;
+          return value;
+        }
+      });
+    });
+    try {
+      for (let n = 0; n < 100; n++) {
+        assert.deepEqual(readCordWorksite(L, 'site', at + n), expected);
+        assert.deepEqual(readCordWorksite(L, 'unused-site', at + n), available);
+      }
+      assert.equal(unrelatedBodyReads, 0,
+        active ? 'active reads must not inspect any old finished body'
+          : 'completed reads must not inspect the other finished bodies');
+      if (!active) {
+        assert.ok(selectedBodyReads > 0, 'the selected finished body is still checked');
+      }
+    } finally {
+      rows.forEach((row, n) => Object.defineProperty(row, 'projection', descriptors[n]));
+    }
+    assert.equal(JSON.stringify(L), before);
+  }
+});
+
+test('cord selected finished reads check that row and return independent view data', () => {
+  const {L, at} = fullCordReadFixture();
+  const expected = readCordWorksite(json(L), 'site', at);
+  const first = readCordWorksite(L, 'site', at);
+  assert.ok(first.observations.length > 0);
+  first.stage = 'changed outside the ledger';
+  first.observations[0].text = 'changed outside the ledger';
+  assert.deepEqual(readCordWorksite(L, 'site', at), expected);
+  L.cordArrangement!.finished.at(-1)!.digest++;
+  assert.throws(() => readCordWorksite(L, 'site', at), CordWorkError);
+  assert.throws(() => readCordWorksite(L, 'unused-site', at), CordWorkError,
+    'a known invalid selected summary must invalidate the warm metadata proof');
+});
+
+test('cord cache misses validate changed metadata and world bindings', () => {
+  const edits: [string, (L: CordWorkLedger) => void][] = [
+    ['metadata replacement', L => { L.cordArrangement = json(L.cordArrangement); }],
+    ['revision', L => { L.cordArrangement!.revision++; }],
+    ['authority', L => { L.cordArrangement!.authorityAtWorldMs++; }],
+    ['floor', L => {
+      L.cordArrangement!.floorAtWorldMs = (L.cordArrangement!.floorAtWorldMs ?? 0) + 1;
+    }],
+    ['finished array', L => { L.cordArrangement!.finished = L.cordArrangement!.finished.slice(); }],
+    ['finished length', L => { L.cordArrangement!.finished.pop(); }],
+    ['finished row', L => {
+      L.cordArrangement!.finished[0] = json(L.cordArrangement!.finished[0]);
+    }],
+    ['receipt array', L => { L.cordArrangement!.receipts = L.cordArrangement!.receipts.slice(); }],
+    ['receipt row', L => {
+      L.cordArrangement!.receipts[0] = json(L.cordArrangement!.receipts[0]);
+    }],
+    ['world ID', L => { L.world.worldId = 'world:changed'; }],
+    ['world epoch', L => { L.world.worldEpoch = 'epoch:changed'; }]
+  ];
+  for (const [name, edit] of edits) {
+    const {L, at} = fullCordReadFixture();
+    readCordWorksite(L, 'unused-site', at);
+    edit(L);
+    L.cordArrangement!.finished[0].digest++;
+    assert.throws(() => readCordWorksite(L, 'unused-site', at), CordWorkError, name);
+  }
+  for (const field of ['receipts', 'finished'] as const) {
+    const {L, at} = fullCordReadFixture();
+    readCordWorksite(L, 'unused-site', at);
+    delete (L.cordArrangement![field] as any)[0];
+    assert.throws(() => readCordWorksite(L, 'unused-site', at), CordWorkError, field + ' hole');
+  }
+  const {L, at} = fullCordReadFixture();
+  readCordWorksite(L, 'unused-site', at);
+  const finishedId = L.cordArrangement!.finished[0].runId;
+  (L.runs as any)[finishedId] = {runId: finishedId, processId: 'other', status: 'running'};
+  assert.throws(() => readCordWorksite(L, 'unused-site', at), CordWorkError);
+});
+
+test('cold cord reads and restore check all records, even when metadata is shared with a warm root', () => {
+  const {L, at} = fullCordReadFixture();
+  const bad = json(L);
+  bad.cordArrangement!.finished[0].digest++;
+  assert.throws(() => readCordWorksite(bad, 'unused-site', at), CordWorkError);
+  assert.throws(() => restoreCordWork(bad, at), CordWorkError);
+  readCordWorksite(L, 'unused-site', at);
+  const anotherRoot = {...L, world: {...L.world}};
+  L.cordArrangement!.finished[0].digest++;
+  assert.throws(() => readCordWorksite(anotherRoot, 'unused-site', at), CordWorkError);
+});
+
+test('a failed strict cord validation cannot leave a warm read cache trusted', () => {
+  const {L, at} = fullCordReadFixture();
+  readCordWorksite(L, 'unused-site', at);
+  L.cordArrangement!.finished[0].digest++;
+  assert.throws(() => cordWorkRevision(L), CordWorkError);
+  assert.throws(() => readCordWorksite(L, 'unused-site', at), CordWorkError);
+});
+
+test('warm cord reads retain live-state, reservation and active-control checks', () => {
+  const edits: [string, (a: F) => void][] = [
+    ['state', a => { (a.L.runs[a.runId].state!.data as any).pendingMs++; }],
+    ['source', a => {
+      a.L.lots.bundle.quality!.water_mg++;
+      a.L.lots.bundle.amount.value++;
+    }],
+    ['reservation', a => { a.L.lots.bundle.reservedBy = 'other-run'; }],
+    ['operator', a => { a.L.runs[a.runId].operator = 'other'; }],
+    ['control receipt', a => {
+      a.L.cordArrangement!.receipts.find(r => r.runId === a.runId)!.payload = 'not JSON';
+    }]
+  ];
+  for (const [name, edit] of edits) {
+    const a = fixture();
+    readCordWorksite(a.L, 'site', T);
+    edit(a);
+    assert.throws(() => readCordWorksite(a.L, 'site', T), CordWorkError, name);
+  }
+});
+
+test('cord cache never freezes the as-of view or changes serialized work across its lifecycle', () => {
+  const a = fixture();
+  const agree = (at: number) => {
+    const before = JSON.stringify(a.L);
+    const expected = readCordWorksite(json(a.L), 'site', T + at);
+    const actual = readCordWorksite(a.L, 'site', T + at);
+    assert.deepEqual(actual, expected);
+    assert.equal(JSON.stringify(actual), JSON.stringify(expected));
+    assert.equal(JSON.stringify(a.L), before);
+    return actual;
+  };
+  assert.equal(agree(0).activity, 'waiting');
+  work(a, 0, 30_000, 'cache-first');
+  assert.equal(agree(30_000).activity, 'working');
+  assert.equal(agree(30_001).activity, 'waiting');
+  ctrl(a, 'stop', 30_000);
+  assert.equal(agree(30_000).activity, 'paused');
+  ctrl(a, 'resume', 60_000);
+  assert.equal(agree(60_000).activity, 'waiting');
+  work(a, 60_000, 150_000, 'cache-tail');
+  assert.equal(agree(150_000).activity, 'completed');
+});
+
 console.log('PASS coir work arrangement: '+groups+' groups; no production resident/UI registration.');
