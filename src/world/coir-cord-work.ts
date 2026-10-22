@@ -205,7 +205,7 @@ function summaryDigest(value: unknown): number {
 function sealSummary(value: Omit<Finished, 'digest'>): Finished {
   return { ...value, digest: summaryDigest(value) };
 }
-function arrangement(L: CordWorkLedger): Arrangement {
+function arrangementHeader(L: CordWorkLedger): Arrangement {
   const m = L.cordArrangement;
   if (!m) {
     demand(!Object.values(L.runs).some(r => r.processId === CORD_WORK.processId), 'missing-arrangement');
@@ -230,28 +230,53 @@ function arrangement(L: CordWorkLedger): Arrangement {
     && Array.isArray(m.receipts) && m.receipts.length <= CORD_WORK.receiptLimit
     && Array.isArray(m.finished) && m.finished.length <= CORD_WORK.receiptLimit,
   'invalid-arrangement');
-  const ids = new Set<string>();
-  for (const r of m.receipts) {
-    demand(shape(r, ['key', 'payload', 'runId', 'atWorldMs'])
-      && id(r.key) && typeof r.payload === 'string' && id(r.runId)
-      && uint(r.atWorldMs) && !ids.has(r.key), 'invalid-receipt');
-    ids.add(r.key);
-  }
-  const finished = new Set<string>();
-  for (const f of m.finished) {
-    demand(shape(f, [
-      'runId', 'actorId', 'siteId', 'operation', 'atWorldMs',
-      'projection', 'view', 'workerObservations', 'digest'
-    ]) && id(f.runId) && id(f.actorId) && id(f.siteId)
-      && ['dry', 'sieve', 'twist', 'ply'].includes(f.operation)
-      && uint(f.atWorldMs) && uint(f.digest)
-      && !finished.has(f.runId) && !L.runs[f.runId], 'invalid-finished-summary');
-    const { digest, ...body } = f;
-    demand(summaryDigest(body) === digest
-      && ['completed', 'stopped'].includes(f.projection?.status)
-      && f.projection.pendingMs === 0, 'corrupt-finished-summary');
-    finished.add(f.runId);
-  }
+  return m;
+}
+interface CheckedReadArrangement {
+  arrangement: Arrangement;
+  worldId: string;
+  worldEpoch: string;
+  revision: number;
+  authorityAtWorldMs: number;
+  floorAtWorldMs: number | null;
+  receipts: Receipt[];
+  receiptCount: number;
+  finished: Finished[];
+  finishedCount: number;
+}
+const checkedReadArrangements = new WeakMap<CordWorkLedger, CheckedReadArrangement>();
+
+function rememberReadArrangement(L: CordWorkLedger, m: Arrangement): void {
+  if (L.cordArrangement !== m) return;
+  checkedReadArrangements.set(L, {
+    arrangement: m,
+    worldId: L.world.worldId,
+    worldEpoch: L.world.worldEpoch,
+    revision: m.revision,
+    authorityAtWorldMs: m.authorityAtWorldMs,
+    floorAtWorldMs: m.floorAtWorldMs,
+    receipts: m.receipts,
+    receiptCount: m.receipts.length,
+    finished: m.finished,
+    finishedCount: m.finished.length
+  });
+}
+function checkedFinishedSummary(
+  L: CordWorkLedger, f: Finished, seen?: Set<string>
+): void {
+  demand(shape(f, [
+    'runId', 'actorId', 'siteId', 'operation', 'atWorldMs',
+    'projection', 'view', 'workerObservations', 'digest'
+  ]) && id(f.runId) && id(f.actorId) && id(f.siteId)
+    && ['dry', 'sieve', 'twist', 'ply'].includes(f.operation)
+    && uint(f.atWorldMs) && uint(f.digest)
+    && (!seen || !seen.has(f.runId)) && !L.runs[f.runId], 'invalid-finished-summary');
+  const { digest, ...body } = f;
+  demand(summaryDigest(body) === digest
+    && ['completed', 'stopped'].includes(f.projection?.status)
+    && f.projection.pendingMs === 0, 'corrupt-finished-summary');
+}
+function checkArrangementJobs(L: CordWorkLedger, m: Arrangement): void {
   const actors = new Set<string>(), sites = new Set<string>();
   for (const r of Object.values(L.runs).filter(r => r.processId === CORD_WORK.processId)) {
     const d = raw(L, r.runId);
@@ -275,7 +300,50 @@ function arrangement(L: CordWorkLedger): Arrangement {
       actors.add(actor(d));
     }
   }
+}
+function arrangement(L: CordWorkLedger): Arrangement {
+  // Writes and restores always use the complete check, even if a read was cached.
+  // A failed check also discards any earlier proof for this ledger.
+  checkedReadArrangements.delete(L);
+  const m = arrangementHeader(L);
+  const ids = new Set<string>();
+  for (const r of m.receipts) {
+    demand(shape(r, ['key', 'payload', 'runId', 'atWorldMs'])
+      && id(r.key) && typeof r.payload === 'string' && id(r.runId)
+      && uint(r.atWorldMs) && !ids.has(r.key), 'invalid-receipt');
+    ids.add(r.key);
+  }
+  const finished = new Set<string>();
+  for (const f of m.finished) {
+    checkedFinishedSummary(L, f, finished);
+    finished.add(f.runId);
+  }
+  checkArrangementJobs(L, m);
+  rememberReadArrangement(L, m);
   return m;
+}
+/** Only the immutable history scan is reused. Live jobs and their reservations
+ * may change independently, so validate those on every worksite read.
+ * Fresh JSON roots and changed arrangement envelopes take the complete path.
+ */
+function readArrangement(L: CordWorkLedger): Arrangement {
+  const m = arrangementHeader(L);
+  const checked = checkedReadArrangements.get(L);
+  if (checked
+    && checked.arrangement === m
+    && checked.worldId === L.world.worldId
+    && checked.worldEpoch === L.world.worldEpoch
+    && checked.revision === m.revision
+    && checked.authorityAtWorldMs === m.authorityAtWorldMs
+    && checked.floorAtWorldMs === m.floorAtWorldMs
+    && checked.receipts === m.receipts
+    && checked.receiptCount === m.receipts.length
+    && checked.finished === m.finished
+    && checked.finishedCount === m.finished.length) {
+    checkArrangementJobs(L, m);
+    return m;
+  }
+  return arrangement(L);
 }
 function safe<T>(f: () => T): T {
   try { return f(); } catch (e) { return translated(e); }
@@ -300,6 +368,8 @@ function transaction<T>(L: CordWorkLedger, f: (d: CordWorkLedger, m: Arrangement
     d.cordArrangement = m;
     arrangement(d);
     Object.assign(L, d);
+    const checked = checkedReadArrangements.get(d);
+    if (checked) checkedReadArrangements.set(L, checked);
     return value;
   });
 }
@@ -556,12 +626,15 @@ export function readCordWorksite(
   L: CordWorkLedger, siteId: string, asOfWorldMs: number
 ): CordWorksiteView {
   return safe(() => {
-    const a = arrangement(L);
+    const a = readArrangement(L);
     demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= a.authorityAtWorldMs, 'invalid-view-context');
     const d = jobs(L).find(job => job.spec.facts.worksite.locationId === siteId);
     if (d) return viewOf(d, asOfWorldMs);
     const done = a.finished.filter(f => f.siteId === siteId).at(-1);
-    if (done) return clone(done.view);
+    if (done) {
+      checkedFinishedSummary(L, done);
+      return clone(done.view);
+    }
     return {
       title: '縄の作業場', stage: '開始前', activity: 'available',
       materialsReserved: false, operatorFree: true, reason: null,
