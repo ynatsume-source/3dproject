@@ -241,8 +241,10 @@ interface CheckedReadArrangement {
   floorAtWorldMs: number | null;
   receipts: Receipt[];
   receiptCount: number;
+  receiptRows: readonly Receipt[];
   finished: Finished[];
   finishedCount: number;
+  finishedRows: readonly Finished[];
 }
 const checkedReadArrangements = new WeakMap<CordWorkLedger, CheckedReadArrangement>();
 
@@ -257,8 +259,10 @@ function rememberReadArrangement(L: CordWorkLedger, m: Arrangement): void {
     floorAtWorldMs: m.floorAtWorldMs,
     receipts: m.receipts,
     receiptCount: m.receipts.length,
+    receiptRows: m.receipts.slice(),
     finished: m.finished,
-    finishedCount: m.finished.length
+    finishedCount: m.finished.length,
+    finishedRows: m.finished.slice()
   });
 }
 function checkedFinishedSummary(
@@ -338,8 +342,10 @@ function readArrangement(L: CordWorkLedger): Arrangement {
     && checked.floorAtWorldMs === m.floorAtWorldMs
     && checked.receipts === m.receipts
     && checked.receiptCount === m.receipts.length
+    && checked.receiptRows.every((row, index) => row === m.receipts[index])
     && checked.finished === m.finished
-    && checked.finishedCount === m.finished.length) {
+    && checked.finishedCount === m.finished.length
+    && checked.finishedRows.every((row, index) => row === m.finished[index])) {
     checkArrangementJobs(L, m);
     return m;
   }
