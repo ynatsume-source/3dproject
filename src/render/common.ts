@@ -24,6 +24,7 @@ export const U = {
   uLights: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(0, -100, 0, 0)) }, uLightR: { value: new THREE.Vector4(2.5, 2.5, 2.5, 2.5) }, uLightC: { value: [0, 1, 2, 3].map(() => new THREE.Vector3(1, 1, 1)) },
   uAbs: { value: new THREE.Vector3(0.1, 0.04, 0.03) },
   uSeaH: { value: 0 },   // (the sea's height now, m above mean sea level: time/sea-level.ts, set by ocean/air.ts setSeaLevel)
+  uWetH: { value: 0 },   // (the highest the sea stood a little while ago: what lies below it is still wet — ocean/wet.ts, render/reef-lit.ts)
   uSand: { value: new THREE.Color() }, uRock: { value: new THREE.Color() },
   // sky, driven by the clock
   uSunDir: { value: new THREE.Vector3(0.3162, 0.9035, 0.2891) },
@@ -84,7 +85,7 @@ vec2 caveLight(vec3 wp){
 
 export const COMMON = /* glsl */ `
 uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd; uniform float uA2C;
-uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs; uniform float uSeaH;
+uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs; uniform float uSeaH; uniform float uWetH;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud; uniform vec3 uWind; uniform float uMurk;

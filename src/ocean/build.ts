@@ -7,6 +7,7 @@ import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
+import { REEF_LIT } from '../render/reef-lit';
 import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR, hyp } from '../core/math';
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
 import { CORAL_GEO, CORAL_MAT, CORAL_GEO_HI, CORAL_MAT_HI, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
@@ -297,14 +298,14 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   const floorMat = (defs: Record<string, number>) => mat(
     `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    seabedSurface + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
+    REEF_LIT + seabedSurface + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
        #ifdef LAND_ONLY
        vec3 col = vec3(0.0);
        #else
        vec3 n;
        vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
-       vec3 col = shade(alb, vWp, n, ${loc.habitat === 'kelp' ? '0.35' : '0.95'});
+       vec3 col = reefLit(alb, vWp, n, ${loc.habitat === 'kelp' ? '0.35' : '0.95'});
        #endif
        #ifdef LAND
        #ifdef LAND_ONLY
@@ -548,7 +549,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz;
          vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
          vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vL = position; vCol = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`,
-      SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
+      REEF_LIT + SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
        void main(){
          vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
          vec3 alb = vCol * (0.85 + 0.25 * vn2(vL.xz * 60.0 + vL.y * 40.0));
@@ -561,7 +562,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
            n = bumpN(n, vWp, cellF1(vL.xz * 180.0) * 0.0015);
          #endif
          alb *= mix(0.55, 1.0, smoothstep(-0.01, 0.02, vL.y));
-         gl_FragColor = vec4(shade(alb, vWp, n, 0.9), 1.0);
+         gl_FragColor = vec4(reefLit(alb, vWp, n, 0.9), 1.0);
        }`, { defines: { TYPE: type }, uniforms: SURF_UNIFORMS, opts: { side: THREE.DoubleSide } }));
     placeLitter = function* (x0, z0, x1, z1, frac, skip, cells) {
       const lists: any[][] = debris.map(() => []);
@@ -727,11 +728,11 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
-      seabedSurface + `varying vec3 vWp; varying vec3 vN; varying float vLy;
+      REEF_LIT + seabedSurface + `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){
          vec3 n;
          vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
-         gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
+         gl_FragColor = vec4(reefLit(alb, vWp, n, 0.85), 1.0);
        }`, { uniforms: SURF_UNIFORMS });
     placeRocks = function* (sr, lr, frac, skip, cellsOut, feet) {
       const lists: any[][] = protos.map(() => []);
@@ -975,7 +976,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
 function buildCave(cave: Cave, group: THREE.Group, items: any) {
   const rock = new THREE.Mesh(cave.geo, mat(
     `varying vec3 vWp; varying vec3 vN; void main(){ vWp = position; vN = normal; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    SURFACE + `varying vec3 vWp; varying vec3 vN;
+    REEF_LIT + SURFACE + `varying vec3 vWp; varying vec3 vN;
      void main(){
        vec3 n0 = normalize(vN), n;
        vec2 cl = caveLight(vWp + n0 * 0.3);
@@ -987,7 +988,7 @@ function buildCave(cave: Cave, group: THREE.Group, items: any) {
        float cup = (1.0 - smoothstep(0.1, 0.26, cf)) * smoothstep(0.4, 0.62, vn2(q * 0.45 + 9.0)) * (1.0 - open) * (1.0 - smoothstep(0.2, 0.8, n0.y));
        alb = mix(alb * mix(0.8, 1.0, open), vec3(1.0, 0.42, 0.07), cup * 0.9);
        n = bumpN(n, vWp, cup * 0.025 * (1.0 - cf));
-       gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
+       gl_FragColor = vec4(reefLit(alb, vWp, n, 0.85), 1.0);
      }`, { uniforms: SURF_UNIFORMS }));
   group.add(rock);
   // beams: an open cylinder from each skylight down along the sun, glowing brightest along its axis
