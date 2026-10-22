@@ -345,7 +345,8 @@ function readArrangement(L: CordWorkLedger): Arrangement {
     && checked.receiptRows.every((row, index) => row === m.receipts[index])
     && checked.finished === m.finished
     && checked.finishedCount === m.finished.length
-    && checked.finishedRows.every((row, index) => row === m.finished[index])) {
+    && checked.finishedRows.every((row, index) =>
+      row === m.finished[index] && !L.runs[row.runId])) {
     checkArrangementJobs(L, m);
     return m;
   }
