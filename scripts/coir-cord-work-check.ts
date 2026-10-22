@@ -366,32 +366,47 @@ function fullCordReadFixture() {
 }
 
 test('warm cord worksite reads skip unrelated finished bodies without changing the ledger', () => {
-  const {L, at} = fullCordReadFixture();
-  beginCordReadFixture(L, at, 'active');
-  const expected = readCordWorksite(json(L), 'site', at);
-  const available = readCordWorksite(json(L), 'unused-site', at);
-  readCordWorksite(L, 'site', at);
-  const before = JSON.stringify(L);
-  const rows = L.cordArrangement!.finished;
-  const descriptors = rows.map(row => Object.getOwnPropertyDescriptor(row, 'projection')!);
-  let bodyReads = 0;
-  rows.forEach((row, n) => {
-    const value = descriptors[n].value;
-    Object.defineProperty(row, 'projection', {
-      configurable: true, enumerable: true,
-      get() { bodyReads++; return value; }
+  for (const active of [true, false]) {
+    const {L, at} = fullCordReadFixture();
+    if (active) beginCordReadFixture(L, at, 'active');
+    const expected = readCordWorksite(json(L), 'site', at);
+    const available = readCordWorksite(json(L), 'unused-site', at);
+    readCordWorksite(L, 'site', at);
+    // Another world commit changes the counter, not this arrangement.
+    L.world.worldVersion++;
+    const before = JSON.stringify(L);
+    const rows = L.cordArrangement!.finished;
+    const selectedIndex = active ? -1 : rows.length - 1;
+    const descriptors = rows.map(row => Object.getOwnPropertyDescriptor(row, 'projection')!);
+    let unrelatedBodyReads = 0;
+    let selectedBodyReads = 0;
+    rows.forEach((row, n) => {
+      const value = descriptors[n].value;
+      Object.defineProperty(row, 'projection', {
+        configurable: true, enumerable: true,
+        get() {
+          if (n === selectedIndex) selectedBodyReads++;
+          else unrelatedBodyReads++;
+          return value;
+        }
+      });
     });
-  });
-  try {
-    for (let n = 0; n < 100; n++) {
-      assert.deepEqual(readCordWorksite(L, 'site', at + n), expected);
-      assert.deepEqual(readCordWorksite(L, 'unused-site', at + n), available);
+    try {
+      for (let n = 0; n < 100; n++) {
+        assert.deepEqual(readCordWorksite(L, 'site', at + n), expected);
+        assert.deepEqual(readCordWorksite(L, 'unused-site', at + n), available);
+      }
+      assert.equal(unrelatedBodyReads, 0,
+        active ? 'active reads must not inspect any old finished body'
+          : 'completed reads must not inspect the other finished bodies');
+      if (!active) {
+        assert.ok(selectedBodyReads > 0, 'the selected finished body is still checked');
+      }
+    } finally {
+      rows.forEach((row, n) => Object.defineProperty(row, 'projection', descriptors[n]));
     }
-    assert.equal(bodyReads, 0, 'unchanged unrelated summaries must not be hashed again');
-  } finally {
-    rows.forEach((row, n) => Object.defineProperty(row, 'projection', descriptors[n]));
+    assert.equal(JSON.stringify(L), before);
   }
-  assert.equal(JSON.stringify(L), before);
 });
 
 test('cord selected finished reads check that row and return independent view data', () => {
