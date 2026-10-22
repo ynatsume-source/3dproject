@@ -1,0 +1,24 @@
+1 miyako, the sea at -1.04 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 30 kinds ok
+1 miyako, the sea at +0.00 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 30 kinds ok
+1 miyako, the sea at +0.91 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 30 kinds ok
+1 miyako: what comes to the top, as near it at every tide: アオウミガメ -0.35, アオマダラウミヘビ -0.21, エラブウミヘビ -0.21, マンタのジャンプ 0.00 ok
+1 gbr, the sea at -1.04 m: the sea's life under its water: highest critter:オリーブウミヘビ -0.21 m from the top, 32 kinds ok
+1 gbr, the sea at +0.00 m: the sea's life under its water: highest critter:オリーブウミヘビ -0.21 m from the top, 32 kinds ok
+1 gbr, the sea at +0.91 m: the sea's life under its water: highest critter:オリーブウミヘビ -0.21 m from the top, 32 kinds ok
+1 gbr: what comes to the top, as near it at every tide: アオウミガメ -0.35, オリーブウミヘビ -0.21 ok
+1 galapagos, the sea at -1.04 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 23 kinds ok
+1 galapagos, the sea at +0.00 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 23 kinds ok
+1 galapagos, the sea at +0.91 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 23 kinds ok
+1 galapagos: what comes to the top, as near it at every tide: アオウミガメ（ガラパゴスの個体群） -0.35, マンタのジャンプ 0.00 ok
+2 at mean sea level: the waters' top 0 everywhere, no map read: 0 reads ok
+2 off it: the map read: 0.5 m, 1 read ok
+3 Kayama, the sea at -1.04 m: its life under its water: highest critter:エラブウミヘビ 0.14 m from the top, 14 kinds (not counted, over the reef the tide has left near the top: big:ツマグロ -0.50 m) FAIL
+3 Kayama, the sea at -1.04 m: any in a pool's water under mean sea level: none in a pool ok
+3 Kayama, the sea at +0.00 m: its life under its water: highest critter:アオマダラウミヘビ -0.21 m from the top, 14 kinds ok
+3 Kayama, the sea at +0.00 m: any in a pool's water under mean sea level: none in a pool ok
+3 Kayama at +0.91 m: the sea and the lagoon at +0.91 m, a tide pool and an inland pond at 0 m: sea 21779 cells, lagoon 1205 cells, pool 0 cells, inland 0 cells ok
+3 Kayama, the sea at +0.91 m: its life under its water: highest critter:アオマダラウミヘビ -0.21 m from the top, 14 kinds ok
+3 Kayama, the sea at +0.91 m: any in a pool's water under mean sea level: none in a pool ok
+3 Kayama: what comes to the top, as near it at every tide: critter:エラブウミヘビ -0.22 → 0.14 / -0.21 FAIL
+
+2 FAILED
