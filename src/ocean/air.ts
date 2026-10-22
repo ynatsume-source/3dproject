@@ -88,7 +88,7 @@ export function seaHeight() { return seaH; }
  *  pool or a pond (the GPU's tideReach, from the same map). */
 export function tideReach(x: number, z: number): number { return tideK(x, z); }
 /** The water's still top at (x, z), without the waves: the sea's height where the sea reaches, mean sea level in a pool. */
-export function waterTopAt(x: number, z: number): number { return seaH * tideReach(x, z); }
+export function waterTopAt(x: number, z: number): number { return seaH && seaH * tideReach(x, z); }   // (at mean sea level: no map read, for the many that ask each frame)
 /** Whether a point is under the water now (its still top: the waves aside). */
 export function underWater(x: number, z: number, y: number): boolean { return y < waterTopAt(x, z); }
 export function swellAt(x: number, z: number): number {

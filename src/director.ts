@@ -5,6 +5,9 @@ import * as THREE from 'three';
 import { R, rr, hyp } from './core/math';
 import type { Subject } from './eco/env';
 import type { Style, GiantMove } from './persona';
+import { waterTopAt } from './ocean/air';
+// (heights against the still water there, not y = 0: the sea rises and falls with the tide — ADR 0009)
+const top = (x: number, z: number) => waterTopAt(x, z), overSea = (p: { x: number; y: number; z: number }) => p.y - waterTopAt(p.x, p.z);
 
 export interface Shot { pos: THREE.Vector3; look: THREE.Vector3; subject: Subject; phase: 'approach' | 'observe'; rev?: boolean; forced?: boolean; close?: boolean; wide?: number; giant?: string; zoom?: boolean; asked?: boolean; style?: Style; surface?: boolean; down?: boolean;   // (down: after a leap, gone in after the animal)
   tilt?: number;                       // the camera's pitch, when the framing sets it rather than the subject
@@ -204,8 +207,8 @@ export class Director {
     const after = b.after ? b.after() : -1;
     if (view !== 'air' && after > 0.8) {
       const back = L * 1.3 + 3, side = L * 0.8 + 2;
-      sh.pos.set(body.x - dx * back - dz * this.side * side, Math.min(-1.4, body.y + 0.8), body.z - dz * back + dx * this.side * side);
-      const fl = floor(sh.pos.x, sh.pos.z); if (sh.pos.y < fl + 1.2) sh.pos.y = Math.min(-1.0, fl + 1.2);
+      sh.pos.set(body.x - dx * back - dz * this.side * side, Math.min(top(body.x, body.z) - 1.4, body.y + 0.8), body.z - dz * back + dx * this.side * side);
+      const fl = floor(sh.pos.x, sh.pos.z); if (sh.pos.y < fl + 1.2) sh.pos.y = Math.min(top(sh.pos.x, sh.pos.z) - 1.0, fl + 1.2);
       sh.look.set(body.x, body.y, body.z);
       sh.tilt = undefined; sh.zoom = false; sh.surface = false; sh.down = true;
       this.t += dt;
@@ -218,22 +221,22 @@ export class Director {
       // air, half in the sea
       // (under the water, back along its way, so the manta coming in is 13-27 m off and seen in clear water; up
       // at the start of its run, with time to be at the waterline for the leap)
-      sh.risen = sh.risen || body.y > -6.3;
+      sh.risen = sh.risen || overSea(body) > -6.3;
       const lat = Math.min(d, sh.risen ? 6.5 : 5.5), along = sh.risen ? -1.5 : -8;
       const x = mx - dz * this.side * lat + dx * along, z = mz + dx * this.side * lat + dz * along;
-      sh.pos.set(x, sh.risen ? 0 : Math.min(-1.6, Math.max(-1.8, floor(x, z) + 1.2)), z);
+      const w = top(x, z); sh.pos.set(x, sh.risen ? w : Math.min(w - 1.6, Math.max(w - 1.8, floor(x, z) + 1.2)), z);
     } else if (view === 'close') {
       const lat = L * 0.5 + 1.5;
       sh.pos.set(p.x + dx * 2.5 - dz * this.side * lat, 0, p.z + dz * 2.5 + dx * this.side * lat);
     } else if (view === 'air') {
-      sh.pos.set(mx - dz * this.side * d * 1.5 - dx * d * 0.4, b.h * 4 + 3, mz + dx * this.side * d * 1.5 - dz * d * 0.4);
+      sh.pos.set(mx - dz * this.side * d * 1.5 - dx * d * 0.4, top(mx, mz) + b.h * 4 + 3, mz + dx * this.side * d * 1.5 - dz * d * 0.4);
     } else sh.pos.set(mx - dz * this.side * d, 0, mz + dx * this.side * d);
     // looking at the animal itself, wherever it is on its way (before it is out, where it will come out)
     sh.look.set(body.x, body.y, body.z);
     // the line: the horizon a fifth from the top while it is under (lens tipped down ~0.4), four fifths down
     // while it is out (tipped up as much), following its height through the surface
     // (tipped up a moment ahead of it, as it nears the surface, so the camera is with it when it comes out)
-    sh.tilt = view === 'line' || (view === 'rise' && sh.risen) ? -0.4 + 0.8 * Math.min(1, Math.max(0, (body.y + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
+    sh.tilt = view === 'line' || (view === 'rise' && sh.risen) ? -0.4 + 0.8 * Math.min(1, Math.max(0, (overSea(body) + L * 0.5) / (L * 0.55 + 0.4))) : undefined;
     sh.zoom = false;   // (a leap is filmed with the lens as the framing has it, not closed in on)
     sh.surface = view !== 'air' && (view !== 'rise' || !!sh.risen);
     const gap = hyp(drone.x - sh.pos.x, drone.z - sh.pos.z);
@@ -363,7 +366,7 @@ export class Director {
       const sx = -uz, sz = ux, side = (drone.x - p.x) * sx + (drone.z - p.z) * sz >= 0 ? 1 : -1;
       const R = s.frameR!(), d = Math.max(2.2, Math.min(5.5, R * 2.2 + 1.4));
       const x = p.x + sx * side * d - ux * d * 0.35, z = p.z + sz * side * d - uz * d * 0.35;
-      const y = Math.min(Math.max(p.y - 0.1, floor(x, z) + 0.6), -0.9);
+      const y = Math.min(Math.max(p.y - 0.1, floor(x, z) + 0.6), top(x, z) - 0.9);
       sh.pos.set(x, y, z);
       sh.look.set(p.x + (tg.x - p.x) * 0.3, p.y + (tg.y - p.y) * 0.3, p.z + (tg.z - p.z) * 0.3);
       sh.close = true;
@@ -376,7 +379,7 @@ export class Director {
     if (p) this.track(p, dt);
     // something big: close in, where its size tells — see below
     const L = s.len ?? s.size;
-    if (p && L >= 1.4 && !s.spot && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && p.y < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
+    if (p && L >= 1.4 && !s.spot && (s.kind === 'giant' || s.kind === 'big' || s.kind === 'manta') && overSea(p) < -1.5) return this.giant(sh, s, p, L, dt, drone, floor);
     // close: about a body length or so away, by the animal's own size (a small fish from under a metre)
     const sz = Math.min(s.size, Math.max(s.len ?? s.size, 0.15) * 2) * (s.kind === 'school' ? 0.65 : 1);   // (a school: in among its edge)
     // (a mass of fish pressed into a ball: from outside it, far enough off to see it whole — not from inside it)
@@ -385,7 +388,7 @@ export class Director {
     if (s.under && p) {
       // a tornado of fish: from right underneath, looking up the hollow core toward the light
       const sw = this.t * 0.05, x = p.x + Math.cos(sw) * 0.6, z = p.z + Math.sin(sw) * 0.6;
-      const y = Math.min(Math.max(p.y - s.under, floor(x, z) + 0.9), -1);
+      const y = Math.min(Math.max(p.y - s.under, floor(x, z) + 0.9), top(x, z) - 1);
       sh.pos.set(x, y, z); sh.look.set(p.x + Math.cos(sw + 2) * 0.9, p.y + 6, p.z + Math.sin(sw + 2) * 0.9);
       const gap = hyp(drone.x - x, drone.y - y, drone.z - z);
       if (sh.phase === 'approach' && (gap < 1.5 || this.t > 30)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
@@ -396,7 +399,7 @@ export class Director {
       // something looking out of a hole: face it from the open water, swaying gently from side to side
       const f = s.front(), sw = (this.spin > 0 ? 0.7 : -0.7) + Math.sin(this.t * 0.12) * 0.3, c = Math.cos(sw), si = Math.sin(sw);   // (from forty degrees or so off its line: the head and a length of body)
       const fx = f.x * c - f.z * si, fz = f.x * si + f.z * c, d = dist * 0.9;
-      const x = p.x + fx * d, z = p.z + fz * d, y = Math.min(Math.max(p.y + f.y * d + 0.3, floor(x, z) + 0.8), -0.9);
+      const x = p.x + fx * d, z = p.z + fz * d, y = Math.min(Math.max(p.y + f.y * d + 0.3, floor(x, z) + 0.8), top(x, z) - 0.9);
       sh.pos.set(x, y, z); sh.look.set(p.x, p.y, p.z);
       const gap = hyp(drone.x - x, drone.y - y, drone.z - z);
       if (sh.phase === 'approach' && (gap < 1.5 || (!sh.forced && this.t > 25) || this.t > 90)) { sh.phase = 'observe'; sh.forced = false; this.t = 0; }
@@ -404,7 +407,7 @@ export class Director {
       return sh;
     }
     const lift = Math.min(1.5, 0.2 + sz * 0.22);
-    const wet = p.y <= -0.5, hl = hyp(this.gvx, this.gvz) || 1, fx = this.gvx / hl, fz = this.gvz / hl, sx = -fz * this.side, sz2 = fx * this.side;
+    const wet = overSea(p) <= -0.5, hl = hyp(this.gvx, this.gvz) || 1, fx = this.gvx / hl, fz = this.gvz / hl, sx = -fz * this.side, sz2 = fx * this.side;
     const style = !wet ? 'orbit' : s.heading ? 'face' : sh.style === 'follow' && this.gspd < 0.12 ? 'orbit' : sh.style ?? 'orbit';
     let x: number, y: number, z: number;
     sh.look.set(p.x, p.y, p.z);
@@ -460,7 +463,7 @@ export class Director {
       x = p.x + Math.cos(this.ang) * d; z = p.z + Math.sin(this.ang) * d; y = p.y + lift * (style === 'detail' ? 0.5 : 1);
     }
     // (ashore or at the surface: from the air, at the height of someone standing by)
-    y = !wet ? Math.max(p.y + lift + 0.6, floor(x, z) + 1.2, 0.8) : Math.min(Math.max(y, floor(x, z) + (style === 'low' ? 0.6 : 1.0)), -0.9);
+    y = !wet ? Math.max(p.y + lift + 0.6, floor(x, z) + 1.2, top(x, z) + 0.8) : Math.min(Math.max(y, floor(x, z) + (style === 'low' ? 0.6 : 1.0)), top(x, z) - 0.9);
     // (nothing between the lens and it — a sea fan, a coral head, a rock: else round to where there is a clear
     // view, or up a little over what is in the way. A small thing seen through a fan is not seen at all.)
     if (wet) {
@@ -470,10 +473,10 @@ export class Director {
         let found = false;
         for (let k = 1; k <= 8 && !found; k++) {
           const a = this.ang + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.7, ax = p.x + Math.cos(a) * d, az = p.z + Math.sin(a) * d;
-          const ay = Math.min(Math.max(y, floor(ax, az) + 1.0), -0.9);
+          const ay = Math.min(Math.max(y, floor(ax, az) + 1.0), top(ax, az) - 0.9);
           if (seen(ax, ay, az)) { this.ang = a; x = ax; z = az; y = ay; found = true; if (style === 'wait') this.hold.set(ax, ay, az); }
         }
-        if (!found) y = Math.min(y + 1.2, -0.9);
+        if (!found) y = Math.min(y + 1.2, top(x, z) - 0.9);
       }
     }
     sh.pos.set(x, y, z);
@@ -557,7 +560,7 @@ export class Director {
         // hold still on its path and let it glide past, close
         x = this.hold.x; y = this.hold.y; z = this.hold.z;
       }
-      y = Math.min(Math.max(y, floor(x, z) + 0.8), -0.9);
+      y = Math.min(Math.max(y, floor(x, z) + 0.8), top(x, z) - 0.9);
       // never inside its bulk: the floor or the surface may have squeezed the camera in — push it out sideways
       // to a distance the animal's size calls for (a whale needs metres, not an arm's length)
       { const minD = L >= 8 ? L * 0.42 : wideBody ? L * 0.45 + 0.8 : L * 0.22 + 0.7, dx = x - p.x, dz = z - p.z, dy = y - p.y, d3 = hyp(dx, dy, dz);
@@ -571,7 +574,7 @@ export class Director {
     if (!c.clear) {
       // blocked: take whichever other move has a clear view (or rise over the obstacle)
       for (const m of ['arc', 'flank', 'reveal', 'under', 'front']) { if (m === this.move) continue; const o = spot(m); if (o.clear) { this.move = m; this.moveT = 0; this.moveDur = rr(9, 13); c = o; break; } }
-      if (!c.clear) c.y = Math.min(c.y + 2, -0.9);
+      if (!c.clear) c.y = Math.min(c.y + 2, top(c.x, c.z) - 0.9);
     }
     if (this.move === 'pass' && (p.x - c.x) * fx + (p.z - c.z) * fz > L * 0.6) this.moveT = this.moveDur;   // (it has gone by)
     const { x, y, z, lx, ly, lz, wide } = c;

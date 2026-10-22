@@ -3,6 +3,7 @@
 // and swims in from there; one that is done is taken away only once it has gone the same way, out of sight.
 // Every event and every relocation of a school keeps to this (CLAUDE.md, "生き物は無から出ない").
 import { clamp, R, hyp } from '../core/math';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 /** How far one can make out a large animal in this water (m): where the water has taken all but about a
  *  tenth of its contrast. Clear tropical water ~150 m, a green kelp coast ~80 m. */
@@ -45,5 +46,5 @@ export function clearDepth(oc: any, x: number, z: number, hx: number, hz: number
     const px = x + hx * d, pz = z + hz * d;
     fl = Math.max(fl, T.top(px, pz), T.top(px + sx, pz + sz), T.top(px - sx, pz - sz), T.top(px + sx * 0.5, pz + sz * 0.5), T.top(px - sx * 0.5, pz - sz * 0.5));   // (and halfway out: a rock under the wing between the tip and the body)
   }
-  return Math.min(Math.max(want, fl + clear), -1.2);
+  return Math.min(Math.max(want, fl + clear), waterTopAt(x, z) - 1.2);
 }

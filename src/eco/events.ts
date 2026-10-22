@@ -14,6 +14,7 @@ import { sightRange, unseen, behind, clearDepth } from './unseen';
 import { MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, SHAPES, fishGeometry, fishMaterial } from '../ocean/models';
 import { mat } from '../render/common';
 import type { Env, Subject } from './env';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 export interface RareInfo { id: string; ja: string; note: string }
 // gone(): once its time is up, whether all of it has left the scene, out of sight (until then it goes on, leaving;
@@ -100,7 +101,7 @@ function flowSchool(oc: any, sp: Species, n: number, where: (i: number, t: numbe
       for (let i = 0; i < n; i++) {
         if (gone[i] || where(i, t, p, v) === false) { mesh.setMatrixAt(i, m.makeScale(0, 0, 0)); continue; }
         if ((frame + i) % 8 === 0 || flC[i] !== flC[i]) flC[i] = oc.T.top(p.x, p.z);
-        p.y = Math.min(Math.max(p.y, flC[i] + 0.6), -0.6);
+        p.y = Math.min(Math.max(p.y, flC[i] + 0.6), waterTopAt(p.x, p.z) - 0.6);
         last[i * 6] = p.x; last[i * 6 + 1] = p.y; last[i * 6 + 2] = p.z; last[i * 6 + 3] = v.x; last[i * 6 + 4] = v.y; last[i * 6 + 5] = v.z;
         m.lookAt(tgt.copy(p).add(v), p, up); m.scale(s.setScalar(size[i])); m.setPosition(p);
         mesh.setMatrixAt(i, m);

@@ -11,6 +11,7 @@ import { dolphinGeometry, dolphinMaterial, type DolphinStyle } from '../ocean/do
 import { logEvent, type Env, type Subject } from './env';
 import { unseen, behind, sightRange, clearDepth } from './unseen';
 import { ageOf } from './growth';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 // a species: its pod size, its length range, how often a pod comes by (s), how many of a pod come to look, how often
 // a breath ends in a leap
@@ -119,7 +120,7 @@ export function updateDolphins(oc: any, dt: number, env: Env, cam: THREE.Vector3
       d.lookA += dt * 0.45;
       const r = 3.2 + d.len * 0.6;
       _t.set(cam.x + Math.cos(d.lookA) * r, cam.y + Math.sin(D.t * 0.7 + i) * 0.4, cam.z + Math.sin(d.lookA) * r);
-      _t.y = Math.min(_t.y, -0.8);
+      _t.y = Math.min(_t.y, waterTopAt(_t.x, _t.z) - 0.8);
     } else {
       const sway = Math.sin(D.t * 0.5 + i * 1.7) * 0.5;
       _t.set(D.c.x - D.dir.z * (d.off.x + sway) + D.dir.x * d.off.z, D.depth + d.off.y, D.c.z + D.dir.x * (d.off.x + sway) + D.dir.z * d.off.z);
@@ -147,7 +148,7 @@ export function updateDolphins(oc: any, dt: number, env: Env, cam: THREE.Vector3
       d.pos.x += L.vx * dt; d.pos.z += L.vz * dt; d.pos.y += L.vy * dt;
       d.vel.set(L.vx, L.vy, L.vz);
       roll = L.spin * Math.min(1, L.t / (2 * 6 / 9.8));
-      if (!L.splashed && L.vy < 0 && d.pos.y < 0.2) { L.splashed = true; D.fx.splash(d.pos.x, d.pos.z, 0.09, 0.8); D.fx.bubbles(d.pos.x, -0.6, d.pos.z, 4); }
+      if (!L.splashed && L.vy < 0 && d.pos.y - waterTopAt(d.pos.x, d.pos.z) < 0.2) { L.splashed = true; D.fx.splash(d.pos.x, d.pos.z, 0.09, 0.8); D.fx.bubbles(d.pos.x, waterTopAt(d.pos.x, d.pos.z) - 0.6, d.pos.z, 4); }
       if (d.pos.y < -1.0 && L.vy < 0) { d.leap = null; d.up = 0; d.breath = rr(25, 50); d.vel.multiplyScalar(0.5); }
     } else {
       // swimming: steer for its place at a dolphin's pace, a limited turn, and keep off the reef
@@ -160,7 +161,7 @@ export function updateDolphins(oc: any, dt: number, env: Env, cam: THREE.Vector3
       d.pos.addScaledVector(d.vel, dt);
       const fl = T.top(d.pos.x, d.pos.z) + 0.8;
       if (d.pos.y < fl) { d.pos.y += (fl - d.pos.y) * Math.min(1, dt * 3); if (d.vel.y < 0) d.vel.y *= 0.5; }
-      d.pos.y = Math.min(d.pos.y, -0.1);
+      d.pos.y = Math.min(d.pos.y, waterTopAt(d.pos.x, d.pos.z) - 0.1);
     }
     d.roll += (roll - d.roll) * (d.leap ? 1 : Math.min(1, dt * 2));
     // the stroke: faster and harder the faster it goes

@@ -15,7 +15,7 @@
 // the sea, or well behind — and flies in; the great flock that comes to a bait ball waits beyond sight.
 import * as THREE from 'three';
 import { U } from '../render/common';
-import { swellAt } from '../ocean/air';
+import { swellAt, waterTopAt } from '../ocean/air';
 import { seabirdGeometry, seabirdMaterial, type BirdLook } from '../ocean/seabird';
 import { clamp, R, rr, hyp } from '../core/math';
 import type { BirdSpec } from '../data/locations';
@@ -102,7 +102,7 @@ export function makeBirds(specs: BirdSpec[], group: THREE.Object3D, sea?: BirdSe
     const wa = Math.atan2(U.uCurrent.value.y, U.uCurrent.value.x) + 0.6;   // the wind blows along the swell
     // (said once in a while, of what happened in sight of the camera)
     const tell = (F: typeof flocks[0], b: Bird, key: string, text: string) => {
-      if (!show && cam.y < 0 && b.p.y > 0) return;
+      if (!show && cam.y < waterTopAt(cam.x, cam.z) && b.p.y > waterTopAt(b.p.x, b.p.z)) return;
       const d = b.p.distanceTo(cam); if (d > 70 || birdUnseen(b.p, cam, fx, fz)) return;
       _v.subVectors(b.p, cam).divideScalar(d); if (_v.x * fx + _v.z * fz < 0.5 * hyp(fx, fz)) return;
       if ((F.told.get(key) ?? -1e9) > clockT - 90) return;

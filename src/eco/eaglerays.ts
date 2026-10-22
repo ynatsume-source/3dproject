@@ -9,6 +9,7 @@ import { EAGLERAY_GEO, eagleRayMaterial } from '../ocean/eagleray';
 import { logEvent, type Env, type Subject } from './env';
 import { unseen, behind, clearDepth, sightRange } from './unseen';
 import { outZone, toZone } from '../ocean/zone';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 // a species: how many groups, how many to a group, the wingspan range (m)
 export interface EagleRaySpec { id: string; ja: string; sci: string; note: string; groups: number; size: [number, number]; span: [number, number] }
@@ -61,7 +62,7 @@ function place(oc: any, g: Group, cam: THREE.Vector3, fx: number, fz: number) {
       r.pos.y = Math.max(r.pos.y, floorUnder(oc.T, r.pos.x, r.pos.z, hx, hz, r.span) + clearOf(r));
       r.vel.set(hx, 0, hz).multiplyScalar(g.speed); r.dig = 0;
     }
-    if (g.rays.every((r) => r.pos.y < -0.8 && unseen(oc, r.pos.x, r.pos.y, r.pos.z, cam, fx, fz, r.span))) { g.placed = true; return true; }
+    if (g.rays.every((r) => r.pos.y - waterTopAt(r.pos.x, r.pos.z) < -0.8 && unseen(oc, r.pos.x, r.pos.y, r.pos.z, cam, fx, fz, r.span))) { g.placed = true; return true; }
   }
   return false;
 }
@@ -147,7 +148,7 @@ export function updateEagleRays(oc: any, dt: number, env: Env, cam: THREE.Vector
       if (r.pos.y < fl + 0.3) r.vel.y += clamp(Math.min(0.8, (fl + 0.3 - r.pos.y) * 1.5) - r.vel.y, 0, dt * 1.5);
       r.pos.addScaledVector(r.vel, dt);
       if (r.pos.y < fl - 0.05) r.pos.y += (fl - 0.05 - r.pos.y) * Math.min(1, dt * 4);
-      r.pos.y = Math.min(r.pos.y, -0.8);
+      r.pos.y = Math.min(r.pos.y, waterTopAt(r.pos.x, r.pos.z) - 0.8);
       const turn = Math.atan2(v0.x * r.vel.z - v0.z * r.vel.x, v0.x * r.vel.x + v0.z * r.vel.z) / Math.max(dt, 1e-3);
       r.roll += (clamp(turn * 1.2, -0.6, 0.6) - r.roll)   /* (turn > 0: round to its right, right wing down) */ * Math.min(1, dt * 1.5);
       r.lag += (clamp(turn * 0.5, -0.3, 0.3) - r.lag) * Math.min(1, dt * 2);

@@ -8,6 +8,7 @@ import { R, rr, hyp, clamp } from '../core/math';
 import { IGUANA_GEO, iguanaMaterial, IG_FEET } from '../ocean/iguana';
 import { logEvent, type Env, type Subject } from './env';
 import { unseen, behind } from './unseen';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 // a species: its length range (m, snout to tail tip), how often one comes down (s), how deep it will graze (m)
 export interface IguanaSpec { id: string; ja: string; sci: string; note: string; len: [number, number]; every: [number, number]; deep: [number, number] }
@@ -118,7 +119,7 @@ export function updateIguanas(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       // lets go and swims up, on along its way, to the surface
       _w.set(I.head.x * 1.2, -0.18 - I.pos.y, I.head.z * 1.2);
       want = 0.45;
-      if (I.pos.y > -0.4) { I.phase = 'leave'; I.t = 0; const back = Math.atan2(-fz, -fx); I.away = back + (R() < 0.5 ? -1 : 1) * rr(0.4, 1.0); }
+      if (I.pos.y - waterTopAt(I.pos.x, I.pos.z) > -0.4) { I.phase = 'leave'; I.t = 0; const back = Math.atan2(-fz, -fx); I.away = back + (R() < 0.5 ? -1 : 1) * rr(0.4, 1.0); }
       break;
     }
     case 'leave': {
@@ -142,7 +143,7 @@ export function updateIguanas(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // (and never into the rock right under it)
     const under = T.top(I.pos.x, I.pos.z) + IG_FEET * L;
     if (I.pos.y < under) { I.pos.y += (under - I.pos.y) * Math.min(1, dt * 6); if (I.vel.y < 0) I.vel.y *= 0.5; }
-    I.pos.y = Math.min(I.pos.y, -0.12);
+    I.pos.y = Math.min(I.pos.y, waterTopAt(I.pos.x, I.pos.z) - 0.12);
     const hv = hyp(I.vel.x, I.vel.z);
     if (hv > 0.05) face = _s.set(I.vel.x / hv, 0, I.vel.z / hv);
     if (face) I.head.lerp(face, 1 - Math.exp(-dt * 2)).normalize();

@@ -15,6 +15,7 @@ import { R, rr, clamp, smooth, hyp } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone } from '../ocean/zone';
 import type { Subject } from './env';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 export interface CritterSpec {
   id: string; ja: string; sci: string; note: string;
@@ -394,8 +395,8 @@ export function makeCritters(oc: any) {
               if (outZone(s.pos.x, s.pos.z, 0.95)) s.head += dt;
               ty = fl + s.alt + Math.sin(env.t * 0.4 + i) * 0.2;
               if (s.t > s.next) { s.state = 'up'; s.t = 0; }
-            } else if (s.state === 'up') { speed = 0.45; ty = -0.25; if (s.pos.y > -0.45) { s.state = 'breathe'; s.t = 0; } }
-            else if (s.state === 'breathe') { speed = 0.05; ty = -0.2; if (s.t > 4) { s.state = 'down'; s.t = 0; } }
+            } else if (s.state === 'up') { speed = 0.45; ty = waterTopAt(s.pos.x, s.pos.z) - 0.25; if (s.pos.y - waterTopAt(s.pos.x, s.pos.z) > -0.45) { s.state = 'breathe'; s.t = 0; } }
+            else if (s.state === 'breathe') { speed = 0.05; ty = waterTopAt(s.pos.x, s.pos.z) - 0.2; if (s.t > 4) { s.state = 'down'; s.t = 0; } }
             else { speed = 0.45; ty = fl + s.alt; if (s.pos.y < fl + s.alt + 0.3) { s.state = 'forage'; s.t = 0; s.next = rr(120, 260); } }
             const vy = clamp((ty - s.pos.y) * 0.8, -0.5, 0.5);
             const vh = s.state === 'up' || s.state === 'down' ? speed * 0.35 : speed;
@@ -414,7 +415,7 @@ export function makeCritters(oc: any) {
               const [x, z] = near(cam, fx, fz, 6, 32);
               const floorY = loc.pelagic ? -80 : T.top(x, z);
               j.pos.set(x, Math.max(-rr(d0, d1), floorY + 1.5), z); j.placed = true;
-              if (j.pos.y > -0.8) j.pos.y = -0.8;
+              { const top = waterTopAt(j.pos.x, j.pos.z) - 0.8; if (j.pos.y > top) j.pos.y = top; }
             }
             // carried by the current, bobbing up with each beat of the bell
             j.pos.x += env.cur.x * 0.12 * dt; j.pos.z += env.cur.z * 0.12 * dt;
