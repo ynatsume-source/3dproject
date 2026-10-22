@@ -332,9 +332,14 @@ function checkMetadataRecords(m: Arrangement): void {
 }
 
 function metadata(L: SailWorkLedger): Arrangement {
-  const m = metadataHeader(L);
-  checkMetadataRecords(m);
-  return m;
+  try {
+    const m = metadataHeader(L);
+    checkMetadataRecords(m);
+    return m;
+  } catch (error) {
+    checkedWorksiteMetadata.delete(L);
+    throw error;
+  }
 }
 
 interface WorksiteMetadataStamp {
@@ -370,10 +375,11 @@ function worksiteMetadata(L: SailWorkLedger): Arrangement {
     previous.finished === m.finished &&
     previous.receiptCount === m.receipts.length &&
     previous.finishedCount === m.finished.length &&
-    m.receipts.every((row, index) => row === previous.receiptRows[index]) &&
-    m.finished.every((row, index) => row === previous.finishedRows[index])) {
+    previous.receiptRows.every((row, index) => row === m.receipts[index]) &&
+    previous.finishedRows.every((row, index) => row === m.finished[index])) {
     return m;
   }
+  checkedWorksiteMetadata.delete(L);
   checkMetadataRecords(m);
   if (L.sailArrangement === m) {
     checkedWorksiteMetadata.set(L, {
@@ -734,21 +740,26 @@ export function projectSailWork(L: SailWorkLedger, runId: string) {
 }
 export function readSailWorksite(L: SailWorkLedger, siteId: string, asOfWorldMs: number) {
   return safe(() => {
-    const m = worksiteMetadata(L);
-    demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= m.authorityAtWorldMs,
-      'invalid-view-context');
-    const d = jobs(L).find(j => j.spec.facts.worksite.locationId === siteId);
-    if (!d) {
-      const ended = m.finished.filter(f => f.siteId === siteId).at(-1);
-      if (ended) checkFinished(ended);
-      return {activity: ended?.status ?? 'available',
-        observations: copy(ended?.observations ?? [])};
+    try {
+      const m = worksiteMetadata(L);
+      demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= m.authorityAtWorldMs,
+        'invalid-view-context');
+      const d = jobs(L).find(j => j.spec.facts.worksite.locationId === siteId);
+      if (!d) {
+        const ended = m.finished.filter(f => f.siteId === siteId).at(-1);
+        if (ended) checkFinished(ended);
+        return {activity: ended?.status ?? 'available',
+          observations: copy(ended?.observations ?? [])};
+      }
+      const working = d.spec.operation !== 'dry' && d.engaged &&
+        d.lastWasWork && d.lastConfirmedAtWorldMs === asOfWorldMs;
+      return {activity: !d.engaged ? 'paused' : working ? 'working' : 'waiting',
+        observations: d.seenByActor ? model(d).observeTotal(d.totalWorkMs)
+          .map(text => ({channel: 'sight' as const, text})) : []};
+    } catch (error) {
+      checkedWorksiteMetadata.delete(L);
+      throw error;
     }
-    const working = d.spec.operation !== 'dry' && d.engaged &&
-      d.lastWasWork && d.lastConfirmedAtWorldMs === asOfWorldMs;
-    return {activity: !d.engaged ? 'paused' : working ? 'working' : 'waiting',
-      observations: d.seenByActor ? model(d).observeTotal(d.totalWorkMs)
-        .map(text => ({channel: 'sight' as const, text})) : []};
   });
 }
 export function readSailWorkerObservations(
