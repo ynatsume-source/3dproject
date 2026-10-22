@@ -632,22 +632,27 @@ const titles:Record<Operation,string>={dry:'繊維を屋根の下で乾かす',s
 export function readCordWorksite(
   L: CordWorkLedger, siteId: string, asOfWorldMs: number
 ): CordWorksiteView {
-  return safe(() => {
-    const a = readArrangement(L);
-    demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= a.authorityAtWorldMs, 'invalid-view-context');
-    const d = jobs(L).find(job => job.spec.facts.worksite.locationId === siteId);
-    if (d) return viewOf(d, asOfWorldMs);
-    const done = a.finished.filter(f => f.siteId === siteId).at(-1);
-    if (done) {
-      checkedFinishedSummary(L, done);
-      return clone(done.view);
-    }
-    return {
-      title: '縄の作業場', stage: '開始前', activity: 'available',
-      materialsReserved: false, operatorFree: true, reason: null,
-      nextStep: '選ばれた作業の意図を待つ。', observations: []
-    };
-  });
+  try {
+    return safe(() => {
+      const a = readArrangement(L);
+      demand(id(siteId) && uint(asOfWorldMs) && asOfWorldMs >= a.authorityAtWorldMs, 'invalid-view-context');
+      const d = jobs(L).find(job => job.spec.facts.worksite.locationId === siteId);
+      if (d) return viewOf(d, asOfWorldMs);
+      const done = a.finished.filter(f => f.siteId === siteId).at(-1);
+      if (done) {
+        checkedFinishedSummary(L, done);
+        return clone(done.view);
+      }
+      return {
+        title: '縄の作業場', stage: '開始前', activity: 'available',
+        materialsReserved: false, operatorFree: true, reason: null,
+        nextStep: '選ばれた作業の意図を待つ。', observations: []
+      };
+    });
+  } catch (error) {
+    checkedReadArrangements.delete(L);
+    throw error;
+  }
 }
 export function readCordWorkerObservations(
   L: CordWorkLedger, runId: string, actorId: string
