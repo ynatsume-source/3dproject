@@ -7,6 +7,7 @@ import { clamp, R, rr, hyp } from '../core/math';
 import { LIMIT } from '../ocean/scenery';
 import { zx, zz, outZone, toZone } from '../ocean/zone';
 import { activity, logEvent, oneOf, type Env } from './env';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 const _w = new THREE.Vector3();
 
@@ -70,7 +71,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     // (a breath: all the way up until its head is at the surface, a few slow breaths there, and only then down
     // again — not turning back a metre short, as if it had changed its mind)
     if (t.state === 'breathe') {
-      if (t.pos.y > -0.45 && t.breath == null) t.breath = rr(3, 6);
+      if (t.pos.y - waterTopAt(t.pos.x, t.pos.z) > -0.45 && t.breath == null) t.breath = rr(3, 6);
       if (t.breath != null && (t.breath -= dt) < 0) { t.breath = undefined; t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; }
       else if (t.stateT > 90) { t.breath = undefined; t.state = sleepy ? 'toRest' : 'travel'; t.stateT = 0; }   // (could not get up there: give it up)
     }
@@ -85,11 +86,12 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     const cdx = t.pos.x - cam.x, cdy = t.pos.y - cam.y, cdz = t.pos.z - cam.z, cd = hyp(cdx, cdy, cdz) / t.size;
     const near = (t.state === 'rest' ? 1.4 : t.state === 'graze' ? 2.2 : 3.0) * (env.shy > 0 ? Math.max(0.5, env.shy) : 0);   // (shy 0: a drone nothing can sense)
     // (only something in the water with it)
-    if (cd < near && cam.y < 0.3) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
+    if (cd < near && cam.y - waterTopAt(cam.x, cam.z) < 0.3) { if ((t.alarm ?? 0) < 0.3) t.fleeH = Math.atan2(cdz, cdx) + rr(-0.5, 0.5); t.alarm = Math.min(1, (t.alarm ?? 0) + dt * 3); if (t.state === 'rest' || t.state === 'graze') { t.state = 'travel'; t.goal = null; t.stateT = 0; } }
     else t.alarm = Math.max(0, (t.alarm ?? 0) - dt * (cd > near * 2.5 ? 0.35 : 0.12));
     const alarm = t.alarm ?? 0;
-    let speed = 0.35, ty = Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.6, -1.2), stroke = 1, noseDown = 0;
-    if (t.state === 'breathe') { ty = -0.2; speed = t.breath != null ? 0.12 : 0.3; if (t.breath != null) stroke = 0.4; }   // (at the surface: lying almost still, a lazy stroke now and then)
+    const wt = waterTopAt(t.pos.x, t.pos.z);   // (the still water over it: ADR 0009)
+    let speed = 0.35, ty = Math.min(fh + 1.4 + Math.sin(t.t * 0.2) * 0.6, wt - 1.2), stroke = 1, noseDown = 0;
+    if (t.state === 'breathe') { ty = wt - 0.2; speed = t.breath != null ? 0.12 : 0.3; if (t.breath != null) stroke = 0.4; }   // (at the surface: lying almost still, a lazy stroke now and then)
     else if (t.goal && (t.state === 'travel' || t.state === 'toRest')) {
       const gx = t.goal.x - t.pos.x, gz = t.goal.z - t.pos.z, gd = hyp(gx, gz);
       let d = Math.atan2(gz, gx) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -133,7 +135,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
       // (never away into the shallows or up the beach: then off along the deeper water instead)
       const lx = t.pos.x + Math.cos(t.fleeH) * 4, lz = t.pos.z + Math.sin(t.fleeH) * 4;
       if (!T.wet(lx, lz, 1.5)) t.fleeH += T.shore(t.pos.x, t.pos.z, t.fleeH, 4, 1.5) || Math.PI * 0.5;
-      speed = 0.35 + 1.5 * alarm; stroke = 1 + 0.7 * alarm; noseDown = 0; ty = Math.min(Math.max(ty, t.pos.y + 0.6 * alarm), -0.8);
+      speed = 0.35 + 1.5 * alarm; stroke = 1 + 0.7 * alarm; noseDown = 0; ty = Math.min(Math.max(ty, t.pos.y + 0.6 * alarm), wt - 0.8);
     }
     if (outZone(t.pos.x, t.pos.z)) { let d = toZone(t.pos.x, t.pos.z) - t.head; d = Math.atan2(Math.sin(d), Math.cos(d)); t.head += d * dt; }
 
@@ -153,7 +155,7 @@ export function updateTurtles(oc: any, dt: number, env: Env, cam: THREE.Vector3,
     t.vel.lerp(_w.set(Math.cos(t.head) * sp, vy, Math.sin(t.head) * sp), pull);
     t.pos.addScaledVector(t.vel, dt);
     // a sea turtle stays in the sea: under the surface, and off the dry sand
-    if (t.pos.y > -0.35) { t.pos.y = -0.35; if (t.vel.y > 0) t.vel.y = 0; }
+    { const top = waterTopAt(t.pos.x, t.pos.z) - 0.35; if (t.pos.y > top) { t.pos.y = top; if (t.vel.y > 0) t.vel.y = 0; } }
     if (!T.wet(t.pos.x, t.pos.z, 0.6)) { t.pos.x -= t.vel.x * dt * 1.5; t.pos.z -= t.vel.z * dt * 1.5; t.head += Math.PI * dt; }
     // keep off the reef, but ease up over a sudden coral edge rather than popping onto it
     t.restK = (t.restK ?? 0) + ((t.state === 'rest' && alarm < 0.01 ? 1 : 0) - (t.restK ?? 0)) * Math.min(1, dt * 0.8);
@@ -263,7 +265,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       // reef rather than following its every bump
       let top = -1e9;
       for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; for (const r of [m.radTarget - 2.5, m.radTarget, m.radTarget + 2.5]) top = Math.max(top, T.top(best[0] + Math.cos(a) * r, best[1] + Math.sin(a) * r)); }
-      m.y = feeding ? Math.max(-3, Math.min(top + 2.6, -2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), -2.5);
+      { const wt = waterTopAt(best[0], best[1]); m.y = feeding ? Math.max(wt - 3, Math.min(top + 2.6, wt - 2.5)) : Math.min(Math.max(T.h(best[0], best[1]) + rr(4, 7), top + 2.8), wt - 2.5); }
       if (m.placed && m.feeding !== feeding && feeding) logEvent(env, 'manta', oneOf(['マンタがプランクトンを食べに浅場へ上がってきた', 'マンタが口を大きく開けて、流れの中でプランクトンを濾しはじめた', 'マンタが浅場で輪を描きながら、プランクトンを食べている', '潮に乗ってプランクトンが集まり、マンタがやってきた']), m.st.x, m.st.z, () => m.pos);
       m.feeding = feeding; m.placed = true;
       // boxed in: it leaves its circle and swims straight over to the new one (checked clear above)
@@ -346,10 +348,11 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
       }
       // In shallow water keep circle feeding. Where there is room, first descend gently; the
       // shallow feeding target stays unchanged so it returns there after the seven-second loop.
-      if (loopFloor + bodyR + 0.55 < -loopDepth) m.loopPending = true;
+      if (loopFloor + bodyR + 0.55 < waterTopAt(m.st.x, m.st.z) - loopDepth) m.loopPending = true;
     }
     const cruiseY = m.y + Math.sin(m.t * 0.15) * (feeding ? 0.5 : 1.2);
-    const ty = Math.min(Math.max(m.loopPending ? -loopDepth - 0.1 : cruiseY, floor + clearance), -2.5);
+    const mw = waterTopAt(m.st.x, m.st.z);   // (the loop's depth and the ceiling from the still water there)
+    const ty = Math.min(Math.max(m.loopPending ? mw - loopDepth - 0.1 : cruiseY, floor + clearance), mw - 2.5);
     m.swimY ??= ty; m.vy ??= 0;
     // A new shallow feeding depth should not instantly demand several metres per second of climb.
     // During a feeding loop, let any existing climb decay; do not lift the loop toward the surface.
@@ -367,7 +370,7 @@ export function updateMantas(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     m.yaw += Math.atan2(Math.sin(yaw - m.yaw), Math.cos(yaw - m.yaw)) * (1 - Math.exp(-dt * 1.4));
     // feeding: cephalic fins unrolled and mouth open; now and then a somersault through the plankton
     const poseK = mantaPose(m, dt, feeding, 1, m.dir * (feeding ? 0.22 : 0.12));
-    if (m.loopPending && m.swimY < -loopDepth && Math.abs(m.vy) < 0.12) {
+    if (m.loopPending && m.swimY < mw - loopDepth && Math.abs(m.vy) < 0.12) {
       m.loopPending = false; m.flip = 0;
     }
     let loop = 0;

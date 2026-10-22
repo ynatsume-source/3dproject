@@ -14,6 +14,7 @@ import { outZone } from '../ocean/zone';
 import { clamp, R, rr, mulberry32 } from '../core/math';
 import type { Species } from '../data/locations';
 import type { Env, Subject, PreyGroup } from './env';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 const smooth = (a: number, b: number, x: number) => { const k = clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
 
@@ -89,7 +90,7 @@ export function makeJacks(oc: any, fraction: number) {
 
   // where fish i is at time t, for the school's state now (and how it is moving)
   const P = new THREE.Vector3();
-  const base = () => Math.max(floor0 + 2.6, -18), top = () => Math.min(base() + 13, -1.5);
+  const base = () => Math.max(floor0 + 2.6, -18), top = () => Math.min(base() + 13, waterTopAt(st.c.x, st.c.z) - 1.5);
   // (per fish, worked out once: its height's share of the column's girth, and the phases of its weave and bob)
   const MD = new Float32Array(NMAX), WC = new Float32Array(NMAX), WS = new Float32Array(NMAX), BC = new Float32Array(NMAX), BS = new Float32Array(NMAX);
   for (let i = 0; i < NMAX; i++) { MD[i] = Math.sin(H[i] * Math.PI); WC[i] = Math.cos(H[i] * 5); WS[i] = Math.sin(H[i] * 5); BC[i] = Math.cos(H[i] * 9 + TL[i]); BS[i] = Math.sin(H[i] * 9 + TL[i]); }
@@ -114,7 +115,7 @@ export function makeJacks(oc: any, fraction: number) {
     const s = st.spread;
     if (s > 0.001) {
       const sx = st.c.x + SC[i * 3] * 34 + Math.sin(t * 0.05 + A0[i]) * 4, sz = st.c.z + SC[i * 3 + 2] * 34 + Math.cos(t * 0.045 + A0[i] * 1.3) * 4;
-      const sy = Math.min(Math.max(b + 1.5 + SC[i * 3 + 1] * 2.5, SF[i] + 1.2 + (SC[i * 3 + 1] + 1) * 0.8), -1.5);
+      const sy = Math.min(Math.max(b + 1.5 + SC[i * 3 + 1] * 2.5, SF[i] + 1.2 + (SC[i * 3 + 1] + 1) * 0.8), waterTopAt(sx, sz) - 1.5);
       x += (sx - x) * s; yy += (sy - yy) * s; z += (sz - z) * s;
     }
     out.set(x, yy, z);
@@ -206,7 +207,7 @@ export function makeJacks(oc: any, fraction: number) {
         // (over the reef at night: and a little ahead, so it is already rising when a rock comes)
         if (st.spread >= 0.05 && last[i * 6 + 1] < 0) { const vx = (Q.x - last[i * 6]) / fdt, vz = (Q.z - last[i * 6 + 2]) / fdt; flC[i] = Math.max(flC[i], T.top(Q.x + vx * 0.4, Q.z + vz * 0.4), T.top(Q.x + vx * 0.9, Q.z + vz * 0.9)); }
       }
-      Q.y = Math.min(Math.max(Q.y, flC[i] + 0.6), -0.6);
+      Q.y = Math.min(Math.max(Q.y, flC[i] + 0.6), waterTopAt(Q.x, Q.z) - 0.6);
       // (up and down no faster than a fish swims: over a coral head, up and over it, not snapped onto it)
       const ly = last[i * 6 + 1];
       if (ly < 0) Q.y = ly + clamp(Q.y - ly, -0.25 * fdt * 20, 0.45 * fdt * 20);

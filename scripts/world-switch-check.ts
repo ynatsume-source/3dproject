@@ -63,7 +63,7 @@ function fixture() {
     dayLog: [], dayKey: '', logSaveT: 0, guideEl: { hidden: true }, panelTab: 'log', seen: new Set(), say: no, renderGuide: no,
     drone: { pos: { values: [1, -2, 3], toArray() { return this.values; }, set(...p: number[]) { this.values = p; } },
       vel: { set: no }, yaw: 0.1, pitch: 0.2, sky: false, mode: 'manual' },
-    ZONE: { x: 0 }, endOpening: no, nearestS: () => 0, forgetLand: (id: string) => freed.push(id), freeOcean: no,
+    ZONE: { x: 0 }, waterTopAt: () => 0, endOpening: no, nearestS: () => 0, forgetLand: (id: string) => freed.push(id), freeOcean: no,
     aheadLast: 0, aheadGap: 16, globeGap: 16, globeLast: 0, aheadBudget: 10, aheadId: null,
     gv: { dragging: false, lastUser: -1e12 }, renderer: { extensions: { get: () => false } }, SAFE: 0,
     hashNavigation: { flush: async () => {}, hasPending: () => false },

@@ -11,6 +11,7 @@ import { SEALION_GEO, seaLionMaterial } from '../ocean/sealion';
 import { logEvent, type Env, type Subject } from './env';
 import { unseen, behind, clearDepth } from './unseen';
 import { ageOf } from './growth';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 // a species: how many come at once, their length range (m), how often they come by (s)
 export interface SeaLionSpec { id: string; ja: string; sci: string; note: string; group: [number, number]; len: [number, number]; every: [number, number] }
@@ -48,7 +49,7 @@ function start(oc: any, S: SeaLions, cam: THREE.Vector3, fx: number, fz: number)
     const len = sp.len[0] + (sp.len[1] - sp.len[0]) * Math.pow(R(), 1.3);
     const y = clearDepth(oc, at.x, at.z, cam.x - at.x, cam.z - at.z, Math.min(-1.5, cam.y + rr(-2, 2)), 1, 1.5, 8);
     const p = new THREE.Vector3(at.x + rr(-3, 3), y + rr(-1, 1), at.z + rr(-3, 3));
-    p.y = Math.min(p.y, -0.8);
+    p.y = Math.min(p.y, waterTopAt(p.x, p.z) - 0.8);
     const d = new THREE.Vector3(cam.x - p.x, 0, cam.z - p.z).normalize();
     S.lions.push({ pos: p, vel: d.clone().multiplyScalar(2.5), head: d.clone(), len, age: clamp(ageOf(len, sp.len[1], 0.25) / ageOf(sp.len[1] * 1.05, sp.len[1], 0.25), 0, 1), seed: R(),
       ph: R() * 6.28, stroke: 1, spread: 0, bend: 0, roll: 0, spin: 0, hy: 0, hp: 0, move: 'come', t: 0, dur: 99, a: R() * 6.28, r: 3, dy: 0, side: R() < 0.5 ? -1 : 1, bub: 0, v0: new THREE.Vector3() });
@@ -130,7 +131,7 @@ export function updateSeaLions(oc: any, dt: number, env: Env, cam: THREE.Vector3
         break;
       }
       case 'spin': _t.set(cam.x + Math.cos(l.a) * l.r, cam.y + l.dy, cam.z + Math.sin(l.a) * l.r); l.a += dt * l.side * 1.6 / l.r; speed = 2.6; break;
-      case 'breathe': _t.set(l.pos.x + l.head.x * 2, -0.15, l.pos.z + l.head.z * 2); speed = 2.2; if (l.pos.y > -0.45) { l.move = 'orbit'; l.t = 0; l.dur = 1.5; l.dy = rr(-1, 0.5); } break;
+      case 'breathe': _t.set(l.pos.x + l.head.x * 2, waterTopAt(l.pos.x, l.pos.z) - 0.15, l.pos.z + l.head.z * 2); speed = 2.2; if (l.pos.y - waterTopAt(l.pos.x, l.pos.z) > -0.45) { l.move = 'orbit'; l.t = 0; l.dur = 1.5; l.dy = rr(-1, 0.5); } break;
       case 'go': _t.set(cam.x + Math.cos(l.a) * 250, Math.min(-1.5, cam.y), cam.z + Math.sin(l.a) * 250); speed = 3.4; break;
     }
     l.bub -= dt;
@@ -148,7 +149,7 @@ export function updateSeaLions(oc: any, dt: number, env: Env, cam: THREE.Vector3
     if (l.pos.y < floor + 0.4) l.vel.y += clamp(floor + 0.4 - l.pos.y, 0, 1) * dt * 6;
     l.pos.addScaledVector(l.vel, dt);
     if (l.pos.y < floor) l.pos.y += (floor - l.pos.y) * Math.min(1, dt * 5);
-    l.pos.y = Math.min(l.pos.y, -0.1);
+    l.pos.y = Math.min(l.pos.y, waterTopAt(l.pos.x, l.pos.z) - 0.1);
     // its nose: along its way when it swims, round to the drone when it hangs looking
     const v = l.vel.length();
     if (face || v < 0.5) _f.subVectors(cam, l.pos).normalize(); else _f.copy(l.vel).divideScalar(Math.max(v, 1e-3));

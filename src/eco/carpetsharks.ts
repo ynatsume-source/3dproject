@@ -11,6 +11,7 @@ import { carpetGeometry, carpetMaterial, carpetProfile, carpetBelly, type Carpet
 import { logEvent, type Env, type Subject } from './env';
 import { unseen, sightRange } from './unseen';
 import { ageOf } from './growth';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 // a species: its body, length range (m), the groups it rests in (how many to each), the depth it rests at (m)
 export interface CarpetSpec { id: string; ja: string; sci: string; note: string; style: CarpetStyle; len: [number, number]; groups: number[]; depth: [number, number] }
@@ -227,7 +228,7 @@ export function updateCarpetSharks(oc: any, dt: number, env: Env, cam: THREE.Vec
           // (never with any part of it in the ground, as it is pitched now)
           const need = floorFor(T, sp.style, m.pos.x, m.pos.z, m.yaw, m.pitch, L);
           if (m.pos.y < need) { m.pos.y = need - m.pos.y < 0.025 ? m.pos.y + (need - m.pos.y) * Math.min(1, dt * 3) : need; if (m.vy < 0) m.vy = 0; }   // (a hair's breadth eased out, not popped)
-          m.pos.y = Math.min(m.pos.y, -0.8);
+          m.pos.y = Math.min(m.pos.y, waterTopAt(m.pos.x, m.pos.z) - 0.8);
           m.swim += ((m.speed > 0.08 ? 1 : 0.2) - m.swim) * Math.min(1, dt * 1.5);
           m.prop += ((lying && sp.style === 'zebra' ? 1 : 0) - m.prop) * Math.min(1, dt);
           // (now and then, by night, it noses into the reef)

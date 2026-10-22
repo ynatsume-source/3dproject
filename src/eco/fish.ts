@@ -13,6 +13,7 @@ import { mat } from '../render/common';
 import { activity, logEvent, oneOf, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
 import { makeKelpFishLife } from './kelp-life';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 const _c = new THREE.Vector3(), _v = new THREE.Vector3(), _w = new THREE.Vector3(), _mm = new THREE.Matrix4(), _mc = new THREE.Matrix4(), _ss = new THREE.Vector3();
 const REVIVE_AFTER = 150;   // s until another fish drifts in to take a lost one's place
@@ -266,7 +267,7 @@ export function makeFishSystem(sp: Species, oc: any) {
       const plant = kelpLife?.anchorNear(x, z);
       if (plant) { x = plant.x; z = plant.z; }
       g.anchor.x = x; g.anchor.z = z;
-      g.c.set(x, ws ? Math.min(Math.max(ws.y, T.top(x, z) + g.alt), -1.4) : Math.min(T.h(x, z) + g.alt, -1.4), z);
+      g.c.set(x, ws ? Math.min(Math.max(ws.y, T.top(x, z) + g.alt), waterTopAt(x, z) - 1.4) : Math.min(T.h(x, z) + g.alt, waterTopAt(x, z) - 1.4), z);
       g.head = Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.9, 2.1);
       g.hunt = null;
     }
@@ -359,7 +360,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     for (const a of [0.25, 0.5, 0.8]) fl = Math.max(fl, T.top(g.c.x + g.v.x / hs * a * Math.max(1, h.speed), g.c.z + g.v.z / hs * a * Math.max(1, h.speed)));
     fl += 0.25;
     if (g.c.y < fl) { g.c.y += Math.min(fl - g.c.y, (1.0 + h.speed * 0.8) * dt); if (g.v.y < 0) g.v.y *= 0.6; }
-    if (g.c.y > -0.8) g.c.y = -0.8;
+    { const top = waterTopAt(g.c.x, g.c.z) - 0.8; if (g.c.y > top) g.c.y = top; }
     g.head = Math.atan2(g.v.z, g.v.x);
     return true;
   }
@@ -438,7 +439,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         }
         if (sp.diet === 'algae') lift = 0.5 + 0.4 * Math.sin(g.t * 0.2);
         lift = lift * (1 - rest) + 0.25 * rest - g.fear * 0.6;         // rest and fear both pull them into the reef
-        const ty = Math.min(floorC + Math.max(lift, 0.15), -1.4);
+        const ty = Math.min(floorC + Math.max(lift, 0.15), waterTopAt(g.c.x, g.c.z) - 1.4);
         g.c.y += (ty - g.c.y) * Math.min(1, dt * 0.6);
       } else if (g.type === 'roam') {
         const inCave = cave ? caveRoutine(g, dt, cam) : false;
@@ -472,7 +473,7 @@ export function makeFishSystem(sp: Species, oc: any) {
           // second over a reef mound, which read as a jump)
           let fl = floorC;
           for (const s of sp.big ? [1.5, 3, 5, 8, 12] : [1.5, 3, 5]) fl = Math.max(fl, T.top(g.c.x + g.v.x * s, g.c.z + g.v.z * s));
-          const ty = Math.min(fl + g.alt * (0.4 + 0.6 * g.act) + Math.sin(g.t * 0.3) * 0.5, -1.4);
+          const ty = Math.min(fl + g.alt * (0.4 + 0.6 * g.act) + Math.sin(g.t * 0.3) * 0.5, waterTopAt(g.c.x, g.c.z) - 1.4);
           let dy = (ty - g.c.y) * Math.min(1, dt * (ty > g.c.y ? 0.6 : 0.25));
           if (sp.big) dy = Math.max(-0.25 * dt, Math.min(0.35 * dt, dy));
           g.c.y += dy;
@@ -616,7 +617,7 @@ export function makeFishSystem(sp: Species, oc: any) {
           bendAttr.array[i] = fb[i];
         }
         fv[i * 3] = vx; fv[i * 3 + 1] = vy; fv[i * 3 + 2] = vz;
-        let nx = px + vx * dt, ny = Math.min(py + vy * dt, -0.5), nz = pz + vz * dt;
+        let nx = px + vx * dt, nz = pz + vz * dt, ny = Math.min(py + vy * dt, waterTopAt(nx, nz) - 0.5);
         if (kelpLife && !burial) ny = Math.max(ny, kelpLife.floor(nx, nz) + 0.1);
         if (oc.cave && oc.cave.pushOut(_c.set(nx, ny, nz), 0.12 * sp.size[1] + 0.1)) { nx = _c.x; ny = _c.y; nz = _c.z; }   // slide off the cave rock
         fp[i * 3] = nx; fp[i * 3 + 1] = ny; fp[i * 3 + 2] = nz;
@@ -947,7 +948,7 @@ export function makeFishSystem(sp: Species, oc: any) {
         const side = k % 2 ? 1 : -1, a = rr(80, 100) * Math.PI / 180, d = rr(28, 40);
         const x = cam.x + (fx * Math.cos(a) - fz * Math.sin(a) * side) * d, z = cam.z + (fz * Math.cos(a) + fx * Math.sin(a) * side) * d;
         if (!T.wet(x, z, 3) || !unseen(oc, x, T.h(x, z) + g.alt + 1, z, cam, fx, fz, 2)) continue;
-        const dx = x - g.c.x, dz = z - g.c.z, y = Math.min(T.h(x, z) + g.alt + 1, -2), dy = y - g.c.y;
+        const dx = x - g.c.x, dz = z - g.c.z, y = Math.min(T.h(x, z) + g.alt + 1, waterTopAt(x, z) - 2), dy = y - g.c.y;
         for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] += dx; fp[i * 3 + 1] += dy; fp[i * 3 + 2] += dz; }
         g.c.set(x, y, z);
         g.head = Math.atan2(cam.z + fz * rr(14, 24) - z, cam.x + fx * rr(14, 24) - x);   // (toward the way ahead, to cross it)
@@ -960,7 +961,7 @@ export function makeFishSystem(sp: Species, oc: any) {
     movers: () => (kelpLife ? [] : groups.filter((g) => g.type === 'reef' && g.placed && !g.ch).map((g) => ({
       x: g.c.x, y: g.c.y, z: g.c.z, n: g.n, going: !!g.goal, goal: g.goal,
       move(sx: number, sz: number, ax: number, az: number) {
-        const dx = sx - g.c.x, dz = sz - g.c.z, dy = Math.min(T.h(sx, sz) + g.alt, -1.4) - g.c.y;
+        const dx = sx - g.c.x, dz = sz - g.c.z, dy = Math.min(T.h(sx, sz) + g.alt, waterTopAt(sx, sz) - 1.4) - g.c.y;
         for (let i = g.start; i < g.start + g.n; i++) { fp[i * 3] += dx; fp[i * 3 + 1] += dy; fp[i * 3 + 2] += dz; }
         g.c.x = sx; g.c.y += dy; g.c.z = sz; g.anchor.x = sx; g.anchor.z = sz; g.goal = { x: ax, z: az };
       },

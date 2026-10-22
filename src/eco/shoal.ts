@@ -11,6 +11,7 @@ import { makeSchoolShade } from './schoolshade';
 import { behind, unseen } from './unseen';
 import { activity, logEvent, type Env, type PreyGroup, type Subject } from './env';
 import type { Species } from '../data/locations';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 const _mm = new THREE.Matrix4(), _ss = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3(), _cv = new THREE.Vector3();
 
@@ -90,7 +91,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       x = zx(cam.x + fx * d - fz * lat); z = zz(cam.z + fz * d + fx * lat);
       if (T.wet(x, z, 2.6)) break;
     }
-    L.c.set(x, Math.min(T.h(x, z) + L.alt, -2), z);
+    L.c.set(x, Math.min(T.h(x, z) + L.alt, waterTopAt(x, z) - 2), z);
     L.head = bh ? Math.atan2(cam.z + fz * 25 - z, cam.x + fx * 25 - x) + rr(-0.5, 0.5) : Math.atan2(fz, fx) + (R() < 0.5 ? 1 : -1) * rr(0.8, 2.2);
     for (let i = s; i < total; i += S) {
       const a = R() * 6.28, r = Math.cbrt(R()) * 4;
@@ -128,7 +129,7 @@ export function makeShoalSystem(sp: Species, oc: any) {
       const alt = L.alt * act + 1.2 * (1 - act) + Math.sin(L.t * 0.11 + s) * 1.2;
       let fl = T.top(L.c.x, L.c.z);                               // look ahead: lift over coral heads early
       for (const k of [2, 4, 7]) fl = Math.max(fl, T.top(L.c.x + Math.cos(L.head) * pace * k, L.c.z + Math.sin(L.head) * pace * k));
-      const ty = Math.min(fl + alt, -2);
+      const ty = Math.min(fl + alt, waterTopAt(L.c.x, L.c.z) - 2);
       L.c.y += (ty - L.c.y) * Math.min(1, dt * (ty > L.c.y ? 0.4 : 0.2));
       if (sp.diet === 'plankton') env.plankton.consume(L.c.x, L.c.z, 0.0008 * act * dt);
       L.prey.x = L.c.x; L.prey.y = L.c.y; L.prey.z = L.c.z;
