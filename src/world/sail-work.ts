@@ -348,12 +348,14 @@ interface WorksiteMetadataStamp {
   finished: Finished[];
   receiptCount: number;
   finishedCount: number;
+  receiptRows: Receipt[];
+  finishedRows: Finished[];
 }
 const checkedWorksiteMetadata =
   new WeakMap<SailWorkLedger, WorksiteMetadataStamp>();
 
-/** World transactions replace or revise this owned envelope. Saved JSON gets a
- * new ledger root and a full check; reads never warm a mutable transaction draft.
+/** Cache only this read path. World transactions and restores keep strict
+ * metadata checks; replacing or revising their owned envelope invalidates a read.
  */
 function worksiteMetadata(L: SailWorkLedger): Arrangement {
   const m = metadataHeader(L);
@@ -367,7 +369,9 @@ function worksiteMetadata(L: SailWorkLedger): Arrangement {
     previous.receipts === m.receipts &&
     previous.finished === m.finished &&
     previous.receiptCount === m.receipts.length &&
-    previous.finishedCount === m.finished.length) {
+    previous.finishedCount === m.finished.length &&
+    m.receipts.every((row, index) => row === previous.receiptRows[index]) &&
+    m.finished.every((row, index) => row === previous.finishedRows[index])) {
     return m;
   }
   checkMetadataRecords(m);
@@ -383,6 +387,8 @@ function worksiteMetadata(L: SailWorkLedger): Arrangement {
       finished: m.finished,
       receiptCount: m.receipts.length,
       finishedCount: m.finished.length,
+      receiptRows: m.receipts.slice(),
+      finishedRows: m.finished.slice(),
     });
   }
   return m;
