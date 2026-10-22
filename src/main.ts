@@ -2432,6 +2432,10 @@ async function gpuTest(loc: Sea) {
 let diagLog: ((s: string) => void) | null = null, diagNow = '';   // (with ?diag: the shader being prepared)
 const shaderHint = (m: any) => `${m.type}${m.uniforms ? ':' + Object.keys(m.uniforms).filter((k) => !(k in U)).slice(0, 4).join(',') : ''} ${(m.fragmentShader || '').length}`;
 const dbg = location.search.includes('debug');
+/** LAB: ?sealevel=-1.04 — the drawn sea held at that height (m), for working on how the shore looks at low or high water
+ *  before the tide goes in (nature team, the wet reef: 2026-10-22). What is drawn only: the island's life (residents,
+ *  husks) keeps to time/sea-level.ts — ADR 0001. */
+const SEA_TEST = (() => { const m = /[?&]sealevel=(-?\d+(?:\.\d+)?)/.exec(location.search); return m ? Math.max(-3, Math.min(3, +m[1])) : null; })();
 async function prepareShaders(oc: Ocean) {
   const seen = new Map<THREE.Material, THREE.Object3D>();
   const take = (root: THREE.Object3D) => root.traverse((o: any) => { const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; for (const m of ms) if (!seen.has(m)) seen.set(m, o); });
@@ -3483,7 +3487,7 @@ function frameBody(ts: number) {
   if (gputest) return;   // (the GPU test draws only what it is testing)
   U.uTime.value += dt;
   clock.advance(dt);
-  setSeaLevel(seaLevel(clock.ms, cur?.loc));   // (the sea's height, from the time alone: ADR 0009, time/sea-level.ts)
+  setSeaLevel(SEA_TEST ?? seaLevel(clock.ms, cur?.loc));   // (the sea's height, from the time alone: ADR 0009, time/sea-level.ts)
   if (mode === 'globe') {
     { const g = globeLast ? now - globeLast : 16; globeLast = now; if (!job) { globeGap += (Math.min(g, 300) - globeGap) * 0.1; aheadLast = 0; } }
     aheadStep();   // (a sea a card asked for, built ahead a little each frame)
