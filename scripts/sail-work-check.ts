@@ -750,4 +750,186 @@ test('non-drying runs retain the old version, seed and exact results', () => {
   }
 });
 
+
+let cachedSailReadFixture: {L: SailWorkLedger; at: number} | undefined;
+
+function beginSailReadFixture(L: SailWorkLedger, at: number, suffix: string) {
+  const lotId = 'read-bamboo:' + suffix;
+  addPlant(L, {lotId, material: 'bamboo',
+    dryMg: 5_000_000, waterMg: 2_000_000, lengthMm: 6_000});
+  const facts: SailStartFacts = {assumptionId: ID, worksite: {...site}};
+  const intent: SailIntent = {
+    kind: 'start', intentId: 'read-start:' + suffix, actorId: 'actor',
+    atWorldMs: at, operation: 'mast', lotIds: [lotId],
+    siteId: site.locationId, presence: 'here'
+  };
+  const runId = applySailIntent(L, intent, sailWorkRevision(L), at, facts).runId;
+  return {L, at, lotId, runId};
+}
+
+function fullSailReadFixture() {
+  if (!cachedSailReadFixture) {
+    const L: SailWorkLedger = emptyLedger('world:sail-read-cache', 'epoch:1');
+    let at = T;
+    for (let n = 0; n < 64; n++) {
+      const a = beginSailReadFixture(L, at, String(n));
+      const f: SailSpan = {
+        kind: 'executor-activity-span', spanId: 'read-complete:' + n,
+        worldId: L.world.worldId, worldEpoch: L.world.worldEpoch,
+        runId: a.runId, actorId: 'actor',
+        fromWorldMs: at, toWorldMs: at + R.mastMs,
+        confirmedAtWorldMs: at + R.mastMs, activity: 'cut-mast',
+        arrived: true, targetLotId: a.lotId, targetSiteId: site.locationId,
+        fromPosition: {x: 0, z: 0}, toPosition: {x: 0, z: 0}
+      };
+      recordSailSpan(L, a.runId, f, sailWorkRevision(L), f.confirmedAtWorldMs);
+      assert.equal(L.runs[a.runId], undefined);
+      for (const lotId of Object.keys(L.lots)) delete L.lots[lotId];
+      at += R.mastMs + 1_000;
+    }
+    assert.equal(L.sailArrangement!.finished.length, 64);
+    assert.equal(L.sailArrangement!.receipts.length, 64);
+    cachedSailReadFixture = {L: json(L), at};
+  }
+  return {L: json(cachedSailReadFixture.L), at: cachedSailReadFixture.at};
+}
+
+test('warm sail worksite reads skip unrelated finished bodies without changing the ledger', () => {
+  const {L, at} = fullSailReadFixture();
+  beginSailReadFixture(L, at, 'active');
+  const expected = readSailWorksite(json(L), site.locationId, at);
+  const available = readSailWorksite(json(L), 'unused-site', at);
+  readSailWorksite(L, site.locationId, at);
+  const before = JSON.stringify(L);
+  const rows = L.sailArrangement!.finished;
+  const descriptors = rows.map(row => Object.getOwnPropertyDescriptor(row, 'observations')!);
+  let bodyReads = 0;
+  rows.forEach((row, n) => {
+    const value = descriptors[n].value;
+    Object.defineProperty(row, 'observations', {
+      configurable: true, enumerable: true,
+      get() { bodyReads++; return value; }
+    });
+  });
+  try {
+    for (let n = 0; n < 100; n++) {
+      assert.deepEqual(readSailWorksite(L, site.locationId, at + n), expected);
+      assert.deepEqual(readSailWorksite(L, 'unused-site', at + n), available);
+    }
+    assert.equal(bodyReads, 0, 'unchanged unrelated summaries must not be checked again');
+  } finally {
+    rows.forEach((row, n) => Object.defineProperty(row, 'observations', descriptors[n]));
+  }
+  assert.equal(JSON.stringify(L), before);
+});
+
+test('sail selected finished reads check that row and return independent observations', () => {
+  const {L, at} = fullSailReadFixture();
+  const expected = readSailWorksite(json(L), site.locationId, at);
+  const first = readSailWorksite(L, site.locationId, at);
+  assert.ok(first.observations.length > 0);
+  first.observations[0].text = 'changed outside the ledger';
+  assert.deepEqual(readSailWorksite(L, site.locationId, at), expected);
+  L.sailArrangement!.finished.at(-1)!.observations[0].text = 'forged words';
+  assert.throws(() => readSailWorksite(L, site.locationId, at), SailWorkError);
+  assert.throws(() => readSailWorksite(L, 'unused-site', at), SailWorkError,
+    'a known invalid selected summary must invalidate the warm metadata proof');
+});
+
+test('sail cache misses validate changed metadata and world bindings', () => {
+  const edits: [string, (L: SailWorkLedger) => void][] = [
+    ['metadata replacement', L => { L.sailArrangement = json(L.sailArrangement); }],
+    ['revision', L => { L.sailArrangement!.revision++; }],
+    ['authority', L => { L.sailArrangement!.authorityAtWorldMs++; }],
+    ['floor', L => {
+      L.sailArrangement!.floorAtWorldMs = (L.sailArrangement!.floorAtWorldMs ?? 0) + 1;
+    }],
+    ['finished array', L => { L.sailArrangement!.finished = L.sailArrangement!.finished.slice(); }],
+    ['finished length', L => { L.sailArrangement!.finished.pop(); }],
+    ['finished row', L => {
+      L.sailArrangement!.finished[0] = json(L.sailArrangement!.finished[0]);
+    }],
+    ['receipt array', L => { L.sailArrangement!.receipts = L.sailArrangement!.receipts.slice(); }],
+    ['receipt row', L => {
+      L.sailArrangement!.receipts[0] = json(L.sailArrangement!.receipts[0]);
+    }],
+    ['world ID', L => { L.world.worldId = 'world:changed'; }],
+    ['world epoch', L => { L.world.worldEpoch = 'epoch:changed'; }]
+  ];
+  for (const [name, edit] of edits) {
+    const {L, at} = fullSailReadFixture();
+    readSailWorksite(L, 'unused-site', at);
+    edit(L);
+    L.sailArrangement!.finished[0].observations[0].text = 'forged words';
+    assert.throws(() => readSailWorksite(L, 'unused-site', at), SailWorkError, name);
+  }
+  for (const field of ['receipts', 'finished'] as const) {
+    const {L, at} = fullSailReadFixture();
+    readSailWorksite(L, 'unused-site', at);
+    delete (L.sailArrangement![field] as any)[0];
+    assert.throws(() => readSailWorksite(L, 'unused-site', at), SailWorkError, field + ' hole');
+  }
+});
+
+test('cold sail reads and restore check all records, even when metadata is shared with a warm root', () => {
+  const {L, at} = fullSailReadFixture();
+  const bad = json(L);
+  bad.sailArrangement!.finished[0].observations[0].text = 'forged words';
+  assert.throws(() => readSailWorksite(bad, 'unused-site', at), SailWorkError);
+  assert.throws(() => restoreSailWork(bad, at), SailWorkError);
+  readSailWorksite(L, 'unused-site', at);
+  const anotherRoot = {...L, world: {...L.world}};
+  L.sailArrangement!.finished[0].observations[0].text = 'forged words';
+  assert.throws(() => readSailWorksite(anotherRoot, 'unused-site', at), SailWorkError);
+});
+
+test('a failed strict sail validation cannot leave a warm read cache trusted', () => {
+  const {L, at} = fullSailReadFixture();
+  readSailWorksite(L, 'unused-site', at);
+  L.sailArrangement!.finished[0].observations[0].text = 'forged words';
+  assert.throws(() => sailWorkRevision(L), SailWorkError);
+  assert.throws(() => readSailWorksite(L, 'unused-site', at), SailWorkError);
+});
+
+test('warm sail reads retain live-state and reservation checks', () => {
+  const edits: [string, (a: F) => void][] = [
+    ['state', a => { (a.L.runs[a.runId].state!.data as any).pendingMs++; }],
+    ['source', a => {
+      a.L.lots.input.quality!.water_mg++;
+      a.L.lots.input.amount.value++;
+    }],
+    ['reservation', a => { a.L.lots.input.reservedBy = 'other-run'; }],
+    ['operator', a => { a.L.runs[a.runId].operator = 'other'; }]
+  ];
+  for (const [name, edit] of edits) {
+    const a = fixture('mast');
+    readSailWorksite(a.L, site.locationId, T);
+    edit(a);
+    assert.throws(() => readSailWorksite(a.L, site.locationId, T), SailWorkError, name);
+  }
+});
+
+test('sail cache never freezes the as-of view or changes serialized work across its lifecycle', () => {
+  const a = fixture('mast');
+  const agree = (at: number) => {
+    const before = JSON.stringify(a.L);
+    const expected = readSailWorksite(json(a.L), site.locationId, T + at);
+    const actual = readSailWorksite(a.L, site.locationId, T + at);
+    assert.deepEqual(actual, expected);
+    assert.equal(JSON.stringify(actual), JSON.stringify(expected));
+    assert.equal(JSON.stringify(a.L), before);
+    return actual;
+  };
+  assert.equal(agree(0).activity, 'waiting');
+  work(a, 0, 30_000, 'cache-first');
+  assert.equal(agree(30_000).activity, 'working');
+  assert.equal(agree(30_001).activity, 'waiting');
+  control(a, 'stop', 30_000);
+  assert.equal(agree(30_000).activity, 'paused');
+  control(a, 'resume', 60_000);
+  assert.equal(agree(60_000).activity, 'waiting');
+  work(a, 60_000, 60_000 + R.mastMs - 30_000, 'cache-tail');
+  assert.equal(agree(60_000 + R.mastMs - 30_000).activity, 'completed');
+});
+
 console.log('PASS sail work: ' + groups + ' groups; no resident or UI connection.');
