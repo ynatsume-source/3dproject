@@ -22,7 +22,7 @@ export interface CrabPoseOut {
   head: number; phase: number; run: number; sunk: number; eyes: number;
   on?: { n: [number, number, number]; fwd: [number, number, number] };   // (on a trunk: out from it, and its head along it)
 }
-export interface BurrowOut { id: string; x: number; z: number; y: number; dir: number }
+export interface BurrowOut { id: string; x: number; z: number; y: number; dir: number; kind?: 'ghost' | 'coconut' }
 type V3 = { x: number; y: number; z: number };
 /** A trunk as drawn (ocean/shore.ts TrunkLine): its foot and top, its radius at each end. */
 export interface CrabTrunk { kind: string; base: V3; top: V3; r0: number; r1: number }
@@ -150,7 +150,9 @@ export function makeCrabLife(w: CrabWorld) {
     const byNear = (a: { x: number; z: number }, b: { x: number; z: number }) => Math.hypot(a.x - cam.x, a.z - cam.z) - Math.hypot(b.x - cam.x, b.z - cam.z);
     const crabs: CrabPoseOut[] = all.filter((c) => c.mode !== 'in').sort(byNear).map((c) => (c.up > 0 && c.trunk ? onTrunk(c, c.trunk)
       : { kind: c.kind, id: c.id, x: c.x, z: c.z, y: w.ground(c.x, c.z), head: c.head, phase: c.phase, run: c.run, sunk: c.sunk, eyes: c.eyes }));
-    const burrows: BurrowOut[] = ghosts.map((c) => ({ id: c.id, x: c.bx, z: c.bz, y: w.ground(c.bx, c.bz), dir: c.dir })).sort(byNear);
+    // (and the coconut crabs' dens at their pandanus' feet: drawn as their ways in and out, ADR 0009 — nature 2026-10-22)
+    const burrows: BurrowOut[] = [...ghosts.map((c) => ({ id: c.id, x: c.bx, z: c.bz, y: w.ground(c.bx, c.bz), dir: c.dir })),
+      ...coconuts.map((c) => ({ id: c.id, x: c.bx, z: c.bz, y: w.ground(c.bx, c.bz), dir: c.dir, kind: 'coconut' as const }))].sort(byNear);
     return { crabs, burrows };
   }
   /** On its trunk, `up` of the way: on the trunk's surface on the side of its hole, back out from it, head up or down. */

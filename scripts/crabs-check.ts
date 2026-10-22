@@ -63,7 +63,9 @@ const midnight = Date.parse('2026-10-06T23:30:00+09:00'), noon = Date.parse('202
   const L = makeCrabLife(world); let outByDay = 0;
   for (let t = noon; t < noon + 3600e3; t += 500) { L.update(0.5, t, night(t), 1, []); outByDay += L.poses(cam).crabs.length; }
   want('2 none out by day', outByDay === 0, outByDay);
-  want('2 the burrows\' mouths there by day', L.poses(cam).burrows.length === L.ghosts().length);
+  { const B = L.poses(cam).burrows;   // (the ghost crabs' burrows and the coconut crabs' dens, all there by day: ways in and out)
+    want('2 the burrows\' mouths there by day', B.filter((b) => b.kind !== 'coconut').length === L.ghosts().length, B.length);
+    want('2 the coconut crabs\' dens there by day, at their holes', B.filter((b) => b.kind === 'coconut').length === L.coconuts().length && L.coconuts().every((c) => B.some((b) => b.kind === 'coconut' && b.x === c.x && b.z === c.z)), B.filter((b) => b.kind === 'coconut').length); }
   // (a warm night, all of it: who comes up, from where, and whether each is back in by its end)
   const n = night(midnight)!, M = makeCrabLife(world); let most = 0, offHome = 0, coconutOut = 0, climbing = 0, onTrunkOk = true;
   const seen = new Set<string>();
