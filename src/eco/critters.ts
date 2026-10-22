@@ -401,7 +401,7 @@ export function makeCritters(oc: any) {
             const vy = clamp((ty - s.pos.y) * 0.8, -0.5, 0.5);
             const vh = s.state === 'up' || s.state === 'down' ? speed * 0.35 : speed;
             s.pos.x += Math.cos(s.head) * vh * dt; s.pos.z += Math.sin(s.head) * vh * dt; s.pos.y += vy * dt;
-            s.pos.y = Math.max(s.pos.y, fl + 0.15);
+            s.pos.y = Math.max(Math.min(s.pos.y, waterTopAt(s.pos.x, s.pos.z) - 0.15), fl + 0.15);   // (under the water's top, as the rest of the sea's life: foraging its height over the bottom, at low water in the shallows it was up out of it — sea-readers-check, Kayama)
             s.pitch += (Math.atan2(vy, vh) - s.pitch) * Math.min(1, dt * 2);
             _e.set(-s.pitch, Math.PI / 2 - s.head, 0, 'YXZ'); _q.setFromEuler(_e);
             _s.setScalar(s.len);
