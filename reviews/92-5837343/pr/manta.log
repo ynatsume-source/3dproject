@@ -1,0 +1,434 @@
+{
+  "ok": false,
+  "limitations": [
+    "Controlled flat deep water: real seabed intersections are not covered.",
+    "Checks animation controls and actor transforms, not GPU-deformed anatomy, shader compilation, or appearance.",
+    "No hardware performance benchmark or biological field validation."
+  ],
+  "results": {
+    "geometry": {
+      "vertices": 6662,
+      "triangles": 11686,
+      "bytes": 416540,
+      "attributes": {
+        "position": 3,
+        "aSide": 1,
+        "aU": 1,
+        "aV": 1,
+        "aPart": 1,
+        "aCeph": 3,
+        "normal": 3
+      },
+      "rawBounds": {
+        "min": [
+          -1,
+          -0.05900000035762787,
+          -1.149999976158142
+        ],
+        "max": [
+          1,
+          0.1120000034570694,
+          0.46700000762939453
+        ]
+      },
+      "note": "Raw parameter geometry only; GPU expansion and appearance require the browser check."
+    },
+    "material_contract": {
+      "independentUniforms": [
+        "uPhase",
+        "uFeed",
+        "uBeat",
+        "uAmp",
+        "uSeed",
+        "uMouth",
+        "uBank",
+        "uAir"
+      ],
+      "speciesControls": [
+        "uOceanic"
+      ],
+      "noArgumentCompatible": true
+    },
+    "routine_miyako_60hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4123741,
+      "maxAngularSpeed": 1.019249,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6452789,
+      "maxFeedRate": 0.7946903,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1042718,
+        "feeding": 0.8844224,
+        "recovered": 0.0873089
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_miyako_120hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4135999,
+      "maxAngularSpeed": 0.9385287,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6472688,
+      "maxFeedRate": 0.7973392,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043091,
+        "feeding": 0.8843383,
+        "recovered": 0.0873227
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_miyako_240hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4145658,
+      "maxAngularSpeed": 0.9324668,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6482667,
+      "maxFeedRate": 0.7986681,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043278,
+        "feeding": 0.8842961,
+        "recovered": 0.0873297
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_maldives_60hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4123741,
+      "maxAngularSpeed": 1.019249,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6452789,
+      "maxFeedRate": 0.7946903,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1042718,
+        "feeding": 0.8844224,
+        "recovered": 0.0873089
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_maldives_120hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4135999,
+      "maxAngularSpeed": 0.9385287,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6472688,
+      "maxFeedRate": 0.7973392,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043091,
+        "feeding": 0.8843383,
+        "recovered": 0.0873227
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_maldives_240hz": {
+      "oceanic": false,
+      "maxSpeed": 2.4145658,
+      "maxAngularSpeed": 0.9324668,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6482667,
+      "maxFeedRate": 0.7986681,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043278,
+        "feeding": 0.8842961,
+        "recovered": 0.0873297
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_galapagos_60hz": {
+      "oceanic": true,
+      "maxSpeed": 1.6230298,
+      "maxAngularSpeed": 0.5630327,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6452789,
+      "maxFeedRate": 0.7946903,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1042718,
+        "feeding": 0.8844224,
+        "recovered": 0.0873089
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_galapagos_120hz": {
+      "oceanic": true,
+      "maxSpeed": 2.4136001,
+      "maxAngularSpeed": 0.9438966,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6472688,
+      "maxFeedRate": 0.7973392,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043091,
+        "feeding": 0.8843383,
+        "recovered": 0.0873227
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "routine_galapagos_240hz": {
+      "oceanic": true,
+      "maxSpeed": 2.4145658,
+      "maxAngularSpeed": 0.9375895,
+      "maxPhaseSpeed": 1.05,
+      "maxMouthRate": 0.6482667,
+      "maxFeedRate": 0.7986681,
+      "maxAirRate": 0,
+      "mouth": {
+        "cruise": 0.1043278,
+        "feeding": 0.8842961,
+        "recovered": 0.0873297
+      },
+      "consumed": 0.1,
+      "positionMatchesMesh": true
+    },
+    "twilight_hysteresis": {
+      "thresholdJitterSteps": 240,
+      "feedingEntersAndLeaves": true,
+      "targetStableDuringJitter": true
+    },
+    "natural_feeding_prepare_loop_recover": {
+      "cases": [
+        {
+          "id": "miyako",
+          "span": 4.4,
+          "hz": 30,
+          "startAt": 13.7,
+          "duration": 7,
+          "deepest": -8.0368391,
+          "recoveredDepth": -2.7893214,
+          "clearanceLowerBound": 2.5329042,
+          "minimumFeedingMouth": 0.8429178,
+          "maxSpeed": 2.4106422,
+          "maxAngularSpeed": 0.9844948,
+          "maxPhaseSpeed": 0.8483169,
+          "maxMouthRate": 0.0205633,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        },
+        {
+          "id": "miyako",
+          "span": 4.4,
+          "hz": 120,
+          "startAt": 13.725,
+          "duration": 7,
+          "deepest": -8.0363823,
+          "recoveredDepth": -2.7909538,
+          "clearanceLowerBound": 2.5318885,
+          "minimumFeedingMouth": 0.8429181,
+          "maxSpeed": 2.410697,
+          "maxAngularSpeed": 0.9843699,
+          "maxPhaseSpeed": 0.8495734,
+          "maxMouthRate": 0.0205632,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        },
+        {
+          "id": "galapagos",
+          "span": 5.8,
+          "hz": 30,
+          "startAt": 15.9666667,
+          "duration": 7,
+          "deepest": -9.2962907,
+          "recoveredDepth": -2.7893214,
+          "clearanceLowerBound": 2.7447373,
+          "minimumFeedingMouth": 0.8429178,
+          "maxSpeed": 2.4106441,
+          "maxAngularSpeed": 0.9925303,
+          "maxPhaseSpeed": 0.8483169,
+          "maxMouthRate": 0.0205633,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        },
+        {
+          "id": "galapagos",
+          "span": 5.8,
+          "hz": 120,
+          "startAt": 16.0166667,
+          "duration": 7,
+          "deepest": -9.2965883,
+          "recoveredDepth": -2.7909538,
+          "clearanceLowerBound": 2.7439923,
+          "minimumFeedingMouth": 0.8429181,
+          "maxSpeed": 2.4106969,
+          "maxAngularSpeed": 0.9921791,
+          "maxPhaseSpeed": 0.8495734,
+          "maxMouthRate": 0.0205632,
+          "maxFeedRate": 0,
+          "maxAirRate": 0
+        }
+      ],
+      "envelope": "Minimum of transformed conservative pose box/sphere upper bounds during the loop; static y=0 waterline, no waves."
+    },
+    "shallow_seabed_loop_suppressed": {
+      "cases": [
+        {
+          "id": "miyako",
+          "span": 4.4,
+          "floor": -6,
+          "seconds": 45,
+          "pending": false,
+          "loop": false
+        },
+        {
+          "id": "galapagos",
+          "span": 5.8,
+          "floor": -6,
+          "seconds": 45,
+          "pending": false,
+          "loop": false
+        }
+      ]
+    },
+    "feeding_loop_cancelled_on_day": {
+      "cases": [
+        {
+          "id": "miyako",
+          "cancelled": true,
+          "maxSpeed": 2.1540153,
+          "maxAngularSpeed": 0.4006336,
+          "maxPhaseSpeed": 1.05,
+          "maxMouthRate": 0.6519151,
+          "maxFeedRate": 0.7946903,
+          "maxAirRate": 0
+        },
+        {
+          "id": "galapagos",
+          "cancelled": true,
+          "maxSpeed": 2.1540153,
+          "maxAngularSpeed": 0.4006336,
+          "maxPhaseSpeed": 1.05,
+          "maxMouthRate": 0.6519151,
+          "maxFeedRate": 0.7946903,
+          "maxAirRate": 0
+        }
+      ]
+    },
+    "initial_feeding_placement": {
+      "cases": [
+        {
+          "id": "miyako",
+          "initialDepth": -2.5133617,
+          "pending": false
+        },
+        {
+          "id": "galapagos",
+          "initialDepth": -2.5133617,
+          "pending": false
+        }
+      ]
+    },
+    "migration_rejects_shallow_reef": {
+      "seconds": 90,
+      "boundaryX": 15,
+      "maxCenterX": 13.1931667,
+      "directionReversals": 2,
+      "note": "Single artificial straight reef boundary, nominal disc footprint only; not full real-terrain navigation coverage."
+    },
+    "whale_over_seabed": {
+      "bellyClearanceMin": 4.24
+    },
+    "dark_night_and_debug": {
+      "simulatedSeconds": 600,
+      "naturalDarkNightSuppressed": true,
+      "explicitDebugAllowed": true
+    },
+    "baseline_regression": {
+      "skipped": true,
+      "reason": "Pass --baseline <unmodified checkout> for whale/non-manta regression comparison."
+    }
+  },
+  "failures": [
+    {
+      "check": "breach_miyako_30hz_flip0",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.166666666666638,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 0,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.3014413260978,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995418483612,\n+     roll: -2.023105266509625e-19,\n+     sp: 1.4000000002203974,\n+     t: 37.90000000000041,\n+     vy: -0.007629049904048315,\n+     x: -64.5876575770149,\n+     y: -4.547309075875827,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.033333333333054,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_30hz_flip1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.166666666666638,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.3014413260978,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995418491522,\n+     roll: -2.023105266509625e-19,\n+     sp: 1.4000000002203974,\n+     t: 37.90000000000041,\n+     vy: -0.007629049904048315,\n+     x: -64.5876575770149,\n+     y: -4.547309075875827,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.033333333333054,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_30hz_flip-1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.166666666666638,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: -6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.3014413260978,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995418475696,\n+     roll: -2.023105266509625e-19,\n+     sp: 1.4000000002203974,\n+     t: 37.90000000000041,\n+     vy: -0.007629049904048315,\n+     x: -64.5876575770149,\n+     y: -4.547309075875827,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.033333333333054,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_60hz_flip0",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.150000000000134,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 0,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.36950916692635,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995149273482,\n+     roll: -1.9521054648210274e-19,\n+     sp: 1.4000000002450337,\n+     t: 37.9166666666658,\n+     vy: -0.007645558605641209,\n+     x: -64.58765757697077,\n+     y: -4.54720568106871,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.01666666666511,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_60hz_flip1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.150000000000134,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.36950916692635,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995149364784,\n+     roll: -1.9521054648210274e-19,\n+     sp: 1.4000000002450337,\n+     t: 37.9166666666658,\n+     vy: -0.007645558605641209,\n+     x: -64.58765757697077,\n+     y: -4.54720568106871,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.01666666666511,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_60hz_flip-1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.150000000000134,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: -6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.36950916692635,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995149182155,\n+     roll: -1.9521054648210274e-19,\n+     sp: 1.4000000002450337,\n+     t: 37.9166666666658,\n+     vy: -0.007645558605641209,\n+     x: -64.58765757697077,\n+     y: -4.54720568106871,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.01666666666511,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_120hz_flip0",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.141666666666675,\n+   exitPitch: 0.939099107015027,\n+   exitSplash: true,\n+   flip: 0,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.365210248704,\n+     pitch: 0.946217564249578,\n+     v: 5.9274722708007195,\n+     x: 20.552803652666736,\n+     y: 0.017269561821597536\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995010447332,\n+     roll: -1.9372662546824464e-19,\n+     sp: 1.4000000002571427,\n+     t: 37.91666666666516,\n+     vy: -0.007656144179963059,\n+     x: -64.50078082946095,\n+     y: -4.5471380576551725,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.00833333333114,\n+   twist: -0.2599987200112082,\n+   vx: 3.4661226812534305,\n+   vy: 4.8084218907674865\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_120hz_flip1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.141666666666675,\n+   exitPitch: 0.939099107015027,\n+   exitSplash: true,\n+   flip: 6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.365210248704,\n+     pitch: 0.946217564249578,\n+     v: 5.9274722708007195,\n+     x: 20.552803652666736,\n+     y: 0.017269561821597536\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995010607398,\n+     roll: -1.9372662546824464e-19,\n+     sp: 1.4000000002571427,\n+     t: 37.91666666666516,\n+     vy: -0.007656144179963059,\n+     x: -64.50078082946095,\n+     y: -4.5471380576551725,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.00833333333114,\n+   twist: -0.2599987200112082,\n+   vx: 3.4661226812534305,\n+   vy: 4.8084218907674865\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_miyako_120hz_flip-1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.141666666666675,\n+   exitPitch: 0.939099107015027,\n+   exitSplash: true,\n+   flip: -6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 3.832967042271048,\n+   run: {\n+     done: true,\n+     ph: 191.365210248704,\n+     pitch: 0.946217564249578,\n+     v: 5.9274722708007195,\n+     x: 20.552803652666736,\n+     y: 0.017269561821597536\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.2199999501028724,\n+     roll: -1.9372662546824464e-19,\n+     sp: 1.4000000002571427,\n+     t: 37.91666666666516,\n+     vy: -0.007656144179963059,\n+     x: -64.50078082946095,\n+     y: -4.5471380576551725,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.00833333333114,\n+   twist: -0.2599987200112082,\n+   vx: 3.4661226812534305,\n+   vy: 4.8084218907674865\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_30hz_flip0",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.166666666666638,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 0,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.43757700775336,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995494802238,\n+     roll: -1.8830176165508253e-19,\n+     sp: 1.4000000002159894,\n+     t: 37.93333333333374,\n+     vy: -0.012278666456027898,\n+     x: -64.51814917939066,\n+     y: -6.259288025053379,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.033333333333054,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_30hz_flip1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.166666666666638,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.43757700775336,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995495044125,\n+     roll: -1.8830176165508253e-19,\n+     sp: 1.4000000002159894,\n+     t: 37.93333333333374,\n+     vy: -0.012278666456027898,\n+     x: -64.51814917939066,\n+     y: -6.259288025053379,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.033333333333054,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_30hz_flip-1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.166666666666638,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: -6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.43757700775336,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995494560332,\n+     roll: -1.8830176165508253e-19,\n+     sp: 1.4000000002159894,\n+     t: 37.93333333333374,\n+     vy: -0.012278666456027898,\n+     x: -64.51814917939066,\n+     y: -6.259288025053379,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.033333333333054,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_60hz_flip0",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.150000000000134,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 0,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.43757700775413,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.2199999518966756,\n+     roll: -1.8830176165505983e-19,\n+     sp: 1.4000000002425834,\n+     t: 37.93333333333246,\n+     vy: -0.012218321348847283,\n+     x: -64.5529033781591,\n+     y: -6.259716787656395,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.01666666666511,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_60hz_flip1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.150000000000134,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: 6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.43757700775413,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995189925836,\n+     roll: -1.8830176165505983e-19,\n+     sp: 1.4000000002425834,\n+     t: 37.93333333333246,\n+     vy: -0.012218321348847283,\n+     x: -64.5529033781591,\n+     y: -6.259716787656395,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.01666666666511,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_60hz_flip-1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.150000000000134,\n+   exitPitch: 0.9329812278747829,\n+   exitSplash: true,\n+   flip: -6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.43757700775413,\n+     pitch: 0.9399743353770926,\n+     v: 5.9091221110622945,\n+     x: 20.60716204517293,\n+     y: 0.019030835213420874\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995189409263,\n+     roll: -1.8830176165505983e-19,\n+     sp: 1.4000000002425834,\n+     t: 37.93333333333246,\n+     vy: -0.012218321348847283,\n+     x: -64.5529033781591,\n+     y: -6.259716787656395,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.01666666666511,\n+   twist: -0.2599987200112082,\n+   vx: 3.4852519289424557,\n+   vy: 4.771869980966392\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_120hz_flip0",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.141666666666675,\n+   exitPitch: 0.939099107015027,\n+   exitSplash: true,\n+   flip: 0,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.39924416911788,\n+     pitch: 0.946217564249578,\n+     v: 5.9274722708007195,\n+     x: 20.552803652666736,\n+     y: 0.017269561821597536\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.2199999503122088,\n+     roll: -1.9027506235478614e-19,\n+     sp: 1.400000000255857,\n+     t: 37.92499999999849,\n+     vy: -0.012195363049379878,\n+     x: -64.48356314045265,\n+     y: -6.259881747529942,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.00833333333114,\n+   twist: -0.2599987200112082,\n+   vx: 3.4661226812534305,\n+   vy: 4.8084218907674865\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_120hz_flip1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.141666666666675,\n+   exitPitch: 0.939099107015027,\n+   exitSplash: true,\n+   flip: 6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.39924416911788,\n+     pitch: 0.946217564249578,\n+     v: 5.9274722708007195,\n+     x: 20.552803652666736,\n+     y: 0.017269561821597536\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995031474948,\n+     roll: -1.9027506235478614e-19,\n+     sp: 1.400000000255857,\n+     t: 37.92499999999849,\n+     vy: -0.012195363049379878,\n+     x: -64.48356314045265,\n+     y: -6.259881747529942,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.00833333333114,\n+   twist: -0.2599987200112082,\n+   vx: 3.4661226812534305,\n+   vy: 4.8084218907674865\n+ }\n- null\n"
+    },
+    {
+      "check": "breach_galapagos_120hz_flip-1",
+      "message": "finished actor does not retire after camera turns away\n+ actual - expected\n\n+ {\n+   c: Vector3 {\n+     x: 15.854492816381761,\n+     y: 0,\n+     z: -12.284970170470963\n+   },\n+   dir: Vector3 {\n+     x: -1,\n+     y: 0,\n+     z: -1.8369701987210297e-16\n+   },\n+   exitAt: 11.141666666666675,\n+   exitPitch: 0.939099107015027,\n+   exitSplash: true,\n+   flip: -6.283185307179586,\n+   heaved: false,\n+   kind: 'manta',\n+   left: 1,\n+   len: 5.286153859179467,\n+   run: {\n+     done: true,\n+     ph: 191.39924416911788,\n+     pitch: 0.946217564249578,\n+     v: 5.9274722708007195,\n+     x: 20.552803652666736,\n+     y: 0.017269561821597536\n+   },\n+   splashed: true,\n+   sw: {\n+     pitch: -0.21999995030966776,\n+     roll: -1.9027506235478614e-19,\n+     sp: 1.400000000255857,\n+     t: 37.92499999999849,\n+     vy: -0.012195363049379878,\n+     x: -64.48356314045265,\n+     y: -6.259881747529942,\n+     yaw: -1.570796326794897,\n+     z: -12.284970170470967\n+   },\n+   t: 50.00833333333114,\n+   twist: -0.2599987200112082,\n+   vx: 3.4661226812534305,\n+   vy: 4.8084218907674865\n+ }\n- null\n"
+    },
+    {
+      "check": "train_miyako",
+      "message": "director loses train subject"
+    },
+    {
+      "check": "train_galapagos",
+      "message": "director loses train subject"
+    }
+  ]
+}

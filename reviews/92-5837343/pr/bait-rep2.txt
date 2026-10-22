@@ -1,0 +1,19 @@
+miyako     0s school  y -7.3 r 10.0 alive 8000 pressing 0 hunters {"cruise":18}
+miyako    80s gather  y -7.4 r 10.0 alive 8000 pressing 2 hunters {"cruise":15,"herd":2,"stalk":1}
+miyako    93s herd    y -6.2 r 5.9 alive 7994 pressing 2 hunters {"cruise":15,"herd":2,"leave":1}
+miyako   114s scatter y -8.2 r 5.8 alive 7982 pressing 0 hunters {"cruise":14,"leave":4}
+miyako   151s school  y -6.6 r 9.6 alive 7976 pressing 3 hunters {"cruise":13,"herd":3,"stalk":1,"leave":1}
+miyako   465s gather  y -7.6 r 10.0 alive 7892 pressing 3 hunters {"cruise":13,"herd":1,"leave":2,"strike":1,"glide":1}
+miyako   478s herd    y -6.4 r 5.9 alive 7880 pressing 2 hunters {"cruise":14,"strike":2,"stalk":1,"leave":1}
+miyako   544s scatter y -8.2 r 5.7 alive 7856 pressing 0 hunters {"cruise":17,"leave":1}
+miyako   582s school  y -7.5 r 9.7 alive 7856 pressing 0 hunters {"cruise":18}
+miyako   867s gather  y -5.9 r 10.0 alive 7778 pressing 4 hunters {"cruise":13,"herd":4,"stalk":1}
+miyako   880s herd    y -4.8 r 5.5 alive 7766 pressing 3 hunters {"cruise":13,"herd":3,"leave":2}
+miyako   880s frenzy  y -4.8 r 5.5 alive 7766 pressing 3 hunters {"cruise":13,"herd":3,"leave":2}
+miyako   900s scatter y -7.3 r 5.6 alive 7748 pressing 0 hunters {"cruise":13,"leave":5}
+miyako   937s school  y -6.0 r 9.7 alive 7748 pressing 0 hunters {"cruise":18}
+miyako  1294s gather  y -7.1 r 10.0 alive 7654 pressing 3 hunters {"cruise":15,"herd":2,"strike":1}
+miyako  1307s herd    y -6.1 r 6.3 alive 7640 pressing 1 hunters {"cruise":15,"leave":2,"strike":1}
+miyako  1320s scatter y -8.1 r 6.0 alive 7640 pressing 0 hunters {"cruise":15,"leave":3}
+miyako  1357s school  y -7.3 r 9.7 alive 7640 pressing 1 hunters {"stalk":2,"cruise":15,"herd":1}
+miyako: formed at 80 s, frenzy at 880 s, undone at 937 s; balls in 25 min 4; told early 101; school out of the water 0 steps; NaN 0; step 6.17 ms FAIL

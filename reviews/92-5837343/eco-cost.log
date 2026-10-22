@@ -1,0 +1,4 @@
+kayama sea 0: map yes, eco.step median 0.89 ms, p95 3.21 ms, mean 1.16 ms
+kayama sea 0.91: map yes, eco.step median 1.21 ms, p95 1.96 ms, mean 1.28 ms
+miyako sea 0: map no, eco.step median 6.28 ms, p95 11.57 ms, mean 6.97 ms
+miyako sea 0.91: map no, eco.step median 6.50 ms, p95 10.11 ms, mean 7.06 ms

@@ -1,0 +1,16 @@
+1 miyako, the sea at -1.04 m: the sea's life under its water: highest giant:マンタのジャンプ 1.04 m from the top, 30 kinds FAIL
+1 miyako, the sea at +0.00 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 30 kinds ok
+1 miyako, the sea at +0.91 m: the sea's life under its water: highest giant:マンタのジャンプ -0.91 m from the top, 30 kinds ok
+1 miyako: what comes to the top, as near it at every tide: turtle:アオウミガメ -0.35 → 0.69 / -1.26, critter:アオマダラウミヘビ -0.21 → 0.83 / -1.12, critter:エラブウミヘビ -0.21 → 0.83 / -1.12, giant:マンタのジャンプ 0.00 → 1.04 / -0.91 FAIL
+1 gbr, the sea at -1.04 m: the sea's life under its water: highest critter:オリーブウミヘビ 0.83 m from the top, 32 kinds FAIL
+1 gbr, the sea at +0.00 m: the sea's life under its water: highest critter:オリーブウミヘビ -0.21 m from the top, 32 kinds ok
+1 gbr, the sea at +0.91 m: the sea's life under its water: highest critter:オリーブウミヘビ -1.12 m from the top, 32 kinds ok
+1 gbr: what comes to the top, as near it at every tide: turtle:アオウミガメ -0.35 → 0.69 / -1.26, critter:オリーブウミヘビ -0.21 → 0.83 / -1.12 FAIL
+1 galapagos, the sea at -1.04 m: the sea's life under its water: highest giant:マンタのジャンプ 1.04 m from the top, 23 kinds FAIL
+1 galapagos, the sea at +0.00 m: the sea's life under its water: highest giant:マンタのジャンプ 0.00 m from the top, 23 kinds ok
+1 galapagos, the sea at +0.91 m: the sea's life under its water: highest giant:マンタのジャンプ -0.91 m from the top, 23 kinds ok
+1 galapagos: what comes to the top, as near it at every tide: turtle:アオウミガメ（ガラパゴスの個体群） -0.35 → 0.69 / -1.26, giant:マンタのジャンプ 0.00 → 1.04 / -0.91 FAIL
+2 at mean sea level: the waters' top 0 everywhere, no map read: 100 reads FAIL
+2 off it: the map read: 0.5 m, 101 read FAIL
+
+8 FAILED

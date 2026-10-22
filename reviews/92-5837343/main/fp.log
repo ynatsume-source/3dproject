@@ -1,0 +1,4 @@
+miyako: 11.93 s, 37746 instances, fingerprint 328741924
+kayama: 1.24 s, 6858 instances, fingerprint 197508419
+miyako sliced: 1309 slices, 37746 instances, fingerprint 328741924; slices over 40 ms: 212ms→seabed 79ms→seabed 54ms→seabed 92ms→life 148ms→end
+kayama sliced: 107 slices, 6858 instances, fingerprint 197508419; slices over 40 ms: 260ms→seabed 73ms→seabed 87ms→seabed 48ms→life

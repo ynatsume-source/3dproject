@@ -1,0 +1,20 @@
+miyako     0s school  y -7.3 r 10.0 alive 8000 pressing 0 hunters {"cruise":18}
+miyako    80s gather  y -7.4 r 10.0 alive 8000 pressing 2 hunters {"cruise":15,"herd":2,"stalk":1}
+miyako    93s herd    y -6.2 r 5.9 alive 7988 pressing 2 hunters {"cruise":15,"herd":1,"leave":1,"strike":1}
+miyako   108s scatter y -7.6 r 5.5 alive 7982 pressing 0 hunters {"cruise":14,"leave":4}
+miyako   145s school  y -7.0 r 9.6 alive 7975 pressing 3 hunters {"cruise":13,"herd":2,"leave":1,"stalk":1,"strike":1}
+miyako   493s gather  y -5.7 r 10.0 alive 7879 pressing 3 hunters {"cruise":12,"leave":1,"herd":3,"stalk":2}
+miyako   507s herd    y -4.7 r 5.6 alive 7867 pressing 2 hunters {"cruise":11,"leave":3,"herd":2,"stalk":2}
+miyako   513s frenzy  y -5.0 r 4.4 alive 7861 pressing 4 hunters {"cruise":12,"leave":2,"herd":3,"strike":1}
+miyako   554s scatter y -7.2 r 5.6 alive 7837 pressing 0 hunters {"cruise":16,"leave":2}
+miyako   591s school  y -6.4 r 9.7 alive 7837 pressing 1 hunters {"herd":1,"cruise":16,"stalk":1}
+miyako   846s gather  y -6.3 r 10.0 alive 7783 pressing 4 hunters {"cruise":12,"herd":3,"glide":1,"stalk":2}
+miyako   860s herd    y -5.2 r 5.5 alive 7777 pressing 7 hunters {"cruise":10,"herd":5,"leave":1,"strike":2}
+miyako   864s frenzy  y -5.0 r 5.0 alive 7759 pressing 5 hunters {"cruise":10,"herd":3,"leave":3,"glide":1,"strike":1}
+miyako   902s scatter y -7.4 r 5.7 alive 7729 pressing 0 hunters {"cruise":16,"leave":2}
+miyako   940s school  y -4.7 r 9.7 alive 7729 pressing 1 hunters {"herd":1,"cruise":17}
+miyako  1403s gather  y -8.0 r 10.0 alive 7605 pressing 3 hunters {"cruise":13,"herd":3,"leave":2}
+miyako  1416s herd    y -6.8 r 5.6 alive 7599 pressing 2 hunters {"cruise":14,"herd":2,"leave":2}
+miyako  1439s scatter y -8.3 r 5.8 alive 7587 pressing 0 hunters {"cruise":15,"leave":3}
+miyako  1476s school  y -8.0 r 9.7 alive 7587 pressing 1 hunters {"cruise":16,"herd":1,"stalk":1}
+miyako: formed at 80 s, frenzy at 513 s, undone at 591 s; balls in 25 min 4; told early 131; school out of the water 0 steps; NaN 0; step 6.65 ms FAIL
