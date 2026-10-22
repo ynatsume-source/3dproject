@@ -150,15 +150,15 @@ function coconutGeo(): THREE.BufferGeometry {
 // each kind's colours: the shell (and a second, for one to another), its edge, the claws' fingers; and how deep its
 // burrow takes it
 const KIND = {
-  ghost: { geo: ghostGeo, base: [0.74, 0.68, 0.53], alt: [0.83, 0.79, 0.67], edge: 1.12, tip: [0.93, 0.92, 0.88], legTip: 0, eyeUp: GHOST_Y + 0.006, eyeZ: 0.017, eyeX: 0.012, sink: 0.06, lift: 0.004 },
-  coconut: { geo: coconutGeo, base: [0.3, 0.17, 0.24], alt: [0.5, 0.24, 0.13], edge: 1.25, tip: [0.08, 0.06, 0.06], legTip: 0.55, eyeUp: COCO_Y + 0.012, eyeZ: 0.052, eyeX: 0.01, sink: 0, lift: 0.006 },
+  ghost: { geo: ghostGeo, base: [0.74, 0.68, 0.53], alt: [0.83, 0.79, 0.67], edge: 1.12, tip: [0.93, 0.92, 0.88], legTip: 0, eyeUp: GHOST_Y + 0.006, eyeZ: 0.017, eyeX: 0.012, sink: 0.06, nose: 0, lift: 0.004 },
+  coconut: { geo: coconutGeo, base: [0.3, 0.17, 0.24], alt: [0.5, 0.24, 0.13], edge: 1.25, tip: [0.08, 0.06, 0.06], legTip: 0.55, eyeUp: COCO_Y + 0.012, eyeZ: 0.052, eyeX: 0.01, sink: 0.17, nose: 0.55, lift: 0.006 },
 } as const;
 
 function crabMat(kind: CrabKind): THREE.Material {
   const k = KIND[kind];
   return mat(
     `attribute float aPart; attribute float aLeg; attribute vec3 aRoot; attribute float aT; attribute vec4 aCr; attribute vec4 aCr2;
-     uniform float uLod; uniform float uSink; uniform float uLift; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec4 vCr2; varying float vT;
+     uniform float uLod; uniform float uSink; uniform float uLift; uniform float uNose; varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vPart; varying vec4 vCr2; varying float vT;
      vec3 rz(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(p.x * c - p.y * s, p.x * s + p.y * c, p.z); }
      vec3 ry(vec3 p, float a){ float c = cos(a), s = sin(a); return vec3(p.x * c + p.z * s, p.y, -p.x * s + p.z * c); }
      void main(){
@@ -173,8 +173,8 @@ function crabMat(kind: CrabKind): THREE.Material {
          float w = smoothstep(0.0, 0.4, aT);
          q = rz(q, side * lift * 0.55 * w); m = rz(m, side * lift * 0.55 * w);   // (lifted at the hip, out of the sand)
          q = ry(q, sw * 0.32 * w); m = ry(m, sw * 0.32 * w);                      // (swung forward and back)
-         // (far off: folded close in under the body)
-         q = mix(q, q * vec3(0.35, 0.6, 0.6) + vec3(0.0, 0.004, 0.0), far);
+         // (far off, and going down into its hole or coming up out of it: folded close in under the body)
+         q = mix(q, q * vec3(0.35, 0.6, 0.6) + vec3(0.0, 0.004, 0.0), max(far, smoothstep(0.0, 0.35, sunk)));
          p = aRoot + q; nl = m;
        }
        // the antennae, far off: drawn in short along themselves
@@ -185,7 +185,10 @@ function crabMat(kind: CrabKind): THREE.Material {
        vec3 eb = vec3(sx * ${k.eyeX.toFixed(3)}, ${k.eyeUp.toFixed(3)}, ${k.eyeZ.toFixed(3)});
        float down = -sx * (1.0 - aCr.w) * 1.25;
        p = mix(p, eb + rz(p - eb, down), stalk); nl = mix(nl, rz(nl, down), stalk);
-       // the body: raised a little when going fast; gone down its burrow as it sinks (the sand hides what is under it)
+       // the body: raised a little when going fast; gone down its burrow as it sinks (the sand hides what is under it) — a
+       // coconut crab tipped nose-up as it goes, so that it comes out of its den front first, eyes, antennae and claws
+       float nose = sunk * uNose, ct = cos(nose), st = sin(nose);
+       p = vec3(p.x, p.y * ct + p.z * st, -p.y * st + p.z * ct); nl = vec3(nl.x, nl.y * ct + nl.z * st, -nl.y * st + nl.z * ct);
        p.y += run * uLift - sunk * uSink;
        vec4 wp = mm * vec4(p, 1.0);
        vWp = wp.xyz; vN = normalize(mat3(mm) * nl); vL = position; vPart = aPart; vCr2 = aCr2; vT = aT;
@@ -211,7 +214,7 @@ function crabMat(kind: CrabKind): THREE.Material {
        col = fogIt(col, vWp);
        gl_FragColor = vec4(col, 1.0);
      }`,
-    { uniforms: { uLod: { value: CRAB_LOD_M }, uSink: { value: k.sink }, uLift: { value: k.lift }, uBase: { value: new THREE.Vector3(...k.base) }, uAlt: { value: new THREE.Vector3(...k.alt) }, uEdge: { value: k.edge }, uLegTip: { value: k.legTip }, uTip: { value: new THREE.Vector3(...k.tip) } }, opts: { side: THREE.DoubleSide } });
+    { uniforms: { uLod: { value: CRAB_LOD_M }, uSink: { value: k.sink }, uNose: { value: k.nose }, uLift: { value: k.lift }, uBase: { value: new THREE.Vector3(...k.base) }, uAlt: { value: new THREE.Vector3(...k.alt) }, uEdge: { value: k.edge }, uLegTip: { value: k.legTip }, uTip: { value: new THREE.Vector3(...k.tip) } }, opts: { side: THREE.DoubleSide } });
 }
 
 export interface CrabPose {
@@ -256,37 +259,42 @@ export function makeCrabLook(parent: THREE.Group, cap = 16) {
 }
 
 /** A ghost crab's burrow mouth: one round opening, about 4 cm across, sloping in, and the damp sand thrown out fanned
- *  on one side — drawn multiplied over the sand, so it is the sand there made darker, whatever its colour. */
-export interface BurrowPose { x: number; z: number; y: number; dir: number; id: string }
-export function makeBurrowLook(parent: THREE.Group, cap = 16) {
+ *  on one side — drawn multiplied over the sand, so it is the sand there made darker, whatever its colour. A coconut
+ *  crab's den (kind 'coconut': its hole at the foot of a pandanus, ADR 0009): a wider, deeper opening, about 14 cm across,
+ *  with no thrown-out sand, there by day too. */
+export interface BurrowPose { x: number; z: number; y: number; dir: number; id: string; kind?: 'ghost' | 'coconut' }
+const DEN_SCALE = 3;
+export function makeBurrowLook(parent: THREE.Group, cap = 24) {
   return quiet('burrow-look', () => {
     const geo = new THREE.PlaneGeometry(0.22, 0.22, 1, 1); geo.rotateX(-Math.PI / 2); geo.translate(0, 0, 0.04);
     const m = mat(
-      `varying vec2 vP; varying vec3 vWp; void main(){ vP = position.xz; vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
-      `varying vec2 vP; varying vec3 vWp;
+      `attribute float aDen; varying vec2 vP; varying vec3 vWp; varying float vDen; void main(){ vP = position.xz; vDen = aDen; vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }`,
+      `varying vec2 vP; varying vec3 vWp; varying float vDen;
        void main(){
          float d = length(vP);
          // the opening: dark in its throat, sloping in to a soft rim
-         float hole = 1.0 - 0.82 * (1.0 - smoothstep(0.008, 0.024, d));
+         float hole = 1.0 - mix(0.82, 0.9, vDen) * (1.0 - smoothstep(0.008, 0.024, d));   // (a den: darker in its throat)
          // the thrown-out sand: a low fan beside it (along +z), damp and so a little darker, in soft streaks along its spread
          vec2 f = vec2(vP.x / 0.055, (vP.y - 0.06) / 0.05);
          float fan = (1.0 - smoothstep(0.55, 1.0, length(f))) * smoothstep(0.02, 0.035, d);
          float streak = 0.75 + 0.25 * sin(atan(vP.x, vP.y) * 9.0 + d * 40.0);
-         float k = hole * (1.0 - 0.16 * fan * streak);
-         // (far off: let it go, before it is smaller than a pixel)
-         k = mix(k, 1.0, smoothstep(9.0, 14.0, distance(uCamPos, vWp)));
+         float k = hole * (1.0 - 0.16 * fan * streak * (1.0 - vDen));   // (a den has no thrown-out sand)
+         // (far off: let it go, before it is smaller than a pixel — a den, three times as wide, three times as far)
+         float far = distance(uCamPos, vWp) / mix(1.0, ${DEN_SCALE.toFixed(1)}, vDen);
+         k = mix(k, 1.0, smoothstep(9.0, 14.0, far));
          gl_FragColor = vec4(vec3(k), 1.0);
        }`,
       { opts: { transparent: true, depthWrite: false, blending: THREE.MultiplyBlending, premultipliedAlpha: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 } });
+    const aDen = new THREE.InstancedBufferAttribute(new Float32Array(cap), 1); aDen.setUsage(THREE.DynamicDrawUsage); geo.setAttribute('aDen', aDen);
     const mesh = new THREE.InstancedMesh(geo, m, cap); mesh.count = 0; mesh.frustumCulled = false; mesh.renderOrder = 1; mesh.name = 'burrow-look'; parent.add(mesh);
     const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
     function show(burrows: BurrowPose[]) {
       const n = Math.min(cap, burrows.length);
       for (let i = 0; i < n; i++) {
-        const b = burrows[i], sc = 0.85 + 0.3 * u(b.id, 'burrow');
-        _e.set(0, b.dir, 0); _q.setFromEuler(_e); _m.compose(_p.set(b.x, b.y + 0.003, b.z), _q, _s.set(sc, 1, sc)); mesh.setMatrixAt(i, _m);
+        const b = burrows[i], den = b.kind === 'coconut', sc = (0.85 + 0.3 * u(b.id, 'burrow')) * (den ? DEN_SCALE : 1);
+        _e.set(0, b.dir, 0); _q.setFromEuler(_e); _m.compose(_p.set(b.x, b.y + 0.003, b.z), _q, _s.set(sc, 1, sc)); mesh.setMatrixAt(i, _m); aDen.setX(i, den ? 1 : 0);
       }
-      mesh.count = n; mesh.instanceMatrix.needsUpdate = true;
+      mesh.count = n; mesh.instanceMatrix.needsUpdate = true; aDen.needsUpdate = true;
     }
     return { mesh, show };
   });
@@ -294,7 +302,8 @@ export function makeBurrowLook(parent: THREE.Group, cap = 16) {
 
 /** LAB: ?crablook — on the sand by Dot's home (test only, not the world's): four ghost crabs (one standing with its eyes
  *  up, one running back and forth sideways, one going down its burrow and coming out again, one with its eyes laid
- *  down), two burrow mouths (the one it goes down, and an empty one), a coconut crab walking slowly to and fro, and one
+ *  down), two burrow mouths (the one it goes down, and an empty one), a coconut crab's den with one coming up out of it
+ *  and going down again, a coconut crab walking slowly to and fro, and one
  *  climbing up and down the nearest pandanus (on its trunk as drawn: ocean/shore.ts trunks).
  *  ?crablook=still holds them at one moment (mid-stride, half down the burrow), for tools/lab/flicker.cjs. */
 export function crabLookTest(q: string): 'move' | 'still' | null { const m = /[?&]crablook(=still)?\b/.exec(q); return m ? (m[1] ? 'still' : 'move') : null; }
@@ -303,7 +312,7 @@ export function crabTestPoses(t: number, at: { x: number; z: number }, groundAt:
   const put = (kind: CrabKind, id: string, dx: number, dz: number, head: number, phase: number, run: number, sunk: number, eyes: number) => {
     const x = at.x + dx, z = at.z + dz; crabs.push({ kind, id, x, z, y: groundAt(x, z), head, phase, run, sunk, eyes });
   };
-  const hole = (id: string, dx: number, dz: number, dir: number) => { const x = at.x + dx, z = at.z + dz; burrows.push({ id, x, z, y: groundAt(x, z), dir }); };
+  const hole = (id: string, dx: number, dz: number, dir: number, kind?: 'coconut') => { const x = at.x + dx, z = at.z + dz; burrows.push({ id, x, z, y: groundAt(x, z), dir, kind }); };
   put('ghost', 'test-still', 0, 0, 0.6, 0, 0, 0, 1);
   const s = Math.sin(t * 0.7);   // (back and forth: running sideways along its own x)
   put('ghost', 'test-run', 0.5 + Math.cos(0.2) * s * 0.6, 0.5 - Math.sin(0.2) * s * 0.6, 0.2, t * 22, Math.min(1, Math.abs(Math.cos(t * 0.7)) * 1.4), 0, 1);
@@ -311,6 +320,9 @@ export function crabTestPoses(t: number, at: { x: number; z: number }, groundAt:
   put('ghost', 'test-burrow', -0.4, 0.45, 2.4, t * 3, 0, Math.min(1, Math.max(0, b * 1.4 - 0.2)), 1);
   hole('test-burrow', -0.4, 0.45, 2.4); hole('test-empty', 0.35, -0.55, -0.7);
   put('ghost', 'test-flat', -0.3, -0.35, -0.9, 0, 0, 0, 0);
+  // (a coconut crab's den, and one coming up out of it and going down again)
+  const e = 0.5 + 0.5 * Math.sin(t * 0.4 - 0.88);   // (held, ?crablook=still: half way up out of its den)
+  hole('test-den', -1.2, -0.6, 0.8, 'coconut'); put('coconut', 'test-den', -1.2, -0.6, 2.6, 0, 0, Math.min(1, Math.max(0, e * 1.3 - 0.15)), 1);
   // (the coconut crab walks forward, along its own z, slowly)
   const c = Math.sin(t * 0.15), hd = -1.9 + (Math.cos(t * 0.15) < 0 ? Math.PI : 0);
   put('coconut', 'test-coconut', 1.3 + Math.sin(-1.9) * c * 0.5, -0.9 + Math.cos(-1.9) * c * 0.5, hd, t * 4.5, Math.min(1, Math.abs(Math.cos(t * 0.15)) * 1.6) * 0.6, 0, 1);
