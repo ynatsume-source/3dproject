@@ -462,6 +462,21 @@ export class Director {
       const d = style === 'detail' ? Math.max(0.6, dist * 0.6) : dist;
       x = p.x + Math.cos(this.ang) * d; z = p.z + Math.sin(this.ang) * d; y = p.y + lift * (style === 'detail' ? 0.5 : 1);
     }
+    // (never nearer than it allows, whatever the framing: a turtle come up to breathe, filmed from over the water, was
+    // startled by the camera going up through its reach on the way there; and round it to a new view, not across — a
+    // straight line to the far side cut through its reach: turtle-view-check, 2026-10-22)
+    if (s.shy) {
+      const keep = s.shy() * 1.3 + 0.4;
+      if (keep > 0) {
+        const hx = x - p.x, hz = z - p.z, hl = hyp(hx, hz);
+        if (hl < keep) { const k = keep / Math.max(hl, 1e-3); x = p.x + hx * k; z = p.z + hz * k; }
+        const ox = drone.x - p.x, oz = drone.z - p.z, ol = hyp(ox, oz);
+        if (ol < keep * 1.3) {
+          const a0 = Math.atan2(oz, ox), da = Math.atan2(Math.sin(Math.atan2(z - p.z, x - p.x) - a0), Math.cos(Math.atan2(z - p.z, x - p.x) - a0));
+          if (Math.abs(da) > 0.5) { const a = a0 + Math.sign(da) * 0.5, r = Math.max(hl, keep); x = p.x + Math.cos(a) * r; z = p.z + Math.sin(a) * r; }
+        }
+      }
+    }
     // (ashore or at the surface: from the air, at the height of someone standing by)
     y = !wet ? Math.max(p.y + lift + 0.6, floor(x, z) + 1.2, top(x, z) + 0.8) : Math.min(Math.max(y, floor(x, z) + (style === 'low' ? 0.6 : 1.0)), top(x, z) - 0.9);
     // (nothing between the lens and it — a sea fan, a coral head, a rock: else round to where there is a clear
