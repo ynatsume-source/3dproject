@@ -200,7 +200,7 @@ function endOpening(done: boolean) {
 }
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false, crabK: 0, crab: null as null | { x: number; y: number; z: number } };   // (crabK, crab: come down to a crab near it after dark)
-const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
+const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to (over the sea as it stands now)
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
@@ -1112,7 +1112,7 @@ function updateDrone(dt: number, now: number) {
     if (mayDive && drone.vel.y < -0.25) { if (shot?.surface) { drone.skim = rr(4, 8); drone.skimDir = -1; } else drone.pass = -1; }
     else { drone.pos.y = sw + 0.5; if (drone.vel.y < 0) drone.vel.y = 0; }
   }
-  if (drone.pos.y > SKY_MAX) { drone.pos.y = SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
+  if (drone.pos.y > seaHeight() + SKY_MAX) { drone.pos.y = seaHeight() + SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
   const lim = cur!.loc.land ? cur!.loc.land.roam : LIMIT;   // (by an island, the whole island)
   drone.pos.x = clamp(drone.pos.x, -lim, lim); drone.pos.z = clamp(drone.pos.z, -lim, lim);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
