@@ -1,0 +1,51 @@
+{
+ "corner": "JST 20:29:29",
+ "rows": 212,
+ "byType": {
+  "event": 21,
+  "slow": 103,
+  "sec": 87,
+  "sea": 1
+ },
+ "sample": {
+  "event": {
+   "t": "event",
+   "jst": "2026-10-23T20:26:28+09:00",
+   "isl": "2026-10-23T20:26:28+09:00",
+   "world": null,
+   "kind": "start",
+   "text": "/?rehearsal 1280x720@1 Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/141.0.0.0 Safari/537.36"
+  },
+  "slow": {
+   "t": "slow",
+   "jst": "2026-10-23T20:26:29.268+09:00",
+   "isl": "2026-10-23T20:26:29+09:00",
+   "world": null,
+   "ms": 999.9,
+   "work": 245.4,
+   "parts": {
+    "その他": 245.4
+   }
+  },
+  "sec": {
+   "t": "sec",
+   "jst": "2026-10-23T20:26:30+09:00",
+   "isl": "2026-10-23T20:26:29+09:00",
+   "world": null,
+   "n": 3,
+   "med": 999.9,
+   "p95": 1066.7,
+   "max": 1066.7,
+   "workMax": 1066.1
+  },
+  "sea": {
+   "t": "sea",
+   "jst": "2026-10-23T20:26:30+09:00",
+   "isl": "2026-10-23T20:26:29+09:00",
+   "world": null,
+   "seaWorld": null,
+   "seaDrawn": 0
+  }
+ },
+ "pageErrors": []
+}
