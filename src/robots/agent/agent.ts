@@ -26,9 +26,12 @@ export class Agent {
   values = new Values();
   /** Told when something it heard from another led to a step done (the island learns talking pays). */
   onUseful?: (from: string, optionId: string) => void;
-  thinking: { since: number; p: Promise<Thought | null>; got?: Thought | null; done: boolean } | null = null;
+  thinking: { since: number; p: Promise<Thought | null>; got?: Thought | null; heard?: boolean; done: boolean } | null = null;
   lastCall = -1e12;
   calls = 0;
+  /** no answer from its mind, this many times running (the budget spent, the network down): it asks again only after a
+   *  rest that grows, a minute, two, four, at most five — and gets on by habit meanwhile */
+  unanswered = 0;
   /** what it said to itself, and the diary lines its mind has for the day (taken by residents.ts) */
   out: { say?: string; diary: string[] } = { diary: [] };
   private n = 0;
@@ -73,15 +76,17 @@ export class Agent {
     // thinking under way: wait for it, a little, then get on by habit
     if (this.thinking) {
       if (!this.thinking.done && wall - this.thinking.since < (set?.ponderMaxS ?? 8) * 1000) return 'ponder';
-      const got = this.thinking.done ? this.thinking.got : null; this.thinking = null;
+      const got = this.thinking.done ? this.thinking.got : null, heard = this.thinking.done && this.thinking.heard; this.thinking = null;
+      this.unanswered = heard ? 0 : this.unanswered + 1;
       if (got) this.adopt(got, 'self', input(), now); else this.byHabit(options, now);
     }
     // a turning point: think, if there is a mind and allowance and it has not just thought
-    if (this.why && this.brain && set?.on && wall - this.lastCall > set.minGapS * 1000) {
+    const gapS = Math.max(set?.minGapS ?? 0, this.unanswered ? Math.min(300, 60 * 2 ** (this.unanswered - 1)) : 0);
+    if (this.why && this.brain && set?.on && wall - this.lastCall > gapS * 1000) {
       const inp = input(), tier: 'deep' | 'light' = this.deep() ? 'deep' : 'light';
       this.lastCall = wall; this.calls++;
       const t = { since: wall, p: this.brain(inp, tier), done: false } as NonNullable<Agent['thinking']>;
-      t.p.then((g) => { t.got = g ? checkThought(g, inp) : null; t.done = true; }, () => { t.got = null; t.done = true; });
+      t.p.then((g) => { t.heard = !!g; t.got = g ? checkThought(g, inp) : null; t.done = true; }, () => { t.got = null; t.done = true; });
       this.thinking = t; this.why = '';
       return 'ponder';
     }
