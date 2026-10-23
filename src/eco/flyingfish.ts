@@ -83,7 +83,7 @@ function flyingFishMaterial() {
          alb = mix(vec3(0.46, 0.54, 0.64), vec3(0.22, 0.28, 0.38), ray * 0.5 + 0.3 * smoothstep(0.3, 0.6, abs(vL.x)));
        } else spec = 0.6 * (1.0 - smoothstep(-0.01, 0.03, vL.y));   // (the silver catches the light)
        vec3 col;
-       if (vWp.y > 0.0) {
+       if (vWp.y > uSeaH) {   // (out over the sea's top: the open sea, all of the tide reaches it — ADR 0009)
          vec3 sun = sunAirCol() * max(dot(n, uAirSun), 0.0) * (1.0 - 0.7 * uCloud);
          vec3 sky = skyAir(vec3(0.0, 1.0, 0.0), -1.0) * (0.55 + 0.3 * n.y) + vec3(0.02, 0.025, 0.03);
          vec3 H = normalize(V + uAirSun);

@@ -311,7 +311,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
        #ifdef LAND_ONLY
        float dry = 1.0;
        #else
-       float dry = smoothstep(-0.1, 0.06, vWp.y);
+       float dry = smoothstep(-0.1, 0.06, vWp.y - uSeaH * tideReach(vWp.xz));   // (over the still water there: a beach under the high tide is seabed — ADR 0009)
        #endif
        vec3 la = landAlbedo(vWp) * mix(1.0, vAO, 0.5);
        col = mix(col, fogIt(airLit(la, landNormal(vWp, normalize(vN)), vWp, 0.0), vWp), dry);
@@ -322,10 +322,12 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   let floorMats: THREE.Material | THREE.Material[] = shoreMat;
   if (land) {
     const p = floorGeo.attributes.position, ix = floorGeo.index!, wet: number[] = [], dryT: number[] = [], both: number[] = [];
+    // (land alone only over the sea's highest tide and its run-up: below that, the shore's blend, seabed when the tide is in)
+    const landTop = tideTop(loc) + 0.06;
     for (let t = 0; t < ix.count; t += 3) {
       const a = ix.getX(t), b = ix.getX(t + 1), c = ix.getX(t + 2);
       const lo = Math.min(p.getY(a), p.getY(b), p.getY(c)), hi = Math.max(p.getY(a), p.getY(b), p.getY(c));
-      (hi < -0.1 ? wet : lo > 0.06 ? dryT : both).push(a, b, c);
+      (hi < -0.1 ? wet : lo > landTop ? dryT : both).push(a, b, c);
     }
     floorGeo.setIndex([...wet, ...dryT, ...both]);
     floorGeo.addGroup(0, wet.length, 0); floorGeo.addGroup(wet.length, dryT.length, 1); floorGeo.addGroup(wet.length + dryT.length, both.length, 2);
