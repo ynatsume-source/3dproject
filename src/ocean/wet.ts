@@ -1,7 +1,8 @@
 // How high the sea stood a little while ago (U.uWetH, for the reef out of the water: render/reef-lit.ts). What lies
 // between the sea now and that line was under water within the last WET_MIN minutes, and is still wet; above it the reef
-// has dried. From the clock's time alone (time/sea-level.ts seaLevel): never saved, no random draws, the same moment the
-// same line. The look only.
+// has dried. One value for the sea: the reef's shader takes the share of it that reaches each point (tideReach — none in a
+// pool cut off from the sea, whose water stays at mean sea level). From the clock's time alone (time/sea-level.ts
+// seaLevel): never saved, no random draws, the same moment the same line. The look only.
 import { U } from '../render/common';
 import { seaLevel, type SeaSite } from '../time/sea-level';
 
