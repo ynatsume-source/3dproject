@@ -28,9 +28,11 @@ vec3 reefLit(vec3 alb, vec3 wp, vec3 n, float causAmt){
   float up = smoothstep(top - 0.005, top + 0.025, wp.y);                    // (out of the water: over a thin edge)
   // (under a film of water: how little of it there is over this point, 1 at the waterline, gone by two metres down)
   float depth = max(top - wp.y, 0.0), thin = exp(-depth / 0.5) * (1.0 - up);
-  // under the water, as render/common.ts shade() works it out, with its caustics kept apart (none out of the water)
-  vec3 cz = absorb(vec3(0.95, 1.0, 0.95), wp.y) * caus2(wp) * max(n.y, 0.0) * causAmt * alb * (1.0 - up);
-  vec3 col = fogIt(absorbSeen(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6, wp.y) + cz + lamp(alb, wp, n), wp);
+  // under the water, as render/common.ts shade() works it out, with its caustics kept apart (none out of the water) — the
+  // water it is lit through measured from the water's top here (shade's absorb and absorbSeen take the sea's height:
+  // in a tide pool at low water that would leave it no water at all)
+  vec3 cz = vec3(0.95, 1.0, 0.95) * exp(-depth * uAbs) * caus2(wp) * max(n.y, 0.0) * causAmt * alb * (1.0 - up);
+  vec3 col = fogIt(alb * lightAt(n, caveLight(wp + n * 0.25)) * 1.6 * exp(-depth * uAbs * vec3(0.5, 0.78, 1.0)) + cz + lamp(alb, wp, n), wp);
   // (the glint only where the surface's bends are wider than a pixel: on fine coral and far off it would only twinkle
   // as the view moves — taken outside the branch)
   float sharp = 1.0 - smoothstep(0.08, 0.35, length(fwidth(n)));
