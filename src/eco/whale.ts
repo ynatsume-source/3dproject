@@ -7,6 +7,7 @@ import { R, rr } from '../core/math';
 import { WHALE_GEO, whaleMaterial } from '../ocean/models';
 import { logEvent, type Env, type Subject } from './env';
 import { U } from '../render/common';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 export interface WhaleSeason { from: [number, number]; to: [number, number] }   // [month, day], inclusive, wrapping the new year
 
@@ -69,7 +70,7 @@ export function updateWhales(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
     mother.off.set(0, 0, 0); calf.off.set(3.2, 1.6, 3.5); escort.off.set(W.pod.length === 1 ? 0 : -7, -0.5, W.pod.length === 1 ? 0 : -9);
     W.speed = rr(1.0, 1.5);
     W.dur = run / W.speed; W.t = 0; W.active = true; W.c.copy(W.start); W.leaving = 0;
-    for (const w of W.pod) { w.breath = rr(20, 60); w.pos.set(W.start.x, W.depth + w.off.y, W.start.z); w.logged = false; }
+    for (const w of W.pod) { w.breath = rr(20, 60); w.pos.set(W.start.x, waterTopAt(W.start.x, W.start.z) + W.depth + w.off.y, W.start.z); w.logged = false; }
     logEvent(env, 'whale', W.pod.length === 1 ? 'ザトウクジラが1頭、ゆっくり通り過ぎていく' : 'ザトウクジラの親子が通り過ぎていく', cam.x, cam.z, () => (W.active ? W.pod[0].pos : null));
   }
   W.t += dt;
@@ -99,11 +100,12 @@ export function updateWhales(oc: any, dt: number, env: Env, cam: THREE.Vector3, 
   for (const w of W.pod) {
     const x = cx + sx * w.off.x + W.dir.x * w.off.z, z = cz + sz * w.off.x + W.dir.z * w.off.z;
     // mid-water, clear of the reef; a calf goes up to breathe now and then
-    let ty = W.depth + w.off.y + Math.sin(W.t * 0.05 + w.len) * 0.6;
+    const wt = waterTopAt(x, z);   // (W.depth is under the still water there: ADR 0009)
+    let ty = wt + W.depth + w.off.y + Math.sin(W.t * 0.05 + w.len) * 0.6;
     w.breath -= dt;
     if (w.role === 'calf' && w.breath < 0) {
       const k = -w.breath;                                    // 0..24 s: up, a breath at the top, back down
-      ty = ty + (-0.6 - ty) * Math.sin(Math.min(1, k / 24) * Math.PI);
+      ty = ty + (wt - 0.6 - ty) * Math.sin(Math.min(1, k / 24) * Math.PI);
       if (!w.logged) { w.logged = true; logEvent(env, 'breathe', 'ザトウクジラの子どもが息継ぎに浮上していく', x, z, () => w.pos); }
       if (k > 24) { w.breath = rr(90, 180); w.logged = false; }
     }

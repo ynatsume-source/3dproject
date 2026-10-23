@@ -1,0 +1,60 @@
+{
+  "title": "The Weather Glass",
+  "url": "https://www.ucke.de/christian/physik/ftp/lectures/weatherglass.pdf",
+  "accessedDateJst": "2026-10-11",
+  "facts": [
+    {
+      "publicationDate": "2011-01",
+      "bottleExample": {
+        "airVolumeCm3": 1035,
+        "reservoirAreaCm2": 57,
+        "tubeInnerAreaCm2": 0.5
+      },
+      "syringeExample": {
+        "airVolumeCm3": 24,
+        "reservoirAreaCm2": 6.2,
+        "tubeInnerAreaCm2": 0.07
+      },
+      "constructionTube": {
+        "diameterMm": [
+          8,
+          10
+        ],
+        "wallMm": [
+          0.5,
+          1
+        ],
+        "diameterCaution": "construction prose says diameter, numerical A is the inner cross-section; do not assume diameter wording is a bamboo internal-bore specification"
+      },
+      "commercialExample": {
+        "T0K": 293,
+        "deltaTK": 1,
+        "areaOverVolumePerCm": 0.01,
+        "deltaHeightCm": 0.33
+      },
+      "equation": "ideal gas pV/T; hydrostatic head includes both tube rise and reservoir drop",
+      "temperaturePressureConfounding": true,
+      "crossSectionsVaryingWithHeightIdentifiedAsErrorSource": true
+    }
+  ],
+  "conditions": {
+    "material": "transparent plastic bottle/flexible plastic tube; calibrated syringe; decorative weather glass",
+    "pressureUnits": "hPa; equations require consistent units",
+    "temperatureUnits": "K for ideal gas; °C for differences",
+    "geometryUnits": "cm3/cm2 and mm",
+    "replicates": null,
+    "measuredTimeSeries": null
+  },
+  "bodyLocators": [
+    "pp.1–2 construction and thermal caution",
+    "pp.3–4 equation derivation",
+    "pp.5–6 geometry-dependent sensitivity"
+  ],
+  "verificationLimits": "browser-rendered article/database body was read; extracted strings/numbers and reviewer transcription only; original HTML/PDF bytes not obtained",
+  "calibrationEligible": false,
+  "retrievalCopy": {
+    "path": "sources/ucke-weather-glass.web-extract.txt",
+    "sha256": "c878a0c01e8c6e44b6c419970df90caee671aededeab43e1ca6f01a150dc7711",
+    "hashScope": "UTF-8 browser-tool extraction received by reviewer, not original source bytes"
+  }
+}

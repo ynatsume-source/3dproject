@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { mat } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
+import { REEF_LIT } from '../render/reef-lit';
 import { fbm, smooth, mulberry32, hyp } from '../core/math';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { bonyGeometry, bonyUniforms, BONY } from './bony';
@@ -452,7 +453,7 @@ export function coralMaterial(kind, lod = 0) {
        vL = position; vTip = aTip; vCol = aCol; vCol2 = aCol2; vSeed = aSeed;
        gl_Position = projectionMatrix * viewMatrix * wp;
      }`,
-    SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vTip; varying vec3 vCol; varying vec3 vCol2; varying float vSeed;
+    REEF_LIT + SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying float vTip; varying vec3 vCol; varying vec3 vCol2; varying float vSeed;
      void main(){
        vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp);
        if (dot(n, V) < 0.0) n = -n;
@@ -545,7 +546,7 @@ export function coralMaterial(kind, lod = 0) {
          n = normalize(n + dn * 0.8);
          alb *= mix(0.5, 1.0, smoothstep(0.0, 0.3, vL.y));          // shade where it meets the reef
        #endif
-       gl_FragColor = vec4(shade(alb, vWp, n, 0.8), 1.0);
+       gl_FragColor = vec4(reefLit(alb, vWp, n, 0.8), 1.0);
      }`,
     { defines: { KIND: K, LOD: lod }, uniforms: SURF_UNIFORMS, opts: { side: (kind === 'fan' || kind === 'anemone' || kind === 'eel') ? THREE.DoubleSide : THREE.FrontSide } });
 }

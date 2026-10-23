@@ -1,0 +1,36 @@
+{
+  "title": "竹富町史だより第55号：小浜島―果報ぬ島・ちゅらさんの島―「竹と横笛」",
+  "url": "https://www.town.taketomi.lg.jp/sp/userfiles/files/topics/syabun/choshi/cyousidayori55.pdf",
+  "accessedDateJst": "2026-10-11",
+  "facts": [
+    {
+      "essayDate": "2002-04-19",
+      "reprintPublicationDate": "2025-02-28",
+      "vernacularNames": [
+        "ダイモー竹",
+        "真竹（マーンダキ）",
+        "ンガンダキ",
+        "ハタカラ竹（チンブク）"
+      ],
+      "taxonomyCaution": "author expressly says exact botanical names uncertain",
+      "reportedUse": "construction, everyday implements and long-internode flute material"
+    }
+  ],
+  "conditions": {
+    "location": "Kohama Island",
+    "date": "2002-04-19 essay, 2025 municipal republication",
+    "material": "firsthand cultural account, not quantitative botanical trial",
+    "units": null,
+    "replicates": null
+  },
+  "bodyLocators": [
+    "printed page 6 / PDF page index 7, lines 317–353; closing colophon lines 3378–3404"
+  ],
+  "verificationLimits": "browser-rendered article/database body was read; extracted strings/numbers and reviewer transcription only; original HTML/PDF bytes not obtained",
+  "calibrationEligible": false,
+  "retrievalCopy": {
+    "path": "sources/taketomi-choral-bamboo.web-extract.txt",
+    "sha256": "6e61fd507eeaa8e57e1e2f23289c28c286127ac016f196f722bfe8dda6ac3cb3",
+    "hashScope": "UTF-8 browser-tool extraction received by reviewer, not original source bytes"
+  }
+}

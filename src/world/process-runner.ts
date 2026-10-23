@@ -11,6 +11,12 @@ import type { EnergyOffer, EnvironmentSample, EquipmentView, Id, LotView, Observ
   ScienceStep, ScienceStepRequest, ScienceStepResult } from './science-contract';
 import { ISLAND_EPOCH as EPOCH, ISLAND_RATE } from './island-time';
 import { validateResult } from '../science/step/validate';
+import {
+  archiveScienceRun,
+  ensureScienceRecords,
+  SCIENCE_RECORD_LIMITS,
+  type ScienceRecords
+} from './science-records';
 
 export type ProcessClock = 'world' | 'island';
 /** A real moment on a process's clock, and back. Integer ms. */
@@ -37,6 +43,7 @@ export interface Ledger {
   runs: Record<Id, Run>;
   committed: Id[];                    // requestIds already committed (the last few hundred: a resend is refused)
   released?: Released[];             // what runs let go out of the world's lots — water spilled on the ground, smoke to the air (the last few hundred)
+  scienceRecords?: ScienceRecords;   // bounded terminal summaries; old saves omitted it
   seq: number;                        // for new ids
 }
 export interface Released { runId: Id; processId: Id; at: number; materialId: Id; mg: number; to: 'air' | 'water' | 'ground' }
@@ -44,6 +51,39 @@ export const emptyLedger = (worldId: Id, worldEpoch: Id): Ledger => ({ world: { 
 
 export function addLot(L: Ledger, lot: Omit<LotView, 'lotId'> & { lotId?: Id }): LotView {
   const l = { ...lot, lotId: lot.lotId ?? `lot:${++L.seq}` } as LotView; L.lots[l.lotId] = l; L.world.worldVersion++; return l;
+}
+
+/** Mass taken from a lot for a thing made by hand (a rain catcher, a tool). A lot that records its own dry matter and
+ *  water (and length: bamboo) keeps them in proportion — the rule of the science side's bamboo tube 0.1.1, water floored
+ *  and the sub-mg rest to the dry — so what is left still reads whole; a lot without them loses only its mass. All of
+ *  it taken: the lot is gone. Part of a lot in any other mass codec (a cord's fiber_dry_mg, a pith's pith_dry_mg, one to
+ *  come: any *_mg key besides dry_mg and water_mg) is not this rule's to share out: refused, the lot untouched. */
+export function canTakeMass(lot: LotView, mg: number): boolean {
+  if (!(mg > 0) || mg > lot.amount.value) return false;
+  if (mg === lot.amount.value) return true;   // (the whole of it: nothing left to read wrong)
+  return !Object.keys(lot.quality ?? {}).some((k) => k.endsWith('_mg') && k !== 'dry_mg' && k !== 'water_mg');
+}
+export function takeMass(L: Ledger, lot: LotView, mg: number): void {
+  const before = lot.amount.value, left = before - mg, q = lot.quality;
+  // (refused before anything is changed; science reviews of PR #58 and #60)
+  if (!canTakeMass(lot, mg)) throw new Error(`takeMass: ${mg} mg of ${lot.materialId} cannot be taken by this rule`);
+  if (left > 0 && q && q.dry_mg !== undefined && q.water_mg !== undefined) {
+    const water = Number(BigInt(q.water_mg) * BigInt(left) / BigInt(before));
+    lot.quality = { ...q, dry_mg: left - water, water_mg: water, ...(q.length_mm !== undefined ? { length_mm: Number(BigInt(q.length_mm) * BigInt(left) / BigInt(before)) } : {}) };
+  }
+  lot.amount.value = left; if (left <= 0) delete L.lots[lot.lotId];
+  L.world.worldVersion++;
+}
+
+/** Carry a whole lot to another place (the world's own move: a body took it there). Refused for a lot in use — a run's
+ *  lots stay where the run has them. Nothing about the lot changes but where it is. */
+export function moveLot(L: Ledger, lotId: Id, location: Id): { lot?: LotView; why?: string } {
+  const lot = L.lots[lotId];
+  if (!lot) return { why: `no lot ${lotId}` };
+  if (lot.reservedBy) return { why: `${lotId} is in use (${lot.reservedBy})` };
+  if (lot.location === location) return { lot };
+  lot.location = location; L.world.worldVersion++;
+  return { lot };
 }
 
 /* ---------- assembly: a lot made into equipment, and back (ADR 0006 addendum: main assembles, science gives the table) ---------- */
@@ -145,27 +185,81 @@ export function assembleParts(L: Ledger, lotIds: Id[], T: PartsAssemblyTable, re
 
 /** Take equipment made of several lots apart: one lot (a new lotId) for each part, of its copy's amount and where it was,
  *  with what the table says it became for the equipment's condition. Nothing changes if the table's answer does not
- *  match the parts. */
+ *  match the parts. Pass options.keepLotIds only when the same physical part IDs must return; all ID
+ *  collisions are checked before any change. Omitting the option keeps the existing new-ID behavior. */
 //  The table answers for ordinary use only (the wear the upper pot's; science, 2026-10-08). What else befalls a part — it
 //  is dropped, or itself breaks — is the world's: `broken` names those parts, and each comes back as the one-lot table's
 //  broken material (sherds, with what that table keeps of the body), of its own copy's amount. A piece lost whole (washed
 //  away) is loseEquipment's.
-export function disassembleParts(L: Ledger, equipmentId: Id, T: PartsAssemblyTable, broken?: { parts: number[]; as: AssemblyTable }): { lots?: LotView[]; why?: string } {
+export function disassembleParts(
+  L: Ledger,
+  equipmentId: Id,
+  T: PartsAssemblyTable,
+  broken?: { parts: number[]; as: AssemblyTable },
+  options?: { keepLotIds?: boolean }
+): { lots?: LotView[]; why?: string } {
   const e = L.equipment[equipmentId];
   if (!e) return { why: `no equipment ${equipmentId}` };
   const parts = e.assembled?.parts;
   if (!parts) return { why: `${equipmentId} was not made of several lots` };
   if (e.reservedBy) return { why: `${equipmentId} is in use (${e.reservedBy})` };
-  if (broken && (!broken.as.brokenMaterial || broken.parts.some((i) => !Number.isInteger(i) || i < 0 || i >= parts.length))) return { why: 'no broken material, or no such part' };
+  if (broken && (
+    !broken.as.brokenMaterial
+      || broken.parts.some(i => !Number.isInteger(i) || i < 0 || i >= parts.length)
+  )) return { why: 'no broken material, or no such part' };
+
+  const keepLotIds = options?.keepLotIds === true;
+  if (keepLotIds && (
+    parts.some(part => typeof part.lotId !== 'string' || !part.lotId.trim())
+      || new Set(parts.map(part => part.lotId)).size !== parts.length
+      || parts.some(part => Object.hasOwn(L.lots, part.lotId))
+  )) return { why: 'a returned part ID is missing, repeated, or already in use' };
+
   let back: { materialId: Id; quality: Record<string, number> }[];
-  try { back = T.partsOnReturn(parts.map((p) => ({ ...(p.quality ?? {}) })), e.condition); } catch (err) { return { why: (err as Error).message }; }   // (asked once, for all the parts)
-  if (!Array.isArray(back) || back.length !== parts.length || back.some((b) => !b || typeof b.materialId !== 'string')) return { why: `the table gave ${back?.length ?? 0} parts back for ${parts.length}` };
-  if (broken) for (const i of broken.parts) {
-    let q: Record<string, number> | undefined;
-    try { q = broken.as.brokenQuality?.({ ...(parts[i].quality ?? {}) }); } catch (err) { return { why: (err as Error).message }; }
-    back[i] = { materialId: broken.as.brokenMaterial!, quality: q ?? {} };
+  try {
+    back = T.partsOnReturn(parts.map(part => ({ ...(part.quality ?? {}) })), e.condition);
+  } catch (err) {
+    return { why: (err as Error).message };
   }
-  const lots = back.map((b, i) => addLot(L, { materialId: b.materialId, amount: { ...parts[i].amount }, quality: { ...b.quality }, location: parts[i].location }));   // (each part its own amount, on its own side)
+  if (
+    !Array.isArray(back) || back.length !== parts.length
+      || back.some(part => !part || typeof part.materialId !== 'string')
+  ) return { why: `the table gave ${back?.length ?? 0} parts back for ${parts.length}` };
+
+  if (broken) {
+    for (const index of broken.parts) {
+      let quality: Record<string, number> | undefined;
+      try {
+        quality = broken.as.brokenQuality?.({ ...(parts[index].quality ?? {}) });
+      } catch (err) {
+        return { why: (err as Error).message };
+      }
+      back[index] = {
+        materialId: broken.as.brokenMaterial!,
+        quality: quality ?? {}
+      };
+    }
+  }
+
+  // Validate all retained IDs and all table answers before changing the ledger.
+  const returned = back.map((part, index) => ({
+    materialId: part.materialId,
+    amount: { ...parts[index].amount },
+    quality: { ...part.quality },
+    location: parts[index].location
+  }));
+  const lots = returned.map((part, index) => {
+    if (!keepLotIds) return addLot(L, part);
+    const lot: LotView = { ...part, lotId: parts[index].lotId };
+    Object.defineProperty(L.lots, lot.lotId, {
+      value: lot,
+      enumerable: true,
+      writable: true,
+      configurable: true
+    });
+    L.world.worldVersion++;
+    return lot;
+  });
   delete L.equipment[equipmentId];
   L.world.worldVersion++;
   return { lots };
@@ -257,9 +351,10 @@ export interface Committed { ok: boolean; why?: string; status?: Run['status']; 
  *  ends, the lots it used and made. A result that breaks the contract is refused and changes nothing; a failed
  *  process ends its run and frees what it held, with nothing consumed. */
 export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResult): Committed {
+  ensureScienceRecords(L);
+  if (L.committed.includes(req.requestId)) return { ok: false, why: 'already committed' };
   const r = L.runs[req.runId];
   if (!r) return { ok: false, why: 'no such run' };
-  if (L.committed.includes(req.requestId)) return { ok: false, why: 'already committed' };
   if (req.interval.from !== r.lastTo) return { ok: false, why: 'not the run\'s next interval' };
   const problems = validateResult(req, res);
   if (problems.length) { r.attempt++; return { ok: false, why: `refused: ${problems.join('; ')}` }; }
@@ -268,6 +363,9 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
   if (res.status === 'failed') { end(L, r, 'failed', String((res.diagnostics as any)?.code ?? (res.diagnostics as any)?.error ?? res.evidence?.notes ?? 'failed')); return { ok: true, status: 'failed' }; }
   r.state = res.state; r.lastTo = res.status === 'needs-input' || res.simulated.to <= req.interval.from ? req.interval.to : res.simulated.to;
   r.observations.push(...res.observations);
+  if (r.observations.length > SCIENCE_RECORD_LIMITS.observations) {
+    r.observations.splice(0, r.observations.length - SCIENCE_RECORD_LIMITS.observations);
+  }
   const produced: LotView[] = [];
   if (res.status === 'completed' || res.status === 'stopped') {
     // (the run settles its lots when it ends: what it used goes, what it made is new — where the step says, or where
@@ -286,11 +384,14 @@ export function commit(L: Ledger, req: ScienceStepRequest, res: ScienceStepResul
 }
 /** End a run without settling anything (its process version is gone, the world gave it up): what it held is free
  *  again, unconsumed (lots settle only when a run ends by the step's own word). */
-export function abortRun(L: Ledger, runId: Id, why: string) { const r = L.runs[runId]; if (r && ['starting', 'running', 'needs-input'].includes(r.status)) { end(L, r, 'stopped', why); L.world.worldVersion++; } }
+export function abortRun(L: Ledger, runId: Id, why: string) { ensureScienceRecords(L); const r = L.runs[runId]; if (r && ['starting', 'running', 'needs-input'].includes(r.status)) { end(L, r, 'stopped', why); L.world.worldVersion++; } }
 function end(L: Ledger, r: Run, status: Run['status'], why?: string) {
   r.status = status; if (why) r.why = why;
   for (const id of r.lotIds) if (L.lots[id]?.reservedBy === r.runId) delete L.lots[id].reservedBy;
   for (const id of r.equipmentIds) if (L.equipment[id]?.reservedBy === r.runId) delete L.equipment[id].reservedBy;
+  // Prototype adapters still need the just-ended state to build their compact
+  // domain projection. They explicitly retire it inside that same transaction.
+  if (!r.processId.startsWith('prototype_')) archiveScienceRun(L, r.runId);
 }
 
 /** Step a run as far as realNow, interval by interval, committing each. Returns what was committed, in order. */

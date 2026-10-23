@@ -1,0 +1,35 @@
+name: Browser world checks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worlds:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install browser test tools
+        run: |
+          npm install --no-save --package-lock=false playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Build local preview
+        run: npm run build
+      - name: Check hash navigation, caches and resident saves
+        run: npm run check:browser -- --out check-results/worlds-browser
+      - name: Keep browser results and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worlds-browser
+          path: check-results/worlds-browser
+          if-no-files-found: warn
+          retention-days: 14

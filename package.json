@@ -11,9 +11,14 @@
     "sim": "tsx --import ./scripts/node-assets.mjs scripts/sim-check.ts",
     "check:fast": "node scripts/checks.mjs fast",
     "check:slow": "node scripts/checks.mjs slow",
-    "check:list": "node scripts/checks.mjs all --list"
+    "check:list": "node scripts/checks.mjs all --list",
+    "check:browser": "node scripts/worlds-browser-check.mjs"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/cormorant-sc": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/zen-old-mincho": "^5.3.1",
     "nosleep.js": "^0.12.0",
     "three": "0.186.1"
   },

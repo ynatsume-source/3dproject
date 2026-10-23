@@ -92,13 +92,13 @@ export class Post {
     defines: { STEPS: 16 },
     uniforms: {
       tDepth: { value: null }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() },
-      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden, uNight: U.uNight,
+      uCamPos: U.uCamPos, uSunDir: U.uSunDir, uSunI: U.uSunI, uTime: U.uTime, uFogDen: U.uFogDen, uTint: U.uTint, uAbs: U.uAbs, uSeaH: U.uSeaH, uShaftCol: U.uShaftCol, uShaftI: U.uShaftI, uGolden: U.uGolden, uNight: U.uNight,
       uCaveTex: U.uCaveTex, uCaveAtlas: U.uCaveAtlas, uCaveOn: U.uCaveOn, uCamCave: U.uCamCave, uCaveXf: U.uCaveXf, uCaveMin: U.uCaveMin, uCaveExt: U.uCaveExt, uCaveN: U.uCaveN,
       uFrame: { value: 0 }, uStrength: { value: 0.72 },
     },
     fragmentShader: /* glsl */ `
       uniform sampler2D tDepth; uniform mat4 uInvProj; uniform mat4 uCamWorld; uniform vec3 uCamPos;
-      uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs;
+      uniform vec3 uSunDir; uniform float uSunI; uniform float uTime; uniform float uFogDen; uniform vec3 uTint; uniform vec3 uAbs; uniform float uSeaH;
       uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden; uniform float uNight;
       uniform float uFrame; uniform float uStrength;
       varying vec2 vUv;
@@ -128,10 +128,10 @@ export class Post {
           float t = dist * pow(s0, 1.6);
           float stepLen = dist * (pow(s1, 1.6) - pow(s0, 1.6));
           vec3 p = uCamPos + dir * t;
-          float wet = step(p.y, -0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
-          vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * p.y;
+          float wet = step(p.y, uSeaH - 0.05);   // (above the surface: nothing; masked rather than skipped, for Direct3D)
+          vec2 q = p.xz - uSunDir.xz / max(uSunDir.y, 0.25) * (p.y - uSeaH);
           float light = beams(q, 1.0 - smoothstep(2.5, 11.0, stepLen)) * (1.0 + uGolden * 1.0) + 0.1 * (1.0 - 0.92 * uGolden);   // at sunset only the shafts carry colour
-          vec3 down = exp(uAbs * p.y * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
+          vec3 down = exp(uAbs * (p.y - uSeaH) * mix(1.4, 0.55, uGolden)); // sunlight loses red first on the way down (less so for the art of a sunset)
           vec3 back = exp(-uFogDen * vec3(1.35, 1.0, 0.8) * t); // and again on the way to the eye
           acc += light * down * back * stepLen * caveLight(p).x * wet;   // rock shadows the water behind it; skylights let beams through
         }
@@ -186,12 +186,12 @@ export class Post {
   // bloom: bright-pass on the way down, tent-filtered on the way up
   private downMat = new THREE.ShaderMaterial({
     vertexShader: VS,
-    uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uFirst: { value: 0 }, tVol: { value: null } },
+    uniforms: { tSrc: { value: null }, uTexel: { value: new THREE.Vector2() }, uFirst: { value: 0 }, uThr: { value: 1.1 }, uCap: { value: 1e4 }, tVol: { value: null } },
     fragmentShader: /* glsl */ `
-      uniform sampler2D tSrc; uniform sampler2D tVol; uniform vec2 uTexel; uniform float uFirst; varying vec2 vUv;
+      uniform sampler2D tSrc; uniform sampler2D tVol; uniform vec2 uTexel; uniform float uFirst; uniform float uThr; uniform float uCap; varying vec2 vUv;
       vec3 src(vec2 uv){
         vec3 c = texture2D(tSrc, uv).rgb;
-        if (uFirst > 0.5) { c = pow(clamp(c, 0.0, 40.0), vec3(2.2)) + texture2D(tVol, uv).rgb; c = max(c - 1.1, 0.0); if (any(notEqual(c, c))) c = vec3(0.0); }   // (a stray NaN or overflow must not spread through the bloom as a black block)
+        if (uFirst > 0.5) { c = pow(clamp(c, 0.0, 40.0), vec3(2.2)) + texture2D(tVol, uv).rgb; c = min(max(c - uThr, 0.0), vec3(uCap)); if (any(notEqual(c, c))) c = vec3(0.0); }   // (a stray NaN or overflow must not spread through the bloom as a black block)
         return c;
       }
       void main(){
@@ -372,6 +372,12 @@ export class Post {
     }
     if (t.bloom) {
       const d = this.downMat.uniforms, up = this.upMat.uniforms;
+      // (in the air, only what is brighter than the sky round a low sun glows, and no pixel more than a little: the sun's
+      // disc, thousands of times over the threshold, and the bright sky in every gap of the leaves, spread into a flat
+      // white ball much bigger than the sun, laid over the trunks in front of it. Under the water, as before)
+      // (at night, the lamps and the fire glow as they did: there is no bright sky then)
+      const nt = this.compMat.uniforms.uNight.value as number;
+      d.uThr.value = this.air ? 2.2 - 1.1 * nt : 1.1; d.uCap.value = this.air ? 20 + (1e4 - 20) * nt * nt : 1e4;
       let src: THREE.Texture = this.main.texture;
       this.mips.forEach((m, i) => {
         d.tSrc.value = src; d.uFirst.value = i === 0 ? 1 : 0; d.tVol.value = this.volHist[this.histIdx].texture;

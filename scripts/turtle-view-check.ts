@@ -8,6 +8,9 @@ import { LOCATIONS } from '../src/data/locations';
 import { buildOcean } from '../src/ocean/build';
 import { skyState, sunEvents } from '../src/time/clock';
 import { Director } from '../src/director';
+import { mulberry32 } from '../src/core/math';
+// (one seed, so a run is the same run each time: SEED=n for another)
+Math.random = mulberry32(Number(process.env.SEED ?? 1));
 
 const loc = LOCATIONS.find((l) => l.id === (process.argv[2] || 'miyako'))!;
 const oc = buildOcean(loc);
@@ -29,7 +32,9 @@ const step = () => {
     vel.lerp(want.multiplyScalar(Math.min(2.4, L * 0.8) / Math.max(L, 1e-4)), 0.12);
   } else vel.multiplyScalar(0.9);
   pos.addScaledVector(vel, 0.1);
-  pos.y = Math.min(Math.max(pos.y, oc.T.h(pos.x, pos.z) + 0.7), -0.7);
+  // (under the water, as the drone keeps; up out of it when the shot is in the air — at the surface, a turtle come up to
+  // breathe is filmed from over the water, as the app's drone does: main.ts upShot)
+  pos.y = Math.min(Math.max(pos.y, oc.T.h(pos.x, pos.z) + 0.7), shot && shot.pos.y > 0.3 ? 60 : -0.7);
   return shot;
 };
 for (let k = 0; k < 120; k++) step();

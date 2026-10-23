@@ -1,0 +1,70 @@
+/* The live screen, "the observation window" (docs/proposals/viewer-design-2026-10-16/screens/README.md, v2 2026-10-17):
+   the scenery first, the words after — small, at the corners, the middle left open. 1080p is the base: one unit
+   (--u) is a 1080th of the screen's height; six steps of about 1.2x. Mincho for the world's facts, small caps and mono
+   for the drone's record. One warm white; the sand gold only for what is happening now. Hair lines; no bold. */
+body.live { --u: calc(100vh / 1080); --s1: calc(var(--u) * 22); --s2: calc(var(--u) * 26); --s3: calc(var(--u) * 32);
+  --s4: calc(var(--u) * 40); --s5: calc(var(--u) * 46); --s6: calc(var(--u) * 56);
+  --ink: rgba(255, 250, 240, 0.97); --ink2: rgba(255, 250, 240, 0.82); --ink3: rgba(255, 250, 240, 0.66); --gold: #e9cf98;
+  --mincho: 'Zen Old Mincho', serif; --sc: 'Cormorant SC', serif; --mono: 'IBM Plex Mono', monospace; --latin: 'Cormorant Garamond', serif;
+  cursor: none; }
+/* (everything of the app's own is put away: only the scenery and the window) */
+body.live .hud, body.live #minimap, body.live #bubbles, body.live #pip, body.live #toast, body.live #reveal, body.live #pov,
+body.live #diaryBook, body.live #newMark, body.live #hoverTag, body.live #tapRing, body.live #veil, body.live #picker, body.live #pins { display: none !important; }
+#live { position: fixed; inset: 0; pointer-events: none; z-index: 40; color: var(--ink); font-family: var(--mincho); font-weight: 500;
+  text-shadow: 0 0 calc(var(--u) * 10) rgba(0, 0, 0, 0.32), 0 0 calc(var(--u) * 2) rgba(0, 0, 0, 0.28); letter-spacing: 0.02em;
+  font-kerning: normal; -webkit-font-smoothing: antialiased; }
+#live .fade { transition: opacity 0.6s ease; }
+#live .off { opacity: 0; }
+/* top left: the project, then the series (D23, owner 2026-10-20): UTSUSHIYO PROJECT / Series 1 ルマウ */
+#live .brand { position: absolute; left: calc(var(--u) * 96); top: calc(var(--u) * 64); }
+#live .brand .en { font-family: var(--sc); font-size: var(--s2); letter-spacing: 0.3em; }
+#live .brand .ja { font-size: var(--s2); color: var(--ink2); margin-top: calc(var(--u) * 12); letter-spacing: 0.24em; }
+/* (lining figures on the element itself: a font shorthand would put old-style back, and its 1 reads as an i) */
+#live .brand .ser { font-family: var(--latin); font-style: italic; font-weight: 500; font-variant-numeric: lining-nums; letter-spacing: 0.06em;
+  margin-right: 0.7em; color: var(--ink3); }
+/* top right: the island's date and time, and that the residents are AI */
+#live .when { position: absolute; right: calc(var(--u) * 96); top: calc(var(--u) * 62); text-align: right; }
+#live .when .date { font-size: var(--s2); color: var(--ink2); }
+#live .when .time { font-family: var(--mono); font-weight: 400; font-size: var(--s2); margin-left: 0.8em; color: var(--ink); }
+#live .when .ai { font-size: var(--s1); color: var(--ink3); margin-top: calc(var(--u) * 8); letter-spacing: 0.06em; }
+/* bottom left: the band — the drone's number, the resident, what it is doing */
+#live .band { position: absolute; left: calc(var(--u) * 96); bottom: calc(var(--u) * 88); max-width: 50vw;
+  padding-left: calc(var(--u) * 22); border-left: 1px solid rgba(255, 250, 240, 0.38); }
+#live .band .doron { font-family: var(--sc); font-size: var(--s1); color: var(--ink2); letter-spacing: 0.2em; }
+#live .band .doron .n { font-family: var(--mono); font-weight: 400; letter-spacing: 0.05em; margin-right: 0.6em; }
+#live .band .who { display: flex; align-items: center; gap: calc(var(--u) * 14); margin-top: calc(var(--u) * 10); }
+#live .band .who .name { font-size: var(--s3); font-weight: 600; letter-spacing: 0.08em; }
+#live .band .who .line { width: calc(var(--u) * 26); height: 2px; background: var(--c, var(--ink)); opacity: 0.9; }
+#live .band .status { font-size: var(--s4); margin-top: calc(var(--u) * 12); line-height: 1.35; white-space: nowrap; }
+#live .band .status span { display: block; }
+/* the haze under a group of words: edgeless (a bell that fades to nothing at its rim), eased over a second */
+#live .haze { position: absolute; pointer-events: none; --black: 0; --bright: 1; --blur: 0px;
+  background: rgba(0, 0, 0, var(--black)); backdrop-filter: blur(var(--blur)) brightness(var(--bright));
+  -webkit-backdrop-filter: blur(var(--blur)) brightness(var(--bright));
+  -webkit-mask-image: radial-gradient(closest-side, #000 35%, transparent 100%); mask-image: radial-gradient(closest-side, #000 35%, transparent 100%);
+  transition: background 1s linear, backdrop-filter 1s linear, -webkit-backdrop-filter 1s linear; }
+/* the resident's name in the island's letters, before its name (26 px high in the band) */
+#live .isl { height: calc(var(--u) * 26); width: auto; vertical-align: middle; color: var(--ink2); }
+#live .band .who .isl-name { display: inline-flex; align-items: center; }
+/* the subtitle: bottom centre while someone speaks — who speaks, the line in the island's letters (30 px), its meaning */
+#live .sub { position: absolute; left: 50%; bottom: calc(var(--u) * 84); transform: translateX(-50%); text-align: center; width: max-content; max-width: 70vw; }   /* (max-content: not squeezed to the half the left edge leaves) */
+#live .sub .who { display: inline-flex; align-items: center; gap: calc(var(--u) * 10); font-size: var(--s1); color: var(--ink2); letter-spacing: 0.1em; }
+#live .sub .who .line { width: calc(var(--u) * 18); height: 1px; background: var(--c, var(--ink)); }
+#live .sub .isl-line { margin-top: calc(var(--u) * 12); line-height: 0; }
+#live .sub .isl-line .isl { height: calc(var(--u) * 30); color: var(--ink2); }
+#live .sub .tr { font-size: var(--s5); margin-top: calc(var(--u) * 12); line-height: 1.4; white-space: nowrap; }
+#live .sub .tr span { display: block; }
+/* the milestone card: upper centre, between two sand-gold hair lines (160 px) — the heading, the event, when */
+#live .card { position: absolute; left: 50%; top: calc(var(--u) * 352); transform: translateX(-50%); text-align: center; width: max-content; max-width: 72vw; text-wrap: balance; }
+#live .card .rule { width: calc(var(--u) * 160); height: 1px; background: var(--gold); margin: 0 auto; opacity: 0.9; }
+#live .card .head { font-size: var(--s1); color: var(--gold); letter-spacing: 0.5em; margin: calc(var(--u) * 22) 0 calc(var(--u) * 14); padding-left: 0.5em; }
+#live .card .what { font-size: var(--s6); line-height: 1.35; }
+#live .card .at { font-size: var(--s1); color: var(--ink2); margin: calc(var(--u) * 16) 0 calc(var(--u) * 22); letter-spacing: 0.06em; }
+#live .card .at .t { font-family: var(--mono); font-weight: 400; margin-left: 0.6em; }
+/* in English (?lang=en): the Latin face for the world's words; less spacing, which suits Mincho, not Garamond */
+#live.en .brand .ja, #live.en .when .date, #live.en .when .ai, #live.en .band .who .name, #live.en .band .status, #live.en .sub .who, #live.en .sub .tr,
+#live.en .card .head, #live.en .card .what, #live.en .card .at { font-family: var(--latin); letter-spacing: 0.01em; }
+#live.en .card .head { letter-spacing: 0.3em; text-transform: uppercase; }
+#live.en .brand .ja { letter-spacing: 0.12em; font-style: italic; }
+#live.en .band .status { font-size: calc(var(--s4) * 1.1); }   /* (Garamond's small x-height reads a step smaller than Mincho at one size) */
+#live.en { font-variant-numeric: lining-nums; }   /* (Garamond's old-style 1 reads as an i: "Island year 1") */

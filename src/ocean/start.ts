@@ -4,6 +4,7 @@
 // open ocean, the kelp forest and the residents' island keep their own way of arriving.)
 import * as THREE from 'three';
 import { hyp } from '../core/math';
+import { waterTopAt } from './air';
 
 export interface Start { pos: THREE.Vector3; yaw: number; pitch: number; what: string }
 
@@ -43,7 +44,7 @@ export function pickStart(oc: any): Start | null {
   for (let k = 0; k < 24; k++) {
     const a = k / 24 * Math.PI * 2, x = target.x + Math.cos(a) * dist, z = target.z + Math.sin(a) * dist;
     const fl = T.top(x, z);
-    const y = Math.min(Math.max(target.y + rise, fl + 2.2), -1.8);
+    const y = Math.min(Math.max(target.y + rise, fl + 2.2), waterTopAt(x, z) - 1.8);   // (under the still water there: ADR 0009)
     if (y < fl + 1.5) continue;
     let clear = 1;
     for (let i = 1; i < 20; i++) {

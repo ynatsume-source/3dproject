@@ -69,7 +69,7 @@ export function seaTemp(ms: number, lat: number, range: [number, number]) {
   return (range[0] + range[1]) / 2 + (range[1] - range[0]) / 2 * Math.cos((doy - peak) / 365.25 * Math.PI * 2);
 }
 
-interface SiteLike { lat: number; lon: number; tz: number; tide: { amp: number; lag: number } }
+interface SiteLike { lat: number; lon: number; tz: number; tide: { amp: number; lag: number; diurnal?: { d: number; lag: number } } }
 
 // Scan the site's local day (5-minute steps) for sunrise, solar noon and sunset.
 export function sunEvents(ms: number, site: SiteLike) {
@@ -160,7 +160,7 @@ export function skyState(ms: number, site: SiteLike): SkyState {
   tint = mix3(tint, [0.62, 0.76, 1.0], night);
   const skyLo = mix3(mix3([0.62, 0.86, 0.92], [0.98, 0.58, 0.36], low), [0.05, 0.09, 0.19], smooth(0.0, 1.0, 1 - dayAmb));
   const skyHi = mix3(mix3([0.86, 0.96, 1.0], [1.0, 0.8, 0.6], low), [0.09, 0.14, 0.27], smooth(0.0, 1.0, 1 - dayAmb));
-  const t = tide(ms, site.lat, site.lon, site.tide.amp, site.tide.lag);
+  const t = tide(ms, site.lat, site.lon, site.tide.amp, site.tide.lag, site.tide.diurnal);
   const hour = new Date(ms + site.tz * 3600000).getUTCHours();
   let phase: string;
   if (s.alt < -6 * Math.PI / 180) phase = 'night';

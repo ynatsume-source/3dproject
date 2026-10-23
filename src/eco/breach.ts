@@ -16,6 +16,7 @@ import { R, rr, smooth, hyp } from '../core/math';
 import { WHALE_GEO, whaleMaterial, MANTA_GEO, mantaMaterial } from '../ocean/models';
 import { logEvent, type Env, type Subject } from './env';
 import { U } from '../render/common';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 type Kind = 'whale' | 'manta';
 export interface Foam { x: number; z: number; r: number; age: number; life: number }
@@ -110,7 +111,7 @@ export function makeBreach(oc: any) {
       um.uBeat.value = 0; um.uPhase.value = 0; um.uAmp.value = 0.8;
       um.uFeed.value = 0; um.uMouth.value = 0.08; um.uBank.value = 0; um.uAir.value = 0;
     }
-    exitC.copy(c);
+    exitC.copy(c); exitC.y = waterTopAt(c.x, c.z);   // (at the surface there: ADR 0009)
   }
   const exitC = new THREE.Vector3();   // where it will come out (what the camera frames)
 
@@ -161,7 +162,7 @@ export function makeBreach(oc: any) {
         // the water it drives back: bubbles shed from the wingtips or the flukes on each power stroke
         if (Math.sin(run.ph) > 0.6 && R() < dt * (l.kind === 'whale' ? 40 : 25)) {
           const back = l.kind === 'whale' ? L * 0.45 : L * 0.25, side = l.kind === 'manta' ? (R() < 0.5 ? -1 : 1) * L * 0.45 : 0;
-          fx.bubbles(l.c.x + l.dir.x * (along - back * Math.cos(pitch)) - l.dir.z * side, y - back * Math.sin(pitch), l.c.z + l.dir.z * (along - back * Math.cos(pitch)) + l.dir.x * side, l.kind === 'whale' ? 6 : 3);
+          fx.bubbles(l.c.x + l.dir.x * (along - back * Math.cos(pitch)) - l.dir.z * side, waterTopAt(l.c.x, l.c.z) + y - back * Math.sin(pitch), l.c.z + l.dir.z * (along - back * Math.cos(pitch)) + l.dir.x * side, l.kind === 'whale' ? 6 : 3);
         }
         // a whale coming up shoves a mound of water ahead of it: the surface heaves and goes pale just before
         if (l.kind === 'whale' && !l.heaved && run.y > -4) { l.heaved = true; foams.push({ x: l.c.x + l.dir.x * (run.x + 2), z: l.c.z + l.dir.z * (run.x + 2), r: L * 0.35, age: 0, life: 4 }); }
@@ -222,17 +223,19 @@ export function makeBreach(oc: any) {
         um.uFeed.value = 0; um.uBank.value = 0;
       }
       else { um.uPhase.value = ph - U.uTime.value * 1.6; um.uStroke.value = 0.8 * beat * 1.2; }
-      const cx = l.sw ? l.sw.x : l.c.x + l.dir.x * along, cz = l.sw ? l.sw.z : l.c.z + l.dir.z * along;
+      // (y here is from the surface, as the leap was worked out; the still water's top at it added where it is put in the world —
+      // the sea rises and falls with the tide, ADR 0009)
+      const cx = l.sw ? l.sw.x : l.c.x + l.dir.x * along, cz = l.sw ? l.sw.z : l.c.z + l.dir.z * along, wt = waterTopAt(cx, cz);
       _e.set(-pitch, l.sw ? l.sw.yaw : Math.atan2(l.dir.x, l.dir.z), roll, 'YXZ');
-      mesh.position.set(cx, y, cz); mesh.rotation.copy(_e);
+      mesh.position.set(cx, y + wt, cz); mesh.rotation.copy(_e);
       if (l.kind === 'whale') mesh.scale.setScalar(L); else mesh.scale.setScalar(L / 2);
       mesh.visible = l.kind === 'manta' ? s > -WARN : s > -2;
       // out of the water: water pouring off it
       if (up > 0 && up < airT) for (let k = 0; k < 3; k++) {
         if (l.kind === 'whale') _ax.set(0, 0, (Math.random() - 0.5) * L * 0.9);
         else _ax.set((Math.random() - 0.5) * L * 0.9, -L * 0.015, -L * (0.04 + Math.random() * 0.07));
-        _ax.applyEuler(_e); _p.set(cx, y, cz).add(_ax);
-        if (_p.y > 0.2) fx.stream(_p.x, _p.y, _p.z, l.dir.x * 2, l.dir.z * 2, l.kind === 'whale' ? 3 : 1);
+        _ax.applyEuler(_e); _p.set(cx, y + wt, cz).add(_ax);
+        if (_p.y - wt > 0.2) fx.stream(_p.x, _p.y, _p.z, l.dir.x * 2, l.dir.z * 2, l.kind === 'whale' ? 3 : 1);
       }
       // A state edge, not equality around zero seconds: floating-point rounding can skip a
       // time-window check at 60 Hz and silently lose the manta's departure splash.
@@ -255,7 +258,7 @@ export function makeBreach(oc: any) {
       }
       // its show over and on its way down into the blue: gone (or up for the next leap) only once it is far
       // off or out of the picture, never in front of the camera
-      const fwd = U.uCamFwd.value as THREE.Vector3, dx = cx - cam.x, dy = y - cam.y, dz = cz - cam.z, dd = hyp(dx, dy, dz);
+      const fwd = U.uCamFwd.value as THREE.Vector3, dx = cx - cam.x, dy = y + wt - cam.y, dz = cz - cam.z, dd = hyp(dx, dy, dz);
       if (up > airT + (l.kind === 'whale' ? 22 : 12) && (dd - L > sightRange(oc) || (dd > L + 12 && dx * fwd.x + dy * fwd.y + dz * fwd.z < dd * 0.25))) {   // (far: as far as this water lets one see)
         series++;
         if (l.left > 1) { const c = place(l.kind, cam, fx_, fz_, new THREE.Vector3(cx, 0, cz), l.dir); if (c) { begin(l.kind, c, l.dir, l.left - 1); leap!.t = WARN - (l.kind === 'whale' ? rr(10, 16) : rr(3, 6)); return; } }

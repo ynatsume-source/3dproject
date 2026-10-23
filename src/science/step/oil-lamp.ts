@@ -16,6 +16,9 @@
 // Clear oil only: coconut fat with at most lampMaxWaterPpm of water. The wick draws the liquid; the fat burns (light,
 // heat, soot), the water boils off. At the end the oil and the water left in the dish come back apart (they do not mix):
 // coconut_oil (fat only) and process_water.
+// Damp wicks opt in with exact fibre/pith/water mg. Water at or below one tenth of dry matter can light.
+// Only water accompanying burned dry material evaporates at the tip; a trimmed tip keeps its water.
+// Fibre and attached pith both use dry-wood chemistry. Legacy wicks without components are entirely dry.
 // Actions: light {wickOut 0 short, 1 medium, 2 long} (again after it went out), wick_out {level}, trim, warm (the dish by
 // a fire, before lighting), look, put_out (the end: everything is handed back). A stop (operator, equipment-lost) ends
 // the run at interval.to, the lamp burning until then. The weather the lamp stands in must be known (air temperature,
@@ -37,12 +40,24 @@ import { react, REACTIONS } from '../chem';
 import { pv } from '../params';
 import { allFinite, checkCommon, envUsable, failed, fingerprint, finite, intDeltaFloor, isInt, wind10m } from './common';
 import type { ScienceStepResultV02 } from './wood-fire';
+import {
+  readLampWick,
+  settleLampWick,
+  wickCanLight,
+  wickCompositionQuality,
+  type LampWickComposition,
+  type WickComposition,
+} from './lamp-wick';
 
-export const OIL_LAMP_PROCESS = { processId: 'p40x_oil_lamp', processVersion: '0.1.1' } as const;
-// /2 since 0.1.1 (cells with held decisions; the pool's fat and water apart): a /1 run is refused; the host cancels it
-const SCHEMA = 'civ-sci.oil-lamp/2', EVAL = 'oil-lamp-eval/0.1.1';
+export const OIL_LAMP_PROCESS = { processId: 'p40x_oil_lamp', processVersion: '0.2.0' } as const;
+// /3 separates dry wick material from water. Old runs are cancelled by the host;
+// reserved lots have not been consumed and must be released, not migrated.
+const SCHEMA = 'civ-sci.oil-lamp/3';
+const EVAL = 'oil-lamp-eval/0.2.0';
 export const LAMP_DISH = 'lamp_dish', LAMP_WICK = 'lamp_wick';
 const CELL_MS = 1000;
+/** Diagnostic history only; the last event drives the current observation. */
+export const LAMP_OUT_EVENT_LIMIT = 64;
 /** Wick fibres (lamp_wick quality.fiber). */
 export const WICK_FIBERS = { 1: 'pandanus', 2: 'coir', 3: 'reed_pith' } as const;
 const DRAW = { 1: 'lampDrawPandanusGPerH', 2: 'lampDrawCoirGPerH', 3: 'lampDrawReedGPerH' } as const;
@@ -69,11 +84,32 @@ interface Snap {
 /** What the flame decided at the cell's start, held for the cell (rates per ms). */
 interface Ctl { lit: boolean; targetC: number; fatPerMs: number; waterPerMs: number; soakPerMs: number; soakRoom: number; charPerMs: number; wickPerMs: number; soot: number }
 interface LampData {
-  fps: string[]; eqFp: string; dishId: string; startMs: number; lastTo: number;
-  oilQ: Record<string, number>; fat0: number; water0: number; soaked0: number; soakedLotId: string | null;
-  wickQ: Record<string, number>; wick0: number; fiber: 1 | 2 | 3; diaMm: number;
-  shelter: number; roofed: boolean; soakCapMg: number; wickOut: number;
-  s: Snap; ctl: Ctl; reportedJ: number; outEvents: string[]; sooty: boolean; historyComplete: boolean;
+  fps: string[];
+  eqFp: string;
+  dishId: string;
+  startMs: number;
+  lastTo: number;
+  oilQ: Record<string, number>;
+  fat0: number;
+  water0: number;
+  soaked0: number;
+  soakedLotId: string | null;
+  wickQ: Record<string, number>;
+  /** Initial dry wick mass; burned and trimmed amounts also count dry matter. */
+  wick0: number;
+  wickParts: LampWickComposition;
+  fiber: 1 | 2 | 3;
+  diaMm: number;
+  shelter: number;
+  roofed: boolean;
+  soakCapMg: number;
+  wickOut: number;
+  s: Snap;
+  ctl: Ctl;
+  reportedJ: number;
+  outEvents: string[];
+  sooty: boolean;
+  historyComplete: boolean;
 }
 
 /** The share of the oil that is liquid at this temperature (a linear melting range: an assumption, Codex on 8dba18f). */
@@ -116,6 +152,12 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
   if (wicks.length !== 1 || oils.length !== 1 || soaked.length > 1 || req.lots.length !== 2 + soaked.length)
     return fail('expected one coconut_oil lot, one lamp_wick lot, and the oil soaked in the dish (coconut_oil, soaked_in_dish 1) if the dish has soaked before');
   const oil = oils[0], wick = wicks[0];
+  let wickParts: LampWickComposition;
+  try {
+    wickParts = readLampWick(wick);
+  } catch (error) {
+    return fail((error as Error).message);
+  }
   const fps = req.lots.map(fingerprint).sort();
   const eqFp = JSON.stringify([dish?.equipmentId, Object.entries(dish?.params ?? {}).sort(([x], [y]) => x.localeCompare(y))]);
   const env = req.environment;
@@ -139,7 +181,11 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
     const Ta = req.environment.airTempC!;
     d = { fps, eqFp, dishId: dish.equipmentId, startMs: req.interval.from, lastTo: req.interval.from,
       oilQ: { ...(oil.quality ?? {}) }, fat0: o.fat, water0: o.water, soaked0: sk, soakedLotId: soaked[0]?.lotId ?? null,
-      wickQ: { ...wq }, wick0: wick.amount.value, fiber: wq.fiber as 1 | 2 | 3, diaMm: wq.diameter_mm,
+      wickQ: { ...wq },
+      wick0: wickParts.dryMg,
+      wickParts,
+      fiber: wq.fiber as 1 | 2 | 3,
+      diaMm: wq.diameter_mm,
       shelter: p.shelter, roofed: p.roofed === 1, soakCapMg: Math.round(p.massG * 1000 * (p.absorptionPpm ?? 0) / 1e6 * pv('lampOilDensity')), wickOut: 1,
       s: { tMs: req.interval.from, fat: o.fat, water: o.water, soaked: 0, fatBurned: 0, waterGone: 0, wickBurned: 0, trimmed: 0, sootFat: 0,
         poolC: Ta, char: (wq.char_ppm ?? 0) / 1e6, litS: 0, lumenS: 0, usedJ: 0 },
@@ -147,10 +193,19 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
       reportedJ: 0, outEvents: [], sooty: false, historyComplete: [oil, wick, ...soaked].every((l) => (l.quality?.history_complete ?? 1) === 1) };
   } else {
     d = structuredClone(req.state.data as LampData);
+    if (!d || d.wick0 !== wickParts.dryMg
+        || JSON.stringify(d.wickParts) !== JSON.stringify(wickParts)) {
+      return fail('corrupt-state: the saved wick composition does not match its reserved lot');
+    }
     if (d.fps.join('|') !== fps.join('|')) return fail('changed-input: a reserved lot changed under a running run');
     if (req.stop !== 'equipment-lost' && eqFp !== d.eqFp) return fail('changed-input: the dish changed under a running run');
     if (req.interval.from !== d.lastTo) return fail(`noncontiguous-interval: expected from=${d.lastTo}`);
   }
+
+  if (!Array.isArray(d.outEvents) || d.outEvents.some(event => typeof event !== 'string')) {
+    return fail('corrupt-state: the saved lamp event history is invalid');
+  }
+  d.outEvents = d.outEvents.slice(-LAMP_OUT_EVENT_LIMIT);
 
   const known = knownFor(d.roofed);
   const putOut = req.actions.filter((a) => a.action === 'put_out').map((a) => a.at).sort((x, y) => x - y)[0];
@@ -170,7 +225,13 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
     return { r, fatShare: pool > 0 ? s.fat / pool : 0 };
   };
   const sootOf = (s: Snap) => pv('lampSootBase') + (d.wickOut === 2 ? pv('lampSootLongWick') : 0) + pv('lampSootChar') * s.char;
-  const goOut = (why: string) => { d.ctl.lit = false; d.outEvents.push(why); };
+  const goOut = (why: string) => {
+    d.ctl.lit = false;
+    d.outEvents.push(why);
+    if (d.outEvents.length > LAMP_OUT_EVENT_LIMIT) {
+      d.outEvents.splice(0, d.outEvents.length - LAMP_OUT_EVENT_LIMIT);
+    }
+  };
 
   /** The state at time t inside the current cell: closed forms of the time since the cell's start (no decisions). */
   const at = (t: number): Snap => {
@@ -223,6 +284,10 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
     } else if (a.action === 'light') {
       if (a.params?.wickOut !== undefined) d.wickOut = a.params.wickOut as number;
       if (d.ctl.lit) return;
+      if (!wickCanLight(d.wickParts)) {
+        o(a.at, 'sight', 'flame', '湿っていて火がつかない');
+        return;
+      }
       const { r, fatShare } = draw(s);
       if (windAtLamp > pv('lampBlowoutMs') * (1 + 0.25 * d.wickOut) || rainOut) { o(a.at, 'sight', 'flame', rainOut ? '雨で火がつかない' : '風で火がすぐ消えてしまう'); return; }
       if (s.fat < 1000) { o(a.at, 'sight', 'flame', '皿の油がほとんどない'); return; }
@@ -264,20 +329,75 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const wasLit = d.ctl.lit;
   d.lastTo = endAt;
   if (!allFinite(d)) return fail('non-finite state: refusing to return it');
+
+  const burnedDryMg = Math.min(d.wick0, Math.ceil(d.s.wickBurned - 1e-6));
+  const trimmedDryMg = Math.min(d.wick0 - burnedDryMg, Math.round(d.s.trimmed));
+  const wickSettlement = ending
+    ? settleLampWick(d.wickParts, burnedDryMg, trimmedDryMg)
+    : null;
+  if (ending && d.wickParts.waterMg > 0) {
+    // Whole-mg wet settlement charges a whole mg of dry fuel. Book its heat
+    // once here, so a rounded mg of vapour never borrows unreported heat.
+    // Legacy dry runs keep their original heat rounding exactly.
+    const chargedExtraMg = Math.max(0, burnedDryMg - d.s.wickBurned);
+    d.s.usedJ += chargedExtraMg / 1e6 * pv('woodLhvDry');
+  }
   const u = intDeltaFloor(d.s.usedJ, d.reportedJ);
   d.reportedJ = u.reported;
   if (ending) d.ctl.lit = false;
+
+  // The tip evaporates only the water accompanying dry material that burns.
+  // Latent heat travels out with the vapour INSIDE lostJ, not on top of it.
+  // Pool temperature keeps the existing prescribed-temperature approximation.
+  const wickWaterEvaporatedMg = wickSettlement
+    ? wickSettlement.burned.waterMg
+    : d.s.wickBurned * d.wickParts.waterMg / d.wick0;
+  const wickLatentHeatJ = wickWaterEvaporatedMg / 1e6 * pv('latentHeatWater100');
+  // Separate only the new wick-water term. The remaining air-loss term
+  // keeps the old oil/pool model intact; it includes its heat and light.
+  const latentHeatJ = wickLatentHeatJ;
+  const otherAirHeatJ = d.s.usedJ - latentHeatJ;
+  if (otherAirHeatJ < -1e-6) {
+    return fail('latent heat exceeds the heat released by combustion');
+  }
   const res: ScienceStepResultV02 = {
     contract: req.contract, requestId: req.requestId, runId: req.runId, simulated: { from: req.interval.from, to: endAt },
     state: { schema: SCHEMA, data: d }, status: ending ? (putOut !== undefined && known ? 'completed' : 'stopped') : 'running',
     consumed: [], produced: [], released: [], drawn: [],
-    // the flame's heat all goes to the air (the little light it gives is counted in it)
+    // Total air loss includes direct heat/light AND the vapour's latent heat once.
     energy: u.delta === 0 ? [] : [{ sourceId: `src:combustion:${req.runId}`, kind: 'heat', usedJ: u.delta, lostJ: u.delta, storedJ: 0 }],
     equipmentWear: [], observations,
-    evidence: { evaluatorVersion: EVAL, sourceRefs: ['sisi-vanuatu-straight-coconut-oils-2020', 'kahwaji-white-coconut-pcm-2019', 'hughes-gale-lamp-consumption-2007', 'moullou-doulos-topalis-historical-lamp-photometry-2015'],
-      notes: 'ヤシ油の燃焼熱・融解の温度・古い油の灯りの油の消費と明るさの桁は資料の候補に近づけた仮定（同じ条件の校正ではない）。芯の吸い上げと焦げ、すす、風と雨、皿が油を吸う速さはすべて仮定' },
-    diagnostics: { lit: wasLit, poolC: d.s.poolC, liquid: liquid(d.s.poolC), char: d.s.char, wickOut: d.wickOut, fatGPerH: d.ctl.fatPerMs * 3.6e3,
-      lumens: wasLit ? pv('lampLumenPerGPerH') * d.ctl.fatPerMs * 3.6e3 : 0, lumenSeconds: d.s.lumenS, litSeconds: d.s.litS, burnedMg: d.s.fatBurned, soakedMg: d.s.soaked, outEvents: d.outEvents.join(',') },
+    evidence: {
+      evaluatorVersion: EVAL,
+      sourceRefs: [
+        'sisi-vanuatu-straight-coconut-oils-2020',
+        'kahwaji-white-coconut-pcm-2019',
+        'hughes-gale-lamp-consumption-2007',
+        'moullou-doulos-topalis-historical-lamp-photometry-2015',
+      ],
+      notes: 'ヤシ油の燃焼熱・融解の温度・古い油の灯りの油の消費と明るさの桁は資料の候補に近づけた仮定（同じ条件の校正ではない）。芯の吸い上げと焦げ、すす、風と雨、皿が油を吸う速さはすべて仮定'
+        + (d.wickParts.explicit
+          ? '。芯の水は乾物の1割まで点火でき、燃えた乾物に伴う水だけが先端で蒸発する。髄は乾いた木と同じ扱い（オーナーのキメ値）。'
+          : ''),
+    },
+    diagnostics: {
+      lit: wasLit,
+      poolC: d.s.poolC,
+      liquid: liquid(d.s.poolC),
+      char: d.s.char,
+      wickOut: d.wickOut,
+      fatGPerH: d.ctl.fatPerMs * 3.6e3,
+      lumens: wasLit ? pv('lampLumenPerGPerH') * d.ctl.fatPerMs * 3.6e3 : 0,
+      lumenSeconds: d.s.lumenS,
+      litSeconds: d.s.litS,
+      burnedMg: d.s.fatBurned,
+      soakedMg: d.s.soaked,
+      outEvents: d.outEvents.join(','),
+      wickWaterEvaporatedMg,
+      wickLatentHeatJ,
+      latentHeatJ,
+      otherAirHeatJ,
+    },
   };
   if (!ending) return res;
 
@@ -297,18 +417,52 @@ export function oilLampStep(req: ScienceStepRequest): ScienceStepResultV02 {
   const soakedTotal = d.soaked0 + soakedNew;
   if (soakedTotal > 0) res.produced.push({ materialId: 'coconut_oil', amount: { value: soakedTotal, unit: 'mg' }, into: d.dishId,
     quality: { x_coconut_fat_ppm: 1_000_000, soaked_in_dish: 1, history_complete: hist } });
-  const wickBurned = Math.min(d.wick0, Math.ceil(s.wickBurned - 1e-6)), trimmed = Math.min(d.wick0 - wickBurned, Math.round(s.trimmed));
-  const wickLeftMg = d.wick0 - wickBurned - trimmed;
-  if (wickLeftMg > 0) res.produced.push({ materialId: LAMP_WICK, amount: { value: wickLeftMg, unit: 'mg' }, into: d.dishId,
-    quality: { ...d.wickQ, char_ppm: Math.round(s.char * 1e6), history_complete: hist } });
-  if (trimmed > 0) res.produced.push({ materialId: 'wick_char', amount: { value: trimmed, unit: 'mg' }, into: d.dishId, quality: { history_complete: hist } });
-  // the fat: the soot path leaves carbon, the rest burns clean; the wick's fibre burns as dry wood
+  const wickBurned = burnedDryMg;
+  const trimmed = trimmedDryMg;
+  const wickMaterial = wickSettlement!;
+  const totalWickMg = (part: WickComposition) =>
+    part.fiberDryMg + part.pithDryMg + part.waterMg;
+  const wickLeftMg = totalWickMg(wickMaterial.left);
+  if (wickLeftMg > 0) {
+    const quality: Record<string, number> = {
+      ...d.wickQ,
+      char_ppm: Math.round(s.char * 1e6),
+      history_complete: hist,
+    };
+    if (d.wickParts.explicit) {
+      // A wick has one water pool. Do not carry stale bundle-water subdivisions.
+      delete quality.fiber_water_mg;
+      delete quality.attached_pith_water_mg;
+      Object.assign(quality, wickCompositionQuality(wickMaterial.left));
+    }
+    res.produced.push({
+      materialId: LAMP_WICK,
+      amount: { value: wickLeftMg, unit: 'mg' },
+      into: d.dishId,
+      quality,
+    });
+  }
+  if (trimmed > 0) {
+    res.produced.push({
+      materialId: 'wick_char',
+      amount: { value: totalWickMg(wickMaterial.trimmed), unit: 'mg' },
+      into: d.dishId,
+      quality: {
+        history_complete: hist,
+        ...(d.wickParts.explicit ? wickCompositionQuality(wickMaterial.trimmed) : {}),
+      },
+    });
+  }
+  // The fat's soot path leaves carbon; dry fibre AND attached pith burn as wood.
+  // Wick water is released separately and never enters the combustion reaction.
   const sootFat = Math.min(fatBurned, Math.round(s.sootFat));
   const rClean = react('coconut_fat', fatBurned - sootFat, REACTIONS.oilCombustion.coeffs, REACTIONS.oilCombustion.closeInto);
   const rSoot = react('coconut_fat', sootFat, REACTIONS.oilSooting.coeffs, REACTIONS.oilSooting.closeInto);
   const rWick = react('wood_dry', wickBurned, REACTIONS.woodCombustion.coeffs, REACTIONS.woodCombustion.closeInto);
   const rel = (materialId: string, mg: number) => { if (mg > 0) res.released.push({ materialId, amount: { value: mg, unit: 'mg' }, to: 'air' }); };
-  rel('water_vapour', waterGone + (rClean.produced.water ?? 0) + (rSoot.produced.water ?? 0) + (rWick.produced.water ?? 0));
+  rel('water_vapour', waterGone + wickMaterial.burned.waterMg
+    + (rClean.produced.water ?? 0) + (rSoot.produced.water ?? 0)
+    + (rWick.produced.water ?? 0));
   rel('process_co2', (rClean.produced.co2 ?? 0) + (rWick.produced.co2 ?? 0));
   rel('soot', rSoot.produced.organic_c ?? 0);
   const o2 = (rClean.consumed.o2 ?? 0) + (rSoot.consumed.o2 ?? 0) + (rWick.consumed.o2 ?? 0);
@@ -328,8 +482,20 @@ const lastOut = (why: string) => ({
   starved: '芯が油を吸わなくなって、灯が消えた', wick: '芯が燃え尽きて灯が消えた',
 } as Record<string, string>)[why] ?? '灯が消えた';
 
-/** The quality of a lamp_wick main makes (WICK_RECIPES). */
-export function wickQuality(fiber: 1 | 2 | 3, diameterMm: number): Record<string, number> {
-  if (![1, 2, 3].includes(fiber) || !finite(diameterMm, 2, 10)) throw new Error('fiber 1..3, diameterMm 2..10');
-  return { fiber, diameter_mm: diameterMm, char_ppm: 0 };
+/** The host chooses the material. Omitted composition keeps the old dry format;
+ * exact component mg explicitly retain the water and pith of a prepared bundle. */
+export function wickQuality(
+  fiber: 1 | 2 | 3,
+  diameterMm: number,
+  composition?: WickComposition,
+): Record<string, number> {
+  if (![1, 2, 3].includes(fiber) || !finite(diameterMm, 2, 10)) {
+    throw new Error('fiber 1..3, diameterMm 2..10');
+  }
+  return {
+    fiber,
+    diameter_mm: diameterMm,
+    char_ppm: 0,
+    ...(composition ? wickCompositionQuality(composition) : {}),
+  };
 }

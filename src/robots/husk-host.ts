@@ -1,0 +1,307 @@
+// The residents' hands on the coconut husk (the science side's PR20/PR22/PR31 parts, wired to the island's bodies:
+// 2026-10-17, main ↔ science). What a resident chooses (an option), where it stands and what its hands are doing are
+// the world's (residents.ts); the soaking, the separating and what comes of them are the science side's. This file is the
+// only place that calls them, and it passes them nothing but:
+//  - an intent (put the husks in the tide pool, take them out, start / go on with / hand over / stop / clear away the
+//    beating), made when the body is there (presence 'here' — never a plan, never a guess);
+//  - spans the executor has confirmed: the island-clock time the husks lay in the pool, and the world-clock time a
+//    resident's hands were at the husk at the worksite (split at every stop, every 30 s, never across a gap);
+// and it takes back only the words a resident could see or feel (observations), and the lots the work settled.
+// The science side's refusal codes, the amounts, the recipe and the times stay out of a resident's mind: they go to
+// the developer's log here (not saved, never in a diary, never in a post's prompt). The options are every hand action
+// the materials and places allow, not those the science side would accept, in an order seeded by the island, the
+// resident and the moment it decides — never in the order the work is done.
+import type { Ledger } from '../world/process-runner';
+import { toClock, moveLot } from '../world/process-runner';
+import type { Option } from './agent/types';
+import { draw } from '../science/rng';
+import { HUSK_SOAK_ASSUMPTION } from '../science/prototypes/husk-soak';
+import { MANUAL_HUSK_ASSUMPTION } from '../science/prototypes/manual-husk-assumptions';
+import {
+  beginHuskSoak, recordHuskSoakSpans, takeOutHuskSoak, readSoakedHuskInput,
+  readHuskSoakWorksite, huskWorkFailureObservations, restoreHuskSoak, HUSK_SOAK_WORK,
+  type HuskSoakSpan,
+} from '../world/husk-soak-work';
+import { applyHuskIntent, huskArrangementRevision, recordHuskWorkflowSpan, restoreHuskArrangement, readHuskResidentObservations, type HuskWorkflowLedger, type HuskStartFacts } from '../world/manual-husk-workflow';
+import { beginManualHuskWork, MANUAL_HUSK_WORK, type HuskExecutorSpan } from '../world/manual-husk-work';
+
+export interface HuskSite { id: string; x: number; z: number }
+/** The pool (science 2026-10-20, (c)): the husks lie at the lagoon's edge, where the tide covers them most of the time
+ *  (ground about −0.2 m: 60% of the year); `ground` is the ground there (m above mean sea level); `stand` the dry spot
+ *  a body stands on to reach them. A pool saved without them (before) is placed again where it was found (repool). */
+export interface HuskPool extends HuskSite { ground?: number; stand?: [number, number] }
+/** The world's own bookkeeping for the husk work (saved with the village): where the pool and the worksite are, how far
+ *  the pool's time has been confirmed, and who is at the husk now. Nothing in it is told to a resident. */
+export interface HuskHostState {
+  sites: { pool: HuskPool; work: HuskSite & { reachM: number } } | null;
+  soak: Record<string, number>;                         // runId → the world time confirmed so far
+  engaged: Record<string, { runId: string; from: number; at: { x: number; z: number } }>;   // actor → its hands on a husk
+  decisions: Record<string, number>;                     // actor → how many times it has been offered the husk work
+  looked?: Record<string, string>;                       // actor → what it last saw at the pool (so a sight is noted once)
+  tried?: Record<string, number>;                        // wet husk → when hands last tried it and it would not come apart
+  board?: boolean;                                       // the beating board stands at the worksite (once a husk was beaten there)
+}
+export const emptyHuskHostState = (): HuskHostState => ({ sites: null, soak: {}, engaged: {}, decisions: {}, looked: {} });
+/** The developer's record of what the science side said no to, and why (codes). Not saved; not a resident's. */
+export interface HuskDevEntry { at: number; actorId: string; action: string; code: string }
+
+const SEED = 0x6875736b;   // 'husk'
+const SOAK_EVERY_MS = 60_000, WORK_EVERY_MS = 30_000;
+/** A husk tried and found too little soaked is let be this long (world time, about half an island day) before it is
+ *  offered for beating again (science soak 2026-10-21: up to 26 tries in 12 hours). */
+const RETRY_BEAT_MS = 3_600_000;
+/** Under the water (science 2026-10-20): the sea at least this far above the husks' ground, at a span's middle. */
+export const IMMERSED_M = 0.05;
+/** How near the pool a body must stand to see into it (presence 'here'). */
+export const POOL_REACH_M = 3;
+const WET = 'wet_unseparated_coconut_husk';
+const codeOf = (e: unknown) => (e as { code?: string })?.code ?? (e instanceof Error ? e.message : String(e));
+const live = (status: string) => ['starting', 'running', 'needs-input'].includes(status);
+
+export interface HuskHost {
+  /** Every hand action on the husk the materials and places allow now, in a seeded order. */
+  options(actorId: string, nowWorldMs: number): Option[];
+  /** At the pool, the husks from the shelf put in: the words for what it did, or null (it could not). */
+  putInPool(actorId: string, nowWorldMs: number): string | null;
+  /** At the pool, the husks taken out. */
+  takeOut(actorId: string, nowWorldMs: number): string | null;
+  /** At the worksite, its hands on a husk: going on with its own, taking over another's, or a new one. */
+  beginBeating(actorId: string, at: { x: number; z: number }, nowWorldMs: number): { ok: true } | { ok: false; felt: string | null };
+  /** Each frame its hands are at it: the span confirmed every 30 s. Completed: the words for what lies there now. */
+  beating(actorId: string, at: { x: number; z: number }, nowWorldMs: number): { done: false } | { done: true; words: string[] };
+  /** It has stopped (any reason): the span so far confirmed, then the stop. */
+  stopBeating(actorId: string, at: { x: number; z: number }, nowWorldMs: number): void;
+  /** At the worksite, a husk left half done cleared away. */
+  clearAway(actorId: string, nowWorldMs: number): string | null;
+  isBeating(actorId: string): boolean;
+  /** What a body at the pool sees of the husks lying in it (presence 'here' only; away, nothing): new since it last
+   *  looked, or null. */
+  lookIntoPool(actorId: string, presence: 'here' | 'away', nowWorldMs: number): string | null;
+  /** The island's clock goes on: the time the husks lay in the pool, confirmed. */
+  tick(nowWorldMs: number): void;
+  /** At a load: open attendance closed (no work counted for the time it was off), the saved state checked. */
+  restore(nowWorldMs: number): void;
+  sites(): NonNullable<HuskHostState['sites']>;
+}
+
+export function makeHuskHost(ctx: {
+  lab: Ledger;
+  state: () => HuskHostState;
+  placeSites: () => NonNullable<HuskHostState['sites']>;
+  /** The pool placed again from where it was (a pool saved before it had its ground and its standing spot). None: kept
+   *  where it is, its husks always under (v1). */
+  repool?: (was: HuskSite) => HuskPool;
+  /** The sea's height at a world moment (time/sea-level.ts seaLevel: the time alone). None: mean sea level. */
+  seaAt?: (worldMs: number) => number;
+  dev: HuskDevEntry[];
+}): HuskHost {
+  const L = () => ctx.lab as HuskWorkflowLedger;
+  const st = () => ctx.state();
+  const sites = () => {
+    const s = (st().sites ??= ctx.placeSites());
+    if (s.pool.ground === undefined || !s.pool.stand) s.pool = ctx.repool?.(s.pool) ?? { ...s.pool, ground: -1, stand: [s.pool.x, s.pool.z] };   // (the id kept: the lots and the run there stay as they are)
+    return s;
+  };
+  // (whether the husks lay under the water over a span: the sea at the span's middle, against the pool's ground)
+  const immersed = (from: number, to: number) => (ctx.seaAt?.(Math.floor((from + to) / 2)) ?? 0) >= sites().pool.ground! + IMMERSED_M;
+  // (husks taken out are carried up off the shore, out of the tide's reach: the worksite — never left in the water, wet
+  // and not soaking; science 2026-10-20)
+  const carryUp = (nowWorldMs: number) => {
+    for (const l of Object.values(L().lots) as any[]) if (l.materialId === WET && !l.reservedBy && l.location === sites().pool.id) {
+      const m = moveLot(L(), l.lotId, sites().work.id); if (!m.lot) log(nowWorldMs, '', 'carry-up', m.why);
+    }
+  };
+  const log = (at: number, actorId: string, action: string, e: unknown) => { ctx.dev.push({ at, actorId, action, code: codeOf(e) }); if (ctx.dev.length > 200) ctx.dev.shift(); };
+  const island = (ms: number) => Math.round(toClock('island', ms));
+  const soakRuns = () => Object.values(L().runs).filter((r) => r.processId === HUSK_SOAK_WORK.processId && live(r.status));
+  const jobs = () => L().manualHuskArrangement?.jobs ?? [];
+  const engagedNow = (j: { controls: { kind: string }[] }) => ['start', 'resume', 'takeover'].includes(j.controls.at(-1)!.kind);
+  // (a place is full when a body could not put anything more there: the pool holds one soaking, the worksite one husk
+  // in someone's hands — what the science side would accept is not asked here)
+  const poolFull = () => soakRuns().some((r) => (r.state?.data as any)?.spec?.site?.locationId === sites().pool.id);
+  const workTakenBy = (actorId: string) => jobs().some((j) => live(L().runs[j.runId]?.status ?? '') && engagedNow(j) && j.actorId !== actorId);
+  const pausedJobs = () => jobs().filter((j) => live(L().runs[j.runId]?.status ?? '') && !engagedNow(j));
+  const shelfHusk = () => Object.values(L().lots)
+    .filter(l => !l.reservedBy && (
+      l.materialId === 'coconut_husk' && l.location === 'shelf'
+      || l.materialId === WET && ['shelf', sites().pool.id, sites().work.id].includes(l.location)
+    ))
+    .sort((a, b) => Number(a.materialId === WET) - Number(b.materialId === WET)
+      || a.lotId.localeCompare(b.lotId))[0];
+  const wetHusks = () => Object.values(L().lots).filter((l: any) => l.materialId === WET && !l.reservedBy && [sites().pool.id, sites().work.id].includes(l.location)).sort((a, b) => a.lotId.localeCompare(b.lotId));
+
+  // (wet husks to beat: not one tried a little while ago and found too little soaked)
+  const beatable = (nowWorldMs: number) => wetHusks().filter((l) => !(nowWorldMs - (st().tried?.[l.lotId] ?? -Infinity) < RETRY_BEAT_MS));
+  function options(actorId: string, nowWorldMs: number): Option[] {
+    const o: Option[] = [];
+    if (shelfHusk() && !poolFull()) o.push({ id: 'soak:pool', action: 'soak', label: 'ヤシの殻を潮だまりに浸ける', targetId: 'pool' });
+    if (soakRuns().length) o.push({ id: 'takeout:pool', action: 'takeout', label: '潮だまりの殻を引き上げる', targetId: 'pool' });
+    if ((beatable(nowWorldMs).length || pausedJobs().length) && !workTakenBy(actorId)) o.push({ id: 'beat:husk', action: 'beat', label: '濡れた殻を打ってほぐす', targetId: 'husk-site' });
+    if (pausedJobs().length && !workTakenBy(actorId)) o.push({ id: 'clear:husk', action: 'clear', label: '打ちかけの殻を片付ける', targetId: 'husk-site' });
+    // (no order of the work: shuffled by the island, the one deciding and the moment — the same moment, the same order)
+    const n = (st().decisions[actorId] = (st().decisions[actorId] ?? 0) + 1);
+    return o.map((x) => [x, draw(SEED, actorId, String(nowWorldMs), String(n), 'options', x.id)] as const).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+  }
+
+  function putInPool(actorId: string, nowWorldMs: number): string | null {
+    const lot = shelfHusk(); if (!lot) return null;
+    const pool = sites().pool, was = lot.location;
+    // (carried there first: the world's own move, before the science side is told)
+    const moved = moveLot(L(), lot.lotId, pool.id); if (!moved.lot) { log(nowWorldMs, actorId, 'soak-carry', moved.why); return null; }
+    try {
+      beginHuskSoak(L(), { commandId: `soak:${actorId}:${nowWorldMs}`, assumptionId: HUSK_SOAK_ASSUMPTION.id, actorId, lotId: lot.lotId,
+        site: { locationId: pool.id, kind: 'coastal-tide-pool' }, atWorldMs: nowWorldMs, atIslandMs: island(nowWorldMs), presence: 'here' }, nowWorldMs);
+      for (const r of soakRuns()) st().soak[r.runId] ??= nowWorldMs;
+      return '殻を潮だまりに沈めた';
+    } catch (e) { moveLot(L(), lot.lotId, was); log(nowWorldMs, actorId, 'soak', e); return null; }
+  }
+
+  // The pool's time, confirmed in spans of a minute of the world's clock (about 13 island minutes): each one under the
+  // water or not by the sea at its middle (science 2026-10-20, (c)). A long time away — the world closed, up to 12
+  // hours — is sent the same way, a minute at a time, so the tide's comings and goings are in it; the sea is the time's
+  // alone, so a reload gives the same spans as staying open. `all`: up to now, the last part-minute too (taking out).
+  function tick(nowWorldMs: number, all = false) {
+    for (const r of soakRuns()) {
+      const from = st().soak[r.runId];
+      if (from === undefined) {
+        st().soak[r.runId] = nowWorldMs;
+        continue;
+      }
+      const spans: HuskSoakSpan[] = [];
+      let through = from;
+      while (nowWorldMs - through >= SOAK_EVERY_MS || (all && nowWorldMs > through)) {
+        const to = Math.min(nowWorldMs, through + SOAK_EVERY_MS);
+        spans.push({
+          recordId: `${r.runId}:${through}`,
+          worldId: L().world.worldId,
+          worldEpoch: L().world.worldEpoch,
+          runId: r.runId,
+          siteId: sites().pool.id,
+          fromWorldMs: through,
+          toWorldMs: to,
+          fromIslandMs: island(through),
+          toIslandMs: island(to),
+          confirmedAtWorldMs: to,
+          immersed: immersed(through, to),
+        });
+        through = to;
+      }
+      if (spans.length === 0) continue;
+      try {
+        // Keep the same minute records, tide checks and IDs. A catch-up settles
+        // them in one atomic transaction; the host cursor moves only on success.
+        recordHuskSoakSpans(L(), r.runId, spans, nowWorldMs);
+        st().soak[r.runId] = through;
+      } catch (error) {
+        log(nowWorldMs, '', 'soak-span', error);
+      }
+    }
+  }
+
+  function takeOut(actorId: string, nowWorldMs: number): string | null {
+    const r = soakRuns()[0]; if (!r) return null;
+    tick(nowWorldMs, true);   // (up to the moment it lifts them out: no time left unconfirmed, none made up)
+    try {
+      takeOutHuskSoak(L(), r.runId, { intentId: `takeout:${actorId}:${nowWorldMs}`, kind: 'take-out', actorId, presence: 'here', atWorldMs: nowWorldMs, atIslandMs: island(nowWorldMs) }, nowWorldMs);
+      delete st().soak[r.runId];
+      carryUp(nowWorldMs);
+      return readHuskSoakWorksite(L(), r.runId).observations[0]?.text ?? null;
+    } catch (e) { log(nowWorldMs, actorId, 'takeout', e); return null; }
+  }
+
+  function intent(i: Parameters<typeof applyHuskIntent>[1], nowWorldMs: number, facts?: HuskStartFacts) {
+    return applyHuskIntent(L(), i, huskArrangementRevision(L()), nowWorldMs, facts);
+  }
+
+  function beginBeating(actorId: string, at: { x: number; z: number }, nowWorldMs: number): { ok: true } | { ok: false; felt: string | null } {
+    const work = sites().work, base = { atWorldMs: nowWorldMs, actorId };
+    try {
+      const own = pausedJobs().find((j) => j.actorId === actorId), other = pausedJobs().find((j) => j.actorId !== actorId);
+      let runId: string;
+      if (own) runId = intent({ intentId: `resume:${actorId}:${nowWorldMs}`, kind: 'resume', runId: own.runId, presence: 'here', ...base }, nowWorldMs).runId;
+      else if (other) runId = intent({ intentId: `takeover:${actorId}:${nowWorldMs}`, kind: 'takeover', runId: other.runId, presence: 'here', ...base }, nowWorldMs).runId;
+      else {
+        const lot = beatable(nowWorldMs)[0]; if (!lot) return { ok: false, felt: null };
+        // (it carries the husk to the worksite: the world's own move)
+        const moved = moveLot(L(), lot.lotId, work.id); if (!moved.lot) { log(nowWorldMs, actorId, 'beat-carry', moved.why); return { ok: false, felt: null }; }
+        const facts: HuskStartFacts = { assumptionId: MANUAL_HUSK_ASSUMPTION.id, huskCount: 1, input: readSoakedHuskInput(L(), lot.lotId) as any,
+          worksite: { locationId: work.id, x: work.x, z: work.z, reachM: work.reachM } };
+        // (it puts its hands to the husk: if the husk will not come apart, the science side's own refusal, as it felt —
+        // tried on a copy, since the arrangement's transaction hides that refusal behind its own code)
+        try { beginManualHuskWork(structuredClone(L()), { ...facts, commandId: 'trial', operatorId: actorId, openedAtWorldMs: nowWorldMs }); }
+        catch (e) {
+          log(nowWorldMs, actorId, 'beat-trial', e);
+          const tried = (st().tried ??= {}); tried[lot.lotId] = nowWorldMs;
+          for (const id of Object.keys(tried)) if (!L().lots[id]) delete tried[id];   // (husks no longer there: forgotten)
+          const felt = huskWorkFailureObservations(e, { kind: 'executor-confirmed-husk-attempt', actorId, lotId: lot.lotId, presence: 'here', attempted: true, atWorldMs: nowWorldMs, confirmedAtWorldMs: nowWorldMs }, nowWorldMs);
+          return { ok: false, felt: felt[0]?.text ?? null };
+        }
+        runId = intent({ intentId: `start:${actorId}:${nowWorldMs}`, kind: 'start', processId: MANUAL_HUSK_WORK.processId, lotId: lot.lotId, siteId: work.id, presence: 'here', ...base }, nowWorldMs, facts).runId;
+      }
+      st().engaged[actorId] = { runId, from: nowWorldMs, at: { x: at.x, z: at.z } };
+      st().board = true;
+      return { ok: true };
+    } catch (e) { log(nowWorldMs, actorId, 'beat', e); return { ok: false, felt: null }; }
+  }
+
+  function confirm(actorId: string, at: { x: number; z: number }, nowWorldMs: number) {
+    const e = st().engaged[actorId]; if (!e || nowWorldMs <= e.from) return;
+    const span: HuskExecutorSpan = { kind: 'executor-activity-span', spanId: `${actorId}:${e.from}`, worldId: L().world.worldId, worldEpoch: L().world.worldEpoch, runId: e.runId, actorId,
+      fromWorldMs: e.from, toWorldMs: nowWorldMs, confirmedAtWorldMs: nowWorldMs, activity: 'separate-wet-husk', targetLotId: jobs().find((j) => j.runId === e.runId)?.lotId ?? null,
+      targetSiteId: sites().work.id, arrived: true, fromPosition: { ...e.at }, toPosition: { x: at.x, z: at.z } };
+    try { recordHuskWorkflowSpan(L(), e.runId, span, huskArrangementRevision(L()), nowWorldMs); } catch (err) { log(nowWorldMs, actorId, 'beat-span', err); }
+    e.from = nowWorldMs; e.at = { x: at.x, z: at.z };
+  }
+
+  function beating(actorId: string, at: { x: number; z: number }, nowWorldMs: number): { done: false } | { done: true; words: string[] } {
+    const e = st().engaged[actorId]; if (!e) return { done: false };
+    if (nowWorldMs - e.from >= WORK_EVERY_MS) confirm(actorId, at, nowWorldMs);
+    const run = L().runs[e.runId];
+    if (!run || !live(run.status)) {
+      delete st().engaged[actorId];
+      const words = (() => { try { return readHuskResidentObservations(L(), e.runId, actorId).map((o) => o.text); } catch (err) { log(nowWorldMs, actorId, 'observe', err); return []; } })();
+      return { done: true, words };
+    }
+    return { done: false };
+  }
+
+  function stopBeating(actorId: string, at: { x: number; z: number }, nowWorldMs: number) {
+    const e = st().engaged[actorId]; if (!e) return;
+    confirm(actorId, at, nowWorldMs);
+    delete st().engaged[actorId];
+    if (!live(L().runs[e.runId]?.status ?? '')) return;
+    try { intent({ intentId: `stop:${actorId}:${nowWorldMs}`, kind: 'stop', runId: e.runId, atWorldMs: nowWorldMs, actorId }, nowWorldMs); } catch (err) { log(nowWorldMs, actorId, 'stop', err); }
+  }
+
+  function clearAway(actorId: string, nowWorldMs: number): string | null {
+    const j = pausedJobs().find((x) => x.actorId === actorId) ?? pausedJobs()[0]; if (!j) return null;
+    try {
+      if (j.actorId !== actorId) {   // (another's half-done husk: it takes it on, puts it down, and clears it away)
+        intent({ intentId: `takeover:${actorId}:${nowWorldMs}`, kind: 'takeover', runId: j.runId, presence: 'here', atWorldMs: nowWorldMs, actorId }, nowWorldMs);
+        intent({ intentId: `stop:${actorId}:${nowWorldMs}`, kind: 'stop', runId: j.runId, atWorldMs: nowWorldMs, actorId }, nowWorldMs);
+      }
+      intent({ intentId: `abandon:${actorId}:${nowWorldMs}`, kind: 'abandon', runId: j.runId, atWorldMs: nowWorldMs, actorId }, nowWorldMs);
+      return readHuskResidentObservations(L(), j.runId, actorId)[0]?.text ?? null;
+    } catch (e) { log(nowWorldMs, actorId, 'clear', e); return null; }
+  }
+
+  function lookIntoPool(actorId: string, presence: 'here' | 'away', nowWorldMs: number): string | null {
+    if (presence !== 'here') return null;
+    const r = soakRuns().find((x) => (x.state?.data as any)?.spec?.site?.locationId === sites().pool.id); if (!r) return null;
+    let text: string | undefined;
+    try { text = readHuskSoakWorksite(L(), r.runId).observations[0]?.text; } catch (e) { log(nowWorldMs, actorId, 'look', e); return null; }
+    const seen = (st().looked ??= {}), key = `${r.runId}|${text}`;
+    if (!text || seen[actorId] === key) return null;
+    seen[actorId] = key; return text.replace(/。$/, '');
+  }
+
+  function restore(nowWorldMs: number) {
+    st().engaged = {};   // (no hands are at a husk across a load: its time off is not work)
+    try { Object.assign(ctx.lab, restoreHuskSoak(L())); } catch (e) { log(nowWorldMs, '', 'restore-soak', e); }
+    carryUp(nowWorldMs);   // (husks taken out before, and left at the pool: carried up)
+    if (!L().manualHuskArrangement) return;
+    try { Object.assign(ctx.lab, restoreHuskArrangement(L(), nowWorldMs)); } catch (e) { log(nowWorldMs, '', 'restore-husk', e); }
+  }
+
+  return { options, putInPool, takeOut, beginBeating, beating, stopBeating, clearAway, isBeating: (a) => !!st().engaged[a], lookIntoPool, tick, restore, sites };
+}

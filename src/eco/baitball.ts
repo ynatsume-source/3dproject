@@ -21,6 +21,7 @@ import { U } from '../render/common';
 import { clamp, R, rr } from '../core/math';
 import type { Species } from '../data/locations';
 import type { Env, Subject } from './env';
+import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 type Phase = 'school' | 'gather' | 'herd' | 'frenzy' | 'scatter';
 const UP = new THREE.Vector3(0, 1, 0);
@@ -202,7 +203,7 @@ export function makeBaitBall(oc: any, fraction: number) {
         const past = want.dot(p.v) < 0 && dC > st.r + 1.5;
         want.normalize(); speed = pk.speed;
         if (past || p.t > 4) { p.mode = 'glide'; p.t = 0; }
-        if (p.p.y > -0.8 && pk.leaper && p.v.y > 1 && R() < 0.4) { p.mode = 'leap'; p.v.y = rr(3, 5); splashAt(p.p.x, p.p.z, 0.5); audio.plop(p.p.distanceTo(cam)); }
+        if (p.p.y - waterTopAt(p.p.x, p.p.z) > -0.8 && pk.leaper && p.v.y > 1 && R() < 0.4) { p.mode = 'leap'; p.v.y = rr(3, 5); splashAt(p.p.x, p.p.z, 0.5); audio.plop(p.p.distanceTo(cam)); }
         else if (p.p.y > -1.2 && R() < dt * 3) splashAt(p.p.x, p.p.z, 0.25);
         if (p.p.y < -0.3 && R() < 0.4) bubblesAt(p.p.x, p.p.y, p.p.z, 1);
       } else if (p.mode === 'glide') {
@@ -212,7 +213,7 @@ export function makeBaitBall(oc: any, fraction: number) {
       } else if (p.mode === 'leave') { want.set(p.home.x - p.p.x, (p.home.y - p.p.y) * 0.3, p.home.z - p.p.z).normalize(); speed = pk.speed * 0.4; }
       if (p.mode === 'leap') {
         p.v.y -= 9.8 * dt;
-        if (p.p.y < 0 && p.v.y < 0) { splashAt(p.p.x, p.p.z, 0.7); audio.plop(p.p.distanceTo(cam)); p.mode = 'glide'; p.t = 0; p.v.y *= 0.3; }
+        if (p.p.y < waterTopAt(p.p.x, p.p.z) && p.v.y < 0) { splashAt(p.p.x, p.p.z, 0.7); audio.plop(p.p.distanceTo(cam)); p.mode = 'glide'; p.t = 0; p.v.y *= 0.3; }
       } else {
         // a fish swims forward and turns at a fish's rate; never sliding backwards
         if (!p.dir) p.dir = p.v.lengthSq() > 1e-4 ? p.v.clone().normalize() : new THREE.Vector3(1, 0, 0);
@@ -223,10 +224,10 @@ export function makeBaitBall(oc: any, fraction: number) {
         }
         p.spd = (p.spd ?? p.v.length()) + (speed - (p.spd ?? p.v.length())) * Math.min(1, dt * (p.mode === 'strike' ? 3 : 1.2));
         p.v.copy(p.dir).multiplyScalar(p.spd);
-        if (p.p.y > -0.35 && p.v.y > 0) { p.v.y *= 0.3; p.dir.y *= 0.3; p.dir.normalize(); }
+        if (p.p.y - waterTopAt(p.p.x, p.p.z) > -0.35 && p.v.y > 0) { p.v.y *= 0.3; p.dir.y *= 0.3; p.dir.normalize(); }
       }
       p.p.addScaledVector(p.v, dt);
-      if (p.mode !== 'leap') p.p.y = Math.min(p.p.y, -0.3);
+      if (p.mode !== 'leap') p.p.y = Math.min(p.p.y, waterTopAt(p.p.x, p.p.z) - 0.3);
       if (!loc.pelagic) p.p.y = Math.max(p.p.y, T.top(p.p.x, p.p.z) + 0.8);
     }
     st.pressure = pressing;
@@ -262,7 +263,7 @@ export function makeBaitBall(oc: any, fraction: number) {
     const ballY = st.phase === 'gather' ? schoolY + 2 : st.phase === 'scatter' ? schoolY - 4 : -st.r * 0.8 - 0.4 - Math.max(0, 3 - pressing) * 1.2;
     // (clear of the bottom by the loose school's half-height or the ball's, and its middle never out of the water — the
     // frenzy's top breaks the surface, its middle stays under)
-    st.c.y += (Math.min(Math.max(schoolY + (ballY - schoolY) * st.ballK, floor + Math.min(st.r * 0.5, 4) + 1), -1.5) - st.c.y) * Math.min(1, dt * 0.2);
+    st.c.y += (Math.min(Math.max(schoolY + (ballY - schoolY) * st.ballK, floor + Math.min(st.r * 0.5, 4) + 1), waterTopAt(st.c.x, st.c.z) - 1.5) - st.c.y) * Math.min(1, dt * 0.2);
     if (st.ballK > 0.3) {
       // it shifts and bulges away from whoever is closest, but holds its ground
       _a.set(U.uCurrent.value.x * 0.15, 0, U.uCurrent.value.y * 0.15);
@@ -340,7 +341,7 @@ export function makeBaitBall(oc: any, fraction: number) {
       if (vl > mx) { vx *= mx / vl; vy *= mx / vl; vz *= mx / vl; }
       const kk = Math.min(1, dt * (fear ? 8 : 3.5));
       bv[i * 3] += (vx - bv[i * 3]) * kk; bv[i * 3 + 1] += (vy - bv[i * 3 + 1]) * kk; bv[i * 3 + 2] += (vz - bv[i * 3 + 2]) * kk;
-      const nx = px + bv[i * 3] * dt, ny = Math.min(py + bv[i * 3 + 1] * dt, -0.15), nz = pz + bv[i * 3 + 2] * dt;
+      const nx = px + bv[i * 3] * dt, nz = pz + bv[i * 3 + 2] * dt, ny = Math.min(py + bv[i * 3 + 1] * dt, waterTopAt(nx, nz) - 0.15);
       bp[i * 3] = nx; bp[i * 3 + 1] = ny; bp[i * 3 + 2] = nz;
       // facing the way they swim: along the school, or round the mill
       const th = ang[i] + st.t * w * (0.8 + rf[i] * 0.4);

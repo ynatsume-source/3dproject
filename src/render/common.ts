@@ -23,6 +23,8 @@ export const U = {
   // the residents' own lights after dark: where each pool of light falls (xyz, strength), its size, its colour
   uLights: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(0, -100, 0, 0)) }, uLightR: { value: new THREE.Vector4(2.5, 2.5, 2.5, 2.5) }, uLightC: { value: [0, 1, 2, 3].map(() => new THREE.Vector3(1, 1, 1)) },
   uAbs: { value: new THREE.Vector3(0.1, 0.04, 0.03) },
+  uSeaH: { value: 0 },   // (the sea's height now, m above mean sea level: time/sea-level.ts, set by ocean/air.ts setSeaLevel)
+  uWetH: { value: 0 },   // (the highest the sea stood a little while ago: what lies below it is still wet — ocean/wet.ts, render/reef-lit.ts)
   uSand: { value: new THREE.Color() }, uRock: { value: new THREE.Color() },
   // sky, driven by the clock
   uSunDir: { value: new THREE.Vector3(0.3162, 0.9035, 0.2891) },
@@ -83,7 +85,7 @@ vec2 caveLight(vec3 wp){
 
 export const COMMON = /* glsl */ `
 uniform float uTime; uniform vec3 uCamPos; uniform vec3 uCamFwd; uniform float uA2C;
-uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs;
+uniform vec3 uUp; uniform vec3 uHor; uniform vec3 uDown; uniform float uFogDen; uniform float uLamp; uniform vec3 uLampPos; uniform vec3 uLampDir; uniform vec4 uSpot; uniform vec4 uFire; uniform vec4 uCut; uniform float uHaze; uniform vec4 uLights[4]; uniform vec4 uLightR; uniform vec3 uLightC[4]; uniform vec3 uAbs; uniform float uSeaH; uniform float uWetH;
 uniform vec3 uSunDir; uniform float uSunI; uniform float uAmb; uniform float uNight; uniform vec3 uTint;
 uniform vec3 uShaftCol; uniform float uShaftI; uniform float uGolden;
 uniform float uWave; uniform float uRain; uniform float uFlash; uniform float uFlashW; uniform float uCloud; uniform vec3 uWind; uniform float uMurk;
@@ -117,7 +119,7 @@ float caustic(vec2 uv, float t){
 }
 // caustics are projected along the (refracted) sun direction and fade as the sun gets low
 float caus2(vec3 wp){
-  vec2 xz = wp.xz - SUN.xz / max(SUN.y, 0.3) * wp.y;
+  vec2 xz = wp.xz - SUN.xz / max(SUN.y, 0.3) * (wp.y - uSeaH);
   float c = caustic(xz * 0.075, uTime * 0.45) * 0.65;
   if (uLowFx < 0.5) c += caustic(xz * 0.13 + vec2(3.1, 1.7), uTime * 0.35) * 0.45; else c *= 1.5;   // (the lightest tier: the one net, as bright)
   return c * uSunI * 1.35 * smoothstep(0.5, 0.88, SUN.y) * caveLight(wp).x;   // (the dancing net of sunlight on the bottom: strong)
@@ -148,12 +150,12 @@ vec3 waterCol(vec3 dir){
   vec3 c = dir.y > 0.0 ? mix(uHor, uUp, pow(dir.y, 0.7)) : mix(uHor, uDown, pow(-dir.y, 0.55));
   c *= mix(vec3(1.0), uTint, 0.6 - 0.35 * uGolden);   // at golden hour the water stays blue; the warmth is in the direct light
   c = mix(c, vec3(dot(c, vec3(0.3, 0.5, 0.2))) * vec3(0.62, 0.9, 1.05), uNight * 0.55);   // moonlit water: silvery teal, not royal blue
-  return c * mix(0.32, 1.0, exp(min(uCamPos.y, 0.0) * 0.035)) * uAmb;
+  return c * mix(0.32, 1.0, exp(min(uCamPos.y - uSeaH, 0.0) * 0.035)) * uAmb;
 }
-vec3 absorb(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs); }
+vec3 absorb(vec3 col, float y){ return col * exp(-max(uSeaH - y, 0.0) * uAbs); }
 // what a surface down there shows: lit through the water above it, but as a camera with its colour set for
 // the reef sees it (the near reef keeps its tan and ochre; the water itself still turns blue with distance)
-vec3 absorbSeen(vec3 col, float y){ return col * exp(-max(-y, 0.0) * uAbs * vec3(0.5, 0.78, 1.0)); }
+vec3 absorbSeen(vec3 col, float y){ return col * exp(-max(uSeaH - y, 0.0) * uAbs * vec3(0.5, 0.78, 1.0)); }
 // a life's wear on a big animal's skin (q: coordinates over the skin, in cells): here and there a short
 // pale scar or a rake of two or three parallel ones (teeth, coral, fishing line), and the odd round
 // healed bite (a cookie-cutter shark's); returns how scarred this spot is 0..1
@@ -209,9 +211,9 @@ vec3 hazeCol(vec3 dir){
   vec3 h = waterCol(dir) * (1.0 + (0.28 * pow(mu, mix(mix(5.0, 24.0, uGolden), 700.0, uNight)) * uGlowK + 0.1 * max(dir.y, 0.0)) * uSunI) * (1.0 + uFlashW * 2.0);
   // without the volumetric pass (light tier), its glow still has to be there: sunlight scattered forward
   // out of the water toward the eye, strongest toward the sun and at golden hour, when it carries the colour
-  if (uVolOff > 0.5 && uCamPos.y < 0.0) {
+  if (uVolOff > 0.5 && uCamPos.y < uSeaH) {
     float m2 = dot(dir, SUN), hg = (1.0 - 0.5184) / pow(1.5184 - 1.44 * m2, 1.5);
-    h += uShaftCol * uShaftI * (hg * uGlowK + 0.6) * (0.05 + 0.2 * uGolden) * exp(uAbs * uCamPos.y * 0.6) * uCamCave * mix(1.0, 0.2, uNight);   // (the moon: far less than the sun)
+    h += uShaftCol * uShaftI * (hg * uGlowK + 0.6) * (0.05 + 0.2 * uGolden) * exp(uAbs * (uCamPos.y - uSeaH) * 0.6) * uCamCave * mix(1.0, 0.2, uNight);   // (the moon: far less than the sun)
   }
   return h;
 }
@@ -321,10 +323,10 @@ vec3 skyAir(vec3 d, float disks){
 // down at the surface), then air between the surface and the eye.
 vec3 fogAir(vec3 col, vec3 wp){
   vec3 v = wp - uCamPos; float d = length(v); vec3 dir = v / max(d, 1e-3);
-  if (wp.y < 0.0) {
+  if (wp.y < uSeaH) {
     float ca = max(-dir.y, 0.02), sa = sqrt(1.0 - ca * ca), sw = sa / 1.333, cw = sqrt(1.0 - sw * sw);
     float edge = max(abs(wp.x), abs(wp.z));
-    float dw = -wp.y / cw + smoothstep(SEA_WORLD - 143.0, SEA_WORLD - 26.0, edge) * 160.0;   // past the modelled seabed, the reef drops into the blue (in its last stretch only: an island's survey reaches far)
+    float dw = (uSeaH - wp.y) / cw + smoothstep(SEA_WORLD - 143.0, SEA_WORLD - 26.0, edge) * 160.0;   // past the modelled seabed, the reef drops into the blue (in its last stretch only: an island's survey reaches far)
     dw += d * 0.08;   // the moving surface scrambles what lies far off below it
     vec3 dirW = normalize(vec3(dir.x * sw / max(sa, 1e-4), -cw, dir.z * sw / max(sa, 1e-4)));
     vec3 T = exp(-uFogDen * (1.0 + 2.2 * uMurk) * vec3(1.4, 1.0, 0.78) * dw);
@@ -351,7 +353,7 @@ vec3 fogWater(vec3 col, vec3 wp){
 // from a branch: Direct3D (Windows) on some GPUs cannot compile an early return here in a shader that
 // also reads textures, and the GPU resets.
 vec3 fogIt(vec3 col, vec3 wp){
-  return mix(fogWater(col, wp), fogAir(col, wp), step(0.0, uCamPos.y));
+  return mix(fogWater(col, wp), fogAir(col, wp), step(uSeaH, uCamPos.y));
 }
 // light reaching a surface with normal n; cl = caveLight() where the surface is (sun, sky)
 vec3 lightAt(vec3 n, vec2 cl){ return mix(vec3(1.0), uTint, 1.0 - 0.6 * uGolden) * uAmb * 0.42 * mix(0.16, 1.0, sqrt(cl.y)) * (1.0 + uFlashW * 3.0) + uTint * uSunI * 0.8 * max(dot(n, SUN), 0.0) * cl.x; }

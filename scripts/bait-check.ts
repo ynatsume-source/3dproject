@@ -9,6 +9,9 @@ import * as THREE from 'three';
 import { LOCATIONS } from '../src/data/locations';
 import { buildOcean } from '../src/ocean/build';
 import { skyState } from '../src/time/clock';
+import { mulberry32 } from '../src/core/math';
+// (one seed, so a run is the same run each time: SEED=n for another)
+Math.random = mulberry32(Number(process.env.SEED ?? 1));
 
 let bad = 0;
 for (const id of process.argv.slice(2).length ? process.argv.slice(2) : ['miyako', 'pacific']) {
@@ -26,7 +29,8 @@ for (const id of process.argv.slice(2).length ? process.argv.slice(2) : ['miyako
     const t0 = performance.now();
     const evs = oc.eco.step(dt, t, cam, fx / fl, fz / fl);
     ms += performance.now() - t0; n++;
-    for (const e of evs) if (/ベイト|身を寄せ|群れがほどけ/.test(e.text)) { console.log(`   ${t.toFixed(0).padStart(5)}s log: ${e.text}`); if (s.ballK < 0.4) early++; }
+    for (const e of evs) if (/ベイト|身を寄せ合い|群れがほどけ/.test(e.text))   // (the ball's own words — not a reef school's 「サンゴへさっと身を寄せた」, eco/fish.ts)
+      { console.log(`   ${t.toFixed(0).padStart(5)}s log: ${e.text}`); if (s.ballK < 0.4) early++; }
     if (!isFinite(s.c.x + s.c.y + s.c.z)) nan++;
     if (s.c.y > -0.5) out++;
     if (s.phase !== last) {

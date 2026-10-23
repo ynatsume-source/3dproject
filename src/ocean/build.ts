@@ -7,6 +7,7 @@ import { makeBreach } from '../eco/breach';
 import * as THREE from 'three';
 import { U, mat, VS_WORLD } from '../render/common';
 import { SURFACE, SURF_UNIFORMS } from '../render/surface';
+import { REEF_LIT } from '../render/reef-lit';
 import { fbm, smooth, clamp, seedRandom, R, rr, pick, TERR, hyp } from '../core/math';
 import { WORLD, LIMIT, HN, oceanScene } from './scenery';
 import { CORAL_GEO, CORAL_MAT, CORAL_GEO_HI, CORAL_MAT_HI, PALETTE, makeTurtle, MANTA_GEO, mantaMaterial, _q, _e, _m4, _p3, _s3 } from './models';
@@ -34,9 +35,13 @@ import { Wreck, wreckMaterial } from './wreck';
 import { buildShore, landUniforms, LAND_FLOOR } from './shore';
 import { landOf } from './land';
 import { classifyWaterSteps } from './water';
+import { tideTop } from '../time/sea-level';
 import { due, drain } from '../core/slice';
 export { setSliceEnd } from '../core/slice';
 import { makeResidents } from '../robots/residents';
+import { makeCoirLook, coirLookTest } from '../robots/coir-look';
+import { makeCrabLook, makeBurrowLook, crabLookTest, crabTestPoses } from './crab';
+import { makeCrabHost } from '../eco/crab-host';
 import { Bodies, bodyOf, type Body } from './substrate';
 
 /* ================= building a sea ================= */
@@ -244,7 +249,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   const group = new THREE.Group();
   const oc: any = { loc, T, group, cave, cells: [], anemones: [], fish: [], turtles: [], mantas: [], colonies: [], grassTex: null, eco: null };
   yield 'seabed';
-  oc.water = yield* classifyWaterSteps(loc.f, loc.land ? loc.land.far : 0);   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
+  oc.water = yield* classifyWaterSteps(loc.f, loc.land ? loc.land.far : 0, 2, loc.land ? tideTop(loc) : undefined);   // (the tide's top: its own sea's, where it has a shore)   // what kind of water is where: the sea, a lagoon, a pool cut off from it (src/ocean/water.ts)
   yield 'seabed';
   // a wreck on the sand: solid to everything that swims (its outline into the obstacle map)
   const wreck = loc.wreck ? new Wreck(loc.wreck, loc.f) : null;
@@ -293,14 +298,14 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   const floorMat = (defs: Record<string, number>) => mat(
     `attribute float aReef; attribute float aAO; varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){ vWp = position; vN = normal; vReef = aReef; vAO = aAO; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    seabedSurface + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
+    REEF_LIT + seabedSurface + (land ? LAND_FLOOR : '') + `varying vec3 vWp; varying vec3 vN; varying float vReef; varying float vAO;
      void main(){
        #ifdef LAND_ONLY
        vec3 col = vec3(0.0);
        #else
        vec3 n;
        vec3 alb = reefSurface(vWp, normalize(vN), vReef, n) * vAO;
-       vec3 col = shade(alb, vWp, n, ${loc.habitat === 'kelp' ? '0.35' : '0.95'});
+       vec3 col = reefLit(alb, vWp, n, ${loc.habitat === 'kelp' ? '0.35' : '0.95'});
        #endif
        #ifdef LAND
        #ifdef LAND_ONLY
@@ -504,8 +509,27 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   if (loc.residents) {
     const lanternStudy = typeof location !== 'undefined' && new URLSearchParams(location.search).has('lantern-study');
     T.water = oc.water.at;   // (where the residents may go into the water: the sea, not a pool cut off from it)
+    T.tideK = oc.water.tideK;   // (how much of the tide reaches each place on the island: the residents' own sea, robots/residents.ts)
     oc.residents = makeResidents(loc, T, loc.species.filter((s: any) => !s.big).map((s: any) => s.ja), (loc.birds || []).map((b: any) => b.ja), { lanternStudy });
     group.add(oc.residents.group);
+    // what the husk-and-cord work leaves at its worksites, as it looks (robots/coir-look.ts: no world draws). The host
+    // lays it out from its WorksiteLook; ?coirlook=wet|dry|bare|both|all|cord lays a test worksite by Dot's home (LAB)
+    oc.coirLook = makeCoirLook(group, (x: number, z: number) => loc.f(x, z), T.plantLook?.mat);
+    const test = typeof location !== 'undefined' ? coirLookTest(location.search) : null;
+    const dh = oc.residents.list.find((r: any) => r.id === 'dot')?.sp.home;
+    // (each test site its own spot, in a line along the beach from the first)
+    if (test && dh) oc.coirLook.set(test, (id) => { const k = Math.max(0, test.findIndex((l) => l.siteId === id)); return { x: dh[0] + 1.8 + k * 3.6 * Math.cos(0.4), z: dh[1] + 3.0 - k * 3.6 * Math.sin(0.4), face: 0.4 }; }, true);
+    else oc.coirLook.follow(() => oc.residents.worksiteLooks(), () => oc.residents.worksiteSpots());   // (what the world has at its worksites)
+    // the night beach's ghost crabs, as they look (ocean/crab.ts: no world draws). Only behind the lab knob for now:
+    // ?crablook puts ghost crabs, their burrows and a coconut crab on the sand by Dot's home (LAB)
+    const crabTest = dh && typeof location !== 'undefined' ? crabLookTest(location.search) : null;
+    if (crabTest) {
+      const crabs = makeCrabLook(group), burrows = makeBurrowLook(group), at = { x: dh[0] + 3.0, z: dh[1] + 1.5 }, ground = (x: number, z: number) => loc.f(x, z);
+      let trunk: any = null, best = 1e9;   // (the nearest pandanus, for one to climb)
+      oc.shore?.trunks(at.x, at.z, 15, (t: any) => { const d = Math.hypot(t.base.x - at.x, t.base.z - at.z); if (t.kind === 'pandanus' && d < best) { best = d; trunk = t; } });
+      crabs.mesh.onBeforeRender = () => { const P = crabTestPoses(crabTest === 'still' ? 2.2 : performance.now() / 1000, at, ground, trunk); crabs.show(P.crabs); burrows.show(P.burrows); };
+      oc.crabLook = crabs;
+    } else if (dh && oc.shore) oc.crabs = makeCrabHost(loc, T, oc.shore, dh, group);   // (the night beach's crabs: eco/crab-host.ts)
   }
   // (the corals are drawn once the rocks are down: see clearOfRocks, after placeRocks below)
 
@@ -525,7 +549,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz;
          vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
          vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vL = position; vCol = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`,
-      SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
+      REEF_LIT + SURFACE + `varying vec3 vWp; varying vec3 vN; varying vec3 vL; varying vec3 vCol;
        void main(){
          vec3 n = normalize(vN); vec3 V = normalize(uCamPos - vWp); if (dot(n, V) < 0.0) n = -n;
          vec3 alb = vCol * (0.85 + 0.25 * vn2(vL.xz * 60.0 + vL.y * 40.0));
@@ -538,7 +562,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
            n = bumpN(n, vWp, cellF1(vL.xz * 180.0) * 0.0015);
          #endif
          alb *= mix(0.55, 1.0, smoothstep(-0.01, 0.02, vL.y));
-         gl_FragColor = vec4(shade(alb, vWp, n, 0.9), 1.0);
+         gl_FragColor = vec4(reefLit(alb, vWp, n, 0.9), 1.0);
        }`, { defines: { TYPE: type }, uniforms: SURF_UNIFORMS, opts: { side: THREE.DoubleSide } }));
     placeLitter = function* (x0, z0, x1, z1, frac, skip, cells) {
       const lists: any[][] = debris.map(() => []);
@@ -704,11 +728,11 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
     const rockMat = mat(
       `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){ vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0); vWp = w.xyz; vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * (normal / (sc * sc))); vLy = position.y; gl_Position = projectionMatrix * viewMatrix * w; }`,
-      seabedSurface + `varying vec3 vWp; varying vec3 vN; varying float vLy;
+      REEF_LIT + seabedSurface + `varying vec3 vWp; varying vec3 vN; varying float vLy;
        void main(){
          vec3 n;
          vec3 alb = reefSurface(vWp, normalize(vN), 1.0, n) * mix(0.45, 1.0, smoothstep(-0.45, 0.5, vLy));
-         gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
+         gl_FragColor = vec4(reefLit(alb, vWp, n, 0.85), 1.0);
        }`, { uniforms: SURF_UNIFORMS });
     placeRocks = function* (sr, lr, frac, skip, cellsOut, feet) {
       const lists: any[][] = protos.map(() => []);
@@ -952,7 +976,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
 function buildCave(cave: Cave, group: THREE.Group, items: any) {
   const rock = new THREE.Mesh(cave.geo, mat(
     `varying vec3 vWp; varying vec3 vN; void main(){ vWp = position; vN = normal; gl_Position = projectionMatrix * viewMatrix * vec4(position, 1.0); }`,
-    SURFACE + `varying vec3 vWp; varying vec3 vN;
+    REEF_LIT + SURFACE + `varying vec3 vWp; varying vec3 vN;
      void main(){
        vec3 n0 = normalize(vN), n;
        vec2 cl = caveLight(vWp + n0 * 0.3);
@@ -964,7 +988,7 @@ function buildCave(cave: Cave, group: THREE.Group, items: any) {
        float cup = (1.0 - smoothstep(0.1, 0.26, cf)) * smoothstep(0.4, 0.62, vn2(q * 0.45 + 9.0)) * (1.0 - open) * (1.0 - smoothstep(0.2, 0.8, n0.y));
        alb = mix(alb * mix(0.8, 1.0, open), vec3(1.0, 0.42, 0.07), cup * 0.9);
        n = bumpN(n, vWp, cup * 0.025 * (1.0 - cf));
-       gl_FragColor = vec4(shade(alb, vWp, n, 0.85), 1.0);
+       gl_FragColor = vec4(reefLit(alb, vWp, n, 0.85), 1.0);
      }`, { uniforms: SURF_UNIFORMS }));
   group.add(rock);
   // beams: an open cylinder from each skylight down along the sun, glowing brightest along its axis
