@@ -1,0 +1,156 @@
+{
+ "wallSec": 389,
+ "rebuildMs": 11200,
+ "brainCalls": 740,
+ "picks": {
+  "sail:harvest": 11,
+  "groom": 20,
+  "chop": 3,
+  "cord:twist": 82,
+  "gather": 28,
+  "collect": 81,
+  "nap": 59,
+  "survey": 1,
+  "pile": 42,
+  "sail:mast": 1,
+  "look": 12,
+  "cord:dry": 29,
+  "twist": 4,
+  "cord:ply": 21,
+  "soak": 16,
+  "cord:sieve": 29,
+  "takeout": 19,
+  "beat": 44,
+  "eat": 27,
+  "wander": 106,
+  "sail:resume": 8,
+  "float": 21,
+  "fell": 2,
+  "sail:clear": 5,
+  "photo": 15,
+  "sail:dry": 3,
+  "house": 5,
+  "craft": 9,
+  "cord:lash": 1,
+  "sail:split": 3,
+  "tell": 2,
+  "say": 9,
+  "sail:weave": 3,
+  "give": 3,
+  "till": 3,
+  "sail:rig": 1,
+  "voyage:south-near": 3,
+  "cord:takein": 6,
+  "reef": 2,
+  "plant": 1
+ },
+ "errors": [],
+ "huskDev": {
+  "beat-trial:manual husk: assumption has insufficient input water for this recipe": 18
+ },
+ "cordDev": {},
+ "sailDev": {}
+}
+{"at":"12-01T09:00","saveKB":0,"lots":11,"runs":0,"meanMs":0,"maxMs":0,"errors":0,"husk":4,"rope":0,"mat":0,"mast":0,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":0,"reached":0,"procs":{}}
+{"at":"12-01T10:00","saveKB":50,"lots":21,"runs":1,"meanMs":2.83,"maxMs":808.8,"errors":0,"husk":4,"rope":0,"mat":0,"mast":0,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":0,"reached":0,"procs":{"prototype_sail_work:running":1}}
+{"at":"12-01T11:00","saveKB":106,"lots":22,"runs":2,"meanMs":0.73,"maxMs":221.8,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":2}}
+{"at":"12-01T12:00","saveKB":121,"lots":23,"runs":2,"meanMs":0.63,"maxMs":111.4,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":2}}
+{"at":"12-01T13:00","saveKB":126,"lots":24,"runs":2,"meanMs":0.41,"maxMs":56.4,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":2}}
+{"at":"12-01T14:00","saveKB":167,"lots":26,"runs":2,"meanMs":0.56,"maxMs":69.7,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-01T15:00","saveKB":181,"lots":30,"runs":2,"meanMs":0.68,"maxMs":132.1,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":2}}
+{"at":"12-01T16:00","saveKB":203,"lots":31,"runs":2,"meanMs":0.61,"maxMs":52.2,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-01T17:00","saveKB":237,"lots":31,"runs":4,"meanMs":2.49,"maxMs":611.6,"errors":0,"husk":4,"rope":1,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":1,"prototype_husk_soak:running":1,"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1}}
+{"at":"12-01T18:00","saveKB":266,"lots":31,"runs":3,"meanMs":1.07,"maxMs":344.7,"errors":0,"husk":4,"rope":3,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"prototype_sail_work:running":1,"prototype_husk_soak:running":1,"m02x_air_barometer_test:running":1}}
+{"at":"12-01T19:00","saveKB":277,"lots":32,"runs":2,"meanMs":1.1,"maxMs":375.9,"errors":0,"husk":4,"rope":4,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-01T20:00","saveKB":279,"lots":32,"runs":2,"meanMs":0.31,"maxMs":44.1,"errors":0,"husk":4,"rope":4,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-01T21:00","saveKB":280,"lots":32,"runs":2,"meanMs":0.28,"maxMs":182.4,"errors":0,"husk":4,"rope":4,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1}}
+{"at":"12-01T22:00","saveKB":314,"lots":32,"runs":3,"meanMs":1.19,"maxMs":619.7,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-01T23:00","saveKB":320,"lots":32,"runs":3,"meanMs":0.5,"maxMs":341.6,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T00:00","saveKB":323,"lots":33,"runs":3,"meanMs":0.7,"maxMs":370.3,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T01:00","saveKB":325,"lots":34,"runs":3,"meanMs":0.52,"maxMs":307.4,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T02:00","saveKB":327,"lots":36,"runs":3,"meanMs":0.83,"maxMs":388.3,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T03:00","saveKB":329,"lots":36,"runs":3,"meanMs":0.36,"maxMs":366.5,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T04:00","saveKB":330,"lots":36,"runs":3,"meanMs":0.84,"maxMs":579.1,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T05:00","saveKB":332,"lots":36,"runs":3,"meanMs":0.61,"maxMs":438.3,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T06:00","saveKB":335,"lots":36,"runs":3,"meanMs":0.9,"maxMs":696.2,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T07:00","saveKB":341,"lots":36,"runs":3,"meanMs":1.76,"maxMs":514.2,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T08:00","saveKB":346,"lots":36,"runs":3,"meanMs":0.89,"maxMs":58,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T09:00","saveKB":348,"lots":36,"runs":3,"meanMs":0.93,"maxMs":510.7,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T10:00","saveKB":359,"lots":37,"runs":3,"meanMs":1.04,"maxMs":721.8,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-02T11:00","saveKB":373,"lots":38,"runs":5,"meanMs":1.15,"maxMs":100.6,"errors":0,"husk":4,"rope":5,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":2,"prototype_coir_work:running":1}}
+{"at":"12-02T12:00","saveKB":393,"lots":46,"runs":3,"meanMs":1.25,"maxMs":101.5,"errors":0,"husk":4,"rope":5,"mat":1,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_manual_husk_work:running":1}}
+{"at":"12-02T13:00","saveKB":440,"lots":51,"runs":3,"meanMs":1.24,"maxMs":171,"errors":0,"husk":6,"rope":5,"mat":1,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T14:00","saveKB":457,"lots":53,"runs":3,"meanMs":1.01,"maxMs":47.3,"errors":0,"husk":6,"rope":6,"mat":1,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2}}
+{"at":"12-02T15:00","saveKB":471,"lots":54,"runs":3,"meanMs":1.31,"maxMs":379.7,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2}}
+{"at":"12-02T16:00","saveKB":493,"lots":54,"runs":4,"meanMs":1.09,"maxMs":52.3,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2,"prototype_husk_soak:running":1}}
+{"at":"12-02T17:00","saveKB":498,"lots":54,"runs":4,"meanMs":1.45,"maxMs":511.7,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2,"prototype_husk_soak:running":1}}
+{"at":"12-02T18:00","saveKB":503,"lots":57,"runs":4,"meanMs":1.7,"maxMs":844.6,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":2,"prototype_husk_soak:running":1}}
+{"at":"12-02T19:00","saveKB":509,"lots":58,"runs":3,"meanMs":1.38,"maxMs":655.7,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T20:00","saveKB":510,"lots":58,"runs":3,"meanMs":0.31,"maxMs":6.8,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T21:00","saveKB":511,"lots":58,"runs":3,"meanMs":0.45,"maxMs":303.9,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T22:00","saveKB":512,"lots":60,"runs":2,"meanMs":1.1,"maxMs":407,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-02T23:00","saveKB":513,"lots":60,"runs":2,"meanMs":0.71,"maxMs":334.2,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T00:00","saveKB":514,"lots":60,"runs":2,"meanMs":0.77,"maxMs":385.6,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T01:00","saveKB":515,"lots":60,"runs":2,"meanMs":1.96,"maxMs":848.3,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T02:00","saveKB":516,"lots":60,"runs":2,"meanMs":1.52,"maxMs":349.6,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T03:00","saveKB":517,"lots":60,"runs":2,"meanMs":0.63,"maxMs":509.3,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T04:00","saveKB":518,"lots":60,"runs":2,"meanMs":0.62,"maxMs":258.8,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T05:00","saveKB":519,"lots":60,"runs":2,"meanMs":0.69,"maxMs":596,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-03T06:00","saveKB":523,"lots":60,"runs":3,"meanMs":0.82,"maxMs":466.5,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-03T07:00","saveKB":526,"lots":62,"runs":3,"meanMs":1.23,"maxMs":416.3,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-03T08:00","saveKB":534,"lots":63,"runs":4,"meanMs":2.33,"maxMs":104.9,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-03T09:00","saveKB":548,"lots":63,"runs":4,"meanMs":3.11,"maxMs":768.6,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-03T21:00","saveKB":548,"lots":63,"runs":4,"meanMs":0,"maxMs":0,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1,"prototype_coir_work:running":1}}
+{"at":"12-03T22:00","saveKB":539,"lots":63,"runs":3,"meanMs":1.44,"maxMs":547.2,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-03T23:00","saveKB":539,"lots":63,"runs":3,"meanMs":0.67,"maxMs":591,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T00:00","saveKB":539,"lots":63,"runs":3,"meanMs":0.97,"maxMs":920.6,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T01:00","saveKB":540,"lots":63,"runs":3,"meanMs":0.66,"maxMs":380.9,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T02:00","saveKB":540,"lots":63,"runs":3,"meanMs":1.07,"maxMs":693.6,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T03:00","saveKB":542,"lots":63,"runs":3,"meanMs":0.47,"maxMs":272.9,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T04:00","saveKB":543,"lots":63,"runs":3,"meanMs":0.79,"maxMs":525.5,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T05:00","saveKB":544,"lots":63,"runs":3,"meanMs":0.47,"maxMs":336.2,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T06:00","saveKB":545,"lots":63,"runs":3,"meanMs":1.27,"maxMs":376.1,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T07:00","saveKB":546,"lots":63,"runs":3,"meanMs":2.58,"maxMs":1133.3,"errors":0,"husk":6,"rope":7,"mat":2,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"prototype_sail_work:running":1}}
+{"at":"12-04T08:00","saveKB":554,"lots":65,"runs":3,"meanMs":1.6,"maxMs":69,"errors":0,"husk":6,"rope":9,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T09:00","saveKB":587,"lots":73,"runs":2,"meanMs":2.11,"maxMs":591,"errors":0,"husk":7,"rope":9,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_manual_husk_work:running":1}}
+{"at":"12-04T10:00","saveKB":586,"lots":75,"runs":2,"meanMs":1.07,"maxMs":659.9,"errors":0,"husk":8,"rope":9,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1}}
+{"at":"12-04T11:00","saveKB":599,"lots":74,"runs":2,"meanMs":2.21,"maxMs":81.8,"errors":0,"husk":8,"rope":11,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1}}
+{"at":"12-04T12:00","saveKB":587,"lots":78,"runs":1,"meanMs":1.31,"maxMs":179.9,"errors":0,"husk":8,"rope":11,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1}}
+{"at":"12-04T13:00","saveKB":613,"lots":86,"runs":2,"meanMs":1.42,"maxMs":172.9,"errors":0,"husk":8,"rope":11,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T14:00","saveKB":605,"lots":86,"runs":2,"meanMs":1.37,"maxMs":541.5,"errors":0,"husk":8,"rope":13,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T15:00","saveKB":626,"lots":80,"runs":2,"meanMs":1.61,"maxMs":97.2,"errors":0,"husk":8,"rope":19,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1}}
+{"at":"12-04T16:00","saveKB":626,"lots":84,"runs":1,"meanMs":1.62,"maxMs":370,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":2,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1}}
+{"at":"12-04T17:00","saveKB":645,"lots":90,"runs":2,"meanMs":0.83,"maxMs":726.8,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T18:00","saveKB":651,"lots":90,"runs":2,"meanMs":0.68,"maxMs":69,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T19:00","saveKB":652,"lots":90,"runs":2,"meanMs":0.56,"maxMs":56.2,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T20:00","saveKB":653,"lots":90,"runs":2,"meanMs":0.47,"maxMs":11.3,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T21:00","saveKB":654,"lots":90,"runs":2,"meanMs":0.61,"maxMs":54.9,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T22:00","saveKB":655,"lots":90,"runs":2,"meanMs":0.49,"maxMs":46.4,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-04T23:00","saveKB":657,"lots":88,"runs":2,"meanMs":1.18,"maxMs":550.2,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T00:00","saveKB":658,"lots":88,"runs":2,"meanMs":0.76,"maxMs":648.4,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T01:00","saveKB":658,"lots":88,"runs":2,"meanMs":0.91,"maxMs":509.2,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T02:00","saveKB":659,"lots":88,"runs":2,"meanMs":1.67,"maxMs":641.7,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T03:00","saveKB":660,"lots":88,"runs":2,"meanMs":1.03,"maxMs":581,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T04:00","saveKB":661,"lots":88,"runs":2,"meanMs":0.88,"maxMs":587.2,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T05:00","saveKB":663,"lots":88,"runs":2,"meanMs":1.26,"maxMs":425.8,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T06:00","saveKB":664,"lots":88,"runs":2,"meanMs":0.94,"maxMs":422,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T07:00","saveKB":667,"lots":89,"runs":3,"meanMs":1.73,"maxMs":728.1,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T08:00","saveKB":668,"lots":89,"runs":3,"meanMs":0.51,"maxMs":20.2,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T09:00","saveKB":670,"lots":89,"runs":3,"meanMs":0.77,"maxMs":617.6,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T10:00","saveKB":672,"lots":89,"runs":3,"meanMs":0.68,"maxMs":472.1,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T11:00","saveKB":673,"lots":89,"runs":3,"meanMs":0.53,"maxMs":51.7,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T12:00","saveKB":674,"lots":89,"runs":3,"meanMs":0.38,"maxMs":7.5,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T13:00","saveKB":675,"lots":89,"runs":3,"meanMs":0.43,"maxMs":14,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T14:00","saveKB":675,"lots":89,"runs":3,"meanMs":0.38,"maxMs":8.8,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T15:00","saveKB":676,"lots":89,"runs":3,"meanMs":0.4,"maxMs":10.7,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T16:00","saveKB":677,"lots":89,"runs":3,"meanMs":0.49,"maxMs":25.5,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T17:00","saveKB":677,"lots":89,"runs":3,"meanMs":0.43,"maxMs":57.7,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1,"p10x_clay_slake:running":1}}
+{"at":"12-05T18:00","saveKB":676,"lots":89,"runs":2,"meanMs":0.47,"maxMs":41.4,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T19:00","saveKB":677,"lots":89,"runs":2,"meanMs":1.97,"maxMs":461.2,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T20:00","saveKB":679,"lots":89,"runs":2,"meanMs":0.45,"maxMs":15.4,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+{"at":"12-05T21:00","saveKB":679,"lots":89,"runs":2,"meanMs":0.45,"maxMs":42.3,"errors":0,"husk":8,"rope":20,"mat":3,"mast":1,"rigs":0,"voyages":6,"sailing":0,"raft":6,"raftAt":true,"seen":5,"reached":1,"procs":{"m02x_air_barometer_test:running":1,"prototype_husk_soak:running":1}}
+--- diary (sail / raft / voyage)
+dot: ヤシの繊維を撚って糸にする（筏の縛り用の長さ） / ヤシの繊維を撚って糸にする（筏の縛り用の長さ）：時間がかかりすぎた（進めなかった） / ヤシの繊維を撚って糸にする（筏の縛り用の長さ） / ヤシの繊維を撚って糸にする（筏の縛り用の長さ）：時間がかかりすぎた（進めなかった） / ヤシの繊維を撚って糸にする（筏の縛り用の長さ） / ヤシの繊維を撚って糸にする（筏の縛り用の長さ）：時間がかかりすぎた（進めなかった）
+kame: 
+lantern: 
+rakko: 

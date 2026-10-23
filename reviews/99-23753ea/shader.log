@@ -1,0 +1,41 @@
+planet (low): ok 27 s
+pointlobos (low): ok 17 s
+gbr (low): ok 30 s
+miyako (low): ok 24 s
+maldives (low): ok 22 s
+pacific (low): ok 14 s
+kayama (low): ok 20 s
+redsea (low): ok 28 s
+galapagos (low): ok 15 s
+carnatic (low): ok 20 s
+planet (high): ok 21 s
+pointlobos (high): ok 27 s
+gbr (high): ok 27 s
+miyako (high): ok 25 s
+maldives (high): ok 26 s
+pacific (high): ok 13 s
+kayama (high): ok 22 s
+redsea (high): ok 28 s
+galapagos (high): ok 17 s
+carnatic (high): ok 21 s
+planet (low, finish): ok 22 s
+pointlobos (low, finish): ok 13 s
+gbr (low, finish): ok 29 s
+miyako (low, finish): ok 24 s
+maldives (low, finish): ok 23 s
+pacific (low, finish): ok 12 s
+kayama (low, finish): ok 20 s
+redsea (low, finish): ok 32 s
+galapagos (low, finish): ok 15 s
+carnatic (low, finish): ok 21 s
+planet (high, finish): ok 21 s
+pointlobos (high, finish): ok 14 s
+gbr (high, finish): ok 30 s
+miyako (high, finish): ok 26 s
+maldives (high, finish): ok 22 s
+pacific (high, finish): ok 37 s
+kayama (high, finish): ok 21 s
+redsea (high, finish): ok 29 s
+galapagos (high, finish): ok 16 s
+carnatic (high, finish): ok 23 s
+PASS

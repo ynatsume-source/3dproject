@@ -1,0 +1,15 @@
+a spot of open water, deep at every tide: (-179, -271) -3.1 m ok
+1 -1.04 m: Rakko floats at the water's top: y -1.04 m, the top -1.04 m ok
+1 -1.04 m: Kamemaru with its head out, 0.2 m under the top: y -1.24 m (look) ok
+2 -1.04 m: both in the water; Rakko's eyes over it: eyes -0.72 m ok
+3 -1.04 m: Dot at home on dry ground: ground 1.71 m ok
+1 +0.00 m: Rakko floats at the water's top: y 0.00 m, the top 0.00 m ok
+1 +0.00 m: Kamemaru with its head out, 0.2 m under the top: y -0.20 m (look) ok
+2 +0.00 m: both in the water; Rakko's eyes over it: eyes 0.32 m ok
+3 +0.00 m: Dot at home on dry ground: ground 1.71 m ok
+1 +0.91 m: Rakko floats at the water's top: y 0.91 m, the top 0.91 m ok
+1 +0.91 m: Kamemaru with its head out, 0.2 m under the top: y 0.71 m (look) ok
+2 +0.91 m: both in the water; Rakko's eyes over it: eyes 1.23 m ok
+3 +0.91 m: Dot at home on dry ground: ground 1.71 m ok
+
+all ok
