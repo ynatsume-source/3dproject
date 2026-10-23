@@ -1263,7 +1263,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the sea over the residents' shore: the world's own clock's sea level (time/sea-level.ts), where the tide reaches on the
   // island's own map (T.tideK: ocean/water.ts) — never the drawn sea's (the viewing clock's, the sea being looked at)
   let seaAt = (ms: number) => seaLevel(ms, loc);
-  const waterTop = (x: number, z: number) => { const h = seaAt(clockMs); return h && h * (T.tideK ? T.tideK(x, z) : 1); };   // (at mean sea level: no map read — a way's search asks it of every cell)
+  let seaMs = NaN, seaH = 0;   // (the sea's height at the world's clock now, worked out once a moment — a way's search asks it of every cell)
+  const seaNow = () => { if (clockMs !== seaMs) { seaMs = clockMs; seaH = seaAt(clockMs); } return seaH; };
+  const waterTop = (x: number, z: number) => { const h = seaNow(); return h && h * (T.tideK ? T.tideK(x, z) : 1); };   // (at mean sea level: no map read — a way's search asks it of every cell)
   let clockMs = Date.now(), inspectCool = 180, admireCool = 60, seeCool = 90, showCool = 0;
   const shownTo: Record<string, number> = {};   // (when Rakko last showed something to each of the others)
   const _ey = new THREE.Vector3(), _fd = new THREE.Vector3(), _fp = new THREE.Vector3();   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
@@ -2874,13 +2876,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
   const WAIST = 0.45;
   // (one that swims: the sea and a lagoon are its way too)
-  const swimCost = (x: number, z: number) => G(x, z) - waterTop(x, z) < 0.2 ? (G(x, z) - waterTop(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
+  const swimCost = (x: number, z: number) => {
+    const d = G(x, z) - waterTop(x, z);   // (how high over the water here: the ground and the water read once)
+    if (d < 0.2) return d >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity;
+    const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
+    return v > WAIST ? 30 : 1 + v;
+  };
   const walkCost = (x: number, z: number) => {
     const g = G(x, z);
     if (g < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
     // (the tide in over the shore: walked through while shallow — the island's map read only where the sea could be that
     // deep at all, so the way is no slower to find while the sea is low)
-    if (g < seaAt(clockMs) - WADE_M && waterTop(x, z) - g > WADE_M) return Infinity;
+    if (g < seaNow() - WADE_M && waterTop(x, z) - g > WADE_M) return Infinity;
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
@@ -4340,7 +4347,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   (res as any).huskDev = huskDev;
-  (res as any).walkCost = walkCost; (res as any).setSeaAt = (f: (ms: number) => number) => { seaAt = f; };   // (for checks: the way on foot, and a sea to try it with)
+  (res as any).walkCost = walkCost; (res as any).setSeaAt = (f: (ms: number) => number) => { seaAt = f; seaMs = NaN; };   // (for checks: the way on foot, and a sea to try it with)
   (res as any).pierHost = { at: pierAt, along, G, plankStand, landing: pierLanding, onDeck, drawPier }; (res as any).noWayHost = { at: noWayAt, setAside };   // (for checks: the pier's way, and the places no way was found to)
   (res as any).huskSites = () => husk.sites(); (res as any).huskRepool = (was: { id: string; x: number; z: number }) => tidePool(was.x, was.z);   // (the pool's place, for checks)   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)

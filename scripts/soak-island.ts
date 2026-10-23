@@ -6,6 +6,7 @@
 // both found this way.
 // Usage: SOAK_HOURS=48 SOAK_CLOSE=12 npm run -s soak > out.txt 2> hours.jsonl
 //   SOAK_IN / SOAK_OUT: load / write a save (JSON {now, store}); SOAK_RAFT=0: no raft to start with;
+//   SOAK_TIDE=1: the sea up and down with the site's tide on the world's clock (seaLevel is 0 until the tide is in);
 //   SOAK_BRAIN=none: no mind's answer at all (as when the AI budget has stopped: the island on its rules and set words);
 //   SOAK_BRAIN_FLIP=H[,H…]: the mind stopped / back again after H hours open (with SOAK_BRAIN=none, back first);
 //   PROF_DIR: write a CPU profile of each hour slower than 10 ms on average there (up to six).
@@ -29,6 +30,7 @@ const { loadIslandWeather, islandWeather } = await import('../src/world/island-t
 const { addLot } = await import('../src/world/process-runner');
 const { writeCordBundle } = await import('../src/world/coir-cord-lots');
 const { BAMBOO_SOUTH } = await import('../src/world/planet-map');
+const { tide: tideFn } = await import('../src/time/astro');
 await loadIslandWeather();
 const pickRng = mulberry32(2026);
 const WORK = /^(husk|soak|takeout|beat|clear|cord|sail|voyage|survey|lash|craft|gather)/;
@@ -36,6 +38,7 @@ let calls = 0, brainOn = process.env.SOAK_BRAIN !== 'none'; const picks: Record<
 const keyOf = (id: string) => /^(sail|cord|voyage)/.test(id) ? id.split(':').slice(0, 2).join(':') : id.split(':')[0];
 const make = () => {
   const oc: any = buildOcean(loc); const R: any = oc.residents;
+  if (process.env.SOAK_TIDE === '1') R.setSeaAt((ms: number) => tideFn(ms, loc.lat, loc.lon, loc.tide.amp, loc.tide.lag, loc.tide.diurnal).h);
   R.setBrain(async (i: any) => { calls++; const o = i.options ?? []; if (!brainOn || !o.length) return null;
     const ready = o.filter((x: any) => x.ready !== false), work = ready.filter((x: any) => WORK.test(x.id)), pool = work.length && pickRng() < 0.6 ? work : (ready.length ? ready : o), p = pool[Math.floor(pickRng() * pool.length)];
     picks[keyOf(p.id)] = (picks[keyOf(p.id)] ?? 0) + 1; return { goal: { text: 'テスト', why: 'テスト' }, plan: [p.id] }; });
