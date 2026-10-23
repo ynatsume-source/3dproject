@@ -19,7 +19,7 @@
 | 台帳導入前の棚 | `lab` があればそれを採用。なければ旧 `village.store` のロットを台帳へ移し、旧store欄を削除。両方を足さない | [residents:3566](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/residents.ts#L3566) |
 | 旧粘土 | `!quality?.water_ppm` の場合に島の粘土の値を補う。全材料を再校正する処理ではない | [residents:3569](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/residents.ts#L3569) |
 | 一般ScienceStepの旧工程版 | `village.labRuns` の工程が現行版か明示的な互換版かを確認。それ以外は `abortRun` し活動リストから外す。入力ロットは未消費のまま予約を解く | [residents:3571](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/residents.ts#L3571)、[canResumeProcessVersion](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/process-catalog.ts#L84)、[abortRun](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/process-runner.ts#L385) |
-| 組立設備 | 元の部品から鍋→気密の器→二重壺を再換算。予約中を除き、換算不能なら元の設備を維持する。ここで灯皿の再換算は呼ばれていない | [residents:3574](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/residents.ts#L3574)、[refreshAssembled](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/process-runner.ts#L284) |
+| 組立設備 | 鍋・気密の器・二重壺の各設備を、保存された元ロット／部品から再換算。予約中を除き、換算不能なら元の設備を維持する。ここで灯皿の再換算は呼ばれていない | [residents:3574](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/residents.ts#L3574)、[refreshAssembled](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/process-runner.ts#L284) |
 | 段取りの復帰 | 殻host → 縄host → 帆作業host → `compactScienceLedger` → 帆走host。手仕事は復帰だけでは進めず、新たな在席・実働の確定を待つ | [residents:3577](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/residents.ts#L3577) |
 | 航海中に閉じた保存 | 本体hostが最後の確定セルでinterrupted精算してから復帰。閉じていた時間の航海は作らない | [sail-voyage-host:227](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/robots/sail-voyage-host.ts#L227) |
 
@@ -46,7 +46,7 @@ JSONパース等の例外時は初期状態へ進む経路がある。パース�
 
 - 一般科学：終了要約64、稼働中runの観察64、要約内の観察8、committed 500、released 300（[SCIENCE_RECORD_LIMITS](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/science-records.ts#L7)）。
 - 殻・縄・浸漬・帆の直近控え／終了要約は64件の窓を使う。窓を過ぎた古い指示の扱いも各部品の規則に従い、無期限の再送成功を保証しない。
-- 荷重/5は生存ロットと設備部品として戻せるロットを保持する。消費済み・切断親の孤立checkpointは猶予64世代後に回収する（[retention](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/coir-cord-load.ts#L65)）。
+- 荷重/5は生存ロットと設備部品として戻せるロットを保持する。消費済み・切断親の孤立checkpointは、最後に触れてから64取引世代以上経過し、走査対象になった時点で回収する。世代は新規荷重イベントで進み、通常走査は1取引最大8件、明示compactは全件を対象にする（[retention](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/src/world/coir-cord-load.ts#L65)）。
 - これらは**記録の上限**。作った在庫ロット自体の個数と保存全体の大きさを一定にする保証ではない。在庫の増加は科学班の潮なし／潮あり1週間試験の結果で別に扱う。
 - #83の浸漬記録・#88の作業場読取cacheは実行時の検証控え。保存JSONの新しい形式ではない。JSONを読み直した台帳は再検証する。
 
@@ -153,7 +153,7 @@ node --import tsx --import ./scripts/node-assets.mjs scripts/soak-migration-revi
 - [ ] 読込→保存→再読込で内部schemaを列挙し、2回目は同じ変換を繰り返さない。
 - [ ] ロットID・材料・乾物・水・来歴、隠れた傷み／強さ、seqと世界IDを比較する。単なる保存byte列比較と、意図した記録削減は分ける。
 - [ ] 途中run、予約、設備部品を確認する。旧一般工程が中止された場合は、材料未消費・予約解放を確認する。hostのcatch後に移行失敗ログや孤立予約が残らないかも見る。
-- [ ] 手仕事・待機・航海で閉じていた時間を架空の確定区間にしない。再送が窓内で二重精算にならない。
+- [ ] 手仕事・航海は閉じていた時間を加算しない。待機は本体が確定した浸漬・屋根の区間だけを渡す。再送が窓内で二重精算にならない。
 - [ ] 旧浸漬host-1/2と引き上げた殻、荷重/3と/4、殻arrangement/2、縄arrangement/2、帆host-1、旧dryhost-2、現行航海を含むか確認する。実保存2本に無い経路は既存合成fixtureで補い、未網羅を明記する。
 - [ ] 読取cacheは再保存されないこと、保存サイズは記録と在庫を分けて集計する。性能を測る場合は記録上限まで埋まった保存を使う。
 - [ ] mainが進んだ場合、保存読込・host・工程版・換算表の差分を確認してからリハーサル対象commitを固定する。
