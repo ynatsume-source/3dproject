@@ -71,15 +71,20 @@ function poolCount(name: string) {
   try { let s = JSON.parse(localStorage.getItem('seaglass.aipool') || '{}'); if (s?.d !== memoryPoolDay) s = { d: memoryPoolDay }; s[name] = memoryPool[name]; localStorage.setItem('seaglass.aipool', JSON.stringify(s)); } catch (e) { /* session fallback */ }
 }
 export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
+/** Each call's outcome, for the rehearsal's log (?rehearsal): when, how long, how it went — never what was said. */
+export type AiCall = { at: number; ms: number; model: string; pool?: string; ok: boolean; why?: string; input?: number; output?: number };
+let aiWatch: ((c: AiCall) => void) | null = null;
+export function watchAi(f: ((c: AiCall) => void) | null) { aiWatch = f; }
 export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number; maxChars?: number } = {}): Promise<string | null> {
   // (leave: calls kept back from the day's budget for others — a resident's own decisions never use up the conversations')
   // (queueMs: while another call is out, wait this long for it rather than giving up at once)
   for (const until = performance.now() + (options.queueMs ?? 0); busy && performance.now() < until;) await new Promise((res) => setTimeout(res, 100));
   const key = aiKey(); if (!key || options.signal?.aborted) return null;
-  if (busy) { aiLastError = 'ほかの問い合わせの返事待ちで、出せなかった。'; return null; }
-  if (options.pool ? poolUsed(options.pool.name) >= options.pool.cap : used() >= DAILY - (options.leave ?? 0)) return null;
+  const told = (c: Omit<AiCall, 'model' | 'pool'>) => aiWatch?.({ ...c, model: options.model ?? MODEL, pool: options.pool?.name });
+  if (busy) { aiLastError = 'ほかの問い合わせの返事待ちで、出せなかった。'; told({ at: Date.now(), ms: 0, ok: false, why: 'busy' }); return null; }
+  if (options.pool ? poolUsed(options.pool.name) >= options.pool.cap : used() >= DAILY - (options.leave ?? 0)) { told({ at: Date.now(), ms: 0, ok: false, why: 'cap' }); return null; }
   busy = true; if (options.pool) poolCount(options.pool.name); else count();
-  const model = options.model ?? MODEL, t0 = Date.now();
+  const model = options.model ?? MODEL, t0 = Date.now(); let got: { input: number; output: number } | undefined;
   const controller = new AbortController(); let timedOut = false;
   const cancel = () => controller.abort();
   options.signal?.addEventListener('abort', cancel, { once: true });
@@ -99,6 +104,7 @@ export async function requestAiText(system: string, user: string, options: { max
       if (!r.ok) throw new TransportError(`API エラー (HTTP ${Number.isInteger(r.status) ? r.status : 0})。`);
       const j = await boundedResponse(r, options.maxChars ? 4 * options.maxChars : undefined) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
       const u = j?.usage ?? {}, n = (v: unknown) => (Number.isFinite(v) ? Number(v) : 0);
+      got = { input: n(u.input_tokens), output: n(u.output_tokens) };
       options.onUsage?.({ model, input: n(u.input_tokens), output: n(u.output_tokens), cacheRead: n(u.cache_read_input_tokens), cacheWrite: n(u.cache_creation_input_tokens), ms: Date.now() - t0 });
       if (!Array.isArray(j?.content)) throw new TransportError('API の応答形式を読み取れませんでした。');
       const text = j.content.filter(c => c?.type === 'text' && typeof c.text === 'string').map(c => c.text).join('');
@@ -106,12 +112,13 @@ export async function requestAiText(system: string, user: string, options: { max
       return text;
     };
     const text = await Promise.race([request(), aborted]);
-    aiLastError = '';
+    aiLastError = ''; told({ at: t0, ms: Date.now() - t0, ok: true, ...got });
     return text;
   } catch (e) {
     // Never display a response body or network exception: either may contain credentials or HTML.
     aiLastError = timedOut ? `API の応答が${Math.round(waitMs / 1000)}秒以内に届きませんでした。` :
       e instanceof TransportError ? e.message : 'API へ接続できなかったか、応答を読み取れませんでした。';
+    told({ at: t0, ms: Date.now() - t0, ok: false, why: aiLastError });
     return null;
   } finally {
     clearTimeout(timeout); options.signal?.removeEventListener('abort', cancel);
