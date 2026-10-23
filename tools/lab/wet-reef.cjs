@@ -1,7 +1,8 @@
 // LAB: the reef at low water as it looks (?sealevel= holds the drawn sea; ?wetfrom= where it stood a while ago, LAB).
 // Finds, near Dot's home, a coral or rock whose top stands just out of the water (between the sea and 0.35 m above it,
 // over a floor still under it), and shoots it close and from a little way off. Usage (a build served at PORT):
-// PORT=4174 TIME=12:00 SEA=-1.04 OUT=wet node tools/lab/wet-reef.cjs   (WETFROM -0.6: the sea 45 min ago; AT 'x,z' to look there)
+// PORT=4174 TIME=12:00 SEA=-1.04 OUT=wet node tools/lab/wet-reef.cjs   (WETFROM -0.6: the sea 45 min ago; AT 'x,z' to look there;
+// POOL 1: a tide pool's floor instead — cut off from the sea, its water stays at mean sea level while the sea falls)
 const { chromium } = require('playwright'); const fs = require('fs');
 (async () => {
   const OUT = process.env.OUT, TIME = process.env.TIME || '12:00', SEA = process.env.SEA || '-1.04'; fs.mkdirSync(OUT, { recursive: true });
@@ -14,7 +15,7 @@ const { chromium } = require('playwright'); const fs = require('fs');
   const at = process.env.AT ? process.env.AT.split(',').map(Number) : null;
   const VIEWS = (process.env.VIEWS || 'close:2.2,1.2;off:7,3.5').split(';').map((s) => s.split(':')).map(([n, o]) => [n, o.split(',').map(Number)]);
   // (first near the home, so the reef there is grown in; then the spot)
-  const spot = await p.evaluate(async ({ at, SEA }) => {
+  const spot = await p.evaluate(async ({ at, SEA, POOL }) => {
     const s = window.seaglass; s.endOpening?.(); s.hold(true);
     const dh = s.cur.residents.list.find((x) => x.id === 'dot').sp.home, T = s.cur.T, sea = +SEA;
     let best = null, bd = 1e9;
@@ -23,11 +24,11 @@ const { chromium } = require('playwright'); const fs = require('fs');
       s.aim([c[0], sea + 6, c[1]], 0, -1.2); s.advance(20, 0.1); await new Promise((r) => setTimeout(r, 300));
       for (let dx = -40; dx <= 40; dx += 0.5) for (let dz = -40; dz <= 40; dz += 0.5) {
         const x = c[0] + dx, z = c[1] + dz, top = T.top(x, z), h = T.h(x, z), d = Math.hypot(dx, dz);
-        if (top > sea + 0.03 && top < sea + 0.35 && h < sea - 0.1 && d < bd) { bd = d; best = [x, z, top, h]; }
+        if (POOL ? (s.cur.water.tideK(x, z) < 0.01 && h < -0.08 && h > -0.8 && d < bd) : (top > sea + 0.03 && top < sea + 0.35 && h < sea - 0.1 && d < bd)) { bd = d; best = [x, z, POOL ? h : top, h]; }
       }
     }
     return best;
-  }, { at, SEA });
+  }, { at, SEA, POOL: !!process.env.POOL });
   console.log('spot', JSON.stringify(spot));
   if (!spot) { await b.close(); return; }
   for (const [v, [dist, up]] of VIEWS) {

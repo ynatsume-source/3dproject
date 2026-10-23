@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { oceanScene } from './scenery';
 import type { Water } from './water';
+import { SEA_REACH } from '../render/sea-reach';
 
 // A disc of rings, dense near the camera and stretching to the horizon (huge two-triangle planes clip
 // badly), lying flat at y = 0 and following the camera; the sea's height (uSeaH) is added where it reaches (tideReach).
@@ -31,24 +32,7 @@ const DISC = discGeo(0.5, 70000, 170, 192);
 // Mirrored in swellAt() so the camera can ride it. swell() returns (height, dh/dx, dh/dz).
 const SW: [number, number, number][] = [[140, 0.55, 0], [118, 0.45, 0.12], [72, 0.35, 0.5], [47, 0.22, -0.6], [31, 0.14, 0.9], [21, 0.08, -0.3]];
 export const SWELL = /* glsl */ `
-uniform sampler2D uSeaK; uniform vec4 uSeaKBox;
-float seaK(vec2 p){   // how much of the sea's swell reaches here: none into a pool, a little into a lagoon (src/ocean/water.ts)
-  // (no early return and no read inside a branch: the texture is always read, and outside the map — or with
-  // no map — the full swell is chosen by mix; ANGLE/D3D11 has gone white on a texture read behind a branch)
-  vec2 uv = (p - uSeaKBox.xy) / max(uSeaKBox.z, 1e-3);
-  float k = texture2D(uSeaK, clamp(uv, 0.0, 1.0)).r;
-  float inside = step(0.5, uSeaKBox.w) * step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
-  return mix(1.0, k, inside);
-}
-// how much of the sea's rise and fall (the tide: uSeaH) reaches here — the sea, a lagoon and the low shore joined to them
-// all of it, a pool or a pond none (its water stays at mean sea level: ADR 0009), eased over a cell at their edges. The
-// same map's green (src/ocean/water.ts), read the same way.
-float tideReach(vec2 p){
-  vec2 uv = (p - uSeaKBox.xy) / max(uSeaKBox.z, 1e-3);
-  float k = texture2D(uSeaK, clamp(uv, 0.0, 1.0)).g;
-  float inside = step(0.5, uSeaKBox.w) * step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
-  return mix(1.0, k, inside);
-}
+${SEA_REACH}
 const float SW_L[6] = float[](${SW.map((w) => w[0].toFixed(1)).join(', ')});
 const float SW_A[6] = float[](${SW.map((w) => w[1].toFixed(2)).join(', ')});
 const float SW_D[6] = float[](${SW.map((w) => w[2].toFixed(2)).join(', ')});
