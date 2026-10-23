@@ -4,30 +4,35 @@
 import * as THREE from 'three';
 import { mat } from '../render/common';
 import { oceanScene } from './scenery';
+import { waterTopAt } from './air';
 
 const N = 4200;
 const pos = new Float32Array(N * 3), vel = new Float32Array(N * 3), life = new Float32Array(N), size = new Float32Array(N), kind = new Float32Array(N), age = new Float32Array(N);
+// (each one's still water's top where it was thrown: the surface it leaves, falls back to, rises to — the tide in or out,
+// ADR 0009; a pool's at mean sea level)
+const top = new Float32Array(N);
 const geo = new THREE.BufferGeometry();
 geo.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
 geo.setAttribute('aLife', new THREE.BufferAttribute(age, 1).setUsage(THREE.DynamicDrawUsage));
 geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
 geo.setAttribute('aKind', new THREE.BufferAttribute(kind, 1));
+geo.setAttribute('aTop', new THREE.BufferAttribute(top, 1));
 const spray = new THREE.Points(geo, mat(
-  `attribute float aLife; attribute float aSize; attribute float aKind; uniform float uPx; varying float vA; varying float vK; varying vec3 vWp; varying float vPs;
+  `attribute float aLife; attribute float aSize; attribute float aKind; attribute float aTop; uniform float uPx; varying float vA; varying float vK; varying vec3 vWp; varying float vPs; varying float vTop;
    void main(){
      vec4 mv = viewMatrix * vec4(position, 1.0); float d = -mv.z;
-     vA = aLife; vK = aKind; vWp = position;
+     vA = aLife; vK = aKind; vWp = position; vTop = aTop;
      gl_PointSize = aLife > 0.0 ? clamp(uPx * aSize / max(d, 0.2), 1.0, aKind > 1.5 ? 220.0 : aKind > 0.5 ? 120.0 : 48.0) : 0.0;
      vPs = gl_PointSize;
      gl_Position = projectionMatrix * mv;
    }`,
-  `varying float vA; varying float vK; varying vec3 vWp; varying float vPs;
+  `varying float vA; varying float vK; varying vec3 vWp; varying float vPs; varying float vTop;
    void main(){
      vec2 q = gl_PointCoord - 0.5; float r = length(q);
      if (vK > 1.5) {
        // mist and white water: a soft puff, thinning as it drifts and settles
        float a = smoothstep(0.5, 0.0, r) * vA * vA * 0.3;
-       vec3 c = vWp.y > 0.0 ? sunAirCol() * max(uAirSun.y, 0.0) * 0.7 + skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.95 + 0.06 : fogIt(vec3(0.8, 0.92, 0.95) * (0.4 + 0.8 * uSunI) + 0.12, vWp);
+       vec3 c = vWp.y > vTop ? sunAirCol() * max(uAirSun.y, 0.0) * 0.7 + skyAir(vec3(0.0, 1.0, 0.0), -1.0) * 0.95 + 0.06 : fogIt(vec3(0.8, 0.92, 0.95) * (0.4 + 0.8 * uSunI) + 0.12, vWp);
        gl_FragColor = vec4(c * a, 1.0);
      } else if (vK > 0.5) {
        // a bubble: a bright rim catching the light from above (one close to the lens, big on the screen: a thin
@@ -53,39 +58,39 @@ function emit(x: number, y: number, z: number, vx: number, vy: number, vz: numbe
   const i = next; next = (next + 1) % N;
   pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
   vel[i * 3] = vx; vel[i * 3 + 1] = vy; vel[i * 3 + 2] = vz;
-  life[i] = l; age[i] = 1; size[i] = s; kind[i] = k;
+  life[i] = l; age[i] = 1; size[i] = s; kind[i] = k; top[i] = waterTopAt(x, z);
 }
 
 // a splash at the surface: a crown of droplets, and bubbles driven down under it
 export function splashAt(x: number, z: number, big: number) {
-  const n = Math.round(14 + big * 30);
+  const n = Math.round(14 + big * 30), t = waterTopAt(x, z);
   for (let k = 0; k < n; k++) {
     const a = Math.random() * Math.PI * 2, sp = (0.6 + Math.random() * 1.6) * (0.6 + big);
-    emit(x, 0.05, z, Math.cos(a) * sp, (2 + Math.random() * 3.5) * (0.5 + big), Math.sin(a) * sp, 0.6 + Math.random() * 0.8, 0.05 + Math.random() * 0.06, 0);
+    emit(x, t + 0.05, z, Math.cos(a) * sp, (2 + Math.random() * 3.5) * (0.5 + big), Math.sin(a) * sp, 0.6 + Math.random() * 0.8, 0.05 + Math.random() * 0.06, 0);
   }
-  for (let k = 0; k < n; k++) emit(x + (Math.random() - 0.5) * 0.4, -0.2 - Math.random() * (0.5 + big * 1.5), z + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.3, 0.3 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3, 1.5 + Math.random() * 1.5, 0.03 + Math.random() * 0.05, 1);
+  for (let k = 0; k < n; k++) emit(x + (Math.random() - 0.5) * 0.4, t - 0.2 - Math.random() * (0.5 + big * 1.5), z + (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.3, 0.3 + Math.random() * 0.5, (Math.random() - 0.5) * 0.3, 1.5 + Math.random() * 1.5, 0.03 + Math.random() * 0.05, 1);
 }
 // The fall of a breaching whale or manta (scale ~1 for a whale, ~0.3 for a manta): a crown and a tall
 // column of spray, white water and mist that hangs and drifts, and a cloud of bubbles driven down
 export function bigSplash(x: number, z: number, scale: number, r: number) {
-  const n = Math.round(260 * scale + 60);
+  const n = Math.round(260 * scale + 60), t = waterTopAt(x, z);
   for (let k = 0; k < n; k++) {
     const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r, sp = (1 + Math.random() * 3) * (0.5 + scale);
-    emit(x + Math.cos(a) * d, 0.1, z + Math.sin(a) * d, Math.cos(a) * sp, (3 + Math.random() * 7) * (0.45 + scale * 0.75), Math.sin(a) * sp, 0.9 + Math.random() * 1.2, 0.06 + Math.random() * 0.1, 0);
+    emit(x + Math.cos(a) * d, t + 0.1, z + Math.sin(a) * d, Math.cos(a) * sp, (3 + Math.random() * 7) * (0.45 + scale * 0.75), Math.sin(a) * sp, 0.9 + Math.random() * 1.2, 0.06 + Math.random() * 0.1, 0);
   }
   // the column: heavy white water thrown straight up, which stands for a moment and falls back
   for (let k = 0; k < n * 0.6; k++) {
     const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r * 0.55, sp = Math.random() * 1.2 * (0.4 + scale);
-    emit(x + Math.cos(a) * d, 0.1, z + Math.sin(a) * d, Math.cos(a) * sp, (5 + Math.random() * 8) * (0.35 + scale * 0.75), Math.sin(a) * sp, 1.0 + Math.random() * 1.0, (0.12 + Math.random() * 0.22) * (0.5 + scale), 0);
+    emit(x + Math.cos(a) * d, t + 0.1, z + Math.sin(a) * d, Math.cos(a) * sp, (5 + Math.random() * 8) * (0.35 + scale * 0.75), Math.sin(a) * sp, 1.0 + Math.random() * 1.0, (0.12 + Math.random() * 0.22) * (0.5 + scale), 0);
   }
   // mist off it, hanging a little longer and drifting downwind
   for (let k = 0; k < n * 0.3; k++) {
     const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r * 0.7;
-    emit(x + Math.cos(a) * d, 0.3 + Math.random() * 2.5 * scale, z + Math.sin(a) * d, Math.cos(a) * 0.6, (1.5 + Math.random() * 5) * scale + 0.4, Math.sin(a) * 0.6, 1.4 + Math.random() * 1.8, (0.3 + Math.random() * 0.6) * (0.4 + scale), 2);
+    emit(x + Math.cos(a) * d, t + 0.3 + Math.random() * 2.5 * scale, z + Math.sin(a) * d, Math.cos(a) * 0.6, (1.5 + Math.random() * 5) * scale + 0.4, Math.sin(a) * 0.6, 1.4 + Math.random() * 1.8, (0.3 + Math.random() * 0.6) * (0.4 + scale), 2);
   }
   for (let k = 0; k < n * 0.8; k++) {
     const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r;
-    emit(x + Math.cos(a) * d, -0.3 - Math.random() * (1 + scale * 4), z + Math.sin(a) * d, (Math.random() - 0.5) * 0.6, 0.2 + Math.random() * 0.7, (Math.random() - 0.5) * 0.6, 3 + Math.random() * 4, 0.03 + Math.random() * 0.08, 1);
+    emit(x + Math.cos(a) * d, t - 0.3 - Math.random() * (1 + scale * 4), z + Math.sin(a) * d, (Math.random() - 0.5) * 0.6, 0.2 + Math.random() * 0.7, (Math.random() - 0.5) * 0.6, 3 + Math.random() * 4, 0.03 + Math.random() * 0.08, 1);
   }
 }
 // water pouring off something in the air: a few drops from a point, falling
@@ -94,7 +99,7 @@ export function streamAt(x: number, y: number, z: number, vx: number, vz: number
 }
 // a few bubbles streaming off something moving under the water
 export function bubblesAt(x: number, y: number, z: number, n = 2) {
-  if (y > -0.1) return;
+  if (y > waterTopAt(x, z) - 0.1) return;
   for (let k = 0; k < n; k++) emit(x + (Math.random() - 0.5) * 0.2, y, z + (Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.2, 0.4 + Math.random() * 0.4, (Math.random() - 0.5) * 0.2, 1.2 + Math.random() * 1.8, 0.02 + Math.random() * 0.04, 1);
 }
 
@@ -105,7 +110,7 @@ export function diveBubbles(x: number, y: number, z: number, fx: number, fz: num
   for (let k = 0; k < n; k++) {
     const along = 0.25 + Math.pow(Math.random(), 1.6) * 3.2, side = (Math.random() - 0.5) * (0.6 + along * 0.9), up = (Math.random() - 0.6) * (0.5 + along * 0.6);
     const big = Math.random() < 0.18;
-    emit(x + fx * along - fz * side, Math.min(-0.4, y + up - 0.2), z + fz * along + fx * side,
+    emit(x + fx * along - fz * side, Math.min(waterTopAt(x, z) - 0.4, y + up - 0.2), z + fz * along + fx * side,
       (Math.random() - 0.5) * 0.35, 0.5 + Math.random() * (big ? 1.1 : 0.7), (Math.random() - 0.5) * 0.35,
       0.8 + Math.random() * 1.6, big ? 0.05 + Math.random() * 0.07 : 0.008 + Math.random() * 0.03, 1);
   }
@@ -121,20 +126,20 @@ export function updateSplash(dt: number, pxScale: number) {
       // mist: barely falls, slows, spreads on the wind
       vel[i * 3 + 1] -= 2.2 * dt; vel[i * 3] *= 1 - dt * 0.8; vel[i * 3 + 2] *= 1 - dt * 0.8; vel[i * 3 + 1] *= 1 - dt * 0.5;
       pos[i * 3] += (vel[i * 3] + 0.4) * dt; pos[i * 3 + 1] += vel[i * 3 + 1] * dt; pos[i * 3 + 2] += vel[i * 3 + 2] * dt;
-      if (pos[i * 3 + 1] < 0.05) { pos[i * 3 + 1] = 0.05; vel[i * 3 + 1] = 0; }
+      if (pos[i * 3 + 1] < top[i] + 0.05) { pos[i * 3 + 1] = top[i] + 0.05; vel[i * 3 + 1] = 0; }
       size[i] *= 1 + dt * 0.25;
     } else if (bub) {
       // bubbles rise, faster as they go, wobbling; gone at the surface
       vel[i * 3 + 1] += dt * 0.6;
       pos[i * 3] += (vel[i * 3] + Math.sin(age[i] * 30 + i) * 0.1) * dt; pos[i * 3 + 1] += vel[i * 3 + 1] * dt; pos[i * 3 + 2] += vel[i * 3 + 2] * dt;
-      if (pos[i * 3 + 1] > -0.05) age[i] = 0;
+      if (pos[i * 3 + 1] > top[i] - 0.05) age[i] = 0;
     } else {
       vel[i * 3 + 1] -= 9.8 * dt;
       pos[i * 3] += vel[i * 3] * dt; pos[i * 3 + 1] += vel[i * 3 + 1] * dt; pos[i * 3 + 2] += vel[i * 3 + 2] * dt;
-      if (pos[i * 3 + 1] < 0) age[i] = 0;
+      if (pos[i * 3 + 1] < top[i]) age[i] = 0;
     }
     if (age[i] > 0) age[i] = Math.max(0, age[i] - dt / life[i]);
   }
   spray.visible = any;
-  if (any) { geo.attributes.position.needsUpdate = true; geo.attributes.aLife.needsUpdate = true; geo.attributes.aSize.needsUpdate = true; geo.attributes.aKind.needsUpdate = true; }
+  if (any) { geo.attributes.position.needsUpdate = true; geo.attributes.aLife.needsUpdate = true; geo.attributes.aSize.needsUpdate = true; geo.attributes.aKind.needsUpdate = true; geo.attributes.aTop.needsUpdate = true; }
 }

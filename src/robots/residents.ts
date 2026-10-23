@@ -1263,7 +1263,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the sea over the residents' shore: the world's own clock's sea level (time/sea-level.ts), where the tide reaches on the
   // island's own map (T.tideK: ocean/water.ts) — never the drawn sea's (the viewing clock's, the sea being looked at)
   let seaAt = (ms: number) => seaLevel(ms, loc);
-  const waterTop = (x: number, z: number) => seaAt(clockMs) * (T.tideK ? T.tideK(x, z) : 1);
+  const waterTop = (x: number, z: number) => { const h = seaAt(clockMs); return h && h * (T.tideK ? T.tideK(x, z) : 1); };   // (at mean sea level: no map read — a way's search asks it of every cell)
   let clockMs = Date.now(), inspectCool = 180, admireCool = 60, seeCool = 90, showCool = 0;
   const shownTo: Record<string, number> = {};   // (when Rakko last showed something to each of the others)
   const _ey = new THREE.Vector3(), _fd = new THREE.Vector3(), _fp = new THREE.Vector3();   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
@@ -2874,7 +2874,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
   const WAIST = 0.45;
   // (one that swims: the sea and a lagoon are its way too)
-  const swimCost = (x: number, z: number) => G(x, z) < 0.2 ? (G(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
+  const swimCost = (x: number, z: number) => G(x, z) - waterTop(x, z) < 0.2 ? (G(x, z) - waterTop(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
   const walkCost = (x: number, z: number) => {
     const g = G(x, z);
     if (g < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
@@ -2939,7 +2939,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     let ax = tx, az = tz;
     // (a swimmer from the land into the sea, or out of it: a way planned too, across the water as well — not straight
     // at the sea through a stand of trees, wedged among their trunks)
-    const swimWay = r.sp.swims && wetTask && (G(r.pos.x, r.pos.z) > 0.2) !== (G(tx, tz) > 0.2);
+    const swimWay = r.sp.swims && wetTask && (G(r.pos.x, r.pos.z) - waterTop(r.pos.x, r.pos.z) > 0.2) !== (G(tx, tz) - waterTop(tx, tz) > 0.2);   // (the water's edge as it is now)
     // (in the house, or at its door: straight — the room is clear, and a grid a metre to the cell finds no way through a door
     // under a metre wide; Lantern, living in the house, was shut in by its walls — life-run 2026-10-09)
     if (!fast && inHouseWay(r.pos.x, r.pos.z)) { r.path = { pts: [[tx, tz]], tx, tz, t: clockMs, house: true } as any; }
@@ -2979,7 +2979,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const g0 = G(r.pos.x, r.pos.z), upOut = (x: number, z: number) => !r.sp.swims && g0 <= 0.2 && G(x, z) > g0 + 0.005;
     const dx = ax - r.pos.x, dz = az - r.pos.z, d = Math.max(Math.hypot(dx, dz), Math.min(d0, 0.7));
     let want = Math.atan2(dx, dz);
-    const inWater = G(r.pos.x, r.pos.z) < 0.1;
+    const inWater = G(r.pos.x, r.pos.z) - waterTop(r.pos.x, r.pos.z) < 0.1;   // (in the water as it is now)
     const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1) * (r.id === 'kame' && r.hunger > NEEDS.slowAt ? 0.6 : 1) * wearSlow(r);   // (a hungry turtle is a slow one; a worn robot too)
     // walkers keep to land: if the way ahead is water, turn uphill along the shore (not when following a
     // planned way, which already keeps to the land: the two would pull it to and fro)
@@ -3137,11 +3137,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   function placeY(r: Resident) {
     const h = r.wet && r.sp.swims && (r.act === 'swim' || r.under > 0) ? L.h(r.pos.x, r.pos.z) : G(r.pos.x, r.pos.z);
-    r.wet = h < 0.05;
-    const top = r.id === 'rakko' ? 0 : -0.2;   // floating at the surface (Rakko), or with its head out (Kamemaru)
+    const W = waterTop(r.pos.x, r.pos.z);   // (the still water's top here: the island's sea where the tide reaches it — ADR 0009)
+    r.wet = h < W + 0.05;
+    const top = W + (r.id === 'rakko' ? 0 : -0.2);   // floating at the surface (Rakko), or with its head out (Kamemaru)
     if (!r.wet) r.pos.y = h;
     else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.075) - top) * r.under;   // (Kamemaru settled a little into the sand)   // (down on the bottom: diving, grazing, asleep)
-    else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max((T.top && h < 0 ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, -1.2 + Math.sin(performance.now() * 0.0003) * 0.2);   // (over the coral heads, not through them)
+    else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max((T.top && h < W ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, W - 1.2 + Math.sin(performance.now() * 0.0003) * 0.2);   // (over the coral heads, not through them)
     else r.pos.y = top;
   }
 
@@ -3705,9 +3706,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     sense(r) {
       const EYE: Record<string, number> = { dot: 0.9, kame: 0.46, lantern: 0.88, rakko: 0.62 };
       const fx = Math.sin(r.head), fz = Math.cos(r.head);
-      const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
+      const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(waterTop(r.pos.x, r.pos.z) + 0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
       if (r.id === 'kame' && r.wet && r.act === 'swim') eye.y = r.pos.y + 0.2;   // (swimming under the water, looking through it)
-      if (r.wet && r.pos.y < -0.3) eye.y = r.pos.y + 0.15;   // (down on the bottom)
+      if (r.wet && r.pos.y < waterTop(r.pos.x, r.pos.z) - 0.3) eye.y = r.pos.y + 0.15;   // (down on the bottom)
       // (the model's own eyes, where it has one and is drawn near: its head's turn, nod and the gaze it is giving)
       let look: THREE.Vector3 | undefined;
       const en = r.model.eye;
