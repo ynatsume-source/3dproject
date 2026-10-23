@@ -6,7 +6,8 @@
 //           殻, 縄, 帆, 保存; 描画 is the drawing handed to the GPU, not the GPU's own time; 画面読み the live screen's
 //           look at the picture, where the GPU is waited for; その他 the rest: the sea, its life, the camera); hidden: the
 //           tab was hidden
-//   event   the day's log as told (seaLog), the tab hidden / shown, an error
+//   event   the day's log (seaLog: the same words again within 90 s left out; shown false: held back as the sea's
+//           everyday moments are, true: put up to be told), the tab hidden / shown, an error
 //   ai      a call to the model: when, how long, how it went (ok / cap / busy / why it failed), tokens — never its text
 //   status  the status line's words, when they change
 //   sea     every five minutes: the sea's height on the world's clock (seaLevel) and as drawn
@@ -24,7 +25,7 @@ export type RehearsalSource = {
   seaWorld: () => number | null; seaDrawn: () => number;
   status: () => string;
 };
-export type RehearsalLog = { frame(ts: number): void; frameEnd(): void; event(kind: string, text: string): void };
+export type RehearsalLog = { frame(ts: number): void; frameEnd(): void; event(kind: string, text: string, shown?: boolean): void };
 
 const DB = 'seaglass.rehearsal', STORE = 'lines';
 const jst = (ms: number, milli = false) => new Date(ms + 9 * 3600e3).toISOString().slice(0, milli ? 23 : 19) + '+09:00';
@@ -102,6 +103,6 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
       lastWork = performance.now() - workT; lastParts = prof.ms; if (lastWork > workMax) workMax = lastWork;
       lastParts['その他'] = Math.max(0, lastWork - (lastParts['住人'] ?? 0) - (lastParts['描画'] ?? 0) - (lastParts['画面読み'] ?? 0));
     },
-    event(kind, text) { row('event', { kind, text }); },
+    event(kind, text, shown) { row('event', { kind, text, ...(shown === undefined ? {} : { shown }) }); },
   };
 }

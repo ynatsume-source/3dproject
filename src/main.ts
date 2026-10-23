@@ -1515,12 +1515,13 @@ const lastKind = new Map<string, number>();
 const sameHunt = (a: any, b: any) => !!a && !!b && (a === b || hyp(a.x - b.x, a.z - b.z) < 8);
 let rehearsal: RehearsalLog | null = null;   // (?rehearsal: the machine's log for the rehearsal — ui/rehearsal-log.ts)
 function seaLog(kind: string, text: string, at?: Where) {
-  recordLog(kind, text); rehearsal?.event(kind, text);
+  recordLog(kind, text);
   const now = performance.now();
-  if ((recent.get(text) ?? -1e9) > now - 90000) return;
-  if (QUIET[kind] && (lastKind.get(kind) ?? -1e9) > now - QUIET[kind]) return;
+  if ((recent.get(text) ?? -1e9) > now - 90000) return;   // (the same words again: not into the rehearsal's log either)
+  if (QUIET[kind] && (lastKind.get(kind) ?? -1e9) > now - QUIET[kind]) { rehearsal?.event(kind, text, false); return; }
   const ref = at?.() ?? null;
-  if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) return;
+  if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) { rehearsal?.event(kind, text, false); return; }
+  rehearsal?.event(kind, text, true);
   recent.set(text, now); lastKind.set(kind, now);
   // (what was told over 90 s ago no longer matters: let it go — the residents' lines are each new, and an evening on
   // the island would otherwise keep every one)
