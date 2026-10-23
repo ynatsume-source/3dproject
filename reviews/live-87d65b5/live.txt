@@ -1,0 +1,2 @@
+87d65b5883e1423db44bef1675ee3d5678ca33af live assets/main-DbnIIHwJ.js vs local main-Bm9BWRUS.js: identical except build stamp / live chunk name
+#105 C: event rows carry shown (true/false), repeats within 90 s left out (src/ui/rehearsal-log.ts:9-10,106)
