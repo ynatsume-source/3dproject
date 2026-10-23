@@ -11,8 +11,10 @@
 //   status  the status line's words, when they change
 //   sea     every five minutes: the sea's height on the world's clock (seaLevel) and as drawn
 // On the screen, only with ?rehearsal (never on the public stream): the time in Japan in the bottom right corner, inside
-// the margin (5% in, 8% up), for laying the recording of the stream beside this log (REHEARSAL.md §6).
-// Kept in this browser as it goes (IndexedDB, so a reload loses nothing), written out with Alt+Shift+R or
+// the margin (5% in, 8% up; 22 px at 1080p, the live screen's ink3), for laying the recording of the stream beside this
+// log (REHEARSAL.md §6).
+// Kept in this browser as it goes (IndexedDB, so a reload loses nothing), written out — once the stream has been stopped,
+// or the browser's download notice is streamed with the picture — with Alt+Shift+R or
 // seaglassRehearsal.download(); seaglassRehearsal.clear() starts afresh. Nothing is sent anywhere.
 import { prof } from '../core/prof';
 import { watchAi } from '../robots/mind';
@@ -67,7 +69,7 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
   addEventListener('pagehide', () => { void flush(); });
   watchAi((c) => row('ai', { ms: c.ms, ok: c.ok, why: c.why, model: c.model, pool: c.pool, input: c.input, output: c.output }, c.at, true));
   const corner = document.createElement('div');
-  corner.style.cssText = "position:fixed;right:5vw;bottom:8vh;z-index:99999;pointer-events:none;font:400 22px/1 'IBM Plex Mono',monospace;color:rgba(255,255,255,0.5);letter-spacing:0.04em;font-variant-numeric:tabular-nums";
+  corner.style.cssText = "position:fixed;right:5vw;bottom:8vh;z-index:99999;pointer-events:none;font:400 calc(22vh / 10.8)/1 'IBM Plex Mono',monospace;color:rgba(255,250,240,0.66);letter-spacing:0.04em;font-variant-numeric:tabular-nums";
   document.body.appendChild(corner);
   const tickCorner = () => { const t = `JST ${jst(Date.now()).slice(11, 19)}`; if (corner.textContent !== t) corner.textContent = t; };
   tickCorner(); setInterval(tickCorner, 200);
