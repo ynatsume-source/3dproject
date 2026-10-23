@@ -10,6 +10,8 @@
 //           everyday moments are, true: put up to be told), the tab hidden / shown, an error
 //   ai      a call to the model: when, how long, how it went (ok / cap / busy / why it failed), tokens — never its text
 //   status  the status line's words, when they change
+//   card    a milestone card put up on the live screen: its words
+//   sub     a subtitle put up: who speaks, and what they said as the screen gives it (the residents' own words)
 //   sea     every five minutes: the sea's height on the world's clock (seaLevel) and as drawn
 // On the screen, only with ?rehearsal (never on the public stream): the time in Japan in the bottom right corner, inside
 // the margin (5% in, 8% up; 22 px at 1080p, the live screen's ink3), for laying the recording of the stream beside this
@@ -78,11 +80,22 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
 
   // frames: the interval between two (what a viewer sees), and each one's own work (what the app spent on it)
   let lastTs = 0, workT = 0, lastWork = 0, lastParts: Record<string, number> = {}, sec = 0, gaps: number[] = [], workMax = 0;
-  let statusWas = '', flushT = 0, seaT = 0;
+  let statusWas = '', flushT = 0, seaT = 0, watched = false;
+  // (the live screen's card and subtitle: written as each is put up — the screen is made once the island is open)
+  const watchLive = () => {
+    const card = document.querySelector('#live .card'), sub = document.querySelector('#live .sub');
+    if (!card || !sub) return;
+    watched = true;
+    const up = (el: Element, f: () => void) => { let off = el.classList.contains('off'); new MutationObserver(() => { const now = el.classList.contains('off'); if (off && !now) f(); off = now; }).observe(el, { attributes: true, attributeFilter: ['class'] }); };
+    const txt = (el: Element, sel: string) => el.querySelector(sel)?.textContent?.trim() ?? '';
+    up(card, () => row('card', { text: txt(card, '.what') }));
+    up(sub, () => row('sub', { who: txt(sub, '.who .name'), text: txt(sub, '.tr') }));
+  };
   const q = (s: number[], k: number) => s[Math.min(s.length - 1, Math.floor(k * s.length))];
   const second = (now: number) => {
     if (gaps.length) { const s = [...gaps].sort((a, b) => a - b); row('sec', { n: s.length, med: +q(s, 0.5).toFixed(1), p95: +q(s, 0.95).toFixed(1), max: +s[s.length - 1].toFixed(1), workMax: +workMax.toFixed(1) }, now); }
     gaps = []; workMax = 0;
+    if (!watched) watchLive();
     let st = ''; try { st = src.status(); } catch (e) { /* none */ }
     if (st !== statusWas) { statusWas = st; row('status', { text: st }, now); }
     if (now - seaT >= 300e3) { seaT = now; let w: number | null = null; try { w = src.seaWorld(); } catch (e) { /* no island */ } row('sea', { seaWorld: w == null ? null : +w.toFixed(3), seaDrawn: +src.seaDrawn().toFixed(3) }, now); }
