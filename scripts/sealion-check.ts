@@ -9,6 +9,9 @@ import { LOCATIONS } from '../src/data/locations';
 import { buildOcean } from '../src/ocean/build';
 import { skyState, sunEvents } from '../src/time/clock';
 import { unseen } from '../src/eco/unseen';
+import { mulberry32 } from '../src/core/math';
+// (one seed, so a run is the same run each time: SEED=n for another)
+Math.random = mulberry32(Number(process.env.SEED ?? 1));
 
 const MIN = +(process.env.MIN || 20), seas = process.argv.slice(2);
 let fail = 0;
