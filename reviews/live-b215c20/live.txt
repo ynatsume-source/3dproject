@@ -1,0 +1,2 @@
+b215c20 live assets/main-CcGDAGhE.js vs local main-CbltdqPZ.js: identical except build stamp / live chunk name
+#113 saveOut: excludes exactly seaglass.aikey; the API key is stored only under that key (src/robots/mind.ts:5). OK.
