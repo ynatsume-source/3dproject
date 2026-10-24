@@ -18,7 +18,8 @@
 // log (REHEARSAL.md §6).
 // Kept in this browser as it goes (IndexedDB, so a reload loses nothing), written out — once the stream has been stopped,
 // or the browser's download notice is streamed with the picture — with Alt+Shift+R or
-// seaglassRehearsal.download(); seaglassRehearsal.clear() starts afresh. Nothing is sent anywhere.
+// seaglassRehearsal.download(); seaglassRehearsal.clear() starts afresh; seaglassRehearsal.saveOut() writes out the island's
+// save (seaglass.*, never the API key). Nothing is sent anywhere. The steps: docs/rehearsal/RUNBOOK.md.
 import { prof } from '../core/prof';
 import { watchAi } from '../robots/mind';
 
@@ -63,7 +64,17 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   };
   const clear = async () => { buf = []; await new Promise<void>((ok) => { const q = indexedDB.deleteDatabase(DB); q.onsuccess = q.onerror = q.onblocked = () => ok(); }); row('event', { kind: 'start', text: 'cleared' }); };
-  (window as any).seaglassRehearsal = { download, clear, flush, text: all };
+  // (the island's save as it stands — every seaglass.* key but the API key — for the science team to read its growth and
+  // its migration before and after; written out like the log, once the stream is stopped)
+  const saveOut = () => {
+    const keep: Record<string, string> = {};
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i)!; if (k.startsWith('seaglass.') && k !== 'seaglass.aikey') keep[k] = localStorage.getItem(k) ?? ''; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({ at: jst(Date.now()), store: keep })], { type: 'application/json' }));
+    a.download = `save-${jst(Date.now()).slice(0, 16).replace(/[-:]/g, '').replace('T', '-')}.json`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  };
+  (window as any).seaglassRehearsal = { download, clear, flush, text: all, saveOut };
   addEventListener('keydown', (e) => { if (e.altKey && e.shiftKey && e.code === 'KeyR') { e.preventDefault(); void download(); } });
   addEventListener('error', (e) => row('event', { kind: 'error', text: String(e.message).slice(0, 200) }));
   addEventListener('unhandledrejection', (e) => row('event', { kind: 'error', text: String((e.reason as Error)?.message ?? e.reason).slice(0, 200) }));
