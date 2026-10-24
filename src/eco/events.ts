@@ -13,6 +13,7 @@ import { makeSchoolShade } from './schoolshade';
 import { sightRange, unseen, behind, clearDepth } from './unseen';
 import { MANTA_GEO, mantaMaterial, WHALE_GEO, whaleMaterial, SHAPES, fishGeometry, fishMaterial } from '../ocean/models';
 import { mat } from '../render/common';
+import { SEA_REACH } from '../render/sea-reach';
 import type { Env, Subject } from './env';
 import { waterTopAt } from '../ocean/air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
@@ -365,11 +366,11 @@ const KINDS: Kind[] = [
       for (let i = 0; i < N; i++) { const x = cam.x + rr(-25, 25), z = cam.z + rr(-25, 25); pos.set([x, oc.T.top(x, z) + R() * 0.3, z], i * 3); sd[i] = R(); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aSeed', new THREE.Float32BufferAttribute(sd, 1));
       const m = mat(
-        `attribute float aSeed; uniform float uAge; varying float vSeed; varying vec3 vWp;
+        SEA_REACH + `attribute float aSeed; uniform float uAge; varying float vSeed; varying vec3 vWp;
          void main(){
            vec3 p = position;
            float t0 = uAge - aSeed * 40.0, t = t0 < 0.0 ? 0.0 : mod(t0, 50.0);   // each colony lets go in its own moment, over and over
-           p.y = p.y + t * (0.12 + 0.1 * fract(aSeed * 7.3)); if (p.y > -0.3) t = 0.0;   // rising slowly to the surface
+           p.y = p.y + t * (0.12 + 0.1 * fract(aSeed * 7.3)); if (p.y > uSeaH * tideReach(p.xz) - 0.3) t = 0.0;   // rising slowly to the surface (where it is now: ADR 0009)
            p.x += sin(uTime * 0.6 + aSeed * 40.0) * 0.15 * min(t, 3.0); p.z += cos(uTime * 0.5 + aSeed * 31.0) * 0.15 * min(t, 3.0);
            vec4 wp = modelMatrix * vec4(p, 1.0); vWp = wp.xyz; vSeed = step(0.001, t);
            vec4 mv = viewMatrix * wp; gl_Position = projectionMatrix * mv;

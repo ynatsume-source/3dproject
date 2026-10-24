@@ -2,7 +2,7 @@
 // through the water, with caustics); where it stands above the still water there (the sea's height uSeaH where the tide
 // reaches — tideReach, render/sea-reach.ts —, mean sea level in a pool cut off from the sea) it is lit by the open air
 // instead (render/airlit.ts), as the island is — no caustics, no water's light — and it is wet: darker and deeper in
-// colour, with the sky and the sun glinting off it. What the waves still wash (a hand's breadth over the water) is wet
+// colour, with the sky and the sun (the moon at night) glinting off it. What the waves still wash (a hand's breadth over the water) is wet
 // through; above that it dries the longer the water has been gone: wet at the waterline, dry at the line the water stood
 // at a while ago there (uWetH where the tide reaches, ocean/wet.ts — from the time alone, so a reload or a jump in time
 // shows the same reef; a pool's water does not fall, so nothing in it is left wet by the tide). Reef within half a metre
@@ -46,12 +46,18 @@ vec3 reefLit(vec3 alb, vec3 wp, vec3 n, float causAmt){
     vec3 v = normalize(uCamPos - wp), r = reflect(-v, n);
     float fr = 0.04 + 0.96 * pow(1.0 - max(dot(n, v), 0.0), 5.0);
     vec3 glint = skyAir(r, -1.0) * fr * 0.3 + sunAirCol() * pow(max(dot(r, uAirSun), 0.0), 16.0) * (1.0 - 0.7 * uCloud) * 0.45;
+    // (and the moon in it at night: as bright as its phase and height let it be (uMoonI), dimmed behind cloud — on a
+    // moonlit low water the wet reef and its pools catch it, toward the moon. Off the surface smoothed toward the level
+    // and soft, so it lies on the reef as a broad path of light, not a scatter of flecks off every ripple
+    // — and so not dropped with the fine detail as the sun's glint is: the smoothed surface has none to twinkle)
+    vec3 rm = reflect(-v, normalize(mix(n, vec3(0.0, 1.0, 0.0), 0.7)));
+    vec3 moonG = vec3(0.75, 0.8, 0.9) * uMoonI * pow(max(dot(rm, uAirMoon), 0.0), 10.0) * (1.0 - 0.7 * uCloud) * smoothstep(0.0, 0.05, uAirMoon.y) * 0.8;
     // under a few centimetres of water a reef is lit much as it is just out of it — the same sun, little water to take
     // it — not as the full light under the sea (lifted for the deep, and nothing above to dim it): a little of the red
     // taken on the way down and back, and the caustics' net, faint where the film is too thin to bend the light
     vec3 under = air * exp(-depth * 2.0 * uAbs * vec3(0.5, 0.78, 1.0)) + cz * 0.6 * smoothstep(0.0, 0.15, depth);
     col = mix(col, fogIt(under, wp), thin);
-    col = mix(col, fogIt(air + glint * wet * sharp, wp), up);
+    col = mix(col, fogIt(air + (glint * sharp + moonG) * wet, wp), up);
   }
   return col;
 }

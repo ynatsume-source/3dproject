@@ -2,9 +2,10 @@
 
 ## 対象と確認の範囲
 
-- 調査対象main：`1a2ce4e57537e36ff3b3c78054fd22becde3af1a`（#107まで）。共有された `87d65b5` との差は#106・#107。
+- 静的調査の起点main：`1a2ce4e57537e36ff3b3c78054fd22becde3af1a`。以下のソース参照はこのcommitに固定する。main `90ae7cac46b4a0c461b95c922da183c5bd3e7dd3` との比較で、`src/science/`・`src/world/`・住人の復帰コード（`residents.ts`と各host）の変更はない。
+- 科学班による旧保存の実読込対象main：`90ae7cac46b4a0c461b95c922da183c5bd3e7dd3`。結果と受入範囲は§7に記載する。
 - 目的：11/6または11/7の実機リハーサル前に、科学班が旧保存を読み直すための対応表を渡す。
-- 今回は**コード・既存検査・科学班の公開出力の静的照合**。Codexによる旧実保存の展開・読込・通し運転は未実施。下の「既存検査」は検査内容への参照であり、この調査でのPASS記録ではない。10/24の1週間試験は科学班の実行結果として§6で区別する。
+- 今回は**コード・既存検査・科学班の公開出力の静的照合**。Codexによる旧実保存の展開・読込・通し運転は未実施。下の「既存検査」は検査内容への参照であり、この調査でのPASS記録ではない。10/24の1週間試験は§6、旧保存4本の読込・運転は§7で、科学班の実行結果として区別する。
 - この変更は文書だけ。保存形式・工程版・科学計算・本体の復帰処理を変更しない。受入結論は科学班のPRコメントを正とする。
 - 範囲は住人保存に含まれる科学台帳・材料・設備・途中工程。観賞用の図鑑・ログ・カメラ位置の移行は [ARCHITECTUREの保存の節](https://github.com/ynatsume-source/3dproject/blob/1a2ce4e57537e36ff3b3c78054fd22becde3af1a/docs/ARCHITECTURE.md#L64) を参照。
 
@@ -159,7 +160,7 @@ node --import tsx --import ./scripts/node-assets.mjs scripts/soak-migration-revi
 
 このディレクトリにはREADME・時刻ごとのJSONL・stdout・保存があり、週次実行に使ったrunner自体は含まれていない。READMEは `scripts/soak-island.ts` と `SOAK_TIDE=1` を記すが、上の旧runnerへの潮設定の対応まで今回検証していない。週次保存を再生するときは、科学班が使用したrunnerの固定版・seed・依存関係を記録して実行する。ファイル名からgzip内部が旧runnerと同じ包絡だと断定しない。
 
-### 科学班へ渡す確認表（Codexによる実保存確認は未実施）
+### 実保存確認時の観点（科学班の実施記録は§7）
 
 - [ ] 原本の出自commit・Git blob SHAまたはSHA256・実行対象commit、Node・依存関係・seed、実コマンドと終了コードを記録する。
 - [ ] 読込→保存→再読込で内部schemaを列挙し、2回目は同じ変換を繰り返さない。
@@ -185,10 +186,46 @@ node --import tsx --import ./scripts/node-assets.mjs scripts/soak-migration-revi
 
 husk_drainage_water 7〜13ロット、coir_pith 9〜14ロットの蓄積は任意の設計相談として残す。環境への移動・分解の規則を採択するまでは、経過時間だけで在庫を削除しない。
 
-## 7. リハーサルまでの残件
+## 7. 科学班による旧保存4本の読込・運転結果
 
-この文書は互換経路の棚卸しで、旧実保存の読込成功を承認するものではない。科学班の上記照合結果をPRコメントで受け取ってから、リハーサル対象commitでの対応範囲を確定する。
+記録の正は[科学班のPRコメント](https://github.com/ynatsume-source/3dproject/pull/108#issuecomment-6383188374)。実行主体は科学班、対象mainは `90ae7cac46b4a0c461b95c922da183c5bd3e7dd3`、入口は `scripts/soak-island.ts` の `SOAK_IN`、条件は**12時間閉じてから3時間運転**。[README](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/README.md)と[証拠ディレクトリ](https://github.com/ynatsume-source/3dproject/tree/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves)を、science/reviews `14c3cb396480c8ac7a100c82630171818f4188fd` に固定して参照する。
 
-特に、prototypeのrestore拒否をhostがcatchした後の予約、灯皿を含む設備の換算対象、実保存4本で網羅できない旧形式は確認対象として残す。今回、それらに対する新しい修正や未再現の不具合認定は行っていない。
+Codexは公開ログを静的に照合し、4本とも `.exit` が0、`.out` のerrorsが空、`.hours` の各4行でerrorsが0であることを確認した。Codex自身が旧保存を読込・運転したという意味ではない。
 
-1週間試験の容量見積もりは§6で受領済み。在庫の傷み・使い道の変更は別の判断とする。11/6・11/7までにコードや保存形式が変わった場合は、固定対象と差分を更新する。
+| 入力名（科学班の実行環境での表記） | 作成元 | errors / 終了コード | 保存KB：最初 → 3時間後（出力表記） | 証拠 |
+|---|---|---|---|---|
+| `soak2/save-old.json` | #70より前 | 0 / 0 | 758 → 444 | [out](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak2_save-old.json.out)・[hours](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak2_save-old.json.hours)・[exit](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak2_save-old.json.exit) |
+| `soak2/save-new.json` | #70〜#72の頃 | 0 / 0 | 450 → 515 | [out](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak2_save-new.json.out)・[hours](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak2_save-new.json.hours)・[exit](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak2_save-new.json.exit) |
+| `soak-174fc32/save-b.json` | main 174fc32 | 0 / 0 | 815 → 857 | [out](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak-174fc32_save-b.json.out)・[hours](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak-174fc32_save-b.json.hours)・[exit](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/soak-174fc32_save-b.json.exit) |
+| `week/flat/save.json` | main 87d65b5の1週間 | 0 / 0 | 839 → 896 | [out](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/week_flat_save.json.out)・[hours](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/week_flat_save.json.hours)・[exit](https://github.com/ynatsume-source/3dproject/blob/14c3cb396480c8ac7a100c82630171818f4188fd/reviews/rehearsal-1-90ae7ca/old-saves/week_flat_save.json.exit) |
+
+上表の入力名は科学班の実行環境内の名前であり、§5の公開gzip4本とは同じ集合ではない。入力保存本文はこの証拠ディレクトリに含まれず、公開gzipとのハッシュ対応は未照合。週次の潮あり保存を今回再読込したとは記録されていない。
+
+#70より前の758 → 444 KBについて、科学班は記録の上限への移行による縮小と説明している。ログの値は3時間の運転も含むため、読込直後だけの移行前後を比較した数値とは区別する。`soak2_save-new.json.out` のhuskDevには、水不足による打撃試行拒否が2件記録されている。errors 0を「すべての開発診断が空」とは読み替えない。
+
+証拠のGit blob SHA（SHA256ではない）：
+
+| 証拠ファイルのstem | .out | .hours |
+|---|---|---|
+| `soak2_save-old.json` | `b1e49f289985a303c3a193e22fc9f6ff7eea18d9` | `e0072ec3cfe7774f627981f853506b353e076aae` |
+| `soak2_save-new.json` | `b2368cf4674b4e16df037823942c455710d99689` | `70204d5f51f39f473bb3c386c42a375332a64e7a` |
+| `soak-174fc32_save-b.json` | `13ed03a1903add962acdf51cde05eed961cd4eef` | `6dc3dedf00d47d995a584cf78a0815213c47b7ce` |
+| `week_flat_save.json` | `a67882303494ed1cc08be33fb67d291de88d1a5b` | `c5ffb8854341c927115aeaa0888aea652dd90d66` |
+
+4本共通の `.exit` blob SHA：`573541ac9702dd3969c9bc859d2b91ec1f7e6e56`。
+
+この証拠には実コマンド全文、seed・Node・依存関係、移行前後の全材料・予約の差分は含まれていない。**確認済みの範囲は、上記main・入力4本・条件で読めて運転でき、記録されたerrorsが0だったこと**。§5の個別不変条件を全件照合済みとする承認や、あらゆる旧形式・破損保存の互換保証へ広げない。
+
+### 副産物の規則に関する科学班の判断
+
+同じPRコメントで、絞り水は地面に広がったと確定したものを空気・地面へ記帳して減らし、髄の乾物は地表有機物として地面へ移す方向を受入。置かれ方不明・容器内・予約中のロットは保持する。
+
+実装は12月本番の後に扱い、速さを版付きの仮定（キメ値）として科学班と決める。今回、処理コードや保存形式は追加・変更しない。
+
+## 8. リハーサルまでの残件
+
+科学班の旧保存4本の読込・運転結果は§7で受領済み。リハーサルでは対象commitを固定し、その後に保存・時計・科学の変更が入れば差分を確認する。
+
+prototypeのrestore拒否をhostがcatchした後の予約、灯皿を含む設備の換算対象、実保存で網羅できない旧形式など、公開証拠で個別に検証されていない観点は残す。今回、それらに対する新しい修正や未再現の不具合認定は行っていない。
+
+1週間試験の容量見積もりは§6で受領済み。副産物の処理は§7の方針どおり12月本番の後に相談し、在庫の傷み・使い道の変更も別に判断する。11/6・11/7までにコードや保存形式が変わった場合は、固定対象と差分を更新する。
