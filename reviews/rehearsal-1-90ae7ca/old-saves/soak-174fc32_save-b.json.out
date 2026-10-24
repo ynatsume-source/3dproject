@@ -1,0 +1,29 @@
+{
+ "wallSec": 26,
+ "rebuildMs": 0,
+ "brainCalls": 14,
+ "picks": {
+  "sail:split": 4,
+  "survey": 2,
+  "sail:dry": 1,
+  "cord:sieve": 1,
+  "gather": 2,
+  "cord:lash": 1,
+  "craft": 1,
+  "wander": 1,
+  "sail:resume": 1
+ },
+ "errors": [],
+ "huskDev": {},
+ "cordDev": {},
+ "sailDev": {}
+}
+{"at":"12-07T09:00","saveKB":815,"lots":102,"runs":2,"meanMs":0,"maxMs":0,"errors":0,"husk":16,"rope":32,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":false,"seen":0,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_sail_work:running":1},"brain":true,"calls":0,"sleeps":0,"sleepMin":0,"meals":0,"diary":0}
+{"at":"12-07T10:00","saveKB":811,"lots":102,"runs":2,"meanMs":1.16,"maxMs":550.7,"errors":0,"husk":16,"rope":32,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":false,"seen":0,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1},"brain":true,"calls":1,"sleeps":0,"sleepMin":0,"meals":2,"diary":26}
+{"at":"12-07T11:00","saveKB":841,"lots":102,"runs":4,"meanMs":2.04,"maxMs":74.5,"errors":0,"husk":16,"rope":32,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":false,"seen":0,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1,"prototype_sail_work:running":2},"brain":true,"calls":13,"sleeps":1,"sleepMin":59,"meals":8,"diary":88}
+{"at":"12-07T12:00","saveKB":857,"lots":102,"runs":4,"meanMs":3.99,"maxMs":67.8,"errors":0,"husk":16,"rope":32,"mat":0,"mast":1,"rigs":0,"voyages":0,"sailing":0,"raft":6,"raftAt":false,"seen":0,"reached":0,"procs":{"m02x_air_barometer_test:running":1,"prototype_coir_work:running":1,"prototype_sail_work:running":2},"brain":true,"calls":0,"sleeps":0,"sleepMin":60,"meals":9,"diary":58}
+--- diary (sail / raft / voyage)
+dot: やりかけの帆の仕事を続ける：途中でやめた / やりかけの帆の仕事を続ける / やりかけの帆の仕事を続ける：途中でやめた / やりかけの帆の仕事を続ける / やりかけの帆の仕事を続ける：途中でやめた / やりかけの帆の仕事を続ける
+kame: 
+lantern: 
+rakko: 帆の作業場を見た：作業中の材料を脇に置いた / 帆の作業場を見た：手元の材料は、まだ作業の途中だ / 帆の作業場を見た：葉を取り終えた / 帆の作業場を見た：手元の材料は、まだ作業の途中だ / 帆の作業場を見た：葉を取り終えた
