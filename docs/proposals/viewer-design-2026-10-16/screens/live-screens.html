@@ -114,6 +114,17 @@
   #roster .r .nm { width: 5.2em; color: var(--ink3); }
   #roster .r.on, #roster .r.on .nm { color: var(--ink); }
   #roster .r.on .c { width: 22px; opacity: 1; margin-right: 0; }
+  /* Lantern's thinking (R-011): its own words, spun slowly at the left — not a subtitle: no island letters, smaller, quieter,
+     the older lines fading; ?tate: written top to bottom, like a notebook's margin */
+  #think { position: absolute; left: 96px; top: 372px; width: 470px; }
+  #think .hd { display: flex; align-items: center; gap: 12px; font: 500 var(--s1)/1 var(--text); letter-spacing: .18em; color: var(--ink3); margin-bottom: 18px; }
+  #think .hd .c { width: 22px; height: 2px; background: #9fe8ff; }
+  #think p { margin: 0 0 12px; font: 500 var(--s2)/1.75 var(--text); letter-spacing: .06em; color: var(--ink2); }
+  #think p.o2 { opacity: .55; } #think p.o3 { opacity: .3; }
+  #think p .cur { opacity: .35; }
+  #think.tate { top: 360px; width: auto; height: 400px; }
+  #think.tate .tx { writing-mode: vertical-rl; height: 400px; }
+  #think.tate p { margin: 0 0 0 14px; line-height: 1.9; }
   /* night: the sea as the main view, the one awake in a small window at the lower right (D24, NIGHT.md) */
   #pip { position: absolute; right: 96px; bottom: 136px; width: 512px; height: 288px; overflow: hidden;
     box-shadow: 0 0 0 1px rgba(246, 243, 236, .32), 0 6px 28px rgba(0, 0, 0, .45); }
@@ -153,6 +164,7 @@
 <div class="t" id="pip" hidden><img id="pipimg" alt=""><div class="cap"><div class="w"><b>04</b><span id="pipgl"></span><span>ランタン</span><span class="c"></span></div><div class="st" id="pipst">丘の上へ歩いている</div></div></div>
 <div class="t" id="map" hidden><img src="map-lantern.png" alt=""><div class="lb" data-ja="ランタンの地図" data-en="Lantern's map">ランタンの地図</div></div>
 <div id="rh" hidden>JST 23:40:12</div>
+<div class="t" id="think" hidden><div class="hd"><span class="c"></span><span id="thhd">ランタンの考えごと</span></div><div class="tx" id="thtx"></div></div>
 <div class="t" id="talk" hidden><div class="sp"><i id="spc"></i><span id="spn">ランタン</span></div><div class="isl" id="tisl"></div><div class="tr" id="ttr"></div></div>
 
 <div class="t" id="mile" hidden><div class="rule"></div><div class="k" data-ja="島で初めて" data-en="A first on the island">島で初めて</div><div class="m" id="mm">ランタンが、島で初めて灯りをともした</div><div class="d" id="md">島暦1年 6月14日 ・ 19:06</div><div class="rule"></div></div>
@@ -224,6 +236,12 @@ if (scene === 'nightsea' && h.includes('ctx')) {
   $('pipst').hidden = true;   // (its doing is in the four's list at the top left: the window's words are its name alone)
   roster('lantern', [['dot', T('眠っている', 'Asleep')], ['rakko', T('仰向けで波に揺られて眠っている', 'Asleep on its back, rocked by the waves')], ['kame', T('眠っている', 'Asleep')], ['lantern', T('丘の上へ歩いている', 'Walking up the hill')]]);
 }
+if (h.includes('think')) {   // (R-011: a sample of the thinking — the real words would be Lantern's own, from its mind)
+  $('think').hidden = false; if (h.includes('tate')) $('think').classList.add('tate');
+  const lines = [T('月は、ゆうべより遅れて昇ってきた。', 'The moon came up later than last night.'), T('あの明るい星は、いつも丘の木の上にいる。', 'That bright star is always above the tree on the hill.'), T('同じ場所から毎晩見れば、動いているのが空なのか、わたしなのか、分かるかもしれない。', 'If I watch from the same place every night, I may learn whether it is the sky that moves, or me.'), T('火が消えたら、もう一度', 'When the fire is out, once more')];
+  $('thtx').innerHTML = lines.map((l, i) => `<p class="${['o3', 'o2', '', ''][i]}">${i === 3 ? l + '<span class="cur">丘へ行こう。</span>' : l}</p>`).join('');
+  $('thhd').textContent = T('ランタンの考えごと', "Lantern's thoughts");
+}
 // (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
 const fit = () => {
   const P = $('plates'); P.innerHTML = '';
@@ -231,7 +249,7 @@ const fit = () => {
     let x = r.left - padX, w = r.width + padX * 2;
     if (id === 'talk' || id === 'mile') { const ww = [...e.children].reduce((m, c) => Math.max(m, c.getBoundingClientRect().width), 0) + padX * 2; x = (1920 - ww) / 2; w = ww; }
     const d = document.createElement('div'); d.className = 'plate' + (id === 'clock' || id === 'brand' ? ' top' : ''); Object.assign(d.style, { left: x + 'px', top: (r.top - padY) + 'px', width: w + 'px', height: (r.height + padY * 2) + 'px' }); P.appendChild(d); };
-  add('lower', 300, 160); add('roster', 240, 90); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
+  add('lower', 300, 160); add('roster', 240, 90); add('think', 260, 120); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
 };
 requestAnimationFrame(fit); document.fonts.ready.then(fit);
 </script>
