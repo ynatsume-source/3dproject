@@ -26,13 +26,25 @@ git --version
 cd $HOME
 git clone https://github.com/ynatsume-source/3dproject.git
 cd 3dproject
-git checkout 90ae7cac46b4a0c461b95c922da183c5bd3e7dd3
+git checkout 23f2c17cf65712782f600b169d0061b23866cf35
 git tag rehearsal-1
 git push origin rehearsal-1
 npm.cmd ci
 npm.cmd run build
 ```
 （`git push` で GitHub のログインを聞かれたら、そのままログインする。うまくいかなければ飛ばしてよい。中身は同じ）
+
+### 2b. 版が差し替わったとき（10/26：90ae7ca → 23f2c17）
+すでに手順 2 をやった PC では、アプリの黒い窓を閉じて（Ctrl+C）から：
+```
+cd $HOME\3dproject
+git fetch
+git checkout 23f2c17cf65712782f600b169d0061b23866cf35
+git tag -f rehearsal-1
+git push -f origin rehearsal-1
+npm.cmd run build
+```
+終わったら手順 4 でアプリを起こし直し、ブラウザを読み込み直す（F5）。島の保存とキーは残る。
 
 ### 3. Windows の設定
 - 設定 → システム → 電源 → 「画面とスリープ」を全部「なし」
