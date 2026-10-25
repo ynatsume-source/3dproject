@@ -103,6 +103,17 @@
   .en #mile .k, .en #mile .d { letter-spacing: .3em; font-size: var(--s2); }
 
 
+  /* why (R-009 1): one quiet line under what it is doing — the resident's own aim, in the world's words */
+  #lower .why { margin-top: 10px; font: 500 var(--s2)/1.3 var(--text); letter-spacing: .06em; color: var(--ink2); }
+  /* the way so far (R-009 2): in the steps' row, for a few seconds when the view comes to it or a stage is done */
+  #lower .steps.way .lab { color: var(--ink3); }
+  /* the four (R-008): under the brand, quiet; the one being shown a little brighter */
+  #roster { position: absolute; left: 96px; top: 168px; }
+  #roster .r { display: flex; align-items: center; gap: 12px; height: 34px; font: 500 var(--s1)/1 var(--text); letter-spacing: .1em; color: var(--ink3); white-space: nowrap; }
+  #roster .r .c { width: 10px; height: 2px; opacity: .6; margin-right: 12px; }
+  #roster .r .nm { width: 5.2em; color: var(--ink3); }
+  #roster .r.on, #roster .r.on .nm { color: var(--ink); }
+  #roster .r.on .c { width: 22px; opacity: 1; margin-right: 0; }
   /* night: the sea as the main view, the one awake in a small window at the lower right (D24, NIGHT.md) */
   #pip { position: absolute; right: 96px; bottom: 136px; width: 512px; height: 288px; overflow: hidden;
     box-shadow: 0 0 0 1px rgba(246, 243, 236, .32), 0 6px 28px rgba(0, 0, 0, .45); }
@@ -135,7 +146,9 @@
   <div id="roll" hidden></div>
   <div class="steps" id="steps" hidden><span class="lab" data-ja="縄づくり" data-en="Cord">縄づくり</span><span class="done" data-ja="浸ける" data-en="soak">浸ける</span><span class="dot">・</span><span class="now" data-ja="打つ" data-en="beat">打つ</span><span class="dot">・</span><span data-ja="乾かす" data-en="dry">乾かす</span><span class="dot">・</span><span class="skip" data-ja="振るう" data-en="hackle">振るう</span><span class="dot">・</span><span data-ja="撚る" data-en="spin">撚る</span><span class="dot">・</span><span data-ja="縒る" data-en="ply">縒る</span></div>
   <div class="status" id="status">流木を拾っている</div>
+  <div class="why" id="why" hidden></div>
 </div>
+<div class="t" id="roster" hidden></div>
 
 <div class="t" id="pip" hidden><img id="pipimg" alt=""><div class="cap"><div class="w"><b>04</b><span id="pipgl"></span><span>ランタン</span><span class="c"></span></div><div class="st" id="pipst">丘の上へ歩いている</div></div></div>
 <div class="t" id="map" hidden><img src="map-lantern.png" alt=""><div class="lb" data-ja="ランタンの地図" data-en="Lantern's map">ランタンの地図</div></div>
@@ -200,6 +213,17 @@ if (scene === 'nightsea') {
   $('map').hidden = false;
 }
 if (h.includes('rh')) $('rh').hidden = false;   // (?rehearsal only: the time in Japan, bottom right inside the margin)
+// (R-008: the four, as the world's status lines have them — a sample here; R-009: why, and the way so far — sample words)
+const roster = (on, rows) => { $('roster').hidden = false; $('roster').innerHTML = rows.map(([id, st]) => `<div class="r${id === on ? ' on' : ''}"><span class="c" style="background:${R[id].c}"></span><span class="nm">${R[id][L]}</span><span>${st}</span></div>`).join(''); };
+if (scene === 'day' && h.includes('ctx')) {
+  roster('dot', [['dot', T('流木を拾っている', 'Picking up driftwood')], ['rakko', T('お腹の上で貝を割っている', 'Cracking a clam on its belly')], ['kame', T('海の底で海草を食べている', 'Grazing on the seabed')], ['lantern', T('丘のふもとで夜を待っている', 'Waiting for night below the hill')]]);
+  $('why').hidden = false; $('why').textContent = T('― 小屋の部材にするため', '— for a part of the hut');
+  if (h.includes('way')) { $('steps').hidden = false; $('steps').classList.add('way'); $('steps').innerHTML = `<span class="lab">${T('道のり', 'The way')}</span><span class="now">${T('小屋', 'hut')}</span><span class="dot">・</span><span>${T('家', 'house')}</span><span class="dot">・</span><span>${T('筏', 'raft')}</span><span class="dot">・</span><span>${T('帆で島の外へ', 'by sail, off the island')}</span>`; }
+}
+if (scene === 'nightsea' && h.includes('ctx')) {
+  $('pipst').hidden = true;   // (its doing is in the four's list at the top left: the window's words are its name alone)
+  roster('lantern', [['dot', T('眠っている', 'Asleep')], ['rakko', T('仰向けで波に揺られて眠っている', 'Asleep on its back, rocked by the waves')], ['kame', T('眠っている', 'Asleep')], ['lantern', T('丘の上へ歩いている', 'Walking up the hill')]]);
+}
 // (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
 const fit = () => {
   const P = $('plates'); P.innerHTML = '';
@@ -207,7 +231,7 @@ const fit = () => {
     let x = r.left - padX, w = r.width + padX * 2;
     if (id === 'talk' || id === 'mile') { const ww = [...e.children].reduce((m, c) => Math.max(m, c.getBoundingClientRect().width), 0) + padX * 2; x = (1920 - ww) / 2; w = ww; }
     const d = document.createElement('div'); d.className = 'plate' + (id === 'clock' || id === 'brand' ? ' top' : ''); Object.assign(d.style, { left: x + 'px', top: (r.top - padY) + 'px', width: w + 'px', height: (r.height + padY * 2) + 'px' }); P.appendChild(d); };
-  add('lower', 300, 160); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
+  add('lower', 300, 160); add('roster', 240, 90); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
 };
 requestAnimationFrame(fit); document.fonts.ready.then(fit);
 </script>
