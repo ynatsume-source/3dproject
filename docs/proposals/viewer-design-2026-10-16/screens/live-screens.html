@@ -102,6 +102,19 @@
   .en #mile .m { font-size: calc(var(--s6) + 6px); letter-spacing: .02em; }
   .en #mile .k, .en #mile .d { letter-spacing: .3em; font-size: var(--s2); }
 
+
+  /* night: the sea as the main view, the one awake in a small window at the lower right (D24, NIGHT.md) */
+  #pip { position: absolute; right: 96px; bottom: 136px; width: 512px; height: 288px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(246, 243, 236, .32), 0 6px 28px rgba(0, 0, 0, .45); }
+  #pip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #pip { overflow: visible; }
+  #pip .cap { position: absolute; left: 0; bottom: calc(100% + 14px); text-shadow: 0 0 2px rgba(0,0,0,.5), 0 0 6px rgba(0,0,0,.34), 0 1px 14px rgba(0,0,0,.3); }   /* (its words above the window, not over the picture) */
+  #pip .w { display: flex; align-items: center; gap: 10px; font: 500 var(--s1)/1 var(--text); letter-spacing: .14em; }
+  #pip .w b { font: 400 var(--s1)/1 var(--mono); letter-spacing: .1em; color: var(--ink3); font-weight: 400; margin-right: 4px; }
+  #pip .w svg { height: 18px; color: #9fe8ff; }
+  #pip .w .c { width: 22px; height: 2px; background: #9fe8ff; }
+  #pip .st { margin-top: 10px; font: 500 var(--s2)/1.3 var(--text); letter-spacing: .06em; color: var(--ink); }
+  #rh { position: absolute; right: 96px; bottom: 86px; font: 400 var(--s1)/1 var(--mono); letter-spacing: .04em; color: var(--ink3); }
   .notext .t, .notext .t * { color: transparent !important; text-shadow: none !important; border-color: transparent !important; background-color: transparent !important; }
   .notext svg { visibility: hidden; }
 </style></head><body>
@@ -120,6 +133,8 @@
   <div class="status" id="status">流木を拾っている</div>
 </div>
 
+<div class="t" id="pip" hidden><img id="pipimg" alt=""><div class="cap"><div class="w"><b>04</b><span id="pipgl"></span><span>ランタン</span><span class="c"></span></div><div class="st" id="pipst">丘の上へ歩いている</div></div></div>
+<div id="rh" hidden>JST 23:40:12</div>
 <div class="t" id="talk" hidden><div class="sp"><i id="spc"></i><span id="spn">ランタン</span></div><div class="isl" id="tisl"></div><div class="tr" id="ttr"></div></div>
 
 <div class="t" id="mile" hidden><div class="rule"></div><div class="k" data-ja="島で初めて" data-en="A first on the island">島で初めて</div><div class="m" id="mm">ランタンが、島で初めて灯りをともした</div><div class="d" id="md">島暦1年 6月14日 ・ 19:06</div><div class="rule"></div></div>
@@ -139,7 +154,7 @@ function glyphs(toks, sw = 1.25) {
   }
   return `<svg viewBox="-1 -1 ${x + 2} 18" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><style>.f{fill:currentColor;stroke:none}</style>${parts.join('')}</svg>`;
 }
-const R = { dot: { w: 'toto', ja: 'ドット', en: 'Dot', c: '#ffd98a', n: '01' }, lantern: { w: 'lanta', ja: 'ランタン', en: 'Lantern', c: '#9fe8ff', n: '02' }, kame: { w: 'kamemalu', ja: 'カメマル', en: 'Kamemaru', c: '#8fe0bd', n: '03' }, rakko: { w: 'lako', ja: 'ラッコ', en: 'Rakko', c: '#f7a36b', n: '04' } };
+const R = { dot: { w: 'toto', ja: 'ドット', en: 'Dot', c: '#ffd98a', n: '01' }, lantern: { w: 'lanta', ja: 'ランタン', en: 'Lantern', c: '#9fe8ff', n: '04' }, kame: { w: 'kamemalu', ja: 'カメマル', en: 'Kamemaru', c: '#8fe0bd', n: '03' }, rakko: { w: 'lako', ja: 'ラッコ', en: 'Rakko', c: '#f7a36b', n: '02' } };
 const $ = (id) => document.getElementById(id);
 const h = location.hash.slice(1).split('&'), scene = h[0] || 'day', L = h.includes('en') ? 'en' : 'ja';
 if (L === 'en') { document.body.classList.add('en'); document.documentElement.lang = 'en'; document.querySelectorAll('[data-en]').forEach((e) => { e.textContent = e.dataset.en; }); }
@@ -171,6 +186,14 @@ if (scene === 'milestone') {
   $('md').textContent = `${date(14, 6)} ・ 19:06`;
   $('status').textContent = T('灯皿にヤシ油を入れ、芯を立てて灯す', 'Oil in the lamp dish, the wick set, and lit');
 }
+if (scene === 'nightsea') {
+  // (D24: after dark with only Lantern awake — the sea round the island as the main view, Lantern kept in the small window)
+  document.body.classList.add('dim'); bg('bg-nightsea.jpg'); $('date').textContent = date(1, 6); $('hour').textContent = '23:40';
+  $('who').hidden = true; $('dno').textContent = '13'; $('status').textContent = T('島のまわりの海', 'The sea round the island');
+  $('pip').hidden = false; $('pipimg').src = 'pip-lantern.jpg'; $('pipgl').innerHTML = glyphs([R.lantern.w]);
+  $('pipst').textContent = T('丘の上へ歩いている', 'Walking up the hill');
+}
+if (h.includes('rh')) $('rh').hidden = false;   // (?rehearsal only: the time in Japan, bottom right inside the margin)
 // (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
 const fit = () => {
   const P = $('plates'); P.innerHTML = '';
