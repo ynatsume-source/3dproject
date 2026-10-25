@@ -1,6 +1,6 @@
 # 実機リハーサルの手順（rehearsal-1、2026-10-31〜）
 
-家の PC で、決まった commit（`90ae7ca`、科学班が受入したもの。タグ名 `rehearsal-1`）をビルドして、24〜48 時間動かす。視聴者の記録は `docs/proposals/viewer-design-2026-10-16/REHEARSAL.md`、アプリが書き出す記録は `src/ui/rehearsal-log.ts`。
+家の PC で、決まった commit（`23f2c17`、科学班が受入したもの。#121・#122 の表示の直しが入った版。タグ名 `rehearsal-1`）をビルドして、24〜48 時間動かす。視聴者の記録は `docs/proposals/viewer-design-2026-10-16/REHEARSAL.md`、アプリが書き出す記録は `src/ui/rehearsal-log.ts`。
 
 ## 0. 用意するもの
 - Node.js 22 と git、Chrome（または Edge）。
@@ -16,7 +16,7 @@
 ```
 git clone https://github.com/ynatsume-source/3dproject.git      （2 回目からは: git fetch --tags）
 cd 3dproject
-git checkout 90ae7cac46b4a0c461b95c922da183c5bd3e7dd3
+git checkout 23f2c17cf65712782f600b169d0061b23866cf35
 git tag rehearsal-1 && git push origin rehearsal-1   （目印。本体の環境からはタグを送れないため、家の PC で付ける。1 回だけ）
 npm ci
 npm run build

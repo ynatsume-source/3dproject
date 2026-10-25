@@ -115,7 +115,7 @@ export function makeLive(ctx: LiveCtx) {
     $('.when .date').textContent = dateOf(ctx.clockMs());
     $('.when .time').textContent = localTimeString(ctx.clockMs(), ctx.tz());
     if (!r) { band.classList.add('off'); return; }
-    const text = R.status(r) as string;
+    const text = trimStatus(R.status(r) as string);   // (as it is shown: the metres still to go taken out, or the line would fade out and back with the same words each time they change — science, #121)
     if (r.id !== shownFor) {   // (another one followed: the band fades out, changes, fades in)
       band.classList.add('off'); shownFor = r.id; shownText = text; swapT = 0.6;
       setTimeout(() => { show(r, text); if (!subKey) band.classList.remove('off'); }, 600);

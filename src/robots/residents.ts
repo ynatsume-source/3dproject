@@ -3631,18 +3631,33 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (tk && !tk.arrived && r.went === 'blocked' && r.blocked > 1.5) return '行く手がふさがっていて、回り道を探している';
     if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
     const toward: Record<string, string> = {
+      store: 'ヤシの実を棚へ運んでいる', catcher: '雨受けを作りに棚へ向かっている', haul: '筏を引き上げに浜へ向かっている', reef: '流木を沈める場所へ運んでいる',
+      replant: '荒れた藻場を植え直しに向かっている', say: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に伝えに行く`, shiver: '体を温められる水面へ向かっている',
+      'harvest-early': '畑へ早めの収穫に行く', 'husk-beat': 'ヤシの殻を叩きに作業場へ向かっている', 'husk-clear': 'やりかけの殻の仕事を片付けに行く',
+      'cord-work': '縄仕事の場所へ向かっている', 'cord-clear': 'やりかけの縄仕事を片付けに行く', 'cord-lash': '筏を縄で縛りに浜へ向かっている',
+      'sail-work': tk?.data?.op === 'harvest' ? 'タコノキの葉を採りに向かっている' : '帆の仕事の場所へ向かっている', 'sail-rig': '帆を張りに筏へ向かっている', 'sail-clear': 'やりかけの帆の仕事を片付けに行く',
       sleep: r.sp.swims && tk?.wet ? '眠る場所へ泳いでいく' : '寝床へ向かっている', charge: '日なたへ向かっている', look: '海の見える場所へ向かっている', watch: '海を観察する浜へ向かっている',
       rest: '丘のふもとへ向かっている', think: '丘の上へ歩いている', float: '静かな水面へ向かっている', nap: '昼寝のできる静かな水面へ向かっている', crack: '貝を割る場所へ向かっている',
       carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている', house: '家の作業に向かっている', cut: '草を刈りに向かっている', tool: '棚へ道具を作りに向かっている', stackwood: '薪をまとめに向かっている', assemble: '焼いた器を取りに向かっている', wick: '棚で芯をよりに行く', stow: '作業台へ部材を置きに行く', take: '作業台へ部材を取りに行く', seastone: '石を拾いに潜りに行く', nest: '休み場に石を運んでいる', ledge: 'カメマルの岩棚へ石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行く', wall: '石を石垣へ運んでいる', shelter: '雨風をよけに屋根の下へ',
     };
     if (tk && !tk.arrived && toward[k]) return toward[k] + left;
     const base: Record<string, string> = {
+      store: 'ヤシの実を棚に置いている', catcher: '竹と葉で雨受けを作っている', haul: '台風に備えて、筏を浜の上へ引き上げている', reef: '流木を海に沈めて、漁礁をつくっている',
+      replant: '荒れた藻場を植え直している', say: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に伝えている`, shiver: r.wet ? '冷えた体を、水面で毛づくろいして温めている' : '冷えて、体を震わせている',
+      doze: r.wet ? '波に揺られて、うとうとしている' : 'うとうとしている',
+      'harvest-early': '台風の前に、畑の実を早めに収穫している', 'husk-beat': 'ヤシの殻を叩いて、繊維をほぐしている', 'husk-clear': 'やりかけの殻の仕事を片付けている',
+      'cord-work': ({ sieve: 'ヤシの繊維を振るって髄を落としている', twist: 'ヤシの繊維を撚って糸にしている', ply: '撚り糸を三本合わせて縄にしている' } as Record<string, string>)[tk?.data?.op] ?? 'ヤシの繊維で縄仕事をしている',
+      'cord-clear': 'やりかけの縄仕事を片付けている', 'cord-lash': '筏を縄で縛っている',
+      'sail-work': ({ harvest: 'タコノキの葉を採っている', split: 'タコノキの葉を裂いている', weave: 'タコノキの葉で帆を編んでいる', mast: '竹で帆柱を作っている' } as Record<string, string>)[tk?.data?.op] ?? '帆の仕事をしている',
+      'sail-rig': '筏に帆柱と帆を取りつけている', 'sail-clear': 'やりかけの帆の仕事を片付けている',
       sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', tool: '道具を作っている', stackwood: '薪を1つの山にまとめている', assemble: '焼いた器を鍋にしている', wick: '灯皿の芯をよっている', stow: '部材を作業台の脇に置いている', take: '部材を手に取っている', seastone: '海の底で石を拾っている', nest: '休み場の囲いに石を積んでいる', ledge: 'カメマルの岩棚のまわりに石を置いている', stonedrop: '浜に石を置いている', wallfetch: '石置き場で石を取っている', wall: '石垣を積んでいる', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
       look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
       explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
       visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を写真に撮っている`, answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',
     };
-    return base[k] ?? 'ひと休みしている';
+    // (nothing said for what it does: on its way somewhere, it says only that it is walking — not that it is resting —
+    // rehearsal finding R-002)
+    return base[k] ?? (tk && !tk.arrived ? (r.wet ? '泳いでいる' : '歩いている') + left : 'ひと休みしている');
   }
   const res: Residents = {
     list, bonds, talks, group,
