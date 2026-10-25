@@ -1,0 +1,4 @@
+1 night none; ordinary 10 % / 92 %; white sand 34 % / 74 % / 6 px: {"night":{"black":0,"bright":1,"blurPx":0},"ord":{"black":0.1,"bright":0.92,"blurPx":0},"sand":{"black":0.33999999999999997,"bright":0.74,"blurPx":6}} ok
+2 smooth, and only growing with the brightness: true true ok
+3 the bright tenth decides: a few lights at night leave it dark: 0.02 ok
+PASS
