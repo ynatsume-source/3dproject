@@ -12,7 +12,8 @@
     "check:fast": "node scripts/checks.mjs fast",
     "check:slow": "node scripts/checks.mjs slow",
     "check:list": "node scripts/checks.mjs all --list",
-    "check:browser": "node scripts/worlds-browser-check.mjs"
+    "check:browser": "node scripts/worlds-browser-check.mjs",
+    "soak": "node --import tsx --import ./scripts/node-assets.mjs scripts/soak-island.ts"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

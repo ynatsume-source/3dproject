@@ -43,6 +43,7 @@ import { makeCoirLook, coirLookTest } from '../robots/coir-look';
 import { makeCrabLook, makeBurrowLook, crabLookTest, crabTestPoses } from './crab';
 import { makeCrabHost } from '../eco/crab-host';
 import { Bodies, bodyOf, type Body } from './substrate';
+import { waterTopAt } from './air';   // (the sea's still top: it rises and falls with the tide — ADR 0009)
 
 /* ================= building a sea ================= */
 // Heights of everything solid standing on the seabed (rocks, coral colonies) on a 1 m grid, so animals
@@ -98,12 +99,14 @@ export function makeT(loc) {
     ground: (x, z) => Math.max(loc.f(x, z), T.obst ? T.obst.get(x, z) : -1e9, T.over ? T.over(x, z) : -1e9),
     over: null as null | ((x: number, z: number) => number),   // ashore: the treetops
     reef: (x, z) => { loc.f(x, z); return TERR.reef; },
-    // enough water here (seas with land: the island and its beach are off limits to swimmers)
-    wet: (x: number, z: number, need = 1.3) => loc.f(x, z) < -need,
+    // enough water here (seas with land: the island and its beach are off limits to swimmers) — the water as it stands
+    // now: the tide's in or out over the reef (ADR 0009; at mean sea level, y = 0 as before)
+    wet: (x: number, z: number, need = 1.3) => loc.f(x, z) < waterTopAt(x, z) - need,
     // how far to turn something at (x, z) heading `head`, so it keeps out of water shallower than `need`
     // `look` metres ahead: toward deeper water, down the slope
     shore: (x: number, z: number, head: number, look: number, need = 1.3) => {
-      if (!loc.land || loc.f(x + Math.cos(head) * look, z + Math.sin(head) * look) < -need) return 0;
+      const ax = x + Math.cos(head) * look, az = z + Math.sin(head) * look;
+      if (!loc.land || loc.f(ax, az) < waterTopAt(ax, az) - need) return 0;
       const gx = loc.f(x + 2, z) - loc.f(x - 2, z), gz = loc.f(x, z + 2) - loc.f(x, z - 2);
       const d = Math.atan2(-gz, -gx) - head; return Math.atan2(Math.sin(d), Math.cos(d));
     },
@@ -311,7 +314,7 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
        #ifdef LAND_ONLY
        float dry = 1.0;
        #else
-       float dry = smoothstep(-0.1, 0.06, vWp.y);
+       float dry = smoothstep(-0.1, 0.06, vWp.y - uSeaH * tideReach(vWp.xz));   // (over the still water there: a beach under the high tide is seabed — ADR 0009)
        #endif
        vec3 la = landAlbedo(vWp) * mix(1.0, vAO, 0.5);
        col = mix(col, fogIt(airLit(la, landNormal(vWp, normalize(vN)), vWp, 0.0), vWp), dry);
@@ -322,10 +325,12 @@ export function* buildOceanSteps(loc): Generator<string, any, unknown> {
   let floorMats: THREE.Material | THREE.Material[] = shoreMat;
   if (land) {
     const p = floorGeo.attributes.position, ix = floorGeo.index!, wet: number[] = [], dryT: number[] = [], both: number[] = [];
+    // (land alone only over the sea's highest tide and its run-up: below that, the shore's blend, seabed when the tide is in)
+    const landTop = tideTop(loc) + 0.06;
     for (let t = 0; t < ix.count; t += 3) {
       const a = ix.getX(t), b = ix.getX(t + 1), c = ix.getX(t + 2);
       const lo = Math.min(p.getY(a), p.getY(b), p.getY(c)), hi = Math.max(p.getY(a), p.getY(b), p.getY(c));
-      (hi < -0.1 ? wet : lo > 0.06 ? dryT : both).push(a, b, c);
+      (hi < -0.1 ? wet : lo > landTop ? dryT : both).push(a, b, c);
     }
     floorGeo.setIndex([...wet, ...dryT, ...both]);
     floorGeo.addGroup(0, wet.length, 0); floorGeo.addGroup(wet.length, dryT.length, 1); floorGeo.addGroup(wet.length + dryT.length, both.length, 2);

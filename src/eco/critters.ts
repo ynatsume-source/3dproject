@@ -400,7 +400,11 @@ export function makeCritters(oc: any) {
             else { speed = 0.45; ty = fl + s.alt; if (s.pos.y < fl + s.alt + 0.3) { s.state = 'forage'; s.t = 0; s.next = rr(120, 260); } }
             const vy = clamp((ty - s.pos.y) * 0.8, -0.5, 0.5);
             const vh = s.state === 'up' || s.state === 'down' ? speed * 0.35 : speed;
-            s.pos.x += Math.cos(s.head) * vh * dt; s.pos.z += Math.sin(s.head) * vh * dt; s.pos.y += vy * dt;
+            // (not on into water shallower than 0.3 m: between its ceiling under the top and its floor over the bottom there
+            // is no room left, and it would be out of the water — the reef at low water; it turns back — science, #93)
+            { const nx = s.pos.x + Math.cos(s.head) * vh * dt, nz = s.pos.z + Math.sin(s.head) * vh * dt;
+              if (waterTopAt(nx, nz) - T.top(nx, nz) >= 0.3) { s.pos.x = nx; s.pos.z = nz; } else s.head += Math.PI * dt; }
+            s.pos.y += vy * dt;
             s.pos.y = Math.max(Math.min(s.pos.y, waterTopAt(s.pos.x, s.pos.z) - 0.15), fl + 0.15);   // (under the water's top, as the rest of the sea's life: foraging its height over the bottom, at low water in the shallows it was up out of it — sea-readers-check, Kayama)
             s.pitch += (Math.atan2(vy, vh) - s.pitch) * Math.min(1, dt * 2);
             _e.set(-s.pitch, Math.PI / 2 - s.head, 0, 'YXZ'); _q.setFromEuler(_e);

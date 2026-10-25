@@ -1,0 +1,103 @@
+# リハーサル　Windows の短い版
+
+細かい理由や記録の中身は `RUNBOOK.md`（両方に書いてあることは同じ。Windows で迷ったらこちら）。ここは Windows の家の PC で上から順にやるだけの版。
+コマンドは **PowerShell**（スタートメニューで「PowerShell」と打って開く）に 1 行ずつ貼る。
+`npm` と `npx` は `npm.cmd`・`npx.cmd` と書く（Windows の初期設定では、PowerShell から `npm` と打つと「スクリプトの実行が無効」で止まるため）。
+
+---
+
+## A. 前の日まで（10/30 まで、1 回だけ）
+
+### 1. Node.js と git を入れる
+PowerShell に 1 行ずつ：
+```
+winget install OpenJS.NodeJS.LTS
+winget install Git.Git
+```
+入れ終わったら **PowerShell を一度閉じて開き直し**、次で数字が出れば OK：
+```
+node -v
+git --version
+```
+（`node -v` が `v22.` か `v24.` で始まればよい。winget が使えないときは nodejs.org の「LTS」と git-scm.com からインストーラーを入れる）
+
+### 2. ビルドする
+```
+cd $HOME
+git clone https://github.com/ynatsume-source/3dproject.git
+cd 3dproject
+git checkout 90ae7cac46b4a0c461b95c922da183c5bd3e7dd3
+git tag rehearsal-1
+git push origin rehearsal-1
+npm.cmd ci
+npm.cmd run build
+```
+（`git push` で GitHub のログインを聞かれたら、そのままログインする。うまくいかなければ飛ばしてよい。中身は同じ）
+
+### 3. Windows の設定
+- 設定 → システム → 電源 → 「画面とスリープ」を全部「なし」
+- 設定 → Windows Update → 「更新の一時停止」で 1 週間止める（夜中の再起動を防ぐ）
+
+---
+
+## B. 動かすたびに（10/30 の試運転と 10/31 の本番）
+
+### 4. アプリを起こす
+PowerShell で：
+```
+cd $HOME\3dproject
+npx.cmd vite preview --port 4173 --strictPort
+```
+**この PowerShell の窓は閉じない**（閉じるとアプリが止まる）。最小化はしてよい。
+
+### 5. リハーサル用のブラウザを起こす
+**もう 1 つ** PowerShell を開いて、Chrome なら：
+```
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="$HOME\rehearsal-trial" --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows "http://localhost:4173/#kayama"
+```
+Edge なら：
+```
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --user-data-dir="$HOME\rehearsal-trial" --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows "http://localhost:4173/#kayama"
+```
+- ふだんのブラウザとは別の、リハーサル専用の窓が開く（島の保存とキーもこの窓だけに残る）。
+- **本番（10/31）では `rehearsal-trial` を `rehearsal-run` に変えて起こす**（試運転の島を持ち越さず、新しい島から始めるため。キーはもう一度入れる）。
+- **この窓は最小化しない・ほかの窓で覆わない**（隠れるとアプリが止まる）。モニター 2 台なら、この窓と OBS を別の画面に。
+
+### 6. キーを入れる（試運転と本番でそれぞれ 1 回。配信を始める前に）
+開いた画面のメニュー →「島の住人」→ 下の API キーの欄にリハーサル専用キーを貼って「保存」。
+**配信中はこの欄を開かない**（キーの末尾 4 文字が出る）。
+
+---
+
+## C. 試運転（10/30、30 分〜1 時間）
+
+7. アドレス欄を `http://localhost:4173/?live&rehearsal` に変えて開く。右下に `JST 12:34:56` の時計が出れば OK。
+8. 5 分ほど待って F12 →「コンソール」に次を貼って Enter：
+   ```
+   (await seaglassRehearsal.text()).split('\n').filter((l) => l.includes('"t":"ai"')).slice(-5)
+   ```
+   `"ok":true` と `claude-sonnet-5-5`（または `claude-haiku-...`）と `input`・`output` の数字が見えれば OK。**出た行をそのまま本体に送る。**
+9. 窓を OBS などで 1 分ほど完全に覆い、戻してからコンソールに：
+   ```
+   (await seaglassRehearsal.text()).split('\n').filter((l) => l.includes('"kind":"hidden"')).length
+   ```
+   `0` なら OK。`1` 以上なら本体に知らせる。
+10. **上限で止まる確認**：Console（console.anthropic.com）でリハーサル用キーを一時的に使えなくして、10〜20 分見る。島が止まらず、字幕や文が動き続ければ OK。コンソールで手順 8 と同じ行を貼り、`"ok":false` が出ていることも見る。終わったらキーを使えるように戻す。
+11. 試運転の終わりに、コンソールで `seaglassRehearsal.clear()`。
+
+---
+
+## D. 本番（10/31 8:00〜）
+
+12. 手順 4・5（`rehearsal-run` で）・6 をやり、`http://localhost:4173/?live&rehearsal` を開く。
+13. コンソールで、まず `seaglassRehearsal.clear()`、次に `seaglassRehearsal.saveOut()`（始めの保存がダウンロードされる）。**配信を始める前に**やる。
+14. 配信と、OBS での録画を始める。あとは触らない。
+
+## E. 終わり
+
+15. **先に配信を止める**（ダウンロードの表示が映らないように）。
+16. ブラウザで **Alt+Shift+R**（記録 `rehearsal-…ndjson` がダウンロードされる）。
+17. コンソールで `seaglassRehearsal.saveOut()`（終わりの保存 `save-…json`）。
+18. ダウンロードフォルダの `rehearsal-…ndjson` と `save-…json` 2 つを本体に送る。録画の場所は視聴者設計班へ。
+
+困ったら、画面の文字やエラーをそのまま貼って本体に送る。

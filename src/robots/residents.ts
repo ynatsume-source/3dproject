@@ -10,7 +10,8 @@
 import * as THREE from 'three';
 import { mat, U } from '../render/common';
 import { AIRLIT } from '../ocean/shore';
-import { findPath } from './path';
+import { findPath as findPathRaw } from './path';
+import { profed, profBegin, profEnd } from '../core/prof';
 import { Solids, type Body, type Solid } from './solids';
 import { Agent, type Habit } from './agent/agent';
 import { modelBrain } from './agent/brain';
@@ -51,6 +52,7 @@ import type { StudyWorld, StudyPlace, StudyIntent } from './lantern-study-types'
 import { makeItems, type Item, type ItemKind, coconutGeo } from './items';
 import { makeHouseLook, HOUSE_STEPS, HOUSE_N, HOUSE_BAMBOO, HOUSE_CLAY, HOUSE_JA, houseLevel, houseCover, insideHouse, underHouseRoof, stepsBefore, HW, HD, EAVE as EAVE_H, type HouseStep } from './house';
 import { PHOTOS_PER_DAY, type PhotoRecord } from '../journal/types';
+const findPath = profed('道探し', findPathRaw);   // (a way's search, timed for the rehearsal's log — core/prof.ts)
 /** How deep the tide may be over the shore and a body still walk through it (m): the husks' standing spot (+0.47 m) is
  *  0.44 m under at the year's highest tide (science 2026-10-21). */
 const WADE_M = 0.5;
@@ -1263,7 +1265,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // the sea over the residents' shore: the world's own clock's sea level (time/sea-level.ts), where the tide reaches on the
   // island's own map (T.tideK: ocean/water.ts) — never the drawn sea's (the viewing clock's, the sea being looked at)
   let seaAt = (ms: number) => seaLevel(ms, loc);
-  const waterTop = (x: number, z: number) => seaAt(clockMs) * (T.tideK ? T.tideK(x, z) : 1);
+  let seaMs = NaN, seaH = 0;   // (the sea's height at the world's clock now, worked out once a moment — a way's search asks it of every cell)
+  const seaNow = () => { if (clockMs !== seaMs) { seaMs = clockMs; seaH = seaAt(clockMs); } return seaH; };
+  const waterTop = (x: number, z: number) => { const h = seaNow(); return h && h * (T.tideK ? T.tideK(x, z) : 1); };   // (at mean sea level: no map read — a way's search asks it of every cell)
   let clockMs = Date.now(), inspectCool = 180, admireCool = 60, seeCool = 90, showCool = 0;
   const shownTo: Record<string, number> = {};   // (when Rakko last showed something to each of the others)
   const _ey = new THREE.Vector3(), _fd = new THREE.Vector3(), _fp = new THREE.Vector3();   // (seconds actually watched until Dot may next stand back to look at its work: not straight after the island is opened)
@@ -2874,13 +2878,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (a thicket of naupaka or pandanus, a boulder, the forest's undergrowth) it goes round when it can
   const WAIST = 0.45;
   // (one that swims: the sea and a lagoon are its way too)
-  const swimCost = (x: number, z: number) => G(x, z) < 0.2 ? (G(x, z) >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity) : (() => { const v = T.vegH ? T.vegH(x, z, 0.6) : 0; return v > WAIST ? 30 : 1 + v; })();
+  const swimCost = (x: number, z: number) => {
+    const d = G(x, z) - waterTop(x, z);   // (how high over the water here: the ground and the water read once)
+    if (d < 0.2) return d >= 0 || !T.water || ['sea', 'lagoon'].includes(T.water(x, z)) ? 1 : Infinity;
+    const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
+    return v > WAIST ? 30 : 1 + v;
+  };
   const walkCost = (x: number, z: number) => {
     const g = G(x, z);
     if (g < 0.3) return Infinity;   // (a little clear of the water's edge, so the way between two points stays dry)
     // (the tide in over the shore: walked through while shallow — the island's map read only where the sea could be that
     // deep at all, so the way is no slower to find while the sea is low)
-    if (g < seaAt(clockMs) - WADE_M && waterTop(x, z) - g > WADE_M) return Infinity;
+    if (g < seaNow() - WADE_M && waterTop(x, z) - g > WADE_M) return Infinity;
     const v = T.vegH ? T.vegH(x, z, 0.6) : 0;
     return v > WAIST ? 30 : 1 + v;
   };
@@ -2939,7 +2948,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     let ax = tx, az = tz;
     // (a swimmer from the land into the sea, or out of it: a way planned too, across the water as well — not straight
     // at the sea through a stand of trees, wedged among their trunks)
-    const swimWay = r.sp.swims && wetTask && (G(r.pos.x, r.pos.z) > 0.2) !== (G(tx, tz) > 0.2);
+    const swimWay = r.sp.swims && wetTask && (G(r.pos.x, r.pos.z) - waterTop(r.pos.x, r.pos.z) > 0.2) !== (G(tx, tz) - waterTop(tx, tz) > 0.2);   // (the water's edge as it is now)
     // (in the house, or at its door: straight — the room is clear, and a grid a metre to the cell finds no way through a door
     // under a metre wide; Lantern, living in the house, was shut in by its walls — life-run 2026-10-09)
     if (!fast && inHouseWay(r.pos.x, r.pos.z)) { r.path = { pts: [[tx, tz]], tx, tz, t: clockMs, house: true } as any; }
@@ -2979,7 +2988,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const g0 = G(r.pos.x, r.pos.z), upOut = (x: number, z: number) => !r.sp.swims && g0 <= 0.2 && G(x, z) > g0 + 0.005;
     const dx = ax - r.pos.x, dz = az - r.pos.z, d = Math.max(Math.hypot(dx, dz), Math.min(d0, 0.7));
     let want = Math.atan2(dx, dz);
-    const inWater = G(r.pos.x, r.pos.z) < 0.1;
+    const inWater = G(r.pos.x, r.pos.z) - waterTop(r.pos.x, r.pos.z) < 0.1;   // (in the water as it is now)
     const speed = (inWater ? r.sp.swimSpeed || 0.3 : r.sp.speed) * (r.battery < 0.1 ? 0.5 : 1) * (r.id === 'kame' && r.hunger > NEEDS.slowAt ? 0.6 : 1) * wearSlow(r);   // (a hungry turtle is a slow one; a worn robot too)
     // walkers keep to land: if the way ahead is water, turn uphill along the shore (not when following a
     // planned way, which already keeps to the land: the two would pull it to and fro)
@@ -3137,11 +3146,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   function placeY(r: Resident) {
     const h = r.wet && r.sp.swims && (r.act === 'swim' || r.under > 0) ? L.h(r.pos.x, r.pos.z) : G(r.pos.x, r.pos.z);
-    r.wet = h < 0.05;
-    const top = r.id === 'rakko' ? 0 : -0.2;   // floating at the surface (Rakko), or with its head out (Kamemaru)
+    const W = waterTop(r.pos.x, r.pos.z);   // (the still water's top here: the island's sea where the tide reaches it — ADR 0009)
+    r.wet = h < W + 0.05;
+    const top = W + (r.id === 'rakko' ? 0 : -0.2);   // floating at the surface (Rakko), or with its head out (Kamemaru)
     if (!r.wet) r.pos.y = h;
     else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.075) - top) * r.under;   // (Kamemaru settled a little into the sand)   // (down on the bottom: diving, grazing, asleep)
-    else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max((T.top && h < 0 ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, -1.2 + Math.sin(performance.now() * 0.0003) * 0.2);   // (over the coral heads, not through them)
+    else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max((T.top && h < W ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, W - 1.2 + Math.sin(performance.now() * 0.0003) * 0.2);   // (over the coral heads, not through them)
     else r.pos.y = top;
   }
 
@@ -3705,9 +3715,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     sense(r) {
       const EYE: Record<string, number> = { dot: 0.9, kame: 0.46, lantern: 0.88, rakko: 0.62 };
       const fx = Math.sin(r.head), fz = Math.cos(r.head);
-      const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
+      const eye = new THREE.Vector3(r.pos.x + fx * 0.2, r.wet ? Math.max(waterTop(r.pos.x, r.pos.z) + 0.32, r.pos.y + 0.3) : r.pos.y + EYE[r.id] * r.sp.scale, r.pos.z + fz * 0.2);
       if (r.id === 'kame' && r.wet && r.act === 'swim') eye.y = r.pos.y + 0.2;   // (swimming under the water, looking through it)
-      if (r.wet && r.pos.y < -0.3) eye.y = r.pos.y + 0.15;   // (down on the bottom)
+      if (r.wet && r.pos.y < waterTop(r.pos.x, r.pos.z) - 0.3) eye.y = r.pos.y + 0.15;   // (down on the bottom)
       // (the model's own eyes, where it has one and is drawn near: its head's turn, nod and the gaze it is giving)
       let look: THREE.Vector3 | undefined;
       const en = r.model.eye;
@@ -3748,10 +3758,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
       items.tick(dt); tickDrift(dt); catchRain(dt);
       if ((labT -= dt) < 0) { labT = 30; tickLab(); }
-      husk.tick(clockMs);   // (the time the husks lie in the tide pool, confirmed as it passes)
-      cord.tick(clockMs, voyaging && wxNow ? (wxNow.windMeasured ?? wxNow.wind) : null);   // (the roof's time, the sun on the cords, a crossing's wind)
+      profBegin('殻'); husk.tick(clockMs); profEnd('殻');   // (the time the husks lie in the tide pool, confirmed as it passes)
+      profBegin('縄'); cord.tick(clockMs, voyaging && wxNow ? (wxNow.windMeasured ?? wxNow.wind) : null); profEnd('縄');   // (the roof's time, the sun on the cords, a crossing's wind)
       if (!village.sailHost?.sites) sail.sites();   // (the pandanus by the shore stand from the first: found once, by a fixed search, and kept)
-      sail.tick(clockMs);   // (the leaves' time under the back eaves)
+      profBegin('帆'); sail.tick(clockMs); profEnd('帆');   // (the leaves' time under the back eaves)
       // (the first time: anyone put down inside something solid — a save from before it was there, a home spot
       // on a rock — is set just outside it, where it can stand)
       if (!settled) { settled = true; for (const r of list) { const ap = solids.approach(r.pos.x, r.pos.z, bodyOf(r), feetAt(r), r.pos.x + 1, r.pos.z, standOn(r, r.wet)); if (ap && (ap[0] !== r.pos.x || ap[1] !== r.pos.z)) { r.pos.x = ap[0]; r.pos.z = ap[1]; placeY(r); } } }
@@ -3834,7 +3844,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (r.saying) r.sayT += dt;
         r.subject.prio = r.talk ? 7 : r.act === 'sleep' ? 1.2 : 2.6;
       }
-      if ((saveT -= dt) < 0) { saveT = 20; save(); }
+      if ((saveT -= dt) < 0) { saveT = 20; profBegin('保存'); save(); profEnd('保存'); }
     },
     subjects: () => list.map((r) => r.subject),
     status(r) {
@@ -4339,7 +4349,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   (res as any).huskDev = huskDev;
-  (res as any).walkCost = walkCost; (res as any).setSeaAt = (f: (ms: number) => number) => { seaAt = f; };   // (for checks: the way on foot, and a sea to try it with)
+  (res as any).walkCost = walkCost; (res as any).setSeaAt = (f: (ms: number) => number) => { seaAt = f; seaMs = NaN; };   // (for checks: the way on foot, and a sea to try it with)
   (res as any).pierHost = { at: pierAt, along, G, plankStand, landing: pierLanding, onDeck, drawPier }; (res as any).noWayHost = { at: noWayAt, setAside };   // (for checks: the pier's way, and the places no way was found to)
   (res as any).huskSites = () => husk.sites(); (res as any).huskRepool = (was: { id: string; x: number; z: number }) => tidePool(was.x, was.z);   // (the pool's place, for checks)   // (the developer's record of the science side's refusals: read by checks, never by a resident)
   (res as any).huskHost = husk;     // (for checks: what the husk work offers whom, now)

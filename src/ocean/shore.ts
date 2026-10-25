@@ -7,6 +7,7 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, U } from '../render/common';
 import { SURF_UNIFORMS } from '../render/surface';
 import { AIRLIT } from '../render/airlit';
+import { SEA_REACH } from '../render/sea-reach';
 import { hash, smooth, R, rr, mulberry32, getStream, setStream } from '../core/math';
 import { WORLD } from './scenery';
 import { landOf, type Land } from './land';
@@ -35,6 +36,7 @@ void landTex(vec2 xz, out vec3 ph, out vec4 cv){
 export const LAND_FLOOR = /* glsl */ `
 ${LAND_TEX}
 ${AIRLIT}
+${SEA_REACH}
 // Dry land at wp, close up. The aerial photograph is half a metre a pixel: from the air it is the land,
 // but at a walker's height it is a blur. So it only sets the broad colour; what the ground is made of comes
 // from the land cover — coral sand (fine grain, ripples, bits of shell and coral, dark and glossy where the
@@ -102,10 +104,12 @@ vec3 landAlbedo(vec3 wp){
   // the sand and back, higher and whiter as they are bigger (in a storm, far up the beach)
   float run = 0.08 + 0.22 * uWave, sph = vn2(wp.xz * 0.15) * 6.2832;
   float swash = run * (0.55 + 0.45 * sin(uTime * 0.55 + sph));
-  float wet = 1.0 - smoothstep(0.02, 0.5 + run, wp.y);
+  // (over the still water there, not y = 0: the tide in or out — ADR 0009; a pool's water at mean sea level)
+  float wh = wp.y - uSeaH * tideReach(wp.xz);
+  float wet = 1.0 - smoothstep(0.02, 0.5 + run, wh);
   vec3 col = mix(a, a * vec3(0.66, 0.7, 0.74), wet * 0.85);
   float lace = smoothstep(0.35, 0.75, vn2(wp.xz * 2.2 + vec2(uTime * 0.25, -uTime * 0.18)) + 0.25 * vn2(wp.xz * 7.0));
-  float foam = (1.0 - smoothstep(0.0, 0.05 + 0.03 * uWave, abs(wp.y - swash))) * lace * sandW * smoothstep(0.45, 0.9, uWave);
+  float foam = (1.0 - smoothstep(0.0, 0.05 + 0.03 * uWave, abs(wh - swash))) * lace * sandW * smoothstep(0.45, 0.9, uWave);
   return mix(col, vec3(0.92, 0.95, 0.96), foam * 0.8);
 }
 // the relief's slope by differences over about a pixel's width of ground (not the screen's derivatives: those are

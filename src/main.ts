@@ -57,6 +57,8 @@ import { makeLanternStudyPanel } from './ui/lantern-study';
 import { makeRecorder, KEEP } from './ui/replay';
 import { planOpening, type Opening, type OpeningPose } from './opening';
 import { makeHints } from './ui/hints';
+import { startRehearsalLog, type RehearsalLog } from './ui/rehearsal-log';
+import { profBegin, profEnd } from './core/prof';
 import { readShared, shareUrl, wxKindOf, describeShared, WX, type WxKind } from './ui/share';
 import { updateSplash, splashAt, bubblesAt, bigSplash, streamAt, diveBubbles } from './ocean/splash';
 // (heights over the still water there, not over y = 0: the sea rises and falls with the tide — ADR 0009; a pool stays at mean
@@ -198,7 +200,7 @@ function endOpening(done: boolean) {
 }
 // watching one of the island's residents from above: the camera stays with it until let go
 const watch = { r: null as any, ang: 0, off: 0.45, el: 0.3, dist: 5.5, infoT: 0, pov: false, crabK: 0, crab: null as null | { x: number; y: number; z: number } };   // (crabK, crab: come down to a crab near it after dark)
-const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to
+const SKY_MAX = 120;   // stay under the 150 m ceiling drones fly to (over the sea as it stands now)
 function pathXZ(s: number): [number, number] { return cur?.loc.path ? cur.loc.path(s) : [110 * Math.sin(s * 0.9) + 22 * Math.sin(s * 2.3 + 1), -8 + 88 * Math.sin(s * 0.6 + 0.8) + 20 * Math.cos(s * 1.7)]; }
 function pathAlt(s: number) {
   const a = 3.4 + 2.0 * Math.sin(s * 3.1) + 1.2 * Math.sin(s * 7.3 + 2);
@@ -1110,7 +1112,7 @@ function updateDrone(dt: number, now: number) {
     if (mayDive && drone.vel.y < -0.25) { if (shot?.surface) { drone.skim = rr(4, 8); drone.skimDir = -1; } else drone.pass = -1; }
     else { drone.pos.y = sw + 0.5; if (drone.vel.y < 0) drone.vel.y = 0; }
   }
-  if (drone.pos.y > SKY_MAX) { drone.pos.y = SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
+  if (drone.pos.y > seaHeight() + SKY_MAX) { drone.pos.y = seaHeight() + SKY_MAX; if (drone.vel.y > 0) drone.vel.y = 0; }
   const lim = cur!.loc.land ? cur!.loc.land.roam : LIMIT;   // (by an island, the whole island)
   drone.pos.x = clamp(drone.pos.x, -lim, lim); drone.pos.z = clamp(drone.pos.z, -lim, lim);
   drone.pitch = clamp(drone.pitch, -1.25, 1.25);
@@ -1511,13 +1513,15 @@ const SORT: Record<string, string> = { breathe: 'turtle', rest: 'turtle', manta:
 const sortShown = new Map<string, number>();
 const lastKind = new Map<string, number>();
 const sameHunt = (a: any, b: any) => !!a && !!b && (a === b || hyp(a.x - b.x, a.z - b.z) < 8);
+let rehearsal: RehearsalLog | null = null;   // (?rehearsal: the machine's log for the rehearsal — ui/rehearsal-log.ts)
 function seaLog(kind: string, text: string, at?: Where) {
   recordLog(kind, text);
   const now = performance.now();
-  if ((recent.get(text) ?? -1e9) > now - 90000) return;
-  if (QUIET[kind] && (lastKind.get(kind) ?? -1e9) > now - QUIET[kind]) return;
+  if ((recent.get(text) ?? -1e9) > now - 90000) return;   // (the same words again: not into the rehearsal's log either)
+  if (QUIET[kind] && (lastKind.get(kind) ?? -1e9) > now - QUIET[kind]) { rehearsal?.event(kind, text, false); return; }
   const ref = at?.() ?? null;
-  if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) return;
+  if ((kind === 'hunt' || kind === 'catch') && now < huntLock.until && !sameHunt(ref, huntLock.ref)) { rehearsal?.event(kind, text, false); return; }
+  rehearsal?.event(kind, text, true);
   recent.set(text, now); lastKind.set(kind, now);
   // (what was told over 90 s ago no longer matters: let it go — the residents' lines are each new, and an evening on
   // the island would otherwise keep every one)
@@ -2436,6 +2440,11 @@ const dbg = location.search.includes('debug');
 /** LAB: ?sealevel=-1.04 — the drawn sea held at that height (m), for working on how the shore looks at low or high water
  *  before the tide goes in (nature team, the wet reef: 2026-10-22). What is drawn only: the island's life (residents,
  *  husks) keeps to time/sea-level.ts — ADR 0001. */
+if (/[?&]rehearsal\b/.test(location.search)) rehearsal = startRehearsalLog({
+  island: () => clock.ms, world: () => cur?.residents?.worldTime ?? null,
+  seaWorld: () => (cur?.residents ? seaLevel(cur.residents.worldTime, cur.loc) : null), seaDrawn: () => seaHeight(),
+  status: () => { const b = document.querySelector('#live .band'); return b && !b.classList.contains('off') ? `${b.querySelector('.name')?.textContent ?? ''}：${b.querySelector('.status')?.textContent ?? ''}` : ''; },
+});
 const SEA_TEST = (() => { const m = /[?&]sealevel=(-?\d+(?:\.\d+)?)/.exec(location.search); return m ? Math.max(-3, Math.min(3, +m[1])) : null; })();
 async function prepareShaders(oc: Ocean) {
   const seen = new Map<THREE.Material, THREE.Object3D>();
@@ -3475,10 +3484,13 @@ let frameErrs = 0;
 let held = false, heldTs = 0;   // (?debug: frames stepped one by one from outside, for a recording made frame by frame)
 function frame(ts: number) {
   if (held) { requestAnimationFrame(frame); return; }
+  rehearsal?.frame(ts);
   try { frameBody(ts); }
   catch (e) {
     if (frameErrs++ < 3) { console.error(e); track('app_error', { where: 'frame', msg: String((e as Error)?.message ?? e).slice(0, 90) }); }
+    rehearsal?.event('error', String((e as Error)?.message ?? e).slice(0, 200));
   }
+  rehearsal?.frameEnd();
   requestAnimationFrame(frame);
 }
 function frameBody(ts: number) {
@@ -3540,7 +3552,7 @@ function frameBody(ts: number) {
     cur.residents?.focus(watch.r);
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
     // The review mode's island follows real world time, independent of viewing presets (ADR 0001).
-    cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos);
+    profBegin('住人'); cur.residents?.update(dt, cur.residents.study ? Date.now() : clock.ms, drone.pos); profEnd('住人');
     if (cur.residents) cur.crabs?.update(dt, cur.residents.worldTime, camera.position);   // (the night beach's crabs, by the island's clock)
     // (through its eyes: the camera on where they are now that the model has been posed for this frame)
     if (watch.r && watch.pov && cur.residents) { const sn = cur.residents.sense(watch.r); camera.position.copy(sn.eye); povEye.copy(sn.eye); }
@@ -3676,6 +3688,7 @@ function frameBody(ts: number) {
     post.whiteBalance(air ? 0 : -overSea(camera.position), U.uAbs.value, U.uNight.value, air);
     if (bisect) bisectStep(dt);
     // at the waterline: the view half under the water and half in the air (see render/split.ts)
+    profBegin('描画');   // (the drawing handed to the GPU, the island's near trees with it — ?rehearsal)
     if (usePost() && Math.abs(lvl) < SPLIT_BAND && !watch.pov) {
       const sz = renderer.getDrawingBufferSize(_sz); split.setSize(sz.x, sz.y);
       const cy = camera.position.y, ws = seaAt(camera.position), sh = seaHeight(), keepFar = camera.far, keepExpo = camExpo;
@@ -3705,7 +3718,8 @@ function frameBody(ts: number) {
       renderer.setRenderTarget(null); renderer.render(oceanScene, camera);
       if (air) { setRefraction(null); renderer.autoClear = false; renderer.render(topScene, camera); renderer.autoClear = true; }
     }
-    liveUi?.sample(renderer.domElement);   // (the live screen's haze: the picture just drawn, read in this same frame)
+    profEnd('描画');
+    profBegin('画面読み'); liveUi?.sample(renderer.domElement); profEnd('画面読み');   // (the live screen's haze: the picture just drawn, read in this same frame)
     if ((hudTimer += dt) > 0.1) { hudTimer = 0; if (hudOn) updateHud(); }
     if ((mapTimer += dt) > 0.2 && hudOn) {
       mapTimer = 0;

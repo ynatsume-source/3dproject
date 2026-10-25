@@ -17,7 +17,7 @@ const fast = [
   'manual-husk-workflow',
   'manual-husk-work',
   'manual-husk-separation',
-  'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal', 'tide', 'crabs', 'sea-level', 'tide-reach', 'husk-tide', 'no-way',
+  'ai-pool', 'assembly', 'body', 'brain-weather', 'gauge-epoch', 'gauge-hypothesis', 'house', 'hypo', 'island-science', 'island-time', 'journal', 'tide', 'crabs', 'sea-level', 'tide-reach', 'husk-tide', 'no-way', 'residents-water',
   'lamp',
   'lantern', 'lantern-brain', 'lantern-residents', 'lantern-sky', 'lantern-study',
   'lumau', 'map', 'mind', 'nav', 'pottery-host', 'process-runner',
@@ -28,7 +28,7 @@ const fast = [
 ];
 
 const slow = [
-  'appear', 'astra-wreck', 'bait', 'bird', 'carpet', 'cave', 'circle',
+  'appear', 'astra-wreck', 'bait', 'bird', 'carpet', 'carpet-stuck', 'cave', 'circle',
   'clay-chain', 'clip', 'coral-depth', 'coral-overlap', 'coral-rock',
   'cruise-motion', 'day-lot', 'director', 'director-pingpong', 'dolphin',
   'eagleray', 'fell', 'float', 'hunt', 'iguana', 'jacks', 'jitter',
