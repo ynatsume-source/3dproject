@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- X のヘッダー（2026-10-25）：3:1。島の画（アプリの表示なし）に、右下へ小さく UTSUSHIYO PROJECT ／ Series 1 ルマウ。
-     左下はプロフィール画像が重なるので、何も置かない。?bg=画像のファイル名&y=切り出す位置（%）。
+     左下はプロフィール画像が重なるので、何も置かない。?bg=画像のファイル名&x=&y=切り出す位置（%）&s=寄せる倍率（横幅の%）。
      画はソフトウェア描画の仮の画。実機のリハーサル（本物の GPU）の録画から撮り直して差し替える。 -->
 <html><head><meta charset="utf-8"><title>header</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Cormorant+SC:wght@500&family=Zen+Old+Mincho:wght@500&display=block">
@@ -19,6 +19,7 @@
   const q = new URLSearchParams(location.search);
   const bg = document.getElementById('bg');
   bg.style.backgroundImage = `url(${q.get('bg') || 'header-bg.jpg'})`;
-  bg.style.backgroundPosition = `50% ${q.get('y') || '50'}%`;
+  bg.style.backgroundPosition = `${q.get('x') || '50'}% ${q.get('y') || '50'}%`;
+  if (q.get('s')) bg.style.backgroundSize = `${q.get('s')}% auto`;   // (zoomed in: s = width as % of the frame)
 </script>
 </body></html>
