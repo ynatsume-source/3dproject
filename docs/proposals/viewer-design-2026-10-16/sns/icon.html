@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- SNS のアイコン（2026-10-25）：島の文字で「ルマウ」（lu・ma・u）。字の形は src/robots/islandlang.ts の glyphs() と同じ。
+     夜の海の色の地に、砂の金（ライブ画面の強調色 #e9cf98）。下の細い波線は波打ち際（lumau の意味）。
+     ?wave=0 で波線なし。800×800 で書き出し、X などの丸い切り抜きで使う。 -->
+<html><head><meta charset="utf-8"><title>icon</title>
+<style>
+  html, body { margin: 0; width: 800px; height: 800px; overflow: hidden; }
+  body { background: radial-gradient(circle at 50% 46%, #133440 0%, #0c222b 46%, #07161c 100%); display: grid; place-items: center; }
+  svg { display: block; }
+</style></head><body>
+<svg id="art" width="800" height="800" viewBox="0 0 800 800" fill="none" stroke-linecap="round" stroke-linejoin="round"></svg>
+<script>
+  const BASE = { '': '<circle cx="5" cy="8" r="3"/>', l: '<path d="M6 3V11Q6 13 3.5 13"/>', m: '<path d="M2 13V7Q5 1 8 7V13"/>' };
+  const MARK = { a: '', u: '<circle cx="5" cy="15.2" r="0.9" class="f"/>' };
+  const syl = [['l', 'u'], ['m', 'a'], ['', 'u']];
+  const q = new URLSearchParams(location.search), wave = q.get('wave') !== '0';
+  const S = 16.5, W = 36 * S, x0 = 400 - (W - 3 * S) / 2 - 1 * S, y0 = wave ? 222 : 268;   // (a sign is 12 wide, 16 high)
+  let g = `<g transform="translate(${x0} ${y0}) scale(${S})" stroke="#e9cf98" stroke-width="1.6" fill="none"><style>.f{fill:#e9cf98;stroke:none}</style>`;
+  syl.forEach(([c, v], i) => { g += `<g transform="translate(${i * 12} 0)">${BASE[c]}${MARK[v]}</g>`; });
+  g += '</g>';
+  if (wave) g += `<path d="M236 596 Q 277 574 318 596 T 400 596 T 482 596 T 564 596" stroke="#e9cf98" stroke-opacity=".6" stroke-width="10"/>`;
+  document.getElementById('art').innerHTML = g;
+</script>
+</body></html>
