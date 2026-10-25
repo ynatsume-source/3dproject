@@ -2,6 +2,7 @@
 
 細かい理由や記録の中身は `RUNBOOK.md`（両方に書いてあることは同じ。Windows で迷ったらこちら）。ここは Windows の家の PC で上から順にやるだけの版。
 コマンドは **PowerShell**（スタートメニューで「PowerShell」と打って開く）に 1 行ずつ貼る。
+`npm` と `npx` は `npm.cmd`・`npx.cmd` と書く（Windows の初期設定では、PowerShell から `npm` と打つと「スクリプトの実行が無効」で止まるため）。
 
 ---
 
@@ -28,8 +29,8 @@ cd 3dproject
 git checkout 90ae7cac46b4a0c461b95c922da183c5bd3e7dd3
 git tag rehearsal-1
 git push origin rehearsal-1
-npm ci
-npm run build
+npm.cmd ci
+npm.cmd run build
 ```
 （`git push` で GitHub のログインを聞かれたら、そのままログインする。うまくいかなければ飛ばしてよい。中身は同じ）
 
@@ -45,7 +46,7 @@ npm run build
 PowerShell で：
 ```
 cd $HOME\3dproject
-npx vite preview --port 4173 --strictPort
+npx.cmd vite preview --port 4173 --strictPort
 ```
 **この PowerShell の窓は閉じない**（閉じるとアプリが止まる）。最小化はしてよい。
 
