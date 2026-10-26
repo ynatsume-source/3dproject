@@ -7,7 +7,7 @@
 // tide — and are not announced; they tell themselves once they show.)
 import * as THREE from 'three';
 import type { Species } from '../data/locations';
-import { R, rr, clamp, hyp } from '../core/math';
+import { R, rr, clamp, hyp, mulberry32 } from '../core/math';
 import { makeShoalSystem } from './shoal';
 import { makeSchoolShade } from './schoolshade';
 import { sightRange, unseen, behind, clearDepth } from './unseen';
@@ -24,7 +24,7 @@ export interface RareInfo { id: string; ja: string; note: string }
 // a rare sight is announced, and filmed, only from then (nothing is told of what no one can see yet). seen: since then.
 // comes: it swims past the camera, which stops and waits for it once it is in view: how near before it is filmed close.
 interface Running { info: RareInfo; t: number; dur: number; update(dt: number, env: Env, cam: THREE.Vector3, fx: number, fz: number): void; pos(): THREE.Vector3 | null; status(): string; size: number; kind: Subject['kind']; dispose(): void; gone?(cam: THREE.Vector3, fx: number, fz: number): boolean; quiet?: boolean; seen?: boolean; comes?: number; bodies?(cb: (x: number, y: number, z: number, len: number) => boolean | void): void }
-interface Kind { info: RareInfo; weight(loc: any, env: Env): number; start(oc: any, env: Env, cam: THREE.Vector3, fx: number, fz: number): Running | null }
+interface Kind { info: RareInfo; weight(loc: any, env: Env, oc?: any): number; start(oc: any, env: Env, cam: THREE.Vector3, fx: number, fz: number): Running | null }
 
 const inMonths = (m: number, list: number[]) => list.includes(m);
 // a point some way ahead of the camera, in open water deep enough for it
@@ -115,71 +115,80 @@ function flowSchool(oc: any, sp: Species, n: number, where: (i: number, t: numbe
   };
 }
 
+// whether today a manta is about this sea (mantaPass): drawn from the sea and the date alone, so a day keeps its answer
+function mantaDay(loc: any, env: Env) {
+  const key = `${loc.id}:${env.month}-${env.mday}:manta`;
+  let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return mulberry32(h >>> 0)() < (loc.mantaPass?.p[env.month - 1] ?? 0);
+}
+function mantaLine(oc: any, cam: THREE.Vector3, fx: number, fz: number, n: number, first: number, need: number, info: RareInfo, say: (n: number) => string): Running | null {
+  const giant = (oc.loc.extraGuide || []).some((e: any) => e.id === 'manta' && e.ja === 'オニイトマキエイ');
+  // A line of n mantas, out there already: it comes in from out of sight beside the camera and swims across the way
+  // ahead, along a line through water `need` m deep (each manta keeping clear of the reef under its wings). The first
+  // comes `first` s ahead of the rest (the train: the female they follow, alone, and then — the train).
+  const LINE = 40 + 20 + sightRange(oc) * 0.5 + 60;
+  const cross = rr(18, 28), pass = rr(4, 9); let aimed = false;
+  const ln = sideLine(oc, cam, fx, fz, 40, need, cross, pass, LINE, 5);
+  if (!ln) return null;
+  const st = ln.st, dir = ln.dir;
+  const side = new THREE.Vector3(-dir.z, 0, dir.x);
+  const depth = Math.min(-need + 1.5, Math.max(oc.T.top(cam.x, cam.z) + 4, -12));
+  const ms = Array.from({ length: n }, (_, i) => {
+    const mesh = new THREE.Mesh(MANTA_GEO, mantaMaterial(giant)); mesh.frustumCulled = false;
+    const s = (giant ? rr(2.2, 2.8) : rr(1.4, 2.1)); mesh.scale.setScalar(s); oc.group.add(mesh);
+    return { mesh, span: s * 2, lag: i === 0 ? 0 : first + i * rr(4, 6), off: new THREE.Vector3(rr(-3, 3) * (i > 0 ? 1 : 0), rr(-1.5, 1.5), 0), ph: R() * 6, y: NaN };
+  });
+  const lead = new THREE.Vector3(), speed = 1.3, run = 38 + 20 + sightRange(oc) * 0.5;
+  const P = new THREE.Vector3();
+  const place = (m: typeof ms[number], t: number, dt: number) => {
+    const d = (t - m.lag) * speed;   // each follows the one ahead along the same line, a few seconds behind (before it: further back, unseen)
+    P.set(st.x + dir.x * d + side.x * m.off.x + Math.sin(t * 0.2 + m.ph) * 0.8, 0, st.z + dir.z * d + side.z * m.off.x + Math.cos(t * 0.17 + m.ph) * 0.8);
+    // (over the reef: up and over it in good time, wingtips and all; then back down to its depth)
+    const want = clearDepth(oc, P.x, P.z, dir.x, dir.z, depth + m.off.y + Math.sin(t * 0.3 + m.ph) * 0.6, m.span * 0.55, m.span * 0.35 + 0.8, 8);
+    m.y = Number.isNaN(m.y) ? want : m.y + (want - m.y) * Math.min(1, dt * 1.2);
+    const hard = clearDepth(oc, P.x, P.z, dir.x, dir.z, -1e3, m.span * 0.55, m.span * 0.3 + 0.4, 0);   // (and never in it, whatever the easing)
+    P.y = Math.max(m.y, hard);
+    return P;
+  };
+  for (const m of ms) place(m, 0, 1);
+  return {
+    info, t: 0, dur: (run + (first + n * 5) * speed) / speed, size: n > 1 ? 9 : 5, kind: 'manta', comes: 22,   // (framed as one long animal: several mantas in the picture)
+    bodies: (cb) => { for (const m of ms) if (cb(m.mesh.position.x, m.mesh.position.y, m.mesh.position.z, m.span) === true) return; },
+    update(dt, _e, c, gx, gz) {
+      this.t += dt;
+      // (not seen yet, and every one of them still out of sight: still turning to cross the way ahead, the line kept
+      // through the lead; once any could be seen, its way is fixed)
+      if (!aimed && (this.seen || (this as any).noticed || !ms.every((m) => unseen(oc, m.mesh.position.x, m.mesh.position.y, m.mesh.position.z, c, gx, gz, m.span)))) aimed = true;
+      if (!aimed) {
+        const dl = this.t * speed, at0 = st.clone().addScaledVector(dir, dl);
+        reaim(at0, dir, c, gx, gz, cross, pass, dt); st.copy(at0).addScaledVector(dir, -dl); side.set(-dir.z, 0, dir.x);
+      }
+      for (const m of ms) {
+        const prevY = m.mesh.position.y, p = place(m, this.t, dt);
+        m.mesh.position.copy(p);
+        const vy = (p.y - prevY) / Math.max(dt, 1e-3);
+        m.mesh.rotation.set(-0.05 + Math.sin(this.t * 0.3 + m.ph) * 0.06 - Math.atan2(vy, speed) * 0.7, Math.atan2(dir.x, dir.z), Math.sin(this.t * 0.25 + m.ph) * 0.15, 'YXZ');
+        const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
+        U.uBeat.value = 0; U.uPhase.value += dt * (0.97 + 0.06 * Math.sin(m.ph));
+        U.uFeed.value = 0; U.uMouth.value = 0.10 + 0.018 * Math.sin(this.t * 0.7 + m.ph);
+        U.uBank.value = Math.sin(this.t * 0.25 + m.ph) * 0.10; U.uAir.value = 0;
+      }
+      // (what is filmed: the one nearest the camera — the female alone at first, then the train coming on behind her)
+      let bd = Infinity; for (const m of ms) { const d = m.mesh.position.distanceTo(c); if (d < bd) { bd = d; lead.copy(m.mesh.position); } }
+    },
+    pos: () => lead, status: () => say(n),
+    // (on its way, it is taken away only once every one of them is out of sight)
+    gone: (c, gx, gz) => ms.every((m) => unseen(oc, m.mesh.position.x, m.mesh.position.y, m.mesh.position.z, c, gx, gz, m.span)),
+    dispose() { for (const m of ms) { oc.group.remove(m.mesh); (m.mesh.material as THREE.Material).dispose(); } },
+  };
+}
+
+const MANTA_PASS: RareInfo = { id: 'mantapass', ja: 'ナンヨウマンタ', note: 'ふだんはラグーンの外の水道にいるマンタが、ときどき礁の外側を通っていく。' };
 const KINDS: Kind[] = [
   {
     info: { id: 'mantatrain', ja: 'マンタの群れ', note: 'ふだんは一枚で回っているマンタが、十枚近くも連なってやってくる。繁殖期にメスを追うオスたちの「マンタトレイン」か、プランクトンの濃い潮に集まった群れ。' },
     weight: (loc) => (loc.animals?.manta ? 3 : 0),
-    start(oc, env, cam, fx, fz) {
-      const n = 7 + Math.floor(R() * 5), giant = (oc.loc.extraGuide || []).some((e: any) => e.id === 'manta' && e.ja === 'オニイトマキエイ');
-      // They are out there already: the train comes in from out of sight beside the camera and swims across the
-      // way ahead, along a line through open water (each manta keeping clear of the reef under its wings). The first
-      // to come is the female they follow, alone, some 12 s ahead of the rest: one manta, and then — the train.
-      const LINE = 40 + 20 + sightRange(oc) * 0.5 + 60;
-      const cross = rr(18, 28), pass = rr(4, 9); let aimed = false;
-      const ln = sideLine(oc, cam, fx, fz, 40, 4.5, cross, pass, LINE, 5);
-      if (!ln) return null;
-      const st = ln.st, dir = ln.dir;
-      const side = new THREE.Vector3(-dir.z, 0, dir.x);
-      const depth = Math.min(-3, Math.max(oc.T.top(cam.x, cam.z) + 4, -12));
-      const ms = Array.from({ length: n }, (_, i) => {
-        const mesh = new THREE.Mesh(MANTA_GEO, mantaMaterial(giant)); mesh.frustumCulled = false;
-        const s = (giant ? rr(2.2, 2.8) : rr(1.4, 2.1)); mesh.scale.setScalar(s); oc.group.add(mesh);
-        return { mesh, span: s * 2, lag: i === 0 ? 0 : 12 + i * rr(4, 6), off: new THREE.Vector3(rr(-3, 3) * (i > 0 ? 1 : 0), rr(-1.5, 1.5), 0), ph: R() * 6, y: NaN };
-      });
-      const lead = new THREE.Vector3(), speed = 1.3, run = 38 + 20 + sightRange(oc) * 0.5;
-      const P = new THREE.Vector3();
-      const place = (m: typeof ms[number], t: number, dt: number) => {
-        const d = (t - m.lag) * speed;   // each follows the one ahead along the same line, a few seconds behind (before it: further back, unseen)
-        P.set(st.x + dir.x * d + side.x * m.off.x + Math.sin(t * 0.2 + m.ph) * 0.8, 0, st.z + dir.z * d + side.z * m.off.x + Math.cos(t * 0.17 + m.ph) * 0.8);
-        // (over the reef: up and over it in good time, wingtips and all; then back down to its depth)
-        const want = clearDepth(oc, P.x, P.z, dir.x, dir.z, depth + m.off.y + Math.sin(t * 0.3 + m.ph) * 0.6, m.span * 0.55, m.span * 0.35 + 0.8, 8);
-        m.y = Number.isNaN(m.y) ? want : m.y + (want - m.y) * Math.min(1, dt * 1.2);
-        const hard = clearDepth(oc, P.x, P.z, dir.x, dir.z, -1e3, m.span * 0.55, m.span * 0.3 + 0.4, 0);   // (and never in it, whatever the easing)
-        P.y = Math.max(m.y, hard);
-        return P;
-      };
-      for (const m of ms) place(m, 0, 1);
-      return {
-        info: KINDS[0].info, t: 0, dur: (run + (12 + n * 5) * speed) / speed, size: 9, kind: 'manta', comes: 22,   // (framed as one long animal: several mantas in the picture)
-        bodies: (cb) => { for (const m of ms) if (cb(m.mesh.position.x, m.mesh.position.y, m.mesh.position.z, m.span) === true) return; },
-        update(dt, _e, c, gx, gz) {
-          this.t += dt;
-          // (not seen yet, and every one of them still out of sight: still turning to cross the way ahead, the line kept
-          // through the lead; once any could be seen, its way is fixed)
-          if (!aimed && (this.seen || (this as any).noticed || !ms.every((m) => unseen(oc, m.mesh.position.x, m.mesh.position.y, m.mesh.position.z, c, gx, gz, m.span)))) aimed = true;
-          if (!aimed) {
-            const dl = this.t * speed, at0 = st.clone().addScaledVector(dir, dl);
-            reaim(at0, dir, c, gx, gz, cross, pass, dt); st.copy(at0).addScaledVector(dir, -dl); side.set(-dir.z, 0, dir.x);
-          }
-          for (const m of ms) {
-            const prevY = m.mesh.position.y, p = place(m, this.t, dt);
-            m.mesh.position.copy(p);
-            const vy = (p.y - prevY) / Math.max(dt, 1e-3);
-            m.mesh.rotation.set(-0.05 + Math.sin(this.t * 0.3 + m.ph) * 0.06 - Math.atan2(vy, speed) * 0.7, Math.atan2(dir.x, dir.z), Math.sin(this.t * 0.25 + m.ph) * 0.15, 'YXZ');
-            const U = (m.mesh.material as THREE.ShaderMaterial).uniforms;
-            U.uBeat.value = 0; U.uPhase.value += dt * (0.97 + 0.06 * Math.sin(m.ph));
-            U.uFeed.value = 0; U.uMouth.value = 0.10 + 0.018 * Math.sin(this.t * 0.7 + m.ph);
-            U.uBank.value = Math.sin(this.t * 0.25 + m.ph) * 0.10; U.uAir.value = 0;
-          }
-          // (what is filmed: the one nearest the camera — the female alone at first, then the train coming on behind her)
-          let bd = Infinity; for (const m of ms) { const d = m.mesh.position.distanceTo(c); if (d < bd) { bd = d; lead.copy(m.mesh.position); } }
-        },
-        pos: () => lead, status: () => `${n}枚のマンタが連なって泳いでいく`,
-        // (on its way, it is taken away only once every one of them is out of sight)
-        gone: (c, gx, gz) => ms.every((m) => unseen(oc, m.mesh.position.x, m.mesh.position.y, m.mesh.position.z, c, gx, gz, m.span)),
-        dispose() { for (const m of ms) { oc.group.remove(m.mesh); (m.mesh.material as THREE.Material).dispose(); } },
-      };
-    },
+    start(oc, env, cam, fx, fz) { return mantaLine(oc, cam, fx, fz, 7 + Math.floor(R() * 5), 12, 4.5, KINDS[0].info, (n) => `${n}枚のマンタが連なって泳いでいく`); },
   },
   {
     info: { id: 'fishwall', ja: '視界を埋めつくす魚の大群', note: '何千匹もの小魚が、壁のように目の前を通り過ぎていく。群れの中に入ると、あたり一面が魚だけになる。' },
@@ -410,6 +419,27 @@ const KINDS: Kind[] = [
       };
     },
   },
+  {
+    // One that is not always about the sea, as it is where a manta lives (animals.manta): one that passes by now and
+    // then on its way along the reef's outer side (R-031, the owner's choice 2026-10-27: Kayama — the mantas of the
+    // Yonara channel close by). Whether one is about at all is the day's (from the sea and the date, as the day's lot:
+    // the same day, the same sea) and the season's (mantaPass.p by month); on such a day, by daylight, one may come by,
+    // and not again for 2-3 hours. In the months of their courting (mantaPass.line) it may be two or three in a line.
+    info: MANTA_PASS,
+    weight: (loc, env, oc) => {
+      const mp = loc.mantaPass; if (!mp || env.night > 0.5) return 0;
+      if (oc && env.t < (oc.mantaPassNext ?? -Infinity)) return 0;
+      return mantaDay(loc, env) ? 3 : 0;
+    },
+    start(oc, env, cam, fx, fz) {
+      const line = !!oc.loc.mantaPass?.line.includes(env.month) && R() < 0.5;   // (asked for where none passes by (seaglass.rare): one, alone)
+      const n = line ? 2 + Math.floor(R() * 2) : 1;
+      const ja = (oc.loc.extraGuide || []).find((e: any) => e.id === 'manta')?.ja ?? 'ナンヨウマンタ';
+      const r = mantaLine(oc, cam, fx, fz, n, 0, 2.5, { ...MANTA_PASS, ja: n > 1 ? `${ja}の列` : ja }, (k) => (k > 1 ? `${k}枚のマンタが列になって、礁の外側を通っていく` : '礁の外側を、ゆっくり通っていく'));
+      if (r) oc.mantaPassNext = env.t + rr(7200, 10800);
+      return r;
+    },
+  },
 ];
 export const RARE_LIST: RareInfo[] = KINDS.map((k) => k.info);
 
@@ -420,9 +450,9 @@ export function makeRareEvents(oc: any) {
     // the one that has just begun (read once by the app, to announce it and go and film it)
     takeStarted() { const s = started; started = null; return s; },
     // every kind, with how likely it is here now (0: not at this sea or not at this time): for the test panel
-    kinds(env: Env) { return KINDS.map((k) => ({ id: k.info.id, ja: k.info.ja, w: k.weight(oc.loc, env) })); },
+    kinds(env: Env) { return KINDS.map((k) => ({ id: k.info.id, ja: k.info.ja, w: k.weight(oc.loc, env, oc) })); },
     // what could happen here now, and how likely each is
-    options(env: Env) { return KINDS.map((k) => ({ k, w: k.weight(oc.loc, env) })).filter((o) => o.w > 0); },
+    options(env: Env) { return KINDS.map((k) => ({ k, w: k.weight(oc.loc, env, oc) })).filter((o) => o.w > 0); },
     start(id: string | null, env: Env, cam: THREE.Vector3, fx: number, fz: number) {
       if (run) { run.dispose(); run = null; }
       const opts = this.options(env).filter((o) => !id || o.k.info.id === id);

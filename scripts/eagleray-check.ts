@@ -7,6 +7,8 @@
 // (the pitch's rate of change stays small).
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/eagleray-check.ts [sea ...]   (env MIN 20)
 import * as THREE from 'three';
+import './node-land';
+import { loadLand } from '../src/ocean/land';
 import { LOCATIONS } from '../src/data/locations';
 import { buildOcean } from '../src/ocean/build';
 import { skyState, sunEvents } from '../src/time/clock';
@@ -16,6 +18,7 @@ const MIN = +(process.env.MIN || 20), seas = process.argv.slice(2);
 let fail = 0;
 for (const id of seas.length ? seas : LOCATIONS.filter((l: any) => l.eaglerays).map((l) => l.id)) {
   const loc: any = LOCATIONS.find((l) => l.id === id)!;
+  if (loc.land) await loadLand(id, loc.land.half, loc.land.far);   // (an island's real land and lagoon, as drawn)
   const oc: any = buildOcean(loc);
   const ev = sunEvents(Date.UTC(2026, 8, 29, 3), loc);
   oc.eco.setSky(skyState(ev.noon, loc), new THREE.Vector2(0.3, 0.1));
@@ -32,7 +35,7 @@ for (const id of seas.length ? seas : LOCATIONS.filter((l: any) => l.eaglerays).
     oc.eco.step(dt, t, cam, fx, fz);
     let met = false;
     for (const g of E.groups) for (const r of g.rays) {
-      const seen = !unseen(oc, r.pos.x, r.pos.y, r.pos.z, cam, fx, fz, r.span);
+      const seen = g.placed && !unseen(oc, r.pos.x, r.pos.y, r.pos.z, cam, fx, fz, r.span);   // (a group not set down is not drawn: not seen)
       const q = prev.get(r);
       if (q && q.p.distanceTo(r.pos) > 3) { jumps++; if (q.seen || seen) badJumps++; }
       else if (q && q.placed && g.placed) maxAcc = Math.max(maxAcc, q.v.distanceTo(r.vel) / dt);
