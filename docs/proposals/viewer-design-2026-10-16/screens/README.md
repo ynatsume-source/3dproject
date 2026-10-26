@@ -11,7 +11,7 @@
 この文書は `../README.md` §3-2（HUD の文言表）の**見た目の設計**。文言・出す条件・出さないもの（残り時間・隠れた値など）は §3-2・§3-6 のまま。文字の大きさの下限（状態の1行 72px など）は、この第2版で**置き換える**（§3）。
 
 - モック：`live-screens.html`（1920×1080。場面 `#day` `#rope` `#isle` `#night` `#talk` `#milestone`、`&en` で英語）
-- 画像：`screen-1-day` 昼・付き添い／`screen-2-rope` 縄づくり（`-en` 英語）／`screen-3-isle` 夕方・島をめぐる／`screen-4-night` 夜・ランタン／`screen-5-talk` 会話の字幕（`-en` 英語）／`screen-6-milestone` 節目の札（`-en` 英語）／`screen-10-fire` 焚き火の会の吹き出し・`screen-11-bubble` 昼の2人の会話の吹き出し（`-en` 英語、R-024、`BUBBLE.md`）。1600×900 に縮めたもの。`*-phone.jpg` はスマホ横の全画面（幅844px）で見える大きさ
+- 画像：`screen-1-day` 昼・付き添い／`screen-2-rope` 縄づくり（`-en` 英語）／`screen-3-isle` 夕方・島をめぐる／`screen-4-night` 夜・ランタン／`screen-5-talk` 会話の字幕（`-en` 英語）／`screen-6-milestone` 節目の札（`-en` 英語）／`screen-10-fire` 焚き火の会の吹き出し・`screen-11-bubble` 昼の2人の会話の吹き出し（`-en` 英語、R-024、`BUBBLE.md`）／`screen-12-v3-day` 番組の形の案 v3：章・道のり・このあと・試みの行（`-en` 英語）・`screen-13-v3-result` 試みの結果・`screen-14-v3-fire` 焚き火の会（`PROGRAM.md`）。1600×900 に縮めたもの。`*-phone.jpg` はスマホ横の全画面（幅844px）で見える大きさ
 - 背景：utsushiyo.earth の `#planet` を**ソフトウェア描画**で撮り、アプリの表示を消したもの（各1枚）。実際の GPU の画とは色・細かさが違う。夜は曇りで暗い
 - 文言：状態の文・出来事の文・会話（日本語と英語）は `residents.ts`・`islandlang.ts` にある文をそのまま使った。**「ヤシの殻を打っている」と、会話以外の英語の文は仮**（殻と縄は未接続、状態・出来事の英語の型はまだ無い）。日付・時刻は仮。節目の場面の灯りの光は、モックのために描き足したもの
 

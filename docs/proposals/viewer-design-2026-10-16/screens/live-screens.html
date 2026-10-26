@@ -142,17 +142,33 @@
   #map .lb { position: absolute; right: 0; top: calc(100% + 12px); font: 500 var(--s1)/1 var(--text); letter-spacing: .2em; color: var(--ink2); white-space: nowrap; }
   #rh { position: absolute; right: 96px; bottom: 86px; font: 400 var(--s1)/1 var(--mono); letter-spacing: .04em; color: var(--ink3); }
   /* R-024 (BUBBLE.md): what is said, over the speaker's head — the campfire demo's bubble, sized for the stream */
-  .bub { position: absolute; --bgc: rgba(251, 248, 241, .96); background: var(--bgc); color: #23343a; border-radius: 24px; padding: 18px 26px 18px; width: max-content; max-width: 680px; min-width: 220px; box-sizing: border-box;
+  .bub { position: absolute; --bgc: rgba(251, 248, 241, .96); background: var(--bgc); color: #23343a; border-radius: 24px; padding: 18px 26px 18px; width: max-content; max-width: 690px; min-width: 220px; box-sizing: border-box;
     box-shadow: 0 6px 0 color-mix(in srgb, var(--c) 70%, transparent), 0 14px 36px rgba(0, 0, 0, .35); }
   body.dim .bub { --bgc: rgba(232, 226, 213, .9); }
   .bub::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -16px; margin-left: -16px; border: 16px solid transparent; border-top-color: var(--bgc); border-bottom: 0; }
   .bub .nm { font: 700 var(--s1)/1 var(--jp); letter-spacing: .1em; color: color-mix(in srgb, var(--c) 50%, #23343a); }
   .bub .g { margin-top: 10px; line-height: 0; color: rgba(35, 52, 58, .8); }
   .bub .g svg { height: 30px; width: auto; max-width: 100%; }
-  .bub .tr { margin-top: 10px; padding-top: 10px; border-top: 1.5px dashed color-mix(in srgb, var(--c) 60%, transparent); font: 600 var(--s4)/1.45 var(--jp); letter-spacing: .04em; max-width: 600px; }
+  .bub .tr { margin-top: 10px; padding-top: 10px; border-top: 1.5px dashed color-mix(in srgb, var(--c) 60%, transparent); font: 600 var(--s4)/1.45 var(--jp); letter-spacing: .04em; max-width: 630px; }
   .bub .tr span { display: block; }
   .en .bub .nm { font: 600 var(--s2)/1 var(--lat); letter-spacing: .06em; }
   .en .bub .tr { font: 500 calc(var(--s4) + 4px)/1.3 var(--lat); letter-spacing: .01em; }
+  /* v3 (PROGRAM.md §1-§2): where the island is heading, always — the chapter (the way's present stage), its day, the way;
+     and at the top right what comes next on the island's day */
+  #chap { position: absolute; left: 96px; top: 160px; }
+  #chap .c1 { font: 600 var(--s4)/1 var(--text); letter-spacing: .08em; }
+  #chap .c1 .no { font: 500 var(--s2)/1 var(--text); letter-spacing: .2em; color: var(--sand); margin-right: 22px; }
+  #chap .c1 .dy { font: 500 var(--s1)/1 var(--text); letter-spacing: .1em; color: var(--ink3); margin-left: 16px; }
+  #chap .way { margin-top: 18px; font: 500 var(--s2)/1 var(--text); letter-spacing: .08em; color: var(--ink2); }
+  #chap .way .done { color: var(--done); } #chap .way .now { color: var(--sand); border-bottom: 1px solid var(--sand); padding-bottom: 3px; } #chap .way .dot { color: var(--ink3); margin: 0 10px; } #chap .way .later { color: var(--ink3); }
+  .en #chap .c1 { font-size: calc(var(--s4) + 4px); letter-spacing: .02em; } .en #chap .c1 .no { font: italic 500 calc(var(--s2) + 2px)/1 var(--lat); letter-spacing: .04em; }
+  #next { position: absolute; right: 96px; top: 150px; text-align: right; font: 500 var(--s2)/1 var(--text); letter-spacing: .1em; }
+  #next .k { font: 500 var(--s1)/1 var(--text); letter-spacing: .2em; color: var(--sand); margin-right: 16px; }
+  #next .tm { font: 400 var(--s2)/1 var(--mono); letter-spacing: .04em; margin-right: 12px; }
+  #lower .why .lab { font: 500 var(--s1)/1 var(--text); letter-spacing: .2em; color: var(--sand); margin-right: 16px; vertical-align: 3px; }
+  #lower .why .lab.no { color: var(--ink3); }
+  .en #lower .why .lab { font: italic 500 var(--s2)/1 var(--lat); letter-spacing: .04em; }
+  body.v3 #roster { top: 270px; } body.v3 #map { top: 210px; } body.v3 #think { top: 450px; }
   .bub.old { opacity: .55; box-shadow: none; transform: scale(.92); transform-origin: var(--tail, 50%) calc(100% + 16px); }
   .notext .t, .notext .t * { color: transparent !important; text-shadow: none !important; border-color: transparent !important; background-color: transparent !important; }
   .notext svg { visibility: hidden; }
@@ -173,6 +189,8 @@
   <div class="why" id="why" hidden></div>
 </div>
 <div class="t" id="roster" hidden></div>
+<div class="t" id="chap" hidden></div>
+<div class="t" id="next" hidden></div>
 
 <div class="t" id="pip" hidden><img id="pipimg" alt=""><div class="cap"><div class="w"><b>04</b><span id="pipgl"></span><span>ランタン</span><span class="c"></span></div><div class="st" id="pipst">丘の上へ歩いている</div></div></div>
 <div class="t" id="map" hidden><img src="map-lantern.png" alt=""><div class="lb" data-ja="ランタンの地図" data-en="Lantern's map">ランタンの地図</div></div>
@@ -264,23 +282,32 @@ const bubble = (id, toks, ja, en, hx, hy, old, avoid = []) => {
   b.innerHTML = `<div class="nm">${r[L]}</div><div class="g">${glyphs(toks)}</div><div class="tr">${parts.map((p) => `<span>${p}</span>`).join('')}</div>`;
   document.body.appendChild(b);
   const w = b.offsetWidth, hh = b.offsetHeight, top = hy - 16 - 16 - hh, clampX = (x) => Math.min(1920 - 96 - w, Math.max(96, x));
+  // (the corner groups are kept clear too: BUBBLE.md §2)
+  const corners = ['brand', 'roster', 'chap', 'next', 'clock', 'lower', 'map', 'think'].map($).filter((e) => e && !e.hidden).map((e) => { const q = e.getBoundingClientRect(); return [q.left, q.top, q.right, q.bottom]; });
+  avoid = [...avoid, ...corners];
   const hits = (x) => [...placed, ...avoid].some((q) => x < q[2] && x + w > q[0] && top < q[3] && top + hh > q[1]);
   // (first over the head; if it would cover a bubble already there or another's head, slid sideways — the tail still on the head)
   let x = clampX(hx - w / 2);
   if (hits(x)) { const tries = [...placed, ...avoid].flatMap((q) => [q[0] - 14 - w, q[2] + 14]).map(clampX).filter((t) => !hits(t) && hx - t >= 28 && hx - t <= w - 28).sort((a, b2) => Math.abs(a - (hx - w / 2)) - Math.abs(b2 - (hx - w / 2))); if (tries.length) x = tries[0]; }
+  if (hits(x)) document.querySelectorAll('.bub.old').forEach((o) => o.remove());   // (no way clear of the earlier one: it goes)
   Object.assign(b.style, { left: `${x}px`, top: `${top}px` }); b.style.setProperty('--tail', `${Math.min(w - 28, Math.max(28, hx - x))}px`);
   placed.push([x, top, x + w, top + hh + 16]);
 };
 const HEAD = { fire: { dot: [970, 483], kame: [1205, 575], lantern: [941, 562], rakko: [723, 548] }, bubble: { dot: [1149, 457], rakko: [825, 569] } };   // (bub capture, main 32638a3: 12 cm over each head, as the camera saw it)
 const headBox = ([x, y]) => [x - 70, y - 10, x + 70, y + 130];   // (round a head: kept clear of others' bubbles)
+const scenesWithBubbles = () => {
 if (scene === 'fire') {
   document.body.classList.add('dim'); bg('bg-fire.jpg'); who('dot'); $('date').textContent = date(1, 6); $('hour').textContent = '19:48';
   $('status').textContent = T('焚き火を囲んで話している', 'Talking round the fire');
   roster('dot', [['dot', T('焚き火を囲んで話している', 'Talking round the fire')], ['rakko', T('焚き火を囲んで話している', 'Talking round the fire')], ['kame', T('焚き火を囲んで話している', 'Talking round the fire')], ['lantern', T('焚き火を囲んで話している', 'Talking round the fire')]]);
-  // (SAY.proposePier and the agreements in islandlang.ts, after Kamemaru's proposal: Dot's answer just said, kept faint;
-  // Rakko answering now — slid aside from Dot's, its tail still on its own head)
-  bubble('dot', ['ua', ',', 'hane', 'motu', '.'], '了承：板を作る', 'Agreed: I will make the planks.', ...HEAD.fire.dot, true);
-  bubble('rakko', ['ua', ',', 'sita', 'ana', 'pila', '.'], '了承：柱を泳いで立てる', 'Agreed: I will swim the posts into place.', ...HEAD.fire.rakko, false, [headBox(HEAD.fire.lantern), headBox(HEAD.fire.dot)]);
+  // (SAY.proposePier and an agreement in islandlang.ts: Kamemaru's proposal just said, kept faint; Rakko answering now —
+  // slid aside from Kamemaru's and from Dot's head, its tail still on its own head)
+  // (the lines said the PROGRAM.md §6 way — no 「了承：」 heading; v3: Dot answering now, the four's list kept clear)
+  if (h.includes('v3')) bubble('dot', ['ua', ',', 'hane', 'motu', '.'], 'わかった。板は僕が作る', "Okay. I'll make the planks.", ...HEAD.fire.dot, false, [headBox(HEAD.fire.lantern)]);
+  else {
+    bubble('kame', ['teli', ',', 'lasipo', 'weko', 'motu', ',', 'tako', 'na', 'semi', '.'], '桟橋をみんなで作ろうよ。場所は僕が測る', "Let's build a pier together. I'll measure where.", ...HEAD.fire.kame, true);
+    bubble('rakko', ['ua', ',', 'sita', 'ana', 'pila', '.'], 'わかった。柱は僕が泳いで立てる', "Okay. I'll swim the posts in.", ...HEAD.fire.rakko, false, [headBox(HEAD.fire.lantern), headBox(HEAD.fire.dot)]);
+  }
 }
 if (scene === 'bubble') {
   bg('bg-talk.jpg'); who('dot'); $('hour').textContent = '15:22';
@@ -289,6 +316,27 @@ if (scene === 'bubble') {
   // (frames.ts offer-help, as R-023 heard it)
   bubble('rakko', ['toto', ',', 'na', 'e', 'toli', 'o', 'ki', 'to', 'soni', 'leni', 'ko', '.'], 'ドット、流木を運ぼうか。', 'Dot, shall I bring you driftwood?', ...HEAD.bubble.rakko, false, [headBox(HEAD.bubble.dot)]);
 }
+};
+// v3 (PROGRAM.md): the chapter and the way always at the top left, what comes next at the top right (sample words: the
+// way's stages and their names are the world's, from main and the science team)
+if (h.includes('v3')) {
+  document.body.classList.add('v3'); $('chap').hidden = false; $('next').hidden = false; $('steps').hidden = true;
+  // (PROGRAM.md §1: under what it is doing, what it is trying — its own words, for as long as the trial lasts; for 12 s
+  // after the world settles it, how it came out. Sample: Dot's hypothesis from trial 1, said the §6 way)
+  if (scene === 'day') {
+    bg('bg-talk.jpg'); $('status').textContent = T('浜で流木が上がるのを見張っている', 'Watching the beach for driftwood');   // (science's wording for look, VOICE §9)
+    $('why').hidden = false;
+    $('why').innerHTML = h.includes('res') ? `<span class="lab">${T('確かめた', 'Confirmed')}</span>${T('「やっぱり、浜で待ってから歩けば、流木が見つかった」', '“So it was: wait on the beach, then walk, and the driftwood is there.”')}`
+      : `<span class="lab">${T('試み', 'Trying')}</span>${T('「浜で2回待ってから歩けば、流木が見つかるはず」', '“Wait on the beach twice, then walk: the driftwood should be there.”')}`;
+    if (h.includes('res')) $('status').textContent = T('流木を拾い上げている', 'Picking up the driftwood');
+  } else $('why').hidden = true;
+  const way = [[T('小屋', 'hut'), 'done'], [T('家', 'house'), 'now'], [T('筏', 'raft'), 'later'], [T('帆', 'sail'), 'later'], [T('島の外へ', 'off the island'), 'later']];
+  $('chap').innerHTML = `<div class="c1"><span class="no">${T('第2章', 'Chapter 2')}</span>${T('家を建てる', 'Building the house')}<span class="dy">${T('（6日目）', '· day 6')}</span></div>`
+    + `<div class="way">${way.map(([w, k]) => `<span class="${k}">${w}</span>`).join('<span class="dot">・</span>')}</div>`;
+  const nx = scene === 'fire' ? [T('いま', 'Now'), '', T('焚き火の会', 'The evening fire')] : scene === 'bubble' ? [T('このあと', 'Next'), '19:30', T('焚き火の会', 'The evening fire')] : [T('このあと', 'Next'), '12:00', T('島めぐり', 'Round the island')];
+  $('next').innerHTML = `<span class="k">${nx[0]}</span>${nx[1] ? `<span class="tm">${nx[1]}</span>` : ''}${nx[2]}`;
+  if (scene === 'day') roster('dot', [['dot', h.includes('res') ? T('確かめた：浜で待てば、流木が見つかる', 'Confirmed: wait, and the driftwood is there') : T('浜で流木が上がるのを見張っている', 'Watching the beach for driftwood')], ['rakko', T('拾った貝殻を、浜の山に並べている', 'Laying its shells on the pile')], ['kame', T('藻場で海草を食べている', 'Grazing in the seagrass')], ['lantern', T('昼のあいだ眠っている', 'Asleep through the day')]]);
+}
 // (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
 const fit = () => {
   const P = $('plates'); P.innerHTML = '';
@@ -296,8 +344,8 @@ const fit = () => {
     let x = r.left - padX, w = r.width + padX * 2;
     if (id === 'talk' || id === 'mile') { const ww = [...e.children].reduce((m, c) => Math.max(m, c.getBoundingClientRect().width), 0) + padX * 2; x = (1920 - ww) / 2; w = ww; }
     const d = document.createElement('div'); d.className = 'plate' + (id === 'clock' || id === 'brand' ? ' top' : ''); Object.assign(d.style, { left: x + 'px', top: (r.top - padY) + 'px', width: w + 'px', height: (r.height + padY * 2) + 'px' }); P.appendChild(d); };
-  add('lower', 300, 160); add('roster', 240, 90); add('think', 260, 120); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
+  add('lower', 300, 160); add('roster', 240, 90); add('chap', 260, 90); add('next', 260, 80); add('think', 260, 120); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
 };
-requestAnimationFrame(fit); document.fonts.ready.then(fit);
+requestAnimationFrame(fit); document.fonts.ready.then(() => { scenesWithBubbles(); fit(); });   // (the bubbles once the type has loaded: their size depends on it)
 </script>
 </body></html>
