@@ -11,7 +11,7 @@
 - 画面のスリープとスクリーンセーバーを切る。**ブラウザのウィンドウを最小化しない、ほかのタブに切り替えない、ほかのウィンドウで覆わない**（アプリは隠れると止まる。記録には `hidden` と残る）。Windows の Chrome・Edge は、ほかのウィンドウに完全に覆われただけでも「隠れた」扱いにすることがある（ウィンドウの遮蔽の検出）。モニターが 2 台なら、ブラウザと OBS を別々の画面に置く。
 - 遮蔽の検出を切るには、リハーサル用にブラウザをこのオプション付きで起こす（ショートカットの「リンク先」の末尾に足す。ほかのブラウザのウィンドウを全部閉じてから起こす）：
   ```
-  --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows
+  --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required
   ```
 
 ## 1. ビルド（10/30 まで）

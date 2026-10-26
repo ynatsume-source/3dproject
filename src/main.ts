@@ -50,7 +50,7 @@ import { STAGES } from './robots/voices';
 import { aiKey, setAiKey, aiLastError } from './robots/mind';
 import { setAnisotropy, SURFACE, SURF_UNIFORMS } from './render/surface';
 import { TIERS, TIER_ORDER, detectTier, type Tier } from './quality';
-import { soundStream, audio, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, setWind, setSea, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, blow, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
+import { soundStream, audio, audioState, startAudio, stopAudio, pauseAudio, setShore, setHum, setMotor, crunch, setWhaleSong, setMood, setMusic, setRain, setWind, setSea, thunder, splash, breachSound, breachRise, renderLeap, setAir, frenzy, plop, blow, vol, setVolume, babble, lumauVoice, voices, setVoices } from './audio';
 import { makePov } from './ui/pov';
 import { makeDiaryBook } from './ui/diary';
 import { makeLanternStudyPanel } from './ui/lantern-study';
@@ -2444,7 +2444,23 @@ if (/[?&]rehearsal\b/.test(location.search)) rehearsal = startRehearsalLog({
   island: () => clock.ms, world: () => cur?.residents?.worldTime ?? null,
   seaWorld: () => (cur?.residents ? seaLevel(cur.residents.worldTime, cur.loc) : null), seaDrawn: () => seaHeight(),
   status: () => { const b = document.querySelector('#live .band'); return b && !b.classList.contains('off') ? `${b.querySelector('.name')?.textContent ?? ''}：${b.querySelector('.status')?.textContent ?? ''}` : ''; },
+  audio: () => audioState(),
 });
+// The live stream starts with its sound on (PROGRAM.md §5-5): no button, no notice on the picture. At a fixed level, not
+// a viewer's saved one, with every voice; brought up from silence over 8 s. The browser is started to allow sound
+// without a click (--autoplay-policy=no-user-gesture-required, docs/rehearsal/WINDOWS.md); if it holds the sound all
+// the same, 'audio blocked' goes into the log and the first key press starts it. The level is to be set from 30 min
+// of the stream measured to -16 LUFS (ffmpeg ebur128); until then, the app's own defaults.
+const LIVE_VOL = { all: 0.8, music: 0.8, nature: 0.8 };
+if (live) {
+  setVolume(LIVE_VOL); voices.on = true;
+  startAudio(8);
+  setTimeout(() => {
+    if (audioState() !== 'blocked') return;
+    rehearsal?.event('audio', 'blocked');
+    addEventListener('keydown', () => { if (audioState() === 'blocked') startAudio(8); }, { once: true });
+  }, 1500);
+}
 const SEA_TEST = (() => { const m = /[?&]sealevel=(-?\d+(?:\.\d+)?)/.exec(location.search); return m ? Math.max(-3, Math.min(3, +m[1])) : null; })();
 async function prepareShaders(oc: Ocean) {
   const seen = new Map<THREE.Material, THREE.Object3D>();
@@ -2924,6 +2940,7 @@ function setLamp(on: boolean, manual = true) {
 }
 function setSound(on: boolean) {
   if (on && !startAudio()) on = false;
+  rehearsal?.event('audio', on ? 'on' : 'off');   // (M on the live stream: the owner's hand, kept in the log)
   if (on) hints?.used('sound');
   if (!on) stopAudio();
   $('btnSound').setAttribute('aria-pressed', String(on));
@@ -2935,7 +2952,7 @@ function toggleMusic() {
 }
 try { if (localStorage.getItem('seaglass.music') === '0') { setMusic(false); $('btnMusic').setAttribute('aria-pressed', 'false'); } } catch (e) { /* ignore */ }
 // volume: three sliders, kept in this browser
-try { const v = JSON.parse(localStorage.getItem('seaglass.vol') || 'null'); if (v) setVolume(v); } catch (e) { /* ignore */ }
+if (!live) try { const v = JSON.parse(localStorage.getItem('seaglass.vol') || 'null'); if (v) setVolume(v); } catch (e) { /* ignore */ }   // (live: the fixed level below, not a viewer's own)
 for (const [id, k] of [['volAll', 'all'], ['volMusic', 'music'], ['volNature', 'nature']] as const) {
   const el = $(id) as HTMLInputElement, out = $(id + 'O');
   el.value = String(Math.round(vol[k] * 100)); out.textContent = el.value;

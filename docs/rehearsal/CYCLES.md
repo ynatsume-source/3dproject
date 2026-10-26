@@ -27,7 +27,7 @@
    npm.cmd run build
    npx.cmd vite preview --port 4173 --strictPort
    ```
-3. ブラウザは `rehearsal-trial` のまま起こす（WINDOWS.md 手順 5。島とキーが残る）。アドレスは `http://localhost:4173/?live&rehearsal`。開いたら、まずコンソールで `seaglassRehearsal.saveOut()`（始めの保存 `save-…json`。同じ島なので、回ごとの保存の育ち方が分かる）。
+3. ブラウザは `rehearsal-trial` のまま起こす（WINDOWS.md 手順 5。島とキーが残る。2 回目から、音を出すための `--autoplay-policy=no-user-gesture-required` が付いた起こし方を使う）。アドレスは `http://localhost:4173/?live&rehearsal`。開いたら、まずコンソールで `seaglassRehearsal.saveOut()`（始めの保存 `save-…json`。同じ島なので、回ごとの保存の育ち方が分かる）。
 4. 見る長さは自由（30 分〜数時間）。気づいたことは、右下の JST の時刻と一緒に、メモかスクリーンショットに残す。「離れたくなった」時刻も残す。
 5. 終わり：F12 →「コンソール」で `seaglassRehearsal.download()` と `seaglassRehearsal.saveOut()`（終わりの保存）を打つ。Ctrl+J で `rehearsal-…ndjson` と `save-…json` が来たのを確かめたら、`seaglassRehearsal.clear()` を打つ。そのあとブラウザを閉じ、黒い窓で Ctrl+C → Y。
 6. 記録（`rehearsal-…ndjson`）・始めと終わりの保存（`save-…json` 2 つ）・メモを本体に送る。保存は科学班にも渡す。所見は `findings/README.md` に足す。
