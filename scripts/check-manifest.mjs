@@ -44,7 +44,7 @@ const slow = [
 // Their execution can succeed, but the runner must not call that a semantic pass.
 const diagnostics = new Set([
   'clip', 'coral-overlap', 'director', 'director-pingpong', 'hunt', 'jitter',
-  'jump', 'kame-shore', 'manta-stuck', 'motion', 'sim', 'stuck',
+  'jump', 'manta-stuck', 'motion', 'sim', 'stuck',
 ]);
 
 export const checks = Object.freeze([

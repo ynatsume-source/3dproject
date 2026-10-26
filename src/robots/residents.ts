@@ -234,7 +234,7 @@ export interface Resident {
   // is going, what it is looking at, and which spell of doing something this is and for how long
   mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number;
     probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; grazeTry?: { bed: string; at: number; hunger: number }; grazeAvoid?: Record<string, number>;
-    bout?: { patch?: string; tries: number; got: number; weak: number; full: number; opt?: string }; coldAt?: number; roughFelt?: number; walkedAt?: number; backFrom?: [number, number] };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
+    bout?: { patch?: string; tries: number; got: number; weak: number; full: number; opt?: string }; coldAt?: number; roughFelt?: number; walkedAt?: number; backFrom?: [number, number]; lift?: { y: number; at: number; held: boolean } };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
   lightK?: number;
   resume?: Task; resumeAt?: number;     // what it was in the middle of when someone came up to talk (to go back to after)
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift' | 'grass';   // what it has in its hands
@@ -3150,10 +3150,32 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const W = waterTop(r.pos.x, r.pos.z);   // (the still water's top here: the island's sea where the tide reaches it — ADR 0009)
     r.wet = h < W + 0.05;
     const top = W + (r.id === 'rakko' ? 0 : -0.2);   // floating at the surface (Rakko), or with its head out (Kamemaru)
+    if (r.id === 'kame') { placeKame(r, h, W, top); return; }
     if (!r.wet) r.pos.y = h;
-    else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.075) - top) * r.under;   // (Kamemaru settled a little into the sand)   // (down on the bottom: diving, grazing, asleep)
-    else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max((T.top && h < W ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, W - 1.2 + Math.sin(performance.now() * 0.0003) * 0.2);   // (over the coral heads, not through them)
+    else if (r.under > 0) r.pos.y = top + (h + 0.18 - top) * r.under;   // (down on the bottom: diving, asleep)
     else r.pos.y = top;
+  }
+  // Kamemaru at the water's edge, in one piece (rehearsal finding R-020: its height jumped 25-55 cm in a frame where it
+  // went from dry to wet and from walking to swimming — on the ground, 0.2 m under the top, 0.3 m over the bottom did
+  // not meet; science team, 2026-10-26): in water shallower than it is tall it crawls along the bottom; as the water
+  // deepens it rises, over 0.3 m more of depth, to its height afloat — head out (W - 0.2), or swimming, the lower of
+  // over the bottom (and the coral) and that. While it rises or settles, its height changes by 0.5 m a second at most; a
+  // breath (under) is never slowed.
+  const KAME_RISE = 0.5;
+  function placeKame(r: Resident, h: number, W: number, top: number) {
+    const tall = BODY.kame?.y1 ?? 0.4, lift = r.wet ? smooth01(tall, tall + 0.3, W - h) : 0;
+    const swim = Math.min(Math.max((T.top && h < W ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, W - 1.2 + Math.sin(performance.now() * 0.0003) * 0.2), top);   // (over the coral heads, not through them; never out of the water)
+    let y = h + ((r.act === 'swim' ? swim : top) - h) * lift;
+    // (held back while it rises or settles, and after, until it has caught up; not across a jump in time — a save
+    // loaded, the hours caught up on)
+    const was = r.mo.lift, gap = was ? (clockMs - was.at) / 1000 : 0;
+    let held = false;
+    if (was && ((lift > 0 && lift < 1) || was.held) && gap > 0 && gap <= 1) {
+      const lo = was.y - KAME_RISE * gap, hi = was.y + KAME_RISE * gap;
+      if (y < lo || y > hi) { y = Math.max(h, Math.min(hi, Math.max(lo, y))); held = true; }   // (never into the ground)
+    }
+    r.mo.lift = { y, at: clockMs, held };
+    r.pos.y = r.under > 0 ? y + (h + 0.075 - y) * r.under : y;   // (down on the bottom: grazing, asleep — settled a little into the sand)
   }
 
   /* ---------- meeting and talking ---------- */
