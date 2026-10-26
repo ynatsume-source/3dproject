@@ -67,13 +67,14 @@ npx.cmd vite preview --port 4173 --strictPort
 ### 5. リハーサル用のブラウザを起こす
 **もう 1 つ** PowerShell を開いて、Chrome なら：
 ```
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="$HOME\rehearsal-trial" --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows "http://localhost:4173/#kayama"
+& "C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir="$HOME\rehearsal-trial" --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required "http://localhost:4173/#kayama"
 ```
 Edge なら：
 ```
-& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --user-data-dir="$HOME\rehearsal-trial" --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows "http://localhost:4173/#kayama"
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --user-data-dir="$HOME\rehearsal-trial" --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required "http://localhost:4173/#kayama"
 ```
 - ふだんのブラウザとは別の、リハーサル専用の窓が開く（島の保存とキーもこの窓だけに残る）。
+- `--autoplay-policy=no-user-gesture-required` は、クリックしなくても音が出るようにするため（配信は音を出した状態で始める。PROGRAM.md §5-5）。**ほかの Chrome・Edge の窓を全部閉じてから**起こす（開いていると、この設定が効かない）。
 - **本番（10/31）では `rehearsal-trial` を `rehearsal-run` に変えて起こす**（試運転の島を持ち越さず、新しい島から始めるため。キーはもう一度入れる）。
 - **この窓は最小化しない・ほかの窓で覆わない**（隠れるとアプリが止まる）。モニター 2 台なら、この窓と OBS を別の画面に。
 
