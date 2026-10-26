@@ -73,7 +73,7 @@ AI が止まっても、島が台詞とルールで続くこと（エラーに�
 
 ## 7. 終わる
 1. **配信を止める**（ダウンロードの表示が映らないように）。
-2. Alt+Shift+R（または `seaglassRehearsal.download()`）で記録 `rehearsal-*.ndjson` を書き出す。
+2. コンソールで `seaglassRehearsal.download()` を打って、記録 `rehearsal-*.ndjson` を書き出す。Alt+Shift+R は、Chrome がこのキーでリーディング モードを開いてしまうことがあるので使わない（10/26 の試運転）。
 3. `seaglassRehearsal.saveOut()` で終わりの保存 `save-*.json` を書き出す。
 4. 記録・始めと終わりの保存・配信 PC の録画の場所を、科学班と視聴者設計班に渡す。
 

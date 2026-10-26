@@ -109,7 +109,7 @@ Edge なら：
 ## E. 終わり
 
 15. **先に配信を止める**（ダウンロードの表示が映らないように）。
-16. ブラウザで **Alt+Shift+R**（記録 `rehearsal-…ndjson` がダウンロードされる）。
+16. F12 →「コンソール」で `seaglassRehearsal.download()`（記録 `rehearsal-…ndjson` がダウンロードされる。Ctrl+J のダウンロード一覧で確かめる）。**Alt+Shift+R は使わない**（Chrome がこのキーで「リーディング モード」を開いてしまうことがある。開いたら右上の × で閉じる）。
 17. コンソールで `seaglassRehearsal.saveOut()`（終わりの保存 `save-…json`）。
 18. ダウンロードフォルダの `rehearsal-…ndjson` と `save-…json` 2 つを本体に送る。録画の場所は視聴者設計班へ。
 
