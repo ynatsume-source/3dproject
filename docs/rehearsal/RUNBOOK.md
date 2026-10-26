@@ -1,5 +1,7 @@
 # 実機リハーサルの手順（rehearsal-1、2026-10-31〜）
 
+> **延期（オーナー 10/26）。** 代わりに、数日に 1 回の試し回しを行う（`CYCLES.md`）。この文書は、長く通しで回すときのために残す。
+
 家の PC で、決まった commit（`23f2c17`、科学班が受入したもの。#121・#122 の表示の直しが入った版。タグ名 `rehearsal-1`）をビルドして、24〜48 時間動かす。視聴者の記録は `docs/proposals/viewer-design-2026-10-16/REHEARSAL.md`、アプリが書き出す記録は `src/ui/rehearsal-log.ts`。
 
 ## 0. 用意するもの
@@ -73,7 +75,7 @@ AI が止まっても、島が台詞とルールで続くこと（エラーに�
 
 ## 7. 終わる
 1. **配信を止める**（ダウンロードの表示が映らないように）。
-2. Alt+Shift+R（または `seaglassRehearsal.download()`）で記録 `rehearsal-*.ndjson` を書き出す。
+2. コンソールで `seaglassRehearsal.download()` を打って、記録 `rehearsal-*.ndjson` を書き出す。Alt+Shift+R は、Chrome がこのキーでリーディング モードを開いてしまうことがあるので使わない（10/26 の試運転）。
 3. `seaglassRehearsal.saveOut()` で終わりの保存 `save-*.json` を書き出す。
 4. 記録・始めと終わりの保存・配信 PC の録画の場所を、科学班と視聴者設計班に渡す。
 
