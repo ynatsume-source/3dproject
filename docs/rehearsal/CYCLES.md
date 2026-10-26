@@ -23,10 +23,15 @@
    npm.cmd run build
    npx.cmd vite preview --port 4173 --strictPort
    ```
-3. ブラウザは `rehearsal-trial` のまま起こす（WINDOWS.md 手順 5。島とキーが残る）。アドレスは `http://localhost:4173/?live&rehearsal`。
+3. ブラウザは `rehearsal-trial` のまま起こす（WINDOWS.md 手順 5。島とキーが残る）。アドレスは `http://localhost:4173/?live&rehearsal`。開いたら、まずコンソールで `seaglassRehearsal.saveOut()`（始めの保存 `save-…json`。同じ島なので、回ごとの保存の育ち方が分かる）。
 4. 見る長さは自由（30 分〜数時間）。気づいたことは、右下の JST の時刻と一緒に、メモかスクリーンショットに残す。「離れたくなった」時刻も残す。
-5. 終わり：F12 →「コンソール」で `seaglassRehearsal.download()` を打つ。Ctrl+J で `rehearsal-…ndjson` が来たのを確かめたら、`seaglassRehearsal.clear()` を打つ。そのあとブラウザを閉じ、黒い窓で Ctrl+C → Y。
-6. 記録（`rehearsal-…ndjson`）とメモを本体に送る。所見は `findings/README.md` に足す。
+5. 終わり：F12 →「コンソール」で `seaglassRehearsal.download()` と `seaglassRehearsal.saveOut()`（終わりの保存）を打つ。Ctrl+J で `rehearsal-…ndjson` と `save-…json` が来たのを確かめたら、`seaglassRehearsal.clear()` を打つ。そのあとブラウザを閉じ、黒い窓で Ctrl+C → Y。
+6. 記録（`rehearsal-…ndjson`）・始めと終わりの保存（`save-…json` 2 つ）・メモを本体に送る。保存は科学班にも渡す。所見は `findings/README.md` に足す。
+
+## 長く回す確かめ（科学班の提案 10/26）
+- **科学班が毎回**：その回の commit で、画面なしの soak（島の 1 週間）を回す。保存の大きさ・追いつき・エラーを見る（オーナーの PC は使わない）。
+- **オーナーが毎回**：試しの始めと終わりに `seaglassRehearsal.saveOut()` を 1 回ずつ（上の 3 と 5）。
+- **1 回だけ**：4 回目と 5 回目のあいだ（11/6〜8 ごろ）に、AI を入れたまま一晩〜丸 1 日回す。住人 1 体 1 日の費用（目安 150〜200 円）と、長時間の描画を測る。6 回目の判断の前に結果を出す。手順は RUNBOOK.md を使う。
 
 ## 毎回測ること（本体、`scripts/rehearsal-read.mjs`）
 - **意味のある分の割合**：1 分ごとに、次のどれかがあったか。
@@ -47,8 +52,9 @@
 | 回 | 目安 | 入れるもの（案） |
 |---|---|---|
 | 1 | 10/26 済 | 23f2c17。所見 R-001〜R-025 |
-| 2 | 10/30 ごろ | R-023（ひとことが消える）、R-017 の状態の 1 行（VOICE.md §9）、R-025（書き出しのキー）。測り方の最初の値 |
+| 2 | 10/30 ごろ | R-023（ひとことが消える、#147 マージ済み）、R-020（カメマルの水際、直しと check を科学班が見てから）、R-017 の状態の 1 行（VOICE.md §9）、R-025（書き出しのキー）、R-026（流木の申し出のくり返し） |
 | 3 | 11/2 ごろ | 番組の形の 1 段目：5 秒で分かる文脈（今の挑戦・道のり、D26）、カメラの優先順位 v1 |
 | 4 | 11/5 ごろ | 考えの見せ方（THINK.md）、見どころを知らせる音 |
+| 4.5 | 11/6〜8 ごろ | AI を入れたまま一晩〜丸 1 日（費用と長時間の描画。科学班の提案） |
 | 5 | 11/9 ごろ | 世界の密度：R-017 の弱い・なしの行動、協力の頼みごと（科学班と） |
 | 6 | 11/12 ごろ | 通しで見る。一般公開の判断 |
