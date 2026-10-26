@@ -217,6 +217,7 @@ export interface Resident {
   wear?: number; wearLv?: number; stuck?: boolean;   // (the two robots: how worn by rain, wind and storm 0..1, the last line it noted, held still until it dries — the world counts it)
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
+  sayUntil?: number;   // (a remark said on its own, outside a conversation: the world's time it is let go — R-023)
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   saidAt?: Record<string, number>;   // (what it last told whom, and when: not the same thing again straight away)
   dayBase?: { day: string; built: number; isles: number; shells: number; notes: number; cairns: number };   // (its counts as the day began: what it did today is the difference)
@@ -2496,7 +2497,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast) tell(tk.kind, `${r.v.name}：${result.text}`, r);
         if (tk.kind === 'study-share') {
           const c = heading('ランタンの星の手帖');
-          { const m = SAY.starsRecorded(); say(r, m.ja, c, fast, m.isl, m.en); }
+          { const m = SAY.starsRecorded(); remark(r, m, c, fast); }
         }
       }
       r.task = null;
@@ -3790,13 +3791,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (village.raft.parts >= RAFT_N) { const seen = sail.look(r.id, r.pos, clockMs); if (seen) act(r, 'got', `帆の作業場を見た：${seen}`); } if (a.struck && r.task && !r.task.arrived && r.task.opt) { report(r, r.task, 'interrupted', '気になるものが見えた'); items.release(r.id); if (drift.by === r.id && r.holding !== 'drift') drift.by = ''; r.task = null; } } }
       for (const r of list) dayStart(r);
       if (!still) for (const r of list) step(r, dt, false);   // (still: posed for a photograph, nobody moves on)
+      for (const r of list) if (r.sayUntil && clockMs >= r.sayUntil) { r.sayUntil = 0; if (!r.talk) r.saying = ''; }
       for (let i = 0; i < utterQ.length; i++) {
         const u = utterQ[i]; if (u.at > clockMs) continue;
         const w = byId[u.who];
         if (w?.talk && clockMs - u.at < 90e3) continue;   // (in a conversation of its own: said when that is over, if soon)
         utterQ.splice(i--, 1);
         if (!w || w.talk || w.act === 'sleep') continue;   // (asleep, or still talking long after: let go)
-        const m = phrase(u.f); say(w, m.ja, u.conv || heading(w.v.name), false, m.isl, m.en);
+        remark(w, phrase(u.f), u.conv || heading(w.v.name), false);
       }
       if (!still && dt < 2) gains();   // (what rest, food and sun gave back: shown, softly, by each of them — not while catching up)
       fireCircle(dt, false);
@@ -3915,9 +3917,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   (res as any).patches = patches; (res as any).beds = beds;   // (for checks: robots/body.ts)
   let convN = 0;
   function say(r: Resident, text: string, conv: number, fast: boolean, isl?: Tok[], en?: string) {
-    r.saying = text; r.sayT = 0; r.sayIsl = isl ?? null; r.sayEn = en ?? null;
+    r.saying = text; r.sayT = 0; r.sayIsl = isl ?? null; r.sayEn = en ?? null; r.sayUntil = 0;
     talks.push({ at: clockMs, who: r.id, text, conv }); if (talks.length > 300) talks.shift();
     if (!fast) res.onSay(r, text);
+  }
+  // (a remark on its own — an offer, an answer, a word passed on — is up for as long as it takes to read: 4 s and 0.15 s a
+  // character, 10 s at most, on the world's clock; the lines of a conversation and of the fire stay until the next)
+  function remark(r: Resident, m: { ja: string; isl?: Tok[]; en?: string }, conv: number, fast: boolean) {
+    say(r, m.ja, conv, fast, m.isl, m.en);
+    r.sayUntil = clockMs + Math.min(10, 4 + m.ja.length * 0.15) * 1000;
   }
   function heading(text: string) { const c = Math.floor(clockMs / 1000) * 10 + (++convN % 10); talks.push({ at: clockMs, text, conv: c, head: true }); if (talks.length > 300) talks.shift(); return c; }
   let meetT = 1, saveT = 20;
@@ -4371,6 +4379,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   (res as any).sailHost = sail;     // (and the sail's)
   (res as any).cordDev = cordDev; (res as any).cordHost = cord; (res as any).sailDev = sailDev; (res as any).sailHost = sail;
   (res as any).tell = tell;   // (for checks: the world telling an event, and whether it is a first)
+  (res as any).talkDev = { startTalk, utter };   // (for checks: a conversation, and a remark on its own — R-023)
   // wake up where they were, and catch up on the hours nobody was watching
   initStudyPlaces();
   const behind = load(Date.now());
@@ -4386,7 +4395,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const r of list) if (r.talk && r.talk.a === r) for (let s = 0; s < 40 && r.talk; s++) stepTalk(r.talk, 1, true);
     }
     res.onEvent = quiet;
-    for (const r of list) { r.saying = ''; }
+    for (const r of list) { r.saying = ''; r.sayUntil = 0; }
   }
   for (const r of list) placeY(r);
   return res;
