@@ -124,17 +124,23 @@ function build() {
   crackleGain.connect(hp).connect(soft).connect(natureBus);
 }
 
-export function startAudio(): boolean {
+// (rise: seconds to come up from silence in a straight line — the live stream's start, PROGRAM.md §5-5; else the
+// usual soft rise)
+export function startAudio(rise = 0): boolean {
   if (!(window.AudioContext || (window as any).webkitAudioContext)) return false;
   if (!ac) build();
   audio.on = true;
   ac!.resume();
   master.gain.cancelScheduledValues(ac!.currentTime);
-  master.gain.setTargetAtTime(0.85 * curve(vol.all), ac!.currentTime, 1.5);
+  if (rise > 0) { master.gain.setValueAtTime(0, ac!.currentTime); master.gain.linearRampToValueAtTime(0.85 * curve(vol.all), ac!.currentTime + rise); }
+  else master.gain.setTargetAtTime(0.85 * curve(vol.all), ac!.currentTime, 1.5);
   loadPiano();
   loopBubbles(); loopPhrase(); loopPad();   // (no snapping-shrimp crackle: its hard clicks sat on top of the music)
   return true;
 }
+/** Whether the sound is really coming out: off (not asked for), on, or blocked (asked for, but the browser holds it
+ *  until someone clicks or presses a key). */
+export function audioState(): 'on' | 'off' | 'blocked' { return !audio.on ? 'off' : ac?.state === 'running' ? 'on' : 'blocked'; }
 export function stopAudio() {
   audio.on = false;
   for (const k in timers) clearTimeout(timers[k]);

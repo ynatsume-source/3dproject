@@ -234,7 +234,7 @@ export interface Resident {
   // is going, what it is looking at, and which spell of doing something this is and for how long
   mo: { stride: number; px: number; pz: number; ph: number; gait: number; key: number; t: number; act: string; task: Task | null; look: THREE.Vector3 | null; why: string; hold: number; glance: number;
     probe: number; since: number; fails: number; bad: [number, number][]; poi?: { key: number; a: number }; recheck: number; grazeTry?: { bed: string; at: number; hunger: number }; grazeAvoid?: Record<string, number>;
-    bout?: { patch?: string; tries: number; got: number; weak: number; full: number; opt?: string }; coldAt?: number; roughFelt?: number; walkedAt?: number; backFrom?: [number, number] };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
+    bout?: { patch?: string; tries: number; got: number; weak: number; full: number; opt?: string }; coldAt?: number; roughFelt?: number; walkedAt?: number; backFrom?: [number, number]; lift?: { y: number; at: number; held: boolean } };   // (recheck: back to what it was doing, a look at it first)   // (Lantern: trying the footing ahead, how far since it last did, where it found it would not do)
   lightK?: number;
   resume?: Task; resumeAt?: number;     // what it was in the middle of when someone came up to talk (to go back to after)
   holding: '' | ItemKind | 'piece' | 'plank' | 'drift' | 'grass';   // what it has in its hands
@@ -1570,7 +1570,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.mo.grazeTry = bd ? { bed: bd.id, at: clockMs, hunger: r.hunger } : undefined;
       return task('graze', bd ? [bd.x, bd.z] : spot(home, 90, water(1.2, 5)) ?? spot(home, 160, water(1, 7)), 'graze', rr(2400, 4200), { wet: true, data: { bed: bd?.id } });
     }
-    if ((r.sleepy > 0.6 || Math.random() < 0.15) && day > 0.7 && hr > 10 && hr < 16.5) return task('bask', spot(home, r.sp.range, shore, 200), 'bask', rr(1500, 3600));
+    if ((r.sleepy > 0.6 || Math.random() < 0.15) && day > 0.7 && hr > 10 && hr < 16.5) return task('bask', spot(home, r.sp.range, shore, 200), 'bask', rr(1500, 3600), { data: { why: r.sleepy > 0.6 ? 'sleepy' : '' } });   // (why: for its status line — sleepy, or no reason to tell: VOICE.md §9)
     return undefined;
   }
   function decide(r: Resident, hr: number): Task | null {
@@ -3178,10 +3178,32 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const W = waterTop(r.pos.x, r.pos.z);   // (the still water's top here: the island's sea where the tide reaches it — ADR 0009)
     r.wet = h < W + 0.05;
     const top = W + (r.id === 'rakko' ? 0 : -0.2);   // floating at the surface (Rakko), or with its head out (Kamemaru)
+    if (r.id === 'kame') { placeKame(r, h, W, top); return; }
     if (!r.wet) r.pos.y = h;
-    else if (r.under > 0) r.pos.y = top + (h + (r.id === 'rakko' ? 0.18 : 0.075) - top) * r.under;   // (Kamemaru settled a little into the sand)   // (down on the bottom: diving, grazing, asleep)
-    else if (r.id === 'kame' && r.act === 'swim') r.pos.y = Math.max((T.top && h < W ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, W - 1.2 + Math.sin(performance.now() * 0.0003) * 0.2);   // (over the coral heads, not through them)
+    else if (r.under > 0) r.pos.y = top + (h + 0.18 - top) * r.under;   // (down on the bottom: diving, asleep)
     else r.pos.y = top;
+  }
+  // Kamemaru at the water's edge, in one piece (rehearsal finding R-020: its height jumped 25-55 cm in a frame where it
+  // went from dry to wet and from walking to swimming — on the ground, 0.2 m under the top, 0.3 m over the bottom did
+  // not meet; science team, 2026-10-26): in water shallower than it is tall it crawls along the bottom; as the water
+  // deepens it rises, over 0.3 m more of depth, to its height afloat — head out (W - 0.2), or swimming, the lower of
+  // over the bottom (and the coral) and that. While it rises or settles, its height changes by 0.5 m a second at most; a
+  // breath (under) is never slowed.
+  const KAME_RISE = 0.5;
+  function placeKame(r: Resident, h: number, W: number, top: number) {
+    const tall = BODY.kame?.y1 ?? 0.4, lift = r.wet ? smooth01(tall, tall + 0.3, W - h) : 0;
+    const swim = Math.min(Math.max((T.top && h < W ? Math.max(h, T.top(r.pos.x, r.pos.z)) : h) + 0.3, W - 1.2 + Math.sin(performance.now() * 0.0003) * 0.2), top);   // (over the coral heads, not through them; never out of the water)
+    let y = h + ((r.act === 'swim' ? swim : top) - h) * lift;
+    // (held back while it rises or settles, and after, until it has caught up; not across a jump in time — a save
+    // loaded, the hours caught up on)
+    const was = r.mo.lift, gap = was ? (clockMs - was.at) / 1000 : 0;
+    let held = false;
+    if (was && ((lift > 0 && lift < 1) || was.held) && gap > 0 && gap <= 1) {
+      const lo = was.y - KAME_RISE * gap, hi = was.y + KAME_RISE * gap;
+      if (y < lo || y > hi) { y = Math.max(h, Math.min(hi, Math.max(lo, y))); held = true; }   // (never into the ground)
+    }
+    r.mo.lift = { y, at: clockMs, held };
+    r.pos.y = r.under > 0 ? y + (h + 0.075 - y) * r.under : y;   // (down on the bottom: grazing, asleep — settled a little into the sand)
   }
 
   /* ---------- meeting and talking ---------- */
@@ -3629,64 +3651,121 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
 
   // what it is doing, in words
+  // The status line (live screen, watch mode): what it is doing now, in the world's own words — VOICE.md §2 and §9
+  // (rehearsal finding R-017): no subject, 「〜ている」, a concrete thing and place, never 散歩・ひと休み・休憩・作業 or a
+  // feeling; a reason is put in only where the world has it (a body's word only while the body is so; Lantern, with no
+  // mind of its own yet, never 「考えている」); with nothing to do, no line at all (the band shows the name alone).
+  const lastLine: Record<string, string> = {};
+  const VESSEL_JA: Record<string, string> = { pot: '鍋', dish: '灯皿', retort: '蒸留の壺', gauge: '天気の壺' };   // (what a fired vessel is made into: assemble's as)
   function statusOf(r: Resident): string {
+    const s = statusLine(r);
+    if (s === KEEP) return lastLine[r.id] ?? '';   // (a pause between its notebook's steps: the line it had, not a new one for 20 s)
+    lastLine[r.id] = s; return s;
+  }
+  const KEEP = '\u0000';
+  function statusLine(r: Resident): string {
     if (r.talk) { const o = r.talk.a === r ? r.talk.b : r.talk.a; return `${o.v.name}と話している`; }
     if (r.seen) return `通りかかった${r.seen.name}を、目で追っている`;
     const tk = r.task, k = tk?.kind ?? 'idle';
     if (r.id === 'lantern' && k.startsWith('study-')) {
-      const labels: Record<string, string> = { 'study-observe': '星の位置を確かめている', 'study-draw': '観察した空を手帖に描いている', 'study-explore': '次に空を眺める場所を確かめている', 'study-rest': '手帖を閉じて、ひと休みしている', 'study-share': '近くの友だちに星の手帖を見せている', 'study-pause': '丘で次に気になることを考えている' };
-      return tk?.arrived ? labels[k] ?? '手帖を見返している' : '気になる場所へ歩いている';
+      if (k === 'study-pause') return KEEP;
+      const place = tk ? studyPlaces.find((p) => Math.hypot(p.x - tk.x, p.z - tk.z) < 3)?.name : undefined;
+      const labels: Record<string, string> = { 'study-observe': '星の並びを、手帖に記している', 'study-draw': '見た星の並びを、図に描き直している', 'study-explore': '次に空を眺める場所を確かめている', 'study-rest': r.battery < 0.25 ? '電池を休ませている' : '手帖を閉じて、じっとしている', 'study-share': '仕上げた星の図を、仲間に見せている' };
+      if (tk?.arrived) return labels[k] ?? '手帖を見返している';
+      const toSee = place ? `星を見に、${place}へ歩いている` : '星を見る場所へ歩いている';
+      return k === 'study-observe' ? toSee : k === 'study-explore' ? '次に空を眺める場所へ歩いている' : '気になる場所へ歩いている';
     }
     const far = tk && !tk.arrived ? Math.round(Math.hypot(tk.x - r.pos.x, tk.z - r.pos.z)) : 0, left = far > 3 ? `（あと${far}m）` : '';
-    const going: Record<string, string> = { ask: `${byId[tk?.data?.to]?.v.name ?? '仲間'}のところへ頼みに行く`, give: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に流木を届けに行く`, tell: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に知らせに行く`, eat: '獲物をかかえて浮かんでいる', forage: '餌場へ泳いでいく', graze: '海草の原へ泳いでいく', bask: '甲羅干しの浜へ向かう', groom: '静かな水面へ', survey: '桟橋の場所へ向かう', inspect: '桟橋の工事を見に行く', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる', deck: '桟橋の板を運んでいる', find: '浜で見慣れないものを見つけて近づいていく', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かう', till: '畑へ向かう', plant: '畑へ種をまきに行く', harvest: '畑へ収穫に行く', fire: circleMorning ? '朝の集まりへ向かっている' : '焚き火へ向かっている', gather: '流木を拾いに行く', collect: '貝殻を拾いに行く', fetch: '石積みの石を拾いに行く', craft: '流木を作業台へ運んでいる', place: `削った部材を小屋へ運んでいる`, review: '取りつけたところを見に、少し離れる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる', show: '見つけた貝殻を見せにいく' };
+    const who = byId[tk?.data?.to]?.v.name ?? '仲間';
+    const hutDone = r.stats.built >= HUT.length, forDot = requests.some((q) => q.to === r.id && q.status === 'accepted');
+    const hungry = !!r.body && r.hunger > r.body.learn.eatAt, sleepy = !!r.body && r.sleepy > r.body.learn.sleepAt;
+    const coconut = tk?.data?.kind === 'coconut';
+    const going: Record<string, string> = {
+      ask: `${who}に、流木を頼みに行っている`, give: `${who}に流木を届けに行っている`, tell: `${who}に知らせに行っている`, eat: '獲物をかかえて浮かんでいる',
+      forage: '餌場へ泳いでいる', graze: '海草を食べに、藻場へ泳いでいる', bask: '甲羅干しの浜へ向かっている', groom: '静かな水面へ向かっている',
+      survey: '桟橋の場所へ向かっている', inspect: '桟橋の工事を見に行っている', base: '土台の石を桟橋へ運んでいる', post: '柱にする木を桟橋へ運んでいる',
+      deck: '桟橋の板を運んでいる', find: '浜の見慣れないものを、調べに行っている', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かっている',
+      till: '畑へ向かっている', plant: '畑へ種をまきに行っている', harvest: '畑へ収穫に行っている', fire: circleMorning ? '朝の集まりへ向かっている' : '焚き火へ向かっている',
+      gather: r.id === 'dot' && !hutDone ? '小屋の部材にする流木を拾いに行っている' : r.id === 'rakko' && forDot ? 'ドットに渡す流木を、拾いに行っている' : '流木を拾いに行っている',
+      collect: '貝殻を拾いに行っている', fetch: coconut ? '油をとるヤシの実を、拾いに行っている' : '石を拾いに行っている', craft: '流木を作業台へ運んでいる',
+      place: '削った部材を小屋へ運んでいる', review: '削った部材を小屋へ運んでいる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる', show: '見つけた貝殻を見せに行っている',
+      chart: '水平線の見える浜へ向かっている', lash: '部材を筏へ運んでいる', voyage: '筏へ向かっている', lab: '棚へ向かっている',
+      shelter: '雨風をよけに、屋根の下へ向かっている',
+    };
     const prey = ({ urchin: 'ウニ', crab: 'カニ', clam: '貝' } as Record<string, string>)[tk?.data] ?? '';
     const k01 = tk ? tk.t / tk.dur : 0;
+    const placeLine = hutDone ? '小屋に部材を取りつけている' : `小屋に部材を取りつけている（${r.stats.built + 1}本目）`;
     const at: Record<string, string> = {
-      ask: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に頼みごとをしている`, give: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に流木を手渡している`, tell: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に流木の場所を教えている`,
-      forage: k01 < 0.12 ? '頭から潜っていく' : k01 > 0.86 ? (prey ? `${prey}をかかえて浮かんでくる` : '手ぶらで浮かんでくる') : '海の底で、前足で岩の下を探っている',
+      ask: `${who}に、流木を頼んでいる`, give: `頼まれた流木を、${who}に届けている`, tell: `${who}に、流木のある場所を教えている`,
+      forage: k01 < 0.12 ? '頭から潜っていく' : k01 > 0.86 ? (prey ? `${prey}をかかえて浮かんでくる` : '手ぶらで浮かんでくる') : hungry ? 'おなかがすいて、岩場に潜っている' : '海の底で、前足で岩の下を探っている',
       eat: tk?.data === 'clam' ? 'お腹の上の石で貝を割って食べている' : `仰向けに浮かんで、${prey}を食べている`,
       groom: '水面で転がりながら毛づくろいしている',
-      review: '取りつけた部材を、少し離れて眺めている',
-      admire: '拾った貝殻を、前足で回して眺めている',
+      review: placeLine,
       show: `拾った貝殻を${byId[tk?.data]?.v.name ?? '仲間'}に見せている`,
-      graze: r.act === 'breathe' ? '息つぎに浮かんできた' : '海の底で海草を食べている',
-      bask: '浜で甲羅干しをしている',
-      shelter: '台風のあいだ、身を低くしてやりすごしている',
-      chart: '浜から水平線を見渡し、見える島を地図に記している', lab: `${catalog.find((e) => e.processId === tk?.data?.processId)?.ja ?? '工程'}`, lash: '部材を筏に組んでいる',
+      graze: r.act === 'breathe' ? '息つぎに浮かんできた' : hungry ? 'おなかがすいて、藻場で海草を食べている' : '海の底で海草を食べている',
+      bask: tk?.data?.why === 'sleepy' ? '眠気がさして、浜で体を休めている' : '浜で甲羅干しをしている',
+      shelter: tk?.data?.worn ? '傷みがひどく、屋根の下で乾かしている' : tk?.data?.rain ? '濡れた体を、屋根の下で乾かしている' : r.sp.living ? '台風のあいだ、身を低くしている' : '台風がすぎるまで、屋根の下で待っている',
+      chart: '水平線の島を、地図に記している', lash: '海を渡る筏に、部材を組んでいる',
+      lab: tk && tk.dur > 60 ? `${catalog.find((e) => e.processId === tk?.data?.processId)?.inputJa || '棚の材料'}を、そばで見守っている` : `${catalog.find((e) => e.processId === tk?.data?.processId)?.ja ?? '工程'}`,   // (a step that waits: kept watch over; else the step's own name)
       voyage: tk?.data?.started ? `筏で${village.map.seen[tk.data.isle]?.word ?? ''}へ渡っている（島にはいない）` : '筏で出る支度をしている',
-      survey: '桟橋の場所を測っている', inspect: '桟橋の工事と潮を見守っている', base: '土台の石を据えている', post: '泳ぎながら柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}/8）`, find: '見つけたものを拾い上げて調べている', shelve: '見つけたものを棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している', fire: circleMorning ? '朝の集まりで話している' : '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '貝殻を拾い上げている', fetch: '石を拾い上げている', craft: `作業台で流木を部材に削っている（${r.stats.built + 1}本目）`, place: `部材を小屋に取りつけている（${r.stats.built + 1}/${HUT.length}）`, pile: '貝殻を浜に並べている', stack: '石を積み上げている' };
+      survey: '桟橋を建てる場所を、測っている', inspect: '桟橋の工事と潮を見守っている', base: '桟橋の土台石を、据えている', post: '泳ぎながら、桟橋の柱を立てている', deck: `桟橋に板を張っている（${village.deck + 1}枚目）`,
+      find: '見慣れないものを、拾って調べている', shelve: '浜で見つけたものを、棚に飾っている', chop: '斧で若木を切っている', till: '鍬で畑を耕している', plant: '種をまいている', harvest: '実を収穫している',
+      fire: circleMorning ? '朝の集まりで、今日の仕事を話している' : '焚き火を囲んで話している', gather: '流木を拾い上げている', collect: '並べる貝殻を、浜で拾っている',
+      fetch: coconut ? 'ヤシの実を拾い上げている' : '石を拾い上げている',
+      craft: hutDone ? '桟橋の板に、流木を削っている' : `小屋の部材に、流木を削っている（${r.stats.built + 1}本目）`, place: placeLine,
+      pile: '拾った貝殻を、浜の山に並べている', stack: '石を積み上げている' };
     // (what it is doing now, from how its walk is going, not from what it means to do once there: held up on the
     // way, or still on its way, says so; only once there does it say it is doing it)
-    if (tk && !tk.arrived && r.went === 'blocked' && r.blocked > 1.5) return '行く手がふさがっていて、回り道を探している';
-    if (!r.talk && tk && going[k]) return tk.arrived ? at[k] : going[k] + left;
+    if (tk && !tk.arrived && r.went === 'blocked' && r.blocked > 1.5) return '行く手がふさがり、回り道を探している';
+    if (tk && tk.arrived && at[k]) return at[k];
+    if (tk && !tk.arrived && going[k]) return going[k] + left;
     const toward: Record<string, string> = {
       store: 'ヤシの実を棚へ運んでいる', catcher: '雨受けを作りに棚へ向かっている', haul: '筏を引き上げに浜へ向かっている', reef: '流木を沈める場所へ運んでいる',
-      replant: '荒れた藻場を植え直しに向かっている', say: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に伝えに行く`, shiver: '体を温められる水面へ向かっている',
-      'harvest-early': '畑へ早めの収穫に行く', 'husk-beat': 'ヤシの殻を叩きに作業場へ向かっている', 'husk-clear': 'やりかけの殻の仕事を片付けに行く',
-      'cord-work': '縄仕事の場所へ向かっている', 'cord-clear': 'やりかけの縄仕事を片付けに行く', 'cord-lash': '筏を縄で縛りに浜へ向かっている',
-      'sail-work': tk?.data?.op === 'harvest' ? 'タコノキの葉を採りに向かっている' : '帆の仕事の場所へ向かっている', 'sail-rig': '帆を張りに筏へ向かっている', 'sail-clear': 'やりかけの帆の仕事を片付けに行く',
-      sleep: r.sp.swims && tk?.wet ? '眠る場所へ泳いでいく' : '寝床へ向かっている', charge: '日なたへ向かっている', look: '海の見える場所へ向かっている', watch: '海を観察する浜へ向かっている',
-      rest: '丘のふもとへ向かっている', think: '丘の上へ歩いている', float: '静かな水面へ向かっている', nap: '昼寝のできる静かな水面へ向かっている', crack: '貝を割る場所へ向かっている',
-      carry: '流木を運んでいる', build: '小屋へ向かっている', idle: 'ひと休みできる場所へ向かっている', house: '家の作業に向かっている', cut: '草を刈りに向かっている', tool: '棚へ道具を作りに向かっている', stackwood: '薪をまとめに向かっている', assemble: '焼いた器を取りに向かっている', wick: '棚で芯をよりに行く', stow: '作業台へ部材を置きに行く', take: '作業台へ部材を取りに行く', seastone: '石を拾いに潜りに行く', nest: '休み場に石を運んでいる', ledge: 'カメマルの岩棚へ石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行く', wall: '石を石垣へ運んでいる', shelter: '雨風をよけに屋根の下へ',
+      replant: '荒れた藻場を植え直しに向かっている', say: `${who}に伝えに行っている`, shiver: '体を温められる水面へ向かっている',
+      'harvest-early': '畑へ早めの収穫に行っている', 'husk-beat': 'ヤシの殻を叩きに作業場へ向かっている', 'husk-clear': 'やりかけの殻の仕事を片付けに行っている',
+      'husk-soak': 'ヤシの殻を、潮だまりへ運んでいる', 'husk-takeout': '殻を引き上げに、潮だまりへ向かっている',
+      'cord-work': '縄をなう場所へ向かっている', 'cord-clear': 'やりかけの縄仕事を片付けに行っている', 'cord-lash': '筏を縄で縛りに浜へ向かっている',
+      'cord-dry': '繊維を干しに、軒下へ向かっている', 'cord-takein': '繊維を取り込みに、軒下へ向かっている',
+      'cord-hang': '鍋を吊るしに、軒下へ向かっている', 'cord-unhang': '吊るした鍋を下ろしに向かっている',
+      'sail-work': tk?.data?.op === 'harvest' ? 'アダンの葉を採りに向かっている' : '帆を作る場所へ向かっている', 'sail-rig': '帆を張りに筏へ向かっている', 'sail-clear': 'やりかけの帆の仕事を片付けに行っている',
+      'sail-dry': '葉を干しに、軒下へ向かっている', 'sail-takein': '葉を取り込みに、軒下へ向かっている',
+      sleep: r.sp.swims && tk?.wet ? '眠る場所へ泳いでいる' : '寝床へ向かっている', charge: '日なたへ向かっている', look: '海の見える場所へ向かっている', watch: '海を観察する浜へ向かっている',
+      rest: r.id === 'kame' ? '浜へ向かっている' : '丘のふもとへ向かっている', think: '丘の上へ歩いている', float: '静かな水面へ向かっている', nap: '昼寝のできる静かな水面へ向かっている',
+      house: '家を建てに向かっている', cut: '草を刈りに向かっている', tool: '棚へ道具を作りに向かっている', stackwood: '薪をまとめに向かっている', assemble: '焼いた器を取りに向かっている', wick: '棚で芯をよりに行っている', stow: '作業台へ部材を置きに行っている', take: '作業台へ部材を取りに行っている', seastone: '石を拾いに潜りに行っている', nest: '休み場に石を運んでいる', ledge: 'カメマルの岩棚へ石を運んでいる', stonedrop: '石を浜の石置き場へ運んでいる', wallfetch: '石置き場へ石を取りに行っている', wall: '石を石垣へ運んでいる',
+      weigh: '屋根に重しをかけに向かっている', visit: '仲間のいるほうへ歩いている', wander: r.id === 'rakko' ? '浜のほうへ歩いている' : '近くを歩いている', approach: '仲間に気づいて、近づいている',
     };
     if (tk && !tk.arrived && toward[k]) return toward[k] + left;
+    const night = !dayK(localHour(clockMs)), vessel = VESSEL_JA[tk?.data?.as ?? 'pot'] ?? VESSEL_JA.pot;
     const base: Record<string, string> = {
-      store: 'ヤシの実を棚に置いている', catcher: '竹と葉で雨受けを作っている', haul: '台風に備えて、筏を浜の上へ引き上げている', reef: '流木を海に沈めて、漁礁をつくっている',
-      replant: '荒れた藻場を植え直している', say: `${byId[tk?.data?.to]?.v.name ?? '仲間'}に伝えている`, shiver: r.wet ? '冷えた体を、水面で毛づくろいして温めている' : '冷えて、体を震わせている',
-      doze: r.wet ? '波に揺られて、うとうとしている' : 'うとうとしている',
-      'harvest-early': '台風の前に、畑の実を早めに収穫している', 'husk-beat': 'ヤシの殻を叩いて、繊維をほぐしている', 'husk-clear': 'やりかけの殻の仕事を片付けている',
-      'cord-work': ({ sieve: 'ヤシの繊維を振るって髄を落としている', twist: 'ヤシの繊維を撚って糸にしている', ply: '撚り糸を三本合わせて縄にしている' } as Record<string, string>)[tk?.data?.op] ?? 'ヤシの繊維で縄仕事をしている',
-      'cord-clear': 'やりかけの縄仕事を片付けている', 'cord-lash': '筏を縄で縛っている',
-      'sail-work': ({ harvest: 'タコノキの葉を採っている', split: 'タコノキの葉を裂いている', weave: 'タコノキの葉で帆を編んでいる', mast: '竹で帆柱を作っている' } as Record<string, string>)[tk?.data?.op] ?? '帆の仕事をしている',
-      'sail-rig': '筏に帆柱と帆を取りつけている', 'sail-clear': 'やりかけの帆の仕事を片付けている',
-      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : '眠っている', charge: '日なたで充電している', gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ', carry: '流木を運んでいる', build: '小屋を建てている', house: '家を建てている', fell: '林の木を切り倒している', tool: '道具を作っている', stackwood: '薪を1つの山にまとめている', assemble: '焼いた器を鍋にしている', wick: '灯皿の芯をよっている', stow: '部材を作業台の脇に置いている', take: '部材を手に取っている', seastone: '海の底で石を拾っている', nest: '休み場の囲いに石を積んでいる', ledge: 'カメマルの岩棚のまわりに石を置いている', stonedrop: '浜に石を置いている', wallfetch: '石置き場で石を取っている', wall: '石垣を積んでいる', pit: '粘土の池を掘っている', twist: '縄をなっている', cut: '茅にする草を刈っている', weigh: '屋根に重しをかけている',
-      look: '海を眺めている', wander: '散歩している', watch: '浜で海を観察している', swim: 'ラグーンを泳いで記録している', rest: '丘のふもとで夜を待っている', think: '丘の上で星を見て考えごとをしている',
-      explore: '夜の島を歩いて地図を作っている', float: '沖で仰向けに浮かんでいる', crack: 'お腹の上で貝を割っている', collect: '浜で貝殻を拾っている', pile: '貝殻を浜に並べている', nap: '仰向けに浮いたまま昼寝している',
-      visit: 'となりの浜のほうへ散歩している', approach: '誰かに気づいて近づいていく', idle: 'ひと休みしている', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を写真に撮っている`, answer: tk?.data?.yes ? '頼みを引き受けている' : '頼みを断っている',
+      store: '油をとるヤシの実を、棚に置いている', catcher: '雨水をためる雨受けを、作っている', haul: '台風にそなえて、筏を引き上げている', reef: 'ラッコの漁礁に、流木を沈めている',
+      replant: 'カメマルの藻場を、植え直している', say: `${who}に伝えている`, shiver: r.wet ? '冷えた体を、毛づくろいで温めている' : '冷えて、体を震わせている',
+      doze: r.wet ? '眠気に負けて、波の上でうとうとしている' : '眠気に負けて、うとうとしている',
+      'harvest-early': '台風の前に、畑の実を早めに収穫している', 'husk-beat': '縄にする繊維を、殻を叩いてとっている', 'husk-clear': '打ちかけのヤシの殻を、片付けている',
+      'husk-soak': 'ほぐすヤシの殻を、潮だまりに浸けている', 'husk-takeout': '浸けたヤシの殻を、引き上げている',
+      'cord-work': ({ sieve: 'ヤシの繊維を振るって髄を落としている', twist: 'ヤシの繊維を撚って糸にしている', ply: '撚り糸を三本合わせて縄にしている' } as Record<string, string>)[tk?.data?.op] ?? 'ヤシの繊維で縄をなっている',
+      'cord-clear': 'やりかけの縄仕事を片付けている', 'cord-lash': '海を渡る筏を、縄で縛っている',
+      'cord-dry': '縄にする繊維を、軒下に干している', 'cord-takein': '乾いた繊維を、軒下から取り込んでいる', 'cord-hang': '縄で、鍋を軒下に吊るしている', 'cord-unhang': '吊るした鍋を、下ろしている',
+      'sail-work': ({ harvest: '帆にするアダンの葉を、刈っている', split: 'アダンの葉を裂いている', weave: 'アダンの葉で帆を編んでいる', mast: '竹で帆柱を作っている' } as Record<string, string>)[tk?.data?.op] ?? '帆を作っている',
+      'sail-rig': '海を渡る筏に、帆を張っている', 'sail-clear': 'やりかけの帆の仕事を片付けている', 'sail-dry': '帆にする葉を、軒下に干している', 'sail-takein': '乾いた葉を、取り込んでいる',
+      sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : r.id === 'lantern' ? '夜にそなえて、昼のあいだ眠っている' : '眠っている',
+      charge: night ? 'じっとして、電池を保っている' : r.battery < 0.6 ? '電池が減って、日なたで充電している' : '日なたで充電している',
+      gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ向かっている',
+      house: village.house.lost > 0 && village.house.n >= ROOF_N ? '台風で飛んだ茅を、葺き直している' : '家を建てている', fell: '丸太をとりに、林の木を切り倒している', tool: '道具を作っている',
+      stackwood: '野焼きの薪を、ひと山にまとめている', assemble: `焼いた器を、${vessel}にしている`, wick: '明かりを灯す芯を、よっている',
+      stow: 'あとで使う部材を、作業台に置いている', take: '家に使う部材を、作業台から取っている', seastone: '海の底で石を拾っている', nest: '荒れた日にそなえて、囲いに石を積んでいる', ledge: '岩棚に、うねりよけの石を置いている',
+      stonedrop: 'ドットの石垣の石を、浜に運んでいる', wallfetch: '石垣にする石を、石置き場で取っている', wall: '茅を守る石垣を、積んでいる', pit: '粘土を浸す池を、掘っている', twist: '家に使う縄を、なっている',
+      cut: '屋根の茅にする草を、刈っている', weigh: '台風にそなえて、屋根に重しをかけている',
+      look: '海を眺めている', wander: r.id === 'rakko' ? '浜で、あたりを見ている' : r.id === 'kame' ? '浜の近くで、あたりを見ている' : '家の近くで、あたりを見ている',
+      watch: '浜から、泳ぐ魚を見分けている', swim: 'ラグーンを泳いで、魚を見分けている',
+      rest: r.id === 'kame' ? 'おなかがすきすぎて、浜で動けずにいる' : '星が出るまで、丘のふもとで待っている', think: '丘の上で、星を見ている',
+      explore: 'まだ歩いていない所を、地図にしている', float: '沖で仰向けに浮かんでいる', pile: '拾った貝殻を、浜の山に並べている',
+      nap: sleepy ? '眠くなって、波の上で眠っている' : '波の上で、昼寝している',
+      visit: '仲間の近くで、立ち止まっている', approach: '仲間に気づいて、近づいている', idle: '', ponder: 'どうするか考えている', photo: `${tk?.data?.ob?.label?.replace(/（.*?）$/, '') ?? '景色'}を、写真に残している`,
+      answer: tk?.data?.yes ? `${byId[tk?.data?.q?.from]?.v.name ?? '仲間'}の頼みを、引き受けている` : '頼みを断っている',
     };
-    // (nothing said for what it does: on its way somewhere, it says only that it is walking — not that it is resting —
-    // rehearsal finding R-002)
-    return base[k] ?? (tk && !tk.arrived ? (r.wet ? '泳いでいる' : '歩いている') + left : 'ひと休みしている');
+    // (nothing said for what it does: on its way somewhere, it says only that it is walking — never that it is resting,
+    // rehearsal finding R-002 —; there, nothing at all rather than words that are not so)
+    return base[k] ?? (tk && !tk.arrived ? (r.wet ? '泳いでいる' : '歩いている') + left : '');
   }
   const res: Residents = {
     list, bonds, talks, group,
@@ -3899,7 +3978,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     subjects: () => list.map((r) => r.subject),
     status(r) {
       const s = statusOf(r);
-      if (!r.sp.living || r.talk || r.act === 'sleep' || ['forage', 'eat', 'graze'].includes(r.task?.kind ?? '')) return s;
+      if (!s || !r.sp.living || r.talk || r.act === 'sleep' || ['forage', 'eat', 'graze'].includes(r.task?.kind ?? '') || /おなか|眠/.test(s)) return s;   // (no line: no aside on its own either)
       return s + (r.hunger > 0.6 ? '（おなかがすいている）' : r.sleepy > 0.7 ? '（ねむそう）' : '');
     },
     vitals(r) {
