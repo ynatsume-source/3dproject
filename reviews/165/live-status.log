@@ -1,0 +1,4 @@
+1 numbers and distances out, words kept: 浜へ流木を拾いに行く / 小屋の部材を組む / 桟橋の板を張る / 石垣に石を積んだ / 南の島へ渡っている（島にはいない） / 眠っている（ねむそう） / 薪を運ぶ（おなかがすいている） / ヤシの繊維を撚って糸にする（鍋吊り用の長さ） ok
+2 one line when it fits; two after a 、 or 。; never cut, whole when there is no 、 or 。: ["ラッコと話している"] ["作業台で流木を削り、","部材にしている。小屋に使う"] ["とても長くて句読点のない状態の文がここにあるとしても切らない"] ok
+3 the translation: short in one line; long, after its first sentence; English the same by sentences: [["ラッコ、こんにちは"],["流木が浜にあったよ。","小屋の部材にできると思う。"],["二十字を超えるけれど句点が文の終わりにしかない長い文です。"],["There is driftwood on the beach.","It could be a piece for the hut."],["Hello, Rakko."]] ok
+PASS
