@@ -8,7 +8,8 @@
 //           tab was hidden
 //   event   the day's log (seaLog: the same words again within 90 s left out; shown false: held back as the sea's
 //           everyday moments are, true: put up to be told), the tab hidden / shown, an error
-//   ai      a call to the model: when, how long, how it went (ok / cap / busy / why it failed), tokens — never its text
+//   ai      a call to the model: when, how long, how it went (ok / cap / busy / why it failed), tokens (input, output, and
+//           the cache's: read, written) — never its text
 //   status  the status line's words, when they change
 //   card    a milestone card put up on the live screen: its words
 //   sub     a subtitle put up: who speaks, and what they said as the screen gives it (the residents' own words)
@@ -81,7 +82,7 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => { if (document.hidden) hiddenAt = performance.now(); row('event', { kind: document.hidden ? 'hidden' : 'shown', text: '' }); });
   addEventListener('pagehide', () => { void flush(); });
-  watchAi((c) => row('ai', { ms: c.ms, ok: c.ok, why: c.why, model: c.model, pool: c.pool, input: c.input, output: c.output }, c.at, true));
+  watchAi((c) => row('ai', { ms: c.ms, ok: c.ok, why: c.why, model: c.model, pool: c.pool, input: c.input, output: c.output, cacheRead: c.cacheRead, cacheWrite: c.cacheWrite }, c.at, true));
   const corner = document.createElement('div');
   corner.style.cssText = "position:fixed;right:5vw;bottom:8vh;z-index:99999;pointer-events:none;font:400 calc(22vh / 10.8)/1 'IBM Plex Mono',monospace;color:rgba(255,250,240,0.66);letter-spacing:0.04em;font-variant-numeric:tabular-nums";
   document.body.appendChild(corner);

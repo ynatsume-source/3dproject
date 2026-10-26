@@ -31,7 +31,7 @@ const slow = [
   'appear', 'astra-wreck', 'bait', 'bird', 'carpet', 'carpet-stuck', 'cave', 'circle',
   'clay-chain', 'clip', 'coral-depth', 'coral-overlap', 'coral-rock',
   'cruise-motion', 'day-lot', 'director', 'director-pingpong', 'dolphin',
-  'eagleray', 'fell', 'float', 'hunt', 'iguana', 'jacks', 'jitter',
+  'eagleray', 'fell', 'float', 'hunt', 'iguana', 'jacks', 'jitter', 'remark',
   'jump', 'keep-about', 'lab', 'sea-readers', 'lobos-benthos', 'lobos-fish-life',
   'lobos-forest', 'lobos-otters', 'lobos-visitors', 'manta', 'manta-stuck',
   'manta-terrain', 'manta-transit', 'moray', 'motion', 'oil-chain',

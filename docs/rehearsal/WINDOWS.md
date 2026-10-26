@@ -1,5 +1,7 @@
 # リハーサル　Windows の短い版
 
+> **10/31 からのリハーサルは延期（オーナー 10/26）。** いまは、数日に 1 回の試し回し（`CYCLES.md`）。1 回ごとの手順は CYCLES.md にある。この文書の手順 4〜6（アプリとブラウザを起こす・キーを入れる）は、そのまま使う。
+
 細かい理由や記録の中身は `RUNBOOK.md`（両方に書いてあることは同じ。Windows で迷ったらこちら）。ここは Windows の家の PC で上から順にやるだけの版。
 コマンドは **PowerShell**（スタートメニューで「PowerShell」と打って開く）に 1 行ずつ貼る。
 `npm` と `npx` は `npm.cmd`・`npx.cmd` と書く（Windows の初期設定では、PowerShell から `npm` と打つと「スクリプトの実行が無効」で止まるため）。
@@ -109,7 +111,7 @@ Edge なら：
 ## E. 終わり
 
 15. **先に配信を止める**（ダウンロードの表示が映らないように）。
-16. ブラウザで **Alt+Shift+R**（記録 `rehearsal-…ndjson` がダウンロードされる）。
+16. F12 →「コンソール」で `seaglassRehearsal.download()`（記録 `rehearsal-…ndjson` がダウンロードされる。Ctrl+J のダウンロード一覧で確かめる）。**Alt+Shift+R は使わない**（Chrome がこのキーで「リーディング モード」を開いてしまうことがある。開いたら右上の × で閉じる）。
 17. コンソールで `seaglassRehearsal.saveOut()`（終わりの保存 `save-…json`）。
 18. ダウンロードフォルダの `rehearsal-…ndjson` と `save-…json` 2 つを本体に送る。録画の場所は視聴者設計班へ。
 
