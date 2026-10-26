@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- ライブ配信の画面案「観測の窓」第2版（横 1920×1080、2026-10-17）。アプリのコードではない、設計のモック。
      背景は utsushiyo.earth の #planet をソフトウェア描画で撮った画（アプリの表示を消したもの）。実際の GPU の画とは色や細かさが違う。
-     場面：#day #rope #isle #night #talk #milestone。言語：既定は日本語、&en で英語の型（英語の文は islandlang.ts にある会話の訳のほかは仮）。
+     場面：#day #rope #isle #night #talk #milestone、#fire #bubble（R-024 の吹き出し。背景は main 32638a3 のビルド、住人の位置はモックのために置いた）。言語：既定は日本語、&en で英語の型（英語の文は islandlang.ts にある会話の訳のほかは仮）。
      &notext で文字を消し、背景と曇りだけ（明るさの比を測る用）。
      文言：状態の文・出来事の文・会話は residents.ts / islandlang.ts にある文をそのまま使う。「ヤシの殻を打っている」は仮（殻と縄はまだ接続されていない）。
      日付・時刻は仮。節目の場面の灯りの光はモックのために描き足したもの（実際の見た目は自然班）。 -->
@@ -141,6 +141,19 @@
   #map img { width: 100%; height: 100%; display: block; }
   #map .lb { position: absolute; right: 0; top: calc(100% + 12px); font: 500 var(--s1)/1 var(--text); letter-spacing: .2em; color: var(--ink2); white-space: nowrap; }
   #rh { position: absolute; right: 96px; bottom: 86px; font: 400 var(--s1)/1 var(--mono); letter-spacing: .04em; color: var(--ink3); }
+  /* R-024 (BUBBLE.md): what is said, over the speaker's head — the campfire demo's bubble, sized for the stream */
+  .bub { position: absolute; --bgc: rgba(251, 248, 241, .96); background: var(--bgc); color: #23343a; border-radius: 24px; padding: 18px 26px 18px; width: max-content; max-width: 680px; min-width: 220px; box-sizing: border-box;
+    box-shadow: 0 6px 0 color-mix(in srgb, var(--c) 70%, transparent), 0 14px 36px rgba(0, 0, 0, .35); }
+  body.dim .bub { --bgc: rgba(232, 226, 213, .9); }
+  .bub::after { content: ""; position: absolute; left: var(--tail, 50%); bottom: -16px; margin-left: -16px; border: 16px solid transparent; border-top-color: var(--bgc); border-bottom: 0; }
+  .bub .nm { font: 700 var(--s1)/1 var(--jp); letter-spacing: .1em; color: color-mix(in srgb, var(--c) 50%, #23343a); }
+  .bub .g { margin-top: 10px; line-height: 0; color: rgba(35, 52, 58, .8); }
+  .bub .g svg { height: 30px; width: auto; max-width: 100%; }
+  .bub .tr { margin-top: 10px; padding-top: 10px; border-top: 1.5px dashed color-mix(in srgb, var(--c) 60%, transparent); font: 600 var(--s4)/1.45 var(--jp); letter-spacing: .04em; max-width: 600px; }
+  .bub .tr span { display: block; }
+  .en .bub .nm { font: 600 var(--s2)/1 var(--lat); letter-spacing: .06em; }
+  .en .bub .tr { font: 500 calc(var(--s4) + 4px)/1.3 var(--lat); letter-spacing: .01em; }
+  .bub.old { opacity: .55; box-shadow: none; transform: scale(.92); transform-origin: var(--tail, 50%) calc(100% + 16px); }
   .notext .t, .notext .t * { color: transparent !important; text-shadow: none !important; border-color: transparent !important; background-color: transparent !important; }
   .notext svg { visibility: hidden; }
 </style></head><body>
@@ -241,6 +254,40 @@ if (h.includes('think')) {   // (R-011: a sample of the thinking — the real wo
   const lines = [T('月は、ゆうべより遅れて昇ってきた。', 'The moon came up later than last night.'), T('あの明るい星は、いつも丘の木の上にいる。', 'That bright star is always above the tree on the hill.'), T('同じ場所から毎晩見れば、動いているのが空なのか、わたしなのか、分かるかもしれない。', 'If I watch from the same place every night, I may learn whether it is the sky that moves, or me.'), T('火が消えたら、もう一度', 'When the fire is out, once more')];
   $('thtx').innerHTML = lines.map((l, i) => `<p class="${['o3', 'o2', '', ''][i]}">${i === 3 ? l + '<span class="cur">丘へ行こう。</span>' : l}</p>`).join('');
   $('thhd').textContent = T('ランタンの考えごと', "Lantern's thoughts");
+}
+// (R-024, BUBBLE.md: a bubble over the speaker's head — the point 12 cm above the head as the camera sees it, here taken
+// from the frame the background was shot from; the bubble kept 96 px inside the edges, the tail still on the head)
+const placed = [];   // (bubbles already on the screen, and the heads to keep clear)
+const bubble = (id, toks, ja, en, hx, hy, old, avoid = []) => {
+  const r = R[id], b = document.createElement('div'); b.className = 'bub' + (old ? ' old' : ''); b.style.setProperty('--c', r.c);
+  const line = T(ja, en), parts = L === 'en' ? [line] : line.length > 15 ? line.split(/(?<=[、。])/).reduce((a, s) => { if (a.length && (a[a.length - 1] + s).length <= 15) a[a.length - 1] += s; else a.push(s); return a; }, []) : [line];
+  b.innerHTML = `<div class="nm">${r[L]}</div><div class="g">${glyphs(toks)}</div><div class="tr">${parts.map((p) => `<span>${p}</span>`).join('')}</div>`;
+  document.body.appendChild(b);
+  const w = b.offsetWidth, hh = b.offsetHeight, top = hy - 16 - 16 - hh, clampX = (x) => Math.min(1920 - 96 - w, Math.max(96, x));
+  const hits = (x) => [...placed, ...avoid].some((q) => x < q[2] && x + w > q[0] && top < q[3] && top + hh > q[1]);
+  // (first over the head; if it would cover a bubble already there or another's head, slid sideways — the tail still on the head)
+  let x = clampX(hx - w / 2);
+  if (hits(x)) { const tries = [...placed, ...avoid].flatMap((q) => [q[0] - 14 - w, q[2] + 14]).map(clampX).filter((t) => !hits(t) && hx - t >= 28 && hx - t <= w - 28).sort((a, b2) => Math.abs(a - (hx - w / 2)) - Math.abs(b2 - (hx - w / 2))); if (tries.length) x = tries[0]; }
+  Object.assign(b.style, { left: `${x}px`, top: `${top}px` }); b.style.setProperty('--tail', `${Math.min(w - 28, Math.max(28, hx - x))}px`);
+  placed.push([x, top, x + w, top + hh + 16]);
+};
+const HEAD = { fire: { dot: [970, 483], kame: [1205, 575], lantern: [941, 562], rakko: [723, 548] }, bubble: { dot: [1149, 457], rakko: [825, 569] } };   // (bub capture, main 32638a3: 12 cm over each head, as the camera saw it)
+const headBox = ([x, y]) => [x - 70, y - 10, x + 70, y + 130];   // (round a head: kept clear of others' bubbles)
+if (scene === 'fire') {
+  document.body.classList.add('dim'); bg('bg-fire.jpg'); who('dot'); $('date').textContent = date(1, 6); $('hour').textContent = '19:48';
+  $('status').textContent = T('焚き火を囲んで話している', 'Talking round the fire');
+  roster('dot', [['dot', T('焚き火を囲んで話している', 'Talking round the fire')], ['rakko', T('焚き火を囲んで話している', 'Talking round the fire')], ['kame', T('焚き火を囲んで話している', 'Talking round the fire')], ['lantern', T('焚き火を囲んで話している', 'Talking round the fire')]]);
+  // (SAY.proposePier and the agreements in islandlang.ts, after Kamemaru's proposal: Dot's answer just said, kept faint;
+  // Rakko answering now — slid aside from Dot's, its tail still on its own head)
+  bubble('dot', ['ua', ',', 'hane', 'motu', '.'], '了承：板を作る', 'Agreed: I will make the planks.', ...HEAD.fire.dot, true);
+  bubble('rakko', ['ua', ',', 'sita', 'ana', 'pila', '.'], '了承：柱を泳いで立てる', 'Agreed: I will swim the posts into place.', ...HEAD.fire.rakko, false, [headBox(HEAD.fire.lantern), headBox(HEAD.fire.dot)]);
+}
+if (scene === 'bubble') {
+  bg('bg-talk.jpg'); who('dot'); $('hour').textContent = '15:22';
+  $('status').textContent = T('ラッコと話している', 'Talking with Rakko');
+  roster('dot', [['dot', T('ラッコと話している', 'Talking with Rakko')], ['rakko', T('ドットに流木を申し出ている', 'Offering Dot driftwood')], ['kame', T('浜から、泳ぐ魚を見分けている', 'Telling the fish apart from the beach')], ['lantern', T('昼のあいだ眠っている', 'Asleep through the day')]]);
+  // (frames.ts offer-help, as R-023 heard it)
+  bubble('rakko', ['toto', ',', 'na', 'e', 'toli', 'o', 'ki', 'to', 'soni', 'leni', 'ko', '.'], 'ドット、流木を運ぼうか。', 'Dot, shall I bring you driftwood?', ...HEAD.bubble.rakko, false, [headBox(HEAD.bubble.dot)]);
 }
 // (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
 const fit = () => {
