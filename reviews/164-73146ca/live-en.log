@@ -1,0 +1,15 @@
+1 every status sentence has its English (235 sentences):  ok
+1 an unknown sentence is not guessed (the caller shows the name alone):  ok
+1 a line is shown with its first letter a capital: Coming up for a breath ok
+2 the asides come through: taking a rest (hungry) / asleep (sleepy) / crossing by raft to Pata (away from the island) ok
+2 the numbers are taken out first, as on the Japanese screen: laying planks on the pier ok
+3 every first the world grades has its English card (22 kinds):  ok
+3 a crossing names its island (plain for captions; in italics, escaped, on the card): Dot crossed by raft to <i>P&lt;a</i> and back ok
+3 the brand: the project, then Series 1 and the series' name:  ok
+3 the set phrases (viewer design review B): Island year 1 · 17 December / Dot lit the island's first lamp ok
+4 a long English status broken after its comma: ["looking over the horizon from the beach, ","mapping the islands in sight"] ok
+5 the stamp: UTC, milliseconds, no zone letter: 2026-12-24T03:04:05.067 ok
+5 a long line: caption-sized pieces (a stamp, at most two lines of 42), the next once the one before is read (max 2.5 s, 15 characters a second), nothing lost: 5267 ms; ["2026-12-24T03:04:05.067\nDot: The wind is good today. Let us take\nthe raft out past the reef and see the\n","2026-12-24T03:04:10.334\nisland to the south.\n"] ok
+5 a short caption is still left 2.5 s:  ok
+6 only to the sender on this machine, each line once: http://127.0.0.1:8787/caption {"text":"Dot: hello","at":1793024074007} | http://127.0.0.1:8787/caption {"text":"Rakko: hi","at":1793024074007} ok
+PASS
