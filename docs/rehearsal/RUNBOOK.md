@@ -1,6 +1,6 @@
 # 実機リハーサルの手順（rehearsal-1、2026-10-31〜）
 
-家の PC で、決まった commit（`90ae7ca`、科学班が受入したもの。タグ名 `rehearsal-1`）をビルドして、24〜48 時間動かす。視聴者の記録は `docs/proposals/viewer-design-2026-10-16/REHEARSAL.md`、アプリが書き出す記録は `src/ui/rehearsal-log.ts`。
+家の PC で、決まった commit（`23f2c17`、科学班が受入したもの。#121・#122 の表示の直しが入った版。タグ名 `rehearsal-1`）をビルドして、24〜48 時間動かす。視聴者の記録は `docs/proposals/viewer-design-2026-10-16/REHEARSAL.md`、アプリが書き出す記録は `src/ui/rehearsal-log.ts`。
 
 ## 0. 用意するもの
 - Node.js 22 と git、Chrome（または Edge）。
@@ -16,7 +16,7 @@
 ```
 git clone https://github.com/ynatsume-source/3dproject.git      （2 回目からは: git fetch --tags）
 cd 3dproject
-git checkout 90ae7cac46b4a0c461b95c922da183c5bd3e7dd3
+git checkout 23f2c17cf65712782f600b169d0061b23866cf35
 git tag rehearsal-1 && git push origin rehearsal-1   （目印。本体の環境からはタグを送れないため、家の PC で付ける。1 回だけ）
 npm ci
 npm run build
@@ -27,7 +27,7 @@ npx vite preview --port 4173 --strictPort
 
 ## 2. キーを入れる
 1. `http://localhost:4173/#kayama` を開く（`?live` なし）。
-2. メニューの「島の住人」を開き、下の API キーの欄にリハーサル専用キーを入れて「保存」。キーはこのブラウザの中にだけ保存される（同じ `localhost:4173` なら `?live` でも使われる）。
+2. 島の画面で Z（図鑑のパネル）→ タブ「島の住人」を開き、一番下の API キーの欄にリハーサル専用キーを入れて「保存」。キーはこのブラウザの中にだけ保存される（同じ `localhost:4173` なら `?live` でも使われる）。
 3. **配信している間は、この API キーの欄（キーの末尾 4 文字が出る）を開かない。** キーを入れるのは配信を始める前に済ませる。
 
 ## 3. 試運転（10/30、数分〜30 分）
@@ -43,7 +43,7 @@ npx vite preview --port 4173 --strictPort
    ```
    (await seaglassRehearsal.text()).split('\n').filter((l) => l.includes('"t":"sub"') || l.includes('"t":"status"')).slice(-5)
    ```
-   ）。そのあと `?live` のタブを閉じてから `http://localhost:4173/#kayama` を開き、メニュー「島の住人」→ ドット →「日記帳をひらく」に「目的：…」の行があれば、頭の答えが checkThought を通っている → (2)。**同じ島を 2 つのタブで同時に開かない**（保存を取り合う）。
+   ）。そのあと `?live` のタブを閉じてから `http://localhost:4173/#kayama` を開き、Z（図鑑のパネル）→ タブ「島の住人」→ ドット →「日記帳をひらく」に「目的：…」の行があれば、頭の答えが checkThought を通っている → (2)。**同じ島を 2 つのタブで同時に開かない**（保存を取り合う）。
 4. 隠れたときの確かめ：OBS か別のウィンドウでアプリのウィンドウを 1 分ほど完全に覆い、戻してからコンソールで
    ```
    (await seaglassRehearsal.text()).split('\n').filter((l) => l.includes('"kind":"hidden"') || l.includes('"kind":"shown"')).slice(-4)

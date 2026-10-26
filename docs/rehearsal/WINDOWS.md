@@ -26,13 +26,25 @@ git --version
 cd $HOME
 git clone https://github.com/ynatsume-source/3dproject.git
 cd 3dproject
-git checkout 90ae7cac46b4a0c461b95c922da183c5bd3e7dd3
+git checkout 23f2c17cf65712782f600b169d0061b23866cf35
 git tag rehearsal-1
 git push origin rehearsal-1
 npm.cmd ci
 npm.cmd run build
 ```
 （`git push` で GitHub のログインを聞かれたら、そのままログインする。うまくいかなければ飛ばしてよい。中身は同じ）
+
+### 2b. 版が差し替わったとき（10/26：90ae7ca → 23f2c17）
+すでに手順 2 をやった PC では、アプリの黒い窓を閉じて（Ctrl+C）から：
+```
+cd $HOME\3dproject
+git fetch
+git checkout 23f2c17cf65712782f600b169d0061b23866cf35
+git tag -f rehearsal-1
+git push -f origin rehearsal-1
+npm.cmd run build
+```
+終わったら手順 4 でアプリを起こし直し、ブラウザを読み込み直す（F5）。島の保存とキーは残る。
 
 ### 3. Windows の設定
 - 設定 → システム → 電源 → 「画面とスリープ」を全部「なし」
@@ -64,7 +76,8 @@ Edge なら：
 - **この窓は最小化しない・ほかの窓で覆わない**（隠れるとアプリが止まる）。モニター 2 台なら、この窓と OBS を別の画面に。
 
 ### 6. キーを入れる（試運転と本番でそれぞれ 1 回。配信を始める前に）
-開いた画面のメニュー →「島の住人」→ 下の API キーの欄にリハーサル専用キーを貼って「保存」。
+島の画面をクリックしてキーボードの **Z**（図鑑のパネルが開く）→ 上のタブの「島の住人」→ 一番下の `sk-ant-...` の欄にリハーサル専用キーを貼って「保存」→「設定済み（…末尾 4 文字）」と出れば OK → もう一度 Z で閉じる。
+見つからないときは F12 →「コンソール」に `localStorage.setItem('seaglass.aikey', 'ここにキー'); location.reload()`（貼り付けを止められたら先に `allow pasting` と打つ）。
 **配信中はこの欄を開かない**（キーの末尾 4 文字が出る）。
 
 ---

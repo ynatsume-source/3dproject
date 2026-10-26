@@ -150,10 +150,16 @@ export const seaTop = new THREE.Mesh(DISC, mat(
        if (L.y <= 0.0) continue;
        vec3 H = normalize(V + L); float nh = max(dot(n, H), 1e-3), nh2 = nh * nh;
        float D = exp(-(1.0 - nh2) / (nh2 * rough)) / (3.14159 * rough * nh2 * nh2);
+       // (and the share of the facets not hidden by the waves in front of them, toward the eye and toward the light
+       // (Smith's, Schlick's form): skimming the sea at the horizon, under a low moon or sun, most of the slopes facing
+       // it are in the shadow of the crest before — without it the glitter there grew without end as the view
+       // flattened, a white blot the bloom spread up over the sky, not a path broken by the waves)
+       float gk = sqrt(rough * 0.6366), nl = max(dot(n, L), 1e-3);
+       float G = nv / (nv * (1.0 - gk) + gk) * nl / (nl * (1.0 - gk) + gk);
        vec3 rad = k == 0 ? sc * 7.0 : vec3(0.75, 0.8, 0.9) * uMoonIllum * 1.5 * (1.0 - dayAir()) * (1.0 - 0.5 * uCloud) * (1.0 - 0.95 * uMoonVeil);
        // the path breaks into glints that come and go with the small waves
        float glint = mix(1.0, 0.25 + 2.2 * smoothstep(0.55, 0.9, vn2(p * 2.7 + vec2(t * 1.3, -t * 0.9))), 1.0 - smoothstep(0.3, 2.0, fp));
-       col += rad * D * F / (4.0 * nv) * smoothstep(0.0, 0.05, L.y) * 0.25 * glint;
+       col += rad * D * F * G / (4.0 * nv) * smoothstep(0.0, 0.05, L.y) * 0.25 * glint;
      }
      // a night sea seen from above keeps a faint sheen of the sky on it, cloudy or not (not quite real: a
      // night-adapted eye's view), broken by the ripples, so the surface reads as a surface and not a void

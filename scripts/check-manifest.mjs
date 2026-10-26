@@ -24,7 +24,7 @@ const fast = [
   'science-barometer-pot', 'science-charcoal', 'science-clay-prep',
   'science-fired-pot-assembly', 'science-firewood', 'science-integration',
   'science-oil-lamp', 'science-pit-fire', 'science-pottery', 'science-vessel',
-  'save-migration', 'settle', 'social', 'values', 'wall', 'wear', 'words', 'world-switch', 'worlds',
+  'save-migration', 'settle', 'social', 'status-labels', 'values', 'wall', 'wear', 'words', 'world-switch', 'worlds',
 ];
 
 const slow = [
