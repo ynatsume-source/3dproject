@@ -229,7 +229,7 @@ if (h.includes('rh')) $('rh').hidden = false;   // (?rehearsal only: the time in
 const roster = (on, rows) => { $('roster').hidden = false; $('roster').innerHTML = rows.map(([id, st]) => `<div class="r${id === on ? ' on' : ''}"><span class="c" style="background:${R[id].c}"></span><span class="nm">${R[id][L]}</span><span>${st}</span></div>`).join(''); };
 if (scene === 'day' && h.includes('ctx')) {
   roster('dot', [['dot', T('流木を拾っている', 'Picking up driftwood')], ['rakko', T('お腹の上で貝を割っている', 'Cracking a clam on its belly')], ['kame', T('海の底で海草を食べている', 'Grazing on the seabed')], ['lantern', T('丘のふもとで夜を待っている', 'Waiting for night below the hill')]]);
-  $('why').hidden = false; $('why').textContent = T('― 小屋の部材にするため', '— for a part of the hut');
+  $('why').hidden = false; $('why').textContent = T('「部材は、あと少しで足りる」', '“A few more parts, and that is enough.”');   // (D29: the resident's own words, not a narrator's)
   if (h.includes('way')) { $('steps').hidden = false; $('steps').classList.add('way'); $('steps').innerHTML = `<span class="lab">${T('道のり', 'The way')}</span><span class="now">${T('小屋', 'hut')}</span><span class="dot">・</span><span>${T('家', 'house')}</span><span class="dot">・</span><span>${T('筏', 'raft')}</span><span class="dot">・</span><span>${T('帆で島の外へ', 'by sail, off the island')}</span>`; }
 }
 if (scene === 'nightsea' && h.includes('ctx')) {
