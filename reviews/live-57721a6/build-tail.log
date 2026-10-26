@@ -1,0 +1,4 @@
+  - plugin vite:css transform (12 calls)
+  - plugin vite:build-html transform (3 calls)
+See https://rolldown.rs/reference/InputOptions.checks#bundlertimings for more details.
+
