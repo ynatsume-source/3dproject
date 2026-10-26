@@ -4,7 +4,7 @@
 //    screen (§3-6: no remaining time, no progress, no hidden values); a bracket of words ("（島にはいない）") stays
 //  - a line too long for its place is broken in two after a 、 or 。 — never cut short
 
-const COUNTER = '(?:本目|本|個目|個|回目|回|枚|人|日目|日|つ目|つ|段目|段|m|km|kg|g|%|％|分|秒|時間|cm|mm)';
+const COUNTER = '(?:本目|本|個目|個|回目|回|枚目|枚|人|日目|日|つ目|つ|段目|段|m|km|kg|g|%|％|分|秒|時間|cm|mm)';
 const NUMBER_ONLY = new RegExp(`（\\s*[0-9０-９]+(?:[/／.．:：〜~\\-][0-9０-９]+)*\\s*${COUNTER}?\\s*）`, 'g');
 const STILL_TO_GO = /（\s*あと[^）]*[0-9０-９][^）]*）/g;
 
