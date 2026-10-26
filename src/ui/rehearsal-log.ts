@@ -20,8 +20,8 @@
 // the margin (5% in, 8% up; 22 px at 1080p, the live screen's ink3), for laying the recording of the stream beside this
 // log (REHEARSAL.md §6).
 // Kept in this browser as it goes (IndexedDB, so a reload loses nothing), written out — once the stream has been stopped,
-// or the browser's download notice is streamed with the picture — with Alt+Shift+R or
-// seaglassRehearsal.download(); seaglassRehearsal.clear() starts afresh; seaglassRehearsal.saveOut() writes out the island's
+// or the browser's download notice is streamed with the picture — with seaglassRehearsal.download() from the console
+// (no key: Chrome took Alt+Shift+R for its reading mode, R-025); seaglassRehearsal.clear() starts afresh; seaglassRehearsal.saveOut() writes out the island's
 // save (seaglass.*, never the API key). Nothing is sent anywhere. The steps: docs/rehearsal/RUNBOOK.md.
 import { prof } from '../core/prof';
 import { watchAi } from '../robots/mind';
@@ -79,7 +79,6 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
   };
   (window as any).seaglassRehearsal = { download, clear, flush, text: all, saveOut };
-  addEventListener('keydown', (e) => { if (e.altKey && e.shiftKey && e.code === 'KeyR') { e.preventDefault(); void download(); } });
   addEventListener('error', (e) => row('event', { kind: 'error', text: String(e.message).slice(0, 200) }));
   addEventListener('unhandledrejection', (e) => row('event', { kind: 'error', text: String((e.reason as Error)?.message ?? e.reason).slice(0, 200) }));
   let hiddenAt = 0;
