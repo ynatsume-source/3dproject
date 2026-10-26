@@ -12,6 +12,7 @@ import { hash, smooth, R, rr, mulberry32, getStream, setStream } from '../core/m
 import { WORLD } from './scenery';
 import { landOf, type Land } from './land';
 import { buildForest } from './forest';
+import { GHOST_VS, GHOST_FS, ghostable, makeGhosts, type GhostPlant } from './ghost';
 import { Solids } from '../robots/solids';
 
 // (the open air's light: render/airlit.ts, kept exported from here for the shore's users)
@@ -256,28 +257,38 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   // build: drawn all the same, so the island's later draws — and its residents' days — stay as they were)
   for (let k = 0; k < 52; k++) Math.random();
   const plantMat = mat(
-    `attribute vec3 aTint; attribute float aSway; varying vec3 vWp; varying vec3 vN; varying vec3 vCol;
+    GHOST_VS + `attribute vec3 aTint; attribute float aSway; varying vec3 vWp; varying vec3 vN; varying vec3 vCol;
      void main(){
        vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
        float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
        float wk = clamp(uWind.z / 10.0, 0.0, 1.8);
        w.xz += vec2(sin(uTime * 1.3 + ph), cos(uTime * 1.1 + ph * 1.7)) * aSway * (0.06 + 0.1 * wk) + uWind.xy * aSway * wk * wk * 0.08 * (0.7 + 0.3 * sin(uTime * 1.7 + ph));
        vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
-       vCol = aTint * (0.85 + 0.3 * fract(sin(ph * 12.9) * 43758.5));
+       vCol = aTint * (0.85 + 0.3 * fract(sin(ph * 12.9) * 43758.5)); ghostVs();
        gl_Position = projectionMatrix * viewMatrix * w; }`,
-    `${AIRLIT}
+    `${AIRLIT}${GHOST_FS}
      varying vec3 vWp; varying vec3 vN; varying vec3 vCol;
      void main(){
-       if (cutSight(vWp)) discard;   // (the leaves between the camera and a resident being watched)
+       if (ghostCut()) discard;   // (a plant seen through, between the camera and a resident being watched: ocean/ghost.ts)
        vec3 n = normalize(vN); if (!gl_FrontFacing) n = normalize(-n * 0.4 + vec3(0.0, 0.9, 0.0));   // (a leaf seen from beneath: the light comes through it)
        n = normalize(n + vec3(0.0, 0.35, 0.0));
-       gl_FragColor = vec4(fogIt(airLit(vCol, n, vWp, 0.7), vWp), 1.0);
-     }`, { opts: { side: THREE.DoubleSide } });
+       gl_FragColor = vec4(fogIt(ghostCol(airLit(vCol, n, vWp, 0.7)), vWp), ghostA(1.0));
+     }`, { opts: { side: THREE.DoubleSide, alphaToCoverage: true } });
   const e = new THREE.Euler(), q = new THREE.Quaternion(), m4 = new THREE.Matrix4(), p3 = new THREE.Vector3(), s3 = new THREE.Vector3();
   let count = 0;
+  // (the plants that may be seen through, between the camera and a resident being watched — the beach's growing ones,
+  // each as the upright cylinder its drawn shape fills; not the driftwood or the rocks: ocean/ghost.ts)
+  const ghosts = makeGhosts(), fixedGhosts: GhostPlant[] = [];
   for (const kind in lists) {
     const list = lists[kind]; if (!list.length) continue;
     const mesh = new THREE.InstancedMesh(geos[kind], plantMat, list.length);
+    const grows = kind !== 'drift' && kind !== 'rock';
+    if (grows) {
+      ghostable(mesh);
+      const g = geos[kind]; if (!g.boundingBox) g.computeBoundingBox();
+      const bb = g.boundingBox!, wide = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
+      list.forEach((it, i) => fixedGhosts.push({ mesh, i, key: kind + i, x: it.x, z: it.z, y0: it.y - 0.1, y1: it.y - 0.1 + bb.max.y * it.s, r: Math.max(0.4, wide * it.s), g: 0, t: 0 }));
+    }
     list.forEach((it, i) => {
       q.setFromEuler(e.set((R() - 0.5) * 0.12, it.ry, (R() - 0.5) * 0.12));
       if (kind === 'drift') s3.set(it.s, it.s * 0.45, it.s * 0.45); else s3.set(it.s * rr(0.85, 1.15), it.s, it.s * rr(0.85, 1.15));
@@ -290,7 +301,9 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   // (the beach plants' shapes and how they are drawn, for what grows by the residents' home — the young casuarinas
   // Dot clears for the field: robots/residents.ts. Shared: not to be disposed of)
   T.plantLook = { geo: geos, mat: plantMat };
-  const forest = buildForest(AIRLIT, group, f, can, top, FAR);
+  ghosts.setFixed(fixedGhosts);
+  T.ghosts = ghosts;   // (the camera says each frame whom it watches, and from where: main.ts)
+  const forest = buildForest(AIRLIT, group, f, can, top, FAR, ghosts);
   // how tall the growth is at a point (m): for those who walk on the island and go round what is above their
   // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
   const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75],   // (0.62, 0.55: the rounder mounds, nature-look HANDOFF §4)

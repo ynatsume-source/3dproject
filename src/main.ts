@@ -3548,6 +3548,8 @@ function frameBody(ts: number) {
       if (watch.r) { const wp = watch.r.pos; sp.x = wp.x; sp.y = wp.y; sp.z = wp.z; }
       // and open up the forest roof over it, so it can be seen from above
       const cut = U.uCut.value; if (watch.r && !watch.pov) cut.set(watch.r.pos.x, watch.r.pos.y, watch.r.pos.z, Math.max(9, watch.dist * 1.6)); else cut.w = 0; }
+    // the plants in the way of the camera to it, each seen through as a whole (ocean/ghost.ts: viewer design D27, plan 1)
+    cur.T.ghosts?.update(camera.position, watch.r && !watch.pov && cur.residents ? () => { const f = watch.r.pos, e = cur!.residents!.sense(watch.r).eye; return [new THREE.Vector3(f.x, f.y + 0.15, f.z), new THREE.Vector3((f.x + e.x) / 2, (f.y + e.y) / 2, (f.z + e.z) / 2), e]; } : null, dt);
     const fl = hyp(fwd.x, fwd.z) || 1, fx = fwd.x / fl, fz = fwd.z / fl;
     cur.residents?.focus(watch.r);
     cur.residents?.setStudyWeather(wx.cloud, wx.ok ? 'live' : 'simulation');
