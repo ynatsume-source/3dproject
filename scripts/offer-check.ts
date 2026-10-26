@@ -9,7 +9,8 @@
 //              (Rakko's give:dot, Dot's ask:rakko:bring-wood, both unavailable); then no offer for 40 min
 //   tries      three tries at handing over that came to nothing: closed at once
 //   asking     Dot's own asking: not again for an hour after a no, or after a promise Rakko could not keep, and three
-//              times a day at most (it was every ten minutes: 24 noes a day in the soak of 2026-10-26)
+//              times a day at most (it was every ten minutes: 24 noes a day in the soak of 2026-10-26); a try that
+//              never reached Rakko counts too (counting only the asks that reached it, 112 tries a day)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/offer-check.ts
 import './node-land';
 import * as THREE from 'three';
@@ -73,7 +74,7 @@ for (let i = 0; i < 3; i++) { sim += 60e3; ag.result('give:dot', 'give', 'unavai
 tick(0.2);
 row(q2.status === 'failed', `tries: three tries that came to nothing — ${q2.status} (${q2.reason})`);
 // asking (Dot's side of the same: asked every ten minutes after a no, it was 24 noes a day)
-dev.requests.length = 0; dot.holding = '';
+dev.requests.length = 0; dot.holding = ''; dev.agentOf(dot).results.length = 0;   // (its own tries so far are the timeout's, above)
 const asks = () => { dot.talk = rakko.talk = null; dot.holding = ''; rakko.act = 'idle'; return dev.optionsFor(dot, dev.agentOf(dot)).some((o: any) => o.id === 'ask:rakko:bring-wood'); };
 const k0 = asks();
 dev.requests.push({ id: 'req#t4', from: 'dot', to: 'rakko', what: 'bring-wood', at: sim, status: 'refused' });
@@ -82,5 +83,12 @@ dev.requests.length = 0; dev.requests.push({ id: 'req#t5', from: 'dot', to: 'rak
 const f1 = asks(); jump(61); const f61 = asks();
 dev.requests.length = 0; for (let i = 0; i < 3; i++) dev.requests.push({ id: `req#t6${i}`, from: 'dot', to: 'rakko', what: 'bring-wood', at: sim - (20 - i * 3) * 3600e3, status: 'done' });
 const d3 = asks(); dev.requests.shift(); const d2 = asks();
+// (a try that never reached Rakko — out at sea — counts too: an hour apart, three a day)
+dev.requests.length = 0; const da2 = dev.agentOf(dot); da2.results.length = 0;
+da2.result('ask:rakko:bring-wood', 'ask', 'gone', sim, '会えなかった');
+const m0 = asks(); jump(61); const m61 = asks();
+da2.result('ask:rakko:bring-wood', 'ask', 'done', sim); da2.result('ask:rakko:bring-wood', 'ask', 'done', sim);
+const m3 = asks();
+row(!m0 && m61 && !m3, `asking, not reaching Rakko: just after a try that missed ${m0}, at 61 min ${m61}; with three tries in the last day ${m3}`);
 row(k0 && !k1 && !k30 && k61 && !f1 && f61 && !d3 && d2, `asking: Dot may ask ${k0}; after a no ${k1}, at 30 min ${k30}, at 61 min ${k61}; after a promise not kept ${f1}, at 61 min ${f61}; with three asked in the last day ${d3}, two ${d2}`);
 process.exit(fail ? 1 : 0);

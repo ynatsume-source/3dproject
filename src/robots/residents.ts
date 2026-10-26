@@ -1801,10 +1801,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       o.push({ id: 'wander:beach', action: 'wander', label: '浜を歩いて探す' });
       return o;
     }
-    // (not again for an hour after a no, or after a promise Rakko could not keep, and three times a day at most — asked
-    // every ten minutes, it was 24 noes a day: R-026, soak 2026-10-26)
+    // (not again for an hour after a no, after a promise Rakko could not keep, or after going to ask and not finding it
+    // — Rakko is out at sea four tenths of the time — and three tries a day at most, counted from its own results so
+    // that a try that never reached Rakko counts too: asked every ten minutes, it was 24 noes a day, and counting only
+    // the asks that reached it, 112 tries: R-026, soaks 2026-10-26)
+    const askTries = a.results.filter((x) => x.optionId === 'ask:rakko:bring-wood' && clockMs - x.at < 24 * 3600e3 && x.outcome !== 'accepted' && x.outcome !== 'refused' && x.outcome !== 'interrupted');
     if (r.id === 'dot' && !r.holding && r.stats.built < HUT.length && agentOf(byId.rakko) && awake(byId.rakko) && !requests.some((q) => q.from === r.id && (q.status === 'open' || q.status === 'accepted' || (q.status === 'refused' && clockMs - q.at < 60 * 60e3) || (q.status === 'failed' && clockMs - (q.endedAt ?? q.at) < 60 * 60e3)))
-      && requests.filter((q) => q.from === r.id && clockMs - q.at < 24 * 3600e3).length < 3)
+      && requests.filter((q) => q.from === r.id && clockMs - q.at < 24 * 3600e3).length < 3
+      && askTries.length < 3 && !askTries.some((x) => x.outcome !== 'done' && clockMs - x.at < 60 * 60e3))
       o.push({ id: 'ask:rakko:bring-wood', action: 'ask', label: 'ラッコに流木を届けてほしいと頼む', targetId: 'rakko' });
     if (!r.holding) for (const it of items.list) if (it.kind === 'wood' && (!it.by || it.by === r.id) && known(`wood#${it.id}`) && !((it.away?.[r.id] ?? 0) > clockMs)) o.push({ id: `gather:wood#${it.id}`, action: 'gather', label: `流木を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `wood#${it.id}` });
     // (steps that become possible later are offered too, for planning, marked with what they need)
