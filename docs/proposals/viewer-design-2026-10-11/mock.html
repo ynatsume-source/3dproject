@@ -1,0 +1,110 @@
+<!doctype html>
+<!-- 視聴者設計の提案モック（2026-10-11）。アプリのコードではない。
+     文言のうち出来事の文は src/robots/residents.ts の onEvent の文から取った。日付・数・残り時間は仮。 -->
+<html lang="ja"><head><meta charset="utf-8"><title>viewer-design mock</title>
+<style>
+  body { margin: 0; background: #0b1418; font-family: "Zen Kaku Gothic New", "Noto Sans JP", sans-serif; color: #d6eee9; }
+  .row { display: flex; gap: 28px; padding: 28px; align-items: flex-start; }
+  .ph { position: relative; width: 390px; height: 844px; border-radius: 34px; overflow: hidden; background: #03161d center/cover; flex: none; box-shadow: 0 0 0 1px #2a3d44; }
+  .cap { width: 390px; font-size: 13px; line-height: 1.6; color: #9fbcb6; margin-top: 10px; }
+  .cap b { color: #ffd98a; font-weight: 500; }
+  .glass { background: rgba(4, 22, 30, .78); border: 1px solid rgba(214, 238, 233, .16); border-radius: 16px; backdrop-filter: blur(8px); }
+  .k { font-size: 11px; letter-spacing: .12em; color: #8fb5ad; }
+  .t { font-size: 17px; margin: 4px 0 2px; }
+  .s { font-size: 12.5px; color: #a9c7c1; line-height: 1.6; }
+  .go { color: #7fe3cf; font-size: 13px; margin-top: 8px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+  .chip { display: inline-block; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(214,238,233,.22); font-size: 12px; margin: 3px 4px 0 0; }
+  .new { color: #ffd98a; }
+  .badge { display: inline-block; font-size: 10.5px; padding: 1px 7px; border-radius: 99px; background: #ffd98a; color: #1b1406; margin-right: 6px; letter-spacing: .05em; }
+  .tl li { list-style: none; display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid rgba(214,238,233,.08); }
+  .tl .th { width: 74px; height: 50px; border-radius: 8px; flex: none; background: linear-gradient(160deg, #20414a, #0c2228); font-size: 9.5px; color: #6f948d; display: flex; align-items: flex-end; padding: 4px 6px; box-sizing: border-box; }
+  .tl .d { font-size: 11px; color: #8fb5ad; }
+  .og { width: 600px; height: 315px; border-radius: 12px; overflow: hidden; position: relative; background: url(now-7-pc-night-lantern.jpg) center/cover; box-shadow: 0 0 0 1px #2a3d44; }
+  .og .in { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 22px; background: linear-gradient(transparent, rgba(2,10,14,.92)); }
+  .og .glow { position: absolute; left: 300px; top: 205px; width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(#ffe7a8, rgba(255,190,90,.35) 40%, transparent 70%); }
+  h2 { font-weight: 500; font-size: 15px; color: #ffd98a; margin: 0 28px; padding-top: 22px; letter-spacing: .08em; }
+</style></head><body>
+
+<h2>提案1　入口と最初の1分（スマホ）</h2>
+<div class="row">
+  <div>
+    <div class="ph" style="background-image:url(now-1-phone-top.jpg)">
+      <div class="glass" style="position:absolute;left:14px;right:14px;top:330px;padding:14px 16px">
+        <div class="k">もうひとつの星 ・ いまの島　<span style="opacity:.7">島暦1年 9月12日 ・ 夜</span></div>
+        <div class="t"><span class="dot" style="background:#7ff0ff"></span>ランタンが油の灯りをともしている</div>
+        <div class="s">ドット・カメマル・ラッコは眠っている</div>
+        <div class="s new" style="margin-top:6px">前に来たときから：天気の壺ができた ほか2つ</div>
+        <div class="go">島をたずねる →</div>
+      </div>
+    </div>
+    <div class="cap"><b>A. トップの地球儀の上に「いまの島」</b>。今は11枚中10枚目のカード（スマホで約2,800px下）。起きている住人・今していること（状態の文）・前回からの変化だけ。</div>
+  </div>
+  <div>
+    <div class="ph" style="background-image:url(now-5-phone-watch-dot.jpg)">
+      <div class="glass" style="position:absolute;left:14px;right:14px;top:18px;padding:10px 14px">
+        <div class="k">付き添い ドロン01 ・ 自動で、いま起きている住人へ</div>
+        <div class="t" style="font-size:15px"><span class="dot" style="background:#ffd98a"></span>ドット　浜で筏の部材を運んでいる</div>
+      </div>
+      <div class="glass" style="position:absolute;left:14px;right:14px;top:578px;padding:12px 16px;background:rgba(4,22,30,.94)">
+        <div class="k">この島でできたもの</div>
+        <div><span class="chip">焼いた器 3</span><span class="chip">油の灯り</span><span class="chip">炭とタール</span><span class="chip">天気の壺</span></div>
+        <div class="s" style="margin-top:8px">次の見どころ：<b style="color:#ffd98a;font-weight:500">野焼き</b>　器が乾くまで あと島時間で半日（現実で約1時間）</div>
+      </div>
+    </div>
+    <div class="cap"><b>B. 島に入ったら、起きている住人に付き添って始まる</b>。海の底や暗い空からではなく。「できたもの」と「次の見どころ」は世界の記録（工程の時計）から。</div>
+  </div>
+  <div>
+    <div class="ph" style="background-image:url(now-3-phone-night.jpg)">
+      <div class="glass" style="position:absolute;left:14px;right:14px;top:300px;padding:14px 16px">
+        <div class="k">夜の島</div>
+        <div class="t" style="font-size:15px">ドット・カメマル・ラッコは眠っている</div>
+        <div class="s">ランタンは夜も起きている（灯りの番）。<br>ドットが起きるのは 6:00 ごろ。</div>
+        <div class="go">ランタンを見に行く →　　今日の島だよりを読む ↗</div>
+      </div>
+    </div>
+    <div class="cap"><b>C. 寝ている時間に来た人へ</b>。日本の夜（21〜24時）に来る人が多いはず。眠っていることを見せ、起きている者と読み物へ案内する。</div>
+  </div>
+</div>
+
+<h2>提案2　見どころを知らせて、残す</h2>
+<div class="row">
+  <div>
+    <div class="ph" style="background-image:url(now-3-phone-night.jpg)">
+      <div style="position:absolute;left:180px;top:520px;width:60px;height:60px;border-radius:50%;background:radial-gradient(#ffe7a8,rgba(255,190,90,.3) 40%,transparent 70%)"></div>
+      <div class="glass" style="position:absolute;left:14px;right:14px;top:120px;padding:12px 16px">
+        <div class="k"><span class="badge">節目</span>島で初めて</div>
+        <div class="t" style="font-size:15px">ランタンが、島で初めて灯りをともした。</div>
+        <div class="s">ドロン05（浜と焚き火）が撮っています　<span style="color:#7fe3cf">見に行く →</span></div>
+      </div>
+    </div>
+    <div class="cap"><b>D. 節目は普段のログと分けて知らせる</b>。いまは「焚き火の会に出た」と「初めての灯り」が同じ SEA LOG の一行。節目だけ大きく、見に行ける。</div>
+  </div>
+  <div>
+    <div class="ph" style="background:#06171d">
+      <div style="padding:22px 18px">
+        <div class="k">島の年表</div>
+        <div class="t">ドットたちの島　島暦1年</div>
+        <ul class="tl" style="padding:0;margin:14px 0 0">
+          <li><div class="th">ドロン05</div><div><div class="d">9月12日 夜</div><div class="s">竹の管を通して封じた壺で、天気の壺ができた</div></div></li>
+          <li><div class="th">ドロン05</div><div><div class="d">8月30日</div><div class="s">焼いた壺を2つ組んで、炭とタールをとる乾留の器ができた</div></div></li>
+          <li><div class="th">ドロン02</div><div><div class="d">8月21日 夜</div><div class="s"><span class="badge">見どころ</span>ランタンが、島で初めて灯りをともした。</div></div></li>
+          <li><div class="th">ドロン05</div><div><div class="d">8月14日</div><div class="s">焼いた器が、島の鍋になった</div></div></li>
+          <li><div class="th">ドロン13</div><div><div class="d">7月28日</div><div class="s">台風に備えていた。無事：筏・畑の作物</div></div></li>
+          <li><div class="th">ドロン01</div><div><div class="d">7月9日</div><div class="s">ドットが水平線に島を5つ見つけ、地図に記した</div></div></li>
+        </ul>
+        <div class="s" style="margin-top:10px;color:#7fe3cf">この日の島だより（ドット）を読む ↗</div>
+      </div>
+    </div>
+    <div class="cap"><b>E. 年表は世界の出来事の文そのまま</b>。写真はドロン（住人ではない撮り手）の記録から後で描く。住人の写真（島だより）とは分ける。日付・写真は仮。</div>
+  </div>
+  <div>
+    <div class="og"><div class="glow"></div><div class="in">
+      <div class="k" style="color:#cfe">utsushiyo.earth ・ ドットたちの島</div>
+      <div class="t" style="font-size:20px">ランタンが、島で初めて灯りをともした。</div>
+      <div class="s">島暦1年 8月21日 ・ 撮影 ドロン02 ・ 住人はAIです</div>
+    </div></div>
+    <div class="cap" style="width:600px"><b>F. 共有したときの見え方（提案3）</b>。いま <code>#planet</code> のリンクは海（宮古島）の画像と「実在の海を再現した…」の説明で出る。節目ごとの静的ページに、その場面の画像と出来事の文を付ける。</div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<!-- ライブ配信の画面案「観測の窓」第2版（横 1920×1080、2026-10-17）。アプリのコードではない、設計のモック。
+     背景は utsushiyo.earth の #planet をソフトウェア描画で撮った画（アプリの表示を消したもの）。実際の GPU の画とは色や細かさが違う。
+     場面：#day #rope #isle #night #talk #milestone。言語：既定は日本語、&en で英語の型（英語の文は islandlang.ts にある会話の訳のほかは仮）。
+     &notext で文字を消し、背景と曇りだけ（明るさの比を測る用）。
+     文言：状態の文・出来事の文・会話は residents.ts / islandlang.ts にある文をそのまま使う。「ヤシの殻を打っている」は仮（殻と縄はまだ接続されていない）。
+     日付・時刻は仮。節目の場面の灯りの光はモックのために描き足したもの（実際の見た目は自然班）。 -->
+<html lang="ja"><head><meta charset="utf-8"><title>live screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Cormorant+SC:wght@500;600&family=IBM+Plex+Mono:wght@400&family=Zen+Kaku+Gothic+New:wght@500&family=Zen+Old+Mincho:wght@500;600;700&display=block">
+<style>
+  /* The type scale, from the frame up (1080 px high; see README §3):
+     s1 22 · s2 26 · s3 32 · s4 40 · s5 46 · s6 56  — about 1.2 a step. On a phone held sideways (the frame ≈ 390 px high)
+     these are ≈ 8 · 9 · 12 · 14 · 17 · 20 px; on a 1080p screen, as written. */
+  :root {
+    --s1: 22px; --s2: 26px; --s3: 32px; --s4: 40px; --s5: 46px; --s6: 56px;
+    --ink: rgba(248, 245, 238, .97);      /* warm white, not quite opaque: the scene shows a little through */
+    --ink2: rgba(246, 243, 236, .82);
+    --ink3: rgba(246, 243, 236, .66);
+    --sand: #e9cf98;                       /* the tideline: the one accent */
+    --done: rgba(196, 224, 214, .8);
+    --shade: 6, 12, 14;
+    --jp: "Zen Old Mincho", serif;
+    --lat: "Cormorant Garamond", "Zen Old Mincho", serif;
+    --caps: "Cormorant SC", serif;
+    --mono: "IBM Plex Mono", monospace;
+    --text: var(--jp);
+    /* how much the scene is dimmed under the words: little, and less where it is already dark (the app measures it) */
+    --pa: .34; --pb: .74; --blur: 6px;
+  }
+  .en { --text: var(--lat); font-variant-numeric: lining-nums; }
+  body.mid { --pa: .1; --pb: .92; }
+  body.dim { --pa: 0; --pb: 1; --blur: 0px; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; color: var(--ink); }
+  .bg { position: absolute; inset: 0; background: center/cover no-repeat; }
+  [hidden] { display: none !important; }
+
+  /* words carry their own soft shadow; under them, a faint smoked glass whose edges dissolve — barely there */
+  .t { text-shadow: 0 0 2px rgba(0, 0, 0, .5), 0 0 6px rgba(0, 0, 0, .34), 0 1px 14px rgba(0, 0, 0, .3); }
+  .plate { position: absolute; pointer-events: none;
+    background: rgba(var(--shade), var(--pa)); -webkit-backdrop-filter: blur(var(--blur)) brightness(var(--pb)); backdrop-filter: blur(var(--blur)) brightness(var(--pb));
+    /* a bell, not a disc: no edge anywhere for the eye to find */
+    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 0%, rgba(0,0,0,.88) 26%, rgba(0,0,0,.5) 55%, rgba(0,0,0,.16) 78%, transparent 100%);
+    mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 0%, rgba(0,0,0,.88) 26%, rgba(0,0,0,.5) 55%, rgba(0,0,0,.16) 78%, transparent 100%); }
+  .plate.top { background: rgba(var(--shade), calc(var(--pa) * .7)); -webkit-backdrop-filter: brightness(calc(var(--pb) + .08)); backdrop-filter: brightness(calc(var(--pb) + .08)); }
+  /* brand: top left */
+  #brand { position: absolute; left: 96px; top: 64px; }
+  /* the project, then the series (D23): Utsushiyo Project / Series 1 ルマウ */
+  #brand .n { font: 500 var(--s2)/1 var(--caps); letter-spacing: .3em; }
+  #brand .s { font: 500 var(--s2)/1 var(--text); font-variant-numeric: lining-nums; letter-spacing: .24em; color: var(--ink2); margin-top: 12px; }
+  #brand .ser { font: italic 500 var(--s2)/1 var(--lat); font-variant-numeric: lining-nums; letter-spacing: .06em; margin-right: .7em; color: var(--ink3); }
+  .en #brand .s { letter-spacing: .12em; font-style: italic; }
+
+  /* the island's time: top right */
+  #clock { position: absolute; right: 96px; top: 62px; text-align: right; }
+  #clock .d { font: 500 var(--s2)/1 var(--text); letter-spacing: .14em; color: var(--ink2); }
+  #clock .d .h { font: 400 var(--s2)/1 var(--mono); letter-spacing: .06em; color: var(--ink); margin-left: 18px; }
+  #clock .ai { font: 500 var(--s1)/1 var(--text); letter-spacing: .14em; color: var(--ink3); margin-top: 14px; }
+  .en #clock .d, .en #clock .ai { letter-spacing: .06em; font-size: calc(var(--s2) + 2px); }
+  .en #clock .ai { font-size: var(--s2); font-style: italic; }
+
+  /* the lower third: who, and what it is doing */
+  #lower { position: absolute; left: 96px; bottom: 88px; padding-left: 26px; border-left: 1px solid rgba(246, 243, 236, .38); max-width: 1500px; }
+  #lower .meta { font: 500 var(--s1)/1 var(--caps); letter-spacing: .28em; color: var(--ink3); }
+  #lower .meta b { font: 400 var(--s1)/1 var(--mono); letter-spacing: .1em; color: var(--ink2); margin-right: 10px; }
+  #lower .who { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+  #lower .who svg { height: 26px; width: auto; color: var(--ink2); }
+  #lower .who .nm { font: 500 var(--s3)/1 var(--text); letter-spacing: .12em; }
+  #lower .who .c { width: 26px; height: 2px; border-radius: 1px; opacity: .9; }
+  #lower .steps { margin-top: 16px; font: 500 var(--s2)/1.2 var(--text); letter-spacing: .08em; color: var(--ink2); }
+  #lower .steps .lab { color: var(--ink3); margin-right: 18px; }
+  #lower .steps .done { color: var(--done); }
+  #lower .steps .now { color: var(--sand); border-bottom: 1px solid var(--sand); padding-bottom: 3px; }
+  #lower .steps .skip { text-decoration: line-through; text-decoration-thickness: 1px; color: var(--ink3); }
+  #lower .steps .dot { color: var(--ink3); margin: 0 10px; }
+  #lower .status { margin-top: 14px; font: 600 var(--s4)/1.3 var(--text); letter-spacing: .06em; }
+  .en #lower .status { font-size: calc(var(--s4) + 4px); letter-spacing: .02em; }
+  .en #lower .who .nm { font-size: calc(var(--s3) + 2px); letter-spacing: .06em; }
+
+  /* the island at a glance (Doron 13) */
+  #roll { display: flex; gap: 34px; margin-top: 16px; }
+  #roll .r { display: flex; align-items: center; gap: 10px; }
+  #roll svg { height: 20px; width: auto; color: var(--ink2); }
+  #roll .nm { font: 500 var(--s2)/1 var(--text); letter-spacing: .1em; }
+  #roll .sleep { opacity: .5; }
+  #roll .c { width: 16px; height: 2px; border-radius: 1px; }
+
+  /* what is said: at the foot, like a film's subtitle */
+  #talk { position: absolute; left: 0; right: 0; bottom: 84px; text-align: center; }
+  #talk .sp { font: 500 var(--s1)/1 var(--text); letter-spacing: .24em; color: var(--ink2); }
+  #talk .sp i { display: inline-block; width: 22px; height: 2px; border-radius: 1px; vertical-align: 6px; margin-right: 12px; }
+  #talk .isl { margin-top: 16px; color: var(--ink2); }
+  #talk .isl svg { height: 30px; width: auto; }
+  #talk .tr { margin-top: 14px; font: 600 var(--s5)/1.4 var(--text); letter-spacing: .05em; }
+  .en #talk .tr { font-size: calc(var(--s5) + 4px); letter-spacing: .01em; font-weight: 500; }
+
+  /* a milestone: a title card in the upper middle, for a few seconds */
+  #mile { position: absolute; left: 0; right: 0; top: 352px; text-align: center; }
+  #mile .rule { width: 160px; height: 1px; background: var(--sand); margin: 0 auto; opacity: .8; }
+  #mile .k { margin-top: 26px; font: 500 var(--s1)/1 var(--text); letter-spacing: .6em; padding-left: .6em; color: var(--sand); }
+  #mile .m { margin: 24px 0 22px; font: 500 var(--s6)/1.3 var(--text); letter-spacing: .08em; }
+  #mile .d { margin-bottom: 26px; font: 500 var(--s1)/1 var(--text); letter-spacing: .24em; color: var(--ink2); }
+  .en #mile .m { font-size: calc(var(--s6) + 6px); letter-spacing: .02em; }
+  .en #mile .k, .en #mile .d { letter-spacing: .3em; font-size: var(--s2); }
+
+
+  /* why (R-009 1): one quiet line under what it is doing — the resident's own aim, in the world's words */
+  #lower .why { margin-top: 10px; font: 500 var(--s2)/1.3 var(--text); letter-spacing: .06em; color: var(--ink2); }
+  /* the way so far (R-009 2): in the steps' row, for a few seconds when the view comes to it or a stage is done */
+  #lower .steps.way .lab { color: var(--ink3); }
+  /* the four (R-008): under the brand, quiet; the one being shown a little brighter */
+  #roster { position: absolute; left: 96px; top: 168px; }
+  #roster .r { display: flex; align-items: center; gap: 12px; height: 34px; font: 500 var(--s1)/1 var(--text); letter-spacing: .1em; color: var(--ink3); white-space: nowrap; }
+  #roster .r .c { width: 10px; height: 2px; opacity: .6; margin-right: 12px; }
+  #roster .r .nm { width: 5.2em; color: var(--ink3); }
+  #roster .r.on, #roster .r.on .nm { color: var(--ink); }
+  #roster .r.on .c { width: 22px; opacity: 1; margin-right: 0; }
+  /* Lantern's thinking (R-011): its own words, spun slowly at the left — not a subtitle: no island letters, smaller, quieter,
+     the older lines fading; ?tate: written top to bottom, like a notebook's margin */
+  #think { position: absolute; left: 96px; top: 372px; width: 470px; }
+  #think .hd { display: flex; align-items: center; gap: 12px; font: 500 var(--s1)/1 var(--text); letter-spacing: .18em; color: var(--ink3); margin-bottom: 18px; }
+  #think .hd .c { width: 22px; height: 2px; background: #9fe8ff; }
+  #think p { margin: 0 0 12px; font: 500 var(--s2)/1.75 var(--text); letter-spacing: .06em; color: var(--ink2); }
+  #think p.o2 { opacity: .55; } #think p.o3 { opacity: .3; }
+  #think p .cur { opacity: .35; }
+  #think.tate { top: 360px; width: auto; height: 400px; }
+  #think.tate .tx { writing-mode: vertical-rl; height: 400px; }
+  #think.tate p { margin: 0 0 0 14px; line-height: 1.9; }
+  /* night: the sea as the main view, the one awake in a small window at the lower right (D24, NIGHT.md) */
+  #pip { position: absolute; right: 96px; bottom: 136px; width: 512px; height: 288px; overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(246, 243, 236, .32), 0 6px 28px rgba(0, 0, 0, .45); }
+  #pip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #pip { overflow: visible; }
+  #pip .cap { position: absolute; left: 0; bottom: calc(100% + 14px); text-shadow: 0 0 2px rgba(0,0,0,.5), 0 0 6px rgba(0,0,0,.34), 0 1px 14px rgba(0,0,0,.3); }   /* (its words above the window, not over the picture) */
+  #pip .w { display: flex; align-items: center; gap: 10px; font: 500 var(--s1)/1 var(--text); letter-spacing: .14em; }
+  #pip .w b { font: 400 var(--s1)/1 var(--mono); letter-spacing: .1em; color: var(--ink3); font-weight: 400; margin-right: 4px; }
+  #pip .w svg { height: 18px; color: #9fe8ff; }
+  #pip .w .c { width: 22px; height: 2px; background: #9fe8ff; }
+  #pip .st { margin-top: 10px; font: 500 var(--s2)/1.3 var(--text); letter-spacing: .06em; color: var(--ink); }
+  /* Lantern's map (R-005): under the date, the fog cleared where it has walked; no number on it */
+  #map { position: absolute; right: 96px; top: 160px; width: 240px; height: 240px; box-shadow: 0 0 0 1px rgba(246, 243, 236, .32), 0 6px 24px rgba(0, 0, 0, .4); }
+  #map img { width: 100%; height: 100%; display: block; }
+  #map .lb { position: absolute; right: 0; top: calc(100% + 12px); font: 500 var(--s1)/1 var(--text); letter-spacing: .2em; color: var(--ink2); white-space: nowrap; }
+  #rh { position: absolute; right: 96px; bottom: 86px; font: 400 var(--s1)/1 var(--mono); letter-spacing: .04em; color: var(--ink3); }
+  .notext .t, .notext .t * { color: transparent !important; text-shadow: none !important; border-color: transparent !important; background-color: transparent !important; }
+  .notext svg { visibility: hidden; }
+</style></head><body>
+<div class="bg" id="bg"></div>
+<div id="glow" hidden style="position:absolute;left:1380px;top:600px;width:620px;height:360px;background:radial-gradient(ellipse 50% 50% at 50% 55%, rgba(255,214,140,.9) 0%, rgba(255,186,96,.35) 18%, rgba(255,170,80,.12) 45%, transparent 75%)"></div><!-- (the lamp's light: drawn in for the mock only; how it really looks is the nature team's) -->
+<div id="plates"></div>
+
+<div class="t" id="brand"><div class="n">UTSUSHIYO PROJECT</div><div class="s"><i class="ser">Series 1</i><span data-ja="ルマウ" data-en="Lumau">ルマウ</span></div></div>
+<div class="t" id="clock"><div class="d"><span id="date">島暦1年 6月1日</span><span class="h" id="hour">10:24</span></div><div class="ai" data-ja="住人はAIです ・ 映像は自動で撮影しています" data-en="The residents are AI · filmed automatically">住人はAIです ・ 映像は自動で撮影しています</div></div>
+
+<div class="t" id="lower">
+  <div class="meta"><b id="dno">01</b><span id="drole">DORON</span></div>
+  <div class="who" id="who"><span id="gl"></span><span class="nm" id="name">ドット</span><span class="c" id="col"></span></div>
+  <div id="roll" hidden></div>
+  <div class="steps" id="steps" hidden><span class="lab" data-ja="縄づくり" data-en="Cord">縄づくり</span><span class="done" data-ja="浸ける" data-en="soak">浸ける</span><span class="dot">・</span><span class="now" data-ja="打つ" data-en="beat">打つ</span><span class="dot">・</span><span data-ja="乾かす" data-en="dry">乾かす</span><span class="dot">・</span><span class="skip" data-ja="振るう" data-en="hackle">振るう</span><span class="dot">・</span><span data-ja="撚る" data-en="spin">撚る</span><span class="dot">・</span><span data-ja="縒る" data-en="ply">縒る</span></div>
+  <div class="status" id="status">流木を拾っている</div>
+  <div class="why" id="why" hidden></div>
+</div>
+<div class="t" id="roster" hidden></div>
+
+<div class="t" id="pip" hidden><img id="pipimg" alt=""><div class="cap"><div class="w"><b>04</b><span id="pipgl"></span><span>ランタン</span><span class="c"></span></div><div class="st" id="pipst">丘の上へ歩いている</div></div></div>
+<div class="t" id="map" hidden><img src="map-lantern.png" alt=""><div class="lb" data-ja="ランタンの地図" data-en="Lantern's map">ランタンの地図</div></div>
+<div id="rh" hidden>JST 23:40:12</div>
+<div class="t" id="think" hidden><div class="hd"><span class="c"></span><span id="thhd">ランタンの考えごと</span></div><div class="tx" id="thtx"></div></div>
+<div class="t" id="talk" hidden><div class="sp"><i id="spc"></i><span id="spn">ランタン</span></div><div class="isl" id="tisl"></div><div class="tr" id="ttr"></div></div>
+
+<div class="t" id="mile" hidden><div class="rule"></div><div class="k" data-ja="島で初めて" data-en="A first on the island">島で初めて</div><div class="m" id="mm">ランタンが、島で初めて灯りをともした</div><div class="d" id="md">島暦1年 6月14日 ・ 19:06</div><div class="rule"></div></div>
+
+<script>
+// The island's letters (as src/robots/islandlang.ts draws them: one sign a syllable — a consonant's shape and its vowel's mark).
+const BASE = { '': '<circle cx="5" cy="8" r="3"/>', p: '<path d="M5 3V13"/>', t: '<path d="M2 3H8M5 3V13"/>', k: '<path d="M8 3L2 8L8 13"/>', m: '<path d="M2 13V7Q5 1 8 7V13"/>', n: '<path d="M1.5 8Q3.25 4.5 5 8T8.5 8"/>', s: '<path d="M8 3L2 13"/>', h: '<path d="M3 3V13M7 3V13"/>', l: '<path d="M6 3V11Q6 13 3.5 13"/>', w: '<path d="M2 3L5 13L8 3"/>' };
+const MARK = { a: '', i: '<circle cx="5" cy="1" r="0.9" class="f"/>', u: '<circle cx="5" cy="15.2" r="0.9" class="f"/>', e: '<path d="M11 6V10"/>', o: '<circle cx="11" cy="8" r="1.3"/>' };
+const syl = (w) => [...w.matchAll(/([ptkmnshlw]?)([aiueo])/g)].map((m) => [m[1], m[2]]);
+function glyphs(toks, sw = 1.25) {
+  let x = 0; const parts = [];
+  for (const t of toks) {
+    if (t === '.') { parts.push(`<circle cx="${x + 2}" cy="12.5" r="1.1" class="f"/>`); x += 6; continue; }
+    if (t === ',') { parts.push(`<path d="M${x + 2.5} 11L${x + 1.5} 14"/>`); x += 6; continue; }
+    if (x) x += 4;
+    for (const [c, v] of syl(t)) { parts.push(`<g transform="translate(${x} 0)">${BASE[c]}${MARK[v]}</g>`); x += 12; }
+  }
+  return `<svg viewBox="-1 -1 ${x + 2} 18" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"><style>.f{fill:currentColor;stroke:none}</style>${parts.join('')}</svg>`;
+}
+const R = { dot: { w: 'toto', ja: 'ドット', en: 'Dot', c: '#ffd98a', n: '01' }, lantern: { w: 'lanta', ja: 'ランタン', en: 'Lantern', c: '#9fe8ff', n: '04' }, kame: { w: 'kamemalu', ja: 'カメマル', en: 'Kamemaru', c: '#8fe0bd', n: '03' }, rakko: { w: 'lako', ja: 'ラッコ', en: 'Rakko', c: '#f7a36b', n: '02' } };
+const $ = (id) => document.getElementById(id);
+const h = location.hash.slice(1).split('&'), scene = h[0] || 'day', L = h.includes('en') ? 'en' : 'ja';
+if (L === 'en') { document.body.classList.add('en'); document.documentElement.lang = 'en'; document.querySelectorAll('[data-en]').forEach((e) => { e.textContent = e.dataset.en; }); }
+if (h.includes('notext')) document.body.classList.add('notext');
+// (the English below is a stand-in for templates that do not exist yet — only the spoken line comes from islandlang.ts)
+const T = (ja, en) => (L === 'en' ? en : ja);
+const date = (d, m) => T(`島暦1年 ${m}月${d}日`, `Island year 1 · ${['', '', '', '', '', '', 'June'][m]} ${d}`);
+const who = (id) => { const r = R[id]; $('gl').innerHTML = glyphs([r.w]); $('name').textContent = r[L]; $('col').style.background = r.c; $('dno').textContent = r.n; };
+const bg = (f) => { $('bg').style.backgroundImage = `url(${f})`; };
+who('dot'); bg('bg-day.jpg'); $('date').textContent = date(1, 6); $('status').textContent = T('流木を拾っている', 'Picking up driftwood');
+if (scene === 'rope') { $('steps').hidden = false; $('status').textContent = T('ヤシの殻を打っている', 'Beating a coconut husk'); $('hour').textContent = '14:10'; }
+if (scene === 'isle') {
+  document.body.classList.add('mid'); bg('bg-dusk.jpg'); $('dno').textContent = '13'; $('who').hidden = true; $('roll').hidden = false;
+  $('roll').innerHTML = ['dot', 'rakko', 'kame', 'lantern'].map((id) => { const r = R[id]; return `<div class="r"><span class="c" style="background:${r.c}"></span>${glyphs([r.w])}<span class="nm">${r[L]}</span></div>`; }).join('');
+  $('status').textContent = T('焚き火の会が始まった', 'The evening fire has begun'); $('hour').textContent = '18:12';
+}
+if (scene === 'night' || scene === 'talk' || scene === 'milestone') { document.body.classList.add('dim'); bg('bg-night.jpg'); who('lantern'); $('hour').textContent = '22:40'; $('status').textContent = T('丘の上で星を見て考えごとをしている', 'Watching the stars on the hill, thinking'); }
+if (scene === 'talk') {
+  $('talk').hidden = false; $('lower').hidden = true;   // (while a line is being said, the lower third steps aside: the speaker's name is on the subtitle)
+  $('spc').style.background = R.lantern.c; $('spn').textContent = R.lantern[L];
+  $('tisl').innerHTML = glyphs(['simo', ',', 'tika', 'kami', 'pila', ',', 'neka', 'nuki', 'hono', 'tasu', '.']);
+  // (SAY.starsRecorded() in islandlang.ts: its Japanese and its English, as written there; a long line breaks after its first sentence)
+  const line = T('記録：星空を手帖に記録した。次の夜に同じ条件で比べる', 'Record: wrote down the stars in my notebook. Next night I will compare them the same way.');
+  $('ttr').innerHTML = L === 'en' ? line.replace('. ', '.<br>') : line.length > 20 ? line.replace('。', '。<br>') : line;
+}
+if (scene === 'milestone') {
+  $('mile').hidden = false; $('glow').hidden = false; $('hour').textContent = '19:06'; $('date').textContent = date(14, 6);
+  $('mm').textContent = T('ランタンが、島で初めて灯りをともした', 'Lantern lit the first light on the island');
+  $('md').textContent = `${date(14, 6)} ・ 19:06`;
+  $('status').textContent = T('灯皿にヤシ油を入れ、芯を立てて灯す', 'Oil in the lamp dish, the wick set, and lit');
+}
+if (scene === 'nightsea') {
+  // (D24: after dark with only Lantern awake — the sea round the island as the main view, Lantern kept in the small window)
+  document.body.classList.add('dim'); bg('bg-nightsea.jpg'); $('date').textContent = date(1, 6); $('hour').textContent = '23:40';
+  $('who').hidden = true; $('dno').textContent = '13'; $('status').textContent = T('島のまわりの海', 'The sea round the island');
+  $('pip').hidden = false; $('pipimg').src = 'pip-lantern.jpg'; $('pipgl').innerHTML = glyphs([R.lantern.w]);
+  $('pipst').textContent = T('丘の上へ歩いている', 'Walking up the hill');
+  $('map').hidden = false;
+}
+if (h.includes('rh')) $('rh').hidden = false;   // (?rehearsal only: the time in Japan, bottom right inside the margin)
+// (R-008: the four, as the world's status lines have them — a sample here; R-009: why, and the way so far — sample words)
+const roster = (on, rows) => { $('roster').hidden = false; $('roster').innerHTML = rows.map(([id, st]) => `<div class="r${id === on ? ' on' : ''}"><span class="c" style="background:${R[id].c}"></span><span class="nm">${R[id][L]}</span><span>${st}</span></div>`).join(''); };
+if (scene === 'day' && h.includes('ctx')) {
+  roster('dot', [['dot', T('流木を拾っている', 'Picking up driftwood')], ['rakko', T('お腹の上で貝を割っている', 'Cracking a clam on its belly')], ['kame', T('海の底で海草を食べている', 'Grazing on the seabed')], ['lantern', T('丘のふもとで夜を待っている', 'Waiting for night below the hill')]]);
+  $('why').hidden = false; $('why').textContent = T('「部材は、あと少しで足りる」', '“A few more parts, and that is enough.”');   // (D29: the resident's own words, not a narrator's)
+  if (h.includes('way')) { $('steps').hidden = false; $('steps').classList.add('way'); $('steps').innerHTML = `<span class="lab">${T('道のり', 'The way')}</span><span class="now">${T('小屋', 'hut')}</span><span class="dot">・</span><span>${T('家', 'house')}</span><span class="dot">・</span><span>${T('筏', 'raft')}</span><span class="dot">・</span><span>${T('帆で島の外へ', 'by sail, off the island')}</span>`; }
+}
+if (scene === 'nightsea' && h.includes('ctx')) {
+  $('pipst').hidden = true;   // (its doing is in the four's list at the top left: the window's words are its name alone)
+  roster('lantern', [['dot', T('眠っている', 'Asleep')], ['rakko', T('仰向けで波に揺られて眠っている', 'Asleep on its back, rocked by the waves')], ['kame', T('眠っている', 'Asleep')], ['lantern', T('丘の上へ歩いている', 'Walking up the hill')]]);
+}
+if (h.includes('think')) {   // (R-011: a sample of the thinking — the real words would be Lantern's own, from its mind)
+  $('think').hidden = false; if (h.includes('tate')) $('think').classList.add('tate');
+  const lines = [T('月は、ゆうべより遅れて昇ってきた。', 'The moon came up later than last night.'), T('あの明るい星は、いつも丘の木の上にいる。', 'That bright star is always above the tree on the hill.'), T('同じ場所から毎晩見れば、動いているのが空なのか、わたしなのか、分かるかもしれない。', 'If I watch from the same place every night, I may learn whether it is the sky that moves, or me.'), T('火が消えたら、もう一度', 'When the fire is out, once more')];
+  $('thtx').innerHTML = lines.map((l, i) => `<p class="${['o3', 'o2', '', ''][i]}">${i === 3 ? l + '<span class="cur">丘へ行こう。</span>' : l}</p>`).join('');
+  $('thhd').textContent = T('ランタンの考えごと', "Lantern's thoughts");
+}
+// (a faint glass under each block of words, an ellipse a little larger than the words, its edge dissolving into the scene)
+const fit = () => {
+  const P = $('plates'); P.innerHTML = '';
+  const add = (id, padX, padY) => { const e = $(id); if (!e || e.hidden || e.closest('[hidden]')) return; const r = e.getBoundingClientRect();
+    let x = r.left - padX, w = r.width + padX * 2;
+    if (id === 'talk' || id === 'mile') { const ww = [...e.children].reduce((m, c) => Math.max(m, c.getBoundingClientRect().width), 0) + padX * 2; x = (1920 - ww) / 2; w = ww; }
+    const d = document.createElement('div'); d.className = 'plate' + (id === 'clock' || id === 'brand' ? ' top' : ''); Object.assign(d.style, { left: x + 'px', top: (r.top - padY) + 'px', width: w + 'px', height: (r.height + padY * 2) + 'px' }); P.appendChild(d); };
+  add('lower', 300, 160); add('roster', 240, 90); add('think', 260, 120); add('clock', 280, 120); add('brand', 260, 110); add('talk', 260, 110); add('mile', 300, 130);
+};
+requestAnimationFrame(fit); document.fonts.ready.then(fit);
+</script>
+</body></html>

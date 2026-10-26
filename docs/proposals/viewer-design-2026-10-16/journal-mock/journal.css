@@ -1,0 +1,121 @@
+/* 島だより — 見本（2026-10-20）。ライブの画面案「観測の窓」と同じ世界：明朝、少し温かい白、砂の金の一色、細い線、島の文字。
+   違うのは語り手：ライブはドロンの注記、島だよりは住人自身の語り。だから文字はライブより大きく、ゆっくり読む紙面にする。 */
+:root {
+  color-scheme: dark;
+  --bg: #071419; --bg2: #0a1c22;
+  --ink: rgba(246, 243, 236, .94); --ink2: rgba(246, 243, 236, .72); --ink3: rgba(246, 243, 236, .5);
+  --line: rgba(246, 243, 236, .14); --sand: #e9cf98;
+  --jp: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --sans: "Zen Kaku Gothic New", "Hiragino Sans", sans-serif;
+  --caps: "Cormorant SC", serif; --mono: "IBM Plex Mono", monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 500 17px/1.95 var(--jp); letter-spacing: .04em; font-feature-settings: "palt" 0; }
+a { color: inherit; text-decoration: none; }
+img { display: block; width: 100%; height: auto; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.read { max-width: 680px; margin: 0 auto; padding: 0 24px; }
+.mock { background: #2a2414; color: var(--sand); font: 500 12px/1.6 var(--sans); letter-spacing: .06em; padding: 7px 24px; text-align: center; }
+
+/* masthead: quiet, over the picture */
+.mast { position: absolute; left: 0; right: 0; top: 34px; z-index: 3; }
+.mast .wrap { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.home .n { font: 500 15px/1 var(--caps); letter-spacing: .34em; color: var(--ink2); display: block; }
+.home .t { font: 600 26px/1.3 var(--jp); letter-spacing: .3em; display: block; margin-top: 8px; }
+.mast nav { display: flex; gap: 26px; font: 500 14px/1 var(--jp); color: var(--ink2); letter-spacing: .14em; }
+.mast nav a.live { color: var(--sand); }
+.mast nav a.live::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #e46a5a; margin-right: 8px; vertical-align: 2px; box-shadow: 0 0 8px rgba(228,106,90,.7); }
+.shade-top { position: absolute; left: 0; right: 0; top: 0; height: 200px; background: linear-gradient(rgba(7,20,25,.55), rgba(7,20,25,0)); z-index: 2; pointer-events: none; }
+
+/* the picture of the day, full width, with its words low on the left — as the live screen does */
+.hero { position: relative; height: min(78vh, 760px); min-height: 520px; overflow: hidden; }
+.hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(7,20,25,0) 45%, rgba(7,20,25,.55) 78%, var(--bg) 100%); }
+.hero .cap { position: absolute; left: 0; right: 0; bottom: 56px; z-index: 2; }
+.hero .cap .wrap { border-left: none; }
+.lower { padding-left: 22px; border-left: 1px solid rgba(246,243,236,.38); text-shadow: 0 1px 12px rgba(0,0,0,.4); }
+.lower .meta { font: 400 13px/1 var(--mono); color: var(--ink2); letter-spacing: .1em; }
+.lower .meta span { font-family: var(--jp); letter-spacing: .16em; margin-left: 12px; }
+.who { display: flex; align-items: center; gap: 12px; margin-top: 14px; font: 600 18px/1 var(--jp); letter-spacing: .14em; }
+.who svg { height: 18px; width: auto; color: var(--ink2); }
+.who .c { width: 20px; height: 2px; border-radius: 1px; }
+.lower h1, .lower h2 { font: 600 clamp(30px, 4.2vw, 50px)/1.35 var(--jp); letter-spacing: .08em; margin: 14px 0 0; }
+.lower .src { font: 500 13px/1 var(--jp); color: var(--ink3); margin-top: 16px; letter-spacing: .1em; }
+
+/* the resident's own word for the human world (its "sns") */
+.word { margin: 72px auto 0; text-align: center; }
+.word .k { font: 500 12px/1 var(--jp); letter-spacing: .5em; color: var(--sand); padding-left: .5em; }
+.word p { font: 500 21px/2 var(--jp); margin: 22px 0 0; letter-spacing: .06em; }
+.word .rule { width: 80px; height: 1px; background: var(--sand); opacity: .7; margin: 26px auto 0; }
+
+/* the day as an exchange: what the island gave back, and what it made of it */
+.sec { margin-top: 88px; }
+.sec h3 { font: 500 13px/1 var(--jp); letter-spacing: .5em; color: var(--ink3); margin: 0 0 26px; }
+.log { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.log li { display: grid; grid-template-columns: 64px 1fr; gap: 18px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.log .t { font: 400 13px/2.3 var(--mono); color: var(--ink3); letter-spacing: .06em; }
+.log .w { font: 500 14px/1.85 var(--sans); color: var(--ink2); letter-spacing: .03em; }
+.log .w .n { color: var(--ink3); font-size: 12px; }
+.log .m { font: 500 17px/1.95 var(--jp); margin-top: 8px; }
+.log .quiet .w { color: var(--ink3); font-size: 13px; }
+.log figure { margin: 16px 0 0; }
+.log figure img { border-radius: 2px; }
+.log figcaption { font: 500 12px/1.6 var(--jp); color: var(--ink3); margin-top: 10px; letter-spacing: .08em; }
+
+/* the day taken as a whole */
+.review { display: grid; grid-template-columns: 1fr 1fr; gap: 34px 40px; }
+.review h4 { font: 600 15px/1 var(--jp); letter-spacing: .24em; color: var(--sand); margin: 0 0 12px; }
+.review p { margin: 0; font-size: 16px; line-height: 1.9; }
+.note { margin: 90px 0 0; padding: 28px 0 0; border-top: 1px solid var(--line); font: 500 13px/1.9 var(--jp); color: var(--ink3); letter-spacing: .06em; }
+.next { display: flex; justify-content: space-between; gap: 18px; margin-top: 30px; font: 500 14px/1.6 var(--jp); color: var(--ink2); }
+.next a:hover, .list a:hover h3 { color: var(--sand); }
+
+/* front page */
+.intro { margin: 80px auto 0; text-align: center; max-width: 640px; }
+.intro p { font: 500 15px/2.1 var(--jp); color: var(--ink2); margin: 0; }
+.intro .series { margin: 0 0 34px; color: var(--ink); }
+.intro .series i { display: block; font: italic 500 17px/1 "Cormorant Garamond", serif; font-variant-numeric: lining-nums; letter-spacing: .08em; color: var(--ink3); }
+.intro .series { font: 600 30px/1 var(--jp); letter-spacing: .42em; text-indent: .42em; }
+.intro .series i { margin-bottom: 14px; text-indent: 0; }
+.intro .series span { display: block; font: 500 15px/1 var(--jp); letter-spacing: .36em; text-indent: .36em; color: var(--ink2); margin-top: 16px; }
+.intro .rule { width: 80px; height: 1px; background: var(--sand); opacity: .7; margin: 30px auto 0; }
+.list { margin: 72px auto 0; max-width: 980px; }
+.day { display: grid; grid-template-columns: 150px 1fr; gap: 30px; padding: 36px 0; border-top: 1px solid var(--line); }
+.day .d { font: 500 14px/1.7 var(--jp); color: var(--ink2); letter-spacing: .12em; }
+.day .d small { display: block; font: 400 12px/1.6 var(--mono); color: var(--ink3); letter-spacing: .06em; margin-top: 4px; }
+.posts { display: grid; grid-template-columns: 1fr 1fr; gap: 34px; }
+.post .ph { aspect-ratio: 3 / 2; overflow: hidden; background: var(--bg2); }
+.post .ph img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s ease; }
+.post:hover .ph img { transform: scale(1.03); }
+.post .ph.draw { display: flex; align-items: center; justify-content: center; background: #ece6d8; }
+.post .who { margin-top: 16px; font-size: 14px; }
+.post h3 { font: 600 21px/1.55 var(--jp); margin: 10px 0 0; letter-spacing: .06em; transition: color .3s; }
+.post p { font: 500 14px/1.9 var(--jp); color: var(--ink2); margin: 10px 0 0; }
+.live-band { position: relative; margin: 100px 0 0; height: 300px; overflow: hidden; }
+.live-band img { position: absolute; inset: 0; height: 100%; object-fit: cover; }
+.live-band::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,20,25,.82), rgba(7,20,25,.3) 60%, rgba(7,20,25,.1)); }
+.live-band .in { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.live-band .k { font: 500 12px/1 var(--jp); letter-spacing: .5em; color: var(--sand); }
+.live-band h3 { font: 600 30px/1.5 var(--jp); letter-spacing: .1em; margin: 16px 0 0; }
+.live-band p { font: 500 14px/1.9 var(--jp); color: var(--ink2); margin: 10px 0 0; }
+.foot { margin-top: 0; padding: 50px 0 70px; font: 500 12px/2 var(--jp); color: var(--ink3); letter-spacing: .08em; }
+.foot .n { font: 500 13px/1 var(--caps); letter-spacing: .34em; color: var(--ink2); }
+.foot .n i { font: italic 500 14px/1 "Cormorant Garamond", serif; font-variant-numeric: lining-nums; letter-spacing: .06em; margin: 0 .5em 0 .6em; }
+.foot .n .j { font-family: var(--jp); letter-spacing: .24em; }
+
+@media (max-width: 720px) {
+  body { font-size: 16px; }
+  .mast { top: 22px; } .mast nav { gap: 16px; font-size: 13px; } .mast nav a:not(.live) { display: none; }
+  .home .n { letter-spacing: .22em; font-size: 13px; } .home .t { font-size: 22px; }
+  .hero { height: 82vh; min-height: 560px; }
+  .hero .cap { bottom: 40px; }
+  .word { margin-top: 56px; } .word p { font-size: 18px; }
+  .log li { grid-template-columns: 1fr; gap: 6px; padding: 18px 0; }
+  .log .t { line-height: 1.4; }
+  .review { grid-template-columns: 1fr; gap: 28px; }
+  .day { grid-template-columns: 1fr; gap: 16px; }
+  .posts { grid-template-columns: 1fr; gap: 40px; }
+  .live-band { height: 340px; }
+  .next { flex-direction: column; }
+}

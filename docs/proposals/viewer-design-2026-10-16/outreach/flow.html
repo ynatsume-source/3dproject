@@ -1,0 +1,138 @@
+<!doctype html>
+<!-- 発信の全体像の一枚絵（2400×1500、2026-10-20）。設計の資料で、アプリのコードではない。背景の画は #planet のソフトウェア描画（仮）。 -->
+<html lang="ja"><head><meta charset="utf-8"><title>発信の全体像</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600&family=Cormorant+Garamond:ital,wght@1,500&family=IBM+Plex+Mono:wght@400&family=Zen+Old+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500&display=block">
+<style>
+  :root { --ink: rgba(246,243,236,.95); --ink2: rgba(246,243,236,.74); --ink3: rgba(246,243,236,.5); --line: rgba(246,243,236,.18);
+    --sand: #e9cf98; --sea: #8fd8cc; --jp: "Zen Old Mincho", serif; --sans: "Zen Kaku Gothic New", sans-serif; --caps: "Cormorant SC", serif; --mono: "IBM Plex Mono", monospace; }
+  html, body { margin: 0; width: 2400px; height: 1500px; overflow: hidden; background: #061218; color: var(--ink); font-family: var(--jp); }
+  .hero { position: absolute; left: 0; right: 0; top: 0; height: 420px; background: url(hero.jpg) center 62%/cover; }
+  .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(6,18,24,.15), rgba(6,18,24,.35) 55%, #061218 100%); }
+  .page { position: absolute; inset: 0; padding: 72px 110px; }
+  .brand { font: 500 26px/1 var(--caps); letter-spacing: .34em; color: var(--ink2); text-shadow: 0 1px 12px rgba(0,0,0,.4); }
+  .brand i { font: italic 500 28px/1 "Cormorant Garamond", serif; font-variant-numeric: lining-nums; letter-spacing: .06em; margin-right: .45em; }
+  .brand .j { font-family: var(--jp); letter-spacing: .24em; }
+  h1 { font: 600 66px/1.3 var(--jp); letter-spacing: .1em; margin: 30px 0 14px; text-shadow: 0 2px 24px rgba(0,0,0,.45); }
+  .lede { font: 500 26px/1.7 var(--jp); color: var(--ink2); letter-spacing: .06em; max-width: 1900px; text-shadow: 0 1px 14px rgba(0,0,0,.5); }
+  .tag { position: absolute; right: 110px; top: 78px; font: 500 20px/1 var(--jp); color: var(--ink3); letter-spacing: .2em; }
+
+  /* the five stages */
+  .stages { position: absolute; left: 110px; right: 110px; top: 400px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; }
+  .st { position: relative; padding: 0 34px 0 30px; border-left: 1px solid var(--line); }
+  .st:first-child { border-left: none; padding-left: 0; }
+  .st .n { font: 400 20px/1 var(--mono); color: var(--sand); letter-spacing: .1em; }
+  .st h2 { font: 600 44px/1.2 var(--jp); margin: 12px 0 4px; letter-spacing: .12em; }
+  .st .en { font: 500 19px/1 var(--caps); letter-spacing: .26em; color: var(--ink3); }
+  .st .voice { font: 500 24px/1.6 var(--jp); color: var(--sand); margin: 22px 0 18px; min-height: 76px; }
+  .st dl { margin: 0; }
+  .st dt { font: 500 17px/1 var(--sans); color: var(--ink3); letter-spacing: .2em; margin-top: 18px; }
+  .st dd { margin: 9px 0 0; font: 500 21px/1.65 var(--jp); color: var(--ink); }
+  .st dd small { color: var(--ink2); font-size: 18px; }
+  .arrow { position: absolute; right: -15px; top: 40px; width: 30px; height: 30px; color: var(--sand); font: 400 28px/30px var(--jp); text-align: center; z-index: 2; background: #061218; border-radius: 50%; }
+  .loop { position: absolute; left: 110px; right: 110px; top: 1000px; height: 40px; }
+  .loop svg { width: 100%; height: 40px; overflow: visible; }
+  .loop span { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); background: #061218; padding: 0 20px; font: 500 20px/1 var(--jp); color: var(--sand); letter-spacing: .12em; }
+
+  /* the lower half: the engine, the rhythm, the places */
+  .low { position: absolute; left: 110px; right: 110px; top: 1052px; display: grid; grid-template-columns: 1.05fr 1.25fr 1fr; gap: 64px; }
+  .low h3 { font: 600 28px/1.3 var(--jp); letter-spacing: .12em; margin: 0 0 6px; }
+  .low .sub { font: 500 18px/1.5 var(--jp); color: var(--ink3); letter-spacing: .06em; margin-bottom: 18px; }
+  .eng { display: grid; grid-template-columns: auto 30px 1fr; align-items: center; gap: 10px 12px; font: 500 20px/1.45 var(--jp); }
+  .eng .src { grid-row: span 3; padding: 16px 18px; border: 1px solid var(--sand); color: var(--sand); text-align: center; line-height: 1.5; }
+  .eng .ar { grid-row: span 3; color: var(--sand); text-align: center; }
+  .eng .out { color: var(--ink); }
+  .eng .out small { color: var(--ink3); font-size: 17px; }
+  .eng .ok { grid-column: 1 / -1; margin-top: 12px; font-size: 19px; color: var(--ink2); }
+  .day { position: relative; height: 140px; }
+  .day .axis { position: absolute; left: 0; right: 0; top: 64px; height: 1px; background: var(--line); }
+  .day .m { position: absolute; top: 0; transform: translateX(-50%); text-align: center; width: 150px; }
+  .day .m .t { font: 400 16px/1 var(--mono); color: var(--ink3); }
+  .day .m .d { width: 9px; height: 9px; border-radius: 50%; background: var(--sand); margin: 34px auto 10px; box-shadow: 0 0 12px rgba(233,207,152,.6); }
+  .day .m .d.s { background: var(--sea); box-shadow: 0 0 12px rgba(143,216,204,.5); }
+  .day .m .l { font: 500 17px/1.4 var(--jp); color: var(--ink); }
+  .day .m .p { font: 500 15px/1.4 var(--sans); color: var(--ink3); }
+  .week { margin-top: 18px; font: 500 20px/1.75 var(--jp); color: var(--ink); }
+  .week b { font-weight: 600; color: var(--sand); }
+  .places { font: 500 19px/1.5 var(--jp); }
+  .places .row { display: grid; grid-template-columns: 136px 1fr; gap: 14px; padding: 7px 0; border-top: 1px solid var(--line); }
+  .places .row:first-child { border-top: none; padding-top: 0; }
+  .places .k { color: var(--sand); font-weight: 600; }
+  .places .k small { display: block; color: var(--ink3); font: 500 15px/1.4 var(--sans); }
+  .places .v small { color: var(--ink3); font-size: 16px; }
+  .foot { position: absolute; left: 110px; right: 110px; bottom: 40px; display: flex; justify-content: space-between; font: 500 18px/1 var(--jp); color: var(--ink3); letter-spacing: .1em; border-top: 1px solid var(--line); padding-top: 22px; }
+  .foot b { color: var(--ink2); font-weight: 500; }
+</style></head><body>
+<div class="hero"></div>
+<div class="page">
+  <div class="brand">UTSUSHIYO PROJECT　 <i>Series 1</i><span class="j">ルマウ</span></div>
+  <div class="tag">発信の全体像（案）・2026-10-20</div>
+  <h1>島に出会い、島に通う。</h1>
+  <div class="lede">新しく来た人が島を見つけ、住人を好きになり、毎日戻ってくるまで。発信はすべて、ひとつの島の記録から作る。</div>
+</div>
+
+<div class="stages">
+  <div class="st"><div class="n">01</div><h2>出会う</h2><div class="en">Discover</div><div class="arrow">›</div>
+    <div class="voice">「きれい。<br>これは何？」</div>
+    <dl><dt>入口</dt><dd>X・Instagram・Threads・TikTok<br>YouTube のおすすめとショート<br>地球の海の Web「いまの島」</dd>
+    <dt>効く中身</dt><dd>節目の瞬間の短い動画と画像<br>夜の星と灯りの一枚<br>住人のひとこと<small>（住人が書く）</small></dd>
+    <dt>測る</dt><dd><small>表示回数・プロフィールへの移動</small></dd></dl></div>
+  <div class="st"><div class="n">02</div><h2>入る</h2><div class="en">First visit</div><div class="arrow">›</div>
+    <div class="voice">「AI の住人が、<br>本当に暮らしてる」</div>
+    <dl><dt>場所</dt><dd>24時間ライブ<br>毎日のダイジェスト</dd>
+    <dt>効く中身</dt><dd>景色が先の画面・島の文字<br>最初の10秒で分かる下の1行<br>「住人はAIです」の明記</dd>
+    <dt>測る</dt><dd><small>はじめての視聴時間・チャンネル登録</small></dd></dl></div>
+  <div class="st"><div class="n">03</div><h2>好きになる</h2><div class="en">Attach</div><div class="arrow">›</div>
+    <div class="voice">「ランタンの灯り、<br>うまくいくかな」</div>
+    <dl><dt>場所</dt><dd>島だより（住人自身の語り）<br>週の科学ノート・島の年表</dd>
+    <dt>効く中身</dt><dd>4人の名前と、それぞれの大義<br>失敗と作り直し<br>待っている工程（縄・器・帆）</dd>
+    <dt>測る</dt><dd><small>平均視聴時間・島だよりの閲覧</small></dd></dl></div>
+  <div class="st"><div class="n">04</div><h2>通う</h2><div class="en">Return</div><div class="arrow">›</div>
+    <div class="voice">「今日の島は<br>どうなった？」</div>
+    <dl><dt>場所</dt><dd>朝のダイジェスト<br>朝の集まり・焚き火の会のライブ</dd>
+    <dt>効く中身</dt><dd>毎日同じ時刻の山場<br>週ごとに季節、月ごとに島の1年<br>台風の夜の特別配信</dd>
+    <dt>測る</dt><dd><small>ライト＋コアの視聴者の割合（週）</small></dd></dl></div>
+  <div class="st"><div class="n">05</div><h2>支える・広める</h2><div class="en">Support · Share</div>
+    <div class="voice">「この島を、<br>誰かに見せたい」</div>
+    <dl><dt>場所</dt><dd>メンバーシップ<small>（開始後）</small><br>切り抜きの共有・視点の投票</dd>
+    <dt>効く中身</dt><dd>キャラごとの視点・過去の島の再現<br>名場面の目次</dd>
+    <dt>測る</dt><dd><small>メンバー数・共有の数</small></dd></dl></div>
+</div>
+<div class="loop"><svg viewBox="0 0 2180 40" preserveAspectRatio="none"><path d="M2140 0 V20 H40 V0" fill="none" stroke="#e9cf98" stroke-width="1.2" stroke-dasharray="6 7" opacity=".7"/><path d="M33 8 L40 0 L47 8" fill="none" stroke="#e9cf98" stroke-width="1.2" opacity=".8"/></svg><span>共有された一場面が、次の誰かの「出会う」になる</span></div>
+
+<div class="low">
+  <div>
+    <h3>ひとつの記録から、すべての発信へ</h3>
+    <div class="sub">新しく撮らない。島のログから自動で作り、型に流す</div>
+    <div class="eng">
+      <div class="src">島のログ<br><small style="color:var(--ink3);font-size:16px">出来事・会話<br>住人の写真と記事</small></div><div class="ar">→</div>
+      <div class="out">毎日のダイジェスト <small>→ YouTube</small></div>
+      <div class="out">節目のショートと画像 <small>→ YouTube・X ほか全部</small></div>
+      <div class="out">住人のひとことと記事 <small>→ 島だより・X・Threads</small></div>
+      <div class="ok">人の手は、1日1回まとめて確かめるだけ（約5分）</div>
+    </div>
+  </div>
+  <div>
+    <h3>1日と、1週間と、1か月</h3>
+    <div class="sub">金＝ライブの山場　青緑＝発信</div>
+    <div class="day"><div class="axis"></div>
+      <div class="m" style="left:8%"><div class="t">06:00</div><div class="d s"></div><div class="l">前の日の<br>ダイジェスト</div><div class="p">YouTube・X</div></div>
+      <div class="m" style="left:28%"><div class="t">09:00</div><div class="d"></div><div class="l">朝の集まり</div><div class="p">ライブ</div></div>
+      <div class="m" style="left:48%"><div class="t">起きたとき</div><div class="d s"></div><div class="l">節目の速報</div><div class="p">X・Threads</div></div>
+      <div class="m" style="left:68%"><div class="t">夕方</div><div class="d"></div><div class="l">焚き火の会</div><div class="p">ライブ</div></div>
+      <div class="m" style="left:88%"><div class="t">夜</div><div class="d s"></div><div class="l">島だより・<br>ランタンと星</div><div class="p">X・Instagram</div></div>
+    </div>
+    <div class="week">現実の<b>1週間で島の季節がひとつ</b>めぐる → 週に1度、季節のまとめ<br>現実の<b>4週間で島の1年</b> → 月に1度、島の1年をふりかえる動画</div>
+  </div>
+  <div>
+    <h3>それぞれの場所の役目</h3>
+    <div class="sub">同じ素材を、場所ごとの型に整えるだけ</div>
+    <div class="places">
+      <div class="row"><div class="k">X<small>いちばん大事</small></div><div class="v">速報と会話。節目・ダイジェスト・住人のひとこと <small>1日2〜4本</small></div></div>
+      <div class="row"><div class="k">Instagram</div><div class="v">美しさ。写真・リール・季節のまとめ <small>1日1本＋週1</small></div></div>
+      <div class="row"><div class="k">Threads</div><div class="v">読み物の入口。ひとこと＋島だより <small>X と同じ素材</small></div></div>
+      <div class="row"><div class="k">TikTok</div><div class="v">縦の短い動画。ショートの転用 <small>自動で出せる条件しだい</small></div></div>
+    </div>
+  </div>
+</div>
+<div class="foot"><span><b>守ること</b>　住人はAIと明記する ・ 住人の言葉は引用だけで足さない ・ SNS の声は住人に届かない ・ 起きた事実だけを出す</span><span>背景の画はソフトウェア描画の仮のもの</span></div>
+</body></html>

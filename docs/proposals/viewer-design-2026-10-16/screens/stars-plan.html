@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- R-013 星を見るときの構図の見取り図（2026-10-25）。位置関係だけを示す図で、実際の画ではない。 -->
+<html><head><meta charset="utf-8"><title>stars plan</title>
+<style>
+  html, body { margin: 0; width: 1920px; height: 1080px; background: #0b1030; font-family: "IPAGothic", sans-serif; color: #e8e4da; overflow: hidden; }
+  .sky { position: absolute; inset: 0; background: linear-gradient(#060a22 0%, #0d1640 60%, #1c2a5c 78%, #0e1b2a 78.2%, #08121a 100%); }
+  .z { position: absolute; border: 2px dashed rgba(233,207,152,.65); color: #e9cf98; font-size: 22px; padding: 8px 12px; box-sizing: border-box; }
+  .z.soft { border-color: rgba(159,232,255,.55); color: #9fe8ff; }
+  .z.ui { border-color: rgba(246,243,236,.45); color: rgba(246,243,236,.85); }
+  .hor { position: absolute; left: 0; right: 0; top: 842px; height: 0; border-top: 2px solid rgba(255,255,255,.35); }
+  .lab { position: absolute; font-size: 22px; color: rgba(246,243,236,.75); }
+  .dir { position: absolute; top: 852px; font-size: 22px; color: rgba(246,243,236,.55); letter-spacing: .2em; }
+  .note { position: absolute; left: 640px; top: 470px; width: 640px; font-size: 24px; line-height: 1.7; color: rgba(246,243,236,.8); text-align: center; }
+  svg { position: absolute; inset: 0; }
+</style></head><body>
+<div class="sky"></div>
+<svg width="1920" height="1080"><g stroke="rgba(246,243,236,.35)" stroke-width="1.5" fill="none"><path d="M760 250 L860 300 L930 260 L1010 330 L1080 300"/><path d="M1180 180 L1240 240 L1320 230"/></g>
+<g fill="#fff"><circle cx="760" cy="250" r="3"/><circle cx="860" cy="300" r="2.5"/><circle cx="930" cy="260" r="3"/><circle cx="1010" cy="330" r="2"/><circle cx="1080" cy="300" r="3"/><circle cx="1180" cy="180" r="2.5"/><circle cx="1240" cy="240" r="2"/><circle cx="1320" cy="230" r="3"/><circle cx="1500" cy="560" r="14" fill="#f4f0e0"/></g></svg>
+<div class="lab" style="left:880px;top:330px">星座の名前（薄く）</div>
+<div class="lab" style="left:1530px;top:548px">月</div>
+<div class="hor"></div>
+<div class="dir" style="left:720px">（帯の上には方角を出さない）</div><div class="dir" style="left:930px">西</div><div class="dir" style="left:1560px">南西</div>
+<div class="z ui" style="left:96px;top:64px;width:460px;height:240px">左上：ブランドと4人の状態</div>
+<div class="z ui" style="right:96px;top:62px;width:520px;height:372px">右上：日付と時刻／ランタンの地図</div>
+<div class="z soft" style="left:96px;top:360px;width:420px;height:420px">左：ランタンの考えごと（縦書き）<br>ここには星座の線と名前を描かない</div>
+<div class="z" style="left:1180px;top:700px;width:220px;height:200px">ランタン<br>（手前に小さく、<br>見上げる姿）</div>
+<div class="z ui" style="left:96px;bottom:88px;width:560px;height:150px;top:auto">左下：文の帯（04 ランタン・状態・何のため）</div>
+<div class="note">空が画面の約7割。水平線は下から約22%<br>カメラは地面から 0.4 m、ランタンの斜め後ろ 4〜6 m、<br>見上げて 25〜30°、いつもより広い画角<br>（図は位置関係だけ。星・線・月の位置は見本）</div>
+</body></html>
