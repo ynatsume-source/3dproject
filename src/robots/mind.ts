@@ -72,7 +72,7 @@ function poolCount(name: string) {
 }
 export function aiPoolLeft(name: string, cap: number) { return Math.max(0, cap - poolUsed(name)); }
 /** Each call's outcome, for the rehearsal's log (?rehearsal): when, how long, how it went — never what was said. */
-export type AiCall = { at: number; ms: number; model: string; pool?: string; ok: boolean; why?: string; input?: number; output?: number };
+export type AiCall = { at: number; ms: number; model: string; pool?: string; ok: boolean; why?: string; input?: number; output?: number; cacheRead?: number; cacheWrite?: number };
 let aiWatch: ((c: AiCall) => void) | null = null;
 export function watchAi(f: ((c: AiCall) => void) | null) { aiWatch = f; }
 export async function requestAiText(system: string, user: string, options: { maxTokens?: number; signal?: AbortSignal; timeoutMs?: number; leave?: number; model?: string; pool?: { name: string; cap: number }; onUsage?: (u: AiUsage) => void; queueMs?: number; maxChars?: number } = {}): Promise<string | null> {
@@ -84,7 +84,7 @@ export async function requestAiText(system: string, user: string, options: { max
   if (busy) { aiLastError = 'ほかの問い合わせの返事待ちで、出せなかった。'; told({ at: Date.now(), ms: 0, ok: false, why: 'busy' }); return null; }
   if (options.pool ? poolUsed(options.pool.name) >= options.pool.cap : used() >= DAILY - (options.leave ?? 0)) { told({ at: Date.now(), ms: 0, ok: false, why: 'cap' }); return null; }
   busy = true; if (options.pool) poolCount(options.pool.name); else count();
-  const model = options.model ?? MODEL, t0 = Date.now(); let got: { input: number; output: number } | undefined;
+  const model = options.model ?? MODEL, t0 = Date.now(); let got: { input: number; output: number; cacheRead: number; cacheWrite: number } | undefined;
   const controller = new AbortController(); let timedOut = false;
   const cancel = () => controller.abort();
   options.signal?.addEventListener('abort', cancel, { once: true });
@@ -104,7 +104,7 @@ export async function requestAiText(system: string, user: string, options: { max
       if (!r.ok) throw new TransportError(`API エラー (HTTP ${Number.isInteger(r.status) ? r.status : 0})。`);
       const j = await boundedResponse(r, options.maxChars ? 4 * options.maxChars : undefined) as { content?: { type?: string; text?: string }[]; usage?: Record<string, number> };
       const u = j?.usage ?? {}, n = (v: unknown) => (Number.isFinite(v) ? Number(v) : 0);
-      got = { input: n(u.input_tokens), output: n(u.output_tokens) };
+      got = { input: n(u.input_tokens), output: n(u.output_tokens), cacheRead: n(u.cache_read_input_tokens), cacheWrite: n(u.cache_creation_input_tokens) };
       options.onUsage?.({ model, input: n(u.input_tokens), output: n(u.output_tokens), cacheRead: n(u.cache_read_input_tokens), cacheWrite: n(u.cache_creation_input_tokens), ms: Date.now() - t0 });
       if (!Array.isArray(j?.content)) throw new TransportError('API の応答形式を読み取れませんでした。');
       const text = j.content.filter(c => c?.type === 'text' && typeof c.text === 'string').map(c => c.text).join('');
