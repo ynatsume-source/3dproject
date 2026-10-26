@@ -3652,6 +3652,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const hutDone = r.stats.built >= HUT.length, forDot = requests.some((q) => q.to === r.id && q.status === 'accepted');
     const hungry = !!r.body && r.hunger > r.body.learn.eatAt, sleepy = !!r.body && r.sleepy > r.body.learn.sleepAt;
     const coconut = tk?.data?.kind === 'coconut';
+    // (a coconut "for oil" only when the coconut work can begin — its step ready and its tools standing; else one to
+    // keep on the shelf — and the look along the shore "watching for driftwood" only while Dot wants wood, the beach
+    // has room for more (eight at most, every 1200 s, within 160 m of Dot's home) and it is looking there: science,
+    // 2026-10-27, ad5c9a3)
+    const forOil = coconut && catalog.some((e) => e.processId === 'p30x_coconut_milk' && e.ready && (!e.built || !!lab.equipment[`eq:${e.built}`]));
+    const forWood = r.id === 'dot' && !r.holding && !hutDone && items.list.filter((it: any) => it.kind === 'wood').length < 8 && !!tk && Math.hypot(tk.x - r.sp.home[0], tk.z - r.sp.home[1]) <= 160;
     const going: Record<string, string> = {
       ask: `${who}に、流木を頼みに行っている`, give: `${who}に流木を届けに行っている`, tell: `${who}に知らせに行っている`, eat: '獲物をかかえて浮かんでいる',
       forage: '餌場へ泳いでいる', graze: '海草を食べに、藻場へ泳いでいる', bask: '甲羅干しの浜へ向かっている', groom: '静かな水面へ向かっている',
@@ -3659,7 +3665,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       deck: '桟橋の板を運んでいる', find: '浜の見慣れないものを、調べに行っている', shelve: '見つけたものを小屋の棚へ運んでいる', chop: '若木のところへ向かっている',
       till: '畑へ向かっている', plant: '畑へ種をまきに行っている', harvest: '畑へ収穫に行っている', fire: circleMorning ? '朝の集まりへ向かっている' : '焚き火へ向かっている',
       gather: r.id === 'dot' && !hutDone ? '小屋の部材にする流木を拾いに行っている' : r.id === 'rakko' && forDot ? 'ドットに渡す流木を、拾いに行っている' : '流木を拾いに行っている',
-      collect: '貝殻を拾いに行っている', fetch: coconut ? '油をとるヤシの実を、拾いに行っている' : '石を拾いに行っている', craft: '流木を作業台へ運んでいる',
+      collect: '貝殻を拾いに行っている', fetch: forOil ? '油をとるヤシの実を、拾いに行っている' : coconut ? 'たくわえるヤシの実を、拾いに行っている' : '石を拾いに行っている', craft: '流木を作業台へ運んでいる',
       place: '削った部材を小屋へ運んでいる', review: '削った部材を小屋へ運んでいる', pile: '貝殻を運んでいる', stack: '石を石積みへ運んでいる', show: '見つけた貝殻を見せに行っている',
       chart: '水平線の見える浜へ向かっている', lash: '部材を筏へ運んでいる', voyage: '筏へ向かっている', lab: '棚へ向かっている',
       shelter: '雨風をよけに、屋根の下へ向かっている',
@@ -3727,7 +3733,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       stow: 'あとで使う部材を、作業台に置いている', take: '家に使う部材を、作業台から取っている', seastone: '海の底で石を拾っている', nest: '荒れた日にそなえて、囲いに石を積んでいる', ledge: '岩棚に、うねりよけの石を置いている',
       stonedrop: 'ドットの石垣の石を、浜に運んでいる', wallfetch: '石垣にする石を、石置き場で取っている', wall: '茅を守る石垣を、積んでいる', pit: '粘土を浸す池を、掘っている', twist: '家に使う縄を、なっている',
       cut: '屋根の茅にする草を、刈っている', weigh: '台風にそなえて、屋根に重しをかけている',
-      look: '海を眺めている', wander: r.id === 'rakko' ? '浜で、あたりを見ている' : r.id === 'kame' ? '浜の近くで、あたりを見ている' : '家の近くで、あたりを見ている',
+      look: forWood ? '浜で、流木が上がるのを見張っている' : '海を眺めている', wander: r.id === 'rakko' ? '浜で、あたりを見ている' : r.id === 'kame' ? '浜の近くで、あたりを見ている' : '家の近くで、あたりを見ている',
       watch: '浜から、泳ぐ魚を見分けている', swim: 'ラグーンを泳いで、魚を見分けている',
       rest: r.id === 'kame' ? 'おなかがすきすぎて、浜で動けずにいる' : '星が出るまで、丘のふもとで待っている', think: '丘の上で、星を見ている',
       explore: 'まだ歩いていない所を、地図にしている', float: '沖で仰向けに浮かんでいる', pile: '拾った貝殻を、浜の山に並べている',
