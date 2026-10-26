@@ -1,0 +1,13 @@
+{"BR":"none","HOURS":24,"errors":0,"fires":1,"mornings":1,"storms":0,"labDone":0,"labOk":0,"treasures":1}
+dot sleep 35%, look 32%, wander 16%, fire 11%, craft 3%, ask 1%, gather 1%, none 1%, place 0%, shelve 0%, review 0%, find 0%
+kame sleep 35%, watch 17%, bask 17%, fire 11%, graze 9%, swim 7%, wander 3%, none 0%
+lantern explore 27%, sleep 27%, rest 20%, think 13%, fire 11%, fetch 1%, store 1%, lab 1%, none 0%, stack 0%
+rakko float 40%, sleep 33%, fire 11%, forage 4%, groom 4%, collect 3%, eat 3%, pile 2%, wander 1%, none 0%
+events [["dot:mind",112],["rakko:float",54],["lantern:explore",24],["rakko:collect",16],["kame:swim",14],["dot:gather",13],["dot:build",13],["kame:watch",12],["rakko:eat",7],["rakko:mind",7],["lantern:coconut",6],["lantern:think",6],["lantern:science",6],["dot:fire",6],["rakko:groom",6],["kame:bask",4],["kame:graze",3],["dot:photo",3],["kame:fire",2],["lantern:fire",2],["rakko:fire",2],["lantern:coconut-bad",1],["rakko:answer",1],["dot:find",1],["dot:drift",1],["rakko:body",1]]
+diary dot [["do:浜から海を眺める（流木が打ち",137],["got:浜から海を眺める（流木が打ち",137],["do:ラッコに流木を届けてほしいと",112],["got:ラッコに流木を届けてほしいと",111],["mind:うまくいかなかった",111],["do:近くを歩いてまわりを見る",71],["got:近くを歩いてまわりを見る",70],["gather:流木を拾った",13],["do:作業台で流木を部材に削る",13],["got:作業台で流木を部材に削る",13],["build:小屋の部材をひとつ取りつけた",13],["photo:写真を撮った",3],["do:流木を拾う（13m）",2],["got:流木を拾う（13m）",2],["do:流木を拾う（3m）",2],["got:流木を拾う（3m）",2],["do:部材を小屋に取りつける（1/",1],["got:部材を小屋に取りつける（1/",1]]
+diary kame [["swim:ラグーンを泳いだ。目にとまる",14],["watch:浜で海を見ていた。目にとまる",12],["bask:浜で甲羅干しをした",4],["graze:ラグーンで海草を食べた。目に",3],["fire:朝の集まりに出た",1],["fire:焚き火の会に出た",1]]
+diary lantern [["study:試験用の気圧計を置いて読む",104],["explore:島を歩いて地図を広げた（10",8],["think:丘で星を観測した",6],["coconut:ヤシの実を棚に置いた（1.5",3],["coconut:ヤシの実を棚に置いた（1.4",2],["study:ひらめき",2],["explore:島を歩いて地図を広げた（93",2],["explore:島を歩いて地図を広げた（9%",1],["explore:島を歩いて地図を広げた（13",1],["coconut:ヤシの実を棚に置いた（1.2",1],["explore:島を歩いて地図を広げた（22",1],["explore:島を歩いて地図を広げた（45",1],["explore:島を歩いて地図を広げた（60",1],["explore:島を歩いて地図を広げた（61",1],["explore:島を歩いて地図を広げた（63",1],["explore:島を歩いて地図を広げた（64",1],["explore:島を歩いて地図を広げた（65",1],["explore:島を歩いて地図を広げた（66",1]]
+diary rakko [["do:沖で仰向けに浮かぶ",55],["float:沖で浮いて休んだ",54],["got:沖で仰向けに浮かぶ",54],["do:貝殻を浜の山に並べる",16],["got:貝殻を浜の山に並べる",16],["do:水面で毛づくろいする",12],["got:水面で毛づくろいする",12],["got:食べに潜った",7],["got:浜を歩いて探す",7],["groom:毛づくろいをした",6],["do:浜を歩いて探す",4],["mind:うまくいかなかった",4],["do:貝殻を拾う（64m）",2],["got:貝殻を拾う（64m）",2],["do:貝殻を拾う（35m）",2],["got:貝殻を拾う（35m）",2],["do:貝殻を拾う（69m）",2],["eat:ウニ2つ、貝1つ、カニ1匹食",2]]
+firsts []
+labReady []
+lots ["pandanus_standing_leaves","pandanus_standing_leaves","pandanus_standing_leaves","pandanus_standing_leaves","pandanus_standing_leaves","pandanus_standing_leaves","coconut","coconut","coconut","coconut","coconut","coconut"]

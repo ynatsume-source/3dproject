@@ -1,0 +1,7 @@
+empty: holding nothing, knowing of no wood — offer not there — PASS
+known: holding nothing, knowing of a piece of wood — offer there — PASS
+holding: wood in hand — offer there — PASS
+refused: offer just after false, at 29 min false, at 31 min true — PASS
+timeout: accepted at 59 min, failed at 61 min (時間がたっても、届けられなかった); Rakko's result give:dot unavailable, Dot's ask:rakko:bring-wood unavailable; offer after false/false/true (0/39/41 min) — PASS
+tries: three tries that came to nothing — failed (何度か届けに行ったが、渡せなかった) — PASS
+asking: Dot may ask true; after a no false, at 30 min false, at 61 min true; after a promise not kept false, at 61 min true; with three asked in the last day false, two true — PASS
