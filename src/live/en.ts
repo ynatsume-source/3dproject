@@ -7,6 +7,7 @@
 
 export const NAMES_EN: Record<string, string> = { ドット: 'Dot', ラッコ: 'Rakko', カメマル: 'Kamemaru', ランタン: 'Lantern', 仲間: 'a friend' };
 const PREY_EN: Record<string, string> = { ウニ: 'a sea urchin', カニ: 'a crab', 貝: 'a clam' };
+const VESSEL_EN: Record<string, string> = { 鍋: 'a cooking pot', 灯皿: 'a lamp dish', 蒸留の壺: 'a still', 天気の壺: 'a weather pot' };
 const name = (ja: string) => NAMES_EN[ja] ?? ja;   // (an island word for a place stays as it is: it is a name)
 
 /** The set phrases of the screen. */
@@ -89,6 +90,52 @@ const EXACT: Record<string, string> = {
   '鍬で畑を耕している': 'hoeing the field', '雨風をよけに屋根の下へ': 'under the roof, out of the wind and rain', '静かな水面へ': 'off to calm water', '静かな水面へ向かっている': 'heading for calm water',
   '頭から潜っていく': 'diving head first', '頼みを引き受けている': 'agreeing to a request', '頼みを断っている': 'turning down a request', '餌場へ泳いでいく': 'swimming to its feeding ground',
   '手ぶら': 'empty-handed',
+  // (VOICE.md §2・§9, rehearsal finding R-017)
+  '星の並びを、手帖に記している': 'noting the stars in its notebook', '見た星の並びを、図に描き直している': 'redrawing the stars it saw as a chart', '電池を休ませている': 'resting its battery',
+  '手帖を閉じて、じっとしている': 'notebook closed, keeping still', '仕上げた星の図を、仲間に見せている': 'showing a friend its finished star chart', '星を見る場所へ歩いている': 'walking out to watch the stars',
+  '次に空を眺める場所へ歩いている': 'walking to where it will watch the sky next', '餌場へ泳いでいる': 'swimming to its feeding ground', '海草を食べに、藻場へ泳いでいる': 'swimming to the seagrass to eat',
+  '甲羅干しの浜へ向かっている': 'heading for the basking beach', '桟橋の場所へ向かっている': 'heading for the pier site', '桟橋の工事を見に行っている': 'going to see the pier work',
+  '浜の見慣れないものを、調べに行っている': 'going to look at something strange on the beach', '若木のところへ向かっている': 'heading for a sapling', '畑へ向かっている': 'heading for the field',
+  '畑へ種をまきに行っている': 'going to the field to sow', '畑へ収穫に行っている': 'going to the field to harvest', '小屋の部材にする流木を拾いに行っている': 'going for driftwood to make a part for the hut',
+  'ドットに渡す流木を、拾いに行っている': 'going for driftwood to give Dot', '流木を拾いに行っている': 'going to pick up driftwood', '貝殻を拾いに行っている': 'going to pick up shells',
+  '油をとるヤシの実を、拾いに行っている': 'going for a coconut to press for oil', '石を拾いに行っている': 'going for a stone', '見つけた貝殻を見せに行っている': 'going to show a shell it found',
+  '水平線の見える浜へ向かっている': 'heading for a beach with a view of the horizon', '部材を筏へ運んでいる': 'carrying a part to the raft', '筏へ向かっている': 'heading for the raft',
+  '棚へ向かっている': 'heading for the shelf', '雨風をよけに、屋根の下へ向かっている': 'heading under the roof, out of the wind and rain', '小屋に部材を取りつけている': 'fitting a part to the hut',
+  'おなかがすいて、岩場に潜っている': 'hungry, diving among the rocks', 'おなかがすいて、藻場で海草を食べている': 'hungry, eating seagrass in the meadow', '眠気がさして、浜で体を休めている': 'sleepy, resting on the beach',
+  '傷みがひどく、屋根の下で乾かしている': 'badly worn, drying out under the roof', '濡れた体を、屋根の下で乾かしている': 'drying off under the roof', '台風のあいだ、身を低くしている': 'keeping low through the typhoon',
+  '台風がすぎるまで、屋根の下で待っている': 'waiting under the roof for the typhoon to pass', '水平線の島を、地図に記している': 'mapping the islands on the horizon', '海を渡る筏に、部材を組んでいる': 'fitting a part to the raft for the crossing',
+  '桟橋を建てる場所を、測っている': 'measuring where the pier will go', '桟橋の土台石を、据えている': 'setting a foundation stone for the pier', '泳ぎながら、桟橋の柱を立てている': 'swimming, raising a pier post',
+  '見慣れないものを、拾って調べている': 'picking up something strange to look at it', '浜で見つけたものを、棚に飾っている': 'setting a find from the beach on the shelf', '朝の集まりで、今日の仕事を話している': "telling the morning gathering of the day's work",
+  '並べる貝殻を、浜で拾っている': 'picking up shells on the beach to lay out', 'ヤシの実を拾い上げている': 'picking up a coconut', '桟橋の板に、流木を削っている': 'shaping driftwood into a pier plank',
+  '小屋の部材に、流木を削っている': 'shaping driftwood into a part for the hut', '拾った貝殻を、浜の山に並べている': 'adding a shell to the pile on the beach', '行く手がふさがり、回り道を探している': 'way blocked, looking for a way round',
+  '畑へ早めの収穫に行っている': 'going to the field to harvest early', 'やりかけの殻の仕事を片付けに行っている': 'going to clear the husk work', 'ヤシの殻を、潮だまりへ運んでいる': 'carrying coconut husks to the tide pool',
+  '殻を引き上げに、潮だまりへ向かっている': 'heading to the tide pool to take out the husks', '縄をなう場所へ向かっている': 'going to the rope-making place', 'やりかけの縄仕事を片付けに行っている': 'going to clear the rope work',
+  '繊維を干しに、軒下へ向かっている': 'going to hang fibre under the eaves', '繊維を取り込みに、軒下へ向かっている': 'going to take in the fibre from the eaves', '鍋を吊るしに、軒下へ向かっている': 'going to hang a pot under the eaves',
+  '吊るした鍋を下ろしに向かっている': 'going to take down the hanging pot', 'アダンの葉を採りに向かっている': 'going to cut pandanus leaves', '帆を作る場所へ向かっている': 'going to the sail-making place',
+  'やりかけの帆の仕事を片付けに行っている': 'going to clear the sail work', '葉を干しに、軒下へ向かっている': 'going to dry leaves under the eaves', '葉を取り込みに、軒下へ向かっている': 'going to take in the leaves from the eaves',
+  '眠る場所へ泳いでいる': 'swimming to its sleeping place', '浜へ向かっている': 'heading for the beach', '家を建てに向かっている': 'heading off to build the house',
+  '棚で芯をよりに行っている': 'going to the shelf to twist a wick', '作業台へ部材を置きに行っている': 'taking a part to the workbench', '作業台へ部材を取りに行っている': 'going to the workbench for a part',
+  '石を拾いに潜りに行っている': 'diving for a stone', '石置き場へ石を取りに行っている': 'going to the pile for a stone', '屋根に重しをかけに向かっている': 'going to weigh down the roof',
+  '仲間のいるほうへ歩いている': 'walking towards a friend', '浜のほうへ歩いている': 'walking towards the beach', '近くを歩いている': 'walking nearby',
+  '仲間に気づいて、近づいている': 'going over to a friend it noticed', '油をとるヤシの実を、棚に置いている': 'putting a coconut for oil on the shelf', '雨水をためる雨受けを、作っている': 'making a rain catcher to collect water',
+  '台風にそなえて、筏を引き上げている': 'hauling up the raft before the typhoon', 'ラッコの漁礁に、流木を沈めている': "sinking driftwood for Rakko's reef", 'カメマルの藻場を、植え直している': "replanting Kamemaru's seagrass",
+  '冷えた体を、毛づくろいで温めている': 'grooming to warm up', '眠気に負けて、波の上でうとうとしている': 'too sleepy, dozing on the swell', '眠気に負けて、うとうとしている': 'too sleepy, dozing',
+  '縄にする繊維を、殻を叩いてとっている': 'beating husks for rope fibre', '打ちかけのヤシの殻を、片付けている': 'clearing away the half-beaten husks', 'ほぐすヤシの殻を、潮だまりに浸けている': 'soaking coconut husks in the tide pool',
+  '浸けたヤシの殻を、引き上げている': 'taking the soaked husks out', 'ヤシの繊維で縄をなっている': 'making rope from coconut fibre', '海を渡る筏を、縄で縛っている': 'lashing the raft for the crossing',
+  '縄にする繊維を、軒下に干している': 'hanging fibre for rope under the eaves', '乾いた繊維を、軒下から取り込んでいる': 'taking in the dry fibre from the eaves', '縄で、鍋を軒下に吊るしている': 'hanging a pot under the eaves by a rope',
+  '吊るした鍋を、下ろしている': 'taking down the hanging pot', '帆にするアダンの葉を、刈っている': 'cutting pandanus leaves for the sail', 'アダンの葉を裂いている': 'splitting pandanus leaves',
+  'アダンの葉で帆を編んでいる': 'weaving a sail from pandanus leaves', '帆を作っている': 'making the sail', '海を渡る筏に、帆を張っている': 'rigging the sail on the raft for the crossing',
+  '帆にする葉を、軒下に干している': 'drying leaves for the sail under the eaves', '乾いた葉を、取り込んでいる': 'taking in the dry leaves', '夜にそなえて、昼のあいだ眠っている': 'sleeping through the day, ready for the night',
+  'じっとして、電池を保っている': 'keeping still to save its battery', '電池が減って、日なたで充電している': 'battery low, charging in the sun', '流木を探しに浜へ向かっている': 'heading to the beach for driftwood',
+  '台風で飛んだ茅を、葺き直している': 'rethatching what the typhoon blew off', '丸太をとりに、林の木を切り倒している': 'felling a tree in the wood for logs', '野焼きの薪を、ひと山にまとめている': 'stacking firewood for the firing',
+  '明かりを灯す芯を、よっている': 'twisting a wick for a light', 'あとで使う部材を、作業台に置いている': 'setting a part by the workbench for later', '家に使う部材を、作業台から取っている': 'taking a part from the workbench for the house',
+  '荒れた日にそなえて、囲いに石を積んでいる': 'piling stones round its shelter for rough days', '岩棚に、うねりよけの石を置いている': 'setting stones by the ledge against the swell', 'ドットの石垣の石を、浜に運んでいる': "carrying stones to the beach for Dot's wall",
+  '石垣にする石を、石置き場で取っている': 'taking a stone for the wall from the pile', '茅を守る石垣を、積んでいる': 'building the wall that guards the thatch', '粘土を浸す池を、掘っている': 'digging a pit to soak clay',
+  '家に使う縄を、なっている': 'twisting rope for the house', '屋根の茅にする草を、刈っている': 'cutting grass to thatch the roof', '台風にそなえて、屋根に重しをかけている': 'weighing down the roof before the typhoon',
+  '浜で、あたりを見ている': 'on the beach, looking about', '浜の近くで、あたりを見ている': 'near the beach, looking about', '家の近くで、あたりを見ている': 'near home, looking about',
+  '浜から、泳ぐ魚を見分けている': 'telling the fish apart from the beach', 'ラグーンを泳いで、魚を見分けている': 'swimming the lagoon, telling the fish apart', 'おなかがすきすぎて、浜で動けずにいる': 'too hungry to move, on the beach',
+  '星が出るまで、丘のふもとで待っている': 'waiting at the foot of the hill for the stars', '丘の上で、星を見ている': 'on the hilltop, watching the stars', 'まだ歩いていない所を、地図にしている': "mapping places it hasn't walked yet",
+  '眠くなって、波の上で眠っている': 'sleepy, asleep on the waves', '波の上で、昼寝している': 'napping on the waves', '仲間の近くで、立ち止まっている': 'stopped near a friend',
 };
 // (sentences the world makes with a name, a catch or a place in them)
 const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
@@ -107,6 +154,18 @@ const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/^仰向けに浮かんで、(.+)を食べている$/, (m) => `floating on its back, eating ${PREY_EN[m[1]] ?? 'its catch'}`],
   [/^(.+)を写真に撮っている$/, () => 'taking a photograph'],
   [/^筏で(.*)へ渡っている$/, (m) => m[1] ? `crossing by raft to ${m[1]}` : 'crossing by raft'],
+  [/^(.+)に、流木を頼みに行っている$/, (m) => `going to ask ${name(m[1])} for driftwood`],
+  [/^(.+)に流木を届けに行っている$/, (m) => `taking driftwood to ${name(m[1])}`],
+  [/^(.+)に知らせに行っている$/, (m) => `going to tell ${name(m[1])}`],
+  [/^(.+)に伝えに行っている$/, (m) => `going to tell ${name(m[1])} something`],
+  [/^(.+)に、流木を頼んでいる$/, (m) => `asking ${name(m[1])} for driftwood`],
+  [/^頼まれた流木を、(.+)に届けている$/, (m) => `bringing ${name(m[1])} the driftwood it asked for`],
+  [/^(.+)に、流木のある場所を教えている$/, (m) => `telling ${name(m[1])} where there is driftwood`],
+  [/^(.+)の頼みを、引き受けている$/, (m) => `agreeing to ${name(m[1])}'s request`],
+  [/^星を見に、(.+)へ歩いている$/, () => 'walking out to watch the stars'],
+  [/^焼いた器を、(.+)にしている$/, (m) => `turning a fired vessel into ${VESSEL_EN[m[1]] ?? 'a vessel'}`],
+  [/^(.+)を、写真に残している$/, () => 'taking a photograph'],
+  [/^(.+)を、そばで見守っている$/, () => 'keeping watch over the work on the shelf'],
 ];
 const ASIDES: Record<string, string> = { 島にはいない: 'away from the island', おなかがすいている: 'hungry', ねむそう: 'sleepy' };
 
