@@ -57,7 +57,10 @@ p();
 const ev = by('event'), errs = ev.filter((r) => r.kind === 'error'), hid = ev.filter((r) => r.kind === 'hidden');
 p(`## 出来事`); p();
 p(`- 日誌の行：${ev.filter((r) => !['start', 'error', 'hidden', 'shown'].includes(r.kind)).length}（字幕に出したもの shown=true ${ev.filter((r) => r.shown === true).length}、控えたもの ${ev.filter((r) => r.shown === false).length}）`);
-p(`- エラー：${errs.length}`); for (const e of errs.slice(0, 10)) p(`  - ${e.jst} ${e.text}`);
+// (R-014: an AI call cut off by its timeout leaves an unhandled AbortError in the rehearsal's build 23f2c17 — known, counted apart)
+const abort = errs.filter((e) => /AbortError|signal is aborted/.test(String(e.text))), real = errs.filter((e) => !abort.includes(e));
+p(`- エラー：${errs.length}（うち AI の打ち切りの後始末 AbortError ${abort.length}〔R-014、既知〕、それ以外 ${real.length}）`);
+for (const e of real.slice(0, 10)) p(`  - ${e.jst} ${e.text}`);
 p(`- タブが隠れた：${hid.length} 回`);
 p(`- カード：${by('card').length}、字幕：${by('sub').length}、状態の行の変化：${by('status').length}`);
 p();
