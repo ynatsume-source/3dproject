@@ -16,7 +16,7 @@ const rows = readFileSync(file, 'utf8').split('\n').filter(Boolean).flatMap((l) 
 const minOf = (r) => r.jst.slice(0, 16);   // (YYYY-MM-DDTHH:MM, in Japan)
 const step = (m) => new Date(Date.parse(m + ':00+09:00') + 60e3 + 9 * 3600e3).toISOString().slice(0, 16);
 const alive = new Set(), strong = new Set(), weak = new Set(), n = { sub: 0, card: 0, shown: 0, status: 0, blank: 0, hidden: 0, error: 0 };
-const ai = { calls: 0, ok: 0, why: {}, input: 0, output: 0, models: {} }, slow = { n: 0, hidden: 0, parts: {} };
+const ai = { calls: 0, ok: 0, why: {}, models: {} }, slow = { n: 0, hidden: 0, parts: {} };
 let first = '', last = '';
 for (const r of rows) {
   if (!r.jst) continue;
@@ -30,7 +30,8 @@ for (const r of rows) {
   else if (r.t === 'event' && r.kind === 'error') n.error++;
   else if (r.t === 'ai') {
     ai.calls++; if (r.ok) ai.ok++; else { const w = String(r.why ?? '?'); ai.why[w] = (ai.why[w] ?? 0) + 1; }
-    ai.input += r.input ?? 0; ai.output += r.output ?? 0; if (r.model) ai.models[r.model] = (ai.models[r.model] ?? 0) + 1;
+    const m = (ai.models[r.model ?? '?'] ??= { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
+    m.calls++; m.input += r.input ?? 0; m.output += r.output ?? 0; m.cacheRead += r.cacheRead ?? 0; m.cacheWrite += r.cacheWrite ?? 0;
   } else if (r.t === 'slow') {
     slow.n++; if (r.hidden) slow.hidden++;
     else for (const [k, v] of Object.entries(r.parts ?? {})) slow.parts[k] = (slow.parts[k] ?? 0) + v;
@@ -51,5 +52,8 @@ console.log(`counts: subtitles ${n.sub}, cards ${n.card}, status changes ${n.sta
 console.log('hour by hour (strong / either):');
 const hours = [...new Set(mins.map((m) => m.slice(0, 13)))];
 for (const h of hours) { const hm = mins.filter((m) => m.startsWith(h)); console.log(`  ${h.slice(5).replace('T', ' ')}時  ${pct(hm.filter((m) => strong.has(m)).length, hm.length)}  ${pct(hm.filter((m) => strong.has(m) || weak.has(m)).length, hm.length)}`); }
-console.log(`model calls: ${ai.calls}, ok ${ai.ok}${Object.keys(ai.why).length ? `; failed: ${Object.entries(ai.why).map(([k, v]) => `${k} ×${v}`).join(', ')}` : ''}; tokens in ${ai.input}, out ${ai.output}; ${Object.entries(ai.models).map(([k, v]) => `${k} ×${v}`).join(', ')}`);
+console.log(`model calls: ${ai.calls}, ok ${ai.ok}${Object.keys(ai.why).length ? `; failed: ${Object.entries(ai.why).map(([k, v]) => `${k} ×${v}`).join(', ')}` : ''}`);
+// (tokens by model, for the cost: what each model's prices are is left to the reader — the cache's read and written are
+// apart from the input, as the API counts them; a log from before they were written has none)
+for (const [k, v] of Object.entries(ai.models)) console.log(`  ${k}: ${v.calls} calls; tokens in ${v.input}, out ${v.output}, cache read ${v.cacheRead}, cache written ${v.cacheWrite}`);
 console.log(`slow frames (over 250 ms): ${slow.n} (${slow.hidden} while hidden); time in them by part: ${Object.entries(slow.parts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${Math.round(v)} ms`).join(', ') || '—'}`);
