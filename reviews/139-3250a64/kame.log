@@ -1,0 +1,25 @@
+home 333,66 (ground 1.50); beach 2 m away; sea point ground -0.24, land point 1.73
+   acts walk/swim; wet↔dry 1 times; height -2.36..-0.22 m
+sea -1.04 m, up the beach: 7726 frames, arrived; biggest change of height in one frame 54.8 cm; 2 frames over 5 cm
+   t 194.47 s  y -0.989  ground -0.989  water -1.040  dry  walk  under 0.00
+   t 194.50 s  y -1.240  ground -0.991  water -1.040  wet  walk  under 0.00
+   t 194.50 s  y -1.240  ground -0.991  water -1.040  wet  walk  under 0.00
+   t 194.53 s  y -0.692  ground -0.992  water -1.040  wet  swim  under 0.00
+   acts swim/walk; wet↔dry 0 times; height 1.07..1.73 m
+sea -1.04 m, back into the sea: 5014 frames, arrived; biggest change of height in one frame 0.1 cm; 0 frames over 5 cm
+home 333,66 (ground 1.50); beach 2 m away; sea point ground -0.24, land point 1.73
+   acts walk/swim; wet↔dry 1 times; height -0.20..1.71 m
+sea +0.00 m, up the beach: 6349 frames, arrived; biggest change of height in one frame 29.6 cm; 1 frames over 5 cm
+   t 12.67 s  y 0.350  ground 0.050  water 0.000  wet  swim  under 0.00
+   t 12.70 s  y 0.053  ground 0.053  water 0.000  dry  swim  under 0.00
+   acts walk/swim; wet↔dry 1 times; height -0.20..1.82 m
+sea +0.00 m, back into the sea: 5024 frames, arrived; biggest change of height in one frame 54.4 cm; 2 frames over 5 cm
+   t 158.00 s  y 0.051  ground 0.051  water 0.000  dry  walk  under 0.00
+   t 158.03 s  y -0.200  ground 0.047  water 0.000  wet  walk  under 0.00
+   t 158.03 s  y -0.200  ground 0.047  water 0.000  wet  walk  under 0.00
+   t 158.07 s  y 0.344  ground 0.044  water 0.000  wet  swim  under 0.00
+home 333,66 (ground 1.50); beach 2 m away; sea point ground -0.24, land point 1.73
+   acts walk/swim; wet↔dry 0 times; height -0.44..0.71 m
+sea +0.91 m, up the beach: 2725 frames, arrived; biggest change of height in one frame 0.5 cm; 0 frames over 5 cm
+   acts swim/walk; wet↔dry 1 times; height -0.44..1.85 m
+sea +0.91 m, back into the sea: 6562 frames, arrived; biggest change of height in one frame 0.0 cm; 0 frames over 5 cm
