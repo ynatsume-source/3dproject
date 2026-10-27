@@ -43,6 +43,7 @@ if (!pot) { console.log('FAIL: no dry pot to start from'); process.exit(1); }
 Math.random = mulberry32(3);
 const f = () => 2, T: any = { ground: f, floor: f, top: f, landCover: () => ({ can: 0, sand: 1 }), vegH: () => 0, solids: new Solids() };
 const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
+for (const k of Object.keys(R.lab.lots)) if (k.startsWith('lot:south-near:first:')) delete R.lab.lots[k];   // (this check starts from an empty shelf, as before the first load from the south island — 案 A, 2026-10-27)
 R.setBrain(null);
 const lantern = R.list.find((r: any) => r.id === 'lantern'), lab = R.lab;
 const step = (secs: number, until?: () => boolean) => { for (let i = 0; i < secs; i++) { now += 1000; R.update(1, now, new THREE.Vector3(0, 50, 0)); if (i % 60 === 0) R.setWeather(islandWeather(now)); for (const r of R.list) if (!r.sp.living) { r.battery = Math.max(r.battery, 0.6); } if (until?.()) return true; } return false; };
