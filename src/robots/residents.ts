@@ -2004,8 +2004,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const r = byId.dot;
       { const ph = photoHabit(r, opts); if (ph && !r.holding) return ph; }
       { const sp = has('say:warn:'); if (sp) return { text: '天気を知らせる', why: '近くに相手がいる', plan: [sp] }; }
+      // (the raft and the crossing by habit too, not only when its mind thinks of them: without them, with the model away,
+      // no raft was lashed and no crossing came in 72 hours — science on #177. A piece in hand goes to the raft while the
+      // raft is not whole and an island is on the map (six pieces, then the hut again); the raft whole, it crosses to an
+      // island it has seen on a clear day, after the morning gathering and back by daylight (voyageHour) — not again
+      // within three hours of the world turning it back)
+      const raftWanted = village.raft.parts < RAFT_N && Object.keys(village.map.seen).length > 0, then = raftWanted ? 'lash:raft' : 'place:hut';
+      { const vo = opts.find((o) => o.id.startsWith('voyage:') && o.ready !== false && !village.map.reached[o.targetId!])?.id, w = islandWeather(clockMs), back = a.results.some((x) => x.optionId.startsWith('voyage:') && x.outcome !== 'done' && clockMs - x.at < 3 * 3.6e6);
+        if (vo && !back && (!w || (w.cloud < 0.6 && w.rain < 0.1))) return { text: '筏で島へ渡る', why: '筏ができて、晴れている', plan: [vo] }; }
+      if (raftWanted && has('lash:')) return { text: '部材を筏に組む', why: '削った部材があり、見えた島へ渡る筏が要る', plan: ['lash:raft'] };
       if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
-      if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', 'place:hut'] };
+      if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', then] };
       if (has('shelve:')) return { text: '見つけたものを棚に置く', why: '手に持っている', plan: ['shelve:shelf'] };
       if (has('find:')) return { text: '見慣れないものを調べる', why: '浜で見かけた', plan: ['find:drift', 'shelve:shelf'] };
       if (has('charge:') && r.battery < 0.3) return { text: '充電する', why: '電池が少ない', plan: ['charge:sun'] };
@@ -2016,10 +2025,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (r.stats.built < HUT.length) {
         // (the nearest log it knows of)
         const g = opts.filter((o) => o.action === 'gather').sort((x, y) => { const p = (o: Option) => a.seen.get(o.targetId!); const dx = p(x), dy = p(y); return (dx ? Math.hypot(dx.x - r.pos.x, dx.z - r.pos.z) : 1e9) - (dy ? Math.hypot(dy.x - r.pos.x, dy.z - r.pos.z) : 1e9); })[0];
-        if (g) return { text: '小屋を建てる', why: '流木を見つけてある', plan: [g.id, 'craft:bench', 'place:hut'] };
+        if (g) return raftWanted ? { text: '筏の部材を作る', why: '見えた島へ渡る筏が要る', plan: [g.id, 'craft:bench', then] } : { text: '小屋を建てる', why: '流木を見つけてある', plan: [g.id, 'craft:bench', 'place:hut'] };
         // (none it knows of: look for some — or now and then ask Rakko, who is often on the beach)
         if (has('ask:') && Math.random() < 0.35) return { text: 'ラッコに流木を頼む', why: '小屋の材料が見つからない', plan: [has('ask:')!] };
         return { text: '流木を探す', why: '小屋の材料が要る', plan: [Math.random() < 0.7 ? 'look:shore' : 'wander:near'] };
+      }
+      // (the hut up and the raft not yet whole: pieces for it — one put by at the bench first, else a log it knows of)
+      if (raftWanted) {
+        if (has('take:')) return { text: '筏に部材を組む', why: '作業台の脇に部材を置いてある', plan: ['take:bench', 'lash:raft'] };
+        const g = opts.filter((o) => o.action === 'gather')[0];
+        if (g) return { text: '筏の部材を作る', why: '見えた島へ渡る筏が要る', plan: [g.id, 'craft:bench', 'lash:raft'] };
       }
       const farm = has('harvest:') ?? has('chop:') ?? has('till:') ?? has('plant:');
       if (farm) return { text: '畑の世話をする', why: '小屋が建ったので', plan: [farm] };
