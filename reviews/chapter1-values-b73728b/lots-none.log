@@ -1,0 +1,41 @@
+{"BR":"none","HOURS":72,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"41.5","labDone":["1.0h p30x_coconut_milk","54.4h p10x_clay_slake","59.0h p10y_clay_knead","60.3h p11y_pot_shape","60.9h p11y_pot_shape ✗","64.3h p11y_pot_shape"]}
+LOTS 0.0h south-near:first:1=raw_clay@shelf:25.00 south-near:first:2=bamboo@shelf:7.00 runs=
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+LOTS 0.2h south-near:first:1=raw_clay@shelf:25.00 south-near:first:2=bamboo@shelf:5.00 runs=m02x_air_barometer_test
+LOTS 0.8h south-near:first:1=raw_clay@shelf:25.00 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p30x_coconut_milk
+6.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 4 raft 0 reached  labDone 1
+12.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 8 raft 0 reached  labDone 1
+18.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 9 raft 0 reached  labDone 1
+24.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 9 raft 0 reached  labDone 1
+30.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 20 raft 0 reached  labDone 1
+36.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 24 raft 0 reached  labDone 1
+LOTS 41.5h south-near:first:1=raw_clay@shelf:4.93 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test
+LOTS 41.7h south-near:first:1=raw_clay@shelf[run:22]:4.93 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p10x_clay_slake
+42.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 24 raft 0 reached  labDone 1
+48.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 24 raft 0 reached  labDone 1
+54.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 24 raft 0 reached  labDone 1
+LOTS 54.5h 23=settled_clay@shelf:3.88 24=clay_sieve_residue@shelf:1.09 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test
+LOTS 58.7h 23=settled_clay@shelf[run:26]:3.88 24=clay_sieve_residue@shelf:1.09 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p10y_clay_knead
+LOTS 59.0h 24=clay_sieve_residue@shelf:1.09 27=prepared_clay@shelf[run:28]:3.88 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p11y_pot_shape
+60.0h clay 0.0 settled 0.0 prepared 3.9 bamboo 3.5 pots 0.0/0.0/0.0 hut 24 raft 0 reached  labDone 3
+LOTS 60.3h 24=clay_sieve_residue@shelf:1.09 29=green_pot@shelf[run:31]:1.42 30=prepared_clay@shelf[run:32]:2.46 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p12y_pot_dry,p11y_pot_shape
+LOTS 61.0h 24=clay_sieve_residue@shelf:1.09 29=green_pot@shelf[run:31]:1.42 30=prepared_clay@shelf:2.46 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p12y_pot_dry
+LOTS 63.2h 24=clay_sieve_residue@shelf:1.09 29=green_pot@shelf[run:31]:1.42 30=prepared_clay@shelf[run:33]:2.46 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p12y_pot_dry,p11y_pot_shape
+LOTS 64.3h 24=clay_sieve_residue@shelf:1.09 29=green_pot@shelf[run:31]:1.42 34=green_pot@shelf[run:36]:1.42 35=prepared_clay@shelf:1.04 south-near:first:2=bamboo@shelf:3.50 runs=m02x_air_barometer_test,p12y_pot_dry,p12y_pot_dry
+66.0h clay 0.0 settled 0.0 prepared 1.0 bamboo 3.5 pots 2.8/0.0/0.0 hut 24 raft 0 reached  labDone 6
+firsts 30.4h rakko rakko-bed | 41.5h lantern clay-pit
+log 1.0h science ランタンの工程：ヤシの実を割って、削って、しぼる：できた（ヤシの実の殻 432.9g・ヤシの実の殻（内側） 160.8g・coconut_w
+3.8h science ランタン：ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は5。目盛りが7以上になったら、
+5.2h science ランタン：気圧計が8まで上がった。台風が来るかもしれない
+7.1h science ランタン：ひらめき：温まっても目盛りが上がるなら、前の日の同じ時刻と比べればいい。暑さ寒さは毎日くり返すから、残るのは気圧の変わり方だ。これ
+11.0h science ランタン：気圧計が前の日の同じ時刻より9上がった。台風が来るかもしれない
+32.1h science ランタン：気圧計が11まで上がった。台風が来るかもしれない
+34.0h science ランタン：気圧計が13まで上がった。台風が来るかもしれない
+35.8h science ランタン：気圧計の目盛りが上がると台風が来る、は今のところ怪しい（当たり 0・外れ 3・見逃し 0）
+41.5h pit ランタン：小屋の屋根の下に粘土の池を掘った（直径50cm・深さ25cm。生の粘土20kgで底と壁を踏み固めた。入るのは約34L）
+41.5h pit ランタンが粘土の池を掘った。粘土を浸せるようになった
+54.4h science ランタンの工程：粘土を水に浸して、こして沈める：できた（沈めた粘土 3879.4g・clay_sieve_residue 1089.2g・真
+59.0h science ランタンの工程：沈めた粘土を練る：できた（下ごしらえした粘土 3879.4g）。気づいたこと：手につかず、よくまとまる
+60.3h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 2457.7g）。気づいたこと：
+60.9h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：途中でやめた（材料はそのまま）
+64.3h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 1036g）。気づいたこと：鍋の
