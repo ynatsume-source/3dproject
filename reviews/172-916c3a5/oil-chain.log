@@ -1,0 +1,9 @@
+1 the woodpile's roof and the coconut tools made from bamboo, as the recipes say:  / ヤシの実を割る杭と石、削る貝、こす布を作った（竹1.5kgと、石・二枚貝の殻・ア ok
+1 the green firewood piled together: one lot, its mass and its water: 薪を1つの山にまとめた（6つ、48kg） ok
+stages milk → drying → seasoned → firing → fired_pot → cook_pot → oil | runs m02x_air_barometer_test running, p30x_coconut_milk completed, p15x_firewood_dry completed, p13y_pot_pit_fire completed, p31x_coconut_oil_boil stopped | wood 
+2 the pile dried under its roof: seasoned wood: 薪を積んで乾かす：できた（薪 34663g） ok
+3 the dry pot fired in the open on it:  ok
+  fired pot: {"form":1,"capacity_ml":3000,"wall_mm":8,"surface_cm2":935,"water_ppm":0,"xd_quartz_ppm":436557,"xd_metakaolin_ppm":563442,"absorption_ppm":143468,"sinter_ppm":5116,"crack":0,"overfired":0,"history_complete":1}
+4 the fired pot made the island's cook pot: 焼いた器を鍋にした（3L。焚き火にかけて使う） {"heatCapJPerK":938,"uaWPerK":1.87,"heatShare":0.2,"capacityMl":3000} ok
+5 a coconut pressed, its milk boiled in that pot: coconut oil: 67.8 g — stopped — ヤシのミルクを煮て油をとる：始めた（ヤシのミルク 281.5g、焼いた鍋・焚き火（小屋のそば）） / ヤシのミルクを煮て油をとる：途中でやめた（材料はそのまま） ok
+PASS

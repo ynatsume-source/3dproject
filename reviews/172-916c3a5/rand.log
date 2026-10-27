@@ -1,0 +1,26 @@
+{"BR":"rand","HOURS":72,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"59.8","labDone":["1.0h p30x_coconut_milk"]}
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+6.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 2 raft 0 reached  labDone 1
+12.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 6 raft 0 reached  labDone 1
+18.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 6 raft 0 reached  labDone 1
+24.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 6 raft 0 reached  labDone 1
+30.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 13 raft 2 reached  labDone 1
+36.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 15 raft 4 reached  labDone 1
+42.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 15 raft 2 reached  labDone 1
+48.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 15 raft 2 reached  labDone 1
+54.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 18 raft 5 reached  labDone 1
+60.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 1
+66.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 1
+firsts 0.2h dot sighting | 8.5h dot fibre | 55.6h dot raft | 56.1h dot mast | 57.0h dot crossing:sopunu | 59.8h lantern clay-pit | 63.2h rakko rakko-bed
+log 1.0h science ランタンの工程：ヤシの実を割って、削って、しぼる：できた（ヤシの実の殻 516g・ヤシの実の殻（内側） 191.7g・coconut_wat
+3.8h science ランタン：ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は5。目盛りが7以上になったら、
+5.2h science ランタン：気圧計が8まで上がった。台風が来るかもしれない
+7.1h science ランタン：ひらめき：温まっても目盛りが上がるなら、前の日の同じ時刻と比べればいい。暑さ寒さは毎日くり返すから、残るのは気圧の変わり方だ。これ
+11.0h science ランタン：気圧計が前の日の同じ時刻より9上がった。台風が来るかもしれない
+32.1h science ランタン：気圧計が11まで上がった。台風が来るかもしれない
+34.0h science ランタン：気圧計が13まで上がった。台風が来るかもしれない
+35.8h science ランタン：気圧計の目盛りが上がると台風が来る、は今のところ怪しい（当たり 0・外れ 3・見逃し 0）
+55.6h raft ドットの筏ができた
+56.1h sail ドットが竹のマストを切り出した
+59.8h pit ランタン：小屋の屋根の下に粘土の池を掘った（直径50cm・深さ25cm。生の粘土20kgで底と壁を踏み固めた。入るのは約34L）
+59.8h pit ランタンが粘土の池を掘った。粘土を浸せるようになった

@@ -1,0 +1,27 @@
+1 no raft yet: no sail work offered:  ok
+1 a raft: the cutting at either pandanus offered (nothing to dry, split, weave or cut a mast from yet): sail:harvest:near,sail:harvest:far ok
+1 no number in an option: アダンの葉を刈り取る（手前の木） / アダンの葉を刈り取る（奥の木） ok
+1 the standing leaves on the trees, three cuttings each: 6 ok
+2 cutting at the near tree: a run there, Dot's hands at it: run:7 ok
+2 saved and loaded an hour later: hands off, no work counted for the hour away: 300000 → 300000 engaged false ok
+2 gone on with until cut: cut leaves at the tree, one cutting fewer standing: 2 rounds, site:sail-tree-0 ok
+2 what it saw when the cutting was done, in its diary: やりかけのアダンの葉の刈り取り（手前の木）を続ける / やりかけのアダンの葉の刈り取り（手前の木）を続ける：できた（葉を取り終えた） / やりとげた：テスト ok
+3 the wet leaves: not offered for splitting — nothing tried, nothing refused, no run: (none) ok
+3 the leaves put back where they were: site:sail-tree-0 ok
+4 laid out under the back eaves: a drying run on the island's clock: island site:sail-dry ok
+4 the roof's time confirmed as it passes: 10 min ok
+4 drying under the roof: not offered to be taken in half way:  ok
+4 caught up on by habit: no hand work (no new run): runs 2→2 ok
+4 the roof's time across the load: one span, from the last confirmed moment to the first one back: rev 77→78 ok
+4 dried: the leaves under the eaves, drier, and the world knows they are: 200000 ok
+5 split at the bench: strips, and the scrap: 6 rounds ok
+5 woven over several quarter hours: the sail's mat at the bench: 32 rounds ok
+6 a bamboo too short for a mast: no mast offered: sail:harvest:near,sail:harvest:far ok
+6 bamboo on the shelf: the mast offered: sail:mast:work,sail:harvest:far,sail:harvest:near ok
+6 a mast cut from the old bamboo; no second mast offered: 1 ok
+6 the island's firsts: the sail's mat and the mast, each marked once: {"sail":1791323390000,"mast":1791324455000} ok
+7 (the markers are real: the ledger holds them; the codes looked for): dry-leaves-required,dry-strips-required,insufficient-weave-material,long-bamboo-required,insufficient-mast-dry-mass,invalid-world-or-material-state ok
+7 no amount or code in its diary, its mind's input, the day's post prompt or its saved memory:  /  /  /  ok
+7 no number in any sail option it was offered, all along: アダンの葉を刈り取る（手前の木） / アダンの葉を刈り取る（奥の木） / やりかけのアダンの葉の刈り取り（手前の木）を片付ける / やりかけのアダンの葉の刈り取り（手前の木）を続ける / 刈ったアダンの葉を裏の軒下に干す / アダンの葉を細く裂く / やりかけの帆の仕事を続ける / やりかけの帆の仕事を片付ける / 裂いた葉で帆のむしろを編む / 竹を切ってマストにする ok
+8 no sail work left running in the world ledger:  ok
+PASS
