@@ -1,0 +1,7 @@
+5 every frame makes a line of the island's words: 2350 frames ok
+1 no heading: 2350 lines ok
+2 no brackets, fractions or signs: 2350 lines ok
+3 no internal names: 2350 lines ok
+4 two sentences, thirty characters at most: longest 30 ok
+5 English for every line, and none of it Japanese: 2350 lines ok
+all ok

@@ -1,0 +1,58 @@
+A Dot has not seen the log:  ok
+A Rakko took it on, fetched it and handed it to Dot:  ok
+A Dot heard it from Rakko, and shaped and fitted it: hut 1 ok
+A both diaries say so:  ok
+A said aloud: asked, taken on, handed over, received: rakko:16mくらい先に、流木があるよ。 / dot:ラッコ、流木を僕のところへ運んでほしい。 / dot:わかった。 / rakko:わかった。流木をあなたのところへ運ぶ。 / rakko:これは流木。あなたに渡す。 / dot:うん。流木を受け取った。 ok
+B Rakko said no, and why: ラッコに断られた：おなかがすいている ok
+B Dot does not ask again straight away: asked again 0 ok
+C Dot first knows of the log as told by Rakko: from rakko, 84 m off ok
+C and fetches it:  ok
+C and learns that what it hears is of use (talking pays): talkUse 0.25 ok
+D while Dot is on its way, Rakko is not offered that log:  ok
+D Dot has it; Rakko never had it:  ok
+E Dot is offered to tell Rakko what it is about to do, and says it:  / say:plan:hut:rakko:done ok
+E in the rain, it is offered to warn, and does: rakko:今、雨が降っている。 / dot:わかった。 / dot:今、雨が降っている。 ok
+F Rakko offers, Dot says yes: dot:うん。手伝ってほしい。 / rakko:僕はラッコ。貝殻を集めている。 / dot:僕はドット。地図を作っている。 / rakko:これは流木。あなたに渡す。 ok
+F and Rakko brings it, as if asked: say:offer:wood:dot:done gather:wood#19:done give:dot:done ok
+G Rakko tells Dot of it: rakko sees it true, dot true; offered say:plan:shells:dot,say:offer:wood:dot ok
+G and Dot knows of it, as heard:  ok
+H asked what it did today: rakko:ドット、今日は何をした？ / dot:今日は部材を2本取りつけた。 / dot:ラッコ、今日は何をした？ / rakko:今日は貝殻を3つ集めた。 ok
+H and each answers from its day:  ok
+rakko:ドット、今日は何をする？
+dot:僕は小屋を作る。
+dot:ラッコ、今日は何をする？
+rakko:僕は貝殻を集める。
+rakko:ドット、流木を運ぼうか。
+dot:うん。手伝ってほしい。
+lantern:夜の目盛りは9。台風が来るかもしれない。
+lantern:目盛りが高いなら、台風が来るかもしれない。
+lantern:目盛りを数える。そうすると、気圧がわかる。
+lantern:みんなで食べ物をしまっておこう。僕は気圧計を読む。
+dot:わかった。僕も手伝う。
+rakko:わかった。僕も手伝う。
+lantern:ラッコは食べる。
+dot:ランタン、今日は何をする？
+lantern:僕は眠る。
+I Lantern tells the night: the gauge, and that a storm may come:  ok
+I and the others hear it, and have it to think about:  ok
+I each is asked what it will do today, and says:  ok
+I the hut wants wood: Rakko offers, Dot says yes, and it is taken on:  ok
+I it ends: counted as a morning, not an evening: mornings 1, fires 0 ok
+J Lantern says its guess, what heat does, and how it has fared:  ok
+J it proposes to put food by; the others agree, and it is decided:  ok
+J Dot means to go to sea in a wind: forbidden, and asked why, told:  ok
+J Rakko is hungry: Dot asks, and where wood is; no one knows: rakko:流木のある場所を知らない。 / lantern:夜は休んだ。 / dot:ランタン、今日は何をする？ / lantern:僕は眠る。 / dot:ラッコ、おなかはすいている？ / rakko:おなかがすいている。 / dot:流木はどこにある？ / lantern:流木のある場所を知らない。 ok
+K the rain catcher: how much it holds, and how it is made:  ok
+K asked how its work went, Lantern says:  ok
+K the morning warning, passed on to Kamemaru, who was not there:  ok
+K what was brought was of use; what was told was not there:  ok
+K telling is of use: Kamemaru says so:  ok
+L told plainly to shelter, and it goes:  ok
+M Kamemaru: a long swell is coming in, a typhoon may come:  ok
+M a typhoon came after it: counted: {"alarm":0,"hits":1,"falses":0} ok
+N forecast, agreed, and who does what is said:  ok
+N Dot hauls the raft up the beach:  ok
+N it passes and the raft is whole: getting ready paid, and it is remembered: {"at":1791073926300,"warned":true,"by":"lantern","saved":["筏","おなか（前もって食べておいた）","おなか（前もって食べておいた）"],"lost":[]} ok
+N the next morning Dot asks of itself whether a storm is coming:  ok
+N unwarned, the raft left on the beach loses half its pieces:  ok
+PASS
