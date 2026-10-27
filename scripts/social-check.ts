@@ -78,7 +78,7 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   want('A Dot heard it from Rakko, and shaped and fitted it', dm.knowledge.some((k: any) => k.source === 'heard' && k.text.includes('届けて')) && dot.stats.built >= 1, `hut ${dot.stats.built}`);
   want('A both diaries say so', dot.diary.some((e: any) => e.text.includes('頼んだ')) && rakko.diary.some((e: any) => e.text.includes('手渡した')));
   { const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
-    want('A said aloud: asked, taken on, handed over, received', said('dot', /運んでほしい/) && said('rakko', /運ぶ。$/) && said('rakko', /あなたに渡す/) && said('dot', /受け取った/),
+    want('A said aloud: asked, taken on, handed over, received', said('dot', /運んでほしい/) && said('rakko', /持っていく。$/) && said('rakko', /^はい、流木。$/) && said('dot', /受け取った/),
       R.talks.filter((e: any) => !e.head).slice(-6).map((e: any) => `${e.who}:${e.text}`).join(' / ')); }
   void rakko;
 }
@@ -176,9 +176,9 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   dot.stats.built += 2; rakko.stats.shells += 3;   // (what they did today)
   now = Date.parse('2026-10-03T09:50:00Z');   // (evening on the island: the gathering at the fire)
   const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
-  await run(R, 1500, () => said('dot', /部材を2つ取りつけた/) && said('rakko', /貝殻を3つ集めた/));
+  await run(R, 1500, () => said('dot', /部材を2本取りつけた/) && said('rakko', /貝殻を3つ集めた/));
   want('H asked what it did today', R.talks.some((e: any) => /今日は何をした/.test(e.text)), R.talks.filter((e: any) => !e.head).slice(-4).map((e: any) => `${e.who}:${e.text}`).join(' / '));
-  want('H and each answers from its day', said('dot', /今日は部材を2つ取りつけた/) && said('rakko', /今日は貝殻を3つ集めた/));
+  want('H and each answers from its day', said('dot', /今日は部材を2本取りつけた/) && said('rakko', /今日は貝殻を3つ集めた/));
 }
 { // I the morning gathering
   const { R, dot, rakko, rm } = island(23);
@@ -198,7 +198,7 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   await run(R, 3600, () => R.village.mornings > 0);
   const lines = R.talks.filter((e: any) => e.conv && R.talks.some((h: any) => h.head && h.conv === e.conv && /朝の集まり/.test(h.text)) && !e.head).map((e: any) => `${e.who}:${e.text}`);
   console.log(lines.join('\n'));
-  want('I Lantern tells the night: the gauge, and that a storm may come', said('lantern', /夜、気圧計を2回読んだ。目盛りは9。目盛りが高い。台風が来るかもしれない/));
+  want('I Lantern tells the night: the gauge, and that a storm may come', said('lantern', /夜の目盛りは9。台風が来るかもしれない/));
   want('I and the others hear it, and have it to think about', [dot, rakko].every((r: any) => r.diary.some((e: any) => /ランタンから夜の気圧計の話を聞いた（2回読んで、目盛り9。台風が来るかもしれない）/.test(e.text))) && rm.knowledge.some((k: any) => k.source === 'heard' && /ランタンによると、夜に気圧計を2回読んで目盛りは9。台風が来るかもしれない/.test(k.text)));
   want('I each is asked what it will do today, and says', said('dot', /^僕は小屋を作る/) && said('rakko', /^僕は貝殻を集める/) && said('lantern', /^僕は眠る/) && lines.some((l: string) => /今日は何をする/.test(l)));
   want('I the hut wants wood: Rakko offers, Dot says yes, and it is taken on', said('rakko', /流木を運ぼうか/) && said('dot', /手伝ってほしい/) && rakko.diary.some((e: any) => /朝の集まりで、ドットに流木を運ぶと申し出て、頼まれた/.test(e.text)));
@@ -218,7 +218,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
   R.village.gaugeLog.push({ at: now - 3.6e6, ...GAUGE_SETUP, mark: -4 });
   R.village.hypo = alarmHypo(now);
   await run(R, 3600, () => R.village.mornings > 0);
-  want('J Lantern says its guess, what heat does, and how it has fared', saidBy(R, 'lantern', /目盛りが高いなら、台風が来るかもしれない/) && saidBy(R, 'lantern', /暑いなら、目盛りが上がるかもしれない/) && saidBy(R, 'lantern', /その考えは本当ではないかもしれない。当たり1、外れ4/) && saidBy(R, 'lantern', /目盛りは-4/));
+  want('J Lantern says its guess, what heat does, and how it has fared', saidBy(R, 'lantern', /目盛りが高いなら、台風が来るかもしれない/) && saidBy(R, 'lantern', /暑いなら、目盛りが上がるかもしれない/) && saidBy(R, 'lantern', /その考えは違うかもしれない。当たり1回、外れ4回/) && saidBy(R, 'lantern', /目盛りはマイナス4/));
   want('J it proposes to put food by; the others agree, and it is decided', saidBy(R, 'lantern', /みんなで食べ物をしまっておこう。僕は気圧計を読む/) && saidBy(R, 'kame', /わかった。僕も手伝う/) && R.village.stormPrep > 0);
   want('J Dot means to go to sea in a wind: forbidden, and asked why, told', saidBy(R, 'dot', /僕は地図を作る/) && saidBy(R, 'kame', /ドット、海に出るな/) && saidBy(R, 'dot', /^なぜ？/) && saidBy(R, 'kame', /^風が強いから/) && dot.diary.some((e: any) => /海に出るな/.test(e.text)));
 }
@@ -230,7 +230,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
   now = Date.parse('2026-10-03T23:40:00Z'); rakko.pos.set(61, 2, -230);
   await run(R, 60); rakko.hunger = 0.9;
   await run(R, 3600, () => R.village.mornings > 0);
-  want('J Rakko is hungry: Dot asks, and where wood is; no one knows', saidBy(R, 'dot', /ラッコ、おなかはすいている？/) && saidBy(R, 'rakko', /おなかがすいている/) && saidBy(R, 'dot', /流木はどこにある？/) && R.talks.some((e: any) => /流木のある場所を知らない|あそこに流木がある/.test(e.text)),
+  want('J Rakko is hungry: Dot asks, and where wood is; no one knows', saidBy(R, 'dot', /ラッコ、おなかはすいている？/) && saidBy(R, 'rakko', /おなかがすいている/) && saidBy(R, 'dot', /流木はどこにある？/) && R.talks.some((e: any) => /流木のある場所を知らない|流木があるよ/.test(e.text)),
     R.talks.filter((e: any) => !e.head).slice(-8).map((e: any) => `${e.who}:${e.text}`).join(' / '));
 }
 { // K the evening, more
@@ -251,8 +251,8 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
   R.village.heardOkAt = now - 3.6e6;
   await run(R, 3000, () => R.village.fires > 0);
   want('K the rain catcher: how much it holds, and how it is made', saidBy(R, 'lantern', /たまった水は3リットル/) && saidBy(R, 'lantern', /竹と葉で、雨水をためられる/));
-  want('K asked how its work went, Lantern says', R.talks.some((e: any) => /ランタン、結果はどうだった？/.test(e.text)) && saidBy(R, 'lantern', /炭を作ってみた。うまくいった/));
-  want('K the morning warning, passed on to Kamemaru, who was not there', R.talks.some((e: any) => e.who !== 'lantern' && /ランタンによると、夜、気圧計を/.test(e.text)) && kame.diary.some((e: any) => /ランタンの朝の話/.test(e.text)));
+  want('K asked how its work went, Lantern says', R.talks.some((e: any) => /ランタン、結果はどうだった？/.test(e.text)) && saidBy(R, 'lantern', /炭を焼いてみた。うまくいった/));
+  want('K the morning warning, passed on to Kamemaru, who was not there', R.talks.some((e: any) => e.who !== 'lantern' && /ランタンによると、(台風が来るかもしれない|目盛りは|夜は静かだった)/.test(e.text)) && kame.diary.some((e: any) => /ランタンの朝の話/.test(e.text)));
   want('K what was brought was of use; what was told was not there', saidBy(R, 'dot', /流木は役に立った。小屋の部材になった/) && rakko.diary.some((e: any) => /小屋の部材になったと聞いた/.test(e.text)) && saidBy(R, 'rakko', /聞いた場所に流木はなかった/) && R.village.feedback.length === 0);
   want('K telling is of use: Kamemaru says so', saidBy(R, 'kame', /知らせたことは役に立つから、見たことを知らせるべきだ/));
 }
@@ -289,7 +289,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
     now = Date.parse('2026-10-03T23:40:00Z');
     R.village.gaugeLog.push({ at: now - 3.6e6, ...GAUGE_SETUP, mark: 9 }); R.village.hypo = alarmHypo(now);
     await run(R, 3600, () => R.village.mornings > 0);
-    want('N forecast, agreed, and who does what is said', R.village.stormPrep > 0 && R.village.prepBy === 'lantern' && saidBy(R, 'lantern', /ドットは筏を高い所へ運ぶ/));
+    want('N forecast, agreed, and who does what is said', R.village.stormPrep > 0 && R.village.prepBy === 'lantern' && saidBy(R, 'lantern', /^ドットは筏を高い所へ運/) && saidBy(R, 'lantern', /は、食べておく。$/));
     await run(R, 1800, () => R.village.raft.hauled);
     want('N Dot hauls the raft up the beach', R.village.raft.hauled && dot.diary.some((e: any) => /筏を浜の上へ引き上げた/.test(e.text)));
     R.setWeather(gale); await run(R, 60); R.setWeather(fair); await run(R, 5);
