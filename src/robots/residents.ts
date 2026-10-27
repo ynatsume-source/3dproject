@@ -1764,7 +1764,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (warn && fresh(`warn:${warn}:${x.id}`, 30)) out.push({ id: `say:warn:${warn}:${x.id}`, action: 'say', label: `${x.v.name}に「${WARN_JA[warn]}」と知らせる`, targetId: x.id });
       if (doing && fresh(`plan:${doing}:${x.id}`, 45)) out.push({ id: `say:plan:${doing}:${x.id}`, action: 'say', label: `${x.v.name}に、これから${PLAN_JA[doing]}と伝える`, targetId: x.id });
       // (help offered: Rakko, the one who brings driftwood, to Dot at work on the hut with none in hand and none asked for)
-      if (r.id === 'rakko' && x.id === 'dot' && (!r.holding || r.holding === 'wood') && x.stats.built < HUT.length && !x.holding && fresh('offer:wood:dot', 40)
+      if (r.id === 'rakko' && x.id === 'dot' && canOfferWood(r) && x.stats.built < HUT.length && !x.holding && fresh('offer:wood:dot', 40)
         && !requests.some((q) => q.from === 'dot' && q.to === 'rakko' && (q.status === 'open' || q.status === 'accepted')))
         out.push({ id: 'say:offer:wood:dot', action: 'say', label: 'ドットに「流木を運ぼうか」と申し出る', targetId: 'dot' });
       // (something new on the beach it has seen, to one who has not seen it)
@@ -1804,7 +1804,14 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       o.push({ id: 'wander:beach', action: 'wander', label: '浜を歩いて探す' });
       return o;
     }
-    if (r.id === 'dot' && !r.holding && r.stats.built < HUT.length && agentOf(byId.rakko) && awake(byId.rakko) && !requests.some((q) => q.from === r.id && (q.status === 'open' || q.status === 'accepted' || (q.status === 'refused' && clockMs - q.at < 10 * 60e3))))   // (not again straight after a no)
+    // (not again for an hour after a no, after a promise Rakko could not keep, or after going to ask and not finding it
+    // — Rakko is out at sea four tenths of the time — and three tries a day at most, counted from its own results so
+    // that a try that never reached Rakko counts too: asked every ten minutes, it was 24 noes a day, and counting only
+    // the asks that reached it, 112 tries: R-026, soaks 2026-10-26)
+    const askTries = a.results.filter((x) => x.optionId === 'ask:rakko:bring-wood' && clockMs - x.at < 24 * 3600e3 && x.outcome !== 'accepted' && x.outcome !== 'refused' && x.outcome !== 'interrupted');
+    if (r.id === 'dot' && !r.holding && r.stats.built < HUT.length && agentOf(byId.rakko) && awake(byId.rakko) && !requests.some((q) => q.from === r.id && (q.status === 'open' || q.status === 'accepted' || (q.status === 'refused' && clockMs - q.at < 60 * 60e3) || (q.status === 'failed' && clockMs - (q.endedAt ?? q.at) < 60 * 60e3)))
+      && requests.filter((q) => q.from === r.id && clockMs - q.at < 24 * 3600e3).length < 3
+      && askTries.length < 3 && !askTries.some((x) => x.outcome !== 'done' && clockMs - x.at < 60 * 60e3))
       o.push({ id: 'ask:rakko:bring-wood', action: 'ask', label: 'ラッコに流木を届けてほしいと頼む', targetId: 'rakko' });
     if (!r.holding) for (const it of items.list) if (it.kind === 'wood' && (!it.by || it.by === r.id) && known(`wood#${it.id}`) && !((it.away?.[r.id] ?? 0) > clockMs)) o.push({ id: `gather:wood#${it.id}`, action: 'gather', label: `流木を拾う（${Math.round(Math.hypot(it.x - r.pos.x, it.z - r.pos.z))}m）`, targetId: `wood#${it.id}` });
     // (steps that become possible later are offered too, for planning, marked with what they need)
@@ -2046,6 +2053,27 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const agentOf = (r: Resident) => agents[r.id] as Agent | undefined;
   // what they have asked of each other (kept by the world: ADR 0004 §6)
   const requests: Request[] = [];
+  // (Rakko offering Dot wood (R-026): only with wood in hand or some it knows of to pick up — not an offer it has nothing
+  // to keep it with; not soon after saying no to Dot's own asking, nor soon after a promise it could not keep)
+  function canOfferWood(rk: Resident): boolean {
+    if (rk.holding && rk.holding !== 'wood') return false;
+    const a = agentOf(rk);
+    const some = rk.holding === 'wood' || items.list.some((it: any) => it.kind === 'wood' && (!it.by || it.by === rk.id) && (!a || a.seen.has(`wood#${it.id}`)) && !((it.away?.[rk.id] ?? 0) > clockMs));
+    return some && !requests.some((q) => q.from === 'dot' && q.to === rk.id && ((q.status === 'refused' && clockMs - q.at < 30 * 60e3) || (q.status === 'failed' && clockMs - (q.endedAt ?? q.at) < 40 * 60e3)));
+  }
+  // (a promise that cannot be kept is let go (R-026): three tries at handing over that came to nothing, or an hour on the
+  // world's clock — closed as not kept, and the reason told back to both, as a result of their own; the same offer
+  // not again for a while)
+  function failRequest(q: Request, why: string) {
+    q.status = 'failed'; q.reason = why; q.endedAt = clockMs;
+    const to = byId[q.to], from = byId[q.from], ta = agentOf(to), fa = agentOf(from);
+    to.diary.push({ at: clockMs, text: `${from.v.name}に流木を届けられなかった（${why}）`, key: 'mind' });
+    from.diary.push({ at: clockMs, text: `${to.v.name}は流木を届けられなかった（${why}）`, key: 'mind' });
+    if (ta) { ta.result(`give:${q.from}`, 'give', 'unavailable', clockMs, `${from.v.name}との約束を果たせなかった：${why}`); flushMind(to, ta); }
+    if (fa) { fa.result(`ask:${q.to}:${q.what}`, 'ask', 'unavailable', clockMs, `${to.v.name}は流木を届けられなかった：${why}`); flushMind(from, fa); }
+    (to.saidAt ??= {})[`offer:wood:${q.from}`] = clockMs;
+    tell('answer', `${to.v.name}は${from.v.name}に流木を届けられなかった`, to);
+  }
   let reqN = 0;
   // what they say to each other as they ask, answer, hand over and tell (ADR 0006, the island's language, step 3):
   // a meaning, made into Lumau with its Japanese and English (lumau/frames.ts), said a moment apart
@@ -3872,6 +3900,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (those with a mind of their own keep looking while they work; something new stops them — between steps)
       // (asked while its body's needs come first — hungry, asleep — it does not leave the other waiting: a no, and why)
       for (const q of requests) if (q.status === 'open' && clockMs - q.at > 30e3) answer(byId[q.to], q, false, refuseWhy(byId[q.to]));
+      for (const q of requests) if (q.status === 'accepted') {
+        const a = agentOf(byId[q.to]), tries = a ? a.results.filter((x) => x.optionId === `give:${q.from}` && x.at >= q.at && x.outcome !== 'done' && x.outcome !== 'interrupted' && x.outcome !== 'accepted').length : 0;
+        if (tries >= 3) failRequest(q, '何度か届けに行ったが、渡せなかった');
+        else if (clockMs - q.at > 60 * 60e3) failRequest(q, '時間がたっても、届けられなかった');
+      }
       if ((lookT -= dt) < 0) { lookT = 1; for (const r of list) { const a = agentOf(r); if (!a || r.act === 'sleep' || r.talk) continue; a.look(observe(r));
         // (at the tide pool, it sees how the husks lying there are: only when it is there; noted once, as it changes)
         { const p = husk.sites().pool, seen = husk.lookIntoPool(r.id, Math.hypot(r.pos.x - p.x, r.pos.z - p.z) <= POOL_REACH_M ? 'here' : 'away', clockMs); if (seen) act(r, 'got', `潮だまりの殻を見た：${seen}`); }
@@ -4106,7 +4139,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (seated.every((r) => fireUsed.has(r.id))) {
       const dot = seated.find((r) => r.id === 'dot'), rk = seated.find((r) => r.id === 'rakko');
       const asked = requests.some((q) => q.from === 'dot' && q.to === 'rakko' && (q.status === 'open' || q.status === 'accepted'));
-      if (dot && rk && (morningPlans.dot === 'hut') && !dot.holding && morningPlans.rakko !== 'eat' && !asked) {
+      if (dot && rk && (morningPlans.dot === 'hut') && !dot.holding && morningPlans.rakko !== 'eat' && !asked && canOfferWood(rk)) {
         { const m = phrase({ act: 'offer-help', to: 'dot', what: 'wood' }); fireQueue.push({ who: 'rakko', line: m.ja, isl: m.isl, en: m.en }); }
         { const m = phrase({ act: 'accept-help' }); fireQueue.push({ who: 'dot', line: m.ja, isl: m.isl, en: m.en }); }
         fireQueue.push({ who: '', line: 'help' });
@@ -4254,7 +4287,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const teller = seated.find((r) => r.id !== 'lantern' && lastNight!.heard.has(r.id)), absent = seated.find((r) => !lastNight!.heard.has(r.id));
       if (teller && absent) { eveDone.add('relay'); qs(teller.id, { act: 'relay', from: 'lantern', said: lastNight.f }); qs(absent.id, { act: 'noted' }); lastNight.heard.add(absent.id); absent.diary.push({ at: clockMs, text: `焚き火の会で、${teller.v.name}から、ランタンの朝の話（台風が来るかもしれない）を聞いた`, key: 'met', with: teller.id }); }
     }
-    const sage = seated.find((r) => r.id === 'kame') ?? ln;
+    // (Kamemaru says it if it is there, or on its way to the fire — then the lecture waits for it; Lantern if not coming)
+    const kame = list.find((r) => r.id === 'kame'), coming = !!kame && kame.task?.kind === 'fire' && !kame.task.arrived;
+    const sage = seated.find((r) => r.id === 'kame') ?? (coming ? undefined : ln);
     if (sage && clockMs - village.heardOkAt < 14 * 3.6e6 && clockMs - (village.taught['lecture:tell-seen'] ?? 0) > 3 * 86_400_000) {
       village.taught['lecture:tell-seen'] = clockMs; qs(sage.id, { act: 'lecture', deed: 'tell-seen', why: 'told-useful' });
     }
@@ -4467,7 +4502,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   (res as any).sailHost = sail;     // (and the sail's)
   (res as any).cordDev = cordDev; (res as any).cordHost = cord; (res as any).sailDev = sailDev; (res as any).sailHost = sail;
   (res as any).tell = tell;   // (for checks: the world telling an event, and whether it is a first)
-  (res as any).talkDev = { startTalk, utter };   // (for checks: a conversation, and a remark on its own — R-023)
+  (res as any).talkDev = { startTalk, utter, sayables, optionsFor, requests, agentOf };   // (for checks: a conversation, a remark on its own — R-023 — and Rakko's offer of wood — R-026)
   // wake up where they were, and catch up on the hours nobody was watching
   initStudyPlaces();
   const behind = load(Date.now());

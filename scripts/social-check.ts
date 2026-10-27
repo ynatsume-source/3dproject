@@ -192,6 +192,9 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   R.village.gaugeLog.push({ at: now - 1000, processId: 'm03x_air_barometer_pot', runId: 'social:pot', mark: 999 });
   R.village.hypo = { ...GAUGE_SETUP, at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
   const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+  // (as the gathering begins, Rakko has a log in hand to bring: it offers only with wood in hand or some it knows of — R-026)
+  await run(R, 3600, () => R.talks.some((h: any) => h.head && /朝の集まり/.test(h.text)));
+  rakko.holding = 'wood';
   await run(R, 3600, () => R.village.mornings > 0);
   const lines = R.talks.filter((e: any) => e.conv && R.talks.some((h: any) => h.head && h.conv === e.conv && /朝の集まり/.test(h.text)) && !e.head).map((e: any) => `${e.who}:${e.text}`);
   console.log(lines.join('\n'));
