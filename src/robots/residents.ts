@@ -1571,7 +1571,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.mo.grazeTry = bd ? { bed: bd.id, at: clockMs, hunger: r.hunger } : undefined;
       return task('graze', bd ? [bd.x, bd.z] : spot(home, 90, water(1.2, 5)) ?? spot(home, 160, water(1, 7)), 'graze', rr(2400, 4200), { wet: true, data: { bed: bd?.id } });
     }
-    if ((r.sleepy > 0.6 || Math.random() < 0.15) && day > 0.7 && hr > 10 && hr < 16.5) return task('bask', spot(home, r.sp.range, shore, 200), 'bask', rr(1500, 3600), { data: { why: r.sleepy > 0.6 ? 'sleepy' : '' } });   // (why: for its status line — sleepy, or no reason to tell: VOICE.md §9)
+    // (spells kept short — basking and watching 5 to 10 min, floating 10 min at most, looking out 30 to 120 s: the
+    // residents' days keep the real clock, so a long spell is as long for the one watching; science's caps, 2026-10-27)
+    if ((r.sleepy > 0.6 || Math.random() < 0.15) && day > 0.7 && hr > 10 && hr < 16.5) return task('bask', spot(home, r.sp.range, shore, 200), 'bask', rr(300, 600), { data: { why: r.sleepy > 0.6 ? 'sleepy' : '' } });   // (why: for its status line — sleepy, or no reason to tell: VOICE.md §9)
     return undefined;
   }
   function decide(r: Resident, hr: number): Task | null {
@@ -1640,18 +1642,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           if (wild && q < 0.4) return task('till', [wild.x + 0.8, wild.z], 'dig', rr(60, 110), { data: wild });
           const tilled = PLOTS.find((pl) => pl.ok && pl.s === 1);
           if (tilled && q < 0.45) return task('plant', [tilled.x + 0.8, tilled.z], 'pick', rr(20, 35), { data: tilled });
-          return q < 0.7 ? task('look', spot(home, 80, shore, 200), 'idle', rr(120, 400)) : task('wander', spot(home, 40, open), 'idle', rr(60, 200));   // (a rest between jobs)
+          return q < 0.7 ? task('look', spot(home, 80, shore, 200), 'idle', rr(30, 120)) : task('wander', spot(home, 40, open), 'idle', rr(60, 200));   // (a rest between jobs)
         }
         if (q < 0.7 && r.stats.built < HUT.length) {
           const it = items.nearest('wood', r.pos.x, r.pos.z, 220, r.id, clockMs);
           if (it) { items.claim(it, r.id); return task('gather', [it.x, it.z], 'pick', 3.5, { data: it }); }
-          return task('look', spot(home, 80, shore, 200), 'idle', rr(60, 180));   // nothing washed up yet: watch the sea for it
+          return task('look', spot(home, 80, shore, 200), 'idle', rr(30, 120));   // nothing washed up yet: watch the sea for it
         }
-        if (q < 0.8) return task('look', spot(home, 80, shore, 200), 'idle', rr(60, 180));
+        if (q < 0.8) return task('look', spot(home, 80, shore, 200), 'idle', rr(30, 120));
         return task('wander', spot(home, r.sp.range, open), 'idle', rr(20, 60));
       }
       case 'kame': {
-        if (q < 0.4) return task('watch', spot(home, r.sp.range, shore, 200), 'look', rr(300, 900));
+        if (q < 0.4) return task('watch', spot(home, r.sp.range, shore, 200), 'look', rr(300, 600));
         if (q < 0.75 && day > 0.3) return task('swim', spot(home, 90, (x, z, h) => h < -1.8 && h > -6), 'swim', rr(200, 500), { wet: true });
         return task('wander', spot(home, r.sp.range * 0.7, beach), 'idle', rr(60, 200));
       }
@@ -1688,7 +1690,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (r.holding === 'stone') return (nestWanted() ? nestTask(r) : null) ?? (ledgeWanted() ? ledgeTask(r) : null) ?? dropTask(r) ?? nestTask(r) ?? (r.holding = '', null);
         if ((nestWanted() || ledgeWanted() || wallWanted()) && q < 0.3) { const t = seaStoneTask(r, nestWanted() ? 'nest' : ledgeWanted() ? 'ledge' : 'wall'); if (t) return t; }   // (its own quiet place first, then Kamemaru's, then Dot's wall)
         if (r.holding === 'shell') return showTask(r) ?? task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3);
-        if (q < 0.35) return task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
+        if (q < 0.35) return task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 600), { wet: true });
         if (q < 0.5) return task('groom', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'groom', rr(90, 200), { wet: true });   // (its fur is all that keeps it warm: it grooms for hours a day)
         if (q < 0.85) {
           const it = items.nearest('shell', r.pos.x, r.pos.z, 200, r.id, clockMs);
@@ -1913,7 +1915,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (action === 'pile') t = r.holding === 'shell' ? task('pile', pileAt(r.stats.shells) as [number, number], 'pick', 3) : null;
     else if (action === 'show') { const f = byId[target]; t = f && r.holding === 'shell' ? task('show', [f.pos.x, f.pos.z], 'look', 5.5, { data: f.id }) : null; if (t) { showCool = 120; shownTo[f.id] = clockMs + rr(3, 8) * 60e3; } }
     else if (action === 'post') t = r.holding === 'wood' && village.pier === 'build' && village.posts < village.bases ? task('post', pileStand(village.posts, true), 'work', 8, { wet: true }) : null;
-    else if (action === 'float') t = task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 800), { wet: true });
+    else if (action === 'float') t = task('float', spot(home, 60, (x, z, h) => h < -0.8 && h > -4), 'float', rr(300, 600), { wet: true });
     else if (action === 'groom') t = task('groom', spot(home, 50, (x, z, h) => h < -0.8 && h > -4), 'groom', rr(90, 200), { wet: true });
     else if (action === 'soak' || action === 'takeout') { const p = husk.sites().pool; t = task(action === 'soak' ? 'husk-soak' : 'husk-takeout', p.stand ?? [p.x, p.z], 'pick', 4); }   // (on the dry spot by the pool, reaching in)
     else if (action === 'beat') { const w = husk.sites().work; t = task('husk-beat', [w.x, w.z], 'work', 900, { data: {} }); }   // (a quarter hour at most at a time; the rest another time)
@@ -1935,7 +1937,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       else if (['harvest', 'split', 'weave', 'mast', 'resume'].includes(target)) t = task('sail-work', [s.x, s.z], 'work', 900, { data: { op: target, place } });   // (a quarter hour at most at a time)
     }
     else if (action === 'charge') t = task('charge', spot(home, 30, open), 'idle', rr(600, 1400));
-    else if (action === 'look') t = task('look', spot(home, 80, shore, 200) ?? spot(home, 40, open), 'idle', rr(60, 180));
+    else if (action === 'look') t = task('look', spot(home, 80, shore, 200) ?? spot(home, 40, open), 'idle', rr(30, 120));
     else if (action === 'wander') t = task('wander', spot(home, r.sp.range, target === 'beach' ? beach : open), 'idle', rr(20, 60));
     if (t) t.opt = id;
     return t;
