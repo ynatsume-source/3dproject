@@ -42,6 +42,7 @@ function island(seed: number) {
   store.clear(); now = Date.parse('2026-10-03T01:00:00Z'); Math.random = mulberry32(seed);   // (10:00 on the island: after the morning gathering)
   const f = () => 2, T: any = { ground: f, floor: f, top: f, landCover: () => ({ can: 0, sand: 1 }), vegH: () => 0, solids: new Solids() };
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
+  for (const k of Object.keys(R.lab.lots)) if (k.startsWith('lot:south-near:first:')) delete R.lab.lots[k];   // (this check starts from an empty shelf, as before the first load from the south island — 案 A, 2026-10-27)
   Math.random = mulberry32(seed * 7 + 1);   // (drawn again once the models are built: three.js draws an id for each part it
   // makes, so the island's own draws would otherwise shift whenever a model gains or loses a part)
   const dot = R.list.find((r: any) => r.id === 'dot'), rakko = R.list.find((r: any) => r.id === 'rakko');
@@ -191,6 +192,9 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   R.village.gaugeLog.push({ at: now - 1000, processId: 'm03x_air_barometer_pot', runId: 'social:pot', mark: 999 });
   R.village.hypo = { ...GAUGE_SETUP, at: 0, by: 'lantern', mark: 8, airs: [], alarm: { at: now - 3.6e6, mark: 9 }, storms: [], hits: 0, falses: 0, misses: 0, leads: [], status: 'testing', heat: false };
   const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
+  // (as the gathering begins, Rakko has a log in hand to bring: it offers only with wood in hand or some it knows of — R-026)
+  await run(R, 3600, () => R.talks.some((h: any) => h.head && /朝の集まり/.test(h.text)));
+  rakko.holding = 'wood';
   await run(R, 3600, () => R.village.mornings > 0);
   const lines = R.talks.filter((e: any) => e.conv && R.talks.some((h: any) => h.head && h.conv === e.conv && /朝の集まり/.test(h.text)) && !e.head).map((e: any) => `${e.who}:${e.text}`);
   console.log(lines.join('\n'));
