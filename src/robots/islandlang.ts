@@ -96,4 +96,4 @@ export function glyphs(toks: Tok[], cls = 'isl', stroke = 1.4) {
 /* ---------- what is said ---------- */
 // (the lines themselves are meanings made into sentences by lumau/frames.ts — said as a person says them, PROGRAM.md §6)
 /** One of the values a resident reports: hut 3 of 24, shells 5, map 30 %. */
-export interface Count { what: 'hut' | 'harvest' | 'shell' | 'full' | 'notes' | 'map' | 'cairn' | 'isle'; n: number; of?: number; pct?: boolean }
+export interface Count { what: 'hut' | 'harvest' | 'shell' | 'full' | 'notes' | 'map' | 'cairn' | 'isle'; n: number; of?: number; pct?: boolean; hungry?: boolean }   // (full: said by hungry, not by n)

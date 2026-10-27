@@ -77,7 +77,7 @@ const opt = (i: BrainInput, pre: string) => i.options.find((o) => o.id.startsWit
   want('A Dot heard it from Rakko, and shaped and fitted it', dm.knowledge.some((k: any) => k.source === 'heard' && k.text.includes('届けて')) && dot.stats.built >= 1, `hut ${dot.stats.built}`);
   want('A both diaries say so', dot.diary.some((e: any) => e.text.includes('頼んだ')) && rakko.diary.some((e: any) => e.text.includes('手渡した')));
   { const said = (who: string, re: RegExp) => R.talks.some((e: any) => e.who === who && re.test(e.text));
-    want('A said aloud: asked, taken on, handed over, received', said('dot', /運んでほしい/) && said('rakko', /運ぶ。$/) && said('rakko', /あなたに渡す/) && said('dot', /受け取った/),
+    want('A said aloud: asked, taken on, handed over, received', said('dot', /運んでほしい/) && said('rakko', /持っていく。$/) && said('rakko', /^はい、流木。$/) && said('dot', /受け取った/),
       R.talks.filter((e: any) => !e.head).slice(-6).map((e: any) => `${e.who}:${e.text}`).join(' / ')); }
   void rakko;
 }
@@ -247,7 +247,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
   R.village.heardOkAt = now - 3.6e6;
   await run(R, 3000, () => R.village.fires > 0);
   want('K the rain catcher: how much it holds, and how it is made', saidBy(R, 'lantern', /たまった水は3リットル/) && saidBy(R, 'lantern', /竹と葉で、雨水をためられる/));
-  want('K asked how its work went, Lantern says', R.talks.some((e: any) => /ランタン、結果はどうだった？/.test(e.text)) && saidBy(R, 'lantern', /炭を作ってみた。うまくいった/));
+  want('K asked how its work went, Lantern says', R.talks.some((e: any) => /ランタン、結果はどうだった？/.test(e.text)) && saidBy(R, 'lantern', /炭を焼いてみた。うまくいった/));
   want('K the morning warning, passed on to Kamemaru, who was not there', R.talks.some((e: any) => e.who !== 'lantern' && /ランタンによると、(台風が来るかもしれない|目盛りは|夜は静かだった)/.test(e.text)) && kame.diary.some((e: any) => /ランタンの朝の話/.test(e.text)));
   want('K what was brought was of use; what was told was not there', saidBy(R, 'dot', /流木は役に立った。小屋の部材になった/) && rakko.diary.some((e: any) => /小屋の部材になったと聞いた/.test(e.text)) && saidBy(R, 'rakko', /聞いた場所に流木はなかった/) && R.village.feedback.length === 0);
   want('K telling is of use: Kamemaru says so', saidBy(R, 'kame', /知らせたことは役に立つから、見たことを知らせるべきだ/));

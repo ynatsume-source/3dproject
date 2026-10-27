@@ -3209,8 +3209,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function countsOf(r: Resident): Count[] {
     const s = r.stats;
     if (r.id === 'dot') return [{ what: 'hut', n: s.built, of: HUT.length }, { what: 'isle', n: Object.keys(village.map.seen).length }];
-    if (r.id === 'rakko') return [{ what: 'shell', n: s.shells }, { what: 'full', n: full(r) }];
-    if (r.id === 'kame') return [{ what: 'notes', n: s.notes }, { what: 'full', n: full(r) }];
+    const fed: Count = { what: 'full', n: full(r), hungry: r.hunger > (r.body?.learn.eatAt ?? 0.45) };   // (hungry or not by the world's mark, as tell-body)
+    if (r.id === 'rakko') return [{ what: 'shell', n: s.shells }, fed];
+    if (r.id === 'kame') return [{ what: 'notes', n: s.notes }, fed];
     return [{ what: 'map', n: statVars(r).map, pct: true }, { what: 'notes', n: s.notes }, { what: 'cairn', n: s.cairns }];
   }
 

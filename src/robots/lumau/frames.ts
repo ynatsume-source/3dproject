@@ -73,7 +73,7 @@ const DAY: Record<DayItem['what'], { ids: (n: number, w?: Who) => string[]; ja: 
   island: { ids: (n) => ['island', `#${n}`, 'object', 'found', 'past'], ja: (n) => `島を${counter(n)}見つけた`, en: (n) => `found ${n === 1 ? 'an island' : `${n} islands`}` },
   shell: { ids: (n) => ['shell', `#${n}`, 'object', 'gather', 'past'], ja: (n) => `貝殻を${counter(n)}集めた`, en: (n) => `gathered ${n === 1 ? 'a shell' : `${n} shells`}` },
   note: { ids: (n) => ['record_n', `#${n}`, 'object', 'write', 'past'], ja: (n) => `記録を${n}件書いた`, en: (n) => `wrote ${n === 1 ? 'a note' : `${n} notes`}` },
-  cairn: { ids: (n) => ['cairn', `#${n}`, 'object', 'stack', 'past'], ja: (n) => `石積みを${counter(n)}積んだ`, en: (n) => `stacked ${n === 1 ? 'a cairn' : `${n} cairns`}` },
+  cairn: { ids: (n) => ['cairn', `#${n}`, 'object', 'make', 'past'], ja: (n) => `石積みを${counter(n)}作った`, en: (n) => `made ${n === 1 ? 'a cairn' : `${n} cairns`}` },
   photo: { ids: (n) => ['picture', `#${n}`, 'object', 'photograph', 'past'], ja: (n) => `写真を${n}枚撮った`, en: (n) => `took ${n === 1 ? 'a photograph' : `${n} photographs`}` },
   eat: { ids: (n) => ['sea', 'at', `#${n}`, 'times', 'eat', 'past'], ja: (n) => `海で${n}回食べた`, en: (n) => `ate in the sea ${n === 1 ? 'once' : `${n} times`}` },
   met: { ids: (_n, w) => [w!, 'with', 'speak', 'past'], ja: (_n, w) => `${NAME[w!].ja}と話した`, en: (_n, w) => `talked with ${NAME[w!].en}` },
@@ -126,7 +126,8 @@ const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }>
 export type Findable = 'wood' | 'shell' | 'coconut' | 'water' | 'thing';
 const FIND: Record<Findable, { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'shells' }, coconut: { ja: 'ヤシの実', en: 'coconuts' }, water: { ja: '水', en: 'water' }, thing: { ja: '見慣れないもの', en: 'the new thing' } };
 export type Made = 'charcoal' | 'oil' | 'pot' | 'catcher' | 'raft' | 'clay';
-const MADE: Record<Made, { id: string; ja: string; en: string }> = { charcoal: { id: 'charcoal', ja: '炭', en: 'charcoal' }, oil: { id: 'oil', ja: '油', en: 'oil' }, pot: { id: 'pot', ja: '器', en: 'a pot' }, catcher: { id: 'rain_catcher', ja: '雨受け', en: 'a rain catcher' }, raft: { id: 'raft', ja: '筏', en: 'a raft' }, clay: { id: 'clay', ja: '粘土', en: 'clay' } };
+/** What was made, and how it is made, as a person says it (charcoal is burnt, oil pressed, clay kneaded — not "made"). */
+const MADE: Record<Made, { id: string; ja: string; en: string; how?: { id: string; ja: string; en: string } }> = { charcoal: { id: 'charcoal', ja: '炭', en: 'charcoal', how: { id: 'burn', ja: '焼いて', en: 'burning' } }, oil: { id: 'oil', ja: '油', en: 'oil', how: { id: 'squeeze', ja: 'しぼって', en: 'pressing' } }, pot: { id: 'pot', ja: '器', en: 'a pot' }, catcher: { id: 'rain_catcher', ja: '雨受け', en: 'a rain catcher' }, raft: { id: 'raft', ja: '筏', en: 'a raft' }, clay: { id: 'clay', ja: '粘土', en: 'clay', how: { id: 'knead', ja: '練って', en: 'kneading' } } };
 export type Measured = 'water' | 'coconut' | 'mark' | 'air' | 'wind' | 'island' | 'walk';
 const MEASURED: Record<Measured, { ids: Ids; ja: string; en: string }> = { water: { ids: ['water'], ja: 'たまった水', en: 'The water held' }, coconut: { ids: ['coconut'], ja: 'ヤシの実', en: 'The coconut' }, mark: { ids: ['mark'], ja: '目盛り', en: 'The mark' }, air: { ids: ['warmth'], ja: '暖かさ', en: 'The warmth' }, wind: { ids: ['wind', 'of', 'speed'], ja: '風の速さ', en: 'The wind' }, island: { ids: ['island', 'of', 'farness'], ja: '島までの遠さ', en: 'The island' }, walk: { ids: ['everyday', 'walk', 'of', 'distance'], ja: '毎日歩く道のり', en: 'The daily walk' } };
 export type Unit = 'kilogram' | 'litre' | 'degree' | 'metre' | 'percent' | 'mark' | 'none';
@@ -157,10 +158,10 @@ const PROGRESS: Record<Count['what'], (c: Count) => { ids: Ids; ja: string; en: 
   hut: (c) => (c.n > 0 ? { ids: ['hut', 'of', 'piece', `#${c.n}`, 'object', 'build', 'past'], ja: `小屋の部材を${c.n}本付けた`, en: `I've fitted ${c.n === 1 ? 'a piece' : `${c.n} pieces`} to the hut` } : null),
   isle: (c) => (c.n > 0 ? { ids: ['island', `#${c.n}`, 'object', 'see', 'past'], ja: `島が${counter(c.n)}見えた`, en: `I've seen ${c.n === 1 ? 'an island' : `${c.n} islands`}` } : null),
   shell: (c) => (c.n > 0 ? { ids: ['shell', `#${c.n}`, 'object', 'gather', 'past'], ja: `貝殻を${counter(c.n)}集めた`, en: `I've gathered ${c.n === 1 ? 'a shell' : `${c.n} shells`}` } : null),
-  full: (c) => ({ ids: ['me', 'of', 'full', 'topic', `#${Math.round(c.n)}`, 'percent'], ja: `おなかは${Math.round(c.n)}パーセント`, en: `I'm ${Math.round(c.n)}% full` }),
+  full: (c) => (c.hungry ? { ids: ['me', 'topic', 'hungry', 'become', 'ongoing'], ja: 'おなかがすいてきた', en: "I'm getting hungry" } : { ids: ['me', 'topic', 'hungry', 'not'], ja: 'おなかはすいていない', en: "I'm not hungry" }),   // (hungry or not, by the world's mark: not a number it knows — PROGRAM.md §6-1)
   notes: (c) => (c.n > 0 ? { ids: ['record_n', `#${c.n}`, 'object', 'write', 'past'], ja: `記録を${c.n}件書いた`, en: `I've written ${c.n === 1 ? 'a note' : `${c.n} notes`}` } : null),
   map: (c) => (c.n > 0 ? { ids: ['map', 'topic', `#${Math.round(c.n)}`, 'percent', 'become', 'past'], ja: `地図は${Math.round(c.n)}パーセントになった`, en: `My map is ${Math.round(c.n)}% done` } : null),
-  cairn: (c) => (c.n > 0 ? { ids: ['stone', `#${c.n}`, 'object', 'stack', 'past'], ja: `石を${counter(c.n)}積んだ`, en: `I've stacked ${c.n === 1 ? 'a cairn' : `${c.n} cairns`}` } : null),
+  cairn: (c) => (c.n > 0 ? { ids: ['cairn', `#${c.n}`, 'object', 'make', 'past'], ja: `石積みを${counter(c.n)}作った`, en: `I've made ${c.n === 1 ? 'a cairn' : `${c.n} cairns`}` } : null),   // (cairns, four stones each: not stones)
   harvest: (c) => (c.n > 0 ? { ids: ['harvest', `#${c.n}`, 'object', 'gather', 'past'], ja: `実を${counter(c.n)}収穫した`, en: `I've harvested ${c.n} ${c.n === 1 ? 'time' : 'times'}` } : null),
 };
 /** What the sea brings (residents.ts DRIFT), as it is called. */
@@ -183,7 +184,7 @@ const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 export function phrase(f: Frame): Said {
   switch (f.act) {
     case 'ask-bring': return make([f.to, ',', f.what, 'object', 'me', 'to', 'carry', 'please', '.'], `${NAME[f.to].ja}、${THING[f.what].ja}を僕のところへ運んでほしい。`, `${NAME[f.to].en}, please bring me ${THING[f.what].en}.`);
-    case 'accept-bring': return make(['agree', '.', 'me', 'topic', f.what, 'object', 'you', 'to', 'carry', 'future', '.'], `わかった。${THING[f.what].ja}をあなたのところへ運ぶ。`, `Okay. I will bring you ${THING[f.what].en}.`);
+    case 'accept-bring': return make(['agree', '.', f.what, 'object', 'carry', 'future', '.'], `わかった。${THING[f.what].ja}を持っていく。`, `Okay. I'll bring ${THING[f.what].en}.`);
     case 'refuse':
       switch (f.why) {
         case 'hungry': return make(['not', '.', 'me', 'topic', 'hungry', 'because', ',', 'eat', 'must', '.'], 'いいえ。おなかがすいているので、食べなければならない。', "No. I'm hungry, so I must eat.");
@@ -193,11 +194,14 @@ export function phrase(f: Frame): Said {
         case 'busy-shells': return make(['not', '.', 'me', 'topic', 'now', 'shell', 'object', 'gather', 'ongoing', '.'], 'いいえ。僕は今、貝殻を集めている。', "No. I'm gathering shells now.");
       }
       break;
-    case 'hand-over': return make(['this', 'topic', f.what, '.', 'you', 'to', 'give', '.'], `これは${THING[f.what].ja}。あなたに渡す。`, `This is ${THING[f.what].en}. It's for you.`);
+    case 'hand-over': return make(['here', ',', f.what, '.'], `はい、${THING[f.what].ja}。`, `Here's ${THING[f.what].en}.`);
     case 'received': return make(['agree', '.', f.what, 'object', 'receive', 'past', '.'], `うん。${THING[f.what].ja}を受け取った。`, `Got it. I have the ${THING[f.what].en.replace(/^a /, '')}.`);
     case 'tell-where': {   // (said as a person says it: no heading, no brackets, a rough distance — PROGRAM.md §6)
-      const m = Math.max(1, Math.round(f.metres)), call = f.to ? { ids: [f.to, ','] as Ids, ja: `${NAME[f.to].ja}、`, en: `${NAME[f.to].en}, ` } : { ids: [] as Ids, ja: '', en: '' };
-      return make([...call.ids, `#${m}`, 'metre', 'front', 'at', f.what, 'there', '.'], `${call.ja}${m}mくらい先に、${THING[f.what].ja}があるよ。`, `${call.en}${call.en ? 't' : 'T'}here's ${THING[f.what].en} about ${m} m ahead.`);
+      // (under 3 m "close by"; from 20 m on, to the nearest ten — "about" is said in both, the island's about_n too)
+      const call = f.to ? { ids: [f.to, ','] as Ids, ja: `${NAME[f.to].ja}、`, en: `${NAME[f.to].en}, ` } : { ids: [] as Ids, ja: '', en: '' }, there = `${call.en}${call.en ? 't' : 'T'}here's ${THING[f.what].en}`;
+      if (f.metres < 3) return make([...call.ids, 'near', 'at', f.what, 'there', '.'], `${call.ja}すぐ近くに、${THING[f.what].ja}があるよ。`, `${there} right close by.`);
+      const m = f.metres >= 20 ? Math.round(f.metres / 10) * 10 : Math.round(f.metres);
+      return make([...call.ids, 'about_n', `#${m}`, 'metre', 'front', 'at', f.what, 'there', '.'], `${call.ja}${m}mくらい先に、${THING[f.what].ja}があるよ。`, `${there} about ${m} m ahead.`);
     }
     case 'will-go': return make(['agree', '.', 'me', 'topic', 'go', 'future', '.'], 'わかった。行く。', "Okay. I'll go.");
     case 'noted': return make(['agree', '.'], 'わかった。', 'Okay.');
@@ -262,8 +266,8 @@ export function phrase(f: Frame): Said {
       return make(ids, ja.join(''), en.join(' '));
     }
     case 'tell-result': {
-      const m = MADE[f.made], ids: Ids = [m.id, 'object', 'make', 'try', 'past', '.', f.ok ? 'succeed' : 'fail', 'past', '.'];
-      let ja = `${m.ja}を作ってみた。${f.ok ? 'うまくいった' : 'うまくいかなかった'}。`, en = `I tried making ${m.en}. ${f.ok ? 'It worked.' : "It didn't work."}`;
+      const m = MADE[f.made], how = m.how ?? { id: 'make', ja: '作って', en: 'making' }, ids: Ids = [m.id, 'object', how.id, 'try', 'past', '.', f.ok ? 'succeed' : 'fail', 'past', '.'];
+      let ja = `${m.ja}を${how.ja}みた。${f.ok ? 'うまくいった' : 'うまくいかなかった'}。`, en = `I tried ${how.en} ${m.en}. ${f.ok ? 'It worked.' : "It didn't work."}`;
       if (!f.ok && f.why) { const b = because(f.why); ids.push(...b.ids); ja = `${m.ja}は、うまくいかなかった。${b.ja}`; en += b.en; }   // (two sentences at most)
       return make(ids, ja, en);
     }
