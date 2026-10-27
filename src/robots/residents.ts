@@ -219,7 +219,8 @@ export interface Resident {
   wear?: number; wearLv?: number; stuck?: boolean;   // (the two robots: how worn by rain, wind and storm 0..1, the last line it noted, held still until it dries — the world counts it)
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
-  trial?: { text: string | null; at: number; result?: TrialEvent['result']; resultAt?: number; outcome?: string; active: boolean };   // (what it is trying, as the screen tells it: PROGRAM.md §1, R-030)
+  trial?: { text: string | null; at: number; active: boolean };   // (what it is trying now, as the screen tells it: PROGRAM.md §1, R-030)
+  tried?: { text: string | null; result: NonNullable<TrialEvent['result']>; at: number; outcome?: string };   // (how its last try came out, in the words that try was shown in)
   sayUntil?: number;   // (a remark said on its own, outside a conversation: the world's time it is let go — R-023)
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   saidAt?: Record<string, number>;   // (what it last told whom, and when: not the same thing again straight away)
@@ -2503,13 +2504,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // its trials, for the screen and the log (PROGRAM.md §1): begun, and how each came out — a failure in the world's own
     // words; a line that does not pass the words' rule (no option ids, no letters, no "22/24": PROGRAM.md §6) is not shown
     for (const e of a.out.trials.splice(0)) {
-      const text = trialWords(e.text), outcome = e.outcome ? OUTCOME_JA[e.outcome] ?? '' : undefined;
-      r.trial = e.kind === 'start' ? { text, at: clockMs, active: true } : { text: text ?? r.trial?.text ?? null, at: r.trial?.at ?? clockMs, result: e.result, resultAt: clockMs, outcome, active: !!a.trying };
-      res.onEvent('trial', `${r.v.name}：${e.kind === 'start' ? '試み' : TRIAL_JA[e.result!]}：${e.text}${outcome ? `（${outcome}）` : ''}`, r, { trial: { kind: e.kind, result: e.result, text, outcome, metric: e.metric, now: e.now } });
+      // (a result in the words its own try was shown in, else its hypothesis's if they pass — never the words of another
+      // try, and with none, told with no text: viewer design on #181; the world's reason after the heading, ・, not for
+      // できなかった, which says no more than the heading)
+      const text = trialWords(e.text) ?? (e.also ? trialWords(e.also) : null), why = e.outcome && e.outcome !== 'unavailable' ? OUTCOME_JA[e.outcome] ?? undefined : undefined;
+      if (e.kind === 'start') r.trial = { text, at: clockMs, active: true };
+      else r.tried = { text, result: e.result!, at: clockMs, ...(why ? { outcome: why } : {}) };
+      res.onEvent('trial', `${r.v.name}：${e.kind === 'start' ? '試み' : TRIAL_JA[e.result!]}${why ? ` ・ ${why}` : ''}：${e.text}`, r, { trial: { kind: e.kind, result: e.result, text, outcome: why, metric: e.metric, now: e.now } });
     }
     if (r.trial && !a.trying) r.trial.active = false;
   }
-  const TRIAL_JA: Record<string, string> = { confirmed: '確かめた', refuted: '違っていた', done: 'やりとげた', 'not-yet': 'まだ', 'steps-done': '手順を終えた', failed: 'うまくいかなかった' };
+  const TRIAL_JA: Record<string, string> = { confirmed: '確かめた', refuted: '違っていた', done: 'やりとげた', 'not-yet': 'まだ届かない', 'steps-done': 'やってみた', failed: 'うまくいかなかった' };   // (PROGRAM.md §1-2)
   const trialWords = (t: string) => { const s = t.trim(); return !s || s.length > 40 || /[A-Za-z_]+[:：_][A-Za-z]|[A-Za-z]{3,}|\d+\s*\/\s*\d+/.test(s) ? null : s; };
 
   /* ---------- finishing a task ---------- */

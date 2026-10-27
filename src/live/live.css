@@ -37,7 +37,8 @@ body.live #diaryBook, body.live #newMark, body.live #hoverTag, body.live #tapRin
 #live .band .who .line { width: calc(var(--u) * 26); height: 2px; background: var(--c, var(--ink)); opacity: 0.9; }
 #live .band .status { font-size: var(--s4); margin-top: calc(var(--u) * 12); line-height: 1.35; white-space: nowrap; }
 #live .band .status span { display: block; }
-#live .band .trial { font-size: var(--s2); color: var(--ink2); margin-top: calc(var(--u) * 10); line-height: 1.35; max-width: calc(var(--u) * 900); }
+#live .band .trial { font-size: var(--s2); color: var(--ink2); margin-top: calc(var(--u) * 10); line-height: 1.35; max-width: calc(var(--u) * 900);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }   /* (two lines at most: PROGRAM.md §1-2) */
 #live .band .trial .k { font-size: var(--s1); color: var(--ink3); margin-right: 0.8em; letter-spacing: 0.08em; }
 #live .band .trial.gold .k { color: var(--gold); }
 /* the haze under a group of words: edgeless (a bell that fades to nothing at its rim), eased over a second */

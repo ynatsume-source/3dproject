@@ -120,20 +120,22 @@ export function makeLive(ctx: LiveCtx) {
     }
   }
   // The trial line under the status (PROGRAM.md §1-2, R-030): what the one followed is trying, in its own words, while a
-  // goal of its own lasts (never its habits); for 12 s after a result, its heading changes — 確かめた, 違っていた,
-  // やりとげた (only as the world checked it), まだ, ここまでできた (its steps taken, nothing to check), うまくいかなかった
-  // (the world's own reason) — then back to 試み, or gone with the goal. Its words only: none that fail the rule
-  // (residents.ts trialWords), and none on the English screen until there are English words.
-  const TRIAL_K: Record<string, [string, string, boolean]> = { confirmed: ['確かめた', 'Confirmed', true], refuted: ['違っていた', 'Not so', false], done: ['やりとげた', 'Done', true], 'not-yet': ['まだ', 'Not yet', false], 'steps-done': ['ここまでできた', 'Done so far', false], failed: ['うまくいかなかった', "Didn't work", false] };
+  // goal of its own lasts (never its habits); for 12 s after a result, how its last try came out, in the words that try
+  // was shown in — 確かめた, 違っていた, やりとげた (only as the world checked it), まだ届かない, やってみた (its steps
+  // taken, nothing to check), うまくいかなかった ・ the world's reason — then what it is trying now, or nothing until
+  // it decides. Its words only: none that fail the rule (residents.ts trialWords), and none on the English screen until
+  // there are English words. Two lines at most (live.css).
+  const TRIAL_K: Record<string, [string, string, boolean]> = { confirmed: ['確かめた', 'Confirmed', true], refuted: ['違っていた', 'Not so', false], done: ['やりとげた', 'Done', true], 'not-yet': ['まだ届かない', 'Not there yet', false], 'steps-done': ['やってみた', 'Tried it', false], failed: ['うまくいかなかった', "Didn't work", false] };
   let trialShown = '';
   function trialLine(r: any) {
-    const t = r?.trial, fresh = t?.result && ctx.clockMs() - (t.resultAt ?? 0) < 12e3;
-    const k = fresh ? TRIAL_K[t.result] : t?.active ? (['試み', 'Trying', true] as [string, string, boolean]) : null;
-    const words = t?.text ? `${t.text}${fresh && t.result === 'failed' && t.outcome ? `（${t.outcome}）` : ''}` : '';
-    const key = k && words && !en ? `${r.id}|${k[0]}|${words}` : '';
+    const d = r?.tried, fresh = !!d?.text && ctx.clockMs() - d.at < 12e3, t = r?.trial;
+    const k = fresh ? TRIAL_K[d.result] : t?.active ? (['試み', 'Trying', true] as [string, string, boolean]) : null;
+    const head = k ? `${k[0]}${fresh && d.result === 'failed' && d.outcome ? ` ・ ${d.outcome}` : ''}` : '';
+    const words = (fresh ? d.text : t?.active ? t.text : '') ?? '';
+    const key = k && words && !en ? `${r.id}|${head}|${words}` : '';
     if (key === trialShown) return; trialShown = key;
     if (!key) { trialEl.classList.add('off'); return; }
-    $('.band .trial .k').textContent = k![0]; trialEl.classList.toggle('gold', k![2]);
+    $('.band .trial .k').textContent = head; trialEl.classList.toggle('gold', k![2]);
     $('.band .trial .t').textContent = words;
     trialEl.classList.remove('off');
   }
@@ -171,7 +173,9 @@ export function makeLive(ctx: LiveCtx) {
   let cardT = 0;
   function event(kind: string, text: string, r: any, meta?: { milestone?: string; trial?: { kind: string; result?: string; text: string | null } }) {
     director.event(kind, text, r, meta);   // (ranked for the drone)
-    if (meta?.trial?.text) director.trial(r, meta.trial.result ?? 'start', meta.trial.text);   // (a trial begun or come out, with words to show: rank 1)
+    // (a trial begun or come out, with words to show: rank 1 — not its steps taken with nothing to check, which may be many:
+    // on one already followed, only the heading changes, PROGRAM.md §4)
+    if (meta?.trial?.text && meta.trial.result !== 'steps-done') director.trial(r, meta.trial.result ?? 'start', meta.trial.text);
     if (!meta?.milestone) return;
     const ja = trimStatus(text.split('。')[0]), esc1 = (t: string) => t.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'));
     const html = en ? firstEn(meta.milestone, r?.v?.name ?? '', true) : esc1(ja);

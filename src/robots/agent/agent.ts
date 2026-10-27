@@ -11,7 +11,7 @@ import type { ActionResult, Brain, BrainInput, Goal, Knowledge, Observation, Opt
 /** A trial as the screen tells it (PROGRAM.md §1, R-030): one begun, in its own words; or how one came out — a
  *  hypothesis confirmed or not, the goal reached as the world checked it (or not yet), its steps taken with nothing
  *  to check, or a step that came to nothing (the world's own outcome). */
-export interface TrialEvent { kind: 'start' | 'result'; result?: 'confirmed' | 'refuted' | 'done' | 'not-yet' | 'steps-done' | 'failed'; text: string; outcome?: Outcome; detail?: string; metric?: string; now?: number | string }
+export interface TrialEvent { kind: 'start' | 'result'; result?: 'confirmed' | 'refuted' | 'done' | 'not-yet' | 'steps-done' | 'failed'; text: string; also?: string; outcome?: Outcome; detail?: string; metric?: string; now?: number | string }   // (also: words to fall back on — a hypothesis's own)
 
 export interface Habit { (options: Option[], a: Agent): { text: string; why: string; plan: string[] } | null }
 
@@ -119,15 +119,17 @@ export class Agent {
     this.goal = { id: this.id('g'), text: t.goal.text, why: t.goal.why, by, at: now, steps: [...t.plan], ...(t.doneWhen ? { doneWhen: t.doneWhen } : {}) };
     this.out.diary.push(`目的：${t.goal.text}（${t.goal.why}）`);
     if (t.say) this.out.say = t.say;
-    this.trying = { goalId: this.goal.id, text: t.say ?? t.goal.text };
-    this.out.trials.push({ kind: 'start', text: this.trying.text });
-    if (t.hypothesis) { this.knowledge.push({ id: this.id('k'), text: t.hypothesis, source: 'guessed', status: 'hypothesis', at: now }); this.out.diary.push(`仮説：${t.hypothesis}`); }
+    // (what it supposed before, settled: told first, in the words its trial was shown in then — the answer to that try,
+    // then the next try; never in the words of the one just begun: PROGRAM.md §1-2, viewer design on #181)
     for (const v of t.verdicts ?? []) {
       const k = this.knowledge.find((x) => x.id === v.id && x.status === 'hypothesis'); if (!k) continue;
       k.status = v.status; k.evidence = v.evidence; k.source = 'tried';
       this.out.diary.push(`${v.status === 'confirmed' ? '確かめた' : '違っていた'}：${k.text}`);
-      this.out.trials.push({ kind: 'result', result: v.status, text: k.text });
+      this.out.trials.push({ kind: 'result', result: v.status, text: k.said ?? k.text, ...(k.said ? { also: k.text } : {}) });
     }
+    this.trying = { goalId: this.goal.id, text: t.say ?? t.goal.text };
+    this.out.trials.push({ kind: 'start', text: this.trying.text });
+    if (t.hypothesis) { this.knowledge.push({ id: this.id('k'), text: t.hypothesis, source: 'guessed', status: 'hypothesis', at: now, said: this.trying.text }); this.out.diary.push(`仮説：${t.hypothesis}`); }
     void inp;
   }
   private byHabit(options: Option[], now: number) {
@@ -164,6 +166,7 @@ export class Agent {
       this.out.diary.push(`うまくいかなかった：${detail ?? optionId}`);
       if (this.goal && this.goal.by !== 'habit' && this.trying?.goalId === this.goal.id) this.out.trials.push({ kind: 'result', result: 'failed', text: this.trying.text, outcome, detail });
       if (this.goal) this.goal.steps = [];
+      this.trying = null;   // (the try is over: no 試み again until it decides what next — a new start, if it keeps at it)
     } else if (outcome === 'done' && this.goal && !this.goal.steps.length) {
       // (the steps taken: reached only as the world checks it — the value the goal was given, now; with none to check,
       // the steps taken is all that is said; not yet, and the goal stays, a reason to think what next: R-028)

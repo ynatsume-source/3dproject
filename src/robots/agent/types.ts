@@ -15,6 +15,7 @@ export interface ActionResult { eventId: string; optionId: string; action: strin
 export interface Knowledge {
   id: string; text: string; source: 'saw' | 'tried' | 'heard' | 'guessed'; at: number;
   status?: 'hypothesis' | 'confirmed' | 'refuted'; evidence?: string[];   // (the results that settled it)
+  said?: string;   // (a hypothesis: the words its trial was shown in when it was made — its result is told in the same: PROGRAM.md §1-2)
 }
 
 /** How the world can tell a goal is reached (R-028): one of the world's values (BrainInput.metrics), and the mark. */
