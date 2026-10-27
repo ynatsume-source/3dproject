@@ -3778,7 +3778,7 @@ resize();
 updateGlobeTimes();
 requestAnimationFrame(frame);
 if (live && (!location.hash || location.hash === '#')) history.replaceState(null, '', location.pathname + location.search + '#planet');   // (the stream is the island)
-if (live) import('./live/live').then((m) => { liveUi = m.makeLive({ residents: () => (mode === 'ocean' ? cur?.residents ?? null : null), watched: () => watch.r, watch: (r) => startWatch(r), clockMs: () => clock.ms, tz: () => cur?.loc.tz ?? 9 }); });
+if (live) import('./live/live').then((m) => { liveUi = m.makeLive({ residents: () => (mode === 'ocean' ? cur?.residents ?? null : null), watched: () => watch.r, watch: (r) => startWatch(r), clockMs: () => clock.ms, tz: () => cur?.loc.tz ?? 9, cam: (who, pri, kind, why) => rehearsal?.cam(who, pri, kind, why) }); });
 const start = seaForHash(location.hash, LOCATIONS, DOTWORLD);
 let restoreStartup = true;
 const hashNavigation = createHashNavigation<Sea>({

@@ -31,7 +31,7 @@ import { compactScienceLedger, recentScienceRuns } from '../world/science-record
 import { abortRun, addLot, advance, assemble, assembleParts, emptyLedger, canTakeMass, refreshAssembled, refreshAssembledParts, startRun, takeMass, toClock, toReal } from '../world/process-runner';
 import { CATALOG, canResumeProcessVersion, MATERIAL_JA, CLAY_PIT_PLAN, COOK_POT_ASSEMBLY, POT_ASSEMBLY, RETORT_ASSEMBLY, LAMP_DISH_ASSEMBLY, WICKS, TOOLS, SEASONED_PPM, RETORT_UPPER_ML, RETORT_LOWER_ML, SEAL_JAR_ML, RETORT_CHARGE_MG, WEATHER_POT_WATER_MG, type CatalogEntry } from '../world/process-catalog';
 import { clayPitMaterials, clayPitParams, CLAY_PIT } from '../science/step/clay-pit';
-import { RAW_CLAY_SOUTH } from '../world/planet-map';
+import { BAMBOO_SOUTH, RAW_CLAY_SOUTH } from '../world/planet-map';
 import { makeHuskHost, emptyHuskHostState, POOL_REACH_M, type HuskHostState, type HuskDevEntry, type HuskPool } from './husk-host';
 import { seaLevel } from '../time/sea-level';
 import { makeCordHost, emptyCordHostState, type CordHostState, type CordDevEntry } from './cord-host';
@@ -509,6 +509,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     walks: {} as Record<string, number[]>, settle: null as null | { at: number; by: string; asked: Record<string, 'yes' | 'no'>; homes: Record<string, [number, number]> },
     felled: [] as { x: number; z: number; h: number; kind: number; at: number }[],
     clayPit: null as null | { at: number; diameterCm: number; depthCm: number },
+    firstLoad: null as null | { at: number; clayMg: number; bambooMg: number; lots: string[] },   // (the first raft load from the island to the south, once: firstLoad())
     prepBy: '', prepSaved: [] as string[], heed: {} as Record<string, number>, onsetHunger: {} as Record<string, number>, stormLog: [] as { at: number; warned: boolean; by: string; saved: string[]; lost: string[] }[] };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
@@ -4509,6 +4510,28 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     res.onEvent = quiet;
     for (const r of list) { r.saying = ''; r.sayUntil = 0; }
   }
+  firstLoad();
   for (const r of list) placeY(r);
   return res;
+  // The first load from the island to the south (案 A: the owner, 2026-10-27; the amounts the science team's,
+  // specs/early-science-bootstrap.md, cc6862d): they came over with 25 kg of clay — the pit's lining and a batch to
+  // soak, as far as the cook pot and the lamp dish, not the rest — and 7 kg of bamboo, a raft load, on the shelf by the
+  // hut. What more the work wants is a reason to cross; no reeds: found when the island is reached. Once, with a mark in
+  // the save; an island that has some already gets only what it lacks (5 kg of clay at most once the pit is lined).
+  function firstLoad() {
+    if (village.firstLoad) return;
+    const has = (id: string) => Object.values(lab.lots).filter((l) => l.materialId === id).reduce((n, l) => n + l.amount.value, 0);
+    const clayMg = Math.max(0, (village.clayPit ? 5e6 : 25e6) - has('raw_clay')), bambooMg = Math.max(0, 7e6 - has('bamboo'));
+    const lots: string[] = [];
+    if (clayMg > 0) lots.push(addLot(lab, { lotId: `lot:south-near:first:${++lab.seq}`, materialId: 'raw_clay', amount: { value: clayMg, unit: 'mg' }, location: 'shelf', quality: { ...RAW_CLAY_SOUTH } }).lotId);
+    if (bambooMg > 0) {
+      const k = bambooMg / (BAMBOO_SOUTH.dry_mg + BAMBOO_SOUTH.water_mg);   // (a part of a raft load: dry and water in proportion)
+      lots.push(addLot(lab, { lotId: `lot:south-near:first:${++lab.seq}`, materialId: 'bamboo', amount: { value: bambooMg, unit: 'mg' }, location: 'shelf', quality: { ...BAMBOO_SOUTH, dry_mg: Math.round(BAMBOO_SOUTH.dry_mg * k), water_mg: bambooMg - Math.round(BAMBOO_SOUTH.dry_mg * k) } }).lotId);
+    }
+    village.firstLoad = { at: clockMs, clayMg, bambooMg, lots };
+    if (!lots.length) return;
+    const what = [clayMg ? `粘土 ${Math.round(clayMg / 1e5) / 10}kg` : '', bambooMg ? `竹 ${Math.round(bambooMg / 1e5) / 10}kg` : ''].filter(Boolean).join('・');
+    for (const r of list) if (r.id === 'dot' || r.id === 'lantern') r.diary.push({ at: clockMs, text: `南のすぐ近くの島から運んできた最初の荷：${what}（小屋の棚）`, key: 'got' });
+    drawStore();
+  }
 }

@@ -38,6 +38,7 @@ const inputs: any[] = [], allCodes = new Set<string>();
 let pick: string | null = null, marked = false;
 const make = () => {
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
+  for (const k of Object.keys(R.lab.lots)) if (k.startsWith('lot:south-near:first:')) delete R.lab.lots[k];   // (this check starts from an empty shelf, as before the first load from the south island — 案 A, 2026-10-27)
   R.setBrain(async (i: any) => { inputs.push(i); if (i.who !== 'dot' || !pick) return null; const p = pick; pick = null; return { goal: { text: 'テスト', why: 'テスト' }, plan: [p] }; });
   R.list.find((r: any) => r.id === 'dot').stats.built = 99;   // (the hut is up: a roof over the eaves)
   return R;
