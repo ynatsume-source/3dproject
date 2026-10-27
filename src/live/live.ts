@@ -1,7 +1,8 @@
 // The live screen (?live): the island streamed as it is, through "the observation window" (docs/proposals/viewer-
 // design-2026-10-16/screens/README.md, v2 2026-10-17). It only reads the world as it already is — who is being followed,
 // the words the world has for what it is doing, the island's date and time — and gives nothing back: no sense(), no
-// options, nothing to a resident's mind. The app's own controls are put away; the drone follows each resident in turn.
+// options, nothing to a resident's mind. The app's own controls are put away; the drone follows the residents by what is
+// going on with each (director.ts).
 // Fonts are the stream PC's own files (OFL, @fontsource): no request leaves the machine for them.
 import '@fontsource/zen-old-mincho/500.css';
 import '@fontsource/zen-old-mincho/600.css';
@@ -18,6 +19,7 @@ import { glyphs, LEX } from '../robots/islandlang';
 import { luminance, brightTenth, hazeFor, hazeStyle } from './scrim';
 import { statusEn, firstEn, asLine, FIXED_EN, NAMES_EN } from './en';
 import { captionSender } from './captions';
+import { makeDirector } from './director';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -25,12 +27,10 @@ export interface LiveCtx {
   watch(r: any): void;               // follow this one
   clockMs(): number;
   tz(): number;
+  cam?(who: string, pri: number, kind: string, why: string): void;   // (each change of who is followed, for the log: ?rehearsal)
 }
 /** The drone's number for each one it follows (01–04; 13 is the island round, later). */
 const DORON: Record<string, string> = { dot: '01', rakko: '02', kame: '03', lantern: '04' };
-const ORDER = ['dot', 'rakko', 'kame', 'lantern'];
-const TURN_S = 360;   // (each one followed for six minutes, then the next one awake)
-
 export function makeLive(ctx: LiveCtx) {
   document.body.classList.add('live');
   // (?lang=en: the same window in English — the world's words turned on this side only: src/live/en.ts; ?captions=<url>:
@@ -53,14 +53,8 @@ export function makeLive(ctx: LiveCtx) {
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
   const band = $('.band'), status = $('.status'), trialEl = $('.band .trial');
   const measure = document.createElement('canvas').getContext('2d')!;
-  let turn = 0, tick = 0, shownFor = '', shownText = '', swapT = 0;
+  let tick = 0, shownFor = '', shownText = '', swapT = 0;
 
-  const awake = (r: any) => r.act !== 'sleep' && r.task?.kind !== 'sleep' && !(r.task?.kind === 'voyage' && r.task.data?.started);   // (asleep, or away at sea: not followed)
-  function next(R: any) {
-    const now = ctx.watched(), i = now ? ORDER.indexOf(now.id) : -1;
-    for (let k = 1; k <= ORDER.length; k++) { const r = R.list.find((x: any) => x.id === ORDER[(i + k) % ORDER.length]); if (r && awake(r)) return r; }
-    return now ?? R.list.find((x: any) => x.id === 'dot');
-  }
   // (the line fits the band's width at its own size and face: broken after a 、 or 。 if not)
   const fits = (line: string) => { measure.font = `500 ${status.style.fontSize || getComputedStyle(status).fontSize} ${en ? "'Cormorant Garamond'" : "'Zen Old Mincho'"}`; return measure.measureText(line).width <= innerWidth * 0.5 - innerHeight / 1080 * 24; };
   function show(r: any, text: string) {
@@ -104,12 +98,12 @@ export function makeLive(ctx: LiveCtx) {
     if (sub.classList.contains('off')) fill(); else { sub.classList.add('off'); setTimeout(() => { if (subKey === key) fill(); }, 600); }
   }
 
+  const director = makeDirector({ residents: ctx.residents, watched: ctx.watched, watch: ctx.watch, cam: ctx.cam, speaking: () => !!subKey });
   function update(dt: number) {
     const R = ctx.residents();
     if (!R) return;
-    turn -= dt;
-    let r = ctx.watched();
-    if (!r || turn <= 0 || (!awake(r) && turn < TURN_S - 30)) { const n = next(R); if (n && n !== r) ctx.watch(n); r = n; turn = TURN_S; }   // (one that falls asleep is left after half a minute)
+    director.tick(dt);   // (whom the drone follows: director.ts)
+    const r = ctx.watched();
     subtitle(R, r);   // (every frame: a line begins and ends with the voice)
     if ((tick -= dt) > 0) return; tick = 1;   // (the words read once a second)
     $('.when .date').textContent = dateOf(ctx.clockMs());
@@ -175,7 +169,9 @@ export function makeLive(ctx: LiveCtx) {
   // date and time — for about eight seconds, then it fades. Several at once wait their turn.
   const card = $('.card'), queue: { text: string; at: number }[] = [];
   let cardT = 0;
-  function event(_kind: string, text: string, r: any, meta?: { milestone?: string }) {
+  function event(kind: string, text: string, r: any, meta?: { milestone?: string; trial?: { kind: string; result?: string; text: string | null } }) {
+    director.event(kind, text, r, meta);   // (ranked for the drone)
+    if (meta?.trial?.text) director.trial(r, meta.trial.result ?? 'start', meta.trial.text);   // (a trial begun or come out, with words to show: rank 1)
     if (!meta?.milestone) return;
     const ja = trimStatus(text.split('。')[0]), esc1 = (t: string) => t.replace(/[<&]/g, (c) => (c === '<' ? '&lt;' : '&amp;'));
     const html = en ? firstEn(meta.milestone, r?.v?.name ?? '', true) : esc1(ja);
@@ -192,5 +188,7 @@ export function makeLive(ctx: LiveCtx) {
     card.classList.remove('off'); cardT = 8;
   }
 
-  return { update: (dt: number) => { update(dt); cardTick(dt); }, sample, haze, event };
+  /** A try's result, for the trials' screen (PROGRAM.md §1): the drone goes to the one whose try it was (rank 1). */
+  const trial = (r: any, outcome: string, text: string) => director.trial(r, outcome, text);
+  return { update: (dt: number) => { update(dt); cardTick(dt); }, sample, haze, event, trial };
 }
