@@ -10,7 +10,7 @@
 // Usage: npx tsx scripts/lumau-check.ts
 import { lexicon, DIGITS } from '../src/robots/lumau/lexicon';
 import { EXAMPLES, render } from '../src/robots/lumau/grammar';
-import { LEX, SAY, roman, subtitle } from '../src/robots/islandlang';
+import { LEX, roman, subtitle } from '../src/robots/islandlang';
 import { phrase, type Frame } from '../src/robots/lumau/frames';
 
 let bad = 0;
@@ -52,11 +52,13 @@ for (const x of EXAMPLES) {
 want('5 examples', broken.length === 0, broken.join(' / ') || `${EXAMPLES.length}`);
 if (!broken.length) for (const x of EXAMPLES.slice(0, 3)) console.log(`   ${roman(render(x.ids))}  ${x.ja}`);
 
-const said = [SAY.identify('dot'), SAY.identify('rakko'), SAY.report([{ what: 'hut', n: 3, of: 24 }, { what: 'map', n: 30, pct: true }]), SAY.share('wood', 12, 'rakko'), SAY.share('shell', 5, 'dot', true),
-  SAY.found('ヤシの実'), SAY.proposePier(), SAY.agreePier('dot'), SAY.agreePier('rakko'), SAY.agreePier('lantern'), SAY.starsRecorded()];
+// (the lines that had headings — 識別・報告・共有・発見・提案・了承・記録 — are frames now: PROGRAM.md §6, R-027)
+const said = [phrase({ act: 'greet', who: 'dot' }), phrase({ act: 'greet', who: 'rakko' }), phrase({ act: 'tell-progress', counts: [{ what: 'hut', n: 3, of: 24 }, { what: 'map', n: 30, pct: true }] }),
+  phrase({ act: 'tell-where', what: 'wood', metres: 12, to: 'rakko' }), phrase({ act: 'tell-where', what: 'shell', metres: 5, to: 'dot' }), phrase({ act: 'found-put', thing: 'ヤシの実' }),
+  phrase({ act: 'propose', deed: 'pier', mine: 'measure-place' }), phrase({ act: 'agree-do', deed: 'planks' }), phrase({ act: 'agree-do', deed: 'posts' }), phrase({ act: 'agree-do', deed: 'base-stones' }), phrase({ act: 'stars-recorded' })];
 const noEn = said.filter((m) => !m.en || /[ぁ-んァ-ン一-龥]/.test(m.en));
 want('6 English for every line', noEn.length === 0, noEn.map((m) => m.ja).join(' / ') || `${said.length} lines`);
-want('6 at is ni', roman(SAY.found('ヤシの実').isl).includes('mau ni') && subtitle(SAY.found('軽石'), 'en').startsWith('Found:'), roman(SAY.found('ヤシの実').isl));
+want('6 at is ni', roman(phrase({ act: 'found-put', thing: 'ヤシの実' }).isl).includes('mau ni') && subtitle(phrase({ act: 'found-put', thing: '軽石' }), 'en').startsWith('I picked up'), roman(phrase({ act: 'found-put', thing: 'ヤシの実' }).isl));
 
 const frames: Frame[] = [{ act: 'ask-bring', to: 'rakko', what: 'wood' }, { act: 'accept-bring', to: 'dot', what: 'wood' },
   ...(['hungry', 'sleepy', 'hands-full', 'not-seen', 'busy-shells'] as const).map((why) => ({ act: 'refuse', why }) as Frame),
