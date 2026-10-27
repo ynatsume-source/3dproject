@@ -17,6 +17,7 @@
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/husk-host-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
+import { ISLES } from '../src/world/planet-map';
 import { makeHuskHost, emptyHuskHostState } from '../src/robots/husk-host';
 import { Solids } from '../src/robots/solids';
 import { mulberry32 } from '../src/core/math';
@@ -41,6 +42,7 @@ const inputs: any[] = [], allCodes = new Set<string>();   // (codes from every i
 let pick: string | null = null;
 const make = () => {
   const R: any = makeResidents({ id: 'kayama', lat: 24.37, lon: 124.03, f } as any, T, ['テスト魚'], ['テスト鳥']);
+  for (const i of ISLES) R.village.map.seen[i.id] ??= { at: 0, word: i.id };   // (the islands already on Dot's map: no clear morning's look out to sea in the middle of this)
   R.setBrain(async (i: any) => { inputs.push(i); if (i.who !== 'dot' || !pick) return null; const p = pick; pick = null; return { goal: { text: 'テスト', why: 'テスト' }, plan: [p] }; });
   return R;
 };
