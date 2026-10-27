@@ -4207,8 +4207,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (PLOTS.some((pl) => pl.ok && pl.s === 2 && growth(pl) >= 0.6)) parts.push({ who: 'dot', deed: 'harvest' });
     }
     for (const id of ['rakko', 'kame'] as const) if (seated.some((r) => r.id === id)) parts.push({ who: id, deed: 'eat' });
-    // (two to a line: a subtitle holds two sentences — PROGRAM.md §6)
-    for (let i = 0; i < Math.min(4, parts.length); i += 2) out.push(say_(by, { act: 'assign', parts: parts.slice(i, i + 2) }));
+    // (one sentence for each: Dot's deeds joined, and those who eat beforehand together — a line each, PROGRAM.md §6; science, #179)
+    const dotDo = parts.filter((p) => p.who === 'dot').map((p) => p.deed), eaters = parts.filter((p) => p.deed === 'eat').map((p) => p.who);
+    if (dotDo.length) out.push(say_(by, { act: 'assign-prep', who: ['dot'], deeds: dotDo, by }));
+    if (eaters.length) out.push(say_(by, { act: 'assign-prep', who: eaters, deeds: ['eat'], by }));
     return out;
   }
   function swellMorning() {

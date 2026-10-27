@@ -7,8 +7,8 @@
 //  4 short: two sentences at most, and thirty characters at most (a bubble's two lines)
 //  5 every line has its island words (each a word of the lexicon) and its English, and the English has no Japanese
 //  6 no value it does not know: no hunger as a number (おなかは64パーセント — hungry or not, by the world's mark); a
-//    distance said as a person says it (under 3 m すぐ近く, from 20 m to the nearest ten, くらい said in the island's words
-//    too: about_n); no あなた between friends
+//    distance said as a person says it (under 3 m すぐ近く; under 10 m to the metre; under 50 m to five, from 50 m to
+//    ten, with くらい — said in the island's words too: about_n); no あなた between friends
 // Usage: npx tsx scripts/say-words-check.ts
 import { phrase, FRAME_VALUES as V, type Frame } from '../src/robots/lumau/frames';
 
@@ -51,7 +51,9 @@ for (const c of V.count) for (const n of [0, 3, 24]) F.push({ act: 'tell-progres
 F.push({ act: 'tell-progress', counts: [{ what: 'map', n: 30, pct: true }, { what: 'notes', n: 12 }, { what: 'cairn', n: 4 }] }, { act: 'tell-progress', counts: [{ what: 'hut', n: 0, of: 24 }, { what: 'isle', n: 0 }] },
   { act: 'tell-progress', counts: [{ what: 'hut', n: 18, of: 24 }, { what: 'isle', n: 5 }] }, { act: 'tell-progress', counts: [{ what: 'shell', n: 33 }, { what: 'full', n: 64 }] },
   { act: 'tell-progress', counts: [{ what: 'notes', n: 12 }, { what: 'full', n: 30, hungry: true }] }, { act: 'tell-progress', counts: [{ what: 'cairn', n: 3 }, { what: 'full', n: 90, hungry: false }] });
-for (const metres of [2.9, 3, 19.6, 20, 137, 144.9]) F.push({ act: 'tell-where', what: 'shell', metres, to: 'rakko' });
+for (const by of [undefined, 'kame', 'lantern'] as const) for (const deeds of [['haul'], ['harvest'], ['haul', 'harvest']] as const) F.push({ act: 'assign-prep', who: ['dot'], deeds: [...deeds], by });
+for (const by of [undefined, 'kame', 'lantern'] as const) for (const who of [['rakko'], ['kame'], ['rakko', 'kame']] as const) F.push({ act: 'assign-prep', who: [...who], deeds: ['eat'], by });
+for (const metres of [2.9, 3, 9.4, 12, 19.6, 20, 47.6, 113, 137, 144.9]) F.push({ act: 'tell-where', what: 'shell', metres, to: 'rakko' });
 // (what is passed on and corrected: each of the others' lines, once)
 const inner: Frame[] = [{ act: 'warn', what: 'typhoon' }, { act: 'tell-night', reads: 41, mark: -8, alarm: false }, { act: 'tell-night', reads: 2, mark: 9, alarm: true }, { act: 'tell-night', reads: 0, alarm: false }, { act: 'tell-where', what: 'wood', metres: 110 }];
 for (const said of inner) for (const from of W) F.push({ act: 'relay', from, said }, { act: 'correct', said });
@@ -71,7 +73,8 @@ want('4 two sentences, thirty characters at most', !lines.some(long), lines.filt
 const noEn = (x: { en: string }) => !x.en || /[ぁ-んァ-ン一-龥]/.test(x.en);
 want('5 English for every line, and none of it Japanese', !lines.some(noEn), show(lines.filter(noEn)));
 const hidden = (x: { f: Frame; ja: string; isl: string[] }) => /おなかは\d|\d+パーセント$/.test(x.ja.replace(/電池は\d+パーセント|地図は\d+パーセント/g, '')) || /あなた/.test(x.ja)
-  || (x.f.act === 'tell-where' && (x.f.metres < 3 ? !/すぐ近く/.test(x.ja) : !/くらい/.test(x.ja) || !x.isl.includes('mile') || (x.f.metres >= 20 && !/\d0m/.test(x.ja))));
+  || (x.f.act === 'tell-where' && (x.f.metres < 3 ? !/すぐ近く/.test(x.ja) : x.f.metres < 9.5 ? /くらい/.test(x.ja) || x.isl.includes('mile')
+    : !/くらい/.test(x.ja) || !x.isl.includes('mile') || !/[05]m/.test(x.ja) || (x.f.metres >= 50 && !/0m/.test(x.ja))));
 want('6 no value it does not know; distances as a person says them; no あなた', !lines.some(hidden), show(lines.filter(hidden)) + ` (${lines.filter((x) => x.f.act === 'tell-where').slice(0, 1).map((x) => x.ja + ' ' + x.isl.join(' ')).join('')})`);
 if (process.env.SHOW) { const by = new Map<string, string[]>(); for (const x of lines.filter(long)) by.set(x.f.act, [...(by.get(x.f.act) ?? []), `${x.ja}（${[...x.ja].length}）`]); for (const [k, v] of by) console.log(k, v.length, v.slice(0, 3).join(" / ")); }
 console.log(bad ? `FAIL (${bad})` : 'all ok');

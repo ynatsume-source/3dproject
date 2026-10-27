@@ -285,7 +285,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
     now = Date.parse('2026-10-03T23:40:00Z');
     R.village.gaugeLog.push({ at: now - 3.6e6, ...GAUGE_SETUP, mark: 9 }); R.village.hypo = alarmHypo(now);
     await run(R, 3600, () => R.village.mornings > 0);
-    want('N forecast, agreed, and who does what is said', R.village.stormPrep > 0 && R.village.prepBy === 'lantern' && saidBy(R, 'lantern', /ドットは筏を高い所へ運ぶ/));
+    want('N forecast, agreed, and who does what is said', R.village.stormPrep > 0 && R.village.prepBy === 'lantern' && saidBy(R, 'lantern', /^ドットは筏を高い所へ運/) && saidBy(R, 'lantern', /は、食べておく。$/));
     await run(R, 1800, () => R.village.raft.hauled);
     want('N Dot hauls the raft up the beach', R.village.raft.hauled && dot.diary.some((e: any) => /筏を浜の上へ引き上げた/.test(e.text)));
     R.setWeather(gale); await run(R, 60); R.setWeather(fair); await run(R, 5);

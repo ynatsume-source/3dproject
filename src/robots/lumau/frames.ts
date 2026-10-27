@@ -51,6 +51,7 @@ export type Frame =
   | { act: 'object-proposal'; why: Reason }                               // that's not good, because …
   | { act: 'counter'; instead: Deed }                                     // rather than that, let's …
   | { act: 'assign'; parts: { who: Who; deed: Deed }[] }                  // … does …, … does …
+  | { act: 'assign-prep'; who: Who[]; deeds: PrepDeed[]; by?: Who }      // (a storm's getting ready: one sentence a group, its deeds joined)
   // feedback
   | { act: 'helped'; what: 'wood'; became: 'piece' | 'raft' | 'catcher' } // … was of use: it became …
   | { act: 'heard-wrong'; what: Findable }                                // where I was told, there was no …
@@ -126,6 +127,9 @@ const DEED: Record<Deed, { ids: Ids; ja: [string, string, string]; en: string }>
 export type Findable = 'wood' | 'shell' | 'coconut' | 'water' | 'thing';
 const FIND: Record<Findable, { ja: string; en: string }> = { wood: { ja: '流木', en: 'driftwood' }, shell: { ja: '貝殻', en: 'shells' }, coconut: { ja: 'ヤシの実', en: 'coconuts' }, water: { ja: '水', en: 'water' }, thing: { ja: '見慣れないもの', en: 'the new thing' } };
 export type Made = 'charcoal' | 'oil' | 'pot' | 'catcher' | 'raft' | 'clay';
+/** Getting ready for a storm, as said in one sentence: a deed joined to the next (て), and the last as done beforehand. */
+export type PrepDeed = 'haul' | 'harvest' | 'eat';
+const PREP: Record<PrepDeed, { te: string; end: string; en: string }> = { haul: { te: '筏を高い所へ運んで', end: '筏を高い所へ運ぶ', en: 'carry the raft up high' }, harvest: { te: '実を早めに収穫して', end: '実を早めに収穫する', en: 'harvest early' }, eat: { te: '食べておいて', end: '食べておく', en: 'eat beforehand' } };
 /** What was made, and how it is made, as a person says it (charcoal is burnt, oil pressed, clay kneaded — not "made"). */
 const MADE: Record<Made, { id: string; ja: string; en: string; how?: { id: string; ja: string; en: string } }> = { charcoal: { id: 'charcoal', ja: '炭', en: 'charcoal', how: { id: 'burn', ja: '焼いて', en: 'burning' } }, oil: { id: 'oil', ja: '油', en: 'oil', how: { id: 'squeeze', ja: 'しぼって', en: 'pressing' } }, pot: { id: 'pot', ja: '器', en: 'a pot' }, catcher: { id: 'rain_catcher', ja: '雨受け', en: 'a rain catcher' }, raft: { id: 'raft', ja: '筏', en: 'a raft' }, clay: { id: 'clay', ja: '粘土', en: 'clay', how: { id: 'knead', ja: '練って', en: 'kneading' } } };
 export type Measured = 'water' | 'coconut' | 'mark' | 'air' | 'wind' | 'island' | 'walk';
@@ -197,11 +201,13 @@ export function phrase(f: Frame): Said {
     case 'hand-over': return make(['here', ',', f.what, '.'], `はい、${THING[f.what].ja}。`, `Here's ${THING[f.what].en}.`);
     case 'received': return make(['agree', '.', f.what, 'object', 'receive', 'past', '.'], `うん。${THING[f.what].ja}を受け取った。`, `Got it. I have the ${THING[f.what].en.replace(/^a /, '')}.`);
     case 'tell-where': {   // (said as a person says it: no heading, no brackets, a rough distance — PROGRAM.md §6)
-      // (under 3 m "close by"; from 20 m on, to the nearest ten — "about" is said in both, the island's about_n too)
+      // (a distance seen, not measured, said as fine as it can be told (science and viewer design, #179): under 3 m
+      // "close by"; under 10 m to the metre; under 50 m to five; from 50 m to ten — "about" from 10 m on, the island's
+      // about_n with it. What the other comes to know (hear) is the world's distance as it is.)
       const call = f.to ? { ids: [f.to, ','] as Ids, ja: `${NAME[f.to].ja}、`, en: `${NAME[f.to].en}, ` } : { ids: [] as Ids, ja: '', en: '' }, there = `${call.en}${call.en ? 't' : 'T'}here's ${THING[f.what].en}`;
       if (f.metres < 3) return make([...call.ids, 'near', 'at', f.what, 'there', '.'], `${call.ja}すぐ近くに、${THING[f.what].ja}があるよ。`, `${there} right close by.`);
-      const m = f.metres >= 20 ? Math.round(f.metres / 10) * 10 : Math.round(f.metres);
-      return make([...call.ids, 'about_n', `#${m}`, 'metre', 'front', 'at', f.what, 'there', '.'], `${call.ja}${m}mくらい先に、${THING[f.what].ja}があるよ。`, `${there} about ${m} m ahead.`);
+      const step = f.metres < 10 ? 1 : f.metres < 50 ? 5 : 10, m = Math.max(3, Math.round(f.metres / step) * step), about = m >= 10;
+      return make([...call.ids, ...(about ? ['about_n'] : []), `#${m}`, 'metre', 'front', 'at', f.what, 'there', '.'], `${call.ja}${m}m${about ? 'くらい' : ''}先に、${THING[f.what].ja}があるよ。`, `${there} ${about ? 'about ' : ''}${m} m ahead.`);
     }
     case 'will-go': return make(['agree', '.', 'me', 'topic', 'go', 'future', '.'], 'わかった。行く。', "Okay. I'll go.");
     case 'noted': return make(['agree', '.'], 'わかった。', 'Okay.');
@@ -293,6 +299,12 @@ export function phrase(f: Frame): Said {
     case 'object-proposal': { const b = because(f.why); return make(['that', 'topic', 'good', 'not', '.', ...b.ids], `それはよくない。${b.ja}`, `That's not good.${b.en}`); }
     case 'counter': { const d = DEED[f.instead]; return make(['that', 'than', ',', ...d.ids, 'lets', '.'], `それより、${d.ja[1]}。`, `Rather than that, let's ${d.en}.`); }
     case 'assign': return make(f.parts.flatMap((p) => [p.who, 'topic', ...DEED[p.deed].ids, 'future', '.']), f.parts.map((p) => `${NAME[p.who].ja}は${DEED[p.deed].ja[0]}。`).join(''), f.parts.map((p) => `${NAME[p.who].en} will ${DEED[p.deed].en}.`).join(' '));
+    case 'assign-prep': {   // (one sentence for each group — "ラッコとカメマルは、食べておく。"; the one speaking says 僕)
+      const me = (w: Who) => w === f.by, names = f.who.map((w) => (me(w) ? { id: 'me', ja: '僕', en: 'I' } : { id: w, ja: NAME[w].ja, en: NAME[w].en })).sort((a, b) => +(a.id === 'me') - +(b.id === 'me'));
+      const ids: Ids = [...names.flatMap((n, i) => (i ? ['and', n.id] : [n.id])), 'topic', ...f.deeds.flatMap((d, i) => [...(i ? ['and'] : []), ...DEED[d].ids]), 'future', '.'];
+      const ja = `${names.map((n) => n.ja).join('と')}は${names.length > 1 ? '、' : ''}${f.deeds.map((d, i) => (i < f.deeds.length - 1 ? `${PREP[d].te}、` : PREP[d].end)).join('')}。`;
+      return make(ids, ja, `${names.map((n) => n.en).join(' and ')} will ${f.deeds.map((d) => PREP[d].en).join(' and ')}.`);
+    }
     case 'helped': { const to = f.became === 'piece' ? { ids: ['hut', 'of', 'piece'], ja: '小屋の部材', en: 'a piece of the hut' } : f.became === 'raft' ? { ids: ['raft'], ja: '筏', en: 'the raft' } : { ids: ['rain_catcher'], ja: '雨受け', en: 'the rain catcher' };
       return make([f.what, 'topic', 'useful', 'past', '.', ...to.ids, 'become', 'past', '.'], `${THING[f.what].ja}は役に立った。${to.ja}になった。`, `The ${THING[f.what].en} was of use. It became ${to.en}.`); }
     case 'heard-wrong': return make(['hear', 'past', 'place', 'at', f.what, 'there', 'not', 'past', '.'], `聞いた場所に${FIND[f.what].ja}はなかった。`, `There was no ${FIND[f.what].en} where I was told.`);
