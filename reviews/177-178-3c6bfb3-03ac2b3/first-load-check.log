@@ -1,0 +1,4 @@
+new: clay 25 kg, bamboo 7 kg, lot:south-near:first:1, marked true — PASS
+again: clay 25 kg, bamboo 7 kg — PASS
+short: clay 10 kg (added 0), bamboo 7 kg (added 4) — PASS
+empty: clay 25 kg, bamboo 7 kg — PASS

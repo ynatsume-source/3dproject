@@ -1,0 +1,13 @@
+1 the fired dish made the lamp dish, standing in the hut: {"capacityMl":100,"absorptionPpm":120000,"massG":260,"shelter":0.8,"roofed":1} ok
+2 a wick twisted from what the island has: {"fiber":2,"diameter_mm":5,"char_ppm":0,"history_complete":1} ok
+2 not lit in the afternoon: 16.9 h ok
+3 lit at dusk: 18.6 h ok
+3 burned through the evening and put out at bedtime: completed  lit 5.0 h, 145993 lm·s ok
+4 the oil soaked into the dish's wall kept with the dish: 28.702g @eq:lamp_dish ok
+4 the clear oil left back on the shelf: 17.351g @shelf ok
+4 the water that sat under the oil in a jar of its own: 0.321g @jar:lamp ok
+4 the lamp's words in its diary, not how long it burned: 灯皿にヤシ油を入れ、芯を立てて灯す：始めた（ヤシ油 67g、灯皿） / 灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 17.4g・真水 0.3g・ヤシ油 28.7g・芯 1.8g・芯の燃えさし 0g）。気づいたこと：芯の先に小さな炎がともった、黒く固まった芯の先を切りそろえた、灯を消した ok
+5 the next evening: the soaked oil goes in with the dish: completed  ok
+5 a wick of a fibre not yet tried: fibre 2: 145993 lm·s / fibre 3: 157375 lm·s ok
+kept in the save:  ok
+PASS
