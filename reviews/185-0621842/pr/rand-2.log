@@ -1,0 +1,31 @@
+{"BR":"rand","HOURS":72,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"1.3","labDone":["15.9h p30x_coconut_milk","44.8h p10x_clay_slake","45.5h p10y_clay_knead","46.8h p11y_pot_shape","48.0h p11y_pot_shape"]}
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+6.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 0 raft 2 reached  labDone 0
+12.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 1 raft 2 reached  labDone 0
+18.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 1 raft 4 reached  labDone 1
+24.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 1 raft 4 reached  labDone 1
+30.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 0.6 pots 0.0/0.0/0.0 hut 7 raft 6 reached  labDone 1
+36.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 0.6 pots 0.0/0.0/0.0 hut 14 raft 6 reached  labDone 1
+42.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 0.6 pots 0.0/0.0/0.0 hut 15 raft 3 reached  labDone 1
+48.0h clay 0.0 settled 0.0 prepared 2.5 bamboo 0.6 pots 1.4/0.0/0.0 hut 15 raft 3 reached  labDone 4
+54.0h clay 10.0 settled 0.0 prepared 1.1 bamboo 7.6 pots 2.8/0.0/0.0 hut 22 raft 6 reached south-near labDone 5
+60.0h clay 20.0 settled 0.0 prepared 1.1 bamboo 14.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+66.0h clay 20.0 settled 0.0 prepared 1.1 bamboo 12.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+firsts 0.0h dot sighting | 1.3h lantern clay-pit | 26.0h dot raft | 26.2h dot mast | 33.0h dot fibre | 52.8h dot crossing:sopunu
+log 1.3h pit ランタン：小屋のそばに、葉の日よけをかけて粘土の池を掘った（直径50cm・深さ25cm。生の粘土20kgで底と壁を踏み固めた。入るのは約34
+1.3h pit ランタンが粘土の池を掘った。粘土を浸せるようになった
+3.8h science ランタン：ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は5。目盛りが7以上になったら、
+5.2h science ランタン：気圧計が8まで上がった。台風が来るかもしれない
+7.1h science ランタン：ひらめき：温まっても目盛りが上がるなら、前の日の同じ時刻と比べればいい。暑さ寒さは毎日くり返すから、残るのは気圧の変わり方だ。これ
+11.0h science ランタン：気圧計が前の日の同じ時刻より9上がった。台風が来るかもしれない
+15.9h science ランタンの工程：ヤシの実を割って、削って、しぼる：できた（ヤシの実の殻 432.5g・ヤシの実の殻（内側） 160.6g・coconut_w
+26.0h raft ドットの筏ができた
+26.2h sail ドットが竹のマストを切り出した
+32.1h science ランタン：気圧計が11まで上がった。台風が来るかもしれない
+34.0h science ランタン：気圧計が13まで上がった。台風が来るかもしれない
+35.8h science ランタン：気圧計の目盛りが上がると台風が来る、は今のところ怪しい（当たり 0・外れ 3・見逃し 0）
+44.8h science ランタンの工程：粘土を水に浸して、こして沈める：できた（沈めた粘土 3964.8g・clay_sieve_residue 1089.2g・真
+45.5h science ランタンの工程：沈めた粘土を練る：できた（下ごしらえした粘土 3964.8g）。気づいたこと：手につかず、よくまとまる
+46.8h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 2543.1g）。気づいたこと：
+48.0h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 1121.4g）。気づいたこと：
+49.7h raft ドットの筏ができた

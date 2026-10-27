@@ -1,0 +1,32 @@
+{"BR":"rand","HOURS":72,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"1.3","labDone":["41.8h p30x_coconut_milk","54.3h p10x_clay_slake","59.0h p10y_clay_knead","60.3h p11y_pot_shape","60.9h p11y_pot_shape ✗","64.3h p11y_pot_shape"]}
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+6.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 3 raft 0 reached  labDone 0
+12.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 4 raft 6 reached  labDone 0
+18.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 5 raft 6 reached  labDone 0
+24.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 6 raft 6 reached  labDone 0
+30.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 11 raft 6 reached  labDone 0
+36.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 9.1 pots 0.0/0.0/0.0 hut 18 raft 6 reached south-near labDone 0
+42.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 18 raft 3 reached south-near labDone 1
+48.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 18 raft 3 reached south-near labDone 1
+54.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 23 raft 6 reached south-near labDone 1
+60.0h clay 30.0 settled 0.0 prepared 3.9 bamboo 21.6 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 3
+66.0h clay 30.0 settled 0.0 prepared 1.1 bamboo 21.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 6
+firsts 0.1h dot sighting | 1.3h lantern clay-pit | 11.3h dot raft | 11.9h dot mast | 31.2h dot crossing:sopunu | 53.2h dot fibre | 54.4h rakko rakko-bed
+log 1.3h pit ランタン：小屋のそばに、葉の日よけをかけて粘土の池を掘った（直径50cm・深さ25cm。生の粘土20kgで底と壁を踏み固めた。入るのは約34
+1.3h pit ランタンが粘土の池を掘った。粘土を浸せるようになった
+3.8h science ランタン：ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は5。目盛りが7以上になったら、
+5.2h science ランタン：気圧計が8まで上がった。台風が来るかもしれない
+7.1h science ランタン：ひらめき：温まっても目盛りが上がるなら、前の日の同じ時刻と比べればいい。暑さ寒さは毎日くり返すから、残るのは気圧の変わり方だ。これ
+11.0h science ランタン：気圧計が前の日の同じ時刻より9上がった。台風が来るかもしれない
+11.3h raft ドットの筏ができた
+11.9h sail ドットが竹のマストを切り出した
+32.2h science ランタン：気圧計が11まで上がった。台風が来るかもしれない
+34.0h science ランタン：気圧計が13まで上がった。台風が来るかもしれない
+35.8h science ランタン：気圧計の目盛りが上がると台風が来る、は今のところ怪しい（当たり 0・外れ 3・見逃し 0）
+41.8h science ランタンの工程：ヤシの実を割って、削って、しぼる：できた（ヤシの実の殻 492.1g・ヤシの実の殻（内側） 182.8g・coconut_w
+50.6h raft ドットの筏ができた
+54.3h science ランタンの工程：粘土を水に浸して、こして沈める：できた（沈めた粘土 3911.6g・clay_sieve_residue 1089.2g・真
+59.0h science ランタンの工程：沈めた粘土を練る：できた（下ごしらえした粘土 3911.6g）。気づいたこと：手につかず、よくまとまる
+60.3h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 2489.9g）。気づいたこと：
+60.9h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：途中でやめた（材料はそのまま）
+64.3h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 1068.2g）。気づいたこと：

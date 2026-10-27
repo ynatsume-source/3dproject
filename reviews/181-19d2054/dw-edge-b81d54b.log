@@ -1,0 +1,8 @@
+{"metric":"shells","op":"<=","value":3} -> null
+{"metric":"shells","op":"==","value":3} -> null
+{"metric":"shells","op":"==","value":"7"} -> {"metric":"shells","op":"==","value":7}
+{"metric":"shells","op":">=","value":4} -> null
+{"metric":"shells","op":">=","value":6} -> {"metric":"shells","op":">=","value":6}
+{"metric":"holding","op":"==","value":"wood"} -> {"metric":"holding","op":"==","value":"wood"}
+{"metric":"holding","op":">=","value":"wood"} -> null
+{"metric":"holding","op":"==","value":"なし"} -> null

@@ -1,0 +1,10 @@
+A doneWhen kept as given, "22" read as 22, the wrong ones let go and the thought kept: {"ok":{"metric":"hut.parts","op":">=","value":21},"str":{"metric":"hut.parts","op":">=","value":22},"hold":{"metric":"holding","op":"==","value":"wood"},"kept":true} ok
+A the counts only grow: <= and == below let go, == above kept; a word by == alone: {"eqOver":{"metric":"hut.parts","op":"==","value":23}} ok
+B reached: begun in its own words, then done: built 21; [{"kind":"start","text":"流木を削って、小屋に取りつけてみる"},{"kind":"result","result":"done","text":"流木を削って、小屋に取りつけてみる","metric":"hut.parts","now":21}]; trial {"text":"流木を削って、小屋に取りつけてみる","at":1790989200600,"active":false} ok
+C not yet: begun in its own words, then not-yet, the goal kept and a reason to think: built 21; [{"kind":"start","text":"流木を削って、小屋に取りつけてみる"},{"kind":"result","result":"not-yet","text":"流木を削って、小屋に取りつけてみる","metric":"hut.parts","now":21}]; trial {"text":"流木を削って、小屋に取りつけてみる","at":1790989200600,"active":true} ok
+D nothing to check: begun in its own words, then steps-done: built 21; [{"kind":"start","text":"流木を削って、小屋に取りつけてみる"},{"kind":"result","result":"steps-done","text":"流木を削って、小屋に取りつけてみる"}]; trial {"text":"流木を削って、小屋に取りつけてみる","at":1790989200600,"active":false} ok
+E a step that came to nothing: failed, in the world's words (none for できなかった); the try over: {"kind":"result","result":"failed","text":"部材を取りつけてみる"} tried {"text":"部材を取りつけてみる","result":"failed","at":1790989200600} trial {"text":"部材を取りつけてみる","at":1790989200600,"active":false} ok
+F words with an option id or "22/24": told with no text, nothing shown: {"kind":"start","text":null} ok
+H the answer first, in its own try's words; then the new try; kept apart on the screen: [{"kind":"start","text":"流木を削って、小屋に取りつけてみる"},{"kind":"result","result":"done","text":"流木を削って、小屋に取りつけてみる","metric":"hut.parts","now":21},{"kind":"result","result":"confirmed","text":"流木を削って、小屋に取りつけてみる"},{"kind":"start","text":"浜を歩いて、次の流木をさがしてみる"}] tried {"text":"流木を削って、小屋に取りつけてみる","result":"confirmed","at":1790989278200} trial {"text":"浜を歩いて、次の流木をさがしてみる","at":1790989278200,"active":true} ok
+G by habit only: no trial told: 0 ok
+all ok

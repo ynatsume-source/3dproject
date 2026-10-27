@@ -1,0 +1,16 @@
+1 sees the log ahead: wood#19 ok
+1 not the one behind it:  ok
+1 not the one behind a tall rock:  ok
+2 its plan done step by step, a piece on the hut: gather→craft→place, hut 1 ok
+2 it wrote what it set out to do and that it did:  ok
+2 a goal done is a time to think again: 目的が終わった：小屋を建てる ok
+3 the world says the log is gone: gather:wood#19 gone ok
+3 it remembers that it tried:  ok
+3 it thinks again knowing why, and the gone log is not offered: うまくいかなかった：gather:wood#19（gone） ok
+3 and goes for the other one:  ok
+4 a new kind of thing seen: it stops to think, deeply: はじめて見るもの：石 (deep) ok
+5 a plan with options the world did not offer is not taken: (no goal) ok
+5 a hypothesis is settled only by a real result: confirmed dot-e8 ok
+6 no brain: it gets on by habit and builds: hut 1 ok
+6 never answers: it gets on by habit and builds: hut 1 ok
+PASS
