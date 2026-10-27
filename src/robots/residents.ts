@@ -2120,7 +2120,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     lab.equipment[`eq:${CLAY_PIT}`] = { equipmentId: `eq:${CLAY_PIT}`, kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params };
     village.clayPit = { at: clockMs, diameterCm: CLAY_PIT_PLAN.diameterCm, depthCm: CLAY_PIT_PLAN.depthCm };
     drawPit(); drawStore();
-    note(r, 'pit', {}, `小屋の屋根の下に粘土の池を掘った（直径${CLAY_PIT_PLAN.diameterCm}cm・深さ${CLAY_PIT_PLAN.depthCm}cm。生の粘土${Math.round(PIT_NEEDS.rawClayMg / 1e6)}kgで底と壁を踏み固めた。入るのは約${Math.round(params.capacityMl / 1000)}L）`);
+    note(r, 'pit', {}, `小屋のそばに粘土の池を掘って、葉の日よけをかけた（直径${CLAY_PIT_PLAN.diameterCm}cm・深さ${CLAY_PIT_PLAN.depthCm}cm。生の粘土${Math.round(PIT_NEEDS.rawClayMg / 1e6)}kgで底と壁を踏み固めた。入るのは約${Math.round(params.capacityMl / 1000)}L）`);
     tell('pit', `${r.v.name}が粘土の池を掘った。粘土を浸せるようになった`, r);
     return true;
   }
