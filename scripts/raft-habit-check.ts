@@ -1,8 +1,8 @@
 // Headless check (science on #177: with the model away, no raft was lashed and no crossing came in 72 hours, because
 // lash:raft and voyage: were only ever chosen by Dot's mind). On the real island of Dot's world, Dot by habit alone:
 //  1 a clear morning: it looks out to sea and puts the islands on its map (#177's habit)
-//  2 a log in hand, the raft not whole and an island on the map: shaped and lashed to the raft, not put on the hut —
-//    six times, a raft
+//  2 the hut first (science on #185): with the hut not up, a log in hand is shaped and put on the hut, not the raft;
+//    the hut up, the raft not whole and an island on the map, it is shaped and lashed to the raft — six times, a raft
 //  3 the raft whole, a clear day after the morning gathering, but a strong wind: the world turns it back, and it does
 //    not go again for three hours
 //  4 a calm clear morning after the gathering: it crosses to the island it has seen, and is back with what is there
@@ -42,8 +42,11 @@ const goals: string[] = []; { const seen = new Set<string>(), u = R.update; R.up
 }
 { // 2
   const built0 = dot.stats.built;
+  for (let k = 0; k < 4 && dot.stats.built < built0 + 2; k++) { const b = dot.stats.built; if (!dot.holding) dot.holding = 'wood'; await run(1800, () => dot.stats.built > b); }
+  want('2 the hut not up: logs shaped and put on the hut, not the raft', dot.stats.built === built0 + 2 && V.raft.parts === 0, `hut ${built0} → ${dot.stats.built}, raft ${V.raft.parts}`);
+  dot.stats.built = 24; dot.holding = ''; dot.task = null;   // (the hut up: all its pieces)
   for (let k = 0; k < 12 && V.raft.parts < 6; k++) { const p = V.raft.parts; if (!dot.holding) dot.holding = 'wood'; await run(1800, () => V.raft.parts > p); }
-  want('2 logs shaped and lashed to the raft, not put on the hut: a raft', V.raft.parts === 6 && dot.diary.some((e: any) => /筏ができた/.test(e.text)) && dot.stats.built === built0, `${V.raft.parts}/6, hut ${built0} → ${dot.stats.built}; ${goals.filter((g) => /筏/.test(g)).slice(0, 3).join(' / ')}`);
+  want('2 the hut up: logs shaped and lashed to the raft — a raft', V.raft.parts === 6 && dot.diary.some((e: any) => /筏ができた/.test(e.text)) && dot.stats.built === 24, `${V.raft.parts}/6, hut ${dot.stats.built}; ${goals.filter((g) => /筏/.test(g)).slice(0, 3).join(' / ')}`);
 }
 { // 3
   dot.holding = ''; dot.battery = 1; dot.task = null; sim = Date.parse('2026-10-07T09:40:00+09:00');
@@ -52,7 +55,7 @@ const goals: string[] = []; { const seen = new Set<string>(), u = R.update; R.up
   const blocked = dm.results.filter((r: any) => r.optionId === `voyage:${near.id}`), at = blocked[0]?.at ?? sim;
   await run(2.5 * 3600);
   const again = dm.results.filter((r: any) => r.optionId.startsWith('voyage:') && r.at > at);
-  want('3 a strong wind: turned back by the world, and not again within three hours', blocked[0]?.outcome === 'blocked' && /風が強い/.test(blocked[0]?.detail ?? '') && !again.length && !V.map.reached[near.id], `${blocked[0]?.detail ?? 'none'}; again ${again.length}`);
+  want('3 a strong wind: turned back by the world, and not again within three hours', blocked[0]?.outcome === 'blocked' && /風が強い/.test(blocked[0]?.detail ?? '') && !again.length && !V.map.reached[near.id], `${blocked[0]?.detail ?? 'none'}; again ${again.length} ${again.map((r: any) => `${r.optionId} ${r.outcome} ${new Date(r.at).toISOString()} ${r.detail ?? ""}`).join(" | ")} first ${new Date(at).toISOString()}`);
 }
 { // 4
   R.setWeather(calm); dot.holding = ''; dot.battery = 1; dot.task = null; sim = Date.parse('2026-10-08T09:40:00+09:00');

@@ -227,6 +227,7 @@ export interface Resident {
   path?: { pts: [number, number][]; tx: number; tz: number; t: number };   // the way it means to walk (robots/path.ts)
   goal?: { tx: number; tz: number; x: number; z: number; none: boolean };   // where it will stand to reach where it is going (outside whatever is there)
   went?: 'arrived' | 'blocked' | 'no way' | 'nowhere to stand';   // how its last walk ended (robots/solids.ts)
+  voyageNoAt?: number;   // (when the world last turned its crossing back — the day judged, or a typhoon at sea: not again by habit for three hours)
   spotted?: string[];   // the fish it has really made out since its last note (for its diary)
   photos?: PhotoRecord[];   // the photographs it chose to take (its media: src/journal/)
   seen?: { name: string; pos: THREE.Vector3; t: number; dur: number; lost: number };   // a fish going by that it is watching (Kamemaru, grazing)
@@ -2005,16 +2006,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       { const ph = photoHabit(r, opts); if (ph && !r.holding) return ph; }
       { const sp = has('say:warn:'); if (sp) return { text: '天気を知らせる', why: '近くに相手がいる', plan: [sp] }; }
       // (the raft and the crossing by habit too, not only when its mind thinks of them: without them, with the model away,
-      // no raft was lashed and no crossing came in 72 hours — science on #177. A piece in hand goes to the raft while the
-      // raft is not whole and an island is on the map (six pieces, then the hut again); the raft whole, it crosses to an
-      // island it has seen on a clear day, after the morning gathering and back by daylight (voyageHour) — not again
-      // within three hours of the world turning it back)
-      const raftWanted = village.raft.parts < RAFT_N && Object.keys(village.map.seen).length > 0, then = raftWanted ? 'lash:raft' : 'place:hut';
-      { const vo = opts.find((o) => o.id.startsWith('voyage:') && o.ready !== false && !village.map.reached[o.targetId!])?.id, w = islandWeather(clockMs), back = a.results.some((x) => x.optionId.startsWith('voyage:') && x.outcome !== 'done' && clockMs - x.at < 3 * 3.6e6);
+      // no raft was lashed and no crossing came in 72 hours — science on #177. The hut first: once it is up, a piece in
+      // hand goes to the raft while the raft is not whole and an island is on the map (with the raft first, the crossing
+      // came at 4–9 hours and ended chapter 1 with the hut at 6–12 pieces; the hut first, at 30–33 hours, as a mind of its
+      // own does — science on #185); the raft whole, it crosses to an island it has seen on a clear day, after the morning
+      // gathering and back by daylight (voyageHour) — not again within three hours of the world turning it back)
+      const raftWanted = r.stats.built >= HUT.length && village.raft.parts < RAFT_N && Object.keys(village.map.seen).length > 0;
+      { const vo = opts.find((o) => o.id.startsWith('voyage:') && o.ready !== false && !village.map.reached[o.targetId!])?.id, w = islandWeather(clockMs), back = clockMs - (r.voyageNoAt ?? -Infinity) < 3 * 3.6e6;   // (kept apart: its results are the last sixty, an hour's worth of short spells)
         if (vo && !back && (!w || (w.cloud < 0.6 && w.rain < 0.1))) return { text: '筏で島へ渡る', why: '筏ができて、晴れている', plan: [vo] }; }
       if (raftWanted && has('lash:')) return { text: '部材を筏に組む', why: '削った部材があり、見えた島へ渡る筏が要る', plan: ['lash:raft'] };
       if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
-      if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', then] };
+      if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', raftWanted ? 'lash:raft' : 'place:hut'] };
       if (has('shelve:')) return { text: '見つけたものを棚に置く', why: '手に持っている', plan: ['shelve:shelf'] };
       if (has('find:')) return { text: '見慣れないものを調べる', why: '浜で見かけた', plan: ['find:drift', 'shelve:shelf'] };
       if (has('charge:') && r.battery < 0.3) return { text: '充電する', why: '電池が少ない', plan: ['charge:sun'] };
@@ -2025,7 +2027,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (r.stats.built < HUT.length) {
         // (the nearest log it knows of)
         const g = opts.filter((o) => o.action === 'gather').sort((x, y) => { const p = (o: Option) => a.seen.get(o.targetId!); const dx = p(x), dy = p(y); return (dx ? Math.hypot(dx.x - r.pos.x, dx.z - r.pos.z) : 1e9) - (dy ? Math.hypot(dy.x - r.pos.x, dy.z - r.pos.z) : 1e9); })[0];
-        if (g) return raftWanted ? { text: '筏の部材を作る', why: '見えた島へ渡る筏が要る', plan: [g.id, 'craft:bench', then] } : { text: '小屋を建てる', why: '流木を見つけてある', plan: [g.id, 'craft:bench', 'place:hut'] };
+        if (g) return { text: '小屋を建てる', why: '流木を見つけてある', plan: [g.id, 'craft:bench', 'place:hut'] };
         // (none it knows of: look for some — or now and then ask Rakko, who is often on the beach)
         if (has('ask:') && Math.random() < 0.35) return { text: 'ラッコに流木を頼む', why: '小屋の材料が見つからない', plan: [has('ask:')!] };
         return { text: '流木を探す', why: '小屋の材料が要る', plan: [Math.random() < 0.7 ? 'look:shore' : 'wander:near'] };
@@ -3474,7 +3476,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     if (tk.kind === 'voyage' && tk.arrived && !tk.data.started) {
       const j = voyageJudge(r, tk.data.isle), w = village.map.seen[tk.data.isle]?.word ?? '';
-      if (!j.go) { report(r, tk, 'blocked', j.why); r.task = null; return; }
+      if (!j.go) { r.voyageNoAt = clockMs; report(r, tk, 'blocked', j.why); r.task = null; return; }
       tk.data.started = true; tk.t = 0; tk.dur = voyageMs(j.km) / 1000;   // (on the island's clock: voyageJudge)
       // (rigged: under sail — the science side moves it, cell by cell, and it is home when it is home; the raft's lashing
       // takes no load of the cord's own on a sail crossing: the voyage counts the rig's cords. Not in the hours caught up
@@ -3490,7 +3492,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (tk.data.sail) {   // (under sail: a storm brings the sail down and turns it for home — it comes back as the sea lets it)
         const h = sailSea.sail(clockMs, storm());
         if (h.home) { tk.data.why = h.turned ?? undefined; endVoyage(r, tk, h.turned ? 'turned' : 'reached', h.words); report(r, tk, h.turned ? 'blocked' : 'done', h.turned ? `${h.turned}ので引き返した` : undefined); r.task = null; placeY(r); return; }
-      } else if (storm()) { tk.data.why = '台風'; endVoyage(r, tk, 'turned'); report(r, tk, 'blocked', '台風で引き返した'); r.task = null; return; }
+      } else if (storm()) { tk.data.why = '台風'; r.voyageNoAt = clockMs; endVoyage(r, tk, 'turned'); report(r, tk, 'blocked', '台風で引き返した'); r.task = null; return; }
     }
     if (tk.kind === 'ask' || tk.kind === 'give' || tk.kind === 'tell') {
       // up to the one it means, close enough to speak or hand it over (they may be on the move); asleep, in the
