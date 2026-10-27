@@ -42,7 +42,7 @@ const shelfClay = () => Object.values(lab.lots).filter((l: any) => l.materialId 
   const clay0 = shelfClay();
   const dug = step(4 * 3600, () => !!V.clayPit);
   const eq = lab.equipment['eq:clay_pit'];
-  want('1 dug under the hut\'s roof, its lining\'s clay from the shelf', dug && clay0 - shelfClay() === need.rawClayMg, `${(need.rawClayMg / 1e6).toFixed(1)} kg, ${Math.round(need.handSeconds / 60)} min`);
+  want('1 dug by the hut under a shade of leaves, its lining\'s clay from the shelf', dug && clay0 - shelfClay() === need.rawClayMg, `${(need.rawClayMg / 1e6).toFixed(1)} kg, ${Math.round(need.handSeconds / 60)} min`);
   want('1 the equipment\'s params from the table', !!eq && JSON.stringify(eq.params) === JSON.stringify(clayPitParams(CLAY_PIT_PLAN)), JSON.stringify(eq?.params));
   const line = lantern.diary.find((e: any) => /粘土の池を掘った/.test(e.text))?.text ?? '';
   want('1 in Lantern\'s record — and nothing says an earth pit never leaks', !!line && !/漏れない|漏らさない/.test(lantern.diary.map((e: any) => e.text).join('')), line);

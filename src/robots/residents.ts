@@ -2002,6 +2002,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (has('shelve:')) return { text: '見つけたものを棚に置く', why: '手に持っている', plan: ['shelve:shelf'] };
       if (has('find:')) return { text: '見慣れないものを調べる', why: '浜で見かけた', plan: ['find:drift', 'shelve:shelf'] };
       if (has('charge:') && r.battery < 0.3) return { text: '充電する', why: '電池が少ない', plan: ['charge:sun'] };
+      // (a clear morning with islands not yet on its map: it looks out from the beach and marks them — by habit too, not
+      // only when its mind thinks of it; without it no raft was ever wanted and no crossing came: science's 72 h, 2026-10-27)
+      { const sv = has('survey:'), h = localHour(clockMs), w = islandWeather(clockMs);
+        if (sv && h >= 6 && h < 10 && (!w || (w.cloud < 0.6 && w.rain < 0.1))) return { text: '水平線を見渡す', why: '晴れた朝で、遠くの島が見えそう', plan: [sv] }; }
       if (r.stats.built < HUT.length) {
         // (the nearest log it knows of)
         const g = opts.filter((o) => o.action === 'gather').sort((x, y) => { const p = (o: Option) => a.seen.get(o.targetId!); const dx = p(x), dy = p(y); return (dx ? Math.hypot(dx.x - r.pos.x, dx.z - r.pos.z) : 1e9) - (dy ? Math.hypot(dy.x - r.pos.x, dy.z - r.pos.z) : 1e9); })[0];
@@ -2097,10 +2101,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   const PIT_NEEDS = clayPitMaterials(CLAY_PIT_PLAN);
   const rawClayOnShelf = () => shelfLots().filter((l) => l.materialId === 'raw_clay' && !(l as any).reservedBy).reduce((n, l) => n + l.amount.value, 0);
-  /** Lantern digs the pit when there is a roof to put it under, clay enough for its lining and still some to soak, and
+  /** Lantern digs the pit (by the hut, a shade of leaves over it) when there is clay enough for its lining and still some to soak, and
    *  rain water to soak it in. */
   function pitTask(): Task | null {
-    if (village.clayPit || !roofDone() || !village.catcher || rawClayOnShelf() < PIT_NEEDS.rawClayMg + 1e6) return null;
+    // (not waiting for the hut's roof: a shade of leaves over it is enough — waiting for the eighteen pieces of the roof,
+    // the first crossing came before the pit, and the clay brought over never ran short: science's 72 h, 2026-10-27)
+    if (village.clayPit || !village.catcher || rawClayOnShelf() < PIT_NEEDS.rawClayMg + 1e6) return null;
     const w = atHut(0.2, 1.3); return task('pit', [w.x, w.z], 'dig', Math.max(60, PIT_NEEDS.handSeconds - ((village as any).pitDug ?? 0)), {});   // (what is left of the digging)
   }
   function digPit(r: Resident) {
@@ -2116,7 +2122,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     lab.equipment[`eq:${CLAY_PIT}`] = { equipmentId: `eq:${CLAY_PIT}`, kind: CLAY_PIT, catalogEntry: CLAY_PIT, catalogVersion: SCIENCE_CATALOG_VERSION, condition: 1, params };
     village.clayPit = { at: clockMs, diameterCm: CLAY_PIT_PLAN.diameterCm, depthCm: CLAY_PIT_PLAN.depthCm };
     drawPit(); drawStore();
-    note(r, 'pit', {}, `小屋の屋根の下に粘土の池を掘った（直径${CLAY_PIT_PLAN.diameterCm}cm・深さ${CLAY_PIT_PLAN.depthCm}cm。生の粘土${Math.round(PIT_NEEDS.rawClayMg / 1e6)}kgで底と壁を踏み固めた。入るのは約${Math.round(params.capacityMl / 1000)}L）`);
+    note(r, 'pit', {}, `小屋のそばに、葉の日よけをかけて粘土の池を掘った（直径${CLAY_PIT_PLAN.diameterCm}cm・深さ${CLAY_PIT_PLAN.depthCm}cm。生の粘土${Math.round(PIT_NEEDS.rawClayMg / 1e6)}kgで底と壁を踏み固めた。入るのは約${Math.round(params.capacityMl / 1000)}L）`);
     tell('pit', `${r.v.name}が粘土の池を掘った。粘土を浸せるようになった`, r);
     return true;
   }
