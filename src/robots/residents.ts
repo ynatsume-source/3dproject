@@ -13,7 +13,7 @@ import { AIRLIT } from '../ocean/shore';
 import { findPath as findPathRaw } from './path';
 import { profed, profBegin, profEnd } from '../core/prof';
 import { Solids, type Body, type Solid } from './solids';
-import { Agent, type Habit } from './agent/agent';
+import { Agent, type Habit, type TrialEvent } from './agent/agent';
 import { modelBrain } from './agent/brain';
 import { MINDS } from './agent/config';
 import type { Brain, BrainInput, Observation, Option, Outcome, Request } from './agent/types';
@@ -210,6 +210,8 @@ export interface Sense { eye: THREE.Vector3; look?: THREE.Vector3; head: number;
   goal?: { text: string; why: string; steps: string[]; by: string } }   // (its own goal and the steps left, in words: ADR 0004)
 export interface Bond { stage: number; know: number; talks: number; last: number; toldWorry: number }
 export interface Entry { at: number; text: string; who?: string; conv?: number; head?: boolean; key?: string; with?: string; obs?: string }   // (obs: what it measured or counted then, from the world — shown in a diary only when there is one)   // (a line someone said, or the heading of a conversation)
+/** A trial as told to the screen and the log (flushMind): text null where its words did not pass the rule. */
+export interface TrialMeta { kind: 'start' | 'result'; result?: TrialEvent['result']; text: string | null; outcome?: string; metric?: string; now?: number | string }
 export interface Resident {
   id: string; v: Voice; sp: Spec; model: Robot;
   pos: THREE.Vector3; head: number; battery: number; task: Task | null; walk: number; act: Act; wet: boolean;
@@ -217,6 +219,7 @@ export interface Resident {
   wear?: number; wearLv?: number; stuck?: boolean;   // (the two robots: how worn by rain, wind and storm 0..1, the last line it noted, held still until it dries — the world counts it)
   body?: BodyState;   // (the two animals: their own marks, the day's troubles — robots/body.ts)   // (the two who are animals: how hungry and how sleepy, what it has eaten this bout, how far down toward the bottom it is)
   talk: Talk | null; saying: string; sayT: number; sayIsl?: Tok[] | null; sayEn?: string | null;
+  trial?: { text: string | null; at: number; result?: TrialEvent['result']; resultAt?: number; outcome?: string; active: boolean };   // (what it is trying, as the screen tells it: PROGRAM.md §1, R-030)
   sayUntil?: number;   // (a remark said on its own, outside a conversation: the world's time it is let go — R-023)
   stats: { built: number; notes: number; shells: number; cracked: number; visited: number; cairns: number; wood: number; food: number; felled: number; talkUse?: number };
   saidAt?: Record<string, number>;   // (what it last told whom, and when: not the same thing again straight away)
@@ -256,7 +259,7 @@ export interface Residents {
   worksiteSpots(): Record<string, { x: number; z: number; face?: number }>;
   focus(r: Resident | null): void;        // the one being watched: mark where it is heading
   bubbles(camera: THREE.Camera, w: number, h: number): void;
-  onEvent: (kind: string, text: string, r: Resident, meta?: { milestone?: string }) => void;   // (meta.milestone: the first time this kind of thing happened on the island — world/milestones.ts)
+  onEvent: (kind: string, text: string, r: Resident, meta?: { milestone?: string; trial?: TrialMeta }) => void;   // (meta.milestone: the first time this kind of thing happened on the island — world/milestones.ts; meta.trial: kind 'trial', one begun or how one came out)
   onSay: (r: Resident, text: string) => void;   // someone starts saying something (for its voice)
   gibber(id: string, text: string): string;      // what it is saying, in the island's own letters and how they sound (HTML)
   sense(r: Resident): Sense;                       // what it sees and what it is up to, for its own point of view
@@ -1422,6 +1425,18 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const s = r.stats, map = Math.round(Math.min(100, visited.size / 3.2));
     return { built: s.built, notes: s.notes, shells: s.shells, map, food: s.food, deck: village.deck };
   };
+  // the world's values a goal of its own may be checked by (R-028; the science team's first list, specs/trial1-science.md
+  // 22b34b4): given to its mind as they are now, and looked at by the world once the goal's steps are taken
+  const metricsOf = (r: Resident) => {
+    const v = statVars(r);
+    return [
+      ...(r.id === 'dot' ? [{ id: 'hut.parts', label: '小屋に取りつけた部材の数', now: v.built }, { id: 'pier.deck', label: '桟橋に張った板の数', now: v.deck }, { id: 'raft.parts', label: '筏の部材の数', now: village.raft.parts }] : []),
+      { id: 'holding', label: '手に持っている物', now: r.holding || 'なし' },
+      { id: 'notes', label: '記録の数', now: v.notes }, { id: 'shells', label: '集めた貝殻の数', now: v.shells }, { id: 'food', label: '食べた量', now: v.food },
+      { id: 'map.visited', label: '歩いて広げた地図（%）', now: v.map },
+      { id: 'isles.seen', label: '見つけた島の数', now: Object.keys(village.map.seen).length }, { id: 'isles.reached', label: 'たどり着いた島の数', now: Object.keys(village.map.reached).length },
+    ] as { id: string; label: string; now: number | string }[];
+  };
   // what it saw, for its diary: only the fish it really made out (T.nearFish, ahead of its eyes, now and while it
   // grazed), never a name drawn at random; nothing seen is said as such
   const sight = (r: Resident) => {
@@ -2019,6 +2034,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // (what another told it, and then worked: talking is of use — learnt, a little more each time)
   for (const r of list) {
     const a = agents[r.id]; if (!a) continue;
+    a.measure = (m) => metricsOf(r).find((x) => x.id === m)?.now;
     a.onUseful = (from, opt) => {
       r.stats.talkUse = Math.min(1, (r.stats.talkUse ?? 0) + 0.25); a.values.bonus(`heard:${from}`, `${byId[from]?.v.name ?? from}から聞いた情報`, 0.5);
       r.diary.push({ at: clockMs, text: `${byId[from]?.v.name ?? from}から聞いた情報で、${opt.split(':')[0] === 'gather' ? '拾えた' : 'できた'}（${opt}）`, key: 'mind' }); if (r.diary.length > 800) r.diary.shift();
@@ -2446,7 +2462,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       who: r.id, profile: profileOf(r), why: a.why || '次にすることを決める',
       now: { at: clockMs, hour: +hr.toFixed(1), island: islandNow(), ...(r.id === 'dot' ? { map: mapNow() } : {}), ...((r.id === 'dot' || r.id === 'lantern') && shelfLots().length ? { store: storeNow() } : {}), ...(r.id === 'lantern' && village.hypo ? { guess: hyps().map((h) => ({ 考え: h.kind === 'day' ? `気圧計が前の日の同じ時刻より${h.mark}以上上がったら一日のうちに台風` : `気圧計が${h.mark}以上なら一日のうちに台風`, 当たり: h.hits, 外れ: h.falses, 見逃し: h.misses, 判断: { testing: '確かめ中', held: '確からしい', doubted: '怪しい' }[h.status] })) } : {}), battery: r.sp.living ? null : +r.battery.toFixed(2), ...(r.sp.living ? {} : { wear: +(r.wear ?? 0).toFixed(2), underRoof: roofCover(r).roof }), ...(r.id === 'dot' && r.stats.built >= HUT.length ? { house: houseNow() } : {}), holding: r.holding || '', night: dayK(hr) < 0.3, ...(r.sp.living ? { body: { おなか: full(r), ねむけ: awake100(r) } } : {}) },
       goal: a.goal, seeing: now, remembered: [...a.seen.values()].filter((o) => !ids.has(o.id)).sort((x, y) => y.at - x.at),
-      knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6),
+      knowledge: a.knowledge, results: a.results, options: opts, hits: a.values.hits(6), metrics: metricsOf(r),
     };
   }
   // its own next step, as a task (undefined: it has nothing of its own in mind, the habits below decide)
@@ -2484,7 +2500,17 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   function flushMind(r: Resident, a: Agent) {
     for (const line of a.out.diary.splice(0)) { r.diary.push({ at: clockMs, text: line, key: 'mind' }); if (r.diary.length > 800) r.diary.shift(); tell('mind', `${r.v.name}：${line}`, r); }
     if (a.out.say) { r.today.push(a.out.say); if (r.today.length > 6) r.today.shift(); a.out.say = undefined; }
+    // its trials, for the screen and the log (PROGRAM.md §1): begun, and how each came out — a failure in the world's own
+    // words; a line that does not pass the words' rule (no option ids, no letters, no "22/24": PROGRAM.md §6) is not shown
+    for (const e of a.out.trials.splice(0)) {
+      const text = trialWords(e.text), outcome = e.outcome ? OUTCOME_JA[e.outcome] ?? '' : undefined;
+      r.trial = e.kind === 'start' ? { text, at: clockMs, active: true } : { text: text ?? r.trial?.text ?? null, at: r.trial?.at ?? clockMs, result: e.result, resultAt: clockMs, outcome, active: !!a.trying };
+      res.onEvent('trial', `${r.v.name}：${e.kind === 'start' ? '試み' : TRIAL_JA[e.result!]}：${e.text}${outcome ? `（${outcome}）` : ''}`, r, { trial: { kind: e.kind, result: e.result, text, outcome, metric: e.metric, now: e.now } });
+    }
+    if (r.trial && !a.trying) r.trial.active = false;
   }
+  const TRIAL_JA: Record<string, string> = { confirmed: '確かめた', refuted: '違っていた', done: 'やりとげた', 'not-yet': 'まだ', 'steps-done': '手順を終えた', failed: 'うまくいかなかった' };
+  const trialWords = (t: string) => { const s = t.trim(); return !s || s.length > 40 || /[A-Za-z_]+[:：_][A-Za-z]|[A-Za-z]{3,}|\d+\s*\/\s*\d+/.test(s) ? null : s; };
 
   /* ---------- finishing a task ---------- */
   function done(r: Resident, tk: Task, fast = false) {

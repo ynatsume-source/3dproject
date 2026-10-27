@@ -14,6 +14,9 @@
 //   card    a milestone card put up on the live screen: its words
 //   sub     a subtitle put up: who speaks, and what they said as the screen gives it (the residents' own words)
 //   sea     every five minutes: the sea's height on the world's clock (seaLevel) and as drawn
+//   trial   a resident's trial (PROGRAM.md §1, R-030): kind start (begun: its words) or result (confirmed / refuted / done /
+//           not-yet / steps-done / failed, with the world's outcome for a failure, the goal's value now), who, text (null:
+//           its words did not pass the rule, nothing shown)
 //   audio   every minute: whether the sound is coming out (on / off / blocked); an event audio row too when M is
 //           pressed or the browser holds it
 // On the screen, only with ?rehearsal (never on the public stream): the time in Japan in the bottom right corner, inside
@@ -32,7 +35,7 @@ export type RehearsalSource = {
   status: () => string;
   audio?: () => string;   // (the sound: on, off, or blocked)
 };
-export type RehearsalLog = { frame(ts: number): void; frameEnd(): void; event(kind: string, text: string, shown?: boolean): void };
+export type RehearsalLog = { frame(ts: number): void; frameEnd(): void; event(kind: string, text: string, shown?: boolean): void; trial(who: string, t: Record<string, unknown>): void };
 
 const DB = 'seaglass.rehearsal', STORE = 'lines';
 const jst = (ms: number, milli = false) => new Date(ms + 9 * 3600e3).toISOString().slice(0, milli ? 23 : 19) + '+09:00';
@@ -132,5 +135,6 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
       lastParts['その他'] = Math.max(0, lastWork - (lastParts['住人'] ?? 0) - (lastParts['描画'] ?? 0) - (lastParts['画面読み'] ?? 0));
     },
     event(kind, text, shown) { row('event', { kind, text, ...(shown === undefined ? {} : { shown }) }); },
+    trial(who, t) { row('trial', { who, ...t }); },
   };
 }

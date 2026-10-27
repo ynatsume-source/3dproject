@@ -46,12 +46,12 @@ export function makeLive(ctx: LiveCtx) {
     <div class="brand"><div class="en">UTSUSHIYO PROJECT</div><div class="ja"><i class="ser">Series 1</i>${en ? FIXED_EN.brand : 'ルマウ'}</div></div>
     <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">${en ? FIXED_EN.ai : '住人はAIです ・ 映像は自動で撮影しています'}</div></div>
     <div class="band fade off"><div class="doron"><span class="n"></span>DORON</div>
-      <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div></div>
+      <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div><div class="trial fade off"><span class="k"></span><span class="t"></span></div></div>
     <div class="card fade off"><div class="rule"></div><div class="head">${en ? FIXED_EN.first : '島で初めて'}</div><div class="what"></div><div class="at"></div><div class="rule"></div></div>
     <div class="sub fade off"><div class="who"><span class="line"></span><span class="name"></span></div><div class="isl-line"></div><div class="tr"></div></div>`;
   document.body.appendChild(root);
   const $ = (s: string) => root.querySelector(s) as HTMLElement;
-  const band = $('.band'), status = $('.status');
+  const band = $('.band'), status = $('.status'), trialEl = $('.band .trial');
   const measure = document.createElement('canvas').getContext('2d')!;
   let turn = 0, tick = 0, shownFor = '', shownText = '', swapT = 0;
 
@@ -115,6 +115,7 @@ export function makeLive(ctx: LiveCtx) {
     $('.when .date').textContent = dateOf(ctx.clockMs());
     $('.when .time').textContent = localTimeString(ctx.clockMs(), ctx.tz());
     if (!r) { band.classList.add('off'); return; }
+    trialLine(r);
     const text = trimStatus(R.status(r) as string);   // (as it is shown: the metres still to go taken out, or the line would fade out and back with the same words each time they change — science, #121)
     if (r.id !== shownFor) {   // (another one followed: the band fades out, changes, fades in)
       band.classList.add('off'); shownFor = r.id; shownText = text; swapT = 0.6;
@@ -123,6 +124,24 @@ export function makeLive(ctx: LiveCtx) {
       shownText = text; status.classList.add('off');
       setTimeout(() => { show(r, text); status.classList.remove('off'); }, 600);
     }
+  }
+  // The trial line under the status (PROGRAM.md §1-2, R-030): what the one followed is trying, in its own words, while a
+  // goal of its own lasts (never its habits); for 12 s after a result, its heading changes — 確かめた, 違っていた,
+  // やりとげた (only as the world checked it), まだ, ここまでできた (its steps taken, nothing to check), うまくいかなかった
+  // (the world's own reason) — then back to 試み, or gone with the goal. Its words only: none that fail the rule
+  // (residents.ts trialWords), and none on the English screen until there are English words.
+  const TRIAL_K: Record<string, [string, string, boolean]> = { confirmed: ['確かめた', 'Confirmed', true], refuted: ['違っていた', 'Not so', false], done: ['やりとげた', 'Done', true], 'not-yet': ['まだ', 'Not yet', false], 'steps-done': ['ここまでできた', 'Done so far', false], failed: ['うまくいかなかった', "Didn't work", false] };
+  let trialShown = '';
+  function trialLine(r: any) {
+    const t = r?.trial, fresh = t?.result && ctx.clockMs() - (t.resultAt ?? 0) < 12e3;
+    const k = fresh ? TRIAL_K[t.result] : t?.active ? (['試み', 'Trying', true] as [string, string, boolean]) : null;
+    const words = t?.text ? `${t.text}${fresh && t.result === 'failed' && t.outcome ? `（${t.outcome}）` : ''}` : '';
+    const key = k && words && !en ? `${r.id}|${k[0]}|${words}` : '';
+    if (key === trialShown) return; trialShown = key;
+    if (!key) { trialEl.classList.add('off'); return; }
+    $('.band .trial .k').textContent = k![0]; trialEl.classList.toggle('gold', k![2]);
+    $('.band .trial .t').textContent = words;
+    trialEl.classList.remove('off');
   }
   // The haze under each group of words (src/live/scrim.ts): once a second, right after the frame is drawn, the picture
   // shrunk to 64 × 36; the bright tenth of what lies behind each group sets its haze, eased over a second (CSS).

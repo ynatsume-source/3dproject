@@ -2255,7 +2255,7 @@ function enterOcean(oc: Ocean, writeUrl = true) {
   for (const l of U.uLights.value) l.w = 0;   // (only the island's residents carry lights)
   U.uFire.value.w = 0;   // (only the island has a fire)
   if (oc.residents) {
-    oc.residents.onEvent = (k: string, text: string, r: any, meta?: { milestone?: string }) => { seaLog('robot', text, () => r.pos); liveUi?.event(k, text, r, meta); };
+    oc.residents.onEvent = (k: string, text: string, r: any, meta?: { milestone?: string; trial?: any }) => { seaLog('robot', text, () => r.pos); liveUi?.event(k, text, r, meta); if (meta?.trial) rehearsal?.trial(r.id, meta.trial); };
     // their voices, when the camera is close enough to hear them
     oc.residents.onSay = (r: any, text: string) => {
       const d = camera.position.distanceTo(r.pos); if (d > 40) return;
