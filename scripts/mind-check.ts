@@ -45,7 +45,10 @@ function stub(plan: (i: BrainInput) => Partial<Thought> | null) {
   const b = async (i: BrainInput, tier: 'deep' | 'light') => { asked.push({ why: i.why, tier, input: i }); const p = plan(i); return p ? ({ goal: { text: '小屋を建てる', why: 'テスト' }, ...p } as Thought) : null; };
   return { b, asked };
 }
-const gatherFirst = (i: BrainInput) => { const g = i.options.find((o) => o.action === 'gather'); return g ? { plan: [g.id, 'craft:bench', 'place:hut'] } : { plan: ['look:shore'] }; };
+const gatherFirst = (i: BrainInput) => {   // (one more piece on the hut, as the world will check it: R-028)
+  const g = i.options.find((o) => o.action === 'gather'), hut = i.metrics?.find((m) => m.id === 'hut.parts');
+  return g ? { plan: [g.id, 'craft:bench', 'place:hut'], ...(hut ? { doneWhen: { metric: 'hut.parts', op: '>=' as const, value: (hut.now as number) + 1 } } : {}) } : { plan: ['look:shore'] };
+};
 
 { // 1 what it sees
   const { R, T, dot } = island();

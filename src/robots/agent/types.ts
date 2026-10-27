@@ -15,15 +15,19 @@ export interface ActionResult { eventId: string; optionId: string; action: strin
 export interface Knowledge {
   id: string; text: string; source: 'saw' | 'tried' | 'heard' | 'guessed'; at: number;
   status?: 'hypothesis' | 'confirmed' | 'refuted'; evidence?: string[];   // (the results that settled it)
+  said?: string;   // (a hypothesis: the words its trial was shown in when it was made — its result is told in the same: PROGRAM.md §1-2)
 }
 
-/** What it is setting out to do, why, and the steps it means to take (option ids). */
-export interface Goal { id: string; text: string; why: string; by: 'self' | 'asked' | 'habit'; at: number; steps: string[] }
+/** How the world can tell a goal is reached (R-028): one of the world's values (BrainInput.metrics), and the mark. */
+export interface DoneWhen { metric: string; op: '>=' | '<=' | '=='; value: number | string }
+/** What it is setting out to do, why, and the steps it means to take (option ids); doneWhen: what the world looks at
+ *  once the steps are taken (none: the steps taken is all that can be said). */
+export interface Goal { id: string; text: string; why: string; by: 'self' | 'asked' | 'habit'; at: number; steps: string[]; doneWhen?: DoneWhen }
 
 /** What its thinking came back with (checked against the world before any of it is used). */
 export interface Thought {
   goal: { text: string; why: string }; plan: string[];
-  say?: string; hypothesis?: string;
+  say?: string; hypothesis?: string; doneWhen?: DoneWhen;
   verdicts?: { id: string; status: 'confirmed' | 'refuted'; evidence: string[] }[];
 }
 
@@ -33,6 +37,7 @@ export interface BrainInput {
   goal: Goal | null; seeing: Observation[]; remembered: Observation[];
   knowledge: Knowledge[]; results: ActionResult[]; options: Option[];
   hits?: string[];   // what has paid off, as the world counted it: average reward and how many times (agent/values.ts)
+  metrics?: { id: string; label: string; now: number | string }[];   // the world's values a goal may be checked by, as they are now (R-028)
 }
 export type Brain = (input: BrainInput, tier: 'deep' | 'light') => Promise<Thought | null>;
 

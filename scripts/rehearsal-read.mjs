@@ -1,7 +1,9 @@
 // Reads a rehearsal log (src/ui/rehearsal-log.ts, ?rehearsal) and says how much of it had something worth watching
 // (docs/rehearsal/CYCLES.md). Minute by minute, on the time in Japan:
-//   strong  a subtitle (sub) or a milestone card (card) put up on the live screen
+//   strong  a subtitle (sub), a milestone card (card) put up on the live screen, or a trial's result with words to show
+//           (not steps-done, its steps taken with nothing to check: not a result for PROGRAM.md §7-2)
 //   weak    the status line changed (status)
+// and the residents' trials (trial rows: begun, with words fit to show, and how they came out)
 // (the day's log — event, shown true — is counted apart: it passed the log's own sifting, but the live screen does not
 // put it up)
 // It prints the share of minutes with a strong one, with either, the longest run with no strong one, the same share hour
@@ -17,7 +19,7 @@ const rows = readFileSync(file, 'utf8').split('\n').filter(Boolean).flatMap((l) 
 const minOf = (r) => r.jst.slice(0, 16);   // (YYYY-MM-DDTHH:MM, in Japan)
 const step = (m) => new Date(Date.parse(m + ':00+09:00') + 60e3 + 9 * 3600e3).toISOString().slice(0, 16);
 const alive = new Set(), strong = new Set(), weak = new Set(), n = { sub: 0, card: 0, shown: 0, status: 0, blank: 0, hidden: 0, error: 0 };
-const sound = {}, ai = { calls: 0, ok: 0, why: {}, models: {} }, slow = { n: 0, hidden: 0, parts: {} };
+const trials = { start: 0, shown: 0, result: {}, blank: 0 }, sound = {}, ai = { calls: 0, ok: 0, why: {}, models: {} }, slow = { n: 0, hidden: 0, parts: {} };
 let first = '', last = '';
 for (const r of rows) {
   if (!r.jst) continue;
@@ -28,6 +30,7 @@ for (const r of rows) {
   else if (r.t === 'event' && r.shown === true) n.shown++;
   else if (r.t === 'status') { n.status++; if (!r.text) n.blank++; weak.add(m); }
   else if (r.t === 'audio') sound[r.state] = (sound[r.state] ?? 0) + 1;
+  else if (r.t === 'trial') { if (r.kind === 'start') { trials.start++; if (r.text) trials.shown++; } else { trials.result[r.result] = (trials.result[r.result] ?? 0) + 1; if (r.text && r.result !== 'steps-done') strong.add(m); if (!r.text) trials.blank++; } }   // (a result with words: strong, PROGRAM.md §7-2 — whether its resident was on the screen, the camera's rows will tell)
   else if (r.t === 'event' && r.kind === 'hidden') n.hidden++;
   else if (r.t === 'event' && r.kind === 'error') n.error++;
   else if (r.t === 'ai') {
@@ -47,11 +50,12 @@ let prev = '';
 for (const m of mins) { if (prev && step(prev) !== m) run = 0; prev = m; if (strong.has(m)) run = 0; else if (++run > best) { best = run; bestAt = m; } }
 const bestFrom = mins[mins.indexOf(bestAt) - best + 1];
 console.log(`${file}: ${first.replace('T', ' ')} – ${last.replace('T', ' ')} (JST), ${mins.length} minutes running${span > mins.length ? ` (${span - mins.length} with nothing written: not running)` : ''}`);
-console.log(`minutes with a strong one (subtitle or card):              ${pct(mins.filter((m) => strong.has(m)).length, mins.length)}`);
+console.log(`minutes with a strong one (subtitle, card, trial result): ${pct(mins.filter((m) => strong.has(m)).length, mins.length)}`);
 console.log(`minutes with either (or the status line changing):      ${pct(mins.filter((m) => strong.has(m) || weak.has(m)).length, mins.length)}`);
 console.log(`longest run with no strong one: ${best} min${best ? ` (${bestFrom.slice(11)}–${bestAt.slice(11)})` : ''}`);
 console.log(`counts: subtitles ${n.sub}, cards ${n.card}, status changes ${n.status} (to blank ${n.blank}); the day's log (not on the live screen) ${n.shown}; tab hidden ${n.hidden}, errors ${n.error}`);
 console.log(`sound (a row a minute): ${Object.keys(sound).length ? Object.entries(sound).map(([k, v]) => `${k} ${v} min`).join(', ') : 'not written (a log from before it was)'}`);
+console.log(`trials begun: ${trials.start} (with words fit to show ${trials.shown}); results: ${Object.entries(trials.result).map(([k, v]) => `${k} ${v}`).join(', ') || '—'} (with no words to show ${trials.blank})`);
 console.log('hour by hour (strong / either):');
 const hours = [...new Set(mins.map((m) => m.slice(0, 13)))];
 for (const h of hours) { const hm = mins.filter((m) => m.startsWith(h)); console.log(`  ${h.slice(5).replace('T', ' ')}時  ${pct(hm.filter((m) => strong.has(m)).length, hm.length)}  ${pct(hm.filter((m) => strong.has(m) || weak.has(m)).length, hm.length)}`); }
@@ -77,7 +81,7 @@ if (cams.length) {
   cams.forEach((c, i) => { const end = i + 1 < cams.length ? ms(cams[i + 1]) : lastAt; byPri[c.pri] = (byPri[c.pri] ?? 0) + until(ms(c), end); });
   const total = Object.values(byPri).reduce((a, b) => a + b, 0) || 1, NAME = { 1: '1 decided/result/first', 2: '2 together/talking', 3: '3 work', 4: '4 sea', 5: '5 looking back', 6: '6 at rest' };
   console.log(`the drone (cam rows ${cams.length}): ${Object.keys(byPri).sort().map((p) => `${NAME[p] ?? p} ${(byPri[p] / 60e3).toFixed(1)} min (${Math.round(byPri[p] / total * 100)}%)`).join(', ')}`);
-  const results = rows.filter((r) => r.t === 'trial' && r.kind === 'result');
+  const results = rows.filter((r) => r.t === 'trial' && r.kind === 'result' && r.result !== 'steps-done');   // (§7-2: steps-done is not counted)
   if (results.length) {
     const onAt = (t) => { let who = ''; for (const c of cams) { if (ms(c) > t) break; who = c.who; } return who; };
     const seen = results.filter((r) => onAt(ms(r)) === r.who || cams.some((c) => c.who === r.who && ms(c) >= ms(r) && ms(c) - ms(r) <= RESULT_S * 1e3));

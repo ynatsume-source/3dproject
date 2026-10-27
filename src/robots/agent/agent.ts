@@ -8,6 +8,11 @@ import { MINDS } from './config';
 import { checkThought } from './brain';
 import type { ActionResult, Brain, BrainInput, Goal, Knowledge, Observation, Option, Outcome, Request, Thought } from './types';
 
+/** A trial as the screen tells it (PROGRAM.md §1, R-030): one begun, in its own words; or how one came out — a
+ *  hypothesis confirmed or not, the goal reached as the world checked it (or not yet), its steps taken with nothing
+ *  to check, or a step that came to nothing (the world's own outcome). */
+export interface TrialEvent { kind: 'start' | 'result'; result?: 'confirmed' | 'refuted' | 'done' | 'not-yet' | 'steps-done' | 'failed'; text: string; also?: string; outcome?: Outcome; detail?: string; metric?: string; now?: number | string }   // (also: words to fall back on — a hypothesis's own)
+
 export interface Habit { (options: Option[], a: Agent): { text: string; why: string; plan: string[] } | null }
 
 const FAIL: Outcome[] = ['gone', 'no way', 'blocked', 'nowhere to stand', 'unavailable', 'timeout', 'refused'];
@@ -33,7 +38,11 @@ export class Agent {
    *  rest that grows, a minute, two, four, at most five — and gets on by habit meanwhile */
   unanswered = 0;
   /** what it said to itself, and the diary lines its mind has for the day (taken by residents.ts) */
-  out: { say?: string; diary: string[] } = { diary: [] };
+  out: { say?: string; diary: string[]; trials: TrialEvent[] } = { diary: [], trials: [] };
+  /** the world's value by a goal's metric id, as it is now (residents.ts; R-028) */
+  measure?: (metric: string) => number | string | undefined;
+  /** what it is trying now, in its own words (its thought's say, else its goal), while a goal of its own lasts */
+  trying: { goalId: string; text: string } | null = null;
   private n = 0;
   constructor(readonly who: string, readonly profile: string, private habit: Habit, public brain: Brain | null) {}
 
@@ -107,23 +116,29 @@ export class Agent {
 
   /** Taking up a thought: its goal, its steps, its hypothesis, its verdicts on what it supposed before. */
   private adopt(t: Thought, by: Goal['by'], inp: BrainInput, now: number) {
-    this.goal = { id: this.id('g'), text: t.goal.text, why: t.goal.why, by, at: now, steps: [...t.plan] };
+    this.goal = { id: this.id('g'), text: t.goal.text, why: t.goal.why, by, at: now, steps: [...t.plan], ...(t.doneWhen ? { doneWhen: t.doneWhen } : {}) };
     this.out.diary.push(`目的：${t.goal.text}（${t.goal.why}）`);
     if (t.say) this.out.say = t.say;
-    if (t.hypothesis) { this.knowledge.push({ id: this.id('k'), text: t.hypothesis, source: 'guessed', status: 'hypothesis', at: now }); this.out.diary.push(`仮説：${t.hypothesis}`); }
+    // (what it supposed before, settled: told first, in the words its trial was shown in then — the answer to that try,
+    // then the next try; never in the words of the one just begun: PROGRAM.md §1-2, viewer design on #181)
     for (const v of t.verdicts ?? []) {
       const k = this.knowledge.find((x) => x.id === v.id && x.status === 'hypothesis'); if (!k) continue;
       k.status = v.status; k.evidence = v.evidence; k.source = 'tried';
       this.out.diary.push(`${v.status === 'confirmed' ? '確かめた' : '違っていた'}：${k.text}`);
+      this.out.trials.push({ kind: 'result', result: v.status, text: k.said ?? k.text, ...(k.said ? { also: k.text } : {}) });
     }
+    this.trying = { goalId: this.goal.id, text: t.say ?? t.goal.text };
+    this.out.trials.push({ kind: 'start', text: this.trying.text });
+    if (t.hypothesis) { this.knowledge.push({ id: this.id('k'), text: t.hypothesis, source: 'guessed', status: 'hypothesis', at: now, said: this.trying.text }); this.out.diary.push(`仮説：${t.hypothesis}`); }
     void inp;
   }
   private byHabit(options: Option[], now: number) {
+    this.trying = null;   // (its habits are not a trial of its own: nothing said of them on the screen — VOICE §9-6)
     const h = this.habit(options, this);
     this.goal = h ? { id: this.id('g'), text: h.text, why: h.why, by: 'habit', at: now, steps: h.plan.filter((s) => options.some((o) => o.id === s)) } : null;
   }
   /** Is this a turning point for its deeper thinking? (the unknown, a failure, nothing left to do) */
-  private deep() { return /はじめて|うまくいかなかった|できなかった|何も決めていない|終わった/.test(this.why); }
+  private deep() { return /はじめて|うまくいかなかった|できなかった|何も決めていない|終わった|まだ/.test(this.why); }
 
   /** How a step went, as the world judged it: kept, learnt from, and — if it failed, or the goal is done — a
    *  reason to think again. */
@@ -149,10 +164,23 @@ export class Agent {
       // (a failure is a reason to think; something new it saw stays one too)
       this.why = `うまくいかなかった：${optionId}（${outcome}）${this.why.startsWith('はじめて') ? '・' + this.why : ''}`;
       this.out.diary.push(`うまくいかなかった：${detail ?? optionId}`);
+      if (this.goal && this.goal.by !== 'habit' && this.trying?.goalId === this.goal.id) this.out.trials.push({ kind: 'result', result: 'failed', text: this.trying.text, outcome, detail });
       if (this.goal) this.goal.steps = [];
+      this.trying = null;   // (the try is over: no 試み again until it decides what next — a new start, if it keeps at it)
     } else if (outcome === 'done' && this.goal && !this.goal.steps.length) {
-      if (this.goal.by !== 'habit') this.out.diary.push(`やりとげた：${this.goal.text}`);   // (its everyday habits are not news)
-      this.why = `目的が終わった：${this.goal.text}`; this.goal = null;
+      // (the steps taken: reached only as the world checks it — the value the goal was given, now; with none to check,
+      // the steps taken is all that is said; not yet, and the goal stays, a reason to think what next: R-028)
+      const g = this.goal, d = g.doneWhen, v = d ? this.measure?.(d.metric) : undefined, own = g.by !== 'habit' && this.trying?.goalId === g.id;
+      const met = !!d && v !== undefined && (d.op === '>=' ? +v >= +d.value : d.op === '<=' ? +v <= +d.value : v === d.value);
+      if (d && !met) {
+        this.out.diary.push(`まだ：${g.text}（手順は終えた）`);
+        if (own) this.out.trials.push({ kind: 'result', result: 'not-yet', text: this.trying!.text, metric: d.metric, now: v });
+        this.why = `手順を終えたが、まだ：${g.text}`;
+      } else {
+        if (g.by !== 'habit') this.out.diary.push(`${d ? 'やりとげた' : '手順を終えた'}：${g.text}`);   // (its everyday habits are not news)
+        if (own) this.out.trials.push({ kind: 'result', result: d ? 'done' : 'steps-done', text: this.trying!.text, ...(d ? { metric: d.metric, now: v } : {}) });
+        this.why = `目的が終わった：${g.text}`; this.goal = null; this.trying = null;
+      }
     } else if (outcome === 'interrupted') this.why ||= '';
     if (this.knowledge.length > 80) this.knowledge.splice(0, this.knowledge.length - 80);
     return r;
