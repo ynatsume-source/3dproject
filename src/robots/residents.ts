@@ -23,7 +23,7 @@ import { creatureKit, type CMats, type Food } from './creatures';
 import { mulberry32 } from '../core/math';
 import { BODY as NEEDS, PREY_JA, FILLS, drain, makePatch, regrow, regrowBed, dive, bodyState, trouble, newDay, type Patch, type Bed, type BodyState, type Trouble, type Prey } from './body';
 import { VOICES, STAGES, type Voice } from './voices';
-import { SAY, glyphs, kana, subtitle, type Count, type Said, type Tok } from './islandlang';
+import { glyphs, kana, subtitle, type Count, type Said, type Tok } from './islandlang';
 import { islandDate, islandWait, islandWeather, ISLAND_RATE, type IslandWeather } from '../world/island-time';
 import type { EnvironmentSample, LotView } from '../world/science-contract';
 import { wickQuality } from '../science/step/oil-lamp';
@@ -2498,7 +2498,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast) tell(tk.kind, `${r.v.name}：${result.text}`, r);
         if (tk.kind === 'study-share') {
           const c = heading('ランタンの星の手帖');
-          { const m = SAY.starsRecorded(); remark(r, m, c, fast); }
+          { const m = phrase({ act: 'stars-recorded' }); remark(r, m, c, fast); }
         }
       }
       r.task = null;
@@ -3228,12 +3228,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const lines: Line[] = [], shares: Talk['shares'] = [];
     const stage = bd.stage;
     const line = (r: Resident, m: Said) => lines.push({ who: r.id, text: m.ja, isl: m.isl, en: m.en });
-    if (stage === 0) for (const r of [a, b]) line(r, SAY.identify(r.id));
+    if (stage === 0) for (const r of [a, b]) line(r, phrase({ act: 'greet', who: r.id as Who }));
     else {
-      for (const r of [a, b]) line(r, SAY.report(countsOf(r)));
+      for (const r of [a, b]) line(r, phrase({ act: 'tell-progress', counts: countsOf(r) }));
       for (const [f, t] of [[a, b], [b, a]] as Resident[][]) {
         const ob = tip(f, t); if (!ob) continue;
-        line(f, SAY.share(ob.kind, ob.dist, t.id)); shares.push({ from: f, to: t, ob });
+        line(f, phrase({ act: 'tell-where', what: ob.kind as 'wood' | 'shell' | 'stone', metres: ob.dist, to: t.id as Who })); shares.push({ from: f, to: t, ob });
       }
     }
     keep(a); keep(b);
@@ -4206,7 +4206,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (PLOTS.some((pl) => pl.ok && pl.s === 2 && growth(pl) >= 0.6)) parts.push({ who: 'dot', deed: 'harvest' });
     }
     for (const id of ['rakko', 'kame'] as const) if (seated.some((r) => r.id === id)) parts.push({ who: id, deed: 'eat' });
-    if (parts.length) out.push(say_(by, { act: 'assign', parts: parts.slice(0, 4) }));
+    // (two to a line: a subtitle holds two sentences — PROGRAM.md §6)
+    for (let i = 0; i < Math.min(4, parts.length); i += 2) out.push(say_(by, { act: 'assign', parts: parts.slice(i, i + 2) }));
     return out;
   }
   function swellMorning() {
@@ -4274,10 +4275,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (seated.length >= 2 && !fireSaid) {
       fireSaid = true; tell('fire', '焚き火の会が始まった', seated[0]); eveDone.clear();
       const found = village.treasures.filter((t) => t.at > lastFireAt);
-      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) { const m = SAY.found(t.what); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); } }
+      for (const t of found) { const f = list.find((r) => r.v.name === t.who); if (f) { const m = phrase({ act: 'found-put', thing: t.what }); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); } }
       if (village.pier === 'none' && village.fires >= 2) {
-        { const m = SAY.proposePier(); fireQueue.push({ who: 'kame', line: m.ja, isl: m.isl, en: m.en }); }
-        for (const id of ['dot', 'rakko', 'lantern']) { const m = SAY.agreePier(id); fireQueue.push({ who: id, line: m.ja, isl: m.isl, en: m.en }); }
+        { const m = phrase({ act: 'propose', deed: 'pier', mine: 'measure-place' }); fireQueue.push({ who: 'kame', line: m.ja, isl: m.isl, en: m.en }); }
+        for (const id of ['dot', 'rakko', 'lantern']) { const m = phrase({ act: 'agree-do', deed: id === 'dot' ? 'planks' : id === 'rakko' ? 'posts' : 'base-stones' }); fireQueue.push({ who: id, line: m.ja, isl: m.isl, en: m.en }); }
         fireQueue.push({ who: '', line: 'pier' });   // (then it is agreed)
       }
     }
@@ -4312,7 +4313,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       for (const f of seated) for (const t of seated) {
         if (f === t) continue;
         const ob = tip(f, t); if (!ob) continue;
-        { const m = SAY.share(ob.kind, ob.dist, t.id, true); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); }
+        { const m = phrase({ act: 'tell-where', what: ob.kind as 'wood' | 'shell' | 'stone', metres: ob.dist, to: t.id as Who }); fireQueue.push({ who: f.id, line: m.ja, isl: m.isl, en: m.en }); }
         agentOf(t)?.hear(ob, f.id, `${f.v.name}によると、${ob.label}が${Math.round(ob.dist)}mほど先にある`, clockMs);
         t.diary.push({ at: clockMs, text: `焚き火の会で、${f.v.name}から${ob.label}の位置を聞いた（約${Math.round(ob.dist)}m）`, key: 'met', with: f.id });
       }
