@@ -4279,7 +4279,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const teller = seated.find((r) => r.id !== 'lantern' && lastNight!.heard.has(r.id)), absent = seated.find((r) => !lastNight!.heard.has(r.id));
       if (teller && absent) { eveDone.add('relay'); qs(teller.id, { act: 'relay', from: 'lantern', said: lastNight.f }); qs(absent.id, { act: 'noted' }); lastNight.heard.add(absent.id); absent.diary.push({ at: clockMs, text: `焚き火の会で、${teller.v.name}から、ランタンの朝の話（台風が来るかもしれない）を聞いた`, key: 'met', with: teller.id }); }
     }
-    const sage = seated.find((r) => r.id === 'kame') ?? ln;
+    // (Kamemaru says it if it is there, or on its way to the fire — then the lecture waits for it; Lantern if not coming)
+    const kame = list.find((r) => r.id === 'kame'), coming = !!kame && kame.task?.kind === 'fire' && !kame.task.arrived;
+    const sage = seated.find((r) => r.id === 'kame') ?? (coming ? undefined : ln);
     if (sage && clockMs - village.heardOkAt < 14 * 3.6e6 && clockMs - (village.taught['lecture:tell-seen'] ?? 0) > 3 * 86_400_000) {
       village.taught['lecture:tell-seen'] = clockMs; qs(sage.id, { act: 'lecture', deed: 'tell-seen', why: 'told-useful' });
     }
