@@ -16,6 +16,13 @@
 //   sea     every five minutes: the sea's height on the world's clock (seaLevel) and as drawn
 //   audio   every minute: whether the sound is coming out (on / off / blocked); an event audio row too when M is
 //           pressed or the browser holds it
+//   cam     the live screen's drone (live.ts): who it follows now (who: dot / rakko / kame / lantern), the rank of what
+//           that one is doing (pri: 1 a moment decided, a result, a first; 2 together or talking; 3 work under way; 6 at
+//           rest — PROGRAM.md §4), what it is (kind) and why the drone went there (why: the event's words, or the rule);
+//           written when it changes whom it follows, and when the one followed changes rank
+//   trial   (written by the trials' screen, when it comes: a try said — kind say — or its end — kind result, outcome
+//           confirmed / refuted / done / failed — by who, with its words; the reader counts the results that were on
+//           screen)
 // On the screen, only with ?rehearsal (never on the public stream): the time in Japan in the bottom right corner, inside
 // the margin (5% in, 8% up; 22 px at 1080p, the live screen's ink3), for laying the recording of the stream beside this
 // log (REHEARSAL.md §6).
@@ -32,7 +39,7 @@ export type RehearsalSource = {
   status: () => string;
   audio?: () => string;   // (the sound: on, off, or blocked)
 };
-export type RehearsalLog = { frame(ts: number): void; frameEnd(): void; event(kind: string, text: string, shown?: boolean): void };
+export type RehearsalLog = { frame(ts: number): void; frameEnd(): void; event(kind: string, text: string, shown?: boolean): void; cam(who: string, pri: number, kind: string, why: string): void };
 
 const DB = 'seaglass.rehearsal', STORE = 'lines';
 const jst = (ms: number, milli = false) => new Date(ms + 9 * 3600e3).toISOString().slice(0, milli ? 23 : 19) + '+09:00';
@@ -132,5 +139,6 @@ export function startRehearsalLog(src: RehearsalSource): RehearsalLog {
       lastParts['その他'] = Math.max(0, lastWork - (lastParts['住人'] ?? 0) - (lastParts['描画'] ?? 0) - (lastParts['画面読み'] ?? 0));
     },
     event(kind, text, shown) { row('event', { kind, text, ...(shown === undefined ? {} : { shown }) }); },
+    cam(who, pri, kind, why) { row('cam', { who, pri, kind, why }); },
   };
 }

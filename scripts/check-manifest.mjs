@@ -9,7 +9,7 @@ const fast = [
   'cord-load-compaction',
   'cord-integer-load',
   'sail-raft-science',
-  'husk-soak', 'husk-host', 'cord-host', 'sail-voyage-host', 'worksite-look-fill', 'live-status', 'live-scrim', 'live-en', 'say-words', 'sail-look', 'bamboo-carry', 'milestone',
+  'husk-soak', 'husk-host', 'cord-host', 'sail-voyage-host', 'worksite-look-fill', 'live-status', 'live-scrim', 'live-director', 'live-en', 'say-words', 'sail-look', 'bamboo-carry', 'milestone',
   'science-wet-wick', 'science-dry-wick-comparison',
   'coir-cord-identity',
   'manual-husk-handover', 'coir-cord-handover',
