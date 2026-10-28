@@ -5,6 +5,8 @@
 //  1 so hungry it cannot go on: it hauls out and lies still — once
 //  2 then, still past the mark, it goes to graze (not to lie still again), at a bed grown back as it reaches it
 //  3 within twelve hours it is no longer hungry past what slows it (under 0.8)
+// and an evening, the beds grown back, Kamemaru at 0.5 (science, kame-fix.log: the night adds near half):
+//  4 it grazes before it sleeps, goes to sleep under 0.4, and wakes the next morning not past the mark
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/kame-hunger-check.ts
 import './node-land';
 import * as THREE from 'three';
@@ -42,5 +44,20 @@ const stuck = kame.diary.filter((e: any) => /動けなくなった/.test(e.text)
 want('1 so hungry it cannot go on: it lies still — once', stuck === 1 && rest1 >= 0, `${stuck} times; ${kinds.slice(0, 8).join(' → ')}`);
 want('2 then it goes to graze, still hungry past the mark', graze > rest1 && !kinds.slice(rest1 + 1, graze).includes('rest'), kinds.slice(rest1, graze + 1).join(' → '));
 want('3 within twelve hours no longer hungry past what slows it', under > 0 && kame.hunger < 0.8, `hunger ${kame.hunger.toFixed(2)}; under 0.8 at ${under ? ((under - Date.parse('2026-10-08T08:00:00+09:00')) / 3.6e6).toFixed(1) + ' h' : 'never'}`);
+{ // 4
+  sim = Date.parse('2026-10-09T18:30:00+09:00');
+  for (const b of R.beds) { b.grass = 1; b.at = sim; }
+  kame.hunger = 0.5; kame.sleepy = 0.3; kame.task = null;
+  const ev: string[] = []; let atSleep = -1;
+  const morning = Date.parse('2026-10-10T07:00:00+09:00');
+  while (sim < morning) {
+    sim += 1000; cam.set(kame.pos.x, 30, kame.pos.z); R.update(1, sim, cam);
+    const k = kame.task?.kind; if (k && ev.at(-1) !== k) { ev.push(k); if (k === 'sleep' && atSleep < 0) atSleep = kame.hunger; }
+    if ((sim / 1000) % 60 === 0) await Promise.resolve();
+  }
+  const g = ev.indexOf('graze'), s = ev.indexOf('sleep');
+  want('4 in the evening it grazes before it sleeps, sleeps under 0.4, wakes not past the mark', g >= 0 && g < s && atSleep >= 0 && atSleep < 0.4 && kame.hunger < 0.95,
+    `${ev.slice(0, 6).join(' → ')}; at sleep ${atSleep.toFixed(2)}; at 07:00 ${kame.hunger.toFixed(2)}`);
+}
 console.log(bad ? `FAIL (${bad})` : 'PASS');
 process.exit(bad ? 1 : 0);

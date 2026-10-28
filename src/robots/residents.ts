@@ -1608,7 +1608,10 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // does not fill it, so for six hours after it goes to graze, still past the mark — else, after a storm left the beds
     // thin and it past 0.95, it lay still all day, every day, and never ate: science, reviews/188-8bf9d1e kame-none.log)
     if (r.hunger > NEEDS.stuckAt && day > 0.15 && clockMs - (r.mo.stuckAt ?? -1e15) > 6 * 3.6e6) { r.mo.stuckAt = clockMs; troubled(r, 'stuck', `おなかがすきすぎて、動けなくなった（おなか ${full(r)}）`, '動けない'); return task('rest', spot([r.pos.x, r.pos.z], 60, shore, 120) ?? [r.pos.x, r.pos.z], 'bask', rr(5400, 9000)); }
-    if (r.hunger > eatAt(r, 0.45) && day > 0.15) {
+    // (and in the evening it eats before it sleeps if it is hungry at all: the night adds near half, and a morning it woke
+    // past the mark it could not move — science, reviews/188-8bf9d1e kame-fix.log)
+    const eve = hr >= 18;
+    if (r.hunger > (eve ? Math.min(0.4, eatAt(r, 0.45)) : eatAt(r, 0.45)) && (day > 0.15 || eve)) {
       // (the bed it knows with the most grass left; it learns how they are by going)
       for (const b of beds) regrowBed(b, clockMs);
       // (a bed it went for last time without eating there — no way through, or nothing left — it leaves alone for a while)
@@ -3507,7 +3510,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       r.task = task('shelter', at, r.sp.living ? 'sleep' : 'idle', 1e9, r.sp.living ? { wet: true } : {}); r.blocked = 0;
     }
     if (r.task?.kind === 'shelter' && !storm() && !(r.task.data?.worn && r.stuck) && !(r.task.data?.rain && (wetNow() || ((r.wear ?? 0) > 0.3 && !meetHours(hr))))) r.task = null;   // (out of the rain: it stays to dry; worn, until it has)
-    if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && r.task.kind !== 'shelter' && r.task.kind !== 'voyage' && !(r.sp.living && ['forage', 'eat', 'groom'].includes(r.task.kind)))) {
+    // (an animal's meal is not cut by its bedtime: Kamemaru grazing when the night comes eats, then sleeps — kame-fix.log)
+    if (!r.task || (sleepTime(r, hr) !== (r.task.kind === 'sleep') && r.task.kind !== 'approach' && r.task.kind !== 'shelter' && r.task.kind !== 'voyage' && !(r.sp.living && ['forage', 'eat', 'groom', 'graze'].includes(r.task.kind)))) {
       if (r.task) { report(r, r.task, 'interrupted', sleepTime(r, hr) ? '眠る時間になった' : '起きる時間になった'); items.release(r.id); }
       { const nt = (!sleepTime(r, hr) && maybeVisit(r, hr)) || decide(r, hr); r.task = nt && setAside(r, nt.x, nt.z) ? null : nt; }
       r.blocked = 0; r.mo.fails = 0;
