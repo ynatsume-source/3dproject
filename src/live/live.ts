@@ -20,6 +20,8 @@ import { luminance, brightTenth, hazeFor, hazeStyle } from './scrim';
 import { statusEn, firstEn, asLine, FIXED_EN, NAMES_EN } from './en';
 import { captionSender } from './captions';
 import { makeDirector } from './director';
+import { chapter1 } from '../world/chapter1';
+import { chapterView, startCard, endCard } from './chapter-line';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -45,6 +47,7 @@ export function makeLive(ctx: LiveCtx) {
   root.innerHTML = `
     <div class="brand"><div class="en">UTSUSHIYO PROJECT</div><div class="ja"><i class="ser">Series 1</i>${en ? FIXED_EN.brand : 'ルマウ'}</div></div>
     <div class="when"><div><span class="date"></span><span class="time"></span></div><div class="ai">${en ? FIXED_EN.ai : '住人はAIです ・ 映像は自動で撮影しています'}</div></div>
+    <div class="chap fade off"><div class="c1"><span class="no"></span><span class="nm"></span><span class="dy"></span></div><div class="way fade"></div><div class="cargo fade"></div></div>
     <div class="band fade off"><div class="doron"><span class="n"></span>DORON</div>
       <div class="who"><span class="isl-name"></span><span class="name"></span><span class="line"></span></div><div class="status fade"></div><div class="trial fade off"><span class="k"></span><span class="t"></span></div></div>
     <div class="card fade off"><div class="rule"></div><div class="head">${en ? FIXED_EN.first : '島で初めて'}</div><div class="what"></div><div class="at"></div><div class="rule"></div></div>
@@ -108,6 +111,7 @@ export function makeLive(ctx: LiveCtx) {
     if ((tick -= dt) > 0) return; tick = 1;   // (the words read once a second)
     $('.when .date').textContent = dateOf(ctx.clockMs());
     $('.when .time').textContent = localTimeString(ctx.clockMs(), ctx.tz());
+    chapterLine(R);
     if (!r) { band.classList.add('off'); return; }
     trialLine(r);
     const text = trimStatus(R.status(r) as string);   // (as it is shown: the metres still to go taken out, or the line would fade out and back with the same words each time they change — science, #121)
@@ -139,11 +143,34 @@ export function makeLive(ctx: LiveCtx) {
     $('.band .trial .t').textContent = words;
     trialEl.classList.remove('off');
   }
+  // The chapter at the top left (PROGRAM.md §2-1, plan B — CHAPTER1_END.md §4): its name and day, the way (done in sea
+  // green, the next underlined in sand, the rest faint), what was brought in four words (sand when nearly gone or gone);
+  // a word changed is swapped over 0.6 s. Its cards: the start (the question) when the first load has just come, the end
+  // when the south island's load is on the shelf — each once (kept in this browser), and only as it happens, not on
+  // opening the page later. After the end the block stays two minutes, then goes until chapter 2 has its words.
+  const chap = $('.chap'), shownPart: Record<string, string> = {}, sep = `<span class="sep">${en ? '·' : '・'}</span>`;
+  const once = (k: string) => { try { if (localStorage.getItem(k)) return false; localStorage.setItem(k, '1'); } catch { /* the card all the same */ } return true; };
+  const swap = (sel: string, html: string) => {
+    if (shownPart[sel] === html) return; const el = $(sel), first = shownPart[sel] === undefined; shownPart[sel] = html;
+    if (first) { el.innerHTML = html; return; }
+    el.classList.add('off'); setTimeout(() => { if (shownPart[sel] === html) { el.innerHTML = html; el.classList.remove('off'); } }, 600);
+  };
+  function chapterLine(R: any) {
+    const c = R.village ? chapter1(R.village) : null, now = ctx.clockMs();
+    if (!c || (c.ended !== null && now - c.ended > 120e3)) { chap.classList.add('off'); return; }
+    if (now - c.began < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:start`)) { const k = startCard(en); queue.push({ head: k.head, text: esc(k.what), at: c.began }); }
+    if (c.ended !== null && now - c.ended < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:end`)) { const k = endCard(c, en); queue.push({ head: k.head, text: esc(k.what), at: c.ended }); }
+    const v = chapterView(c, now, ctx.tz(), en);
+    $('.chap .no').textContent = v.no; $('.chap .nm').textContent = v.name; $('.chap .dy').textContent = v.day;
+    swap('.chap .way', v.way.map((x) => `<span class="${x.k}">${esc(x.w)}</span>`).join(sep));
+    swap('.chap .cargo', v.cargo ? `${esc(v.cargo.label)}${v.cargo.items.map((x) => `<span class="lv${x.low ? ' low' : ''}">${esc(x.w)}</span>`).join(sep)}` : '');
+    chap.classList.remove('off');
+  }
   // The haze under each group of words (src/live/scrim.ts): once a second, right after the frame is drawn, the picture
   // shrunk to 64 × 36; the bright tenth of what lies behind each group sets its haze, eased over a second (CSS).
   const SW = 64, SH = 36, shrink = document.createElement('canvas'); shrink.width = SW; shrink.height = SH;
   const sctx = shrink.getContext('2d', { willReadFrequently: true })!;
-  const groups = ['.brand', '.when', '.band', '.sub', '.card'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
+  const groups = ['.brand', '.when', '.chap', '.band', '.sub', '.card'].map((sel) => { const el = $(sel), haze = document.createElement('div'); haze.className = 'haze'; root.insertBefore(haze, root.firstChild); return { el, haze, h: 0 }; });
   let sampleAt = 0;
   function sample(canvas: HTMLCanvasElement) {
     const now = performance.now(); if (now - sampleAt < 1000) return; sampleAt = now;
@@ -164,12 +191,13 @@ export function makeLive(ctx: LiveCtx) {
     }
   }
   /** For the stream's log (the test week): how hazy each group is now, 0–1. */
-  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'band', 'sub', 'card'][i], +g.h.toFixed(3)]));
+  const haze = () => Object.fromEntries(groups.map((g, i) => [['brand', 'when', 'chap', 'band', 'sub', 'card'][i], +g.h.toFixed(3)]));
 
   // The milestone card (viewer design v2 §4): when the world marks an event the first of its kind on the island, at the
   // upper centre between two gold hair lines — "島で初めて", the event's own sentence (to its first 。), the island's
-  // date and time — for about eight seconds, then it fades. Several at once wait their turn.
-  const card = $('.card'), queue: { text: string; at: number }[] = [];
+  // date and time — for about eight seconds, then it fades. Several at once wait their turn. The chapter's own cards
+  // (its start and end) take the same place with their own heading.
+  const card = $('.card'), queue: { head?: string; text: string; at: number }[] = [];
   let cardT = 0;
   function event(kind: string, text: string, r: any, meta?: { milestone?: string; trial?: { kind: string; result?: string; text: string | null } }) {
     director.event(kind, text, r, meta);   // (ranked for the drone)
@@ -187,6 +215,7 @@ export function makeLive(ctx: LiveCtx) {
     if (cardT > 0) { cardT -= dt; if (cardT <= 0) card.classList.add('off'); return; }
     if (cardT > -0.8) { cardT -= dt; return; }   // (a breath between two cards)
     const m = queue.shift(); if (!m) return;
+    $('.card .head').textContent = m.head ?? (en ? FIXED_EN.first : '島で初めて');
     $('.card .what').innerHTML = m.text;   // (escaped as it was made: only an island's word in italics)
     $('.card .at').innerHTML = `${esc(dateOf(m.at))} <span class="t">${localTimeString(m.at, ctx.tz())}</span>`;
     card.classList.remove('off'); cardT = 8;
