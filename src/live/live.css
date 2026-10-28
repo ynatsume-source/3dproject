@@ -4,7 +4,7 @@
    for the drone's record. One warm white; the sand gold only for what is happening now. Hair lines; no bold. */
 body.live { --u: calc(100vh / 1080); --s1: calc(var(--u) * 22); --s2: calc(var(--u) * 26); --s3: calc(var(--u) * 32);
   --s4: calc(var(--u) * 40); --s5: calc(var(--u) * 46); --s6: calc(var(--u) * 56);
-  --ink: rgba(255, 250, 240, 0.97); --ink2: rgba(255, 250, 240, 0.82); --ink3: rgba(255, 250, 240, 0.66); --gold: #e9cf98;
+  --ink: rgba(255, 250, 240, 0.97); --ink2: rgba(255, 250, 240, 0.82); --ink3: rgba(255, 250, 240, 0.66); --gold: #e9cf98; --done: rgba(196, 224, 214, 0.8);
   --mincho: 'Zen Old Mincho', serif; --sc: 'Cormorant SC', serif; --mono: 'IBM Plex Mono', monospace; --latin: 'Cormorant Garamond', serif;
   cursor: none; }
 /* (everything of the app's own is put away: only the scenery and the window) */
@@ -22,6 +22,21 @@ body.live #diaryBook, body.live #newMark, body.live #hoverTag, body.live #tapRin
 /* (lining figures on the element itself: a font shorthand would put old-style back, and its 1 reads as an i) */
 #live .brand .ser { font-family: var(--latin); font-style: italic; font-weight: 500; font-variant-numeric: lining-nums; letter-spacing: 0.06em;
   margin-right: 0.7em; color: var(--ink3); }
+/* top left under the brand: the chapter and its day, the way, what was brought (PROGRAM.md §2-1, layout v3) */
+#live .chap { position: absolute; left: calc(var(--u) * 96); top: calc(var(--u) * 160); line-height: 1; }
+#live .chap .c1 { font-size: var(--s4); font-weight: 600; letter-spacing: 0.08em; }
+#live .chap .c1 .no { font-size: var(--s2); font-weight: 500; letter-spacing: 0.2em; color: var(--gold); margin-right: calc(var(--u) * 22); }
+#live .chap .c1 .dy { font-size: var(--s1); font-weight: 500; letter-spacing: 0.1em; color: var(--ink3); margin-left: calc(var(--u) * 16); }
+#live .chap .way { margin-top: calc(var(--u) * 18); font-size: var(--s2); letter-spacing: 0.08em; color: var(--ink2); }
+#live .chap .way .done { color: var(--done); }
+#live .chap .way .now { color: var(--gold); border-bottom: 1px solid var(--gold); padding-bottom: calc(var(--u) * 3); }
+#live .chap .way .sep { color: var(--ink3); margin: 0 calc(var(--u) * 10); }
+#live .chap .way .later { color: var(--ink3); }
+#live .chap .cargo { margin-top: calc(var(--u) * 14); font-size: var(--s1); letter-spacing: 0.1em; color: var(--ink3); }
+#live .chap .cargo .lv { color: var(--ink2); margin-left: calc(var(--u) * 10); }
+#live .chap .cargo .low { color: var(--gold); }
+#live .chap .cargo .sep { margin: 0 calc(var(--u) * 10); }
+#live .chap .cargo .sep + .lv { margin-left: 0; }
 /* top right: the island's date and time, and that the residents are AI */
 #live .when { position: absolute; right: calc(var(--u) * 96); top: calc(var(--u) * 62); text-align: right; }
 #live .when .date { font-size: var(--s2); color: var(--ink2); }
@@ -71,4 +86,8 @@ body.live #diaryBook, body.live #newMark, body.live #hoverTag, body.live #tapRin
 #live.en .card .head { letter-spacing: 0.3em; text-transform: uppercase; }
 #live.en .brand .ja { letter-spacing: 0.12em; font-style: italic; }
 #live.en .band .status { font-size: calc(var(--s4) * 1.1); }   /* (Garamond's small x-height reads a step smaller than Mincho at one size) */
-#live.en { font-variant-numeric: lining-nums; }   /* (Garamond's old-style 1 reads as an i: "Island year 1") */
+#live.en { font-variant-numeric: lining-nums; }
+#live.en .chap .c1, #live.en .chap .way { font-family: var(--latin); letter-spacing: 0.02em; }
+#live.en .chap .c1 { font-size: calc(var(--s4) + var(--u) * 4); }
+#live.en .chap .c1 .no { font-style: italic; font-size: calc(var(--s2) + var(--u) * 2); letter-spacing: 0.04em; }
+#live.en .chap .cargo { font-family: var(--latin); font-style: italic; font-size: var(--s2); letter-spacing: 0.03em; }   /* (Garamond's old-style 1 reads as an i: "Island year 1") */
