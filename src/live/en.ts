@@ -187,7 +187,7 @@ export const asLine = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 // event it was. A crossing's key carries the island's word.
 const FIRSTS: Record<string, (who: string) => string> = {
   light: (w) => `${w} lit the island's first lamp`,
-  'weather-pot': (w) => `${w} made the weather pot`, retort: (w) => `${w} built the retort for charcoal and tar`, 'cook-pot': (w) => `${w} made the island's cooking pot`,
+  'weather-pot': (w) => `${w} made the weather pot`, retort: (w) => `${w} built the retort for charcoal and tar`, 'cook-pot': (w) => `${w} made the island's cooking pot`, 'fired-pot': (w) => `${w} fired the island's first pot`,
   raft: (w) => `${w} finished the raft`, sighting: (w) => `${w} sighted an island on the horizon`, pier: (w) => `${w} finished the pier`,
   'house-roof': (w) => `${w} thatched the house roof`, 'house-walls': (w) => `${w} finished the house's clay walls`, house: (w) => `${w} finished the house`,
   wall: (w) => `${w} finished the house's stone wall`, 'rakko-bed': () => "Rakko's resting place is finished", 'clay-pit': (w) => `${w} dug the clay pit`,

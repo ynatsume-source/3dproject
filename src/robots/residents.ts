@@ -515,6 +515,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     felled: [] as { x: number; z: number; h: number; kind: number; at: number }[],
     clayPit: null as null | { at: number; diameterCm: number; depthCm: number },
     firstLoad: null as null | { at: number; clayMg: number; bambooMg: number; lots: string[] },   // (the first raft load from the island to the south, once: firstLoad())
+    loadMin: null as null | { clayMg: number; bambooMg: number },   // (chapter 1: the least of the clay and bamboo brought, not yet used, so far — chapter1Tick)
     prepBy: '', prepSaved: [] as string[], heed: {} as Record<string, number>, onsetHunger: {} as Record<string, number>, stormLog: [] as { at: number; warned: boolean; by: string; saved: string[]; lost: string[] }[] };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
@@ -1172,6 +1173,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const brought = (i.carry ?? []).map((c) => ({ c, fresh: !Object.values(lab.lots).some((x) => x.materialId === c.materialId) }));
       for (const b of brought) addLot(lab, { lotId: `lot:${i.id}:${++lab.seq}`, materialId: b.c.materialId, amount: { value: b.c.mg, unit: 'mg' }, location: 'shelf', ...(b.c.quality ? { quality: { ...b.c.quality } } : {}) });
       drawStore();
+      // (chapter 1's end: a load of its own from the south island on the shelf — not the first load, and on a trial island
+      // only one after the first load came: science, specs/chapter1-world-values.md §4)
+      if (i.id === 'south-near' && brought.length && (!village.firstLoad || clockMs > village.firstLoad.at)) markFirst('south-load');
       const firstTime = !village.map.reached[i.id];
       village.map.reached[i.id] = { at: clockMs };
       r.diary.push({ at: clockMs, text: `${w}にたどり着いて戻った。あったもの：${i.has.join('・')}${brought.length ? `。持ち帰った：${brought.map((b) => `${b.c.ja} ${Math.round(b.c.mg / 1e6)}kg`).join('・')}（小屋の棚）` : ''}`, key: 'got' });
@@ -1404,6 +1408,22 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /* ---------- what happened on the island, and whether it was a first (world/milestones.ts) ---------- */
   // (every event the world tells goes through here: the first of its kind is marked, and kept with the village, even
   // in the hours caught up on — the record is the world's, whoever is watching)
+  const firstsOf = () => ((village as any).firsts ??= {}) as Record<string, number>;
+  /** A first the world keeps without a card of its own (chapter 1's way and its load: PROGRAM.md §2-1). */
+  function markFirst(key: string) { const f = firstsOf(); if (f[key] === undefined) f[key] = clockMs; }
+  // (chapter 1's load (PROGRAM.md §2-1-2, science's specs/chapter1-world-values.md §5–6): the clay and bamboo not yet
+  // used, wherever they lie and whatever holds them — raw, settled and prepared clay; bamboo — its least so far (the
+  // weights hold water, which a step may add), and gone when nothing more can be made of it: clay under a lamp dish's
+  // 0.4 kg, bamboo under a tube's 0.2 kg. Kept until the south island's load comes, when the chapter ends.)
+  const CLAY_GONE_MG = 0.4e6, BAMBOO_GONE_MG = 0.2e6;
+  function chapter1Tick() {
+    const f = firstsOf(); if (!village.firstLoad || f['south-load'] !== undefined) return;
+    const mg = (ids: string[]) => Object.values(lab.lots).filter((l) => ids.includes(l.materialId)).reduce((n, l) => n + l.amount.value, 0);
+    const clay = mg(['raw_clay', 'settled_clay', 'prepared_clay']), bamboo = mg(['bamboo']), m = (village.loadMin ??= { clayMg: clay, bambooMg: bamboo });
+    m.clayMg = Math.min(m.clayMg, clay); m.bambooMg = Math.min(m.bambooMg, bamboo);
+    if (m.clayMg < CLAY_GONE_MG) markFirst('clay-gone');
+    if (m.bambooMg < BAMBOO_GONE_MG) markFirst('bamboo-gone');
+  }
   function tell(kind: string, text: string, r: Resident) {
     const key = milestoneKey(kind, text), firsts = ((village as any).firsts ??= {}) as Record<string, number>;
     const first = key && firsts[key] === undefined ? key : undefined;
@@ -2274,7 +2294,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const dg = [...out].reverse().find((c) => c.diagnostics && (c.diagnostics as any).lumenSeconds !== undefined)?.diagnostics as any;
     const x = (village as any).lampFiber as number | undefined;
     if (dg && x) { village.lampLog.push({ at: clockMs, fiber: x, lumenS: Math.round(dg.lumenSeconds ?? 0), litS: Math.round(dg.litSeconds ?? 0), soot: 0 }); if (village.lampLog.length > 60) village.lampLog.shift(); }
-    if (status === 'completed' && village.lampLog.length === 1 && (dg?.litSeconds ?? 0) > 0) tell('science', `${by?.v.name ?? 'ランタン'}が、島で初めて灯りをともした。焼いた灯皿に、島のヤシ油と、自分でよった芯で`, by);
+    // (the first lamp that burned, though the first try did not: none lit before it — science, specs/chapter1-world-values.md §2)
+    if (status === 'completed' && (dg?.litSeconds ?? 0) > 0 && firstsOf().light === undefined) tell('science', `${by?.v.name ?? 'ランタン'}が、島で初めて灯りをともした。焼いた灯皿に、島のヤシ油と、自分でよった芯で`, by);
     drawLamp();
   }
   // the dish in the hut, and its flame while a lamp burns
@@ -2497,6 +2518,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // (the lamp's: the oil soaked into the dish's wall stays with the dish; the water that sat under the oil is poured off
       // into a jar of its own, kept apart from the oil and the rain water, and accounted; the rest goes back to the shelf)
       for (const p of ended.produced ?? []) {
+        // (chapter 1's way: a pot fired, not cracked — a cook pot's or a lamp dish's alike; one cracked later stays so)
+        if (ended.status === 'completed' && p.materialId === 'fired_pot' && !p.quality?.crack && firstsOf()['fired-pot'] === undefined) tell('science', `${by?.v.name ?? 'ランタン'}の野焼きで、島で初めて器が焼けた`, by ?? byId.lantern);
         if (isLamp && p.materialId === 'coconut_oil' && p.quality?.soaked_in_dish === 1) continue;
         if (isLamp && p.materialId === 'process_water') { p.location = 'jar:lamp'; continue; }
         if (p.location !== 'shelf') p.location = 'shelf';
@@ -2644,6 +2667,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       case 'place': {
         const k = r.stats.built; if (k >= HUT.length) { r.holding = ''; break; }
         r.holding = ''; r.stats.built++;
+        if (r.stats.built >= HUT.length) markFirst('hut');   // (chapter 1's way: the hut, all its pieces — PROGRAM.md §2-1-1)
         launch(r, HUT[k], fast);
         { const g = (r as any).gotWood; if (g && clockMs - g.at < 86_400_000) { village.feedback.push({ from: r.id, to: g.from, f: { act: 'helped', what: 'wood', became: 'piece' }, at: clockMs }); if (village.feedback.length > 20) village.feedback.shift(); } (r as any).gotWood = undefined; }
         note(r, r.stats.built === 18 ? 'done' : 'build', {}, r.stats.built === 18 ? '小屋を完成させた' : '小屋の部材をひとつ取りつけた');
@@ -3693,7 +3717,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (who) who.diary.push({ at: clockMs, text: `帆の筏での渡航は途中で終わった${back.words.length ? `。${back.words.map((w) => w.replace(/。$/, '')).join('。')}` : ''}`, key: 'got' }); }
     // (the firsts the island had before it kept them: not told again as firsts — world/milestones.ts)
     { const f = ((village as any).firsts ??= {}) as Record<string, number>, had = (k: string, yes: unknown) => { if (yes && f[k] === undefined) f[k] = 0; };
-      had('light', village.lampLog.length); had('raft', village.raft.parts >= RAFT_N); had('pier', village.pier === 'done');
+      had('light', village.lampLog.some((l) => l.litS > 0)); had('raft', village.raft.parts >= RAFT_N); had('hut', byId.dot.stats.built >= HUT.length);
+      had('fired-pot', Object.values(lab.lots).some((l) => l.materialId === 'fired_pot' && !l.quality?.crack) || !!lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${POT_ASSEMBLY.kind}`]); had('pier', village.pier === 'done');
       had('weather-pot', lab.equipment[`eq:${POT_ASSEMBLY.kind}`]); had('retort', lab.equipment[`eq:${RETORT_ASSEMBLY.kind}`]); had('cook-pot', lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`]);
       had('house-roof', village.house.n >= ROOF_N); had('house-walls', village.house.n >= WALLS_N); had('house', village.house.n >= HOUSE_N); had('wall', wallDone()); had('clay-pit', village.clayPit);
       had('sighting', Object.keys(village.map.seen).length);
@@ -3944,7 +3969,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       camAt.set(cam.x, cam.y, cam.z);
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
       items.tick(dt); tickDrift(dt); catchRain(dt);
-      if ((labT -= dt) < 0) { labT = 30; tickLab(); }
+      if ((labT -= dt) < 0) { labT = 30; tickLab(); chapter1Tick(); }
       profBegin('殻'); husk.tick(clockMs); profEnd('殻');   // (the time the husks lie in the tide pool, confirmed as it passes)
       profBegin('縄'); cord.tick(clockMs, voyaging && wxNow ? (wxNow.windMeasured ?? wxNow.wind) : null); profEnd('縄');   // (the roof's time, the sun on the cords, a crossing's wind)
       if (!village.sailHost?.sites) sail.sites();   // (the pandanus by the shore stand from the first: found once, by a fixed search, and kept)
