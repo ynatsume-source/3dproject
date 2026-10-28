@@ -1,0 +1,213 @@
+FIRSTS {"sighting":0.1,"clay-pit":1.3,"raft":11.3,"mast":11.9,"south-load":31.5,"crossing:sopunu":31.5,"hut":54.8,"fibre":55.4,"rakko-bed":58.1,"rope":73.7,"rig":83.1,"pier":101.1,"sail":106.7,"fired-pot":120,"cook-pot":120,"sail-crossing":125.5} lampLog 0 labDoneLast ["89.5h p12y_pot_dry","90.8h p12y_pot_dry","110.3h p10x_clay_slake","111.7h p10y_clay_knead","118.9h p15x_firewood_dry","120.0h p13y_pot_pit_fire","122.9h p31x_coconut_oil_boil x","123.8h p30x_coconut_milk","124.0h p11y_pot_shape x","127.6h p10x_clay_slake","131.4h p10y_clay_knead","131.8h p11y_pot_shape"]
+STORMS [{"at":39.8,"warned":true,"by":"kame","saved":["おなか（前もって食べておいた）"],"lost":["筏の部材3本","おなか（台風のあいだ食べられず、弱った）"]}] swell {"alarm":0,"hits":1,"falses":2} heed {"kame":1}
+{"BR":"rand","HOURS":140,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"1.3","labDone":["41.8h p30x_coconut_milk","54.3h p10x_clay_slake","59.0h p10y_clay_knead","60.3h p11y_pot_shape","65.0h p11y_pot_shape","78.0h p10x_clay_slake","83.3h p10y_clay_knead","89.5h p12y_pot_dry","90.8h p12y_pot_dry","110.3h p10x_clay_slake","111.7h p10y_clay_knead","118.9h p15x_firewood_dry","120.0h p13y_pot_pit_fire","122.9h p31x_coconut_oil_boil ✗","123.8h p30x_coconut_milk","124.0h p11y_pot_shape ✗","127.6h p10x_clay_slake","131.4h p10y_clay_knead","131.8h p11y_pot_shape"]}
+K 0.0h hunger 0.40 task idle beds 1.00/1.00/1.00/1.00/1.00
+L 0.0h wood wet 0 dry 0 unusedClay 25 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+W 0.0h jst6.0 gust 7 p 1009 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame idle
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+K 2.0h hunger 0.13 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 4.0h hunger 0.32 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 6.0h hunger 0.08 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 6.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+6.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 3 raft 0 reached  labDone 0
+K 8.0h hunger 0.22 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 10.0h hunger 0.38 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 12.0h hunger 0.10 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 12.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+12.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 4 raft 6 reached  labDone 0
+K 14.0h hunger 0.28 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 16.0h hunger 0.42 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 18.0h hunger 0.50 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 18.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+18.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 5 raft 6 reached  labDone 0
+K 20.0h hunger 0.57 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 22.0h hunger 0.65 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 24.0h hunger 0.76 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 24.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+24.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 6 raft 6 reached  labDone 0
+K 26.0h hunger 0.40 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 28.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 30.0h hunger 0.13 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 30.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+30.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 2.1 pots 0.0/0.0/0.0 hut 11 raft 6 reached  labDone 0
+K 32.0h hunger 0.33 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 34.0h hunger 0.12 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 36.0h hunger 0.11 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 36.0h wood wet 0 dry 0 unusedClay 14.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+36.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 9.1 pots 0.0/0.0/0.0 hut 19 raft 6 reached south-near labDone 0
+K 38.0h hunger 0.23 task shelter beds 1.00/1.00/1.00/1.00/1.00
+K 40.0h hunger 0.35 task sleep beds 0.42/0.42/0.42/0.42/0.42
+K 42.0h hunger 0.43 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 42.0h wood wet 0 dry 0 unusedClay 14.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+42.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 19 raft 3 reached south-near labDone 1
+K 44.0h hunger 0.51 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 46.0h hunger 0.58 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 48.0h hunger 0.67 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 48.0h wood wet 0 dry 0 unusedClay 14.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+48.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 19 raft 3 reached south-near labDone 1
+K 50.0h hunger 0.23 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 52.0h hunger 0.44 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 54.0h hunger 0.16 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 54.0h wood wet 0 dry 0 unusedClay 14.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+54.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 7.6 pots 0.0/0.0/0.0 hut 23 raft 3 reached south-near labDone 1
+K 56.0h hunger 0.36 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 58.0h hunger 0.07 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 60.0h hunger 0.25 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 60.0h wood wet 49.7 dry 0 unusedClay 33.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 5
+60.0h clay 30.0 settled 0.0 prepared 3.9 bamboo 21.6 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 3
+K 62.0h hunger 0.45 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 64.0h hunger 0.58 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 66.0h hunger 0.65 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 66.0h wood wet 61.3 dry 0 unusedClay 31.1 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 6
+66.0h clay 30.0 settled 0.0 prepared 1.1 bamboo 19.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+K 68.0h hunger 0.72 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 70.0h hunger 0.79 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 72.0h hunger 0.88 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 72.0h wood wet 61.3 dry 0 unusedClay 31.1 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 6
+72.0h clay 30.0 settled 0.0 prepared 1.1 bamboo 19.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+K 74.0h hunger 0.29 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 76.0h hunger 0.39 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 78.0h hunger 0.20 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 78.0h wood wet 61.3 dry 0 unusedClay 31.1 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 6
+78.0h clay 30.0 settled 0.0 prepared 1.1 bamboo 19.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+K 80.0h hunger 0.40 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 82.0h hunger 0.08 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 84.0h hunger 0.26 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 84.0h wood wet 91.4 dry 0 unusedClay 39.1 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 9
+84.0h clay 30.0 settled 0.0 prepared 9.1 bamboo 26.6 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 7
+K 86.0h hunger 0.45 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 88.0h hunger 0.59 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 90.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 90.0h wood wet 108.7 dry 0 unusedClay 39.1 pots g/d/f 1/1/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 11
+90.0h clay 30.0 settled 0.0 prepared 9.1 bamboo 26.6 pots 1.4/1.2/0.0 hut 24 raft 6 reached south-near labDone 8
+K 92.0h hunger 0.73 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 94.0h hunger 0.81 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 96.0h hunger 0.91 task survey beds 1.00/1.00/1.00/1.00/1.00
+L 96.0h wood wet 108.7 dry 0 unusedClay 39.1 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 11
+96.0h clay 30.0 settled 0.0 prepared 9.1 bamboo 26.6 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 98.0h hunger 1.00 task rest beds 1.00/1.00/1.00/1.00/1.00
+K 100.0h hunger 0.94 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 102.0h hunger 0.34 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 102.0h wood wet 135 dry 0 unusedClay 39.1 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 14
+102.0h clay 30.0 settled 0.0 prepared 9.1 bamboo 26.6 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 104.0h hunger 0.08 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 106.0h hunger 0.29 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 108.0h hunger 0.08 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 108.0h wood wet 142.4 dry 0 unusedClay 39.1 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 15
+108.0h clay 30.0 settled 0.0 prepared 9.1 bamboo 26.6 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 110.0h hunger 0.28 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 112.0h hunger 0.43 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 114.0h hunger 0.50 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 114.0h wood wet 160.7 dry 0 unusedClay 37.3 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 17
+114.0h clay 20.0 settled 0.0 prepared 17.3 bamboo 26.6 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 11
+K 116.0h hunger 0.57 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 118.0h hunger 0.64 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 120.0h hunger 0.72 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 120.0h wood wet 114.1 dry 0 unusedClay 37.3 pots g/d/f 0/0/1 firedKg 1 equip firewood_stack,open_fire_pit reachedS 1 setOut 1 felled 17
+120.0h clay 20.0 settled 0.0 prepared 17.3 bamboo 26.6 pots 0.0/0.0/1.0 hut 24 raft 6 reached south-near labDone 13
+K 122.0h hunger 0.13 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 124.0h hunger 0.32 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 126.0h hunger 0.12 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 126.0h wood wet 107.6 dry 0 unusedClay 47.3 pots g/d/f 0/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 18
+126.0h clay 30.0 settled 0.0 prepared 17.3 bamboo 33.6 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 16
+K 128.0h hunger 0.34 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 130.0h hunger 0.09 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 132.0h hunger 0.28 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 132.0h wood wet 147.2 dry 0 unusedClay 45.1 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 22
+132.0h clay 20.0 settled 0.0 prepared 25.1 bamboo 33.6 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 19
+K 134.0h hunger 0.47 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 136.0h hunger 0.61 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 138.0h hunger 0.68 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 138.0h wood wet 165.9 dry 0 unusedClay 45.1 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 24
+138.0h clay 20.0 settled 0.0 prepared 25.1 bamboo 33.6 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 19
+firsts 0.1h dot sighting | 1.3h lantern clay-pit | 11.3h dot raft | 11.9h dot mast | 31.5h dot crossing:sopunu | 55.4h dot fibre | 58.1h rakko rakko-bed | 73.7h dot rope | 83.1h dot rig | 101.1h dot pier | 106.7h dot sail | 120.0h lantern fired-pot | 120.0h lantern cook-pot | 125.5h dot sail-crossing
+log 3.1h fire 朝の集まりが始まった
+3.5h fire ドット：朝の集まりに出た
+3.5h fire カメマル：朝の集まりに出た
+3.5h fire ランタン：朝の集まりに出た
+3.5h fire ラッコ：朝の集まりに出た
+3.5h fire ドット・ラッコ・ランタン・カメマルが朝の集まりに出た
+11.3h raft ドットの筏ができた
+13.0h fire 焚き火の会が始まった
+15.0h fire ドット：焚き火の会に出た
+15.0h fire カメマル：焚き火の会に出た
+15.0h fire ランタン：焚き火の会に出た
+15.0h fire ラッコ：焚き火の会に出た
+15.0h fire ランタン・ドット・ラッコ・カメマルが焚き火の会に出た
+23.8h weather カメマルが長いうねりに気づいた。台風が来るかもしれない（10秒ごとのうねり）
+27.0h fire 朝の集まりが始まった
+27.2h fire 朝の集まりで、カメマルの知らせで台風に備えることが決まった
+27.5h fire ドット：朝の集まりに出た
+27.5h fire カメマル：朝の集まりに出た
+27.5h fire ランタン：朝の集まりに出た
+27.5h fire ラッコ：朝の集まりに出た
+27.5h fire ドット・ランタン・ラッコ・カメマルが朝の集まりに出た
+32.5h weather カメマルが長いうねりに気づいた。台風が来るかもしれない（10秒ごとのうねり）
+36.2h weather 台風が来た（気圧 991hPa・最大瞬間風速 23m/s）
+39.8h weather 台風に備えていた。無事：おなか（前もって食べておいた）／失ったもの：筏の部材3本・おなか（台風のあいだ食べられず、弱った）
+39.8h weather 台風が過ぎた。藻場と岩場が荒れ、浜に漂着物が打ち上がった
+51.0h fire 朝の集まりが始まった
+51.5h fire ドット：朝の集まりに出た
+51.5h fire カメマル：朝の集まりに出た
+51.5h fire ランタン：朝の集まりに出た
+51.5h fire ラッコ：朝の集まりに出た
+51.5h fire ドット・ラッコ・ランタン・カメマルが朝の集まりに出た
+55.7h raft ドットの筏ができた
+60.9h fire 焚き火の会が始まった
+63.0h fire ドット：焚き火の会に出た
+63.0h fire カメマル：焚き火の会に出た
+63.0h fire ランタン：焚き火の会に出た
+63.0h fire ラッコ：焚き火の会に出た
+63.0h fire ドット・ランタン・ラッコ・カメマルが焚き火の会に出た
+75.0h fire 朝の集まりが始まった
+75.5h fire ドット：朝の集まりに出た
+75.5h fire カメマル：朝の集まりに出た
+75.5h fire ランタン：朝の集まりに出た
+75.5h fire ラッコ：朝の集まりに出た
+75.5h fire ドット・ランタン・ラッコ・カメマルが朝の集まりに出た
+84.9h fire 焚き火の会が始まった
+87.0h fire ドット：焚き火の会に出た
+87.0h fire カメマル：焚き火の会に出た
+87.0h fire ランタン：焚き火の会に出た
+87.0h fire ラッコ：焚き火の会に出た
+87.0h fire ランタン・ラッコ・ドット・カメマルが焚き火の会に出た
+96.1h weather カメマルが長いうねりに気づいた。台風が来るかもしれない（9秒ごとのうねり）
+99.0h fire 朝の集まりが始まった
+99.4h fire 朝の集まりで、カメマルの知らせで台風に備えることが決まった
+99.5h fire ドット：朝の集まりに出た
+99.5h fire カメマル：朝の集まりに出た
+99.5h fire ランタン：朝の集まりに出た
+99.5h fire ラッコ：朝の集まりに出た
+99.5h fire ドット・ランタン・ラッコ・カメマルが朝の集まりに出た
+99.5h haul ドット：台風に備えて、筏を浜の上へ引き上げた
+109.0h fire 焚き火の会が始まった
+111.0h fire ドット：焚き火の会に出た
+111.0h fire カメマル：焚き火の会に出た
+111.0h fire ランタン：焚き火の会に出た
+111.0h fire ドット・ランタン・カメマルが焚き火の会に出た
+119.9h craft ドット：削った部材を作業台の脇に置いた（1本）
+120.2h craft ドット：削った部材を作業台の脇に置いた（2本）
+122.1h craft ドット：削った部材を作業台の脇に置いた（3本）
+122.9h fire 朝の集まりが始まった
+123.5h fire ドット：朝の集まりに出た
+123.5h fire カメマル：朝の集まりに出た
+123.5h fire ランタン：朝の集まりに出た
+123.5h fire ランタン・ドット・カメマルが朝の集まりに出た
+123.8h craft ドット：削った部材を作業台の脇に置いた（4本）
+124.9h craft ドット：削った部材を作業台の脇に置いた（5本）
+125.3h craft ドット：削った部材を作業台の脇に置いた（6本）
+126.1h craft ドット：削った部材を作業台の脇に置いた（7本）
+127.0h craft ドット：削った部材を作業台の脇に置いた（8本）
+127.4h craft ドット：削った部材を作業台の脇に置いた（9本）
+127.7h craft ドット：削った部材を作業台の脇に置いた（10本）
+128.0h craft ドット：削った部材を作業台の脇に置いた（11本）
+128.2h craft ドット：削った部材を作業台の脇に置いた（12本）
+130.1h craft ドット：削った部材を作業台の脇に置いた（13本）
+130.7h craft ドット：削った部材を作業台の脇に置いた（14本）
+132.3h craft ドット：削った部材を作業台の脇に置いた（15本）
+133.1h fire 焚き火の会が始まった
+135.0h fire ドット：焚き火の会に出た
+135.0h fire カメマル：焚き火の会に出た
+135.0h fire ランタン：焚き火の会に出た
+135.0h fire ドット・ランタン・カメマルが焚き火の会に出た
+135.0h craft ドット：削った部材を作業台の脇に置いた（16本）

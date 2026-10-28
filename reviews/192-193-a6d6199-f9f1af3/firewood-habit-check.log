@@ -1,0 +1,5 @@
+1 Dot fells trees for firewood until there is green wood enough for a pile: 47.2 kg from 6 trees ok
+1 then it stops: 0 more ok
+2 Lantern piles it, makes the woodpile's roof and sets it to dry: 1 lot(s), 60.9 kg; roof true; runs m02x_air_barometer_test,p15x_firewood_dry; 朝の集まりで、ドットは今日流木を集めると言った / 朝の集まりで、ラッコは今日貝殻を集めると言った / 試験用の気圧計を置いて読む：目盛り -1（暑い朝） ok
+3 no pots waiting: no felling for firewood: 0 more ok
+PASS
