@@ -1,0 +1,34 @@
+CH1 {"began":0,"way":{"hut":31.5,"raft":32.4,"south":32.6,"pot":null,"light":null},"ended":32.6,"load":null,"inTime":true,"crossing":1} loadMin {"clayMg":4925223,"bambooMg":3500000} firsts {"sighting":0.1,"clay-pit":1.3,"rakko-bed":28.3,"hut":31.5,"raft":32.4,"south-load":32.6,"crossing:sopunu":32.6}
+{"BR":"none","HOURS":72,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"1.3","labDone":["16.1h p30x_coconut_milk","44.8h p10x_clay_slake","45.3h p10y_clay_knead","46.6h p11y_pot_shape","47.9h p11y_pot_shape","59.7h p10x_clay_slake","60.9h p10y_clay_knead ✗","63.7h p10y_clay_knead"]}
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+6.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 6 raft 0 reached  labDone 0
+12.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 11 raft 0 reached  labDone 0
+18.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 13 raft 0 reached  labDone 1
+24.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 14 raft 0 reached  labDone 1
+30.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 22 raft 0 reached  labDone 1
+36.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 10.5 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 1
+42.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 10.5 pots 0.0/0.0/0.0 hut 24 raft 3 reached south-near labDone 1
+48.0h clay 10.0 settled 0.0 prepared 1.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 3 reached south-near labDone 5
+54.0h clay 10.0 settled 0.0 prepared 1.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+60.0h clay 0.0 settled 8.0 prepared 1.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 6
+66.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 8
+firsts 0.1h dot sighting | 1.3h lantern clay-pit | 28.3h rakko rakko-bed | 32.4h dot raft | 32.6h dot crossing:sopunu
+log 1.3h pit ランタン：小屋のそばに、葉の日よけをかけて粘土の池を掘った（直径50cm・深さ25cm。生の粘土20kgで底と壁を踏み固めた。入るのは約34
+1.3h pit ランタンが粘土の池を掘った。粘土を浸せるようになった
+3.8h science ランタン：ひらめき：気圧が下がると嵐が来るはず。この気圧計は外の気圧が下がると目盛りが上がる。これまでの最高は5。目盛りが7以上になったら、
+5.2h science ランタン：気圧計が8まで上がった。台風が来るかもしれない
+7.1h science ランタン：ひらめき：温まっても目盛りが上がるなら、前の日の同じ時刻と比べればいい。暑さ寒さは毎日くり返すから、残るのは気圧の変わり方だ。これ
+11.0h science ランタン：気圧計が前の日の同じ時刻より9上がった。台風が来るかもしれない
+16.1h science ランタンの工程：ヤシの実を割って、削って、しぼる：できた（ヤシの実の殻 486.1g・ヤシの実の殻（内側） 180.5g・coconut_w
+32.2h science ランタン：気圧計が11まで上がった。台風が来るかもしれない
+32.4h raft ドットの筏ができた
+34.0h science ランタン：気圧計が13まで上がった。台風が来るかもしれない
+35.8h science ランタン：気圧計の目盛りが上がると台風が来る、は今のところ怪しい（当たり 0・外れ 3・見逃し 0）
+44.8h science ランタンの工程：粘土を水に浸して、こして沈める：できた（沈めた粘土 3971.8g・clay_sieve_residue 1089.2g・真
+45.3h science ランタンの工程：沈めた粘土を練る：できた（下ごしらえした粘土 3971.8g）。気づいたこと：手につかず、よくまとまる
+46.6h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 2550.1g）。気づいたこと：
+47.9h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 1128.3g）。気づいたこと：
+48.9h raft ドットの筏ができた
+59.7h science ランタンの工程：粘土を水に浸して、こして沈める：できた（沈めた粘土 7973.9g・clay_sieve_residue 2211.4g・真
+60.9h science ランタンの工程：沈めた粘土を練る：途中でやめた（材料はそのまま）
+63.7h science ランタンの工程：沈めた粘土を練る：できた（下ごしらえした粘土 7973.9g）。気づいたこと：手につかず、よくまとまる

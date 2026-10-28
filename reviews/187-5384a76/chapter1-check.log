@@ -1,0 +1,6 @@
+A the chapter begins with the first load, none of the way done: {"began":1790989200000,"way":{"hut":null,"raft":null,"south":null,"pot":null,"light":null},"ended":null,"load":null,"inTime":null,"crossing":0} ok
+B the load in words, by the least so far: plenty, about half, nearly gone, gone — and not taken back: plenty/plenty plenty/plenty half/half little/little little/gone gone/gone gone/gone ok
+C the hut: done with its last piece, the time kept: 24 pieces, 1790989469800 ok
+D in time or not, from the times kept; the load's line gone with the end: {"inTime":true,"late":false,"after":true,"going":{"clay":"little","bamboo":"half"}} ok
+E no first load, no chapter 1:  ok
+all ok
