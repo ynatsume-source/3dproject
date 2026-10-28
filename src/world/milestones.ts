@@ -9,6 +9,7 @@ const KINDS: [kind: string, re: RegExp, key: (m: RegExpMatchArray) => string][] 
   ['science', /天気の壺ができた/, () => 'weather-pot'],
   ['science', /乾留の器ができた/, () => 'retort'],
   ['science', /島の鍋になった/, () => 'cook-pot'],
+  ['science', /島で初めて器が焼けた/, () => 'fired-pot'],
   ['raft', /筏ができた/, () => 'raft'],
   ['map', /筏で(.+?)に渡り、戻ってきた/, (m) => `crossing:${m[1]}`],
   ['map', /水平線に島を.+?見つけ/, () => 'sighting'],

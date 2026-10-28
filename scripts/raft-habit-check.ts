@@ -7,6 +7,7 @@
 //    not go again for three hours
 //  4 a calm clear morning after the gathering: it crosses to the island it has seen, and is back with what is there
 //  5 the island reached: no crossing again by habit (the house's trips for bamboo and clay are the mind's)
+//  4 the south island's load on the shelf ends chapter 1, its time kept (world/chapter1.ts: PROGRAM.md §2-1-1)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/raft-habit-check.ts
 import './node-land';
 import * as THREE from 'three';
@@ -19,6 +20,7 @@ const { mulberry32 } = await import('../src/core/math'); Math.random = mulberry3
 const { loadLand } = await import('../src/ocean/land');
 const { DOTWORLD } = await import('../src/data/locations');
 const { ISLES } = await import('../src/world/planet-map');
+const { chapter1 } = await import('../src/world/chapter1');
 const loc: any = DOTWORLD;
 await loadLand('kayama', loc.land.half, loc.land.far);
 const { buildOcean } = await import('../src/ocean/build');
@@ -61,6 +63,9 @@ const goals: string[] = []; { const seen = new Set<string>(), u = R.update; R.up
   R.setWeather(calm); dot.holding = ''; dot.battery = 1; dot.task = null; sim = Date.parse('2026-10-08T09:40:00+09:00');
   let away = false;
   await run(6 * 3600, () => { if (dot.task?.kind === 'voyage' && dot.task.data?.started) away = true; return !!V.map.reached[near.id]; });
+  const c = chapter1(V);
+  want('4 the south island\'s load on the shelf ends chapter 1, its time kept', !!c && c.ended === V.firsts['south-load'] && c.ended! > V.firstLoad.at && c.load === null && c.inTime !== null && c.crossing >= 1
+    && Object.keys(R.lab.lots).some((k) => /^lot:south-near:\d+$/.test(k)), JSON.stringify(c));
   want('4 a calm clear morning: it crosses by habit to the island it has seen, and is back', away && !!V.map.reached[near.id] && goals.includes('筏で島へ渡る') && dot.diary.some((e: any) => /にたどり着いて戻った/.test(e.text)), `${goals.slice(-4).join(' / ')}`);
 }
 { // 5
