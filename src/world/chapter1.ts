@@ -1,7 +1,8 @@
 // Chapter 1, the first crossing back to the south island (viewer design PROGRAM.md §2-1, owner's decision 2026-10-27; its
 // name and its end's words in CHAPTER1_END.md, for the owner), read from the world's own record: the way's stages done
-// when the world says so, the load brought from the south in four words, and which crossing brought its load. Only reads what the village keeps (village.firsts, never the labDone or lampLog rows, which are let
-// go: science, specs/chapter1-world-values.md); the screen shows it as it is, decides nothing.
+// when the world says so, the load brought from the south in four words, and which crossing brought its load. Only
+// reads what the village keeps (village.firsts, never the labDone or lampLog rows, which are let go: science,
+// specs/chapter1-world-values.md); the screen shows it as it is, decides nothing.
 
 /** The way, in the order the screen shows it, as the world goes — the hut, then the raft (#185), then the crossing; the
  *  pot and the light come after the crossing and go to chapter 2 (viewer design CHAPTER1_END.md §3, whichever way the

@@ -2671,7 +2671,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (r.stats.built >= HUT.length) markFirst('hut');   // (chapter 1's way: the hut, all its pieces — PROGRAM.md §2-1-1)
         launch(r, HUT[k], fast);
         { const g = (r as any).gotWood; if (g && clockMs - g.at < 86_400_000) { village.feedback.push({ from: r.id, to: g.from, f: { act: 'helped', what: 'wood', became: 'piece' }, at: clockMs }); if (village.feedback.length > 20) village.feedback.shift(); } (r as any).gotWood = undefined; }
-        note(r, r.stats.built === 18 ? 'done' : 'build', {}, r.stats.built === 18 ? '小屋を完成させた' : '小屋の部材をひとつ取りつけた');
+        // (the roof at the eighteenth piece; the hut done at its last — chapter 1's way counts the last: science on #187)
+        note(r, r.stats.built >= HUT.length ? 'done' : r.stats.built === 18 ? 'roof' : 'build', {}, r.stats.built >= HUT.length ? '小屋を完成させた' : r.stats.built === 18 ? '小屋の屋根ができた' : '小屋の部材をひとつ取りつけた');
         // now and then it stands back to look at what it has put up: from a couple of metres off, head on one
         // side and the other, a little lower once to see it level, a nod, and back to work. Only looking: it
         // changes nothing and writes nothing (not after every piece, not twice within three minutes)
@@ -3720,8 +3721,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (who) who.diary.push({ at: clockMs, text: `帆の筏での渡航は途中で終わった${back.words.length ? `。${back.words.map((w) => w.replace(/。$/, '')).join('。')}` : ''}`, key: 'got' }); }
     // (the firsts the island had before it kept them: not told again as firsts — world/milestones.ts)
     { const f = ((village as any).firsts ??= {}) as Record<string, number>, had = (k: string, yes: unknown) => { if (yes && f[k] === undefined) f[k] = 0; };
-      had('light', village.lampLog.some((l) => l.litS > 0)); had('raft', village.raft.parts >= RAFT_N); had('hut', byId.dot.stats.built >= HUT.length);
-      had('fired-pot', Object.values(lab.lots).some((l) => l.materialId === 'fired_pot' && !l.quality?.crack) || !!lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${POT_ASSEMBLY.kind}`]); had('pier', village.pier === 'done');
+      had('light', village.lampLog.some((l) => l.litS > 0)); had('raft', village.raft.parts >= RAFT_N || Object.keys(village.map.reached ?? {}).length > 0);   // (a raft halved by a storm had been whole: it crossed) had('hut', byId.dot.stats.built >= HUT.length);
+      had('fired-pot', Object.values(lab.lots).some((l) => l.materialId === 'fired_pot' && !l.quality?.crack) || !!lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${POT_ASSEMBLY.kind}`] || !!lab.equipment[`eq:${RETORT_ASSEMBLY.kind}`]); had('pier', village.pier === 'done');
       had('weather-pot', lab.equipment[`eq:${POT_ASSEMBLY.kind}`]); had('retort', lab.equipment[`eq:${RETORT_ASSEMBLY.kind}`]); had('cook-pot', lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`]);
       had('house-roof', village.house.n >= ROOF_N); had('house-walls', village.house.n >= WALLS_N); had('house', village.house.n >= HOUSE_N); had('wall', wallDone()); had('clay-pit', village.clayPit);
       had('sighting', Object.keys(village.map.seen).length);
