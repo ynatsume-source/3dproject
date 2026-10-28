@@ -21,7 +21,7 @@ import { statusEn, firstEn, asLine, FIXED_EN, NAMES_EN } from './en';
 import { captionSender } from './captions';
 import { makeDirector } from './director';
 import { chapter1 } from '../world/chapter1';
-import { chapterView, startCard, endCard } from './chapter-line';
+import { chapterView, startCard, endCard, goneCard } from './chapter-line';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -160,6 +160,8 @@ export function makeLive(ctx: LiveCtx) {
     if (!c || (c.ended !== null && now - c.ended > 120e3)) { chap.classList.add('off'); return; }
     if (now - c.began < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:start`)) { const k = startCard(en); queue.push({ head: k.head, text: esc(k.what), at: c.began }); }
     if (c.ended !== null && now - c.ended < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:end`)) { const k = endCard(c, en); queue.push({ head: k.head, text: esc(k.what), at: c.ended }); }
+    // (what was brought run out: a world's event in the milestone's card, not the chapter's end — D33)
+    for (const m of ['clay', 'bamboo'] as const) { const at = c.gone[m]; if (at !== null && at > 0 && now - at < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:${m}-gone`)) queue.push({ text: esc(goneCard(m, en).what), at }); }
     const v = chapterView(c, now, ctx.tz(), en);
     $('.chap .no').textContent = v.no; $('.chap .nm').textContent = v.name; $('.chap .dy').textContent = v.day;
     swap('.chap .way', v.way.map((x) => `<span class="${x.k}">${esc(x.w)}</span>`).join(sep));

@@ -4,11 +4,12 @@
 //   B the way as the world goes: done in order, the next one underlined; nearly gone and gone in sand, the others not
 //   C the day counted by the residents' days (midnight at the island's tz), not the island calendar's
 //   D the end: the load's line gone, the way all done; the end card says what the world did — "the second crossing"
-//     only when it was not the first
+//     only when it was not the first, "after the clay they brought ran out" only when it had (D33); the card when it
+//     runs out is a world's event
 //   E the start card: the question; English for all of it
 // Usage: npx tsx scripts/live-chapter-check.ts
 import { chapter1 } from '../src/world/chapter1';
-import { chapterView, chapterDay, startCard, endCard } from '../src/live/chapter-line';
+import { chapterView, chapterDay, startCard, endCard, goneCard } from '../src/live/chapter-line';
 
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -33,8 +34,13 @@ const line = (v: ReturnType<typeof chapterView>) => `${v.no} ${v.name}${v.day} |
   const end = (n: number) => chapter1(village({ hut: began + 20 * H, raft: began + 26 * H, 'south-load': began + 31 * H }, 4.9e6, 3.5e6, n))!;
   const v = chapterView(end(1), began + 31 * H + 5e3, tz, false), one = endCard(end(1), false), two = endCard(end(2), false), twoEn = endCard(end(2), true), oneEn = endCard(end(1), true);
   want('D the end: the load\'s line gone, the way all done', line(v) === '第1章 南の島へ（2日目） | 小屋:done 筏:done 南の島へ:done | —', line(v));
-  want('D the end card: "the second crossing" only when it was not the first', one.head === '第1章　おわり' && one.what === '南の島から、粘土と竹を持ち帰った' && two.what === '2度めの航海で、南の島から、粘土と竹を持ち帰った'
-    && oneEn.what === 'They brought clay and bamboo back from the south island' && twoEn.what === 'On the second crossing, they brought clay and bamboo back from the south island' && twoEn.head === 'End of chapter 1', `${one.what} / ${two.what} / ${twoEn.what}`);
+  want('D the end card: "the second crossing" only when it was not the first', one.head === '第1章　おわり' && one.what === '南の島から、粘土と竹を持ち帰った' && two.what === '2度めの航海で、南の島から粘土と竹を持ち帰った'
+    && oneEn.what === 'They brought clay and bamboo back from the south island' && twoEn.what === 'On their second crossing, they brought clay and bamboo back from the south island' && twoEn.head === 'End of chapter 1', `${one.what} / ${two.what} / ${twoEn.what}`);
+  const late = (f: Record<string, number>) => chapter1(village({ hut: began + 20 * H, raft: began + 26 * H, 'south-load': began + 31 * H, ...f }, 0.3e6, 3.5e6, 1))!;
+  const goneBefore = endCard(late({ 'clay-gone': began + 29 * H }), false), goneAfter = endCard(late({ 'clay-gone': began + 33 * H }), false), goneEn = endCard(late({ 'clay-gone': began + 29 * H }), true);
+  want('D the end card: "after the clay they brought ran out" only when it ran out before', goneBefore.what === '持ってきた粘土が尽きたあと、南の島から粘土と竹を持ち帰った' && goneAfter.what === '南の島から、粘土と竹を持ち帰った'
+    && goneEn.what === 'After the clay they brought ran out, they brought clay and bamboo back from the south island', `${goneBefore.what} / ${goneAfter.what} / ${goneEn.what}`);
+  want('D the card when it runs out: a world\'s event', goneCard('clay', false).what === '持ってきた粘土が、尽きた。もう器は作れない' && goneCard('bamboo', false).what === '持ってきた竹が、尽きた。もう道具は作れない', goneCard('clay', true).what);
 }
 { // E
   const s = startCard(false), se = startCard(true), v = chapterView(chapter1(village({ hut: began + 20 * H }, 4.9e6, 3.5e6))!, began + 24 * H, tz, true);
