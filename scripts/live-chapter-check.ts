@@ -39,8 +39,9 @@ const line = (v: ReturnType<typeof chapterView>) => `${v.no} ${v.name}${v.day} |
   const late = (f: Record<string, number>) => chapter1(village({ hut: began + 20 * H, raft: began + 26 * H, 'south-load': began + 31 * H, ...f }, 0.3e6, 3.5e6, 1))!;
   const goneBefore = endCard(late({ 'clay-gone': began + 29 * H }), false), goneAfter = endCard(late({ 'clay-gone': began + 33 * H }), false), goneEn = endCard(late({ 'clay-gone': began + 29 * H }), true);
   want('D the end card: "after the clay they brought ran out" only when it ran out before', goneBefore.what === '持ってきた粘土が尽きたあと、南の島から粘土と竹を持ち帰った' && goneAfter.what === '南の島から、粘土と竹を持ち帰った'
-    && goneEn.what === 'After the clay they brought ran out, they brought clay and bamboo back from the south island', `${goneBefore.what} / ${goneAfter.what} / ${goneEn.what}`);
-  want('D the card when it runs out: a world\'s event', goneCard('clay', false).what === '持ってきた粘土が、尽きた。もう器は作れない' && goneCard('bamboo', false).what === '持ってきた竹が、尽きた。もう道具は作れない', goneCard('clay', true).what);
+    && goneEn.what === 'After the clay they came with ran out, they brought clay and bamboo back from the south island', `${goneBefore.what} / ${goneAfter.what} / ${goneEn.what}`);
+  want('D the card when it runs out: a world\'s event, headed with the load\'s line\'s words', goneCard('clay', false).what === '持ってきた粘土が、尽きた。もう器は作れない' && goneCard('bamboo', false).what === '持ってきた竹が、尽きた。もう道具は作れない'
+    && goneCard('clay', false).head === '持ってきた荷' && goneCard('clay', true).head === 'What we brought', goneCard('clay', true).what);
 }
 { // E
   const s = startCard(false), se = startCard(true), v = chapterView(chapter1(village({ hut: began + 20 * H }, 4.9e6, 3.5e6))!, began + 24 * H, tz, true);
