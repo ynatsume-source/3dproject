@@ -516,6 +516,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     clayPit: null as null | { at: number; diameterCm: number; depthCm: number },
     firstLoad: null as null | { at: number; clayMg: number; bambooMg: number; lots: string[] },   // (the first raft load from the island to the south, once: firstLoad())
     loadMin: null as null | { clayMg: number; bambooMg: number },   // (chapter 1: the least of the clay and bamboo brought, not yet used, so far — chapter1Tick)
+    southSetOut: 0,   // (chapter 1: crossings to the south island set out on, until its load came)
     prepBy: '', prepSaved: [] as string[], heed: {} as Record<string, number>, onsetHunger: {} as Record<string, number>, stormLog: [] as { at: number; warned: boolean; by: string; saved: string[]; lost: string[] }[] };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
@@ -3533,6 +3534,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       const j = voyageJudge(r, tk.data.isle), w = village.map.seen[tk.data.isle]?.word ?? '';
       if (!j.go) { r.voyageNoAt = clockMs; report(r, tk, 'blocked', j.why); r.task = null; return; }
       tk.data.started = true; tk.t = 0; tk.dur = voyageMs(j.km) / 1000;   // (on the island's clock: voyageJudge)
+      // (chapter 1: the crossings to the south island set out on until its load came — "the second crossing brought it")
+      if (tk.data.isle === 'south-near' && firstsOf()['south-load'] === undefined) village.southSetOut = (village.southSetOut ?? 0) + 1;
       // (rigged: under sail — the science side moves it, cell by cell, and it is home when it is home; the raft's lashing
       // takes no load of the cord's own on a sail crossing: the voyage counts the rig's cords. Not in the hours caught up
       // on by habit: the sail is a hand's work, and its cells are the world's clock as it passes)

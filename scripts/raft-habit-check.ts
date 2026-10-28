@@ -64,7 +64,7 @@ const goals: string[] = []; { const seen = new Set<string>(), u = R.update; R.up
   let away = false;
   await run(6 * 3600, () => { if (dot.task?.kind === 'voyage' && dot.task.data?.started) away = true; return !!V.map.reached[near.id]; });
   const c = chapter1(V);
-  want('4 the south island\'s load on the shelf ends chapter 1, its time kept', !!c && c.ended === V.firsts['south-load'] && c.ended! > V.firstLoad.at && c.load === null && c.inTime !== null
+  want('4 the south island\'s load on the shelf ends chapter 1, its time kept', !!c && c.ended === V.firsts['south-load'] && c.ended! > V.firstLoad.at && c.load === null && c.inTime !== null && c.crossing >= 1
     && Object.keys(R.lab.lots).some((k) => /^lot:south-near:\d+$/.test(k)), JSON.stringify(c));
   want('4 a calm clear morning: it crosses by habit to the island it has seen, and is back', away && !!V.map.reached[near.id] && goals.includes('筏で島へ渡る') && dot.diary.some((e: any) => /にたどり着いて戻った/.test(e.text)), `${goals.slice(-4).join(' / ')}`);
 }
