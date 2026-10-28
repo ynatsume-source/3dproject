@@ -1,0 +1,483 @@
+STORMS [{"at":39.8,"warned":false,"by":"","saved":[],"lost":["筏の部材3本","畑の作物（6区画）","おなか（台風のあいだ食べられず、弱った）"]}] swell {"alarm":0,"hits":0,"falses":0} heed {}
+{"BR":"none","HOURS":720,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"1.3","labDone":["16.1h p30x_coconut_milk","44.8h p10x_clay_slake","45.3h p10y_clay_knead","46.6h p11y_pot_shape","47.9h p11y_pot_shape","59.7h p10x_clay_slake","60.9h p10y_clay_knead ✗","63.7h p10y_clay_knead","72.4h p12y_pot_dry","73.7h p12y_pot_dry"]}
+W 0.0h jst6.0 gust 7 p 1009 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame idle
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+W 3.0h jst9.0 gust 7 p 1007 swell 1.2m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame fire
+W 6.0h jst12.0 gust 14 p 1005 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame graze
+6.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 6 raft 0 reached  labDone 0
+W 9.0h jst15.0 gust 8 p 1012 swell 1.2m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame bask
+W 12.0h jst18.0 gust 6 p 1009 swell 0.8m/8s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame wander
+12.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 11 raft 0 reached  labDone 0
+W 15.0h jst21.0 gust 6 p 1012 swell 0.4m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame wander
+W 18.0h jst0.0 gust 8 p 1014 swell 0.5m/4s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame sleep
+18.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 13 raft 0 reached  labDone 1
+W 21.0h jst3.0 gust 6 p 1009 swell 1.3m/7s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame sleep
+W 24.0h jst6.0 gust 13 p 1006 swell 3.1m/10s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame watch
+24.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 14 raft 0 reached  labDone 1
+W 27.0h jst9.0 gust 16 p 1005 swell 1.7m/8s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame fire
+W 30.0h jst12.0 gust 10 p 1009 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame swim
+30.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 22 raft 0 reached  labDone 1
+W 33.0h jst15.0 gust 8 p 1004 swell 1.6m/10s rain 0.0 prep 0 alarm 0 storms 0 raft 6 kame watch
+W 36.0h jst18.0 gust 13 p 997 swell 1.0m/10s rain 2.5 prep 0 alarm 0 storms 0 raft 6 kame swim
+36.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 10.5 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 1
+W 39.0h jst21.0 gust 24 p 994 swell 2.8m/8s rain 1.5 prep 0 alarm 0 storms 0 raft 6 kame shelter
+W 42.0h jst0.0 gust 13 p 998 swell 2.8m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 3 kame sleep
+42.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 10.5 pots 0.0/0.0/0.0 hut 24 raft 3 reached south-near labDone 1
+W 45.0h jst3.0 gust 6 p 999 swell 1.9m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 3 kame sleep
+W 48.0h jst6.0 gust 5 p 1001 swell 1.4m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 3 kame watch
+48.0h clay 10.0 settled 0.0 prepared 1.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 3 reached south-near labDone 5
+W 51.0h jst9.0 gust 5 p 1005 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 54.0h jst12.0 gust 5 p 1006 swell 0.5m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+54.0h clay 10.0 settled 0.0 prepared 1.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+W 57.0h jst15.0 gust 5 p 1005 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 60.0h jst18.0 gust 5 p 1004 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+60.0h clay 0.0 settled 8.0 prepared 1.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 6
+W 63.0h jst21.0 gust 9 p 1005 swell 0.7m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame watch
+W 66.0h jst0.0 gust 2 p 1006 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+66.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 8
+W 69.0h jst3.0 gust 2 p 1007 swell 0.4m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 72.0h jst6.0 gust 0 p 1009 swell 0.3m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame watch
+72.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 8
+W 75.0h jst9.0 gust 4 p 1008 swell 0.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 78.0h jst12.0 gust 5 p 1008 swell 0.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+78.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 81.0h jst15.0 gust 6 p 1005 swell 1.0m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 84.0h jst18.0 gust 2 p 1003 swell 1.2m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+84.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 87.0h jst21.0 gust 9 p 1005 swell 1.4m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame survey
+W 90.0h jst0.0 gust 7 p 1006 swell 1.8m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+90.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 93.0h jst3.0 gust 3 p 1003 swell 0.9m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 96.0h jst6.0 gust 19 p 999 swell 1.3m/9s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+96.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 99.0h jst9.0 gust 5 p 1007 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 102.0h jst12.0 gust 2 p 1010 swell 0.8m/5s rain 3.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+102.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 105.0h jst15.0 gust 8 p 1010 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 108.0h jst18.0 gust 1 p 1008 swell 0.3m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+108.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 111.0h jst21.0 gust 4 p 1009 swell 0.4m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 114.0h jst0.0 gust 3 p 1009 swell 0.4m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+114.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 117.0h jst3.0 gust 3 p 1008 swell 0.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 120.0h jst6.0 gust 5 p 1012 swell 0.3m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+120.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 123.0h jst9.0 gust 2 p 1012 swell 0.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 126.0h jst12.0 gust 7 p 1014 swell 0.4m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+126.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 129.0h jst15.0 gust 4 p 1011 swell 0.4m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 132.0h jst18.0 gust 6 p 1011 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+132.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 135.0h jst21.0 gust 5 p 1011 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 138.0h jst0.0 gust 3 p 1011 swell 0.5m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+138.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 141.0h jst3.0 gust 5 p 1010 swell 0.4m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 144.0h jst6.0 gust 2 p 1011 swell 0.6m/5s rain 5.5 prep 0 alarm 0 storms 1 raft 6 kame wander
+144.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 147.0h jst9.0 gust 7 p 1009 swell 0.5m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 150.0h jst12.0 gust 8 p 1010 swell 0.8m/7s rain 1.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+150.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 153.0h jst15.0 gust 14 p 1003 swell 4.3m/11s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 156.0h jst18.0 gust 8 p 1011 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+156.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 159.0h jst21.0 gust 9 p 1013 swell 0.6m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 162.0h jst0.0 gust 3 p 1016 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+162.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 165.0h jst3.0 gust 4 p 1015 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 168.0h jst6.0 gust 6 p 1016 swell 0.7m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+168.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 171.0h jst9.0 gust 5 p 1013 swell 0.7m/9s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 174.0h jst12.0 gust 5 p 1014 swell 0.6m/10s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+174.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 177.0h jst15.0 gust 6 p 1017 swell 0.4m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 180.0h jst18.0 gust 6 p 1015 swell 0.6m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+180.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 183.0h jst21.0 gust 8 p 1017 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 186.0h jst0.0 gust 7 p 1021 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+186.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 189.0h jst3.0 gust 3 p 1017 swell 0.7m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 192.0h jst6.0 gust 6 p 1015 swell 0.7m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+192.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 195.0h jst9.0 gust 4 p 1015 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 198.0h jst12.0 gust 6 p 1017 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+198.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 201.0h jst15.0 gust 8 p 1016 swell 0.6m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 204.0h jst18.0 gust 8 p 1017 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+204.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 207.0h jst21.0 gust 6 p 1016 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 210.0h jst0.0 gust 6 p 1015 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+210.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 213.0h jst3.0 gust 5 p 1015 swell 0.8m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 216.0h jst6.0 gust 9 p 1017 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+216.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 219.0h jst9.0 gust 6 p 1018 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 222.0h jst12.0 gust 8 p 1018 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+222.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 225.0h jst15.0 gust 10 p 1019 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 228.0h jst18.0 gust 7 p 1022 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+228.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 231.0h jst21.0 gust 9 p 1023 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 234.0h jst0.0 gust 12 p 1021 swell 1.0m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+234.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 237.0h jst3.0 gust 4 p 1021 swell 0.5m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 240.0h jst6.0 gust 6 p 1019 swell 0.4m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+240.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 243.0h jst9.0 gust 4 p 1017 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 246.0h jst12.0 gust 5 p 1016 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+246.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 249.0h jst15.0 gust 11 p 1021 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 252.0h jst18.0 gust 5 p 1017 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+252.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 255.0h jst21.0 gust 10 p 1022 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame find
+W 258.0h jst0.0 gust 3 p 1021 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+258.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 261.0h jst3.0 gust 7 p 1022 swell 1.0m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 264.0h jst6.0 gust 10 p 1020 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+264.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 267.0h jst9.0 gust 5 p 1015 swell 1.1m/6s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 270.0h jst12.0 gust 11 p 1019 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+270.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 273.0h jst15.0 gust 6 p 1016 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 276.0h jst18.0 gust 7 p 1014 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+276.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 279.0h jst21.0 gust 3 p 1016 swell 0.8m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 282.0h jst0.0 gust 9 p 1020 swell 0.7m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+282.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 285.0h jst3.0 gust 6 p 1018 swell 0.5m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 288.0h jst6.0 gust 3 p 1017 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+288.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 291.0h jst9.0 gust 10 p 1026 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 294.0h jst12.0 gust 9 p 1020 swell 0.9m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+294.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 297.0h jst15.0 gust 12 p 1025 swell 0.5m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 300.0h jst18.0 gust 6 p 1027 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+300.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 303.0h jst21.0 gust 13 p 1027 swell 0.9m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 306.0h jst0.0 gust 5 p 1027 swell 1.0m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+306.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 309.0h jst3.0 gust 8 p 1022 swell 1.0m/6s rain 1.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 312.0h jst6.0 gust 2 p 1020 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+312.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 315.0h jst9.0 gust 6 p 1018 swell 1.1m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 318.0h jst12.0 gust 12 p 1022 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+318.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 321.0h jst15.0 gust 7 p 1020 swell 0.7m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 324.0h jst18.0 gust 10 p 1017 swell 1.3m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+324.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 327.0h jst21.0 gust 13 p 1021 swell 0.8m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 330.0h jst0.0 gust 8 p 1021 swell 0.8m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+330.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 333.0h jst3.0 gust 9 p 1016 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 336.0h jst6.0 gust 15 p 1013 swell 0.9m/6s rain 11.5 prep 0 alarm 0 storms 1 raft 6 kame doze
+336.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 339.0h jst9.0 gust 2 p 1020 swell 0.4m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 342.0h jst12.0 gust 4 p 1021 swell 0.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+342.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 345.0h jst15.0 gust 6 p 1019 swell 0.3m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 348.0h jst18.0 gust 10 p 1019 swell 0.8m/6s rain 1.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+348.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 351.0h jst21.0 gust 10 p 1021 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 354.0h jst0.0 gust 10 p 1021 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame idle
+354.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 357.0h jst3.0 gust 10 p 1013 swell 1.5m/6s rain 1.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 360.0h jst6.0 gust 7 p 1012 swell 1.2m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+360.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 363.0h jst9.0 gust 8 p 1019 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 366.0h jst12.0 gust 9 p 1018 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+366.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 369.0h jst15.0 gust 8 p 1010 swell 0.9m/6s rain 1.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 372.0h jst18.0 gust 5 p 1022 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+372.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 375.0h jst21.0 gust 5 p 1017 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 378.0h jst0.0 gust 7 p 1017 swell 0.8m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+378.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 381.0h jst3.0 gust 10 p 1022 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 384.0h jst6.0 gust 8 p 1024 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+384.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 387.0h jst9.0 gust 9 p 1020 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 390.0h jst12.0 gust 7 p 1019 swell 0.9m/7s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame rest
+390.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 393.0h jst15.0 gust 11 p 1017 swell 0.7m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 396.0h jst18.0 gust 5 p 1011 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+396.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 399.0h jst21.0 gust 6 p 1017 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 402.0h jst0.0 gust 6 p 1016 swell 0.7m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+402.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 405.0h jst3.0 gust 7 p 1014 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 408.0h jst6.0 gust 6 p 1012 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+408.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 411.0h jst9.0 gust 7 p 1025 swell 0.8m/6s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 414.0h jst12.0 gust 17 p 1020 swell 1.2m/6s rain 3.5 prep 0 alarm 0 storms 1 raft 6 kame rest
+414.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 417.0h jst15.0 gust 8 p 1023 swell 0.9m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 420.0h jst18.0 gust 6 p 1019 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+420.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 423.0h jst21.0 gust 8 p 1019 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 426.0h jst0.0 gust 9 p 1019 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+426.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 429.0h jst3.0 gust 9 p 1018 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 432.0h jst6.0 gust 5 p 1013 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+432.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 435.0h jst9.0 gust 9 p 1018 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 438.0h jst12.0 gust 10 p 1018 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+438.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 441.0h jst15.0 gust 7 p 1018 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 444.0h jst18.0 gust 6 p 1015 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+444.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 447.0h jst21.0 gust 5 p 1015 swell 0.8m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 450.0h jst0.0 gust 4 p 1015 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+450.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 453.0h jst3.0 gust 5 p 1013 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 456.0h jst6.0 gust 6 p 1005 swell 1.1m/5s rain 29.5 prep 0 alarm 0 storms 1 raft 6 kame doze
+456.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 459.0h jst9.0 gust 4 p 1012 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 462.0h jst12.0 gust 10 p 1017 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+462.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 465.0h jst15.0 gust 8 p 1012 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 468.0h jst18.0 gust 8 p 1016 swell 0.6m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+468.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 471.0h jst21.0 gust 9 p 1012 swell 1.2m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame idle
+W 474.0h jst0.0 gust 10 p 1012 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+474.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 477.0h jst3.0 gust 9 p 1019 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 480.0h jst6.0 gust 4 p 1017 swell 0.8m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+480.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 483.0h jst9.0 gust 12 p 1021 swell 0.7m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 486.0h jst12.0 gust 11 p 1022 swell 0.7m/6s rain 2.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+486.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 489.0h jst15.0 gust 12 p 1022 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 492.0h jst18.0 gust 7 p 1017 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+492.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 495.0h jst21.0 gust 8 p 1017 swell 1.2m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 498.0h jst0.0 gust 6 p 1017 swell 1.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+498.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 501.0h jst3.0 gust 9 p 1013 swell 0.9m/6s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 504.0h jst6.0 gust 4 p 1008 swell 1.3m/9s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+504.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 507.0h jst9.0 gust 3 p 1008 swell 1.5m/9s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 510.0h jst12.0 gust 11 p 1014 swell 1.0m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+510.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 513.0h jst15.0 gust 3 p 1015 swell 0.5m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 516.0h jst18.0 gust 8 p 1016 swell 0.5m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+516.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 519.0h jst21.0 gust 6 p 1014 swell 0.5m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame watch
+W 522.0h jst0.0 gust 6 p 1015 swell 0.5m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+522.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 525.0h jst3.0 gust 8 p 1010 swell 0.6m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 528.0h jst6.0 gust 11 p 1010 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+528.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 531.0h jst9.0 gust 8 p 1012 swell 0.8m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 534.0h jst12.0 gust 10 p 1012 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+534.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 537.0h jst15.0 gust 9 p 1012 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 540.0h jst18.0 gust 10 p 1014 swell 0.7m/6s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame rest
+540.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 543.0h jst21.0 gust 11 p 1014 swell 1.3m/7s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame watch
+W 546.0h jst0.0 gust 12 p 1014 swell 1.5m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+546.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 549.0h jst3.0 gust 1 p 1012 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 552.0h jst6.0 gust 6 p 1012 swell 0.7m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+552.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 555.0h jst9.0 gust 6 p 1013 swell 0.7m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 558.0h jst12.0 gust 3 p 1010 swell 0.8m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+558.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 561.0h jst15.0 gust 8 p 1009 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 564.0h jst18.0 gust 9 p 1010 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+564.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 567.0h jst21.0 gust 9 p 1014 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame find
+W 570.0h jst0.0 gust 7 p 1015 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+570.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 573.0h jst3.0 gust 11 p 1010 swell 0.7m/5s rain 11.5 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 576.0h jst6.0 gust 5 p 1008 swell 0.5m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+576.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 579.0h jst9.0 gust 10 p 1009 swell 0.4m/4s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 582.0h jst12.0 gust 4 p 1011 swell 0.4m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+582.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 585.0h jst15.0 gust 6 p 1006 swell 1.0m/5s rain 1.5 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 588.0h jst18.0 gust 7 p 1007 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+588.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 591.0h jst21.0 gust 5 p 1009 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 594.0h jst0.0 gust 5 p 1010 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+594.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 597.0h jst3.0 gust 6 p 1006 swell 1.1m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 600.0h jst6.0 gust 9 p 1007 swell 0.7m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+600.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 603.0h jst9.0 gust 9 p 1005 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 606.0h jst12.0 gust 9 p 1007 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+606.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 609.0h jst15.0 gust 10 p 1008 swell 0.5m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 612.0h jst18.0 gust 10 p 1007 swell 0.5m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+612.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 615.0h jst21.0 gust 2 p 1009 swell 0.7m/4s rain 1.5 prep 0 alarm 0 storms 1 raft 6 kame wander
+W 618.0h jst0.0 gust 11 p 1007 swell 1.0m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+618.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 621.0h jst3.0 gust 6 p 1010 swell 1.1m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 624.0h jst6.0 gust 9 p 1009 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+624.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 627.0h jst9.0 gust 8 p 1009 swell 0.8m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 630.0h jst12.0 gust 10 p 1007 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+630.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 633.0h jst15.0 gust 6 p 1011 swell 0.4m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 636.0h jst18.0 gust 6 p 1010 swell 0.3m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+636.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 639.0h jst21.0 gust 6 p 1012 swell 0.5m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame find
+W 642.0h jst0.0 gust 7 p 1013 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+642.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 645.0h jst3.0 gust 9 p 1009 swell 1.0m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 648.0h jst6.0 gust 8 p 1007 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+648.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 651.0h jst9.0 gust 9 p 1009 swell 1.2m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 654.0h jst12.0 gust 8 p 1006 swell 1.3m/8s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+654.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 657.0h jst15.0 gust 13 p 1007 swell 1.1m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 660.0h jst18.0 gust 6 p 1009 swell 0.8m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+660.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 663.0h jst21.0 gust 6 p 1009 swell 0.4m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame find
+W 666.0h jst0.0 gust 8 p 1008 swell 0.4m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+666.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 669.0h jst3.0 gust 7 p 1008 swell 0.3m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 672.0h jst6.0 gust 7 p 1007 swell 0.4m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+672.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 675.0h jst9.0 gust 12 p 1007 swell 0.9m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 678.0h jst12.0 gust 8 p 1005 swell 1.1m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+678.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 681.0h jst15.0 gust 12 p 1006 swell 1.2m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 684.0h jst18.0 gust 10 p 1010 swell 0.8m/4s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+684.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 687.0h jst21.0 gust 5 p 1013 swell 0.5m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 690.0h jst0.0 gust 9 p 1011 swell 0.4m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+690.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 693.0h jst3.0 gust 8 p 1007 swell 0.3m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+W 696.0h jst6.0 gust 1 p 1008 swell 0.3m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+696.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 699.0h jst9.0 gust 5 p 1007 swell 0.4m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame fire
+W 702.0h jst12.0 gust 6 p 1004 swell 0.3m/5s rain 0.5 prep 0 alarm 0 storms 1 raft 6 kame rest
+702.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 705.0h jst15.0 gust 7 p 1003 swell 0.8m/7s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+W 708.0h jst18.0 gust 5 p 1007 swell 0.9m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame rest
+708.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 711.0h jst21.0 gust 9 p 1011 swell 0.6m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame doze
+W 714.0h jst0.0 gust 8 p 1012 swell 0.4m/5s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+714.0h clay 0.0 settled 0.0 prepared 9.1 bamboo 10.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 10
+W 717.0h jst3.0 gust 4 p 1010 swell 0.5m/6s rain 0.0 prep 0 alarm 0 storms 1 raft 6 kame sleep
+firsts 0.1h dot sighting | 1.3h lantern clay-pit | 28.3h rakko rakko-bed | 32.4h dot raft | 32.6h dot crossing:sopunu | 101.7h dot pier
+log 3.0h fire 朝の集まりが始まった
+3.5h fire ドット：朝の集まりに出た
+3.5h fire カメマル：朝の集まりに出た
+3.5h fire ランタン：朝の集まりに出た
+3.5h fire ラッコ：朝の集まりに出た
+3.5h fire ドット・ランタン・ラッコ・カメマルが朝の集まりに出た
+13.1h fire 焚き火の会が始まった
+15.0h fire ドット：焚き火の会に出た
+15.0h fire カメマル：焚き火の会に出た
+15.0h fire ランタン：焚き火の会に出た
+15.0h fire ラッコ：焚き火の会に出た
+15.0h fire ドット・ランタン・ラッコ・カメマルが焚き火の会に出た
+27.0h fire 朝の集まりが始まった
+27.5h fire ドット：朝の集まりに出た
+27.5h fire カメマル：朝の集まりに出た
+27.5h fire ランタン：朝の集まりに出た
+27.5h fire ラッコ：朝の集まりに出た
+27.5h fire ドット・ランタン・ラッコ・カメマルが朝の集まりに出た
+32.4h raft ドットの筏ができた
+36.2h weather 台風が来た（気圧 991hPa・最大瞬間風速 23m/s）
+39.8h weather 備えのないまま台風が過ぎた。失ったもの：筏の部材3本・畑の作物（6区画）・おなか（台風のあいだ食べられず、弱った）
+39.8h weather 台風が過ぎた。藻場と岩場が荒れ、浜に漂着物が打ち上がった
+48.9h raft ドットの筏ができた
+51.0h fire 朝の集まりが始まった
+51.5h fire ドット：朝の集まりに出た
+51.5h fire カメマル：朝の集まりに出た
+51.5h fire ラッコ：朝の集まりに出た
+51.5h fire ドット・ラッコ・カメマルが朝の集まりに出た
+60.9h fire 焚き火の会が始まった
+63.0h fire ドット：焚き火の会に出た
+63.0h fire カメマル：焚き火の会に出た
+63.0h fire ランタン：焚き火の会に出た
+63.0h fire ラッコ：焚き火の会に出た
+63.0h fire ドット・ランタン・カメマル・ラッコが焚き火の会に出た
+74.9h fire 朝の集まりが始まった
+75.5h fire ドット：朝の集まりに出た
+75.5h fire カメマル：朝の集まりに出た
+75.5h fire ランタン：朝の集まりに出た
+75.5h fire ラッコ：朝の集まりに出た
+75.5h fire カメマル・ドット・ランタン・ラッコが朝の集まりに出た
+84.9h fire 焚き火の会が始まった
+87.0h fire ドット：焚き火の会に出た
+87.0h fire カメマル：焚き火の会に出た
+87.0h fire ランタン：焚き火の会に出た
+87.0h fire ラッコ：焚き火の会に出た
+87.0h fire カメマル・ドット・ラッコ・ランタンが焚き火の会に出た
+99.0h fire 朝の集まりが始まった
+99.5h fire ドット：朝の集まりに出た
+99.5h fire カメマル：朝の集まりに出た
+99.5h fire ランタン：朝の集まりに出た
+99.5h fire ラッコ：朝の集まりに出た
+99.5h fire ドット・ラッコ・ランタン・カメマルが朝の集まりに出た
+109.0h fire 焚き火の会が始まった
+111.0h fire ドット：焚き火の会に出た
+111.0h fire カメマル：焚き火の会に出た
+111.0h fire ランタン：焚き火の会に出た
+111.0h fire ラッコ：焚き火の会に出た
+111.0h fire ドット・カメマル・ラッコ・ランタンが焚き火の会に出た
+123.0h fire 朝の集まりが始まった
+123.5h fire ドット：朝の集まりに出た
+123.5h fire カメマル：朝の集まりに出た
+123.5h fire ランタン：朝の集まりに出た
+123.5h fire ラッコ：朝の集まりに出た
+123.5h fire ドット・ラッコ・ランタン・カメマルが朝の集まりに出た
+133.1h fire 焚き火の会が始まった
+135.0h fire ドット：焚き火の会に出た
+135.0h fire カメマル：焚き火の会に出た
+135.0h fire ランタン：焚き火の会に出た
+135.0h fire ラッコ：焚き火の会に出た
+135.0h fire ドット・カメマル・ラッコ・ランタンが焚き火の会に出た
+147.0h fire 朝の集まりが始まった
+147.5h fire ドット：朝の集まりに出た
+147.5h fire ランタン：朝の集まりに出た
+147.5h fire ドット・ランタンが朝の集まりに出た
+157.1h fire 焚き火の会が始まった
+159.0h fire ドット：焚き火の会に出た
+159.0h fire ランタン：焚き火の会に出た
+159.0h fire ドット・ランタンが焚き火の会に出た
+171.0h fire 朝の集まりが始まった
+171.5h fire ドット：朝の集まりに出た
+171.5h fire ランタン：朝の集まりに出た
+171.5h fire ドット・ランタンが朝の集まりに出た
+181.2h fire 焚き火の会が始まった
+183.0h fire ドット：焚き火の会に出た
+183.0h fire ランタン：焚き火の会に出た
+183.0h fire ドット・ランタンが焚き火の会に出た
+195.0h fire 朝の集まりが始まった
+195.5h fire ドット：朝の集まりに出た
+195.5h fire ランタン：朝の集まりに出た
+195.5h fire ドット・ランタンが朝の集まりに出た
+205.2h fire 焚き火の会が始まった
+207.0h fire ドット：焚き火の会に出た
+207.0h fire ランタン：焚き火の会に出た
+207.0h fire ドット・ランタンが焚き火の会に出た
+219.0h fire 朝の集まりが始まった
+219.5h fire ドット：朝の集まりに出た
+219.5h fire ランタン：朝の集まりに出た
+219.5h fire ドット・ランタンが朝の集まりに出た
+229.0h fire 焚き火の会が始まった
+231.0h fire ドット：焚き火の会に出た
+231.0h fire ランタン：焚き火の会に出た
+231.0h fire ドット・ランタンが焚き火の会に出た
+243.0h fire 朝の集まりが始まった
+243.5h fire ドット：朝の集まりに出た
+243.5h fire ランタン：朝の集まりに出た
+243.5h fire ドット・ランタンが朝の集まりに出た
+253.0h fire 焚き火の会が始まった
+255.0h fire ドット：焚き火の会に出た
+255.0h fire ランタン：焚き火の会に出た
+255.0h fire ランタン・ドットが焚き火の会に出た
+267.0h fire 朝の集まりが始まった
+267.5h fire ドット：朝の集まりに出た
+267.5h fire ランタン：朝の集まりに出た
+267.5h fire ドット・ランタンが朝の集まりに出た
+277.3h fire 焚き火の会が始まった
+279.0h fire ドット：焚き火の会に出た
+279.0h fire ランタン：焚き火の会に出た
+279.0h fire ドット・ランタンが焚き火の会に出た
+291.0h fire 朝の集まりが始まった
+291.5h fire ドット：朝の集まりに出た
