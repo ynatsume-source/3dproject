@@ -517,7 +517,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     firstLoad: null as null | { at: number; clayMg: number; bambooMg: number; lots: string[] },   // (the first raft load from the island to the south, once: firstLoad())
     loadMin: null as null | { clayMg: number; bambooMg: number },   // (chapter 1: the least of the clay and bamboo brought, not yet used, so far — chapter1Tick)
     southSetOut: 0,   // (chapter 1: crossings to the south island set out on, until its load came)
-    prepBy: '', prepSaved: [] as string[], prepTold: true, swellSeen: null as null | { at: number; swell: number; period: number }, /* (getting ready begun at sea, not yet talked over at a gathering; the long swell Kamemaru saw) */ heed: {} as Record<string, number>, onsetHunger: {} as Record<string, number>, stormLog: [] as { at: number; warned: boolean; by: string; saved: string[]; lost: string[] }[] };
+    prepBy: '', prepSaved: [] as string[], prepTold: true, swellSeen: null as null | { at: number; swell: number; period: number }, prepKnown: [] as string[], /* (getting ready begun at sea, not yet talked over at a gathering; the long swell Kamemaru saw; who has heard of the getting ready) */ heed: {} as Record<string, number>, onsetHunger: {} as Record<string, number>, stormLog: [] as { at: number; warned: boolean; by: string; saved: string[]; lost: string[] }[] };
   // the world's lots and equipment (src/world/process-runner.ts): what Dot brings home, and what Lantern's processes
   // make of it. Here in the browser's island for now; the same ledger moves to the shared world's server (ADR 0002)
   const lab = emptyLedger('dotworld', 'e1');
@@ -1106,6 +1106,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   /** When it has passed: what was saved by getting ready, what was lost; those whose getting ready paid remember it. */
   function stormOutcome() {
     const warned = village.stormPrep > 0 && village.stormPrep <= stormSince, by = village.prepBy, saved: Record<string, string[]> = {}, lost: Record<string, string[]> = {};
+    const knew = (r: Resident) => warned && village.prepKnown.includes(r.id);   // (each by what it had heard: science on #188)
     const add = (m: Record<string, string[]>, id: string, what: string) => (m[id] ??= []).push(what);
     if (village.raft.parts > 0) {
       // (hauled up beforehand: whole; in a hurry as it came: a quarter of its pieces lost — not counted as getting ready
@@ -1127,27 +1128,31 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (const r of list) if (r.sp.living) {
       const h0 = village.onsetHunger[r.id] ?? r.hunger;
       if (r.hunger > 0.8) add(lost, r.id, 'おなか（台風のあいだ食べられず、弱った）');
-      else if (warned && h0 < 0.4) add(saved, r.id, 'おなか（前もって食べておいた）');
+      else if (knew(r) && h0 < 0.4) add(saved, r.id, 'おなか（前もって食べておいた）');
     }
     const ja = (xs: string[]) => xs.join('・');
     for (const r of list) {
       const sv = saved[r.id] ?? [], ls = lost[r.id] ?? [];
       if (!sv.length && !ls.length) continue;
-      const text = warned
+      const text = knew(r)
         ? `${byId[by]?.v.name ?? ''}の知らせで備えた。${sv.length ? `${ja(sv)}は無事だった` : ''}${sv.length && ls.length ? '。' : ''}${ls.length ? `${ja(ls)}は失った` : ''}`
         : `台風が来ると前もって知らなかった。${ls.length ? `${ja(ls)}を失った` : ''}${sv.length ? `${ja(sv)}は無事だった` : ''}`;
       r.diary.push({ at: clockMs, text, key: 'weather' }); if (r.diary.length > 800) r.diary.shift();
       // (getting ready paid: it remembers whose sign it was — and asks, from now on, at the morning gathering)
-      if (warned && sv.length) { village.heed[r.id] = (village.heed[r.id] ?? 0) + 1; agentOf(r)?.values.bonus(`heed:${by}`, `${byId[by]?.v.name ?? by}の台風の知らせ`, 1); }
+      if (knew(r) && sv.length) { village.heed[r.id] = (village.heed[r.id] ?? 0) + 1; agentOf(r)?.values.bonus(`heed:${by}`, `${byId[by]?.v.name ?? by}の台風の知らせ`, 1); }
     }
     const allSaved = Object.values(saved).flat(), allLost = Object.values(lost).flat();
     village.stormLog.push({ at: clockMs, warned, by: warned ? by : '', saved: allSaved, lost: allLost }); if (village.stormLog.length > 30) village.stormLog.shift();
     if (warned && allSaved.length && byId[by]) byId[by].diary.push({ at: clockMs, text: `台風の知らせが役に立った（無事だったもの：${ja(allSaved)}）`, key: 'study' });
     tell('weather', warned ? `台風に備えていた。無事：${ja(allSaved) || 'なし'}／失ったもの：${ja(allLost) || 'なし'}` : `備えのないまま台風が過ぎた。失ったもの：${ja(allLost) || 'なし'}`, list[0]);
-    village.stormPrep = 0; village.prepSaved = []; village.onsetHunger = {};
+    village.stormPrep = 0; village.prepSaved = []; village.prepKnown = []; village.onsetHunger = {};
   }
   function prepActive() { return village.stormPrep > 0 && clockMs - village.stormPrep < islandWait(48 * 3.6e6); }
-  const eatAt = (r: Resident, d: number) => (r.body?.learn.eatAt ?? d) - (prepActive() ? 0.25 : 0);
+  // (getting ready is done by those who know of it — told at sea, at the gathering, or passed on after: not by one who
+  // has not heard; ADR 0004, science on #188. One who has not heard hauls the raft up only in a hurry as the storm comes)
+  const knowsPrep = (r: Resident) => prepActive() && village.prepKnown.includes(r.id);
+  const heardPrep = (...ids: string[]) => { if (prepActive()) for (const id of ids) if (!village.prepKnown.includes(id)) village.prepKnown.push(id); };
+  const eatAt = (r: Resident, d: number) => (r.body?.learn.eatAt ?? d) - (knowsPrep(r) ? 0.25 : 0);
   function voyageJudge(r: Resident, isleId: string): { go: boolean; why?: string; km: number } {
     const i = ISLES.find((x) => x.id === isleId)!, km = fromHome(i).km, hr = localHour(clockMs);
     if (storm()) return { go: false, why: '台風で海が荒れている', km };
@@ -1156,7 +1161,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     // there and back, and half an hour ashore; owner's decision 2026-10-06. Not before the morning gathering, and back
     // before the light goes)
     if (km > RAFT_KM) return { go: false, why: `筏では遠すぎる（約${km.toFixed(1)}km）`, km };
-    if (prepActive()) return { go: false, why: '台風の知らせが出ている', km };
+    if (knowsPrep(r)) return { go: false, why: '台風の知らせが出ている', km };
     if (hr < 9.5) return { go: false, why: '朝の集まりのあとで出る', km };
     if (hr + voyageMs(km) / 3.6e6 > 17.5) return { go: false, why: '日のあるうちに戻れない', km };
     if (r.battery < 0.6) return { go: false, why: `電池が足りない（${Math.round(r.battery * 100)}%）`, km };
@@ -1657,7 +1662,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     }
     // one with a mind of its own: its own goal and steps first (its habits below, if it has nothing in mind)
     // (a typhoon forecast and agreed to: Dot hauls the raft up and takes in what crops it can, before anything else)
-    if (r.id === 'dot' && prepActive() && !r.holding) {
+    if (r.id === 'dot' && knowsPrep(r) && !r.holding) {
       if (village.raft.parts > 0 && !village.raft.hauled && Number.isFinite(village.raft.x)) return task('haul', [village.raft.x, village.raft.z], 'work', rr(40, 70));
       if (village.house.n >= ROOF_N && !village.house.weighed) { const w = atHouse(0, HD + 1.0); return task('weigh', [w.x, w.z], 'work', rr(40, 70)); }
       const early = PLOTS.find((pl) => pl.ok && pl.s === 2 && growth(pl) >= 0.6);
@@ -2769,6 +2774,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
           what = '浜に見慣れないものがあると知らせた';
         } else {
           utter(r, kind === 'warn' ? { act: 'warn', what: tk.data.what } : { act: 'plan', doing: tk.data.what }, 0, c); utter(o, { act: 'noted' }, 2200, c);
+          if (kind === 'warn' && tk.data.what === 'typhoon' && knowsPrep(r)) heardPrep(o.id);   // (passed on: now it knows too)
           what = kind === 'warn' ? `「${WARN_JA[tk.data.what]}」と知らせた` : `これから${PLAN_JA[tk.data.what]}と伝えた`;
         }
         r.diary.push({ at: clockMs, text: `${o.v.name}に${what}`, key: 'mind' });
@@ -3700,7 +3706,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     for (let i = 0; i < Math.min(byId.dot.stats.built, HUT.length); i++) HUT[i].visible = true;
     (s.trees || []).forEach((d: number, i: number) => { const t = TREES[i]; if (t && d && t.ok) { t.down = true; t.pivot.visible = false; t.stump.visible = true; } });
     (s.plots || []).forEach((d: number[], i: number) => { const pl = PLOTS[i]; if (pl) { pl.s = d[0]; pl.at = d[1]; } });
-    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.hypoHistory ??= []; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.raft.quick ??= false; village.prepTold ??= true; village.swellSeen ??= null; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.spare ??= 0; village.lampLog ??= []; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); drawSpare(); drawLamp(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
+    if (s.village) { Object.assign(village, s.village); village.labRuns ??= []; village.catcher ??= null; village.hypo ??= null; village.hypo2 ??= null; village.hypoHistory ??= []; village.mornings ??= 0; village.labDone ??= []; village.taught ??= {}; village.feedback ??= []; village.stormPrep ??= 0; village.heardOkAt ??= 0; village.swellGuess ??= { alarm: 0, hits: 0, falses: 0 }; village.prepBy ??= ''; village.prepSaved ??= []; village.heed ??= {}; village.onsetHunger ??= {}; village.stormLog ??= []; village.raft.hauled ??= false; village.raft.quick ??= false; village.prepTold ??= true; village.prepKnown ??= prepActive() ? list.map((r) => r.id) : []; village.swellSeen ??= null; village.house ??= { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false }; drawHouse(); village.felled ??= []; village.clayPit ??= null; drawPit(); village.wall ??= { n: 0, pile: 0 }; village.nest ??= { n: 0, at: null }; village.kameBed ??= null; village.ledge ??= { n: 0 }; village.spare ??= 0; village.lampLog ??= []; village.walks ??= {}; village.settle ??= null; for (const [id, h] of Object.entries(village.settle?.homes ?? {})) if (byId[id]) byId[id].sp.home = [h[0], h[1]]; drawWall(); drawNest(); drawLedge(); drawSpare(); drawLamp(); for (const f of village.felled) { T.forest?.fell(f.x, f.z); drawStump(f.x, f.z); } }
     showCatcher();
     if (s.lab) Object.assign(lab, s.lab);
     else for (const l of (s.village?.store ?? []) as LotView[]) lab.lots[l.lotId] = l;   // (saved before the ledger: the shelf as it was)
@@ -4374,7 +4380,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     tell('weather', `カメマルが長いうねりに気づいた。台風が来るかもしれない（${Math.round(w.swellPeriod)}秒ごとのうねり）`, k);
     const near = list.filter((x) => x !== k && !sleepTime(x, localHour(clockMs)) && !x.talk && Math.hypot(x.pos.x - k.pos.x, x.pos.z - k.pos.z) < 60).slice(0, 2);
     for (const o of near) { const c = exchange(k, o); utter(k, { act: 'tell-storm', likely: true, by: 'swell' }, 0, c); utter(o, { act: 'noted' }, 2000, c); o.diary.push({ at: clockMs, text: 'カメマルから「台風が来るかもしれない」と聞いた', key: 'met', with: 'kame' }); }
-    if (!prepActive()) { village.stormPrep = clockMs; village.prepBy = 'kame'; village.prepSaved = []; village.prepTold = false; }
+    if (!prepActive()) { village.stormPrep = clockMs; village.prepBy = 'kame'; village.prepSaved = []; village.prepTold = false; village.prepKnown = []; }
+    heardPrep(k.id, ...near.map((o) => o.id));
   }
   function swellTick() {
     const g = village.swellGuess; if (!g.alarm) return;
@@ -4452,7 +4459,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       if (q.line.startsWith('settle:')) { settleDone(q.line.slice(7).split(','), seated); continue; }
       if (q.line.startsWith('prep:')) {
         const by = q.line.slice(5), began = prepActive() && village.prepBy === by;   // (begun already, from what it saw at sea: kept from then)
-        if (!began) { village.stormPrep = clockMs; village.prepSaved = []; } village.prepBy = by; village.prepTold = true;
+        if (!began) { village.stormPrep = clockMs; village.prepSaved = []; village.prepKnown = []; } village.prepBy = by; village.prepTold = true;
+        heardPrep(by, ...seated.map((x) => x.id));
         tell('fire', `朝の集まりで、${byId[by].v.name}の知らせで台風に備えることが決まった`, seated[0]);
         for (const r of seated) { r.diary.push({ at: clockMs, text: `朝の集まりで、${byId[by].v.name}の知らせで、台風に備えることに決めた`, key: 'met', with: by }); const a = agentOf(r); if (a) a.why = '台風に備えることになった'; }
         continue;

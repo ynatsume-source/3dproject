@@ -8,6 +8,9 @@
 //   D a typhoon comes with no warning, Dot up and within 60 m of the raft: it hauls it up before it shelters, in a
 //     hurry — a quarter of the pieces lost (not half), and not remembered as getting ready that paid
 //   E the same, Dot farther off: the raft left on the beach loses half
+//   F Kamemaru tells of a long swell with Dot out of earshot: getting ready begins for those who heard, not for Dot — it
+//     does not haul the raft up (ADR 0004: it acts on what it knows; science on #188); the typhoon comes, Dot near the
+//     raft, and it hauls it up in a hurry — and its diary says it did not know
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/storm-watch-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -83,6 +86,17 @@ async function run(R: any, secs: number, until?: () => boolean) {
   Object.assign(V.raft, { x: 58, z: -260 });   // (110 m off)
   await run(R, 5); R.setWeather(gale); await run(R, 120); R.setWeather(fair); await run(R, 5);
   want('E unwarned, Dot far from the raft: left on the beach, half lost', V.raft.parts === 3 && !V.raft.hauled && dot.diary.some((e: any) => /筏の部材3本を失った/.test(e.text)), `${V.raft.parts}/6`);
+}
+{ // F
+  const { R, dot, kame, V } = island(49);
+  watching(kame); kame.pos.set(300, 2, -150); kame.task.x = 300;   // (240 m off: out of earshot)
+  await run(R, 5); R.setWeather(longSwell); await run(R, 40, () => V.stormPrep > 0);
+  await run(R, 900);
+  const unheard = V.stormPrep > 0 && V.prepKnown.includes('kame') && !V.prepKnown.includes('dot') && !V.raft.hauled;
+  R.setWeather(gale); await run(R, 120, () => V.raft.hauled); const quick = V.raft.hauled && V.raft.quick;
+  await run(R, 60); R.setWeather(fair); await run(R, 5);
+  want('F not heard, not readied: Dot does not haul the raft before; in a hurry as it comes, and it did not know', unheard && quick && V.raft.parts === 4 && dot.diary.some((e: any) => /前もって知らなかった/.test(e.text)),
+    `known ${V.prepKnown.join(',') || '—'}; ${V.raft.parts}/6; ${dot.diary.slice(-1).map((e: any) => e.text).join('')}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'all ok');
 process.exit(bad ? 1 : 0);
