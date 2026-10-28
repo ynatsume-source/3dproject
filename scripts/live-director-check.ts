@@ -9,6 +9,7 @@
 //   mind      the world's words ranked: a goal set or a try's end in a resident's own mind, a first, a crossing; not other
 //             words
 //   cam       every change of whom it follows is told, with the rank, the kind and why
+//   storm     Kamemaru telling of a long swell, and one hauling the raft up in a hurry as a typhoon comes: rank 1 (D33)
 // Usage: npx tsx scripts/live-director-check.ts
 import { makeDirector, rank } from '../src/live/director';
 
@@ -56,4 +57,12 @@ row(goalOn === 'kame' && cams[n0]?.kind === 'decided' && ones === 0, `mind: a go
 // cam
 row(cams.length > 5 && cams.every((c) => ['dot', 'rakko', 'kame', 'lantern'].includes(c.who) && [1, 2, 3, 6].includes(c.pri) && c.kind && c.why), `cam: ${cams.length} rows, each with who, rank, kind and why`);
 row(rank(R, { ...dot, task: { kind: 'sleep' }, act: 'sleep' }).pri === 6 && rank(R, { ...dot, task: { kind: 'ponder' } }).pri === 1, 'rank: asleep 6, thinking 1');
+// storm (PROGRAM.md §4, D33): Kamemaru telling of a long swell, rank 1; Dot hauling the raft up in a hurry, rank 1 while it hauls
+for (const r of R.list) { r.talk = null; r.task = { kind: 'gather', arrived: true }; }
+watched = dot; run(25);
+D.event('weather', 'カメマルが長いうねりに気づいた。台風が来るかもしれない（10秒ごとのうねり）', kame); run(1); const swellOn = watched?.id, swellCam = cams.at(-1);
+run(25); (lantern as any).task = { kind: 'haul', arrived: true, data: { quick: true } }; run(1); const haulOn = watched?.id, haulCam = cams.at(-1);
+run(40); const stillOn = watched?.id;
+row(swellOn === 'kame' && swellCam?.kind === 'storm' && haulOn === 'lantern' && haulCam?.pri === 1 && haulCam.kind === 'storm' && stillOn === 'lantern' && rank(R, lantern).pri === 1,
+  `storm: the swell told — on ${swellOn} (${swellCam?.kind}); the raft hauled in a hurry — on ${haulOn} (${haulCam?.kind}), after 40 s ${stillOn}`);
 process.exit(fail ? 1 : 0);

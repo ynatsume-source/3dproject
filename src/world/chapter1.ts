@@ -25,6 +25,7 @@ export interface Chapter1 {
   ended: number | null;                           // the south island's load on the shelf
   inTime: boolean | null;                         // ended before either the clay or the bamboo was gone
   crossing: number;                               // which crossing to the south island brought its load (or how many so far)
+  gone: { clay: number | null; bamboo: number | null };   // when what was brought ran out (nothing more could be made of it)
 }
 
 export function loadWord(mg: number, base: number, gone: boolean): LoadWord {
@@ -41,6 +42,6 @@ export function chapter1(village: { firstLoad?: { at: number } | null; firsts?: 
     began: village.firstLoad.at, way, ended,
     load: ended !== null || !m ? null : { clay: loadWord(m.clayMg, BASE_MG.clay, clayGone !== null), bamboo: loadWord(m.bambooMg, BASE_MG.bamboo, bambooGone !== null) },
     inTime: ended === null ? null : (clayGone === null || clayGone > ended) && (bambooGone === null || bambooGone > ended),
-    crossing: village.southSetOut ?? 0,
+    crossing: village.southSetOut ?? 0, gone: { clay: clayGone, bamboo: bambooGone },
   };
 }

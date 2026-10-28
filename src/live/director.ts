@@ -6,6 +6,8 @@
 //   3 work under way — any other task
 //   6 at rest — asleep, charging, waiting, looking out, floating (R-017's weak and empty doings), nothing to do
 //   (4 the sea's shows and 5 looking back come with trial 4)
+//   storms (PROGRAM.md §4, D33): Kamemaru telling of a long swell is rank 1 (once a storm); Dot hauling the raft up in a
+//   hurry as a typhoon comes is rank 1 while it hauls
 // A higher rank cuts in on a lower one, never on its own rank; a line being said is let finish, ten seconds at most. After
 // a rank-1 moment the drone stays twenty seconds; on one at rest twelve seconds at most, if any other has something going
 // on; on work three minutes, then the next one at work — one trying a goal of its own first. When all are at rest, each one
@@ -32,6 +34,7 @@ export function rank(R: any, r: any): { pri: number; kind: string } {
   if (!r || !awake(r)) return { pri: 6, kind: 'asleep' };
   const k = r.task?.kind ?? '';
   if (k === 'ponder') return { pri: 1, kind: 'thinking' };
+  if (k === 'haul' && r.task.data?.quick) return { pri: 1, kind: 'storm' };
   if (r.talk || (k === 'fire' && r.task.arrived && R.list.some((x: any) => x.saying && x.task?.kind === 'fire'))) return { pri: 2, kind: r.talk ? 'talk' : 'fire' };
   if (TALK.has(k)) return { pri: 2, kind: k };
   if (!k || REST.has(k)) return { pri: 6, kind: k || 'idle' };
@@ -63,9 +66,10 @@ export function makeDirector(ctx: DirectorCtx) {
     // (rank 1: what has just happened, or one starting to think — the line being said let finish, ten seconds at most)
     while (calls.length && clock - calls[0].at > 30) calls.shift();
     const live = R.list.filter((x: any) => awake(x));
-    const thinking = live.find((x: any) => x !== r && x.task?.kind === 'ponder');
+    const thinking = live.find((x: any) => x !== r && x.task?.kind === 'ponder'), hauling = live.find((x: any) => x !== r && x.task?.kind === 'haul' && x.task.data?.quick);
     const c = calls.find((x) => x.id !== r.id || !held);
-    const p1 = c ? { r: R.list.find((x: any) => x.id === c.id), kind: c.kind, why: c.why, call: c } : thinking ? { r: thinking, kind: 'thinking', why: '考え始めた', call: null } : null;
+    const p1 = c ? { r: R.list.find((x: any) => x.id === c.id), kind: c.kind, why: c.why, call: c } : thinking ? { r: thinking, kind: 'thinking', why: '考え始めた', call: null }
+      : hauling ? { r: hauling, kind: 'storm', why: '台風が来て、急いで筏を引き上げている', call: null } : null;
     if (p1?.r && p1.r !== r && awake(p1.r) && cur.pri > 1) {
       if (!ctx.speaking() || (p1.call ? clock - p1.call.at : 0) > LINE_WAIT) { if (p1.call) calls.splice(calls.indexOf(p1.call), 1); follow(p1.r, 1, p1.kind, p1.why); return; }
       return;   // (waiting for the line to end)
@@ -92,6 +96,7 @@ export function makeDirector(ctx: DirectorCtx) {
       if (meta?.milestone) call(r, 'first', text);
       else if (kind === 'mind' && MIND1.test(text)) call(r, /目的/.test(text.split('：')[1]) ? 'decided' : 'result', text);
       else if (kind === 'map' || kind === 'sail' || kind === 'raft') call(r, 'crossing', text);
+      else if (kind === 'weather' && /長いうねりに気づいた/.test(text)) call(r, 'storm', text);
     },
     /** A try's result, from the trials' screen (PROGRAM.md §1): rank 1. */
     trial(r: any, outcome: string, text: string) { call(r, `result:${outcome}`, text); },
