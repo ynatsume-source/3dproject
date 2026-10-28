@@ -1,0 +1,13 @@
+diff --git a/src/robots/residents.ts b/src/robots/residents.ts
+index 28bbe2f..5669197 100644
+--- a/src/robots/residents.ts
++++ b/src/robots/residents.ts
+@@ -1598,7 +1598,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames:
+     if (bed && roughK() > 0.5 && r.hunger < 0.7 && !r.holding) return task('sleep', bed, 'sleep', 1800, { wet: true });   // (a rough sea: wedged under its ledge)
+     if (r.holding) return undefined;
+     // (so hungry it cannot go on: it hauls out and lies still for a while — and grazes sooner after this)
+-    if (r.hunger > NEEDS.stuckAt && day > 0.15) { troubled(r, 'stuck', `おなかがすきすぎて、動けなくなった（おなか ${full(r)}）`, '動けない'); return task('rest', spot([r.pos.x, r.pos.z], 60, shore, 120) ?? [r.pos.x, r.pos.z], 'bask', rr(5400, 9000)); }
++    if (r.hunger > NEEDS.stuckAt && day > 0.15 && !(clockMs < ((r.mo as any).stuckFree ?? 0))) { (r.mo as any).stuckFree = clockMs + 6 * 3.6e6; troubled(r, 'stuck', `おなかがすきすぎて、動けなくなった（おなか ${full(r)}）`, '動けない'); return task('rest', spot([r.pos.x, r.pos.z], 60, shore, 120) ?? [r.pos.x, r.pos.z], 'bask', rr(5400, 9000)); }
+     if (r.hunger > eatAt(r, 0.45) && day > 0.15) {
+       // (the bed it knows with the most grass left; it learns how they are by going)
+       for (const b of beds) regrowBed(b, clockMs);
