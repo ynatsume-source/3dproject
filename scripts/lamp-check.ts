@@ -5,6 +5,8 @@
 //  4 what comes back: the clear oil left to the shelf, the water that sat under it to a jar of its own (accounted, not
 //    in the oil), the oil soaked into the dish's wall kept with the dish
 //  5 the next evening: the soaked oil goes in with the dish; a wick of a fibre not yet tried
+//  3 the island's first lamp told as a first though an earlier try had not burned (chapter 1's way: science,
+//    specs/chapter1-world-values.md §2), once
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/lamp-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -48,13 +50,17 @@ addLot(lab, { materialId: 'reed', amount: { value: 3_000_000, unit: 'mg' }, loca
   want('2 a wick twisted from what the island has', !!w && [2, 3].includes(w.quality.fiber) && w.quality.diameter_mm >= 2, JSON.stringify(w?.quality));
   want('2 not lit in the afternoon', lampRuns().length === 0, `${hour().toFixed(1)} h`);
 }
+const firsts: string[] = []; R.onEvent = (_k: string, _t: string, _r: any, meta: any) => { if (meta?.milestone) firsts.push(meta.milestone); };
+V.lampLog.push({ at: now - 86_400_000, fiber: 1, lumenS: 0, litS: 0, soot: 0 });   // (a try before that did not burn)
+const before = V.lampLog.length;
 { // 3, 4
   step(6 * 3600, () => lampRuns().length > 0);
   const lit = hour();
   want('3 lit at dusk', lampRuns().length === 1 && lit >= 18.3 && lit <= 21, `${lit.toFixed(1)} h`);
   const oilIn = lab.runs[lampRuns()[0]?.runId]?.lotIds.map((id: string) => lab.lots[id]).find((l: any) => l?.materialId === 'coconut_oil');
   step(7 * 3600, () => !!lampRuns()[0] && !going(lampRuns()[0]));
-  const run = lampRuns()[0], log = V.lampLog[0];
+  const run = lampRuns()[0], log = V.lampLog[before];
+  want('3 the island\'s first lamp told, though a try before had not burned', firsts.filter((k) => k === 'light').length === 1 && V.firsts.light > 0, firsts.join(' '));
   want('3 burned through the evening and put out at bedtime', run?.status === 'completed' && !!log && log.litS > 3600 && log.lumenS > 0, `${run?.status} ${run?.why ?? ''} lit ${((log?.litS ?? 0) / 3600).toFixed(1)} h, ${log?.lumenS ?? 0} lm·s`);
   const soaked = lots('coconut_oil').filter((l) => l.quality?.soaked_in_dish === 1), left = lots('coconut_oil').filter((l) => l.quality?.soaked_in_dish !== 1), water = lots('process_water');
   want('4 the oil soaked into the dish\'s wall kept with the dish', soaked.length === 1 && soaked[0].location === 'eq:lamp_dish', soaked.map((l) => `${l.amount.value / 1000}g @${l.location}`).join(','));
@@ -67,8 +73,8 @@ addLot(lab, { materialId: 'reed', amount: { value: 3_000_000, unit: 'mg' }, loca
   addLot(lab, { materialId: 'coconut_oil', amount: { value: 60_000, unit: 'mg' }, location: 'shelf', quality: { x_coconut_fat_ppm: 1_000_000, history_complete: 1 } });
   step(30 * 3600, () => lampRuns().length >= 2 && !going(lampRuns()[1]));
   const r2 = lampRuns()[1], ids: string[] = r2?.lotIds ?? [];
-  want('5 the next evening: the soaked oil goes in with the dish', !!r2 && ids.some((id) => lab.lots[id]?.quality?.soaked_in_dish === 1 || V.lampLog.length >= 2), `${r2?.status} ${r2?.why ?? ''}`);
-  want('5 a wick of a fibre not yet tried', V.lampLog.length >= 2 && V.lampLog[0].fiber !== V.lampLog[1].fiber, V.lampLog.map((x: any) => `fibre ${x.fiber}: ${x.lumenS} lm·s`).join(' / '));
+  want('5 the next evening: the soaked oil goes in with the dish', !!r2 && ids.some((id) => lab.lots[id]?.quality?.soaked_in_dish === 1 || V.lampLog.length >= before + 2), `${r2?.status} ${r2?.why ?? ''}`);
+  want('5 a wick of a fibre not yet tried', V.lampLog.length >= before + 2 && V.lampLog[before].fiber !== V.lampLog[before + 1].fiber, V.lampLog.map((x: any) => `fibre ${x.fiber}: ${x.lumenS} lm·s`).join(' / '));
 }
 R.save(); const saved = JSON.parse([...store.values()].find((v) => v.includes('lampLog')) ?? '{}');
 want('kept in the save', (saved.village?.lampLog?.length ?? 0) >= 2 && !!saved.lab?.equipment?.['eq:lamp_dish']);
