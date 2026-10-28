@@ -122,7 +122,8 @@ for (const r of [dot, lantern]) { r.battery = 1; r.wear = 0; }
   dot.holding = ''; for (let k = 0; k < 6 && H.lost > 0; k++) { const g0 = dot.holding; think(); await run(900, () => H.lost === 0 || (g0 !== 'grass' && dot.holding === 'grass' && dot.task?.kind !== 'cut')); }
   await run(5);   // (the course swings up into its place)
   want('6 laid again first', H.lost === 0 && houseG.children[top].visible && lines(dot).some((t: string) => /葺き直した/.test(t)));
-  V.stormPrep = sim; V.prepBy = 'lantern'; dot.task = null; dot.holding = ''; pick = () => 'look:shore';
+  V.stormPrep = sim; V.prepBy = 'lantern'; V.prepKnown = ['lantern', 'dot'];   // (agreed at a gathering Dot was at)
+  dot.task = null; dot.holding = ''; pick = () => 'look:shore';
   await run(600, () => H.weighed);
   wx = { ...calm, typhoon: true, rain: 10, rainMeasured: 10, wind: 20, windMeasured: 20, pressure: 980 }; await run(30); wx = calm; await run(10);
   want('6 weighed down before the typhoon: nothing blown off', H.lost === 0 && dot.diary.some((e: any) => /家の屋根（重しをかけていた）は無事/.test(e.text)), dot.diary.filter((e: any) => e.key === 'weather').slice(-1).map((e: any) => e.text)[0]);

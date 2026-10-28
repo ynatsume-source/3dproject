@@ -301,7 +301,7 @@ const alarmHypo = (now: number, extra: any = {}) => ({ ...GAUGE_SETUP, at: 0, by
   }
   { // unwarned
     const { R, dot } = island(37);
-    Object.assign(R.village.raft, { parts: 6, x: 58, z: -150, hauled: false });
+    Object.assign(R.village.raft, { parts: 6, x: 58, z: -260, hauled: false });   // (110 m off: too far to haul it up in a hurry as it comes — storm-watch-check)
     R.setBrain(brains({ dot: () => ({ plan: ['look:shore'] }), rakko: () => ({ plan: ['look:shore'] }) }));
     R.setWeather(fair); await run(R, 5); R.setWeather(gale); await run(R, 60); R.setWeather(fair); await run(R, 5);
     want('N unwarned, the raft left on the beach loses half its pieces', R.village.raft.parts === 3 && !R.village.stormLog.at(-1)?.warned && dot.diary.some((e: any) => /前もって知らなかった。筏の部材3本を失った/.test(e.text)) && !R.village.heed.dot);
