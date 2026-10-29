@@ -8,6 +8,7 @@
 //    a cracked one is not
 //  4 the fired pot made the island's cook pot (civ-sci.fired-pot-assembly/1)
 //  5 a coconut split, grated and pressed (p30x), the milk boiled in that pot over the fire (p31x 0.1.3): coconut oil
+//  6 chapter 2's way as the world kept it (PROGRAM.md §2-2): the firewood done before the pot was fired, the oil after
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/oil-chain-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -84,6 +85,9 @@ for (let k = 0; k < 2; k++) addLot(lab, { materialId: 'coconut', amount: { value
   console.log('  fired pot:', JSON.stringify(fp?.quality ?? lab.equipment['eq:cook_pot']?.assembled?.from?.quality ?? {}));
   const firstPot = R.village.firsts?.['fired-pot'];
   if (!stages.includes('sherds')) want('3 a pot fired and not cracked: the island\'s first fired pot, kept; a cracked one is not', cracked ? firstPot === undefined : firstPot > 0, String(firstPot));
+  const F = R.village.firsts ?? {};
+  want('6 chapter 2\'s firewood: done when the pile had dried, before the pot was fired', F['dry-wood'] > 0 && (firstPot === undefined || F['dry-wood'] <= firstPot), `${F['dry-wood']} / ${firstPot}`);
+  if (has('coconut_oil')) want('6 chapter 2\'s oil: done with the oil, after the pot', F.oil > 0 && (firstPot === undefined || F.oil >= firstPot), `${F.oil}`);
   if (stages.includes('sherds')) console.log('  (the pot broke in the fire: a real outcome — the rest needs another pot)');
   else if (cracked) { console.log('  (a hairline crack from the fire: a real outcome — a cracked pot leaks and is not made a cook pot; the rest needs another pot)'); want('4 a cracked pot is not made a cook pot', !lab.equipment['eq:cook_pot'] && ![...Object.values(lab.runs), ...recentScienceRuns(lab)].some((r: any) => r.processId === 'p31x_coconut_oil_boil')); }
   else {

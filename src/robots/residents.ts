@@ -1432,6 +1432,19 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (m.clayMg < CLAY_GONE_MG) markFirst('clay-gone');
     if (m.bambooMg < BAMBOO_GONE_MG) markFirst('bamboo-gone');
   }
+  // (chapter 2's way (PROGRAM.md §2-2, D34): the firewood — seasoned wood enough for a pit fire, every lot counted, a fire's
+  // own among them; the lamp dish — a fired one of the lamp's form, not cracked, as dishForLamp takes, or the dish made;
+  // the oil — coconut oil on the island. The pot and the light are the world's firsts already. Seen as the lab is.)
+  function chapter2Seen(): Record<'dry-wood' | 'lamp-dish' | 'oil', boolean> {
+    const lots = Object.values(lab.lots), dry = (l: LotView) => (l.quality?.water_ppm ?? 1e6) <= SEASONED_PPM;
+    const fire = catalog.find((e) => e.input === 'dry_pot')?.also?.find((x) => x.input === 'firewood')?.minMg ?? 30e6;
+    return {
+      'dry-wood': lots.filter((l) => l.materialId === 'firewood' && dry(l)).reduce((n, l) => n + l.amount.value, 0) >= fire,
+      'lamp-dish': !!lab.equipment[`eq:${LAMP_DISH_ASSEMBLY.kind}`] || lots.some((l) => l.materialId === 'fired_pot' && l.quality?.form === 3 && !l.quality?.crack),
+      oil: lots.some((l) => l.materialId === 'coconut_oil'),
+    };
+  }
+  function chapter2Tick() { for (const [k, yes] of Object.entries(chapter2Seen())) if (yes) markFirst(k); }
   function tell(kind: string, text: string, r: Resident) {
     const key = milestoneKey(kind, text), firsts = ((village as any).firsts ??= {}) as Record<string, number>;
     const first = key && firsts[key] === undefined ? key : undefined;
@@ -3756,7 +3769,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       had('sighting', Object.keys(village.map.seen).length);
       for (const id of Object.keys(village.map.reached ?? {})) had(`crossing:${village.map.seen[id]?.word ?? id}`, true);
       had('fibre', Object.values(lab.lots).some((l) => l.materialId === 'coir_fiber_bundle')); had('rope', Object.values(lab.lots).some((l) => l.materialId === 'coir_rope')); had('hang', village.cordHost.hang); had('lash', village.cordHost.raft);
-      had('sail', Object.values(lab.lots).some((l) => l.materialId === 'sail_mat')); had('mast', Object.values(lab.lots).some((l) => l.materialId === 'bamboo_mast')); }
+      had('sail', Object.values(lab.lots).some((l) => l.materialId === 'sail_mat')); had('mast', Object.values(lab.lots).some((l) => l.materialId === 'bamboo_mast'));
+      // (chapter 2's: as the lab has them now; and a pot fired had its seasoned wood, a lamp lit had its dish and its oil)
+      const c2 = chapter2Seen(); had('dry-wood', c2['dry-wood'] || f['fired-pot'] !== undefined); had('lamp-dish', c2['lamp-dish'] || f.light !== undefined); had('oil', c2.oil || f.light !== undefined); }
     for (const t of village.treasures) { const k = OLD_DRIFT.indexOf(t.what); if (k >= 0) t.what = DRIFT[k].ja; }   // (made things from an older island: what the sea brings now)
     lastFireAt = s.lastFireAt ?? 0;
     if (s.drift && s.drift.kind >= 0) { Object.assign(drift, s.drift); driftMesh.geometry = DRIFT[drift.kind].geo; driftMesh.material = DRIFT[drift.kind].mat; driftMesh.position.set(drift.x, L.h(drift.x, drift.z) + 0.06, drift.z); driftMesh.visible = !drift.by || !list.some((r) => r.holding === 'drift'); }
@@ -4008,7 +4023,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       camAt.set(cam.x, cam.y, cam.z);
       clockMs = ms; inspectCool -= dt; admireCool -= dt; seeCool -= dt; showCool -= dt;
       items.tick(dt); tickDrift(dt); catchRain(dt);
-      if ((labT -= dt) < 0) { labT = 30; tickLab(); chapter1Tick(); }
+      if ((labT -= dt) < 0) { labT = 30; tickLab(); chapter1Tick(); chapter2Tick(); }
       profBegin('殻'); husk.tick(clockMs); profEnd('殻');   // (the time the husks lie in the tide pool, confirmed as it passes)
       profBegin('縄'); cord.tick(clockMs, voyaging && wxNow ? (wxNow.windMeasured ?? wxNow.wind) : null); profEnd('縄');   // (the roof's time, the sun on the cords, a crossing's wind)
       if (!village.sailHost?.sites) sail.sites();   // (the pandanus by the shore stand from the first: found once, by a fixed search, and kept)
