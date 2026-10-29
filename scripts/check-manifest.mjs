@@ -34,7 +34,7 @@ const slow = [
   'eagleray', 'fell', 'firewood-habit', 'first-load', 'float', 'hunt', 'iguana', 'jacks', 'jitter', 'kame-shore', 'offer', 'remark',
   'jump', 'keep-about', 'lab', 'sea-readers', 'lobos-benthos', 'lobos-fish-life',
   'lobos-forest', 'lobos-otters', 'lobos-visitors', 'manta', 'manta-stuck',
-  'manta-terrain', 'manta-transit', 'moray', 'motion', 'oil-chain',
+  'manta-terrain', 'manta-transit', 'moray', 'motion', 'oil-chain', 'oil-wood',
   'passthrough', 'pointlobos', 'raft-habit', 'route', 'sail-host', 'sealion', 'sim', 'status',
   'stuck', 'tar-chain', 'tideline', 'trade', 'turtle-breath', 'turtle-view',
   'water',

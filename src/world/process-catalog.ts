@@ -62,6 +62,9 @@ export interface CatalogEntry {
   /** Taken out when it feels right (p10x 0.1.4: the clay is felt with a look): felt every so often from a while after the
    *  start, and taken out at the first feel that is ready — or that has gone too stiff; at the latest at lastMs. */
   feelOut?: { action: string; fromMs: number; everyMs: number; ready: string; tooFar: string[]; lastMs: number };
+  /** Tended by watching (p31x, the boil): looked at every so often on its clock while its tender is there — the fire
+   *  lowered at the first look that says so, the pot taken off at the first that is ready, or gone too far. */
+  watch?: { action: string; everyMs: number; lower?: { when: string[]; action: string; params: Record<string, number> }; ready: string[]; out: string };
   /** A process that ends when the operator does something (takes the tile off the rack): after how long, on its clock. */
   finish?: { action: string; afterMs: number };
   /** The operator's work along the way, before it is finished (on its clock, from the start): soaking's sieve and pour-offs. */
@@ -90,7 +93,7 @@ export function canResumeProcessVersion(
 }
 
 /** What the materials are called in the record (the island's own words come later). */
-export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', gauge_tube_test: '試験用の管', bamboo_tube: '竹の管', assembled_pot: '封じた器', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
+export const MATERIAL_JA: Record<string, string> = { lamp_wick: '芯', wick_char: '芯の燃えさし', coconut_husk: 'ヤシの実の殻', coconut_shell: 'ヤシの実の殻（内側）', pandanus_leaf: 'アダンの葉', fired_pot: '焼いた器', wood_ash: '灰', raw_clay: '粘土', bamboo: '竹', reed: '葦', limestone: '石灰岩', prepared_clay: '下ごしらえした粘土', settled_clay: '沈めた粘土', test_tile_green: '形づくった試験タイル', test_tile_dry: '乾いた試験タイル', process_water: '真水', coconut: 'ヤシの実', coconut_milk: 'ヤシのミルク', coconut_oil: 'ヤシ油', coconut_water: 'ヤシの実の水', coconut_pulp: 'しぼりかす', coconut_latik: '油をとったかす', firewood: '薪', charcoal: '炭', wood_tar: '木タール', wood_vinegar: '木酢液', fired_pot_test: '焼いた器（試験用）', gauge_tube_test: '試験用の管', bamboo_tube: '竹の管', assembled_pot: '封じた器', pot_sherds: '器のかけら', green_pot: '形づくった器', dry_pot: '乾いた器' };
 /** The residents' retort and the jar they seal (mL), and the charge the upper jar holds with room (mg). */
 export const RETORT_UPPER_ML = 2000, RETORT_LOWER_ML = 300, SEAL_JAR_ML = 500, RETORT_CHARGE_MG = 700_000;
 /** The weather pot's tube (mm, the owner's decision 2026-10-11) and the rain water in its jar (mg: 250 mL). */
@@ -154,6 +157,10 @@ export const CATALOG: CatalogEntry[] = [
     // (not while there is clear oil enough for an evening's lamp on the shelf: the dry wood kept for the next pot's fire —
     // life-run 2026-10-10, the boil taking the seasoned stack again and again, the second pot never fired)
     enough: 'coconut_oil', enoughMg: 20_000,
+    // (Lantern watches the pot, a look a minute: the fire turned low once the milk has stopped boiling and the solids fry,
+    // the pot taken off once they have browned and the oil is clear — or at once if they darken. Left on the fire, it burnt
+    // all the wood it was given, a whole pile, and the oil scorched: 2026-10-29, reviews/192-193 oil-none-1.log)
+    watch: { action: 'look', everyMs: 60_000, lower: { when: ['ぱちぱちと小さな音', '静かになった'], action: 'fire_level', params: { level: 0 } }, ready: ['かすが茶色になり', 'かすが黒ずみ'], out: 'take_off' },
     step: coconutBoilStep, env: 'record', tend: 'stay',
     ready: true, waits: 'ヤシのミルクと、乾いた薪と、焼いた鍋' },
   { processId: BAROMETER_PROCESS.processId, processVersion: BAROMETER_PROCESS.processVersion, catalogVersion: TEST, contract: '0.2.1', clock: 'island',
