@@ -2087,6 +2087,11 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         const g = opts.filter((o) => o.action === 'gather')[0];
         if (g) return { text: '筏の部材を作る', why: '見えた島へ渡る筏が要る', plan: [g.id, 'craft:bench', 'lash:raft'] };
       }
+      // (wood for the next pit fire, by habit too: pots waiting to be fired, less than a fire's dry wood (30 kg) and less
+      // green wood than a drying pile takes (45 kg, p15x) — it fells a tree near the hut (to its lee first) or a sapling,
+      // and the branches go by the shelf for Lantern to pile and dry. Without it, with the model away, the pots dried at
+      // 74 hours and nothing more was made for 30 days: science, reviews/188-8bf9d1e stall-none.log)
+      if (woodWanted()) { const f = has('fell:') ?? has('chop:'); if (f) return { text: '薪にする木を切る', why: '次の野焼きの乾いた薪が足りない', plan: [f] }; }
       const farm = has('harvest:') ?? has('chop:') ?? has('till:') ?? has('plant:');
       if (farm) return { text: '畑の世話をする', why: '小屋が建ったので', plan: [farm] };
       return { text: 'ひと休みする', why: '今はすることがない', plan: [Math.random() < 0.7 ? 'look:shore' : 'wander:near'] };
@@ -2232,6 +2237,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   const inputThere = (e: CatalogEntry) => !e.input || shelfLots().some((l) => l.materialId === e.input && !(l as any).reservedBy && l.amount.value >= (e.minInputMg ?? 0) && (!e.inputOk || e.inputOk(l)));
   const recipeWanted = () => TOOLS.find((t) => !lab.equipment[`eq:${t.kind}`] && catalog.some((e) => e.ready && e.built === t.kind && inputThere(e))
     && t.materials.every((m) => shelfLots().some((l) => l.materialId === m.materialId && !(l as any).reservedBy && canTakeMass(l, m.mg))));
+  // (firewood wanted for the pots waiting to be fired: less dry wood than a pit fire takes, and less green wood than a
+  // drying pile takes — every lot counted, a pile drying among them; the science side's numbers, process-catalog.ts)
+  const woodWanted = () => {
+    if (!Object.values(lab.lots).some((l) => l.materialId === 'dry_pot' || l.materialId === 'green_pot')) return false;
+    const wood = Object.values(lab.lots).filter((l) => l.materialId === 'firewood'), seasoned = (l: LotView) => (l.quality?.water_ppm ?? 1e6) <= SEASONED_PPM;
+    const fire = catalog.find((e) => e.input === 'dry_pot')?.also?.find((x) => x.input === 'firewood')?.minMg ?? 30e6, pile = catalog.find((e) => e.built === 'firewood_stack')?.minInputMg ?? 45e6;
+    const dry = wood.filter((l) => seasoned(l as LotView)).reduce((n, l) => n + l.amount.value, 0), wet = wood.filter((l) => !seasoned(l as LotView)).reduce((n, l) => n + l.amount.value, 0);
+    return dry < fire && wet < pile;
+  };
   // (wet and seasoned wood in piles of their own: a dried pile is not wetted again by green branches)
   const freeWood = () => { const all = shelfLots().filter((l) => l.materialId === 'firewood' && !(l as any).reservedBy) as LotView[], dry = (l: LotView) => (l.quality?.water_ppm ?? 1e6) <= SEASONED_PPM; const wet = all.filter((l) => !dry(l)), dried = all.filter(dry); return wet.length >= 2 ? wet : dried.length >= 2 ? dried : wet; };
   const potForCook = () => !lab.equipment[`eq:${COOK_POT_ASSEMBLY.kind}`] ? shelfLots().find((l) => l.materialId === 'fired_pot' && !(l as any).reservedBy && [1, 2].includes(l.quality?.form ?? 0) && !(l.quality?.crack)) : undefined;
