@@ -32,7 +32,7 @@ const slow = [
   'clay-chain', 'clip', 'coral-depth', 'coral-overlap', 'coral-rock',
   'cruise-motion', 'day-lot', 'director', 'director-pingpong', 'dolphin',
   'eagleray', 'fell', 'firewood-habit', 'first-load', 'float', 'hunt', 'iguana', 'jacks', 'jitter', 'kame-shore', 'offer', 'remark',
-  'jump', 'keep-about', 'lab', 'sea-readers', 'lobos-benthos', 'lobos-fish-life',
+  'jump', 'kame-hunger', 'keep-about', 'lab', 'sea-readers', 'lobos-benthos', 'lobos-fish-life',
   'lobos-forest', 'lobos-otters', 'lobos-visitors', 'manta', 'manta-stuck',
   'manta-terrain', 'manta-transit', 'moray', 'motion', 'oil-chain',
   'passthrough', 'pointlobos', 'raft-habit', 'route', 'sail-host', 'sealion', 'sim', 'status',
