@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- ライブ配信の画面案「観測の窓」第2版（横 1920×1080、2026-10-17）。アプリのコードではない、設計のモック。
      背景は utsushiyo.earth の #planet をソフトウェア描画で撮った画（アプリの表示を消したもの）。実際の GPU の画とは色や細かさが違う。
-     場面：#day #rope #isle #night #talk #milestone、#fire #bubble、#chend&v3（第1章の終わり、D33 の案 B。&ch1a で採らなかった案 A）、（R-024 の吹き出し。背景は main 32638a3 のビルド、住人の位置はモックのために置いた）。言語：既定は日本語、&en で英語の型（英語の文は islandlang.ts にある会話の訳のほかは仮）。
+     場面：#day #rope #isle #night #talk #milestone、#fire #bubble、#chend&v3（第1章の終わり、D33 の案 B。&ch1a で採らなかった案 A）、#day&v3&ch2 ／ #chend&v3&ch2（第2章、D34、CHAPTER2.md）、（R-024 の吹き出し。背景は main 32638a3 のビルド、住人の位置はモックのために置いた）。言語：既定は日本語、&en で英語の型（英語の文は islandlang.ts にある会話の訳のほかは仮）。
      &notext で文字を消し、背景と曇りだけ（明るさの比を測る用）。
      文言：状態の文・出来事の文・会話は residents.ts / islandlang.ts にある文をそのまま使う。「ヤシの殻を打っている」は仮（殻と縄はまだ接続されていない）。
      日付・時刻は仮。節目の場面の灯りの光はモックのために描き足したもの（実際の見た目は自然班）。 -->
@@ -255,7 +255,15 @@ if (scene === 'milestone') {
 }
 // (the end of chapter 1 — CHAPTER1_END.md; the owner chose B on 10/28, D33: the chapter of the first crossing. &ch1a shows the card
 // of the option not taken, 'while it was nearly gone'. The south island's load has just reached the shelf)
-if (scene === 'chend') {
+// (&ch2: the end of chapter 2 as the owner chose on 10/29, D34 — CHAPTER2.md: the first light, at night, Lantern's)
+if (scene === 'chend' && h.includes('ch2')) {
+  document.body.classList.add('dim'); bg('bg-night.jpg'); who('lantern'); $('hour').textContent = '19:12'; $('date').textContent = date(23, 7);
+  $('mile').hidden = false; $('glow').hidden = false;
+  $('mile').querySelector('.k').textContent = T('第2章　おわり', 'End of chapter 2');
+  $('mm').textContent = T('南の島の粘土で器を焼き、灯りをともした', 'With the south island\'s clay they fired pots, and lit a lamp');
+  $('md').textContent = `${date(23, 7)} ・ 19:12`;
+  $('status').textContent = T('灯皿にヤシ油を入れ、芯を立てて灯す', 'Oil in the lamp dish, the wick set, and lit');
+} else if (scene === 'chend') {
   bg('bg-dusk.jpg'); who('dot'); $('hour').textContent = '16:40'; $('date').textContent = date(17, 6);
   $('mile').hidden = false; $('glow').hidden = false;
   $('mile').querySelector('.k').textContent = T('第1章　おわり', 'End of chapter 1');
@@ -347,12 +355,13 @@ if (h.includes('v3')) {
     if (h.includes('res')) $('status').textContent = T('流木を拾い上げている', 'Picking up the driftwood');
   } else $('why').hidden = true;
   // (chapter 1: the first crossing to the south island — the owner's decision of 10/28, D33, CHAPTER1_END.md)
-  const end = scene === 'chend', b = !h.includes('ch1a');   // (chapter 1 as the owner chose on 10/28, D33: 南の島へ — &ch1a shows the option not taken)
-  const way = end ? [[T('小屋', 'hut'), 'done'], [T('筏', 'raft'), 'done'], [T('南の島へ', 'the south island'), 'done']]   // (the world's order, both options: CHAPTER1_END.md §3)
+  const end = scene === 'chend', b = !h.includes('ch1a'), c2 = h.includes('ch2');   // (&ch2: chapter 2, D34 — CHAPTER2.md)   // (chapter 1 as the owner chose on 10/28, D33: 南の島へ — &ch1a shows the option not taken)
+  const way = c2 ? [[T('薪', 'firewood'), 'done'], [T('器', 'pots'), end ? 'done' : 'now'], [T('灯皿', 'lamp dish'), end ? 'done' : 'later'], [T('油', 'oil'), end ? 'done' : 'later'], [T('灯り', 'light'), end ? 'done' : 'later']]
+    : end ? [[T('小屋', 'hut'), 'done'], [T('筏', 'raft'), 'done'], [T('南の島へ', 'the south island'), 'done']]   // (the world's order, both options: CHAPTER1_END.md §3)
     : [[T('小屋', 'hut'), 'done'], [T('筏', 'raft'), 'now'], [T('南の島へ', 'the south island'), 'later']];
-  $('chap').innerHTML = `<div class="c1"><span class="no">${T('第1章', 'Chapter 1')}</span>${b ? T('南の島へ', 'To the south island') : T('尽きる前に、南の島へ', 'To the south island, before it runs out')}<span class="dy">${T('（2日目）', '· day 2')}</span></div>`
+  $('chap').innerHTML = `<div class="c1"><span class="no">${c2 ? T('第2章', 'Chapter 2') : T('第1章', 'Chapter 1')}</span>${c2 ? T('はじめての灯り', 'The first light') : b ? T('南の島へ', 'To the south island') : T('尽きる前に、南の島へ', 'To the south island, before it runs out')}<span class="dy">${c2 ? (end ? T('（9日目）', '· day 9') : T('（4日目）', '· day 4')) : T('（2日目）', '· day 2')}</span></div>`
     + `<div class="way">${way.map(([w, k]) => `<span class="${k}">${w}</span>`).join('<span class="dot">・</span>')}</div>`
-    + (end ? ''   // (the load in from the south island: the chapter ends and the line of what was brought goes, PROGRAM.md §2-1-2)
+    + (end || c2 ? ''   // (chapter 2 has no load line; the load in from the south island: the chapter ends and the line of what was brought goes, PROGRAM.md §2-1-2)
       : `<div class="cargo">${T('持ってきた荷', 'What we brought')}<span class="lv low">${T('粘土 残りわずか', 'clay: nearly gone')}</span><span class="dot">・</span><span class="lv">${T('竹 半分ほど', 'bamboo: about half')}</span></div>`);   // (as the world has it most of the chapter: PROGRAM.md §2-1-2)
   const nx = scene === 'fire' ? [T('いま', 'Now'), '', T('焚き火の会', 'The evening fire')] : scene === 'bubble' || end ? [T('このあと', 'Next'), '19:30', T('焚き火の会', 'The evening fire')] : [T('このあと', 'Next'), '12:00', T('島めぐり', 'Round the island')];
   $('next').innerHTML = `<span class="k">${nx[0]}</span>${nx[1] ? `<span class="tm">${nx[1]}</span>` : ''}${nx[2]}`;
