@@ -132,6 +132,10 @@ export function updateEagleRays(oc: any, dt: number, env: Env, cam: THREE.Vector
         r.dig -= dt;
         _t.set(r.pos.x + hx * 0.2 * dt, floorUnder(T, r.pos.x, r.pos.z, hx, hz, r.span) + clearOf(r), r.pos.z + hz * 0.2 * dt);
       } else {
+        // (its place in the line on the side the drone is, close by — beside the leader, filming it: it crosses behind the
+        // leader to the same place on the far side, rather than fly into the drone; the leader keeps its way)
+        const sx = g.c.x - hz * r.off.x + hx * r.off.z, sz = g.c.z + hx * r.off.x + hz * r.off.z, mx = g.c.x + hz * r.off.x + hx * r.off.z, mz = g.c.z - hx * r.off.x + hz * r.off.z;
+        if (r.off.x !== 0 && hyp(sx - cam.x, sz - cam.z) < r.span * 0.9 + 1.5 && hyp(mx - cam.x, mz - cam.z) > hyp(sx - cam.x, sz - cam.z) + 1) r.off.x = -r.off.x;
         _t.set(g.c.x - hz * r.off.x + hx * r.off.z, g.c.y + r.off.y, g.c.z + hx * r.off.x + hz * r.off.z);
       }
       _w.subVectors(_t, r.pos);
@@ -157,7 +161,7 @@ export function updateEagleRays(oc: any, dt: number, env: Env, cam: THREE.Vector
       r.ph += dt * (r.dig > 0 ? 1.6 : 2.6) * (0.6 + 0.4 * r.beat);
       // (its nose follows its climb and descent only slowly: a big flat animal does not nod)
       const hs = hyp(r.vel.x, r.vel.z) || 1e-3, pitch = r.dig > 0 ? -0.5 : clamp(-Math.atan2(r.vel.y, Math.max(hs, 0.6)) * 0.6, -0.25, 0.25);
-      r.pit += (pitch - r.pit) * Math.min(1, dt * 0.7);
+      r.pit += clamp((pitch - r.pit) * Math.min(1, dt * 0.7), -dt * 0.3, dt * 0.3);   // (never quicker than 0.3 rad/s: done rooting, its nose comes up slowly, not with a nod)
       _e.set(r.pit, Math.atan2(r.vel.x, r.vel.z), r.roll, 'YXZ');
       _q.setFromEuler(_e); _m.compose(r.pos, _q, _s.setScalar(r.span * 0.5));
       E.mesh.setMatrixAt(k, _m);

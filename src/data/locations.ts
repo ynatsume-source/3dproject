@@ -68,6 +68,9 @@ export interface Sea {
   whales?: WhaleSeason;                    // humpbacks visit in these months
   dolphins?: DolphinSpec;                  // a pod that comes by every few minutes by day (eco/dolphins)
   eaglerays?: EagleRaySpec;                // spotted eagle rays that keep about the reef (eco/eaglerays)
+  // mantas that are not about this sea but pass by now and then (eco/events.ts mantapass): p, by month (Jan..Dec), how
+  // likely a day is to have one about; line, the months when it may be two or three in a line
+  mantaPass?: { p: number[]; line: number[] };
   sealions?: SeaLionSpec;                  // sea lions that come by to play with the drone (eco/sealions)
   iguanas?: IguanaSpec;                    // marine iguanas that come down to graze on the shallow rock (eco/iguanas)
   carpets?: CarpetSpec[];                  // sharks that rest on the bottom by day (eco/carpetsharks)
@@ -440,8 +443,12 @@ export const LOCATIONS: Sea[] = [
       ['onikamasu', { count: 1, alt: [1, 2.5] }],
     ]),
     animals: { turtle: { style: 'green', count: 2 }, octopus: 1 },
+    // (R-031, the owner's choice 2026-10-27: a manta of the Yonara channel close by passes along the reef's outer side
+    // now and then — most in May to October; February to April, at times two or three in a line, courting)
+    mantaPass: { p: [0.15, 0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.15, 0.15], line: [2, 3, 4] },
     extraGuide: [
       { id: 'turtle', ja: 'アオウミガメ', sci: 'Chelonia mydas', note: '八重山のラグーンでは、海草や藻を食べに浅場へ入ってくる。' },
+      { id: 'manta', ja: 'ナンヨウマンタ', sci: 'Mobula alfredi', note: '翼幅3〜5m。ふだんは小浜島と西表島の間のヨナラ水道にいて、ときどき礁の外側を通っていく。多いのは5〜10月。2〜4月には、メスを追うオスが2〜3枚の列になることもある。' },
       { id: 'octopus', ja: 'ワモンダコ', sci: 'Octopus cyanea', note: '昼に活動するタコ。岩の上を歩いて甲殻類を探し、体の色や模様を一瞬で変える。' },
     ],
     benthic: [
@@ -725,6 +732,8 @@ export const LOCATIONS: Sea[] = [
     miyako: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
     gbr: { ...ocel, groups: 3, size: [1, 4], span: [1.4, 2.3] },
     redsea: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
+    // (R-031, the owner's choice 2026-10-27: always about Kayama's lagoon, one or two small groups)
+    kayama: { ...ocel, groups: 2, size: [1, 3], span: [1.3, 2.2] },
     galapagos: { id: 'eagleray', ja: 'マダラトビエイ（東太平洋）', sci: 'Aetobatus laticeps', groups: 2, size: [2, 6], span: [1.3, 2.2],
       note: '東太平洋に住むトビエイで、インド・西太平洋のマダラトビエイとは別の種とされる。紺色の背に白い斑点。ガラパゴスでは群れで礁の縁を羽ばたいて泳ぎ、砂地で貝を掘る。' },
   };

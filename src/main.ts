@@ -1734,6 +1734,7 @@ function goTo(id: string) {
   // (a turtle or a manta: the one gone to, its own state, as the eco subject for it says — not the nearest one's)
   else if (id === 'turtle' && oc.turtles.length) { const i = (oc.turtles as any[]).indexOf(near(oc.turtles as any[])), e = oc.eco.subjects().find((x: Subject) => x.key === `turtle:${i}`); s = e ? { ...e, key: 'focus:turtle', label: name, prio: 5, live: () => true } : null; }
   else if (id === 'manta' && oc.mantas.length) s = mantaFocus(oc, name);
+  else if (id === 'manta' && oc.rare?.running?.info.id === 'mantapass') { const sj: Subject[] = []; oc.rare.subjects(sj); s = sj[0]; }   // (one passing by, once seen: R-031)
   else if (id === 'octopus' && oc.octopi?.length) { const o = near(oc.octopi as any[]); s = { ...o.subject, key: 'focus:octopus', prio: 5 }; }
   else if (id === 'eel' && oc.colonies.length) { const c = near(oc.colonies as any[]); const p = c.pos.clone(); p.y += 0.4; s = { key: 'focus:eel', label: name, kind: 'anemone', prio: 5, size: 1.5, pos: () => p, status: () => statusOf('eel'), live: () => true }; }
   else if (id === 'whale') {
@@ -2091,6 +2092,7 @@ function checkSightings() {
   const first = <T,>(a: T[], ok: (t: T) => boolean, keep = 30) => { const o = a.find(ok); return o ? () => (inView((o as any).pos, keep) ? (o as any).pos as Where3 : null) : undefined; };
   if (under && cur!.turtles.some((t) => inView(t.pos, 16))) discover(extra('turtle'), first(cur!.turtles as any[], (t) => inView(t.pos, 16)), 1.2);
   if (under && cur!.mantas.some((m) => inView(m.pos, 22))) discover(extra('manta'), first(cur!.mantas as any[], (m) => inView(m.pos, 22)), 4);
+  { const r = cur!.rare?.running; if (under && r?.info.id === 'mantapass' && r.seen) discover(extra('manta'), () => (cur!.rare?.running === r ? r.pos() : null), 4); }   // (one passing by: found once it is in the picture)
   if (under && (cur!.lobosOtters?.list || []).some((o: any) => inView(o.pos, 22))) discover(extra('sea-otter'), first(cur!.lobosOtters!.list as any[], (o) => inView(o.pos, 22)), 1.2);
   if (under && cur!.lobosVisitors?.state.active && inView(cur!.lobosVisitors.state.position, 18)) discover(extra('harbor-seal'), () => cur!.lobosVisitors!.state.position, 1.6);
   if (under && cur!.colonies.some((c) => inView(c.pos, 13))) discover(extra('eel'), first(cur!.colonies as any[], (c) => inView(c.pos, 13)), 1);
