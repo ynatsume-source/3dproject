@@ -172,7 +172,9 @@ export function makeLive(ctx: LiveCtx) {
       if (now - c2.began < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:start`)) { const k = startCard2(en); queue.push({ head: k.head, text: esc(k.what), at: c2.began + 60e3 }); }
       if (c2.ended !== null && c2.ended > 0 && now >= c2.ended + 60e3 && now - c2.ended < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:end`)) { const k = endCard2(en); queue.push({ head: k.head, text: esc(k.what), at: c2.ended + 60e3 }); }
     }
-    if (!n || (two && c2!.ended !== null && now - c2!.ended > 180e3)) { chap.classList.add('off'); return; }
+    // (gone: two minutes after chapter 2's end card; and on an island with no chapter 2 — its first lamp lit before
+    // chapter 1 ended — two minutes after chapter 1's)
+    if (!n || (two && c2!.ended !== null && now - c2!.ended > 180e3) || (!c2 && c?.ended != null && now - c.ended > 120e3)) { chap.classList.add('off'); return; }
     // (another chapter: the block fades out, changes, fades in)
     if (n !== chapShown) {
       if (chapShown && !chap.classList.contains('off')) { chap.classList.add('off'); chapSwapAt = performance.now() + 600; return; }
