@@ -79,10 +79,11 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
     if (depth === 1 && R() < 0.6) mass(a.clone().lerp(b, 0.6).add(new THREE.Vector3(rr(-0.05, 0.05), 0.05, rr(-0.05, 0.05))), rr(0.08, 0.11));   // (leaves along the limb too)
   };
   const D = young ? 1 : 2;
+  let trunk: [THREE.Vector3, number, number] | null = null;   // (its trunk's top, and its radius at the foot and the top, as limb() lays it)
   const tilt = (x: number) => new THREE.Vector3((R() - 0.5) * x, 1, (R() - 0.5) * x).normalize();
   if (kind === 0) {
     const t = tilt(0.3), top = t.clone().multiplyScalar(rr(0.28, 0.38));
-    limb(new THREE.Vector3(0, -0.05, 0), top, young ? 0.03 : 0.05, 0.036);
+    limb(new THREE.Vector3(0, -0.05, 0), top, young ? 0.03 : 0.05, 0.036); trunk = [top, young ? 0.03 : 0.05, 0.036];
     const n = 3 + Math.floor(R() * 2);
     for (let k = 0; k < n; k++) { const an = k / n * 6.28 + rr(-0.4, 0.4); branch(top, new THREE.Vector3(Math.cos(an) * 0.7, 0.75, Math.sin(an) * 0.7).normalize(), rr(0.2, 0.28), 0.026, D, 0.5); }
     if (!young) branch(top, t, 0.22, 0.026, D, 0.7);
@@ -93,11 +94,12 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
       const m = out.clone().multiplyScalar(rr(0.12, 0.22)).add(new THREE.Vector3(0, rr(0.22, 0.3), 0));
       const e2 = m.clone().add(out.clone().multiplyScalar(rr(0.04, 0.12))).add(new THREE.Vector3(0, rr(0.14, 0.2), 0));
       limb(new THREE.Vector3(0, -0.05, 0), m, 0.04, 0.03); limb(m, e2, 0.03, 0.024);   // (a sprawling, kinked stem)
+      trunk ??= [m, 0.04, 0.03];
       for (let j = 0; j < 2; j++) { const b2 = an + rr(-1.2, 1.2); branch(e2, new THREE.Vector3(Math.cos(b2), 0.55, Math.sin(b2)).normalize(), rr(0.18, 0.26), 0.02, D, 0.25); }
     }
   } else if (kind === 2) {
     const t = tilt(0.15), top = t.clone().multiplyScalar(rr(0.52, 0.6));
-    limb(new THREE.Vector3(0, -0.05, 0), top, young ? 0.028 : 0.042, 0.028);
+    limb(new THREE.Vector3(0, -0.05, 0), top, young ? 0.028 : 0.042, 0.028); trunk = [top, young ? 0.028 : 0.042, 0.028];
     const n = young ? 2 : 3;
     for (let k = 0; k < n; k++) { const an = k / n * 6.28 + rr(-0.4, 0.4); branch(top, new THREE.Vector3(Math.cos(an) * 0.6, 0.8, Math.sin(an) * 0.6).normalize(), rr(0.16, 0.22), 0.02, D, 0.6); }
   } else {
@@ -137,6 +139,8 @@ export function treeGeo(kind: number, young: boolean, seed: number, lo = false) 
   g.setAttribute('aSh', new THREE.Float32BufferAttribute(Sh, 1));
   g.setAttribute('aMn', new THREE.Float32BufferAttribute(M, 3));
   g.setIndex(I);
+  // (its trunk as drawn, at unit height: from its foot to where it first forks — for what climbs it or stands by it)
+  if (trunk) g.userData.trunk = { base: [0, -0.05 / ymax, 0], top: [trunk[0].x / ymax, trunk[0].y / ymax, trunk[0].z / ymax], r0: trunk[1] * 0.55 / ymax, r1: trunk[2] * 0.55 / ymax };
   return g;
 }
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -302,6 +306,10 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
     /** A kind's grown tree as the forest draws it (unit height; to be scaled by its height, and across by `wide` × it):
      *  for a tree the residents fell, drawn as it comes down (robots/residents.ts). The forest's own: not to be disposed of. */
     look(kind: number) { return { geo: geos[Math.max(0, Math.min(3, kind)) * 2], mat: treeMat, wide: KINDS[Math.max(0, Math.min(3, kind))].wide }; },
+    /** A kind's shape as the forest has it — grown (variant 0 or 1, as the forest's own trees are) or a sapling —, its
+     *  coarser one for far off, and how wide it grows: for trees of these kinds that stand outside the forest (ocean/shore.ts:
+     *  the beach's trees in Dot's world). The forest's own: not to be disposed of. */
+    shape(kind: number, variant: number, young = false) { const k = Math.max(0, Math.min(3, kind)), i = young ? YOUNG + k : k * 2 + (variant ? 1 : 0); return { geo: geos[i], lo: geosLo[i], mat: treeMat, wide: KINDS[k].wide }; },
     get near() { return near; },
     // which cells to draw: those reaching within `near` of the camera (the canopy surface fills in beyond)
     update(cam: THREE.Vector3, r: number) {

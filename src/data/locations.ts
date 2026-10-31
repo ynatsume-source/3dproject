@@ -470,6 +470,14 @@ export const LOCATIONS: Sea[] = [
     name: 'ドットたちの島', site: '地球と同じ形をした、もうひとつの星', region: 'もうひとつの星',
     blurb: '地球と同じ形をした、人の住まない別の星。その星の、地球でいえば嘉弥真島にあたる島で、ドット、ランタン、カメマル、ラッコが暮らしている。地形・海・生き物は地球の嘉弥真島と同じ。',
     charm: 'ドット、カメマル、ランタン、ラッコが暮らす島。浜での毎日と、少しずつできていくもの',
+    // (only what has always lived on the island: owner 2026-10-26. No casuarina — brought to the Ryukyus by people —;
+    // the beach forest's own trees in its place, 2026-10-31: ocean/shore.ts)
+    flora: [
+      ['テリハボク', 'Calophyllum inophyllum', '砂浜の奥に立つ海岸林の木。厚くつやのある葉が濃い緑の丸い樹冠をつくり、潮風に強い。'],
+      ['ハスノハギリ', 'Hernandia nymphaeifolia', 'まっすぐな幹の上に、ハスの葉に似た大きな明るい葉を広げる海岸林の高木。'],
+      ['オオハマボウ', 'Hibiscus tiliaceus', '浜の近くに低く広がる木。黄色い花は夕方に赤く色を変えて落ちる。切っても株から芽を出す。'],
+      ...kayama.flora!.filter(([ja]) => ja !== 'モクマオウ'),
+    ],
   });
 }
 

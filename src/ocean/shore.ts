@@ -1,7 +1,8 @@
 // Ashore, where a sea has real land (ocean/land.ts): the forest canopy as a surface draped with the
 // aerial photograph (bumpy with tree crowns, ragged where the photo's canopy ends), and the plants of a
 // Yaeyama beach, placed where the photograph shows them: casuarina (モクマオウ) and screw pine (アダン)
-// along the forest edge, beach naupaka (クサトベラ) and tree heliotrope (モンパノキ) on the upper beach.
+// along the forest edge (in Dot's world, which has no casuarina, the beach forest's own テリハボク and ハスノハギリ
+// there instead), beach naupaka (クサトベラ) and tree heliotrope (モンパノキ) on the upper beach.
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat, U } from '../render/common';
@@ -275,15 +276,22 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
      }`, { opts: { side: THREE.DoubleSide } });
   const e = new THREE.Euler(), q = new THREE.Quaternion(), m4 = new THREE.Matrix4(), p3 = new THREE.Vector3(), s3 = new THREE.Vector3();
   let count = 0;
+  // Dot's world has none of the casuarina, brought to the Ryukyus by people (owner 2026-10-26: only what has always
+  // lived on the island; 2026-10-31, the nature team's proposal): there the same places along the forest edge, the same
+  // heights, are the beach forest's own trees — テリハボク, and ハスノハギリ among them (below, once the forest is built).
+  // The same random numbers are drawn either way: the beach and its residents' days stay as they were.
+  const native = loc.world === 'planet';
   for (const kind in lists) {
     const list = lists[kind]; if (!list.length) continue;
-    const mesh = new THREE.InstancedMesh(geos[kind], plantMat, list.length);
+    const mesh = native && kind === 'casuarina' ? null : new THREE.InstancedMesh(geos[kind], plantMat, list.length);
+    if (!mesh) THREE.MathUtils.generateUUID();   // (the id the casuarinas' mesh drew)
     list.forEach((it, i) => {
       q.setFromEuler(e.set((R() - 0.5) * 0.12, it.ry, (R() - 0.5) * 0.12));
       if (kind === 'drift') s3.set(it.s, it.s * 0.45, it.s * 0.45); else s3.set(it.s * rr(0.85, 1.15), it.s, it.s * rr(0.85, 1.15));
-      mesh.setMatrixAt(i, m4.compose(p3.set(it.x, it.y - 0.1, it.z), q, s3));
+      m4.compose(p3.set(it.x, it.y - 0.1, it.z), q, s3); mesh?.setMatrixAt(i, m4);
       it.m = m4.clone();   // (kept for trunks() below: no draw of its own)
     });
+    if (!mesh) continue;
     mesh.frustumCulled = false;
     group.add(mesh); count += list.length;
   }
@@ -291,6 +299,45 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   // Dot clears for the field: robots/residents.ts. Shared: not to be disposed of)
   T.plantLook = { geo: geos, mat: plantMat };
   const forest = buildForest(AIRLIT, group, f, can, top, FAR);
+  // Dot's world: the beach trees, as the forest draws its own (one of its two shapes of each kind, its light, its sway).
+  // Which kind and which shape stand at a place is the place's own (no random draws); each as tall as the casuarina was,
+  // as wide as its kind grows. Near the camera the fine shape, the coarser one further off — as the forest is drawn
+  // (each refilled only when the camera has moved a good way). The ids three.js draws for them: from a stream of their own.
+  type Native = { it: Spot; kind: number; v: number; m: THREE.Matrix4 };
+  const natives: Native[] = [];
+  let nativeUpdate = (_c: THREE.Vector3) => {};
+  if (native && lists.casuarina.length) {
+    const sc = new THREE.Matrix4();
+    for (const it of lists.casuarina) {
+      const kind = hash(it.x * 1.31 + 7, it.z * 0.77 - 3) < 0.72 ? 0 : 2, v = hash(it.x * 4.1, it.z * 2.9 + 1) < 0.5 ? 0 : 1;
+      const w = forest.shape(kind, v).wide * (kind === 0 ? 0.9 : 1);
+      natives.push({ it, kind, v, m: it.m!.clone().multiply(sc.makeScale(w, 1, w)) });
+    }
+    const keepM = Math.random; Math.random = mulberry32(0x6e617469);
+    const meshes: { kind: number; v: number; lo: boolean; mesh: THREE.InstancedMesh }[] = [];
+    try {
+      for (const kind of [0, 2]) for (const v of [0, 1]) for (const lo of [false, true]) {
+        const n = natives.filter((t) => t.kind === kind && t.v === v).length; if (!n) continue;
+        const sh = forest.shape(kind, v), mesh = new THREE.InstancedMesh(lo ? sh.lo : sh.geo, sh.mat, n);
+        mesh.frustumCulled = false; mesh.count = 0; group.add(mesh); meshes.push({ kind, v, lo, mesh });
+      }
+    } finally { Math.random = keepM; }
+    const at = new THREE.Vector3(1e9, 0, 1e9), NEAR = 110;
+    nativeUpdate = (c: THREE.Vector3) => {
+      if ((c.x - at.x) ** 2 + (c.z - at.z) ** 2 < 15 * 15) return;
+      at.copy(c);
+      for (const o of meshes) {
+        let n = 0;
+        for (const t of natives) if (t.kind === o.kind && t.v === o.v && ((t.it.x - c.x) ** 2 + (t.it.z - c.z) ** 2 < NEAR * NEAR) !== o.lo) o.mesh.setMatrixAt(n++, t.m);
+        o.mesh.count = n; o.mesh.instanceMatrix.needsUpdate = true;
+      }
+    };
+    count += natives.length;
+    // (and the young trees by the residents' home, Dot's to clear for the field: young オオハマボウ, as the forest's
+    // understorey has them — robots/residents.ts)
+    const yh = forest.shape(1, 0, true);
+    T.plantLook.sapling = { geo: yh.geo, mat: yh.mat, wide: yh.wide };
+  }
   // how tall the growth is at a point (m): for those who walk on the island and go round what is above their
   // waist (robots/residents.ts). The shrubs and rocks one by one; inside the forest, its undergrowth.
   const VEG: Record<string, [number, number]> = { naupaka: [0.55, 0.5], heliotrope: [0.5, 0.75],   // (0.62, 0.55: the rounder mounds, nature-look HANDOFF §4)
@@ -338,15 +385,21 @@ export function buildShore(loc: any, group: THREE.Group, T: any, obst: { raise(x
   const trunks = (x: number, z: number, rad: number, out: (t: TrunkLine) => void) => {
     for (const kind of ['pandanus', 'casuarina'] as const) for (const it of lists[kind]) {
       if (!it.m || Math.abs(it.x - x) > rad || Math.abs(it.z - z) > rad) continue;
+      if (kind === 'casuarina' && native) continue;   // (none in Dot's world: its beach trees below)
       const T0 = TRUNK[kind];
       out({ kind, base: new THREE.Vector3(...T0.base).applyMatrix4(it.m), top: new THREE.Vector3(...T0.top).applyMatrix4(it.m), r0: T0.r0 * it.s, r1: T0.r1 * it.s });
+    }
+    for (const t of natives) {
+      if (Math.abs(t.it.x - x) > rad || Math.abs(t.it.z - z) > rad) continue;
+      const T0 = forest.shape(t.kind, t.v).geo.userData.trunk; if (!T0) continue;
+      out({ kind: 'tree', base: new THREE.Vector3(...T0.base).applyMatrix4(t.m), top: new THREE.Vector3(...T0.top).applyMatrix4(t.m), r0: T0.r0 * t.it.s, r1: T0.r1 * t.it.s });
     }
   };
   return {
     canopy, plants: count, lists, forest, trunks,
     // each frame: the trees near the camera, and the canopy surface stepping aside for them
     update(cam: THREE.Vector3, near: number) {
-      forest.update(cam, near); (canopyMat.uniforms.uNear as { value: number }).value = near;
+      forest.update(cam, near); nativeUpdate(cam); (canopyMat.uniforms.uNear as { value: number }).value = near;
       // under the trees? then the air there is hazy (render/common.ts fogAir)
       const inF = Math.abs(cam.x) < FAR && Math.abs(cam.z) < FAR && cam.y > 0 && can(cam.x, cam.z) > 0.5 && cam.y < top(cam.x, cam.z).y - 0.5 ? 1 : 0;
       U.uHaze.value += (inF - U.uHaze.value) * 0.05;
@@ -427,7 +480,7 @@ function casuarinaGeo() {
   return B.geo();
 }
 /** A beach tree's trunk as drawn: its foot and top (world), its radius at each end (m). */
-export interface TrunkLine { kind: 'pandanus' | 'casuarina'; base: THREE.Vector3; top: THREE.Vector3; r0: number; r1: number }
+export interface TrunkLine { kind: 'pandanus' | 'casuarina' | 'tree'; base: THREE.Vector3; top: THREE.Vector3; r0: number; r1: number }
 // (each one's trunk in its own geometry, per unit of its size: the tubes pandanusGeo and casuarinaGeo lay first)
 const TRUNK = {
   pandanus: { base: [0, 0.12, 0] as [number, number, number], top: [0.05, 0.42, 0] as [number, number, number], r0: 0.035, r1: 0.028 },
