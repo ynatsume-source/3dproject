@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ドロンの隊</title>
+<!-- MULTICAM.md: the drones' fleet as a monitor wall — the one on air large, the eight beside it. The pictures are frames
+     taken from the built app (main f5d011f, ?debug&lab, software GL): the residents followed as the app follows them now,
+     the fixed posts, the sea and the sky placed by hand for the mock. #night: the night's wall. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Mono:wght@400&family=Zen+Old+Mincho:wght@500;600;700&display=swap">
+<style>
+  :root { --ink: rgba(248,245,238,.97); --ink2: rgba(246,243,236,.82); --ink3: rgba(246,243,236,.6); --sand: #e9cf98;
+    --jp: "Zen Old Mincho", serif; --mono: "IBM Plex Mono", monospace; --bg: #0b1218; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg: #0b1218; } }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--jp); }
+  .wall { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  .tile { position: absolute; overflow: hidden; background: #000; outline: 1px solid rgba(246,243,236,.18); }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tile .lab { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 12px 9px; background: linear-gradient(to top, rgba(6,10,14,.82), rgba(6,10,14,0)); }
+  .tile .no { font: 400 15px/1 var(--mono); letter-spacing: .08em; color: var(--ink2); margin-right: 8px; }
+  .tile .nm { font: 600 19px/1.2 var(--jp); letter-spacing: .06em; }
+  .tile .why { margin-top: 5px; font: 500 15px/1.3 var(--jp); color: var(--ink3); letter-spacing: .04em; }
+  .tile .pt { position: absolute; right: 10px; top: 8px; font: 400 14px/1 var(--mono); color: var(--ink2); background: rgba(6,10,14,.55); padding: 4px 7px; }
+  .tile.on { outline: 3px solid var(--sand); }
+  .tile.on .pt { color: #1b1408; background: var(--sand); }
+  .prog .lab { padding: 16px 22px 18px; }
+  .prog .no { font-size: 20px; }
+  .prog .nm { font-size: 30px; }
+  .prog .why { font-size: 20px; margin-top: 8px; }
+  .prog .air { position: absolute; left: 20px; top: 16px; font: 400 16px/1 var(--mono); letter-spacing: .2em; color: #1b1408; background: var(--sand); padding: 6px 10px; }
+  .note { position: absolute; left: 24px; top: 772px; width: 1280px; font: 500 17px/1.6 var(--jp); color: var(--ink3); letter-spacing: .04em; }
+</style></head>
+<body><div class="wall" id="wall"></div>
+<script>
+const night = location.hash.includes('night');
+// [no, name, role, why it would be chosen now, its points, picture]
+const CAMS = night ? [
+  ['01', 'ドット', '住人', '眠っている（順位6）', 6, 'mc-day-dot.jpg', true],
+  ['02', 'ラッコ', '住人', '眠っている（順位6）', 6, 'mc-day-rakko.jpg', true],
+  ['03', 'カメマル', '住人', '眠っている（順位6）', 6, 'mc-day-kame.jpg', true],
+  ['04', 'ランタン', '住人', '夜の仕事（順位3）', 3, 'mc-night-lantern.jpg'],
+  ['05', '海', '自然', '夜の海を巡る', 4, 'mc-day-sea.jpg', true],
+  ['06', '作業場', '定点', '灯り（夜）はまだない', 5, 'mc-night-yard.jpg'],
+  ['07', '浜', '定点', '筏はまだない', 5, 'mc-day-beach.jpg', true],
+  ['08', '空', '空', '星空', 5, 'mc-day-sky.jpg', true],
+] : [
+  ['01', 'ドット', '住人', '流木を見張っている（順位6）', 6, 'mc-day-dot.jpg'],
+  ['02', 'ラッコ', '住人', '沖で浮かぶ（順位6）', 6, 'mc-day-rakko.jpg'],
+  ['03', 'カメマル', '住人', '浅瀬で海を見ている（順位6）', 6, 'mc-day-kame.jpg'],
+  ['04', 'ランタン', '住人', '眠っている（昼）', 6, 'mc-day-lantern.jpg'],
+  ['05', '海', '自然', '浅い海を巡る（順位4）', 4, 'mc-day-sea.jpg'],
+  ['06', '作業場', '定点', '殻を打つ・縄をなう場', 5, 'mc-day-yard.jpg'],
+  ['07', '浜', '定点', '筏が組まれたら、ここ', 5, 'mc-day-beach.jpg'],
+  ['08', '空', '空', '離れた場所へのつなぎ', 5, 'mc-day-sky.jpg'],
+];
+const ON = night ? '04' : '05';   // (on air now: the highest points — here no one is doing much, so the sea)
+const W = document.getElementById('wall'), add = (html) => W.insertAdjacentHTML('beforeend', html);
+const pts = (p) => (p === 4 ? '海の見せ場' : p === 5 ? '定点・空' : `順位${p}`);
+const on = CAMS.find((c) => c[0] === ON);
+add(`<div class="tile prog on" style="left:24px;top:24px;width:1280px;height:720px"><img src="${on[5]}" alt=""><div class="air">ON AIR　画面に出ている1台</div>
+  <div class="lab"><span class="no">${on[0]} DORON</span><span class="nm">${on[1]}</span><div class="why">${on[3]}　—　${night ? 'ランタンひとりの夜は、04 を主に、05 海と定点の灯りを巡る' : 'いまは誰も大きなことをしていないので、海と定点を60〜90秒ずつ巡る'}</div></div></div>`);
+CAMS.forEach((c, i) => {
+  const right = i < 4, x = right ? 1328 : 24 + (i - 4) * 320, y = right ? 24 + i * 260 : 794, w = right ? 568 : 308, h = right ? 248 : 173;
+  add(`<div class="tile${c[0] === ON ? ' on' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${c[6] ? 'filter:brightness(.45) saturate(.5)' : ''}"><img src="${c[5]}" alt=""><span class="pt">${pts(c[4])}</span>
+    <div class="lab"><span class="no">${c[0]}</span><span class="nm">${c[1]}</span><div class="why">${c[2]}　${c[3]}</div></div></div>`);
+});
+add(`<div class="note" style="top:${794 + 173 + 14}px">画面に出すのは1台だけ（金の枠）。ほかの7台は、位置と構図をいつも持っておき、点の高いカメラへすぐ切り替える。画はビルドしたアプリ（main f5d011f）で撮った見本${night ? '（夜。暗い枠は、いまの島ではまだ撮れていない画を昼の画で代用）' : ''}。</div>`);
+</script></body></html>
