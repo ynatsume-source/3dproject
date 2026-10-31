@@ -127,7 +127,7 @@ const EXACT: Record<string, string> = {
   'アダンの葉で帆を編んでいる': 'weaving a sail from pandanus leaves', '帆を作っている': 'making the sail', '海を渡る筏に、帆を張っている': 'rigging the sail on the raft for the crossing',
   '帆にする葉を、軒下に干している': 'drying leaves for the sail under the eaves', '乾いた葉を、取り込んでいる': 'taking in the dry leaves', '夜にそなえて、昼のあいだ眠っている': 'sleeping through the day, ready for the night',
   'じっとして、電池を保っている': 'keeping still to save its battery', '電池が減って、日なたで充電している': 'battery low, charging in the sun', '流木を探しに浜へ向かっている': 'heading to the beach for driftwood',
-  '台風で飛んだ茅を、葺き直している': 'rethatching what the typhoon blew off', '丸太をとりに、林の木を切り倒している': 'felling a tree in the wood for logs', '野焼きの薪を、ひと山にまとめている': 'stacking firewood for the firing',
+  '台風で飛んだ茅を、葺き直している': 'rethatching what the typhoon blew off', '丸太をとりに、林の木を切り倒している': 'felling a tree in the wood for logs', '薪にするため、林の木を切り倒している': 'felling a tree in the wood for firewood', '野焼きの薪を、ひと山にまとめている': 'stacking firewood for the firing',
   '明かりを灯す芯を、よっている': 'twisting a wick for a light', 'あとで使う部材を、作業台に置いている': 'setting a part by the workbench for later', '家に使う部材を、作業台から取っている': 'taking a part from the workbench for the house',
   '荒れた日にそなえて、囲いに石を積んでいる': 'piling stones round its shelter for rough days', '岩棚に、うねりよけの石を置いている': 'setting stones by the ledge against the swell', 'ドットの石垣の石を、浜に運んでいる': "carrying stones to the beach for Dot's wall",
   '石垣にする石を、石置き場で取っている': 'taking a stone for the wall from the pile', '茅を守る石垣を、積んでいる': 'building the wall that guards the thatch', '粘土を浸す池を、掘っている': 'digging a pit to soak clay',
