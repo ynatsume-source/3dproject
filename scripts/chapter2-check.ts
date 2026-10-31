@@ -3,7 +3,8 @@
 //   B the firewood: done when the seasoned wood comes to a pit fire's (30 kg), every lot counted; green wood does not
 //   C the lamp dish: done with a fired dish of the lamp's form, not cracked — not a pot of another form, not a cracked dish
 //   D the oil: done with coconut oil on the island
-//   E the way as the world goes, in the screen's order; the chapter ends with the first lamp (pure: world/chapter2.ts)
+//   E the way as the world goes, in the screen's order; the chapter ends with the first lamp; no chapter 2 on an island
+//     whose first lamp was lit before it began (pure: world/chapter2.ts)
 // (the pot fired and the first lamp are seen where the world does them: oil-chain-check, lamp-check)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/chapter2-check.ts
 import * as THREE from 'three';
@@ -59,9 +60,10 @@ const F = () => V.firsts as Record<string, number>;
   const c = chapter2(V)!;
   const order = WAY2.filter((s) => c.way[s] !== null).join(' ');
   const lit = chapter2({ firsts: { ...F(), 'fired-pot': F().oil + 1, light: F().oil + 2 } })!;
-  const old = chapter2({ firsts: { 'south-load': 0, 'fired-pot': 0, light: 0 } })!;
-  want('E the way as the world goes; the chapter ends with the first lamp', order === 'wood dish oil' && c.ended === null && lit.ended === F().oil + 2 && WAY2.every((s) => lit.way[s] !== null)
-    && old.began === 0 && old.ended === 0 && old.way.wood === null, `${order}; ended ${lit.ended}; old ${JSON.stringify(old.way)}`);
+  const old = chapter2({ firsts: { 'south-load': 0, 'fired-pot': 0, light: 0 } }), before = chapter2({ firsts: { 'south-load': 5000, light: 4000 } });
+  const notLit = chapter2({ firsts: { 'south-load': 0, 'fired-pot': 0 } })!;
+  want('E the way as the world goes; the chapter ends with the first lamp; none where the lamp was lit before it began', order === 'wood dish oil' && c.ended === null && lit.ended === F().oil + 2 && WAY2.every((s) => lit.way[s] !== null)
+    && old === null && before === null && notLit.began === 0 && notLit.ended === null, `${order}; ended ${lit.ended}; old ${JSON.stringify(old)} ${JSON.stringify(before)}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'all ok');
 process.exit(bad ? 1 : 0);
