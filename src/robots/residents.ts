@@ -514,7 +514,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     house: { n: 0, rope: 0, bamboo: 0, clay: 0, lost: 0, weighed: false },
     wall: { n: 0, pile: 0 }, nest: { n: 0, at: null as null | [number, number] }, kameBed: null as null | [number, number], ledge: { n: 0 },
     walks: {} as Record<string, number[]>, settle: null as null | { at: number; by: string; asked: Record<string, 'yes' | 'no'>; homes: Record<string, [number, number]> },
-    felled: [] as { x: number; z: number; h: number; kind: number; at: number }[],
+    felled: [] as { x: number; z: number; h: number; kind: number; at: number; fuel?: 1 }[],   // (fuel: felled to burn — firewood, charcoal, lime — not to open land: D-charcoal-pit §6.2)
     clayPit: null as null | { at: number; diameterCm: number; depthCm: number },
     firstLoad: null as null | { at: number; clayMg: number; bambooMg: number; lots: string[] },   // (the first raft load from the island to the south, once: firstLoad())
     loadMin: null as null | { clayMg: number; bambooMg: number },   // (chapter 1: the least of the clay and bamboo brought, not yet used, so far — chapter1Tick)
@@ -895,6 +895,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       .sort((a, b) => Math.hypot(a.x - hut.position.x, a.z - hut.position.z) - Math.hypot(b.x - hut.position.x, b.z - hut.position.z));
     const lee = all.filter((t) => !windward(t.x, t.z)).slice(0, n), ww = all.find((t) => windward(t.x, t.z));
     return [...lee, ...(ww ? [ww] : [])].map((t) => ({ ...t, d: Math.hypot(t.x - r.pos.x, t.z - r.pos.z) }));
+  }
+  /** A tree to fell to burn (D-charcoal-pit §6.2, science 2026-10-29): an オオハマボウ near home — it grows again from
+   *  its stump — the nearest first; never a テリハボク (the boats' and houses' wood), a ハスノハギリ or a ガジュマル, nor one
+   *  of the windbreak. */
+  function fuelTree(r: Resident) {
+    if (!T.forest) return null;
+    const all = (T.forest.standingNear(hut.position.x, hut.position.z, 45) as { x: number; z: number; y: number; h: number; kind: number }[]).filter((t) => t.kind === 1 && !windward(t.x, t.z));
+    const t = all.sort((a, b) => Math.hypot(a.x - hut.position.x, a.z - hut.position.z) - Math.hypot(b.x - hut.position.x, b.z - hut.position.z))[0];
+    return t ? { ...t, d: Math.hypot(t.x - r.pos.x, t.z - r.pos.z) } : null;
   }
   function fellTask(x: number, z: number): Task | null {
     const t = T.forest?.standingNear(x, z, 0.6)?.[0]; if (!t) return null;
@@ -1908,6 +1917,8 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       o.push({ id: 'wall:next', action: 'wall', label: `家の風上（南東）に石垣を積む（${village.wall.n + 1}/${WALL_N}。できると台風でも茅が飛ばない）`, targetId: 'house', ...(r.holding === 'stone' ? {} : { ready: false, needs: village.wall.pile ? '浜の石置き場から石を持ってくること' : '石（ラッコが海の底から浜の石置き場に運んでくる）' }) });
       if (!r.holding && village.wall.pile > 0) o.push({ id: 'wallfetch:beach', action: 'wallfetch', label: `浜の石置き場から石を取ってくる（いま${village.wall.pile}個）`, targetId: 'stones' });
     }
+    // (to burn: when the pots or the oil want wood — an オオハマボウ, felled for its branches)
+    if (r.id === 'dot' && r.stats.built >= HUT.length && !r.holding && woodWanted()) { const t = fuelTree(r); if (t) o.push({ id: `fuel:${t.x.toFixed(2)},${t.z.toFixed(2)}`, action: 'fuel', label: `薪にするため、林の${KIND_JA[t.kind]}を切り倒す（高さ約${Math.round(t.h)}m、${Math.round(t.d)}m先。枝が薪になり、切った株からまた芽が出る）`, targetId: 'tree' }); }
     if (r.id === 'dot' && r.stats.built >= HUT.length && !r.holding) for (const t of fellable(r)) {
       const ww = windward(t.x, t.z);
       o.push({ id: `fell:${t.x.toFixed(2)},${t.z.toFixed(2)}`, action: 'fell', label: `林の木を切り倒す（${KIND_JA[t.kind] ?? '木'}、高さ約${Math.round(t.h)}m、${Math.round(t.d)}m先。丸太${t.h > 7 ? 3 : 2}本と薪、切った所は開けた土地になる${ww ? '。家の風上（南東）の木：防風林が薄くなる' : ''}）`, targetId: `forest:${t.x.toFixed(1)},${t.z.toFixed(1)}` });
@@ -1942,7 +1953,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     else if (action === 'nest') t = nestTask(r);
     else if (action === 'ledge') t = ledgeTask(r);
     else if (action === 'stonedrop') t = dropTask(r);
-    else if (action === 'fell') { const [x, z] = target.split(',').map(Number); t = fellTask(x, z); }
+    else if (action === 'fell' || action === 'fuel') { const [x, z] = target.split(',').map(Number); t = fellTask(x, z); if (t && action === 'fuel') t.data.fuel = 1; }
     else if (action === 'twist') t = task('twist', benchStand(), 'work', rr(60, 90));
     else if (action === 'cut') t = r.holding ? null : cutTask();
     else if (action === 'find') { if (drift.kind < 0 || drift.by) return null; drift.by = r.id; t = task('find', [drift.x, drift.z], 'pick', 6); }
@@ -2093,7 +2104,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       // green wood than a drying pile takes (45 kg, p15x) — it fells a tree near the hut (to its lee first) or a sapling,
       // and the branches go by the shelf for Lantern to pile and dry. Without it, with the model away, the pots dried at
       // 74 hours and nothing more was made for 30 days: science, reviews/188-8bf9d1e stall-none.log)
-      { const why = woodWanted(), f = why && (has('fell:') ?? has('chop:')); if (f) return { text: '薪にする木を切る', why, plan: [f] }; }
+      { const why = woodWanted(), f = why && has('fuel:'); if (f) return { text: '薪にする木を切る', why, plan: [f] }; }
       const farm = has('harvest:') ?? has('chop:') ?? has('till:') ?? has('plant:');
       if (farm) return { text: '畑の世話をする', why: '小屋が建ったので', plan: [farm] };
       return { text: 'ひと休みする', why: '今はすることがない', plan: [Math.random() < 0.7 ? 'look:shore' : 'wander:near'] };
@@ -2953,10 +2964,12 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (!fast) fallFrom(t, dir);
         for (let k = 0; k < n; k++) items.addAt('wood', t.x + fx * (1.2 + k * 1.1), t.z + fz * (1.2 + k * 1.1));   // (the logs lie where it fell)
         { const mg = Math.round((6 + Math.random() * 6) * 1e6); addLot(lab, { materialId: 'firewood', amount: { value: mg, unit: 'mg' }, quality: { water_ppm: GREEN_WOOD_WATER }, location: 'shelf' }); drawStore(); }
-        village.felled.push({ x: t.x, z: t.z, h: +t.h.toFixed(1), kind: t.kind, at: clockMs }); drawStump(t.x, t.z); r.stats.felled++;
+        const fuel = !!tk.data.fuel;   // (felled to burn, its stump to be planted for: D-charcoal-pit §6.2; else, land opened)
+        village.felled.push({ x: t.x, z: t.z, h: +t.h.toFixed(1), kind: t.kind, at: clockMs, ...(fuel ? { fuel: 1 as const } : {}) }); drawStump(t.x, t.z); r.stats.felled++;
         const ww = windward(t.x, t.z);
-        note(r, 'chop', {}, `林の${KIND_JA[t.kind] ?? '木'}を切り倒した（高さ約${Math.round(t.h)}m。丸太${n}本、枝は薪にして棚の脇へ。まわりが開けた）${ww ? `。家の風上の木だった（風上で切った木 ${windbreakFelled()}本）` : ''}`);
-        tell('chop', `${r.v.name}が林の木を切り倒して、土地を開いた`, r);
+        if (fuel) note(r, 'chop', {}, `薪にするため、林の${KIND_JA[t.kind] ?? '木'}を切り倒した（高さ約${Math.round(t.h)}m。丸太${n}本、枝は薪にして棚の脇へ）`);
+        else note(r, 'chop', {}, `林の${KIND_JA[t.kind] ?? '木'}を切り倒した（高さ約${Math.round(t.h)}m。丸太${n}本、枝は薪にして棚の脇へ。まわりが開けた）${ww ? `。家の風上の木だった（風上で切った木 ${windbreakFelled()}本）` : ''}`);
+        tell('chop', fuel ? `${r.v.name}が薪にするため、林の木を切り倒した` : `${r.v.name}が林の木を切り倒して、土地を開いた`, r);
         break;
       }
       case 'seastone':
@@ -3909,7 +3922,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
       sleep: r.id === 'kame' && r.wet ? (r.act === 'breathe' ? '眠りの合間に息つぎに浮かんできた' : '海の底の岩かげで眠っている') : r.wet ? '仰向けで波に揺られて眠っている' : r.id === 'lantern' ? '夜にそなえて、昼のあいだ眠っている' : '眠っている',
       charge: night ? 'じっとして、電池を保っている' : r.battery < 0.6 ? '電池が減って、日なたで充電している' : '日なたで充電している',
       gather: tk?.arrived ? '流木を拾っている' : '流木を探しに浜へ向かっている',
-      house: village.house.lost > 0 && village.house.n >= ROOF_N ? '台風で飛んだ茅を、葺き直している' : '家を建てている', fell: '丸太をとりに、林の木を切り倒している', tool: '道具を作っている',
+      house: village.house.lost > 0 && village.house.n >= ROOF_N ? '台風で飛んだ茅を、葺き直している' : '家を建てている', fell: tk?.data?.fuel ? '薪にするため、林の木を切り倒している' : '丸太をとりに、林の木を切り倒している', tool: '道具を作っている',
       stackwood: '野焼きの薪を、ひと山にまとめている', assemble: `焼いた器を、${vessel}にしている`, wick: '明かりを灯す芯を、よっている',
       stow: 'あとで使う部材を、作業台に置いている', take: '家に使う部材を、作業台から取っている', seastone: '海の底で石を拾っている', nest: '荒れた日にそなえて、囲いに石を積んでいる', ledge: '岩棚に、うねりよけの石を置いている',
       stonedrop: 'ドットの石垣の石を、浜に運んでいる', wallfetch: '石垣にする石を、石置き場で取っている', wall: '茅を守る石垣を、積んでいる', pit: '粘土を浸す池を、掘っている', twist: '家に使う縄を、なっている',

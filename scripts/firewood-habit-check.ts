@@ -2,7 +2,8 @@
 // more was made for 30 days — a pit fire takes 30 kg of dry wood, a drying pile 45 kg of green, and only 12.5 kg of wet
 // branches came in 100 hours). On the real island of Dot's world, its habits alone, the hut and the raft done, two dry
 // pots waiting and no firewood:
-//  1 Dot fells trees near the hut (to its lee first) for firewood, and stops once there is green wood enough for a pile
+//  1 Dot fells trees near the hut for firewood — オオハマボウ only, never of the windbreak, kept as fuel stumps and said
+//    so — and stops once there is green wood enough for a pile
 //  2 Lantern piles it together, makes the woodpile's roof and sets it to dry (p15x)
 //  3 with dry wood enough for a fire, or no pots waiting, no more felling for firewood
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/firewood-habit-check.ts
@@ -40,6 +41,9 @@ const felled = () => dot.diary.filter((e: any) => /林の.*を切り倒した/.t
 { // 1
   await run(14 * 3600, () => kg(wood()) >= 45);
   want('1 Dot fells trees for firewood until there is green wood enough for a pile', kg(wood()) >= 45 && felled() >= 3, `${kg(wood())} kg from ${felled()} trees`);
+  const fuel = V.felled.filter((f: any) => f.at >= Date.parse('2026-10-08T07:00:00+09:00'));
+  want('1 felled to burn: オオハマボウ only, none of the windbreak, each kept as a fuel stump, and said so (D-charcoal-pit §6.2)', fuel.length >= 3 && fuel.every((f: any) => f.kind === 1 && f.fuel === 1)
+    && dot.diary.filter((e: any) => /切り倒した/.test(e.text)).every((e: any) => /^薪にするため、林のオオハマボウを切り倒した（/.test(e.text)), `${fuel.map((f: any) => `${f.kind}${f.fuel ? 'f' : ''}`).join(' ')}; ${dot.diary.find((e: any) => /切り倒した/.test(e.text))?.text.slice(0, 60)}`);
   const n = felled(); await run(2 * 3600);
   want('1 then it stops', felled() === n, `${felled() - n} more`);
 }
