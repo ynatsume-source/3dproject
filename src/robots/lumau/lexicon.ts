@@ -402,7 +402,7 @@ grass 草
 sprout 芽
 palm ヤシ
 pandanus アダン
-casuarina モクマオウ
+hibiscus オオハマボウ
 seagrass 海草
 vine つる
 bark 樹皮
