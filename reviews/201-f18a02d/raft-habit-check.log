@@ -1,0 +1,8 @@
+1 a clear morning: the islands on its map, by habit: south-near east-flat west-big east-big south-far ok
+2 the hut not up: logs shaped and put on the hut, not the raft: hut 0 → 2, raft 0 ok
+2 the hut up: logs shaped and lashed to the raft — a raft: 6/6, hut 24; 部材を筏に組む / 部材を筏に組む / 部材を筏に組む ok
+3 a strong wind: turned back by the world, and not again within three hours: 風が強い; again 0  first 2026-10-07T00:40:02.000Z ok
+4 the south island's load on the shelf ends chapter 1, its time kept: {"began":1791239400000,"way":{"hut":null,"raft":1791241842000,"south":1791421052500,"pot":null,"light":null},"ended":1791421052500,"load":null,"inTime":true,"crossing":1,"gone":{"clay":null,"bamboo":null}} ok
+4 a calm clear morning: it crosses by habit to the island it has seen, and is back: ひと休みする / ひと休みする / ひと休みする / 筏で島へ渡る ok
+5 the island reached: no crossing again by habit:  ok
+PASS

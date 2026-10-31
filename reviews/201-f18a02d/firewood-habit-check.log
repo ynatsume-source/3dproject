@@ -1,0 +1,7 @@
+0 the piece in hand set down by the bench first: holding '', spare 1 ok
+1 Dot fells trees for firewood until there is green wood enough for a pile: 50.6 kg from 6 trees ok
+1 felled to burn: オオハマボウ only, none of the windbreak, each kept as a fuel stump, and said so (D-charcoal-pit §6.2): 1f 1f 1f 1f 1f 1f; 薪にするため、林のオオハマボウを切り倒した（高さ約8m。丸太3本、枝は薪にして棚の脇へ） ok
+1 then it stops: 0 more ok
+2 Lantern piles it, makes the woodpile's roof and sets it to dry: 1 lot(s), 63.7 kg; roof true; runs m02x_air_barometer_test,p15x_firewood_dry; 試験用の気圧計を置いて読む：目盛り 0（暑い朝） / 試験用の気圧計を置いて読む：目盛り 0（暑い朝） / 試験用の気圧計を置いて読む：目盛り -1（暑い朝） ok
+3 no pots waiting: no felling for firewood: 0 more ok
+PASS

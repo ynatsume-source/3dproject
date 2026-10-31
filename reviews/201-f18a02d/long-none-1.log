@@ -1,0 +1,728 @@
+FIRSTS {"sighting":0.1,"clay-pit":1.3,"rakko-bed":28.3,"hut":31.5,"raft":32.4,"south-load":32.6,"crossing:sopunu":32.6,"pier":100.3,"fired-pot":107.1,"cook-pot":107.1,"light":185.6,"retort":288.1,"weather-pot":403.4} lampLog 20 labDoneLast ["576.0h p30x_coconut_milk","576.4h p14x_charcoal_tar_retort","591.1h p31x_coconut_oil_boil","591.4h p30x_coconut_milk","593.6h p40x_oil_lamp","617.5h p40x_oil_lamp","641.5h p40x_oil_lamp","665.7h p40x_oil_lamp","689.6h p40x_oil_lamp","711.1h p31x_coconut_oil_boil","711.4h p30x_coconut_milk","713.6h p40x_oil_lamp"]
+WOOD "" ["gather:wood#155","gather:wood#159","gather:wood#160","gather:wood#199","gather:wood#200","gather:wood#201","gather:wood#204","gather:wood#205","gather:wood#207","gather:wood#208","gather:wood#209","gather:wood#210","gather:wood#211","gather:wood#212","gather:wood#213","gather:wood#214","gather:wood#215","gather:wood#216","gather:wood#217","gather:wood#218","gather:wood#219","gather:wood#220","gather:wood#231","gather:wood#232","gather:wood#233","gather:wood#234","gather:wood#235","gather:wood#236","gather:wood#237","gather:wood#238","gather:wood#239","gather:wood#240","gather:wood#241","gather:wood#242","gather:wood#243","gather:wood#244","gather:wood#245","gather:wood#246","gather:wood#247","gather:wood#248","gather:wood#249","gather:wood#261","gather:wood#262","gather:wood#263","gather:wood#264","gather:wood#265","gather:wood#266","gather:wood#267","gather:wood#268","gather:wood#269","gather:wood#270","gather:wood#271","gather:wood#272","gather:wood#273","gather:wood#274","gather:wood#275","gather:wood#276","gather:wood#296","gather:wood#297","gather:wood#298","gather:wood#299","gather:wood#300","gather:wood#301","gather:wood#302","gather:wood#303","gather:wood#304","gather:wood#305","gather:wood#306","gather:wood#307","gather:wood#309","gather:wood#310","gather:wood#311","gather:wood#312","gather:wood#313","gather:wood#314","gather:wood#315","gather:wood#316","gather:wood#317","gather:wood#318","gather:wood#319","gather:wood#320","gather:wood#321","gather:wood#322","fell:53.79,-150.62","fell:54.64,-138.40","fell:58.39,-142.21"] dotTask look holding  diary ["種をまく","種をまいた","種をまく：できた","浜から海を眺める（流木が打ち上がるのを待つ）","浜から海を眺める（流木が打ち上がるのを待つ）：できた","浜から海を眺める（流木が打ち上がるのを待つ）","浜から海を眺める（流木が打ち上がるのを待つ）：できた","浜から海を眺める（流木が打ち上がるのを待つ）"] goal null raft {"parts":6,"x":56.4483461170095,"z":-81.95149054529662,"hauled":false,"quick":false} built 24 lotsQ [["pot_sherds",1.02,null,null,""],["fired_pot",1.15,0,2000,""],["firewood",35.89,296924.587196559,null,""]]
+STORMS [{"at":39.8,"warned":true,"by":"kame","saved":["おなか（前もって食べておいた）"],"lost":["筏の部材3本","畑の作物（6区画）","おなか（台風のあいだ食べられず、弱った）"]}] swell {"alarm":0,"hits":1,"falses":5} heed {"kame":1}
+{"BR":"none","HOURS":720,"CLAY":0,"BAMBOO":0,"errors":0,"pitAt":"1.3","labDone":["255.1h p31x_coconut_oil_boil","255.4h p30x_coconut_milk","257.6h p40x_oil_lamp","279.1h p31x_coconut_oil_boil","279.4h p30x_coconut_milk","281.6h p40x_oil_lamp","287.0h p15x_firewood_dry","288.1h p13y_pot_pit_fire","288.6h p14x_charcoal_tar_retort","288.8h p18x_bamboo_tube","289.5h p11y_pot_shape","305.5h p40x_oil_lamp","315.3h p12y_pot_dry","329.8h p40x_oil_lamp","341.3h p12y_pot_dry","345.4h p15x_firewood_dry","353.5h p40x_oil_lamp","377.6h p40x_oil_lamp","401.6h p40x_oil_lamp","401.9h p15x_firewood_dry","402.9h p13y_pot_pit_fire","403.4h p16x_vessel_tar_seal","449.6h p40x_oil_lamp","473.6h p40x_oil_lamp","497.5h p40x_oil_lamp","521.6h p40x_oil_lamp","574.8h p15x_firewood_dry","575.6h p31x_coconut_oil_boil","576.0h p30x_coconut_milk","576.4h p14x_charcoal_tar_retort","591.1h p31x_coconut_oil_boil","591.4h p30x_coconut_milk","593.6h p40x_oil_lamp","617.5h p40x_oil_lamp","641.5h p40x_oil_lamp","665.7h p40x_oil_lamp","689.6h p40x_oil_lamp","711.1h p31x_coconut_oil_boil","711.4h p30x_coconut_milk","713.6h p40x_oil_lamp"]}
+K 0.0h hunger 0.40 task idle beds 1.00/1.00/1.00/1.00/1.00
+L 0.0h wood wet 0 dry 0 unusedClay 25 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+W 0.0h jst6.0 gust 7 p 1009 swell 0.8m/6s rain 0.0 prep 0 alarm 0 storms 0 raft 0 kame idle
+0.0h clay 25.0 settled 0.0 prepared 0.0 bamboo 7.0 pots 0.0/0.0/0.0 hut 0 raft 0 reached  labDone 0
+K 2.0h hunger 0.14 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 4.0h hunger 0.34 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 6.0h hunger 0.19 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 6.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+6.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 6 raft 0 reached  labDone 0
+K 8.0h hunger 0.21 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 10.0h hunger 0.36 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 12.0h hunger 0.06 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 12.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+12.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 5.0 pots 0.0/0.0/0.0 hut 11 raft 0 reached  labDone 0
+K 14.0h hunger 0.25 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 16.0h hunger 0.40 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 18.0h hunger 0.47 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 18.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+18.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 13 raft 0 reached  labDone 1
+K 20.0h hunger 0.54 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 22.0h hunger 0.63 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 24.0h hunger 0.74 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 24.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+24.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 14 raft 0 reached  labDone 1
+K 26.0h hunger 0.39 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 28.0h hunger 0.65 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 30.0h hunger 0.25 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 30.0h wood wet 0 dry 0 unusedClay 4.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 0 setOut 0 felled 0
+30.0h clay 4.9 settled 0.0 prepared 0.0 bamboo 3.5 pots 0.0/0.0/0.0 hut 22 raft 0 reached  labDone 1
+K 32.0h hunger 0.44 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 34.0h hunger 0.15 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 36.0h hunger 0.17 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 36.0h wood wet 14.3 dry 0 unusedClay 14.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+36.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 10.5 pots 0.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 1
+K 38.0h hunger 0.30 task shelter beds 1.00/1.00/1.00/1.00/1.00
+K 40.0h hunger 0.41 task sleep beds 0.42/0.42/0.42/0.42/0.42
+K 42.0h hunger 0.48 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 42.0h wood wet 14.3 dry 0 unusedClay 14.9 pots g/d/f 0/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+42.0h clay 14.9 settled 0.0 prepared 0.0 bamboo 10.5 pots 0.0/0.0/0.0 hut 24 raft 3 reached south-near labDone 1
+K 44.0h hunger 0.56 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 46.0h hunger 0.63 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 48.0h hunger 0.72 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 48.0h wood wet 14.3 dry 0 unusedClay 12.6 pots g/d/f 1/0/0 firedKg 0 equip  reachedS 1 setOut 1 felled 0
+48.0h clay 10.0 settled 0.0 prepared 2.6 bamboo 10.5 pots 1.4/0.0/0.0 hut 24 raft 3 reached south-near labDone 4
+K 50.0h hunger 0.22 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 52.0h hunger 0.41 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 54.0h hunger 0.12 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 54.0h wood wet 48.6 dry 0 unusedClay 11.1 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+54.0h clay 10.0 settled 0.0 prepared 1.1 bamboo 8.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 5
+K 56.0h hunger 0.31 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 58.0h hunger 0.19 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 60.0h hunger 0.23 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 60.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+60.0h clay 0.0 settled 7.9 prepared 1.1 bamboo 8.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 6
+K 62.0h hunger 0.42 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 64.0h hunger 0.06 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 66.0h hunger 0.13 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 66.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+66.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 7
+K 68.0h hunger 0.20 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 70.0h hunger 0.27 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 72.0h hunger 0.35 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 72.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+72.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 2.8/0.0/0.0 hut 24 raft 6 reached south-near labDone 7
+K 74.0h hunger 0.08 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 76.0h hunger 0.28 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 78.0h hunger 0.47 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 78.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+78.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 80.0h hunger 0.21 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 82.0h hunger 0.40 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 84.0h hunger 0.11 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 84.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+84.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 86.0h hunger 0.30 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 88.0h hunger 0.45 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 90.0h hunger 0.52 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 90.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+90.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 92.0h hunger 0.59 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 94.0h hunger 0.67 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 96.0h hunger 0.75 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 96.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+96.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 98.0h hunger 0.08 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 100.0h hunger 0.29 task inspect beds 1.00/1.00/1.00/1.00/1.00
+K 102.0h hunger 0.05 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 102.0h wood wet 48.6 dry 0 unusedClay 9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack reachedS 1 setOut 1 felled 4
+102.0h clay 0.0 settled 0.0 prepared 9.0 bamboo 8.5 pots 0.0/2.3/0.0 hut 24 raft 6 reached south-near labDone 9
+K 104.0h hunger 0.23 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 106.0h hunger 0.42 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 108.0h hunger 0.16 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 108.0h wood wet 5.7 dry 0 unusedClay 8.9 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 4
+108.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 14
+K 110.0h hunger 0.34 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 112.0h hunger 0.10 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 114.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 114.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+114.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 14
+K 116.0h hunger 0.19 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 118.0h hunger 0.26 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 120.0h hunger 0.35 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 120.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+120.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 14
+K 122.0h hunger 0.07 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 124.0h hunger 0.28 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 126.0h hunger 0.29 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 126.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+126.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 14
+K 128.0h hunger 0.22 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 130.0h hunger 0.43 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 132.0h hunger 0.13 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 132.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 1/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+132.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.1/0.0/0.0 hut 24 raft 6 reached south-near labDone 14
+K 134.0h hunger 0.31 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 136.0h hunger 0.45 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 138.0h hunger 0.52 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 138.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 0/1/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+138.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.0/0.1/0.0 hut 24 raft 6 reached south-near labDone 15
+K 140.0h hunger 0.59 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 142.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 144.0h hunger 0.74 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 144.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 0/1/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+144.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.0/0.1/0.0 hut 24 raft 6 reached south-near labDone 15
+K 146.0h hunger 0.10 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 148.0h hunger 0.26 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 150.0h hunger 0.46 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 150.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 0/1/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+150.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.0/0.1/0.0 hut 24 raft 6 reached south-near labDone 15
+K 152.0h hunger 0.24 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 154.0h hunger 0.52 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 156.0h hunger 0.27 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 156.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 0/1/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+156.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.0/0.1/0.0 hut 24 raft 6 reached south-near labDone 15
+K 158.0h hunger 0.36 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 160.0h hunger 0.19 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 162.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 162.0h wood wet 57.6 dry 0 unusedClay 8.9 pots g/d/f 0/1/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot reachedS 1 setOut 1 felled 10
+162.0h clay 0.0 settled 0.0 prepared 8.9 bamboo 8.5 pots 0.0/0.1/0.0 hut 24 raft 6 reached south-near labDone 15
+K 164.0h hunger 0.19 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 166.0h hunger 0.26 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 168.0h hunger 0.34 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 168.0h wood wet 14.4 dry 0 unusedClay 6.9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 10
+168.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 2.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 19
+K 170.0h hunger 0.06 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 172.0h hunger 0.06 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 174.0h hunger 0.12 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 174.0h wood wet 69.7 dry 0 unusedClay 6.9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+174.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 2.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 19
+K 176.0h hunger 0.25 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 178.0h hunger 0.45 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 180.0h hunger 0.18 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 180.0h wood wet 69.7 dry 0 unusedClay 6.9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+180.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 2.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 19
+K 182.0h hunger 0.38 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 184.0h hunger 0.12 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 186.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 186.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+186.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 2.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 22
+K 188.0h hunger 0.19 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 190.0h hunger 0.26 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 192.0h hunger 0.35 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 192.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 2/0/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+192.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 2.0/0.0/0.0 hut 24 raft 6 reached south-near labDone 22
+K 194.0h hunger 0.07 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 196.0h hunger 0.28 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 198.0h hunger 0.38 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 198.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+198.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 0.0/1.6/0.0 hut 24 raft 6 reached south-near labDone 24
+K 200.0h hunger 0.19 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 202.0h hunger 0.38 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 204.0h hunger 0.11 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 204.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+204.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 0.0/1.6/0.0 hut 24 raft 6 reached south-near labDone 24
+K 206.0h hunger 0.31 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 208.0h hunger 0.45 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 210.0h hunger 0.52 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 210.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+210.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 0.0/1.6/0.0 hut 24 raft 6 reached south-near labDone 25
+K 212.0h hunger 0.59 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 214.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 216.0h hunger 0.75 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 216.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+216.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 0.0/1.6/0.0 hut 24 raft 6 reached south-near labDone 25
+K 218.0h hunger 0.19 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 220.0h hunger 0.38 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 222.0h hunger 0.11 task bask beds 1.00/1.00/1.00/1.00/1.00
+L 222.0h wood wet 69.4 dry 0 unusedClay 6.9 pots g/d/f 0/2/0 firedKg 0 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+222.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 0.0/1.6/0.0 hut 24 raft 6 reached south-near labDone 25
+K 224.0h hunger 0.29 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 226.0h hunger 0.26 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 228.0h hunger 0.22 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 228.0h wood wet 24.4 dry 0 unusedClay 6.9 pots g/d/f 0/0/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 17
+228.0h clay 0.0 settled 0.0 prepared 6.9 bamboo 8.5 pots 0.0/0.0/1.5 hut 24 raft 6 reached south-near labDone 27
+K 230.0h hunger 0.41 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 232.0h hunger 0.50 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 234.0h hunger 0.57 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 234.0h wood wet 72.8 dry 0 unusedClay 5.3 pots g/d/f 1/0/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+234.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 1.6/0.0/1.5 hut 24 raft 6 reached south-near labDone 29
+K 236.0h hunger 0.65 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 238.0h hunger 0.72 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 240.0h hunger 0.80 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 240.0h wood wet 72.8 dry 0 unusedClay 5.3 pots g/d/f 1/0/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+240.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 1.6/0.0/1.5 hut 24 raft 6 reached south-near labDone 29
+K 242.0h hunger 0.32 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 244.0h hunger 0.32 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 246.0h hunger 0.25 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 246.0h wood wet 72.8 dry 0 unusedClay 5.3 pots g/d/f 1/0/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+246.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 1.6/0.0/1.5 hut 24 raft 6 reached south-near labDone 29
+K 248.0h hunger 0.46 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 250.0h hunger 0.17 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 252.0h hunger 0.36 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 252.0h wood wet 72.8 dry 0 unusedClay 5.3 pots g/d/f 1/0/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+252.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 1.6/0.0/1.5 hut 24 raft 6 reached south-near labDone 29
+K 254.0h hunger 0.30 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 256.0h hunger 0.44 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 258.0h hunger 0.51 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 258.0h wood wet 72.4 dry 0 unusedClay 5.3 pots g/d/f 0/1/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+258.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 0.0/1.3/1.5 hut 24 raft 6 reached south-near labDone 33
+K 260.0h hunger 0.58 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 262.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 264.0h hunger 0.74 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 264.0h wood wet 72.4 dry 0 unusedClay 5.3 pots g/d/f 0/1/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+264.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 0.0/1.3/1.5 hut 24 raft 6 reached south-near labDone 33
+K 266.0h hunger 0.10 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 268.0h hunger 0.30 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 270.0h hunger 0.48 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 270.0h wood wet 72.4 dry 0 unusedClay 5.3 pots g/d/f 0/1/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+270.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 0.0/1.3/1.5 hut 24 raft 6 reached south-near labDone 33
+K 272.0h hunger 0.18 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 274.0h hunger 0.37 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 276.0h hunger 0.11 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 276.0h wood wet 72.4 dry 0 unusedClay 5.3 pots g/d/f 0/1/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+276.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 0.0/1.3/1.5 hut 24 raft 6 reached south-near labDone 33
+W 277.8h jst19.8 gust 3 p 1015 swell 0.7m/5s rain 0.0 prep 170.6 alarm 0 storms 1 raft 6 kame fire
+K 278.0h hunger 0.29 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 280.0h hunger 0.45 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 282.0h hunger 0.52 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 282.0h wood wet 72 dry 0 unusedClay 5.3 pots g/d/f 0/1/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+282.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 0.0/1.3/1.5 hut 24 raft 6 reached south-near labDone 36
+K 284.0h hunger 0.59 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 286.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 288.0h hunger 0.75 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 288.0h wood wet 61.5 dry 0 unusedClay 5.3 pots g/d/f 0/1/2 firedKg 1.5 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish reachedS 1 setOut 1 felled 23
+288.0h clay 0.0 settled 0.0 prepared 5.3 bamboo 8.5 pots 0.0/1.3/1.5 hut 24 raft 6 reached south-near labDone 37
+K 290.0h hunger 0.07 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 292.0h hunger 0.27 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 294.0h hunger 0.47 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 294.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+294.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.6/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 296.0h hunger 0.20 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 298.0h hunger 0.42 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 300.0h hunger 0.13 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 300.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+300.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.6/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 302.0h hunger 0.33 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 304.0h hunger 0.44 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 306.0h hunger 0.51 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 306.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+306.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.6/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 308.0h hunger 0.58 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 310.0h hunger 0.65 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 312.0h hunger 0.73 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 312.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+312.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.6/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 314.0h hunger 0.10 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 316.0h hunger 0.31 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 318.0h hunger 0.22 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 318.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+318.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.5/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 320.0h hunger 0.25 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 322.0h hunger 0.43 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 324.0h hunger 0.14 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 324.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+324.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.5/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 326.0h hunger 0.33 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 328.0h hunger 0.34 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 330.0h hunger 0.41 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 330.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+330.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.5/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 332.0h hunger 0.48 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 334.0h hunger 0.55 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 336.0h hunger 0.63 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 336.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 1/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+336.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.5/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 338.0h hunger 0.07 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 340.0h hunger 0.28 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 342.0h hunger 0.23 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 342.0h wood wet 71.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 29
+342.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 344.0h hunger 0.22 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 346.0h hunger 0.42 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 348.0h hunger 0.14 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 348.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+348.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 350.0h hunger 0.34 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 352.0h hunger 0.06 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 354.0h hunger 0.13 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 354.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+354.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 356.0h hunger 0.20 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 358.0h hunger 0.28 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 360.0h hunger 0.36 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 360.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+360.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 362.0h hunger 0.09 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 364.0h hunger 0.29 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 366.0h hunger 0.06 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 366.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+366.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 368.0h hunger 0.25 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 370.0h hunger 0.44 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 372.0h hunger 0.16 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 372.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+372.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 374.0h hunger 0.34 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 376.0h hunger 0.46 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 378.0h hunger 0.53 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 378.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+378.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 380.0h hunger 0.60 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 382.0h hunger 0.68 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 384.0h hunger 0.76 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 384.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+384.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 386.0h hunger 0.09 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 388.0h hunger 0.29 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 390.0h hunger 0.27 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 390.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+390.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 392.0h hunger 0.22 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 394.0h hunger 0.42 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 396.0h hunger 0.14 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 396.0h wood wet 73.4 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+396.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 398.0h hunger 0.33 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 400.0h hunger 0.06 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 402.0h hunger 0.13 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 402.0h wood wet 67.3 dry 0 unusedClay 4.7 pots g/d/f 0/1/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort reachedS 1 setOut 1 felled 30
+402.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.5 pots 0.0/0.5/1.1 hut 24 raft 6 reached south-near labDone 40
+K 404.0h hunger 0.20 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 406.0h hunger 0.28 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 408.0h hunger 0.36 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 408.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+408.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 410.0h hunger 0.07 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 412.0h hunger 0.28 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 414.0h hunger 0.41 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 414.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+414.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 416.0h hunger 0.19 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 418.0h hunger 0.40 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 420.0h hunger 0.11 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 420.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+420.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 422.0h hunger 0.30 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 424.0h hunger 0.05 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 426.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 426.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+426.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 428.0h hunger 0.19 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 430.0h hunger 0.27 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 432.0h hunger 0.35 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 432.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+432.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 434.0h hunger 0.09 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 436.0h hunger 0.28 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 438.0h hunger 0.47 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 438.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+438.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 440.0h hunger 0.17 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 442.0h hunger 0.38 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 444.0h hunger 0.07 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 444.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+444.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 446.0h hunger 0.25 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 448.0h hunger 0.40 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 450.0h hunger 0.47 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 450.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+450.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 452.0h hunger 0.54 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 454.0h hunger 0.61 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 456.0h hunger 0.70 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 456.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+456.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 458.0h hunger 0.21 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 460.0h hunger 0.42 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 462.0h hunger 0.16 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 462.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+462.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 464.0h hunger 0.38 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 466.0h hunger 0.09 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 468.0h hunger 0.29 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 468.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+468.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 470.0h hunger 0.50 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 472.0h hunger 0.37 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 474.0h hunger 0.11 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 474.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+474.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 476.0h hunger 0.18 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 478.0h hunger 0.25 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 480.0h hunger 0.33 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 480.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+480.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 482.0h hunger 0.06 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 484.0h hunger 0.27 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 486.0h hunger 0.31 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 486.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+486.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 488.0h hunger 0.22 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 490.0h hunger 0.40 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 492.0h hunger 0.16 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 492.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+492.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 494.0h hunger 0.35 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 496.0h hunger 0.42 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 498.0h hunger 0.49 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 498.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+498.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 500.0h hunger 0.56 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 502.0h hunger 0.63 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 504.0h hunger 0.72 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 504.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+504.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 506.0h hunger 0.07 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 508.0h hunger 0.06 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 510.0h hunger 0.24 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 510.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+510.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 512.0h hunger 0.44 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 514.0h hunger 0.17 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 516.0h hunger 0.34 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 516.0h wood wet 0 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 30
+516.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 518.0h hunger 0.48 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 520.0h hunger 0.05 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 522.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 522.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+522.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 524.0h hunger 0.20 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 526.0h hunger 0.27 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 528.0h hunger 0.35 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 528.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+528.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 530.0h hunger 0.06 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 532.0h hunger 0.28 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 534.0h hunger 0.48 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 534.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+534.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 536.0h hunger 0.16 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 538.0h hunger 0.37 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 540.0h hunger 0.08 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 540.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+540.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 542.0h hunger 0.27 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 544.0h hunger 0.41 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 546.0h hunger 0.48 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 546.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+546.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 548.0h hunger 0.55 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 550.0h hunger 0.62 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 552.0h hunger 0.71 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 552.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+552.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 554.0h hunger 0.11 task watch beds 1.00/1.00/1.00/1.00/1.00
+W 555.6h jst9.6 gust 11 p 1011 swell 0.6m/6s rain 0.5 prep 505.6 alarm 0 storms 1 raft 6 kame swim
+K 556.0h hunger 0.30 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 558.0h hunger 0.20 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 558.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+558.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 560.0h hunger 0.23 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 562.0h hunger 0.41 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 564.0h hunger 0.15 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 564.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+564.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 566.0h hunger 0.33 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 568.0h hunger 0.44 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 570.0h hunger 0.51 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 570.0h wood wet 51.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+570.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 572.0h hunger 0.59 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 574.0h hunger 0.66 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 576.0h hunger 0.74 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 576.0h wood wet 40.1 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+576.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 578.0h hunger 0.10 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 580.0h hunger 0.30 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 582.0h hunger 0.28 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 582.0h wood wet 36.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+582.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 584.0h hunger 0.22 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 586.0h hunger 0.40 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 588.0h hunger 0.14 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 588.0h wood wet 36.7 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+588.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 590.0h hunger 0.33 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 592.0h hunger 0.06 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 594.0h hunger 0.13 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 594.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+594.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 596.0h hunger 0.20 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 598.0h hunger 0.27 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 600.0h hunger 0.36 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 600.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+600.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 602.0h hunger 0.10 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 604.0h hunger 0.31 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 606.0h hunger 0.08 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 606.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+606.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 608.0h hunger 0.23 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 610.0h hunger 0.42 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 612.0h hunger 0.12 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 612.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+612.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 614.0h hunger 0.33 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 616.0h hunger 0.23 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 618.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 618.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+618.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 620.0h hunger 0.19 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 622.0h hunger 0.26 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 624.0h hunger 0.34 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 624.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+624.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 626.0h hunger 0.07 task wander beds 1.00/1.00/1.00/1.00/1.00
+K 628.0h hunger 0.27 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 630.0h hunger 0.42 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 630.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+630.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 632.0h hunger 0.19 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 634.0h hunger 0.38 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 636.0h hunger 0.11 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 636.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+636.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 638.0h hunger 0.30 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 640.0h hunger 0.44 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 642.0h hunger 0.51 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 642.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+642.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 644.0h hunger 0.58 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 646.0h hunger 0.65 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 648.0h hunger 0.73 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 648.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+648.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 650.0h hunger 0.11 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 652.0h hunger 0.32 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 654.0h hunger 0.06 task bask beds 1.00/1.00/1.00/1.00/1.00
+L 654.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+654.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 656.0h hunger 0.27 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 658.0h hunger 0.45 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 660.0h hunger 0.19 task wander beds 1.00/1.00/1.00/1.00/1.00
+L 660.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+660.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 662.0h hunger 0.37 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 664.0h hunger 0.13 task graze beds 1.00/1.00/1.00/1.00/1.00
+K 666.0h hunger 0.12 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 666.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+666.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 668.0h hunger 0.19 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 670.0h hunger 0.26 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 672.0h hunger 0.34 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 672.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+672.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 674.0h hunger 0.06 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 676.0h hunger 0.27 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 678.0h hunger 0.31 task graze beds 1.00/1.00/1.00/1.00/1.00
+L 678.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+678.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 680.0h hunger 0.20 task swim beds 1.00/1.00/1.00/1.00/1.00
+K 682.0h hunger 0.39 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 684.0h hunger 0.13 task swim beds 1.00/1.00/1.00/1.00/1.00
+L 684.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+684.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 686.0h hunger 0.32 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 688.0h hunger 0.45 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 690.0h hunger 0.52 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 690.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+690.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 692.0h hunger 0.60 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 694.0h hunger 0.67 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 696.0h hunger 0.75 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 696.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+696.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 698.0h hunger 0.15 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 700.0h hunger 0.34 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 702.0h hunger 0.06 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 702.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+702.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 704.0h hunger 0.24 task watch beds 1.00/1.00/1.00/1.00/1.00
+K 706.0h hunger 0.43 task bask beds 1.00/1.00/1.00/1.00/1.00
+K 708.0h hunger 0.12 task watch beds 1.00/1.00/1.00/1.00/1.00
+L 708.0h wood wet 36.3 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+708.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 710.0h hunger 0.31 task fire beds 1.00/1.00/1.00/1.00/1.00
+K 712.0h hunger 0.46 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 714.0h hunger 0.53 task sleep beds 1.00/1.00/1.00/1.00/1.00
+L 714.0h wood wet 35.9 dry 0 unusedClay 4.7 pots g/d/f 0/0/1 firedKg 1.1 equip firewood_stack,open_fire_pit,cook_pot,lamp_dish,tar_retort,assembled_pot reachedS 1 setOut 1 felled 36
+714.0h clay 0.0 settled 0.0 prepared 4.7 bamboo 8.3 pots 0.0/0.0/1.1 hut 24 raft 6 reached south-near labDone 40
+K 716.0h hunger 0.60 task sleep beds 1.00/1.00/1.00/1.00/1.00
+K 718.0h hunger 0.67 task sleep beds 1.00/1.00/1.00/1.00/1.00
+firsts 0.1h dot sighting | 1.3h lantern clay-pit | 28.3h rakko rakko-bed | 32.4h dot raft | 32.6h dot crossing:sopunu | 100.3h dot pier | 107.1h lantern fired-pot | 107.1h lantern cook-pot | 185.6h lantern light | 288.1h lantern retort | 403.4h lantern weather-pot
+log 31.5h chop ドット：若木を切り倒した（枝は薪にして棚の脇へ）
+31.8h chop ドット：若木を切り倒した（枝は薪にして棚の脇へ）
+32.2h chop ドット：若木を切り倒した（枝は薪にして棚の脇へ）
+32.4h raft ドットの筏ができた
+46.7h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 2550.1g）。気づいたこと：
+48.0h science ランタンの工程：粘土を紐にして積み、鍋を形づくる：できた（形づくった器 1421.7g・下ごしらえした粘土 1128.3g）。気づいたこと：
+49.1h raft ドットの筏ができた
+49.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約8m。丸太3本、枝は薪にして棚の脇へ）
+49.2h chop ドットが薪にするため、林の木を切り倒した
+49.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+49.2h chop ドットが薪にするため、林の木を切り倒した
+49.3h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約4m。丸太2本、枝は薪にして棚の脇へ）
+49.3h chop ドットが薪にするため、林の木を切り倒した
+49.3h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+49.3h chop ドットが薪にするため、林の木を切り倒した
+72.5h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 1147.3g）。気づいたこと：全体が白っぽく乾いて、軽い
+73.8h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 1148.1g）。気づいたこと：全体が白っぽく乾いて、軽い
+107.1h science ランタンの野焼きで、島で初めて器が焼けた
+107.1h science ランタンの工程：乾いた器を野焼きする（焚き火で囲んで焼く）：できた（焼いた器 1015.8g・器のかけら 1015.8g・薪 6011.6g
+107.1h science ランタン：焼いた器が、島の鍋になった
+107.2h science ランタンの工程：ヤシのミルクを煮て油をとる：できた（ヤシ油 56.6g・油をとったかす 37.9g・薪 5694.9g・灰 2.3g）。気づ
+108.0h science ランタンの工程：粘土で灯皿を形づくる：できた（形づくった器 114.2g・下ごしらえした粘土 1014.1g）。気づいたこと：灯皿の形ができ
+108.1h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+108.1h chop ドットが薪にするため、林の木を切り倒した
+108.1h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+108.1h chop ドットが薪にするため、林の木を切り倒した
+108.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約7m。丸太3本、枝は薪にして棚の脇へ）
+108.2h chop ドットが薪にするため、林の木を切り倒した
+108.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約7m。丸太2本、枝は薪にして棚の脇へ）
+108.2h chop ドットが薪にするため、林の木を切り倒した
+108.3h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約7m。丸太2本、枝は薪にして棚の脇へ）
+108.3h chop ドットが薪にするため、林の木を切り倒した
+108.4h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約8m。丸太3本、枝は薪にして棚の脇へ）
+108.4h chop ドットが薪にするため、林の木を切り倒した
+133.7h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 91.1g）。気づいたこと：全体が白っぽく乾いて、軽い
+164.4h science ランタンの工程：乾いた器を野焼きする（焚き火で囲んで焼く）：できた（焼いた器 81.6g・薪 14367g・灰 222g）。気づいたこと：い
+166.3h science ランタンの工程：粘土で乾留の器の上の壺（2L）を形づくる：できた（形づくった器 1575.3g・下ごしらえした粘土 6333.1g）。気づい
+166.9h science ランタンの工程：粘土で乾留の器の下の壺（0.3L）を形づくる：できた（形づくった器 444.7g・下ごしらえした粘土 569.4g）。気づい
+168.1h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約9m。丸太3本、枝は薪にして棚の脇へ）
+168.1h chop ドットが薪にするため、林の木を切り倒した
+168.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約8m。丸太3本、枝は薪にして棚の脇へ）
+168.2h chop ドットが薪にするため、林の木を切り倒した
+168.6h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約4m。丸太2本、枝は薪にして棚の脇へ）
+168.6h chop ドットが薪にするため、林の木を切り倒した
+168.7h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約9m。丸太3本、枝は薪にして棚の脇へ）
+168.7h chop ドットが薪にするため、林の木を切り倒した
+168.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約8m。丸太3本、枝は薪にして棚の脇へ）
+168.8h chop ドットが薪にするため、林の木を切り倒した
+168.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+168.8h chop ドットが薪にするため、林の木を切り倒した
+168.9h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約9m。丸太3本、枝は薪にして棚の脇へ）
+168.9h chop ドットが薪にするため、林の木を切り倒した
+183.3h science ランタンの工程：ヤシのミルクを煮て油をとる：できた（ヤシ油 51.2g・油をとったかす 31.9g・薪 14063.7g・灰 2.2g）。気
+185.6h science ランタンが、島で初めて灯りをともした。焼いた灯皿に、島のヤシ油と、自分でよった芯で
+185.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 25.1g・ヤシ油 10.8g・芯 1.8g・芯の燃えさし 0g）。気づ
+192.0h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 1289.8g）。気づいたこと：全体が白っぽく乾いて、軽い
+192.7h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 357.1g）。気づいたこと：全体が白っぽく乾いて、軽い
+209.9h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 29.4g・ヤシ油 10.8g・芯 0.8g・芯の燃えさし 0g）。気づ
+227.1h science ランタンの工程：乾いた器を野焼きする（焚き火で囲んで焼く）：できた（焼いた器 1147.7g・焼いた器 317.7g・薪 24396.8g・
+228.5h science ランタンの工程：粘土で乾留の器の上の壺（2L）を形づくる：できた（形づくった器 1575.3g・下ごしらえした粘土 4757.9g）。気づい
+228.6h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約7m。丸太3本、枝は薪にして棚の脇へ）
+228.6h chop ドットが薪にするため、林の木を切り倒した
+228.7h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約8m。丸太3本、枝は薪にして棚の脇へ）
+228.7h chop ドットが薪にするため、林の木を切り倒した
+228.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約7m。丸太3本、枝は薪にして棚の脇へ）
+228.8h chop ドットが薪にするため、林の木を切り倒した
+228.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+228.8h chop ドットが薪にするため、林の木を切り倒した
+231.1h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約7m。丸太3本、枝は薪にして棚の脇へ）
+231.1h chop ドットが薪にするため、林の木を切り倒した
+231.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+231.2h chop ドットが薪にするため、林の木を切り倒した
+233.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 5g・ヤシ油 10.8g・芯 1.8g・芯の燃えさし 0g）。気づいたこ
+254.3h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 1290.2g）。気づいたこと：全体が白っぽく乾いて、軽い
+255.1h science ランタンの工程：ヤシのミルクを煮て油をとる：できた（ヤシ油 65.5g・油をとったかす 47.3g・薪 24003.4g・灰 2.9g）。気
+257.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 7.5g・ヤシ油 10.8g・芯 0.8g・芯の燃えさし 0g）。気づい
+279.1h science ランタンの工程：ヤシのミルクを煮て油をとる：できた（ヤシ油 62g・油をとったかす 48.7g・薪 23626.8g・灰 2.7g）。気づい
+281.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 49.3g・ヤシ油 10.8g・芯 1.6g・芯の燃えさし 0g）。気づ
+288.1h science ランタンの工程：乾いた器を野焼きする（焚き火で囲んで焼く）：できた（焼いた器 1147.7g・薪 27699.9g・灰 240.7g）。気づ
+288.1h science ランタン：焼いた壺を2つ組んで、炭とタールをとる乾留の器ができた
+289.5h science ランタンの工程：粘土で封じる壺（0.5L）を形づくる：できた（形づくった器 625.1g・下ごしらえした粘土 4132.7g）。気づいたこと
+289.6h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+289.6h chop ドットが薪にするため、林の木を切り倒した
+289.7h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約2m。丸太2本、枝は薪にして棚の脇へ）
+289.7h chop ドットが薪にするため、林の木を切り倒した
+289.7h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+289.7h chop ドットが薪にするため、林の木を切り倒した
+289.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約4m。丸太2本、枝は薪にして棚の脇へ）
+289.8h chop ドットが薪にするため、林の木を切り倒した
+289.9h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+289.9h chop ドットが薪にするため、林の木を切り倒した
+289.9h chop ドット：薪にするため、林のテリハボクを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+289.9h chop ドットが薪にするため、林の木を切り倒した
+305.5h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 62g・ヤシ油 10.8g・芯 0.8g・芯の燃えさし 0g）。気づいた
+315.3h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（形づくった器 523.3g）。気づいたこと：縁が先に白っぽくなり、胴はまだ色が濃い（革
+329.8h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 37.2g・ヤシ油 10.8g・芯 1.6g・芯の燃えさし 0g）。気づ
+341.3h science ランタンの工程：器を棚で乾かす（葉で覆って）：できた（乾いた器 511.6g）。気づいたこと：全体が白っぽく乾いて、軽い
+345.7h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約4m。丸太2本、枝は薪にして棚の脇へ）
+345.7h chop ドットが薪にするため、林の木を切り倒した
+353.5h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 62g・ヤシ油 10.8g・芯 0.8g・芯の燃えさし 0g）。気づいた
+377.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 37.2g・ヤシ油 10.8g・芯 1.6g・芯の燃えさし 0g）。気づ
+401.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 44.4g・ヤシ油 10.8g・芯 0.6g・芯の燃えさし 0g）。気づ
+402.9h science ランタンの工程：乾いた器を野焼きする（焚き火で囲んで焼く）：できた（焼いた器 455.5g・灰 495.7g）。気づいたこと：いちばん熱いと
+403.4h science ランタンの工程：器にタールを塗り、竹の管を栓に通して口を封じる：できた（焼いた器 508.9g）。気づいたこと：タールが固く、内側の表面に乗
+449.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 21.2g・ヤシ油 10.8g・芯 1.4g・芯の燃えさし 0g）。気づ
+473.6h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 23g・ヤシ油 10.8g・芯 0.6g・芯の燃えさし 0g）。気づいた
+497.5h science ランタンの工程：灯皿にヤシ油を入れ、芯を立てて灯す：できた（ヤシ油 1.1g・ヤシ油 10.8g・芯 1.4g・芯の燃えさし 0g）。気づい
+507.5h haul ドット：台風に備えて、筏を浜の上へ引き上げた
+516.7h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+516.7h chop ドットが薪にするため、林の木を切り倒した
+516.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約5m。丸太2本、枝は薪にして棚の脇へ）
+516.8h chop ドットが薪にするため、林の木を切り倒した
+516.8h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約4m。丸太2本、枝は薪にして棚の脇へ）
+516.8h chop ドットが薪にするため、林の木を切り倒した
+519.1h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約6m。丸太2本、枝は薪にして棚の脇へ）
+519.1h chop ドットが薪にするため、林の木を切り倒した
+519.2h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約3m。丸太2本、枝は薪にして棚の脇へ）
+519.2h chop ドットが薪にするため、林の木を切り倒した
+519.3h chop ドット：薪にするため、林のオオハマボウを切り倒した（高さ約5m。丸太2本、枝は薪にして棚の脇へ）
+519.3h chop ドットが薪にするため、林の木を切り倒した
