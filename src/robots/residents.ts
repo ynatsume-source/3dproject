@@ -896,13 +896,15 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     const lee = all.filter((t) => !windward(t.x, t.z)).slice(0, n), ww = all.find((t) => windward(t.x, t.z));
     return [...lee, ...(ww ? [ww] : [])].map((t) => ({ ...t, d: Math.hypot(t.x - r.pos.x, t.z - r.pos.z) }));
   }
-  /** A tree to fell to burn (D-charcoal-pit §6.2, science 2026-10-29): an オオハマボウ near home — it grows again from
-   *  its stump — the nearest first; never a テリハボク (the boats' and houses' wood), a ハスノハギリ or a ガジュマル, nor one
-   *  of the windbreak. */
+  /** A tree to fell to burn (D-charcoal-pit §6.2, science 2026-10-29): an オオハマボウ within 60 m of the house — it grows
+   *  again from its stump; 121 of them, so the firewood holds until the first stumps have grown again (science's 90 days,
+   *  2026-10-31) — the nearest first; never a テリハボク (the boats' and houses' wood), a ハスノハギリ or a ガジュマル, nor
+   *  one of the windbreak. */
   function fuelTree(r: Resident) {
     if (!T.forest) return null;
-    const all = (T.forest.standingNear(hut.position.x, hut.position.z, 45) as { x: number; z: number; y: number; h: number; kind: number }[]).filter((t) => t.kind === 1 && !windward(t.x, t.z));
-    const t = all.sort((a, b) => Math.hypot(a.x - hut.position.x, a.z - hut.position.z) - Math.hypot(b.x - hut.position.x, b.z - hut.position.z))[0];
+    const c = houseG.position;   // (counted from the house, as the windbreak is)
+    const all = (T.forest.standingNear(c.x, c.z, 60) as { x: number; z: number; y: number; h: number; kind: number }[]).filter((t) => t.kind === 1 && !windward(t.x, t.z));
+    const t = all.sort((a, b) => Math.hypot(a.x - c.x, a.z - c.z) - Math.hypot(b.x - c.x, b.z - c.z))[0];
     return t ? { ...t, d: Math.hypot(t.x - r.pos.x, t.z - r.pos.z) } : null;
   }
   function fellTask(x: number, z: number): Task | null {
