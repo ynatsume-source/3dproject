@@ -17,10 +17,12 @@ export interface Chapter2 {
   ended: number | null;                           // the first lamp lit
 }
 
-/** The chapter as the village has it; null before chapter 1 has ended. */
+/** The chapter as the village has it; null before chapter 1 has ended — and on an island whose first lamp was lit
+ *  before it began (a trial island from before: it would be over as it began; viewer design on #198). */
 export function chapter2(village: { firsts?: Record<string, number> }): Chapter2 | null {
   const f = village.firsts ?? {}, at = (k: string) => (f[k] === undefined ? null : f[k]);
   const began = at('south-load'); if (began === null) return null;
   const way = Object.fromEntries(WAY2.map((s) => [s, at(KEY2[s])])) as Record<Stage2, number | null>;
+  if (way.light !== null && way.light <= began) return null;
   return { began, way, ended: way.light };
 }
