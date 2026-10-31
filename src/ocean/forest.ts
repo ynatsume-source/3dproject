@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { mat } from '../render/common';
 import { hash, mulberry32, hyp } from '../core/math';
+import { GHOST_VS, GHOST_FS, ghostable, type Ghosts, type GhostPlant } from './ghost';
 
 const CELL = 40;
 const icoI = (detail = 1) => { const g = new THREE.IcosahedronGeometry(1, detail); g.deleteAttribute('normal'); g.deleteAttribute('uv'); return mergeVertices(g); };
@@ -171,9 +172,9 @@ function shrubGeo() {
 
 const rr2 = (x: number, z: number, a: number, b: number) => a + (b - a) * hash(x * 1.37 + 11, z * 0.71 - 5);
 
-export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z: number) => number, can: (x: number, z: number) => number, top: (x: number, z: number) => { y: number; c: number }, E: number) {
+export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z: number) => number, can: (x: number, z: number) => number, top: (x: number, z: number) => { y: number; c: number }, E: number, ghosts?: Ghosts) {
   const treeMat = mat(
-    `attribute vec3 aTint; attribute float aSway; attribute float aLeaf; attribute float aSh; attribute vec3 aMn; varying vec3 vWp; varying vec3 vN; varying vec3 vMn; varying vec3 vCol; varying float vLeaf; varying vec3 vL; varying float vSh;
+    GHOST_VS + `attribute vec3 aTint; attribute float aSway; attribute float aLeaf; attribute float aSh; attribute vec3 aMn; varying vec3 vWp; varying vec3 vN; varying vec3 vMn; varying vec3 vCol; varying float vLeaf; varying vec3 vL; varying float vSh;
      void main(){
        vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.0);
        float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
@@ -183,12 +184,12 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
        w.xz += (vec2(sin(uTime * 0.9 + ph), cos(uTime * 0.7 + ph * 1.7)) * 0.12 + vec2(sin(uTime * 2.7 + ph * 3.0 + position.y * 9.0), cos(uTime * 2.3 + position.x * 7.0)) * 0.04 * aLeaf * (1.0 + wk)) * aSway * (0.6 + 0.6 * wk)
              + uWind.xy * aSway * wk * wk * 0.22 * (0.75 + 0.25 * sin(uTime * 1.3 + ph));
        vWp = w.xyz; vN = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * normal);
-       vCol = aTint * (0.85 + 0.3 * fract(sin(ph * 12.9) * 43758.5)); vLeaf = aLeaf; vL = position; vSh = aSh; vMn = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * aMn);
+       vCol = aTint * (0.85 + 0.3 * fract(sin(ph * 12.9) * 43758.5)); vLeaf = aLeaf; vL = position; vSh = aSh; vMn = normalize(mat3(modelMatrix) * mat3(instanceMatrix) * aMn); ghostVs();
        gl_Position = projectionMatrix * viewMatrix * w; }`,
-    `${AIRLIT}
+    `${AIRLIT}${GHOST_FS}
      varying vec3 vWp; varying vec3 vN; varying vec3 vCol; varying float vLeaf; varying vec3 vL; varying float vSh; varying vec3 vMn;
      void main(){
-       if (cutSight(vWp)) discard;   // (the leaves between the camera and a resident being watched)
+       if (ghostCut()) discard;   // (a tree seen through, between the camera and a resident being watched: ocean/ghost.ts)
        vec3 n = normalize(vN), V = normalize(uCamPos - vWp); if (!gl_FrontFacing) n = -n;
        vec3 col;
        // leaves: clumps of light and shade at the scale of twigs, a ragged edge where the mass turns away — the edge
@@ -211,7 +212,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
          col = airLit(alb, n, vWp, 0.0) + alb * vec3(0.16, 0.18, 0.13) * (1.0 - uNight * 0.8);   // (light thrown back from the leaves and the floor)
        }
        col *= vSh + (1.0 - vSh) * 0.9 * dapple(vWp, vWp.y + 6.0);   // (shade inside the forest, flecks of sun)
-       gl_FragColor = vec4(fogIt(col, vWp), mix(1.0, cover, uA2C));
+       gl_FragColor = vec4(fogIt(ghostCol(col), vWp), ghostA(mix(1.0, cover, uA2C)));
      }`, { opts: { side: THREE.DoubleSide, alphaToCoverage: true } });
   // geometries: two of each kind of tree, a sapling of each, and the clump on the forest floor
   // (each twice: as drawn near the camera, and coarser for the cells further off)
@@ -278,7 +279,7 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
   // one instanced mesh per geometry for the whole forest, refilled from the cells in range when that set changes
   const meshes: (THREE.InstancedMesh | null)[] = new Array(G * 2).fill(null);
   const fill = (on: { trees: Tree[]; under: Tree[] }[], hi: boolean[]) => {
-    const by: Tree[][] = meshes.map(() => []);
+    const by: Tree[][] = meshes.map(() => []), ghostList: GhostPlant[] = [];
     on.forEach((c, i) => { const o = hi[i] ? 0 : G; for (const t of c.trees) if (standing(t)) by[t.g + o].push(t); for (const t of c.under) if (!clears.length || !cleared(t.x, t.z)) by[t.g + o].push(t); });
     let n = 0;
     by.forEach((list, g) => {
@@ -287,13 +288,17 @@ export function buildForest(AIRLIT: string, group: THREE.Group, f: (x: number, z
       if (!m || m.instanceMatrix.count < list.length) {
         if (m) { group.remove(m); m.dispose(); }
         m = new THREE.InstancedMesh(g < G ? geos[g] : geosLo[g - G], treeMat, Math.max(16, Math.ceil(list.length * 1.4)));
-        m.frustumCulled = false; group.add(m); meshes[g] = m;
+        m.frustumCulled = false; group.add(m); meshes[g] = m; if (ghosts) ghostable(m);
       }
       const arr = m.instanceMatrix.array as Float32Array;
       list.forEach((t, i) => arr.set(t.m, i * 16));
       m.count = list.length; m.instanceMatrix.needsUpdate = true; n += list.length;
+      // (each drawn tree, for seeing it through: its trunk and crown as an upright cylinder, the crown about as wide as it
+      // is drawn — its matrix's sideways scale)
+      if (ghosts) list.forEach((t, i) => ghostList.push({ mesh: m!, i, key: tkey(t) + '/' + t.g, x: t.x, z: t.z, y0: t.y, y1: t.y + t.h, r: Math.max(0.6, 0.5 * Math.hypot(t.m[0], t.m[1], t.m[2])), g: 0, t: 0 }));
     });
     count = n;
+    if (ghosts) ghosts.setMoving(ghostList);
   };
   let count = 0, key = '';
   let near = 85;
