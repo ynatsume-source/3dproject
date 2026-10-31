@@ -6,7 +6,7 @@
 //    in the oil), the oil soaked into the dish's wall kept with the dish
 //  5 the next evening: the soaked oil goes in with the dish; a wick of a fibre not yet tried
 //  3 the island's first lamp told as a first though an earlier try had not burned (chapter 1's way: science,
-//    specs/chapter1-world-values.md §2), once
+//    specs/chapter1-world-values.md §2), once; chapter 2's lamp dish and oil kept before it (PROGRAM.md §2-2)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/lamp-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -61,6 +61,7 @@ const before = V.lampLog.length;
   step(7 * 3600, () => !!lampRuns()[0] && !going(lampRuns()[0]));
   const run = lampRuns()[0], log = V.lampLog[before];
   want('3 the island\'s first lamp told, though a try before had not burned', firsts.filter((k) => k === 'light').length === 1 && V.firsts.light > 0, firsts.join(' '));
+  want('3 chapter 2\'s lamp dish and oil kept before the light (PROGRAM.md §2-2)', V.firsts['lamp-dish'] > 0 && V.firsts.oil > 0 && V.firsts['lamp-dish'] <= V.firsts.light && V.firsts.oil <= V.firsts.light, `${V.firsts['lamp-dish']} ${V.firsts.oil} ${V.firsts.light}`);
   want('3 burned through the evening and put out at bedtime', run?.status === 'completed' && !!log && log.litS > 3600 && log.lumenS > 0, `${run?.status} ${run?.why ?? ''} lit ${((log?.litS ?? 0) / 3600).toFixed(1)} h, ${log?.lumenS ?? 0} lm·s`);
   const soaked = lots('coconut_oil').filter((l) => l.quality?.soaked_in_dish === 1), left = lots('coconut_oil').filter((l) => l.quality?.soaked_in_dish !== 1), water = lots('process_water');
   want('4 the oil soaked into the dish\'s wall kept with the dish', soaked.length === 1 && soaked[0].location === 'eq:lamp_dish', soaked.map((l) => `${l.amount.value / 1000}g @${l.location}`).join(','));
