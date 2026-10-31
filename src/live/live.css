@@ -4,7 +4,7 @@
    for the drone's record. One warm white; the sand gold only for what is happening now. Hair lines; no bold. */
 body.live { --u: calc(100vh / 1080); --s1: calc(var(--u) * 22); --s2: calc(var(--u) * 26); --s3: calc(var(--u) * 32);
   --s4: calc(var(--u) * 40); --s5: calc(var(--u) * 46); --s6: calc(var(--u) * 56);
-  --ink: rgba(255, 250, 240, 0.97); --ink2: rgba(255, 250, 240, 0.82); --ink3: rgba(255, 250, 240, 0.66); --gold: #e9cf98; --done: rgba(196, 224, 214, 0.8);
+  --ink: rgba(255, 250, 240, 0.97); --ink2: rgba(255, 250, 240, 0.82); --ink3: rgba(255, 250, 240, 0.66); --gold: #e9cf98; --done: rgba(205, 236, 224, 0.95); --later: rgba(255, 250, 240, 0.5);
   --mincho: 'Zen Old Mincho', serif; --sc: 'Cormorant SC', serif; --mono: 'IBM Plex Mono', monospace; --latin: 'Cormorant Garamond', serif;
   cursor: none; }
 /* (everything of the app's own is put away: only the scenery and the window) */
@@ -31,7 +31,7 @@ body.live #diaryBook, body.live #newMark, body.live #hoverTag, body.live #tapRin
 #live .chap .way .done { color: var(--done); }
 #live .chap .way .now { color: var(--gold); border-bottom: 1px solid var(--gold); padding-bottom: calc(var(--u) * 3); }
 #live .chap .way .sep { color: var(--ink3); margin: 0 calc(var(--u) * 10); }
-#live .chap .way .later { color: var(--ink3); }
+#live .chap .way .later { color: var(--later); }   /* (by brightness, not hue: the way's done bright, the rest dim — sea green alone was lost on a blue sea and a violet sky; viewer design on #202) */
 #live .chap .cargo { margin-top: calc(var(--u) * 14); font-size: var(--s1); letter-spacing: 0.1em; color: var(--ink3); }
 #live .chap .cargo .lv { color: var(--ink2); margin-left: calc(var(--u) * 10); }
 #live .chap .cargo .low { color: var(--gold); }

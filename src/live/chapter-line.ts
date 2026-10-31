@@ -75,3 +75,12 @@ export function startCard2(en: boolean) {
 export function endCard2(en: boolean) {
   return en ? { head: 'End of chapter 2', what: "With the south island's clay they fired pots, and lit a lamp" } : { head: '第2章　おわり', what: '南の島の粘土で器を焼き、灯りをともした' };
 }
+/** Which chapter the top left shows (0: none) — chapter 1 until chapter 2's start card is on (a minute after chapter 1's
+ *  end card, or later if cards were waiting their turn: the line and its card change together), then chapter 2 until two
+ *  minutes after its end card; on an island with no chapter 2 (its first lamp lit before), chapter 1 until two minutes
+ *  after its end, as before (viewer design on #202). */
+export function chapterShown(c1: Chapter1 | null, c2: Chapter2 | null, now: number, start2Waiting = false): 0 | 1 | 2 {
+  if (c2 && now >= c2.began + 60e3 && !start2Waiting) return c2.ended !== null && now - c2.ended > 180e3 ? 0 : 2;
+  if (!c1 || (!c2 && c1.ended !== null && now - c1.ended > 120e3)) return 0;
+  return 1;
+}

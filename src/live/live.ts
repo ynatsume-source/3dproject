@@ -22,7 +22,7 @@ import { captionSender } from './captions';
 import { makeDirector } from './director';
 import { chapter1 } from '../world/chapter1';
 import { chapter2 } from '../world/chapter2';
-import { chapterView, startCard, endCard, goneCard, chapter2View, startCard2, endCard2 } from './chapter-line';
+import { chapterView, startCard, endCard, goneCard, chapter2View, startCard2, endCard2, chapterShown } from './chapter-line';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -148,10 +148,11 @@ export function makeLive(ctx: LiveCtx) {
   // green, the next underlined in sand, the rest faint), what was brought in four words (sand when nearly gone or gone);
   // a word changed is swapped over 0.6 s. Its cards: the start (the question) when the first load has just come, the end
   // when the south island's load is on the shelf — each once (kept in this browser), and only as it happens, not on
-  // opening the page later. A minute after chapter 1's end card, chapter 2 (PROGRAM.md §2-2, D34): the block fades over
-  // to it and its start card comes; it has no load's line. It ends with the first lamp: its end card a minute after the
-  // first lamp's own, the block two minutes more, then gone until chapter 3 has its words.
-  let chapShown = 0, chapSwapAt = 0;
+  // opening the page later. A minute after chapter 1's end card, chapter 2 (PROGRAM.md §2-2, D34): its start card comes,
+  // and the block fades over to it as the card is on (chapterShown); it has no load's line. It ends with the first lamp:
+  // its end card a minute after the first lamp's own, the block two minutes more, then gone until chapter 3 has its words.
+  // An island whose first lamp was lit before has no chapter 2: chapter 1's block goes two minutes after its end.
+  let chapShown = 0, chapSwapAt = 0, start2Waiting = false;
   const chap = $('.chap'), shownPart: Record<string, string> = {}, sep = `<span class="sep">${en ? '·' : '・'}</span>`;
   const once = (k: string) => { try { if (localStorage.getItem(k)) return false; localStorage.setItem(k, '1'); } catch { /* the card all the same */ } return true; };
   const swap = (sel: string, html: string) => {
@@ -161,7 +162,7 @@ export function makeLive(ctx: LiveCtx) {
   };
   function chapterLine(R: any) {
     const c = R.village ? chapter1(R.village) : null, c2 = R.village ? chapter2(R.village) : null, now = ctx.clockMs();
-    const two = !!c2 && now >= c2.began + 60e3, n = two ? 2 : c ? 1 : 0;
+    const two = !!c2 && now >= c2.began + 60e3;
     if (c) {
       if (now - c.began < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:start`)) { const k = startCard(en); queue.push({ head: k.head, text: esc(k.what), at: c.began }); }
       if (c.ended !== null && now - c.ended < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:end`)) { const k = endCard(c, en); queue.push({ head: k.head, text: esc(k.what), at: c.ended }); }
@@ -169,19 +170,18 @@ export function makeLive(ctx: LiveCtx) {
       for (const m of ['clay', 'bamboo'] as const) { const at = c.gone[m]; if (at !== null && at > 0 && now - at < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:${m}-gone`)) { const k = goneCard(m, en); queue.push({ head: k.head, text: esc(k.what), at }); } }
     }
     if (c2 && two) {
-      if (now - c2.began < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:start`)) { const k = startCard2(en); queue.push({ head: k.head, text: esc(k.what), at: c2.began + 60e3 }); }
+      if (now - c2.began < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:start`)) { const k = startCard2(en); start2Waiting = true; queue.push({ head: k.head, text: esc(k.what), at: c2.began + 60e3, shown: () => { start2Waiting = false; } }); }
       if (c2.ended !== null && c2.ended > 0 && now >= c2.ended + 60e3 && now - c2.ended < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:end`)) { const k = endCard2(en); queue.push({ head: k.head, text: esc(k.what), at: c2.ended + 60e3 }); }
     }
-    // (gone: two minutes after chapter 2's end card; and on an island with no chapter 2 — its first lamp lit before
-    // chapter 1 ended — two minutes after chapter 1's)
-    if (!n || (two && c2!.ended !== null && now - c2!.ended > 180e3) || (!c2 && c?.ended != null && now - c.ended > 120e3)) { chap.classList.add('off'); return; }
+    const n = chapterShown(c, c2, now, start2Waiting);
+    if (!n) { chap.classList.add('off'); return; }
     // (another chapter: the block fades out, changes, fades in)
     if (n !== chapShown) {
       if (chapShown && !chap.classList.contains('off')) { chap.classList.add('off'); chapSwapAt = performance.now() + 600; return; }
       if (performance.now() < chapSwapAt) return;
       chapShown = n; for (const k of Object.keys(shownPart)) delete shownPart[k];
     }
-    const v = two ? chapter2View(c2!, now, ctx.tz(), en) : chapterView(c!, now, ctx.tz(), en);
+    const v = n === 2 ? chapter2View(c2!, now, ctx.tz(), en) : chapterView(c!, now, ctx.tz(), en);
     $('.chap .no').textContent = v.no; $('.chap .nm').textContent = v.name; $('.chap .dy').textContent = v.day;
     swap('.chap .way', v.way.map((x) => `<span class="${x.k}">${esc(x.w)}</span>`).join(sep));
     swap('.chap .cargo', v.cargo ? `${esc(v.cargo.label)}${v.cargo.items.map((x) => `<span class="lv${x.low ? ' low' : ''}">${esc(x.w)}</span>`).join(sep)}` : '');
@@ -218,7 +218,7 @@ export function makeLive(ctx: LiveCtx) {
   // upper centre between two gold hair lines — "島で初めて", the event's own sentence (to its first 。), the island's
   // date and time — for about eight seconds, then it fades. Several at once wait their turn. The chapter's own cards
   // (its start and end) take the same place with their own heading.
-  const card = $('.card'), queue: { head?: string; text: string; at: number }[] = [];
+  const card = $('.card'), queue: { head?: string; text: string; at: number; shown?: () => void }[] = [];
   let cardT = 0;
   function event(kind: string, text: string, r: any, meta?: { milestone?: string; trial?: { kind: string; result?: string; text: string | null } }) {
     director.event(kind, text, r, meta);   // (ranked for the drone)
@@ -239,7 +239,7 @@ export function makeLive(ctx: LiveCtx) {
     $('.card .head').textContent = m.head ?? (en ? FIXED_EN.first : '島で初めて');
     $('.card .what').innerHTML = m.text;   // (escaped as it was made: only an island's word in italics)
     $('.card .at').innerHTML = `${esc(dateOf(m.at))} <span class="t">${localTimeString(m.at, ctx.tz())}</span>`;
-    card.classList.remove('off'); cardT = 8;
+    card.classList.remove('off'); cardT = 8; m.shown?.();
   }
 
   /** A try's result, for the trials' screen (PROGRAM.md §1): the drone goes to the one whose try it was (rank 1). */

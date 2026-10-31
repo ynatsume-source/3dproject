@@ -10,9 +10,12 @@
 //   F chapter 2 (PROGRAM.md §2-2, D34): its day from the south island's load, the way 薪・器・灯皿・油・灯り as the world
 //     goes (the lamp dish and the oil in either order), no load's line; its start card the question, its end card what
 //     the world did; English; no day on an island from before the world kept it
+//   G which chapter the top left shows: chapter 1 until chapter 2's start card is on (a minute after chapter 1's end, or
+//     later if cards wait their turn), chapter 2 until two minutes after its end card; on an island whose first lamp
+//     was lit before chapter 2 began, no chapter 2 — chapter 1's block gone two minutes after its end
 // Usage: npx tsx scripts/live-chapter-check.ts
 import { chapter1 } from '../src/world/chapter1';
-import { chapterView, chapterDay, startCard, endCard, goneCard, chapter2View, startCard2, endCard2 } from '../src/live/chapter-line';
+import { chapterView, chapterDay, startCard, endCard, goneCard, chapter2View, startCard2, endCard2, chapterShown } from '../src/live/chapter-line';
 import { chapter2 } from '../src/world/chapter2';
 
 let bad = 0;
@@ -65,6 +68,13 @@ const line = (v: ReturnType<typeof chapterView>) => `${v.no} ${v.name}${v.day} |
   const s = startCard2(false), e = endCard2(false), se = startCard2(true), ee = endCard2(true);
   want('F its cards: the question, and what the world did', s.head === '第2章' && s.what === '南の島の粘土で、灯りをともせるか' && e.head === '第2章　おわり' && e.what === '南の島の粘土で器を焼き、灯りをともした'
     && se.what === "Can they light a lamp with the south island's clay?" && ee.what === "With the south island's clay they fired pots, and lit a lamp" && ee.head === 'End of chapter 2' && [s.what, e.what].every((w) => !/[（）()%／/]/.test(w)), `${s.what} / ${e.what}`);
+}
+{ // G
+  const end = began + 31 * H, v = (f: Record<string, number>) => ({ firstLoad: { at: began }, firsts: { hut: began + 20 * H, raft: began + 26 * H, 'south-load': end, ...f }, loadMin: { clayMg: 4.9e6, bambooMg: 3.5e6 }, southSetOut: 1 });
+  const at = (f: Record<string, number>, t: number, waiting = false) => { const V = v(f); return chapterShown(chapter1(V), chapter2(V), t, waiting); };
+  const flow = [end + 30e3, end + 61e3, end + 61e3, end + 50 * H, end + 50 * H + 179e3, end + 50 * H + 181e3].map((t, i) => at(i >= 4 ? { light: end + 50 * H } : {}, t, i === 2));
+  const lit = [end + 61e3, end + 119e3, end + 121e3].map((t) => at({ light: end - 10 * H }, t));
+  want('G the top left: chapter 1, then chapter 2 as its start card is on, gone two minutes after its end card; none where the lamp was lit before', flow.join(' ') === '1 2 1 2 2 0' && lit.join(' ') === '1 1 0', `${flow.join(' ')} | ${lit.join(' ')}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'all ok');
 process.exit(bad ? 1 : 0);
