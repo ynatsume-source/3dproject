@@ -7,9 +7,13 @@
 //     only when it was not the first, "after the clay they brought ran out" only when it had (D33); the card when it
 //     runs out is a world's event
 //   E the start card: the question; English for all of it
+//   F chapter 2 (PROGRAM.md §2-2, D34): its day from the south island's load, the way 薪・器・灯皿・油・灯り as the world
+//     goes (the lamp dish and the oil in either order), no load's line; its start card the question, its end card what
+//     the world did; English; no day on an island from before the world kept it
 // Usage: npx tsx scripts/live-chapter-check.ts
 import { chapter1 } from '../src/world/chapter1';
-import { chapterView, chapterDay, startCard, endCard, goneCard } from '../src/live/chapter-line';
+import { chapterView, chapterDay, startCard, endCard, goneCard, chapter2View, startCard2, endCard2 } from '../src/live/chapter-line';
+import { chapter2 } from '../src/world/chapter2';
 
 let bad = 0;
 const want = (what: string, ok: boolean, got = '') => { if (!ok) bad++; console.log(`${what}: ${got} ${ok ? 'ok' : 'FAIL'}`); };
@@ -49,6 +53,18 @@ const line = (v: ReturnType<typeof chapterView>) => `${v.no} ${v.name}${v.day} |
   want('E English', line(v) === 'Chapter 1 To the south island· day 2 | hut:done raft:now the south island:later | What we brought clay: nearly gone* / bamboo: about half', line(v));
   const words = [s.what, s.head, endCard(chapter1(village({ 'south-load': began + 31 * H }, 4.9e6, 3.5e6, 3))!, false).what];
   want('E no brackets, numbers as said (PROGRAM.md §6)', words.every((w) => !/[（）()%／/]/.test(w)), words.join(' / '));
+}
+{ // F
+  const load = began + 31 * H, c2 = (f: Record<string, number>) => chapter2({ firsts: { 'south-load': load, ...f } })!;
+  const v0 = chapter2View(c2({}), load + 70e3, tz, false), v1 = chapter2View(c2({ 'dry-wood': load + 20 * H, 'fired-pot': load + 74 * H, oil: load + 80 * H }), load + 90 * H, tz, false);
+  const ve = chapter2View(c2({ 'dry-wood': load + 20 * H, 'fired-pot': load + 74 * H, 'lamp-dish': load + 130 * H }), load + 140 * H, tz, true);
+  const old0 = chapter2View(chapter2({ firsts: { 'south-load': 0, 'fired-pot': 0 } })!, began, tz, false);
+  want('F chapter 2: its day from the load, the way as the world goes, no load\'s line', line(v0) === '第2章 はじめての灯り（1日目） | 薪:now 器:later 灯皿:later 油:later 灯り:later | —'
+    && line(v1) === '第2章 はじめての灯り（5日目） | 薪:done 器:done 灯皿:now 油:done 灯り:later | —', `${line(v0)} || ${line(v1)}`);
+  want('F English; no day on an island from before', line(ve) === 'Chapter 2 The first light· day 7 | firewood:done pots:done lamp dish:done oil:now light:later | —' && old0.day === '', `${line(ve)} || '${old0.day}'`);
+  const s = startCard2(false), e = endCard2(false), se = startCard2(true), ee = endCard2(true);
+  want('F its cards: the question, and what the world did', s.head === '第2章' && s.what === '南の島の粘土で、灯りをともせるか' && e.head === '第2章　おわり' && e.what === '南の島の粘土で器を焼き、灯りをともした'
+    && se.what === "Can they light a lamp with the south island's clay?" && ee.what === "With the south island's clay they fired pots, and lit a lamp" && ee.head === 'End of chapter 2' && [s.what, e.what].every((w) => !/[（）()%／/]/.test(w)), `${s.what} / ${e.what}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'all ok');
 process.exit(bad ? 1 : 0);

@@ -21,7 +21,8 @@ import { statusEn, firstEn, asLine, FIXED_EN, NAMES_EN } from './en';
 import { captionSender } from './captions';
 import { makeDirector } from './director';
 import { chapter1 } from '../world/chapter1';
-import { chapterView, startCard, endCard, goneCard } from './chapter-line';
+import { chapter2 } from '../world/chapter2';
+import { chapterView, startCard, endCard, goneCard, chapter2View, startCard2, endCard2 } from './chapter-line';
 
 export interface LiveCtx {
   residents(): any | null;           // the island's residents, once the island is built
@@ -147,7 +148,10 @@ export function makeLive(ctx: LiveCtx) {
   // green, the next underlined in sand, the rest faint), what was brought in four words (sand when nearly gone or gone);
   // a word changed is swapped over 0.6 s. Its cards: the start (the question) when the first load has just come, the end
   // when the south island's load is on the shelf — each once (kept in this browser), and only as it happens, not on
-  // opening the page later. After the end the block stays two minutes, then goes until chapter 2 has its words.
+  // opening the page later. A minute after chapter 1's end card, chapter 2 (PROGRAM.md §2-2, D34): the block fades over
+  // to it and its start card comes; it has no load's line. It ends with the first lamp: its end card a minute after the
+  // first lamp's own, the block two minutes more, then gone until chapter 3 has its words.
+  let chapShown = 0, chapSwapAt = 0;
   const chap = $('.chap'), shownPart: Record<string, string> = {}, sep = `<span class="sep">${en ? '·' : '・'}</span>`;
   const once = (k: string) => { try { if (localStorage.getItem(k)) return false; localStorage.setItem(k, '1'); } catch { /* the card all the same */ } return true; };
   const swap = (sel: string, html: string) => {
@@ -156,13 +160,26 @@ export function makeLive(ctx: LiveCtx) {
     el.classList.add('off'); setTimeout(() => { if (shownPart[sel] === html) { el.innerHTML = html; el.classList.remove('off'); } }, 600);
   };
   function chapterLine(R: any) {
-    const c = R.village ? chapter1(R.village) : null, now = ctx.clockMs();
-    if (!c || (c.ended !== null && now - c.ended > 120e3)) { chap.classList.add('off'); return; }
-    if (now - c.began < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:start`)) { const k = startCard(en); queue.push({ head: k.head, text: esc(k.what), at: c.began }); }
-    if (c.ended !== null && now - c.ended < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:end`)) { const k = endCard(c, en); queue.push({ head: k.head, text: esc(k.what), at: c.ended }); }
-    // (what was brought run out: a world's event in the milestone's card, not the chapter's end — D33)
-    for (const m of ['clay', 'bamboo'] as const) { const at = c.gone[m]; if (at !== null && at > 0 && now - at < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:${m}-gone`)) { const k = goneCard(m, en); queue.push({ head: k.head, text: esc(k.what), at }); } }
-    const v = chapterView(c, now, ctx.tz(), en);
+    const c = R.village ? chapter1(R.village) : null, c2 = R.village ? chapter2(R.village) : null, now = ctx.clockMs();
+    const two = !!c2 && now >= c2.began + 60e3, n = two ? 2 : c ? 1 : 0;
+    if (c) {
+      if (now - c.began < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:start`)) { const k = startCard(en); queue.push({ head: k.head, text: esc(k.what), at: c.began }); }
+      if (c.ended !== null && now - c.ended < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:end`)) { const k = endCard(c, en); queue.push({ head: k.head, text: esc(k.what), at: c.ended }); }
+      // (what was brought run out: a world's event in the milestone's card, not the chapter's end — D33)
+      for (const m of ['clay', 'bamboo'] as const) { const at = c.gone[m]; if (at !== null && at > 0 && now - at < 5 * 60e3 && once(`seaglass.chapter1:${c.began}:${m}-gone`)) { const k = goneCard(m, en); queue.push({ head: k.head, text: esc(k.what), at }); } }
+    }
+    if (c2 && two) {
+      if (now - c2.began < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:start`)) { const k = startCard2(en); queue.push({ head: k.head, text: esc(k.what), at: c2.began + 60e3 }); }
+      if (c2.ended !== null && c2.ended > 0 && now >= c2.ended + 60e3 && now - c2.ended < 6 * 60e3 && once(`seaglass.chapter2:${c2.began}:end`)) { const k = endCard2(en); queue.push({ head: k.head, text: esc(k.what), at: c2.ended + 60e3 }); }
+    }
+    if (!n || (two && c2!.ended !== null && now - c2!.ended > 180e3)) { chap.classList.add('off'); return; }
+    // (another chapter: the block fades out, changes, fades in)
+    if (n !== chapShown) {
+      if (chapShown && !chap.classList.contains('off')) { chap.classList.add('off'); chapSwapAt = performance.now() + 600; return; }
+      if (performance.now() < chapSwapAt) return;
+      chapShown = n; for (const k of Object.keys(shownPart)) delete shownPart[k];
+    }
+    const v = two ? chapter2View(c2!, now, ctx.tz(), en) : chapterView(c!, now, ctx.tz(), en);
     $('.chap .no').textContent = v.no; $('.chap .nm').textContent = v.name; $('.chap .dy').textContent = v.day;
     swap('.chap .way', v.way.map((x) => `<span class="${x.k}">${esc(x.w)}</span>`).join(sep));
     swap('.chap .cargo', v.cargo ? `${esc(v.cargo.label)}${v.cargo.items.map((x) => `<span class="lv${x.low ? ' low' : ''}">${esc(x.w)}</span>`).join(sep)}` : '');
