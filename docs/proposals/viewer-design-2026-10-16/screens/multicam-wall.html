@@ -30,20 +30,21 @@
 <body><div class="wall" id="wall"></div>
 <script>
 const night = location.hash.includes('night');
-// [no, name, role, why it would be chosen now, its points, picture]
+// [no, name, role, why it would be chosen now, its points, picture, dimmed (no night picture yet), the badge when not the usual]
+// (what each resident was doing is what it was doing when the frame was taken: the director's ranks, src/live/director.ts)
 const CAMS = night ? [
   ['01', 'ドット', '住人', '眠っている（順位6）', 6, 'mc-day-dot.jpg', true],
   ['02', 'ラッコ', '住人', '眠っている（順位6）', 6, 'mc-day-rakko.jpg', true],
   ['03', 'カメマル', '住人', '眠っている（順位6）', 6, 'mc-day-kame.jpg', true],
   ['04', 'ランタン', '住人', '夜の仕事（順位3）', 3, 'mc-night-lantern.jpg'],
   ['05', '海', '自然', '夜の海を巡る', 4, 'mc-day-sea.jpg', true],
-  ['06', '作業場', '定点', '夜の作業場。灯りがともったら、ここ', 5, 'mc-night-yard.jpg'],
+  ['06', '作業場', '定点', '灯りがともったら、ここ', 5, 'mc-night-yard.jpg'],
   ['07', '浜', '定点', '筏はまだない', 5, 'mc-day-beach.jpg', true],
   ['08', '空', '空', '星空', 5, 'mc-day-sky.jpg', true],
 ] : [
-  ['01', 'ドット', '住人', '流木を見張っている（順位6）', 6, 'mc-day-dot.jpg'],
-  ['02', 'ラッコ', '住人', '沖で浮かぶ（順位6）', 6, 'mc-day-rakko.jpg'],
-  ['03', 'カメマル', '住人', '浅瀬で海を見ている（順位6）', 6, 'mc-day-kame.jpg'],
+  ['01', 'ドット', '住人', '歩いている（順位6）', 6, 'mc-day-dot.jpg'],
+  ['02', 'ラッコ', '住人', '浮かんでいる（順位6）', 6, 'mc-day-rakko.jpg'],
+  ['03', 'カメマル', '住人', '泳いでいる（順位3）。体が画の端で切れているので、選ばない', 3, 'mc-day-kame.jpg', false, '順位3・見えない'],
   ['04', 'ランタン', '住人', '眠っている（昼）', 6, 'mc-day-lantern.jpg'],
   ['05', '海', '自然', '浅い海を巡る（順位4）', 4, 'mc-day-sea.jpg'],
   ['06', '作業場', '定点', '殻を打つ・縄をなう場', 5, 'mc-day-yard.jpg'],
@@ -55,10 +56,10 @@ const W = document.getElementById('wall'), add = (html) => W.insertAdjacentHTML(
 const pts = (p) => (p === 4 ? '海の見せ場' : p === 5 ? '定点・空' : `順位${p}`);
 const on = CAMS.find((c) => c[0] === ON);
 add(`<div class="tile prog on" style="left:24px;top:24px;width:1280px;height:720px"><img src="${on[5]}" alt=""><div class="air">ON AIR　画面に出ている1台</div>
-  <div class="lab"><span class="no">${on[0]} DORON</span><span class="nm">${on[1]}</span><div class="why">${on[3]}　—　${night ? 'ランタンひとりの夜は、04 を主に、05 海と定点の灯りを巡る' : 'いまは誰も大きなことをしていないので、海と定点を60〜90秒ずつ巡る'}</div></div></div>`);
+  <div class="lab"><span class="no">${on[0]} DORON</span><span class="nm">${on[1]}</span><div class="why">${on[3]}　—　${night ? 'ランタンひとりの夜は、04 を主に、05 海と定点の灯りを巡る' : 'ほかに見せられる出来事がないので、海と定点を60〜90秒ずつ巡る'}</div></div></div>`);
 CAMS.forEach((c, i) => {
   const right = i < 4, x = right ? 1328 : 24 + (i - 4) * 320, y = right ? 24 + i * 260 : 794, w = right ? 568 : 308, h = right ? 248 : 173;
-  add(`<div class="tile${c[0] === ON ? ' on' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${c[6] ? 'filter:brightness(.45) saturate(.5)' : ''}"><img src="${c[5]}" alt=""><span class="pt">${pts(c[4])}</span>
+  add(`<div class="tile${c[0] === ON ? ' on' : ''}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px;${c[6] ? 'filter:brightness(.45) saturate(.5)' : ''}"><img src="${c[5]}" alt=""><span class="pt">${c[7] || pts(c[4])}</span>
     <div class="lab"><span class="no">${c[0]}</span><span class="nm">${c[1]}</span><div class="why">${c[2]}　${c[3]}</div></div></div>`);
 });
 add(`<div class="note" style="top:${794 + 173 + 14}px">画面に出すのは1台だけ（金の枠）。ほかの7台は、位置と構図をいつも持っておき、点の高いカメラへすぐ切り替える。画はビルドしたアプリ（main f5d011f）で撮った見本${night ? '（夜。暗い枠は、いまの島ではまだ撮れていない画を昼の画で代用）' : ''}。</div>`);
