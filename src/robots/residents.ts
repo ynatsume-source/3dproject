@@ -374,14 +374,16 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   // is now made of fewer things than before, the ids the old one drew are drawn all the same — so the island's random
   // draws, and so its days, stay as they were. n: how many ids)
   const sameDraws = (n: number) => { for (let k = 0; k < n; k++) THREE.MathUtils.generateUUID(); };
-  // young casuarinas on the ground Dot will clear for the field (the first three), and two more beyond
+  // young trees on the ground Dot will clear for the field (the first three), and two more beyond
   const TREES = [[-0.4, 5.6], [1.9, 6.9], [-2.4, 7.3], [5.2, -2.6], [-4.8, -3.2]].map(([lx, lz], i) => {
     const w = atHut(lx, lz), g = new THREE.Group(); g.position.set(w.x, L.h(w.x, w.z), w.z); group.add(g);
     const pivot = new THREE.Group(); g.add(pivot);
     // (drawn as the beach's own casuarinas are — their drooping twigs, the same light — only young: 2.7 m; owner
     // 2026-10-10, nature team. Where the shore is not built, a trunk and a crown of rounded masses as before)
     const look = T.plantLook;
-    if (look) { const m = new THREE.InstancedMesh(look.geo.casuarina, look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(2.4, 2.7, 2.4))); m.frustumCulled = false; m.userData.shared = true; pivot.add(m); sameDraws(10); }
+    // (Dot's world has no casuarina: there they are young オオハマボウ, as tall — ocean/shore.ts T.plantLook.sapling)
+    const sap = look?.sapling, sw = sap ? 2.7 * sap.wide * 0.75 : 2.4;
+    if (look) { const m = new THREE.InstancedMesh(sap ? sap.geo : look.geo.casuarina, sap ? sap.mat : look.mat, 1); m.setMatrixAt(0, new THREE.Matrix4().makeRotationY(i * 1.7).scale(new THREE.Vector3(sw, 2.7, sw))); m.frustumCulled = false; m.userData.shared = true; pivot.add(m); sameDraws(10); }
     else {
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 2.4, 7), wood2); trunk.position.y = 1.2; pivot.add(trunk);
       const crown = new THREE.Group(); crown.position.y = 2.3; pivot.add(crown);
