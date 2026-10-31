@@ -1161,6 +1161,13 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     village.stormPrep = 0; village.prepSaved = []; village.prepKnown = []; village.onsetHunger = {};
   }
   function prepActive() { return village.stormPrep > 0 && clockMs - village.stormPrep < islandWait(48 * 3.6e6); }
+  // (the raft hauled up for a storm that did not come: back down the beach once the getting ready is over — else it stayed
+  // up for good after a swell that was not one: science, reviews/195-5ccc3a5 stall2c.log, 380 hours)
+  function prepOver() {
+    if (!village.raft.hauled || prepActive() || storm()) return;
+    village.raft.hauled = false; village.raft.quick = false; drawRaft();
+    byId.dot?.diary.push({ at: clockMs, text: '台風は来なかった。引き上げていた筏を、浜に戻した', key: 'do' });
+  }
   // (getting ready is done by those who know of it — told at sea, at the gathering, or passed on after: not by one who
   // has not heard; ADR 0004, science on #188. One who has not heard hauls the raft up only in a hurry as the storm comes)
   const knowsPrep = (r: Resident) => prepActive() && village.prepKnown.includes(r.id);
@@ -1893,7 +1900,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
     if (r.id === 'dot' && patches.filter((p) => p.by).length < 3) o.push({ id: 'reef:sea', action: 'reef', label: '流木を沈めて漁礁をつくる（ラッコの海）', targetId: 'sea', ...(r.holding === 'wood' ? {} : { ready: false, needs: '流木を持っている' }) });
     if (r.id === 'dot' && !r.holding) for (const b of beds) if (b.grass < 0.5 && !(b.replanted && clockMs < b.replanted)) { o.push({ id: `replant:${b.id}`, action: 'replant', label: `荒れた藻場を植え直す（カメマルの藻場、海草 ${Math.round(b.grass * 100)}%）`, targetId: b.id }); break; }
     if (r.stats.built < HUT.length) o.push({ id: 'place:hut', action: 'place', label: `部材を小屋に取りつける（${r.stats.built + 1}/${HUT.length}）`, targetId: 'hut', ...(r.holding === 'piece' ? {} : { ready: false, needs: '削った部材を持っていること' }) });
-    if (r.id === 'dot' && r.holding === 'piece' && !pieceWanted(r)) o.push({ id: 'stow:bench', action: 'stow', label: `削った部材を作業台の脇に置いておく（あとで使う。いま${village.spare}本）`, targetId: 'bench' });
+    // (set down whenever the hut and the raft do not want it — the house takes its pieces from the bench too: else, with
+    // no mind to build the house, a piece the house wanted stayed in hand and no tree was felled — science, stall2c.log)
+    if (r.id === 'dot' && r.holding === 'piece' && r.stats.built >= HUT.length && !(village.raft.parts < RAFT_N && Object.keys(village.map.seen).length > 0)) o.push({ id: 'stow:bench', action: 'stow', label: `削った部材を作業台の脇に置いておく（あとで使う。いま${village.spare}本）`, targetId: 'bench' });
     if (r.id === 'dot' && !r.holding && village.spare > 0 && pieceWanted(r)) o.push({ id: 'take:bench', action: 'take', label: `作業台の脇に置いた部材を手に取る（${village.spare}本）`, targetId: 'bench' });
     if (!r.holding && drift.kind >= 0 && !drift.by && known('drift')) o.push({ id: 'find:drift', action: 'find', label: '浜の見慣れないものを拾って調べる', targetId: 'drift' });
     o.push({ id: 'shelve:shelf', action: 'shelve', label: '見つけたものを棚に飾る', targetId: 'shelf', ...(r.holding === 'drift' ? {} : { ready: false, needs: '見つけたものを持っていること' }) });
@@ -2080,6 +2089,9 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
         if (vo && !back && (!w || (w.cloud < 0.6 && w.rain < 0.1))) return { text: '筏で島へ渡る', why: '筏ができて、晴れている', plan: [vo] }; }
       if (raftWanted && has('lash:')) return { text: '部材を筏に組む', why: '削った部材があり、見えた島へ渡る筏が要る', plan: ['lash:raft'] };
       if (has('place:')) return { text: '小屋に部材を取りつける', why: '削った部材がある', plan: ['place:hut'] };
+      // (a piece in hand with nowhere to go — the hut and the raft whole — is set down by the bench: its hands free for the
+      // axe. Held, no tree could be felled, and the jars waited unfired for days: science, reviews/195-5ccc3a5 stall2c.log)
+      if (has('stow:')) return { text: '部材を作業台に置いておく', why: '削った部材を持っているが、いま使う所がない', plan: ['stow:bench'] };
       if (has('craft:')) return { text: '流木を部材にする', why: '流木を持っている', plan: ['craft:bench', raftWanted ? 'lash:raft' : 'place:hut'] };
       if (has('shelve:')) return { text: '見つけたものを棚に置く', why: '手に持っている', plan: ['shelve:shelf'] };
       if (has('find:')) return { text: '見慣れないものを調べる', why: '浜で見かけた', plan: ['find:drift', 'shelve:shelf'] };
@@ -2527,7 +2539,7 @@ export function makeResidents(loc: any, T: any, fishNames: string[], birdNames: 
   }
   /** Step the running processes as far as now, and tell what came of the ones that ended. */
   function tickLab() {
-    hypoTick(); swellTick(); swellWatch();
+    hypoTick(); swellTick(); swellWatch(); prepOver();
     for (const x of [...village.labRuns]) {
       const run = lab.runs[x.runId], e = entryOf(x.processId, x.key), by = byId[x.by];
       if (!run || !e) { village.labRuns.splice(village.labRuns.indexOf(x), 1); continue; }

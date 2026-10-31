@@ -11,6 +11,8 @@
 //   F Kamemaru tells of a long swell with Dot out of earshot: getting ready begins for those who heard, not for Dot — it
 //     does not haul the raft up (ADR 0004: it acts on what it knows; science on #188); the typhoon comes, Dot near the
 //     raft, and it hauls it up in a hurry — and its diary says it did not know
+//   G the getting ready over and no typhoon (a swell that was not one): the raft hauled up goes back down the beach, Dot's
+//     diary says so; while the getting ready lasts, or in a typhoon, it stays up (science, reviews/195-5ccc3a5 stall2c.log)
 // Usage: npx tsx --import ./scripts/node-assets.mjs scripts/storm-watch-check.ts
 import * as THREE from 'three';
 import { makeResidents } from '../src/robots/residents';
@@ -97,6 +99,15 @@ async function run(R: any, secs: number, until?: () => boolean) {
   await run(R, 60); R.setWeather(fair); await run(R, 5);
   want('F not heard, not readied: Dot does not haul the raft before; in a hurry as it comes, and it did not know', unheard && quick && V.raft.parts === 4 && dot.diary.some((e: any) => /前もって知らなかった/.test(e.text)),
     `known ${V.prepKnown.join(',') || '—'}; ${V.raft.parts}/6; ${dot.diary.slice(-1).map((e: any) => e.text).join('')}`);
+}
+{ // G
+  const { R, dot, V } = island(47);
+  const prep = 48 * 3.6e6 / (365 / 28);   // (two island days, in real time)
+  V.raft.hauled = true; V.stormPrep = now - prep * 0.5; V.prepBy = 'kame';
+  await run(R, 40);
+  const stillUp = V.raft.hauled;
+  V.stormPrep = now - prep - 60e3; await run(R, 40);
+  want('G the getting ready over, no typhoon: the raft back down the beach — not while it lasts', stillUp && !V.raft.hauled && dot.diary.some((e: any) => /台風は来なかった。引き上げていた筏を、浜に戻した/.test(e.text)), `${stillUp} → ${V.raft.hauled}`);
 }
 console.log(bad ? `FAIL (${bad})` : 'all ok');
 process.exit(bad ? 1 : 0);
